@@ -899,6 +899,32 @@ leaderboard:
   desc_power_charger: Hvem oppnår høyest ladeeffekt i kW?
   prev_category: Forrige kategori
   next_category: Neste kategori
+
+ticker:
+  leader: "#1 {category}: {name} med {value} {unit}"
+  stat_base: "Fellesskapet {month}: {kwh} kWh på {charges} ladinger"
+  co2_saved: "Fellesskapet {month}: {amount} {unit} CO2 spart mot fossilbiler"
+  households: "Strømmen vår i {month} kunne gitt lys til {count} husholdninger i en hel måned"
+  solar: "{count} solcellepaneler på taket hadde produsert strømmen til fellesskapet i {month}"
+  wind: "En vindturbin måtte gått {amount} {unit} for å forsyne fellesskapet vårt i {month}"
+  savings_vs_fuel: "Fellesskapet {month}: {amount} € spart mot bensin/diesel ({price} €/L)"
+  charge_time: "Fellesskapet vårt ladet totalt {amount} {unit} sammenhengende i {month}"
+  home_quota: "{percent}% av alle ladinger i {month} skjedde hjemme"
+  top_provider: "Mest populære offentlige ladeoperatør i {month}: {provider} med {count} ladinger"
+  units:
+    kwh: "kWh"
+    charges: "ladinger"
+    km: "km"
+    ct_kwh: "øre/kWh"
+    night_charges: "nattladinger"
+    celsius: "°C"
+    kw: "kW"
+    tonnes: "tonn"
+    kg: "kg"
+    hours: "timer"
+    minutes: "minutter"
+    days: "dager"
+
 logform:
   title: Registrer ladeøkt
   no_car_title: Det er ikke lagt til noen biler ennå

@@ -2,18 +2,12 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { BoltIcon, TrophyIcon, SparklesIcon, BanknotesIcon } from '@heroicons/vue/24/outline'
 import type { Component } from 'vue'
-import apiClient from '../../api/axios'
 import { useI18n } from 'vue-i18n'
-
-interface TickerItem {
-  type: 'LEADER' | 'STAT' | 'FACT' | 'JOKE' | 'NEWS'
-  text: string
-  icon: string
-}
+import { useTickerItems, type TickerItem } from '../../composables/useTickerItems'
 
 const { t } = useI18n()
+const { items, fetchTicker } = useTickerItems()
 
-const items = ref<TickerItem[]>([])
 const tabVisible = ref(typeof document !== 'undefined' ? !document.hidden : true)
 
 const displayItems = computed(() =>
@@ -28,29 +22,25 @@ const marqueeActive = computed(() => tabVisible.value)
 
 type CardStyle = { shadowClass: string; iconClass: string; iconComponent: Component }
 
+// Icon + accent colour are driven by the backend's variant (no fragile text matching).
+const VARIANT_STYLE: Record<string, CardStyle> = {
+  leader: { shadowClass: 'shadow-[5px_5px_0_0_#facc15]', iconClass: 'text-yellow-500', iconComponent: TrophyIcon },
+  eco:    { shadowClass: 'shadow-[5px_5px_0_0_#34d399]', iconClass: 'text-emerald-500', iconComponent: SparklesIcon },
+  money:  { shadowClass: 'shadow-[5px_5px_0_0_#60a5fa]', iconClass: 'text-blue-500', iconComponent: BanknotesIcon },
+  energy: { shadowClass: 'shadow-[5px_5px_0_0_#4ade80]', iconClass: 'text-green-500', iconComponent: BoltIcon },
+}
+
 function cardStyle(item: TickerItem): CardStyle {
-  if (item.type === 'LEADER')
-    return { shadowClass: 'shadow-[5px_5px_0_0_#facc15]', iconClass: 'text-yellow-500', iconComponent: TrophyIcon }
-  const text = item.text.toLowerCase()
-  if (text.includes('co2') || text.includes('solarmodul') || text.includes('windrad') || text.includes('haushalt'))
-    return { shadowClass: 'shadow-[5px_5px_0_0_#34d399]', iconClass: 'text-emerald-500', iconComponent: SparklesIcon }
-  if (text.includes('€') || text.includes('benzin'))
-    return { shadowClass: 'shadow-[5px_5px_0_0_#60a5fa]', iconClass: 'text-blue-500', iconComponent: BanknotesIcon }
-  return { shadowClass: 'shadow-[5px_5px_0_0_#4ade80]', iconClass: 'text-green-500', iconComponent: BoltIcon }
+  return VARIANT_STYLE[item.variant] ?? VARIANT_STYLE.energy
 }
 
 function onVisibilityChange() {
   tabVisible.value = !document.hidden
 }
 
-onMounted(async () => {
+onMounted(() => {
   document.addEventListener('visibilitychange', onVisibilityChange)
-  try {
-    const res = await apiClient.get('/public/leaderboard/ticker')
-    items.value = res.data
-  } catch {
-    // silent fail - section simply stays hidden
-  }
+  fetchTicker()
 })
 
 onUnmounted(() => {

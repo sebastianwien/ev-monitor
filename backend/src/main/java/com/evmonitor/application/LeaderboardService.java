@@ -151,11 +151,12 @@ public class LeaderboardService {
         LocalDate today = LocalDate.now();
         LocalDateTime startOfMonth = today.withDayOfMonth(1).atStartOfDay();
         LocalDateTime endOfToday = today.plusDays(1).atStartOfDay();
-        String month = today.format(DateTimeFormatter.ofPattern("MMMM", Locale.GERMAN));
+        // Month is emitted as its 1-12 number; the frontend renders the localised name.
+        String month = String.valueOf(today.getMonthValue());
 
         List<TickerItemDTO> items = new ArrayList<>();
 
-        // Category leaders
+        // Category leaders - the frontend maps category (enum name) + value to a localised sentence.
         for (LeaderboardCategory cat : LeaderboardCategory.values()) {
             List<LeaderboardRankRow> ranking = getRanking(cat, startOfMonth, endOfToday);
             if (!ranking.isEmpty()) {
@@ -164,11 +165,11 @@ public class LeaderboardService {
                 String displayName = leader.carLabel() != null
                         ? leader.username() + " (" + leader.carLabel() + ")"
                         : leader.username();
-                items.add(new TickerItemDTO(
-                        "LEADER",
-                        "#1 " + cat.getDisplayName() + ": " + displayName + " mit " + valueStr + " " + cat.getUnit(),
-                        "trophy"
-                ));
+                items.add(TickerItemDTO.leader(Map.of(
+                        "category", cat.name(),
+                        "name", displayName,
+                        "value", valueStr
+                )));
             }
         }
 
@@ -183,12 +184,11 @@ public class LeaderboardService {
         double kwhDouble = totalKwh.doubleValue();
 
         // Basis-Stat
-        items.add(new TickerItemDTO(
-                "STAT",
-                "Community " + month + ": " + totalKwh.setScale(0, RoundingMode.HALF_UP).toPlainString()
-                        + " kWh in " + totalCharges + " Ladevorgaengen",
-                "bolt"
-        ));
+        items.add(TickerItemDTO.stat("stat_base", "energy", Map.of(
+                "month", month,
+                "kwh", totalKwh.setScale(0, RoundingMode.HALF_UP).toPlainString(),
+                "charges", Long.toString(totalCharges)
+        )));
 
         if (kwhDouble > 0) {
             // Annahmen: 20 kWh/100km (EV-Durchschnitt), 380g CO2/kWh (dt. Strommix), 160g CO2/km (Verbrenner-Durchschnitt)
@@ -198,39 +198,35 @@ public class LeaderboardService {
             double savedCo2Kg = iceCo2Kg - evCo2Kg;
 
             if (savedCo2Kg > 0) {
-                String co2Text = savedCo2Kg >= 1000
-                        ? String.format("%.1f Tonnen", savedCo2Kg / 1000.0)
-                        : String.format("%.0f kg", savedCo2Kg);
-                items.add(new TickerItemDTO("STAT",
-                        "Community " + month + ": " + co2Text + " CO2 gegenueber Verbrennern gespart",
-                        "bolt"));
+                boolean tonnes = savedCo2Kg >= 1000;
+                items.add(TickerItemDTO.stat("co2_saved", "eco", Map.of(
+                        "month", month,
+                        "amount", tonnes ? num(savedCo2Kg / 1000.0, 1) : num(savedCo2Kg, 0),
+                        "unit", tonnes ? "tonnes" : "kg")));
             }
 
             // Haushalte (dt. Durchschnitt ~290 kWh/Monat)
             long haushalte = Math.round(kwhDouble / 290.0);
             if (haushalte > 0) {
-                items.add(new TickerItemDTO("STAT",
-                        "Mit unserem Strom im " + month + " haetten " + haushalte + " Haushalte einen Monat lang geleuchtet",
-                        "bolt"));
+                items.add(TickerItemDTO.stat("households", "eco", Map.of(
+                        "month", month, "count", Long.toString(haushalte))));
             }
 
             // Solarmodule (400W Panel, ~33 kWh/Monat in DE)
             long panels = Math.round(kwhDouble / 33.0);
             if (panels > 0) {
-                items.add(new TickerItemDTO("STAT",
-                        "Mit " + panels + " Solarmodulen auf dem Dach haette die Community ihren Strom im " + month + " selbst erzeugt",
-                        "bolt"));
+                items.add(TickerItemDTO.stat("solar", "eco", Map.of(
+                        "month", month, "count", Long.toString(panels))));
             }
 
             // Windrad-Stunden (3 MW Onshore-Windrad)
             double windStunden = kwhDouble / 3000.0;
             if (windStunden >= 0.5) {
-                String windText = windStunden < 1
-                        ? String.format("%.0f Minuten", windStunden * 60)
-                        : String.format("%.1f Stunden", windStunden);
-                items.add(new TickerItemDTO("STAT",
-                        "Ein Windrad muesste " + windText + " laufen um unsere Community im " + month + " zu versorgen",
-                        "bolt"));
+                boolean hours = windStunden >= 1;
+                items.add(TickerItemDTO.stat("wind", "eco", Map.of(
+                        "month", month,
+                        "amount", hours ? num(windStunden, 1) : num(windStunden * 60, 0),
+                        "unit", hours ? "hours" : "minutes")));
             }
 
             // Ersparnis vs. Benzin/Diesel (7L/100km Verbrenner-Durchschnitt)
@@ -240,10 +236,10 @@ public class LeaderboardService {
             if (evCost > 0) {
                 double savings = fuelCost - evCost;
                 if (savings > 0) {
-                    items.add(new TickerItemDTO("STAT",
-                            String.format("Community " + month + ": %.0f € gespart gegenueber Benzin/Diesel (%.2f €/L)",
-                                    savings, avgFuelPrice),
-                            "bolt"));
+                    items.add(TickerItemDTO.stat("savings_vs_fuel", "money", Map.of(
+                            "month", month,
+                            "amount", num(savings, 0),
+                            "price", num(avgFuelPrice, 2))));
                 }
             }
         }
@@ -251,38 +247,36 @@ public class LeaderboardService {
         // Ladezeit
         if (totalMinutes > 0) {
             double ladeTage = totalMinutes / 60.0 / 24.0;
-            String ladeText = ladeTage >= 1
-                    ? String.format("%.1f Tage", ladeTage)
-                    : String.format("%.0f Stunden", totalMinutes / 60.0);
-            items.add(new TickerItemDTO("STAT",
-                    "Unsere Community hat im " + month + " insgesamt " + ladeText + " am Stueck geladen",
-                    "bolt"));
+            boolean days = ladeTage >= 1;
+            items.add(TickerItemDTO.stat("charge_time", "energy", Map.of(
+                    "month", month,
+                    "amount", days ? num(ladeTage, 1) : num(totalMinutes / 60.0, 0),
+                    "unit", days ? "days" : "hours")));
         }
 
         // Heimladen-Quote
         if (totalCharges > 0) {
             long homePercent = Math.round(homeCharges * 100.0 / totalCharges);
-            items.add(new TickerItemDTO("STAT",
-                    homePercent + "% aller Ladevorgänge im " + month + " fanden Zuhause statt",
-                    "bolt"));
+            items.add(TickerItemDTO.stat("home_quota", "energy", Map.of(
+                    "month", month, "percent", Long.toString(homePercent))));
         }
 
         // Beliebtester öffentlicher Ladeanbieter (Ladekarte des Users, sonst CPO-Name)
         if (topProvider != null) {
-            items.add(new TickerItemDTO("STAT",
-                    "Beliebtester öffentlicher Ladeanbieter im " + month + ": " + topProvider.providerName()
-                            + " mit " + topProvider.count() + " Ladevorgängen",
-                    "bolt"));
+            items.add(TickerItemDTO.stat("top_provider", "energy", Map.of(
+                    "month", month,
+                    "provider", topProvider.providerName(),
+                    "count", Long.toString(topProvider.count()))));
         }
 
-        // Good news from external RSS feeds
+        // Good news from external RSS feeds (external titles - passed through verbatim)
         List<ExternalNewsService.NewsItem> newsItems = externalNewsService.getNewsItems();
         if (!newsItems.isEmpty()) {
             // Pick up to 2 news items per ticker refresh (rotate by day-of-year)
             int offset = LocalDate.now().getDayOfYear() % newsItems.size();
             for (int i = 0; i < Math.min(2, newsItems.size()); i++) {
                 ExternalNewsService.NewsItem news = newsItems.get((offset + i) % newsItems.size());
-                items.add(new TickerItemDTO("NEWS", news.title(), "newspaper", news.url()));
+                items.add(TickerItemDTO.news(news.title(), news.url()));
             }
         }
 
@@ -353,6 +347,11 @@ public class LeaderboardService {
                 isCheapest ? row.kwhTotal() : null,
                 isCheapest ? row.sessionCount() : null
         );
+    }
+
+    /** Format a number as a locale-neutral plain string (dot decimal) for the frontend to parse and re-format. */
+    private static String num(double value, int decimals) {
+        return String.format(Locale.US, "%." + decimals + "f", value);
     }
 
     private BigDecimal formatValue(LeaderboardCategory category, BigDecimal raw) {

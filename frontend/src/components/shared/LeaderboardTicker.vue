@@ -1,19 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import apiClient from '../../api/axios'
-import { TrophyIcon, BoltIcon, LightBulbIcon, FaceSmileIcon, NewspaperIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
+import { TrophyIcon, BoltIcon, SparklesIcon, BanknotesIcon, NewspaperIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import { useTickerState } from '../../composables/useTickerState'
-
-interface TickerItem {
-  type: 'LEADER' | 'STAT' | 'FACT' | 'JOKE' | 'NEWS'
-  text: string
-  icon: string
-  url?: string
-}
+import { useTickerItems } from '../../composables/useTickerItems'
 
 const { tickerHasItems, tickerCollapsed: collapsed, toggle } = useTickerState()
-
-const items = ref<TickerItem[]>([])
+const { items, fetchTicker } = useTickerItems()
 
 const animDuration = computed(() => Math.max(120, items.value.length * 8) + 's')
 
@@ -24,28 +16,17 @@ function onVisibilityChange() {
 
 const animationActive = computed(() => !collapsed.value && tabVisible.value)
 
-async function fetchTicker() {
-  try {
-    const res = await apiClient.get('/public/leaderboard/ticker')
-    items.value = res.data
-    tickerHasItems.value = res.data.length > 0
-  } catch {
-    // silent fail
-  }
-}
-
-function iconComponent(icon: string) {
-  if (icon === 'trophy') return TrophyIcon
-  if (icon === 'bolt') return BoltIcon
-  if (icon === 'face-smile') return FaceSmileIcon
-  if (icon === 'newspaper') return NewspaperIcon
-  return LightBulbIcon
+function iconComponent(variant: string) {
+  if (variant === 'leader') return TrophyIcon
+  if (variant === 'eco') return SparklesIcon
+  if (variant === 'money') return BanknotesIcon
+  if (variant === 'news') return NewspaperIcon
+  return BoltIcon
 }
 
 function itemIconColor(type: string): string {
   if (type === 'LEADER') return 'text-yellow-300'
   if (type === 'STAT') return 'text-emerald-300'
-  if (type === 'JOKE') return 'text-pink-300'
   if (type === 'NEWS') return 'text-lime-300'
   return 'text-sky-300'
 }
@@ -53,13 +34,13 @@ function itemIconColor(type: string): string {
 function itemTextColor(type: string): string {
   if (type === 'LEADER') return 'text-yellow-200'
   if (type === 'STAT') return 'text-emerald-200'
-  if (type === 'JOKE') return 'text-pink-200'
   if (type === 'NEWS') return 'text-lime-200'
   return 'text-sky-200'
 }
 
-onMounted(() => {
-  fetchTicker()
+onMounted(async () => {
+  await fetchTicker()
+  tickerHasItems.value = items.value.length > 0
   document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
@@ -89,7 +70,7 @@ onUnmounted(() => {
                 rel="noopener noreferrer"
                 :class="['flex items-center gap-1.5 text-xs whitespace-nowrap px-5 underline decoration-lime-400/40 hover:decoration-lime-300', itemTextColor(item.type)]">
                 <component
-                  :is="iconComponent(item.icon)"
+                  :is="iconComponent(item.variant)"
                   :class="['h-3.5 w-3.5 flex-shrink-0', itemIconColor(item.type)]" />
                 {{ item.text }}
                 <ArrowTopRightOnSquareIcon class="h-3 w-3 flex-shrink-0 opacity-60" />
@@ -98,7 +79,7 @@ onUnmounted(() => {
                 v-else
                 :class="['flex items-center gap-1.5 text-xs whitespace-nowrap px-5', itemTextColor(item.type)]">
                 <component
-                  :is="iconComponent(item.icon)"
+                  :is="iconComponent(item.variant)"
                   :class="['h-3.5 w-3.5 flex-shrink-0', itemIconColor(item.type)]" />
                 {{ item.text }}
               </span>

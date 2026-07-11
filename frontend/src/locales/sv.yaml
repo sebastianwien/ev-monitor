@@ -899,6 +899,32 @@ leaderboard:
   desc_power_charger: Vem når högst laddeffekt i kW?
   prev_category: Föregående kategori
   next_category: Nästa kategori
+
+ticker:
+  leader: "#1 {category}: {name} med {value} {unit}"
+  stat_base: "Gemenskapen {month}: {kwh} kWh på {charges} laddningar"
+  co2_saved: "Gemenskapen {month}: {amount} {unit} CO2 sparat jämfört med fossilbilar"
+  households: "Vår el i {month} hade kunnat ge ljus åt {count} hushåll i en hel månad"
+  solar: "{count} solpaneler på taket hade producerat gemenskapens el i {month}"
+  wind: "Ett vindkraftverk skulle behöva gå {amount} {unit} för att försörja vår gemenskap i {month}"
+  savings_vs_fuel: "Gemenskapen {month}: {amount} € sparat jämfört med bensin/diesel ({price} €/L)"
+  charge_time: "Vår gemenskap laddade totalt {amount} {unit} i sträck i {month}"
+  home_quota: "{percent}% av alla laddningar i {month} skedde hemma"
+  top_provider: "Populäraste publika laddoperatören i {month}: {provider} med {count} laddningar"
+  units:
+    kwh: "kWh"
+    charges: "laddningar"
+    km: "km"
+    ct_kwh: "öre/kWh"
+    night_charges: "nattladdningar"
+    celsius: "°C"
+    kw: "kW"
+    tonnes: "ton"
+    kg: "kg"
+    hours: "timmar"
+    minutes: "minuter"
+    days: "dagar"
+
 logform:
   title: Registrera laddningssession
   no_car_title: Inget fordon har lagts till ännu

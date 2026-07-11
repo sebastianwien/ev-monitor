@@ -941,6 +941,31 @@ leaderboard:
   prev_category: "Vorherige Kategorie"
   next_category: "Nächste Kategorie"
 
+ticker:
+  leader: "#1 {category}: {name} mit {value} {unit}"
+  stat_base: "Community {month}: {kwh} kWh in {charges} Ladevorgängen"
+  co2_saved: "Community {month}: {amount} {unit} CO2 gegenüber Verbrennern gespart"
+  households: "Mit unserem Strom im {month} hätten {count} Haushalte einen Monat lang geleuchtet"
+  solar: "Mit {count} Solarmodulen auf dem Dach hätte die Community ihren Strom im {month} selbst erzeugt"
+  wind: "Ein Windrad müsste {amount} {unit} laufen, um unsere Community im {month} zu versorgen"
+  savings_vs_fuel: "Community {month}: {amount} € gespart gegenüber Benzin/Diesel ({price} €/L)"
+  charge_time: "Unsere Community hat im {month} insgesamt {amount} {unit} am Stück geladen"
+  home_quota: "{percent}% aller Ladevorgänge im {month} fanden Zuhause statt"
+  top_provider: "Beliebtester öffentlicher Ladeanbieter im {month}: {provider} mit {count} Ladevorgängen"
+  units:
+    kwh: "kWh"
+    charges: "Ladevorgänge"
+    km: "km"
+    ct_kwh: "ct/kWh"
+    night_charges: "Nacht-Ladungen"
+    celsius: "°C"
+    kw: "kW"
+    tonnes: "Tonnen"
+    kg: "kg"
+    hours: "Stunden"
+    minutes: "Minuten"
+    days: "Tage"
+
 logform:
   title: "Ladevorgang erfassen"
   no_car_title: "Noch kein Fahrzeug hinterlegt"

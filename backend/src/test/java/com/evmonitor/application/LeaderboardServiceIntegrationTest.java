@@ -233,7 +233,7 @@ class LeaderboardServiceIntegrationTest {
 
         var items = leaderboardService.getTicker();
 
-        assertThat(items).anyMatch(i -> "STAT".equals(i.type()));
+        assertThat(items).anyMatch(i -> "STAT".equals(i.type()) && "stat_base".equals(i.messageKey()));
     }
 
     @Test
@@ -253,7 +253,10 @@ class LeaderboardServiceIntegrationTest {
 
         var items = leaderboardService.getTicker();
 
-        assertThat(items).anyMatch(i -> "LEADER".equals(i.type()) && i.text().contains("anna"));
+        assertThat(items).anyMatch(i -> "LEADER".equals(i.type())
+                && "leader".equals(i.messageKey())
+                && "MONTHLY_KWH".equals(i.params().get("category"))
+                && i.params().get("name").contains("anna"));
     }
 
     // ---- Month-end rewards ----
@@ -343,7 +346,9 @@ class LeaderboardServiceIntegrationTest {
 
         var items = leaderboardService.getTicker();
 
-        assertThat(items).anyMatch(i -> "STAT".equals(i.type()) && i.text().contains("75%") && i.text().contains("Zuhause"));
+        assertThat(items).anyMatch(i -> "STAT".equals(i.type())
+                && "home_quota".equals(i.messageKey())
+                && "75".equals(i.params().get("percent")));
     }
 
     @Test
@@ -356,7 +361,7 @@ class LeaderboardServiceIntegrationTest {
 
         var items = leaderboardService.getTicker();
 
-        assertThat(items).noneMatch(i -> i.text().contains("Zuhause"));
+        assertThat(items).noneMatch(i -> "home_quota".equals(i.messageKey()));
     }
 
     // ---- Ticker: Top CPO ----
@@ -372,7 +377,10 @@ class LeaderboardServiceIntegrationTest {
 
         var items = leaderboardService.getTicker();
 
-        assertThat(items).anyMatch(i -> "STAT".equals(i.type()) && i.text().contains("EnBW mobility+") && i.text().contains("15"));
+        assertThat(items).anyMatch(i -> "STAT".equals(i.type())
+                && "top_provider".equals(i.messageKey())
+                && "EnBW mobility+".equals(i.params().get("provider"))
+                && "15".equals(i.params().get("count")));
     }
 
     @Test
@@ -386,7 +394,7 @@ class LeaderboardServiceIntegrationTest {
 
         var items = leaderboardService.getTicker();
 
-        assertThat(items).noneMatch(i -> i.text().contains("beliebteste") || i.text().contains("Ladeanbieter"));
+        assertThat(items).noneMatch(i -> "top_provider".equals(i.messageKey()));
     }
 
     private void stubAllRankingsEmpty() {

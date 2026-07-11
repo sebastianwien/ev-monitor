@@ -941,6 +941,31 @@ leaderboard:
   prev_category: "Previous category"
   next_category: "Next category"
 
+ticker:
+  leader: "#1 {category}: {name} with {value} {unit}"
+  stat_base: "Community {month}: {kwh} kWh across {charges} charging sessions"
+  co2_saved: "Community {month}: {amount} {unit} of CO2 saved vs. combustion cars"
+  households: "Our electricity in {month} would have powered {count} homes for a month"
+  solar: "{count} rooftop solar panels would have produced the community's electricity in {month}"
+  wind: "A wind turbine would need to run {amount} {unit} to power our community in {month}"
+  savings_vs_fuel: "Community {month}: €{amount} saved vs. petrol/diesel (€{price}/L)"
+  charge_time: "Our community charged for {amount} {unit} straight in {month}"
+  home_quota: "{percent}% of all charging sessions in {month} happened at home"
+  top_provider: "Most popular public charging provider in {month}: {provider} with {count} sessions"
+  units:
+    kwh: "kWh"
+    charges: "charges"
+    km: "km"
+    ct_kwh: "ct/kWh"
+    night_charges: "night charges"
+    celsius: "°C"
+    kw: "kW"
+    tonnes: "tonnes"
+    kg: "kg"
+    hours: "hours"
+    minutes: "minutes"
+    days: "days"
+
 logform:
   title: "Record charging session"
   no_car_title: "No vehicle added yet"
