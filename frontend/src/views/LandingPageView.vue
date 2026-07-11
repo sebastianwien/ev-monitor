@@ -327,10 +327,10 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
     <!-- Hero Section -->
     <section class="pt-8 pb-6 sm:pt-12 sm:pb-8">
       <div class="max-w-4xl mx-auto text-center px-6 sm:px-8 lg:px-12">
-        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-100 leading-tight mb-4">
+        <h1 class="text-3xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-gray-100 leading-tight mb-4">
           {{ t('landing.hero.title') }}
         </h1>
-        <p class="text-xl sm:text-2xl text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto break-words leading-relaxed">
+        <p class="text-lg sm:text-2xl text-gray-700 dark:text-gray-300 mb-8 max-w-2xl mx-auto break-words leading-relaxed">
           {{ t('landing.hero.subtitle') }}
         </p>
 
@@ -392,8 +392,10 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">{{ t('landing.community_intro.text', { drivers: formatNumber(communityDrivers) }) }}</p>
               <!-- Community-Kennzahlen: gehoeren zum Intro, zeigen die Groesse der Datenbasis -->
               <div class="mt-8 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
-                <div class="grid grid-cols-3 divide-x divide-gray-900/10 dark:divide-white/10">
-                  <div v-for="s in trustStats" :key="s.label" class="px-2 sm:px-4 text-center">
+                <!-- Mobile: gestapelt (divide-y), damit lange Zahlen wie "1.4 Mio. km" nicht
+                     ueber mehrere Zeilen brechen. Ab sm: 3 Spalten wie gehabt. -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-900/10 dark:divide-white/10">
+                  <div v-for="s in trustStats" :key="s.label" class="py-4 first:pt-0 last:pb-0 sm:py-0 px-2 sm:px-4 text-center">
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
                     <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
                   </div>
