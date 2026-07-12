@@ -11,5 +11,8 @@ public interface JpaUserChargingProviderRepository extends JpaRepository<UserCha
 
     List<UserChargingProviderEntity> findByUserIdOrderByActiveFromDesc(UUID userId);
 
+    /** Cards the user currently holds. active_until IS NULL is the "still in my wallet" contract. */
+    List<UserChargingProviderEntity> findByUserIdAndActiveUntilIsNull(UUID userId);
+
     boolean existsByIdAndUserId(UUID id, UUID userId);
 }

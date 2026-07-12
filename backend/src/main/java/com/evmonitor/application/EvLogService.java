@@ -27,6 +27,9 @@ import java.util.*;
 @Slf4j
 public class EvLogService {
 
+    /** Private charges are stored at 6 chars (~600m), public ones at 7 (~150m). */
+    private static final int MIN_GEOHASH_LENGTH_FOR_LOOKUP = 6;
+
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final VehicleSpecificationRepository vehicleSpecificationRepository;
@@ -85,8 +88,8 @@ public class EvLogService {
                 throw new IllegalArgumentException("Charging provider not found for current user");
             }
             builder.chargingProviderId(request.chargingProviderId());
-        } else if (geohash != null) {
-            evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
+        } else {
+            resolveChargingProvider(userId, geohash, Boolean.TRUE.equals(request.isPublicCharging()))
                     .ifPresent(builder::chargingProviderId);
         }
         newLog = builder.build();
@@ -184,9 +187,7 @@ public class EvLogService {
         // Uses "before this log's timestamp" so late-arriving logs pick the contemporaneous value.
         newLog = inheritTireAndRouteType(newLog);
 
-        if (request.geohash() != null) {
-            newLog = applyPriceSuggestion(newLog, request.userId(), request.costEur() != null);
-        }
+        newLog = enrichWithChargingProvider(newLog, request.userId(), request.costEur() != null);
 
         EvLog savedLog = save(newLog);
 
@@ -268,8 +269,8 @@ public class EvLogService {
         }
         evLogRepository.updateGeohash(carId, loggedAt, geohash).ifPresent(evLog -> {
             if (evLog.getCostEur() == null) {
-                EvLog enriched = applyPriceSuggestion(evLog, userId, false);
-                if (enriched.getCostEur() != null) evLogRepository.save(enriched);
+                EvLog enriched = enrichWithChargingProvider(evLog, userId, false);
+                if (enriched != evLog) evLogRepository.save(enriched);
             }
         });
     }
@@ -319,27 +320,60 @@ public class EvLogService {
         return changed ? builder.build() : log;
     }
 
-    private EvLog applyPriceSuggestion(EvLog log, UUID userId, boolean hasCostAlready) {
-        if (log.getGeohash() == null || hasCostAlready) return log;
-        // EvLog.costBasisKwh() = kwhCharged when measured, else kwhAtVehicle. We do NOT
-        // gross up netto by the AC-loss pauschale here: that would produce a ct/kWh higher
-        // than the tariff the user actually set. See PriceSuggestionEfficiencyIntegrationTest.
-        BigDecimal effectiveEnergy = log.costBasisKwh();
-        if (effectiveEnergy == null) return log;
+    /**
+     * Attributes a log to a charging card and - when it has no cost yet - prices it with that
+     * card's tariff. Attribution and pricing are independent: a Tesla-Supercharger log arrives
+     * with its own billed cost, which always wins, but it still belongs to a card.
+     * Returns the unchanged instance when no card applies.
+     */
+    private EvLog enrichWithChargingProvider(EvLog log, UUID userId, boolean hasCostAlready) {
+        if (log.getChargingProviderId() != null) return log;
 
-        Optional<UUID> providerIdOpt = evLogRepository.findMostRecentChargingProviderAtGeohash(userId, log.getGeohash());
+        Optional<UUID> providerIdOpt = resolveChargingProvider(userId, log.getGeohash(), log.isPublicCharging());
         if (providerIdOpt.isEmpty()) return log;
         UUID providerId = providerIdOpt.get();
 
-        return chargingProviderRepository.findById(providerId)
-                .flatMap(provider -> costFromProvider(log, provider))
-                .map(cost -> log.toBuilder().chargingProviderId(providerId).costEur(cost).build())
-                .orElse(log);
+        var builder = log.toBuilder().chargingProviderId(providerId);
+        if (!hasCostAlready) {
+            chargingProviderRepository.findById(providerId)
+                    .flatMap(provider -> costFromProvider(log, provider))
+                    .ifPresent(builder::costEur);
+        }
+        return builder.build();
+    }
+
+    /**
+     * Which card paid for a charge the user did not assign one to. The card they last used at
+     * this exact location wins - it is the strongest evidence we have. Failing that, a public
+     * charge falls back to their single active card: with exactly one card in the wallet there
+     * is nothing to guess. Users holding several cards stay unattributed rather than get an
+     * invented tariff, and home charging never inherits a public card at all.
+     */
+    private Optional<UUID> resolveChargingProvider(UUID userId, String geohash, boolean isPublicCharging) {
+        // Below 6 chars a geohash spans kilometers - too coarse to identify a charge point, so it
+        // would attribute the card of some unrelated charge nearby. The repository lookup demands
+        // the same minimum.
+        boolean locationIsPreciseEnough = geohash != null && geohash.length() >= MIN_GEOHASH_LENGTH_FOR_LOOKUP;
+        Optional<UUID> usedHereBefore = locationIsPreciseEnough
+                ? evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
+                : Optional.empty();
+        if (usedHereBefore.isPresent()) return usedHereBefore;
+        if (!isPublicCharging) return Optional.empty();
+
+        List<UserChargingProviderEntity> activeCards =
+                chargingProviderRepository.findByUserIdAndActiveUntilIsNull(userId);
+        return activeCards.size() == 1
+                ? Optional.of(activeCards.get(0).getId())
+                : Optional.empty();
     }
 
     /**
      * Cost for this log under the given tariff, or empty when it cannot be priced
      * (no energy recorded, or no price configured for its charging type).
+     *
+     * Bills EvLog.costBasisKwh() (kwhCharged when measured, else kwhAtVehicle) as-is. Netto is
+     * deliberately NOT grossed up by the AC-loss pauschale: that would bill a ct/kWh higher than
+     * the tariff the user actually set. See PriceSuggestionEfficiencyIntegrationTest.
      */
     private Optional<BigDecimal> costFromProvider(EvLog log, UserChargingProviderEntity provider) {
         BigDecimal energy = log.costBasisKwh();
