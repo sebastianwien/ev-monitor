@@ -1354,6 +1354,7 @@ settings:
   delete_password_placeholder: "Password to confirm"
   delete_confirm_btn: "Delete permanently"
   tariff_title: "My Charging Cards"
+  tariff_moved_hint: "Add cards and manage tariffs"
   tariff_active_since: "since"
   tariff_none_title: "No charging card entered yet"
   tariff_none_desc: "Add your charging contracts - you can manage multiple at the same time."
@@ -2809,3 +2810,6 @@ stories:
     avg_speed: "Avg. speed"
     temperature: "Outside temperature"
     verified: "Verified data from EV Monitor"
+
+cards:
+  intro: "Your charging cards and their tariffs. I use them to price your public charges automatically."

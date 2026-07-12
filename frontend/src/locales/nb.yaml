@@ -1305,6 +1305,7 @@ settings:
   delete_password_placeholder: Bekreft passord
   delete_confirm_btn: Slett permanent
   tariff_title: Mine ladekort
+  tariff_moved_hint: "Legg til kort og vedlikehold tariffer"
   tariff_active_since: siden
   tariff_none_title: Det er ikke lagt inn noe ladekort ennå
   tariff_none_desc: Legg til ladekontraktene dine – du kan administrere flere samtidig.
@@ -2694,3 +2695,6 @@ stories:
     avg_speed: "Snittfart"
     temperature: "Utetemperatur"
     verified: "Verifiserte data fra EV Monitor"
+
+cards:
+  intro: "Ladekortene dine og tariffene deres. Jeg bruker dem til å beregne offentlige ladinger automatisk."

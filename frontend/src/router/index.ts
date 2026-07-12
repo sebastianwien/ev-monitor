@@ -119,6 +119,12 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/charging-providers',
+            name: 'charging-providers',
+            component: () => import('../views/ChargingProvidersView.vue'),
+            meta: { requiresAuth: true }
+        },
+        {
             path: '/settings',
             name: 'settings',
             component: SettingsView,
@@ -476,12 +482,16 @@ const router = createRouter({
     ]
 });
 
-// Horizontal slide animation between Dashboard <-> Logs.
+// Horizontal slide animation between the tab pairs (Dashboard <-> Logs, Fahrzeuge <-> Ladekarten).
 // Other navigation falls back to no transition (or whatever App.vue defaults to).
 const SLIDE_PAIRS: Record<string, string[]> = {
     '/dashboard': ['/logs'],
     '/logs': ['/dashboard'],
+    '/cars': ['/charging-providers'],
+    '/charging-providers': ['/cars'],
 };
+// Left tab of each pair - navigating away from it slides the new view in from the right.
+const LEFT_TABS = ['/dashboard', '/cars'];
 // Kauf-/Upgrade-Seiten in der nativen App sperren (Apple Guideline 3.1.1).
 // Backstop fuer den Fall, dass irgendwo ein Kauf-Link uebersehen wurde.
 router.beforeEach((to) => {
@@ -492,10 +502,8 @@ router.beforeEach((to) => {
 router.beforeEach((to, from) => {
     const dest = SLIDE_PAIRS[to.path];
     if (dest && dest.includes(from.path)) {
-        // Forward direction = dashboard -> logs (new slides in from right)
-        to.meta.transition = (from.path === '/dashboard' && to.path === '/logs')
-            ? 'slide-left'
-            : 'slide-right';
+        // Forward = away from the left tab (new view slides in from the right)
+        to.meta.transition = LEFT_TABS.includes(from.path) ? 'slide-left' : 'slide-right';
     } else {
         to.meta.transition = '';
     }

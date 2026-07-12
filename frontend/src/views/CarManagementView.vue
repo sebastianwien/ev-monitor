@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
+import ViewSegmentedControl from '../components/shared/ViewSegmentedControl.vue'
+import { CAR_TABS } from '../config/carTabs'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
 import XpengAutoSyncPrompt from '../components/car/XpengAutoSyncPrompt.vue'
@@ -18,6 +20,8 @@ import { useCarImages } from '../composables/useCarImages'
 import { useSohHistory } from '../composables/useSohHistory'
 
 const { t } = useI18n()
+
+const tabs = computed(() => CAR_TABS.map(tab => ({ to: tab.to, label: t(tab.labelKey) })))
 const { consumptionUnitLabel, distanceUnitLabel } = useLocaleFormat()
 
 // -- Car Form --
@@ -144,6 +148,8 @@ const filteredCapacities = computed(() => {
     <Transition name="fade" mode="out-in">
       <div v-if="!loading">
         <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6">
+      <ViewSegmentedControl class="mb-6" :tabs="tabs" />
+
       <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">{{ t('cars.title') }}</h1>
         <button

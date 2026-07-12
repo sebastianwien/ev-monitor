@@ -1354,6 +1354,7 @@ settings:
   delete_password_placeholder: "Passwort zur Bestätigung"
   delete_confirm_btn: "Endgültig löschen"
   tariff_title: "Meine Ladekarten"
+  tariff_moved_hint: "Karten anlegen und Tarife pflegen"
   tariff_active_since: "seit"
   tariff_none_title: "Noch keine Ladekarte eingetragen"
   tariff_none_desc: "Trag deine Ladeverträge ein - du kannst mehrere gleichzeitig verwalten."
@@ -2810,3 +2811,6 @@ stories:
     avg_speed: "Ø Tempo"
     temperature: "Außentemperatur"
     verified: "Verifizierte Daten aus EV Monitor"
+
+cards:
+  intro: "Deine Ladekarten und ihre Tarife. Damit rechne ich deine öffentlichen Ladungen automatisch ab."

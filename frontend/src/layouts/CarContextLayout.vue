@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onUnmounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { provideCarContext } from '../composables/useCarContext'
 import { useTabPager } from '../composables/useTabPager'
 import { useIsMobile } from '../composables/useIsMobile'
@@ -21,6 +22,12 @@ const LogsView = defineAsyncComponent(() => import('../views/LogsView.vue'))
  */
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
+
+const TABS = computed(() => [
+  { to: '/dashboard', label: t('nav.tab_overview') },
+  { to: '/logs', label: t('logs.title') },
+])
 
 const {
   selectedCarId, cars, carImageUrls, wltp, currentOdometerKm,
@@ -76,7 +83,7 @@ const paneCollapsed = (i: number) => !bothExpanded.value && i !== activeIndex.va
         :vw-group-status="vwGroupStatus"
         :show-inline-details="true"
       />
-      <ViewSegmentedControl class="mb-2" />
+      <ViewSegmentedControl class="mb-2" :tabs="TABS" />
     </div>
 
     <!-- Desktop: nur der aktive Body (kein Pager, keine Doppel-Mounts). -->

@@ -1305,6 +1305,7 @@ settings:
   delete_password_placeholder: Bekräfta lösenord
   delete_confirm_btn: Ta bort permanent
   tariff_title: Mina laddningskort
+  tariff_moved_hint: "Lägg till kort och hantera tariffer"
   tariff_active_since: sedan
   tariff_none_title: Inget betalkort har angetts ännu
   tariff_none_desc: Lägg till dina laddningsavtal – du kan hantera flera samtidigt.
@@ -2694,3 +2695,6 @@ stories:
     avg_speed: "Snittfart"
     temperature: "Utetemperatur"
     verified: "Verifierade data från EV Monitor"
+
+cards:
+  intro: "Dina laddkort och deras tariffer. Jag använder dem för att beräkna offentliga laddningar automatiskt."
