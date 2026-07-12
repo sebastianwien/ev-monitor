@@ -999,6 +999,16 @@ logform:
 
 logfields:
   apply_tariff_to_location: "Also apply this price to {count} other charge at this location | Also apply this price to {count} other charges at this location"
+  card_prompt_title: "Add your charging card"
+  card_prompt_hint: "Then I will price your public charges automatically from now on."
+  card_prompt_cta: "Add"
+  card_select_placeholder: "Select provider"
+  card_other_provider: "Other provider"
+  card_custom_name_placeholder: "Provider name"
+  card_ac_price: "AC price ({unit}/kWh)"
+  card_dc_price: "DC price ({unit}/kWh)"
+  card_save: "Save card"
+  card_save_failed: "The charging card could not be saved."
   energy: "Energy (kWh)"
   cost_eur: "Cost"
   cost_per_kwh: "Price (€/kWh)"

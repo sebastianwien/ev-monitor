@@ -957,6 +957,16 @@ logform:
   efficiency_label: Effektivitet
 logfields:
   apply_tariff_to_location: "Använd priset även på {count} annan laddning på denna plats | Använd priset även på {count} andra laddningar på denna plats"
+  card_prompt_title: "Lägg till ditt laddkort"
+  card_prompt_hint: "Då beräknar jag kostnaden för offentliga laddningar automatiskt framöver."
+  card_prompt_cta: "Lägg till"
+  card_select_placeholder: "Välj leverantör"
+  card_other_provider: "Annan leverantör"
+  card_custom_name_placeholder: "Leverantörens namn"
+  card_ac_price: "AC-pris ({unit}/kWh)"
+  card_dc_price: "DC-pris ({unit}/kWh)"
+  card_save: "Spara kort"
+  card_save_failed: "Laddkortet kunde inte sparas."
   energy: Energi (kWh)
   cost_eur: Kostnad
   cost_per_kwh: Pris (€/kWh)

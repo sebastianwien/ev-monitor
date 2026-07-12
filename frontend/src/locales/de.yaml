@@ -999,6 +999,16 @@ logform:
 
 logfields:
   apply_tariff_to_location: "Preis auch auf {count} weitere Ladung an diesem Ort übernehmen | Preis auch auf {count} weitere Ladungen an diesem Ort übernehmen"
+  card_prompt_title: "Ladekarte hinterlegen"
+  card_prompt_hint: "Dann berechne ich die Kosten öffentlicher Ladungen künftig automatisch."
+  card_prompt_cta: "Anlegen"
+  card_select_placeholder: "Anbieter wählen"
+  card_other_provider: "Anderer Anbieter"
+  card_custom_name_placeholder: "Name des Anbieters"
+  card_ac_price: "AC-Preis ({unit}/kWh)"
+  card_dc_price: "DC-Preis ({unit}/kWh)"
+  card_save: "Karte speichern"
+  card_save_failed: "Die Ladekarte konnte nicht gespeichert werden."
   energy: "Energie (kWh)"
   cost_eur: "Kosten"
   cost_per_kwh: "Preis (€/kWh)"

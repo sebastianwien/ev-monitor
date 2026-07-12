@@ -15,7 +15,7 @@ export interface ChargingProvider {
   activeUntil: string | null
 }
 
-const KNOWN_EMPS = [
+export const KNOWN_EMPS = [
   'ADAC e-Charge', 'Aral Pulse', 'bp pulse', 'Charge Now (BMW)',
   'EnBW mobility+', 'Elli (VW)', 'E.ON Drive', 'EWE Go',
   'Fastned Gold', 'IONITY Passport', 'Lichtblick', 'Maingau Energie',

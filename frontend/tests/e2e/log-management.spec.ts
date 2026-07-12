@@ -289,3 +289,56 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('Ladekarte im Log-Formular anlegen', () => {
+  // Der Prompt ist die einzige Stelle, an der ein User ohne Ladekarte ueberhaupt von dem
+  // Feature erfaehrt - er zeigt sich nur bei oeffentlicher Ladung und nur ohne Karte.
+  const deleteAllCards = async () => {
+    const api = await playwrightRequest.newContext({ baseURL: API_URL });
+    const authResp = await api.post('/api/auth/login', {
+      data: { email: TEST_USER.email, password: TEST_USER.password },
+    });
+    const { token } = await authResp.json();
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const cards = await (await api.get('/api/users/me/charging-providers', { headers })).json();
+    for (const card of cards) {
+      await api.delete(`/api/users/me/charging-providers/${card.id}`, { headers });
+    }
+  };
+
+  test.beforeAll(deleteAllCards);
+  test.afterAll(deleteAllCards);
+
+  test.beforeEach(async ({ page }) => {
+    const allKeys = featureAnnouncements.map(a => a.key);
+    await page.addInitScript((keys: string[]) => {
+      localStorage.setItem('seen-announcements', JSON.stringify(keys));
+    }, allKeys);
+    await login(page);
+  });
+
+  test('Oeffentliche Ladung ohne Karte: Prompt legt die Karte inline an und waehlt sie aus', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', err => errors.push(err.message));
+
+    await page.goto('/erfassen');
+    await page.waitForLoadState('networkidle');
+
+    // Heimladung: kein Prompt - eine Ladekarte zahlt keine Ladung an der eigenen Wallbox
+    await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible();
+
+    await page.locator('[data-testid="public-charging-toggle"]').click();
+    await expect(page.locator('[data-testid="charging-card-prompt"]')).toBeVisible();
+
+    await page.locator('[data-testid="charging-card-prompt-open"]').click();
+    await page.locator('#inline-card-provider').selectOption('EnBW mobility+');
+    await page.locator('input[type="number"][step="0.1"]').first().fill('39');
+    await page.locator('[data-testid="charging-card-save"]').click();
+
+    // Karte ist angelegt: Prompt weg, Tarif-Chip da und ausgewaehlt
+    await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('button:has-text("EnBW mobility+")')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+});

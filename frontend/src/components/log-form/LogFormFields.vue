@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { GlobeAltIcon, CalendarDaysIcon, ClockIcon, MoonIcon } from '@heroicons/vue/24/outline'
+import { GlobeAltIcon, CalendarDaysIcon, ClockIcon, MoonIcon, CreditCardIcon } from '@heroicons/vue/24/outline'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 import api from '../../api/axios'
+import { useInlineChargingCard, CUSTOM_PROVIDER } from '../../composables/useInlineChargingCard'
+import { KNOWN_EMPS } from '../../composables/useChargingProviders'
 import { useCountryStore } from '../../stores/country'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
@@ -370,6 +372,22 @@ watch(() => form.value.costEur, (newVal) => {
 // ── Tarif-Chips ───────────────────────────────────────────────────────────────
 const userProviders = ref<UserProvider[]>([])
 
+// Ohne Ladekarte bleibt die oeffentliche Ladung unzuordenbar - und der User tippt seine
+// Kosten weiter von Hand ein. Deshalb hier, im Moment der oeffentlichen Ladung, anbieten
+// die Karte anzulegen. Preis wird in derselben Einheit getippt, in der die Chips ihn zeigen.
+const inlineCard = useInlineChargingCard(
+  (typed: number) => isEurCountry.value ? typed / 100 : typed)
+
+const showCardPrompt = computed(() =>
+  userProviders.value.length === 0 && form.value.isPublicCharging === true)
+
+const saveInlineCard = async () => {
+  const created = await inlineCard.save()
+  if (!created) return
+  userProviders.value = [created]
+  form.value.chargingProviderId = created.id
+}
+
 onMounted(async () => {
   // Nur auf 'vehicle' wechseln wenn kwhAtVehicle gesetzt ist aber kwhCharged nicht
   // Sind beide gesetzt, hat kwhCharged Prio (charger ist der Default)
@@ -643,6 +661,7 @@ function cardSubTextColor(id: string): string {
       <span class="text-[10px] leading-tight text-gray-400 dark:text-gray-500 font-medium text-right">{{ t('logfields.public_charging_short') }}<br>{{ t('logfields.public_charging_short2') }}</span>
       <button
         type="button"
+        data-testid="public-charging-toggle"
         @click="form.isPublicCharging = !form.isPublicCharging"
         :class="[
           'relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
@@ -658,6 +677,106 @@ function cardSubTextColor(id: string): string {
 
   <!-- Location error message -->
   <p v-if="locationErrorMessage" class="text-xs text-red-500">{{ locationErrorMessage }}</p>
+
+  <!-- Keine Ladekarte hinterlegt: hier, an der oeffentlichen Ladung, ist der Moment sie anzulegen -->
+  <div v-if="showCardPrompt"
+    data-testid="charging-card-prompt"
+    class="rounded-lg border border-dashed border-indigo-300 bg-indigo-50/60 p-3
+           dark:border-indigo-700 dark:bg-indigo-950/30">
+
+    <button
+      v-if="!inlineCard.isOpen.value"
+      type="button"
+      data-testid="charging-card-prompt-open"
+      @click="inlineCard.open()"
+      class="flex w-full items-center gap-3 text-left">
+      <CreditCardIcon class="h-6 w-6 flex-shrink-0 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+      <span class="flex-1">
+        <span class="block text-xs font-semibold text-gray-800 dark:text-gray-100">
+          {{ t('logfields.card_prompt_title') }}
+        </span>
+        <span class="block text-[11px] leading-snug text-gray-600 dark:text-gray-400">
+          {{ t('logfields.card_prompt_hint') }}
+        </span>
+      </span>
+      <span class="flex-shrink-0 rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white">
+        {{ t('logfields.card_prompt_cta') }}
+      </span>
+    </button>
+
+    <div v-else class="space-y-2.5">
+      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">
+        {{ t('logfields.card_prompt_title') }}
+      </label>
+
+      <select
+        id="inline-card-provider"
+        v-model="inlineCard.draft.value.providerName"
+        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm
+               focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500
+               dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+        <option value="">{{ t('logfields.card_select_placeholder') }}</option>
+        <option v-for="emp in KNOWN_EMPS.filter(e => e !== CUSTOM_PROVIDER)" :key="emp" :value="emp">{{ emp }}</option>
+        <option :value="CUSTOM_PROVIDER">{{ t('logfields.card_other_provider') }}</option>
+      </select>
+
+      <input
+        v-if="inlineCard.isCustom.value"
+        v-model="inlineCard.draft.value.customProviderName"
+        type="text"
+        maxlength="100"
+        :placeholder="t('logfields.card_custom_name_placeholder')"
+        class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm
+               focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500
+               dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+
+      <div class="grid grid-cols-2 gap-2">
+        <label class="block">
+          <span class="mb-1 block text-[11px] text-gray-500 dark:text-gray-400">
+            {{ t('logfields.card_ac_price', { unit: localSubunit || localSymbol }) }}
+          </span>
+          <input
+            v-model="inlineCard.draft.value.acPrice"
+            type="number" inputmode="decimal" step="0.1" min="0"
+            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm
+                   focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500
+                   dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-[11px] text-gray-500 dark:text-gray-400">
+            {{ t('logfields.card_dc_price', { unit: localSubunit || localSymbol }) }}
+          </span>
+          <input
+            v-model="inlineCard.draft.value.dcPrice"
+            type="number" inputmode="decimal" step="0.1" min="0"
+            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm
+                   focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500
+                   dark:border-gray-600 dark:bg-gray-700 dark:text-white" />
+        </label>
+      </div>
+
+      <p v-if="inlineCard.failed.value" class="text-xs text-red-500">{{ t('logfields.card_save_failed') }}</p>
+
+      <div class="flex gap-2">
+        <button
+          type="button"
+          @click="inlineCard.cancel()"
+          class="flex-1 rounded-md border border-gray-300 px-3 py-2 text-xs font-medium text-gray-600
+                 dark:border-gray-600 dark:text-gray-300">
+          {{ t('common.cancel') }}
+        </button>
+        <button
+          type="button"
+          data-testid="charging-card-save"
+          :disabled="!inlineCard.canSave.value"
+          @click="saveInlineCard()"
+          class="flex-1 rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white
+                 disabled:cursor-not-allowed disabled:opacity-50">
+          {{ inlineCard.saving.value ? t('common.saving') : t('logfields.card_save') }}
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Tarif-Chips (wenn User Tarife hinterlegt hat) -->
   <div v-if="userProviders.length > 0">
