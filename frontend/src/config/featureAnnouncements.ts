@@ -19,14 +19,6 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
-    key: 'fixed-costs-dashboard-v1',
-    expiresAt: '2026-06-30',
-    titleKey: 'announcements.fixed_costs_dashboard_v1_title',
-    bodyKey: 'announcements.fixed_costs_dashboard_v1_body',
-    ctaLabelKey: 'announcements.fixed_costs_dashboard_v1_cta',
-    ctaRoute: '/cars',
-  },
-  {
     key: 'feature-survey-v1',
     expiresAt: '2026-07-15',
     titleKey: 'announcements.feature_survey_v1_title',
