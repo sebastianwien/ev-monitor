@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
 import XpengAutoSyncPrompt from '../components/car/XpengAutoSyncPrompt.vue'
+import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import type { Car } from '../api/carService'
+import teslaFleetService from '../api/teslaFleetService'
+import { analytics } from '../services/analytics'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { isXpengCar } from '../composables/useImportGating'
+import { isXpengCar, isTeslaCar } from '../composables/useImportGating'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useSohHistory } from '../composables/useSohHistory'
@@ -56,19 +60,59 @@ const submitting = ref(false)
 // Frisch angelegter XPeng: AutoSync (EU Data Act) direkt anbieten, statt den User
 // erst in /imports danach suchen zu lassen.
 const xpengPromptCar = ref<Car | null>(null)
+// Dasselbe fuer Tesla: Fleet-Telemetry (gratis) direkt einrichten.
+const teslaPromptCar = ref<Car | null>(null)
+const teslaJustConnected = ref(false)
+const teslaCallbackError = ref<string | null>(null)
 const doSubmitForm = async () => {
   submitting.value = true
   try {
     const created = await submitForm(doFetchCars)
     if (isXpengCar(created)) xpengPromptCar.value = created
+    else if (isTeslaCar(created)) teslaPromptCar.value = created
   } finally { submitting.value = false }
 }
 const doDeleteCar = (id: string) => deleteCar(id, doFetchCars)
+
+const closeTeslaPrompt = () => {
+  teslaPromptCar.value = null
+  teslaJustConnected.value = false
+  teslaCallbackError.value = null
+}
+
+const route = useRoute()
+const router = useRouter()
+
+/**
+ * Tesla schickt den User nach dem OAuth auf /cars zurueck (siehe TeslaFleetController).
+ * Wir fangen das Ergebnis hier ab und setzen die Einrichtung im Modal fort - der
+ * Virtual Key fehlt an dieser Stelle naemlich noch.
+ */
+const resumeTeslaSetupFromCallback = async () => {
+  const connected = route.query['tesla-connected']
+  const callbackError = route.query['tesla-error']
+  if (!connected && !callbackError) return
+
+  const status = await teslaFleetService.getStatus().catch(() => null)
+  teslaPromptCar.value =
+    cars.value.find(c => c.id === status?.carId) ?? cars.value.find(isTeslaCar) ?? null
+  if (!teslaPromptCar.value) return
+
+  if (connected) {
+    teslaJustConnected.value = true
+    analytics.trackConnectorActivated('tesla')
+  }
+  if (callbackError) teslaCallbackError.value = String(callbackError)
+
+  // Query aufraeumen, damit ein Reload das Modal nicht erneut oeffnet.
+  router.replace({ query: { ...route.query, 'tesla-connected': undefined, 'tesla-error': undefined } })
+}
 
 onMounted(async () => {
   await fetchBrands()
   await fetchCars(loadCarImages, revokeAllBlobUrls)
   initVisibility(cars.value)
+  await resumeTeslaSetupFromCallback()
 })
 
 const copiedCarId = ref<string | null>(null)
@@ -959,6 +1003,15 @@ const filteredCapacities = computed(() => {
       v-if="xpengPromptCar"
       :car="xpengPromptCar"
       @close="xpengPromptCar = null"
+    />
+
+    <!-- Tesla-Telemetry direkt nach dem Anlegen anbieten - und nach der OAuth-Rueckkehr fortsetzen -->
+    <TeslaTelemetryPrompt
+      v-if="teslaPromptCar"
+      :car="teslaPromptCar"
+      :connected="teslaJustConnected"
+      :callback-error="teslaCallbackError"
+      @close="closeTeslaPrompt"
     />
 
     <!-- Toast Notification (outside Transition) -->

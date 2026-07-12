@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
-import { useImportGating, isXpengCar } from '../useImportGating'
+import { useImportGating, isXpengCar, isTeslaCar } from '../useImportGating'
 import type { Car } from '../../api/carService'
 
 function buildCar(overrides: Partial<Car>): Car {
@@ -143,5 +143,24 @@ describe('isXpengCar', () => {
 
     it('kommt mit fehlendem Auto klar', () => {
         expect(isXpengCar(null)).toBe(false)
+    })
+})
+
+describe('isTeslaCar', () => {
+    it('erkennt ein frisch angelegtes Tesla-Fahrzeug', () => {
+        expect(isTeslaCar(tesla())).toBe(true)
+    })
+
+    it('ist unabhaengig von der Schreibweise der Marke', () => {
+        expect(isTeslaCar(buildCar({ brand: 'tesla' }))).toBe(true)
+    })
+
+    it('trifft nicht auf andere Marken zu', () => {
+        expect(isTeslaCar(xpeng())).toBe(false)
+        expect(isTeslaCar(vw())).toBe(false)
+    })
+
+    it('kommt mit fehlendem Auto klar', () => {
+        expect(isTeslaCar(null)).toBe(false)
     })
 })

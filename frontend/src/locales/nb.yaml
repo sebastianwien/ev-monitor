@@ -1861,6 +1861,7 @@ tesla:
   pairing_key_label: Virtuell nøkkel paret
   pairing_key_ok: Ja
   pairing_key_missing: Nei - paring i app kreves
+  pairing_key_unreliable_summary: "Om dette statusflagget"
   pairing_key_unreliable_hint: "Merk: Teslas statusflagg er kjent for å være upålitelig. Du kan likevel aktivere telemetry nedenfor - hvis den virkelig ikke er paret, avviser Tesla forespørselen."
   pairing_config_label: Telemetry-config aktiv
   pairing_config_ok: Ja
@@ -1877,6 +1878,12 @@ tesla:
   pairing_err_not_connected: Ikke koblet til Tesla ennå. Koble til Tesla først via knappen ovenfor.
   telemetry_live_desc_full: Ladesesjoner og turer registreres automatisk.
   telemetry_live_desc_charging_only: Ladesesjoner registreres automatisk.
+  prompt_eyebrow: "Bil lagt til"
+  prompt_eyebrow_connected: "Tesla tilkoblet"
+  prompt_title: "Vil du sette opp live-telemetri for Teslaen din?"
+  prompt_success_title: "Telemetri er aktiv"
+  prompt_later: "Sett opp senere"
+  prompt_later_hint: "Du finner Tesla Telemetry under Import når som helst."
   callback_error_close: Lukk
   callback_error_retry: Koble til igjen
   callback_error_vin_linked_title: Kjøretøy allerede tilkoblet
