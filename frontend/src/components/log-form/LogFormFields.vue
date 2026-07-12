@@ -30,6 +30,8 @@ export interface LogFormData {
   isPublicCharging: boolean
   cpoName: string | null
   chargingProviderId: string | null
+  /** Opt-in: after saving, price all cost-less logs at this location with the selected card. */
+  applyTariffToLocation?: boolean
 }
 
 interface UserProvider {
@@ -414,6 +416,36 @@ watch(() => form.value.isPublicCharging, (isPublic) => {
   fetchPriceSuggestion(form.value.latitude, form.value.longitude, isPublic)
 })
 
+// --- Rueckwirkender Tarif: wie viele Ladungen an diesem Ort haben noch keinen Preis? ---
+// Erst wenn Ort UND Ladekarte feststehen, ist die Frage ueberhaupt beantwortbar.
+const pricelessCountAtLocation = ref(0)
+
+const fetchPricelessCount = async () => {
+  const { latitude, longitude, chargingProviderId, isPublicCharging } = form.value
+  if (latitude == null || longitude == null || !chargingProviderId) {
+    pricelessCountAtLocation.value = 0
+    return
+  }
+  try {
+    const res = await api.get('/logs/priceless-count', {
+      params: { lat: latitude, lon: longitude, isPublic: isPublicCharging }
+    })
+    pricelessCountAtLocation.value = res.data.count ?? 0
+  } catch {
+    pricelessCountAtLocation.value = 0
+  }
+}
+
+watch(
+  () => [form.value.latitude, form.value.longitude, form.value.chargingProviderId, form.value.isPublicCharging],
+  () => {
+    // Abwaehlen der Karte setzt auch die Zustimmung zurueck - sonst liefe der
+    // Folge-Call gegen eine Karte, die der User gar nicht mehr gewaehlt hat.
+    if (!form.value.chargingProviderId) form.value.applyTariffToLocation = false
+    fetchPricelessCount()
+  }
+)
+
 defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTimeLocal })
 
 type CardDesign = 'stripe' | 'circles' | 'solid' | 'pastel'
@@ -662,6 +694,20 @@ function cardSubTextColor(id: string): string {
         </div>
       </button>
     </div>
+
+    <!-- Rueckwirkend: Tarif auf alle preislosen Ladungen an diesem Ort anwenden -->
+    <label
+      v-if="pricelessCountAtLocation > 0"
+      class="mt-1 flex items-start gap-2.5 cursor-pointer text-left">
+      <input
+        type="checkbox"
+        v-model="form.applyTariffToLocation"
+        class="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-gray-300 text-indigo-600
+               focus:ring-2 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700" />
+      <span class="text-xs leading-snug text-gray-600 dark:text-gray-300">
+        {{ t('logfields.apply_tariff_to_location', pricelessCountAtLocation) }}
+      </span>
+    </label>
 
   </div>
 

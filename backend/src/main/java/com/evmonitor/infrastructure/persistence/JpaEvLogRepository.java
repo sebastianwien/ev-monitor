@@ -171,6 +171,15 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             org.springframework.data.domain.Pageable pageable);
 
     @Query("""
+        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+        WHERE c.userId = :userId
+          AND e.geohash = :geohash
+          AND e.costEur IS NULL
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findPricelessByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash);
+
+    @Query("""
             SELECT e FROM EvLogEntity e
             WHERE e.carId = :carId
               AND e.publicCharging = false

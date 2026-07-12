@@ -956,6 +956,7 @@ logform:
   edit_title: Redigera laddningssession
   efficiency_label: Effektivitet
 logfields:
+  apply_tariff_to_location: "Använd priset även på {count} annan laddning på denna plats | Använd priset även på {count} andra laddningar på denna plats"
   energy: Energi (kWh)
   cost_eur: Kostnad
   cost_per_kwh: Pris (€/kWh)

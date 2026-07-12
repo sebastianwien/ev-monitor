@@ -5,6 +5,7 @@ import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
 
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
+import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -330,16 +331,60 @@ public class EvLogService {
         if (providerIdOpt.isEmpty()) return log;
         UUID providerId = providerIdOpt.get();
 
-        return chargingProviderRepository.findById(providerId).map(provider -> {
-            BigDecimal price = log.getChargingType() == ChargingType.DC
-                    ? provider.getDcPricePerKwh()
-                    : provider.getAcPricePerKwh();
-            if (price == null) return log;
-            BigDecimal sessionFee = provider.getSessionFeeEur() != null
-                    ? provider.getSessionFeeEur() : BigDecimal.ZERO;
-            BigDecimal cost = effectiveEnergy.multiply(price).add(sessionFee).setScale(2, RoundingMode.HALF_UP);
-            return log.toBuilder().chargingProviderId(providerId).costEur(cost).build();
-        }).orElse(log);
+        return chargingProviderRepository.findById(providerId)
+                .flatMap(provider -> costFromProvider(log, provider))
+                .map(cost -> log.toBuilder().chargingProviderId(providerId).costEur(cost).build())
+                .orElse(log);
+    }
+
+    /**
+     * Cost for this log under the given tariff, or empty when it cannot be priced
+     * (no energy recorded, or no price configured for its charging type).
+     */
+    private Optional<BigDecimal> costFromProvider(EvLog log, UserChargingProviderEntity provider) {
+        BigDecimal energy = log.costBasisKwh();
+        if (energy == null) return Optional.empty();
+        BigDecimal price = log.getChargingType() == ChargingType.DC
+                ? provider.getDcPricePerKwh()
+                : provider.getAcPricePerKwh();
+        if (price == null) return Optional.empty();
+        BigDecimal sessionFee = provider.getSessionFeeEur() != null
+                ? provider.getSessionFeeEur() : BigDecimal.ZERO;
+        return Optional.of(energy.multiply(price).add(sessionFee).setScale(2, RoundingMode.HALF_UP));
+    }
+
+    /**
+     * How many logs of this user at this location still have no cost. Drives the
+     * "apply to all N charges here" prompt in the log form.
+     */
+    public long countPricelessLogsAtLocation(UUID userId, String geohash) {
+        return evLogRepository.findPricelessLogsAtGeohash(userId, geohash).size();
+    }
+
+    /**
+     * Retroactively prices every cost-less log of this user at this location with the given
+     * charging card. Existing costs are never touched - the user's own numbers always win.
+     * Returns how many logs were priced.
+     *
+     * This is the path an import-only user needs: {@link #applyPriceSuggestion} anchors on a
+     * previous log that already carries a providerId, and an import produces none.
+     */
+    @Transactional
+    public int applyTariffAtLocation(UUID userId, String geohash, UUID providerId) {
+        if (!chargingProviderRepository.existsByIdAndUserId(providerId, userId)) {
+            throw new IllegalArgumentException("Charging provider does not belong to user");
+        }
+        UserChargingProviderEntity provider = chargingProviderRepository.findById(providerId)
+                .orElseThrow(() -> new IllegalArgumentException("Charging provider not found"));
+
+        int priced = 0;
+        for (EvLog log : evLogRepository.findPricelessLogsAtGeohash(userId, geohash)) {
+            Optional<BigDecimal> cost = costFromProvider(log, provider);
+            if (cost.isEmpty()) continue;
+            save(log.toBuilder().chargingProviderId(providerId).costEur(cost.get()).build());
+            priced++;
+        }
+        return priced;
     }
 
     @Transactional

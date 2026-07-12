@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogResponse;
@@ -159,6 +160,50 @@ public class EvLogController {
             }
         }
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * How many logs at this location still lack a price - drives the "apply to all N" prompt.
+     * Takes lat/lon like /price-suggestion; the geohash is derived server-side and lat/lon are
+     * never stored.
+     */
+    @GetMapping("/priceless-count")
+    public ResponseEntity<Map<String, Long>> countPricelessLogsAtLocation(
+            @RequestParam double lat,
+            @RequestParam double lon,
+            @RequestParam(defaultValue = "false") boolean isPublic,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        long count = evLogService.countPricelessLogsAtLocation(
+                principal.getUser().getId(), geohashOf(lat, lon, isPublic));
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    record ApplyTariffRequest(Double lat, Double lon, boolean isPublic, UUID chargingProviderId) {}
+
+    /** Prices all cost-less logs at this location with the given charging card. Never overwrites existing costs. */
+    @PatchMapping("/apply-tariff-at-location")
+    public ResponseEntity<Map<String, Integer>> applyTariffAtLocation(
+            @RequestBody ApplyTariffRequest body,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        if (body.lat() == null || body.lon() == null || body.chargingProviderId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        try {
+            int priced = evLogService.applyTariffAtLocation(
+                    principal.getUser().getId(),
+                    geohashOf(body.lat(), body.lon(), body.isPublic()),
+                    body.chargingProviderId());
+            return ResponseEntity.ok(Map.of("priced", priced));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /** Same precision split as the log-creation path: public chargers 7 chars (~150m), private 6 (~600m). */
+    private static String geohashOf(double lat, double lon, boolean isPublic) {
+        return GeoHash.withCharacterPrecision(lat, lon, isPublic ? 7 : 6).toBase32();
     }
 
     @GetMapping("/geohashes")

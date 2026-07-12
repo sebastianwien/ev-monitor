@@ -286,6 +286,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         }
     }
 
+    @Override
+    public List<EvLog> findPricelessLogsAtGeohash(UUID userId, String geohash) {
+        return jpaRepository.findPricelessByUserIdAndGeohash(userId, geohash).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
     private static String geohashPrefix(String geohash) {
         assert geohash.length() >= 6 : "geohash must be at least 6 chars for meaningful prefix lookup";
         return geohash.substring(0, Math.min(6, geohash.length())) + "%";

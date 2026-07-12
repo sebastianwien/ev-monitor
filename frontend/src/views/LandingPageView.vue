@@ -506,9 +506,6 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
       </div>
     </section>
 
-    <!-- Community Pulse -->
-    <CommunityPulseSection />
-
     <!-- Model Preview Section: own accent band so the cost section stands out and
          breaks the seam between the two surrounding grid sections -->
     <section class="py-8 sm:py-16 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-800/40 border-y border-gray-200 dark:border-gray-800">
@@ -576,11 +573,10 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
                 <ArrowRightIcon class="h-5 w-5" />
               </router-link>
               <button
-                @click="demoLogin('models_section')"
-                :disabled="demoLoading"
-                class="btn-3d cta-shadow bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 rounded-sm font-semibold hover:text-green-700 dark:hover:text-green-400 transition disabled:opacity-50 inline-flex items-center justify-center space-x-2"
+                @click="goToRegister('models_section')"
+                class="btn-3d cta-shadow bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 rounded-sm font-semibold hover:text-green-700 dark:hover:text-green-400 transition inline-flex items-center justify-center space-x-2"
               >
-                <span>{{ demoLoading ? t('landing.models_section.loading_button') : t('landing.models_section.demo_button') }}</span>
+                <span>{{ t('landing.hero.register_button') }}</span>
               </button>
             </div>
           </div>
@@ -591,6 +587,9 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
         </div>
       </div>
     </section>
+
+    <!-- Community Pulse: live ticker below the cost section -->
+    <CommunityPulseSection />
 
     <!-- App Preview Section -->
     <section class="py-12 sm:py-20 border-t border-gray-100 dark:border-gray-800">

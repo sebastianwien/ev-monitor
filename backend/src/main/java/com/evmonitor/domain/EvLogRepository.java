@@ -108,6 +108,15 @@ public interface EvLogRepository {
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash);
 
     /**
+     * All logs of this user at exactly this geohash that still have no cost.
+     *
+     * Exact match, not the 6-char prefix used by {@link #findMostRecentChargingProviderAtGeohash}:
+     * public chargers are stored with 7 chars and private ones with 6, so an exact match keeps a
+     * public tariff from ever landing on a home-charging log ~600m away.
+     */
+    List<EvLog> findPricelessLogsAtGeohash(UUID userId, String geohash);
+
+    /**
      * Most recent {@link TireType} set on any log of this car with {@code logged_at < before}.
      * Used by auto-log paths (Tesla/Wallbox/SmartCar) to inherit the user's last known tire setting
      * instead of writing {@code NULL} into every auto-created log.

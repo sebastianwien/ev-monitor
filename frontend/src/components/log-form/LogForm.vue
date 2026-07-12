@@ -250,6 +250,22 @@ const submitLog = async () => {
     coinStore.refresh()
     analytics.trackLogCreated(ocrUsed.value ? 'ocr' : 'manual', isFirstLog)
 
+    // Opt-in: denselben Tarif rueckwirkend auf die preislosen Ladungen an diesem Ort legen.
+    // Bewusst nach dem Log-POST und fehlertolerant - ein Fehlschlag hier darf den
+    // gerade gespeicherten Ladevorgang nicht in Frage stellen.
+    if (f.applyTariffToLocation && f.chargingProviderId && f.latitude != null && f.longitude != null) {
+      try {
+        await api.patch('/logs/apply-tariff-at-location', {
+          lat: f.latitude,
+          lon: f.longitude,
+          isPublic: f.isPublicCharging,
+          chargingProviderId: f.chargingProviderId,
+        })
+      } catch {
+        // Preis-Uebernahme fehlgeschlagen - Log ist gespeichert, User kann es erneut versuchen.
+      }
+    }
+
     // Reset form (keep car + tireType + routeType)
     const savedTireType = f.tireType
     const savedRouteType = f.routeType
@@ -261,6 +277,7 @@ const submitLog = async () => {
       tireType: savedTireType,
       latitude: null, longitude: null,
       isPublicCharging: false, cpoName: null, chargingProviderId: null,
+      applyTariffToLocation: false,
     }
     ocrUsed.value = false
     odometerPlaceholderOverride.value = null

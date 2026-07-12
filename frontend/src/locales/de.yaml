@@ -998,6 +998,7 @@ logform:
   efficiency_label: "Effizienz"
 
 logfields:
+  apply_tariff_to_location: "Preis auch auf {count} weitere Ladung an diesem Ort übernehmen | Preis auch auf {count} weitere Ladungen an diesem Ort übernehmen"
   energy: "Energie (kWh)"
   cost_eur: "Kosten"
   cost_per_kwh: "Preis (€/kWh)"
