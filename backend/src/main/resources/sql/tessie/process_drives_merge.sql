@@ -3,6 +3,9 @@
 -- (Mikro-Trips: parking-lot manoeuvres, false positives). Returns merged rows
 -- WITHOUT geohash - geohash is computed in TessieProcessorService.java.
 --
+-- Odometer and distance are already in km: TessieClient fetches with distance_format=km.
+-- Do NOT convert from miles here (the V101 Foxcar dump was miles, the API is not).
+--
 -- Parameters: :userId (uuid), :vin (text)
 WITH raw AS (
   SELECT
@@ -11,9 +14,9 @@ WITH raw AS (
     (t.raw->>'ended_at')::bigint                      AS ended_at_epoch,
     (t.raw->>'starting_battery')::numeric             AS soc_start,
     (t.raw->>'ending_battery')::numeric               AS soc_end,
-    (t.raw->>'starting_odometer')::numeric * 1.60934  AS odo_start_km,
-    (t.raw->>'ending_odometer')::numeric  * 1.60934   AS odo_end_km,
-    (t.raw->>'odometer_distance')::numeric * 1.60934  AS distance_km,
+    (t.raw->>'starting_odometer')::numeric            AS odo_start_km,
+    (t.raw->>'ending_odometer')::numeric              AS odo_end_km,
+    (t.raw->>'odometer_distance')::numeric            AS distance_km,
     (t.raw->>'energy_used')::numeric                  AS energy_kwh,
     (t.raw->>'starting_latitude')::numeric            AS lat_start,
     (t.raw->>'starting_longitude')::numeric           AS lon_start,

@@ -3,6 +3,9 @@
 -- WITHOUT geohash or public/private classification - those are computed in
 -- TessieProcessorService.java with ch.hsr.geohash.GeoHash (single source of truth).
 --
+-- Odometer is already in km: TessieClient fetches with distance_format=km.
+-- Do NOT convert from miles here (the V101 Foxcar dump was miles, the API is not).
+--
 -- Parameters: :userId (uuid), :vin (text)
 WITH raw AS (
   SELECT
@@ -12,7 +15,7 @@ WITH raw AS (
     (t.raw->>'energy_added')::numeric                       AS energy_added_kwh,
     (t.raw->>'starting_battery')::int                       AS soc_start,
     (t.raw->>'ending_battery')::int                         AS soc_end,
-    (t.raw->>'odometer')::numeric * 1.60934                 AS odometer_km,
+    (t.raw->>'odometer')::numeric                          AS odometer_km,
     (t.raw->>'latitude')::numeric                           AS lat,
     (t.raw->>'longitude')::numeric                          AS lon,
     ROUND((t.raw->>'latitude')::numeric,  3)                AS lat_r,

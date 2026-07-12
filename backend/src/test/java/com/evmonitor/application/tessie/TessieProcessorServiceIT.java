@@ -248,6 +248,55 @@ class TessieProcessorServiceIT {
         assertNull(secondTrip.get("max_speed_kmh"));
     }
 
+    /**
+     * Regression: TessieClient fetches with distance_format=km, so raw odometer values
+     * are already kilometres. The merge SQL must not convert them again.
+     */
+    @Test
+    void processForCar_takesOdometerFromRawAsKilometresWithoutConversion() {
+        long t = 1700800000L;
+        insertCharge(40L, """
+                {"id":40,"started_at":%d,"ended_at":%d,"energy_added":12.0,
+                 "starting_battery":40,"ending_battery":58,"odometer":26829,
+                 "latitude":52.50,"longitude":13.40,
+                 "is_supercharger":false,"is_fast_charger":false,"charger_power":11.0}
+                """.formatted(t, t + 1800));
+
+        processor.processForCar(userId, vin, carId);
+
+        Integer odometerKm = jdbc.queryForObject(
+                "SELECT odometer_km FROM ev_log WHERE car_id = ? AND data_source = 'TESSIE'",
+                Integer.class, carId);
+        assertEquals(26829, odometerKm, "Raw odometer is already km - no miles conversion");
+    }
+
+    /**
+     * Regression: trip odometers and distance come from Tessie in km too. A converted
+     * distance_km would inflate every trip by 1.60934 and deflate kWh/100km accordingly.
+     */
+    @Test
+    void processForCar_takesTripOdometerAndDistanceFromRawAsKilometres() {
+        long t = 1700900000L;
+        insertDrive(41L, """
+                {"id":41,"started_at":%d,"ended_at":%d,"energy_used":10.0,
+                 "starting_battery":80,"ending_battery":65,
+                 "starting_odometer":40000,"ending_odometer":40100,"odometer_distance":100.0,
+                 "starting_latitude":52.50,"starting_longitude":13.40,
+                 "ending_latitude":52.85,"ending_longitude":13.95,
+                 "average_outside_temperature":15.5,"average_speed":100,"max_speed":135}
+                """.formatted(t, t + 3600));
+
+        processor.processForCar(userId, vin, carId);
+
+        Map<String, Object> trip = jdbc.queryForMap(
+                "SELECT odometer_start_km, odometer_end_km, distance_km FROM ev_trip WHERE car_id = ?",
+                carId);
+        assertEquals(0, ((BigDecimal) trip.get("odometer_start_km")).compareTo(new BigDecimal("40000")));
+        assertEquals(0, ((BigDecimal) trip.get("odometer_end_km")).compareTo(new BigDecimal("40100")));
+        assertEquals(0, ((BigDecimal) trip.get("distance_km")).compareTo(new BigDecimal("100")),
+                "Raw odometer_distance is already km - no miles conversion");
+    }
+
     @Test
     void processForCar_throwsWhenCarBelongsToDifferentUser() {
         UUID otherUserId = UUID.randomUUID();
