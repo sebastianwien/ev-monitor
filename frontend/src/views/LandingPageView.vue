@@ -428,15 +428,13 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 
         <!-- Community-Bestenliste: now social proof below the product, no longer the first thing a visitor sees -->
         <div v-if="hasSuperlatives" class="sl-board text-left px-5 py-7 mb-6">
-          <div class="mb-2 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1">
-            <span class="text-sm sm:text-base font-extrabold tracking-[0.18em] uppercase text-green-700 dark:text-green-400">{{ t('landing.superlatives.eyebrow') }}</span>
-            <i18n-t keypath="landing.superlatives.from_trips" tag="span" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-semibold">
-              <template #n>
-                <span class="sl-num text-base sm:text-xl font-extrabold text-gray-900 dark:text-gray-100">{{ formatNumber(displayTripsRounded) }}</span>
-              </template>
-            </i18n-t>
-          </div>
-          <p class="mb-6 text-center text-sm sm:text-base text-gray-600 dark:text-gray-300 max-w-xl mx-auto leading-relaxed">{{ t('landing.superlatives.subline') }}</p>
+          <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 text-center mb-2">{{ t('landing.superlatives.eyebrow') }}</h2>
+          <i18n-t keypath="landing.superlatives.from_trips" tag="p" class="text-center text-sm sm:text-base text-gray-500 dark:text-gray-400 font-semibold mb-3">
+            <template #n>
+              <span class="sl-num font-extrabold text-gray-700 dark:text-gray-200">{{ formatNumber(displayTripsRounded) }}</span>
+            </template>
+          </i18n-t>
+          <p class="mb-6 text-center text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-xl mx-auto leading-relaxed">{{ t('landing.superlatives.subline') }}</p>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div
               v-for="cat in superlativeCategories"
@@ -473,8 +471,8 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
                 </div>
                 <div class="text-right leading-none flex-shrink-0">
                   <span
-                    class="sl-num font-extrabold whitespace-nowrap"
-                    :class="item.rank === 1 ? 'sl-gold text-3xl' : 'text-2xl text-gray-900 dark:text-gray-100'"
+                    class="sl-num text-2xl font-extrabold whitespace-nowrap"
+                    :class="item.rank === 1 ? 'sl-gold' : 'text-gray-900 dark:text-gray-100'"
                   >{{ item.value }}</span>
                   <div class="text-[11px] text-gray-400 font-semibold mt-1">{{ item.unit }}</div>
                 </div>
