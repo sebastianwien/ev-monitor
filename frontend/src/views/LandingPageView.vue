@@ -360,27 +360,8 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </div>
         </div>
 
-        <!-- Social-Proof-Nudge direkt ueber den CTAs; nur wenn die Community-Zahl geladen ist -->
-        <p v-if="communityDrivers > 0" class="mb-4 text-lg sm:text-xl font-medium text-gray-700 dark:text-gray-300">
-          {{ t('landing.hero.social_proof', { drivers: formatNumber(communityDrivers) }) }}
-        </p>
-
-        <!-- Primary CTA row: register-first, unter dem Produktbild als Haupt-Handlungsaufruf -->
-        <div class="mb-14 sm:mb-16 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-          <button
-            @click="goToRegister('hero_primary')"
-            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 inline-flex items-center justify-center gap-2 transition"
-          >
-            {{ t('landing.hero.register_button') }}
-          </button>
-          <button
-            @click="demoLogin('hero')"
-            :disabled="demoLoading"
-            class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:text-green-700 dark:hover:text-green-400 disabled:opacity-50 inline-flex items-center justify-center transition"
-          >
-            {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
-          </button>
-        </div>
+        <!-- CTAs sind jetzt Teil des "Echte Daten"-Blocks unten (Abschluss-CTA),
+             damit sie nicht losgeloest ueber der Sektion schweben. -->
 
         <!-- Community-USP: eigener Hintergrund-Band wie die anderen Sektionen; bricht per
              Full-Bleed aus dem zentrierten Hero-Container aus (Root hat overflow-x-clip).
@@ -390,38 +371,66 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <template v-if="communityDrivers > 0">
               <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('landing.community_intro.heading') }}</h2>
               <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">{{ t('landing.community_intro.text', { drivers: formatNumber(communityDrivers) }) }}</p>
-              <!-- Community-Kennzahlen: gehoeren zum Intro, zeigen die Groesse der Datenbasis -->
-              <div class="mt-8 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
-                <!-- Mobile: gestapelt (divide-y), damit lange Zahlen wie "1.4 Mio. km" nicht
-                     ueber mehrere Zeilen brechen. Ab sm: 3 Spalten wie gehabt. -->
+            </template>
+
+            <!-- Ein Block: Kennzahlen + Trust-Signale in EINER Karte mit einem gemeinsamen
+                 gruenen Versatz-Schatten. Kennzahlen oben, Trennlinie, Signale als flache
+                 klickbare Zeilen darunter. -->
+            <div class="mt-8 bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl p-6 sm:p-8 shadow-[5px_5px_0_0_#15803d] dark:shadow-[5px_5px_0_0_#22c55e]">
+              <template v-if="communityDrivers > 0">
+                <!-- Kennzahlen: Mobile gestapelt (divide-y), ab sm 3 Spalten -->
                 <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-900/10 dark:divide-white/10">
-                  <div v-for="s in trustStats" :key="s.label" class="py-4 first:pt-0 last:pb-0 sm:py-0 px-2 sm:px-4 text-center">
+                  <div v-for="s in trustStats" :key="s.label" class="py-4 first:pt-0 sm:py-0 px-2 sm:px-4 text-center">
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ s.value }}</p>
                     <p class="text-sm sm:text-base text-gray-600 dark:text-gray-300 mt-1.5 leading-snug">{{ s.label }}</p>
                   </div>
                 </div>
-              </div>
-            </template>
+                <div class="my-6 h-px bg-gray-900/10 dark:bg-white/10"></div>
+              </template>
 
-            <!-- Trust signals: als eigene Karten direkt unter den Kennzahlen - gleiche
-                 Datenbasis-Story, aber jedes Versprechen einzeln greifbar und klickbar. -->
-            <div class="mt-4 sm:mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <component
-                :is="sig.href ? 'a' : sig.action ? 'button' : 'div'"
-                v-for="sig in trustSignals" :key="sig.key"
-                :href="sig.href || undefined"
-                :target="sig.external ? '_blank' : undefined"
-                :rel="sig.external ? 'noopener noreferrer' : undefined"
-                @click="sig.action === 'import' ? scrollToImportHub() : sig.action === 'privacy' ? scrollToPrivacy() : undefined"
-                class="trust-card flex w-full items-center gap-3 text-left rounded-xl border-2 border-gray-900 dark:border-gray-100 bg-white dark:bg-gray-800 px-4 py-3.5 transition-colors"
-                :class="(sig.href || sig.action) ? 'cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20' : ''"
-              >
-                <span class="shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/40">
-                  <component :is="sig.icon" class="h-6 w-6 text-green-700 dark:text-green-400" />
-                </span>
-                <span class="flex-1 text-base font-bold leading-snug text-gray-900 dark:text-gray-100">{{ t(sig.key) }}</span>
-                <ArrowTopRightOnSquareIcon v-if="sig.external" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
-              </component>
+              <!-- Trust-Signale: flache Zeilen im selben Block; no-press haelt die globale
+                   Button-3D-Schatten-Regel fern, damit der Block-Schatten allein wirkt. -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                <component
+                  :is="sig.href ? 'a' : sig.action ? 'button' : 'div'"
+                  v-for="sig in trustSignals" :key="sig.key"
+                  :href="sig.href || undefined"
+                  :target="sig.external ? '_blank' : undefined"
+                  :rel="sig.external ? 'noopener noreferrer' : undefined"
+                  @click="sig.action === 'import' ? scrollToImportHub() : sig.action === 'privacy' ? scrollToPrivacy() : undefined"
+                  class="no-press flex w-full items-center gap-3 text-left rounded-lg px-2 py-2.5 transition-colors"
+                  :class="(sig.href || sig.action) ? 'cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20' : ''"
+                >
+                  <span class="shrink-0 flex items-center justify-center h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/40">
+                    <component :is="sig.icon" class="h-6 w-6 text-green-700 dark:text-green-400" />
+                  </span>
+                  <span class="flex-1 text-base font-bold leading-snug text-gray-900 dark:text-gray-100">{{ t(sig.key) }}</span>
+                  <ArrowTopRightOnSquareIcon v-if="sig.external" class="h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                </component>
+              </div>
+
+              <!-- Abschluss-CTA im selben Block: Nudge + Haupt-Handlungsaufrufe, damit die
+                   Buttons nicht mehr losgeloest ueber der Sektion schweben. -->
+              <div class="mt-6 pt-6 border-t border-gray-900/10 dark:border-white/10">
+                <p v-if="communityDrivers > 0" class="mb-4 text-center text-base font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('landing.hero.social_proof', { drivers: formatNumber(communityDrivers) }) }}
+                </p>
+                <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                  <button
+                    @click="goToRegister('hero_primary')"
+                    class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:bg-green-700 inline-flex items-center justify-center gap-2 transition"
+                  >
+                    {{ t('landing.hero.register_button') }}
+                  </button>
+                  <button
+                    @click="demoLogin('hero')"
+                    :disabled="demoLoading"
+                    class="btn-3d cta-shadow w-full sm:w-auto cursor-pointer bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 sm:px-8 sm:py-4 rounded-sm text-base sm:text-lg font-semibold hover:text-green-700 dark:hover:text-green-400 disabled:opacity-50 inline-flex items-center justify-center transition"
+                  >
+                    {{ demoLoading ? t('landing.hero.loading_button') : t('landing.hero.demo_button') }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -429,9 +438,9 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
         <!-- Community-Bestenliste: now social proof below the product, no longer the first thing a visitor sees -->
         <div v-if="hasSuperlatives" class="sl-board text-left px-5 py-7 mb-6">
           <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 text-center mb-2">{{ t('landing.superlatives.eyebrow') }}</h2>
-          <i18n-t keypath="landing.superlatives.from_trips" tag="p" class="text-center text-sm sm:text-base text-gray-500 dark:text-gray-400 font-semibold mb-3">
+          <i18n-t keypath="landing.superlatives.from_trips" tag="p" class="text-center text-base sm:text-lg text-gray-500 dark:text-gray-400 font-semibold mb-3 flex flex-wrap items-baseline justify-center gap-x-2">
             <template #n>
-              <span class="sl-num font-extrabold text-gray-700 dark:text-gray-200">{{ formatNumber(displayTripsRounded) }}</span>
+              <span class="sl-num text-3xl sm:text-4xl font-extrabold text-green-700 dark:text-green-400 tabular-nums">{{ formatNumber(displayTripsRounded) }}</span>
             </template>
           </i18n-t>
           <p class="mb-6 text-center text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-xl mx-auto leading-relaxed">{{ t('landing.superlatives.subline') }}</p>
@@ -1124,21 +1133,15 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
 <style scoped>
 
 /* 3D press effect for buttons in sections (not nav) */
-section a[class*="rounded"]:not(.no-press), section button[class*="rounded"] {
+section a[class*="rounded"]:not(.no-press), section button[class*="rounded"]:not(.no-press) {
   box-shadow: 0 4px 0 0 rgba(0,0,0,0.30);
   transform: translateY(0);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
-section a[class*="rounded"]:not(.no-press):active, section button[class*="rounded"]:active {
+section a[class*="rounded"]:not(.no-press):active, section button[class*="rounded"]:not(.no-press):active {
   box-shadow: 0 1px 0 0 rgba(0,0,0,0.30);
   transform: translateY(3px);
   transition: transform 0.05s ease, box-shadow 0.05s ease;
-}
-
-/* Das nicht-klickbare Trust-Signal ist ein <div> und faellt sonst aus dem
-   3D-Look der drei Geschwister-Karten heraus. */
-.trust-card {
-  box-shadow: 0 4px 0 0 rgba(0,0,0,0.30);
 }
 </style>
