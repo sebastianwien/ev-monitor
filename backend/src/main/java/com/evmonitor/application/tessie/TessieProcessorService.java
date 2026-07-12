@@ -1,11 +1,13 @@
 package com.evmonitor.application.tessie;
 
 import ch.hsr.geohash.GeoHash;
+import com.evmonitor.application.EvLogSavedEvent;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvTrip;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -43,6 +45,7 @@ public class TessieProcessorService {
 
     private final NamedParameterJdbcTemplate jdbc;
     private final CarRepository carRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final String chargesMergeSql;
     private final String drivesMergeSql;
     private final String routeTypeBackfillSql;
@@ -50,12 +53,14 @@ public class TessieProcessorService {
     public TessieProcessorService(
             NamedParameterJdbcTemplate jdbc,
             CarRepository carRepository,
+            ApplicationEventPublisher eventPublisher,
             @Value("classpath:sql/tessie/process_charges_merge.sql") Resource chargesMergeResource,
             @Value("classpath:sql/tessie/process_drives_merge.sql") Resource drivesMergeResource,
             @Value("classpath:sql/tessie/route_type_backfill.sql") Resource routeTypeBackfillResource
     ) {
         this.jdbc = jdbc;
         this.carRepository = carRepository;
+        this.eventPublisher = eventPublisher;
         this.chargesMergeSql = readResource(chargesMergeResource);
         this.drivesMergeSql = readResource(drivesMergeResource);
         this.routeTypeBackfillSql = readResource(routeTypeBackfillResource);
@@ -128,6 +133,7 @@ public class TessieProcessorService {
                 """;
 
         List<Object[]> batch = new ArrayList<>(merged.size());
+        List<EvLogSavedEvent> pendingEnrichment = new ArrayList<>(merged.size());
         for (MergedCharge c : merged) {
             BigDecimal effectivePower = effectivePowerKw(c.kwhCharged(), c.startedAtEpoch(), c.endedAtEpoch(), c.chargerPowerKw());
             boolean isDc = c.isSupercharger() || c.isFastCharger();
@@ -135,13 +141,15 @@ public class TessieProcessorService {
             String geohash = geohash(c.lat(), c.lon(), isPublic ? 7 : 6);
             int durationMinutes = (int) Math.round((c.endedAtEpoch() - c.startedAtEpoch()) / 60.0);
             Integer odometerKm = c.odometerKm() != null ? c.odometerKm().setScale(0, RoundingMode.HALF_UP).intValue() : null;
+            UUID logId = UUID.randomUUID();
+            Timestamp loggedAt = Timestamp.from(Instant.ofEpochSecond(c.startedAtEpoch()));
 
             batch.add(new Object[]{
-                    UUID.randomUUID().toString(),
+                    logId.toString(),
                     carId.toString(),
                     c.kwhCharged() != null ? c.kwhCharged().setScale(2, RoundingMode.HALF_UP) : null,
                     durationMinutes,
-                    Timestamp.from(Instant.ofEpochSecond(c.startedAtEpoch())),
+                    loggedAt,
                     odometerKm,
                     c.socStart(),
                     c.socEnd(),
@@ -149,11 +157,20 @@ public class TessieProcessorService {
                     isPublic,
                     isDc ? "DC" : "AC"
             });
+            // Tessie liefert keine Aussentemperatur zur Ladung - die holt die Wetter-Anreicherung nach.
+            pendingEnrichment.add(new EvLogSavedEvent(logId, geohash, loggedAt.toLocalDateTime(), null));
         }
 
+        // Der Import schreibt per JdbcTemplate an EvLogService vorbei (Bulk-Insert) und muss die
+        // Wetter-Anreicherung deshalb selbst anstossen - sonst bleibt jede importierte Ladung ohne
+        // Temperatur. Der Listener haengt an AFTER_COMMIT, laeuft also erst wenn der Import durch ist.
         int[] result = jdbc.getJdbcTemplate().batchUpdate(insertSql, batch);
         int inserted = 0;
-        for (int r : result) inserted += Math.max(r, 0);
+        for (int i = 0; i < result.length; i++) {
+            if (result[i] <= 0) continue;   // ON CONFLICT DO NOTHING - Zeile existierte schon
+            inserted++;
+            eventPublisher.publishEvent(pendingEnrichment.get(i));
+        }
         return inserted;
     }
 
