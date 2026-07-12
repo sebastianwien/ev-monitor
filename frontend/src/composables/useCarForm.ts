@@ -272,10 +272,11 @@ export function useCarForm() {
     }
   }
 
-  const submitForm = async (onCarsChanged: () => Promise<void>) => {
+  /** Liefert das neu angelegte Auto zurueck (nur beim Anlegen, sonst null) - der Aufrufer haengt daran markenspezifische Folge-Schritte. */
+  const submitForm = async (onCarsChanged: () => Promise<void>): Promise<Car | null> => {
     try {
       error.value = null
-      if (!finalCapacity.value) { error.value = t('cars.error_capacity'); return }
+      if (!finalCapacity.value) { error.value = t('cars.error_capacity'); return null }
 
       // Bei Custom-Eingabe: Spec anlegen und specId direkt aus dem Result verwenden
       // (nicht reaktiv via finalVehicleSpecificationId, um Race-Condition zu vermeiden)
@@ -284,7 +285,7 @@ export function useCarForm() {
         const result = await wltpLookup.submitCustomSpec()
         if (!result.ok) {
           error.value = result.error ? t(result.error) : t('cars.error_wltp_save')
-          return
+          return null
         }
         resolvedSpecId = result.specId!
         selectedSpecId.value = resolvedSpecId
@@ -315,21 +316,24 @@ export function useCarForm() {
         }
         resetForm()
         await onCarsChanged()
-      } else {
-        const result: CarCreateResponse = await carService.createCar(carData)
-        resetForm()
-        await onCarsChanged()
-        coinStore.refresh()
-        const isFirst = result.coinsAwarded === 20
-        analytics.trackCarAdded(isFirst)
-        toastMessage.value = isFirst
-          ? t('cars.toast_first', { n: result.coinsAwarded })
-          : t('cars.toast_coins', { n: result.coinsAwarded })
-        showToast.value = true
-        setTimeout(() => { showToast.value = false }, 5000)
+        return null
       }
+
+      const result: CarCreateResponse = await carService.createCar(carData)
+      resetForm()
+      await onCarsChanged()
+      coinStore.refresh()
+      const isFirst = result.coinsAwarded === 20
+      analytics.trackCarAdded(isFirst)
+      toastMessage.value = isFirst
+        ? t('cars.toast_first', { n: result.coinsAwarded })
+        : t('cars.toast_coins', { n: result.coinsAwarded })
+      showToast.value = true
+      setTimeout(() => { showToast.value = false }, 5000)
+      return result.car
     } catch (err: any) {
       error.value = err.response?.data?.message || t('cars.error_save')
+      return null
     }
   }
 

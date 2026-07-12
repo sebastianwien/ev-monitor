@@ -13,6 +13,7 @@ const TronityImport = defineAsyncComponent(() => import('../components/imports/T
 import TessieImport from '../components/imports/TessieImport.vue'
 const XpengImport = defineAsyncComponent(() => import('../components/imports/XpengImport.vue'))
 const XpengAutoSyncImport = defineAsyncComponent(() => import('../components/imports/XpengAutoSyncImport.vue'))
+import XpengAutoSyncExplainer from '../components/imports/XpengAutoSyncExplainer.vue'
 const EUDataActImport = defineAsyncComponent(() => import('../components/imports/EUDataActImport.vue'))
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
@@ -376,29 +377,11 @@ const teslaConnectedLabel = ref<string | null>(null)
               />
 
               <!-- XPeng-AutoSync (Stufe 2): gratis, laeuft nicht ueber Smartcar. Die
-                   Erklaerung steht bewusst hier und nicht in der Komponente - der User
-                   soll verstehen, was passiert, bevor er die Kachel aufklappt. -->
+                   Erklaerung steht bewusst vor der Kachel - der User soll verstehen,
+                   was passiert, bevor er sie aufklappt. Dieselbe Erklaerung zeigt das
+                   Modal nach dem Anlegen eines XPeng in /cars. -->
               <template v-if="showXpengAutoSync">
-                <div class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
-                  <p class="text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-[0.14em] mb-1">{{ t('xpeng.autosync_intro_eyebrow') }}</p>
-                  <h3 class="font-bold text-gray-900 dark:text-white text-lg mb-2 tracking-tight">{{ t('xpeng.autosync_intro_title') }}</h3>
-
-                  <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-2">{{ t('xpeng.autosync_intro_no_api') }}</p>
-                  <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed border-l-2 border-green-600 pl-3 mb-4">{{ t('xpeng.autosync_intro_data_act') }}</p>
-
-                  <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400 mb-2">{{ t('xpeng.autosync_intro_steps_title') }}</p>
-                  <ol class="space-y-2.5 mb-4">
-                    <li v-for="i in 5" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-                      <span class="shrink-0 w-5 h-5 bg-gray-950 dark:bg-gray-700 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">{{ i }}</span>
-                      <span class="leading-relaxed">{{ t(`xpeng.autosync_intro_step${i}`) }}</span>
-                    </li>
-                  </ol>
-
-                  <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                    {{ t('xpeng.autosync_intro_manual_hint') }}
-                    <button @click="toggle('xpeng')" class="underline font-bold cursor-pointer hover:no-underline">{{ t('xpeng.autosync_intro_manual_link') }}</button>
-                  </p>
-                </div>
+                <XpengAutoSyncExplainer @manual="toggle('xpeng')" />
                 <XpengAutoSyncImport :cars="activeCars" />
               </template>
             </div>

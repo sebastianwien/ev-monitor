@@ -5,7 +5,10 @@ import { TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '
 import LicensePlate from '../components/car/LicensePlate.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
+import XpengAutoSyncPrompt from '../components/car/XpengAutoSyncPrompt.vue'
+import type { Car } from '../api/carService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { isXpengCar } from '../composables/useImportGating'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useSohHistory } from '../composables/useSohHistory'
@@ -50,9 +53,15 @@ const doFetchCars = async () => {
 }
 
 const submitting = ref(false)
+// Frisch angelegter XPeng: AutoSync (EU Data Act) direkt anbieten, statt den User
+// erst in /imports danach suchen zu lassen.
+const xpengPromptCar = ref<Car | null>(null)
 const doSubmitForm = async () => {
   submitting.value = true
-  try { await submitForm(doFetchCars) } finally { submitting.value = false }
+  try {
+    const created = await submitForm(doFetchCars)
+    if (isXpengCar(created)) xpengPromptCar.value = created
+  } finally { submitting.value = false }
 }
 const doDeleteCar = (id: string) => deleteCar(id, doFetchCars)
 
@@ -944,6 +953,13 @@ const filteredCapacities = computed(() => {
     </div>
       </div>
     </Transition>
+
+    <!-- XPeng-AutoSync direkt nach dem Anlegen anbieten -->
+    <XpengAutoSyncPrompt
+      v-if="xpengPromptCar"
+      :car="xpengPromptCar"
+      @close="xpengPromptCar = null"
+    />
 
     <!-- Toast Notification (outside Transition) -->
     <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">

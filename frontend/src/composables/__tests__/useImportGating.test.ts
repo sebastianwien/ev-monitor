@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
-import { useImportGating } from '../useImportGating'
+import { useImportGating, isXpengCar } from '../useImportGating'
 import type { Car } from '../../api/carService'
 
 function buildCar(overrides: Partial<Car>): Car {
@@ -124,5 +124,24 @@ describe('useImportGating - Live-Promo', () => {
 
     it('ist ohne Tesla gesperrt - Live ist serverseitig Tesla-only', () => {
         expect(useImportGating(ref([vw({ isPrimary: true })])).allowLivePromo.value).toBe(false)
+    })
+})
+
+describe('isXpengCar', () => {
+    it('erkennt ein frisch angelegtes XPeng-Fahrzeug', () => {
+        expect(isXpengCar(xpeng())).toBe(true)
+    })
+
+    it('ist unabhaengig von der Schreibweise der Marke', () => {
+        expect(isXpengCar(buildCar({ brand: 'xpeng' }))).toBe(true)
+    })
+
+    it('trifft nicht auf andere Marken zu', () => {
+        expect(isXpengCar(tesla())).toBe(false)
+        expect(isXpengCar(vw())).toBe(false)
+    })
+
+    it('kommt mit fehlendem Auto klar', () => {
+        expect(isXpengCar(null)).toBe(false)
     })
 })

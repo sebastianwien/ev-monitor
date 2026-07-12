@@ -3,6 +3,9 @@ import type { Car } from '../api/carService'
 
 const brandIs = (car: Car | null | undefined, brand: string) => car?.brand?.toLowerCase() === brand
 
+/** XPeng laeuft nicht ueber Smartcar, sondern ueber den EU-Data-Act-Weg - eigene Einrichtung. */
+export const isXpengCar = (car: Car | null | undefined): boolean => brandIs(car, 'xpeng')
+
 /**
  * Sichtbarkeits-Regeln der /imports-Sektionen. Alles haengt am **aktiven Auto**
  * (`isPrimary`, genau eines pro User) - dieselbe Auswahl, die der User im
