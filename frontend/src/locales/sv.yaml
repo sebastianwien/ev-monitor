@@ -121,6 +121,7 @@ landing:
     title: Vad kostar laddningen egentligen?
     subtitle: "Här ser du de populäraste modellerna i communityn och vad de {emphasis} kostar per 100 km"
     subtitle_emphasis: "egentligen"
+    price_disclaimer: "Priserna visar vad förarna av den här modellen betalar för laddning i snitt - beroende på var och hur de laddar kan det se annorlunda ut för dig."
     loading: Hämtar fordonsdata...
     view_details: Visa detaljer
     compare_button: Jämför alla modeller

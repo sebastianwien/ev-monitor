@@ -28,6 +28,7 @@ import {
   ArrowLongRightIcon,
   CodeBracketIcon,
   ArrowPathIcon,
+  InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
 import CommunityPulseSection from '../components/shared/CommunityPulseSection.vue'
 import ImageLightbox from '../components/shared/ImageLightbox.vue'
@@ -560,7 +561,13 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
                 />
               </div>
             </div>
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 mt-4 sm:mt-6">
+            <!-- Hinweis unter den Modellen, ueber den CTAs: Preise sind Community-Durchschnitte pro Modell. -->
+            <div class="mt-8 sm:mt-10 max-w-3xl mx-auto flex items-start gap-3.5 rounded-xl border-2 border-green-600/70 dark:border-green-400/50 bg-green-50 dark:bg-green-900/20 px-5 py-4 sm:px-6 sm:py-5 text-left">
+              <InformationCircleIcon class="h-7 w-7 shrink-0 text-green-600 dark:text-green-400 mt-0.5" />
+              <p class="text-base sm:text-lg text-gray-700 dark:text-gray-200 leading-relaxed">{{ t('landing.models_section.price_disclaimer') }}</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 mt-6 sm:mt-8">
               <router-link
                 :to="modelsUrl"
                 class="btn-3d cta-shadow bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"

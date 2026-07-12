@@ -121,6 +121,7 @@ landing:
     title: Hva koster det egentlig å lade?
     subtitle: "Her ser du de mest populære modellene i brukerfellesskapet og hva de {emphasis} koster per 100 km"
     subtitle_emphasis: "egentlig"
+    price_disclaimer: "Prisene viser hva sjåførene av denne modellen betaler for lading i snitt - avhengig av hvor og hvordan de lader, kan det se annerledes ut hos deg."
     loading: Laster inn kjøretøydata...
     view_details: Vis detaljer
     compare_button: Sammenlign alle modeller

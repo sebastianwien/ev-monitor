@@ -124,6 +124,7 @@ landing:
     title: "What does charging really cost?"
     subtitle: "Here you can see the community's most popular models and what they {emphasis} cost per 100 km"
     subtitle_emphasis: "really"
+    price_disclaimer: "These prices show what drivers of this model pay for charging on average - depending on where and how they charge, yours may look different."
     loading: "Loading vehicle data..."
     view_details: "View details"
     compare_button: "Compare all models"

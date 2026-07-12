@@ -124,6 +124,7 @@ landing:
     title: "Was kostet das Laden wirklich?"
     subtitle: "Hier siehst du die beliebtesten Modelle aus der Community und was sie {emphasis} auf 100 km kosten"
     subtitle_emphasis: "wirklich"
+    price_disclaimer: "Die Preise zeigen, was die Fahrer dieses Modells im Schnitt fürs Laden zahlen - je nachdem wo und wie sie laden, kann das bei dir anders aussehen."
     loading: "Lade Fahrzeugdaten..."
     view_details: "Details ansehen"
     compare_button: "Alle Modelle im Vergleich"
