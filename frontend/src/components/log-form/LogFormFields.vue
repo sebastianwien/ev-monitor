@@ -9,6 +9,7 @@ import { useCountryStore } from '../../stores/country'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
+import { tariffLocationParams } from '../../utils/tariffLocation'
 
 export interface LogFormData {
   kwhCharged: number | null
@@ -30,6 +31,11 @@ export interface LogFormData {
   isPublicCharging: boolean
   cpoName: string | null
   chargingProviderId: string | null
+  /**
+   * Geohash of an already-stored log (edit mode). lat/lon are never persisted, so when editing
+   * an imported charge this is the only location the client has.
+   */
+  geohash?: string | null
   /** Opt-in: after saving, price all cost-less logs at this location with the selected card. */
   applyTariffToLocation?: boolean
 }
@@ -421,15 +427,13 @@ watch(() => form.value.isPublicCharging, (isPublic) => {
 const pricelessCountAtLocation = ref(0)
 
 const fetchPricelessCount = async () => {
-  const { latitude, longitude, chargingProviderId, isPublicCharging } = form.value
-  if (latitude == null || longitude == null || !chargingProviderId) {
+  const location = tariffLocationParams(form.value)
+  if (!location || !form.value.chargingProviderId) {
     pricelessCountAtLocation.value = 0
     return
   }
   try {
-    const res = await api.get('/logs/priceless-count', {
-      params: { lat: latitude, lon: longitude, isPublic: isPublicCharging }
-    })
+    const res = await api.get('/logs/priceless-count', { params: location })
     pricelessCountAtLocation.value = res.data.count ?? 0
   } catch {
     pricelessCountAtLocation.value = 0
@@ -437,13 +441,15 @@ const fetchPricelessCount = async () => {
 }
 
 watch(
-  () => [form.value.latitude, form.value.longitude, form.value.chargingProviderId, form.value.isPublicCharging],
+  () => [form.value.latitude, form.value.longitude, form.value.geohash,
+         form.value.chargingProviderId, form.value.isPublicCharging],
   () => {
     // Abwaehlen der Karte setzt auch die Zustimmung zurueck - sonst liefe der
     // Folge-Call gegen eine Karte, die der User gar nicht mehr gewaehlt hat.
     if (!form.value.chargingProviderId) form.value.applyTariffToLocation = false
     fetchPricelessCount()
-  }
+  },
+  { immediate: true }
 )
 
 defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTimeLocal })

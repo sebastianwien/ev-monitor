@@ -6,6 +6,7 @@ import api from '../../api/axios'
 import CarSelector from '../car/CarSelector.vue'
 const OcrPhotoCapture = defineAsyncComponent(() => import('./OcrPhotoCapture.vue'))
 import LogFormFields, { type LogFormData } from './LogFormFields.vue'
+import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
 import { CameraIcon, PencilSquareIcon, TrashIcon, BoltIcon, TruckIcon, ClockIcon, Battery0Icon, SunIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useCoinStore } from '../../stores/coins'
 import { useLogsRefreshStore } from '../../stores/logsRefresh'
@@ -250,21 +251,7 @@ const submitLog = async () => {
     coinStore.refresh()
     analytics.trackLogCreated(ocrUsed.value ? 'ocr' : 'manual', isFirstLog)
 
-    // Opt-in: denselben Tarif rueckwirkend auf die preislosen Ladungen an diesem Ort legen.
-    // Bewusst nach dem Log-POST und fehlertolerant - ein Fehlschlag hier darf den
-    // gerade gespeicherten Ladevorgang nicht in Frage stellen.
-    if (f.applyTariffToLocation && f.chargingProviderId && f.latitude != null && f.longitude != null) {
-      try {
-        await api.patch('/logs/apply-tariff-at-location', {
-          lat: f.latitude,
-          lon: f.longitude,
-          isPublic: f.isPublicCharging,
-          chargingProviderId: f.chargingProviderId,
-        })
-      } catch {
-        // Preis-Uebernahme fehlgeschlagen - Log ist gespeichert, User kann es erneut versuchen.
-      }
-    }
+    await applyTariffToLocationIfRequested(f)
 
     // Reset form (keep car + tireType + routeType)
     const savedTireType = f.tireType

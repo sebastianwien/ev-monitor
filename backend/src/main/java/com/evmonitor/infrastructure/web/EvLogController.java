@@ -164,22 +164,27 @@ public class EvLogController {
 
     /**
      * How many logs at this location still lack a price - drives the "apply to all N" prompt.
-     * Takes lat/lon like /price-suggestion; the geohash is derived server-side and lat/lon are
-     * never stored.
+     *
+     * Accepts either an existing {@code geohash} (editing a stored log - lat/lon are never
+     * persisted, so that is all the client has) or {@code lat}/{@code lon} (creating a new log,
+     * same contract as /price-suggestion). lat/lon are only used to derive the geohash.
      */
     @GetMapping("/priceless-count")
     public ResponseEntity<Map<String, Long>> countPricelessLogsAtLocation(
-            @RequestParam double lat,
-            @RequestParam double lon,
+            @RequestParam(required = false) String geohash,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lon,
             @RequestParam(defaultValue = "false") boolean isPublic,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        long count = evLogService.countPricelessLogsAtLocation(
-                principal.getUser().getId(), geohashOf(lat, lon, isPublic));
+        String location = resolveGeohash(geohash, lat, lon, isPublic);
+        if (location == null) return ResponseEntity.badRequest().build();
+
+        long count = evLogService.countPricelessLogsAtLocation(principal.getUser().getId(), location);
         return ResponseEntity.ok(Map.of("count", count));
     }
 
-    record ApplyTariffRequest(Double lat, Double lon, boolean isPublic, UUID chargingProviderId) {}
+    record ApplyTariffRequest(String geohash, Double lat, Double lon, boolean isPublic, UUID chargingProviderId) {}
 
     /** Prices all cost-less logs at this location with the given charging card. Never overwrites existing costs. */
     @PatchMapping("/apply-tariff-at-location")
@@ -187,22 +192,31 @@ public class EvLogController {
             @RequestBody ApplyTariffRequest body,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        if (body.lat() == null || body.lon() == null || body.chargingProviderId() == null) {
+        if (body.chargingProviderId() == null) {
             return ResponseEntity.badRequest().build();
         }
+        String location = resolveGeohash(body.geohash(), body.lat(), body.lon(), body.isPublic());
+        if (location == null) return ResponseEntity.badRequest().build();
+
         try {
             int priced = evLogService.applyTariffAtLocation(
-                    principal.getUser().getId(),
-                    geohashOf(body.lat(), body.lon(), body.isPublic()),
-                    body.chargingProviderId());
+                    principal.getUser().getId(), location, body.chargingProviderId());
             return ResponseEntity.ok(Map.of("priced", priced));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
     }
 
-    /** Same precision split as the log-creation path: public chargers 7 chars (~150m), private 6 (~600m). */
-    private static String geohashOf(double lat, double lon, boolean isPublic) {
+    /**
+     * A stored geohash wins over lat/lon. Returns null when neither is usable, so the caller
+     * answers 400 instead of silently counting the wrong location.
+     *
+     * Precision mirrors the log-creation path: public chargers 7 chars (~150m), private 6 (~600m).
+     * A client-supplied geohash is never a leak - the query is always scoped to the caller's own logs.
+     */
+    private static String resolveGeohash(String geohash, Double lat, Double lon, boolean isPublic) {
+        if (geohash != null && !geohash.isBlank()) return geohash;
+        if (lat == null || lon == null) return null;
         return GeoHash.withCharacterPrecision(lat, lon, isPublic ? 7 : 6).toBase32();
     }
 

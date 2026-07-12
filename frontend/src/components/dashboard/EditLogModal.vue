@@ -65,6 +65,7 @@ import { ref, watch, computed } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
 import LogFormFields, { type LogFormData } from '../log-form/LogFormFields.vue'
+import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
 import { useI18n } from 'vue-i18n'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
@@ -118,9 +119,13 @@ const formData = ref<LogFormData>({
   tireType: props.log.tireType ?? 'SUMMER',
   latitude: null,
   longitude: null,
+  // lat/lon werden nie gespeichert - beim Bearbeiten eines (importierten) Logs ist der
+  // Geohash der einzige Ort, den wir haben. Er traegt die "Tarif auf alle hier"-Abfrage.
+  geohash: props.log.geohash ?? null,
   isPublicCharging: props.log.isPublicCharging ?? false,
   cpoName: props.log.cpoName ?? null,
   chargingProviderId: props.log.chargingProviderId ?? null,
+  applyTariffToLocation: false,
 })
 
 const loading = ref(false)
@@ -212,6 +217,7 @@ async function save() {
     }
 
     const res = await api.patch(`/logs/${props.log.id}`, payload)
+    await applyTariffToLocationIfRequested(f)
     emit('saved', res.data)
     emit('close')
   } catch (e: any) {
