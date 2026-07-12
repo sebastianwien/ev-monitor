@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,7 +17,7 @@ public class UserChargingProviderService {
     private final JpaUserChargingProviderRepository repository;
 
     public List<UserChargingProviderResponse> getAll(UUID userId) {
-        return repository.findByUserIdOrderByActiveFromDesc(userId).stream()
+        return repository.findByUserIdAndDeletedAtIsNullOrderByActiveFromDesc(userId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -39,11 +40,7 @@ public class UserChargingProviderService {
 
     @Transactional
     public UserChargingProviderResponse update(UUID userId, UUID providerId, UserChargingProviderRequest request) {
-        UserChargingProviderEntity entity = repository.findById(providerId)
-                .orElseThrow(() -> new IllegalArgumentException("Provider not found"));
-        if (!entity.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("Provider does not belong to user");
-        }
+        UserChargingProviderEntity entity = findOwnedCard(userId, providerId);
 
         entity.setProviderName(request.providerName());
         entity.setLabel(request.label());
@@ -56,14 +53,27 @@ public class UserChargingProviderService {
         return toResponse(repository.save(entity));
     }
 
+    /**
+     * Nimmt die Karte aus dem Portfolio. Bewusst kein hartes DELETE: ev_log.charging_provider_id
+     * ist ON DELETE SET NULL, das Loeschen wuerde die Karte aus jeder Ladung reissen, die je mit
+     * ihr bezahlt wurde - und damit Kostenhistorie und Anbieter-Statistik ruecklings umschreiben.
+     */
     @Transactional
     public void delete(UUID userId, UUID providerId) {
+        UserChargingProviderEntity entity = findOwnedCard(userId, providerId);
+        entity.setDeletedAt(LocalDateTime.now());
+        repository.save(entity);
+    }
+
+    /** Eine geloeschte Karte existiert fuer den User nicht mehr - sie ist weder aenderbar noch erneut loeschbar. */
+    private UserChargingProviderEntity findOwnedCard(UUID userId, UUID providerId) {
         UserChargingProviderEntity entity = repository.findById(providerId)
+                .filter(e -> e.getDeletedAt() == null)
                 .orElseThrow(() -> new IllegalArgumentException("Provider not found"));
         if (!entity.getUserId().equals(userId)) {
             throw new IllegalArgumentException("Provider does not belong to user");
         }
-        repository.delete(entity);
+        return entity;
     }
 
     private UserChargingProviderResponse toResponse(UserChargingProviderEntity e) {

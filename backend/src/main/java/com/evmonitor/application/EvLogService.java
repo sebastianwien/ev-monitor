@@ -84,7 +84,7 @@ public class EvLogService {
                    .costCurrency(request.costCurrency());
         }
         if (request.chargingProviderId() != null) {
-            if (!chargingProviderRepository.existsByIdAndUserId(request.chargingProviderId(), userId)) {
+            if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(request.chargingProviderId(), userId)) {
                 throw new IllegalArgumentException("Charging provider not found for current user");
             }
             builder.chargingProviderId(request.chargingProviderId());
@@ -361,7 +361,7 @@ public class EvLogService {
         if (!isPublicCharging) return Optional.empty();
 
         List<UserChargingProviderEntity> activeCards =
-                chargingProviderRepository.findByUserIdAndActiveUntilIsNull(userId);
+                chargingProviderRepository.findByUserIdAndActiveUntilIsNullAndDeletedAtIsNull(userId);
         return activeCards.size() == 1
                 ? Optional.of(activeCards.get(0).getId())
                 : Optional.empty();
@@ -405,7 +405,7 @@ public class EvLogService {
      */
     @Transactional
     public int applyTariffAtLocation(UUID userId, String geohash, UUID providerId) {
-        if (!chargingProviderRepository.existsByIdAndUserId(providerId, userId)) {
+        if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(providerId, userId)) {
             throw new IllegalArgumentException("Charging provider does not belong to user");
         }
         UserChargingProviderEntity provider = chargingProviderRepository.findById(providerId)
@@ -524,7 +524,7 @@ public class EvLogService {
 
         UUID updatedChargingProviderId = existing.getChargingProviderId();
         if (request.chargingProviderId() != null) {
-            if (!chargingProviderRepository.existsByIdAndUserId(request.chargingProviderId(), userId)) {
+            if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(request.chargingProviderId(), userId)) {
                 throw new IllegalArgumentException("Charging provider not found for current user");
             }
             updatedChargingProviderId = request.chargingProviderId();

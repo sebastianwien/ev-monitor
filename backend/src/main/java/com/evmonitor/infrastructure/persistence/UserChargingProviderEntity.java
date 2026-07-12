@@ -50,4 +50,12 @@ public class UserChargingProviderEntity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    /**
+     * Soft-Delete: die Karte ist aus dem Portfolio des Users verschwunden, die Zeile bleibt.
+     * ev_log.charging_provider_id ist ON DELETE SET NULL - ein hartes DELETE wuerde die Karte
+     * aus jeder historischen Ladung reissen, die mit ihr bezahlt wurde.
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

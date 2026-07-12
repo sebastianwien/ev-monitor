@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -146,17 +147,39 @@ class UserChargingProviderServiceTest {
                 .hasMessage("Provider does not belong to user");
     }
 
-    // ── delete() — ownership ──────────────────────────────────────────────────
+    // ── delete() — Soft-Delete + ownership ────────────────────────────────────
 
+    /**
+     * Hartes Loeschen wuerde ueber den FK (ON DELETE SET NULL) die Ladekarte aus ALLEN
+     * historischen ev_logs des Users reissen. Die Karte verschwindet daher nur aus dem
+     * Portfolio, die Zeile bleibt als Bezugspunkt der Vergangenheit stehen.
+     */
     @Test
-    void shouldDeleteProvider_WhenOwnershipMatches() {
+    void shouldSoftDeleteProvider_WhenOwnershipMatches() {
         UUID providerId = UUID.randomUUID();
         UserChargingProviderEntity entity = entityForUser(providerId, userId);
         when(repository.findById(providerId)).thenReturn(Optional.of(entity));
 
         service.delete(userId, providerId);
 
-        verify(repository).delete(entity);
+        verify(repository, never()).delete(any());
+        verify(repository).save(entity);
+        assertThat(entity.getDeletedAt()).isNotNull();
+    }
+
+    @Test
+    void shouldNotResurrectAnAlreadyDeletedProvider() {
+        UUID providerId = UUID.randomUUID();
+        UserChargingProviderEntity entity = entityForUser(providerId, userId);
+        entity.setDeletedAt(LocalDateTime.now().minusDays(3));
+        when(repository.findById(providerId)).thenReturn(Optional.of(entity));
+
+        UserChargingProviderRequest request = new UserChargingProviderRequest(
+                "Zombie", null, null, null, null, null, LocalDate.now());
+
+        assertThatThrownBy(() -> service.update(userId, providerId, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Provider not found");
     }
 
     @Test
@@ -186,13 +209,13 @@ class UserChargingProviderServiceTest {
     void shouldReturnOnlyOwnProviders() {
         UserChargingProviderEntity e = entityForUser(UUID.randomUUID(), userId);
         e.setProviderName("IONITY");
-        when(repository.findByUserIdOrderByActiveFromDesc(userId)).thenReturn(List.of(e));
+        when(repository.findByUserIdAndDeletedAtIsNullOrderByActiveFromDesc(userId)).thenReturn(List.of(e));
 
         List<UserChargingProviderResponse> result = service.getAll(userId);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).providerName()).isEqualTo("IONITY");
-        verify(repository).findByUserIdOrderByActiveFromDesc(userId);
+        verify(repository).findByUserIdAndDeletedAtIsNullOrderByActiveFromDesc(userId);
     }
 
     @Test
@@ -201,7 +224,7 @@ class UserChargingProviderServiceTest {
         e1.setProviderName("EnBW");
         UserChargingProviderEntity e2 = entityForUser(UUID.randomUUID(), userId);
         e2.setProviderName("Maingau");
-        when(repository.findByUserIdOrderByActiveFromDesc(userId)).thenReturn(List.of(e1, e2));
+        when(repository.findByUserIdAndDeletedAtIsNullOrderByActiveFromDesc(userId)).thenReturn(List.of(e1, e2));
 
         List<UserChargingProviderResponse> result = service.getAll(userId);
 

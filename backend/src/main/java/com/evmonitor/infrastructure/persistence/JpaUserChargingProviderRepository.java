@@ -9,10 +9,11 @@ import java.util.UUID;
 @Repository
 public interface JpaUserChargingProviderRepository extends JpaRepository<UserChargingProviderEntity, UUID> {
 
-    List<UserChargingProviderEntity> findByUserIdOrderByActiveFromDesc(UUID userId);
+    /** The user's portfolio. Soft-deleted cards stay in the table but leave the wallet. */
+    List<UserChargingProviderEntity> findByUserIdAndDeletedAtIsNullOrderByActiveFromDesc(UUID userId);
 
     /** Cards the user currently holds. active_until IS NULL is the "still in my wallet" contract. */
-    List<UserChargingProviderEntity> findByUserIdAndActiveUntilIsNull(UUID userId);
+    List<UserChargingProviderEntity> findByUserIdAndActiveUntilIsNullAndDeletedAtIsNull(UUID userId);
 
-    boolean existsByIdAndUserId(UUID id, UUID userId);
+    boolean existsByIdAndUserIdAndDeletedAtIsNull(UUID id, UUID userId);
 }
