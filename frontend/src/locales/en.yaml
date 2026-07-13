@@ -32,7 +32,7 @@ nav:
   register: "Sign up"
   pricing: "Pricing"
   dashboard: "Dashboard"
-  models_compare: "Models"
+  models_compare: "Compare cars"
   bottom:
     aria: "Main navigation"
     start: "Home"

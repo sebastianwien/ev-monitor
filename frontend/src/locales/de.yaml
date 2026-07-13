@@ -32,7 +32,7 @@ nav:
   register: "Registrieren"
   pricing: "Preise"
   dashboard: "Dashboard"
-  models_compare: "Modelle"
+  models_compare: "Autos vergleichen"
   bottom:
     aria: "Hauptnavigation"
     start: "Start"
