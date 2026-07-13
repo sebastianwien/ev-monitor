@@ -58,6 +58,16 @@ landing:
     popular_sub: "most charging sessions"
     meta_datapoints: "{n} data points"
     unit_charges: "charges"
+  consumption_trust:
+    eyebrow: "Transparency"
+    heading: "Honest numbers, not brochure values"
+    intro: "Our figures cover the full consumption between two charges, standby included. That is why they are higher than the trip computer's drive-only reading."
+    step_charge: "Charge"
+    step_park: "Park"
+    step_drive: "Drive"
+    bracket_lead: "We measure the whole span."
+    bracket_rest: "The trip computer only the drive - it misses the standby."
+    cta: "See how we measure"
   community_intro:
     heading: "Real data from real drivers"
     text: "{drivers} EV drivers share their real consumption and charging costs. The more data comes together, the more reliable the comparisons - you see which model is truly efficient in everyday use and where your own car stands. No lab WLTP, just kilometres driven."

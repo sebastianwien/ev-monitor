@@ -110,6 +110,14 @@ interface SuperlativeCategory {
   items: SuperlativeItem[]
 }
 
+// Compact "min - max" real consumption, collapsing to a single value when the
+// two coincide - mirrors the range shown on the model overview page.
+function realConsumptionRange(min: number, max: number): string {
+  return Math.abs(max - min) < 0.05
+    ? formatConsumption(min, { showUnit: false })
+    : `${formatConsumption(min, { showUnit: false })} - ${formatConsumption(max, { showUnit: false })}`
+}
+
 // The three labelled superlatives that replace the (unexplained) hero model cards.
 // Each card now answers "why is this model here?": most efficient, longest real
 // range, most tracked. Formatting/units done here so the template stays declarative.
@@ -158,9 +166,11 @@ const superlativeCategories = computed<SuperlativeCategory[]>(() => {
         href: href(m),
         value: formatNumber(m.logCount),
         unit: t('landing.superlatives.unit_charges'),
-        meta: m.avgConsumptionKwhPer100km != null
-          ? formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: true })
-          : dataMeta(m),
+        meta: m.minRealConsumptionKwhPer100km != null && m.maxRealConsumptionKwhPer100km != null
+          ? `${realConsumptionRange(m.minRealConsumptionKwhPer100km, m.maxRealConsumptionKwhPer100km)} ${consumptionUnitLabel()}`
+          : m.avgConsumptionKwhPer100km != null
+            ? formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: true })
+            : dataMeta(m),
       })),
     },
   ].filter(cat => cat.items.length > 0)
@@ -491,8 +501,83 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           </div>
         </div>
 
-        <!-- Standalone CTA directly under the superlative cards -->
-        <div v-if="hasSuperlatives" class="mb-10 sm:mb-12 flex justify-center">
+      </div>
+    </section>
+
+    <!-- Consumption methodology trust block: explains that we measure the full
+         energy between two charges (drive + standby), not just the trip. Turns
+         the higher-than-trip-computer numbers into a transparency feature. -->
+    <section v-if="hasSuperlatives" class="px-4 sm:px-6 lg:px-8 pb-10 sm:pb-14">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 rounded-xl cta-shadow p-6 sm:p-9 text-center">
+          <span class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-green-700 dark:text-green-400">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" /></svg>
+            {{ t('landing.consumption_trust.eyebrow') }}
+          </span>
+          <h2 class="mt-2 text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight text-balance">
+            {{ t('landing.consumption_trust.heading') }}
+          </h2>
+          <p class="mt-3 max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
+            {{ t('landing.consumption_trust.intro') }}
+          </p>
+
+          <!-- Flow: Aufladen -> Parken -> Fahren -> Parken -> Aufladen -->
+          <div class="mt-7 grid grid-cols-1 gap-2.5 md:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr_auto_1fr] md:items-stretch">
+            <!-- Aufladen -->
+            <div class="flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 px-2 py-4 text-center">
+              <div class="flex h-12 items-center justify-center text-green-600 dark:text-green-400">
+                <svg viewBox="0 0 44 38" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-10 w-auto" aria-hidden="true"><rect x="10" y="5" width="20" height="29" rx="3" /><path d="M10 34h20" /><path d="M21 11l-4 6h5l-4 6" /><path d="M30 13h3.5a2.5 2.5 0 0 1 2.5 2.5V25a2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5v-8" /><circle cx="41" cy="14" r="1.8" /></svg>
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.consumption_trust.step_charge') }}</span>
+            </div>
+            <div class="flex items-center justify-center rotate-90 text-gray-400 dark:text-gray-500 md:rotate-0"><ArrowRightIcon class="h-5 w-5" /></div>
+            <!-- Parken -->
+            <div class="flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 px-2 py-4 text-center">
+              <div class="flex h-12 items-center justify-center text-amber-600 dark:text-amber-400">
+                <svg viewBox="-6 -3 32 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-10 w-auto scale-x-[1.2]" aria-hidden="true"><path style="opacity:.8" d="M5 3c2-2.2 6-2.2 8 0M3 0c3-3.2 9-3.2 12 0" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" /><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2" /><path d="M15 17H9" /><path d="M3 11h15" /><path d="M12 11V6" /></svg>
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.consumption_trust.step_park') }}</span>
+            </div>
+            <div class="flex items-center justify-center rotate-90 text-gray-400 dark:text-gray-500 md:rotate-0"><ArrowRightIcon class="h-5 w-5" /></div>
+            <!-- Fahren -->
+            <div class="flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 px-2 py-4 text-center">
+              <div class="flex h-12 items-center justify-center text-green-600 dark:text-green-400">
+                <svg viewBox="-6 -3 32 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-10 w-auto scale-x-[1.2]" aria-hidden="true"><path style="opacity:.5" d="M-5 8h3M-6 12h2.5M-5 16h3" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" /><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2" /><path d="M15 17H9" /><path d="M3 11h15" /><path d="M12 11V6" /></svg>
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.consumption_trust.step_drive') }}</span>
+            </div>
+            <div class="flex items-center justify-center rotate-90 text-gray-400 dark:text-gray-500 md:rotate-0"><ArrowRightIcon class="h-5 w-5" /></div>
+            <!-- Parken -->
+            <div class="flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 px-2 py-4 text-center">
+              <div class="flex h-12 items-center justify-center text-amber-600 dark:text-amber-400">
+                <svg viewBox="-6 -3 32 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-10 w-auto scale-x-[1.2]" aria-hidden="true"><path style="opacity:.8" d="M5 3c2-2.2 6-2.2 8 0M3 0c3-3.2 9-3.2 12 0" /><circle cx="7" cy="17" r="2" /><circle cx="17" cy="17" r="2" /><path d="M5 17H3v-6l2-5h9l4 5h1a2 2 0 0 1 2 2v4h-2" /><path d="M15 17H9" /><path d="M3 11h15" /><path d="M12 11V6" /></svg>
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.consumption_trust.step_park') }}</span>
+            </div>
+            <div class="flex items-center justify-center rotate-90 text-gray-400 dark:text-gray-500 md:rotate-0"><ArrowRightIcon class="h-5 w-5" /></div>
+            <!-- Aufladen -->
+            <div class="flex flex-col items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 px-2 py-4 text-center">
+              <div class="flex h-12 items-center justify-center text-green-600 dark:text-green-400">
+                <svg viewBox="0 0 44 38" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-10 w-auto" aria-hidden="true"><rect x="10" y="5" width="20" height="29" rx="3" /><path d="M10 34h20" /><path d="M21 11l-4 6h5l-4 6" /><path d="M30 13h3.5a2.5 2.5 0 0 1 2.5 2.5V25a2.5 2.5 0 0 0 2.5 2.5 2.5 2.5 0 0 0 2.5-2.5v-8" /><circle cx="41" cy="14" r="1.8" /></svg>
+              </div>
+              <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.consumption_trust.step_charge') }}</span>
+            </div>
+          </div>
+
+          <p class="mt-6 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed text-gray-600 dark:text-gray-300">
+            <span class="font-semibold text-gray-900 dark:text-gray-100">{{ t('landing.consumption_trust.bracket_lead') }}</span> {{ t('landing.consumption_trust.bracket_rest') }}
+          </p>
+
+          <router-link
+            to="/consumption-methodology"
+            class="mt-6 inline-flex items-center gap-2 text-base font-semibold text-green-700 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 transition"
+          >
+            {{ t('landing.consumption_trust.cta') }}
+            <ArrowRightIcon class="h-5 w-5 shrink-0" />
+          </router-link>
+        </div>
+
+        <div class="mt-8 flex justify-center">
           <router-link
             :to="modelsUrl"
             @click="analytics.trackCtaModelsClicked('hero')"
@@ -502,7 +587,6 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
             <ArrowRightIcon class="h-5 w-5" />
           </router-link>
         </div>
-
       </div>
     </section>
 

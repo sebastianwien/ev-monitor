@@ -56,6 +56,16 @@ landing:
     popular_sub: "flest laddningar"
     meta_datapoints: "{n} datapunkter"
     unit_charges: "laddningar"
+  consumption_trust:
+    eyebrow: "Transparens"
+    heading: "Ärliga siffror, inte broschyrvärden"
+    intro: "Våra värden omfattar hela förbrukningen mellan två laddningar, standby inräknat. Därför ligger de högre än färddatorns visning för enbart körning."
+    step_charge: "Ladda"
+    step_park: "Parkera"
+    step_drive: "Köra"
+    bracket_lead: "Vi mäter hela spannet."
+    bracket_rest: "Färddatorn bara körningen - den missar standby."
+    cta: "Se hur vi mäter"
   community_intro:
     heading: "Riktiga data från riktiga förare"
     text: "{drivers} elbilsförare delar sin verkliga förbrukning och laddkostnader. Ju mer data som samlas, desto mer tillförlitliga blir jämförelserna - du ser vilken modell som verkligen är snål i vardagen och var din egen bil ligger. Ingen labb-WLTP, bara körda kilometer."

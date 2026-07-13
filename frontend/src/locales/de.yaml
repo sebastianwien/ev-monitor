@@ -58,6 +58,16 @@ landing:
     popular_sub: "meiste Ladevorgänge"
     meta_datapoints: "{n} Datensätze"
     unit_charges: "Ladungen"
+  consumption_trust:
+    eyebrow: "Transparenz"
+    heading: "Ehrliche Zahlen statt Prospektwerte"
+    intro: "Unsere Werte umfassen den kompletten Verbrauch zwischen zwei Ladungen, inklusive Standby. Sie liegen daher über der reinen Fahranzeige des Bordcomputers."
+    step_charge: "Aufladen"
+    step_park: "Parken"
+    step_drive: "Fahren"
+    bracket_lead: "Wir messen die ganze Spanne."
+    bracket_rest: "Der Bordcomputer nur die Fahrt - der Standby fehlt ihm."
+    cta: "So messen wir"
   community_intro:
     heading: "Echte Daten von echten Fahrern"
     text: "{drivers} EV-Fahrer teilen ihre realen Verbräuche und Ladekosten. Je mehr Daten zusammenkommen, desto belastbarer die Vergleiche - du siehst, welches Modell im Alltag wirklich sparsam ist und wo dein eigenes Auto steht. Kein Labor-WLTP, sondern gefahrene Kilometer."

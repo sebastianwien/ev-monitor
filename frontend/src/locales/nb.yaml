@@ -56,6 +56,16 @@ landing:
     popular_sub: "flest ladinger"
     meta_datapoints: "{n} datapunkter"
     unit_charges: "ladinger"
+  consumption_trust:
+    eyebrow: "Åpenhet"
+    heading: "Ærlige tall, ikke brosjyreverdier"
+    intro: "Tallene våre dekker hele forbruket mellom to ladinger, standby inkludert. Derfor ligger de høyere enn kjørecomputerens visning for kjøring alene."
+    step_charge: "Lade"
+    step_park: "Parkere"
+    step_drive: "Kjøre"
+    bracket_lead: "Vi måler hele spennet."
+    bracket_rest: "Kjørecomputeren bare kjøringen - den mangler standby."
+    cta: "Se hvordan vi måler"
   community_intro:
     heading: "Ekte data fra ekte sjåfører"
     text: "{drivers} elbilister deler sitt reelle forbruk og ladekostnader. Jo mer data som samles, desto mer pålitelige blir sammenligningene - du ser hvilken modell som faktisk er sparsommelig i hverdagen, og hvor din egen bil ligger. Ingen laboratorie-WLTP, bare kjørte kilometer."
