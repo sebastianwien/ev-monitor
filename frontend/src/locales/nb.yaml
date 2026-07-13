@@ -1111,7 +1111,7 @@ cars:
   teaser_telemetry_title: Vil du at ladinger og turer skal registrere seg selv?
   teaser_telemetry_desc: Teslaen din kan skrive hver lading og hver tur rett inn i loggen - kWh, ladenivå og kilometer. Gratis, satt opp på to minutter.
   teaser_telemetry_cta: Ja, sett opp telemetri
-  teaser_autosync_title: Aldri taste inn en lading igjen?
+  teaser_autosync_title: Importere ladinger automatisk?
   teaser_autosync_desc: Med AutoSync henter EV Monitor hver lading rett fra bilen og fører den inn for deg.
   teaser_autosync_cta: Se AutoSync
   teaser_dismiss: Skjul tips

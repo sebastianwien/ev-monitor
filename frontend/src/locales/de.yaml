@@ -1154,7 +1154,7 @@ cars:
   teaser_telemetry_title: "Sollen sich Ladungen und Fahrten selbst eintragen?"
   teaser_telemetry_desc: "Dein Tesla kann jede Ladung und jede Fahrt direkt ins Log schreiben - kWh, Ladestand und Kilometer. Kostenlos, in zwei Minuten eingerichtet."
   teaser_telemetry_cta: "Ja, Telemetry einrichten"
-  teaser_autosync_title: "Nie wieder einen Ladevorgang abtippen?"
+  teaser_autosync_title: "Ladevorgänge automatisch importieren?"
   teaser_autosync_desc: "Mit AutoSync holt EV Monitor jede Ladung direkt aus deinem Auto und trägt sie für dich ein."
   teaser_autosync_cta: "AutoSync ansehen"
   teaser_dismiss: "Hinweis ausblenden"

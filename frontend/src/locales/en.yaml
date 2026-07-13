@@ -1154,7 +1154,7 @@ cars:
   teaser_telemetry_title: "Want your charges and trips to log themselves?"
   teaser_telemetry_desc: "Your Tesla can write every charge and every trip straight into your log - kWh, state of charge and mileage. Free, set up in two minutes."
   teaser_telemetry_cta: "Yes, set up telemetry"
-  teaser_autosync_title: "Never type in a charging session again?"
+  teaser_autosync_title: "Import charging sessions automatically?"
   teaser_autosync_desc: "With AutoSync, EV Monitor pulls every session straight from your car and logs it for you."
   teaser_autosync_cta: "See AutoSync"
   teaser_dismiss: "Hide hint"
