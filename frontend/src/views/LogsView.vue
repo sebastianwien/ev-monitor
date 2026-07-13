@@ -1102,7 +1102,7 @@ function toggleAllCharges() {
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
               <template v-if="item.kind === 'tripGroup'">
-                <div class="gridfeed:hidden rounded-sm overflow-hidden border-2 border-emerald-200 dark:border-emerald-800/60 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500 shadow-[2px_2px_0_0_#a7f3d0] dark:shadow-[2px_2px_0_0_#064e3b]">
+                <div class="gridfeed:hidden rounded-sm overflow-hidden border-2 border-emerald-200 dark:border-emerald-800/60 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
 
                   <!-- Group header -->
                   <div @click="toggleTripGroup(item.groupId)"
@@ -1336,7 +1336,7 @@ function toggleAllCharges() {
                 </div><!-- end trip group container (mobile) -->
 
                 <!-- DESKTOP TRIP GROUP -->
-                <div class="hidden gridfeed:block rounded-sm border-2 border-emerald-200 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 shadow-[2px_2px_0_0_#a7f3d0] dark:shadow-[2px_2px_0_0_#064e3b]">
+                <div class="hidden gridfeed:block rounded-sm border-2 border-emerald-200 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
                   <!-- Header as grid row -->
                   <button type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!collapsedTripGroups.has(item.groupId)"
