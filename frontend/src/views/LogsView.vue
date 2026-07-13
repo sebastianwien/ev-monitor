@@ -25,7 +25,6 @@ import {
   LockClosedIcon,
   CheckIcon,
   LinkIcon,
-  ListBulletIcon,
 } from '@heroicons/vue/24/outline'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
@@ -838,14 +837,10 @@ function toggleAllCharges() {
       </div>
       <div v-else key="content-view">
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6">
-          <!-- Mobile Auto-Card + Tab-Switch liegen im CarContextLayout (geteilter Header). -->
-          <!-- Desktop header row -->
-          <!-- Der Weg zurueck zum Dashboard und zu den Fahrzeugen laeuft ueber die
-               Workspace-Leiste - hier steht nur noch der Titel. -->
-          <div class="hidden md:flex items-center gap-3 mb-6">
-            <ListBulletIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
-            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ t('logs.title') }}</h1>
-          </div>
+          <!-- Mobile Auto-Card + Tab-Switch liegen im CarContextLayout (geteilter Header).
+               Auf Desktop benennt der aktive Tab die Seite - eine sichtbare Ueberschrift
+               wuerde ihn nur wiederholen. Fuer Screenreader bleibt sie. -->
+          <h1 class="sr-only">{{ t('logs.title') }}</h1>
           <!-- Desktop-Auto-Selektor (>=768px) -->
           <div
             v-if="cars.length > 0"

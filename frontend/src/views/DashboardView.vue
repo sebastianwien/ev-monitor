@@ -16,7 +16,6 @@ import {
 } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import {
-  ChartBarIcon,
   TruckIcon,
   ArrowDownTrayIcon,
   ChevronRightIcon,
@@ -198,12 +197,10 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6 pb-6">
-          <div class="hidden md:flex flex-wrap items-center gap-3 mb-6">
-            <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
-            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
-            <!-- Navigation zu Logs, Ladekarten und Fahrzeugen laeuft ueber die
-                 Workspace-Leiste (Desktop) bzw. die Bottom-Nav (Mobile). -->
-          </div>
+          <!-- Auf Desktop benennt der aktive Tab die Seite - eine sichtbare Ueberschrift
+               wuerde ihn nur wiederholen. Fuer Screenreader bleibt sie. Navigation laeuft
+               ueber die Workspace-Leiste (Desktop) bzw. die Bottom-Nav (Mobile). -->
+          <h1 class="sr-only">Dashboard</h1>
 
           <!-- Import Hint Banner -->
           <div v-if="!importBannerDismissed" class="relative mb-6">

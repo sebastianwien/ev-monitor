@@ -146,7 +146,9 @@ const filteredCapacities = computed(() => {
       <div v-if="!loading">
         <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6">
       <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">{{ t('cars.title') }}</h1>
+        <!-- Ab Desktop benennt der aktive Tab die Seite - die Ueberschrift wuerde ihn nur
+             wiederholen und bleibt darum nur fuer Screenreader stehen. -->
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200 md:sr-only">{{ t('cars.title') }}</h1>
         <button
           v-if="!showForm"
           @click="openAddForm"
