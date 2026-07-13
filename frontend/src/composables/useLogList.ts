@@ -11,6 +11,15 @@ import { carDisplayName } from '../utils/enumLabel'
 import { precedingChargePricePerKwh } from '../utils/phantomDrain'
 import { aggregateGroupCost } from './useChargingEfficiency'
 
+/** Maximaler zeitlicher Abstand zweier Logs, damit sie zusammengeführt werden dürfen.
+ *  24h, damit auch sehr langsame AC-Ladevorgänge (z. B. 14h an 4 kW) noch abgedeckt sind. */
+export const MERGE_WINDOW_MS = 24 * 60 * 60 * 1000
+
+export function isWithinMergeWindow(entryLoggedAt: string, logLoggedAt: string): boolean {
+  const diff = Math.abs(new Date(logLoggedAt).getTime() - new Date(entryLoggedAt).getTime())
+  return diff <= MERGE_WINDOW_MS
+}
+
 export const PAGE_SIZE_OPTIONS = [10, 25, 50] as const
 export type PageSize = typeof PAGE_SIZE_OPTIONS[number]
 export const DEFAULT_PAGE_SIZE: PageSize = 25
@@ -152,13 +161,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   const mergeCandidates = computed(() => {
     if (!mergeModalEntry.value) return []
     const entry = mergeModalEntry.value
-    const entryTime = new Date(entry.loggedAt).getTime()
-    const twelveHours = 12 * 60 * 60 * 1000
-    return logs.value.filter((l: any) => {
-      if (l.id === entry.id) return false
-      const diff = Math.abs(new Date(l.loggedAt).getTime() - entryTime)
-      return diff <= twelveHours
-    })
+    return logs.value.filter((l: any) => l.id !== entry.id && isWithinMergeWindow(entry.loggedAt, l.loggedAt))
   })
 
   const saveMerge = async (sourceLogId: string, preferSource: boolean, fetchStatistics: () => Promise<void>) => {
