@@ -69,6 +69,10 @@ const nextModels = ref<TopModelPreview[]>([])
 const efficientModels = ref<TopModelPreview[]>([])
 const rangeModels = ref<TopModelPreview[]>([])
 const loading = ref(true)
+
+// Top + next models flow as one responsive grid on sm+ so rows fill evenly
+// instead of two separate grids each leaving an orphan tile.
+const allModels = computed<TopModelPreview[]>(() => [...topModels.value, ...nextModels.value])
 const displayModels = ref(0)
 const displayUsers = ref(0)
 const displayTrips = ref(0)
@@ -609,60 +613,59 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           {{ t('landing.models_section.loading') }}
         </div>
 
-        <div v-else-if="topModels.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <!-- Model Cards -->
-          <PublicModelCard
-            v-for="preview in topModels"
-            :key="`${preview.brand}-${preview.model}`"
-            :model="preview"
-            :to="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
-          />
+        <div v-else-if="topModels.length > 0">
+          <!-- sm+: top + next models flow as one responsive grid so rows fill evenly -->
+          <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <PublicModelCard
+              v-for="preview in allModels"
+              :key="`${preview.brand}-${preview.model}`"
+              :model="preview"
+              :to="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
+            />
+          </div>
 
-          <!-- Next 4 models teaser + CTAs - span full grid width -->
-          <div class="col-span-full mt-2 space-y-4">
-            <div v-if="nextModels.length > 0">
-              <!-- Mobile: pills -->
-              <div class="flex flex-wrap gap-2 justify-center sm:hidden">
-                <a
-                  v-for="m in nextModels"
-                  :key="`${m.brand}-${m.model}`"
-                  :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
-                  class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full transition"
-                >
-                  {{ m.modelDisplayName }}
-                </a>
-              </div>
-              <!-- sm+: cards (identical layout to the top row) -->
-              <div class="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                <PublicModelCard
-                  v-for="m in nextModels"
-                  :key="`${m.brand}-${m.model}`"
-                  :model="m"
-                  :to="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
-                />
-              </div>
+          <!-- Mobile: top models as cards, the rest as lightweight pills -->
+          <div class="space-y-4 sm:hidden">
+            <div class="grid grid-cols-1 gap-4">
+              <PublicModelCard
+                v-for="preview in topModels"
+                :key="`${preview.brand}-${preview.model}`"
+                :model="preview"
+                :to="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
+              />
             </div>
-            <!-- Hinweis unter den Modellen, ueber den CTAs: Preise sind Community-Durchschnitte pro Modell. -->
-            <div class="mt-8 sm:mt-10 max-w-3xl mx-auto flex items-start gap-3.5 rounded-xl border-2 border-green-600/70 dark:border-green-400/50 bg-green-50 dark:bg-green-900/20 px-5 py-4 sm:px-6 sm:py-5 text-left">
-              <InformationCircleIcon class="h-7 w-7 shrink-0 text-green-600 dark:text-green-400 mt-0.5" />
-              <p class="text-base sm:text-lg text-gray-700 dark:text-gray-200 leading-relaxed">{{ t('landing.models_section.price_disclaimer') }}</p>
+            <div v-if="nextModels.length > 0" class="flex flex-wrap gap-2 justify-center">
+              <a
+                v-for="m in nextModels"
+                :key="`${m.brand}-${m.model}`"
+                :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
+                class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full transition"
+              >
+                {{ m.modelDisplayName }}
+              </a>
             </div>
+          </div>
 
-            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-6 mt-6 sm:mt-8">
-              <router-link
-                :to="modelsUrl"
-                class="btn-3d cta-shadow bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
-              >
-                <span>{{ t('landing.models_section.compare_button') }}</span>
-                <ArrowRightIcon class="h-5 w-5" />
-              </router-link>
-              <button
-                @click="goToRegister('models_section')"
-                class="btn-3d cta-shadow bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 rounded-sm font-semibold hover:text-green-700 dark:hover:text-green-400 transition inline-flex items-center justify-center space-x-2"
-              >
-                <span>{{ t('landing.hero.register_button') }}</span>
-              </button>
-            </div>
+          <!-- Price disclaimer: understated caption instead of a loud framed box -->
+          <p class="mx-auto mt-10 flex max-w-2xl items-start justify-center gap-2.5 text-center text-base sm:text-lg leading-relaxed text-gray-600 dark:text-gray-300">
+            <InformationCircleIcon class="mt-1 h-5 w-5 shrink-0 text-gray-400 dark:text-gray-500" />
+            <span>{{ t('landing.models_section.price_disclaimer') }}</span>
+          </p>
+
+          <div class="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-6">
+            <router-link
+              :to="modelsUrl"
+              class="btn-3d cta-shadow bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-6 py-3 rounded-sm font-semibold hover:bg-green-700 transition inline-flex items-center justify-center space-x-2"
+            >
+              <span>{{ t('landing.models_section.compare_button') }}</span>
+              <ArrowRightIcon class="h-5 w-5" />
+            </router-link>
+            <button
+              @click="goToRegister('models_section')"
+              class="btn-3d cta-shadow bg-white dark:bg-gray-800 border-2 border-gray-900 dark:border-gray-100 text-gray-800 dark:text-gray-100 px-6 py-3 rounded-sm font-semibold hover:text-green-700 dark:hover:text-green-400 transition inline-flex items-center justify-center space-x-2"
+            >
+              <span>{{ t('landing.hero.register_button') }}</span>
+            </button>
           </div>
         </div>
 
