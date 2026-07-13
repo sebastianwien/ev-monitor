@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { TrashIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useChargingProviders } from '../../composables/useChargingProviders'
+import ChargingCardTile from '../shared/ChargingCardTile.vue'
 
 /**
  * Verwaltung der Ladekarten (EMPs) des Users: anlegen, bearbeiten, aus dem Portfolio nehmen.
@@ -42,7 +43,13 @@ fetchChargingProviders()
       <template v-for="provider in chargingProviders" :key="provider.id">
         <!-- Card (normale Ansicht) -->
         <div v-if="editingProviderId !== provider.id"
-          class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm flex items-start justify-between gap-4">
+          class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm flex items-start gap-4">
+          <!-- Dieselbe Kachel wie im Log-Formular - der User erkennt seine Karte wieder. -->
+          <ChargingCardTile
+            class="flex-shrink-0"
+            :id="provider.id"
+            :title="provider.label || provider.providerName"
+            :subtitle="provider.acPricePerKwh != null ? formatPrice(provider.acPricePerKwh) : null" />
           <div class="min-w-0 flex-1">
             <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">{{ provider.providerName }}</p>
             <p v-if="provider.label" class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ provider.label }}</p>

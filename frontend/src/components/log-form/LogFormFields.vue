@@ -7,6 +7,8 @@ import '@vuepic/vue-datepicker/dist/main.css'
 import api from '../../api/axios'
 import { useInlineChargingCard, CUSTOM_PROVIDER } from '../../composables/useInlineChargingCard'
 import { KNOWN_EMPS } from '../../composables/useChargingProviders'
+import { cardContainerStyle } from '../../composables/useChargingCardDesign'
+import ChargingCardTile from '../shared/ChargingCardTile.vue'
 import { useCountryStore } from '../../stores/country'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
@@ -472,60 +474,11 @@ watch(
 
 defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTimeLocal })
 
-type CardDesign = 'stripe' | 'circles' | 'solid' | 'pastel'
-const CARD_DESIGNS: CardDesign[] = ['stripe', 'circles', 'solid', 'pastel']
-
-function hashId(id: string): number {
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
-  return h
-}
-
-function cardDesign(id: string): CardDesign {
-  return CARD_DESIGNS[hashId(id) % CARD_DESIGNS.length]
-}
-
-// Rich solid colors with a subtle top-shine gradient
-const SOLID_COLORS = [
-  { bg: 'linear-gradient(180deg, #4f46e5 0%, #3730a3 100%)', shadow: '#312e81' }, // indigo
-  { bg: 'linear-gradient(180deg, #0f766e 0%, #0d5e57 100%)', shadow: '#134e4a' }, // teal
-  { bg: 'linear-gradient(180deg, #be123c 0%, #9f1239 100%)', shadow: '#881337' }, // rose
-  { bg: 'linear-gradient(180deg, #b45309 0%, #92400e 100%)', shadow: '#78350f' }, // amber
-  { bg: 'linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%)', shadow: '#1e3a8a' }, // blue
-  { bg: 'linear-gradient(180deg, #7e22ce 0%, #6b21a8 100%)', shadow: '#581c87' }, // purple
-]
-
-function solidColor(id: string) {
-  return SOLID_COLORS[(hashId(id) >>> 3) % SOLID_COLORS.length]
-}
-
-function cardContainerStyle(id: string): Record<string, string> {
-  const d = cardDesign(id)
-  if (d === 'stripe')  return { background: '#f1f5f9', '--btn-shadow-color': '#94a3b8' }
-  if (d === 'circles') return { background: '#1e1b4b', '--btn-shadow-color': '#0c0a2e' }
-  if (d === 'solid')   return { background: solidColor(id).bg, '--btn-shadow-color': solidColor(id).shadow }
-  /* pastel */         return { background: 'linear-gradient(135deg, #fde68a 0%, #fbcfe8 100%)', '--btn-shadow-color': '#d97706' }
-}
-
-function cardChipStyle(id: string): Record<string, string> {
-  const d = cardDesign(id)
-  if (d === 'stripe')  return { background: 'rgba(251,191,36,0.9)', border: '1px solid rgba(180,83,9,0.3)' }
-  if (d === 'solid' || d === 'circles') return { background: 'rgba(253,224,71,0.75)', border: '1px solid rgba(253,224,71,0.4)' }
-  /* pastel */         return { background: 'rgba(180,83,9,0.35)', border: '1px solid rgba(180,83,9,0.2)' }
-}
-
-function cardTextColor(id: string): string {
-  const d = cardDesign(id)
-  if (d === 'stripe')  return '#1f2937'
-  if (d === 'solid' || d === 'circles') return 'rgba(255,255,255,0.95)'
-  /* pastel */         return '#78350f'
-}
-
-function cardSubTextColor(id: string): string {
-  const d = cardDesign(id)
-  if (d === 'stripe')  return '#6b7280'
-  if (d === 'solid' || d === 'circles') return 'rgba(255,255,255,0.55)'
-  /* pastel */         return 'rgba(120,53,15,0.6)'
+/** Preiszeile auf der Kachel: AC-Preis in der lokalen Waehrung (Cent, wo es Cent gibt). */
+function cardPriceLabel(p: UserProvider): string | null {
+  if (p.acPricePerKwh == null) return null
+  const value = isEurCountry.value ? p.acPricePerKwh * 100 : p.acPricePerKwh
+  return `${value.toFixed(1)} ${localSubunit.value || localSymbol.value}/kWh`
 }
 </script>
 
@@ -787,36 +740,14 @@ function cardSubTextColor(id: string): string {
         type="button"
         @click="form.chargingProviderId = form.chargingProviderId === p.id ? null : p.id"
         :class="[
-          'btn-3d flex-shrink-0 w-28 h-[4.5rem] rounded-sm overflow-hidden relative select-none',
+          'btn-3d flex-shrink-0 rounded-sm',
           form.chargingProviderId === p.id ? 'active opacity-100' : 'opacity-65 hover:opacity-85'
         ]"
-        :style="cardContainerStyle(p.id)">
-
-        <!-- Stripe: diagonaler Farbkeil rechts -->
-        <div v-if="cardDesign(p.id) === 'stripe'"
-          class="absolute inset-y-0 right-0 w-14 skew-x-[-8deg] translate-x-4 pointer-events-none"
-          style="background: linear-gradient(160deg, #059669 0%, #0891b2 100%);" />
-
-        <!-- Circles: überlappende Halbkreise unten rechts -->
-        <template v-else-if="cardDesign(p.id) === 'circles'">
-          <div class="absolute -bottom-4 right-3 w-14 h-14 rounded-full opacity-60 pointer-events-none" style="background: #dc2626;" />
-          <div class="absolute -bottom-4 right-8 w-14 h-14 rounded-full opacity-60 pointer-events-none" style="background: #ea580c;" />
-        </template>
-
-        <!-- Content (above decorations) -->
-        <div class="relative z-10 h-full p-2.5 flex flex-col justify-between">
-          <div class="w-5 h-3.5 rounded-[3px]" :style="cardChipStyle(p.id)" />
-          <div>
-            <div class="text-[11px] font-bold leading-tight truncate"
-              :style="{ color: cardTextColor(p.id) }">
-              {{ p.label || p.providerName }}
-            </div>
-            <div v-if="p.acPricePerKwh != null" class="text-[10px] leading-tight mt-0.5"
-              :style="{ color: cardSubTextColor(p.id) }">
-              {{ (isEurCountry ? p.acPricePerKwh * 100 : p.acPricePerKwh).toFixed(1) }} {{ (localSubunit || localSymbol) }}/kWh
-            </div>
-          </div>
-        </div>
+        :style="{ '--btn-shadow-color': cardContainerStyle(p.id)['--btn-shadow-color'] }">
+        <ChargingCardTile
+          :id="p.id"
+          :title="p.label || p.providerName"
+          :subtitle="cardPriceLabel(p)" />
       </button>
     </div>
 
