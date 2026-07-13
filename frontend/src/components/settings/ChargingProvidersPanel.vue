@@ -55,10 +55,9 @@ fetchChargingProviders()
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('settings.tariff_active_since') }} {{ formatDate(provider.activeFrom) }}</p>
           </div>
           <!-- Dieselbe Kachel wie im Log-Formular - der User erkennt seine Karte wieder.
-               Sie waechst mit der Zeilenhoehe, behaelt dabei aber ihr Kartenformat
-               (aspect-ratio) - sonst wuerde sie in die Laenge gezogen. -->
+               Hier groesser als im Formular, aber im selben Kartenformat (1.56:1). -->
           <ChargingCardTile
-            class="flex-shrink-0 self-stretch min-h-[4.5rem] aspect-[112/72]"
+            class="flex-shrink-0 w-36 h-[5.75rem]"
             :id="provider.id"
             :title="provider.label || provider.providerName"
             :subtitle="provider.acPricePerKwh != null ? formatPrice(provider.acPricePerKwh) : null" />
