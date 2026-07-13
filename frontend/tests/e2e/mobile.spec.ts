@@ -69,9 +69,13 @@ test('Mobile: Segmented Control wechselt Dashboard <-> Log-Feed im geteilten Lay
   // Auto-Card + Dashboard-Daten settlen lassen, sonst schiebt der ladende Header die Tabs
   await page.waitForLoadState('networkidle');
 
-  // Uebersicht ist initial aktiv (Pill links)
-  const overviewTab = page.locator('a[role="tab"][href="/dashboard"]');
-  const logsTab = page.locator('a[role="tab"][href="/logs"]');
+  // Uebersicht ist initial aktiv (Pill links).
+  // :visible grenzt auf das mobile Segmented Control ein - die Desktop-Workspace-Leiste
+  // (WorkspaceNav) nutzt denselben ViewSegmentedControl und liegt auf Mobile via
+  // `hidden md:block` zwar im DOM, ist aber display:none. Ohne :visible matcht der
+  // Locator beide Instanzen -> Playwright strict mode violation.
+  const overviewTab = page.locator('a[role="tab"][href="/dashboard"]:visible');
+  const logsTab = page.locator('a[role="tab"][href="/logs"]:visible');
   await expect(overviewTab).toHaveAttribute('aria-selected', 'true');
 
   // Auf Log-Feed umschalten: URL + aktiver Body wechseln, Header (Segmented Control) bleibt
