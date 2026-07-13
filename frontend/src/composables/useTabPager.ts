@@ -6,19 +6,18 @@ import {
   startsInsideHorizontalScroller,
 } from './useSwipeBack'
 
-export type TabTarget = '/dashboard' | '/logs'
-
 /**
  * Reine Entscheidung: bei welchem Horizontal-Delta und aktuellem Tab wird
- * gewechselt? Nur EIN Nachbar je Richtung (2 Tabs). Testbar ohne DOM.
+ * gewechselt? Immer nur zum direkten Nachbarn. Testbar ohne DOM.
  */
 export function pagerNavTarget(
   dx: number,
-  isLogs: boolean,
+  activeIndex: number,
+  tabs: readonly string[],
   threshold = SWIPE_THRESHOLD_PX,
-): TabTarget | null {
-  if (dx <= -threshold && !isLogs) return '/logs'      // links wischen auf Dashboard
-  if (dx >= threshold && isLogs) return '/dashboard'   // rechts wischen auf Logs
+): string | null {
+  if (dx <= -threshold) return tabs[activeIndex + 1] ?? null  // nach links wischen -> rechter Nachbar
+  if (dx >= threshold) return tabs[activeIndex - 1] ?? null    // nach rechts wischen -> linker Nachbar
   return null
 }
 
@@ -38,8 +37,9 @@ const RUBBER = 0.25
  */
 export function useTabPager(
   target: Ref<HTMLElement | null>,
-  isLogs: Ref<boolean>,
-  navigate: (to: TabTarget) => void,
+  activeIndex: Ref<number>,
+  tabs: Ref<readonly string[]>,
+  navigate: (to: string) => void,
 ) {
   const dragX = ref(0)
   const dragging = ref(false)
@@ -72,7 +72,7 @@ export function useTabPager(
       if (horizontal) dragging.value = true
     }
     if (!horizontal) return
-    const hasNeighbor = dx < 0 ? !isLogs.value : isLogs.value
+    const hasNeighbor = pagerNavTarget(dx < 0 ? -Infinity : Infinity, activeIndex.value, tabs.value) !== null
     dragX.value = hasNeighbor ? dx : dx * RUBBER
     if (e.cancelable) e.preventDefault() // vertikales Scrollen waehrend des H-Drags unterdruecken
   }
@@ -81,7 +81,7 @@ export function useTabPager(
     if (!active) return
     active = false
     if (!horizontal) return
-    const to = pagerNavTarget(dragX.value, isLogs.value)
+    const to = pagerNavTarget(dragX.value, activeIndex.value, tabs.value)
     dragging.value = false
     dragX.value = 0
     if (to) navigate(to)

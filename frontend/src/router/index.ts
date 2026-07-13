@@ -25,8 +25,8 @@ import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
-import CarManagementView from '../views/CarManagementView.vue';
 import CarContextLayout from '../layouts/CarContextLayout.vue';
+import CarsLayout from '../layouts/CarsLayout.vue';
 import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListView from '../views/PublicModelsListView.vue';
 import PublicBrandView from '../views/PublicBrandView.vue';
@@ -115,13 +115,13 @@ const router = createRouter({
         {
             path: '/cars',
             name: 'cars',
-            component: CarManagementView,
+            component: CarsLayout,
             meta: { requiresAuth: true }
         },
         {
             path: '/charging-providers',
             name: 'charging-providers',
-            component: () => import('../views/ChargingProvidersView.vue'),
+            component: CarsLayout,
             meta: { requiresAuth: true }
         },
         {
@@ -482,30 +482,15 @@ const router = createRouter({
     ]
 });
 
-// Horizontal slide animation between the tab pairs (Dashboard <-> Logs, Fahrzeuge <-> Ladekarten).
-// Other navigation falls back to no transition (or whatever App.vue defaults to).
-const SLIDE_PAIRS: Record<string, string[]> = {
-    '/dashboard': ['/logs'],
-    '/logs': ['/dashboard'],
-    '/cars': ['/charging-providers'],
-    '/charging-providers': ['/cars'],
-};
-// Left tab of each pair - navigating away from it slides the new view in from the right.
-const LEFT_TABS = ['/dashboard', '/cars'];
+// Den horizontalen Wechsel innerhalb eines Tab-Paars (Dashboard <-> Log-Feed,
+// Fahrzeuge <-> Ladekarten) macht der SwipeTabPager im jeweiligen Layout - beide
+// Bodies liegen dort in einer Schiene. Es gibt darum keine Routen-Transition.
+
 // Kauf-/Upgrade-Seiten in der nativen App sperren (Apple Guideline 3.1.1).
 // Backstop fuer den Fall, dass irgendwo ein Kauf-Link uebersehen wurde.
 router.beforeEach((to) => {
     if (to.meta.hideOnNative && !purchasesAvailable()) {
         return '/dashboard';
-    }
-});
-router.beforeEach((to, from) => {
-    const dest = SLIDE_PAIRS[to.path];
-    if (dest && dest.includes(from.path)) {
-        // Forward = away from the left tab (new view slides in from the right)
-        to.meta.transition = LEFT_TABS.includes(from.path) ? 'slide-left' : 'slide-right';
-    } else {
-        to.meta.transition = '';
     }
 });
 

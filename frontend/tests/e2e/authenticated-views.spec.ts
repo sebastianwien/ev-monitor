@@ -70,7 +70,8 @@ test.describe('Fahrzeugverwaltung', () => {
     await page.goto('/cars');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 });
+    // /cars traegt zwei Tabs (Fahrzeuge + Ladekarten), auf Mobile liegen beide im Pager-DOM.
+    await expect(page.locator('h1:has-text("Meine Fahrzeuge")')).toBeVisible({ timeout: 10_000 });
 
     expect(errors).toEqual([]);
   });
