@@ -2,12 +2,16 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import {
+  TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon,
+  ChartBarIcon, BoltIcon, LockClosedIcon,
+} from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
 import XpengAutoSyncPrompt from '../components/car/XpengAutoSyncPrompt.vue'
 import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
+import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
 import type { Car } from '../api/carService'
 import teslaFleetService from '../api/teslaFleetService'
 import { analytics } from '../services/analytics'
@@ -16,6 +20,7 @@ import { isXpengCar, isTeslaCar } from '../composables/useImportGating'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useSohHistory } from '../composables/useSohHistory'
+import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
 
 const { t } = useI18n()
 
@@ -51,6 +56,9 @@ const {
   openSohAddForm, openSohEditForm, cancelSohForm, submitSohForm, deleteSohEntry,
 } = useSohHistory(editingCar, cars, error, sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate)
 
+// -- Setup-Teaser ueber der Auto-Card --
+const { teaserFor, dismiss: dismissTeaser, loadTelemetryStatus } = useCarSetupTeaser(cars, teslaStatus)
+
 // -- Orchestration --
 const doFetchCars = async () => {
   await fetchCars(loadCarImages, revokeAllBlobUrls)
@@ -79,6 +87,15 @@ const closeTeslaPrompt = () => {
   teslaPromptCar.value = null
   teslaJustConnected.value = false
   teslaCallbackError.value = null
+  // Wurde die Telemetry im Modal eingerichtet, soll der Teaser sofort verschwinden -
+  // der gepollte teslaStatus waere dafuer zu traege.
+  loadTelemetryStatus(true)
+}
+
+/** Teaser-CTA: dasselbe Einrichtungs-Modal wie direkt nach dem Anlegen eines Teslas. */
+const openTeslaSetup = (car: Car) => {
+  teslaPromptCar.value = car
+  teslaJustConnected.value = !!teslaStatus.value?.connected
 }
 
 const route = useRoute()
@@ -113,8 +130,15 @@ onMounted(async () => {
   await fetchBrands()
   await fetchCars(loadCarImages, revokeAllBlobUrls)
   initVisibility(cars.value)
+  await loadTelemetryStatus()
   await resumeTeslaSetupFromCallback()
 })
+
+const emptyStateFeatures = [
+  { icon: ChartBarIcon, titleKey: 'cars.feat_models_title', descKey: 'cars.feat_models_desc' },
+  { icon: BoltIcon, titleKey: 'cars.feat_wltp_title', descKey: 'cars.feat_wltp_desc' },
+  { icon: LockClosedIcon, titleKey: 'cars.feat_privacy_title', descKey: 'cars.feat_privacy_desc' },
+]
 
 const copiedCarId = ref<string | null>(null)
 const copyCarId = async (id: string) => {
@@ -144,7 +168,7 @@ const filteredCapacities = computed(() => {
   <div class="md:max-w-6xl md:mx-auto md:px-6 md:pb-6">
     <Transition name="fade" mode="out-in">
       <div v-if="!loading">
-        <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6">
+        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6 pb-6">
       <div class="flex justify-between items-center mb-6">
         <!-- Ab Desktop benennt der aktive Tab die Seite - die Ueberschrift wuerde ihn nur
              wiederholen und bleibt darum nur fuer Screenreader stehen. -->
@@ -163,7 +187,7 @@ const filteredCapacities = computed(() => {
       </div>
 
       <!-- Add form (inline) -->
-      <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600">
+      <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
         <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">{{ t('cars.add_title') }}</h2>
 
         <form @submit.prevent="doSubmitForm" class="space-y-4">
@@ -491,27 +515,26 @@ const filteredCapacities = computed(() => {
           {{ t('cars.add_first_btn') }}
         </button>
         <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
-          <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-sm p-4">
-            <div class="text-blue-600 mb-2">📊</div>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('cars.feat_models_title') }}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400">{{ t('cars.feat_models_desc') }}</p>
-          </div>
-          <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-sm p-4">
-            <div class="text-green-600 mb-2">⚡</div>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('cars.feat_wltp_title') }}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400">{{ t('cars.feat_wltp_desc') }}</p>
-          </div>
-          <div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-sm p-4">
-            <div class="text-purple-600 mb-2">🔒</div>
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('cars.feat_privacy_title') }}</p>
-            <p class="text-xs text-gray-600 dark:text-gray-400">{{ t('cars.feat_privacy_desc') }}</p>
+          <div v-for="feat in emptyStateFeatures" :key="feat.titleKey"
+            class="bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4">
+            <component :is="feat.icon" class="h-6 w-6 mb-2 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t(feat.titleKey) }}</p>
+            <p class="text-xs text-gray-600 dark:text-gray-400">{{ t(feat.descKey) }}</p>
           </div>
         </div>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div v-for="car in cars" :key="car.id"
-          class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm shadow-sm hover:shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:hover:shadow-[3px_3px_0_rgba(255,255,255,0.25)] transition overflow-hidden">
+          class="bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden flex flex-col">
+
+          <!-- Setup-Teaser: dieses Auto koennte seine Daten automatisch liefern, tut es aber nicht -->
+          <CarSetupTeaser
+            v-if="teaserFor(car)"
+            :kind="teaserFor(car)!"
+            @setup="openTeslaSetup(car)"
+            @dismiss="dismissTeaser(car, teaserFor(car)!)"
+          />
 
           <!-- Car Image -->
           <div class="relative bg-gray-100 dark:bg-gray-600 h-40 flex items-center justify-center">
@@ -689,7 +712,7 @@ const filteredCapacities = computed(() => {
 
     <!-- Edit Car Modal -->
     <div v-if="editingCar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="resetForm">
-      <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
           <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('cars.edit_title') }}</h2>
           <button @click="resetForm" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
@@ -987,12 +1010,12 @@ const filteredCapacities = computed(() => {
       <!-- Import Hub Hint -->
       <router-link
         to="/imports"
-        class="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-600 transition group"
+        class="flex items-center gap-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-600 transition group"
       >
         <ArrowDownTrayIcon class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
         <div>
           <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ t('cars.import_title') }}</span>
-          <span class="text-sm text-gray-500 dark:text-gray-400 ml-1">— Tesla, Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400 ml-1">- Tesla, Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
         </div>
         <span class="text-gray-400 dark:text-gray-500 ml-auto group-hover:translate-x-0.5 transition-transform">→</span>
       </router-link>

@@ -1108,6 +1108,13 @@ cars:
   tesla_charging: Laddning
   tesla_online: Online
   tesla_sleeping: Sömn
+  teaser_telemetry_title: Realtidsdata från din Tesla
+  teaser_telemetry_desc: Laddningar hamnar automatiskt i loggen. Gratis, klart på två minuter.
+  teaser_telemetry_cta: Ställ in telemetri
+  teaser_autosync_title: Registrera laddningar automatiskt
+  teaser_autosync_desc: Med AutoSync loggar varje laddning sig själv. Inget mer manuellt knappande.
+  teaser_autosync_cta: Se AutoSync
+  teaser_dismiss: Dölj tips
   empty_title: Inga fordon ännu
   empty_desc: Lägg till din första elbil för att registrera laddningar och se statistik!
   feat_models_title: Över 140 modeller
