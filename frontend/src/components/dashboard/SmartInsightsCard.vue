@@ -115,13 +115,9 @@ function barClass(bar: ChartBar, sentiment: InsightSentiment): string {
 
 <template>
   <div v-if="visible">
-    <div class="mb-2 px-4 md:px-0 flex items-center gap-3">
-      <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-      <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-        {{ t('insights.page_title') }}
-      </h2>
-      <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
-    </div>
+    <!-- Die Karten sagen selbst, was sie sind - eine Ueberschrift zwischen zwei Strichen
+         trennt hier nur optisch, ohne etwas zu erklaeren. Fuer Screenreader bleibt sie. -->
+    <h2 class="sr-only">{{ t('insights.page_title') }}</h2>
 
     <!-- Mobile: vertical foldable stack | Desktop: 3-col grid always open -->
     <div class="flex flex-col gap-2 md:grid md:grid-cols-3 md:gap-4">
