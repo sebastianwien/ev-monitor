@@ -1108,11 +1108,11 @@ cars:
   tesla_charging: Laddning
   tesla_online: Online
   tesla_sleeping: Sömn
-  teaser_telemetry_title: Realtidsdata från din Tesla
-  teaser_telemetry_desc: Laddningar hamnar automatiskt i loggen. Gratis, klart på två minuter.
-  teaser_telemetry_cta: Ställ in telemetri
-  teaser_autosync_title: Registrera laddningar automatiskt
-  teaser_autosync_desc: Med AutoSync loggar varje laddning sig själv. Inget mer manuellt knappande.
+  teaser_telemetry_title: Vill du att laddningar och resor ska registrera sig själva?
+  teaser_telemetry_desc: Din Tesla kan skriva varje laddning och varje resa direkt i loggen - kWh, laddnivå och kilometer. Gratis, klart på två minuter.
+  teaser_telemetry_cta: Ja, ställ in telemetri
+  teaser_autosync_title: Aldrig knappa in en laddning igen?
+  teaser_autosync_desc: Med AutoSync hämtar EV Monitor varje laddning direkt från bilen och för in den åt dig.
   teaser_autosync_cta: Se AutoSync
   teaser_dismiss: Dölj tips
   empty_title: Inga fordon ännu
