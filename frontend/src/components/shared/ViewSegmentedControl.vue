@@ -21,7 +21,7 @@ const activeIndex = computed(() => {
 })
 
 const labelClass = (active: boolean) =>
-  `relative z-10 flex-1 text-center text-sm font-semibold py-1.5 transition-colors ${
+  `relative z-10 flex-1 text-center text-sm font-semibold py-1.5 whitespace-nowrap transition-colors ${
     active ? 'text-indigo-600 dark:text-indigo-300' : 'text-gray-500 dark:text-gray-400'
   }`
 </script>

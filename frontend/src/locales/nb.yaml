@@ -27,7 +27,6 @@ lightbox:
   prev: Forrige bilde
   next: Neste bilde
 nav:
-  tab_overview: Oversikt
   login: Logg inn
   register: Registrer deg
   pricing: Priser
@@ -551,7 +550,6 @@ dashboard:
   real_cost_tooltip_measured: "{count} tidligere lading inneholdt både brutto- og nettoverdier. Den resulterende ladeeffektiviteten på ~{pct}% brukes til å utlede et grovt anslag for de faktiske strømkostnadene. | {count} tidligere ladinger inneholdt både brutto- og nettoverdier. Den resulterende gjennomsnittlige ladeeffektiviteten på ~{pct}% brukes til å utlede et grovt anslag for de faktiske strømkostnadene."
   real_cost_tooltip_pauschale: "Ingen ladinger med kombinerte brutto- og nettoverdier foreligger. En AC-ladetap-sjablong på ~{pct}% effektivitet brukes som estimeringsgrunnlag."
   vehicles_btn: Kjøretøy
-  logs_btn: Ladingsøktene dine
   import_banner: Importer ladingsøkter
   import_banner_sources: "- Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox"
   active: Aktiv

@@ -11,7 +11,6 @@ import {
   SunIcon,
   ChevronDownIcon,
   ChevronUpIcon,
-  ChevronLeftIcon,
   TrashIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -812,7 +811,7 @@ function toggleAllCharges() {
 
 <template>
 <div>
-  <div class="md:max-w-6xl md:mx-auto md:p-6">
+  <div class="md:max-w-6xl md:mx-auto md:px-6 md:pb-6">
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="loading && isInitialLoad" key="skeleton-view">
@@ -841,28 +840,11 @@ function toggleAllCharges() {
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6">
           <!-- Mobile Auto-Card + Tab-Switch liegen im CarContextLayout (geteilter Header). -->
           <!-- Desktop header row -->
-          <div class="hidden md:grid grid-cols-3 items-center mb-6">
-            <div>
-              <router-link
-                to="/dashboard"
-                class="btn-3d inline-flex items-center gap-2 px-4 py-2 rounded-sm bg-indigo-600 text-white text-sm font-medium"
-                style="--btn-shadow-color: #3730a3">
-                <ChevronLeftIcon class="w-3.5 h-3.5 opacity-75" />
-                Dashboard
-              </router-link>
-            </div>
-            <div class="flex items-center justify-center gap-3">
-              <ListBulletIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
-              <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ t('logs.title') }}</h1>
-            </div>
-            <div class="flex justify-end">
-              <router-link
-                to="/cars"
-                class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition hover:brightness-95">
-                <TruckIcon class="w-4 h-4" />
-                {{ t('dashboard.vehicles_btn') }}
-              </router-link>
-            </div>
+          <!-- Der Weg zurueck zum Dashboard und zu den Fahrzeugen laeuft ueber die
+               Workspace-Leiste - hier steht nur noch der Titel. -->
+          <div class="hidden md:flex items-center gap-3 mb-6">
+            <ListBulletIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ t('logs.title') }}</h1>
           </div>
           <!-- Desktop-Auto-Selektor (>=768px) -->
           <div

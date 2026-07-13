@@ -28,7 +28,6 @@ lightbox:
   prev: "Vorheriges Bild"
   next: "Nächstes Bild"
 nav:
-  tab_overview: "Übersicht"
   login: "Anmelden"
   register: "Registrieren"
   pricing: "Preise"
@@ -591,7 +590,6 @@ dashboard:
   real_cost_tooltip_measured: "{count} vorherige Ladung enthielt sowohl Brutto- als auch Netto-Werte. Daraus ergibt sich eine Ladeeffizienz von ~{pct}%, mit der ein grober Richtwert für die echten Stromkosten abgeleitet wird. | {count} vorherige Ladungen enthielten sowohl Brutto- als auch Netto-Werte. Daraus ergibt sich eine durchschnittliche Ladeeffizienz von ~{pct}%, mit der ein grober Richtwert für die echten Stromkosten abgeleitet wird."
   real_cost_tooltip_pauschale: "Es liegen keine Ladungen mit kombinierten Brutto- und Netto-Werten vor. Als Schätzgrundlage dient eine AC-Ladeverlust-Pauschale von ~{pct}% Effizienz."
   vehicles_btn: "Fahrzeuge"
-  logs_btn: "Deine Ladevorgänge"
   import_banner: "Ladevorgänge importieren"
   import_banner_sources: "- Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox"
   active: "Aktiv"

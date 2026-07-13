@@ -12,8 +12,10 @@ import { useIsMobile } from '../../composables/useIsMobile'
  * Nachbar-Tab schon waehrend der Geste sichtbar wird (echter Pager). Beim Loslassen ueber
  * der Schwelle wird navigiert - die Route folgt der Geste, nicht umgekehrt.
  *
- * Desktop: nur der aktive Body wird gemountet. Sonst rendern beide Views parallel
- * (doppeltes Polling, duplizierte Header/Aktionen im DOM) ohne dass es je einen Swipe gibt.
+ * Desktop: nur der aktive Body wird gemountet - sonst rendern beide Views parallel
+ * (doppeltes Polling, duplizierte Header/Aktionen im DOM), obwohl es dort keinen Swipe
+ * gibt. Der Tab-Klick blendet den Body mit einem kurzen Versatz aus der Tab-Richtung ein
+ * - dieselben Klassen wie beim Wechsel ueber die Paar-Grenze (Routen-Transition, App.vue).
  */
 const props = defineProps<{
   /** Routen-Pfade der beiden Tabs, in Anzeige-Reihenfolge. */
@@ -47,7 +49,11 @@ const trackStyle = computed(() => ({
 // aber weder fuer Screenreader noch fuer den Tab-Fokus erreichbar.
 const transitioning = ref(false)
 let transTimer: ReturnType<typeof setTimeout> | undefined
-watch(activeIndex, () => {
+// Richtung des Desktop-Uebergangs: der neue Body stupst aus der Richtung seines Tabs
+// herein (Klassen in App.vue, geteilt mit der Routen-Transition).
+const slideName = ref<'nudge-left' | 'nudge-right'>('nudge-left')
+watch(activeIndex, (to, from) => {
+  slideName.value = to > from ? 'nudge-left' : 'nudge-right'
   transitioning.value = true
   clearTimeout(transTimer)
   transTimer = setTimeout(() => { transitioning.value = false }, 320)
@@ -58,11 +64,15 @@ const paneCollapsed = (i: number) => !bothExpanded.value && i !== activeIndex.va
 </script>
 
 <template>
-  <!-- Desktop: nur der aktive Body. -->
-  <template v-if="!isMobile">
-    <slot v-if="activeIndex === 0" name="left" />
-    <slot v-else name="right" />
-  </template>
+  <!-- Desktop: nur der aktive Body, eingeblendet mit Versatz aus der Tab-Richtung. -->
+  <div v-if="!isMobile" class="overflow-x-clip">
+    <Transition :name="slideName" mode="out-in">
+      <div :key="activeIndex">
+        <slot v-if="activeIndex === 0" name="left" />
+        <slot v-else name="right" />
+      </div>
+    </Transition>
+  </div>
 
   <!-- Mobile: Pager-Viewport (klippt horizontal) + Track mit beiden Bodies. -->
   <div v-else ref="pagerEl" class="overflow-x-clip">

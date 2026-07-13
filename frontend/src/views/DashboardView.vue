@@ -193,7 +193,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
 
 <template>
 <div>
-  <div class="md:max-w-6xl md:mx-auto md:p-6">
+  <div class="md:max-w-6xl md:mx-auto md:px-6 md:pb-6">
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
@@ -201,23 +201,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
           <div class="hidden md:flex flex-wrap items-center gap-3 mb-6">
             <ChartBarIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
             <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">Dashboard</h1>
-            <!-- Mobile: Logs/Trips laufen ueber die Bottom-Nav (kein redundanter Button hier) -->
-            <!-- Desktop: Filter + Fahrzeuge + Logs -->
-            <div class="hidden sm:flex items-center gap-2 ml-auto">
-              <router-link
-                to="/cars"
-                class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium transition hover:brightness-95">
-                <TruckIcon class="w-4 h-4" />
-                {{ t('dashboard.vehicles_btn') }}
-              </router-link>
-              <router-link v-if="stats && stats.totalCharges > 0"
-                to="/logs"
-                class="btn-3d flex items-center gap-2 px-4 py-2 rounded-sm bg-indigo-600 text-white text-sm font-medium" style="--btn-shadow-color: #3730a3">
-                <ListBulletIcon class="w-4 h-4" />
-                {{ t('dashboard.logs_btn') }}
-                <ChevronRightIcon class="w-3.5 h-3.5 opacity-75" />
-              </router-link>
-            </div>
+            <!-- Navigation zu Logs, Ladekarten und Fahrzeugen laeuft ueber die
+                 Workspace-Leiste (Desktop) bzw. die Bottom-Nav (Mobile). -->
           </div>
 
           <!-- Import Hint Banner -->

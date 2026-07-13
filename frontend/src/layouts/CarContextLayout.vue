@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
-import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { provideCarContext } from '../composables/useCarContext'
+import { useStickyTabIndex } from '../composables/useStickyTabIndex'
 import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import ViewSegmentedControl from '../components/shared/ViewSegmentedControl.vue'
 import SwipeTabPager from '../components/shared/SwipeTabPager.vue'
+import { CONTEXT_TABS } from '../config/tabs'
 import DashboardView from '../views/DashboardView.vue'
 
 const LogsView = defineAsyncComponent(() => import('../views/LogsView.vue'))
@@ -16,21 +17,17 @@ const LogsView = defineAsyncComponent(() => import('../views/LogsView.vue'))
  * bleibt stehen. Der gemeinsame State lebt hier einmal (provideCarContext).
  * Den horizontalen Wechsel zwischen beiden Bodies macht der SwipeTabPager.
  */
-const route = useRoute()
 const { t } = useI18n()
 
-const TAB_PATHS = ['/dashboard', '/logs'] as const
-const TABS = computed(() => [
-  { to: '/dashboard', label: t('nav.tab_overview') },
-  { to: '/logs', label: t('logs.title') },
-])
+const TAB_PATHS: readonly string[] = CONTEXT_TABS.map(tab => tab.to)
+const TABS = computed(() => CONTEXT_TABS.map(tab => ({ to: tab.to, label: t(tab.labelKey) })))
 
 const {
   selectedCarId, cars, carImageUrls, wltp, currentOdometerKm,
   teslaStatus, smartcarStatus, vwGroupStatus,
 } = provideCarContext()
 
-const activeIndex = computed(() => (route.name === 'logs' ? 1 : 0))
+const activeIndex = useStickyTabIndex(TAB_PATHS)
 </script>
 
 <template>
@@ -52,6 +49,8 @@ const activeIndex = computed(() => (route.name === 'logs' ? 1 : 0))
       <ViewSegmentedControl class="mb-2" :tabs="TABS" />
     </div>
 
+    <!-- Die Desktop-Leiste mit allen vier Zielen liegt in App.vue - sie bleibt beim
+         Tab-Wechsel stehen, waehrend der Inhalt darunter durchwischt. -->
     <SwipeTabPager :tabs="TAB_PATHS" :active-index="activeIndex">
       <template #left><DashboardView /></template>
       <template #right><LogsView /></template>

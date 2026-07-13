@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useCountryStore } from '../stores/country';
 import { setLocale, isValidLocale } from '../i18n';
+import { slideDirection } from '../composables/useWorkspaceTransition';
 import type { CountryCode } from '../config/unitSystems';
 import { isValidCountryCode } from '../config/unitSystems';
 import { purchasesAvailable } from '../utils/iapPolicy';
@@ -482,9 +483,14 @@ const router = createRouter({
     ]
 });
 
-// Den horizontalen Wechsel innerhalb eines Tab-Paars (Dashboard <-> Log-Feed,
-// Fahrzeuge <-> Ladekarten) macht der SwipeTabPager im jeweiligen Layout - beide
-// Bodies liegen dort in einer Schiene. Es gibt darum keine Routen-Transition.
+// Wechsel innerhalb eines Tab-Paars (Dashboard <-> Log-Feed, Fahrzeuge <-> Ladekarten)
+// bleibt in derselben Layout-Komponente - den Uebergang macht dort der SwipeTabPager.
+// Ueber die Paar-Grenze hinweg (z.B. Log-Feed -> Ladekarten) wechselt die Komponente,
+// und der Uebergang laeuft als Routen-Transition. Beide nutzen dieselbe Richtung und
+// dieselben CSS-Klassen, damit sich jeder Tab-Klick gleich anfuehlt.
+router.beforeEach((to, from) => {
+    to.meta.transition = slideDirection(from.path, to.path);
+});
 
 // Kauf-/Upgrade-Seiten in der nativen App sperren (Apple Guideline 3.1.1).
 // Backstop fuer den Fall, dass irgendwo ein Kauf-Link uebersehen wurde.

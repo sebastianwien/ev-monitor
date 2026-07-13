@@ -5,8 +5,12 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 const API_URL = process.env.API_URL || 'http://localhost:8080';
 
 /**
- * Fahrzeuge und Ladekarten sind zwei Tabs desselben Fuhrparks. Der Tab ist der einzige
- * Weg zu /charging-providers - bricht er, ist die Ladekarten-Verwaltung unerreichbar.
+ * Der Tab ist der einzige Weg zu /charging-providers - bricht er, ist die
+ * Ladekarten-Verwaltung unerreichbar.
+ *
+ * Welcher Tab das ist, haengt von der Breite ab: Desktop zeigt die Workspace-Leiste mit
+ * allen vier Zielen, Mobile den Zweier-Switch Fahrzeuge <-> Ladekarten. Beide liegen im
+ * DOM, nur eine ist sichtbar - daher ueberall ':visible'.
  */
 test.describe('Fuhrpark-Tabs: Fahrzeuge <-> Ladekarten', () => {
   test.beforeEach(async ({ page }) => {
@@ -29,7 +33,7 @@ test.describe('Fuhrpark-Tabs: Fahrzeuge <-> Ladekarten', () => {
     await page.goto('/cars');
     await page.waitForLoadState('networkidle');
 
-    const cardsTab = page.locator('[role="tab"]:has-text("Meine Ladekarten")');
+    const cardsTab = page.locator('[role="tab"]:visible', { hasText: 'Meine Ladekarten' });
     await expect(cardsTab).toBeVisible();
     await expect(cardsTab).toHaveAttribute('aria-selected', 'false');
 
@@ -39,11 +43,24 @@ test.describe('Fuhrpark-Tabs: Fahrzeuge <-> Ladekarten', () => {
     await expect(cardsTab).toHaveAttribute('aria-selected', 'true');
 
     // Zurueck: die Ladekarten-Verwaltung darf keine Sackgasse sein
-    await page.locator('[role="tab"]:has-text("Meine Fahrzeuge")').click();
+    await page.locator('[role="tab"]:visible', { hasText: 'Meine Fahrzeuge' }).click();
     await expect(page).toHaveURL(/\/cars/);
     await expect(page.locator('h1:has-text("Meine Fahrzeuge")')).toBeVisible();
 
     expect(errors).toEqual([]);
+  });
+
+  test('Desktop: Ladekarten und zurueck zum Dashboard in je einem Klick', async ({ page, isMobile }) => {
+    test.skip(!!isMobile, 'Die Workspace-Leiste gibt es nur ab 768px - Mobile wischt stattdessen.');
+
+    await page.waitForLoadState('networkidle');
+
+    await page.locator('[role="tab"]:visible', { hasText: 'Meine Ladekarten' }).click();
+    await expect(page).toHaveURL(/\/charging-providers/);
+    await expect(page.locator('h1:has-text("Meine Ladekarten")')).toBeVisible();
+
+    await page.locator('[role="tab"]:visible', { hasText: 'Dashboard' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
   });
 
   test('Ladekarte im Tab anlegen', async ({ page }) => {

@@ -22,6 +22,8 @@ import DemoWelcomeModal from './components/demo/DemoWelcomeModal.vue'
 import RedditConsentBanner from './components/shared/RedditConsentBanner.vue'
 import FeedbackToast from './components/shared/FeedbackToast.vue'
 import BoltLogo from './components/shared/BoltLogo.vue'
+import WorkspaceNav from './components/shared/WorkspaceNav.vue'
+import { WORKSPACE_TABS } from './config/tabs'
 import { HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
 import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
@@ -200,6 +202,9 @@ watch(navRef, (el) => {
   applyNavHeight()
 }, { immediate: true })
 onUnmounted(() => navResizeObserver?.disconnect())
+
+const WORKSPACE_PATHS: readonly string[] = WORKSPACE_TABS.map(tab => tab.to)
+const isWorkspaceRoute = computed(() => WORKSPACE_PATHS.includes(route.path))
 
 // Impersonation
 const impersonatingAs = computed(() => sessionStorage.getItem('impersonating'))
@@ -503,11 +508,20 @@ const handleBottomLogout = () => {
       ]"
       style="overflow-x: clip;"
       :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">
-      <router-view v-slot="{ Component }">
-        <KeepAlive :include="['CarContextLayout']">
-          <component :is="Component" />
-        </KeepAlive>
-      </router-view>
+      <!-- Die Workspace-Leiste liegt ueber der router-view, nicht in den Layouts: so
+           bleibt sie beim Tab-Wechsel stehen, waehrend nur der Inhalt durchwischt. -->
+      <div v-if="isWorkspaceRoute" class="hidden md:block md:max-w-6xl md:mx-auto md:px-6 md:pt-6">
+        <WorkspaceNav class="mb-4" />
+      </div>
+      <div class="relative">
+        <router-view v-slot="{ Component, route: r }">
+          <Transition :name="(r.meta.transition as string) || ''" mode="out-in">
+            <KeepAlive :include="['CarContextLayout']">
+              <component :is="Component" />
+            </KeepAlive>
+          </Transition>
+        </router-view>
+      </div>
     </main>
 
     <!-- Footer (only for authenticated users; nicht in der nativen App - dort liegen
@@ -605,5 +619,41 @@ const handleBottomLogout = () => {
 
 .mobile-menu-leave-to > div:last-child {
   transform: translateY(-100%);
+}
+</style>
+
+<!--
+  Uebergang zwischen zwei Workspace-Tabs: der alte Inhalt blendet aus, dann blendet der
+  neue ein und kommt dabei 14px aus der Richtung seines Tabs - genug, um die Richtung zu
+  zeigen, zu wenig, um wie eine Wischgeste zu wirken, die es beim Klick ja nicht gab.
+
+  Streng nacheinander (mode="out-in"): lagen beide Inhalte gleichzeitig da, sah man zwei
+  Bewegungen auf einmal, und die Seitenhoehe sprang mitten im Uebergang. Nicht scoped: die
+  Klassen landen auf dem Root der jeweiligen Layout-Komponente. Der Wechsel innerhalb
+  eines Paars laeuft ueber den SwipeTabPager und nutzt dieselben Klassen.
+-->
+<style>
+.nudge-left-enter-active,
+.nudge-right-enter-active {
+  transition: transform 0.22s cubic-bezier(0.22, 0.68, 0.24, 1), opacity 0.22s ease-out;
+}
+
+.nudge-left-leave-active,
+.nudge-right-leave-active {
+  transition: opacity 0.12s ease-in;
+}
+
+.nudge-left-enter-from { transform: translateX(14px); opacity: 0; }
+.nudge-right-enter-from { transform: translateX(-14px); opacity: 0; }
+.nudge-left-leave-to,
+.nudge-right-leave-to { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nudge-left-enter-active,
+  .nudge-right-enter-active,
+  .nudge-left-leave-active,
+  .nudge-right-leave-active {
+    transition: none;
+  }
 }
 </style>

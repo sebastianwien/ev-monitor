@@ -28,7 +28,6 @@ lightbox:
   prev: "Previous image"
   next: "Next image"
 nav:
-  tab_overview: "Overview"
   login: "Sign in"
   register: "Sign up"
   pricing: "Pricing"
@@ -591,7 +590,6 @@ dashboard:
   real_cost_tooltip_measured: "{count} previous session contained both brutto and netto values. The resulting charging efficiency of ~{pct}% is used to derive a rough estimate of the real electricity cost. | {count} previous sessions contained both brutto and netto values. The resulting average charging efficiency of ~{pct}% is used to derive a rough estimate of the real electricity cost."
   real_cost_tooltip_pauschale: "No sessions with combined brutto and netto values are available. A flat AC charging-loss rate of ~{pct}% efficiency is used as the estimation basis."
   vehicles_btn: "Vehicles"
-  logs_btn: "Your charging sessions"
   import_banner: "Import charging sessions"
   import_banner_sources: "- Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox"
   active: "Active"
