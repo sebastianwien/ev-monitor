@@ -44,12 +44,6 @@ fetchChargingProviders()
         <!-- Card (normale Ansicht) -->
         <div v-if="editingProviderId !== provider.id"
           class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm flex items-start gap-4">
-          <!-- Dieselbe Kachel wie im Log-Formular - der User erkennt seine Karte wieder. -->
-          <ChargingCardTile
-            class="flex-shrink-0"
-            :id="provider.id"
-            :title="provider.label || provider.providerName"
-            :subtitle="provider.acPricePerKwh != null ? formatPrice(provider.acPricePerKwh) : null" />
           <div class="min-w-0 flex-1">
             <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">{{ provider.providerName }}</p>
             <p v-if="provider.label" class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ provider.label }}</p>
@@ -60,6 +54,12 @@ fetchChargingProviders()
             </div>
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('settings.tariff_active_since') }} {{ formatDate(provider.activeFrom) }}</p>
           </div>
+          <!-- Dieselbe Kachel wie im Log-Formular - der User erkennt seine Karte wieder. -->
+          <ChargingCardTile
+            class="flex-shrink-0"
+            :id="provider.id"
+            :title="provider.label || provider.providerName"
+            :subtitle="provider.acPricePerKwh != null ? formatPrice(provider.acPricePerKwh) : null" />
           <div class="flex gap-1 flex-shrink-0 mt-0.5">
             <button @click="startEditProvider(provider)"
               class="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition rounded">
