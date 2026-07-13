@@ -266,6 +266,10 @@ public class EvLogController {
 
     record MergeLogRequest(UUID sourceLogId, boolean preferSource) {}
 
+    /**
+     * Fehler (nicht gefunden / fremder Log / Konflikt) werden vom GlobalExceptionHandler
+     * auf 404/403/409 gemappt - hier bewusst kein try/catch, das alles auf 404 planiert.
+     */
     @PatchMapping("/{logId}/merge")
     public ResponseEntity<Void> mergeLog(
             @PathVariable UUID logId,
@@ -275,12 +279,8 @@ public class EvLogController {
         if (body.sourceLogId() == null) {
             return ResponseEntity.badRequest().build();
         }
-        try {
-            evLogService.mergeLog(logId, body.sourceLogId(), principal.getUser().getId(), body.preferSource());
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        evLogService.mergeLog(logId, body.sourceLogId(), principal.getUser().getId(), body.preferSource());
+        return ResponseEntity.ok().build();
     }
 
     /**

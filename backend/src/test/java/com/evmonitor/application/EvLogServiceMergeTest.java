@@ -1,6 +1,9 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.domain.exception.ConflictException;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,37 +52,37 @@ class EvLogServiceMergeTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void mergeLog_targetNotFound_throwsIllegalArgument() {
+    void mergeLog_targetNotFound_throwsNotFound() {
         EvLog source = evLogRepository.save(buildLog(carId, DataSource.SMARTCAR_LIVE, null, new BigDecimal("21.0"), null, null));
         assertThatThrownBy(() -> evLogService.mergeLog(UUID.randomUUID(), source.getId(), userId, false))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void mergeLog_sourceNotFound_throwsIllegalArgument() {
+    void mergeLog_sourceNotFound_throwsNotFound() {
         EvLog target = evLogRepository.save(buildLog(carId, DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null, null, null));
         assertThatThrownBy(() -> evLogService.mergeLog(target.getId(), UUID.randomUUID(), userId, false))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void mergeLog_targetBelongsToDifferentUser_throwsIllegalArgument() {
+    void mergeLog_targetBelongsToDifferentUser_throwsForbidden() {
         User other = createAndSaveUser("other-" + System.currentTimeMillis() + "@ev-monitor.net");
         Car otherCar = createAndSaveCar(other.getId(), CarBrand.CarModel.MODEL_3);
         EvLog target = evLogRepository.save(buildLog(otherCar.getId(), DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null, null, null));
         EvLog source = evLogRepository.save(buildLog(carId, DataSource.SMARTCAR_LIVE, null, new BigDecimal("21.0"), null, null));
         assertThatThrownBy(() -> evLogService.mergeLog(target.getId(), source.getId(), userId, false))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ForbiddenException.class);
     }
 
     @Test
-    void mergeLog_sourceBelongsToDifferentUser_throwsIllegalArgument() {
+    void mergeLog_sourceBelongsToDifferentUser_throwsForbidden() {
         User other = createAndSaveUser("other2-" + System.currentTimeMillis() + "@ev-monitor.net");
         Car otherCar = createAndSaveCar(other.getId(), CarBrand.CarModel.MODEL_3);
         EvLog target = evLogRepository.save(buildLog(carId, DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null, null, null));
         EvLog source = evLogRepository.save(buildLog(otherCar.getId(), DataSource.SMARTCAR_LIVE, null, new BigDecimal("21.0"), null, null));
         assertThatThrownBy(() -> evLogService.mergeLog(target.getId(), source.getId(), userId, false))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ForbiddenException.class);
     }
 
     @Test
@@ -123,19 +126,67 @@ class EvLogServiceMergeTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void mergeLog_sameLog_throwsIllegalArgument() {
+    void mergeLog_sameLog_throwsConflict() {
         EvLog log = evLogRepository.save(buildLog(carId, DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null, null, null));
         assertThatThrownBy(() -> evLogService.mergeLog(log.getId(), log.getId(), userId, false))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ConflictException.class);
     }
 
     @Test
-    void mergeLog_differentCars_throwsIllegalArgument() {
+    void mergeLog_differentCars_throwsConflict() {
         Car secondCar = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
         EvLog target = evLogRepository.save(buildLog(carId, DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null, null, null));
         EvLog source = evLogRepository.save(buildLog(secondCar.getId(), DataSource.SMARTCAR_LIVE, null, new BigDecimal("21.0"), null, null));
         assertThatThrownBy(() -> evLogService.mergeLog(target.getId(), source.getId(), userId, false))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    void mergeLog_returnsMergedLog() {
+        EvLog target = evLogRepository.save(buildLog(carId, DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null, null, null));
+        EvLog source = evLogRepository.save(buildLog(carId, DataSource.SMARTCAR_LIVE, null, new BigDecimal("21.0"), null, null));
+
+        EvLog merged = evLogService.mergeLog(target.getId(), source.getId(), userId, false);
+
+        assertThat(merged.getId()).isEqualTo(target.getId());
+        assertThat(merged.getKwhCharged()).isEqualByComparingTo("22.5");
+        assertThat(merged.getKwhAtVehicle()).isEqualByComparingTo("21.0");
+    }
+
+    // ── Merge-Fenster ─────────────────────────────────────────────────────────
+    // Zwei Logs duerfen nur zusammengefuehrt werden, wenn sie zeitlich nah genug
+    // beieinander liegen - sonst waeren es zwei echte, getrennte Ladevorgaenge.
+
+    @Test
+    void mergeLog_withinWindow_succeeds() {
+        // 14h Abstand: langsamer AC-Ladevorgang, muss zusammenfuehrbar bleiben
+        EvLog target = evLogRepository.save(buildLogAt(carId, LocalDateTime.now().minusHours(20),
+                DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null));
+        EvLog source = evLogRepository.save(buildLogAt(carId, LocalDateTime.now().minusHours(6),
+                DataSource.SMARTCAR_LIVE, null, new BigDecimal("21.0")));
+
+        EvLog merged = evLogService.mergeLog(target.getId(), source.getId(), userId, false);
+
+        assertThat(merged.getKwhAtVehicle()).isEqualByComparingTo("21.0");
+        assertThat(evLogRepository.findById(source.getId())).isEmpty();
+    }
+
+    @Test
+    void mergeLog_outsideWindow_throwsConflict() {
+        EvLog target = evLogRepository.save(buildLogAt(carId, LocalDateTime.now().minusHours(30),
+                DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null));
+        EvLog source = evLogRepository.save(buildLogAt(carId, LocalDateTime.now().minusHours(1),
+                DataSource.SMARTCAR_LIVE, null, new BigDecimal("21.0")));
+
+        assertThatThrownBy(() -> evLogService.mergeLog(target.getId(), source.getId(), userId, false))
+                .isInstanceOf(ConflictException.class);
+        assertThat(evLogRepository.findById(source.getId())).isPresent();
+    }
+
+    private EvLog buildLogAt(UUID carId, LocalDateTime loggedAt, DataSource dataSource,
+                             BigDecimal kwhCharged, BigDecimal kwhAtVehicle) {
+        return buildLog(carId, dataSource, kwhCharged, kwhAtVehicle, null, null)
+                .toBuilder().loggedAt(loggedAt).build();
     }
 
     private EvLog buildLog(UUID carId, DataSource dataSource, BigDecimal kwhCharged, BigDecimal kwhAtVehicle,

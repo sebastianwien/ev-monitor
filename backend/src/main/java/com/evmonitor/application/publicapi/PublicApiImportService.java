@@ -263,6 +263,16 @@ public class PublicApiImportService {
         evLogService.deleteLog(logId, userId);
     }
 
+    /**
+     * Ownership, Merge-Fenster und Feld-Zusammenfuehrung liegen komplett in EvLogService -
+     * hier wird nur auf das Public-API-DTO gemappt.
+     */
+    @Transactional
+    public ApiSessionResponse mergeApiSessions(UUID userId, UUID targetLogId, UUID sourceLogId, boolean preferSource) {
+        EvLog merged = evLogService.mergeLog(targetLogId, sourceLogId, userId, preferSource);
+        return ApiSessionResponse.fromEvLog(merged);
+    }
+
     public ApiSessionsPageResponse getSessions(UUID userId, UUID carId, LocalDateTime from, LocalDateTime to, int page, int size) {
         int offset = page * size;
         List<EvLog> sessions;

@@ -3,6 +3,9 @@ package com.evmonitor.application;
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.domain.*;
+import com.evmonitor.domain.exception.ConflictException;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
 
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
@@ -14,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -29,6 +33,12 @@ public class EvLogService {
 
     /** Private charges are stored at 6 chars (~600m), public ones at 7 (~150m). */
     private static final int MIN_GEOHASH_LENGTH_FOR_LOOKUP = 6;
+
+    /**
+     * Maximaler zeitlicher Abstand zweier Logs, damit sie zusammengefuehrt werden duerfen.
+     * 24h, damit auch sehr langsame AC-Ladevorgaenge (z.B. 14h an 4 kW) noch abgedeckt sind.
+     */
+    public static final Duration MERGE_WINDOW = Duration.ofHours(24);
 
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
@@ -702,27 +712,31 @@ public class EvLogService {
      * Der Ziel-Log wird mit den fehlenden Werten des Quell-Logs ergänzt, der Quell-Log wird gelöscht.
      */
     @Transactional
-    public void mergeLog(UUID targetLogId, UUID sourceLogId, UUID userId, boolean preferSource) {
+    public EvLog mergeLog(UUID targetLogId, UUID sourceLogId, UUID userId, boolean preferSource) {
         if (targetLogId.equals(sourceLogId)) {
-            throw new IllegalArgumentException("Cannot merge a log with itself");
+            throw new ConflictException("MERGE_SELF", "Cannot merge a log with itself");
         }
         EvLog target = evLogRepository.findById(targetLogId)
-                .orElseThrow(() -> new IllegalArgumentException("Target log not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("Target log", targetLogId));
         EvLog source = evLogRepository.findById(sourceLogId)
-                .orElseThrow(() -> new IllegalArgumentException("Source log not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("Source log", sourceLogId));
 
         Car targetCar = carRepository.findById(target.getCarId())
-                .orElseThrow(() -> new IllegalArgumentException("Target car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("Target car", target.getCarId()));
         if (!targetCar.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("User does not own the target log");
+            throw ForbiddenException.notOwner("log", targetLogId);
         }
         Car sourceCar = carRepository.findById(source.getCarId())
-                .orElseThrow(() -> new IllegalArgumentException("Source car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("Source car", source.getCarId()));
         if (!sourceCar.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("User does not own the source log");
+            throw ForbiddenException.notOwner("log", sourceLogId);
         }
         if (!target.getCarId().equals(source.getCarId())) {
-            throw new IllegalArgumentException("Both logs must belong to the same car");
+            throw new ConflictException("MERGE_DIFFERENT_CARS", "Both logs must belong to the same car");
+        }
+        if (Duration.between(target.getLoggedAt(), source.getLoggedAt()).abs().compareTo(MERGE_WINDOW) > 0) {
+            throw new ConflictException("MERGE_WINDOW_EXCEEDED",
+                    "Both logs must be within " + MERGE_WINDOW.toHours() + "h of each other");
         }
 
         EvLog primary = preferSource ? source : target;
@@ -754,12 +768,13 @@ public class EvLogService {
                 .measurementType(mergedMeasurementType)
                 .build();
 
-        evLogRepository.save(merged);
+        EvLog saved = evLogRepository.save(merged);
         evLogRepository.deleteById(sourceLogId);
 
         if (mergedKwhAtVehicle != null) {
             eventPublisher.publishEvent(new SohAutoDetectEvent(targetCar));
         }
+        return saved;
     }
 
 }
