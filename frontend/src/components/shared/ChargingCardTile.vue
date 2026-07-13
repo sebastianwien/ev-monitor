@@ -7,6 +7,9 @@ import {
  * Die Ladekarte als Kachel im Kreditkarten-Look. Reine Optik - wer sie klickbar
  * braucht (Log-Formular: Karte fuer die Ladung waehlen), packt sie in einen Button.
  * Optik kommt aus der Karten-ID, damit dieselbe Karte ueberall gleich aussieht.
+ *
+ * Die Kachel fuellt ihren Container - die Groesse bestimmt also die Umgebung
+ * (fester Chip im Formular, mitwachsende Zeilenhoehe in der Verwaltung).
  */
 defineProps<{
   id: string
@@ -17,7 +20,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="w-28 h-[4.5rem] rounded-sm overflow-hidden relative select-none" :style="cardContainerStyle(id)">
+  <div class="rounded-sm overflow-hidden relative select-none" :style="cardContainerStyle(id)">
     <!-- Stripe: diagonaler Farbkeil rechts -->
     <div v-if="cardDesign(id) === 'stripe'"
       class="absolute inset-y-0 right-0 w-14 skew-x-[-8deg] translate-x-4 pointer-events-none"

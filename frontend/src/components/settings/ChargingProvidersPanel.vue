@@ -54,9 +54,10 @@ fetchChargingProviders()
             </div>
             <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('settings.tariff_active_since') }} {{ formatDate(provider.activeFrom) }}</p>
           </div>
-          <!-- Dieselbe Kachel wie im Log-Formular - der User erkennt seine Karte wieder. -->
+          <!-- Dieselbe Kachel wie im Log-Formular - der User erkennt seine Karte wieder.
+               Sie fuellt die Zeilenhoehe aus (self-stretch), Mindesthoehe wie im Formular. -->
           <ChargingCardTile
-            class="flex-shrink-0"
+            class="flex-shrink-0 self-stretch w-28 min-h-[4.5rem]"
             :id="provider.id"
             :title="provider.label || provider.providerName"
             :subtitle="provider.acPricePerKwh != null ? formatPrice(provider.acPricePerKwh) : null" />

@@ -740,11 +740,12 @@ function cardPriceLabel(p: UserProvider): string | null {
         type="button"
         @click="form.chargingProviderId = form.chargingProviderId === p.id ? null : p.id"
         :class="[
-          'btn-3d flex-shrink-0 rounded-sm',
+          'btn-3d flex-shrink-0 w-28 h-[4.5rem] rounded-sm',
           form.chargingProviderId === p.id ? 'active opacity-100' : 'opacity-65 hover:opacity-85'
         ]"
         :style="{ '--btn-shadow-color': cardContainerStyle(p.id)['--btn-shadow-color'] }">
         <ChargingCardTile
+          class="w-full h-full"
           :id="p.id"
           :title="p.label || p.providerName"
           :subtitle="cardPriceLabel(p)" />
