@@ -211,7 +211,7 @@ export function computeInsights(
     daysElapsed >= 7
   ) {
     const projectedKm = Math.round((stats.totalDistanceKm / daysElapsed) * daysInMonth)
-    const diffKm = projectedKm - lastMonthStats.totalDistanceKm
+    const diffKm = Math.round(projectedKm - lastMonthStats.totalDistanceKm)
     const diffPct = Math.round((diffKm / lastMonthStats.totalDistanceKm) * 100)
     if (Math.abs(diffPct) >= 10) {
       candidates.push({

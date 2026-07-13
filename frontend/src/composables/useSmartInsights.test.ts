@@ -335,6 +335,14 @@ describe('trend_distance insight', () => {
     expect(insight.delta).toBe('~+200 km')
   })
 
+  it('delta rounds to whole km when last month is a float', () => {
+    // Regression: 889.7 aus der API ergab ~+110.29999999999995 km statt ~+110 km
+    const stats = makeStats({ totalCharges: 5, totalDistanceKm: 500 })
+    const lastMonth = makeStats({ totalCharges: 4, totalDistanceKm: 889.7 })
+    const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_distance')!
+    expect(insight.delta).toBe('~+110 km')
+  })
+
   it('guard: does not fire when diff < 10%', () => {
     // 410 km on day 15 → projected 820 km; last month 800 km → +2.5%
     const stats = makeStats({ totalCharges: 5, totalDistanceKm: 410 })
