@@ -12,6 +12,14 @@ html, body {
   overflow-x: clip;
 }
 
+/* Reserviert dauerhaft Platz fuer die vertikale Scrollleiste. Ohne das springt
+   das Layout beim Wechsel zwischen kurzen (nicht scrollbaren) und langen Tabs
+   um die Scrollbar-Breite hin und her. Bei Overlay-Scrollbars (Mobile, macOS
+   Default) ist die Gutter-Breite 0 -> kein sichtbarer Effekt. */
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Hoehe der fixen Top-Navigation. Nur Desktop (>=768px) hat eine Top-Nav; auf
    Mobile laeuft die Navigation komplett ueber die Bottom-Nav -> kein Top-Offset.
    LeaderboardTicker, DemoBanner und der Main-Content-Offset referenzieren diese
