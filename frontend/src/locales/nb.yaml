@@ -1083,8 +1083,8 @@ cars:
   reset: Tilbakestill
   effective_capacity: "Effektiv kapasitet: {eff} kWh (i stedet for {nom} kWh)"
   hint_degradation: Forbruksberegningene baserer seg på den effektive kapasiteten.
-  battery: "Batteri:"
-  power: "Effekt:"
+  battery: "Batteri"
+  power: "Effekt"
   degradation_info: ({pct} % nedbrytning – effektiv {kwh} kWh)
   id_hint: Kjøretøy-ID for API-opplasting
   label_heat_pump: Varmepumpe

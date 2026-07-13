@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon,
-  ChartBarIcon, BoltIcon, LockClosedIcon,
+  ChartBarIcon, BoltIcon, LockClosedIcon, Battery50Icon,
 } from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
@@ -603,43 +603,81 @@ const filteredCapacities = computed(() => {
             <div class="flex justify-between items-start gap-2">
               <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <h3 class="text-lg font-bold text-indigo-700 dark:text-indigo-300 leading-tight">
+                  <h3 class="text-lg font-extrabold text-gray-900 dark:text-gray-100 leading-tight">
                     {{ getModelLabel(car.model) }}
-                    <span v-if="car.trim" class="text-sm font-normal text-indigo-500 dark:text-indigo-400">{{ car.trim }}</span>
+                    <span v-if="car.trim" class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                   </h3>
                   <span v-if="car.isPrimary && cars.length > 1"
-                    class="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700 shrink-0">
+                    class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full font-medium shrink-0">
                     {{ t('cars.active') }}
                   </span>
                   <!-- Tesla state badge -->
                   <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                     <span v-if="teslaStatus.vehicleState === 'charging'"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200 shrink-0">
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full font-medium shrink-0">
                       <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                       {{ t('cars.tesla_charging') }}
                     </span>
                     <span v-else-if="teslaStatus.vehicleState === 'online'"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700 shrink-0">
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs rounded-full font-medium shrink-0">
                       <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
                       {{ t('cars.tesla_online') }}
                     </span>
                     <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 text-xs rounded-full font-medium border border-gray-200 dark:border-gray-500 shrink-0">
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300 text-xs rounded-full font-medium shrink-0">
                       <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
                       {{ t('cars.tesla_sleeping') }}
                     </span>
                   </template>
                 </div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ car.year }}</p>
+                <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 mt-0.5 sl-num">{{ car.year }}</p>
               </div>
               <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" class="shrink-0" />
             </div>
 
-            <!-- Fahrzeug-ID -->
+            <!-- Specs: Label links, Wert rechtsbuendig - dieselbe Wert-Zeile wie die
+                 Modell-Kachel auf der Startseite (PublicModelCard). -->
+            <div class="space-y-0.5">
+              <div class="flex items-center gap-1.5">
+                <Battery50Icon class="h-3.5 w-3.5 flex-none text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+                <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">{{ t('cars.battery') }}</span>
+                <span class="ml-auto whitespace-nowrap font-extrabold text-gray-900 dark:text-gray-100 sl-num">
+                  <!-- effectiveBatteryCapacityKwh kommt vom Backend (spec-net bevorzugt, customNet
+                       Fallback, SoH-adjustiert wenn vorhanden). Zeigt also den korrekten Wert
+                       fuer beide Faelle: Spec verknuepft (customNet null) und Custom-Eingabe. -->
+                  {{ car.effectiveBatteryCapacityKwh ?? car.customNetCapacityKwh ?? '?' }}<span class="ml-0.5 text-[11px] font-medium text-gray-400">kWh</span>
+                  <span v-if="car.batteryDegradationPercent" class="ml-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                    {{ t('cars.soh_badge', { pct: Math.round(100 - Number(car.batteryDegradationPercent)) }) }}
+                  </span>
+                </span>
+              </div>
+              <div v-if="car.powerKw" class="flex items-center gap-1.5">
+                <BoltIcon class="h-3.5 w-3.5 flex-none text-gray-400" aria-hidden="true" />
+                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">{{ t('cars.power') }}</span>
+                <span class="ml-auto whitespace-nowrap font-bold text-gray-500 dark:text-gray-400 sl-num">
+                  {{ car.powerKw }}<span class="ml-0.5 text-[11px] font-medium text-gray-400">kW</span>
+                  <span class="ml-1 text-[11px] font-medium text-gray-400">({{ Math.round(car.powerKw * 1.35962) }} PS)</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Ausstattung. SoH steht bewusst nicht hier, sondern an der Batterie - dort wirkt er. -->
+            <div v-if="car.hasHeatPump || car.isBusinessCar" class="flex flex-wrap gap-1.5">
+              <span v-if="car.hasHeatPump"
+                class="inline-flex items-center px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium rounded-full">
+                {{ t('cars.heat_pump_badge') }}
+              </span>
+              <span v-if="car.isBusinessCar"
+                class="inline-flex items-center px-1.5 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 text-xs font-medium rounded-full">
+                {{ t('cars.business_car_label') }}
+              </span>
+            </div>
+
+            <!-- Fahrzeug-ID: Technik-Detail, gehoert ans Ende - nicht zwischen Name und Specs. -->
             <div class="flex items-center gap-2 cursor-pointer group" @click.stop="copyCarId(car.id)" :title="t('cars.api_id_copy')">
               <div class="flex-1 min-w-0">
-                <p class="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wide">{{ t('cars.api_id_label') }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-300 font-mono bg-gray-100 dark:bg-gray-600 rounded px-1.5 py-0.5 mt-0.5 select-all group-hover:bg-gray-200 dark:group-hover:bg-gray-500 transition-colors">{{ car.id }}</p>
+                <p class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('cars.api_id_label') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-300 font-mono bg-gray-100 dark:bg-gray-600 rounded-sm px-1.5 py-0.5 mt-0.5 select-all group-hover:bg-gray-200 dark:group-hover:bg-gray-500 transition-colors truncate">{{ car.id }}</p>
               </div>
               <div class="shrink-0 p-1.5 text-gray-400 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
                 <CheckIcon v-if="copiedCarId === car.id" class="h-4 w-4 text-green-500" />
@@ -647,59 +685,22 @@ const filteredCapacities = computed(() => {
               </div>
             </div>
 
-            <!-- Specs row -->
-            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-              <div class="text-gray-600 dark:text-gray-400">
-                <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">{{ t('cars.battery') }}</span>
-                <div class="font-medium text-gray-800 dark:text-gray-200">
-                  <!-- effectiveBatteryCapacityKwh kommt vom Backend (spec-net bevorzugt, customNet
-                       Fallback, SoH-adjustiert wenn vorhanden). Zeigt also den korrekten Wert
-                       fuer beide Faelle: Spec verknuepft (customNet null) und Custom-Eingabe. -->
-                  {{ car.effectiveBatteryCapacityKwh ?? car.customNetCapacityKwh ?? '?' }} kWh
-                  <span v-if="car.batteryDegradationPercent" class="text-amber-500 text-xs font-normal ml-1">
-                    ({{ Math.round(100 - Number(car.batteryDegradationPercent)) }}% SoH)
-                  </span>
-                </div>
-              </div>
-              <div v-if="car.powerKw" class="text-gray-600 dark:text-gray-400">
-                <span class="text-gray-400 dark:text-gray-500 text-xs uppercase tracking-wide">{{ t('cars.power') }}</span>
-                <div class="font-medium text-gray-800 dark:text-gray-200">
-                  {{ car.powerKw }} kW <span class="text-gray-500 text-xs">({{ Math.round(car.powerKw * 1.35962) }} PS)</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Badges row: SoH, Wärmepumpe, Dienstwagen -->
-            <div class="flex flex-wrap gap-1.5">
-              <span v-if="car.batteryDegradationPercent"
-                class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs rounded-full border border-amber-200 dark:border-amber-700">
-                {{ t('cars.soh_badge', { pct: 100 - car.batteryDegradationPercent }) }}
-              </span>
-              <span v-if="car.hasHeatPump"
-                class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs rounded-full border border-blue-200 dark:border-blue-700">
-                {{ t('cars.heat_pump_badge') }}
-              </span>
-              <span v-if="car.isBusinessCar"
-                class="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 text-xs rounded-full border border-violet-200 dark:border-violet-700">
-                {{ t('cars.business_car_label') }}
-              </span>
-            </div>
-
-            <!-- Actions -->
-            <div class="flex gap-2 pt-1">
+            <!-- Actions: gestrichelter Trenner wie im Footer der Startseiten-Kachel.
+                 Loeschen ist tertiaer - es soll nicht so laut sein wie die anderen beiden. -->
+            <div class="flex items-center gap-2 border-t-2 border-dashed border-gray-200 dark:border-gray-700 pt-3">
               <button v-if="!car.isPrimary" @click="setActiveCar(car.id)"
                 v-haptic
-                class="btn-3d flex-1 bg-green-100 dark:bg-green-700 text-green-800 dark:text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-green-200 dark:hover:bg-green-600 transition">
+                class="btn-3d [--btn-shadow-color:#86efac] dark:[--btn-shadow-color:#166534] flex-1 bg-green-100 dark:bg-green-700 text-green-800 dark:text-white px-3 py-2 rounded-sm text-sm font-semibold hover:bg-green-200 dark:hover:bg-green-600 transition">
                 {{ t('cars.set_active_btn') }}
               </button>
               <button @click="openEditForm(car)"
                 v-haptic
-                class="btn-3d flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-indigo-200 dark:hover:bg-indigo-600 transition">
+                class="btn-3d [--btn-shadow-color:#a5b4fc] dark:[--btn-shadow-color:#3730a3] flex-1 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-sm text-sm font-semibold hover:bg-indigo-200 dark:hover:bg-indigo-600 transition">
                 {{ t('cars.edit_btn') }}
               </button>
               <button @click="doDeleteCar(car.id)"
                 v-haptic
-                class="btn-3d flex-1 bg-red-100 dark:bg-red-700 text-red-800 dark:text-white px-3 py-2 rounded-sm text-sm font-medium hover:bg-red-200 dark:hover:bg-red-600 transition">
+                class="ml-auto px-3 py-2 rounded-sm text-sm font-medium text-red-500 hover:text-red-700 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
                 {{ t('cars.delete_btn') }}
               </button>
             </div>
