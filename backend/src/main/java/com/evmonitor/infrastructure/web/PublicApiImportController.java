@@ -289,40 +289,21 @@ public class PublicApiImportController {
     @Operation(
             summary = "Merge two charging sessions into one",
             description = """
-                    Merges two charging sessions of the **same car** into a single session.
+                    Combines two records of the *same* charge into one - typically a wallbox session
+                    (`kwh`, measured at the charger) and a vehicle session (`kwh_at_vehicle` + SoC).
+                    Only then do charging-loss and consumption add up.
 
-                    **Why this exists:** the same charge often arrives twice, from two sources that each
-                    know only half the truth. A wallbox reports how much energy went *into the cable*
-                    (`kwh`, measured at the charger), while the car reports how much arrived *in the battery*
-                    (`kwh_at_vehicle`) plus the state of charge before and after. Merging the two yields one
-                    session that carries both sides - which is what makes charging-loss and consumption
-                    calculations accurate.
-
-                    **Direction:** the session in the path (`{id}`) is the **target** and survives.
-                    The session named in `source_session_id` is merged into it and is then **permanently
-                    deleted**. This cannot be undone, so pick the target deliberately - its `id` is the one
-                    your integration should keep referencing afterwards.
-
-                    **How fields are combined:** every field that is empty on the target is filled from the
-                    source (energy at charger and at vehicle, SoC before/after, odometer, duration, cost,
-                    location). If a field is set on *both* sides, `prefer_source` decides who wins:
-                    `false` (default) keeps the target's value, `true` takes the source's. The
-                    `measurement_type` is derived automatically: once both energy values are present, the
-                    session counts as `AT_CHARGER`, because `kwh` (the charger reading) is the leading value.
-
-                    **Time window:** both sessions must lie within **24 hours** of each other. Anything
-                    further apart is treated as two genuinely separate charges and rejected with `409
-                    MERGE_WINDOW_EXCEEDED`. The window is generous on purpose: a slow AC charge can easily
-                    run for 14 hours, and its two records may be timestamped at either end of it.
+                    - **Direction:** `{id}` is the target and survives. `source_session_id` is merged
+                      into it and then **permanently deleted**.
+                    - **Fields:** empty target fields are filled from the source. If both sides have a
+                      value, `prefer_source` decides (default: target wins). `measurement_type` becomes
+                      `AT_CHARGER` once both energy values are present.
+                    - **Limits:** same car, max. **24h** apart. Rate limit: 60 requests/hour.
 
                     **Authentication:** `Authorization: Bearer evm_<your-api-key>`
 
-                    **Returns** the merged session (`200`). Errors carry a machine-readable `code`:
-                    `404` if either session does not exist, `403` if one of them belongs to another user,
-                    `409` with `MERGE_DIFFERENT_CARS`, `MERGE_SELF` or `MERGE_WINDOW_EXCEEDED` if the two
-                    sessions may not be combined.
-
-                    **Rate limit:** 60 requests/hour per API key.
+                    Returns the merged session. Errors carry a `code`: `404 NOT_FOUND`, `403 FORBIDDEN`,
+                    `409 MERGE_SELF` / `MERGE_DIFFERENT_CARS` / `MERGE_WINDOW_EXCEEDED`.
                     """,
             security = @SecurityRequirement(name = "ApiKey")
     )
