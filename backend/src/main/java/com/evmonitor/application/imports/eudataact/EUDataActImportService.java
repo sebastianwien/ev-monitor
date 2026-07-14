@@ -24,28 +24,26 @@ import java.util.zip.ZipInputStream;
 @RequiredArgsConstructor
 public class EUDataActImportService {
 
-    private static final long MAX_UNZIPPED_BYTES = 20 * 1024 * 1024L; // 20 MB
+    // MEB-Exports (ID.3) sind entpackt ~24 MB, gepackt nur ~1,7 MB. Der Upload ist via nginx
+    // ohnehin auf 5 MB begrenzt; dieser Guard schuetzt gegen ZIP-Bomben, nicht gegen grosse Exports.
+    private static final long MAX_UNZIPPED_BYTES = 64 * 1024 * 1024L; // 64 MB
     private static final int MAX_ZIP_ENTRIES = 10;
 
     private final EUDataActJsonParser parser;
     private final CarRepository carRepository;
     private final PublicApiImportService publicApiImportService;
 
-    public EUDataActPreviewResult preview(InputStream fileStream, String originalFilename) throws IOException {
-        InputStream jsonStream = toJsonStream(fileStream, originalFilename);
-        return EUDataActPreviewResult.from(parser.parse(jsonStream));
+    public EUDataActPreviewResult preview(UUID userId, UUID carId, InputStream fileStream, String originalFilename)
+            throws IOException {
+        Car car = requireOwnedCar(userId, carId);
+        EUDataActParseResult parsed = parse(fileStream, originalFilename, car);
+        return EUDataActPreviewResult.from(parsed);
     }
 
     public ImportApiResult importData(UUID userId, UUID carId, InputStream fileStream, String originalFilename)
             throws IOException {
-        Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-        if (!car.getUserId().equals(userId)) {
-            throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
-        }
-
-        InputStream jsonStream = toJsonStream(fileStream, originalFilename);
-        EUDataActParseResult parsed = parser.parse(jsonStream);
+        Car car = requireOwnedCar(userId, carId);
+        EUDataActParseResult parsed = parse(fileStream, originalFilename, car);
 
         List<PublicApiSessionRequest.SessionEntry> entries = toSessionEntries(parsed.sessions(), car);
         if (entries.isEmpty()) {
@@ -57,6 +55,40 @@ public class EUDataActImportService {
                 new PublicApiSessionRequest(carId, entries),
                 DataSource.EU_DATA_ACT_IMPORT
         );
+    }
+
+    private Car requireOwnedCar(UUID userId, UUID carId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
+        if (!car.getUserId().equals(userId)) {
+            throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
+        }
+        return car;
+    }
+
+    private EUDataActParseResult parse(InputStream fileStream, String originalFilename, Car car) throws IOException {
+        EUDataActParseResult parsed = parser.parse(toJsonStream(fileStream, originalFilename));
+        List<EUDataActSession> sessions = parsed.sessions().stream()
+                .map(s -> withKwhFromSocIfMissing(s, car))
+                .toList();
+        return new EUDataActParseResult(parsed.vin(), sessions);
+    }
+
+    /**
+     * Die MEB-Variante liefert kein Leistungssignal - dort ergeben sich die kWh aus dem
+     * SoC-Zuwachs und der SoH-adjustierten Kapazitaet. Beide Werte sind fahrzeugseitig
+     * gemessen, es entsteht also kein Bruch zur Integration des anderen Formats.
+     */
+    private EUDataActSession withKwhFromSocIfMissing(EUDataActSession s, Car car) {
+        BigDecimal capacity = car.getEffectiveBatteryCapacityKwh();
+        if (s.calculatedKwh() != null || s.socDeltaPct() == null || capacity == null) return s;
+
+        double kwh = s.socDeltaPct() / 100.0 * capacity.doubleValue();
+        return new EUDataActSession(
+                s.startedAt(), s.endedAt(), s.durationMin(),
+                s.socBefore(), s.socAfter(), s.socDeltaPct(),
+                s.chargeType(), s.maxChargingPowerKw(), kwh,
+                s.odometerKm(), s.temperatureCelsius());
     }
 
     private List<PublicApiSessionRequest.SessionEntry> toSessionEntries(List<EUDataActSession> sessions, Car car) {

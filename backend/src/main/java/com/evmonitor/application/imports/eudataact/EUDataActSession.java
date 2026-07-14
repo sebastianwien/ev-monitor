@@ -8,6 +8,8 @@ record EUDataActSession(
         int durationMin,
         Integer socBefore,
         Integer socAfter,
+        /** Ungerundeter SoC-Zuwachs. Gesetzt, wenn kWh mangels Leistungssignal daraus errechnet werden muss. */
+        Double socDeltaPct,
         String chargeType,
         Double maxChargingPowerKw,
         Double calculatedKwh,

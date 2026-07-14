@@ -29,13 +29,17 @@ public class EUDataActImportController {
     @PostMapping(value = "/preview", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> preview(
             @AuthenticationPrincipal UserPrincipal principal,
-            @RequestPart("file") MultipartFile file
+            @RequestPart("file") MultipartFile file,
+            @RequestParam("carId") UUID carId
     ) {
         try {
             validateUpload(file);
             EUDataActPreviewResult result = importService.preview(
+                    principal.getUser().getId(), carId,
                     file.getInputStream(), file.getOriginalFilename());
             return ResponseEntity.ok(result);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

@@ -33,7 +33,7 @@ async function loadPreview() {
   error.value = ''
   loading.value = true
   try {
-    preview.value = await euDataActService.preview(file.value)
+    preview.value = await euDataActService.preview(file.value, carId.value)
     if (preview.value.sessions.length === 0) {
       error.value = t('eu_data_act.err_no_sessions')
       return
@@ -158,13 +158,15 @@ function formatKwh(v: number | null) {
               </td>
               <td class="py-2 pr-4">
                 <span
+                  v-if="s.chargeType"
                   class="text-xs font-medium px-1.5 py-0.5 rounded"
                   :class="s.chargeType === 'DC'
                     ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
                     : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'"
                 >
-                  {{ s.chargeType ?? '?' }}
+                  {{ s.chargeType }}
                 </span>
+                <span v-else class="text-gray-400">-</span>
               </td>
               <td class="py-2 font-medium">{{ formatKwh(s.calculatedKwh) }}</td>
             </tr>
@@ -182,12 +184,13 @@ function formatKwh(v: number | null) {
           <div class="flex items-center justify-between mb-1">
             <span class="font-medium text-gray-800 dark:text-gray-200">{{ formatDate(s.startedAt) }}</span>
             <span
+              v-if="s.chargeType"
               class="text-xs font-medium px-1.5 py-0.5 rounded"
               :class="s.chargeType === 'DC'
                 ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
                 : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'"
             >
-              {{ s.chargeType ?? '?' }}
+              {{ s.chargeType }}
             </span>
           </div>
           <div class="flex gap-4 text-gray-600 dark:text-gray-400 text-xs">

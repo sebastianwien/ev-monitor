@@ -25,10 +25,12 @@ export interface EUDataActImportResult {
 }
 
 export const euDataActService = {
-  async preview(file: File): Promise<EUDataActPreviewResult> {
+  // carId ist noetig, weil die Batteriekapazitaet in die kWh-Berechnung eingeht:
+  // die MEB-Variante des Exports liefert keine Ladeleistung, nur den SoC-Verlauf.
+  async preview(file: File, carId: string): Promise<EUDataActPreviewResult> {
     const form = new FormData();
     form.append('file', file);
-    const response = await axiosInstance.post('/import/eu-data-act/preview', form, {
+    const response = await axiosInstance.post(`/import/eu-data-act/preview?carId=${carId}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
