@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -24,8 +25,9 @@ import java.util.zip.ZipInputStream;
 @RequiredArgsConstructor
 public class EUDataActImportService {
 
-    // MEB-Exports (ID.3) sind entpackt ~24 MB, gepackt nur ~1,7 MB. Der Upload ist via nginx
-    // ohnehin auf 5 MB begrenzt; dieser Guard schuetzt gegen ZIP-Bomben, nicht gegen grosse Exports.
+    // VW-Exporte komprimieren stark (MEB entpackt ~24 MB, PPE ~46 MB - gepackt jeweils wenige MB).
+    // Hochgeladen wird beides, ZIP wie entpackte JSON. Der Guard schuetzt gegen ZIP-Bomben und
+    // deckelt zugleich den Heap; gleicher Wert wie MAX_UPLOAD_BYTES im Controller.
     private static final long MAX_UNZIPPED_BYTES = 64 * 1024 * 1024L; // 64 MB
     private static final int MAX_ZIP_ENTRIES = 10;
 
@@ -154,20 +156,44 @@ public class EUDataActImportService {
             if (name.contains("..") || name.contains("/")) continue;
             if (!name.toLowerCase().endsWith(".json")) continue;
 
-            // Read with bomb protection
-            byte[] buf = new byte[8192];
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            long total = 0;
-            int read;
-            while ((read = zip.read(buf)) != -1) {
-                total += read;
-                if (total > MAX_UNZIPPED_BYTES) {
-                    throw new IllegalArgumentException("ZIP entry exceeds size limit of 20 MB");
-                }
-                out.write(buf, 0, read);
-            }
-            return new java.io.ByteArrayInputStream(out.toByteArray());
+            // Der Parser streamt - also auch hier streamen statt entpackt zu puffern.
+            // Der Bomben-Guard zaehlt die Bytes im Vorbeifliegen.
+            return new SizeLimitedInputStream(zip, MAX_UNZIPPED_BYTES);
         }
         throw new IllegalArgumentException("No JSON file found in ZIP");
+    }
+
+    /** Bricht ab, sobald mehr als {@code limit} Bytes gelesen wurden (ZIP-Bomben-Schutz). */
+    private static class SizeLimitedInputStream extends FilterInputStream {
+
+        private final long limit;
+        private long total;
+
+        SizeLimitedInputStream(InputStream in, long limit) {
+            super(in);
+            this.limit = limit;
+        }
+
+        @Override
+        public int read() throws IOException {
+            int b = super.read();
+            if (b != -1) count(1);
+            return b;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            int read = super.read(b, off, len);
+            if (read != -1) count(read);
+            return read;
+        }
+
+        private void count(int read) {
+            total += read;
+            if (total > limit) {
+                throw new IllegalArgumentException(
+                        "Entpackte Datei zu groß (max. " + limit / (1024 * 1024) + " MB)");
+            }
+        }
     }
 }

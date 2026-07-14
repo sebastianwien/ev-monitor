@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -86,16 +87,40 @@ class EUDataActImportControllerTest {
     }
 
     @Test
-    void preview_fileTooLarge_returns400() throws Exception {
-        byte[] huge = new byte[6 * 1024 * 1024]; // 6 MB > 5 MB limit
+    void preview_unzippedExport_isAccepted() throws Exception {
+        // Regression: entpackte VW-Exporte sind zweistellig MB gross (real gesehen: 24 und 46 MB).
+        // Solange wir .json akzeptieren, darf so ein Upload nicht am Groessenlimit scheitern.
+        when(importService.preview(any(), any(), any(), any()))
+                .thenReturn(new EUDataActPreviewResult("WVWZZZ-ID7", List.of()));
+
         MockMultipartFile file = new MockMultipartFile("file", "export.json",
-                "application/json", huge);
+                "application/json", new byte[6 * 1024 * 1024]);
 
         mockMvc.perform(multipart("/api/import/eu-data-act/preview")
                         .file(file)
                         .param("carId", CAR_ID.toString())
                         .with(authentication(auth())))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void preview_fileAboveLimit_returns400() throws Exception {
+        mockMvc.perform(multipart("/api/import/eu-data-act/preview")
+                        .file(oversizedJsonFile())
+                        .param("carId", CAR_ID.toString())
+                        .with(authentication(auth())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value(containsString("64 MB")));
+    }
+
+    /** Meldet eine Groesse jenseits des Limits, ohne sie tatsaechlich zu allozieren. */
+    private MockMultipartFile oversizedJsonFile() {
+        return new MockMultipartFile("file", "export.json", "application/json", new byte[]{'{'}) {
+            @Override
+            public long getSize() {
+                return 70L * 1024 * 1024;
+            }
+        };
     }
 
     // ── Preview ───────────────────────────────────────────────────────────────

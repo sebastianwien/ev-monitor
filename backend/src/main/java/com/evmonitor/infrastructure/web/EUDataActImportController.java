@@ -22,7 +22,11 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EUDataActImportController {
 
-    private static final long MAX_UPLOAD_BYTES = 5 * 1024 * 1024L; // 5 MB
+    // Wir akzeptieren auch die entpackte JSON, und die ist bei VW zweistellig MB gross
+    // (real gesehen: 24 MB bei MEB, 46 MB bei PPE). Gleicher Wert wie der Entpack-Guard
+    // im Service - nginx laesst fuer diesen Pfad 100m durch, damit hier eine saubere
+    // Fehlermeldung entsteht statt einer 413-Seite von nginx.
+    private static final long MAX_UPLOAD_BYTES = 64 * 1024 * 1024L; // 64 MB
 
     private final EUDataActImportService importService;
 
@@ -77,7 +81,8 @@ public class EUDataActImportController {
             throw new IllegalArgumentException("Keine Datei hochgeladen");
         }
         if (file.getSize() > MAX_UPLOAD_BYTES) {
-            throw new IllegalArgumentException("Datei zu groß (max. 5 MB)");
+            throw new IllegalArgumentException(
+                    "Datei zu groß (max. " + MAX_UPLOAD_BYTES / (1024 * 1024) + " MB)");
         }
         String name = file.getOriginalFilename();
         if (name != null && !name.toLowerCase().endsWith(".json") && !name.toLowerCase().endsWith(".zip")) {

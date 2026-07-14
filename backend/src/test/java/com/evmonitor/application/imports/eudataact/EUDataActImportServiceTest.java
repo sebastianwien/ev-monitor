@@ -228,6 +228,20 @@ class EUDataActImportServiceTest {
                 service.importData(userId, carId, new ByteArrayInputStream(zipBytes), "export.zip"));
     }
 
+    @Test
+    void importData_zipBomb_throwsIllegalArgumentWithActualLimit() {
+        // Der Entpack-Guard muss auch beim gestreamten Lesen greifen - und die Meldung muss
+        // das echte Limit nennen (stand frueher faelschlich auf "20 MB").
+        Car car = carWithCapacity(null);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+
+        byte[] zipBytes = zipWithOversizedJsonEntry();
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                service.importData(userId, carId, new ByteArrayInputStream(zipBytes), "export.zip"));
+        assertTrue(ex.getMessage().contains("64 MB"), "Unerwartete Meldung: " + ex.getMessage());
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private Car carWithCapacity(BigDecimal capacityKwh) {
@@ -255,6 +269,32 @@ class EUDataActImportServiceTest {
                 "eudataact/WVWZZZ-ID7_20251213015510.json")) {
             assertNotNull(in);
             return in.readAllBytes();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * ZIP, dessen JSON-Entry entpackt ueber dem Guard liegt (gepackt bleibt es winzig).
+     * Der Fuellstoff steckt in einem Feld, das der Parser ueberspringt - so laeuft der Guard
+     * gegen die Bytes und nicht der Test gegen den Heap.
+     */
+    private byte[] zipWithOversizedJsonEntry() {
+        byte[] chunk = new byte[8192];
+        for (int i = 0; i < chunk.length; i++) {
+            chunk[i] = (i % 2 == 0) ? (byte) '0' : (byte) ',';
+        }
+
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             ZipOutputStream zos = new ZipOutputStream(baos)) {
+            zos.putNextEntry(new ZipEntry("export.json"));
+            zos.write("{\"pad\":[".getBytes(StandardCharsets.UTF_8));
+            for (long written = 0; written < 70L * 1024 * 1024; written += chunk.length) {
+                zos.write(chunk);
+            }
+            zos.closeEntry();
+            zos.finish();
+            return baos.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
