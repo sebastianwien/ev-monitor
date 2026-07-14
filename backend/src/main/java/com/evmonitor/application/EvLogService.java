@@ -526,6 +526,13 @@ public class EvLogService {
                 request.socAfter(), request.kwhCharged(), cleanCharges, car.getNominalNetCapacityKwh());
     }
 
+    /**
+     * Ohne @Transactional laeuft das interne save() als Self-Invocation am Spring-Proxy vorbei -
+     * dann wird SohAutoDetectEvent ohne aktive Transaktion publiziert, und der
+     * AFTER_COMMIT-Listener verwirft es stillschweigend. Ein nachtraeglich ergaenztes
+     * kwhAtVehicle wuerde die SoH-Erkennung also nie ausloesen.
+     */
+    @Transactional
     public EvLogResponse updateLog(UUID id, UUID userId, EvLogUpdateRequest request) {
         EvLog existing = evLogRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + id));
