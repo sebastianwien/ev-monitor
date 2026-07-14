@@ -171,6 +171,13 @@ public class EvLogService {
             }
         }
 
+        // R15: hat der Connector einen verpassten Ladestart gemeldet, ist socBefore null.
+        // Aus den vollstaendigen Ladungen desselben Autos herleiten (median kWh/SoC-Punkt).
+        BigDecimal socBefore = request.socBefore();
+        if (Boolean.TRUE.equals(request.socStartMissed()) && socBefore == null) {
+            socBefore = deriveMissedStartSoc(car, request);
+        }
+
         EvLog newLog = EvLog.createFromInternal(
                 request.carId(),
                 request.kwhCharged(),
@@ -183,7 +190,7 @@ public class EvLogService {
                 request.costEur(),
                 chargingType,
                 request.odometerKm(),
-                request.socBefore(),
+                socBefore,
                 request.socAfter(),
                 request.temperatureCelsius(),
                 request.rawImportData(),
@@ -504,6 +511,21 @@ public class EvLogService {
     }
 
     @Transactional
+    /**
+     * R15: leitet den verpassten Start-SoC aus den vollstaendigen Ladungen desselben Autos her
+     * (median kWh/SoC-Punkt), Fallback Nominalkapazitaet. Rein rechnend - siehe
+     * {@link MissedStartSocEstimator}.
+     */
+    private BigDecimal deriveMissedStartSoc(Car car, InternalEvLogRequest request) {
+        List<MissedStartSocEstimator.Charge> cleanCharges = evLogRepository
+                .findRecentAtVehicleLogsWithSoc(car.getId(), 40).stream()
+                .map(l -> new MissedStartSocEstimator.Charge(
+                        l.getSocBeforeChargePercent(), l.getSocAfterChargePercent(), l.getKwhAtVehicle()))
+                .toList();
+        return MissedStartSocEstimator.estimateSocStart(
+                request.socAfter(), request.kwhCharged(), cleanCharges, car.getNominalNetCapacityKwh());
+    }
+
     public EvLogResponse updateLog(UUID id, UUID userId, EvLogUpdateRequest request) {
         EvLog existing = evLogRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + id));

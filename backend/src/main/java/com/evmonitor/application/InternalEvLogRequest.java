@@ -36,5 +36,8 @@ public record InternalEvLogRequest(
         // com.evmonitor.domain.EnergySource (OEM_MEASURED / SOC_INFERRED / USER_INPUT / WALLBOX).
         // Unknown / missing values are stored as NULL ("unknown provenance, treat as trusted"),
         // mirroring the silent-fallback contract already in place for dataSource.
-        String energySource) {
+        String energySource,
+        // R15: true, wenn der Ladestart nicht beobachtet wurde (Smartcar-API-Luecke). Dann ist
+        // socBefore null und wird aus den vollstaendigen Ladungen des Autos hergeleitet.
+        Boolean socStartMissed) {
 }
