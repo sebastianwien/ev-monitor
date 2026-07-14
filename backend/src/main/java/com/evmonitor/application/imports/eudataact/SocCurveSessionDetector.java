@@ -6,26 +6,38 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Export-Variante ohne sprechende Feldnamen (MEB, z.B. ID.3): die Zeitreihen tragen nur
  * rohe Signal-IDs ({@code 180886}), und es gibt weder Ladezustand noch Ladeleistung.
  * <p>
  * Die IDs sind nicht dokumentiert und werden deshalb nicht hart verdrahtet, sondern pro Datei
- * ueber die mitgelieferten Einzelwerte aufgeloest: {@code hvsoc_info.value} verraet SoC und
- * Zeitpunkt, damit laesst sich genau die Zeitreihe identifizieren, die dort denselben Wert hat.
- * Loest ein Anker nicht eindeutig auf, greift der Detektor nicht (statt falsche Daten zu liefern).
+ * ueber ihren <b>Wertverlauf</b> identifiziert: Der Ladezustand liegt zwischen 0 und 100 und
+ * meldet in 0,5er-Schritten (also halbzahlige Werte), der Kilometerstand ist ganzzahlig und
+ * steigt monoton. Passt mehr als eine Zeitreihe oder keine, greift der Detektor nicht -
+ * lieber keine Daten als geratene.
+ * <p>
+ * Die benannten Snapshot-Werte des Exports (etwa {@code hvsoc_info.value}) taugen dafuer nicht:
+ * sie werden zum Exportzeitpunkt gezogen, die Zeitreihen enden aber teils Tage vorher, und der
+ * SoC driftet in der Zwischenzeit durch Standverlust. Auch ihre Feldnamen unterscheiden sich
+ * zwischen Fahrzeugen.
  * <p>
  * Ladevorgaenge werden aus dem SoC-Anstieg rekonstruiert. Getrennt wird primaer ueber den
  * Kilometerstand: aendert er sich, ist das Auto gefahren - dann sind es zwei Ladungen.
  */
 class SocCurveSessionDetector implements SessionDetector {
 
-    private static final String ANCHOR_SOC = "hvsoc_info.value";
-    private static final String ANCHOR_ODOMETER = "mileage_info.value";
+    /** CAN-Marker fuer "Signal nicht verfuegbar" - taucht in echten Exports im Kilometerstand auf. */
+    private static final Set<Double> INVALID_MARKERS = Set.of(1048574.0, 1048575.0);
 
-    /** SoC-Aufloesung ist 0,5 % - der Anker darf um maximal einen Schritt abweichen. */
-    private static final double ANCHOR_TOLERANCE = 0.51;
+    /** Kuerzere Reihen sind kein belastbarer Verlauf. */
+    private static final int MIN_READINGS = 50;
+    /** SoC meldet in 0,5er-Schritten; Enums im selben Wertebereich sind rein ganzzahlig. */
+    private static final double MIN_HALF_STEP_SHARE = 0.2;
+    /** Ein Kilometerstand muss ueber die Exportdauer nennenswert zulegen. */
+    private static final double MIN_ODOMETER_SPAN_KM = 100.0;
 
     /** Groessere Meldeluecke beendet die Ladung (das Fahrzeug meldet sonst alle 2-8 Minuten). */
     private static final Duration MAX_GAP = Duration.ofMinutes(45);
@@ -34,36 +46,35 @@ class SocCurveSessionDetector implements SessionDetector {
 
     @Override
     public boolean supports(EntryIndex index) {
-        return resolveSignal(ANCHOR_SOC, index).isPresent()
-                && resolveSignal(ANCHOR_ODOMETER, index).isPresent();
+        return socSignal(index).isPresent() && odometerSignal(index).isPresent();
     }
 
     @Override
     public List<EUDataActSession> detect(EntryIndex index) {
-        Optional<String> socSignal = resolveSignal(ANCHOR_SOC, index);
-        Optional<String> odometerSignal = resolveSignal(ANCHOR_ODOMETER, index);
-        if (socSignal.isEmpty() || odometerSignal.isEmpty()) return List.of();
+        Optional<List<DataEntry>> soc = socSignal(index);
+        Optional<List<DataEntry>> odometer = odometerSignal(index);
+        if (soc.isEmpty() || odometer.isEmpty()) return List.of();
 
-        List<DataEntry> soc = plausibleSocReadings(index.get(socSignal.get()));
-        List<DataEntry> odometer = index.get(odometerSignal.get());
+        List<DataEntry> socReadings = soc.get();
+        List<DataEntry> odometerReadings = odometer.get();
 
         List<EUDataActSession> sessions = new ArrayList<>();
         DataEntry start = null;
         DataEntry end = null;
 
-        for (int i = 1; i < soc.size(); i++) {
-            DataEntry prev = soc.get(i - 1);
-            DataEntry curr = soc.get(i);
+        for (int i = 1; i < socReadings.size(); i++) {
+            DataEntry prev = socReadings.get(i - 1);
+            DataEntry curr = socReadings.get(i);
 
-            if (isCharging(prev, curr, odometer)) {
+            if (isCharging(prev, curr, odometerReadings)) {
                 if (start == null) start = prev;
                 end = curr;
             } else if (start != null) {
-                addIfSession(sessions, start, end, odometer);
+                addIfSession(sessions, start, end, odometerReadings);
                 start = null;
             }
         }
-        addIfSession(sessions, start, end, odometer);
+        addIfSession(sessions, start, end, odometerReadings);
 
         return sessions;
     }
@@ -95,15 +106,7 @@ class SocCurveSessionDetector implements SessionDetector {
                 null, // keine Ladeleistung
                 null, // kWh braucht die Batteriekapazitaet, die kennt erst der Service
                 odometerAt(odometer, start.timestamp()),
-                null)); // keine Aussentemperatur (Anker loest nicht auf)
-    }
-
-    /** SoC=0.0 sind Offline-Platzhalter mitten in der Kurve, keine echten Messwerte. */
-    private List<DataEntry> plausibleSocReadings(List<DataEntry> readings) {
-        return readings.stream()
-                .filter(DataEntry::isNumeric)
-                .filter(e -> e.asDouble() > 0.0 && e.asDouble() <= 100.0)
-                .toList();
+                null)); // keine Aussentemperatur
     }
 
     private Integer odometerAt(List<DataEntry> odometer, OffsetDateTime t) {
@@ -115,32 +118,70 @@ class SocCurveSessionDetector implements SessionDetector {
         return value;
     }
 
+    // --- Signal-Identifikation ueber den Wertverlauf ---
+
     /**
-     * Sucht die Signal-ID, deren Zeitreihe zum Ankerzeitpunkt den Ankerwert traegt.
-     * Nur eindeutige Treffer zaehlen - passen mehrere Signale, waere die Zuordnung geraten.
+     * Der Ladezustand: Werte zwischen 0 und 100, ein nennenswerter Teil davon halbzahlig.
+     * Das trennt ihn von den Enums des Thermomanagements, die im selben Wertebereich liegen,
+     * aber rein ganzzahlig sind.
      */
-    private Optional<String> resolveSignal(String anchorField, EntryIndex index) {
-        Optional<DataEntry> anchor = index.get(anchorField).stream()
-                .filter(DataEntry::isNumeric)
-                .findFirst();
-        if (anchor.isEmpty()) return Optional.empty();
+    private Optional<List<DataEntry>> socSignal(EntryIndex index) {
+        return uniqueSignal(index, readings -> {
+            List<Double> values = values(readings);
+            if (values.stream().anyMatch(v -> v < 0.0 || v > 100.0)) return false;
+            long halfSteps = values.stream().filter(v -> v != Math.floor(v)).count();
+            return (double) halfSteps / values.size() >= MIN_HALF_STEP_SHARE;
+        }).map(this::plausibleSocReadings);
+    }
 
-        OffsetDateTime at = anchor.get().timestamp();
-        double expected = anchor.get().asDouble();
+    /** Der Kilometerstand: ganzzahlig, monoton steigend, ueber die Exportdauer nennenswert gewachsen. */
+    private Optional<List<DataEntry>> odometerSignal(EntryIndex index) {
+        return uniqueSignal(index, readings -> {
+            List<Double> values = values(readings);
+            if (values.stream().anyMatch(v -> v != Math.floor(v))) return false;
+            for (int i = 1; i < readings.size(); i++) {
+                // Mehrere Messwerte teilen sich denselben Zeitstempel - untereinander sagt ihre
+                // Reihenfolge nichts aus, ein Rueckschritt darin ist keine Monotonie-Verletzung.
+                boolean sameInstant = readings.get(i).timestamp().isEqual(readings.get(i - 1).timestamp());
+                if (!sameInstant && values.get(i) < values.get(i - 1)) return false;
+            }
+            return values.get(values.size() - 1) - values.get(0) > MIN_ODOMETER_SPAN_KM;
+        });
+    }
 
-        List<String> matches = index.fields().stream()
+    /**
+     * Genau eine Zeitreihe darf passen. Passen mehrere, waere die Zuordnung geraten -
+     * dann greift der Detektor lieber gar nicht.
+     */
+    private Optional<List<DataEntry>> uniqueSignal(EntryIndex index, Predicate<List<DataEntry>> matches) {
+        List<List<DataEntry>> candidates = index.fields().stream()
                 .filter(SocCurveSessionDetector::isSignalId)
-                // Kein Zeitfenster: der letzte gemeldete Wert eines Signals ist sein Wert.
-                // Der Kilometerstand etwa meldet nur beim Fahren - steht das Auto zum Export
-                // seit Stunden, waere jede Fensterbegrenzung ein Fehlschlag.
-                .filter(field -> index.lastAt(field, at)
-                        .filter(DataEntry::isNumeric)
-                        .filter(e -> Math.abs(e.asDouble() - expected) <= ANCHOR_TOLERANCE)
-                        .isPresent())
+                .map(field -> usableReadings(index.get(field)))
+                .filter(readings -> readings.size() >= MIN_READINGS)
+                .filter(matches)
                 .limit(2)
                 .toList();
 
-        return matches.size() == 1 ? Optional.of(matches.get(0)) : Optional.empty();
+        return candidates.size() == 1 ? Optional.of(candidates.get(0)) : Optional.empty();
+    }
+
+    /** Nicht-numerische Werte ("Init") und Ungueltig-Marker sind keine Messwerte. */
+    private List<DataEntry> usableReadings(List<DataEntry> readings) {
+        return readings.stream()
+                .filter(DataEntry::isNumeric)
+                .filter(e -> !INVALID_MARKERS.contains(e.asDouble()))
+                .toList();
+    }
+
+    /** SoC=0.0 sind Offline-Platzhalter mitten in der Kurve, keine echten Messwerte. */
+    private List<DataEntry> plausibleSocReadings(List<DataEntry> readings) {
+        return readings.stream()
+                .filter(e -> e.asDouble() > 0.0)
+                .toList();
+    }
+
+    private List<Double> values(List<DataEntry> readings) {
+        return readings.stream().map(DataEntry::asDouble).toList();
     }
 
     private static boolean isSignalId(String field) {

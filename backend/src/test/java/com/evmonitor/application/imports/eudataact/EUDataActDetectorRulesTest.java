@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * echten Dateien nicht herstellen, entscheiden aber, ob wir Muell importieren oder nicht.
  */
 class EUDataActDetectorRulesTest {
+
+    private static final OffsetDateTime T0 = OffsetDateTime.parse("2026-01-01T08:00:00Z");
 
     private EUDataActJsonParser parser;
 
@@ -33,51 +37,117 @@ class EUDataActDetectorRulesTest {
                         {"dataFieldName":"%s","value":"%s","timestampUtc":"%s"}"""
                         .formatted(e.field(), e.value(), e.timestamp()))
                 .collect(Collectors.joining(","));
-        String json = """
-                {"vin":"TESTVIN","Data":[%s]}""".formatted(data);
-        return new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
+        return new ByteArrayInputStream(
+                """
+                {"vin":"TESTVIN","Data":[%s]}""".formatted(data).getBytes(StandardCharsets.UTF_8));
     }
 
-    private Entry socAnchor() {
-        return new Entry("hvsoc_info.value", "50", "2026-01-01T10:00:00Z");
+    private String at(int minutesFromStart) {
+        return T0.plusMinutes(minutesFromStart).toString();
     }
 
-    private Entry odometerAnchor() {
-        return new Entry("mileage_info.value", "1000", "2026-01-01T10:00:00Z");
+    /**
+     * SoC-Zeitreihe mit dem Fingerabdruck des echten Signals: Wertebereich 0-100 und
+     * halbzahlige Werte. Faellt langsam (Standverlust), damit die Reihe lang genug ist,
+     * ohne einen Ladevorgang vorzutaeuschen.
+     */
+    private List<Entry> socBaseline(String signal) {
+        List<Entry> out = new ArrayList<>();
+        double soc = 80.0;
+        for (int i = 0; i < 60; i++) {
+            out.add(new Entry(signal, String.valueOf(soc), at(-600 + i * 5)));
+            soc -= 0.5;
+        }
+        return out;
     }
 
-    /** Konstanter Kilometerstand -> das Auto steht, der Detektor trennt nicht. */
-    private List<Entry> parkedOdometer() {
+    /** Kilometerstand-Fingerabdruck: ganzzahlig, monoton steigend, Spanne > 100. */
+    private List<Entry> odometerBaseline(String signal) {
+        List<Entry> out = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            out.add(new Entry(signal, String.valueOf(1000 + i * 3), at(-600 + i * 5)));
+        }
+        return out;
+    }
+
+    /** Auto steht ab jetzt - Kilometerstand konstant. */
+    private List<Entry> parked(String signal, int fromMinutes, int toMinutes) {
         return List.of(
-                new Entry("222222", "1000", "2026-01-01T09:00:00Z"),
-                new Entry("222222", "1000", "2026-01-01T14:00:00Z"));
+                new Entry(signal, "1177", at(fromMinutes)),
+                new Entry(signal, "1177", at(toMinutes)));
     }
 
-    // ── Anker-Aufloesung ──────────────────────────────────────────────────────
+    private List<Entry> merge(List<Entry>... parts) {
+        List<Entry> all = new ArrayList<>();
+        for (List<Entry> p : parts) all.addAll(p);
+        return all;
+    }
+
+    // ── Signal-Identifikation ─────────────────────────────────────────────────
 
     @Test
-    void ambiguousAnchor_detectorDeclines() {
-        // Zwei Signale tragen zum Ankerzeitpunkt denselben Wert - welches der SoC ist, waere geraten.
-        // Lieber ablehnen als die falsche Zeitreihe importieren.
-        InputStream json = export(List.of(
-                socAnchor(), odometerAnchor(),
-                new Entry("111111", "50", "2026-01-01T10:00:00Z"),
-                new Entry("111111", "60", "2026-01-01T10:30:00Z"),
-                new Entry("333333", "50", "2026-01-01T10:00:00Z"),
-                new Entry("333333", "70", "2026-01-01T10:30:00Z"),
-                parkedOdometer().get(0), parkedOdometer().get(1)));
+    void ambiguousSignals_detectorDeclines() {
+        // Zwei Zeitreihen tragen denselben SoC-Fingerabdruck - welche der SoC ist, waere geraten.
+        // Lieber ablehnen als die falsche importieren.
+        InputStream json = export(merge(
+                socBaseline("111111"),
+                socBaseline("333333"),
+                odometerBaseline("222222")));
 
         assertThrows(IllegalArgumentException.class, () -> parser.parse(json));
     }
 
     @Test
-    void missingAnchor_detectorDeclines() {
-        // Ohne Ankerwert ist die Signal-ID nicht zuzuordnen.
-        InputStream json = export(List.of(
-                new Entry("111111", "50", "2026-01-01T10:00:00Z"),
-                new Entry("111111", "60", "2026-01-01T10:30:00Z")));
+    void noSocSignal_detectorDeclines() {
+        // Nur ganzzahlige Enums und ein Kilometerstand - kein SoC erkennbar.
+        List<Entry> enums = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            enums.add(new Entry("999999", String.valueOf(i % 8 + 1), at(-600 + i * 5)));
+        }
+        InputStream json = export(merge(enums, odometerBaseline("222222")));
 
         assertThrows(IllegalArgumentException.class, () -> parser.parse(json));
+    }
+
+    @Test
+    void integerEnumsAreNotMistakenForSoc() throws Exception {
+        // Thermomanagement-Enums (Werte 1-12) liegen ebenfalls im Bereich 0-100 und sind
+        // meist konstant. Sie duerfen den SoC nicht verdraengen - Unterschied: keine halben Werte.
+        List<Entry> enums = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            enums.add(new Entry("999999", String.valueOf(i % 12 + 1), at(-600 + i * 5)));
+        }
+        InputStream json = export(merge(
+                socBaseline("111111"),
+                enums,
+                odometerBaseline("222222"),
+                parked("222222", 0, 60),
+                List.of(new Entry("111111", "50.5", at(10)),
+                        new Entry("111111", "60.5", at(40)))));
+
+        List<EUDataActSession> sessions = parser.parse(json).sessions();
+
+        assertEquals(1, sessions.size());
+        assertEquals(10.0, sessions.get(0).socDeltaPct(), 0.01);
+    }
+
+    @Test
+    void invalidOdometerMarkersAreIgnored() throws Exception {
+        // Echte Exports enthalten 1048574 (0xFFFFE) als "Signal ungueltig". Wird der Wert
+        // mitgelesen, sieht es aus, als sei das Auto mitten in der Ladung gefahren.
+        InputStream json = export(merge(
+                socBaseline("111111"),
+                odometerBaseline("222222"),
+                parked("222222", 0, 60),
+                List.of(new Entry("222222", "1048574", at(20)),
+                        new Entry("111111", "50.5", at(10)),
+                        new Entry("111111", "55.5", at(25)),
+                        new Entry("111111", "60.5", at(40)))));
+
+        List<EUDataActSession> sessions = parser.parse(json).sessions();
+
+        assertEquals(1, sessions.size(), "Der Ungueltig-Marker darf die Ladung nicht zerschneiden");
+        assertEquals(10.0, sessions.get(0).socDeltaPct(), 0.01);
     }
 
     // ── Format-Prioritaet ─────────────────────────────────────────────────────
@@ -85,19 +155,18 @@ class EUDataActDetectorRulesTest {
     @Test
     void namedFieldsWinOverSignalIds() throws Exception {
         // Liegen beide Formate vor, gewinnt das mit echter Ladeleistung.
-        InputStream json = export(List.of(
-                socAnchor(), odometerAnchor(),
-                new Entry("111111", "50", "2026-01-01T10:00:00Z"),
-                new Entry("111111", "60", "2026-01-01T10:30:00Z"),
-                parkedOdometer().get(0), parkedOdometer().get(1),
-                new Entry("chargingState", "CHARGING", "2026-01-01T10:00:00Z"),
-                new Entry("chargingState", "CHARGING", "2026-01-01T10:20:00Z"),
-                new Entry("chargingState", "READY_FOR_CHARGING", "2026-01-01T10:30:00Z"),
-                new Entry("chargePowerInKW", "11.0", "2026-01-01T10:00:00Z"),
-                new Entry("chargePowerInKW", "11.0", "2026-01-01T10:20:00Z"),
-                new Entry("chargeType", "AC", "2026-01-01T10:10:00Z"),
-                new Entry("currentSOCInPct", "50", "2026-01-01T10:00:00Z"),
-                new Entry("currentSOCInPct", "60", "2026-01-01T10:30:00Z")));
+        InputStream json = export(merge(
+                socBaseline("111111"),
+                odometerBaseline("222222"),
+                List.of(
+                        new Entry("chargingState", "CHARGING", at(0)),
+                        new Entry("chargingState", "CHARGING", at(20)),
+                        new Entry("chargingState", "READY_FOR_CHARGING", at(30)),
+                        new Entry("chargePowerInKW", "11.0", at(0)),
+                        new Entry("chargePowerInKW", "11.0", at(20)),
+                        new Entry("chargeType", "AC", at(10)),
+                        new Entry("currentSOCInPct", "50", at(0)),
+                        new Entry("currentSOCInPct", "60", at(30)))));
 
         List<EUDataActSession> sessions = parser.parse(json).sessions();
 
@@ -113,33 +182,35 @@ class EUDataActDetectorRulesTest {
 
     @Test
     void reportingGapSplitsSessions() throws Exception {
-        // Auto steht durchgehend (Kilometerstand konstant), aber zwischen den Anstiegen liegen
-        // 100 Minuten ohne Meldung -> zwei Ladungen, nicht eine durchgehende.
-        InputStream json = export(List.of(
-                socAnchor(), odometerAnchor(),
-                new Entry("111111", "50", "2026-01-01T10:00:00Z"),
-                new Entry("111111", "55", "2026-01-01T10:10:00Z"),
-                new Entry("111111", "60", "2026-01-01T11:50:00Z"),
-                new Entry("111111", "65", "2026-01-01T12:00:00Z"),
-                parkedOdometer().get(0), parkedOdometer().get(1)));
+        // Auto steht durchgehend, aber zwischen den Anstiegen liegen 100 Minuten ohne
+        // Meldung -> zwei Ladungen, nicht eine durchgehende.
+        InputStream json = export(merge(
+                socBaseline("111111"),
+                odometerBaseline("222222"),
+                parked("222222", 0, 200),
+                List.of(new Entry("111111", "50.5", at(10)),
+                        new Entry("111111", "55.5", at(20)),
+                        new Entry("111111", "60.5", at(120)),
+                        new Entry("111111", "65.5", at(130)))));
 
         List<EUDataActSession> sessions = parser.parse(json).sessions();
 
         assertEquals(2, sessions.size());
-        assertEquals(50, sessions.get(0).socBefore());
-        assertEquals(55, sessions.get(0).socAfter());
-        assertEquals(60, sessions.get(1).socBefore());
-        assertEquals(65, sessions.get(1).socAfter());
+        assertEquals(51, sessions.get(0).socBefore());
+        assertEquals(56, sessions.get(0).socAfter());
+        assertEquals(61, sessions.get(1).socBefore());
+        assertEquals(66, sessions.get(1).socAfter());
     }
 
     @Test
     void tinySocRiseIsNotASession() throws Exception {
         // 1 % Anstieg ist Messrauschen, kein Ladevorgang.
-        InputStream json = export(List.of(
-                socAnchor(), odometerAnchor(),
-                new Entry("111111", "50", "2026-01-01T10:00:00Z"),
-                new Entry("111111", "51", "2026-01-01T10:10:00Z"),
-                parkedOdometer().get(0), parkedOdometer().get(1)));
+        InputStream json = export(merge(
+                socBaseline("111111"),
+                odometerBaseline("222222"),
+                parked("222222", 0, 60),
+                List.of(new Entry("111111", "50.5", at(10)),
+                        new Entry("111111", "51.5", at(20)))));
 
         assertTrue(parser.parse(json).sessions().isEmpty());
     }
@@ -148,19 +219,20 @@ class EUDataActDetectorRulesTest {
     void drivingSplitsSessions() throws Exception {
         // Kilometerstand aendert sich zwischen den Anstiegen -> das Auto ist gefahren.
         // Das ist eine Tatsache aus den Daten, keine Heuristik.
-        InputStream json = export(List.of(
-                socAnchor(), odometerAnchor(),
-                new Entry("111111", "50", "2026-01-01T10:00:00Z"),
-                new Entry("111111", "55", "2026-01-01T10:10:00Z"),
-                new Entry("111111", "60", "2026-01-01T10:20:00Z"),
-                new Entry("111111", "65", "2026-01-01T10:30:00Z"),
-                new Entry("222222", "1000", "2026-01-01T09:00:00Z"),
-                new Entry("222222", "1042", "2026-01-01T10:15:00Z")));
+        InputStream json = export(merge(
+                socBaseline("111111"),
+                odometerBaseline("222222"),
+                List.of(new Entry("222222", "1177", at(0)),
+                        new Entry("222222", "1219", at(25)),
+                        new Entry("111111", "50.5", at(10)),
+                        new Entry("111111", "55.5", at(20)),
+                        new Entry("111111", "60.5", at(30)),
+                        new Entry("111111", "65.5", at(40)))));
 
         List<EUDataActSession> sessions = parser.parse(json).sessions();
 
         assertEquals(2, sessions.size());
-        assertEquals(1000, sessions.get(0).odometerKm());
-        assertEquals(1042, sessions.get(1).odometerKm());
+        assertEquals(1177, sessions.get(0).odometerKm());
+        assertEquals(1219, sessions.get(1).odometerKm());
     }
 }
