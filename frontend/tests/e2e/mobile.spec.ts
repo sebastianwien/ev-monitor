@@ -52,6 +52,79 @@ test('Mobile: Login-Formular bedienbar', async ({ browser }) => {
   await context.close();
 });
 
+test('Mobile: Edit-Modal auf /logs liegt im Viewport (nicht im Pager-Track)', async ({ browser }) => {
+  const context = await browser.newContext({ ...iphone12 });
+  const page = await context.newPage();
+
+  await page.addInitScript((seenKeys: string[]) => {
+    localStorage.setItem('seen-announcements', JSON.stringify(seenKeys));
+  }, featureAnnouncements.map(a => a.key));
+
+  await page.goto('/login');
+  await page.locator('input[type="text"]').fill(TEST_USER.email);
+  await page.locator('input[type="password"]').fill(TEST_USER.password);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+
+  await page.goto('/logs');
+  await page.waitForLoadState('networkidle');
+
+  // Mobile Karten sind eingeklappt - das Aktionsmenue liegt in der aufgeklappten Karte.
+  await page.locator('button[aria-expanded]:has-text("kWh"):visible').first().click();
+
+  // :visible grenzt auf die aktive Pane ein - der Pager haelt die Dashboard-Pane
+  // (mit denselben Aktionsmenues) zusammengeklappt im DOM.
+  const menuButton = page.locator('[aria-label="Aktionen"]:visible').first();
+  await expect(menuButton).toBeVisible({ timeout: 10_000 });
+  await menuButton.click();
+  await page.locator('button[role="menuitem"]:has-text("Bearbeiten"):visible').first().click();
+
+  // Der Log-Feed liegt auf Mobile im SwipeTabPager - dessen Track traegt dauerhaft ein
+  // translateX() und wird damit zum Containing Block fuer position:fixed. Ein nicht
+  // teleportiertes Modal richtet sich dann am 200% breiten Track statt am Viewport aus
+  // und haengt links aus dem Bild. Panel muss vollstaendig im Viewport liegen (390px).
+  const panel = page.locator('[data-testid="edit-log-modal"]');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+  const box = await panel.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(391);
+
+  await context.close();
+});
+
+test('Mobile: Auto-Edit-Modal auf /cars liegt im Viewport (nicht im Pager-Track)', async ({ browser }) => {
+  const context = await browser.newContext({ ...iphone12 });
+  const page = await context.newPage();
+
+  await page.addInitScript((seenKeys: string[]) => {
+    localStorage.setItem('seen-announcements', JSON.stringify(seenKeys));
+  }, featureAnnouncements.map(a => a.key));
+
+  await page.goto('/login');
+  await page.locator('input[type="text"]').fill(TEST_USER.email);
+  await page.locator('input[type="password"]').fill(TEST_USER.password);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+
+  await page.goto('/cars');
+  await page.waitForLoadState('networkidle');
+
+  // Fahrzeuge liegen im CarsLayout-Pager - derselbe transformierte Track wie beim Log-Feed.
+  const editButton = page.locator('button:has-text("Bearbeiten"):visible').first();
+  await expect(editButton).toBeVisible({ timeout: 10_000 });
+  await editButton.click();
+
+  const panel = page.locator('[data-testid="edit-car-modal"]');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+  const box = await panel.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(391);
+
+  await context.close();
+});
+
 test('Mobile: Segmented Control wechselt Dashboard <-> Log-Feed im geteilten Layout', async ({ browser }) => {
   const context = await browser.newContext({ ...iphone12 });
   const page = await context.newPage();
