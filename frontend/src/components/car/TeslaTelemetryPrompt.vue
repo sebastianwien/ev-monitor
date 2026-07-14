@@ -75,6 +75,10 @@ const connect = async () => {
 </script>
 
 <template>
+  <!-- Teleport nach body: die Fahrzeug-View liegt auf Mobile im SwipeTabPager, dessen Track
+       ein translateX() traegt - ein transformierter Vorfahre wird zum Containing Block fuer
+       position:fixed und wuerde das Overlay aus dem Viewport schieben. -->
+  <Teleport to="body">
   <div
     class="fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50 md:p-4"
     role="dialog"
@@ -170,4 +174,5 @@ const connect = async () => {
       </div>
     </div>
   </div>
+  </Teleport>
 </template>

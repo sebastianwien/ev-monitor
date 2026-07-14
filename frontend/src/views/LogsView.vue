@@ -2425,13 +2425,16 @@ function toggleAllCharges() {
                     </span>
                     <!-- Aktions-Menü -->
                     <div class="relative ml-auto">
-                      <button @click.stop="openMenuLogId = openMenuLogId === item.entry.id ? null : item.entry.id"
+                      <button type="button"
+                        :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
+                        :aria-expanded="openMenuLogId === item.entry.id"
+                        @click.stop="openMenuLogId = openMenuLogId === item.entry.id ? null : item.entry.id"
                         class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
                         <EllipsisVerticalIcon class="w-5 h-5" />
                       </button>
-                      <div v-if="openMenuLogId === item.entry.id"
+                      <div v-if="openMenuLogId === item.entry.id" role="menu"
                         class="absolute right-0 bottom-full mb-1 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
-                        <button @click.stop="editingLog = item.entry; openMenuLogId = null"
+                        <button role="menuitem" type="button" @click.stop="editingLog = item.entry; openMenuLogId = null"
                           class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
                           <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_edit') }}
                         </button>

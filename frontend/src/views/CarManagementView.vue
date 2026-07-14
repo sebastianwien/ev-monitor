@@ -711,9 +711,13 @@ const filteredCapacities = computed(() => {
       </div>
     </div>
 
-    <!-- Edit Car Modal -->
+    <!-- Edit Car Modal - Teleport nach body: die View liegt auf Mobile im SwipeTabPager,
+         dessen Track ein translateX() traegt. Ein transformierter Vorfahre wird zum
+         Containing Block fuer position:fixed, das Overlay wuerde sonst am 200% breiten
+         Track statt am Viewport haengen. -->
+    <Teleport to="body">
     <div v-if="editingCar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="resetForm">
-      <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div data-testid="edit-car-modal" class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
           <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('cars.edit_title') }}</h2>
           <button @click="resetForm" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
@@ -1004,6 +1008,7 @@ const filteredCapacities = computed(() => {
         </form>
       </div>
     </div>
+    </Teleport>
 
 
     <!-- Tesla Fleet Integration (only shown when user has a Tesla) -->
@@ -1041,7 +1046,9 @@ const filteredCapacities = computed(() => {
       @close="closeTeslaPrompt"
     />
 
-    <!-- Toast Notification (outside Transition) -->
+    <!-- Toast Notification (outside Transition) - Teleport wie das Modal, sonst richtet
+         sich der Toast am Pager-Track aus und liegt auf Mobile ausserhalb des Bildes. -->
+    <Teleport to="body">
     <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
       <div class="bg-green-600 text-white px-6 py-4 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] max-w-md">
         <div class="flex items-start">
@@ -1052,6 +1059,7 @@ const filteredCapacities = computed(() => {
         </div>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
 

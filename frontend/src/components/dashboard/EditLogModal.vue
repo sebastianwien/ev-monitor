@@ -1,6 +1,11 @@
 <template>
+  <!-- Teleport nach body: auf Mobile liegt der Log-Feed im SwipeTabPager, dessen Track
+       dauerhaft ein translateX() traegt. Ein transformierter Vorfahre wird zum Containing
+       Block fuer position:fixed - das Overlay wuerde sich sonst am 200% breiten Track statt
+       am Viewport ausrichten und links aus dem Bild haengen. -->
+  <Teleport to="body">
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] w-full max-w-3xl flex flex-col max-h-[90vh]">
+    <div data-testid="edit-log-modal" class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] w-full max-w-3xl flex flex-col max-h-[90vh]">
       <!-- Header -->
       <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.edit_title') }}</h2>
@@ -58,6 +63,7 @@
       </div>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
