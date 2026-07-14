@@ -80,6 +80,7 @@ class EUDataActImportControllerTest {
 
         mockMvc.perform(multipart("/api/import/eu-data-act/preview")
                         .file(xlsx)
+                        .param("carId", CAR_ID.toString())
                         .with(authentication(auth())))
                 .andExpect(status().isBadRequest());
     }
@@ -92,6 +93,7 @@ class EUDataActImportControllerTest {
 
         mockMvc.perform(multipart("/api/import/eu-data-act/preview")
                         .file(file)
+                        .param("carId", CAR_ID.toString())
                         .with(authentication(auth())))
                 .andExpect(status().isBadRequest());
     }
@@ -104,11 +106,12 @@ class EUDataActImportControllerTest {
                 java.time.OffsetDateTime.parse("2025-11-15T13:23:02Z"),
                 java.time.OffsetDateTime.parse("2025-11-15T15:18:15Z"),
                 115, 74, 100, "AC", 10.0, 17.5, 1951, 7.0);
-        when(importService.preview(any(), any()))
+        when(importService.preview(any(), any(), any(), any()))
                 .thenReturn(new EUDataActPreviewResult("WVWZZZ-ID7", List.of(session)));
 
         mockMvc.perform(multipart("/api/import/eu-data-act/preview")
                         .file(validJsonFile())
+                        .param("carId", CAR_ID.toString())
                         .with(authentication(auth())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.vin").value("WVWZZZ-ID7"))
@@ -119,11 +122,12 @@ class EUDataActImportControllerTest {
 
     @Test
     void preview_serviceThrowsIllegalArgument_returns400() throws Exception {
-        when(importService.preview(any(), any()))
+        when(importService.preview(any(), any(), any(), any()))
                 .thenThrow(new IllegalArgumentException("Keine Ladevorgänge gefunden"));
 
         mockMvc.perform(multipart("/api/import/eu-data-act/preview")
                         .file(validJsonFile())
+                        .param("carId", CAR_ID.toString())
                         .with(authentication(auth())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").exists());

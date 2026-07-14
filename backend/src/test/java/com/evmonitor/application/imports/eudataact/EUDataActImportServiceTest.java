@@ -101,7 +101,7 @@ class EUDataActImportServiceTest {
         EUDataActJsonParser mockParser = mock(EUDataActJsonParser.class);
         EUDataActSession sessionWithoutKwh = new EUDataActSession(
                 OffsetDateTime.now(), OffsetDateTime.now().plusHours(1),
-                60, 50, 80, "AC", 11.0, null, 1000, 10.0);
+                60, 50, 80, null, "AC", 11.0, null, 1000, 10.0);
         when(mockParser.parse(any())).thenReturn(new EUDataActParseResult("VIN", List.of(sessionWithoutKwh)));
 
         EUDataActImportService serviceWithMockParser = new EUDataActImportService(
@@ -109,6 +109,47 @@ class EUDataActImportServiceTest {
         ImportApiResult result = serviceWithMockParser.importData(userId, carId, sampleJsonStream(), "export.json");
 
         // Service returns early without calling importSessions when all sessions have no kWh
+        verifyNoInteractions(publicApiImportService);
+        assertEquals(0, result.imported());
+    }
+
+    /** Echter (anonymisierter) ID.3-Export - der Service entpackt das ZIP selbst. */
+    private java.io.InputStream mebZipStream() {
+        return getClass().getClassLoader().getResourceAsStream("eudataact/MEB_signal_ids.zip");
+    }
+
+    // ── MEB-Variante: kWh aus SoC-Delta ───────────────────────────────────────
+
+    @Test
+    void importData_mebFormat_calculatesKwhFromSocDeltaAndCapacity() throws Exception {
+        // Echter ID.3-Export (Signal-IDs, kein Leistungssignal). Die Datei enthaelt 9 Ladungen;
+        // erste: SoC 43,0 -> 91,5 = 48,5 % von 58 kWh = 28,1 kWh.
+        Car car = carWithCapacity(new BigDecimal("58.0"));
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        when(publicApiImportService.importSessions(any(), any(), any(DataSource.class)))
+                .thenReturn(ImportApiResult.withoutIds(9, 0, 0));
+
+        service.importData(userId, carId, mebZipStream(), "export.zip");
+
+        ArgumentCaptor<PublicApiSessionRequest> captor = ArgumentCaptor.forClass(PublicApiSessionRequest.class);
+        verify(publicApiImportService).importSessions(eq(userId), captor.capture(), any(DataSource.class));
+
+        List<PublicApiSessionRequest.SessionEntry> sessions = captor.getValue().sessions();
+        assertEquals(9, sessions.size());
+        assertEquals(28.1, sessions.get(0).kwhAtVehicle(), 0.1);
+
+        double total = sessions.stream().mapToDouble(PublicApiSessionRequest.SessionEntry::kwhAtVehicle).sum();
+        assertEquals(170.5, total, 1.0);
+    }
+
+    @Test
+    void importData_mebFormat_withoutBatteryCapacity_skipsSessions() throws Exception {
+        // Ohne Kapazitaet ist der SoC-Delta nicht in kWh umrechenbar - lieber nichts importieren.
+        Car car = carWithCapacity(null);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+
+        ImportApiResult result = service.importData(userId, carId, mebZipStream(), "export.zip");
+
         verifyNoInteractions(publicApiImportService);
         assertEquals(0, result.imported());
     }
