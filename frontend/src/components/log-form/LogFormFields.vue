@@ -14,6 +14,7 @@ import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 import { tariffLocationParams } from '../../utils/tariffLocation'
+import { shouldRefetchPriceOnToggle } from './costSuggestion'
 
 export interface LogFormData {
   kwhCharged: number | null
@@ -431,15 +432,19 @@ watch(() => form.value.chargingProviderId, (providerId) => {
 })
 
 watch(() => form.value.isPublicCharging, (isPublic) => {
-  if (form.value.latitude == null || form.value.longitude == null) return
-  // In edit mode, never silently overwrite a saved price.
-  // Without this guard the toggle would reset costLocal* to null, defeat the
-  // fetchPriceSuggestion early-return, and replace the user's value.
-  if (props.locationMode === 'edit' && form.value.costEur != null) return
-  costLocalPerKwh.value = null
-  costLocalTotal.value = null
+  // Einen bereits vorhandenen Preis - manuell eingegeben ODER aus einem
+  // gespeicherten Log abgeleitet - nie ueberschreiben. Ein Vorschlag fuellt
+  // nur leere Felder. Frueher loeschte der Toggle (auf Mobile, wo per GPS ein
+  // Standort gesetzt ist) den gerade eingegebenen Preis, weil nur der
+  // Edit-Modus geschuetzt war; AC->DC erzwingt oeffentlich und triggert dies.
+  if (!shouldRefetchPriceOnToggle({
+    hasLocation: form.value.latitude != null && form.value.longitude != null,
+    costLocalTotal: costLocalTotal.value,
+    costLocalPerKwh: costLocalPerKwh.value,
+    costEur: form.value.costEur,
+  })) return
   costMode.value = 'total'
-  fetchPriceSuggestion(form.value.latitude, form.value.longitude, isPublic)
+  fetchPriceSuggestion(form.value.latitude!, form.value.longitude!, isPublic)
 })
 
 // --- Rueckwirkender Tarif: wie viele Ladungen an diesem Ort haben noch keinen Preis? ---
