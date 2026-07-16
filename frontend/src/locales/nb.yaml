@@ -254,6 +254,30 @@ models_list:
     add_compare: Legg til i sammenligning
     remove_compare: Fjern fra sammenligningen
     wltp_available: WLTP-data tilgjengelig
+  gallery:
+    open: "Åpne bildegalleri for {model}"
+    title: "Fellesskapsbilder: {model}"
+    close: Lukk galleri
+    prev: Forrige bilde
+    next: Neste bilde
+    counter: "{current} av {total}"
+    empty: Ingen fellesskapsbilder for denne modellen ennå.
+    source: Se kilde
+  price:
+    title: "Ladepris"
+    intro: "Bruk denne glidebryteren til å angi ladeprisen din og se med en gang hva hver modell koster per 100 km."
+    preset_public: "På farten"
+    preset_mixed: "Blandet"
+    preset_home: "Mest hjemme"
+    preset_split: "{home}% hjemme / {public}% offentlig"
+    hint: "Forhåndsvalg = fellesskapssnitt: hjemme {home} ct, offentlig {public} ct/kWh, blandet etter andel. Bruk glidebryteren for din egen pris."
+    tooltip: "Modellens gjennomsnittsforbruk × din ladepris ({price} ct/kWh). Samme pris for alle modeller - så du sammenligner bilen, ikke ladevaner."
+    zone_home: "Hjemmelading"
+    zone_home_range: "opptil 35 ct"
+    zone_public: "Offentlig"
+    zone_public_range: "35-60 ct"
+    zone_fast: "Hurtiglader"
+    zone_fast_range: "fra 60 ct"
   empty:
     no_data_title: Det finnes ingen data for dette fellesskapet ennå
     no_data_desc: Bli den første til å dele reelle forbruksdata og hjelp fellesskapet!

@@ -254,6 +254,30 @@ models_list:
     add_compare: Lägg till i jämförelse
     remove_compare: Ta bort från jämförelsen
     wltp_available: WLTP-data finns tillgängliga
+  gallery:
+    open: "Öppna bildgalleri för {model}"
+    title: "Communityfoton: {model}"
+    close: Stäng galleri
+    prev: Föregående foto
+    next: Nästa foto
+    counter: "{current} av {total}"
+    empty: Inga communityfoton för den här modellen ännu.
+    source: Visa källa
+  price:
+    title: "Laddpris"
+    intro: "Använd reglaget för att ställa in ditt laddpris och se direkt vad varje modell kostar per 100 km."
+    preset_public: "På vägen"
+    preset_mixed: "Blandat"
+    preset_home: "Mest hemma"
+    preset_split: "{home}% hemma / {public}% publikt"
+    hint: "Förval = communitysnitt: hemma {home} ct, publikt {public} ct/kWh, blandat efter andel. Använd reglaget för ditt eget pris."
+    tooltip: "Modellens snittförbrukning × ditt laddpris ({price} ct/kWh). Samma pris för alla modeller - så jämför du bilen, inte laddvanor."
+    zone_home: "Hemmaladdning"
+    zone_home_range: "upp till 35 ct"
+    zone_public: "Publikt"
+    zone_public_range: "35-60 ct"
+    zone_fast: "Snabbladdare"
+    zone_fast_range: "från 60 ct"
   empty:
     no_data_title: Inga uppgifter från användargemenskapen ännu
     no_data_desc: Var den första att dela med dig av verkliga förbrukningsuppgifter och hjälp gemenskapen!

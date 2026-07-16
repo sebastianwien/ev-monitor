@@ -202,69 +202,71 @@
         </p>
       </div>
 
-      <!-- THG Banner -->
-      <ThgBanner v-if="!isAuthenticated" />
+      <!-- Charging-price control: lightly grounded panel with a chunky labelled zone-strip slider -->
+      <div v-if="!loading && filteredModels.length > 0" class="mb-6 rounded-xl bg-gray-50 dark:bg-gray-800/40 ring-1 ring-gray-200 dark:ring-gray-700 p-4 sm:p-5">
+        <div class="text-center mb-4">
+          <div class="flex items-center justify-center gap-2 mb-1">
+            <BanknotesIcon class="h-5 w-5 flex-none text-blue-600 dark:text-blue-400" />
+            <h2 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ t('models_list.price.title') }}</h2>
+            <span class="text-xl font-extrabold text-blue-600 dark:text-blue-400 sl-num leading-none whitespace-nowrap">{{ formatCostPerKwh(pricePerKwh) }}</span>
+          </div>
+          <p class="mx-auto max-w-2xl text-sm font-medium text-gray-700 dark:text-gray-200 leading-snug">{{ t('models_list.price.intro') }}</p>
+        </div>
+
+        <div class="relative h-12 flex items-center">
+          <!-- Zone strip = the track (a touch flatter than the thumb, which stands slightly proud) -->
+          <div class="flex h-10 w-full rounded-full overflow-hidden select-none pointer-events-none">
+            <div
+              v-for="z in PRICE_ZONES" :key="z.key"
+              class="flex items-center justify-center overflow-hidden transition-colors motion-reduce:transition-none"
+              :style="{ flexGrow: z.flex, flexBasis: '0', backgroundColor: z.color + (activeZone.key === z.key ? '40' : '24') }"
+            >
+              <span class="truncate px-1 text-sm font-bold" :style="{ color: z.color }">{{ t(`models_list.price.zone_${z.key}`) }}</span>
+            </div>
+          </div>
+          <input
+            type="range" :min="PRICE_MIN" :max="PRICE_MAX" step="0.01"
+            v-model.number="pricePerKwh"
+            class="zone-strip absolute inset-0 m-0"
+            :aria-label="t('models_list.price.title')"
+            :aria-valuetext="formatCostPerKwh(pricePerKwh)"
+          />
+        </div>
+      </div>
 
       <!-- Models Grid -->
       <div v-if="filteredModels.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- Real community models -->
-        <template v-for="model in filteredModels" :key="`${model.brandDisplayName}/${model.modelUrlSlug}`">
-        <div
-          class="model-card flex flex-col bg-white dark:bg-gray-800 rounded-sm border p-4 transition-all shadow-[0_10px_0_0_rgb(0_0_0/0.13)] dark:shadow-none hover:-translate-y-1 hover:shadow-[0_12px_0_0_rgb(0_0_0/0.17)] dark:hover:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:hover:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:z-10 active:translate-y-0 active:shadow-[0_10px_0_0_rgb(0_0_0/0.13)] relative"
-          :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
-            ? 'border-green-500 ring-2 ring-green-200 dark:ring-green-900'
-            : 'border-gray-200 dark:border-gray-700 hover:border-green-500'"
+        <!-- Real community models; THG banner injected under the first row (below) -->
+        <template v-for="(model, i) in filteredModels" :key="`${model.brandDisplayName}/${model.modelUrlSlug}`">
+        <PublicModelCard
+          :model="model"
+          :to="`${modelsBaseUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`"
+          :hero-photo-url="heroPhotoFor(model.model)"
+          :hero-attribution="heroAttributionFor(model.model)"
+          :effective-cost-per-kwh="effectiveCostPerKwh"
+          :price-tooltip="priceTooltip"
+          :highlight-query="searchQuery"
+          :selected="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
         >
-          <a :href="`${modelsBaseUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`" class="block flex-1">
-            <div class="mb-3 text-center">
-              <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base leading-tight" v-html="highlightMatch(model.modelDisplayName, searchQuery)"></h3>
-              <span class="text-xs text-gray-400">{{ model.logCount }} {{ t('models_list.card.charging_sessions') }}</span>
-            </div>
-            <div class="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-0.5 mb-3 text-sm">
-              <template v-if="model.minWltpConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">{{ t('models_list.card.wltp_label') }}</span>
-                <span class="text-gray-500 dark:text-gray-400 font-medium">{{ formatWltpRange(model.minWltpConsumptionKwhPer100km, model.maxWltpConsumptionKwhPer100km) }} {{ consumptionUnitLabel() }}</span>
-              </template>
-              <template v-if="model.avgConsumptionKwhPer100km || model.minRealConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">{{ t('models_list.card.real_label') }}</span>
-                <span class="text-gray-700 dark:text-gray-300 font-medium">{{ formatRealConsumption(model.avgConsumptionKwhPer100km, model.minRealConsumptionKwhPer100km, model.maxRealConsumptionKwhPer100km) }} {{ consumptionUnitLabel() }}</span>
-              </template>
-              <template v-if="model.avgCostPerKwh && model.avgConsumptionKwhPer100km">
-                <span class="text-xs text-gray-400">{{ t('models_list.card.costs_label') }}</span>
-                <span class="flex flex-wrap items-center gap-x-1.5">
-                  <span class="text-blue-500 font-medium">~{{ formatCostPerDistance(model.avgCostPerKwh * model.avgConsumptionKwhPer100km) }}</span>
-                  <span class="relative group cursor-help inline-flex items-center gap-0.5 text-xs text-gray-400">
-                    <span>{{ t('models_list.card.avg_prefix') }} {{ formatCostPerKwh(model.avgCostPerKwh) }}</span>
-                    <InformationCircleIcon class="h-3 w-3 flex-shrink-0" />
-                    <span class="absolute bottom-full left-0 mb-1.5 px-2.5 py-2 bg-gray-900 ring-1 ring-white/10 text-white text-xs rounded-sm w-60 hidden group-hover:block z-50 pointer-events-none leading-snug shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)]">
-                      {{ t('models_list.card.cost_tooltip') }}
-                    </span>
-                  </span>
-                </span>
-              </template>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <div class="text-green-600 font-medium flex items-center gap-1 text-sm">
-                <span>{{ t('models_list.card.view_details') }}</span>
-                <ArrowRightIcon class="h-4 w-4" />
-              </div>
-              <button
-                @click.prevent="toggleCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
-                :disabled="!isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
-                :title="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) ? t('models_list.card.remove_compare') : t('models_list.card.add_compare')"
-                class="p-1.5 rounded-full transition-all flex-shrink-0 shadow-[0_3px_0_0] active:translate-y-[2px] active:shadow-[0_1px_0_0]"
-                :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
-                  ? 'bg-green-500 text-white shadow-green-700 hover:bg-green-400'
-                  : selectedForCompare.length >= MAX_COMPARE
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed shadow-gray-300 dark:shadow-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 hover:bg-green-100 hover:text-green-600 shadow-gray-300 dark:shadow-gray-900 hover:shadow-green-300'"
-              >
-                <CheckIcon v-if="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)" class="h-4 w-4" />
-                <ArrowsRightLeftIcon v-else class="h-4 w-4" />
-              </button>
-            </div>
-          </a>
-        </div>
+          <template #overlay>
+            <button
+              @click.prevent.stop="toggleCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
+              :disabled="!isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
+              :title="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) ? t('models_list.card.remove_compare') : t('models_list.card.add_compare')"
+              class="p-1.5 rounded-full transition-all flex-shrink-0 shadow-[0_3px_0_0] active:translate-y-[2px] active:shadow-[0_1px_0_0]"
+              :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
+                ? 'bg-green-500 text-white shadow-green-700 hover:bg-green-400'
+                : selectedForCompare.length >= MAX_COMPARE
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed shadow-gray-300 dark:shadow-gray-900'
+                  : 'bg-white/90 dark:bg-gray-800/90 text-gray-400 hover:bg-green-100 hover:text-green-600 shadow-gray-300 dark:shadow-gray-900 hover:shadow-green-300'"
+            >
+              <CheckIcon v-if="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)" class="h-4 w-4" />
+              <ArrowsRightLeftIcon v-else class="h-4 w-4" />
+            </button>
+          </template>
+        </PublicModelCard>
+        <!-- THG banner: full-width, directly under the first row of models -->
+        <ThgBanner v-if="!isAuthenticated && i === Math.min(2, filteredModels.length - 1)" class="col-span-full" />
         </template>
 
         <!-- Fallback filler models (mobile only, no brand filter active) — no compare toggle -->
@@ -402,21 +404,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
-import { getTopModels, getPlatformStats, getCategories, type TopModelPreview, type PlatformStats, type VehicleCategoryItem } from '../api/publicModelService'
-import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, InformationCircleIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
+import { getTopModels, getPlatformStats, getCategories, getChargingReferencePrices, type TopModelPreview, type PlatformStats, type VehicleCategoryItem, type ChargingReferencePrices } from '../api/publicModelService'
+import { TruckIcon, ChartBarIcon, ArrowTrendingUpIcon, ArrowsRightLeftIcon, XMarkIcon, CheckIcon, ArrowRightIcon, MagnifyingGlassIcon, BanknotesIcon } from '@heroicons/vue/24/outline'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 import PublicNav from '../components/shared/PublicNav.vue'
 import ThgBanner from '../components/shared/ThgBanner.vue'
 import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
-import { useLocaleFormat } from '../composables/useLocaleFormat'
+import PublicModelCard from '../components/shared/PublicModelCard.vue'
+import { officialModelImageUrl, officialModelImageAttribution } from '../config/modelImages'
 import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '../composables/useMarketRoute'
 
 const { t } = useI18n()
-const { consumptionUnitLabel, formatCostPerDistance, formatCostPerKwh, formatDecimal, convertConsumption } = useLocaleFormat()
+const { formatCostPerKwh } = useLocaleFormat()
 const router = useRouter()
 const { currentMarket, isDE, isEN, isGB, isUS, marketUrl, hreflangLinks } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
@@ -429,6 +433,47 @@ const authStore = useAuthStore()
 const loading = ref(true)
 const modelsList = ref<TopModelPreview[]>([])
 const platformStats = ref<PlatformStats | null>(null)
+
+// Curated official model images only (community user photos were removed).
+function heroPhotoFor(model: string): string | null {
+  return officialModelImageUrl(model)
+}
+function heroAttributionFor(model: string) {
+  return officialModelImageAttribution(model)
+}
+
+// ── Charging price control (direct EUR/kWh slider + explaining presets) ─────
+const PRICE_KEY = 'ev-price-per-kwh'
+const PRICE_MIN = 0.00, PRICE_MAX = 1.00
+// Fallback community home price (EUR/kWh) for the first-visit default when the endpoint is unavailable.
+const FALLBACK_HOME = 0.27
+const referencePrices = ref<ChargingReferencePrices | null>(null)
+
+function loadPrice(): number {
+  const raw = Number(localStorage.getItem(PRICE_KEY))
+  return Number.isFinite(raw) && raw >= PRICE_MIN && raw <= PRICE_MAX ? raw : 0.30
+}
+const hasStoredPrice = localStorage.getItem(PRICE_KEY) !== null
+const pricePerKwh = ref<number>(loadPrice())
+watch(pricePerKwh, v => localStorage.setItem(PRICE_KEY, String(v)))
+
+// The slider value IS the price used to price every card (Model X included).
+const effectiveCostPerKwh = computed(() => pricePerKwh.value)
+const currentCtPerKwh = computed(() => Math.round(pricePerKwh.value * 100))
+
+// The slider track itself is the zone strip: fixed price thresholds, `flex` = each zone's ct-width.
+const PRICE_ZONES = [
+  { key: 'home', color: '#16a34a', flex: 35, maxCt: 35 },
+  { key: 'public', color: '#2563eb', flex: 25, maxCt: 60 },
+  { key: 'fast', color: '#e0873a', flex: 40, maxCt: Infinity },
+] as const
+const activeZone = computed(() =>
+  PRICE_ZONES.find(z => currentCtPerKwh.value < z.maxCt) ?? PRICE_ZONES[PRICE_ZONES.length - 1])
+
+const refHome = computed(() => referencePrices.value?.homePricePerKwh ?? FALLBACK_HOME)
+
+const priceTooltip = computed(() => t('models_list.price.tooltip', { price: currentCtPerKwh.value }))
+
 const selectedBrands = ref<string[]>([])
 const dropdownOpen = ref(false)
 const categoryDropdownOpen = ref(false)
@@ -506,17 +551,6 @@ function compareLabel(key: string): string {
   return key.replace(/_/g, ' ')
 }
 
-function formatWltpRange(min: number, max: number | null): string {
-  if (!max || Math.abs(max - min) < 0.05) return formatDecimal(convertConsumption(min))
-  return `${formatDecimal(convertConsumption(min))} - ${formatDecimal(convertConsumption(max))}`
-}
-
-function formatRealConsumption(avg: number | null, min: number | null, max: number | null): string {
-  if (min !== null && max !== null) return formatWltpRange(min, max)
-  if (avg !== null) return formatDecimal(convertConsumption(avg))
-  return '—'
-}
-
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 const currentYear = new Date().getFullYear()
 
@@ -566,14 +600,6 @@ const availableBrands = computed(() => {
   const brands = new Set(modelsWithData.value.map(m => m.brandDisplayName))
   return Array.from(brands).sort()
 })
-
-function highlightMatch(text: string, query: string): string {
-  const q = query.trim()
-  if (!q) return text
-  const terms = q.split(/\s+/).filter(Boolean).map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-  const pattern = new RegExp(`(${terms.join('|')})`, 'gi')
-  return text.replace(pattern, '<mark class="bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100 rounded-sm not-italic">$1</mark>')
-}
 
 function matchesSearch(model: ModelInfo): boolean {
   const q = searchQuery.value.trim()
@@ -689,10 +715,20 @@ useHead(computed(() => {
 
 onMounted(async () => {
   try {
-    const [models, stats, cats] = await Promise.all([getTopModels(50), getPlatformStats(), getCategories()])
+    const [models, stats, cats, prices] = await Promise.all([
+      getTopModels(50),
+      getPlatformStats(),
+      getCategories(),
+      getChargingReferencePrices().catch(() => null),
+    ])
     modelsList.value = models
     platformStats.value = stats
     categories.value = cats
+    referencePrices.value = prices
+    // First visit: start at the community home-charging price (the common case).
+    if (!hasStoredPrice) {
+      pricePerKwh.value = Math.round(refHome.value * 100) / 100
+    }
   } catch (err) {
     console.error('Failed to load models:', err)
   } finally {
@@ -755,6 +791,40 @@ function selectCategory(key: string | null) {
 </script>
 
 <style scoped>
+/* Charging-price control: transparent slider whose thumb glides over the labelled zone strip */
+.zone-strip {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  touch-action: none;
+}
+.zone-strip::-webkit-slider-runnable-track { height: 48px; background: transparent; }
+.zone-strip::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 30px;
+  height: 46px;
+  margin-top: 1px; /* centre the 46px thumb in the 48px track */
+  border-radius: 9px;
+  background: #111827;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  cursor: grab;
+}
+.dark .zone-strip::-webkit-slider-thumb { background: #f9fafb; border-color: #111827; }
+.zone-strip::-moz-range-track { height: 48px; background: transparent; }
+.zone-strip::-moz-range-thumb {
+  width: 30px;
+  height: 46px;
+  border-radius: 9px;
+  background: #111827;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  cursor: grab;
+}
+.dark .zone-strip::-moz-range-thumb { background: #f9fafb; border-color: #111827; }
+
 /* 3D press effect for brand cards */
 .brand-card {
   box-shadow: 0 3px 0 0 rgba(0,0,0,0.08);
