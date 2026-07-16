@@ -144,39 +144,6 @@ export async function getChargingReferencePrices(): Promise<ChargingReferencePri
     return response.data
 }
 
-/** Blended EUR/kWh for a given home-charging share (0..1). */
-export function blendedPricePerKwh(homePrice: number, publicPrice: number, homeShare: number): number {
-    const share = Math.min(1, Math.max(0, homeShare))
-    return homePrice * share + publicPrice * (1 - share)
-}
-
-export interface ModelPhotoSummary {
-    /** CarModel enum name - matches TopModelPreview.model */
-    model: string
-    /** Newest public photo for the model */
-    heroCarId: string
-    count: number
-}
-
-/** Hero photo + count per model that has at least one publicly shared user photo. One call. */
-export async function getModelPhotoSummaries(): Promise<ModelPhotoSummary[]> {
-    const response = await apiClient.get<ModelPhotoSummary[]>('/public/model-photos/summary')
-    return response.data
-}
-
-/** All public photo car ids for a single model, newest first (for the lightbox gallery). */
-export async function getModelPhotoCarIds(model: string): Promise<string[]> {
-    const response = await apiClient.get<string[]>(`/public/model-photos/${encodeURIComponent(model)}`)
-    return response.data
-}
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api'
-
-/** Direct <img src> URL for a public car photo, server-scaled + cacheable. */
-export function carPhotoUrl(carId: string, size: 'thumb' | 'hero' = 'hero'): string {
-    return `${API_BASE}/public/car-photos/${carId}?size=${size}`
-}
-
 export async function getCategories(): Promise<VehicleCategoryItem[]> {
     const response = await apiClient.get<VehicleCategoryItem[]>('/public/rankings/categories')
     return response.data

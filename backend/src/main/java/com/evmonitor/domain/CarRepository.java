@@ -24,21 +24,4 @@ public interface CarRepository {
 
     /** All cars linked to a given vehicle specification (across all users). */
     List<Car> findAllByVehicleSpecificationId(UUID vehicleSpecificationId);
-
-    /**
-     * Lightweight references to all cars that have a publicly shared photo
-     * ({@code image_public = true} and a stored image), newest first.
-     * Read model for the public model gallery - deliberately avoids loading full
-     * {@link Car} aggregates (no spec lookup, no N+1).
-     */
-    List<CarPhotoRef> findPublicPhotoRefsNewestFirst();
-
-    /** Ids of cars with a public photo for a single model, newest first. */
-    List<UUID> findPublicPhotoCarIdsByModel(CarBrand.CarModel model);
-
-    /**
-     * Minimal projection: which car, which model (enum name as stored, read as a raw string so a
-     * legacy/unmappable model value can never break the whole query). Carries no user-identifiable data.
-     */
-    record CarPhotoRef(UUID carId, String model) {}
 }

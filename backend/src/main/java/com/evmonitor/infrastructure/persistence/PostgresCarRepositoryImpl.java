@@ -60,18 +60,6 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         return toDomainList(jpaCarRepository.findAllByVehicleSpecificationId(vehicleSpecificationId));
     }
 
-    @Override
-    public List<CarRepository.CarPhotoRef> findPublicPhotoRefsNewestFirst() {
-        return jpaCarRepository.findPublicPhotoRefsNewestFirst().stream()
-                .map(p -> new CarRepository.CarPhotoRef(p.getId(), p.getModel()))
-                .toList();
-    }
-
-    @Override
-    public List<UUID> findPublicPhotoCarIdsByModel(CarBrand.CarModel model) {
-        return jpaCarRepository.findPublicPhotoCarIdsByModel(model.name());
-    }
-
     private CarEntity toEntity(Car domain) {
         CarEntity entity = new CarEntity();
         entity.setId(domain.getId());

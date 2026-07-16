@@ -18,29 +18,6 @@ public interface JpaCarRepository extends JpaRepository<CarEntity, UUID> {
 
     List<CarEntity> findAllByVehicleSpecificationId(UUID vehicleSpecificationId);
 
-    /**
-     * Only public photos, newest first. Native query reads {@code model} as a raw string so an
-     * unmappable enum value in one row (legacy data) can never break the whole query.
-     */
-    @Query(value = """
-            SELECT c.id AS id, c.model AS model FROM car c
-            WHERE c.image_public = true AND c.image_path IS NOT NULL
-            ORDER BY c.updated_at DESC
-            """, nativeQuery = true)
-    List<PublicPhotoProjection> findPublicPhotoRefsNewestFirst();
-
-    @Query(value = """
-            SELECT c.id FROM car c
-            WHERE c.model = :model AND c.image_public = true AND c.image_path IS NOT NULL
-            ORDER BY c.updated_at DESC
-            """, nativeQuery = true)
-    List<UUID> findPublicPhotoCarIdsByModel(String model);
-
-    interface PublicPhotoProjection {
-        UUID getId();
-        String getModel();
-    }
-
     @Query(value = """
             SELECT c.* FROM car c
             WHERE EXISTS (
