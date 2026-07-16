@@ -14,8 +14,11 @@ import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageOutputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -76,6 +79,26 @@ public class CarImageService {
         return Optional.of(new FileSystemResource(file));
     }
 
+    /**
+     * Returns a downscaled JPEG variant of a stored car image, capped at {@code maxDimension}px
+     * on the longer edge. Used to serve lightweight thumbnails/heroes on the public model
+     * gallery instead of the full stored image. Returns empty if no image exists or it is unreadable.
+     */
+    public Optional<byte[]> getScaledJpeg(UUID carId, int maxDimension) throws IOException {
+        File file = new File(uploadDirectory, carId + ".jpg");
+        if (!file.exists()) {
+            return Optional.empty();
+        }
+        BufferedImage original = ImageIO.read(file);
+        if (original == null) {
+            return Optional.empty();
+        }
+        BufferedImage scaled = scaleToMax(original, maxDimension);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        writeJpeg(scaled, out);
+        return Optional.of(out.toByteArray());
+    }
+
     private void validateFile(MultipartFile file) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("Bitte eine Bilddatei auswählen.");
@@ -90,21 +113,26 @@ public class CarImageService {
     }
 
     private BufferedImage resize(BufferedImage original) {
+        return scaleToMax(original, MAX_DIMENSION);
+    }
+
+    /** Scales down so the longer edge is at most {@code maxDimension}px; upscaling is never done. */
+    private BufferedImage scaleToMax(BufferedImage original, int maxDimension) {
         int width = original.getWidth();
         int height = original.getHeight();
 
-        if (width <= MAX_DIMENSION && height <= MAX_DIMENSION) {
-            // No resize needed — still convert to RGB to strip alpha for JPEG
+        if (width <= maxDimension && height <= maxDimension) {
+            // No resize needed - still convert to RGB to strip alpha for JPEG
             return toRgb(original);
         }
 
         int newWidth, newHeight;
         if (width >= height) {
-            newWidth = MAX_DIMENSION;
-            newHeight = (int) Math.round((double) height / width * MAX_DIMENSION);
+            newWidth = maxDimension;
+            newHeight = (int) Math.round((double) height / width * maxDimension);
         } else {
-            newHeight = MAX_DIMENSION;
-            newWidth = (int) Math.round((double) width / height * MAX_DIMENSION);
+            newHeight = maxDimension;
+            newWidth = (int) Math.round((double) width / height * maxDimension);
         }
 
         BufferedImage result = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
@@ -128,12 +156,18 @@ public class CarImageService {
     }
 
     private void writeJpeg(BufferedImage image, File targetFile) throws IOException {
+        try (OutputStream os = new FileOutputStream(targetFile)) {
+            writeJpeg(image, os);
+        }
+    }
+
+    private void writeJpeg(BufferedImage image, OutputStream out) throws IOException {
         ImageWriter writer = ImageIO.getImageWritersByFormatName("jpeg").next();
         ImageWriteParam param = writer.getDefaultWriteParam();
         param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
         param.setCompressionQuality(0.85f);
 
-        try (ImageOutputStream ios = ImageIO.createImageOutputStream(targetFile)) {
+        try (ImageOutputStream ios = ImageIO.createImageOutputStream(out)) {
             writer.setOutput(ios);
             writer.write(null, new IIOImage(image, null, null), param);
         } finally {
