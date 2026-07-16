@@ -290,6 +290,15 @@ models_list:
     add_compare: "Add to comparison"
     remove_compare: "Remove from comparison"
     wltp_available: "WLTP data available"
+  gallery:
+    source: "View source"
+  price:
+    title: "Charging price"
+    intro: "Use this slider to set your charging price and instantly see what each model costs per 100 km."
+    tooltip: "This model's avg consumption × your charging price ({price} ct/kWh). Same price for every model - so you compare the car, not charging habits."
+    zone_home: "Home charging"
+    zone_public: "Public"
+    zone_fast: "Fast charger"
   empty:
     no_data_title: "No community data yet"
     no_data_desc: "Be the first to contribute real consumption data and help the community!"

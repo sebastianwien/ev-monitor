@@ -131,6 +131,19 @@ export interface VehicleCategoryItem {
     displayName: string
 }
 
+export interface ChargingReferencePrices {
+    /** Community avg private-charging price, EUR/kWh */
+    homePricePerKwh: number
+    /** Community avg public-charging price, EUR/kWh */
+    publicPricePerKwh: number
+}
+
+/** Normalized community reference prices (home vs public) for the model comparison slider. */
+export async function getChargingReferencePrices(): Promise<ChargingReferencePrices> {
+    const response = await apiClient.get<ChargingReferencePrices>('/public/charging-prices')
+    return response.data
+}
+
 export async function getCategories(): Promise<VehicleCategoryItem[]> {
     const response = await apiClient.get<VehicleCategoryItem[]>('/public/rankings/categories')
     return response.data

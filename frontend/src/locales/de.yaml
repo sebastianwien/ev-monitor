@@ -290,6 +290,15 @@ models_list:
     add_compare: "Zum Vergleich hinzufügen"
     remove_compare: "Aus Vergleich entfernen"
     wltp_available: "WLTP-Daten verfügbar"
+  gallery:
+    source: "Quelle ansehen"
+  price:
+    title: "Ladepreis"
+    intro: "Stelle über diesen Schieberegler deinen Ladepreis ein und sieh sofort, was die einzelnen Modelle damit auf 100km kosten."
+    tooltip: "Ø-Verbrauch dieses Modells × dein Ladepreis ({price} ct/kWh). Gleicher Preis für alle Modelle - so vergleichst du das Auto, nicht das Ladeverhalten."
+    zone_home: "Heimladen"
+    zone_public: "Öffentlich"
+    zone_fast: "Fastcharger"
   empty:
     no_data_title: "Noch keine Community-Daten"
     no_data_desc: "Sei der Erste der echte Verbrauchsdaten beisteuert und der Community hilft!"

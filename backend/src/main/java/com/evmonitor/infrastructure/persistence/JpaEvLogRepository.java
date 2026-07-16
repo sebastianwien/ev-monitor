@@ -370,6 +370,45 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("model") String model,
             @Param("isSeedUser") boolean isSeedUser);
 
+    /**
+     * Community-wide average charging price (EUR/kWh) split by private vs public charging.
+     * Same kwh-for-cost estimation and statistics filter as the per-model stats, but across all
+     * models - used as the normalized reference prices for the model comparison slider.
+     * Returns [home_price, public_price, home_count, public_count].
+     */
+    @Query(value = """
+            WITH filtered AS (
+                SELECT COALESCE(l.kwh_charged,
+                           l.kwh_at_vehicle / CASE
+                               WHEN l.charging_type = 'DC'  THEN 0.95
+                               WHEN l.charging_type = 'AC'  THEN 0.90
+                               WHEN l.max_charging_power_kw > 22 THEN 0.95
+                               WHEN l.max_charging_power_kw IS NOT NULL THEN 0.90
+                               WHEN l.charge_duration_minutes > 0
+                                    AND l.kwh_at_vehicle / (l.charge_duration_minutes / 60.0) > 22 THEN 0.95
+                               WHEN l.charge_duration_minutes > 0 THEN 0.90
+                               WHEN l.is_public_charging = true THEN 0.95
+                               ELSE 0.90
+                           END
+                       ) AS kwh_for_cost,
+                       l.cost_eur,
+                       l.is_public_charging
+                FROM ev_log l
+                JOIN car c ON c.id = l.car_id
+                WHERE l.cost_eur > 0
+                  AND (l.include_in_statistics = true
+                       OR (:isSeedUser = true
+                           AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+            )
+            SELECT
+                AVG(cost_eur / NULLIF(kwh_for_cost, 0)) FILTER (WHERE is_public_charging = false) AS home_price,
+                AVG(cost_eur / NULLIF(kwh_for_cost, 0)) FILTER (WHERE is_public_charging = true)  AS public_price,
+                COUNT(*) FILTER (WHERE is_public_charging = false AND cost_eur / NULLIF(kwh_for_cost, 0) IS NOT NULL) AS home_count,
+                COUNT(*) FILTER (WHERE is_public_charging = true  AND cost_eur / NULLIF(kwh_for_cost, 0) IS NOT NULL) AS public_count
+            FROM filtered
+            """, nativeQuery = true)
+    Object[] findCommunityChargingPrices(@Param("isSeedUser") boolean isSeedUser);
+
     @Query(value = """
             SELECT c.manufacture_year, COUNT(DISTINCT l.car_id) AS car_count
             FROM ev_log l

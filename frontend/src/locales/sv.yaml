@@ -254,6 +254,15 @@ models_list:
     add_compare: Lägg till i jämförelse
     remove_compare: Ta bort från jämförelsen
     wltp_available: WLTP-data finns tillgängliga
+  gallery:
+    source: Visa källa
+  price:
+    title: "Laddpris"
+    intro: "Använd reglaget för att ställa in ditt laddpris och se direkt vad varje modell kostar per 100 km."
+    tooltip: "Modellens snittförbrukning × ditt laddpris ({price} ct/kWh). Samma pris för alla modeller - så jämför du bilen, inte laddvanor."
+    zone_home: "Hemmaladdning"
+    zone_public: "Publikt"
+    zone_fast: "Snabbladdare"
   empty:
     no_data_title: Inga uppgifter från användargemenskapen ännu
     no_data_desc: Var den första att dela med dig av verkliga förbrukningsuppgifter och hjälp gemenskapen!
