@@ -2182,6 +2182,8 @@ demo:
   settings_notice: I demomodus kan du se gjennom alle innstillingene, men du kan ikke foreta endringer.
   settings_cta: Skjønner
 announcements:
+  tesla_telemetry_recovery_v1_title: "Tesla-telemetri: feilen er rettet"
+  tesla_telemetry_recovery_v1_body: "Mellom 10. og 16. juli kunne enkelte Tesla-biler ikke lenger sende nye lade- og turdata. Årsaken var et sertifikatproblem på telemetriserveren min, ikke koblingen din. Det er rettet og sikret slik at det ikke kan skje igjen. Telemetrien starter automatisk igjen neste gang bilen er på nett eller du kjører - du trenger ikke gjøre noe. Hvis det fortsatt ikke dukker opp nye registreringer etterpå, si ifra til meg."
   consumption_methodology_v1_title: "Hvorfor er forbruket mitt høyere enn tripptelleren?"
   consumption_methodology_v1_body: "Vi har forklart dette i detalj - med ekte tall og hele energikjeden fra nettet til motoren."
   consumption_methodology_v1_cta: "Les mer"
