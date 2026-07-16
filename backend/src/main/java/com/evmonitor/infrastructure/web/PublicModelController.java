@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.ChargingPriceService;
+import com.evmonitor.application.ChargingReferencePrices;
 import com.evmonitor.application.PlatformStatsResponse;
 import com.evmonitor.application.PublicBrandResponse;
 import com.evmonitor.application.PublicModelService;
@@ -29,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 public class PublicModelController {
 
     private final PublicModelService publicModelService;
+    private final ChargingPriceService chargingPriceService;
 
     private static final CacheControl PUBLIC_1H = CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic();
     private static final CacheControl NO_STORE = CacheControl.noStore();
@@ -42,6 +45,18 @@ public class PublicModelController {
         return ResponseEntity.ok()
                 .cacheControl(PUBLIC_1H)
                 .body(publicModelService.getPlatformStats());
+    }
+
+    /**
+     * GET /api/public/charging-prices
+     * Normalized community reference prices (home vs public EUR/kWh) for the model comparison slider.
+     */
+    @GetMapping("/charging-prices")
+    public ResponseEntity<ChargingReferencePrices> getChargingPrices(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
+        CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
+        return ResponseEntity.ok().cacheControl(cc).body(chargingPriceService.getReferencePrices(isSeedUser));
     }
 
     /**
