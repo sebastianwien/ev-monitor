@@ -797,8 +797,11 @@ function selectCategory(key: string | null) {
   appearance: none;
   background: transparent;
   cursor: pointer;
-  touch-action: none;
+  /* pan-y: vertical swipes still scroll the page (mobile), horizontal drag moves the thumb. */
+  touch-action: pan-y;
 }
+.zone-strip:focus-visible::-webkit-slider-thumb { outline: 3px solid #16a34a; outline-offset: 2px; }
+.zone-strip:focus-visible::-moz-range-thumb { outline: 3px solid #16a34a; outline-offset: 2px; }
 .zone-strip::-webkit-slider-runnable-track { height: 48px; background: transparent; }
 .zone-strip::-webkit-slider-thumb {
   -webkit-appearance: none;
