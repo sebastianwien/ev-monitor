@@ -299,6 +299,10 @@ models_list:
     zone_home: "Home charging"
     zone_public: "Public"
     zone_fast: "Fast charger"
+  jsonld:
+    list_name: "Electric Car Brands & Models - Real Consumption & WLTP Comparison"
+    brand_item: "{brand} Electric Cars - Real Consumption"
+    breadcrumb_models: "Electric Cars Compared"
   empty:
     no_data_title: "No community data yet"
     no_data_desc: "Be the first to contribute real consumption data and help the community!"
@@ -316,7 +320,7 @@ models_list:
   compare:
     title: "Compare ({current}/{max})"
     button: "Compare"
-  meta_title: "Electric Car Consumption Comparison – All Models | EV Monitor"
+  meta_title: "Electric Car Consumption Comparison - All Models | EV Monitor"
   meta_description: "Compare the real energy consumption of all electric cars. Community data vs. WLTP for Tesla, VW ID, Hyundai Ioniq, BMW i4 and more - no marketing, just real measurements."
   meta_keywords: "electric car consumption, EV kWh 100km, WLTP vs real, Tesla consumption, electric car range, charging cost comparison"
   og_title: "Electric Car Consumption Comparison - Real Community Data"

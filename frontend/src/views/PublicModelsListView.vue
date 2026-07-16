@@ -634,54 +634,55 @@ const mobileFillModels = computed((): FallbackModel[] => {
     .slice(0, needed)
 })
 
-// Reactive JSON-LD: brands first (from live data), then popular model fallbacks
+// Reactive JSON-LD: brands first (from live data), then popular model fallbacks.
+// URLs and names follow the current market so non-DE pages stay consistent with their canonical.
 const itemListJsonLd = computed(() => {
-  const BASE = 'https://ev-monitor.net'
+  const market = currentMarket.value
   const brandItems = availableBrands.value.map((brand, i) => ({
     '@type': 'ListItem',
     position: i + 1,
-    name: `${brand} Elektroautos – Realer Verbrauch`,
-    url: `${BASE}/modelle/${brand}`
+    name: t('models_list.jsonld.brand_item', { brand }),
+    url: marketUrl(market, `/${brand}`)
   }))
 
-  // Append popular model entries after brands (for long-tail keywords)
+  // Append popular model entries after brands (for long-tail keywords). Paths are market-relative.
   const POPULAR_MODELS = [
-    { name: 'Tesla Model 3', url: `${BASE}/modelle/Tesla/Model_3` },
-    { name: 'Tesla Model Y', url: `${BASE}/modelle/Tesla/Model_Y` },
-    { name: 'VW ID.3', url: `${BASE}/modelle/Volkswagen/ID.3` },
-    { name: 'VW ID.4', url: `${BASE}/modelle/Volkswagen/ID.4` },
-    { name: 'Hyundai Ioniq 5', url: `${BASE}/modelle/Hyundai/Ioniq_5` },
-    { name: 'Hyundai Ioniq 6', url: `${BASE}/modelle/Hyundai/Ioniq_6` },
-    { name: 'BMW i4', url: `${BASE}/modelle/BMW/i4` },
-    { name: 'Audi Q4 e-tron', url: `${BASE}/modelle/Audi/Q4_e-tron` },
-    { name: 'Kia EV6', url: `${BASE}/modelle/Kia/EV6` },
-    { name: 'Polestar 2', url: `${BASE}/modelle/Polestar/Polestar_2` },
+    { name: 'Tesla Model 3', path: '/Tesla/Model_3' },
+    { name: 'Tesla Model Y', path: '/Tesla/Model_Y' },
+    { name: 'VW ID.3', path: '/Volkswagen/ID.3' },
+    { name: 'VW ID.4', path: '/Volkswagen/ID.4' },
+    { name: 'Hyundai Ioniq 5', path: '/Hyundai/Ioniq_5' },
+    { name: 'Hyundai Ioniq 6', path: '/Hyundai/Ioniq_6' },
+    { name: 'BMW i4', path: '/BMW/i4' },
+    { name: 'Audi Q4 e-tron', path: '/Audi/Q4_e-tron' },
+    { name: 'Kia EV6', path: '/Kia/EV6' },
+    { name: 'Polestar 2', path: '/Polestar/Polestar_2' },
   ]
   const offset = brandItems.length
   const modelItems = POPULAR_MODELS.map((m, i) => ({
     '@type': 'ListItem',
     position: offset + i + 1,
     name: m.name,
-    url: m.url
+    url: marketUrl(market, m.path)
   }))
 
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'Elektroauto Marken & Modelle – Realer Verbrauch & WLTP Vergleich',
-    description: 'Community-Verbrauchsdaten für alle Elektroautos im Vergleich zum WLTP-Wert.',
+    name: t('models_list.jsonld.list_name'),
+    description: t('models_list.meta_description'),
     itemListElement: brandItems.length > 0 ? [...brandItems, ...modelItems] : modelItems
   }
 })
 
-const breadcrumbJsonLd = {
+const breadcrumbJsonLd = computed(() => ({
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
     { '@type': 'ListItem', position: 1, name: 'EV Monitor', item: 'https://ev-monitor.net' },
-    { '@type': 'ListItem', position: 2, name: 'Elektroautos im Vergleich', item: 'https://ev-monitor.net/modelle' },
+    { '@type': 'ListItem', position: 2, name: t('models_list.jsonld.breadcrumb_models'), item: marketUrl(currentMarket.value) },
   ]
-}
+}))
 
 useHead(computed(() => {
   const canonical = marketUrl(currentMarket.value)
@@ -708,7 +709,7 @@ useHead(computed(() => {
     ],
     script: [
       { type: 'application/ld+json', innerHTML: () => JSON.stringify(itemListJsonLd.value) },
-      { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
+      { type: 'application/ld+json', innerHTML: () => JSON.stringify(breadcrumbJsonLd.value) },
     ]
   }
 }))

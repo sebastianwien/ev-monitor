@@ -299,6 +299,10 @@ models_list:
     zone_home: "Heimladen"
     zone_public: "Öffentlich"
     zone_fast: "Fastcharger"
+  jsonld:
+    list_name: "Elektroauto Marken & Modelle - Realer Verbrauch & WLTP Vergleich"
+    brand_item: "{brand} Elektroautos - Realer Verbrauch"
+    breadcrumb_models: "Elektroautos im Vergleich"
   empty:
     no_data_title: "Noch keine Community-Daten"
     no_data_desc: "Sei der Erste der echte Verbrauchsdaten beisteuert und der Community hilft!"
@@ -316,7 +320,7 @@ models_list:
   compare:
     title: "Vergleich ({current}/{max})"
     button: "Vergleichen"
-  meta_title: "Elektroauto Verbrauch Vergleich – Alle Modelle | EV Monitor"
+  meta_title: "Elektroauto Verbrauch Vergleich - Alle Modelle | EV Monitor"
   meta_description: "Vergleiche den realen Stromverbrauch aller Elektroautos. Community-Daten vs. WLTP für Tesla, VW ID, Hyundai Ioniq, BMW i4 und mehr - kein Marketing, nur echte Messwerte."
   meta_keywords: "Elektroauto Verbrauch, EV kWh 100km, WLTP vs Real, Tesla Verbrauch, VW ID.3 Verbrauch, Elektroauto Reichweite, Ladekosten Vergleich"
   og_title: "Elektroauto Verbrauch Vergleich - Reale Community-Daten"

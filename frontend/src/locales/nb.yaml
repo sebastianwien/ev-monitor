@@ -263,6 +263,10 @@ models_list:
     zone_home: "Hjemmelading"
     zone_public: "Offentlig"
     zone_fast: "Hurtiglader"
+  jsonld:
+    list_name: "Elbilmerker og -modeller - Reelt forbruk og WLTP-sammenligning"
+    brand_item: "{brand} elbiler - Reelt forbruk"
+    breadcrumb_models: "Elbiler sammenlignet"
   empty:
     no_data_title: Det finnes ingen data for dette fellesskapet ennå
     no_data_desc: Bli den første til å dele reelle forbruksdata og hjelp fellesskapet!
@@ -280,7 +284,7 @@ models_list:
   compare:
     title: Sammenlign ({current} / {max})
     button: Sammenlign
-  meta_title: "Sammenligning av elbilforbruk – Alle modeller | EV Monitor"
+  meta_title: "Sammenligning av elbilforbruk - Alle modeller | EV Monitor"
   meta_description: "Sammenlign det reelle strømforbruket til alle elbiler. Fellesskapsdata mot WLTP for Tesla, VW ID, Hyundai Ioniq, BMW i4 og mer – ingen markedsføring, bare ekte målinger."
   meta_keywords: "elbilforbruk, EV kWh 100km, WLTP mot reelt, Tesla forbruk, elbilrekkevidde, ladekostnadssammenligning"
   og_title: "Sammenligning av elbilforbruk – Reelle fellesskapsdata"
