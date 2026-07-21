@@ -19,14 +19,6 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
-    key: 'feature-survey-v1',
-    expiresAt: '2026-07-15',
-    titleKey: 'announcements.feature_survey_v1_title',
-    bodyKey: 'announcements.feature_survey_v1_body',
-    ctaLabelKey: 'announcements.feature_survey_v1_cta',
-    ctaRoute: 'https://whenly.de/p/vPbGD6x0uZGdSPWpgPQIzUaD5H4xEgyZ',
-  },
-  {
     key: 'tesla_telemetry_recovery_v1',
     releasedAt: '2026-07-16', // nur Bestandsuser, die den Ausfall erlebt haben
     expiresAt: '2026-07-31',
