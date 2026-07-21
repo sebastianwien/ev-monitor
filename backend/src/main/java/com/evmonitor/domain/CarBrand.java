@@ -164,6 +164,8 @@ public enum CarBrand {
       EV_3(CarBrand.KIA, VehicleCategory.COMPACT, "EV3",
             cap(58.3),
             cap(81.4)),
+      EV_5(CarBrand.KIA, VehicleCategory.SUV, "EV5",
+            cap(81.4)),
       NIRO_EV(CarBrand.KIA, VehicleCategory.COMPACT, "Niro EV",
             cap(39.2),
             cap(64.8)),
