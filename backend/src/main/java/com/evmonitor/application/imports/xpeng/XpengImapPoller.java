@@ -220,12 +220,24 @@ public class XpengImapPoller {
         log.info("XPeng IMAP: {} XLSX-Anhang/Anhaenge gefunden in Mail von '{}'", xlsxParts.size(), from);
 
         String password = lookupStoredPassword(conn.getId());
+        boolean allEnqueued = true;
 
         for (AttachmentPart part : xlsxParts) {
             Path tmp = Files.createTempFile("xpeng-imap-", ".xlsx");
             try {
                 try (InputStream in = part.inputStream()) {
                     Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+                }
+                // XPeng liefert XLSX und Passwort in getrennten Mails - trifft die XLSX zuerst ein,
+                // liegt hier noch kein (oder ein veraltetes) Passwort. Dann NICHT importieren und die
+                // Mail UNSEEN + ohne Record lassen, damit ein spaeterer Poll sie mit dem dann
+                // vorhandenen Passwort erneut versucht (Dedup laeuft ueber existsByMessageId).
+                if (!com.evmonitor.domain.xpeng.XpengExcelStreamingParser.canDecrypt(tmp, password)) {
+                    log.warn("XPeng IMAP: XLSX '{}' fuer connection={} noch nicht entschluesselbar "
+                            + "(Passwort {}) - Mail bleibt UNSEEN fuer Retry beim naechsten Poll",
+                            part.filename(), conn.getId(), password == null ? "fehlt" : "passt nicht");
+                    allEnqueued = false;
+                    continue;
                 }
                 try (InputStream uploadStream = Files.newInputStream(tmp)) {
                     XpengImportJob job = importService.uploadXlsx(
@@ -240,7 +252,9 @@ public class XpengImapPoller {
             }
         }
 
-        msg.setFlag(Flags.Flag.SEEN, true);
+        if (allEnqueued) {
+            msg.setFlag(Flags.Flag.SEEN, true);
+        }
     }
 
     private void processDownloadLinks(Message msg, XpengConnection conn, String messageId,

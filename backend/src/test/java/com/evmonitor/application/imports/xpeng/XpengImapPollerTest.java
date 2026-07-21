@@ -343,6 +343,107 @@ class XpengImapPollerTest {
         assertEquals("topSecret1", passwordCaptor.getValue());
     }
 
+    // --- Fix: verschluesseltes XLSX + falsches/fehlendes Passwort = UNSEEN fuer Retry ---
+
+    @Test
+    void encryptedXlsxWithWrongStoredPasswordStaysUnseenForRetry() throws Exception {
+        UUID token = UUID.randomUUID();
+        UUID connId = UUID.randomUUID();
+        byte[] encrypted = encryptedXlsxBytes("202607120137");
+
+        Message msg = messageWithXlsxAttachment(token, "data.xlsx", encrypted);
+        XpengConnection conn = buildConnWithId(token, connId);
+        // gespeichertes Passwort ist veraltet -> entschluesselt die Datei NICHT
+        XpengReceivedMail stalePw = XpengReceivedMail.builder()
+                .connectionId(connId).messageId("<stale-pw@prev.com>")
+                .receivedAt(LocalDateTime.now().minusDays(3))
+                .extractedPassword("202606280137").build();
+
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
+        when(receivedMailRepo.findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
+                .thenReturn(Optional.of(stalePw));
+
+        invokeProcessMessage(msg);
+
+        verify(importService, never()).uploadXlsx(any(), any(), any(), any(), any(), any());
+        verify(receivedMailRepo, never()).save(any());
+        verify(msg, never()).setFlag(Flags.Flag.SEEN, true);
+    }
+
+    @Test
+    void encryptedXlsxWithCorrectStoredPasswordIsImportedAndMarkedSeen() throws Exception {
+        UUID token = UUID.randomUUID();
+        UUID connId = UUID.randomUUID();
+        byte[] encrypted = encryptedXlsxBytes("202607120137");
+
+        Message msg = messageWithXlsxAttachment(token, "data.xlsx", encrypted);
+        XpengConnection conn = buildConnWithId(token, connId);
+        XpengReceivedMail correctPw = XpengReceivedMail.builder()
+                .connectionId(connId).messageId("<pw@ok.com>")
+                .receivedAt(LocalDateTime.now().minusMinutes(5))
+                .extractedPassword("202607120137").build();
+
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
+        when(receivedMailRepo.findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
+                .thenReturn(Optional.of(correctPw));
+        when(importService.uploadXlsx(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob());
+        when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        invokeProcessMessage(msg);
+
+        ArgumentCaptor<String> pwCaptor = ArgumentCaptor.forClass(String.class);
+        verify(importService).uploadXlsx(any(), any(), any(), pwCaptor.capture(), any(), any());
+        assertEquals("202607120137", pwCaptor.getValue());
+        verify(msg).setFlag(Flags.Flag.SEEN, true);
+    }
+
+    private static byte[] encryptedXlsxBytes(String password) throws Exception {
+        byte[] plain;
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            wb.createSheet("TELEMATICS_DATA");
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            wb.write(bos);
+            plain = bos.toByteArray();
+        }
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        try (org.apache.poi.poifs.filesystem.POIFSFileSystem fs = new org.apache.poi.poifs.filesystem.POIFSFileSystem()) {
+            org.apache.poi.poifs.crypt.EncryptionInfo info =
+                    new org.apache.poi.poifs.crypt.EncryptionInfo(org.apache.poi.poifs.crypt.EncryptionMode.agile);
+            org.apache.poi.poifs.crypt.Encryptor enc = info.getEncryptor();
+            enc.confirmPassword(password);
+            try (java.io.OutputStream os = enc.getDataStream(fs)) {
+                os.write(plain);
+            }
+            fs.writeFilesystem(out);
+        }
+        return out.toByteArray();
+    }
+
+    private static Message messageWithXlsxAttachment(UUID token, String filename, byte[] bytes) throws Exception {
+        jakarta.mail.internet.MimeBodyPart xlsxPart = mock(jakarta.mail.internet.MimeBodyPart.class);
+        when(xlsxPart.isMimeType("multipart/*")).thenReturn(false);
+        when(xlsxPart.getFileName()).thenReturn(filename);
+        when(xlsxPart.getInputStream()).thenReturn(new java.io.ByteArrayInputStream(bytes));
+        jakarta.mail.Multipart mp = mock(jakarta.mail.Multipart.class);
+        when(mp.getCount()).thenReturn(1);
+        when(mp.getBodyPart(0)).thenReturn(xlsxPart);
+        Message msg = mockMessage("<enc-xlsx-" + token + "@test.com>", "Re: XPeng [token:" + token + "]");
+        when(msg.isMimeType("multipart/*")).thenReturn(true);
+        when(msg.getContent()).thenReturn(mp);
+        return msg;
+    }
+
+    private static XpengConnection buildConnWithId(UUID routingToken, UUID connId) {
+        return XpengConnection.builder()
+                .id(connId).userId(UUID.randomUUID()).carId(UUID.randomUUID())
+                .vin("L1NN12345678ABCDE").routingToken(routingToken).autoSyncEnabled(true)
+                .consentGrantedAt(LocalDateTime.now()).totalImportsCount(0)
+                .consentVersion(XpengConnection.AUTOSYNC_CONSENT_VERSION).build();
+    }
+
     // --- extractXpengDownloadLinks ---
 
     @Test

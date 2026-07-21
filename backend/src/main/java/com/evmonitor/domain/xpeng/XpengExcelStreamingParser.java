@@ -132,6 +132,35 @@ public class XpengExcelStreamingParser {
         }
     }
 
+    /**
+     * Synchroner Vorab-Check: Laesst sich {@code xlsxPath} mit {@code password} oeffnen?
+     *
+     * <ul>
+     *   <li>Unverschluesselte (ZIP-)XLSX: immer {@code true} - kein Passwort noetig.</li>
+     *   <li>Verschluesselte (OLE-)XLSX: {@code true} nur, wenn das Passwort korrekt entschluesselt.</li>
+     *   <li>Fehlendes/leeres Passwort bei verschluesselter Datei: {@code false}.</li>
+     * </ul>
+     *
+     * Nutzt exakt denselben {@link Decryptor#verifyPassword} wie {@link #decryptToTempfile},
+     * damit der Check nicht von der spaeteren echten Entschluesselung abweichen kann.
+     */
+    public static boolean canDecrypt(Path xlsxPath, String password) throws java.io.IOException {
+        try (POIFSFileSystem fs = new POIFSFileSystem(xlsxPath.toFile(), true)) {
+            // OLE-Container => verschluesselt, Passwort zwingend erforderlich.
+            if (password == null || password.isBlank()) return false;
+            EncryptionInfo info = new EncryptionInfo(fs);
+            Decryptor decryptor = Decryptor.getInstance(info);
+            return decryptor.verifyPassword(password);
+        } catch (org.apache.poi.poifs.filesystem.OfficeXmlFileException
+                 | org.apache.poi.poifs.filesystem.NotOLE2FileException
+                 | org.apache.poi.EmptyFileException e) {
+            // Kein OLE-Container: unverschluesselte ZIP-XLSX (oder leer) - kein Passwort noetig.
+            return true;
+        } catch (java.security.GeneralSecurityException e) {
+            return false;
+        }
+    }
+
     private Path decryptToTempfile(Path encrypted, String password) throws Exception {
         Path out = Files.createTempFile("xpeng-decrypted-", ".xlsx");
         try (POIFSFileSystem fs = new POIFSFileSystem(encrypted.toFile(), true)) {
