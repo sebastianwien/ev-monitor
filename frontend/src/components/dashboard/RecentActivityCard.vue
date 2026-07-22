@@ -135,20 +135,30 @@ const tripInline = computed<string[]>(() => {
           <BoltIcon class="w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true" />
           {{ t('dashboard.recent_charge_title') }}
         </div>
-        <!-- Relativzeit: Desktop im Header rechts | Mobile in der Meta-Zeile (Platz) -->
-        <div class="hidden md:flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500">
+        <!-- Relativzeit: Desktop immer im Header | Mobile nur bei voller Breite (dann ist Platz) -->
+        <div class="items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500" :class="showTrip ? 'hidden md:flex' : 'flex'">
           <span>{{ relativeTime(ch.loggedAt) }}</span>
           <ChevronRightIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
         </div>
       </div>
 
-      <div class="flex items-baseline justify-between gap-2">
-        <div class="flex items-baseline gap-1">
-          <span class="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{{ ch.kwh != null ? formatDecimal(ch.kwh, 1) : '–' }}</span>
-          <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">kWh</span>
+      <div class="flex items-baseline gap-2" :class="showTrip ? 'justify-between' : 'justify-center md:justify-between'">
+        <div class="flex items-baseline gap-x-2.5 gap-y-0 flex-wrap min-w-0">
+          <div class="flex items-baseline gap-1">
+            <span class="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{{ ch.kwh != null ? formatDecimal(ch.kwh, 1) : '–' }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">kWh</span>
+          </div>
+          <!-- Volle Breite (keine Fahrt): Ladedaten inline neben kWh, Zeit steht im Header -->
+          <div v-if="!showTrip" class="md:hidden flex items-baseline gap-x-2.5 text-[11px] text-gray-500 dark:text-gray-400">
+            <span v-for="m in chargeInline" :key="'wci' + m" class="tabular-nums">{{ m }}</span>
+            <span v-if="chargeSource" :class="['inline-flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10px] font-medium', chargeSource.classes]">
+              <component :is="chargeSource.icon" class="w-3 h-3" aria-hidden="true" />
+              {{ chargeSource.label }}
+            </span>
+          </div>
         </div>
         <span v-if="ch.costEur != null" class="hidden md:inline-block text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ formatCurrency(ch.costEur) }}</span>
-        <span class="md:hidden text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ relativeTime(ch.loggedAt) }}</span>
+        <span v-if="showTrip" class="md:hidden text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ relativeTime(ch.loggedAt) }}</span>
       </div>
 
       <!-- Desktop: SoC-Balken (Labels flankieren das Segment) + Chips -->
@@ -176,8 +186,8 @@ const tripInline = computed<string[]>(() => {
         </div>
       </div>
 
-      <!-- Mobile: gedämpfte Meta-Zeile statt Balken - nur Abstand trennt (sauberer Umbruch) -->
-      <div class="md:hidden mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+      <!-- Mobile (schmal, neben Fahrt): gedämpfte Meta-Zeile unter der kWh-Zeile -->
+      <div v-if="showTrip" class="md:hidden mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
         <span v-for="m in chargeInline" :key="'ci' + m" class="tabular-nums">{{ m }}</span>
         <span v-if="chargeSource" :class="['inline-flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10px] font-medium', chargeSource.classes]">
           <component :is="chargeSource.icon" class="w-3 h-3" aria-hidden="true" />
