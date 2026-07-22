@@ -913,6 +913,8 @@ dashboard:
   trip_m_time: "Zeit"
   trip_m_soc: "SoC"
   trip_m_route: "Route"
+  recent_charge_title: "Letzter Ladevorgang"
+  recent_trip_title: "Letzte Fahrt"
   trip_climate_load_comfort_heat: "Sitz-/Lenkradheizung"
   trip_climate_load_hvac_heating: "Heizung"
   trip_climate_load_hvac_cooling: "Klimaanlage"

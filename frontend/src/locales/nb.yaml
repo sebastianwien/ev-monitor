@@ -873,6 +873,8 @@ dashboard:
   trip_m_time: "Tid"
   trip_m_soc: "SoC"
   trip_m_route: "Rute"
+  recent_charge_title: "Siste lading"
+  recent_trip_title: "Siste tur"
   trip_climate_load_comfort_heat: "Sete-/rattvarme"
   trip_climate_load_hvac_heating: "Varme"
   trip_climate_load_hvac_cooling: "Klimaanlegg"

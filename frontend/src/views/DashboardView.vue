@@ -48,6 +48,8 @@ import CO2Card from '../components/dashboard/CO2Card.vue'
 import SmartInsightsCard from '../components/dashboard/SmartInsightsCard.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import CostHistoryCard from '../components/dashboard/CostHistoryCard.vue'
+import RecentActivityCard from '../components/dashboard/RecentActivityCard.vue'
+import { latestChargeEntry, latestTripEntry } from '../utils/recentActivity'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
@@ -68,8 +70,13 @@ const {
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
-  hasAnyLogs, mergedLogFeed, currentOdometerKm,
+  hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo,
 } = useCarContext()
+
+// Newest charge / trip for the "letzte Aktivität"-Block. Uses the full merged
+// feed (not the filtered stats), so it always reflects the absolute latest event.
+const latestCharge = computed(() => latestChargeEntry(mergedLogFeed.value))
+const latestTrip = computed(() => latestTripEntry(mergedLogFeed.value))
 
 // CUSTOM-Toggle: merkt sich den vorherigen Zeitraum, damit Klick auf das aktive
 // CUSTOM-Button zur letzten Auswahl zurückspringt statt nur aufzuklappen.
@@ -320,6 +327,16 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
               </button>
             </div>
           </div>
+          <!-- Letzte Aktivität: letzter Ladevorgang + letzte Fahrt. Bewusst ÜBER dem
+               Zeitraum-Filter - es ist eine filter-unabhängige Momentaufnahme des
+               jüngsten Ereignisses, nicht Teil der gefilterten Auswertung darunter. -->
+          <RecentActivityCard
+            :charge="latestCharge"
+            :trip="latestTrip"
+            :effective-battery-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
+            :source-info="sourceInfo"
+          />
+
           <!-- Mobile: Zeitraum-Filter (<lg): Sibling, damit es auf Mobile sichtbar
                bleibt (der Desktop-Selektor darueber ist hidden md:block). -->
             <div v-if="filterBarVisible"
@@ -329,7 +346,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
               <div class="relative">
                 <button
                   @click.stop="showFilterDropdown = !showFilterDropdown"
-                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition">
+                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer transition">
                   <CalendarIcon class="w-3 h-3 opacity-60" />
                   <span>{{ timeRangeOptions.find(o => o.value === selectedTimeRange)?.shortLabel ?? selectedTimeRange }}</span>
                   <span class="text-gray-300 dark:text-gray-500">·</span>
@@ -399,7 +416,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
             <button
               data-testid="dashboard-filter-toggle"
               @click.stop="showFilterDropdown = !showFilterDropdown"
-              class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium">
+              class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer transition">
               <CalendarIcon class="w-4 h-4 opacity-60" />
               <span>{{ timeRangeOptions.find(o => o.value === selectedTimeRange)?.shortLabel ?? selectedTimeRange }}</span>
               <span class="text-gray-300 dark:text-gray-500">·</span>

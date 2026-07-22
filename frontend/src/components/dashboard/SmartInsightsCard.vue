@@ -124,7 +124,7 @@ function barClass(bar: ChartBar, sentiment: InsightSentiment): string {
       <div
         v-for="insight in insights"
         :key="insight.id"
-        :class="['bg-white dark:bg-gray-800 border-2 rounded-sm overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]', borderClass(insight.sentiment)]"
+        :class="['bg-white dark:bg-gray-800 border-2 rounded-sm overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow', borderClass(insight.sentiment)]"
       >
         <!-- Header: tap to fold on mobile, static on desktop -->
         <button
