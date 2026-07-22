@@ -197,6 +197,8 @@ public enum CarBrand {
       I3(CarBrand.BMW, VehicleCategory.COMPACT, "i3",
             cap(33.0),
             cap(42.2)),
+      I3_NEUE_KLASSE(CarBrand.BMW, VehicleCategory.SEDAN, "i3 Neue Klasse",
+            cap(113.4)),
       I4(CarBrand.BMW, VehicleCategory.SEDAN, "i4",
             cap(67.0, "eDrive35"),
             cap(80.7, "eDrive40 / M50")),
@@ -212,9 +214,10 @@ public enum CarBrand {
       IX2(CarBrand.BMW, VehicleCategory.COMPACT, "iX2",
             cap(64.7)),
       IX3(CarBrand.BMW, VehicleCategory.SUV, "iX3",
-            cap(74.0)),
-      IX3_NEUE_KLASSE(CarBrand.BMW, VehicleCategory.SUV, "iX3 (Neue Klasse)",
-            cap(108.7)), // Welcome to 2026
+            cap(80.0)),
+      IX3_NEUE_KLASSE(CarBrand.BMW, VehicleCategory.SUV, "iX3 Neue Klasse",
+            cap(87.5),
+            cap(113.4)),
 
       // --- POLESTAR & VOLVO ---
       POLESTAR_2(CarBrand.POLESTAR, VehicleCategory.SEDAN, "Polestar 2",
