@@ -278,6 +278,26 @@ class LeaderboardQueryRepositoryTest {
         assertThat(rows.get(0).value()).isEqualByComparingTo("3");
     }
 
+    // ---- MONTHLY_NIGHT_OWL: same charge grouping as MONTHLY_CHARGES, restricted to 22:00-06:00 ----
+
+    @Test
+    void nightOwlRanking_collapsesConsecutiveSameOdometerAndExcludesDaytime() {
+        UUID userId = createUser("nachteule@test.com", "nachteule", false, true);
+        UUID carId = createCar(userId);
+        // Two night logs with identical odometer collapse into one charge, mirroring the
+        // charges ranking so both ticker figures count charges the same way.
+        createLogWithOdometerAt(carId, 1000, START.plusHours(22));            // 22:00 night
+        createLogWithOdometerAt(carId, 1000, START.plusHours(23));            // 23:00 night -> grouped
+        createLogWithOdometerAt(carId, 1050, START.plusDays(1).plusHours(2)); // 02:00 night -> new island
+        createLogWithOdometerAt(carId, 5000, START.plusHours(14));            // 14:00 daytime -> excluded
+
+        List<LeaderboardRankRow> rows = repo.getNightOwlRanking(START, END);
+
+        // 3 night logs -> 2 odometer islands (raw COUNT would be 3); daytime log excluded
+        assertThat(rows).extracting(LeaderboardRankRow::username).contains("nachteule");
+        assertThat(rows.get(0).value()).isEqualByComparingTo("2");
+    }
+
     private void createLogWithOdometerAt(UUID carId, Integer odometerKm, LocalDateTime loggedAt) {
         EvLogEntity e = new EvLogEntity();
         e.setId(UUID.randomUUID());

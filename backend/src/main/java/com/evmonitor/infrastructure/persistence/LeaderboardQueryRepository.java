@@ -56,8 +56,18 @@ public class LeaderboardQueryRepository {
     // the odometer differs from the immediately preceding log. Logs without an odometer always
     // count individually and break a group, matching the frontend loop in useLogList.ts.
 
-    @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getChargesRanking(LocalDateTime start, LocalDateTime endExclusive) {
+        return getCollapsedChargeRanking(start, endExclusive, "");
+    }
+
+    /**
+     * Counts collapsed charges per car with the gaps-and-islands logic described above,
+     * optionally restricted by an additional constant SQL predicate on {@code e}
+     * (e.g. the night-hour window). The predicate is a hardcoded string, never user input.
+     */
+    @SuppressWarnings("unchecked")
+    private List<LeaderboardRankRow> getCollapsedChargeRanking(
+            LocalDateTime start, LocalDateTime endExclusive, String extraPredicate) {
         List<Object[]> rows = em.createNativeQuery("""
                 SELECT CAST(car_id AS TEXT), CAST(user_id AS TEXT), username, model,
                        CAST(
@@ -77,6 +87,7 @@ public class LeaderboardQueryRepository {
                       AND u.leaderboard_visible = true
                       AND e.logged_at >= :start
                       AND e.logged_at < :end
+                      """ + extraPredicate + """
                 ) ordered
                 GROUP BY car_id, user_id, username, model
                 ORDER BY value DESC
@@ -183,28 +194,13 @@ public class LeaderboardQueryRepository {
     }
 
     // ---- MONTHLY_NIGHT_OWL (charges between 22:00-06:00) ----
+    // Same collapsed-charge counting as MONTHLY_CHARGES so both ticker figures are comparable,
+    // just restricted to the night window on logged_at (the filter runs before LAG, so grouping
+    // only ever spans night logs).
 
-    @SuppressWarnings("unchecked")
     public List<LeaderboardRankRow> getNightOwlRanking(LocalDateTime start, LocalDateTime endExclusive) {
-        List<Object[]> rows = em.createNativeQuery("""
-                SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
-                       CAST(COUNT(e.id) AS NUMERIC) AS value
-                FROM ev_log e
-                JOIN car c ON e.car_id = c.id
-                JOIN app_user u ON c.user_id = u.id
-                WHERE e.include_in_statistics = true
-                  AND u.is_seed_data = false
-                  AND u.leaderboard_visible = true
-                  AND e.logged_at >= :start
-                  AND e.logged_at < :end
-                  AND (EXTRACT(HOUR FROM e.logged_at) >= 22 OR EXTRACT(HOUR FROM e.logged_at) < 6)
-                GROUP BY c.id, c.model, u.id, u.username
-                ORDER BY value DESC
-                """)
-                .setParameter("start", start)
-                .setParameter("end", endExclusive)
-                .getResultList();
-        return mapCarRows(rows);
+        return getCollapsedChargeRanking(start, endExclusive,
+                "AND (EXTRACT(HOUR FROM e.logged_at) >= 22 OR EXTRACT(HOUR FROM e.logged_at) < 6)");
     }
 
     // ---- MONTHLY_ICE_CHARGER (lowest temperature, lower = better) ----
