@@ -136,7 +136,7 @@ const tripInline = computed<string[]>(() => {
           {{ t('dashboard.recent_charge_title') }}
         </div>
         <!-- Relativzeit: Desktop immer im Header | Mobile nur bei voller Breite (dann ist Platz) -->
-        <div class="items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500" :class="showTrip ? 'hidden md:flex' : 'flex'">
+        <div class="items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400" :class="showTrip ? 'hidden md:flex' : 'flex'">
           <span>{{ relativeTime(ch.loggedAt) }}</span>
           <ChevronRightIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
         </div>
@@ -146,7 +146,7 @@ const tripInline = computed<string[]>(() => {
         <div class="flex items-baseline gap-x-2.5 gap-y-0 flex-wrap min-w-0">
           <div class="flex items-baseline gap-1">
             <span class="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{{ ch.kwh != null ? formatDecimal(ch.kwh, 1) : '–' }}</span>
-            <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">kWh</span>
+            <span class="text-xs text-gray-400 dark:text-gray-400 font-medium">kWh</span>
           </div>
           <!-- Volle Breite (keine Fahrt): Ladedaten inline neben kWh, Zeit steht im Header -->
           <div v-if="!showTrip" class="md:hidden flex items-baseline gap-x-2.5 text-[11px] text-gray-500 dark:text-gray-400">
@@ -158,14 +158,14 @@ const tripInline = computed<string[]>(() => {
           </div>
         </div>
         <span v-if="ch.costEur != null" class="hidden md:inline-block text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ formatCurrency(ch.costEur) }}</span>
-        <span v-if="showTrip" class="md:hidden text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ relativeTime(ch.loggedAt) }}</span>
+        <span v-if="showTrip" class="md:hidden text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">{{ relativeTime(ch.loggedAt) }}</span>
       </div>
 
       <!-- Desktop: SoC-Balken (Labels flankieren das Segment) + Chips -->
       <div class="hidden md:block">
         <div v-if="chargeSoc" class="mt-2">
           <div class="relative h-3.5 text-[11px] tabular-nums">
-            <span class="absolute pr-1 text-gray-400 dark:text-gray-500" :style="{ right: (100 - Math.min(Math.max(chargeSoc.before, 6), 100)) + '%' }">{{ Math.round(chargeSoc.before) }}%</span>
+            <span class="absolute pr-1 text-gray-400 dark:text-gray-400" :style="{ right: (100 - Math.min(Math.max(chargeSoc.before, 6), 100)) + '%' }">{{ Math.round(chargeSoc.before) }}%</span>
             <span class="absolute pl-1 font-semibold text-gray-700 dark:text-gray-200" :style="{ left: Math.min(chargeSoc.after, 94) + '%' }">{{ Math.round(chargeSoc.after) }}%</span>
           </div>
           <div class="relative h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="presentation">
@@ -208,7 +208,7 @@ const tripInline = computed<string[]>(() => {
           {{ t('dashboard.recent_trip_title') }}
         </div>
         <!-- Relativzeit: Desktop im Header rechts | Mobile in der Meta-Zeile (Platz) -->
-        <div class="hidden md:flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-500">
+        <div class="hidden md:flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400">
           <span>{{ relativeTime(trip.tripStartedAt) }}</span>
           <ChevronRightIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
         </div>
@@ -218,16 +218,16 @@ const tripInline = computed<string[]>(() => {
         <span class="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none whitespace-nowrap">{{ trip.distanceKm != null ? formatDistance(trip.distanceKm) : '–' }}</span>
         <span v-if="tripConsumptionResult" class="hidden md:flex items-baseline gap-1">
           <span class="text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ tripConsumptionResult.estimated ? '~' : '' }}{{ formatConsumption(tripConsumptionResult.kwhPer100km, { showUnit: false }) }}</span>
-          <span class="text-xs text-gray-400 dark:text-gray-500 font-medium">{{ consumptionUnitLabel() }}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-400 font-medium">{{ consumptionUnitLabel() }}</span>
         </span>
-        <span class="md:hidden text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ relativeTime(trip.tripStartedAt) }}</span>
+        <span class="md:hidden text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">{{ relativeTime(trip.tripStartedAt) }}</span>
       </div>
 
       <!-- Desktop: SoC-Balken (Labels flankieren das Segment) + Chips -->
       <div class="hidden md:block">
         <div v-if="tripSoc" class="mt-2">
           <div class="relative h-3.5 text-[11px] tabular-nums">
-            <span class="absolute pr-1 text-gray-400 dark:text-gray-500" :style="{ right: (100 - Math.min(Math.max(tripSoc.end, 6), 100)) + '%' }">{{ Math.round(tripSoc.end) }}%</span>
+            <span class="absolute pr-1 text-gray-400 dark:text-gray-400" :style="{ right: (100 - Math.min(Math.max(tripSoc.end, 6), 100)) + '%' }">{{ Math.round(tripSoc.end) }}%</span>
             <span class="absolute pl-1 font-semibold text-gray-700 dark:text-gray-200" :style="{ left: Math.min(tripSoc.start, 94) + '%' }">{{ Math.round(tripSoc.start) }}%</span>
           </div>
           <div class="relative h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="presentation">
