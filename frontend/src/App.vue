@@ -524,9 +524,10 @@ const handleBottomLogout = () => {
       </div>
     </main>
 
-    <!-- Footer (only for authenticated users; nicht in der nativen App - dort liegen
-         die rechtlichen Links kompakt im Mehr-Sheet). Web bleibt unveraendert. -->
-    <footer v-if="authStore.isAuthenticated() && !isNative" class="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
+    <!-- Footer nur fuer eingeloggte Nutzer auf Desktop. Mobile (und nativ) liegen die
+         rechtlichen Links im Mehr-Sheet - dort sind sie mit einem Tap erreichbar, waehrend
+         der Footer hier hinter der fixierten Bottom-Nav verschwaende. -->
+    <footer v-if="authStore.isAuthenticated() && !isNative" class="hidden md:block bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
       <div class="container mx-auto px-4">
         <div class="text-center text-sm text-gray-600 dark:text-gray-400 space-y-3">
           <p>

@@ -125,7 +125,7 @@ test('Mobile: Auto-Edit-Modal auf /cars liegt im Viewport (nicht im Pager-Track)
   await context.close();
 });
 
-test('Mobile: Segmented Control wechselt Dashboard <-> Log-Feed im geteilten Layout', async ({ browser }) => {
+test('Mobile: Bottom-Nav wechselt Dashboard <-> Log-Feed, kein doppelter Tab-Switch', async ({ browser }) => {
   const context = await browser.newContext({ ...iphone12 });
   const page = await context.newPage();
 
@@ -142,25 +142,27 @@ test('Mobile: Segmented Control wechselt Dashboard <-> Log-Feed im geteilten Lay
   // Auto-Card + Dashboard-Daten settlen lassen, sonst schiebt der ladende Header die Tabs
   await page.waitForLoadState('networkidle');
 
-  // Uebersicht ist initial aktiv (Pill links).
-  // :visible grenzt auf das mobile Segmented Control ein - die Desktop-Workspace-Leiste
-  // (WorkspaceNav) nutzt denselben ViewSegmentedControl und liegt auf Mobile via
-  // `hidden md:block` zwar im DOM, ist aber display:none. Ohne :visible matcht der
-  // Locator beide Instanzen -> Playwright strict mode violation.
-  const overviewTab = page.locator('a[role="tab"][href="/dashboard"]:visible');
-  const logsTab = page.locator('a[role="tab"][href="/logs"]:visible');
-  await expect(overviewTab).toHaveAttribute('aria-selected', 'true');
+  // Auf Mobile fuehrt nur die Bottom-Nav zwischen Dashboard und Log-Feed - der frueher
+  // im Header sitzende Segmented Control war dieselbe Navigation ein zweites Mal.
+  // (Die Desktop-Workspace-Leiste liegt via `hidden md:block` im DOM, ist aber
+  // display:none - deshalb :visible.)
+  await expect(page.locator('a[role="tab"][href="/dashboard"]:visible')).toHaveCount(0);
+  await expect(page.locator('a[role="tab"][href="/logs"]:visible')).toHaveCount(0);
 
-  // Auf Log-Feed umschalten: URL + aktiver Body wechseln, Header (Segmented Control) bleibt
+  const startTab = page.locator('nav.bottom-nav a[href="/dashboard"]');
+  const logsTab = page.locator('nav.bottom-nav a[href="/logs"]');
+  await expect(startTab).toHaveAttribute('aria-current', 'page');
+
+  // Auf Log-Feed umschalten: URL + aktiver Body wechseln, Auto-Card im Header bleibt
   await logsTab.click();
   await expect(page).toHaveURL(/\/logs/, { timeout: 5_000 });
-  await expect(logsTab).toHaveAttribute('aria-selected', 'true');
-  await expect(overviewTab).toHaveAttribute('aria-selected', 'false');
+  await expect(logsTab).toHaveAttribute('aria-current', 'page');
+  await expect(startTab).not.toHaveAttribute('aria-current', 'page');
 
   // Zurueck auf Uebersicht
-  await overviewTab.click();
+  await startTab.click();
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 5_000 });
-  await expect(overviewTab).toHaveAttribute('aria-selected', 'true');
+  await expect(startTab).toHaveAttribute('aria-current', 'page');
 
   await context.close();
 });
