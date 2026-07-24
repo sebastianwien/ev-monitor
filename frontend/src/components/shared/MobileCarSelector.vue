@@ -62,17 +62,17 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
           cars.length === 1
             ? 'flex items-start rounded-sm border-2 text-left transition w-full overflow-hidden'
             : 'flex items-center rounded-sm border-2 text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] overflow-hidden',
-          cars.length === 1
+          // Farbgebung identisch zum Desktop-Selektor in DashboardView: das aktive Auto
+          // traegt indigo (bzw. gruen waehrend des Ladens), auch wenn es das einzige ist.
+          // Im Dark Mode deckende Flaechen statt der Desktop-Alpha-Toene - die Karte liegt
+          // hier direkt auf dem Seitenhintergrund und wirkte sonst durchscheinend.
+          modelValue === car.id
             ? isVehicleCharging(car)
+              ? 'border-2 border-green-500 bg-green-50 dark:bg-green-950 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#14532d]'
+              : 'border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-950 shadow-[2px_2px_0_0_#4338ca] dark:shadow-[2px_2px_0_0_#312e81]'
+            : isVehicleCharging(car)
               ? 'border-2 border-green-300 dark:border-green-700 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'
-              : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'
-            : modelValue === car.id
-              ? isVehicleCharging(car)
-                ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#14532d]'
-                : 'border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[2px_2px_0_0_#4338ca] dark:shadow-[2px_2px_0_0_#312e81]'
-              : isVehicleCharging(car)
-                ? 'border-2 border-green-300 dark:border-green-700 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'
-                : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300',
+              : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300',
           cars.length > 1 && isVehicleCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
         ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
         <div
