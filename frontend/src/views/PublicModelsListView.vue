@@ -215,13 +215,17 @@
 
         <div class="relative h-12 flex items-center">
           <!-- Zone strip = the track (a touch flatter than the thumb, which stands slightly proud) -->
-          <div class="flex h-10 w-full rounded-full overflow-hidden select-none pointer-events-none">
+          <div class="flex h-10 w-full rounded-full overflow-hidden select-none pointer-events-none ring-1 ring-gray-200 dark:ring-gray-700">
             <div
               v-for="z in PRICE_ZONES" :key="z.key"
-              class="flex items-center justify-center overflow-hidden transition-colors motion-reduce:transition-none"
-              :style="{ flexGrow: z.flex, flexBasis: '0', backgroundColor: z.color + (activeZone.key === z.key ? '40' : '24') }"
+              class="flex items-center justify-center overflow-hidden border-l border-gray-200 first:border-l-0 dark:border-gray-700 transition-colors motion-reduce:transition-none"
+              :class="activeZone.key === z.key ? 'bg-blue-100 dark:bg-blue-500/20' : 'bg-gray-100 dark:bg-gray-800'"
+              :style="{ flexGrow: z.flex, flexBasis: '0' }"
             >
-              <span class="truncate px-1 text-sm font-bold" :style="{ color: z.color }">{{ t(`models_list.price.zone_${z.key}`) }}</span>
+              <span
+                class="truncate px-1 text-sm font-bold transition-colors"
+                :class="activeZone.key === z.key ? 'text-blue-600 dark:text-blue-300' : 'text-gray-400 dark:text-gray-500'"
+              >{{ t(`models_list.price.zone_${z.key}`) }}</span>
             </div>
           </div>
           <input
@@ -463,9 +467,9 @@ const currentCtPerKwh = computed(() => Math.round(pricePerKwh.value * 100))
 
 // The slider track itself is the zone strip: fixed price thresholds, `flex` = each zone's ct-width.
 const PRICE_ZONES = [
-  { key: 'home', color: '#16a34a', flex: 35, maxCt: 35 },
-  { key: 'public', color: '#2563eb', flex: 25, maxCt: 60 },
-  { key: 'fast', color: '#e0873a', flex: 40, maxCt: Infinity },
+  { key: 'home', flex: 35, maxCt: 35 },
+  { key: 'public', flex: 25, maxCt: 60 },
+  { key: 'fast', flex: 40, maxCt: Infinity },
 ] as const
 const activeZone = computed(() =>
   PRICE_ZONES.find(z => currentCtPerKwh.value < z.maxCt) ?? PRICE_ZONES[PRICE_ZONES.length - 1])

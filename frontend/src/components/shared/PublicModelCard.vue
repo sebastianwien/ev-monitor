@@ -80,7 +80,7 @@ function openAttribution(e: Event) {
   <a
     :href="to"
     class="btn-3d cta-card no-press relative z-0 hover:z-10 flex flex-col bg-white dark:bg-gray-800 border-2 rounded-lg p-4"
-    :class="selected ? 'border-green-500 ring-2 ring-green-300 dark:ring-green-800' : 'border-gray-900 dark:border-gray-100'"
+    :class="selected ? 'border-green-500 ring-2 ring-green-300 dark:ring-green-800' : 'border-gray-900 dark:border-gray-600'"
   >
     <!-- Hero photo -->
     <div
@@ -122,7 +122,7 @@ function openAttribution(e: Event) {
     <!-- Cost hero -->
     <div
       v-if="pricePerKwh && model.avgConsumptionKwhPer100km"
-      class="mb-3 rounded-lg border-2 border-gray-900 dark:border-gray-100 bg-blue-50 dark:bg-blue-950/40 px-3 py-2 shadow-[2px_2px_0_0_#bfdbfe]"
+      class="mb-3 rounded-lg border-2 border-gray-900 dark:border-gray-600 bg-blue-50 dark:bg-blue-950/40 px-3 py-2 shadow-[2px_2px_0_0_#bfdbfe] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.4)]"
     >
       <div class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
         <BanknotesIcon class="h-3.5 w-3.5 flex-none" />
