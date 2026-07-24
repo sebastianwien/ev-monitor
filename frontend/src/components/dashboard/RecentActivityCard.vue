@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RouterLink } from 'vue-router'
-import { BoltIcon, MapPinIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, MapPinIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { normalizeCharge, relativeTimeParts } from '../../utils/recentActivity'
 import { tripConsumption } from '../../utils/tripCalculations'
@@ -18,6 +17,13 @@ const props = defineProps<{
   /** Source badge helper from the log list (icon + label + classes per dataSource). */
   sourceInfo: (ds?: string) => { label: string; icon: unknown; classes: string } | null
 }>()
+
+/**
+ * Beide Kacheln bearbeiten den Eintrag direkt - frueher fuehrten sie nur in den
+ * Log-Feed, wo man denselben Eintrag erst wiederfinden musste. Das Formular oeffnet
+ * der Dashboard-Container, die Kachel bleibt praesentational.
+ */
+const emit = defineEmits<{ 'edit-charge': []; 'edit-trip': [] }>()
 
 const { t, locale } = useI18n()
 const { formatConsumption, consumptionUnitLabel, formatDistance, formatCurrency, formatCostPerKwh, formatDecimal } =
@@ -125,9 +131,12 @@ const tripInline = computed<string[]>(() => {
 <template>
   <div v-if="ch" class="grid grid-cols-2 gap-2 mb-2.5 md:gap-2.5 md:mb-3">
     <!-- Letzter Ladevorgang -->
-    <RouterLink
-      to="/logs"
-      class="group block bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
+    <button
+      type="button"
+      data-testid="recent-charge-tile"
+      :aria-label="t('dashboard.recent_charge_edit')"
+      @click="emit('edit-charge')"
+      class="group block w-full text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
       :class="{ 'col-span-2': !showTrip }"
     >
       <div class="flex items-center justify-between mb-1 md:mb-1.5">
@@ -138,7 +147,7 @@ const tripInline = computed<string[]>(() => {
         <!-- Relativzeit: Desktop immer im Header | Mobile nur bei voller Breite (dann ist Platz) -->
         <div class="items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400" :class="showTrip ? 'hidden md:flex' : 'flex'">
           <span>{{ relativeTime(ch.loggedAt) }}</span>
-          <ChevronRightIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
+          <PencilSquareIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
         </div>
       </div>
 
@@ -194,13 +203,16 @@ const tripInline = computed<string[]>(() => {
           {{ chargeSource.label }}
         </span>
       </div>
-    </RouterLink>
+    </button>
 
     <!-- Letzte Fahrt (nur wenn Trip vorhanden - Premium/AutoSync) -->
-    <RouterLink
+    <button
       v-if="showTrip"
-      to="/logs"
-      class="group block bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
+      type="button"
+      data-testid="recent-trip-tile"
+      :aria-label="t('dashboard.recent_trip_edit')"
+      @click="emit('edit-trip')"
+      class="group block w-full text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
     >
       <div class="flex items-center justify-between mb-1 md:mb-1.5">
         <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
@@ -210,7 +222,7 @@ const tripInline = computed<string[]>(() => {
         <!-- Relativzeit: Desktop im Header rechts | Mobile in der Meta-Zeile (Platz) -->
         <div class="hidden md:flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400">
           <span>{{ relativeTime(trip.tripStartedAt) }}</span>
-          <ChevronRightIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
+          <PencilSquareIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
         </div>
       </div>
 
@@ -249,6 +261,6 @@ const tripInline = computed<string[]>(() => {
       <div class="md:hidden mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
         <span v-for="m in tripInline" :key="'ti' + m" class="tabular-nums">{{ m }}</span>
       </div>
-    </RouterLink>
+    </button>
   </div>
 </template>

@@ -915,6 +915,8 @@ dashboard:
   trip_m_route: "Route"
   recent_charge_title: "Letzter Ladevorgang"
   recent_trip_title: "Letzte Fahrt"
+  recent_charge_edit: "Letzten Ladevorgang bearbeiten"
+  recent_trip_edit: "Letzte Fahrt bearbeiten"
   trip_climate_load_comfort_heat: "Sitz-/Lenkradheizung"
   trip_climate_load_hvac_heating: "Heizung"
   trip_climate_load_hvac_cooling: "Klimaanlage"

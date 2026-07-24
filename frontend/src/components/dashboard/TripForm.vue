@@ -35,7 +35,7 @@ const { t } = useI18n()
 
 <template>
   <div class="space-y-3">
-    <div class="flex items-center justify-between gap-2">
+    <div class="flex items-center">
       <span v-if="mode === 'add'"
         class="text-sm font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
         <PlusIcon class="w-4 h-4" aria-hidden="true" />{{ t('dashboard.trip_add') }}
@@ -43,16 +43,6 @@ const { t } = useI18n()
       <span v-else class="text-sm font-medium text-emerald-800 dark:text-emerald-300">
         {{ t('dashboard.trip_edit') }}
       </span>
-      <div class="flex gap-1">
-        <button type="button" @click="emit('save')" :disabled="saving"
-          class="px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm disabled:opacity-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
-          {{ t('dashboard.trip_save') }}
-        </button>
-        <button type="button" @click="emit('cancel')"
-          class="px-3 py-1 text-xs font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
-          {{ t('dashboard.trip_cancel') }}
-        </button>
-      </div>
     </div>
     <p v-if="error" class="text-xs text-red-500 -mb-1">{{ error }}</p>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -99,5 +89,19 @@ const { t } = useI18n()
     </div>
     <!-- Slot for advanced sections (mobile edit uses this for feedback + merge preview) -->
     <slot name="extra" />
+
+    <!-- Aktionen unten: im Sheet liegen sie damit in Daumenreichweite, und die Reihenfolge
+         Lesen -> Ausfuellen -> Bestaetigen entspricht der Leserichtung. Speichern rechts,
+         beide Flaechen mind. 44px hoch. -->
+    <div class="flex gap-2 pt-1">
+      <button type="button" @click="emit('cancel')"
+        class="flex-1 min-h-[44px] px-3 text-sm font-medium bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+        {{ t('dashboard.trip_cancel') }}
+      </button>
+      <button type="button" @click="emit('save')" :disabled="saving"
+        class="flex-1 min-h-[44px] px-3 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-sm disabled:opacity-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">
+        {{ t('dashboard.trip_save') }}
+      </button>
+    </div>
   </div>
 </template>

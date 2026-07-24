@@ -49,6 +49,7 @@ import SmartInsightsCard from '../components/dashboard/SmartInsightsCard.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import CostHistoryCard from '../components/dashboard/CostHistoryCard.vue'
 import RecentActivityCard from '../components/dashboard/RecentActivityCard.vue'
+import EditTripModal from '../components/dashboard/EditTripModal.vue'
 import { latestChargeEntry, latestTripEntry } from '../utils/recentActivity'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
@@ -71,12 +72,39 @@ const {
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
   hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo,
+  editingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
 } = useCarContext()
 
 // Newest charge / trip for the "letzte Aktivität"-Block. Uses the full merged
 // feed (not the filtered stats), so it always reflects the absolute latest event.
 const latestCharge = computed(() => latestChargeEntry(mergedLogFeed.value))
 const latestTrip = computed(() => latestTripEntry(mergedLogFeed.value))
+
+// Beide Kacheln bearbeiten ihren Eintrag direkt. Der Ladevorgang nutzt den geteilten
+// EditLogModal (liegt im CarContextLayout), die Fahrt bekommt hier ein eigenes Overlay -
+// im Log-Feed haengt dasselbe Formular inline an der Zeile, die es hier nicht gibt.
+const tripModalId = ref<string | null>(null)
+const tripSheet = ref<{ requestClose: () => void } | null>(null)
+
+function openTripEdit() {
+  if (!latestTrip.value) return
+  startEditTrip(latestTrip.value)
+  tripModalId.value = latestTrip.value.id
+}
+
+/** Kommt erst, wenn das Sheet ausgefahren ist - dann darf der State weg. */
+function onTripSheetClosed() {
+  cancelTripEdit()
+  tripModalId.value = null
+}
+
+async function submitTripEdit() {
+  const id = tripModalId.value
+  if (!id) return
+  await saveTripEdit(id)
+  // saveTripEdit haelt den Fehler in tripError fest und laesst das Formular offen.
+  if (!tripError.value) tripSheet.value?.requestClose()
+}
 
 // CUSTOM-Toggle: merkt sich den vorherigen Zeitraum, damit Klick auf das aktive
 // CUSTOM-Button zur letzten Auswahl zurückspringt statt nur aufzuklappen.
@@ -335,6 +363,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
             :trip="latestTrip"
             :effective-battery-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
             :source-info="sourceInfo"
+            @edit-charge="editingLog = latestCharge"
+            @edit-trip="openTripEdit"
           />
 
           <!-- Mobile: Zeitraum-Filter (<lg): Sibling, damit es auf Mobile sichtbar
@@ -1055,6 +1085,16 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
     :open="showImplausibleModal"
     @close="() => { showImplausibleModal = false; if (implausibleModalDirty) { fetchStatistics(); implausibleModalDirty = false } }"
     @updated="() => { fetchImplausibleCount(); implausibleModalDirty = true }"
+  />
+
+  <EditTripModal
+    v-if="tripModalId"
+    ref="tripSheet"
+    v-model="tripForm"
+    :error="tripError"
+    :saving="tripSaving"
+    @save="submitTripEdit"
+    @close="onTripSheetClosed"
   />
 
 </div>

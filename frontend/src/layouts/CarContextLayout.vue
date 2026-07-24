@@ -4,6 +4,7 @@ import { provideCarContext } from '../composables/useCarContext'
 import { useStickyTabIndex } from '../composables/useStickyTabIndex'
 import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import SwipeTabPager from '../components/shared/SwipeTabPager.vue'
+import EditLogModal from '../components/dashboard/EditLogModal.vue'
 import { CONTEXT_TABS } from '../config/tabs'
 import DashboardView from '../views/DashboardView.vue'
 
@@ -24,6 +25,7 @@ const TAB_PATHS: readonly string[] = CONTEXT_TABS.map(tab => tab.to)
 const {
   selectedCarId, cars, carImageUrls, wltp, currentOdometerKm,
   teslaStatus, smartcarStatus, vwGroupStatus,
+  editingLog, refreshLogsAndGroups,
 } = provideCarContext()
 
 const activeIndex = useStickyTabIndex(TAB_PATHS)
@@ -53,5 +55,15 @@ const activeIndex = useStickyTabIndex(TAB_PATHS)
       <template #left><DashboardView /></template>
       <template #right><LogsView /></template>
     </SwipeTabPager>
+
+    <!-- Der Log-Editor gehoert dem geteilten Context, nicht einem der beiden Bodies:
+         geoeffnet wird er aus dem Log-Feed (Zeilen-Menue) wie aus dem Dashboard
+         (Kachel "Letzter Ladevorgang"), gerendert genau einmal. -->
+    <EditLogModal
+      v-if="editingLog"
+      :log="editingLog"
+      @close="editingLog = null"
+      @saved="() => { editingLog = null; refreshLogsAndGroups() }"
+    />
   </div>
 </template>

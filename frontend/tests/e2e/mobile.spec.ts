@@ -93,6 +93,37 @@ test('Mobile: Edit-Modal auf /logs liegt im Viewport (nicht im Pager-Track)', as
   await context.close();
 });
 
+test('Mobile: Kachel "Letzter Ladevorgang" oeffnet den Editor auf dem Dashboard', async ({ browser }) => {
+  const context = await browser.newContext({ ...iphone12 });
+  const page = await context.newPage();
+
+  await page.addInitScript((seenKeys: string[]) => {
+    localStorage.setItem('seen-announcements', JSON.stringify(seenKeys));
+  }, featureAnnouncements.map(a => a.key));
+
+  await page.goto('/login');
+  await page.locator('input[type="text"]').fill(TEST_USER.email);
+  await page.locator('input[type="password"]').fill(TEST_USER.password);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+  await page.waitForLoadState('networkidle');
+
+  // Die Kachel fuehrte frueher nur nach /logs - jetzt bearbeitet sie den Eintrag direkt.
+  await page.locator('[data-testid="recent-charge-tile"]').click();
+
+  const panel = page.locator('[data-testid="edit-log-modal"]');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+  await expect(page).toHaveURL(/\/dashboard/);
+
+  // Das Modal liegt am Viewport, nicht am transformierten Pager-Track (iPhone 12: 390px).
+  const box = await panel.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(391);
+
+  await context.close();
+});
+
 test('Mobile: Auto-Edit-Modal auf /cars liegt im Viewport (nicht im Pager-Track)', async ({ browser }) => {
   const context = await browser.newContext({ ...iphone12 });
   const page = await context.newPage();

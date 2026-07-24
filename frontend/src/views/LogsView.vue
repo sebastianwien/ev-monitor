@@ -42,7 +42,6 @@ import api from '../api/axios'
 import { distributeProportionally } from '../utils/distributeProportionally'
 import PowerCurveChart from '../components/charging/PowerCurveChart.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
-import EditLogModal from '../components/dashboard/EditLogModal.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
 import TripClimateMarkers from '../components/TripClimateMarkers.vue'
 import { costBadgeClass } from '../utils/costColor'
@@ -2638,12 +2637,8 @@ function toggleAllCharges() {
     </Transition>
   </div>
 
-  <EditLogModal
-    v-if="editingLog"
-    :log="editingLog"
-    @close="editingLog = null"
-    @saved="() => { editingLog = null; refreshLogsAndGroups() }"
-  />
+  <!-- Der EditLogModal liegt im CarContextLayout (geteilt mit dem Dashboard) - hier
+       wird nur noch `editingLog` gesetzt. -->
 
   <ImplausibleLogsModal
     :car-id="selectedCarId"

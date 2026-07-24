@@ -1,20 +1,20 @@
 <template>
-  <!-- Teleport nach body: auf Mobile liegt der Log-Feed im SwipeTabPager, dessen Track
-       dauerhaft ein translateX() traegt. Ein transformierter Vorfahre wird zum Containing
-       Block fuer position:fixed - das Overlay wuerde sich sonst am 200% breiten Track statt
-       am Viewport ausrichten und links aus dem Bild haengen. -->
-  <Teleport to="body">
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-    <div data-testid="edit-log-modal" class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] w-full max-w-3xl flex flex-col max-h-[90vh]">
+  <BottomSheet
+    ref="sheet"
+    :label="t('dashboard.edit_title')"
+    testid="edit-log-modal"
+    panel-class="sm:max-w-3xl"
+    @close="onClosed">
+    <template #default="{ close }">
       <!-- Header -->
-      <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
+      <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700 shrink-0">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.edit_title') }}</h2>
-        <button @click="$emit('close')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+        <button @click="close" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
 
-      <div class="overflow-y-auto p-5 space-y-4">
+      <div class="flex-1 overflow-y-auto p-5 space-y-4">
         <LogFormFields
           v-model="formData"
           location-mode="edit"
@@ -50,7 +50,7 @@
 
       <!-- Footer -->
       <div class="flex justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 shrink-0">
-        <button @click="$emit('close')" v-haptic
+        <button @click="close" v-haptic
           class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
           {{ t('cars.cancel') }}
         </button>
@@ -61,14 +61,14 @@
           {{ t('logfields.save') }}
         </button>
       </div>
-    </div>
-  </div>
-  </Teleport>
+    </template>
+  </BottomSheet>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import BottomSheet from '../shared/BottomSheet.vue'
 import api from '../../api/axios'
 import LogFormFields, { type LogFormData } from '../log-form/LogFormFields.vue'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
@@ -101,6 +101,17 @@ export interface EvLogResponse {
 const props = defineProps<{ log: EvLogResponse }>()
 const emit = defineEmits<{ close: []; saved: [log: EvLogResponse] }>()
 const { t } = useI18n()
+
+// Das Sheet faehrt erst aus, dann meldet es sich - der Aufrufer entfernt uns daraufhin
+// per v-if, was eine noch laufende Animation abschneiden wuerde. Ein erfolgreicher
+// Speichervorgang parkt hier sein Ergebnis, bis das Sheet draussen ist.
+const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
+const savedLog = ref<EvLogResponse | null>(null)
+
+function onClosed() {
+  if (savedLog.value) emit('saved', savedLog.value)
+  else emit('close')
+}
 
 const toDatetimeLocal = (iso: string): string => {
   const d = new Date(iso)
@@ -224,8 +235,8 @@ async function save() {
 
     const res = await api.patch(`/logs/${props.log.id}`, payload)
     await applyTariffToLocationIfRequested(f)
-    emit('saved', res.data)
-    emit('close')
+    savedLog.value = res.data
+    sheet.value?.requestClose()
   } catch (e: any) {
     errorMsg.value = e?.response?.data?.message ?? 'Speichern fehlgeschlagen'
   } finally {
