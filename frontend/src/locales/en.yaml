@@ -642,6 +642,7 @@ dashboard:
   peer_community: "Community avg"
   peer_trips: "trips"
   peer_drivers: "drivers"
+  peer_charges: "charges"
   peer_consumption: "Consumption"
   peer_range: "Range (90→10%)"
   peer_cost: "Cost"

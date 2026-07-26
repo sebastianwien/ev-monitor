@@ -54,11 +54,10 @@ public record EvLogStatisticsResponse(
      * @param userLifetimeConsumptionKwhPer100km  distance-weighted lifetime avg for this user (no time filter)
      * @param peerAvgConsumptionKwhPer100km       community avg across all non-seed peer cars
      * @param userLifetimeCostPerKwh              user's own lifetime avg cost/kWh (null if no cost data)
-     * @param peerAvgCostPerKwh                   community avg cost/kWh - same-country peers only (null if no same-country peers with cost data)
+     * @param peerAvgCostPerKwh                   community avg cost/kWh across all non-seed peers (null if no peer has cost data)
      * @param uniquePeerUsers                     distinct user count among peer cars
      * @param peerTripCount                       plausible trip count used for consumption avg
-     * @param sameCountryPeerUsers                distinct user count with same country (for cost comparison)
-     * @param userCountry                         ISO country code of current user (for UI label)
+     * @param peerLogCount                        peer charging logs included in statistics - the data basis behind the averages
      * @param matchType                           SPEC = same vehicleSpecificationId, MODEL = fallback to same car model (all variants)
      */
     public record ChargingTypeSplit(
@@ -86,8 +85,7 @@ public record EvLogStatisticsResponse(
             BigDecimal peerAvgCostPerKwh,
             int uniquePeerUsers,
             int peerTripCount,
-            int sameCountryPeerUsers,
-            String userCountry,
+            int peerLogCount,
             MatchType matchType
     ) {
         public enum MatchType { SPEC, MODEL }

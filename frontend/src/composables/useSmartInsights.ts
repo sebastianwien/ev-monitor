@@ -37,8 +37,7 @@ export function computeInsights(
   if (
     pb != null &&
     pb.peerAvgCostPerKwh != null &&
-    pb.userLifetimeCostPerKwh != null &&
-    pb.sameCountryPeerUsers >= 1
+    pb.userLifetimeCostPerKwh != null
   ) {
     const diffPct = Math.round(
       ((pb.userLifetimeCostPerKwh - pb.peerAvgCostPerKwh) / pb.peerAvgCostPerKwh) * 100,

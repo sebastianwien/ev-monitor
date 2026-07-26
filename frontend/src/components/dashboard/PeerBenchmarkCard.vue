@@ -20,7 +20,14 @@ const props = defineProps<{
   carModel: string
 }>()
 
-const { t } = useI18n()
+const { t, n } = useI18n()
+
+// Datenbasis: alle Peer-Fahrer + die Ladungen, die tatsächlich in die Ø-Werte einfliessen.
+// Beide Zahlen gehören zusammen - Fahrer ohne Logs zählen als Fahrer, liefern aber keine Daten.
+const basisLabel = computed(() =>
+  `${props.benchmark.uniquePeerUsers} ${props.carModel} ${t('dashboard.peer_drivers')}`
+  + ` · ${n(props.benchmark.peerLogCount)} ${t('dashboard.peer_charges')}`
+)
 
 const SOC_MAX = 90
 const SOC_MIN = 10
@@ -74,7 +81,6 @@ const costDelta = computed<DeltaBadge | null>(() => {
 })
 
 const showCost = computed(() =>
-  props.benchmark.sameCountryPeerUsers >= 3 &&
   props.benchmark.userLifetimeCostPerKwh !== null &&
   props.benchmark.peerAvgCostPerKwh !== null
 )
@@ -131,8 +137,8 @@ function formatCostPer100km(val: number | null | undefined): string {
         class="sm:hidden w-full px-4 py-3 flex items-center justify-between">
         <div class="w-6 shrink-0"></div>
         <div class="flex-1 flex flex-col items-center text-center min-w-0">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{{ t('dashboard.peer_compact_title') }}</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ benchmark.uniquePeerUsers }} {{ carModel }} {{ t('dashboard.peer_drivers') }}</p>
+          <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate w-full">{{ t('dashboard.peer_compact_title') }}</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-tight text-balance">{{ basisLabel }}</p>
         </div>
         <ChevronDownIcon
           class="w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform duration-200"
@@ -141,7 +147,7 @@ function formatCostPer100km(val: number | null | undefined): string {
       <!-- sm+ -->
       <div class="hidden sm:flex flex-col items-center justify-center px-4 py-3">
         <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 text-center">{{ t('dashboard.peer_compact_title') }}</p>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ benchmark.uniquePeerUsers }} {{ carModel }} {{ t('dashboard.peer_drivers') }}</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 leading-tight text-center">{{ basisLabel }}</p>
       </div>
     </div>
 

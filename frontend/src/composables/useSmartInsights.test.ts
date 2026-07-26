@@ -39,8 +39,7 @@ describe('peer_cost insight', () => {
         peerAvgCostPerKwh: 0.35,
         uniquePeerUsers: 10,
         peerTripCount: 100,
-        sameCountryPeerUsers: 5,
-        userCountry: 'DE',
+        peerLogCount: 50,
         matchType: 'SPEC',
       },
     })
@@ -59,8 +58,7 @@ describe('peer_cost insight', () => {
         peerAvgCostPerKwh: 0.30,
         uniquePeerUsers: 10,
         peerTripCount: 100,
-        sameCountryPeerUsers: 5,
-        userCountry: 'DE',
+        peerLogCount: 50,
         matchType: 'SPEC',
       },
     })
@@ -78,8 +76,7 @@ describe('peer_cost insight', () => {
         peerAvgCostPerKwh: 0.35,
         uniquePeerUsers: 1,
         peerTripCount: 3,
-        sameCountryPeerUsers: 1,
-        userCountry: 'DE',
+        peerLogCount: 50,
         matchType: 'SPEC',
       },
     })
@@ -96,8 +93,7 @@ describe('peer_cost insight', () => {
         peerAvgCostPerKwh: null,
         uniquePeerUsers: 10,
         peerTripCount: 100,
-        sameCountryPeerUsers: 5,
-        userCountry: 'DE',
+        peerLogCount: 50,
         matchType: 'SPEC',
       },
     })
@@ -118,8 +114,7 @@ describe('peer_consumption insight', () => {
         peerAvgCostPerKwh: null,
         uniquePeerUsers: 10,
         peerTripCount: 100,
-        sameCountryPeerUsers: 0,
-        userCountry: 'DE',
+        peerLogCount: 50,
         matchType: 'SPEC',
       },
     })
@@ -137,8 +132,7 @@ describe('peer_consumption insight', () => {
         peerAvgCostPerKwh: null,
         uniquePeerUsers: 1,
         peerTripCount: 3,
-        sameCountryPeerUsers: 0,
-        userCountry: 'DE',
+        peerLogCount: 50,
         matchType: 'SPEC',
       },
     })
@@ -462,8 +456,7 @@ describe('prioritization', () => {
         peerAvgCostPerKwh: 0.35,
         uniquePeerUsers: 10,
         peerTripCount: 100,
-        sameCountryPeerUsers: 5,
-        userCountry: 'DE',
+        peerLogCount: 50,
         matchType: 'SPEC',
       },
     })
@@ -483,8 +476,7 @@ describe('prioritization', () => {
         peerAvgCostPerKwh: 0.35,
         uniquePeerUsers: 10,
         peerTripCount: 100,
-        sameCountryPeerUsers: 5,
-        userCountry: 'DE',
+        peerLogCount: 50,
         matchType: 'SPEC',
       },
     })

@@ -45,6 +45,13 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         evLogRepository.save(log);
     }
 
+    private void addLogWithCost(UUID carId, String kwh, String costEur, int odometer) {
+        EvLog log = EvLog.createNew(carId, new BigDecimal(kwh), new BigDecimal(costEur),
+                60, null, odometer, null, null,
+                LocalDateTime.now().minusDays(1), null, null, null, false, null);
+        evLogRepository.save(log);
+    }
+
     // --- tests ---
 
     @Test
@@ -126,7 +133,7 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
     }
 
     @Test
-    void peerBenchmark_costComparison_worksWithSingleSameCountryPeer() {
+    void peerBenchmark_costComparison_includesPeersRegardlessOfCountry() {
         VehicleSpecification spec = saveSpec("Tesla", "Model 3", "peer-test-cost");
 
         User owner = userRepository.save(
@@ -134,19 +141,43 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
         addLog(ownerCar.getId(), 22.0, 200);
 
-        User peer = userRepository.save(
-                createAndSaveUser("peer-cost@example.com").toBuilder().country("DE").build());
-        Car peerCar = createCar(peer.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
-        EvLog log = EvLog.createNew(peerCar.getId(), new BigDecimal("22.0"), new BigDecimal("7.04"),
-                60, null, 200, null, null,
-                LocalDateTime.now().minusDays(1), null, null, null, false, null);
-        evLogRepository.save(log);
+        // Peer without any country set - must still count towards the community avg
+        User peerNoCountry = userRepository.save(
+                createAndSaveUser("peer-cost-nocountry@example.com").toBuilder().country(null).build());
+        Car peerCar = createCar(peerNoCountry.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLogWithCost(peerCar.getId(), "22.0", "7.04", 200);
 
         EvLogStatisticsResponse result = evLogStatisticsService.getStatistics(ownerCar.getId(), owner.getId(), null, null, null);
 
         assertNotNull(result.peerBenchmark());
-        // With threshold removed (min 1), same-country cost comparison should be available
-        assertEquals(1, result.peerBenchmark().sameCountryPeerUsers());
+        assertNotNull(result.peerBenchmark().peerAvgCostPerKwh(),
+                "peer without country must contribute to the cost average");
+    }
+
+    @Test
+    void peerBenchmark_peerLogCount_countsOnlyLogsIncludedInStatistics() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "peer-test-logcount");
+
+        User owner = createAndSaveUser("owner-logcount@example.com");
+        Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLog(ownerCar.getId(), 22.0, 200);
+
+        User peerA = createAndSaveUser("peer-logcount-a@example.com");
+        Car peerCarA = createCar(peerA.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLog(peerCarA.getId(), 18.0, 200);
+        addLog(peerCarA.getId(), 19.0, 400);
+
+        // Peer without any logs - counts as driver, contributes no charges
+        User peerB = createAndSaveUser("peer-logcount-b@example.com");
+        createCar(peerB.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+
+        EvLogStatisticsResponse.PeerBenchmark benchmark = evLogStatisticsService
+                .getStatistics(ownerCar.getId(), owner.getId(), null, null, null)
+                .peerBenchmark();
+
+        assertNotNull(benchmark);
+        assertEquals(2, benchmark.uniquePeerUsers(), "both peers count as drivers");
+        assertEquals(2, benchmark.peerLogCount(), "only peer A contributed charges");
     }
 
     @Test

@@ -248,7 +248,7 @@ public class EvLogStatisticsService {
         // Peer benchmark — only when car has a vehicle spec linked
         EvLogStatisticsResponse.PeerBenchmark peerBenchmark = null;
         if (car.getVehicleSpecificationId() != null) {
-            peerBenchmark = buildPeerBenchmark(car, user, allLogsForCar, isSeedUser);
+            peerBenchmark = buildPeerBenchmark(car, allLogsForCar, isSeedUser);
         }
 
         // Charging type split
@@ -299,7 +299,7 @@ public class EvLogStatisticsService {
     }
 
     private EvLogStatisticsResponse.PeerBenchmark buildPeerBenchmark(
-            Car currentCar, User currentUser, List<EvLog> allLogsForCurrentCar, boolean isSeedUser) {
+            Car currentCar, List<EvLog> allLogsForCurrentCar, boolean isSeedUser) {
 
         // Primary match: same vehicleSpecificationId
         EvLogStatisticsResponse.PeerBenchmark.MatchType matchType = EvLogStatisticsResponse.PeerBenchmark.MatchType.SPEC;
@@ -370,37 +370,25 @@ public class EvLogStatisticsService {
             userLifetimeCostPerKwh = totalUserCost.divide(totalUserKwh, 4, RoundingMode.HALF_UP);
         }
 
-        // Peer cost — same-country peers only (min 1 unique user)
-        String currentUserCountry = currentUser.getCountry();
-        Set<UUID> sameCountryUserIds = peerUsers.stream()
-                .filter(u -> currentUserCountry != null && currentUserCountry.equals(u.getCountry()) && !u.isSeedData())
-                .map(User::getId)
-                .collect(Collectors.toSet());
-        int sameCountryPeerUsers = (int) nonSeedPeerCars.stream()
-                .filter(c -> sameCountryUserIds.contains(c.getUserId()))
-                .map(Car::getUserId).distinct().count();
-
+        // Peer cost — energy-weighted across all non-seed peers, regardless of country.
+        // Country is unreliable (null for a large share of users) and filtering on it
+        // shrinks the sample to the point where single outliers dominate the average.
+        List<UUID> peerCarIds = nonSeedPeerCars.stream().map(Car::getId).toList();
         BigDecimal peerAvgCostPerKwh = null;
-        if (sameCountryPeerUsers >= 1) {
-            Set<UUID> sameCountryCarIds = nonSeedPeerCars.stream()
-                    .filter(c -> sameCountryUserIds.contains(c.getUserId()))
-                    .map(Car::getId)
-                    .collect(Collectors.toSet());
-            List<UUID> peerCarIds = nonSeedPeerCars.stream().map(Car::getId).toList();
-            BigDecimal totalPeerCost = BigDecimal.ZERO;
-            BigDecimal totalPeerKwh = BigDecimal.ZERO;
-            for (EvLog log : evLogRepository.findAllByCarIds(peerCarIds)) {
-                if (!sameCountryCarIds.contains(log.getCarId())) continue;
-                if (!log.isIncludeInStatistics()) continue;
-                if (log.getCostEur() == null) continue;
-                BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
-                if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
-                totalPeerCost = totalPeerCost.add(log.getCostEur());
-                totalPeerKwh = totalPeerKwh.add(kwh);
-            }
-            if (totalPeerKwh.compareTo(BigDecimal.ZERO) > 0) {
-                peerAvgCostPerKwh = totalPeerCost.divide(totalPeerKwh, 4, RoundingMode.HALF_UP);
-            }
+        BigDecimal totalPeerCost = BigDecimal.ZERO;
+        BigDecimal totalPeerKwh = BigDecimal.ZERO;
+        int peerLogCount = 0;
+        for (EvLog log : evLogRepository.findAllByCarIds(peerCarIds)) {
+            if (!log.isIncludeInStatistics()) continue;
+            peerLogCount++;
+            if (log.getCostEur() == null) continue;
+            BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
+            if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
+            totalPeerCost = totalPeerCost.add(log.getCostEur());
+            totalPeerKwh = totalPeerKwh.add(kwh);
+        }
+        if (totalPeerKwh.compareTo(BigDecimal.ZERO) > 0) {
+            peerAvgCostPerKwh = totalPeerCost.divide(totalPeerKwh, 4, RoundingMode.HALF_UP);
         }
 
         long uniquePeerUsers = nonSeedPeerCars.stream().map(Car::getUserId).distinct().count();
@@ -412,8 +400,7 @@ public class EvLogStatisticsService {
                 peerAvgCostPerKwh,
                 (int) uniquePeerUsers,
                 peerConsumption.tripCount(),
-                sameCountryPeerUsers,
-                currentUserCountry,
+                peerLogCount,
                 matchType
         );
     }

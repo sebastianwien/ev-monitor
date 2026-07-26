@@ -642,6 +642,7 @@ dashboard:
   peer_community: "Community Ø"
   peer_trips: "Fahrten"
   peer_drivers: "Fahrer"
+  peer_charges: "Ladungen"
   peer_consumption: "Verbrauch"
   peer_range: "Reichweite (90→10%)"
   peer_cost: "Kosten"

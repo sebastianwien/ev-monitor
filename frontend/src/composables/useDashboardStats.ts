@@ -25,8 +25,7 @@ export interface PeerBenchmark {
   peerAvgCostPerKwh: number | null
   uniquePeerUsers: number
   peerTripCount: number
-  sameCountryPeerUsers: number
-  userCountry: string | null
+  peerLogCount: number
   matchType: 'SPEC' | 'MODEL'
 }
 

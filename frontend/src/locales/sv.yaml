@@ -602,6 +602,7 @@ dashboard:
   peer_community: "Community snitt"
   peer_trips: resor
   peer_drivers: förare
+  peer_charges: "laddningar"
   peer_consumption: Förbrukning
   peer_range: Räckvidd (90→10%)
   peer_cost: Kostnad
