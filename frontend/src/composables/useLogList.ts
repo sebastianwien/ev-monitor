@@ -478,6 +478,9 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         _isTrip: false,
         _topUps: [...allSubs].reverse(),
         _totalKwh: Math.round(totalKwh * 100) / 100,
+        // Nur gesetzt, wenn JEDER Teilvorgang einen Brutto-Wert hat - eine Teilsumme
+        // waere neben _totalKwh irrefuehrend.
+        _totalKwhGross: bruttoSum != null ? Math.round(bruttoSum * 100) / 100 : null,
         _totalCostEur: totalCostEur !== null ? Math.round(totalCostEur * 100) / 100 : null,
         _costKwh: Math.round(costKwh * 100) / 100,
         _costIsNettoOnly: costIsNettoOnly,

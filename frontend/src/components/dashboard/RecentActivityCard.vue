@@ -49,9 +49,21 @@ const chargeTypeLabel = computed(() => {
   if (type === 'DC') return t('dashboard.charging_type_dc')
   return null
 })
+/**
+ * Brutto ab Netz, sobald es zusaetzlich zur Netto-Menge gemessen wurde. Die grosse
+ * Zahl bleibt netto (wie im Log-Feed), der ct/kWh-Wert rechnet gegen brutto - der
+ * Chip macht diese beiden Bezugsgroessen sichtbar statt sie zu vermischen.
+ */
+const chargeGross = computed(() => {
+  const gross = ch.value?.kwhGross
+  const net = ch.value?.kwh
+  if (gross == null || net == null || gross <= net) return null
+  return `${formatDecimal(gross, 1)} kWh ${t('dashboard.ac_gross_label_brutto')}`
+})
 /** Dot-separated metric texts; only present ones, so no orphan separators. */
 const chargeMetrics = computed<string[]>(() => {
   const out: string[] = []
+  if (chargeGross.value) out.push(chargeGross.value)
   if (ch.value?.costKwh != null) out.push(formatCostPerKwh(ch.value.costKwh))
   if (ch.value?.maxPowerKw != null) out.push(`${Math.round(ch.value.maxPowerKw)} kW`)
   return out
@@ -156,6 +168,8 @@ const tripInline = computed<string[]>(() => {
           <div class="flex items-baseline gap-1">
             <span class="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{{ ch.kwh != null ? formatDecimal(ch.kwh, 1) : '–' }}</span>
             <span class="text-xs text-gray-400 dark:text-gray-400 font-medium">kWh</span>
+            <!-- Nur wenn ein Brutto-Wert danebensteht, muss die grosse Zahl sich abgrenzen -->
+            <span v-if="chargeGross" class="hidden md:inline text-[10px] text-gray-400 dark:text-gray-400 font-medium">{{ t('dashboard.ac_gross_label_netto') }}</span>
           </div>
           <!-- Volle Breite (keine Fahrt): Ladedaten inline neben kWh, Zeit steht im Header -->
           <div v-if="!showTrip" class="md:hidden flex items-baseline gap-x-2.5 text-[11px] text-gray-500 dark:text-gray-400">

@@ -38,7 +38,14 @@ export interface NormalizedCharge {
   loggedAt: string | null
   /** Energy that reached the car (netto-first), matching the log-feed "+X kWh" display. */
   kwh: number | null
+  /** Energy drawn from the grid (brutto), when measured. Null when only netto exists. */
+  kwhGross: number | null
   costEur: number | null
+  /**
+   * Price per kWh, divided by the SAME basis the cost was billed on (brutto-first,
+   * mirroring EvLog.costBasisKwh on the backend). Dividing by netto instead would
+   * report a ct/kWh above the tariff the user actually configured.
+   */
   costKwh: number | null
   socBefore: number | null
   socAfter: number | null
@@ -58,16 +65,19 @@ export function normalizeCharge(e: any): NormalizedCharge | null {
   if (!e) return null
   const isGroup = !!e._isLadegruppe
   const kwh = isGroup ? num(e._totalKwh) : (num(e.kwhAtVehicle) ?? num(e.kwhCharged))
+  const kwhGross = isGroup ? num(e._totalKwhGross) : num(e.kwhCharged)
   const costEur = isGroup ? num(e._totalCostEur) : num(e.costEur)
+  const costBasisKwh = kwhGross != null && kwhGross > 0 ? kwhGross : kwh
   const costKwh = isGroup
     ? num(e._costKwh)
-    : costEur != null && kwh != null && kwh > 0
-      ? costEur / kwh
+    : costEur != null && costBasisKwh != null && costBasisKwh > 0
+      ? costEur / costBasisKwh
       : null
   return {
     id: e.id,
     loggedAt: e.loggedAt ?? null,
     kwh,
+    kwhGross,
     costEur,
     costKwh,
     socBefore: num(e.socBeforeChargePercent),
