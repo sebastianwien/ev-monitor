@@ -2,8 +2,7 @@ import { test, expect, type Browser } from '@playwright/test'
 
 /**
  * Creates a browser context with a specific navigator.languages mock.
- * Also clears ev-country from localStorage so country detection runs fresh,
- * and mocks the GeoIP endpoint (not implemented yet) to return 404 immediately.
+ * Also clears ev-country from localStorage so country detection runs fresh.
  */
 async function contextWithLocale(browser: Browser, languages: string[]) {
     const context = await browser.newContext({ locale: languages[0] })
@@ -16,9 +15,6 @@ async function contextWithLocale(browser: Browser, languages: string[]) {
         })
         localStorage.removeItem('ev-country')
     }, languages)
-
-    // GeoIP not implemented yet — short-circuit to avoid waiting for timeout
-    await context.route('**/api/geoip/country', route => route.fulfill({ status: 404 }))
 
     return context
 }

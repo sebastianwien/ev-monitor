@@ -53,7 +53,6 @@ public class DemoAccountInterceptor implements HandlerInterceptor {
     private static final List<String> DEMO_READ_WHITELIST = List.of(
             "/api/public/**",
             "/api/app/**",
-            "/api/geoip/**",
             "/api/charging-provider-tariffs",
             "/api/charging-provider-tariffs/**",
             "/api/vehicle-specifications/**",

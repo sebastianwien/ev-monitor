@@ -1,18 +1,16 @@
 import { useCountryStore } from '../stores/country'
 import { useAuthStore } from '../stores/auth'
 import { isValidCountryCode, type CountryCode } from '../config/unitSystems'
-import api from '../api/axios'
 
 /**
  * Country detection waterfall (called once on app init):
  * 1. JWT claim 'country' (already handled by store.initFromJwt)
  * 2. localStorage 'ev-country' (only for unauthenticated users)
- * 3. GeoIP endpoint (nginx X-Country-Code header echo)
- * 4. navigator.language heuristic
- * 5. Default: DE
+ * 3. navigator.language heuristic
+ * 4. Default: DE
  *
- * For authenticated users without JWT country claim, GeoIP always runs
- * to populate the DB exactly once — localStorage alone is not sufficient.
+ * For authenticated users without JWT country claim the heuristic always runs
+ * to populate the DB exactly once - localStorage alone is not sufficient.
  */
 export async function detectCountry(): Promise<void> {
     const store = useCountryStore()
@@ -31,26 +29,14 @@ export async function detectCountry(): Promise<void> {
         return
     }
 
-    // Step 3: Try GeoIP endpoint
-    try {
-        const response = await api.get('/geoip/country')
-        const geoCountry = response.data?.country
-        if (geoCountry && isValidCountryCode(geoCountry)) {
-            store.setCountry(geoCountry as CountryCode)
-            return
-        }
-    } catch {
-        // GeoIP not available (local dev, network error) - continue to heuristic
-    }
-
-    // Step 4: navigator.language heuristic
+    // Step 3: navigator.language heuristic
     const detected = detectCountryFromLanguage()
     if (detected) {
         store.setCountry(detected)
         return
     }
 
-    // Step 5: Default stays DE (set by store initialization)
+    // Step 4: Default stays DE (set by store initialization)
 }
 
 const LANGUAGE_COUNTRY_MAP: Record<string, CountryCode> = {
