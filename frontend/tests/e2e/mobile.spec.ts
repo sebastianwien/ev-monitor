@@ -1,9 +1,54 @@
-import { test, expect, devices } from '@playwright/test';
+import { test, expect, devices, request as playwrightRequest } from '@playwright/test';
 import { TEST_USER } from './global-setup';
 import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 
 // iPhone 12 viewport direkt pro Test setzen (test.use in describe geht nicht mit defaultBrowserType)
 const iphone12 = devices['iPhone 12'];
+
+const API_URL = process.env.API_URL || 'http://localhost:8080';
+
+/**
+ * Legt per API einen Ladevorgang an. Alle Specs teilen sich denselben Testuser und
+ * log-management.spec.ts loescht in seinem beforeAll saemtliche Logs des Testfahrzeugs.
+ * Bei fullyParallel laeuft das gleichzeitig zu diesen Tests - wer sich auf vorhandene
+ * Logs verlaesst, wird sporadisch rot. Deshalb legen die Log-abhaengigen Tests ihre
+ * Daten unmittelbar vor Gebrauch selbst an.
+ */
+async function createLog() {
+  const api = await playwrightRequest.newContext({ baseURL: API_URL });
+  const authResp = await api.post('/api/auth/login', {
+    data: { email: TEST_USER.email, password: TEST_USER.password },
+  });
+  const { token } = await authResp.json();
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const cars = await (await api.get('/api/cars', { headers })).json();
+  if (!Array.isArray(cars) || cars.length === 0) throw new Error('[E2E] Kein Testfahrzeug vorhanden');
+
+  // Eindeutiger Zeitstempel in der Vergangenheit: der Server lehnt zwei Logs mit
+  // gleicher Zeit am selben Fahrzeug mit 409 ab. "Jetzt" kollidiert sowohl mit dem
+  // parallelen zweiten Mobile-Test als auch mit den Logs, die log-management.spec.ts
+  // ueber das Formular anlegt.
+  const offsetMinutes = Math.floor(Math.random() * 500_000);
+  const loggedAt = new Date(Date.UTC(2024, 0, 1) + offsetMinutes * 60_000)
+    .toISOString().slice(0, 19);
+
+  const resp = await api.post('/api/logs', {
+    headers,
+    data: {
+      carId: cars[0].id,
+      kwhCharged: 45.5,
+      costEur: 18.2,
+      odometerKm: 5000 + Math.floor(offsetMinutes / 100),
+      socAfterChargePercent: 80,
+      socBeforeChargePercent: 20,
+      chargingType: 'AC',
+      loggedAt,
+    },
+  });
+  if (!resp.ok()) throw new Error(`[E2E] Log-Anlage fehlgeschlagen: ${resp.status()} ${await resp.text()}`);
+  await api.dispose();
+}
 
 test('Mobile: Landing Page vollständig nutzbar', async ({ browser }) => {
   const context = await browser.newContext({ ...iphone12 });
@@ -53,6 +98,7 @@ test('Mobile: Login-Formular bedienbar', async ({ browser }) => {
 });
 
 test('Mobile: Edit-Modal auf /logs liegt im Viewport (nicht im Pager-Track)', async ({ browser }) => {
+  await createLog();
   const context = await browser.newContext({ ...iphone12 });
   const page = await context.newPage();
 
@@ -94,6 +140,7 @@ test('Mobile: Edit-Modal auf /logs liegt im Viewport (nicht im Pager-Track)', as
 });
 
 test('Mobile: Kachel "Letzter Ladevorgang" oeffnet den Editor auf dem Dashboard', async ({ browser }) => {
+  await createLog();
   const context = await browser.newContext({ ...iphone12 });
   const page = await context.newPage();
 
