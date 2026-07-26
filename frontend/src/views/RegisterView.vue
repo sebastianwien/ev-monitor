@@ -92,7 +92,10 @@ const handleRegister = async () => {
       utmCampaign: utmCampaign.value || undefined,
       referrerSource: referrerSource.value || undefined,
       registrationLocale: locale.value || undefined,
-      country: showCountryPicker ? selectedCountry.value : undefined,
+      // Immer senden: bei sichtbarem Picker die Auswahl, sonst das Ergebnis der
+      // Country-Detection (localStorage -> Browsersprache -> Default DE).
+      // Vorher blieb country genau im eindeutigen Fall leer.
+      country: showCountryPicker ? selectedCountry.value : countryStore.country,
     });
     if (response.data.status === 'PENDING_VERIFICATION') {
       pendingEmail.value = response.data.email;
