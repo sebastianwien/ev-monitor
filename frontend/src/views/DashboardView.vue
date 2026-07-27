@@ -295,8 +295,10 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   <TruckIcon v-else class="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                 </div>
                 <div class="min-w-0 flex-1 px-3 py-1.5 md:px-3 md:py-2">
-                  <!-- Desktop: zweizeiliges Layout -->
-                  <div :class="cars.length === 1 ? 'hidden lg:block' : 'hidden md:block'">
+                  <!-- Desktop: zweizeiliges Layout. Ab md sichtbar - die Kachel passt mit
+                       vollem Inhalt auch in den schmalsten Desktop-Viewport; vorher fiel sie
+                       unterhalb von lg auf das blosse Bild zusammen. -->
+                  <div class="hidden md:block">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car.brand, car.model) }}</span>
                       <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
@@ -345,10 +347,10 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                     </div>
                   </div>
                 </div>
-                <!-- Desktop horizontal extension (single-car only, lg+): chips column -->
+                <!-- Desktop horizontal extension (single-car only, ab md): chips column -->
                 <div
                   v-if="cars.length === 1 && car.id === selectedCarId"
-                  class="hidden lg:flex flex-shrink-0 self-stretch items-center border-l border-gray-200 dark:border-gray-600 pl-3 pr-3 py-2"
+                  class="hidden md:flex flex-shrink-0 self-stretch items-center border-l border-gray-200 dark:border-gray-600 pl-3 pr-3 py-2"
                 >
                   <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="horizontal" />
                 </div>

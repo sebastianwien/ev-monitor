@@ -148,7 +148,7 @@ const tripInline = computed<string[]>(() => {
       data-testid="recent-charge-tile"
       :aria-label="t('dashboard.recent_charge_edit')"
       @click="emit('edit-charge')"
-      class="group block w-full text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
+      class="group block w-full cursor-pointer text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
       :class="{ 'col-span-2': !showTrip }"
     >
       <div class="flex items-center justify-between mb-1 md:mb-1.5">
@@ -226,7 +226,7 @@ const tripInline = computed<string[]>(() => {
       data-testid="recent-trip-tile"
       :aria-label="t('dashboard.recent_trip_edit')"
       @click="emit('edit-trip')"
-      class="group block w-full text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
+      class="group block w-full cursor-pointer text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
     >
       <div class="flex items-center justify-between mb-1 md:mb-1.5">
         <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
