@@ -2255,6 +2255,9 @@ demo:
 announcements:
   tesla_telemetry_recovery_v1_title: "Tesla-Telemetrie: Ausfall behoben"
   tesla_telemetry_recovery_v1_body: "Zwischen dem 10. und 16. Juli konnten manche Tesla-Fahrzeuge keine neuen Lade- und Fahrtdaten mehr senden. Ursache war ein Zertifikatsproblem auf meinem Telemetrie-Server, nicht deine Kopplung. Das ist behoben und so abgesichert, dass es nicht wiederkehrt. Deine Telemetrie läuft automatisch wieder an, sobald dein Auto das nächste Mal online ist oder du fährst - du musst nichts tun. Falls danach weiterhin keine neuen Vorgänge erscheinen, melde dich kurz bei mir."
+  tesla_location_reconnect_v1_title: "Tesla neu verbinden - für automatische Ladepreise"
+  tesla_location_reconnect_v1_body: "Tesla verlangt seit einer Änderung an der Schnittstelle eine eigene Freigabe für Standortdaten. Sie lässt sich nur beim Verbinden erteilen, deshalb die Bitte: verbinde deinen Tesla einmal neu. Danach erkennt ev-monitor wieder, wo du geladen hast - zu Hause, am Supercharger oder unterwegs - und trägt den passenden Preis automatisch ein."
+  tesla_location_reconnect_v1_cta: "Tesla neu verbinden"
   consumption_methodology_v1_title: "Warum liegt mein Verbrauch über dem Bordcomputer?"
   consumption_methodology_v1_body: "Das haben wir jetzt ausführlich erklärt - mit echten Zahlen, der vollen Energiekette vom Stromnetz bis zum Motor, und dem Grund warum beide Werte korrekt sind."
   consumption_methodology_v1_cta: "Mehr erfahren"

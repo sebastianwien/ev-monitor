@@ -26,4 +26,14 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     bodyKey: 'announcements.tesla_telemetry_recovery_v1_body',
     condition: (ctx) => ctx.hasTeslaConnection, // nur Tesla-Nutzer
   },
+  {
+    key: 'tesla_location_reconnect_v1',
+    releasedAt: '2026-07-28', // nur Bestandsuser - Neuverbindungen bringen den Scope schon mit
+    expiresAt: '2026-09-30',
+    titleKey: 'announcements.tesla_location_reconnect_v1_title',
+    bodyKey: 'announcements.tesla_location_reconnect_v1_body',
+    ctaLabelKey: 'announcements.tesla_location_reconnect_v1_cta',
+    ctaRoute: '/cars',
+    condition: (ctx) => ctx.hasTeslaConnection, // nur Tesla-Nutzer
+  },
 ]

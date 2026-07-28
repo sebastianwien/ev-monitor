@@ -2189,6 +2189,9 @@ demo:
 announcements:
   tesla_telemetry_recovery_v1_title: "Tesla-telemetri: avbrottet är åtgärdat"
   tesla_telemetry_recovery_v1_body: "Mellan den 10 och 16 juli kunde vissa Tesla-bilar inte längre skicka nya laddnings- och färddata. Orsaken var ett certifikatproblem på min telemetriserver, inte din koppling. Det är åtgärdat och säkrat så att det inte kan hända igen. Din telemetri återupptas automatiskt nästa gång bilen är online eller du kör - du behöver inte göra något. Om inga nya poster dyker upp efteråt, hör av dig till mig."
+  tesla_location_reconnect_v1_title: "Anslut Tesla på nytt - för automatiska laddpriser"
+  tesla_location_reconnect_v1_body: "Efter en ändring i gränssnittet kräver Tesla en egen behörighet för platsdata. Den kan bara ges när du ansluter, därav önskemålet: anslut din Tesla på nytt en gång. Därefter känner ev-monitor igen var du har laddat - hemma, vid en Supercharger eller på vägen - och fyller i rätt pris automatiskt."
+  tesla_location_reconnect_v1_cta: "Anslut Tesla på nytt"
   consumption_methodology_v1_title: "Varför är min förbrukning högre än trippdatorn?"
   consumption_methodology_v1_body: "Vi har förklarat detta i detalj - med riktiga siffror och hela energikedjan från elnätet till motorn."
   consumption_methodology_v1_cta: "Läs mer"

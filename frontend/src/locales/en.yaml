@@ -2255,6 +2255,9 @@ demo:
 announcements:
   tesla_telemetry_recovery_v1_title: "Tesla telemetry: outage fixed"
   tesla_telemetry_recovery_v1_body: "Between July 10 and 16, some Tesla vehicles could no longer send new charging and trip data. The cause was a certificate issue on my telemetry server, not your pairing. It is fixed and secured so it cannot happen again. Your telemetry resumes automatically the next time your car is online or you drive - you don't need to do anything. If no new entries appear after that, just let me know."
+  tesla_location_reconnect_v1_title: "Reconnect your Tesla - for automatic charging prices"
+  tesla_location_reconnect_v1_body: "After a change to their API, Tesla requires a separate permission for location data. It can only be granted while connecting, hence the request: please reconnect your Tesla once. After that ev-monitor can tell where you charged again - at home, at a Supercharger or on the road - and fills in the matching price automatically."
+  tesla_location_reconnect_v1_cta: "Reconnect Tesla"
   consumption_methodology_v1_title: "Why is my consumption higher than my trip computer?"
   consumption_methodology_v1_body: "We have explained this in detail - with real numbers, the full energy chain from the grid to the motor, and the reason why both values are correct."
   consumption_methodology_v1_cta: "Learn more"
