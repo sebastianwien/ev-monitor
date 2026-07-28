@@ -41,8 +41,8 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">2. Geltungsbereich</h2>
           <p>
             Diese Erklärung gilt für unsere Website (ev-monitor.net) <strong>und</strong> unsere native App
-            (iOS). Funktionsumfang und Datenverarbeitung sind in beiden weitgehend identisch; abweichende
-            App-Besonderheiten sind in Abschnitt 14 beschrieben.
+            (iOS und Android). Funktionsumfang und Datenverarbeitung sind auf allen Plattformen weitgehend
+            identisch; abweichende App-Besonderheiten sind in Abschnitt 14 beschrieben.
           </p>
         </section>
 
@@ -72,6 +72,15 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             Die E-Mail-Verifizierung ist verpflichtend; der Verifizierungslink ist 24 Stunden gültig.
           </p>
           <p class="mt-4">
+            <strong>Anmeldung mit Google (nur Web):</strong> Auf der Website können Sie sich alternativ mit
+            Ihrem Google-Konto registrieren und anmelden. Dabei übermittelt <strong>Google</strong>
+            (Google Ireland Ltd., Irland, bzw. Google LLC, USA) uns Ihre E-Mail-Adresse und Ihren Namen zur
+            Kontoerstellung; im Gegenzug erfährt Google, dass Sie sich bei EV Monitor anmelden. In der nativen
+            App (iOS/Android) ist diese Option deaktiviert. Rechtsgrundlage ist Ihre Einwilligung
+            (Art. 6 Abs. 1 lit. a DSGVO), erteilt durch Auswahl des Google-Logins; zur Übermittlung in die USA
+            siehe Abschnitt 17.
+          </p>
+          <p class="mt-4">
             <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Erfüllung des Nutzungsvertrags).
           </p>
         </section>
@@ -91,11 +100,18 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
 
         <section>
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">6. Standortdaten</h2>
-          <p>Wir speichern <strong>keine</strong> exakten GPS-Koordinaten.</p>
+          <p>
+            Für die dauerhaft in Ihrem Konto sichtbaren Lade- und Fahrtdaten speichern wir <strong>keine</strong>
+            exakten GPS-Koordinaten. Stattdessen verwenden wir <strong>Geohashing</strong>: private Ladevorgänge
+            werden auf ~600m, öffentliche Ladesäulen auf ~150m anonymisiert. Aus diesem gespeicherten Geohash
+            lässt sich Ihre exakte Position nicht rekonstruieren.
+          </p>
           <p class="mt-4">
-            Stattdessen verwenden wir <strong>Geohashing</strong>: private Ladevorgänge werden auf ~600m,
-            öffentliche Ladesäulen auf ~150m anonymisiert. Aus dem gespeicherten Geohash lässt sich Ihre exakte
-            Position nicht rekonstruieren.
+            <strong>Ausnahme technische Rohdaten:</strong> Wenn Sie eine Fahrzeug-Integration nutzen, die uns
+            Standortsignale liefert (z. B. Smartcar), können in unseren technischen Rohdaten-Protokollen
+            vorübergehend exakte Koordinaten enthalten sein. Diese Rohdaten dienen ausschließlich der
+            Fahrt-Erkennung und Fehlerdiagnose und werden nach spätestens <strong>14 Tagen automatisch
+            gelöscht</strong>; in Ihre dauerhaften Daten fließt nur der anonymisierte Geohash ein.
           </p>
         </section>
 
@@ -108,6 +124,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
           <ul class="list-disc list-inside space-y-2 mt-2">
             <li><strong>Tesla</strong> (Tesla, Inc., USA): Zugriffs- und Refresh-Token werden AES-256-GCM-verschlüsselt gespeichert; Abruf von Fahrzeug-/Ladedaten über die Tesla-API.</li>
             <li><strong>Smartcar</strong> (Smartcar, Inc., USA): Verbindung zu Ihrem Fahrzeugkonto zum Abruf von Fahrzeugdaten.</li>
+            <li><strong>VW Group</strong> (Volkswagen AG, Deutschland; Marken VW, Audi, Škoda, SEAT/Cupra): Verbindung zu Ihrem Hersteller-Konto zum Abruf von Fahrzeug-/Ladedaten.</li>
             <li><strong>Spritmonitor</strong> (fisch und fischl GmbH, Deutschland): Import Ihrer dort erfassten Verbrauchsdaten.</li>
             <li><strong>XPeng-Datenexport</strong>: Import von Fahrzeugdaten, die Sie über den Hersteller anfordern.</li>
           </ul>
@@ -170,7 +187,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             lediglich:
           </p>
           <ul class="list-disc list-inside space-y-2">
-            <li><strong>Session-Token (JWT):</strong> im lokalen Speicher (localStorage) zur Authentifizierung, 7 Tage gültig.</li>
+            <li><strong>Session-Token (JWT):</strong> im lokalen Speicher (localStorage) zur Authentifizierung, bis zu 30 Tage gültig.</li>
           </ul>
           <p class="mt-4">
             Diese Speicherung ist für den von Ihnen gewünschten Login unbedingt erforderlich (§ 25 Abs. 2 TTDSG)
@@ -217,6 +234,12 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             Absturzberichte). Hierauf haben wir keinen Einfluss; es gilt die Datenschutzerklärung von Apple.
           </p>
           <p class="mt-4">
+            Bei Installation und Nutzung der Android-App verarbeitet entsprechend <strong>Google</strong>
+            (Google Ireland Ltd., Irland, bzw. Google LLC, USA) im Rahmen von Google Play eigenverantwortlich
+            Daten (z. B. Download, optionale Absturz- und Nutzungsberichte). Hierauf haben wir keinen Einfluss;
+            es gilt die Datenschutzerklärung von Google.
+          </p>
+          <p class="mt-4">
             Die App lädt Funktions-Updates als Web-Pakete von <strong>unserem eigenen Server</strong> (kein
             Drittanbieter-Dienst, keine Übermittlung von Gerätedaten an Dritte zu diesem Zweck).
           </p>
@@ -256,7 +279,7 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             <li>wenn Sie ausdrücklich eingewilligt haben.</li>
           </ul>
           <p class="mt-4">
-            Bei Nutzung bestimmter Dienste (Tesla, Smartcar, Stripe, Reddit, Apple) können Daten in die
+            Bei Nutzung bestimmter Dienste (Tesla, Smartcar, Stripe, Reddit, Apple, Google) können Daten in die
             <strong>USA</strong> übermittelt werden. Soweit kein Angemessenheitsbeschluss greift, stützt sich die
             Übermittlung auf geeignete Garantien (EU-Standardvertragsklauseln gem. Art. 46 DSGVO) bzw. - bei
             einwilligungsbasierten Diensten - auf Ihre Einwilligung (Art. 49 Abs. 1 lit. a DSGVO). In den USA
