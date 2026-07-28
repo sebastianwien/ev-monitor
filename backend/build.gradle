@@ -54,4 +54,8 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Testklassen auf mehrere JVMs verteilen. Konservativ die Haelfte der Kerne:
+	// jeder Fork baut seinen eigenen Spring-Context-Cache auf, mehr Forks
+	// wuerden das mehrfache Booten der Contexts wieder auffressen.
+	maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))
 }
