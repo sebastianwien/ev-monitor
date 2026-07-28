@@ -33,7 +33,8 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     titleKey: 'announcements.tesla_location_reconnect_v1_title',
     bodyKey: 'announcements.tesla_location_reconnect_v1_body',
     ctaLabelKey: 'announcements.tesla_location_reconnect_v1_cta',
-    ctaRoute: '/cars',
+    ctaRoute: '/imports', // dort sitzt TeslaFleetIntegration; Tesla-Fahrer landen automatisch im Tesla-Tab
+
     condition: (ctx) => ctx.hasTeslaConnection, // nur Tesla-Nutzer
   },
 ]
