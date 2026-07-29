@@ -129,15 +129,20 @@ jobs:
             (crontab -l 2>/dev/null | grep -v "warm-prerender-cache"; echo "$CRON_LINE") | crontab -
             echo "✅ Cron job set: $(crontab -l | grep warm-prerender-cache)"
 
-  # Capgo Live-Update: baut das App-Mode-Bundle, laedt es auf den Server und
-  # registriert es am Backend. Laeuft NACH dem Deploy (Endpoint muss existieren).
+  # Capgo Live-Update, Teil 1: App-Mode-Bundle bauen und auf den Server legen.
+  # Haengt nur an `test`, laeuft also parallel zu `deploy` - das Bundle ist vom
+  # Deployment unabhaengig, erst die Registrierung braucht das neue Backend.
   # Wird uebersprungen, wenn APP_BUNDLE_PUBLISH_TOKEN nicht gesetzt ist.
-  publish-live-update:
-    needs: deploy
+  build-live-update:
+    needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     env:
       PUBLISH_TOKEN: ${{ secrets.APP_BUNDLE_PUBLISH_TOKEN }}
+    outputs:
+      skip: ${{ steps.guard.outputs.skip }}
+      version: ${{ steps.zip.outputs.version }}
+      checksum: ${{ steps.zip.outputs.checksum }}
 
     steps:
       - name: Check publish token configured
@@ -192,15 +197,6 @@ jobs:
           target: /opt/ev-monitor/app-bundles/
           strip_components: 1
 
-      - name: Register bundle at backend
-        if: steps.guard.outputs.skip != 'true'
-        run: |
-          curl -fsS -X POST https://ev-monitor.net/api/app/bundles \
-            -H "X-App-Bundle-Token: $PUBLISH_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"version\":\"${{ steps.zip.outputs.version }}\",\"checksum\":\"${{ steps.zip.outputs.checksum }}\"}"
-          echo "✅ Bundle ${{ steps.zip.outputs.version }} registriert"
-
       - name: Rotate old bundles (older than 30 days)
         if: steps.guard.outputs.skip != 'true'
         uses: appleboy/ssh-action@v1.0.3
@@ -212,3 +208,22 @@ jobs:
           script: |
             find /opt/ev-monitor/app-bundles -maxdepth 1 -name '*.zip' -mtime +30 -delete
             echo "✅ Alte Bundles (>30 Tage) bereinigt"
+
+  # Capgo Live-Update, Teil 2: das hochgeladene Bundle am Backend registrieren.
+  # Erst hier wird das Update fuer die Clients sichtbar, deshalb braucht dieser
+  # Schritt das fertige Deployment (der Endpoint muss die neue Version kennen).
+  publish-live-update:
+    needs: [deploy, build-live-update]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && needs.build-live-update.outputs.skip != 'true'
+    env:
+      PUBLISH_TOKEN: ${{ secrets.APP_BUNDLE_PUBLISH_TOKEN }}
+
+    steps:
+      - name: Register bundle at backend
+        run: |
+          curl -fsS -X POST https://ev-monitor.net/api/app/bundles \
+            -H "X-App-Bundle-Token: $PUBLISH_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"version\":\"${{ needs.build-live-update.outputs.version }}\",\"checksum\":\"${{ needs.build-live-update.outputs.checksum }}\"}"
+          echo "✅ Bundle ${{ needs.build-live-update.outputs.version }} registriert"
