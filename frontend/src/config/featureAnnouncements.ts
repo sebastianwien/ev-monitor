@@ -37,4 +37,12 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
 
     condition: (ctx) => ctx.hasTeslaConnection, // nur Tesla-Nutzer
   },
+  {
+    key: 'survey_ev_pain_points_2026',
+    expiresAt: '2026-09-30',
+    titleKey: 'announcements.survey_ev_pain_points_2026_title',
+    bodyKey: 'announcements.survey_ev_pain_points_2026_body',
+    ctaLabelKey: 'announcements.survey_ev_pain_points_2026_cta',
+    ctaRoute: '/umfrage/ev-pain-points-2026',
+  },
 ]
