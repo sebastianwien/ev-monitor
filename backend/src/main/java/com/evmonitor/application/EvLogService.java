@@ -99,8 +99,7 @@ public class EvLogService {
             }
             builder.chargingProviderId(request.chargingProviderId());
         } else {
-            resolveChargingProvider(userId, geohash, Boolean.TRUE.equals(request.isPublicCharging()))
-                    .ifPresent(builder::chargingProviderId);
+            resolveChargingProvider(userId, geohash).ifPresent(builder::chargingProviderId);
         }
         newLog = builder.build();
 
@@ -346,7 +345,7 @@ public class EvLogService {
     private EvLog enrichWithChargingProvider(EvLog log, UUID userId, boolean hasCostAlready) {
         if (log.getChargingProviderId() != null) return log;
 
-        Optional<UUID> providerIdOpt = resolveChargingProvider(userId, log.getGeohash(), log.isPublicCharging());
+        Optional<UUID> providerIdOpt = resolveChargingProvider(userId, log.getGeohash());
         if (providerIdOpt.isEmpty()) return log;
         UUID providerId = providerIdOpt.get();
 
@@ -360,27 +359,22 @@ public class EvLogService {
     }
 
     /**
-     * Which card paid for a charge the user did not assign one to. The card they last used at
-     * this exact location wins - it is the strongest evidence we have. Failing that, a public
-     * charge falls back to their single active card: with exactly one card in the wallet there
-     * is nothing to guess. Users holding several cards stay unattributed rather than get an
-     * invented tariff, and home charging never inherits a public card at all.
+     * Which card paid for a charge the user did not assign one to: the one they last used at this
+     * exact location. That is the only evidence we accept - without a usable location the log stays
+     * unattributed, even when the user holds a single card. Owning one card does not mean it paid
+     * for this particular charge point, and attributing it also applies its tariff: that is how a
+     * Tesla Supercharger session ends up priced with a supermarket card.
+     *
+     * Unattributed is not final - {@link #updateGeohash} re-runs this once a connector backfills
+     * the location.
      */
-    private Optional<UUID> resolveChargingProvider(UUID userId, String geohash, boolean isPublicCharging) {
+    private Optional<UUID> resolveChargingProvider(UUID userId, String geohash) {
         // Below 6 chars a geohash spans kilometers - too coarse to identify a charge point, so it
         // would attribute the card of some unrelated charge nearby. The repository lookup demands
         // the same minimum.
         boolean locationIsPreciseEnough = geohash != null && geohash.length() >= MIN_GEOHASH_LENGTH_FOR_LOOKUP;
-        Optional<UUID> usedHereBefore = locationIsPreciseEnough
+        return locationIsPreciseEnough
                 ? evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
-                : Optional.empty();
-        if (usedHereBefore.isPresent()) return usedHereBefore;
-        if (!isPublicCharging) return Optional.empty();
-
-        List<UserChargingProviderEntity> activeCards =
-                chargingProviderRepository.findByUserIdAndActiveUntilIsNullAndDeletedAtIsNull(userId);
-        return activeCards.size() == 1
-                ? Optional.of(activeCards.get(0).getId())
                 : Optional.empty();
     }
 

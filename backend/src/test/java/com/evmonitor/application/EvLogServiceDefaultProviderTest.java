@@ -17,12 +17,16 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Attribution of a public charge to the user's charging card when the log carries none.
+ * Attribution of a charge to the user's charging card when the log carries none.
  *
- * The location-history lookup only fires when the user has already picked a card at that exact
- * geohash - which imports and live connectors never do. So every Tronity/Tesla/API charge stayed
- * unattributed forever. A user with exactly one active card has no ambiguity: that card is the
- * answer. Users with several active cards stay unattributed - guessing would invent wrong costs.
+ * The location the charge happened at is the only evidence we accept: the card the user last
+ * picked at this exact geohash. Without a usable location there is no evidence at all, so the
+ * log stays unattributed and unpriced - even for a user holding a single card. Assuming that
+ * card invents a tariff for a charge point it may never have paid for; a Tesla Supercharger
+ * priced with a supermarket card is the concrete failure this rule prevents.
+ *
+ * Nothing is lost permanently: {@code updateGeohash} re-runs attribution as soon as a connector
+ * backfills the location.
  */
 class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
 
@@ -53,12 +57,13 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
     // ---- Manual entry (logCharging) ----
 
     @Test
-    void publicChargeWithoutACardPicksTheUsersOnlyActiveCard() {
-        UUID enbw = saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
+    void publicChargeWithoutALocationStaysUnattributed() {
+        saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
 
         EvLog log = manualLog(true, null);
 
-        assertEquals(enbw, log.getChargingProviderId());
+        assertNull(log.getChargingProviderId(),
+                "A single card is not evidence that it paid for this particular charge point");
     }
 
     @Test
@@ -91,26 +96,28 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void anExpiredCardIsNotUsedAsDefault() {
-        saveProvider("Old Card", new BigDecimal("0.3900"), new BigDecimal("0.5900"), LocalDate.now().minusDays(1));
-
-        EvLog log = manualLog(true, null);
-
-        assertNull(log.getChargingProviderId(), "Card was cancelled - it cannot have paid for this charge");
-    }
-
-    @Test
-    void aForeignUsersCardIsNeverUsed() {
+    void aForeignUsersCardAtTheSameLocationIsNeverUsed() {
         User stranger = createAndSaveUser("stranger-" + System.nanoTime() + "@example.com");
-        saveProviderFor(stranger.getId(), "EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
+        UUID strangersCard = saveProviderFor(stranger.getId(), "EnBW mobility+",
+                new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
+        Car strangersCar = Car.createNew(stranger.getId(), CarBrand.CarModel.MODEL_3, 2023, "STR-1",
+                "Standard", new BigDecimal("75.0"), new BigDecimal("275.0"), null);
+        carRepository.save(strangersCar);
+        // The stranger charged at this very charge point and paid with their card. That says
+        // nothing about who paid for our user's charge at the same place.
+        evLogRepository.save(EvLog.createNew(strangersCar.getId(), new BigDecimal("40.0"),
+                new BigDecimal("20.00"), 30, geohashOfChargePoint(), 9_000, new BigDecimal("150.0"),
+                new BigDecimal("80.0"), LocalDateTime.now().minusDays(5), ChargingType.DC, null, null,
+                true, null)
+                .toBuilder().chargingProviderId(strangersCard).build());
 
-        EvLog log = manualLog(true, null);
+        EvLog log = manualLogAtChargePoint();
 
         assertNull(log.getChargingProviderId());
     }
 
     @Test
-    void theCardUsedAtThisLocationBeforeBeatsTheDefaultCard() {
+    void theCardUsedAtThisLocationBeforeIsTheAnswer() {
         UUID enbw = saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
         UUID ionity = saveProvider("IONITY Passport", new BigDecimal("0.4900"), new BigDecimal("0.3900"), null);
         // A previous charge here was explicitly paid with IONITY. Two active cards means the
@@ -129,12 +136,13 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
     // ---- Connector / import (createInternalLog) ----
 
     @Test
-    void importedPublicChargeGetsTheCardAndItsPrice() {
+    void importedChargeAtAKnownLocationGetsThatCardAndItsPrice() {
         UUID enbw = saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
+        chargedHereBeforeWith(enbw);
 
-        EvLog log = internalLog(new BigDecimal("50.0"), null, true, OTHER_LOCATION);
+        EvLog log = internalLog(new BigDecimal("50.0"), null, true, geohashOfChargePoint());
 
-        assertEquals(enbw, log.getChargingProviderId(), "Tronity/Tesla imports never anchor on a geohash");
+        assertEquals(enbw, log.getChargingProviderId());
         // 50 kWh * 0.59 DC = 29.50
         assertEquals(0, new BigDecimal("29.50").compareTo(log.getCostEur()));
     }
@@ -142,32 +150,37 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
     @Test
     void importedChargeThatAlreadyHasACostKeepsItButIsStillAttributed() {
         UUID enbw = saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
+        chargedHereBeforeWith(enbw);
 
         // Tesla Supercharger reports its own billed cost - that number always wins over our tariff.
-        EvLog log = internalLog(new BigDecimal("50.0"), new BigDecimal("18.40"), true, OTHER_LOCATION);
+        EvLog log = internalLog(new BigDecimal("50.0"), new BigDecimal("18.40"), true, geohashOfChargePoint());
 
         assertEquals(enbw, log.getChargingProviderId());
         assertEquals(0, new BigDecimal("18.40").compareTo(log.getCostEur()));
     }
 
     @Test
-    void importedPublicChargeWithoutGeohashIsStillAttributed() {
-        UUID enbw = saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
+    void importedPublicChargeWithoutGeohashIsNeitherAttributedNorPriced() {
+        saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
 
         EvLog log = internalLog(new BigDecimal("50.0"), null, true, null);
 
-        assertEquals(enbw, log.getChargingProviderId());
+        assertNull(log.getChargingProviderId(),
+                "A Tesla Supercharger session must not inherit the user's supermarket card");
+        assertNull(log.getCostEur());
     }
 
     @Test
-    void aTooCoarseGeohashDoesNotBlowUpTheImport() {
+    void aTooCoarseGeohashIsTreatedAsNoLocationAtAll() {
         UUID enbw = saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
+        chargedHereBeforeWith(enbw);
 
         // Connectors are free to send whatever they have. 5 chars span ~2.4km - too coarse to
         // identify a charge point, so the location lookup is skipped rather than attempted.
         EvLog log = internalLog(new BigDecimal("50.0"), null, true, "u2edq");
 
-        assertEquals(enbw, log.getChargingProviderId());
+        assertNull(log.getChargingProviderId());
+        assertNull(log.getCostEur());
     }
 
     @Test
@@ -178,6 +191,21 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
 
         assertNull(log.getChargingProviderId());
         assertNull(log.getCostEur(), "Wallbox charge at home must not be priced with a public tariff");
+    }
+
+    @Test
+    void aBackfilledGeohashAttributesAndPricesTheLogAfterwards() {
+        UUID enbw = saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
+        chargedHereBeforeWith(enbw);
+        EvLog log = internalLog(new BigDecimal("50.0"), null, true, null);
+        assertNull(log.getChargingProviderId());
+
+        // The connector learns the location later (Tesla streams it only on change) and backfills it.
+        evLogService.updateGeohash(carId, userId, log.getLoggedAt(), geohashOfChargePoint());
+
+        EvLog enriched = reload(log.getId());
+        assertEquals(enbw, enriched.getChargingProviderId());
+        assertEquals(0, new BigDecimal("29.50").compareTo(enriched.getCostEur()));
     }
 
     // ---- Helpers ----
@@ -206,6 +234,14 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
                 LocalDateTime.now().minusHours(1), false, ChargingType.DC, null, null,
                 isPublic, null, null, null, chargingProviderId);
         return reload(evLogService.logCharging(userId, request).log().id());
+    }
+
+    /** An earlier charge at {@link #geohashOfChargePoint()} explicitly paid with the given card. */
+    private void chargedHereBeforeWith(UUID providerId) {
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("20.00"), 30,
+                geohashOfChargePoint(), 9_000, new BigDecimal("150.0"), new BigDecimal("80.0"),
+                LocalDateTime.now().minusDays(5), ChargingType.DC, null, null, true, null)
+                .toBuilder().chargingProviderId(providerId).build());
     }
 
     /** The geohash the service derives for a public charge at {@link #CHARGE_POINT_LAT}/{@code LON}. */
