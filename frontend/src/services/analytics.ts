@@ -55,15 +55,7 @@ class AnalyticsService {
     this.track('onboarding_skipped', { step })
   }
 
-  // User Journey Events
-  trackFirstCarAdded() {
-    this.track('first_car_added')
-  }
-
-  trackFirstLogCreated(source: 'manual' | 'ocr') {
-    this.track('first_log_created', { source })
-  }
-
+  // OCR Events
   trackOcrScanStarted() {
     this.track('ocr_scan_started')
   }
@@ -73,11 +65,6 @@ class AnalyticsService {
       confidence,
       fields_extracted: fieldsExtracted
     })
-  }
-
-  // Feature Usage
-  trackFeatureUsed(feature: string) {
-    this.track('feature_used', { feature })
   }
 
   trackDemoLoginClicked(source: 'hero' | 'models_section' | 'lp_v2_weiche' | 'lp_v2_owner' | 'dashboard_preview' | 'logfeed_preview' | 'map_gallery' | 'charts_gallery') {
@@ -176,10 +163,6 @@ class AnalyticsService {
 
   trackConnectorActivated(type: string, brand?: string) {
     this.track('connector_activated', { type, ...(brand ? { brand } : {}) })
-  }
-
-  trackConnectorFailed(type: string, reason: 'auth' | 'technical') {
-    this.track('connector_failed', { type, reason })
   }
 
   // Premium Events
