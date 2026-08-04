@@ -1,5 +1,7 @@
 package com.evmonitor.domain.xpeng;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +48,7 @@ public final class XpengHeaderMapper {
     /** Logical -> akzeptierte physische Spaltennamen (NORMALISIERT). */
     private static final Map<String, Set<String>> ALIASES = Map.ofEntries(
             Map.entry(TIMER,         Set.of("timer")),
-            Map.entry(SPEED,         Set.of("esp_vehspd", "ipb_vehspd")),
+            Map.entry(SPEED,         Set.of("esp_vehspd", "ipb_vehspd", "vehspd")),
             Map.entry(GEAR,          Set.of("ldcu_currentgearlev")),
             Map.entry(ODOMETER,      Set.of("cdcu_totalodometer")),
             Map.entry(SOC,           Set.of("ldcu_bms_soc_disp")),
@@ -57,8 +59,8 @@ public final class XpengHeaderMapper {
             Map.entry(BATT_TEMP_MIN, Set.of("bms_batttempmin_gb")),
             Map.entry(CELL_TEMP_MAX, Set.of("bms_celltempmaxnum_gb")),
             Map.entry(CELL_TEMP_MIN, Set.of("bms_celltempminnum_gb")),
-            Map.entry(LONG_ACCEL,    Set.of("esp_vehlongaccel", "ipb_vehlongaccel_e2e")),
-            Map.entry(LAT_ACCEL,     Set.of("esp_vehlateralaccel", "ipb_vehlateralaccel_e2e")),
+            Map.entry(LONG_ACCEL,    Set.of("esp_vehlongaccel", "ipb_vehlongaccel_e2e", "vehlongaccel")),
+            Map.entry(LAT_ACCEL,     Set.of("esp_vehlateralaccel", "ipb_vehlateralaccel_e2e", "vehlateralaccel")),
             Map.entry(ACCEL_PEDAL,   Set.of("ldcu_accpedalsig")),
             Map.entry(FRONT_TORQUE,  Set.of("ipuf_acttorq")),
             Map.entry(REAR_TORQUE,   Set.of("ipur_acttorq")),
@@ -91,8 +93,28 @@ public final class XpengHeaderMapper {
     }
 
     /**
+     * Entfernt ein fuehrendes Steuergeraet-Praefix ("esp_", "ipb_", "ldcu_", ...).
+     * XPeng benennt dieselbe Groesse ueber die Zeit mit wechselndem Praefix - und
+     * hat im Juli 2026 die Praefixe teilweise ganz weggelassen.
+     *
+     * @return der Rest hinter dem ersten '_', oder der unveraenderte Wert wenn es
+     *         kein Praefix im erwarteten Format gibt.
+     */
+    private static String stripSensorPrefix(String normalized) {
+        if (normalized == null) return null;
+        int underscore = normalized.indexOf('_');
+        if (underscore <= 0 || underscore == normalized.length() - 1) return normalized;
+        return normalized.substring(underscore + 1);
+    }
+
+    /**
      * Bildet eine Liste von Spaltennamen (in Reihenfolge des Sheets) auf logische
      * Feldnamen ab. Unbekannte Spalten werden ausgelassen.
+     *
+     * Exakte Alias-Treffer haben Vorrang. Bleibt danach eine {@link #REQUIRED_LOGICAL}-
+     * Spalte offen, folgt ein zweiter Durchgang, der auf beiden Seiten das Praefix
+     * strippt - so kostet ein kuenftiger XPeng-Rename nicht wieder den gesamten Import.
+     * Der Fallback greift nur bei eindeutigem Treffer und nur fuer Pflichtspalten.
      *
      * @return logical-name -> column-index (0-basiert), in stabile Reihenfolge der
      *         logischen Namen aus {@link #ALIASES} eingefuegt.
@@ -111,7 +133,35 @@ public final class XpengHeaderMapper {
                 }
             }
         }
+        for (String required : REQUIRED_LOGICAL) {
+            if (out.containsKey(required)) continue;
+            Integer match = matchByStrippedPrefix(rawHeaders, ALIASES.get(required), out.values());
+            if (match != null) out.put(required, match);
+        }
         return out;
+    }
+
+    /**
+     * Sucht eine Spalte, die nach dem Strippen des Praefixes einem der Aliase
+     * entspricht. Liefert nur bei genau einem Treffer einen Index - mehrdeutige
+     * Kandidaten werden verworfen, damit wir nie die falsche Spalte importieren.
+     * Bereits belegte Spaltenindizes werden uebersprungen.
+     */
+    private static Integer matchByStrippedPrefix(List<String> rawHeaders,
+                                                 Set<String> aliases,
+                                                 Collection<Integer> alreadyUsed) {
+        if (aliases == null) return null;
+        Set<String> cores = new HashSet<>();
+        for (String alias : aliases) cores.add(stripSensorPrefix(alias));
+        Integer found = null;
+        for (int i = 0; i < rawHeaders.size(); i++) {
+            if (alreadyUsed.contains(i)) continue;
+            String core = stripSensorPrefix(normalize(rawHeaders.get(i)));
+            if (core == null || !cores.contains(core)) continue;
+            if (found != null) return null;
+            found = i;
+        }
+        return found;
     }
 
     /** True wenn alle {@link #REQUIRED_LOGICAL}-Felder aufgeloest wurden. */
