@@ -37,6 +37,7 @@ import {
   tripGroupSocBoundaries as tripGroupSocBoundariesPure,
   tripGroupCostPer100km as tripGroupCostPer100kmPure,
   buildTripCostPerKwhMap,
+  isDayBoundary,
 } from '../utils/tripCalculations'
 import api from '../api/axios'
 import { distributeProportionally } from '../utils/distributeProportionally'
@@ -1134,7 +1135,7 @@ function toggleAllCharges() {
                     <template v-for="(trip, tripIdx) in item.trips" :key="trip.id">
 
                       <!-- Day-boundary separator between trips -->
-                      <div v-if="tripIdx !== 0 && new Date(item.trips[(tripIdx as number) - 1].tripEndedAt).toDateString() !== new Date(trip.tripStartedAt).toDateString()"
+                      <div v-if="isDayBoundary(item.trips, tripIdx as number)"
                            class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50/60 dark:bg-emerald-900/10 border-t border-emerald-200 dark:border-emerald-700/40">
                         <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
                         <span class="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80 whitespace-nowrap">
@@ -1395,6 +1396,16 @@ function toggleAllCharges() {
                   <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                   <div v-if="!collapsedTripGroups.has(item.groupId)" class="bg-emerald-50/30 dark:bg-emerald-950/20">
                     <template v-for="(trip, tripIdx) in item.trips" :key="trip.id + '__d'">
+                      <!-- Day-boundary separator between trips -->
+                      <div v-if="isDayBoundary(item.trips, tripIdx as number)"
+                           class="flex items-center gap-3 px-3 py-1.5 bg-emerald-50/60 dark:bg-emerald-900/10 border-t border-emerald-200 dark:border-emerald-700/40">
+                        <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
+                        <span class="text-[11px] font-medium text-emerald-600/80 dark:text-emerald-400/80 whitespace-nowrap">
+                          {{ new Date(trip.tripStartedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) }}
+                        </span>
+                        <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
+                      </div>
+
                       <!-- Phantom drain separator between trips (AutoSync Live feature) -->
                       <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && tripIdx !== 0"
                         class="flex items-center justify-center gap-1 py-1 border-t border-amber-200 dark:border-amber-700/40 bg-amber-100/70 dark:bg-amber-900/20">
