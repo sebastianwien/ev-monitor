@@ -40,7 +40,7 @@ import {
 } from '../utils/tripCalculations'
 import api from '../api/axios'
 import { distributeProportionally } from '../utils/distributeProportionally'
-import PowerCurveChart from '../components/charging/PowerCurveChart.vue'
+import PowerCurvePanel from '../components/charging/PowerCurvePanel.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
 import TripClimateMarkers from '../components/TripClimateMarkers.vue'
@@ -415,6 +415,12 @@ async function togglePowerCurve(logId: string) {
     powerCurveLoading.value.delete(logId)
     powerCurveLoading.value = new Set(powerCurveLoading.value)
   }
+}
+
+// Referenzlinie der Ladekurve: Verbrauch des Logs, sonst der Fahrzeug-Schnitt.
+function powerCurveConsumption(entry: any): number | null {
+  if (entry?.consumptionKwhPer100km != null) return Number(entry.consumptionKwhPer100km)
+  return stats.value?.avgConsumptionKwhPer100km != null ? Number(stats.value.avgConsumptionKwhPer100km) : null
 }
 
 function chargingEfficiency(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
@@ -1853,22 +1859,12 @@ function toggleAllCharges() {
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                 <div v-if="item.entry.hasPowerCurve && expandedPowerCurves.has(item.entry.id)"
                   class="px-3 pb-3 border-t border-gray-200 dark:border-gray-600/60 pt-2">
-                  <div v-if="powerCurveLoading.has(item.entry.id)" class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
-                    {{ t('live.loading_data') }}
-                  </div>
-                  <PowerCurveChart
-                    v-else-if="(powerCurveCache.get(item.entry.id) ?? []).length > 0"
-                    :points="powerCurveCache.get(item.entry.id)!"
+                  <PowerCurvePanel
+                    :loading="powerCurveLoading.has(item.entry.id)"
+                    :points="powerCurveCache.get(item.entry.id) ?? []"
                     :height="200"
-                    x-axis-mode="duration"
-                    :aria-label="t('dashboard.show_power_curve')"
-                    :consumption-kwh-per100km="item.entry.consumptionKwhPer100km != null
-                      ? Number(item.entry.consumptionKwhPer100km)
-                      : (stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null)"
+                    :consumption-kwh-per100km="powerCurveConsumption(item.entry)"
                   />
-                  <div v-else class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
-                    {{ t('dashboard.no_power_curve') }}
-                  </div>
                 </div>
                 </Transition>
               </div>
@@ -2020,7 +2016,8 @@ function toggleAllCharges() {
                 <!-- Top-Up rows -->
                 <Transition name="slide-down">
                   <div v-if="expandedGroups.has(item.entry.id)" class="bg-blue-50/30 dark:bg-blue-950/20">
-                    <div v-for="topUp in item.entry._topUps" :key="topUp.id + '__d'"
+                    <template v-for="topUp in item.entry._topUps" :key="topUp.id + '__d'">
+                    <div
                       class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-start px-3 py-1.5 border-t border-blue-200/40 dark:border-blue-800/30 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition">
                       <div class="flex items-center gap-1.5 pl-4 text-gray-500 text-xs pt-0.5">└</div>
                       <div class="whitespace-nowrap">
@@ -2030,9 +2027,31 @@ function toggleAllCharges() {
                           {{ topUp.kwhCharged }} kWh {{ t('dashboard.ac_gross_label_brutto') }} · <span :class="chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle)! >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'">{{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }}%</span>
                         </div>
                       </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate pt-0.5">
-                        <template v-if="item.entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
-                        <template v-else><ClockIcon class="w-3 h-3 inline-block mr-0.5 -mt-0.5" />{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
+                      <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate pt-0.5 flex items-center gap-1.5">
+                        <span class="truncate">
+                          <template v-if="item.entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
+                          <template v-else><ClockIcon class="w-3 h-3 inline-block mr-0.5 -mt-0.5" />{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
+                        </span>
+                        <button
+                          v-if="topUp.hasPowerCurve && authStore.canViewLiveAnalytics"
+                          type="button"
+                          @click.stop="togglePowerCurve(topUp.id)"
+                          :aria-label="t('dashboard.show_power_curve')"
+                          :aria-expanded="expandedPowerCurves.has(topUp.id)"
+                          class="p-0.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
+                        >
+                          <ChartBarSquareIcon class="w-4 h-4" />
+                        </button>
+                        <router-link
+                          v-else-if="topUp.hasPowerCurve && purchasesAvailable()"
+                          to="/upgrade"
+                          :aria-label="t('dashboard.power_curve_locked')"
+                          :title="t('dashboard.power_curve_locked')"
+                          class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
+                          @click.stop
+                        >
+                          <LockClosedIcon class="w-4 h-4" />
+                        </router-link>
                       </div>
                       <div class="text-gray-400 dark:text-gray-600 text-xs pt-0.5">-</div>
                       <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap pt-0.5">
@@ -2088,6 +2107,18 @@ function toggleAllCharges() {
                         </div>
                       </div>
                     </div>
+                    <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                    <div v-if="topUp.hasPowerCurve && expandedPowerCurves.has(topUp.id)"
+                      class="pl-10 pr-3 pb-3 pt-2 border-t border-blue-200/40 dark:border-blue-800/30">
+                      <PowerCurvePanel
+                        :loading="powerCurveLoading.has(topUp.id)"
+                        :points="powerCurveCache.get(topUp.id) ?? []"
+                        :height="180"
+                        :consumption-kwh-per100km="powerCurveConsumption(topUp)"
+                      />
+                    </div>
+                    </Transition>
+                    </template>
                   </div>
                 </Transition>
               </div>
@@ -2476,22 +2507,12 @@ function toggleAllCharges() {
                     </button>
                     <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                     <div v-if="expandedPowerCurves.has(item.entry.id)" class="mt-2 px-1 pb-2">
-                      <div v-if="powerCurveLoading.has(item.entry.id)" class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
-                        {{ t('live.loading_data') }}
-                      </div>
-                      <PowerCurveChart
-                        v-else-if="(powerCurveCache.get(item.entry.id) ?? []).length > 0"
-                        :points="powerCurveCache.get(item.entry.id)!"
+                      <PowerCurvePanel
+                        :loading="powerCurveLoading.has(item.entry.id)"
+                        :points="powerCurveCache.get(item.entry.id) ?? []"
                         :height="180"
-                        x-axis-mode="duration"
-                        :aria-label="t('dashboard.show_power_curve')"
-                        :consumption-kwh-per100km="item.entry.consumptionKwhPer100km != null
-                          ? Number(item.entry.consumptionKwhPer100km)
-                          : (stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null)"
+                        :consumption-kwh-per100km="powerCurveConsumption(item.entry)"
                       />
-                      <div v-else class="text-xs text-gray-500 dark:text-gray-400 text-center py-6">
-                        {{ t('dashboard.no_power_curve') }}
-                      </div>
                     </div>
                     </Transition>
                     </template>
@@ -2564,6 +2585,26 @@ function toggleAllCharges() {
                         <span v-if="topUp.socAfterChargePercent != null" class="min-[436px]:inline-flex hidden items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                           <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
                         </span>
+                        <button
+                          v-if="topUp.hasPowerCurve && authStore.canViewLiveAnalytics"
+                          type="button"
+                          @click.stop="togglePowerCurve(topUp.id)"
+                          :aria-label="t('dashboard.show_power_curve')"
+                          :aria-expanded="expandedPowerCurves.has(topUp.id)"
+                          class="p-0.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
+                        >
+                          <ChartBarSquareIcon class="w-4 h-4" />
+                        </button>
+                        <router-link
+                          v-else-if="topUp.hasPowerCurve && purchasesAvailable()"
+                          to="/upgrade"
+                          :aria-label="t('dashboard.power_curve_locked')"
+                          :title="t('dashboard.power_curve_locked')"
+                          class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
+                          @click.stop
+                        >
+                          <LockClosedIcon class="w-4 h-4" />
+                        </router-link>
                         <div class="relative ml-auto flex-shrink-0">
                           <button @click.stop="openMenuTopUpId = openMenuTopUpId === topUp.id ? null : topUp.id"
                             class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
@@ -2608,6 +2649,16 @@ function toggleAllCharges() {
                           {{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }}% {{ t('dashboard.ac_gross_efficiency') }}
                         </span>
                       </div>
+                      <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                      <div v-if="topUp.hasPowerCurve && expandedPowerCurves.has(topUp.id)" class="pl-5 pb-1">
+                        <PowerCurvePanel
+                          :loading="powerCurveLoading.has(topUp.id)"
+                          :points="powerCurveCache.get(topUp.id) ?? []"
+                          :height="160"
+                          :consumption-kwh-per100km="powerCurveConsumption(topUp)"
+                        />
+                      </div>
+                      </Transition>
                     </div>
                   </div>
                 </Transition>
