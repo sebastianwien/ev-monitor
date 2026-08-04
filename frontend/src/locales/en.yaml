@@ -2632,6 +2632,7 @@ xpeng:
   confirm_revoke: "Really withdraw consent? Already imported data remain in your account."
   err_consent_required: "You must give consent to continue."
   err_vin_length: "The VIN must be exactly 17 characters."
+  err_vin_format: "The VIN may only contain letters and digits - no spaces, and no I, O or Q."
   err_upload_missing: "Please select a vehicle and Excel file."
   mode_autosync: "Set up AutoSync"
   mode_manual: "Set up manually"

@@ -5,6 +5,7 @@ import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.application.imports.xpeng.XpengConnectionService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -39,7 +40,7 @@ public class XpengConnectionController {
 
     @PostMapping
     public ResponseEntity<?> grant(@AuthenticationPrincipal UserPrincipal principal,
-                                   @RequestBody GrantRequest req,
+                                   @Valid @RequestBody GrantRequest req,
                                    HttpServletRequest http) {
         if (req.consentAccepted() == null || !req.consentAccepted()) {
             return ResponseEntity.badRequest().body(Map.of("error", "consentAccepted muss true sein"));
@@ -62,7 +63,7 @@ public class XpengConnectionController {
     @PatchMapping("/{connectionId}/autosync")
     public ResponseEntity<?> activateAutoSync(@AuthenticationPrincipal UserPrincipal principal,
                                               @PathVariable UUID connectionId,
-                                              @RequestBody AutoSyncRequest req,
+                                              @Valid @RequestBody AutoSyncRequest req,
                                               HttpServletRequest http) {
         if (req.consentAccepted() == null || !req.consentAccepted()) {
             return ResponseEntity.badRequest().body(Map.of("error", "consentAccepted muss true sein"));
@@ -83,7 +84,7 @@ public class XpengConnectionController {
     @PatchMapping("/{connectionId}/email")
     public ResponseEntity<?> updateEmail(@AuthenticationPrincipal UserPrincipal principal,
                                          @PathVariable UUID connectionId,
-                                         @RequestBody EmailRequest req) {
+                                         @Valid @RequestBody EmailRequest req) {
         try {
             XpengConnection conn = service.updateXpengEmail(
                     principal.getUser().getId(), connectionId, req.xpengEmail());
@@ -126,7 +127,10 @@ public class XpengConnectionController {
 
     public record GrantRequest(
             @NotNull UUID carId,
-            @NotNull @Size(min = 17, max = 17) @Pattern(regexp = "[A-HJ-NPR-Z0-9]{17}",
+            // Case-insensitive und tolerant gegen umgebende Leerzeichen - beides
+            // buegelt normalizeVin() glatt. Ein Leerzeichen *innerhalb* der VIN
+            // (z.B. "G6 L1NN...") ist dagegen ein Eingabefehler und wird abgelehnt.
+            @NotNull @Size(max = 64) @Pattern(regexp = "\\s*[A-HJ-NPR-Za-hj-npr-z0-9]{17}\\s*",
                     message = "VIN muss 17 gueltige Zeichen haben") String vin,
             @NotNull Boolean consentAccepted,
             Boolean autoSync,

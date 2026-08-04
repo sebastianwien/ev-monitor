@@ -2632,6 +2632,7 @@ xpeng:
   confirm_revoke: "Einwilligung wirklich widerrufen? Bereits importierte Daten bleiben erhalten."
   err_consent_required: "Du musst die Einwilligung erteilen, um fortzufahren."
   err_vin_length: "Die VIN muss exakt 17 Zeichen lang sein."
+  err_vin_format: "Die VIN darf nur Buchstaben und Ziffern enthalten - keine Leerzeichen, kein I, O oder Q."
   err_upload_missing: "Bitte Fahrzeug auswählen und Excel-Datei wählen."
   mode_autosync: "AutoSync einrichten"
   mode_manual: "Manuell einrichten"

@@ -2517,6 +2517,7 @@ xpeng:
   confirm_revoke: "Vill du verkligen återkalla samtycket? Redan importerade data finns kvar på ditt konto."
   err_consent_required: "Du måste ge samtycket för att fortsätta."
   err_vin_length: "Chassinumret måste vara exakt 17 tecken."
+  err_vin_format: "Chassinumret får bara innehålla bokstäver och siffror - inga mellanslag och inga I, O eller Q."
   err_upload_missing: "Välj fordon och Excel-fil."
   mode_autosync: "Konfigurera AutoSync"
   mode_manual: "Konfigurera manuellt"

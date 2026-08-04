@@ -21,6 +21,9 @@ const emit = defineEmits<{
 
 const carId = ref<string | null>(null)
 const vin = ref('')
+
+/** Gueltige VIN-Zeichen - I, O und Q sind ausgeschlossen (Verwechslung mit 1/0). */
+const VIN_PATTERN = /^[A-HJ-NPR-Z0-9]{17}$/
 const accepted = ref(false)
 const xpengEmail = ref('')
 const busy = ref(false)
@@ -48,6 +51,12 @@ async function submit() {
   const normalized = vin.value.trim().toUpperCase()
   if (normalized.length !== 17) {
     emit('error', t('xpeng.err_vin_length'))
+    return
+  }
+  // Laengenpruefung allein reicht nicht: "G6 L1NNSGHA6SB201" hat 17 Zeichen,
+  // ist aber Modellname + abgeschnittene VIN. I, O und Q sind in VINs unzulaessig.
+  if (!VIN_PATTERN.test(normalized)) {
+    emit('error', t('xpeng.err_vin_format'))
     return
   }
   if (isAutoSync.value && !xpengEmail.value.trim()) {

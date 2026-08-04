@@ -2517,6 +2517,7 @@ xpeng:
   confirm_revoke: "Virkelig trekke tilbake samtykket? Allerede importerte data forblir på kontoen din."
   err_consent_required: "Du må gi samtykket for å fortsette."
   err_vin_length: "VIN-en må være nøyaktig 17 tegn."
+  err_vin_format: "VIN-en kan bare inneholde bokstaver og tall - ingen mellomrom, og ingen I, O eller Q."
   err_upload_missing: "Velg kjøretøy og Excel-fil."
   mode_autosync: "Sett opp AutoSync"
   mode_manual: "Sett opp manuelt"
