@@ -38,6 +38,15 @@ export function startsInsideHorizontalScroller(target: EventTarget | null): bool
 }
 
 /**
+ * True, wenn der Touch in einem Element mit {@code data-no-swipe} begann. Fuer
+ * Bedienelemente, die horizontale Gesten selbst auswerten (z.B. das Abtasten der
+ * Ladekurve) - dort wuerde ein Tab-Wechsel oder Zurueck-Wisch die Bedienung kapern.
+ */
+export function startsInsideNoSwipeZone(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('[data-no-swipe]') !== null
+}
+
+/**
  * iOS-typischer Edge-Swipe-Back: vom linken Rand nach rechts wischen => zurueck.
  *
  * Nur in der nativen App aktiv. Im mobilen Browser bringt die Plattform die
@@ -55,7 +64,8 @@ export function useSwipeBack(back: () => void = () => window.history.back()) {
     if (
       e.touches.length !== 1 ||
       !isInEdgeZone(e.touches[0].clientX) ||
-      startsInsideHorizontalScroller(e.target)
+      startsInsideHorizontalScroller(e.target) ||
+      startsInsideNoSwipeZone(e.target)
     ) {
       tracking = false
       return

@@ -4,6 +4,7 @@ import {
   SWIPE_THRESHOLD_PX,
   isInEdgeZone,
   startsInsideHorizontalScroller,
+  startsInsideNoSwipeZone,
 } from './useSwipeBack'
 
 /**
@@ -53,7 +54,7 @@ export function useTabPager(
   function onStart(e: TouchEvent) {
     if (e.touches.length !== 1) { active = false; return }
     const x = e.touches[0].clientX
-    if (isInEdgeZone(x) || startsInsideHorizontalScroller(e.target)) { active = false; return }
+    if (isInEdgeZone(x) || startsInsideHorizontalScroller(e.target) || startsInsideNoSwipeZone(e.target)) { active = false; return }
     startX = x
     startY = e.touches[0].clientY
     active = true

@@ -7,6 +7,7 @@ import {
   SWIPE_THRESHOLD_PX,
   isHorizontalScroller,
   startsInsideHorizontalScroller,
+  startsInsideNoSwipeZone,
 } from '../useSwipeBack'
 
 // Capacitor-Plattform pro Test umschaltbar (vi.hoisted, da vi.mock hochgezogen wird).
@@ -142,5 +143,32 @@ describe('useSwipeBack - Scroller-Erkennung', () => {
     document.body.appendChild(loose)
     expect(startsInsideHorizontalScroller(loose)).toBe(false)
     expect(startsInsideHorizontalScroller(null)).toBe(false)
+  })
+})
+
+describe('startsInsideNoSwipeZone', () => {
+  afterEach(() => { document.body.innerHTML = '' })
+
+  it('erkennt das markierte Element selbst', () => {
+    const el = document.createElement('div')
+    el.setAttribute('data-no-swipe', '')
+    document.body.appendChild(el)
+    expect(startsInsideNoSwipeZone(el)).toBe(true)
+  })
+
+  it('erkennt die Markierung an einem Vorfahren', () => {
+    const zone = document.createElement('div')
+    zone.setAttribute('data-no-swipe', '')
+    const child = document.createElement('span')
+    zone.appendChild(child)
+    document.body.appendChild(zone)
+    expect(startsInsideNoSwipeZone(child)).toBe(true)
+  })
+
+  it('liefert false ohne Markierung und bei null', () => {
+    const loose = document.createElement('div')
+    document.body.appendChild(loose)
+    expect(startsInsideNoSwipeZone(loose)).toBe(false)
+    expect(startsInsideNoSwipeZone(null)).toBe(false)
   })
 })
