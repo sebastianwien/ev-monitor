@@ -1,5 +1,6 @@
 package com.evmonitor.application.imports.xpeng;
 
+import com.evmonitor.domain.xpeng.XpengExcelStreamingParser;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
@@ -219,7 +220,6 @@ public class XpengImapPoller {
                                          String from, List<AttachmentPart> xlsxParts) throws Exception {
         log.info("XPeng IMAP: {} XLSX-Anhang/Anhaenge gefunden in Mail von '{}'", xlsxParts.size(), from);
 
-        String password = lookupStoredPassword(conn.getId());
         boolean allEnqueued = true;
 
         for (AttachmentPart part : xlsxParts) {
@@ -228,14 +228,15 @@ public class XpengImapPoller {
                 try (InputStream in = part.inputStream()) {
                     Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
                 }
-                // XPeng liefert XLSX und Passwort in getrennten Mails - trifft die XLSX zuerst ein,
-                // liegt hier noch kein (oder ein veraltetes) Passwort. Dann NICHT importieren und die
-                // Mail UNSEEN + ohne Record lassen, damit ein spaeterer Poll sie mit dem dann
-                // vorhandenen Passwort erneut versucht (Dedup laeuft ueber existsByMessageId).
-                if (!com.evmonitor.domain.xpeng.XpengExcelStreamingParser.canDecrypt(tmp, password)) {
-                    log.warn("XPeng IMAP: XLSX '{}' fuer connection={} noch nicht entschluesselbar "
-                            + "(Passwort {}) - Mail bleibt UNSEEN fuer Retry beim naechsten Poll",
-                            part.filename(), conn.getId(), password == null ? "fehlt" : "passt nicht");
+                // Trifft die XLSX vor ihrer Passwort-Mail ein, passt noch keiner der
+                // Kandidaten. Dann NICHT importieren und die Mail UNSEEN + ohne Record
+                // lassen, damit ein spaeterer Poll sie erneut versucht (Dedup laeuft
+                // ueber existsByMessageId).
+                String password = resolvePassword(conn.getId(), tmp);
+                if (password == null) {
+                    log.warn("XPeng IMAP: XLSX '{}' fuer connection={} mit keinem der gespeicherten "
+                            + "Passwoerter entschluesselbar - Mail bleibt UNSEEN fuer Retry beim naechsten Poll",
+                            part.filename(), conn.getId());
                     allEnqueued = false;
                     continue;
                 }
@@ -261,7 +262,6 @@ public class XpengImapPoller {
                                       String from, String htmlBody, List<String> downloadLinks) throws MessagingException {
         log.info("XPeng IMAP: {} Download-Link(s) in Mail von '{}' gefunden", downloadLinks.size(), from);
 
-        String password = lookupStoredPassword(conn.getId());
         boolean allSucceeded = true;
 
         for (String url : downloadLinks) {
@@ -272,6 +272,7 @@ public class XpengImapPoller {
                 tmp = downloadToTempFile(url);
                 long fileSize = Files.size(tmp);
                 log.info("XPeng IMAP: Download abgeschlossen - {} Bytes (Datei: {})", fileSize, filename);
+                String password = resolvePassword(conn.getId(), tmp);
                 try (InputStream uploadStream = Files.newInputStream(tmp)) {
                     XpengImportJob job = importService.uploadXlsx(
                             conn.getUserId(), conn.getCarId(), uploadStream,
@@ -297,11 +298,31 @@ public class XpengImapPoller {
         }
     }
 
-    private String lookupStoredPassword(UUID connectionId) {
+    /** Alle bekannten Passwoerter einer Connection, neuestes zuerst, ohne Duplikate. */
+    private List<String> lookupStoredPasswords(UUID connectionId) {
         return receivedMailRepo
-                .findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connectionId)
+                .findByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connectionId)
+                .stream()
                 .map(XpengReceivedMail::getExtractedPassword)
-                .orElse(null);
+                .filter(p -> p != null && !p.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    /**
+     * Sucht das Passwort, das die Datei tatsaechlich entschluesselt. XPeng verschickt
+     * XLSX und Passwort in getrennten Mails, die sich ueberholen koennen - nur das
+     * juengste zu probieren liess aeltere Dateien dauerhaft liegen.
+     *
+     * @return das passende Passwort, oder null wenn keiner der Kandidaten passt
+     */
+    private String resolvePassword(UUID connectionId, Path file) throws IOException {
+        for (String candidate : lookupStoredPasswords(connectionId)) {
+            if (XpengExcelStreamingParser.canDecrypt(file, candidate)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     private Path downloadToTempFile(String url) throws Exception {

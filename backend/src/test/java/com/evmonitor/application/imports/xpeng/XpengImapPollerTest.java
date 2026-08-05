@@ -330,8 +330,8 @@ class XpengImapPollerTest {
 
         when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
         when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
-        when(receivedMailRepo.findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
-                .thenReturn(Optional.of(pwRecord));
+        when(receivedMailRepo.findByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
+                .thenReturn(List.of(pwRecord));
         when(importService.uploadXlsx(any(), any(), any(), any(), any(), any()))
                 .thenReturn(new com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob());
         when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -361,8 +361,8 @@ class XpengImapPollerTest {
 
         when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
         when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
-        when(receivedMailRepo.findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
-                .thenReturn(Optional.of(stalePw));
+        when(receivedMailRepo.findByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
+                .thenReturn(List.of(stalePw));
 
         invokeProcessMessage(msg);
 
@@ -386,8 +386,8 @@ class XpengImapPollerTest {
 
         when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
         when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
-        when(receivedMailRepo.findFirstByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
-                .thenReturn(Optional.of(correctPw));
+        when(receivedMailRepo.findByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
+                .thenReturn(List.of(correctPw));
         when(importService.uploadXlsx(any(), any(), any(), any(), any(), any()))
                 .thenReturn(new com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob());
         when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -398,6 +398,73 @@ class XpengImapPollerTest {
         verify(importService).uploadXlsx(any(), any(), any(), pwCaptor.capture(), any(), any());
         assertEquals("202607120137", pwCaptor.getValue());
         verify(msg).setFlag(Flags.Flag.SEEN, true);
+    }
+
+    @Test
+    void encryptedXlsxIsImportedWithOlderPasswordWhenNewestDoesNotFit() throws Exception {
+        // Realfall coasterlars: die XLSX vom 20.07. braucht das Passwort vom 20.07.,
+        // in der DB liegt aber inzwischen ein neueres vom 30.07. Nur das juengste zu
+        // probieren liess die Datei dauerhaft liegen.
+        UUID token = UUID.randomUUID();
+        UUID connId = UUID.randomUUID();
+        byte[] encrypted = encryptedXlsxBytes("202607120137");
+
+        Message msg = messageWithXlsxAttachment(token, "data.xlsx", encrypted);
+        XpengConnection conn = buildConnWithId(token, connId);
+        XpengReceivedMail newerPw = XpengReceivedMail.builder()
+                .connectionId(connId).messageId("<pw-neu@xiaopeng.com>")
+                .receivedAt(LocalDateTime.now().minusDays(1))
+                .extractedPassword("202607270137").build();
+        XpengReceivedMail olderPw = XpengReceivedMail.builder()
+                .connectionId(connId).messageId("<pw-alt@xiaopeng.com>")
+                .receivedAt(LocalDateTime.now().minusDays(11))
+                .extractedPassword("202607120137").build();
+
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
+        when(receivedMailRepo.findByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
+                .thenReturn(List.of(newerPw, olderPw));
+        when(importService.uploadXlsx(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob());
+        when(receivedMailRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        invokeProcessMessage(msg);
+
+        ArgumentCaptor<String> pwCaptor = ArgumentCaptor.forClass(String.class);
+        verify(importService).uploadXlsx(any(), any(), any(), pwCaptor.capture(), any(), any());
+        assertEquals("202607120137", pwCaptor.getValue(), "das aeltere, passende Passwort muss gewinnen");
+        verify(msg).setFlag(Flags.Flag.SEEN, true);
+    }
+
+    @Test
+    void encryptedXlsxStaysUnseenWhenNoStoredPasswordFits() throws Exception {
+        // Passt keiner der Kandidaten, bleibt es beim bisherigen Verhalten:
+        // UNSEEN und ohne Record, damit ein spaeterer Poll es erneut versucht.
+        UUID token = UUID.randomUUID();
+        UUID connId = UUID.randomUUID();
+        byte[] encrypted = encryptedXlsxBytes("202607120137");
+
+        Message msg = messageWithXlsxAttachment(token, "data.xlsx", encrypted);
+        XpengConnection conn = buildConnWithId(token, connId);
+        XpengReceivedMail pwA = XpengReceivedMail.builder()
+                .connectionId(connId).messageId("<a@x.com>")
+                .receivedAt(LocalDateTime.now().minusDays(1))
+                .extractedPassword("111111110000").build();
+        XpengReceivedMail pwB = XpengReceivedMail.builder()
+                .connectionId(connId).messageId("<b@x.com>")
+                .receivedAt(LocalDateTime.now().minusDays(5))
+                .extractedPassword("222222220000").build();
+
+        when(receivedMailRepo.existsByMessageId(any())).thenReturn(false);
+        when(connectionRepo.findByRoutingToken(token)).thenReturn(Optional.of(conn));
+        when(receivedMailRepo.findByConnectionIdAndExtractedPasswordIsNotNullOrderByReceivedAtDesc(connId))
+                .thenReturn(List.of(pwA, pwB));
+
+        invokeProcessMessage(msg);
+
+        verify(importService, never()).uploadXlsx(any(), any(), any(), any(), any(), any());
+        verify(receivedMailRepo, never()).save(any());
+        verify(msg, never()).setFlag(Flags.Flag.SEEN, true);
     }
 
     private static byte[] encryptedXlsxBytes(String password) throws Exception {
