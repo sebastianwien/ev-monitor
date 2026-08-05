@@ -28,7 +28,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     public EvLog save(EvLog evLog) {
-        EvLogEntity entity = toEntity(evLog);
+        // Bestehende Zeile laden statt eine frische Entity zu bauen: Spalten, die das Domain-
+        // Modell nicht kennt (power_curve_points, telemetry_extras), fielen sonst bei jedem
+        // Update auf NULL zurueck. Kostet keinen zusaetzlichen Roundtrip - JPA laedt die Zeile
+        // beim merge einer detached Entity ohnehin.
+        EvLogEntity entity = evLog.getId() != null
+                ? jpaRepository.findById(evLog.getId()).orElseGet(EvLogEntity::new)
+                : new EvLogEntity();
+        applyDomain(entity, evLog);
         EvLogEntity saved = jpaRepository.save(entity);
         return toDomain(saved);
     }
@@ -338,8 +345,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         return jpaRepository.enrichWithTeslaPricing(id, costEur, cpoName);
     }
 
-    private EvLogEntity toEntity(EvLog domain) {
-        EvLogEntity entity = new EvLogEntity();
+    /**
+     * Schreibt die Domain-Felder auf die uebergebene Entity. Bewusst mutierend statt eine neue
+     * Entity zu liefern: Spalten ohne Domain-Entsprechung bleiben so erhalten.
+     */
+    private void applyDomain(EvLogEntity entity, EvLog domain) {
         entity.setId(domain.getId());
         entity.setCarId(domain.getCarId());
         entity.setKwhCharged(domain.getKwhCharged());
@@ -371,7 +381,6 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setChargingProviderId(domain.getChargingProviderId());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
-        return entity;
     }
 
     private EvLog toDomain(EvLogEntity entity) {
