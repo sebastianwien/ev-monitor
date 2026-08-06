@@ -53,6 +53,7 @@ public class PublicApiImportService {
     private final CoinLogService coinLogService;
     private final CpoNameNormalizer cpoNameNormalizer;
     private final com.evmonitor.application.EvLogService evLogService;
+    private final com.evmonitor.application.LocationPricing locationPricing;
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, ApiKey apiKey) {
@@ -163,12 +164,7 @@ public class PublicApiImportService {
                         entry.temperatureCelsius()
                 );
 
-                if (geohash != null) {
-                    var builder = evLog.toBuilder();
-                    evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
-                            .ifPresent(builder::chargingProviderId);
-                    evLog = builder.build();
-                }
+                evLog = locationPricing.enrich(evLog, userId);
 
                 EvLog saved;
                 try {

@@ -41,6 +41,7 @@ public class EvLogStatisticsService {
     private final ConsumptionCalculationService calculationService;
     private final PlausibilityProperties plausibility;
     private final FixedCostService fixedCostService;
+    private final LocationPricing locationPricing;
 
     /**
      * Returns all logs for a car where the calculated consumption is implausible.
@@ -679,22 +680,16 @@ public class EvLogStatisticsService {
                  .setScale(2, RoundingMode.HALF_UP);
     }
 
-    public Optional<PriceSuggestion> getPriceSuggestion(UUID userId, double latitude, double longitude, boolean isPublicCharging) {
+    /**
+     * The price the log form pre-fills. Same rule and same numbers the backend would store on save
+     * - {@link LocationPricing} is the single source, so suggestion and stored value cannot drift.
+     */
+    public Optional<PriceSuggestion> getPriceSuggestion(UUID userId, double latitude, double longitude,
+                                                        boolean isPublicCharging, ChargingType chargingType) {
         int precision = isPublicCharging ? 7 : 6;
         String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();
-        return evLogRepository.findMostRecentLogAtGeohash(userId, geohash)
-                .filter(log -> log.getCostEur() != null && log.getCostEur().compareTo(BigDecimal.ZERO) > 0)
-                .flatMap(log -> {
-                    // Divide by the same basis applyPriceSuggestion multiplies with
-                    // (kwhCharged when measured, else kwhAtVehicle) - using grossUp here would
-                    // round-trip back through the AC-loss pauschale and silently return a
-                    // lower ct/kWh than the tariff the user set.
-                    BigDecimal kwh = log.costBasisKwh();
-                    if (kwh == null) return Optional.empty();
-                    return Optional.of(new PriceSuggestion(
-                            log.getCostEur().divide(kwh, 4, RoundingMode.HALF_UP),
-                            log.getChargingProviderId()));
-                });
+        return locationPricing.tariffAt(userId, geohash, chargingType)
+                .map(tariff -> new PriceSuggestion(tariff.pricePerKwh(), tariff.chargingProviderId()));
     }
 
     private EvLogStatisticsResponse.ChargingTypeSplit buildChargingTypeSplit(List<EvLog> logs) {

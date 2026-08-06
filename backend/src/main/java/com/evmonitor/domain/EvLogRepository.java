@@ -103,7 +103,6 @@ public interface EvLogRepository {
 
     List<GeohashPoint> findGeohashDataByCarId(UUID carId);
 
-    Optional<EvLog> findMostRecentLogAtGeohash(UUID userId, String geohash);
 
     /**
      * The most recent log at this location that carries a price. It is the anchor for both the

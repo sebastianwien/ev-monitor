@@ -31,9 +31,6 @@ import java.util.*;
 @Slf4j
 public class EvLogService {
 
-    /** Private charges are stored at 6 chars (~600m), public ones at 7 (~150m). */
-    private static final int MIN_GEOHASH_LENGTH_FOR_LOOKUP = 6;
-
     /**
      * Maximaler zeitlicher Abstand zweier Logs, damit sie zusammengefuehrt werden duerfen.
      * 24h, damit auch sehr langsame AC-Ladevorgaenge (z.B. 14h an 4 kW) noch abgedeckt sind.
@@ -48,6 +45,7 @@ public class EvLogService {
     private final ConsumptionCalculationService calculationService;
     private final JpaUserChargingProviderRepository chargingProviderRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final LocationPricing locationPricing;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @Transactional
@@ -98,10 +96,8 @@ public class EvLogService {
                 throw new IllegalArgumentException("Charging provider not found for current user");
             }
             builder.chargingProviderId(request.chargingProviderId());
-        } else {
-            resolveChargingProvider(userId, geohash).ifPresent(builder::chargingProviderId);
         }
-        newLog = builder.build();
+        newLog = locationPricing.enrich(builder.build(), userId);
 
         EvLog savedLog = save(newLog);
 
@@ -203,7 +199,7 @@ public class EvLogService {
         // Uses "before this log's timestamp" so late-arriving logs pick the contemporaneous value.
         newLog = inheritTireAndRouteType(newLog);
 
-        newLog = enrichWithChargingProvider(newLog, request.userId(), request.costEur() != null);
+        newLog = locationPricing.enrich(newLog, request.userId());
 
         EvLog savedLog = save(newLog);
 
@@ -284,10 +280,8 @@ public class EvLogService {
             throw new IllegalArgumentException("Car does not belong to user");
         }
         evLogRepository.updateGeohash(carId, loggedAt, geohash).ifPresent(evLog -> {
-            if (evLog.getCostEur() == null) {
-                EvLog enriched = enrichWithChargingProvider(evLog, userId, false);
-                if (enriched != evLog) evLogRepository.save(enriched);
-            }
+            EvLog enriched = locationPricing.enrich(evLog, userId);
+            if (enriched != evLog) evLogRepository.save(enriched);
         });
     }
 
@@ -337,106 +331,6 @@ public class EvLogService {
     }
 
     /**
-     * Attributes a log to a charging card and - when it has no cost yet - prices it with that
-     * card's tariff. Attribution and pricing are independent: a Tesla-Supercharger log arrives
-     * with its own billed cost, which always wins, but it still belongs to a card.
-     * Returns the unchanged instance when no card applies.
-     */
-    private EvLog enrichWithChargingProvider(EvLog log, UUID userId, boolean hasCostAlready) {
-        if (log.getChargingProviderId() != null && hasCostAlready) return log;
-
-        Optional<EvLog> anchorOpt = priceAnchorAt(userId, log.getGeohash());
-        UUID providerId = anchorOpt.map(EvLog::getChargingProviderId)
-                // No priced charge here yet, but maybe a card was assigned to one - then its
-                // tariff is still the best guess, and it is what session fees hang off.
-                .or(() -> resolveChargingProvider(userId, log.getGeohash()))
-                .orElse(null);
-
-        var builder = log.toBuilder();
-        boolean changed = false;
-        if (log.getChargingProviderId() == null && providerId != null) {
-            builder.chargingProviderId(providerId);
-            changed = true;
-        }
-        if (!hasCostAlready) {
-            Optional<BigDecimal> cost = anchorOpt.flatMap(anchor -> costFromAnchor(log, anchor));
-            if (cost.isEmpty() && providerId != null) {
-                cost = chargingProviderRepository.findById(providerId)
-                        .flatMap(provider -> costFromProvider(log, provider));
-            }
-            if (cost.isPresent()) {
-                builder.costEur(cost.get());
-                changed = true;
-            }
-        }
-        return changed ? builder.build() : log;
-    }
-
-    /**
-     * What a charge at this location costs, derived from the last charge the user recorded there.
-     * The price they entered themselves is the best evidence we have - better than a card tariff,
-     * which is a list price and may not be what they actually paid.
-     */
-    private Optional<BigDecimal> costFromAnchor(EvLog log, EvLog anchor) {
-        BigDecimal kwh = log.costBasisKwh();
-        BigDecimal anchorKwh = anchor.costBasisKwh();
-        if (kwh == null || anchorKwh == null || anchorKwh.signum() <= 0) return Optional.empty();
-        return Optional.of(anchor.getCostEur()
-                .divide(anchorKwh, 4, RoundingMode.HALF_UP)
-                .multiply(kwh)
-                .setScale(2, RoundingMode.HALF_UP));
-    }
-
-    /**
-     * Which card paid for a charge the user did not assign one to: the one they last used at this
-     * exact location. That is the only evidence we accept - without a usable location the log stays
-     * unattributed, even when the user holds a single card. Owning one card does not mean it paid
-     * for this particular charge point, and attributing it also applies its tariff: that is how a
-     * Tesla Supercharger session ends up priced with a supermarket card.
-     *
-     * Unattributed is not final - {@link #updateGeohash} re-runs this once a connector backfills
-     * the location.
-     */
-    private Optional<UUID> resolveChargingProvider(UUID userId, String geohash) {
-        boolean locationIsPreciseEnough = geohash != null && geohash.length() >= MIN_GEOHASH_LENGTH_FOR_LOOKUP;
-        return locationIsPreciseEnough
-                ? evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
-                : Optional.empty();
-    }
-
-    /**
-     * The last charge the user recorded at this location that carries a price. Below 6 chars a
-     * geohash spans kilometers - too coarse to identify a charge point, so it would anchor on some
-     * unrelated charge nearby. The repository lookup demands the same minimum.
-     */
-    private Optional<EvLog> priceAnchorAt(UUID userId, String geohash) {
-        boolean locationIsPreciseEnough = geohash != null && geohash.length() >= MIN_GEOHASH_LENGTH_FOR_LOOKUP;
-        return locationIsPreciseEnough
-                ? evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash)
-                : Optional.empty();
-    }
-
-    /**
-     * Cost for this log under the given tariff, or empty when it cannot be priced
-     * (no energy recorded, or no price configured for its charging type).
-     *
-     * Bills EvLog.costBasisKwh() (kwhCharged when measured, else kwhAtVehicle) as-is. Netto is
-     * deliberately NOT grossed up by the AC-loss pauschale: that would bill a ct/kWh higher than
-     * the tariff the user actually set. See PriceSuggestionEfficiencyIntegrationTest.
-     */
-    private Optional<BigDecimal> costFromProvider(EvLog log, UserChargingProviderEntity provider) {
-        BigDecimal energy = log.costBasisKwh();
-        if (energy == null) return Optional.empty();
-        BigDecimal price = log.getChargingType() == ChargingType.DC
-                ? provider.getDcPricePerKwh()
-                : provider.getAcPricePerKwh();
-        if (price == null) return Optional.empty();
-        BigDecimal sessionFee = provider.getSessionFeeEur() != null
-                ? provider.getSessionFeeEur() : BigDecimal.ZERO;
-        return Optional.of(energy.multiply(price).add(sessionFee).setScale(2, RoundingMode.HALF_UP));
-    }
-
-    /**
      * How many logs of this user at this location still have no cost. Drives the
      * "apply to all N charges here" prompt in the log form.
      */
@@ -462,7 +356,7 @@ public class EvLogService {
 
         int priced = 0;
         for (EvLog log : evLogRepository.findPricelessLogsAtGeohash(userId, geohash)) {
-            Optional<BigDecimal> cost = costFromProvider(log, provider);
+            Optional<BigDecimal> cost = locationPricing.costUnder(provider, log);
             if (cost.isEmpty()) continue;
             save(log.toBuilder().chargingProviderId(providerId).costEur(cost.get()).build());
             priced++;

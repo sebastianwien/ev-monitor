@@ -17,16 +17,17 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Attribution of a charge to the user's charging card when the log carries none.
+ * Price and card derivation as seen through the two entry points, manual entry and connector
+ * import. Both go through {@link LocationPricing}, which owns the rule and is tested in detail
+ * in {@code LocationPricingTest} - this class exists to prove the two paths behave identically.
  *
- * The location the charge happened at is the only evidence we accept: the card the user last
- * picked at this exact geohash. Without a usable location there is no evidence at all, so the
- * log stays unattributed and unpriced - even for a user holding a single card. Assuming that
- * card invents a tariff for a charge point it may never have paid for; a Tesla Supercharger
- * priced with a supermarket card is the concrete failure this rule prevents.
+ * The location is the only evidence accepted. Without a usable one the log stays unattributed
+ * and unpriced, even for a user holding a single card: owning a card is no proof it paid for
+ * this charge point. A Tesla Supercharger priced with a supermarket tariff is the concrete
+ * failure that rule prevents.
  *
- * Nothing is lost permanently: {@code updateGeohash} re-runs attribution as soon as a connector
- * backfills the location.
+ * Nothing is lost permanently - {@code updateGeohash} re-runs it once a connector backfills
+ * the location.
  */
 class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
 
@@ -131,6 +132,26 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
 
         assertEquals(ionity, log.getChargingProviderId());
         assertNotEquals(enbw, log.getChargingProviderId());
+    }
+
+    @Test
+    void manualChargeWithoutAPriceInheritsThePriceFromTheLastChargeHere() {
+        chargedHereBeforeWith(null);
+
+        EvLog log = manualLogAtChargePoint(null);
+
+        // The earlier charge here cost 20.00 for 40 kWh = 0.50/kWh -> 50 kWh = 25.00
+        assertEquals(0, new BigDecimal("25.00").compareTo(log.getCostEur()));
+    }
+
+    @Test
+    void manualChargeWithAPriceKeepsIt() {
+        chargedHereBeforeWith(null);
+
+        EvLog log = manualLogAtChargePoint(new BigDecimal("31.50"));
+
+        assertEquals(0, new BigDecimal("31.50").compareTo(log.getCostEur()),
+                "what the user typed always wins over what we derive");
     }
 
     // ---- Connector / import (createInternalLog) ----
@@ -263,9 +284,13 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
         return GeoHash.withCharacterPrecision(CHARGE_POINT_LAT, CHARGE_POINT_LON, 7).toBase32();
     }
 
-    /** Manual public log at the coordinates of {@link #geohashOfChargePoint()}. */
     private EvLog manualLogAtChargePoint() {
-        EvLogRequest request = new EvLogRequest(carId, new BigDecimal("50.0"), new BigDecimal("25.00"),
+        return manualLogAtChargePoint(new BigDecimal("25.00"));
+    }
+
+    /** Manual public log at the coordinates of {@link #geohashOfChargePoint()}. */
+    private EvLog manualLogAtChargePoint(BigDecimal costEur) {
+        EvLogRequest request = new EvLogRequest(carId, new BigDecimal("50.0"), costEur,
                 45, CHARGE_POINT_LAT, CHARGE_POINT_LON, 10_100, null, new BigDecimal("80.0"),
                 new BigDecimal("20.0"), null, LocalDateTime.now(), false, ChargingType.DC, null, null,
                 true, null, null, null, null);
