@@ -402,10 +402,6 @@ onMounted(async () => {
   try {
     const res = await api.get<UserProvider[]>('/users/me/charging-providers')
     userProviders.value = res.data
-    // Auto-select wenn nur ein Tarif vorhanden und noch keiner gewählt
-    if (res.data.length === 1 && !form.value.chargingProviderId) {
-      form.value.chargingProviderId = res.data[0].id
-    }
   } catch {
     // nicht kritisch
   }
