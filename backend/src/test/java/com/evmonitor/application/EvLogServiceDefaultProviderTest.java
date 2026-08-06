@@ -136,15 +136,29 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
     // ---- Connector / import (createInternalLog) ----
 
     @Test
-    void importedChargeAtAKnownLocationGetsThatCardAndItsPrice() {
+    void importedChargeAtAKnownLocationInheritsThePriceAndTheCard() {
         UUID enbw = saveProvider("EnBW mobility+", new BigDecimal("0.3900"), new BigDecimal("0.5900"), null);
         chargedHereBeforeWith(enbw);
 
         EvLog log = internalLog(new BigDecimal("50.0"), null, true, geohashOfChargePoint());
 
         assertEquals(enbw, log.getChargingProviderId());
-        // 50 kWh * 0.59 DC = 29.50
-        assertEquals(0, new BigDecimal("29.50").compareTo(log.getCostEur()));
+        // The anchor charge cost 20.00 for 40 kWh = 0.50/kWh, so 50 kWh = 25.00. What the user
+        // actually paid there beats the card's list price of 0.59 DC.
+        assertEquals(0, new BigDecimal("25.00").compareTo(log.getCostEur()));
+    }
+
+    @Test
+    void importedChargeInheritsThePrice_evenWhenTheEarlierChargeHasNoCard() {
+        // Home charging: the user types a price and owns no card for it. Repeating that price is
+        // exactly what they expect - the previous behaviour left every such charge unpriced.
+        chargedHereBeforeWith(null);
+
+        EvLog log = internalLog(new BigDecimal("10.0"), null, false, geohashOfChargePoint());
+
+        assertNull(log.getChargingProviderId());
+        // 20.00 for 40 kWh = 0.50/kWh -> 10 kWh = 5.00
+        assertEquals(0, new BigDecimal("5.00").compareTo(log.getCostEur()));
     }
 
     @Test
@@ -205,7 +219,7 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
 
         EvLog enriched = reload(log.getId());
         assertEquals(enbw, enriched.getChargingProviderId());
-        assertEquals(0, new BigDecimal("29.50").compareTo(enriched.getCostEur()));
+        assertEquals(0, new BigDecimal("25.00").compareTo(enriched.getCostEur()));
     }
 
     // ---- Helpers ----
@@ -236,7 +250,7 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
         return reload(evLogService.logCharging(userId, request).log().id());
     }
 
-    /** An earlier charge at {@link #geohashOfChargePoint()} explicitly paid with the given card. */
+    /** An earlier charge at {@link #geohashOfChargePoint()}, optionally paid with a card. */
     private void chargedHereBeforeWith(UUID providerId) {
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("20.00"), 30,
                 geohashOfChargePoint(), 9_000, new BigDecimal("150.0"), new BigDecimal("80.0"),

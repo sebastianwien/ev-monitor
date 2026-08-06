@@ -105,6 +105,12 @@ public interface EvLogRepository {
 
     Optional<EvLog> findMostRecentLogAtGeohash(UUID userId, String geohash);
 
+    /**
+     * The most recent log at this location that carries a price. It is the anchor for both the
+     * cost and - when it has one - the charging card of a new log at the same place.
+     */
+    Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash);
+
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash);
 
     /**

@@ -343,19 +343,48 @@ public class EvLogService {
      * Returns the unchanged instance when no card applies.
      */
     private EvLog enrichWithChargingProvider(EvLog log, UUID userId, boolean hasCostAlready) {
-        if (log.getChargingProviderId() != null) return log;
+        if (log.getChargingProviderId() != null && hasCostAlready) return log;
 
-        Optional<UUID> providerIdOpt = resolveChargingProvider(userId, log.getGeohash());
-        if (providerIdOpt.isEmpty()) return log;
-        UUID providerId = providerIdOpt.get();
+        Optional<EvLog> anchorOpt = priceAnchorAt(userId, log.getGeohash());
+        UUID providerId = anchorOpt.map(EvLog::getChargingProviderId)
+                // No priced charge here yet, but maybe a card was assigned to one - then its
+                // tariff is still the best guess, and it is what session fees hang off.
+                .or(() -> resolveChargingProvider(userId, log.getGeohash()))
+                .orElse(null);
 
-        var builder = log.toBuilder().chargingProviderId(providerId);
-        if (!hasCostAlready) {
-            chargingProviderRepository.findById(providerId)
-                    .flatMap(provider -> costFromProvider(log, provider))
-                    .ifPresent(builder::costEur);
+        var builder = log.toBuilder();
+        boolean changed = false;
+        if (log.getChargingProviderId() == null && providerId != null) {
+            builder.chargingProviderId(providerId);
+            changed = true;
         }
-        return builder.build();
+        if (!hasCostAlready) {
+            Optional<BigDecimal> cost = anchorOpt.flatMap(anchor -> costFromAnchor(log, anchor));
+            if (cost.isEmpty() && providerId != null) {
+                cost = chargingProviderRepository.findById(providerId)
+                        .flatMap(provider -> costFromProvider(log, provider));
+            }
+            if (cost.isPresent()) {
+                builder.costEur(cost.get());
+                changed = true;
+            }
+        }
+        return changed ? builder.build() : log;
+    }
+
+    /**
+     * What a charge at this location costs, derived from the last charge the user recorded there.
+     * The price they entered themselves is the best evidence we have - better than a card tariff,
+     * which is a list price and may not be what they actually paid.
+     */
+    private Optional<BigDecimal> costFromAnchor(EvLog log, EvLog anchor) {
+        BigDecimal kwh = log.costBasisKwh();
+        BigDecimal anchorKwh = anchor.costBasisKwh();
+        if (kwh == null || anchorKwh == null || anchorKwh.signum() <= 0) return Optional.empty();
+        return Optional.of(anchor.getCostEur()
+                .divide(anchorKwh, 4, RoundingMode.HALF_UP)
+                .multiply(kwh)
+                .setScale(2, RoundingMode.HALF_UP));
     }
 
     /**
@@ -369,12 +398,21 @@ public class EvLogService {
      * the location.
      */
     private Optional<UUID> resolveChargingProvider(UUID userId, String geohash) {
-        // Below 6 chars a geohash spans kilometers - too coarse to identify a charge point, so it
-        // would attribute the card of some unrelated charge nearby. The repository lookup demands
-        // the same minimum.
         boolean locationIsPreciseEnough = geohash != null && geohash.length() >= MIN_GEOHASH_LENGTH_FOR_LOOKUP;
         return locationIsPreciseEnough
                 ? evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
+                : Optional.empty();
+    }
+
+    /**
+     * The last charge the user recorded at this location that carries a price. Below 6 chars a
+     * geohash spans kilometers - too coarse to identify a charge point, so it would anchor on some
+     * unrelated charge nearby. The repository lookup demands the same minimum.
+     */
+    private Optional<EvLog> priceAnchorAt(UUID userId, String geohash) {
+        boolean locationIsPreciseEnough = geohash != null && geohash.length() >= MIN_GEOHASH_LENGTH_FOR_LOOKUP;
+        return locationIsPreciseEnough
+                ? evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash)
                 : Optional.empty();
     }
 

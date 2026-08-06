@@ -264,6 +264,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash) {
+        var results = jpaRepository.findRecentPricedByUserIdAndGeohash(userId, geohashPrefix(geohash),
+                org.springframework.data.domain.PageRequest.of(0, 1));
+        return results.isEmpty() ? Optional.empty() : Optional.of(toDomain(results.get(0)));
+    }
+
+    @Override
     public Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash) {
         var results = jpaRepository.findRecentWithProviderByUserIdAndGeohash(userId, geohashPrefix(geohash),
                 org.springframework.data.domain.PageRequest.of(0, 1));
