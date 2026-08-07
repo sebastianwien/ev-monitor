@@ -200,10 +200,32 @@ const DAY15 = new Date(2026, 3, 15) // 15 Apr 2026
 // ── trend_cost ────────────────────────────────────────────────────────────────
 
 describe('trend_cost insight', () => {
-  it('fires positive when projected total cost is lower than last month by >= 5%', () => {
+  it('ignores fixed costs - only energy cost is projected', () => {
+    // Regression: a one-time 2000 € repair in the current month was extrapolated
+    // over the month and produced a +17869% "Ladekosten" insight.
+    const stats = makeStats({
+      totalCharges: 5,
+      energyCostEur: 45,
+      fixedCostEur: 2000,
+      totalCostEur: 2045,
+    })
+    const lastMonth = makeStats({
+      totalCharges: 4,
+      energyCostEur: 100,
+      fixedCostEur: 0,
+      totalCostEur: 100,
+    })
+    const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
+    // 45 € on day 15 → projected 90 €; last month 100 € → -10%
+    expect(insight.sentiment).toBe('positive')
+    expect(insight.delta).toBe('-10%')
+    expect(insight.chartBars![1].formattedValue).toBe('~90 €')
+  })
+
+  it('fires positive when projected energy cost is lower than last month by >= 5%', () => {
     // 40 € on day 15 → projected 80 €; last month 100 € → -20%
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 40 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 40 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight).toBeDefined()
     expect(insight.sentiment).toBe('positive')
@@ -211,8 +233,8 @@ describe('trend_cost insight', () => {
 
   it('fires warning when projected total cost is higher than last month by >= 5%', () => {
     // 60 € on day 15 → projected 120 €; last month 100 € → +20%
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 60 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 60 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight).toBeDefined()
     expect(insight.sentiment).toBe('warning')
@@ -221,80 +243,80 @@ describe('trend_cost insight', () => {
   // body key selection
   it('body: up_price_up when total and price both higher', () => {
     // projected +20%, price/kWh +27%
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 60, avgCostPerKwh: 0.38 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100, avgCostPerKwh: 0.30 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 60, avgCostPerKwh: 0.38 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100, avgCostPerKwh: 0.30 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight.body).toBe('trend_cost_body_up_price_up')
   })
 
   it('body: up_volume when total higher but price neutral', () => {
     // projected +20%, price/kWh +3% (neutral)
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 60, avgCostPerKwh: 0.31 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100, avgCostPerKwh: 0.30 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 60, avgCostPerKwh: 0.31 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100, avgCostPerKwh: 0.30 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight.body).toBe('trend_cost_body_up_volume')
   })
 
   it('body: up_price_down when total higher but price cheaper', () => {
     // projected +20%, price/kWh -27%
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 60, avgCostPerKwh: 0.22 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100, avgCostPerKwh: 0.30 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 60, avgCostPerKwh: 0.22 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100, avgCostPerKwh: 0.30 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight.body).toBe('trend_cost_body_up_price_down')
   })
 
   it('body: down_price_down when total and price both lower', () => {
     // projected -20%, price/kWh -27%
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 40, avgCostPerKwh: 0.22 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100, avgCostPerKwh: 0.30 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 40, avgCostPerKwh: 0.22 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100, avgCostPerKwh: 0.30 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight.body).toBe('trend_cost_body_down_price_down')
   })
 
   it('body: down_volume when total lower but price neutral', () => {
     // projected -20%, price/kWh +3% (neutral)
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 40, avgCostPerKwh: 0.31 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100, avgCostPerKwh: 0.30 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 40, avgCostPerKwh: 0.31 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100, avgCostPerKwh: 0.30 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight.body).toBe('trend_cost_body_down_volume')
   })
 
   it('body: down_price_up when total lower but price more expensive', () => {
     // projected -20%, price/kWh +27%
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 40, avgCostPerKwh: 0.38 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100, avgCostPerKwh: 0.30 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 40, avgCostPerKwh: 0.38 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100, avgCostPerKwh: 0.30 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight.body).toBe('trend_cost_body_down_price_up')
   })
 
   // guards
   it('guard: does not fire when diff < 5%', () => {
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 51 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 51 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100 })
     expect(computeInsights(stats, lastMonth, DAY15).some(i => i.id === 'trend_cost')).toBe(false)
   })
 
   it('guard: does not fire before day 7', () => {
     const today = new Date(2026, 3, 6)
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 10 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 10 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100 })
     expect(computeInsights(stats, lastMonth, today).some(i => i.id === 'trend_cost')).toBe(false)
   })
 
   it('guard: does not fire when lastMonthStats is null', () => {
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 40 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 40 })
     expect(computeInsights(stats, null, DAY15).some(i => i.id === 'trend_cost')).toBe(false)
   })
 
   it('guard: does not fire when current charges = 0', () => {
-    const stats = makeStats({ totalCharges: 0, totalCostEur: 40 })
-    const lastMonth = makeStats({ totalCharges: 5, totalCostEur: 100 })
+    const stats = makeStats({ totalCharges: 0, energyCostEur: 40 })
+    const lastMonth = makeStats({ totalCharges: 5, energyCostEur: 100 })
     expect(computeInsights(stats, lastMonth, DAY15).some(i => i.id === 'trend_cost')).toBe(false)
   })
 
   it('guard: does not fire when lastMonth charges = 0', () => {
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 40 })
-    const lastMonth = makeStats({ totalCharges: 0, totalCostEur: 100 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 40 })
+    const lastMonth = makeStats({ totalCharges: 0, energyCostEur: 100 })
     expect(computeInsights(stats, lastMonth, DAY15).some(i => i.id === 'trend_cost')).toBe(false)
   })
 })
@@ -416,8 +438,8 @@ describe('charge_efficiency insight', () => {
 describe('trend_cost chartBars', () => {
   it('has 2 bars; second has value=current and projectedValue=projected', () => {
     // 60 € on day 15 → projected 120 €; last month 100 €
-    const stats = makeStats({ totalCharges: 5, totalCostEur: 60 })
-    const lastMonth = makeStats({ totalCharges: 4, totalCostEur: 100 })
+    const stats = makeStats({ totalCharges: 5, energyCostEur: 60 })
+    const lastMonth = makeStats({ totalCharges: 4, energyCostEur: 100 })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!
     expect(insight.chartBars).toHaveLength(2)
     expect(insight.chartBars![0].value).toBe(100)       // prev month

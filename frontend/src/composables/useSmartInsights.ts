@@ -145,17 +145,19 @@ export function computeInsights(
   // ── trend_cost ────────────────────────────────────────────────────────────
   const daysElapsed = today.getDate()
   const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  // Energy cost only: fixed costs (insurance, repairs) are not charging costs and a
+  // one-time payment must never be extrapolated over the month.
   if (
     lastMonthStats != null &&
     stats.totalCharges >= 1 &&
     lastMonthStats.totalCharges >= 1 &&
-    stats.totalCostEur > 0 &&
-    lastMonthStats.totalCostEur > 0 &&
+    stats.energyCostEur > 0 &&
+    lastMonthStats.energyCostEur > 0 &&
     daysElapsed >= 7
   ) {
-    const projectedCostEur = (stats.totalCostEur / daysElapsed) * daysInMonth
+    const projectedCostEur = (stats.energyCostEur / daysElapsed) * daysInMonth
     const totalDiffPct = Math.round(
-      ((projectedCostEur - lastMonthStats.totalCostEur) / lastMonthStats.totalCostEur) * 100,
+      ((projectedCostEur - lastMonthStats.energyCostEur) / lastMonthStats.energyCostEur) * 100,
     )
     if (Math.abs(totalDiffPct) >= 5) {
       const priceDiffPct =
@@ -177,7 +179,7 @@ export function computeInsights(
         bodyKey = totalUp ? 'trend_cost_body_up_volume' : 'trend_cost_body_down_volume'
       }
 
-      const absEur = Math.abs(projectedCostEur - lastMonthStats.totalCostEur)
+      const absEur = Math.abs(projectedCostEur - lastMonthStats.energyCostEur)
       candidates.push({
         id: 'trend_cost',
         sentiment: totalUp ? 'warning' : 'positive',
@@ -192,8 +194,8 @@ export function computeInsights(
           return `Ø ${ctNow.toFixed(1)} ct (${sign}${ctDiff.toFixed(1)})`
         })(),
         chartBars: [
-          { value: lastMonthStats.totalCostEur, formattedValue: `${Math.round(lastMonthStats.totalCostEur)} €`, style: 'solid', muted: true, label: 'chart_prev' },
-          { value: stats.totalCostEur, projectedValue: projectedCostEur, formattedValue: `~${Math.round(projectedCostEur)} €`, style: 'solid', label: 'chart_current' },
+          { value: lastMonthStats.energyCostEur, formattedValue: `${Math.round(lastMonthStats.energyCostEur)} €`, style: 'solid', muted: true, label: 'chart_prev' },
+          { value: stats.energyCostEur, projectedValue: projectedCostEur, formattedValue: `~${Math.round(projectedCostEur)} €`, style: 'solid', label: 'chart_current' },
         ],
       })
     }
