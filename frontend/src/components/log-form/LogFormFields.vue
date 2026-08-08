@@ -15,6 +15,7 @@ import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 import { tariffLocationParams } from '../../utils/tariffLocation'
 import { shouldRefetchPriceOnToggle } from './costSuggestion'
+import { rescaleTotalToNewEnergy } from './costRescale'
 
 export interface LogFormData {
   kwhCharged: number | null
@@ -325,6 +326,13 @@ const calculatedLocalPerKwh = computed(() => {
   const total = costLocalTotal.value
   if (kwh != null && kwh > 0 && total != null) return Math.round(total / kwh * 1000) / 1000
   return null
+})
+
+// Aendert sich die Bezugsmenge (typisch: Brutto nachgetragen), bleibt der ct/kWh-Preis bestehen
+// und der Gesamtbetrag waechst mit. Im Modus "pro kWh" passiert das ohnehin ueber syncCostToEur.
+watch(effectiveKwhForDisplay, (newKwh, previousKwh) => {
+  if (costMode.value !== 'total') return
+  costLocalTotal.value = rescaleTotalToNewEnergy(costLocalTotal.value, previousKwh ?? null, newKwh)
 })
 
 watch([costLocalTotal, costLocalPerKwh, effectiveKwhForDisplay], syncCostToEur)
