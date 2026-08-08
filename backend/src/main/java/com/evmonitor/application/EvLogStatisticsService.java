@@ -685,10 +685,10 @@ public class EvLogStatisticsService {
      * - {@link LocationPricing} is the single source, so suggestion and stored value cannot drift.
      */
     public Optional<PriceSuggestion> getPriceSuggestion(UUID userId, double latitude, double longitude,
-                                                        boolean isPublicCharging, ChargingType chargingType) {
+                                                        boolean isPublicCharging) {
         int precision = isPublicCharging ? 7 : 6;
         String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();
-        return locationPricing.tariffAt(userId, geohash, chargingType)
+        return locationPricing.tariffAt(userId, geohash)
                 .map(tariff -> new PriceSuggestion(tariff.pricePerKwh(), tariff.chargingProviderId()));
     }
 

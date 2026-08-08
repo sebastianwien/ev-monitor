@@ -17,6 +17,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -296,7 +297,19 @@ public class TripService {
                         user.getId(), carId, PageRequest.of(0, MAX_TRIPS_PER_CAR))
                 : tripRepository.findByUserIdAndCarIdExcludingSourcesAndDeletedAtIsNull(
                         user.getId(), carId, EvTrip.LIVE_TRIP_SOURCES, PageRequest.of(0, MAX_TRIPS_PER_CAR));
-        return trips.stream().map(EvTripResponse::fromDomain).toList();
+        // Only the most recent trip carries its geohashes - the dashboard draws a map
+        // background for exactly that one. Determined by trip end, not by list order,
+        // because the non-live query returns an unordered result.
+        UUID newestTripId = trips.stream()
+                .filter(t -> t.getTripEndedAt() != null)
+                .max(Comparator.comparing(EvTrip::getTripEndedAt))
+                .map(EvTrip::getId)
+                .orElse(null);
+        return trips.stream()
+                .map(t -> t.getId().equals(newestTripId)
+                        ? EvTripResponse.fromDomainWithLocation(t)
+                        : EvTripResponse.fromDomain(t))
+                .toList();
     }
 
     /**

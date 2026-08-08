@@ -29,8 +29,16 @@ public record EvTripResponse(
         String status,
         String dataSource,
         String feedback,
-        ClimateSummary climate
+        ClimateSummary climate,
+        String locationStartGeohash,
+        String locationEndGeohash
 ) {
+    /**
+     * Geohash precision handed to the client. 6 characters ≈ 1.2 km x 0.6 km, the same
+     * coarseness the privacy rules demand for private locations - rows that happen to
+     * store a finer hash are cut down instead of being passed through.
+     */
+    private static final int MAX_GEOHASH_PRECISION = 6;
     /**
      * Climate/comfort loads active during the trip and for how long, parsed from
      * {@code telemetry_extras}. Null for trips without Tesla-FULL climate data
@@ -52,7 +60,30 @@ public record EvTripResponse(
 
     public record Load(boolean active, int seconds) {}
 
+    /** Location-free projection - the default for every trip in a list response. */
     public static EvTripResponse fromDomain(EvTrip trip) {
+        return baseBuilder(trip).build();
+    }
+
+    /**
+     * Adds the coarse start/end geohashes. Reserved for the single trip the dashboard
+     * draws a map for; see {@code TripService#getTripsForCar}.
+     */
+    public static EvTripResponse fromDomainWithLocation(EvTrip trip) {
+        return baseBuilder(trip)
+                .locationStartGeohash(coarse(trip.getLocationStartGeohash()))
+                .locationEndGeohash(coarse(trip.getLocationEndGeohash()))
+                .build();
+    }
+
+    private static String coarse(String geohash) {
+        if (geohash == null) return null;
+        return geohash.length() <= MAX_GEOHASH_PRECISION
+                ? geohash
+                : geohash.substring(0, MAX_GEOHASH_PRECISION);
+    }
+
+    private static EvTripResponseBuilder baseBuilder(EvTrip trip) {
         return EvTripResponse.builder()
                 .id(trip.getId())
                 .type("TRIP")
@@ -74,7 +105,6 @@ public record EvTripResponse(
                 .status(trip.getStatus())
                 .dataSource(trip.getDataSource())
                 .feedback(trip.getFeedback())
-                .climate(TripClimateExtras.parse(trip.getTelemetryExtras()))
-                .build();
+                .climate(TripClimateExtras.parse(trip.getTelemetryExtras()));
     }
 }

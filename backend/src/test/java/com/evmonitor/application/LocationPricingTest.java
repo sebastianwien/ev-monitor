@@ -18,9 +18,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * The one rule for "what does a charge here cost, and who paid for it".
  *
- * Two stages: the last priced charge at this location wins, because it is what the user actually
- * paid. Only when there is none does a card's list price apply - that is how a location gets its
- * first price at all, and it is the only stage that carries a session fee.
+ * One rule: the last priced charge at this location wins, because it is what the user actually
+ * paid. A card's configured price is a list price and never derives anything - it applies only
+ * where the user explicitly asks for it.
  */
 class LocationPricingTest extends AbstractIntegrationTest {
 
@@ -51,19 +51,6 @@ class LocationPricingTest extends AbstractIntegrationTest {
 
         // 20.00 / 40 kWh = 0.50, not the card's 0.59 DC list price
         assertEquals(0, new BigDecimal("25.00").compareTo(priced.getCostEur()));
-        assertEquals(card, priced.getChargingProviderId());
-    }
-
-    @Test
-    void withoutAnAnchorTheCardsTariffApplies_includingSessionFee() {
-        UUID card = saveCard("IONITY", null, new BigDecimal("0.7900"), new BigDecimal("1.00"));
-        // A charge here carries the card but no price - the only thing stage 2 can work from.
-        evLogRepository.save(logHere(new BigDecimal("10.0"), null).toBuilder().chargingProviderId(card).build());
-
-        EvLog priced = locationPricing.enrich(unpricedLog(new BigDecimal("50.0")), userId);
-
-        // 50 * 0.79 + 1.00 session fee
-        assertEquals(0, new BigDecimal("40.50").compareTo(priced.getCostEur()));
         assertEquals(card, priced.getChargingProviderId());
     }
 
@@ -105,8 +92,8 @@ class LocationPricingTest extends AbstractIntegrationTest {
 
     @Test
     void aGeohashShorterThanSixCharsYieldsNothing() {
-        assertTrue(locationPricing.tariffAt(userId, "u1hc", ChargingType.DC).isEmpty());
-        assertTrue(locationPricing.tariffAt(userId, null, ChargingType.DC).isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, "u1hc").isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, null).isEmpty());
     }
 
     @Test
@@ -119,7 +106,7 @@ class LocationPricingTest extends AbstractIntegrationTest {
                 new BigDecimal("20.00"), 30, HERE, 9_000, null, null,
                 LocalDateTime.now().minusDays(1), ChargingType.DC, null, null, true, null));
 
-        assertTrue(locationPricing.tariffAt(userId, HERE, ChargingType.DC).isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, HERE).isEmpty());
     }
 
     // ---- Helpers ----

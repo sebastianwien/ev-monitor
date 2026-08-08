@@ -22,9 +22,10 @@ import java.util.UUID;
  * implemented four times and had drifted: imports inherited a price, manual entries only a card,
  * and the suggestion shown in the form could differ from what was actually stored.
  *
- * The location is the only evidence accepted. Owning a single card says nothing about who paid
+ * Only what was actually paid at this location counts. Owning a card says nothing about who paid
  * for a particular charge point - that assumption is what priced Tesla Supercharger sessions with
- * a supermarket tariff.
+ * a supermarket tariff. A card's configured price is a list price and is applied only when the
+ * user explicitly asks for it, via {@link #costUnder}.
  */
 @Component
 @RequiredArgsConstructor
@@ -48,31 +49,21 @@ public class LocationPricing {
     }
 
     /**
-     * The tariff to apply at this location, in order of evidence:
-     * <ol>
-     *   <li>the last charge the user recorded here that carries a price - what they actually paid</li>
-     *   <li>failing that, the list price of the card they last used here - the only way a location
-     *       gets its first price at all, and the only carrier of a session fee</li>
-     * </ol>
-     * Empty when the location is unknown or too coarse to identify a charge point.
+     * The tariff to apply at this location: the last charge the user recorded here that carries a
+     * price, which is what they actually paid. Nothing else counts - a card's list price is not
+     * evidence of a payment and quietly produces wrong numbers. Empty when the location is unknown,
+     * too coarse to identify a charge point, or has no priced charge yet.
      */
-    public Optional<Tariff> tariffAt(UUID userId, String geohash, ChargingType chargingType) {
+    public Optional<Tariff> tariffAt(UUID userId, String geohash) {
         if (geohash == null || geohash.length() < MIN_GEOHASH_LENGTH) return Optional.empty();
 
-        Optional<EvLog> anchor = evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash);
-        if (anchor.isPresent()) {
-            EvLog log = anchor.get();
-            // The session fee is already baked into the amount the user recorded, so it is not
-            // added a second time.
-            return Optional.of(new Tariff(
-                    log.getCostEur().divide(log.costBasisKwh(), 4, RoundingMode.HALF_UP),
-                    BigDecimal.ZERO,
-                    log.getChargingProviderId()));
-        }
-
-        return evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash)
-                .flatMap(chargingProviderRepository::findById)
-                .map(card -> new Tariff(priceOf(card, chargingType), card.getSessionFeeEur(), card.getId()));
+        return evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash)
+                // A session fee is already baked into the recorded amount, so it is never added
+                // on top - it is spread across the kWh of that charge.
+                .map(anchor -> new Tariff(
+                        anchor.getCostEur().divide(anchor.costBasisKwh(), 4, RoundingMode.HALF_UP),
+                        BigDecimal.ZERO,
+                        anchor.getChargingProviderId()));
     }
 
     /**
@@ -83,7 +74,7 @@ public class LocationPricing {
     public EvLog enrich(EvLog log, UUID userId) {
         if (log.getCostEur() != null && log.getChargingProviderId() != null) return log;
 
-        Optional<Tariff> tariff = tariffAt(userId, log.getGeohash(), log.getChargingType());
+        Optional<Tariff> tariff = tariffAt(userId, log.getGeohash());
         if (tariff.isEmpty()) return log;
 
         var builder = log.toBuilder();
