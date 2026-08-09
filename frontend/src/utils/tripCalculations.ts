@@ -195,16 +195,17 @@ export function tripGroupCostPer100km(
 
 /**
  * Tageswechsel zwischen zwei aufeinanderfolgenden Trips einer Fahrtgruppe.
- * Trips sind absteigend sortiert (neuester zuerst), verglichen wird das Ende
- * des Vorgaengers mit dem Start des aktuellen Trips. Fehlt tripEndedAt, dient
- * tripStartedAt als Ersatz; ohne jeden Zeitstempel gibt es keinen Trenner.
+ * Trips sind absteigend sortiert (neuester zuerst). Verglichen werden die Startdaten, denn
+ * der Trenner beschriftet den Trip darunter mit dessen tripStartedAt. Wuerde stattdessen das
+ * Ende des Vorgaengers zaehlen, loeste ein Trip ueber Mitternacht denselben Trenner zweimal
+ * aus. Ohne Startzeitstempel gibt es keinen Trenner.
  */
 export function isDayBoundary(
-  trips: { tripStartedAt?: string | null; tripEndedAt?: string | null }[],
+  trips: { tripStartedAt?: string | null }[],
   idx: number,
 ): boolean {
   if (idx <= 0) return false
-  const prev = trips[idx - 1]?.tripEndedAt ?? trips[idx - 1]?.tripStartedAt
+  const prev = trips[idx - 1]?.tripStartedAt
   const current = trips[idx]?.tripStartedAt
   if (!prev || !current) return false
   return new Date(prev).toDateString() !== new Date(current).toDateString()

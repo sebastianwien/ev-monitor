@@ -21,21 +21,31 @@ describe('isDayBoundary', () => {
     expect(isDayBoundary(trips, 2)).toBe(false)
   })
 
-  it('nutzt tripStartedAt des Vorgaengers, wenn tripEndedAt fehlt', () => {
-    const partial = [{ tripStartedAt: '2026-08-02T09:56:00', tripEndedAt: null }, trips[1]]
-    expect(isDayBoundary(partial, 1)).toBe(true)
-  })
-
   it('kein Trenner auf Verdacht, wenn gar kein Zeitstempel da ist', () => {
     const broken = [{ tripStartedAt: null, tripEndedAt: null }, trips[1]]
     expect(isDayBoundary(broken, 1)).toBe(false)
   })
 
-  it('faellt auf tripStartedAt zurueck, wenn tripEndedAt fehlt', () => {
+  // Ein Trip ueber Mitternacht gehoert zu zwei Tagen. Der Trenner beschriftet immer den Trip
+  // darunter mit dessen tripStartedAt - also darf auch nur das Startdatum ueber den Trenner
+  // entscheiden, sonst erscheint dasselbe Datum zweimal hintereinander.
+  it('kein zweiter Trenner mit gleichem Datum bei einem Trip ueber Mitternacht', () => {
+    const overMidnight = [
+      { tripStartedAt: '2026-08-03T09:26:00', tripEndedAt: '2026-08-03T15:07:00' },
+      { tripStartedAt: '2026-08-02T20:33:00', tripEndedAt: '2026-08-03T09:26:00' },
+      { tripStartedAt: '2026-08-02T18:20:00', tripEndedAt: '2026-08-02T20:33:00' },
+    ]
+    expect(isDayBoundary(overMidnight, 1)).toBe(true)   // Wechsel 3.8. -> 2.8.
+    expect(isDayBoundary(overMidnight, 2)).toBe(false)  // beide starten am 2.8.
+  })
+
+  it('kommt ohne tripEndedAt aus', () => {
     const partial = [
       { tripStartedAt: '2026-08-02T09:56:00', tripEndedAt: null },
-      { tripStartedAt: '2026-08-02T08:00:00', tripEndedAt: '2026-08-02T08:20:00' },
+      { tripStartedAt: '2026-08-02T08:00:00', tripEndedAt: null },
+      { tripStartedAt: '2026-08-01T22:00:00', tripEndedAt: null },
     ]
     expect(isDayBoundary(partial, 1)).toBe(false)
+    expect(isDayBoundary(partial, 2)).toBe(true)
   })
 })
