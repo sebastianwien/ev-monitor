@@ -67,12 +67,29 @@ export interface CarImageResponse {
     coinsAwarded: number;
 }
 
+/** Where a SoH value came from. Drives the confidence badge - see sohPresentation.ts. */
+export type BatterySohSource = 'VEHICLE_BMS' | 'CHARGE_LOG' | 'MANUAL' | 'UNKNOWN';
+
 export interface BatterySohEntry {
     id: string;
     carId: string;
     sohPercent: number;
     recordedAt: string; // ISO date
     createdAt: string;
+    source: BatterySohSource;
+    /** Charges behind the estimate. Only set for CHARGE_LOG. */
+    sampleSize: number | null;
+    /** SoC hub of the charge the estimate rests on. Only set for CHARGE_LOG. */
+    socHubPercent: number | null;
+}
+
+/** Preconditions for auto-detection, used to explain an empty history. */
+export interface BatterySohStatus {
+    requiredSocHubPercent: number;
+    /** Largest SoC hub the car ever recorded, null if it has no usable charge. */
+    largestSocHubPercent: number | null;
+    qualifyingChargeCount: number;
+    capacityKnown: boolean;
 }
 
 export interface BatterySohRequest {
@@ -151,6 +168,11 @@ export const carService = {
     // SoH History
     async getSohHistory(carId: string): Promise<BatterySohEntry[]> {
         const response = await api.get(`/cars/${carId}/soh`);
+        return response.data;
+    },
+
+    async getSohStatus(carId: string): Promise<BatterySohStatus> {
+        const response = await api.get(`/cars/${carId}/soh/status`);
         return response.data;
     },
 

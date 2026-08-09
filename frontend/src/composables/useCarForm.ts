@@ -1,7 +1,7 @@
 import { ref, watch, computed } from 'vue'
 import { formatPeriod } from '../utils/formatPeriod'
 import { useI18n } from 'vue-i18n'
-import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse, type BatterySohEntry, type CapacityOption } from '../api/carService'
+import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse, type CapacityOption } from '../api/carService'
 import { useCarStore } from '../stores/car'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
@@ -83,13 +83,6 @@ export function useCarForm() {
   const capacityWasCorrected = ref(false)
 
   const wltpLookup = useWltpLookup(selectedBrand, selectedModel)
-
-  // SoH History (kept here because resetForm touches it)
-  const sohHistory = ref<BatterySohEntry[]>([])
-  const showSohAddForm = ref(false)
-  const sohEditingEntry = ref<BatterySohEntry | null>(null)
-  const sohPercent = ref<number | null>(null)
-  const sohDate = ref(new Date().toISOString().split('T')[0])
 
   const sortedBrands = computed(() => [...brands.value].sort((a, b) => a.label.localeCompare(b.label)))
   const isSonstige = computed(() => selectedBrand.value === 'SONSTIGE')
@@ -228,11 +221,6 @@ export function useCarForm() {
     editingCar.value = null
     showForm.value = false
     availableModels.value = []
-    sohHistory.value = []
-    showSohAddForm.value = false
-    sohEditingEntry.value = null
-    sohPercent.value = null
-    sohDate.value = new Date().toISOString().split('T')[0]
   }
 
   const openAddForm = () => {
@@ -265,11 +253,6 @@ export function useCarForm() {
     hasHeatPump.value = car.hasHeatPump ?? false
     isBusinessCar.value = car.isBusinessCar ?? false
     showForm.value = true
-    try {
-      sohHistory.value = await carService.getSohHistory(car.id)
-    } catch {
-      sohHistory.value = []
-    }
   }
 
   /** Liefert das neu angelegte Auto zurueck (nur beim Anlegen, sonst null) - der Aufrufer haengt daran markenspezifische Folge-Schritte. */
@@ -381,8 +364,6 @@ export function useCarForm() {
     ratingSource: wltpLookup.ratingSource,
     resetCustomFields: wltpLookup.resetCustomFields,
     powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
-    // SoH (form state only - CRUD in useSohHistory)
-    sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,
     // Computed / flags
     sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, finalVehicleSpecificationId, powerPs,
     isGroupedByTrim, trimGroups, visibleOptionsForTrim, formatPeriod,

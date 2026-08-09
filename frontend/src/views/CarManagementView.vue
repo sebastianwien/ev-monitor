@@ -7,6 +7,8 @@ import {
   ChartBarIcon, BoltIcon, LockClosedIcon, Battery50Icon,
 } from '@heroicons/vue/24/outline'
 import LicensePlate from '../components/car/LicensePlate.vue'
+import BatterySohModal from '../components/car/BatterySohModal.vue'
+import SohPill from '../components/car/SohPill.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
 import XpengAutoSyncPrompt from '../components/car/XpengAutoSyncPrompt.vue'
@@ -19,7 +21,6 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { isXpengCar, isTeslaCar } from '../composables/useImportGating'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
-import { useSohHistory } from '../composables/useSohHistory'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
 
 const { t } = useI18n()
@@ -33,7 +34,6 @@ const {
   selectedBrand, selectedModel, year, licensePlate, trim,
   selectedCapacity, selectedSpecId, selectedTrimLevel, useCustomCapacity,
   powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
-  sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate,
   sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
   isGroupedByTrim, trimGroups, visibleOptionsForTrim, formatPeriod,
   selectTrimGroup,
@@ -51,10 +51,8 @@ const {
   handleVisibilityChange, handleImageUpload, handleDeleteImage,
 } = useCarImages(cars, error, showToast, toastMessage)
 
-// -- SoH History --
-const {
-  openSohAddForm, openSohEditForm, cancelSohForm, submitSohForm, deleteSohEntry,
-} = useSohHistory(editingCar, cars, error, sohHistory, showSohAddForm, sohEditingEntry, sohPercent, sohDate)
+// Fahrzeug, dessen Batteriegesundheit-Detailansicht offen ist (null = geschlossen).
+const sohModalCar = ref<Car | null>(null)
 
 // -- Setup-Teaser ueber der Auto-Card --
 const { teaserFor, dismiss: dismissTeaser, loadTelemetryStatus } = useCarSetupTeaser(cars, teslaStatus)
@@ -418,70 +416,6 @@ const filteredCapacities = computed(() => {
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('cars.hint_degradation') }}</p>
               </div>
 
-              <!-- SoH-Verlauf (nur im Edit-Modus) -->
-              <div v-if="editingCar">
-                <div class="flex items-center justify-between mb-2">
-                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.soh_section_title') }}</label>
-                  <button v-if="!showSohAddForm" type="button" @click="openSohAddForm"
-                    class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-                    + {{ t('cars.soh_add_btn') }}
-                  </button>
-                </div>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{{ t('cars.soh_hint') }}</p>
-
-                <!-- SoH Eingabeformular -->
-                <div v-if="showSohAddForm" class="p-3 bg-gray-50 dark:bg-gray-600 rounded-sm space-y-2 mb-3">
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_percent') }}</label>
-                      <div class="relative">
-                        <input v-model.number="sohPercent" type="number" step="0.1" min="50" max="100"
-                          placeholder="z.B. 92"
-                          class="w-full rounded-sm border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100 pr-6" />
-                        <span class="absolute right-2 top-2 text-xs text-gray-400">%</span>
-                      </div>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_date') }}</label>
-                      <input v-model="sohDate" type="date"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100" />
-                    </div>
-                  </div>
-                  <div v-if="sohPercent && finalCapacity" class="text-xs text-amber-600">
-                    Effektive Kapazität: {{ (finalCapacity * sohPercent / 100).toFixed(1) }} kWh
-                  </div>
-                  <div class="flex gap-2">
-                    <button type="button" @click="submitSohForm"
-                      class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-sm hover:bg-indigo-700 transition">
-                      {{ t('cars.soh_save_btn') }}
-                    </button>
-                    <button type="button" @click="cancelSohForm"
-                      class="text-xs bg-gray-200 dark:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-sm hover:bg-gray-300 transition">
-                      {{ t('cars.cancel') }}
-                    </button>
-                  </div>
-                </div>
-
-                <!-- SoH Verlaufsliste -->
-                <div v-if="sohHistory.length === 0 && !showSohAddForm" class="text-xs text-gray-400 dark:text-gray-500 italic">
-                  {{ t('cars.soh_history_empty') }}
-                </div>
-                <div v-else class="space-y-1">
-                  <div v-for="entry in sohHistory" :key="entry.id"
-                    class="flex items-center justify-between py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-600 text-sm">
-                    <div class="flex items-center gap-3">
-                      <span class="font-semibold text-gray-800 dark:text-gray-100">{{ entry.sohPercent }}%</span>
-                      <span class="text-gray-500 dark:text-gray-400 text-xs">{{ entry.recordedAt }}</span>
-                    </div>
-                    <div class="flex gap-2">
-                      <button type="button" @click="openSohEditForm(entry)"
-                        class="text-xs text-indigo-500 hover:text-indigo-700">{{ t('cars.soh_correct_btn') }}</button>
-                      <button type="button" @click="deleteSohEntry(entry)"
-                        class="text-xs text-red-400 hover:text-red-600">{{ t('cars.soh_delete_btn') }}</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -646,9 +580,11 @@ const filteredCapacities = computed(() => {
                        Fallback, SoH-adjustiert wenn vorhanden). Zeigt also den korrekten Wert
                        fuer beide Faelle: Spec verknuepft (customNet null) und Custom-Eingabe. -->
                   {{ car.effectiveBatteryCapacityKwh ?? car.customNetCapacityKwh ?? '?' }}<span class="ml-0.5 text-[11px] font-medium text-gray-400">kWh</span>
-                  <span v-if="car.batteryDegradationPercent" class="ml-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                    {{ t('cars.soh_badge', { pct: Math.round(100 - Number(car.batteryDegradationPercent)) }) }}
-                  </span>
+                  <SohPill
+                    :soh-percent="car.batteryDegradationPercent ? Math.round(100 - Number(car.batteryDegradationPercent)) : null"
+                    class="ml-1.5 align-middle"
+                    @click="sohModalCar = car"
+                  />
                 </span>
               </div>
               <div v-if="car.powerKw" class="flex items-center gap-1.5">
@@ -926,70 +862,6 @@ const filteredCapacities = computed(() => {
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('cars.hint_degradation') }}</p>
               </div>
 
-              <!-- SoH-Verlauf (nur im Edit-Modus) -->
-              <div v-if="editingCar">
-                <div class="flex items-center justify-between mb-2">
-                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.soh_section_title') }}</label>
-                  <button v-if="!showSohAddForm" type="button" @click="openSohAddForm"
-                    class="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
-                    + {{ t('cars.soh_add_btn') }}
-                  </button>
-                </div>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">{{ t('cars.soh_hint') }}</p>
-
-                <!-- SoH Eingabeformular -->
-                <div v-if="showSohAddForm" class="p-3 bg-gray-50 dark:bg-gray-600 rounded-sm space-y-2 mb-3">
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_percent') }}</label>
-                      <div class="relative">
-                        <input v-model.number="sohPercent" type="number" step="0.1" min="50" max="100"
-                          placeholder="z.B. 92"
-                          class="w-full rounded-sm border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100 pr-6" />
-                        <span class="absolute right-2 top-2 text-xs text-gray-400">%</span>
-                      </div>
-                    </div>
-                    <div>
-                      <label class="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{{ t('cars.soh_label_date') }}</label>
-                      <input v-model="sohDate" type="date"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-500 p-2 border text-sm dark:bg-gray-700 dark:text-gray-100" />
-                    </div>
-                  </div>
-                  <div v-if="sohPercent && finalCapacity" class="text-xs text-amber-600">
-                    Effektive Kapazität: {{ (finalCapacity * sohPercent / 100).toFixed(1) }} kWh
-                  </div>
-                  <div class="flex gap-2">
-                    <button type="button" @click="submitSohForm"
-                      class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-sm hover:bg-indigo-700 transition">
-                      {{ t('cars.soh_save_btn') }}
-                    </button>
-                    <button type="button" @click="cancelSohForm"
-                      class="text-xs bg-gray-200 dark:bg-gray-500 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-sm hover:bg-gray-300 transition">
-                      {{ t('cars.cancel') }}
-                    </button>
-                  </div>
-                </div>
-
-                <!-- SoH Verlaufsliste -->
-                <div v-if="sohHistory.length === 0 && !showSohAddForm" class="text-xs text-gray-400 dark:text-gray-500 italic">
-                  {{ t('cars.soh_history_empty') }}
-                </div>
-                <div v-else class="space-y-1">
-                  <div v-for="entry in sohHistory" :key="entry.id"
-                    class="flex items-center justify-between py-1.5 px-2 rounded bg-gray-50 dark:bg-gray-600 text-sm">
-                    <div class="flex items-center gap-3">
-                      <span class="font-semibold text-gray-800 dark:text-gray-100">{{ entry.sohPercent }}%</span>
-                      <span class="text-gray-500 dark:text-gray-400 text-xs">{{ entry.recordedAt }}</span>
-                    </div>
-                    <div class="flex gap-2">
-                      <button type="button" @click="openSohEditForm(entry)"
-                        class="text-xs text-indigo-500 hover:text-indigo-700">{{ t('cars.soh_correct_btn') }}</button>
-                      <button type="button" @click="deleteSohEntry(entry)"
-                        class="text-xs text-red-400 hover:text-red-600">{{ t('cars.soh_delete_btn') }}</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -1060,6 +932,13 @@ const filteredCapacities = computed(() => {
       </div>
     </div>
     </Teleport>
+
+    <BatterySohModal
+      v-if="sohModalCar"
+      :car="sohModalCar"
+      @changed="doFetchCars()"
+      @close="sohModalCar = null"
+    />
   </div>
 </template>
 

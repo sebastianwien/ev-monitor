@@ -47,6 +47,8 @@ import ChargingEfficiencyCard from '../components/dashboard/ChargingEfficiencyCa
 import CO2Card from '../components/dashboard/CO2Card.vue'
 import SmartInsightsCard from '../components/dashboard/SmartInsightsCard.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
+import BatterySohModal from '../components/car/BatterySohModal.vue'
+import type { Car } from '../api/carService'
 import CostHistoryCard from '../components/dashboard/CostHistoryCard.vue'
 import RecentActivityCard from '../components/dashboard/RecentActivityCard.vue'
 import EditTripModal from '../components/dashboard/EditTripModal.vue'
@@ -71,9 +73,12 @@ const {
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
-  hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo,
+  hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo, initCars,
   editingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
 } = useCarContext()
+
+// Car whose battery-health detail sheet is open (null = closed).
+const sohModalCar = ref<Car | null>(null)
 
 // Newest charge / trip for the "letzte Aktivität"-Block. Uses the full merged
 // feed (not the filtered stats), so it always reflects the absolute latest event.
@@ -352,7 +357,14 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   v-if="cars.length === 1 && car.id === selectedCarId"
                   class="hidden md:flex flex-shrink-0 self-stretch items-center border-l border-gray-200 dark:border-gray-600 pl-3 pr-3 py-2"
                 >
-                  <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="horizontal" />
+                  <CarCardDetails
+                    :car="car"
+                    :wltp="wltp"
+                    :current-odometer-km="currentOdometerKm"
+                    orientation="horizontal"
+                    interactive-soh
+                    @open-soh="sohModalCar = car"
+                  />
                 </div>
               </button>
             </div>
@@ -1097,6 +1109,15 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
     :saving="tripSaving"
     @save="submitTripEdit"
     @close="onTripSheetClosed"
+  />
+
+  <!-- Battery health detail sheet. `changed` reloads the cars so the chip on the card
+       reflects a newly added or corrected value without a page reload. -->
+  <BatterySohModal
+    v-if="sohModalCar"
+    :car="sohModalCar"
+    @changed="initCars()"
+    @close="sohModalCar = null"
   />
 
 </div>

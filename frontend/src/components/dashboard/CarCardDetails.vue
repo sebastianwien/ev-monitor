@@ -12,6 +12,7 @@ import {
 import type { Car } from '../../api/carService'
 import type { VehicleSpecification } from '../../api/vehicleSpecificationService'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
+import SohPill from '../car/SohPill.vue'
 
 const props = defineProps<{
   car: Car
@@ -24,7 +25,15 @@ const props = defineProps<{
    * 'compact'    = mobile flowing spec strip, text-xs, wraps between items (logs card)
    */
   orientation?: 'horizontal' | 'stacked' | 'compact'
+  /**
+   * Makes the SoH value a button that emits `open-soh`. Off by default so the chip is
+   * never rendered as interactive where no parent opens the detail view - a button that
+   * does nothing is worse than plain text.
+   */
+  interactiveSoh?: boolean
 }>()
+
+const emit = defineEmits<{ 'open-soh': [] }>()
 
 const { t, locale } = useI18n()
 const { formatDistance } = useLocaleFormat()
@@ -95,10 +104,10 @@ const containerClass = computed(() => {
 // Smaller icons only on the compact strip.
 const iconClass = computed(() => (isCompact.value ? 'w-3.5 h-3.5' : 'w-4 h-4'))
 
-// SoH: rounded to integer on the compact strip to save width, 1 decimal elsewhere.
+// Whole percent everywhere: the value is an estimate, a decimal would oversell it.
 const sohDisplay = computed<number | null>(() => {
   if (sohPercent.value == null) return null
-  return isCompact.value ? Math.round(sohPercent.value) : sohPercent.value
+  return Math.round(sohPercent.value)
 })
 </script>
 
@@ -112,8 +121,14 @@ const sohDisplay = computed<number | null>(() => {
     >
       <BoltIcon :class="iconClass" class="text-amber-500 flex-shrink-0" />
       <span class="font-medium">{{ batteryLabel }}</span>
+      <SohPill
+        v-if="sohPercent != null && interactiveSoh"
+        :soh-percent="sohDisplay"
+        compact
+        @click="emit('open-soh')"
+      />
       <span
-        v-if="sohPercent != null"
+        v-else-if="sohPercent != null"
         class="text-gray-500 dark:text-gray-400"
         :class="isHorizontal ? 'text-[11px]' : 'text-[10px]'"
       >
