@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.BatterySohRequest;
 import com.evmonitor.application.BatterySohResponse;
 import com.evmonitor.application.BatterySohService;
+import com.evmonitor.application.BatterySohStatusResponse;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,14 @@ public class BatterySohController {
             Authentication authentication) {
         UUID userId = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
         return ResponseEntity.ok(sohService.getHistory(carId, userId));
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<BatterySohStatusResponse> getDetectionStatus(
+            @PathVariable UUID carId,
+            Authentication authentication) {
+        UUID userId = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
+        return ResponseEntity.ok(sohService.getDetectionStatus(carId, userId));
     }
 
     @PostMapping

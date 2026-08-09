@@ -20,6 +20,12 @@ public interface EvLogRepository {
 
     List<EvLog> findRecentAtVehicleLogsWithSoc(UUID carId, int limit);
 
+    /** Most recent logs usable for SoH detection, already filtered by minimum SoC hub. */
+    List<EvLog> findSohCandidateLogs(UUID carId, int minSocHub, int limit);
+
+    /** Largest SoC hub on any usable log, or null if the car has none. */
+    java.math.BigDecimal findLargestSocHub(UUID carId);
+
     List<EvLog> findAllByCarIds(List<UUID> carIds);
 
     List<EvLog> findLatestByCarId(UUID carId, int limit, int page);

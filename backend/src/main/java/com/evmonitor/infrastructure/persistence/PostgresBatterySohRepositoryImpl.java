@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.BatterySohEntry;
 import com.evmonitor.domain.BatterySohRepository;
+import com.evmonitor.domain.BatterySohSource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -45,6 +46,9 @@ public class PostgresBatterySohRepositoryImpl implements BatterySohRepository {
         entity.setSohPercent(domain.getSohPercent());
         entity.setRecordedAt(domain.getRecordedAt());
         entity.setCreatedAt(domain.getCreatedAt());
+        entity.setSource(domain.getSource().name());
+        entity.setSampleSize(domain.getSampleSize());
+        entity.setSocHubPercent(domain.getSocHubPercent());
         return entity;
     }
 
@@ -54,6 +58,9 @@ public class PostgresBatterySohRepositoryImpl implements BatterySohRepository {
                 entity.getCarId(),
                 entity.getSohPercent(),
                 entity.getRecordedAt(),
-                entity.getCreatedAt());
+                entity.getCreatedAt(),
+                BatterySohSource.valueOf(entity.getSource()),
+                entity.getSampleSize(),
+                entity.getSocHubPercent());
     }
 }

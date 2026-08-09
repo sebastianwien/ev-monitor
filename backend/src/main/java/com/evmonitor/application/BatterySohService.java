@@ -37,11 +37,31 @@ public class BatterySohService {
                 .toList();
     }
 
+    /**
+     * Preconditions for auto-detection, so the UI can explain an empty history instead of
+     * just showing nothing.
+     */
+    public BatterySohStatusResponse getDetectionStatus(UUID carId, UUID userId) {
+        Car car = verifyOwnership(carId, userId);
+        BigDecimal nominalNet = car.getNominalNetCapacityKwh();
+
+        int qualifying = evLogRepository.findSohCandidateLogs(
+                carId,
+                BatterySohAutoDetector.MIN_SOC_DELTA_PERCENT,
+                BatterySohAutoDetector.ROLLING_WINDOW_SIZE).size();
+
+        return new BatterySohStatusResponse(
+                BatterySohAutoDetector.MIN_SOC_DELTA_PERCENT,
+                evLogRepository.findLargestSocHub(carId),
+                qualifying,
+                nominalNet != null && nominalNet.compareTo(BigDecimal.ZERO) > 0);
+    }
+
     @Transactional
     public BatterySohResponse addMeasurement(UUID carId, UUID userId, BatterySohRequest request) {
         verifyOwnership(carId, userId);
 
-        BatterySohEntry entry = new BatterySohEntry(
+        BatterySohEntry entry = BatterySohEntry.manual(
                 UUID.randomUUID(),
                 carId,
                 request.sohPercent(),
@@ -67,7 +87,9 @@ public class BatterySohService {
             throw new IllegalArgumentException("Entry does not belong to this car");
         }
 
-        BatterySohEntry updated = new BatterySohEntry(
+        // A user-corrected value is a manual value, whatever its origin was - keeping the
+        // old source would claim a measurement precision the new number does not have.
+        BatterySohEntry updated = BatterySohEntry.manual(
                 existing.getId(),
                 existing.getCarId(),
                 request.sohPercent(),
@@ -173,7 +195,7 @@ public class BatterySohService {
             if (sohPercent.subtract(lastSoh).abs().compareTo(BMS_MAX_DEVIATION) > 0) return;
         }
 
-        sohRepository.save(new BatterySohEntry(UUID.randomUUID(), carId, sohPercent,
+        sohRepository.save(BatterySohEntry.fromVehicleBms(UUID.randomUUID(), carId, sohPercent,
                 LocalDate.now(), LocalDateTime.now()));
         syncDegradationToCarField(carId);
     }
@@ -191,20 +213,24 @@ public class BatterySohService {
         LocalDate today = LocalDate.now();
         if (history.stream().anyMatch(e -> e.getRecordedAt().equals(today))) return;
 
-        Optional<BigDecimal> detected = BatterySohAutoDetector.detectSohPercent(
-                evLogRepository.findRecentAtVehicleLogsWithSoc(car.getId(), BatterySohAutoDetector.ROLLING_WINDOW_SIZE * 3),
+        Optional<BatterySohAutoDetector.Detection> detected = BatterySohAutoDetector.detect(
+                evLogRepository.findSohCandidateLogs(car.getId(),
+                        BatterySohAutoDetector.MIN_SOC_DELTA_PERCENT,
+                        BatterySohAutoDetector.ROLLING_WINDOW_SIZE),
                 nominalNet);
 
         if (detected.isEmpty()) return;
 
-        BigDecimal newSoh = detected.get();
+        BigDecimal newSoh = detected.get().sohPercent();
 
         if (!history.isEmpty()) {
             BigDecimal lastSoh = history.get(0).getSohPercent();
             if (newSoh.subtract(lastSoh).abs().compareTo(SOH_CHANGE_THRESHOLD) <= 0) return;
         }
 
-        sohRepository.save(new BatterySohEntry(UUID.randomUUID(), car.getId(), newSoh, today, LocalDateTime.now()));
+        sohRepository.save(BatterySohEntry.fromChargeLogs(UUID.randomUUID(), car.getId(), newSoh,
+                today, LocalDateTime.now(), detected.get().sampleSize(),
+                detected.get().socHubPercent()));
         syncDegradationToCarField(car.getId());
     }
 
@@ -227,11 +253,12 @@ public class BatterySohService {
         return detected;
     }
 
-    private void verifyOwnership(UUID carId, UUID userId) {
+    private Car verifyOwnership(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
         if (!car.getUserId().equals(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
+        return car;
     }
 }

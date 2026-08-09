@@ -36,7 +36,7 @@ class CarSpecNetCapacityTest {
     }
 
     private BatterySohEntry sohEntry(BigDecimal sohPercent, LocalDate date) {
-        return new BatterySohEntry(UUID.randomUUID(), UUID.randomUUID(), sohPercent, date, LocalDateTime.now());
+        return BatterySohEntry.manual(UUID.randomUUID(), UUID.randomUUID(), sohPercent, date, LocalDateTime.now());
     }
 
     // -------------------------------------------------------------------------

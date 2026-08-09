@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.BatterySohEntry;
+import com.evmonitor.domain.BatterySohSource;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,7 +13,10 @@ public record BatterySohResponse(
         UUID carId,
         BigDecimal sohPercent,
         LocalDate recordedAt,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        BatterySohSource source,
+        Integer sampleSize,
+        BigDecimal socHubPercent
 ) {
     public static BatterySohResponse fromDomain(BatterySohEntry entry) {
         return new BatterySohResponse(
@@ -20,6 +24,9 @@ public record BatterySohResponse(
                 entry.getCarId(),
                 entry.getSohPercent(),
                 entry.getRecordedAt(),
-                entry.getCreatedAt());
+                entry.getCreatedAt(),
+                entry.getSource(),
+                entry.getSampleSize(),
+                entry.getSocHubPercent());
     }
 }

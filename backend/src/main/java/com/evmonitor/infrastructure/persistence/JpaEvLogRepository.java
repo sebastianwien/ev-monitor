@@ -32,6 +32,43 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("carId") UUID carId,
             org.springframework.data.domain.Pageable pageable);
 
+    /**
+     * SoH detection candidates. Deliberately separate from
+     * {@link #findRecentAtVehicleLogsWithSoc} - that one is shared with the missed-start-SoC
+     * estimator, which needs logs of any SoC hub. Filtering here rather than in Java keeps
+     * the payload at the window size even when qualifying charges are rare.
+     */
+    @Query("""
+        SELECT e FROM EvLogEntity e
+        WHERE e.carId = :carId
+          AND (e.measurementType = 'AT_VEHICLE' OR e.kwhAtVehicle IS NOT NULL)
+          AND e.socBeforeChargePercent IS NOT NULL
+          AND e.socAfterChargePercent IS NOT NULL
+          AND e.includeInStatistics = true
+          AND (e.energySource IS NULL OR e.energySource <> 'SOC_INFERRED')
+          AND (e.socAfterChargePercent - e.socBeforeChargePercent) >= :minSocHub
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findSohCandidateLogs(
+            @Param("carId") UUID carId,
+            @Param("minSocHub") int minSocHub,
+            org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Largest SoC hub the car ever recorded on an otherwise usable log. Drives the
+     * "why is there no measurement yet" explanation in the UI.
+     */
+    @Query("""
+        SELECT MAX(e.socAfterChargePercent - e.socBeforeChargePercent) FROM EvLogEntity e
+        WHERE e.carId = :carId
+          AND (e.measurementType = 'AT_VEHICLE' OR e.kwhAtVehicle IS NOT NULL)
+          AND e.socBeforeChargePercent IS NOT NULL
+          AND e.socAfterChargePercent IS NOT NULL
+          AND e.includeInStatistics = true
+          AND (e.energySource IS NULL OR e.energySource <> 'SOC_INFERRED')
+        """)
+    java.math.BigDecimal findLargestSocHub(@Param("carId") UUID carId);
+
     @Query("SELECT e.geohash, COALESCE(e.kwhAtVehicle, e.kwhCharged) FROM EvLogEntity e WHERE e.carId = :carId AND e.geohash IS NOT NULL")
     List<Object[]> findGeohashDataByCarId(@Param("carId") UUID carId);
 

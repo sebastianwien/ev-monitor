@@ -31,4 +31,14 @@ public class BatterySohEntity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    /** Stored as VARCHAR via manual mapping, matching the pattern used on EvLogEntity. */
+    @Column(name = "source", length = 20, nullable = false)
+    private String source;
+
+    @Column(name = "sample_size")
+    private Integer sampleSize;
+
+    @Column(name = "soc_hub_percent")
+    private BigDecimal socHubPercent;
 }

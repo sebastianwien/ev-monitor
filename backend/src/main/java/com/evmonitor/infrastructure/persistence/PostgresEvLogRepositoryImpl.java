@@ -72,6 +72,18 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<EvLog> findSohCandidateLogs(UUID carId, int minSocHub, int limit) {
+        return jpaRepository.findSohCandidateLogs(carId, minSocHub, PageRequest.of(0, limit)).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public java.math.BigDecimal findLargestSocHub(UUID carId) {
+        return jpaRepository.findLargestSocHub(carId);
+    }
+
+    @Override
     public List<EvLog> findAllByCarIds(List<UUID> carIds) {
         if (carIds.isEmpty()) return List.of();
         return jpaRepository.findAllByCarIdIn(carIds).stream()
