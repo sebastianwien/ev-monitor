@@ -83,9 +83,12 @@ const formatDate = (iso: string) =>
     day: 'numeric',
   })
 
-/** Axis ticks: month + short year is enough, the exact day lives in the tooltip. */
+/**
+ * Axis ticks: month + full year, the exact day lives in the tooltip. The year stays
+ * four-digit because "Sept. 20" reads as a day of the month, not as 2020.
+ */
 const formatAxisDate = (ms: number) =>
-  new Date(ms).toLocaleDateString(numberLocale.value, { year: '2-digit', month: 'short' })
+  new Date(ms).toLocaleDateString(numberLocale.value, { year: 'numeric', month: 'short' })
 
 /** Axis ticks: plain scale marks, no approximation marker. */
 const formatPercent = (value: number) =>
@@ -168,7 +171,9 @@ const chartOptions = computed((): ChartOptions<'line'> => {
     responsive: true,
     maintainAspectRatio: false,
     // Without the padding the newest point sits on the frame and gets clipped.
-    layout: { padding: { right: 10, top: 4 } },
+    // With bounds: 'data' the outermost markers sit exactly on the axis ends, so they need
+    // room on both sides to not be cut in half.
+    layout: { padding: { left: 8, right: 10, top: 4 } },
     plugins: {
       legend: { display: false },
       // chartjs-plugin-datalabels is registered globally by CostHistoryCard, and Chart.js
@@ -193,6 +198,10 @@ const chartOptions = computed((): ChartOptions<'line'> => {
       },
       x: {
         type: 'linear',
+        // Chart.js widens a linear axis to the next round tick by default, which invents
+        // years before the first and after the last measurement. The axis has to end where
+        // the data ends.
+        bounds: 'data',
         grid: { display: false },
         ticks: {
           maxTicksLimit: 5,
