@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapPinIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { normalizeCharge, relativeTimeParts } from '../../utils/recentActivity'
 import { tripConsumption } from '../../utils/tripCalculations'
 import TripClimateMarkers from '../TripClimateMarkers.vue'
+// Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
+// heatmap) - the map only loads when a trip actually carries a location.
+const TripRouteMap = defineAsyncComponent(() => import('./TripRouteMap.vue'))
 
 const props = defineProps<{
   /** Raw charge / Ladegruppe feed entry (mergedLogFeed), or null. */
@@ -115,6 +118,10 @@ function clamp(v: number): number {
 
 
 const showTrip = computed(() => !!props.trip)
+/** Backend fills the geohashes for the most recent trip only - older ones stay blank. */
+const hasTripLocation = computed(
+  () => !!props.trip?.locationStartGeohash || !!props.trip?.locationEndGeohash,
+)
 
 // -- Mobile: kompakte Inline-Metriken (ein dichter Fließtext statt Balken) --
 const chargeSocText = computed(() =>
@@ -226,8 +233,16 @@ const tripInline = computed<string[]>(() => {
       data-testid="recent-trip-tile"
       :aria-label="t('dashboard.recent_trip_edit')"
       @click="emit('edit-trip')"
-      class="group block w-full cursor-pointer text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
+      class="group relative isolate block w-full cursor-pointer text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
     >
+      <!-- Grobe Start-/Zielgegend als Hintergrund. Nur die neueste Fahrt liefert
+           Geohashes, alle anderen Kacheln bleiben ohne Karte. -->
+      <TripRouteMap
+        v-if="hasTripLocation"
+        :start-geohash="trip.locationStartGeohash"
+        :end-geohash="trip.locationEndGeohash"
+        class="-z-10"
+      />
       <div class="flex items-center justify-between mb-1 md:mb-1.5">
         <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
           <MapPinIcon class="w-4 h-4 text-indigo-500 dark:text-indigo-400" aria-hidden="true" />
