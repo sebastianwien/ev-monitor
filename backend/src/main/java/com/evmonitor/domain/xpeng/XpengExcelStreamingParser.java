@@ -68,6 +68,35 @@ public class XpengExcelStreamingParser {
     public record ParseResult(XpengVehicleInfo vehicleInfo, long rowsProcessed) {}
 
     /**
+     * Ergebnis eines Sheet-Durchlaufs.
+     *
+     * @param sheetName     Name des Sheets
+     * @param headerMatched true wenn alle {@link XpengHeaderMapper#REQUIRED_LOGICAL} aufloesbar waren
+     * @param dataRows      Anzahl Datenzeilen (ohne Header) - nur gezaehlt wenn headerMatched
+     * @param emitted       Anzahl Zeilen, die als {@link XpengTelematicsRow} durchgereicht wurden
+     */
+    private record SheetScan(String sheetName, boolean headerMatched, long dataRows, long emitted) {}
+
+    /**
+     * Fehlermeldung fuer "keine Telematik-Daten gelesen". Trennt die beiden Ursachen,
+     * weil sie voellig unterschiedliche Fixes brauchen:
+     *  - kein Sheet mit den Pflichtspalten → XPeng hat Spalten umbenannt (Schema-Drift)
+     *  - Sheet erkannt, aber keine Zeile verwertbar → Zeileninhalt hat sich geaendert,
+     *    praktisch immer ein unbekanntes Zeitstempel-Format (nur {@code timer} kann eine
+     *    Zeile verwerfen, siehe {@code mapRow()}).
+     */
+    private static String describeMissingData(SheetScan emptyMatch) {
+        if (emptyMatch == null) {
+            return "Kein TELEMATICS-Sheet gefunden (Pflicht-Spalten "
+                    + XpengHeaderMapper.REQUIRED_LOGICAL
+                    + " in keinem Sheet aufloesbar)";
+        }
+        return "TELEMATICS-Sheet '" + emptyMatch.sheetName() + "' erkannt, aber keine der "
+                + emptyMatch.dataRows() + " Datenzeilen verwertbar"
+                + " (unbekanntes Zeitstempel-Format in Spalte 'timer'?)";
+    }
+
+    /**
      * Parse the given xlsx file. If a non-null password is supplied, decrypt first.
      * The {@code rowHandler} is invoked once per TELEMATICS_DATA row in document order.
      *
@@ -97,18 +126,23 @@ public class XpengExcelStreamingParser {
                 XSSFReader.SheetIterator sheetIter = (XSSFReader.SheetIterator) reader.getSheetsData();
                 long rowsProcessed = 0;
                 boolean foundTelematics = false;
+                // Merkt sich ein Sheet, dessen Header passte, das aber keine verwertbare
+                // Zeile lieferte - damit die Fehlermeldung Schema-Drift (Spalten fehlen)
+                // von Zeilen-Drift (z.B. neues Zeitstempel-Format) unterscheiden kann.
+                SheetScan emptyMatch = null;
                 while (sheetIter.hasNext()) {
                     InputStream sheetStream = sheetIter.next();
                     String sheetName = sheetIter.getSheetName();
                     try {
-                        long emitted = readTelematicsSheet(sheetStream, sst, styles, rowHandler);
-                        if (emitted > 0) {
+                        SheetScan scan = readTelematicsSheet(sheetName, sheetStream, sst, styles, rowHandler);
+                        if (scan.emitted() > 0) {
                             foundTelematics = true;
-                            rowsProcessed = emitted;
+                            rowsProcessed = scan.emitted();
                             // erstes passendes Sheet reicht
                             // (Daten-Catalogue + Basic-Vehicle-Sheets haben null oder zu wenige Pflicht-Spalten)
                             break;
                         }
+                        if (scan.headerMatched() && emptyMatch == null) emptyMatch = scan;
                     } catch (Exception sheetErr) {
                         // einzelne Sheets duerfen scheitern (z.B. Basic-Vehicle SAX-quirks) -
                         // wir versuchen das naechste
@@ -118,10 +152,7 @@ public class XpengExcelStreamingParser {
                     }
                 }
                 if (!foundTelematics) {
-                    throw new XpengParseException(
-                            "Kein TELEMATICS-Sheet gefunden (Pflicht-Spalten "
-                            + XpengHeaderMapper.REQUIRED_LOGICAL
-                            + " in keinem Sheet aufloesbar)");
+                    throw new XpengParseException(describeMissingData(emptyMatch));
                 }
                 return new ParseResult(info, rowsProcessed);
             }
@@ -219,15 +250,16 @@ public class XpengExcelStreamingParser {
                 dataByHeader.get("OTA Version"));
     }
 
-    private long readTelematicsSheet(InputStream stream,
-                                      org.apache.poi.xssf.model.SharedStrings sst,
-                                      StylesTable styles,
-                                      Consumer<XpengTelematicsRow> rowHandler) throws Exception {
+    private SheetScan readTelematicsSheet(String sheetName,
+                                          InputStream stream,
+                                          org.apache.poi.xssf.model.SharedStrings sst,
+                                          StylesTable styles,
+                                          Consumer<XpengTelematicsRow> rowHandler) throws Exception {
         TelematicsHandler handler = new TelematicsHandler(rowHandler);
         XMLReader xmlReader = XMLHelper.newXMLReader();
         xmlReader.setContentHandler(new XSSFSheetXMLHandler(styles, sst, handler, false));
         xmlReader.parse(new InputSource(stream));
-        return handler.rowsEmitted;
+        return new SheetScan(sheetName, handler.isTelematics, handler.dataRowsSeen, handler.rowsEmitted);
     }
 
     // -- Handlers --
@@ -261,6 +293,7 @@ public class XpengExcelStreamingParser {
         private Map<Integer, String> currentRow = new HashMap<>();
         private int currentRowNum = -1;
         long rowsEmitted = 0;
+        long dataRowsSeen = 0;
 
         TelematicsHandler(Consumer<XpengTelematicsRow> rowHandler) {
             this.rowHandler = rowHandler;
@@ -278,6 +311,7 @@ public class XpengExcelStreamingParser {
                 return;
             }
             if (!isTelematics) return;
+            dataRowsSeen++;
             if (rowsEmitted >= MAX_TELEMATICS_ROWS) {
                 throw new RuntimeException(
                         new XpengParseException("Too many telematics rows (" + rowsEmitted + ")"));
