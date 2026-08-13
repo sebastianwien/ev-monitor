@@ -1,5 +1,6 @@
 package com.evmonitor.application.publicapi;
 
+import com.evmonitor.application.TripClimateExtras;
 import com.evmonitor.domain.EvTrip;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -20,11 +21,14 @@ public record ApiTripResponse(
         @JsonProperty("soc_start") BigDecimal socStart,
         @JsonProperty("soc_end") BigDecimal socEnd,
         @JsonProperty("estimated_consumed_kwh") BigDecimal estimatedConsumedKwh,
+        @Schema(description = "Average speed over the trip. Only from live telemetry, null for uploads")
         @JsonProperty("avg_speed_kmh") BigDecimal avgSpeedKmh,
+        @Schema(description = "Highest speed sampled during the trip. Only from live telemetry")
         @JsonProperty("max_speed_kmh") BigDecimal maxSpeedKmh,
         @JsonProperty("outside_temp_celsius") BigDecimal outsideTempCelsius,
         @JsonProperty("route_type") String routeType,
-        @JsonProperty("status") String status
+        @JsonProperty("status") String status,
+        @JsonProperty("climate") ApiClimateSummary climate
 ) {
     public static ApiTripResponse fromDomain(EvTrip trip) {
         return new ApiTripResponse(
@@ -43,7 +47,8 @@ public record ApiTripResponse(
                 trip.getMaxSpeedKmh(),
                 trip.getOutsideTempCelsius(),
                 trip.getRouteType(),
-                trip.getStatus()
+                trip.getStatus(),
+                ApiClimateSummary.fromInternal(TripClimateExtras.parse(trip.getTelemetryExtras()))
         );
     }
 }

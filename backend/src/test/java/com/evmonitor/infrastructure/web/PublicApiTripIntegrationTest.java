@@ -169,6 +169,50 @@ class PublicApiTripIntegrationTest extends AbstractIntegrationTest {
         assertNotNull(body.get("distance_km"));
     }
 
+    /**
+     * Speed and climate are deliberately NOT gated on the subscription tier here: the public
+     * API hands a user their own raw per-trip data, whatever they pay. The paywall lives on
+     * the aggregated analytics in the app, not on data portability.
+     */
+    @Test
+    void getTrip_exposesSpeedsAndClimate_regardlessOfTier() {
+        EvTrip trip = apiUploadTrip(car.getId(), user.getId(), OffsetDateTime.now().minusHours(2));
+        trip.setAvgSpeedKmh(new BigDecimal("21.80"));
+        trip.setMaxSpeedKmh(new BigDecimal("39.00"));
+        trip.setTelemetryExtras("""
+                {"tripSeconds":182,"climate":{
+                  "comfortHeat":{"active":false,"seconds":0},
+                  "hvacHeating":{"active":false,"seconds":0},
+                  "hvacCooling":{"active":true,"seconds":85},
+                  "batteryHeater":{"active":false,"seconds":0}}}""");
+        trip = evTripRepository.save(trip);
+
+        Map<?, ?> body = apiGet("/api/v1/trips/" + trip.getId()).getBody();
+
+        assertNotNull(body);
+        assertEquals(21.80, ((Number) body.get("avg_speed_kmh")).doubleValue(), 0.001);
+        assertEquals(39.00, ((Number) body.get("max_speed_kmh")).doubleValue(), 0.001);
+        Map<?, ?> climate = (Map<?, ?>) body.get("climate");
+        assertNotNull(climate, "climate summary missing");
+        assertEquals(182, ((Number) climate.get("trip_seconds")).intValue());
+        Map<?, ?> cooling = (Map<?, ?>) climate.get("hvac_cooling");
+        assertEquals(Boolean.TRUE, cooling.get("active"));
+        assertEquals(85, ((Number) cooling.get("seconds")).intValue());
+        assertEquals(Boolean.FALSE, ((Map<?, ?>) climate.get("hvac_heating")).get("active"));
+    }
+
+    /** No telemetry source, no climate block - clients must not see a hollow object. */
+    @Test
+    void getTrip_withoutTelemetryExtras_omitsClimate() {
+        EvTrip trip = evTripRepository.save(apiUploadTrip(car.getId(), user.getId(),
+                OffsetDateTime.now().minusHours(2)));
+
+        Map<?, ?> body = apiGet("/api/v1/trips/" + trip.getId()).getBody();
+
+        assertNotNull(body);
+        assertNull(body.get("climate"));
+    }
+
     @Test
     void getTrip_unknownId_returns404() {
         ResponseEntity<Map> response = apiGet("/api/v1/trips/" + UUID.randomUUID());

@@ -9,14 +9,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * across telemetry sources (each with its own schema), so only blobs carrying a {@code climate}
  * object with at least one active load yield a summary - everything else returns {@code null}
  * and no marker is shown.
+ *
+ * <p>Also feeds the public API's {@code ApiClimateSummary}, which is why this is the single
+ * place that knows the {@code telemetry_extras} layout - the raw blob is source-specific and
+ * schema-versioned and must never reach a client verbatim.
  */
-final class TripClimateExtras {
+public final class TripClimateExtras {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private TripClimateExtras() {}
 
-    static EvTripResponse.ClimateSummary parse(String telemetryExtrasJson) {
+    public static EvTripResponse.ClimateSummary parse(String telemetryExtrasJson) {
         if (telemetryExtrasJson == null || telemetryExtrasJson.isBlank()) {
             return null;
         }

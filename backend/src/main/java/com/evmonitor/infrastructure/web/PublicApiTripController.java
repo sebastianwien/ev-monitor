@@ -8,6 +8,9 @@ import com.evmonitor.application.publicapi.PublicApiTripService;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,6 +51,10 @@ public class PublicApiTripController {
                     """,
             security = @SecurityRequirement(name = "ApiKey")
     )
+    // The handlers return ResponseEntity<?> so they can emit an error body; without an explicit
+    // @ApiResponse springdoc has no type to derive a schema from and the spec stays empty.
+    @ApiResponse(responseCode = "200", content = @Content(
+            schema = @Schema(implementation = ApiTripsPageResponse.class)))
     public ResponseEntity<?> listTrips(
             @RequestParam(name = "car_id", required = false) UUID carId,
             @RequestParam(required = false) String from,
@@ -95,6 +102,8 @@ public class PublicApiTripController {
                     """,
             security = @SecurityRequirement(name = "ApiKey")
     )
+    @ApiResponse(responseCode = "201", content = @Content(
+            schema = @Schema(implementation = ApiTripResponse.class)))
     public ResponseEntity<?> createTrip(
             @Valid @RequestBody PublicApiTripRequest request,
             Authentication authentication,
@@ -131,6 +140,8 @@ public class PublicApiTripController {
                     """,
             security = @SecurityRequirement(name = "ApiKey")
     )
+    @ApiResponse(responseCode = "200", content = @Content(
+            schema = @Schema(implementation = ApiTripResponse.class)))
     public ResponseEntity<?> getTrip(
             @PathVariable UUID id,
             Authentication authentication,
@@ -165,6 +176,8 @@ public class PublicApiTripController {
                     """,
             security = @SecurityRequirement(name = "ApiKey")
     )
+    @ApiResponse(responseCode = "200", content = @Content(
+            schema = @Schema(implementation = ApiTripResponse.class)))
     public ResponseEntity<?> patchTrip(
             @PathVariable UUID id,
             @Valid @RequestBody PatchPublicTripRequest patch,
