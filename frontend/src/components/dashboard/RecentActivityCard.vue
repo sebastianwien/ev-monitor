@@ -274,14 +274,19 @@ const tripInline = computed<string[]>(() => {
             <div class="absolute inset-y-0 bg-indigo-500 dark:bg-indigo-400" :style="{ left: tripSoc.end + '%', width: (tripSoc.start - tripSoc.end) + '%' }"></div>
           </div>
         </div>
-        <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-600 dark:text-gray-300">
+        <!-- Verbraucher stehen in derselben Zeile wie Tempo und Temperatur, nicht darunter:
+             eine eigene Zeile laesst die Kachel wachsen, sobald eine Fahrt Klimadaten hat,
+             und verschiebt damit die Reihe neben dem Ladevorgang. min-h haelt die Hoehe
+             auch dann, wenn eine Fahrt gar keine Metriken liefert. -->
+        <div class="mt-2 min-h-[1.125rem] flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-600 dark:text-gray-300">
           <template v-for="(m, i) in tripMetrics" :key="'tm' + i">
             <span v-if="i > 0" class="text-gray-300 dark:text-gray-600" aria-hidden="true">&middot;</span>
             <span class="tabular-nums">{{ m }}</span>
           </template>
           <span v-if="tripRouteLabel" class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ tripRouteLabel }}</span>
+          <span v-if="trip.climate && tripMetrics.length" class="text-gray-300 dark:text-gray-600" aria-hidden="true">&middot;</span>
+          <TripClimateMarkers v-if="trip.climate" :climate="trip.climate" class="!justify-start !text-[11px]" />
         </div>
-        <TripClimateMarkers v-if="trip.climate" :climate="trip.climate" class="mt-2 !justify-start" />
       </div>
 
       <!-- Mobile: gedämpfte Meta-Zeile statt Balken - nur Abstand trennt (sauberer Umbruch) -->
