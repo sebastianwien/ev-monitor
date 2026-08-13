@@ -34,11 +34,11 @@ public record EvTripResponse(
         String locationEndGeohash
 ) {
     /**
-     * Geohash precision handed to the client. 6 characters ≈ 1.2 km x 0.6 km, the same
-     * coarseness the privacy rules demand for private locations - rows that happen to
-     * store a finer hash are cut down instead of being passed through.
+     * Geohash precision handed to the client. 8 characters ≈ 38 m x 19 m - fine enough to
+     * place a trip on a map at street level. Rows that store a finer hash are cut down
+     * instead of being passed through.
      */
-    private static final int MAX_GEOHASH_PRECISION = 6;
+    private static final int MAX_GEOHASH_PRECISION = 8;
     /**
      * Climate/comfort loads active during the trip and for how long, parsed from
      * {@code telemetry_extras}. Null for trips without Tesla-FULL climate data

@@ -59,7 +59,7 @@ class TripServiceLocationExposureTest {
 
     @Test
     void onlyTheNewestTripCarriesItsGeohashes() {
-        EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0ke", "u33d0m");
+        EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0ke9x", "u33d0m");
         EvTrip older = trip("2026-08-01T10:00:00Z", "u2ewmk", "u2ewmn");
         when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
                 eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest, older));
@@ -69,8 +69,12 @@ class TripServiceLocationExposureTest {
         EvTripResponse newestResponse = responses.stream().filter(r -> r.id().equals(newest.getId())).findFirst().orElseThrow();
         EvTripResponse olderResponse = responses.stream().filter(r -> r.id().equals(older.getId())).findFirst().orElseThrow();
         // Precision is capped at geohash-6 (~600 m) even though the row stores more.
-        assertThat(newestResponse.locationStartGeohash()).isEqualTo("u33d0k");
-        assertThat(newestResponse.locationEndGeohash()).isEqualTo("u33d0m");
+        assertThat(newestResponse.locationStartGeohash())
+                .as("laengere Hashes werden auf 8 Stellen (~38 m) gekappt")
+                .isEqualTo("u33d0ke9");
+        assertThat(newestResponse.locationEndGeohash())
+                .as("kuerzere Hashes bleiben unveraendert")
+                .isEqualTo("u33d0m");
         assertThat(olderResponse.locationStartGeohash()).isNull();
         assertThat(olderResponse.locationEndGeohash()).isNull();
     }
