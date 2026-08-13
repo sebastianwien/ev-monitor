@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, type Component } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
+import teslaFleetService, { type TelemetryRepushResult } from '../api/teslaFleetService'
 import axios from 'axios'
 import {
   BoltIcon,
@@ -30,8 +31,30 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic'
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'wartung'
 const activeTab = ref<Tab>('users')
+
+// ── Wartung: Telemetrie-Config neu pushen ────────────────────────────────────
+// Noetig nach einer Aenderung des gestreamten Feldsets: der Skip-Check pro Fahrzeug
+// vergleicht nur Profile, die nichts ueber die enthaltenen Felder aussagen. Ohne
+// diesen Push behalten bestehende Verbindungen dauerhaft das alte Feldset.
+const repushLoading = ref(false)
+const repushError = ref('')
+const repushResult = ref<TelemetryRepushResult | null>(null)
+
+const repushTelemetry = async () => {
+  if (!window.confirm('Telemetrie-Config an ALLE verbundenen Fahrzeuge neu pushen?')) return
+  repushLoading.value = true
+  repushError.value = ''
+  repushResult.value = null
+  try {
+    repushResult.value = await teslaFleetService.repushAllTelemetry()
+  } catch (e: any) {
+    repushError.value = e?.response?.data?.message || e?.message || 'Repush fehlgeschlagen.'
+  } finally {
+    repushLoading.value = false
+  }
+}
 
 // ── Impersonate ───────────────────────────────────────────────────────────────
 const email = ref('')
@@ -446,6 +469,7 @@ const onResizeUp = () => {
             { key: 'activity', label: 'Ladeaktivitat' },
             { key: 'traffic', label: 'Traffic' },
             { key: 'impersonate', label: 'Impersonieren' },
+            { key: 'wartung', label: 'Wartung' },
           ] as { key: Tab; label: string }[])"
           :key="tab.key"
           @click="setTab(tab.key)"
@@ -717,6 +741,47 @@ const onResizeUp = () => {
       </div>
 
       <!-- Tab: Impersonate -->
+      <!-- Tab: Wartung -->
+      <div v-else-if="activeTab === 'wartung'">
+        <h2 class="text-lg font-semibold text-white mb-4">Wartung</h2>
+        <div class="max-w-md bg-gray-900 rounded-sm p-6 border border-gray-800">
+          <h3 class="text-base font-semibold text-white mb-1">Telemetrie-Config neu pushen</h3>
+          <p class="text-sm text-gray-400 mb-5">
+            Schickt das aktuelle Feldset an alle Fahrzeuge, die bereits auf Telemetrie laufen.
+            Notig nach einer Anderung der gestreamten Felder - bestehende Configs werden sonst nie
+            aktualisiert. Loscht nichts: ein abgelehnter Push lasst die bisherige Config stehen.
+          </p>
+
+          <div v-if="repushError" class="mb-4 p-3 bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-sm">
+            {{ repushError }}
+          </div>
+
+          <div
+            v-if="repushResult"
+            class="mb-4 p-3 border text-sm rounded-sm"
+            :class="repushResult.failed > 0
+              ? 'bg-amber-900/40 border-amber-700 text-amber-200'
+              : 'bg-green-900/40 border-green-700 text-green-300'">
+            {{ repushResult.pushed }} von {{ repushResult.total }} gepusht,
+            {{ repushResult.failed }} fehlgeschlagen.
+            <span v-if="repushResult.failed > 0" class="block mt-1 text-amber-300/80">
+              Details pro VIN im Connector-Log unter [TELEMETRY-REPUSH].
+            </span>
+          </div>
+
+          <button
+            @click="repushTelemetry"
+            :disabled="repushLoading"
+            class="w-full py-2.5 bg-indigo-600 text-white font-semibold rounded-sm hover:bg-indigo-700 disabled:opacity-50 transition flex items-center justify-center gap-2 text-sm">
+            <svg v-if="repushLoading" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ repushLoading ? 'Wird gepusht...' : 'Config neu pushen' }}
+          </button>
+        </div>
+      </div>
+
       <div v-else-if="activeTab === 'impersonate'">
         <h2 class="text-lg font-semibold text-white mb-4">Als User einloggen</h2>
         <div class="max-w-md bg-gray-900 rounded-sm p-6 border border-gray-800">

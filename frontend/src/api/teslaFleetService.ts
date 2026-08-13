@@ -19,6 +19,12 @@ export interface TeslaPairingStatus {
   telemetryConfigPushedAt?: string | null
 }
 
+export interface TelemetryRepushResult {
+  total: number
+  pushed: number
+  failed: number
+}
+
 export interface TeslaFleetSyncResult {
   logsImported: number
   logsSkipped: number
@@ -67,5 +73,14 @@ export default {
 
   async disableTelemetry(): Promise<void> {
     await api.post('/tesla/pairing/disable-telemetry')
+  },
+
+  /**
+   * Admin-only: pushes the current telemetry field set to every vehicle already on telemetry.
+   * Needed after the field set changes - an existing config is otherwise never refreshed.
+   */
+  async repushAllTelemetry(): Promise<TelemetryRepushResult> {
+    const resp = await api.post('/tesla/pairing/repush-all-telemetry')
+    return resp.data
   },
 }
