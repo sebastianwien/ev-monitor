@@ -4,6 +4,8 @@ import {
   latestTripEntry,
   normalizeCharge,
   relativeTimeParts,
+  tripTimestamp,
+  tripSpeedKeyAndArgs,
 } from '../recentActivity'
 
 describe('latestChargeEntry', () => {
@@ -164,5 +166,50 @@ describe('relativeTimeParts', () => {
 
   it('reports months', () => {
     expect(relativeTimeParts(now - 2 * 30 * 86_400_000, now)).toEqual({ value: -2, unit: 'month' })
+  })
+})
+
+
+describe('tripTimestamp', () => {
+  it('nimmt das Fahrtende - danach fragt der Nutzer, wann die Fahrt war', () => {
+    expect(tripTimestamp({ tripStartedAt: '2026-08-13T12:25:32Z', tripEndedAt: '2026-08-13T12:40:57Z' }))
+      .toBe('2026-08-13T12:40:57Z')
+  })
+
+  it('faellt auf den Start zurueck, solange die Fahrt laeuft', () => {
+    expect(tripTimestamp({ tripStartedAt: '2026-08-13T12:25:32Z', tripEndedAt: null }))
+      .toBe('2026-08-13T12:25:32Z')
+  })
+
+  it('ist null ohne beide Zeitstempel', () => {
+    expect(tripTimestamp({})).toBeNull()
+  })
+})
+
+describe('tripSpeedKeyAndArgs', () => {
+  it('zeigt Durchschnitt und Maximum, wenn beide da sind', () => {
+    expect(tripSpeedKeyAndArgs(18.7, 112.4)).toEqual({
+      key: 'dashboard.trip_speed_summary',
+      args: { avg: 19, max: 112 },
+    })
+  })
+
+  it('zeigt nur den Durchschnitt statt eines erfundenen max 0', () => {
+    // Fahrten ohne VehicleSpeed-Samples haben kein Maximum - 0 km/h waere schlicht falsch.
+    expect(tripSpeedKeyAndArgs(18.7, null)).toEqual({
+      key: 'dashboard.trip_speed_avg_only',
+      args: { avg: 19 },
+    })
+  })
+
+  it('zeigt nur das Maximum, wenn der Durchschnitt fehlt', () => {
+    expect(tripSpeedKeyAndArgs(null, 112.4)).toEqual({
+      key: 'dashboard.trip_speed_max_only',
+      args: { max: 112 },
+    })
+  })
+
+  it('ist null, wenn gar keine Geschwindigkeit bekannt ist', () => {
+    expect(tripSpeedKeyAndArgs(null, null)).toBeNull()
   })
 })

@@ -116,3 +116,31 @@ export function relativeTimeParts(
   if (abs < YEAR) return { value: Math.round(diffSec / MONTH), unit: 'month' }
   return { value: Math.round(diffSec / YEAR), unit: 'year' }
 }
+
+/**
+ * The timestamp that answers "when did this trip happen": its end. A drive is placed in time by
+ * when it finished - a long trip started hours ago is not "vor 3 Stunden" news. Falls back to the
+ * start while the trip is still running and has no end yet.
+ */
+export function tripTimestamp(
+  trip: { tripStartedAt?: string | null; tripEndedAt?: string | null } | null | undefined,
+): string | null {
+  return trip?.tripEndedAt ?? trip?.tripStartedAt ?? null
+}
+
+/**
+ * i18n key + args for a trip's speed line. Each value is only mentioned when it exists - a trip
+ * without VehicleSpeed samples has no maximum, and rendering "max 0 km/h" would state a wrong
+ * measurement rather than an absent one.
+ */
+export function tripSpeedKeyAndArgs(
+  avgSpeedKmh: number | null | undefined,
+  maxSpeedKmh: number | null | undefined,
+): { key: string; args: Record<string, number> } | null {
+  const avg = avgSpeedKmh != null ? Math.round(Number(avgSpeedKmh)) : null
+  const max = maxSpeedKmh != null ? Math.round(Number(maxSpeedKmh)) : null
+  if (avg != null && max != null) return { key: 'dashboard.trip_speed_summary', args: { avg, max } }
+  if (avg != null) return { key: 'dashboard.trip_speed_avg_only', args: { avg } }
+  if (max != null) return { key: 'dashboard.trip_speed_max_only', args: { max } }
+  return null
+}

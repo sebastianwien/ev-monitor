@@ -868,6 +868,8 @@ dashboard:
   trip_route_combined: Blandet
   trip_manual: manuell
   trip_speed_summary: "Ø {avg} · maks {max} km/t"
+  trip_speed_avg_only: "Ø {avg} km/t"
+  trip_speed_max_only: "maks {max} km/t"
   trip_speed_header: "km/t"
   trip_m_consumption: "Forbr."
   trip_m_speed: "Fart"

@@ -908,6 +908,8 @@ dashboard:
   trip_route_combined: "Gemischt"
   trip_manual: "manuell"
   trip_speed_summary: "Ø {avg} · max {max} km/h"
+  trip_speed_avg_only: "Ø {avg} km/h"
+  trip_speed_max_only: "max {max} km/h"
   trip_speed_header: "km/h"
   trip_m_consumption: "Verbr."
   trip_m_speed: "Speed"

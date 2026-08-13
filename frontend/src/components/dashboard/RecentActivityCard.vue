@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapPinIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { normalizeCharge, relativeTimeParts } from '../../utils/recentActivity'
+import { normalizeCharge, relativeTimeParts, tripTimestamp, tripSpeedKeyAndArgs } from '../../utils/recentActivity'
 import { tripConsumption } from '../../utils/tripCalculations'
 import TripClimateMarkers from '../TripClimateMarkers.vue'
 // Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
@@ -92,10 +92,8 @@ const tripRouteLabel = computed(() => {
   }
 })
 const tripSpeed = computed(() => {
-  const avg = props.trip?.avgSpeedKmh
-  const max = props.trip?.maxSpeedKmh
-  if (avg == null && max == null) return null
-  return t('dashboard.trip_speed_summary', { avg: Math.round(avg ?? 0), max: Math.round(max ?? 0) })
+  const speed = tripSpeedKeyAndArgs(props.trip?.avgSpeedKmh, props.trip?.maxSpeedKmh)
+  return speed ? t(speed.key, speed.args) : null
 })
 /** Dot-separated metric texts; only present ones, so no orphan separators. */
 const tripMetrics = computed<string[]>(() => {
@@ -250,7 +248,7 @@ const tripInline = computed<string[]>(() => {
         </div>
         <!-- Relativzeit: Desktop im Header rechts | Mobile in der Meta-Zeile (Platz) -->
         <div class="hidden md:flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400">
-          <span>{{ relativeTime(trip.tripStartedAt) }}</span>
+          <span>{{ relativeTime(tripTimestamp(trip)) }}</span>
           <PencilSquareIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
         </div>
       </div>
@@ -261,7 +259,7 @@ const tripInline = computed<string[]>(() => {
           <span class="text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ tripConsumptionResult.estimated ? '~' : '' }}{{ formatConsumption(tripConsumptionResult.kwhPer100km, { showUnit: false }) }}</span>
           <span class="text-xs text-gray-400 dark:text-gray-400 font-medium">{{ consumptionUnitLabel() }}</span>
         </span>
-        <span class="md:hidden text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">{{ relativeTime(trip.tripStartedAt) }}</span>
+        <span class="md:hidden text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">{{ relativeTime(tripTimestamp(trip)) }}</span>
       </div>
 
       <!-- Desktop: SoC-Balken (Labels flankieren das Segment) + Chips -->
