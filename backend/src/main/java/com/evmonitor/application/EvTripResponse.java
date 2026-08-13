@@ -60,20 +60,35 @@ public record EvTripResponse(
 
     public record Load(boolean active, int seconds) {}
 
-    /** Location-free projection - the default for every trip in a list response. */
-    public static EvTripResponse fromDomain(EvTrip trip) {
-        return baseBuilder(trip).build();
+    /**
+     * How much of a trip a client is allowed to see. The levels nest, so there is no way to
+     * ask for a location without the telemetry that belongs to the same trip.
+     */
+    public enum Detail {
+        /** Base fields only - an older trip of a user without the analytics entitlement. */
+        BASE,
+        /** Adds speeds and the climate summary - the paid analytics layer. */
+        TELEMETRY,
+        /** Adds the coarse start/end geohashes - only the trip the dashboard maps. */
+        TELEMETRY_AND_LOCATION
     }
 
     /**
-     * Adds the coarse start/end geohashes. Reserved for the single trip the dashboard
-     * draws a map for; see {@code TripService#getTripsForCar}.
+     * Builds the response at the requested level of detail. Anything above {@link Detail#BASE}
+     * is an entitlement decision and belongs to the caller; see {@code TripService}.
      */
-    public static EvTripResponse fromDomainWithLocation(EvTrip trip) {
-        return baseBuilder(trip)
-                .locationStartGeohash(coarse(trip.getLocationStartGeohash()))
-                .locationEndGeohash(coarse(trip.getLocationEndGeohash()))
-                .build();
+    public static EvTripResponse fromDomain(EvTrip trip, Detail detail) {
+        EvTripResponseBuilder builder = baseBuilder(trip);
+        if (detail != Detail.BASE) {
+            builder.avgSpeedKmh(trip.getAvgSpeedKmh())
+                    .maxSpeedKmh(trip.getMaxSpeedKmh())
+                    .climate(TripClimateExtras.parse(trip.getTelemetryExtras()));
+        }
+        if (detail == Detail.TELEMETRY_AND_LOCATION) {
+            builder.locationStartGeohash(coarse(trip.getLocationStartGeohash()))
+                    .locationEndGeohash(coarse(trip.getLocationEndGeohash()));
+        }
+        return builder.build();
     }
 
     private static String coarse(String geohash) {
@@ -99,12 +114,9 @@ public record EvTripResponse(
                 .energyRemainingEndKwh(trip.getEnergyRemainingEndKwh())
                 .outsideTempCelsius(trip.getOutsideTempCelsius())
                 .estimatedConsumedKwh(trip.getEstimatedConsumedKwh())
-                .avgSpeedKmh(trip.getAvgSpeedKmh())
-                .maxSpeedKmh(trip.getMaxSpeedKmh())
                 .routeType(trip.getRouteType())
                 .status(trip.getStatus())
                 .dataSource(trip.getDataSource())
-                .feedback(trip.getFeedback())
-                .climate(TripClimateExtras.parse(trip.getTelemetryExtras()));
+                .feedback(trip.getFeedback());
     }
 }

@@ -127,7 +127,7 @@ public class TripService {
                 .userCreated(true)
                 .build();
 
-        return EvTripResponse.fromDomain(tripRepository.save(trip));
+        return project(tripRepository.save(trip), user);
     }
 
     @Transactional
@@ -153,10 +153,10 @@ public class TripService {
         if (req.socStart() != null)      { trip.setSocStart(req.socStart()); dataChanged = true; anyChanged = true; }
         if (req.socEnd() != null)        { trip.setSocEnd(req.socEnd());     dataChanged = true; anyChanged = true; }
         if (req.feedback() != null)      { trip.setFeedback(req.feedback());           anyChanged = true; }
-        if (!anyChanged) return EvTripResponse.fromDomain(trip);
+        if (!anyChanged) return project(trip, user);
 
         if (dataChanged) trip.setUserEditedAt(OffsetDateTime.now());
-        return EvTripResponse.fromDomain(tripRepository.save(trip));
+        return project(tripRepository.save(trip), user);
     }
 
     @Transactional
@@ -226,7 +226,7 @@ public class TripService {
         other.setDeletedAt(OffsetDateTime.now());
         tripRepository.save(other);
 
-        return EvTripResponse.fromDomain(tripRepository.save(surviving));
+        return project(tripRepository.save(surviving), user);
     }
 
     private BigDecimal calculateEstimatedConsumedKwh(BigDecimal socStart, BigDecimal socEnd, UUID carId) {
@@ -305,11 +305,38 @@ public class TripService {
                 .max(Comparator.comparing(EvTrip::getTripEndedAt))
                 .map(EvTrip::getId)
                 .orElse(null);
+        boolean analytics = user.canViewLiveAnalytics();
         return trips.stream()
-                .map(t -> t.getId().equals(newestTripId)
-                        ? EvTripResponse.fromDomainWithLocation(t)
-                        : EvTripResponse.fromDomain(t))
+                .map(t -> EvTripResponse.fromDomain(t, detailFor(t.getId().equals(newestTripId), analytics)))
                 .toList();
+    }
+
+    /**
+     * Speeds and the climate summary are the paid analytics layer, the map is reserved for
+     * the newest trip. Both collapse into one level because the newest trip is always the
+     * free teaser: whoever may see its map may see its telemetry too.
+     */
+    private static EvTripResponse.Detail detailFor(boolean newest, boolean analytics) {
+        if (newest) return EvTripResponse.Detail.TELEMETRY_AND_LOCATION;
+        return analytics ? EvTripResponse.Detail.TELEMETRY : EvTripResponse.Detail.BASE;
+    }
+
+    /**
+     * Projection for a single trip handed back after a write. The client swaps this into its
+     * list in place, so it has to answer the same way the list would - otherwise an empty
+     * PATCH on an old trip would hand out exactly what the list withholds.
+     */
+    private EvTripResponse project(EvTrip trip, User user) {
+        return EvTripResponse.fromDomain(trip, detailFor(isNewest(trip), user.canViewLiveAnalytics()));
+    }
+
+    private boolean isNewest(EvTrip trip) {
+        return tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
+                        trip.getUserId(), trip.getCarId(), PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
+                .map(newest -> newest.getId().equals(trip.getId()))
+                .orElse(false);
     }
 
     /**
