@@ -42,7 +42,9 @@ import {
 } from '../utils/tripCalculations'
 import api from '../api/axios'
 import { distributeProportionally } from '../utils/distributeProportionally'
-import PowerCurvePanel from '../components/charging/PowerCurvePanel.vue'
+import { rescaleCostForKwhChange } from '../utils/costRescale'
+import PowerCurveModal from '../components/charging/PowerCurveModal.vue'
+import { formatSocRange } from '../utils/socRange'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
 import TripClimateMarkers from '../components/TripClimateMarkers.vue'
@@ -150,7 +152,10 @@ async function applyGrossTotal(entry: any, event?: Event) {
   try {
     const values = distributeProportionally(total, weights)
     await Promise.all(entry._topUps.map((topUp: any, i: number) =>
-      patchLog(topUp.id, topUp, { [setField]: values[i] })
+      patchLog(topUp.id, topUp, {
+        [setField]: values[i],
+        costEur: rescaleCostForKwhChange(topUp, setField, values[i]),
+      })
     ))
     const { [entry.id]: _s, ...rest } = grossEditState.value
     grossEditState.value = rest
@@ -197,7 +202,7 @@ async function applyLogValue(log: any, event?: Event) {
   const { [log.id]: _e, ...re } = logError.value
   logError.value = re
   try {
-    await patchLog(log.id, log, { [field]: value })
+    await patchLog(log.id, log, { [field]: value, costEur: rescaleCostForKwhChange(log, field, value) })
     const { [log.id]: _s, ...rs } = logEditState.value
     logEditState.value = rs
     await refreshLogsAndGroups()

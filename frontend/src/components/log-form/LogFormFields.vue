@@ -15,7 +15,7 @@ import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 import { tariffLocationParams } from '../../utils/tariffLocation'
 import { shouldRefetchPriceOnToggle } from './costSuggestion'
-import { rescaleTotalToNewEnergy } from './costRescale'
+import { rescaleTotalToNewEnergy } from '../../utils/costRescale'
 
 export interface LogFormData {
   kwhCharged: number | null
