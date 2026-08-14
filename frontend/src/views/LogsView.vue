@@ -400,9 +400,22 @@ function cachePut(logId: string, points: { ts: number; kw: number }[]) {
   powerCurveCache.value = new Map(powerCurveCache.value)
 }
 
+/** Anzahl der Teilladungen einer Ladegruppe, die eine Kurve aufgezeichnet haben. */
+function curveTopUpCount(entry: any): number {
+  return (entry?._topUps ?? []).filter((t: any) => t?.hasPowerCurve).length
+}
+
+/** Erste Teilladung mit Kurve - liefert dem Teaser echte Eckdaten statt leerer Kacheln. */
+function firstCurveTopUp(entry: any): any {
+  return (entry?._topUps ?? []).find((t: any) => t?.hasPowerCurve) ?? entry
+}
+
 async function openPowerCurve(entry: any) {
   const logId = entry.id
   powerCurveEntry.value = entry
+  // Ohne Freischaltung zeigt das Overlay den Teaser. Der Abruf wuerde am
+  // Server-Gate scheitern - gar nicht erst fragen.
+  if (!authStore.canViewLiveAnalytics) return
   if (powerCurveCache.value.has(logId)) {
     // Recency-Touch fuer LRU: re-insert um den Eintrag ans Map-Ende zu schieben
     const cached = powerCurveCache.value.get(logId)!
@@ -1678,16 +1691,20 @@ function toggleAllCharges() {
                     >
                       <ChartBarSquareIcon class="w-4 h-4" />
                     </button>
-                    <router-link
+                    <!-- Gesperrt: dasselbe Kurven-Symbol mit Schloss-Marke. Ein blankes
+                         Schloss sagt nicht, was dahinter liegt. -->
+                    <button
                       v-else-if="item.entry.hasPowerCurve && purchasesAvailable()"
-                      :to="upsellTarget"
+                      type="button"
+                      @click.stop="openPowerCurve(item.entry)"
                       :aria-label="t('dashboard.power_curve_locked')"
                       :title="t('dashboard.power_curve_locked')"
-                      class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
-                      @click.stop
+                      aria-haspopup="dialog"
+                      class="relative p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 flex-shrink-0"
                     >
-                      <LockClosedIcon class="w-4 h-4" />
-                    </router-link>
+                      <ChartBarSquareIcon class="w-4 h-4" />
+                      <LockClosedIcon class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5" />
+                    </button>
                   </div>
                   <!-- 4. Consumption (or short-trip / kwh-in-next hint) -->
                   <div class="text-sm whitespace-nowrap">
@@ -2096,16 +2113,6 @@ function toggleAllCharges() {
                         >
                           <ChartBarSquareIcon class="w-4 h-4" />
                         </button>
-                        <router-link
-                          v-else-if="topUp.hasPowerCurve && purchasesAvailable()"
-                          :to="upsellTarget"
-                          :aria-label="t('dashboard.power_curve_locked')"
-                          :title="t('dashboard.power_curve_locked')"
-                          class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
-                          @click.stop
-                        >
-                          <LockClosedIcon class="w-4 h-4" />
-                        </router-link>
                       </div>
                       <div class="text-gray-400 dark:text-gray-600 text-xs pt-0.5">-</div>
                       <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap pt-0.5">
@@ -2162,6 +2169,18 @@ function toggleAllCharges() {
                       </div>
                     </div>
                     </template>
+                    <!-- Ein Hinweis pro Gruppe statt eines Schlosses je Teilladung -->
+                    <button
+                      v-if="!authStore.canViewLiveAnalytics && purchasesAvailable() && curveTopUpCount(item.entry) > 0"
+                      type="button"
+                      aria-haspopup="dialog"
+                      class="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-inset"
+                      @click.stop="openPowerCurve(firstCurveTopUp(item.entry))"
+                    >
+                      <ChartBarSquareIcon class="w-4 h-4 flex-shrink-0" />
+                      <span>{{ curveTopUpCount(item.entry) === 1 ? t('dashboard.power_curve_group_locked_one') : t('dashboard.power_curve_group_locked', { count: curveTopUpCount(item.entry) }) }}</span>
+                      <LockClosedIcon class="w-3 h-3 flex-shrink-0 opacity-70" />
+                    </button>
                   </div>
                 </Transition>
               </div>
@@ -2340,6 +2359,17 @@ function toggleAllCharges() {
                       class="p-1 -m-1 rounded text-emerald-500 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
                     >
                       <ChartBarSquareIcon class="w-4 h-4" />
+                    </button>
+                    <button
+                      v-else-if="item.entry.hasPowerCurve && purchasesAvailable()"
+                      type="button"
+                      @click.stop="openPowerCurve(item.entry)"
+                      :aria-label="t('dashboard.power_curve_locked')"
+                      aria-haspopup="dialog"
+                      class="relative p-1 -m-1 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 flex-shrink-0"
+                    >
+                      <ChartBarSquareIcon class="w-4 h-4" />
+                      <LockClosedIcon class="absolute bottom-0 right-0 w-2.5 h-2.5" />
                     </button>
                     <ChartBarSquareIcon
                       v-else-if="item.entry.hasPowerCurve"
@@ -2546,18 +2576,6 @@ function toggleAllCharges() {
                       </div>
                     </div>
                   </div>
-                  <!-- Ladekurve-Upsell. Fuer freigeschaltete Nutzer liegt der Einstieg
-                       am Kurven-Symbol in der Kopfzeile - ein Tap, ohne Aufklappen. -->
-                  <div v-if="item.entry.hasPowerCurve && !authStore.canViewLiveAnalytics" class="pt-1">
-                    <router-link
-                      v-if="purchasesAvailable()"
-                      :to="upsellTarget"
-                      class="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 transition"
-                    >
-                      <LockClosedIcon class="w-3.5 h-3.5" />
-                      <span>{{ t('dashboard.power_curve_locked') }}</span>
-                    </router-link>
-                  </div>
                 </div>
                 </Transition>
                 <!-- Implausibility tooltip panel (normal log only) -->
@@ -2628,16 +2646,6 @@ function toggleAllCharges() {
                         >
                           <ChartBarSquareIcon class="w-4 h-4" />
                         </button>
-                        <router-link
-                          v-else-if="topUp.hasPowerCurve && purchasesAvailable()"
-                          :to="upsellTarget"
-                          :aria-label="t('dashboard.power_curve_locked')"
-                          :title="t('dashboard.power_curve_locked')"
-                          class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
-                          @click.stop
-                        >
-                          <LockClosedIcon class="w-4 h-4" />
-                        </router-link>
                         <div class="relative ml-auto flex-shrink-0">
                           <button @click.stop="openMenuTopUpId = openMenuTopUpId === topUp.id ? null : topUp.id"
                             class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
@@ -2683,6 +2691,18 @@ function toggleAllCharges() {
                         </span>
                       </div>
                     </div>
+                    <!-- Ein Hinweis pro Gruppe statt eines Schlosses je Teilladung -->
+                    <button
+                      v-if="!authStore.canViewLiveAnalytics && purchasesAvailable() && curveTopUpCount(item.entry) > 0"
+                      type="button"
+                      aria-haspopup="dialog"
+                      class="w-full flex items-center gap-1.5 pt-2 text-xs text-amber-700 dark:text-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 rounded-sm"
+                      @click.stop="openPowerCurve(firstCurveTopUp(item.entry))"
+                    >
+                      <ChartBarSquareIcon class="w-4 h-4 flex-shrink-0" />
+                      <span>{{ curveTopUpCount(item.entry) === 1 ? t('dashboard.power_curve_group_locked_one') : t('dashboard.power_curve_group_locked', { count: curveTopUpCount(item.entry) }) }}</span>
+                      <LockClosedIcon class="w-3 h-3 flex-shrink-0 opacity-70" />
+                    </button>
                   </div>
                 </Transition>
               </template>
@@ -2790,6 +2810,9 @@ function toggleAllCharges() {
     :soc-before-charge-percent="powerCurveEntry.socBeforeChargePercent"
     :soc-after-charge-percent="powerCurveEntry.socAfterChargePercent"
     :kwh-charged="powerCurveEntry.kwhAtVehicle ?? powerCurveEntry.kwhCharged"
+    :charge-duration-minutes="powerCurveEntry.chargeDurationMinutes"
+    :locked="!authStore.canViewLiveAnalytics"
+    :upsell-target="upsellTarget"
     @close="powerCurveEntry = null"
   />
 

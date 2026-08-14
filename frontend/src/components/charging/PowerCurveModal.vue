@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { RouterLink } from 'vue-router'
+import { XMarkIcon, BoltIcon, LockOpenIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
 import PowerCurveChart from './PowerCurveChart.vue'
 import { computeCurveStats } from './powerCurveStats'
@@ -28,6 +29,15 @@ const props = defineProps<{
   socAfterChargePercent?: number | null
   /** Geladene Menge aus dem Log - massgeblich, nicht das Integral der Kurve. */
   kwhCharged?: number | null
+  /**
+   * Ohne Freischaltung liegen keine Kurvenpunkte vor (Server-Gate). Statt eines
+   * Schlosses im Feed zeigt das Overlay dann, worum es ueberhaupt geht.
+   */
+  locked?: boolean
+  /** Ladedauer aus dem Log - im Teaser die einzige Quelle, sonst kommt sie aus der Kurve. */
+  chargeDurationMinutes?: number | null
+  /** Ziel des Upsell-CTA (/supporter oder /upgrade). */
+  upsellTarget?: string
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -47,13 +57,22 @@ interface Tile { key: string; label: string; value: string }
 
 const tiles = computed<Tile[]>(() => {
   const s = stats.value
-  if (!s) return []
-  const out: Tile[] = [
-    { key: 'peak', label: t('dashboard.power_curve_peak'), value: kw(s.peakKw) },
-    { key: 'avg', label: t('dashboard.power_curve_avg'), value: kw(s.avgKw) },
-  ]
-  if (s.durationMs > 0) {
+  if (!s && !props.locked) return []
+  const out: Tile[] = []
+  // Spitze und Schnitt stecken nur in der Kurve - im Teaser sind sie genau das,
+  // was noch fehlt, und bleiben deshalb weg statt als Platzhalter zu erscheinen.
+  if (s) {
+    out.push({ key: 'peak', label: t('dashboard.power_curve_peak'), value: kw(s.peakKw) })
+    out.push({ key: 'avg', label: t('dashboard.power_curve_avg'), value: kw(s.avgKw) })
+  }
+  if (s && s.durationMs > 0) {
     out.push({ key: 'duration', label: t('dashboard.power_curve_duration'), value: formatDuration(s.durationMs) })
+  } else if (props.locked && props.chargeDurationMinutes) {
+    out.push({
+      key: 'duration',
+      label: t('dashboard.power_curve_duration'),
+      value: formatDuration(props.chargeDurationMinutes * 60_000),
+    })
   }
   // Bewusst der Log-Wert und nicht das Kurven-Integral: die Kurve kann Luecken
   // haben, und der Feed-Eintrag dahinter zeigt genau diese Zahl.
@@ -69,6 +88,18 @@ const tiles = computed<Tile[]>(() => {
   }
   return out
 })
+
+/**
+ * Beispielkurve fuer den Teaser - eine typische DC-Ladung mit Taper.
+ *
+ * Bewusst erkennbar als Beispiel beschriftet und nicht verwischt: die echten
+ * Punkte liegen hinter dem Server-Gate, und eine unscharfe Fremdkurve wuerde
+ * so wirken, als sei es die eigene.
+ */
+const DEMO_POINTS = [
+  [0, 45], [0.5, 180], [1, 250], [2, 247], [4, 225], [6, 198], [8, 172],
+  [10, 150], [13, 128], [16, 108], [19, 92], [22, 78], [25, 66], [28, 55],
+].map(([min, kw]) => ({ ts: min * 60_000, kw }))
 
 /**
  * Escape schliesst das Sheet. Der Listener haengt am document, damit er auch
@@ -116,7 +147,50 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onEscape))
         </div>
 
         <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400 text-center py-16">
+          <template v-if="locked">
+            <div v-if="tiles.length" class="grid grid-cols-3 gap-2">
+              <div
+                v-for="tile in tiles"
+                :key="tile.key"
+                class="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-2 py-1.5"
+              >
+                <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ tile.label }}</div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums whitespace-nowrap">{{ tile.value }}</div>
+              </div>
+            </div>
+
+            <p class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
+              {{ t('dashboard.power_curve_teaser_body') }}
+            </p>
+
+            <div class="relative rounded-sm border border-gray-200 dark:border-gray-700 p-2 pt-6">
+              <span class="absolute top-1.5 left-2 rounded-sm bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 text-[10px] uppercase tracking-wide font-semibold">
+                {{ t('dashboard.power_curve_teaser_example') }}
+              </span>
+              <!-- Fremde Beispieldaten: nicht abtastbar, fuer Screenreader unsichtbar -->
+              <div class="pointer-events-none opacity-70" aria-hidden="true">
+                <PowerCurveChart
+                  :points="DEMO_POINTS"
+                  :height="180"
+                  :height-desktop="230"
+                  x-axis-mode="duration"
+                  :consumption-kwh-per100km="18"
+                />
+              </div>
+            </div>
+
+            <RouterLink
+              v-if="upsellTarget"
+              :to="upsellTarget"
+              class="flex items-center justify-center gap-2 w-full rounded-sm bg-amber-500 hover:bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              @click="close"
+            >
+              <LockOpenIcon class="w-4 h-4" />
+              {{ t('dashboard.power_curve_locked') }}
+            </RouterLink>
+          </template>
+
+          <div v-else-if="loading" class="text-sm text-gray-500 dark:text-gray-400 text-center py-16">
             {{ t('live.loading_data') }}
           </div>
           <div v-else-if="points.length === 0" class="text-sm text-gray-500 dark:text-gray-400 text-center py-16">

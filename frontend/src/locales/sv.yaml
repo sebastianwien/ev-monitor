@@ -752,6 +752,10 @@ dashboard:
   show_power_curve: Visa laddningskurva
   no_power_curve: Ingen laddningskurvdata tillgänglig.
   power_curve_title: "Laddningskurva"
+  power_curve_teaser_body: "Hela effektförloppet för den här laddningen är registrerat. Upplåst ser du din egen kurva här: vilken topp bilen startade på, när effekten viker av och hur mycket räckvidd det ger per minut."
+  power_curve_teaser_example: "Exempel"
+  power_curve_group_locked: "{count} laddningskurvor registrerade"
+  power_curve_group_locked_one: "Laddningskurva registrerad"
   power_curve_peak: "Topp"
   power_curve_avg: "Snitteffekt"
   power_curve_duration: "Längd"
