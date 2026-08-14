@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { SparklesIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
 import { sumPhantomKwh, phantomEur } from '../../utils/phantomDrain'
 import { purchasesAvailable } from '../../utils/iapPolicy'
+import { useAnalyticsUpsellTarget } from '../../composables/useUpsellTarget'
 
 // Upsell-Teaser komplett ausblenden, wo kein Kauf moeglich ist (native App, Guideline 3.1.1).
 const showUpgrade = purchasesAvailable()
@@ -15,6 +16,10 @@ const props = defineProps<{ entries: any[] }>()
 const { t } = useI18n()
 
 const phantomCostEur = computed(() => phantomEur(sumPhantomKwh(props.entries)))
+
+// Tesla-Fahrer fehlt nur die Auswertung, nicht die Datenquelle - sie landen direkt
+// auf dem Supporter-Pack statt auf der AutoSync-Preistabelle.
+const upsellTarget = useAnalyticsUpsellTarget()
 
 function fmt1(n: number): string {
   return n.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -53,7 +58,7 @@ const loss = C * 0.21
         <p v-if="phantomCostEur > 0.05" class="text-2xl font-bold text-gray-900 dark:text-white tabular-nums leading-tight">≈ {{ fmt1(phantomCostEur) }}&nbsp;€</p>
         <p class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{{ t('dashboard.insights_teaser_body') }}</p>
         <router-link
-          to="/upgrade"
+          :to="upsellTarget"
           class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-colors"
         >
           <SparklesIcon class="w-4 h-4" />

@@ -5,6 +5,7 @@ import {
   TruckIcon,
   MapIcon,
   BoltIcon,
+  HeartIcon,
   PencilSquareIcon,
   ClockIcon,
   Battery0Icon,
@@ -59,6 +60,7 @@ import { useCarContext } from '../composables/useCarContext'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useBulkBarOffset } from '../composables/useBulkBarOffset'
 import { useHaptic } from '../composables/useHaptic'
+import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import { useCountryStore } from '../stores/country'
 import { getPricing } from '../config/pricingConfig'
 import { carDisplayName } from '../utils/enumLabel'
@@ -557,6 +559,10 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
 const authStore = useAuthStore()
 const isAdmin   = computed(() => authStore.isAdmin)
 
+// Ziel aller "schalt die Auswertungen frei"-CTAs (Standverluste, Ladekurven). Tesla-Fahrer
+// brauchen nur das Supporter-Pack, alle anderen erst eine Datenquelle - siehe Composable.
+const upsellTarget = useAnalyticsUpsellTarget()
+
 // Locked-state: for users without the analytics entitlement, unlock only the most-recent
 // phantom marker inline (in its native style, with an upgrade link); all other markers stay
 // gated. The id matches either a trip or a standalone entry in the feed.
@@ -655,6 +661,24 @@ const showAutoSyncBanner = computed(() =>
 function dismissAutoSyncBanner() {
   autoSyncBannerDismissed.value = true
   localStorage.setItem(LS_AUTOSYNC_BANNER_DISMISSED, 'true')
+}
+
+// Supporter-Banner: das Tesla-Gegenstueck zum AutoSync-Banner darueber, gleicher Slot,
+// gleiches Dismiss-Verhalten. Tesla-Fahrer bekommen die Datenerfassung gratis, AutoSync
+// hat ihnen also nichts zu verkaufen - die Auswertungsebene schon. Ohne diesen Banner
+// erfahren sie vom Pack nur, wenn sie zufaellig auf ein gesperrtes Widget klicken.
+const supporterPrice = computed(() => getPricing(countryStore.country).supporterMonthly)
+const LS_SUPPORTER_BANNER_DISMISSED = 'supporter_banner_dismissed'
+const supporterBannerDismissed = ref(localStorage.getItem(LS_SUPPORTER_BANNER_DISMISSED) === 'true')
+const showSupporterBanner = computed(() =>
+  purchasesAvailable()
+  && subscriptionTier.value === 'NONE'
+  && selectedCar.value?.brand === 'TESLA'
+  && !supporterBannerDismissed.value
+)
+function dismissSupporterBanner() {
+  supporterBannerDismissed.value = true
+  localStorage.setItem(LS_SUPPORTER_BANNER_DISMISSED, 'true')
 }
 
 const LS_COST_TIP_DISMISSED = 'logfeed_cost_reuse_tip_dismissed'
@@ -1012,6 +1036,32 @@ function toggleAllCharges() {
             </div>
           </div>
 
+          <!-- Supporter hint (free Tesla drivers - their data already flows, only the analysis is missing) -->
+          <div v-if="showSupporterBanner"
+            class="w-full flex items-center justify-between gap-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 shadow-[2px_2px_0_0_#fde68a] dark:shadow-[2px_2px_0_0_#78350f]">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.supporter_banner_new_chip') }}</span>
+              <HeartIcon class="w-4 h-4 text-amber-600 dark:text-amber-300 flex-shrink-0" aria-hidden="true" />
+              <p class="text-xs text-gray-700 dark:text-gray-200 leading-snug">
+                {{ t('dashboard.supporter_banner_text_prefix') }}
+                <span class="font-semibold text-amber-700 dark:text-amber-300">{{ t('dashboard.supporter_banner_pack') }}</span>
+                {{ t('dashboard.supporter_banner_text_suffix') }}
+                <span class="font-semibold text-amber-700 dark:text-amber-300 whitespace-nowrap">{{ t('dashboard.supporter_banner_price', { price: supporterPrice }) }}</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <router-link to="/supporter"
+                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-sm bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+                {{ t('dashboard.supporter_banner_cta') }}
+              </router-link>
+              <button type="button" @click="dismissSupporterBanner"
+                class="p-0.5 rounded hover:bg-amber-500/20 dark:hover:bg-amber-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                :aria-label="t('dashboard.supporter_banner_dismiss')">
+                <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+
           <!-- Cost-reuse tip (shown once, dismissible via localStorage) -->
           <div v-if="showCostTip"
             class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-sm border-l-2 border-blue-400 bg-blue-500/10">
@@ -1154,7 +1204,7 @@ function toggleAllCharges() {
                           {{ t('dashboard.phantom_drain_word') }}
                           <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
                         </span>
-                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" to="/upgrade" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
 
                       <!-- Add-trip form triggered from this trip -->
@@ -1416,7 +1466,7 @@ function toggleAllCharges() {
                           {{ t('dashboard.phantom_drain_word') }}
                           <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
                         </span>
-                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" to="/upgrade" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
                       <!-- Add-trip form (full width inside container) -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
@@ -1534,7 +1584,7 @@ function toggleAllCharges() {
                   {{ t('dashboard.phantom_drain_word') }}
                   <span v-if="phantomDrainEur(item.entry._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(item.entry._phantomDrain)!) }}</span>
                 </span>
-                <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" to="/upgrade" class="text-xs font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid whitespace-nowrap">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="text-xs font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid whitespace-nowrap">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
               </div>
               <!-- Add-trip form triggered from a charge entry -->
@@ -1622,7 +1672,7 @@ function toggleAllCharges() {
                     </button>
                     <router-link
                       v-else-if="item.entry.hasPowerCurve && purchasesAvailable()"
-                      to="/upgrade"
+                      :to="upsellTarget"
                       :aria-label="t('dashboard.power_curve_locked')"
                       :title="t('dashboard.power_curve_locked')"
                       class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
@@ -2055,7 +2105,7 @@ function toggleAllCharges() {
                         </button>
                         <router-link
                           v-else-if="topUp.hasPowerCurve && purchasesAvailable()"
-                          to="/upgrade"
+                          :to="upsellTarget"
                           :aria-label="t('dashboard.power_curve_locked')"
                           :title="t('dashboard.power_curve_locked')"
                           class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
@@ -2529,7 +2579,7 @@ function toggleAllCharges() {
                     </template>
                     <router-link
                       v-else-if="purchasesAvailable()"
-                      to="/upgrade"
+                      :to="upsellTarget"
                       class="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 transition"
                     >
                       <LockClosedIcon class="w-3.5 h-3.5" />
@@ -2608,7 +2658,7 @@ function toggleAllCharges() {
                         </button>
                         <router-link
                           v-else-if="topUp.hasPowerCurve && purchasesAvailable()"
-                          to="/upgrade"
+                          :to="upsellTarget"
                           :aria-label="t('dashboard.power_curve_locked')"
                           :title="t('dashboard.power_curve_locked')"
                           class="p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition flex-shrink-0"
