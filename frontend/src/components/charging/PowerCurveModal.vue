@@ -6,6 +6,7 @@ import { XMarkIcon, BoltIcon, LockOpenIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
 import PowerCurveChart from './PowerCurveChart.vue'
 import { computeCurveStats } from './powerCurveStats'
+import { buildSocSeries } from './powerCurveSeries'
 import { formatDuration } from './powerCurveScrub'
 import { formatSocRange } from '../../utils/socRange'
 
@@ -21,7 +22,7 @@ import { formatSocRange } from '../../utils/socRange'
  */
 const props = defineProps<{
   loading: boolean
-  points: { ts: number; kw: number }[]
+  points: { ts: number; kw: number; soc?: number | null }[]
   consumptionKwhPer100km?: number | null
   /** Datum/Uhrzeit der Ladung, wird als Untertitel gezeigt. */
   subtitle?: string
@@ -48,6 +49,11 @@ const sheetRef = ref<InstanceType<typeof BottomSheet> | null>(null)
 
 const stats = computed(() => computeCurveStats(props.points))
 const socRange = computed(() => formatSocRange(props.socBeforeChargePercent, props.socAfterChargePercent))
+
+// Nur relevant fuer den Hinweis unter der Kurve: bei Bestandskurven ohne
+// gemessenen SoC ist die zweite Achse rekonstruiert, und das muss dranstehen.
+const socSeries = computed(() =>
+  buildSocSeries(props.points, props.socBeforeChargePercent, props.socAfterChargePercent))
 
 function kw(value: number): string {
   return `${value.toLocaleString(undefined, { maximumFractionDigits: value < 10 ? 1 : 0 })} kW`
@@ -175,6 +181,8 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onEscape))
                   :height-desktop="230"
                   x-axis-mode="duration"
                   :consumption-kwh-per100km="18"
+                  :soc-before-percent="8"
+                  :soc-after-percent="80"
                 />
               </div>
             </div>
@@ -217,6 +225,9 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onEscape))
               x-axis-mode="duration"
               :aria-label="t('dashboard.power_curve_title')"
               :consumption-kwh-per100km="consumptionKwhPer100km ?? null"
+              :soc-before-percent="socBeforeChargePercent ?? null"
+              :soc-after-percent="socAfterChargePercent ?? null"
+              :soc-axis-label="t('dashboard.power_curve_soc_axis')"
             />
 
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500 dark:text-gray-400">
@@ -228,8 +239,15 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onEscape))
                 <span class="w-3 h-0.5 rounded-full bg-sky-500 flex-shrink-0" />
                 {{ t('dashboard.power_curve_legend_km') }}
               </span>
+              <span v-if="socSeries" class="inline-flex items-center gap-1.5">
+                <span class="w-3 border-b border-dashed border-gray-400 dark:border-gray-500 flex-shrink-0" />
+                {{ t('dashboard.power_curve_legend_soc') }}
+              </span>
             </div>
             <p class="text-[11px] text-gray-400 dark:text-gray-500">{{ t('dashboard.power_curve_scrub_hint') }}</p>
+            <p v-if="socSeries?.derived" class="text-[11px] text-gray-400 dark:text-gray-500">
+              {{ t('dashboard.power_curve_soc_derived_hint') }}
+            </p>
           </template>
         </div>
       </div>

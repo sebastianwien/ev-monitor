@@ -43,6 +43,37 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getPowerCurve_curveWithSoc_returnsSocPerPoint() {
+        User user = createAndSaveAutoSyncLiveUser("pc-soc-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog log = saveLogWith(car.getId(), DataSource.TESLA_LIVE);
+        evLogRepository.updatePowerCurvePoints(log.getId(),
+                "[{\"ts\":1715515200000,\"kw\":42.5,\"soc\":18.5},{\"ts\":1715515260000,\"kw\":150.0,\"soc\":24.0}]");
+
+        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user);
+
+        assertEquals(2, res.points().size());
+        assertEquals(18.5, res.points().get(0).soc());
+        assertEquals(24.0, res.points().get(1).soc());
+    }
+
+    @Test
+    void getPowerCurve_legacyCurveWithoutSoc_parsesWithNullSoc() {
+        // Kurven aus der Zeit vor der SoC-Anreicherung muessen weiter lesbar bleiben -
+        // das Frontend leitet den Verlauf dann aus der kumulierten Energie ab.
+        User user = createAndSaveAutoSyncLiveUser("pc-legacy-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog log = saveLogWith(car.getId(), DataSource.TESLA_LIVE);
+        evLogRepository.updatePowerCurvePoints(log.getId(),
+                "[{\"ts\":1715515200000,\"kw\":42.5}]");
+
+        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user);
+
+        assertEquals(1, res.points().size());
+        assertNull(res.points().get(0).soc());
+    }
+
+    @Test
     void getPowerCurve_nonEntitledOwner_logWithCurve_returnsEmpty() {
         // Historical curves stay premium even for Tesla: a free owner with a persisted
         // curve gets an empty response (the gate), not the points.

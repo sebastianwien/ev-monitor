@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue'
 import { nearestIndexByX, formatDuration } from './powerCurveScrub'
+import { cumulativeKwh, buildSocSeries, socAtTs } from './powerCurveSeries'
 
-interface PowerPoint { ts: number; kw: number }
+interface PowerPoint { ts: number; kw: number; soc?: number | null }
 
 const props = withDefaults(defineProps<{
   points: PowerPoint[]
@@ -19,6 +20,13 @@ const props = withDefaults(defineProps<{
    *  km = (kumulierte kWh) * 100 / consumptionKwhPer100km. Endwert als
    *  Inline-Label statt zweiter Y-Achse (mobile-freundlich). */
   consumptionKwhPer100km?: number | null
+  /** SoC-Grenzen aus dem Log. Nur noetig, damit der Verlauf fuer Kurven ohne
+   *  gemessenen SoC rekonstruiert werden kann - siehe buildSocSeries. */
+  socBeforePercent?: number | null
+  socAfterPercent?: number | null
+  /** a11y - Beschriftung der SoC-Achsenzeile. Die Uebersetzung liegt beim
+   *  Aufrufer, damit die Chart-Komponente i18n-frei bleibt. */
+  socAxisLabel?: string
 }>(), {
   height: 234,
   heightDesktop: 0,
@@ -28,6 +36,9 @@ const props = withDefaults(defineProps<{
   ariaLabel: 'Ladekurve',
   consumptionKwhPer100km: null,
   xAxisMode: 'time',
+  socBeforePercent: null,
+  socAfterPercent: null,
+  socAxisLabel: 'SoC',
 })
 
 const svgHeightStyle = computed(() => ({
@@ -99,14 +110,7 @@ const rangePoints = computed<RangePoint[]>(() => {
   const cons = props.consumptionKwhPer100km
   const buf = props.points
   if (!cons || cons <= 0 || buf.length < 2) return []
-  // Kumulierte kWh pro Punkt - Trapez-Regel ueber (kw, ts).
-  const cumKwh: number[] = [0]
-  for (let i = 1; i < buf.length; i++) {
-    const dtH = (buf[i].ts - buf[i - 1].ts) / 3_600_000
-    const avgKw = (buf[i].kw + buf[i - 1].kw) / 2
-    cumKwh.push(cumKwh[i - 1] + avgKw * dtH)
-  }
-  const km = cumKwh.map(kwh => (kwh * 100) / cons)
+  const km = cumulativeKwh(buf).map(kwh => (kwh * 100) / cons)
   // 30 % Headroom oben, damit die km-Linie nicht in das kW-Overlay
   // rechts oben laeuft. Endpunkt liegt dann bei ~70 % Hoehe.
   const maxKm = (km[km.length - 1] || 1) / 0.70
@@ -165,6 +169,26 @@ const curveXLabels = computed<{ text: string; isNow: boolean }[]>(() => {
     })
   }
   return labels
+})
+
+// Zweite X-Achse: Ladestand an denselben Stuetzstellen wie die Zeit-Labels.
+// Bewusst keine dritte Linie im Chart - der SoC-Verlauf haette im abgeleiteten
+// Modus exakt die Form der km-Linie und wuerde nur Redundanz stiften. Als
+// Achsenbeschriftung beantwortet er dagegen die Frage, die die Zeitachse offen
+// laesst: bei welchem Ladestand die Leistung eingebrochen ist.
+const socSeries = computed(() =>
+  buildSocSeries(props.points, props.socBeforePercent, props.socAfterPercent))
+
+const socXLabels = computed<string[] | null>(() => {
+  const series = socSeries.value
+  const buf = props.points
+  if (!series || buf.length < 2) return null
+  const first = buf[0].ts
+  const span = buf[buf.length - 1].ts - first
+  return Array.from({ length: 5 }, (_, i) => {
+    const soc = socAtTs(buf, series.values, first + (span * i) / 4)
+    return soc === null ? '' : `${Math.round(soc)} %`
+  })
 })
 
 // --- Scrubbing: Zeiger ueber der Kurve zeigt den Momentanwert ---------------
@@ -226,7 +250,7 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-interface ScrubInfo { x: number; y: number; kw: string; label: string; km: number | null; rangeY: number | null }
+interface ScrubInfo { x: number; y: number; kw: string; label: string; km: number | null; rangeY: number | null; soc: number | null }
 
 const scrubPoint = computed<ScrubInfo | null>(() => {
   const i = scrubIndex.value
@@ -237,7 +261,10 @@ const scrubPoint = computed<ScrubInfo | null>(() => {
   const src = props.points[Math.min(i, props.points.length - 1)]
   if (!src) return null
   const range = rangePoints.value[i] ?? null
+  const series = socSeries.value
+  const soc = series ? series.values[Math.min(i, series.values.length - 1)] ?? null : null
   return {
+    soc: soc === null ? null : Math.round(soc),
     x: pts[i].x,
     y: pts[i].y,
     kw: src.kw.toLocaleString(undefined, { maximumFractionDigits: 1 }),
@@ -332,9 +359,10 @@ const glowId = `pc-glow-${uid}`
     >
       <span class="font-semibold text-emerald-700 dark:text-emerald-300">{{ scrubPoint.kw }} kW</span>
       <span v-if="scrubPoint.km !== null" class="font-medium text-sky-600 dark:text-sky-400">+{{ scrubPoint.km }} km</span>
+      <span v-if="scrubPoint.soc !== null" class="font-medium text-gray-700 dark:text-gray-300">{{ scrubPoint.soc }} %</span>
       <span class="text-gray-500 dark:text-gray-400">{{ scrubPoint.label }}</span>
     </div>
-    <span class="sr-only" aria-live="polite">{{ scrubPoint ? `${scrubPoint.kw} kW, ${scrubPoint.label}` : '' }}</span>
+    <span class="sr-only" aria-live="polite">{{ scrubPoint ? `${scrubPoint.kw} kW, ${scrubPoint.soc !== null ? `${scrubPoint.soc} %, ` : ''}${scrubPoint.label}` : '' }}</span>
     <!-- Y-Achse als HTML-Overlay (vermeidet preserveAspectRatio="none"-Stretching von SVG-Text) -->
     <div class="pointer-events-none absolute inset-0">
       <span
@@ -358,6 +386,15 @@ const glowId = `pc-glow-${uid}`
         :key="`x-${i}`"
         :class="lab.isNow ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''"
       >{{ lab.text }}</span>
+    </div>
+    <!-- Zweite Achsenzeile: Ladestand an denselben Stuetzstellen -->
+    <div
+      v-if="socXLabels"
+      data-testid="power-curve-soc-axis"
+      class="flex justify-between text-[10px] text-gray-400 dark:text-gray-500 px-1 tabular-nums mt-0.5"
+      :aria-label="socAxisLabel"
+    >
+      <span v-for="(lab, i) in socXLabels" :key="`soc-${i}`">{{ lab }}</span>
     </div>
   </div>
 </template>

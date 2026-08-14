@@ -44,6 +44,7 @@ import api from '../api/axios'
 import { distributeProportionally } from '../utils/distributeProportionally'
 import { rescaleCostForKwhChange } from '../utils/costRescale'
 import PowerCurveModal from '../components/charging/PowerCurveModal.vue'
+import type { CurvePoint } from '../components/charging/powerCurveSeries'
 import { formatSocRange } from '../utils/socRange'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
@@ -384,10 +385,10 @@ const POWER_CURVE_CACHE_MAX = 50
 // Die Kurve wird im Overlay gezeigt, nicht inline: in der Feed-Zeile blieb ihr
 // nur eine gestauchte Resthoehe. Es ist immer hoechstens eine offen.
 const powerCurveEntry = ref<any | null>(null)
-const powerCurveCache = ref(new Map<string, { ts: number; kw: number }[]>())
+const powerCurveCache = ref(new Map<string, CurvePoint[]>())
 const powerCurveLoading = ref(new Set<string>())
 
-function cachePut(logId: string, points: { ts: number; kw: number }[]) {
+function cachePut(logId: string, points: CurvePoint[]) {
   // LRU-Verhalten via JS-Map-Insertion-Order: bei Hit erst delete dann set
   // schiebt den Eintrag ans Ende; oldest fliegt raus wenn Cap erreicht.
   if (powerCurveCache.value.has(logId)) powerCurveCache.value.delete(logId)
@@ -425,7 +426,7 @@ async function openPowerCurve(entry: any) {
   powerCurveLoading.value.add(logId)
   powerCurveLoading.value = new Set(powerCurveLoading.value)
   try {
-    const res = await api.get<{ points: { ts: number; kw: number }[] }>(`/logs/${logId}/power-curve`)
+    const res = await api.get<{ points: CurvePoint[] }>(`/logs/${logId}/power-curve`)
     cachePut(logId, res.data.points ?? [])
   } catch {
     cachePut(logId, [])

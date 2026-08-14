@@ -135,3 +135,40 @@ describe('PowerCurveChart - Scrubbing', () => {
     expect(tooltipOf(host)?.textContent).toMatch(/\d{1,2}:\d{2}/)
   })
 })
+
+const socAxisOf = (host: HTMLElement) => host.querySelector('[data-testid="power-curve-soc-axis"]')
+
+describe('PowerCurveChart - SoC-Achse', () => {
+  it('zeigt keine SoC-Achse ohne gemessenen SoC und ohne Log-Grenzen', () => {
+    const { host } = mountChart()
+    expect(socAxisOf(host)).toBeNull()
+  })
+
+  it('beschriftet die SoC-Achse aus den gemessenen Werten', () => {
+    const points = POINTS.map((p, i) => ({ ...p, soc: 20 + i * 10 }))
+    const { host } = mountChart({ points })
+
+    // 5 Achsen-Stuetzstellen ueber 4 Messpunkte: die Zwischenwerte werden
+    // ueber die Zeit interpoliert, Rand-Labels treffen die Messwerte exakt.
+    const labels = [...socAxisOf(host)!.querySelectorAll('span')].map(s => s.textContent)
+    expect(labels).toEqual(['20 %', '28 %', '35 %', '43 %', '50 %'])
+  })
+
+  it('leitet die SoC-Achse aus den Log-Grenzen ab wenn kein SoC gemessen wurde', () => {
+    const { host } = mountChart({ socBeforePercent: 10, socAfterPercent: 80 })
+
+    const labels = [...socAxisOf(host)!.querySelectorAll('span')].map(s => s.textContent)
+    expect(labels).toHaveLength(5)
+    expect(labels[0]).toBe('10 %')
+    expect(labels[4]).toBe('80 %')
+  })
+
+  it('zeigt den SoC am Zeiger im Tooltip', async () => {
+    const { host, svg } = mountChart({ socBeforePercent: 10, socAfterPercent: 80 })
+
+    svg.dispatchEvent(pointerEvent('pointermove', 600))
+    await nextTick()
+
+    expect(tooltipOf(host)?.textContent).toContain('80 %')
+  })
+})

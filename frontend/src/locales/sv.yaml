@@ -763,6 +763,9 @@ dashboard:
   power_curve_soc: "Laddnivå"
   power_curve_legend_kw: "Laddeffekt"
   power_curve_legend_km: "Tillagd räckvidd"
+  power_curve_legend_soc: "Laddnivå (nedre axeln)"
+  power_curve_soc_axis: "Laddnivå i procent"
+  power_curve_soc_derived_hint: "Laddnivån på den nedre axeln är beräknad utifrån laddförloppet, inte uppmätt av bilen."
   power_curve_scrub_hint: "Dra över kurvan för att se värdet vid varje punkt."
   short_trip_hint: Avståndet är för kort
   short_trip_tooltip_title: Förbrukningen kan inte beräknas
