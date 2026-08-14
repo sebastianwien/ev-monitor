@@ -34,6 +34,7 @@ public class AppScheduler {
     private final EmailService emailService;
     private final GitHubIssueService gitHubIssueService;
     private final TemperatureBackfillJob temperatureBackfillJob;
+    private final com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob tripTemperatureBackfillJob;
     private final LeaderboardService leaderboardService;
     private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
     private final SurveyService surveyService;
@@ -42,6 +43,7 @@ public class AppScheduler {
                         EvLogRepository evLogRepository, EmailService emailService,
                         GitHubIssueService gitHubIssueService,
                         TemperatureBackfillJob temperatureBackfillJob,
+                        com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob tripTemperatureBackfillJob,
                         LeaderboardService leaderboardService,
                         SpecChargingEfficiencyJob specChargingEfficiencyJob,
                         SurveyService surveyService) {
@@ -51,6 +53,7 @@ public class AppScheduler {
         this.emailService = emailService;
         this.gitHubIssueService = gitHubIssueService;
         this.temperatureBackfillJob = temperatureBackfillJob;
+        this.tripTemperatureBackfillJob = tripTemperatureBackfillJob;
         this.leaderboardService = leaderboardService;
         this.specChargingEfficiencyJob = specChargingEfficiencyJob;
         this.surveyService = surveyService;
@@ -193,11 +196,15 @@ public class AppScheduler {
         }
     }
 
+    /**
+     * Laeuft nacheinander, nicht parallel: beide Backfills teilen sich das Tageskontingent der
+     * freien Open-Meteo-API, und gleichzeitig laufende Laeufe wuerden es doppelt verbrauchen.
+     */
     @Scheduled(cron = "0 30 2 * * *")
     public void backfillMissingTemperatures() {
         log.info("Daily temperature backfill started");
         try {
-            String summary = temperatureBackfillJob.run();
+            String summary = temperatureBackfillJob.run() + " | " + tripTemperatureBackfillJob.run();
             log.info("Daily temperature backfill finished: {}", summary);
         } catch (Exception e) {
             log.error("Daily temperature backfill failed", e);

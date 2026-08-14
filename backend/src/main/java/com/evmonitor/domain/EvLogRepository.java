@@ -2,6 +2,8 @@ package com.evmonitor.domain;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import com.evmonitor.domain.weather.TemperatureSource;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -95,9 +97,21 @@ public interface EvLogRepository {
 
     Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
 
-    List<EvLog> findAllWithGeohashAndNoTemperature();
+    /**
+     * Arbeitsvorrat des Temperatur-Backfills: Logs mit Ort, deren Temperatur fehlt ODER deren
+     * Herkunft unbekannt ist. Neueste zuerst - bricht ein Lauf ab, sind die relevanten Daten
+     * bereits korrigiert. Der Job schreibt jede fertige Zeile sofort, der Vorrat schrumpft also
+     * mit jedem Lauf und ist irgendwann leer.
+     */
+    List<TemperatureCandidate> findTemperatureCandidates(int limit);
 
-    void updateTemperature(UUID id, Double temperatureCelsius);
+    /** Ein Log ohne belastbare Temperatur-Herkunft. */
+    record TemperatureCandidate(UUID id, String geohash, LocalDateTime at) {}
+
+    void updateTemperature(UUID id, Double temperatureCelsius, TemperatureSource source);
+
+    /** Haelt nur die Herkunft fest, ohne den Wert anzufassen. */
+    void updateTemperatureSource(UUID id, TemperatureSource source);
 
     /**
      * Sets temperature on the log identified by (carId, loggedAt) only if it has none yet.

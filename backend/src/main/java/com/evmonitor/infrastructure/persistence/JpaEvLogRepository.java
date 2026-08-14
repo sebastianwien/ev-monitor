@@ -183,8 +183,24 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
 
     Optional<EvLogEntity> findByCarIdAndLoggedAt(UUID carId, LocalDateTime loggedAt);
 
-    @Query("SELECT e FROM EvLogEntity e WHERE e.geohash IS NOT NULL AND e.temperatureCelsius IS NULL")
-    List<EvLogEntity> findAllWithGeohashAndNoTemperature();
+    @Query("""
+        SELECT e.id, e.geohash, e.loggedAt FROM EvLogEntity e
+        WHERE e.geohash IS NOT NULL
+          AND (e.temperatureCelsius IS NULL OR e.temperatureSource IS NULL)
+        ORDER BY e.loggedAt DESC
+        """)
+    List<Object[]> findTemperatureCandidates(org.springframework.data.domain.Pageable pageable);
+
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.temperatureCelsius = :temp, e.temperatureSource = :source WHERE e.id = :id")
+    void updateTemperatureAndSource(@Param("id") UUID id,
+                                    @Param("temp") Double temp,
+                                    @Param("source") com.evmonitor.domain.weather.TemperatureSource source);
+
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.temperatureSource = :source WHERE e.id = :id")
+    void updateTemperatureSource(@Param("id") UUID id,
+                                 @Param("source") com.evmonitor.domain.weather.TemperatureSource source);
 
     @Query("""
         SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id

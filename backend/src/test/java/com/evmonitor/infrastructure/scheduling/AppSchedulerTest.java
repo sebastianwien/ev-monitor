@@ -44,6 +44,7 @@ class AppSchedulerTest {
     @Mock private EmailService emailService;
     @Mock private GitHubIssueService gitHubIssueService;
     @Mock private TemperatureBackfillJob temperatureBackfillJob;
+    @Mock private com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob tripTemperatureBackfillJob;
     @Mock private LeaderboardService leaderboardService;
     @Mock private SpecChargingEfficiencyJob specChargingEfficiencyJob;
     @Mock private SurveyService surveyService;
@@ -53,7 +54,7 @@ class AppSchedulerTest {
     @BeforeEach
     void setUp() {
         scheduler = new AppScheduler(userRepository, carRepository, evLogRepository, emailService,
-                gitHubIssueService, temperatureBackfillJob, leaderboardService, specChargingEfficiencyJob,
+                gitHubIssueService, temperatureBackfillJob, tripTemperatureBackfillJob, leaderboardService, specChargingEfficiencyJob,
                 surveyService);
     }
 

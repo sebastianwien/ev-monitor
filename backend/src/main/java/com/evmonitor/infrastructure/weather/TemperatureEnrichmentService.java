@@ -5,6 +5,7 @@ import ch.hsr.geohash.WGS84Point;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.domain.weather.TemperatureEnricher;
+import com.evmonitor.domain.weather.TemperatureSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -45,7 +46,7 @@ public class TemperatureEnrichmentService implements TemperatureEnricher {
             Optional<Double> temp = temperatureService.getTemperature(center.getLatitude(), center.getLongitude(), loggedAt);
             temp.ifPresentOrElse(
                     t -> {
-                        evLogRepository.updateTemperature(logId, t);
+                        evLogRepository.updateTemperature(logId, t, TemperatureSource.FORECAST);
                         log.debug("Temperature enriched for log {}: {}°C", logId, t);
                     },
                     () -> log.debug("No temperature available for log {} (geohash={})", logId, geohash)
@@ -83,7 +84,7 @@ public class TemperatureEnrichmentService implements TemperatureEnricher {
             }
 
             BigDecimal tempBd = BigDecimal.valueOf(mean).setScale(1, RoundingMode.HALF_UP);
-            evTripRepository.updateTemperature(tripId, tempBd);
+            evTripRepository.updateTemperature(tripId, tempBd, TemperatureSource.FORECAST);
             log.debug("Temperature enriched for trip {}: {}°C", tripId, tempBd);
         } catch (Exception e) {
             log.warn("Temperature enrichment failed for trip {}: {}", tripId, e.getMessage());

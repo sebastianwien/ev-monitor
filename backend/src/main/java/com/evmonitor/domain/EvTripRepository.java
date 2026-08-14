@@ -40,11 +40,30 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
     @Modifying
     @Transactional
-    @Query("UPDATE EvTrip t SET t.outsideTempCelsius = :temp WHERE t.id = :id")
-    void updateTemperature(@Param("id") UUID id, @Param("temp") BigDecimal temp);
+    @Query("UPDATE EvTrip t SET t.outsideTempCelsius = :temp, t.outsideTempSource = :source WHERE t.id = :id")
+    void updateTemperature(@Param("id") UUID id,
+                           @Param("temp") BigDecimal temp,
+                           @Param("source") com.evmonitor.domain.weather.TemperatureSource source);
 
-    @Query("SELECT t FROM EvTrip t WHERE t.locationStartGeohash IS NOT NULL AND t.outsideTempCelsius IS NULL AND t.deletedAt IS NULL")
-    List<EvTrip> findAllWithGeohashAndNoTemperature();
+    @Modifying
+    @Transactional
+    @Query("UPDATE EvTrip t SET t.outsideTempSource = :source WHERE t.id = :id")
+    void updateTemperatureSource(@Param("id") UUID id,
+                                 @Param("source") com.evmonitor.domain.weather.TemperatureSource source);
+
+    /**
+     * Arbeitsvorrat des Temperatur-Backfills: Fahrten mit Ort, deren Temperatur fehlt ODER deren
+     * Herkunft unbekannt ist. Neueste zuerst.
+     */
+    @Query("""
+            SELECT t.id, t.locationStartGeohash, t.tripStartedAt, t.locationEndGeohash, t.tripEndedAt
+            FROM EvTrip t
+            WHERE (t.locationStartGeohash IS NOT NULL OR t.locationEndGeohash IS NOT NULL)
+              AND (t.outsideTempCelsius IS NULL OR t.outsideTempSource IS NULL)
+              AND t.deletedAt IS NULL
+            ORDER BY t.tripStartedAt DESC
+            """)
+    List<Object[]> findTemperatureCandidates(Pageable pageable);
 
     @Query("""
             SELECT t FROM EvTrip t

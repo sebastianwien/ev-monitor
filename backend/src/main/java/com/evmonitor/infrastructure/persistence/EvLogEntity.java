@@ -69,6 +69,11 @@ public class EvLogEntity {
     @Column(name = "temperature_celsius")
     private Double temperatureCelsius;
 
+    /** Herkunft von {@link #temperatureCelsius}; null = unbekannt, siehe Backfill-Job. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "temperature_source", length = 16)
+    private com.evmonitor.domain.weather.TemperatureSource temperatureSource;
+
     @Column(name = "charging_type", length = 10)
     private String chargingType;
 

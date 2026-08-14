@@ -51,7 +51,7 @@ class TemperatureEnrichmentServiceTripTest {
         ArgumentCaptor<BigDecimal> tempCaptor = ArgumentCaptor.forClass(BigDecimal.class);
         verify(temperatureService).getTemperature(anyDouble(), anyDouble(), eq(startedAt));
         verify(temperatureService).getTemperature(anyDouble(), anyDouble(), eq(endedAt));
-        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture());
+        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture(), eq(com.evmonitor.domain.weather.TemperatureSource.FORECAST));
         assertThat(tempCaptor.getValue()).isEqualByComparingTo("15.0");
     }
 
@@ -67,7 +67,7 @@ class TemperatureEnrichmentServiceTripTest {
 
         ArgumentCaptor<BigDecimal> tempCaptor = ArgumentCaptor.forClass(BigDecimal.class);
         verify(temperatureService, times(1)).getTemperature(anyDouble(), anyDouble(), eq(startedAt));
-        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture());
+        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture(), eq(com.evmonitor.domain.weather.TemperatureSource.FORECAST));
         assertThat(tempCaptor.getValue()).isEqualByComparingTo("14.5");
     }
 
@@ -85,7 +85,7 @@ class TemperatureEnrichmentServiceTripTest {
         enrichmentService.enrichTrip(tripId, "u2ewmk", "u33d0k", startedAt, endedAt);
 
         ArgumentCaptor<BigDecimal> tempCaptor = ArgumentCaptor.forClass(BigDecimal.class);
-        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture());
+        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture(), eq(com.evmonitor.domain.weather.TemperatureSource.FORECAST));
         assertThat(tempCaptor.getValue()).isEqualByComparingTo("12.0");
     }
 
@@ -103,7 +103,7 @@ class TemperatureEnrichmentServiceTripTest {
         enrichmentService.enrichTrip(tripId, "u2ewmk", "u33d0k", startedAt, endedAt);
 
         ArgumentCaptor<BigDecimal> tempCaptor = ArgumentCaptor.forClass(BigDecimal.class);
-        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture());
+        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture(), eq(com.evmonitor.domain.weather.TemperatureSource.FORECAST));
         assertThat(tempCaptor.getValue()).isEqualByComparingTo("18.4");
     }
 
@@ -115,7 +115,7 @@ class TemperatureEnrichmentServiceTripTest {
         enrichmentService.enrichTrip(UUID.randomUUID(), "u2ewmk", "u33d0k",
                 LocalDateTime.now(), LocalDateTime.now().plusHours(1));
 
-        verify(evTripRepository, never()).updateTemperature(any(), any());
+        verify(evTripRepository, never()).updateTemperature(any(), any(), eq(com.evmonitor.domain.weather.TemperatureSource.FORECAST));
     }
 
     @Test
@@ -139,7 +139,7 @@ class TemperatureEnrichmentServiceTripTest {
 
         enrichmentService.enrichTrip(UUID.randomUUID(), "u2ewmk", null, LocalDateTime.now(), null);
 
-        verify(evTripRepository, never()).updateTemperature(any(), any());
+        verify(evTripRepository, never()).updateTemperature(any(), any(), eq(com.evmonitor.domain.weather.TemperatureSource.FORECAST));
     }
 
     @Test
@@ -156,7 +156,7 @@ class TemperatureEnrichmentServiceTripTest {
         enrichmentService.enrichTrip(tripId, "u2ewmk", "u33d0k", startedAt, endedAt);
 
         ArgumentCaptor<BigDecimal> tempCaptor = ArgumentCaptor.forClass(BigDecimal.class);
-        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture());
+        verify(evTripRepository).updateTemperature(eq(tripId), tempCaptor.capture(), eq(com.evmonitor.domain.weather.TemperatureSource.FORECAST));
         assertThat(tempCaptor.getValue()).isEqualByComparingTo("10.3"); // (10.1+10.4)/2 = 10.25 → 10.3 HALF_UP
     }
 }

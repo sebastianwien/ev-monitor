@@ -5,6 +5,7 @@ import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EnergyMeasurementType;
 import com.evmonitor.domain.EnergySource;
 import com.evmonitor.domain.EvLog;
+import com.evmonitor.domain.weather.TemperatureSource;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
@@ -235,18 +236,23 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public List<EvLog> findAllWithGeohashAndNoTemperature() {
-        return jpaRepository.findAllWithGeohashAndNoTemperature().stream()
-                .map(this::toDomain)
+    public List<TemperatureCandidate> findTemperatureCandidates(int limit) {
+        return jpaRepository.findTemperatureCandidates(org.springframework.data.domain.PageRequest.of(0, limit))
+                .stream()
+                .map(row -> new TemperatureCandidate((UUID) row[0], (String) row[1], (LocalDateTime) row[2]))
                 .toList();
     }
 
     @Override
-    public void updateTemperature(UUID id, Double temperatureCelsius) {
-        jpaRepository.findById(id).ifPresent(entity -> {
-            entity.setTemperatureCelsius(temperatureCelsius);
-            jpaRepository.save(entity);
-        });
+    @Transactional
+    public void updateTemperature(UUID id, Double temperatureCelsius, TemperatureSource source) {
+        jpaRepository.updateTemperatureAndSource(id, temperatureCelsius, source);
+    }
+
+    @Override
+    @Transactional
+    public void updateTemperatureSource(UUID id, TemperatureSource source) {
+        jpaRepository.updateTemperatureSource(id, source);
     }
 
     @Override
@@ -255,6 +261,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .filter(entity -> entity.getTemperatureCelsius() == null)
                 .map(entity -> {
                     entity.setTemperatureCelsius(temperatureCelsius);
+                    entity.setTemperatureSource(TemperatureSource.MEASURED);
                     jpaRepository.save(entity);
                     return true;
                 })

@@ -100,6 +100,11 @@ public class EvTrip {
     @Column(name = "outside_temp_celsius", precision = 4, scale = 1)
     private BigDecimal outsideTempCelsius;
 
+    /** Herkunft von {@link #outsideTempCelsius}; null = unbekannt, siehe Temperatur-Backfill. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "outside_temp_source", length = 16)
+    private com.evmonitor.domain.weather.TemperatureSource outsideTempSource;
+
     @Column(name = "energy_remaining_start_kwh", precision = 7, scale = 3)
     private BigDecimal energyRemainingStartKwh;
 

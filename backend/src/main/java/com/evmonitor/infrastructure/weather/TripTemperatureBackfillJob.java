@@ -1,93 +1,70 @@
 package com.evmonitor.infrastructure.weather;
 
-import ch.hsr.geohash.GeoHash;
-import ch.hsr.geohash.WGS84Point;
-import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
+import com.evmonitor.domain.weather.TemperatureSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.UUID;
 
 /**
- * Backfill-Job für outside_temp_celsius auf ev_trip-Zeilen die einen Geohash
- * haben aber noch keine Temperatur. Wird manuell via POST /api/admin/backfill-trip-temperature
- * ausgelöst (ADMIN-only). Rate-limiting: 50ms Pause zwischen Open-Meteo-Requests.
+ * Fuellt und korrigiert {@code outside_temp_celsius} auf Fahrten - dasselbe Vorgehen wie beim
+ * {@link TemperatureBackfillJob}, nur mit zwei Punkten pro Zeile: eine Fahrt bekommt das Mittel
+ * aus Start- und Endtemperatur, und wo nur einer der beiden Orte bekannt ist, dessen Wert.
+ *
+ * <p>Ausloeser: naechtlicher Scheduler und {@code POST /api/admin/backfill-trip-temperature}.
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class TripTemperatureBackfillJob {
 
-    private static final long SLEEP_MS_BETWEEN_REQUESTS = 50;
+    /** Zweite Haelfte des Tagesbudgets, siehe {@link TemperatureBackfillJob#MAX_API_CALLS}. */
+    static final int MAX_API_CALLS = 4_500;
+
+    static final int CANDIDATE_LIMIT = 12_000;
 
     private final EvTripRepository evTripRepository;
-    private final TemperatureService temperatureService;
+    private final TemperatureBackfillRunner runner;
 
     public String run() {
-        List<EvTrip> candidates = evTripRepository.findAllWithGeohashAndNoTemperature();
-        log.info("Trip temperature backfill started: {} trips to process", candidates.size());
-
-        AtomicInteger enriched = new AtomicInteger(0);
-        AtomicInteger failed = new AtomicInteger(0);
-
-        for (EvTrip trip : candidates) {
-            if (trip.getTripStartedAt() == null) {
-                failed.incrementAndGet();
-                continue;
-            }
-            try {
-                LocalDateTime startedAt = trip.getTripStartedAt().toLocalDateTime();
-                LocalDateTime endedAt = trip.getTripEndedAt() != null ? trip.getTripEndedAt().toLocalDateTime() : null;
-
-                Optional<Double> startTemp = lookup(trip.getLocationStartGeohash(), startedAt);
-                Optional<Double> endTemp = lookup(trip.getLocationEndGeohash(), endedAt);
-
-                Double mean;
-                if (startTemp.isPresent() && endTemp.isPresent()) {
-                    mean = (startTemp.get() + endTemp.get()) / 2.0;
-                } else if (startTemp.isPresent()) {
-                    mean = startTemp.get();
-                } else if (endTemp.isPresent()) {
-                    mean = endTemp.get();
-                } else {
-                    failed.incrementAndGet();
-                    Thread.sleep(SLEEP_MS_BETWEEN_REQUESTS);
-                    continue;
-                }
-
-                BigDecimal tempBd = BigDecimal.valueOf(mean).setScale(1, RoundingMode.HALF_UP);
-                evTripRepository.updateTemperature(trip.getId(), tempBd);
-                enriched.incrementAndGet();
-
-                Thread.sleep(SLEEP_MS_BETWEEN_REQUESTS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("Trip temperature backfill interrupted after {}/{} trips", enriched.get(), candidates.size());
-                break;
-            } catch (Exception e) {
-                failed.incrementAndGet();
-                log.warn("Backfill failed for trip {}: {}", trip.getId(), e.getMessage());
+        List<TemperatureBackfillRunner.Candidate> candidates = new ArrayList<>();
+        for (Object[] row : evTripRepository.findTemperatureCandidates(PageRequest.of(0, CANDIDATE_LIMIT))) {
+            List<TemperatureBackfillRunner.Point> points = new ArrayList<>(2);
+            addPoint(points, (String) row[1], (OffsetDateTime) row[2]);
+            addPoint(points, (String) row[3], (OffsetDateTime) row[4]);
+            if (!points.isEmpty()) {
+                candidates.add(new TemperatureBackfillRunner.Candidate((UUID) row[0], points));
             }
         }
 
-        String summary = String.format("Trip temperature backfill complete: %d enriched, %d failed (of %d total)",
-                enriched.get(), failed.get(), candidates.size());
-        log.info(summary);
-        return summary;
+        log.info("Trip temperature backfill: {} candidates", candidates.size());
+        var summary = runner.run("trips", candidates, this::save,
+                new TemperatureBackfillRunner.Budget(
+                        MAX_API_CALLS,
+                        TemperatureBackfillJob.SLEEP_MS_BETWEEN_REQUESTS,
+                        TemperatureBackfillJob.MAX_CONSECUTIVE_ERRORS,
+                        TemperatureBackfillJob.MAX_DURATION));
+
+        return "Trip temperature backfill: " + summary;
     }
 
-    private Optional<Double> lookup(String geohash, LocalDateTime at) {
-        if (geohash == null || geohash.isBlank() || at == null) {
-            return Optional.empty();
-        }
-        WGS84Point center = GeoHash.fromGeohashString(geohash).getBoundingBoxCenter();
-        return temperatureService.getTemperature(center.getLatitude(), center.getLongitude(), at);
+    private void save(UUID id, double celsius) {
+        BigDecimal rounded = BigDecimal.valueOf(celsius).setScale(1, RoundingMode.HALF_UP);
+        evTripRepository.updateTemperature(id, rounded, TemperatureSource.FORECAST);
+    }
+
+    private static void addPoint(List<TemperatureBackfillRunner.Point> points, String geohash, OffsetDateTime at) {
+        if (geohash == null || geohash.isBlank() || at == null) return;
+        LocalDateTime local = at.atZoneSameInstant(java.time.ZoneId.systemDefault()).toLocalDateTime();
+        points.add(new TemperatureBackfillRunner.Point(geohash, local));
     }
 }
