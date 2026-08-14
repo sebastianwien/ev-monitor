@@ -30,6 +30,20 @@ export function cumulativeKwh(points: CurvePoint[]): number[] {
 }
 
 /**
+ * Schrittweite der Y-Gitterlinien in kW, passend zur Spitzenleistung.
+ *
+ * Eine feste Schrittweite skaliert nicht ueber den Bereich, den die Kurven
+ * abdecken: 25 kW ist bei einer 11-kW-AC-Ladung richtig und ergibt bei einer
+ * 250-kW-Schnellladung zehn Beschriftungen, die sich gegenseitig und die Kurve
+ * ueberlagern. Gewaehlt wird die feinste Stufe, die mit hoechstens sechs
+ * Gitterlinien auskommt.
+ */
+export function yTickStepKw(maxKw: number): number {
+    const steps = [10, 25, 50, 100, 200]
+    return steps.find(step => maxKw / step <= 6) ?? steps[steps.length - 1]
+}
+
+/**
  * Ladestand je Kurvenpunkt fuer die SoC-Achse.
  *
  * Zwei Quellen, in dieser Reihenfolge:

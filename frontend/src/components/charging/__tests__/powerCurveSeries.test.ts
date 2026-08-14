@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cumulativeKwh, buildSocSeries, socAtTs } from '../powerCurveSeries'
+import { cumulativeKwh, buildSocSeries, socAtTs, yTickStepKw } from '../powerCurveSeries'
 
 const MIN = 60_000
 
@@ -135,5 +135,28 @@ describe('socAtTs', () => {
 
     it('gibt null zurueck ohne Werte', () => {
         expect(socAtTs([], [], 0)).toBeNull()
+    })
+})
+
+describe('yTickStepKw', () => {
+    const tickCount = (max: number) => Math.ceil(max / yTickStepKw(max)) - 1
+
+    it('haelt die Zahl der Gitterlinien auch bei DC-Spitzen klein', () => {
+        // 250 kW Peak ergab mit fester 25er-Schrittweite 10 Beschriftungen, die
+        // sich gegenseitig und die Kurve ueberlagert haben.
+        expect(yTickStepKw(263)).toBe(50)
+        expect(tickCount(263)).toBeLessThanOrEqual(6)
+    })
+
+    it('bleibt bei AC-Leistungen fein genug', () => {
+        expect(yTickStepKw(84)).toBe(25)
+        expect(yTickStepKw(24)).toBe(10)
+    })
+
+    it('gibt fuer jede Spitze hoechstens 6 Gitterlinien', () => {
+        for (const max of [20, 50, 84, 120, 180, 263, 420, 800]) {
+            expect(tickCount(max)).toBeLessThanOrEqual(6)
+            expect(tickCount(max)).toBeGreaterThanOrEqual(1)
+        }
     })
 })

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue'
 import { nearestIndexByX, formatDuration } from './powerCurveScrub'
-import { cumulativeKwh, buildSocSeries, socAtTs } from './powerCurveSeries'
+import { cumulativeKwh, buildSocSeries, socAtTs, yTickStepKw } from './powerCurveSeries'
 
 interface PowerPoint { ts: number; kw: number; soc?: number | null }
 
@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{
   height?: number          // SVG-Hoehe in px (mobile)
   heightDesktop?: number   // optionale Desktop-Hoehe (md+), default = height
   showLiveMarker?: boolean // pulsierender Endpunkt + vertikale Dotted-Linie (Live-Modus)
-  yStepKw?: number         // Y-Tick-Schrittweite in kW
+  yStepKw?: number         // Y-Tick-Schrittweite in kW, 0 = automatisch nach Spitzenleistung
   nowLabel?: string        // wenn gesetzt: Praefix fuer die rechteste X-Achsen-Beschriftung (z.B. "jetzt")
   ariaLabel?: string       // a11y - SVG-Beschreibung fuer Screenreader
   /** X-Achsen-Modus: 'time' zeigt Uhrzeit (HH:MM), 'duration' zeigt verstrichene
@@ -27,11 +27,15 @@ const props = withDefaults(defineProps<{
   /** a11y - Beschriftung der SoC-Achsenzeile. Die Uebersetzung liegt beim
    *  Aufrufer, damit die Chart-Komponente i18n-frei bleibt. */
   socAxisLabel?: string
+  /** Zeigt den Zeiger ohne Interaktion auf diesem Punkt-Index. Fuer den
+   *  Teaser, der die Abtast-Funktion vorfuehren soll, ohne bedienbar zu sein.
+   *  Echte Interaktion ueberschreibt ihn. */
+  previewScrubIndex?: number | null
 }>(), {
   height: 234,
   heightDesktop: 0,
   showLiveMarker: false,
-  yStepKw: 25,
+  yStepKw: 0,
   nowLabel: '',
   ariaLabel: 'Ladekurve',
   consumptionKwhPer100km: null,
@@ -39,6 +43,7 @@ const props = withDefaults(defineProps<{
   socBeforePercent: null,
   socAfterPercent: null,
   socAxisLabel: 'SoC',
+  previewScrubIndex: null,
 })
 
 const svgHeightStyle = computed(() => ({
@@ -136,8 +141,9 @@ const rangeLastPoint = computed<RangePoint | null>(() => {
 
 const curveYTicks = computed(() => {
   const max = curveMaxKw.value
+  const step = props.yStepKw > 0 ? props.yStepKw : yTickStepKw(max)
   const ticks: { kw: number; y: number }[] = []
-  for (let kw = props.yStepKw; kw < max; kw += props.yStepKw) {
+  for (let kw = step; kw < max; kw += step) {
     ticks.push({ kw, y: CURVE_H - (kw / max) * CURVE_H })
   }
   return ticks
@@ -253,7 +259,7 @@ function onKeydown(e: KeyboardEvent) {
 interface ScrubInfo { x: number; y: number; kw: string; label: string; km: number | null; rangeY: number | null; soc: number | null }
 
 const scrubPoint = computed<ScrubInfo | null>(() => {
-  const i = scrubIndex.value
+  const i = scrubIndex.value ?? props.previewScrubIndex ?? null
   const pts = curvePoints.value
   if (i === null || i < 0 || i >= pts.length) return null
   // Bei einem einzelnen Messpunkt spannt curvePoints eine Linie ueber zwei
@@ -368,7 +374,7 @@ const glowId = `pc-glow-${uid}`
       <span
         v-for="(tick, i) in curveYTicks"
         :key="`yt-${i}`"
-        class="absolute left-1.5 text-[9px] text-gray-500 dark:text-slate-500 tabular-nums leading-none"
+        class="absolute left-1.5 text-[9px] text-gray-500 dark:text-slate-400 tabular-nums leading-none rounded-sm bg-white/80 dark:bg-gray-900/80 px-1 py-px"
         :style="`top: calc(${(tick.y / 200) * 100}% - 0.3em);`"
       >{{ tick.kw }} kW</span>
       <!-- Reichweite-Label am Endpunkt der km-Linie. Y aus rangeLastPoint,

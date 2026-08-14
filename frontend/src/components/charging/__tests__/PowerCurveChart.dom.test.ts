@@ -172,3 +172,20 @@ describe('PowerCurveChart - SoC-Achse', () => {
     expect(tooltipOf(host)?.textContent).toContain('80 %')
   })
 })
+
+describe('PowerCurveChart - Vorschau-Zeiger', () => {
+  it('zeigt den Zeiger ohne Interaktion auf dem gesetzten Index', () => {
+    const { host } = mountChart({ previewScrubIndex: 2 })
+    expect(tooltipOf(host)?.textContent).toContain('250')
+  })
+
+  it('laesst echte Interaktion den Vorschau-Zeiger ueberschreiben', async () => {
+    const { host, svg } = mountChart({ previewScrubIndex: 2 })
+
+    svg.dispatchEvent(pointerEvent('pointermove', 0))
+    await nextTick()
+
+    expect(tooltipOf(host)?.textContent).toContain('50')
+    expect(tooltipOf(host)?.textContent).not.toContain('250')
+  })
+})

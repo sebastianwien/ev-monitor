@@ -794,6 +794,7 @@ dashboard:
   power_curve_title: "Ladekurve"
   power_curve_teaser_body: "Für diese Ladung ist der komplette Leistungsverlauf aufgezeichnet. Freigeschaltet siehst du hier deine eigene Kurve: mit welcher Spitze dein Auto gestartet ist, wann die Leistung abknickt und wie viel Reichweite dabei pro Minute dazukommt."
   power_curve_teaser_example: "Beispiel"
+  power_curve_teaser_example_caption: "Nicht deine Ladung - eine echte Beispielkurve aus einem anderen Fahrzeug (8 → 66 %, Spitze 253 kW). Deine eigene siehst du nach dem Freischalten."
   power_curve_group_locked: "{count} Ladekurven aufgezeichnet"
   power_curve_group_locked_one: "Ladekurve aufgezeichnet"
   power_curve_peak: "Spitze"

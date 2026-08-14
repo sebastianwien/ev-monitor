@@ -794,6 +794,7 @@ dashboard:
   power_curve_title: "Charging curve"
   power_curve_teaser_body: "The full power profile of this charge is recorded. Once unlocked you see your own curve here: the peak your car started at, when the power tapers off, and how much range that adds per minute."
   power_curve_teaser_example: "Example"
+  power_curve_teaser_example_caption: "Not your charge - a real example curve from another car (8 → 66%, 253 kW peak). You will see your own once unlocked."
   power_curve_group_locked: "{count} charging curves recorded"
   power_curve_group_locked_one: "Charging curve recorded"
   power_curve_peak: "Peak"

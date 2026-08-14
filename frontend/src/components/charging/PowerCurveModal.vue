@@ -96,16 +96,33 @@ const tiles = computed<Tile[]>(() => {
 })
 
 /**
- * Beispielkurve fuer den Teaser - eine typische DC-Ladung mit Taper.
+ * Beispielkurve fuer den Teaser: eine echte, aufgezeichnete DC-Ladung
+ * (8 -> 66 %, 253 kW Spitze, 16 Minuten), Zeitstempel auf den Session-Start
+ * normiert.
  *
- * Bewusst erkennbar als Beispiel beschriftet und nicht verwischt: die echten
+ * Vorher stand hier eine von Hand gezeichnete Kurve. Die war als Vorschau
+ * unbrauchbar, weil sie den Verlauf nicht abbildete, den das Feature liefert -
+ * keine Anfahrrampe, kein Taper in Stufen, ein linearer Abfall den es so nicht
+ * gibt. Eine echte Kurve zeigt, was man bekommt.
+ *
+ * Bewusst nicht verwischt und klar als fremde Ladung beschriftet: die eigenen
  * Punkte liegen hinter dem Server-Gate, und eine unscharfe Fremdkurve wuerde
  * so wirken, als sei es die eigene.
  */
+const DEMO_SOC_BEFORE = 8
+const DEMO_SOC_AFTER = 66
 const DEMO_POINTS = [
-  [0, 45], [0.5, 180], [1, 250], [2, 247], [4, 225], [6, 198], [8, 172],
-  [10, 150], [13, 128], [16, 108], [19, 92], [22, 78], [25, 66], [28, 55],
-].map(([min, kw]) => ({ ts: min * 60_000, kw }))
+  [0, 252.1], [10, 253.5], [40, 248.3], [85, 234.7], [110, 226.2], [145.5, 223.0],
+  [185.5, 215.7], [215.5, 211.5], [245.5, 202.4], [280.5, 191.2], [315.5, 181.4],
+  [350.5, 172.5], [385.5, 163.9], [420.5, 156.4], [455.5, 149.4], [491, 142.8],
+  [526, 135.9], [566, 130.1], [591, 125.8], [636, 115.9], [661, 113.7],
+  [696, 109.9], [731.5, 105.5], [766.5, 102.5], [801.5, 99.2], [836.5, 96.1],
+  [868.5, 93.1], [908.5, 90.5], [938.5, 87.8], [974.5, 84.7],
+].map(([sec, kw]) => ({ ts: sec * 1_000, kw }))
+
+/** Zeiger sitzt im Teaser dort, wo die Kurve abknickt - genau die Stelle, um
+ *  die es beim Abtasten geht. */
+const DEMO_SCRUB_INDEX = 11
 
 /**
  * Escape schliesst das Sheet. Der Listener haengt am document, damit er auch
@@ -181,10 +198,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onEscape))
                   :height-desktop="230"
                   x-axis-mode="duration"
                   :consumption-kwh-per100km="18"
-                  :soc-before-percent="8"
-                  :soc-after-percent="80"
+                  :soc-before-percent="DEMO_SOC_BEFORE"
+                  :soc-after-percent="DEMO_SOC_AFTER"
+                  :preview-scrub-index="DEMO_SCRUB_INDEX"
                 />
               </div>
+              <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+                {{ t('dashboard.power_curve_teaser_example_caption') }}
+              </p>
             </div>
 
             <RouterLink
