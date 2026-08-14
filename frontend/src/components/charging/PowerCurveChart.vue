@@ -218,7 +218,10 @@ function onKeydown(e: KeyboardEvent) {
     scrubIndex.value = current === null
       ? (step === 1 ? 0 : count - 1)
       : Math.min(count - 1, Math.max(0, current + step))
-  } else if (e.key === 'Escape') {
+  } else if (e.key === 'Escape' && scrubIndex.value !== null) {
+    // Nur stoppen wenn Escape hier auch wirklich etwas bewirkt - sonst soll ein
+    // umschliessender Dialog es weiterhin zum Schliessen bekommen.
+    e.stopPropagation()
     endScrub()
   }
 }

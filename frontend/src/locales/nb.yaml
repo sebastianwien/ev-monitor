@@ -751,6 +751,15 @@ dashboard:
   implausible_tooltip_cause2: Det mangler en ladeøkt mellom denne og forrige oppføring
   show_power_curve: Vis ladekurve
   no_power_curve: Ingen ladekurve-data tilgjengelig.
+  power_curve_title: "Ladekurve"
+  power_curve_peak: "Topp"
+  power_curve_avg: "Snitteffekt"
+  power_curve_duration: "Varighet"
+  power_curve_energy: "Ladet"
+  power_curve_soc: "Ladenivå"
+  power_curve_legend_kw: "Ladeeffekt"
+  power_curve_legend_km: "Rekkevidde lagt til"
+  power_curve_scrub_hint: "Dra over kurven for å se verdien på hvert punkt."
   short_trip_hint: Avstanden er for kort
   short_trip_tooltip_title: Forbruket kan ikke beregnes
   short_trip_tooltip_desc: "På turer under 10 km forvrenger små måleunøyaktigheter det beregnede forbruket kraftig. Allerede et hopp på 1 % i det viste batterinivået tilsvarer omtrent 0,7 kWh - over 1 km gir det raskt urealistiske verdier på 70 kWh/100km eller mer. I stedet for å vise en fantomverdi lar jeg den være."
@@ -2287,7 +2296,7 @@ tax_export:
   tax_export_v1_cta: Gå til skatterapporten
 supporter:
   tesla_note_title: "Teslaen din leverer allerede dataene"
-  tesla_note_body: "Fleet Telemetry er gratis for Tesla-førere - ladinger og turer havner automatisk i loggboken din. Det Supporter-pakken gir i tillegg er ikke mer datainnsamling, men analysen: dybden bak tallene du allerede sender inn."
+  tesla_note_body: "Fleet Telemetry er gratis for Tesla-førere - ladinger og turer havner automatisk i loggboken din. Det Supporter-pakken gir i tillegg er ikke mer datainnsamling, men analysen: dybden bak tallene Teslaen din allerede sender inn."
   back: "Tilbake"
   hero_kicker: "Åpen kildekode · reklamefri · uavhengig"
   title: "Bli supporter"

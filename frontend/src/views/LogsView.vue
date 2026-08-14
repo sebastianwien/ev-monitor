@@ -381,7 +381,9 @@ function toggleLogExpanded(id: string) {
 // LRU mit Hard-Cap auf POWER_CURVE_CACHE_MAX: bei einem Power-User der hunderte
 // Logs aufklappt waere die Map sonst unbounded (~600 Byte pro Eintrag).
 const POWER_CURVE_CACHE_MAX = 50
-const expandedPowerCurves = ref(new Set<string>())
+// Die Kurve wird im Overlay gezeigt, nicht inline: in der Feed-Zeile blieb ihr
+// nur eine gestauchte Resthoehe. Es ist immer hoechstens eine offen.
+const powerCurveEntry = ref<any | null>(null)
 const powerCurveCache = ref(new Map<string, { ts: number; kw: number }[]>())
 const powerCurveLoading = ref(new Set<string>())
 
@@ -398,14 +400,9 @@ function cachePut(logId: string, points: { ts: number; kw: number }[]) {
   powerCurveCache.value = new Map(powerCurveCache.value)
 }
 
-async function togglePowerCurve(logId: string) {
-  if (expandedPowerCurves.value.has(logId)) {
-    expandedPowerCurves.value.delete(logId)
-    expandedPowerCurves.value = new Set(expandedPowerCurves.value)
-    return
-  }
-  expandedPowerCurves.value.add(logId)
-  expandedPowerCurves.value = new Set(expandedPowerCurves.value)
+async function openPowerCurve(entry: any) {
+  const logId = entry.id
+  powerCurveEntry.value = entry
   if (powerCurveCache.value.has(logId)) {
     // Recency-Touch fuer LRU: re-insert um den Eintrag ans Map-Ende zu schieben
     const cached = powerCurveCache.value.get(logId)!
@@ -430,6 +427,12 @@ function powerCurveConsumption(entry: any): number | null {
   if (entry?.consumptionKwhPer100km != null) return Number(entry.consumptionKwhPer100km)
   return stats.value?.avgConsumptionKwhPer100km != null ? Number(stats.value.avgConsumptionKwhPer100km) : null
 }
+
+// formatLogDate enthaelt bereits die Uhrzeit - kein zweites Mal anhaengen.
+const powerCurveSubtitle = computed(() => {
+  const at = powerCurveEntry.value?.loggedAt
+  return at ? formatLogDate(at) : ''
+})
 
 function chargingEfficiency(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
   if (!kwhCharged || !kwhAtVehicle || kwhCharged <= 0) return null
@@ -1668,9 +1671,9 @@ function toggleAllCharges() {
                     <button
                       v-if="item.entry.hasPowerCurve && authStore.canViewLiveAnalytics"
                       type="button"
-                      @click.stop="togglePowerCurve(item.entry.id)"
+                      @click.stop="openPowerCurve(item.entry)"
                       :aria-label="t('dashboard.show_power_curve')"
-                      :aria-expanded="expandedPowerCurves.has(item.entry.id)"
+                      aria-haspopup="dialog"
                       class="p-0.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
                     >
                       <ChartBarSquareIcon class="w-4 h-4" />
@@ -1737,11 +1740,8 @@ function toggleAllCharges() {
                   </div>
                   <!-- 5. SoC X→Y% -->
                   <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                    <template v-if="item.entry.socBeforeChargePercent != null && item.entry.socAfterChargePercent != null">
-                      {{ item.entry.socBeforeChargePercent }}→{{ item.entry.socAfterChargePercent }}%
-                    </template>
-                    <template v-else-if="item.entry.socAfterChargePercent != null">
-                      {{ item.entry.socAfterChargePercent }}%
+                    <template v-if="formatSocRange(item.entry.socBeforeChargePercent, item.entry.socAfterChargePercent)">
+                      {{ formatSocRange(item.entry.socBeforeChargePercent, item.entry.socAfterChargePercent) }}
                     </template>
                     <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                   </div>
@@ -1921,18 +1921,6 @@ function toggleAllCharges() {
                     </span>
                   </template>
                 </div>
-                <!-- Inline-Expand Ladekurve (Desktop), animiert -->
-                <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                <div v-if="item.entry.hasPowerCurve && expandedPowerCurves.has(item.entry.id)"
-                  class="px-3 pb-3 border-t border-gray-200 dark:border-gray-600/60 pt-2">
-                  <PowerCurvePanel
-                    :loading="powerCurveLoading.has(item.entry.id)"
-                    :points="powerCurveCache.get(item.entry.id) ?? []"
-                    :height="200"
-                    :consumption-kwh-per100km="powerCurveConsumption(item.entry)"
-                  />
-                </div>
-                </Transition>
               </div>
 
               <!-- CHARGE ENTRY (DESKTOP GRID, Ladegruppe) -->
@@ -2101,9 +2089,9 @@ function toggleAllCharges() {
                         <button
                           v-if="topUp.hasPowerCurve && authStore.canViewLiveAnalytics"
                           type="button"
-                          @click.stop="togglePowerCurve(topUp.id)"
+                          @click.stop="openPowerCurve(topUp)"
                           :aria-label="t('dashboard.show_power_curve')"
-                          :aria-expanded="expandedPowerCurves.has(topUp.id)"
+                          aria-haspopup="dialog"
                           class="p-0.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
                         >
                           <ChartBarSquareIcon class="w-4 h-4" />
@@ -2121,7 +2109,7 @@ function toggleAllCharges() {
                       </div>
                       <div class="text-gray-400 dark:text-gray-600 text-xs pt-0.5">-</div>
                       <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap pt-0.5">
-                        <template v-if="topUp.socAfterChargePercent != null">{{ topUp.socAfterChargePercent }}%</template>
+                        <template v-if="topUp.socAfterChargePercent != null">{{ formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent) }}</template>
                         <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                       </div>
                       <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap pt-0.5">
@@ -2173,17 +2161,6 @@ function toggleAllCharges() {
                         </div>
                       </div>
                     </div>
-                    <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                    <div v-if="topUp.hasPowerCurve && expandedPowerCurves.has(topUp.id)"
-                      class="pl-10 pr-3 pb-3 pt-2 border-t border-blue-200/40 dark:border-blue-800/30">
-                      <PowerCurvePanel
-                        :loading="powerCurveLoading.has(topUp.id)"
-                        :points="powerCurveCache.get(topUp.id) ?? []"
-                        :height="180"
-                        :consumption-kwh-per100km="powerCurveConsumption(topUp)"
-                      />
-                    </div>
-                    </Transition>
                     </template>
                   </div>
                 </Transition>
@@ -2352,8 +2329,20 @@ function toggleAllCharges() {
                     <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                     <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ item.entry.kwhAtVehicle ?? item.entry.kwhCharged ?? '-' }} kWh</span>
                     <span class="text-xs text-gray-500 whitespace-nowrap truncate">{{ formatLogDate(item.entry.loggedAt) }}</span>
+                    <!-- Kurven-Symbol ist zugleich der Ausloeser: auf Mobile erspart das
+                         das Aufklappen der Karte. Tap-Flaeche via Padding auf ~28px. -->
+                    <button
+                      v-if="item.entry.hasPowerCurve && authStore.canViewLiveAnalytics"
+                      type="button"
+                      @click.stop="openPowerCurve(item.entry)"
+                      :aria-label="t('dashboard.show_power_curve')"
+                      aria-haspopup="dialog"
+                      class="p-1 -m-1 rounded text-emerald-500 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
+                    >
+                      <ChartBarSquareIcon class="w-4 h-4" />
+                    </button>
                     <ChartBarSquareIcon
-                      v-if="item.entry.hasPowerCurve"
+                      v-else-if="item.entry.hasPowerCurve"
                       class="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 flex-shrink-0"
                       :aria-label="t('dashboard.show_power_curve')" />
                   </div>
@@ -2479,7 +2468,7 @@ function toggleAllCharges() {
                       <ClockIcon class="w-3 h-3" />{{ item.entry.chargeDurationMinutes }}min
                     </span>
                     <span v-if="item.entry.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      <Battery0Icon class="w-3 h-3" />{{ item.entry.socAfterChargePercent }}%
+                      <Battery0Icon class="w-3 h-3" />{{ formatSocRange(item.entry.socBeforeChargePercent, item.entry.socAfterChargePercent) }}
                     </span>
                     <span v-if="item.entry.maxChargingPowerKw" class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       <BoltIcon class="w-3 h-3" />{{ item.entry.maxChargingPowerKw }} kW
@@ -2557,33 +2546,11 @@ function toggleAllCharges() {
                       </div>
                     </div>
                   </div>
-                  <!-- Ladekurve (nur Tesla FULL-Profil) -->
-                  <div v-if="item.entry.hasPowerCurve" class="pt-1">
-                    <template v-if="authStore.canViewLiveAnalytics">
-                    <button
-                      type="button"
-                      class="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 transition"
-                      @click.stop="togglePowerCurve(item.entry.id)"
-                      :aria-expanded="expandedPowerCurves.has(item.entry.id)"
-                    >
-                      <BoltIcon class="w-3.5 h-3.5" />
-                      <span>{{ t('dashboard.show_power_curve') }}</span>
-                      <ChevronDownIcon v-if="!expandedPowerCurves.has(item.entry.id)" class="w-3 h-3" />
-                      <ChevronUpIcon v-else class="w-3 h-3" />
-                    </button>
-                    <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                    <div v-if="expandedPowerCurves.has(item.entry.id)" class="mt-2 px-1 pb-2">
-                      <PowerCurvePanel
-                        :loading="powerCurveLoading.has(item.entry.id)"
-                        :points="powerCurveCache.get(item.entry.id) ?? []"
-                        :height="180"
-                        :consumption-kwh-per100km="powerCurveConsumption(item.entry)"
-                      />
-                    </div>
-                    </Transition>
-                    </template>
+                  <!-- Ladekurve-Upsell. Fuer freigeschaltete Nutzer liegt der Einstieg
+                       am Kurven-Symbol in der Kopfzeile - ein Tap, ohne Aufklappen. -->
+                  <div v-if="item.entry.hasPowerCurve && !authStore.canViewLiveAnalytics" class="pt-1">
                     <router-link
-                      v-else-if="purchasesAvailable()"
+                      v-if="purchasesAvailable()"
                       :to="upsellTarget"
                       class="inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300 hover:text-amber-800 dark:hover:text-amber-200 transition"
                     >
@@ -2649,14 +2616,14 @@ function toggleAllCharges() {
                           <ClockIcon class="w-3 h-3" />{{ topUp.chargeDurationMinutes }}min
                         </span>
                         <span v-if="topUp.socAfterChargePercent != null" class="min-[436px]:inline-flex hidden items-center gap-1 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                          <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
+                          <Battery0Icon class="w-3 h-3" />{{ formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent) }}
                         </span>
                         <button
                           v-if="topUp.hasPowerCurve && authStore.canViewLiveAnalytics"
                           type="button"
-                          @click.stop="togglePowerCurve(topUp.id)"
+                          @click.stop="openPowerCurve(topUp)"
                           :aria-label="t('dashboard.show_power_curve')"
-                          :aria-expanded="expandedPowerCurves.has(topUp.id)"
+                          aria-haspopup="dialog"
                           class="p-0.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
                         >
                           <ChartBarSquareIcon class="w-4 h-4" />
@@ -2704,7 +2671,7 @@ function toggleAllCharges() {
                           <ClockIcon class="w-3 h-3" />{{ topUp.chargeDurationMinutes }}min
                         </span>
                         <span v-if="topUp.socAfterChargePercent != null" class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
-                          <Battery0Icon class="w-3 h-3" />{{ topUp.socAfterChargePercent }}%
+                          <Battery0Icon class="w-3 h-3" />{{ formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent) }}
                         </span>
                       </div>
                       <div v-if="topUp.kwhCharged != null && topUp.kwhAtVehicle != null"
@@ -2715,16 +2682,6 @@ function toggleAllCharges() {
                           {{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }}% {{ t('dashboard.ac_gross_efficiency') }}
                         </span>
                       </div>
-                      <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                      <div v-if="topUp.hasPowerCurve && expandedPowerCurves.has(topUp.id)" class="pl-5 pb-1">
-                        <PowerCurvePanel
-                          :loading="powerCurveLoading.has(topUp.id)"
-                          :points="powerCurveCache.get(topUp.id) ?? []"
-                          :height="160"
-                          :consumption-kwh-per100km="powerCurveConsumption(topUp)"
-                        />
-                      </div>
-                      </Transition>
                     </div>
                   </div>
                 </Transition>
@@ -2822,6 +2779,18 @@ function toggleAllCharges() {
     :error="mergeError"
     @merge="doSaveMerge"
     @close="mergeModalEntry = null"
+  />
+
+  <PowerCurveModal
+    v-if="powerCurveEntry"
+    :loading="powerCurveLoading.has(powerCurveEntry.id)"
+    :points="powerCurveCache.get(powerCurveEntry.id) ?? []"
+    :consumption-kwh-per100km="powerCurveConsumption(powerCurveEntry)"
+    :subtitle="powerCurveSubtitle"
+    :soc-before-charge-percent="powerCurveEntry.socBeforeChargePercent"
+    :soc-after-charge-percent="powerCurveEntry.socAfterChargePercent"
+    :kwh-charged="powerCurveEntry.kwhAtVehicle ?? powerCurveEntry.kwhCharged"
+    @close="powerCurveEntry = null"
   />
 
   <!-- Mobile sticky bottom bar: bulk expand/collapse with toggle switches -->
