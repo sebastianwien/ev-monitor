@@ -8,6 +8,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,12 +22,16 @@ import java.util.Optional;
  *
  * <p>Strategie:
  * <ul>
- *   <li>Trips älter als 5 Tage: Archive-Endpoint (ERA5-Reanalyse, akkurat)</li>
- *   <li>Trips jünger als 5 Tage: Forecast-Endpoint mit hourly + start_date/end_date
- *       (Modell-Output, deckt past_days + Zukunft ab)</li>
+ *   <li>Zeitpunkte aelter als 5 Tage: Archive-Endpoint (ERA5-Reanalyse, akkurat)</li>
+ *   <li>Zeitpunkte juenger als 5 Tage: Forecast-Endpoint (Modell-Output, deckt past_days
+ *       und Zukunft ab)</li>
  * </ul>
- * Beide Endpoints liefern dasselbe JSON-Format ({@code hourly.temperature_2m[]}),
- * so dass die Auswertung gemeinsam erfolgt.
+ *
+ * <p>Beide Endpoints beantworten {@code start_hour}/{@code end_hour}: die gesuchte Stunde steht
+ * in der Anfrage, die Antwort enthaelt genau einen Wert. Frueher wurde ein ganzer Tag geholt und
+ * die Stunde als Index herausgegriffen - zusammen mit {@code timezone=auto} (Antwort in ORTSZEIT)
+ * und einer Stunde aus der Server-Zone (Prod: UTC) lag der gelesene Wert im Sommer zwei Stunden
+ * daneben. Alle Zeiten laufen deshalb explizit in UTC.
  */
 @Service
 @RequiredArgsConstructor
@@ -36,18 +44,24 @@ public class TemperatureService {
     // Open-Meteo archive only has data up to ~5 days ago
     private static final int ARCHIVE_THRESHOLD_DAYS = 5;
 
+    private static final DateTimeFormatter HOUR = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:00");
+
     private final RestTemplate restTemplate;
 
     /**
      * Returns temperature in °C at the given coordinates and datetime.
+     *
+     * @param at Zeitpunkt in Server-Zone (so, wie er in der DB steht) - wird fuer die Abfrage
+     *           nach UTC umgerechnet.
      */
     public Optional<Double> getTemperature(double latitude, double longitude, LocalDateTime at) {
-        LocalDate date = at.toLocalDate();
-        LocalDate cutoff = LocalDate.now().minusDays(ARCHIVE_THRESHOLD_DAYS);
-        String baseUrl = date.isBefore(cutoff) ? ARCHIVE_URL : FORECAST_URL;
+        if (at == null) return Optional.empty();
+        ZonedDateTime utc = at.atZone(ZoneId.systemDefault()).withZoneSameInstant(ZoneOffset.UTC);
+        LocalDate cutoff = LocalDate.now(ZoneOffset.UTC).minusDays(ARCHIVE_THRESHOLD_DAYS);
+        String baseUrl = utc.toLocalDate().isBefore(cutoff) ? ARCHIVE_URL : FORECAST_URL;
 
         try {
-            return fetchHourly(baseUrl, latitude, longitude, date, at.getHour());
+            return fetchHour(baseUrl, latitude, longitude, utc.format(HOUR));
         } catch (Exception e) {
             log.warn("Failed to fetch temperature for ({}, {}) at {}: {}", latitude, longitude, at, e.getMessage());
             return Optional.empty();
@@ -55,15 +69,14 @@ public class TemperatureService {
     }
 
     @SuppressWarnings("unchecked")
-    private Optional<Double> fetchHourly(String baseUrl, double latitude, double longitude, LocalDate date, int hour) {
-        String dateStr = date.toString(); // yyyy-MM-dd
+    private Optional<Double> fetchHour(String baseUrl, double latitude, double longitude, String hourUtc) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
                 .queryParam("latitude", latitude)
                 .queryParam("longitude", longitude)
-                .queryParam("start_date", dateStr)
-                .queryParam("end_date", dateStr)
                 .queryParam("hourly", "temperature_2m")
-                .queryParam("timezone", "auto")
+                .queryParam("start_hour", hourUtc)
+                .queryParam("end_hour", hourUtc)
+                .queryParam("timezone", "UTC")
                 .toUriString();
 
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
@@ -73,9 +86,9 @@ public class TemperatureService {
         if (hourly == null) return Optional.empty();
 
         List<Number> temperatures = (List<Number>) hourly.get("temperature_2m");
-        if (temperatures == null || hour >= temperatures.size()) return Optional.empty();
+        if (temperatures == null || temperatures.isEmpty()) return Optional.empty();
 
-        Number temp = temperatures.get(hour);
+        Number temp = temperatures.get(0);
         return temp != null ? Optional.of(temp.doubleValue()) : Optional.empty();
     }
 }
