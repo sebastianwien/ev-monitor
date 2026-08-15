@@ -15,6 +15,8 @@ map $http_user_agent $is_bot {
     "~*linkedinbot"             1;
     "~*whatsapp"                1;
     "~*discordbot"              1;
+    "~*redditbot"               1;
+    "~*redditbot-inbound"       1;
     "~*slackbot"                1;
     "~*telegrambot"             1;
     "~*mastodon"                1;
