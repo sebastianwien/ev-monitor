@@ -238,33 +238,37 @@ public class EvLogService {
     }
 
     /**
-     * Minimal projection of an ev_log that still needs Tesla-billing-API enrichment.
-     * {@code chargeDurationMinutes} is nullable and lets the connector time its follow-ups from the
-     * end of the charge rather than its start - the two differ by the whole session length.
+     * Minimale Projektion eines Tesla-Logs, das noch keine Kosten traegt.
+     *
+     * <p>{@code chargeDurationMinutes} ist nullable und erlaubt dem Connector, seine Nachlaeufe am
+     * Lade-ENDE zu takten statt am Start - dazwischen liegt die gesamte Ladedauer.
+     * {@code kwhCharged} dient dem Abgleich gegen die Energiemenge der Tesla-Session, damit bei
+     * mehreren Fahrzeugen eines Users im selben Zeitfenster nicht das falsche Log bepreist wird.
      */
-    public record PendingSuperchargerEnrichment(UUID id, LocalDateTime loggedAt, Integer chargeDurationMinutes) {}
+    public record EnrichableChargingLog(UUID id, LocalDateTime loggedAt, Integer chargeDurationMinutes,
+                                        BigDecimal kwhCharged) {}
 
     /**
-     * Lists Tesla-Supercharger ev_logs for the given user that still need a Tesla-billed
-     * cost backfilled. Used by the daily {@code TeslaSuperchargerEnrichmentJob}.
-     * Returns a minimal projection - the connectors-service only needs id + timestamp
-     * to match against {@code /dx/charging/history} sessions.
+     * Listet Tesla-Ladungen des Users ohne Kosten, die aus Teslas Billing-API stammen koennten.
+     * Der {@code TeslaSuperchargerEnrichmentJob} gleicht sie gegen {@code /dx/charging/history} ab -
+     * welche davon Supercharger waren, weiss nur Tesla.
      */
-    public List<PendingSuperchargerEnrichment> findPendingSuperchargerEnrichment(UUID userId, int days) {
+    public List<EnrichableChargingLog> findEnrichableTeslaLogs(UUID userId, int days) {
         int safeDays = Math.max(1, days);
         LocalDateTime cutoff = LocalDateTime.now().minusDays(safeDays);
-        return evLogRepository.findPendingTeslaSuperchargerEnrichment(userId, cutoff)
+        return evLogRepository.findEnrichableTeslaLogs(userId, cutoff)
                 .stream()
-                .map(e -> new PendingSuperchargerEnrichment(e.getId(), e.getLoggedAt(), e.getChargeDurationMinutes()))
+                .map(e -> new EnrichableChargingLog(
+                        e.getId(), e.getLoggedAt(), e.getChargeDurationMinutes(), e.getKwhCharged()))
                 .toList();
     }
 
     /**
-     * Backfills a Tesla-Supercharger log with Tesla billing data. The repository enforces
-     * cpoName='Tesla Supercharger' AND costEur IS NULL as defense-in-depth, so this is
-     * idempotent and safe against bug-induced wrong ids.
-     * @return true if the row was actually updated, false if it had already been enriched
-     *         or the id did not match a pending Tesla-SuC log.
+     * Traegt Tesla-Abrechnungsdaten in ein Tesla-Log nach. Das Repository erzwingt als
+     * Defense-in-Depth costEur IS NULL und eine Tesla-Datenquelle; der Aufruf ist damit idempotent
+     * und kann bei falscher id keine fremden Logs ueberschreiben.
+     * @return true wenn geschrieben wurde, false wenn das Log bereits Kosten trug oder die id
+     *         auf kein anreicherbares Tesla-Log zeigt.
      */
     @Transactional
     public boolean enrichWithTeslaPricing(UUID logId, BigDecimal costEur, String cpoName) {

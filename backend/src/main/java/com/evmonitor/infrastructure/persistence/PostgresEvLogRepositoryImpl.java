@@ -387,15 +387,15 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public List<EvLog> findPendingTeslaSuperchargerEnrichment(UUID userId, LocalDateTime cutoff) {
-        return jpaRepository.findPendingTeslaSuperchargerEnrichment(userId, cutoff)
+    public List<EvLog> findEnrichableTeslaLogs(UUID userId, LocalDateTime cutoff) {
+        return jpaRepository.findEnrichableTeslaLogs(userId, cutoff, JpaEvLogRepository.TESLA_DATA_SOURCES)
                 .stream().map(this::toDomain).toList();
     }
 
     @Override
     @Transactional
     public int enrichWithTeslaPricing(UUID id, BigDecimal costEur, String cpoName) {
-        return jpaRepository.enrichWithTeslaPricing(id, costEur, cpoName);
+        return jpaRepository.enrichWithTeslaPricing(id, costEur, cpoName, JpaEvLogRepository.TESLA_DATA_SOURCES);
     }
 
     /**

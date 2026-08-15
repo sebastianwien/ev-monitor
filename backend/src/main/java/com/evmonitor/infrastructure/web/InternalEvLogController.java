@@ -57,26 +57,24 @@ public class InternalEvLogController {
     }
 
     /**
-     * Lists Tesla-Supercharger sessions submitted via Telemetry that still lack a Tesla-billed
-     * cost, within the given recency window. Consumed by the daily enrichment job in
-     * connectors-service to decide which sessions need a /dx/charging/history lookup.
+     * Listet Tesla-Ladungen des Users ohne Kosten, die aus Teslas Billing-API stammen koennten.
+     * Der Enrichment-Job im connectors-service gleicht sie gegen /dx/charging/history ab und
+     * bepreist die Treffer - welche Ladung ein Supercharger war, weiss nur Tesla.
      */
-    @GetMapping("/users/{userId}/pending-supercharger-enrichment")
-    public ResponseEntity<List<EvLogService.PendingSuperchargerEnrichment>> pendingSuperchargerEnrichment(
+    @GetMapping("/users/{userId}/enrichable-tesla-logs")
+    public ResponseEntity<List<EvLogService.EnrichableChargingLog>> enrichableTeslaLogs(
             @PathVariable UUID userId,
             @RequestParam(defaultValue = "14") int days) {
-        return ResponseEntity.ok(evLogService.findPendingSuperchargerEnrichment(userId, days));
+        return ResponseEntity.ok(evLogService.findEnrichableTeslaLogs(userId, days));
     }
 
     public record EnrichTeslaRequest(BigDecimal costEur, String cpoName) {}
 
     /**
-     * Enriches an existing Tesla-Supercharger ev_log with billing data fetched from
-     * /dx/charging/history. Free-charging sessions ({@code costEur=0}) flip the log out
-     * of the pending-enrichment scope on the next sweep.
-     * Defense-in-Depth: the service layer + repository ensure only logs that are still
-     * in pending-enrichment-state (cpoName='Tesla Supercharger' AND costEur IS NULL) are
-     * touched - a wrong id is a silent no-op, not an arbitrary log overwrite.
+     * Traegt Abrechnungsdaten aus /dx/charging/history in ein Tesla-Log nach. Kostenlose Ladungen
+     * ({@code costEur=0}) fallen damit aus dem Kandidatenkreis des naechsten Laufs.
+     * Defense-in-Depth: Service und Repository lassen nur Logs ohne Kosten aus einer Tesla-Quelle
+     * zu - eine falsche id ist ein stiller No-Op, kein Ueberschreiben fremder Daten.
      */
     @PatchMapping("/logs/{id}/enrich-tesla")
     public ResponseEntity<Void> enrichTesla(@PathVariable UUID id, @RequestBody EnrichTeslaRequest request) {

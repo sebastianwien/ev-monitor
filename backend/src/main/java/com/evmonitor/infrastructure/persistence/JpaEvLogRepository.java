@@ -373,30 +373,47 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = "UPDATE ev_log SET route_type = :routeType WHERE id = :id", nativeQuery = true)
     void updateRouteType(@Param("id") UUID id, @Param("routeType") String routeType);
 
+    /** Tesla-eigene Quellen - nur diese Logs darf die Billing-Anreicherung anfassen. */
+    List<String> TESLA_DATA_SOURCES = List.of("TESLA_LIVE", "TESLA_FLEET_IMPORT");
+
     /**
-     * Finds Tesla-Supercharger sessions submitted via Telemetry that still lack a Tesla-billed cost.
-     * Filters by user (via car ownership), cpoName=Tesla Supercharger marker (set by the
-     * telemetry service when FastChargerType=Supercharger), null costEur, and a recency cutoff.
+     * Findet Tesla-Ladevorgaenge ohne Kosten, die aus Teslas Billing-API stammen koennten.
+     *
+     * <p>Bewusst NICHT nach cpoName gefiltert: der Marker 'Tesla Supercharger' entsteht nur, wenn
+     * die Telemetrie beim Sessionende einen FastChargerType kennt, und fehlt daher im gesamten
+     * Altbestand. Ob eine Ladung ein Supercharger war, weiss ohnehin nur Teslas Billing-API - der
+     * Aufrufer gleicht diese Kandidaten dort gegen und markiert die Treffer.
+     *
+     * <p>Eingegrenzt wird stattdessen auf das, was ueberhaupt in Frage kommt: Ladungen des Users
+     * aus einer Tesla-Quelle, ohne Kosten, oeffentlich oder per DC geladen. Heimladen faellt damit
+     * heraus - fuer Supercharger gilt beides immer.
      */
     @Query("""
             SELECT e FROM EvLogEntity e, CarEntity c
             WHERE e.carId = c.id
               AND c.userId = :userId
-              AND e.cpoName = 'Tesla Supercharger'
               AND e.costEur IS NULL
+              AND e.dataSource IN :dataSources
+              AND (e.publicCharging = true OR e.chargingType = 'DC')
               AND e.loggedAt >= :cutoff
             ORDER BY e.loggedAt DESC
             """)
-    List<EvLogEntity> findPendingTeslaSuperchargerEnrichment(
+    List<EvLogEntity> findEnrichableTeslaLogs(
             @Param("userId") UUID userId,
-            @Param("cutoff") LocalDateTime cutoff);
+            @Param("cutoff") LocalDateTime cutoff,
+            @Param("dataSources") List<String> dataSources);
 
     /**
-     * Defense-in-Depth: only updates ev_log rows that are still in pending-enrichment-state
-     * (cpoName='Tesla Supercharger' AND costEur IS NULL). A buggy connectors-service or a
-     * compromised X-Internal-Token cannot overwrite arbitrary logs through this path.
-     * Returns 0 affected rows for already-enriched / non-Tesla-SuC logs - silent no-op,
-     * which is the desired idempotency.
+     * Defense-in-Depth: schreibt nur auf Logs aus einer Tesla-Quelle, die noch keine Kosten tragen.
+     * Ein fehlerhafter connectors-service oder ein kompromittiertes X-Internal-Token kann darueber
+     * also weder fremde Quellen (Wallbox, manuelle Eintraege) noch bereits bepreiste Ladungen
+     * ueberschreiben. Eine falsche id ist ein stiller No-Op statt eines Datenverlusts.
+     *
+     * <p>Frueher hing die Bedingung an cpoName='Tesla Supercharger'. Das schuetzte nicht besser -
+     * cpoName ist ein Anzeigefeld, das der Nutzer aendern kann - schloss aber den gesamten
+     * Altbestand ohne Marker dauerhaft von der Anreicherung aus.
+     *
+     * @return 1 wenn geschrieben wurde, 0 wenn das Log bereits Kosten trug oder nicht von Tesla stammt
      */
     @Modifying(clearAutomatically = true)
     @Query("""
@@ -405,10 +422,13 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                    e.cpoName = COALESCE(:cpoName, e.cpoName),
                    e.updatedAt = CURRENT_TIMESTAMP
              WHERE e.id = :id
-               AND e.cpoName = 'Tesla Supercharger'
                AND e.costEur IS NULL
+               AND e.dataSource IN :dataSources
             """)
-    int enrichWithTeslaPricing(@Param("id") UUID id, @Param("costEur") BigDecimal costEur, @Param("cpoName") String cpoName);
+    int enrichWithTeslaPricing(@Param("id") UUID id,
+                               @Param("costEur") BigDecimal costEur,
+                               @Param("cpoName") String cpoName,
+                               @Param("dataSources") List<String> dataSources);
 
     /**
      * Aggregated basic stats for a car model.
