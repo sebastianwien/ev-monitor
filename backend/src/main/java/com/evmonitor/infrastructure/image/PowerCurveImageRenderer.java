@@ -44,11 +44,21 @@ public class PowerCurveImageRenderer {
     public static final int WIDTH = 1200;
     public static final int HEIGHT = 630;
 
-    // Fensterrahmen der Kurve innerhalb des Bildes
-    private static final int PLOT_LEFT = 80;
-    private static final int PLOT_RIGHT = WIDTH - 80;
-    private static final int PLOT_TOP = 300;
-    private static final int PLOT_BOTTOM = HEIGHT - 96;
+    /**
+     * Fensterrahmen der Kurve. Das Seitenverhaeltnis folgt dem Chart in der App
+     * (viewBox 600x200 = 3:1) - eine flachere Kurve waere nicht dieselbe Kurve.
+     * Links bleibt Platz fuer die kW-Beschriftung, unten fuer Dauer und Ladestand.
+     */
+    static final int PLOT_LEFT = 128;
+    static final int PLOT_RIGHT = WIDTH - 64;
+    static final int PLOT_TOP = 232;
+    static final int PLOT_BOTTOM = 568;
+
+    private static final int MARGIN = 64;
+    /** Rechter Rand der Achsenbeschriftung links neben dem Plotfenster. */
+    private static final int AXIS_LABEL_RIGHT = PLOT_LEFT - 14;
+    private static final int TIME_LABEL_BASELINE = 594;
+    private static final int SOC_LABEL_BASELINE = 618;
 
     private static final Color BG = new Color(0x0F172A);
     private static final Color BG_ACCENT = new Color(0x14243F);
@@ -81,7 +91,7 @@ public class PowerCurveImageRenderer {
                 paintHeader(g, curve);
                 paintMetrics(g, curve);
                 paintCurve(g, curve.points());
-                paintFooter(g);
+                paintXAxis(g, curve);
             } finally {
                 g.dispose();
             }
@@ -102,18 +112,26 @@ public class PowerCurveImageRenderer {
 
     private void paintHeader(Graphics2D g, PublicCurveResponse curve) {
         g.setColor(EMERALD);
-        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 24));
-        g.drawString("EV-MONITOR", PLOT_LEFT, 72);
+        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 22));
+        g.drawString("EV-MONITOR", MARGIN, 50);
+
+        // Die Herkunftszeile steht oben rechts statt unter der Kurve - der Platz
+        // unter dem Plotfenster gehoert der Zeit- und der Ladestandsachse.
+        g.setColor(TEXT_MUTED);
+        Font creditFont = new Font(Font.SANS_SERIF, Font.PLAIN, 18);
+        g.setFont(creditFont);
+        String credit = "Echte Ladekurve, aufgezeichnet mit ev-monitor.net";
+        g.drawString(credit, WIDTH - MARGIN - g.getFontMetrics(creditFont).stringWidth(credit), 50);
 
         g.setColor(TEXT);
-        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 64));
-        g.drawString(curve.carModel() != null ? curve.carModel() : "Ladekurve", PLOT_LEFT, 152);
+        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 42));
+        g.drawString(curve.carModel() != null ? curve.carModel() : "Ladekurve", MARGIN, 104);
 
         String subtitle = subtitle(curve);
         if (!subtitle.isEmpty()) {
             g.setColor(TEXT_MUTED);
-            g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 28));
-            g.drawString(subtitle, PLOT_LEFT, 196);
+            g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 22));
+            g.drawString(subtitle, MARGIN, 138);
         }
     }
 
@@ -134,6 +152,8 @@ public class PowerCurveImageRenderer {
         List<Metric> metrics = new java.util.ArrayList<>();
 
         if (curve.peakKw() != null) metrics.add(new Metric("SPITZE", num(curve.peakKw(), 0) + " kW"));
+        Double avgKw = CurveAxis.avgKw(curve.points());
+        if (avgKw != null) metrics.add(new Metric("SCHNITT", String.format(NUM, "%,.0f kW", avgKw)));
         if (curve.kwhCharged() != null) metrics.add(new Metric("GELADEN", num(curve.kwhCharged(), 1) + " kWh"));
         if (curve.durationMinutes() != null) metrics.add(new Metric("DAUER", curve.durationMinutes() + " Min"));
         if (curve.socBefore() != null && curve.socAfter() != null) {
@@ -142,27 +162,29 @@ public class PowerCurveImageRenderer {
         }
         if (metrics.isEmpty()) return;
 
-        int x = PLOT_LEFT;
+        int x = MARGIN;
         for (Metric m : metrics) {
             g.setColor(TEXT_MUTED);
-            g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 18));
-            g.drawString(m.label(), x, 246);
+            g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
+            g.drawString(m.label(), x, 176);
 
             g.setColor(TEXT);
-            Font valueFont = new Font(Font.SANS_SERIF, Font.BOLD, 34);
+            Font valueFont = new Font(Font.SANS_SERIF, Font.BOLD, 28);
             g.setFont(valueFont);
-            g.drawString(m.value(), x, 282);
+            g.drawString(m.value(), x, 206);
 
             int width = g.getFontMetrics(valueFont).stringWidth(m.value());
-            x += Math.max(width, 140) + 56;
+            x += Math.max(width, 130) + 48;
         }
     }
 
     private void paintCurve(Graphics2D g, List<PowerCurveResponse.Point> points) {
         double maxKw = points.stream().mapToDouble(PowerCurveResponse.Point::kw).max().orElse(1);
         if (maxKw <= 0) maxKw = 1;
-        // 8 % Luft nach oben, damit die Spitze nicht am Rahmen klebt.
-        double scaleMax = maxKw * 1.08;
+        // Obergrenze ist die oberste Gitterlinie - sonst laegen Kurve und
+        // Beschriftung auf zwei verschiedenen Skalen.
+        List<Integer> yTicks = CurveAxis.yTicksKw(maxKw);
+        double scaleMax = yTicks.get(yTicks.size() - 1);
 
         long first = points.get(0).ts();
         long span = points.get(points.size() - 1).ts() - first;
@@ -170,12 +192,7 @@ public class PowerCurveImageRenderer {
         int plotW = PLOT_RIGHT - PLOT_LEFT;
         int plotH = PLOT_BOTTOM - PLOT_TOP;
 
-        g.setColor(GRID);
-        g.setStroke(new BasicStroke(1f));
-        for (int i = 0; i <= 4; i++) {
-            int y = PLOT_TOP + (plotH * i) / 4;
-            g.drawLine(PLOT_LEFT, y, PLOT_RIGHT, y);
-        }
+        paintYAxis(g, yTicks, scaleMax, plotH);
 
         // Ein einzelner Punkt hat keine Zeitspanne - als waagerechte Linie zeichnen,
         // sonst entstuende eine Division durch null.
@@ -212,10 +229,61 @@ public class PowerCurveImageRenderer {
         g.fillOval(xs[0] - 4, ys[0] - 4, 8, 8);
     }
 
-    private void paintFooter(Graphics2D g) {
-        g.setColor(TEXT_MUTED);
-        g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 22));
-        g.drawString("Echte Ladekurve, aufgezeichnet mit ev-monitor.net", PLOT_LEFT, HEIGHT - 40);
+    /** Gitterlinien mit kW-Beschriftung - ohne sie ist die Kurve nicht ablesbar. */
+    private void paintYAxis(Graphics2D g, List<Integer> ticks, double scaleMax, int plotH) {
+        Font labelFont = new Font(Font.SANS_SERIF, Font.PLAIN, 18);
+        for (int kw : ticks) {
+            int y = PLOT_BOTTOM - (int) Math.round((kw / scaleMax) * plotH);
+
+            g.setColor(GRID);
+            g.setStroke(new BasicStroke(1f));
+            g.drawLine(PLOT_LEFT, y, PLOT_RIGHT, y);
+
+            g.setColor(TEXT_MUTED);
+            g.setFont(labelFont);
+            String label = kw + " kW";
+            g.drawString(label, AXIS_LABEL_RIGHT - g.getFontMetrics(labelFont).stringWidth(label), y + 6);
+        }
+    }
+
+    /**
+     * Zeit- und Ladestandsachse unter dem Plotfenster. Der Ladestand steht als
+     * zweite Zeile darunter, so wie im Chart in der App.
+     */
+    private void paintXAxis(Graphics2D g, PublicCurveResponse curve) {
+        List<PowerCurveResponse.Point> points = curve.points();
+        List<String> timeLabels = CurveAxis.xLabels(points);
+        double[] soc = CurveAxis.socSeries(points, curve.socBefore(), curve.socAfter());
+
+        // Ohne Zeilenbeschriftung: die Einheiten stehen an den Werten selbst,
+        // und links waere sie mit der ersten Marke zusammengestossen.
+        Font valueFont = new Font(Font.SANS_SERIF, Font.PLAIN, 20);
+
+        int plotW = PLOT_RIGHT - PLOT_LEFT;
+        g.setFont(valueFont);
+        for (int i = 0; i < timeLabels.size(); i++) {
+            double ratio = (double) i / (timeLabels.size() - 1);
+            int x = PLOT_LEFT + (int) Math.round(ratio * plotW);
+
+            g.setColor(TEXT_MUTED);
+            drawCentered(g, timeLabels.get(i), x, TIME_LABEL_BASELINE);
+
+            if (soc != null) {
+                g.setColor(EMERALD);
+                drawCentered(g, Math.round(CurveAxis.socAtRatio(points, soc, ratio)) + " %", x, SOC_LABEL_BASELINE);
+            }
+        }
+    }
+
+
+    /**
+     * Zentriert am Rand geklemmt - die aeusseren Marken ragten sonst ueber das
+     * Bild hinaus.
+     */
+    private void drawCentered(Graphics2D g, String text, int x, int baseline) {
+        int width = g.getFontMetrics().stringWidth(text);
+        int left = Math.min(Math.max(x - width / 2, MARGIN), WIDTH - MARGIN - width);
+        g.drawString(text, left, baseline);
     }
 
     private String num(BigDecimal value, int decimals) {

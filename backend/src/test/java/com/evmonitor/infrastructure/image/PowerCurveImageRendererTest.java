@@ -42,6 +42,28 @@ class PowerCurveImageRendererTest {
     }
 
     @Test
+    void plotWindowKeepsTheAspectRatioOfTheAppChart() {
+        // Das Chart in der App hat viewBox 600x200 = 3:1. Weicht das Bild davon
+        // ab, sieht die geteilte Kurve flacher aus als die, die der Nutzer kennt.
+        double ratio = (double) (PowerCurveImageRenderer.PLOT_RIGHT - PowerCurveImageRenderer.PLOT_LEFT)
+                / (PowerCurveImageRenderer.PLOT_BOTTOM - PowerCurveImageRenderer.PLOT_TOP);
+        assertTrue(ratio >= 2.8 && ratio <= 3.4, "Plotfenster-Verhaeltnis war " + ratio);
+    }
+
+    @Test
+    void socAxisChangesTheImage() {
+        // Belegt, dass der Ladestand tatsaechlich gezeichnet wird: dieselbe Kurve
+        // einmal mit und einmal ohne ableitbaren SoC ergibt verschiedene Bilder.
+        PublicCurveResponse withSoc = curve(points(30), "Tesla Model 3", "Tesla Supercharger");
+        PublicCurveResponse withoutSoc = new PublicCurveResponse(
+                pointsWithoutSoc(30), "Tesla Model 3", new BigDecimal("43.8"), 17,
+                null, null, new BigDecimal("253.5"), "Tesla Supercharger", "DC",
+                LocalDate.of(2026, 8, 2));
+
+        assertFalse(java.util.Arrays.equals(renderer.render(withSoc), renderer.render(withoutSoc)));
+    }
+
+    @Test
     void rendersWithoutCpoName() throws Exception {
         byte[] png = renderer.render(curve(points(30), "VW ID.4", null));
         assertNotNull(ImageIO.read(new ByteArrayInputStream(png)));
@@ -89,6 +111,13 @@ class PowerCurveImageRendererTest {
                         1_700_000_000_000L + i * 30_000L,
                         250.0 - i * 5.0,
                         8.0 + i * 2.0))
+                .toList();
+    }
+
+    /** Bestandskurven aus der Zeit vor der SoC-Anreicherung tragen keinen Ladestand. */
+    private static List<PowerCurveResponse.Point> pointsWithoutSoc(int count) {
+        return points(count).stream()
+                .map(p -> new PowerCurveResponse.Point(p.ts(), p.kw(), null))
                 .toList();
     }
 
