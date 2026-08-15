@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import { XMarkIcon, BoltIcon, LockOpenIcon, ShareIcon, PhotoIcon, LinkSlashIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
 import PowerCurveChart from './PowerCurveChart.vue'
+import SocCurveChart from './SocCurveChart.vue'
 import { computeCurveStats } from './powerCurveStats'
 import { buildSocSeries } from './powerCurveSeries'
 import { formatDuration } from './powerCurveScrub'
@@ -24,6 +25,9 @@ import { useCurveShare } from '../../composables/useCurveShare'
 const props = defineProps<{
   loading: boolean
   points: { ts: number; kw: number; soc?: number | null }[]
+  /** Gemessener Ladeverlauf - kommt statt der Leistungskurve, wenn die Quelle
+   *  keine Leistung liefert (Smartcar). */
+  socPoints?: { ts: number; soc: number }[]
   consumptionKwhPer100km?: number | null
   /** Datum/Uhrzeit der Ladung, wird als Untertitel gezeigt. */
   subtitle?: string
@@ -58,6 +62,18 @@ const shareHint = ref<string | null>(null)
 let hintTimer: ReturnType<typeof setTimeout> | null = null
 
 const canShare = computed(() => !!props.logId && !props.locked && props.points.length > 0)
+
+/** Ladeverlauf statt Ladekurve: nur wenn keine Leistung gemessen wurde. */
+const socOnly = computed(() => props.points.length === 0 && (props.socPoints?.length ?? 0) > 0)
+
+/** Durchschnittsleistung als eine Zahl. Bewusst keine kW-Reihe: ein aus dem
+ *  Zaehler abgeleiteter Verlauf waere ein Vier-Minuten-Mittel, kein Momentanwert. */
+const socAvgKw = computed(() => {
+  const pts = props.socPoints ?? []
+  if (props.kwhCharged == null || pts.length < 2) return null
+  const hours = (pts[pts.length - 1].ts - pts[0].ts) / 3_600_000
+  return hours > 0 ? Number(props.kwhCharged) / hours : null
+})
 
 function flashHint(message: string) {
   shareHint.value = message
@@ -112,8 +128,20 @@ interface Tile { key: string; label: string; value: string }
 
 const tiles = computed<Tile[]>(() => {
   const s = stats.value
-  if (!s && !props.locked) return []
+  if (!s && !props.locked && !socOnly.value) return []
   const out: Tile[] = []
+  // Ladeverlauf: die Spitze fehlt naturgemaess, der Schnitt ist die einzige
+  // Leistungsaussage die die Daten hergeben.
+  if (socOnly.value && socAvgKw.value != null) {
+    out.push({ key: 'avg', label: t('dashboard.power_curve_avg'), value: kw(socAvgKw.value) })
+  }
+  if (socOnly.value && props.chargeDurationMinutes) {
+    out.push({
+      key: 'duration',
+      label: t('dashboard.power_curve_duration'),
+      value: formatDuration(props.chargeDurationMinutes * 60_000),
+    })
+  }
   // Spitze und Schnitt stecken nur in der Kurve - im Teaser sind sie genau das,
   // was noch fehlt, und bleiben deshalb weg statt als Platzhalter zu erscheinen.
   if (s) {
@@ -212,7 +240,7 @@ onBeforeUnmount(() => {
           <BoltIcon class="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
           <div class="min-w-0 flex-1">
             <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
-              {{ t('dashboard.power_curve_title') }}
+              {{ socOnly ? t('soc_curve.title') : t('dashboard.power_curve_title') }}
             </h2>
             <p v-if="subtitle" class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{{ subtitle }}</p>
           </div>
@@ -279,7 +307,7 @@ onBeforeUnmount(() => {
           <div v-else-if="loading" class="text-sm text-gray-500 dark:text-gray-400 text-center py-16">
             {{ t('live.loading_data') }}
           </div>
-          <div v-else-if="points.length === 0" class="text-sm text-gray-500 dark:text-gray-400 text-center py-16">
+          <div v-else-if="points.length === 0 && !socOnly" class="text-sm text-gray-500 dark:text-gray-400 text-center py-16">
             {{ t('dashboard.no_power_curve') }}
           </div>
           <template v-else>
@@ -296,7 +324,15 @@ onBeforeUnmount(() => {
               </div>
             </div>
 
+            <SocCurveChart
+              v-if="socOnly"
+              :points="socPoints ?? []"
+              :height="260"
+              :height-desktop="340"
+              :aria-label="t('soc_curve.title')"
+            />
             <PowerCurveChart
+              v-else
               :points="points"
               :height="260"
               :height-desktop="340"
@@ -308,7 +344,10 @@ onBeforeUnmount(() => {
               :soc-axis-label="t('dashboard.power_curve_soc_axis')"
             />
 
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+            <p v-if="socOnly" class="text-[11px] text-gray-400 dark:text-gray-500">
+              {{ t('soc_curve.explainer') }}
+            </p>
+            <div v-if="!socOnly" class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500 dark:text-gray-400">
               <span class="inline-flex items-center gap-1.5">
                 <span class="w-3 h-0.5 rounded-full bg-emerald-500 flex-shrink-0" />
                 {{ t('dashboard.power_curve_legend_kw') }}

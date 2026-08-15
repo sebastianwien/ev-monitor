@@ -44,7 +44,7 @@ import api from '../api/axios'
 import { distributeProportionally } from '../utils/distributeProportionally'
 import { rescaleCostForKwhChange } from '../utils/costRescale'
 import PowerCurveModal from '../components/charging/PowerCurveModal.vue'
-import type { CurvePoint } from '../components/charging/powerCurveSeries'
+import { mergeSocSeries, type CurvePoint, type SocPoint } from '../components/charging/powerCurveSeries'
 import { formatSocRange } from '../utils/socRange'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
@@ -385,10 +385,13 @@ const POWER_CURVE_CACHE_MAX = 50
 // Die Kurve wird im Overlay gezeigt, nicht inline: in der Feed-Zeile blieb ihr
 // nur eine gestauchte Resthoehe. Es ist immer hoechstens eine offen.
 const powerCurveEntry = ref<any | null>(null)
-const powerCurveCache = ref(new Map<string, CurvePoint[]>())
+/** Was zu einer Ladung aufgezeichnet wurde: Leistungskurve (Tesla) oder
+ *  Ladeverlauf (Smartcar). Nie beides - siehe PowerCurveResponse im Backend. */
+interface CurveData { points: CurvePoint[]; socPoints: SocPoint[] }
+const powerCurveCache = ref(new Map<string, CurveData>())
 const powerCurveLoading = ref(new Set<string>())
 
-function cachePut(logId: string, points: CurvePoint[]) {
+function cachePut(logId: string, points: CurveData) {
   // LRU-Verhalten via JS-Map-Insertion-Order: bei Hit erst delete dann set
   // schiebt den Eintrag ans Ende; oldest fliegt raus wenn Cap erreicht.
   if (powerCurveCache.value.has(logId)) powerCurveCache.value.delete(logId)
@@ -426,10 +429,23 @@ async function openPowerCurve(entry: any) {
   powerCurveLoading.value.add(logId)
   powerCurveLoading.value = new Set(powerCurveLoading.value)
   try {
-    const res = await api.get<{ points: CurvePoint[] }>(`/logs/${logId}/power-curve`)
-    cachePut(logId, res.data.points ?? [])
+    // Teilladungen mitladen: der Connector trennt einen Ladelauf am
+    // Zaehler-Reset, der Feed fuehrt die Logs ueber den identischen
+    // Kilometerstand aber wieder zusammen. Der Ladeverlauf folgt derselben
+    // Gruppierung und wird dadurch wieder durchgehend. Die Leistungskurve
+    // bleibt beim Elternlog - Tesla kennt diesen Split nicht.
+    const ids = [logId, ...((entry?._topUps ?? []) as any[]).map(t => t?.id).filter(Boolean)]
+    const responses = await Promise.all(ids.map(id =>
+      api.get<{ points: CurvePoint[]; socPoints: SocPoint[] }>(`/logs/${id}/power-curve`)
+        .then(r => r.data)
+        .catch(() => ({ points: [], socPoints: [] }))
+    ))
+    cachePut(logId, {
+      points: responses[0]?.points ?? [],
+      socPoints: mergeSocSeries(responses.map(r => r?.socPoints)),
+    })
   } catch {
-    cachePut(logId, [])
+    cachePut(logId, { points: [], socPoints: [] })
   } finally {
     powerCurveLoading.value.delete(logId)
     powerCurveLoading.value = new Set(powerCurveLoading.value)
@@ -2805,7 +2821,8 @@ function toggleAllCharges() {
   <PowerCurveModal
     v-if="powerCurveEntry"
     :loading="powerCurveLoading.has(powerCurveEntry.id)"
-    :points="powerCurveCache.get(powerCurveEntry.id) ?? []"
+    :points="powerCurveCache.get(powerCurveEntry.id)?.points ?? []"
+    :soc-points="powerCurveCache.get(powerCurveEntry.id)?.socPoints ?? []"
     :consumption-kwh-per100km="powerCurveConsumption(powerCurveEntry)"
     :subtitle="powerCurveSubtitle"
     :soc-before-charge-percent="powerCurveEntry.socBeforeChargePercent"

@@ -1,0 +1,13 @@
+-- Ladeverlauf: gemessener Ladestand ueber die Zeit, als JSON-Array
+-- [{"ts": <epochMs>, "soc": <prozent>}, ...].
+--
+-- Quelle sind die Smartcar-Webhooks, die alle vier bis fuenf Minuten einen
+-- Ladestand liefern. Der Snapshot ueberlebt damit das 28-Tage-Limit auf
+-- smartcar_webhook_raw_log.
+--
+-- Bewusst getrennt von power_curve_points: dort ist die Leistung das
+-- Pflichtfeld, und Chart wie Kennzahlen haengen daran. Smartcar liefert keine
+-- Leistung - eine aus dem Zaehler abgeleitete kW-Reihe waere ein
+-- Vier-Minuten-Mittel mit ueber 40 % Schwankung zwischen benachbarten
+-- Fenstern und damit keine Ladekurve.
+ALTER TABLE ev_log ADD COLUMN soc_curve_points jsonb;

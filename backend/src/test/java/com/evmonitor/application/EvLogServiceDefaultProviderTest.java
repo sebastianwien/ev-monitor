@@ -301,7 +301,7 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
         InternalEvLogRequest request = new InternalEvLogRequest(carId, userId, kwh, 40,
                 LocalDateTime.now().minusHours(2), geohash, null, null, "TESLA_LIVE", cost,
                 "DC", false, 12_000, new BigDecimal("20.0"), new BigDecimal("80.0"), null, null,
-                isPublic, null, null, null, null, null);
+                isPublic, null, null, null, null, null, null);
         return reload(evLogService.createInternalLog(request).id());
     }
 

@@ -206,6 +206,9 @@ public class EvLogService {
         // Power-curve-Snapshot (~30 Punkte) als JSONB neben den Log persistieren -
         // ueberlebt das 28-Tage-Retention-Limit auf vehicle_signal_events. Nur Tesla
         // FULL-Profil-Connectoren liefern hier was, alle anderen lassen NULL.
+        if (request.socCurvePointsJson() != null && !request.socCurvePointsJson().isBlank()) {
+            evLogRepository.updateSocCurvePoints(savedLog.getId(), request.socCurvePointsJson());
+        }
         if (request.powerCurvePointsJson() != null && !request.powerCurvePointsJson().isBlank()) {
             evLogRepository.updatePowerCurvePoints(savedLog.getId(), request.powerCurvePointsJson());
         }
@@ -431,16 +434,33 @@ public class EvLogService {
             return PowerCurveResponse.empty();
         }
 
+        // Leistungskurve wenn vorhanden, sonst der gemessene Ladeverlauf. Beide
+        // koennen nie gleichzeitig entstehen: die eine setzt Live-Leistung voraus,
+        // der andere ist genau fuer die Quellen da, die keine liefern.
         String json = lookup.powerCurvePointsJson();
         if (json == null || json.isBlank()) {
-            return PowerCurveResponse.empty();
+            return parseSocCurve(logId, lookup.socCurvePointsJson());
         }
         try {
             List<PowerCurveResponse.Point> points = objectMapper.readValue(
                     json, objectMapper.getTypeFactory().constructCollectionType(List.class, PowerCurveResponse.Point.class));
-            return new PowerCurveResponse(points);
+            return PowerCurveResponse.ofPower(points);
         } catch (Exception e) {
             log.warn("Failed to parse power-curve JSON for log {}: {}", logId, e.getMessage());
+            return PowerCurveResponse.empty();
+        }
+    }
+
+    private PowerCurveResponse parseSocCurve(UUID logId, String json) {
+        if (json == null || json.isBlank()) {
+            return PowerCurveResponse.empty();
+        }
+        try {
+            List<PowerCurveResponse.SocPoint> points = objectMapper.readValue(
+                    json, objectMapper.getTypeFactory().constructCollectionType(List.class, PowerCurveResponse.SocPoint.class));
+            return new PowerCurveResponse(List.of(), points);
+        } catch (Exception e) {
+            log.warn("Failed to parse soc-curve JSON for log {}: {}", logId, e.getMessage());
             return PowerCurveResponse.empty();
         }
     }

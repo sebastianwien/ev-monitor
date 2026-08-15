@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cumulativeKwh, buildSocSeries, socAtTs, yTickStepKw } from '../powerCurveSeries'
+import { cumulativeKwh, buildSocSeries, socAtTs, yTickStepKw, mergeSocSeries } from '../powerCurveSeries'
 
 const MIN = 60_000
 
@@ -158,5 +158,34 @@ describe('yTickStepKw', () => {
             expect(tickCount(max)).toBeLessThanOrEqual(6)
             expect(tickCount(max)).toBeGreaterThanOrEqual(1)
         }
+    })
+})
+
+describe('mergeSocSeries', () => {
+    const p = (ts: number, soc: number) => ({ ts, soc })
+
+    it('haengt die Verlaeufe einer Ladegruppe chronologisch aneinander', () => {
+        // Der Zaehler-Reset trennt eine durchgehende Ladung in zwei Logs -
+        // ueber die Ladegruppe wird sie wieder zu einem Verlauf.
+        const merged = mergeSocSeries([
+            [p(3000, 50), p(4000, 55)],
+            [p(1000, 31), p(2000, 40)],
+        ])
+        expect(merged.map(x => x.soc)).toEqual([31, 40, 50, 55])
+    })
+
+    it('entfernt doppelte Zeitstempel an der Nahtstelle', () => {
+        const merged = mergeSocSeries([[p(1000, 31), p(2000, 40)], [p(2000, 40), p(3000, 50)]])
+        expect(merged).toHaveLength(3)
+    })
+
+    it('ignoriert leere und fehlende Reihen', () => {
+        expect(mergeSocSeries([null, undefined, [], [p(1000, 20)]])).toEqual([p(1000, 20)])
+        expect(mergeSocSeries([])).toEqual([])
+    })
+
+    it('wirft ungueltige Punkte weg', () => {
+        const merged = mergeSocSeries([[p(1000, 20), { ts: NaN, soc: 30 } as any, p(2000, 25)]])
+        expect(merged).toHaveLength(2)
     })
 })

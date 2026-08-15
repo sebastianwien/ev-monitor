@@ -188,7 +188,14 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     @Override
     public Optional<PowerCurveLookup> findOwnerIdAndPowerCurveJson(UUID logId) {
         return jpaRepository.findOwnerIdAndPowerCurveJson(logId)
-                .map(row -> new PowerCurveLookup(row.getOwnerUserId(), row.getPowerCurveJson()));
+                .map(row -> new PowerCurveLookup(
+                        row.getOwnerUserId(), row.getPowerCurveJson(), row.getSocCurveJson()));
+    }
+
+    @Override
+    @Transactional
+    public void updateSocCurvePoints(UUID id, String socCurvePointsJson) {
+        jpaRepository.updateSocCurvePoints(id, socCurvePointsJson);
     }
 
     @Override

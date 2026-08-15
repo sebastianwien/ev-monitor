@@ -74,6 +74,40 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getPowerCurve_logWithSocCurveOnly_returnsSocPoints() {
+        // Smartcar liefert keine Leistung. Der gemessene Ladeverlauf kommt
+        // stattdessen - als eigene Reihe, nicht als abgeleitete kW-Kurve.
+        User user = createAndSaveAutoSyncLiveUser("pc-soccurve-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog log = saveLogWith(car.getId(), DataSource.SMARTCAR_LIVE);
+        evLogRepository.updateSocCurvePoints(log.getId(),
+                "[{\"ts\":1715515200000,\"soc\":40.0},{\"ts\":1715515440000,\"soc\":45.0}]");
+
+        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user);
+
+        assertTrue(res.points().isEmpty(), "ohne Leistungsmessung darf keine kW-Kurve entstehen");
+        assertEquals(2, res.socPoints().size());
+        assertEquals(40.0, res.socPoints().get(0).soc());
+        assertEquals(45.0, res.socPoints().get(1).soc());
+    }
+
+    @Test
+    void getPowerCurve_powerCurveWins_whenBothExist() {
+        // Kann heute nicht vorkommen, ist aber die Reihenfolge auf die sich das
+        // Frontend verlaesst: die gemessene Leistung ist die reichere Aussage.
+        User user = createAndSaveAutoSyncLiveUser("pc-both-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog log = saveLogWith(car.getId(), DataSource.TESLA_LIVE);
+        evLogRepository.updatePowerCurvePoints(log.getId(), "[{\"ts\":1715515200000,\"kw\":150.0}]");
+        evLogRepository.updateSocCurvePoints(log.getId(), "[{\"ts\":1715515200000,\"soc\":40.0}]");
+
+        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user);
+
+        assertEquals(1, res.points().size());
+        assertTrue(res.socPoints().isEmpty());
+    }
+
+    @Test
     void getPowerCurve_nonEntitledOwner_logWithCurve_returnsEmpty() {
         // Historical curves stay premium even for Tesla: a free owner with a persisted
         // curve gets an empty response (the gate), not the points.

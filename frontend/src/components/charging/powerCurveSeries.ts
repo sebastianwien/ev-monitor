@@ -108,3 +108,34 @@ export function socAtTs(points: CurvePoint[], values: number[], ts: number): num
     }
     return values[n - 1]
 }
+
+export interface SocPoint {
+    ts: number
+    soc: number
+}
+
+/**
+ * Fuegt die Ladeverlaeufe der Teilladungen einer Ladegruppe zu einem Verlauf zusammen.
+ *
+ * Noetig, weil der Connector einen Ladelauf am Zaehler-Reset trennt (Regel R7):
+ * faellt der Zaehler waehrend einer laufenden Ladung zurueck, entstehen zwei Logs,
+ * obwohl das Auto durchgehend geladen hat. Der Feed fuehrt genau diese Logs ueber
+ * den identischen Kilometerstand ohnehin schon zu einer Ladegruppe zusammen - der
+ * Verlauf folgt derselben Gruppierung, statt eine eigene Reset-Erkennung zu bauen.
+ *
+ * Doppelte Zeitstempel koennen an der Nahtstelle auftreten und werden auf den
+ * ersten Wert reduziert.
+ */
+export function mergeSocSeries(series: (SocPoint[] | null | undefined)[]): SocPoint[] {
+    const merged = series
+        .filter((s): s is SocPoint[] => Array.isArray(s) && s.length > 0)
+        .flat()
+        .filter(p => p && Number.isFinite(p.ts) && Number.isFinite(p.soc))
+        .sort((a, b) => a.ts - b.ts)
+
+    const out: SocPoint[] = []
+    for (const p of merged) {
+        if (out.length === 0 || out[out.length - 1].ts !== p.ts) out.push(p)
+    }
+    return out
+}

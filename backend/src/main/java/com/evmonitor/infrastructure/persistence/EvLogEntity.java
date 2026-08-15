@@ -89,6 +89,11 @@ public class EvLogEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private String powerCurvePoints;
 
+    /** Ladeverlauf (Ladestand ueber Zeit) fuer Quellen ohne Leistungsmessung. */
+    @Column(name = "soc_curve_points", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String socCurvePoints;
+
     /** Zufalls-Token der oeffentlichen Kurven-URL. NULL = nicht geteilt. */
     @Column(name = "share_token", length = 16)
     private String shareToken;

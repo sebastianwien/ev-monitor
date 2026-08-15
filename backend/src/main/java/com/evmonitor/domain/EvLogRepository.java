@@ -93,7 +93,10 @@ public interface EvLogRepository {
      */
     Optional<PowerCurveLookup> findOwnerIdAndPowerCurveJson(UUID logId);
 
-    record PowerCurveLookup(UUID ownerUserId, String powerCurvePointsJson) {}
+    /** Persist the measured state-of-charge series for the given log id. No-op if id not found. */
+    void updateSocCurvePoints(UUID id, String socCurvePointsJson);
+
+    record PowerCurveLookup(UUID ownerUserId, String powerCurvePointsJson, String socCurvePointsJson) {}
 
     /** Setzt den Share-Token. false wenn kein Log mit der ID existiert. */
     boolean setShareToken(UUID logId, String token, LocalDateTime createdAt);

@@ -280,10 +280,20 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     interface OwnerCurveRow {
         UUID getOwnerUserId();
         String getPowerCurveJson();
+        String getSocCurveJson();
     }
 
-    @Query("SELECT c.userId AS ownerUserId, e.powerCurvePoints AS powerCurveJson FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE e.id = :id")
+    @Query("""
+            SELECT c.userId AS ownerUserId,
+                   e.powerCurvePoints AS powerCurveJson,
+                   e.socCurvePoints AS socCurveJson
+            FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE e.id = :id
+            """)
     Optional<OwnerCurveRow> findOwnerIdAndPowerCurveJson(@Param("id") UUID id);
+
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.socCurvePoints = :json WHERE e.id = :id AND e.socCurvePoints IS NULL")
+    int updateSocCurvePoints(@Param("id") UUID id, @Param("json") String json);
 
     // ── Oeffentlich geteilte Ladekurven ──────────────────────────────────────
 
