@@ -73,3 +73,6 @@ data/
 
 docs
 CLAUDE.md
+
+# Lokales Stripe-Reporting (Business-Daten, gehoert nicht ins oeffentliche Repo)
+scripts/stripe-report.sh
