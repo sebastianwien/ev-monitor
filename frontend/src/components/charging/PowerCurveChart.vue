@@ -294,6 +294,15 @@ const scrubTooltipStyle = computed(() => {
 // Unique id-Suffix damit mehrere Instanzen auf einer Seite keine Gradient-IDs
 // teilen und sich gegenseitig "verlieren". Vue 3.5 useId() ist SSR-stabil
 // (waehrend Math.random() Hydration-Mismatch ausloesen wuerde).
+/** Punktposition im HTML-Overlay - die viewBox ist 600x200. */
+function dotStyle(x: number, y: number) {
+  return {
+    left: `${(x / CURVE_W) * 100}%`,
+    top: `${(y / CURVE_H) * 100}%`,
+    transform: 'translate(-50%, -50%)',
+  }
+}
+
 const uid = useId()
 const fillId = `pc-fill-${uid}`
 const strokeId = `pc-stroke-${uid}`
@@ -343,16 +352,15 @@ const glowId = `pc-glow-${uid}`
       <!-- Reichweite-Overlay (km), eigene Y-Skala, blaue Linie zur Abgrenzung -->
       <path v-if="rangeStrokePath" :d="rangeStrokePath" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
       <!-- Scrub-Marker: Fadenkreuz auf dem angepeilten Messpunkt -->
+      <!-- Nur die Linie bleibt im SVG. Punkte liegen als HTML darueber, weil
+           preserveAspectRatio="none" die Achsen unterschiedlich streckt und
+           einen <circle> damit zur Ellipse zieht - dasselbe Problem, das
+           Beschriftungen schon ausserhalb des SVG loesen. -->
       <template v-if="scrubPoint">
         <line :x1="scrubPoint.x" y1="0" :x2="scrubPoint.x" y2="200" stroke="currentColor" class="text-gray-400 dark:text-slate-500" stroke-width="1" stroke-dasharray="3 3" />
-        <circle v-if="scrubPoint.rangeY !== null" :cx="scrubPoint.x" :cy="scrubPoint.rangeY" r="3.5" fill="#0ea5e9" stroke="#ffffff" stroke-width="1.5" />
-        <circle :cx="scrubPoint.x" :cy="scrubPoint.y" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="2" />
       </template>
       <template v-if="showLiveMarker && curveLastPoint">
         <line :x1="curveLastPoint.x" :y1="curveLastPoint.y" :x2="curveLastPoint.x" y2="200" stroke="#10b981" stroke-width="1" stroke-dasharray="2 3" opacity="0.5" />
-        <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="8" fill="#10b981" opacity="0.25" />
-        <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="4" fill="#10b981" class="marker-pulse" />
-        <circle :cx="curveLastPoint.x" :cy="curveLastPoint.y" r="2" fill="#ffffff" />
       </template>
     </svg>
     <!-- Momentanwert am Zeiger. HTML statt SVG-Text, sonst wuerde
@@ -371,6 +379,22 @@ const glowId = `pc-glow-${uid}`
     <span class="sr-only" aria-live="polite">{{ scrubPoint ? `${scrubPoint.kw} kW, ${scrubPoint.soc !== null ? `${scrubPoint.soc} %, ` : ''}${scrubPoint.label}` : '' }}</span>
     <!-- Y-Achse als HTML-Overlay (vermeidet preserveAspectRatio="none"-Stretching von SVG-Text) -->
     <div class="pointer-events-none absolute inset-0">
+      <template v-if="scrubPoint">
+        <span
+          v-if="scrubPoint.rangeY !== null"
+          class="absolute w-[7px] h-[7px] rounded-full bg-sky-500 ring-[1.5px] ring-white"
+          :style="dotStyle(scrubPoint.x, scrubPoint.rangeY)"
+        />
+        <span
+          class="absolute w-[9px] h-[9px] rounded-full bg-emerald-600 ring-2 ring-white"
+          :style="dotStyle(scrubPoint.x, scrubPoint.y)"
+        />
+      </template>
+      <template v-if="showLiveMarker && curveLastPoint">
+        <span class="absolute w-4 h-4 rounded-full bg-emerald-500/25" :style="dotStyle(curveLastPoint.x, curveLastPoint.y)" />
+        <span class="absolute w-2 h-2 rounded-full bg-emerald-500 marker-pulse" :style="dotStyle(curveLastPoint.x, curveLastPoint.y)" />
+        <span class="absolute w-1 h-1 rounded-full bg-white" :style="dotStyle(curveLastPoint.x, curveLastPoint.y)" />
+      </template>
       <span
         v-for="(tick, i) in curveYTicks"
         :key="`yt-${i}`"
@@ -407,8 +431,8 @@ const glowId = `pc-glow-${uid}`
 
 <style scoped>
 @keyframes marker-pulse {
-  0%, 100% { r: 4; opacity: 1; }
-  50% { r: 6; opacity: 0.85; }
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.85; }
 }
-.marker-pulse { animation: marker-pulse 1.6s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+.marker-pulse { animation: marker-pulse 1.6s ease-in-out infinite; }
 </style>

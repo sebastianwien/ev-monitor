@@ -33,9 +33,10 @@
            1-%-Schritten alle vier bis fuenf Minuten. Eine weiche Linie wuerde
            eine Aufloesung vortaeuschen, die die Daten nicht haben. -->
       <path v-if="strokePath" :d="strokePath" fill="none" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Punkt liegt als HTML darueber: preserveAspectRatio="none" streckt die
+           Achsen unterschiedlich und zieht einen <circle> zur Ellipse. -->
       <template v-if="scrubPoint">
         <line :x1="scrubPoint.x" y1="0" :x2="scrubPoint.x" y2="200" stroke="currentColor" class="text-gray-400 dark:text-slate-500" stroke-width="1" stroke-dasharray="3 3" />
-        <circle :cx="scrubPoint.x" :cy="scrubPoint.y" r="4.5" fill="#0284c7" stroke="#ffffff" stroke-width="2" />
       </template>
     </svg>
 
@@ -51,6 +52,11 @@
     <span class="sr-only" aria-live="polite">{{ scrubPoint ? `${scrubPoint.soc} %, ${scrubPoint.label}` : '' }}</span>
 
     <div class="pointer-events-none absolute inset-0">
+      <span
+        v-if="scrubPoint"
+        class="absolute w-[9px] h-[9px] rounded-full bg-sky-600 ring-2 ring-white"
+        :style="dotStyle(scrubPoint.x, scrubPoint.y)"
+      />
       <span
         v-for="tick in yTicks"
         :key="`yt-${tick.soc}`"
@@ -215,6 +221,15 @@ const tooltipStyle = computed(() => {
   const shift = pct < 18 ? '0%' : pct > 82 ? '-100%' : '-50%'
   return { left: `${pct}%`, transform: `translateX(${shift})` }
 })
+
+/** Punktposition im HTML-Overlay - die viewBox ist 600x200. */
+function dotStyle(x: number, y: number) {
+  return {
+    left: `${(x / CURVE_W) * 100}%`,
+    top: `${(y / CURVE_H) * 100}%`,
+    transform: 'translate(-50%, -50%)',
+  }
+}
 
 const uid = useId()
 const fillId = `sc-fill-${uid}`
