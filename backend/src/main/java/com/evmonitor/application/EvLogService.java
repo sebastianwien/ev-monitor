@@ -430,8 +430,12 @@ public class EvLogService {
         // Historical power curves are a paid AutoSync-Live analytics feature. Ownership is
         // checked first so a non-owner still gets a 404 (no existence leak); a non-entitled
         // owner just gets an empty curve.
+        // Die Leistungskurve bleibt premium, der Ladeverlauf nicht: er ist das,
+        // was Quellen ohne Leistungsmessung ueberhaupt hergeben.
         if (!user.canViewLiveAnalytics()) {
-            return PowerCurveResponse.empty();
+            return user.canViewSocCurve()
+                    ? parseSocCurve(logId, lookup.socCurvePointsJson())
+                    : PowerCurveResponse.empty();
         }
 
         // Leistungskurve wenn vorhanden, sonst der gemessene Ladeverlauf. Beide

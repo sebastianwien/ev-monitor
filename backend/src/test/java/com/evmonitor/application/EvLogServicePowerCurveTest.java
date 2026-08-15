@@ -139,6 +139,36 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getPowerCurve_autosyncUser_seesSocCurveButNotPowerCurve() {
+        // Der Ladeverlauf ist bewusst weiter freigegeben als die Ladekurve: er ist
+        // das, was Quellen ohne Leistungsmessung ueberhaupt hergeben.
+        User user = createAndSaveAutoSyncUser("pc-autosync-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+
+        EvLog socLog = saveLogWith(car.getId(), DataSource.SMARTCAR_LIVE);
+        evLogRepository.updateSocCurvePoints(socLog.getId(),
+                "[{\"ts\":1715515200000,\"soc\":40.0},{\"ts\":1715515440000,\"soc\":45.0}]");
+        EvLog powerLog = saveLogWith(car.getId(), DataSource.TESLA_LIVE, LocalDateTime.now().minusHours(6));
+        evLogRepository.updatePowerCurvePoints(powerLog.getId(), "[{\"ts\":1715515200000,\"kw\":150.0}]");
+
+        assertEquals(2, evLogService.getPowerCurveForUser(socLog.getId(), user).socPoints().size());
+        assertTrue(evLogService.getPowerCurveForUser(powerLog.getId(), user).points().isEmpty(),
+                "Die Leistungskurve bleibt premium");
+    }
+
+    @Test
+    void getPowerCurve_freeUser_seesNeither() {
+        User user = createAndSaveUser("pc-none-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog log = saveLogWith(car.getId(), DataSource.SMARTCAR_LIVE);
+        evLogRepository.updateSocCurvePoints(log.getId(), "[{\"ts\":1715515200000,\"soc\":40.0}]");
+
+        PowerCurveResponse res = evLogService.getPowerCurveForUser(log.getId(), user);
+        assertTrue(res.points().isEmpty());
+        assertTrue(res.socPoints().isEmpty());
+    }
+
+    @Test
     void getPowerCurve_entitledOwner_logWithoutCurve_returnsEmptyList() {
         User user = createAndSaveAutoSyncLiveUser("pc-empty-" + System.nanoTime() + "@test.com");
         Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
@@ -172,12 +202,16 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
     }
 
     private EvLog saveLogWith(UUID carId, DataSource source) {
+        return saveLogWith(carId, source, LocalDateTime.now().minusHours(1));
+    }
+
+    private EvLog saveLogWith(UUID carId, DataSource source, LocalDateTime loggedAt) {
         EvLog log = EvLog.createFromInternal(
                 carId,
                 new BigDecimal("10.0"),
                 30,
                 null,
-                LocalDateTime.now().minusHours(1),
+                loggedAt,
                 null, null,
                 source,
                 null, null,

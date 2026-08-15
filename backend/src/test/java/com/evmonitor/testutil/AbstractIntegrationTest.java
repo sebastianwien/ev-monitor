@@ -91,6 +91,14 @@ public abstract class AbstractIntegrationTest {
         return userRepository.save(user);
     }
 
+    /** Create a user on the AutoSync (Tier-1) plan - Sync ja, Premium-Analytics nein. */
+    protected User createAndSaveAutoSyncUser(String email) {
+        User user = TestDataBuilder.createTestUser(email).toBuilder()
+                .subscriptionTier(com.evmonitor.domain.SubscriptionTier.AUTOSYNC)
+                .build();
+        return userRepository.save(user);
+    }
+
     /**
      * Create a user on the AutoSync Live (Tier-2) plan - the entitlement that unlocks
      * trip CRUD on live-detected trips and manual trip creation.

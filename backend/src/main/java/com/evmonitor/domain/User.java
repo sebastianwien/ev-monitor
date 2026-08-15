@@ -140,6 +140,19 @@ public class User {
      * analytics layer that stays premium for every brand: historical power curves,
      * phantom drain, and the energy-split breakdown.
      */
+    /**
+     * Gate fuer den Ladeverlauf - den gemessenen Ladestand ueber die Zeit, den
+     * Quellen ohne Leistungsmessung (Smartcar) liefern.
+     *
+     * Bewusst weiter gefasst als {@link #canViewLiveAnalytics()}: der Verlauf ist
+     * das, was diesen Nutzern statt einer Ladekurve bleibt, und der Datensatz
+     * hinter AUTOSYNC entsteht ohnehin aus ihren eigenen Webhooks. Die
+     * Leistungskurve bleibt davon unberuehrt und premium.
+     */
+    public boolean canViewSocCurve() {
+        return subscriptionTier == SubscriptionTier.AUTOSYNC || canViewLiveAnalytics();
+    }
+
     public boolean canViewLiveAnalytics() {
         return subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
                 || subscriptionTier == SubscriptionTier.SUPPORTER

@@ -418,8 +418,9 @@ async function openPowerCurve(entry: any) {
   const logId = entry.id
   powerCurveEntry.value = entry
   // Ohne Freischaltung zeigt das Overlay den Teaser. Der Abruf wuerde am
-  // Server-Gate scheitern - gar nicht erst fragen.
-  if (!authStore.canViewLiveAnalytics) return
+  // Server-Gate scheitern - gar nicht erst fragen. Der Ladeverlauf hat ein
+  // eigenes, weiteres Gate.
+  if (!authStore.canViewLiveAnalytics && !(entry?.hasSocCurve && authStore.canViewSocCurve)) return
   if (powerCurveCache.value.has(logId)) {
     // Recency-Touch fuer LRU: re-insert um den Eintrag ans Map-Ende zu schieben
     const cached = powerCurveCache.value.get(logId)!
@@ -1709,7 +1710,7 @@ function toggleAllCharges() {
                   <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap truncate flex items-center gap-1.5">
                     <span class="truncate">{{ formatLogDate(item.entry.loggedAt) }}</span>
                     <button
-                      v-if="(item.entry.hasPowerCurve || item.entry.hasSocCurve) && authStore.canViewLiveAnalytics"
+                      v-if="((item.entry.hasPowerCurve && authStore.canViewLiveAnalytics) || (item.entry.hasSocCurve && authStore.canViewSocCurve))"
                       type="button"
                       @click.stop="openPowerCurve(item.entry)"
                       :aria-label="t('dashboard.show_power_curve')"
@@ -2131,7 +2132,7 @@ function toggleAllCharges() {
                           <template v-else><ClockIcon class="w-3 h-3 inline-block mr-0.5 -mt-0.5" />{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
                         </span>
                         <button
-                          v-if="(topUp.hasPowerCurve || topUp.hasSocCurve) && authStore.canViewLiveAnalytics"
+                          v-if="((topUp.hasPowerCurve && authStore.canViewLiveAnalytics) || (topUp.hasSocCurve && authStore.canViewSocCurve))"
                           type="button"
                           @click.stop="openPowerCurve(topUp)"
                           :aria-label="t('dashboard.show_power_curve')"
@@ -2378,7 +2379,7 @@ function toggleAllCharges() {
                     <!-- Kurven-Symbol ist zugleich der Ausloeser: auf Mobile erspart das
                          das Aufklappen der Karte. Tap-Flaeche via Padding auf ~28px. -->
                     <button
-                      v-if="(item.entry.hasPowerCurve || item.entry.hasSocCurve) && authStore.canViewLiveAnalytics"
+                      v-if="((item.entry.hasPowerCurve && authStore.canViewLiveAnalytics) || (item.entry.hasSocCurve && authStore.canViewSocCurve))"
                       type="button"
                       @click.stop="openPowerCurve(item.entry)"
                       :aria-label="t('dashboard.show_power_curve')"
@@ -2664,7 +2665,7 @@ function toggleAllCharges() {
                           <Battery0Icon class="w-3 h-3" />{{ formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent) }}
                         </span>
                         <button
-                          v-if="(topUp.hasPowerCurve || topUp.hasSocCurve) && authStore.canViewLiveAnalytics"
+                          v-if="((topUp.hasPowerCurve && authStore.canViewLiveAnalytics) || (topUp.hasSocCurve && authStore.canViewSocCurve))"
                           type="button"
                           @click.stop="openPowerCurve(topUp)"
                           :aria-label="t('dashboard.show_power_curve')"

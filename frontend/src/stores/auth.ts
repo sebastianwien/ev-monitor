@@ -148,6 +148,13 @@ export const useAuthStore = defineStore('auth', () => {
     const canViewLiveAnalytics = computed(() =>
         isAutoSyncLive.value || isSupporter.value || isAdmin.value || isBetaTester.value);
 
+    // Mirrors backend User.canViewSocCurve(): der Ladeverlauf ist bewusst weiter
+    // gefasst als die Ladekurve - er ist das, was Quellen ohne Leistungsmessung
+    // ueberhaupt hergeben, und entsteht aus den eigenen Webhooks des Nutzers.
+    // Server-Gate in EvLogService. UX only.
+    const canViewSocCurve = computed(() =>
+        user.value?.subscriptionTier === 'AUTOSYNC' || canViewLiveAnalytics.value);
+
     // Mirrors backend User.canViewLiveCharging(CarBrand): the dashboard Live-Charging card
     // is free for Tesla, otherwise AUTOSYNC_LIVE or ADMIN (BETA_TESTER excluded for other
     // brands so the card stays a paid-feature preview). Server-side gate in LiveController.
@@ -157,7 +164,7 @@ export const useAuthStore = defineStore('auth', () => {
     return {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
         isAutoSyncLive, isSupporter,
-        canActivateTelemetry, canViewLiveAnalytics, canViewLiveCharging,
+        canActivateTelemetry, canViewLiveAnalytics, canViewSocCurve, canViewLiveCharging,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,
