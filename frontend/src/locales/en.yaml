@@ -2279,8 +2279,9 @@ demo:
   settings_cta: "Got it"
 
 announcements:
-  tesla_telemetry_recovery_v1_title: "Tesla telemetry: outage fixed"
-  tesla_telemetry_recovery_v1_body: "Between July 10 and 16, some Tesla vehicles could no longer send new charging and trip data. The cause was a certificate issue on my telemetry server, not your pairing. It is fixed and secured so it cannot happen again. Your telemetry resumes automatically the next time your car is online or you drive - you don't need to do anything. If no new entries appear after that, just let me know."
+  power_curve_share_v1_title: "Fast charging: the curve does more"
+  power_curve_share_v1_body: "The charging curve for your fast charges now shows more - including the state of charge at which the power tapered off. And you can pass it on: one tap creates a public link with a preview image for forums, chats or social. Only the charge you release, revocable at any time."
+  power_curve_share_v1_cta: "To my charges"
   tesla_location_reconnect_v1_title: "Reconnect your Tesla - for automatic charging prices"
   tesla_location_reconnect_v1_body: "After a change to their API, Tesla requires a separate permission for location data. It can only be granted while connecting, hence the request: please reconnect your Tesla once. After that ev-monitor can tell where you charged again - at home, at a Supercharger or on the road - and fills in the matching price automatically."
   tesla_location_reconnect_v1_cta: "Reconnect Tesla"
@@ -2824,6 +2825,9 @@ eu_data_act:
   err_no_sessions: "No charging sessions found in the file."
   err_generic: "Could not process the file. Please check the format."
 
+soc_curve:
+  title: "Charging progress"
+  explainer: "Measured state of charge every few minutes. Your car does not report charging power - so this shows the progression instead of a power curve."
 share_curve:
   share: "Share charging curve"
   share_again: "Share link"

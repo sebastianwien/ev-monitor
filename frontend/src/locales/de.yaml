@@ -2279,8 +2279,9 @@ demo:
   settings_cta: "Alles klar"
 
 announcements:
-  tesla_telemetry_recovery_v1_title: "Tesla-Telemetrie: Ausfall behoben"
-  tesla_telemetry_recovery_v1_body: "Zwischen dem 10. und 16. Juli konnten manche Tesla-Fahrzeuge keine neuen Lade- und Fahrtdaten mehr senden. Ursache war ein Zertifikatsproblem auf meinem Telemetrie-Server, nicht deine Kopplung. Das ist behoben und so abgesichert, dass es nicht wiederkehrt. Deine Telemetrie läuft automatisch wieder an, sobald dein Auto das nächste Mal online ist oder du fährst - du musst nichts tun. Falls danach weiterhin keine neuen Vorgänge erscheinen, melde dich kurz bei mir."
+  power_curve_share_v1_title: "Schnellladungen: die Ladekurve kann mehr"
+  power_curve_share_v1_body: "Die Ladekurve zu deinen Schnellladungen zeigt jetzt mehr - unter anderem, bei welchem Ladestand die Leistung abgeknickt ist. Und du kannst sie weitergeben: ein Tap erzeugt einen öffentlichen Link samt Vorschaubild für Forum, Chat oder Social. Nur die Ladung, die du freigibst, jederzeit widerrufbar."
+  power_curve_share_v1_cta: "Zu meinen Ladungen"
   tesla_location_reconnect_v1_title: "Tesla neu verbinden - für automatische Ladepreise"
   tesla_location_reconnect_v1_body: "Tesla verlangt seit einer Änderung an der Schnittstelle eine eigene Freigabe für Standortdaten. Sie lässt sich nur beim Verbinden erteilen, deshalb die Bitte: verbinde deinen Tesla einmal neu. Danach erkennt ev-monitor wieder, wo du geladen hast - zu Hause, am Supercharger oder unterwegs - und trägt den passenden Preis automatisch ein."
   tesla_location_reconnect_v1_cta: "Tesla neu verbinden"
@@ -2825,6 +2826,9 @@ eu_data_act:
   err_no_sessions: "Keine Ladevorgänge in der Datei gefunden."
   err_generic: "Datei konnte nicht verarbeitet werden. Bitte prüfe das Format."
 
+soc_curve:
+  title: "Ladeverlauf"
+  explainer: "Gemessener Ladestand alle paar Minuten. Dein Auto meldet keine Ladeleistung - deshalb steht hier der Verlauf statt einer Ladekurve."
 share_curve:
   share: "Ladekurve teilen"
   share_again: "Link teilen"

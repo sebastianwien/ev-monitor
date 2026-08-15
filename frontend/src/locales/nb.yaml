@@ -2213,8 +2213,9 @@ demo:
   settings_notice: I demomodus kan du se gjennom alle innstillingene, men du kan ikke foreta endringer.
   settings_cta: Skjønner
 announcements:
-  tesla_telemetry_recovery_v1_title: "Tesla-telemetri: feilen er rettet"
-  tesla_telemetry_recovery_v1_body: "Mellom 10. og 16. juli kunne enkelte Tesla-biler ikke lenger sende nye lade- og turdata. Årsaken var et sertifikatproblem på telemetriserveren min, ikke koblingen din. Det er rettet og sikret slik at det ikke kan skje igjen. Telemetrien starter automatisk igjen neste gang bilen er på nett eller du kjører - du trenger ikke gjøre noe. Hvis det fortsatt ikke dukker opp nye registreringer etterpå, si ifra til meg."
+  power_curve_share_v1_title: "Hurtiglading: ladekurven kan mer"
+  power_curve_share_v1_body: "Ladekurven for hurtigladingene dine viser nå mer - blant annet ved hvilket ladenivå effekten falt av. Og du kan dele den: ett trykk lager en offentlig lenke med forhåndsvisningsbilde for forum, chat eller sosiale medier. Bare ladingen du frigir, og du kan trekke den tilbake når som helst."
+  power_curve_share_v1_cta: "Til ladingene mine"
   tesla_location_reconnect_v1_title: "Koble til Tesla på nytt - for automatiske ladepriser"
   tesla_location_reconnect_v1_body: "Etter en endring i grensesnittet krever Tesla en egen tillatelse for posisjonsdata. Den kan bare gis når du kobler til, derfor denne oppfordringen: koble til Teslaen din på nytt én gang. Da gjenkjenner ev-monitor igjen hvor du har ladet - hjemme, på en Supercharger eller underveis - og fyller inn riktig pris automatisk."
   tesla_location_reconnect_v1_cta: "Koble til Tesla på nytt"
@@ -2709,6 +2710,9 @@ eu_data_act:
   err_no_sessions: "Ingen ladeøkter funnet i filen."
   err_generic: "Kunne ikke behandle filen. Sjekk formatet."
 
+soc_curve:
+  title: "Ladeforløp"
+  explainer: "Målt ladenivå med noen minutters mellomrom. Bilen din rapporterer ikke ladeeffekt - derfor vises forløpet i stedet for en ladekurve."
 share_curve:
   share: "Del ladekurve"
   share_again: "Del lenke"

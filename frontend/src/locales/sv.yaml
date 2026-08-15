@@ -2213,8 +2213,9 @@ demo:
   settings_notice: I demoläget kan du bläddra igenom alla inställningar, men du kan inte göra några ändringar.
   settings_cta: Okej
 announcements:
-  tesla_telemetry_recovery_v1_title: "Tesla-telemetri: avbrottet är åtgärdat"
-  tesla_telemetry_recovery_v1_body: "Mellan den 10 och 16 juli kunde vissa Tesla-bilar inte längre skicka nya laddnings- och färddata. Orsaken var ett certifikatproblem på min telemetriserver, inte din koppling. Det är åtgärdat och säkrat så att det inte kan hända igen. Din telemetri återupptas automatiskt nästa gång bilen är online eller du kör - du behöver inte göra något. Om inga nya poster dyker upp efteråt, hör av dig till mig."
+  power_curve_share_v1_title: "Snabbladdning: laddkurvan kan mer"
+  power_curve_share_v1_body: "Laddkurvan för dina snabbladdningar visar nu mer - bland annat vid vilken laddnivå effekten sjönk. Och du kan dela den: ett tryck skapar en offentlig länk med förhandsbild för forum, chatt eller sociala medier. Bara laddningen du delar, och du kan dra tillbaka den när som helst."
+  power_curve_share_v1_cta: "Till mina laddningar"
   tesla_location_reconnect_v1_title: "Anslut Tesla på nytt - för automatiska laddpriser"
   tesla_location_reconnect_v1_body: "Efter en ändring i gränssnittet kräver Tesla en egen behörighet för platsdata. Den kan bara ges när du ansluter, därav önskemålet: anslut din Tesla på nytt en gång. Därefter känner ev-monitor igen var du har laddat - hemma, vid en Supercharger eller på vägen - och fyller i rätt pris automatiskt."
   tesla_location_reconnect_v1_cta: "Anslut Tesla på nytt"
@@ -2709,6 +2710,9 @@ eu_data_act:
   err_no_sessions: "Inga laddningssessioner hittades i filen."
   err_generic: "Kunde inte bearbeta filen. Kontrollera formatet."
 
+soc_curve:
+  title: "Laddförlopp"
+  explainer: "Uppmätt laddnivå med några minuters mellanrum. Din bil rapporterar inte laddeffekt - därför visas förloppet i stället för en laddkurva."
 share_curve:
   share: "Dela laddkurva"
   share_again: "Dela länk"

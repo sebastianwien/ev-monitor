@@ -19,14 +19,6 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
-    key: 'tesla_telemetry_recovery_v1',
-    releasedAt: '2026-07-16', // nur Bestandsuser, die den Ausfall erlebt haben
-    expiresAt: '2026-07-31',
-    titleKey: 'announcements.tesla_telemetry_recovery_v1_title',
-    bodyKey: 'announcements.tesla_telemetry_recovery_v1_body',
-    condition: (ctx) => ctx.hasTeslaConnection, // nur Tesla-Nutzer
-  },
-  {
     key: 'tesla_location_reconnect_v1',
     releasedAt: '2026-07-28', // nur Bestandsuser - Neuverbindungen bringen den Scope schon mit
     expiresAt: '2026-09-30',
@@ -36,6 +28,17 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     ctaRoute: '/imports', // dort sitzt TeslaFleetIntegration; Tesla-Fahrer landen automatisch im Tesla-Tab
 
     condition: (ctx) => ctx.hasTeslaConnection, // nur Tesla-Nutzer
+  },
+  {
+    key: 'power_curve_share_v1',
+    expiresAt: '2026-10-15',
+    titleKey: 'announcements.power_curve_share_v1_title',
+    bodyKey: 'announcements.power_curve_share_v1_body',
+    ctaLabelKey: 'announcements.power_curve_share_v1_cta',
+    ctaRoute: '/logs',
+    // Ladekurven brauchen Tesla-Telemetrie (nur dort entsteht eine) und das
+    // Analytics-Entitlement - ohne beides laeuft der Teilen-Button ins Leere.
+    condition: (ctx) => ctx.hasTeslaConnection && ctx.isAutoSyncLive,
   },
   {
     key: 'survey_ev_pain_points_2026',
