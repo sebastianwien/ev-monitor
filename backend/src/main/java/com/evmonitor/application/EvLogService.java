@@ -265,15 +265,16 @@ public class EvLogService {
 
     /**
      * Traegt Tesla-Abrechnungsdaten in ein Tesla-Log nach. Das Repository erzwingt als
-     * Defense-in-Depth costEur IS NULL und eine Tesla-Datenquelle; der Aufruf ist damit idempotent
-     * und kann bei falscher id keine fremden Logs ueberschreiben.
-     * @return true wenn geschrieben wurde, false wenn das Log bereits Kosten trug oder die id
-     *         auf kein anreicherbares Tesla-Log zeigt.
+     * Defense-in-Depth costEur IS NULL, eine Tesla-Datenquelle und die Zugehoerigkeit zum
+     * angegebenen User; der Aufruf ist damit idempotent und kann bei falscher id weder fremde
+     * Quellen noch fremde Konten ueberschreiben.
+     * @return true wenn geschrieben wurde, false wenn das Log bereits Kosten trug, die id auf kein
+     *         anreicherbares Tesla-Log zeigt oder es einem anderen User gehoert.
      */
     @Transactional
-    public boolean enrichWithTeslaPricing(UUID logId, BigDecimal costEur, String cpoName) {
+    public boolean enrichWithTeslaPricing(UUID logId, UUID userId, BigDecimal costEur, String cpoName) {
         BigDecimal cost = costEur != null ? costEur : BigDecimal.ZERO;
-        int affected = evLogRepository.enrichWithTeslaPricing(logId, cost, cpoName);
+        int affected = evLogRepository.enrichWithTeslaPricing(logId, userId, cost, cpoName);
         if (affected == 0) {
             log.debug("Tesla SuC enrichment skipped for log {} (already enriched or non-pending)", logId);
         }

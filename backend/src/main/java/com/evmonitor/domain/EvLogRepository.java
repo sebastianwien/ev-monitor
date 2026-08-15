@@ -207,5 +207,5 @@ public interface EvLogRepository {
      * (0 = already priced or wrong id - idempotent). Implementation must filter by
      * costEur IS NULL and a Tesla data source to prevent collateral updates.
      */
-    int enrichWithTeslaPricing(UUID id, BigDecimal costEur, String cpoName);
+    int enrichWithTeslaPricing(UUID id, UUID userId, BigDecimal costEur, String cpoName);
 }

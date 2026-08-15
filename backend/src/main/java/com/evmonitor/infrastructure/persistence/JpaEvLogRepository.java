@@ -413,7 +413,13 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
      * cpoName ist ein Anzeigefeld, das der Nutzer aendern kann - schloss aber den gesamten
      * Altbestand ohne Marker dauerhaft von der Anreicherung aus.
      *
-     * @return 1 wenn geschrieben wurde, 0 wenn das Log bereits Kosten trug oder nicht von Tesla stammt
+     * <p>Zusaetzlich muss das Log dem User gehoeren, in dessen Namen angereichert wird. Der
+     * connectors-service kennt die Zuordnung Verbindung -> User aus seiner eigenen Datenhaltung;
+     * die Pruefung hier stellt sicher, dass eine dort fehlerhafte Zuordnung nicht in fremde Konten
+     * schreibt.
+     *
+     * @return 1 wenn geschrieben wurde, 0 wenn das Log bereits Kosten trug, nicht von Tesla stammt
+     *         oder einem anderen User gehoert
      */
     @Modifying(clearAutomatically = true)
     @Query("""
@@ -424,8 +430,10 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
              WHERE e.id = :id
                AND e.costEur IS NULL
                AND e.dataSource IN :dataSources
+               AND e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId)
             """)
     int enrichWithTeslaPricing(@Param("id") UUID id,
+                               @Param("userId") UUID userId,
                                @Param("costEur") BigDecimal costEur,
                                @Param("cpoName") String cpoName,
                                @Param("dataSources") List<String> dataSources);

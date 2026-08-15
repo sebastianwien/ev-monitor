@@ -68,7 +68,7 @@ public class InternalEvLogController {
         return ResponseEntity.ok(evLogService.findEnrichableTeslaLogs(userId, days));
     }
 
-    public record EnrichTeslaRequest(BigDecimal costEur, String cpoName) {}
+    public record EnrichTeslaRequest(UUID userId, BigDecimal costEur, String cpoName) {}
 
     /**
      * Traegt Abrechnungsdaten aus /dx/charging/history in ein Tesla-Log nach. Kostenlose Ladungen
@@ -78,7 +78,7 @@ public class InternalEvLogController {
      */
     @PatchMapping("/logs/{id}/enrich-tesla")
     public ResponseEntity<Void> enrichTesla(@PathVariable UUID id, @RequestBody EnrichTeslaRequest request) {
-        evLogService.enrichWithTeslaPricing(id, request.costEur(), request.cpoName());
+        evLogService.enrichWithTeslaPricing(id, request.userId(), request.costEur(), request.cpoName());
         return ResponseEntity.noContent().build();
     }
 }

@@ -394,8 +394,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     @Transactional
-    public int enrichWithTeslaPricing(UUID id, BigDecimal costEur, String cpoName) {
-        return jpaRepository.enrichWithTeslaPricing(id, costEur, cpoName, JpaEvLogRepository.TESLA_DATA_SOURCES);
+    public int enrichWithTeslaPricing(UUID id, UUID userId, BigDecimal costEur, String cpoName) {
+        return jpaRepository.enrichWithTeslaPricing(id, userId, costEur, cpoName, JpaEvLogRepository.TESLA_DATA_SOURCES);
     }
 
     /**
