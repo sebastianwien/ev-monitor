@@ -89,6 +89,13 @@ public class EvLogEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private String powerCurvePoints;
 
+    /** Zufalls-Token der oeffentlichen Kurven-URL. NULL = nicht geteilt. */
+    @Column(name = "share_token", length = 16)
+    private String shareToken;
+
+    @Column(name = "share_created_at")
+    private LocalDateTime shareCreatedAt;
+
     @Column(name = "route_type", length = 20)
     private String routeType;
 

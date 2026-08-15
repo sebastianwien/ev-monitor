@@ -34,6 +34,7 @@ public class EvLogController {
     private final EvLogService evLogService;
     private final EvLogStatisticsService evLogStatisticsService;
     private final CarRepository carRepository;
+    private final com.evmonitor.application.EvLogShareService evLogShareService;
 
 
     @PostMapping
@@ -120,6 +121,55 @@ public class EvLogController {
                     .eTag(etag)
                     .cacheControl(org.springframework.http.CacheControl.maxAge(java.time.Duration.ofDays(7)).cachePrivate())
                     .body(body);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Gibt die Ladung oeffentlich frei und liefert die teilbare URL.
+     *
+     * Idempotent: ein zweiter Aufruf liefert denselben Token, damit keine
+     * unwiderrufbaren Zweit-Links entstehen. 404 wenn das Log nicht existiert
+     * oder einem anderen Nutzer gehoert, 403 ohne Analytics-Entitlement,
+     * 409 wenn zu der Ladung gar keine Kurve aufgezeichnet wurde.
+     */
+    @PostMapping("/{id}/share")
+    public ResponseEntity<?> shareLog(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            return ResponseEntity.ok(evLogShareService.createShare(id, principal.getUser()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Ladekurven teilen ist ein AutoSync-Live-Feature."));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    /** Aktueller Freigabe-Status der Ladung. 204 wenn nicht geteilt. */
+    @GetMapping("/{id}/share")
+    public ResponseEntity<?> getShare(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            return evLogShareService.findShare(id, principal.getUser())
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.noContent().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /** Zieht die Freigabe zurueck, die URL ist danach tot. Idempotent. */
+    @DeleteMapping("/{id}/share")
+    public ResponseEntity<?> revokeShare(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            evLogShareService.revokeShare(id, principal.getUser());
+            return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }

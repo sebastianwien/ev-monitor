@@ -2814,6 +2814,7 @@ function toggleAllCharges() {
     :charge-duration-minutes="powerCurveEntry.chargeDurationMinutes"
     :locked="!authStore.canViewLiveAnalytics"
     :upsell-target="upsellTarget"
+    :log-id="powerCurveEntry.id"
     @close="powerCurveEntry = null"
   />
 

@@ -433,6 +433,12 @@ const router = createRouter({
             // public SEO page for a single published story
         },
         {
+            path: '/ladekurve/:token',
+            name: 'public-power-curve',
+            component: () => import('../views/PublicPowerCurveView.vue')
+            // public - eine vom Besitzer freigegebene Ladekurve, noindex (siehe View)
+        },
+        {
             path: '/blog',
             name: 'blog-list',
             component: () => import('../views/BlogListView.vue')

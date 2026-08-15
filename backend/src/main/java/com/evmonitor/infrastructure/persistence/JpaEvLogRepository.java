@@ -285,6 +285,59 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT c.userId AS ownerUserId, e.powerCurvePoints AS powerCurveJson FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE e.id = :id")
     Optional<OwnerCurveRow> findOwnerIdAndPowerCurveJson(@Param("id") UUID id);
 
+    // ── Oeffentlich geteilte Ladekurven ──────────────────────────────────────
+
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.shareToken = :token, e.shareCreatedAt = :createdAt WHERE e.id = :id")
+    int updateShareToken(@Param("id") UUID id,
+                         @Param("token") String token,
+                         @Param("createdAt") java.time.LocalDateTime createdAt);
+
+    @Modifying
+    @Query("UPDATE EvLogEntity e SET e.shareToken = NULL, e.shareCreatedAt = NULL WHERE e.id = :id")
+    int clearShareToken(@Param("id") UUID id);
+
+    /**
+     * Oeffentlicher Lookup ueber den Share-Token. Ein JOIN statt Log- plus
+     * Car-Roundtrip; der Endpunkt haengt an keiner Session und wird von
+     * Crawlern in Schueben aufgerufen.
+     */
+    interface PublicCurveRow {
+        String getPowerCurveJson();
+        com.evmonitor.domain.CarBrand.CarModel getCarModel();
+        java.math.BigDecimal getKwhCharged();
+        java.math.BigDecimal getKwhAtVehicle();
+        Integer getChargeDurationMinutes();
+        java.math.BigDecimal getSocBefore();
+        java.math.BigDecimal getSocAfter();
+        java.math.BigDecimal getMaxChargingPowerKw();
+        String getCpoName();
+        Boolean getPublicCharging();
+        String getChargingType();
+        java.time.LocalDateTime getLoggedAt();
+    }
+
+    @Query("""
+            SELECT e.powerCurvePoints AS powerCurveJson,
+                   c.model AS carModel,
+                   e.kwhCharged AS kwhCharged,
+                   e.kwhAtVehicle AS kwhAtVehicle,
+                   e.chargeDurationMinutes AS chargeDurationMinutes,
+                   e.socBeforeChargePercent AS socBefore,
+                   e.socAfterChargePercent AS socAfter,
+                   e.maxChargingPowerKw AS maxChargingPowerKw,
+                   e.cpoName AS cpoName,
+                   e.publicCharging AS publicCharging,
+                   e.chargingType AS chargingType,
+                   e.loggedAt AS loggedAt
+            FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+            WHERE e.shareToken = :token
+            """)
+    Optional<PublicCurveRow> findPublicCurveByShareToken(@Param("token") String token);
+
+    @Query("SELECT e.shareToken FROM EvLogEntity e WHERE e.id = :id")
+    Optional<String> findShareToken(@Param("id") UUID id);
+
     @Modifying
     @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource IN :dataSources")
     void deleteAllByUserIdAndDataSourceIn(@Param("userId") UUID userId, @Param("dataSources") List<String> dataSources);

@@ -26,6 +26,10 @@ map $http_user_agent $is_bot {
     "~*twitterbot"              1;
     "~*linkedinbot"             1;
     "~*whatsapp"                1;
+    "~*discordbot"              1;
+    "~*slackbot"                1;
+    "~*telegrambot"             1;
+    "~*mastodon"                1;
     "~*perplexitybot"           1;
     "~*claudebot"               1;
     "~*anthropic-ai"            1;

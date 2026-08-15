@@ -192,6 +192,41 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    @Transactional
+    public boolean setShareToken(UUID logId, String token, LocalDateTime createdAt) {
+        return jpaRepository.updateShareToken(logId, token, createdAt) > 0;
+    }
+
+    @Override
+    @Transactional
+    public void clearShareToken(UUID logId) {
+        jpaRepository.clearShareToken(logId);
+    }
+
+    @Override
+    public Optional<String> findShareToken(UUID logId) {
+        return jpaRepository.findShareToken(logId);
+    }
+
+    @Override
+    public Optional<PublicCurveLookup> findPublicCurveByShareToken(String token) {
+        return jpaRepository.findPublicCurveByShareToken(token)
+                .map(r -> new PublicCurveLookup(
+                        r.getPowerCurveJson(),
+                        r.getCarModel(),
+                        r.getKwhCharged(),
+                        r.getKwhAtVehicle(),
+                        r.getChargeDurationMinutes(),
+                        r.getSocBefore(),
+                        r.getSocAfter(),
+                        r.getMaxChargingPowerKw(),
+                        r.getCpoName(),
+                        Boolean.TRUE.equals(r.getPublicCharging()),
+                        r.getChargingType(),
+                        r.getLoggedAt()));
+    }
+
+    @Override
     public Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash) {
         return jpaRepository.findByCarIdAndLoggedAt(carId, loggedAt).map(entity -> {
             entity.setGeohash(geohash);

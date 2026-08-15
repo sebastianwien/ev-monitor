@@ -95,6 +95,39 @@ public interface EvLogRepository {
 
     record PowerCurveLookup(UUID ownerUserId, String powerCurvePointsJson) {}
 
+    /** Setzt den Share-Token. false wenn kein Log mit der ID existiert. */
+    boolean setShareToken(UUID logId, String token, LocalDateTime createdAt);
+
+    /** Macht die oeffentliche URL ungueltig. No-op wenn nichts geteilt war. */
+    void clearShareToken(UUID logId);
+
+    /** Aktueller Token des Logs, leer wenn nicht geteilt. */
+    Optional<String> findShareToken(UUID logId);
+
+    Optional<PublicCurveLookup> findPublicCurveByShareToken(String token);
+
+    /**
+     * Alles, was eine oeffentlich geteilte Ladekurve zeigt - und nichts darueber hinaus.
+     *
+     * Bewusst nicht enthalten: Kilometerstand, Geohash, Kosten, Temperatur,
+     * Fahrzeug-Trim (frei eingegebener Text, koennte einen Namen enthalten) sowie
+     * jeder Bezug auf den Besitzer. Das Modell kommt aus dem Enum und damit aus
+     * kontrolliertem Vokabular.
+     */
+    record PublicCurveLookup(
+            String powerCurvePointsJson,
+            CarBrand.CarModel carModel,
+            BigDecimal kwhCharged,
+            BigDecimal kwhAtVehicle,
+            Integer chargeDurationMinutes,
+            BigDecimal socBeforeChargePercent,
+            BigDecimal socAfterChargePercent,
+            BigDecimal maxChargingPowerKw,
+            String cpoName,
+            boolean publicCharging,
+            String chargingType,
+            LocalDateTime loggedAt) {}
+
     Optional<EvLog> updateGeohash(UUID carId, LocalDateTime loggedAt, String geohash);
 
     /**

@@ -2,13 +2,14 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import { XMarkIcon, BoltIcon, LockOpenIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, BoltIcon, LockOpenIcon, ShareIcon, PhotoIcon, LinkSlashIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
 import PowerCurveChart from './PowerCurveChart.vue'
 import { computeCurveStats } from './powerCurveStats'
 import { buildSocSeries } from './powerCurveSeries'
 import { formatDuration } from './powerCurveScrub'
 import { formatSocRange } from '../../utils/socRange'
+import { useCurveShare } from '../../composables/useCurveShare'
 
 /**
  * Ladekurve im Overlay statt inline im Log-Feed.
@@ -39,6 +40,8 @@ const props = defineProps<{
   chargeDurationMinutes?: number | null
   /** Ziel des Upsell-CTA (/supporter oder /upgrade). */
   upsellTarget?: string
+  /** Log-ID - nur gesetzt ist die Kurve teilbar. */
+  logId?: string
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -46,6 +49,52 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 
 const sheetRef = ref<InstanceType<typeof BottomSheet> | null>(null)
+
+// ── Teilen ────────────────────────────────────────────────────────────────
+const { share, busy: shareBusy, error: shareError, load: loadShare, enable, revoke, shareLink, shareImage }
+  = useCurveShare()
+/** Kurzlebige Rueckmeldung nach dem Teilen ("Link kopiert"). */
+const shareHint = ref<string | null>(null)
+let hintTimer: ReturnType<typeof setTimeout> | null = null
+
+const canShare = computed(() => !!props.logId && !props.locked && props.points.length > 0)
+
+function flashHint(message: string) {
+  shareHint.value = message
+  if (hintTimer) clearTimeout(hintTimer)
+  hintTimer = setTimeout(() => { shareHint.value = null }, 4000)
+}
+
+const shareErrorText = computed(() => {
+  switch (shareError.value) {
+    case 'forbidden': return t('share_curve.error_forbidden')
+    case 'no-curve': return t('share_curve.error_no_curve')
+    case 'failed': return t('share_curve.error_failed')
+    default: return null
+  }
+})
+
+async function onShare() {
+  if (!props.logId) return
+  const target = share.value ?? await enable(props.logId)
+  if (!target) return
+  const outcome = await shareLink(target.url, t('dashboard.power_curve_title'))
+  if (outcome === 'copied') flashHint(t('share_curve.link_copied'))
+  else if (outcome === 'failed') flashHint(t('share_curve.error_failed'))
+}
+
+async function onShareImage() {
+  if (!props.logId) return
+  const target = share.value ?? await enable(props.logId)
+  if (!target) return
+  const outcome = await shareImage(target.token, `ladekurve-${target.token}.png`, t('dashboard.power_curve_title'))
+  if (outcome === 'copied') flashHint(t('share_curve.image_saved'))
+  else if (outcome === 'failed') flashHint(t('share_curve.error_failed'))
+}
+
+async function onRevoke() {
+  if (props.logId) await revoke(props.logId)
+}
 
 const stats = computed(() => computeCurveStats(props.points))
 const socRange = computed(() => formatSocRange(props.socBeforeChargePercent, props.socAfterChargePercent))
@@ -136,8 +185,16 @@ function onEscape(e: KeyboardEvent) {
   if (e.key === 'Escape') sheetRef.value?.requestClose()
 }
 
-onMounted(() => document.addEventListener('keydown', onEscape))
-onBeforeUnmount(() => document.removeEventListener('keydown', onEscape))
+onMounted(() => {
+  document.addEventListener('keydown', onEscape)
+  // Status still nachladen: war die Kurve schon geteilt, soll der Link sofort
+  // stehen statt beim ersten Tap eine zweite Freigabe anzulegen.
+  if (canShare.value && props.logId) loadShare(props.logId)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onEscape)
+  if (hintTimer) clearTimeout(hintTimer)
+})
 </script>
 
 <template>
@@ -269,6 +326,50 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onEscape))
             <p v-if="socSeries?.derived" class="text-[11px] text-gray-400 dark:text-gray-500">
               {{ t('dashboard.power_curve_soc_derived_hint') }}
             </p>
+
+            <!-- Teilen. Mobile-first: zwei volle Buttons untereinander, ab sm nebeneinander. -->
+            <div v-if="canShare" class="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+              <div class="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  :disabled="shareBusy"
+                  class="flex-1 inline-flex items-center justify-center gap-2 rounded-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                  @click="onShare"
+                >
+                  <ShareIcon class="w-4 h-4" aria-hidden="true" />
+                  {{ share ? t('share_curve.share_again') : t('share_curve.share') }}
+                </button>
+                <button
+                  type="button"
+                  :disabled="shareBusy"
+                  class="flex-1 inline-flex items-center justify-center gap-2 rounded-sm border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                  @click="onShareImage"
+                >
+                  <PhotoIcon class="w-4 h-4" aria-hidden="true" />
+                  {{ t('share_curve.share_image') }}
+                </button>
+              </div>
+
+              <p v-if="!share" class="text-[11px] text-gray-400 dark:text-gray-500">
+                {{ t('share_curve.privacy_hint') }}
+              </p>
+
+              <div v-else class="flex items-center justify-between gap-3">
+                <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate" :title="share.url">{{ share.url }}</span>
+                <button
+                  type="button"
+                  :disabled="shareBusy"
+                  class="inline-flex items-center gap-1.5 flex-shrink-0 text-[11px] text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-60 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded"
+                  @click="onRevoke"
+                >
+                  <LinkSlashIcon class="w-3.5 h-3.5" aria-hidden="true" />
+                  {{ t('share_curve.revoke') }}
+                </button>
+              </div>
+
+              <p v-if="shareHint" class="text-[11px] text-emerald-600 dark:text-emerald-400" role="status">{{ shareHint }}</p>
+              <p v-if="shareErrorText" class="text-[11px] text-red-600 dark:text-red-400" role="alert">{{ shareErrorText }}</p>
+            </div>
           </template>
         </div>
       </div>
