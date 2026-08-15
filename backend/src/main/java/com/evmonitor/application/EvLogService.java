@@ -237,8 +237,12 @@ public class EvLogService {
         }
     }
 
-    /** Minimal projection of an ev_log that still needs Tesla-billing-API enrichment. */
-    public record PendingSuperchargerEnrichment(UUID id, LocalDateTime loggedAt) {}
+    /**
+     * Minimal projection of an ev_log that still needs Tesla-billing-API enrichment.
+     * {@code chargeDurationMinutes} is nullable and lets the connector time its follow-ups from the
+     * end of the charge rather than its start - the two differ by the whole session length.
+     */
+    public record PendingSuperchargerEnrichment(UUID id, LocalDateTime loggedAt, Integer chargeDurationMinutes) {}
 
     /**
      * Lists Tesla-Supercharger ev_logs for the given user that still need a Tesla-billed
@@ -251,7 +255,7 @@ public class EvLogService {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(safeDays);
         return evLogRepository.findPendingTeslaSuperchargerEnrichment(userId, cutoff)
                 .stream()
-                .map(e -> new PendingSuperchargerEnrichment(e.getId(), e.getLoggedAt()))
+                .map(e -> new PendingSuperchargerEnrichment(e.getId(), e.getLoggedAt(), e.getChargeDurationMinutes()))
                 .toList();
     }
 
