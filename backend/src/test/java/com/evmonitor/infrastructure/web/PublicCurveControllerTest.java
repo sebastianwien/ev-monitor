@@ -78,6 +78,27 @@ class PublicCurveControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void ogImage_afterRevoke_isGone_evenWhenAlreadyCached() {
+        // Regression: das Vorschaubild wurde im Speicher gehalten und nach dem
+        // Widerruf weiter ausgeliefert, waehrend die Seite schon tot war.
+        User user = createAndSaveAutoSyncLiveUser("pubc-img-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog log = saveLogWithCurve(car.getId());
+        String token = shareService.createShare(log.getId(), user).token();
+
+        ResponseEntity<byte[]> first = restTemplate.getForEntity(
+                "/api/public/curve/" + token + "/og.png", byte[].class);
+        assertEquals(HttpStatus.OK, first.getStatusCode());
+        assertTrue(first.getBody().length > 0);
+
+        shareService.revokeShare(log.getId(), user);
+
+        ResponseEntity<byte[]> afterRevoke = restTemplate.getForEntity(
+                "/api/public/curve/" + token + "/og.png", byte[].class);
+        assertEquals(HttpStatus.NOT_FOUND, afterRevoke.getStatusCode());
+    }
+
+    @Test
     @SuppressWarnings("rawtypes")
     void shareEndpoint_requiresAuthentication() {
         User user = createAndSaveAutoSyncLiveUser("pubc-noauth-" + System.nanoTime() + "@test.com");

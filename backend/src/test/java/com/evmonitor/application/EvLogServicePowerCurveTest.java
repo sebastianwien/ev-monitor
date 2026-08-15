@@ -92,6 +92,22 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void logResponse_flagsSocCurve_soTheFeedShowsAnEntryPoint() {
+        // Regression: hasPowerCurve kam nur aus power_curve_points. Fuer Quellen
+        // mit reinem Ladeverlauf blieb das Flag false und der Feed zeigte gar
+        // keinen Einstieg - das Feature waere unerreichbar gewesen.
+        User user = createAndSaveAutoSyncLiveUser("pc-flag-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        EvLog log = saveLogWith(car.getId(), DataSource.SMARTCAR_LIVE);
+        evLogRepository.updateSocCurvePoints(log.getId(), "[{\"ts\":1715515200000,\"soc\":40.0}]");
+
+        EvLog reloaded = evLogRepository.findById(log.getId()).orElseThrow();
+
+        assertFalse(reloaded.isHasPowerCurve());
+        assertTrue(reloaded.isHasSocCurve());
+    }
+
+    @Test
     void getPowerCurve_powerCurveWins_whenBothExist() {
         // Kann heute nicht vorkommen, ist aber die Reihenfolge auf die sich das
         // Frontend verlaesst: die gemessene Leistung ist die reichere Aussage.

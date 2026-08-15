@@ -477,6 +477,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .hasPowerCurve(entity.getPowerCurvePoints() != null && !entity.getPowerCurvePoints().isBlank())
+                .hasSocCurve(entity.getSocCurvePoints() != null && !entity.getSocCurvePoints().isBlank())
                 .build();
     }
 }

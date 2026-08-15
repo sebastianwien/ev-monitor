@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import axiosInstance from '../api/axios'
 import { curveShareService, type CurveShare } from '../api/curveShareService'
 
 export type ShareOutcome = 'shared' | 'copied' | 'failed'
@@ -76,9 +77,12 @@ export function useCurveShare() {
     /** Laedt das Vorschaubild herunter bzw. reicht es an das Teilen-Menue weiter. */
     async function shareImage(token: string, filename: string, title: string): Promise<ShareOutcome> {
         try {
-            const res = await fetch(`/api/public/curve/${token}/og.png`)
-            if (!res.ok) return 'failed'
-            const blob = await res.blob()
+            // Bewusst ueber die Axios-Instanz statt per fetch(): in der nativen
+            // App liegt das Backend nicht am WebView-Origin, ein relativer Pfad
+            // ginge dort ins Leere. baseURL und die native HTTP-Schicht haengen
+            // an der Instanz.
+            const res = await axiosInstance.get(`/public/curve/${token}/og.png`, { responseType: 'blob' })
+            const blob = res.data as Blob
             const file = new File([blob], filename, { type: 'image/png' })
 
             if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [file] }) && navigator.share) {

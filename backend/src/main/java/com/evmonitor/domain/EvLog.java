@@ -54,6 +54,8 @@ public class EvLog {
      *  (only Tesla FULL-Profil currently writes it). Read-side flag derived from
      *  the persistence layer - not stored on the domain itself. */
     private final boolean hasPowerCurve;
+    /** Ladeverlauf (Ladestand ueber Zeit) - Quellen ohne Leistungsmessung. */
+    private final boolean hasSocCurve;
 
     // Full constructor - only called by the Lombok-generated builder.
     // Applies normalisation of loggedAt, dataSource defaults, and charging-type inference.
@@ -69,7 +71,8 @@ public class EvLog {
             boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
             EnergySource energySource,
             BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId,
-            boolean hasPowerCurve) {
+            boolean hasPowerCurve,
+            boolean hasSocCurve) {
         this.id = id;
         this.carId = carId;
         LocalDateTime base = loggedAt != null ? loggedAt : LocalDateTime.now();
@@ -113,6 +116,7 @@ public class EvLog {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.hasPowerCurve = hasPowerCurve;
+        this.hasSocCurve = hasSocCurve;
     }
 
     public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,

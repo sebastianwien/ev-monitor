@@ -29,6 +29,8 @@ public class PublicCurveController {
     private final EvLogShareService shareService;
     private final com.evmonitor.infrastructure.image.PowerCurveImageRenderer imageRenderer;
 
+    private final com.evmonitor.infrastructure.image.SharedCurveImageCache imageCache;
+
     /**
      * Vorschaubild fuer Link-Karten in sozialen Netzen und Messengern.
      *
@@ -38,7 +40,8 @@ public class PublicCurveController {
      */
     @GetMapping(value = "/{token}/og.png", produces = "image/png")
     public ResponseEntity<byte[]> getSharedCurveImage(@PathVariable String token) {
-        byte[] png = shareService.getPublicCurve(token).map(imageRenderer::render).orElse(null);
+        byte[] png = imageCache.get(token,
+                t -> shareService.getPublicCurve(t).map(imageRenderer::render).orElse(null));
         if (png == null) return ResponseEntity.notFound().build();
 
         return ResponseEntity.ok()

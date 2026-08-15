@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,12 +46,15 @@ public class EvLogShareService {
     private final ObjectMapper objectMapper;
     private final SecureRandom random = new SecureRandom();
     private final String baseUrl;
+    private final ApplicationEventPublisher eventPublisher;
 
     public EvLogShareService(EvLogRepository evLogRepository,
                              ObjectMapper objectMapper,
+                             ApplicationEventPublisher eventPublisher,
                              @Value("${app.base-url}") String baseUrl) {
         this.evLogRepository = evLogRepository;
         this.objectMapper = objectMapper;
+        this.eventPublisher = eventPublisher;
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
@@ -84,7 +88,13 @@ public class EvLogShareService {
         // Bewusst ohne Entitlement-Pruefung: wer den Zugriff auf Ladekurven
         // verliert, muss seine alten Links trotzdem zurueckziehen koennen.
         requireOwnership(logId, user);
+        String token = evLogRepository.findShareToken(logId).orElse(null);
         evLogRepository.clearShareToken(logId);
+        if (token != null && !token.isBlank()) {
+            // Nimmt das gecachte Vorschaubild mit - sonst laege es noch aus,
+            // waehrend die Seite selbst schon tot ist.
+            eventPublisher.publishEvent(new ShareRevokedEvent(token));
+        }
         log.info("Ladekurve nicht mehr geteilt: log={} user={}", logId, user.getId());
     }
 
