@@ -38,7 +38,7 @@ server {
     server_tokens off;
 
     # Prerender for bots on public SEO pages (all markets)
-    location ~* ^/(modelle|en|gb|us|no|se) {
+    location ~* ^/(modelle|ladekurve|en|gb|us|no|se) {
         resolver 127.0.0.11 valid=10s;
         set $prerender 0;
         if ($is_bot = 1) {
