@@ -153,22 +153,22 @@ const handleResend = async () => {
         <p class="text-gray-500 dark:text-gray-400 mb-2">
           {{ t('auth.register.pending_sent_to') }}
         </p>
-        <p class="font-semibold text-indigo-600 mb-4">{{ pendingEmail }}</p>
+        <p class="font-semibold text-green-600 dark:text-green-400 mb-4">{{ pendingEmail }}</p>
         <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">
           {{ t('auth.register.pending_instructions') }}<br>
           {{ t('auth.register.pending_expires') }}
         </p>
 
         <div v-if="!resendSent">
-          <div v-if="resendError" class="text-sm text-red-600 bg-red-50 p-2 rounded mb-3">{{ resendError }}</div>
+          <div v-if="resendError" class="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/30 p-2 rounded mb-3">{{ resendError }}</div>
           <button
             @click="handleResend"
-            class="text-sm text-indigo-600 hover:underline"
+            class="text-sm text-green-600 dark:text-green-400 hover:underline"
           >
             {{ t('auth.register.pending_resend') }}
           </button>
         </div>
-        <p v-else class="text-sm text-green-600 font-medium">✅ {{ t('auth.register.pending_resent') }}</p>
+        <p v-else class="text-sm text-green-600 dark:text-green-400 font-medium">✅ {{ t('auth.register.pending_resent') }}</p>
 
         <div class="mt-6 text-sm text-gray-400 dark:text-gray-500">
           <router-link :to="loginPath" class="hover:text-gray-600 dark:hover:text-gray-300">{{ t('auth.register.pending_back_login') }}</router-link>
@@ -177,7 +177,7 @@ const handleResend = async () => {
 
       <!-- Registration Form -->
       <div v-else>
-        <router-link :to="locale === 'en' ? '/en' : '/'" class="flex items-center justify-center gap-2 mb-6 text-indigo-600 dark:text-indigo-400 hover:opacity-75 transition-opacity">
+        <router-link :to="locale === 'en' ? '/en' : '/'" class="flex items-center justify-center gap-2 mb-6 text-green-600 dark:text-green-400 hover:opacity-75 transition-opacity">
           <BoltIcon class="h-6 w-6" />
           <span class="text-xl font-bold tracking-tight">EV Monitor</span>
         </router-link>
@@ -198,11 +198,11 @@ const handleResend = async () => {
         <form @submit.prevent="handleRegister" class="space-y-6">
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('auth.register.email') }}</label>
-            <input v-model="email" type="email" required autocomplete="email" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            <input v-model="email" type="email" required autocomplete="email" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-600" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('auth.register.password') }}</label>
-            <input v-model="password" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+            <input v-model="password" type="password" required autocomplete="new-password" class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-600" />
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('auth.register.password_hint') }}</p>
           </div>
           <!-- Country picker: only shown when browser language is ambiguous -->
@@ -225,7 +225,7 @@ const handleResend = async () => {
               </button>
             </div>
           </div>
-          <div v-if="error" class="text-sm font-medium text-red-600 bg-red-50 p-3 rounded-sm">{{ error }}</div>
+          <div v-if="error" class="text-sm font-medium text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/30 p-3 rounded-sm">{{ error }}</div>
           <button type="submit" v-haptic class="btn-3d cta-shadow w-full px-4 py-3 font-semibold text-white bg-green-600 border-2 border-gray-900 dark:border-gray-100 rounded-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition">{{ t('auth.register.submit') }}</button>
         </form>
 
@@ -253,7 +253,7 @@ const handleResend = async () => {
         </template>
 
         <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          {{ t('auth.register.have_account') }} <router-link :to="loginPath" class="font-semibold text-green-600 hover:text-green-500">{{ t('auth.register.login_link') }}</router-link>
+          {{ t('auth.register.have_account') }} <router-link :to="loginPath" class="font-semibold text-green-600 dark:text-green-400 hover:text-green-500 dark:hover:text-green-300">{{ t('auth.register.login_link') }}</router-link>
         </div>
       </div>
 

@@ -32,53 +32,54 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <div class="flex items-center justify-center min-h-[80vh] bg-gray-100">
-    <div class="w-full max-w-md p-8 bg-white rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
-      <h2 class="text-3xl font-bold text-center text-gray-800 mb-2">{{ t('auth.forgot_password.title') }}</h2>
+  <div class="flex items-center justify-center min-h-[80vh] bg-gray-100 dark:bg-gray-950">
+    <div class="w-full max-w-md p-8 bg-white dark:bg-gray-800 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
+      <h2 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-200 mb-2">{{ t('auth.forgot_password.title') }}</h2>
 
       <!-- Success State -->
       <div v-if="submitted" class="text-center">
-        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto my-6">
-          <svg class="w-8 h-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <div class="w-16 h-16 bg-green-100 dark:bg-green-900/40 rounded-full flex items-center justify-center mx-auto my-6">
+          <svg class="w-8 h-8 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
           </svg>
         </div>
-        <p class="text-gray-700 mb-2 font-medium">{{ t('auth.forgot_password.success_title') }}</p>
-        <p class="text-gray-500 text-sm mb-6">
+        <p class="text-gray-700 dark:text-gray-200 mb-2 font-medium">{{ t('auth.forgot_password.success_title') }}</p>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">
           {{ t('auth.forgot_password.success_text') }}<br>
           {{ t('auth.forgot_password.success_expires') }}
         </p>
-        <router-link :to="loginPath" class="text-sm text-indigo-600 hover:text-indigo-500 font-medium">
+        <router-link :to="loginPath" class="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium">
           {{ t('auth.forgot_password.back_login') }}
         </router-link>
       </div>
 
       <!-- Form State -->
       <form v-else @submit.prevent="handleSubmit" class="space-y-6 mt-6">
-        <p class="text-gray-500 text-sm text-center -mt-4">
+        <p class="text-gray-500 dark:text-gray-400 text-sm text-center -mt-4">
           {{ t('auth.forgot_password.intro') }}
         </p>
         <div>
-          <label class="block text-sm font-medium text-gray-700">{{ t('auth.forgot_password.email') }}</label>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('auth.forgot_password.email') }}</label>
           <input
             v-model="email"
             type="email"
             required
             autocomplete="email"
-            class="block w-full px-4 py-3 mt-1 border border-gray-300 rounded-sm shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            class="block w-full px-4 py-3 mt-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-600"
             :placeholder="t('auth.forgot_password.email_placeholder')"
           />
         </div>
-        <div v-if="error" class="text-sm text-red-600 bg-red-50 p-3 rounded-sm">{{ error }}</div>
+        <div v-if="error" class="text-sm text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/30 p-3 rounded-sm">{{ error }}</div>
         <button
           type="submit"
+          v-haptic
           :disabled="loading"
-          class="w-full px-4 py-3 font-semibold text-white bg-indigo-600 rounded-sm shadow hover:bg-indigo-700 disabled:bg-gray-300 transition"
+          class="btn-3d [--btn-shadow-color:#111827] dark:[--btn-shadow-color:#000000] w-full px-4 py-3 font-semibold text-white bg-green-600 border-2 border-gray-900 dark:border-gray-100 rounded-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:border-gray-400 dark:disabled:border-gray-500 disabled:cursor-not-allowed transition"
         >
           {{ loading ? t('auth.forgot_password.sending') : t('auth.forgot_password.submit') }}
         </button>
-        <div class="text-center text-sm text-gray-500">
-          <router-link :to="loginPath" class="text-indigo-600 hover:text-indigo-500">{{ t('auth.forgot_password.back_login') }}</router-link>
+        <div class="text-center text-sm text-gray-500 dark:text-gray-400">
+          <router-link :to="loginPath" class="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300">{{ t('auth.forgot_password.back_login') }}</router-link>
         </div>
       </form>
     </div>
