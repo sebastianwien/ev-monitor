@@ -137,11 +137,17 @@ onUnmounted(teardown)
 
 <template>
   <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <!-- Die Opacity liegt bewusst eine Ebene ueber dem Leaflet-Container: ein dynamisches
+         :class auf dem Container selbst schreibt beim Umschalten die komplette class-Liste
+         neu und loescht dabei Leaflets eigene Klassen (leaflet-container & Co.). Ohne
+         .leaflet-container greift Tailwinds Preflight `img { max-width: 100% }`, und die
+         Kacheln kollabieren auf Breite 0 - die Karte bleibt leer. -->
     <div
-      ref="container"
       class="absolute inset-0 transition-opacity duration-500"
       :class="visible ? 'opacity-40 dark:opacity-25' : 'opacity-0'"
-    ></div>
+    >
+      <div ref="container" class="absolute inset-0"></div>
+    </div>
     <!-- Readability floor: the text sits on the tile background, not on raw map tiles. -->
     <div class="absolute inset-0 bg-gradient-to-r from-white via-white/85 to-white/45
                 dark:from-gray-800 dark:via-gray-800/85 dark:to-gray-800/45"></div>
