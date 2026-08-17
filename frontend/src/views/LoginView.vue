@@ -78,10 +78,10 @@ const handleResendFromLogin = async () => {
         <div class="px-8 py-8">
           <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-6 text-center">{{ t('auth.login.welcome') }}</h2>
 
-          <div v-if="infoMessage" class="mb-4 text-sm font-medium bg-green-50 p-3 rounded-sm border border-green-200 text-green-700">
+          <div v-if="infoMessage" class="mb-4 text-sm font-medium bg-green-50 dark:bg-green-900/30 p-3 rounded-sm border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300">
             {{ infoMessage }}
           </div>
-          <div v-if="sessionExpiredMessage" class="mb-4 text-sm font-medium bg-amber-50 p-3 rounded-sm border border-amber-200 text-amber-700">
+          <div v-if="sessionExpiredMessage" class="mb-4 text-sm font-medium bg-amber-50 dark:bg-amber-900/30 p-3 rounded-sm border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-300">
             {{ sessionExpiredMessage }}
           </div>
 
@@ -98,8 +98,8 @@ const handleResendFromLogin = async () => {
                 class="block w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm shadow-sm focus:ring-2 focus:ring-green-500 focus:border-green-600" />
             </div>
 
-            <div v-if="error" class="text-sm font-medium bg-red-50 p-3 rounded-sm border border-red-100"
-              :class="errorCode === 'EMAIL_NOT_VERIFIED' ? 'text-orange-700' : 'text-red-600'">
+            <div v-if="error" class="text-sm font-medium bg-red-50 dark:bg-red-900/30 p-3 rounded-sm border border-red-100 dark:border-red-800"
+              :class="errorCode === 'EMAIL_NOT_VERIFIED' ? 'text-orange-700 dark:text-orange-300' : 'text-red-600 dark:text-red-300'">
               {{ error }}
               <div v-if="errorCode === 'EMAIL_NOT_VERIFIED'" class="mt-2">
                 <span v-if="!resendSent">
@@ -107,7 +107,7 @@ const handleResendFromLogin = async () => {
                     {{ t('auth.login.resend_email') }}
                   </button>
                 </span>
-                <span v-else class="text-green-700 font-medium">{{ t('auth.login.resend_sent') }}</span>
+                <span v-else class="text-green-700 dark:text-green-300 font-medium">{{ t('auth.login.resend_sent') }}</span>
               </div>
             </div>
 
@@ -142,14 +142,14 @@ const handleResendFromLogin = async () => {
           </template>
 
           <div class="mt-4 text-center">
-            <router-link :to="forgotPath" class="text-sm text-gray-400 hover:text-green-600 transition">
+            <router-link :to="forgotPath" class="text-sm text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition">
               {{ t('auth.login.forgot_password') }}
             </router-link>
           </div>
 
           <div class="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">
             {{ t('auth.login.no_account') }}
-            <router-link :to="registerPath" class="font-semibold text-green-600 hover:text-green-700">
+            <router-link :to="registerPath" class="font-semibold text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300">
               {{ t('auth.login.register_link') }}
             </router-link>
           </div>
@@ -161,12 +161,12 @@ const handleResendFromLogin = async () => {
             <CurrencyEuroIcon class="h-3.5 w-3.5" />
             {{ t('auth.login.free') }}
           </span>
-          <span class="text-gray-200">|</span>
+          <span class="text-gray-200 dark:text-gray-600">|</span>
           <span class="flex items-center gap-1">
             <ShieldCheckIcon class="h-3.5 w-3.5" />
             {{ t('auth.login.gdpr') }}
           </span>
-          <span class="text-gray-200">|</span>
+          <span class="text-gray-200 dark:text-gray-600">|</span>
           <span>{{ t('auth.login.no_tracking') }}</span>
         </div>
       </div>
