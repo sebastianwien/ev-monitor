@@ -189,3 +189,24 @@ describe('PowerCurveChart - Vorschau-Zeiger', () => {
     expect(tooltipOf(host)?.textContent).not.toContain('250')
   })
 })
+
+describe('PowerCurveChart - Overlay-Bezugsrahmen', () => {
+  // Die Punkte und die kW-Beschriftung liegen als HTML ueber dem SVG und werden
+  // in Prozent der viewBox-Hoehe positioniert. Umspannt die Overlay-Ebene mehr
+  // als das SVG - etwa die Achsenzeilen darunter - rutschen sie nach unten, und
+  // zwar um so weiter, je tiefer der Wert liegt.
+  it('spannt die Overlay-Ebene ueber genau das SVG', () => {
+    const { host, svg } = mountChart({ socBeforePercent: 20, socAfterPercent: 80 })
+    const overlay = host.querySelector('[data-testid="power-curve-overlay"]') as HTMLElement
+
+    expect(overlay).not.toBeNull()
+    expect(overlay.parentElement).toBe(svg.parentElement)
+  })
+
+  it('haelt die Achsenzeilen ausserhalb des Overlay-Bezugsrahmens', () => {
+    const { svg } = mountChart({ socBeforePercent: 20, socAfterPercent: 80 })
+    const frame = svg.parentElement as HTMLElement
+
+    expect(frame.querySelector('[data-testid="power-curve-soc-axis"]')).toBeNull()
+  })
+})
