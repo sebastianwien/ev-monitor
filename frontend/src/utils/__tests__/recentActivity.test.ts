@@ -184,6 +184,23 @@ describe('tripTimestamp', () => {
   it('ist null ohne beide Zeitstempel', () => {
     expect(tripTimestamp({})).toBeNull()
   })
+  it('reicht den Ladeort als Geohash durch', () => {
+    expect(normalizeCharge({ id: 1, geohash: 'u336xp' })?.geohash).toBe('u336xp')
+  })
+
+  it('nimmt bei einer Ladegruppe den Ort des ersten Eintrags mit Ort', () => {
+    const group = {
+      id: 2,
+      _isLadegruppe: true,
+      _entries: [{ geohash: null }, { geohash: 'u336xp' }],
+    }
+    expect(normalizeCharge(group)?.geohash).toBe('u336xp')
+  })
+
+  it('liefert null, wenn kein Eintrag einen Ort hat', () => {
+    expect(normalizeCharge({ id: 3, _isLadegruppe: true, _entries: [{ geohash: null }] })?.geohash).toBeNull()
+  })
+
 })
 
 describe('tripSpeedKeyAndArgs', () => {

@@ -8,7 +8,7 @@ import { tripConsumption } from '../../utils/tripCalculations'
 import TripClimateMarkers from '../TripClimateMarkers.vue'
 // Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
 // heatmap) - the map only loads when a trip actually carries a location.
-const TripRouteMap = defineAsyncComponent(() => import('./TripRouteMap.vue'))
+const ActivityLocationMap = defineAsyncComponent(() => import('./ActivityLocationMap.vue'))
 
 const props = defineProps<{
   /** Raw charge / Ladegruppe feed entry (mergedLogFeed), or null. */
@@ -116,6 +116,8 @@ function clamp(v: number): number {
 
 
 const showTrip = computed(() => !!props.trip)
+/** Nur rund die Haelfte der Ladevorgaenge traegt einen Ort - ohne bleibt die Kachel schlicht. */
+const hasChargeLocation = computed(() => !!ch.value?.geohash)
 /** Backend fills the geohashes for the most recent trip only - older ones stay blank. */
 const hasTripLocation = computed(
   () => !!props.trip?.locationStartGeohash || !!props.trip?.locationEndGeohash,
@@ -153,9 +155,16 @@ const tripInline = computed<string[]>(() => {
       data-testid="recent-charge-tile"
       :aria-label="t('dashboard.recent_charge_edit')"
       @click="emit('edit-charge')"
-      class="group block w-full cursor-pointer text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
-      :class="{ 'col-span-2': !showTrip }"
+      class="group relative isolate block w-full cursor-pointer text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
+      :class="{ 'col-span-2': !showTrip, 'map-legible': hasChargeLocation }"
     >
+      <!-- Ladeort als Hintergrund - ein Punkt, keine Strecke. -->
+      <ActivityLocationMap
+        v-if="hasChargeLocation"
+        :start-geohash="ch.geohash"
+        :end-geohash="null"
+        class="-z-10"
+      />
       <div class="flex items-center justify-between mb-1 md:mb-1.5">
         <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
           <BoltIcon class="w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true" />
@@ -229,16 +238,18 @@ const tripInline = computed<string[]>(() => {
       v-if="showTrip"
       type="button"
       data-testid="recent-trip-tile"
+      :class="{ 'map-legible': hasTripLocation }"
       :aria-label="t('dashboard.recent_trip_edit')"
       @click="emit('edit-trip')"
       class="group relative isolate block w-full cursor-pointer text-left bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] transition-shadow px-3 py-2 md:px-3.5 md:py-2.5"
     >
       <!-- Grobe Start-/Zielgegend als Hintergrund. Nur die neueste Fahrt liefert
            Geohashes, alle anderen Kacheln bleiben ohne Karte. -->
-      <TripRouteMap
+      <ActivityLocationMap
         v-if="hasTripLocation"
         :start-geohash="trip.locationStartGeohash"
         :end-geohash="trip.locationEndGeohash"
+        :route-polyline="trip.routePolyline"
         class="-z-10"
       />
       <div class="flex items-center justify-between mb-1 md:mb-1.5">
@@ -296,3 +307,49 @@ const tripInline = computed<string[]>(() => {
     </button>
   </div>
 </template>
+
+<style>
+/*
+ * Text auf der Karte: statt eines Hintergrunds bekommt die Schrift eine weiche Kontur in
+ * Hintergrundfarbe. Das trennt sie vom Kartenbild, ohne die Kachel in Balken zu zerlegen -
+ * und die Karte bleibt luekenlos sichtbar. Ungescoped, weil die Regel an alle Kindknoten
+ * vererbt werden muss (auch an die von Unterkomponenten gerenderten Texte).
+ */
+.map-legible,
+.map-legible * {
+  /* Vier Stufen: zwei harte Kerne zeichnen die Kontur, zwei weiche heben den
+     Kartenuntergrund ab. Weniger Stufen ergaben auf feiner Strassenzeichnung Luecken. */
+  text-shadow:
+    0 0 1px rgb(255 255 255),
+    0 0 3px rgb(255 255 255),
+    0 0 7px rgb(255 255 255 / 0.98),
+    0 0 16px rgb(255 255 255 / 0.9);
+}
+.dark .map-legible,
+.dark .map-legible * {
+  text-shadow:
+    0 0 3px rgb(17 24 39 / 0.95),
+    0 0 8px rgb(17 24 39 / 0.8);
+}
+/*
+ * Auf der Karte gilt maximaler Kontrast statt der sonst abgestuften Grautoene: die
+ * Abstufung, die auf ruhigem Kachelgrund Hierarchie schafft, wird auf Kartenuntergrund
+ * einfach unlesbar. Icons bleiben ausgenommen, sie tragen ihre eigene Bedeutungsfarbe.
+ */
+.map-legible,
+.map-legible *:not(svg):not(svg *) {
+  color: #000 !important;
+}
+.dark .map-legible,
+.dark .map-legible *:not(svg):not(svg *) {
+  color: #fff !important;
+}
+
+/* Icons sind SVG, die trifft kein Textschatten - sie brauchen das Pendant als Filter. */
+.map-legible svg {
+  filter: drop-shadow(0 0 2px rgb(255 255 255)) drop-shadow(0 0 5px rgb(255 255 255 / 0.9));
+}
+.dark .map-legible svg {
+  filter: drop-shadow(0 0 2px rgb(17 24 39 / 0.95));
+}
+</style>

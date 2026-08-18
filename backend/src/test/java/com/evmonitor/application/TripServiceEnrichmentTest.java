@@ -46,7 +46,7 @@ class TripServiceEnrichmentTest {
 
     @BeforeEach
     void setUp() {
-        tripService = new TripService(tripRepository, carRepository, objectMapper, temperatureEnricher);
+        tripService = new TripService(tripRepository, carRepository, objectMapper, temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
         TransactionSynchronizationManager.initSynchronization();
         lenient().when(tripRepository.save(any(EvTrip.class))).thenAnswer(inv -> {
             EvTrip trip = inv.getArgument(0);
@@ -73,7 +73,7 @@ class TripServiceEnrichmentTest {
         UUID savedId = tripService.saveTrip(req);
 
         // Before commit: enricher must not be touched
-        verifyNoInteractions(temperatureEnricher);
+        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
 
         triggerAfterCommit();
 
@@ -117,7 +117,7 @@ class TripServiceEnrichmentTest {
         tripService.saveTrip(req);
         triggerAfterCommit();
 
-        verifyNoInteractions(temperatureEnricher);
+        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
     }
 
     @Test
@@ -131,7 +131,7 @@ class TripServiceEnrichmentTest {
         tripService.saveTrip(req);
         triggerAfterCommit();
 
-        verifyNoInteractions(temperatureEnricher);
+        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
     }
 
     @Test
@@ -145,7 +145,7 @@ class TripServiceEnrichmentTest {
         tripService.saveTrip(req);
         triggerAfterCommit();
 
-        verifyNoInteractions(temperatureEnricher);
+        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
     }
 
     @Test
@@ -186,7 +186,7 @@ class TripServiceEnrichmentTest {
         UUID returned = tripService.saveTrip(req);
         triggerAfterCommit();
 
-        verifyNoInteractions(temperatureEnricher);
+        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
         verify(tripRepository, never()).save(any());
         org.assertj.core.api.Assertions.assertThat(returned).isEqualTo(existingId);
     }

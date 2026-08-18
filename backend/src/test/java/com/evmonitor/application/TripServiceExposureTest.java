@@ -55,7 +55,7 @@ class TripServiceExposureTest {
 
     @BeforeEach
     void setUp() {
-        tripService = new TripService(tripRepository, carRepository, new ObjectMapper(), temperatureEnricher);
+        tripService = new TripService(tripRepository, carRepository, new ObjectMapper(), temperatureEnricher, org.mockito.Mockito.mock(com.evmonitor.domain.route.RouteSketcher.class));
         lenient().when(user.getId()).thenReturn(USER_ID);
         lenient().when(user.canViewLiveTrips(any())).thenReturn(true);
         lenient().when(user.canBypassEligibilityGate()).thenReturn(true);

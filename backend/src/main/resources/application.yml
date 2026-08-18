@@ -177,6 +177,12 @@ connectors:
 tankerkoenig:
   api-key: ${TANKERKOENIG_API_KEY:}
 
+# openrouteservice (HeiGIT) - berechnet die Strassenverbindung fuer die Fahrten-Kachel.
+# Standard-Plan ist kostenlos (2000 Anfragen/Tag, 40/Minute), Key auf account.heigit.org.
+# Ohne Key bleibt die Funktion still abgeschaltet und die Kachel zeigt die Luftlinie.
+openrouteservice:
+  api-key: ${ORS_API_KEY:}
+
 # Plausible Analytics
 plausible:
   api-key: ${PLAUSIBLE_API_KEY:}

@@ -53,6 +53,8 @@ export interface NormalizedCharge {
   chargingType: string | null
   dataSource: string | null
   durationMinutes: number | null
+  /** Coarse charging location (6 chars ~600 m private, 7 ~150 m public). Null if unknown. */
+  geohash: string | null
   isGroup: boolean
 }
 
@@ -86,6 +88,11 @@ export function normalizeCharge(e: any): NormalizedCharge | null {
     chargingType: e.chargingType ?? null,
     dataSource: isGroup ? (e._commonDataSource ?? e.dataSource ?? null) : (e.dataSource ?? null),
     durationMinutes: isGroup ? null : num(e.chargeDurationMinutes),
+    // Bei einer Ladegruppe tragen nicht alle Einzelvorgaenge einen Ort - der erste mit
+    // Ort steht fuer die Gruppe, sie fand ohnehin an derselben Saeule statt.
+    geohash: isGroup
+      ? ((e._entries ?? []).find((entry: any) => entry?.geohash)?.geohash ?? null)
+      : (e.geohash ?? null),
     isGroup,
   }
 }

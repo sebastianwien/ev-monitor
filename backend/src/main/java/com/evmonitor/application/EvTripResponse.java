@@ -31,6 +31,7 @@ public record EvTripResponse(
         String feedback,
         ClimateSummary climate,
         String locationStartGeohash,
+        String routePolyline,
         String locationEndGeohash
 ) {
     /**
@@ -86,7 +87,10 @@ public record EvTripResponse(
         }
         if (detail == Detail.TELEMETRY_AND_LOCATION) {
             builder.locationStartGeohash(coarse(trip.getLocationStartGeohash()))
-                    .locationEndGeohash(coarse(trip.getLocationEndGeohash()));
+                    .locationEndGeohash(coarse(trip.getLocationEndGeohash()))
+                    // Die Linie gehoert zum selben Ortsbezug: wer die Gegend sehen darf,
+                    // darf auch den Weg dazwischen sehen - und nur der.
+                    .routePolyline(trip.getRoutePolyline());
         }
         return builder.build();
     }

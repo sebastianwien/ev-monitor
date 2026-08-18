@@ -39,6 +39,10 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
             Pageable pageable);
 
     @Modifying
+    @Query("UPDATE EvTrip t SET t.routePolyline = :polyline WHERE t.id = :id")
+    void updateRoutePolyline(@Param("id") UUID id, @Param("polyline") String polyline);
+
+    @Modifying
     @Transactional
     @Query("UPDATE EvTrip t SET t.outsideTempCelsius = :temp, t.outsideTempSource = :source WHERE t.id = :id")
     void updateTemperature(@Param("id") UUID id,

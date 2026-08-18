@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ValidationException;
+import com.evmonitor.domain.route.RouteSketcher;
 import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -30,6 +31,7 @@ public class TripService {
     private final CarRepository carRepository;
     private final ObjectMapper objectMapper;
     private final TemperatureEnricher temperatureEnricher;
+    private final RouteSketcher routeSketcher;
 
     @Transactional
     public UUID saveTrip(InternalTripRequest req) {
@@ -91,6 +93,22 @@ public class TripService {
                 @Override
                 public void afterCommit() {
                     temperatureEnricher.enrichTrip(tripId, startGeohash, endGeohash, startedAt, endedAt);
+                }
+            });
+        }
+
+        // Die Linie haengt an denselben Geohashes wie die Temperatur, wird aber unabhaengig
+        // davon geholt - eine Fahrt kann ihre Temperatur schon mitbringen und trotzdem eine
+        // Route brauchen. Nach dem Commit, damit der Trip in der DB steht, bevor der
+        // asynchrone Task ihn aktualisiert.
+        if (req.locationStartGeohash() != null && req.locationEndGeohash() != null) {
+            final UUID tripIdForRoute = saved.getId();
+            final String routeStart = req.locationStartGeohash();
+            final String routeEnd = req.locationEndGeohash();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    routeSketcher.sketchTrip(tripIdForRoute, routeStart, routeEnd);
                 }
             });
         }

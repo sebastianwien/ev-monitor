@@ -126,6 +126,13 @@ public class EvTrip {
     @Column(name = "route_type", length = 20)
     private String routeType;
 
+    /**
+     * Gerechnete Strassenverbindung zwischen Start- und Zielgegend als encodierte Polyline.
+     * NICHT die gefahrene Strecke - es gibt keine Aufzeichnung, siehe RouteSketcher.
+     */
+    @Column(name = "route_polyline")
+    private String routePolyline;
+
     @Column(name = "external_id")
     private UUID externalId;
 
