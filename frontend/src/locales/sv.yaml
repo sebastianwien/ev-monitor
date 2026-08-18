@@ -346,10 +346,17 @@ model:
   route_type_combined: Blandat
   route_type_city: Stad
   metrics_range: Räckvidd
-  metrics_range_label: Intervall 90 %–10 %
+  metrics_range_label: Intervall 100 %–10 %
   calculator_label: "Din elavgift: på"
   calculator_title: "Vad kostar laddning dig?"
   calculator_hint: "Ställ in ditt elpris och se din kostnad per 100 km"
+  range_calc_title: "Hur långt kommer du?"
+  range_calc_hint: "Ställ in din förbrukning och ditt laddfönster"
+  range_calc_consumption_label: "Förbrukning"
+  range_calc_window_label: "Laddfönster"
+  range_calc_window_hint: "På långresa laddar nästan ingen till 100 % - de sista procenten tar längst tid"
+  range_calc_marker_avg: "Ø Community"
+  range_calc_community_span: "Förare av denna modell kommer {min} till {max} - beroende på körprofil och årstid"
   charging_ac_label: "Normal"
   charging_dc_label: "Snabb"
   calculator_unit: ct/kWh
@@ -360,7 +367,7 @@ model:
   charging_20min_power: laddningshastighet i kW
   variant_title: Batterivariant
   variant_low_trips: Få resor
-  seasonal_title: "Förbrukning per säsong (90% → 10%)"
+  seasonal_title: "Förbrukning per säsong (100% → 10%)"
   seasonal_summer: Sommar
   seasonal_summer_months: (maj–augusti)
   seasonal_winter: Vinter
@@ -416,7 +423,7 @@ model:
   seasonal_winter_penalty: "Vintertillägg"
   seasonal_more_consumption: "mer förbrukning"
   seasonal_less_range: "mindre räckvidd"
-  seasonal_title_range: "Räckvidd per säsong (90% → 10%)"
+  seasonal_title_range: "Räckvidd per säsong (100% → 10%)"
   compare_official: "officiell"
   compare_manufacturer: "Tillverkardata"
   compare_real: "verkliga resor"

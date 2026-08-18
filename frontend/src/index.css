@@ -65,6 +65,84 @@ html {
   box-shadow: 0 4px 0 0 #451a03;
 }
 
+/* ── Range-Input: grüner Fortschrittsbalken + kräftiger Thumb ───────────────
+   Global, weil Tarif- und Verbrauchs-Slider der Modellseite in verschiedenen
+   Komponenten sitzen und identisch aussehen müssen. Füllstand über --pct. */
+.ev-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  /* Großer vertikaler Touch-Bereich: erleichtert das Greifen auf Mobile spürbar.
+     Die sichtbar dünne Spur wird über die Track-Pseudoelemente gezeichnet. */
+  height: 44px;
+  background: transparent;
+  /* Ziehen darf nicht die Seite scrollen - Hauptgrund, warum der Slider vorher
+     "schwer bedienbar" war (vertikale Geste hat den Drag abgefangen). */
+  touch-action: none;
+  cursor: pointer;
+}
+/* WebKit/Blink (Android WebView, Chrome, Safari) */
+.ev-slider::-webkit-slider-runnable-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #16a34a var(--pct, 0%), #e5e7eb var(--pct, 0%));
+}
+.dark .ev-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #22c55e var(--pct, 0%), #4b5563 var(--pct, 0%));
+}
+.ev-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -8px; /* 26px Thumb auf 10px Spur zentrieren */
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: #16a34a;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.dark .ev-slider::-webkit-slider-thumb {
+  background: #22c55e;
+  border-color: #1f2937;
+}
+/* Firefox */
+.ev-slider::-moz-range-track {
+  height: 10px;
+  border-radius: 9999px;
+  background: #e5e7eb;
+}
+.dark .ev-slider::-moz-range-track {
+  background: #4b5563;
+}
+.ev-slider::-moz-range-progress {
+  height: 10px;
+  border-radius: 9999px;
+  background: #16a34a;
+}
+.dark .ev-slider::-moz-range-progress {
+  background: #22c55e;
+}
+.ev-slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: #16a34a;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.dark .ev-slider::-moz-range-thumb {
+  background: #22c55e;
+  border-color: #1f2937;
+}
+/* Tastatur-Fokus muss sichtbar sein - der Thumb allein trägt keinen Ring. */
+.ev-slider:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 4px;
+  border-radius: 9999px;
+}
+.dark .ev-slider:focus-visible { outline-color: #22c55e; }
+
 /* 3D pill slider - gleiche visuelle Sprache wie btn-3d (harter Bodenschatten) */
 .pill-slider {
   background-color: #ffffff;

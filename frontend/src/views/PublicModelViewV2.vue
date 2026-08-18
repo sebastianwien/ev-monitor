@@ -79,11 +79,20 @@
             </div>
             <div class="mt-2 flex items-center justify-center gap-2 flex-wrap">
               <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium">
-                <Battery0Icon class="h-3.5 w-3.5" /> 90% → 10%
+                <Battery0Icon class="h-3.5 w-3.5" /> 100% → 10%
               </span>
               <span v-if="selectedVariant?.officialRangeKm" class="text-sm text-gray-600 dark:text-gray-300">{{ t('model.compare_manufacturer') }}: <strong class="text-gray-800 dark:text-gray-100"><template v-if="selectedVariant.officialRangeMinKm">{{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}-{{ formatDistance(selectedVariant.officialRangeKm) }}</template><template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template></strong></span>
             </div>
           </div>
+
+          <!-- Reichweiten-Rechner: direkt unter der Reichweiten-Kennzahl, weil er sie personalisiert -->
+          <RangeCalculatorCard
+            v-if="displayConsumption && selectedVariant?.batteryCapacityKwh"
+            :net-capacity-kwh="selectedVariant.batteryCapacityKwh"
+            :default-consumption="displayConsumption"
+            :markers="rangeMarkers"
+            :min-consumption="communityConsumptionRange?.min ?? null"
+            :max-consumption="communityConsumptionRange?.max ?? null" />
 
           <!-- No data for selected variant -->
           <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">
@@ -142,7 +151,7 @@
                      @input="onTariffInput"
                      :aria-label="t('model.calculator_title')"
                      :style="{ '--pct': sliderFillPct + '%' }"
-                     class="tariff-slider flex-1 cursor-pointer" />
+                     class="ev-slider flex-1" />
               <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
             </div>
           </div>
@@ -598,6 +607,8 @@ import {
   SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
+import RangeCalculatorCard from '../components/shared/RangeCalculatorCard.vue'
+import { buildMarkers } from '../utils/rangeCalculator'
 import GridRippleBackground from '../components/shared/GridRippleBackground.vue'
 import RegionChip from '../components/shared/RegionChip.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
@@ -779,6 +790,19 @@ const displayConsumption = computed(() => {
 const displayRange = computed(() => {
   if (!selectedVariant.value || !displayConsumption.value) return null
   return Math.round(selectedVariant.value.batteryCapacityKwh * 0.9 / displayConsumption.value * 10) * 10
+})
+
+// Marken des Reichweiten-Rechners. Saison-Werte nur, wenn die Datenlage sie traegt
+// (gleiche Schwelle wie die Saison-Karte) - eine Winter-Marke aus 3 Logs waere
+// eine Praezision, die die Daten nicht haben.
+const rangeMarkers = computed(() => {
+  const seasonal = showSeasonalBreakdown.value ? selectedVariant.value?.seasonalDistribution : null
+  return buildMarkers([
+    { key: 'official', label: ratingLabel.value, value: heroOfficialConsumption.value },
+    { key: 'average', label: t('model.range_calc_marker_avg'), value: displayConsumption.value },
+    { key: 'summer', label: t('model.seasonal_summer'), value: seasonal?.summerConsumptionKwhPer100km },
+    { key: 'winter', label: t('model.seasonal_winter'), value: seasonal?.winterConsumptionKwhPer100km },
+  ])
 })
 
 const bestOfficialRange = computed(() => {
@@ -1143,75 +1167,6 @@ function goBackToLpV2() {
 
 .model-page {
   animation: page-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-}
-
-/* Tarif-Slider: grüner Fortschrittsbalken + kräftiger Thumb, statt durchgehend grau */
-.tariff-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  /* Großer vertikaler Touch-Bereich: erleichtert das Greifen auf Mobile spürbar.
-     Die sichtbar dünne Spur wird über die Track-Pseudoelemente gezeichnet. */
-  height: 44px;
-  background: transparent;
-  /* Ziehen darf nicht die Seite scrollen - Hauptgrund, warum der Slider vorher
-     "schwer bedienbar" war (vertikale Geste hat den Drag abgefangen). */
-  touch-action: none;
-  cursor: pointer;
-}
-/* WebKit/Blink (Android WebView, Chrome, Safari) */
-.tariff-slider::-webkit-slider-runnable-track {
-  height: 10px;
-  border-radius: 9999px;
-  background: linear-gradient(to right, #16a34a var(--pct, 0%), #e5e7eb var(--pct, 0%));
-}
-.dark .tariff-slider::-webkit-slider-runnable-track {
-  background: linear-gradient(to right, #22c55e var(--pct, 0%), #4b5563 var(--pct, 0%));
-}
-.tariff-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  margin-top: -8px; /* 26px Thumb auf 10px Spur zentrieren */
-  width: 26px;
-  height: 26px;
-  border-radius: 9999px;
-  background: #16a34a;
-  border: 3px solid #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-}
-.dark .tariff-slider::-webkit-slider-thumb {
-  background: #22c55e;
-  border-color: #1f2937;
-}
-/* Firefox */
-.tariff-slider::-moz-range-track {
-  height: 10px;
-  border-radius: 9999px;
-  background: #e5e7eb;
-}
-.dark .tariff-slider::-moz-range-track {
-  background: #4b5563;
-}
-.tariff-slider::-moz-range-progress {
-  height: 10px;
-  border-radius: 9999px;
-  background: #16a34a;
-}
-.dark .tariff-slider::-moz-range-progress {
-  background: #22c55e;
-}
-.tariff-slider::-moz-range-thumb {
-  width: 26px;
-  height: 26px;
-  border-radius: 9999px;
-  background: #16a34a;
-  border: 3px solid #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-}
-.dark .tariff-slider::-moz-range-thumb {
-  background: #22c55e;
-  border-color: #1f2937;
 }
 
 @keyframes page-slide-in {
