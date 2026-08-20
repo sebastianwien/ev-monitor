@@ -74,7 +74,7 @@ describe('normalizeCharge', () => {
     expect(n.kwhGross).toBe(25)
     // Preis gegen die Basis, auf der abgerechnet wurde (brutto) - nicht gegen die
     // angezeigten Netto-kWh, sonst liegt der ct/kWh-Wert ueber dem echten Tarif.
-    expect(n.costKwh).toBeCloseTo(8.19 / 25, 5)
+    expect(n.costPerKwh).toBeCloseTo(8.19 / 25, 5)
     expect(n.socBefore).toBe(42)
     expect(n.socAfter).toBe(80)
     expect(n.maxPowerKw).toBe(210)
@@ -87,20 +87,20 @@ describe('normalizeCharge', () => {
     const n = normalizeCharge({ id: 1, kwhCharged: 20, kwhAtVehicle: null, costEur: null })!
     expect(n.kwh).toBe(20)
     expect(n.kwhGross).toBe(20)
-    expect(n.costKwh).toBeNull()
+    expect(n.costPerKwh).toBeNull()
   })
 
   it('regression: 41 kWh netto / 43,03 kWh brutto zu 0,29 EUR ergibt 29 ct, nicht 30,5', () => {
     const n = normalizeCharge({ id: 2, kwhCharged: 43.03, kwhAtVehicle: 40.98, costEur: 12.48 })!
     expect(n.kwh).toBe(40.98)
     expect(n.kwhGross).toBe(43.03)
-    expect(n.costKwh).toBeCloseTo(0.29, 3)
+    expect(n.costPerKwh).toBeCloseTo(0.29, 3)
   })
 
   it('has no gross value when only netto was recorded', () => {
     const n = normalizeCharge({ id: 3, kwhAtVehicle: 30, costEur: 9 })!
     expect(n.kwhGross).toBeNull()
-    expect(n.costKwh).toBeCloseTo(0.3, 5)
+    expect(n.costPerKwh).toBeCloseTo(0.3, 5)
   })
 
   it('uses aggregate fields for a Ladegruppe', () => {
@@ -110,7 +110,7 @@ describe('normalizeCharge', () => {
       _totalKwh: 40,
       _totalKwhGross: 42,
       _totalCostEur: 12,
-      _costKwh: 0.3,
+      _costBasisKwh: 40,
       _maxSoc: 90,
       _maxPower: 150,
       _commonDataSource: 'WALLBOX_GOE',
@@ -122,12 +122,26 @@ describe('normalizeCharge', () => {
     expect(n.kwh).toBe(40)
     expect(n.kwhGross).toBe(42)
     expect(n.costEur).toBe(12)
-    expect(n.costKwh).toBe(0.3)
+    expect(n.costPerKwh).toBeCloseTo(12 / 40, 5)
     expect(n.socBefore).toBe(20)
     expect(n.socAfter).toBe(90)
     expect(n.maxPowerKw).toBe(150)
     expect(n.dataSource).toBe('WALLBOX_GOE')
     expect(n.durationMinutes).toBeNull()
+  })
+
+  it('regression: Ladegruppe zeigt den Tarif, nicht die kWh-Summe als ct/kWh', () => {
+    // Gemeldeter Bug: _costBasisKwh (Divisor in kWh) wurde direkt als EUR/kWh angezeigt,
+    // aus 35,22 kWh wurden so 3.522,0 ct/kWh.
+    const n = normalizeCharge({
+      id: 'g2',
+      _isLadegruppe: true,
+      _totalKwh: 35.22,
+      _totalKwhGross: null,
+      _totalCostEur: 5.58,
+      _costBasisKwh: 35.22,
+    })!
+    expect(n.costPerKwh).toBeCloseTo(5.58 / 35.22, 5)
   })
 
   it('parses numeric strings (API decimals arrive as strings)', () => {

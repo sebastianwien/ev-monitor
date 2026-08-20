@@ -67,7 +67,7 @@ const chargeGross = computed(() => {
 const chargeMetrics = computed<string[]>(() => {
   const out: string[] = []
   if (chargeGross.value) out.push(chargeGross.value)
-  if (ch.value?.costKwh != null) out.push(formatCostPerKwh(ch.value.costKwh))
+  if (ch.value?.costPerKwh != null) out.push(formatCostPerKwh(ch.value.costPerKwh))
   if (ch.value?.maxPowerKw != null) out.push(`${Math.round(ch.value.maxPowerKw)} kW`)
   return out
 })

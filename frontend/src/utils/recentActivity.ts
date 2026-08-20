@@ -46,7 +46,7 @@ export interface NormalizedCharge {
    * mirroring EvLog.costBasisKwh on the backend). Dividing by netto instead would
    * report a ct/kWh above the tariff the user actually configured.
    */
-  costKwh: number | null
+  costPerKwh: number | null
   socBefore: number | null
   socAfter: number | null
   maxPowerKw: number | null
@@ -70,18 +70,19 @@ export function normalizeCharge(e: any): NormalizedCharge | null {
   const kwhGross = isGroup ? num(e._totalKwhGross) : num(e.kwhCharged)
   const costEur = isGroup ? num(e._totalCostEur) : num(e.costEur)
   const costBasisKwh = kwhGross != null && kwhGross > 0 ? kwhGross : kwh
-  const costKwh = isGroup
-    ? num(e._costKwh)
-    : costEur != null && costBasisKwh != null && costBasisKwh > 0
-      ? costEur / costBasisKwh
-      : null
+  // Eine Ladegruppe bringt ihre eigene Abrechnungsbasis mit (_costBasisKwh summiert nur
+  // die Teilvorgaenge, die auch Kosten tragen) - die Netto/Brutto-Summen der Kachel waeren
+  // hier der falsche Divisor.
+  const basis = isGroup ? num(e._costBasisKwh) : costBasisKwh
+  const costPerKwh =
+    costEur != null && basis != null && basis > 0 ? costEur / basis : null
   return {
     id: e.id,
     loggedAt: e.loggedAt ?? null,
     kwh,
     kwhGross,
     costEur,
-    costKwh,
+    costPerKwh,
     socBefore: num(e.socBeforeChargePercent),
     socAfter: isGroup ? num(e._maxSoc) : num(e.socAfterChargePercent),
     maxPowerKw: isGroup ? num(e._maxPower) : num(e.maxChargingPowerKw),

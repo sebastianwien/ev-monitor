@@ -442,7 +442,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       const totalKwh = allSubs.reduce((s: number, l: any) => s + (l.kwhAtVehicle ?? l.kwhCharged ?? 0), 0)
       // Cost aggregation divides by the SAME basis the cost was billed on (brutto-first),
       // so the header per-kWh price equals the tariff - not tariff/efficiency. See aggregateGroupCost.
-      const { totalCostEur, costKwh, costIsNettoOnly } = aggregateGroupCost(allSubs)
+      const { totalCostEur, costBasisKwhTotal, costIsNettoOnly } = aggregateGroupCost(allSubs)
       const maxSoc = allSubs.reduce((m: number | null, l: any) =>
         l.socAfterChargePercent != null ? Math.max(m ?? 0, l.socAfterChargePercent) : m, null)
       const maxPower = allSubs.reduce((m: number | null, l: any) =>
@@ -482,7 +482,9 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         // waere neben _totalKwh irrefuehrend.
         _totalKwhGross: bruttoSum != null ? Math.round(bruttoSum * 100) / 100 : null,
         _totalCostEur: totalCostEur !== null ? Math.round(totalCostEur * 100) / 100 : null,
-        _costKwh: Math.round(costKwh * 100) / 100,
+        // Abrechnungsbasis in kWh (Divisor), NICHT der Preis - Verbraucher teilen
+        // _totalCostEur durch dieses Feld.
+        _costBasisKwh: Math.round(costBasisKwhTotal * 100) / 100,
         _costIsNettoOnly: costIsNettoOnly,
         _maxSoc: maxSoc,
         _maxPower: maxPower,

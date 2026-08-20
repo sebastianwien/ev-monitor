@@ -117,8 +117,11 @@ export function costBasisKwh(log: { kwhCharged: number | null; kwhAtVehicle: num
 export interface GroupCostResult {
   /** Sum of cost_eur over sub-logs that have both a cost and an energy basis (null if none). */
   totalCostEur: number | null
-  /** Sum of costBasisKwh over those same sub-logs - the correct divisor for the per-kWh price. */
-  costKwh: number
+  /**
+   * Sum of costBasisKwh over those same sub-logs - the correct DIVISOR for the per-kWh
+   * price, not the price itself. Named ...KwhTotal so it cannot be mistaken for EUR/kWh.
+   */
+  costBasisKwhTotal: number
   /**
    * True when at least one cost-carrying sub-log is netto-only: the header total then
    * understates the real grid cost, so the cost chip is rendered dashed (same signal as
@@ -136,11 +139,11 @@ export interface GroupCostResult {
  */
 export function aggregateGroupCost<T extends CostHintLog>(subs: T[]): GroupCostResult {
   const withCost = subs.filter((l) => l.costEur != null && costBasisKwh(l) != null)
-  if (withCost.length === 0) return { totalCostEur: null, costKwh: 0, costIsNettoOnly: false }
+  if (withCost.length === 0) return { totalCostEur: null, costBasisKwhTotal: 0, costIsNettoOnly: false }
   const totalCostEur = withCost.reduce((s, l) => s + (l.costEur as number), 0)
-  const costKwh = withCost.reduce((s, l) => s + (costBasisKwh(l) as number), 0)
+  const costBasisKwhTotal = withCost.reduce((s, l) => s + (costBasisKwh(l) as number), 0)
   const costIsNettoOnly = withCost.some((l) => isNettoOnlyCostLog(l))
-  return { totalCostEur, costKwh, costIsNettoOnly }
+  return { totalCostEur, costBasisKwhTotal, costIsNettoOnly }
 }
 
 export interface RealCostHint {

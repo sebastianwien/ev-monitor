@@ -217,10 +217,10 @@ describe('aggregateGroupCost', () => {
     const subs = [
       costLog({ costEur: 24.8, kwhCharged: 40, kwhAtVehicle: 37.5, chargingType: 'AC' }),
     ]
-    const { totalCostEur, costKwh, costIsNettoOnly } = aggregateGroupCost(subs)
+    const { totalCostEur, costBasisKwhTotal, costIsNettoOnly } = aggregateGroupCost(subs)
     expect(totalCostEur).toBeCloseTo(24.8, 4)
-    expect(costKwh).toBeCloseTo(40, 4)
-    expect(totalCostEur! / costKwh).toBeCloseTo(0.62, 4)
+    expect(costBasisKwhTotal).toBeCloseTo(40, 4)
+    expect(totalCostEur! / costBasisKwhTotal).toBeCloseTo(0.62, 4)
     expect(costIsNettoOnly).toBe(false)
   })
 
@@ -230,9 +230,9 @@ describe('aggregateGroupCost', () => {
       costLog({ costEur: 13.83 * 0.62, kwhAtVehicle: 13.83, chargingType: 'AC' }),
       costLog({ costEur: 10.0 * 0.62, kwhAtVehicle: 10.0, chargingType: 'AC' }),
     ]
-    const { totalCostEur, costKwh, costIsNettoOnly } = aggregateGroupCost(subs)
-    expect(costKwh).toBeCloseTo(23.83, 4)
-    expect(totalCostEur! / costKwh).toBeCloseTo(0.62, 4)
+    const { totalCostEur, costBasisKwhTotal, costIsNettoOnly } = aggregateGroupCost(subs)
+    expect(costBasisKwhTotal).toBeCloseTo(23.83, 4)
+    expect(totalCostEur! / costBasisKwhTotal).toBeCloseTo(0.62, 4)
     expect(costIsNettoOnly).toBe(true)
   })
 
@@ -241,8 +241,8 @@ describe('aggregateGroupCost', () => {
       costLog({ costEur: 20 * 0.62, kwhCharged: 20, kwhAtVehicle: 18.5, chargingType: 'AC' }),
       costLog({ costEur: 10 * 0.62, kwhAtVehicle: 10, chargingType: 'AC' }), // netto-only
     ]
-    const { costKwh, costIsNettoOnly } = aggregateGroupCost(subs)
-    expect(costKwh).toBeCloseTo(30, 4) // 20 brutto + 10 netto
+    const { costBasisKwhTotal, costIsNettoOnly } = aggregateGroupCost(subs)
+    expect(costBasisKwhTotal).toBeCloseTo(30, 4) // 20 brutto + 10 netto
     expect(costIsNettoOnly).toBe(true)
   })
 
@@ -252,17 +252,17 @@ describe('aggregateGroupCost', () => {
       costLog({ costEur: null, kwhCharged: 10 }),          // no cost
       costLog({ costEur: 5, kwhCharged: null, kwhAtVehicle: null }), // cost but no energy
     ]
-    const { totalCostEur, costKwh } = aggregateGroupCost(subs)
+    const { totalCostEur, costBasisKwhTotal } = aggregateGroupCost(subs)
     expect(totalCostEur).toBeCloseTo(24.8, 4)
-    expect(costKwh).toBeCloseTo(40, 4)
+    expect(costBasisKwhTotal).toBeCloseTo(40, 4)
   })
 
   it('returns null cost and zero kWh when no sub carries cost', () => {
-    const { totalCostEur, costKwh, costIsNettoOnly } = aggregateGroupCost([
+    const { totalCostEur, costBasisKwhTotal, costIsNettoOnly } = aggregateGroupCost([
       costLog({ kwhCharged: 10 }),
     ])
     expect(totalCostEur).toBeNull()
-    expect(costKwh).toBe(0)
+    expect(costBasisKwhTotal).toBe(0)
     expect(costIsNettoOnly).toBe(false)
   })
 })
