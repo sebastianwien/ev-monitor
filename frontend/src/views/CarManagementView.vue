@@ -6,6 +6,7 @@ import {
   TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon,
   ChartBarIcon, BoltIcon, LockClosedIcon, Battery50Icon,
 } from '@heroicons/vue/24/outline'
+import { buildOptionLabels } from '../utils/variantOptionLabels'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import BatterySohModal from '../components/car/BatterySohModal.vue'
 import SohPill from '../components/car/SohPill.vue'
@@ -35,7 +36,7 @@ const {
   selectedCapacity, selectedSpecId, selectedTrimLevel, useCustomCapacity,
   powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
   sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
-  isGroupedByTrim, trimGroups, visibleOptionsForTrim, formatPeriod,
+  isGroupedByTrim, trimGroups, visibleOptionsForTrim,
   selectTrimGroup,
   capacityWasCorrected,
   wltpData, customNetCapacityKwh, customGrossCapacityKwh, officialRangeKm, officialConsumptionKwhPer100km,
@@ -43,6 +44,10 @@ const {
   fetchCars, fetchBrands, resetForm,
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel,
 } = useCarForm()
+
+// Zeitraum als Label; bei gleichem Zeitraum zusaetzlich die Variante (sonst ununterscheidbar)
+const trimOptionLabels = computed(() =>
+  buildOptionLabels(visibleOptionsForTrim.value, getModelLabel(selectedModel.value), t('cars.since')))
 
 // -- Car Images --
 const {
@@ -239,13 +244,18 @@ const filteredCapacities = computed(() => {
                     </button>
                   </div>
                   <div v-if="visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
-                    <button v-for="option in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
+                    <button v-for="(option, index) in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
                       @click="selectedCapacity = option.kWh; selectedSpecId = option.vehicleSpecificationId"
                       :class="['px-3 py-1.5 rounded-sm text-sm font-medium transition',
                         selectedSpecId === option.vehicleSpecificationId
                           ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                           : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
-                      {{ formatPeriod(option.availableFrom, option.availableTo, t('cars.since')) }}
+                      <span class="block text-left">{{ trimOptionLabels[index].primary }}</span>
+                      <span v-if="trimOptionLabels[index].secondary"
+                        :class="['block text-left text-xs font-normal',
+                          selectedSpecId === option.vehicleSpecificationId ? 'text-indigo-100' : 'text-indigo-400 dark:text-indigo-400']">
+                        {{ trimOptionLabels[index].secondary }}
+                      </span>
                     </button>
                   </div>
                 </template>
@@ -709,13 +719,18 @@ const filteredCapacities = computed(() => {
                     </button>
                   </div>
                   <div v-if="visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
-                    <button v-for="option in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
+                    <button v-for="(option, index) in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
                       @click="selectedCapacity = option.kWh; selectedSpecId = option.vehicleSpecificationId"
                       :class="['px-3 py-1.5 rounded-sm text-sm font-medium transition',
                         selectedSpecId === option.vehicleSpecificationId
                           ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
                           : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
-                      {{ formatPeriod(option.availableFrom, option.availableTo, t('cars.since')) }}
+                      <span class="block text-left">{{ trimOptionLabels[index].primary }}</span>
+                      <span v-if="trimOptionLabels[index].secondary"
+                        :class="['block text-left text-xs font-normal',
+                          selectedSpecId === option.vehicleSpecificationId ? 'text-indigo-100' : 'text-indigo-400 dark:text-indigo-400']">
+                        {{ trimOptionLabels[index].secondary }}
+                      </span>
                     </button>
                   </div>
                 </template>
