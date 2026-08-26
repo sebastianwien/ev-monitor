@@ -101,6 +101,7 @@ public enum CarBrand {
       // --- VW ---
       ID_3(CarBrand.VW, VehicleCategory.COMPACT, "ID.3",
             cap(45.0, "Pure"),
+            cap(50.0, "Neo Pure"),
             cap(58.0, "Pro"),
             cap(77.0, "Pro S"),
             cap(79.0, "Tour")),
