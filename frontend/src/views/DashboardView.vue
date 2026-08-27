@@ -563,11 +563,11 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_energy') }}</div>
                   <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ stats.energyCostEur != null ? formatCurrency(stats.energyCostEur) : '–' }}</div>
                 </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0">
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur !== 0">
                   <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_fixed') }}</div>
                   <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ formatCurrency(stats.fixedCostEur) }}</div>
                 </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="border-t border-gray-100 dark:border-gray-600 pt-1 mt-1">
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur !== 0" class="border-t border-gray-100 dark:border-gray-600 pt-1 mt-1">
                   <div class="text-[10px] font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</div>
                   <div class="text-base font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ formatCurrency(stats.totalCostEur) }}</div>
                 </div>
@@ -714,11 +714,11 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_energy') }}</span>
                   <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ stats.energyCostEur != null ? formatCurrency(stats.energyCostEur) : '–' }}</span>
                 </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="flex items-center justify-between">
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur !== 0" class="flex items-center justify-between">
                   <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_fixed') }}</span>
                   <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ formatCurrency(stats.fixedCostEur) }}</span>
                 </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur > 0" class="flex items-center justify-between border-t border-gray-100 dark:border-gray-600 pt-1 mt-1">
+                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur !== 0" class="flex items-center justify-between border-t border-gray-100 dark:border-gray-600 pt-1 mt-1">
                   <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</span>
                   <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(stats.totalCostEur) }}</span>
                 </div>

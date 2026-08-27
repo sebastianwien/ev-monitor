@@ -1424,6 +1424,10 @@ fixed_costs:
   empty: Inga fasta kostnader registrerade ännu.
   label_description: Beskrivning
   label_amount: Belopp (EUR)
+  hint_income: Registrera inkomster som bonusutbetalningar under kategorierna Inkomster eller Ersättning.
+  hint_income_active: Räknas som inkomst och dras av från kostnaderna - ange ett positivt belopp.
+  group_costs: Kostnader
+  group_income: Inkomster
   label_category: Kategori
   label_recurrence: Upprepning
   label_date: Datum
@@ -1442,6 +1446,8 @@ fixed_costs:
   category_FINANCING: Finansiering
   category_TIRES: Däck
   category_TUNING: Tuning
+  category_INCOME: Inkomster
+  category_COMPENSATION: Ersättning
   category_OTHER: Övrigt
   save: Spara
   cancel: Avbryt

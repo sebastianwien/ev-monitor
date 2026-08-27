@@ -1,6 +1,6 @@
 import api from './axios'
 
-export type FixedCostCategory = 'INSURANCE' | 'TAX' | 'TOLL' | 'CLEANING' | 'MAINTENANCE' | 'LEASING' | 'FINANCING' | 'TIRES' | 'TUNING' | 'OTHER'
+export type FixedCostCategory = 'INSURANCE' | 'TAX' | 'TOLL' | 'CLEANING' | 'MAINTENANCE' | 'LEASING' | 'FINANCING' | 'TIRES' | 'TUNING' | 'INCOME' | 'COMPENSATION' | 'OTHER'
 export type FixedCostRecurrence = 'ONE_TIME' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
 
 export interface FixedCost {

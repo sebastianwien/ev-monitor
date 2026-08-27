@@ -148,7 +148,10 @@ onMounted(load)
             <p class="text-gray-500 dark:text-gray-400 mt-0.5">
               {{ t(`fixed_costs.category_${item.category}`) }} &middot;
               {{ t(`fixed_costs.recurrence_${item.recurrence}`) }} &middot;
-              <span class="font-medium text-gray-700 dark:text-gray-300">{{ formatAmount(item.amount) }}</span>
+              <span
+                class="font-medium"
+                :class="item.amount < 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'"
+              >{{ formatAmount(item.amount) }}</span>
             </p>
             <p v-if="item.date" class="text-gray-400 dark:text-gray-500 mt-0.5">{{ item.date }}</p>
             <p v-else-if="item.startDate" class="text-gray-400 dark:text-gray-500 mt-0.5">

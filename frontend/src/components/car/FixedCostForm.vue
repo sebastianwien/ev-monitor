@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { INCOME_CATEGORIES, isIncomeCategory, toInputAmount, toSignedAmount } from '../../utils/fixedCostAmount'
 import {
   fixedCostService,
   type FixedCost,
@@ -23,7 +24,10 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const CATEGORIES: FixedCostCategory[] = ['INSURANCE', 'TAX', 'TOLL', 'CLEANING', 'MAINTENANCE', 'OTHER']
+const COST_CATEGORIES: FixedCostCategory[] = [
+  'INSURANCE', 'TAX', 'TOLL', 'CLEANING', 'MAINTENANCE',
+  'LEASING', 'FINANCING', 'TIRES', 'TUNING', 'OTHER',
+]
 const RECURRENCES: FixedCostRecurrence[] = ['ONE_TIME', 'MONTHLY', 'QUARTERLY', 'YEARLY']
 
 function today(): string {
@@ -37,7 +41,7 @@ const error = ref<string | null>(null)
 const form = ref<FixedCostRequest>(props.edit
   ? {
       description: props.edit.description,
-      amount: props.edit.amount,
+      amount: toInputAmount(props.edit.amount, props.edit.category),
       category: props.edit.category,
       recurrence: props.edit.recurrence,
       date: props.edit.date,
@@ -47,6 +51,7 @@ const form = ref<FixedCostRequest>(props.edit
   : { description: '', amount: 0, category: 'OTHER', recurrence: 'ONE_TIME', date: today(), startDate: today(), endDate: null })
 
 const isOneTime = computed(() => form.value.recurrence === 'ONE_TIME')
+const isIncome = computed(() => isIncomeCategory(form.value.category))
 
 const descriptionInvalid = computed(() => submitted.value && !form.value.description.trim())
 const dateInvalid = computed(() => submitted.value && isOneTime.value && !form.value.date)
@@ -67,6 +72,7 @@ async function save() {
   try {
     const payload: FixedCostRequest = {
       ...form.value,
+      amount: toSignedAmount(form.value.amount, form.value.category),
       date: isOneTime.value ? form.value.date : null,
       startDate: isOneTime.value ? null : form.value.startDate,
       endDate: isOneTime.value ? null : form.value.endDate,
@@ -112,18 +118,32 @@ const inputError = `${inputBase} border-red-400 dark:border-red-500 focus:ring-r
         <input
           v-model.number="form.amount"
           type="number"
-          min="0"
           step="0.01"
+          aria-describedby="fixed-cost-amount-hint"
           :class="inputNormal"
         />
+        <p
+          id="fixed-cost-amount-hint"
+          class="text-xs mt-0.5"
+          :class="isIncome ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'"
+        >
+          {{ isIncome ? t('fixed_costs.hint_income_active') : t('fixed_costs.hint_income') }}
+        </p>
       </div>
 
       <div>
         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('fixed_costs.label_category') }}</label>
         <select v-model="form.category" :class="inputNormal">
-          <option v-for="cat in CATEGORIES" :key="cat" :value="cat">
-            {{ t(`fixed_costs.category_${cat}`) }}
-          </option>
+          <optgroup :label="t('fixed_costs.group_costs')">
+            <option v-for="cat in COST_CATEGORIES" :key="cat" :value="cat">
+              {{ t(`fixed_costs.category_${cat}`) }}
+            </option>
+          </optgroup>
+          <optgroup :label="t('fixed_costs.group_income')">
+            <option v-for="cat in INCOME_CATEGORIES" :key="cat" :value="cat">
+              {{ t(`fixed_costs.category_${cat}`) }}
+            </option>
+          </optgroup>
         </select>
       </div>
 

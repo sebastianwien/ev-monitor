@@ -249,4 +249,47 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
 
         assertThrows(Exception.class, () -> fixedCostService.delete(fc.getId(), otherUserId));
     }
+
+    // --- negative amounts (income / compensation) ---
+
+    @Test
+    void calculateForPeriod_negativeOneTime_reducesTotal() {
+        // THG-Quote als Verguetung: negativer Betrag zieht von den Fixkosten ab
+        fixedCostRepository.save(FixedCost.createNew(carId, userId, "Versicherung",
+                new BigDecimal("89.00"), FixedCostCategory.INSURANCE, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 15), null, null));
+        fixedCostRepository.save(FixedCost.createNew(carId, userId, "THG-Quote",
+                new BigDecimal("-120.00"), FixedCostCategory.COMPENSATION, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 20), null, null));
+
+        BigDecimal result = fixedCostService.calculateForPeriod(carId,
+                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30));
+
+        BigDecimalAssert.assertEq(new BigDecimal("-31.00"), result);
+    }
+
+    @Test
+    void calculateForPeriod_negativeRecurring_multipliesAcrossMonths() {
+        // Monatliche Einnahme 25 EUR ueber drei Monate
+        fixedCostRepository.save(FixedCost.createNew(carId, userId, "Stellplatz-Untermiete",
+                new BigDecimal("-25.00"), FixedCostCategory.INCOME, FixedCostRecurrence.MONTHLY,
+                null, LocalDate.of(2024, 4, 1), null));
+
+        BigDecimal result = fixedCostService.calculateForPeriod(carId,
+                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30));
+
+        BigDecimalAssert.assertEq(new BigDecimal("-75.00"), result);
+    }
+
+    @Test
+    void create_negativeAmount_isPersisted() {
+        FixedCostRequest request = new FixedCostRequest("THG-Quote", new BigDecimal("-350.00"),
+                FixedCostCategory.COMPENSATION, FixedCostRecurrence.YEARLY,
+                null, LocalDate.of(2024, 1, 1), null);
+
+        FixedCostResponse result = fixedCostService.create(carId, userId, request);
+
+        BigDecimalAssert.assertEq(new BigDecimal("-350.00"), result.amount());
+        assertEquals(FixedCostCategory.COMPENSATION, result.category());
+    }
 }

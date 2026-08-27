@@ -10,5 +10,7 @@ public enum FixedCostCategory {
     FINANCING,
     TIRES,
     TUNING,
+    INCOME,
+    COMPENSATION,
     OTHER
 }

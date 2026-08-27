@@ -10,7 +10,7 @@ import java.time.LocalDate;
 @ValidFixedCostDates
 public record FixedCostRequest(
         @NotBlank @Size(max = 255) String description,
-        @NotNull @DecimalMin("0.00") @Digits(integer = 8, fraction = 2) BigDecimal amount,
+        @NotNull @Digits(integer = 8, fraction = 2) BigDecimal amount,
         @NotNull FixedCostCategory category,
         @NotNull FixedCostRecurrence recurrence,
         LocalDate date,

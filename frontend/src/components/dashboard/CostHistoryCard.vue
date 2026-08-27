@@ -67,6 +67,16 @@ const totalData = computed(() =>
 
 
 
+/** Lowest point of the stack: sum of all negative (income) contributions per month. */
+const negativeTotals = computed(() =>
+  last12Months.value.map((_, i) =>
+    last12MonthsPerCategory.value.reduce(
+      (sum, { data }) => sum + Math.min(0, data[i] ?? 0),
+      Math.min(0, energyData.value[i] ?? 0),
+    )
+  )
+)
+
 const labels = computed(() =>
   last12Months.value.map(m => {
     const d = new Date(m.year, m.month - 1, 1)
@@ -119,8 +129,8 @@ const chartOptions = computed((): ChartOptions<'bar'> => ({
     datalabels: {
       display: (ctx: any) => {
         const val = ctx.dataset.data[ctx.dataIndex] as number ?? 0
-        if (ctx.dataset.label === '_total') return val > 0
-        return ctx.dataset.type === 'bar' && val >= 10
+        if (ctx.dataset.label === '_total') return val !== 0
+        return ctx.dataset.type === 'bar' && Math.abs(val) >= 10
       },
       color: (ctx: any) => ctx.dataset.label === '_total'
         ? (isDark.value ? '#d1d5db' : '#374151')
@@ -153,8 +163,8 @@ const chartOptions = computed((): ChartOptions<'bar'> => ({
     },
     y: {
       stacked: true,
-      min: 0,
-      max: totalData.value.length ? Math.ceil(Math.max(...totalData.value) * 1.1) : undefined,
+      min: negativeTotals.value.length ? Math.floor(Math.min(0, ...negativeTotals.value) * 1.1) : 0,
+      max: totalData.value.length ? Math.ceil(Math.max(0, ...totalData.value) * 1.1) : undefined,
       grid: { color: isDark.value ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' },
       ticks: {
         color: isDark.value ? '#9ca3af' : '#6b7280',
@@ -168,7 +178,7 @@ const chartOptions = computed((): ChartOptions<'bar'> => ({
 }))
 
 const hasAnyData = computed(() =>
-  totalData.value.some(v => v > 0)
+  totalData.value.some(v => v !== 0)
 )
 </script>
 
