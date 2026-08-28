@@ -1581,7 +1581,8 @@ function toggleAllCharges() {
                     <!-- Ereignisse des Tages: Fahrten und Ladungen chronologisch gemischt, neueste zuerst. -->
                     <template v-for="ev in day.events" :key="ev.kind === 'charge' ? 'pc_' + ev.charge.id : ev.trip.id">
                     <PeriodChargeLine v-if="ev.kind === 'charge'" :entry="ev.charge"
-                                      :card-name="chargeCardName(ev.charge)" @edit="editingLog = $event" />
+                                      :card-name="chargeCardName(ev.charge)" @edit="editingLog = $event"
+                                      @power-curve="openPowerCurve" />
                     <template v-else>
                     <template v-for="{ trip, tripIdx } in [ev]" :key="trip.id">
 
@@ -1894,7 +1895,8 @@ function toggleAllCharges() {
                     <template v-for="ev in day.events" :key="ev.kind === 'charge' ? 'pcd_' + ev.charge.id : ev.trip.id + '__d'">
                     <PeriodChargeLine v-if="ev.kind === 'charge'" :entry="ev.charge"
                                       layout="row" :own-avg-cost-per-kwh="personalCostBenchmark?.costPerKwh"
-                                      :card-name="chargeCardName(ev.charge)" @edit="editingLog = $event" />
+                                      :card-name="chargeCardName(ev.charge)" @edit="editingLog = $event"
+                                      @power-curve="openPowerCurve" />
                     <template v-else>
                     <template v-for="{ trip, tripIdx } in [ev]" :key="trip.id + '__d'">
                       <!-- Add-trip form (full width inside container) -->

@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, CreditCardIcon, PencilSquareIcon, SunIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ChartBarSquareIcon, CreditCardIcon, LockClosedIcon, PencilSquareIcon, SunIcon } from '@heroicons/vue/24/outline'
 import ChargeTypeBadge from './ChargeTypeBadge.vue'
 import ComparisonChip from './ComparisonChip.vue'
 import MetricCell from './MetricCell.vue'
 import { FEED_GRID_COLS } from './feedGridCols'
+import { useAuthStore } from '../../stores/auth'
 import { useCommunityComparison } from '../../composables/useCommunityComparison'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { formatSocRange } from '../../utils/socRange'
-import { formatPauseDuration } from '../../utils/tripTimeFormat'
+import { chargeTimeRange, formatPauseDuration } from '../../utils/tripTimeFormat'
 import { tempBadgeClass } from '../../utils/temperatureColor'
+import { purchasesAvailable } from '../../utils/iapPolicy'
 
 /**
  * Eine Ladung im Zeitraum-Feed, anatomisch identisch zur Fahrtzeile - in beiden Layouts:
@@ -18,8 +20,8 @@ import { tempBadgeClass } from '../../utils/temperatureColor'
  * `row` (Desktop) die einzeilige Fahrt-Row im geteilten Spaltenraster {@link FEED_GRID_COLS}.
  * So lesen sich Fahrten und Ladungen im Tag fast wie eine Tabelle.
  *
- * In der Ladung-Ansicht ist die Ladung die Grenze und traegt eine ganze Karte; zum Aufklappen
- * von Ladekurve und Zusammenfuehren fuehrt weiterhin die Ladung-Ansicht.
+ * Die Ladekurve oeffnet wie in der Ladung-Ansicht als Modal ('power-curve'-Event, das der
+ * Aufrufer an sein PowerCurveModal bindet); nur das Zusammenfuehren bleibt der Ladung-Ansicht.
  */
 const props = withDefaults(
   defineProps<{
@@ -32,21 +34,25 @@ const props = withDefaults(
   }>(),
   { layout: 'card' },
 )
-const emit = defineEmits<{ (e: 'edit', entry: any): void }>()
+const emit = defineEmits<{ (e: 'edit', entry: any): void; (e: 'power-curve', entry: any): void }>()
 
 const { t, locale } = useI18n()
 const { formatCurrency, formatCostPerKwh } = useLocaleFormat()
+const authStore = useAuthStore()
 
-const LOCALE_MAP: Record<string, string> = { en: 'en-GB', nb: 'nb-NO', sv: 'sv-SE' }
-
+/** Von-bis statt nur Beginn: loggedAt ist bei Ladungen der Ladebeginn, das Ende folgt aus der Dauer. */
 const time = computed(() =>
-  props.entry.loggedAt
-    ? new Date(props.entry.loggedAt).toLocaleTimeString(LOCALE_MAP[locale.value] ?? 'de-DE', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : '',
-)
+  chargeTimeRange(props.entry.loggedAt, props.entry.chargeDurationMinutes, locale.value))
+
+// Dieselbe Kurven-Sichtbarkeit wie in der Ladung-Ansicht: freigeschaltet nach Analytics-
+// bzw. SoC-Berechtigung, sonst als gesperrtes Symbol, wo Kaeufe moeglich sind.
+const canOpenCurve = computed(() =>
+  (props.entry.hasPowerCurve && authStore.canViewLiveAnalytics)
+    || (props.entry.hasSocCurve && authStore.canViewSocCurve))
+const curveLocked = computed(() =>
+  !canOpenCurve.value
+    && (props.entry.hasPowerCurve || props.entry.hasSocCurve)
+    && purchasesAvailable())
 
 /** Am Fahrzeug angekommene Energie, sonst die abgerechnete - in dieser Reihenfolge. */
 const kwh = computed<number | null>(() => props.entry.kwhAtVehicle ?? props.entry.kwhCharged ?? null)
@@ -129,7 +135,19 @@ const place = computed(() =>
         </ComparisonChip>
         <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
       </div>
-      <div class="flex justify-end">
+      <div class="flex justify-end items-center gap-0.5">
+        <button v-if="canOpenCurve" type="button" @click.stop="emit('power-curve', entry)"
+          :aria-label="t('dashboard.show_power_curve')" aria-haspopup="dialog"
+          class="p-1 rounded text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200/60 dark:hover:bg-indigo-900/60 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+          <ChartBarSquareIcon class="w-4 h-4" aria-hidden="true" />
+        </button>
+        <!-- Gesperrt: dasselbe Kurven-Symbol mit Schloss-Marke, wie in der Ladung-Ansicht. -->
+        <button v-else-if="curveLocked" type="button" @click.stop="emit('power-curve', entry)"
+          :aria-label="t('dashboard.power_curve_locked')" :title="t('dashboard.power_curve_locked')" aria-haspopup="dialog"
+          class="relative p-1 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+          <ChartBarSquareIcon class="w-4 h-4" aria-hidden="true" />
+          <LockClosedIcon class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5" aria-hidden="true" />
+        </button>
         <button type="button" @click.stop="emit('edit', entry)"
           class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           :aria-label="t('dashboard.action_edit')">
@@ -165,6 +183,18 @@ const place = computed(() =>
         <ChargeTypeBadge :type="entry.chargingType" />
       </span>
       <div class="flex items-center gap-1.5 flex-shrink-0">
+        <button v-if="canOpenCurve" type="button" @click.stop="emit('power-curve', entry)"
+          :aria-label="t('dashboard.show_power_curve')" aria-haspopup="dialog"
+          class="p-1 rounded text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200/60 dark:hover:bg-indigo-900/60 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+          <ChartBarSquareIcon class="w-5 h-5" aria-hidden="true" />
+        </button>
+        <!-- Gesperrt: dasselbe Kurven-Symbol mit Schloss-Marke, wie in der Ladung-Ansicht. -->
+        <button v-else-if="curveLocked" type="button" @click.stop="emit('power-curve', entry)"
+          :aria-label="t('dashboard.power_curve_locked')" :title="t('dashboard.power_curve_locked')" aria-haspopup="dialog"
+          class="relative p-1 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+          <ChartBarSquareIcon class="w-5 h-5" aria-hidden="true" />
+          <LockClosedIcon class="absolute -bottom-0.5 -right-0.5 w-3 h-3" aria-hidden="true" />
+        </button>
         <button type="button" @click.stop="emit('edit', entry)"
           class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           :aria-label="t('dashboard.action_edit')">

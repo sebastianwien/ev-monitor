@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatTripDateTimeRange, tripDateTimeParts, formatPauseDuration, tripDayLabel } from '../tripTimeFormat'
+import { formatTripDateTimeRange, tripDateTimeParts, formatPauseDuration, tripDayLabel, chargeTimeRange } from '../tripTimeFormat'
 
 /**
  * Die Fahrtzeit ist die Ueberschrift einer Fahrt im Log-Feed: zuerst der Tag, dann die
@@ -64,6 +64,26 @@ describe('formatTripDateTimeRange', () => {
     it('is what the joined string is built from', () => {
       const parts = tripDateTimeParts(start, end, 'de')
       expect(formatTripDateTimeRange(start, end, 'de')).toBe(`${parts.date}, ${parts.time}`)
+    })
+  })
+
+  describe('chargeTimeRange', () => {
+    it('spannt von Beginn bis Beginn plus Dauer', () => {
+      expect(chargeTimeRange('2026-08-20T12:30:00+02:00', 95, 'de')).toBe('12:30 - 14:05')
+    })
+
+    it('traegt das Enddatum, wenn die Ladung ueber Mitternacht laeuft', () => {
+      expect(chargeTimeRange('2026-08-20T23:40:00+02:00', 120, 'de')).toBe('23:40 - 21.8., 01:40')
+    })
+
+    it('zeigt ohne Dauer nur den Beginn - eine Nullspanne waere gelogen', () => {
+      expect(chargeTimeRange('2026-08-20T12:30:00+02:00', null, 'de')).toBe('12:30')
+      expect(chargeTimeRange('2026-08-20T12:30:00+02:00', 0, 'de')).toBe('12:30')
+    })
+
+    it('ist leer ohne Beginn', () => {
+      expect(chargeTimeRange(null, 60, 'de')).toBe('')
+      expect(chargeTimeRange(undefined, 60, 'de')).toBe('')
     })
   })
 

@@ -111,10 +111,15 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
                           :tooltip="costTooltip" :delta-percent="costDelta">
             {{ formatCurrency(group.totals.costPer100km) }}/100km
           </ComparisonChip>
-          <span v-if="group.totals.chargedKwh > 0"
-                class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
-                       bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-amber-600 dark:text-amber-500">
-            +{{ group.totals.chargedKwh.toFixed(1) }} kWh
+          <!-- Ladungen tragen die Indigo-Identitaet der Ladezeilen: so verraet auch der
+               eingeklappte Kopf auf einen Blick, dass der Zeitraum Ladevorgaenge enthaelt. -->
+          <span v-if="group.totals.chargeCount > 0 || group.totals.chargedKwh > 0"
+                class="inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
+                       bg-indigo-100/80 dark:bg-indigo-900/40 border-indigo-300/70 dark:border-indigo-700/50 text-indigo-700 dark:text-indigo-300"
+                :title="t('logs.period.charges', { count: group.totals.chargeCount }, group.totals.chargeCount)">
+            <BoltIcon class="w-3 h-3" />
+            <template v-if="group.totals.chargedKwh > 0">+{{ group.totals.chargedKwh.toFixed(1) }} kWh</template>
+            <template v-else>{{ group.totals.chargeCount }}&times;</template>
           </span>
           <span v-if="phantomKwh"
                 class="inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap

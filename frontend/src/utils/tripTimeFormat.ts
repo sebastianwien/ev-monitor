@@ -49,6 +49,26 @@ export function formatTripDateTimeRange(
   return date ? `${date}, ${time}` : ''
 }
 
+/**
+ * Zeitspanne einer Ladung: Beginn aus loggedAt, Ende aus Beginn plus Dauer. Ohne Dauer
+ * bleibt nur der Beginn - eine Nullspanne waere gelogen. Laeuft die Ladung ueber
+ * Mitternacht, traegt das Ende sein Datum, genau wie bei den Fahrten.
+ */
+export function chargeTimeRange(
+  loggedAtIso: string | null | undefined,
+  durationMinutes: number | null | undefined,
+  locale: string,
+): string {
+  if (!loggedAtIso) return ''
+  const start = new Date(loggedAtIso)
+  if (Number.isNaN(start.getTime())) return ''
+  if (durationMinutes == null || durationMinutes <= 0) {
+    return start.toLocaleTimeString(LOCALE_MAP[locale] ?? 'de-DE', TIME_OPTS)
+  }
+  const end = new Date(start.getTime() + Math.round(durationMinutes) * 60_000)
+  return tripDateTimeParts(loggedAtIso, end.toISOString(), locale).time
+}
+
 /** Ab hier interessiert die Minute nicht mehr - eine Nacht ist eine Nacht. */
 const COARSE_ABOVE_HOURS = 6
 
