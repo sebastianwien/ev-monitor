@@ -115,6 +115,10 @@ test('Mobile: Edit-Modal auf /logs liegt im Viewport (nicht im Pager-Track)', as
   await page.goto('/logs');
   await page.waitForLoadState('networkidle');
 
+  // Der Feed startet in der Monats-Ansicht - das Aktionen-Menue gibt es nur auf den
+  // Ladezyklus-Karten der Ladung-Ansicht.
+  await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Ladung' }).click();
+
   // Mobile Karten sind eingeklappt - das Aktionsmenue liegt in der aufgeklappten Karte.
   await page.locator('button[aria-expanded]:has-text("kWh"):visible').first().click();
 

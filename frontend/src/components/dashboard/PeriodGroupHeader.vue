@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import ComparisonChip from './ComparisonChip.vue'
 import PeriodDayBars from './PeriodDayBars.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -29,6 +29,8 @@ const props = defineProps<{
   /** Schmale Ansicht: alles untereinander, Raster unter den Chips. */
   compact?: boolean
   community?: CommunityBenchmark | null
+  /** Standverlust-Summe des Zeitraums in kWh - bereits gegated, null blendet den Chip aus. */
+  phantomKwh?: number | null
 }>()
 
 const { t, locale } = useI18n()
@@ -113,6 +115,12 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
                 class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
                        bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-amber-600 dark:text-amber-500">
             +{{ group.totals.chargedKwh.toFixed(1) }} kWh
+          </span>
+          <span v-if="phantomKwh"
+                class="inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
+                       bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-amber-500 dark:text-amber-500"
+                :title="t('dashboard.phantom_drain_word')">
+            <BoltIcon class="w-3 h-3" />{{ phantomKwh.toFixed(1) }} kWh
           </span>
           <span v-if="group.totals.unmeasuredTrips" class="text-gray-400 dark:text-gray-500 cursor-help text-[13px]"
                 :title="t('logs.period.unmeasured', { count: group.totals.unmeasuredTrips }, group.totals.unmeasuredTrips)">

@@ -31,7 +31,7 @@ import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
 import { purchasesAvailable } from '../utils/iapPolicy'
 import { isShortTrip } from '../utils/shortTrip'
-import { phantomEurFor } from '../utils/phantomDrain'
+import { phantomEurFor, totalPhantomKwh } from '../utils/phantomDrain'
 import {
   tripConsumption as tripConsumptionPure,
   tripGroupConsumedKwh as tripGroupConsumedKwhPure,
@@ -265,8 +265,20 @@ function loadCollapsedGroups(carId: string | number | null): Set<string> {
 
 const collapsedTripGroups = ref<Set<string>>(loadCollapsedGroups(selectedCarId.value))
 
+// Zeitraum-Gruppen (Tag/Woche/Monat, ids "resolution:key") starten zugeklappt - ein Monat
+// rendert sonst hunderte Zeilen auf einmal. Aufklappen gilt nur fuer die Sitzung.
+const expandedPeriodGroups = ref<Set<string>>(new Set())
+const isPeriodGroupId = (groupId: string) => groupId.includes(':')
+
+function isGroupCollapsed(groupId: string): boolean {
+  return isPeriodGroupId(groupId)
+    ? !expandedPeriodGroups.value.has(groupId)
+    : collapsedTripGroups.value.has(groupId)
+}
+
 watch(selectedCarId, (newId) => {
   collapsedTripGroups.value = loadCollapsedGroups(newId)
+  expandedPeriodGroups.value = new Set()
 })
 
 const page1GroupIds = computed<Set<string>>(() => {
@@ -276,6 +288,13 @@ const page1GroupIds = computed<Set<string>>(() => {
 
 function toggleTripGroup(groupId: string) {
   haptic()
+  if (isPeriodGroupId(groupId)) {
+    const next = new Set(expandedPeriodGroups.value)
+    if (next.has(groupId)) next.delete(groupId)
+    else next.add(groupId)
+    expandedPeriodGroups.value = next
+    return
+  }
   const next = new Set(collapsedTripGroups.value)
   if (next.has(groupId)) next.delete(groupId)
   else next.add(groupId)
@@ -332,11 +351,8 @@ const cycleFeed = computed<any[]>(() => {
       }
       // Drain between last trip and subsequent charge entry
       const nextEntry = i < feed.length ? feed[i] : null
-      const drainAfterGroup = (nextEntry && !nextEntry._isTrip) ? nextEntry._phantomDrain : null
-      const totalPhantomKwh =
-        group.trips.reduce((s: number, t: any) => s + (t._phantomDrain?.kwh ?? 0), 0)
-        + (drainAfterGroup?.kwh ?? 0)
-      group.totalPhantomKwh = totalPhantomKwh > 0.05 ? Math.round(totalPhantomKwh * 100) / 100 : null
+      const drainAfterGroup = (nextEntry && !nextEntry._isTrip) ? [nextEntry] : []
+      group.totalPhantomKwh = totalPhantomKwh([...group.trips, ...drainAfterGroup])
       // Ladungen sind im Zyklus-Feed eigene Eintraege, der Tag traegt hier nur Fahrten.
       group.days = groupTripsByDay(group.trips).map((day: any) => ({
         ...day,
@@ -358,14 +374,14 @@ const cycleFeed = computed<any[]>(() => {
  */
 type FeedResolution = 'cycle' | PeriodResolution
 const RESOLUTION_KEY = 'logfeed_resolution'
-const RESOLUTIONS: FeedResolution[] = ['cycle', 'day', 'week', 'month']
+const RESOLUTIONS: FeedResolution[] = ['day', 'week', 'month', 'cycle']
 
 function loadResolution(): FeedResolution {
   try {
     const saved = localStorage.getItem(RESOLUTION_KEY) as FeedResolution | null
-    return saved && RESOLUTIONS.includes(saved) ? saved : 'cycle'
+    return saved && RESOLUTIONS.includes(saved) ? saved : 'month'
   } catch {
-    return 'cycle'
+    return 'month'
   }
 }
 
@@ -414,6 +430,8 @@ const periodFeed = computed<any[]>(() => {
     trips: group.trips,
     totalKm: group.totals.km,
     groupSize: group.totals.tripCount,
+    // Standverluste des Zeitraums - Drains haengen an Fahrten wie an Ladungen.
+    totalPhantomKwh: totalPhantomKwh([...group.trips, ...group.charges]),
   }))
 })
 
@@ -783,6 +801,15 @@ const teaserPhantomId = computed<string | null>(() => {
   return first ? first.id : null
 })
 
+// Die EINZIGEN Sichtbarkeits-Regeln fuer Standverluste - Gate nirgendwo im Template
+// duplizieren. Einzelner Drain: Supporter-Pack oder der eine Teaser. Summen: nur Supporter.
+function showsDrain(entry: any): boolean {
+  return !!entry?._phantomDrain && (authStore.canViewLiveAnalytics || entry.id === teaserPhantomId.value)
+}
+function visiblePhantomTotal(item: any): number | null {
+  return authStore.canViewLiveAnalytics ? (item?.totalPhantomKwh ?? null) : null
+}
+
 // All trips visible in the current feed - used to seed the cpk-map. We pull
 // them out of mergedLogFeed (which still flags each trip via `_isTrip`); the
 // later groupedFeed computed clusters them but keeps the same trip references.
@@ -811,6 +838,12 @@ function tripCostPerKwh(trip: any): number | null {
 // back to the user's average). Null when no real price is known - then we hide it.
 function phantomDrainEur(drain: any): number | null {
   return phantomEurFor(drain, stats.value?.avgCostPerKwh ?? null)
+}
+
+/** Standzeit eines Drains in Minuten, fuer die Dauer im Separator - auch ueber Tagesgrenzen. */
+function drainPauseMinutes(trip: any): number | null {
+  const ms = trip?._phantomDrain?.pauseMs
+  return ms != null && ms > 0 ? Math.round(ms / 60000) : null
 }
 
 function tripCostPer100km(trip: any): number | null {
@@ -1091,7 +1124,7 @@ const chargeCount = computed(() => visibleChargeEntries.value.length)
 
 const allTripsExpanded = computed(() =>
   visibleTripGroups.value.length > 0
-  && visibleTripGroups.value.every(g => !collapsedTripGroups.value.has(g.groupId)),
+  && visibleTripGroups.value.every(g => !isGroupCollapsed(g.groupId)),
 )
 const allChargesExpanded = computed(() =>
   visibleChargeEntries.value.length > 0
@@ -1101,16 +1134,23 @@ const allChargesExpanded = computed(() =>
 )
 
 function toggleAllTrips() {
-  const next = new Set(collapsedTripGroups.value)
-  if (allTripsExpanded.value) {
-    visibleTripGroups.value.forEach(g => next.add(g.groupId))
-  } else {
-    visibleTripGroups.value.forEach(g => next.delete(g.groupId))
+  const expandAll = !allTripsExpanded.value
+  const nextCollapsed = new Set(collapsedTripGroups.value)
+  const nextExpanded = new Set(expandedPeriodGroups.value)
+  for (const g of visibleTripGroups.value) {
+    if (isPeriodGroupId(g.groupId)) {
+      if (expandAll) nextExpanded.add(g.groupId)
+      else nextExpanded.delete(g.groupId)
+    } else {
+      if (expandAll) nextCollapsed.delete(g.groupId)
+      else nextCollapsed.add(g.groupId)
+    }
   }
-  collapsedTripGroups.value = next
+  collapsedTripGroups.value = nextCollapsed
+  expandedPeriodGroups.value = nextExpanded
   if (selectedCarId.value) {
     try {
-      const toSave = [...next].filter(id => page1GroupIds.value.has(id))
+      const toSave = [...nextCollapsed].filter(id => page1GroupIds.value.has(id))
       localStorage.setItem(tripCollapseKey(selectedCarId.value), JSON.stringify(toSave))
     } catch {}
   }
@@ -1486,11 +1526,11 @@ function toggleAllCharges() {
 
                   <!-- Kopf des Zeitraums - Tag, Woche oder Monat -->
                   <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
-                          :aria-expanded="!collapsedTripGroups.has(item.groupId)"
+                          :aria-expanded="!isGroupCollapsed(item.groupId)"
                           :ref="(el) => setPeriodHeaderRef(item.groupId, 'm', el)" :style="stickyHeaderStyle"
                           class="w-full text-left sticky z-[3] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors border-b border-gray-100 dark:border-gray-600">
-                    <PeriodGroupHeader :group="item.period" :expanded="!collapsedTripGroups.has(item.groupId)" compact
-                                       :community="communityBenchmark" />
+                    <PeriodGroupHeader :group="item.period" :expanded="!isGroupCollapsed(item.groupId)" compact
+                                       :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
                   </button>
 
                   <!-- Group header -->
@@ -1503,9 +1543,9 @@ function toggleAllCharges() {
                         {{ t('dashboard.trip_group_count', { count: item.groupSize }, item.groupSize) }}
                         <span v-if="item.totalKm" class="font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">&middot; {{ formatDistance(item.totalKm) }}</span>
                         <span v-if="item.dateRange" class="font-normal text-gray-500 dark:text-gray-400 whitespace-nowrap">&middot; {{ item.dateRange }}</span>
-                        <span v-if="item.totalPhantomKwh && authStore.canViewLiveAnalytics" class="font-normal text-amber-500 dark:text-amber-500 inline-flex items-center gap-0.5 whitespace-nowrap shrink-0">&middot; <BoltIcon class="w-2.5 h-2.5" />{{ item.totalPhantomKwh.toFixed(1) }} kWh<span class="hidden sm:inline">&nbsp;{{ t('dashboard.phantom_drain_word') }}</span></span>
+                        <span v-if="visiblePhantomTotal(item)" class="font-normal text-amber-500 dark:text-amber-500 inline-flex items-center gap-0.5 whitespace-nowrap shrink-0">&middot; <BoltIcon class="w-2.5 h-2.5" />{{ item.totalPhantomKwh.toFixed(1) }} kWh<span class="hidden sm:inline">&nbsp;{{ t('dashboard.phantom_drain_word') }}</span></span>
                       </div>
-                      <ChevronUpIcon v-if="!collapsedTripGroups.has(item.groupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
+                      <ChevronUpIcon v-if="!isGroupCollapsed(item.groupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
                       <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0" />
                     </div>
                     <!-- Die Bilanz des Ladezyklus - was zwischen zwei Ladungen verbraucht wurde.
@@ -1527,7 +1567,7 @@ function toggleAllCharges() {
 
                   <!-- Trips (expanded, animated) -->
                   <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                  <div v-if="!collapsedTripGroups.has(item.groupId)">
+                  <div v-if="!isGroupCollapsed(item.groupId)">
                     <template v-for="day in item.days" :key="day.dateKey">
                     <!-- Datumsband: bleibt beim Scrollen stehen, damit der Tag waehrend des
                          Lesens sichtbar bleibt. Nur exakt gezaehlte Werte, keine Schaetzung. -->
@@ -1559,19 +1599,17 @@ function toggleAllCharges() {
                            .self bei den Tasten, damit Tippen im Feedback-Textfeld nicht toggelt. -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                       <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
-                           :class="['px-3 py-3 bg-emerald-50/60 dark:bg-gray-700 space-y-2 border-t border-emerald-200/60 dark:border-gray-600',
-                                    hasTripMap(trip) ? 'cursor-pointer' : '']"
-                           :role="hasTripMap(trip) ? 'button' : undefined"
-                           :tabindex="hasTripMap(trip) ? 0 : undefined"
-                           :aria-expanded="hasTripMap(trip) ? expandedTripMaps.has(trip.id) : undefined"
-                           :aria-controls="hasTripMap(trip) ? 'trip-map-' + trip.id : undefined"
-                           @click="hasTripMap(trip) && toggleTripMap(trip.id)"
-                           @keydown.enter.self.prevent="hasTripMap(trip) && toggleTripMap(trip.id)"
-                           @keydown.space.self.prevent="hasTripMap(trip) && toggleTripMap(trip.id)">
+                           class="px-3 py-3 bg-emerald-50/60 dark:bg-gray-700 space-y-2 border-t border-emerald-200/60 dark:border-gray-600 cursor-pointer"
+                           role="button" tabindex="0"
+                           :aria-expanded="expandedTripMaps.has(trip.id)"
+                           :aria-controls="'trip-details-' + trip.id"
+                           @click="toggleTripMap(trip.id)"
+                           @keydown.enter.self.prevent="toggleTripMap(trip.id)"
+                           @keydown.space.self.prevent="toggleTripMap(trip.id)">
                     <!-- Kopfzeile: wann + wie weit. Das Wann fuehrt, weil man eine Fahrt
                          ueber ihren Zeitpunkt wiederfindet, nicht ueber ihre Laenge. -->
                     <div class="flex items-center justify-between gap-2">
-                      <span class="inline-flex items-baseline gap-2 min-w-0 flex-wrap">
+                      <span class="inline-flex items-center gap-2 min-w-0 flex-wrap">
                         <span class="inline-flex items-center gap-1.5 min-w-0">
                           <MapIcon :class="['w-4 h-4 flex-shrink-0 self-center',
                             isAdmin && trip.dataSource === 'TESLA_LIVE'    ? 'text-red-500 dark:text-red-400' :
@@ -1592,67 +1630,68 @@ function toggleAllCharges() {
                           :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(trip.outsideTempCelsius)]">
                           <SunIcon class="w-3 h-3" />{{ trip.outsideTempCelsius }}°C
                         </span>
-                        <!-- Affordance fuer die aufklappbare Karte - der Klick liegt auf der Zeile. -->
-                        <ChevronDownIcon v-if="hasTripMap(trip)"
+                        <!-- Einzige Affordance im Kopf: der Klick liegt auf der Zeile, die
+                             Aktionen wohnen im ausgeklappten Bereich - zwei Touch-Ziele
+                             direkt nebeneinander waren auf Mobile zu fehleranfaellig. -->
+                        <ChevronDownIcon
                           :class="['w-4 h-4 text-gray-400 transition-transform duration-200', expandedTripMaps.has(trip.id) ? 'rotate-180' : '']"
                           aria-hidden="true" />
-                        <div class="relative flex-shrink-0">
-                          <button @click.stop="openMenuTripId = openMenuTripId === trip.id ? null : trip.id"
-                            class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
-                            <EllipsisVerticalIcon class="w-5 h-5" />
-                          </button>
-                          <div v-if="openMenuTripId === trip.id"
-                            :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden',
-                                     tripIdx === 0 ? 'top-full mt-1' : 'bottom-full mb-1']">
-                            <template v-if="trip.dataSource !== 'USER_CREATED'">
-                              <button @click.stop="toggleRating(trip.id, 'positive', trip.feedback); openMenuTripId = null"
-                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition"
-                                :class="effectiveRating(trip.id, trip.feedback) === 'positive' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'">
-                                <HandThumbUpIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.trip_feedback_positive') }}
-                              </button>
-                              <button @click.stop="toggleRating(trip.id, 'negative', trip.feedback); openMenuTripId = null"
-                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition"
-                                :class="effectiveRating(trip.id, trip.feedback) === 'negative' ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'">
-                                <HandThumbDownIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.trip_feedback_negative') }}
-                              </button>
-                              <div class="border-t border-gray-100 dark:border-gray-600 my-1"></div>
-                            </template>
-                            <button @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
-                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                              <PlusIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_add_trip') }}
-                            </button>
-                            <button @click.stop="startEditTrip(trip); openMenuTripId = null"
-                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                              <PencilSquareIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.trip_edit') }}
-                            </button>
-                            <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
-                              <button @click.stop="handleDeleteTrip(trip.id); openMenuTripId = null"
-                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
-                                <TrashIcon class="w-4 h-4 flex-shrink-0" />{{ t('dashboard.action_delete') }}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     </div>
                     <!-- Metrics: 2-col grid, full width -->
                     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px]">
-                      <MetricCell v-if="tripConsumption(trip)" :label="t('dashboard.trip_m_consumption')" emphasized>
+                      <MetricCell v-if="tripConsumption(trip)" emphasized>
                         {{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
                       </MetricCell>
-                      <MetricCell v-if="trip.maxSpeedKmh != null" :label="t('dashboard.trip_m_speed')">
+                      <MetricCell v-if="trip.maxSpeedKmh != null">
                         {{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
                       </MetricCell>
-                      <MetricCell v-if="trip.socStart != null && trip.socEnd != null" :label="t('dashboard.trip_m_soc')">
+                      <MetricCell v-if="trip.socStart != null && trip.socEnd != null">
                         {{ trip.socStart }}% → {{ trip.socEnd }}%
                       </MetricCell>
-                      <MetricCell v-if="trip.routeType" :label="t('dashboard.trip_m_route')">
+                      <MetricCell v-if="trip.routeType">
                         {{ t('dashboard.trip_route_' + trip.routeType.toLowerCase()) }}
                       </MetricCell>
                     </div>
                     <TripClimateMarkers :climate="trip.climate" />
                     <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                      <TripMapPanel v-if="expandedTripMaps.has(trip.id)" :trip="trip" :panel-id="'trip-map-' + trip.id" />
+                      <div v-if="expandedTripMaps.has(trip.id)" :id="'trip-details-' + trip.id">
+                        <TripMapPanel v-if="hasTripMap(trip)" :trip="trip" :panel-id="'trip-map-' + trip.id" />
+                        <!-- Aktionsleiste: ersetzt das Kebab-Menue aus dem Kopf. @click.stop,
+                             damit ein Tipp auf eine Aktion die Karte nicht wieder zuklappt. -->
+                        <div class="flex items-center gap-1 pt-2" @click.stop>
+                          <template v-if="trip.dataSource !== 'USER_CREATED'">
+                            <button type="button" @click="toggleRating(trip.id, 'positive', trip.feedback)"
+                              :aria-label="t('dashboard.trip_feedback_positive')" :title="t('dashboard.trip_feedback_positive')"
+                              :class="['p-2 rounded transition hover:bg-gray-100 dark:hover:bg-gray-600',
+                                effectiveRating(trip.id, trip.feedback) === 'positive' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200']">
+                              <HandThumbUpIcon class="w-4 h-4" />
+                            </button>
+                            <button type="button" @click="toggleRating(trip.id, 'negative', trip.feedback)"
+                              :aria-label="t('dashboard.trip_feedback_negative')" :title="t('dashboard.trip_feedback_negative')"
+                              :class="['p-2 rounded transition hover:bg-gray-100 dark:hover:bg-gray-600',
+                                effectiveRating(trip.id, trip.feedback) === 'negative' ? 'text-red-600 dark:text-red-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200']">
+                              <HandThumbDownIcon class="w-4 h-4" />
+                            </button>
+                          </template>
+                          <span class="flex-1" />
+                          <button type="button" @click="startAddTrip(trip.id, trip.tripStartedAt)"
+                            :aria-label="t('dashboard.action_add_trip')" :title="t('dashboard.action_add_trip')"
+                            class="p-2 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                            <PlusIcon class="w-4 h-4" />
+                          </button>
+                          <button type="button" @click="startEditTrip(trip)"
+                            :aria-label="t('dashboard.trip_edit')" :title="t('dashboard.trip_edit')"
+                            class="p-2 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
+                            <PencilSquareIcon class="w-4 h-4" />
+                          </button>
+                          <button type="button" @click="handleDeleteTrip(trip.id)"
+                            :aria-label="t('dashboard.action_delete')" :title="t('dashboard.action_delete')"
+                            class="p-2 rounded text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+                            <TrashIcon class="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
                     </Transition>
                     <!-- Feedback panel - @click.stop, sonst klappt jeder Tipp ins Formular die Karte um. -->
                     <div v-if="feedbackOpenId === trip.id" @click.stop
@@ -1751,7 +1790,7 @@ function toggleAllCharges() {
                            unter ihr - dort, wo die Liste (neueste zuerst) die Luecke zeigt.
                            Erst die Ruhe, dann was sie gekostet hat; ohne ausgewiesenen
                            Standverlust bleibt die Dauer allein stehen. -->
-                      <div v-if="isRestBreak(day.trips, tripIdx as number) && !(trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId))"
+                      <div v-if="isRestBreak(day.trips, tripIdx as number) && !showsDrain(trip)"
                            class="flex items-center justify-center py-2">
                         <span class="text-[11px] text-gray-400 dark:text-gray-500">
                           {{ t('dashboard.trip_pause', { duration: formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }) }}
@@ -1759,11 +1798,11 @@ function toggleAllCharges() {
                       </div>
 
                       <!-- Phantom drain separator between trips -->
-                      <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && (tripIdx as number) < day.trips.length - 1"
+                      <div v-if="showsDrain(trip)"
                            class="flex items-center justify-center gap-1 py-1.5 border-t border-gray-600/50">
                         <BoltIcon class="w-2.5 h-2.5 text-amber-600 dark:text-amber-700" />
                         <span class="text-[11px] text-amber-600 dark:text-amber-700">
-                          <span v-if="pauseBeforeTripMinutes(day.trips, tripIdx as number)" class="text-gray-400 dark:text-gray-500">{{ formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }} &middot; </span>
+                          <span v-if="drainPauseMinutes(trip)" class="text-gray-400 dark:text-gray-500">{{ formatPauseDuration(drainPauseMinutes(trip)) }} &middot; </span>
                           {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
                           <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
                           {{ t('dashboard.phantom_drain_word') }}
@@ -1786,16 +1825,16 @@ function toggleAllCharges() {
                   <!-- Deckende Hintergruende statt der frueheren Transparenzen - unter dem
                        sticky Kopf scrollen Zeilen durch. #30434e = emerald-900/15 auf gray-700. -->
                   <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
-                    :aria-expanded="!collapsedTripGroups.has(item.groupId)"
+                    :aria-expanded="!isGroupCollapsed(item.groupId)"
                     :ref="(el) => setPeriodHeaderRef(item.groupId, 'd', el)" :style="stickyHeaderStyle"
                     class="w-full text-left sticky z-[3] bg-emerald-100 dark:bg-[#30434e] hover:bg-emerald-200 dark:hover:bg-[#35505c] transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
-                    <PeriodGroupHeader :group="item.period" :expanded="!collapsedTripGroups.has(item.groupId)"
-                                       :community="communityBenchmark" />
+                    <PeriodGroupHeader :group="item.period" :expanded="!isGroupCollapsed(item.groupId)"
+                                       :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
                   </button>
 
                   <!-- Header as grid row -->
                   <button v-else type="button" @click="toggleTripGroup(item.groupId)"
-                    :aria-expanded="!collapsedTripGroups.has(item.groupId)"
+                    :aria-expanded="!isGroupCollapsed(item.groupId)"
                     :aria-label="t('dashboard.trip_group_count', { count: item.groupSize }, item.groupSize)"
                     :class="[FEED_GRID_COLS, 'w-full items-center px-3 py-2 bg-emerald-50/60 dark:bg-emerald-900/15 hover:bg-emerald-50 dark:hover:bg-emerald-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset']">
                     <div class="flex items-center gap-1.5">
@@ -1835,14 +1874,14 @@ function toggleAllCharges() {
                       <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
                     </div>
                     <div class="flex justify-end">
-                      <ChevronUpIcon v-if="!collapsedTripGroups.has(item.groupId)" class="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <ChevronUpIcon v-if="!isGroupCollapsed(item.groupId)" class="w-4 h-4 text-emerald-500 flex-shrink-0" />
                       <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 flex-shrink-0" />
                     </div>
                   </button>
 
                   <!-- Sub-trip rows in grid -->
                   <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                  <div v-if="!collapsedTripGroups.has(item.groupId)" class="bg-emerald-50/60 dark:bg-emerald-950/20">
+                  <div v-if="!isGroupCollapsed(item.groupId)" class="bg-emerald-50/60 dark:bg-emerald-950/20">
                     <template v-for="day in item.days" :key="day.dateKey + '__d'">
                     <!-- Datumsband, siehe Mobile-Ansicht. -->
                     <div v-if="item.days.length > 1" :style="dayBandStyle(item.groupId)" class="sticky z-[2] flex items-center justify-between gap-3 px-3 py-2
@@ -1901,7 +1940,7 @@ function toggleAllCharges() {
                         </div>
                         <div class="text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap text-center">
                           <template v-if="trip.maxSpeedKmh != null">
-                            {{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
+                            {{ t('dashboard.trip_speed_compact', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
                           </template>
                           <span v-else class="text-gray-400 dark:text-gray-600">-</span>
                         </div>
@@ -1976,7 +2015,7 @@ function toggleAllCharges() {
                       </div>
                       </Transition>
                       <!-- Luecke zur naechstfrueheren Fahrt - siehe Mobile-Ansicht. -->
-                      <div v-if="isRestBreak(day.trips, tripIdx as number) && !(trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId))"
+                      <div v-if="isRestBreak(day.trips, tripIdx as number) && !showsDrain(trip)"
                            class="flex items-center justify-center py-2">
                         <span class="text-[11px] text-gray-400 dark:text-gray-500">
                           {{ t('dashboard.trip_pause', { duration: formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }) }}
@@ -1984,11 +2023,11 @@ function toggleAllCharges() {
                       </div>
 
                       <!-- Phantom drain separator between trips (AutoSync Live feature) -->
-                      <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && (tripIdx as number) < day.trips.length - 1"
+                      <div v-if="showsDrain(trip)"
                         class="flex items-center justify-center gap-1 py-1.5 border-t border-emerald-300/50 dark:border-emerald-800/30">
                         <BoltIcon class="w-3 h-3 text-amber-700 dark:text-amber-500" />
                         <span class="text-[11px] font-medium text-amber-800 dark:text-amber-400">
-                          <span v-if="pauseBeforeTripMinutes(day.trips, tripIdx as number)" class="font-normal text-amber-700/70 dark:text-amber-500/70">{{ formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }} &middot; </span>
+                          <span v-if="drainPauseMinutes(trip)" class="font-normal text-amber-700/70 dark:text-amber-500/70">{{ formatPauseDuration(drainPauseMinutes(trip)) }} &middot; </span>
                           {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
                           <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
                           {{ t('dashboard.phantom_drain_word') }}
@@ -2009,7 +2048,7 @@ function toggleAllCharges() {
               <!-- ===== REGULAR ENTRY (charge log / inaccessible trip) ===== -->
               <template v-else>
               <!-- Phantom drain -->
-              <div v-if="item.entry._phantomDrain && (authStore.canViewLiveAnalytics || item.entry.id === teaserPhantomId)" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
+              <div v-if="showsDrain(item.entry)" class="flex items-center gap-2 px-4 mt-0.5 mb-2">
                 <div class="flex-1 h-px bg-gray-200 dark:bg-gray-600" />
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/20 text-xs text-amber-600 dark:text-amber-400 whitespace-nowrap">
                   <BoltIcon class="w-3 h-3" />

@@ -154,7 +154,7 @@ const place = computed(() =>
               border-l-4 border-l-indigo-500 dark:border-l-indigo-400">
     <!-- Kopfzeile: gleiche Struktur wie die Fahrtzeile - wann fuehrt, dann der Hauptwert. -->
     <div class="flex items-center justify-between gap-2">
-      <span class="inline-flex items-baseline gap-2 min-w-0 flex-wrap">
+      <span class="inline-flex items-center gap-2 min-w-0 flex-wrap">
         <span class="inline-flex items-center gap-1.5 min-w-0">
           <BoltIcon class="w-4 h-4 flex-shrink-0 self-center text-indigo-500 dark:text-indigo-400" aria-hidden="true" />
           <span class="text-[15px] text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ time }}</span>
@@ -174,18 +174,18 @@ const place = computed(() =>
     </div>
     <!-- Metrics: gleiches Grid wie die Fahrtzeile, damit die Werte spaltenweise fluchten. -->
     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px]">
-      <MetricCell v-if="entry.costEur != null" :label="t('dashboard.charge_m_cost')" emphasized>
+      <MetricCell v-if="entry.costEur != null" emphasized>
         {{ formatCurrency(entry.costEur) }}<template v-if="costPerKwh != null"> · {{ formatCostPerKwh(costPerKwh) }}</template>
       </MetricCell>
-      <MetricCell v-if="entry.maxChargingPowerKw" :label="t('dashboard.charge_m_power')">
+      <MetricCell v-if="entry.maxChargingPowerKw">
         max {{ entry.maxChargingPowerKw }} kW
       </MetricCell>
-      <MetricCell v-if="socRange" :label="t('dashboard.trip_m_soc')">{{ socRange }}</MetricCell>
-      <MetricCell v-if="duration" :label="t('dashboard.charge_m_duration')">{{ duration }}</MetricCell>
-      <MetricCell :label="t('dashboard.charge_m_place')" class="min-w-0">
+      <MetricCell v-if="socRange">{{ socRange }}</MetricCell>
+      <MetricCell v-if="duration">{{ duration }}</MetricCell>
+      <MetricCell class="min-w-0">
         <span class="truncate">{{ place }}</span>
       </MetricCell>
-      <MetricCell v-if="cardName" :label="t('dashboard.charge_m_card')" class="min-w-0">
+      <MetricCell v-if="cardName" class="min-w-0">
         <span class="truncate">{{ cardName }}</span>
       </MetricCell>
     </div>

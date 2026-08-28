@@ -916,19 +916,11 @@ dashboard:
   trip_route_highway: Motorväg
   trip_route_combined: Blandat
   trip_manual: manuell
-  trip_speed_summary: "Ø {avg} · max {max} km/h"
+  trip_speed_summary: "Ø {avg} km/h · max {max} km/h"
+  trip_speed_compact: "Ø {avg} · max {max}"
   trip_speed_avg_only: "Ø {avg} km/h"
   trip_speed_max_only: "max {max} km/h"
   trip_speed_header: "km/h"
-  trip_m_consumption: "Förbr."
-  trip_m_speed: "Fart"
-  trip_m_soc: "SoC"
-  trip_m_route: "Rutt"
-  charge_m_cost: "Kostnad"
-  charge_m_power: "Effekt"
-  charge_m_duration: "Varaktighet"
-  charge_m_place: "Plats"
-  charge_m_card: "Laddkort"
   community_cmp_better: "{delta} % bättre än community-snittet för din modell ({avg})"
   community_cmp_similar: "I nivå med community-snittet för din modell ({avg})"
   community_cmp_worse: "{delta} % över community-snittet för din modell ({avg})"
