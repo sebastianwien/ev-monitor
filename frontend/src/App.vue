@@ -96,6 +96,16 @@ function goToGoeTab() {
   if (route.path !== '/imports') router.push('/imports')
 }
 const authStore = useAuthStore()
+
+/**
+ * Wie viel Hoehe oben bereits fest belegt ist (Nav, Notch, Demo-Banner, Ticker
+ * je nach Zustand). Als CSS-Variable gespiegelt, damit sticky Elemente in den
+ * Views denselben Wert nutzen koennen statt ihn nachzubauen - z.B. das
+ * Datumsband im Log-Feed. Steht nach dem authStore, weil mainPaddingTop ihn liest.
+ */
+watch(mainPaddingTop, (v) => {
+  document.documentElement.style.setProperty('--content-top', v)
+}, { immediate: true })
 const coinStore = useCoinStore()
 const wallboxStore = useWallboxStore()
 const { activeConnection: wallboxConn, hasConnections: wallboxHasConnections } = storeToRefs(wallboxStore)

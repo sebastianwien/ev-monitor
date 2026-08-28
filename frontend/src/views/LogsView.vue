@@ -38,7 +38,9 @@ import {
   tripGroupSocBoundaries as tripGroupSocBoundariesPure,
   tripGroupCostPer100km as tripGroupCostPer100kmPure,
   buildTripCostPerKwhMap,
-  isDayBoundary,
+  isRestBreak,
+  groupTripsByDay,
+  pauseBeforeTripMinutes,
 } from '../utils/tripCalculations'
 import api from '../api/axios'
 import { distributeProportionally } from '../utils/distributeProportionally'
@@ -46,9 +48,22 @@ import { rescaleCostForKwhChange } from '../utils/costRescale'
 import PowerCurveModal from '../components/charging/PowerCurveModal.vue'
 import { mergeSocSeries, type CurvePoint, type SocPoint } from '../components/charging/powerCurveSeries'
 import { formatSocRange } from '../utils/socRange'
+import { hasTripMap } from '../utils/tripMap'
+import { formatPauseDuration, tripDayLabel } from '../utils/tripTimeFormat'
+import { buildPeriodGroups, type PeriodResolution } from '../utils/tripPeriods'
+import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
+import PeriodChargeLine from '../components/dashboard/PeriodChargeLine.vue'
+import ChargeTypeBadge from '../components/dashboard/ChargeTypeBadge.vue'
+import ComparisonChip from '../components/dashboard/ComparisonChip.vue'
+import MetricCell from '../components/dashboard/MetricCell.vue'
+import { FEED_GRID_COLS } from '../components/dashboard/feedGridCols'
+import type { CommunityBenchmark } from '../components/dashboard/PeriodGroupHeader.vue'
+import { getModelStatsByEnum, type PublicModelStats } from '../api/publicModelService'
+import { useCommunityComparison } from '../composables/useCommunityComparison'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
 import TripClimateMarkers from '../components/TripClimateMarkers.vue'
+import TripMapPanel from '../components/dashboard/TripMapPanel.vue'
 import { costBadgeClass } from '../utils/costColor'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
@@ -76,7 +91,7 @@ import {
   type CostHintLog,
 } from '../composables/useChargingEfficiency'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 const { haptic } = useHaptic()
 const route = useRoute()
@@ -94,7 +109,7 @@ const {
   reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
   mergeModalEntry, mergeSaving, mergeError, openMergeModal, mergeCandidates, saveMerge,
   fetchLogs, fetchLogsAndScroll, refreshLogsAndGroups, deleteLog,
-  formatLogDate, formatTripTimeRange, toggleOdometerDisplay, sourceInfo, mergedLogFeed,
+  formatLogDate, formatTripTimeRange, tripTimeParts, toggleOdometerDisplay, sourceInfo, mergedLogFeed,
   editingTripId, addingTripAfterId, tripForm, tripSaving, tripError,
   startEditTrip, cancelTripEdit, saveTripEdit, startAddTrip, saveNewTrip, deleteTripEntry,
   mergeTripEntry,
@@ -290,7 +305,8 @@ const previousTripMap = computed<Record<string, any>>(() => {
   return result
 })
 
-const groupedFeed = computed<any[]>(() => {
+/** Der gewachsene Feed: eine Gruppe je Ladezyklus, weil dazwischen die Bilanz gilt. */
+const cycleFeed = computed<any[]>(() => {
   const feed = mergedLogFeed.value
   const result: any[] = []
   let i = 0
@@ -302,6 +318,8 @@ const groupedFeed = computed<any[]>(() => {
         kind: 'tripGroup',
         id: groupId,
         groupId,
+        // Zweite Ebene: der Ladezyklus traegt die Bilanz, der Tag darin die Orientierung.
+        days: [] as any[],
         phantomDrain: entry._phantomDrain,
         totalKm: entry._tripGroupTotalKm,
         dateRange: entry._tripGroupDateRange,
@@ -319,6 +337,11 @@ const groupedFeed = computed<any[]>(() => {
         group.trips.reduce((s: number, t: any) => s + (t._phantomDrain?.kwh ?? 0), 0)
         + (drainAfterGroup?.kwh ?? 0)
       group.totalPhantomKwh = totalPhantomKwh > 0.05 ? Math.round(totalPhantomKwh * 100) / 100 : null
+      // Ladungen sind im Zyklus-Feed eigene Eintraege, der Tag traegt hier nur Fahrten.
+      group.days = groupTripsByDay(group.trips).map((day: any) => ({
+        ...day,
+        events: day.trips.map((trip: any, tripIdx: number) => ({ kind: 'trip', trip, tripIdx })),
+      }))
       result.push(group)
     } else {
       result.push({ kind: 'entry', id: entry.id, entry })
@@ -327,6 +350,75 @@ const groupedFeed = computed<any[]>(() => {
   }
   return result
 })
+
+/**
+ * Aufloesung des Feeds. 'cycle' ist der Ladezyklus wie bisher, alles andere schneidet
+ * dieselben Fahrten nach Kalenderzeitraum. Die Wahl haelt ueber Sitzungen hinweg, weil
+ * niemand sie bei jedem Besuch neu treffen will.
+ */
+type FeedResolution = 'cycle' | PeriodResolution
+const RESOLUTION_KEY = 'logfeed_resolution'
+const RESOLUTIONS: FeedResolution[] = ['cycle', 'day', 'week', 'month']
+
+function loadResolution(): FeedResolution {
+  try {
+    const saved = localStorage.getItem(RESOLUTION_KEY) as FeedResolution | null
+    return saved && RESOLUTIONS.includes(saved) ? saved : 'cycle'
+  } catch {
+    return 'cycle'
+  }
+}
+
+const feedResolution = ref<FeedResolution>(loadResolution())
+
+watch(feedResolution, (value) => {
+  try { localStorage.setItem(RESOLUTION_KEY, value) } catch {}
+})
+
+/**
+ * Verbrauch und Kosten einer einzelnen Fahrt - dieselben Werte, die auch in ihrer Zeile
+ * stehen. Die Zeitraum-Bilanz addiert sie nur; die Formel bleibt hier, damit es weiterhin
+ * genau eine gibt.
+ */
+const periodMeasure = computed(() => ({
+  kwhOf: (trip: any) => {
+    const consumption = tripConsumption(trip)
+    if (!consumption || trip.distanceKm == null) return null
+    return (consumption.kwhPer100km * trip.distanceKm) / 100
+  },
+  costOf: (trip: any) => {
+    const per100km = tripCostPer100km(trip)
+    if (per100km == null || trip.distanceKm == null) return null
+    return (per100km * trip.distanceKm) / 100
+  },
+  chargeKwhOf: (entry: any) => entry.kwhAtVehicle ?? entry.kwhCharged ?? null,
+}))
+
+/** Derselbe Feed, nur nach Tag, Woche oder Monat geschnitten statt nach Ladezyklus. */
+const periodFeed = computed<any[]>(() => {
+  const resolution = feedResolution.value
+  if (resolution === 'cycle') return []
+
+  const feed = mergedLogFeed.value
+  return buildPeriodGroups(
+    feed.filter((entry: any) => entry._isTrip),
+    feed.filter((entry: any) => !entry._isTrip),
+    resolution,
+    periodMeasure.value,
+  ).map((group) => ({
+    kind: 'tripGroup',
+    id: group.id,
+    groupId: group.id,
+    period: group,
+    days: group.days,
+    trips: group.trips,
+    totalKm: group.totals.km,
+    groupSize: group.totals.tripCount,
+  }))
+})
+
+const groupedFeed = computed<any[]>(() =>
+  feedResolution.value === 'cycle' ? cycleFeed.value : periodFeed.value)
 
 function cancelTripEditFull() {
   cancelTripEdit()
@@ -358,6 +450,17 @@ const openMenuTripId    = ref<string | null>(null)
 const openMenuTopUpId   = ref<string | null>(null)
 const openMenuGroupId   = ref<string | null>(null)
 const expandedLogs      = ref(new Set<string>())
+
+// -- Aufklappbare Fahrtzeile: die Zeile selbst ist der Schalter fuer die Karte.
+// Keys je Template-Instanz getrennt (id vs. id + '__d'), sonst mounten Mobile- und
+// Desktop-Ansicht dieselbe Leaflet-Karte doppelt.
+const expandedTripMaps = ref(new Set<string>())
+function toggleTripMap(key: string) {
+  const next = new Set(expandedTripMaps.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  expandedTripMaps.value = next
+}
 
 // ESC closes any open action menu - keeps keyboard parity with the click-outside dimmer.
 function onMenuKeyEsc(event: KeyboardEvent) {
@@ -584,6 +687,65 @@ const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
 )
 
+// -- Community-Vergleich: Schnitt der Modellgruppe fuer Chip-Faerbung und Tooltips --
+const communityModelStats = ref<PublicModelStats | null>(null)
+watch(() => selectedCar.value?.model, async (model) => {
+  communityModelStats.value = null
+  if (!model) return
+  try {
+    const stats = await getModelStatsByEnum(model)
+    // Unter 5 Logs ist der Schnitt Rauschen - dann lieber keine Einordnung.
+    if ((stats?.logCount ?? 0) >= 5) communityModelStats.value = stats
+  } catch { /* Ohne Community-Daten bleiben die Chips neutral. */ }
+}, { immediate: true })
+
+const { comparisonLevel: communityLevel, comparisonDeltaPercent, comparisonTooltip } = useCommunityComparison()
+
+/**
+ * Eigener Schnitt als Vergleichsbasis der Zeilen-Chips: er enthaelt das eigene Ladeprofil
+ * und bestraft nicht den Kontext einer Langstreckenwoche. Die Gruppenkoepfe vergleichen
+ * weiter gegen die Community - auf Aggregatebene mitteln sich Kontexte.
+ */
+const personalCostBenchmark = computed(() => {
+  const s = stats.value
+  const cpk = s?.avgCostPerKwh != null ? Number(s.avgCostPerKwh) : null
+  const cons = s?.avgConsumptionKwhPer100km != null ? Number(s.avgConsumptionKwhPer100km) : null
+  if (!cpk) return null
+  return { costPerKwh: cpk, costPer100km: cons ? cpk * cons : null }
+})
+
+/** Tooltip fuer einen Kosten/100km-Wert gegen den eigenen Schnitt, oder null. */
+function costPer100kmTooltip(value: number | null): string | null {
+  const avg = personalCostBenchmark.value?.costPer100km
+  if (avg == null) return null
+  return comparisonTooltip(value, avg, `${formatCurrency(avg)}/100km`, 'self')
+}
+
+const communityBenchmark = computed<CommunityBenchmark | null>(() => {
+  const s = communityModelStats.value
+  if (!s) return null
+  return {
+    consumptionKwhPer100km: s.avgConsumptionKwhPer100km,
+    costPer100km: s.avgCostPerKwh != null && s.avgConsumptionKwhPer100km != null
+      ? s.avgCostPerKwh * s.avgConsumptionKwhPer100km
+      : null,
+  }
+})
+
+// -- Ladekarten: einmal geladen, dann je Ladung im Feed als Name aufgeloest --
+const chargingProviderNames = ref<Map<string, string>>(new Map())
+onMounted(async () => {
+  try {
+    const res = await api.get<{ id: string; providerName: string; label: string | null }[]>('/users/me/charging-providers')
+    chargingProviderNames.value = new Map(res.data.map((p) => [p.id, p.label || p.providerName]))
+  } catch { /* Ohne Kartennamen zeigt die Ladezeile nur den Ort. */ }
+})
+
+function chargeCardName(entry: any): string | null {
+  if (!entry.chargingProviderId) return null
+  return chargingProviderNames.value.get(entry.chargingProviderId) ?? null
+}
+
 const pageDateRange = computed<string | undefined>(() => {
   const feed = mergedLogFeed.value
   if (!feed.length) return undefined
@@ -659,9 +821,91 @@ function tripCostPer100km(trip: any): number | null {
   return c.kwhPer100km * cpk
 }
 
+/**
+ * €/100km einer Fahrt nur fuers Anzeigen: unter 1 km ist die Hochrechnung Rauschen
+ * (0,1 km Rangieren wird zu 27 €/100km). Die Zeitraum-Bilanz nutzt weiter
+ * {@link tripCostPer100km}, dort gehen die realen Kosten ein, nicht die Hochrechnung.
+ */
+const MIN_KM_FOR_PER100KM = 1
+function tripCostPer100kmDisplay(trip: any): number | null {
+  if (!(trip.distanceKm >= MIN_KM_FOR_PER100KM)) return null
+  return tripCostPer100km(trip)
+}
+
 function tripGroupCostPer100km(group: any): number | null {
   if (!group?.trips?.length) return null
   return tripGroupCostPer100kmPure(group.trips, tripCpkMap.value, selectedCar.value?.effectiveBatteryCapacityKwh ?? null)
+}
+
+/** Beschriftung eines Tagesbandes - "Heute", "Gestern" oder Wochentag mit Datum. */
+function dayLabel(dateKey: string): string {
+  return tripDayLabel(dateKey, locale.value, new Date())
+}
+
+/**
+ * Das Datumsband klebt unter allem, was oben bereits fest steht: der Desktop-Nav
+ * (--top-nav-h, auf Mobile 0) und - nur bei mehreren Autos - dem ebenfalls stickyen
+ * Auto-Selektor. Ohne diesen Offset verschwindet das Band beim Scrollen dahinter.
+ */
+const carSelectorRef = ref<HTMLElement | null>(null)
+const stickyCarSelectorHeight = ref(0)
+let carSelectorObserver: ResizeObserver | null = null
+
+function measureCarSelector() {
+  // Nur der sticky Zustand (mehrere Autos) belegt dauerhaft Platz; sonst scrollt er weg.
+  stickyCarSelectorHeight.value =
+    cars.value.length > 1 ? (carSelectorRef.value?.offsetHeight ?? 0) : 0
+}
+
+watch(carSelectorRef, (el) => {
+  carSelectorObserver?.disconnect()
+  carSelectorObserver = el ? new ResizeObserver(measureCarSelector) : null
+  if (el && carSelectorObserver) carSelectorObserver.observe(el)
+  measureCarSelector()
+})
+watch(() => cars.value.length, measureCarSelector)
+onUnmounted(() => carSelectorObserver?.disconnect())
+
+// --content-top kommt aus App.vue und kennt Nav, Notch, Demo-Banner und den
+// Ticker in beiden Zustaenden. Der Auto-Selektor ist LogsView-eigen.
+const stickyHeaderStyle = computed(() => ({
+  top: `calc(var(--content-top, var(--top-nav-h)) + ${stickyCarSelectorHeight.value}px)`,
+  transition: 'top 0.3s ease',
+}))
+
+// Gruppenkoepfe sind sticky; die Tagesbaender stapeln sich darunter. Dafuer braucht jedes
+// Band die gemessene Hoehe seines Kopfes - die variiert mit Chips-Umbruch und Tagesraster.
+const periodHeaderHeights = reactive<Record<string, number>>({})
+const periodHeaderEls = new Map<string, HTMLElement>()
+const periodHeaderObserver = new ResizeObserver((entries) => {
+  for (const entry of entries) {
+    const el = entry.target as HTMLElement
+    const groupId = el.dataset.groupId
+    // Mobil- und Desktop-Template rendern denselben Kopf; das per Breakpoint versteckte
+    // Exemplar misst 0 und darf den Wert des sichtbaren nicht ueberschreiben.
+    if (groupId && el.offsetHeight > 0) periodHeaderHeights[groupId] = el.offsetHeight
+  }
+})
+function setPeriodHeaderRef(groupId: string, variant: string, el: unknown) {
+  const key = `${groupId}:${variant}`
+  const prev = periodHeaderEls.get(key)
+  if (prev && prev !== el) {
+    periodHeaderObserver.unobserve(prev)
+    periodHeaderEls.delete(key)
+  }
+  if (el instanceof HTMLElement && prev !== el) {
+    el.dataset.groupId = groupId
+    periodHeaderEls.set(key, el)
+    periodHeaderObserver.observe(el)
+  }
+}
+onUnmounted(() => periodHeaderObserver.disconnect())
+
+function dayBandStyle(groupId: string) {
+  return {
+    top: `calc(var(--content-top, var(--top-nav-h)) + ${stickyCarSelectorHeight.value + (periodHeaderHeights[groupId] ?? 0)}px)`,
+    transition: 'top 0.3s ease',
+  }
 }
 
 function tripGroupConsumedKwh(group: any): number | null {
@@ -747,6 +991,17 @@ onMounted(async () => {
   }
 })
 
+/**
+ * Dauer der Auf-/Zuklapp-Animation, an die Inhaltshoehe gekoppelt. Eine feste Dauer liest
+ * sich bei kleinen Formularen fluessig, wirkt bei meterlangen Wochen-Gruppen aber wie ein
+ * Sprung - dieselbe Zeit fuer die zwanzigfache Strecke. Gedeckelt, damit grosse Gruppen
+ * nicht traege werden.
+ */
+function expandDurationMs(heightPx: number): number {
+  return Math.round(Math.min(550, Math.max(280, heightPx / 4)))
+}
+const EXPAND_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
+
 function onTripFormEnter(el: Element, done: () => void) {
   const h = el as HTMLElement
   const cs = getComputedStyle(h)
@@ -754,6 +1009,7 @@ function onTripFormEnter(el: Element, done: () => void) {
   const targetMarginTop = cs.marginTop
   const targetPaddingTop = cs.paddingTop
   const targetPaddingBottom = cs.paddingBottom
+  const ms = expandDurationMs(targetHeight)
   h.style.overflow = 'hidden'
   h.style.height = '0'
   h.style.marginTop = '0'
@@ -761,13 +1017,13 @@ function onTripFormEnter(el: Element, done: () => void) {
   h.style.paddingBottom = '0'
   h.style.opacity = '0'
   requestAnimationFrame(() => {
-    h.style.transition = 'height 0.28s ease, margin-top 0.28s ease, padding-top 0.28s ease, padding-bottom 0.28s ease, opacity 0.22s ease'
+    h.style.transition = `height ${ms}ms ${EXPAND_EASE}, margin-top ${ms}ms ${EXPAND_EASE}, padding-top ${ms}ms ${EXPAND_EASE}, padding-bottom ${ms}ms ${EXPAND_EASE}, opacity ${Math.round(ms * 0.8)}ms ease`
     h.style.height = targetHeight + 'px'
     h.style.marginTop = targetMarginTop
     h.style.paddingTop = targetPaddingTop
     h.style.paddingBottom = targetPaddingBottom
     h.style.opacity = '1'
-    setTimeout(done, 280)
+    setTimeout(done, ms)
   })
 }
 function onTripFormAfterEnter(el: Element) {
@@ -777,6 +1033,7 @@ function onTripFormAfterEnter(el: Element) {
 function onTripFormLeave(el: Element, done: () => void) {
   const h = el as HTMLElement
   const cs = getComputedStyle(h)
+  const ms = expandDurationMs(h.scrollHeight)
   h.style.overflow = 'hidden'
   h.style.height = h.scrollHeight + 'px'
   h.style.marginTop = cs.marginTop
@@ -784,13 +1041,13 @@ function onTripFormLeave(el: Element, done: () => void) {
   h.style.paddingBottom = cs.paddingBottom
   h.style.opacity = '1'
   requestAnimationFrame(() => {
-    h.style.transition = 'height 0.28s ease, margin-top 0.28s ease, padding-top 0.28s ease, padding-bottom 0.28s ease, opacity 0.22s ease'
+    h.style.transition = `height ${ms}ms ${EXPAND_EASE}, margin-top ${ms}ms ${EXPAND_EASE}, padding-top ${ms}ms ${EXPAND_EASE}, padding-bottom ${ms}ms ${EXPAND_EASE}, opacity ${Math.round(ms * 0.8)}ms ease`
     h.style.height = '0'
     h.style.marginTop = '0'
     h.style.paddingTop = '0'
     h.style.paddingBottom = '0'
     h.style.opacity = '0'
-    setTimeout(done, 280)
+    setTimeout(done, ms)
   })
 }
 
@@ -922,6 +1179,7 @@ function toggleAllCharges() {
           <h1 class="sr-only">{{ t('logs.title') }}</h1>
           <!-- Desktop-Auto-Selektor (>=768px) -->
           <div
+            ref="carSelectorRef"
             v-if="cars.length > 0"
             class="hidden md:block"
             :class="cars.length > 1
@@ -1176,6 +1434,21 @@ function toggleAllCharges() {
             </div>
           </Transition>
 
+          <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum.
+               Voll ausgeschriebene Segmente statt eines Menues - die vier Optionen passen
+               nebeneinander und eine Auswahl, die man sieht, muss man nicht suchen. -->
+          <div v-if="hasAnyLogs" role="group" :aria-label="t('logs.resolution.label')"
+               class="mb-3 inline-flex w-full sm:w-auto p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
+            <button v-for="option in RESOLUTIONS" :key="option" type="button"
+                    @click="feedResolution = option" :aria-pressed="feedResolution === option"
+                    :class="['flex-1 sm:flex-none px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
+                      feedResolution === option
+                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
+              {{ t('logs.resolution.' + option) }}
+            </button>
+          </div>
+
           <div :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
             <template v-if="logsLoading && !hasAnyLogs">
               <div v-for="n in 5" :key="n" class="relative p-3 border-2 rounded-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] animate-pulse">
@@ -1209,10 +1482,19 @@ function toggleAllCharges() {
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
               <template v-if="item.kind === 'tripGroup'">
-                <div class="gridfeed:hidden rounded-sm overflow-hidden border-2 border-emerald-200 dark:border-emerald-800/60 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+                <div class="gridfeed:hidden rounded-sm border-2 border-emerald-300 dark:border-emerald-800/60 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+
+                  <!-- Kopf des Zeitraums - Tag, Woche oder Monat -->
+                  <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
+                          :aria-expanded="!collapsedTripGroups.has(item.groupId)"
+                          :ref="(el) => setPeriodHeaderRef(item.groupId, 'm', el)" :style="stickyHeaderStyle"
+                          class="w-full text-left sticky z-[3] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors border-b border-gray-100 dark:border-gray-600">
+                    <PeriodGroupHeader :group="item.period" :expanded="!collapsedTripGroups.has(item.groupId)" compact
+                                       :community="communityBenchmark" />
+                  </button>
 
                   <!-- Group header -->
-                  <div @click="toggleTripGroup(item.groupId)"
+                  <div v-else @click="toggleTripGroup(item.groupId)"
                        class="flex flex-col px-3 py-2.5 bg-white dark:bg-gray-700 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors border-b border-gray-100 dark:border-gray-600">
                     <!-- Header row -->
                     <div class="flex items-center gap-2">
@@ -1226,35 +1508,42 @@ function toggleAllCharges() {
                       <ChevronUpIcon v-if="!collapsedTripGroups.has(item.groupId)" class="w-4 h-4 text-emerald-500 shrink-0" />
                       <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0" />
                     </div>
+                    <!-- Die Bilanz des Ladezyklus - was zwischen zwei Ladungen verbraucht wurde.
+                         Stand bisher nur in der breiten Ansicht und blieb damit fuer die
+                         Mehrheit der Nutzer unsichtbar. -->
+                    <div v-if="tripGroupConsumedKwh(item) != null || tripGroupSocBoundaries(item)"
+                         class="mt-1 flex items-center justify-center gap-x-2.5 gap-y-0.5 flex-wrap text-[11px] tabular-nums">
+                      <span v-if="tripGroupConsumedKwh(item) != null" class="font-semibold text-rose-500 dark:text-rose-300">
+                        &minus;{{ tripGroupConsumedKwh(item)!.toFixed(2) }} kWh
+                      </span>
+                      <span v-if="tripGroupSocBoundaries(item)" class="text-gray-500 dark:text-gray-400">
+                        {{ tripGroupSocBoundaries(item)!.start }}&nbsp;&rarr;&nbsp;{{ tripGroupSocBoundaries(item)!.end }}&nbsp;%
+                      </span>
+                      <span v-if="tripGroupCostPer100km(item) != null" class="text-emerald-600 dark:text-emerald-400">
+                        {{ formatCurrency(tripGroupCostPer100km(item)!) }}/100km
+                      </span>
+                    </div>
                   </div>
 
                   <!-- Trips (expanded, animated) -->
                   <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                   <div v-if="!collapsedTripGroups.has(item.groupId)">
-                    <template v-for="(trip, tripIdx) in item.trips" :key="trip.id">
-
-                      <!-- Day-boundary separator between trips -->
-                      <div v-if="isDayBoundary(item.trips, tripIdx as number)"
-                           class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50/60 dark:bg-emerald-900/10 border-t border-emerald-200 dark:border-emerald-700/40">
-                        <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
-                        <span class="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80 whitespace-nowrap">
-                          {{ new Date(trip.tripStartedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) }}
-                        </span>
-                        <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
-                      </div>
-
-                      <!-- Phantom drain separator between trips -->
-                      <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && tripIdx !== 0"
-                           class="flex items-center justify-center gap-1 py-1 border-t border-gray-600/50">
-                        <BoltIcon class="w-2.5 h-2.5 text-amber-600 dark:text-amber-700" />
-                        <span class="text-[11px] text-amber-600 dark:text-amber-700">
-                          {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
-                          <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
-                          {{ t('dashboard.phantom_drain_word') }}
-                          <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
-                        </span>
-                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
-                      </div>
+                    <template v-for="day in item.days" :key="day.dateKey">
+                    <!-- Datumsband: bleibt beim Scrollen stehen, damit der Tag waehrend des
+                         Lesens sichtbar bleibt. Nur exakt gezaehlte Werte, keine Schaetzung. -->
+                    <div v-if="item.days.length > 1" :style="dayBandStyle(item.groupId)" class="sticky z-[2] flex items-center justify-between gap-2 px-3 py-2
+                                bg-emerald-100 dark:bg-emerald-950 border-y border-emerald-300/70 dark:border-emerald-800/50">
+                      <span class="text-[13px] font-bold text-gray-900 dark:text-gray-100">{{ dayLabel(day.dateKey) }}</span>
+                      <span class="text-[11px] text-gray-500 dark:text-gray-400 tabular-nums">
+                        {{ t('dashboard.trip_group_count', { count: day.tripCount }, day.tripCount) }}<template v-if="day.km"> &middot; {{ formatDistance(day.km) }}</template>
+                      </span>
+                    </div>
+                    <!-- Ereignisse des Tages: Fahrten und Ladungen chronologisch gemischt, neueste zuerst. -->
+                    <template v-for="ev in day.events" :key="ev.kind === 'charge' ? 'pc_' + ev.charge.id : ev.trip.id">
+                    <PeriodChargeLine v-if="ev.kind === 'charge'" :entry="ev.charge"
+                                      :card-name="chargeCardName(ev.charge)" @edit="editingLog = $event" />
+                    <template v-else>
+                    <template v-for="{ trip, tripIdx } in [ev]" :key="trip.id">
 
                       <!-- Add-trip form triggered from this trip -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
@@ -1266,17 +1555,32 @@ function toggleAllCharges() {
                       </div>
                       </Transition>
 
-                      <!-- Trip display mode -->
+                      <!-- Trip display mode. Die Karte klappt per Klick auf die ganze Zeile auf -
+                           .self bei den Tasten, damit Tippen im Feedback-Textfeld nicht toggelt. -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                       <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
-                           class="px-3 py-3 bg-white dark:bg-gray-700 border-t border-gray-100 dark:border-gray-600 space-y-2">
-                    <!-- Top row: distance + temp + menu -->
+                           :class="['px-3 py-3 bg-emerald-50/60 dark:bg-gray-700 space-y-2 border-t border-emerald-200/60 dark:border-gray-600',
+                                    hasTripMap(trip) ? 'cursor-pointer' : '']"
+                           :role="hasTripMap(trip) ? 'button' : undefined"
+                           :tabindex="hasTripMap(trip) ? 0 : undefined"
+                           :aria-expanded="hasTripMap(trip) ? expandedTripMaps.has(trip.id) : undefined"
+                           :aria-controls="hasTripMap(trip) ? 'trip-map-' + trip.id : undefined"
+                           @click="hasTripMap(trip) && toggleTripMap(trip.id)"
+                           @keydown.enter.self.prevent="hasTripMap(trip) && toggleTripMap(trip.id)"
+                           @keydown.space.self.prevent="hasTripMap(trip) && toggleTripMap(trip.id)">
+                    <!-- Kopfzeile: wann + wie weit. Das Wann fuehrt, weil man eine Fahrt
+                         ueber ihren Zeitpunkt wiederfindet, nicht ueber ihre Laenge. -->
                     <div class="flex items-center justify-between gap-2">
-                      <span class="inline-flex items-center gap-1.5 min-w-0">
-                        <MapIcon :class="['w-4 h-4 flex-shrink-0',
-                          isAdmin && trip.dataSource === 'TESLA_LIVE'    ? 'text-red-500 dark:text-red-400' :
-                          isAdmin && trip.dataSource === 'SMARTCAR_LIVE' ? 'text-blue-500 dark:text-blue-400' :
-                          'text-emerald-600 dark:text-emerald-400']" />
+                      <span class="inline-flex items-baseline gap-2 min-w-0 flex-wrap">
+                        <span class="inline-flex items-center gap-1.5 min-w-0">
+                          <MapIcon :class="['w-4 h-4 flex-shrink-0 self-center',
+                            isAdmin && trip.dataSource === 'TESLA_LIVE'    ? 'text-red-500 dark:text-red-400' :
+                            isAdmin && trip.dataSource === 'SMARTCAR_LIVE' ? 'text-blue-500 dark:text-blue-400' :
+                            'text-emerald-600 dark:text-emerald-400']" />
+                          <span class="text-[15px] text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                            {{ tripTimeParts(trip.tripStartedAt, trip.tripEndedAt).time }}
+                          </span>
+                        </span>
                         <span v-if="trip.distanceKm != null" class="font-semibold text-emerald-700 dark:text-emerald-400 whitespace-nowrap">{{ formatDistance(trip.distanceKm, { round: false }) }}</span>
                         <span v-if="trip.dataSource === 'USER_CREATED'"
                           class="inline-flex items-center px-2 py-0.5 bg-gray-50 dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-full text-xs text-gray-400 whitespace-nowrap">
@@ -1288,6 +1592,10 @@ function toggleAllCharges() {
                           :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(trip.outsideTempCelsius)]">
                           <SunIcon class="w-3 h-3" />{{ trip.outsideTempCelsius }}°C
                         </span>
+                        <!-- Affordance fuer die aufklappbare Karte - der Klick liegt auf der Zeile. -->
+                        <ChevronDownIcon v-if="hasTripMap(trip)"
+                          :class="['w-4 h-4 text-gray-400 transition-transform duration-200', expandedTripMaps.has(trip.id) ? 'rotate-180' : '']"
+                          aria-hidden="true" />
                         <div class="relative flex-shrink-0">
                           <button @click.stop="openMenuTripId = openMenuTripId === trip.id ? null : trip.id"
                             class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
@@ -1329,25 +1637,26 @@ function toggleAllCharges() {
                     </div>
                     <!-- Metrics: 2-col grid, full width -->
                     <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px]">
-                      <span v-if="tripConsumption(trip)" class="inline-flex items-baseline gap-1 text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_consumption') }}</span>{{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
-                      </span>
-                      <span v-if="trip.maxSpeedKmh != null" class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_speed') }}</span>{{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
-                      </span>
-                      <span class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_time') }}</span>{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}
-                      </span>
-                      <span v-if="trip.socStart != null && trip.socEnd != null" class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_soc') }}</span>{{ trip.socStart }}% → {{ trip.socEnd }}%
-                      </span>
-                      <span v-if="trip.routeType" class="inline-flex items-baseline gap-1 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                        <span class="text-gray-400 text-[11px]">{{ t('dashboard.trip_m_route') }}</span>{{ t('dashboard.trip_route_' + trip.routeType.toLowerCase()) }}
-                      </span>
+                      <MetricCell v-if="tripConsumption(trip)" :label="t('dashboard.trip_m_consumption')" emphasized>
+                        {{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
+                      </MetricCell>
+                      <MetricCell v-if="trip.maxSpeedKmh != null" :label="t('dashboard.trip_m_speed')">
+                        {{ t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
+                      </MetricCell>
+                      <MetricCell v-if="trip.socStart != null && trip.socEnd != null" :label="t('dashboard.trip_m_soc')">
+                        {{ trip.socStart }}% → {{ trip.socEnd }}%
+                      </MetricCell>
+                      <MetricCell v-if="trip.routeType" :label="t('dashboard.trip_m_route')">
+                        {{ t('dashboard.trip_route_' + trip.routeType.toLowerCase()) }}
+                      </MetricCell>
                     </div>
                     <TripClimateMarkers :climate="trip.climate" />
-                    <!-- Feedback panel -->
-                    <div v-if="feedbackOpenId === trip.id" class="pt-1 space-y-2 border-t border-gray-100 dark:border-gray-600">
+                    <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                      <TripMapPanel v-if="expandedTripMaps.has(trip.id)" :trip="trip" :panel-id="'trip-map-' + trip.id" />
+                    </Transition>
+                    <!-- Feedback panel - @click.stop, sonst klappt jeder Tipp ins Formular die Karte um. -->
+                    <div v-if="feedbackOpenId === trip.id" @click.stop
+                         class="pt-1 space-y-2 border-t border-gray-100 dark:border-gray-600">
                       <div class="flex flex-wrap gap-1">
                         <button v-for="tag in FEEDBACK_TAGS" :key="tag" @click="toggleFeedbackTag(tag)"
                           :class="['px-2 py-0.5 text-xs rounded-full border transition',
@@ -1437,18 +1746,58 @@ function toggleAllCharges() {
                   </div>
                   </Transition>
 
-                    </template><!-- end v-for trips -->
+
+                      <!-- Was zwischen dieser und der naechstfrueheren Fahrt liegt, steht
+                           unter ihr - dort, wo die Liste (neueste zuerst) die Luecke zeigt.
+                           Erst die Ruhe, dann was sie gekostet hat; ohne ausgewiesenen
+                           Standverlust bleibt die Dauer allein stehen. -->
+                      <div v-if="isRestBreak(day.trips, tripIdx as number) && !(trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId))"
+                           class="flex items-center justify-center py-2">
+                        <span class="text-[11px] text-gray-400 dark:text-gray-500">
+                          {{ t('dashboard.trip_pause', { duration: formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }) }}
+                        </span>
+                      </div>
+
+                      <!-- Phantom drain separator between trips -->
+                      <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && (tripIdx as number) < day.trips.length - 1"
+                           class="flex items-center justify-center gap-1 py-1.5 border-t border-gray-600/50">
+                        <BoltIcon class="w-2.5 h-2.5 text-amber-600 dark:text-amber-700" />
+                        <span class="text-[11px] text-amber-600 dark:text-amber-700">
+                          <span v-if="pauseBeforeTripMinutes(day.trips, tripIdx as number)" class="text-gray-400 dark:text-gray-500">{{ formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }} &middot; </span>
+                          {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
+                          <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
+                          {{ t('dashboard.phantom_drain_word') }}
+                          <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
+                        </span>
+                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                      </div>
+
+                    </template>
+                    </template><!-- end v-else trip -->
+                    </template><!-- end v-for events -->
+                    </template><!-- end v-for days -->
                   </div><!-- end expanded trips -->
                   </Transition>
                 </div><!-- end trip group container (mobile) -->
 
                 <!-- DESKTOP TRIP GROUP -->
-                <div class="hidden gridfeed:block rounded-sm border-2 border-emerald-200 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+                <div class="hidden gridfeed:block rounded-sm border-2 border-emerald-300 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+                  <!-- Kopf des Zeitraums - Tag, Woche oder Monat -->
+                  <!-- Deckende Hintergruende statt der frueheren Transparenzen - unter dem
+                       sticky Kopf scrollen Zeilen durch. #30434e = emerald-900/15 auf gray-700. -->
+                  <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
+                    :aria-expanded="!collapsedTripGroups.has(item.groupId)"
+                    :ref="(el) => setPeriodHeaderRef(item.groupId, 'd', el)" :style="stickyHeaderStyle"
+                    class="w-full text-left sticky z-[3] bg-emerald-100 dark:bg-[#30434e] hover:bg-emerald-200 dark:hover:bg-[#35505c] transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
+                    <PeriodGroupHeader :group="item.period" :expanded="!collapsedTripGroups.has(item.groupId)"
+                                       :community="communityBenchmark" />
+                  </button>
+
                   <!-- Header as grid row -->
-                  <button type="button" @click="toggleTripGroup(item.groupId)"
+                  <button v-else type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!collapsedTripGroups.has(item.groupId)"
                     :aria-label="t('dashboard.trip_group_count', { count: item.groupSize }, item.groupSize)"
-                    class="w-full grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-center px-3 py-2 bg-emerald-50/60 dark:bg-emerald-900/15 hover:bg-emerald-50 dark:hover:bg-emerald-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
+                    :class="[FEED_GRID_COLS, 'w-full items-center px-3 py-2 bg-emerald-50/60 dark:bg-emerald-900/15 hover:bg-emerald-50 dark:hover:bg-emerald-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset']">
                     <div class="flex items-center gap-1.5">
                       <MapIcon class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
                       <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium">{{ item.groupSize }}×</span>
@@ -1493,30 +1842,23 @@ function toggleAllCharges() {
 
                   <!-- Sub-trip rows in grid -->
                   <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                  <div v-if="!collapsedTripGroups.has(item.groupId)" class="bg-emerald-50/30 dark:bg-emerald-950/20">
-                    <template v-for="(trip, tripIdx) in item.trips" :key="trip.id + '__d'">
-                      <!-- Day-boundary separator between trips -->
-                      <div v-if="isDayBoundary(item.trips, tripIdx as number)"
-                           class="flex items-center gap-3 px-3 py-1.5 bg-emerald-50/60 dark:bg-emerald-900/10 border-t border-emerald-200 dark:border-emerald-700/40">
-                        <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
-                        <span class="text-[11px] font-medium text-emerald-600/80 dark:text-emerald-400/80 whitespace-nowrap">
-                          {{ new Date(trip.tripStartedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) }}
-                        </span>
-                        <div class="h-px flex-1 bg-emerald-200 dark:bg-emerald-700/50" />
-                      </div>
-
-                      <!-- Phantom drain separator between trips (AutoSync Live feature) -->
-                      <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && tripIdx !== 0"
-                        class="flex items-center justify-center gap-1 py-1 border-t border-amber-200 dark:border-amber-700/40 bg-amber-100/70 dark:bg-amber-900/20">
-                        <BoltIcon class="w-3 h-3 text-amber-700 dark:text-amber-500" />
-                        <span class="text-[11px] font-medium text-amber-800 dark:text-amber-400">
-                          {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
-                          <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
-                          {{ t('dashboard.phantom_drain_word') }}
-                          <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
-                        </span>
-                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
-                      </div>
+                  <div v-if="!collapsedTripGroups.has(item.groupId)" class="bg-emerald-50/60 dark:bg-emerald-950/20">
+                    <template v-for="day in item.days" :key="day.dateKey + '__d'">
+                    <!-- Datumsband, siehe Mobile-Ansicht. -->
+                    <div v-if="item.days.length > 1" :style="dayBandStyle(item.groupId)" class="sticky z-[2] flex items-center justify-between gap-3 px-3 py-2
+                                bg-emerald-100 dark:bg-emerald-950 border-y border-emerald-300/70 dark:border-emerald-800/50">
+                      <span class="text-[13px] font-bold text-gray-900 dark:text-gray-100">{{ dayLabel(day.dateKey) }}</span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                        {{ t('dashboard.trip_group_count', { count: day.tripCount }, day.tripCount) }}<template v-if="day.km"> &middot; {{ formatDistance(day.km) }}</template>
+                      </span>
+                    </div>
+                    <!-- Ereignisse des Tages chronologisch gemischt, siehe Mobile-Ansicht. -->
+                    <template v-for="ev in day.events" :key="ev.kind === 'charge' ? 'pcd_' + ev.charge.id : ev.trip.id + '__d'">
+                    <PeriodChargeLine v-if="ev.kind === 'charge'" :entry="ev.charge"
+                                      layout="row" :own-avg-cost-per-kwh="personalCostBenchmark?.costPerKwh"
+                                      :card-name="chargeCardName(ev.charge)" @edit="editingLog = $event" />
+                    <template v-else>
+                    <template v-for="{ trip, tripIdx } in [ev]" :key="trip.id + '__d'">
                       <!-- Add-trip form (full width inside container) -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                       <div v-if="addingTripAfterId === trip.id"
@@ -1526,16 +1868,26 @@ function toggleAllCharges() {
                           @save="saveNewTrip()" @cancel="cancelTripEdit()" />
                       </div>
                       </Transition>
-                      <!-- Display row -->
+                      <!-- Display row - Klick auf die Zeile klappt die Karte darunter auf. -->
                       <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
-                        class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-center px-3 py-1.5 border-t border-emerald-200/40 dark:border-emerald-800/30 hover:bg-emerald-50/60 dark:hover:bg-emerald-900/20 transition">
-                        <div class="flex items-center gap-1.5 pl-4 text-emerald-600/60 dark:text-emerald-400/50 text-xs">└</div>
+                        :class="[FEED_GRID_COLS, 'items-center px-3 py-1.5 bg-emerald-50/60 dark:bg-transparent border-t border-emerald-300/50 dark:border-emerald-800/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/20 transition',
+                                 hasTripMap(trip) ? 'cursor-pointer' : '']"
+                        :role="hasTripMap(trip) ? 'button' : undefined"
+                        :tabindex="hasTripMap(trip) ? 0 : undefined"
+                        :aria-expanded="hasTripMap(trip) ? expandedTripMaps.has(trip.id + '__d') : undefined"
+                        :aria-controls="hasTripMap(trip) ? 'trip-map-' + trip.id + '__d' : undefined"
+                        @click="hasTripMap(trip) && toggleTripMap(trip.id + '__d')"
+                        @keydown.enter.self.prevent="hasTripMap(trip) && toggleTripMap(trip.id + '__d')"
+                        @keydown.space.self.prevent="hasTripMap(trip) && toggleTripMap(trip.id + '__d')">
+                        <div class="flex items-center gap-1.5 pl-4">
+                          <MapIcon class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" aria-hidden="true" />
+                        </div>
+                        <div class="text-[13px] text-gray-900 dark:text-gray-100 whitespace-nowrap truncate">
+                          {{ tripTimeParts(trip.tripStartedAt, trip.tripEndedAt).time }}
+                        </div>
                         <div class="text-sm font-medium text-rose-600 dark:text-rose-300 whitespace-nowrap">
                           <template v-if="tripConsumption(trip) && trip.distanceKm">−{{ (tripConsumption(trip)!.kwhPer100km * trip.distanceKm / 100).toFixed(2) }} kWh</template>
                           <span v-else class="text-gray-400 dark:text-gray-600">-</span>
-                        </div>
-                        <div class="text-xs text-slate-600 dark:text-gray-300 whitespace-nowrap truncate">
-                          <ClockIcon class="w-3 h-3 inline-block mr-0.5 -mt-0.5" />{{ formatTripTimeRange(trip.tripStartedAt, trip.tripEndedAt) }}
                         </div>
                         <div class="text-xs whitespace-nowrap">
                           <span v-if="tripConsumption(trip)" class="text-slate-700 dark:text-gray-200">
@@ -1566,13 +1918,20 @@ function toggleAllCharges() {
                           </span>
                           <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
                         </div>
-                        <div class="flex justify-end text-xs whitespace-nowrap">
-                          <span v-if="tripCostPer100km(trip) != null" class="text-emerald-700 dark:text-emerald-300/90">
-                            {{ formatCurrency(tripCostPer100km(trip)!) }}/100km
-                          </span>
-                          <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                        <div class="flex justify-end whitespace-nowrap">
+                          <ComparisonChip v-if="tripCostPer100kmDisplay(trip) != null"
+                            :level="communityLevel(tripCostPer100kmDisplay(trip), personalCostBenchmark?.costPer100km)"
+                            :delta-percent="comparisonDeltaPercent(tripCostPer100kmDisplay(trip), personalCostBenchmark?.costPer100km)"
+                            :tooltip="costPer100kmTooltip(tripCostPer100kmDisplay(trip))">
+                            {{ formatCurrency(tripCostPer100kmDisplay(trip)!) }}/100km
+                          </ComparisonChip>
+                          <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
                         </div>
-                        <div class="flex justify-end relative">
+                        <div class="flex items-center justify-end gap-0.5 relative">
+                          <!-- Affordance fuer die aufklappbare Karte - der Klick liegt auf der Zeile. -->
+                          <ChevronDownIcon v-if="hasTripMap(trip)"
+                            :class="['w-3.5 h-3.5 text-gray-400 transition-transform duration-200', expandedTripMaps.has(trip.id + '__d') ? 'rotate-180' : '']"
+                            aria-hidden="true" />
                           <button type="button"
                             @click.stop="openMenuTripId = openMenuTripId === trip.id + '__d' ? null : trip.id + '__d'"
                             class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
@@ -1603,6 +1962,10 @@ function toggleAllCharges() {
                         </div>
                       </div>
                       <TripClimateMarkers :climate="trip.climate" class="px-3 pb-2.5" />
+                      <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
+                        <TripMapPanel v-if="expandedTripMaps.has(trip.id + '__d')" :trip="trip"
+                                      :panel-id="'trip-map-' + trip.id + '__d'" class="px-3 pb-2.5" />
+                      </Transition>
                       <!-- Inline edit form -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                       <div v-if="editingTripId === trip.id"
@@ -1612,7 +1975,31 @@ function toggleAllCharges() {
                           @save="saveTripEdit(trip.id)" @cancel="cancelTripEditFull()" />
                       </div>
                       </Transition>
+                      <!-- Luecke zur naechstfrueheren Fahrt - siehe Mobile-Ansicht. -->
+                      <div v-if="isRestBreak(day.trips, tripIdx as number) && !(trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId))"
+                           class="flex items-center justify-center py-2">
+                        <span class="text-[11px] text-gray-400 dark:text-gray-500">
+                          {{ t('dashboard.trip_pause', { duration: formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }) }}
+                        </span>
+                      </div>
+
+                      <!-- Phantom drain separator between trips (AutoSync Live feature) -->
+                      <div v-if="trip._phantomDrain && (authStore.canViewLiveAnalytics || trip.id === teaserPhantomId) && (tripIdx as number) < day.trips.length - 1"
+                        class="flex items-center justify-center gap-1 py-1.5 border-t border-emerald-300/50 dark:border-emerald-800/30">
+                        <BoltIcon class="w-3 h-3 text-amber-700 dark:text-amber-500" />
+                        <span class="text-[11px] font-medium text-amber-800 dark:text-amber-400">
+                          <span v-if="pauseBeforeTripMinutes(day.trips, tripIdx as number)" class="font-normal text-amber-700/70 dark:text-amber-500/70">{{ formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }} &middot; </span>
+                          {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
+                          <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
+                          {{ t('dashboard.phantom_drain_word') }}
+                          <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
+                        </span>
+                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                      </div>
                     </template>
+                    </template><!-- end v-else trip (desktop) -->
+                    </template><!-- end v-for events (desktop) -->
+                    </template><!-- end v-for days (desktop) -->
                   </div>
                   </Transition>
                 </div>
@@ -1693,14 +2080,11 @@ function toggleAllCharges() {
               <!-- CHARGE ENTRY (DESKTOP GRID, normal logs only) -->
               <div v-if="!item.entry._isLadegruppe"
                 class="hidden gridfeed:block relative bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
-                <div class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-center px-3 py-2.5">
+                <div :class="[FEED_GRID_COLS, 'items-center px-3 py-2.5']">
                   <!-- 1. Type cell: Bolt + AC/DC badge -->
                   <div class="flex items-center gap-1.5">
                     <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
-                    <span v-if="item.entry.chargingType === 'AC'"
-                      class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-medium">AC</span>
-                    <span v-else-if="item.entry.chargingType === 'DC'"
-                      class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">DC</span>
+                    <ChargeTypeBadge :type="item.entry.chargingType" />
                   </div>
                   <!-- 2. Energy -->
                   <div class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
@@ -1973,7 +2357,7 @@ function toggleAllCharges() {
                 class="hidden gridfeed:block rounded-sm border-2 border-blue-200 dark:border-blue-800/60 border-l-4 border-l-blue-400 dark:border-l-blue-500 shadow-[2px_2px_0_0_#bfdbfe] dark:shadow-[2px_2px_0_0_#1e3a8a]">
                 <button type="button" @click="toggleLadegruppe(item.entry.id)"
                   :aria-expanded="expandedGroups.has(item.entry.id)"
-                  class="w-full grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-center px-3 py-2 bg-blue-50/40 dark:bg-blue-900/15 hover:bg-blue-50 dark:hover:bg-blue-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset">
+                  :class="[FEED_GRID_COLS, 'w-full items-center px-3 py-2 bg-blue-50/40 dark:bg-blue-900/15 hover:bg-blue-50 dark:hover:bg-blue-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset']">
                   <div class="flex items-center gap-1.5">
                     <BoltIcon class="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">{{ item.entry._topUps?.length ?? 0 }}×</span>
@@ -2117,7 +2501,7 @@ function toggleAllCharges() {
                   <div v-if="expandedGroups.has(item.entry.id)" class="bg-blue-50/30 dark:bg-blue-950/20">
                     <template v-for="topUp in item.entry._topUps" :key="topUp.id + '__d'">
                     <div
-                      class="grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_108px_40px] gap-1.5 items-start px-3 py-1.5 border-t border-blue-200/40 dark:border-blue-800/30 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition">
+                      :class="[FEED_GRID_COLS, 'items-start px-3 py-1.5 border-t border-blue-200/40 dark:border-blue-800/30 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition']">
                       <div class="flex items-center gap-1.5 pl-4 text-gray-500 text-xs pt-0.5">└</div>
                       <div class="whitespace-nowrap">
                         <div class="text-sm font-medium text-blue-700 dark:text-blue-300">+{{ topUp.kwhAtVehicle ?? topUp.kwhCharged ?? '-' }} kWh</div>

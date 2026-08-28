@@ -118,9 +118,12 @@ function clamp(v: number): number {
 const showTrip = computed(() => !!props.trip)
 /** Nur rund die Haelfte der Ladevorgaenge traegt einen Ort - ohne bleibt die Kachel schlicht. */
 const hasChargeLocation = computed(() => !!ch.value?.geohash)
-/** Backend fills the geohashes for the most recent trip only - older ones stay blank. */
+/** Backend fills the location data for the most recent trip only - older ones stay blank. */
 const hasTripLocation = computed(
-  () => !!props.trip?.locationStartGeohash || !!props.trip?.locationEndGeohash,
+  () =>
+    !!props.trip?.locationStartGeohash ||
+    !!props.trip?.locationEndGeohash ||
+    !!props.trip?.tracePolyline,
 )
 
 // -- Mobile: kompakte Inline-Metriken (ein dichter Fließtext statt Balken) --
@@ -250,6 +253,8 @@ const tripInline = computed<string[]>(() => {
         :start-geohash="trip.locationStartGeohash"
         :end-geohash="trip.locationEndGeohash"
         :route-polyline="trip.routePolyline"
+        :route-kind="trip.routeKind"
+        :trace-polyline="trip.tracePolyline"
         class="-z-10"
       />
       <div class="flex items-center justify-between mb-1 md:mb-1.5">

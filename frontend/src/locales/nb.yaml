@@ -562,6 +562,21 @@ auth:
     error_generic: Det oppstod en feil. Prøv på nytt.
 logs:
   title: Ladinger og turer
+  resolution:
+    label: "Visning"
+    cycle: "Lading"
+    day: "Dag"
+    week: "Uke"
+    month: "Måned"
+  period:
+    week_number: "Uke {week}"
+    bars_legend: "Søylehøyde = kilometer per dag, høyeste dag {max} · blå sokkel = ladet"
+    bars_legend_km: "Søylehøyde = kilometer per dag · blå sokkel = ladet"
+    charges: "1 lading | {count} ladinger"
+    no_trips: "Uten tidsstempel"
+    unmeasured: "1 tur uten forbruksverdi | {count} turer uten forbruksverdi"
+    charge_public: "offentlig"
+    charge_home: "hjemme"
 
 dashboard:
   title: Dashbord
@@ -907,9 +922,23 @@ dashboard:
   trip_speed_header: "km/t"
   trip_m_consumption: "Forbr."
   trip_m_speed: "Fart"
-  trip_m_time: "Tid"
   trip_m_soc: "SoC"
   trip_m_route: "Rute"
+  charge_m_cost: "Kostnad"
+  charge_m_power: "Effekt"
+  charge_m_duration: "Varighet"
+  charge_m_place: "Sted"
+  charge_m_card: "Ladekort"
+  community_cmp_better: "{delta} % bedre enn community-snittet for modellen din ({avg})"
+  community_cmp_similar: "På nivå med community-snittet for modellen din ({avg})"
+  community_cmp_worse: "{delta} % over community-snittet for modellen din ({avg})"
+  community_cmp_much_worse: "Langt over community-snittet for modellen din: +{delta} % ({avg})"
+  self_cmp_better: "{delta} % under snittet ditt ({avg})"
+  self_cmp_similar: "På nivå med snittet ditt ({avg})"
+  self_cmp_worse: "{delta} % over snittet ditt ({avg})"
+  self_cmp_much_worse: "Langt over snittet ditt: +{delta} % ({avg})"
+  trip_pause: "{duration} pause"
+  trip_map_alt: "Kart over turen med start, mål og rute"
   recent_charge_title: "Siste lading"
   recent_trip_title: "Siste tur"
   recent_charge_edit: "Rediger siste lading"

@@ -8,6 +8,7 @@ import {
   HomeIcon,
 } from '@heroicons/vue/24/outline'
 import { carDisplayName } from '../utils/enumLabel'
+import { formatTripDateTimeRange, tripDateTimeParts } from '../utils/tripTimeFormat'
 import { precedingChargePricePerKwh } from '../utils/phantomDrain'
 import { aggregateGroupCost } from './useChargingEfficiency'
 
@@ -395,22 +396,12 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       + d.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })
   }
 
-  const formatTripTimeRange = (startIso: string | null | undefined, endIso: string) => {
-    const localeMap: Record<string, string> = { en: 'en-GB', nb: 'nb-NO', sv: 'sv-SE' }
-    const loc = localeMap[locale.value] ?? 'de-DE'
-    const end = new Date(endIso)
-    const timeOpts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' }
-    const dateOpts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'numeric' }
-    const endTime = end.toLocaleTimeString(loc, timeOpts)
-    const dateStr = end.toLocaleDateString(loc, dateOpts)
-    if (!startIso) return `${dateStr}, ${endTime}`
-    const start = new Date(startIso)
-    const startTime = start.toLocaleTimeString(loc, timeOpts)
-    const sameDay = start.toDateString() === end.toDateString()
-    if (sameDay) return `${startTime} - ${endTime}, ${dateStr}`
-    const startDate = start.toLocaleDateString(loc, dateOpts)
-    return `${startDate} ${startTime} - ${dateStr} ${endTime}`
-  }
+  const formatTripTimeRange = (startIso: string | null | undefined, endIso: string) =>
+    formatTripDateTimeRange(startIso, endIso, locale.value)
+
+  /** Tag und Spanne getrennt - der Log-Feed hebt nur den Tag hervor. */
+  const tripTimeParts = (startIso: string | null | undefined, endIso: string) =>
+    tripDateTimeParts(startIso, endIso, locale.value)
 
   const toggleOdometerDisplay = (distanceKm: number | null, odometerKm: number | null) => {
     if (distanceKm == null || odometerKm == null) return
@@ -774,6 +765,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     formatLogDate,
     formatTripDate,
     formatTripTimeRange,
+    tripTimeParts,
     toggleOdometerDisplay,
     sourceInfo,
     // Merged feed

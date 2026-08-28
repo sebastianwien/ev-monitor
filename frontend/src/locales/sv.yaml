@@ -562,6 +562,21 @@ auth:
     error_generic: Ett fel har uppstått. Försök igen.
 logs:
   title: Laddningar & resor
+  resolution:
+    label: "Vy"
+    cycle: "Laddning"
+    day: "Dag"
+    week: "Vecka"
+    month: "Månad"
+  period:
+    week_number: "V{week}"
+    bars_legend: "Stapelhöjd = kilometer per dag, högsta dag {max} · blå sockel = laddad"
+    bars_legend_km: "Stapelhöjd = kilometer per dag · blå sockel = laddad"
+    charges: "1 laddning | {count} laddningar"
+    no_trips: "Utan tidsstämpel"
+    unmeasured: "1 resa utan förbrukningsvärde | {count} resor utan förbrukningsvärde"
+    charge_public: "publik"
+    charge_home: "hemma"
 
 dashboard:
   title: Dashboard
@@ -907,9 +922,23 @@ dashboard:
   trip_speed_header: "km/h"
   trip_m_consumption: "Förbr."
   trip_m_speed: "Fart"
-  trip_m_time: "Tid"
   trip_m_soc: "SoC"
   trip_m_route: "Rutt"
+  charge_m_cost: "Kostnad"
+  charge_m_power: "Effekt"
+  charge_m_duration: "Varaktighet"
+  charge_m_place: "Plats"
+  charge_m_card: "Laddkort"
+  community_cmp_better: "{delta} % bättre än community-snittet för din modell ({avg})"
+  community_cmp_similar: "I nivå med community-snittet för din modell ({avg})"
+  community_cmp_worse: "{delta} % över community-snittet för din modell ({avg})"
+  community_cmp_much_worse: "Klart över community-snittet för din modell: +{delta} % ({avg})"
+  self_cmp_better: "{delta} % under ditt snitt ({avg})"
+  self_cmp_similar: "I nivå med ditt snitt ({avg})"
+  self_cmp_worse: "{delta} % över ditt snitt ({avg})"
+  self_cmp_much_worse: "Klart över ditt snitt: +{delta} % ({avg})"
+  trip_pause: "{duration} paus"
+  trip_map_alt: "Karta över resan med start, mål och rutt"
   recent_charge_title: "Senaste laddning"
   recent_trip_title: "Senaste resa"
   recent_charge_edit: "Redigera senaste laddning"

@@ -18,6 +18,9 @@ export function decodePolyline(encoded: string | null | undefined): [number, num
       let byte: number
       do {
         byte = encoded.charCodeAt(index++) - 63
+        // Zeichen ausserhalb des Alphabets ergeben keine Koordinate, sondern eine Zahl
+        // irgendwo auf der Welt. Wie im Backend endet die Linie hier, statt ins Leere zu laufen.
+        if (byte < 0 || byte > 0x3f) return points
         result |= (byte & 0x1f) << shift
         shift += 5
       } while (byte >= 0x20 && index < encoded.length)

@@ -210,3 +210,77 @@ export function isDayBoundary(
   if (!prev || !current) return false
   return new Date(prev).toDateString() !== new Date(current).toDateString()
 }
+
+/** Fahrten, die dichter aufeinander folgen, lesen sich als ein Vorgang statt als zwei. */
+const CHAIN_PAUSE_MINUTES = 45
+
+type TripTimes = { tripStartedAt?: string | null; tripEndedAt?: string | null }
+
+/**
+ * Ruhe vor dieser Fahrt, in Minuten - die Zeit, die das Auto stand.
+ *
+ * Trips sind absteigend sortiert (neuester zuerst), die frueher gefahrene Fahrt steht also
+ * beim hoeheren Index. Fehlt deren Ankunft, zaehlt ersatzweise ihre Abfahrt: sie liegt
+ * immer davor, die Pause faellt damit hoechstens zu gross aus, nie zu klein.
+ *
+ * @returns null fuer die aelteste Fahrt der Gruppe und bei fehlenden Zeitstempeln
+ */
+export function pauseBeforeTripMinutes(trips: TripTimes[], idx: number): number | null {
+  const current = trips[idx]?.tripStartedAt
+  const earlier = trips[idx + 1]
+  if (!current || !earlier) return null
+  const earlierEnd = earlier.tripEndedAt ?? earlier.tripStartedAt
+  if (!earlierEnd) return null
+  const minutes = (new Date(current).getTime() - new Date(earlierEnd).getTime()) / 60000
+  return Number.isFinite(minutes) ? Math.round(minutes) : null
+}
+
+/**
+ * Ob unter dieser Fahrt eine echte Standzeit liegt - mindestens {@link CHAIN_PAUSE_MINUTES}
+ * Minuten, in denen das Auto stand.
+ *
+ * Bewusst ohne den Tageswechsel: der bekommt im Feed sein eigenes Datumsband. Beides auf
+ * dieselbe graue Zeile zu legen hiesse, dass Mitternacht und ein Einkaufsstopp gleich
+ * aussehen - dann sagt die Zeile nichts mehr.
+ *
+ * Innerhalb eines Tages gilt: ist die Pause nicht bestimmbar, gibt es auch keine Angabe.
+ */
+export function isRestBreak(trips: TripTimes[], idx: number): boolean {
+  if (idx >= trips.length - 1) return false
+  const pause = pauseBeforeTripMinutes(trips, idx)
+  return pause !== null && pause >= CHAIN_PAUSE_MINUTES
+}
+
+/** Ein Tag innerhalb einer Fahrtgruppe - die zweite Ebene des Log-Feeds. */
+export interface TripDay<T = any> {
+  /** Stabil ueber Rendervorgaenge hinweg, dient als Schluessel fuer Liste und Zustand. */
+  dateKey: string
+  trips: T[]
+  tripCount: number
+  km: number
+}
+
+/**
+ * Zerlegt die Fahrten einer Gruppe in Tage, ohne ihre Reihenfolge anzutasten - die Liste ist
+ * bereits absteigend sortiert, die Tage folgen ihr.
+ *
+ * Massgeblich ist die Abfahrt: eine Fahrt ueber Mitternacht gehoert zu dem Tag, an dem sie
+ * begonnen hat. Sonst eroeffnete ihre Ankunft einen Tag, an dem niemand losgefahren ist.
+ * Fahrten ohne Startzeit landen in einem eigenen Abschnitt, statt zu verschwinden.
+ */
+export function groupTripsByDay<T extends { tripStartedAt?: string | null; distanceKm?: number | null }>(
+  trips: T[],
+): TripDay<T>[] {
+  const days: TripDay<T>[] = []
+  for (const trip of trips) {
+    const dateKey = trip.tripStartedAt ? trip.tripStartedAt.slice(0, 10) : 'unknown'
+    const current = days[days.length - 1]
+    if (current && current.dateKey === dateKey) current.trips.push(trip)
+    else days.push({ dateKey, trips: [trip], tripCount: 0, km: 0 })
+  }
+  for (const day of days) {
+    day.tripCount = day.trips.length
+    day.km = day.trips.reduce((sum, t) => sum + (t.distanceKm ?? 0), 0)
+  }
+  return days
+}
