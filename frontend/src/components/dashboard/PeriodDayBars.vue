@@ -69,12 +69,16 @@ const maxKm = computed(() => Math.max(...(props.bars ?? []).map((bar) => bar.km)
 
 <template>
   <!-- Feste Saeulenbreite statt flex-1: ueber die volle Zeile gestreckt liest sich eine
-       Saeule wie ein Fortschrittsbalken, nicht wie ein Messwert. -->
-  <div v-if="dayBars.length">
-    <div class="flex items-end" :class="month ? 'gap-px' : 'gap-1'">
+       Saeule wie ein Fortschrittsbalken, nicht wie ein Messwert. w-min: die Saeulenreihe
+       bestimmt die Breite, die Legende bricht darunter um - sonst zieht ihre einzeilige
+       Max-Content-Breite das shrink-0-Flex-Item breiter als die Karte (Scrollbalken). -->
+  <div v-if="dayBars.length" class="w-min">
+    <!-- Ab md: breitere Monats-Saeulen - das Raster darf auf grossen Screens praesenter
+         sein, aber nicht auf volle Kartenbreite gestreckt (siehe Kopfkommentar). -->
+    <div class="flex items-end" :class="month ? 'gap-px md:gap-[3px]' : 'gap-1'">
       <template v-for="bar in dayBars" :key="bar.dateKey">
         <span v-if="bar.separator" class="w-px self-stretch bg-gray-200 dark:bg-gray-600 mx-0.5" aria-hidden="true" />
-        <span class="flex flex-col items-center gap-0.5" :class="month ? 'w-[7px]' : 'w-[30px]'" :title="bar.title">
+        <span class="flex flex-col items-center gap-0.5" :class="month ? 'w-[7px] md:w-3' : 'w-[30px]'" :title="bar.title">
           <span class="flex flex-col justify-end items-stretch w-full" :style="{ height: (BAR_HEIGHT_PX + CHARGE_BASE_PX) + 'px' }">
             <span class="w-full rounded-t-sm"
                   :class="bar.height ? 'bg-emerald-300 dark:bg-emerald-600' : (bar.charged ? '' : 'bg-gray-200 dark:bg-gray-600')"

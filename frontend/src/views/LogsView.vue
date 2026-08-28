@@ -1821,13 +1821,12 @@ function toggleAllCharges() {
 
                 <!-- DESKTOP TRIP GROUP -->
                 <div class="hidden gridfeed:block rounded-sm border-2 border-emerald-300 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
-                  <!-- Kopf des Zeitraums - Tag, Woche oder Monat -->
-                  <!-- Deckende Hintergruende statt der frueheren Transparenzen - unter dem
-                       sticky Kopf scrollen Zeilen durch. #30434e = emerald-900/15 auf gray-700. -->
+                  <!-- Kopf des Zeitraums - Tag, Woche oder Monat. Neutraler Hintergrund wie
+                       auf Mobile; deckend, weil unter dem sticky Kopf Zeilen durchscrollen. -->
                   <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!isGroupCollapsed(item.groupId)"
                     :ref="(el) => setPeriodHeaderRef(item.groupId, 'd', el)" :style="stickyHeaderStyle"
-                    class="w-full text-left sticky z-[3] bg-emerald-100 dark:bg-[#30434e] hover:bg-emerald-200 dark:hover:bg-[#35505c] transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
+                    class="w-full text-left sticky z-[3] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 border-b border-gray-100 dark:border-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
                     <PeriodGroupHeader :group="item.period" :expanded="!isGroupCollapsed(item.groupId)"
                                        :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
                   </button>
