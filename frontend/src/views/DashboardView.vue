@@ -573,7 +573,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
               class="w-full px-4 py-3 text-left"
               :class="openMetricTooltip === 'costPer100km' ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800'">
               <div class="flex items-center gap-1 mb-1">
-                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('dashboard.metric_avg_cost') }}</span>
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ costMode === 'full' ? t('dashboard.metric_avg_cost_full') : t('dashboard.metric_avg_cost') }}</span>
                 <button
                   type="button"
                   class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded"
@@ -751,7 +751,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
             class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">{{ t('dashboard.metric_avg_cost') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">{{ costMode === 'full' ? t('dashboard.metric_avg_cost_full') : t('dashboard.metric_avg_cost') }}</p>
                 <button
                   type="button"
                   class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded"

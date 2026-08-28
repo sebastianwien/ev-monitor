@@ -773,6 +773,7 @@ dashboard:
   metric_consumption_methodology_link: "Berechnungsgrundlage"
   metric_estimated: "{n} Ladung(en) geschätzt (ohne SoC)"
   metric_avg_cost: "Ø Kosten"
+  metric_avg_cost_full: "Ø Vollkosten"
   cost_mode_energy: "Energie"
   cost_mode_full: "Vollkosten"
   cost_mode_toggle_aria: "Kostenbasis umschalten, aktuell {mode}"

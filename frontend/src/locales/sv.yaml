@@ -733,6 +733,7 @@ dashboard:
   metric_consumption_methodology_link: "Beräkningsgrundlag"
   metric_estimated: "{n} uppskattad laddning (utan SoC)"
   metric_avg_cost: Genomsnittlig kostnad
+  metric_avg_cost_full: Ø Totalkostnad
   cost_mode_energy: Energi
   cost_mode_full: Totalkostnad
   cost_mode_toggle_aria: Byt kostnadsbas, just nu {mode}

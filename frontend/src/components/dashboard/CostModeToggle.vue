@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 import type { CostMode } from '../../composables/useDashboardStats'
 
 const props = defineProps<{ mode: CostMode }>()
@@ -15,19 +16,25 @@ const label = computed(() => props.mode === 'full'
 
 <template>
   <!--
-    Ein einzelnes Tap-Target statt zweier Chips: die Kachel ist auf Mobile nur eine halbe
-    Spalte breit. Der Chip zeigt den aktiven Modus und wechselt beim Tippen - dadurch ist
-    zugleich benannt, worauf sich der Wert darueber bezieht.
+    Icon-only: in der Titelzeile stehen nur 135px (Desktop) bzw. 145px (Mobile) zur Verfuegung,
+    ein beschrifteter Chip laeuft dort ueber. Welcher Modus aktiv ist, sagt stattdessen der
+    Kachel-Titel ("Ø Kosten" / "Ø Vollkosten") - er wechselt sichtbar beim Tippen. Pfeil-Icon
+    und harter Bodenschatten (visuelle Sprache von btn-3d, nur kleiner) machen den Schalter
+    als solchen kenntlich.
   -->
   <button
     type="button"
-    class="flex-shrink-0 px-1.5 py-0.5 rounded-sm text-[10px] font-medium border whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
+    class="relative flex items-center flex-shrink-0 p-0.5 rounded-sm border
+           before:absolute before:-inset-2 before:content-['']
+           shadow-[2px_2px_0_0_rgba(0,0,0,0.15)] dark:shadow-[2px_2px_0_0_rgba(0,0,0,0.4)]
+           active:shadow-none active:translate-x-[2px] active:translate-y-[2px]
+           transition-all duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
     :class="mode === 'full'
-      ? 'bg-indigo-50 dark:bg-indigo-900/40 border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300'
-      : 'bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300'"
+      ? 'bg-indigo-100 dark:bg-indigo-800 border-indigo-400 dark:border-indigo-600 text-indigo-800 dark:text-indigo-100'
+      : 'bg-white dark:bg-gray-700 border-gray-400 dark:border-gray-500 text-gray-700 dark:text-gray-200'"
     :aria-label="t('dashboard.cost_mode_toggle_aria', { mode: label })"
     @click.stop="$emit('toggle')"
   >
-    {{ label }}
+    <ArrowsRightLeftIcon class="w-3 h-3" />
   </button>
 </template>
