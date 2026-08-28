@@ -67,14 +67,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineEleme
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
-const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
+const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
 
 // -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
   selectedCarId, stats, lastMonthStats, insightStats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
-  fullCostPer100km, displayedCostPer100km, hasFixedCostData, costMode, toggleCostMode,
+  fullCostPer100km, fixedCostPerMonth, displayedCostPer100km, hasFixedCostData, costMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
   hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo, initCars,
   editingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
@@ -82,6 +82,29 @@ const {
 
 // Car whose battery-health detail sheet is open (null = closed).
 const sohModalCar = ref<Car | null>(null)
+
+/**
+ * Der Kachel-Titel benennt die Kostenbasis, weil der Umschalter selbst nur ein Icon ist.
+ * Kurzformen sind Absicht - die Titelzeile hat auf Desktop nur rund 135px.
+ */
+const costModeLabel = computed(() => {
+  if (costMode.value === 'fixed') return t('dashboard.metric_avg_cost_fixed')
+  if (costMode.value === 'total') return t('dashboard.metric_avg_cost_total')
+  return t('dashboard.metric_avg_cost')
+})
+
+/**
+ * Zweite Zeile der Kachel. Im Fixkosten-Modus waere ct/kWh eine Energie-Kennzahl unter einer
+ * Fixkosten-Ueberschrift - dort stehen deshalb die Fixkosten pro Monat.
+ */
+const costModeSecondary = computed(() => {
+  if (costMode.value === 'fixed') {
+    return fixedCostPerMonth.value != null
+      ? t('dashboard.metric_cost_per_month', { value: formatCurrency(fixedCostPerMonth.value) })
+      : null
+  }
+  return stats.value?.avgCostPerKwh != null ? formatCostPerKwh(stats.value.avgCostPerKwh) : null
+})
 
 // Newest charge / trip for the "letzte Aktivität"-Block. Uses the full merged
 // feed (not the filtered stats), so it always reflects the absolute latest event.
@@ -573,7 +596,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
               class="w-full px-4 py-3 text-left"
               :class="openMetricTooltip === 'costPer100km' ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800'">
               <div class="flex items-center gap-1 mb-1">
-                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ costMode === 'full' ? t('dashboard.metric_avg_cost_full') : t('dashboard.metric_avg_cost') }}</span>
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ costModeLabel }}</span>
                 <button
                   type="button"
                   class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded"
@@ -589,7 +612,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                 />
               </div>
               <div class="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerDistance(displayedCostPer100km!) }}</div>
-              <div v-if="stats.avgCostPerKwh != null" class="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerKwh(stats.avgCostPerKwh) }}</div>
+              <div v-if="costModeSecondary" class="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ costModeSecondary }}</div>
             </div>
             <!-- Gesamtstrecke: unterhalb Ø Kosten -->
             <button v-if="stats.totalDistanceKm != null"
@@ -751,7 +774,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
             class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">{{ costMode === 'full' ? t('dashboard.metric_avg_cost_full') : t('dashboard.metric_avg_cost') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">{{ costModeLabel }}</p>
                 <button
                   type="button"
                   class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded"
@@ -767,8 +790,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                 />
               </div>
               <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(displayedCostPer100km!) }}</p>
-              <div v-if="stats.avgCostPerKwh != null" class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.avgCostPerKwh) }}</p>
+              <div v-if="costModeSecondary" class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ costModeSecondary }}</p>
               </div>
               <div v-if="openMetricTooltip === 'costPer100km'"
                 class="mt-2 p-2.5 rounded-sm bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-300 leading-relaxed space-y-1.5">

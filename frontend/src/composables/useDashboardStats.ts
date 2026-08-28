@@ -85,6 +85,57 @@ export function calcCostPer100km(
   return avgCostPerKwh * avgConsumptionKwhPer100km
 }
 
+/** Fixkosten des Zeitraums (abzueglich Einnahmen), umgelegt auf die gefahrene Strecke. */
+export function calcFixedCostPer100km(
+  fixedCostEur: number | null,
+  fixedIncomeEur: number | null,
+  distanceKm: number | null,
+): number | null {
+  if (distanceKm == null || distanceKm <= 0) return null
+  const fixedNet = (fixedCostEur ?? 0) - (fixedIncomeEur ?? 0)
+  return (fixedNet / distanceKm) * 100
+}
+
+/** Fixkosten des Zeitraums (abzueglich Einnahmen) pro Monat. */
+export function calcFixedCostPerMonth(
+  fixedCostEur: number | null,
+  fixedIncomeEur: number | null,
+  months: number | null,
+): number | null {
+  if (months == null || months <= 0) return null
+  return ((fixedCostEur ?? 0) - (fixedIncomeEur ?? 0)) / months
+}
+
+/**
+ * Laenge des gewaehlten Zeitraums in Monaten - Bezugsgroesse fuer die Euro-pro-Monat-Anzeige.
+ * ALL_TIME liefert null: dort setzt das Backend keine Datumsgrenzen und damit auch keine
+ * Fixkosten (siehe EvLogController), die Anzeige entfaellt also ohnehin.
+ */
+export function monthsInRange(
+  timeRange: string,
+  customStart: string,
+  customEnd: string,
+  now: Date,
+): number | null {
+  switch (timeRange) {
+    case 'THIS_MONTH':
+    case 'LAST_MONTH': return 1
+    case 'LAST_3_MONTHS': return 3
+    case 'LAST_6_MONTHS': return 6
+    case 'LAST_12_MONTHS': return 12
+    case 'THIS_YEAR': return now.getMonth() + 1
+    case 'CUSTOM': {
+      if (!customStart || !customEnd) return null
+      const start = new Date(customStart)
+      const end = new Date(customEnd)
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null
+      const days = (end.getTime() - start.getTime()) / 86_400_000 + 1
+      return days / 30.44
+    }
+    default: return null
+  }
+}
+
 /**
  * Vollkosten pro 100 km: Energiekosten plus die Fixkosten des Zeitraums, umgelegt auf die
  * gefahrene Strecke. Die Energiekosten kommen bewusst aus calcCostPer100km (avgCostPerKwh x
@@ -111,7 +162,14 @@ const LS_CUSTOM_END = 'dashboard_custom_end'
 const LS_IMPLAUSIBLE_BANNER_DISMISSED = 'implausible_banner_dismissed'
 const LS_COST_MODE = 'dashboard_cost_mode'
 
-export type CostMode = 'energy' | 'full'
+export type CostMode = 'energy' | 'fixed' | 'total'
+
+const COST_MODE_ORDER: CostMode[] = ['energy', 'fixed', 'total']
+
+/** Der Schalter rotiert durch die drei Kostenbasen. */
+export function nextCostMode(mode: CostMode): CostMode {
+  return COST_MODE_ORDER[(COST_MODE_ORDER.indexOf(mode) + 1) % COST_MODE_ORDER.length]
+}
 
 export function useDashboardStats() {
   const { t, locale } = useI18n()
@@ -163,17 +221,14 @@ export function useDashboardStats() {
     !!stats.value?.fixedCostEur || !!stats.value?.fixedIncomeEur
   )
 
+  const storedCostMode = localStorage.getItem(LS_COST_MODE)
   const costMode = ref<CostMode>(
-    localStorage.getItem(LS_COST_MODE) === 'full' ? 'full' : 'energy'
+    storedCostMode === 'fixed' || storedCostMode === 'total' ? storedCostMode : 'energy'
   )
 
-  function setCostMode(mode: CostMode) {
-    costMode.value = mode
-    localStorage.setItem(LS_COST_MODE, mode)
-  }
-
   function toggleCostMode() {
-    setCostMode(costMode.value === 'full' ? 'energy' : 'full')
+    costMode.value = nextCostMode(costMode.value)
+    localStorage.setItem(LS_COST_MODE, costMode.value)
   }
 
   const fullCostPer100km = computed(() =>
@@ -185,12 +240,28 @@ export function useDashboardStats() {
     )
   )
 
-  /** Der im Widget angezeigte Wert - faellt auf die Energiekosten zurueck, wenn keine Fixkosten da sind. */
-  const displayedCostPer100km = computed(() =>
-    costMode.value === 'full' && fullCostPer100km.value != null
-      ? fullCostPer100km.value
-      : avgCostPer100km.value
+  const fixedCostPer100km = computed(() =>
+    calcFixedCostPer100km(
+      stats.value?.fixedCostEur ?? null,
+      stats.value?.fixedIncomeEur ?? null,
+      stats.value?.totalDistanceKm ?? null,
+    )
   )
+
+  const fixedCostPerMonth = computed(() =>
+    calcFixedCostPerMonth(
+      stats.value?.fixedCostEur ?? null,
+      stats.value?.fixedIncomeEur ?? null,
+      monthsInRange(selectedTimeRange.value, customStartDate.value, customEndDate.value, new Date()),
+    )
+  )
+
+  /** Der im Widget angezeigte Wert - faellt auf die Energiekosten zurueck, wenn die Basis fehlt. */
+  const displayedCostPer100km = computed(() => {
+    if (costMode.value === 'fixed') return fixedCostPer100km.value ?? avgCostPer100km.value
+    if (costMode.value === 'total') return fullCostPer100km.value ?? avgCostPer100km.value
+    return avgCostPer100km.value
+  })
 
   const timeRangeOptions = computed(() => {
     const now = new Date()
@@ -393,6 +464,8 @@ export function useDashboardStats() {
     hasDistanceData,
     avgCostPer100km,
     fullCostPer100km,
+    fixedCostPer100km,
+    fixedCostPerMonth,
     displayedCostPer100km,
     hasFixedCostData,
     costMode,

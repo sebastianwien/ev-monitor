@@ -719,7 +719,7 @@ dashboard:
   empty_autosync_price: från {price}/månad
   metric_total_energy: Total energi
   metric_charges: laddningar
-  metric_total_cost: Total kostnad
+  metric_total_cost: "Kostnader"
   cost_this_month: Denna månaden
   cost_last_month: Förra månaden
   metric_total_distance: Total sträcka
@@ -732,10 +732,10 @@ dashboard:
   metric_info_aria: "Visa beräkningsanmärkning"
   metric_consumption_methodology_link: "Beräkningsgrundlag"
   metric_estimated: "{n} uppskattad laddning (utan SoC)"
-  metric_avg_cost: Genomsnittlig kostnad
-  metric_avg_cost_full: Ø Totalkostnad
-  cost_mode_energy: Energi
-  cost_mode_full: Totalkostnad
+  metric_avg_cost: "Energikostnad"
+  metric_avg_cost_fixed: "Fasta kostnader"
+  metric_avg_cost_total: "Totalkostnad"
+  metric_cost_per_month: "{value}/mån"
   cost_mode_toggle_aria: Byt kostnadsbas, just nu {mode}
   metric_per_100km: per 100 km
   chart_charging_costs: Laddningar och kostnader
