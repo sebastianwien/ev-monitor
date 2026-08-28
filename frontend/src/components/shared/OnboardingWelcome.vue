@@ -387,7 +387,7 @@ const complete = () => {
                         v-for="spec in (selectedCarTrimLevel ? wizardSpecsForTrim : selectedCarModel?.capacities ?? [])" :key="spec.vehicleSpecificationId ?? spec.kWh"
                         @click="selectSpec(spec)"
                         class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm p-3 text-left text-sm font-medium text-gray-800 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition">
-                        {{ spec.variantName ?? spec.kWh + ' kWh' }}
+                        {{ spec.variantName || spec.kWh + ' kWh' }}
                         <span v-if="spec.availableFrom" class="text-xs text-gray-500 dark:text-gray-400 ml-1">{{ spec.availableFrom }}{{ spec.availableTo ? ' – ' + spec.availableTo : '+' }}</span>
                       </button>
                     </template>
@@ -397,7 +397,7 @@ const complete = () => {
                   <div v-else-if="carAddPhase === 'year-input'" class="flex flex-col items-center gap-4 text-center">
                     <button @click="carAddPhase = selectedCarModel && selectedCarModel.capacities.length > 1 ? 'trim-select' : 'model-select'"
                       class="text-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 flex items-center gap-1 transition self-start">
-                      ← {{ selectedCarSpec?.variantName ?? selectedCarSpec?.kWh + ' kWh' }}
+                      ← {{ selectedCarSpec?.variantName || selectedCarSpec?.kWh + ' kWh' }}
                     </button>
                     <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('onboarding.step2_which_year') }}</h2>
                     <div class="flex items-center gap-4">

@@ -98,7 +98,7 @@
                   class="grid grid-cols-[2fr_1.5fr_1.2fr] gap-x-2 bg-gray-50 dark:bg-gray-700 rounded-sm px-3 py-2.5 items-center"
                 >
                   <span class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
-                    {{ v.displayLabel ?? v.variantName ?? v.batteryCapacityKwh + ' kWh' }}
+                    {{ v.displayLabel || v.variantName || v.batteryCapacityKwh + ' kWh' }}
                   </span>
                   <span class="text-center text-gray-600 dark:text-gray-400 text-xs whitespace-nowrap">
                     <template v-if="v.realConsumptionMinKwhPer100km && v.realConsumptionMaxKwhPer100km">

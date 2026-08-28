@@ -166,7 +166,8 @@ public class CarController {
                         capacities = specs.stream()
                                 .map(s -> new CapacityOption(
                                         s.getBatteryCapacityKwh().doubleValue(),
-                                        s.getVariantName(),
+                                        // DB stores '' as NOT-NULL sentinel (V90) - expose as null
+                                        s.getVariantName() != null && !s.getVariantName().isBlank() ? s.getVariantName() : null,
                                         s.getId(),
                                         s.getTrimLevel(),
                                         s.getAvailableFrom(),

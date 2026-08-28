@@ -6,6 +6,7 @@ import com.evmonitor.application.CarResponse;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.User;
+import com.evmonitor.domain.VehicleSpecification;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -362,5 +363,31 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
                 response.getStatusCode() == HttpStatus.FORBIDDEN,
                 "Expected 401 or 403, got: " + response.getStatusCode()
         );
+    }
+
+    @Test
+    void shouldReturnNullVariantName_WhenSpecStoresBlankSentinel() {
+        // DB stores '' as NOT-NULL sentinel (V90) - the API must expose it as null
+        // so clients can fall back to the kWh label
+        vehicleSpecificationRepository.save(VehicleSpecification.createNew(
+                "XPENG", "XPENG_G6", new BigDecimal("55.50"), new BigDecimal("54.00"),
+                new BigDecimal("400.00"), new BigDecimal("16.00"),
+                VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.WLTP));
+
+        ResponseEntity<List<CarController.ModelInfo>> response = restTemplate.exchange(
+                "/api/cars/brands/XPENG/models",
+                HttpMethod.GET,
+                createAuthRequest(userId, testUser.getEmail()),
+                new ParameterizedTypeReference<>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        CarController.CapacityOption option = response.getBody().stream()
+                .filter(m -> m.value().equals("XPENG_G6"))
+                .flatMap(m -> m.capacities().stream())
+                .filter(c -> c.kWh() == 55.5)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Expected XPENG_G6 55.5 kWh capacity option"));
+        assertNull(option.variantName(), "Blank variant_name sentinel must not leak into the API");
     }
 }
