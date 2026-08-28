@@ -127,11 +127,28 @@ public class EvTrip {
     private String routeType;
 
     /**
-     * Gerechnete Strassenverbindung zwischen Start- und Zielgegend als encodierte Polyline.
-     * NICHT die gefahrene Strecke - es gibt keine Aufzeichnung, siehe RouteSketcher.
+     * Vom Router gerechnete Linie als encodierte Polyline. Was sie zeigt, sagt
+     * {@link #routeKind}: entweder den Weg zwischen Start- und Zielgegend, der von der Fahrt
+     * selbst nichts weiss, oder die auf Strassen gelegte {@link #tracePolyline}.
      */
     @Column(name = "route_polyline")
     private String routePolyline;
+
+    /**
+     * Woher {@link #routePolyline} stammt: {@code SKETCH} zwischen Start- und Zielgegend
+     * geraten, {@code MATCHED} entlang der Stuetzpunkte der gefahrenen Spur gerechnet.
+     * Ohne die Angabe waere die Spalte nicht deutbar.
+     */
+    @Column(name = "route_kind", length = 10)
+    private String routeKind;
+
+    /**
+     * Die gefahrene Linie als encodierte Polyline, aus den Location-Beacons der Telemetrie
+     * (Tesla-FULL mit Location-Scope). Stuetzpunkte im Minutenabstand, jeder das Zentrum
+     * seiner Geohash-8-Zelle - eine Fahrtspur, keine Streckenmessung.
+     */
+    @Column(name = "trace_polyline")
+    private String tracePolyline;
 
     @Column(name = "external_id")
     private UUID externalId;

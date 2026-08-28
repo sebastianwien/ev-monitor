@@ -22,4 +22,21 @@ public interface RouteSketcher {
      * ohne Linie bleibt - die Kachel faellt dann auf die Luftlinie zurueck.
      */
     void sketchTrip(UUID tripId, String startGeohash, String endGeohash);
+
+    /**
+     * Legt die gefahrene Spur auf das Strassennetz: der Router verbindet ihre Stuetzpunkte
+     * entlang echter Strassen, statt sie geradlinig zu schneiden. Ergebnis ist eine Naeherung
+     * der gefahrenen Strecke - naeher dran als die Skizze aus {@link #sketchTrip}, aber
+     * zwischen zwei Stuetzpunkten weiterhin geraten.
+     *
+     * <p>Best-effort wie {@link #sketchTrip}: schlaegt es fehl, bleibt die rohe Spur stehen.
+     *
+     * <p>Das Ergebnis wird gegen die gemessene Fahrleistung geprueft: der Router faehrt jeden
+     * Stuetzpunkt exakt an und baut dort Schleifen, wo einer neben der befahrenen Strasse liegt.
+     * Eine Linie, die nicht zur Laenge der Fahrt passt, wird verworfen.
+     *
+     * @param tracePolyline die gefahrene Spur als encodierte Polyline
+     * @param distanceKm    gemessene Fahrleistung als Massstab; ohne sie unterbleibt das Matching
+     */
+    void matchTrace(UUID tripId, String tracePolyline, java.math.BigDecimal distanceKm);
 }

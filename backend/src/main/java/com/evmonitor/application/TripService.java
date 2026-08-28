@@ -69,6 +69,7 @@ public class TripService {
                 .status(req.status() != null ? req.status() : "COMPLETED")
                 .rawPayload(req.rawPayload())
                 .telemetryExtras(req.telemetryExtras())
+                .tracePolyline(req.tracePolyline())
                 .userCreated(false)
                 .build();
 
@@ -101,8 +102,21 @@ public class TripService {
         // davon geholt - eine Fahrt kann ihre Temperatur schon mitbringen und trotzdem eine
         // Route brauchen. Nach dem Commit, damit der Trip in der DB steht, bevor der
         // asynchrone Task ihn aktualisiert.
-        if (req.locationStartGeohash() != null && req.locationEndGeohash() != null) {
-            final UUID tripIdForRoute = saved.getId();
+        //
+        // Bringt die Fahrt ihre gefahrene Spur mit, bekommt der Router sie statt der beiden
+        // Enden: er legt sie auf das Strassennetz, statt einen Weg zu erfinden. Erst ohne
+        // Spur bleibt die Skizze zwischen Start- und Zielgegend.
+        final UUID tripIdForRoute = saved.getId();
+        if (req.tracePolyline() != null) {
+            final String trace = req.tracePolyline();
+            final BigDecimal drivenKm = trip.getDistanceKm();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    routeSketcher.matchTrace(tripIdForRoute, trace, drivenKm);
+                }
+            });
+        } else if (req.locationStartGeohash() != null && req.locationEndGeohash() != null) {
             final String routeStart = req.locationStartGeohash();
             final String routeEnd = req.locationEndGeohash();
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
@@ -232,6 +246,12 @@ public class TripService {
         surviving.setDistanceKm(sumNullable(earlier.getDistanceKm(), later.getDistanceKm(), 1));
         surviving.setLocationStartGeohash(earlier.getLocationStartGeohash());
         surviving.setLocationEndGeohash(later.getLocationEndGeohash());
+        // Start und Ziel stammen jetzt aus zwei Fahrten - jede mitgebrachte Linie deckt nur
+        // noch ein Stueck davon ab. Statt eine Strecke zu zeigen, die so nie gefahren wurde,
+        // bleibt die Luftlinie zwischen den neuen Enden.
+        surviving.setTracePolyline(null);
+        surviving.setRoutePolyline(null);
+        surviving.setRouteKind(null);
         surviving.setOutsideTempCelsius(averageNullable(earlier.getOutsideTempCelsius(), later.getOutsideTempCelsius()));
         surviving.setEstimatedConsumedKwh(estimatedConsumedKwh);
         surviving.setRouteType(mergeRouteType(earlier.getRouteType(), later.getRouteType()));
@@ -330,13 +350,14 @@ public class TripService {
     }
 
     /**
-     * Speeds and the climate summary are the paid analytics layer, the map is reserved for
-     * the newest trip. Both collapse into one level because the newest trip is always the
-     * free teaser: whoever may see its map may see its telemetry too.
+     * Ort und Telemetrie einer Fahrt haengen an derselben Grenze, weil sie dasselbe erzaehlen:
+     * wo es langging und wie. Zwei Wege fuehren dahinter - die neueste Fahrt ist fuer jeden der
+     * freie Vorgeschmack, alle aelteren gehoeren zur bezahlten Analytics-Schicht.
      */
     private static EvTripResponse.Detail detailFor(boolean newest, boolean analytics) {
-        if (newest) return EvTripResponse.Detail.TELEMETRY_AND_LOCATION;
-        return analytics ? EvTripResponse.Detail.TELEMETRY : EvTripResponse.Detail.BASE;
+        return newest || analytics
+                ? EvTripResponse.Detail.TELEMETRY_AND_LOCATION
+                : EvTripResponse.Detail.BASE;
     }
 
     /**

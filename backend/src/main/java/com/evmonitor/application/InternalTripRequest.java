@@ -29,5 +29,7 @@ public record InternalTripRequest(
         BigDecimal maxSpeedKmh,
         String status,
         String rawPayload,
-        String telemetryExtras
+        String telemetryExtras,
+        /** Gefahrene Linie aus den Location-Beacons; null, wenn die Quelle keine Position streamt. */
+        String tracePolyline
 ) {}

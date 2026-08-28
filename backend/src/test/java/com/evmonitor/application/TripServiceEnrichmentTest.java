@@ -3,12 +3,14 @@ package com.evmonitor.application;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
+import com.evmonitor.domain.route.RouteSketcher;
 import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,9 +29,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Verifies that {@link TripService#saveTrip} wires the temperature-enricher hook
- * correctly: registered as an afterCommit synchronization, with the right arguments,
- * and only when the trip lacks a temperature AND has at least one geohash.
+ * Verifies that {@link TripService#saveTrip} wires its two afterCommit hooks correctly:
+ *
+ * <ul>
+ *   <li>der Temperatur-Enricher, sobald die Fahrt keine Temperatur, aber mindestens einen
+ *       Geohash mitbringt,</li>
+ *   <li>der Router, der die Start- und Zielgegend verbindet - aber nur, wenn die Fahrt keine
+ *       eigene Trace mitbringt: gefahren schlaegt gerechnet.</li>
+ * </ul>
  */
 @ExtendWith(MockitoExtension.class)
 class TripServiceEnrichmentTest {
@@ -37,6 +44,7 @@ class TripServiceEnrichmentTest {
     @Mock EvTripRepository tripRepository;
     @Mock CarRepository carRepository;
     @Mock TemperatureEnricher temperatureEnricher;
+    @Mock RouteSketcher routeSketcher;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private TripService tripService;
@@ -46,7 +54,7 @@ class TripServiceEnrichmentTest {
 
     @BeforeEach
     void setUp() {
-        tripService = new TripService(tripRepository, carRepository, objectMapper, temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
+        tripService = new TripService(tripRepository, carRepository, objectMapper, temperatureEnricher, routeSketcher);
         TransactionSynchronizationManager.initSynchronization();
         lenient().when(tripRepository.save(any(EvTrip.class))).thenAnswer(inv -> {
             EvTrip trip = inv.getArgument(0);
@@ -73,7 +81,7 @@ class TripServiceEnrichmentTest {
         UUID savedId = tripService.saveTrip(req);
 
         // Before commit: enricher must not be touched
-        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
+        verifyNoInteractions(temperatureEnricher);
 
         triggerAfterCommit();
 
@@ -117,7 +125,7 @@ class TripServiceEnrichmentTest {
         tripService.saveTrip(req);
         triggerAfterCommit();
 
-        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
+        verifyNoInteractions(temperatureEnricher);
     }
 
     @Test
@@ -131,7 +139,7 @@ class TripServiceEnrichmentTest {
         tripService.saveTrip(req);
         triggerAfterCommit();
 
-        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
+        verifyNoInteractions(temperatureEnricher);
     }
 
     @Test
@@ -145,7 +153,7 @@ class TripServiceEnrichmentTest {
         tripService.saveTrip(req);
         triggerAfterCommit();
 
-        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
+        verifyNoInteractions(temperatureEnricher);
     }
 
     @Test
@@ -186,9 +194,77 @@ class TripServiceEnrichmentTest {
         UUID returned = tripService.saveTrip(req);
         triggerAfterCommit();
 
-        verifyNoInteractions(temperatureEnricher, mock(com.evmonitor.domain.route.RouteSketcher.class));
+        verifyNoInteractions(temperatureEnricher);
         verify(tripRepository, never()).save(any());
         org.assertj.core.api.Assertions.assertThat(returned).isEqualTo(existingId);
+    }
+
+    // ── Router: gerechnete Linie nur ohne eigene Trace ───────────────────────
+
+    /**
+     * Ohne diese Zusicherung koennte die Zuweisung im Builder ersatzlos entfallen: die Fahrt
+     * traegt die Trace dann nur auf dem Request, nie in der Zeile - und alle anderen Tests
+     * blieben gruen, weil sie entweder den Request oder eine von Hand gesetzte Entity lesen.
+     */
+    @Test
+    void saveTrip_persistsTheTraceOnTheStoredTrip() {
+        InternalTripRequest req = baseRequest()
+                .tracePolyline("_p~iF~ps|U_ulLnnqC")
+                .build();
+
+        tripService.saveTrip(req);
+
+        ArgumentCaptor<EvTrip> saved = ArgumentCaptor.forClass(EvTrip.class);
+        verify(tripRepository).save(saved.capture());
+        org.assertj.core.api.Assertions.assertThat(saved.getValue().getTracePolyline())
+                .isEqualTo("_p~iF~ps|U_ulLnnqC");
+    }
+
+    @Test
+    void saveTrip_withTrace_matchesItInsteadOfSketchingBetweenTheEnds() {
+        InternalTripRequest req = baseRequest()
+                .locationStartGeohash("u2ewmk")
+                .locationEndGeohash("u33d0k")
+                .outsideTempCelsius(new BigDecimal("12.0"))
+                .tracePolyline("_p~iF~ps|U_ulLnnqC")
+                .build();
+
+        tripService.saveTrip(req);
+        triggerAfterCommit();
+
+        verify(routeSketcher).matchTrace(any(UUID.class), eq("_p~iF~ps|U_ulLnnqC"), eq(new BigDecimal("25.0")));
+        verify(routeSketcher, never()).sketchTrip(any(), any(), any());
+    }
+
+    /**
+     * Ohne beide Enden gibt es keine Skizze - dem Matching genuegt die Spur, es braucht die
+     * Geohashes nicht.
+     */
+    @Test
+    void saveTrip_withTraceButWithoutGeohashes_stillMatches() {
+        InternalTripRequest req = baseRequest()
+                .outsideTempCelsius(new BigDecimal("12.0"))
+                .tracePolyline("_p~iF~ps|U_ulLnnqC")
+                .build();
+
+        tripService.saveTrip(req);
+        triggerAfterCommit();
+
+        verify(routeSketcher).matchTrace(any(UUID.class), eq("_p~iF~ps|U_ulLnnqC"), eq(new BigDecimal("25.0")));
+    }
+
+    @Test
+    void saveTrip_withoutTrace_sketchesTheRouteBetweenBothEnds() {
+        InternalTripRequest req = baseRequest()
+                .locationStartGeohash("u2ewmk")
+                .locationEndGeohash("u33d0k")
+                .outsideTempCelsius(new BigDecimal("12.0"))
+                .build();
+
+        tripService.saveTrip(req);
+        triggerAfterCommit();
+
+        verify(routeSketcher).sketchTrip(any(UUID.class), eq("u2ewmk"), eq("u33d0k"));
     }
 
     private InternalTripRequest.InternalTripRequestBuilder baseRequest() {

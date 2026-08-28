@@ -32,8 +32,8 @@ import static org.mockito.Mockito.when;
  * the backend:
  *
  * <ul>
- *   <li><b>Location</b> - the dashboard renders a map background for the most recent trip
- *       only, so only that trip carries geohashes.</li>
+ *   <li><b>Location</b> - die neueste Fahrt traegt ihre Geohashes fuer jeden; aeltere nur
+ *       mit dem Analytics-Entitlement, hinter dem auch die Karte im Log-Feed liegt.</li>
  *   <li><b>Telemetry</b> - speeds and the climate summary are the paid analytics layer.
  *       Without the entitlement a user sees them on their latest trip only; that trip is
  *       the free teaser, the history is what SUPPORTER / AUTOSYNC_LIVE buys.</li>
@@ -150,9 +150,6 @@ class TripServiceExposureTest {
         EvTripResponse olderResponse = byId(responses, older);
         assertThat(olderResponse.avgSpeedKmh()).isEqualByComparingTo("42.00");
         assertThat(olderResponse.climate()).isNotNull();
-        // Paying for analytics does not buy the location of every old trip - that stays
-        // limited to the one trip the dashboard maps.
-        assertThat(olderResponse.locationStartGeohash()).isNull();
     }
 
     /**
@@ -191,6 +188,78 @@ class TripServiceExposureTest {
         assertThat(response.avgSpeedKmh()).isEqualByComparingTo("42.00");
         assertThat(response.climate()).isNotNull();
         assertThat(response.locationStartGeohash()).isEqualTo("u33d0ke9");
+    }
+
+    /**
+     * Die Trace ist der Ortsbezug in seiner dichtesten Form - sie faellt unter dieselbe Regel
+     * wie die Geohashes, sonst zeigte eine aeltere Fahrt die Strecke, deren Enden ihr die
+     * Projektion gerade genommen hat.
+     */
+    @Test
+    void onlyTheNewestTripCarriesItsTrace() {
+        EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0ke9", "u33d0m");
+        newest.setTracePolyline("_p~iF~ps|U_ulLnnqC");
+        EvTrip older = trip("2026-08-01T10:00:00Z", "u2ewmk", "u2ewmn");
+        older.setTracePolyline("_p~iF~ps|U_ulLnnqC");
+        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
+                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest, older));
+
+        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user);
+
+        assertThat(byId(responses, newest).tracePolyline()).isEqualTo("_p~iF~ps|U_ulLnnqC");
+        assertThat(byId(responses, older).tracePolyline()).isNull();
+    }
+
+    // ── Merge: die Linie muss zu den neuen Enden passen ──────────────────────
+
+    /**
+     * Der Merge zieht Start und Ziel aus zwei Fahrten zusammen. Die Linien der Ausgangsfahrten
+     * decken danach nur noch einen Teil der Strecke ab - stehen zu lassen waere eine Karte,
+     * die etwas anderes zeigt als die Fahrt darunter behauptet.
+     */
+    @Test
+    void mergingTwoTripsDropsLinesThatNoLongerSpanTheDrive() {
+        EvTrip earlier = trip("2026-08-06T09:00:00Z", "u2ewmk", "u2ewmn");
+        earlier.setTripStartedAt(OffsetDateTime.parse("2026-08-06T08:00:00Z"));
+        earlier.setTracePolyline("_p~iF~ps|U_ulLnnqC");
+        earlier.setRoutePolyline("_p~iF~ps|U_ulLnnqC");
+        EvTrip later = trip("2026-08-06T12:00:00Z", "u33d0ke9", "u33d0m");
+        later.setTripStartedAt(OffsetDateTime.parse("2026-08-06T11:00:00Z"));
+        later.setTracePolyline("_p~iF~ps|U_ulLnnqC");
+        when(tripRepository.findById(earlier.getId())).thenReturn(Optional.of(earlier));
+        when(tripRepository.findById(later.getId())).thenReturn(Optional.of(later));
+        when(tripRepository.save(any(EvTrip.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
+                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(earlier));
+
+        tripService.mergeTrips(earlier.getId(), later.getId(), user);
+
+        assertThat(earlier.getLocationEndGeohash())
+                .as("das Ziel kommt jetzt von der spaeteren Fahrt")
+                .isEqualTo("u33d0m");
+        assertThat(earlier.getTracePolyline()).isNull();
+        assertThat(earlier.getRoutePolyline()).isNull();
+    }
+
+    /**
+     * Die Karte aelterer Fahrten ist Teil der bezahlten Analytics-Schicht - dieselbe Grenze,
+     * hinter der schon Geschwindigkeiten und Klima liegen. Ohne sie bleibt die neueste Fahrt
+     * der einzige Ort mit Karte.
+     */
+    @Test
+    void withTheAnalyticsEntitlementOlderTripsKeepTheirMapToo() {
+        when(user.canViewLiveAnalytics()).thenReturn(true);
+        EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0ke9", "u33d0m");
+        EvTrip older = trip("2026-08-01T10:00:00Z", "u2ewmk", "u2ewmn");
+        older.setTracePolyline("_p~iF~ps|U_ulLnnqC");
+        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
+                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest, older));
+
+        EvTripResponse olderResponse = byId(tripService.getTripsForCar(CAR_ID, user), older);
+
+        assertThat(olderResponse.locationStartGeohash()).isEqualTo("u2ewmk");
+        assertThat(olderResponse.locationEndGeohash()).isEqualTo("u2ewmn");
+        assertThat(olderResponse.tracePolyline()).isEqualTo("_p~iF~ps|U_ulLnnqC");
     }
 
     private static EvTripResponse byId(List<EvTripResponse> responses, EvTrip trip) {

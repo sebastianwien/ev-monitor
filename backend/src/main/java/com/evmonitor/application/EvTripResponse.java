@@ -32,6 +32,9 @@ public record EvTripResponse(
         ClimateSummary climate,
         String locationStartGeohash,
         String routePolyline,
+        /** "SKETCH" (zwischen den Enden geraten) oder "MATCHED" (aus der Spur gerechnet). */
+        String routeKind,
+        String tracePolyline,
         String locationEndGeohash
 ) {
     /**
@@ -62,15 +65,18 @@ public record EvTripResponse(
     public record Load(boolean active, int seconds) {}
 
     /**
-     * How much of a trip a client is allowed to see. The levels nest, so there is no way to
-     * ask for a location without the telemetry that belongs to the same trip.
+     * How much of a trip a client is allowed to see. Ort und Telemetrie stehen zusammen: beide
+     * beschreiben denselben Vorgang, und wer den Weg sehen darf, darf auch wissen, wie schnell
+     * er zurueckgelegt wurde.
      */
     public enum Detail {
         /** Base fields only - an older trip of a user without the analytics entitlement. */
         BASE,
-        /** Adds speeds and the climate summary - the paid analytics layer. */
-        TELEMETRY,
-        /** Adds the coarse start/end geohashes - only the trip the dashboard maps. */
+        /**
+         * Adds speeds, the climate summary, the start/end geohashes and the line between them.
+         * Freigeschaltet fuer die neueste Fahrt (fuer jeden) und fuer alle Fahrten eines
+         * Nutzers mit Analytics-Entitlement.
+         */
         TELEMETRY_AND_LOCATION
     }
 
@@ -89,8 +95,12 @@ public record EvTripResponse(
             builder.locationStartGeohash(coarse(trip.getLocationStartGeohash()))
                     .locationEndGeohash(coarse(trip.getLocationEndGeohash()))
                     // Die Linie gehoert zum selben Ortsbezug: wer die Gegend sehen darf,
-                    // darf auch den Weg dazwischen sehen - und nur der.
-                    .routePolyline(trip.getRoutePolyline());
+                    // darf auch den Weg dazwischen sehen - und nur der. Beide Formen gehen
+                    // getrennt raus, damit der Client die gefahrene Spur von der gerechneten
+                    // Strasse unterscheiden und sie richtig beschriften kann.
+                    .routePolyline(trip.getRoutePolyline())
+                    .routeKind(trip.getRouteKind())
+                    .tracePolyline(trip.getTracePolyline());
         }
         return builder.build();
     }

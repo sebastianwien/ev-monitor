@@ -38,9 +38,11 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
             @Param("excludedSources") java.util.Collection<String> excludedSources,
             Pageable pageable);
 
+    /** Setzt Linie und Herkunft gemeinsam - eine Linie ohne ihre Deutung waere nicht lesbar. */
     @Modifying
-    @Query("UPDATE EvTrip t SET t.routePolyline = :polyline WHERE t.id = :id")
-    void updateRoutePolyline(@Param("id") UUID id, @Param("polyline") String polyline);
+    @Query("UPDATE EvTrip t SET t.routePolyline = :polyline, t.routeKind = :kind WHERE t.id = :id")
+    void updateRoutePolyline(@Param("id") UUID id, @Param("polyline") String polyline,
+                             @Param("kind") String kind);
 
     @Modifying
     @Transactional
