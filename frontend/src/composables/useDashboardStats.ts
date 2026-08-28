@@ -51,6 +51,7 @@ export interface StatisticsData {
   totalKwhCharged: number
   energyCostEur: number
   fixedCostEur: number
+  fixedIncomeEur: number
   totalCostEur: number
   avgCostPerKwh: number
   cheapestChargeEur: number
@@ -84,11 +85,33 @@ export function calcCostPer100km(
   return avgCostPerKwh * avgConsumptionKwhPer100km
 }
 
+/**
+ * Vollkosten pro 100 km: Energiekosten plus die Fixkosten des Zeitraums, umgelegt auf die
+ * gefahrene Strecke. Die Energiekosten kommen bewusst aus calcCostPer100km (avgCostPerKwh x
+ * Verbrauch) - Kosten durch Distanz zu teilen faellt bei Ladungen ohne Tachostand auseinander.
+ * Fixkosten gelten dagegen fuer den Zeitraum als Ganzes, deshalb ist die Zeitraum-Distanz hier
+ * die richtige Bezugsgroesse.
+ */
+export function calcFullCostPer100km(
+  energyCostPer100km: number | null,
+  fixedCostEur: number | null,
+  fixedIncomeEur: number | null,
+  distanceKm: number | null,
+): number | null {
+  if (energyCostPer100km == null) return null
+  if (distanceKm == null || distanceKm <= 0) return null
+  const fixedNet = (fixedCostEur ?? 0) - (fixedIncomeEur ?? 0)
+  return energyCostPer100km + (fixedNet / distanceKm) * 100
+}
+
 const LS_TIME_RANGE = 'dashboard_time_range'
 const LS_GROUP_BY = 'dashboard_group_by'
 const LS_CUSTOM_START = 'dashboard_custom_start'
 const LS_CUSTOM_END = 'dashboard_custom_end'
 const LS_IMPLAUSIBLE_BANNER_DISMISSED = 'implausible_banner_dismissed'
+const LS_COST_MODE = 'dashboard_cost_mode'
+
+export type CostMode = 'energy' | 'full'
 
 export function useDashboardStats() {
   const { t, locale } = useI18n()
@@ -133,6 +156,40 @@ export function useDashboardStats() {
       stats.value?.avgCostPerKwh ?? null,
       stats.value?.avgConsumptionKwhPer100km ?? null,
     )
+  )
+
+  /** Fixkosten oder Einnahmen im Zeitraum vorhanden - erst dann lohnt der Vollkosten-Umschalter. */
+  const hasFixedCostData = computed(() =>
+    !!stats.value?.fixedCostEur || !!stats.value?.fixedIncomeEur
+  )
+
+  const costMode = ref<CostMode>(
+    localStorage.getItem(LS_COST_MODE) === 'full' ? 'full' : 'energy'
+  )
+
+  function setCostMode(mode: CostMode) {
+    costMode.value = mode
+    localStorage.setItem(LS_COST_MODE, mode)
+  }
+
+  function toggleCostMode() {
+    setCostMode(costMode.value === 'full' ? 'energy' : 'full')
+  }
+
+  const fullCostPer100km = computed(() =>
+    calcFullCostPer100km(
+      avgCostPer100km.value,
+      stats.value?.fixedCostEur ?? null,
+      stats.value?.fixedIncomeEur ?? null,
+      stats.value?.totalDistanceKm ?? null,
+    )
+  )
+
+  /** Der im Widget angezeigte Wert - faellt auf die Energiekosten zurueck, wenn keine Fixkosten da sind. */
+  const displayedCostPer100km = computed(() =>
+    costMode.value === 'full' && fullCostPer100km.value != null
+      ? fullCostPer100km.value
+      : avgCostPer100km.value
   )
 
   const timeRangeOptions = computed(() => {
@@ -335,6 +392,11 @@ export function useDashboardStats() {
     implausibleCount,
     hasDistanceData,
     avgCostPer100km,
+    fullCostPer100km,
+    displayedCostPer100km,
+    hasFixedCostData,
+    costMode,
+    toggleCostMode,
     timeRangeOptions,
     groupByOptions,
     dismissImportBanner,

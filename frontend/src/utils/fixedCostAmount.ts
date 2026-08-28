@@ -11,13 +11,10 @@ export function isIncomeCategory(category: FixedCostCategory): boolean {
   return INCOME_CATEGORIES.includes(category)
 }
 
-/** Form input -> stored value. Income categories are always stored negative. */
-export function toSignedAmount(input: number | null | undefined, category: FixedCostCategory): number {
-  if (input == null || Number.isNaN(input)) return 0
-  return isIncomeCategory(category) ? -Math.abs(input) : input
-}
-
-/** Stored value -> form input. Income categories are entered as a positive number. */
+/**
+ * Stored value -> form input. Income categories are entered as a positive number; das Vorzeichen
+ * setzt das Backend (FixedCost.normalizeAmount), damit die Invariante nur an einer Stelle lebt.
+ */
 export function toInputAmount(amount: number, category: FixedCostCategory): number {
   return isIncomeCategory(category) ? Math.abs(amount) : amount
 }

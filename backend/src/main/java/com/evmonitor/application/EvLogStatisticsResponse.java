@@ -8,8 +8,9 @@ public record EvLogStatisticsResponse(
         // Key Metrics
         BigDecimal totalKwhCharged,
         BigDecimal energyCostEur,
-        BigDecimal fixedCostEur,
-        BigDecimal totalCostEur,
+        BigDecimal fixedCostEur,      // Fixkosten brutto, ohne Einnahmen
+        BigDecimal fixedIncomeEur,    // Einnahmen aus Fixkosten-Kategorien, positiv ausgewiesen
+        BigDecimal totalCostEur,      // energyCost + fixedCost - fixedIncome
         BigDecimal avgCostPerKwh,
         BigDecimal cheapestChargeEur,
         BigDecimal mostExpensiveChargeEur,

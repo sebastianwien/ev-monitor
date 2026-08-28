@@ -38,6 +38,8 @@ import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
 import PeerModelComparisonCard from '../components/dashboard/PeerModelComparisonCard.vue'
 import WltpComparisonCard from '../components/dashboard/WltpComparisonCard.vue'
 import RangeCard from '../components/dashboard/RangeCard.vue'
+import CostBreakdownCard from '../components/dashboard/CostBreakdownCard.vue'
+import CostModeToggle from '../components/dashboard/CostModeToggle.vue'
 import LiveChargingCard from '../components/dashboard/LiveChargingCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
@@ -65,13 +67,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineEleme
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
-const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
+const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
 
 // -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
   selectedCarId, stats, lastMonthStats, insightStats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
+  fullCostPer100km, displayedCostPer100km, hasFixedCostData, costMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
   hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo, initCars,
   editingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
@@ -557,35 +560,37 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
           <div class="grid grid-cols-2 grid-rows-[auto_auto_auto] gap-px bg-gray-200 dark:bg-gray-700 rounded-sm overflow-hidden border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
             <!-- Gesamtkosten: spans 2 rows -->
             <div class="row-span-2 bg-white dark:bg-gray-800 px-4 py-3">
-              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{{ t('dashboard.metric_total_cost') }}</div>
-              <div class="space-y-1">
-                <div>
-                  <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_energy') }}</div>
-                  <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ stats.energyCostEur != null ? formatCurrency(stats.energyCostEur) : '–' }}</div>
-                </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur !== 0">
-                  <div class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_fixed') }}</div>
-                  <div class="text-sm font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ formatCurrency(stats.fixedCostEur) }}</div>
-                </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur !== 0" class="border-t border-gray-100 dark:border-gray-600 pt-1 mt-1">
-                  <div class="text-[10px] font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</div>
-                  <div class="text-base font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ formatCurrency(stats.totalCostEur) }}</div>
-                </div>
-              </div>
+              <CostBreakdownCard
+                layout="stacked"
+                :energy-cost-eur="stats.energyCostEur"
+                :fixed-cost-eur="stats.fixedCostEur"
+                :fixed-income-eur="stats.fixedIncomeEur"
+                :total-cost-eur="stats.totalCostEur"
+              />
             </div>
             <!-- Ø Kosten: kompakt -->
-            <button v-if="avgCostPer100km != null"
-              type="button"
+            <div v-if="avgCostPer100km != null"
               class="w-full px-4 py-3 text-left"
-              :class="openMetricTooltip === 'costPer100km' ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800'"
-              @click.stop="openMetricTooltip = openMetricTooltip === 'costPer100km' ? null : 'costPer100km'">
-              <div class="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                {{ t('dashboard.metric_avg_cost') }}
-                <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
+              :class="openMetricTooltip === 'costPer100km' ? 'bg-gray-50 dark:bg-gray-900/50' : 'bg-white dark:bg-gray-800'">
+              <div class="flex items-center gap-1 mb-1">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('dashboard.metric_avg_cost') }}</span>
+                <button
+                  type="button"
+                  class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded"
+                  :aria-label="t('dashboard.metric_info_aria')"
+                  @click.stop="openMetricTooltip = openMetricTooltip === 'costPer100km' ? null : 'costPer100km'">
+                  <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
+                </button>
+                <CostModeToggle
+                  v-if="hasFixedCostData && fullCostPer100km != null"
+                  :mode="costMode"
+                  class="ml-auto"
+                  @toggle="toggleCostMode"
+                />
               </div>
-              <div class="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerDistance(avgCostPer100km) }}</div>
+              <div class="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerDistance(displayedCostPer100km!) }}</div>
               <div v-if="stats.avgCostPerKwh != null" class="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ formatCostPerKwh(stats.avgCostPerKwh) }}</div>
-            </button>
+            </div>
             <!-- Gesamtstrecke: unterhalb Ø Kosten -->
             <button v-if="stats.totalDistanceKm != null"
               type="button"
@@ -708,21 +713,13 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
           </div>
           <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
             <div class="p-3">
-              <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-2">{{ t('dashboard.metric_total_cost') }}</p>
-              <div class="space-y-1">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_energy') }}</span>
-                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ stats.energyCostEur != null ? formatCurrency(stats.energyCostEur) : '–' }}</span>
-                </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur !== 0" class="flex items-center justify-between">
-                  <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('fixed_costs.dashboard_fixed') }}</span>
-                  <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">{{ formatCurrency(stats.fixedCostEur) }}</span>
-                </div>
-                <div v-if="stats.fixedCostEur != null && stats.fixedCostEur !== 0" class="flex items-center justify-between border-t border-gray-100 dark:border-gray-600 pt-1 mt-1">
-                  <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ t('fixed_costs.dashboard_total') }}</span>
-                  <span class="text-base font-bold text-gray-900 dark:text-gray-100">{{ formatCurrency(stats.totalCostEur) }}</span>
-                </div>
-              </div>
+              <CostBreakdownCard
+                layout="inline"
+                :energy-cost-eur="stats.energyCostEur"
+                :fixed-cost-eur="stats.fixedCostEur"
+                :fixed-income-eur="stats.fixedIncomeEur"
+                :total-cost-eur="stats.totalCostEur"
+              />
             </div>
           </div>
           <div v-if="stats.totalDistanceKm != null"
@@ -754,7 +751,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
             class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
             <div class="p-3">
               <div class="flex items-center gap-1 mb-1">
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ t('dashboard.metric_avg_cost') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">{{ t('dashboard.metric_avg_cost') }}</p>
                 <button
                   type="button"
                   class="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 rounded"
@@ -762,8 +759,14 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   @click.stop="openMetricTooltip = openMetricTooltip === 'costPer100km' ? null : 'costPer100km'">
                   <InformationCircleIcon class="w-3.5 h-3.5" />
                 </button>
+                <CostModeToggle
+                  v-if="hasFixedCostData && fullCostPer100km != null"
+                  :mode="costMode"
+                  class="ml-auto"
+                  @toggle="toggleCostMode"
+                />
               </div>
-              <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(avgCostPer100km) }}</p>
+              <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(displayedCostPer100km!) }}</p>
               <div v-if="stats.avgCostPerKwh != null" class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.avgCostPerKwh) }}</p>
               </div>

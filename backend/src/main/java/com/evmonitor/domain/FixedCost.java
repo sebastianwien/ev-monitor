@@ -36,7 +36,7 @@ public class FixedCost {
                 .carId(carId)
                 .userId(userId)
                 .description(description)
-                .amount(amount)
+                .amount(normalizeAmount(amount, category))
                 .category(category)
                 .recurrence(recurrence)
                 .date(date)
@@ -44,5 +44,14 @@ public class FixedCost {
                 .endDate(endDate)
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+    /**
+     * Einnahmen werden immer negativ gespeichert - egal ob der Aufrufer den Betrag positiv
+     * oder bereits negativ liefert. So bleibt die Invariante unabhaengig vom Client.
+     */
+    public static BigDecimal normalizeAmount(BigDecimal amount, FixedCostCategory category) {
+        if (amount == null || category == null) return amount;
+        return category.isIncome() ? amount.abs().negate() : amount;
     }
 }

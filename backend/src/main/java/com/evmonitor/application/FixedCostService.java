@@ -41,7 +41,7 @@ public class FixedCostService {
         }
         FixedCost updated = fc.toBuilder()
                 .description(request.description())
-                .amount(request.amount())
+                .amount(FixedCost.normalizeAmount(request.amount(), request.category()))
                 .category(request.category())
                 .recurrence(request.recurrence())
                 .date(request.date())
@@ -74,7 +74,7 @@ public class FixedCostService {
     }
 
     /**
-     * Calculate total fixed costs for a car within [from, to] (inclusive).
+     * Calculate fixed costs for a car within [from, to] (inclusive), split into costs and income.
      *
      * ONE_TIME: counted if `date` falls within [from, to].
      * MONTHLY: one occurrence per calendar month that overlaps the effective period.
@@ -82,10 +82,19 @@ public class FixedCostService {
      * YEARLY: one occurrence per calendar year whose anniversary falls within [from, to].
      */
     @Transactional(readOnly = true)
-    public BigDecimal calculateForPeriod(UUID carId, LocalDate from, LocalDate to) {
-        return fixedCostRepository.findAllByCarId(carId).stream()
-                .map(fc -> amountForPeriod(fc, from, to))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    public FixedCostTotals calculateTotalsForPeriod(UUID carId, LocalDate from, LocalDate to) {
+        BigDecimal cost = BigDecimal.ZERO;
+        BigDecimal income = BigDecimal.ZERO;
+        for (FixedCost fc : fixedCostRepository.findAllByCarId(carId)) {
+            BigDecimal amount = amountForPeriod(fc, from, to);
+            if (fc.getCategory().isIncome()) {
+                // Einnahmen liegen negativ in der DB, werden aber positiv ausgewiesen
+                income = income.subtract(amount);
+            } else {
+                cost = cost.add(amount);
+            }
+        }
+        return new FixedCostTotals(cost, income);
     }
 
     private BigDecimal amountForPeriod(FixedCost fc, LocalDate from, LocalDate to) {

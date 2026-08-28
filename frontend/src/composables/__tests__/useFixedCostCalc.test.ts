@@ -125,7 +125,7 @@ describe('income entries (negative amounts)', () => {
     const income = last12MonthsPerCategory.value.find(s => s.category === 'INCOME')
     const insurance = last12MonthsPerCategory.value.find(s => s.category === 'INSURANCE')
 
-    expect(income?.data.at(-1)).toBe(-25)
-    expect(insurance?.data.at(-1)).toBe(89)
+    expect(income?.data[income.data.length - 1]).toBe(-25)
+    expect(insurance?.data[insurance.data.length - 1]).toBe(89)
   })
 })

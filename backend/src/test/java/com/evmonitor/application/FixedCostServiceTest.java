@@ -51,8 +51,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 LocalDate.of(2024, 6, 15), null, null);
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30)).net();
 
         assertEquals(new BigDecimal("11.50"), result);
     }
@@ -64,8 +64,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 LocalDate.of(2024, 5, 10), null, null);
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30)).net();
 
         BigDecimalAssert.assertEq(BigDecimal.ZERO, result);
     }
@@ -80,8 +80,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 null, LocalDate.of(2024, 4, 1), null);
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30)).net();
 
         assertEquals(new BigDecimal("267.00"), result);
     }
@@ -94,8 +94,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 null, LocalDate.of(2024, 4, 1), LocalDate.of(2024, 5, 31));
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30)).net();
 
         assertEquals(new BigDecimal("178.00"), result);
     }
@@ -108,8 +108,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 null, LocalDate.of(2024, 5, 15), null);
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30)).net();
 
         assertEquals(new BigDecimal("178.00"), result);
     }
@@ -124,8 +124,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 null, LocalDate.of(2024, 1, 1), null);
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 6, 30)).net();
 
         assertEquals(new BigDecimal("600.00"), result);
     }
@@ -139,8 +139,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 null, LocalDate.of(2024, 1, 1), null);
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31)).net();
 
         // Jahrestag 2024-01-01 liegt im Zeitraum → 1 Treffer = 500
         assertEquals(new BigDecimal("500.00"), result);
@@ -154,8 +154,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 null, LocalDate.of(2026, 1, 1), null);
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2026, 2, 1), LocalDate.of(2026, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2026, 2, 1), LocalDate.of(2026, 6, 30)).net();
 
         BigDecimalAssert.assertEq(BigDecimal.ZERO, result);
     }
@@ -168,8 +168,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 null, LocalDate.of(2023, 1, 1), null);
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 1, 1), LocalDate.of(2024, 12, 31)).net();
 
         assertEquals(new BigDecimal("500.00"), result);
     }
@@ -182,8 +182,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 null, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 9, 30));
         fixedCostRepository.save(fc);
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 12, 31)).net();
 
         BigDecimalAssert.assertEq(BigDecimal.ZERO, result);
     }
@@ -262,8 +262,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 new BigDecimal("-120.00"), FixedCostCategory.COMPENSATION, FixedCostRecurrence.ONE_TIME,
                 LocalDate.of(2024, 6, 20), null, null));
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30)).net();
 
         BigDecimalAssert.assertEq(new BigDecimal("-31.00"), result);
     }
@@ -275,8 +275,8 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
                 new BigDecimal("-25.00"), FixedCostCategory.INCOME, FixedCostRecurrence.MONTHLY,
                 null, LocalDate.of(2024, 4, 1), null));
 
-        BigDecimal result = fixedCostService.calculateForPeriod(carId,
-                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30));
+        BigDecimal result = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30)).net();
 
         BigDecimalAssert.assertEq(new BigDecimal("-75.00"), result);
     }
@@ -291,5 +291,93 @@ class FixedCostServiceTest extends AbstractIntegrationTest {
 
         BigDecimalAssert.assertEq(new BigDecimal("-350.00"), result.amount());
         assertEquals(FixedCostCategory.COMPENSATION, result.category());
+    }
+
+    // --- Kosten und Einnahmen getrennt ausweisen ---
+
+    @Test
+    void calculateTotalsForPeriod_splitsCostAndIncome() {
+        fixedCostRepository.save(FixedCost.createNew(carId, userId, "Versicherung",
+                new BigDecimal("89.00"), FixedCostCategory.INSURANCE, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 5), null, null));
+        fixedCostRepository.save(FixedCost.createNew(carId, userId, "THG-Quote",
+                new BigDecimal("350.00"), FixedCostCategory.COMPENSATION, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 20), null, null));
+
+        FixedCostTotals totals = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30));
+
+        BigDecimalAssert.assertEq(new BigDecimal("89.00"), totals.cost());
+        BigDecimalAssert.assertEq(new BigDecimal("350.00"), totals.income());
+        BigDecimalAssert.assertEq(new BigDecimal("-261.00"), totals.net());
+    }
+
+    @Test
+    void calculateTotalsForPeriod_reportsIncomeAsPositiveAmount() {
+        fixedCostRepository.save(FixedCost.createNew(carId, userId, "Untermiete",
+                new BigDecimal("25.00"), FixedCostCategory.INCOME, FixedCostRecurrence.MONTHLY,
+                null, LocalDate.of(2024, 4, 1), null));
+
+        FixedCostTotals totals = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 4, 1), LocalDate.of(2024, 6, 30));
+
+        BigDecimalAssert.assertEq(BigDecimal.ZERO, totals.cost());
+        BigDecimalAssert.assertEq(new BigDecimal("75.00"), totals.income());
+    }
+
+    @Test
+    void calculateTotalsForPeriod_refundOnCostCategory_staysInCostBucket() {
+        // Negative Kostenposition (Rueckerstattung) bleibt Kosten - nur Einnahmen-Kategorien
+        // landen im Einnahmen-Topf.
+        fixedCostRepository.save(FixedCost.createNew(carId, userId, "Beitragsrueckerstattung",
+                new BigDecimal("-40.00"), FixedCostCategory.INSURANCE, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 5), null, null));
+
+        FixedCostTotals totals = fixedCostService.calculateTotalsForPeriod(carId,
+                LocalDate.of(2024, 6, 1), LocalDate.of(2024, 6, 30));
+
+        BigDecimalAssert.assertEq(new BigDecimal("-40.00"), totals.cost());
+        BigDecimalAssert.assertEq(BigDecimal.ZERO, totals.income());
+    }
+
+    // --- Vorzeichen-Invariante ueber die Service-API ---
+
+    @Test
+    void create_incomeCategoryWithPositiveAmount_isStoredNegative() {
+        FixedCostRequest request = new FixedCostRequest("THG-Quote", new BigDecimal("350.00"),
+                FixedCostCategory.COMPENSATION, FixedCostRecurrence.YEARLY,
+                null, LocalDate.of(2024, 1, 1), null);
+
+        FixedCostResponse result = fixedCostService.create(carId, userId, request);
+
+        BigDecimalAssert.assertEq(new BigDecimal("-350.00"), result.amount());
+    }
+
+    @Test
+    void update_incomeCategoryWithPositiveAmount_isStoredNegative() {
+        FixedCost existing = fixedCostRepository.save(FixedCost.createNew(carId, userId, "Versicherung",
+                new BigDecimal("89.00"), FixedCostCategory.INSURANCE, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 5), null, null));
+        FixedCostRequest request = new FixedCostRequest("THG-Quote", new BigDecimal("350.00"),
+                FixedCostCategory.COMPENSATION, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 5), null, null);
+
+        FixedCostResponse result = fixedCostService.update(existing.getId(), userId, request);
+
+        BigDecimalAssert.assertEq(new BigDecimal("-350.00"), result.amount());
+    }
+
+    @Test
+    void update_switchingFromIncomeToCostCategory_flipsSignBack() {
+        FixedCost existing = fixedCostRepository.save(FixedCost.createNew(carId, userId, "THG-Quote",
+                new BigDecimal("350.00"), FixedCostCategory.COMPENSATION, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 5), null, null));
+        FixedCostRequest request = new FixedCostRequest("Versicherung", new BigDecimal("89.00"),
+                FixedCostCategory.INSURANCE, FixedCostRecurrence.ONE_TIME,
+                LocalDate.of(2024, 6, 5), null, null);
+
+        FixedCostResponse result = fixedCostService.update(existing.getId(), userId, request);
+
+        BigDecimalAssert.assertEq(new BigDecimal("89.00"), result.amount());
     }
 }

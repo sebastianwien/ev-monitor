@@ -7,6 +7,7 @@ function makeStats(overrides: Partial<StatisticsData> = {}): StatisticsData {
     totalKwhCharged: 300,
     energyCostEur: 90,
     fixedCostEur: 0,
+    fixedIncomeEur: 0,
     totalCostEur: 90,
     avgCostPerKwh: 0.30,
     cheapestChargeEur: 5,
@@ -207,12 +208,14 @@ describe('trend_cost insight', () => {
       totalCharges: 5,
       energyCostEur: 45,
       fixedCostEur: 2000,
+      fixedIncomeEur: 0,
       totalCostEur: 2045,
     })
     const lastMonth = makeStats({
       totalCharges: 4,
       energyCostEur: 100,
       fixedCostEur: 0,
+      fixedIncomeEur: 0,
       totalCostEur: 100,
     })
     const insight = computeInsights(stats, lastMonth, DAY15).find(i => i.id === 'trend_cost')!

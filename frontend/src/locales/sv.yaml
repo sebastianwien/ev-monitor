@@ -718,6 +718,9 @@ dashboard:
   metric_consumption_methodology_link: "Beräkningsgrundlag"
   metric_estimated: "{n} uppskattad laddning (utan SoC)"
   metric_avg_cost: Genomsnittlig kostnad
+  cost_mode_energy: Energi
+  cost_mode_full: Totalkostnad
+  cost_mode_toggle_aria: Byt kostnadsbas, just nu {mode}
   metric_per_100km: per 100 km
   chart_charging_costs: Laddningar och kostnader
   chart_no_data: Ingen dataset har valts eller det finns inte tillräckligt med data.
@@ -1457,7 +1460,8 @@ fixed_costs:
   err_delete: Kunde inte ta bort fast kostnad.
   dashboard_energy: Energikostnader
   dashboard_fixed: Fasta kostnader
-  dashboard_total: Totala kostnader
+  dashboard_income: Inkomster
+  dashboard_total: Totalt
 
 onboarding:
   skip_title: Hoppa över

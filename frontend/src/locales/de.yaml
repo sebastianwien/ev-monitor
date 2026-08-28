@@ -758,6 +758,9 @@ dashboard:
   metric_consumption_methodology_link: "Berechnungsgrundlage"
   metric_estimated: "{n} Ladung(en) geschätzt (ohne SoC)"
   metric_avg_cost: "Ø Kosten"
+  cost_mode_energy: "Energie"
+  cost_mode_full: "Vollkosten"
+  cost_mode_toggle_aria: "Kostenbasis umschalten, aktuell {mode}"
   metric_per_100km: "pro 100km"
   chart_charging_costs: "Laden & Kosten"
   chart_no_data: "Kein Datensatz ausgewählt oder nicht genügend Daten."
@@ -1506,7 +1509,8 @@ fixed_costs:
   err_delete: "Fixkosten konnten nicht gelöscht werden."
   dashboard_energy: "Energiekosten"
   dashboard_fixed: "Fixkosten"
-  dashboard_total: "Gesamtkosten"
+  dashboard_income: "Einnahmen"
+  dashboard_total: "Gesamt"
 
 onboarding:
   skip_title: "Überspringen"

@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon, CheckIcon } from '@heroicons/vue/24/outline'
-import { INCOME_CATEGORIES, isIncomeCategory, toInputAmount, toSignedAmount } from '../../utils/fixedCostAmount'
+import { INCOME_CATEGORIES, isIncomeCategory, toInputAmount } from '../../utils/fixedCostAmount'
 import {
   fixedCostService,
   type FixedCost,
@@ -72,7 +72,6 @@ async function save() {
   try {
     const payload: FixedCostRequest = {
       ...form.value,
-      amount: toSignedAmount(form.value.amount, form.value.category),
       date: isOneTime.value ? form.value.date : null,
       startDate: isOneTime.value ? null : form.value.startDate,
       endDate: isOneTime.value ? null : form.value.endDate,

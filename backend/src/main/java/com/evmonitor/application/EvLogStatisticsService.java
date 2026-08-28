@@ -122,13 +122,13 @@ public class EvLogStatisticsService {
                 .toList();
 
         if (logs.isEmpty()) {
-            BigDecimal fixedCostEur = (startDate != null && endDate != null)
-                    ? fixedCostService.calculateForPeriod(carId, startDate, endDate)
-                    : BigDecimal.ZERO;
+            FixedCostTotals fixedCosts = (startDate != null && endDate != null)
+                    ? fixedCostService.calculateTotalsForPeriod(carId, startDate, endDate)
+                    : FixedCostTotals.ZERO;
             BigDecimal distanceFromTrips = (startDate != null || endDate != null)
                     ? computeOdometerDeltaDistance(carId, startDate, endDate)
                     : null;
-            return createEmptyStatisticsWithFixedCostAndDistance(fixedCostEur, distanceFromTrips);
+            return createEmptyStatisticsWithFixedCostAndDistance(fixedCosts, distanceFromTrips);
         }
 
         // Compute per-log consumption once — used for both chart data and overall average
@@ -161,11 +161,11 @@ public class EvLogStatisticsService {
                 .filter(Objects::nonNull)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal fixedCostEur = (startDate != null && endDate != null)
-                ? fixedCostService.calculateForPeriod(carId, startDate, endDate)
-                : BigDecimal.ZERO;
+        FixedCostTotals fixedCosts = (startDate != null && endDate != null)
+                ? fixedCostService.calculateTotalsForPeriod(carId, startDate, endDate)
+                : FixedCostTotals.ZERO;
 
-        BigDecimal totalCostEur = energyCostEur.add(fixedCostEur);
+        BigDecimal totalCostEur = energyCostEur.add(fixedCosts.net());
 
         // For avgCostPerKwh: normalize AT_VEHICLE logs to AT_CHARGER equivalent — because cost_eur
         // reflects what was billed at the charger, not what entered the battery.
@@ -264,7 +264,8 @@ public class EvLogStatisticsService {
         return new EvLogStatisticsResponse(
                 totalKwhCharged,
                 energyCostEur,
-                fixedCostEur,
+                fixedCosts.cost(),
+                fixedCosts.income(),
                 totalCostEur,
                 avgCostPerKwh,
                 cheapestCharge,
@@ -284,16 +285,17 @@ public class EvLogStatisticsService {
         );
     }
 
-    private EvLogStatisticsResponse createEmptyStatisticsWithFixedCost(BigDecimal fixedCostEur) {
-        return createEmptyStatisticsWithFixedCostAndDistance(fixedCostEur, null);
+    private EvLogStatisticsResponse createEmptyStatisticsWithFixedCost(FixedCostTotals fixedCosts) {
+        return createEmptyStatisticsWithFixedCostAndDistance(fixedCosts, null);
     }
 
-    private EvLogStatisticsResponse createEmptyStatisticsWithFixedCostAndDistance(BigDecimal fixedCostEur, BigDecimal distanceKm) {
+    private EvLogStatisticsResponse createEmptyStatisticsWithFixedCostAndDistance(FixedCostTotals fixedCosts, BigDecimal distanceKm) {
         var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         return new EvLogStatisticsResponse(
-                BigDecimal.ZERO, BigDecimal.ZERO, fixedCostEur, fixedCostEur, BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO, fixedCosts.cost(), fixedCosts.income(), fixedCosts.net(),
+                BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
                 distanceKm, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit
         );

@@ -718,6 +718,9 @@ dashboard:
   metric_consumption_methodology_link: "Beregningsgrunnlag"
   metric_estimated: "{n} Anslått ladetid (uten SoC)"
   metric_avg_cost: Gjennomsnittlig pris
+  cost_mode_energy: Energi
+  cost_mode_full: Totalkostnad
+  cost_mode_toggle_aria: Bytt kostnadsgrunnlag, naa {mode}
   metric_per_100km: per 100 km
   chart_charging_costs: Lading og kostnader
   chart_no_data: Det er ikke valgt noe datasett, eller det er ikke nok data.
@@ -1457,7 +1460,8 @@ fixed_costs:
   err_delete: Kunne ikke slette fast kostnad.
   dashboard_energy: Energikostnader
   dashboard_fixed: Faste kostnader
-  dashboard_total: Totale kostnader
+  dashboard_income: Inntekter
+  dashboard_total: Totalt
 
 onboarding:
   skip_title: Hopp over
