@@ -53,11 +53,16 @@ public class LocationPricing {
      * price, which is what they actually paid. Nothing else counts - a card's list price is not
      * evidence of a payment and quietly produces wrong numbers. Empty when the location is unknown,
      * too coarse to identify a charge point, or has no priced charge yet.
+     *
+     * @param chargingType only charges of this type anchor the price - the AC and DC tariff of
+     *                     the same location differ, and the newer one must not price the other
+     *                     (an AC charge next to a fresh DC session would inherit the DC rate).
+     *                     Null when the log has no type; then any priced charge counts.
      */
-    public Optional<Tariff> tariffAt(UUID userId, String geohash) {
+    public Optional<Tariff> tariffAt(UUID userId, String geohash, ChargingType chargingType) {
         if (geohash == null || geohash.length() < MIN_GEOHASH_LENGTH) return Optional.empty();
 
-        return evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash)
+        return evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash, chargingType)
                 // A session fee is already baked into the recorded amount, so it is never added
                 // on top - it is spread across the kWh of that charge.
                 .map(anchor -> new Tariff(
@@ -73,17 +78,23 @@ public class LocationPricing {
      */
     public EvLog enrich(EvLog log, UUID userId) {
         if (log.getCostEur() != null && log.getChargingProviderId() != null) return log;
+        if (log.getGeohash() == null || log.getGeohash().length() < MIN_GEOHASH_LENGTH) return log;
 
-        Optional<Tariff> tariff = tariffAt(userId, log.getGeohash());
-        if (tariff.isEmpty()) return log;
+        Optional<Tariff> tariff = tariffAt(userId, log.getGeohash(), log.getChargingType());
 
         var builder = log.toBuilder();
         boolean changed = false;
-        if (log.getChargingProviderId() == null && tariff.get().chargingProviderId() != null) {
-            builder.chargingProviderId(tariff.get().chargingProviderId());
+        // Die Karte haengt am Ort, nicht am Stromtyp: wurde hier bisher nur die andere
+        // Ladeart bezahlt, gehoert die Ladung trotzdem zu dieser Karte - nur ihr Preis
+        // laesst sich daraus nicht ableiten.
+        UUID card = tariff.map(Tariff::chargingProviderId)
+                .or(() -> evLogRepository.findMostRecentChargingProviderAtGeohash(userId, log.getGeohash()))
+                .orElse(null);
+        if (log.getChargingProviderId() == null && card != null) {
+            builder.chargingProviderId(card);
             changed = true;
         }
-        if (log.getCostEur() == null) {
+        if (log.getCostEur() == null && tariff.isPresent()) {
             Optional<BigDecimal> cost = tariff.get().costFor(log.costBasisKwh());
             if (cost.isPresent()) {
                 builder.costEur(cost.get());

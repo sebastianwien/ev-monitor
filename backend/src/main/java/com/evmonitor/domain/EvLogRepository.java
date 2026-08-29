@@ -163,8 +163,12 @@ public interface EvLogRepository {
     /**
      * The most recent log at this location that carries a price. It is the anchor for both the
      * cost and - when it has one - the charging card of a new log at the same place.
+     *
+     * @param chargingType only anchors of this type count - AC and DC of the same charge point
+     *                     are different tariffs, so one must never price the other. Null means
+     *                     the new log has no type and any priced anchor applies.
      */
-    Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash);
+    Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash, ChargingType chargingType);
 
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash);
 

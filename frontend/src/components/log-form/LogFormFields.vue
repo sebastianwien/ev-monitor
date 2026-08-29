@@ -110,7 +110,9 @@ const locationErrorMessage = ref<string | null>(null)
 const fetchPriceSuggestion = async (lat: number, lon: number, isPublic: boolean) => {
   if (costLocalTotal.value != null || costLocalPerKwh.value != null) return
   try {
-    const res = await api.get('/logs/price-suggestion', { params: { lat, lon, isPublic } })
+    // Der Ladetyp filtert den Preis-Anker: AC erbt nur von AC-Ladungen am Ort, DC nur von DC.
+    const res = await api.get('/logs/price-suggestion',
+      { params: { lat, lon, isPublic, chargingType: form.value.chargingType } })
     if (res.status === 200 && res.data?.costPerKwh != null) {
       costMode.value = 'per_kwh'
       // Price suggestion comes in EUR - convert to local

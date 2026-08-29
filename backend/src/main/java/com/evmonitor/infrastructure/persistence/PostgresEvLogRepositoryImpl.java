@@ -317,8 +317,10 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash) {
+    public Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash,
+                                                            com.evmonitor.domain.ChargingType chargingType) {
         var results = jpaRepository.findRecentPricedByUserIdAndGeohash(userId, geohashPrefix(geohash),
+                chargingType == null ? null : chargingType.name(),
                 org.springframework.data.domain.PageRequest.of(0, 1));
         return results.isEmpty() ? Optional.empty() : Optional.of(toDomain(results.get(0)));
     }

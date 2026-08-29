@@ -209,9 +209,11 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
           AND e.costEur IS NOT NULL
           AND e.costEur > 0
           AND (e.kwhCharged > 0 OR e.kwhAtVehicle > 0)
+          AND (:chargingType IS NULL OR e.chargingType = :chargingType)
         ORDER BY e.loggedAt DESC
         """)
     List<EvLogEntity> findRecentPricedByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohashPrefix") String geohashPrefix,
+            @Param("chargingType") String chargingType,
             org.springframework.data.domain.Pageable pageable);
 
     @Query("""

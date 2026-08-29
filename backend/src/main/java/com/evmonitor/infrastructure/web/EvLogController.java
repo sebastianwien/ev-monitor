@@ -75,9 +75,10 @@ public class EvLogController {
             @RequestParam double lat,
             @RequestParam double lon,
             @RequestParam(defaultValue = "false") boolean isPublic,
+            @RequestParam(required = false) com.evmonitor.domain.ChargingType chargingType,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return evLogStatisticsService.getPriceSuggestion(principal.getUser().getId(), lat, lon, isPublic)
+        return evLogStatisticsService.getPriceSuggestion(principal.getUser().getId(), lat, lon, isPublic, chargingType)
                 .map(suggestion -> {
                     Map<String, Object> body = new java.util.HashMap<>();
                     body.put("costPerKwh", suggestion.costPerKwh());

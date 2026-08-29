@@ -92,8 +92,53 @@ class LocationPricingTest extends AbstractIntegrationTest {
 
     @Test
     void aGeohashShorterThanSixCharsYieldsNothing() {
-        assertTrue(locationPricing.tariffAt(userId, "u1hc").isEmpty());
-        assertTrue(locationPricing.tariffAt(userId, null).isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, "u1hc", null).isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, null, null).isEmpty());
+    }
+
+    @Test
+    void aChargeInheritsOnlyFromAnchorsOfItsOwnChargingType() {
+        // Derselbe Standort, zwei Saeulen: die juengste bezahlte Ladung war DC (44 ct),
+        // die letzte AC-Ladung (29 ct) liegt weiter zurueck. Eine neue AC-Ladung erbt
+        // den AC-Preis - nicht den juengeren DC-Preis (der reale Kaufland-Fall).
+        UUID card = saveCard("Kaufland", new BigDecimal("0.2900"), new BigDecimal("0.4400"), BigDecimal.ZERO);
+        chargedHere(new BigDecimal("40.0"), new BigDecimal("11.60"), card, ChargingType.AC, 10);
+        chargedHere(new BigDecimal("30.0"), new BigDecimal("13.20"), card, ChargingType.DC, 1);
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("50.0"), null, 30, HERE, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, true, null);
+        EvLog priced = locationPricing.enrich(log, userId);
+
+        // 11.60 / 40 kWh = 0.29 ct/kWh Anker, mal 50 kWh
+        assertEquals(0, new BigDecimal("14.50").compareTo(priced.getCostEur()));
+        assertEquals(card, priced.getChargingProviderId());
+    }
+
+    @Test
+    void theCardStillAttachesWhenOnlyTheOtherTypeIsPricedHere() {
+        // Nur DC wurde hier je bezahlt. Eine AC-Ladung bekommt keinen geerbten Preis -
+        // ein DC-Preis waere schlicht falsch - aber die Karte gehoert weiter zum Ort.
+        UUID card = saveCard("Kaufland", new BigDecimal("0.2900"), new BigDecimal("0.4400"), BigDecimal.ZERO);
+        chargedHere(new BigDecimal("30.0"), new BigDecimal("13.20"), card, ChargingType.DC, 1);
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("50.0"), null, 30, HERE, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, true, null);
+        EvLog enriched = locationPricing.enrich(log, userId);
+
+        assertNull(enriched.getCostEur());
+        assertEquals(card, enriched.getChargingProviderId());
+    }
+
+    @Test
+    void aChargeWithoutATypeKeepsTheTypeBlindAnchor() {
+        // Ohne Typ am neuen Log gibt es nichts zu filtern - der juengste bezahlte Log gewinnt.
+        chargedHere(new BigDecimal("30.0"), new BigDecimal("13.20"), null, ChargingType.DC, 1);
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("50.0"), null, 30, HERE, 10_000, null, null,
+                LocalDateTime.now(), null, null, null, true, null);
+        EvLog priced = locationPricing.enrich(log, userId);
+
+        assertEquals(0, new BigDecimal("22.00").compareTo(priced.getCostEur()));
     }
 
     @Test
@@ -106,7 +151,7 @@ class LocationPricingTest extends AbstractIntegrationTest {
                 new BigDecimal("20.00"), 30, HERE, 9_000, null, null,
                 LocalDateTime.now().minusDays(1), ChargingType.DC, null, null, true, null));
 
-        assertTrue(locationPricing.tariffAt(userId, HERE).isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, HERE, null).isEmpty());
     }
 
     // ---- Helpers ----
@@ -125,6 +170,12 @@ class LocationPricingTest extends AbstractIntegrationTest {
 
     private void chargedHere(BigDecimal kwh, BigDecimal cost, UUID cardId) {
         EvLog log = logHere(kwh, cost);
+        evLogRepository.save(cardId != null ? log.toBuilder().chargingProviderId(cardId).build() : log);
+    }
+
+    private void chargedHere(BigDecimal kwh, BigDecimal cost, UUID cardId, ChargingType type, int daysAgo) {
+        EvLog log = EvLog.createNew(carId, kwh, cost, 30, HERE, 10_000, null, null,
+                LocalDateTime.now().minusDays(daysAgo), type, null, null, true, null);
         evLogRepository.save(cardId != null ? log.toBuilder().chargingProviderId(cardId).build() : log);
     }
 
