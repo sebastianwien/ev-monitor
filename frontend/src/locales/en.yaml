@@ -2414,8 +2414,8 @@ tax_export:
   tax_export_v1_cta: "Go to tax report"
 
 supporter:
-  tesla_note_title: "Your Tesla already delivers the data"
-  tesla_note_body: "Fleet Telemetry is free for Tesla drivers - charges and trips land in your logbook automatically. What the supporter pack adds is not more data collection but the analysis: the depth behind the numbers your Tesla already sends."
+  data_source_note_title: "Your data already flows in automatically"
+  data_source_note_body: "As a Tesla or XPeng driver, data collection is already free for you - charges and trips land in your logbook automatically. What the supporter pack adds is not more data collection but the analysis: the depth behind the numbers you already send."
   back: "Back"
   hero_kicker: "Open source · ad-free · independent"
   title: "Become a supporter"

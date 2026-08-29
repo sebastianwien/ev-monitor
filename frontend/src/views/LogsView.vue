@@ -79,6 +79,7 @@ import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useBulkBarOffset } from '../composables/useBulkBarOffset'
 import { useHaptic } from '../composables/useHaptic'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
+import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
 import { useCountryStore } from '../stores/country'
 import { getPricing } from '../config/pricingConfig'
 import { carDisplayName } from '../utils/enumLabel'
@@ -954,8 +955,16 @@ function tripGroupSocBoundaries(group: any): { start: number; end: number } | nu
 
 const subscriptionTier = ref<SubscriptionTier | null>(null)
 
+// Ob das ausgewaehlte Auto bereits kostenlos Daten liefert (Tesla/XPeng) - dreht die
+// AutoSync- vs. Supporter-Weiche fuer alle drei Banner unten. Kein Auto ausgewaehlt
+// zaehlt als "keine freie Quelle", wie zuvor bei den einzelnen Brand-Checks.
+const selectedCarHasFreeSource = computed(() =>
+  selectedCar.value != null && hasFreeDataSource(selectedCar.value)
+)
+
 // AutoSync Live discoverability banner: temporarily disabled (flip flag to re-enable).
-// Shown to non-Tesla users without Live, dismissible. Position: below ConsumptionInfoBox.
+// Shown to users without a free data source and without Live, dismissible. Position:
+// below ConsumptionInfoBox.
 const LIVE_BANNER_ENABLED = false
 const LS_LIVE_BANNER_DISMISSED = 'autosync_live_banner_dismissed'
 const liveBannerDismissed = ref(localStorage.getItem(LS_LIVE_BANNER_DISMISSED) === 'true')
@@ -964,7 +973,7 @@ const showLiveBanner = computed(() =>
   && purchasesAvailable()
   && subscriptionTier.value != null
   && subscriptionTier.value !== 'AUTOSYNC_LIVE'
-  && selectedCar.value?.brand !== 'TESLA'
+  && !selectedCarHasFreeSource.value
   && !liveBannerDismissed.value
 )
 function dismissLiveBanner() {
@@ -972,8 +981,8 @@ function dismissLiveBanner() {
   localStorage.setItem(LS_LIVE_BANNER_DISMISSED, 'true')
 }
 
-// AutoSync discoverability banner: shown to non-Tesla users without any subscription
-// (tier NONE), dismissible. Position: below ConsumptionInfoBox.
+// AutoSync discoverability banner: shown to users without a free data source and
+// without any subscription (tier NONE), dismissible. Position: below ConsumptionInfoBox.
 const countryStore = useCountryStore()
 const autoSyncPrice = computed(() => getPricing(countryStore.country).monthly)
 const LS_AUTOSYNC_BANNER_DISMISSED = 'autosync_banner_dismissed'
@@ -981,7 +990,7 @@ const autoSyncBannerDismissed = ref(localStorage.getItem(LS_AUTOSYNC_BANNER_DISM
 const showAutoSyncBanner = computed(() =>
   purchasesAvailable()
   && subscriptionTier.value === 'NONE'
-  && selectedCar.value?.brand !== 'TESLA'
+  && !selectedCarHasFreeSource.value
   && !autoSyncBannerDismissed.value
 )
 function dismissAutoSyncBanner() {
@@ -989,17 +998,17 @@ function dismissAutoSyncBanner() {
   localStorage.setItem(LS_AUTOSYNC_BANNER_DISMISSED, 'true')
 }
 
-// Supporter-Banner: das Tesla-Gegenstueck zum AutoSync-Banner darueber, gleicher Slot,
-// gleiches Dismiss-Verhalten. Tesla-Fahrer bekommen die Datenerfassung gratis, AutoSync
-// hat ihnen also nichts zu verkaufen - die Auswertungsebene schon. Ohne diesen Banner
-// erfahren sie vom Pack nur, wenn sie zufaellig auf ein gesperrtes Widget klicken.
+// Supporter-Banner: das Gegenstueck zum AutoSync-Banner darueber, gleicher Slot,
+// gleiches Dismiss-Verhalten. Tesla-/XPeng-Fahrer bekommen die Datenerfassung gratis,
+// AutoSync hat ihnen also nichts zu verkaufen - die Auswertungsebene schon. Ohne diesen
+// Banner erfahren sie vom Pack nur, wenn sie zufaellig auf ein gesperrtes Widget klicken.
 const supporterPrice = computed(() => getPricing(countryStore.country).supporterMonthly)
 const LS_SUPPORTER_BANNER_DISMISSED = 'supporter_banner_dismissed'
 const supporterBannerDismissed = ref(localStorage.getItem(LS_SUPPORTER_BANNER_DISMISSED) === 'true')
 const showSupporterBanner = computed(() =>
   purchasesAvailable()
   && subscriptionTier.value === 'NONE'
-  && selectedCar.value?.brand === 'TESLA'
+  && selectedCarHasFreeSource.value
   && !supporterBannerDismissed.value
 )
 function dismissSupporterBanner() {
@@ -1332,7 +1341,7 @@ function toggleAllCharges() {
         <!-- Log List -->
         <div :ref="setLogsSection" class="pt-3 scroll-mt-4"
           :style="{ paddingBottom: `calc(var(--bulk-bar-offset, 0px) + 1.5rem)` }">
-          <!-- AutoSync Live discoverability hint (Tesla-users without Live, dismissible) -->
+          <!-- AutoSync Live discoverability hint (users without a free data source, without Live, dismissible) -->
           <div v-if="showLiveBanner"
             class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-sm border-l-2 border-indigo-400 bg-indigo-500/15">
             <div class="flex items-center gap-2 min-w-0">
@@ -1357,7 +1366,7 @@ function toggleAllCharges() {
             </button>
           </div>
 
-          <!-- AutoSync discoverability hint (free users without subscription, non-Tesla, dismissible) -->
+          <!-- AutoSync discoverability hint (users without subscription and without a free data source, dismissible) -->
           <div v-if="showAutoSyncBanner"
             class="w-full flex items-center justify-between gap-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-900/20 shadow-[2px_2px_0_0_#c7d2fe] dark:shadow-[2px_2px_0_0_#312e81]">
             <div class="flex items-center gap-2 min-w-0">
@@ -1383,7 +1392,7 @@ function toggleAllCharges() {
             </div>
           </div>
 
-          <!-- Supporter hint (free Tesla drivers - their data already flows, only the analysis is missing) -->
+          <!-- Supporter hint (Tesla/XPeng drivers - their data already flows for free, only the analysis is missing) -->
           <div v-if="showSupporterBanner"
             class="w-full flex items-center justify-between gap-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 shadow-[2px_2px_0_0_#fde68a] dark:shadow-[2px_2px_0_0_#78350f]">
             <div class="flex items-center gap-2 min-w-0">

@@ -6,7 +6,7 @@ import { ChartPieIcon, BoltIcon, ArrowTrendingUpIcon, ArrowLeftIcon, MapIcon } f
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import { useCountryStore } from '../stores/country'
 import { useCarStore } from '../stores/car'
-import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
+import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
 import { getPricing } from '../config/pricingConfig'
 import { subscriptionService } from '../api/subscriptionService'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
@@ -17,11 +17,12 @@ const router = useRouter()
 const countryStore = useCountryStore()
 const pricing = computed(() => getPricing(countryStore.country))
 
-// Tesla-Fahrer kommen mit einer laufenden Datenquelle hierher - fuer sie ist das Pack der
-// einzige fehlende Baustein, und genau das sagt der Kasten oben. Alle anderen sehen ihn
-// nicht, damit die Seite keine Voraussetzung verschweigt.
+// Tesla- und XPeng-Fahrer kommen mit einer laufenden, kostenlosen Datenquelle hierher
+// (Fleet Telemetry bzw. EU-Data-Act-Weg) - fuer sie ist das Pack der einzige fehlende
+// Baustein, und genau das sagt der Kasten oben. Alle anderen sehen ihn nicht, damit die
+// Seite keine Voraussetzung verschweigt.
 const carStore = useCarStore()
-const hasTesla = computed(() => carStore.cars.some(car => autoSyncProviderFor(car) === 'TESLA'))
+const hasFreeSource = computed(() => carStore.cars.some(hasFreeDataSource))
 onMounted(() => { carStore.getCars().catch(() => { /* Kasten bleibt aus - kein Grund die Seite zu stoeren */ }) })
 
 const plan = ref<'monthly' | 'yearly'>('yearly')
@@ -114,17 +115,18 @@ const dummyEntries = [
       </div>
 
       <!--
-        Tesla-Fahrer bekommen die Datenerfassung bei uns gratis. Ohne diesen Hinweis wirkt
-        das Pack wie ein weiteres Abo neben AutoSync - mit ihm wird klar, dass es der
-        einzige Baustein ist, der ihnen ueberhaupt noch fehlt. Steht bewusst am Ende des
-        Einleitungstextes: die Ueberleitung von "warum es das gibt" zu "was du freischaltest".
+        Tesla- und XPeng-Fahrer bekommen die Datenerfassung bei uns gratis. Ohne diesen
+        Hinweis wirkt das Pack wie ein weiteres Abo neben AutoSync - mit ihm wird klar,
+        dass es der einzige Baustein ist, der ihnen ueberhaupt noch fehlt. Steht bewusst
+        am Ende des Einleitungstextes: die Ueberleitung von "warum es das gibt" zu
+        "was du freischaltest".
       -->
       <div
-        v-if="hasTesla"
+        v-if="hasFreeSource"
         class="max-w-xl mx-auto mt-6 rounded-sm border border-amber-200 dark:border-amber-700/40 bg-amber-50/70 dark:bg-amber-900/15 p-4 md:p-5 text-center"
       >
-        <p class="text-base md:text-[17px] font-semibold text-gray-900 dark:text-gray-100">{{ t('supporter.tesla_note_title') }}</p>
-        <p class="text-[15px] leading-relaxed text-gray-600 dark:text-gray-300 mt-1.5">{{ t('supporter.tesla_note_body') }}</p>
+        <p class="text-base md:text-[17px] font-semibold text-gray-900 dark:text-gray-100">{{ t('supporter.data_source_note_title') }}</p>
+        <p class="text-[15px] leading-relaxed text-gray-600 dark:text-gray-300 mt-1.5">{{ t('supporter.data_source_note_body') }}</p>
       </div>
 
       <!-- What supporting unlocks: each point above its visual -->

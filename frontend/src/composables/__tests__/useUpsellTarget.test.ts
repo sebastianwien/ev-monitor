@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { analyticsUpsellTarget } from '../useUpsellTarget'
 
 const tesla = { brand: 'Tesla' }
+const xpeng = { brand: 'XPeng' }
 const vw = { brand: 'VW' }
 const lucid = { brand: 'Lucid' }
 
@@ -9,6 +10,12 @@ describe('analyticsUpsellTarget', () => {
     it('schickt Tesla-Fahrer ohne Abo auf die Supporter-Seite', () => {
         // Die Telemetrie laeuft bei ihnen gratis - es fehlt nur die Auswertung.
         expect(analyticsUpsellTarget([tesla], 'NONE')).toBe('/supporter')
+    })
+
+    it('schickt XPeng-Fahrer ohne Abo auf die Supporter-Seite', () => {
+        // EU-Data-Act-Weg laeuft gratis und liefert bereits Trips - wie bei Tesla
+        // fehlt nur die Auswertung, nicht die Datenquelle.
+        expect(analyticsUpsellTarget([xpeng], 'NONE')).toBe('/supporter')
     })
 
     it('schickt Marken ohne Datenquelle auf die Upgrade-Seite', () => {

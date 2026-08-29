@@ -2343,8 +2343,8 @@ tax_export:
   tax_export_v1_body: Eksporter dine hjemmeladinger som et BMF-godkjent skattedokument – som CSV- eller PDF-fil til regnskapsføreren din. Du trenger bare å merke bilen som firmabil og generere rapporten under «Skatterapport» i menyen.
   tax_export_v1_cta: Gå til skatterapporten
 supporter:
-  tesla_note_title: "Teslaen din leverer allerede dataene"
-  tesla_note_body: "Fleet Telemetry er gratis for Tesla-førere - ladinger og turer havner automatisk i loggboken din. Det Supporter-pakken gir i tillegg er ikke mer datainnsamling, men analysen: dybden bak tallene Teslaen din allerede sender inn."
+  data_source_note_title: "Dataene dine kommer allerede inn automatisk"
+  data_source_note_body: "Som Tesla- eller XPeng-fører er dataregistreringen allerede gratis for deg - ladinger og turer havner automatisk i loggboken din. Det Supporter-pakken gir i tillegg er ikke mer datainnsamling, men analysen: dybden bak tallene du allerede sender inn."
   back: "Tilbake"
   hero_kicker: "Åpen kildekode · reklamefri · uavhengig"
   title: "Bli supporter"

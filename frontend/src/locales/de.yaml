@@ -2414,8 +2414,8 @@ tax_export:
   tax_export_v1_cta: "Zum Steuernachweis"
 
 supporter:
-  tesla_note_title: "Dein Tesla liefert die Daten schon"
-  tesla_note_body: "Die Fleet-Telemetry ist für Tesla-Fahrer kostenlos - Ladungen und Fahrten landen automatisch in deinem Logbuch. Was das Supporter-Paket dazugibt, ist nicht mehr Datensammlung, sondern die Auswertung: die Tiefe hinter den Zahlen, die dein Tesla ohnehin schon liefert."
+  data_source_note_title: "Deine Daten fließen schon automatisch"
+  data_source_note_body: "Als Tesla- oder XPeng-Fahrer läuft die Datenerfassung bei dir bereits kostenlos - Ladungen und Fahrten landen automatisch in deinem Logbuch. Was das Supporter-Paket dazugibt, ist nicht mehr Datensammlung, sondern die Auswertung: die Tiefe hinter den Zahlen, die du ohnehin schon lieferst."
   back: "Zurück"
   hero_kicker: "Open Source · werbefrei · unabhängig"
   title: "Werde Supporter"

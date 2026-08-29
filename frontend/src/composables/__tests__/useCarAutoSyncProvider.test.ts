@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { autoSyncProviderFor, providerLabel } from '../useCarAutoSyncProvider'
+import { autoSyncProviderFor, providerLabel, hasFreeDataSource } from '../useCarAutoSyncProvider'
 
 describe('autoSyncProviderFor', () => {
     it.each([
@@ -43,4 +43,20 @@ describe('providerLabel', () => {
     it('Tesla', () => expect(providerLabel('TESLA')).toBe('Tesla Telemetry'))
     it('Smartcar', () => expect(providerLabel('SMARTCAR')).toBe('Smartcar'))
     it('None', () => expect(providerLabel('NONE')).toBe('Nicht verfügbar'))
+})
+
+describe('hasFreeDataSource', () => {
+    it.each(['Tesla', 'XPeng', 'XPENG', 'xpeng'])('%s has a free data source', (brand) => {
+        expect(hasFreeDataSource({ brand })).toBe(true)
+    })
+
+    it('Smartcar brands have no free data source - AutoSync must be purchased', () => {
+        expect(hasFreeDataSource({ brand: 'VW' })).toBe(false)
+        expect(hasFreeDataSource({ brand: 'BMW' })).toBe(false)
+    })
+
+    it('Unknown/empty brand -> false', () => {
+        expect(hasFreeDataSource({ brand: 'Lucid' })).toBe(false)
+        expect(hasFreeDataSource({ brand: '' })).toBe(false)
+    })
 })
