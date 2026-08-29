@@ -87,15 +87,15 @@ const maxKm = computed(() => Math.max(...(props.bars ?? []).map((bar) => bar.km)
                   :class="bar.height ? '' : 'rounded-t-sm'"
                   :style="{ height: CHARGE_BASE_PX + 'px' }" />
           </span>
-          <span class="text-[9px] leading-none text-gray-400 dark:text-gray-500 tabular-nums h-2.5">{{ bar.label }}</span>
-          <span v-if="!month" class="text-[9px] leading-none tabular-nums h-2.5"
+          <span class="text-[10px] md:text-[11px] leading-none text-gray-400 dark:text-gray-500 tabular-nums h-3 whitespace-nowrap">{{ bar.label }}</span>
+          <span v-if="!month" class="text-[10px] md:text-[11px] leading-none tabular-nums h-3"
                 :class="bar.km > 0 ? 'text-gray-600 dark:text-gray-300 font-medium' : 'text-gray-300 dark:text-gray-600'">
             {{ bar.km > 0 ? formatDistance(bar.km, { showUnit: false }) : '·' }}
           </span>
         </span>
       </template>
     </div>
-    <p class="mt-1 text-[10px] text-gray-400 dark:text-gray-500 text-center">
+    <p class="mt-1 text-xs md:text-[13px] text-gray-400 dark:text-gray-500 text-center">
       {{ month
         ? t('logs.period.bars_legend', { max: formatDistance(maxKm) })
         : t('logs.period.bars_legend_km') }}
