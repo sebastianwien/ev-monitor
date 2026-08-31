@@ -33,6 +33,9 @@ public class EvLogEntity {
     @Column(name = "cost_eur", precision = 10, scale = 2)
     private BigDecimal costEur;
 
+    @Column(name = "price_per_kwh", precision = 6, scale = 4)
+    private BigDecimal pricePerKwh;
+
     @Column(name = "charge_duration_minutes")
     private Integer chargeDurationMinutes;
 

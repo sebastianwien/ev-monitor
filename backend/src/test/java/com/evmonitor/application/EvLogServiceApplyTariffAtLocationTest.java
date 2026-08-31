@@ -81,6 +81,10 @@ class EvLogServiceApplyTariffAtLocationTest extends AbstractIntegrationTest {
         // 10 kWh * 0.39 = 3.90
         assertEquals(0, new BigDecimal("3.90").compareTo(reload(ac).getCostEur()));
         assertEquals(providerId, reload(dc).getChargingProviderId());
+        // Card price stored directly, not just baked into costEur - avoids re-deriving it
+        // later and picking up cost_eur's cent-rounding.
+        assertEquals(0, new BigDecimal("0.5900").compareTo(reload(dc).getPricePerKwh()));
+        assertEquals(0, new BigDecimal("0.3900").compareTo(reload(ac).getPricePerKwh()));
     }
 
     @Test

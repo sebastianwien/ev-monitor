@@ -417,6 +417,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setKwhCharged(domain.getKwhCharged());
         entity.setKwhAtVehicle(domain.getKwhAtVehicle());
         entity.setCostEur(domain.getCostEur());
+        entity.setPricePerKwh(domain.getPricePerKwh());
         entity.setChargeDurationMinutes(domain.getChargeDurationMinutes());
         entity.setGeohash(domain.getGeohash());
         entity.setOdometerKm(domain.getOdometerKm());
@@ -452,6 +453,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .kwhCharged(entity.getKwhCharged())
                 .kwhAtVehicle(entity.getKwhAtVehicle())
                 .costEur(entity.getCostEur())
+                .pricePerKwh(entity.getPricePerKwh())
                 .chargeDurationMinutes(entity.getChargeDurationMinutes())
                 .geohash(entity.getGeohash())
                 .odometerKm(entity.getOdometerKm())

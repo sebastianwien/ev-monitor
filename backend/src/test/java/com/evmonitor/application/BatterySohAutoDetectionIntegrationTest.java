@@ -130,7 +130,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 null, null, null,
                 "SMARTCAR_LIVE", null, "AC", false,
                 60000, new BigDecimal("10"), new BigDecimal("90"), null, null, null, null, null, null,
-                null, null, null));
+                null, null, null, null));
 
         List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
         assertEquals(1, history.size(), "createInternalLog should trigger SoH auto-detection");

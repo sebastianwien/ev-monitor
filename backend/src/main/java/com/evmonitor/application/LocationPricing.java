@@ -65,8 +65,15 @@ public class LocationPricing {
         return evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash, chargingType)
                 // A session fee is already baked into the recorded amount, so it is never added
                 // on top - it is spread across the kWh of that charge.
+                //
+                // Prefer the anchor's own pricePerKwh when it has one: costEur is rounded to the
+                // cent, so dividing it back out re-introduces that rounding - most visibly on
+                // small sessions (0.35 kWh / 0.10 EUR looks like 28.6 ct/kWh, not the 29.65 ct/kWh
+                // that was actually configured).
                 .map(anchor -> new Tariff(
-                        anchor.getCostEur().divide(anchor.costBasisKwh(), 4, RoundingMode.HALF_UP),
+                        anchor.getPricePerKwh() != null
+                                ? anchor.getPricePerKwh()
+                                : anchor.getCostEur().divide(anchor.costBasisKwh(), 4, RoundingMode.HALF_UP),
                         BigDecimal.ZERO,
                         anchor.getChargingProviderId()));
     }
@@ -98,6 +105,9 @@ public class LocationPricing {
             Optional<BigDecimal> cost = tariff.get().costFor(log.costBasisKwh());
             if (cost.isPresent()) {
                 builder.costEur(cost.get());
+                if (log.getPricePerKwh() == null) {
+                    builder.pricePerKwh(tariff.get().pricePerKwh());
+                }
                 changed = true;
             }
         }
@@ -112,6 +122,12 @@ public class LocationPricing {
         BigDecimal price = priceOf(card, log.getChargingType());
         if (price == null) return Optional.empty();
         return new Tariff(price, card.getSessionFeeEur(), card.getId()).costFor(log.costBasisKwh());
+    }
+
+    /** The card's own AC/DC rate for this charging type - the exact figure {@link #costUnder}
+     *  derived costFor() from, so callers can store it instead of re-deriving it from cost/kWh. */
+    public Optional<BigDecimal> priceUnder(UserChargingProviderEntity card, ChargingType chargingType) {
+        return Optional.ofNullable(priceOf(card, chargingType));
     }
 
     private static BigDecimal priceOf(UserChargingProviderEntity card, ChargingType chargingType) {

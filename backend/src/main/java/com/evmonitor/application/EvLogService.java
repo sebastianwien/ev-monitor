@@ -192,7 +192,8 @@ public class EvLogService {
                 request.isPublicCharging(),
                 request.cpoName(),
                 request.maxChargingPowerKw(),
-                energySource);
+                energySource,
+                request.pricePerKwh());
 
         // Inherit tireType/routeType from the most recent prior log so auto-created logs
         // (Tesla/Wallbox/SmartCar) don't reset the user's last known setting to NULL/SUMMER.
@@ -370,7 +371,9 @@ public class EvLogService {
         for (EvLog log : evLogRepository.findPricelessLogsAtGeohash(userId, geohash)) {
             Optional<BigDecimal> cost = locationPricing.costUnder(provider, log);
             if (cost.isEmpty()) continue;
-            save(log.toBuilder().chargingProviderId(providerId).costEur(cost.get()).build());
+            BigDecimal price = locationPricing.priceUnder(provider, log.getChargingType()).orElse(null);
+            save(log.toBuilder().chargingProviderId(providerId).costEur(cost.get())
+                    .pricePerKwh(price).build());
             priced++;
         }
         return priced;

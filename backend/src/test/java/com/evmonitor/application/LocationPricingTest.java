@@ -91,6 +91,31 @@ class LocationPricingTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void anchorsStoredPricePerKwhBeatsTheDerivedDivision() {
+        // Support case A1337_root: 0.35 kWh / 0.10 EUR rounds to 28.57 ct/kWh when derived -
+        // but the connector knew the exact configured tariff (29.65 ct/kWh) and stored it
+        // directly on the anchor. That exact value must win over the derived one.
+        EvLog anchor = logHere(new BigDecimal("0.35"), new BigDecimal("0.10"))
+                .toBuilder().pricePerKwh(new BigDecimal("0.2965")).build();
+        evLogRepository.save(anchor);
+
+        EvLog priced = locationPricing.enrich(unpricedLog(new BigDecimal("50.0")), userId);
+
+        // 50 kWh * 0.2965 = 14.825 -> 14.83 (not 50 * 0.2857 = 14.29, the derived rate)
+        assertEquals(0, new BigDecimal("14.83").compareTo(priced.getCostEur()));
+        assertEquals(0, new BigDecimal("0.2965").compareTo(priced.getPricePerKwh()));
+    }
+
+    @Test
+    void enrichFillsInThePricePerKwhDerivedFromTheAnchorWhenNoneWasStored() {
+        chargedHere(new BigDecimal("40.0"), new BigDecimal("20.00"), null);
+
+        EvLog priced = locationPricing.enrich(unpricedLog(new BigDecimal("50.0")), userId);
+
+        assertEquals(0, new BigDecimal("0.5000").compareTo(priced.getPricePerKwh()));
+    }
+
+    @Test
     void aGeohashShorterThanSixCharsYieldsNothing() {
         assertTrue(locationPricing.tariffAt(userId, "u1hc", null).isEmpty());
         assertTrue(locationPricing.tariffAt(userId, null, null).isEmpty());
