@@ -1098,8 +1098,9 @@ logfields:
   public_charging_short: Offentlig
   public_charging_short2: Lading
   cpo_select_placeholder: Velg nettverksoperatør
-  cpo_other: Annen leverandør
-  cpo_name_placeholder: Leverandørnavn
+  cpo_label: Ladenettverk
+  cpo_nearby_group: I nærheten
+  cpo_all_group: Alle nettverk
   tariff_chip_label: Ladekort
   update_location: Oppdater sted
   location_search_placeholder: Søk etter sted (erstatter eksisterende)...
@@ -2256,6 +2257,7 @@ demo:
   settings_notice: I demomodus kan du se gjennom alle innstillingene, men du kan ikke foreta endringer.
   settings_cta: Skjønner
 announcements:
+  cta_error: "Det gikk ikke. Prøv igjen."
   power_curve_share_v1_title: "Hurtiglading: ladekurven kan mer"
   power_curve_share_v1_body: "Ladekurven for hurtigladingene dine viser nå mer - blant annet ved hvilket ladenivå effekten falt av. Og du kan dele den: ett trykk lager en offentlig lenke med forhåndsvisningsbilde for forum, chat eller sosiale medier. Bare ladingen du frigir, og du kan trekke den tilbake når som helst."
   power_curve_share_v1_cta: "Til ladingene mine"
@@ -2873,6 +2875,7 @@ soh:
   load_error: "Batteridataene kunne ikke lastes."
   save_error: "Oppføringen kunne ikke lagres."
   delete_error: "Oppføringen kunne ikke slettes."
+
 savings:
   title: "Ladet hjemme"
   saved_last_12_months: "spart de siste 12 månedene"

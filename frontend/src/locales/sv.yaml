@@ -1098,8 +1098,9 @@ logfields:
   public_charging_short: Offentlig
   public_charging_short2: Laddning
   cpo_select_placeholder: Välj nätoperatör
-  cpo_other: Annan leverantör
-  cpo_name_placeholder: Leverantörens namn
+  cpo_label: Laddnätverk
+  cpo_nearby_group: I närheten
+  cpo_all_group: Alla nätverk
   tariff_chip_label: Laddningskort
   update_location: Uppdatera plats
   location_search_placeholder: Sökplats (ersätter befintlig)...
@@ -2256,6 +2257,7 @@ demo:
   settings_notice: I demoläget kan du bläddra igenom alla inställningar, men du kan inte göra några ändringar.
   settings_cta: Okej
 announcements:
+  cta_error: "Det gick inte. Försök igen."
   power_curve_share_v1_title: "Snabbladdning: laddkurvan kan mer"
   power_curve_share_v1_body: "Laddkurvan för dina snabbladdningar visar nu mer - bland annat vid vilken laddnivå effekten sjönk. Och du kan dela den: ett tryck skapar en offentlig länk med förhandsbild för forum, chatt eller sociala medier. Bara laddningen du delar, och du kan dra tillbaka den när som helst."
   power_curve_share_v1_cta: "Till mina laddningar"
@@ -2873,6 +2875,7 @@ soh:
   load_error: "Batteridata kunde inte laddas."
   save_error: "Posten kunde inte sparas."
   delete_error: "Posten kunde inte tas bort."
+
 savings:
   title: "Laddat hemma"
   saved_last_12_months: "sparat de senaste 12 månaderna"

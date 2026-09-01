@@ -43,14 +43,24 @@ describe('tesla_location_reconnect_v1 ctaAction', () => {
         expect(teslaFleetService.startReconnect).toHaveBeenCalledWith('car-1')
     })
 
-    it('does nothing when the status has no carId', async () => {
+    it('throws when the status has no carId, so the modal keeps the announcement open', async () => {
         vi.mocked(teslaFleetService.getStatus).mockResolvedValue({
             connected: false, vehicleName: null, carId: null, lastSyncAt: null,
             autoImportEnabled: false, geocodingInProgress: false, vehicleState: null,
         })
 
-        await reconnect.ctaAction!()
+        await expect(reconnect.ctaAction!()).rejects.toThrow()
 
         expect(teslaFleetService.startReconnect).not.toHaveBeenCalled()
+    })
+
+    it('throws when startReconnect reports not_configured', async () => {
+        vi.mocked(teslaFleetService.getStatus).mockResolvedValue({
+            connected: true, vehicleName: 'Model 3', carId: 'car-1', lastSyncAt: null,
+            autoImportEnabled: true, geocodingInProgress: false, vehicleState: null,
+        })
+        vi.mocked(teslaFleetService.startReconnect).mockResolvedValue('not_configured')
+
+        await expect(reconnect.ctaAction!()).rejects.toThrow()
     })
 })

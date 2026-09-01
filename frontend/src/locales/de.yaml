@@ -1140,8 +1140,9 @@ logfields:
   public_charging_short: "Öffentl."
   public_charging_short2: "Ladesäule"
   cpo_select_placeholder: "Netzbetreiber auswählen"
-  cpo_other: "Sonstiger Anbieter"
-  cpo_name_placeholder: "Name des Anbieters"
+  cpo_label: "Ladeanbieter"
+  cpo_nearby_group: "Hier in der Nähe"
+  cpo_all_group: "Alle Anbieter"
   tariff_chip_label: "Ladekarte"
   update_location: "Standort aktualisieren"
   location_search_placeholder: "Ort suchen (ersetzt bestehenden Standort)..."
@@ -2322,6 +2323,7 @@ demo:
   settings_cta: "Alles klar"
 
 announcements:
+  cta_error: "Das hat leider nicht geklappt. Versuch's nochmal."
   power_curve_share_v1_title: "Schnellladungen: die Ladekurve kann mehr"
   power_curve_share_v1_body: "Die Ladekurve zu deinen Schnellladungen zeigt jetzt mehr - unter anderem, bei welchem Ladestand die Leistung abgeknickt ist. Und du kannst sie weitergeben: ein Tap erzeugt einen öffentlichen Link samt Vorschaubild für Forum, Chat oder Social. Nur die Ladung, die du freigibst, jederzeit widerrufbar."
   power_curve_share_v1_cta: "Zu meinen Ladungen"
@@ -2989,6 +2991,7 @@ soh:
   load_error: "Die Batteriedaten konnten nicht geladen werden."
   save_error: "Der Eintrag konnte nicht gespeichert werden."
   delete_error: "Der Eintrag konnte nicht gelöscht werden."
+
 savings:
   title: "Daheim geladen"
   saved_last_12_months: "gespart in den letzten 12 Monaten"
