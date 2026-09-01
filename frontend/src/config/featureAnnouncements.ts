@@ -1,8 +1,11 @@
+import teslaFleetService from '../api/teslaFleetService'
+
 export interface AnnouncementContext {
   hasGoeConnection: boolean
   isPremium: boolean
   isAutoSyncLive: boolean
   hasTeslaConnection: boolean
+  teslaLocationScopeGranted: boolean
 }
 
 export interface FeatureAnnouncement {
@@ -13,6 +16,9 @@ export interface FeatureAnnouncement {
   bodyKey: string      // i18n key
   ctaLabelKey?: string // i18n key, optional
   ctaRoute?: string
+  /** Runs instead of ctaRoute navigation when set - for a CTA that needs to do something
+   *  (call an API, start a redirect) rather than just navigate to a page. */
+  ctaAction?: () => void | Promise<void>
   credit?: string      // optional plain text credit, rendered small + italic
   condition?: (ctx: AnnouncementContext) => boolean
 }
@@ -25,9 +31,20 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     titleKey: 'announcements.tesla_location_reconnect_v1_title',
     bodyKey: 'announcements.tesla_location_reconnect_v1_body',
     ctaLabelKey: 'announcements.tesla_location_reconnect_v1_cta',
-    ctaRoute: '/imports', // dort sitzt TeslaFleetIntegration; Tesla-Fahrer landen automatisch im Tesla-Tab
+    // Startet den OAuth-Redirect direkt aus dem Modal statt nur zu /imports zu verlinken - der
+    // User muesste dort sonst den Connect-Button erst noch selbst finden. Nutzt denselben
+    // startReconnect wie TeslaFleetIntegration.vue/TeslaTelemetryPrompt.vue; ein 'not_configured'-
+    // Ergebnis wird hier stillschweigend ignoriert (kein Fehler-UI im Announcement-Modal vorgesehen) -
+    // der reguläre Connect-Flow in /imports zeigt den Fehler ohnehin an, falls das je eintritt.
+    ctaAction: async () => {
+      const status = await teslaFleetService.getStatus()
+      if (!status.carId) return
+      await teslaFleetService.startReconnect(status.carId)
+    },
 
-    condition: (ctx) => ctx.hasTeslaConnection, // nur Tesla-Nutzer
+    // Nur Tesla-Nutzer, deren Verbindung den vehicle_location-Scope nachweislich noch nicht hat -
+    // nicht mehr jeder verbundene Tesla-User pauschal (die mit dem Scope brauchten den Hinweis nie).
+    condition: (ctx) => ctx.hasTeslaConnection && !ctx.teslaLocationScopeGranted,
   },
   {
     key: 'power_curve_share_v1',

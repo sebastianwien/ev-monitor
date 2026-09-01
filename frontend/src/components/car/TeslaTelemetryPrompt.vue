@@ -60,12 +60,10 @@ const connect = async () => {
   connecting.value = true
   connectError.value = null
   try {
-    const authStart = await teslaFleetService.getAuthStartUrl(props.car.id)
-    if (!authStart.fleetApiConfigured) {
+    const result = await teslaFleetService.startReconnect(props.car.id)
+    if (result === 'not_configured') {
       connectError.value = t('tesla.err_fleet_api')
-      return
     }
-    window.location.href = authStart.authUrl
   } catch (e: any) {
     connectError.value = e.response?.data?.message || t('tesla.err_connect')
   } finally {

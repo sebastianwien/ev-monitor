@@ -107,13 +107,11 @@ async function handleConnect() {
   isLoading.value = true
   error.value = null
   try {
-    const authStart = await teslaFleetService.getAuthStartUrl(selectedCarId.value)
-    if (!authStart.fleetApiConfigured) {
+    const result = await teslaFleetService.startReconnect(selectedCarId.value)
+    if (result === 'not_configured') {
       error.value = t('tesla.err_fleet_api')
       fleetApiConfigured.value = false
-      return
     }
-    if (authStart.authUrl) window.location.href = authStart.authUrl
   } catch (e: any) {
     error.value = e.response?.data?.message || t('tesla.err_connect')
   } finally {

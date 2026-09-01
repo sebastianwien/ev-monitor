@@ -8,9 +8,14 @@ const { announcement, dismiss, total, currentNumber } = useFeatureAnnouncements(
 const router = useRouter()
 const { t } = useI18n()
 
-const handleCta = () => {
-  const route = announcement.value?.ctaRoute
+const handleCta = async () => {
+  const current = announcement.value
   dismiss()
+  if (current?.ctaAction) {
+    await current.ctaAction()
+    return
+  }
+  const route = current?.ctaRoute
   if (route) {
     if (route.startsWith('http')) {
       window.open(route, '_blank', 'noopener,noreferrer')
