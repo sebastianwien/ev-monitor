@@ -15,6 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -135,15 +136,19 @@ public class AppScheduler {
      * Group/XPeng) but who haven't opened the app themselves in {@link
      * #DORMANT_AUTOSYNC_DAYS_INACTIVE} days. Deliberately separate from {@link
      * #sendReEngagementEmails}: that one keys off the last ev_log, which for this group
-     * keeps refreshing on its own and would never hit the exact-day match. Failures are
-     * isolated per user so one bad send doesn't skip the rest of the day's cohort.
+     * keeps refreshing on its own and would never hit the exact-day match.
+     *
+     * <p>Uses {@code last_seen <= day} plus a "not yet mailed" flag rather than an exact-day
+     * match: this run absorbs any backlog of users who already crossed the threshold before
+     * this feature existed, or whose exact day was missed by a deploy - no separate backfill
+     * needed. Failures are isolated per user so one bad send doesn't skip the rest of the cohort.
      */
     @Scheduled(cron = "0 0 9 * * *")
     public void sendDormantAutoSyncEmails() {
         LocalDate targetDay = LocalDate.now().minusDays(DORMANT_AUTOSYNC_DAYS_INACTIVE);
 
-        List<User> candidates = userRepository.findDormantAutoSyncUsersOnDay(targetDay);
-        log.info("Dormant AutoSync: {} candidate(s) last seen on {}", candidates.size(), targetDay);
+        List<User> candidates = userRepository.findDormantAutoSyncUsersDue(targetDay);
+        log.info("Dormant AutoSync: {} candidate(s) last seen on or before {}", candidates.size(), targetDay);
 
         List<String> mailed = new ArrayList<>();
         int failed = 0;
@@ -151,6 +156,7 @@ public class AppScheduler {
         for (User user : candidates) {
             try {
                 emailService.sendAutoSyncDormantEmail(user.getEmail(), user.getUsername(), user.getRegistrationLocale());
+                userRepository.markDormantAutoSyncEmailSent(user.getId(), LocalDateTime.now());
                 mailed.add(user.getUsername());
                 log.info("Sent dormant AutoSync email to user {}", user.getId());
             } catch (Exception e) {

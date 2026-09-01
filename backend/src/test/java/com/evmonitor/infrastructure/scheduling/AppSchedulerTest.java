@@ -114,33 +114,35 @@ class AppSchedulerTest {
     }
 
     @Test
-    void queriesDormantAutoSyncCandidatesLastSeen21DaysAgo() {
-        when(userRepository.findDormantAutoSyncUsersOnDay(any())).thenReturn(List.of());
+    void queriesDormantAutoSyncCandidatesLastSeenOnOrBefore21DaysAgo() {
+        when(userRepository.findDormantAutoSyncUsersDue(any())).thenReturn(List.of());
 
         scheduler.sendDormantAutoSyncEmails();
 
         ArgumentCaptor<LocalDate> dayCaptor = ArgumentCaptor.forClass(LocalDate.class);
-        verify(userRepository).findDormantAutoSyncUsersOnDay(dayCaptor.capture());
+        verify(userRepository).findDormantAutoSyncUsersDue(dayCaptor.capture());
         assertThat(dayCaptor.getValue()).isEqualTo(LocalDate.now().minusDays(21));
     }
 
     @Test
-    void mailsAllDormantAutoSyncCandidates() {
+    void mailsAllDormantAutoSyncCandidates_andMarksThemSent() {
         User fresh = user("fresh", "de");
         User other = user("other", "en");
-        when(userRepository.findDormantAutoSyncUsersOnDay(any())).thenReturn(List.of(fresh, other));
+        when(userRepository.findDormantAutoSyncUsersDue(any())).thenReturn(List.of(fresh, other));
 
         scheduler.sendDormantAutoSyncEmails();
 
         verify(emailService).sendAutoSyncDormantEmail("fresh@example.com", "fresh", "de");
         verify(emailService).sendAutoSyncDormantEmail("other@example.com", "other", "en");
+        verify(userRepository).markDormantAutoSyncEmailSent(eq(fresh.getId()), any());
+        verify(userRepository).markDormantAutoSyncEmailSent(eq(other.getId()), any());
     }
 
     @Test
-    void oneFailedDormantSend_doesNotAbortRemainingCandidates() {
+    void oneFailedDormantSend_doesNotAbortRemainingCandidates_andIsNotMarkedSent() {
         User boom = user("boom", "de");
         User ok = user("ok", "en");
-        when(userRepository.findDormantAutoSyncUsersOnDay(any())).thenReturn(List.of(boom, ok));
+        when(userRepository.findDormantAutoSyncUsersDue(any())).thenReturn(List.of(boom, ok));
         doThrow(new RuntimeException("smtp down"))
                 .when(emailService).sendAutoSyncDormantEmail("boom@example.com", "boom", "de");
 
@@ -148,6 +150,9 @@ class AppSchedulerTest {
 
         // The second candidate must still be mailed despite the first one throwing.
         verify(emailService).sendAutoSyncDormantEmail("ok@example.com", "ok", "en");
+        verify(userRepository).markDormantAutoSyncEmailSent(eq(ok.getId()), any());
+        // A failed send must not be marked sent, or the user would silently never be retried.
+        verify(userRepository, never()).markDormantAutoSyncEmailSent(eq(boom.getId()), any());
         // The failure is surfaced (not swallowed) via a GitHub issue.
         verify(gitHubIssueService).createIssue(anyString(), anyString(), anyString());
     }

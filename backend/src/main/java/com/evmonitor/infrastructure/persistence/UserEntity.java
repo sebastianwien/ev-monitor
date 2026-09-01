@@ -93,6 +93,9 @@ public class UserEntity {
     @Column(name = "autosync_started_at")
     private Instant autosyncStartedAt;
 
+    @Column(name = "dormant_autosync_email_sent_at")
+    private LocalDateTime dormantAutoSyncEmailSentAt;
+
     @Column(name = "trial_used", nullable = false)
     private boolean trialUsed;
 

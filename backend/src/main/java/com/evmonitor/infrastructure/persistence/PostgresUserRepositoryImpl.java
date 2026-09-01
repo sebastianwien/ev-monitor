@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -77,9 +78,15 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public List<User> findDormantAutoSyncUsersOnDay(LocalDate day) {
-        return jpaUserRepository.findDormantAutoSyncUsersOnDay(day)
+    public List<User> findDormantAutoSyncUsersDue(LocalDate day) {
+        return jpaUserRepository.findDormantAutoSyncUsersDue(day)
                 .stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    @Transactional
+    public void markDormantAutoSyncEmailSent(UUID userId, LocalDateTime now) {
+        jpaUserRepository.markDormantAutoSyncEmailSent(userId, now);
     }
 
     @Override

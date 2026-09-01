@@ -16,13 +16,17 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * findDormantAutoSyncUsersOnDay targets users whose car is still logging via a live
- * connector (TESLA_LIVE/SMARTCAR_LIVE/VWGROUP_LIVE/XPENG_LIVE) but who themselves haven't
- * opened the app in a while - the ev_log-based re-engagement query never fires for them
- * because the connector keeps writing fresh logs regardless of human activity.
+ * findDormantAutoSyncUsersDue targets users whose car is still logging via a live connector
+ * (TESLA_LIVE/SMARTCAR_LIVE/VWGROUP_LIVE/XPENG_LIVE) but who themselves haven't opened the app
+ * in a while - the ev_log-based re-engagement query never fires for them because the connector
+ * keeps writing fresh logs regardless of human activity.
  *
- * <p>{@code @Transactional}: batchUpdateLastSeen is a {@code @Modifying} query and needs an
- * active transaction; this also gives each test automatic rollback.
+ * <p>Uses {@code last_seen <= day} plus a "not yet mailed" flag rather than an exact-day match,
+ * so the same query also absorbs any backlog of users already further gone than the threshold.
+ *
+ * <p>{@code @Transactional}: batchUpdateLastSeen/markDormantAutoSyncEmailSent are
+ * {@code @Modifying} queries and need an active transaction; this also gives each test
+ * automatic rollback.
  */
 @Transactional
 class DormantAutoSyncQueryTest extends AbstractIntegrationTest {
@@ -33,13 +37,25 @@ class DormantAutoSyncQueryTest extends AbstractIntegrationTest {
     private static final LocalDate TARGET_DAY = LocalDate.of(2024, 3, 15);
 
     @Test
-    void userWithLastSeenOnTargetDayAndRecentAutoSyncLog_isIncluded() {
+    void userLastSeenExactlyOnCutoffWithRecentAutoSyncLog_isIncluded() {
         User user = createAndSaveUser(uniqueEmail());
         setLastSeen(user.getId(), TARGET_DAY);
         Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, BigDecimal.valueOf(75)));
         saveAutoSyncLog(car.getId(), DataSource.TESLA_LIVE, LocalDateTime.now().minusDays(2));
 
-        List<User> result = userRepository.findDormantAutoSyncUsersOnDay(TARGET_DAY);
+        List<User> result = userRepository.findDormantAutoSyncUsersDue(TARGET_DAY);
+
+        assertThat(result).extracting(User::getId).contains(user.getId());
+    }
+
+    @Test
+    void userLastSeenLongBeforeCutoff_isIncluded() {
+        User user = createAndSaveUser(uniqueEmail());
+        setLastSeen(user.getId(), TARGET_DAY.minusDays(90));
+        Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, BigDecimal.valueOf(75)));
+        saveAutoSyncLog(car.getId(), DataSource.TESLA_LIVE, LocalDateTime.now().minusDays(2));
+
+        List<User> result = userRepository.findDormantAutoSyncUsersDue(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).contains(user.getId());
     }
@@ -51,7 +67,7 @@ class DormantAutoSyncQueryTest extends AbstractIntegrationTest {
         Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, BigDecimal.valueOf(75)));
         saveAutoSyncLog(car.getId(), DataSource.USER_LOGGED, LocalDateTime.now().minusDays(2));
 
-        List<User> result = userRepository.findDormantAutoSyncUsersOnDay(TARGET_DAY);
+        List<User> result = userRepository.findDormantAutoSyncUsersDue(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).doesNotContain(user.getId());
     }
@@ -65,19 +81,19 @@ class DormantAutoSyncQueryTest extends AbstractIntegrationTest {
         // "still auto-logging", it belongs to the plain re-engagement flow instead.
         saveAutoSyncLog(car.getId(), DataSource.TESLA_LIVE, LocalDateTime.now().minusDays(30));
 
-        List<User> result = userRepository.findDormantAutoSyncUsersOnDay(TARGET_DAY);
+        List<User> result = userRepository.findDormantAutoSyncUsersDue(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).doesNotContain(user.getId());
     }
 
     @Test
-    void userWithLastSeenOffTargetDay_isNotIncluded() {
+    void userLastSeenAfterCutoff_isNotIncluded() {
         User user = createAndSaveUser(uniqueEmail());
-        setLastSeen(user.getId(), TARGET_DAY.minusDays(1));
+        setLastSeen(user.getId(), TARGET_DAY.plusDays(1));
         Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, BigDecimal.valueOf(75)));
         saveAutoSyncLog(car.getId(), DataSource.SMARTCAR_LIVE, LocalDateTime.now().minusDays(2));
 
-        List<User> result = userRepository.findDormantAutoSyncUsersOnDay(TARGET_DAY);
+        List<User> result = userRepository.findDormantAutoSyncUsersDue(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).doesNotContain(user.getId());
     }
@@ -88,7 +104,21 @@ class DormantAutoSyncQueryTest extends AbstractIntegrationTest {
         Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, BigDecimal.valueOf(75)));
         saveAutoSyncLog(car.getId(), DataSource.VWGROUP_LIVE, LocalDateTime.now().minusDays(2));
 
-        List<User> result = userRepository.findDormantAutoSyncUsersOnDay(TARGET_DAY);
+        List<User> result = userRepository.findDormantAutoSyncUsersDue(TARGET_DAY);
+
+        assertThat(result).extracting(User::getId).doesNotContain(user.getId());
+    }
+
+    @Test
+    void userAlreadyMarkedSent_isNotIncluded() {
+        User user = createAndSaveUser(uniqueEmail());
+        setLastSeen(user.getId(), TARGET_DAY.minusDays(90));
+        Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, BigDecimal.valueOf(75)));
+        saveAutoSyncLog(car.getId(), DataSource.TESLA_LIVE, LocalDateTime.now().minusDays(2));
+
+        userRepository.markDormantAutoSyncEmailSent(user.getId(), LocalDateTime.now());
+
+        List<User> result = userRepository.findDormantAutoSyncUsersDue(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).doesNotContain(user.getId());
     }
