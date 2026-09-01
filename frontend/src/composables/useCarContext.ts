@@ -36,7 +36,7 @@ export function provideCarContext(): CarContext {
   watch(dash.selectedCarId, async (newId) => {
     if (newId) {
       await dash.fetchCarAndWltp(newId)
-      await Promise.all([dash.fetchStatistics(), logs.fetchLogs(0), dash.fetchImplausibleCount()])
+      await Promise.all([dash.fetchStatistics(), logs.fetchLogs(0), dash.fetchImplausibleCount(), dash.fetchPricelessCount()])
     } else {
       dash.stats.value = null
       dash.carInfo.value = null

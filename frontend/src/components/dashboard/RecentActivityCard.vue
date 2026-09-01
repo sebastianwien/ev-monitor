@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, MapPinIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, MapPinIcon, PencilSquareIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { normalizeCharge, relativeTimeParts, tripTimestamp, tripSpeedKeyAndArgs } from '../../utils/recentActivity'
 import { tripConsumption } from '../../utils/tripCalculations'
@@ -26,7 +26,7 @@ const props = defineProps<{
  * Log-Feed, wo man denselben Eintrag erst wiederfinden musste. Das Formular oeffnet
  * der Dashboard-Container, die Kachel bleibt praesentational.
  */
-const emit = defineEmits<{ 'edit-charge': []; 'edit-trip': [] }>()
+const emit = defineEmits<{ 'edit-charge': []; 'edit-trip': []; 'amend-charge': [] }>()
 
 const { t, locale } = useI18n()
 const { formatConsumption, consumptionUnitLabel, formatDistance, formatCurrency, formatCostPerKwh, formatDecimal } =
@@ -46,6 +46,14 @@ function relativeTime(iso: string | null | undefined): string {
 // -- Charge --
 const ch = computed(() => normalizeCharge(props.charge))
 const chargeSource = computed(() => (ch.value ? props.sourceInfo(ch.value.dataSource ?? undefined) : null))
+/**
+ * Automatisch erfasste Einzel-Ladung (Tesla/Smartcar/Wallbox) ohne Preis - der amber Chip
+ * bietet den schnellen Nachtrag an. Ladegruppen und manuelle Logs sind ausgenommen (kein
+ * Einzel-Log-Patch bzw. haben ohnehin einen Preis).
+ */
+const chargePriceless = computed(() =>
+  !!ch.value && !props.charge?._isLadegruppe && chargeSource.value != null
+  && ch.value.costEur == null && !!props.charge?.id)
 const chargeTypeLabel = computed(() => {
   const type = ch.value?.chargingType
   if (type === 'AC') return t('dashboard.charging_type_ac')
@@ -172,6 +180,19 @@ const tripInline = computed<string[]>(() => {
         <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
           <BoltIcon class="w-4 h-4 text-amber-500 dark:text-amber-400" aria-hidden="true" />
           {{ t('dashboard.recent_charge_title') }}
+          <span
+            v-if="chargePriceless"
+            role="button"
+            tabindex="0"
+            data-testid="charge-price-chip"
+            :aria-label="t('priceamend.chip_aria')"
+            @click.stop="emit('amend-charge')"
+            @keydown.enter.stop.prevent="emit('amend-charge')"
+            @keydown.space.stop.prevent="emit('amend-charge')"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors">
+            <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+            {{ t('priceamend.chip') }}
+          </span>
         </div>
         <!-- Relativzeit: Desktop immer im Header | Mobile nur bei voller Breite (dann ist Platz) -->
         <div class="items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400" :class="showTrip ? 'hidden md:flex' : 'flex'">

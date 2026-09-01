@@ -1041,6 +1041,27 @@ logform:
   delete_title: Slett ladesesjon
   edit_title: Rediger ladesesjon
   efficiency_label: Effektivitet
+priceless:
+  title: Ladinger uten pris
+  info: Disse ladingene mangler pris. Legg den til så kostnadsstatistikken din stemmer.
+  all_clear: Alle ladinger har en pris.
+  banner: "{count} lading uten pris | {count} ladinger uten pris"
+  banner_cta: Legg til
+  dismiss: Skjul
+  add_price: Legg til pris
+  close: Lukk
+priceamend:
+  title: Legg til pris
+  intro: Denne ladingen ({kwh} kWh) har ingen pris ennå. Legg den til raskt.
+  card_section: Ladekortet ditt
+  card_cost_hint: Det blir {cost} for denne ladingen.
+  manual_label: Angi pris
+  manual_label_or: Eller angi pris
+  manual_placeholder: Totalkostnad
+  location_label: Sted (valgfritt)
+  public_label: Offentlig lading
+  chip: Pris mangler
+  chip_aria: Legg til pris for denne ladingen
 logfields:
   apply_tariff_to_location: "Bruk prisen også på {count} annen lading på dette stedet | Bruk prisen også på {count} andre ladinger på dette stedet"
   card_prompt_title: "Legg til ladekortet ditt"
@@ -2075,6 +2096,8 @@ goe:
   apikey_label: Sky-API-nøkkel
   apikey_placeholder: fra go-e-appen
   car_label: Kjøretøy
+  connect_tariff_label: Strømpris per kWh
+  connect_tariff_hint: For automatisk kostnadsberegning av hjemmeladingene dine. Uten den forblir ladinger uten pris - kan endres når som helst.
   name_label: Navn (valgfritt)
   name_placeholder: f.eks. hjemmelader i garasjen
   location_label: Sted (valgfritt, for varmekart)

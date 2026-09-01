@@ -84,6 +84,8 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   const logsLoading = ref(false)
   const hasMoreLogs = ref(false)
   const editingLog = ref<any | null>(null)
+  // Schlanker Preis-Nachtrag (PriceAmendModal), getrennt vom vollen EditLogModal (editingLog).
+  const priceAmendingLog = ref<any | null>(null)
   const pageSize = ref<PageSize>(readStoredPageSize())
 
   // Ladegruppen expand/collapse
@@ -656,6 +658,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     logsLoading,
     hasMoreLogs,
     editingLog,
+    priceAmendingLog,
     pageSize,
     setPageSize,
     expandedGroups,

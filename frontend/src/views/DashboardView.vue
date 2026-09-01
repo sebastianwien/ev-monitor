@@ -81,7 +81,7 @@ const {
   fullCostPer100km, fixedCostPerMonth, displayedCostPer100km, hasFixedCostData, costMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
   hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo, initCars,
-  editingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
+  editingLog, priceAmendingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
 } = useCarContext()
 
 // Car whose battery-health detail sheet is open (null = closed).
@@ -429,6 +429,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
             :effective-battery-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
             :source-info="sourceInfo"
             @edit-charge="editingLog = latestCharge"
+            @amend-charge="priceAmendingLog = latestCharge"
             @edit-trip="openTripEdit"
           />
 

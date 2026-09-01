@@ -26,6 +26,7 @@ import {
   LockClosedIcon,
   CheckIcon,
   LinkIcon,
+  CurrencyEuroIcon,
 } from '@heroicons/vue/24/outline'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
@@ -69,6 +70,7 @@ import LicensePlate from '../components/car/LicensePlate.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
 import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
+import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
@@ -103,8 +105,9 @@ const {
   cars, carImageUrls, wltp,
   implausibleBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount,
   dismissImplausibleBanner, fetchImplausibleCount, fetchStatistics,
+  pricelessCount, pricelessBannerDismissed, dismissPricelessBanner, fetchPricelessCount,
   setLogsSection, currentOdometerKm,
-  logs, logsPage, logsLoading, hasMoreLogs, editingLog, pageSize, setPageSize,
+  logs, logsPage, logsLoading, hasMoreLogs, editingLog, priceAmendingLog, pageSize, setPageSize,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
@@ -698,6 +701,7 @@ const sendNegativeFeedback = async (tripId: string) => {
 
 // -- Implausible logs modal --
 const showImplausibleModal = ref(false)
+const showPricelessModal = ref(false)
 const implausibleModalDirty = ref(false)
 
 // -- Range calculator --
@@ -1458,6 +1462,28 @@ function toggleAllCharges() {
               @click="dismissImplausibleBanner"
               class="shrink-0 p-1 rounded hover:bg-amber-300/50 dark:hover:bg-amber-600/30 transition-colors"
               :title="t('dashboard.implausible_dismiss')">
+              <XMarkIcon class="h-4 w-4 text-amber-700 dark:text-amber-400" />
+            </button>
+          </div>
+
+          <!-- Preislose Ladungen: macht auch alte, im Feed versteckte Logs ohne Preis auffindbar -->
+          <div v-if="pricelessCount > 0 && !pricelessBannerDismissed"
+            class="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-sm bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50">
+            <button
+              @click="showPricelessModal = true"
+              class="flex-1 flex items-center justify-between gap-3 text-left">
+              <div class="flex items-center gap-2">
+                <CurrencyEuroIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  {{ t('priceless.banner', pricelessCount) }}
+                </span>
+              </div>
+              <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('priceless.banner_cta') }}</span>
+            </button>
+            <button
+              @click="dismissPricelessBanner"
+              class="shrink-0 p-1 rounded hover:bg-amber-300/50 dark:hover:bg-amber-600/30 transition-colors"
+              :title="t('priceless.dismiss')">
               <XMarkIcon class="h-4 w-4 text-amber-700 dark:text-amber-400" />
             </button>
           </div>
@@ -2271,6 +2297,14 @@ function toggleAllCharges() {
                       <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
                       <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
                     </button>
+                    <button v-else-if="sourceInfo(item.entry.dataSource) && !item.entry._isLadegruppe && item.entry.id"
+                      type="button" data-testid="charge-price-chip"
+                      :aria-label="t('priceamend.chip_aria')"
+                      @click.stop="priceAmendingLog = item.entry"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
+                      <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                      {{ t('priceamend.chip') }}
+                    </button>
                     <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
                     <div v-if="openRealCostTooltipId === item.entry.id + '__d' && realCostHintFor(item.entry.id)"
                       class="absolute right-0 top-full mt-1.5 w-72 p-3 rounded-sm bg-amber-50 dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.10)] z-[60]"
@@ -2849,6 +2883,16 @@ function toggleAllCharges() {
                       <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
                       <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
                     </span>
+                    <span v-else-if="sourceInfo(item.entry.dataSource) && !item.entry._isLadegruppe && item.entry.id"
+                      role="button" tabindex="0" data-testid="charge-price-chip"
+                      :aria-label="t('priceamend.chip_aria')"
+                      @click.stop="priceAmendingLog = item.entry"
+                      @keydown.enter.stop.prevent="priceAmendingLog = item.entry"
+                      @keydown.space.stop.prevent="priceAmendingLog = item.entry"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer whitespace-nowrap">
+                      <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                      {{ t('priceamend.chip') }}
+                    </span>
                     <ChevronDownIcon v-if="!expandedLogs.has(item.entry.id)" class="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <ChevronUpIcon v-else class="w-4 h-4 text-gray-400 flex-shrink-0" />
                   </div>
@@ -3202,6 +3246,13 @@ function toggleAllCharges() {
     :open="showImplausibleModal"
     @close="() => { showImplausibleModal = false; if (implausibleModalDirty) { fetchStatistics(); implausibleModalDirty = false } }"
     @updated="() => { fetchImplausibleCount(); implausibleModalDirty = true }"
+  />
+
+  <PricelessLogsModal
+    :car-id="selectedCarId"
+    :open="showPricelessModal"
+    @close="showPricelessModal = false"
+    @updated="() => { fetchPricelessCount(); refreshLogsAndGroups() }"
   />
 
   <!-- Fahrzeug-Zuordnung Modal -->

@@ -1041,6 +1041,27 @@ logform:
   delete_title: Ta bort laddningssession
   edit_title: Redigera laddningssession
   efficiency_label: Effektivitet
+priceless:
+  title: Laddningar utan pris
+  info: Dessa laddningar saknar pris. Lägg till det så att din kostnadsstatistik stämmer.
+  all_clear: Alla laddningar har ett pris.
+  banner: "{count} laddning utan pris | {count} laddningar utan pris"
+  banner_cta: Lägg till
+  dismiss: Dölj
+  add_price: Lägg till pris
+  close: Stäng
+priceamend:
+  title: Lägg till pris
+  intro: Denna laddning ({kwh} kWh) har inget pris ännu. Lägg till det snabbt.
+  card_section: Ditt laddkort
+  card_cost_hint: Det blir {cost} för denna laddning.
+  manual_label: Ange pris
+  manual_label_or: Eller ange pris
+  manual_placeholder: Total kostnad
+  location_label: Plats (valfritt)
+  public_label: Offentlig laddning
+  chip: Pris saknas
+  chip_aria: Lägg till pris för denna laddning
 logfields:
   apply_tariff_to_location: "Använd priset även på {count} annan laddning på denna plats | Använd priset även på {count} andra laddningar på denna plats"
   card_prompt_title: "Lägg till ditt laddkort"
@@ -2075,6 +2096,8 @@ goe:
   apikey_label: Moln-API-nyckel
   apikey_placeholder: från appen go-e
   car_label: Fordon
+  connect_tariff_label: Elpris per kWh
+  connect_tariff_hint: För automatisk kostnadsberäkning av dina hemmaladdningar. Utan det förblir laddningar utan pris - kan ändras när som helst.
   name_label: Namn (valfritt)
   name_placeholder: t.ex. hemladdare i garaget
   location_label: Plats (valfritt, för värmekarta)

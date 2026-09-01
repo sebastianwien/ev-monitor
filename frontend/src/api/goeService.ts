@@ -31,8 +31,8 @@ export default {
     }))
   },
 
-  async connect(serial: string, apiKey: string, carId: string, displayName: string, geohash: string | null = null): Promise<GoeConnection> {
-    const resp = await api.post('/goe/connect', { serial, apiKey, carId, displayName, geohash })
+  async connect(serial: string, apiKey: string, carId: string, displayName: string, geohash: string | null = null, tariffCentsPerKwh: number | null = null): Promise<GoeConnection> {
+    const resp = await api.post('/goe/connect', { serial, apiKey, carId, displayName, geohash, tariffCentsPerKwh })
     return { ...resp.data, carStateLabel: CAR_STATE_LABELS[resp.data.carState] ?? 'Unbekannt' }
   },
 

@@ -162,6 +162,7 @@ const LS_GROUP_BY = 'dashboard_group_by'
 const LS_CUSTOM_START = 'dashboard_custom_start'
 const LS_CUSTOM_END = 'dashboard_custom_end'
 const LS_IMPLAUSIBLE_BANNER_DISMISSED = 'implausible_banner_dismissed'
+const LS_PRICELESS_BANNER_DISMISSED = 'priceless_banner_dismissed'
 const LS_COST_MODE = 'dashboard_cost_mode'
 
 export type CostMode = 'energy' | 'fixed' | 'total'
@@ -199,6 +200,7 @@ export function useDashboardStats() {
 
   const importBannerDismissed = ref(localStorage.getItem('import_banner_dismissed') === 'true')
   const implausibleBannerDismissed = ref(localStorage.getItem(LS_IMPLAUSIBLE_BANNER_DISMISSED) === 'true')
+  const pricelessBannerDismissed = ref(localStorage.getItem(LS_PRICELESS_BANNER_DISMISSED) === 'true')
 
   const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
   const { smartcarStatus, start: startSmartcarPolling } = useSmartcarStatus()
@@ -206,6 +208,8 @@ export function useDashboardStats() {
 
   // Implausible logs
   const implausibleCount = ref(0)
+  // Preislose Logs (fuer den "Preis fehlt"-Banner im Feed)
+  const pricelessCount = ref(0)
 
   const hasDistanceData = computed(() =>
     stats.value?.chargesOverTime?.some(d => d.distanceKm != null && d.distanceKm > 0) ?? false
@@ -314,6 +318,21 @@ export function useDashboardStats() {
       implausibleCount.value = res.data.filter((l: any) => l.includeInStatistics).length
     } catch {
       implausibleCount.value = 0
+    }
+  }
+
+  const dismissPricelessBanner = () => {
+    pricelessBannerDismissed.value = true
+    localStorage.setItem(LS_PRICELESS_BANNER_DISMISSED, 'true')
+  }
+
+  const fetchPricelessCount = async () => {
+    if (!selectedCarId.value) { pricelessCount.value = 0; return }
+    try {
+      const res = await api.get(`/logs/priceless?carId=${selectedCarId.value}`)
+      pricelessCount.value = res.data.length
+    } catch {
+      pricelessCount.value = 0
     }
   }
 
@@ -459,10 +478,12 @@ export function useDashboardStats() {
     customEndDate,
     importBannerDismissed,
     implausibleBannerDismissed,
+    pricelessBannerDismissed,
     teslaStatus,
     smartcarStatus,
     vwGroupStatus,
     implausibleCount,
+    pricelessCount,
     hasDistanceData,
     avgCostPer100km,
     fullCostPer100km,
@@ -477,6 +498,8 @@ export function useDashboardStats() {
     dismissImportBanner,
     dismissImplausibleBanner,
     fetchImplausibleCount,
+    dismissPricelessBanner,
+    fetchPricelessCount,
     fetchCarAndWltp,
     fetchStatistics,
     initCars,

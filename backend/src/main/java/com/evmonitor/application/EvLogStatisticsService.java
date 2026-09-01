@@ -72,6 +72,26 @@ public class EvLogStatisticsService {
                 .toList();
     }
 
+    /**
+     * Returns all logs for a car that have no cost yet (cost_eur IS NULL), newest first.
+     * Server-side over ALL logs (not just the loaded feed page), so old cost-less charges - which
+     * would otherwise sit invisible far down the paginated feed - stay findable for the "add price"
+     * banner. Genuinely free charges (cost 0) are excluded; only truly missing prices show up.
+     */
+    public List<EvLogResponse> getPricelessLogs(UUID carId, UUID userId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+        if (!car.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("User does not own the specified car");
+        }
+
+        return evLogRepository.findAllByCarId(carId).stream()
+                .filter(log -> log.getCostEur() == null)
+                .sorted(Comparator.comparing(EvLog::getLoggedAt).reversed())
+                .map(EvLogResponse::fromDomain)
+                .toList();
+    }
+
     public List<GeohashResponse> getGeohashData(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
