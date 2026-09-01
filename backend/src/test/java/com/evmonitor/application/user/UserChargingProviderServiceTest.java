@@ -48,7 +48,7 @@ class UserChargingProviderServiceTest {
     void shouldNotDeactivateExisting_WhenAddingNewProvider() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
                 "IONITY", null, new BigDecimal("0.29"), new BigDecimal("0.49"),
-                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now());
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), null);
 
         service.add(userId, request);
 
@@ -61,10 +61,10 @@ class UserChargingProviderServiceTest {
     void shouldSaveMultipleActiveProviders_WithoutConflict() {
         UserChargingProviderRequest request1 = new UserChargingProviderRequest(
                 "EnBW", "Arbeit RFID", new BigDecimal("0.29"), new BigDecimal("0.49"),
-                new BigDecimal("4.99"), BigDecimal.ZERO, LocalDate.now());
+                new BigDecimal("4.99"), BigDecimal.ZERO, LocalDate.now(), null);
         UserChargingProviderRequest request2 = new UserChargingProviderRequest(
                 "Maingau", null, new BigDecimal("0.39"), new BigDecimal("0.52"),
-                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now());
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), null);
 
         service.add(userId, request1);
         service.add(userId, request2);
@@ -75,7 +75,7 @@ class UserChargingProviderServiceTest {
     @Test
     void shouldSetCorrectUserId_WhenSavingNewProvider() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "Fastned", null, null, null, null, null, LocalDate.now());
+                "Fastned", null, null, null, null, null, LocalDate.now(), null);
 
         service.add(userId, request);
 
@@ -89,7 +89,7 @@ class UserChargingProviderServiceTest {
     @Test
     void shouldSetLabel_WhenProvidedOnAdd() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "EnBW", "Meine EnBW Karte", null, null, null, null, LocalDate.now());
+                "EnBW", "Meine EnBW Karte", null, null, null, null, LocalDate.now(), null);
 
         service.add(userId, request);
 
@@ -102,7 +102,7 @@ class UserChargingProviderServiceTest {
     @Test
     void shouldDefaultFeesToZero_WhenNullPassedIn() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "EnBW", null, null, null, null, null, LocalDate.now());
+                "EnBW", null, null, null, null, null, LocalDate.now(), null);
 
         service.add(userId, request);
 
@@ -123,7 +123,7 @@ class UserChargingProviderServiceTest {
 
         UserChargingProviderRequest request = new UserChargingProviderRequest(
                 "EnBW updated", "Neues Label", new BigDecimal("0.25"), new BigDecimal("0.45"),
-                new BigDecimal("2.99"), BigDecimal.ZERO, LocalDate.now());
+                new BigDecimal("2.99"), BigDecimal.ZERO, LocalDate.now(), null);
 
         service.update(userId, providerId, request);
 
@@ -140,7 +140,7 @@ class UserChargingProviderServiceTest {
         when(repository.findById(providerId)).thenReturn(Optional.of(entity));
 
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "Hacked", null, null, null, null, null, LocalDate.now());
+                "Hacked", null, null, null, null, null, LocalDate.now(), null);
 
         assertThatThrownBy(() -> service.update(userId, providerId, request))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -175,7 +175,7 @@ class UserChargingProviderServiceTest {
         when(repository.findById(providerId)).thenReturn(Optional.of(entity));
 
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "Zombie", null, null, null, null, null, LocalDate.now());
+                "Zombie", null, null, null, null, null, LocalDate.now(), null);
 
         assertThatThrownBy(() -> service.update(userId, providerId, request))
                 .isInstanceOf(IllegalArgumentException.class)

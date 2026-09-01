@@ -45,6 +45,10 @@ import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
 import DashboardInsightsTeaser from '../components/dashboard/DashboardInsightsTeaser.vue'
 import ChargingTypeSplitCard from '../components/dashboard/ChargingTypeSplitCard.vue'
+import ChargingSavingsCard from '../components/dashboard/ChargingSavingsCard.vue'
+import HomeInvestmentModal from '../components/dashboard/HomeInvestmentModal.vue'
+import chargingSavingsService from '../api/chargingSavingsService'
+import type { ChargingSavings } from '../components/dashboard/chargingSavings'
 import ChargingEfficiencyCard from '../components/dashboard/ChargingEfficiencyCard.vue'
 import CO2Card from '../components/dashboard/CO2Card.vue'
 import SmartInsightsCard from '../components/dashboard/SmartInsightsCard.vue'
@@ -248,8 +252,29 @@ function onClickOutsideFilter(e: MouseEvent) {
   }
 }
 
+// Heimlade-Ersparnis. Laedt unabhaengig von den uebrigen Statistiken: liefert der
+// Endpoint nichts (kein Preis bekannt, Tarif ohne die Kachel), bleibt sie einfach aus,
+// ohne das restliche Dashboard aufzuhalten.
+const chargingSavings = ref<ChargingSavings | null>(null)
+const showInvestmentPrompt = ref(false)
+
+async function loadChargingSavings() {
+  try {
+    chargingSavings.value = await chargingSavingsService.get()
+  } catch {
+    chargingSavings.value = null
+  }
+}
+
+async function saveInvestment(value: number | null) {
+  await chargingSavingsService.saveInvestment(value)
+  showInvestmentPrompt.value = false
+  await loadChargingSavings()
+}
+
 onMounted(() => {
   document.addEventListener('click', onClickOutsideFilter)
+  loadChargingSavings()
 })
 onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) })
 
@@ -870,6 +895,20 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
           v-if="stats.chargingTypeSplit && stats.locationSplit"
           :charging-type-split="stats.chargingTypeSplit"
           :location-split="stats.locationSplit"
+        />
+
+        <!-- Heimlade-Ersparnis: steht neben der Ladeverteilung, weil beide denselben
+             Sachverhalt aus zwei Richtungen zeigen - wo geladen wird und was es spart. -->
+        <ChargingSavingsCard
+          :savings="chargingSavings"
+          @edit-investment="showInvestmentPrompt = true"
+          @open-details="showInvestmentPrompt = true"
+        />
+        <HomeInvestmentModal
+          :open="showInvestmentPrompt"
+          :current="chargingSavings?.investmentEur ?? null"
+          @close="showInvestmentPrompt = false"
+          @save="saveInvestment"
         />
 
         <!-- Peer Benchmark (old) — können wir später löschen -->

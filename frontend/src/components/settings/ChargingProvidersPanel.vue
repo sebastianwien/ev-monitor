@@ -124,6 +124,17 @@ fetchChargingProviders()
             <input v-model="providerForm.activeFrom" type="date" :max="new Date().toISOString().split('T')[0]"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm text-sm focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
+          <!-- Heimstrom: Basis der Heimlade-Ersparnis. Bewusst vom Nutzer gesetzt - aus den
+               Logs ist es nicht ableitbar, weil oeffentliche Karten dort wie Heimladungen
+               aussehen koennen. -->
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input v-model="providerForm.isHome" type="checkbox"
+              class="mt-0.5 h-4 w-4 flex-none rounded-sm border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500" />
+            <span class="min-w-0">
+              <span class="block text-xs font-medium text-gray-700 dark:text-gray-300">{{ t('settings.tariff_is_home') }}</span>
+              <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('settings.tariff_is_home_hint') }}</span>
+            </span>
+          </label>
           <div class="flex gap-2 pt-1">
             <button @click="saveChargingProvider"
               :disabled="loading || !providerForm.providerName || (isCustomProvider && !providerForm.customProviderName)"
@@ -197,6 +208,14 @@ fetchChargingProviders()
           <input v-model="providerForm.activeFrom" type="date" :max="new Date().toISOString().split('T')[0]"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm text-sm focus:ring-indigo-500 focus:border-indigo-500" />
         </div>
+        <label class="flex items-start gap-2.5 cursor-pointer">
+          <input v-model="providerForm.isHome" type="checkbox"
+            class="mt-0.5 h-4 w-4 flex-none rounded-sm border-gray-300 dark:border-gray-600 text-green-600 focus:ring-green-500" />
+          <span class="min-w-0">
+            <span class="block text-xs font-medium text-gray-700 dark:text-gray-300">{{ t('settings.tariff_is_home') }}</span>
+            <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('settings.tariff_is_home_hint') }}</span>
+          </span>
+        </label>
         <div class="flex gap-2 pt-1">
           <button @click="saveChargingProvider"
             :disabled="loading || !providerForm.providerName || (isCustomProvider && !providerForm.customProviderName)"

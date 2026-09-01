@@ -1415,6 +1415,8 @@ settings:
   tariff_monthly_label: Månedlig avgift (€/måned)
   tariff_session_label: Pris per time (€/time)
   tariff_active_from_label: Aktiv siden
+  tariff_is_home: "Dette er hjemmestrømmen min"
+  tariff_is_home_hint: "Grunnlag for hjemmeladingsbesparelsen på dashbordet."
   tariff_save: Lagre
   tariff_cancel: Avbryt
   tariff_ok: Betalingskortet er lagret!
@@ -2871,3 +2873,25 @@ soh:
   load_error: "Batteridataene kunne ikke lastes."
   save_error: "Oppføringen kunne ikke lagres."
   delete_error: "Oppføringen kunne ikke slettes."
+savings:
+  title: "Ladet hjemme"
+  saved_last_12_months: "spart de siste 12 månedene"
+  would_have_cost: "Offentlig lading ville kostet"
+  paid_at_home: "Betalt hjemme · {kwh} kWh"
+  wallbox_recovered: "Ladeboks inntjent"
+  of_investment: "av {total}"
+  fully_amortised: "Fullt inntjent - alt herfra er besparelse."
+  amortisation_remaining: "Rundt {years} år igjen til full inntjening."
+  amortisation_slow: "Med dagens lademønster rundt {years} år igjen. En rimeligere hjemmetariff korter det merkbart ned."
+  add_investment: "Legg inn kostnad for ladeboks"
+  basis_own_public: "Basert på dine {count} egne offentlige ladinger"
+  basis_region: "Basert på {count} offentlige ladinger i ditt område"
+  basis_country: "Basert på median offentlig pris i landet ditt ({count} ladinger)"
+  basis_override: "Din antakelse: {price} per kWh"
+  investment_title: "Kostnad for ladeboks"
+  investment_hint: "Innkjøp og installasjon. Kortet viser da hvor langt besparelsen har dekket den."
+  investment_label: "Beløp i euro"
+  investment_clear_hint: "La feltet stå tomt for å fjerne verdien."
+  investment_save: "Lagre"
+  investment_cancel: "Avbryt"
+  investment_close: "Lukk"

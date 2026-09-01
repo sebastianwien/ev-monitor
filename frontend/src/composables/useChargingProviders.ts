@@ -13,6 +13,8 @@ export interface ChargingProvider {
   sessionFeeEur: number
   activeFrom: string
   activeUntil: string | null
+  /** Diese Karte bildet den Heimstrom ab - Basis der Heimlade-Ersparnis. */
+  isHome: boolean
 }
 
 export const KNOWN_EMPS = [
@@ -44,6 +46,7 @@ export function useChargingProviders(
     monthlyFeeEur: 0,
     sessionFeeEur: 0,
     activeFrom: new Date().toISOString().split('T')[0],
+    isHome: false,
   })
 
   const isCustomProvider = computed(() => providerForm.value.providerName === 'Anderer Anbieter')
@@ -54,6 +57,7 @@ export function useChargingProviders(
       acPricePerKwh: '', dcPricePerKwh: '',
       monthlyFeeEur: 0, sessionFeeEur: 0,
       activeFrom: new Date().toISOString().split('T')[0],
+      isHome: false,
     }
   }
 
@@ -69,6 +73,7 @@ export function useChargingProviders(
       monthlyFeeEur: provider.monthlyFeeEur,
       sessionFeeEur: provider.sessionFeeEur,
       activeFrom: provider.activeFrom,
+      isHome: provider.isHome,
     }
   }
 
@@ -95,6 +100,7 @@ export function useChargingProviders(
         monthlyFeeEur: providerForm.value.monthlyFeeEur || 0,
         sessionFeeEur: providerForm.value.sessionFeeEur || 0,
         activeFrom: providerForm.value.activeFrom,
+        isHome: providerForm.value.isHome,
       }
       if (editingProviderId.value === 'new') {
         await api.post('/users/me/charging-providers', payload)

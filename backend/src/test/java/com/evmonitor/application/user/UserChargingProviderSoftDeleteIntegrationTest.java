@@ -83,7 +83,7 @@ class UserChargingProviderSoftDeleteIntegrationTest extends AbstractIntegrationT
     private UUID addCard(String name) {
         return service.add(userId, new UserChargingProviderRequest(
                 name, null, new BigDecimal("0.39"), new BigDecimal("0.59"),
-                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now().minusMonths(1))).id();
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now().minusMonths(1), null)).id();
     }
 
     private EvLog saveChargeWithCard(UUID cardId) {

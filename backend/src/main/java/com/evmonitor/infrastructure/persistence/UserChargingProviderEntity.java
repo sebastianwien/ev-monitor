@@ -56,6 +56,10 @@ public class UserChargingProviderEntity {
      * ev_log.charging_provider_id ist ON DELETE SET NULL - ein hartes DELETE wuerde die Karte
      * aus jeder historischen Ladung reissen, die mit ihr bezahlt wurde.
      */
+    /** Diese Karte bildet den Heimstrom ab (V167). */
+    @Column(name = "is_home", nullable = false)
+    private boolean home = false;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 }

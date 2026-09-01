@@ -1415,6 +1415,8 @@ settings:
   tariff_monthly_label: Månadsavgift (€/månad)
   tariff_session_label: Sessionsavgift (€/session)
   tariff_active_from_label: Verksam sedan
+  tariff_is_home: "Det här är min hemel"
+  tariff_is_home_hint: "Underlag för hemladdningsbesparingen på instrumentpanelen."
   tariff_save: Spara
   tariff_cancel: Avbryt
   tariff_ok: Betalkortet har sparats!
@@ -2871,3 +2873,25 @@ soh:
   load_error: "Batteridata kunde inte laddas."
   save_error: "Posten kunde inte sparas."
   delete_error: "Posten kunde inte tas bort."
+savings:
+  title: "Laddat hemma"
+  saved_last_12_months: "sparat de senaste 12 månaderna"
+  would_have_cost: "Offentlig laddning hade kostat"
+  paid_at_home: "Betalat hemma · {kwh} kWh"
+  wallbox_recovered: "Laddbox intjänad"
+  of_investment: "av {total}"
+  fully_amortised: "Helt intjänad - allt härifrån är besparing."
+  amortisation_remaining: "Cirka {years} år kvar till full återbetalning."
+  amortisation_slow: "Med ditt nuvarande laddmönster cirka {years} år kvar. En billigare hemtariff kortar det märkbart."
+  add_investment: "Lägg till kostnad för laddbox"
+  basis_own_public: "Baserat på dina {count} egna offentliga laddningar"
+  basis_region: "Baserat på {count} offentliga laddningar i ditt område"
+  basis_country: "Baserat på median för offentligt pris i ditt land ({count} laddningar)"
+  basis_override: "Ditt antagande: {price} per kWh"
+  investment_title: "Kostnad för laddbox"
+  investment_hint: "Inköp och installation. Kortet visar då hur långt besparingen har täckt den."
+  investment_label: "Belopp i euro"
+  investment_clear_hint: "Lämna tomt för att ta bort värdet."
+  investment_save: "Spara"
+  investment_cancel: "Avbryt"
+  investment_close: "Stäng"

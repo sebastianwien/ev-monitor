@@ -15,6 +15,8 @@ public record UserChargingProviderRequest(
         BigDecimal dcPricePerKwh,
         BigDecimal monthlyFeeEur,
         BigDecimal sessionFeeEur,
-        @NotNull @PastOrPresent LocalDate activeFrom
+        @NotNull @PastOrPresent LocalDate activeFrom,
+        /** Diese Karte bildet den Heimstrom ab - Basis der Heimlade-Ersparnis. */
+        Boolean isHome
 ) {
 }
