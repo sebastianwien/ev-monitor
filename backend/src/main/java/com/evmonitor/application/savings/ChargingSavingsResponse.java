@@ -1,0 +1,46 @@
+package com.evmonitor.application.savings;
+
+import java.math.BigDecimal;
+
+/**
+ * Antwort der Ersparnis-Kachel.
+ *
+ * Gibt nur Aggregate heraus, nie Rohdaten anderer Nutzer - die Stichprobengroesse sagt,
+ * wie breit der Vergleich ist, nicht wer darin steckt.
+ *
+ * Der Rechenweg wird bewusst vollstaendig mitgeliefert. Die Aussage ist kontrafaktisch
+ * ("haettest du dieselben kWh oeffentlich geladen"), und eine solche Zahl traegt nur,
+ * wenn der Nutzer sie nachrechnen kann.
+ */
+public record ChargingSavingsResponse(
+        BigDecimal homeKwh,
+        BigDecimal homePricePerKwh,
+        String homePriceBasis,
+        BigDecimal publicPricePerKwh,
+        String publicPriceBasis,
+        int publicPriceSampleSize,
+        BigDecimal actuallyPaidEur,
+        BigDecimal wouldHaveCostEur,
+        BigDecimal savingsEur,
+        BigDecimal investmentEur,
+        BigDecimal recoveredEur,
+        BigDecimal amortisationYearsRemaining,
+        boolean fullyAmortised
+) {
+    public static ChargingSavingsResponse from(ChargingSavings s) {
+        return new ChargingSavingsResponse(
+                s.homeKwh(),
+                s.homePrice().pricePerKwh(),
+                s.homePrice().source().name(),
+                s.publicPrice().pricePerKwh(),
+                s.publicPrice().source().name(),
+                s.publicPrice().sampleSize(),
+                s.actuallyPaidEur(),
+                s.wouldHaveCostEur(),
+                s.savingsEur(),
+                s.investmentEur(),
+                s.recoveredEur(),
+                s.amortisationYearsRemaining(),
+                s.fullyAmortised());
+    }
+}
