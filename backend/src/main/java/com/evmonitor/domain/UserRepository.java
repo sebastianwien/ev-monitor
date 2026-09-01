@@ -27,6 +27,14 @@ public interface UserRepository {
 
     List<User> findUsersWithLastLogOnDay(LocalDate day);
 
+    /**
+     * Users who last visited on {@code day} but whose car is still logging via a live
+     * connector (TESLA_LIVE/SMARTCAR_LIVE/VWGROUP_LIVE/XPENG_LIVE, see {@link DataSource}).
+     * {@link #findUsersWithLastLogOnDay} never fires for this group - the connector keeps
+     * producing fresh logs regardless of whether the person still opens the app.
+     */
+    List<User> findDormantAutoSyncUsersOnDay(LocalDate day);
+
     void delete(User user);
 
     Optional<User> findByReferralCode(String referralCode);

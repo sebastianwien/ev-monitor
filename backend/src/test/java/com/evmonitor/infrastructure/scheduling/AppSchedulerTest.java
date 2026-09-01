@@ -112,4 +112,43 @@ class AppSchedulerTest {
         // The failure is surfaced (not swallowed) via a GitHub issue.
         verify(gitHubIssueService).createIssue(anyString(), anyString(), anyString());
     }
+
+    @Test
+    void queriesDormantAutoSyncCandidatesLastSeen21DaysAgo() {
+        when(userRepository.findDormantAutoSyncUsersOnDay(any())).thenReturn(List.of());
+
+        scheduler.sendDormantAutoSyncEmails();
+
+        ArgumentCaptor<LocalDate> dayCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(userRepository).findDormantAutoSyncUsersOnDay(dayCaptor.capture());
+        assertThat(dayCaptor.getValue()).isEqualTo(LocalDate.now().minusDays(21));
+    }
+
+    @Test
+    void mailsAllDormantAutoSyncCandidates() {
+        User fresh = user("fresh", "de");
+        User other = user("other", "en");
+        when(userRepository.findDormantAutoSyncUsersOnDay(any())).thenReturn(List.of(fresh, other));
+
+        scheduler.sendDormantAutoSyncEmails();
+
+        verify(emailService).sendAutoSyncDormantEmail("fresh@example.com", "fresh", "de");
+        verify(emailService).sendAutoSyncDormantEmail("other@example.com", "other", "en");
+    }
+
+    @Test
+    void oneFailedDormantSend_doesNotAbortRemainingCandidates() {
+        User boom = user("boom", "de");
+        User ok = user("ok", "en");
+        when(userRepository.findDormantAutoSyncUsersOnDay(any())).thenReturn(List.of(boom, ok));
+        doThrow(new RuntimeException("smtp down"))
+                .when(emailService).sendAutoSyncDormantEmail("boom@example.com", "boom", "de");
+
+        scheduler.sendDormantAutoSyncEmails();
+
+        // The second candidate must still be mailed despite the first one throwing.
+        verify(emailService).sendAutoSyncDormantEmail("ok@example.com", "ok", "en");
+        // The failure is surfaced (not swallowed) via a GitHub issue.
+        verify(gitHubIssueService).createIssue(anyString(), anyString(), anyString());
+    }
 }

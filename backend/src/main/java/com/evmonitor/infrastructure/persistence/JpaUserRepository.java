@@ -56,6 +56,28 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
             """, nativeQuery = true)
     List<UserEntity> findUsersWithLastLogOnDay(@Param("day") LocalDate day);
 
+    /**
+     * Data sources here must stay in sync with the "continuous auto-sync" group in
+     * {@link com.evmonitor.domain.DataSource} (TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE,
+     * XPENG_LIVE) - the connector-driven sources that keep writing logs without any user
+     * action, as opposed to one-off imports like TESLA_FLEET_IMPORT.
+     */
+    @Query(value = """
+            SELECT u.* FROM app_user u
+            WHERE u.email_verified = true
+              AND u.email_notifications_enabled = true
+              AND u.is_seed_data = false
+              AND u.last_seen::date = :day
+              AND EXISTS (
+                SELECT 1 FROM ev_log e
+                JOIN car c ON c.id = e.car_id
+                WHERE c.user_id = u.id
+                  AND e.data_source IN ('TESLA_LIVE', 'SMARTCAR_LIVE', 'VWGROUP_LIVE', 'XPENG_LIVE')
+                  AND e.logged_at >= (CURRENT_DATE - 7)
+              )
+            """, nativeQuery = true)
+    List<UserEntity> findDormantAutoSyncUsersOnDay(@Param("day") LocalDate day);
+
     long countBySeedDataFalseAndEmailVerifiedTrue();
 
     Optional<UserEntity> findByReferralCode(String referralCode);

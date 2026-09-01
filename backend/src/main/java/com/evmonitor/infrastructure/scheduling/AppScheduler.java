@@ -24,6 +24,7 @@ public class AppScheduler {
 
     private static final int REMINDER_DAYS_AFTER_REGISTRATION = 14;
     private static final int RE_ENGAGEMENT_DAYS_INACTIVE = 21;
+    private static final int DORMANT_AUTOSYNC_DAYS_INACTIVE = 21;
     // 7-day Stripe trial + 28 days of paid usage = "4 weeks after the trial ended".
     private static final int AUTOSYNC_SATISFACTION_DAYS_AFTER_PURCHASE = 35;
     private static final String AUTOSYNC_SATISFACTION_SLUG = "autosync-satisfaction";
@@ -126,6 +127,48 @@ public class AppScheduler {
 
         if (!reminded.isEmpty()) {
             log.info("Re-engagement report: {} sent — {}", reminded.size(), reminded);
+        }
+    }
+
+    /**
+     * Re-engages users whose car is still logging via a live connector (Tesla/Smartcar/VW
+     * Group/XPeng) but who haven't opened the app themselves in {@link
+     * #DORMANT_AUTOSYNC_DAYS_INACTIVE} days. Deliberately separate from {@link
+     * #sendReEngagementEmails}: that one keys off the last ev_log, which for this group
+     * keeps refreshing on its own and would never hit the exact-day match. Failures are
+     * isolated per user so one bad send doesn't skip the rest of the day's cohort.
+     */
+    @Scheduled(cron = "0 0 9 * * *")
+    public void sendDormantAutoSyncEmails() {
+        LocalDate targetDay = LocalDate.now().minusDays(DORMANT_AUTOSYNC_DAYS_INACTIVE);
+
+        List<User> candidates = userRepository.findDormantAutoSyncUsersOnDay(targetDay);
+        log.info("Dormant AutoSync: {} candidate(s) last seen on {}", candidates.size(), targetDay);
+
+        List<String> mailed = new ArrayList<>();
+        int failed = 0;
+
+        for (User user : candidates) {
+            try {
+                emailService.sendAutoSyncDormantEmail(user.getEmail(), user.getUsername(), user.getRegistrationLocale());
+                mailed.add(user.getUsername());
+                log.info("Sent dormant AutoSync email to user {}", user.getId());
+            } catch (Exception e) {
+                failed++;
+                log.error("Dormant AutoSync send failed for user {}", user.getId(), e);
+            }
+        }
+
+        if (!mailed.isEmpty() || failed > 0) {
+            log.info("Dormant AutoSync report: {} sent, {} failed - {}", mailed.size(), failed, mailed);
+        }
+        if (failed > 0) {
+            gitHubIssueService.createIssue(
+                    "dormant-autosync-error-" + targetDay,
+                    "🚨 [EV Monitor] Dormant-AutoSync-Mails: " + failed + " Versand(e) fehlgeschlagen",
+                    "## Versand-Fehler\n\nDatum: `%s`\n\n%d von %d Mails fehlgeschlagen (Details im Log)."
+                            .formatted(targetDay, failed, candidates.size())
+            );
         }
     }
 
