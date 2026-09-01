@@ -617,6 +617,7 @@ logs:
     unmeasured: "1 trip without a consumption value | {count} trips without a consumption value"
     charge_public: "public"
     charge_home: "at home"
+    charge_unknown: "Charge"
 
 dashboard:
   title: "Dashboard"
@@ -692,6 +693,7 @@ dashboard:
   charging_type_unknown: "Unknown"
   charging_location_public: "Public"
   charging_location_private: "Home / Private"
+  charging_location_unknown: "Not specified"
   wltp_comparison_subtitle: "WLTP manufacturer spec"
   wltp_comparison_note: "Both ranges calculated with 90→10% charging window"
   peer_footer: "{trips} trips analysed"

@@ -577,6 +577,7 @@ logs:
     unmeasured: "1 tur uten forbruksverdi | {count} turer uten forbruksverdi"
     charge_public: "offentlig"
     charge_home: "hjemme"
+    charge_unknown: "Lading"
 
 dashboard:
   title: Dashbord
@@ -652,6 +653,7 @@ dashboard:
   charging_type_unknown: Ukjent
   charging_location_public: "Offentlig"
   charging_location_private: "Hjemme / Privat"
+  charging_location_unknown: "Ikke oppgitt"
   wltp_comparison_subtitle: WLTP produsentverdi
   wltp_comparison_note: Begge rekkevidder beregnet med 90→10% ladevindu
   peer_footer: "{trips} turer analysert"

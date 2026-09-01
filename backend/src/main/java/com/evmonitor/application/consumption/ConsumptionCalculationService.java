@@ -99,7 +99,9 @@ public class ConsumptionCalculationService {
     public double chargingEfficiency(EvLog log) {
         if (log.getChargingType() == ChargingType.DC) return plausibility.getDcChargingEfficiency();
         if (log.getChargingType() == ChargingType.AC) return plausibility.getAcChargingEfficiency();
-        return log.isPublicCharging() ? plausibility.getDcChargingEfficiency() : plausibility.getAcChargingEfficiency();
+        // Unbekannter Ladeort verhaelt sich wie bisher als AC - die Verbrauchsberechnung
+        // bleibt dadurch unveraendert.
+        return log.isPublicChargingConfirmed() ? plausibility.getDcChargingEfficiency() : plausibility.getAcChargingEfficiency();
     }
 
     /**
@@ -118,9 +120,9 @@ public class ConsumptionCalculationService {
                 return spec.getChargingEfficiencyAc().doubleValue();
             // is_public_charging as proxy when charging_type is UNKNOWN
             if (log.getChargingType() != ChargingType.DC && log.getChargingType() != ChargingType.AC) {
-                if (log.isPublicCharging() && spec.getChargingEfficiencyDc() != null)
+                if (log.isPublicChargingConfirmed() && spec.getChargingEfficiencyDc() != null)
                     return spec.getChargingEfficiencyDc().doubleValue();
-                if (!log.isPublicCharging() && spec.getChargingEfficiencyAc() != null)
+                if (!log.isPublicChargingConfirmed() && spec.getChargingEfficiencyAc() != null)
                     return spec.getChargingEfficiencyAc().doubleValue();
             }
         }

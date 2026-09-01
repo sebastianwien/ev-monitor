@@ -204,7 +204,7 @@ public class PublicApiImportService {
             throw new SecurityException("Kein Zugriff auf diesen Log");
         }
 
-        boolean isPublic = patch.isPublicCharging() != null ? patch.isPublicCharging() : existing.isPublicCharging();
+        Boolean isPublic = patch.isPublicCharging() != null ? patch.isPublicCharging() : existing.getPublicCharging();
         String geohash = patch.location() != null
                 ? parseGeohash(patch.location(), isPublic ? 7 : 6)
                 : existing.getGeohash();

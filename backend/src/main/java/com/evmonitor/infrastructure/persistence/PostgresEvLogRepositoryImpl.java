@@ -435,7 +435,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setRouteType(domain.getRouteType() != null ? domain.getRouteType().name() : null);
         entity.setTireType(domain.getTireType() != null ? domain.getTireType().name() : null);
         entity.setSessionGroupId(domain.getSessionGroupId());
-        entity.setPublicCharging(domain.isPublicCharging());
+        entity.setPublicCharging(domain.getPublicCharging());
         entity.setCpoName(domain.getCpoName());
         entity.setMeasurementType(domain.getMeasurementType().name());
         entity.setEnergySource(domain.getEnergySource() != null ? domain.getEnergySource().name() : null);
@@ -471,7 +471,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .routeType(entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null)
                 .tireType(entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null)
                 .sessionGroupId(entity.getSessionGroupId())
-                .publicCharging(entity.isPublicCharging())
+                .publicCharging(entity.getPublicCharging())
                 .cpoName(entity.getCpoName())
                 .measurementType(entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null)
                 .energySource(entity.getEnergySource() != null ? EnergySource.valueOf(entity.getEnergySource()) : null)

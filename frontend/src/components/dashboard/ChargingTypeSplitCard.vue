@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { MapPinIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import type { ChargingTypeSplit, LocationSplit } from '../../composables/useDashboardStats'
 import { useSlideTransition } from '../../composables/useSlideTransition'
+import { locationSegments as buildLocationSegments } from './chargingSplitSegments'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
 const LS_KEY = 'charging_type_split_collapsed'
@@ -59,26 +60,11 @@ const acDcSegments = computed<Segment[]>(() => {
   return segments
 })
 
-const locationSegments = computed<Segment[]>(() => {
-  const total = props.locationSplit.publicKwh + props.locationSplit.privateKwh
-  if (total <= 0) return []
-  return [
-    {
-      label: t('dashboard.charging_location_public'),
-      kwh: props.locationSplit.publicKwh,
-      pct: Math.round((props.locationSplit.publicKwh / total) * 100),
-      textColorClass: 'text-slate-500 dark:text-slate-400',
-      bgClass: 'bg-slate-400 dark:bg-slate-500',
-    },
-    {
-      label: t('dashboard.charging_location_private'),
-      kwh: props.locationSplit.privateKwh,
-      pct: Math.round((props.locationSplit.privateKwh / total) * 100),
-      textColorClass: 'text-slate-700 dark:text-slate-200',
-      bgClass: 'bg-slate-600 dark:bg-slate-300',
-    },
-  ]
-})
+const locationSegments = computed<Segment[]>(() => buildLocationSegments(props.locationSplit, {
+  public: t('dashboard.charging_location_public'),
+  private: t('dashboard.charging_location_private'),
+  unknown: t('dashboard.charging_location_unknown'),
+}))
 
 function fmtKwh(kwh: number): string {
   return kwh.toFixed(1)

@@ -510,7 +510,7 @@ public class EvLogService {
         // Precision depends on isPublicCharging (new value if provided, else existing).
         boolean updatedIsPublicCharging = request.isPublicCharging() != null
                 ? request.isPublicCharging()
-                : existing.isPublicCharging();
+                : existing.getPublicCharging();
         String geohash = existing.getGeohash();
         boolean geohashChanged = false;
         if (request.latitude() != null && request.longitude() != null) {

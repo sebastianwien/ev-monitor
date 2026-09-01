@@ -291,7 +291,7 @@ public class EvLogStatisticsService {
 
     private EvLogStatisticsResponse createEmptyStatisticsWithFixedCostAndDistance(FixedCostTotals fixedCosts, BigDecimal distanceKm) {
         var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
-        var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO);
+        var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         return new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, fixedCosts.cost(), fixedCosts.income(), fixedCosts.net(),
@@ -711,19 +711,27 @@ public class EvLogStatisticsService {
         return new EvLogStatisticsResponse.ChargingTypeSplit(ac, dc, unknown);
     }
 
+    /**
+     * Drei Toepfe statt zwei: ein Log ohne Angabe zum Ladeort landet nicht mehr still
+     * bei den Heimladungen. Automatisch erzeugte Logs tragen den Ort haeufig nicht -
+     * Tesla-Telemetrie etwa meldet nur DC sicher, AC bleibt bewusst offen.
+     */
     private EvLogStatisticsResponse.LocationSplit buildLocationSplit(List<EvLog> logs) {
         BigDecimal publicKwh = BigDecimal.ZERO;
         BigDecimal privateKwh = BigDecimal.ZERO;
+        BigDecimal unknownKwh = BigDecimal.ZERO;
         for (EvLog log : logs) {
             BigDecimal kwh = log.getKwhCharged() != null ? log.getKwhCharged() : log.getKwhAtVehicle();
             if (kwh == null) continue;
-            if (log.isPublicCharging()) {
+            if (log.isPublicChargingConfirmed()) {
                 publicKwh = publicKwh.add(kwh);
-            } else {
+            } else if (log.isHomeChargingConfirmed()) {
                 privateKwh = privateKwh.add(kwh);
+            } else {
+                unknownKwh = unknownKwh.add(kwh);
             }
         }
-        return new EvLogStatisticsResponse.LocationSplit(publicKwh, privateKwh);
+        return new EvLogStatisticsResponse.LocationSplit(publicKwh, privateKwh, unknownKwh);
     }
 
     private EvLogStatisticsResponse.ChargingEfficiencySplit buildChargingEfficiencySplit(List<EvLog> logs) {

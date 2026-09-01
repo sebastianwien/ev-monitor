@@ -577,6 +577,7 @@ logs:
     unmeasured: "1 resa utan förbrukningsvärde | {count} resor utan förbrukningsvärde"
     charge_public: "publik"
     charge_home: "hemma"
+    charge_unknown: "Laddning"
 
 dashboard:
   title: Dashboard
@@ -652,6 +653,7 @@ dashboard:
   charging_type_unknown: Okand
   charging_location_public: "Offentlig"
   charging_location_private: "Hemma / Privat"
+  charging_location_unknown: "Ej angivet"
   wltp_comparison_subtitle: WLTP tillverkaruppgift
   wltp_comparison_note: Båda räckvidderna beräknade med 90→10% laddningsfönster
   peer_footer: "{trips} resor analyserade"

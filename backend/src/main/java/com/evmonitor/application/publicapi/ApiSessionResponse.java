@@ -26,6 +26,10 @@ public record ApiSessionResponse(
         @JsonProperty("tire_type") String tireType,
         @JsonProperty("kwh_at_vehicle") Double kwhAtVehicle,
         @JsonProperty("temperature_celsius") Double temperatureCelsius,
+        /** Bewusst primitiv: die oeffentliche API bleibt zweiwertig. Intern ist der
+         *  Ladeort seit V166 dreiwertig, unbekannt wird hier zu false - so wie sich
+         *  das Feld vor V166 verhalten hat. Ein plotzliches null wuerde fremde
+         *  Clients brechen, die einen Boolean parsen. */
         @JsonProperty("is_public_charging") boolean isPublicCharging,
         @JsonProperty("cpo_name") String cpoName,
         @JsonProperty("measurement_type") String measurementType
@@ -48,7 +52,7 @@ public record ApiSessionResponse(
                 log.getTireType() != null ? log.getTireType().name() : null,
                 log.getKwhAtVehicle() != null ? log.getKwhAtVehicle().doubleValue() : null,
                 log.getTemperatureCelsius(),
-                log.isPublicCharging(),
+                log.isPublicChargingConfirmed(),
                 log.getCpoName(),
                 log.getMeasurementType() != null ? log.getMeasurementType().name() : null
         );

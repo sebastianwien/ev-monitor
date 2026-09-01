@@ -21,7 +21,7 @@ function makeStats(overrides: Partial<StatisticsData> = {}): StatisticsData {
     winterConsumptionKwhPer100km: null,
     chargesOverTime: [],
     chargingTypeSplit: { acKwh: 240, dcKwh: 40, unknownKwh: 20 },
-    locationSplit: { publicKwh: 30, privateKwh: 270 },
+    locationSplit: { publicKwh: 30, privateKwh: 270, unknownKwh: 0 },
     peerBenchmark: null,
     chargingEfficiencySplit: null,
     ...overrides,

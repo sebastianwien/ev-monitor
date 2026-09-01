@@ -293,7 +293,7 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
         assertEquals(1, response.getBody().get("imported"));
 
         EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
-        assertTrue(log.isPublicCharging());
+        assertTrue(log.isPublicChargingConfirmed());
         assertEquals("IONITY", log.getCpoName());
         assertNotNull(log.getGeohash());
         assertEquals(7, log.getGeohash().length()); // public → 7 chars (~150m)
@@ -318,7 +318,7 @@ class PublicApiImportIntegrationTest extends AbstractIntegrationTest {
         post(body, plaintextKey);
 
         EvLog log = evLogRepository.findAllByCarId(car.getId()).getFirst();
-        assertFalse(log.isPublicCharging());
+        assertFalse(log.isPublicChargingConfirmed());
         assertEquals(6, log.getGeohash().length()); // private → 6 chars (~600m)
     }
 

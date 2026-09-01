@@ -75,7 +75,7 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
 
         EvLog updated = evLogRepository.findById(log.getId()).orElseThrow();
-        assertTrue(updated.isPublicCharging());
+        assertTrue(updated.isPublicChargingConfirmed());
         assertEquals("IONITY", updated.getCpoName());
         assertEquals(0, BigDecimal.valueOf(12.50).compareTo(updated.getCostEur()));
     }

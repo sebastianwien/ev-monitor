@@ -69,7 +69,8 @@ public record EvLogStatisticsResponse(
 
     public record LocationSplit(
             BigDecimal publicKwh,
-            BigDecimal privateKwh
+            BigDecimal privateKwh,
+            BigDecimal unknownKwh
     ) {}
 
     public record ChargingEfficiencySplit(

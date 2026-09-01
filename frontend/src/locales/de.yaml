@@ -617,6 +617,7 @@ logs:
     unmeasured: "1 Fahrt ohne Verbrauchswert | {count} Fahrten ohne Verbrauchswert"
     charge_public: "öffentlich"
     charge_home: "zuhause"
+    charge_unknown: "Ladung"
 
 dashboard:
   title: "Dashboard"
@@ -692,6 +693,7 @@ dashboard:
   charging_type_unknown: "Unbekannt"
   charging_location_public: "Öffentlich"
   charging_location_private: "Zuhause / Privat"
+  charging_location_unknown: "Ohne Angabe"
   wltp_comparison_subtitle: "WLTP-Herstellerangabe"
   wltp_comparison_note: "Beide Reichweiten mit 90→10% Ladefenster gerechnet"
   peer_footer: "{trips} Fahrten ausgewertet"

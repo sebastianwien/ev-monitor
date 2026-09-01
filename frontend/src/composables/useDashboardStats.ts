@@ -38,6 +38,8 @@ export interface ChargingTypeSplit {
 export interface LocationSplit {
   publicKwh: number
   privateKwh: number
+  /** Logs ohne Angabe zum Ladeort (V166). Fehlt in Antworten aelterer Backends. */
+  unknownKwh: number
 }
 
 export interface ChargingEfficiencySplit {
