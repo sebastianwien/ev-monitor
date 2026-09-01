@@ -60,6 +60,13 @@ public class RateLimitService {
             .refillIntervally(60, Duration.ofHours(1))
             .build();
 
+    // 60 CPO-Umkreisabfragen pro Stunde und IP. Reicht fuer das Eintragen von Ladungen,
+    // verhindert aber, den Endpunkt als kostenlosen Proxy auf das Ladesaeulenregister zu nutzen.
+    private static final Bandwidth CPO_LOOKUP_LIMIT = Bandwidth.builder()
+            .capacity(60)
+            .refillIntervally(60, Duration.ofHours(1))
+            .build();
+
     // 120 demo read requests per minute per IP — generous for human browsing, blocks scraping.
     private static final Bandwidth DEMO_REQUEST_LIMIT = Bandwidth.builder()
             .capacity(120)
@@ -80,6 +87,8 @@ public class RateLimitService {
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     private final Cache<String, Bucket> demoRequestBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.MINUTES).maximumSize(10_000).build();
+    private final Cache<String, Bucket> cpoLookupBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
 
     /**
      * @return true if the request may proceed, false if rate limit exceeded
@@ -160,6 +169,22 @@ public class RateLimitService {
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for demo request from IP: {}", clientIp);
+        }
+        return allowed;
+    }
+
+    /**
+     * Drosselt die Umkreisabfrage nach Ladenetzen pro IP.
+     *
+     * @return true if the request may proceed, false if rate limit exceeded
+     */
+    public boolean tryConsumeCpoLookup(String clientIp) {
+        if (!enabled) return true;
+        boolean allowed = cpoLookupBuckets
+                .get(clientIp, ip -> Bucket.builder().addLimit(CPO_LOOKUP_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for CPO lookup from IP: {}", clientIp);
         }
         return allowed;
     }

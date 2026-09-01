@@ -6,6 +6,7 @@ import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 import api from '../../api/axios'
 import { useInlineChargingCard, CUSTOM_PROVIDER } from '../../composables/useInlineChargingCard'
+import { useCpoOptions } from '../../composables/useCpoOptions'
 import { KNOWN_EMPS } from '../../composables/useChargingProviders'
 import { cardContainerStyle } from '../../composables/useChargingCardDesign'
 import ChargingCardTile from '../shared/ChargingCardTile.vue'
@@ -237,6 +238,21 @@ const inputClass = (field: string) =>
       : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500',
   ].join(' ')
 
+// ── Ladeanbieter (CPO) ────────────────────────────────────────────────────────
+// Wer an einer oeffentlichen Saeule laedt, weiss den Betreiber selten auswendig. Deshalb
+// stehen oben die Netze, die laut Ladesaeulenregister an diesem Ort wirklich stehen -
+// aus Wissen wird Wiedererkennen.
+const cpo = useCpoOptions(computed(() => countryStore.country))
+
+watch(
+  () => [form.value.latitude, form.value.longitude, form.value.isPublicCharging] as const,
+  ([lat, lon, isPublic]) => {
+    if (!isPublic) return
+    cpo.loadNearby(lat ?? null, lon ?? null)
+  },
+  { immediate: true },
+)
+
 // ── kWh Mode ──────────────────────────────────────────────────────────────────
 const kwhMode = ref<'charger' | 'vehicle'>('charger')
 
@@ -415,6 +431,9 @@ onMounted(async () => {
   } catch {
     // nicht kritisch
   }
+
+  await cpo.loadAll()
+  cpo.keepSelected(form.value.cpoName)
 
   // Wenn Location aus vorherigem Besuch aktiviert war: direkt GPS holen
   if (locationEnabled.value && props.locationMode === 'create') {
@@ -641,6 +660,26 @@ function cardPriceLabel(p: UserProvider): string | null {
 
   <!-- Location error message -->
   <p v-if="locationErrorMessage" class="text-xs text-red-500">{{ locationErrorMessage }}</p>
+
+  <!-- Ladeanbieter: nur bei oeffentlichem Laden, und nur wenn es ueberhaupt etwas zu waehlen gibt -->
+  <div v-if="form.isPublicCharging && cpo.hasOptions.value">
+    <label for="log-cpo-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      {{ t('logfields.cpo_label') }}
+    </label>
+    <select
+      id="log-cpo-name"
+      data-testid="cpo-select"
+      v-model="form.cpoName"
+      :class="inputClass('cpoName')">
+      <option :value="null">{{ t('logfields.cpo_select_placeholder') }}</option>
+      <optgroup v-if="cpo.nearbyCpos.value.length" :label="t('logfields.cpo_nearby_group')">
+        <option v-for="name in cpo.nearbyCpos.value" :key="`near-${name}`" :value="name">{{ name }}</option>
+      </optgroup>
+      <optgroup v-if="cpo.otherCpos.value.length" :label="t('logfields.cpo_all_group')">
+        <option v-for="name in cpo.otherCpos.value" :key="`all-${name}`" :value="name">{{ name }}</option>
+      </optgroup>
+    </select>
+  </div>
 
   <!-- Keine Ladekarte hinterlegt: hier, an der oeffentlichen Ladung, ist der Moment sie anzulegen -->
   <div v-if="showCardPrompt"
