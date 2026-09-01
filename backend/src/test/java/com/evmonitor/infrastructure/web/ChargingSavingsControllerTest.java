@@ -38,9 +38,9 @@ class ChargingSavingsControllerTest {
         return new ChargingSavingsController(service);
     }
 
-    private void givenUser(boolean premium) {
+    private void givenUser(boolean entitled) {
         when(principal.getUser()).thenReturn(user);
-        when(user.isPremium()).thenReturn(premium);
+        when(user.canViewChargingSavings()).thenReturn(entitled);
     }
 
     /**
@@ -56,8 +56,9 @@ class ChargingSavingsControllerTest {
         verifyNoInteractions(service);
     }
 
+    /** Freier Tarif ohne AutoSync oder Supporter sieht die Kachel nicht. */
     @Test
-    void nonPremiumUser_isRejected() {
+    void userWithoutPaidTier_isRejected() {
         givenUser(false);
 
         ResponseEntity<ChargingSavingsResponse> response = controller().get(principal);

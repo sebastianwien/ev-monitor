@@ -186,6 +186,29 @@ class UserSubscriptionTierTest {
         assertTrue(SubscriptionTier.SUPPORTER.isPaid());
     }
 
+    // ------------------------------------------------------ Heimlade-Ersparnis
+
+    /**
+     * Die Ersparnis-Kachel haengt an jedem bezahlten Tarif - der AutoSync-Leiter und
+     * dem dazu orthogonalen SUPPORTER. Ob sie spaeter frei wird, ist eine offene
+     * Produktentscheidung; bis dahin gilt bewusst die engere Variante.
+     */
+    @Test
+    void chargingSavings_requiresAPaidTier() {
+        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewChargingSavings());
+
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewChargingSavings());
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewChargingSavings());
+        assertTrue(buildUser("USER", SubscriptionTier.SUPPORTER).canViewChargingSavings());
+    }
+
+    /** Wie bei den uebrigen Analytics-Gates sehen ADMIN und BETA_TESTER die Kachel. */
+    @Test
+    void chargingSavings_openToPrivilegedRoles() {
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewChargingSavings());
+        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewChargingSavings());
+    }
+
     private User buildUser(String role, SubscriptionTier tier) {
         LocalDateTime now = LocalDateTime.now();
         return User.builder()

@@ -27,7 +27,7 @@ public class ChargingSavingsController {
     private final HomeChargingSavingsService service;
 
     /**
-     * @return 401 ohne Token, 403 ohne Premium, 204 wenn Heim- oder Vergleichspreis
+     * @return 401 ohne Token, 403 ohne bezahlten Tarif, 204 wenn Heim- oder Vergleichspreis
      *         unbekannt sind - die Kachel zeigt dann ihren Leerzustand, geschaetzt wird nicht.
      */
     @GetMapping
@@ -37,8 +37,10 @@ public class ChargingSavingsController {
         if (principal == null || principal.getUser() == null) {
             return ResponseEntity.status(401).build();
         }
-        // Gate auf Premium. Faellt die Entscheidung auf den Supporter-Tier, ist es diese Zeile.
-        if (!principal.getUser().isPremium()) {
+        // Gate auf die bezahlten Tarife (AutoSync-Leiter und Supporter). Ob die Kachel
+        // frei wird, ist eine offene Produktentscheidung - sie haengt an dieser Zeile
+        // beziehungsweise an User#canViewChargingSavings().
+        if (!principal.getUser().canViewChargingSavings()) {
             return ResponseEntity.status(403).build();
         }
         UUID userId = principal.getUser().getId();

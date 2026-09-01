@@ -153,6 +153,19 @@ public class User {
         return subscriptionTier == SubscriptionTier.AUTOSYNC || canViewLiveAnalytics();
     }
 
+    /**
+     * Gate fuer die Heimlade-Ersparnis auf dem Dashboard.
+     *
+     * Haengt an jedem bezahlten Tarif - der AutoSync-Leiter ebenso wie dem dazu
+     * orthogonalen SUPPORTER, der genau fuer solche Auswertungen gedacht ist. Ob die
+     * Kachel spaeter frei wird, ist eine offene Produktentscheidung; bis dahin gilt
+     * bewusst die engere Variante, weil sich ein Gate leichter oeffnen als
+     * nachtraeglich schliessen laesst.
+     */
+    public boolean canViewChargingSavings() {
+        return subscriptionTier.isPaid() || TRIP_PUSH_PRIVILEGED_ROLES.contains(role);
+    }
+
     public boolean canViewLiveAnalytics() {
         return subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
                 || subscriptionTier == SubscriptionTier.SUPPORTER
