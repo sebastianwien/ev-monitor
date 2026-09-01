@@ -26,13 +26,23 @@ public interface UserRepository {
 
     List<User> findRegisteredOnDay(LocalDate day);
 
-    List<User> findUsersWithLastLogOnDay(LocalDate day);
+    /**
+     * Users whose last log/trip is on or before {@code day}, not yet mailed (see
+     * {@link #markReEngagementEmailSent}).
+     */
+    List<User> findUsersDueForReEngagement(LocalDate day);
+
+    /**
+     * Marks the re-engagement email as sent so {@link #findUsersDueForReEngagement} never
+     * selects this user again.
+     */
+    void markReEngagementEmailSent(UUID userId, LocalDateTime now);
 
     /**
      * Users last seen on or before {@code day}, not yet mailed (see
      * {@link #markDormantAutoSyncEmailSent}), whose car is still logging via a live connector
      * (TESLA_LIVE/SMARTCAR_LIVE/VWGROUP_LIVE/XPENG_LIVE, see {@link DataSource}).
-     * {@link #findUsersWithLastLogOnDay} never fires for this group - the connector keeps
+     * {@link #findUsersDueForReEngagement} never fires for this group - the connector keeps
      * producing fresh logs regardless of whether the person still opens the app.
      */
     List<User> findDormantAutoSyncUsersDue(LocalDate day);

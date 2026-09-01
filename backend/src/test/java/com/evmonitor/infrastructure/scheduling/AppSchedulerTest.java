@@ -73,6 +73,31 @@ class AppSchedulerTest {
     }
 
     @Test
+    void queriesReEngagementCandidatesLastLogOnOrBefore28DaysAgo() {
+        when(userRepository.findUsersDueForReEngagement(any())).thenReturn(List.of());
+
+        scheduler.sendReEngagementEmails();
+
+        ArgumentCaptor<LocalDate> dayCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(userRepository).findUsersDueForReEngagement(dayCaptor.capture());
+        assertThat(dayCaptor.getValue()).isEqualTo(LocalDate.now().minusDays(28));
+    }
+
+    @Test
+    void mailsAllReEngagementCandidates_andMarksThemSent() {
+        User fresh = user("fresh", "de");
+        User other = user("other", "en");
+        when(userRepository.findUsersDueForReEngagement(any())).thenReturn(List.of(fresh, other));
+
+        scheduler.sendReEngagementEmails();
+
+        verify(emailService).sendReEngagementEmail("fresh@example.com", "fresh", "de");
+        verify(emailService).sendReEngagementEmail("other@example.com", "other", "en");
+        verify(userRepository).markReEngagementEmailSent(eq(fresh.getId()), any());
+        verify(userRepository).markReEngagementEmailSent(eq(other.getId()), any());
+    }
+
+    @Test
     void queriesCandidatesPurchased35DaysAgo() {
         when(userRepository.findAutoSyncSurveyCandidates(any())).thenReturn(List.of());
 

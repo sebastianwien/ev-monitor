@@ -72,9 +72,15 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
-    public List<User> findUsersWithLastLogOnDay(LocalDate day) {
-        return jpaUserRepository.findUsersWithLastLogOnDay(day)
+    public List<User> findUsersDueForReEngagement(LocalDate day) {
+        return jpaUserRepository.findUsersDueForReEngagement(day)
                 .stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    @Transactional
+    public void markReEngagementEmailSent(UUID userId, LocalDateTime now) {
+        jpaUserRepository.markReEngagementEmailSent(userId, now);
     }
 
     @Override

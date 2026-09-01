@@ -24,7 +24,7 @@ import java.util.List;
 public class AppScheduler {
 
     private static final int REMINDER_DAYS_AFTER_REGISTRATION = 14;
-    private static final int RE_ENGAGEMENT_DAYS_INACTIVE = 21;
+    private static final int RE_ENGAGEMENT_DAYS_INACTIVE = 28;
     private static final int DORMANT_AUTOSYNC_DAYS_INACTIVE = 21;
     // 7-day Stripe trial + 28 days of paid usage = "4 weeks after the trial ended".
     private static final int AUTOSYNC_SATISFACTION_DAYS_AFTER_PURCHASE = 35;
@@ -100,18 +100,24 @@ public class AppScheduler {
         }
     }
 
+    /**
+     * Uses {@code last_log <= day} plus a "not yet mailed" flag rather than an exact-day match -
+     * see {@link #sendDormantAutoSyncEmails} for why: this run absorbs any backlog of users
+     * whose threshold day predates this feature or was missed by a deploy.
+     */
     @Scheduled(cron = "0 0 7 * * *")
     public void sendReEngagementEmails() {
         LocalDate targetDay = LocalDate.now().minusDays(RE_ENGAGEMENT_DAYS_INACTIVE);
 
-        List<User> candidates = userRepository.findUsersWithLastLogOnDay(targetDay);
-        log.info("Re-engagement: {} candidate(s) with last log on {}", candidates.size(), targetDay);
+        List<User> candidates = userRepository.findUsersDueForReEngagement(targetDay);
+        log.info("Re-engagement: {} candidate(s) with last log on or before {}", candidates.size(), targetDay);
 
         List<String> reminded = new ArrayList<>();
 
         try {
             for (User user : candidates) {
                 emailService.sendReEngagementEmail(user.getEmail(), user.getUsername(), user.getRegistrationLocale());
+                userRepository.markReEngagementEmailSent(user.getId(), LocalDateTime.now());
                 reminded.add(user.getUsername());
                 log.info("Sent re-engagement email to user {}", user.getId());
             }

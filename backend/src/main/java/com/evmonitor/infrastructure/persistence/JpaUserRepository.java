@@ -34,11 +34,21 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("SELECT u FROM UserEntity u WHERE u.emailVerified = true AND u.emailNotificationsEnabled = true AND u.seedData = false AND cast(u.createdAt as LocalDate) = :day")
     List<UserEntity> findRegisteredOnDay(@Param("day") LocalDate day);
 
+    /**
+     * Users whose last log/trip is on or before {@code day}, not yet mailed (see
+     * {@link #markReEngagementEmailSent}).
+     *
+     * <p>{@code <=} plus the {@code re_engagement_email_sent_at IS NULL} guard replaces an
+     * exact-day match on purpose - see {@link #findDormantAutoSyncUsersDue} for why: it
+     * absorbs any backlog of users whose threshold day predates this feature or was missed by
+     * a deploy, and the flag guarantees each user is mailed at most once.
+     */
     @Query(value = """
             SELECT u.* FROM app_user u
             WHERE u.email_verified = true
               AND u.email_notifications_enabled = true
               AND u.is_seed_data = false
+              AND u.re_engagement_email_sent_at IS NULL
               AND GREATEST(
                 (
                   SELECT MAX(e.logged_at)::date
@@ -52,9 +62,13 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
                   WHERE t.user_id = u.id
                     AND t.deleted_at IS NULL
                 )
-              ) = :day
+              ) <= :day
             """, nativeQuery = true)
-    List<UserEntity> findUsersWithLastLogOnDay(@Param("day") LocalDate day);
+    List<UserEntity> findUsersDueForReEngagement(@Param("day") LocalDate day);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.reEngagementEmailSentAt = :now WHERE u.id = :userId")
+    void markReEngagementEmailSent(@Param("userId") UUID userId, @Param("now") LocalDateTime now);
 
     /**
      * Users last seen on or before {@code day} whose car is still logging via a live connector -
