@@ -10,6 +10,12 @@ import java.util.UUID;
 /**
  * Abfragen fuer die Heimlade-Ersparnis.
  *
+ * Ohne Zeitfenster: die Kachel spricht durchgaengig ueber die gesamte Zeit, in der daheim
+ * geladen wurde. Ein rollierendes Jahr an einzelnen Stellen wuerde die Stichprobenzahl in
+ * der Basiszeile gegen den Betrag darueber laufen lassen - und die Kachel bei jemandem
+ * verschwinden lassen, der vor ueber einem Jahr aufgehoert hat, obwohl die Jahresreihe
+ * Zahlen haette.
+ *
  * Durchgaengig auf {@code is_public_charging IS TRUE/FALSE} statt auf Negation: seit V166
  * ist die Spalte dreiwertig, und ein Log ohne Angabe zum Ladeort darf weder als Heim- noch
  * als oeffentliche Ladung zaehlen. Genau dieser Fall - eine oeffentliche AC-Ladung, die als
@@ -45,7 +51,6 @@ public class ChargingSavingsQueryRepository {
                 FROM ev_log e JOIN car c ON c.id = e.car_id
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS FALSE
-                  AND e.logged_at > now() - interval '12 months'
                   AND e.kwh_charged > 0
                   AND (e.price_per_kwh IS NOT NULL OR e.cost_eur IS NOT NULL)
                 """,
@@ -63,7 +68,6 @@ public class ChargingSavingsQueryRepository {
                 FROM ev_log e JOIN car c ON c.id = e.car_id
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS TRUE
-                  AND e.logged_at > now() - interval '12 months'
                   AND e.kwh_charged > 0 AND e.cost_eur > 0
                 """.formatted(PRICE_EXPR), BigDecimal.class, userId);
     }
@@ -115,7 +119,6 @@ public class ChargingSavingsQueryRepository {
                 JOIN car c ON c.id = e.car_id
                 JOIN app_user u ON u.id = c.user_id
                 WHERE e.is_public_charging IS TRUE
-                  AND e.logged_at > now() - interval '12 months'
                   AND e.kwh_charged > 0 AND e.cost_eur > 0
                   AND e.geohash LIKE ? || '%%'
                   AND u.country IS NOT DISTINCT FROM ?
@@ -136,7 +139,6 @@ public class ChargingSavingsQueryRepository {
                 JOIN car c ON c.id = e.car_id
                 JOIN app_user u ON u.id = c.user_id
                 WHERE e.is_public_charging IS TRUE
-                  AND e.logged_at > now() - interval '12 months'
                   AND e.kwh_charged > 0 AND e.cost_eur > 0
                   AND u.country IS NOT DISTINCT FROM ?
                   AND %s BETWEEN 0.01 AND 2.0

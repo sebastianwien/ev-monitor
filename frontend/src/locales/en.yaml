@@ -3018,7 +3018,6 @@ soh:
 
 savings:
   title: "Savings from home charging"
-  saved_last_12_months: "saved in the last 12 months"
   saved_since: "saved since {year}"
   saved_total: "saved in total"
   would_have_cost: "Public charging would have cost"
