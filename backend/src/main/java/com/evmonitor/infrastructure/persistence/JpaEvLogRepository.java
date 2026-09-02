@@ -19,6 +19,9 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId")
     List<EvLogEntity> findAllByCarId(@Param("carId") UUID carId);
 
+    @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.costEur IS NULL ORDER BY e.loggedAt DESC")
+    List<EvLogEntity> findByCarIdAndCostEurIsNullOrderByLoggedAtDesc(@Param("carId") UUID carId);
+
     @Query("""
         SELECT e FROM EvLogEntity e
         WHERE e.carId = :carId

@@ -85,9 +85,9 @@ public class EvLogStatisticsService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
-        return evLogRepository.findAllByCarId(carId).stream()
-                .filter(log -> log.getCostEur() == null)
-                .sorted(Comparator.comparing(EvLog::getLoggedAt).reversed())
+        // Targeted query (cost_eur IS NULL, newest first) instead of loading every log into memory:
+        // unlike getImplausibleLogs this needs no consumption context, so the DB does the filtering.
+        return evLogRepository.findPricelessByCarId(carId).stream()
                 .map(EvLogResponse::fromDomain)
                 .toList();
     }

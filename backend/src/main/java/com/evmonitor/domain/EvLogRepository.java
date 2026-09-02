@@ -20,6 +20,9 @@ public interface EvLogRepository {
 
     List<EvLog> findAllByCarId(UUID carId);
 
+    /** Logs of a car without a cost (cost_eur IS NULL), newest first - feeds the "add price" banner. */
+    List<EvLog> findPricelessByCarId(UUID carId);
+
     List<EvLog> findRecentAtVehicleLogsWithSoc(UUID carId, int limit);
 
     /** Most recent logs usable for SoH detection, already filtered by minimum SoC hub. */

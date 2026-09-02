@@ -40,21 +40,21 @@ class EvLogStatisticsServicePricelessTest {
     private final UUID userId = UUID.randomUUID();
 
     @Test
-    void getPricelessLogs_returnsOnlyCostlessLogs_newestFirst() {
+    void getPricelessLogs_mapsPricelessQueryResult() {
         Car car = mock(Car.class);
         when(car.getUserId()).thenReturn(userId);
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
-        EvLog priced = log(new BigDecimal("10.00"), LocalDateTime.parse("2026-01-01T10:00"));
-        EvLog freeOld = log(null, LocalDateTime.parse("2026-02-01T10:00"));
+        // Filtern (cost_eur IS NULL) + Sortierung uebernimmt der Repo-Query; der Service reicht durch.
         EvLog freeNew = log(null, LocalDateTime.parse("2026-03-01T10:00"));
-        when(evLogRepository.findAllByCarId(carId)).thenReturn(List.of(priced, freeOld, freeNew));
+        EvLog freeOld = log(null, LocalDateTime.parse("2026-02-01T10:00"));
+        when(evLogRepository.findPricelessByCarId(carId)).thenReturn(List.of(freeNew, freeOld));
 
         List<EvLogResponse> res = service.getPricelessLogs(carId, userId);
 
-        assertEquals(2, res.size(), "nur die kostenlosen Logs");
+        assertEquals(2, res.size());
         assertNull(res.get(0).costEur());
-        assertEquals(freeNew.getId(), res.get(0).id(), "neueste zuerst");
+        assertEquals(freeNew.getId(), res.get(0).id());
         assertEquals(freeOld.getId(), res.get(1).id());
     }
 

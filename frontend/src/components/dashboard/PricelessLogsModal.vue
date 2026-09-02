@@ -44,7 +44,8 @@ function formatDate(iso: string) {
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <!-- z-40, damit das PriceAmendModal (BottomSheet, z-50) eindeutig darueber liegt statt nur per DOM-Reihenfolge -->
+    <div v-if="open" class="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
 
       <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] ring-1 ring-black/10 dark:ring-white/10 overflow-hidden flex flex-col max-h-[90dvh]">

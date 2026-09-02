@@ -163,4 +163,35 @@ class JpaEvLogRepositoryNullDateFilterTest {
             evLogRepository.countByCarIdsAndDateRange(List.of(carId), null, null)
         ).doesNotThrowAnyException();
     }
+
+    @Test
+    void findPricelessByCarId_returnsOnlyCostlessLogs_newestFirst() {
+        // setup() persisted one cost-less log (loggedAt = now). Add a priced one and an older cost-less one.
+        EvLogEntity priced = costLog(new BigDecimal("12.00"), LocalDateTime.now().minusDays(2));
+        evLogRepository.save(priced);
+        EvLogEntity olderFree = costLog(null, LocalDateTime.now().minusDays(1));
+        evLogRepository.save(olderFree);
+
+        List<EvLogEntity> res = evLogRepository.findByCarIdAndCostEurIsNullOrderByLoggedAtDesc(carId);
+
+        assertThat(res).hasSize(2); // setup log (now) + olderFree; priced excluded
+        assertThat(res).allMatch(l -> l.getCostEur() == null);
+        assertThat(res.get(0).getLoggedAt()).isAfter(res.get(1).getLoggedAt()); // newest first
+    }
+
+    private EvLogEntity costLog(BigDecimal costEur, LocalDateTime loggedAt) {
+        EvLogEntity log = new EvLogEntity();
+        log.setId(UUID.randomUUID());
+        log.setCarId(carId);
+        log.setKwhCharged(new BigDecimal("30.0"));
+        log.setCostEur(costEur);
+        log.setChargeDurationMinutes(60);
+        log.setLoggedAt(loggedAt);
+        log.setDataSource("WALLBOX_GOE");
+        log.setIncludeInStatistics(true);
+        log.setChargingType("AC");
+        log.setCreatedAt(LocalDateTime.now());
+        log.setUpdatedAt(LocalDateTime.now());
+        return log;
+    }
 }

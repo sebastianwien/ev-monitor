@@ -66,6 +66,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<EvLog> findPricelessByCarId(UUID carId) {
+        return jpaRepository.findByCarIdAndCostEurIsNullOrderByLoggedAtDesc(carId).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<EvLog> findRecentAtVehicleLogsWithSoc(UUID carId, int limit) {
         return jpaRepository.findRecentAtVehicleLogsWithSoc(carId, PageRequest.of(0, limit)).stream()
                 .map(this::toDomain)
