@@ -21,6 +21,6 @@ public class JdbcHomeChargingProfileProvider implements HomeChargingProfileProvi
     @Override
     public HomeChargingProfile forUser(UUID userId) {
         UserProfileRow row = repository.profile(userId);
-        return new HomeChargingProfile(row.country(), row.homeCardPricePerKwh(), row.investmentEur());
+        return new HomeChargingProfile(row.country(), row.investmentEur());
     }
 }

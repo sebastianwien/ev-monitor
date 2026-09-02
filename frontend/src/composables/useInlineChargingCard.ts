@@ -89,7 +89,6 @@ export function useInlineChargingCard(
       monthlyFeeEur: base?.monthlyFeeEur ?? 0,
       sessionFeeEur: base?.sessionFeeEur ?? 0,
       activeFrom: base?.activeFrom ?? new Date().toISOString().split('T')[0],
-      isHome: base?.isHome ?? false,
     }
     try {
       const res = base

@@ -256,13 +256,19 @@ function onClickOutsideFilter(e: MouseEvent) {
 // Endpoint nichts (kein Preis bekannt, Tarif ohne die Kachel), bleibt sie einfach aus,
 // ohne das restliche Dashboard aufzuhalten.
 const chargingSavings = ref<ChargingSavings | null>(null)
+// Berechtigt, aber (noch) ohne Zahlen: dann zeigt die Kachel ihren Leerzustand statt zu
+// verschwinden - sonst erfaehrt niemand, dass ihm nur ein Preis fehlt.
+const chargingSavingsEntitled = ref(false)
 const showInvestmentPrompt = ref(false)
 
 async function loadChargingSavings() {
   try {
-    chargingSavings.value = await chargingSavingsService.get()
+    const result = await chargingSavingsService.get()
+    chargingSavings.value = result.savings
+    chargingSavingsEntitled.value = result.entitled
   } catch {
     chargingSavings.value = null
+    chargingSavingsEntitled.value = false
   }
 }
 
@@ -884,6 +890,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
              dieser Kachel haengt und kein Loch entsteht, wenn der Tarif sie nicht enthaelt. -->
         <ChargingSavingsCard
           :savings="chargingSavings"
+          :empty-state="chargingSavingsEntitled"
           class="mb-4"
           @edit-investment="showInvestmentPrompt = true"
         />

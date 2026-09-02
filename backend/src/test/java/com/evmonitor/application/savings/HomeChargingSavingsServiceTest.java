@@ -6,6 +6,7 @@ import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository;
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.RegionMedian;
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.YearPrice;
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.YearTotals;
+import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.WeightedPrice;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,13 +42,13 @@ class HomeChargingSavingsServiceTest {
     @BeforeEach
     void setUp() {
         service = new HomeChargingSavingsService(repo, priceCache, profiles, List.of(5, 3));
-        lenient().when(profiles.forUser(USER)).thenReturn(new HomeChargingProfile("DE", null, null));
+        lenient().when(profiles.forUser(USER)).thenReturn(new HomeChargingProfile("DE", null));
         lenient().when(repo.homeKwhLast12Months(USER)).thenReturn(eur("640"));
         lenient().when(repo.homeYearTotals(USER)).thenReturn(List.of(
                 new YearTotals(2026, eur("640"), eur("172.80"))));
         lenient().when(priceCache.publicPriceByYear(eq(USER), eq("DE"), anyInt(), anyInt())).thenReturn(List.of(
                 new YearPrice(2026, eur("0.40"), "COUNTRY")));
-        lenient().when(repo.ownHomePrices(USER)).thenReturn(List.of(eur("0.27"), eur("0.27"), eur("0.27")));
+        lenient().when(repo.homeWeightedPrice(USER)).thenReturn(new WeightedPrice(eur("0.27"), 23));
     }
 
     @Test
@@ -190,7 +191,7 @@ class HomeChargingSavingsServiceTest {
      */
     @Test
     void withoutHomePrice_noResult() {
-        when(repo.ownHomePrices(USER)).thenReturn(List.of());
+        when(repo.homeWeightedPrice(USER)).thenReturn(null);
         when(repo.ownPublicPrices(USER)).thenReturn(List.of());
         when(repo.homeGeohash(USER)).thenReturn(null);
         lenient().when(priceCache.countryMedian(eq("DE"), anyInt())).thenReturn(new RegionMedian(eur("0.40"), 2659));
@@ -198,18 +199,4 @@ class HomeChargingSavingsServiceTest {
         assertNull(service.calculate(USER));
     }
 
-    /** Die Heimstrom-Ladekarte springt ein, wenn zu wenige eigene Logs bepreist sind. */
-    @Test
-    void homeCard_fillsInForMissingLogPrices() {
-        when(profiles.forUser(USER)).thenReturn(new HomeChargingProfile("DE", eur("0.31"), null));
-        when(repo.ownHomePrices(USER)).thenReturn(List.of());
-        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
-        when(repo.homeGeohash(USER)).thenReturn(null);
-        when(priceCache.countryMedian(eq("DE"), anyInt())).thenReturn(new RegionMedian(eur("0.40"), 2659));
-
-        ChargingSavings result = service.calculate(USER);
-
-        assertEquals(PriceSource.HOME_CARD, result.homePrice().source());
-        assertEquals(0, eur("57.60").compareTo(result.savingsEur()));
-    }
 }

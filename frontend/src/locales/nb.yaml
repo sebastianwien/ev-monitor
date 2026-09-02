@@ -1440,8 +1440,6 @@ settings:
   tariff_monthly_label: Månedlig avgift (€/måned)
   tariff_session_label: Pris per time (€/time)
   tariff_active_from_label: Aktiv siden
-  tariff_is_home: "Dette er hjemmestrømmen min"
-  tariff_is_home_hint: "Grunnlag for hjemmeladingsbesparelsen på dashbordet."
   tariff_save: Lagre
   tariff_cancel: Avbryt
   tariff_ok: Betalingskortet er lagret!
@@ -2932,6 +2930,7 @@ savings:
   playground_home: "Hjemmepris"
   playground_public: "Sammenligningspris offentlig"
   playground_reset: "Tilbake til dine faktiske verdier"
+  empty_body: "Så snart du registrerer prisen på én hjemmelading, regner vi ut hva hjemmelading sparer deg sammenlignet med offentlig lading."
   how_summary: "Hvordan regnes dette ut?"
   how_intro: "Vi sammenligner hva hjemmeladingen din kostet med hva de samme kilowattimene ville kostet på en offentlig lader."
   how_paid: "Det du betalte kommer fra loggene dine - enten kostnaden eller prisen per kWh, avhengig av hva du la inn. Nullpriser teller med: solcelleoverskudd koster ingenting."

@@ -113,7 +113,7 @@ describe('useInlineChargingCard', () => {
       id: 'card-9', providerName: 'Maingau Energie', label: 'Zweitkarte',
       acPricePerKwh: null, dcPricePerKwh: null,
       monthlyFeeEur: 4.99, sessionFeeEur: 0, activeFrom: '2025-01-01',
-      activeUntil: null, isHome: false,
+      activeUntil: null,
     }
 
     it('fuellt das Formular aus der Karte vor und rechnet EUR/kWh in die Anzeigeeinheit zurueck', () => {
@@ -158,7 +158,6 @@ describe('useInlineChargingCard', () => {
         dcPricePerKwh: null,
         monthlyFeeEur: 4.99,
         activeFrom: '2025-01-01',
-        isHome: false,
       }))
       expect(api.post).not.toHaveBeenCalled()
     })

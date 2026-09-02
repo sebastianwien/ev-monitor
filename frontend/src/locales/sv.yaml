@@ -1440,8 +1440,6 @@ settings:
   tariff_monthly_label: Månadsavgift (€/månad)
   tariff_session_label: Sessionsavgift (€/session)
   tariff_active_from_label: Verksam sedan
-  tariff_is_home: "Det här är min hemel"
-  tariff_is_home_hint: "Underlag för hemladdningsbesparingen på instrumentpanelen."
   tariff_save: Spara
   tariff_cancel: Avbryt
   tariff_ok: Betalkortet har sparats!
@@ -2932,6 +2930,7 @@ savings:
   playground_home: "Hempris"
   playground_public: "Jämförelsepris publikt"
   playground_reset: "Tillbaka till dina verkliga värden"
+  empty_body: "Så snart du anger priset för en hemmaladdning räknar vi ut vad hemmaladdning sparar jämfört med publik laddning."
   how_summary: "Hur räknas det här ut?"
   how_intro: "Vi jämför vad din hemmaladdning kostade med vad samma kilowattimmar hade kostat vid en publik laddare."
   how_paid: "Det du betalade kommer från dina loggar - antingen kostnaden eller priset per kWh, beroende på vad du fyllt i. Nolltaxor räknas med: solelöverskott kostar ingenting."

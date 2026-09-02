@@ -29,23 +29,32 @@ public class ChargingSavingsQueryRepository {
     }
 
     /**
-     * Preise der eigenen Heimladungen im rollierenden Jahr.
+     * Gewichteter Heimpreis des rollierenden Jahres: Summe Kosten durch Summe kWh.
      *
-     * Nulltarife bleiben drin: PV-Ueberschuss kostet nichts, und ein Filter auf "> 0"
-     * wuerde auf Prod 1.322 Logs ueber 86 Fahrzeuge verwerfen - ausgerechnet die Gruppe
-     * mit der groessten Ersparnis.
+     * Gewichtet, weil ein 2-kWh-Log nicht so schwer wiegen darf wie ein 60-kWh-Log.
+     * cost_eur hat Vorrang vor price_per_kwh * kwh, weil es den tatsaechlich gezahlten
+     * Gesamtbetrag samt Session-Gebuehr traegt. Nulltarife bleiben drin - PV-Ueberschuss
+     * kostet nichts, und ein Filter auf "> 0" wuerde ausgerechnet der Gruppe mit der
+     * groessten Ersparnis die kleinste Zahl zeigen.
      */
-    public List<BigDecimal> ownHomePrices(UUID userId) {
-        return jdbc.queryForList("""
-                SELECT %s AS price
+    public WeightedPrice homeWeightedPrice(UUID userId) {
+        List<WeightedPrice> rows = jdbc.query("""
+                SELECT SUM(COALESCE(e.cost_eur, e.price_per_kwh * e.kwh_charged))
+                         / NULLIF(SUM(e.kwh_charged), 0) AS preis,
+                       count(*)::int AS n
                 FROM ev_log e JOIN car c ON c.id = e.car_id
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS FALSE
                   AND e.logged_at > now() - interval '12 months'
                   AND e.kwh_charged > 0
                   AND (e.price_per_kwh IS NOT NULL OR e.cost_eur IS NOT NULL)
-                """.formatted(PRICE_EXPR), BigDecimal.class, userId);
+                """,
+                (rs, i) -> new WeightedPrice(rs.getBigDecimal("preis"), rs.getInt("n")),
+                userId);
+        return rows.isEmpty() ? null : rows.get(0);
     }
+
+    public record WeightedPrice(BigDecimal pricePerKwh, int sampleSize) {}
 
     /** Preise der eigenen oeffentlichen Ladungen im rollierenden Jahr. */
     public List<BigDecimal> ownPublicPrices(UUID userId) {
@@ -130,33 +139,21 @@ public class ChargingSavingsQueryRepository {
         return rows.isEmpty() ? null : rows.get(0);
     }
 
-    /**
-     * Land, Preis der Heimstrom-Ladekarte und hinterlegte Investition.
-     *
-     * Die Karte muss heute gueltig sein - Strompreise aendern sich, und
-     * user_charging_providers bildet das ueber active_from / active_until bereits ab.
-     */
+    /** Land und hinterlegte Investition des Nutzers. */
     public UserProfileRow profile(UUID userId) {
         List<UserProfileRow> rows = jdbc.query("""
                 SELECT u.country,
-                       u.home_investment_eur,
-                       (SELECT p.ac_price_per_kwh
-                          FROM user_charging_providers p
-                         WHERE p.user_id = u.id AND p.is_home AND p.deleted_at IS NULL
-                           AND p.active_from <= CURRENT_DATE
-                           AND (p.active_until IS NULL OR p.active_until >= CURRENT_DATE)
-                         ORDER BY p.active_from DESC LIMIT 1) AS home_price
+                       u.home_investment_eur
                 FROM app_user u WHERE u.id = ?
                 """,
                 (rs, i) -> new UserProfileRow(
                         rs.getString("country"),
-                        rs.getBigDecimal("home_price"),
                         rs.getBigDecimal("home_investment_eur")),
                 userId);
-        return rows.isEmpty() ? new UserProfileRow(null, null, null) : rows.get(0);
+        return rows.isEmpty() ? new UserProfileRow(null, null) : rows.get(0);
     }
 
-    public record UserProfileRow(String country, BigDecimal homeCardPricePerKwh, BigDecimal investmentEur) {}
+    public record UserProfileRow(String country, BigDecimal investmentEur) {}
 
     /**
      * Heimladen je Kalenderjahr: geladene kWh und tatsaechlich gezahlte Kosten.

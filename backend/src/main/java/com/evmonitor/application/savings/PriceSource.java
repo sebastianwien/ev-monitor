@@ -5,10 +5,8 @@ package com.evmonitor.application.savings;
  * einordnen kann - und sieht, dass eigenes Loggen sie schaerfer macht.
  */
 public enum PriceSource {
-    /** Median der eigenen bepreisten Heimladungen. */
+    /** Gewichteter Durchschnitt der eigenen bepreisten Heimladungen. */
     OWN_LOGS,
-    /** Als Heimstrom markierte Ladekarte. */
-    HOME_CARD,
     /** Median der eigenen bepreisten oeffentlichen Ladungen. */
     OWN_PUBLIC,
     /** Median oeffentlicher Ladungen in der Umgebung. */

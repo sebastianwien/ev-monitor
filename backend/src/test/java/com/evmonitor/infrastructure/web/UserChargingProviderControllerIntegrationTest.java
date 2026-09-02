@@ -142,7 +142,7 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
 
         UserChargingProviderRequest updateRequest = new UserChargingProviderRequest(
                 "EnBW updated", "Meine Karte", new BigDecimal("0.25"), new BigDecimal("0.45"),
-                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.of(2026, 1, 1), null);
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.of(2026, 1, 1));
         HttpEntity<UserChargingProviderRequest> auth = createAuthRequest(updateRequest, userA.getId(), userA.getEmail());
 
         ResponseEntity<UserChargingProviderResponse> response = restTemplate.exchange(
@@ -207,7 +207,7 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
     @Test
     void shouldReturn400_WhenProviderNameIsBlank() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "", null, null, null, null, null, LocalDate.now(), null);
+                "", null, null, null, null, null, LocalDate.now());
         HttpEntity<UserChargingProviderRequest> auth = createAuthRequest(request, userA.getId(), userA.getEmail());
 
         ResponseEntity<String> response = restTemplate.postForEntity(
@@ -219,7 +219,7 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
     @Test
     void shouldReturn400_WhenActiveDateIsInFuture() {
         UserChargingProviderRequest request = new UserChargingProviderRequest(
-                "IONITY", null, null, null, null, null, LocalDate.now().plusDays(1), null);
+                "IONITY", null, null, null, null, null, LocalDate.now().plusDays(1));
         HttpEntity<UserChargingProviderRequest> auth = createAuthRequest(request, userA.getId(), userA.getEmail());
 
         ResponseEntity<String> response = restTemplate.postForEntity(
@@ -239,7 +239,7 @@ class UserChargingProviderControllerIntegrationTest extends AbstractIntegrationT
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 activeFrom
-        , null);
+        );
     }
 
     private UserChargingProviderResponse addProvider(User user, String providerName, LocalDate activeFrom) {

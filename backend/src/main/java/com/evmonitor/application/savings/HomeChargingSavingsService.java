@@ -55,7 +55,7 @@ public class HomeChargingSavingsService {
         HomeChargingProfile profile = profiles.forUser(userId);
 
         PriceBasis homePrice = ChargingPriceResolver.resolveHomePrice(
-                repository.ownHomePrices(userId), profile.homeCardPricePerKwh());
+                repository.homeWeightedPrice(userId));
 
         PriceBasis publicPrice = ChargingPriceResolver.resolvePublicPrice(
                 repository.ownPublicPrices(userId),
@@ -121,10 +121,10 @@ public class HomeChargingSavingsService {
     }
 
     /** Nutzerbezogene Stammdaten der Rechnung. */
-    public record HomeChargingProfile(String country, BigDecimal homeCardPricePerKwh, BigDecimal investmentEur) {}
+    public record HomeChargingProfile(String country, BigDecimal investmentEur) {}
 
-    /** Laedt Land, Heimstrom-Ladekarte und Investition. Eigene Schnittstelle, damit der
-     *  Service ohne Nutzer- und Kartenverwaltung testbar bleibt. */
+    /** Laedt Land und Investition. Eigene Schnittstelle, damit der Service ohne
+     *  Nutzerverwaltung testbar bleibt. */
     public interface HomeChargingProfileProvider {
         HomeChargingProfile forUser(UUID userId);
     }

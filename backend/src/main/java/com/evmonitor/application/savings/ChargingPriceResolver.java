@@ -3,6 +3,8 @@ package com.evmonitor.application.savings;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
+import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.WeightedPrice;
+
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -19,8 +21,6 @@ import java.util.function.Supplier;
  */
 public final class ChargingPriceResolver {
 
-    /** Ab so vielen eigenen Ladungen traegt der eigene Median. Darunter ist er zu zufaellig. */
-    static final int MIN_OWN_HOME_LOGS = 3;
     static final int MIN_OWN_PUBLIC_LOGS = 5;
 
     /** Fenster plausibler Preise je kWh. Darueber Tippfehler, darunter Rechenartefakte. */
@@ -30,24 +30,25 @@ public final class ChargingPriceResolver {
     private ChargingPriceResolver() {}
 
     /**
-     * Heimpreis: eigene Log-Preise, sonst die als Heimstrom markierte Ladekarte.
+     * Heimpreis: der gewichtete Durchschnitt der eigenen bepreisten Heimladungen.
      *
-     * Einen eigenen Zweig fuer Wallbox-Tarife braucht es nicht: go-e und OCPP schreiben
-     * ihren Tarif bereits auf jedes Log, der Wert steckt also in den Log-Preisen.
+     * Gewichtet und nicht als Median, weil ein 2-kWh-Log nicht so schwer wiegen darf wie
+     * ein 60-kWh-Log - was zaehlt, ist Summe Kosten durch Summe kWh. Ein einziges
+     * bepreistes Log genuegt; Nulltarife sind echte Werte, PV-Ueberschuss kostet nichts.
      *
-     * Nulltarife zaehlen als echter Wert - PV-Ueberschuss kostet nichts, und ein Filter
-     * auf "> 0" wuerde ausgerechnet dieser Gruppe die Ersparnis kleinrechnen.
+     * Ohne bepreiste Heimladung wird nichts geschaetzt. Die Kachel zeigt dann ihren
+     * Leerzustand und bittet um einen Preis - ueber die Stromkosten des Nutzers laesst
+     * sich nichts behaupten, was er nicht selbst erfasst hat.
      */
-    public static PriceBasis resolveHomePrice(List<BigDecimal> ownLogPrices,
-                                              BigDecimal homeCardPrice) {
-        List<BigDecimal> plausible = plausible(ownLogPrices, BigDecimal.ZERO);
-        if (plausible.size() >= MIN_OWN_HOME_LOGS) {
-            return new PriceBasis(PriceSource.OWN_LOGS, median(plausible), plausible.size());
+    public static PriceBasis resolveHomePrice(WeightedPrice weighted) {
+        if (weighted == null || weighted.pricePerKwh() == null || weighted.sampleSize() < 1) {
+            return PriceBasis.NONE;
         }
-        if (homeCardPrice != null) {
-            return new PriceBasis(PriceSource.HOME_CARD, homeCardPrice, 1);
+        BigDecimal price = weighted.pricePerKwh();
+        if (price.compareTo(BigDecimal.ZERO) < 0 || price.compareTo(MAX_PLAUSIBLE) > 0) {
+            return PriceBasis.NONE;
         }
-        return PriceBasis.NONE;
+        return new PriceBasis(PriceSource.OWN_LOGS, price, weighted.sampleSize());
     }
 
     /**

@@ -13,7 +13,6 @@ public record UserChargingProviderResponse(
         BigDecimal monthlyFeeEur,
         BigDecimal sessionFeeEur,
         LocalDate activeFrom,
-        LocalDate activeUntil,
-        boolean isHome
+        LocalDate activeUntil
 ) {
 }
