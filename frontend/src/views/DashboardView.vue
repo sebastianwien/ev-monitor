@@ -78,7 +78,7 @@ const {
   selectedCarId, stats, lastMonthStats, insightStats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
-  fullCostPer100km, fixedCostPerMonth, displayedCostPer100km, hasFixedCostData, costMode, toggleCostMode,
+  fixedCostPerMonth, displayedCostPer100km, canShowFixedModes, effectiveCostMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
   hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo, initCars,
   editingLog, priceAmendingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
@@ -92,8 +92,8 @@ const sohModalCar = ref<Car | null>(null)
  * Kurzformen sind Absicht - die Titelzeile hat auf Desktop nur rund 135px.
  */
 const costModeLabel = computed(() => {
-  if (costMode.value === 'fixed') return t('dashboard.metric_avg_cost_fixed')
-  if (costMode.value === 'total') return t('dashboard.metric_avg_cost_total')
+  if (effectiveCostMode.value === 'fixed') return t('dashboard.metric_avg_cost_fixed')
+  if (effectiveCostMode.value === 'total') return t('dashboard.metric_avg_cost_total')
   return t('dashboard.metric_avg_cost')
 })
 
@@ -102,7 +102,7 @@ const costModeLabel = computed(() => {
  * Fixkosten-Ueberschrift - dort stehen deshalb die Fixkosten pro Monat.
  */
 const costModeSecondary = computed(() => {
-  if (costMode.value === 'fixed') {
+  if (effectiveCostMode.value === 'fixed') {
     return fixedCostPerMonth.value != null
       ? t('dashboard.metric_cost_per_month', { value: formatCurrency(fixedCostPerMonth.value) })
       : null
@@ -631,8 +631,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
                 </button>
                 <CostModeToggle
-                  v-if="hasFixedCostData && fullCostPer100km != null"
-                  :mode="costMode"
+                  v-if="canShowFixedModes"
+                  :mode="effectiveCostMode"
                   class="ml-auto"
                   @toggle="toggleCostMode"
                 />
@@ -809,8 +809,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   <InformationCircleIcon class="w-3.5 h-3.5" />
                 </button>
                 <CostModeToggle
-                  v-if="hasFixedCostData && fullCostPer100km != null"
-                  :mode="costMode"
+                  v-if="canShowFixedModes"
+                  :mode="effectiveCostMode"
                   class="ml-auto"
                   @toggle="toggleCostMode"
                 />

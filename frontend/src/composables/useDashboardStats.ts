@@ -174,6 +174,18 @@ export function nextCostMode(mode: CostMode): CostMode {
   return COST_MODE_ORDER[(COST_MODE_ORDER.indexOf(mode) + 1) % COST_MODE_ORDER.length]
 }
 
+/**
+ * Der tatsaechlich anzuzeigende Modus. Fixkosten- und Gesamt-Ansicht setzen Fixkostendaten
+ * voraus; fehlen sie (z.B. Wechsel auf einen Monat ohne Fixkosten), wird der Umschalter
+ * ausgeblendet - die Kachel muss dann auf Energie zurueckfallen, sonst bliebe sie mit
+ * 0,00-Werten haengen und der Nutzer koennte den Modus nicht mehr wechseln. Die gespeicherte
+ * Praeferenz (costMode) bleibt erhalten und greift wieder, sobald Fixkosten vorliegen.
+ */
+export function resolveCostMode(preferred: CostMode, hasFixedData: boolean): CostMode {
+  if (preferred !== 'energy' && !hasFixedData) return 'energy'
+  return preferred
+}
+
 export function useDashboardStats() {
   const { t, locale } = useI18n()
   const carStore = useCarStore()
@@ -262,10 +274,20 @@ export function useDashboardStats() {
     )
   )
 
+  /** Fixkosten-/Gesamt-Modus lohnen nur mit belastbarer Vollkosten-Basis - sonst kein Umschalter. */
+  const canShowFixedModes = computed(() =>
+    hasFixedCostData.value && fullCostPer100km.value != null
+  )
+
+  /** Der tatsaechlich gerenderte Modus - Basis fuer Wert, Label und Umschalter-Sichtbarkeit. */
+  const effectiveCostMode = computed(() =>
+    resolveCostMode(costMode.value, canShowFixedModes.value)
+  )
+
   /** Der im Widget angezeigte Wert - faellt auf die Energiekosten zurueck, wenn die Basis fehlt. */
   const displayedCostPer100km = computed(() => {
-    if (costMode.value === 'fixed') return fixedCostPer100km.value ?? avgCostPer100km.value
-    if (costMode.value === 'total') return fullCostPer100km.value ?? avgCostPer100km.value
+    if (effectiveCostMode.value === 'fixed') return fixedCostPer100km.value ?? avgCostPer100km.value
+    if (effectiveCostMode.value === 'total') return fullCostPer100km.value ?? avgCostPer100km.value
     return avgCostPer100km.value
   })
 
@@ -491,7 +513,9 @@ export function useDashboardStats() {
     fixedCostPerMonth,
     displayedCostPer100km,
     hasFixedCostData,
+    canShowFixedModes,
     costMode,
+    effectiveCostMode,
     toggleCostMode,
     timeRangeOptions,
     groupByOptions,
