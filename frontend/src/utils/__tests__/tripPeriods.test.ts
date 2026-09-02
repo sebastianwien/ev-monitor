@@ -161,6 +161,38 @@ describe('buildPeriodGroups', () => {
     expect(groups[0].days[0].charges.map((c: any) => c.id)).toEqual(['c1'])
   })
 
+  it('zaehlt bei reinen Ladetagen die gefahrenen km aus dem Odometer-Delta der Ladungen', () => {
+    // Import-User (XPeng, Spritmonitor) zeichnen keine Fahrten auf - ihre Strecke steckt
+    // im Odometer-Sprung zwischen den Ladungen, nicht in einer Trip-Liste.
+    const chargeOnly = [
+      { id: 'a', loggedAt: '2026-08-27T18:00:00', kwh: 20, distanceSinceLastChargeKm: 137 },
+      { id: 'b', loggedAt: '2026-08-27T12:00:00', kwh: 20, distanceSinceLastChargeKm: 123 },
+      { id: 'c', loggedAt: '2026-08-26T11:00:00', kwh: 20, distanceSinceLastChargeKm: null },
+    ]
+    const [august] = buildPeriodGroups([], chargeOnly, 'month', measure)
+
+    expect(august.totals.km).toBe(260)
+    expect(august.totals.tripCount).toBe(0)
+  })
+
+  it('faellt fuer die Strecke nur auf Ladungen zurueck, wenn es keine Fahrten gibt', () => {
+    // Fahrten sind die genauere Quelle - ihr Odometer-Delta darf nicht zusaetzlich zaehlen.
+    const withOdo = charges.map((c) => ({ ...c, distanceSinceLastChargeKm: 500 }))
+    const [august] = buildPeriodGroups(trips, withOdo, 'month', measure)
+
+    expect(august.totals.km).toBe(100)
+  })
+
+  it('faerbt Tagesbalken und Tag einer reinen Ladewoche aus dem Ladungs-Odometer', () => {
+    const chargeOnly = [
+      { id: 'a', loggedAt: '2026-08-25T18:00:00', kwh: 20, distanceSinceLastChargeKm: 42 },
+    ]
+    const [woche] = buildPeriodGroups([], chargeOnly, 'week', measure)
+
+    expect(woche.bars!.find((b) => b.dateKey === '2026-08-25')!.km).toBe(42)
+    expect(woche.days.find((d: any) => d.dateKey === '2026-08-25')!.km).toBe(42)
+  })
+
   it('ordnet Zeitraeume nach Datum, egal woher sie kamen', () => {
     // Eine Ladung eroeffnet einen Monat, der zwischen zwei Fahrtmonaten liegt.
     const groups = buildPeriodGroups(

@@ -83,6 +83,8 @@ export interface PeriodTripInput {
 
 export interface PeriodChargeInput {
   loggedAt?: string | null
+  /** Odometer-Delta zur vorigen Ladung - die einzige Streckenquelle fuer reine Lade-User. */
+  distanceSinceLastChargeKm?: number | null
 }
 
 /** Woher die Werte kommen, die diese Datei nur noch addiert. */
@@ -150,12 +152,18 @@ function barsFor<T extends PeriodTripInput, C extends PeriodChargeInput>(
     const day = trip.tripStartedAt?.slice(0, 10)
     if (day) kmByDay.set(day, (kmByDay.get(day) ?? 0) + (trip.distanceKm ?? 0))
   }
-  const chargedDays = new Set(
-    charges.map((charge) => charge.loggedAt?.slice(0, 10)).filter(Boolean) as string[],
-  )
+  // Ohne Fahrt am Tag zaehlt der Odometer-Sprung der Ladungen als gefahrene Strecke.
+  const chargeKmByDay = new Map<string, number>()
+  const chargedDays = new Set<string>()
+  for (const charge of charges) {
+    const day = charge.loggedAt?.slice(0, 10)
+    if (!day) continue
+    chargedDays.add(day)
+    chargeKmByDay.set(day, (chargeKmByDay.get(day) ?? 0) + (charge.distanceSinceLastChargeKm ?? 0))
+  }
   return axis.map((dateKey) => ({
     dateKey,
-    km: kmByDay.get(dateKey) ?? 0,
+    km: kmByDay.get(dateKey) ?? chargeKmByDay.get(dateKey) ?? 0,
     charged: chargedDays.has(dateKey),
   }))
 }
@@ -199,9 +207,12 @@ function totalsOf<T extends PeriodTripInput, C extends PeriodChargeInput>(
   }
 
   const chargedKwh = charges.reduce((sum, charge) => sum + (measure.chargeKwhOf(charge) ?? 0), 0)
+  // Reine Lade-User (Import ohne Fahrten) haben ihre Strecke nur im Odometer-Delta der
+  // Ladungen. Fahrten sind die genauere Quelle - ihr Delta darf nicht zusaetzlich zaehlen.
+  const chargeKm = charges.reduce((sum, charge) => sum + (charge.distanceSinceLastChargeKm ?? 0), 0)
 
   return {
-    km,
+    km: trips.length > 0 ? km : chargeKm,
     tripCount: trips.length,
     chargeCount: charges.length,
     chargedKwh,
@@ -297,7 +308,13 @@ function daysOf<T extends PeriodTripInput, C extends PeriodChargeInput>(
     }
     day.charges.push(charge)
   }
-  for (const day of days) day.events = mergeDayEvents(day.trips, day.charges)
+  for (const day of days) {
+    day.events = mergeDayEvents(day.trips, day.charges)
+    // Ladetag ohne Fahrt: gefahrene Strecke steckt im Odometer-Delta der Ladungen.
+    if (day.tripCount === 0) {
+      day.km = day.charges.reduce((sum, charge) => sum + (charge.distanceSinceLastChargeKm ?? 0), 0)
+    }
+  }
   return days.sort((a, b) => b.dateKey.localeCompare(a.dateKey))
 }
 
