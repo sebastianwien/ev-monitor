@@ -20,7 +20,7 @@ import {
 } from './chargingSavings'
 
 const props = defineProps<{ savings: ChargingSavings | null }>()
-const emit = defineEmits<{ (e: 'edit-investment'): void; (e: 'open-details'): void }>()
+const emit = defineEmits<{ (e: 'edit-investment'): void }>()
 
 const { t, n } = useI18n()
 
@@ -66,6 +66,12 @@ function money(value: number, digits = 2): string {
   return n(value, { style: 'currency', currency: 'EUR', maximumFractionDigits: digits })
 }
 
+/** Der Vergleichspreis in Cent - die Groesse, in der Ladepreise ueblicherweise
+ *  verglichen werden. */
+function centsPerKwh(eurPerKwh: number): string {
+  return t('savings.cents_per_kwh', { value: n(eurPerKwh * 100, { maximumFractionDigits: 1 }) })
+}
+
 function applyOverride(value: number | null) {
   if (value == null) {
     clearPublicPriceOverride()
@@ -82,7 +88,7 @@ defineExpose({ applyOverride })
   <div v-if="view"
        class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 overflow-hidden shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] p-4">
 
-    <div class="flex items-center gap-2 mb-4">
+    <div class="flex items-center justify-center gap-2 mb-4">
       <HomeIcon class="h-5 w-5 flex-none text-emerald-600 dark:text-emerald-400" />
       <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">{{ t('savings.title') }}</span>
     </div>
@@ -97,17 +103,20 @@ defineExpose({ applyOverride })
     <div class="mt-4 space-y-2.5">
       <div>
         <div class="flex justify-between text-xs mb-1">
-          <span class="text-gray-500 dark:text-gray-400">{{ t('savings.would_have_cost') }}</span>
-          <span class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ money(view.wouldHaveCostEur) }}</span>
+          <span class="min-w-0 text-gray-500 dark:text-gray-400">
+            {{ t('savings.would_have_cost') }} · {{ centsPerKwh(view.publicPricePerKwh) }}
+          </span>
+          <span class="flex-none pl-2 font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ money(view.wouldHaveCostEur) }}</span>
         </div>
         <div class="h-4 rounded bg-gray-200 dark:bg-gray-600"></div>
       </div>
       <div>
         <div class="flex justify-between text-xs mb-1">
-          <span class="text-gray-500 dark:text-gray-400">
+          <span class="min-w-0 text-gray-500 dark:text-gray-400">
             {{ t('savings.paid_at_home', { kwh: n(view.homeKwh, { maximumFractionDigits: 0 }) }) }}
+            · {{ centsPerKwh(view.homePricePerKwh) }}
           </span>
-          <span class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ money(view.actuallyPaidEur) }}</span>
+          <span class="flex-none pl-2 font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ money(view.actuallyPaidEur) }}</span>
         </div>
         <div class="h-4 rounded bg-emerald-600 dark:bg-emerald-500" :style="{ width: homeBarWidth }"></div>
       </div>
@@ -115,7 +124,10 @@ defineExpose({ applyOverride })
 
     <!-- Amortisation, nur mit hinterlegter Investition -->
     <div v-if="view.investmentEur != null" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-      <div class="flex justify-between items-baseline text-xs mb-2 tabular-nums">
+      <!-- Klickbar, damit der Betrag aenderbar bleibt - ohne die Zeile gaebe es nach dem
+           ersten Eintragen keinen Weg mehr dorthin. -->
+      <button type="button" class="w-full flex justify-between items-baseline text-xs mb-2 tabular-nums text-left"
+              :aria-label="t('savings.edit_investment')" @click="emit('edit-investment')">
         <span class="text-gray-500 dark:text-gray-400">{{ t('savings.wallbox_recovered') }}</span>
         <span class="font-semibold text-gray-900 dark:text-gray-100">
           {{ money(view.recoveredEur ?? 0) }}
@@ -123,7 +135,7 @@ defineExpose({ applyOverride })
             {{ t('savings.of_investment', { total: money(view.investmentEur) }) }}
           </span>
         </span>
-      </div>
+      </button>
       <div class="h-1.5 rounded-full bg-gray-200 dark:bg-gray-600 overflow-hidden">
         <div class="h-full rounded-full bg-emerald-600 dark:bg-emerald-500 transition-all"
              :style="{ width: `${amortisationPct}%` }"></div>
@@ -142,20 +154,23 @@ defineExpose({ applyOverride })
       </p>
     </div>
 
-    <!-- Ohne Investition: genau hier sammeln wir die Eingabe ein, die das Feature braucht -->
+    <!-- Ohne Investition: genau hier sammeln wir die Eingabe ein, die das Feature braucht.
+         Der Text nennt den Nutzen zuerst und die Aufforderung danach - "Wallbox-Kosten
+         eintragen" allein beantwortet nicht, wofuer. Mehrzeilig, deshalb liegt das
+         Chevron oben buendig statt vertikal zentriert. -->
     <button v-else type="button"
-            class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 w-full flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-300"
+            class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 w-full flex items-start gap-2 text-left text-xs leading-relaxed text-emerald-700 dark:text-emerald-300"
             @click="emit('edit-investment')">
-      <PlusIcon class="h-4 w-4 flex-none" />
-      <span>{{ t('savings.add_investment') }}</span>
-      <ChevronRightIcon class="h-3 w-3 ml-auto flex-none text-gray-400" />
+      <PlusIcon class="h-4 w-4 mt-px flex-none" />
+      <span class="min-w-0">{{ t('savings.add_investment') }}</span>
+      <ChevronRightIcon class="h-3 w-3 mt-1 ml-auto flex-none text-gray-400" />
     </button>
 
-    <button type="button"
-            class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 w-full flex items-start gap-1.5 text-left text-[11px] leading-snug text-gray-400 dark:text-gray-500"
-            @click="emit('open-details')">
+    <!-- Reine Herkunftsangabe, bewusst kein Button: klickbar ist nur die Zeile, die
+         tatsaechlich etwas oeffnet. -->
+    <p class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-start gap-1.5 text-[11px] leading-snug text-gray-400 dark:text-gray-500">
       <InformationCircleIcon class="h-3.5 w-3.5 mt-px flex-none" />
       <span>{{ basisLabel }}</span>
-    </button>
+    </p>
   </div>
 </template>

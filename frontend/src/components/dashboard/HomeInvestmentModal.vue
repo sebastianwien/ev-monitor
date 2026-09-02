@@ -5,33 +5,26 @@
  * Sitzt bewusst an der Kachel und nicht in den Einstellungen: dort faellt dem Nutzer auf,
  * dass der Wert fehlt, und genau dort ist er bereit, ihn einzutragen.
  */
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { parseInvestmentInput, MAX_INVESTMENT } from './homeInvestmentInput'
 
 const props = defineProps<{ open: boolean; current: number | null }>()
 const emit = defineEmits<{ (e: 'close'): void; (e: 'save', value: number | null): void }>()
 
 const { t } = useI18n()
-const input = ref<string>('')
-
-/** Serverseitige Obergrenze spiegeln, damit der Nutzer die Ablehnung nicht erst nach
- *  dem Absenden sieht. */
-const MAX_INVESTMENT = 100000
+const input = ref<string | number>('')
 
 watch(() => props.open, (open) => {
   if (open) input.value = props.current != null ? String(props.current) : ''
 })
 
-const isValid = () => {
-  if (input.value.trim() === '') return true // leer loescht den Wert
-  const value = Number(input.value)
-  return Number.isFinite(value) && value >= 0 && value <= MAX_INVESTMENT
-}
+const parsed = computed(() => parseInvestmentInput(input.value))
 
 function save() {
-  if (!isValid()) return
-  emit('save', input.value.trim() === '' ? null : Number(input.value))
+  if (!parsed.value.valid) return
+  emit('save', parsed.value.value)
 }
 </script>
 
@@ -58,7 +51,7 @@ function save() {
       <p class="mt-1.5 text-xs text-gray-400 dark:text-gray-500">{{ t('savings.investment_clear_hint') }}</p>
 
       <div class="mt-5 flex gap-2">
-        <button type="button" :disabled="!isValid()"
+        <button type="button" :disabled="!parsed.valid"
                 class="btn-3d flex-1 px-4 py-2 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:opacity-50 transition text-sm"
                 @click="save">
           {{ t('savings.investment_save') }}

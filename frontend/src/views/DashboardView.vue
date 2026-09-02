@@ -903,7 +903,6 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
         <ChargingSavingsCard
           :savings="chargingSavings"
           @edit-investment="showInvestmentPrompt = true"
-          @open-details="showInvestmentPrompt = true"
         />
         <HomeInvestmentModal
           :open="showInvestmentPrompt"
