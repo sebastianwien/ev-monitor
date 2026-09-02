@@ -21,6 +21,8 @@ export interface ChargingSavings {
   investmentEur: number | null
   /** Erstes Jahr mit belegtem Heimladen - Beginn der Amortisationsschiene. */
   firstYear: number | null
+  /** Bisherige Laufzeit in Monaten - Nenner der Restlaufzeit. */
+  monthsOfUsage: number | null
   /** Ersparnis je Kalenderjahr, aus den tatsaechlichen Logs gerechnet. */
   yearlySavings: YearlySaving[]
   recoveredEur: number | null
@@ -74,10 +76,6 @@ export function applyPriceOverrides(
   const homePricePerKwh = home ?? savings.homePricePerKwh
   const publicPricePerKwh = pub ?? savings.publicPricePerKwh
 
-  const actuallyPaidEur = home != null ? savings.homeKwh * home : savings.actuallyPaidEur
-  const wouldHaveCostEur = pub != null ? savings.homeKwh * pub : savings.wouldHaveCostEur
-  const savingsEur = wouldHaveCostEur - actuallyPaidEur
-
   const yearlySavings = (savings.yearlySavings ?? []).map(y => {
     const paidEur = home != null ? y.homeKwh * home : y.paidEur
     const wouldY = pub != null ? y.homeKwh * pub : y.wouldHaveCostEur
@@ -90,12 +88,19 @@ export function applyPriceOverrides(
   }
   const recoveredEur = running
 
+  // Die angezeigten Summen sind die Summen der Jahre - dieselbe Grundlage wie im Backend.
+  const actuallyPaidEur = yearlySavings.reduce((sum, y) => sum + y.paidEur, 0)
+  const wouldHaveCostEur = yearlySavings.reduce((sum, y) => sum + y.wouldHaveCostEur, 0)
+  const savingsEur = wouldHaveCostEur - actuallyPaidEur
+
   let amortisationYearsRemaining: number | null = null
   let fullyAmortised = false
-  if (savings.investmentEur != null && savingsEur > 0) {
+  // Nenner ist der Monatsdurchschnitt der bisherigen Laufzeit - wie im Backend.
+  if (savings.investmentEur != null && savingsEur > 0 && (savings.monthsOfUsage ?? 0) > 0) {
+    const perMonth = savingsEur / savings.monthsOfUsage!
     const open = savings.investmentEur - recoveredEur
     fullyAmortised = open <= 0
-    amortisationYearsRemaining = fullyAmortised ? 0 : open / savingsEur
+    amortisationYearsRemaining = fullyAmortised ? 0 : open / perMonth / 12
   }
 
   return {

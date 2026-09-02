@@ -2904,6 +2904,8 @@ soh:
 savings:
   title: "Besparing genom hemladdning"
   saved_last_12_months: "sparat de senaste 12 månaderna"
+  saved_since: "sparat sedan {year}"
+  saved_total: "sparat totalt"
   would_have_cost: "Offentlig laddning hade kostat"
   cents_per_kwh: "{value} ct/kWh"
   home_kwh_charged: "{kwh} kWh laddat hemma"

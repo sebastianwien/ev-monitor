@@ -9,6 +9,7 @@ import java.math.BigDecimal;
  * einer kontrafaktischen Aussage ("haettest du oeffentlich geladen") entsteht Vertrauen
  * nur, wenn sie nachrechenbar ist.
  *
+ * @param monthsOfUsage             bisherige Laufzeit in Monaten - Nenner der Restlaufzeit
  * @param yearlySavings             Ersparnis je Kalenderjahr, aus den tatsaechlichen Logs.
  *                                  Traegt die Amortisationsschiene: erstes Jahr ist ihr
  *                                  Beginn, die aufgelaufene Summe ihr Fuellstand
@@ -24,6 +25,7 @@ public record ChargingSavings(
         BigDecimal wouldHaveCostEur,
         BigDecimal savingsEur,
         BigDecimal investmentEur,
+        BigDecimal monthsOfUsage,
         java.util.List<YearlySaving> yearlySavings,
         BigDecimal recoveredEur,
         BigDecimal amortisationYearsRemaining,

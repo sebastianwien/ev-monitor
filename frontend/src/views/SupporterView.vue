@@ -90,6 +90,7 @@ const savingsPreview = {
   savingsEur: 107.21,
   investmentEur: 1000,
   firstYear: 2025,
+  monthsOfUsage: 14,
   yearlySavings: [
     { year: 2025, homeKwh: 210, paidEur: 60.9, wouldHaveCostEur: 84.5, savingsEur: 23.6, cumulativeEur: 23.6 },
     { year: 2026, homeKwh: 839, paidEur: 242.34, wouldHaveCostEur: 349.55, savingsEur: 60.95, cumulativeEur: 84.55 },

@@ -2904,6 +2904,8 @@ soh:
 savings:
   title: "Besparelse ved hjemmelading"
   saved_last_12_months: "spart de siste 12 månedene"
+  saved_since: "spart siden {year}"
+  saved_total: "spart totalt"
   would_have_cost: "Offentlig lading ville kostet"
   cents_per_kwh: "{value} ct/kWh"
   home_kwh_charged: "{kwh} kWh ladet hjemme"

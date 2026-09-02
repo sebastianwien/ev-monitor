@@ -57,16 +57,22 @@ public class HomeChargingSavingsService {
         PriceBasis homePrice = ChargingPriceResolver.resolveHomePrice(
                 repository.homeWeightedPrice(userId));
 
+        // Ohne belegten Heimpreis wird nicht gerechnet. Die Jahresreihe wuerde zwar
+        // dasselbe Ergebnis liefern - sie speist sich aus denselben Logs -, aber die
+        // Zusicherung gehoert dorthin, wo sie gilt, statt aus dem Gleichlauf zweier
+        // Abfragen zu entstehen.
+        if (!homePrice.isKnown()) return null;
+
         PriceBasis publicPrice = ChargingPriceResolver.resolvePublicPrice(
                 repository.ownPublicPrices(userId),
                 () -> regionPrice(userId, profile.country()),
                 () -> countryPrice(profile.country()));
 
         return ChargingSavingsCalculator.calculate(
-                repository.homeKwhLast12Months(userId),
+                yearlySavings(userId, profile.country()),
                 homePrice, publicPrice,
                 profile.investmentEur(),
-                yearlySavings(userId, profile.country()));
+                repository.monthsOfHomeCharging(userId));
     }
 
     /**

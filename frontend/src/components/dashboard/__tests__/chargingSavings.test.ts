@@ -8,19 +8,23 @@ import {
   type ChargingSavings,
 } from '../chargingSavings'
 
-/** Der auf Prod gemessene Median-Heimlader. */
+/**
+ * Drei Jahre Heimladen. Die Summen sind die Summen der Jahresreihe - seit die Kachel
+ * ueber die gesamte Laufzeit rechnet, gibt es kein getrenntes 12-Monats-Fenster mehr.
+ */
 const base: ChargingSavings = {
-  homeKwh: 640,
+  homeKwh: 1340,
   homePricePerKwh: 0.27,
   homePriceBasis: 'OWN_LOGS',
   publicPricePerKwh: 0.40,
   publicPriceBasis: 'COUNTRY',
   publicPriceSampleSize: 2659,
-  actuallyPaidEur: 172.8,
-  wouldHaveCostEur: 256,
-  savingsEur: 83.2,
+  actuallyPaidEur: 361.8,
+  wouldHaveCostEur: 536,
+  savingsEur: 174.2,
   investmentEur: 1400,
   firstYear: 2024,
+  monthsOfUsage: 24,
   yearlySavings: [
     { year: 2024, homeKwh: 200, paidEur: 54, wouldHaveCostEur: 80, savingsEur: 26, cumulativeEur: 26 },
     { year: 2025, homeKwh: 500, paidEur: 135, wouldHaveCostEur: 200, savingsEur: 65, cumulativeEur: 91 },
@@ -45,8 +49,8 @@ describe('applyPriceOverrides', () => {
     const result = applyPriceOverrides(base, { home: null, public: 0.55 })
 
     expect(result.publicPricePerKwh).toBe(0.55)
-    expect(result.wouldHaveCostEur).toBeCloseTo(352, 2)
-    expect(result.savingsEur).toBeCloseTo(179.2, 2)
+    expect(result.wouldHaveCostEur).toBeCloseTo(737, 2)   // 1340 * 0,55
+    expect(result.savingsEur).toBeCloseTo(375.2, 2)
     expect(result.actuallyPaidEur).toBe(base.actuallyPaidEur)
     expect(result.isOverridden).toBe(true)
   })
@@ -56,17 +60,17 @@ describe('applyPriceOverrides', () => {
     const result = applyPriceOverrides(base, { home: 0.18, public: null })
 
     expect(result.homePricePerKwh).toBe(0.18)
-    expect(result.actuallyPaidEur).toBeCloseTo(115.2, 2)
+    expect(result.actuallyPaidEur).toBeCloseTo(241.2, 2)  // 1340 * 0,18
     expect(result.wouldHaveCostEur).toBe(base.wouldHaveCostEur)
-    expect(result.savingsEur).toBeCloseTo(140.8, 2)
+    expect(result.savingsEur).toBeCloseTo(294.8, 2)
   })
 
   it('vertraegt beide gleichzeitig', () => {
     const result = applyPriceOverrides(base, { home: 0.18, public: 0.55 })
 
-    expect(result.actuallyPaidEur).toBeCloseTo(115.2, 2)
-    expect(result.wouldHaveCostEur).toBeCloseTo(352, 2)
-    expect(result.savingsEur).toBeCloseTo(236.8, 2)
+    expect(result.actuallyPaidEur).toBeCloseTo(241.2, 2)
+    expect(result.wouldHaveCostEur).toBeCloseTo(737, 2)
+    expect(result.savingsEur).toBeCloseTo(495.8, 2)
   })
 
   /**

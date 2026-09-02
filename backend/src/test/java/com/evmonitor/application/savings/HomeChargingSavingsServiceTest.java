@@ -43,7 +43,7 @@ class HomeChargingSavingsServiceTest {
     void setUp() {
         service = new HomeChargingSavingsService(repo, priceCache, profiles, List.of(5, 3));
         lenient().when(profiles.forUser(USER)).thenReturn(new HomeChargingProfile("DE", null));
-        lenient().when(repo.homeKwhLast12Months(USER)).thenReturn(eur("640"));
+        lenient().when(repo.monthsOfHomeCharging(USER)).thenReturn(eur("12"));
         lenient().when(repo.homeYearTotals(USER)).thenReturn(List.of(
                 new YearTotals(2026, eur("640"), eur("172.80"))));
         lenient().when(priceCache.publicPriceByYear(eq(USER), eq("DE"), anyInt(), anyInt())).thenReturn(List.of(
@@ -105,7 +105,7 @@ class HomeChargingSavingsServiceTest {
         ChargingSavings result = service.calculate(USER);
 
         assertEquals(PriceSource.COUNTRY, result.publicPrice().source());
-        assertEquals(0, eur("83.20").compareTo(result.savingsEur()));
+        assertEquals(0, eur("83.20").compareTo(result.savingsEur()));  // 640 * (0,40 - 0,27)
     }
 
     /** Ohne verorteten Heimladeort gibt es keinen Anker - die Regionsstufe entfaellt. */
@@ -192,11 +192,10 @@ class HomeChargingSavingsServiceTest {
     @Test
     void withoutHomePrice_noResult() {
         when(repo.homeWeightedPrice(USER)).thenReturn(null);
-        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
-        when(repo.homeGeohash(USER)).thenReturn(null);
-        lenient().when(priceCache.countryMedian(eq("DE"), anyInt())).thenReturn(new RegionMedian(eur("0.40"), 2659));
 
         assertNull(service.calculate(USER));
+        // Ohne Heimpreis wird die Vergleichskette gar nicht erst befragt.
+        verify(repo, never()).ownPublicPrices(any());
     }
 
 }

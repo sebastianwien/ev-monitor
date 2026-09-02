@@ -183,7 +183,7 @@ function inputValue(kind: 'home' | 'public'): string {
         {{ money(view.savingsEur) }}
       </span>
       <span class="text-xs text-gray-500 dark:text-gray-400">
-        {{ t('savings.saved_last_12_months') }} ·
+        {{ view.firstYear ? t('savings.saved_since', { year: view.firstYear }) : t('savings.saved_total') }} ·
         {{ t('savings.home_kwh_charged', { kwh: n(view.homeKwh, { maximumFractionDigits: 0 }) }) }}
       </span>
     </div>

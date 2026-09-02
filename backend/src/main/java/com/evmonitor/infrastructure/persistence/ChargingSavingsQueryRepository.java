@@ -68,16 +68,24 @@ public class ChargingSavingsQueryRepository {
                 """.formatted(PRICE_EXPR), BigDecimal.class, userId);
     }
 
-    /** Belegte Heim-kWh im rollierenden Jahr. */
-    public BigDecimal homeKwhLast12Months(UUID userId) {
-        BigDecimal kwh = jdbc.queryForObject("""
-                SELECT COALESCE(SUM(e.kwh_charged), 0)
+    /**
+     * Bisherige Laufzeit in Monaten, gerechnet ab der ersten bepreisten Heimladung.
+     *
+     * Nenner der Restlaufzeit: Gesamtersparnis durch Monate ergibt die Rate. Breiter
+     * abgestuetzt als ein einzelnes Jahr und unempfindlich gegen einen schwachen Winter.
+     */
+    public BigDecimal monthsOfHomeCharging(UUID userId) {
+        BigDecimal months = jdbc.queryForObject("""
+                SELECT GREATEST(
+                         EXTRACT(EPOCH FROM (now() - MIN(e.logged_at))) / (365.25 * 86400 / 12),
+                         0.0)::numeric
                 FROM ev_log e JOIN car c ON c.id = e.car_id
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS FALSE
-                  AND e.logged_at > now() - interval '12 months'
+                  AND e.kwh_charged > 0
+                  AND (e.price_per_kwh IS NOT NULL OR e.cost_eur IS NOT NULL)
                 """, BigDecimal.class, userId);
-        return kwh != null ? kwh : BigDecimal.ZERO;
+        return months != null ? months : BigDecimal.ZERO;
     }
 
     /** Haeufigster Ladeort der eigenen Heimladungen - Anker fuer die Regionsstufe. */

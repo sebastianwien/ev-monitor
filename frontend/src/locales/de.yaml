@@ -3020,6 +3020,8 @@ soh:
 savings:
   title: "Kostenersparnis durch Heimladen"
   saved_last_12_months: "gespart in den letzten 12 Monaten"
+  saved_since: "gespart seit {year}"
+  saved_total: "insgesamt gespart"
   would_have_cost: "Öffentlich hätte gekostet"
   cents_per_kwh: "{value} ct/kWh"
   home_kwh_charged: "{kwh} kWh daheim geladen"
