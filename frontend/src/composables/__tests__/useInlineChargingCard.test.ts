@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../api/axios', () => ({
-  default: { post: vi.fn() },
+  default: { post: vi.fn(), put: vi.fn() },
 }))
 import api from '../../api/axios'
 import { useInlineChargingCard, CUSTOM_PROVIDER } from '../useInlineChargingCard'
 
 // EUR-Land: der User tippt ct/kWh, gespeichert wird EUR/kWh.
 const centsToEur = (v: number) => v / 100
+const eurToCents = (v: number) => Math.round(v * 1000) / 10
 
 const savedCard = {
   id: 'card-1', providerName: 'EnBW mobility+', label: null,
@@ -19,6 +20,8 @@ describe('useInlineChargingCard', () => {
   beforeEach(() => {
     vi.mocked(api.post).mockReset()
     vi.mocked(api.post).mockResolvedValue({ data: savedCard } as never)
+    vi.mocked(api.put).mockReset()
+    vi.mocked(api.put).mockResolvedValue({ data: savedCard } as never)
   })
 
   it('speichert erst wenn ein Anbieter gewaehlt ist', () => {
@@ -103,5 +106,73 @@ describe('useInlineChargingCard', () => {
     await card.save()
 
     expect(api.post).toHaveBeenCalledTimes(1)
+  })
+
+  describe('Edit-Modus: Preis fuer eine bestehende Karte nachtragen', () => {
+    const pricelessCard = {
+      id: 'card-9', providerName: 'Maingau Energie', label: 'Zweitkarte',
+      acPricePerKwh: null, dcPricePerKwh: null,
+      monthlyFeeEur: 4.99, sessionFeeEur: 0, activeFrom: '2025-01-01',
+      activeUntil: null, isHome: false,
+    }
+
+    it('fuellt das Formular aus der Karte vor und rechnet EUR/kWh in die Anzeigeeinheit zurueck', () => {
+      const card = useInlineChargingCard(centsToEur, eurToCents)
+      card.openEdit({ ...pricelessCard, acPricePerKwh: 0.39, dcPricePerKwh: 0.59 })
+
+      expect(card.isEditing.value).toBe(true)
+      expect(card.isOpen.value).toBe(true)
+      expect(card.draft.value.providerName).toBe('Maingau Energie')
+      expect(card.draft.value.acPrice).toBe(39)
+      expect(card.draft.value.dcPrice).toBe(59)
+    })
+
+    it('behandelt einen unbekannten Anbieter als "Anderer Anbieter"', () => {
+      const card = useInlineChargingCard(centsToEur, eurToCents)
+      card.openEdit({ ...pricelessCard, providerName: 'Stadtwerke Kleinkleckersdorf' })
+
+      expect(card.draft.value.providerName).toBe(CUSTOM_PROVIDER)
+      expect(card.draft.value.customProviderName).toBe('Stadtwerke Kleinkleckersdorf')
+    })
+
+    it('verlangt im Edit-Modus mindestens einen Preis', () => {
+      const card = useInlineChargingCard(centsToEur, eurToCents)
+      card.openEdit(pricelessCard)
+      expect(card.canSave.value).toBe(false)
+
+      card.draft.value.acPrice = 39
+      expect(card.canSave.value).toBe(true)
+    })
+
+    it('PUTtet auf die bestehende Karte und erhaelt die uebrigen Felder', async () => {
+      const card = useInlineChargingCard(centsToEur, eurToCents)
+      card.openEdit(pricelessCard)
+      card.draft.value.acPrice = 39
+
+      await card.save()
+
+      expect(api.put).toHaveBeenCalledWith('/users/me/charging-providers/card-9', expect.objectContaining({
+        providerName: 'Maingau Energie',
+        label: 'Zweitkarte',
+        acPricePerKwh: 0.39,
+        dcPricePerKwh: null,
+        monthlyFeeEur: 4.99,
+        activeFrom: '2025-01-01',
+        isHome: false,
+      }))
+      expect(api.post).not.toHaveBeenCalled()
+    })
+
+    it('setzt den Edit-Zustand nach Speichern und nach Abbrechen zurueck', async () => {
+      const card = useInlineChargingCard(centsToEur, eurToCents)
+      card.openEdit(pricelessCard)
+      card.draft.value.acPrice = 39
+      await card.save()
+      expect(card.isEditing.value).toBe(false)
+
+      card.openEdit(pricelessCard)
+      card.cancel()
+      expect(card.isEditing.value).toBe(false)
+    })
   })
 })

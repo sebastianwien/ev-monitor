@@ -1074,6 +1074,9 @@ logfields:
   card_dc_price: "DC-pris ({unit}/kWh)"
   card_save: "Lagre kort"
   card_save_failed: "Ladekortet kunne ikke lagres."
+  card_edit_title: "Legg til en pris for dette kortet"
+  card_no_price_dot: "Ingen pris angitt"
+  card_no_price_prompt: "Dette kortet har ingen pris for denne ladingen. Legg den inn, så beregner jeg kostnaden automatisk."
   energy: Energi (kWh)
   cost_eur: Kostnad
   cost_per_kwh: Pris (€/kWh)
