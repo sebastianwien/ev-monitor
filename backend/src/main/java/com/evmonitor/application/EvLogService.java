@@ -508,16 +508,21 @@ public class EvLogService {
 
         // Compute new geohash from lat/lon if provided; otherwise keep existing.
         // Precision depends on isPublicCharging (new value if provided, else existing).
-        boolean updatedIsPublicCharging = request.isPublicCharging() != null
+        // Boolean, nicht boolean: seit V166 kann der Ladeort unbekannt sein, und ein
+        // primitives Ziel wuerde beim Entpacken von NULL knallen. Betrifft genau die
+        // Logs, die die Telemetrie ohne Ortsangabe anlegt.
+        Boolean updatedIsPublicCharging = request.isPublicCharging() != null
                 ? request.isPublicCharging()
                 : existing.getPublicCharging();
         String geohash = existing.getGeohash();
         boolean geohashChanged = false;
         if (request.latitude() != null && request.longitude() != null) {
-            int precision = updatedIsPublicCharging ? 7 : 6;
+            // Unbekannter Ladeort bekommt die private Praezision - im Zweifel weniger
+            // genau speichern, nicht mehr.
+            int precision = Boolean.TRUE.equals(updatedIsPublicCharging) ? 7 : 6;
             geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), precision).toBase32();
             geohashChanged = !geohash.equals(existing.getGeohash());
-        } else if (!updatedIsPublicCharging && geohash != null && geohash.length() > 6) {
+        } else if (!Boolean.TRUE.equals(updatedIsPublicCharging) && geohash != null && geohash.length() > 6) {
             // Privacy: if switched from public→private without new coordinates, truncate to 6-char precision.
             geohash = geohash.substring(0, 6);
             geohashChanged = true;
