@@ -134,6 +134,26 @@ class UserChargingProviderServiceTest {
     }
 
     @Test
+    void shouldPersistHomeFlag_WhenUpdatingProvider() {
+        UUID providerId = UUID.randomUUID();
+        UserChargingProviderEntity entity = entityForUser(providerId, userId);
+        entity.setHome(false);
+        when(repository.findById(providerId)).thenReturn(Optional.of(entity));
+
+        UserChargingProviderRequest markAsHome = new UserChargingProviderRequest(
+                "Heimstrom", null, new BigDecimal("0.28"), null,
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), true);
+        service.update(userId, providerId, markAsHome);
+        assertThat(entity.isHome()).isTrue();
+
+        UserChargingProviderRequest unmarkHome = new UserChargingProviderRequest(
+                "Heimstrom", null, new BigDecimal("0.28"), null,
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), false);
+        service.update(userId, providerId, unmarkHome);
+        assertThat(entity.isHome()).isFalse();
+    }
+
+    @Test
     void shouldThrowIllegalArgument_WhenUpdatingOtherUsersProvider() {
         UUID providerId = UUID.randomUUID();
         UserChargingProviderEntity entity = entityForUser(providerId, otherUserId);

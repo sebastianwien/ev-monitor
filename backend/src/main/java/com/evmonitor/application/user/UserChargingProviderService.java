@@ -33,7 +33,6 @@ public class UserChargingProviderService {
         entity.setMonthlyFeeEur(request.monthlyFeeEur() != null ? request.monthlyFeeEur() : java.math.BigDecimal.ZERO);
         entity.setSessionFeeEur(request.sessionFeeEur() != null ? request.sessionFeeEur() : java.math.BigDecimal.ZERO);
         entity.setActiveFrom(request.activeFrom());
-        entity.setHome(Boolean.TRUE.equals(request.isHome()));
         entity.setActiveUntil(null);
         entity.setHome(Boolean.TRUE.equals(request.isHome()));
 
@@ -51,6 +50,7 @@ public class UserChargingProviderService {
         entity.setMonthlyFeeEur(request.monthlyFeeEur() != null ? request.monthlyFeeEur() : java.math.BigDecimal.ZERO);
         entity.setSessionFeeEur(request.sessionFeeEur() != null ? request.sessionFeeEur() : java.math.BigDecimal.ZERO);
         entity.setActiveFrom(request.activeFrom());
+        entity.setHome(Boolean.TRUE.equals(request.isHome()));
 
         return toResponse(repository.save(entity));
     }
