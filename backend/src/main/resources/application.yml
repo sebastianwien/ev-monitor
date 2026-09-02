@@ -29,6 +29,12 @@ spring:
       - leaderboard
       - brandModels
       - appUpdateCheck
+      # Vergleichspreise der Heimlade-Ersparnis. Muessen hier stehen: cache-names ist eine
+      # feste Liste, und ein @Cacheable auf einen nicht registrierten Namen wirft eine
+      # IllegalArgumentException - die der GlobalExceptionHandler in ein 400 uebersetzt.
+      - chargingRegionMedian
+      - chargingCountryMedian
+      - chargingPublicPriceByYear
       # nearbyCpos hat eine eigene Regel (30 Tage) in CpoRegistryConfig - der Registerbestand
       # der Bundesnetzagentur wird nur monatlich aktualisiert.
 

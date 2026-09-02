@@ -18,6 +18,11 @@ import java.util.UUID;
  *
  * Gecacht statt materialisiert: die Abfragen laufen in rund 20 ms ueber den gesamten
  * Bestand. Eine Aggregat-Tabelle samt Scheduler waere dafuer zu viel Apparat.
+ *
+ * Die Cache-Namen muessen in application.yml unter spring.cache.cache-names stehen - die
+ * Liste ist abschliessend, und ein nicht registrierter Name fuehrt zur Laufzeit zu einer
+ * IllegalArgumentException. Land kann null sein, deshalb faellt der Schluessel auf '-'
+ * zurueck statt einen null-Schluessel zu bilden.
  */
 @Component
 public class ChargingPriceCache {
@@ -28,12 +33,12 @@ public class ChargingPriceCache {
         this.repository = repository;
     }
 
-    @Cacheable(value = "chargingRegionMedian", key = "#prefix + '|' + #country")
+    @Cacheable(value = "chargingRegionMedian", key = "#prefix + '|' + (#country ?: '-')")
     public RegionMedian regionMedian(String prefix, String country, int minLogs, int minCars) {
         return repository.regionMedian(prefix, country, minLogs, minCars);
     }
 
-    @Cacheable(value = "chargingCountryMedian", key = "#country")
+    @Cacheable(value = "chargingCountryMedian", key = "#country ?: '-'")
     public RegionMedian countryMedian(String country, int minLogs) {
         return repository.countryMedian(country, minLogs);
     }
@@ -43,7 +48,7 @@ public class ChargingPriceCache {
      * die Abfrage zuerst seine eigenen Ladungen heranzieht - ohne ihn bekaemen alle
      * dieselben Werte.
      */
-    @Cacheable(value = "chargingPublicPriceByYear", key = "#userId + '|' + #country")
+    @Cacheable(value = "chargingPublicPriceByYear", key = "#userId.toString() + '|' + (#country ?: '-')")
     public List<YearPrice> publicPriceByYear(UUID userId, String country, int minOwnLogs, int minCountryLogs) {
         return repository.publicPriceByYear(userId, country, minOwnLogs, minCountryLogs);
     }
