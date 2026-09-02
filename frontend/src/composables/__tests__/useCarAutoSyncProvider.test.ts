@@ -46,8 +46,14 @@ describe('providerLabel', () => {
 })
 
 describe('hasFreeDataSource', () => {
-    it.each(['Tesla', 'XPeng', 'XPENG', 'xpeng'])('%s has a free data source', (brand) => {
+    it.each(['Tesla', 'TESLA', 'tesla'])('%s has a free data source', (brand) => {
         expect(hasFreeDataSource({ brand })).toBe(true)
+    })
+
+    /** XPeng laeuft ueber den EU-Data-Act-Import und zaehlt hier bewusst nicht mehr mit -
+     *  der Hinweis auf der Supporter-Seite nennt nur noch Tesla. */
+    it('XPeng has no free data source', () => {
+        expect(hasFreeDataSource({ brand: 'XPeng' })).toBe(false)
     })
 
     it('Smartcar brands have no free data source - AutoSync must be purchased', () => {
