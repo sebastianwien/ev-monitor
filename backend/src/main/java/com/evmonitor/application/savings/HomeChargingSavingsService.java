@@ -5,7 +5,6 @@ import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.R
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.YearPrice;
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.YearTotals;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -31,6 +30,7 @@ public class HomeChargingSavingsService {
     private static final int COUNTRY_MIN_LOGS = 20;
 
     private final ChargingSavingsQueryRepository repository;
+    private final ChargingPriceCache priceCache;
     private final HomeChargingProfileProvider profiles;
 
     /** Geohash-Laengen der Regionsstufe, von fein nach grob. 5 entspricht ~5 km, 3 ~156 km.
@@ -38,9 +38,11 @@ public class HomeChargingSavingsService {
     private final List<Integer> regionPrefixLengths;
 
     public HomeChargingSavingsService(ChargingSavingsQueryRepository repository,
+                                      ChargingPriceCache priceCache,
                                       HomeChargingProfileProvider profiles,
                                       @Value("${savings.region-prefix-lengths:5,3}") List<Integer> regionPrefixLengths) {
         this.repository = repository;
+        this.priceCache = priceCache;
         this.profiles = profiles;
         this.regionPrefixLengths = regionPrefixLengths;
     }
@@ -76,7 +78,7 @@ public class HomeChargingSavingsService {
      * unterstellt konstante Preise ueber die Energiekrise hinweg.
      */
     private List<YearlySaving> yearlySavings(UUID userId, String country) {
-        Map<Integer, BigDecimal> priceByYear = repository
+        Map<Integer, BigDecimal> priceByYear = priceCache
                 .publicPriceByYear(userId, country, ChargingPriceResolver.MIN_OWN_PUBLIC_LOGS, COUNTRY_MIN_LOGS)
                 .stream()
                 .filter(p -> p.pricePerKwh() != null)
@@ -102,7 +104,8 @@ public class HomeChargingSavingsService {
 
         for (int length : regionPrefixLengths) {
             if (anchor.length() < length) continue;
-            RegionMedian region = cachedRegionMedian(anchor.substring(0, length), country);
+            RegionMedian region = priceCache.regionMedian(
+                    anchor.substring(0, length), country, REGION_MIN_LOGS, REGION_MIN_CARS);
             if (region != null && region.median() != null) {
                 return new PriceBasis(PriceSource.REGION, region.median(), region.sampleSize());
             }
@@ -111,22 +114,10 @@ public class HomeChargingSavingsService {
     }
 
     private PriceBasis countryPrice(String country) {
-        RegionMedian median = cachedCountryMedian(country);
+        RegionMedian median = priceCache.countryMedian(country, COUNTRY_MIN_LOGS);
         return median != null && median.median() != null
                 ? new PriceBasis(PriceSource.COUNTRY, median.median(), median.sampleSize())
                 : null;
-    }
-
-    /** Gecacht statt materialisiert: die Abfrage laeuft in rund 20 ms ueber den gesamten
-     *  Bestand. Eine Aggregat-Tabelle samt Scheduler waere dafuer zu viel Apparat. */
-    @Cacheable(value = "chargingRegionMedian", key = "#prefix + '|' + #country")
-    public RegionMedian cachedRegionMedian(String prefix, String country) {
-        return repository.regionMedian(prefix, country, REGION_MIN_LOGS, REGION_MIN_CARS);
-    }
-
-    @Cacheable(value = "chargingCountryMedian", key = "#country")
-    public RegionMedian cachedCountryMedian(String country) {
-        return repository.countryMedian(country, COUNTRY_MIN_LOGS);
     }
 
     /** Nutzerbezogene Stammdaten der Rechnung. */

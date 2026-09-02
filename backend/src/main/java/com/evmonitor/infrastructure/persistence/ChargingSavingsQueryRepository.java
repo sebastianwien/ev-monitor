@@ -168,7 +168,11 @@ public class ChargingSavingsQueryRepository {
         return jdbc.query("""
                 SELECT EXTRACT(YEAR FROM e.logged_at)::int AS jahr,
                        SUM(e.kwh_charged) AS kwh,
-                       SUM(COALESCE(e.price_per_kwh * e.kwh_charged, e.cost_eur)) AS kosten
+                       -- cost_eur zuerst: das ist der tatsaechlich gezahlte Gesamtbetrag
+                       -- samt Session-Gebuehr. price_per_kwh traegt nur den Arbeitspreis,
+                       -- danach gerechnet faellt die Gebuehr unter den Tisch und die
+                       -- ausgewiesene Ersparnis waere zu hoch.
+                       SUM(COALESCE(e.cost_eur, e.price_per_kwh * e.kwh_charged)) AS kosten
                 FROM ev_log e JOIN car c ON c.id = e.car_id
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS FALSE

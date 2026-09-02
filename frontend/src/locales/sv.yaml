@@ -2918,6 +2918,7 @@ savings:
   wallbox_recovered: "Laddbox intjänad"
   of_investment: "av {total}"
   fully_amortised: "Helt intjänad - allt härifrån är besparing."
+  amortisation_not_possible: "Så länge ditt hempris inte är lägre än jämförelsepriset uppstår ingen besparing - då går ingen återbetalningstid att beräkna."
   amortisation_remaining: "Cirka {years} år kvar till full återbetalning."
   amortisation_slow: "Med ditt nuvarande laddmönster cirka {years} år kvar. En billigare hemtariff kortar det märkbart."
   add_investment: "Vill du veta när din laddbox betalar sig? Lägg in kostnaden här"

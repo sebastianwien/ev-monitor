@@ -3033,6 +3033,7 @@ savings:
   wallbox_recovered: "Wallbox recovered"
   of_investment: "of {total}"
   fully_amortised: "Fully recovered - everything from here is savings."
+  amortisation_not_possible: "As long as your home price is not below the comparison price there is no saving, so no payback period can be calculated."
   amortisation_remaining: "About {years} more years until it pays for itself."
   amortisation_slow: "At your current charging pattern, about {years} more years. A cheaper home tariff shortens that noticeably."
   add_investment: "Want to know when your wallbox pays for itself? Add the cost here"

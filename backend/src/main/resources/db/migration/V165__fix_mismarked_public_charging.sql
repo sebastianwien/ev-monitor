@@ -6,7 +6,12 @@
 --
 -- Kriterien:
 --   DC          - eine Gleichstromladung ist nie eine Heimladung
---   > 12 kW     - oberhalb dessen laedt praktisch keine Hauswallbox
+--   > 12 kW     - oberhalb dessen laedt praktisch keine Hauswallbox, und nur bei
+--                 bekanntem Ladetyp: ist charging_type NULL, dient is_public_charging
+--                 in ConsumptionCalculationService als AC/DC-Proxy, und das Umsetzen
+--                 wuerde bereits angezeigte Verbrauchswerte veraendern. Auf Prod
+--                 tragen alle 148 Treffer ohnehin 'AC' - die Bedingung haelt das fest,
+--                 statt sich darauf zu verlassen.
 --
 -- Gegenprobe auf Prod: die Treffer haben einen Medianpreis von 0,43 EUR/kWh,
 -- der verbleibende Rest 0,28 EUR/kWh - also oeffentliches Preisniveau.
@@ -45,7 +50,9 @@ WHERE e.is_public_charging = false
         -- 0,29 EUR/kWh). Warum die Leistung so hoch gemeldet wird, ist offen -
         -- moeglicherweise Spitzen- statt Durchschnittswert. Ihre DC-Ladungen
         -- werden weiterhin korrigiert, nur das Leistungskriterium greift nicht.
-     OR (e.max_charging_power_kw > 12 AND c.id NOT IN (
+     OR (e.max_charging_power_kw > 12
+         AND e.charging_type IN ('AC', 'DC')
+         AND c.id NOT IN (
             'd5f9bf85-1860-42d8-994d-a747544ba897',
             'aac452c0-5989-454d-9ad8-3e28a6f17e80',
             '2f9ffe58-bad4-4ac7-86be-bdd8d61b3fd8',

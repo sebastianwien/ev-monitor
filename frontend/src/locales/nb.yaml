@@ -2918,6 +2918,7 @@ savings:
   wallbox_recovered: "Ladeboks inntjent"
   of_investment: "av {total}"
   fully_amortised: "Fullt inntjent - alt herfra er besparelse."
+  amortisation_not_possible: "Så lenge hjemmeprisen din ikke er lavere enn sammenligningsprisen oppstår ingen besparelse - da kan ingen nedbetalingstid beregnes."
   amortisation_remaining: "Rundt {years} år igjen til full inntjening."
   amortisation_slow: "Med dagens lademønster rundt {years} år igjen. En rimeligere hjemmetariff korter det merkbart ned."
   add_investment: "Vil du vite når ladeboksen er nedbetalt? Legg inn kostnaden her"

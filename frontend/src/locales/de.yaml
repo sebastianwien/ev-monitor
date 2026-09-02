@@ -3034,6 +3034,7 @@ savings:
   wallbox_recovered: "Wallbox eingespielt"
   of_investment: "von {total}"
   fully_amortised: "Vollständig eingespielt - ab jetzt ist alles Ersparnis."
+  amortisation_not_possible: "Solange dein Heimpreis nicht unter dem Vergleichspreis liegt, entsteht keine Ersparnis - eine Amortisation lässt sich dann nicht berechnen."
   amortisation_remaining: "Noch rund {years} Jahre bis zur vollen Amortisation."
   amortisation_slow: "Bei deinem aktuellen Ladeverhalten noch rund {years} Jahre. Ein günstigerer Heimtarif verkürzt das spürbar."
   add_investment: "Du willst wissen, wann sich deine Wallbox amortisiert? Hier eintragen"

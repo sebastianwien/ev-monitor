@@ -224,6 +224,26 @@ function inputValue(kind: 'home' | 'public'): string {
       </div>
     </div>
 
+    <!-- Investition hinterlegt, aber keine Prognose moeglich: ohne Ersparnis amortisiert
+         nichts. Der Betrag wird trotzdem gezeigt - sonst fragt die Kachel nach etwas,
+         das laengst gespeichert ist. -->
+    <div v-else-if="view.investmentEur != null"
+         class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-600">
+      <component :is="demo ? 'div' : 'button'" :type="demo ? undefined : 'button'"
+                 class="w-full flex justify-between items-baseline text-sm tabular-nums text-left"
+                 :aria-label="demo ? undefined : t('savings.edit_investment')"
+                 @click="!demo && emit('edit-investment')">
+        <span class="text-gray-500 dark:text-gray-400">{{ t('savings.wallbox_recovered') }}</span>
+        <span class="font-semibold text-gray-900 dark:text-gray-100">
+          {{ money(view.investmentEur) }}
+          <PencilSquareIcon v-if="!demo" class="ml-1.5 inline h-4 w-4 align-text-bottom text-gray-400 dark:text-gray-500" />
+        </span>
+      </component>
+      <p class="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+        {{ t('savings.amortisation_not_possible') }}
+      </p>
+    </div>
+
     <!-- Ohne Investition: hier sammeln wir die Eingabe ein, die die Zeitschiene braucht -->
     <button v-else type="button"
             class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-600 w-full flex items-start gap-2 text-left text-sm leading-relaxed text-emerald-700 dark:text-emerald-300"
