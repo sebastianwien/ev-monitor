@@ -158,17 +158,69 @@ public class ChargingSavingsQueryRepository {
 
     public record UserProfileRow(String country, BigDecimal homeCardPricePerKwh, BigDecimal investmentEur) {}
 
-    /** Jahre seit der ersten Ladung des Nutzers - Basis fuer die kumulierte Ersparnis. */
-    public BigDecimal usageYears(UUID userId) {
-        BigDecimal years = jdbc.queryForObject("""
-                SELECT GREATEST(
-                         EXTRACT(EPOCH FROM (now() - MIN(e.logged_at))) / (365.25 * 86400),
-                         0.0)::numeric
+    /**
+     * Heimladen je Kalenderjahr: geladene kWh und tatsaechlich gezahlte Kosten.
+     *
+     * Nur Jahre mit bepreisten Ladungen - ohne Kosten laesst sich nichts vergleichen.
+     * Nulltarife bleiben drin, PV-Ueberschuss ist ein echter Wert.
+     */
+    public List<YearTotals> homeYearTotals(UUID userId) {
+        return jdbc.query("""
+                SELECT EXTRACT(YEAR FROM e.logged_at)::int AS jahr,
+                       SUM(e.kwh_charged) AS kwh,
+                       SUM(COALESCE(e.price_per_kwh * e.kwh_charged, e.cost_eur)) AS kosten
                 FROM ev_log e JOIN car c ON c.id = e.car_id
                 WHERE c.user_id = ?
-                """, BigDecimal.class, userId);
-        return years != null ? years : BigDecimal.ZERO;
+                  AND e.is_public_charging IS FALSE
+                  AND e.kwh_charged > 0
+                  AND (e.price_per_kwh IS NOT NULL OR e.cost_eur IS NOT NULL)
+                GROUP BY 1 ORDER BY 1
+                """,
+                (rs, i) -> new YearTotals(rs.getInt("jahr"), rs.getBigDecimal("kwh"), rs.getBigDecimal("kosten")),
+                userId);
     }
+
+    /**
+     * Oeffentliches Preisniveau je Kalenderjahr - erst die eigenen Ladungen, sonst das
+     * Land. Ein historisches Jahr mit dem heutigen Median zu vergleichen waere falsch:
+     * die oeffentlichen Preise haben sich seit 2022 erheblich bewegt.
+     */
+    public List<YearPrice> publicPriceByYear(UUID userId, String country, int minOwnLogs, int minCountryLogs) {
+        return jdbc.query("""
+                WITH eigene AS (
+                  SELECT EXTRACT(YEAR FROM e.logged_at)::int AS jahr,
+                         percentile_cont(0.5) WITHIN GROUP (ORDER BY %s) AS preis,
+                         count(*)::int AS n
+                  FROM ev_log e JOIN car c ON c.id = e.car_id
+                  WHERE c.user_id = ? AND e.is_public_charging IS TRUE
+                    AND e.kwh_charged > 0 AND e.cost_eur > 0
+                    AND %s BETWEEN 0.01 AND 2.0
+                  GROUP BY 1
+                ), land AS (
+                  SELECT EXTRACT(YEAR FROM e.logged_at)::int AS jahr,
+                         percentile_cont(0.5) WITHIN GROUP (ORDER BY %s) AS preis,
+                         count(*)::int AS n
+                  FROM ev_log e JOIN car c ON c.id = e.car_id JOIN app_user u ON u.id = c.user_id
+                  WHERE e.is_public_charging IS TRUE
+                    AND e.kwh_charged > 0 AND e.cost_eur > 0
+                    AND u.country IS NOT DISTINCT FROM ?
+                    AND %s BETWEEN 0.01 AND 2.0
+                  GROUP BY 1
+                )
+                SELECT COALESCE(e.jahr, l.jahr) AS jahr,
+                       CASE WHEN e.n >= ? THEN e.preis
+                            WHEN l.n >= ? THEN l.preis END AS preis,
+                       CASE WHEN e.n >= ? THEN 'OWN_PUBLIC' ELSE 'COUNTRY' END AS quelle
+                FROM eigene e FULL OUTER JOIN land l ON l.jahr = e.jahr
+                ORDER BY 1
+                """.formatted(PRICE_EXPR, PRICE_EXPR, PRICE_EXPR, PRICE_EXPR),
+                (rs, i) -> new YearPrice(rs.getInt("jahr"), rs.getBigDecimal("preis"), rs.getString("quelle")),
+                userId, country, minOwnLogs, minCountryLogs, minOwnLogs);
+    }
+
+    public record YearTotals(int year, BigDecimal kwh, BigDecimal paidEur) {}
+
+    public record YearPrice(int year, BigDecimal pricePerKwh, String source) {}
 
     public record RegionMedian(BigDecimal median, int sampleSize) {}
 }

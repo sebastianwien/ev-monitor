@@ -86,7 +86,11 @@ class ChargingSavingsControllerTest {
                 new PriceBasis(PriceSource.OWN_LOGS, new BigDecimal("0.27"), 12),
                 new PriceBasis(PriceSource.COUNTRY, new BigDecimal("0.40"), 2659),
                 new BigDecimal("172.80"), new BigDecimal("256.00"), new BigDecimal("83.20"),
-                null, new BigDecimal("212.16"), null, false));
+                null,
+                java.util.List.of(new com.evmonitor.application.savings.YearlySaving(
+                        2026, new BigDecimal("640"), new BigDecimal("172.80"),
+                        new BigDecimal("256.00"), new BigDecimal("83.20"), new BigDecimal("212.16"))),
+                new BigDecimal("212.16"), null, false));
 
         ChargingSavingsResponse body = controller().get(principal).getBody();
 

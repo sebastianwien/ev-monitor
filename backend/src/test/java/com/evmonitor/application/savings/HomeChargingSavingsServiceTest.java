@@ -4,6 +4,8 @@ import com.evmonitor.application.savings.HomeChargingSavingsService.HomeCharging
 import com.evmonitor.application.savings.HomeChargingSavingsService.HomeChargingProfileProvider;
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository;
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.RegionMedian;
+import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.YearPrice;
+import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.YearTotals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +42,10 @@ class HomeChargingSavingsServiceTest {
         service = new HomeChargingSavingsService(repo, profiles, List.of(5, 3));
         lenient().when(profiles.forUser(USER)).thenReturn(new HomeChargingProfile("DE", null, null));
         lenient().when(repo.homeKwhLast12Months(USER)).thenReturn(eur("640"));
-        lenient().when(repo.usageYears(USER)).thenReturn(BigDecimal.ONE);
+        lenient().when(repo.homeYearTotals(USER)).thenReturn(List.of(
+                new YearTotals(2026, eur("640"), eur("172.80"))));
+        lenient().when(repo.publicPriceByYear(eq(USER), eq("DE"), anyInt(), anyInt())).thenReturn(List.of(
+                new YearPrice(2026, eur("0.40"), "COUNTRY")));
         lenient().when(repo.ownHomePrices(USER)).thenReturn(List.of(eur("0.27"), eur("0.27"), eur("0.27")));
     }
 
@@ -112,6 +117,70 @@ class HomeChargingSavingsServiceTest {
 
         assertEquals(PriceSource.COUNTRY, result.publicPrice().source());
         verify(repo, never()).regionMedian(any(), any(), anyInt(), anyInt());
+    }
+
+    /**
+     * Die kumulierte Ersparnis kommt aus den Jahren selbst, nicht aus einer Hochrechnung.
+     * Auf Prod lagen zwischen dem ersten Log und der ersten Heimladung bis zu 3,4 Jahre -
+     * hochgerechnet haette die Kachel Ersparnis fuer Jahre ausgewiesen, in denen es die
+     * Wallbox noch gar nicht gab.
+     */
+    @Test
+    void recovered_isSummedFromActualYears_notExtrapolated() {
+        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
+        when(repo.homeGeohash(USER)).thenReturn(null);
+        when(repo.countryMedian(eq("DE"), anyInt())).thenReturn(new RegionMedian(eur("0.40"), 2659));
+        when(repo.homeYearTotals(USER)).thenReturn(List.of(
+                new YearTotals(2025, eur("300"), eur("84.00")),
+                new YearTotals(2026, eur("640"), eur("172.80"))));
+        when(repo.publicPriceByYear(eq(USER), eq("DE"), anyInt(), anyInt())).thenReturn(List.of(
+                new YearPrice(2025, eur("0.55"), "COUNTRY"),
+                new YearPrice(2026, eur("0.40"), "COUNTRY")));
+
+        ChargingSavings result = service.calculate(USER);
+
+        // 2025: 300*0,55 - 84 = 81,00   2026: 640*0,40 - 172,80 = 83,20
+        assertEquals(0, eur("164.20").compareTo(result.recoveredEur()));
+        assertEquals(2025, result.firstYear());
+    }
+
+    /** Jedes Jahr rechnet mit dem Preisniveau seines Jahres, nicht mit dem heutigen. */
+    @Test
+    void eachYear_usesItsOwnPublicPrice() {
+        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
+        when(repo.homeGeohash(USER)).thenReturn(null);
+        when(repo.countryMedian(eq("DE"), anyInt())).thenReturn(new RegionMedian(eur("0.40"), 2659));
+        when(repo.homeYearTotals(USER)).thenReturn(List.of(
+                new YearTotals(2025, eur("100"), eur("30.00")),
+                new YearTotals(2026, eur("100"), eur("30.00"))));
+        when(repo.publicPriceByYear(eq(USER), eq("DE"), anyInt(), anyInt())).thenReturn(List.of(
+                new YearPrice(2025, eur("0.60"), "COUNTRY"),
+                new YearPrice(2026, eur("0.40"), "COUNTRY")));
+
+        ChargingSavings result = service.calculate(USER);
+
+        assertEquals(2, result.yearlySavings().size());
+        assertEquals(0, eur("30.00").compareTo(result.yearlySavings().get(0).savingsEur()));
+        assertEquals(0, eur("10.00").compareTo(result.yearlySavings().get(1).savingsEur()));
+    }
+
+    /** Ein Jahr ohne belegbares oeffentliches Preisniveau faellt heraus. */
+    @Test
+    void yearWithoutPublicPrice_isDropped() {
+        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
+        when(repo.homeGeohash(USER)).thenReturn(null);
+        when(repo.countryMedian(eq("DE"), anyInt())).thenReturn(new RegionMedian(eur("0.40"), 2659));
+        when(repo.homeYearTotals(USER)).thenReturn(List.of(
+                new YearTotals(2024, eur("500"), eur("140.00")),
+                new YearTotals(2026, eur("640"), eur("172.80"))));
+        when(repo.publicPriceByYear(eq(USER), eq("DE"), anyInt(), anyInt())).thenReturn(List.of(
+                new YearPrice(2024, null, "COUNTRY"),
+                new YearPrice(2026, eur("0.40"), "COUNTRY")));
+
+        ChargingSavings result = service.calculate(USER);
+
+        assertEquals(1, result.yearlySavings().size());
+        assertEquals(2026, result.firstYear());
     }
 
     /**

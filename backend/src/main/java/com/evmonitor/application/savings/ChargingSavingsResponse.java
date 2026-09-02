@@ -23,6 +23,8 @@ public record ChargingSavingsResponse(
         BigDecimal wouldHaveCostEur,
         BigDecimal savingsEur,
         BigDecimal investmentEur,
+        Integer firstYear,
+        java.util.List<YearlySaving> yearlySavings,
         BigDecimal recoveredEur,
         BigDecimal amortisationYearsRemaining,
         boolean fullyAmortised
@@ -39,6 +41,8 @@ public record ChargingSavingsResponse(
                 s.wouldHaveCostEur(),
                 s.savingsEur(),
                 s.investmentEur(),
+                s.firstYear(),
+                s.yearlySavings(),
                 s.recoveredEur(),
                 s.amortisationYearsRemaining(),
                 s.fullyAmortised());

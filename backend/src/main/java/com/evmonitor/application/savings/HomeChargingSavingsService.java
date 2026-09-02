@@ -2,11 +2,15 @@ package com.evmonitor.application.savings;
 
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository;
 import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.RegionMedian;
+import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.YearPrice;
+import com.evmonitor.infrastructure.persistence.ChargingSavingsQueryRepository.YearTotals;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.UUID;
 
@@ -60,7 +64,30 @@ public class HomeChargingSavingsService {
                 repository.homeKwhLast12Months(userId),
                 homePrice, publicPrice,
                 profile.investmentEur(),
-                repository.usageYears(userId));
+                yearlySavings(userId, profile.country()));
+    }
+
+    /**
+     * Ersparnis je Kalenderjahr, jedes mit dem oeffentlichen Preisniveau seines Jahres.
+     *
+     * Eine Hochrechnung der aktuellen Ersparnis ueber die gesamte Nutzungsdauer waere
+     * doppelt falsch: sie unterstellt, es sei immer schon daheim geladen worden - auf
+     * Prod liegen zwischen erstem Log und erster Heimladung bis zu 3,4 Jahre - und sie
+     * unterstellt konstante Preise ueber die Energiekrise hinweg.
+     */
+    private List<YearlySaving> yearlySavings(UUID userId, String country) {
+        Map<Integer, BigDecimal> priceByYear = repository
+                .publicPriceByYear(userId, country, ChargingPriceResolver.MIN_OWN_PUBLIC_LOGS, COUNTRY_MIN_LOGS)
+                .stream()
+                .filter(p -> p.pricePerKwh() != null)
+                .collect(Collectors.toMap(YearPrice::year, YearPrice::pricePerKwh, (a, b) -> a));
+
+        List<HomeChargingYear> years = repository.homeYearTotals(userId).stream()
+                .map((YearTotals y) -> new HomeChargingYear(
+                        y.year(), y.kwh(), y.paidEur(), priceByYear.get(y.year())))
+                .toList();
+
+        return YearlySavingsCalculator.cumulate(years);
     }
 
     /**

@@ -18,7 +18,8 @@ public final class ChargingSavingsCalculator {
     /**
      * @param homeKwh        belegte Heimladungen im rollierenden Jahr
      * @param investmentEur  Wallbox samt Installation, optional
-     * @param usageYears     bisherige Nutzungsdauer, fuer die kumulierte Ersparnis
+     * @param yearly         Ersparnis je Jahr aus den tatsaechlichen Logs. Ihre Summe
+     *                       traegt die Amortisation - hochgerechnet wird nichts
      * @return null, wenn einer der beiden Preise unbekannt ist - dann zeigt die Kachel
      *         ihren Leerzustand statt einer geratenen Zahl
      */
@@ -26,15 +27,17 @@ public final class ChargingSavingsCalculator {
                                             PriceBasis homePrice,
                                             PriceBasis publicPrice,
                                             BigDecimal investmentEur,
-                                            BigDecimal usageYears) {
+                                            java.util.List<YearlySaving> yearly) {
         if (homeKwh == null || !homePrice.isKnown() || !publicPrice.isKnown()) return null;
 
         BigDecimal paid = homeKwh.multiply(homePrice.pricePerKwh()).setScale(CENTS, RoundingMode.HALF_UP);
         BigDecimal would = homeKwh.multiply(publicPrice.pricePerKwh()).setScale(CENTS, RoundingMode.HALF_UP);
         BigDecimal savings = would.subtract(paid);
 
-        BigDecimal recovered = savings.multiply(usageYears != null ? usageYears : BigDecimal.ONE)
-                .setScale(CENTS, RoundingMode.HALF_UP);
+        java.util.List<YearlySaving> years = yearly != null ? yearly : java.util.List.of();
+        BigDecimal recovered = years.isEmpty()
+                ? BigDecimal.ZERO.setScale(CENTS)
+                : years.get(years.size() - 1).cumulativeEur();
 
         BigDecimal yearsRemaining = null;
         boolean amortised = false;
@@ -47,6 +50,6 @@ public final class ChargingSavingsCalculator {
         }
 
         return new ChargingSavings(homeKwh, homePrice, publicPrice,
-                paid, would, savings, investmentEur, recovered, yearsRemaining, amortised);
+                paid, would, savings, investmentEur, years, recovered, yearsRemaining, amortised);
     }
 }

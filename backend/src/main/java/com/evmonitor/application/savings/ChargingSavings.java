@@ -9,7 +9,10 @@ import java.math.BigDecimal;
  * einer kontrafaktischen Aussage ("haettest du oeffentlich geladen") entsteht Vertrauen
  * nur, wenn sie nachrechenbar ist.
  *
- * @param recoveredEur              kumulierte Ersparnis ueber die gesamte Nutzungsdauer
+ * @param yearlySavings             Ersparnis je Kalenderjahr, aus den tatsaechlichen Logs.
+ *                                  Traegt die Amortisationsschiene: erstes Jahr ist ihr
+ *                                  Beginn, die aufgelaufene Summe ihr Fuellstand
+ * @param recoveredEur              Summe der Jahresersparnisse - keine Hochrechnung
  * @param amortisationYearsRemaining null, wenn keine Investition hinterlegt ist oder
  *                                   ohne Ersparnis nichts amortisiert
  */
@@ -21,7 +24,14 @@ public record ChargingSavings(
         BigDecimal wouldHaveCostEur,
         BigDecimal savingsEur,
         BigDecimal investmentEur,
+        java.util.List<YearlySaving> yearlySavings,
         BigDecimal recoveredEur,
         BigDecimal amortisationYearsRemaining,
         boolean fullyAmortised
-) {}
+) {
+
+    /** Beginn der Amortisationsschiene - das erste Jahr mit belegtem Heimladen. */
+    public Integer firstYear() {
+        return yearlySavings == null || yearlySavings.isEmpty() ? null : yearlySavings.get(0).year();
+    }
+}
