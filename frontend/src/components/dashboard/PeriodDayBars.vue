@@ -64,7 +64,6 @@ const dayBars = computed(() => {
   })
 })
 
-const maxKm = computed(() => Math.max(...(props.bars ?? []).map((bar) => bar.km), 0))
 </script>
 
 <template>
@@ -95,10 +94,5 @@ const maxKm = computed(() => Math.max(...(props.bars ?? []).map((bar) => bar.km)
         </span>
       </template>
     </div>
-    <p class="mt-1 text-xs md:text-[13px] text-gray-400 dark:text-gray-500 text-center">
-      {{ month
-        ? t('logs.period.bars_legend', { max: formatDistance(maxKm) })
-        : t('logs.period.bars_legend_km') }}
-    </p>
   </div>
 </template>

@@ -570,14 +570,29 @@ logs:
     month: "Månad"
   period:
     week_number: "V{week}"
-    bars_legend: "Stapelhöjd = kilometer per dag, högsta dag {max} · blå sockel = laddad"
-    bars_legend_km: "Stapelhöjd = kilometer per dag · blå sockel = laddad"
     charges: "1 laddning | {count} laddningar"
     no_trips: "Utan tidsstämpel"
     unmeasured: "1 resa utan förbrukningsvärde | {count} resor utan förbrukningsvärde"
     charge_public: "publik"
     charge_home: "hemma"
     charge_unknown: "Laddning"
+  legend:
+    slim_driven: "kört"
+    slim_charged: "laddat"
+    slim_phantom: "stilleståndsförlust"
+    toggle: "Vad betyder de här siffrorna?"
+    section_feed: "I den här översikten"
+    section_home: "På startsidan"
+    section_home_hint: "Där står andra värden för samma period - inget fel, bara en annan fråga:"
+    percent_note: "Procenttalet jämför ditt värde: i periodsammanfattningen med community-snittet, i en enskild resa eller laddning med ditt eget snitt."
+    desc_driving: "Körförbrukningen - så mycket drog själva körningen, utan det som går åt när bilen står stilla."
+    desc_phantom: "Stilleståndsförlusten - energi som bilen förlorar när den står stilla, hålls separat från körförbrukningen."
+    desc_charged: "Den laddade energin som faktiskt kommer in i bilen (netto)."
+    bars: "Staplarna visar kilometer per dag; den blå sockeln markerar en dag med laddning."
+    term_avg: "Snittförbrukning"
+    desc_avg: "Räknar all energi mellan två laddningar, även stillestånd - därför högre."
+    term_total: "Total energi"
+    desc_total: "Den laddade energin vid uttaget (brutto), inklusive laddningsförluster."
 
 dashboard:
   title: Dashboard

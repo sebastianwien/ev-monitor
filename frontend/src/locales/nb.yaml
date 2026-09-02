@@ -570,14 +570,29 @@ logs:
     month: "Måned"
   period:
     week_number: "Uke {week}"
-    bars_legend: "Søylehøyde = kilometer per dag, høyeste dag {max} · blå sokkel = ladet"
-    bars_legend_km: "Søylehøyde = kilometer per dag · blå sokkel = ladet"
     charges: "1 lading | {count} ladinger"
     no_trips: "Uten tidsstempel"
     unmeasured: "1 tur uten forbruksverdi | {count} turer uten forbruksverdi"
     charge_public: "offentlig"
     charge_home: "hjemme"
     charge_unknown: "Lading"
+  legend:
+    slim_driven: "kjørt"
+    slim_charged: "ladet"
+    slim_phantom: "hviletap"
+    toggle: "Hva betyr disse tallene?"
+    section_feed: "I denne oversikten"
+    section_home: "På startsiden"
+    section_home_hint: "Der står andre tall for samme periode - ikke en feil, bare et annet spørsmål:"
+    percent_note: "Prosenten sammenligner verdien din: i periodesammendraget med community-snittet, i en enkelt tur eller lading med ditt eget snitt."
+    desc_driving: "Kjøreforbruket - så mye brukte selve kjøringen, uten det som går med mens bilen står."
+    desc_phantom: "Hviletapet - energi bilen taper mens den står, holdt bevisst utenfor kjøreforbruket."
+    desc_charged: "Den ladede energien som faktisk kommer inn i bilen (netto)."
+    bars: "Søylene viser kilometer per dag; den blå sokkelen markerer en dag med lading."
+    term_avg: "Snittforbruk"
+    desc_avg: "Teller all energi mellom to ladinger, også mens bilen står - derfor høyere."
+    term_total: "Total energi"
+    desc_total: "Den ladede energien ved stikkontakten (brutto), inkludert ladetap."
 
 dashboard:
   title: Dashbord

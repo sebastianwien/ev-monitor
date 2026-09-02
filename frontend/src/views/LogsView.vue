@@ -53,6 +53,7 @@ import { hasTripMap } from '../utils/tripMap'
 import { formatPauseDuration, tripDayLabel } from '../utils/tripTimeFormat'
 import { buildPeriodGroups, type PeriodResolution } from '../utils/tripPeriods'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
+import FeedLegend from '../components/dashboard/FeedLegend.vue'
 import PeriodChargeLine from '../components/dashboard/PeriodChargeLine.vue'
 import ChargeTypeBadge from '../components/dashboard/ChargeTypeBadge.vue'
 import ComparisonChip from '../components/dashboard/ComparisonChip.vue'
@@ -1133,6 +1134,19 @@ const visibleTripGroups = computed(() => groupedFeed.value.filter(i => i.kind ==
 const visibleChargeEntries = computed(() => groupedFeed.value.filter(i => i.kind === 'entry'))
 const totalTripCount = computed(() => visibleTripGroups.value.reduce((s, g) => s + (g.groupSize ?? 0), 0))
 const chargeCount = computed(() => visibleChargeEntries.value.length)
+// Standverlust-Zeile der Feed-Legende nur, wenn der Chip auch sichtbar ist (Premium-gegated).
+const feedShowPhantom = computed(() => visibleTripGroups.value.some(g => visiblePhantomTotal(g) != null))
+// Offener Zustand des Erklaerkastens - Trigger steht in der Aufloesungs-Zeile, Panel darunter.
+const feedLegendOpen = ref(false)
+try {
+  feedLegendOpen.value = localStorage.getItem('feedLegendOpen') === '1'
+} catch { /* localStorage kann blockiert sein - Default zu genuegt. */ }
+function toggleFeedLegend() {
+  feedLegendOpen.value = !feedLegendOpen.value
+  try {
+    localStorage.setItem('feedLegendOpen', feedLegendOpen.value ? '1' : '0')
+  } catch { /* nicht persistierbar - fuer diese Sitzung reicht der Ref. */ }
+}
 
 
 const allTripsExpanded = computed(() =>
@@ -1512,16 +1526,21 @@ function toggleAllCharges() {
           <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum.
                Voll ausgeschriebene Segmente statt eines Menues - die vier Optionen passen
                nebeneinander und eine Auswahl, die man sieht, muss man nicht suchen. -->
-          <div v-if="hasAnyLogs" role="group" :aria-label="t('logs.resolution.label')"
-               class="mb-3 inline-flex w-full sm:w-auto p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
-            <button v-for="option in RESOLUTIONS" :key="option" type="button"
-                    @click="feedResolution = option" :aria-pressed="feedResolution === option"
-                    :class="['flex-1 sm:flex-none px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
-                      feedResolution === option
-                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
-              {{ t('logs.resolution.' + option) }}
-            </button>
+          <div v-if="hasAnyLogs" class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div role="group" :aria-label="t('logs.resolution.label')"
+                 class="inline-flex w-full sm:w-auto p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
+              <button v-for="option in RESOLUTIONS" :key="option" type="button"
+                      @click="feedResolution = option" :aria-pressed="feedResolution === option"
+                      :class="['flex-1 sm:flex-none px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
+                        feedResolution === option
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
+                {{ t('logs.resolution.' + option) }}
+              </button>
+            </div>
+            <FeedLegend mode="trigger" class="ml-auto" :has-trips="totalTripCount > 0"
+                        :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
+                        :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
 
           <div :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
@@ -1552,6 +1571,9 @@ function toggleAllCharges() {
               <div v-if="openMenuGroupId" class="fixed inset-0 z-40" @click="openMenuGroupId = null" />
               <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
               <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
+
+              <FeedLegend v-if="feedLegendOpen" mode="panel" :has-trips="totalTripCount > 0"
+                          :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom" />
 
               <template v-for="item in groupedFeed" :key="item.id">
 
