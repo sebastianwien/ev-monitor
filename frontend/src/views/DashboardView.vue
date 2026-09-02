@@ -879,8 +879,24 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
           class="mb-3"
         />
 
-        <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
-        <div class="mb-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Heimlade-Ersparnis: volle Breite, weil die Skala sie braucht - ihre Breite
+             ist die Aussage. Ausserhalb des Rasters, damit dessen Zeilenhoehe nicht an
+             dieser Kachel haengt und kein Loch entsteht, wenn der Tarif sie nicht enthaelt. -->
+        <ChargingSavingsCard
+          :savings="chargingSavings"
+          class="mb-4"
+          @edit-investment="showInvestmentPrompt = true"
+        />
+        <HomeInvestmentModal
+          :open="showInvestmentPrompt"
+          :current="chargingSavings?.investmentEur ?? null"
+          @close="showInvestmentPrompt = false"
+          @save="saveInvestment"
+        />
+
+        <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander.
+             items-start, damit kurze Kacheln nicht auf die Zeilenhoehe gedehnt werden. -->
+        <div class="mb-0 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
 
         <!-- Echte Reichweite -->
         <RangeCard
@@ -896,19 +912,6 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
           v-if="stats.chargingTypeSplit && stats.locationSplit"
           :charging-type-split="stats.chargingTypeSplit"
           :location-split="stats.locationSplit"
-        />
-
-        <!-- Heimlade-Ersparnis: steht neben der Ladeverteilung, weil beide denselben
-             Sachverhalt aus zwei Richtungen zeigen - wo geladen wird und was es spart. -->
-        <ChargingSavingsCard
-          :savings="chargingSavings"
-          @edit-investment="showInvestmentPrompt = true"
-        />
-        <HomeInvestmentModal
-          :open="showInvestmentPrompt"
-          :current="chargingSavings?.investmentEur ?? null"
-          @close="showInvestmentPrompt = false"
-          @save="saveInvestment"
         />
 
         <!-- Peer Benchmark (old) — können wir später löschen -->

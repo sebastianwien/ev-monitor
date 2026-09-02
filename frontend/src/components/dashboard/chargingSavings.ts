@@ -19,6 +19,10 @@ export interface ChargingSavings {
   wouldHaveCostEur: number
   savingsEur: number
   investmentEur: number | null
+  /** Erstes Jahr mit belegtem Heimladen - Beginn der Amortisationsschiene. */
+  firstYear: number | null
+  /** Ersparnis je Kalenderjahr, aus den tatsaechlichen Logs gerechnet. */
+  yearlySavings: YearlySaving[]
   recoveredEur: number | null
   amortisationYearsRemaining: number | null
   fullyAmortised: boolean
@@ -26,34 +30,65 @@ export interface ChargingSavings {
   isOverridden?: boolean
 }
 
-export const OVERRIDE_STORAGE_KEY = 'evmonitor.savings.publicPriceOverride'
+export interface YearlySaving {
+  year: number
+  homeKwh: number
+  paidEur: number
+  wouldHaveCostEur: number
+  savingsEur: number
+  cumulativeEur: number
+}
+
+export type PriceOverrideKind = 'home' | 'public'
+
+export const OVERRIDE_KEYS: Record<PriceOverrideKind, string> = {
+  home: 'evmonitor.savings.homePriceOverride',
+  public: 'evmonitor.savings.publicPriceOverride',
+}
+
+export interface PriceOverrides {
+  /** Angenommener Heimstrompreis - der Hebel, den der Nutzer selbst in der Hand hat. */
+  home: number | null
+  /** Angenommener oeffentlicher Vergleichspreis. */
+  public: number | null
+}
 
 /** Dasselbe Fenster wie im Backend - darueber Tippfehler, darunter Unsinn. */
 const MIN_PRICE = 0
 const MAX_PRICE = 2
 
 /**
- * Rechnet die Kachel auf einen selbst eingegebenen Vergleichspreis um.
+ * Rechnet die Kachel auf selbst angenommene Preise um.
  *
- * Der Heimanteil bleibt unberuehrt - ueberschrieben wird nur, was eine Ladung
- * ausserhalb gekostet haette. Die Amortisation wandert mit, sonst stuenden zwei
- * Zahlen im selben Bild, die sich widersprechen.
+ * Jedes Jahr wird einzeln neu bewertet, damit die kumulierte Summe auf derselben
+ * Grundlage steht wie ohne Annahme. Nicht ueberschriebene Groessen behalten dabei ihr
+ * eigenes Jahresniveau - eine Hochrechnung waere hier genauso falsch wie serverseitig.
  */
-export function applyPublicPriceOverride(
+export function applyPriceOverrides(
   savings: ChargingSavings,
-  overridePricePerKwh: number | null,
+  overrides: PriceOverrides,
 ): ChargingSavings {
-  if (overridePricePerKwh == null) return savings
+  const { home, public: pub } = overrides
+  if (home == null && pub == null) return savings
 
-  const wouldHaveCostEur = savings.homeKwh * overridePricePerKwh
-  const savingsEur = wouldHaveCostEur - savings.actuallyPaidEur
+  const homePricePerKwh = home ?? savings.homePricePerKwh
+  const publicPricePerKwh = pub ?? savings.publicPricePerKwh
 
-  // Bisherige Nutzungsdauer aus dem Serverergebnis zurueckgerechnet, damit die
-  // kumulierte Zahl auf derselben Basis steht wie ohne Override.
-  const usageYears = savings.savingsEur !== 0 && savings.recoveredEur != null
-    ? savings.recoveredEur / savings.savingsEur
-    : 1
-  const recoveredEur = savingsEur * usageYears
+  const actuallyPaidEur = home != null ? savings.homeKwh * home : savings.actuallyPaidEur
+  const wouldHaveCostEur = pub != null ? savings.homeKwh * pub : savings.wouldHaveCostEur
+  const savingsEur = wouldHaveCostEur - actuallyPaidEur
+
+  const yearlySavings = (savings.yearlySavings ?? []).map(y => {
+    const paidEur = home != null ? y.homeKwh * home : y.paidEur
+    const wouldY = pub != null ? y.homeKwh * pub : y.wouldHaveCostEur
+    return { ...y, paidEur, wouldHaveCostEur: wouldY, savingsEur: wouldY - paidEur, cumulativeEur: 0 }
+  })
+  let running = 0
+  for (const y of yearlySavings) {
+    running += y.savingsEur
+    y.cumulativeEur = running
+  }
+  const recoveredEur = running
 
   let amortisationYearsRemaining: number | null = null
   let fullyAmortised = false
@@ -65,9 +100,12 @@ export function applyPublicPriceOverride(
 
   return {
     ...savings,
-    publicPricePerKwh: overridePricePerKwh,
+    homePricePerKwh,
+    publicPricePerKwh,
+    actuallyPaidEur,
     wouldHaveCostEur,
     savingsEur,
+    yearlySavings,
     recoveredEur,
     amortisationYearsRemaining,
     fullyAmortised,
@@ -75,22 +113,31 @@ export function applyPublicPriceOverride(
   }
 }
 
-export function loadPublicPriceOverride(): number | null {
-  const raw = localStorage.getItem(OVERRIDE_STORAGE_KEY)
-  if (raw == null) return null
-  const value = Number(raw)
-  return isPlausible(value) ? value : null
+export function loadPriceOverrides(): PriceOverrides {
+  return { home: read('home'), public: read('public') }
 }
 
 /** @returns false, wenn der Wert ausserhalb des plausiblen Fensters liegt */
-export function savePublicPriceOverride(pricePerKwh: number): boolean {
+export function savePriceOverride(kind: PriceOverrideKind, pricePerKwh: number | null): boolean {
+  if (pricePerKwh == null) {
+    localStorage.removeItem(OVERRIDE_KEYS[kind])
+    return true
+  }
   if (!isPlausible(pricePerKwh)) return false
-  localStorage.setItem(OVERRIDE_STORAGE_KEY, String(pricePerKwh))
+  localStorage.setItem(OVERRIDE_KEYS[kind], String(pricePerKwh))
   return true
 }
 
-export function clearPublicPriceOverride(): void {
-  localStorage.removeItem(OVERRIDE_STORAGE_KEY)
+export function clearPriceOverrides(): void {
+  localStorage.removeItem(OVERRIDE_KEYS.home)
+  localStorage.removeItem(OVERRIDE_KEYS.public)
+}
+
+function read(kind: PriceOverrideKind): number | null {
+  const raw = localStorage.getItem(OVERRIDE_KEYS[kind])
+  if (raw == null) return null
+  const value = Number(raw)
+  return isPlausible(value) ? value : null
 }
 
 function isPlausible(value: number): boolean {
