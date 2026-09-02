@@ -171,9 +171,9 @@ public interface EvLogRepository {
      *                     are different tariffs, so one must never price the other. Null means
      *                     the new log has no type and any priced anchor applies.
      */
-    Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash, ChargingType chargingType);
+    Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash, ChargingType chargingType, boolean isPublic);
 
-    Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash);
+    Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash, boolean isPublic);
 
     /**
      * All logs of this user at exactly this geohash that still have no cost.

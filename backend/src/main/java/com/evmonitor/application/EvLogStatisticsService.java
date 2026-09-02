@@ -710,7 +710,7 @@ public class EvLogStatisticsService {
                                                         boolean isPublicCharging, ChargingType chargingType) {
         int precision = isPublicCharging ? 7 : 6;
         String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();
-        return locationPricing.tariffAt(userId, geohash, chargingType)
+        return locationPricing.tariffAt(userId, geohash, chargingType, isPublicCharging)
                 .map(tariff -> new PriceSuggestion(tariff.pricePerKwh(), tariff.chargingProviderId()));
     }
 

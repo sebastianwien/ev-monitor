@@ -173,7 +173,10 @@ class EvLogServiceDefaultProviderTest extends AbstractIntegrationTest {
     void importedChargeInheritsThePrice_evenWhenTheEarlierChargeHasNoCard() {
         // Home charging: the user types a price and owns no card for it. Repeating that price is
         // exactly what they expect - the previous behaviour left every such charge unpriced.
-        chargedHereBeforeWith(null);
+        // Anchor and new charge are both private - a private charge inherits only from private.
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("20.00"), 30,
+                geohashOfChargePoint(), 9_000, new BigDecimal("150.0"), new BigDecimal("80.0"),
+                LocalDateTime.now().minusDays(5), ChargingType.DC, null, null, false, null));
 
         EvLog log = internalLog(new BigDecimal("10.0"), null, false, geohashOfChargePoint());
 

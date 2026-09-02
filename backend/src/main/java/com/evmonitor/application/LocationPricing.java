@@ -59,10 +59,10 @@ public class LocationPricing {
      *                     (an AC charge next to a fresh DC session would inherit the DC rate).
      *                     Null when the log has no type; then any priced charge counts.
      */
-    public Optional<Tariff> tariffAt(UUID userId, String geohash, ChargingType chargingType) {
+    public Optional<Tariff> tariffAt(UUID userId, String geohash, ChargingType chargingType, boolean isPublic) {
         if (geohash == null || geohash.length() < MIN_GEOHASH_LENGTH) return Optional.empty();
 
-        return evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash, chargingType)
+        return evLogRepository.findMostRecentPricedLogAtGeohash(userId, geohash, chargingType, isPublic)
                 // A session fee is already baked into the recorded amount, so it is never added
                 // on top - it is spread across the kWh of that charge.
                 //
@@ -87,7 +87,10 @@ public class LocationPricing {
         if (log.getCostEur() != null && log.getChargingProviderId() != null) return log;
         if (log.getGeohash() == null || log.getGeohash().length() < MIN_GEOHASH_LENGTH) return log;
 
-        Optional<Tariff> tariff = tariffAt(userId, log.getGeohash(), log.getChargingType());
+        // Karte und Preis erben nur von Ladungen desselben Ladekontexts (privat/oeffentlich):
+        // eine oeffentliche EMP-Karte darf nicht auf eine Heimladung ueberspringen und umgekehrt.
+        boolean isPublic = Boolean.TRUE.equals(log.getPublicCharging());
+        Optional<Tariff> tariff = tariffAt(userId, log.getGeohash(), log.getChargingType(), isPublic);
 
         var builder = log.toBuilder();
         boolean changed = false;
@@ -95,7 +98,7 @@ public class LocationPricing {
         // Ladeart bezahlt, gehoert die Ladung trotzdem zu dieser Karte - nur ihr Preis
         // laesst sich daraus nicht ableiten.
         UUID card = tariff.map(Tariff::chargingProviderId)
-                .or(() -> evLogRepository.findMostRecentChargingProviderAtGeohash(userId, log.getGeohash()))
+                .or(() -> evLogRepository.findMostRecentChargingProviderAtGeohash(userId, log.getGeohash(), isPublic))
                 .orElse(null);
         if (log.getChargingProviderId() == null && card != null) {
             builder.chargingProviderId(card);

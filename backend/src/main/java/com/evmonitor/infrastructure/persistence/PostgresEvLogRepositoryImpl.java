@@ -325,16 +325,16 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     public Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash,
-                                                            com.evmonitor.domain.ChargingType chargingType) {
-        var results = jpaRepository.findRecentPricedByUserIdAndGeohash(userId, geohashPrefix(geohash),
-                chargingType == null ? null : chargingType.name(),
+                                                            com.evmonitor.domain.ChargingType chargingType, boolean isPublic) {
+        var results = jpaRepository.findRecentPricedByUserIdAndGeohash(userId, geohashPrefix(geohash, isPublic),
+                chargingType == null ? null : chargingType.name(), isPublic,
                 org.springframework.data.domain.PageRequest.of(0, 1));
         return results.isEmpty() ? Optional.empty() : Optional.of(toDomain(results.get(0)));
     }
 
     @Override
-    public Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash) {
-        var results = jpaRepository.findRecentWithProviderByUserIdAndGeohash(userId, geohashPrefix(geohash),
+    public Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash, boolean isPublic) {
+        var results = jpaRepository.findRecentWithProviderByUserIdAndGeohash(userId, geohashPrefix(geohash, isPublic), isPublic,
                 org.springframework.data.domain.PageRequest.of(0, 1));
         if (results.isEmpty()) return Optional.empty();
         return Optional.ofNullable(results.get(0).getChargingProviderId());
@@ -369,9 +369,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .toList();
     }
 
-    private static String geohashPrefix(String geohash) {
+    // Private charges are stored at 6 chars (~600m), public ones at 7 (~150m). Matching a public
+    // charge on 7 keeps two stations in the same 600m cell apart; matching private on 6 avoids
+    // pinning a home location more precisely than DSGVO allows.
+    private static String geohashPrefix(String geohash, boolean isPublic) {
         assert geohash.length() >= 6 : "geohash must be at least 6 chars for meaningful prefix lookup";
-        return geohash.substring(0, Math.min(6, geohash.length())) + "%";
+        int length = isPublic ? 7 : 6;
+        return geohash.substring(0, Math.min(length, geohash.length())) + "%";
     }
 
     @Override
