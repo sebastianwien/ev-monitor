@@ -130,7 +130,7 @@ function inputValue(kind: 'home' | 'public'): string {
         <HomeIcon class="h-5 w-5 flex-none text-emerald-600 dark:text-emerald-400" />
         <span class="text-sm font-semibold text-gray-500 dark:text-gray-400">{{ t('savings.title') }}</span>
       </div>
-      <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{{ t('savings.empty_body') }}</p>
+      <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-300">{{ t('savings.empty_body') }}</p>
     </template>
 
     <template v-else>
@@ -182,7 +182,7 @@ function inputValue(kind: 'home' | 'public'): string {
       <span class="text-4xl font-bold tracking-tight tabular-nums text-gray-900 dark:text-gray-50">
         {{ money(view.savingsEur) }}
       </span>
-      <span class="text-sm text-gray-500 dark:text-gray-400">
+      <span class="text-xs text-gray-500 dark:text-gray-400">
         {{ t('savings.saved_last_12_months') }} ·
         {{ t('savings.home_kwh_charged', { kwh: n(view.homeKwh, { maximumFractionDigits: 0 }) }) }}
       </span>
@@ -193,12 +193,12 @@ function inputValue(kind: 'home' | 'public'): string {
       <div class="absolute inset-y-0 left-0 bg-emerald-600 dark:bg-emerald-500 rounded"
            :style="{ width: paidWidth }"></div>
       <div v-if="view.savingsEur > 0"
-           class="absolute inset-y-0 right-0 flex items-center justify-center px-2 text-sm font-semibold text-gray-800 dark:text-gray-100"
+           class="absolute inset-y-0 right-0 flex items-center justify-center px-2 text-xs font-semibold text-gray-800 dark:text-gray-100"
            :style="{ left: paidWidth }">
         + {{ money(view.savingsEur) }}
       </div>
     </div>
-    <div class="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+    <div class="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
       <span>
         {{ t('savings.paid_at_home_short') }} · {{ centsPerKwh(view.homePricePerKwh) }} ·
         <span class="font-semibold text-gray-900 dark:text-gray-100">{{ money(view.actuallyPaidEur) }}</span>
@@ -212,7 +212,7 @@ function inputValue(kind: 'home' | 'public'): string {
     <!-- Amortisation als Zeitschiene -->
     <div v-if="timeline" class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-600">
       <component :is="demo ? 'div' : 'button'" :type="demo ? undefined : 'button'"
-              class="w-full flex justify-between items-baseline text-sm tabular-nums text-left mb-2"
+              class="w-full flex justify-between items-baseline text-xs tabular-nums text-left mb-2"
               :aria-label="demo ? undefined : t('savings.edit_investment')"
               @click="!demo && emit('edit-investment')">
         <span class="text-gray-500 dark:text-gray-400">{{ t('savings.wallbox_recovered') }}</span>
@@ -248,7 +248,7 @@ function inputValue(kind: 'home' | 'public'): string {
     <div v-else-if="view.investmentEur != null"
          class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-600">
       <component :is="demo ? 'div' : 'button'" :type="demo ? undefined : 'button'"
-                 class="w-full flex justify-between items-baseline text-sm tabular-nums text-left"
+                 class="w-full flex justify-between items-baseline text-xs tabular-nums text-left"
                  :aria-label="demo ? undefined : t('savings.edit_investment')"
                  @click="!demo && emit('edit-investment')">
         <span class="text-gray-500 dark:text-gray-400">{{ t('savings.wallbox_recovered') }}</span>
@@ -257,30 +257,30 @@ function inputValue(kind: 'home' | 'public'): string {
           <PencilSquareIcon v-if="!demo" class="ml-1.5 inline h-4 w-4 align-text-bottom text-gray-400 dark:text-gray-500" />
         </span>
       </component>
-      <p class="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+      <p class="mt-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
         {{ t('savings.amortisation_not_possible') }}
       </p>
     </div>
 
     <!-- Ohne Investition: hier sammeln wir die Eingabe ein, die die Zeitschiene braucht -->
     <button v-else type="button"
-            class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-600 w-full flex items-start gap-2 text-left text-sm leading-relaxed text-emerald-700 dark:text-emerald-300"
+            class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-600 w-full flex items-start gap-2 text-left text-xs leading-relaxed text-emerald-700 dark:text-emerald-300"
             @click="emit('edit-investment')">
       <PlusIcon class="h-4 w-4 mt-px flex-none" />
       <span class="min-w-0">{{ t('savings.add_investment') }}</span>
-      <ChevronRightIcon class="h-4 w-4 mt-0.5 ml-auto flex-none text-gray-400" />
+      <ChevronRightIcon class="h-3 w-3 mt-0.5 ml-auto flex-none text-gray-400" />
     </button>
 
     <!-- Reine Herkunftsangabe, bewusst kein Button -->
     <p class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-start gap-1.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-      <InformationCircleIcon class="h-4 w-4 mt-px flex-none" />
+      <InformationCircleIcon class="h-3.5 w-3.5 mt-px flex-none" />
       <span>{{ basisLabel }}</span>
     </p>
 
     <!-- Der Rechenweg, aufklappbar. Wer die Zahl glaubt, muss nicht lesen; wer sie
          anzweifelt, findet die Antwort ohne nachzufragen. Natives details-Element:
          tastaturbedienbar, ohne JavaScript, ohne zusaetzliche Hoehe im Normalfall. -->
-    <details class="mt-3 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+    <details class="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
       <summary class="cursor-pointer select-none py-1 font-medium marker:text-gray-400">
         {{ t('savings.how_summary') }}
       </summary>
