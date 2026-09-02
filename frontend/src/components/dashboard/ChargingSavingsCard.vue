@@ -117,20 +117,23 @@ function inputValue(kind: 'home' | 'public'): string {
 </script>
 
 <template>
-  <!-- Leerzustand: ohne bepreiste Heimladung laesst sich nichts rechnen. Die Kachel
-       verschwindet trotzdem nicht - sonst erfaehrt niemand, dass ihm nur ein Preis
-       fehlt. Betrifft auf Prod 42 von 218 Heimladern. -->
-  <div v-if="!view && emptyState"
+  <!-- Ein Wurzelelement, damit die Kachel Attribute des Aufrufers erbt - mit zwei
+       Wurzeln faellt ein uebergebenes class (etwa der Aussenabstand) lautlos weg. -->
+  <div v-if="view || emptyState"
        class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] p-4 md:p-5">
-    <div class="flex items-center justify-center gap-2 mb-3">
-      <HomeIcon class="h-5 w-5 flex-none text-emerald-600 dark:text-emerald-400" />
-      <span class="text-sm font-semibold text-gray-500 dark:text-gray-400">{{ t('savings.title') }}</span>
-    </div>
-    <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{{ t('savings.empty_body') }}</p>
-  </div>
 
-  <div v-else-if="view"
-       class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] p-4 md:p-5">
+    <!-- Leerzustand: ohne bepreiste Heimladung laesst sich nichts rechnen. Die Kachel
+         verschwindet trotzdem nicht - sonst erfaehrt niemand, dass ihm nur ein Preis
+         fehlt. Betrifft auf Prod 42 von 218 Heimladern. -->
+    <template v-if="!view">
+      <div class="flex items-center justify-center gap-2 mb-3">
+        <HomeIcon class="h-5 w-5 flex-none text-emerald-600 dark:text-emerald-400" />
+        <span class="text-sm font-semibold text-gray-500 dark:text-gray-400">{{ t('savings.title') }}</span>
+      </div>
+      <p class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">{{ t('savings.empty_body') }}</p>
+    </template>
+
+    <template v-else>
 
     <div class="relative flex items-center justify-center gap-2 mb-4">
       <HomeIcon class="h-5 w-5 flex-none text-emerald-600 dark:text-emerald-400" />
@@ -290,5 +293,6 @@ function inputValue(kind: 'home' | 'public'): string {
         <p>{{ t('savings.how_excluded') }}</p>
       </div>
     </details>
+    </template>
   </div>
 </template>
