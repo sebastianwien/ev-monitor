@@ -18,6 +18,7 @@ import com.evmonitor.domain.xpeng.XpengParseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -218,6 +219,139 @@ class XpengImportServiceTest {
         XpengConnection c = activeConnection();
         c.setConsentRevokedAt(LocalDateTime.now());
         return c;
+    }
+
+    // --- CSV-ZIP Format (neues EU-Data-Act-Format) ---
+
+    @Test
+    void uploadCsvZip_rejectsNonZip() {
+        // Scheitert am Magic-Byte-Check noch vor der VIN-/Connection-Aufloesung.
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.uploadCsvZip(USER, CAR,
+                        new ByteArrayInputStream("plain,csv\n1,2".getBytes()), "1.1.1.1", "ua"));
+        assertTrue(ex.getMessage().toLowerCase().contains("magic"), ex.getMessage());
+        verify(jobRepo, never()).save(any());
+    }
+
+    @Test
+    void uploadCsvZip_rejectsOleEncrypted() {
+        // CSV-ZIP darf nur ein echtes ZIP sein - verschluesseltes OLE ist hier ungueltig.
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        byte[] ole = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
+                (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1, 0, 0};
+        assertThrows(IllegalArgumentException.class,
+                () -> service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(ole), "1.1.1.1", "ua"));
+        verify(jobRepo, never()).save(any());
+    }
+
+    @Test
+    void uploadCsvZip_queuesJobForValidZip() throws Exception {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+        when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
+                anyCollection())).thenReturn(Optional.empty());
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        byte[] zip = Files.readAllBytes(writeCsvZip(VIN));
+        assertDoesNotThrow(() -> service.uploadCsvZip(USER, CAR,
+                new ByteArrayInputStream(zip), "1.1.1.1", "ua"));
+        verify(jobRepo).save(any());
+    }
+
+    @Test
+    void uploadCsvZip_firstUpload_autoLinksVinFromFile() throws Exception {
+        // Keine bestehende Connection -> VIN aus dem ZIP wird automatisch ans Auto gebunden.
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.empty());
+        when(connectionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
+                anyCollection())).thenReturn(Optional.empty());
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        byte[] zip = Files.readAllBytes(writeCsvZip(VIN));
+
+        service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(zip), "1.1.1.1", "ua");
+
+        ArgumentCaptor<XpengConnection> cap = ArgumentCaptor.forClass(XpengConnection.class);
+        verify(connectionRepo).save(cap.capture());
+        assertEquals(VIN, cap.getValue().getVin());
+        assertFalse(cap.getValue().isAutoSyncEnabled());
+        assertEquals(XpengConnection.MANUAL_CONSENT_VERSION, cap.getValue().getConsentVersion());
+        verify(jobRepo).save(any());
+    }
+
+    @Test
+    void uploadCsvZip_rejectsVinMismatchWithLinkedCar() throws Exception {
+        // Auto ist bereits mit VIN verknuepft; ein Export mit anderer VIN wird abgelehnt.
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+        byte[] zip = Files.readAllBytes(writeCsvZip("WRONGVIN000000000"));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(zip), "1.1.1.1", "ua"));
+        assertTrue(ex.getMessage().toLowerCase().contains("passt nicht"), ex.getMessage());
+        verify(jobRepo, never()).save(any());
+    }
+
+    @Test
+    void processCsvJobAsync_matchingVin_marksDone() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID connectionId = UUID.randomUUID();
+        Path zip = writeCsvZip(VIN);
+        XpengImportJob job = XpengImportJob.builder()
+                .id(jobId).userId(USER).carId(CAR)
+                .status(XpengImportJob.Status.QUEUED).build();
+        XpengConnection conn = activeConnection();
+        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(conn));
+        when(connectionRepo.findById(connectionId)).thenReturn(Optional.of(conn));
+
+        service.processCsvJobAsync(jobId, zip.toString(), connectionId);
+
+        assertEquals(XpengImportJob.Status.DONE, job.getStatus());
+        verify(adminAlertService, never()).sendXpengEncryptionAlert(any(), any(), any());
+    }
+
+    @Test
+    void processCsvJobAsync_vinMismatch_marksFailed() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID connectionId = UUID.randomUUID();
+        Path zip = writeCsvZip("WRONGVIN000000000");
+        XpengImportJob job = XpengImportJob.builder()
+                .id(jobId).userId(USER).carId(CAR)
+                .status(XpengImportJob.Status.QUEUED).build();
+        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+
+        service.processCsvJobAsync(jobId, zip.toString(), connectionId);
+
+        assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
+        assertTrue(job.getErrorMessage() != null
+                        && job.getErrorMessage().toLowerCase().contains("vin"),
+                "erwartete VIN-Mismatch-Meldung, war: " + job.getErrorMessage());
+    }
+
+    /** Baut ein minimales CSV-ZIP (operation + power_energy Cluster) mit der gegebenen VIN. */
+    private Path writeCsvZip(String vin) throws IOException {
+        String op = "vin,vmodel,timer,ds,esp_vehspd,ldcu_currentgearlev,cdcu_totalodometer\n"
+                + vin + ",F57a,1000,20260901,0.0,4,12345.0\n"
+                + vin + ",F57a,1001,20260901,30.0,1,12345.0\n"
+                + vin + ",F57a,1002,20260901,0.0,4,12346.0\n";
+        String pe = "vin,vmodel,timer,ds,ldcu_chrgpwr,ldcu_bms_soc_disp\n"
+                + vin + ",F57a,1000,20260901,0.0,80.0\n"
+                + vin + ",F57a,1001,20260901,0.0,79.0\n"
+                + vin + ",F57a,1002,20260901,0.0,78.0\n";
+        Path zip = Files.createTempFile(tempDir, "xpeng-", ".zip");
+        try (var zos = new java.util.zip.ZipOutputStream(Files.newOutputStream(zip))) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("driving_operation_di.csv"));
+            zos.write(op.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zos.closeEntry();
+            zos.putNextEntry(new java.util.zip.ZipEntry("driving_power_energy_di.csv"));
+            zos.write(pe.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            zos.closeEntry();
+        }
+        return zip;
     }
 
     // --- isEncryptionRelated ---

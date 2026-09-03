@@ -33,6 +33,7 @@ public class XpengImportController {
     /** 5 uploads / hour / user. Prevents brute-force on decryption password + tempdir abuse. */
     private final ConcurrentMap<UUID, Bucket> rateLimits = new ConcurrentHashMap<>();
 
+    /** Altes Format: (ggf. verschluesselte) XLSX. */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> upload(@AuthenticationPrincipal UserPrincipal principal,
                                     @RequestParam("carId") UUID carId,
@@ -40,6 +41,27 @@ public class XpengImportController {
                                     @RequestParam(value = "password", required = false) String password,
                                     HttpServletRequest http) {
         UUID userId = principal.getUser().getId();
+        return runUpload(userId, file, () -> importService.uploadXlsx(userId, carId, file.getInputStream(),
+                password, WebUtils.clientIp(http), http.getHeader("User-Agent")));
+    }
+
+    /** Neues EU-Data-Act-Format: ZIP mit CSV-Clustern (manueller Portal-Upload, kein Passwort). */
+    @PostMapping(value = "/upload-zip", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadZip(@AuthenticationPrincipal UserPrincipal principal,
+                                       @RequestParam("carId") UUID carId,
+                                       @RequestParam("file") MultipartFile file,
+                                       HttpServletRequest http) {
+        UUID userId = principal.getUser().getId();
+        return runUpload(userId, file, () -> importService.uploadCsvZip(userId, carId, file.getInputStream(),
+                WebUtils.clientIp(http), http.getHeader("User-Agent")));
+    }
+
+    @FunctionalInterface
+    private interface UploadAction {
+        XpengImportJob run() throws Exception;
+    }
+
+    private ResponseEntity<?> runUpload(UUID userId, MultipartFile file, UploadAction action) {
         if (!rateLimitFor(userId).tryConsume(1)) {
             return ResponseEntity.status(429).body(Map.of("error", "Zu viele Upload-Versuche. Bitte in einer Stunde erneut."));
         }
@@ -47,9 +69,7 @@ public class XpengImportController {
             return ResponseEntity.badRequest().body(Map.of("error", "Datei fehlt"));
         }
         try {
-            XpengImportJob job = importService.uploadXlsx(userId, carId, file.getInputStream(),
-                    password, WebUtils.clientIp(http), http.getHeader("User-Agent"));
-            return ResponseEntity.accepted().body(toDto(job));
+            return ResponseEntity.accepted().body(toDto(action.run()));
         } catch (SecurityException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException | IllegalStateException e) {

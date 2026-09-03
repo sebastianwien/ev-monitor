@@ -21,7 +21,6 @@ import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -336,33 +335,7 @@ public class XpengExcelStreamingParser {
         private XpengTelematicsRow mapRow() {
             LocalDateTime timer = parseTimer(byLogical(XpengHeaderMapper.TIMER));
             if (timer == null) return null;
-            java.util.Map<String, BigDecimal> extras = new java.util.HashMap<>();
-            putIfNotNull(extras, XpengExtraKeys.CELL_TEMP_MAX_C, parseDecimal(byLogical(XpengHeaderMapper.CELL_TEMP_MAX)));
-            putIfNotNull(extras, XpengExtraKeys.CELL_TEMP_MIN_C, parseDecimal(byLogical(XpengHeaderMapper.CELL_TEMP_MIN)));
-            putIfNotNull(extras, XpengExtraKeys.LONG_ACCEL_G,    parseDecimal(byLogical(XpengHeaderMapper.LONG_ACCEL)));
-            putIfNotNull(extras, XpengExtraKeys.LAT_ACCEL_G,     parseDecimal(byLogical(XpengHeaderMapper.LAT_ACCEL)));
-            putIfNotNull(extras, XpengExtraKeys.ACCEL_PEDAL_PCT, parseDecimal(byLogical(XpengHeaderMapper.ACCEL_PEDAL)));
-            putIfNotNull(extras, XpengExtraKeys.FRONT_TORQUE_NM, parseDecimal(byLogical(XpengHeaderMapper.FRONT_TORQUE)));
-            putIfNotNull(extras, XpengExtraKeys.REAR_TORQUE_NM,  parseDecimal(byLogical(XpengHeaderMapper.REAR_TORQUE)));
-            putIfNotNull(extras, XpengExtraKeys.FRONT_RPM,       parseDecimal(byLogical(XpengHeaderMapper.FRONT_RPM)));
-            putIfNotNull(extras, XpengExtraKeys.REAR_RPM,        parseDecimal(byLogical(XpengHeaderMapper.REAR_RPM)));
-            putIfNotNull(extras, XpengExtraKeys.BMS_RANGE_KM,    parseDecimal(byLogical(XpengHeaderMapper.BMS_RANGE)));
-            return new XpengTelematicsRow(
-                    timer,
-                    parseDecimal(byLogical(XpengHeaderMapper.SPEED)),
-                    parseInt(byLogical(XpengHeaderMapper.GEAR)),
-                    parseDecimal(byLogical(XpengHeaderMapper.ODOMETER)),
-                    parseDecimal(byLogical(XpengHeaderMapper.SOC)),
-                    parseDecimal(byLogical(XpengHeaderMapper.BATT_VOLT)),
-                    parseDecimal(byLogical(XpengHeaderMapper.BATT_CURR)),
-                    parseDecimal(byLogical(XpengHeaderMapper.CHARGE_POWER)),
-                    parseDecimal(byLogical(XpengHeaderMapper.BATT_TEMP_MAX)),
-                    parseDecimal(byLogical(XpengHeaderMapper.BATT_TEMP_MIN)),
-                    extras);
-        }
-
-        private static void putIfNotNull(java.util.Map<String, BigDecimal> map, String key, BigDecimal v) {
-            if (v != null) map.put(key, v);
+            return XpengRowMapper.map(this::byLogical, timer);
         }
 
         private String byLogical(String logical) {
@@ -402,21 +375,4 @@ public class XpengExcelStreamingParser {
         }
     }
 
-    private static BigDecimal parseDecimal(String raw) {
-        if (raw == null || raw.isBlank()) return null;
-        try {
-            return new BigDecimal(raw.trim().replace(",", "."));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private static Integer parseInt(String raw) {
-        if (raw == null || raw.isBlank()) return null;
-        try {
-            return (int) Double.parseDouble(raw.trim().replace(",", "."));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
 }
