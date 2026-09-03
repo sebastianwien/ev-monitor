@@ -1,6 +1,7 @@
 package com.evmonitor.application.savings;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * Antwort der Ersparnis-Kachel.
@@ -28,9 +29,13 @@ public record ChargingSavingsResponse(
         java.util.List<YearlySaving> yearlySavings,
         BigDecimal recoveredEur,
         BigDecimal amortisationYearsRemaining,
-        boolean fullyAmortised
+        boolean fullyAmortised,
+        // Sieht der Nutzer die Kachel nur ueber das Trial (dann Retention-Hinweis), und bis
+        // wann laeuft es. trialEndsAt ist null, wenn der Zugang nicht am Trial haengt.
+        boolean viaTrial,
+        LocalDate trialEndsAt
 ) {
-    public static ChargingSavingsResponse from(ChargingSavings s) {
+    public static ChargingSavingsResponse from(ChargingSavings s, boolean viaTrial, LocalDate trialEndsAt) {
         return new ChargingSavingsResponse(
                 s.homeKwh(),
                 s.homePrice().pricePerKwh(),
@@ -47,6 +52,8 @@ public record ChargingSavingsResponse(
                 s.yearlySavings(),
                 s.recoveredEur(),
                 s.amortisationYearsRemaining(),
-                s.fullyAmortised());
+                s.fullyAmortised(),
+                viaTrial,
+                trialEndsAt);
     }
 }

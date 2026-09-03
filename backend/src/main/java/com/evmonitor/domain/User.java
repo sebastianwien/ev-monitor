@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -154,16 +155,58 @@ public class User {
     }
 
     /**
+     * True, solange das launch-verankerte Gratis-Fenster von {@code trial} den Nutzer
+     * traegt (siehe {@link FeatureTrial}). Ohne bekanntes Registrierungsdatum gibt es kein
+     * Trial - dann greift nur der bezahlte Gate der jeweiligen Kachel.
+     */
+    boolean isWithinTrial(FeatureTrial trial, LocalDate today) {
+        LocalDate end = trialEndsAt(trial);
+        return end != null && !today.isAfter(end);
+    }
+
+    /** Letzter Tag, an dem {@code trial} den Nutzer traegt - null ohne bekanntes Registrierungsdatum. */
+    LocalDate trialEndsAt(FeatureTrial trial) {
+        return createdAt == null ? null : trial.endFor(createdAt.toLocalDate());
+    }
+
+    /**
      * Gate fuer die Heimlade-Ersparnis auf dem Dashboard.
      *
-     * Haengt an jedem bezahlten Tarif - der AutoSync-Leiter ebenso wie dem dazu
-     * orthogonalen SUPPORTER, der genau fuer solche Auswertungen gedacht ist. Ob die
-     * Kachel spaeter frei wird, ist eine offene Produktentscheidung; bis dahin gilt
-     * bewusst die engere Variante, weil sich ein Gate leichter oeffnen als
-     * nachtraeglich schliessen laesst.
+     * Jeder bezahlte Tarif (die AutoSync-Leiter wie der dazu orthogonale SUPPORTER) und
+     * die privilegierten Rollen sehen die Kachel dauerhaft. Zusaetzlich ist sie im
+     * launch-verankerten Trial fuer alle offen (siehe
+     * {@link FeatureTrial#HOME_CHARGING_SAVINGS}) - danach faellt sie auf den bezahlten
+     * Gate zurueck. Das Gate ist die Sicherheitsgrenze: die Zahlen entstehen nur, wenn
+     * dies true ist.
      */
     public boolean canViewChargingSavings() {
-        return subscriptionTier.isPaid() || TRIP_PUSH_PRIVILEGED_ROLES.contains(role);
+        return canViewChargingSavings(LocalDate.now());
+    }
+
+    boolean canViewChargingSavings(LocalDate today) {
+        return subscriptionTier.isPaid()
+                || TRIP_PUSH_PRIVILEGED_ROLES.contains(role)
+                || isWithinTrial(FeatureTrial.HOME_CHARGING_SAVINGS, today);
+    }
+
+    /**
+     * True, solange der Nutzer die Kachel ausschliesslich ueber das Trial sieht - also
+     * weder zahlt noch eine privilegierte Rolle hat. Steuert den Retention-Hinweis; fuer
+     * zahlende Nutzer bleibt er aus, sie verlieren die Kachel nicht.
+     */
+    public boolean isChargingSavingsViaTrial() {
+        return isChargingSavingsViaTrial(LocalDate.now());
+    }
+
+    boolean isChargingSavingsViaTrial(LocalDate today) {
+        return !subscriptionTier.isPaid()
+                && !TRIP_PUSH_PRIVILEGED_ROLES.contains(role)
+                && isWithinTrial(FeatureTrial.HOME_CHARGING_SAVINGS, today);
+    }
+
+    /** Letzter Tag, an dem das Ersparnis-Trial die Kachel traegt - null ohne Registrierungsdatum. */
+    public LocalDate savingsTrialEndsAt() {
+        return trialEndsAt(FeatureTrial.HOME_CHARGING_SAVINGS);
     }
 
     public boolean canViewLiveAnalytics() {

@@ -46,8 +46,10 @@ import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
 import DashboardInsightsTeaser from '../components/dashboard/DashboardInsightsTeaser.vue'
 import ChargingTypeSplitCard from '../components/dashboard/ChargingTypeSplitCard.vue'
 import ChargingSavingsCard from '../components/dashboard/ChargingSavingsCard.vue'
+import ChargingSavingsCardTeaser from '../components/dashboard/ChargingSavingsCardTeaser.vue'
 import HomeInvestmentModal from '../components/dashboard/HomeInvestmentModal.vue'
 import chargingSavingsService from '../api/chargingSavingsService'
+import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import type { ChargingSavings } from '../components/dashboard/chargingSavings'
 import ChargingEfficiencyCard from '../components/dashboard/ChargingEfficiencyCard.vue'
 import CO2Card from '../components/dashboard/CO2Card.vue'
@@ -259,6 +261,16 @@ const chargingSavings = ref<ChargingSavings | null>(null)
 // Berechtigt, aber (noch) ohne Zahlen: dann zeigt die Kachel ihren Leerzustand statt zu
 // verschwinden - sonst erfaehrt niemand, dass ihm nur ein Preis fehlt.
 const chargingSavingsEntitled = ref(false)
+// Zugang endgueltig weg (Probemonat vorbei, kein bezahlter Tarif): dann zeigt das
+// Dashboard den Upsell-Teaser. Bewusst getrennt von "nicht berechtigt bei unklarem
+// Zustand" (401/Fehler), damit der Teaser nicht bei Ladefehlern aufblitzt.
+const chargingSavingsLocked = ref(false)
+// Nutzer sieht die Kachel nur ueber den Probemonat - steuert den Retention-Hinweis.
+const chargingSavingsViaTrial = ref(false)
+const chargingSavingsTrialEndsAt = ref<string | null>(null)
+// Wohin das "dauerhaft freischalten"-CTA fuehrt: Supporter-Pack fuer Tesla-Fahrer (Quelle
+// vorhanden), sonst AutoSync. Dieselbe Regel wie bei den uebrigen Analytics-Upsells.
+const savingsUpsellTarget = useAnalyticsUpsellTarget()
 const showInvestmentPrompt = ref(false)
 
 async function loadChargingSavings() {
@@ -266,9 +278,15 @@ async function loadChargingSavings() {
     const result = await chargingSavingsService.get()
     chargingSavings.value = result.savings
     chargingSavingsEntitled.value = result.entitled
+    chargingSavingsLocked.value = result.locked
+    chargingSavingsViaTrial.value = result.viaTrial
+    chargingSavingsTrialEndsAt.value = result.trialEndsAt
   } catch {
     chargingSavings.value = null
     chargingSavingsEntitled.value = false
+    chargingSavingsLocked.value = false
+    chargingSavingsViaTrial.value = false
+    chargingSavingsTrialEndsAt.value = null
   }
 }
 
@@ -889,11 +907,18 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
              ist die Aussage. Ausserhalb des Rasters, damit dessen Zeilenhoehe nicht an
              dieser Kachel haengt und kein Loch entsteht, wenn der Tarif sie nicht enthaelt. -->
         <ChargingSavingsCard
+          v-if="chargingSavingsEntitled"
           :savings="chargingSavings"
           :empty-state="chargingSavingsEntitled"
+          :trial="chargingSavingsViaTrial"
+          :trial-ends-at="chargingSavingsTrialEndsAt"
+          :upsell-target="savingsUpsellTarget"
           class="mb-4"
           @edit-investment="showInvestmentPrompt = true"
         />
+        <!-- Probemonat vorbei, kein bezahlter Tarif: der Teaser tritt an die Stelle der
+             Kachel - Muster wie DashboardInsights/-Teaser. -->
+        <ChargingSavingsCardTeaser v-else-if="chargingSavingsLocked" class="mb-4" />
         <HomeInvestmentModal
           :open="showInvestmentPrompt"
           :current="chargingSavings?.investmentEur ?? null"

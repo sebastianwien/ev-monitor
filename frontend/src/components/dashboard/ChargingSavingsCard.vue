@@ -14,7 +14,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   HomeIcon, InformationCircleIcon, PlusIcon, ChevronRightIcon,
-  AdjustmentsHorizontalIcon, PencilSquareIcon, ArrowUturnLeftIcon,
+  AdjustmentsHorizontalIcon, PencilSquareIcon, ArrowUturnLeftIcon, ClockIcon,
 } from '@heroicons/vue/24/outline'
 import {
   applyPriceOverrides,
@@ -34,10 +34,22 @@ const props = defineProps<{
   /** Schaufenster-Modus fuer die Upsell-Seite: kein lokaler Vergleichspreis, keine
    *  Bedienelemente, die ins Leere fuehren. */
   demo?: boolean
+  /** Der Nutzer sieht die Kachel nur ueber den Probemonat - dann der Retention-Hinweis. */
+  trial?: boolean
+  /** Ablauf des Probemonats (ISO YYYY-MM-DD) fuer den Hinweistext. */
+  trialEndsAt?: string | null
+  /** Ziel des "dauerhaft freischalten"-CTA - das Dashboard entscheidet Supporter vs. AutoSync. */
+  upsellTarget?: string
 }>()
 const emit = defineEmits<{ (e: 'edit-investment'): void }>()
 
-const { t, n } = useI18n()
+const { t, n, locale } = useI18n()
+
+/** "3. Oktober" statt eines ISO-Datums - der Hinweis nennt den Tag, an dem Schluss ist. */
+const trialEndLabel = computed(() => {
+  if (!props.trialEndsAt) return ''
+  return new Date(props.trialEndsAt).toLocaleDateString(locale.value, { day: 'numeric', month: 'long' })
+})
 
 const overrides = ref<PriceOverrides>({ home: null, public: null })
 const showPlayground = ref(false)
@@ -293,6 +305,19 @@ function inputValue(kind: 'home' | 'public'): string {
         <p>{{ t('savings.how_excluded') }}</p>
       </div>
     </details>
+
+    <!-- Retention-Hinweis: nur im Probemonat und nur fuer nicht-zahlende Nutzer. Sagt,
+         womit die Kachel dauerhaft bleibt - das konkrete Ziel bestimmt das Dashboard. -->
+    <div v-if="trial && !demo"
+         class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-start gap-1.5 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+      <ClockIcon class="h-3.5 w-3.5 mt-px flex-none" />
+      <span>
+        {{ trialEndLabel ? t('savings.trial_hint', { date: trialEndLabel }) : t('savings.trial_hint_generic') }}
+        <router-link v-if="upsellTarget" :to="upsellTarget" class="font-semibold underline hover:no-underline">
+          {{ t('savings.trial_cta') }}
+        </router-link>
+      </span>
+    </div>
     </template>
   </div>
 </template>

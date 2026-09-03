@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -81,7 +82,38 @@ class ChargingSavingsControllerTest {
     void premiumUser_getsSavingsWithBasis() {
         givenUser(true);
         when(user.getId()).thenReturn(USER);
-        when(service.calculate(USER)).thenReturn(new ChargingSavings(
+        when(service.calculate(USER)).thenReturn(sampleSavings());
+
+        ChargingSavingsResponse body = controller().get(principal).getBody();
+
+        assertNotNull(body);
+        assertEquals(0, new BigDecimal("83.20").compareTo(body.savingsEur()));
+        assertEquals("OWN_LOGS", body.homePriceBasis());
+        assertEquals("COUNTRY", body.publicPriceBasis());
+        assertEquals(2659, body.publicPriceSampleSize(), "die Kachel benennt die Breite des Vergleichs");
+        assertFalse(body.viaTrial(), "zahlender Nutzer bekommt keinen Trial-Hinweis");
+        assertNull(body.trialEndsAt());
+    }
+
+    /** Trial-Nutzer sieht dieselben Zahlen, aber als Trial markiert und mit Ablaufdatum. */
+    @Test
+    void trialUser_savingsFlaggedAsTrialWithEndDate() {
+        givenUser(true);
+        when(user.getId()).thenReturn(USER);
+        when(user.isChargingSavingsViaTrial()).thenReturn(true);
+        LocalDate ends = LocalDate.of(2026, 10, 3);
+        when(user.savingsTrialEndsAt()).thenReturn(ends);
+        when(service.calculate(USER)).thenReturn(sampleSavings());
+
+        ChargingSavingsResponse body = controller().get(principal).getBody();
+
+        assertNotNull(body);
+        assertTrue(body.viaTrial());
+        assertEquals(ends, body.trialEndsAt());
+    }
+
+    private ChargingSavings sampleSavings() {
+        return new ChargingSavings(
                 new BigDecimal("640"),
                 new PriceBasis(PriceSource.OWN_LOGS, new BigDecimal("0.27"), 12),
                 new PriceBasis(PriceSource.COUNTRY, new BigDecimal("0.40"), 2659),
@@ -91,14 +123,6 @@ class ChargingSavingsControllerTest {
                 java.util.List.of(new com.evmonitor.application.savings.YearlySaving(
                         2026, new BigDecimal("640"), new BigDecimal("172.80"),
                         new BigDecimal("256.00"), new BigDecimal("83.20"), new BigDecimal("212.16"))),
-                new BigDecimal("212.16"), null, false));
-
-        ChargingSavingsResponse body = controller().get(principal).getBody();
-
-        assertNotNull(body);
-        assertEquals(0, new BigDecimal("83.20").compareTo(body.savingsEur()));
-        assertEquals("OWN_LOGS", body.homePriceBasis());
-        assertEquals("COUNTRY", body.publicPriceBasis());
-        assertEquals(2659, body.publicPriceSampleSize(), "die Kachel benennt die Breite des Vergleichs");
+                new BigDecimal("212.16"), null, false);
     }
 }

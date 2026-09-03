@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
-
 /**
  * Heimlade-Ersparnis fuer den angemeldeten Nutzer.
  *
@@ -40,13 +38,18 @@ public class ChargingSavingsController {
         // Gate auf die bezahlten Tarife (AutoSync-Leiter und Supporter). Ob die Kachel
         // frei wird, ist eine offene Produktentscheidung - sie haengt an dieser Zeile
         // beziehungsweise an User#canViewChargingSavings().
-        if (!principal.getUser().canViewChargingSavings()) {
+        var user = principal.getUser();
+        if (!user.canViewChargingSavings()) {
             return ResponseEntity.status(403).build();
         }
-        UUID userId = principal.getUser().getId();
-        ChargingSavings savings = service.calculate(userId);
-        return savings == null
-                ? ResponseEntity.noContent().build()
-                : ResponseEntity.ok(ChargingSavingsResponse.from(savings));
+        ChargingSavings savings = service.calculate(user.getId());
+        if (savings == null) {
+            return ResponseEntity.noContent().build();
+        }
+        // Trial-Kontext nur mitgeben, wenn der Zugang wirklich am Trial haengt - zahlende
+        // Nutzer sollen keinen Retention-Hinweis sehen.
+        boolean viaTrial = user.isChargingSavingsViaTrial();
+        return ResponseEntity.ok(ChargingSavingsResponse.from(
+                savings, viaTrial, viaTrial ? user.savingsTrialEndsAt() : null));
     }
 }

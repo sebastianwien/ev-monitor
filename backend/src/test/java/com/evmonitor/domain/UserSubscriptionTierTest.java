@@ -2,6 +2,7 @@ package com.evmonitor.domain;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -188,29 +189,93 @@ class UserSubscriptionTierTest {
 
     // ------------------------------------------------------ Heimlade-Ersparnis
 
+    // Launch-Anker des Trials, gespiegelt aus FeatureTrial#HOME_CHARGING_SAVINGS. Bewusst
+    // hart notiert: aendert sich der Anker, sollen diese Spec-Tests brechen.
+    private static final LocalDate TRIAL_LAUNCH = LocalDate.of(2026, 9, 3);
+    private static final LocalDate LAST_TRIAL_DAY = TRIAL_LAUNCH.plusDays(30);   // 2026-10-03
+    private static final LocalDate AFTER_TRIAL = LAST_TRIAL_DAY.plusDays(1);     // 2026-10-04
+    private static final LocalDate LONG_BEFORE_LAUNCH = LocalDate.of(2025, 1, 1);
+
     /**
-     * Die Ersparnis-Kachel haengt an jedem bezahlten Tarif - der AutoSync-Leiter und
-     * dem dazu orthogonalen SUPPORTER. Ob sie spaeter frei wird, ist eine offene
-     * Produktentscheidung; bis dahin gilt bewusst die engere Variante.
+     * Bezahlte Tarife und privilegierte Rollen sehen die Kachel dauerhaft - auch nach
+     * Trial-Ende. Der freie Tarif faellt dann heraus. Getestet mit einem Datum nach
+     * dem Trial, damit belegt ist, dass hier der Tarif traegt und nicht das Trial.
      */
     @Test
-    void chargingSavings_requiresAPaidTier() {
-        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewChargingSavings());
+    void chargingSavings_paidTiersAndRoles_entitledAfterTrialEnds() {
+        assertFalse(buildUser("USER", SubscriptionTier.NONE, LONG_BEFORE_LAUNCH).canViewChargingSavings(AFTER_TRIAL));
 
-        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewChargingSavings());
-        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewChargingSavings());
-        assertTrue(buildUser("USER", SubscriptionTier.SUPPORTER).canViewChargingSavings());
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC, LONG_BEFORE_LAUNCH).canViewChargingSavings(AFTER_TRIAL));
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE, LONG_BEFORE_LAUNCH).canViewChargingSavings(AFTER_TRIAL));
+        assertTrue(buildUser("USER", SubscriptionTier.SUPPORTER, LONG_BEFORE_LAUNCH).canViewChargingSavings(AFTER_TRIAL));
+        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE, LONG_BEFORE_LAUNCH).canViewChargingSavings(AFTER_TRIAL));
+        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE, LONG_BEFORE_LAUNCH).canViewChargingSavings(AFTER_TRIAL));
     }
 
-    /** Wie bei den uebrigen Analytics-Gates sehen ADMIN und BETA_TESTER die Kachel. */
+    /**
+     * Launch-verankertes Trial: ein Bestandsnutzer (vor dem Launch registriert) sieht die
+     * Kachel ab dem Launch einen vollen Monat, danach nicht mehr.
+     */
     @Test
-    void chargingSavings_openToPrivilegedRoles() {
-        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewChargingSavings());
-        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewChargingSavings());
+    void chargingSavings_existingFreeUser_seesTileForOneMonthFromLaunch() {
+        User existing = buildUser("USER", SubscriptionTier.NONE, LONG_BEFORE_LAUNCH);
+        assertTrue(existing.canViewChargingSavings(TRIAL_LAUNCH), "Launch-Tag");
+        assertTrue(existing.canViewChargingSavings(LAST_TRIAL_DAY), "letzter Trial-Tag");
+        assertFalse(existing.canViewChargingSavings(AFTER_TRIAL), "Tag nach dem Trial");
+    }
+
+    /** Wer nach dem Launch registriert, bekommt seine 30 Tage ab Registrierung. */
+    @Test
+    void chargingSavings_userRegisteredAfterLaunch_getsThirtyDaysFromRegistration() {
+        LocalDate registered = LocalDate.of(2026, 11, 1);
+        User late = buildUser("USER", SubscriptionTier.NONE, registered);
+        assertTrue(late.canViewChargingSavings(registered), "Registrierungstag");
+        assertTrue(late.canViewChargingSavings(registered.plusDays(30)), "letzter Trial-Tag");
+        assertFalse(late.canViewChargingSavings(registered.plusDays(31)), "Tag nach dem Trial");
+    }
+
+    /** Ohne bekanntes Registrierungsdatum gibt es kein Trial - dann traegt nur der Tarif. */
+    @Test
+    void chargingSavings_withoutCreatedAt_noTrial() {
+        User u = User.builder()
+                .id(UUID.randomUUID()).email("u@example.com").username("u")
+                .authProvider(AuthProvider.LOCAL).role("USER")
+                .subscriptionTier(SubscriptionTier.NONE)
+                .build();
+        assertFalse(u.canViewChargingSavings(TRIAL_LAUNCH));
+    }
+
+    /**
+     * Der Retention-Hinweis haengt an {@code isChargingSavingsViaTrial}: nur wer die Kachel
+     * ausschliesslich ueber das Trial sieht, bekommt ihn - zahlende und privilegierte
+     * Nutzer verlieren nichts und sehen ihn nie.
+     */
+    @Test
+    void chargingSavingsViaTrial_onlyForFreeUserInsideWindow() {
+        LocalDate during = TRIAL_LAUNCH.plusDays(10);
+        assertTrue(buildUser("USER", SubscriptionTier.NONE, LONG_BEFORE_LAUNCH).isChargingSavingsViaTrial(during));
+
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC, LONG_BEFORE_LAUNCH).isChargingSavingsViaTrial(during),
+                "zahlender Nutzer sieht die Kachel ohnehin - kein Trial-Hinweis");
+        assertFalse(buildUser("ADMIN", SubscriptionTier.NONE, LONG_BEFORE_LAUNCH).isChargingSavingsViaTrial(during));
+        assertFalse(buildUser("USER", SubscriptionTier.NONE, LONG_BEFORE_LAUNCH).isChargingSavingsViaTrial(AFTER_TRIAL),
+                "nach dem Trial gibt es nichts mehr zu halten");
+    }
+
+    /** Trial-Ende: launch-verankert fuer Bestandsuser, registrierungsverankert fuer Neue. */
+    @Test
+    void savingsTrialEndsAt_anchoredToLaterOfLaunchAndRegistration() {
+        assertEquals(LAST_TRIAL_DAY,
+                buildUser("USER", SubscriptionTier.NONE, LONG_BEFORE_LAUNCH).savingsTrialEndsAt());
+        assertEquals(LocalDate.of(2026, 12, 1),
+                buildUser("USER", SubscriptionTier.NONE, LocalDate.of(2026, 11, 1)).savingsTrialEndsAt());
     }
 
     private User buildUser(String role, SubscriptionTier tier) {
-        LocalDateTime now = LocalDateTime.now();
+        return buildUser(role, tier, LocalDate.now());
+    }
+
+    private User buildUser(String role, SubscriptionTier tier, LocalDate registeredOn) {
         return User.builder()
                 .id(UUID.randomUUID())
                 .email("u@example.com")
@@ -218,7 +283,7 @@ class UserSubscriptionTierTest {
                 .authProvider(AuthProvider.LOCAL)
                 .role(role)
                 .subscriptionTier(tier)
-                .createdAt(now).updatedAt(now)
+                .createdAt(registeredOn.atStartOfDay()).updatedAt(LocalDateTime.now())
                 .build();
     }
 }

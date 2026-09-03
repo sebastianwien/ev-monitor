@@ -29,7 +29,9 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
   {
     key: 'home_charging_savings_v1',
     releasedAt: '2026-09-02', // nur Bestandsuser - Neuregistrierte finden die Kachel ohnehin sofort im Dashboard
-    expiresAt: '2026-10-31',
+    // Endet mit dem Probemonat der Bestandsuser (Launch 2026-09-03 + 30 Tage) - danach zeigt
+    // das Dashboard fuer sie den Teaser, die Ankuendigung wuerde sonst auf eine Sperre fuehren.
+    expiresAt: '2026-10-03',
     titleKey: 'announcements.home_charging_savings_v1_title',
     bodyKey: 'announcements.home_charging_savings_v1_body',
     ctaLabelKey: 'announcements.home_charging_savings_v1_cta',
