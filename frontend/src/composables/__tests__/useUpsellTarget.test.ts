@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { analyticsUpsellTarget } from '../useUpsellTarget'
+import { analyticsUpsellTarget, hasOnlyFreeDataSourceCars } from '../useUpsellTarget'
 
 const tesla = { brand: 'Tesla' }
 const xpeng = { brand: 'XPeng' }
@@ -41,5 +41,30 @@ describe('analyticsUpsellTarget', () => {
         // Der Car-Store ist erst nach dem ersten Laden gefuellt - dann lieber die
         // allgemeine Seite als ein Pack, das der User vielleicht nicht nutzen kann.
         expect(analyticsUpsellTarget([], 'NONE')).toBe('/upgrade')
+    })
+})
+
+describe('hasOnlyFreeDataSourceCars', () => {
+    it('ist wahr, wenn jedes Auto seine Daten gratis liefert', () => {
+        // Reiner Tesla-Fahrer: AutoSync brauchte er fuer keines seiner Autos.
+        expect(hasOnlyFreeDataSourceCars([tesla])).toBe(true)
+        expect(hasOnlyFreeDataSourceCars([tesla, tesla])).toBe(true)
+    })
+
+    it('ist falsch bei gemischter Garage', () => {
+        // Der VW braucht weiterhin AutoSync - hier darf kein "du brauchst kein
+        // AutoSync"-Hinweis erscheinen. Das ist der Unterschied zu analyticsUpsellTarget,
+        // das eine gemischte Garage schon als Supporter-Fall behandelt.
+        expect(hasOnlyFreeDataSourceCars([vw, tesla])).toBe(false)
+    })
+
+    it('ist falsch ohne Gratis-Datenquelle', () => {
+        expect(hasOnlyFreeDataSourceCars([vw])).toBe(false)
+        expect(hasOnlyFreeDataSourceCars([xpeng])).toBe(false)
+    })
+
+    it('ist falsch bei leerer Garage', () => {
+        // Kein Auto = keine Aussage; der generische Kauf-Weg bleibt sichtbar.
+        expect(hasOnlyFreeDataSourceCars([])).toBe(false)
     })
 })

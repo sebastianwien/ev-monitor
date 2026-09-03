@@ -38,6 +38,20 @@ export function analyticsUpsellTarget(
     return cars.some(hasFreeDataSource) ? '/supporter' : '/upgrade'
 }
 
+/**
+ * Ob dieser User fuer **keines** seiner Autos AutoSync braucht - jedes liefert seine
+ * Daten schon gratis (aktuell Tesla via Fleet Telemetry). Fuer sie ist die
+ * AutoSync-Preistabelle ein Fehlverkauf; der richtige Weg ist das Supporter-Pack.
+ *
+ * Bewusst strenger als {@link analyticsUpsellTarget}: dort genuegt **eine** Gratis-Quelle
+ * (die freigeschalteten Widgets zeigen dann sofort etwas), hier muessen es **alle** sein.
+ * Eine gemischte Garage (Tesla + VW) braucht AutoSync weiterhin fuer den VW - da darf kein
+ * "du brauchst kein AutoSync"-Hinweis erscheinen. Leere Garage = keine Aussage.
+ */
+export function hasOnlyFreeDataSourceCars(cars: Pick<Car, 'brand'>[]): boolean {
+    return cars.length > 0 && cars.every(hasFreeDataSource)
+}
+
 /** Bindet die Regel an Auth- und Car-Store. */
 export function useAnalyticsUpsellTarget(): ComputedRef<UpsellTarget> {
     const authStore = useAuthStore()

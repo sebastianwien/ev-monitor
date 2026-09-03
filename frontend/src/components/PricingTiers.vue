@@ -48,8 +48,9 @@
       </div>
     </div>
 
-    <!-- 3 Tier Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+    <!-- Tier Cards: Free + AutoSync fuer alle; die Live-Karte erscheint nur noch als
+         Aktiv-Anzeige fuer Bestandsabonnenten (nicht mehr kaufbar) -->
+    <div class="grid grid-cols-1 gap-4 md:gap-5" :class="isLiveActive ? 'md:grid-cols-3' : 'md:grid-cols-2'">
 
       <!-- FREE -->
       <div class="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6 flex flex-col order-3 md:order-1">
@@ -113,7 +114,6 @@
           <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-green-600 dark:text-green-400 font-medium mt-0.5">{{ t('upgrade.tier_autosync_yearly_hint', { yearly: pricing.yearly }) }}</p>
         </div>
         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-4">
-          <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_tesla') }}</span></li>
           <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_smartcar') }}</span></li>
           <li class="flex items-start gap-2"><CheckCircleIcon class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0 mt-0.5" /><span>{{ t('upgrade.tier_autosync_feat_connection') }}</span></li>
           <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_autosync_feat_inherits') }}</em></span></li>
@@ -123,7 +123,7 @@
           <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400 mb-2">{{ t('upgrade.tier_autosync_brands_title') }}</p>
           <ul class="flex flex-wrap gap-1.5">
             <li
-              v-for="brand in AUTOSYNC_BRANDS" :key="brand"
+              v-for="brand in autosyncBrandChips" :key="brand"
               class="text-[11px] font-semibold bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 px-1.5 py-0.5 rounded-sm"
             >{{ brand }}</li>
           </ul>
@@ -161,27 +161,19 @@
         </button>
       </div>
 
-      <!-- LIVE -->
+      <!-- LIVE: nicht mehr kaufbar - nur noch Aktiv-Anzeige fuer Bestandsabonnenten.
+           Verwaltet/gekuendigt wird ueber den Manage-Button im Aktiv-Banner oben. -->
       <div
-        :class="isLiveActive
-          ? 'border-indigo-600 dark:border-indigo-400 shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] shadow-indigo-500/10'
-          : 'border-indigo-300 dark:border-indigo-800'"
-        class="bg-white dark:bg-gray-900 rounded-sm border-2 p-6 flex flex-col relative order-2 md:order-3"
+        v-if="isLiveActive"
+        class="bg-white dark:bg-gray-900 rounded-sm border-2 border-indigo-600 dark:border-indigo-400 shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] shadow-indigo-500/10 p-6 flex flex-col relative order-2 md:order-3"
       >
-        <span v-if="!isLiveActive" class="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-indigo-600 dark:bg-indigo-500 text-white px-3 py-1 rounded-full tracking-wider whitespace-nowrap">{{ t('upgrade.tier_badge_live') }}</span>
         <div class="mb-4">
           <p class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">{{ t('upgrade.tier_live_label') }}</p>
           <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('upgrade.tier_live_card_title') }}</h2>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('upgrade.tier_live_card_subtitle') }}</p>
         </div>
         <div class="mb-5">
-          <Transition name="price-fade" mode="out-in">
-            <p :key="selectedPlan + tier" class="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              <template v-if="selectedPlan === 'yearly' && tier === 'NONE'">{{ pricing.liveYearly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_per_year') }}</span></template>
-              <template v-else>{{ pricing.liveMonthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_live_price_unit') }}</span></template>
-            </p>
-          </Transition>
-          <p v-if="!(selectedPlan === 'yearly' && tier === 'NONE')" class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mt-0.5">{{ t('upgrade.tier_live_yearly_hint', { yearly: pricing.liveYearly }) }}</p>
+          <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ pricing.liveMonthly }}<span class="text-base font-normal text-gray-400 dark:text-gray-500"> {{ t('upgrade.tier_live_price_unit') }}</span></p>
         </div>
         <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-300 mb-6 flex-1">
           <!-- Tesla-only Features (Live-Power-Stream nur via Tesla Telemetry) -->
@@ -272,32 +264,12 @@
           <li class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><span class="mt-0.5">+</span><span><em>{{ t('upgrade.tier_live_feat_inherits') }}</em></span></li>
         </ul>
         <button
-          v-if="isPublic"
-          @click="emit('register')"
-          class="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white font-semibold py-3 rounded-sm text-sm shadow-[0_4px_0_0_#3730a3] dark:shadow-[0_4px_0_0_#312e81] active:translate-y-1 active:shadow-none transition"
-        >
-          {{ t('upgrade.public_cta') }}
-        </button>
-        <button
-          v-else-if="isLiveActive"
           disabled
           class="w-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold py-3 rounded-sm text-sm cursor-default flex items-center justify-center gap-1.5"
         >
           <CheckCircleIcon class="w-4 h-4" />
           {{ t('upgrade.tier_live_cta_active') }}
         </button>
-        <template v-else>
-          <button
-            @click="emit('live-action')"
-            :disabled="liveLoading"
-            class="w-full bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400 text-white font-semibold py-3 rounded-sm text-sm shadow-[0_4px_0_0_#3730a3] dark:shadow-[0_4px_0_0_#312e81] active:translate-y-1 active:shadow-none transition disabled:opacity-60"
-          >
-            <span v-if="liveLoading">…</span>
-            <span v-else>{{ isLiveUpgrade ? t('upgrade.tier_live_cta_upgrade') : t('upgrade.tier_live_cta_activate') }}</span>
-          </button>
-          <p class="text-[11px] text-gray-400 dark:text-gray-500 text-center mt-2">{{ t('upgrade.tier_live_disclaimer') }}</p>
-          <p v-if="liveError" class="text-xs text-amber-600 dark:text-amber-400 text-center mt-2">{{ liveError }}</p>
-        </template>
       </div>
     </div>
 
@@ -368,8 +340,6 @@ const props = withDefaults(defineProps<{
     showSmartcarFaq?: boolean;
     checkoutLoading?: boolean;
     checkoutError?: string;
-    liveLoading?: boolean;
-    liveError?: string;
     portalLoading?: boolean;
     portalError?: string;
 }>(), {
@@ -380,15 +350,12 @@ const props = withDefaults(defineProps<{
     showSmartcarFaq: true,
     checkoutLoading: false,
     checkoutError: '',
-    liveLoading: false,
-    liveError: '',
     portalLoading: false,
     portalError: '',
 });
 
 const emit = defineEmits<{
     (e: 'checkout'): void;
-    (e: 'live-action'): void;
     (e: 'manage'): void;
     (e: 'register'): void;
 }>();
@@ -398,10 +365,14 @@ const selectedPlan = defineModel<'monthly' | 'yearly'>('selectedPlan', { default
 
 const isPublic = computed(() => props.mode === 'public');
 
+// Tesla wird nicht mehr ueber AutoSync verkauft (Fleet Telemetry laeuft gratis) - daher
+// display-seitig aus den Marken-Chips raus. AUTOSYNC_BRANDS selbst bleibt unangetastet,
+// weil es an anderer Stelle "welche Marken koennen ueberhaupt auto-syncen" bedeutet.
+const autosyncBrandChips = computed(() => AUTOSYNC_BRANDS.filter(b => b !== 'Tesla'));
+
 const {
     isAutoSyncActive,
     isLiveActive,
-    isLiveUpgrade,
     showPlanToggle,
     activeBannerKey,
 } = useUpgradeTierState(toRef(props, 'tier'));
