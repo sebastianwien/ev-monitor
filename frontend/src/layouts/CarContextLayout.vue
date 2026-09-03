@@ -5,6 +5,7 @@ import { useStickyTabIndex } from '../composables/useStickyTabIndex'
 import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import SwipeTabPager from '../components/shared/SwipeTabPager.vue'
 import EditLogModal from '../components/dashboard/EditLogModal.vue'
+import PriceAmendModal from '../components/dashboard/PriceAmendModal.vue'
 import { CONTEXT_TABS } from '../config/tabs'
 import DashboardView from '../views/DashboardView.vue'
 
@@ -25,7 +26,7 @@ const TAB_PATHS: readonly string[] = CONTEXT_TABS.map(tab => tab.to)
 const {
   selectedCarId, cars, carImageUrls, wltp, currentOdometerKm,
   teslaStatus, smartcarStatus, vwGroupStatus,
-  editingLog, refreshLogsAndGroups,
+  editingLog, priceAmendingLog, refreshLogsAndGroups, fetchPricelessCount,
 } = provideCarContext()
 
 const activeIndex = useStickyTabIndex(TAB_PATHS)
@@ -64,6 +65,14 @@ const activeIndex = useStickyTabIndex(TAB_PATHS)
       :log="editingLog"
       @close="editingLog = null"
       @saved="() => { editingLog = null; refreshLogsAndGroups() }"
+    />
+
+    <!-- Schlanker Preis-Nachtrag: aus dem Warn-Chip an einer preislosen Ladung. -->
+    <PriceAmendModal
+      v-if="priceAmendingLog"
+      :log="priceAmendingLog"
+      @close="priceAmendingLog = null"
+      @saved="() => { priceAmendingLog = null; refreshLogsAndGroups(); fetchPricelessCount() }"
     />
   </div>
 </template>

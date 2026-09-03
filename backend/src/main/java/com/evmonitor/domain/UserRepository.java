@@ -2,6 +2,7 @@ package com.evmonitor.domain;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,7 +26,32 @@ public interface UserRepository {
 
     List<User> findRegisteredOnDay(LocalDate day);
 
-    List<User> findUsersWithLastLogOnDay(LocalDate day);
+    /**
+     * Users whose last log/trip is on or before {@code day}, not yet mailed (see
+     * {@link #markReEngagementEmailSent}).
+     */
+    List<User> findUsersDueForReEngagement(LocalDate day);
+
+    /**
+     * Marks the re-engagement email as sent so {@link #findUsersDueForReEngagement} never
+     * selects this user again.
+     */
+    void markReEngagementEmailSent(UUID userId, LocalDateTime now);
+
+    /**
+     * Users last seen on or before {@code day}, not yet mailed (see
+     * {@link #markDormantAutoSyncEmailSent}), whose car is still logging via a live connector
+     * (TESLA_LIVE/SMARTCAR_LIVE/VWGROUP_LIVE/XPENG_LIVE, see {@link DataSource}).
+     * {@link #findUsersDueForReEngagement} never fires for this group - the connector keeps
+     * producing fresh logs regardless of whether the person still opens the app.
+     */
+    List<User> findDormantAutoSyncUsersDue(LocalDate day);
+
+    /**
+     * Marks the dormant-AutoSync email as sent so {@link #findDormantAutoSyncUsersDue} never
+     * selects this user again.
+     */
+    void markDormantAutoSyncEmailSent(UUID userId, LocalDateTime now);
 
     void delete(User user);
 

@@ -265,6 +265,74 @@ export const surveys: Record<string, SurveyConfig> = {
         ],
     },
 
+    'why-away': {
+        slug: 'why-away',
+        title: { de: 'Was hält dich fern?', en: 'What kept you away?' },
+        description: {
+            de: 'Du warst eine Weile nicht mehr bei EV Monitor. Eine kurze Frage - dauert 30 Sekunden.',
+            en: 'You have not been to EV Monitor in a while. A quick question - takes 30 seconds.',
+        },
+        pages: [
+            {
+                questions: [
+                    {
+                        key: 'reason',
+                        label: {
+                            de: 'Was hat dich davon abgehalten, öfter bei EV Monitor vorbeizuschauen?',
+                            en: 'What kept you from checking in on EV Monitor more often?',
+                        },
+                        options: [
+                            {
+                                value: 'auto_sync_covers_it',
+                                label: {
+                                    de: 'Mein Auto meldet sich eh automatisch über AutoSync, ich hatte keinen Grund reinzuschauen',
+                                    en: 'My car reports in automatically via AutoSync, I had no reason to check in',
+                                },
+                            },
+                            {
+                                value: 'forgot_manual_logging',
+                                label: {
+                                    de: 'Ich habe einfach vergessen, Ladevorgänge einzutragen',
+                                    en: 'I simply forgot to log my charging sessions',
+                                },
+                            },
+                            {
+                                value: 'unclear_value',
+                                label: {
+                                    de: 'Ich verstehe nicht, welchen Mehrwert mir EV Monitor bietet',
+                                    en: 'I do not understand what value EV Monitor provides me',
+                                },
+                                freeText: true,
+                                freeTextPlaceholder: { de: 'Was würde dir helfen?', en: 'What would help?' },
+                            },
+                            {
+                                value: 'prefers_other_tool',
+                                label: { de: 'Ich nutze lieber ein anderes Tool', en: 'I prefer to use a different tool' },
+                                freeText: true,
+                                freeTextPlaceholder: {
+                                    de: 'z.B. ABRP, Chargeprice, Tessie, Herstellerapp ...',
+                                    en: 'e.g. ABRP, Chargeprice, Tessie, manufacturer app ...',
+                                },
+                            },
+                            {
+                                value: 'missing_feature',
+                                label: { de: 'Mir fehlt eine Funktion, die ich brauche', en: 'A feature I need is missing' },
+                                freeText: true,
+                                freeTextPlaceholder: { de: 'Welche Funktion?', en: 'Which feature?' },
+                            },
+                            {
+                                value: 'other',
+                                label: { de: 'Sonstiges', en: 'Other' },
+                                freeText: true,
+                                freeTextPlaceholder: { de: 'Was genau?', en: 'What exactly?' },
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
+
     'autosync-satisfaction': {
         slug: 'autosync-satisfaction',
         title: { de: 'Wie läuft AutoSync für dich?', en: 'How is AutoSync working for you?' },

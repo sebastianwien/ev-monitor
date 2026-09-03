@@ -2,8 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { ChartPieIcon, BoltIcon, ArrowTrendingUpIcon, ArrowLeftIcon, MapIcon } from '@heroicons/vue/24/outline'
+import { ChartPieIcon, BoltIcon, ArrowTrendingUpIcon, ArrowLeftIcon, MapIcon, HomeIcon } from '@heroicons/vue/24/outline'
 import { HeartIcon } from '@heroicons/vue/24/solid'
+import ChargingSavingsCard from '../components/dashboard/ChargingSavingsCard.vue'
 import { useCountryStore } from '../stores/country'
 import { useCarStore } from '../stores/car'
 import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
@@ -72,6 +73,32 @@ function daysAgo(days: number, hour = 10): string {
 }
 
 const dummyCar = { effectiveBatteryCapacityKwh: 75 }
+
+/**
+ * Demo-Daten der Ersparnis-Kachel. Bewusst die echte Komponente statt eines Screenshots:
+ * sie bleibt automatisch aktuell, stimmt in jeder Sprache und im Dark Mode.
+ */
+const savingsPreview = {
+  homeKwh: 839,
+  homePricePerKwh: 0.289,
+  homePriceBasis: 'OWN_LOGS' as const,
+  publicPricePerKwh: 0.417,
+  publicPriceBasis: 'OWN_PUBLIC' as const,
+  publicPriceSampleSize: 18,
+  actuallyPaidEur: 242.34,
+  wouldHaveCostEur: 349.55,
+  savingsEur: 107.21,
+  investmentEur: 1000,
+  firstYear: 2025,
+  monthsOfUsage: 14,
+  yearlySavings: [
+    { year: 2025, homeKwh: 210, paidEur: 60.9, wouldHaveCostEur: 84.5, savingsEur: 23.6, cumulativeEur: 23.6 },
+    { year: 2026, homeKwh: 839, paidEur: 242.34, wouldHaveCostEur: 349.55, savingsEur: 60.95, cumulativeEur: 84.55 },
+  ],
+  recoveredEur: 84.55,
+  amortisationYearsRemaining: 8.5,
+  fullyAmortised: false,
+}
 const dummyEntries = [
   // Charges -> donut: 330 kWh charged, ~10% charging loss, ~2.4% idle drain (realistic)
   { id: 'pv-c1', loggedAt: daysAgo(12), _isTrip: false, kwhCharged: 110, kwhAtVehicle: 99 },
@@ -134,6 +161,18 @@ const dummyEntries = [
         <p class="text-center text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">{{ t('supporter.unlock_title') }}</p>
 
         <div class="space-y-8">
+          <!-- Kostenersparnis: steht bewusst zuerst. Von allen freigeschalteten Ansichten
+               ist sie die einzige, die in Euro antwortet - das greifbarste Argument fuer
+               einen bezahlten Tarif. Echte Komponente mit Demo-Daten, damit sie nicht
+               veraltet wie ein Screenshot. -->
+          <div>
+            <div class="flex items-start gap-3 mb-3">
+              <HomeIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <span class="text-base md:text-[17px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_savings') }}</span>
+            </div>
+            <ChargingSavingsCard :savings="savingsPreview" demo />
+          </div>
+
           <!-- Energy split: the real dashboard widget, interactive -->
           <div>
             <div class="flex items-start gap-3 mb-3">

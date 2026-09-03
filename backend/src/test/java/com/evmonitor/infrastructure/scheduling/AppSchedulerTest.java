@@ -73,6 +73,31 @@ class AppSchedulerTest {
     }
 
     @Test
+    void queriesReEngagementCandidatesLastLogOnOrBefore28DaysAgo() {
+        when(userRepository.findUsersDueForReEngagement(any())).thenReturn(List.of());
+
+        scheduler.sendReEngagementEmails();
+
+        ArgumentCaptor<LocalDate> dayCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(userRepository).findUsersDueForReEngagement(dayCaptor.capture());
+        assertThat(dayCaptor.getValue()).isEqualTo(LocalDate.now().minusDays(28));
+    }
+
+    @Test
+    void mailsAllReEngagementCandidates_andMarksThemSent() {
+        User fresh = user("fresh", "de");
+        User other = user("other", "en");
+        when(userRepository.findUsersDueForReEngagement(any())).thenReturn(List.of(fresh, other));
+
+        scheduler.sendReEngagementEmails();
+
+        verify(emailService).sendReEngagementEmail("fresh@example.com", "fresh", "de");
+        verify(emailService).sendReEngagementEmail("other@example.com", "other", "en");
+        verify(userRepository).markReEngagementEmailSent(eq(fresh.getId()), any());
+        verify(userRepository).markReEngagementEmailSent(eq(other.getId()), any());
+    }
+
+    @Test
     void queriesCandidatesPurchased35DaysAgo() {
         when(userRepository.findAutoSyncSurveyCandidates(any())).thenReturn(List.of());
 
@@ -109,6 +134,50 @@ class AppSchedulerTest {
 
         // The second candidate must still be mailed despite the first one throwing.
         verify(emailService).sendAutoSyncSatisfactionEmail("ok@example.com", "ok", "en");
+        // The failure is surfaced (not swallowed) via a GitHub issue.
+        verify(gitHubIssueService).createIssue(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void queriesDormantAutoSyncCandidatesLastSeenOnOrBefore21DaysAgo() {
+        when(userRepository.findDormantAutoSyncUsersDue(any())).thenReturn(List.of());
+
+        scheduler.sendDormantAutoSyncEmails();
+
+        ArgumentCaptor<LocalDate> dayCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(userRepository).findDormantAutoSyncUsersDue(dayCaptor.capture());
+        assertThat(dayCaptor.getValue()).isEqualTo(LocalDate.now().minusDays(21));
+    }
+
+    @Test
+    void mailsAllDormantAutoSyncCandidates_andMarksThemSent() {
+        User fresh = user("fresh", "de");
+        User other = user("other", "en");
+        when(userRepository.findDormantAutoSyncUsersDue(any())).thenReturn(List.of(fresh, other));
+
+        scheduler.sendDormantAutoSyncEmails();
+
+        verify(emailService).sendAutoSyncDormantEmail("fresh@example.com", "fresh", "de");
+        verify(emailService).sendAutoSyncDormantEmail("other@example.com", "other", "en");
+        verify(userRepository).markDormantAutoSyncEmailSent(eq(fresh.getId()), any());
+        verify(userRepository).markDormantAutoSyncEmailSent(eq(other.getId()), any());
+    }
+
+    @Test
+    void oneFailedDormantSend_doesNotAbortRemainingCandidates_andIsNotMarkedSent() {
+        User boom = user("boom", "de");
+        User ok = user("ok", "en");
+        when(userRepository.findDormantAutoSyncUsersDue(any())).thenReturn(List.of(boom, ok));
+        doThrow(new RuntimeException("smtp down"))
+                .when(emailService).sendAutoSyncDormantEmail("boom@example.com", "boom", "de");
+
+        scheduler.sendDormantAutoSyncEmails();
+
+        // The second candidate must still be mailed despite the first one throwing.
+        verify(emailService).sendAutoSyncDormantEmail("ok@example.com", "ok", "en");
+        verify(userRepository).markDormantAutoSyncEmailSent(eq(ok.getId()), any());
+        // A failed send must not be marked sent, or the user would silently never be retried.
+        verify(userRepository, never()).markDormantAutoSyncEmailSent(eq(boom.getId()), any());
         // The failure is surfaced (not swallowed) via a GitHub issue.
         verify(gitHubIssueService).createIssue(anyString(), anyString(), anyString());
     }

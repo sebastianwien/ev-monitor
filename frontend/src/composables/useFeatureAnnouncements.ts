@@ -8,6 +8,9 @@ const STORAGE_KEY = 'seen-announcements'
 
 const seenKeys = ref<string[]>(getSeenKeys())
 const hasTeslaConnection = ref<boolean>(false)
+// true only once the connector has actually observed the vehicle_location OAuth scope on a
+// token - false (not just "not yet loaded"/null) is what gates the reconnect announcement.
+const teslaLocationScopeGranted = ref<boolean>(false)
 let teslaStatusLoaded = false
 
 function getSeenKeys(): string[] {
@@ -31,8 +34,10 @@ async function loadTeslaConnectionStatus() {
   try {
     const status = await teslaFleetService.getStatus()
     hasTeslaConnection.value = status.connected === true
+    teslaLocationScopeGranted.value = status.locationScopeGranted === true
   } catch {
     hasTeslaConnection.value = false
+    teslaLocationScopeGranted.value = false
   }
 }
 
@@ -56,6 +61,7 @@ export const useFeatureAnnouncements = () => {
       isPremium: authStore.isPremium,
       isAutoSyncLive: authStore.isAutoSyncLive,
       hasTeslaConnection: hasTeslaConnection.value,
+      teslaLocationScopeGranted: teslaLocationScopeGranted.value,
     }
     const registeredAt = authStore.user?.registeredAt
     return featureAnnouncements.filter(a =>

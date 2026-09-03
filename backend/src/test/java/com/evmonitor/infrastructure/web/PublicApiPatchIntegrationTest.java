@@ -75,7 +75,7 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
 
         EvLog updated = evLogRepository.findById(log.getId()).orElseThrow();
-        assertTrue(updated.isPublicCharging());
+        assertTrue(updated.isPublicChargingConfirmed());
         assertEquals("IONITY", updated.getCpoName());
         assertEquals(0, BigDecimal.valueOf(12.50).compareTo(updated.getCostEur()));
     }
@@ -120,6 +120,26 @@ class PublicApiPatchIntegrationTest extends AbstractIntegrationTest {
         EvLog updated = evLogRepository.findById(log.getId()).orElseThrow();
         assertNotNull(updated.getGeohash());
         assertEquals(7, updated.getGeohash().length()); // public → 7 chars
+    }
+
+    /**
+     * Seit V166 kann der Ladeort unbekannt sein. Ein Patch, der nur den Standort setzt,
+     * darf daran nicht zerbrechen - die Praezision faellt dann auf die private Stufe
+     * zurueck, weil unbekannt nicht als oeffentlich gilt.
+     */
+    @Test
+    void patch_location_onLogWithUnknownChargingLocation_doesNotFail() {
+        EvLog log = createApiUploadLog(car.getId());
+        evLogRepository.save(log.withPatch(null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null)
+                .toBuilder().publicCharging(null).build());
+
+        patch(log.getId(), """
+                { "location": "48.1234,11.5678" }
+                """, plaintextKey);
+
+        EvLog updated = evLogRepository.findById(log.getId()).orElseThrow();
+        assertEquals(6, updated.getGeohash().length()); // unbekannt → private Praezision
     }
 
     // ── Restrictions ──────────────────────────────────────────────────────────

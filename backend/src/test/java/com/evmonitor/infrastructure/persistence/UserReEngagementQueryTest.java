@@ -5,8 +5,10 @@ import com.evmonitor.testutil.AbstractIntegrationTest;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -15,9 +17,17 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Tests that findUsersWithLastLogOnDay correctly considers both
- * ev_log AND ev_trip as user activity indicators.
+ * Tests that findUsersDueForReEngagement correctly considers both ev_log AND ev_trip as user
+ * activity indicators.
+ *
+ * <p>Uses {@code last_log <= day} plus a "not yet mailed" flag rather than an exact-day match,
+ * so the same query also absorbs any backlog of users already further gone than the threshold -
+ * see {@link DormantAutoSyncQueryTest} for the sibling case this pattern was copied from.
+ *
+ * <p>{@code @Transactional}: markReEngagementEmailSent is a {@code @Modifying} query and needs
+ * an active transaction; this also gives each test automatic rollback.
  */
+@Transactional
 class UserReEngagementQueryTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -32,7 +42,7 @@ class UserReEngagementQueryTest extends AbstractIntegrationTest {
 
         saveEvLog(car.getId(), TARGET_DAY);
 
-        List<User> result = userRepository.findUsersWithLastLogOnDay(TARGET_DAY);
+        List<User> result = userRepository.findUsersDueForReEngagement(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).contains(user.getId());
     }
@@ -44,7 +54,7 @@ class UserReEngagementQueryTest extends AbstractIntegrationTest {
 
         saveEvTrip(user.getId(), car.getId(), TARGET_DAY);
 
-        List<User> result = userRepository.findUsersWithLastLogOnDay(TARGET_DAY);
+        List<User> result = userRepository.findUsersDueForReEngagement(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).contains(user.getId());
     }
@@ -59,7 +69,7 @@ class UserReEngagementQueryTest extends AbstractIntegrationTest {
         // but trip was on target day
         saveEvTrip(user.getId(), car.getId(), TARGET_DAY);
 
-        List<User> result = userRepository.findUsersWithLastLogOnDay(TARGET_DAY);
+        List<User> result = userRepository.findUsersDueForReEngagement(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).contains(user.getId());
     }
@@ -74,7 +84,20 @@ class UserReEngagementQueryTest extends AbstractIntegrationTest {
         // but log was on target day
         saveEvLog(car.getId(), TARGET_DAY);
 
-        List<User> result = userRepository.findUsersWithLastLogOnDay(TARGET_DAY);
+        List<User> result = userRepository.findUsersDueForReEngagement(TARGET_DAY);
+
+        assertThat(result).extracting(User::getId).contains(user.getId());
+    }
+
+    @Test
+    void userWithActivityLongBeforeTargetDay_isIncluded() {
+        User user = createAndSaveUser(uniqueEmail());
+        Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, java.math.BigDecimal.valueOf(75)));
+
+        // Already inactive well before the threshold - the backlog case <= is meant to catch.
+        saveEvLog(car.getId(), TARGET_DAY.minusDays(90));
+
+        List<User> result = userRepository.findUsersDueForReEngagement(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).contains(user.getId());
     }
@@ -88,7 +111,7 @@ class UserReEngagementQueryTest extends AbstractIntegrationTest {
         // newer activity after target day - should not be a re-engagement candidate
         saveEvTrip(user.getId(), car.getId(), TARGET_DAY.plusDays(2));
 
-        List<User> result = userRepository.findUsersWithLastLogOnDay(TARGET_DAY);
+        List<User> result = userRepository.findUsersDueForReEngagement(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).doesNotContain(user.getId());
     }
@@ -98,7 +121,20 @@ class UserReEngagementQueryTest extends AbstractIntegrationTest {
         User user = createAndSaveUser(uniqueEmail());
         carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, java.math.BigDecimal.valueOf(75)));
 
-        List<User> result = userRepository.findUsersWithLastLogOnDay(TARGET_DAY);
+        List<User> result = userRepository.findUsersDueForReEngagement(TARGET_DAY);
+
+        assertThat(result).extracting(User::getId).doesNotContain(user.getId());
+    }
+
+    @Test
+    void userAlreadyMarkedSent_isNotIncluded() {
+        User user = createAndSaveUser(uniqueEmail());
+        Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, java.math.BigDecimal.valueOf(75)));
+        saveEvLog(car.getId(), TARGET_DAY.minusDays(90));
+
+        userRepository.markReEngagementEmailSent(user.getId(), LocalDateTime.now());
+
+        List<User> result = userRepository.findUsersDueForReEngagement(TARGET_DAY);
 
         assertThat(result).extracting(User::getId).doesNotContain(user.getId());
     }

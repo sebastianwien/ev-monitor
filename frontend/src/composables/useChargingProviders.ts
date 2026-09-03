@@ -54,7 +54,7 @@ export function useChargingProviders(
       acPricePerKwh: '', dcPricePerKwh: '',
       monthlyFeeEur: 0, sessionFeeEur: 0,
       activeFrom: new Date().toISOString().split('T')[0],
-    }
+      }
   }
 
   const startEditProvider = (provider: ChargingProvider) => {

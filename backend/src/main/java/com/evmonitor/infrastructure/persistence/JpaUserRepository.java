@@ -34,11 +34,21 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("SELECT u FROM UserEntity u WHERE u.emailVerified = true AND u.emailNotificationsEnabled = true AND u.seedData = false AND cast(u.createdAt as LocalDate) = :day")
     List<UserEntity> findRegisteredOnDay(@Param("day") LocalDate day);
 
+    /**
+     * Users whose last log/trip is on or before {@code day}, not yet mailed (see
+     * {@link #markReEngagementEmailSent}).
+     *
+     * <p>{@code <=} plus the {@code re_engagement_email_sent_at IS NULL} guard replaces an
+     * exact-day match on purpose - see {@link #findDormantAutoSyncUsersDue} for why: it
+     * absorbs any backlog of users whose threshold day predates this feature or was missed by
+     * a deploy, and the flag guarantees each user is mailed at most once.
+     */
     @Query(value = """
             SELECT u.* FROM app_user u
             WHERE u.email_verified = true
               AND u.email_notifications_enabled = true
               AND u.is_seed_data = false
+              AND u.re_engagement_email_sent_at IS NULL
               AND GREATEST(
                 (
                   SELECT MAX(e.logged_at)::date
@@ -52,9 +62,48 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
                   WHERE t.user_id = u.id
                     AND t.deleted_at IS NULL
                 )
-              ) = :day
+              ) <= :day
             """, nativeQuery = true)
-    List<UserEntity> findUsersWithLastLogOnDay(@Param("day") LocalDate day);
+    List<UserEntity> findUsersDueForReEngagement(@Param("day") LocalDate day);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.reEngagementEmailSentAt = :now WHERE u.id = :userId")
+    void markReEngagementEmailSent(@Param("userId") UUID userId, @Param("now") LocalDateTime now);
+
+    /**
+     * Users last seen on or before {@code day} whose car is still logging via a live connector -
+     * data sources here must stay in sync with the "continuous auto-sync" group in
+     * {@link com.evmonitor.domain.DataSource} (TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE,
+     * XPENG_LIVE), the connector-driven sources that keep writing logs without any user action,
+     * as opposed to one-off imports like TESLA_FLEET_IMPORT.
+     *
+     * <p>{@code <=} plus the {@code dormant_autosync_email_sent_at IS NULL} guard (set once via
+     * {@link #markDormantAutoSyncEmailSent}) replaces an exact-day match on purpose: with an
+     * exact match, anyone whose last_seen already crossed the threshold before this feature
+     * existed - or whose exact-day run got missed by a deploy - would never be mailed. This way
+     * the regular daily run absorbs any backlog on its own; the flag guarantees each user is
+     * mailed at most once regardless of how many days match the {@code <=}.
+     */
+    @Query(value = """
+            SELECT u.* FROM app_user u
+            WHERE u.email_verified = true
+              AND u.email_notifications_enabled = true
+              AND u.is_seed_data = false
+              AND u.dormant_autosync_email_sent_at IS NULL
+              AND u.last_seen::date <= :day
+              AND EXISTS (
+                SELECT 1 FROM ev_log e
+                JOIN car c ON c.id = e.car_id
+                WHERE c.user_id = u.id
+                  AND e.data_source IN ('TESLA_LIVE', 'SMARTCAR_LIVE', 'VWGROUP_LIVE', 'XPENG_LIVE')
+                  AND e.logged_at >= (CURRENT_DATE - 7)
+              )
+            """, nativeQuery = true)
+    List<UserEntity> findDormantAutoSyncUsersDue(@Param("day") LocalDate day);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.dormantAutoSyncEmailSentAt = :now WHERE u.id = :userId")
+    void markDormantAutoSyncEmailSent(@Param("userId") UUID userId, @Param("now") LocalDateTime now);
 
     long countBySeedDataFalseAndEmailVerifiedTrue();
 

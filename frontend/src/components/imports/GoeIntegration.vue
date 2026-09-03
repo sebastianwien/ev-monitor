@@ -20,6 +20,9 @@ const error = ref<string | null>(null)
 const showForm = ref(false)
 
 const form = ref({ serial: '', apiKey: '', carId: '', displayName: '' })
+// Heim-Strompreis in ct/kWh. Frei lassbar (String, damit "" != 0): ohne Angabe bleiben
+// Ladungen preislos, mit Angabe ist schon die erste Session bepreist.
+const tariffInput = ref('')
 
 // ── Location (manual address search) ─────────────────────────────────────────
 const locationQuery = ref('')
@@ -93,8 +96,11 @@ async function handleConnect() {
   loading.value = true
   error.value = null
   try {
-    await goeService.connect(form.value.serial, form.value.apiKey, form.value.carId, form.value.displayName, selectedGeohash.value)
+    const parsedTariff = tariffInput.value.trim() === '' ? null : Number(tariffInput.value)
+    const tariff = parsedTariff != null && !Number.isNaN(parsedTariff) ? parsedTariff : null
+    await goeService.connect(form.value.serial, form.value.apiKey, form.value.carId, form.value.displayName, selectedGeohash.value, tariff)
     form.value = { serial: '', apiKey: '', carId: cars.value[0]?.id ?? '', displayName: '' }
+    tariffInput.value = ''
     locationQuery.value = ''
     locationResults.value = []
     selectedGeohash.value = null
@@ -200,6 +206,14 @@ function carLabel(car: Car): string {
               {{ carLabel(car) }}
             </option>
           </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.connect_tariff_label') }}</label>
+          <div class="relative">
+            <input v-model="tariffInput" type="number" inputmode="decimal" min="0" max="9999" step="0.01" :placeholder="t('goe.tariff_placeholder')" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 pr-10 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors" />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400 pointer-events-none">ct</span>
+          </div>
+          <p class="mt-1.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400">{{ t('goe.connect_tariff_hint') }}</p>
         </div>
         <div>
           <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.name_label') }}</label>

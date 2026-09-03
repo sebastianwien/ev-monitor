@@ -45,6 +45,10 @@ import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
 import DashboardInsightsTeaser from '../components/dashboard/DashboardInsightsTeaser.vue'
 import ChargingTypeSplitCard from '../components/dashboard/ChargingTypeSplitCard.vue'
+import ChargingSavingsCard from '../components/dashboard/ChargingSavingsCard.vue'
+import HomeInvestmentModal from '../components/dashboard/HomeInvestmentModal.vue'
+import chargingSavingsService from '../api/chargingSavingsService'
+import type { ChargingSavings } from '../components/dashboard/chargingSavings'
 import ChargingEfficiencyCard from '../components/dashboard/ChargingEfficiencyCard.vue'
 import CO2Card from '../components/dashboard/CO2Card.vue'
 import SmartInsightsCard from '../components/dashboard/SmartInsightsCard.vue'
@@ -74,10 +78,10 @@ const {
   selectedCarId, stats, lastMonthStats, insightStats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
-  fullCostPer100km, fixedCostPerMonth, displayedCostPer100km, hasFixedCostData, costMode, toggleCostMode,
+  fixedCostPerMonth, displayedCostPer100km, canShowFixedModes, effectiveCostMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
   hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo, initCars,
-  editingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
+  editingLog, priceAmendingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
 } = useCarContext()
 
 // Car whose battery-health detail sheet is open (null = closed).
@@ -88,8 +92,8 @@ const sohModalCar = ref<Car | null>(null)
  * Kurzformen sind Absicht - die Titelzeile hat auf Desktop nur rund 135px.
  */
 const costModeLabel = computed(() => {
-  if (costMode.value === 'fixed') return t('dashboard.metric_avg_cost_fixed')
-  if (costMode.value === 'total') return t('dashboard.metric_avg_cost_total')
+  if (effectiveCostMode.value === 'fixed') return t('dashboard.metric_avg_cost_fixed')
+  if (effectiveCostMode.value === 'total') return t('dashboard.metric_avg_cost_total')
   return t('dashboard.metric_avg_cost')
 })
 
@@ -98,7 +102,7 @@ const costModeLabel = computed(() => {
  * Fixkosten-Ueberschrift - dort stehen deshalb die Fixkosten pro Monat.
  */
 const costModeSecondary = computed(() => {
-  if (costMode.value === 'fixed') {
+  if (effectiveCostMode.value === 'fixed') {
     return fixedCostPerMonth.value != null
       ? t('dashboard.metric_cost_per_month', { value: formatCurrency(fixedCostPerMonth.value) })
       : null
@@ -248,8 +252,35 @@ function onClickOutsideFilter(e: MouseEvent) {
   }
 }
 
+// Heimlade-Ersparnis. Laedt unabhaengig von den uebrigen Statistiken: liefert der
+// Endpoint nichts (kein Preis bekannt, Tarif ohne die Kachel), bleibt sie einfach aus,
+// ohne das restliche Dashboard aufzuhalten.
+const chargingSavings = ref<ChargingSavings | null>(null)
+// Berechtigt, aber (noch) ohne Zahlen: dann zeigt die Kachel ihren Leerzustand statt zu
+// verschwinden - sonst erfaehrt niemand, dass ihm nur ein Preis fehlt.
+const chargingSavingsEntitled = ref(false)
+const showInvestmentPrompt = ref(false)
+
+async function loadChargingSavings() {
+  try {
+    const result = await chargingSavingsService.get()
+    chargingSavings.value = result.savings
+    chargingSavingsEntitled.value = result.entitled
+  } catch {
+    chargingSavings.value = null
+    chargingSavingsEntitled.value = false
+  }
+}
+
+async function saveInvestment(value: number | null) {
+  await chargingSavingsService.saveInvestment(value)
+  showInvestmentPrompt.value = false
+  await loadChargingSavings()
+}
+
 onMounted(() => {
   document.addEventListener('click', onClickOutsideFilter)
+  loadChargingSavings()
 })
 onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) })
 
@@ -404,6 +435,7 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
             :effective-battery-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
             :source-info="sourceInfo"
             @edit-charge="editingLog = latestCharge"
+            @amend-charge="priceAmendingLog = latestCharge"
             @edit-trip="openTripEdit"
           />
 
@@ -605,8 +637,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   <InformationCircleIcon class="w-3 h-3 flex-shrink-0" />
                 </button>
                 <CostModeToggle
-                  v-if="hasFixedCostData && fullCostPer100km != null"
-                  :mode="costMode"
+                  v-if="canShowFixedModes"
+                  :mode="effectiveCostMode"
                   class="ml-auto"
                   @toggle="toggleCostMode"
                 />
@@ -783,8 +815,8 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                   <InformationCircleIcon class="w-3.5 h-3.5" />
                 </button>
                 <CostModeToggle
-                  v-if="hasFixedCostData && fullCostPer100km != null"
-                  :mode="costMode"
+                  v-if="canShowFixedModes"
+                  :mode="effectiveCostMode"
                   class="ml-auto"
                   @toggle="toggleCostMode"
                 />
@@ -853,8 +885,25 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
           class="mb-3"
         />
 
-        <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander -->
-        <div class="mb-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Heimlade-Ersparnis: volle Breite, weil die Skala sie braucht - ihre Breite
+             ist die Aussage. Ausserhalb des Rasters, damit dessen Zeilenhoehe nicht an
+             dieser Kachel haengt und kein Loch entsteht, wenn der Tarif sie nicht enthaelt. -->
+        <ChargingSavingsCard
+          :savings="chargingSavings"
+          :empty-state="chargingSavingsEntitled"
+          class="mb-4"
+          @edit-investment="showInvestmentPrompt = true"
+        />
+        <HomeInvestmentModal
+          :open="showInvestmentPrompt"
+          :current="chargingSavings?.investmentEur ?? null"
+          @close="showInvestmentPrompt = false"
+          @save="saveInvestment"
+        />
+
+        <!-- Echte Reichweite + Peer Benchmark: mobile gestackt, desktop nebeneinander.
+             items-start, damit kurze Kacheln nicht auf die Zeilenhoehe gedehnt werden. -->
+        <div class="mb-0 grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
 
         <!-- Echte Reichweite -->
         <RangeCard

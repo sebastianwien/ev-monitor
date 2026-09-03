@@ -21,6 +21,10 @@ public class EvLog {
     private final BigDecimal kwhCharged;
     private final BigDecimal kwhAtVehicle; // Optional: net kWh entering the battery (vehicle-side measurement)
     private final BigDecimal costEur;
+    /** Exact rate paid, when known without rounding through costEur (go-e tariff, linked
+     *  charging card, location price-suggestion anchor). Null when only costEur is known -
+     *  callers then derive price via costEur/costBasisKwh() and re-round each time. */
+    private final BigDecimal pricePerKwh;
     private final Integer chargeDurationMinutes;
     private final String geohash; // 6-char geohash (~600m) for private charging, 7-char (~150m) for public chargers
     private final Integer odometerKm; // Optional: odometer reading in km
@@ -38,7 +42,11 @@ public class EvLog {
     private final RouteType routeType;       // Optional: CITY, COMBINED, or HIGHWAY
     private final TireType tireType;         // Optional: SUMMER, ALL_YEAR, or WINTER
     private final UUID sessionGroupId;       // Optional: ID of the charging_session_group (sub-sessions only)
-    private final boolean publicCharging;    // Whether this was at a public charger (CPO)
+    /** TRUE = oeffentlich, FALSE = daheim, NULL = unbekannt.
+     *  Vor V166 war die Spalte NOT NULL DEFAULT false, wodurch jedes Log ohne Angabe
+     *  als Heimladung galt. Die Connectors schicken fuer AC bewusst null, weil eine
+     *  AC-Ladung genauso an einer oeffentlichen Saeule stattfinden kann. */
+    private final Boolean publicCharging;
     private final String cpoName;            // Optional: CPO name (e.g. IONITY, EnBW) - only when isPublicCharging
     private final EnergyMeasurementType measurementType; // At which point energy is measured (derived from dataSource)
     /** Provenance of the kWh value (OEM_MEASURED, SOC_INFERRED, USER_INPUT, WALLBOX).
@@ -61,6 +69,7 @@ public class EvLog {
     // Applies normalisation of loggedAt, dataSource defaults, and charging-type inference.
     @Builder(toBuilder = true)
     private EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal kwhAtVehicle, BigDecimal costEur,
+            BigDecimal pricePerKwh,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent,
             LocalDateTime loggedAt, DataSource dataSource,
@@ -68,7 +77,7 @@ public class EvLog {
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
             LocalDateTime createdAt, LocalDateTime updatedAt,
             RouteType routeType, TireType tireType, UUID sessionGroupId,
-            boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
+            Boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
             EnergySource energySource,
             BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId,
             boolean hasPowerCurve,
@@ -91,6 +100,7 @@ public class EvLog {
         }
 
         this.costEur = costEur;
+        this.pricePerKwh = pricePerKwh;
         this.chargeDurationMinutes = chargeDurationMinutes;
         this.geohash = geohash;
         this.odometerKm = odometerKm;
@@ -119,11 +129,26 @@ public class EvLog {
         this.hasSocCurve = hasSocCurve;
     }
 
+    /**
+     * Belegt oeffentlich geladen. Unbekannt zaehlt bewusst NICHT als oeffentlich.
+     */
+    public boolean isPublicChargingConfirmed() {
+        return Boolean.TRUE.equals(publicCharging);
+    }
+
+    /**
+     * Belegt daheim geladen. Unbekannt zaehlt bewusst NICHT als Heimladung - sonst
+     * landen oeffentliche AC-Ladungen ohne Angabe in der Heim-Statistik.
+     */
+    public boolean isHomeChargingConfirmed() {
+        return Boolean.FALSE.equals(publicCharging);
+    }
+
     public static EvLog createNew(UUID carId, BigDecimal kwhCharged, BigDecimal costEur,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, LocalDateTime loggedAt,
             ChargingType chargingType, RouteType routeType, TireType tireType,
-            boolean publicCharging, String cpoName) {
+            Boolean publicCharging, String cpoName) {
         LocalDateTime now = LocalDateTime.now();
         return EvLog.builder()
                 .id(UUID.randomUUID())
@@ -217,12 +242,26 @@ public class EvLog {
             Integer odometerKm, BigDecimal socBefore, BigDecimal socAfter, Double temperatureCelsius,
             String rawImportData, Boolean isPublicCharging, String cpoName,
             BigDecimal maxChargingPowerKw, EnergySource energySource) {
+        return createFromInternal(carId, kwhCharged, chargeDurationMinutes, geohash, loggedAt,
+                odometerSuggestionMinKm, odometerSuggestionMaxKm, dataSource, costEur, chargingType,
+                odometerKm, socBefore, socAfter, temperatureCelsius, rawImportData,
+                isPublicCharging, cpoName, maxChargingPowerKw, energySource, null);
+    }
+
+    public static EvLog createFromInternal(UUID carId, BigDecimal kwhCharged,
+            Integer chargeDurationMinutes, String geohash,
+            LocalDateTime loggedAt, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
+            DataSource dataSource, BigDecimal costEur, ChargingType chargingType,
+            Integer odometerKm, BigDecimal socBefore, BigDecimal socAfter, Double temperatureCelsius,
+            String rawImportData, Boolean isPublicCharging, String cpoName,
+            BigDecimal maxChargingPowerKw, EnergySource energySource, BigDecimal pricePerKwh) {
         LocalDateTime now = LocalDateTime.now();
         return EvLog.builder()
                 .id(UUID.randomUUID())
                 .carId(carId)
                 .kwhCharged(kwhCharged)
                 .costEur(costEur)
+                .pricePerKwh(pricePerKwh)
                 .chargeDurationMinutes(chargeDurationMinutes)
                 .geohash(geohash)
                 .odometerKm(odometerKm)
@@ -237,7 +276,7 @@ public class EvLog {
                 .temperatureCelsius(temperatureCelsius)
                 .chargingType(chargingType)
                 .rawImportData(rawImportData)
-                .publicCharging(Boolean.TRUE.equals(isPublicCharging))
+                .publicCharging(isPublicCharging)
                 .cpoName(cpoName)
                 .energySource(energySource)
                 .createdAt(now)

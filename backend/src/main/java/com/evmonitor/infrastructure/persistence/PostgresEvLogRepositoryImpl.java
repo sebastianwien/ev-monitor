@@ -66,6 +66,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<EvLog> findPricelessByCarId(UUID carId) {
+        return jpaRepository.findByCarIdAndCostEurIsNullOrderByLoggedAtDesc(carId).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<EvLog> findRecentAtVehicleLogsWithSoc(UUID carId, int limit) {
         return jpaRepository.findRecentAtVehicleLogsWithSoc(carId, PageRequest.of(0, limit)).stream()
                 .map(this::toDomain)
@@ -318,16 +325,16 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     public Optional<EvLog> findMostRecentPricedLogAtGeohash(UUID userId, String geohash,
-                                                            com.evmonitor.domain.ChargingType chargingType) {
-        var results = jpaRepository.findRecentPricedByUserIdAndGeohash(userId, geohashPrefix(geohash),
-                chargingType == null ? null : chargingType.name(),
+                                                            com.evmonitor.domain.ChargingType chargingType, boolean isPublic) {
+        var results = jpaRepository.findRecentPricedByUserIdAndGeohash(userId, geohashPrefix(geohash, isPublic),
+                chargingType == null ? null : chargingType.name(), isPublic,
                 org.springframework.data.domain.PageRequest.of(0, 1));
         return results.isEmpty() ? Optional.empty() : Optional.of(toDomain(results.get(0)));
     }
 
     @Override
-    public Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash) {
-        var results = jpaRepository.findRecentWithProviderByUserIdAndGeohash(userId, geohashPrefix(geohash),
+    public Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash, boolean isPublic) {
+        var results = jpaRepository.findRecentWithProviderByUserIdAndGeohash(userId, geohashPrefix(geohash, isPublic), isPublic,
                 org.springframework.data.domain.PageRequest.of(0, 1));
         if (results.isEmpty()) return Optional.empty();
         return Optional.ofNullable(results.get(0).getChargingProviderId());
@@ -362,9 +369,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .toList();
     }
 
-    private static String geohashPrefix(String geohash) {
+    // Private charges are stored at 6 chars (~600m), public ones at 7 (~150m). Matching a public
+    // charge on 7 keeps two stations in the same 600m cell apart; matching private on 6 avoids
+    // pinning a home location more precisely than DSGVO allows.
+    private static String geohashPrefix(String geohash, boolean isPublic) {
         assert geohash.length() >= 6 : "geohash must be at least 6 chars for meaningful prefix lookup";
-        return geohash.substring(0, Math.min(6, geohash.length())) + "%";
+        int length = isPublic ? 7 : 6;
+        return geohash.substring(0, Math.min(length, geohash.length())) + "%";
     }
 
     @Override
@@ -417,6 +428,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setKwhCharged(domain.getKwhCharged());
         entity.setKwhAtVehicle(domain.getKwhAtVehicle());
         entity.setCostEur(domain.getCostEur());
+        entity.setPricePerKwh(domain.getPricePerKwh());
         entity.setChargeDurationMinutes(domain.getChargeDurationMinutes());
         entity.setGeohash(domain.getGeohash());
         entity.setOdometerKm(domain.getOdometerKm());
@@ -434,7 +446,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setRouteType(domain.getRouteType() != null ? domain.getRouteType().name() : null);
         entity.setTireType(domain.getTireType() != null ? domain.getTireType().name() : null);
         entity.setSessionGroupId(domain.getSessionGroupId());
-        entity.setPublicCharging(domain.isPublicCharging());
+        entity.setPublicCharging(domain.getPublicCharging());
         entity.setCpoName(domain.getCpoName());
         entity.setMeasurementType(domain.getMeasurementType().name());
         entity.setEnergySource(domain.getEnergySource() != null ? domain.getEnergySource().name() : null);
@@ -452,6 +464,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .kwhCharged(entity.getKwhCharged())
                 .kwhAtVehicle(entity.getKwhAtVehicle())
                 .costEur(entity.getCostEur())
+                .pricePerKwh(entity.getPricePerKwh())
                 .chargeDurationMinutes(entity.getChargeDurationMinutes())
                 .geohash(entity.getGeohash())
                 .odometerKm(entity.getOdometerKm())
@@ -469,7 +482,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .routeType(entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null)
                 .tireType(entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null)
                 .sessionGroupId(entity.getSessionGroupId())
-                .publicCharging(entity.isPublicCharging())
+                .publicCharging(entity.getPublicCharging())
                 .cpoName(entity.getCpoName())
                 .measurementType(entity.getMeasurementType() != null ? EnergyMeasurementType.valueOf(entity.getMeasurementType()) : null)
                 .energySource(entity.getEnergySource() != null ? EnergySource.valueOf(entity.getEnergySource()) : null)

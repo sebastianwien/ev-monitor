@@ -72,6 +72,7 @@ public class EmailService {
         String html = loadTemplate("re-engagement.html", lang, Map.of(
                 "username", username,
                 "dashboardUrl", baseUrl + "/dashboard",
+                "surveyUrl", baseUrl + "/umfrage/why-away",
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -103,6 +104,20 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "How is AutoSync working for you?"
                 : "Wie läuft AutoSync für dich?";
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
+    public void sendAutoSyncDormantEmail(String toEmail, String username, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("autosync-dormant.html", lang, Map.of(
+                "username", username,
+                "dashboardUrl", baseUrl + "/dashboard",
+                "surveyUrl", baseUrl + "/umfrage/why-away",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        String subject = "en".equals(lang)
+                ? "Your car's been busy while you were away"
+                : "Dein Auto war fleißig, während du weg warst";
         sendHtmlEmail(toEmail, subject, html);
     }
 

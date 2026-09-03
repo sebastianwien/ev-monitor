@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { useFeatureAnnouncements } from '../../composables/useFeatureAnnouncements'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -8,9 +9,37 @@ const { announcement, dismiss, total, currentNumber } = useFeatureAnnouncements(
 const router = useRouter()
 const { t } = useI18n()
 
-const handleCta = () => {
-  const route = announcement.value?.ctaRoute
+const ctaLoading = ref(false)
+const ctaError = ref(false)
+
+// A new/next announcement must not carry over a stale error from a previous one.
+watch(announcement, () => {
+  ctaLoading.value = false
+  ctaError.value = false
+})
+
+const handleCta = async () => {
+  const current = announcement.value
+  if (!current) return
+
+  if (current.ctaAction) {
+    ctaError.value = false
+    ctaLoading.value = true
+    try {
+      await current.ctaAction()
+      dismiss()
+    } catch {
+      // Dismissing here would lose the announcement over a transient failure - the whole
+      // point of ctaAction throwing is to keep it around so the user can just try again.
+      ctaError.value = true
+    } finally {
+      ctaLoading.value = false
+    }
+    return
+  }
+
   dismiss()
+  const route = current.ctaRoute
   if (route) {
     if (route.startsWith('http')) {
       window.open(route, '_blank', 'noopener,noreferrer')
@@ -43,11 +72,16 @@ const handleCta = () => {
         {{ announcement.credit }}
       </p>
 
+      <p v-if="ctaError" class="text-sm text-red-600 dark:text-red-400 mb-3">
+        {{ t('announcements.cta_error') }}
+      </p>
+
       <div class="flex gap-3">
         <button
           v-if="announcement.ctaLabelKey"
           @click="handleCta"
-          class="btn-3d flex-1 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-sm hover:bg-indigo-700 transition">
+          :disabled="ctaLoading"
+          class="btn-3d flex-1 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-sm hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
           {{ t(announcement.ctaLabelKey) }}
         </button>
         <button

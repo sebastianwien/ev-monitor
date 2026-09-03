@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { GlobeAltIcon, CalendarDaysIcon, ClockIcon, MoonIcon, CreditCardIcon } from '@heroicons/vue/24/outline'
+import { GlobeAltIcon, CalendarDaysIcon, ClockIcon, MoonIcon, CreditCardIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 import api from '../../api/axios'
 import { useInlineChargingCard, CUSTOM_PROVIDER } from '../../composables/useInlineChargingCard'
-import { KNOWN_EMPS } from '../../composables/useChargingProviders'
+import { useCpoOptions } from '../../composables/useCpoOptions'
+import { KNOWN_EMPS, type ChargingProvider } from '../../composables/useChargingProviders'
 import { cardContainerStyle } from '../../composables/useChargingCardDesign'
 import ChargingCardTile from '../shared/ChargingCardTile.vue'
 import { useCountryStore } from '../../stores/country'
@@ -14,6 +15,7 @@ import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 import { tariffLocationParams } from '../../utils/tariffLocation'
+import { providerPriceForType, providerHasNoPrice } from '../../utils/chargingProviderPricing'
 import { shouldRefetchPriceOnToggle } from './costSuggestion'
 import { rescaleTotalToNewEnergy } from '../../utils/costRescale'
 
@@ -44,14 +46,6 @@ export interface LogFormData {
   geohash?: string | null
   /** Opt-in: after saving, price all cost-less logs at this location with the selected card. */
   applyTariffToLocation?: boolean
-}
-
-interface UserProvider {
-  id: string
-  providerName: string
-  label: string | null
-  acPricePerKwh: number | null
-  dcPricePerKwh: number | null
 }
 
 const props = defineProps<{
@@ -237,6 +231,21 @@ const inputClass = (field: string) =>
       : 'border-gray-300 dark:border-gray-600 focus:border-indigo-500 focus:ring-indigo-500',
   ].join(' ')
 
+// ── Ladeanbieter (CPO) ────────────────────────────────────────────────────────
+// Wer an einer oeffentlichen Saeule laedt, weiss den Betreiber selten auswendig. Deshalb
+// stehen oben die Netze, die laut Ladesaeulenregister an diesem Ort wirklich stehen -
+// aus Wissen wird Wiedererkennen.
+const cpo = useCpoOptions(computed(() => countryStore.country))
+
+watch(
+  () => [form.value.latitude, form.value.longitude, form.value.isPublicCharging] as const,
+  ([lat, lon, isPublic]) => {
+    if (!isPublic) return
+    cpo.loadNearby(lat ?? null, lon ?? null)
+  },
+  { immediate: true },
+)
+
 // ── kWh Mode ──────────────────────────────────────────────────────────────────
 const kwhMode = ref<'charger' | 'vehicle'>('charger')
 
@@ -383,22 +392,50 @@ watch(() => form.value.costEur, (newVal) => {
 }, { immediate: true })
 
 // ── Tarif-Chips ───────────────────────────────────────────────────────────────
-const userProviders = ref<UserProvider[]>([])
+const userProviders = ref<ChargingProvider[]>([])
 
 // Ohne Ladekarte bleibt die oeffentliche Ladung unzuordenbar - und der User tippt seine
 // Kosten weiter von Hand ein. Deshalb hier, im Moment der oeffentlichen Ladung, anbieten
 // die Karte anzulegen. Preis wird in derselben Einheit getippt, in der die Chips ihn zeigen.
 const inlineCard = useInlineChargingCard(
-  (typed: number) => isEurCountry.value ? typed / 100 : typed)
+  (typed: number) => isEurCountry.value ? typed / 100 : typed,
+  (eur: number) => isEurCountry.value ? Math.round(eur * 1000) / 10 : eur)
 
 const showCardPrompt = computed(() =>
   userProviders.value.length === 0 && form.value.isPublicCharging === true)
 
+const selectedProvider = computed<ChargingProvider | null>(() =>
+  userProviders.value.find(p => p.id === form.value.chargingProviderId) ?? null)
+
+// Die gewaehlte Karte hat fuer genau diesen Ladetyp keinen Preis - der Nachtrag-Hinweis erscheint.
+const selectedProviderNeedsPrice = computed(() => {
+  const p = selectedProvider.value
+  return p != null && providerPriceForType(p, form.value.chargingType) == null
+})
+
+/** Fuellt den Preis aus einer Karte in die (leeren) Kostenfelder - Basis fuer Auto-Bepreisung. */
+const applyProviderPrice = (provider: ChargingProvider) => {
+  if (costLocalTotal.value != null || costLocalPerKwh.value != null) return
+  const price = providerPriceForType(provider, form.value.chargingType)
+  if (price == null) return
+  costMode.value = 'per_kwh'
+  costLocalPerKwh.value = isEurCountry.value ? price : Math.round(eurToLocal(price) * 1000) / 1000
+}
+
 const saveInlineCard = async () => {
-  const created = await inlineCard.save()
-  if (!created) return
-  userProviders.value = [created]
-  form.value.chargingProviderId = created.id
+  const wasEditing = inlineCard.isEditing.value
+  const saved = await inlineCard.save()
+  if (!saved) return
+  if (wasEditing) {
+    // Gleiche Karte, nur bepreist: Auswahl bleibt, aber der Provider-Watch feuert nicht
+    // (die ID aendert sich nicht) - also hier die Ladung direkt neu bepreisen.
+    const idx = userProviders.value.findIndex(p => p.id === saved.id)
+    if (idx !== -1) userProviders.value[idx] = saved
+    applyProviderPrice(saved)
+  } else {
+    userProviders.value = [saved]
+    form.value.chargingProviderId = saved.id
+  }
 }
 
 onMounted(async () => {
@@ -410,11 +447,14 @@ onMounted(async () => {
   }
 
   try {
-    const res = await api.get<UserProvider[]>('/users/me/charging-providers')
+    const res = await api.get<ChargingProvider[]>('/users/me/charging-providers')
     userProviders.value = res.data
   } catch {
     // nicht kritisch
   }
+
+  await cpo.loadAll()
+  cpo.keepSelected(form.value.cpoName)
 
   // Wenn Location aus vorherigem Besuch aktiviert war: direkt GPS holen
   if (locationEnabled.value && props.locationMode === 'create') {
@@ -428,13 +468,8 @@ watch(() => form.value.chargingType, (type) => {
 
 watch(() => form.value.chargingProviderId, (providerId) => {
   if (!providerId) return
-  if (costLocalTotal.value != null || costLocalPerKwh.value != null) return
   const provider = userProviders.value.find(p => p.id === providerId)
-  if (!provider) return
-  const price = form.value.chargingType === 'DC' ? provider.dcPricePerKwh : provider.acPricePerKwh
-  if (price == null) return
-  costMode.value = 'per_kwh'
-  costLocalPerKwh.value = isEurCountry.value ? price : Math.round(eurToLocal(price) * 1000) / 1000
+  if (provider) applyProviderPrice(provider)
 })
 
 watch(() => form.value.isPublicCharging, (isPublic) => {
@@ -486,7 +521,7 @@ watch(
 defineExpose({ clearLocation, locationEnabled, locationStatus, getCurrentDateTimeLocal })
 
 /** Preiszeile auf der Kachel: AC-Preis in der lokalen Waehrung (Cent, wo es Cent gibt). */
-function cardPriceLabel(p: UserProvider): string | null {
+function cardPriceLabel(p: ChargingProvider): string | null {
   if (p.acPricePerKwh == null) return null
   const value = isEurCountry.value ? p.acPricePerKwh * 100 : p.acPricePerKwh
   return `${value.toFixed(1)} ${localSubunit.value || localSymbol.value}/kWh`
@@ -642,8 +677,28 @@ function cardPriceLabel(p: UserProvider): string | null {
   <!-- Location error message -->
   <p v-if="locationErrorMessage" class="text-xs text-red-500">{{ locationErrorMessage }}</p>
 
-  <!-- Keine Ladekarte hinterlegt: hier, an der oeffentlichen Ladung, ist der Moment sie anzulegen -->
-  <div v-if="showCardPrompt"
+  <!-- Ladeanbieter: nur bei oeffentlichem Laden, und nur wenn es ueberhaupt etwas zu waehlen gibt -->
+  <div v-if="form.isPublicCharging && cpo.hasOptions.value">
+    <label for="log-cpo-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      {{ t('logfields.cpo_label') }}
+    </label>
+    <select
+      id="log-cpo-name"
+      data-testid="cpo-select"
+      v-model="form.cpoName"
+      :class="inputClass('cpoName')">
+      <option :value="null">{{ t('logfields.cpo_select_placeholder') }}</option>
+      <optgroup v-if="cpo.nearbyCpos.value.length" :label="t('logfields.cpo_nearby_group')">
+        <option v-for="name in cpo.nearbyCpos.value" :key="`near-${name}`" :value="name">{{ name }}</option>
+      </optgroup>
+      <optgroup v-if="cpo.otherCpos.value.length" :label="t('logfields.cpo_all_group')">
+        <option v-for="name in cpo.otherCpos.value" :key="`all-${name}`" :value="name">{{ name }}</option>
+      </optgroup>
+    </select>
+  </div>
+
+  <!-- Karte anlegen (keine hinterlegt) ODER Preis einer preislosen Karte nachtragen -->
+  <div v-if="showCardPrompt || inlineCard.isOpen.value"
     data-testid="charging-card-prompt"
     class="rounded-lg border border-dashed border-indigo-300 bg-indigo-50/60 p-3
            dark:border-indigo-700 dark:bg-indigo-950/30">
@@ -670,10 +725,18 @@ function cardPriceLabel(p: UserProvider): string | null {
 
     <div v-else class="space-y-2.5">
       <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">
-        {{ t('logfields.card_prompt_title') }}
+        {{ t(inlineCard.isEditing.value ? 'logfields.card_edit_title' : 'logfields.card_prompt_title') }}
       </label>
 
+      <!-- Nachtrag: Name steht fest, nur der Preis fehlt -->
+      <p v-if="inlineCard.isEditing.value"
+        class="rounded-md bg-white px-3 py-2 text-sm font-medium text-gray-800
+               dark:bg-gray-700 dark:text-gray-100">
+        {{ inlineCard.resolvedName.value }}
+      </p>
+
       <select
+        v-else
         id="inline-card-provider"
         v-model="inlineCard.draft.value.providerName"
         class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm
@@ -685,7 +748,7 @@ function cardPriceLabel(p: UserProvider): string | null {
       </select>
 
       <input
-        v-if="inlineCard.isCustom.value"
+        v-if="!inlineCard.isEditing.value && inlineCard.isCustom.value"
         v-model="inlineCard.draft.value.customProviderName"
         type="text"
         maxlength="100"
@@ -749,10 +812,11 @@ function cardPriceLabel(p: UserProvider): string | null {
         v-for="p in userProviders"
         :key="p.id"
         type="button"
+        :aria-pressed="form.chargingProviderId === p.id"
         @click="form.chargingProviderId = form.chargingProviderId === p.id ? null : p.id"
         :class="[
-          'btn-3d flex-shrink-0 w-28 h-[4.5rem] rounded-sm',
-          form.chargingProviderId === p.id ? 'active opacity-100' : 'opacity-65 hover:opacity-85'
+          'btn-3d relative flex-shrink-0 w-28 h-[4.5rem] rounded-sm',
+          form.chargingProviderId === p.id ? 'active ring-2 ring-inset ring-indigo-500' : ''
         ]"
         :style="{ '--btn-shadow-color': cardContainerStyle(p.id)['--btn-shadow-color'] }">
         <ChargingCardTile
@@ -760,8 +824,31 @@ function cardPriceLabel(p: UserProvider): string | null {
           :id="p.id"
           :title="p.label || p.providerName"
           :subtitle="cardPriceLabel(p)" />
+        <CheckCircleIcon
+          v-if="form.chargingProviderId === p.id"
+          class="absolute top-1 right-1 h-5 w-5 rounded-full bg-white text-indigo-600 dark:bg-gray-800"
+          aria-hidden="true" />
+        <span
+          v-else-if="providerHasNoPrice(p)"
+          class="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-gray-800"
+          :title="t('logfields.card_no_price_dot')"
+          aria-hidden="true" />
       </button>
     </div>
+
+    <!-- Gewaehlte Karte kann diese Ladung nicht bepreisen: Tarif direkt hier nachtragen -->
+    <button
+      v-if="selectedProviderNeedsPrice && !inlineCard.isOpen.value"
+      type="button"
+      data-testid="charging-card-add-price"
+      @click="selectedProvider && inlineCard.openEdit(selectedProvider)"
+      class="mt-1 flex w-full items-start gap-2 rounded-md bg-amber-50 px-2.5 py-2 text-left
+             dark:bg-amber-950/30">
+      <CreditCardIcon class="h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+      <span class="text-xs leading-snug text-amber-800 dark:text-amber-200">
+        {{ t('logfields.card_no_price_prompt') }}
+      </span>
+    </button>
 
     <!-- Rueckwirkend: Tarif auf alle preislosen Ladungen an diesem Ort anwenden -->
     <label

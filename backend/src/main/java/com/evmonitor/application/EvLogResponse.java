@@ -39,7 +39,7 @@ public record EvLogResponse(
         TireType tireType,                   // Optional: SUMMER, ALL_YEAR, or WINTER
         DataSource dataSource,
         boolean includeInStatistics,
-        boolean isPublicCharging,
+        Boolean isPublicCharging,
         String cpoName,
         BigDecimal costExchangeRate,
         String costCurrency,
@@ -91,7 +91,7 @@ public record EvLogResponse(
                 evLog.getTireType(),
                 evLog.getDataSource(),
                 evLog.isIncludeInStatistics(),
-                evLog.isPublicCharging(),
+                evLog.getPublicCharging(),
                 evLog.getCpoName(),
                 evLog.getCostExchangeRate(),
                 evLog.getCostCurrency(),

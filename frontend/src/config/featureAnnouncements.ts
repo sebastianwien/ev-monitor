@@ -1,8 +1,11 @@
+import teslaFleetService from '../api/teslaFleetService'
+
 export interface AnnouncementContext {
   hasGoeConnection: boolean
   isPremium: boolean
   isAutoSyncLive: boolean
   hasTeslaConnection: boolean
+  teslaLocationScopeGranted: boolean
 }
 
 export interface FeatureAnnouncement {
@@ -13,6 +16,11 @@ export interface FeatureAnnouncement {
   bodyKey: string      // i18n key
   ctaLabelKey?: string // i18n key, optional
   ctaRoute?: string
+  /** Runs instead of ctaRoute navigation when set - for a CTA that needs to do something
+   *  (call an API, start a redirect) rather than just navigate to a page. Must throw on
+   *  failure: the modal only dismisses the announcement once this resolves, so a throw
+   *  keeps it open and shows an error instead of silently losing the announcement. */
+  ctaAction?: () => void | Promise<void>
   credit?: string      // optional plain text credit, rendered small + italic
   condition?: (ctx: AnnouncementContext) => boolean
 }
@@ -25,9 +33,22 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     titleKey: 'announcements.tesla_location_reconnect_v1_title',
     bodyKey: 'announcements.tesla_location_reconnect_v1_body',
     ctaLabelKey: 'announcements.tesla_location_reconnect_v1_cta',
-    ctaRoute: '/imports', // dort sitzt TeslaFleetIntegration; Tesla-Fahrer landen automatisch im Tesla-Tab
+    // Startet den OAuth-Redirect direkt aus dem Modal statt nur zu /imports zu verlinken - der
+    // User muesste dort sonst den Connect-Button erst noch selbst finden. Nutzt denselben
+    // startReconnect wie TeslaFleetIntegration.vue/TeslaTelemetryPrompt.vue. Wirft bei jedem
+    // Nicht-Erfolg (kein carId, 'not_configured', Netzwerkfehler) - das Modal dismissed nur bei
+    // Erfolg, sonst bleibt die Ankuendigung offen und zeigt einen Fehlertext statt spurlos zu
+    // verschwinden.
+    ctaAction: async () => {
+      const status = await teslaFleetService.getStatus()
+      if (!status.carId) throw new Error('No Tesla car linked')
+      const result = await teslaFleetService.startReconnect(status.carId)
+      if (result === 'not_configured') throw new Error('Tesla Fleet API not configured')
+    },
 
-    condition: (ctx) => ctx.hasTeslaConnection, // nur Tesla-Nutzer
+    // Nur Tesla-Nutzer, deren Verbindung den vehicle_location-Scope nachweislich noch nicht hat -
+    // nicht mehr jeder verbundene Tesla-User pauschal (die mit dem Scope brauchten den Hinweis nie).
+    condition: (ctx) => ctx.hasTeslaConnection && !ctx.teslaLocationScopeGranted,
   },
   {
     key: 'power_curve_share_v1',

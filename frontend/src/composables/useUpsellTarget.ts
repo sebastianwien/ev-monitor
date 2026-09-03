@@ -12,8 +12,8 @@ export type UpsellTarget = '/supporter' | '/upgrade'
  * Die Frage dahinter ist nicht "welches Abo ist teurer", sondern **was diesem User
  * gerade fehlt**:
  *
- * - **Datenquelle vorhanden** (`hasFreeDataSource` - aktuell Tesla via Fleet Telemetry,
- *   XPeng via EU Data Act): es fehlt nur die Auswertungsebene, und die kostet 2 EUR im
+ * - **Datenquelle vorhanden** (`hasFreeDataSource` - aktuell Tesla via Fleet
+ *   Telemetry): es fehlt nur die Auswertungsebene, und die kostet 2 EUR im
  *   Supporter-Pack. Ihn auf die AutoSync-Preistabelle zu schicken verkauft ihm
  *   Datensammlung, die er laengst hat.
  * - **Keine Datenquelle** (Smartcar-Marke ohne Abo, oder Marke ohne Connector): ohne

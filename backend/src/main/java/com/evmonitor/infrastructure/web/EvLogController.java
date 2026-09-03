@@ -297,6 +297,20 @@ public class EvLogController {
         }
     }
 
+    /** All cost-less logs of a car (newest first) - feeds the "add price" banner + modal. */
+    @GetMapping("/priceless")
+    public ResponseEntity<List<EvLogResponse>> getPricelessLogs(
+            @RequestParam UUID carId,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            List<EvLogResponse> logs = evLogStatisticsService.getPricelessLogs(carId, principal.getUser().getId());
+            return ResponseEntity.ok(logs);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PatchMapping("/{id}/statistics-inclusion")
     public ResponseEntity<?> updateStatisticsInclusion(
             @PathVariable UUID id,

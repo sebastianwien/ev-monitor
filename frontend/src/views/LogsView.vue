@@ -26,6 +26,7 @@ import {
   LockClosedIcon,
   CheckIcon,
   LinkIcon,
+  CurrencyEuroIcon,
 } from '@heroicons/vue/24/outline'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
@@ -52,6 +53,7 @@ import { hasTripMap } from '../utils/tripMap'
 import { formatPauseDuration, tripDayLabel } from '../utils/tripTimeFormat'
 import { buildPeriodGroups, type PeriodResolution } from '../utils/tripPeriods'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
+import FeedLegend from '../components/dashboard/FeedLegend.vue'
 import PeriodChargeLine from '../components/dashboard/PeriodChargeLine.vue'
 import ChargeTypeBadge from '../components/dashboard/ChargeTypeBadge.vue'
 import ComparisonChip from '../components/dashboard/ComparisonChip.vue'
@@ -69,6 +71,7 @@ import LicensePlate from '../components/car/LicensePlate.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
 import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
+import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
@@ -103,8 +106,9 @@ const {
   cars, carImageUrls, wltp,
   implausibleBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount,
   dismissImplausibleBanner, fetchImplausibleCount, fetchStatistics,
+  pricelessCount, pricelessBannerDismissed, dismissPricelessBanner, fetchPricelessCount,
   setLogsSection, currentOdometerKm,
-  logs, logsPage, logsLoading, hasMoreLogs, editingLog, pageSize, setPageSize,
+  logs, logsPage, logsLoading, hasMoreLogs, editingLog, priceAmendingLog, pageSize, setPageSize,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
@@ -698,6 +702,7 @@ const sendNegativeFeedback = async (tripId: string) => {
 
 // -- Implausible logs modal --
 const showImplausibleModal = ref(false)
+const showPricelessModal = ref(false)
 const implausibleModalDirty = ref(false)
 
 // -- Range calculator --
@@ -1129,6 +1134,19 @@ const visibleTripGroups = computed(() => groupedFeed.value.filter(i => i.kind ==
 const visibleChargeEntries = computed(() => groupedFeed.value.filter(i => i.kind === 'entry'))
 const totalTripCount = computed(() => visibleTripGroups.value.reduce((s, g) => s + (g.groupSize ?? 0), 0))
 const chargeCount = computed(() => visibleChargeEntries.value.length)
+// Standverlust-Zeile der Feed-Legende nur, wenn der Chip auch sichtbar ist (Premium-gegated).
+const feedShowPhantom = computed(() => visibleTripGroups.value.some(g => visiblePhantomTotal(g) != null))
+// Offener Zustand des Erklaerkastens - Trigger steht in der Aufloesungs-Zeile, Panel darunter.
+const feedLegendOpen = ref(false)
+try {
+  feedLegendOpen.value = localStorage.getItem('feedLegendOpen') === '1'
+} catch { /* localStorage kann blockiert sein - Default zu genuegt. */ }
+function toggleFeedLegend() {
+  feedLegendOpen.value = !feedLegendOpen.value
+  try {
+    localStorage.setItem('feedLegendOpen', feedLegendOpen.value ? '1' : '0')
+  } catch { /* nicht persistierbar - fuer diese Sitzung reicht der Ref. */ }
+}
 
 
 const allTripsExpanded = computed(() =>
@@ -1462,6 +1480,28 @@ function toggleAllCharges() {
             </button>
           </div>
 
+          <!-- Preislose Ladungen: macht auch alte, im Feed versteckte Logs ohne Preis auffindbar -->
+          <div v-if="pricelessCount > 0 && !pricelessBannerDismissed"
+            class="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-sm bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50">
+            <button
+              @click="showPricelessModal = true"
+              class="flex-1 flex items-center justify-between gap-3 text-left">
+              <div class="flex items-center gap-2">
+                <CurrencyEuroIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  {{ t('priceless.banner', pricelessCount) }}
+                </span>
+              </div>
+              <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('priceless.banner_cta') }}</span>
+            </button>
+            <button
+              @click="dismissPricelessBanner"
+              class="shrink-0 p-1 rounded hover:bg-amber-300/50 dark:hover:bg-amber-600/30 transition-colors"
+              :title="t('priceless.dismiss')">
+              <XMarkIcon class="h-4 w-4 text-amber-700 dark:text-amber-400" />
+            </button>
+          </div>
+
           <!-- Pagination top (Header-Variante: Zeitraum-Label, keine Seitengroesse) -->
           <LogsPaginationBar
             v-if="hasAnyLogs"
@@ -1486,16 +1526,21 @@ function toggleAllCharges() {
           <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum.
                Voll ausgeschriebene Segmente statt eines Menues - die vier Optionen passen
                nebeneinander und eine Auswahl, die man sieht, muss man nicht suchen. -->
-          <div v-if="hasAnyLogs" role="group" :aria-label="t('logs.resolution.label')"
-               class="mb-3 inline-flex w-full sm:w-auto p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
-            <button v-for="option in RESOLUTIONS" :key="option" type="button"
-                    @click="feedResolution = option" :aria-pressed="feedResolution === option"
-                    :class="['flex-1 sm:flex-none px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
-                      feedResolution === option
-                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
-                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
-              {{ t('logs.resolution.' + option) }}
-            </button>
+          <div v-if="hasAnyLogs" class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div role="group" :aria-label="t('logs.resolution.label')"
+                 class="inline-flex w-full sm:w-auto p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
+              <button v-for="option in RESOLUTIONS" :key="option" type="button"
+                      @click="feedResolution = option" :aria-pressed="feedResolution === option"
+                      :class="['flex-1 sm:flex-none px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
+                        feedResolution === option
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
+                {{ t('logs.resolution.' + option) }}
+              </button>
+            </div>
+            <FeedLegend mode="trigger" class="ml-auto" :has-trips="totalTripCount > 0"
+                        :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
+                        :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
 
           <div :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
@@ -1526,6 +1571,9 @@ function toggleAllCharges() {
               <div v-if="openMenuGroupId" class="fixed inset-0 z-40" @click="openMenuGroupId = null" />
               <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
               <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
+
+              <FeedLegend v-if="feedLegendOpen" mode="panel" :has-trips="totalTripCount > 0"
+                          :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom" />
 
               <template v-for="item in groupedFeed" :key="item.id">
 
@@ -2271,6 +2319,14 @@ function toggleAllCharges() {
                       <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
                       <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
                     </button>
+                    <button v-else-if="sourceInfo(item.entry.dataSource) && !item.entry._isLadegruppe && item.entry.id"
+                      type="button" data-testid="charge-price-chip"
+                      :aria-label="t('priceamend.chip_aria')"
+                      @click.stop="priceAmendingLog = item.entry"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
+                      <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                      {{ t('priceamend.chip') }}
+                    </button>
                     <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
                     <div v-if="openRealCostTooltipId === item.entry.id + '__d' && realCostHintFor(item.entry.id)"
                       class="absolute right-0 top-full mt-1.5 w-72 p-3 rounded-sm bg-amber-50 dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.10)] z-[60]"
@@ -2849,6 +2905,16 @@ function toggleAllCharges() {
                       <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
                       <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
                     </span>
+                    <span v-else-if="sourceInfo(item.entry.dataSource) && !item.entry._isLadegruppe && item.entry.id"
+                      role="button" tabindex="0" data-testid="charge-price-chip"
+                      :aria-label="t('priceamend.chip_aria')"
+                      @click.stop="priceAmendingLog = item.entry"
+                      @keydown.enter.stop.prevent="priceAmendingLog = item.entry"
+                      @keydown.space.stop.prevent="priceAmendingLog = item.entry"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer whitespace-nowrap">
+                      <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                      {{ t('priceamend.chip') }}
+                    </span>
                     <ChevronDownIcon v-if="!expandedLogs.has(item.entry.id)" class="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <ChevronUpIcon v-else class="w-4 h-4 text-gray-400 flex-shrink-0" />
                   </div>
@@ -3202,6 +3268,13 @@ function toggleAllCharges() {
     :open="showImplausibleModal"
     @close="() => { showImplausibleModal = false; if (implausibleModalDirty) { fetchStatistics(); implausibleModalDirty = false } }"
     @updated="() => { fetchImplausibleCount(); implausibleModalDirty = true }"
+  />
+
+  <PricelessLogsModal
+    :car-id="selectedCarId"
+    :open="showPricelessModal"
+    @close="showPricelessModal = false"
+    @updated="() => { fetchPricelessCount(); refreshLogsAndGroups() }"
   />
 
   <!-- Fahrzeug-Zuordnung Modal -->

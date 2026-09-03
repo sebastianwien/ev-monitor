@@ -570,13 +570,29 @@ logs:
     month: "Månad"
   period:
     week_number: "V{week}"
-    bars_legend: "Stapelhöjd = kilometer per dag, högsta dag {max} · blå sockel = laddad"
-    bars_legend_km: "Stapelhöjd = kilometer per dag · blå sockel = laddad"
     charges: "1 laddning | {count} laddningar"
     no_trips: "Utan tidsstämpel"
     unmeasured: "1 resa utan förbrukningsvärde | {count} resor utan förbrukningsvärde"
     charge_public: "publik"
     charge_home: "hemma"
+    charge_unknown: "Laddning"
+  legend:
+    slim_driven: "kört"
+    slim_charged: "laddat"
+    slim_phantom: "stilleståndsförlust"
+    toggle: "Vad betyder de här siffrorna?"
+    section_feed: "I den här översikten"
+    section_home: "På startsidan"
+    section_home_hint: "Där står andra värden för samma period - inget fel, bara en annan fråga:"
+    percent_note: "Procenttalet jämför ditt värde: i periodsammanfattningen med community-snittet, i en enskild resa eller laddning med ditt eget snitt."
+    desc_driving: "Körförbrukningen - så mycket drog själva körningen, utan det som går åt när bilen står stilla."
+    desc_phantom: "Stilleståndsförlusten - energi som bilen förlorar när den står stilla, hålls separat från körförbrukningen."
+    desc_charged: "Den laddade energin som faktiskt kommer in i bilen (netto)."
+    bars: "Staplarna visar kilometer per dag; den blå sockeln markerar en dag med laddning."
+    term_avg: "Snittförbrukning"
+    desc_avg: "Räknar all energi mellan två laddningar, även stillestånd - därför högre."
+    term_total: "Total energi"
+    desc_total: "Den laddade energin vid uttaget (brutto), inklusive laddningsförluster."
 
 dashboard:
   title: Dashboard
@@ -652,6 +668,7 @@ dashboard:
   charging_type_unknown: Okand
   charging_location_public: "Offentlig"
   charging_location_private: "Hemma / Privat"
+  charging_location_unknown: "Ej angivet"
   wltp_comparison_subtitle: WLTP tillverkaruppgift
   wltp_comparison_note: Båda räckvidderna beräknade med 90→10% laddningsfönster
   peer_footer: "{trips} resor analyserade"
@@ -1039,6 +1056,27 @@ logform:
   delete_title: Ta bort laddningssession
   edit_title: Redigera laddningssession
   efficiency_label: Effektivitet
+priceless:
+  title: Laddningar utan pris
+  info: Dessa laddningar saknar pris. Lägg till det så att din kostnadsstatistik stämmer.
+  all_clear: Alla laddningar har ett pris.
+  banner: "{count} laddning utan pris | {count} laddningar utan pris"
+  banner_cta: Lägg till
+  dismiss: Dölj
+  add_price: Lägg till pris
+  close: Stäng
+priceamend:
+  title: Lägg till pris
+  intro: Denna laddning ({kwh} kWh) har inget pris ännu. Lägg till det snabbt.
+  card_section: Ditt laddkort
+  card_cost_hint: Det blir {cost} för denna laddning.
+  manual_label: Ange pris
+  manual_label_or: Eller ange pris
+  manual_placeholder: Total kostnad
+  location_label: Plats (valfritt)
+  public_label: Offentlig laddning
+  chip: Pris saknas
+  chip_aria: Lägg till pris för denna laddning
 logfields:
   apply_tariff_to_location: "Använd priset även på {count} annan laddning på denna plats | Använd priset även på {count} andra laddningar på denna plats"
   card_prompt_title: "Lägg till ditt laddkort"
@@ -1051,6 +1089,9 @@ logfields:
   card_dc_price: "DC-pris ({unit}/kWh)"
   card_save: "Spara kort"
   card_save_failed: "Laddkortet kunde inte sparas."
+  card_edit_title: "Lägg till ett pris för detta kort"
+  card_no_price_dot: "Inget pris angivet"
+  card_no_price_prompt: "Detta kort har inget pris för denna laddning. Lägg in det, så beräknar jag kostnaden automatiskt."
   energy: Energi (kWh)
   cost_eur: Kostnad
   cost_per_kwh: Pris (€/kWh)
@@ -1096,8 +1137,9 @@ logfields:
   public_charging_short: Offentlig
   public_charging_short2: Laddning
   cpo_select_placeholder: Välj nätoperatör
-  cpo_other: Annan leverantör
-  cpo_name_placeholder: Leverantörens namn
+  cpo_label: Laddnätverk
+  cpo_nearby_group: I närheten
+  cpo_all_group: Alla nätverk
   tariff_chip_label: Laddningskort
   update_location: Uppdatera plats
   location_search_placeholder: Sökplats (ersätter befintlig)...
@@ -2070,6 +2112,8 @@ goe:
   apikey_label: Moln-API-nyckel
   apikey_placeholder: från appen go-e
   car_label: Fordon
+  connect_tariff_label: Elpris per kWh
+  connect_tariff_hint: För automatisk kostnadsberäkning av dina hemmaladdningar. Utan det förblir laddningar utan pris - kan ändras när som helst.
   name_label: Namn (valfritt)
   name_placeholder: t.ex. hemladdare i garaget
   location_label: Plats (valfritt, för värmekarta)
@@ -2252,6 +2296,7 @@ demo:
   settings_notice: I demoläget kan du bläddra igenom alla inställningar, men du kan inte göra några ändringar.
   settings_cta: Okej
 announcements:
+  cta_error: "Det gick inte. Försök igen."
   power_curve_share_v1_title: "Snabbladdning: laddkurvan kan mer"
   power_curve_share_v1_body: "Laddkurvan för dina snabbladdningar visar nu mer - bland annat vid vilken laddnivå effekten sjönk. Och du kan dela den: ett tryck skapar en offentlig länk med förhandsbild för forum, chatt eller sociala medier. Bara laddningen du delar, och du kan dra tillbaka den när som helst."
   power_curve_share_v1_cta: "Till mina laddningar"
@@ -2344,7 +2389,7 @@ tax_export:
   tax_export_v1_cta: Gå till skattedeklarationen
 supporter:
   data_source_note_title: "Din data kommer redan in automatiskt"
-  data_source_note_body: "Som Tesla- eller XPeng-förare är datainsamlingen redan gratis för dig - laddningar och resor hamnar automatiskt i din loggbok. Det Supporter-paketet ger utöver detta är inte mer datainsamling utan analysen: djupet bakom siffrorna du redan skickar in."
+  data_source_note_body: "Som Tesla-förare är datainsamlingen redan gratis för dig - laddningar och resor hamnar automatiskt i din loggbok. Det Supporter-paketet ger utöver detta är inte mer datainsamling utan analysen: djupet bakom siffrorna du redan skickar in."
   back: "Tillbaka"
   hero_kicker: "Öppen källkod · reklamfri · oberoende"
   title: "Bli supporter"
@@ -2353,6 +2398,7 @@ supporter:
   story_p2: "Hela kodbasen är öppen källkod. Ingen reklam, ingen datahandel, inga investerare som kräver tillväxt till varje pris. Men det betyder också: EV Monitor bärs enbart av människorna som frivilligt stödjer det."
   story_p3: "Ditt bidrag håller servrarna igång och ger mig tid att bygga vidare. Som tack låser Supporter-paketet upp djupare analyser av din data."
   unlock_title: "Vad Supporter-paketet låser upp"
+  u_savings: "Vad hemmaladdning faktiskt sparar jämfört med publik laddning - och när din laddbox har betalat sig."
   u_analytics: "Dashboard-widget: en detaljerad uppdelning av din energifördelning, parkeringsförluster och kostnaden, plus en sträckanalys."
   u_phantom: "Parkeringsförluster i detalj - varje förlust mellan resorna, med kWh och kostnad."
   u_curves: "Laddkurvor - de fullständiga DC-snabbladdningskurvorna för varje laddning."
@@ -2877,3 +2923,49 @@ soh:
   load_error: "Batteridata kunde inte laddas."
   save_error: "Posten kunde inte sparas."
   delete_error: "Posten kunde inte tas bort."
+
+savings:
+  title: "Besparing genom hemladdning"
+  saved_since: "sparat sedan {year}"
+  saved_total: "sparat totalt"
+  would_have_cost: "Offentlig laddning hade kostat"
+  cents_per_kwh: "{value} ct/kWh"
+  home_kwh_charged: "{kwh} kWh laddat hemma"
+  paid_at_home_short: "Betalat hemma"
+  paid_off_by: "återbetald {date}"
+  year_part_early: "tidigt {year}"
+  year_part_mid: "mitten av {year}"
+  year_part_late: "sent {year}"
+  paid_at_home: "Betalat hemma · {kwh} kWh"
+  wallbox_recovered: "Laddbox intjänad"
+  of_investment: "av {total}"
+  fully_amortised: "Helt intjänad - allt härifrån är besparing."
+  amortisation_not_possible: "Så länge ditt hempris inte är lägre än jämförelsepriset uppstår ingen besparing - då går ingen återbetalningstid att beräkna."
+  amortisation_remaining: "Cirka {years} år kvar till full återbetalning."
+  amortisation_slow: "Med ditt nuvarande laddmönster cirka {years} år kvar. En billigare hemtariff kortar det märkbart."
+  add_investment: "Vill du veta när din laddbox betalar sig? Lägg in kostnaden här"
+  edit_investment: "Ändra kostnad för laddbox"
+  basis_own_public: "Baserat på dina {count} egna offentliga laddningar"
+  basis_region: "Baserat på {count} offentliga laddningar i ditt område"
+  basis_country: "Baserat på median för offentligt pris i ditt land ({count} laddningar)"
+  basis_override: "Ditt antagande: {price} per kWh"
+  playground_toggle: "Justera priser"
+  playground_hint: "Egna antaganden i ct/kWh. Gäller bara på den här enheten och ändrar inga av dina data."
+  playground_home: "Hempris"
+  playground_public: "Jämförelsepris publikt"
+  playground_reset: "Tillbaka till dina verkliga värden"
+  empty_body: "Så snart du anger priset för en hemmaladdning räknar vi ut vad hemmaladdning sparar jämfört med publik laddning."
+  how_summary: "Hur räknas det här ut?"
+  how_intro: "Vi jämför vad din hemmaladdning kostade med vad samma kilowattimmar hade kostat vid en publik laddare."
+  how_paid: "Det du betalade kommer från dina loggar - antingen kostnaden eller priset per kWh, beroende på vad du fyllt i. Nolltaxor räknas med: solelöverskott kostar ingenting."
+  how_comparison: "Jämförelsepriset är medianen av dina egna publika laddningar. Har du för få använder vi prisnivån i ditt område, annars medianen för ditt land. Vilken nivå som gäller visas överst i kortet - egna laddningar gör siffran mer exakt."
+  how_per_year: "Varje år räknas med prisnivån för det året, eftersom laddpriser förändras över tid."
+  how_amortisation: "Laddboxlinjen summerar besparingen för varje år sedan du började ladda hemma. Slutdatumet är en framskrivning av ditt nuvarande laddmönster - det är en beräkning, inte ett löfte. Därför visas ett ungefärligt datum och inte en exakt dag."
+  how_excluded: "Ingår inte: månadsavgifter för dina laddkort och blockeringsavgifter."
+  investment_title: "Kostnad för laddbox"
+  investment_hint: "Inköp och installation. Kortet visar då hur långt besparingen har täckt den."
+  investment_label: "Belopp i euro"
+  investment_clear_hint: "Lämna tomt för att ta bort värdet."
+  investment_save: "Spara"
+  investment_cancel: "Avbryt"
+  investment_close: "Stäng"

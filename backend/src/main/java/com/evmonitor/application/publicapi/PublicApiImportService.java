@@ -204,9 +204,12 @@ public class PublicApiImportService {
             throw new SecurityException("Kein Zugriff auf diesen Log");
         }
 
-        boolean isPublic = patch.isPublicCharging() != null ? patch.isPublicCharging() : existing.isPublicCharging();
+        Boolean isPublic = patch.isPublicCharging() != null ? patch.isPublicCharging() : existing.getPublicCharging();
+        // Die Praezision haengt an "belegt oeffentlich": unbekannt bekommt die private
+        // Stufe. Ein direktes isPublic ? 7 : 6 wuerde bei NULL entpacken und knallen -
+        // seit V166 ist der Ladeort dreiwertig.
         String geohash = patch.location() != null
-                ? parseGeohash(patch.location(), isPublic ? 7 : 6)
+                ? parseGeohash(patch.location(), Boolean.TRUE.equals(isPublic) ? 7 : 6)
                 : existing.getGeohash();
         String cpoName = patch.cpoName() != null
                 ? cpoNameNormalizer.normalize(patch.cpoName())

@@ -29,6 +29,14 @@ spring:
       - leaderboard
       - brandModels
       - appUpdateCheck
+      # Vergleichspreise der Heimlade-Ersparnis. Muessen hier stehen: cache-names ist eine
+      # feste Liste, und ein @Cacheable auf einen nicht registrierten Namen wirft eine
+      # IllegalArgumentException - die der GlobalExceptionHandler in ein 400 uebersetzt.
+      - chargingRegionMedian
+      - chargingCountryMedian
+      - chargingPublicPriceByYear
+      # nearbyCpos hat eine eigene Regel (30 Tage) in CpoRegistryConfig - der Registerbestand
+      # der Bundesnetzagentur wird nur monatlich aktualisiert.
 
   flyway:
     enabled: true
@@ -210,6 +218,12 @@ stripe:
   price-id-yearly-dkk: ${STRIPE_PRICE_ID_YEARLY_DKK:}
   referral-coupon-id: ${STRIPE_REFERRAL_COUPON_ID:}
   referral-reward-cents: ${STRIPE_REFERRAL_REWARD_CENTS:399}
+
+# Ladesaeulenregister der Bundesnetzagentur (offener ArcGIS-Dienst, CC BY 4.0).
+# Liefert die Vorauswahl der Ladenetze im Umkreis einer Ladung.
+charging-station-registry:
+  enabled: ${CHARGING_STATION_REGISTRY_ENABLED:true}
+  radius-meters: ${CHARGING_STATION_REGISTRY_RADIUS_METERS:250}
 
 logging:
   file:

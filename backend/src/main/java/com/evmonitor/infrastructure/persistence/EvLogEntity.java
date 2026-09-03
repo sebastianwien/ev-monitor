@@ -33,6 +33,9 @@ public class EvLogEntity {
     @Column(name = "cost_eur", precision = 10, scale = 2)
     private BigDecimal costEur;
 
+    @Column(name = "price_per_kwh", precision = 6, scale = 4)
+    private BigDecimal pricePerKwh;
+
     @Column(name = "charge_duration_minutes")
     private Integer chargeDurationMinutes;
 
@@ -110,8 +113,9 @@ public class EvLogEntity {
     @Column(name = "session_group_id")
     private UUID sessionGroupId;
 
-    @Column(name = "is_public_charging", nullable = false, columnDefinition = "BOOLEAN NOT NULL DEFAULT false")
-    private boolean publicCharging;
+    /** TRUE = oeffentlich, FALSE = daheim, NULL = unbekannt (siehe V166). */
+    @Column(name = "is_public_charging")
+    private Boolean publicCharging;
 
     @Column(name = "cpo_name", length = 100)
     private String cpoName;

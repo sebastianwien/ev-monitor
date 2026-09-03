@@ -12,10 +12,12 @@ describe('analyticsUpsellTarget', () => {
         expect(analyticsUpsellTarget([tesla], 'NONE')).toBe('/supporter')
     })
 
-    it('schickt XPeng-Fahrer ohne Abo auf die Supporter-Seite', () => {
-        // EU-Data-Act-Weg laeuft gratis und liefert bereits Trips - wie bei Tesla
-        // fehlt nur die Auswertung, nicht die Datenquelle.
-        expect(analyticsUpsellTarget([xpeng], 'NONE')).toBe('/supporter')
+    it('schickt XPeng-Fahrer ohne Abo auf die Upgrade-Seite', () => {
+        // Seit der Verengung von FREE_DATA_SOURCE_BRANDS auf Tesla zaehlt XPeng nicht
+        // mehr als vorhandene Datenquelle. Wenn der EU-Data-Act-Weg dort weiterhin
+        // gratis Daten liefert, ist das die falsche Seite - dann gehoert XPeng zurueck
+        // ins Set und der Hinweistext auf der Supporter-Seite muss beide nennen.
+        expect(analyticsUpsellTarget([xpeng], 'NONE')).toBe('/upgrade')
     })
 
     it('schickt Marken ohne Datenquelle auf die Upgrade-Seite', () => {

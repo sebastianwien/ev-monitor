@@ -8,6 +8,8 @@ export interface TeslaConnectionStatus {
   autoImportEnabled: boolean
   geocodingInProgress: boolean
   vehicleState: 'asleep' | 'online' | 'charging' | null
+  /** null = not yet observed at a telemetry config push, not "confirmed absent". */
+  locationScopeGranted?: boolean | null
 }
 
 export interface TeslaPairingStatus {
@@ -37,6 +39,19 @@ export default {
   async getStatus(): Promise<TeslaConnectionStatus> {
     const resp = await api.get('/tesla/fleet/status')
     return resp.data
+  },
+
+  /**
+   * Fetches the OAuth authorize URL for carId and redirects the browser to it, or reports why
+   * it couldn't. Centralizes the "getAuthStartUrl → check fleetApiConfigured/authUrl → redirect"
+   * sequence that TeslaFleetIntegration.vue, TeslaTelemetryPrompt.vue and the reconnect
+   * announcement all need - callers still own their own error copy/UI for 'not_configured'.
+   */
+  async startReconnect(carId: string): Promise<'redirected' | 'not_configured'> {
+    const authStart = await this.getAuthStartUrl(carId)
+    if (!authStart.fleetApiConfigured || !authStart.authUrl) return 'not_configured'
+    window.location.href = authStart.authUrl
+    return 'redirected'
   },
 
   async getAuthStartUrl(carId: string): Promise<{ authUrl: string; fleetApiConfigured: boolean }> {

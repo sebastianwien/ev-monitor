@@ -570,13 +570,29 @@ logs:
     month: "Måned"
   period:
     week_number: "Uke {week}"
-    bars_legend: "Søylehøyde = kilometer per dag, høyeste dag {max} · blå sokkel = ladet"
-    bars_legend_km: "Søylehøyde = kilometer per dag · blå sokkel = ladet"
     charges: "1 lading | {count} ladinger"
     no_trips: "Uten tidsstempel"
     unmeasured: "1 tur uten forbruksverdi | {count} turer uten forbruksverdi"
     charge_public: "offentlig"
     charge_home: "hjemme"
+    charge_unknown: "Lading"
+  legend:
+    slim_driven: "kjørt"
+    slim_charged: "ladet"
+    slim_phantom: "hviletap"
+    toggle: "Hva betyr disse tallene?"
+    section_feed: "I denne oversikten"
+    section_home: "På startsiden"
+    section_home_hint: "Der står andre tall for samme periode - ikke en feil, bare et annet spørsmål:"
+    percent_note: "Prosenten sammenligner verdien din: i periodesammendraget med community-snittet, i en enkelt tur eller lading med ditt eget snitt."
+    desc_driving: "Kjøreforbruket - så mye brukte selve kjøringen, uten det som går med mens bilen står."
+    desc_phantom: "Hviletapet - energi bilen taper mens den står, holdt bevisst utenfor kjøreforbruket."
+    desc_charged: "Den ladede energien som faktisk kommer inn i bilen (netto)."
+    bars: "Søylene viser kilometer per dag; den blå sokkelen markerer en dag med lading."
+    term_avg: "Snittforbruk"
+    desc_avg: "Teller all energi mellom to ladinger, også mens bilen står - derfor høyere."
+    term_total: "Total energi"
+    desc_total: "Den ladede energien ved stikkontakten (brutto), inkludert ladetap."
 
 dashboard:
   title: Dashbord
@@ -652,6 +668,7 @@ dashboard:
   charging_type_unknown: Ukjent
   charging_location_public: "Offentlig"
   charging_location_private: "Hjemme / Privat"
+  charging_location_unknown: "Ikke oppgitt"
   wltp_comparison_subtitle: WLTP produsentverdi
   wltp_comparison_note: Begge rekkevidder beregnet med 90→10% ladevindu
   peer_footer: "{trips} turer analysert"
@@ -1039,6 +1056,27 @@ logform:
   delete_title: Slett ladesesjon
   edit_title: Rediger ladesesjon
   efficiency_label: Effektivitet
+priceless:
+  title: Ladinger uten pris
+  info: Disse ladingene mangler pris. Legg den til så kostnadsstatistikken din stemmer.
+  all_clear: Alle ladinger har en pris.
+  banner: "{count} lading uten pris | {count} ladinger uten pris"
+  banner_cta: Legg til
+  dismiss: Skjul
+  add_price: Legg til pris
+  close: Lukk
+priceamend:
+  title: Legg til pris
+  intro: Denne ladingen ({kwh} kWh) har ingen pris ennå. Legg den til raskt.
+  card_section: Ladekortet ditt
+  card_cost_hint: Det blir {cost} for denne ladingen.
+  manual_label: Angi pris
+  manual_label_or: Eller angi pris
+  manual_placeholder: Totalkostnad
+  location_label: Sted (valgfritt)
+  public_label: Offentlig lading
+  chip: Pris mangler
+  chip_aria: Legg til pris for denne ladingen
 logfields:
   apply_tariff_to_location: "Bruk prisen også på {count} annen lading på dette stedet | Bruk prisen også på {count} andre ladinger på dette stedet"
   card_prompt_title: "Legg til ladekortet ditt"
@@ -1051,6 +1089,9 @@ logfields:
   card_dc_price: "DC-pris ({unit}/kWh)"
   card_save: "Lagre kort"
   card_save_failed: "Ladekortet kunne ikke lagres."
+  card_edit_title: "Legg til en pris for dette kortet"
+  card_no_price_dot: "Ingen pris angitt"
+  card_no_price_prompt: "Dette kortet har ingen pris for denne ladingen. Legg den inn, så beregner jeg kostnaden automatisk."
   energy: Energi (kWh)
   cost_eur: Kostnad
   cost_per_kwh: Pris (€/kWh)
@@ -1096,8 +1137,9 @@ logfields:
   public_charging_short: Offentlig
   public_charging_short2: Lading
   cpo_select_placeholder: Velg nettverksoperatør
-  cpo_other: Annen leverandør
-  cpo_name_placeholder: Leverandørnavn
+  cpo_label: Ladenettverk
+  cpo_nearby_group: I nærheten
+  cpo_all_group: Alle nettverk
   tariff_chip_label: Ladekort
   update_location: Oppdater sted
   location_search_placeholder: Søk etter sted (erstatter eksisterende)...
@@ -2070,6 +2112,8 @@ goe:
   apikey_label: Sky-API-nøkkel
   apikey_placeholder: fra go-e-appen
   car_label: Kjøretøy
+  connect_tariff_label: Strømpris per kWh
+  connect_tariff_hint: For automatisk kostnadsberegning av hjemmeladingene dine. Uten den forblir ladinger uten pris - kan endres når som helst.
   name_label: Navn (valgfritt)
   name_placeholder: f.eks. hjemmelader i garasjen
   location_label: Sted (valgfritt, for varmekart)
@@ -2252,6 +2296,7 @@ demo:
   settings_notice: I demomodus kan du se gjennom alle innstillingene, men du kan ikke foreta endringer.
   settings_cta: Skjønner
 announcements:
+  cta_error: "Det gikk ikke. Prøv igjen."
   power_curve_share_v1_title: "Hurtiglading: ladekurven kan mer"
   power_curve_share_v1_body: "Ladekurven for hurtigladingene dine viser nå mer - blant annet ved hvilket ladenivå effekten falt av. Og du kan dele den: ett trykk lager en offentlig lenke med forhåndsvisningsbilde for forum, chat eller sosiale medier. Bare ladingen du frigir, og du kan trekke den tilbake når som helst."
   power_curve_share_v1_cta: "Til ladingene mine"
@@ -2344,7 +2389,7 @@ tax_export:
   tax_export_v1_cta: Gå til skatterapporten
 supporter:
   data_source_note_title: "Dataene dine kommer allerede inn automatisk"
-  data_source_note_body: "Som Tesla- eller XPeng-fører er dataregistreringen allerede gratis for deg - ladinger og turer havner automatisk i loggboken din. Det Supporter-pakken gir i tillegg er ikke mer datainnsamling, men analysen: dybden bak tallene du allerede sender inn."
+  data_source_note_body: "Som Tesla-fører er dataregistreringen allerede gratis for deg - ladinger og turer havner automatisk i loggboken din. Det Supporter-pakken gir i tillegg er ikke mer datainnsamling, men analysen: dybden bak tallene du allerede sender inn."
   back: "Tilbake"
   hero_kicker: "Åpen kildekode · reklamefri · uavhengig"
   title: "Bli supporter"
@@ -2353,6 +2398,7 @@ supporter:
   story_p2: "Hele kodebasen er åpen kildekode. Ingen reklame, ingen datahandel, ingen investorer som krever vekst for enhver pris. Men det betyr også: EV Monitor bæres kun av menneskene som frivillig støtter det."
   story_p3: "Bidraget ditt holder serverne i gang og gir meg tid til å bygge videre. Som takk låser Supporter-pakken opp dypere analyser av dataene dine."
   unlock_title: "Hva Supporter-pakken låser opp"
+  u_savings: "Hva hjemmelading faktisk sparer deg sammenlignet med offentlig lading - og når ladeboksen har betalt seg."
   u_analytics: "Dashboard-widget: en detaljert oversikt over energifordelingen din, parkeringstap og kostnaden, pluss en distanseanalyse."
   u_phantom: "Parkeringstap i detalj - hvert tap mellom turene, med kWh og kostnad."
   u_curves: "Ladekurver - de fullstendige DC-hurtigladekurvene for hver lading."
@@ -2877,3 +2923,49 @@ soh:
   load_error: "Batteridataene kunne ikke lastes."
   save_error: "Oppføringen kunne ikke lagres."
   delete_error: "Oppføringen kunne ikke slettes."
+
+savings:
+  title: "Besparelse ved hjemmelading"
+  saved_since: "spart siden {year}"
+  saved_total: "spart totalt"
+  would_have_cost: "Offentlig lading ville kostet"
+  cents_per_kwh: "{value} ct/kWh"
+  home_kwh_charged: "{kwh} kWh ladet hjemme"
+  paid_at_home_short: "Betalt hjemme"
+  paid_off_by: "nedbetalt {date}"
+  year_part_early: "tidlig {year}"
+  year_part_mid: "midt i {year}"
+  year_part_late: "sent i {year}"
+  paid_at_home: "Betalt hjemme · {kwh} kWh"
+  wallbox_recovered: "Ladeboks inntjent"
+  of_investment: "av {total}"
+  fully_amortised: "Fullt inntjent - alt herfra er besparelse."
+  amortisation_not_possible: "Så lenge hjemmeprisen din ikke er lavere enn sammenligningsprisen oppstår ingen besparelse - da kan ingen nedbetalingstid beregnes."
+  amortisation_remaining: "Rundt {years} år igjen til full inntjening."
+  amortisation_slow: "Med dagens lademønster rundt {years} år igjen. En rimeligere hjemmetariff korter det merkbart ned."
+  add_investment: "Vil du vite når ladeboksen er nedbetalt? Legg inn kostnaden her"
+  edit_investment: "Endre kostnad for ladeboks"
+  basis_own_public: "Basert på dine {count} egne offentlige ladinger"
+  basis_region: "Basert på {count} offentlige ladinger i ditt område"
+  basis_country: "Basert på median offentlig pris i landet ditt ({count} ladinger)"
+  basis_override: "Din antakelse: {price} per kWh"
+  playground_toggle: "Juster priser"
+  playground_hint: "Egne antakelser i ct/kWh. Gjelder kun på denne enheten og endrer ingen av dataene dine."
+  playground_home: "Hjemmepris"
+  playground_public: "Sammenligningspris offentlig"
+  playground_reset: "Tilbake til dine faktiske verdier"
+  empty_body: "Så snart du registrerer prisen på én hjemmelading, regner vi ut hva hjemmelading sparer deg sammenlignet med offentlig lading."
+  how_summary: "Hvordan regnes dette ut?"
+  how_intro: "Vi sammenligner hva hjemmeladingen din kostet med hva de samme kilowattimene ville kostet på en offentlig lader."
+  how_paid: "Det du betalte kommer fra loggene dine - enten kostnaden eller prisen per kWh, avhengig av hva du la inn. Nullpriser teller med: solcelleoverskudd koster ingenting."
+  how_comparison: "Sammenligningsprisen er medianen av dine egne offentlige ladinger. Har du for få, bruker vi prisnivået i området ditt, ellers medianen for landet ditt. Hvilket nivå som gjelder står øverst i kortet - egne ladinger gjør tallet mer presist."
+  how_per_year: "Hvert år regnes med prisnivået for det året, fordi ladepriser endrer seg over tid."
+  how_amortisation: "Ladeboks-linjen summerer besparelsen for hvert år siden du begynte å lade hjemme. Sluttdatoen viderefører dagens lademønster - det er en beregning, ikke et løfte. Derfor står det en omtrentlig dato og ikke en eksakt dag."
+  how_excluded: "Ikke inkludert: månedsavgifter for ladebrikkene dine og parkeringsgebyrer ved laderen."
+  investment_title: "Kostnad for ladeboks"
+  investment_hint: "Innkjøp og installasjon. Kortet viser da hvor langt besparelsen har dekket den."
+  investment_label: "Beløp i euro"
+  investment_clear_hint: "La feltet stå tomt for å fjerne verdien."
+  investment_save: "Lagre"
+  investment_cancel: "Avbryt"
+  investment_close: "Lukk"

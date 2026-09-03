@@ -43,5 +43,8 @@ public record InternalEvLogRequest(
         String energySource,
         // R15: true, wenn der Ladestart nicht beobachtet wurde (Smartcar-API-Luecke). Dann ist
         // socBefore null und wird aus den vollstaendigen Ladungen des Autos hergeleitet.
-        Boolean socStartMissed) {
+        Boolean socStartMissed,
+        // optional: exakter Preis/kWh ohne den Rundungsverlust von costEur, wenn die Quelle ihn
+        // kennt (z.B. der go-e-Tarif)
+        BigDecimal pricePerKwh) {
 }

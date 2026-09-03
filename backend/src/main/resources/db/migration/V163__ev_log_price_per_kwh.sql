@@ -1,0 +1,12 @@
+-- V163: Exakten Preis pro kWh am Log speichern statt aus cost_eur/kwh_charged zurueckzurechnen.
+--
+-- Kontext: cost_eur wird beim Schreiben auf Cent gerundet (z.B. GoeApiService.submitLog).
+-- Der ct/kWh-Wert, aus dem cost_eur berechnet wurde, ging danach verloren - Anzeige-Stellen
+-- (Recent Activity, Price-Suggestion, Leaderboard) rechnen cost_eur / kwh_charged zurueck und
+-- holen sich bei kleinen Sessions den Rundungsfehler zurueck (Support-Fall A1337_root:
+-- 0.35 kWh / 0.10 EUR wirkt wie 28.6 ct/kWh statt der tatsaechlich konfigurierten 29.65 ct/kWh).
+--
+-- Nullable, wird zunaechst nur befuellt wo eine exakte Rate ohne Rundung bekannt ist
+-- (go-e-Tarif, manuelle ct/kWh-Eingabe, verknuepfte Ladekarte). Ueberall sonst bleibt NULL
+-- und der bestehende Fallback (cost_eur / kwh_charged) greift unveraendert weiter.
+ALTER TABLE ev_log ADD COLUMN price_per_kwh NUMERIC(6,4) NULL;

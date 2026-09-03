@@ -80,10 +80,14 @@ const costTooltip = computed(() =>
     ? null
     : comparisonTooltip(costPerKwh.value, props.ownAvgCostPerKwh, formatCostPerKwh(props.ownAvgCostPerKwh), 'self'))
 
-const place = computed(() =>
-  props.entry.cpoName
-    || t(props.entry.isPublicCharging ? 'logs.period.charge_public' : 'logs.period.charge_home'),
-)
+// Der Ladeort ist dreiwertig (V166): ohne Angabe wird er neutral benannt, statt
+// die Ladung faelschlich als Heimladung auszuweisen.
+const place = computed(() => {
+  if (props.entry.cpoName) return props.entry.cpoName
+  if (props.entry.isPublicCharging === true) return t('logs.period.charge_public')
+  if (props.entry.isPublicCharging === false) return t('logs.period.charge_home')
+  return t('logs.period.charge_unknown')
+})
 </script>
 
 <template>

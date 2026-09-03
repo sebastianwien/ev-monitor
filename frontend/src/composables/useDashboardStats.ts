@@ -38,6 +38,8 @@ export interface ChargingTypeSplit {
 export interface LocationSplit {
   publicKwh: number
   privateKwh: number
+  /** Logs ohne Angabe zum Ladeort (V166). Fehlt in Antworten aelterer Backends. */
+  unknownKwh: number
 }
 
 export interface ChargingEfficiencySplit {
@@ -160,6 +162,7 @@ const LS_GROUP_BY = 'dashboard_group_by'
 const LS_CUSTOM_START = 'dashboard_custom_start'
 const LS_CUSTOM_END = 'dashboard_custom_end'
 const LS_IMPLAUSIBLE_BANNER_DISMISSED = 'implausible_banner_dismissed'
+const LS_PRICELESS_BANNER_DISMISSED = 'priceless_banner_dismissed'
 const LS_COST_MODE = 'dashboard_cost_mode'
 
 export type CostMode = 'energy' | 'fixed' | 'total'
@@ -169,6 +172,18 @@ const COST_MODE_ORDER: CostMode[] = ['energy', 'fixed', 'total']
 /** Der Schalter rotiert durch die drei Kostenbasen. */
 export function nextCostMode(mode: CostMode): CostMode {
   return COST_MODE_ORDER[(COST_MODE_ORDER.indexOf(mode) + 1) % COST_MODE_ORDER.length]
+}
+
+/**
+ * Der tatsaechlich anzuzeigende Modus. Fixkosten- und Gesamt-Ansicht setzen Fixkostendaten
+ * voraus; fehlen sie (z.B. Wechsel auf einen Monat ohne Fixkosten), wird der Umschalter
+ * ausgeblendet - die Kachel muss dann auf Energie zurueckfallen, sonst bliebe sie mit
+ * 0,00-Werten haengen und der Nutzer koennte den Modus nicht mehr wechseln. Die gespeicherte
+ * Praeferenz (costMode) bleibt erhalten und greift wieder, sobald Fixkosten vorliegen.
+ */
+export function resolveCostMode(preferred: CostMode, hasFixedData: boolean): CostMode {
+  if (preferred !== 'energy' && !hasFixedData) return 'energy'
+  return preferred
 }
 
 export function useDashboardStats() {
@@ -197,6 +212,7 @@ export function useDashboardStats() {
 
   const importBannerDismissed = ref(localStorage.getItem('import_banner_dismissed') === 'true')
   const implausibleBannerDismissed = ref(localStorage.getItem(LS_IMPLAUSIBLE_BANNER_DISMISSED) === 'true')
+  const pricelessBannerDismissed = ref(localStorage.getItem(LS_PRICELESS_BANNER_DISMISSED) === 'true')
 
   const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
   const { smartcarStatus, start: startSmartcarPolling } = useSmartcarStatus()
@@ -204,6 +220,8 @@ export function useDashboardStats() {
 
   // Implausible logs
   const implausibleCount = ref(0)
+  // Preislose Logs (fuer den "Preis fehlt"-Banner im Feed)
+  const pricelessCount = ref(0)
 
   const hasDistanceData = computed(() =>
     stats.value?.chargesOverTime?.some(d => d.distanceKm != null && d.distanceKm > 0) ?? false
@@ -256,10 +274,20 @@ export function useDashboardStats() {
     )
   )
 
+  /** Fixkosten-/Gesamt-Modus lohnen nur mit belastbarer Vollkosten-Basis - sonst kein Umschalter. */
+  const canShowFixedModes = computed(() =>
+    hasFixedCostData.value && fullCostPer100km.value != null
+  )
+
+  /** Der tatsaechlich gerenderte Modus - Basis fuer Wert, Label und Umschalter-Sichtbarkeit. */
+  const effectiveCostMode = computed(() =>
+    resolveCostMode(costMode.value, canShowFixedModes.value)
+  )
+
   /** Der im Widget angezeigte Wert - faellt auf die Energiekosten zurueck, wenn die Basis fehlt. */
   const displayedCostPer100km = computed(() => {
-    if (costMode.value === 'fixed') return fixedCostPer100km.value ?? avgCostPer100km.value
-    if (costMode.value === 'total') return fullCostPer100km.value ?? avgCostPer100km.value
+    if (effectiveCostMode.value === 'fixed') return fixedCostPer100km.value ?? avgCostPer100km.value
+    if (effectiveCostMode.value === 'total') return fullCostPer100km.value ?? avgCostPer100km.value
     return avgCostPer100km.value
   })
 
@@ -312,6 +340,21 @@ export function useDashboardStats() {
       implausibleCount.value = res.data.filter((l: any) => l.includeInStatistics).length
     } catch {
       implausibleCount.value = 0
+    }
+  }
+
+  const dismissPricelessBanner = () => {
+    pricelessBannerDismissed.value = true
+    localStorage.setItem(LS_PRICELESS_BANNER_DISMISSED, 'true')
+  }
+
+  const fetchPricelessCount = async () => {
+    if (!selectedCarId.value) { pricelessCount.value = 0; return }
+    try {
+      const res = await api.get(`/logs/priceless?carId=${selectedCarId.value}`)
+      pricelessCount.value = res.data.length
+    } catch {
+      pricelessCount.value = 0
     }
   }
 
@@ -457,10 +500,12 @@ export function useDashboardStats() {
     customEndDate,
     importBannerDismissed,
     implausibleBannerDismissed,
+    pricelessBannerDismissed,
     teslaStatus,
     smartcarStatus,
     vwGroupStatus,
     implausibleCount,
+    pricelessCount,
     hasDistanceData,
     avgCostPer100km,
     fullCostPer100km,
@@ -468,13 +513,17 @@ export function useDashboardStats() {
     fixedCostPerMonth,
     displayedCostPer100km,
     hasFixedCostData,
+    canShowFixedModes,
     costMode,
+    effectiveCostMode,
     toggleCostMode,
     timeRangeOptions,
     groupByOptions,
     dismissImportBanner,
     dismissImplausibleBanner,
     fetchImplausibleCount,
+    dismissPricelessBanner,
+    fetchPricelessCount,
     fetchCarAndWltp,
     fetchStatistics,
     initCars,

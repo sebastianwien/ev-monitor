@@ -91,9 +91,34 @@ class LocationPricingTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void anchorsStoredPricePerKwhBeatsTheDerivedDivision() {
+        // Support case A1337_root: 0.35 kWh / 0.10 EUR rounds to 28.57 ct/kWh when derived -
+        // but the connector knew the exact configured tariff (29.65 ct/kWh) and stored it
+        // directly on the anchor. That exact value must win over the derived one.
+        EvLog anchor = logHere(new BigDecimal("0.35"), new BigDecimal("0.10"))
+                .toBuilder().pricePerKwh(new BigDecimal("0.2965")).build();
+        evLogRepository.save(anchor);
+
+        EvLog priced = locationPricing.enrich(unpricedLog(new BigDecimal("50.0")), userId);
+
+        // 50 kWh * 0.2965 = 14.825 -> 14.83 (not 50 * 0.2857 = 14.29, the derived rate)
+        assertEquals(0, new BigDecimal("14.83").compareTo(priced.getCostEur()));
+        assertEquals(0, new BigDecimal("0.2965").compareTo(priced.getPricePerKwh()));
+    }
+
+    @Test
+    void enrichFillsInThePricePerKwhDerivedFromTheAnchorWhenNoneWasStored() {
+        chargedHere(new BigDecimal("40.0"), new BigDecimal("20.00"), null);
+
+        EvLog priced = locationPricing.enrich(unpricedLog(new BigDecimal("50.0")), userId);
+
+        assertEquals(0, new BigDecimal("0.5000").compareTo(priced.getPricePerKwh()));
+    }
+
+    @Test
     void aGeohashShorterThanSixCharsYieldsNothing() {
-        assertTrue(locationPricing.tariffAt(userId, "u1hc", null).isEmpty());
-        assertTrue(locationPricing.tariffAt(userId, null, null).isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, "u1hc", null, true).isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, null, null, true).isEmpty());
     }
 
     @Test
@@ -151,7 +176,57 @@ class LocationPricingTest extends AbstractIntegrationTest {
                 new BigDecimal("20.00"), 30, HERE, 9_000, null, null,
                 LocalDateTime.now().minusDays(1), ChargingType.DC, null, null, true, null));
 
-        assertTrue(locationPricing.tariffAt(userId, HERE, null).isEmpty());
+        assertTrue(locationPricing.tariffAt(userId, HERE, null, true).isEmpty());
+    }
+
+    @Test
+    void aPrivateChargeDoesNotInheritACardFromAPublicAnchorNearby() {
+        // Oeffentliche Saeule (7-stellig) und Heimladung (6-stellig, ~selbe 600m-Zelle): die
+        // EMP-Karte der oeffentlichen Ladung darf nicht auf die private Heimladung ueberspringen.
+        UUID card = saveCard("EnBW", new BigDecimal("0.3900"), new BigDecimal("0.5900"), BigDecimal.ZERO);
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("20.00"), 30,
+                "u1hcpp7", 10_000, null, null, LocalDateTime.now().minusDays(1), ChargingType.AC, null, null, true, null)
+                .toBuilder().chargingProviderId(card).build());
+
+        EvLog home = EvLog.createNew(carId, new BigDecimal("50.0"), null, 30, "u1hcpp", 11_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+        EvLog enriched = locationPricing.enrich(home, userId);
+
+        assertNull(enriched.getChargingProviderId(), "public EMP card must not leak onto a private charge");
+        assertNull(enriched.getCostEur(), "public tariff must not price a private charge");
+    }
+
+    @Test
+    void aPublicChargeDoesNotInheritFromAPrivateAnchor() {
+        // Der Heimtarif (privat) darf nicht auf eine oeffentliche Ladung am selben Ort ueberspringen.
+        UUID home = saveCard("Heimtarif", new BigDecimal("0.2500"), new BigDecimal("0.2500"), BigDecimal.ZERO);
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("10.00"), 30,
+                "u1hcpp", 10_000, null, null, LocalDateTime.now().minusDays(1), ChargingType.AC, null, null, false, null)
+                .toBuilder().chargingProviderId(home).build());
+
+        EvLog pub = EvLog.createNew(carId, new BigDecimal("50.0"), null, 30, "u1hcpp7", 11_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, true, null);
+        EvLog enriched = locationPricing.enrich(pub, userId);
+
+        assertNull(enriched.getChargingProviderId());
+        assertNull(enriched.getCostEur());
+    }
+
+    @Test
+    void aPublicChargeMatchesOnlyItsOwnSevenCharCell() {
+        // Zwei oeffentliche Saeulen in derselben 6er-Zelle, aber verschiedener 7. Stelle: die
+        // eine erbt weder Preis noch Karte von der anderen.
+        UUID card = saveCard("EnBW", new BigDecimal("0.3900"), new BigDecimal("0.5900"), BigDecimal.ZERO);
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("20.00"), 30,
+                "u1hcpp7", 10_000, null, null, LocalDateTime.now().minusDays(1), ChargingType.AC, null, null, true, null)
+                .toBuilder().chargingProviderId(card).build());
+
+        EvLog other = EvLog.createNew(carId, new BigDecimal("50.0"), null, 30, "u1hcppz", 11_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, true, null);
+        EvLog enriched = locationPricing.enrich(other, userId);
+
+        assertNull(enriched.getChargingProviderId());
+        assertNull(enriched.getCostEur());
     }
 
     // ---- Helpers ----
