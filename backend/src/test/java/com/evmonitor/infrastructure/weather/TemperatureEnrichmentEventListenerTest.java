@@ -9,10 +9,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -51,5 +57,24 @@ class TemperatureEnrichmentEventListenerTest {
         listener.onEvLogSaved(new EvLogSavedEvent(LOG_ID, null, AT, null));
 
         verifyNoInteractions(temperatureEnricher, evLogRepository);
+    }
+
+    /**
+     * Regression: der Handler laeuft AFTER_COMMIT, also ohne aktive Transaktion. Eine
+     * DML-Query (updateTemperatureSource) braucht daher eine EIGENE Transaktion -
+     * REQUIRED wuerde die bereits committete/sterbende Transaktion joinen und mit
+     * "Executing an update/delete query" scheitern.
+     */
+    @Test
+    void handlerLaeuftInEigenerTransaktion() throws Exception {
+        Method m = TemperatureEnrichmentEventListener.class.getMethod("onEvLogSaved", EvLogSavedEvent.class);
+
+        TransactionalEventListener tel = m.getAnnotation(TransactionalEventListener.class);
+        assertNotNull(tel);
+        assertEquals(TransactionPhase.AFTER_COMMIT, tel.phase());
+
+        Transactional tx = m.getAnnotation(Transactional.class);
+        assertNotNull(tx, "AFTER_COMMIT-DML braucht eine eigene Transaktion");
+        assertEquals(Propagation.REQUIRES_NEW, tx.propagation());
     }
 }
