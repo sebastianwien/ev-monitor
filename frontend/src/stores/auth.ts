@@ -127,6 +127,7 @@ export const useAuthStore = defineStore('auth', () => {
     const isAdmin = computed(() => user.value?.role === 'ADMIN');
     const isBetaTester = computed(() => user.value?.role === 'BETA_TESTER');
     const isTeslaFounder = computed(() => user.value?.role === 'TESLA_FOUNDER');
+    const isAutoSync = computed(() => user.value?.subscriptionTier === 'AUTOSYNC');
     const isAutoSyncLive = computed(() => user.value?.subscriptionTier === 'AUTOSYNC_LIVE');
     // Analytics-only upsell: unlocks canViewLiveAnalytics but NOT telemetry (isPremium stays
     // false server-side for SUPPORTER, so canActivateTelemetry excludes it automatically).
@@ -143,10 +144,12 @@ export const useAuthStore = defineStore('auth', () => {
         isPremium.value || isAdmin.value || isBetaTester.value || isTeslaFounder.value);
 
     // Mirrors backend User.canViewLiveAnalytics(): the paid analytics layer - historical
-    // power curves, phantom drain, energy split. No Tesla-free path. Server-side gate in
-    // EvLogService (power curves); phantom/energy-split are frontend-derived. UX only.
+    // power curves, phantom drain, energy split. No Tesla-free path. Jeder bezahlte Tarif
+    // (AUTOSYNC, AUTOSYNC_LIVE, SUPPORTER) plus ADMIN/BETA - der Live-Trip-Feed (Trip-Push)
+    // haengt am schmaleren Backend-Gate und ist hier bewusst nicht gespiegelt. Server-side
+    // gate in EvLogService (power curves); phantom/energy-split are frontend-derived. UX only.
     const canViewLiveAnalytics = computed(() =>
-        isAutoSyncLive.value || isSupporter.value || isAdmin.value || isBetaTester.value);
+        isAutoSync.value || isAutoSyncLive.value || isSupporter.value || isAdmin.value || isBetaTester.value);
 
     // Mirrors backend User.canViewSocCurve(): der Ladeverlauf ist bewusst weiter
     // gefasst als die Ladekurve - er ist das, was Quellen ohne Leistungsmessung

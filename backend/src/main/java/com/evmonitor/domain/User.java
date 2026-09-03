@@ -124,7 +124,7 @@ public class User {
      * Marken-aware gate for viewing live-detected trips (SMARTCAR_LIVE, TESLA_LIVE,
      * TESLA_INFERRED) in the dashboard. Trip detection is part of the free Tesla tier,
      * so Tesla cars see their live trips regardless of subscription; other brands stay
-     * on the paid {@link #canViewLiveAnalytics()} gate. Tessie-imported trips bypass this
+     * on the paid {@link #canViewLiveTripFeed()} gate. Tessie-imported trips bypass this
      * entirely (handled in TripService by data_source whitelist).
      *
      * <p>Note: the live trips themselves are free for Tesla, but the derived
@@ -132,7 +132,7 @@ public class User {
      * gated separately on the display side via {@link #canViewLiveAnalytics()}.
      */
     public boolean canViewLiveTrips(CarBrand brand) {
-        return brand == CarBrand.TESLA || canViewLiveAnalytics();
+        return brand == CarBrand.TESLA || canViewLiveTripFeed();
     }
 
     /**
@@ -209,7 +209,30 @@ public class User {
         return trialEndsAt(FeatureTrial.HOME_CHARGING_SAVINGS);
     }
 
+    /**
+     * Paid analytics layer (historical power curves / Ladekurven, phantom drain,
+     * energy-split), for every brand - kein Tesla-Gratis-Pfad. Im Zwei-Tier-Zielbild
+     * bekommt jeder bezahlte Tarif die Auswertungen: AUTOSYNC (Nicht-Tesla-Datenquelle)
+     * und SUPPORTER (Tesla, Daten laufen gratis) gleichermassen, dazu AUTOSYNC_LIVE und
+     * ADMIN/BETA_TESTER.
+     *
+     * <p>Bewusst breiter als {@link #canViewLiveTripFeed()}: die Auswertung vorhandener
+     * Daten haengt an diesem Gate, der Live-Trip-Feed (Trip-Push) am schmaleren - plain
+     * AUTOSYNC schaltet die Analytics frei, aber nicht den Trip-Push (dessen Tarif-Zuordnung
+     * mit der AUTOSYNC_LIVE-Abloesung noch offen ist).
+     */
     public boolean canViewLiveAnalytics() {
+        return subscriptionTier == SubscriptionTier.AUTOSYNC
+                || canViewLiveTripFeed();
+    }
+
+    /**
+     * Schmalerer Gate fuer den telemetrie-gespeisten Live-Trip-Feed (Trip-Push). Bewusst
+     * OHNE plain AUTOSYNC: der bekommt die Auswertungen ({@link #canViewLiveAnalytics()}),
+     * aber nicht den Trip-Push, solange dessen Zuordnung nach dem AUTOSYNC_LIVE-Wegfall
+     * nicht entschieden ist. Entspricht dem Verhalten vor dem AUTOSYNC-Analytics-Ausbau.
+     */
+    private boolean canViewLiveTripFeed() {
         return subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
                 || subscriptionTier == SubscriptionTier.SUPPORTER
                 || TRIP_PUSH_PRIVILEGED_ROLES.contains(role);

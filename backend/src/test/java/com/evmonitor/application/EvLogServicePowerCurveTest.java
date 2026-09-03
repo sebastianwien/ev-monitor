@@ -139,9 +139,11 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void getPowerCurve_autosyncUser_seesSocCurveButNotPowerCurve() {
-        // Der Ladeverlauf ist bewusst weiter freigegeben als die Ladekurve: er ist
-        // das, was Quellen ohne Leistungsmessung ueberhaupt hergeben.
+    void getPowerCurve_autosyncUser_seesSocAndPowerCurve() {
+        // Im Zwei-Tier-Modell schaltet AUTOSYNC die Auswertungen frei - inklusive der
+        // Ladekurve. Ob ueberhaupt Punkte vorliegen, haengt an der Datenquelle (der
+        // Vorbehalt sitzt in der UI); der Gate laesst sie jedenfalls durch. Der
+        // Ladeverlauf (SoC) war schon vorher frei.
         User user = createAndSaveAutoSyncUser("pc-autosync-" + System.nanoTime() + "@test.com");
         Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
 
@@ -152,8 +154,8 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
         evLogRepository.updatePowerCurvePoints(powerLog.getId(), "[{\"ts\":1715515200000,\"kw\":150.0}]");
 
         assertEquals(2, evLogService.getPowerCurveForUser(socLog.getId(), user).socPoints().size());
-        assertTrue(evLogService.getPowerCurveForUser(powerLog.getId(), user).points().isEmpty(),
-                "Die Leistungskurve bleibt premium");
+        assertEquals(1, evLogService.getPowerCurveForUser(powerLog.getId(), user).points().size(),
+                "AUTOSYNC schaltet die Ladekurve jetzt frei");
     }
 
     @Test

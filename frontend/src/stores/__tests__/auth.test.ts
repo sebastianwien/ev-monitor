@@ -45,11 +45,12 @@ describe('auth store entitlement gates', () => {
     })
 
     describe('canViewLiveAnalytics', () => {
-        it('is the paid gate with no Tesla-free path', () => {
+        it('is the paid gate with no Tesla-free path (every paid tier incl. AUTOSYNC)', () => {
+            expect(setUser('USER', 'AUTOSYNC', true).canViewLiveAnalytics).toBe(true)
             expect(setUser('USER', 'AUTOSYNC_LIVE', true).canViewLiveAnalytics).toBe(true)
+            expect(setUser('USER', 'SUPPORTER', true).canViewLiveAnalytics).toBe(true)
             expect(setUser('ADMIN', 'NONE', false).canViewLiveAnalytics).toBe(true)
             expect(setUser('BETA_TESTER', 'NONE', false).canViewLiveAnalytics).toBe(true)
-            expect(setUser('USER', 'AUTOSYNC', true).canViewLiveAnalytics).toBe(false)
             expect(setUser('USER', 'NONE', false).canViewLiveAnalytics).toBe(false)
         })
     })

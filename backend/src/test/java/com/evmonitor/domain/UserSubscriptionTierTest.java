@@ -94,17 +94,20 @@ class UserSubscriptionTierTest {
     }
 
     @Test
-    void canViewLiveAnalytics_premiumGate_noTeslaFreePath() {
-        // Paid analytics layer (power curves, phantom drain, energy split): AUTOSYNC_LIVE
-        // or ADMIN/BETA_TESTER, for EVERY brand. There is no brand argument by design -
-        // this gate never goes free for Tesla.
+    void canViewLiveAnalytics_paidGate_noTeslaFreePath() {
+        // Paid analytics layer (power curves, phantom drain, energy split): jeder bezahlte
+        // Tarif (AUTOSYNC, AUTOSYNC_LIVE, SUPPORTER) plus ADMIN/BETA_TESTER, fuer JEDE Marke.
+        // Kein Marken-Argument by design - dieses Gate wird nie gratis fuer Tesla. AUTOSYNC
+        // ist Teil des Zwei-Tier-Zielbilds: Nicht-Tesla-Fahrer bekommen die Auswertungen ueber
+        // AutoSync, Tesla-Fahrer ueber Supporter.
+        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveAnalytics());
         assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveAnalytics());
+        assertTrue(buildUser("USER", SubscriptionTier.SUPPORTER).canViewLiveAnalytics());
         assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveAnalytics());
         assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveAnalytics());
-        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveAnalytics());
+        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC).canViewLiveAnalytics());
         assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveAnalytics());
         assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveAnalytics());
-        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC).canViewLiveAnalytics());
     }
 
     @Test
