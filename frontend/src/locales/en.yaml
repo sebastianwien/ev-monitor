@@ -2363,6 +2363,9 @@ demo:
 
 announcements:
   cta_error: "That didn't work. Please try again."
+  home_charging_savings_v1_title: "New: See how much home charging saves you"
+  home_charging_savings_v1_body: "A new dashboard tile shows what charging at home has saved you compared to public charging - year by year and over your whole history. The comparison uses the price level you actually pay, or what's typical in your area. Add your wallbox and installation costs and you'll also see when it has paid for itself through those savings. This requires a price recorded on your home charges."
+  home_charging_savings_v1_cta: "Go to dashboard"
   power_curve_share_v1_title: "Fast charging: the curve does more"
   power_curve_share_v1_body: "The charging curve for your fast charges now shows more - including the state of charge at which the power tapered off. And you can pass it on: one tap creates a public link with a preview image for forums, chats or social. Only the charge you release, revocable at any time."
   power_curve_share_v1_cta: "To my charges"

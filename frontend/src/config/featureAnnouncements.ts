@@ -27,6 +27,15 @@ export interface FeatureAnnouncement {
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
   {
+    key: 'home_charging_savings_v1',
+    releasedAt: '2026-09-02', // nur Bestandsuser - Neuregistrierte finden die Kachel ohnehin sofort im Dashboard
+    expiresAt: '2026-10-31',
+    titleKey: 'announcements.home_charging_savings_v1_title',
+    bodyKey: 'announcements.home_charging_savings_v1_body',
+    ctaLabelKey: 'announcements.home_charging_savings_v1_cta',
+    ctaRoute: '/dashboard',
+  },
+  {
     key: 'tesla_location_reconnect_v1',
     releasedAt: '2026-07-28', // nur Bestandsuser - Neuverbindungen bringen den Scope schon mit
     expiresAt: '2026-09-30',

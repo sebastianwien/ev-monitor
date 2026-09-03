@@ -2363,6 +2363,9 @@ demo:
 
 announcements:
   cta_error: "Das hat leider nicht geklappt. Versuch's nochmal."
+  home_charging_savings_v1_title: "Neu: So viel spart dir das Laden daheim"
+  home_charging_savings_v1_body: "Eine neue Dashboard-Kachel zeigt dir, was dir das Laden zu Hause gegenüber öffentlichem Laden gespart hat - Jahr für Jahr und über die gesamte Laufzeit. Verglichen wird mit dem Preisniveau, das du selbst zahlst, oder dem, was in deiner Umgebung üblich ist. Und wenn du deine Anschaffungskosten für Wallbox etc. hinterlegst, siehst du außerdem, wann sie sich über die Ersparnis eingespielt hat. Voraussetzung ist, dass bei deinen Heimladungen ein Preis erfasst ist."
+  home_charging_savings_v1_cta: "Zum Dashboard"
   power_curve_share_v1_title: "Schnellladungen: die Ladekurve kann mehr"
   power_curve_share_v1_body: "Die Ladekurve zu deinen Schnellladungen zeigt jetzt mehr - unter anderem, bei welchem Ladestand die Leistung abgeknickt ist. Und du kannst sie weitergeben: ein Tap erzeugt einen öffentlichen Link samt Vorschaubild für Forum, Chat oder Social. Nur die Ladung, die du freigibst, jederzeit widerrufbar."
   power_curve_share_v1_cta: "Zu meinen Ladungen"

@@ -2297,6 +2297,9 @@ demo:
   settings_cta: Okej
 announcements:
   cta_error: "Det gick inte. Försök igen."
+  home_charging_savings_v1_title: "Nytt: Se hur mycket hemmaladdning sparar dig"
+  home_charging_savings_v1_body: "En ny ruta på instrumentpanelen visar vad laddning hemma har sparat dig jämfört med publik laddning - år för år och över hela din historik. Jämförelsen använder prisnivån du faktiskt betalar, eller det som är vanligt i ditt område. Lägger du in kostnaderna för wallbox och installation ser du även när den har tjänat in sig genom besparingen. Detta kräver att dina hemmaladdningar har ett registrerat pris."
+  home_charging_savings_v1_cta: "Till instrumentpanelen"
   power_curve_share_v1_title: "Snabbladdning: laddkurvan kan mer"
   power_curve_share_v1_body: "Laddkurvan för dina snabbladdningar visar nu mer - bland annat vid vilken laddnivå effekten sjönk. Och du kan dela den: ett tryck skapar en offentlig länk med förhandsbild för forum, chatt eller sociala medier. Bara laddningen du delar, och du kan dra tillbaka den när som helst."
   power_curve_share_v1_cta: "Till mina laddningar"

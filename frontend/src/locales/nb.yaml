@@ -2297,6 +2297,9 @@ demo:
   settings_cta: Skjønner
 announcements:
   cta_error: "Det gikk ikke. Prøv igjen."
+  home_charging_savings_v1_title: "Nytt: Se hvor mye hjemmelading sparer deg"
+  home_charging_savings_v1_body: "En ny rute på dashbordet viser hva lading hjemme har spart deg sammenlignet med offentlig lading - år for år og over hele historikken din. Sammenligningen bruker prisnivået du faktisk betaler, eller det som er vanlig i ditt område. Legger du inn kostnadene for wallbox og installasjon, ser du også når den har tjent seg inn gjennom besparelsen. Dette krever at hjemmeladingene dine har en registrert pris."
+  home_charging_savings_v1_cta: "Til dashbordet"
   power_curve_share_v1_title: "Hurtiglading: ladekurven kan mer"
   power_curve_share_v1_body: "Ladekurven for hurtigladingene dine viser nå mer - blant annet ved hvilket ladenivå effekten falt av. Og du kan dele den: ett trykk lager en offentlig lenke med forhåndsvisningsbilde for forum, chat eller sosiale medier. Bare ladingen du frigir, og du kan trekke den tilbake når som helst."
   power_curve_share_v1_cta: "Til ladingene mine"
