@@ -573,6 +573,7 @@ logs:
     charges: "1 laddning | {count} laddningar"
     no_trips: "Utan tidsstämpel"
     unmeasured: "1 resa utan förbrukningsvärde | {count} resor utan förbrukningsvärde"
+    km_estimate_hint: "Uppskattat från mätarställningen på dina laddningar - utan registrerade resor räknas bara sträckan som säkert ligger inom denna period."
     charge_public: "publik"
     charge_home: "hemma"
     charge_unknown: "Laddning"
@@ -1308,6 +1309,7 @@ consumption_info:
   p4: "<strong>Batterihälsa (SoH):</strong> Detta anger hur mycket ditt batteri har åldrats över åren och därmed förlorat kapacitet. Med AutoSync läser EV Monitor de faktiskt laddade kWh direkt från fordonet och jämför dem med förväntad kapacitet baserat på laddningsnivån (SoC). När 5 utvärderingsbara sessioner med minst 30% delta i laddningssessionen finns tillgängliga beräknas medianen - för att filtrera bort extremvärden. Du kan också själv lägga till nettobeloppet på laddningssessioner via det valfria fältet <strong>\"kWh (fordon)\"</strong> - det utlöser samma beräkning."
   methodology_link: "Varför är EV Monitor högre än min trippdator?"
   p3: "<strong>Laddningsförluster – beror på sammanhanget:</strong> Väggladdare och laddstationer mäter strömmen vid uttaget – inklusive laddningsförluster (värme som alstras under laddning, ca 5–10 %). För <strong>förbrukning (kWh/100 km)</strong> räknas dessa förluster bort (växelström: 10 %, likström: 5 %) så att värdet återspeglar din faktiska köreffektivitet och är jämförbart med WLTP. För <strong>kostnader (€/kWh)</strong> räknas de med – du har ju trots allt betalat för dem."
+  p5_distance_estimate: "<strong>Sträcka utan resor (uppskattning):</strong> Om du inte registrerar resor (t.ex. ren laddningsimport eller uppladdning via API) härleder vi den körda sträckan från mätarställningen på dina laddningar. Endast det som tydligt ligger inom perioden räknas - sträckan mellan två laddningar i samma period. Det som kördes mellan föregående laddning och den första i perioden kan inte tillordnas korrekt utan resor och lämnas utanför. Sådana värden är markerade med <strong>~</strong>."
 editlog:
   title: Redigera laddningssession
   location_label: Uppdatera plats
@@ -2525,7 +2527,10 @@ upgrade:
   tesla_no_autosync_body: "Dina laddnings- och resedata kommer redan in gratis via Tesla Fleet Telemetry. Det som saknas är analysen - den får du med Supporter-paketet."
   tesla_no_autosync_cta: "Till Supporter-paketet"
   tier_autosync_feat_smartcar: "Smartcar för BMW, VW, Mercedes och många fler"
-  tier_autosync_feat_connection: "1 aktiv bilanslutning åt gången (kan bytas)"
+  tier_autosync_feat_connection: "Gäller 1 fordon"
+  tier_autosync_feat_insights: "Energifördelning: körning vs. standby-förlust vs. laddförlust"
+  tier_autosync_feat_drain: "Phantom-drain-analys: de sämsta parkeringstillfällena synliga"
+  tier_autosync_feat_curves: "Laddkurvor för DC-snabbladdning - om ditt fordon rapporterar dem"
   tier_autosync_brands_title: "Märken som stöds"
   tier_autosync_brands_note: "Märket saknas? Då stöder AutoSync inte din bil ännu - Gratis förblir gratis att använda."
   tier_autosync_feat_inherits: "Allt från Gratis"

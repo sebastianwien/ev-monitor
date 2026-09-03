@@ -573,6 +573,7 @@ logs:
     charges: "1 lading | {count} ladinger"
     no_trips: "Uten tidsstempel"
     unmeasured: "1 tur uten forbruksverdi | {count} turer uten forbruksverdi"
+    km_estimate_hint: "Estimert fra kilometerstanden på ladingene dine - uten registrerte turer telles bare strekningen som helt sikkert ligger i denne perioden."
     charge_public: "offentlig"
     charge_home: "hjemme"
     charge_unknown: "Lading"
@@ -1308,6 +1309,7 @@ consumption_info:
   p4: "<strong>Batterihelse (SoH):</strong> Dette angir hvor mye batteriet ditt har eldet over tid og dermed tapt kapasitet. Med AutoSync leser EV Monitor de faktisk ladede kWh direkte fra kjøretøyet og sammenligner dem med forventet kapasitet basert på ladetilstanden (SoC). Når 5 utregningsbare økter med minst 30% delta i ladeøkten er tilgjengelige, beregnes medianen - for å filtrere ut uteliggere. Du kan også selv legge til nettobeløpet på ladeøkter via det valgfrie feltet <strong>\"kWh (kjøretøy)\"</strong> - det utløser samme beregning."
   methodology_link: "Hvorfor er EV Monitor høyere enn tripptelleren min?"
   p3: "<strong>Ladetap – avhengig av situasjonen:</strong> Ladebokser og ladestasjoner måler strømforbruket ved stikkontakten – inkludert ladetap (varme som genereres under lading, ca. 5–10 %). For <strong>forbruk (kWh/100 km)</strong> blir disse tapene fjernet (AC: 10 %, DC: 5 %), slik at verdien gjenspeiler din faktiske kjøreffektivitet og er sammenlignbar med WLTP. For <strong>kostnader (€/kWh)</strong> blir de med – du har tross alt betalt for dem."
+  p5_distance_estimate: "<strong>Strekning uten turer (estimat):</strong> Hvis du ikke registrerer turer (f.eks. ren lade-import eller opplasting via API), utleder vi kjørt strekning fra kilometerstanden på ladingene dine. Bare det som helt klart ligger i perioden telles - strekningen mellom to ladinger i samme periode. Det som ble kjørt mellom forrige lading og den første i perioden kan ikke tilordnes riktig uten turer, og holdes utenfor. Slike verdier er merket med <strong>~</strong>."
 editlog:
   title: Rediger ladesesjon
   location_label: Oppdater sted
@@ -2525,7 +2527,10 @@ upgrade:
   tesla_no_autosync_body: "Lade- og turdataene dine kommer allerede inn gratis via Tesla Fleet Telemetry. Det som mangler, er analysen - den får du med Supporter-pakken."
   tesla_no_autosync_cta: "Til Supporter-pakken"
   tier_autosync_feat_smartcar: "Smartcar for BMW, VW, Mercedes og mange flere"
-  tier_autosync_feat_connection: "1 aktiv biltilkobling om gangen (kan byttes)"
+  tier_autosync_feat_connection: "Gjelder 1 bil"
+  tier_autosync_feat_insights: "Energifordeling: kjøring vs. standby-tap vs. ladetap"
+  tier_autosync_feat_drain: "Phantom-drain-analyse: de verste parkeringsøktene synlige"
+  tier_autosync_feat_curves: "Ladekurver for DC-hurtiglading - hvis bilen din rapporterer dem"
   tier_autosync_brands_title: "Støttede merker"
   tier_autosync_brands_note: "Merket ikke i listen? Da støtter ikke AutoSync bilen din ennå - Gratis er fortsatt gratis å bruke."
   tier_autosync_feat_inherits: "Alt fra Gratis"

@@ -33,6 +33,12 @@ export interface PeriodTotals {
   costPer100km: number | null
   /** Fahrten, die zur Strecke zaehlen, aber nicht zur Verbrauchsbilanz. */
   unmeasuredTrips: number
+  /**
+   * True, wenn die Strecke aus dem Odometer-Delta der Ladungen stammt (keine Fahrten) - also
+   * eine Schaetzung ist. Ohne Trips ist nicht bestimmbar, wann welcher Abschnitt gefahren
+   * wurde; gezaehlt wird nur der Kern zwischen zwei In-Period-Ladungen. Die UI markiert das.
+   */
+  kmIsOdometerEstimate: boolean
 }
 
 /** Ein Kalendertag im Balkenstreifen - der Kalenderblick ohne Raster. */
@@ -95,6 +101,12 @@ export interface PeriodMeasure<T, C> {
   costOf: (trip: T) => number | null
   /** Geladene Energie eines Ladeeintrags in kWh, oder null wenn unbekannt. */
   chargeKwhOf: (charge: C) => number | null
+  /**
+   * Wie viele einzelne Ladevorgaenge ein Eintrag repraesentiert - eine Ladegruppe buendelt
+   * mehrere Teilladungen und zaehlt entsprechend hoch. Fehlt der Accessor, zaehlt jeder
+   * Eintrag als einer.
+   */
+  chargeCountOf?: (charge: C) => number
 }
 
 /**
@@ -152,14 +164,18 @@ function barsFor<T extends PeriodTripInput, C extends PeriodChargeInput>(
     const day = trip.tripStartedAt?.slice(0, 10)
     if (day) kmByDay.set(day, (kmByDay.get(day) ?? 0) + (trip.distanceKm ?? 0))
   }
-  // Ohne Fahrt am Tag zaehlt der Odometer-Sprung der Ladungen als gefahrene Strecke.
+  // Ohne Fahrt am Tag zaehlt der Odometer-Sprung der Ladungen als gefahrene Strecke - aber
+  // nur der Kern: das Grenzsegment der aeltesten Ladung wird weggelassen (siehe chargeKernKm),
+  // damit die Balkensumme der Header-Strecke entspricht.
+  const boundary = oldestCharge(charges)
   const chargeKmByDay = new Map<string, number>()
   const chargedDays = new Set<string>()
   for (const charge of charges) {
     const day = charge.loggedAt?.slice(0, 10)
     if (!day) continue
     chargedDays.add(day)
-    chargeKmByDay.set(day, (chargeKmByDay.get(day) ?? 0) + (charge.distanceSinceLastChargeKm ?? 0))
+    const km = charge === boundary ? 0 : (charge.distanceSinceLastChargeKm ?? 0)
+    chargeKmByDay.set(day, (chargeKmByDay.get(day) ?? 0) + km)
   }
   return axis.map((dateKey) => ({
     dateKey,
@@ -208,19 +224,44 @@ function totalsOf<T extends PeriodTripInput, C extends PeriodChargeInput>(
 
   const chargedKwh = charges.reduce((sum, charge) => sum + (measure.chargeKwhOf(charge) ?? 0), 0)
   // Reine Lade-User (Import ohne Fahrten) haben ihre Strecke nur im Odometer-Delta der
-  // Ladungen. Fahrten sind die genauere Quelle - ihr Delta darf nicht zusaetzlich zaehlen.
-  const chargeKm = charges.reduce((sum, charge) => sum + (charge.distanceSinceLastChargeKm ?? 0), 0)
+  // Ladungen - Fahrten sind die genauere Quelle, ihr Delta darf nicht zusaetzlich zaehlen.
+  const chargeKm = chargeKernKm(charges)
 
   return {
     km: trips.length > 0 ? km : chargeKm,
     tripCount: trips.length,
-    chargeCount: charges.length,
+    chargeCount: charges.reduce((sum, charge) => sum + (measure.chargeCountOf?.(charge) ?? 1), 0),
     chargedKwh,
     consumedKwh: anyKwh ? consumedKwh : null,
     kwhPer100km: measuredKm >= MIN_MEASURED_KM ? (consumedKwh / measuredKm) * 100 : null,
     costPer100km: costKm >= MIN_MEASURED_KM ? (cost / costKm) * 100 : null,
     unmeasuredTrips,
+    kmIsOdometerEstimate: trips.length === 0 && charges.length > 0,
   }
+}
+
+/** Die aelteste Ladung (kleinster Zeitstempel) - ihr Odometer-Delta ist das Grenzsegment. */
+function oldestCharge<C extends PeriodChargeInput>(charges: C[]): C | null {
+  let oldest: C | null = null
+  for (const charge of charges) {
+    if (!charge.loggedAt) continue
+    if (oldest == null || charge.loggedAt < oldest.loggedAt!) oldest = charge
+  }
+  return oldest
+}
+
+/**
+ * Ladestrecke eines Zeitraums = Kern zwischen In-Period-Ladungen. Das Delta der aeltesten
+ * Ladung reicht zur Ladung VOR dem Zeitraum zurueck (Grenzsegment) und ist ohne Trips nicht
+ * auf Perioden aufteilbar - es wird weggelassen, nicht geraten. Uebrig bleibt odo(letzte) -
+ * odo(erste) der In-Period-Ladungen.
+ */
+function chargeKernKm<C extends PeriodChargeInput>(charges: C[]): number {
+  const boundary = oldestCharge(charges)
+  return charges.reduce(
+    (sum, charge) => (charge === boundary ? sum : sum + (charge.distanceSinceLastChargeKm ?? 0)),
+    0,
+  )
 }
 
 /**

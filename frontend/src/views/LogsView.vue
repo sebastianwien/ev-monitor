@@ -52,6 +52,7 @@ import { formatSocRange } from '../utils/socRange'
 import { hasTripMap } from '../utils/tripMap'
 import { formatPauseDuration, tripDayLabel } from '../utils/tripTimeFormat'
 import { buildPeriodGroups, type PeriodResolution } from '../utils/tripPeriods'
+import { normalizeCharge } from '../utils/recentActivity'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
 import FeedLegend from '../components/dashboard/FeedLegend.vue'
 import PeriodChargeLine from '../components/dashboard/PeriodChargeLine.vue'
@@ -412,7 +413,13 @@ const periodMeasure = computed(() => ({
     if (per100km == null || trip.distanceKm == null) return null
     return (per100km * trip.distanceKm) / 100
   },
-  chargeKwhOf: (entry: any) => entry.kwhAtVehicle ?? entry.kwhCharged ?? null,
+  // Ueber normalizeCharge, das den Single-vs-Ladegruppe-Branch kennt: bei einer Ladegruppe
+  // muss das Gruppen-Total (_totalKwh) zaehlen, nicht der erste Teilvorgang - sonst
+  // verschwindet gemergte Energie aus der Wochen-/Monatssumme.
+  chargeKwhOf: (entry: any) => normalizeCharge(entry)?.kwh ?? null,
+  // Einzelne Ladevorgaenge zaehlen: eine Ladegruppe buendelt mehrere Teilladungen (_topUps),
+  // die Periodenzahl soll sie einzeln fuehren - konsistent zur Statistik-Kachel.
+  chargeCountOf: (entry: any) => entry._topUps?.length || 1,
 }))
 
 /** Derselbe Feed, nur nach Tag, Woche oder Monat geschnitten statt nach Ladezyklus. */

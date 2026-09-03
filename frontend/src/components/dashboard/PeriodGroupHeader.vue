@@ -94,9 +94,15 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
              Verbrauch und Kosten tragen die Community-Einordnung als Farbe, der Rest bleibt neutral. -->
         <div class="flex items-center gap-x-1.5 gap-y-1 flex-wrap tabular-nums"
              :class="compact ? '' : 'lg:flex-1 lg:gap-x-2'">
-          <span class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
-                       bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-emerald-700 dark:text-emerald-400">
-            +{{ formatDistance(group.totals.km) }}
+          <!-- Ohne Fahrten stammt die Strecke aus dem Odometer-Delta der Ladungen - eine
+               Schaetzung (nur der Kern zwischen In-Period-Ladungen). "~" statt "+" plus
+               Tooltip machen das ehrlich; bei 0 km (nichts Messbares) faellt der Chip weg. -->
+          <span v-if="!group.totals.kmIsOdometerEstimate || group.totals.km > 0"
+                class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
+                       bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-emerald-700 dark:text-emerald-400"
+                :class="group.totals.kmIsOdometerEstimate ? 'cursor-help' : ''"
+                :title="group.totals.kmIsOdometerEstimate ? t('logs.period.km_estimate_hint') : undefined">
+            {{ group.totals.kmIsOdometerEstimate ? '~' : '+' }}{{ formatDistance(group.totals.km) }}
           </span>
           <span v-if="group.totals.consumedKwh != null"
                 class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap

@@ -39,6 +39,7 @@ const expanded = ref(props.initialExpanded)
       </p>
       <p v-html="t('consumption_info.p3')" class="border-t border-gray-200 dark:border-gray-600 pt-2" />
       <p v-html="t('consumption_info.p4')" class="border-t border-gray-200 dark:border-gray-600 pt-2" />
+      <p v-html="t('consumption_info.p5_distance_estimate')" class="border-t border-gray-200 dark:border-gray-600 pt-2" />
       <div class="border-t border-gray-200 dark:border-gray-600 pt-2">
         <router-link
           to="/consumption-methodology"

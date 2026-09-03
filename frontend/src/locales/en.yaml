@@ -613,6 +613,7 @@ logs:
     charges: "1 charge | {count} charges"
     no_trips: "Without timestamp"
     unmeasured: "1 trip without a consumption value | {count} trips without a consumption value"
+    km_estimate_hint: "Estimated from your charges' odometer readings - without recorded trips, only the distance that clearly falls within this period is counted."
     charge_public: "public"
     charge_home: "at home"
     charge_unknown: "Charge"
@@ -1353,6 +1354,7 @@ consumption_info:
   p4: "<strong>Battery health (SoH):</strong> This indicates how much your battery has aged over the years and consequently lost capacity. With AutoSync, EV Monitor reads the actual charged kWh directly from the vehicle and compares them to the expected capacity based on the state of charge (SoC). Once 5 evaluable sessions with at least 30% delta in the charging session are available, the median is calculated - filtering out outliers. You can also enter the net amount yourself on any charging session using the optional <strong>\"kWh (vehicle)\"</strong> field - this triggers the same calculation."
   methodology_link: "Why is EV Monitor higher than my trip computer?"
   p3: "<strong>Charging losses - context-dependent:</strong> Wallboxes and charging stations measure what flows at the socket - including charging losses (heat generated during charging, approx. 5-10%). For <strong>consumption (kWh/100km)</strong>, these losses are removed (AC: 10%, DC: 5%) so the value reflects your actual driving efficiency and is comparable to WLTP. For <strong>costs (€/kWh)</strong>, they stay in - you paid for them after all."
+  p5_distance_estimate: "<strong>Distance without trips (estimate):</strong> If you don't record trips (e.g. charge-only import or upload via API), we derive the distance driven from your charges' odometer readings. Only what clearly falls within the period is counted - the distance between two charges in the same period. Whatever was driven between the previous charge and the first one in the period can't be attributed cleanly without trips and is left out. Such values are marked with <strong>~</strong>."
 
 editlog:
   title: "Edit charging session"
@@ -2596,7 +2598,10 @@ upgrade:
   tesla_no_autosync_body: "Your charging and trip data already flows in for free via Tesla Fleet Telemetry. What's still missing is the analysis - that's what the Supporter pack adds."
   tesla_no_autosync_cta: "Go to Supporter pack"
   tier_autosync_feat_smartcar: "Smartcar for BMW, VW, Mercedes & many more"
-  tier_autosync_feat_connection: "1 active car connection at a time (switchable)"
+  tier_autosync_feat_connection: "Applies to 1 vehicle"
+  tier_autosync_feat_insights: "Energy split: driving vs. standby loss vs. charging loss"
+  tier_autosync_feat_drain: "Phantom-drain analysis: worst parking sessions revealed"
+  tier_autosync_feat_curves: "Charging curves for DC fast charges - if your vehicle reports them"
   tier_autosync_brands_title: "Supported brands"
   tier_autosync_brands_note: "Brand not listed? Then AutoSync doesn't support your car yet - Free stays free to use."
   tier_autosync_feat_inherits: "Everything from Free"

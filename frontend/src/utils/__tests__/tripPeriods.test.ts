@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { periodKeyOf, buildPeriodGroups, MIN_MEASURED_KM } from '../tripPeriods'
+import { normalizeCharge } from '../recentActivity'
 
 /** Fahrten kommen absteigend aus dem Feed - neueste zuerst. */
 const trips = [
@@ -183,14 +184,20 @@ describe('buildPeriodGroups', () => {
     expect(august.totals.km).toBe(100)
   })
 
-  it('faerbt Tagesbalken und Tag einer reinen Ladewoche aus dem Ladungs-Odometer', () => {
+  it('faerbt Tagesbalken einer reinen Ladewoche aus dem Kern, nicht dem Grenzsegment', () => {
+    // Balkensumme muss der Header-Strecke entsprechen: das Delta der aeltesten Ladung (Grenze)
+    // faellt weg, spaetere Ladungen zeigen ihr Delta an ihrem Tag. Der Grenztag bleibt als
+    // "geladen" markiert, traegt aber 0 km.
     const chargeOnly = [
-      { id: 'a', loggedAt: '2026-08-25T18:00:00', kwh: 20, distanceSinceLastChargeKm: 42 },
+      { id: 'b', loggedAt: '2026-08-26T18:00:00', kwh: 20, distanceSinceLastChargeKm: 55 },
+      { id: 'a', loggedAt: '2026-08-24T18:00:00', kwh: 20, distanceSinceLastChargeKm: 100 },
     ]
     const [woche] = buildPeriodGroups([], chargeOnly, 'week', measure)
 
-    expect(woche.bars!.find((b) => b.dateKey === '2026-08-25')!.km).toBe(42)
-    expect(woche.days.find((d: any) => d.dateKey === '2026-08-25')!.km).toBe(42)
+    expect(woche.bars!.find((b) => b.dateKey === '2026-08-26')!.km).toBe(55)
+    expect(woche.bars!.find((b) => b.dateKey === '2026-08-24')!.km).toBe(0)
+    expect(woche.bars!.find((b) => b.dateKey === '2026-08-24')!.charged).toBe(true)
+    expect(woche.totals.km).toBe(55)
   })
 
   it('ordnet Zeitraeume nach Datum, egal woher sie kamen', () => {
@@ -207,5 +214,63 @@ describe('buildPeriodGroups', () => {
 
   it('kommt mit einem leeren Feed klar', () => {
     expect(buildPeriodGroups([], [], 'month', measure)).toEqual([])
+  })
+
+  it('summiert bei einer Ladegruppe das Gruppen-Total, nicht den ersten Teilvorgang', () => {
+    // Regression (Prod-Fall DoctorSnuggles, Sept 2026): Zwei Ladungen mit gleichem Odometer
+    // mergen im Feed zu einer Ladegruppe. Der Chart las frueher entry.kwhCharged (= nur der
+    // erste Teilvorgang, 4,05) statt _totalKwh (53,91) und verschluckte die 49,86-kWh-Ladung
+    // -> Monatssumme 41,1 statt 91,0. Der Charge-Measure muss deshalb ueber normalizeCharge
+    // laufen, das den Single-vs-Ladegruppe-Branch kennt.
+    const groupAwareMeasure = {
+      kwhOf: () => null,
+      costOf: () => null,
+      chargeKwhOf: (c: any) => normalizeCharge(c)?.kwh ?? null,
+      chargeCountOf: (c: any) => c._topUps?.length || 1,
+    }
+    const feed = [
+      { id: 's3', loggedAt: '2026-09-03T01:35:00', kwhCharged: 37.1, kwhAtVehicle: null, distanceSinceLastChargeKm: 182 },
+      {
+        id: 'g1',
+        loggedAt: '2026-09-01T18:37:00',
+        _isLadegruppe: true,
+        _totalKwh: 53.91,
+        _totalKwhGross: 53.91,
+        _topUps: [{ id: 'l1' }, { id: 'l2' }],
+        // Top-Level = nur der erste Teilvorgang (Spread aus allSubs[0]) - die Falle.
+        kwhCharged: 4.05,
+        kwhAtVehicle: null,
+        // Odometer-Delta zur letzten August-Ladung - das unauflösbare Grenzsegment.
+        distanceSinceLastChargeKm: 251,
+      },
+    ]
+    const [sept] = buildPeriodGroups([], feed, 'month', groupAwareMeasure)
+
+    expect(sept.totals.chargedKwh).toBeCloseTo(91.01, 2)
+    // Einzelne Ladevorgaenge zaehlen: Ladegruppe (2 Teilladungen) + Einzelladung = 3, wie die Kachel.
+    expect(sept.totals.chargeCount).toBe(3)
+    // Gegenprobe: der naive Accessor (kwhAtVehicle ?? kwhCharged) wuerde nur 41,15 liefern.
+    const naive = feed.reduce((s, c: any) => s + (c.kwhAtVehicle ?? c.kwhCharged ?? 0), 0)
+    expect(naive).toBeCloseTo(41.15, 2)
+  })
+
+  it('zaehlt als Ladestrecke nur den Kern zwischen In-Period-Ladungen, nicht das Grenzsegment', () => {
+    // Ehrlicher Boden: Strecke zwischen zwei Ladungen, die BEIDE im Zeitraum liegen, ist
+    // eindeutig im Zeitraum gefahren (Kern). Das Delta der aeltesten Ladung reicht zurueck
+    // zu einer Ladung VOR dem Zeitraum - ohne Trips nicht auf Perioden aufteilbar, also
+    // weggelassen statt geraten. DoctorSnuggles Sept: 251 (Grenze) + 182 (Kern) -> nur 182.
+    const feed = [
+      { id: 's3', loggedAt: '2026-09-03T01:35:00', kwh: 37.1, distanceSinceLastChargeKm: 182 },
+      { id: 's1', loggedAt: '2026-09-01T18:37:00', kwh: 4.05, distanceSinceLastChargeKm: 251 },
+    ]
+    const [sept] = buildPeriodGroups([], feed, 'month', measure)
+
+    expect(sept.totals.km).toBe(182)
+    expect(sept.totals.kmIsOdometerEstimate).toBe(true)
+  })
+
+  it('markiert Trip-basierte Strecke nicht als Schaetzung', () => {
+    const [aug] = buildPeriodGroups(trips, [], 'month', measure)
+    expect(aug.totals.kmIsOdometerEstimate).toBe(false)
   })
 })
