@@ -60,6 +60,24 @@ class XpengRowMapperTest {
     }
 
     @Test
+    void socSentinelAusserhalb0Bis100WirdNull() {
+        LocalDateTime t = LocalDateTime.of(2026, 9, 1, 12, 0, 0);
+        Map<String, String> v = new HashMap<>();
+
+        v.put(XpengHeaderMapper.SOC, "255"); // 0xFF-Sentinel beim Aufwachen
+        assertNull(map(v, t).socDisplay(), "SoC > 100 muss null werden");
+
+        v.put(XpengHeaderMapper.SOC, "-1");
+        assertNull(map(v, t).socDisplay(), "negativer SoC muss null werden");
+
+        v.put(XpengHeaderMapper.SOC, "0"); // leere Batterie ist gueltig
+        assertEquals(0, java.math.BigDecimal.ZERO.compareTo(map(v, t).socDisplay()));
+
+        v.put(XpengHeaderMapper.SOC, "80");
+        assertEquals(0, new BigDecimal("80").compareTo(map(v, t).socDisplay()));
+    }
+
+    @Test
     void chargePowerSentinelWirdVomRecordEntschaerft() {
         Map<String, String> v = new HashMap<>();
         v.put(XpengHeaderMapper.CHARGE_POWER, "1638.3"); // > 400 kW Glitch
