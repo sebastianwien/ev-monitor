@@ -2,8 +2,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ExclamationCircleIcon, TrashIcon } from '@heroicons/vue/24/outline'
-import XpengConsentStep from './XpengConsentStep.vue'
-import XpengRequestMailStep from './XpengRequestMailStep.vue'
 import XpengUploadStep from './XpengUploadStep.vue'
 import XpengJobStatus from './XpengJobStatus.vue'
 import XpengConnectionsList from './XpengConnectionsList.vue'
@@ -21,20 +19,11 @@ const {
 
 const localError = ref('')
 
+// Manueller ZIP-Upload: jedes XPeng-Auto ist direkt uploadbar - die Verbindung
+// (VIN <-> Auto) entsteht serverseitig beim ersten Upload aus der Datei.
 const xpengCars = computed(() => props.cars.filter(c => c.brand === 'XPENG'))
-const connectedCarIds = computed(() => new Set(connections.value.map(c => c.carId)))
-const carsNeedingConsent = computed(() =>
-  xpengCars.value.filter(c => !connectedCarIds.value.has(c.id)),
-)
-const carsReadyForUpload = computed(() =>
-  xpengCars.value.filter(c => connectedCarIds.value.has(c.id)),
-)
 
 const uploadCarId = ref<string | null>(null)
-const selectedConnection = computed(() =>
-  connections.value.find(c => c.carId === uploadCarId.value) ?? connections.value[0],
-)
-const selectedVin = computed(() => selectedConnection.value?.vin ?? '')
 
 // Top banner only for composable errors (connections/jobs fetch). Upload-specific errors are
 // shown inline in XpengUploadStep so they stay visible next to the action.
@@ -46,22 +35,14 @@ const jobRunning = computed(() =>
 onMounted(async () => {
   await refresh()
   await tryResumeFromStorage()
-  // Default selection - if there's exactly one connected car, preselect for upload
-  if (carsReadyForUpload.value.length === 1) {
-    uploadCarId.value = carsReadyForUpload.value[0].id
+  // Default selection - if there's exactly one XPeng car, preselect for upload
+  if (xpengCars.value.length === 1) {
+    uploadCarId.value = xpengCars.value[0].id
   }
 })
 
 function onError(msg: string) {
   localError.value = msg
-}
-
-async function onConsentGranted() {
-  localError.value = ''
-  await refresh()
-  if (!uploadCarId.value && carsReadyForUpload.value.length === 1) {
-    uploadCarId.value = carsReadyForUpload.value[0].id
-  }
 }
 
 function onUploaded(job: XpengJobDto) {
@@ -123,25 +104,15 @@ async function onDeleteAllData() {
         {{ t('xpeng.no_xpeng_cars') }}
       </div>
 
-      <XpengConsentStep
-        v-if="carsNeedingConsent.length > 0"
-        :cars-needing-consent="carsNeedingConsent"
-        mode="manual"
-        @granted="onConsentGranted"
+      <XpengUploadStep
+        v-if="xpengCars.length > 0"
+        v-model:car-id="uploadCarId"
+        :cars="xpengCars"
+        :job-running="jobRunning"
+        :error-message="localError"
+        @uploaded="onUploaded"
         @error="onError"
       />
-
-      <template v-if="carsReadyForUpload.length > 0">
-        <XpengRequestMailStep :vin="selectedVin" :connection="selectedConnection" />
-        <XpengUploadStep
-          v-model:car-id="uploadCarId"
-          :cars-ready-for-upload="carsReadyForUpload"
-          :job-running="jobRunning"
-          :error-message="localError"
-          @uploaded="onUploaded"
-          @error="onError"
-        />
-      </template>
 
       <XpengJobStatus v-if="activeJob" :job="activeJob" />
 

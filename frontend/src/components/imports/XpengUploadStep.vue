@@ -18,7 +18,7 @@ function carLabel(car: Car): string {
 const { t } = useI18n()
 
 const props = defineProps<{
-  carsReadyForUpload: Car[]
+  cars: Car[]
   jobRunning?: boolean
   errorMessage?: string
 }>()
@@ -30,10 +30,9 @@ const emit = defineEmits<{
 
 const carId = defineModel<string | null>('carId', { default: null })
 const file = ref<File | null>(null)
-const password = ref('')
 const uploading = ref(false)
 
-watch(() => props.carsReadyForUpload, (cars) => {
+watch(() => props.cars, (cars) => {
   if (cars.length === 1 && !carId.value) carId.value = cars[0].id
 }, { immediate: true })
 
@@ -52,9 +51,8 @@ async function submit() {
   }
   uploading.value = true
   try {
-    const job = await xpengService.upload(carId.value, file.value, password.value || undefined)
+    const job = await xpengService.uploadZip(carId.value, file.value)
     file.value = null
-    password.value = ''
     emit('uploaded', job)
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } }; message?: string }
@@ -68,14 +66,17 @@ async function submit() {
 <template>
   <section
     class="rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
-    <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
-      <span class="inline-flex w-5 h-5 bg-amber-500 text-gray-950 rounded-sm items-center justify-center text-[11px] font-extrabold">2</span>
+    <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">
       {{ t('xpeng.eyebrow_step2') }}
     </p>
 
-    <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-4">
+    <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-2">
       {{ t('xpeng.step_upload_title') }}
     </h3>
+
+    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-4">
+      {{ t('xpeng.upload_howto') }}
+    </p>
 
     <div class="space-y-4">
       <div>
@@ -86,7 +87,7 @@ async function submit() {
           <select v-model="carId"
                   class="appearance-none w-full px-3 py-2.5 pr-10 border-2 border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors">
             <option value="" disabled>{{ t('cars.select_placeholder') }}</option>
-            <option v-for="car in carsReadyForUpload" :key="car.id" :value="car.id">
+            <option v-for="car in cars" :key="car.id" :value="car.id">
               {{ carLabel(car) }}
             </option>
           </select>
@@ -98,17 +99,8 @@ async function submit() {
         <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
           {{ t('xpeng.file_label') }}
         </label>
-        <input type="file" accept=".xlsx" @change="onFileChange"
+        <input type="file" accept=".zip" @change="onFileChange"
                class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-sm file:border-2 file:border-gray-400 dark:file:border-gray-600 file:bg-transparent file:text-gray-800 dark:file:text-gray-200 file:font-bold file:uppercase file:text-xs file:tracking-wider hover:file:bg-gray-50 dark:hover:file:bg-gray-700/40 file:cursor-pointer file:shadow-[2px_2px_0_0_#9ca3af] dark:file:shadow-[2px_2px_0_0_#4b5563] file:transition-[transform,box-shadow] file:duration-75 active:file:translate-x-[3px] active:file:translate-y-[3px] active:file:shadow-none" />
-      </div>
-
-      <div>
-        <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
-          {{ t('xpeng.password_label') }}
-          <span class="text-gray-400 dark:text-gray-500 normal-case tracking-normal font-medium">· {{ t('xpeng.password_optional') }}</span>
-        </label>
-        <input v-model="password" type="password"
-               class="w-full px-3 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors" />
       </div>
     </div>
 
