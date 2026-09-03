@@ -8,8 +8,9 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -66,10 +67,11 @@ class XpengCsvExportParserTest {
         assertEquals("L1NTEST", result.vehicleInfo().vin(), "VIN trotz BOM im Header");
         assertEquals("F57a", result.vehicleInfo().model());
 
-        // aufsteigend nach timer sortiert
-        assertEquals(LocalDateTime.ofEpochSecond(1000, 0, ZoneOffset.UTC), rows.get(0).timer());
-        assertEquals(LocalDateTime.ofEpochSecond(1001, 0, ZoneOffset.UTC), rows.get(1).timer());
-        assertEquals(LocalDateTime.ofEpochSecond(1002, 0, ZoneOffset.UTC), rows.get(2).timer());
+        // aufsteigend nach timer sortiert; Epoch -> lokale Fahrzeugzeit (Europe/Berlin)
+        ZoneId berlin = ZoneId.of("Europe/Berlin");
+        assertEquals(Instant.ofEpochSecond(1000).atZone(berlin).toLocalDateTime(), rows.get(0).timer());
+        assertEquals(Instant.ofEpochSecond(1001).atZone(berlin).toLocalDateTime(), rows.get(1).timer());
+        assertEquals(Instant.ofEpochSecond(1002).atZone(berlin).toLocalDateTime(), rows.get(2).timer());
 
         // t=1000: beide Cluster -> vollstaendig
         assertEquals(0, new BigDecimal("42.5").compareTo(rows.get(0).vehSpeedKmh()));

@@ -8,8 +8,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,6 +49,10 @@ public class XpengCsvExportParser {
     private static final int MAX_ENTRIES = 50;
     private static final long MAX_TOTAL_UNCOMPRESSED_BYTES = 300L * 1024 * 1024; // 300 MB
     private static final int MAX_TIMERS = 2_000_000;
+    // timer ist ein absoluter Epoch-Zeitstempel. Wir wandeln ihn in die lokale Wanduhrzeit
+    // des Fahrzeugs um - konsistent zum alten XLSX-Weg (dort trug XPeng lokale Zeitstrings).
+    // Default Europe/Berlin fuer die aktuelle Nutzerbasis; spaeter ggf. pro Fahrzeug.
+    private static final ZoneId EXPORT_ZONE = ZoneId.of("Europe/Berlin");
 
     public record ParseResult(XpengVehicleInfo vehicleInfo, long rowsProcessed) {}
 
@@ -102,7 +107,7 @@ public class XpengCsvExportParser {
 
         long emitted = 0;
         for (Map.Entry<Long, Map<String, String>> e : byTimer.entrySet()) {
-            LocalDateTime timer = LocalDateTime.ofEpochSecond(e.getKey(), 0, ZoneOffset.UTC);
+            LocalDateTime timer = Instant.ofEpochSecond(e.getKey()).atZone(EXPORT_ZONE).toLocalDateTime();
             Map<String, String> values = e.getValue();
             XpengTelematicsRow row = XpengRowMapper.map(values::get, timer);
             rowHandler.accept(row);
