@@ -241,7 +241,7 @@ public class XpengImportService {
                 j.setStatus(XpengImportJob.Status.DONE);
                 j.setImportedTrips(stats.importedTrips);
                 j.setImportedSessions(stats.importedSessions);
-                j.setSkippedDuplicates(stats.skipped);
+                j.setSkippedDuplicates(stats.skipped + stats.skippedTrips);
                 j.setDataRangeStart(stats.rangeStart);
                 j.setDataRangeEnd(stats.rangeEnd);
                 j.setCompletedAt(LocalDateTime.now());
@@ -254,8 +254,8 @@ public class XpengImportService {
                 connectionRepo.save(c);
             });
 
-            log.info("XpengImport: job={} DONE trips={} sessions={} skipped={}",
-                    jobId, stats.importedTrips, stats.importedSessions, stats.skipped);
+            log.info("XpengImport: job={} DONE trips={} sessions={} skipped={} skippedTrips={}",
+                    jobId, stats.importedTrips, stats.importedSessions, stats.skipped, stats.skippedTrips);
         } catch (Exception e) {
             log.error("XpengImport: job={} FAILED", jobId, e);
             jobRepo.findById(jobId).ifPresent(j -> {
@@ -316,11 +316,18 @@ public class XpengImportService {
         stats.rangeStart = range[0];
         stats.rangeEnd = range[1];
 
-        // Trips → TripService (dedup via externalId)
+        // Trips → TripService. Primaer-Dedup ueber externalId (VIN@startedAt);
+        // zusaetzlich ein stabiler Guard ueber den Start-Kilometerstand, damit ein
+        // kuenftiges Detektor-Update (verschobene Startsekunde) beim Re-Import keine
+        // Doppel-Trips erzeugt.
         for (DetectedTrip t : trips) {
             try {
+                if (isTripAlreadyImported(carId, t)) {
+                    stats.skippedTrips++;
+                    continue;
+                }
                 UUID externalId = deterministicTripId(expectedVin, t.startedAt());
-                UUID before = tripService.saveTrip(toTripRequest(externalId, carId, userId, t));
+                tripService.saveTrip(toTripRequest(externalId, carId, userId, t));
                 stats.importedTrips++;
             } catch (Exception e) {
                 log.warn("XpengImport: trip insert failed", e);
@@ -444,6 +451,23 @@ public class XpengImportService {
         if (s.startedAt() == null || s.endedAt() == null) return null;
         long minutes = java.time.Duration.between(s.startedAt(), s.endedAt()).toMinutes();
         return minutes <= 0 ? 1 : (int) minutes;
+    }
+
+    /** Zeitfenster, in dem nach einem bereits importierten Gegenstueck gesucht wird. */
+    private static final java.time.Duration TRIP_DEDUP_WINDOW = java.time.Duration.ofMinutes(15);
+
+    /**
+     * Stabiler Zweit-Dedup: gibt es fuer dieses Fahrzeug bereits einen XPeng-Trip mit
+     * praktisch gleichem Start-Kilometerstand und nahezu gleicher Startzeit? Faengt
+     * Re-Imports ab, deren Startsekunde sich durch ein Detektor-Update verschoben hat.
+     */
+    private boolean isTripAlreadyImported(UUID carId, DetectedTrip t) {
+        if (t.startedAt() == null || t.odometerStartKm() == null) return false;
+        OffsetDateTime start = t.startedAt().atOffset(ZoneOffset.UTC);
+        List<com.evmonitor.domain.EvTrip> candidates =
+                evTripRepository.findByCarIdAndTripStartedAtBetweenOrderByTripStartedAtAsc(
+                        carId, start.minus(TRIP_DEDUP_WINDOW), start.plus(TRIP_DEDUP_WINDOW));
+        return com.evmonitor.domain.xpeng.XpengTripDeduplicator.isAlreadyImported(candidates, t);
     }
 
     private static UUID deterministicTripId(String vin, LocalDateTime startedAt) {
@@ -644,7 +668,7 @@ public class XpengImportService {
     }
 
     private static class ImportStats {
-        int importedTrips, importedSessions, skipped;
+        int importedTrips, importedSessions, skipped, skippedTrips;
         LocalDateTime rangeStart, rangeEnd;
     }
 
