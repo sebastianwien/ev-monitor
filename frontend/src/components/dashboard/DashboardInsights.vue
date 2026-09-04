@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon, ClockIcon } from '@heroicons/vue/24/outline'
 import { phantomEurFor } from '../../utils/phantomDrain'
 import { useSlideTransition } from '../../composables/useSlideTransition'
 
@@ -32,9 +32,21 @@ const props = defineProps<{
   // Preview (e.g. the supporter page): start on the donut tab, stay expanded, and don't
   // persist the tab choice to localStorage. Tabs stay visible and interactive.
   previewMode?: boolean
+  // Der Nutzer sieht die Auswertungen nur ueber den Probemonat - dann der Retention-Hinweis.
+  trial?: boolean
+  trialEndsAt?: Date | string | null
+  // Ziel des "dauerhaft freischalten"-CTA - Supporter (Tesla) vs. AutoSync, vom Dashboard bestimmt.
+  upsellTarget?: string
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+/** "3. Oktober" statt eines Datums - der Hinweis nennt den Tag, an dem der Probemonat endet. */
+const trialEndLabel = computed(() => {
+  if (!props.trialEndsAt) return ''
+  const d = props.trialEndsAt instanceof Date ? props.trialEndsAt : new Date(props.trialEndsAt)
+  return d.toLocaleDateString(locale.value, { day: 'numeric', month: 'long' })
+})
 
 type Tab = 'donut' | 'nights' | 'calendar' | 'routes'
 const VALID_TABS: Tab[] = ['donut', 'nights', 'calendar', 'routes']
@@ -628,6 +640,20 @@ function drainBarWidth(ev: { kwh: number }): string {
 
       </div>
     </Transition>
+
+    <!-- Retention-Hinweis im Probemonat (nur fuer nicht-zahlende Nutzer) - ruhig, aber klar,
+         gleiche Sprache wie die Ersparnis-Kachel. -->
+    <div v-if="trial && !previewMode"
+         class="px-4 md:px-5 py-4 border-t border-gray-200 dark:border-gray-600 flex flex-col sm:flex-row sm:items-center gap-3">
+      <p class="flex items-start gap-2 flex-1 min-w-0 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+        <ClockIcon class="h-4 w-4 flex-none mt-px text-amber-500 dark:text-amber-400" />
+        <span>{{ trialEndLabel ? t('savings.trial_hint', { date: trialEndLabel }) : t('savings.trial_hint_generic') }}</span>
+      </p>
+      <router-link v-if="upsellTarget" :to="upsellTarget"
+                   class="flex-none w-full sm:w-auto inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 dark:bg-amber-500 dark:hover:bg-amber-400 text-white font-semibold px-4 py-2 rounded-sm text-xs whitespace-nowrap shadow-[0_3px_0_0_#b45309] dark:shadow-[0_3px_0_0_#92400e] active:translate-y-0.5 active:shadow-none transition">
+        {{ t('savings.trial_cta') }}
+      </router-link>
+    </div>
     </div>
     </Transition>
 

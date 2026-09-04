@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import api from '../api/axios';
 import { ref, computed } from 'vue';
 import { jwtDecode, type JwtPayload } from 'jwt-decode';
+import { isEnergySplitTrialActive, energySplitTrialEnd } from '../utils/featureTrial';
 import { useCarStore } from './car';
 
 export interface JwtClaims {
@@ -144,12 +145,26 @@ export const useAuthStore = defineStore('auth', () => {
         isPremium.value || isAdmin.value || isBetaTester.value || isTeslaFounder.value);
 
     // Mirrors backend User.canViewLiveAnalytics(): the paid analytics layer - historical
-    // power curves, phantom drain, energy split. No Tesla-free path. Jeder bezahlte Tarif
+    // power curves, phantom drain im Logfeed, Share. No Tesla-free path. Jeder bezahlte Tarif
     // (AUTOSYNC, AUTOSYNC_LIVE, SUPPORTER) plus ADMIN/BETA - der Live-Trip-Feed (Trip-Push)
     // haengt am schmaleren Backend-Gate und ist hier bewusst nicht gespiegelt. Server-side
-    // gate in EvLogService (power curves); phantom/energy-split are frontend-derived. UX only.
+    // gate in EvLogService (power curves) und EvLogShareService (Share). UX only. Der
+    // Energie-Split-Probemonat haengt bewusst NICHT hier - er oeffnet nur die Kachel, nicht
+    // die server-zurueckgehaltenen Daten.
     const canViewLiveAnalytics = computed(() =>
         isAutoSync.value || isAutoSyncLive.value || isSupporter.value || isAdmin.value || isBetaTester.value);
+
+    // Energie-Split-Probemonat: launch-verankert aus dem JWT-registeredAt (spiegelt das
+    // frontend-eigene featureTrial). Der Donut wird client-seitig aus dem eigenen Feed
+    // abgeleitet - kein Server-Secret -, deshalb ist das Trial ein reines Display-Gate NUR
+    // der Energie-Split-Kachel. Ladekurven/Standverluste im Logfeed/Share bleiben an
+    // canViewLiveAnalytics und damit im Probemonat zu.
+    const energySplitTrialActive = computed(() => isEnergySplitTrialActive(user.value?.registeredAt));
+    const energySplitTrialEndsAt = computed(() => energySplitTrialEnd(user.value?.registeredAt));
+    const canViewEnergySplit = computed(() => canViewLiveAnalytics.value || energySplitTrialActive.value);
+    // Zugang haengt allein am Probemonat (nicht bezahlt, keine Rolle) -> dann der Retention-Hinweis.
+    const energySplitViaTrial = computed(() =>
+        energySplitTrialActive.value && !canViewLiveAnalytics.value);
 
     // Mirrors backend User.canViewSocCurve(): der Ladeverlauf ist bewusst weiter
     // gefasst als die Ladekurve - er ist das, was Quellen ohne Leistungsmessung
@@ -168,6 +183,7 @@ export const useAuthStore = defineStore('auth', () => {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
         isAutoSyncLive, isSupporter,
         canActivateTelemetry, canViewLiveAnalytics, canViewSocCurve, canViewLiveCharging,
+        canViewEnergySplit, energySplitViaTrial, energySplitTrialEndsAt,
         setToken, setPremium, logout, login, register,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,

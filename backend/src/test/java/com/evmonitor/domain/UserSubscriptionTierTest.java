@@ -99,7 +99,9 @@ class UserSubscriptionTierTest {
         // Tarif (AUTOSYNC, AUTOSYNC_LIVE, SUPPORTER) plus ADMIN/BETA_TESTER, fuer JEDE Marke.
         // Kein Marken-Argument by design - dieses Gate wird nie gratis fuer Tesla. AUTOSYNC
         // ist Teil des Zwei-Tier-Zielbilds: Nicht-Tesla-Fahrer bekommen die Auswertungen ueber
-        // AutoSync, Tesla-Fahrer ueber Supporter.
+        // AutoSync, Tesla-Fahrer ueber Supporter. Der Energie-Split-Probemonat haengt NICHT an
+        // diesem Gate - er ist ein reines Frontend-Display-Gate der Energie-Split-Kachel, die
+        // server-zurueckgehaltenen Daten (Ladekurven, Share) bleiben bezahlt.
         assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveAnalytics());
         assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveAnalytics());
         assertTrue(buildUser("USER", SubscriptionTier.SUPPORTER).canViewLiveAnalytics());

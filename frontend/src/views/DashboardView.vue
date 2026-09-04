@@ -886,19 +886,22 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
 
         <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender (AutoSync Live only) -->
         <DashboardInsights
-          v-if="authStore.canViewLiveAnalytics && mergedLogFeed.length > 0"
+          v-if="authStore.canViewEnergySplit && mergedLogFeed.length > 0"
           :entries="mergedLogFeed"
           :selected-car="cars.find((c: any) => c.id === selectedCarId)"
           :selected-time-range="selectedTimeRange"
           :custom-start-date="customStartDate"
           :custom-end-date="customEndDate"
           :avg-cost-per-kwh="stats.avgCostPerKwh"
+          :trial="authStore.energySplitViaTrial"
+          :trial-ends-at="authStore.energySplitTrialEndsAt"
+          :upsell-target="savingsUpsellTarget"
           class="mb-3"
         />
 
         <!-- Locked-state teaser: same slot, shown to users without the analytics entitlement -->
         <DashboardInsightsTeaser
-          v-if="!authStore.canViewLiveAnalytics && feedHasTrips"
+          v-if="!authStore.canViewEnergySplit && feedHasTrips"
           :entries="mergedLogFeed"
           class="mb-3"
         />
