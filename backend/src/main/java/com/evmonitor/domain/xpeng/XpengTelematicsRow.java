@@ -34,10 +34,16 @@ public record XpengTelematicsRow(
     // liegt unter 400 kW; alles darueber ist ein Glitch und wird zu null
     // entschaerft, damit Detectoren es als "kein Ladevorgang" behandeln.
     private static final BigDecimal MAX_PLAUSIBLE_CHARGE_POWER_KW = new BigDecimal("400");
+    private static final BigDecimal SOC_MAX = new BigDecimal("100");
 
     public XpengTelematicsRow {
         if (chargePowerKw != null && chargePowerKw.compareTo(MAX_PLAUSIBLE_CHARGE_POWER_KW) > 0) {
             chargePowerKw = null;
+        }
+        // SoC-Sentinel: der Sensor liefert beim Aufwachen 255 (0xFF). Alles ausserhalb
+        // 0..100 % ist unmoeglich und wuerde die Verbrauchskette verfaelschen -> null.
+        if (socDisplay != null && (socDisplay.signum() < 0 || socDisplay.compareTo(SOC_MAX) > 0)) {
+            socDisplay = null;
         }
         // Speed-Glitches (Sensor-Sentinels) zentral in EvTrip.clampSpeedKmh.
         vehSpeedKmh = EvTrip.clampSpeedKmh(vehSpeedKmh);

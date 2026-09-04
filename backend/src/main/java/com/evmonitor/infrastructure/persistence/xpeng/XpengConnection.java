@@ -17,6 +17,9 @@ public class XpengConnection {
 
     public static final String CURRENT_CONSENT_VERSION = "v1.0";
     public static final String AUTOSYNC_CONSENT_VERSION = "v2.0";
+    // Manueller Portal-Upload (kein Vollmacht-Consent noetig - der User laedt seine
+    // eigenen EU-Data-Act-Daten selbst hoch). Nur die VIN wird ans Auto gebunden.
+    public static final String MANUAL_CONSENT_VERSION = "manual-v1";
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

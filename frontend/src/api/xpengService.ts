@@ -74,6 +74,18 @@ export const xpengService = {
     return resp.data
   },
 
+  // Neues EU-Data-Act-Format: ZIP mit CSV-Clustern (Portal-Download). Die VIN wird
+  // serverseitig aus der Datei gelesen und automatisch mit dem Fahrzeug verknuepft.
+  async uploadZip(carId: string, file: File): Promise<XpengJobDto> {
+    const form = new FormData()
+    form.append('carId', carId)
+    form.append('file', file)
+    const resp = await api.post('/imports/xpeng/upload-zip', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return resp.data
+  },
+
   async getJob(jobId: string): Promise<XpengJobDto> {
     const resp = await api.get(`/imports/xpeng/jobs/${jobId}`)
     return resp.data
