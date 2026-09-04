@@ -13,7 +13,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  HomeIcon, InformationCircleIcon, PlusIcon, ChevronRightIcon,
+  HomeIcon, InformationCircleIcon, PlusIcon, ChevronRightIcon, ChevronDownIcon,
   AdjustmentsHorizontalIcon, PencilSquareIcon, ArrowUturnLeftIcon, ClockIcon,
 } from '@heroicons/vue/24/outline'
 import {
@@ -54,6 +54,15 @@ const trialEndLabel = computed(() => {
 const overrides = ref<PriceOverrides>({ home: null, public: null })
 const showPlayground = ref(false)
 onMounted(() => { if (!props.demo) overrides.value = loadPriceOverrides() })
+
+// Einklappbar wie die anderen Dashboard-Widgets - nur mobil (auf sm+ immer offen via
+// sm:!block). Zustand pro Geraet in localStorage, gleiches Muster wie DashboardInsights.
+const LS_COLLAPSED = 'savings_collapsed'
+const collapsed = ref(localStorage.getItem(LS_COLLAPSED) === 'true')
+function toggleCollapsed() {
+  collapsed.value = !collapsed.value
+  localStorage.setItem(LS_COLLAPSED, String(collapsed.value))
+}
 
 const view = computed(() =>
   props.savings ? applyPriceOverrides(props.savings, overrides.value) : null)
@@ -148,18 +157,31 @@ function inputValue(kind: 'home' | 'public'): string {
     <template v-else>
 
     <div class="relative flex items-center justify-center gap-2 mb-4">
+      <!-- Mobiler Ein-/Ausklapp-Chevron (auf sm+ ist die Kachel immer offen). Links, damit
+           er nicht mit "Preise anpassen" rechts kollidiert. -->
+      <button v-if="!demo" type="button"
+              class="absolute left-0 sm:hidden p-1.5 -ml-1"
+              :aria-expanded="!collapsed" :aria-label="t('savings.title')"
+              @click="toggleCollapsed">
+        <ChevronDownIcon class="h-4 w-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': !collapsed }" />
+      </button>
       <HomeIcon class="h-5 w-5 flex-none text-emerald-600 dark:text-emerald-400" />
       <span class="text-sm font-semibold text-gray-500 dark:text-gray-400">{{ t('savings.title') }}</span>
       <!-- Sichtbarer Hinweis, dass sich hier etwas einstellen laesst. Ohne ihn ist die
-           Spielerei unauffindbar - Klickbarkeit allein signalisiert nichts. -->
+           Spielerei unauffindbar - Klickbarkeit allein signalisiert nichts. Mobil ausgeblendet,
+           solange die Kachel eingeklappt ist. -->
       <button v-if="!demo" type="button"
-              class="absolute right-0 flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              class="absolute right-0 items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              :class="collapsed ? 'hidden sm:flex' : 'flex'"
               :aria-expanded="showPlayground" :aria-label="t('savings.playground_toggle')"
               @click="showPlayground = !showPlayground">
         <AdjustmentsHorizontalIcon class="h-4 w-4" />
         <span class="hidden sm:inline">{{ t('savings.playground_toggle') }}</span>
       </button>
     </div>
+
+    <!-- Alles unterhalb des Kopfes ist der einklappbare Teil (nur mobil; sm+ immer offen). -->
+    <div v-show="demo || !collapsed" class="sm:!block">
 
     <!-- Eigene Annahmen. Bewusst in ct/kWh - so vergleicht man Ladepreise. -->
     <div v-if="showPlayground && !demo"
@@ -190,8 +212,8 @@ function inputValue(kind: 'home' | 'public'): string {
     </div>
 
     <!-- Anker -->
-    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4">
-      <span class="text-4xl font-bold tracking-tight tabular-nums text-gray-900 dark:text-gray-50">
+    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-3">
+      <span class="text-3xl font-bold tracking-tight tabular-nums text-gray-900 dark:text-gray-50">
         {{ money(view.savingsEur) }}
       </span>
       <span class="text-xs text-gray-500 dark:text-gray-400">
@@ -200,15 +222,12 @@ function inputValue(kind: 'home' | 'public'): string {
       </span>
     </div>
 
-    <!-- Die Skala: volle Breite = oeffentliche Kosten, gefuellt = tatsaechlich gezahlt -->
-    <div class="relative h-9 rounded bg-gray-200 dark:bg-gray-600 overflow-hidden">
+    <!-- Die Skala: volle Breite = oeffentliche Kosten, gefuellt = tatsaechlich gezahlt,
+         heller Rest = Ersparnis. Die Zahl steht schon oben als Anker, daher hier ohne
+         Label - der Balken zeigt nur noch das Verhaeltnis. -->
+    <div class="relative h-6 rounded bg-gray-200 dark:bg-gray-600 overflow-hidden">
       <div class="absolute inset-y-0 left-0 bg-emerald-600 dark:bg-emerald-500 rounded"
            :style="{ width: paidWidth }"></div>
-      <div v-if="view.savingsEur > 0"
-           class="absolute inset-y-0 right-0 flex items-center justify-center px-2 text-xs font-semibold text-gray-800 dark:text-gray-100"
-           :style="{ left: paidWidth }">
-        + {{ money(view.savingsEur) }}
-      </div>
     </div>
     <div class="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
       <span>
@@ -222,17 +241,22 @@ function inputValue(kind: 'home' | 'public'): string {
     </div>
 
     <!-- Amortisation als Zeitschiene -->
-    <div v-if="timeline" class="mt-5 pt-4 border-t border-gray-200 dark:border-gray-600">
+    <div v-if="timeline" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+      <!-- Start- und Endjahr sitzen jetzt in dieser Kopfzeile (links Start, rechts Ziel) -
+           spiegelt die Balkenenden und spart die separate Zeile unter dem Balken. -->
       <component :is="demo ? 'div' : 'button'" :type="demo ? undefined : 'button'"
-              class="w-full flex justify-between items-baseline text-xs tabular-nums text-left mb-2"
+              class="w-full flex justify-between items-baseline gap-3 text-xs tabular-nums text-left mb-2"
               :aria-label="demo ? undefined : t('savings.edit_investment')"
               @click="!demo && emit('edit-investment')">
-        <span class="text-gray-500 dark:text-gray-400">{{ t('savings.wallbox_recovered') }}</span>
+        <span class="text-gray-500 dark:text-gray-400">
+          {{ t('savings.wallbox_recovered') }}
+          <span class="text-gray-400 dark:text-gray-500">· {{ timeline.startYear }}</span>
+        </span>
         <span class="font-semibold text-gray-900 dark:text-gray-100">
           {{ money(view.recoveredEur ?? 0) }}
-          <span class="font-normal text-gray-400 dark:text-gray-500">
-            {{ t('savings.of_investment', { total: money(view.investmentEur!) }) }}
-          </span>
+          <span class="font-normal text-gray-400 dark:text-gray-500">{{ t('savings.of_investment', { total: money(view.investmentEur!) }) }}</span>
+          <span v-if="view.fullyAmortised" class="font-normal text-emerald-700 dark:text-emerald-300">· {{ t('savings.fully_amortised') }}</span>
+          <span v-else-if="endLabel" class="font-normal text-gray-400 dark:text-gray-500">· {{ t('savings.paid_off_by', { date: endLabel }) }}</span>
           <PencilSquareIcon v-if="!demo" class="ml-1.5 inline h-4 w-4 align-text-bottom text-gray-400 dark:text-gray-500" />
         </span>
       </component>
@@ -243,14 +267,6 @@ function inputValue(kind: 'home' | 'public'): string {
         <span v-for="(pct, i) in timeline.tickPercents" :key="i"
               class="absolute inset-y-0 w-px bg-white/80 dark:bg-gray-700/80"
               :style="{ left: `${pct}%` }"></span>
-      </div>
-
-      <div class="mt-2 flex justify-between gap-3 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-        <span>{{ timeline.startYear }}</span>
-        <span v-if="view.fullyAmortised" class="text-emerald-700 dark:text-emerald-300">
-          {{ t('savings.fully_amortised') }}
-        </span>
-        <span v-else-if="endLabel">{{ t('savings.paid_off_by', { date: endLabel }) }}</span>
       </div>
     </div>
 
@@ -283,18 +299,19 @@ function inputValue(kind: 'home' | 'public'): string {
       <ChevronRightIcon class="h-3 w-3 mt-0.5 ml-auto flex-none text-gray-400" />
     </button>
 
-    <!-- Reine Herkunftsangabe, bewusst kein Button -->
-    <p class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-start gap-1.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-      <InformationCircleIcon class="h-3.5 w-3.5 mt-px flex-none" />
-      <span>{{ basisLabel }}</span>
-    </p>
-
-    <!-- Der Rechenweg, aufklappbar. Wer die Zahl glaubt, muss nicht lesen; wer sie
-         anzweifelt, findet die Antwort ohne nachzufragen. Natives details-Element:
-         tastaturbedienbar, ohne JavaScript, ohne zusaetzliche Hoehe im Normalfall. -->
-    <details class="mt-3 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-      <summary class="cursor-pointer select-none py-1 font-medium marker:text-gray-400">
-        {{ t('savings.how_summary') }}
+    <!-- Fusszeile in einer Zeile: Herkunft links, Rechenweg-Aufklapper rechts. Der ganze
+         Kopf ist der Toggle (natives details: tastaturbedienbar, ohne JavaScript); die
+         Erklaerung faellt darunter voll breit auf. -->
+    <details class="group mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+      <summary class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+        <span class="flex items-center gap-1.5 min-w-0">
+          <InformationCircleIcon class="h-3.5 w-3.5 flex-none" />
+          <span>{{ basisLabel }}</span>
+        </span>
+        <span class="flex-none inline-flex items-center gap-1 font-medium">
+          {{ t('savings.how_summary') }}
+          <ChevronRightIcon class="h-3 w-3 transition-transform group-open:rotate-90" />
+        </span>
       </summary>
       <div class="mt-2 space-y-3 pb-1">
         <p>{{ t('savings.how_intro') }}</p>
@@ -309,14 +326,16 @@ function inputValue(kind: 'home' | 'public'): string {
     <!-- Retention-Hinweis: nur im Probemonat und nur fuer nicht-zahlende Nutzer. Sagt,
          womit die Kachel dauerhaft bleibt - das konkrete Ziel bestimmt das Dashboard. -->
     <div v-if="trial && !demo"
-         class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-start gap-1.5 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
-      <ClockIcon class="h-3.5 w-3.5 mt-px flex-none" />
-      <span>
-        {{ trialEndLabel ? t('savings.trial_hint', { date: trialEndLabel }) : t('savings.trial_hint_generic') }}
-        <router-link v-if="upsellTarget" :to="upsellTarget" class="font-semibold underline hover:no-underline">
-          {{ t('savings.trial_cta') }}
-        </router-link>
-      </span>
+         class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 flex flex-col sm:flex-row sm:items-center gap-3">
+      <p class="flex items-start gap-2 flex-1 min-w-0 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+        <ClockIcon class="h-4 w-4 flex-none mt-px text-amber-500 dark:text-amber-400" />
+        <span>{{ trialEndLabel ? t('savings.trial_hint', { date: trialEndLabel }) : t('savings.trial_hint_generic') }}</span>
+      </p>
+      <router-link v-if="upsellTarget" :to="upsellTarget"
+                   class="flex-none w-full sm:w-auto inline-flex items-center justify-center bg-amber-500 hover:bg-amber-600 dark:bg-amber-500 dark:hover:bg-amber-400 text-white font-semibold px-4 py-2 rounded-sm text-xs whitespace-nowrap shadow-[0_3px_0_0_#b45309] dark:shadow-[0_3px_0_0_#92400e] active:translate-y-0.5 active:shadow-none transition">
+        {{ t('savings.trial_cta') }}
+      </router-link>
+    </div>
     </div>
     </template>
   </div>
