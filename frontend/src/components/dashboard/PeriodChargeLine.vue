@@ -53,6 +53,9 @@ const curveLocked = computed(() =>
   !canOpenCurve.value
     && (props.entry.hasPowerCurve || props.entry.hasSocCurve)
     && purchasesAvailable())
+// Desktop: die Ladekurve (freigeschaltet oder als Teaser) lebt ausformuliert in der
+// Kontextzeile neben Ort und Ladekarte - nicht mehr als nacktes Icon in der Aktionsspalte.
+const hasCurve = computed(() => canOpenCurve.value || curveLocked.value)
 
 /** Am Fahrzeug angekommene Energie, sonst die abgerechnete - in dieser Reihenfolge. */
 const kwh = computed<number | null>(() => props.entry.kwhAtVehicle ?? props.entry.kwhCharged ?? null)
@@ -140,18 +143,6 @@ const place = computed(() => {
         <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
       </div>
       <div class="flex justify-end items-center gap-0.5">
-        <button v-if="canOpenCurve" type="button" @click.stop="emit('power-curve', entry)"
-          :aria-label="t('dashboard.show_power_curve')" aria-haspopup="dialog"
-          class="p-1 rounded text-indigo-600 dark:text-indigo-400 hover:bg-indigo-200/60 dark:hover:bg-indigo-900/60 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
-          <ChartBarSquareIcon class="w-4 h-4" aria-hidden="true" />
-        </button>
-        <!-- Gesperrt: dasselbe Kurven-Symbol mit Schloss-Marke, wie in der Ladung-Ansicht. -->
-        <button v-else-if="curveLocked" type="button" @click.stop="emit('power-curve', entry)"
-          :aria-label="t('dashboard.power_curve_locked')" :title="t('dashboard.power_curve_locked')" aria-haspopup="dialog"
-          class="relative p-1 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-          <ChartBarSquareIcon class="w-4 h-4" aria-hidden="true" />
-          <LockClosedIcon class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5" aria-hidden="true" />
-        </button>
         <button type="button" @click.stop="emit('edit', entry)"
           class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           :aria-label="t('dashboard.action_edit')">
@@ -159,14 +150,26 @@ const place = computed(() => {
         </button>
       </div>
     </div>
-    <!-- Ort und Ladekarte mittig unter der Zeile - das Pendant zur Klimazeile der Fahrten. -->
-    <div v-if="entry.cpoName || cardName"
+    <!-- Ort, Ladekarte und Ladekurve mittig unter der Zeile - das Pendant zur Klimazeile der Fahrten. -->
+    <div v-if="entry.cpoName || cardName || hasCurve"
       class="px-3 pb-1.5 flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
       <span v-if="entry.cpoName" class="truncate">{{ entry.cpoName }}</span>
       <span v-if="entry.cpoName && cardName" aria-hidden="true">&middot;</span>
       <span v-if="cardName" class="inline-flex items-center gap-1 whitespace-nowrap">
         <CreditCardIcon class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />{{ cardName }}
       </span>
+      <span v-if="(entry.cpoName || cardName) && hasCurve" aria-hidden="true">&middot;</span>
+      <!-- Freigeschaltet: oeffnet die Kurve; gesperrt: derselbe Button als Teaser mit Schloss. -->
+      <button v-if="canOpenCurve" type="button" @click.stop="emit('power-curve', entry)"
+        :aria-label="t('dashboard.show_power_curve')" aria-haspopup="dialog"
+        class="inline-flex items-center gap-1 whitespace-nowrap rounded text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+        <ChartBarSquareIcon class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.power_curve_label') }}
+      </button>
+      <button v-else-if="curveLocked" type="button" @click.stop="emit('power-curve', entry)"
+        :aria-label="t('dashboard.power_curve_locked')" :title="t('dashboard.power_curve_locked')" aria-haspopup="dialog"
+        class="inline-flex items-center gap-1 whitespace-nowrap rounded text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+        <ChartBarSquareIcon class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.power_curve_label') }}<LockClosedIcon class="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+      </button>
     </div>
   </div>
 

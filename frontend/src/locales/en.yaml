@@ -845,6 +845,7 @@ dashboard:
   implausible_tooltip_cause1: "The SoC end value (charge level %) of the previous entry is missing"
   implausible_tooltip_cause2: "A charging session is missing between this and the previous entry"
   show_power_curve: "Show charging curve"
+  power_curve_label: "Charging curve"
   no_power_curve: "No charging curve data available."
   power_curve_title: "Charging curve"
   power_curve_teaser_body: "The full power profile of this charge is recorded. Once unlocked you see your own curve here: the peak your car started at, when the power tapers off, and how much range that adds per minute."

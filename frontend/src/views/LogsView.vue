@@ -2203,11 +2203,11 @@ function toggleAllCharges() {
                       @click.stop="openPowerCurve(item.entry)"
                       :aria-label="t('dashboard.show_power_curve')"
                       aria-haspopup="dialog"
-                      class="p-0.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
+                      class="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0 rounded text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                     >
-                      <ChartBarSquareIcon class="w-4 h-4" />
+                      <ChartBarSquareIcon class="w-3.5 h-3.5 flex-shrink-0" />{{ t('dashboard.power_curve_label') }}
                     </button>
-                    <!-- Gesperrt: dasselbe Kurven-Symbol mit Schloss-Marke. Ein blankes
+                    <!-- Gesperrt: Kurven-Symbol mit Schloss und ausformuliertem Label - ein blankes
                          Schloss sagt nicht, was dahinter liegt. -->
                     <button
                       v-else-if="(item.entry.hasPowerCurve || item.entry.hasSocCurve) && purchasesAvailable()"
@@ -2216,10 +2216,9 @@ function toggleAllCharges() {
                       :aria-label="t('dashboard.power_curve_locked')"
                       :title="t('dashboard.power_curve_locked')"
                       aria-haspopup="dialog"
-                      class="relative p-0.5 rounded text-amber-500 dark:text-amber-400 hover:bg-amber-100/40 dark:hover:bg-amber-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 flex-shrink-0"
+                      class="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0 rounded text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                     >
-                      <ChartBarSquareIcon class="w-4 h-4" />
-                      <LockClosedIcon class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5" />
+                      <ChartBarSquareIcon class="w-3.5 h-3.5 flex-shrink-0" />{{ t('dashboard.power_curve_label') }}<LockClosedIcon class="w-3 h-3 flex-shrink-0" />
                     </button>
                   </div>
                   <!-- 4. Consumption (or short-trip / kwh-in-next hint) -->

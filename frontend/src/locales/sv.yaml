@@ -805,6 +805,7 @@ dashboard:
   implausible_tooltip_cause1: Slutvärdet för SoC (laddningsnivå i %) för den föregående posten saknas
   implausible_tooltip_cause2: Det saknas en laddningsomgång mellan denna och den föregående posten
   show_power_curve: Visa laddningskurva
+  power_curve_label: Laddningskurva
   no_power_curve: Ingen laddningskurvdata tillgänglig.
   power_curve_title: "Laddningskurva"
   power_curve_teaser_body: "Hela effektförloppet för den här laddningen är registrerat. Upplåst ser du din egen kurva här: vilken topp bilen startade på, när effekten viker av och hur mycket räckvidd det ger per minut."

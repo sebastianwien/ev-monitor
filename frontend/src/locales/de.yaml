@@ -845,6 +845,7 @@ dashboard:
   implausible_tooltip_cause1: "Der SoC-Endwert (Ladestand %) des vorherigen Eintrags fehlt"
   implausible_tooltip_cause2: "Zwischen diesem und dem vorherigen Eintrag fehlt ein Ladevorgang"
   show_power_curve: "Ladekurve anzeigen"
+  power_curve_label: "Ladekurve"
   no_power_curve: "Keine Ladekurven-Daten vorhanden."
   power_curve_title: "Ladekurve"
   power_curve_teaser_body: "Für diese Ladung ist der komplette Leistungsverlauf aufgezeichnet. Freigeschaltet siehst du hier deine eigene Kurve: mit welcher Spitze dein Auto gestartet ist, wann die Leistung abknickt und wie viel Reichweite dabei pro Minute dazukommt."

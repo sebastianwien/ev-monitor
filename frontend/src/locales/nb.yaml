@@ -805,6 +805,7 @@ dashboard:
   implausible_tooltip_cause1: Sluttverdien for SoC (ladningsnivå i %) for forrige oppføring mangler
   implausible_tooltip_cause2: Det mangler en ladeøkt mellom denne og forrige oppføring
   show_power_curve: Vis ladekurve
+  power_curve_label: Ladekurve
   no_power_curve: Ingen ladekurve-data tilgjengelig.
   power_curve_title: "Ladekurve"
   power_curve_teaser_body: "Hele effektforløpet for denne ladingen er registrert. Låst opp ser du din egen kurve her: hvilken topp bilen startet på, når effekten faller av, og hvor mye rekkevidde det gir per minutt."
