@@ -85,4 +85,31 @@ class XpengRowMapperTest {
 
         assertNull(row.chargePowerKw(), "unplausible Ladeleistung muss null werden");
     }
+
+    @Test
+    void extraSentinelsWerdenGefiltert() {
+        LocalDateTime t = LocalDateTime.of(2026, 9, 1, 12, 0, 0);
+
+        // BMS-Reichweite: 1638.3 ist der "kein Wert"-Sentinel des Sensors, keine echte Reichweite.
+        Map<String, String> range = new HashMap<>();
+        range.put(XpengHeaderMapper.BMS_RANGE, "1638.3");
+        assertNull(map(range, t).extra(XpengExtraKeys.BMS_RANGE_KM),
+                "Reichweiten-Sentinel 1638.3 muss null werden");
+
+        // Motor-Drehzahl: 49535 ist der Sensor-Sentinel, real max ~20000 rpm.
+        Map<String, String> rpm = new HashMap<>();
+        rpm.put(XpengHeaderMapper.FRONT_RPM, "49535");
+        rpm.put(XpengHeaderMapper.REAR_RPM, "49535");
+        XpengTelematicsRow rpmRow = map(rpm, t);
+        assertNull(rpmRow.extra(XpengExtraKeys.FRONT_RPM), "rpm-Sentinel 49535 muss null werden");
+        assertNull(rpmRow.extra(XpengExtraKeys.REAR_RPM), "rpm-Sentinel 49535 muss null werden");
+
+        // Plausible Werte bleiben erhalten.
+        Map<String, String> ok = new HashMap<>();
+        ok.put(XpengHeaderMapper.BMS_RANGE, "431.0");
+        ok.put(XpengHeaderMapper.FRONT_RPM, "8000");
+        XpengTelematicsRow okRow = map(ok, t);
+        assertEquals(0, new BigDecimal("431.0").compareTo(okRow.extra(XpengExtraKeys.BMS_RANGE_KM)));
+        assertEquals(0, new BigDecimal("8000").compareTo(okRow.extra(XpengExtraKeys.FRONT_RPM)));
+    }
 }
