@@ -10,6 +10,7 @@ import SupportPopover from '../components/settings/SupportPopover.vue'
 import DemoSettingsModal from '../components/demo/DemoSettingsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useAccountSettings } from '../composables/useAccountSettings'
+import dashboardPreferencesService from '../api/dashboardPreferencesService'
 
 const { t, locale } = useI18n()
 const { formatCurrency } = useLocaleFormat()
@@ -45,6 +46,26 @@ function toggleImplausibleBanner() {
     localStorage.removeItem(LS_IMPLAUSIBLE_BANNER_DISMISSED)
   } else {
     localStorage.setItem(LS_IMPLAUSIBLE_BANNER_DISMISSED, 'true')
+  }
+}
+
+// Ersparnis-Kachel: serverseitig gehalten, damit das Ausblenden auf allen Geraeten gilt.
+// Der Toggle bildet die Sicht ab (an = sichtbar), die Persistenz das Gegenteil (dismissed).
+const savingsCardVisible = ref(true)
+onMounted(async () => {
+  try {
+    const prefs = await dashboardPreferencesService.get()
+    savingsCardVisible.value = !prefs.savingsCardDismissed
+  } catch {
+    // Nicht angemeldet oder Ladefehler: Standard sichtbar, der Toggle bleibt bedienbar.
+  }
+})
+async function toggleSavingsCard() {
+  savingsCardVisible.value = !savingsCardVisible.value
+  try {
+    await dashboardPreferencesService.setSavingsCardDismissed(!savingsCardVisible.value)
+  } catch {
+    savingsCardVisible.value = !savingsCardVisible.value
   }
 }
 
@@ -354,7 +375,7 @@ onMounted(async () => {
           <EyeIcon class="h-6 w-6" />
           {{ t('settings.display_title') }}
         </h2>
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm space-y-4">
           <div class="flex items-center justify-between gap-4">
             <div>
               <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.implausible_banner_label') }}</p>
@@ -370,6 +391,27 @@ onMounted(async () => {
                 :class="[
                   'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
                   implausibleBannerEnabled ? 'translate-x-5' : 'translate-x-0'
+                ]" />
+            </button>
+          </div>
+          <div class="flex items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+            <div>
+              <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.savings_card_label') }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.savings_card_hint') }}</p>
+            </div>
+            <button
+              @click="toggleSavingsCard"
+              role="switch"
+              :aria-checked="savingsCardVisible"
+              :aria-label="t('settings.savings_card_label')"
+              :class="[
+                'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
+                savingsCardVisible ? 'bg-green-500' : 'bg-gray-300'
+              ]">
+              <span
+                :class="[
+                  'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                  savingsCardVisible ? 'translate-x-5' : 'translate-x-0'
                 ]" />
             </button>
           </div>

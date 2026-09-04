@@ -1493,6 +1493,8 @@ settings:
   display_title: Visning
   implausible_banner_label: Avisering om osannolig förbrukning
   implausible_banner_hint: Visar en avisering på instrumentpanelen när poster med osannolig förbrukning upptäcks.
+  savings_card_label: Visa besparingsrutan
+  savings_card_hint: Visar på instrumentpanelen vad hemmaladdning sparar jämfört med publik laddning.
   country_title: Land / Region
   country_desc: Bestämmer vilka enheter och vilken valuta som visas.
 
@@ -3014,7 +3016,9 @@ savings:
   playground_home: "Hempris"
   playground_public: "Jämförelsepris publikt"
   playground_reset: "Tillbaka till dina verkliga värden"
-  empty_body: "Så snart du anger priset för en hemmaladdning räknar vi ut vad hemmaladdning sparar jämfört med publik laddning."
+  dismiss: "Dölj"
+  dismissed_notice: "Besparingsrutan är dold. Du kan visa den igen i inställningarna."
+  undo: "Ångra"
   trial_hint: "Du behåller den här rutan till {date} - permanent med Supporter-paketet eller AutoSync."
   trial_hint_generic: "Du behåller den här rutan under provmånaden - permanent med Supporter-paketet eller AutoSync."
   trial_cta: "Behåll den permanent"

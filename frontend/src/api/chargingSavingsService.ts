@@ -6,7 +6,8 @@ export default {
    * Heimlade-Ersparnis des angemeldeten Nutzers.
    *
    * Die leeren Faelle sind verschieden und muessen unterscheidbar bleiben:
-   * - 204: berechtigt, aber es fehlt ein Preis - die Kachel zeigt ihren Leerzustand.
+   * - 204: berechtigt, aber keine relevante Kachel (kein Heimpreis oder zu wenig
+   *   Heimladung) - dann wird nichts angezeigt.
    * - 403: kein Zugang mehr (Trial vorbei, kein bezahlter Tarif) - {@code locked},
    *   dann zeigt das Dashboard den Upsell-Teaser statt nichts.
    * - 401: Zustand unbekannt (kein Token) - weder Kachel noch Teaser.
@@ -21,13 +22,14 @@ export default {
     locked: boolean
     viaTrial: boolean
     trialEndsAt: string | null
+    dismissed: boolean
   }> {
     try {
-      const response = await api.get<ChargingSavings & { viaTrial?: boolean; trialEndsAt?: string | null }>(
-        '/stats/charging-savings',
-      )
+      const response = await api.get<
+        ChargingSavings & { viaTrial?: boolean; trialEndsAt?: string | null; dismissed?: boolean }
+      >('/stats/charging-savings')
       if (response.status === 204) {
-        return { savings: null, entitled: true, locked: false, viaTrial: false, trialEndsAt: null }
+        return { savings: null, entitled: true, locked: false, viaTrial: false, trialEndsAt: null, dismissed: false }
       }
       return {
         savings: response.data,
@@ -35,11 +37,12 @@ export default {
         locked: false,
         viaTrial: response.data.viaTrial ?? false,
         trialEndsAt: response.data.trialEndsAt ?? null,
+        dismissed: response.data.dismissed ?? false,
       }
     } catch (error: unknown) {
       const status = (error as { response?: { status?: number } })?.response?.status
-      if (status === 403) return { savings: null, entitled: false, locked: true, viaTrial: false, trialEndsAt: null }
-      if (status === 401) return { savings: null, entitled: false, locked: false, viaTrial: false, trialEndsAt: null }
+      if (status === 403) return { savings: null, entitled: false, locked: true, viaTrial: false, trialEndsAt: null, dismissed: false }
+      if (status === 401) return { savings: null, entitled: false, locked: false, viaTrial: false, trialEndsAt: null, dismissed: false }
       throw error
     }
   },

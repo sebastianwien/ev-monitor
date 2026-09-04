@@ -29,6 +29,10 @@ public class HomeChargingSavingsService {
     private static final int REGION_MIN_CARS = 3;
     private static final int COUNTRY_MIN_LOGS = 20;
 
+    /** Untergrenze der belegten Heimlademenge, ab der die Ersparnis-Kachel etwas aussagt.
+     *  Darunter ist die Zahl fuer den Nutzer belanglos und die Kachel bleibt aus. */
+    private static final BigDecimal MIN_HOME_KWH = new BigDecimal("100");
+
     private final ChargingSavingsQueryRepository repository;
     private final ChargingPriceCache priceCache;
     private final HomeChargingProfileProvider profiles;
@@ -68,11 +72,20 @@ public class HomeChargingSavingsService {
                 () -> regionPrice(userId, profile.country()),
                 () -> countryPrice(profile.country()));
 
-        return ChargingSavingsCalculator.calculate(
+        ChargingSavings result = ChargingSavingsCalculator.calculate(
                 yearlySavings(userId, profile.country()),
                 homePrice, publicPrice,
                 profile.investmentEur(),
                 repository.monthsOfHomeCharging(userId));
+
+        // Relevanz-Gate: unterhalb einer belegbaren Heimlademenge traegt die Aussage
+        // nicht. Fuer Nutzer, die fast nur oeffentlich laden, ist die Kachel kein
+        // Mehrwert, sondern Rauschen - dann gar nicht zeigen statt eine Zahl aus einer
+        // Handvoll Ladungen. Gerechnet wird auf den belegten kWh (Jahre mit
+        // Vergleichspreis), also auf genau der Menge, auf der die Ersparnis fusst.
+        if (result.homeKwh() == null || result.homeKwh().compareTo(MIN_HOME_KWH) < 0) return null;
+
+        return result;
     }
 
     /**

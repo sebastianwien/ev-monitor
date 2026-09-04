@@ -33,9 +33,13 @@ public record ChargingSavingsResponse(
         // Sieht der Nutzer die Kachel nur ueber das Trial (dann Retention-Hinweis), und bis
         // wann laeuft es. trialEndsAt ist null, wenn der Zugang nicht am Trial haengt.
         boolean viaTrial,
-        LocalDate trialEndsAt
+        LocalDate trialEndsAt,
+        // Hat der Nutzer die Kachel selbst ausgeblendet. Das Frontend zeigt sie dann nicht,
+        // haelt die Zahlen aber vor, damit das Wiedereinblenden ohne neuen Request greift.
+        boolean dismissed
 ) {
-    public static ChargingSavingsResponse from(ChargingSavings s, boolean viaTrial, LocalDate trialEndsAt) {
+    public static ChargingSavingsResponse from(ChargingSavings s, boolean viaTrial, LocalDate trialEndsAt,
+                                               boolean dismissed) {
         return new ChargingSavingsResponse(
                 s.homeKwh(),
                 s.homePrice().pricePerKwh(),
@@ -54,6 +58,7 @@ public record ChargingSavingsResponse(
                 s.amortisationYearsRemaining(),
                 s.fullyAmortised(),
                 viaTrial,
-                trialEndsAt);
+                trialEndsAt,
+                dismissed);
     }
 }

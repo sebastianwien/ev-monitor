@@ -32,11 +32,12 @@ class ChargingSavingsControllerTest {
     private static final UUID USER = UUID.randomUUID();
 
     @Mock HomeChargingSavingsService service;
+    @Mock com.evmonitor.application.dashboard.DashboardPreferencesService dashboardPreferences;
     @Mock User user;
     @Mock UserPrincipal principal;
 
     private ChargingSavingsController controller() {
-        return new ChargingSavingsController(service);
+        return new ChargingSavingsController(service, dashboardPreferences);
     }
 
     private void givenUser(boolean entitled) {
@@ -93,6 +94,23 @@ class ChargingSavingsControllerTest {
         assertEquals(2659, body.publicPriceSampleSize(), "die Kachel benennt die Breite des Vergleichs");
         assertFalse(body.viaTrial(), "zahlender Nutzer bekommt keinen Trial-Hinweis");
         assertNull(body.trialEndsAt());
+        assertFalse(body.dismissed(), "nicht ausgeblendet, solange der Nutzer es nicht war");
+    }
+
+    /** Hat der Nutzer die Kachel ausgeblendet, traegt die Antwort das Flag - die Zahlen
+     *  bleiben aber erhalten, damit das Wiedereinblenden keinen neuen Request braucht. */
+    @Test
+    void dismissedCard_isFlaggedButKeepsNumbers() {
+        givenUser(true);
+        when(user.getId()).thenReturn(USER);
+        when(service.calculate(USER)).thenReturn(sampleSavings());
+        when(dashboardPreferences.isSavingsCardDismissed(USER)).thenReturn(true);
+
+        ChargingSavingsResponse body = controller().get(principal).getBody();
+
+        assertNotNull(body);
+        assertTrue(body.dismissed());
+        assertEquals(0, new BigDecimal("83.20").compareTo(body.savingsEur()));
     }
 
     /** Trial-Nutzer sieht dieselben Zahlen, aber als Trial markiert und mit Ablaufdatum. */

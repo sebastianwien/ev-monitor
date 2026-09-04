@@ -49,6 +49,7 @@ import ChargingSavingsCard from '../components/dashboard/ChargingSavingsCard.vue
 import ChargingSavingsCardTeaser from '../components/dashboard/ChargingSavingsCardTeaser.vue'
 import HomeInvestmentModal from '../components/dashboard/HomeInvestmentModal.vue'
 import chargingSavingsService from '../api/chargingSavingsService'
+import dashboardPreferencesService from '../api/dashboardPreferencesService'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import type { ChargingSavings } from '../components/dashboard/chargingSavings'
 import ChargingEfficiencyCard from '../components/dashboard/ChargingEfficiencyCard.vue'
@@ -260,9 +261,13 @@ function onClickOutsideFilter(e: MouseEvent) {
 // Endpoint nichts (kein Preis bekannt, Tarif ohne die Kachel), bleibt sie einfach aus,
 // ohne das restliche Dashboard aufzuhalten.
 const chargingSavings = ref<ChargingSavings | null>(null)
-// Berechtigt, aber (noch) ohne Zahlen: dann zeigt die Kachel ihren Leerzustand statt zu
-// verschwinden - sonst erfaehrt niemand, dass ihm nur ein Preis fehlt.
+// Berechtigt: der Nutzer duerfte die Kachel sehen. Ob sie erscheint, haengt zusaetzlich
+// an relevanten Zahlen (sonst 204, chargingSavings bleibt null) und daran, dass der Nutzer
+// sie nicht selbst ausgeblendet hat.
 const chargingSavingsEntitled = ref(false)
+// Vom Nutzer ausgeblendet (serverseitig gehalten). Die Zahlen bleiben geladen, damit das
+// Wiedereinblenden ohne neuen Request greift.
+const chargingSavingsDismissed = ref(false)
 // Zugang endgueltig weg (Probemonat vorbei, kein bezahlter Tarif): dann zeigt das
 // Dashboard den Upsell-Teaser. Bewusst getrennt von "nicht berechtigt bei unklarem
 // Zustand" (401/Fehler), damit der Teaser nicht bei Ladefehlern aufblitzt.
@@ -298,12 +303,14 @@ async function loadChargingSavings() {
     chargingSavingsLocked.value = result.locked
     chargingSavingsViaTrial.value = result.viaTrial
     chargingSavingsTrialEndsAt.value = result.trialEndsAt
+    chargingSavingsDismissed.value = result.dismissed
   } catch {
     chargingSavings.value = null
     chargingSavingsEntitled.value = false
     chargingSavingsLocked.value = false
     chargingSavingsViaTrial.value = false
     chargingSavingsTrialEndsAt.value = null
+    chargingSavingsDismissed.value = false
   }
 }
 
@@ -313,11 +320,55 @@ async function saveInvestment(value: number | null) {
   await loadChargingSavings()
 }
 
+// Ausblenden: sofort verstecken, dann persistieren. Die Undo-Zeile tritt kurz an die
+// Stelle der Kachel und verschwindet von selbst - so ist die Aktion umkehrbar, ohne dass
+// am Dashboard dauerhaft etwas stehen bleibt. Dauerhaft wieder einblendbar in den
+// Einstellungen.
+const savingsUndoVisible = ref(false)
+let savingsUndoTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearSavingsUndoTimer() {
+  if (savingsUndoTimer !== null) {
+    clearTimeout(savingsUndoTimer)
+    savingsUndoTimer = null
+  }
+}
+
+async function dismissSavingsCard() {
+  chargingSavingsDismissed.value = true
+  savingsUndoVisible.value = true
+  clearSavingsUndoTimer()
+  savingsUndoTimer = setTimeout(() => { savingsUndoVisible.value = false }, 8000)
+  try {
+    await dashboardPreferencesService.setSavingsCardDismissed(true)
+  } catch {
+    // Fehlgeschlagen: den optimistischen Schritt zuruecknehmen, sonst waere die Kachel
+    // weg, ohne dass es der Server weiss.
+    chargingSavingsDismissed.value = false
+    savingsUndoVisible.value = false
+    clearSavingsUndoTimer()
+  }
+}
+
+async function restoreSavingsCard() {
+  chargingSavingsDismissed.value = false
+  savingsUndoVisible.value = false
+  clearSavingsUndoTimer()
+  try {
+    await dashboardPreferencesService.setSavingsCardDismissed(false)
+  } catch {
+    chargingSavingsDismissed.value = true
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', onClickOutsideFilter)
   loadChargingSavings()
 })
-onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) })
+onUnmounted(() => {
+  document.removeEventListener('click', onClickOutsideFilter)
+  clearSavingsUndoTimer()
+})
 
 
 </script>
@@ -937,15 +988,25 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
              ist die Aussage. Ausserhalb des Rasters, damit dessen Zeilenhoehe nicht an
              dieser Kachel haengt und kein Loch entsteht, wenn der Tarif sie nicht enthaelt. -->
         <ChargingSavingsCard
-          v-if="chargingSavingsEntitled"
+          v-if="chargingSavingsEntitled && chargingSavings && !chargingSavingsDismissed"
           :savings="chargingSavings"
-          :empty-state="chargingSavingsEntitled"
           :trial="chargingSavingsViaTrial"
           :trial-ends-at="chargingSavingsTrialEndsAt"
           :upsell-target="savingsUpsellTarget"
           class="mb-4"
           @edit-investment="showInvestmentPrompt = true"
+          @dismiss="dismissSavingsCard"
         />
+        <!-- Kurzlebige Undo-Zeile nach dem Ausblenden: tritt an die Stelle der Kachel und
+             verschwindet von selbst. Dauerhaft wieder einblendbar in den Einstellungen. -->
+        <div v-else-if="savingsUndoVisible"
+             class="mb-4 flex items-center justify-between gap-3 rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+          <span class="min-w-0">{{ t('savings.dismissed_notice') }}</span>
+          <button type="button" class="flex-none font-semibold text-emerald-700 dark:text-emerald-300 hover:underline"
+                  @click="restoreSavingsCard">
+            {{ t('savings.undo') }}
+          </button>
+        </div>
         <!-- Probemonat vorbei, kein bezahlter Tarif: der Teaser tritt an die Stelle der
              Kachel - Muster wie DashboardInsights/-Teaser. -->
         <ChargingSavingsCardTeaser v-else-if="chargingSavingsLocked" class="mb-4" />

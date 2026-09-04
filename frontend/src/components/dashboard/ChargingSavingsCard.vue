@@ -14,7 +14,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   HomeIcon, InformationCircleIcon, PlusIcon, ChevronRightIcon, ChevronDownIcon,
-  AdjustmentsHorizontalIcon, PencilSquareIcon, ArrowUturnLeftIcon, ClockIcon,
+  AdjustmentsHorizontalIcon, PencilSquareIcon, ArrowUturnLeftIcon, ClockIcon, XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import {
   applyPriceOverrides,
@@ -28,9 +28,6 @@ import { amortisationTimeline } from './amortisationTimeline'
 
 const props = defineProps<{
   savings: ChargingSavings | null
-  /** Der Nutzer laedt daheim, aber es fehlt der Preis - dann zeigt die Kachel statt
-   *  einer Zahl die Aufforderung, einen zu erfassen. */
-  emptyState?: boolean
   /** Schaufenster-Modus fuer die Upsell-Seite: kein lokaler Vergleichspreis, keine
    *  Bedienelemente, die ins Leere fuehren. */
   demo?: boolean
@@ -41,7 +38,7 @@ const props = defineProps<{
   /** Ziel des "dauerhaft freischalten"-CTA - das Dashboard entscheidet Supporter vs. AutoSync. */
   upsellTarget?: string
 }>()
-const emit = defineEmits<{ (e: 'edit-investment'): void }>()
+const emit = defineEmits<{ (e: 'edit-investment'): void; (e: 'dismiss'): void }>()
 
 const { t, n, locale } = useI18n()
 
@@ -140,21 +137,8 @@ function inputValue(kind: 'home' | 'public'): string {
 <template>
   <!-- Ein Wurzelelement, damit die Kachel Attribute des Aufrufers erbt - mit zwei
        Wurzeln faellt ein uebergebenes class (etwa der Aussenabstand) lautlos weg. -->
-  <div v-if="view || emptyState"
+  <div v-if="view"
        class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#4b5563] p-4 md:p-5">
-
-    <!-- Leerzustand: ohne bepreiste Heimladung laesst sich nichts rechnen. Die Kachel
-         verschwindet trotzdem nicht - sonst erfaehrt niemand, dass ihm nur ein Preis
-         fehlt. Betrifft auf Prod 42 von 218 Heimladern. -->
-    <template v-if="!view">
-      <div class="flex items-center justify-center gap-2 mb-3">
-        <HomeIcon class="h-5 w-5 flex-none text-emerald-600 dark:text-emerald-400" />
-        <span class="text-sm font-semibold text-gray-500 dark:text-gray-400">{{ t('savings.title') }}</span>
-      </div>
-      <p class="text-xs leading-relaxed text-gray-600 dark:text-gray-300">{{ t('savings.empty_body') }}</p>
-    </template>
-
-    <template v-else>
 
     <div class="relative flex items-center justify-center gap-2 mb-4">
       <!-- Mobiler Ein-/Ausklapp-Chevron (auf sm+ ist die Kachel immer offen). Links, damit
@@ -337,6 +321,17 @@ function inputValue(kind: 'home' | 'public'): string {
       </router-link>
     </div>
     </div>
-    </template>
+
+    <!-- Ausblenden: fuer Nutzer, die zwar sparen, die Kachel aber nicht dauerhaft sehen
+         wollen. Ausserhalb des einklappbaren Teils, damit sie auch mobil erreichbar ist,
+         ohne die Kachel erst aufzuklappen. Dauerhaft wieder einblendbar in den Einstellungen. -->
+    <div v-if="!demo" class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex justify-end">
+      <button type="button"
+              class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              @click="emit('dismiss')">
+        <XMarkIcon class="h-3.5 w-3.5" />
+        {{ t('savings.dismiss') }}
+      </button>
+    </div>
   </div>
 </template>

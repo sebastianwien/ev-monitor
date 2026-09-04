@@ -186,6 +186,34 @@ class HomeChargingSavingsServiceTest {
     }
 
     /**
+     * Unter der Relevanzschwelle sagt die Kachel nichts aus: aus einer Handvoll
+     * Heimladungen laesst sich keine belastbare Ersparnis ableiten - dann lieber gar
+     * keine Kachel als eine Zahl, die niemanden interessiert.
+     */
+    @Test
+    void belowMinimumHomeKwh_noResult() {
+        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
+        when(repo.homeGeohash(USER)).thenReturn(null);
+        when(priceCache.countryMedian(eq("DE"), anyInt())).thenReturn(new RegionMedian(eur("0.40"), 2659));
+        when(repo.homeYearTotals(USER)).thenReturn(List.of(
+                new YearTotals(2026, eur("80"), eur("21.60"))));
+
+        assertNull(service.calculate(USER));
+    }
+
+    /** Genau an der Schwelle traegt die Aussage - die Kachel erscheint. */
+    @Test
+    void atMinimumHomeKwh_result() {
+        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
+        when(repo.homeGeohash(USER)).thenReturn(null);
+        when(priceCache.countryMedian(eq("DE"), anyInt())).thenReturn(new RegionMedian(eur("0.40"), 2659));
+        when(repo.homeYearTotals(USER)).thenReturn(List.of(
+                new YearTotals(2026, eur("100"), eur("27.00"))));
+
+        assertNotNull(service.calculate(USER));
+    }
+
+    /**
      * Kein Landes-Default fuer den Heimpreis: ohne eigene Logs und ohne Heimstrom-Karte
      * bleibt die Kachel leer, statt fremde Zahlen als die des Nutzers auszugeben.
      */

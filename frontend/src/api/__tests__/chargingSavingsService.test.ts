@@ -23,6 +23,19 @@ describe('chargingSavingsService.get', () => {
     expect(result.viaTrial).toBe(true)
     expect(result.trialEndsAt).toBe('2026-10-03')
     expect(result.savings?.savingsEur).toBe(83.2)
+    expect(result.dismissed).toBe(false)
+  })
+
+  it('reicht das Ausblenden-Flag durch', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      status: 200,
+      data: { savingsEur: 83.2, viaTrial: false, trialEndsAt: null, dismissed: true },
+    })
+
+    const result = await chargingSavingsService.get()
+
+    expect(result.dismissed).toBe(true)
+    expect(result.savings?.savingsEur).toBe(83.2)
   })
 
   it('zahlender Nutzer: berechtigt, aber kein Trial-Hinweis', async () => {
@@ -38,7 +51,7 @@ describe('chargingSavingsService.get', () => {
     expect(result.trialEndsAt).toBeNull()
   })
 
-  it('204 heisst berechtigt, aber ohne Preis - Leerzustand, kein Trial-Hinweis', async () => {
+  it('204 heisst berechtigt, aber keine relevante Kachel - nichts anzeigen, kein Trial-Hinweis', async () => {
     vi.mocked(api.get).mockResolvedValue({ status: 204, data: '' })
 
     const result = await chargingSavingsService.get()
@@ -47,6 +60,7 @@ describe('chargingSavingsService.get', () => {
     expect(result.entitled).toBe(true)
     expect(result.locked).toBe(false)
     expect(result.viaTrial).toBe(false)
+    expect(result.dismissed).toBe(false)
   })
 
   it('403 nach Trial-Ende: nicht berechtigt und gesperrt - dann zeigt das Dashboard den Teaser', async () => {

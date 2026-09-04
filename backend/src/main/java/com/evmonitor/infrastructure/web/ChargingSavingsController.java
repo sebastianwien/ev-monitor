@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChargingSavingsController {
 
     private final HomeChargingSavingsService service;
+    private final com.evmonitor.application.dashboard.DashboardPreferencesService dashboardPreferences;
 
     /**
      * @return 401 ohne Token, 403 ohne bezahlten Tarif, 204 wenn Heim- oder Vergleichspreis
@@ -49,7 +50,8 @@ public class ChargingSavingsController {
         // Trial-Kontext nur mitgeben, wenn der Zugang wirklich am Trial haengt - zahlende
         // Nutzer sollen keinen Retention-Hinweis sehen.
         boolean viaTrial = user.isChargingSavingsViaTrial();
+        boolean dismissed = dashboardPreferences.isSavingsCardDismissed(user.getId());
         return ResponseEntity.ok(ChargingSavingsResponse.from(
-                savings, viaTrial, viaTrial ? user.savingsTrialEndsAt() : null));
+                savings, viaTrial, viaTrial ? user.savingsTrialEndsAt() : null, dismissed));
     }
 }
