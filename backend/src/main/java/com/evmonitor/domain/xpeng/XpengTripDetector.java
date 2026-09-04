@@ -14,9 +14,14 @@ import java.util.Optional;
  * trip still open.
  *
  * Trip semantics:
- *   - starts on first row with gear ∈ {D,R}
- *   - continues through brief stops while still in gear (e.g. traffic lights)
- *   - ends when gear returns to P, or stays parked / zero-speed for STOP_GAP
+ *   - starts on the first row that shows motion - gear ∈ {D,R} OR speed &gt; 0 -
+ *     unless the row is explicitly in Park. Gear- und Speed-Modul schlafen
+ *     unabhaengig, daher genuegt eines von beiden als Bewegungsindiz.
+ *   - continues through brief stops while still in gear (e.g. traffic lights) and
+ *     through data gaps: beim Merge der CSV-Cluster ueber {@code timer} kann ein
+ *     Zeitpunkt nur im power-Stream liegen - gear ist dann null. So ein Luecken-
+ *     Sample ist kein Park und darf die Fahrt nicht beenden.
+ *   - ends only on an explicit Park (gear == P), or at end-of-stream via {@link #finish()}.
  *
  * Trips below {@code MIN_DISTANCE_KM} are discarded (parking-lot maneuvers).
  */
@@ -57,7 +62,9 @@ public class XpengTripDetector {
     }
 
     private Optional<DetectedTrip> handleIdle(XpengTelematicsRow row) {
-        if (row.isDriving()) {
+        // Bewegung startet die Fahrt: Fahrgang ODER Geschwindigkeit. Ein explizites
+        // P dominiert aber - eine stale Speed-Anzeige bei gear==P ist keine Fahrt.
+        if (!row.isParked() && (row.isDriving() || row.isMoving())) {
             startTrip(row);
         } else {
             // Track the last known parked position as anchor for the next trip start.
@@ -68,14 +75,17 @@ public class XpengTripDetector {
     }
 
     private Optional<DetectedTrip> handleDriving(XpengTelematicsRow row) {
-        // gear back to P (or unknown gear) → end the trip
-        if (row.isParked() || row.gearLev() == null) {
+        // Nur ein explizites Park (gear == P) beendet die Fahrt. Ein gear-loses
+        // Sample ist eine Merge-Datenluecke (power-only Zeitpunkt), kein Park -
+        // sonst zerfaellt die Fahrt in Fragmente.
+        if (row.isParked()) {
             DetectedTrip emitted = finalizeTrip(row);
             state = State.IDLE;
             return Optional.ofNullable(emitted);
         }
 
-        // still in gear, accumulate
+        // In gear, rollend oder Datenluecke - weiterfuehren. accumulate() ist
+        // null-fest und ueberspringt fehlende Felder.
         accumulate(row);
         return Optional.empty();
     }

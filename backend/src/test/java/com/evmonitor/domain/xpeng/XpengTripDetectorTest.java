@@ -141,6 +141,54 @@ class XpengTripDetectorTest {
                 "brief stops while still in gear D should not split a trip");
     }
 
+    @Test
+    void gapRowWithoutGearDoesNotSplitTrip() {
+        // Beim Merge der 3 CSV-Cluster ueber timer kann ein Zeitpunkt nur im
+        // power-Stream liegen (kein operation-Sample) -> gear UND speed sind dann
+        // null. So ein Datenluecken-Sample darf die laufende Fahrt NICHT beenden,
+        // sonst zerfaellt eine Fahrt in mehrere Fragmente.
+        XpengTripDetector detector = new XpengTripDetector();
+        List<XpengTelematicsRow> rows = sequence(
+                parked(0, 0, "100.0", "80"),
+                driving(5, 50, "100.5", "80"),
+                gapNoGearNoSpeed(10, "101.0", "79"), // power-only Merge-Epoch mitten in der Fahrt
+                driving(15, 55, "101.5", "79"),
+                parked(20, 0, "102.0", "78"));
+        List<DetectedTrip> trips = detect(detector, rows);
+        assertEquals(1, trips.size(), "ein gear-loses Luecken-Sample darf die Fahrt nicht splitten");
+        assertEquals(0, new BigDecimal("2.0").compareTo(trips.get(0).distanceKm()));
+    }
+
+    @Test
+    void startsTripFromSpeedWhenGearMissing() {
+        // Fahrtbeginn, aber das erste Bewegungs-Sample hat kein gear (Modul schlief),
+        // nur speed>0. Die Fahrt muss trotzdem erkannt werden.
+        XpengTripDetector detector = new XpengTripDetector();
+        List<XpengTelematicsRow> rows = sequence(
+                parked(0, 0, "100.0", "80"),
+                movingNoGear(5, 40, "100.4", "80"),
+                driving(10, 55, "101.0", "79"),
+                parked(15, 0, "101.2", "79"));
+        List<DetectedTrip> trips = detect(detector, rows);
+        assertEquals(1, trips.size(), "speed>0 ohne gear muss eine Fahrt starten");
+    }
+
+    private XpengTelematicsRow gapNoGearNoSpeed(int sec, String odo, String soc) {
+        return new XpengTelematicsRow(
+                T0.plusSeconds(sec),
+                null, null,
+                new BigDecimal(odo), new BigDecimal(soc),
+                null, null, null, null, null, java.util.Map.of());
+    }
+
+    private XpengTelematicsRow movingNoGear(int sec, int speed, String odo, String soc) {
+        return new XpengTelematicsRow(
+                T0.plusSeconds(sec),
+                BigDecimal.valueOf(speed), null,
+                new BigDecimal(odo), new BigDecimal(soc),
+                null, null, null, null, null, java.util.Map.of());
+    }
+
     // -- helpers --
 
     private List<DetectedTrip> detect(XpengTripDetector detector, List<XpengTelematicsRow> rows) {
