@@ -715,6 +715,17 @@ dashboard:
   no_car_btn: Lägg till fordon →
   no_logs_period_title: Inga uppgifter för den valda perioden
   no_logs_period_desc: Välj en annan period eller bläddra nedåt för att se alla laddningssessioner.
+  trip_summary_intro: "Du har inte laddat i {month} ännu - därför ingen kostnads- och förbrukningsanalys."
+  trip_summary_title: "På väg i {month}"
+  trip_summary_driven: "kört"
+  trip_summary_active_days: "{trips} resor på {days} dagar"
+  trip_summary_bars_alt: "Körda kilometer per dag"
+  trip_summary_day_trips: "{count} resa | {count} resor"
+  trip_summary_drivetrain: "Drivlina"
+  trip_summary_consumption: "Förbrukning"
+  trip_summary_standby: "Standby"
+  trip_summary_standby_teaser: "Mellan resorna tappar bilen energi när den står stilla - lås upp standby-värdet."
+  trip_summary_footnote: "Drivlineförbrukning enligt färddatorn - inte den laddade energin."
   no_logs_title: Inga laddningssessioner har registrerats ännu
   no_logs_desc: Registrera din första laddning för att se statistik, diagram och WLTP-jämförelser!
   scan_photo: Skanna foto

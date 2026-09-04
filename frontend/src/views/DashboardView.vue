@@ -63,6 +63,8 @@ import EditTripModal from '../components/dashboard/EditTripModal.vue'
 import { latestChargeEntry, latestTripEntry } from '../utils/recentActivity'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
+import TripActivitySummaryCard from '../components/dashboard/TripActivitySummaryCard.vue'
+import { summarizeTripMonth, resolveTripWindow, tripsInWindow } from '../utils/tripMonthSummary'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { carDisplayName, enumToLabel } from '../utils/enumLabel'
@@ -70,7 +72,7 @@ import { isVwGroupBrand } from '../api/vwGroupService'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
@@ -82,7 +84,7 @@ const {
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
   fixedCostPerMonth, displayedCostPer100km, canShowFixedModes, effectiveCostMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
-  hasAnyLogs, mergedLogFeed, currentOdometerKm, sourceInfo, initCars,
+  hasAnyLogs, mergedLogFeed, trips, currentOdometerKm, sourceInfo, initCars,
   editingLog, priceAmendingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
 } = useCarContext()
 
@@ -272,6 +274,21 @@ const chargingSavingsTrialEndsAt = ref<string | null>(null)
 // vorhanden), sonst AutoSync. Dieselbe Regel wie bei den uebrigen Analytics-Upsells.
 const savingsUpsellTarget = useAnalyticsUpsellTarget()
 const showInvestmentPrompt = ref(false)
+
+// Fahrten-Zusammenfassung fuer den Fall "Fahrten im Zeitraum, aber keine Ladung": ersetzt den
+// generischen Empty-State. Fenster deckt sich mit dem der Ladestatistik.
+const tripMonthSummary = computed(() => {
+  if (!stats.value || stats.value.totalCharges !== 0) return null
+  const window = resolveTripWindow(selectedTimeRange.value, customStartDate.value, customEndDate.value, new Date())
+  const windowed = tripsInWindow((trips.value ?? []) as unknown[] as any[], window)
+  return summarizeTripMonth(windowed, selectedCar.value?.effectiveBatteryCapacityKwh ?? null)
+})
+
+const tripMonthLabel = computed(() => {
+  const window = resolveTripWindow(selectedTimeRange.value, customStartDate.value, customEndDate.value, new Date())
+  const d = window ? new Date(window.startMs) : new Date()
+  return d.toLocaleDateString(locale.value === 'en' ? 'en-GB' : locale.value, { month: 'long' })
+})
 
 async function loadChargingSavings() {
   try {
@@ -604,6 +621,16 @@ onUnmounted(() => { document.removeEventListener('click', onClickOutsideFilter) 
                 {{ t('dashboard.no_car_btn') }}
               </button>
             </div>
+          </div>
+
+          <!-- Empty State: Trips in time range but no charge -> drove, didn't charge -->
+          <div v-else-if="stats && stats.totalCharges === 0 && hasAnyLogs && tripMonthSummary" class="py-6">
+            <TripActivitySummaryCard
+              :summary="tripMonthSummary"
+              :month-label="tripMonthLabel"
+              :can-view-analytics="authStore.canViewLiveAnalytics"
+              :upsell-target="savingsUpsellTarget"
+            />
           </div>
 
           <!-- Empty State: No Logs in time range (but logs exist) -->

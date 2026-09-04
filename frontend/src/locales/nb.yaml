@@ -715,6 +715,17 @@ dashboard:
   no_car_btn: Legg til kjøretøy →
   no_logs_period_title: Ingen data for den valgte perioden
   no_logs_period_desc: Velg en annen periode, eller bla nedover for å se alle ladinger.
+  trip_summary_intro: "Du har ikke ladet i {month} ennå - derfor ingen oversikt over kostnad og forbruk."
+  trip_summary_title: "På farten i {month}"
+  trip_summary_driven: "kjørt"
+  trip_summary_active_days: "{trips} turer på {days} dager"
+  trip_summary_bars_alt: "Kjørte kilometer per dag"
+  trip_summary_day_trips: "{count} tur | {count} turer"
+  trip_summary_drivetrain: "Drivlinje"
+  trip_summary_consumption: "Forbruk"
+  trip_summary_standby: "Standby"
+  trip_summary_standby_teaser: "Mellom turene taper bilen energi mens den står - lås opp standby-verdien."
+  trip_summary_footnote: "Drivlinjeforbruk ifølge kjørecomputeren - ikke energien som ble ladet."
   no_logs_title: Det er ikke registrert noen ladinger ennå
   no_logs_desc: Registrer din første lading for å se statistikk, diagrammer og WLTP-sammenligninger!
   scan_photo: Skann bildet
