@@ -1,104 +1,72 @@
 <template>
-    <div v-if="loading" class="py-6 md:py-12 px-4">
-        <div class="max-w-6xl mx-auto bg-gray-50/85 dark:bg-gray-900/75 backdrop-blur-md rounded-sm p-4 md:p-8 shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] shadow-black/5 dark:shadow-black/40">
-            <div class="text-center py-16 text-gray-500 dark:text-gray-400">{{ t('upgrade.loading') }}</div>
-        </div>
-    </div>
-
     <!-- Ohne Abo: die AutoSync-Erzählseite (Tesla-Fahrer werden darin zum Supporter geleitet). -->
-    <AutoSyncPitch v-else-if="tier === 'NONE'" />
+    <AutoSyncPitch v-if="!loading && tier === 'NONE'" />
 
-    <!-- Mit aktivem Abo: die Verwaltungsansicht (Aktiv-Banner + Verwalten-Button). -->
     <div v-else class="py-6 md:py-12 px-4">
-        <PricingTiers
-            mode="account"
-            :tier="tier"
-            :premium-enabled="premiumEnabled"
-            :pricing="pricing"
-            v-model:selected-plan="selectedPlan"
-            :show-tesla-only-features="showTeslaOnlyFeatures"
-            :show-smartcar-faq="showSmartcarFaq"
-            :checkout-loading="checkoutLoading"
-            :checkout-error="checkoutError"
-            :portal-loading="portalLoading"
-            :portal-error="portalError"
-            @checkout="handleCheckout"
-            @manage="handleManageSubscription"
-        />
+        <div v-if="loading" class="max-w-md mx-auto text-center py-16 text-gray-500 dark:text-gray-400">
+            {{ t('upgrade.loading') }}
+        </div>
+
+        <!-- Mit aktivem Abo gibt es im Zwei-Tier-Modell nichts zu verkaufen (AutoSync
+             enthaelt die Auswertungen, Supporter ist orthogonal). Statt eines Rasters
+             eine ruhige Status-Karte; Verwalten/Kuendigen liegt in den Einstellungen. -->
+        <div v-else class="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 shadow-sm dark:shadow-none p-6 md:p-8 text-center">
+            <CheckBadgeIcon class="w-12 h-12 text-green-500 dark:text-green-400 mx-auto mb-3" />
+            <p class="text-[13px] font-semibold uppercase tracking-wider text-green-600 dark:text-green-400 mb-1">{{ t('upgrade.active_title') }}</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ tierLabel }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-3 leading-relaxed">{{ t('upgrade.active_body') }}</p>
+            <div class="mt-6 flex flex-col gap-2.5">
+                <button
+                    @click="handleManageSubscription" :disabled="portalLoading"
+                    class="w-full bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white dark:text-gray-900 font-semibold py-3 rounded-sm text-sm shadow-[0_4px_0_0_#166534] dark:shadow-[0_4px_0_0_#064e3b] active:translate-y-1 active:shadow-none transition"
+                >
+                    {{ portalLoading ? '…' : t('upgrade.tier_active_manage') }}
+                </button>
+                <router-link
+                    to="/settings"
+                    class="w-full inline-flex items-center justify-center py-3 rounded-sm text-sm font-medium text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                    {{ t('upgrade.active_settings_cta') }}
+                </router-link>
+            </div>
+            <p v-if="portalError" class="text-sm text-red-600 dark:text-red-400 mt-3">{{ portalError }}</p>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { CheckBadgeIcon } from '@heroicons/vue/24/outline';
 import { subscriptionService } from '../api/subscriptionService';
 import { analytics } from '../services/analytics';
-import { useCountryStore } from '../stores/country';
-import { useCarStore } from '../stores/car';
-import { getPricing } from '../config/pricingConfig';
 import { type SubscriptionTier } from '../composables/useUpgradeTierState';
-import PricingTiers from '../components/PricingTiers.vue';
 import AutoSyncPitch from '../components/AutoSyncPitch.vue';
 
 const { t } = useI18n();
-const countryStore = useCountryStore();
-const carStore = useCarStore();
-const pricing = computed(() => getPricing(countryStore.country));
-
-const userCarBrands = ref<string[]>([]);
-// Features wie Live-Ansicht und Ladekurven sind nur fuer Tesla verfuegbar
-// (Smartcar liefert keine Power-Daten). Wenn der User schon mindestens ein
-// Auto angelegt hat und keines davon ein Tesla ist, blende diese Bullets aus.
-// Wer noch kein Auto hat, sieht alles - das ist Akquise-Modus.
-const hasOnlyNonTeslaCars = computed(() =>
-    userCarBrands.value.length > 0
-    && !userCarBrands.value.some(b => b?.toUpperCase() === 'TESLA'));
-const showTeslaOnlyFeatures = computed(() => !hasOnlyNonTeslaCars.value);
-
-// Smartcar-FAQ nur fuer User mit Nicht-Tesla-Auto oder noch ganz ohne Auto
-// (Akquise-Modus). Reine Tesla-Fahrer nutzen kein Smartcar - fuer sie waere
-// die Erklaerung irrelevant.
-const showSmartcarFaq = computed(() =>
-    userCarBrands.value.length === 0
-    || userCarBrands.value.some(b => b?.toUpperCase() !== 'TESLA'));
 
 const tier = ref<SubscriptionTier>('NONE');
-
 const loading = ref(true);
-const premiumEnabled = ref(false);
-const selectedPlan = ref<'monthly' | 'yearly'>('yearly');
-const checkoutLoading = ref(false);
-const checkoutError = ref('');
 const portalLoading = ref(false);
 const portalError = ref('');
 
+// Produktnamen - nicht uebersetzt.
+const TIER_LABELS: Record<string, string> = {
+    AUTOSYNC: 'AutoSync',
+    AUTOSYNC_LIVE: 'AutoSync Live',
+    SUPPORTER: 'Supporter',
+};
+const tierLabel = computed(() => TIER_LABELS[tier.value] ?? tier.value);
+
 onMounted(async () => {
     try {
-        const [status, cars] = await Promise.all([
-            subscriptionService.getStatus(),
-            carStore.getCars().catch(() => []),
-        ]);
-        premiumEnabled.value = status.premiumEnabled;
+        const status = await subscriptionService.getStatus();
         tier.value = status.tier ?? 'NONE';
-        userCarBrands.value = cars.map(c => c.brand);
         analytics.trackUpgradePageViewed();
     } finally {
         loading.value = false;
     }
 });
-
-async function handleCheckout() {
-    checkoutLoading.value = true;
-    checkoutError.value = '';
-    try {
-        analytics.trackCheckoutStarted(selectedPlan.value);
-        const result = await subscriptionService.createCheckoutSession(selectedPlan.value);
-        window.location.href = result.checkoutUrl;
-    } catch {
-        checkoutError.value = t('upgrade.error');
-        checkoutLoading.value = false;
-    }
-}
 
 async function handleManageSubscription() {
     portalLoading.value = true;

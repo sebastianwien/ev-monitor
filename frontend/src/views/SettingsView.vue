@@ -302,15 +302,6 @@ onMounted(async () => {
             </div>
           </router-link>
 
-          <!-- AUTOSYNC tier with Tesla in garage -> upgrade CTA -->
-          <router-link
-            v-if="subscriptionTier === 'AUTOSYNC' && hasTesla && purchasesAvailable()"
-            to="/upgrade"
-            class="block text-center bg-gradient-to-br from-indigo-600 to-purple-700 text-white text-sm font-semibold py-3 rounded-sm shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)] hover:opacity-90 transition-opacity"
-          >
-            {{ t('settings.upgrade_to_live_cta') }}
-          </router-link>
-
           <!-- AUTOSYNC_LIVE tier -> downgrade + cancel actions -->
           <div v-if="subscriptionTier === 'AUTOSYNC_LIVE'" class="flex flex-col gap-2 pt-1">
             <button
