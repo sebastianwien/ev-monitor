@@ -2792,7 +2792,7 @@ xpeng:
   waitlist:
     eyebrow: "Coming soon"
     title: "Coming soon: fully automatic XPeng import"
-    body: "Today you still upload the ZIP yourself. Soon EV Monitor will handle it end to end - automatic sync, no manual download. Be there from day one."
+    body: "Soon EV Monitor will handle the XPeng import fully automatically - no manual download, no uploading. Want a heads-up the moment automatic import goes live?"
     cta: "Notify me"
     joining: "Adding you ..."
     joined_title: "You're on the waitlist"

@@ -2677,7 +2677,7 @@ xpeng:
   waitlist:
     eyebrow: "Kommer snart"
     title: "Kommer snart: helautomatisk XPeng-import"
-    body: "I dag laster du opp ZIP-filen selv. Snart gjør EV Monitor alt for deg - automatisk synk, uten manuell nedlasting. Vær med fra første stund."
+    body: "Snart gjør EV Monitor XPeng-importen helt automatisk - ingen manuell nedlasting, ingen opplasting. Vil du ha beskjed så snart automatisk import er klar?"
     cta: "Varsle meg"
     joining: "Legger deg til ..."
     joined_title: "Du står på ventelisten"

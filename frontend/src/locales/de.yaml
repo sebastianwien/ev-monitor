@@ -2792,7 +2792,7 @@ xpeng:
   waitlist:
     eyebrow: "Bald verfügbar"
     title: "Bald: XPeng-Import vollautomatisch"
-    body: "Heute lädst du die ZIP noch selbst hoch. Bald übernimmt EV Monitor das komplett - automatischer Sync, ganz ohne manuellen Download. Sei von Anfang an dabei."
+    body: "Bald übernimmt EV Monitor den XPeng-Import komplett automatisch - kein manueller Download, kein Hochladen mehr. Möchtest du eine Benachrichtigung, sobald der automatische Import steht?"
     cta: "Benachrichtige mich"
     joining: "Wird eingetragen ..."
     joined_title: "Du bist auf der Warteliste"
