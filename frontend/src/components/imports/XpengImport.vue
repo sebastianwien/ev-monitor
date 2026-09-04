@@ -5,6 +5,7 @@ import { ExclamationCircleIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import XpengUploadStep from './XpengUploadStep.vue'
 import XpengJobStatus from './XpengJobStatus.vue'
 import XpengConnectionsList from './XpengConnectionsList.vue'
+import XpengAutoSyncWaitlist from './XpengAutoSyncWaitlist.vue'
 import { useXpengJobs } from '../../composables/useXpengJobs'
 import xpengService, { type XpengJobDto } from '../../api/xpengService'
 import type { Car } from '../../api/carService'
@@ -115,6 +116,9 @@ async function onDeleteAllData() {
       />
 
       <XpengJobStatus v-if="activeJob" :job="activeJob" />
+
+      <!-- Opt-in Warteliste fuer den kommenden automatischen XPeng-Import -->
+      <XpengAutoSyncWaitlist v-if="xpengCars.length > 0" />
 
       <XpengConnectionsList
         :connections="connections"

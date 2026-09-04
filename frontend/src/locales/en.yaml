@@ -2787,6 +2787,15 @@ xpeng:
   phase2_promo_title: "Coming soon: AutoSync Live for XPeng"
   phase2_promo_body: "Right now you have to request the data from XPeng by email and upload the Excel yourself. Soon EV Monitor will do this for you - monthly request and automatic import, hands-off. As soon as XPeng provides the official API (planned for 2026), the sync will switch to real-time automatically. Both will be part of AutoSync Live."
   import_in_progress: "Import running"
+  waitlist:
+    eyebrow: "Coming soon"
+    title: "Coming soon: fully automatic XPeng import"
+    body: "Today you still upload the ZIP yourself. Soon EV Monitor will handle it end to end - automatic sync, no manual download. Be there from day one."
+    cta: "Notify me"
+    joining: "Adding you ..."
+    joined_title: "You're on the waitlist"
+    joined_body: "We'll let you know as soon as the automatic XPeng import goes live."
+    leave: "Don't notify me after all"
   job_status: "Status"
   status_queued: "queued"
   status_processing: "processing ..."
@@ -3140,3 +3149,6 @@ savings:
   investment_save: "Save"
   investment_cancel: "Cancel"
   investment_close: "Close"
+
+waitlist:
+  error: "That didn't work. Please try again."

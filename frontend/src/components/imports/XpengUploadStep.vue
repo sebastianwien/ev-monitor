@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowUpTrayIcon, ExclamationCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ArrowUpTrayIcon, ExclamationCircleIcon, ChevronDownIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
 import xpengService, { type XpengJobDto } from '../../api/xpengService'
 import type { Car } from '../../api/carService'
 
@@ -74,9 +74,18 @@ async function submit() {
       {{ t('xpeng.step_upload_title') }}
     </h3>
 
-    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-4">
+    <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-3">
       {{ t('xpeng.upload_howto') }}
     </p>
+
+    <a
+      href="https://www.xpeng.com/data-act"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center gap-1.5 text-sm font-bold text-green-700 dark:text-green-400 hover:underline mb-4">
+      {{ t('xpeng.manual_prompt_portal_link') }}
+      <ArrowTopRightOnSquareIcon class="w-4 h-4" />
+    </a>
 
     <div class="space-y-4">
       <div>

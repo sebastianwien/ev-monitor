@@ -2672,6 +2672,15 @@ xpeng:
   phase2_promo_title: "Snart automatiskt: AutoSync Live för XPeng"
   phase2_promo_body: "Just nu måste du själv begära data från XPeng via e-post och ladda upp Excel-filen. Snart sköter EV Monitor det åt dig - månatlig begäran och automatisk import, helt utan din insats. Så snart XPeng tillhandahåller det officiella API:t (planerat för 2026) byter synkroniseringen automatiskt till realtid. Båda som en del av AutoSync Live."
   import_in_progress: "Import pågår"
+  waitlist:
+    eyebrow: "Kommer snart"
+    title: "Kommer snart: helautomatisk XPeng-import"
+    body: "I dag laddar du upp ZIP-filen själv. Snart sköter EV Monitor allt åt dig - automatisk synk, utan manuell nedladdning. Var med från början."
+    cta: "Meddela mig"
+    joining: "Lägger till dig ..."
+    joined_title: "Du står på väntelistan"
+    joined_body: "Vi hör av oss så snart den automatiska XPeng-importen är igång."
+    leave: "Meddela mig inte ändå"
   job_status: "Status"
   status_queued: "i kö"
   status_processing: "bearbetar ..."
@@ -3025,3 +3034,6 @@ savings:
   investment_save: "Spara"
   investment_cancel: "Avbryt"
   investment_close: "Stäng"
+
+waitlist:
+  error: "Det gick inte. Försök igen."
