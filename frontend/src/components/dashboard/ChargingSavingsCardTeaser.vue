@@ -7,12 +7,13 @@
  * Tesla-Fahrer hat die Datenquelle schon und braucht nur das Supporter-Pack, alle
  * anderen die AutoSync-Ebene (siehe useAnalyticsUpsellTarget).
  */
-import { HomeIcon, LockClosedIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { HomeIcon, LockClosedIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
 import { useAnalyticsUpsellTarget } from '../../composables/useUpsellTarget'
 
 const { t } = useI18n()
 const upsellTarget = useAnalyticsUpsellTarget()
+const emit = defineEmits<{ (e: 'dismiss'): void }>()
 </script>
 
 <template>
@@ -28,5 +29,16 @@ const upsellTarget = useAnalyticsUpsellTarget()
       {{ t('savings.locked_cta') }}
       <ChevronRightIcon class="h-3.5 w-3.5" />
     </router-link>
+
+    <!-- Ausblenden: wie bei der Kachel dauerhaft (serverseitig), wieder einblendbar in den
+         Einstellungen. Auch der Upsell soll sich wegraeumen lassen, wenn er nicht interessiert. -->
+    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex justify-end">
+      <button type="button"
+              class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              @click="emit('dismiss')">
+        <XMarkIcon class="h-3.5 w-3.5" />
+        {{ t('savings.dismiss') }}
+      </button>
+    </div>
   </div>
 </template>

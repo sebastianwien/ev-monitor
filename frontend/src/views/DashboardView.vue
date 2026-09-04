@@ -303,7 +303,18 @@ async function loadChargingSavings() {
     chargingSavingsLocked.value = result.locked
     chargingSavingsViaTrial.value = result.viaTrial
     chargingSavingsTrialEndsAt.value = result.trialEndsAt
-    chargingSavingsDismissed.value = result.dismissed
+    // Die Ausblenden-Preference ist ein eigenes Concern und haengt nicht an der
+    // Berechtigung - der Savings-Endpoint liefert sie im 403-Fall (Teaser) gar nicht mit.
+    // Nur laden, wenn ueberhaupt etwas erscheinen koennte (Kachel oder Teaser).
+    if (result.savings || result.locked) {
+      try {
+        chargingSavingsDismissed.value = (await dashboardPreferencesService.get()).savingsCardDismissed
+      } catch {
+        chargingSavingsDismissed.value = false
+      }
+    } else {
+      chargingSavingsDismissed.value = false
+    }
   } catch {
     chargingSavings.value = null
     chargingSavingsEntitled.value = false
@@ -1009,7 +1020,8 @@ onUnmounted(() => {
         </div>
         <!-- Probemonat vorbei, kein bezahlter Tarif: der Teaser tritt an die Stelle der
              Kachel - Muster wie DashboardInsights/-Teaser. -->
-        <ChargingSavingsCardTeaser v-else-if="chargingSavingsLocked" class="mb-4" />
+        <ChargingSavingsCardTeaser v-else-if="chargingSavingsLocked && !chargingSavingsDismissed"
+                                   class="mb-4" @dismiss="dismissSavingsCard" />
         <HomeInvestmentModal
           :open="showInvestmentPrompt"
           :current="chargingSavings?.investmentEur ?? null"
