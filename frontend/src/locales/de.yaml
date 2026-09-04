@@ -2696,6 +2696,7 @@ xpeng:
   manual_prompt_step3: "Lade die fertige ZIP-Datei herunter und hier bei EV Monitor hoch - wir erkennen dein Auto automatisch und tragen Fahrten und Ladungen ein."
   manual_prompt_portal_link: "XPeng Data-Act-Portal öffnen"
   manual_prompt_cta: "Jetzt Daten importieren"
+  manual_prompt_later_hint: "Lieber später? Der Import ist jederzeit unter „Importe“ möglich."
   autosync_prompt_success_title: "AutoSync ist eingerichtet"
   autosync_prompt_success_body: "Wir stellen die erste Anfrage an XPeng und tragen deine Fahrten und Ladevorgänge ein, sobald die Antwort da ist. Jede Anfrage bekommst du in Kopie."
   step_consent_title: "Datenverarbeitung freigeben"

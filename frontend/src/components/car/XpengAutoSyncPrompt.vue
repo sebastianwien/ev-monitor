@@ -88,7 +88,7 @@ const steps = [1, 2, 3]
           >
             {{ t('xpeng.autosync_prompt_later') }}
           </button>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('xpeng.autosync_prompt_later_hint') }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('xpeng.manual_prompt_later_hint') }}</p>
         </div>
       </div>
     </div>

@@ -2696,6 +2696,7 @@ xpeng:
   manual_prompt_step3: "Download the ready ZIP file and upload it here in EV Monitor - we detect your car automatically and fill in trips and charges."
   manual_prompt_portal_link: "Open XPeng Data Act portal"
   manual_prompt_cta: "Import data now"
+  manual_prompt_later_hint: "Prefer to do it later? You can import any time under \"Imports\"."
   autosync_prompt_success_title: "AutoSync is set up"
   autosync_prompt_success_body: "We are sending the first request to XPeng and will add your trips and charges as soon as the reply arrives. You are copied on every request."
   step_consent_title: "Allow data processing"

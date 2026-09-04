@@ -2581,6 +2581,7 @@ xpeng:
   manual_prompt_step3: "Ladda ner den färdiga ZIP-filen och ladda upp den här i EV Monitor - vi identifierar din bil automatiskt och fyller i resor och laddningar."
   manual_prompt_portal_link: "Öppna XPeng Data Act-portalen"
   manual_prompt_cta: "Importera data nu"
+  manual_prompt_later_hint: "Vill du hellre vänta? Importen finns alltid under \"Import\"."
   autosync_prompt_success_title: "AutoSync är uppsatt"
   autosync_prompt_success_body: "Vi skickar den första begäran till XPeng och för in dina resor och laddningar så snart svaret kommer. Du står med som kopia på varje begäran."
   step_consent_title: "Tillåt databehandling"
