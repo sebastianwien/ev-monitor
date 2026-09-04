@@ -1,5 +1,3 @@
-import teslaFleetService from '../api/teslaFleetService'
-
 export interface AnnouncementContext {
   hasGoeConnection: boolean
   isPremium: boolean
@@ -51,6 +49,10 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     // Erfolg, sonst bleibt die Ankuendigung offen und zeigt einen Fehlertext statt spurlos zu
     // verschwinden.
     ctaAction: async () => {
+      // Lazy geladen: dieser Config-Modul wird auch in reinen Node-Kontexten importiert
+      // (z. B. beim Sammeln der E2E-Specs). Ein statischer Import zoege dort die Axios-Kette
+      // mit, die auf import.meta.env baut und ausserhalb von Vite bricht.
+      const teslaFleetService = (await import('../api/teslaFleetService')).default
       const status = await teslaFleetService.getStatus()
       if (!status.carId) throw new Error('No Tesla car linked')
       const result = await teslaFleetService.startReconnect(status.carId)
