@@ -8,8 +8,6 @@ package com.evmonitor.domain.xpeng;
 public final class XpengExtraKeys {
     private XpengExtraKeys() {}
 
-    public static final String CELL_TEMP_MAX_C    = "cell_temp_max_c";
-    public static final String CELL_TEMP_MIN_C    = "cell_temp_min_c";
     public static final String LONG_ACCEL_G       = "long_accel_g";
     public static final String LAT_ACCEL_G        = "lat_accel_g";
     public static final String ACCEL_PEDAL_PCT    = "accel_pedal_pct";

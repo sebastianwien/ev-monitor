@@ -34,8 +34,6 @@ public final class XpengHeaderMapper {
     public static final String BATT_CURR      = "batt_curr";
     public static final String BATT_TEMP_MAX  = "batt_temp_max";
     public static final String BATT_TEMP_MIN  = "batt_temp_min";
-    public static final String CELL_TEMP_MAX  = "cell_temp_max";
-    public static final String CELL_TEMP_MIN  = "cell_temp_min";
     public static final String LONG_ACCEL     = "long_accel";
     public static final String LAT_ACCEL      = "lat_accel";
     public static final String ACCEL_PEDAL    = "accel_pedal";
@@ -57,8 +55,8 @@ public final class XpengHeaderMapper {
             Map.entry(BATT_CURR,     Set.of("bms_battcurr")),
             Map.entry(BATT_TEMP_MAX, Set.of("bms_batttempmax_gb")),
             Map.entry(BATT_TEMP_MIN, Set.of("bms_batttempmin_gb")),
-            Map.entry(CELL_TEMP_MAX, Set.of("bms_celltempmaxnum_gb")),
-            Map.entry(CELL_TEMP_MIN, Set.of("bms_celltempminnum_gb")),
+            // bms_celltempmax/minnum_gb sind Sensor-INDIZES (0..63), keine Temperaturen -
+            // bewusst nicht gemappt. Echte Pack-Temperaturen: BATT_TEMP_MAX/MIN.
             Map.entry(LONG_ACCEL,    Set.of("esp_vehlongaccel", "ipb_vehlongaccel_e2e", "vehlongaccel")),
             Map.entry(LAT_ACCEL,     Set.of("esp_vehlateralaccel", "ipb_vehlateralaccel_e2e", "vehlateralaccel")),
             Map.entry(ACCEL_PEDAL,   Set.of("ldcu_accpedalsig")),

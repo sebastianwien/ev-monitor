@@ -13,7 +13,6 @@ import java.util.Map;
  *
  * Aggregate:
  *  - pack_temp_min/max/avg (aus battTempMaxC/battTempMinC)
- *  - cell_temp_min/max + cell_spread_max (aus extras CELL_TEMP_*_C)
  *  - volt_min/max, curr_min/max (Pack-Voltage + -Current)
  *  - bms_range_km.start/end (BMS-Restreichweite zu Session-Beginn/-Ende)
  *  - samples
@@ -23,7 +22,6 @@ public class ChargingExtrasAggregator {
     private int samples = 0;
     private BigDecimal packTempMin, packTempMax, packTempSum = BigDecimal.ZERO;
     private int packTempSamples = 0;
-    private BigDecimal cellTempMin, cellTempMax, cellSpreadMax;
     private BigDecimal voltMin, voltMax, currMin, currMax;
     private BigDecimal bmsRangeStart, bmsRangeEnd;
 
@@ -39,15 +37,6 @@ public class ChargingExtrasAggregator {
                     .divide(BigDecimal.valueOf(2), MathContext.DECIMAL64);
             packTempSum = packTempSum.add(mid);
             packTempSamples++;
-        }
-
-        BigDecimal cellMax = row.extra(XpengExtraKeys.CELL_TEMP_MAX_C);
-        BigDecimal cellMin = row.extra(XpengExtraKeys.CELL_TEMP_MIN_C);
-        if (cellMax != null) cellTempMax = maxOrNull(cellTempMax, cellMax);
-        if (cellMin != null) cellTempMin = minOrNull(cellTempMin, cellMin);
-        if (cellMax != null && cellMin != null) {
-            BigDecimal spread = cellMax.subtract(cellMin).abs();
-            cellSpreadMax = maxOrNull(cellSpreadMax, spread);
         }
 
         if (row.battVolt() != null) {
@@ -81,9 +70,6 @@ public class ChargingExtrasAggregator {
             battery.put("pack_temp_avg_c",
                     packTempSum.divide(BigDecimal.valueOf(packTempSamples), 1, RoundingMode.HALF_UP));
         }
-        putIfNotNull(battery, "cell_temp_min_c", scale1(cellTempMin));
-        putIfNotNull(battery, "cell_temp_max_c", scale1(cellTempMax));
-        putIfNotNull(battery, "cell_spread_max_c", scale1(cellSpreadMax));
         putIfNotNull(battery, "volt_min_v", scale1(voltMin));
         putIfNotNull(battery, "volt_max_v", scale1(voltMax));
         putIfNotNull(battery, "curr_min_a", scale1(currMin));
