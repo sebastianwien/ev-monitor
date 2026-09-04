@@ -276,17 +276,29 @@ onBeforeUnmount(() => {
                 {{ t('dashboard.power_curve_teaser_example') }}
               </span>
               <!-- Fremde Beispieldaten: nicht abtastbar, fuer Screenreader unsichtbar -->
-              <div class="pointer-events-none opacity-70" aria-hidden="true">
-                <PowerCurveChart
-                  :points="DEMO_POINTS"
-                  :height="180"
-                  :height-desktop="230"
-                  x-axis-mode="duration"
-                  :consumption-kwh-per100km="18"
-                  :soc-before-percent="DEMO_SOC_BEFORE"
-                  :soc-after-percent="DEMO_SOC_AFTER"
-                  :preview-scrub-index="DEMO_SCRUB_INDEX"
-                />
+              <div class="relative">
+                <div class="pointer-events-none opacity-70" aria-hidden="true">
+                  <PowerCurveChart
+                    :points="DEMO_POINTS"
+                    :height="180"
+                    :height-desktop="230"
+                    x-axis-mode="duration"
+                    :consumption-kwh-per100km="18"
+                    :soc-before-percent="DEMO_SOC_BEFORE"
+                    :soc-after-percent="DEMO_SOC_AFTER"
+                    :preview-scrub-index="DEMO_SCRUB_INDEX"
+                  />
+                </div>
+                <!-- Diagonales Wasserzeichen: macht auch bei vollfarbiger Kurve sofort klar,
+                     dass es fremde Beispieldaten sind - nicht die eigene Ladung. -->
+                <svg class="pointer-events-none absolute inset-0 h-full w-full text-gray-500 dark:text-gray-300" aria-hidden="true">
+                  <defs>
+                    <pattern id="pc-example-watermark" width="210" height="76" patternUnits="userSpaceOnUse" patternTransform="rotate(-28)">
+                      <text x="0" y="38" fill="currentColor" font-size="15" font-weight="700" letter-spacing="3" class="uppercase">{{ t('dashboard.power_curve_teaser_example') }}</text>
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#pc-example-watermark)" opacity="0.16" />
+                </svg>
               </div>
               <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
                 {{ t('dashboard.power_curve_teaser_example_caption') }}
