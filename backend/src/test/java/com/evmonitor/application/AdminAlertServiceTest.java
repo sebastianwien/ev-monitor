@@ -99,4 +99,37 @@ class AdminAlertServiceTest {
         assertThatCode(() -> service.sendPurchaseCelebration(SubscriptionTier.AUTOSYNC, false))
                 .doesNotThrowAnyException();
     }
+
+    // --- trial converted (trial ran through into a real, paying subscription) -----------
+
+    @Test
+    void trialConverted_withRecipients_sendsMailToAll() {
+        service = withRecipients("a@ev-monitor.net,b@ev-monitor.net");
+
+        service.sendTrialConverted(SubscriptionTier.AUTOSYNC_LIVE);
+
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender).send(captor.capture());
+        SimpleMailMessage msg = captor.getValue();
+        assertThat(msg.getTo()).containsExactly("a@ev-monitor.net", "b@ev-monitor.net");
+        assertThat(msg.getSubject() + " " + msg.getText()).contains("AutoSync Live");
+    }
+
+    @Test
+    void trialConverted_noRecipients_skipsSilently() {
+        service = withRecipients("");
+
+        service.sendTrialConverted(SubscriptionTier.AUTOSYNC);
+
+        verifyNoInteractions(mailSender);
+    }
+
+    @Test
+    void trialConverted_mailSendFailure_isSwallowed() {
+        service = withRecipients("a@ev-monitor.net");
+        doThrow(new RuntimeException("SMTP down")).when(mailSender).send(any(SimpleMailMessage.class));
+
+        assertThatCode(() -> service.sendTrialConverted(SubscriptionTier.AUTOSYNC))
+                .doesNotThrowAnyException();
+    }
 }

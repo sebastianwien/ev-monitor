@@ -113,6 +113,15 @@ class StripeServiceTest {
         return JsonParser.parseString(json).getAsJsonObject();
     }
 
+    /** Builds a Stripe event's data.previous_attributes node. Pass the prior status, or null for none. */
+    private JsonObject previousAttributes(String previousStatus) {
+        JsonObject prev = new JsonObject();
+        if (previousStatus != null) {
+            prev.addProperty("status", previousStatus);
+        }
+        return prev;
+    }
+
     private JsonObject invoicePayload(String customerId, long amountPaid) {
         return JsonParser.parseString("""
                 {
@@ -876,6 +885,46 @@ class StripeServiceTest {
                     subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
 
             verify(adminAlertService, never()).sendPurchaseCelebration(any(), anyBoolean());
+        }
+
+        @Test
+        void trialConversion_trialingToActive_triggersTrialConverted() {
+            // Trial ran through: Stripe sends subscription.updated with status=active and
+            // previous_attributes.status=trialing. User is already AUTOSYNC (set at trial start).
+            User user = userWithRole(USER_ID, "USER", true); // tier AUTOSYNC already
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L),
+                    previousAttributes("trialing"));
+
+            verify(adminAlertService).sendTrialConverted(SubscriptionTier.AUTOSYNC);
+            // Not a new customer (oldTier != NONE) → no "new subscription" mail.
+            verify(adminAlertService, never()).sendPurchaseCelebration(any(), anyBoolean());
+        }
+
+        @Test
+        void renewal_activeWithoutStatusChange_doesNotTriggerTrialConverted() {
+            // Recurring renewal: status stays active, previous_attributes has no status change.
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L),
+                    previousAttributes(null)); // e.g. only current_period_end changed
+
+            verify(adminAlertService, never()).sendTrialConverted(any());
+        }
+
+        @Test
+        void noPreviousAttributes_doesNotTriggerTrialConverted() {
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L)); // 2-arg → prev=null
+
+            verify(adminAlertService, never()).sendTrialConverted(any());
         }
     }
 

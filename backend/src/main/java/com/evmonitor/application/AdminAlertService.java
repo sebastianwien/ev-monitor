@@ -44,6 +44,15 @@ public class AdminAlertService {
             "Wieder einer, der uns sein Vertrauen (und ein paar Euro) schenkt. Whoop Whoop!"
     };
 
+    /** Sent when a trial ran all the way through and turned into real, recurring money. */
+    private static final String[] CONVERSION_LINES = {
+            "Trial durchgezogen! Aus 'mal schauen' wurde 'her damit'. Jetzt fließt echtes Geld.",
+            "Conversion! Jemand hat den Trial überlebt und bleibt zahlender Kunde. Whoop Whoop!",
+            "Aus Trial wird Dauergast. Die erste echte Abbuchung ist durch - das Produkt trägt.",
+            "Trial bestanden, Karte belastet, Kunde geblieben. Genau dafür machen wir das.",
+            "Der Trial ist gekippt - in die richtige Richtung. Zahlender Kunde gewonnen!"
+    };
+
     public void sendXpengEncryptionAlert(UUID connectionId, String maskedVin, String errorMessage) {
         if (alertEmail == null || alertEmail.isBlank()) {
             log.debug("AdminAlert: kein Alert-Email konfiguriert, ueberspringe");
@@ -102,6 +111,39 @@ public class AdminAlertService {
                     tier, trial, recipients.length);
         } catch (Exception e) {
             log.error("AdminAlert: Purchase-Celebration konnte nicht gesendet werden", e);
+        }
+    }
+
+    /**
+     * Internal founder mail for a successful trial conversion (trial -> paying). Fired once,
+     * driven by the Stripe status transition trialing -> active, so it never fires on renewals.
+     * Same fire-and-forget contract as {@link #sendPurchaseCelebration}.
+     */
+    public void sendTrialConverted(SubscriptionTier tier) {
+        String[] recipients = parseRecipients(purchaseRecipients);
+        if (recipients.length == 0) {
+            log.debug("AdminAlert: keine Purchase-Empfaenger konfiguriert, ueberspringe Conversion");
+            return;
+        }
+        try {
+            String tierLabel = tierLabel(tier);
+            String line = CONVERSION_LINES[ThreadLocalRandom.current().nextInt(CONVERSION_LINES.length)];
+
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setFrom(fromAddress);
+            msg.setTo(recipients);
+            msg.setSubject("Trial umgewandelt: " + tierLabel + " - jetzt zahlt er wirklich!");
+            msg.setText(
+                    line + "\n\n" +
+                    "Tier:   " + tierLabel + "\n" +
+                    "Status: Trial erfolgreich in bezahltes Abo umgewandelt\n\n" +
+                    "- eure ev-monitor Kasse"
+            );
+            mailSender.send(msg);
+            log.info("AdminAlert: Trial-Conversion-Celebration gesendet (tier={}, empfaenger={})",
+                    tier, recipients.length);
+        } catch (Exception e) {
+            log.error("AdminAlert: Trial-Conversion-Celebration konnte nicht gesendet werden", e);
         }
     }
 

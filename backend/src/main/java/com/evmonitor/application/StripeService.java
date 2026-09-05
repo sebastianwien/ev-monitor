@@ -235,12 +235,18 @@ public class StripeService {
     public void handleWebhookEvent(String payload, String sigHeader) throws SignatureVerificationException {
         Event event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
 
-        JsonObject data = JsonParser.parseString(payload)
+        JsonObject dataNode = JsonParser.parseString(payload)
                 .getAsJsonObject()
-                .getAsJsonObject("data")
-                .getAsJsonObject("object");
+                .getAsJsonObject("data");
+        JsonObject data = dataNode.getAsJsonObject("object");
+        // previous_attributes carries only the fields that changed on an update event.
+        // Used to detect the trialing→active transition (a trial converting to paid).
+        JsonObject previousAttributes = dataNode.has("previous_attributes")
+                && dataNode.get("previous_attributes").isJsonObject()
+                ? dataNode.getAsJsonObject("previous_attributes")
+                : null;
 
-        dispatch(event.getType(), data);
+        dispatch(event.getType(), data, previousAttributes);
     }
 
     /**
@@ -248,6 +254,10 @@ public class StripeService {
      * Package-private to allow unit testing without a real Stripe signature.
      */
     void dispatch(String eventType, JsonObject data) {
+        dispatch(eventType, data, null);
+    }
+
+    void dispatch(String eventType, JsonObject data, JsonObject previousAttributes) {
         switch (eventType) {
             case "customer.subscription.created", "customer.subscription.updated" -> {
                 String customerId = data.get("customer").getAsString();
@@ -301,6 +311,18 @@ public class StripeService {
                     }
                 });
                 log.info("[STRIPE] subscription {} -> tier={} for customer={}", status, newTier, customerId);
+
+                // Trial conversion: a trialing subscription just became active (real money now).
+                // Detected via Stripe's previous_attributes so it fires exactly once and never on
+                // renewals (those keep status=active, so status is not in previous_attributes).
+                boolean trialConverted = "customer.subscription.updated".equals(eventType)
+                        && "active".equals(status)
+                        && previousAttributes != null
+                        && previousAttributes.has("status")
+                        && "trialing".equals(previousAttributes.get("status").getAsString());
+                if (trialConverted) {
+                    adminAlertService.sendTrialConverted(newTier);
+                }
             }
             case "customer.subscription.deleted" -> {
                 String customerId = data.get("customer").getAsString();
