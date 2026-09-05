@@ -140,6 +140,7 @@ public class StripeService {
 
     private final RestTemplate restTemplate = buildRestTemplate();
     private final UserRepository userRepository;
+    private final AdminAlertService adminAlertService;
 
     private static RestTemplate buildRestTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -148,8 +149,9 @@ public class StripeService {
         return new RestTemplate(factory);
     }
 
-    public StripeService(UserRepository userRepository) {
+    public StripeService(UserRepository userRepository, AdminAlertService adminAlertService) {
         this.userRepository = userRepository;
+        this.adminAlertService = adminAlertService;
     }
 
     @PostConstruct
@@ -281,11 +283,15 @@ public class StripeService {
                         disconnectSmartcar(u.getId());
                         disableTeslaTelemetry(u.getId());
                     } else if (oldTier == SubscriptionTier.NONE) {
-                        // Transition inactive→active: AutoSync purchase. Kick off Tesla telemetry
-                        // auto-enable for users with a paired Tesla. No-op for non-Tesla users
+                        // Transition inactive→active: a genuine new-customer purchase. Kick off Tesla
+                        // telemetry auto-enable for users with a paired Tesla. No-op for non-Tesla users
                         // (connectors-service returns 404, treated as benign). Profile is
                         // determined connectors-side from /telemetry-access (returns Live → FULL).
                         enableTeslaTelemetry(u.getId());
+                        // Internal founder "yay, a new subscription!" mail. Fire-and-forget: swallows
+                        // its own errors, so it never affects the webhook outcome. Fires once per new
+                        // customer (not on renewals or tier upgrades, which don't start from NONE).
+                        adminAlertService.sendPurchaseCelebration(newTier, isTrialing);
                     } else if (oldTier != newTier) {
                         // Same active state, tier flipped (Upgrade or Downgrade between
                         // AutoSync ↔ Live). Connectors-service must rotate the telemetry

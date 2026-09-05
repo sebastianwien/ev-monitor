@@ -15,7 +15,7 @@ class StripeServicePriceResolutionTest {
 
     @BeforeEach
     void setUp() {
-        stripeService = new StripeService(mock(UserRepository.class));
+        stripeService = new StripeService(mock(UserRepository.class), mock(AdminAlertService.class));
         ReflectionTestUtils.setField(stripeService, "priceIdMonthly",     "price_monthly_eur_de");
         ReflectionTestUtils.setField(stripeService, "priceIdYearly",      "price_yearly_eur_de");
         ReflectionTestUtils.setField(stripeService, "priceIdMonthlyIntl", "price_monthly_eur_intl");

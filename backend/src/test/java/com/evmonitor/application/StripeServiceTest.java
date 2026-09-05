@@ -50,6 +50,9 @@ class StripeServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private AdminAlertService adminAlertService;
+
     private StripeService stripeService;
 
     private static final String CUSTOMER_ID = "cus_testABC123";
@@ -58,7 +61,7 @@ class StripeServiceTest {
 
     @BeforeEach
     void setUp() {
-        stripeService = new StripeService(userRepository);
+        stripeService = new StripeService(userRepository, adminAlertService);
     }
 
     // -------------------------------------------------------------------------
@@ -775,6 +778,104 @@ class StripeServiceTest {
             verify(mockRest, never()).exchange(
                     contains("/api/internal/tesla/" + USER_ID + "/disable-telemetry"),
                     any(HttpMethod.class), any(), eq(Void.class));
+        }
+    }
+
+    // =========================================================================
+    // Purchase celebration - internal "yay, a new subscription!" founder mail
+    // =========================================================================
+
+    @Nested
+    class PurchaseCelebration {
+
+        @Test
+        void newCustomer_active_triggersCelebration_paid() {
+            User user = buildUser(USER_ID, null); // tier NONE
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(adminAlertService).sendPurchaseCelebration(SubscriptionTier.AUTOSYNC, false);
+        }
+
+        @Test
+        void newCustomer_trialing_triggersCelebration_withTrialFlag() {
+            User user = buildUser(USER_ID, null); // tier NONE
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "trialing", 1_800_000_000L));
+
+            verify(adminAlertService).sendPurchaseCelebration(SubscriptionTier.AUTOSYNC, true);
+        }
+
+        @Test
+        void newCustomer_supporter_triggersCelebration() {
+            ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthly", "price_SUPPORTER_M");
+            User user = buildUser(USER_ID, null); // tier NONE
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L, "price_SUPPORTER_M"));
+
+            verify(adminAlertService).sendPurchaseCelebration(SubscriptionTier.SUPPORTER, false);
+        }
+
+        @Test
+        void renewal_alreadyPremium_doesNotCelebrate() {
+            // subscription.updated for an already-active user: renewals must not re-fire.
+            User user = userWithRole(USER_ID, "USER", true); // tier AUTOSYNC already
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(adminAlertService, never()).sendPurchaseCelebration(any(), anyBoolean());
+        }
+
+        @Test
+        void upgrade_autosyncToLive_doesNotCelebrate() {
+            // Tier flip between paid tiers is not a new customer - no celebration.
+            installMockRestTemplate();
+            ReflectionTestUtils.setField(stripeService, "priceIdLiveMonthly", "price_LIVE_M");
+            User liveUser = User.builder()
+                    .id(USER_ID).email("u@example.com").username("u").passwordHash("hash")
+                    .authProvider(AuthProvider.LOCAL).role("USER")
+                    .emailVerified(true).emailNotificationsEnabled(true)
+                    .referralCode("REFERRALCODE1").stripeCustomerId(CUSTOMER_ID)
+                    .subscriptionTier(SubscriptionTier.AUTOSYNC)
+                    .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+                    .build();
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(liveUser));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L, "price_LIVE_M"));
+
+            verify(adminAlertService, never()).sendPurchaseCelebration(any(), anyBoolean());
+        }
+
+        @Test
+        void cancellation_doesNotCelebrate() {
+            installMockRestTemplate();
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L));
+
+            verify(adminAlertService, never()).sendPurchaseCelebration(any(), anyBoolean());
+        }
+
+        @Test
+        void unknownCustomer_doesNotCelebrate() {
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.empty());
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(adminAlertService, never()).sendPurchaseCelebration(any(), anyBoolean());
         }
     }
 
