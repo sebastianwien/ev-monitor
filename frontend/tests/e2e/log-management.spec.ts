@@ -345,3 +345,88 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('Ladegruppe im Zeitraum-Feed', () => {
+  // Regression: Drei Ladungen mit gleichem km-Stand (ohne Fahrt dazwischen) werden zu einer
+  // Ladegruppe gebuendelt. Der Tag/Woche/Monat-Feed zeigte davon frueher nur die aelteste
+  // Ladung - Summe und die uebrigen Teilladungen fehlten. Jetzt: Gruppensumme + aufklappbar.
+  test.beforeAll(async () => {
+    const api = await playwrightRequest.newContext({ baseURL: API_URL });
+    const authResp = await api.post('/api/auth/login', {
+      data: { email: TEST_USER.email, password: TEST_USER.password },
+    });
+    const { token } = await authResp.json();
+    const carsResp = await api.get('/api/cars', { headers: { Authorization: `Bearer ${token}` } });
+    const carId = (await carsResp.json())[0].id;
+
+    // Sauberer Zustand: alle Logs des Testfahrzeugs loeschen
+    const logsResp = await api.get(`/api/logs?carId=${carId}&limit=50`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const ids: string[] = (await logsResp.json()).map((l: any) => l.id);
+    if (ids.length > 0) {
+      await api.delete('/api/logs/batch', {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: ids,
+      });
+    }
+
+    // Drei Ladungen, gleicher Odometer -> eine Ladegruppe. Distinkte kWh (5/6/7, Summe 18).
+    const base = new Date();
+    base.setHours(8, 0, 0, 0);
+    const charges = [
+      { kwh: 5, cost: 1.5, offsetMin: 0, socB: 40, socA: 50 },
+      { kwh: 6, cost: 1.8, offsetMin: 90, socB: 50, socA: 62 },
+      { kwh: 7, cost: 2.1, offsetMin: 180, socB: 62, socA: 76 },
+    ];
+    for (const c of charges) {
+      const loggedAt = new Date(base.getTime() + c.offsetMin * 60_000);
+      const resp = await api.post('/api/logs', {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        data: {
+          carId,
+          kwhCharged: c.kwh,
+          costEur: c.cost,
+          odometerKm: 50000, // identisch -> Gruppierung ueber gleichen km-Stand
+          socBeforeChargePercent: c.socB,
+          socAfterChargePercent: c.socA,
+          chargingType: 'AC',
+          loggedAt: loggedAt.toISOString().slice(0, 19), // LocalDateTime, ohne Offset
+        },
+      });
+      expect(resp.ok()).toBeTruthy();
+    }
+    await api.dispose();
+  });
+
+  test('buendelt gleiche km-Staende, zeigt Summe und klappt Teilladungen auf', async ({ page }) => {
+    const allKeys = featureAnnouncements.map(a => a.key);
+    await page.addInitScript((keys: string[]) => {
+      localStorage.setItem('seen-announcements', JSON.stringify(keys));
+    }, allKeys);
+    await login(page);
+
+    await page.goto('/logs');
+    await page.waitForLoadState('networkidle');
+
+    // Auf die Tag-Ansicht schalten - dort rendert PeriodChargeLine die Ladegruppe.
+    await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Tag', exact: true }).click();
+
+    // Mobile- und Desktop-Feed liegen beide im DOM (einer per CSS versteckt) - auf die
+    // sichtbare Variante scopen.
+    const visible = page.locator(':visible');
+
+    // Header zeigt die Bilanz, die Tag-Gruppe ist aber eingeklappt - erst aufklappen.
+    await expect(page.getByText('3 Ladungen').and(visible).first()).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /Heute/ }).and(visible).first().click();
+
+    // Gruppenzeile: 3x-Badge (nur in der Zeile, nicht im Header) - die Gruppe ist sichtbar.
+    await expect(page.getByText('3×').and(visible).first()).toBeVisible({ timeout: 10_000 });
+
+    // Teilladungen aufklappen -> die drei einzelnen Ladungen (5/6/7) erscheinen.
+    await page.getByRole('button', { name: 'Teilladungen anzeigen' }).and(visible).first().click();
+    await expect(page.getByText('+5.0 kWh').and(visible).first()).toBeVisible();
+    await expect(page.getByText('+6.0 kWh').and(visible).first()).toBeVisible();
+    await expect(page.getByText('+7.0 kWh').and(visible).first()).toBeVisible();
+  });
+});
