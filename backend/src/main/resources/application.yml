@@ -133,6 +133,14 @@ xpeng:
     # (or on crash recovery). On Hetzner prod: persistent disk path with enough space.
     # Local dev: defaults to /tmp.
     tempdir: ${XPENG_IMPORT_TEMPDIR:/tmp/ev-monitor-xpeng-imports}
+  # EU-Data-Act Open API (AutoSync via API-Pull). Enterprise-Credentials (appId/appSecret)
+  # kommen aus der Entwickler-Registrierung und liegen NUR als Env-Var vor, nie im Repo.
+  # appSecret geht ausschliesslich in die Request-Signatur ein, nie in den Request-Body.
+  api:
+    base-url: ${XPENG_API_BASE_URL:https://open.xpeng.com/open/oauth2/queryData}
+    app-id: ${XPENG_API_APP_ID:}
+    app-secret: ${XPENG_API_APP_SECRET:}
+    enterprise-name: ${XPENG_API_ENTERPRISE_NAME:EVMonitor}
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:5173}
