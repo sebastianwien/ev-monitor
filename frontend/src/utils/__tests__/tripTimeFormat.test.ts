@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatTripDateTimeRange, tripDateTimeParts, formatPauseDuration, tripDayLabel, chargeTimeRange } from '../tripTimeFormat'
+import { formatTripDateTimeRange, tripDateTimeParts, formatPauseDuration, tripDayLabel, chargeTimeRange, chargeGroupTimeRange } from '../tripTimeFormat'
 
 /**
  * Die Fahrtzeit ist die Ueberschrift einer Fahrt im Log-Feed: zuerst der Tag, dann die
@@ -84,6 +84,28 @@ describe('formatTripDateTimeRange', () => {
     it('ist leer ohne Beginn', () => {
       expect(chargeTimeRange(null, 60, 'de')).toBe('')
       expect(chargeTimeRange(undefined, 60, 'de')).toBe('')
+    })
+  })
+
+  describe('chargeGroupTimeRange', () => {
+    // Teilladungen kommen neueste-zuerst (wie im Feed).
+    const subs = [
+      { loggedAt: '2026-08-20T14:00:00+02:00', chargeDurationMinutes: 30 }, // Ende 14:30
+      { loggedAt: '2026-08-20T12:00:00+02:00', chargeDurationMinutes: 60 },
+      { loggedAt: '2026-08-20T10:00:00+02:00', chargeDurationMinutes: 45 }, // Beginn der Gruppe
+    ]
+
+    it('spannt vom Beginn der aeltesten bis zum Ende der neuesten Teilladung', () => {
+      expect(chargeGroupTimeRange(subs, 'de')).toBe('10:00 - 14:30')
+    })
+
+    it('faellt bei einer einzelnen Teilladung auf deren Fenster zurueck', () => {
+      expect(chargeGroupTimeRange([{ loggedAt: '2026-08-20T12:30:00+02:00', chargeDurationMinutes: 95 }], 'de'))
+        .toBe('12:30 - 14:05')
+    })
+
+    it('ist leer ohne Teilladungen', () => {
+      expect(chargeGroupTimeRange([], 'de')).toBe('')
     })
   })
 

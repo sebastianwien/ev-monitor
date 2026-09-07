@@ -577,6 +577,7 @@ logs:
     charge_public: "publik"
     charge_home: "hemma"
     charge_unknown: "Laddning"
+    charge_toggle_topups: "Visa enskilda laddningar"
   legend:
     slim_driven: "kört"
     slim_charged: "laddat"

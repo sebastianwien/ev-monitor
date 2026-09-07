@@ -617,6 +617,7 @@ logs:
     charge_public: "öffentlich"
     charge_home: "zuhause"
     charge_unknown: "Ladung"
+    charge_toggle_topups: "Teilladungen anzeigen"
   legend:
     slim_driven: "gefahren"
     slim_charged: "geladen"

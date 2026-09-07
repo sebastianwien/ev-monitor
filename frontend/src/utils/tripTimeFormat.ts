@@ -69,6 +69,27 @@ export function chargeTimeRange(
   return tripDateTimeParts(loggedAtIso, end.toISOString(), locale).time
 }
 
+/**
+ * Zeitspanne einer Ladegruppe: vom Beginn der aeltesten bis zum Ende der neuesten Teilladung.
+ *
+ * Die Teilladungen kommen neueste-zuerst herein (wie im Feed). Eine Gruppe zeigt so ihr wahres
+ * Fenster statt nur die erste Ladung - passend zum Gruppen-kWh daneben. Ueber Mitternacht faellt
+ * der Aufrufer besser auf ein Datumsband zurueck; hier bleibt es die reine Zeitspanne.
+ */
+export function chargeGroupTimeRange(
+  topUps: Array<{ loggedAt?: string | null; chargeDurationMinutes?: number | null }>,
+  locale: string,
+): string {
+  if (!topUps?.length) return ''
+  const oldest = topUps[topUps.length - 1]
+  const newest = topUps[0]
+  const startMs = oldest?.loggedAt ? new Date(oldest.loggedAt).getTime() : NaN
+  const newestMs = newest?.loggedAt ? new Date(newest.loggedAt).getTime() : NaN
+  if (Number.isNaN(startMs) || Number.isNaN(newestMs)) return ''
+  const spanMinutes = (newestMs + (newest.chargeDurationMinutes ?? 0) * 60_000 - startMs) / 60_000
+  return chargeTimeRange(oldest.loggedAt, spanMinutes, locale)
+}
+
 /** Ab hier interessiert die Minute nicht mehr - eine Nacht ist eine Nacht. */
 const COARSE_ABOVE_HOURS = 6
 

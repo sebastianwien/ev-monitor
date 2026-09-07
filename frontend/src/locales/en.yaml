@@ -617,6 +617,7 @@ logs:
     charge_public: "public"
     charge_home: "at home"
     charge_unknown: "Charge"
+    charge_toggle_topups: "Show individual charges"
   legend:
     slim_driven: "driven"
     slim_charged: "charged"
