@@ -423,10 +423,20 @@ test.describe('Ladegruppe im Zeitraum-Feed', () => {
     // Gruppenzeile: 3x-Badge (nur in der Zeile, nicht im Header) - die Gruppe ist sichtbar.
     await expect(page.getByText('3×').and(visible).first()).toBeVisible({ timeout: 10_000 });
 
+    // Gruppen-Gesamtkosten in der Zeile (1,50+1,80+2,10 = 5,40) - nicht nur die erste Ladung.
+    // Guardet die Kosten-Bindung ueber normalizeCharge, nicht nur die kWh-Summe.
+    await expect(page.getByText('5,40').and(visible).first()).toBeVisible();
+
     // Teilladungen aufklappen -> die drei einzelnen Ladungen (5/6/7) erscheinen.
     await page.getByRole('button', { name: 'Teilladungen anzeigen' }).and(visible).first().click();
     await expect(page.getByText('+5.0 kWh').and(visible).first()).toBeVisible();
     await expect(page.getByText('+6.0 kWh').and(visible).first()).toBeVisible();
     await expect(page.getByText('+7.0 kWh').and(visible).first()).toBeVisible();
+
+    // Edit auf die mittlere Teilladung (Reihenfolge neueste-zuerst: 7/6/5 -> Index 1 = 6 kWh)
+    // oeffnet genau diesen Log, nicht die Basis-Ladung.
+    await page.getByTestId('period-topup-edit').and(visible).nth(1).click();
+    await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue(/^6/);
   });
 });

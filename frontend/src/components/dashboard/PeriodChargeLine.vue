@@ -210,7 +210,7 @@ const place = computed(() => {
         <div></div>
         <div></div>
         <div class="flex justify-end">
-          <button type="button" @click.stop="emit('edit', topUp)"
+          <button type="button" data-testid="period-topup-edit" @click.stop="emit('edit', topUp)"
             class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             :aria-label="t('dashboard.action_edit')">
             <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
@@ -318,7 +318,7 @@ const place = computed(() => {
               <template v-if="topUp.costEur != null"> · </template>{{ formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent) }}
             </template>
           </span>
-          <button type="button" @click.stop="emit('edit', topUp)"
+          <button type="button" data-testid="period-topup-edit" @click.stop="emit('edit', topUp)"
             class="p-1 -mr-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             :aria-label="t('dashboard.action_edit')">
             <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
