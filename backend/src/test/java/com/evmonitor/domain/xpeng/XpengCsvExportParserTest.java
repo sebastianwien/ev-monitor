@@ -105,6 +105,67 @@ class XpengCsvExportParserTest {
     }
 
     @Test
+    void meldetNichtNachZeitSortiertenExport() throws Exception {
+        // operation springt zeitlich rueckwaerts (1002 -> 1000). Der Streaming-Merge
+        // kann das nicht sicher joinen -> klarer Fehler statt stiller Fehlmerge.
+        String op = OP_HEADER + "\n"
+                + "L1NTEST,F57a,1002,20260901,0.0,4,12346.0\n"
+                + "L1NTEST,F57a,1000,20260901,42.5,1,12345.0\n";
+        String pe = PE_HEADER + "\n"
+                + "L1NTEST,F57a,1000,20260901,360.0,-15.0,0.0,80.0,431.0\n"
+                + "L1NTEST,F57a,1002,20260901,361.0,5.0,0.0,79.0,430.0\n";
+        Path zip = writeZip(Map.of(
+                "driving_operation_di.csv", op,
+                "driving_power_energy_di.csv", pe));
+
+        XpengParseException ex = assertThrows(XpengParseException.class,
+                () -> new XpengCsvExportParser().parse(zip, r -> {}));
+        assertTrue(ex.getMessage().toLowerCase().contains("sortiert")
+                        || ex.getMessage().toLowerCase().contains("timer"),
+                "Meldung soll auf die fehlende Zeit-Sortierung hinweisen: " + ex.getMessage());
+    }
+
+    @Test
+    void emittiertTimerDerNurInEinemClusterVorkommt() throws Exception {
+        // op fehlt t=1001 komplett; nur power_energy traegt diesen Zeitpunkt.
+        String op = OP_HEADER + "\n"
+                + "L1NTEST,F57a,1000,20260901,42.5,1,12345.0\n"
+                + "L1NTEST,F57a,1002,20260901,0.0,4,12346.0\n";
+        String pe = PE_HEADER + "\n"
+                + "L1NTEST,F57a,1000,20260901,360.0,-15.0,0.0,80.0,431.0\n"
+                + "L1NTEST,F57a,1001,20260901,360.0,-15.0,0.0,77.0,420.0\n"
+                + "L1NTEST,F57a,1002,20260901,361.0,5.0,0.0,79.0,430.0\n";
+        Path zip = writeZip(Map.of(
+                "driving_operation_di.csv", op,
+                "driving_power_energy_di.csv", pe));
+
+        List<XpengTelematicsRow> rows = new ArrayList<>();
+        assertEquals(3, new XpengCsvExportParser().parse(zip, rows::add).rowsProcessed());
+
+        // t=1001 kommt nur aus pe -> SoC gesetzt, aber Gear (nur op) null
+        assertEquals(0, new BigDecimal("77.0").compareTo(rows.get(1).socDisplay()));
+        assertNull(rows.get(1).gearLev(), "t=1001 fehlt in operation -> Gear null");
+    }
+
+    @Test
+    void mergedDoppelteTimerZeilenInnerhalbEinesClusters() throws Exception {
+        // Zwei op-Zeilen mit demselben timer -> zu einer Row zusammengefuehrt.
+        String op = OP_HEADER + "\n"
+                + "L1NTEST,F57a,1000,20260901,42.5,,12345.0\n"
+                + "L1NTEST,F57a,1000,20260901,,3,12345.0\n";
+        String pe = PE_HEADER + "\n"
+                + "L1NTEST,F57a,1000,20260901,360.0,-15.0,0.0,80.0,431.0\n";
+        Path zip = writeZip(Map.of(
+                "driving_operation_di.csv", op,
+                "driving_power_energy_di.csv", pe));
+
+        List<XpengTelematicsRow> rows = new ArrayList<>();
+        assertEquals(1, new XpengCsvExportParser().parse(zip, rows::add).rowsProcessed());
+        assertEquals(0, new BigDecimal("42.5").compareTo(rows.get(0).vehSpeedKmh()));
+        assertEquals(3, rows.get(0).gearLev(), "zweite Zeile mit gleichem timer ergaenzt den Gear");
+    }
+
+    @Test
     void peekVinLiestVinOhneVollparse() throws Exception {
         String op = "﻿" + OP_HEADER + "\n"
                 + "L1NPEEK,F57a,1000,20260901,0.0,4,12345.0\n";

@@ -165,6 +165,27 @@ class XpengImportServiceTest {
     }
 
     @Test
+    void markiertJobFailedWennVerarbeitungMitErrorStirbt() {
+        // Regression: ein OutOfMemoryError (Error, keine Exception) beim Verarbeiten darf den
+        // Async-Job NICHT stumm in PROCESSING haengen lassen - er muss als FAILED enden.
+        UUID jobId = UUID.randomUUID();
+        UUID connId = UUID.randomUUID();
+        XpengImportJob job = XpengImportJob.builder()
+                .id(jobId).userId(USER).carId(CAR)
+                .status(XpengImportJob.Status.QUEUED).build();
+        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(connectionRepo.findByCarId(CAR)).thenThrow(new OutOfMemoryError("heap"));
+
+        service.processCsvJobAsync(jobId, tempDir.resolve("nonexistent.zip").toString(), connId);
+
+        ArgumentCaptor<XpengImportJob> captor = ArgumentCaptor.forClass(XpengImportJob.class);
+        verify(jobRepo, atLeastOnce()).save(captor.capture());
+        assertEquals(XpengImportJob.Status.FAILED, captor.getValue().getStatus(),
+                "Job muss nach einem Error als FAILED markiert sein, nicht in PROCESSING haengen");
+    }
+
+    @Test
     void deleteAllImportedData_clearsLogsTripsAndJobs() {
         // Trips hart loeschen: der UNIQUE-Index auf external_id ignoriert deleted_at,
         // sodass Soft-Delete einen Re-Import desselben Trips an einem Constraint-Violation

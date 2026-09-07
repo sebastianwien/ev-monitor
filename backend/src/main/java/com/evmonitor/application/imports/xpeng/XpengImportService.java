@@ -256,7 +256,11 @@ public class XpengImportService {
 
             log.info("XpengImport: job={} DONE trips={} sessions={} skipped={} skippedTrips={}",
                     jobId, stats.importedTrips, stats.importedSessions, stats.skipped, stats.skippedTrips);
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // Bewusst Throwable, nicht nur Exception: ein grosser Export kann beim Parsen einen
+            // OutOfMemoryError ausloesen. Wuerde der (als Error) durchschlagen, stirbt der
+            // Async-Thread stumm und der Job haengt fuer immer in PROCESSING (bis Server-Neustart).
+            // Fangen -> Job als FAILED markieren, damit der User eine klare Rueckmeldung bekommt.
             log.error("XpengImport: job={} FAILED", jobId, e);
             jobRepo.findById(jobId).ifPresent(j -> {
                 j.setStatus(XpengImportJob.Status.FAILED);
