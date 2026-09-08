@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.xpeng.XpengImportFormat;
 import com.evmonitor.domain.xpeng.DetectedChargingSession;
 import com.evmonitor.domain.xpeng.DetectedTrip;
 import com.evmonitor.domain.xpeng.VinUtils;
@@ -24,13 +25,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +48,9 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.Objects;
+import java.util.Set;
 
 /**
  * Pipeline for the XPeng XLSX import. Flow:
@@ -59,15 +60,14 @@ import java.util.UUID;
  *     - hash file + reject duplicates
  *     - persist tempfile under restrictive permissions
  *     - create QUEUED XpengImportJob
- *     - hand off to async processJobAsync()
+ *     - publish XpengImportJobQueuedEvent (wakes the worker after commit)
  *
- *   processJobAsync() (xpeng-import-* worker thread):
+ *   process() (called by XpengImportJobWorker, sequentially):
  *     - parse → state machines → bulk-insert trips + sessions
  *     - delete tempfile (always)
  *     - update job stats
  *
- * On backend crash, any QUEUED/PROCESSING jobs are marked FAILED at startup
- * via {@link #recoverInFlightJobs()}.
+ * The job table is the queue; crash/restart recovery lives in {@link XpengImportJobWorker}.
  */
 @Service
 @Slf4j
@@ -90,7 +90,7 @@ public class XpengImportService {
     private final TripService tripService;
     private final PublicApiImportService publicApiImportService;
     private final XpengChargeMatcher chargeMatcher;
-    private final ApplicationContext applicationContext;
+    private final ApplicationEventPublisher eventPublisher;
     private final com.evmonitor.domain.EvLogRepository evLogRepository;
     private final com.evmonitor.domain.EvTripRepository evTripRepository;
     private final AdminAlertService adminAlertService;
@@ -98,18 +98,12 @@ public class XpengImportService {
     @Value("${xpeng.import.tempdir}")
     private String tempDir;
 
-    /** Self-injection of the Spring proxy so @Async/@Transactional kick in on internal calls. */
-    private XpengImportService self() {
-        return applicationContext.getBean(XpengImportService.class);
-    }
-
     @EventListener(ApplicationReadyEvent.class)
     void initOnStartup() {
         try {
             Path dir = Paths.get(tempDir);
             Files.createDirectories(dir);
             cleanupStaleTempfiles(dir);
-            self().recoverInFlightJobs();
         } catch (Exception e) {
             log.error("XpengImportService startup init failed", e);
         }
@@ -176,79 +170,39 @@ public class XpengImportService {
                 .status(XpengImportJob.Status.QUEUED)
                 .fileHash(hash)
                 .fileSizeBytes(size)
+                .tempfilePath(tempfile.toString())
+                .format(format)
+                .filePassword(password)
                 .build());
 
         log.info("XpengImport: queued job={} car={} size={}MB hash={}",
                 job.getId(), carId, size / 1_048_576, hash.substring(0, 8));
 
-        // Trigger async only after the surrounding transaction has actually committed.
-        // Otherwise a rollback would leave a dangling tempfile + non-existent job for the worker.
-        final UUID jobId = job.getId();
-        final String tempfilePath = tempfile.toString();
-        final UUID connectionId = connection.getId();
-        final XpengImportService proxy = self();
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    dispatchAsync(proxy, format, jobId, tempfilePath, password, connectionId);
-                }
-
-                @Override
-                public void afterCompletion(int status) {
-                    if (status != STATUS_COMMITTED) {
-                        try { Files.deleteIfExists(Paths.get(tempfilePath)); } catch (Exception ignored) {}
-                    }
-                }
-            });
-        } else {
-            // Should not happen given @Transactional on this method, but be defensive.
-            dispatchAsync(proxy, format, jobId, tempfilePath, password, connectionId);
-        }
+        // Der Worker claimt den Job nach dem Commit; ein Rollback laesst das Tempfile liegen,
+        // das raeumt cleanupStaleTempfiles() beim naechsten Start auf.
+        eventPublisher.publishEvent(new XpengImportJobQueuedEvent(job.getId()));
         return job;
     }
 
-    private static void dispatchAsync(XpengImportService proxy, XpengImportFormat format,
-                                      UUID jobId, String tempfilePath, String password, UUID connectionId) {
-        if (format == XpengImportFormat.CSV_ZIP) {
-            proxy.processCsvJobAsync(jobId, tempfilePath, connectionId);
-        } else {
-            proxy.processJobAsync(jobId, tempfilePath, password, connectionId);
-        }
-    }
-
-    @Async(XpengImportExecutorConfig.EXECUTOR_BEAN)
-    public void processJobAsync(UUID jobId, String tempfilePath, String password, UUID connectionId) {
-        runJob(jobId, Paths.get(tempfilePath), XpengImportFormat.XLSX, password, connectionId);
-    }
-
-    @Async(XpengImportExecutorConfig.EXECUTOR_BEAN)
-    public void processCsvJobAsync(UUID jobId, String tempfilePath, UUID connectionId) {
-        runJob(jobId, Paths.get(tempfilePath), XpengImportFormat.CSV_ZIP, null, connectionId);
-    }
-
-    private void runJob(UUID jobId, Path tempfile, XpengImportFormat format, String password, UUID connectionId) {
+    /**
+     * Verarbeitet einen vom Worker geclaimten Job (Status PROCESSING) bis DONE oder FAILED.
+     * Loescht das Tempfile in jedem Fall und entfernt die Datei-Referenzen aus dem Job.
+     */
+    public void process(XpengImportJob job) {
+        UUID jobId = job.getId();
+        Path tempfile = Paths.get(job.getTempfilePath());
         try {
-            jobRepo.findById(jobId).ifPresent(j -> {
-                j.setStatus(XpengImportJob.Status.PROCESSING);
-                j.setStartedAt(LocalDateTime.now());
-                jobRepo.save(j);
-            });
+            ImportStats stats = runImport(job, tempfile);
 
-            ImportStats stats = runImport(jobId, tempfile, format, password);
+            job.setStatus(XpengImportJob.Status.DONE);
+            job.setImportedTrips(stats.importedTrips);
+            job.setImportedSessions(stats.importedSessions);
+            job.setSkippedDuplicates(stats.skipped + stats.skippedTrips);
+            job.setDataRangeStart(stats.rangeStart);
+            job.setDataRangeEnd(stats.rangeEnd);
+            job.setCompletedAt(LocalDateTime.now());
 
-            jobRepo.findById(jobId).ifPresent(j -> {
-                j.setStatus(XpengImportJob.Status.DONE);
-                j.setImportedTrips(stats.importedTrips);
-                j.setImportedSessions(stats.importedSessions);
-                j.setSkippedDuplicates(stats.skipped + stats.skippedTrips);
-                j.setDataRangeStart(stats.rangeStart);
-                j.setDataRangeEnd(stats.rangeEnd);
-                j.setCompletedAt(LocalDateTime.now());
-                jobRepo.save(j);
-            });
-
-            connectionRepo.findById(connectionId).ifPresent(c -> {
+            connectionRepo.findById(job.getConnectionId()).ifPresent(c -> {
                 c.setLastSuccessfulImportAt(LocalDateTime.now());
                 c.setTotalImportsCount(c.getTotalImportsCount() + 1);
                 connectionRepo.save(c);
@@ -258,28 +212,27 @@ public class XpengImportService {
                     jobId, stats.importedTrips, stats.importedSessions, stats.skipped, stats.skippedTrips);
         } catch (Throwable e) {
             // Bewusst Throwable, nicht nur Exception: ein grosser Export kann beim Parsen einen
-            // OutOfMemoryError ausloesen. Wuerde der (als Error) durchschlagen, stirbt der
-            // Async-Thread stumm und der Job haengt fuer immer in PROCESSING (bis Server-Neustart).
-            // Fangen -> Job als FAILED markieren, damit der User eine klare Rueckmeldung bekommt.
+            // OutOfMemoryError ausloesen. Der Job muss auch dann als FAILED enden, statt in
+            // PROCESSING haengen zu bleiben.
             log.error("XpengImport: job={} FAILED", jobId, e);
-            jobRepo.findById(jobId).ifPresent(j -> {
-                j.setStatus(XpengImportJob.Status.FAILED);
-                j.setErrorMessage(truncate(e.getMessage(), 500));
-                j.setCompletedAt(LocalDateTime.now());
-                jobRepo.save(j);
-            });
+            job.setStatus(XpengImportJob.Status.FAILED);
+            job.setErrorMessage(truncate(e.getMessage(), 500));
+            job.setCompletedAt(LocalDateTime.now());
             if (isEncryptionRelated(e)) {
-                connectionRepo.findById(connectionId).ifPresent(conn ->
+                connectionRepo.findById(job.getConnectionId()).ifPresent(conn ->
                         adminAlertService.sendXpengEncryptionAlert(
-                                connectionId, VinUtils.mask(conn.getVin()), e.getMessage()));
+                                job.getConnectionId(), VinUtils.mask(conn.getVin()), e.getMessage()));
             }
         } finally {
             try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
+            job.clearFileReferences();
+            jobRepo.save(job);
         }
     }
 
-    private ImportStats runImport(UUID jobId, Path tempfile, XpengImportFormat format, String password) throws Exception {
-        XpengImportJob job = jobRepo.findById(jobId).orElseThrow();
+    private ImportStats runImport(XpengImportJob job, Path tempfile) throws Exception {
+        XpengImportFormat format = job.getFormat();
+        String password = job.getFilePassword();
         UUID userId = job.getUserId();
         UUID carId = job.getCarId();
 
@@ -595,10 +548,16 @@ public class XpengImportService {
         }
     }
 
+    /** Loescht alte Tempfiles, die kein wartender Job mehr referenziert (z.B. nach Rollback). */
     private void cleanupStaleTempfiles(Path dir) {
+        Set<String> referenced = jobRepo.findAllByStatus(XpengImportJob.Status.QUEUED).stream()
+                .map(XpengImportJob::getTempfilePath)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         try (var stream = Files.list(dir)) {
             long cutoff = System.currentTimeMillis() - 3_600_000L;
             stream.filter(p -> p.getFileName().toString().startsWith("xpeng-"))
+                  .filter(p -> !referenced.contains(p.toString()))
                   .filter(p -> {
                       try { return Files.getLastModifiedTime(p).toMillis() < cutoff; }
                       catch (Exception e) { return false; }
@@ -610,12 +569,6 @@ public class XpengImportService {
         } catch (Exception e) {
             log.warn("cleanupStaleTempfiles failed", e);
         }
-    }
-
-    @Transactional
-    public void recoverInFlightJobs() {
-        int count = jobRepo.markAllInFlightAsFailed("Server-Neustart - Job wurde abgebrochen", LocalDateTime.now());
-        if (count > 0) log.warn("XpengImport: marked {} stale jobs as FAILED on startup", count);
     }
 
     public Optional<XpengImportJob> getJobForUser(UUID jobId, UUID userId) {

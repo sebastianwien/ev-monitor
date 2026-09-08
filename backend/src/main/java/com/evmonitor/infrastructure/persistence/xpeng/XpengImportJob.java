@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.persistence.xpeng;
 
+import com.evmonitor.domain.xpeng.XpengImportFormat;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -40,6 +41,18 @@ public class XpengImportJob {
     @Column(name = "file_size_bytes")
     private Long fileSizeBytes;
 
+    /** Pfad der hochgeladenen Datei; wird nach Verarbeitung geloescht und auf null gesetzt. */
+    @Column(name = "tempfile_path")
+    private String tempfilePath;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "format", length = 20)
+    private XpengImportFormat format;
+
+    /** Nur XLSX-Mailflow: Passwort der verschluesselten Datei, wird nach Verarbeitung geloescht. */
+    @Column(name = "file_password")
+    private String filePassword;
+
     @Column(name = "data_range_start")
     private LocalDateTime dataRangeStart;
 
@@ -66,6 +79,12 @@ public class XpengImportJob {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    /** Datei-Referenzen entfernen, sobald der Job abgeschlossen ist (Tempfile ist dann geloescht). */
+    public void clearFileReferences() {
+        this.tempfilePath = null;
+        this.filePassword = null;
+    }
 
     @PrePersist
     void prePersist() {

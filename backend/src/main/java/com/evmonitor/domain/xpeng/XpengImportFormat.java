@@ -1,4 +1,4 @@
-package com.evmonitor.application.imports.xpeng;
+package com.evmonitor.domain.xpeng;
 
 /**
  * Transportformat eines XPeng-Uploads. Beide Formate liefern dieselben

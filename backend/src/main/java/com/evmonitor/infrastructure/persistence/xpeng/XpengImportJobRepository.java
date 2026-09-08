@@ -17,10 +17,19 @@ public interface XpengImportJobRepository extends JpaRepository<XpengImportJob, 
             UUID userId, String fileHash, Collection<XpengImportJob.Status> statuses);
     List<XpengImportJob> findAllByStatus(XpengImportJob.Status status);
 
+    /**
+     * Claimt den aeltesten QUEUED-Job. {@code FOR UPDATE SKIP LOCKED} macht den Claim auch bei
+     * mehreren Worker-Instanzen exklusiv; muss innerhalb einer Transaktion laufen.
+     */
+    @Query(value = "SELECT * FROM xpeng_import_job WHERE status = 'QUEUED' "
+            + "ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED", nativeQuery = true)
+    Optional<XpengImportJob> findNextQueuedForUpdate();
+
+    /** Nach einem Neustart: PROCESSING-Jobs wurden mitten in der Arbeit abgebrochen. */
     @Modifying
     @Query("UPDATE XpengImportJob j SET j.status = 'FAILED', j.errorMessage = :reason, j.completedAt = :now "
-            + "WHERE j.status IN ('QUEUED','PROCESSING')")
-    int markAllInFlightAsFailed(String reason, LocalDateTime now);
+            + "WHERE j.status = 'PROCESSING'")
+    int markProcessingAsFailed(String reason, LocalDateTime now);
 
     @Modifying
     long deleteAllByUserId(UUID userId);

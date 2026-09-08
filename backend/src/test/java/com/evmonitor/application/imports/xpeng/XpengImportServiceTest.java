@@ -11,6 +11,7 @@ import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
+import com.evmonitor.domain.xpeng.XpengImportFormat;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJobRepository;
 import com.evmonitor.application.AdminAlertService;
@@ -22,7 +23,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayInputStream;
@@ -49,7 +50,7 @@ class XpengImportServiceTest {
     @Mock TripService tripService;
     @Mock PublicApiImportService publicApiImportService;
     @Mock XpengChargeMatcher chargeMatcher;
-    @Mock ApplicationContext applicationContext;
+    @Mock ApplicationEventPublisher eventPublisher;
     @Mock EvLogRepository evLogRepository;
     @Mock EvTripRepository evTripRepository;
     @Mock AdminAlertService adminAlertService;
@@ -68,7 +69,6 @@ class XpengImportServiceTest {
         tempDir = Files.createTempDirectory("xpeng-test-");
         ReflectionTestUtils.setField(service, "tempDir", tempDir.toString());
         // self-injection returns the same instance under test; @Async/@Transactional are no-ops in unit tests
-        lenient().when(applicationContext.getBean(XpengImportService.class)).thenReturn(service);
     }
 
     @Test
@@ -170,14 +170,12 @@ class XpengImportServiceTest {
         // Async-Job NICHT stumm in PROCESSING haengen lassen - er muss als FAILED enden.
         UUID jobId = UUID.randomUUID();
         UUID connId = UUID.randomUUID();
-        XpengImportJob job = XpengImportJob.builder()
-                .id(jobId).userId(USER).carId(CAR)
-                .status(XpengImportJob.Status.QUEUED).build();
-        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
+        XpengImportJob job = processingJob(jobId, connId, XpengImportFormat.CSV_ZIP,
+                tempDir.resolve("nonexistent.zip"));
         when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(connectionRepo.findByCarId(CAR)).thenThrow(new OutOfMemoryError("heap"));
 
-        service.processCsvJobAsync(jobId, tempDir.resolve("nonexistent.zip").toString(), connId);
+        service.process(job);
 
         ArgumentCaptor<XpengImportJob> captor = ArgumentCaptor.forClass(XpengImportJob.class);
         verify(jobRepo, atLeastOnce()).save(captor.capture());
@@ -274,9 +272,13 @@ class XpengImportServiceTest {
                 anyCollection())).thenReturn(Optional.empty());
         when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
         byte[] zip = Files.readAllBytes(writeCsvZip(VIN));
-        assertDoesNotThrow(() -> service.uploadCsvZip(USER, CAR,
-                new ByteArrayInputStream(zip), "1.1.1.1", "ua"));
-        verify(jobRepo).save(any());
+
+        XpengImportJob job = service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(zip), "1.1.1.1", "ua");
+
+        assertEquals(XpengImportJob.Status.QUEUED, job.getStatus());
+        assertEquals(XpengImportFormat.CSV_ZIP, job.getFormat());
+        assertTrue(Files.exists(Path.of(job.getTempfilePath())), "Tempfile bleibt fuer den Worker liegen");
+        verify(eventPublisher).publishEvent(any(XpengImportJobQueuedEvent.class));
     }
 
     @Test
@@ -314,38 +316,34 @@ class XpengImportServiceTest {
     }
 
     @Test
-    void processCsvJobAsync_matchingVin_marksDone() throws Exception {
+    void process_csvZip_matchingVin_marksDoneAndClearsFileReferences() throws Exception {
         UUID jobId = UUID.randomUUID();
         UUID connectionId = UUID.randomUUID();
         Path zip = writeCsvZip(VIN);
-        XpengImportJob job = XpengImportJob.builder()
-                .id(jobId).userId(USER).carId(CAR)
-                .status(XpengImportJob.Status.QUEUED).build();
+        XpengImportJob job = processingJob(jobId, connectionId, XpengImportFormat.CSV_ZIP, zip);
         XpengConnection conn = activeConnection();
-        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
         when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(conn));
         when(connectionRepo.findById(connectionId)).thenReturn(Optional.of(conn));
 
-        service.processCsvJobAsync(jobId, zip.toString(), connectionId);
+        service.process(job);
 
         assertEquals(XpengImportJob.Status.DONE, job.getStatus());
+        assertNull(job.getTempfilePath(), "Datei-Referenz wird nach Verarbeitung entfernt");
+        assertFalse(Files.exists(zip), "Tempfile wird nach Verarbeitung geloescht");
         verify(adminAlertService, never()).sendXpengEncryptionAlert(any(), any(), any());
     }
 
     @Test
-    void processCsvJobAsync_vinMismatch_marksFailed() throws Exception {
+    void process_csvZip_vinMismatch_marksFailed() throws Exception {
         UUID jobId = UUID.randomUUID();
         UUID connectionId = UUID.randomUUID();
         Path zip = writeCsvZip("WRONGVIN000000000");
-        XpengImportJob job = XpengImportJob.builder()
-                .id(jobId).userId(USER).carId(CAR)
-                .status(XpengImportJob.Status.QUEUED).build();
-        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
+        XpengImportJob job = processingJob(jobId, connectionId, XpengImportFormat.CSV_ZIP, zip);
         when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
 
-        service.processCsvJobAsync(jobId, zip.toString(), connectionId);
+        service.process(job);
 
         assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
         assertTrue(job.getErrorMessage() != null
@@ -402,7 +400,7 @@ class XpengImportServiceTest {
                 new RuntimeException("VIN mismatch")));
     }
 
-    // --- processJobAsync: encryption alert ---
+    // --- process: encryption alert ---
 
     @Test
     void sendsAlertWhenOleXlsxHasNoPassword() throws Exception {
@@ -416,17 +414,14 @@ class XpengImportServiceTest {
                 (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1, 0, 0, 0, 0
         });
 
-        XpengImportJob job = XpengImportJob.builder()
-                .id(jobId).userId(USER).carId(CAR)
-                .status(XpengImportJob.Status.QUEUED).build();
+        XpengImportJob job = processingJob(jobId, connectionId, XpengImportFormat.XLSX, oleTempFile);
         XpengConnection conn = activeConnection();
 
-        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
         when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(conn));
         when(connectionRepo.findById(connectionId)).thenReturn(Optional.of(conn));
 
-        service.processJobAsync(jobId, oleTempFile.toString(), null, connectionId);
+        service.process(job);
 
         verify(adminAlertService).sendXpengEncryptionAlert(eq(connectionId), anyString(), anyString());
         assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
@@ -438,16 +433,21 @@ class XpengImportServiceTest {
         UUID connectionId = UUID.randomUUID();
 
         // Non-existent file → IOException, not encryption-related
-        XpengImportJob job = XpengImportJob.builder()
-                .id(jobId).userId(USER).carId(CAR)
-                .status(XpengImportJob.Status.QUEUED).build();
+        XpengImportJob job = processingJob(jobId, connectionId, XpengImportFormat.XLSX,
+                Path.of("/nonexistent/path.xlsx"));
 
-        when(jobRepo.findById(jobId)).thenReturn(Optional.of(job));
         when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.processJobAsync(jobId, "/nonexistent/path.xlsx", null, connectionId);
+        service.process(job);
 
         verify(adminAlertService, never()).sendXpengEncryptionAlert(any(), any(), any());
         assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
+    }
+
+    private static XpengImportJob processingJob(UUID jobId, UUID connectionId, XpengImportFormat format, Path tempfile) {
+        return XpengImportJob.builder()
+                .id(jobId).userId(USER).carId(CAR).connectionId(connectionId)
+                .format(format).tempfilePath(tempfile.toString())
+                .status(XpengImportJob.Status.PROCESSING).build();
     }
 }

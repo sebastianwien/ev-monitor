@@ -133,6 +133,8 @@ xpeng:
     # (or on crash recovery). On Hetzner prod: persistent disk path with enough space.
     # Local dev: defaults to /tmp.
     tempdir: ${XPENG_IMPORT_TEMPDIR:/tmp/ev-monitor-xpeng-imports}
+    worker:
+      poll-ms: ${XPENG_IMPORT_WORKER_POLL_MS:30000}  # Sicherheitsnetz; normal weckt das Queued-Event den Worker sofort
   # EU-Data-Act Open API (AutoSync via API-Pull). Enterprise-Credentials (appId/appSecret)
   # kommen aus der Entwickler-Registrierung und liegen NUR als Env-Var vor, nie im Repo.
   # appSecret geht ausschliesslich in die Request-Signatur ein, nie in den Request-Body.
