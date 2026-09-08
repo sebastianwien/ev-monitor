@@ -64,7 +64,14 @@ jobs:
             git reset --hard origin/main
 
             echo "🗄️  Creating database backup..."
-            docker compose -f docker-compose.full.yml exec -T db pg_dump -U evmonitor ev_monitor > backup-$(date +%Y%m%d-%H%M%S).sql || echo "⚠️  Backup failed (DB might not be running yet)"
+            BACKUP_FILE=backup-$(date +%Y%m%d-%H%M%S).sql.gz
+            if (set -o pipefail; docker compose -f docker-compose.full.yml exec -T db pg_dump -U evmonitor ev_monitor | gzip > "$BACKUP_FILE") && [ -s "$BACKUP_FILE" ]; then
+              echo "✅ Backup: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
+              bash scripts/rotate-backups.sh . || echo "⚠️  Backup rotation failed"
+            else
+              rm -f "$BACKUP_FILE"
+              echo "⚠️  Backup failed (DB might not be running yet) - keeping old backups"
+            fi
 
             echo "🚀 Deploying application..."
             flock -w 180 /tmp/ev-monitor-deploy.lock ./deploy.sh

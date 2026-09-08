@@ -12,9 +12,10 @@ echo "[$(date)] Starting Docker cleanup..."
 echo "Pruning buildx cache (older than 48 hours)..."
 docker buildx prune --force --filter until=48h
 
-# Remove dangling images (not tagged, not used by any container)
-echo "Removing dangling images..."
-docker image prune --force
+# Remove images not used by any container and older than 7 days
+# (also tagged ones, e.g. superseded postgres versions or one-off tools)
+echo "Removing unused images older than 7 days..."
+docker image prune --all --force --filter until=168h
 
 # Show disk usage after cleanup
 echo "Disk usage after cleanup:"
