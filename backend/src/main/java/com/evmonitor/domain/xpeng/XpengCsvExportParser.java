@@ -58,7 +58,7 @@ import java.util.zip.ZipInputStream;
 public class XpengCsvExportParser {
 
     private static final int MAX_ENTRIES = 50;
-    private static final long MAX_TOTAL_UNCOMPRESSED_BYTES = 300L * 1024 * 1024; // 300 MB
+    private static final long MAX_TOTAL_UNCOMPRESSED_BYTES = 2048L * 1024 * 1024; // 2 GB (entpackt; Parser streamt, Limit nur Zip-Bomb-Schutz)
     // timer ist ein absoluter Epoch-Zeitstempel. Wir wandeln ihn in die lokale Wanduhrzeit
     // des Fahrzeugs um - konsistent zum alten XLSX-Weg (dort trug XPeng lokale Zeitstrings).
     // Default Europe/Berlin fuer die aktuelle Nutzerbasis; spaeter ggf. pro Fahrzeug.
