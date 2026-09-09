@@ -347,8 +347,11 @@ public class EvLogService {
      * How many logs of this user at this location still have no cost. Drives the
      * "apply to all N charges here" prompt in the log form.
      */
-    public long countPricelessLogsAtLocation(UUID userId, String geohash) {
-        return evLogRepository.findPricelessLogsAtGeohash(userId, geohash).size();
+    /** @param excludeLogId the charge currently being amended - it is priceless too, but not "another one". */
+    public long countPricelessLogsAtLocation(UUID userId, String geohash, UUID excludeLogId) {
+        return evLogRepository.findPricelessLogsAtGeohash(userId, geohash).stream()
+                .filter(log -> !log.getId().equals(excludeLogId))
+                .count();
     }
 
     /**

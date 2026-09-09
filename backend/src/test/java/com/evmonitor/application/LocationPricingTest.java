@@ -122,6 +122,20 @@ class LocationPricingTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void theTariffNamesTheChargeItWasDerivedFrom() {
+        // Das Nachtrag-Modal zeigt "zuletzt hier am ...": der Vorschlag muss sagen, aus welcher
+        // Ladung er stammt - sonst ist die Herkunft fuer den User nicht nachvollziehbar.
+        UUID card = saveCard("Kaufland", new BigDecimal("0.2900"), null, BigDecimal.ZERO);
+        chargedHere(new BigDecimal("40.0"), new BigDecimal("11.60"), card, ChargingType.AC, 3);
+
+        LocationPricing.Tariff tariff = locationPricing.tariffAt(userId, HERE, ChargingType.AC, true).orElseThrow();
+
+        assertNotNull(tariff.anchorLoggedAt());
+        assertEquals(LocalDate.now().minusDays(3), tariff.anchorLoggedAt().toLocalDate());
+        assertEquals(card, tariff.chargingProviderId());
+    }
+
+    @Test
     void aChargeInheritsOnlyFromAnchorsOfItsOwnChargingType() {
         // Derselbe Standort, zwei Saeulen: die juengste bezahlte Ladung war DC (44 ct),
         // die letzte AC-Ladung (29 ct) liegt weiter zurueck. Eine neue AC-Ladung erbt

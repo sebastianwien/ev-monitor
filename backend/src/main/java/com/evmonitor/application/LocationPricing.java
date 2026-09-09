@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,8 +39,12 @@ public class LocationPricing {
     private final EvLogRepository evLogRepository;
     private final JpaUserChargingProviderRepository chargingProviderRepository;
 
-    /** The tariff that last applied at a location. */
-    public record Tariff(BigDecimal pricePerKwh, BigDecimal sessionFeeEur, UUID chargingProviderId) {
+    /**
+     * The tariff that last applied at a location. {@code anchorLoggedAt} names the charge it was
+     * derived from (null for a card's list price) so the UI can say where a suggestion comes from.
+     */
+    public record Tariff(BigDecimal pricePerKwh, BigDecimal sessionFeeEur, UUID chargingProviderId,
+                         LocalDateTime anchorLoggedAt) {
 
         public Optional<BigDecimal> costFor(BigDecimal kwh) {
             if (kwh == null || kwh.signum() <= 0 || pricePerKwh == null) return Optional.empty();
@@ -75,7 +80,8 @@ public class LocationPricing {
                                 ? anchor.getPricePerKwh()
                                 : anchor.getCostEur().divide(anchor.costBasisKwh(), 4, RoundingMode.HALF_UP),
                         BigDecimal.ZERO,
-                        anchor.getChargingProviderId()));
+                        anchor.getChargingProviderId(),
+                        anchor.getLoggedAt()));
     }
 
     /**
@@ -124,7 +130,7 @@ public class LocationPricing {
     public Optional<BigDecimal> costUnder(UserChargingProviderEntity card, EvLog log) {
         BigDecimal price = priceOf(card, log.getChargingType());
         if (price == null) return Optional.empty();
-        return new Tariff(price, card.getSessionFeeEur(), card.getId()).costFor(log.costBasisKwh());
+        return new Tariff(price, card.getSessionFeeEur(), card.getId(), null).costFor(log.costBasisKwh());
     }
 
     /** The card's own AC/DC rate for this charging type - the exact figure {@link #costUnder}

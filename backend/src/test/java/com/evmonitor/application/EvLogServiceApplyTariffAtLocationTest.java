@@ -152,7 +152,17 @@ class EvLogServiceApplyTariffAtLocationTest extends AbstractIntegrationTest {
         saveLog(LOCATION, ChargingType.DC, new BigDecimal("50.0"), new BigDecimal("20.00"));
         saveLog(OTHER_LOCATION, ChargingType.DC, new BigDecimal("50.0"), null);
 
-        assertEquals(2, evLogService.countPricelessLogsAtLocation(userId, LOCATION));
+        assertEquals(2, evLogService.countPricelessLogsAtLocation(userId, LOCATION, null));
+    }
+
+    @Test
+    void theChargeBeingAmendedDoesNotCountAsAnotherOne() {
+        // Das Nachtrag-Modal fragt "auch N WEITERE Ladungen hier bepreisen?" - die gerade
+        // geoeffnete, selbst noch preislose Ladung darf nicht mitgezaehlt werden.
+        EvLog opened = saveLog(LOCATION, ChargingType.DC, new BigDecimal("50.0"), null);
+        saveLog(LOCATION, ChargingType.DC, new BigDecimal("50.0"), null);
+
+        assertEquals(1, evLogService.countPricelessLogsAtLocation(userId, LOCATION, opened.getId()));
     }
 
     private EvLog reload(EvLog log) {

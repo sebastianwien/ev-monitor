@@ -710,8 +710,14 @@ public class EvLogStatisticsService {
                                                         boolean isPublicCharging, ChargingType chargingType) {
         int precision = isPublicCharging ? 7 : 6;
         String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();
+        return getPriceSuggestionAtGeohash(userId, geohash, isPublicCharging, chargingType);
+    }
+
+    /** Same lookup for a stored charge, whose only location is its geohash. */
+    public Optional<PriceSuggestion> getPriceSuggestionAtGeohash(UUID userId, String geohash,
+                                                                 boolean isPublicCharging, ChargingType chargingType) {
         return locationPricing.tariffAt(userId, geohash, chargingType, isPublicCharging)
-                .map(tariff -> new PriceSuggestion(tariff.pricePerKwh(), tariff.chargingProviderId()));
+                .map(tariff -> new PriceSuggestion(tariff.pricePerKwh(), tariff.chargingProviderId(), tariff.anchorLoggedAt()));
     }
 
     private EvLogStatisticsResponse.ChargingTypeSplit buildChargingTypeSplit(List<EvLog> logs) {

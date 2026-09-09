@@ -70,20 +70,30 @@ public class EvLogController {
         return ResponseEntity.ok(logs);
     }
 
+    /**
+     * Accepts lat/lon (new log) or a stored geohash (amending an existing charge - lat/lon are
+     * never persisted). Same contract as /priceless-count.
+     */
     @GetMapping("/price-suggestion")
     public ResponseEntity<?> getPriceSuggestion(
-            @RequestParam double lat,
-            @RequestParam double lon,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lon,
+            @RequestParam(required = false) String geohash,
             @RequestParam(defaultValue = "false") boolean isPublic,
             @RequestParam(required = false) com.evmonitor.domain.ChargingType chargingType,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        return evLogStatisticsService.getPriceSuggestion(principal.getUser().getId(), lat, lon, isPublic, chargingType)
+        String location = resolveGeohash(geohash, lat, lon, isPublic);
+        if (location == null) return ResponseEntity.badRequest().build();
+        return evLogStatisticsService.getPriceSuggestionAtGeohash(principal.getUser().getId(), location, isPublic, chargingType)
                 .map(suggestion -> {
                     Map<String, Object> body = new java.util.HashMap<>();
                     body.put("costPerKwh", suggestion.costPerKwh());
                     if (suggestion.chargingProviderId() != null) {
                         body.put("chargingProviderId", suggestion.chargingProviderId());
+                    }
+                    if (suggestion.anchorLoggedAt() != null) {
+                        body.put("anchorLoggedAt", suggestion.anchorLoggedAt());
                     }
                     return ResponseEntity.ok(body);
                 })
@@ -226,12 +236,13 @@ public class EvLogController {
             @RequestParam(required = false) Double lat,
             @RequestParam(required = false) Double lon,
             @RequestParam(defaultValue = "false") boolean isPublic,
+            @RequestParam(required = false) UUID excludeLogId,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         String location = resolveGeohash(geohash, lat, lon, isPublic);
         if (location == null) return ResponseEntity.badRequest().build();
 
-        long count = evLogService.countPricelessLogsAtLocation(principal.getUser().getId(), location);
+        long count = evLogService.countPricelessLogsAtLocation(principal.getUser().getId(), location, excludeLogId);
         return ResponseEntity.ok(Map.of("count", count));
     }
 
