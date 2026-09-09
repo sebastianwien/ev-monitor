@@ -38,3 +38,20 @@ export function wattPreview(catalog: WattCatalog | null, s: WattPreviewState): n
   if (s.createsCard) total += amountOf(catalog, 'CARD_CREATED')
   return total
 }
+
+/** Was eine einzelne Ladung beim Nachtragen noch bringen KANN (Obergrenze fuer Chips und Listen). */
+export function wattPossibleForLog(catalog: WattCatalog | null, log: {
+  costEur?: number | null; chargingProviderId?: string | null; cpoName?: string | null; isPublicCharging?: boolean | null
+}): number {
+  return wattPreview(catalog, {
+    addsPrice: log.costEur == null,
+    addsCard: log.chargingProviderId == null,
+    addsCpo: !!log.isPublicCharging && !log.cpoName,
+    batchCount: 0,
+  })
+}
+
+/** Obergrenze pro Ladung ohne Kenntnis der Ladung (Banner mit N Ladungen). */
+export function wattPossiblePerLogMax(catalog: WattCatalog | null): number {
+  return wattPreview(catalog, { addsPrice: true, addsCard: true, addsCpo: true, batchCount: 0 })
+}

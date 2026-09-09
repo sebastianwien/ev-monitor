@@ -29,3 +29,17 @@ describe('wattPreview', () => {
     expect(wattPreview(null, { addsPrice: true, addsCard: true, addsCpo: true, batchCount: 3 })).toBe(0)
   })
 })
+
+import { wattPossibleForLog } from '../wattPreview'
+
+describe('wattPossibleForLog', () => {
+  it('oeffentliche Ladung: Preis + Karte + Betreiber', () => {
+    expect(wattPossibleForLog(catalog, { costEur: null, chargingProviderId: null, cpoName: null, isPublicCharging: true })).toBe(8)
+  })
+  it('private Ladung: kein Betreiber moeglich', () => {
+    expect(wattPossibleForLog(catalog, { costEur: null, chargingProviderId: null, cpoName: null, isPublicCharging: false })).toBe(5)
+  })
+  it('was schon da ist, zaehlt nicht mehr', () => {
+    expect(wattPossibleForLog(catalog, { costEur: null, chargingProviderId: 'c', cpoName: 'Aldi', isPublicCharging: true })).toBe(3)
+  })
+})

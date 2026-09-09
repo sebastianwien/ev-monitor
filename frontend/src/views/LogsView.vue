@@ -32,7 +32,7 @@ import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
 import WattBadge from '../components/shared/WattBadge.vue'
 import { useCoinStore } from '../stores/coins'
-import { wattPreview } from '../utils/wattPreview'
+import { wattPossibleForLog, wattPossiblePerLogMax } from '../utils/wattPreview'
 import { purchasesAvailable } from '../utils/iapPolicy'
 import { isShortTrip } from '../utils/shortTrip'
 import { phantomEurFor, totalPhantomKwh } from '../utils/phantomDrain'
@@ -102,8 +102,7 @@ import {
 const { t, locale } = useI18n()
 const coinStore = useCoinStore()
 coinStore.ensureCatalog()
-/** "+n Watt" am "Preis fehlt"-Chip bzw. Obergrenze am Banner - Betraege kommen aus dem Backend-Katalog. */
-const wattForPrice = computed(() => wattPreview(coinStore.catalog, { addsPrice: true, addsCard: false, addsCpo: false, batchCount: 0 }))
+/** Obergrenze am Banner: N Ladungen mal das Maximum pro Ladung - Betraege kommen aus dem Backend-Katalog. */
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 const { haptic } = useHaptic()
 const route = useRoute()
@@ -128,7 +127,7 @@ const {
   mergeTripEntry,
   submitTripFeedback,
 } = useCarContext()
-const wattForAllPriceless = computed(() => wattForPrice.value * pricelessCount.value)
+const wattForAllPriceless = computed(() => wattPossiblePerLogMax(coinStore.catalog) * pricelessCount.value)
 
 const deletingTripId = ref<string | null>(null)
 let _deleteTimer: ReturnType<typeof setTimeout> | null = null
@@ -1496,25 +1495,24 @@ function toggleAllCharges() {
           </div>
 
           <!-- Preislose Ladungen: macht auch alte, im Feed versteckte Logs ohne Preis auffindbar -->
-          <div v-if="pricelessCount > 0 && !pricelessBannerDismissed"
-            class="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-sm bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50">
-            <button
-              @click="showPricelessModal = true"
-              class="flex-1 flex items-center justify-between gap-3 text-left">
-              <div class="flex items-center gap-2">
-                <CurrencyEuroIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
-                  {{ t('priceless.banner', pricelessCount) }}
-                </span>
-                <WattBadge :amount="wattForAllPriceless" up-to />
-              </div>
-              <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('priceless.banner_cta') }}</span>
+          <div v-if="pricelessCount > 0 && !pricelessBannerDismissed" data-testid="priceless-banner"
+            class="w-full mb-4 flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-400 text-amber-950" aria-hidden="true">
+              <CurrencyEuroIcon class="h-5 w-5" />
+            </span>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('priceless.banner', pricelessCount) }}</div>
+              <div class="hidden sm:block text-xs text-gray-500 dark:text-gray-400 truncate">{{ t('priceless.info') }}</div>
+            </div>
+            <button type="button" @click="showPricelessModal = true" v-haptic
+              class="btn-3d shrink-0 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-sm">
+              {{ t('priceless.banner_cta') }}
+              <WattBadge :amount="wattForAllPriceless" up-to on-dark />
             </button>
-            <button
-              @click="dismissPricelessBanner"
-              class="shrink-0 p-1 rounded hover:bg-amber-300/50 dark:hover:bg-amber-600/30 transition-colors"
-              :title="t('priceless.dismiss')">
-              <XMarkIcon class="h-4 w-4 text-amber-700 dark:text-amber-400" />
+            <button type="button" @click="dismissPricelessBanner"
+              class="shrink-0 p-1.5 rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              :title="t('priceless.dismiss')" :aria-label="t('priceless.dismiss')">
+              <XMarkIcon class="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
 
@@ -2341,7 +2339,7 @@ function toggleAllCharges() {
                       class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
                       <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
                       {{ t('priceamend.chip') }}
-                      <WattBadge :amount="wattForPrice" />
+                      <WattBadge :amount="wattPossibleForLog(coinStore.catalog, item.entry)" up-to />
                     </button>
                     <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
                     <div v-if="openRealCostTooltipId === item.entry.id + '__d' && realCostHintFor(item.entry.id)"
@@ -2930,7 +2928,7 @@ function toggleAllCharges() {
                       class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer whitespace-nowrap">
                       <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
                       {{ t('priceamend.chip') }}
-                      <WattBadge :amount="wattForPrice" />
+                      <WattBadge :amount="wattPossibleForLog(coinStore.catalog, item.entry)" up-to />
                     </span>
                     <ChevronDownIcon v-if="!expandedLogs.has(item.entry.id)" class="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <ChevronUpIcon v-else class="w-4 h-4 text-gray-400 flex-shrink-0" />
