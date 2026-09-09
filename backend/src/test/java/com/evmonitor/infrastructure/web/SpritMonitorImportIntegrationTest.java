@@ -229,6 +229,37 @@ class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldReturnUnreachableCode_WhenSpritMonitorTimesOut() {
+        when(spritMonitorClient.getVehicles(validToken))
+                .thenThrow(new org.springframework.web.client.ResourceAccessException("Read timed out"));
+
+        Map<String, String> request = Map.of("token", validToken);
+        HttpEntity<Map<String, String>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/vehicles", HttpMethod.POST, requestWithAuth, Map.class);
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
+        assertEquals("UNREACHABLE", response.getBody().get("code"));
+    }
+
+    @Test
+    void shouldReturnTokenInvalidCode_WhenSpritMonitorRejectsToken() {
+        when(spritMonitorClient.getVehicles(validToken))
+                .thenThrow(org.springframework.web.client.HttpClientErrorException.create(
+                        HttpStatus.UNAUTHORIZED, "Unauthorized", null, null, null));
+
+        Map<String, String> request = Map.of("token", validToken);
+        HttpEntity<Map<String, String>> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/import/sprit-monitor/vehicles", HttpMethod.POST, requestWithAuth, Map.class);
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
+        assertEquals("TOKEN_INVALID", response.getBody().get("code"));
+    }
+
+    @Test
     void shouldHandleSpritMonitorAPIError() {
         when(spritMonitorClient.getVehicles(validToken))
                 .thenThrow(new RuntimeException("Sprit-Monitor API error"));

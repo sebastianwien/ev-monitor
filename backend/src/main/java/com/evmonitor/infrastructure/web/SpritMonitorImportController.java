@@ -47,21 +47,23 @@ public class SpritMonitorImportController {
             List<SpritMonitorVehicleDTO> vehicles = importService.fetchVehicles(token);
             return ResponseEntity.ok(vehicles);
         } catch (HttpClientErrorException.Unauthorized e) {
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(Map.of("error", "Token ungültig. Bitte prüfe deinen Sprit-Monitor API Token."));
+            return upstreamError("TOKEN_INVALID", "Token ungültig. Bitte prüfe deinen Sprit-Monitor API Token.");
         } catch (HttpClientErrorException e) {
             log.warn("Sprit-Monitor API error: {} {}", e.getStatusCode().value(), e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(Map.of("error", "Sprit-Monitor API Fehler (" + e.getStatusCode().value() + "). Bitte versuche es später erneut."));
+            return upstreamError("API_ERROR", "Sprit-Monitor API Fehler (" + e.getStatusCode().value() + "). Bitte versuche es später erneut.");
         } catch (ResourceAccessException e) {
             log.error("Sprit-Monitor not reachable (connection/timeout): {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(Map.of("error", "Sprit-Monitor nicht erreichbar. Bitte versuche es später erneut."));
+            return upstreamError("UNREACHABLE", "Sprit-Monitor nicht erreichbar. Bitte versuche es später erneut.");
         } catch (Exception e) {
             log.error("Unexpected error during Sprit-Monitor vehicle fetch", e);
-            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
-                .body(Map.of("error", "Sprit-Monitor nicht erreichbar. Bitte versuche es später erneut."));
+            return upstreamError("API_ERROR", "Sprit-Monitor nicht erreichbar. Bitte versuche es später erneut.");
         }
+    }
+
+    /** 422 with a machine-readable {@code code} so the frontend can localise the message. */
+    private static ResponseEntity<Map<String, String>> upstreamError(String code, String message) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(Map.of("code", code, "error", message));
     }
 
     /**

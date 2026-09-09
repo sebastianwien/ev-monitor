@@ -1922,7 +1922,11 @@ spritmonitor:
   danger_btn: Ta bort alla Sprit-Monitor-import
   err_token_empty: Ange ditt Sprit-Monitor API-token!
   err_no_vehicles: Inga elfordon hittades! Har du några på Sprit-Monitor?
-  err_token_invalid: Toket är ogiltigt eller API:et går inte att nå. Kontrollera ditt token!
+  err_token_invalid: "Ogiltig token. Kontrollera din Sprit-Monitor API-token."
+  err_unreachable: "Sprit-Monitor svarar inte. Det beror på Sprit-Monitors API, inte på din token. Försök igen senare."
+  err_api: "Sprit-Monitor rapporterade ett fel. Försök igen senare."
+  outage_title: "Sprit-Monitors API är inte tillgängligt"
+  outage_body: "Sprit-Monitors API har inte svarat sedan mitten av augusti. Felet ligger hos Sprit-Monitor, inte hos EV Monitor. Import misslyckas därför just nu. Laddningar du redan importerat påverkas inte. Så snart API:et är tillbaka fungerar importen som vanligt."
   step2_intro: Vi har hittat <strong>{n} elbilar</strong>! Lägg till dem i din EV Monitor-bilpark eller skapa nya.
   mapping_label: "Uppgift:"
   mapping_placeholder: -- Välj --

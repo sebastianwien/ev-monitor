@@ -3,7 +3,7 @@ import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { purchasesAvailable } from '../utils/iapPolicy'
-import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/imports/SpritMonitorImport.vue'
 import GoeIntegration from '../components/imports/GoeIntegration.vue'
 import TeslaFleetIntegration from '../components/imports/TeslaFleetIntegration.vue'
@@ -512,6 +512,14 @@ const teslaConnectedLabel = ref<string | null>(null)
           </button>
           <Transition name="accordion">
             <div v-if="activeTab === 'spritmonitor'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5 space-y-4">
+              <!-- Temporaerer Hinweis: api.spritmonitor.de antwortet seit Mitte August 2026 nicht. Entfernen, sobald die API wieder laeuft. -->
+              <div class="flex gap-3 p-3 md:p-4 rounded-sm border-2 border-amber-400 bg-amber-50 text-amber-900 dark:border-amber-600 dark:bg-amber-900/30 dark:text-amber-100">
+                <ExclamationTriangleIcon class="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
+                <div class="text-sm">
+                  <p class="font-bold">{{ t('spritmonitor.outage_title') }}</p>
+                  <p class="mt-1 leading-relaxed">{{ t('spritmonitor.outage_body') }}</p>
+                </div>
+              </div>
               <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.sprit_desc') }}</p>
               <ul class="space-y-2">
                 <li v-for="i in 4" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">

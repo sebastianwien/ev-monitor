@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { spritMonitorService, SpritMonitorVehicle, ImportResult, RefreshRawResult } from '../../api/spritMonitorService';
+import { spritMonitorService, SpritMonitorVehicle, ImportResult, RefreshRawResult, spritMonitorErrorKey } from '../../api/spritMonitorService';
 import { carService, Car, BrandInfo, ModelInfo } from '../../api/carService';
 import { useCarStore } from '../../stores/car';
 import { useCoinStore } from '../../stores/coins';
@@ -93,7 +93,7 @@ const fetchVehicles = async () => {
     });
     importStep.value = 'mapping';
   } catch (e: any) {
-    error.value = e.response?.data?.error || t('spritmonitor.err_token_invalid');
+    error.value = t(spritMonitorErrorKey(e));
   } finally {
     loading.value = false;
   }
@@ -275,6 +275,14 @@ const close = () => {
 
         <!-- Step 1: Token Input -->
         <div v-if="importStep === 'token'">
+          <!-- Temporaerer Hinweis: api.spritmonitor.de antwortet seit Mitte August 2026 nicht. Entfernen, sobald die API wieder laeuft. -->
+          <div class="mb-4 flex gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-100">
+            <ExclamationTriangleIcon class="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
+            <div class="text-sm">
+              <p class="font-semibold">{{ t('spritmonitor.outage_title') }}</p>
+              <p class="mt-1">{{ t('spritmonitor.outage_body') }}</p>
+            </div>
+          </div>
           <p class="text-gray-700 dark:text-gray-300 mb-4" v-html="t('spritmonitor.step1_intro')" />
           <input
             v-model="token"

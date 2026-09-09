@@ -16,6 +16,18 @@ export interface ImportResult {
   errors: string[];
 }
 
+/**
+ * Maps an axios error from the Sprit-Monitor endpoints to an i18n key.
+ * No response at all (network error, timeout) counts as "unreachable" - the API
+ * has been down for weeks at a time, so this must never read as a token problem.
+ */
+export function spritMonitorErrorKey(e: any): string {
+  const code = e?.response?.data?.code
+  if (!e?.response || code === 'UNREACHABLE') return 'spritmonitor.err_unreachable'
+  if (code === 'TOKEN_INVALID') return 'spritmonitor.err_token_invalid'
+  return 'spritmonitor.err_api'
+}
+
 export const spritMonitorService = {
   /**
    * Fetches electric vehicles from Sprit-Monitor
