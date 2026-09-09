@@ -363,7 +363,13 @@ public class EvLogService {
      * previous log that already carries a providerId, and an import produces none.
      */
     @Transactional
-    public int applyTariffAtLocation(UUID userId, String geohash, UUID providerId) {
+    /** Logs priced by a location batch, and the Watt it earned (capped per call, see BATCH_REWARD_CAP). */
+    public record TariffApplied(int priced, int coinsAwarded) {}
+
+    /** More than this many priced logs per batch earn nothing extra - keeps bulk backfills from becoming a Watt farm. */
+    static final int BATCH_REWARD_CAP = 20;
+
+    public TariffApplied applyTariffAtLocation(UUID userId, String geohash, UUID providerId) {
         if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(providerId, userId)) {
             throw new IllegalArgumentException("Charging provider does not belong to user");
         }
@@ -371,6 +377,7 @@ public class EvLogService {
                 .orElseThrow(() -> new IllegalArgumentException("Charging provider not found"));
 
         int priced = 0;
+        int coins = 0;
         for (EvLog log : evLogRepository.findPricelessLogsAtGeohash(userId, geohash)) {
             Optional<BigDecimal> cost = locationPricing.costUnder(provider, log);
             if (cost.isEmpty()) continue;
@@ -378,8 +385,11 @@ public class EvLogService {
             save(log.toBuilder().chargingProviderId(providerId).costEur(cost.get())
                     .pricePerKwh(price).build());
             priced++;
+            if (priced <= BATCH_REWARD_CAP) {
+                coins += coinLogService.awardOncePerEntity(userId, CoinLogService.CoinEvent.PRICE_ADDED, log.getId());
+            }
         }
-        return priced;
+        return new TariffApplied(priced, coins);
     }
 
     @Transactional
@@ -499,6 +509,32 @@ public class EvLogService {
      */
     @Transactional
     public EvLogResponse updateLog(UUID id, UUID userId, EvLogUpdateRequest request) {
+        return updateLogAwardingCoins(id, userId, request).log();
+    }
+
+    /**
+     * Partial update that also pays Watt for data the charge did not have before: a first price,
+     * a first card, a first CPO. Changing an existing value pays nothing; the reward is bound to
+     * the log id, so it is deducted again if the log is deleted.
+     */
+    public EvLogUpdateResult updateLogAwardingCoins(UUID id, UUID userId, EvLogUpdateRequest request) {
+        EvLog before = evLogRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("EvLog not found"));
+        EvLogResponse updated = updateLogInternal(id, userId, request);
+
+        int coins = 0;
+        if (before.getCostEur() == null && updated.costEur() != null)
+            coins += coinLogService.awardOncePerEntity(userId, CoinLogService.CoinEvent.PRICE_ADDED, id);
+        if (before.getChargingProviderId() == null && updated.chargingProviderId() != null)
+            coins += coinLogService.awardOncePerEntity(userId, CoinLogService.CoinEvent.CARD_LINKED, id);
+        if (isBlank(before.getCpoName()) && !isBlank(updated.cpoName()))
+            coins += coinLogService.awardOncePerEntity(userId, CoinLogService.CoinEvent.CPO_ADDED, id);
+        return new EvLogUpdateResult(updated, coins);
+    }
+
+    private static boolean isBlank(String s) { return s == null || s.isBlank(); }
+
+    private EvLogResponse updateLogInternal(UUID id, UUID userId, EvLogUpdateRequest request) {
         EvLog existing = evLogRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + id));
 

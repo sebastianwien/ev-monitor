@@ -31,6 +31,16 @@ public class CoinLogController {
     }
 
     /**
+     * Reward catalogue: what each action pays and whether a one-time bonus is used up.
+     * Feeds the "+n Watt" preview badges. GET /api/coins/catalog
+     */
+    @GetMapping("/catalog")
+    public ResponseEntity<List<CoinLogService.CatalogEntry>> getCatalog(Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(coinLogService.catalog(principal.getUser().getId()));
+    }
+
+    /**
      * Get all coin logs for current user.
      * GET /api/coins/logs
      */

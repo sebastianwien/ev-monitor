@@ -15,6 +15,7 @@ import java.util.UUID;
 public class UserChargingProviderService {
 
     private final JpaUserChargingProviderRepository repository;
+    private final com.evmonitor.application.CoinLogService coinLogService;
 
     public List<UserChargingProviderResponse> getAll(UUID userId) {
         return repository.findByUserIdAndDeletedAtIsNullOrderByActiveFromDesc(userId).stream()
@@ -35,7 +36,10 @@ public class UserChargingProviderService {
         entity.setActiveFrom(request.activeFrom());
         entity.setActiveUntil(null);
 
-        return toResponse(repository.save(entity));
+        UserChargingProviderResponse saved = toResponse(repository.save(entity));
+        // Einmalig: die erste Karte ist der Schritt, der Auto-Bepreisung ueberhaupt moeglich macht.
+        coinLogService.awardCoinsForEvent(userId, com.evmonitor.application.CoinLogService.CoinEvent.CARD_CREATED, null);
+        return saved;
     }
 
     @Transactional

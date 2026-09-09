@@ -131,6 +131,8 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Watt-Vergabe an PATCH/POST-Antworten - ohne Freigabe ist der Header cross-origin (native App) unsichtbar
+        configuration.setExposedHeaders(List.of(com.evmonitor.infrastructure.web.EvLogController.COINS_AWARDED_HEADER));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

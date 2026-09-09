@@ -31,6 +31,9 @@ class UserChargingProviderServiceTest {
     @Mock
     private JpaUserChargingProviderRepository repository;
 
+    @Mock
+    private com.evmonitor.application.CoinLogService coinLogService;
+
     private UserChargingProviderService service;
 
     private final UUID userId = UUID.randomUUID();
@@ -38,11 +41,22 @@ class UserChargingProviderServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new UserChargingProviderService(repository);
+        service = new UserChargingProviderService(repository, coinLogService);
         lenient().when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
     // ── add() — Portfolio-Modell: kein deactivateCurrent ─────────────────────
+
+    @Test
+    void shouldAwardTheOneTimeCardBonus_WhenAddingAProvider() {
+        UserChargingProviderRequest request = new UserChargingProviderRequest(
+                "IONITY", null, new BigDecimal("0.29"), new BigDecimal("0.49"),
+                BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now());
+
+        service.add(userId, request);
+
+        verify(coinLogService).awardCoinsForEvent(userId, com.evmonitor.application.CoinLogService.CoinEvent.CARD_CREATED, null);
+    }
 
     @Test
     void shouldNotDeactivateExisting_WhenAddingNewProvider() {

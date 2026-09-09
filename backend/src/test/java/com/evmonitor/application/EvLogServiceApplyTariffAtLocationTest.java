@@ -73,7 +73,7 @@ class EvLogServiceApplyTariffAtLocationTest extends AbstractIntegrationTest {
         EvLog dc = saveLog(LOCATION, ChargingType.DC, new BigDecimal("50.0"), null);
         EvLog ac = saveLog(LOCATION, ChargingType.AC, new BigDecimal("10.0"), null);
 
-        int updated = evLogService.applyTariffAtLocation(userId, LOCATION, providerId);
+        int updated = evLogService.applyTariffAtLocation(userId, LOCATION, providerId).priced();
 
         assertEquals(2, updated);
         // 50 kWh * 0.59 = 29.50
@@ -91,7 +91,7 @@ class EvLogServiceApplyTariffAtLocationTest extends AbstractIntegrationTest {
     void neverOverwritesACostTheUserAlreadySet() {
         EvLog priced = saveLog(LOCATION, ChargingType.DC, new BigDecimal("50.0"), new BigDecimal("12.00"));
 
-        int updated = evLogService.applyTariffAtLocation(userId, LOCATION, providerId);
+        int updated = evLogService.applyTariffAtLocation(userId, LOCATION, providerId).priced();
 
         assertEquals(0, updated);
         assertEquals(0, new BigDecimal("12.00").compareTo(reload(priced).getCostEur()));
@@ -102,7 +102,7 @@ class EvLogServiceApplyTariffAtLocationTest extends AbstractIntegrationTest {
         EvLog here = saveLog(LOCATION, ChargingType.DC, new BigDecimal("50.0"), null);
         EvLog elsewhere = saveLog(OTHER_LOCATION, ChargingType.DC, new BigDecimal("50.0"), null);
 
-        int updated = evLogService.applyTariffAtLocation(userId, LOCATION, providerId);
+        int updated = evLogService.applyTariffAtLocation(userId, LOCATION, providerId).priced();
 
         assertEquals(1, updated);
         assertNotNull(reload(here).getCostEur());
@@ -139,7 +139,7 @@ class EvLogServiceApplyTariffAtLocationTest extends AbstractIntegrationTest {
         UUID dcOnly = saveProvider(userId, null, new BigDecimal("0.5900"));
         EvLog ac = saveLog(LOCATION, ChargingType.AC, new BigDecimal("10.0"), null);
 
-        int updated = evLogService.applyTariffAtLocation(userId, LOCATION, dcOnly);
+        int updated = evLogService.applyTariffAtLocation(userId, LOCATION, dcOnly).priced();
 
         assertEquals(0, updated);
         assertNull(reload(ac).getCostEur(), "No AC price configured - log must stay priceless");

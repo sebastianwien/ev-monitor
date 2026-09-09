@@ -4,6 +4,7 @@ import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogResponse;
+import com.evmonitor.application.EvLogUpdateResult;
 import com.evmonitor.application.EvLogStatisticsResponse;
 import com.evmonitor.application.EvLogStatisticsService;
 import com.evmonitor.application.EvLogUpdateRequest;
@@ -30,6 +31,9 @@ import java.util.UUID;
 @RequestMapping("/api/logs")
 @RequiredArgsConstructor
 public class EvLogController {
+
+    /** Watt earned by a partial update - see updateLog. */
+    public static final String COINS_AWARDED_HEADER = "X-Coins-Awarded";
 
     private final EvLogService evLogService;
     private final EvLogStatisticsService evLogStatisticsService;
@@ -193,8 +197,11 @@ public class EvLogController {
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            EvLogResponse updated = evLogService.updateLog(id, principal.getUser().getId(), request);
-            return ResponseEntity.ok(updated);
+            EvLogUpdateResult result = evLogService.updateLogAwardingCoins(id, principal.getUser().getId(), request);
+            // Header statt neuem Body-Shape: alle bestehenden Aufrufer lesen den Log weiter aus dem Body.
+            return ResponseEntity.ok()
+                    .header(COINS_AWARDED_HEADER, String.valueOf(result.coinsAwarded()))
+                    .body(result.log());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         } catch (DataIntegrityViolationException e) {
@@ -261,9 +268,9 @@ public class EvLogController {
         if (location == null) return ResponseEntity.badRequest().build();
 
         try {
-            int priced = evLogService.applyTariffAtLocation(
+            EvLogService.TariffApplied applied = evLogService.applyTariffAtLocation(
                     principal.getUser().getId(), location, body.chargingProviderId());
-            return ResponseEntity.ok(Map.of("priced", priced));
+            return ResponseEntity.ok(Map.of("priced", applied.priced(), "coinsAwarded", applied.coinsAwarded()));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }

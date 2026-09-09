@@ -53,6 +53,12 @@ public class CoinLogService {
         REFERRAL_WELCOME            ("Willkommensbonus (eingeladen)",                  25, true),
         // Public API Upload — per-log reward
         API_UPLOAD_LOG              ("Ladevorgang importiert (API)",                    2, false),
+        // Data quality on existing charges (price-amend modal) - once per log and field,
+        // enforced via awardOncePerEntity; deleting the log deducts them again (sourceEntityId)
+        PRICE_ADDED                 ("Preis nachgetragen",                             3, false),
+        CARD_LINKED                 ("Ladekarte zugeordnet",                           2, false),
+        CPO_ADDED                   ("Ladesäulen-Betreiber nachgetragen",              3, false),
+        CARD_CREATED                ("Erste Ladekarte angelegt",                       5, true),
         // Deductions
         LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false); // defaultAmount unused — caller passes dynamic negative amount
 
@@ -123,6 +129,37 @@ public class CoinLogService {
         awardCoins(userId, CoinType.ACHIEVEMENT_COIN, event.getDefaultAmount(),
                 event.getDescription(), sourceEntityId);
         return event.getDefaultAmount();
+    }
+
+    /**
+     * Award a per-entity event at most once per (user, event, entity). Used for data-quality
+     * rewards on existing charges: adding a price to the same log twice must not pay twice.
+     *
+     * @return coins actually awarded (0 when this entity already earned the event)
+     */
+    public int awardOncePerEntity(UUID userId, CoinEvent event, UUID sourceEntityId) {
+        if (coinLogRepository.existsByUserIdAndActionDescriptionAndSourceEntityId(
+                userId, event.getDescription(), sourceEntityId)) {
+            return 0;
+        }
+        awardCoins(userId, CoinType.ACHIEVEMENT_COIN, event.getDefaultAmount(),
+                event.getDescription(), sourceEntityId);
+        return event.getDefaultAmount();
+    }
+
+    /** One catalogue row: what an action pays, and whether a one-time bonus is already used up. */
+    public record CatalogEntry(String event, int amount, boolean oneTime, boolean claimed) {}
+
+    /**
+     * The reward catalogue for the UI, so "+3 Watt" badges can be shown BEFORE the action
+     * without duplicating the amounts in the frontend. Only one-time events carry a claimed
+     * flag - per-entity events are checked at award time.
+     */
+    public List<CatalogEntry> catalog(UUID userId) {
+        return java.util.Arrays.stream(CoinEvent.values())
+                .map(e -> new CatalogEntry(e.name(), e.getDefaultAmount(), e.isOneTime(),
+                        e.isOneTime() && hasEverReceivedCoinForAction(userId, e.getDescription())))
+                .toList();
     }
 
     /**

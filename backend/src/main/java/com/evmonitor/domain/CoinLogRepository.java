@@ -20,6 +20,9 @@ public interface CoinLogRepository {
      */
     boolean existsByUserIdAndActionDescription(UUID userId, String actionDescription);
 
+    /** Same, scoped to one source entity - "did this log already earn this reward?". */
+    boolean existsByUserIdAndActionDescriptionAndSourceEntityId(UUID userId, String actionDescription, UUID sourceEntityId);
+
     /**
      * Get total coin balance for a user, optionally filtered by coin type.
      */

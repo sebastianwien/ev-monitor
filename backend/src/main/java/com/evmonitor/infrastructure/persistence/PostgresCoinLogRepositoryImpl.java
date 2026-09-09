@@ -50,6 +50,11 @@ public class PostgresCoinLogRepositoryImpl implements CoinLogRepository {
     }
 
     @Override
+    public boolean existsByUserIdAndActionDescriptionAndSourceEntityId(UUID userId, String actionDescription, UUID sourceEntityId) {
+        return jpaRepository.existsByUserIdAndActionDescriptionAndSourceEntityId(userId, actionDescription, sourceEntityId);
+    }
+
+    @Override
     public Integer getTotalCoinsByUserId(UUID userId) {
         return jpaRepository.getTotalCoinsByUserId(userId);
     }

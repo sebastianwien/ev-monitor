@@ -14,6 +14,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -39,6 +41,48 @@ class CoinLogServiceTest {
 
         // Default: repository.save returns the domain object passed in (lenient to avoid UnnecessaryStubbingException)
         lenient().when(coinLogRepository.save(any(CoinLog.class))).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    // -------------------------------------------------------------------------
+    // Datenqualitaet: einmal pro Ladung und Feld (Nachtrag-Modal)
+    // -------------------------------------------------------------------------
+
+    @Test
+    void awardOncePerEntity_awardsTheFirstTimeForThisLog() {
+        when(coinLogRepository.existsByUserIdAndActionDescriptionAndSourceEntityId(
+                userId, CoinLogService.CoinEvent.PRICE_ADDED.getDescription(), logId)).thenReturn(false);
+
+        int awarded = coinLogService.awardOncePerEntity(userId, CoinLogService.CoinEvent.PRICE_ADDED, logId);
+
+        assertThat(awarded).isEqualTo(3);
+        verify(coinLogRepository).save(any(CoinLog.class));
+    }
+
+    @Test
+    void awardOncePerEntity_skipsWhenThisLogWasAlreadyRewarded() {
+        when(coinLogRepository.existsByUserIdAndActionDescriptionAndSourceEntityId(
+                userId, CoinLogService.CoinEvent.PRICE_ADDED.getDescription(), logId)).thenReturn(true);
+
+        int awarded = coinLogService.awardOncePerEntity(userId, CoinLogService.CoinEvent.PRICE_ADDED, logId);
+
+        assertThat(awarded).isZero();
+        verify(coinLogRepository, never()).save(any(CoinLog.class));
+    }
+
+    @Test
+    void catalog_listsEveryEventWithAmountAndWhetherAOneTimeBonusIsAlreadyClaimed() {
+        when(coinLogRepository.existsByUserIdAndActionDescription(eq(userId), anyString()))
+                .thenAnswer(inv -> CoinLogService.CoinEvent.CARD_CREATED.getDescription().equals(inv.getArgument(1)));
+
+        var catalog = coinLogService.catalog(userId);
+
+        var cardCreated = catalog.stream().filter(e -> e.event().equals("CARD_CREATED")).findFirst().orElseThrow();
+        assertThat(cardCreated.amount()).isEqualTo(5);
+        assertThat(cardCreated.oneTime()).isTrue();
+        assertThat(cardCreated.claimed()).isTrue();
+        var priceAdded = catalog.stream().filter(e -> e.event().equals("PRICE_ADDED")).findFirst().orElseThrow();
+        assertThat(priceAdded.claimed()).isFalse();
+        assertThat(priceAdded.amount()).isEqualTo(3);
     }
 
     // -------------------------------------------------------------------------

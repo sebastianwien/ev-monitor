@@ -19,6 +19,7 @@ import java.util.UUID;
 public class UserChargingProviderController {
 
     private final UserChargingProviderService service;
+    private final com.evmonitor.application.CoinLogService coinLogService;
 
     @GetMapping
     public List<UserChargingProviderResponse> getAll(
@@ -29,12 +30,18 @@ public class UserChargingProviderController {
     }
 
     @PostMapping
-    public UserChargingProviderResponse add(
+    public org.springframework.http.ResponseEntity<UserChargingProviderResponse> add(
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody UserChargingProviderRequest request
     ) {
         UUID userId = UUID.fromString(principal.getUser().getId().toString());
-        return service.add(userId, request);
+        boolean firstCard = !coinLogService.hasEverReceivedCoinForAction(
+                userId, com.evmonitor.application.CoinLogService.CoinEvent.CARD_CREATED.getDescription());
+        UserChargingProviderResponse saved = service.add(userId, request);
+        int coins = firstCard ? com.evmonitor.application.CoinLogService.CoinEvent.CARD_CREATED.getDefaultAmount() : 0;
+        return org.springframework.http.ResponseEntity.ok()
+                .header(EvLogController.COINS_AWARDED_HEADER, String.valueOf(coins))
+                .body(saved);
     }
 
     @PutMapping("/{id}")
