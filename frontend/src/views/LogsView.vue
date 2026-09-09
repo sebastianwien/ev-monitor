@@ -3273,7 +3273,9 @@ function toggleAllCharges() {
                           @keydown.space.stop.prevent="priceAmendingLog = topUp"
                           class="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer whitespace-nowrap flex-shrink-0">
                           <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
-                          {{ t('priceamend.chip') }}
+                          <!-- Auf sehr schmalen Geraeten traegt das Icon die Aussage - die Zeile
+                               kuerzt hier ohnehin schon Dauer und SoC weg. -->
+                          <span class="max-[436px]:hidden">{{ t('priceamend.chip') }}</span>
                           <WattBadge :amount="wattPossibleForLog(coinStore.catalog, topUp)" up-to />
                         </span>
                         <div class="relative flex-shrink-0" :class="{ 'ml-auto': !costBasisKwh(topUp) }">

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -123,7 +124,9 @@ public class LocationPricing {
                 changed = true;
             }
         }
-        return changed ? builder.build() : enrichFromHomeCard(log, userId);
+        // Der Heimtarif greift auch dann noch, wenn der Ort nur die Karte beisteuern konnte -
+        // sonst bliebe eine Heimladung ohne passenden Ortsanker dauerhaft ohne Kosten.
+        return enrichFromHomeCard(changed ? builder.build() : log, userId);
     }
 
     /**
@@ -142,11 +145,11 @@ public class LocationPricing {
         if (log.getCostEur() != null) return log;
         if (Boolean.TRUE.equals(log.getPublicCharging())) return log;
 
-        List<UserChargingProviderEntity> cards =
-                chargingProviderRepository.findPrivateCardsActiveOn(userId, log.getLoggedAt().toLocalDate());
-        if (cards.size() != 1) return log;
+        UserChargingProviderEntity card = homeCardFor(
+                chargingProviderRepository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId),
+                log.getLoggedAt().toLocalDate()).orElse(null);
+        if (card == null) return log;
 
-        UserChargingProviderEntity card = cards.get(0);
         Optional<BigDecimal> cost = costUnder(card, log);
         if (cost.isEmpty()) return log;
 
@@ -156,6 +159,20 @@ public class LocationPricing {
             priceUnder(card, log.getChargingType()).ifPresent(builder::pricePerKwh);
         }
         return builder.build();
+    }
+
+    /**
+     * Der Heimtarif, der an diesem Tag galt. Genau ein Treffer oder keiner: mehrere gleichzeitig
+     * gueltige Heimtarife sind mehrdeutig, und eine geratene Zuordnung waere teurer als eine
+     * Ladung, die offen bleibt. Die eine Stelle, die diese Regel kennt - der rueckwirkende
+     * Sammel-Nachtrag in EvLogService fragt hier ebenfalls an, statt sie zu wiederholen.
+     */
+    public Optional<UserChargingProviderEntity> homeCardFor(List<UserChargingProviderEntity> homeCards, LocalDate on) {
+        List<UserChargingProviderEntity> active = homeCards.stream()
+                .filter(c -> !c.getActiveFrom().isAfter(on))
+                .filter(c -> c.getActiveUntil() == null || !c.getActiveUntil().isBefore(on))
+                .toList();
+        return active.size() == 1 ? Optional.of(active.get(0)) : Optional.empty();
     }
 
     /**

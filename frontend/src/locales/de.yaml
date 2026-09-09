@@ -1124,6 +1124,8 @@ priceless:
   apply_home: "Alle Heimladungen mit \"{card}\" bepreisen"
   apply_home_hint: "Gilt für alle privaten Ladungen ohne Preis. Bereits eingetragene Preise bleiben unberührt."
   home_applied: "1 Ladung bepreist | {count} Ladungen bepreist"
+  home_none: "Keine Ladung passte zum Heimtarif - prüfe Ladeart und Gültigkeitsdatum der Karte."
+  home_error: "Das hat gerade nicht geklappt. Bitte später noch einmal versuchen."
 priceamend:
   title: "Preis nachtragen"
   card_section: "Deine Ladekarte"

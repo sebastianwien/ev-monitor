@@ -371,6 +371,24 @@ class LocationPricingTest extends AbstractIntegrationTest {
         assertNull(locationPricing.enrich(log, userId).getCostEur());
     }
 
+    @Test
+    void theHomeTariffStillPricesWhenTheLocationOnlyContributesACard() {
+        // Am Heim-Geohash wurde bisher nur DC bezahlt: der Ort steuert die Karte bei, aber
+        // keinen AC-Preis. Ohne den Heimtarif bliebe die AC-Ladung dauerhaft ohne Kosten -
+        // der Karten-Treffer darf den Fallback nicht verschlucken.
+        UUID home = saveHomeCard("Zuhause", new BigDecimal("0.2500"));
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("30.0"), new BigDecimal("13.20"), 30,
+                "u1hcpp", 10_000, null, null, LocalDateTime.now().minusDays(1), ChargingType.DC, null, null, false, null)
+                .toBuilder().chargingProviderId(home).build());
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, "u1hcpp", 11_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+        EvLog priced = locationPricing.enrich(log, userId);
+
+        assertEquals(0, new BigDecimal("10.00").compareTo(priced.getCostEur()));
+        assertEquals(home, priced.getChargingProviderId());
+    }
+
     // ---- Helpers ----
 
     private UUID saveCard(String name, BigDecimal ac, BigDecimal dc, BigDecimal sessionFee) {

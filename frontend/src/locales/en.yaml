@@ -1124,6 +1124,8 @@ priceless:
   apply_home: "Price all home charges with \"{card}\""
   apply_home_hint: "Applies to every private charge without a price. Prices you already entered stay untouched."
   home_applied: "1 charge priced | {count} charges priced"
+  home_none: "No charge matched the home tariff - check the card's charging type and start date."
+  home_error: "That did not work. Please try again later."
 priceamend:
   title: "Add price"
   card_section: "Your charging card"

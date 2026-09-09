@@ -1082,6 +1082,8 @@ priceless:
   apply_home: Prissett alle hjemmeladinger med "{card}"
   apply_home_hint: Gjelder alle private ladinger uten pris. Priser du allerede har lagt inn, forblir uendret.
   home_applied: "1 lading prissatt | {count} ladinger prissatt"
+  home_none: Ingen lading passet til hjemmetariffen - sjekk ladetype og gyldighetsdato på kortet.
+  home_error: Det gikk ikke. Prøv igjen senere.
 priceamend:
   title: Legg til pris
   card_section: Ladekortet ditt

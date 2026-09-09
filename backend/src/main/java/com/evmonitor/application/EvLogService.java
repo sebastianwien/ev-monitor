@@ -403,20 +403,28 @@ public class EvLogService {
      */
     @Transactional
     public TariffApplied applyHomeTariff(UUID userId) {
+        // Die Heimtarife einmal laden statt je Ladung: die Gueltigkeitspruefung braucht nur
+        // das Ladedatum und kostet im Speicher nichts - eine Query pro Log waere ein N+1
+        // ueber potenziell hunderte importierte Ladungen.
+        List<UserChargingProviderEntity> homeCards = chargingProviderRepository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId);
+        if (homeCards.isEmpty()) return new TariffApplied(0, 0);
+
         int priced = 0;
         int coins = 0;
         for (EvLog log : evLogRepository.findPricelessPrivateLogs(userId)) {
-            List<UserChargingProviderEntity> cards =
-                    chargingProviderRepository.findPrivateCardsActiveOn(userId, log.getLoggedAt().toLocalDate());
-            if (cards.size() != 1) continue;
+            UserChargingProviderEntity card =
+                    locationPricing.homeCardFor(homeCards, log.getLoggedAt().toLocalDate()).orElse(null);
+            if (card == null) continue;
 
-            UserChargingProviderEntity card = cards.get(0);
             Optional<BigDecimal> cost = locationPricing.costUnder(card, log);
             if (cost.isEmpty()) continue;
 
-            BigDecimal price = locationPricing.priceUnder(card, log.getChargingType()).orElse(null);
-            save(log.toBuilder().chargingProviderId(card.getId()).costEur(cost.get())
-                    .pricePerKwh(price).build());
+            // Eine bereits zugeordnete Karte bleibt stehen - der Heimtarif liefert hier den
+            // fehlenden Preis, er schreibt dem User nicht seine Zuordnung um.
+            var builder = log.toBuilder().costEur(cost.get());
+            if (log.getChargingProviderId() == null) builder.chargingProviderId(card.getId());
+            locationPricing.priceUnder(card, log.getChargingType()).ifPresent(builder::pricePerKwh);
+            save(builder.build());
             priced++;
             if (priced <= BATCH_REWARD_CAP) {
                 coins += coinLogService.awardOncePerEntity(userId, CoinLogService.CoinEvent.PRICE_ADDED, log.getId());

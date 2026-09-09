@@ -40,16 +40,23 @@ async function loadHomeCard() {
   } catch { homeCard.value = null }
 }
 
+const homeError = ref<string | null>(null)
+
 async function applyHomeTariff() {
   applyingHome.value = true
+  homeError.value = null
   try {
     const res = await api.patch('/logs/apply-home-tariff')
     const priced = res.data?.priced ?? 0
     const coins = res.data?.coinsAwarded ?? 0
     if (coins) coinStore.refresh()
-    wattToast.value?.show(coins, priced > 0 ? t('priceless.home_applied', priced) : '')
+    // Kein Toast bei 0 bepreisten Ladungen - eine leere Erfolgsmeldung waere irrefuehrend.
+    if (priced > 0) wattToast.value?.show(coins, t('priceless.home_applied', priced))
+    else homeError.value = t('priceless.home_none')
     await loadLogs()
     emit('updated')
+  } catch {
+    homeError.value = t('priceless.home_error')
   } finally {
     applyingHome.value = false
   }
@@ -118,7 +125,8 @@ function formatDate(iso: string) {
             <HomeIcon class="h-4 w-4" aria-hidden="true" />
             {{ t('priceless.apply_home', { card: homeCard.label || homeCard.providerName }) }}
           </button>
-          <p class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">{{ t('priceless.apply_home_hint') }}</p>
+          <p v-if="homeError" role="status" class="mt-1 text-[11px] text-amber-600 dark:text-amber-400">{{ homeError }}</p>
+          <p v-else class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">{{ t('priceless.apply_home_hint') }}</p>
         </div>
 
         <!-- Content -->

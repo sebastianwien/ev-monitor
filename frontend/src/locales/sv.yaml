@@ -1082,6 +1082,8 @@ priceless:
   apply_home: Prissätt alla hemmaladdningar med "{card}"
   apply_home_hint: Gäller alla privata laddningar utan pris. Priser du redan angett lämnas orörda.
   home_applied: "1 laddning prissatt | {count} laddningar prissatta"
+  home_none: Ingen laddning matchade hemtariffen - kontrollera laddtyp och kortets startdatum.
+  home_error: Det gick inte. Försök igen senare.
 priceamend:
   title: Lägg till pris
   card_section: Ditt laddkort

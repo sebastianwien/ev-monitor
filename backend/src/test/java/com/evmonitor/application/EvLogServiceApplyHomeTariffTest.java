@@ -116,6 +116,20 @@ class EvLogServiceApplyHomeTariffTest extends AbstractIntegrationTest {
         assertNull(reload(theirs).getCostEur());
     }
 
+    @Test
+    void keepsACardTheUserHadAlreadyAssigned() {
+        // Die Ladung traegt schon eine Karte, nur der Preis fehlt: der Heimtarif bepreist sie,
+        // schreibt dem User aber nicht seine Zuordnung um.
+        saveHomeCard(new BigDecimal("0.2500"));
+        UUID own = cardRepository.save(publicCard()).getId();
+        EvLog log = evLogRepository.save(saveLog(new BigDecimal("10.0"), null, false, ChargingType.AC)
+                .toBuilder().chargingProviderId(own).build());
+
+        assertEquals(1, evLogService.applyHomeTariff(userId).priced());
+        assertEquals(0, new BigDecimal("2.50").compareTo(reload(log).getCostEur()));
+        assertEquals(own, reload(log).getChargingProviderId(), "the user's own assignment survives");
+    }
+
     // ---- Helpers ----
 
     private UserChargingProviderEntity homeCard(BigDecimal acPrice) {
@@ -127,6 +141,17 @@ class EvLogServiceApplyHomeTariffTest extends AbstractIntegrationTest {
         card.setMonthlyFeeEur(BigDecimal.ZERO);
         card.setActiveFrom(LocalDate.now().minusYears(1));
         card.setPrivateCard(true);
+        return card;
+    }
+
+    private UserChargingProviderEntity publicCard() {
+        UserChargingProviderEntity card = new UserChargingProviderEntity();
+        card.setUserId(userId);
+        card.setProviderName("EnBW mobility+");
+        card.setAcPricePerKwh(new BigDecimal("0.3900"));
+        card.setSessionFeeEur(BigDecimal.ZERO);
+        card.setMonthlyFeeEur(BigDecimal.ZERO);
+        card.setActiveFrom(LocalDate.now().minusYears(1));
         return card;
     }
 
