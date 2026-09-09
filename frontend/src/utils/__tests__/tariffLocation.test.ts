@@ -45,7 +45,7 @@ describe('applyTariffToLocationIfRequested', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('does nothing when the user did not tick the box', async () => {
-    const priced = await applyTariffToLocationIfRequested({
+    const { priced } = await applyTariffToLocationIfRequested({
       ...base, geohash: 'u1mc1v8', applyTariffToLocation: false,
     })
 
@@ -54,7 +54,7 @@ describe('applyTariffToLocationIfRequested', () => {
   })
 
   it('does nothing without a charging card', async () => {
-    const priced = await applyTariffToLocationIfRequested({
+    const { priced } = await applyTariffToLocationIfRequested({
       ...base, geohash: 'u1mc1v8', chargingProviderId: null,
     })
 
@@ -63,7 +63,7 @@ describe('applyTariffToLocationIfRequested', () => {
   })
 
   it('does nothing without a location', async () => {
-    const priced = await applyTariffToLocationIfRequested(base)
+    const { priced } = await applyTariffToLocationIfRequested(base)
 
     expect(priced).toBe(0)
     expect(api.patch).not.toHaveBeenCalled()
@@ -72,7 +72,7 @@ describe('applyTariffToLocationIfRequested', () => {
   it('sends geohash plus card and reports how many logs were priced', async () => {
     vi.mocked(api.patch).mockResolvedValue({ data: { priced: 43 } } as any)
 
-    const priced = await applyTariffToLocationIfRequested({ ...base, geohash: 'u1mc1v8' })
+    const { priced } = await applyTariffToLocationIfRequested({ ...base, geohash: 'u1mc1v8' })
 
     expect(priced).toBe(43)
     expect(api.patch).toHaveBeenCalledWith('/logs/apply-tariff-at-location', {
@@ -97,6 +97,6 @@ describe('applyTariffToLocationIfRequested', () => {
     vi.mocked(api.patch).mockRejectedValue(new Error('boom'))
 
     await expect(applyTariffToLocationIfRequested({ ...base, geohash: 'u1mc1v8' }))
-      .resolves.toBe(0)
+      .resolves.toEqual({ priced: 0, coinsAwarded: 0 })
   })
 })

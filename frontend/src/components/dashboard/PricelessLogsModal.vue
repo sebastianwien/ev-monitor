@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { XMarkIcon, CurrencyEuroIcon, CheckCircleIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import api from '@/api/axios'
 import PriceAmendModal from './PriceAmendModal.vue'
+import WattToast from '../shared/WattToast.vue'
+import { useCoinStore } from '@/stores/coins'
 import type { EvLogResponse } from './EditLogModal.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 
@@ -31,7 +33,11 @@ watch(() => props.open, (open) => {
   if (open) loadLogs()
 })
 
-function onAmended() {
+const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
+const coinStore = useCoinStore()
+function onAmended(_log: EvLogResponse, coins: number) {
+  wattToast.value?.show(coins)
+  if (coins) coinStore.refresh()
   amendingLog.value = null
   loadLogs()
   emit('updated')
@@ -117,4 +123,5 @@ function formatDate(iso: string) {
     @close="amendingLog = null"
     @saved="onAmended"
   />
+  <WattToast ref="wattToast" />
 </template>

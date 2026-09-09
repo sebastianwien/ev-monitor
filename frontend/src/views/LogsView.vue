@@ -30,6 +30,9 @@ import {
 } from '@heroicons/vue/24/outline'
 import { tempBadgeClass } from '../utils/temperatureColor'
 import { consumptionTextClass } from '../utils/consumptionColor'
+import WattBadge from '../components/shared/WattBadge.vue'
+import { useCoinStore } from '../stores/coins'
+import { wattPreview } from '../utils/wattPreview'
 import { purchasesAvailable } from '../utils/iapPolicy'
 import { isShortTrip } from '../utils/shortTrip'
 import { phantomEurFor, totalPhantomKwh } from '../utils/phantomDrain'
@@ -97,6 +100,10 @@ import {
 } from '../composables/useChargingEfficiency'
 
 const { t, locale } = useI18n()
+const coinStore = useCoinStore()
+coinStore.ensureCatalog()
+/** "+n Watt" am "Preis fehlt"-Chip bzw. Obergrenze am Banner - Betraege kommen aus dem Backend-Katalog. */
+const wattForPrice = computed(() => wattPreview(coinStore.catalog, { addsPrice: true, addsCard: false, addsCpo: false, batchCount: 0 }))
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 const { haptic } = useHaptic()
 const route = useRoute()
@@ -121,6 +128,7 @@ const {
   mergeTripEntry,
   submitTripFeedback,
 } = useCarContext()
+const wattForAllPriceless = computed(() => wattForPrice.value * pricelessCount.value)
 
 const deletingTripId = ref<string | null>(null)
 let _deleteTimer: ReturnType<typeof setTimeout> | null = null
@@ -1498,6 +1506,7 @@ function toggleAllCharges() {
                 <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
                   {{ t('priceless.banner', pricelessCount) }}
                 </span>
+                <WattBadge :amount="wattForAllPriceless" up-to />
               </div>
               <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('priceless.banner_cta') }}</span>
             </button>
@@ -2332,6 +2341,7 @@ function toggleAllCharges() {
                       class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
                       <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
                       {{ t('priceamend.chip') }}
+                      <WattBadge :amount="wattForPrice" />
                     </button>
                     <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
                     <div v-if="openRealCostTooltipId === item.entry.id + '__d' && realCostHintFor(item.entry.id)"
@@ -2920,6 +2930,7 @@ function toggleAllCharges() {
                       class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer whitespace-nowrap">
                       <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
                       {{ t('priceamend.chip') }}
+                      <WattBadge :amount="wattForPrice" />
                     </span>
                     <ChevronDownIcon v-if="!expandedLogs.has(item.entry.id)" class="w-4 h-4 text-gray-400 flex-shrink-0" />
                     <ChevronUpIcon v-else class="w-4 h-4 text-gray-400 flex-shrink-0" />

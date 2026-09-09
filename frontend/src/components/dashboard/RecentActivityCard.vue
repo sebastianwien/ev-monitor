@@ -9,6 +9,12 @@ import TripClimateMarkers from '../TripClimateMarkers.vue'
 // Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
 // heatmap) - the map only loads when a trip actually carries a location.
 const ActivityLocationMap = defineAsyncComponent(() => import('./ActivityLocationMap.vue'))
+import WattBadge from '../shared/WattBadge.vue'
+import { useCoinStore } from '../../stores/coins'
+import { wattPreview } from '../../utils/wattPreview'
+const coinStore = useCoinStore()
+coinStore.ensureCatalog()
+const wattForPrice = computed(() => wattPreview(coinStore.catalog, { addsPrice: true, addsCard: false, addsCpo: false, batchCount: 0 }))
 
 const props = defineProps<{
   /** Raw charge / Ladegruppe feed entry (mergedLogFeed), or null. */
@@ -192,6 +198,7 @@ const tripInline = computed<string[]>(() => {
             class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors">
             <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
             {{ t('priceamend.chip') }}
+            <WattBadge :amount="wattForPrice" />
           </span>
         </div>
         <!-- Relativzeit: Desktop immer im Header | Mobile nur bei voller Breite (dann ist Platz) -->

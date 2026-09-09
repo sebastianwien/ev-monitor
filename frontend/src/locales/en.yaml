@@ -1205,7 +1205,7 @@ logfields:
   tire_type_label: "Tire type"
   public_charging_short: "Public"
   public_charging_short2: "Charging"
-  cpo_select_placeholder: "Select network operator"
+  cpo_select_placeholder: "Select charge point operator"
   cpo_label: "Charging network"
   cpo_nearby_group: "Nearby"
   cpo_all_group: "All networks"
@@ -3170,3 +3170,7 @@ savings:
 
 waitlist:
   error: "That didn't work. Please try again."
+watt:
+  preview_aria: "+{n} Watt for this action"
+  up_to: "up to +{n}"
+  toast: "+{n} Watt earned!"

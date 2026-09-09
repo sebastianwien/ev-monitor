@@ -1205,7 +1205,7 @@ logfields:
   tire_type_label: "Reifentyp"
   public_charging_short: "Öffentl."
   public_charging_short2: "Ladesäule"
-  cpo_select_placeholder: "Netzbetreiber auswählen"
+  cpo_select_placeholder: "Ladesäulen-Betreiber auswählen"
   cpo_label: "Ladeanbieter"
   cpo_nearby_group: "Hier in der Nähe"
   cpo_all_group: "Alle Anbieter"
@@ -3171,3 +3171,7 @@ savings:
 
 waitlist:
   error: "Das hat nicht geklappt. Bitte versuche es erneut."
+watt:
+  preview_aria: "+{n} Watt für diese Aktion"
+  up_to: "bis zu +{n}"
+  toast: "+{n} Watt erhalten!"

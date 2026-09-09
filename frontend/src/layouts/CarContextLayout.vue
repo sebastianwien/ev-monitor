@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, ref } from 'vue'
 import { provideCarContext } from '../composables/useCarContext'
 import { useStickyTabIndex } from '../composables/useStickyTabIndex'
 import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
 import SwipeTabPager from '../components/shared/SwipeTabPager.vue'
 import EditLogModal from '../components/dashboard/EditLogModal.vue'
 import PriceAmendModal from '../components/dashboard/PriceAmendModal.vue'
+import WattToast from '../components/shared/WattToast.vue'
+import { useCoinStore } from '../stores/coins'
 import { CONTEXT_TABS } from '../config/tabs'
 import DashboardView from '../views/DashboardView.vue'
 
@@ -30,6 +32,8 @@ const {
 } = provideCarContext()
 
 const activeIndex = useStickyTabIndex(TAB_PATHS)
+const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
+const coinStore = useCoinStore()
 </script>
 
 <template>
@@ -72,7 +76,8 @@ const activeIndex = useStickyTabIndex(TAB_PATHS)
       v-if="priceAmendingLog"
       :log="priceAmendingLog"
       @close="priceAmendingLog = null"
-      @saved="() => { priceAmendingLog = null; refreshLogsAndGroups(); fetchPricelessCount() }"
+      @saved="(_log, coins) => { priceAmendingLog = null; refreshLogsAndGroups(); fetchPricelessCount(); wattToast?.show(coins); if (coins) coinStore.refresh() }"
     />
+    <WattToast ref="wattToast" />
   </div>
 </template>

@@ -1163,7 +1163,7 @@ logfields:
   tire_type_label: Dekketype
   public_charging_short: Offentlig
   public_charging_short2: Lading
-  cpo_select_placeholder: Velg nettverksoperatør
+  cpo_select_placeholder: Velg ladeoperatør
   cpo_label: Ladenettverk
   cpo_nearby_group: I nærheten
   cpo_all_group: Alle nettverk
@@ -3055,3 +3055,7 @@ savings:
 
 waitlist:
   error: "Det gikk ikke. Prøv igjen."
+watt:
+  preview_aria: "+{n} Watt for denne handlingen"
+  up_to: "opptil +{n}"
+  toast: "+{n} Watt opptjent!"

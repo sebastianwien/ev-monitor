@@ -152,6 +152,7 @@
                 </span>
                 <span class="block text-[11px] leading-snug text-gray-600 dark:text-gray-400">{{ t('priceamend.nudge_hint') }}</span>
               </span>
+              <WattBadge :amount="wattOnNewCard" />
             </button>
           </div>
         </div>
@@ -240,6 +241,7 @@
           class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-sm hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           {{ t('logfields.save') }}
+          <WattBadge :amount="wattOnSave" on-dark />
         </button>
       </div>
     </template>
@@ -263,6 +265,9 @@ import { useInlineChargingCard, CUSTOM_PROVIDER } from '../../composables/useInl
 import { KNOWN_EMPS, type ChargingProvider } from '../../composables/useChargingProviders'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { sourceInfo } from '../../utils/logSource'
+import { wattPreview } from '../../utils/wattPreview'
+import { useCoinStore } from '../../stores/coins'
+import WattBadge from '../shared/WattBadge.vue'
 import { providerHasNoPrice, providerPriceForType } from '../../utils/chargingProviderPricing'
 import { tariffLocationParams } from '../../utils/tariffLocation'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
@@ -276,7 +281,7 @@ import type { EvLogResponse } from './EditLogModal.vue'
 const ActivityLocationMap = defineAsyncComponent(() => import('./ActivityLocationMap.vue'))
 
 const props = defineProps<{ log: EvLogResponse }>()
-const emit = defineEmits<{ close: []; saved: [log: EvLogResponse] }>()
+const emit = defineEmits<{ close: []; saved: [log: EvLogResponse, coinsAwarded: number] }>()
 
 const { t, locale } = useI18n()
 const { formatDecimal, formatCurrency, formatCostPerKwh } = useLocaleFormat()
@@ -389,11 +394,24 @@ async function saveInlineCard() {
   const wasEditing = inlineCard.isEditing.value
   const saved = await inlineCard.save()
   if (!saved) return
+  if (!wasEditing) coinStore.refresh() // einmaliger Kartenbonus ist jetzt beansprucht - Vorschauen aktualisieren
   const idx = userProviders.value.findIndex(p => p.id === saved.id)
   if (wasEditing && idx !== -1) userProviders.value[idx] = saved
   else userProviders.value = [...userProviders.value, saved]
   selectedProviderId.value = saved.id
 }
+
+// ── Watt-Vorschau ────────────────────────────────────────────────────────────
+const coinStore = useCoinStore()
+const wattOnSave = computed(() => wattPreview(coinStore.catalog, {
+  addsPrice: props.log.costEur == null && effectiveCostEur.value != null,
+  addsCard: props.log.chargingProviderId == null && selectedProviderId.value != null,
+  addsCpo: !props.log.cpoName && isPublic.value && !!cpoName.value,
+  batchCount: applyToLocation.value ? pricelessCountAtLocation.value : 0,
+}))
+const wattOnNewCard = computed(() => wattPreview(coinStore.catalog, {
+  addsPrice: false, addsCard: false, addsCpo: false, batchCount: 0, createsCard: nudge.value === 'new',
+}))
 
 // ── Vorschlag + Batch am Ort ─────────────────────────────────────────────────
 interface Suggestion { costPerKwh: number; chargingProviderId?: string; anchorLoggedAt?: string }
@@ -447,6 +465,7 @@ onMounted(async () => {
   await cpo.loadAll()
   cpo.keepSelected(cpoName.value)
   fetchLocationContext()
+  coinStore.ensureCatalog()
 })
 
 // ── Standortsuche (Nominatim) ────────────────────────────────────────────────
@@ -484,9 +503,10 @@ function selectLocation(s: any) {
 // ── Speichern ────────────────────────────────────────────────────────────────
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
 const savedLog = ref<EvLogResponse | null>(null)
+const coinsEarned = ref(0)
 
 function onClosed() {
-  if (savedLog.value) emit('saved', savedLog.value)
+  if (savedLog.value) emit('saved', savedLog.value, coinsEarned.value)
   else emit('close')
 }
 
@@ -512,10 +532,12 @@ async function save() {
     })
     const res = await api.patch(`/logs/${props.log.id}`, payload)
     savedLog.value = res.data
+    coinsEarned.value = Number(res.headers?.['x-coins-awarded'] ?? 0)
     // Nach dem Log selbst: die uebrigen preislosen Ladungen am Ort mit der Karte bepreisen.
-    await applyTariffToLocationIfRequested({
+    const batch = await applyTariffToLocationIfRequested({
       ...locationSource.value, chargingProviderId: selectedProviderId.value, applyTariffToLocation: applyToLocation.value,
     })
+    coinsEarned.value += batch.coinsAwarded
     sheet.value?.requestClose()
   } catch (e: any) {
     errorMsg.value = e?.response?.data?.message ?? 'Speichern fehlgeschlagen'

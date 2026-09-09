@@ -1163,7 +1163,7 @@ logfields:
   tire_type_label: Däcktyp
   public_charging_short: Offentlig
   public_charging_short2: Laddning
-  cpo_select_placeholder: Välj nätoperatör
+  cpo_select_placeholder: Välj laddoperatör
   cpo_label: Laddnätverk
   cpo_nearby_group: I närheten
   cpo_all_group: Alla nätverk
@@ -3055,3 +3055,7 @@ savings:
 
 waitlist:
   error: "Det gick inte. Försök igen."
+watt:
+  preview_aria: "+{n} Watt för denna åtgärd"
+  up_to: "upp till +{n}"
+  toast: "+{n} Watt intjänade!"
