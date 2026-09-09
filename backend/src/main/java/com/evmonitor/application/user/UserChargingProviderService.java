@@ -1,11 +1,13 @@
 package com.evmonitor.application.user;
 
+import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +38,7 @@ public class UserChargingProviderService {
         entity.setActiveFrom(request.activeFrom());
         entity.setActiveUntil(null);
         entity.setPrivateCard(request.isPrivate());
+        endPreviousHomeTariff(userId, request, null);
 
         UserChargingProviderResponse saved = toResponse(repository.save(entity));
         // Einmalig: die erste Karte ist der Schritt, der Auto-Bepreisung ueberhaupt moeglich macht.
@@ -55,6 +58,7 @@ public class UserChargingProviderService {
         entity.setSessionFeeEur(request.sessionFeeEur() != null ? request.sessionFeeEur() : java.math.BigDecimal.ZERO);
         entity.setActiveFrom(request.activeFrom());
         entity.setPrivateCard(request.isPrivate());
+        endPreviousHomeTariff(userId, request, providerId);
 
         return toResponse(repository.save(entity));
     }
@@ -69,6 +73,35 @@ public class UserChargingProviderService {
         UserChargingProviderEntity entity = findOwnedCard(userId, providerId);
         entity.setDeletedAt(LocalDateTime.now());
         repository.save(entity);
+    }
+
+    /**
+     * Zu einem Zeitpunkt gilt genau ein Heimtarif - man hat zu Hause einen Stromvertrag.
+     * Beim Anlegen eines neueren endet der bisherige am Tag davor, statt unbefristet parallel
+     * zu laufen: zwei gleichzeitig gueltige Heimtarife sind mehrdeutig, und dann bepreist
+     * {@code LocationPricing} gar nichts mehr - stillschweigend.
+     *
+     * Oeffentliche Ladekarten bleiben davon unberuehrt, die duerfen beliebig parallel laufen.
+     *
+     * @param selfId die gerade bearbeitete Karte, die sich nicht selbst beenden darf (null beim Anlegen)
+     * @throws ValidationException wenn der neue Tarif vor einem bestehenden beginnt - welcher
+     *         dann gilt, ist unentscheidbar, das muss der User selbst klaeren
+     */
+    private void endPreviousHomeTariff(UUID userId, UserChargingProviderRequest request, UUID selfId) {
+        if (!request.isPrivate()) return;
+
+        LocalDate from = request.activeFrom();
+        for (UserChargingProviderEntity other : repository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId)) {
+            if (other.getId().equals(selfId)) continue;
+            // Bereits beendet und vor dem neuen Tarif abgelaufen: keine Ueberschneidung.
+            if (other.getActiveUntil() != null && other.getActiveUntil().isBefore(from)) continue;
+            if (!other.getActiveFrom().isBefore(from)) {
+                throw new ValidationException("HOME_TARIFF_OVERLAP",
+                        "A home tariff already covers this period - end it first");
+            }
+            other.setActiveUntil(from.minusDays(1));
+            repository.save(other);
+        }
     }
 
     /** Eine geloeschte Karte existiert fuer den User nicht mehr - sie ist weder aenderbar noch erneut loeschbar. */

@@ -1528,6 +1528,8 @@ settings:
   tariff_private_label: "Private home tariff"
   tariff_private_hint: "Prices your private charges automatically - including imported ones without a location."
   tariff_private_badge: "Home tariff"
+  tariff_private_ends_previous: "Your current home tariff \"{card}\" will end on {date}."
+  tariff_private_overlap: "A home tariff already covers this period. Pick a later start date or end the existing one first."
   tariff_none_title: "No charging card entered yet"
   tariff_none_desc: "Add your charging contracts - you can manage multiple at the same time."
   tariff_add_btn: "New charging card"

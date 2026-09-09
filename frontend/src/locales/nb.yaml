@@ -1479,6 +1479,8 @@ settings:
   tariff_private_label: Privat hjemmetariff
   tariff_private_hint: Prissetter de private ladingene dine automatisk - også importerte uten sted.
   tariff_private_badge: Hjemmetariff
+  tariff_private_ends_previous: Den nåværende hjemmetariffen "{card}" avsluttes da {date}.
+  tariff_private_overlap: Det finnes allerede en hjemmetariff for denne perioden. Velg en senere startdato eller avslutt den eksisterende først.
   tariff_none_title: Det er ikke lagt inn noe ladekort ennå
   tariff_none_desc: Legg til ladekontraktene dine – du kan administrere flere samtidig.
   tariff_add_btn: Nytt ladekort

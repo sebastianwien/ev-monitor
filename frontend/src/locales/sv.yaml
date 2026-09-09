@@ -1479,6 +1479,8 @@ settings:
   tariff_private_label: Privat hemtariff
   tariff_private_hint: Prissätter dina privata laddningar automatiskt - även importerade utan plats.
   tariff_private_badge: Hemtariff
+  tariff_private_ends_previous: Din nuvarande hemtariff "{card}" avslutas då {date}.
+  tariff_private_overlap: Det finns redan en hemtariff för den här perioden. Välj ett senare startdatum eller avsluta den befintliga först.
   tariff_none_title: Inget betalkort har angetts ännu
   tariff_none_desc: Lägg till dina laddningsavtal – du kan hantera flera samtidigt.
   tariff_add_btn: Nytt laddningskort

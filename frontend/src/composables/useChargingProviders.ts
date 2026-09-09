@@ -2,6 +2,7 @@ import { ref, computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '../api/axios'
 import { useLocaleFormat } from './useLocaleFormat'
+import { homeTariffConflict } from '../utils/homeTariff'
 
 export interface ChargingProvider {
   id: string
@@ -54,6 +55,14 @@ export function useChargingProviders(
   })
 
   const isCustomProvider = computed(() => providerForm.value.providerName === 'Anderer Anbieter')
+
+  /**
+   * Was das Speichern mit einem bestehenden Heimtarif macht - der Server beendet den bisherigen
+   * automatisch bzw. lehnt eine Ueberschneidung ab. Das gehoert vor den Klick, nicht danach.
+   */
+  const homeConflict = computed(() => homeTariffConflict(
+    chargingProviders.value, providerForm.value,
+    editingProviderId.value === 'new' ? null : editingProviderId.value))
 
   /**
    * "Zuhause" im Anbieter-Feld setzt die Heimtarif-Markierung vor - die Checkbox bleibt aber
@@ -124,7 +133,12 @@ export function useChargingProviders(
       resetProviderForm()
       message.value = { type: 'success', text: t('settings.tariff_ok') }
     } catch (err: any) {
-      message.value = { type: 'error', text: err.response?.data?.message || t('settings.tariff_err_save') }
+      // Der Ueberschneidungs-Fall hat eine eigene, uebersetzte Erklaerung - die englische
+      // Server-Meldung wuerde den User hier alleine lassen.
+      const text = err.response?.data?.code === 'HOME_TARIFF_OVERLAP'
+        ? t('settings.tariff_private_overlap')
+        : err.response?.data?.message || t('settings.tariff_err_save')
+      message.value = { type: 'error', text }
     } finally {
       loading.value = false
     }
@@ -145,7 +159,7 @@ export function useChargingProviders(
     new Date(dateStr).toLocaleDateString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
   return {
-    chargingProviders, editingProviderId, providerForm, isCustomProvider,
+    chargingProviders, editingProviderId, providerForm, isCustomProvider, homeConflict,
     KNOWN_EMPS, HOME_TARIFF_NAME,
     resetProviderForm, startEditProvider, onProviderNameChange,
     fetchChargingProviders, saveChargingProvider, deleteChargingProvider,

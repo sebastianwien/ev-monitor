@@ -18,7 +18,7 @@ const loading = ref(false)
 const message = ref<{ type: 'success' | 'error', text: string } | null>(null)
 
 const {
-  chargingProviders, editingProviderId, providerForm, isCustomProvider,
+  chargingProviders, editingProviderId, providerForm, isCustomProvider, homeConflict,
   KNOWN_EMPS,
   resetProviderForm, startEditProvider, onProviderNameChange,
   fetchChargingProviders, saveChargingProvider, deleteChargingProvider,
@@ -138,6 +138,12 @@ fetchChargingProviders()
             <span class="text-xs">
               <span class="block font-medium text-gray-700 dark:text-gray-200">{{ t('settings.tariff_private_label') }}</span>
               <span class="block text-gray-500 dark:text-gray-400">{{ t('settings.tariff_private_hint') }}</span>
+    <span v-if="homeConflict?.type === 'ends'" class="mt-1 block text-amber-700 dark:text-amber-400">
+      {{ t('settings.tariff_private_ends_previous', { card: homeConflict.card.label || homeConflict.card.providerName, date: formatDate(homeConflict.endsOn) }) }}
+    </span>
+    <span v-else-if="homeConflict?.type === 'overlap'" class="mt-1 block text-red-600 dark:text-red-400">
+      {{ t('settings.tariff_private_overlap') }}
+    </span>
             </span>
           </label>
           <div class="flex gap-2 pt-1">
@@ -221,6 +227,12 @@ fetchChargingProviders()
           <span class="text-xs">
             <span class="block font-medium text-gray-700 dark:text-gray-200">{{ t('settings.tariff_private_label') }}</span>
             <span class="block text-gray-500 dark:text-gray-400">{{ t('settings.tariff_private_hint') }}</span>
+    <span v-if="homeConflict?.type === 'ends'" class="mt-1 block text-amber-700 dark:text-amber-400">
+      {{ t('settings.tariff_private_ends_previous', { card: homeConflict.card.label || homeConflict.card.providerName, date: formatDate(homeConflict.endsOn) }) }}
+    </span>
+    <span v-else-if="homeConflict?.type === 'overlap'" class="mt-1 block text-red-600 dark:text-red-400">
+      {{ t('settings.tariff_private_overlap') }}
+    </span>
           </span>
         </label>
         <div class="flex gap-2 pt-1">

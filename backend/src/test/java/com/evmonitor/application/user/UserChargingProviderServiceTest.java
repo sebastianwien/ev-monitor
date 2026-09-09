@@ -1,5 +1,6 @@
 package com.evmonitor.application.user;
 
+import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,6 +85,100 @@ class UserChargingProviderServiceTest {
                 BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), false);
 
         assertThat(service.update(userId, existing.getId(), request).isPrivate()).isFalse();
+    }
+
+    // ── Heimtarif-Wechsel: genau einer gilt zu einem Zeitpunkt ───────────────
+
+    @Test
+    void shouldEndThePreviousHomeTariff_WhenANewerOneStarts() {
+        // Strompreis geaendert: der alte Heimtarif endet am Tag vor dem neuen, statt
+        // unbefristet parallel zu laufen - sonst gilt keiner mehr und nichts wird bepreist.
+        UserChargingProviderEntity old = homeCard(LocalDate.now().minusYears(1));
+        when(repository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId)).thenReturn(List.of(old));
+
+        LocalDate from = LocalDate.now();
+        service.add(userId, homeRequest(from));
+
+        assertThat(old.getActiveUntil()).isEqualTo(from.minusDays(1));
+    }
+
+    @Test
+    void shouldRejectAHomeTariffThatStartsBeforeAnExistingOne() {
+        // Rueckwirkend eintragen wuerde den bestehenden Tarif ueberlappen - welcher gilt,
+        // waere unentscheidbar. Der User soll erst den Zeitraum klaeren.
+        UserChargingProviderEntity existing = homeCard(LocalDate.now().minusDays(10));
+        when(repository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId)).thenReturn(List.of(existing));
+
+        assertThatThrownBy(() -> service.add(userId, homeRequest(LocalDate.now().minusDays(30))))
+                .isInstanceOf(ValidationException.class)
+                .extracting(e -> ((ValidationException) e).getCode()).isEqualTo("HOME_TARIFF_OVERLAP");
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void shouldRejectASecondHomeTariffStartingTheSameDay() {
+        UserChargingProviderEntity existing = homeCard(LocalDate.now());
+        when(repository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId)).thenReturn(List.of(existing));
+
+        assertThatThrownBy(() -> service.add(userId, homeRequest(LocalDate.now())))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void shouldLeaveAnAlreadyEndedHomeTariffAlone() {
+        UserChargingProviderEntity ended = homeCard(LocalDate.now().minusYears(1));
+        ended.setActiveUntil(LocalDate.now().minusMonths(6));
+        when(repository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId)).thenReturn(List.of(ended));
+
+        service.add(userId, homeRequest(LocalDate.now()));
+
+        assertThat(ended.getActiveUntil()).isEqualTo(LocalDate.now().minusMonths(6));
+    }
+
+    @Test
+    void shouldNotTouchPublicCards_WhenAddingAHomeTariff() {
+        // Oeffentliche Karten laufen beliebig parallel - nur Heimtarife sind exklusiv.
+        service.add(userId, homeRequest(LocalDate.now()));
+        verify(repository).findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId);
+    }
+
+    @Test
+    void shouldNotEndItself_WhenEditingTheHomeTariff() {
+        // Die eigene Karte darf sich beim Speichern nicht selbst beenden.
+        UserChargingProviderEntity self = homeCard(LocalDate.now().minusYears(1));
+        self.setId(UUID.randomUUID());
+        when(repository.findById(self.getId())).thenReturn(Optional.of(self));
+        when(repository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId)).thenReturn(List.of(self));
+
+        service.update(userId, self.getId(), homeRequest(LocalDate.now()));
+
+        assertThat(self.getActiveUntil()).isNull();
+    }
+
+    @Test
+    void shouldNotEndAnythingWhenTheCardIsNotPrivate() {
+        UserChargingProviderEntity home = homeCard(LocalDate.now().minusYears(1));
+        lenient().when(repository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId)).thenReturn(List.of(home));
+
+        service.add(userId, new UserChargingProviderRequest("IONITY", null, new BigDecimal("0.29"),
+                new BigDecimal("0.49"), BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), false));
+
+        assertThat(home.getActiveUntil()).isNull();
+    }
+
+    private UserChargingProviderRequest homeRequest(LocalDate from) {
+        return new UserChargingProviderRequest("Zuhause", null, new BigDecimal("0.25"), null,
+                BigDecimal.ZERO, BigDecimal.ZERO, from, true);
+    }
+
+    private UserChargingProviderEntity homeCard(LocalDate from) {
+        UserChargingProviderEntity card = new UserChargingProviderEntity();
+        card.setId(UUID.randomUUID());
+        card.setUserId(userId);
+        card.setProviderName("Zuhause");
+        card.setPrivateCard(true);
+        card.setActiveFrom(from);
+        return card;
     }
 
     // ── add() — Portfolio-Modell: kein deactivateCurrent ─────────────────────
