@@ -171,3 +171,20 @@ describe('cardLocksManualPrice (Karte ODER Preis)', () => {
     expect(cardLocksManualPrice(null, 'AC')).toBe(false)
   })
 })
+
+import { convertPriceInput } from '../priceAmend'
+
+describe('convertPriceInput (Toggle Gesamt <-> kWh)', () => {
+  it('Gesamt -> kWh mit 3 Stellen', () => {
+    expect(convertPriceInput('12.25', 'per_kwh', 25)).toBe('0.49')
+    expect(convertPriceInput(10, 'per_kwh', 3)).toBe('3.333')
+  })
+  it('kWh -> Gesamt mit 2 Stellen', () => {
+    expect(convertPriceInput('0.49', 'total', 25)).toBe('12.25')
+  })
+  it('leer, Unsinn oder ohne Energie bleibt unveraendert', () => {
+    expect(convertPriceInput('', 'total', 25)).toBe('')
+    expect(convertPriceInput('abc', 'total', 25)).toBe('abc')
+    expect(convertPriceInput('12', 'per_kwh', null)).toBe('12')
+  })
+})

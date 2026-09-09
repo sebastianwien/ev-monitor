@@ -40,8 +40,8 @@ watch(() => props.open, (open) => {
 const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
 const coinStore = useCoinStore()
 coinStore.ensureCatalog()
-function onAmended(_log: EvLogResponse, coins: number) {
-  wattToast.value?.show(coins)
+function onAmended(_log: EvLogResponse, coins: number, batch: number) {
+  wattToast.value?.show(coins, batch > 0 ? t('priceamend.batch_done', batch) : '')
   if (coins) coinStore.refresh()
   amendingLog.value = null
   loadLogs()

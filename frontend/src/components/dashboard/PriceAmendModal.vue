@@ -273,7 +273,7 @@ import { tariffLocationParams } from '../../utils/tariffLocation'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
 import {
   costEurFromCard, costEurFromPricePerKwh, buildAmendPayload, isAmendValid,
-  amendKwh, pricePerKwhEur, canApplyToLocation, manualCostEur as manualCostEurFrom, cardLocksManualPrice, type PriceInputMode,
+  amendKwh, pricePerKwhEur, canApplyToLocation, manualCostEur as manualCostEurFrom, cardLocksManualPrice, convertPriceInput, type PriceInputMode,
 } from '../../utils/priceAmend'
 import type { EvLogResponse } from './EditLogModal.vue'
 
@@ -281,7 +281,7 @@ import type { EvLogResponse } from './EditLogModal.vue'
 const ActivityLocationMap = defineAsyncComponent(() => import('./ActivityLocationMap.vue'))
 
 const props = defineProps<{ log: EvLogResponse }>()
-const emit = defineEmits<{ close: []; saved: [log: EvLogResponse, coinsAwarded: number] }>()
+const emit = defineEmits<{ close: []; saved: [log: EvLogResponse, coinsAwarded: number, batchPriced: number] }>()
 
 const { t, locale } = useI18n()
 const { formatDecimal, formatCurrency, formatCostPerKwh } = useLocaleFormat()
@@ -328,7 +328,7 @@ const errorMsg = ref('')
 
 const selectedProvider = computed(() => userProviders.value.find(p => p.id === selectedProviderId.value) ?? null)
 const cardCostEur = computed(() =>
-  selectedProvider.value ? costEurFromCard(selectedProvider.value, props.log.chargingType, kwh.value) : null)
+  selectedProvider.value ? costEurFromCard(selectedProvider.value, priceType.value, kwh.value) : null)
 /** Default kWh-Preis: das ist die Zahl, die auf dem Display der Saeule steht und als Tarif merkbar ist. */
 const priceMode = ref<PriceInputMode>('per_kwh')
 const manualCostEur = computed(() => manualCostEurFrom(priceMode.value, manualPriceInput.value, kwh.value, rate.value))
@@ -336,13 +336,7 @@ const manualCostEur = computed(() => manualCostEurFrom(priceMode.value, manualPr
 /** Umschalten rechnet den getippten Wert in die andere Basis um, statt ihn zu verwerfen. */
 function togglePriceMode(mode: PriceInputMode) {
   if (priceMode.value === mode) return
-  const raw = String(manualPriceInput.value ?? '').trim()
-  const n = Number(raw)
-  if (raw !== '' && !Number.isNaN(n) && kwh.value) {
-    manualPriceInput.value = mode === 'per_kwh'
-      ? String(Math.round((n / kwh.value) * 1000) / 1000)
-      : String(Math.round(n * kwh.value * 100) / 100)
-  }
+  manualPriceInput.value = convertPriceInput(manualPriceInput.value, mode, kwh.value)
   priceMode.value = mode
 }
 /** Manuell getippter Preis hat Vorrang vor dem Kartenpreis. */
@@ -383,11 +377,9 @@ const nudge = computed<'new' | 'price' | null>(() => {
 function openNudge() {
   if (manualPerKwhEur.value == null) return
   if (nudge.value === 'price' && selectedProvider.value) {
-    inlineCard.openEdit(selectedProvider.value)
-    const field = props.log.chargingType === 'DC' ? 'dcPrice' : 'acPrice'
-    inlineCard.draft.value[field] = isEurZone.value ? Math.round(manualPerKwhEur.value * 1000) / 10 : manualPerKwhEur.value
+    inlineCard.openEditWithPrice(selectedProvider.value, priceType.value, manualPerKwhEur.value)
   } else {
-    inlineCard.openWithPrice(props.log.chargingType, manualPerKwhEur.value)
+    inlineCard.openWithPrice(priceType.value, manualPerKwhEur.value)
   }
 }
 async function saveInlineCard() {
@@ -440,6 +432,8 @@ const pricelessCountAtLocation = ref(0)
 const applyToLocation = ref(false)
 const batchAllowed = computed(() => canApplyToLocation(selectedProviderId.value, pricelessCountAtLocation.value))
 watch(batchAllowed, ok => { if (!ok) applyToLocation.value = false })
+// Oeffentlich/privat filtert den Vorschlag serverseitig und aendert die Geohash-Praezision eines neuen Orts.
+watch(isPublic, () => fetchLocationContext())
 
 const locationSource = computed(() => ({
   latitude: latitude.value, longitude: longitude.value, isPublicCharging: isPublic.value, geohash: props.log.geohash,
@@ -504,9 +498,10 @@ function selectLocation(s: any) {
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
 const savedLog = ref<EvLogResponse | null>(null)
 const coinsEarned = ref(0)
+const batchPriced = ref(0)
 
 function onClosed() {
-  if (savedLog.value) emit('saved', savedLog.value, coinsEarned.value)
+  if (savedLog.value) emit('saved', savedLog.value, coinsEarned.value, batchPriced.value)
   else emit('close')
 }
 
@@ -538,6 +533,7 @@ async function save() {
       ...locationSource.value, chargingProviderId: selectedProviderId.value, applyTariffToLocation: applyToLocation.value,
     })
     coinsEarned.value += batch.coinsAwarded
+    batchPriced.value = batch.priced
     sheet.value?.requestClose()
   } catch (e: any) {
     errorMsg.value = e?.response?.data?.message ?? 'Speichern fehlgeschlagen'

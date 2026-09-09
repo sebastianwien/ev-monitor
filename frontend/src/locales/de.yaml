@@ -1146,6 +1146,7 @@ priceamend:
   nudge_hint: "Dann bepreise ich künftige Ladungen automatisch und du kannst den Preis auf weitere Ladungen hier übernehmen."
   batch_label: "Auch {count} weitere Ladung an diesem Ort damit bepreisen | Auch {count} weitere Ladungen an diesem Ort damit bepreisen"
   batch_needs_card: "Dafür brauchst du eine Ladekarte, damit der Preis wiederverwendbar ist."
+  batch_done: "{count} weitere Ladung an diesem Ort bepreist | {count} weitere Ladungen an diesem Ort bepreist"
 logfields:
   apply_tariff_to_location: "Preis auch auf {count} weitere Ladung an diesem Ort übernehmen | Preis auch auf {count} weitere Ladungen an diesem Ort übernehmen"
   card_prompt_title: "Ladekarte hinterlegen"

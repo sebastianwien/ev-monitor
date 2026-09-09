@@ -207,3 +207,14 @@ describe('useInlineChargingCard.openWithPrice', () => {
     expect(vi.mocked(api.post).mock.calls[0][1]).toMatchObject({ acPricePerKwh: 0.492, dcPricePerKwh: null })
   })
 })
+
+describe('useInlineChargingCard.openEditWithPrice', () => {
+  it('bearbeitet die Karte und setzt den Preis im Feld des Ladetyps, der andere bleibt', () => {
+    const card = useInlineChargingCard(centsToEur, eurToCents)
+    card.openEditWithPrice({ ...savedCard, dcPricePerKwh: null }, 'DC', 0.49)
+
+    expect(card.isEditing.value).toBe(true)
+    expect(card.draft.value.dcPrice).toBe(49)
+    expect(card.draft.value.acPrice).toBe(39)
+  })
+})

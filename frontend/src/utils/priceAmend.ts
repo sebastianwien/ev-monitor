@@ -122,3 +122,16 @@ export function cardLocksManualPrice(card: AmendCard | null, chargingType: 'AC' 
   if (!card) return false
   return (chargingType === 'DC' ? card.dcPricePerKwh : card.acPricePerKwh) != null
 }
+
+/**
+ * Umschalten der Eingabebasis rechnet den getippten Wert um statt ihn zu verwerfen:
+ * Gesamt -> kWh (3 Stellen), kWh -> Gesamt (2 Stellen). Ohne Energie oder ohne Zahl unveraendert.
+ */
+export function convertPriceInput(typed: string | number, to: PriceInputMode, kwh: number | null): string {
+  const raw = String(typed ?? '').trim()
+  const n = Number(raw)
+  if (raw === '' || Number.isNaN(n) || !kwh) return raw
+  return to === 'per_kwh'
+    ? String(Math.round((n / kwh) * 1000) / 1000)
+    : String(Math.round(n * kwh * 100) / 100)
+}

@@ -1,6 +1,5 @@
 package com.evmonitor.application;
 
-import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.application.consumption.ConsumptionMath;
 import com.evmonitor.domain.*;
@@ -702,18 +701,7 @@ public class EvLogStatisticsService {
                  .setScale(2, RoundingMode.HALF_UP);
     }
 
-    /**
-     * The price the log form pre-fills. Same rule and same numbers the backend would store on save
-     * - {@link LocationPricing} is the single source, so suggestion and stored value cannot drift.
-     */
-    public Optional<PriceSuggestion> getPriceSuggestion(UUID userId, double latitude, double longitude,
-                                                        boolean isPublicCharging, ChargingType chargingType) {
-        int precision = isPublicCharging ? 7 : 6;
-        String geohash = GeoHash.withCharacterPrecision(latitude, longitude, precision).toBase32();
-        return getPriceSuggestionAtGeohash(userId, geohash, isPublicCharging, chargingType);
-    }
-
-    /** Same lookup for a stored charge, whose only location is its geohash. */
+    /** Price of the last paid charge at this geohash - a stored charge has no lat/lon, only its geohash. */
     public Optional<PriceSuggestion> getPriceSuggestionAtGeohash(UUID userId, String geohash,
                                                                  boolean isPublicCharging, ChargingType chargingType) {
         return locationPricing.tariffAt(userId, geohash, chargingType, isPublicCharging)

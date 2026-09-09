@@ -1104,6 +1104,7 @@ priceamend:
   nudge_hint: Då prissätter jag framtida laddningar automatiskt och du kan använda priset på andra laddningar här.
   batch_label: Prissätt även {count} annan laddning på denna plats | Prissätt även {count} andra laddningar på denna plats
   batch_needs_card: Detta kräver ett laddkort så att priset kan återanvändas.
+  batch_done: "{count} annan laddning på denna plats prissatt | {count} andra laddningar på denna plats prissatta"
 logfields:
   apply_tariff_to_location: "Använd priset även på {count} annan laddning på denna plats | Använd priset även på {count} andra laddningar på denna plats"
   card_prompt_title: "Lägg till ditt laddkort"

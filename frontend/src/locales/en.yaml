@@ -1146,6 +1146,7 @@ priceamend:
   nudge_hint: "Then I'll price future charges automatically and you can apply the price to other charges here."
   batch_label: "Also price {count} other charge at this location | Also price {count} other charges at this location"
   batch_needs_card: "This needs a charging card so the price can be reused."
+  batch_done: "{count} other charge at this location priced | {count} other charges at this location priced"
 logfields:
   apply_tariff_to_location: "Also apply this price to {count} other charge at this location | Also apply this price to {count} other charges at this location"
   card_prompt_title: "Add your charging card"

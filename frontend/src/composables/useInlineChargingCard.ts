@@ -74,6 +74,12 @@ export function useInlineChargingCard(
     isOpen.value = true
   }
 
+  /** Bestehende Karte bepreisen: wie openEdit, aber mit dem errechneten Preis im Feld des Ladetyps. */
+  const openEditWithPrice = (provider: ChargingProvider, chargingType: 'AC' | 'DC', eurPerKwh: number) => {
+    openEdit(provider)
+    draft.value[chargingType === 'DC' ? 'dcPrice' : 'acPrice'] = fromEurPerKwh(eurPerKwh)
+  }
+
   const cancel = () => {
     isOpen.value = false
     failed.value = false
@@ -119,5 +125,5 @@ export function useInlineChargingCard(
     }
   }
 
-  return { isOpen, saving, failed, draft, isCustom, isEditing, resolvedName, canSave, open, openWithPrice, openEdit, cancel, save }
+  return { isOpen, saving, failed, draft, isCustom, isEditing, resolvedName, canSave, open, openWithPrice, openEdit, openEditWithPrice, cancel, save }
 }

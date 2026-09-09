@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { defineAsyncComponent, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { provideCarContext } from '../composables/useCarContext'
 import { useStickyTabIndex } from '../composables/useStickyTabIndex'
 import MobileCarSelector from '../components/shared/MobileCarSelector.vue'
@@ -34,6 +35,7 @@ const {
 const activeIndex = useStickyTabIndex(TAB_PATHS)
 const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
 const coinStore = useCoinStore()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -76,7 +78,7 @@ const coinStore = useCoinStore()
       v-if="priceAmendingLog"
       :log="priceAmendingLog"
       @close="priceAmendingLog = null"
-      @saved="(_log, coins) => { priceAmendingLog = null; refreshLogsAndGroups(); fetchPricelessCount(); wattToast?.show(coins); if (coins) coinStore.refresh() }"
+      @saved="(_log, coins, batch) => { priceAmendingLog = null; refreshLogsAndGroups(); fetchPricelessCount(); wattToast?.show(coins, batch > 0 ? t('priceamend.batch_done', batch) : ''); if (coins) coinStore.refresh() }"
     />
     <WattToast ref="wattToast" />
   </div>
