@@ -1081,16 +1081,29 @@ priceless:
   close: Lukk
 priceamend:
   title: Legg til pris
-  intro: Denne ladingen ({kwh} kWh) har ingen pris ennå. Legg den til raskt.
   card_section: Ladekortet ditt
   card_cost_hint: Det blir {cost} for denne ladingen.
-  manual_label: Angi pris
-  manual_label_or: Eller angi pris
-  manual_placeholder: Totalkostnad
-  location_label: Sted (valgfritt)
+  label_total: "{or}Angi totalkostnad"
+  label_per_kwh: "{or}Angi pris per kWh"
+  label_or_prefix: "Eller: "
   public_label: Offentlig lading
   chip: Pris mangler
   chip_aria: Legg til pris for denne ladingen
+  kwh_unknown: kWh ukjent
+  charging_type: Ladetype
+  duration: Varighet
+  map_alt: "Kart over ladeområdet"
+  location_missing: Ingen sted - forslag og masseoppdatering trenger ett
+  location_change: Endre sted
+  location_set: Angi sted
+  suggestion_title: "Sist her: {price} den {date}"
+  suggestion_apply: Bruk
+  per_kwh_line: Det er {price}.
+  nudge_new_card: Lagre som ladekort
+  nudge_card_price: Lagre tariff på "{card}"
+  nudge_hint: Da priser jeg fremtidige ladinger automatisk, og du kan bruke prisen på andre ladinger her.
+  batch_label: Pris også {count} annen lading på dette stedet | Pris også {count} andre ladinger på dette stedet
+  batch_needs_card: Dette krever et ladekort slik at prisen kan gjenbrukes.
 logfields:
   apply_tariff_to_location: "Bruk prisen også på {count} annen lading på dette stedet | Bruk prisen også på {count} andre ladinger på dette stedet"
   card_prompt_title: "Legg til ladekortet ditt"

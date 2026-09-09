@@ -1081,16 +1081,29 @@ priceless:
   close: Stäng
 priceamend:
   title: Lägg till pris
-  intro: Denna laddning ({kwh} kWh) har inget pris ännu. Lägg till det snabbt.
   card_section: Ditt laddkort
   card_cost_hint: Det blir {cost} för denna laddning.
-  manual_label: Ange pris
-  manual_label_or: Eller ange pris
-  manual_placeholder: Total kostnad
-  location_label: Plats (valfritt)
+  label_total: "{or}Ange total kostnad"
+  label_per_kwh: "{or}Ange pris per kWh"
+  label_or_prefix: "Eller: "
   public_label: Offentlig laddning
   chip: Pris saknas
   chip_aria: Lägg till pris för denna laddning
+  kwh_unknown: kWh okänt
+  charging_type: Laddtyp
+  duration: Varaktighet
+  map_alt: "Karta över laddområdet"
+  location_missing: Ingen plats - förslag och massuppdatering behöver en
+  location_change: Ändra plats
+  location_set: Ange plats
+  suggestion_title: "Senast här: {price} den {date}"
+  suggestion_apply: Använd
+  per_kwh_line: Det är {price}.
+  nudge_new_card: Spara som laddkort
+  nudge_card_price: Spara tariff på "{card}"
+  nudge_hint: Då prissätter jag framtida laddningar automatiskt och du kan använda priset på andra laddningar här.
+  batch_label: Prissätt även {count} annan laddning på denna plats | Prissätt även {count} andra laddningar på denna plats
+  batch_needs_card: Detta kräver ett laddkort så att priset kan återanvändas.
 logfields:
   apply_tariff_to_location: "Använd priset även på {count} annan laddning på denna plats | Använd priset även på {count} andra laddningar på denna plats"
   card_prompt_title: "Lägg till ditt laddkort"

@@ -175,3 +175,35 @@ describe('useInlineChargingCard', () => {
     })
   })
 })
+
+describe('useInlineChargingCard.openWithPrice', () => {
+  beforeEach(() => {
+    vi.mocked(api.post).mockReset()
+    vi.mocked(api.post).mockResolvedValue({ data: savedCard } as never)
+  })
+
+  it('oeffnet das Anlage-Formular mit dem errechneten Preis im Feld des Ladetyps', () => {
+    const card = useInlineChargingCard(centsToEur, eurToCents)
+    card.openWithPrice('DC', 0.49)
+
+    expect(card.isOpen.value).toBe(true)
+    expect(card.isEditing.value).toBe(false)
+    expect(card.draft.value.dcPrice).toBe(49)
+    expect(card.draft.value.acPrice).toBe('')
+  })
+
+  it('unbekannter Ladetyp landet im AC-Feld', () => {
+    const card = useInlineChargingCard(centsToEur, eurToCents)
+    card.openWithPrice('UNKNOWN', 0.3)
+    expect(card.draft.value.acPrice).toBe(30)
+  })
+
+  it('speichert den vorbefuellten Preis in EUR/kWh', async () => {
+    const card = useInlineChargingCard(centsToEur, eurToCents)
+    card.openWithPrice('AC', 0.492)
+    card.draft.value.providerName = 'EnBW mobility+'
+    await card.save()
+
+    expect(vi.mocked(api.post).mock.calls[0][1]).toMatchObject({ acPricePerKwh: 0.492, dcPricePerKwh: null })
+  })
+})

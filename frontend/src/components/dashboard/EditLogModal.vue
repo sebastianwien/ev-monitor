@@ -96,6 +96,7 @@ export interface EvLogResponse {
   isPublicCharging: boolean
   cpoName: string | null
   chargingProviderId: string | null
+  dataSource?: string | null
 }
 
 const props = defineProps<{ log: EvLogResponse }>()

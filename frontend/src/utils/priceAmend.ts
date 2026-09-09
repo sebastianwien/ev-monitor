@@ -21,10 +21,33 @@ export interface AmendCard {
  * seinen Betrag von Hand.
  */
 export function costEurFromCard(card: AmendCard, chargingType: ChargingTypeInput, kwh: number | null): number | null {
-  if (kwh == null || kwh <= 0) return null
   const price = chargingType === 'DC' ? card.dcPricePerKwh : card.acPricePerKwh
-  if (price == null) return null
-  return Math.round(price * kwh * 100) / 100
+  return costEurFromPricePerKwh(price, kwh)
+}
+
+/** Gesamtkosten in EUR aus einem kWh-Preis (Karte oder Ortsvorschlag). */
+export function costEurFromPricePerKwh(pricePerKwh: number | null, kwh: number | null): number | null {
+  if (pricePerKwh == null || kwh == null || kwh <= 0) return null
+  return Math.round(pricePerKwh * kwh * 100) / 100
+}
+
+/**
+ * Energie, auf die sich der Preis bezieht: Brutto (kwhCharged), sonst Netto (kwhAtVehicle) -
+ * AutoSync-Logs kennen oft nur den Netto-Wert, und der Feed rechnet genauso.
+ */
+export function amendKwh(log: { kwhCharged: number | null; kwhAtVehicle: number | null }): number | null {
+  return log.kwhCharged ?? log.kwhAtVehicle ?? null
+}
+
+/** Gesamtbetrag zurueck auf EUR/kWh (4 Stellen) - der Wert, der als Kartentarif merkbar ist. */
+export function pricePerKwhEur(costEur: number | null, kwh: number | null): number | null {
+  if (costEur == null || kwh == null || kwh <= 0) return null
+  return Math.round((costEur / kwh) * 10000) / 10000
+}
+
+/** Batch am Ort geht nur ueber eine Karte (der Endpoint bepreist mit ihrem Tarif). */
+export function canApplyToLocation(chargingProviderId: string | null, pricelessCount: number): boolean {
+  return chargingProviderId != null && pricelessCount > 0
 }
 
 /**
@@ -70,4 +93,32 @@ export function buildAmendPayload(i: AmendInput): Record<string, unknown> {
 /** Nachtrag ist absendbar, sobald entweder ein Preis oder eine Ladekarte vorliegt. */
 export function isAmendValid(costEur: number | null, chargingProviderId: string | null): boolean {
   return costEur != null || chargingProviderId != null
+}
+
+export type PriceInputMode = 'total' | 'per_kwh'
+
+/**
+ * Getippter Wert -> Gesamtkosten in EUR. Im kWh-Modus zaehlt der Preis pro kWh in
+ * Landeswaehrung mal Energie; ohne Energie gibt es keinen Betrag.
+ */
+export function manualCostEur(mode: PriceInputMode, typed: string | number, kwh: number | null, rate: number): number | null {
+  // v-model auf type=number liefert eine Zahl, sonst einen String - beides normalisieren.
+  const v = String(typed ?? '').trim()
+  if (v === '') return null
+  const n = Number(v)
+  if (Number.isNaN(n) || n < 0) return null
+  if (mode === 'total') return localTotalToEur(n, rate)
+  if (kwh == null || kwh <= 0) return null
+  return localTotalToEur(Math.round(n * kwh * 100) / 100, rate)
+}
+
+/**
+ * Karte ODER Preis: hat die gewaehlte Karte fuer diesen Ladetyp einen Tarif, ist er der Preis
+ * dieser Ladung und das manuelle Feld gesperrt - sonst wuerde ein Batch mit dem Kartentarif
+ * etwas anderes bepreisen als der User gerade getippt hat. Eine Karte ohne Tarif laesst das
+ * Feld offen, damit der getippte Preis als ihr Tarif hinterlegt werden kann.
+ */
+export function cardLocksManualPrice(card: AmendCard | null, chargingType: 'AC' | 'DC'): boolean {
+  if (!card) return false
+  return (chargingType === 'DC' ? card.dcPricePerKwh : card.acPricePerKwh) != null
 }

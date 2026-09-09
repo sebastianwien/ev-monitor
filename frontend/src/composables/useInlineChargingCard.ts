@@ -48,6 +48,18 @@ export function useInlineChargingCard(
 
   const open = () => { isOpen.value = true }
 
+  /**
+   * Neue Karte aus einem manuell getippten Betrag: der errechnete EUR/kWh-Preis landet im Feld
+   * des Ladetyps, der User waehlt nur noch den Anbieter. DC -> DC-Feld, alles andere -> AC.
+   */
+  const openWithPrice = (chargingType: 'AC' | 'DC' | 'UNKNOWN' | null, eurPerKwh: number) => {
+    editingBase.value = null
+    const typed = fromEurPerKwh(eurPerKwh)
+    draft.value = { ...emptyDraft(), [chargingType === 'DC' ? 'dcPrice' : 'acPrice']: typed }
+    failed.value = false
+    isOpen.value = true
+  }
+
   /** Oeffnet das Formular zum Nachtragen des Preises einer bereits angelegten Karte. */
   const openEdit = (provider: ChargingProvider) => {
     editingBase.value = provider
@@ -69,8 +81,9 @@ export function useInlineChargingCard(
     draft.value = emptyDraft()
   }
 
+  // 4 Stellen = Speichergenauigkeit; ohne Rundung bleibt vom ct-Umweg Float-Rauschen.
   const toEurOrNull = (typed: string | number) =>
-    typed === '' || typed == null ? null : toEurPerKwh(Number(typed))
+    typed === '' || typed == null ? null : Math.round(toEurPerKwh(Number(typed)) * 10000) / 10000
 
   /**
    * Speichert die Karte (POST neu / PUT beim Nachtragen) und gibt sie zurueck, damit der
@@ -106,5 +119,5 @@ export function useInlineChargingCard(
     }
   }
 
-  return { isOpen, saving, failed, draft, isCustom, isEditing, resolvedName, canSave, open, openEdit, cancel, save }
+  return { isOpen, saving, failed, draft, isCustom, isEditing, resolvedName, canSave, open, openWithPrice, openEdit, cancel, save }
 }
