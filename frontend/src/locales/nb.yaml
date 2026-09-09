@@ -1474,7 +1474,7 @@ settings:
   tariff_title: Mine ladekort
   tariff_moved_hint: "Legg til kort og vedlikehold tariffer"
   tariff_active_since: siden
-  tariff_private_label: Privat hjemmetariff (egen ladeboks)
+  tariff_private_label: Privat hjemmetariff
   tariff_private_hint: Prissetter de private ladingene dine automatisk - også importerte uten sted.
   tariff_private_badge: Hjemmetariff
   tariff_none_title: Det er ikke lagt inn noe ladekort ennå

@@ -1523,7 +1523,7 @@ settings:
   tariff_title: "My Charging Cards"
   tariff_moved_hint: "Add cards and manage tariffs"
   tariff_active_since: "since"
-  tariff_private_label: "Private home tariff (own wallbox)"
+  tariff_private_label: "Private home tariff"
   tariff_private_hint: "Prices your private charges automatically - including imported ones without a location."
   tariff_private_badge: "Home tariff"
   tariff_none_title: "No charging card entered yet"
