@@ -243,6 +243,134 @@ class LocationPricingTest extends AbstractIntegrationTest {
         assertNull(enriched.getCostEur());
     }
 
+    // ---- Heimtarif: die als privat markierte Karte bepreist ortlose Heimladungen ----
+
+    @Test
+    void aPrivateChargeWithoutALocationIsPricedByTheUsersHomeCard() {
+        // XPeng & Co. liefern weder Ort noch Preis. Ohne Geohash greift der Ortstarif nie -
+        // die als privat markierte Karte ist die einzige Aussage des Users ueber seinen Heimpreis.
+        UUID home = saveHomeCard("Zuhause", new BigDecimal("0.2500"));
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, null, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+        EvLog priced = locationPricing.enrich(log, userId);
+
+        assertEquals(0, new BigDecimal("10.00").compareTo(priced.getCostEur()));
+        assertEquals(0, new BigDecimal("0.2500").compareTo(priced.getPricePerKwh()));
+        assertEquals(home, priced.getChargingProviderId());
+    }
+
+    @Test
+    void aPublicChargeIsNeverPricedByTheHomeCard() {
+        saveHomeCard("Zuhause", new BigDecimal("0.2500"));
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, null, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, true, null);
+        EvLog enriched = locationPricing.enrich(log, userId);
+
+        assertNull(enriched.getCostEur());
+        assertNull(enriched.getChargingProviderId());
+    }
+
+    @Test
+    void anOrdinaryCardNeverPricesAnythingByItself() {
+        // Nur die ausdrueckliche "privat"-Markierung erlaubt es, den Listenpreis anzuwenden.
+        // Eine EMP-Karte zu besitzen sagt nichts darueber, wer eine bestimmte Ladung bezahlt hat.
+        saveCard("EnBW", new BigDecimal("0.3900"), new BigDecimal("0.5900"), BigDecimal.ZERO);
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, null, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+
+        assertNull(locationPricing.enrich(log, userId).getCostEur());
+    }
+
+    @Test
+    void aCostTheUserAlreadyStatedSurvivesTheHomeTariff() {
+        saveHomeCard("Zuhause", new BigDecimal("0.2500"));
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("7.50"), 30, null,
+                10_000, null, null, LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+
+        assertEquals(0, new BigDecimal("7.50").compareTo(locationPricing.enrich(log, userId).getCostEur()));
+    }
+
+    @Test
+    void twoActiveHomeCardsPriceNothing() {
+        // Mehrdeutig - und Raten waere hier teurer als Nichtstun: der User traegt lieber nach,
+        // als eine falsche Zahl in seiner Kostenauswertung zu finden.
+        saveHomeCard("Zuhause", new BigDecimal("0.2500"));
+        saveHomeCard("Zuhause 2", new BigDecimal("0.3200"));
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, null, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+
+        assertNull(locationPricing.enrich(log, userId).getCostEur());
+    }
+
+    @Test
+    void aHomeCardDoesNotPriceChargesFromBeforeItWasActive() {
+        // Der Heimtarif gilt ab seinem Startdatum - aeltere Ladungen liefen zu einem anderen Preis.
+        UserChargingProviderEntity card = homeCard("Zuhause", new BigDecimal("0.2500"));
+        card.setActiveFrom(LocalDate.now().minusDays(3));
+        cardRepository.save(card);
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, null, 10_000, null, null,
+                LocalDateTime.now().minusDays(10), ChargingType.AC, null, null, false, null);
+
+        assertNull(locationPricing.enrich(log, userId).getCostEur());
+    }
+
+    @Test
+    void aHomeCardDoesNotPriceChargesAfterItExpired() {
+        UserChargingProviderEntity card = homeCard("Alter Heimtarif", new BigDecimal("0.2500"));
+        card.setActiveFrom(LocalDate.now().minusYears(1));
+        card.setActiveUntil(LocalDate.now().minusDays(30));
+        cardRepository.save(card);
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, null, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+
+        assertNull(locationPricing.enrich(log, userId).getCostEur());
+    }
+
+    @Test
+    void aDeletedHomeCardPricesNothing() {
+        UserChargingProviderEntity card = homeCard("Zuhause", new BigDecimal("0.2500"));
+        card.setDeletedAt(LocalDateTime.now());
+        cardRepository.save(card);
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, null, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+
+        assertNull(locationPricing.enrich(log, userId).getCostEur());
+    }
+
+    @Test
+    void theLocationsOwnHistoryStillWinsOverTheHomeCard() {
+        // Wo der User schon einmal bezahlt hat, zaehlt der bezahlte Betrag - nicht der Listenpreis.
+        saveHomeCard("Zuhause", new BigDecimal("0.2500"));
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("12.00"), 30,
+                "u1hcpp", 10_000, null, null, LocalDateTime.now().minusDays(1), ChargingType.AC,
+                null, null, false, null));
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, "u1hcpp", 11_000, null, null,
+                LocalDateTime.now(), ChargingType.AC, null, null, false, null);
+
+        // 12.00 / 40 = 0.30 statt der 0.25 der Karte
+        assertEquals(0, new BigDecimal("12.00").compareTo(locationPricing.enrich(log, userId).getCostEur()));
+    }
+
+    @Test
+    void aHomeCardWithoutARateForThisChargingTypePricesNothing() {
+        // Heim-DC gibt es praktisch nie - ohne DC-Preis bleibt die Ladung offen statt falsch bepreist.
+        saveHomeCard("Zuhause", new BigDecimal("0.2500"));
+
+        EvLog log = EvLog.createNew(carId, new BigDecimal("40.0"), null, 30, null, 10_000, null, null,
+                LocalDateTime.now(), ChargingType.DC, null, null, false, null);
+
+        assertNull(locationPricing.enrich(log, userId).getCostEur());
+    }
+
     // ---- Helpers ----
 
     private UUID saveCard(String name, BigDecimal ac, BigDecimal dc, BigDecimal sessionFee) {
@@ -255,6 +383,22 @@ class LocationPricingTest extends AbstractIntegrationTest {
         card.setMonthlyFeeEur(BigDecimal.ZERO);
         card.setActiveFrom(LocalDate.now().minusYears(1));
         return cardRepository.save(card).getId();
+    }
+
+    private UserChargingProviderEntity homeCard(String name, BigDecimal ac) {
+        UserChargingProviderEntity card = new UserChargingProviderEntity();
+        card.setUserId(userId);
+        card.setProviderName(name);
+        card.setAcPricePerKwh(ac);
+        card.setSessionFeeEur(BigDecimal.ZERO);
+        card.setMonthlyFeeEur(BigDecimal.ZERO);
+        card.setActiveFrom(LocalDate.now().minusYears(1));
+        card.setPrivateCard(true);
+        return card;
+    }
+
+    private UUID saveHomeCard(String name, BigDecimal ac) {
+        return cardRepository.save(homeCard(name, ac)).getId();
     }
 
     private void chargedHere(BigDecimal kwh, BigDecimal cost, UUID cardId) {

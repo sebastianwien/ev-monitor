@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, CurrencyEuroIcon, CheckCircleIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, CurrencyEuroIcon, CheckCircleIcon, ChevronRightIcon, HomeIcon } from '@heroicons/vue/24/outline'
 import WattBadge from '../shared/WattBadge.vue'
 import { wattPossibleForLog } from '@/utils/wattPreview'
 import { amendKwh } from '@/utils/priceAmend'
@@ -12,6 +12,8 @@ import WattToast from '../shared/WattToast.vue'
 import { useCoinStore } from '@/stores/coins'
 import type { EvLogResponse } from './EditLogModal.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
+import { activeHomeTariff } from '@/utils/homeTariff'
+import type { ChargingProvider } from '@/composables/useChargingProviders'
 
 const { t } = useI18n()
 const { formatDecimal } = useLocaleFormat()
@@ -21,6 +23,37 @@ const emit = defineEmits<{ close: []; updated: [] }>()
 const logs = ref<EvLogResponse[]>([])
 const loading = ref(false)
 const amendingLog = ref<EvLogResponse | null>(null)
+
+/**
+ * Heimtarif-Sammelnachtrag: Import-Quellen wie XPeng liefern weder Ort noch Preis, der
+ * ortsbasierte Nachtrag greift dort also nie. Hat der User genau einen gueltigen Heimtarif,
+ * bepreist ein Klick alle nicht-oeffentlichen Ladungen ohne Kosten auf einmal - sonst muesste
+ * er jede einzeln nachtragen (bei Meigor 36 Stueck).
+ */
+const homeCard = ref<ChargingProvider | null>(null)
+const applyingHome = ref(false)
+
+async function loadHomeCard() {
+  try {
+    const res = await api.get('/users/me/charging-providers')
+    homeCard.value = activeHomeTariff<ChargingProvider>(res.data)
+  } catch { homeCard.value = null }
+}
+
+async function applyHomeTariff() {
+  applyingHome.value = true
+  try {
+    const res = await api.patch('/logs/apply-home-tariff')
+    const priced = res.data?.priced ?? 0
+    const coins = res.data?.coinsAwarded ?? 0
+    if (coins) coinStore.refresh()
+    wattToast.value?.show(coins, priced > 0 ? t('priceless.home_applied', priced) : '')
+    await loadLogs()
+    emit('updated')
+  } finally {
+    applyingHome.value = false
+  }
+}
 
 async function loadLogs() {
   if (!props.carId) return
@@ -34,7 +67,7 @@ async function loadLogs() {
 }
 
 watch(() => props.open, (open) => {
-  if (open) loadLogs()
+  if (open) { loadLogs(); loadHomeCard() }
 })
 
 const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
@@ -76,6 +109,17 @@ function formatDate(iso: string) {
         </div>
 
         <p class="px-5 pt-3 pb-1 text-xs text-gray-500 dark:text-gray-400">{{ t('priceless.info') }}</p>
+
+        <!-- Ein Klick statt N Nachtraege - nur sichtbar, wenn genau ein Heimtarif gilt und
+             es ueberhaupt etwas zu bepreisen gibt. -->
+        <div v-if="homeCard && logs.length > 0" class="px-5 pt-2 pb-1">
+          <button type="button" :disabled="applyingHome" @click="applyHomeTariff"
+            class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-2 rounded-sm bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition">
+            <HomeIcon class="h-4 w-4" aria-hidden="true" />
+            {{ t('priceless.apply_home', { card: homeCard.label || homeCard.providerName }) }}
+          </button>
+          <p class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">{{ t('priceless.apply_home_hint') }}</p>
+        </div>
 
         <!-- Content -->
         <div class="overflow-y-auto flex-1">

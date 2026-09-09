@@ -13,7 +13,7 @@ const eurToCents = (v: number) => Math.round(v * 1000) / 10
 const savedCard = {
   id: 'card-1', providerName: 'EnBW mobility+', label: null,
   acPricePerKwh: 0.39, dcPricePerKwh: 0.59,
-  monthlyFeeEur: 0, sessionFeeEur: 0, activeFrom: '2026-07-12', activeUntil: null,
+  monthlyFeeEur: 0, sessionFeeEur: 0, activeFrom: '2026-07-12', activeUntil: null, isPrivate: false,
 }
 
 describe('useInlineChargingCard', () => {
@@ -113,7 +113,7 @@ describe('useInlineChargingCard', () => {
       id: 'card-9', providerName: 'Maingau Energie', label: 'Zweitkarte',
       acPricePerKwh: null, dcPricePerKwh: null,
       monthlyFeeEur: 4.99, sessionFeeEur: 0, activeFrom: '2025-01-01',
-      activeUntil: null,
+      activeUntil: null, isPrivate: false,
     }
 
     it('fuellt das Formular aus der Karte vor und rechnet EUR/kWh in die Anzeigeeinheit zurueck', () => {

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -91,7 +92,9 @@ public class LocationPricing {
      */
     public EvLog enrich(EvLog log, UUID userId) {
         if (log.getCostEur() != null && log.getChargingProviderId() != null) return log;
-        if (log.getGeohash() == null || log.getGeohash().length() < MIN_GEOHASH_LENGTH) return log;
+        if (log.getGeohash() == null || log.getGeohash().length() < MIN_GEOHASH_LENGTH) {
+            return enrichFromHomeCard(log, userId);
+        }
 
         // Karte und Preis erben nur von Ladungen desselben Ladekontexts (privat/oeffentlich):
         // eine oeffentliche EMP-Karte darf nicht auf eine Heimladung ueberspringen und umgekehrt.
@@ -120,7 +123,39 @@ public class LocationPricing {
                 changed = true;
             }
         }
-        return changed ? builder.build() : log;
+        return changed ? builder.build() : enrichFromHomeCard(log, userId);
+    }
+
+    /**
+     * Letzte Instanz fuer Ladungen, die der Ort nicht bepreisen kann: der als privat markierte
+     * Heimtarif des Nutzers. Das ist die einzige Stelle, an der ein Listenpreis ohne
+     * Ortsnachweis angewendet wird - erlaubt allein deshalb, weil die Markierung "privat" die
+     * ausdrueckliche Aussage des Nutzers ist, dass dieser Preis fuer seine nicht-oeffentlichen
+     * Ladungen gilt. Import-Quellen wie XPeng liefern weder Ort noch Preis; ohne diesen
+     * Fallback bliebe jede importierte Heimladung dauerhaft ohne Kosten.
+     *
+     * Bewusst zurueckhaltend: nur nicht-oeffentliche Ladungen, nur bei genau einem zum
+     * Ladezeitpunkt gueltigen Heimtarif, und nur wenn die Karte fuer diese Ladeart einen
+     * Preis hat. In jedem anderen Fall bleibt die Ladung lieber offen als falsch bepreist.
+     */
+    private EvLog enrichFromHomeCard(EvLog log, UUID userId) {
+        if (log.getCostEur() != null) return log;
+        if (Boolean.TRUE.equals(log.getPublicCharging())) return log;
+
+        List<UserChargingProviderEntity> cards =
+                chargingProviderRepository.findPrivateCardsActiveOn(userId, log.getLoggedAt().toLocalDate());
+        if (cards.size() != 1) return log;
+
+        UserChargingProviderEntity card = cards.get(0);
+        Optional<BigDecimal> cost = costUnder(card, log);
+        if (cost.isEmpty()) return log;
+
+        var builder = log.toBuilder().costEur(cost.get());
+        if (log.getChargingProviderId() == null) builder.chargingProviderId(card.getId());
+        if (log.getPricePerKwh() == null) {
+            priceUnder(card, log.getChargingType()).ifPresent(builder::pricePerKwh);
+        }
+        return builder.build();
     }
 
     /**

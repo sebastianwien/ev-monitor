@@ -369,6 +369,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .toList();
     }
 
+    @Override
+    public List<EvLog> findPricelessPrivateLogs(UUID userId) {
+        return jpaRepository.findPricelessPrivateByUserId(userId).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
     // Private charges are stored at 6 chars (~600m), public ones at 7 (~150m). Matching a public
     // charge on 7 keeps two stations in the same 600m cell apart; matching private on 6 avoids
     // pinning a home location more precisely than DSGVO allows.

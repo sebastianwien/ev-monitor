@@ -1079,6 +1079,9 @@ priceless:
   dismiss: Skjul
   add_price: Legg til pris
   close: Lukk
+  apply_home: Prissett alle hjemmeladinger med "{card}"
+  apply_home_hint: Gjelder alle private ladinger uten pris. Priser du allerede har lagt inn, forblir uendret.
+  home_applied: "1 lading prissatt | {count} ladinger prissatt"
 priceamend:
   title: Legg til pris
   card_section: Ladekortet ditt
@@ -1471,6 +1474,9 @@ settings:
   tariff_title: Mine ladekort
   tariff_moved_hint: "Legg til kort og vedlikehold tariffer"
   tariff_active_since: siden
+  tariff_private_label: Privat hjemmetariff (egen ladeboks)
+  tariff_private_hint: Prissetter de private ladingene dine automatisk - også importerte uten sted.
+  tariff_private_badge: Hjemmetariff
   tariff_none_title: Det er ikke lagt inn noe ladekort ennå
   tariff_none_desc: Legg til ladekontraktene dine – du kan administrere flere samtidig.
   tariff_add_btn: Nytt ladekort

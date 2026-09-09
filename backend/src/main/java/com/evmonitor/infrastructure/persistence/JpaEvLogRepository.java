@@ -241,6 +241,19 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
         """)
     List<EvLogEntity> findPricelessByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash);
 
+    /**
+     * Alle nicht-oeffentlichen Ladungen des Users ohne Kosten - unabhaengig vom Ort. Der
+     * ortsbasierte Nachtrag erreicht sie nicht: Import-Quellen wie XPeng liefern keinen Geohash.
+     */
+    @Query("""
+        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+        WHERE c.userId = :userId
+          AND e.costEur IS NULL
+          AND (e.publicCharging IS NULL OR e.publicCharging = false)
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findPricelessPrivateByUserId(@Param("userId") UUID userId);
+
     @Query("""
             SELECT e FROM EvLogEntity e
             WHERE e.carId = :carId

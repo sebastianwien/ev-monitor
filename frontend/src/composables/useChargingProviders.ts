@@ -13,9 +13,15 @@ export interface ChargingProvider {
   sessionFeeEur: number
   activeFrom: string
   activeUntil: string | null
+  /** Privater Heimtarif (eigene Wallbox) statt Karte fuer oeffentliche Saeulen. */
+  isPrivate: boolean
 }
 
+/** Der Heimtarif steht bewusst an erster Stelle - er ist fuer Import-Nutzer der haeufigste Fall. */
+export const HOME_TARIFF_NAME = 'Zuhause (eigene Wallbox)'
+
 export const KNOWN_EMPS = [
+  HOME_TARIFF_NAME,
   'ADAC e-Charge', 'Aral Pulse', 'bp pulse', 'Charge Now (BMW)',
   'EnBW mobility+', 'Elli (VW)', 'E.ON Drive', 'EWE Go',
   'Fastned Gold', 'IONITY Passport', 'Lichtblick', 'Maingau Energie',
@@ -44,9 +50,18 @@ export function useChargingProviders(
     monthlyFeeEur: 0,
     sessionFeeEur: 0,
     activeFrom: new Date().toISOString().split('T')[0],
+    isPrivate: false,
   })
 
   const isCustomProvider = computed(() => providerForm.value.providerName === 'Anderer Anbieter')
+
+  /**
+   * "Zuhause" im Anbieter-Feld setzt die Heimtarif-Markierung vor - die Checkbox bleibt aber
+   * die einzige Wahrheit, damit auch ein Stadtwerke-Tarif als Heimtarif markiert werden kann.
+   */
+  const onProviderNameChange = () => {
+    if (providerForm.value.providerName === HOME_TARIFF_NAME) providerForm.value.isPrivate = true
+  }
 
   const resetProviderForm = () => {
     providerForm.value = {
@@ -54,6 +69,7 @@ export function useChargingProviders(
       acPricePerKwh: '', dcPricePerKwh: '',
       monthlyFeeEur: 0, sessionFeeEur: 0,
       activeFrom: new Date().toISOString().split('T')[0],
+      isPrivate: false,
       }
   }
 
@@ -69,6 +85,7 @@ export function useChargingProviders(
       monthlyFeeEur: provider.monthlyFeeEur,
       sessionFeeEur: provider.sessionFeeEur,
       activeFrom: provider.activeFrom,
+      isPrivate: provider.isPrivate,
     }
   }
 
@@ -95,6 +112,7 @@ export function useChargingProviders(
         monthlyFeeEur: providerForm.value.monthlyFeeEur || 0,
         sessionFeeEur: providerForm.value.sessionFeeEur || 0,
         activeFrom: providerForm.value.activeFrom,
+        isPrivate: providerForm.value.isPrivate,
       }
       if (editingProviderId.value === 'new') {
         await api.post('/users/me/charging-providers', payload)
@@ -128,8 +146,8 @@ export function useChargingProviders(
 
   return {
     chargingProviders, editingProviderId, providerForm, isCustomProvider,
-    KNOWN_EMPS,
-    resetProviderForm, startEditProvider,
+    KNOWN_EMPS, HOME_TARIFF_NAME,
+    resetProviderForm, startEditProvider, onProviderNameChange,
     fetchChargingProviders, saveChargingProvider, deleteChargingProvider,
     formatPrice, formatDate,
   }

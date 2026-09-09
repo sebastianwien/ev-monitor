@@ -256,6 +256,18 @@ public class EvLogController {
     record ApplyTariffRequest(String geohash, Double lat, Double lon, boolean isPublic, UUID chargingProviderId) {}
 
     /** Prices all cost-less logs at this location with the given charging card. Never overwrites existing costs. */
+    /**
+     * Bepreist alle nicht-oeffentlichen Ladungen des Users ohne Kosten mit seinem als privat
+     * markierten Heimtarif. Kein Request-Body noetig: welche Karte gilt, sagt die Markierung
+     * an der Karte selbst - der Nutzer waehlt hier nichts aus, was er dort nicht schon gesagt hat.
+     */
+    @PatchMapping("/apply-home-tariff")
+    public ResponseEntity<Map<String, Integer>> applyHomeTariff(Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        EvLogService.TariffApplied applied = evLogService.applyHomeTariff(principal.getUser().getId());
+        return ResponseEntity.ok(Map.of("priced", applied.priced(), "coinsAwarded", applied.coinsAwarded()));
+    }
+
     @PatchMapping("/apply-tariff-at-location")
     public ResponseEntity<Map<String, Integer>> applyTariffAtLocation(
             @RequestBody ApplyTariffRequest body,

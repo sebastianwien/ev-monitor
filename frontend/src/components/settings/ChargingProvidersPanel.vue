@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TrashIcon, PlusIcon, PencilIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, PlusIcon, PencilIcon, HomeIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useChargingProviders } from '../../composables/useChargingProviders'
 import ChargingCardTile from '../shared/ChargingCardTile.vue'
@@ -20,7 +20,7 @@ const message = ref<{ type: 'success' | 'error', text: string } | null>(null)
 const {
   chargingProviders, editingProviderId, providerForm, isCustomProvider,
   KNOWN_EMPS,
-  resetProviderForm, startEditProvider,
+  resetProviderForm, startEditProvider, onProviderNameChange,
   fetchChargingProviders, saveChargingProvider, deleteChargingProvider,
   formatPrice, formatDate,
 } = useChargingProviders(loading, message)
@@ -45,7 +45,13 @@ fetchChargingProviders()
         <div v-if="editingProviderId !== provider.id"
           class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm flex items-start gap-4">
           <div class="min-w-0 flex-1">
-            <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">{{ provider.providerName }}</p>
+            <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">
+              {{ provider.providerName }}
+              <span v-if="provider.isPrivate"
+                class="ml-1.5 inline-flex items-center gap-1 align-middle rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                <HomeIcon class="w-3 h-3" aria-hidden="true" />{{ t('settings.tariff_private_badge') }}
+              </span>
+            </p>
             <p v-if="provider.label" class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">{{ provider.label }}</p>
             <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600 dark:text-gray-300">
               <span v-if="provider.acPricePerKwh != null">AC: {{ formatPrice(provider.acPricePerKwh) }}</span>
@@ -78,7 +84,7 @@ fetchChargingProviders()
           <p class="text-sm font-medium text-indigo-800 dark:text-indigo-300">{{ t('settings.tariff_form_edit') }}</p>
           <div>
             <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_provider_label') }}</label>
-            <select v-model="providerForm.providerName"
+            <select v-model="providerForm.providerName" @change="onProviderNameChange"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
               <option value="" disabled>{{ t('settings.tariff_provider_placeholder') }}</option>
               <option v-for="emp in KNOWN_EMPS" :key="emp" :value="emp">{{ emp }}</option>
@@ -124,6 +130,16 @@ fetchChargingProviders()
             <input v-model="providerForm.activeFrom" type="date" :max="new Date().toISOString().split('T')[0]"
               class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm text-sm focus:ring-indigo-500 focus:border-indigo-500" />
           </div>
+          <!-- Heimtarif: die einzige Markierung, die eine Ladung ohne Ortsnachweis bepreisen darf.
+               Import-Quellen wie XPeng liefern keinen Ort - ohne sie bleibt jede Heimladung offen. -->
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input v-model="providerForm.isPrivate" type="checkbox"
+              class="mt-0.5 h-4 w-4 flex-shrink-0 rounded-sm border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500" />
+            <span class="text-xs">
+              <span class="block font-medium text-gray-700 dark:text-gray-200">{{ t('settings.tariff_private_label') }}</span>
+              <span class="block text-gray-500 dark:text-gray-400">{{ t('settings.tariff_private_hint') }}</span>
+            </span>
+          </label>
           <div class="flex gap-2 pt-1">
             <button @click="saveChargingProvider"
               :disabled="loading || !providerForm.providerName || (isCustomProvider && !providerForm.customProviderName)"
@@ -151,7 +167,7 @@ fetchChargingProviders()
         <p class="text-sm font-medium text-indigo-800 dark:text-indigo-300">{{ t('settings.tariff_form_title_new') }}</p>
         <div>
           <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{{ t('settings.tariff_provider_label') }}</label>
-          <select v-model="providerForm.providerName"
+          <select v-model="providerForm.providerName" @change="onProviderNameChange"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
             <option value="" disabled>{{ t('settings.tariff_provider_placeholder') }}</option>
             <option v-for="emp in KNOWN_EMPS" :key="emp" :value="emp">{{ emp }}</option>
@@ -197,6 +213,16 @@ fetchChargingProviders()
           <input v-model="providerForm.activeFrom" type="date" :max="new Date().toISOString().split('T')[0]"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm text-sm focus:ring-indigo-500 focus:border-indigo-500" />
         </div>
+        <!-- Heimtarif: die einzige Markierung, die eine Ladung ohne Ortsnachweis bepreisen darf.
+             Import-Quellen wie XPeng liefern keinen Ort - ohne sie bleibt jede Heimladung offen. -->
+        <label class="flex items-start gap-2.5 cursor-pointer">
+          <input v-model="providerForm.isPrivate" type="checkbox"
+            class="mt-0.5 h-4 w-4 flex-shrink-0 rounded-sm border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500" />
+          <span class="text-xs">
+            <span class="block font-medium text-gray-700 dark:text-gray-200">{{ t('settings.tariff_private_label') }}</span>
+            <span class="block text-gray-500 dark:text-gray-400">{{ t('settings.tariff_private_hint') }}</span>
+          </span>
+        </label>
         <div class="flex gap-2 pt-1">
           <button @click="saveChargingProvider"
             :disabled="loading || !providerForm.providerName || (isCustomProvider && !providerForm.customProviderName)"

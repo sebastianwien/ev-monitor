@@ -392,6 +392,39 @@ public class EvLogService {
         return new TariffApplied(priced, coins);
     }
 
+    /**
+     * Bepreist rueckwirkend jede nicht-oeffentliche Ladung ohne Kosten mit dem als privat
+     * markierten Heimtarif des Users. Der Gegenpart zu {@link #applyTariffAtLocation} fuer
+     * alle, deren Importquelle keinen Ort liefert (XPeng EU-Data-Act-Export): dort gibt es
+     * keinen Geohash, an dem ein ortsbasierter Nachtrag ansetzen koennte.
+     *
+     * Bestehende Kosten bleiben unangetastet - die Zahlen des Users gewinnen immer. Bei
+     * mehr als einem gueltigen Heimtarif passiert nichts, statt zu raten.
+     */
+    @Transactional
+    public TariffApplied applyHomeTariff(UUID userId) {
+        int priced = 0;
+        int coins = 0;
+        for (EvLog log : evLogRepository.findPricelessPrivateLogs(userId)) {
+            List<UserChargingProviderEntity> cards =
+                    chargingProviderRepository.findPrivateCardsActiveOn(userId, log.getLoggedAt().toLocalDate());
+            if (cards.size() != 1) continue;
+
+            UserChargingProviderEntity card = cards.get(0);
+            Optional<BigDecimal> cost = locationPricing.costUnder(card, log);
+            if (cost.isEmpty()) continue;
+
+            BigDecimal price = locationPricing.priceUnder(card, log.getChargingType()).orElse(null);
+            save(log.toBuilder().chargingProviderId(card.getId()).costEur(cost.get())
+                    .pricePerKwh(price).build());
+            priced++;
+            if (priced <= BATCH_REWARD_CAP) {
+                coins += coinLogService.awardOncePerEntity(userId, CoinLogService.CoinEvent.PRICE_ADDED, log.getId());
+            }
+        }
+        return new TariffApplied(priced, coins);
+    }
+
     @Transactional
     public EvLog save(EvLog evLog) {
         EvLog saved = evLogRepository.save(evLog);

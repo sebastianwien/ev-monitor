@@ -184,6 +184,9 @@ public interface EvLogRepository {
      */
     List<EvLog> findPricelessLogsAtGeohash(UUID userId, String geohash);
 
+    /** Alle nicht-oeffentlichen Ladungen des Users ohne Kosten - fuer den Heimtarif-Nachtrag. */
+    List<EvLog> findPricelessPrivateLogs(UUID userId);
+
     /**
      * Most recent {@link TireType} set on any log of this car with {@code logged_at < before}.
      * Used by auto-log paths (Tesla/Wallbox/SmartCar) to inherit the user's last known tire setting

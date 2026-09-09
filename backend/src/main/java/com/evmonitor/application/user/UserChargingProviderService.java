@@ -35,6 +35,7 @@ public class UserChargingProviderService {
         entity.setSessionFeeEur(request.sessionFeeEur() != null ? request.sessionFeeEur() : java.math.BigDecimal.ZERO);
         entity.setActiveFrom(request.activeFrom());
         entity.setActiveUntil(null);
+        entity.setPrivateCard(request.isPrivate());
 
         UserChargingProviderResponse saved = toResponse(repository.save(entity));
         // Einmalig: die erste Karte ist der Schritt, der Auto-Bepreisung ueberhaupt moeglich macht.
@@ -53,6 +54,7 @@ public class UserChargingProviderService {
         entity.setMonthlyFeeEur(request.monthlyFeeEur() != null ? request.monthlyFeeEur() : java.math.BigDecimal.ZERO);
         entity.setSessionFeeEur(request.sessionFeeEur() != null ? request.sessionFeeEur() : java.math.BigDecimal.ZERO);
         entity.setActiveFrom(request.activeFrom());
+        entity.setPrivateCard(request.isPrivate());
 
         return toResponse(repository.save(entity));
     }
@@ -90,7 +92,8 @@ public class UserChargingProviderService {
                 e.getMonthlyFeeEur(),
                 e.getSessionFeeEur(),
                 e.getActiveFrom(),
-                e.getActiveUntil()
+                e.getActiveUntil(),
+                e.isPrivateCard()
         );
     }
 }

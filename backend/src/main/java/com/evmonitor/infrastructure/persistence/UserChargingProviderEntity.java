@@ -48,6 +48,15 @@ public class UserChargingProviderEntity {
     @Column(name = "label", length = 100)
     private String label;
 
+    /**
+     * Privater Heimtarif (eigene Wallbox / Haushaltsstrom) statt einer Ladekarte fuer
+     * oeffentliche Saeulen. Nur eine so markierte Karte darf eine Ladung automatisch
+     * bepreisen: die Markierung IST die Aussage des Nutzers, dass dieser Preis fuer seine
+     * nicht-oeffentlichen Ladungen gilt. Siehe LocationPricing#enrich.
+     */
+    @Column(name = "is_private", nullable = false)
+    private boolean privateCard = false;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

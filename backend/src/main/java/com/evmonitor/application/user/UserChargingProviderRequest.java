@@ -15,6 +15,11 @@ public record UserChargingProviderRequest(
         BigDecimal dcPricePerKwh,
         BigDecimal monthlyFeeEur,
         BigDecimal sessionFeeEur,
-        @NotNull @PastOrPresent LocalDate activeFrom
+        @NotNull @PastOrPresent LocalDate activeFrom,
+        /**
+         * Privater Heimtarif statt Ladekarte fuer oeffentliche Saeulen. Nur eine so markierte
+         * Karte bepreist nicht-oeffentliche Ladungen automatisch (siehe LocationPricing).
+         */
+        boolean isPrivate
 ) {
 }
