@@ -532,7 +532,7 @@ onUnmounted(() => {
             :effective-battery-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
             :source-info="sourceInfo"
             @edit-charge="editingLog = latestCharge"
-            @amend-charge="priceAmendingLog = latestCharge"
+            @amend-charge="priceAmendingLog = latestCharge?._pricelessSubs?.[0] ?? latestCharge"
             @edit-trip="openTripEdit"
           />
 

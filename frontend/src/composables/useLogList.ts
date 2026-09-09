@@ -6,7 +6,7 @@ import { carDisplayName } from '../utils/enumLabel'
 import { sourceInfo } from '../utils/logSource'
 import { formatTripDateTimeRange, tripDateTimeParts } from '../utils/tripTimeFormat'
 import { annotatePhantomDrains } from '../utils/phantomDrain'
-import { aggregateGroupCost } from './useChargingEfficiency'
+import { aggregateGroupCost, costBasisKwh } from './useChargingEfficiency'
 
 /** Maximaler zeitlicher Abstand zweier Logs, damit sie zusammengeführt werden dürfen.
  *  24h, damit auch sehr langsame AC-Ladevorgänge (z. B. 14h an 4 kW) noch abgedeckt sind. */
@@ -417,7 +417,10 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       const totalKwh = allSubs.reduce((s: number, l: any) => s + (l.kwhAtVehicle ?? l.kwhCharged ?? 0), 0)
       // Cost aggregation divides by the SAME basis the cost was billed on (brutto-first),
       // so the header per-kWh price equals the tariff - not tariff/efficiency. See aggregateGroupCost.
-      const { totalCostEur, costBasisKwhTotal, costIsNettoOnly } = aggregateGroupCost(allSubs)
+      const { totalCostEur, costBasisKwhTotal, costIsNettoOnly, isFullyPriced } = aggregateGroupCost(allSubs)
+      // Teilvorgaenge, denen der Preis fehlt (und die einen tragen koennten) - Ziel des
+      // Sammel-Nachtrags am Gruppen-Header.
+      const pricelessSubs = allSubs.filter((l: any) => l.costEur == null && costBasisKwh(l) != null)
       const maxSoc = allSubs.reduce((m: number | null, l: any) =>
         l.socAfterChargePercent != null ? Math.max(m ?? 0, l.socAfterChargePercent) : m, null)
       const maxPower = allSubs.reduce((m: number | null, l: any) =>
@@ -461,6 +464,11 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         // _totalCostEur durch dieses Feld.
         _costBasisKwh: Math.round(costBasisKwhTotal * 100) / 100,
         _costIsNettoOnly: costIsNettoOnly,
+        // Der Gruppenpreis beschreibt nur dann die ganze Gruppe, wenn JEDER Teilvorgang
+        // bepreist ist - sonst zeigt der Header "Preise fehlen" statt einer Rate, die aus
+        // einem Bruchteil der Energie stammt.
+        _isFullyPriced: isFullyPriced,
+        _pricelessSubs: pricelessSubs,
         _maxSoc: maxSoc,
         _maxPower: maxPower,
         _spansMultipleDays: spansMultipleDays,

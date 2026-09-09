@@ -1131,6 +1131,8 @@ priceamend:
   public_label: "Public charging"
   chip: "Price missing"
   chip_aria: "Add price for this charge"
+  chip_group: "Prices missing"
+  chip_group_aria: "Add the missing prices of this charging group"
   kwh_unknown: "kWh unknown"
   charging_type: "Charging type"
   duration: "Duration"

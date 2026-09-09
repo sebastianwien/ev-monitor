@@ -61,8 +61,11 @@ const hasCurve = computed(() => canOpenCurve.value || curveLocked.value)
  */
 const charge = computed(() => normalizeCharge(props.entry))
 const kwh = computed<number | null>(() => charge.value?.kwh ?? null)
-const costEur = computed<number | null>(() => charge.value?.costEur ?? null)
-const costPerKwh = computed<number | null>(() => charge.value?.costPerKwh ?? null)
+// Eine nur teilweise bepreiste Ladegruppe bekommt KEINEN Gruppenpreis: Betrag und ct/kWh
+// staemmen dann aus einem Bruchteil der Energie. Die Teilvorgaenge unten zeigen weiterhin
+// ihren eigenen Preis.
+const costEur = computed<number | null>(() => (charge.value?.isFullyPriced ? charge.value.costEur : null))
+const costPerKwh = computed<number | null>(() => (charge.value?.isFullyPriced ? charge.value.costPerKwh : null))
 const maxPower = computed<number | null>(() => charge.value?.maxPowerKw ?? null)
 const isGroup = computed(() => charge.value?.isGroup ?? false)
 const count = computed(() => props.entry?._topUps?.length ?? 0)

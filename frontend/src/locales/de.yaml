@@ -1131,6 +1131,8 @@ priceamend:
   public_label: "Öffentliche Ladung"
   chip: "Preis fehlt"
   chip_aria: "Preis für diese Ladung nachtragen"
+  chip_group: "Preise fehlen"
+  chip_group_aria: "Fehlende Preise dieser Ladegruppe nachtragen"
   kwh_unknown: "kWh unbekannt"
   charging_type: "Ladetyp"
   duration: "Dauer"

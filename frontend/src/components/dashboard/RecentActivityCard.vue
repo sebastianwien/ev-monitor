@@ -52,13 +52,22 @@ function relativeTime(iso: string | null | undefined): string {
 const ch = computed(() => normalizeCharge(props.charge))
 const chargeSource = computed(() => (ch.value ? props.sourceInfo(ch.value.dataSource ?? undefined) : null))
 /**
- * Automatisch erfasste Einzel-Ladung (Tesla/Smartcar/Wallbox) ohne Preis - der amber Chip
- * bietet den schnellen Nachtrag an. Ladegruppen und manuelle Logs sind ausgenommen (kein
- * Einzel-Log-Patch bzw. haben ohnehin einen Preis).
+ * Automatisch erfasste Ladung (Tesla/Smartcar/Wallbox) ohne vollstaendigen Preis - der amber
+ * Chip bietet den schnellen Nachtrag an. Bei einer Ladegruppe zaehlt sie als preislos, sobald
+ * EIN Teilvorgang keinen Preis hat; der Nachtrag startet dann bei diesem Teilvorgang.
+ * Manuelle Logs sind ausgenommen - sie haben ohnehin einen Preis.
  */
-const chargePriceless = computed(() =>
-  !!ch.value && !props.charge?._isLadegruppe && chargeSource.value != null
-  && ch.value.costEur == null && !!props.charge?.id)
+const chargePriceless = computed(() => {
+  if (!ch.value || chargeSource.value == null) return false
+  if (props.charge?._isLadegruppe) return (props.charge._pricelessSubs?.length ?? 0) > 0
+  return ch.value.costEur == null && !!props.charge?.id
+})
+/** Watt-Potenzial des Nachtrags: bei einer Ladegruppe die Summe ihrer preislosen Teilvorgaenge. */
+const pricelessWatt = computed<number>(() => {
+  const subs = props.charge?._pricelessSubs as any[] | undefined
+  if (subs?.length) return subs.reduce((sum, sub) => sum + wattPossibleForLog(coinStore.catalog, sub), 0)
+  return ch.value ? wattPossibleForLog(coinStore.catalog, ch.value) : 0
+})
 const chargeTypeLabel = computed(() => {
   const type = ch.value?.chargingType
   if (type === 'AC') return t('dashboard.charging_type_ac')
@@ -80,7 +89,9 @@ const chargeGross = computed(() => {
 const chargeMetrics = computed<string[]>(() => {
   const out: string[] = []
   if (chargeGross.value) out.push(chargeGross.value)
-  if (ch.value?.costPerKwh != null) out.push(formatCostPerKwh(ch.value.costPerKwh))
+  // Nur zeigen, wenn der Preis die ganze Ladung/Ladegruppe abdeckt - eine Rate aus einem
+  // Bruchteil der Energie waere ein falscher Vergleichswert.
+  if (ch.value?.costPerKwh != null && ch.value.isFullyPriced) out.push(formatCostPerKwh(ch.value.costPerKwh))
   if (ch.value?.maxPowerKw != null) out.push(`${Math.round(ch.value.maxPowerKw)} kW`)
   return out
 })
@@ -150,7 +161,7 @@ const tripSocText = computed(() =>
 // Leistung/Kosten/Temp/Route bleiben Desktop + Detailseite vorbehalten.
 const chargeInline = computed<string[]>(() => {
   const out: string[] = []
-  if (ch.value?.costEur != null) out.push(formatCurrency(ch.value.costEur))
+  if (ch.value?.costEur != null && ch.value.isFullyPriced) out.push(formatCurrency(ch.value.costEur))
   if (chargeSocText.value) out.push(chargeSocText.value)
   return out
 })
@@ -197,7 +208,7 @@ const tripInline = computed<string[]>(() => {
             class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors">
             <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
             {{ t('priceamend.chip') }}
-            <WattBadge :amount="ch ? wattPossibleForLog(coinStore.catalog, ch) : 0" up-to />
+            <WattBadge :amount="pricelessWatt" up-to />
           </span>
         </div>
         <!-- Relativzeit: Desktop immer im Header | Mobile nur bei voller Breite (dann ist Platz) -->
@@ -224,7 +235,7 @@ const tripInline = computed<string[]>(() => {
             </span>
           </div>
         </div>
-        <span v-if="ch.costEur != null" class="hidden md:inline-block text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ formatCurrency(ch.costEur) }}</span>
+        <span v-if="ch.costEur != null && ch.isFullyPriced" class="hidden md:inline-block text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ formatCurrency(ch.costEur) }}</span>
         <span v-if="showTrip" class="md:hidden text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">{{ relativeTime(ch.loggedAt) }}</span>
       </div>
 

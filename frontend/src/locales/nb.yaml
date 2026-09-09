@@ -1089,6 +1089,8 @@ priceamend:
   public_label: Offentlig lading
   chip: Pris mangler
   chip_aria: Legg til pris for denne ladingen
+  chip_group: Priser mangler
+  chip_group_aria: Legg til prisene som mangler i denne ladegruppen
   kwh_unknown: kWh ukjent
   charging_type: Ladetype
   duration: Varighet

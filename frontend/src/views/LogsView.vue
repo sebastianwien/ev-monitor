@@ -95,6 +95,7 @@ import { subscriptionService, type SubscriptionTier } from '../api/subscriptionS
 import {
   computeRealCostHint,
   isNettoOnlyCostLog,
+  costBasisKwh,
   type RealCostHint,
   type CostHintLog,
 } from '../composables/useChargingEfficiency'
@@ -547,6 +548,22 @@ function cachePut(logId: string, points: CurveData) {
 /** Anzahl der Teilladungen einer Ladegruppe, die eine Kurve aufgezeichnet haben. */
 function curveTopUpCount(entry: any): number {
   return (entry?._topUps ?? []).filter((t: any) => t?.hasPowerCurve || t?.hasSocCurve).length
+}
+
+/**
+ * Watt-Potenzial fuer den Sammel-Nachtrag einer Ladegruppe: Summe ueber alle Teilladungen,
+ * denen der Preis fehlt - der Header-Chip verspricht damit dasselbe, was der Nutzer nach
+ * dem Nachtragen aller Teilladungen tatsaechlich bekommt.
+ */
+function groupPricelessWatt(entry: any): number {
+  return (entry?._pricelessSubs ?? []).reduce(
+    (sum: number, sub: any) => sum + wattPossibleForLog(coinStore.catalog, sub), 0)
+}
+
+/** Nachtrag aus der Gruppe heraus: startet bei der aeltesten Teilladung ohne Preis. */
+function openGroupPriceAmend(entry: any) {
+  const target = (entry?._pricelessSubs ?? [])[0]
+  if (target) priceAmendingLog.value = target
 }
 
 /** Erste Teilladung mit Kurve - liefert dem Teaser echte Eckdaten statt leerer Kacheln. */
@@ -2517,7 +2534,7 @@ function toggleAllCharges() {
                   </div>
                   <div class="text-gray-400 dark:text-gray-600 text-xs text-center">-</div>
                   <div class="flex justify-end">
-                    <button v-if="item.entry._totalCostEur != null && item.entry._costBasisKwh"
+                    <button v-if="item.entry._totalCostEur != null && item.entry._costBasisKwh && item.entry._isFullyPriced"
                       type="button"
                       :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
                                item.entry._costIsNettoOnly ? 'border border-dashed' : 'border',
@@ -2527,6 +2544,17 @@ function toggleAllCharges() {
                       @click.stop="showCostAbsolute = !showCostAbsolute">
                       <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>
                       <template v-else>{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costBasisKwh) }}</template>
+                    </button>
+                    <!-- Teilweise bepreist: eine Rate aus einem Bruchteil der Energie waere
+                         irrefuehrend - stattdessen der Einstieg in den Sammel-Nachtrag. -->
+                    <button v-else-if="item.entry._pricelessSubs?.length"
+                      type="button" data-testid="group-price-chip"
+                      :aria-label="t('priceamend.chip_group_aria')"
+                      @click.stop="openGroupPriceAmend(item.entry)"
+                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
+                      <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                      {{ t('priceamend.chip_group') }}
+                      <WattBadge :amount="groupPricelessWatt(item.entry)" up-to />
                     </button>
                     <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
                   </div>
@@ -2665,7 +2693,30 @@ function toggleAllCharges() {
                         </span>
                         <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
                       </div>
-                      <div class="text-gray-400 dark:text-gray-600 text-xs pt-0.5">-</div>
+                      <!-- Jede Teilladung zeigt ihren eigenen Preis-Status - sonst bleibt
+                           unsichtbar, welche Teilladung im Gruppenpreis ueberhaupt steckt. -->
+                      <div class="flex justify-end pt-0.5">
+                        <span v-if="topUp.costEur != null && costBasisKwh(topUp)"
+                          :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer',
+                                   isNettoOnlyCostLog(topUp) ? 'border border-dashed' : 'border',
+                                   showCostAbsolute
+                                     ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+                                     : (costBadgeClass(topUp.costEur, costBasisKwh(topUp)) ?? 'bg-green-50 border-green-200 text-green-700')]"
+                          @click.stop="showCostAbsolute = !showCostAbsolute">
+                          <template v-if="showCostAbsolute">{{ formatCurrency(topUp.costEur) }}</template>
+                          <template v-else>{{ formatCostPerKwh(topUp.costEur / costBasisKwh(topUp)!) }}</template>
+                        </span>
+                        <button v-else-if="costBasisKwh(topUp)"
+                          type="button" data-testid="topup-price-chip"
+                          :aria-label="t('priceamend.chip_aria')"
+                          @click.stop="priceAmendingLog = topUp"
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
+                          <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                          {{ t('priceamend.chip') }}
+                          <WattBadge :amount="wattPossibleForLog(coinStore.catalog, topUp)" up-to />
+                        </button>
+                        <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
+                      </div>
                       <div class="flex justify-end relative">
                         <button type="button"
                           @click.stop="openMenuTopUpId = openMenuTopUpId === topUp.id + '__d' ? null : topUp.id + '__d'"
@@ -2736,7 +2787,7 @@ function toggleAllCharges() {
                       <span class="text-xs text-gray-500 whitespace-nowrap truncate">{{ item.entry._dateRangeLabel }}</span>
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
-                      <span v-if="item.entry._totalCostEur != null && item.entry._costBasisKwh"
+                      <span v-if="item.entry._totalCostEur != null && item.entry._costBasisKwh && item.entry._isFullyPriced"
                         :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75',
                                  item.entry._costIsNettoOnly ? 'border border-dashed' : 'border',
                                  showCostAbsolute
@@ -2746,6 +2797,20 @@ function toggleAllCharges() {
                         @mousedown.stop>
                         <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>
                         <template v-else>{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costBasisKwh) }}</template>
+                      </span>
+                      <!-- Teilweise bepreist: eine Rate aus einem Bruchteil der Energie waere
+                           irrefuehrend - stattdessen der Einstieg in den Sammel-Nachtrag. -->
+                      <span v-else-if="item.entry._pricelessSubs?.length"
+                        role="button" tabindex="0" data-testid="group-price-chip"
+                        :aria-label="t('priceamend.chip_group_aria')"
+                        @click.stop="openGroupPriceAmend(item.entry)"
+                        @keydown.enter.stop.prevent="openGroupPriceAmend(item.entry)"
+                        @keydown.space.stop.prevent="openGroupPriceAmend(item.entry)"
+                        @mousedown.stop
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer whitespace-nowrap">
+                        <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                        {{ t('priceamend.chip_group') }}
+                        <WattBadge :amount="groupPricelessWatt(item.entry)" up-to />
                       </span>
                       <div v-if="otherCars.length > 0" class="relative" @mousedown.stop>
                         <button type="button"
@@ -3188,7 +3253,30 @@ function toggleAllCharges() {
                         >
                           <ChartBarSquareIcon class="w-4 h-4" />
                         </button>
-                        <div class="relative ml-auto flex-shrink-0">
+                        <!-- Jede Teilladung zeigt ihren eigenen Preis-Status - sonst bleibt
+                             unsichtbar, welche Teilladung im Gruppenpreis ueberhaupt steckt. -->
+                        <span v-if="topUp.costEur != null && costBasisKwh(topUp)"
+                          :class="['ml-auto inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer flex-shrink-0',
+                                   isNettoOnlyCostLog(topUp) ? 'border border-dashed' : 'border',
+                                   showCostAbsolute
+                                     ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+                                     : (costBadgeClass(topUp.costEur, costBasisKwh(topUp)) ?? 'bg-green-50 border-green-200 text-green-700')]"
+                          @click.stop="showCostAbsolute = !showCostAbsolute">
+                          <template v-if="showCostAbsolute">{{ formatCurrency(topUp.costEur) }}</template>
+                          <template v-else>{{ formatCostPerKwh(topUp.costEur / costBasisKwh(topUp)!) }}</template>
+                        </span>
+                        <span v-else-if="costBasisKwh(topUp)"
+                          role="button" tabindex="0" data-testid="topup-price-chip"
+                          :aria-label="t('priceamend.chip_aria')"
+                          @click.stop="priceAmendingLog = topUp"
+                          @keydown.enter.stop.prevent="priceAmendingLog = topUp"
+                          @keydown.space.stop.prevent="priceAmendingLog = topUp"
+                          class="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer whitespace-nowrap flex-shrink-0">
+                          <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                          {{ t('priceamend.chip') }}
+                          <WattBadge :amount="wattPossibleForLog(coinStore.catalog, topUp)" up-to />
+                        </span>
+                        <div class="relative flex-shrink-0" :class="{ 'ml-auto': !costBasisKwh(topUp) }">
                           <button @click.stop="openMenuTopUpId = openMenuTopUpId === topUp.id ? null : topUp.id"
                             class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition">
                             <EllipsisVerticalIcon class="w-4 h-4" />

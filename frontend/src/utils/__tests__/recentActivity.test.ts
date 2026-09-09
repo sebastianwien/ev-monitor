@@ -244,3 +244,22 @@ describe('tripSpeedKeyAndArgs', () => {
     expect(tripSpeedKeyAndArgs(null, null)).toBeNull()
   })
 })
+
+describe('normalizeCharge - Preis-Abdeckung einer Ladegruppe', () => {
+  it('Einzel-Log mit Preis gilt als vollstaendig bepreist', () => {
+    expect(normalizeCharge({ id: 1, kwhCharged: 20, costEur: 12 })!.isFullyPriced).toBe(true)
+  })
+
+  it('Einzel-Log ohne Preis gilt nicht als bepreist', () => {
+    expect(normalizeCharge({ id: 1, kwhCharged: 20, costEur: null })!.isFullyPriced).toBe(false)
+  })
+
+  it('Ladegruppe uebernimmt die Abdeckung aus der Aggregation', () => {
+    const full = normalizeCharge({ id: 1, _isLadegruppe: true, _totalKwh: 30, _totalCostEur: 18, _costBasisKwh: 30, _isFullyPriced: true })!
+    expect(full.isFullyPriced).toBe(true)
+    // Meigor-Fall: nur ein Teilvorgang bepreist - der ct/kWh-Wert beschreibt nicht die Gruppe.
+    const partial = normalizeCharge({ id: 2, _isLadegruppe: true, _totalKwh: 79.5, _totalCostEur: 0.51, _costBasisKwh: 42.05, _isFullyPriced: false })!
+    expect(partial.isFullyPriced).toBe(false)
+    expect(partial.costEur).toBeCloseTo(0.51, 4) // Teilbetrag bleibt erhalten
+  })
+})

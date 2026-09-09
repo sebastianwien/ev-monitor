@@ -56,6 +56,12 @@ export interface NormalizedCharge {
   /** Coarse charging location (6 chars ~600 m private, 7 ~150 m public). Null if unknown. */
   geohash: string | null
   isGroup: boolean
+  /**
+   * True when the cost describes the WHOLE charge. Bei einer Ladegruppe nur dann, wenn jeder
+   * Teilvorgang einen Preis traegt - sonst stammt der ct/kWh-Wert aus einem Bruchteil der
+   * Energie und darf nicht als Preis der Gruppe gezeigt werden.
+   */
+  isFullyPriced: boolean
 }
 
 /**
@@ -95,6 +101,7 @@ export function normalizeCharge(e: any): NormalizedCharge | null {
       ? ((e._entries ?? []).find((entry: any) => entry?.geohash)?.geohash ?? null)
       : (e.geohash ?? null),
     isGroup,
+    isFullyPriced: isGroup ? e._isFullyPriced === true : costEur != null,
   }
 }
 

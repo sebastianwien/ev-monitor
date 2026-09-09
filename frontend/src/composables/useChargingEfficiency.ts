@@ -129,6 +129,18 @@ export interface GroupCostResult {
    * is applied here; the grossed-up "real cost" estimate lives only in the per-log hint.
    */
   costIsNettoOnly: boolean
+  /**
+   * Sub-logs that COULD carry a cost (they have an energy basis) but don't. Sub-logs without
+   * any energy reading are excluded - they can never be priced, so they must not block the
+   * group from counting as fully priced.
+   */
+  pricelessSubCount: number
+  /**
+   * True when every priceable sub-log has a cost. Only then does the aggregated per-kWh
+   * price describe the WHOLE group - otherwise the header must show "Preise fehlen" instead
+   * of a rate derived from a fraction of the energy.
+   */
+  isFullyPriced: boolean
 }
 
 /**
@@ -138,12 +150,16 @@ export interface GroupCostResult {
  * a cost or without any energy reading are excluded so they cannot distort the rate.
  */
 export function aggregateGroupCost<T extends CostHintLog>(subs: T[]): GroupCostResult {
-  const withCost = subs.filter((l) => l.costEur != null && costBasisKwh(l) != null)
-  if (withCost.length === 0) return { totalCostEur: null, costBasisKwhTotal: 0, costIsNettoOnly: false }
+  const priceable = subs.filter((l) => costBasisKwh(l) != null)
+  const withCost = priceable.filter((l) => l.costEur != null)
+  const pricelessSubCount = priceable.length - withCost.length
+  if (withCost.length === 0) {
+    return { totalCostEur: null, costBasisKwhTotal: 0, costIsNettoOnly: false, pricelessSubCount, isFullyPriced: false }
+  }
   const totalCostEur = withCost.reduce((s, l) => s + (l.costEur as number), 0)
   const costBasisKwhTotal = withCost.reduce((s, l) => s + (costBasisKwh(l) as number), 0)
   const costIsNettoOnly = withCost.some((l) => isNettoOnlyCostLog(l))
-  return { totalCostEur, costBasisKwhTotal, costIsNettoOnly }
+  return { totalCostEur, costBasisKwhTotal, costIsNettoOnly, pricelessSubCount, isFullyPriced: pricelessSubCount === 0 }
 }
 
 export interface RealCostHint {

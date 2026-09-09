@@ -266,3 +266,46 @@ describe('aggregateGroupCost', () => {
     expect(costIsNettoOnly).toBe(false)
   })
 })
+
+describe('aggregateGroupCost - Preis-Abdeckung der Gruppe', () => {
+  it('meldet volle Abdeckung, wenn jeder Teilvorgang einen Preis hat', () => {
+    const { pricelessSubCount, isFullyPriced } = aggregateGroupCost([
+      costLog({ costEur: 6.2, kwhCharged: 10 }),
+      costLog({ costEur: 3.1, kwhCharged: 5 }),
+    ])
+    expect(pricelessSubCount).toBe(0)
+    expect(isFullyPriced).toBe(true)
+  })
+
+  it('regression (Meigor): 1 von 12 bepreist - die Gruppe gilt NICHT als bepreist', () => {
+    // Prod-Fall: 11 XPeng-Teilladungen ohne Preis + eine 42-kWh-Ladung mit 0,51 EUR.
+    // Der Header zeigte 1,2 ct/kWh, als waere die ganze Gruppe bepreist.
+    const subs = [
+      ...Array.from({ length: 11 }, () => costLog({ costEur: null, kwhCharged: 3 })),
+      costLog({ costEur: 0.51, kwhCharged: 42.05 }),
+    ]
+    const { pricelessSubCount, isFullyPriced, totalCostEur } = aggregateGroupCost(subs)
+    expect(pricelessSubCount).toBe(11)
+    expect(isFullyPriced).toBe(false)
+    // Der Teilbetrag bleibt erhalten - er wird nur nicht mehr als Gruppenpreis gezeigt.
+    expect(totalCostEur).toBeCloseTo(0.51, 4)
+  })
+
+  it('ein Teilvorgang ohne Energie-Basis zaehlt nicht als preislos - er kann keinen Preis tragen', () => {
+    const { pricelessSubCount, isFullyPriced } = aggregateGroupCost([
+      costLog({ costEur: 6.2, kwhCharged: 10 }),
+      costLog({ costEur: null, kwhCharged: null, kwhAtVehicle: null }),
+    ])
+    expect(pricelessSubCount).toBe(0)
+    expect(isFullyPriced).toBe(true)
+  })
+
+  it('gar kein Preis in der Gruppe: nicht bepreist, alle Teilvorgaenge offen', () => {
+    const { pricelessSubCount, isFullyPriced } = aggregateGroupCost([
+      costLog({ costEur: null, kwhCharged: 10 }),
+      costLog({ costEur: null, kwhCharged: 5 }),
+    ])
+    expect(pricelessSubCount).toBe(2)
+    expect(isFullyPriced).toBe(false)
+  })
+})
