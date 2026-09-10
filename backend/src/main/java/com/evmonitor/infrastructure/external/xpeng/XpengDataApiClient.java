@@ -15,7 +15,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.security.SecureRandom;
-import java.util.HexFormat;
 import java.util.function.Supplier;
 
 /**
@@ -36,6 +35,7 @@ public class XpengDataApiClient {
 
     private static final String DATA_EXPORTING = "DataFileExporting";
     private static final String DATA_EXPORT_FAILED = "DataFileExportFailed";
+    private static final int NONCE_DIGITS = 16;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -138,10 +138,19 @@ public class XpengDataApiClient {
         }
     }
 
-    private String randomNonce() {
-        byte[] bytes = new byte[8];
-        random.nextBytes(bytes);
-        return HexFormat.of().formatHex(bytes);
+    /**
+     * Rein numerischer nonce. XPeng lehnt nonces mit Buchstaben mit Fehlercode 12061002
+     * ("Abnormal request parameter nonce") ab - ein Hex-nonce (a-f) schlaegt also fehl,
+     * bevor Signatur oder Autorisierung geprueft werden. Erste Stelle bewusst 1-9, damit
+     * der Wert nicht als fuehrende Null oder gar leer interpretiert werden kann.
+     */
+    String randomNonce() {
+        StringBuilder sb = new StringBuilder(NONCE_DIGITS);
+        sb.append(1 + random.nextInt(9));
+        for (int i = 1; i < NONCE_DIGITS; i++) {
+            sb.append(random.nextInt(10));
+        }
+        return sb.toString();
     }
 
     /** Test-Hook, um den Nonce deterministisch zu machen. */

@@ -134,6 +134,19 @@ class XpengDataApiClientTest {
             .isInstanceOf(XpengApiException.class);
     }
 
+
+    @Test
+    void default_nonce_is_numeric_only() {
+        // XPeng lehnt nonces mit Buchstaben ab (Fehlercode 12061002 "Abnormal request
+        // parameter nonce"); der nonce muss rein numerisch sein. HexFormat wuerde a-f
+        // erzeugen. Ueber viele Ziehungen abgesichert, damit kein Zufalls-Ausreisser durchrutscht.
+        XpengDataApiClient realClient = new XpengDataApiClient(restTemplate, new ObjectMapper(),
+            BASE, APP_ID, APP_SECRET, "EVMonitor");
+        for (int i = 0; i < 1000; i++) {
+            assertThat(realClient.randomNonce()).matches("\\d+");
+        }
+    }
+
     /**
      * Beweist, dass der Client GENAU den Body signiert, den er sendet:
      * sign-Query-Param muss zu SHA1 ueber (appId + body + nonce + secret) passen.
