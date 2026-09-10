@@ -33,7 +33,7 @@ public interface EvLogRepository {
 
     List<EvLog> findAllByCarIds(List<UUID> carIds);
 
-    List<EvLog> findLatestByCarId(UUID carId, int limit, int page);
+    List<EvLog> findLatestByCarId(UUID carId, int limit);
 
     List<EvLog> findPagedByCarId(UUID carId, LocalDateTime from, LocalDateTime to, int size, int offset);
 

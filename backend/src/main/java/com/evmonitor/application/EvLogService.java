@@ -683,11 +683,16 @@ public class EvLogService {
     }
 
     public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId, Integer limit) {
-        return getLogsForCar(carId, userId, limit, 0);
+        return getLogsForCar(carId, userId, limit, null, null);
     }
 
+    /**
+     * Logs eines Autos fuer den Feed. Verbrauch und Distanz werden immer auf dem vollen
+     * Datensatz berechnet (Kontext der Vorgaenger-Logs); erst die Antwort wird auf das
+     * Zeitfenster [from, to] (null = offen) bzw. die neuesten {@code limit} Logs beschnitten.
+     */
     @Transactional(readOnly = true)
-    public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId, Integer limit, int page) {
+    public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId, Integer limit, LocalDateTime from, LocalDateTime to) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
@@ -730,12 +735,15 @@ public class EvLogService {
                     BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), plausible, dist, CalculationQuality.KWH_ESTIMATED));
         }
 
-        // Return the requested page, enriched with consumption and distance data.
-        List<EvLog> page_logs = (limit != null && limit > 0)
-                ? evLogRepository.findLatestByCarId(carId, limit, page)
-                : allLogsSorted.reversed();
+        // Return the requested window (or latest N), enriched with consumption and distance data.
+        List<EvLog> selected = (limit != null && limit > 0)
+                ? evLogRepository.findLatestByCarId(carId, limit)
+                : allLogsSorted.reversed().stream()
+                        .filter(log -> from == null || !log.getLoggedAt().isBefore(from))
+                        .filter(log -> to == null || !log.getLoggedAt().isAfter(to))
+                        .toList();
 
-        return page_logs.stream()
+        return selected.stream()
                 .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId()), distanceByLogId.get(log.getId()),
                         perLog.absorbedLogIds().contains(log.getId()) ? Boolean.TRUE : null))
                 .toList();

@@ -249,8 +249,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public List<EvLog> findLatestByCarId(UUID carId, int limit, int page) {
-        return jpaRepository.findAllByCarIdOrderByLoggedAtDesc(carId, PageRequest.of(page, limit))
+    public List<EvLog> findLatestByCarId(UUID carId, int limit) {
+        return jpaRepository.findAllByCarIdOrderByLoggedAtDesc(carId, PageRequest.of(0, limit))
                 .stream()
                 .map(this::toDomain)
                 .toList();

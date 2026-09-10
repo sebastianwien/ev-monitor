@@ -29,13 +29,27 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
     List<EvTrip> findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(UUID userId, UUID carId, Pageable pageable);
 
+    /** Feed-Fenster: Fahrten, die innerhalb [from, to] begonnen haben (wie die Tag/Woche-Buckets im Feed), neueste zuerst. */
+    @Query("SELECT t FROM EvTrip t WHERE t.userId = :userId AND t.carId = :carId "
+            + "AND t.deletedAt IS NULL AND t.tripStartedAt >= :from AND t.tripStartedAt <= :to "
+            + "ORDER BY t.tripEndedAt DESC")
+    List<EvTrip> findFeedTrips(
+            @Param("userId") UUID userId,
+            @Param("carId") UUID carId,
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to,
+            Pageable pageable);
+
     @Query("SELECT t FROM EvTrip t WHERE t.userId = :userId AND t.carId = :carId "
             + "AND t.deletedAt IS NULL AND t.dataSource NOT IN :excludedSources "
+            + "AND t.tripStartedAt >= :from AND t.tripStartedAt <= :to "
             + "ORDER BY t.tripEndedAt DESC")
-    List<EvTrip> findByUserIdAndCarIdExcludingSourcesAndDeletedAtIsNull(
+    List<EvTrip> findFeedTripsExcludingSources(
             @Param("userId") UUID userId,
             @Param("carId") UUID carId,
             @Param("excludedSources") java.util.Collection<String> excludedSources,
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to,
             Pageable pageable);
 
     /** Setzt Linie und Herkunft gemeinsam - eine Linie ohne ihre Deutung waere nicht lesbar. */

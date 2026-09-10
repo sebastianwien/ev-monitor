@@ -8,11 +8,13 @@ import com.evmonitor.application.UpdateTripRequest;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -94,10 +96,15 @@ public class TripController {
     @GetMapping
     public ResponseEntity<?> getTrips(
             @RequestParam UUID carId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+            @RequestParam(required = false) Integer limit,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            List<EvTripResponse> trips = tripService.getTripsForCar(carId, principal.getUser());
+            List<EvTripResponse> trips = limit != null
+                    ? tripService.getTripsForCar(carId, principal.getUser(), from, to, limit)
+                    : tripService.getTripsForCar(carId, principal.getUser(), from, to);
             return ResponseEntity.ok(trips);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();

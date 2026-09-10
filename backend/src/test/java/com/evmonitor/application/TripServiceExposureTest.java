@@ -13,7 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+
+import java.util.Comparator;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -68,10 +71,9 @@ class TripServiceExposureTest {
     void onlyTheNewestTripCarriesItsGeohashes() {
         EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0ke9x", "u33d0m");
         EvTrip older = trip("2026-08-01T10:00:00Z", "u2ewmk", "u2ewmn");
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest, older));
+        stubTrips(List.of(newest, older));
 
-        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user);
+        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user, null, null);
 
         EvTripResponse newestResponse = responses.stream().filter(r -> r.id().equals(newest.getId())).findFirst().orElseThrow();
         EvTripResponse olderResponse = responses.stream().filter(r -> r.id().equals(older.getId())).findFirst().orElseThrow();
@@ -90,10 +92,9 @@ class TripServiceExposureTest {
     void newestIsPickedByTripEndTimeNotByListOrder() {
         EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0k", "u33d0m");
         EvTrip older = trip("2026-08-01T10:00:00Z", "u2ewmk", "u2ewmn");
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(older, newest));
+        stubTrips(List.of(older, newest));
 
-        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user);
+        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user, null, null);
 
         assertThat(responses.get(0).locationStartGeohash()).isNull();
         assertThat(responses.get(1).locationStartGeohash()).isEqualTo("u33d0k");
@@ -103,10 +104,9 @@ class TripServiceExposureTest {
     void tripsWithoutEndTimestampNeverWin() {
         EvTrip openEnded = trip(null, "u2ewmk", "u2ewmn");
         EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0k", "u33d0m");
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(openEnded, newest));
+        stubTrips(List.of(openEnded, newest));
 
-        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user);
+        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user, null, null);
 
         assertThat(responses.get(0).locationStartGeohash()).isNull();
         assertThat(responses.get(1).locationStartGeohash()).isEqualTo("u33d0k");
@@ -119,10 +119,9 @@ class TripServiceExposureTest {
         when(user.canViewLiveAnalytics()).thenReturn(false);
         EvTrip newest = tripWithTelemetry("2026-08-06T10:00:00Z");
         EvTrip older = tripWithTelemetry("2026-08-01T10:00:00Z");
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest, older));
+        stubTrips(List.of(newest, older));
 
-        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user);
+        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user, null, null);
 
         EvTripResponse newestResponse = byId(responses, newest);
         assertThat(newestResponse.avgSpeedKmh()).isEqualByComparingTo("42.00");
@@ -142,10 +141,9 @@ class TripServiceExposureTest {
         when(user.canViewLiveAnalytics()).thenReturn(true);
         EvTrip newest = tripWithTelemetry("2026-08-06T10:00:00Z");
         EvTrip older = tripWithTelemetry("2026-08-01T10:00:00Z");
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest, older));
+        stubTrips(List.of(newest, older));
 
-        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user);
+        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user, null, null);
 
         EvTripResponse olderResponse = byId(responses, older);
         assertThat(olderResponse.avgSpeedKmh()).isEqualByComparingTo("42.00");
@@ -162,8 +160,7 @@ class TripServiceExposureTest {
         EvTrip older = tripWithTelemetry("2026-08-01T10:00:00Z");
         EvTrip newest = tripWithTelemetry("2026-08-06T10:00:00Z");
         when(tripRepository.findById(older.getId())).thenReturn(Optional.of(older));
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest));
+        stubTrips(List.of(newest));
 
         EvTripResponse response = tripService.updateTrip(older.getId(), user,
                 new UpdateTripRequest(null, null, null, null, null, null, null));
@@ -179,8 +176,7 @@ class TripServiceExposureTest {
         EvTrip newest = tripWithTelemetry("2026-08-06T10:00:00Z");
         newest.setLocationStartGeohash("u33d0ke9");
         when(tripRepository.findById(newest.getId())).thenReturn(Optional.of(newest));
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest));
+        stubTrips(List.of(newest));
 
         EvTripResponse response = tripService.updateTrip(newest.getId(), user,
                 new UpdateTripRequest(null, null, null, null, null, null, null));
@@ -201,10 +197,9 @@ class TripServiceExposureTest {
         newest.setTracePolyline("_p~iF~ps|U_ulLnnqC");
         EvTrip older = trip("2026-08-01T10:00:00Z", "u2ewmk", "u2ewmn");
         older.setTracePolyline("_p~iF~ps|U_ulLnnqC");
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest, older));
+        stubTrips(List.of(newest, older));
 
-        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user);
+        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user, null, null);
 
         assertThat(byId(responses, newest).tracePolyline()).isEqualTo("_p~iF~ps|U_ulLnnqC");
         assertThat(byId(responses, older).tracePolyline()).isNull();
@@ -229,8 +224,7 @@ class TripServiceExposureTest {
         when(tripRepository.findById(earlier.getId())).thenReturn(Optional.of(earlier));
         when(tripRepository.findById(later.getId())).thenReturn(Optional.of(later));
         when(tripRepository.save(any(EvTrip.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(earlier));
+        stubTrips(List.of(earlier));
 
         tripService.mergeTrips(earlier.getId(), later.getId(), user);
 
@@ -252,10 +246,9 @@ class TripServiceExposureTest {
         EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0ke9", "u33d0m");
         EvTrip older = trip("2026-08-01T10:00:00Z", "u2ewmk", "u2ewmn");
         older.setTracePolyline("_p~iF~ps|U_ulLnnqC");
-        when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                eq(USER_ID), eq(CAR_ID), any(Pageable.class))).thenReturn(List.of(newest, older));
+        stubTrips(List.of(newest, older));
 
-        EvTripResponse olderResponse = byId(tripService.getTripsForCar(CAR_ID, user), older);
+        EvTripResponse olderResponse = byId(tripService.getTripsForCar(CAR_ID, user, null, null), older);
 
         assertThat(olderResponse.locationStartGeohash()).isEqualTo("u2ewmk");
         assertThat(olderResponse.locationEndGeohash()).isEqualTo("u2ewmn");
@@ -264,6 +257,40 @@ class TripServiceExposureTest {
 
     private static EvTripResponse byId(List<EvTripResponse> responses, EvTrip trip) {
         return responses.stream().filter(r -> r.id().equals(trip.getId())).findFirst().orElseThrow();
+    }
+
+    /**
+     * Der Feed liest ein Zeitfenster, der Teaser ("neueste Fahrt") wird aber global bestimmt -
+     * sonst wuerde ein aelteres Fenster die Geohashes einer alten Fahrt freischalten.
+     */
+    private void stubTrips(List<EvTrip> feed) {
+        lenient().when(tripRepository.findFeedTrips(eq(USER_ID), eq(CAR_ID), any(), any(), any(Pageable.class)))
+                .thenReturn(feed);
+        List<EvTrip> newest = feed.stream()
+                .filter(t -> t.getTripEndedAt() != null)
+                .max(Comparator.comparing(EvTrip::getTripEndedAt))
+                .map(List::of).orElse(List.of());
+        lenient().when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
+                eq(USER_ID), eq(CAR_ID), eq(PageRequest.of(0, 1)))).thenReturn(newest);
+    }
+
+    @Test
+    void windowOnlyNarrowsTheFeed_theTeaserStaysTheGloballyNewestTrip() {
+        EvTrip newest = trip("2026-08-06T10:00:00Z", "u33d0ke9x", "u33d0m");
+        EvTrip older = trip("2026-07-15T10:00:00Z", "u2ewmk", "u2ewmn");
+        lenient().when(user.canViewLiveAnalytics()).thenReturn(false);
+        // Repository liefert nur das Juli-Fenster; der Teaser (August) bleibt global.
+        lenient().when(tripRepository.findFeedTrips(eq(USER_ID), eq(CAR_ID), any(), any(), any(Pageable.class)))
+                .thenReturn(List.of(older));
+        lenient().when(tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
+                eq(USER_ID), eq(CAR_ID), eq(PageRequest.of(0, 1)))).thenReturn(List.of(newest));
+
+        List<EvTripResponse> responses = tripService.getTripsForCar(CAR_ID, user,
+                OffsetDateTime.parse("2026-07-01T00:00:00Z"), OffsetDateTime.parse("2026-07-31T23:59:59Z"));
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).id()).isEqualTo(older.getId());
+        assertThat(responses.get(0).locationStartGeohash()).isNull();
     }
 
     private EvTrip tripWithTelemetry(String endedAt) {

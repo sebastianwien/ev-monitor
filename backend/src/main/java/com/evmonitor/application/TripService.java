@@ -18,7 +18,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.util.Comparator;
+import org.springframework.data.domain.Pageable;
+import java.time.ZoneOffset;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -315,9 +317,22 @@ public class TripService {
     }
 
     private static final int MAX_TRIPS_PER_CAR = 500;
+    /** Offenes Fensterende - auch Fahrten mit Zukunfts-Timestamp (Zeitzonen-Drift in Importen) bleiben drin. */
+    private static final OffsetDateTime FAR_FUTURE = OffsetDateTime.parse("9999-12-31T23:59:59Z");
 
+    /**
+     * Fahrten des Feeds innerhalb eines Zeitfensters (null = unbegrenzt). Der Teaser - die
+     * neueste Fahrt traegt Ort und Telemetrie fuer jeden - wird unabhaengig vom Fenster bestimmt,
+     * sonst wuerde ein aelteres Fenster die bezahlte Schicht einer alten Fahrt freischalten.
+     */
     @Transactional(readOnly = true)
-    public List<EvTripResponse> getTripsForCar(UUID carId, User user) {
+    public List<EvTripResponse> getTripsForCar(UUID carId, User user, OffsetDateTime from, OffsetDateTime to) {
+        return getTripsForCar(carId, user, from, to, MAX_TRIPS_PER_CAR);
+    }
+
+    /** Wie oben, auf die {@code limit} neuesten Fahrten begrenzt (z.B. 1 fuer "juengste Fahrt"). */
+    @Transactional(readOnly = true)
+    public List<EvTripResponse> getTripsForCar(UUID carId, User user, OffsetDateTime from, OffsetDateTime to, int limit) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
         if (!car.getUserId().equals(user.getId())) {
@@ -330,19 +345,16 @@ public class TripService {
         // (TESSIE, USER_CREATED, ...) are always returned to the owner.
         boolean canSeeLiveForThisCar = user.canViewLiveTrips(car.getModel().getBrand())
                 && (user.canBypassEligibilityGate() || TripDetectionEligibility.isEligible(car));
+        OffsetDateTime windowFrom = from != null ? from : Instant.EPOCH.atOffset(ZoneOffset.UTC);
+        OffsetDateTime windowTo = to != null ? to : FAR_FUTURE;
+        Pageable cap = PageRequest.of(0, Math.max(1, Math.min(limit, MAX_TRIPS_PER_CAR)));
         List<EvTrip> trips = canSeeLiveForThisCar
-                ? tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                        user.getId(), carId, PageRequest.of(0, MAX_TRIPS_PER_CAR))
-                : tripRepository.findByUserIdAndCarIdExcludingSourcesAndDeletedAtIsNull(
-                        user.getId(), carId, EvTrip.LIVE_TRIP_SOURCES, PageRequest.of(0, MAX_TRIPS_PER_CAR));
+                ? tripRepository.findFeedTrips(user.getId(), carId, windowFrom, windowTo, cap)
+                : tripRepository.findFeedTripsExcludingSources(
+                        user.getId(), carId, EvTrip.LIVE_TRIP_SOURCES, windowFrom, windowTo, cap);
         // Only the most recent trip carries its geohashes - the dashboard draws a map
-        // background for exactly that one. Determined by trip end, not by list order,
-        // because the non-live query returns an unordered result.
-        UUID newestTripId = trips.stream()
-                .filter(t -> t.getTripEndedAt() != null)
-                .max(Comparator.comparing(EvTrip::getTripEndedAt))
-                .map(EvTrip::getId)
-                .orElse(null);
+        // background for exactly that one.
+        UUID newestTripId = newestTripId(user.getId(), carId);
         boolean analytics = user.canViewLiveAnalytics();
         return trips.stream()
                 .map(t -> EvTripResponse.fromDomain(t, detailFor(t.getId().equals(newestTripId), analytics)))
@@ -370,12 +382,16 @@ public class TripService {
     }
 
     private boolean isNewest(EvTrip trip) {
+        return trip.getId().equals(newestTripId(trip.getUserId(), trip.getCarId()));
+    }
+
+    private UUID newestTripId(UUID userId, UUID carId) {
         return tripRepository.findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(
-                        trip.getUserId(), trip.getCarId(), PageRequest.of(0, 1))
+                        userId, carId, PageRequest.of(0, 1))
                 .stream()
                 .findFirst()
-                .map(newest -> newest.getId().equals(trip.getId()))
-                .orElse(false);
+                .map(EvTrip::getId)
+                .orElse(null);
     }
 
     /**

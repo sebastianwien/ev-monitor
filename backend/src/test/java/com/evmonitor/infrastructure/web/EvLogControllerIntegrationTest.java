@@ -221,6 +221,38 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldGetLogsWithinWindowOnly() {
+        LocalDateTime now = LocalDateTime.now();
+        EvLog inside = TestDataBuilder.createTestEvLogWithTimestamp(carId, new BigDecimal("20.0"), new BigDecimal("5.00"), now.minusDays(10));
+        EvLog outside = TestDataBuilder.createTestEvLogWithTimestamp(carId, new BigDecimal("30.0"), new BigDecimal("9.00"), now.minusDays(40));
+        evLogRepository.save(inside);
+        evLogRepository.save(outside);
+
+        ResponseEntity<List<EvLogResponse>> response = restTemplate.exchange(
+                "/api/logs?carId=" + carId + "&from=" + now.minusDays(20) + "&to=" + now,
+                HttpMethod.GET,
+                createAuthRequest(userId, testUser.getEmail()),
+                new ParameterizedTypeReference<List<EvLogResponse>>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().size());
+        assertEquals(inside.getId(), response.getBody().get(0).id());
+    }
+
+    @Test
+    void shouldRejectWindowCombinedWithLimit() {
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/logs?carId=" + carId + "&from=" + LocalDateTime.now().minusDays(1) + "&limit=5",
+                HttpMethod.GET,
+                createAuthRequest(userId, testUser.getEmail()),
+                String.class
+        );
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
     void shouldNotSeeOtherUsersLogs_SecurityCheck() {
         // Given: Another user with their own logs
         User otherUser = createAndSaveUser("other-security-" + System.nanoTime() + "@example.com");

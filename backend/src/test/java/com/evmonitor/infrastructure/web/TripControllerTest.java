@@ -60,6 +60,48 @@ class TripControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getTrips_withWindow_returnsOnlyTripsStartedInside() {
+        OffsetDateTime now = OffsetDateTime.now();
+        EvTrip inside = saveTripWithSource(user1.getId(), car1.getId(), now.minusDays(10).minusHours(1), now.minusDays(10),
+                new BigDecimal("80"), new BigDecimal("60"), new BigDecimal("30.0"), "CITY", "USER_CREATED");
+        saveTripWithSource(user1.getId(), car1.getId(), now.minusDays(40).minusHours(1), now.minusDays(40),
+                new BigDecimal("80"), new BigDecimal("60"), new BigDecimal("30.0"), "CITY", "USER_CREATED");
+
+        ResponseEntity<java.util.List<Map<String, Object>>> res = restTemplate.exchange(
+                "/api/trips?carId=" + car1.getId()
+                        + "&from=" + now.minusDays(20).toInstant()
+                        + "&to=" + now.toInstant(),
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().size());
+        assertEquals(inside.getId().toString(), res.getBody().get(0).get("id"));
+    }
+
+    @Test
+    void getTrips_withLimit_returnsNewestOnly() {
+        OffsetDateTime now = OffsetDateTime.now();
+        saveTripWithSource(user1.getId(), car1.getId(), now.minusDays(5).minusHours(1), now.minusDays(5),
+                new BigDecimal("80"), new BigDecimal("60"), new BigDecimal("30.0"), "CITY", "USER_CREATED");
+        EvTrip newest = saveTripWithSource(user1.getId(), car1.getId(), now.minusDays(1).minusHours(1), now.minusDays(1),
+                new BigDecimal("80"), new BigDecimal("60"), new BigDecimal("30.0"), "CITY", "USER_CREATED");
+
+        ResponseEntity<java.util.List<Map<String, Object>>> res = restTemplate.exchange(
+                "/api/trips?carId=" + car1.getId() + "&limit=1",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().size());
+        assertEquals(newest.getId().toString(), res.getBody().get(0).get("id"));
+    }
+
+    @Test
     void createTrip_carBelongsToOtherUser_returns404() {
         Map<String, Object> req = createTripRequest(car2.getId(), OffsetDateTime.now().minusHours(2), OffsetDateTime.now());
 

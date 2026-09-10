@@ -18,11 +18,13 @@ import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -57,16 +59,21 @@ public class EvLogController {
     public ResponseEntity<List<EvLogResponse>> getAllLogs(
             @RequestParam(required = false) UUID carId,
             @RequestParam(required = false) Integer limit,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
 
-        // Hard cap: never return more than 50 logs per request
-        int effectiveLimit = Math.min(limit != null ? limit : 50, 50);
+        // Entweder Zeitfenster (Feed) oder die neuesten N Logs (Formular-Vorschlaege, max. 50).
+        boolean windowed = from != null || to != null;
+        if (windowed && limit != null) {
+            return ResponseEntity.badRequest().build();
+        }
+        Integer effectiveLimit = windowed ? null : Math.min(limit != null ? limit : 50, 50);
 
         List<EvLogResponse> logs;
         if (carId != null) {
-            logs = evLogService.getLogsForCar(carId, principal.getUser().getId(), effectiveLimit, page);
+            logs = evLogService.getLogsForCar(carId, principal.getUser().getId(), effectiveLimit, from, to);
         } else {
             logs = evLogService.getStandaloneLogsForUser(principal.getUser().getId());
         }
