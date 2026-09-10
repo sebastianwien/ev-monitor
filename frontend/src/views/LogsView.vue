@@ -1286,12 +1286,6 @@ function toggleAllCharges() {
                   <TruckIcon v-else class="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                 </div>
                 <div class="min-w-0 flex-1 px-3 py-1.5 md:px-4 md:py-3 flex flex-col justify-center">
-                  <!-- Tablet (768-1023px): zusätzliche Auto-Daten + Kennzeichen (single-car, spiegelt Desktop) -->
-                  <div
-                    v-if="cars.length === 1 && car.id === selectedCarId"
-                    class="lg:hidden mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                    <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="compact" />
-                  </div>
                   <!-- Desktop: zweizeiliges Layout. Ab md sichtbar - die Kachel passt mit
                        vollem Inhalt auch in den schmalsten Desktop-Viewport; vorher fiel sie
                        unterhalb von lg auf das blosse Bild zusammen. -->
@@ -1514,7 +1508,7 @@ function toggleAllCharges() {
                nebeneinander und eine Auswahl, die man sieht, muss man nicht suchen. -->
           <div v-if="hasAnyLogs" class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
             <div role="group" :aria-label="t('logs.resolution.label')"
-                 class="inline-flex w-full sm:w-auto p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
+                 class="order-1 inline-flex w-full sm:w-auto p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
               <button v-for="option in RESOLUTIONS" :key="option" type="button"
                       @click="feedResolution = option" :aria-pressed="feedResolution === option"
                       :class="['flex-1 sm:flex-none px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
@@ -1525,9 +1519,11 @@ function toggleAllCharges() {
               </button>
             </div>
             <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, pro Darstellung gemerkt.
-                 Desktop: eine Zeile, Picker zentriert zwischen Trennlinien. Mobile: Darstellung
-                 volle Breite, darunter Picker links und Legende rechts (ohne Linien). -->
-            <div class="flex-1 flex items-center gap-4">
+                 Drei Layouts, weil Legende und Picker beide ihren Platz brauchen:
+                 <sm: Darstellung volle Breite, darunter Picker links + Legende (nur Punkte) rechts.
+                 sm-xl: Darstellung links + Legende rechts, darunter Picker mittig zwischen Linien.
+                 ab xl: alles in einer Zeile, Picker mittig. -->
+            <div class="order-2 sm:order-3 xl:order-2 flex-1 sm:flex-none sm:w-full xl:flex-1 xl:w-auto flex items-center gap-4">
               <div class="hidden sm:block flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
               <PeriodFilterDropdown
                 test-id="logfeed-filter"
@@ -1535,7 +1531,7 @@ function toggleAllCharges() {
                 v-model="feedTimeRange" v-model:custom-start="feedCustomStartDate" v-model:custom-end="feedCustomEndDate" />
               <div class="hidden sm:block flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
             </div>
-            <FeedLegend mode="trigger" class="ml-auto" :has-trips="totalTripCount > 0"
+            <FeedLegend mode="trigger" class="order-3 sm:order-2 xl:order-3 ml-auto" :has-trips="totalTripCount > 0"
                         :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
                         :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
