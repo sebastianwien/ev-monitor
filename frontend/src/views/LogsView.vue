@@ -1519,19 +1519,17 @@ function toggleAllCharges() {
               </button>
             </div>
             <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, pro Darstellung gemerkt.
-                 Drei Layouts, weil Legende und Picker beide ihren Platz brauchen:
-                 <sm: Darstellung volle Breite, darunter Picker links + Legende (nur Punkte) rechts.
-                 sm-xl: Darstellung links + Legende rechts, darunter Picker mittig zwischen Linien.
-                 ab xl: alles in einer Zeile, Picker mittig. -->
-            <div class="order-2 sm:order-3 xl:order-2 flex-1 sm:flex-none sm:w-full xl:flex-1 xl:w-auto flex items-center gap-4">
-              <div class="hidden sm:block flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+                 Unter xl: Darstellung (Mobile volle Breite) + Legende rechts, darunter der Picker
+                 mittig zwischen Trennlinien. Ab xl: alles in einer Zeile, Picker mittig. -->
+            <div class="order-3 xl:order-2 w-full xl:flex-1 xl:w-auto flex items-center gap-4">
+              <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
               <PeriodFilterDropdown
                 test-id="logfeed-filter"
                 :options="feedRangeOptions"
                 v-model="feedTimeRange" v-model:custom-start="feedCustomStartDate" v-model:custom-end="feedCustomEndDate" />
-              <div class="hidden sm:block flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+              <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
             </div>
-            <FeedLegend mode="trigger" class="order-3 sm:order-2 xl:order-3 ml-auto" :has-trips="totalTripCount > 0"
+            <FeedLegend mode="trigger" class="order-2 xl:order-3 ml-auto" :has-trips="totalTripCount > 0"
                         :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
                         :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
