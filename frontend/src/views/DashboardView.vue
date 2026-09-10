@@ -20,10 +20,8 @@ import {
   ArrowDownTrayIcon,
   ChevronRightIcon,
   ChevronDownIcon,
-  ListBulletIcon,
   InformationCircleIcon,
   XMarkIcon,
-  CalendarIcon,
   UsersIcon,
 } from '@heroicons/vue/24/outline'
 import { useRouter, useRoute } from 'vue-router'
@@ -40,6 +38,7 @@ import WltpComparisonCard from '../components/dashboard/WltpComparisonCard.vue'
 import RangeCard from '../components/dashboard/RangeCard.vue'
 import CostBreakdownCard from '../components/dashboard/CostBreakdownCard.vue'
 import CostModeToggle from '../components/dashboard/CostModeToggle.vue'
+import PeriodFilterDropdown from '../components/dashboard/PeriodFilterDropdown.vue'
 import LiveChargingCard from '../components/dashboard/LiveChargingCard.vue'
 import DashboardEmptyState from '../components/dashboard/DashboardEmptyState.vue'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
@@ -85,7 +84,7 @@ const {
   importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
   fixedCostPerMonth, displayedCostPer100km, canShowFixedModes, effectiveCostMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
-  hasAnyLogs, mergedLogFeed, trips, currentOdometerKm, sourceInfo, initCars,
+  hasAnyLogs, mergedLogFeed, trips, latestLog, latestTrip: latestTripRaw, currentOdometerKm, sourceInfo, initCars,
   editingLog, priceAmendingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
 } = useCarContext()
 
@@ -117,8 +116,16 @@ const costModeSecondary = computed(() => {
 
 // Newest charge / trip for the "letzte Aktivität"-Block. Uses the full merged
 // feed (not the filtered stats), so it always reflects the absolute latest event.
-const latestCharge = computed(() => latestChargeEntry(mergedLogFeed.value))
-const latestTrip = computed(() => latestTripEntry(mergedLogFeed.value))
+// Der Feed-Eintrag bringt Ladegruppen-Summen und Preis-Nachtrag mit - liegt der juengste
+// Eintrag ausserhalb des Feed-Fensters, reicht der rohe Datensatz fuer die Kachel.
+const latestCharge = computed(() => {
+  const inFeed = latestChargeEntry(mergedLogFeed.value)
+  return inFeed && inFeed.id === latestLog.value?.id ? inFeed : latestLog.value
+})
+const latestTrip = computed(() => {
+  const inFeed = latestTripEntry(mergedLogFeed.value)
+  return inFeed && inFeed.id === latestTripRaw.value?.id ? inFeed : latestTripRaw.value
+})
 
 // Beide Kacheln bearbeiten ihren Eintrag direkt. Der Ladevorgang nutzt den geteilten
 // EditLogModal (liegt im CarContextLayout), die Fahrt bekommt hier ein eigenes Overlay -
@@ -144,24 +151,6 @@ async function submitTripEdit() {
   await saveTripEdit(id)
   // saveTripEdit haelt den Fehler in tripError fest und laesst das Formular offen.
   if (!tripError.value) tripSheet.value?.requestClose()
-}
-
-// CUSTOM-Toggle: merkt sich den vorherigen Zeitraum, damit Klick auf das aktive
-// CUSTOM-Button zur letzten Auswahl zurückspringt statt nur aufzuklappen.
-const previousTimeRange = ref<string>(
-  selectedTimeRange.value !== 'CUSTOM' ? selectedTimeRange.value : 'LAST_3_MONTHS'
-)
-function setTimeRange(value: string) {
-  if (value === 'CUSTOM' && selectedTimeRange.value === 'CUSTOM') {
-    selectedTimeRange.value = previousTimeRange.value
-    showFilterDropdown.value = false
-    return
-  }
-  if (value !== 'CUSTOM') {
-    previousTimeRange.value = value
-    showFilterDropdown.value = false
-  }
-  selectedTimeRange.value = value
 }
 
 // -- Charts --
@@ -245,17 +234,7 @@ function togglePeerPlaceholder() {
 
 // Beide Bodies sind im Pager dauerhaft gerendert -> aktiv = die Route zeigt sie.
 const viewActive = computed(() => route.name === 'statistics')
-const showFilterDropdown = ref(false)
-const filterDropdownDesktop = ref<HTMLElement | null>(null)
-const filterDropdownMobile = ref<HTMLElement | null>(null)
 const filterBarVisible = computed(() => viewActive.value && !!selectedCarId.value && hasAnyLogs.value)
-
-function onClickOutsideFilter(e: MouseEvent) {
-  const t = e.target as Node
-  if (!filterDropdownDesktop.value?.contains(t) && !filterDropdownMobile.value?.contains(t)) {
-    showFilterDropdown.value = false
-  }
-}
 
 // Heimlade-Ersparnis. Laedt unabhaengig von den uebrigen Statistiken: liefert der
 // Endpoint nichts (kein Preis bekannt, Tarif ohne die Kachel), bleibt sie einfach aus,
@@ -373,11 +352,9 @@ async function restoreSavingsCard() {
 }
 
 onMounted(() => {
-  document.addEventListener('click', onClickOutsideFilter)
   loadChargingSavings()
 })
 onUnmounted(() => {
-  document.removeEventListener('click', onClickOutsideFilter)
   clearSavingsUndoTimer()
 })
 
@@ -536,64 +513,15 @@ onUnmounted(() => {
             @edit-trip="openTripEdit"
           />
 
-          <!-- Mobile: Zeitraum-Filter (<lg): Sibling, damit es auf Mobile sichtbar
-               bleibt (der Desktop-Selektor darueber ist hidden md:block). -->
-            <div v-if="filterBarVisible"
-              class="sm:hidden mt-1.5 mb-4 flex items-center gap-4" ref="filterDropdownMobile">
-              <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
-              <!-- Filter trigger (zentriert zwischen Trennstrichen, wie Desktop) -->
-              <div class="relative">
-                <button
-                  @click.stop="showFilterDropdown = !showFilterDropdown"
-                  class="flex items-center gap-1.5 px-2.5 py-1 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer transition">
-                  <CalendarIcon class="w-3 h-3 opacity-60" />
-                  <span>{{ timeRangeOptions.find(o => o.value === selectedTimeRange)?.shortLabel ?? selectedTimeRange }}</span>
-                  <span class="text-gray-300 dark:text-gray-500">·</span>
-                  <span>{{ groupByOptions.find(o => o.value === selectedGroupBy)?.label }}</span>
-                  <ChevronDownIcon class="w-3 h-3 opacity-50 transition-transform" :class="{ 'rotate-180': showFilterDropdown }" />
-                </button>
-                <Transition name="dropdown">
-                  <div v-if="showFilterDropdown"
-                    class="absolute right-0 top-full mt-1.5 z-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-3 w-72"
-                    @click.stop>
-                    <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('dashboard.time_range_label') }}</p>
-                    <div class="flex flex-wrap gap-1.5 mb-3">
-                      <button v-for="option in timeRangeOptions" :key="option.value" @click="setTimeRange(option.value)"
-                        :class="['inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-sm transition', selectedTimeRange === option.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600']">
-                        <CalendarIcon v-if="option.value === 'CUSTOM'" class="w-3 h-3" />
-                        {{ option.shortLabel }}
-                      </button>
-                    </div>
-                    <div v-if="selectedTimeRange === 'CUSTOM'" class="flex items-center gap-2 mb-3">
-                      <div class="flex-1 relative">
-                        <input type="date" v-model="customStartDate" :max="customEndDate || undefined" :aria-label="t('dashboard.time_custom_from')"
-                          class="block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
-                        <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                      </div>
-                      <span class="text-gray-400 text-xs shrink-0">→</span>
-                      <div class="flex-1 relative">
-                        <input type="date" v-model="customEndDate" :min="customStartDate || undefined" :aria-label="t('dashboard.time_custom_to')"
-                          class="block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
-                        <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                      </div>
-                    </div>
-                    <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-                      <div class="flex items-center gap-1.5 mb-1.5">
-                        <ListBulletIcon class="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.group_by_label') }}</span>
-                      </div>
-                      <div class="flex flex-wrap gap-1.5">
-                        <button v-for="opt in groupByOptions" :key="opt.value" @click="selectedGroupBy = opt.value; showFilterDropdown = false"
-                          :class="['px-2.5 py-1 text-xs font-medium rounded-sm transition', selectedGroupBy === opt.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600']">
-                          {{ opt.label }}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </Transition>
-              </div>
-              <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
-            </div>
+          <!-- Mobile (<md): Zeitraum-Filter als Sibling, damit er unter der Auto-Card sichtbar bleibt. -->
+          <div v-if="filterBarVisible" class="md:hidden mt-1.5 mb-4 flex items-center gap-4">
+            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+            <PeriodFilterDropdown
+              :options="timeRangeOptions" :group-by-options="groupByOptions"
+              v-model="selectedTimeRange" v-model:custom-start="customStartDate"
+              v-model:custom-end="customEndDate" v-model:group-by="selectedGroupBy" />
+            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+          </div>
 
           <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live -->
           <LiveChargingCard
@@ -611,60 +539,14 @@ onUnmounted(() => {
         <!-- Desktop: Datumsfilter zentriert mit Trennstrich - immer sichtbar (auch bei leerem Zeitraum) -->
         <div v-if="filterBarVisible" class="hidden md:flex items-center gap-4 mb-4">
           <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
-          <div class="relative" ref="filterDropdownDesktop">
-            <button
-              data-testid="dashboard-filter-toggle"
-              @click.stop="showFilterDropdown = !showFilterDropdown"
-              class="flex items-center gap-2 px-4 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer transition">
-              <CalendarIcon class="w-4 h-4 opacity-60" />
-              <span>{{ timeRangeOptions.find(o => o.value === selectedTimeRange)?.shortLabel ?? selectedTimeRange }}</span>
-              <span class="text-gray-300 dark:text-gray-500">·</span>
-              <span>{{ groupByOptions.find(o => o.value === selectedGroupBy)?.label }}</span>
-              <ChevronDownIcon class="w-3.5 h-3.5 opacity-50 transition-transform" :class="{ 'rotate-180': showFilterDropdown }" />
-            </button>
-            <Transition name="dropdown">
-              <div v-if="showFilterDropdown"
-                data-testid="dashboard-filter-dropdown"
-                class="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-3 w-72"
-                @click.stop>
-                <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('dashboard.time_range_label') }}</p>
-                <div class="flex flex-wrap gap-1.5 mb-3">
-                  <button v-for="option in timeRangeOptions" :key="option.value" @click="setTimeRange(option.value)"
-                    :class="['inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-sm transition', selectedTimeRange === option.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600']">
-                    <CalendarIcon v-if="option.value === 'CUSTOM'" class="w-3 h-3" />
-                    {{ option.shortLabel }}
-                  </button>
-                </div>
-                <div v-if="selectedTimeRange === 'CUSTOM'" class="flex items-center gap-2 mb-3">
-                  <div class="flex-1 relative">
-                    <input type="date" v-model="customStartDate" :max="customEndDate || undefined" :aria-label="t('dashboard.time_custom_from')"
-                      class="block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
-                    <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                  </div>
-                  <span class="text-gray-400 text-xs shrink-0">→</span>
-                  <div class="flex-1 relative">
-                    <input type="date" v-model="customEndDate" :min="customStartDate || undefined" :aria-label="t('dashboard.time_custom_to')"
-                      class="block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer" />
-                    <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
-                  </div>
-                </div>
-                <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-                  <div class="flex items-center gap-1.5 mb-1.5">
-                    <ListBulletIcon class="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.group_by_label') }}</span>
-                  </div>
-                  <div class="flex flex-wrap gap-1.5">
-                    <button v-for="opt in groupByOptions" :key="opt.value" @click="selectedGroupBy = opt.value; showFilterDropdown = false"
-                      :class="['px-2.5 py-1 text-xs font-medium rounded-sm transition', selectedGroupBy === opt.value ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600']">
-                      {{ opt.label }}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </Transition>
-          </div>
+          <PeriodFilterDropdown
+            test-id="dashboard-filter"
+            :options="timeRangeOptions" :group-by-options="groupByOptions"
+            v-model="selectedTimeRange" v-model:custom-start="customStartDate"
+            v-model:custom-end="customEndDate" v-model:group-by="selectedGroupBy" />
           <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
         </div>
+
 
           <!-- Empty State: No Cars -->
           <div v-if="cars.length === 0" class="min-h-[60vh] flex items-center justify-center">
@@ -1350,16 +1232,6 @@ onUnmounted(() => {
 .slide-down-leave-to {
   max-height: 0;
   opacity: 0;
-}
-
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
 }
 
 /* Hide horizontal scrollbar on the car selector strip (visible peek + touch

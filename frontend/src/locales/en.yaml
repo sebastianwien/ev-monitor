@@ -602,9 +602,11 @@ auth:
 
 logs:
   title: "Charges & Trips"
+  load_older: "Load older ({month})"
+  empty_window: "No charges or trips in the selected period."
   resolution:
     label: "View"
-    cycle: "Charge"
+    cycle: "Single"
     day: "Day"
     week: "Week"
     month: "Month"

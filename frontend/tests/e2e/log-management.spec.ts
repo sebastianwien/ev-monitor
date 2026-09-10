@@ -9,7 +9,7 @@ test.describe.configure({ mode: 'serial' });
 async function openFirstLogEditModal(page: any) {
   // Der Feed startet in der Monats-Ansicht - fuer das Aktionen-Menue der
   // Ladezyklus-Karte erst auf die Ladung-Ansicht schalten.
-  await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Ladung' }).click();
+  await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Einzeln' }).click();
   const menuButton = page.locator('[aria-label="Aktionen"]').first();
   await expect(menuButton).toBeVisible({ timeout: 10_000 });
   await menuButton.click();

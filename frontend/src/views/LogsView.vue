@@ -54,7 +54,7 @@ import { mergeSocSeries, type CurvePoint, type SocPoint } from '../components/ch
 import { formatSocRange } from '../utils/socRange'
 import { hasTripMap } from '../utils/tripMap'
 import { formatPauseDuration, tripDayLabel } from '../utils/tripTimeFormat'
-import { buildPeriodGroups, type PeriodResolution } from '../utils/tripPeriods'
+import { buildPeriodGroups } from '../utils/tripPeriods'
 import { normalizeCharge } from '../utils/recentActivity'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
 import FeedLegend from '../components/dashboard/FeedLegend.vue'
@@ -78,7 +78,9 @@ import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.v
 import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
-import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
+import PeriodFilterDropdown from '../components/dashboard/PeriodFilterDropdown.vue'
+import { useTimeRangeOptions } from '../composables/useTimeRangeOptions'
+import { FEED_RESOLUTIONS, FEED_TIME_RANGES } from '../composables/useFeedWindow'
 import { useRoute } from 'vue-router'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
@@ -116,12 +118,13 @@ const {
   dismissImplausibleBanner, fetchImplausibleCount, fetchStatistics,
   pricelessCount, pricelessBannerDismissed, dismissPricelessBanner, fetchPricelessCount,
   setLogsSection, currentOdometerKm,
-  logs, logsPage, logsLoading, hasMoreLogs, editingLog, priceAmendingLog, pageSize, setPageSize,
+  logs, logsLoading, editingLog, priceAmendingLog,
+  feedResolution, feedTimeRange, feedCustomStartDate, feedCustomEndDate, feedNextOlderMonth, loadOlderFeed,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
   mergeModalEntry, mergeSaving, mergeError, openMergeModal, mergeCandidates, saveMerge,
-  fetchLogs, fetchLogsAndScroll, refreshLogsAndGroups, deleteLog,
+  refreshLogsAndGroups, deleteLog,
   formatLogDate, formatTripTimeRange, tripTimeParts, toggleOdometerDisplay, sourceInfo, mergedLogFeed,
   editingTripId, addingTripAfterId, tripForm, tripSaving, tripError,
   startEditTrip, cancelTripEdit, saveTripEdit, startAddTrip, saveNewTrip, deleteTripEntry,
@@ -295,10 +298,8 @@ watch(selectedCarId, (newId) => {
   expandedPeriodGroups.value = new Set()
 })
 
-const page1GroupIds = computed<Set<string>>(() => {
-  if (logsPage.value !== 0) return new Set<string>()
-  return new Set(['tg_top', ...logs.value.map((l: any) => `tg_${l.id}`)])
-})
+const loadedGroupIds = computed<Set<string>>(() =>
+  new Set(['tg_top', ...logs.value.map((l: any) => `tg_${l.id}`)]))
 
 function toggleTripGroup(groupId: string) {
   haptic()
@@ -313,9 +314,9 @@ function toggleTripGroup(groupId: string) {
   if (next.has(groupId)) next.delete(groupId)
   else next.add(groupId)
   collapsedTripGroups.value = next
-  if (page1GroupIds.value.has(groupId)) {
+  if (loadedGroupIds.value.has(groupId)) {
     try {
-      const toSave = [...next].filter(id => page1GroupIds.value.has(id))
+      const toSave = [...next].filter(id => loadedGroupIds.value.has(id))
       localStorage.setItem(tripCollapseKey(selectedCarId.value), JSON.stringify(toSave))
     } catch {}
   }
@@ -381,29 +382,13 @@ const cycleFeed = computed<any[]>(() => {
   return result
 })
 
-/**
- * Aufloesung des Feeds. 'cycle' ist der Ladezyklus wie bisher, alles andere schneidet
- * dieselben Fahrten nach Kalenderzeitraum. Die Wahl haelt ueber Sitzungen hinweg, weil
- * niemand sie bei jedem Besuch neu treffen will.
- */
-type FeedResolution = 'cycle' | PeriodResolution
-const RESOLUTION_KEY = 'logfeed_resolution'
-const RESOLUTIONS: FeedResolution[] = ['day', 'week', 'month', 'cycle']
-
-function loadResolution(): FeedResolution {
-  try {
-    const saved = localStorage.getItem(RESOLUTION_KEY) as FeedResolution | null
-    return saved && RESOLUTIONS.includes(saved) ? saved : 'month'
-  } catch {
-    return 'month'
-  }
-}
-
-const feedResolution = ref<FeedResolution>(loadResolution())
-
-watch(feedResolution, (value) => {
-  try { localStorage.setItem(RESOLUTION_KEY, value) } catch {}
-})
+// Aufloesung + Zeitfenster des Feeds leben im CarContext (useFeedWindow); hier nur die Chips.
+const RESOLUTIONS = FEED_RESOLUTIONS
+const allTimeRangeOptions = useTimeRangeOptions()
+const feedRangeOptions = computed(() =>
+  allTimeRangeOptions.value.filter((o) => FEED_TIME_RANGES.includes(o.value)))
+const nextOlderMonthLabel = computed(() =>
+  feedNextOlderMonth.value.toLocaleDateString(locale.value, { month: 'short', year: 'numeric', timeZone: 'UTC' }))
 
 /**
  * Verbrauch und Kosten einer einzelnen Fahrt - dieselben Werte, die auch in ihrer Zeile
@@ -801,23 +786,6 @@ function chargeCardName(entry: any): string | null {
   return chargingProviderNames.value.get(entry.chargingProviderId) ?? null
 }
 
-const pageDateRange = computed<string | undefined>(() => {
-  const feed = mergedLogFeed.value
-  if (!feed.length) return undefined
-  const dateOf = (e: any): string | null => e._isTrip ? e.tripStartedAt : e.loggedAt
-  const first = dateOf(feed[0])
-  const last = dateOf(feed[feed.length - 1])
-  if (!first || !last) return undefined
-  const fmt = (iso: string) => {
-    const d = new Date(iso)
-    const sameYear = d.getFullYear() === new Date().getFullYear()
-    return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', ...(!sameYear && { year: '2-digit' }) })
-  }
-  const a = fmt(first)
-  const b = fmt(last)
-  return a === b ? a : `${a} - ${b}`
-})
-
 const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
   useVehicleCharging(cars, smartcarStatus, vwGroupStatus)
 
@@ -1208,7 +1176,7 @@ function toggleAllTrips() {
   expandedPeriodGroups.value = nextExpanded
   if (selectedCarId.value) {
     try {
-      const toSave = [...nextCollapsed].filter(id => page1GroupIds.value.has(id))
+      const toSave = [...nextCollapsed].filter(id => loadedGroupIds.value.has(id))
       localStorage.setItem(tripCollapseKey(selectedCarId.value), JSON.stringify(toSave))
     } catch {}
   }
@@ -1533,19 +1501,15 @@ function toggleAllCharges() {
             </button>
           </div>
 
-          <!-- Pagination top (Header-Variante: Zeitraum-Label, keine Seitengroesse) -->
-          <LogsPaginationBar
-            v-if="hasAnyLogs"
-            variant="header"
-            :page="logsPage"
-            :has-more="hasMoreLogs"
-            :page-size="pageSize"
-            class="mb-4"
-            :date-range="pageDateRange"
-            @prev="fetchLogs(logsPage - 1)"
-            @next="fetchLogs(logsPage + 1)"
-            @page-size-change="setPageSize"
-          />
+          <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, pro Darstellung gemerkt. -->
+          <div v-if="hasAnyLogs" class="mb-4 flex items-center gap-4">
+            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+            <PeriodFilterDropdown
+              test-id="logfeed-filter"
+              :options="feedRangeOptions"
+              v-model="feedTimeRange" v-model:custom-start="feedCustomStartDate" v-model:custom-end="feedCustomEndDate" />
+            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+          </div>
 
           <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
             <div v-if="reassignSuccessMessage" class="mb-2 px-3 py-2 rounded-sm bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
@@ -1594,6 +1558,9 @@ function toggleAllCharges() {
             </template>
             <template v-else-if="!hasAnyLogs">
               <p class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.no_logs_empty') }}</p>
+            </template>
+            <template v-else-if="!logsLoading && mergedLogFeed.length === 0">
+              <p class="py-8 text-center text-gray-400 text-sm">{{ t('logs.empty_window') }}</p>
             </template>
             <template v-else>
               <div v-if="openMenuLogId" class="fixed inset-0 z-40" @click="openMenuLogId = null" />
@@ -3344,17 +3311,16 @@ function toggleAllCharges() {
               </template><!-- end v-for groupedFeed -->
             </template>
           </div>
-          <!-- Pagination bottom -->
-          <LogsPaginationBar
-            :page="logsPage"
-            :has-more="hasMoreLogs"
-            :page-size="pageSize"
-            class="mt-4"
-            :date-range="pageDateRange"
-            @prev="fetchLogsAndScroll(logsPage - 1)"
-            @next="fetchLogsAndScroll(logsPage + 1)"
-            @page-size-change="setPageSize"
-          />
+          <!-- Einzeln: monatsweise weiter zurueck, statt eines festen Seitenendes. -->
+          <div v-if="feedResolution === 'cycle'" class="mt-4 flex items-center gap-4">
+            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+            <button type="button" data-testid="logfeed-load-older" :disabled="logsLoading" @click="loadOlderFeed()"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition">
+              <ChevronDownIcon class="w-4 h-4 opacity-60" />
+              {{ t('logs.load_older', { month: nextOlderMonthLabel }) }}
+            </button>
+            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+          </div>
 
           <!-- Consumption info accordion (positioned below the list as user reference material) -->
           <ConsumptionInfoBox :min-trips="5" class="mt-6" />

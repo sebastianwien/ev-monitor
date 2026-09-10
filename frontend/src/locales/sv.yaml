@@ -562,9 +562,11 @@ auth:
     error_generic: Ett fel har uppstått. Försök igen.
 logs:
   title: Laddningar & resor
+  load_older: "Ladda äldre ({month})"
+  empty_window: "Inga laddningar eller resor under vald period."
   resolution:
     label: "Vy"
-    cycle: "Laddning"
+    cycle: "Enskilda"
     day: "Dag"
     week: "Vecka"
     month: "Månad"

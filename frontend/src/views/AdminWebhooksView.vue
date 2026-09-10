@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import api from '../api/axios'
 import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
-import type { PageSize } from '../composables/useLogList'
+import type { PageSize } from '../components/dashboard/pageSize'
 import {
   changedCells,
   runSegment,

@@ -25,12 +25,14 @@ async function createLog() {
   const cars = await (await api.get('/api/cars', { headers })).json();
   if (!Array.isArray(cars) || cars.length === 0) throw new Error('[E2E] Kein Testfahrzeug vorhanden');
 
-  // Eindeutiger Zeitstempel in der Vergangenheit: der Server lehnt zwei Logs mit
-  // gleicher Zeit am selben Fahrzeug mit 409 ab. "Jetzt" kollidiert sowohl mit dem
-  // parallelen zweiten Mobile-Test als auch mit den Logs, die log-management.spec.ts
-  // ueber das Formular anlegt.
-  const offsetMinutes = Math.floor(Math.random() * 500_000);
-  const loggedAt = new Date(Date.UTC(2024, 0, 1) + offsetMinutes * 60_000)
+  // Eindeutiger Zeitstempel im laufenden (UTC-)Monat: der Server lehnt zwei Logs mit
+  // gleicher Zeit am selben Fahrzeug mit 409 ab ("jetzt" kollidiert mit dem parallelen
+  // zweiten Mobile-Test und den Formular-Logs aus log-management.spec.ts), und der Feed
+  // zeigt in der Einzeln-Ansicht nur den laufenden Monat - ein aelteres Log waere unsichtbar.
+  const now = Date.now();
+  const monthStart = Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), 1);
+  const offsetMinutes = Math.floor(Math.random() * Math.max(1, (now - monthStart) / 60_000));
+  const loggedAt = new Date(now - offsetMinutes * 60_000)
     .toISOString().slice(0, 19);
 
   const resp = await api.post('/api/logs', {
@@ -39,7 +41,7 @@ async function createLog() {
       carId: cars[0].id,
       kwhCharged: 45.5,
       costEur: 18.2,
-      odometerKm: 5000 + Math.floor(offsetMinutes / 100),
+      odometerKm: 60000 + Math.floor(offsetMinutes / 10),
       socAfterChargePercent: 80,
       socBeforeChargePercent: 20,
       chargingType: 'AC',
@@ -117,7 +119,7 @@ test('Mobile: Edit-Modal auf /logs liegt im Viewport (nicht im Pager-Track)', as
 
   // Der Feed startet in der Monats-Ansicht - das Aktionen-Menue gibt es nur auf den
   // Ladezyklus-Karten der Ladung-Ansicht.
-  await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Ladung' }).click();
+  await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Einzeln' }).click();
 
   // Mobile Karten sind eingeklappt - das Aktionsmenue liegt in der aufgeklappten Karte.
   await page.locator('button[aria-expanded]:has-text("kWh"):visible').first().click();

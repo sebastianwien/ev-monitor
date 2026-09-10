@@ -602,9 +602,11 @@ auth:
 
 logs:
   title: "Ladevorgänge & Trips"
+  load_older: "Ältere laden ({month})"
+  empty_window: "Keine Ladungen oder Fahrten im gewählten Zeitraum."
   resolution:
     label: "Ansicht"
-    cycle: "Ladung"
+    cycle: "Einzeln"
     day: "Tag"
     week: "Woche"
     month: "Monat"

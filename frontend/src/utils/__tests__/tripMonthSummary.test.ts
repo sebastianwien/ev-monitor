@@ -99,6 +99,12 @@ describe('resolveTripWindow', () => {
     expect(new Date(w.startMs).toISOString().slice(0, 7)).toBe('2026-07')
   })
 
+  it('THIS_YEAR starts on January 1st', () => {
+    const w = resolveTripWindow('THIS_YEAR', null, null, now)!
+    expect(new Date(w.startMs).toISOString().slice(0, 10)).toBe('2026-01-01')
+    expect(w.endMs).toBe(now.getTime())
+  })
+
   it('ALL_TIME is unbounded', () => {
     expect(resolveTripWindow('ALL_TIME', null, null, now)).toBeNull()
   })

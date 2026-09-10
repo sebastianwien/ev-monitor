@@ -562,9 +562,11 @@ auth:
     error_generic: Det oppstod en feil. Prøv på nytt.
 logs:
   title: Ladinger og turer
+  load_older: "Last eldre ({month})"
+  empty_window: "Ingen ladinger eller turer i valgt periode."
   resolution:
     label: "Visning"
-    cycle: "Lading"
+    cycle: "Enkeltvis"
     day: "Dag"
     week: "Uke"
     month: "Måned"

@@ -146,6 +146,8 @@ export function resolveTripWindow(
       return { startMs: monthStart(5), endMs: now.getTime() }
     case 'LAST_12_MONTHS':
       return { startMs: monthStart(11), endMs: now.getTime() }
+    case 'THIS_YEAR':
+      return { startMs: Date.UTC(y, 0, 1), endMs: now.getTime() }
     case 'CUSTOM': {
       const s = customStart ? Date.parse(customStart) : NaN
       const e = customEnd ? Date.parse(customEnd) : NaN

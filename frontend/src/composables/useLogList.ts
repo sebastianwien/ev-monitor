@@ -7,6 +7,7 @@ import { sourceInfo } from '../utils/logSource'
 import { formatTripDateTimeRange, tripDateTimeParts } from '../utils/tripTimeFormat'
 import { annotatePhantomDrains } from '../utils/phantomDrain'
 import { aggregateGroupCost, costBasisKwh } from './useChargingEfficiency'
+import { useFeedWindow } from './useFeedWindow'
 
 /** Maximaler zeitlicher Abstand zweier Logs, damit sie zusammengeführt werden dürfen.
  *  24h, damit auch sehr langsame AC-Ladevorgänge (z. B. 14h an 4 kW) noch abgedeckt sind. */
@@ -15,35 +16,6 @@ export const MERGE_WINDOW_MS = 24 * 60 * 60 * 1000
 export function isWithinMergeWindow(entryLoggedAt: string, logLoggedAt: string): boolean {
   const diff = Math.abs(new Date(logLoggedAt).getTime() - new Date(entryLoggedAt).getTime())
   return diff <= MERGE_WINDOW_MS
-}
-
-export const PAGE_SIZE_OPTIONS = [10, 25, 50] as const
-export type PageSize = typeof PAGE_SIZE_OPTIONS[number]
-export const DEFAULT_PAGE_SIZE: PageSize = 25
-export const PAGE_SIZE_STORAGE_KEY = 'ev_logs_page_size'
-
-function isValidPageSize(value: unknown): value is PageSize {
-  return typeof value === 'number' && (PAGE_SIZE_OPTIONS as readonly number[]).includes(value)
-}
-
-export function readStoredPageSize(): PageSize {
-  try {
-    const raw = localStorage.getItem(PAGE_SIZE_STORAGE_KEY)
-    if (raw == null) return DEFAULT_PAGE_SIZE
-    const parsed = Number(raw)
-    return isValidPageSize(parsed) ? parsed : DEFAULT_PAGE_SIZE
-  } catch {
-    return DEFAULT_PAGE_SIZE
-  }
-}
-
-export function writeStoredPageSize(size: PageSize): void {
-  if (!isValidPageSize(size)) return
-  try {
-    localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(size))
-  } catch {
-    // Ignore (Safari private mode, quota, etc.)
-  }
 }
 
 // Backend stores LocalDateTime without timezone - treat as UTC for consistent comparison
@@ -76,13 +48,11 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
 
   const logs = ref<any[]>([])
   const trips = ref<any[]>([])
-  const logsPage = ref(0)
+  const feedWindow = useFeedWindow()
   const logsLoading = ref(false)
-  const hasMoreLogs = ref(false)
   const editingLog = ref<any | null>(null)
   // Schlanker Preis-Nachtrag (PriceAmendModal), getrennt vom vollen EditLogModal (editingLog).
   const priceAmendingLog = ref<any | null>(null)
-  const pageSize = ref<PageSize>(readStoredPageSize())
 
   // Ladegruppen expand/collapse
   const expandedGroups = ref<Set<string>>(new Set())
@@ -95,7 +65,11 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     }
   }
 
-  const hasAnyLogs = computed(() => logs.value.length > 0 || trips.value.length > 0)
+  // Juengster Eintrag unabhaengig vom Fenster: entscheidet "noch nie geloggt" (Empty State)
+  // vs. "nichts im Zeitraum" und fuettert die Zuletzt-Kacheln des Dashboards.
+  const latestLog = ref<any | null>(null)
+  const latestTrip = ref<any | null>(null)
+  const hasAnyLogs = computed(() => latestLog.value != null || latestTrip.value != null)
 
   // Display toggles
   const showOdometer = ref(false)
@@ -314,57 +288,56 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   const fetchTrips = async () => {
     if (!selectedCarId.value) return
     try {
-      const res = await api.get(`/trips?carId=${selectedCarId.value}`)
+      const res = await api.get(`/trips?carId=${selectedCarId.value}${feedWindow.queryParams.value}`)
       trips.value = res.data
     } catch {
       // keep existing trips
     }
   }
 
-  const fetchLogs = async (page = 0) => {
-    if (!selectedCarId.value) return
+  // Jede Antwort traegt die Nummer ihrer Anfrage - nur die juengste darf schreiben. Sonst
+  // ueberschreibt beim schnellen Wechsel Tag -> Einzeln die langsamere, alte Antwort die neue.
+  let fetchSeq = 0
+
+  /**
+   * Laedt Ladungen und Fahrten des aktuellen Zeitfensters (siehe useFeedWindow).
+   * `withLatest` holt zusaetzlich den juengsten Eintrag unabhaengig vom Fenster - noetig nach
+   * Auto-Wechsel und Mutationen, nicht bei einem reinen Zeitraum-Wechsel (spart die zweite
+   * Vollberechnung im Backend).
+   */
+  const fetchLogs = async ({ withLatest = true } = {}) => {
+    const carId = selectedCarId.value
+    if (!carId) return
+    const seq = ++fetchSeq
     logsLoading.value = true
     try {
-      const limit = pageSize.value
-      const [logsRes, tripsRes] = await Promise.all([
-        api.get(`/logs?carId=${selectedCarId.value}&limit=${limit}&page=${page}`),
-        api.get(`/trips?carId=${selectedCarId.value}`),
+      const window = feedWindow.queryParams.value
+      const [logsRes, tripsRes, latestLogRes, latestTripRes] = await Promise.all([
+        api.get(`/logs?carId=${carId}${window}`),
+        api.get(`/trips?carId=${carId}${window}`),
+        withLatest ? api.get(`/logs?carId=${carId}&limit=1`) : null,
+        withLatest ? api.get(`/trips?carId=${carId}&limit=1`) : null,
       ])
+      if (seq !== fetchSeq) return
       logs.value = logsRes.data
-      logsPage.value = page
-      hasMoreLogs.value = logsRes.data.length === limit
-      if (tripsRes) {
-        trips.value = tripsRes.data
-      }
+      trips.value = tripsRes.data
+      if (latestLogRes) latestLog.value = latestLogRes.data[0] ?? null
+      if (latestTripRes) latestTrip.value = latestTripRes.data[0] ?? null
     } catch {
       // Network error - keep existing state
     } finally {
-      logsLoading.value = false
+      if (seq === fetchSeq) logsLoading.value = false
     }
   }
 
-  const setPageSize = (size: PageSize) => {
-    if (size === pageSize.value) return
-    pageSize.value = size
-    writeStoredPageSize(size)
-    // Reset to page 0 to avoid out-of-bounds when shrinking page size
-    fetchLogs(0)
-  }
-
   const scrollToLogs = async () => {
-    await fetchLogs(0)
-    await nextTick()
-    logsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  const fetchLogsAndScroll = async (page: number) => {
-    await fetchLogs(page)
+    await fetchLogs()
     await nextTick()
     logsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const refreshLogsAndGroups = () => {
-    fetchLogs(logsPage.value)
+    fetchLogs()
   }
 
   const deleteLog = async (id: string) => {
@@ -628,9 +601,9 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   watch(selectedCarId, () => {
     logs.value = []
     trips.value = []
+    latestLog.value = null
+    latestTrip.value = null
     expandedGroups.value = new Set()
-    logsPage.value = 0
-    hasMoreLogs.value = false
     reassignModalEntry.value = null
     editingTripId.value = null
     addingTripAfterId.value = null
@@ -638,19 +611,28 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
 
   // Refresh when a new log was saved via the modal
   watch(() => logsRefreshStore.version, () => {
-    fetchLogs(0)
+    fetchLogs()
+  })
+  // Neues Fenster (Zeitraum, Darstellung, "Aeltere laden") -> neu laden.
+  watch(feedWindow.queryParams, () => {
+    fetchLogs({ withLatest: false })
   })
 
   return {
     logs,
     trips,
-    logsPage,
+    latestLog,
+    latestTrip,
     logsLoading,
-    hasMoreLogs,
     editingLog,
     priceAmendingLog,
-    pageSize,
-    setPageSize,
+    // Zeitfenster des Feeds
+    feedResolution: feedWindow.resolution,
+    feedTimeRange: feedWindow.timeRange,
+    feedCustomStartDate: feedWindow.customStartDate,
+    feedCustomEndDate: feedWindow.customEndDate,
+    feedNextOlderMonth: feedWindow.nextOlderMonth,
+    loadOlderFeed: feedWindow.loadOlder,
     expandedGroups,
     toggleLadegruppe,
     hasAnyLogs,
@@ -677,7 +659,6 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     fetchLogs,
     fetchTrips,
     scrollToLogs,
-    fetchLogsAndScroll,
     refreshLogsAndGroups,
     deleteLog,
     // Trip editing
