@@ -37,7 +37,6 @@ const { t } = useI18n()
 <template>
   <!-- Trigger: rechtsbuendige Slim-Legende + Aufklapp-Button. -->
   <button v-if="mode === 'trigger'" type="button" @click="$emit('toggle')" :aria-expanded="open"
-          :aria-label="t('logs.legend.toggle')"
           class="inline-flex items-center gap-x-3 gap-y-1 flex-wrap justify-end text-xs
                  text-gray-600 dark:text-gray-300 group">
     <span class="inline-flex items-center gap-1.5">
@@ -54,8 +53,7 @@ const { t } = useI18n()
     </span>
     <span class="inline-flex items-center gap-0.5 text-gray-400 dark:text-gray-500
                  group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
-      <!-- Auf Mobile teilt sich die Legende die Zeile mit dem Zeitraum-Picker - dort nur der Chevron. -->
-      <span class="hidden sm:inline">{{ t('logs.legend.toggle') }}</span>
+      {{ t('logs.legend.toggle') }}
       <ChevronUpIcon v-if="open" class="w-3.5 h-3.5" />
       <ChevronDownIcon v-else class="w-3.5 h-3.5" />
     </span>

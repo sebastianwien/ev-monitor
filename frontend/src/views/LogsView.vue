@@ -1501,6 +1501,15 @@ function toggleAllCharges() {
             </button>
           </div>
 
+          <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, pro Darstellung gemerkt. -->
+          <div v-if="hasAnyLogs" class="mb-4 flex items-center gap-4">
+            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+            <PeriodFilterDropdown
+              test-id="logfeed-filter"
+              :options="feedRangeOptions"
+              v-model="feedTimeRange" v-model:custom-start="feedCustomStartDate" v-model:custom-end="feedCustomEndDate" />
+            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+          </div>
 
           <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
             <div v-if="reassignSuccessMessage" class="mb-2 px-3 py-2 rounded-sm bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
@@ -1524,13 +1533,6 @@ function toggleAllCharges() {
                 {{ t('logs.resolution.' + option) }}
               </button>
             </div>
-            <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, pro Darstellung gemerkt.
-                 Desktop: eine Zeile mit Darstellung und Legende; Mobile: Darstellung volle Breite,
-                 darunter Picker links und Legende rechts. -->
-            <PeriodFilterDropdown
-              test-id="logfeed-filter"
-              :options="feedRangeOptions"
-              v-model="feedTimeRange" v-model:custom-start="feedCustomStartDate" v-model:custom-end="feedCustomEndDate" />
             <FeedLegend mode="trigger" class="ml-auto" :has-trips="totalTripCount > 0"
                         :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
                         :open="feedLegendOpen" @toggle="toggleFeedLegend" />
