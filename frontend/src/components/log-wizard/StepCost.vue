@@ -53,8 +53,8 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-4">
-    <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus />
-    <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus />
+    <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus />
+    <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus />
     <SegmentToggle v-model="costMode"
       :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
     <p class="text-sm text-gray-500 dark:text-gray-400 tabular-nums min-h-5">

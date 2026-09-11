@@ -29,11 +29,11 @@
             <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('logwizard.still_open') }}</p>
             <div v-if="missingAtOpen.includes('energy')">
               <label for="wizard-kwh" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.energy') }}</label>
-              <BigInput id="wizard-kwh" v-model="formData.kwhCharged" unit="kWh" :placeholder="t('logfields.kwh_placeholder')" step="0.1" :min="0" />
+              <BigInput id="wizard-kwh" v-model="formData.kwhCharged" unit="kWh" :label="t('logfields.energy')" :placeholder="t('logfields.kwh_placeholder')" step="0.1" :min="0" />
             </div>
             <div v-if="missingAtOpen.includes('odometer')">
               <label for="wizard-odometer" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.odometer') }}</label>
-              <BigInput id="wizard-odometer" v-model="formData.odometerKm" :unit="t('logfields.unit_km')" step="1" :min="0" inputmode="numeric" />
+              <BigInput id="wizard-odometer" v-model="odometerLocal" :unit="usesMiles ? t('logfields.unit_miles') : t('logfields.unit_km')" step="1" :min="0" inputmode="numeric" />
             </div>
             <div v-if="missingAtOpen.includes('soc')">
               <label for="wizard-soc" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.soc_after') }}</label>
@@ -115,6 +115,7 @@ import { useCountryStore } from '../../stores/country'
 import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useCostInput } from '../../composables/useCostInput'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
+import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { buildLogUpdatePayload, missingRequired, applyPlace, type PlaceChoice, type PlaceKind, type RequiredField } from '../log-wizard/wizardLogic'
 import LogSummary, { type SummarySection } from '../log-wizard/LogSummary.vue'
@@ -210,6 +211,11 @@ const cost = useCostInput(formData, {
 })
 cost.initFromEur()
 const currencySymbol = computed(() => countryStore.unitSystem.currencySymbol)
+const usesMiles = computed(() => countryStore.unitSystem.distanceUnit === 'miles')
+const odometerLocal = computed({
+  get: () => formData.value.odometerKm == null ? null : odometerKmToLocal(formData.value.odometerKm, usesMiles.value),
+  set: (v) => { formData.value.odometerKm = v == null ? null : odometerLocalToKm(v, usesMiles.value) },
+})
 
 const cpo = useCpoOptions(computed(() => countryStore.country))
 const providers = ref<ChargingProvider[]>([])

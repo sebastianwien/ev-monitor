@@ -60,7 +60,13 @@ export function useCostInput(form: Ref<CostForm>, currency: CostCurrency) {
     form.value.costCurrency = abroad ? currency.localCurrency.value : null
   }
 
-  watch([costMode, costLocalTotal, costLocalPerKwh, effectiveKwh], syncCostToEur)
+  // Nach initFromEur feuert der Watcher einmal ohne Nutzereingabe - dieser Lauf darf den
+  // gespeicherten EUR-Betrag nicht mit dem heutigen Kurs ueberschreiben.
+  let skipNextSync = false
+  watch([costMode, costLocalTotal, costLocalPerKwh, effectiveKwh], () => {
+    if (skipNextSync) { skipNextSync = false; return }
+    syncCostToEur()
+  })
 
   watch(effectiveKwh, (newKwh, previousKwh) => {
     if (costMode.value !== 'total') return
@@ -84,6 +90,7 @@ export function useCostInput(form: Ref<CostForm>, currency: CostCurrency) {
     const local = currency.isEurCountry.value ? form.value.costEur : form.value.costEur * rate
     costMode.value = 'total'
     costLocalTotal.value = round2(local)
+    skipNextSync = true
   }
 
   const reset = () => {

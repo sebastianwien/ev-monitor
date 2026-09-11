@@ -70,8 +70,11 @@ describe('useCostInput', () => {
     await nextTick()
     expect(cost.costMode.value).toBe('total')
     expect(cost.costLocalTotal.value).toBe(112)
-    // der Sync rechnet mit dem aktuellen Kurs zurück - wie beim klassischen Formular
-    expect(form.value.costEur).toBe(9.74)
+    // der gespeicherte EUR-Betrag bleibt, solange niemand tippt
+    expect(form.value.costEur).toBe(10)
+    cost.costLocalTotal.value = 115
+    await nextTick()
+    expect(form.value.costEur).toBe(10)
   })
 
   it('initFromEur ohne Kosten lässt alles leer', () => {

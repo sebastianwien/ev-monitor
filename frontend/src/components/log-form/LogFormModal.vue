@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue'
-import LogForm from './LogForm.vue'
+import LogWizard from '../log-wizard/LogWizard.vue'
 
 const emit = defineEmits<{
   close: []
@@ -28,8 +28,8 @@ onUnmounted(() => {
     class="fixed inset-0 z-[1000] flex items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm"
     @click.self="emit('close')"
   >
-    <div class="relative bg-white dark:bg-gray-800 w-full h-full sm:h-auto sm:rounded-sm sm:shadow-2xl sm:max-w-4xl sm:max-h-[90vh] overflow-y-auto">
-      <LogForm @success="emit('close')" @cancel="emit('close')" />
+    <div class="relative bg-white dark:bg-gray-800 w-full h-full sm:h-auto sm:rounded-sm sm:shadow-2xl sm:max-w-xl sm:max-h-[90vh] overflow-y-auto">
+      <LogWizard @success="emit('close')" @cancel="emit('close')" />
     </div>
   </div>
 </template>

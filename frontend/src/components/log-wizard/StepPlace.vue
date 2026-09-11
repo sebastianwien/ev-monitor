@@ -35,7 +35,7 @@ const tileClass = (on: boolean) => [
   on ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800',
 ]
 const stationSub = (s: NearbyStation) => [
-  s.chargePoints ? t('logwizard.charge_points', { n: s.chargePoints }) : null,
+  s.chargePoints ? t('logwizard.charge_points', { n: s.chargePoints }, s.chargePoints) : null,
   s.maxPowerKw ? `${Math.round(s.maxPowerKw)} kW` : null,
   s.fastCharging ? 'DC' : 'AC',
 ].filter(Boolean).join(' · ')
