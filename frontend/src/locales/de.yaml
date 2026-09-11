@@ -3231,3 +3231,7 @@ logwizard:
   change: "Ändern"
   more_details: "Mehr Details"
   watt_hint: "Watt gibt es beim Speichern."
+  still_open: "Noch offen"
+  done: "Fertig"
+  time_now: "Jetzt"
+  open: "offen"

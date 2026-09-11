@@ -3,77 +3,126 @@
     ref="sheet"
     :label="t('dashboard.edit_title')"
     testid="edit-log-modal"
-    panel-class="sm:max-w-3xl"
+    panel-class="sm:max-w-xl"
     @close="onClosed">
     <template #default="{ close }">
-      <!-- Header -->
-      <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700 shrink-0">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.edit_title') }}</h2>
-        <button @click="close" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+      <!-- Header: in einer Unteransicht fuehrt der Pfeil zurueck zur Uebersicht -->
+      <div class="flex items-center gap-2 p-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
+        <button v-if="section" type="button" :aria-label="t('common.back')" @click="section = null"
+          class="w-8 h-8 -ml-1 flex items-center justify-center rounded-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+          <ChevronLeftIcon class="w-5 h-5" />
+        </button>
+        <h2 class="flex-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+          {{ section ? t(sectionTitles[section]) : t('dashboard.edit_title') }}
+        </h2>
+        <button type="button" :aria-label="t('common.cancel')" @click="close" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-5 space-y-4">
-        <LogFormFields
-          v-model="formData"
-          location-mode="edit"
-          :field-errors="fieldErrors"
-        />
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Uebersicht: was da ist, was fehlt, Optionales -->
+        <template v-if="!section">
+          <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingAtOpen" show-time-tile @edit="s => section = s" />
 
-        <!-- Standort aktualisieren -->
-        <div class="space-y-1">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('logfields.update_location') }}</label>
+          <div v-if="missingAtOpen.length" class="rounded-sm border border-amber-300 dark:border-amber-700 p-3 space-y-4" data-testid="edit-missing">
+            <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('logwizard.still_open') }}</p>
+            <div v-if="missingAtOpen.includes('energy')">
+              <label for="wizard-kwh" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.energy') }}</label>
+              <BigInput id="wizard-kwh" v-model="formData.kwhCharged" unit="kWh" :placeholder="t('logfields.kwh_placeholder')" step="0.1" :min="0" />
+            </div>
+            <div v-if="missingAtOpen.includes('odometer')">
+              <label for="wizard-odometer" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.odometer') }}</label>
+              <BigInput id="wizard-odometer" v-model="formData.odometerKm" :unit="t('logfields.unit_km')" step="1" :min="0" inputmode="numeric" />
+            </div>
+            <div v-if="missingAtOpen.includes('soc')">
+              <label for="wizard-soc" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.soc_after') }}</label>
+              <BigInput id="wizard-soc" v-model="formData.socAfterChargePercent" unit="%" placeholder="80" step="1" :min="0" :max="100" inputmode="numeric" />
+            </div>
+            <div v-if="missingAtOpen.includes('cost')">
+              <label for="wizard-cost" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.cost_eur') }}</label>
+              <BigInput id="wizard-cost" v-model="cost.costLocalTotal.value" :unit="currencySymbol" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" />
+            </div>
+          </div>
+        </template>
+
+        <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
+        <StepPlace v-else-if="section === 'place'" :place="place" :selected-cpo="formData.cpoName"
+          :stations="[]" :stations-loading="false" permission="unavailable" location-status="idle"
+          :recent-cpos="[]" :all-cpos="cpo.allCpos.value" @choose="choosePlace">
+        </StepPlace>
+        <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
+        <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
+        <StepCost v-else-if="section === 'cost'" v-model="formData" :cost="cost" :providers="providers" />
+        <div v-else-if="section === 'time'">
+          <label for="wizard-time" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('logfields.timestamp') }}</label>
+          <input id="wizard-time" v-model="formData.loggedAt" type="datetime-local"
+            class="w-full rounded-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2 text-sm" />
+        </div>
+
+        <!-- Standort aendern: nur im Ort-Editor, ohne Live-Position (es gibt nur den Geohash) -->
+        <div v-if="section === 'place'" class="space-y-1 pt-2">
+          <label class="block text-xs text-gray-500 dark:text-gray-400">{{ t('logfields.update_location') }}</label>
           <div class="relative">
-            <input
-              v-model="locationSearchQuery"
-              type="text"
-              :placeholder="t('logfields.location_search_placeholder')"
-              class="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-              @focus="showSuggestions = suggestions.length > 0"
-            />
+            <input v-model="locationSearchQuery" type="text" :placeholder="t('logfields.location_search_placeholder')"
+              class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm px-3 py-2 text-sm"
+              @focus="showSuggestions = suggestions.length > 0" />
             <ul v-if="showSuggestions && suggestions.length > 0"
-              class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] max-h-48 overflow-y-auto">
-              <li v-for="s in suggestions" :key="s.place_id"
-                class="px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                @mousedown.prevent="selectLocation(s)">
+              class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] max-h-48 overflow-y-auto">
+              <li v-for="s in suggestions" :key="s.place_id" class="px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" @mousedown.prevent="selectLocation(s)">
                 {{ s.display_name }}
               </li>
             </ul>
           </div>
-          <p v-if="newLocationName" class="text-xs text-green-600 mt-1">{{ t('logfields.new_location') }} {{ newLocationName }}</p>
-          <p v-else-if="log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
+          <p v-if="newLocationName" class="text-xs text-green-600">{{ t('logfields.new_location') }} {{ newLocationName }}</p>
+          <p v-else-if="log.geohash" class="text-xs text-gray-400 dark:text-gray-500">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
         </div>
 
-        <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 rounded-sm p-3">{{ errorMsg }}</p>
+        <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 dark:bg-red-900/30 rounded-sm p-3">{{ errorMsg }}</p>
       </div>
 
-      <!-- Footer -->
-      <div class="flex justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 shrink-0">
-        <button @click="close" v-haptic
-          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-          {{ t('cars.cancel') }}
+      <!-- Footer: in der Unteransicht "Fertig" (zurueck zur Uebersicht), sonst Speichern -->
+      <div class="flex items-center gap-3 p-4 border-t border-gray-100 dark:border-gray-700 shrink-0">
+        <button v-if="section" type="button" data-testid="edit-done" @click="section = null" v-haptic
+          class="flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold hover:bg-indigo-700">
+          {{ t('logwizard.done') }}
         </button>
-        <button @click="save" v-haptic
-          :disabled="loading || !isFormValid"
-          class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-sm hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
-          <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          {{ t('logfields.save') }}
-        </button>
+        <template v-else>
+          <button type="button" @click="close" v-haptic class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+            {{ t('common.cancel') }}
+          </button>
+          <button type="button" @click="save" v-haptic :disabled="loading || !isFormValid"
+            class="flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+            <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            {{ t('logfields.save') }}
+          </button>
+        </template>
       </div>
     </template>
   </BottomSheet>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
-import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { ref, watch, computed, onMounted } from 'vue'
+import { XMarkIcon, ChevronLeftIcon } from '@heroicons/vue/24/outline'
+import { useI18n } from 'vue-i18n'
 import BottomSheet from '../shared/BottomSheet.vue'
 import api from '../../api/axios'
-import LogFormFields, { type LogFormData } from '../log-form/LogFormFields.vue'
+import type { LogFormData } from '../log-form/LogFormFields.vue'
+import type { ChargingProvider } from '../../composables/useChargingProviders'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
-import { useI18n } from 'vue-i18n'
-import { datetimeLocalToUtcIso } from '../../utils/datetime'
+import { useCountryStore } from '../../stores/country'
+import { useCpoOptions } from '../../composables/useCpoOptions'
+import { useCostInput } from '../../composables/useCostInput'
+import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
+import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
+import { buildLogUpdatePayload, missingRequired, applyPlace, type PlaceChoice, type PlaceKind, type RequiredField } from '../log-wizard/wizardLogic'
+import LogSummary, { type SummarySection } from '../log-wizard/LogSummary.vue'
+import BigInput from '../log-wizard/BigInput.vue'
+import StepPlace from '../log-wizard/StepPlace.vue'
+import StepEnergy from '../log-wizard/StepEnergy.vue'
+import StepVehicle from '../log-wizard/StepVehicle.vue'
+import StepCost from '../log-wizard/StepCost.vue'
 
 export interface EvLogResponse {
   id: string
@@ -102,13 +151,13 @@ export interface EvLogResponse {
 const props = defineProps<{ log: EvLogResponse }>()
 const emit = defineEmits<{ close: []; saved: [log: EvLogResponse] }>()
 const { t } = useI18n()
+const countryStore = useCountryStore()
 
 // Das Sheet faehrt erst aus, dann meldet es sich - der Aufrufer entfernt uns daraufhin
 // per v-if, was eine noch laufende Animation abschneiden wuerde. Ein erfolgreicher
 // Speichervorgang parkt hier sein Ergebnis, bis das Sheet draussen ist.
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
 const savedLog = ref<EvLogResponse | null>(null)
-
 function onClosed() {
   if (savedLog.value) emit('saved', savedLog.value)
   else emit('close')
@@ -123,8 +172,8 @@ const toDatetimeLocal = (iso: string): string => {
 const formData = ref<LogFormData>({
   kwhCharged: props.log.kwhCharged,
   costEur: props.log.costEur ?? null,
-  costExchangeRate: (props.log as any).costExchangeRate ?? null,
-  costCurrency: (props.log as any).costCurrency ?? null,
+  costExchangeRate: props.log.costExchangeRate ?? null,
+  costCurrency: props.log.costCurrency ?? null,
   odometerKm: props.log.odometerKm ?? null,
   socAfterChargePercent: props.log.socAfterChargePercent ?? null,
   socBeforeChargePercent: props.log.socBeforeChargePercent ?? null,
@@ -146,27 +195,58 @@ const formData = ref<LogFormData>({
   applyTariffToLocation: false,
 })
 
-const loading = ref(false)
-const errorMsg = ref('')
-const fieldErrors = ref<Set<string>>(new Set())
+// Bearbeiten heisst meist "eins aendern": Uebersicht zuerst, Editor je Abschnitt darunter.
+const section = ref<SummarySection | null>(null)
+const sectionTitles: Record<SummarySection, string> = {
+  place: 'logwizard.q_place', energy: 'logwizard.q_energy', vehicle: 'logwizard.q_vehicle', cost: 'logwizard.q_cost', time: 'logfields.timestamp',
+}
+// Einmal beim Oeffnen bestimmt: der Block "Noch offen" soll nicht unter den Fingern verschwinden.
+const missingAtOpen = ref<RequiredField[]>(missingRequired(formData.value))
 
-const isFormValid = computed(() => {
-  const f = formData.value
-  const hasValue = (v: any) => v !== null && v !== undefined && v !== ''
-  const hasEnergy = (hasValue(f.kwhCharged) && Number(f.kwhCharged) > 0)
-                 || (hasValue(f.kwhAtVehicle) && Number(f.kwhAtVehicle) > 0)
-  return hasEnergy && hasValue(f.costEur)
+const cost = useCostInput(formData, {
+  isEurCountry: computed(() => EUR_ZONE_COUNTRIES.includes(countryStore.country)),
+  exchangeRate: computed(() => EUR_EXCHANGE_RATES[countryStore.unitSystem.currency]),
+  localCurrency: computed(() => countryStore.unitSystem.currency),
+})
+cost.initFromEur()
+const currencySymbol = computed(() => countryStore.unitSystem.currencySymbol)
+
+const cpo = useCpoOptions(computed(() => countryStore.country))
+const providers = ref<ChargingProvider[]>([])
+onMounted(() => {
+  cpo.loadAll().then(() => cpo.keepSelected(formData.value.cpoName))
+  api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
 })
 
-// Location search
+const place = computed<PlaceKind | null>(() => formData.value.isPublicCharging ? 'other' : 'home')
+const placeLabel = computed(() => formData.value.isPublicCharging
+  ? (formData.value.cpoName ?? t('logwizard.place_other'))
+  : t('logwizard.place_home'))
+const choosePlace = (choice: PlaceChoice) => { applyPlace(formData.value, choice) }
+
+const onOcr = (r: any) => {
+  if (r.kwh != null) { formData.value.kwhCharged = r.kwh; formData.value.kwhAtVehicle = null }
+  if (r.cost != null) { cost.costMode.value = 'total'; cost.costLocalTotal.value = r.cost }
+  if (r.durationMinutes != null) formData.value.chargeDurationMinutes = r.durationMinutes
+  if (r.maxChargingPowerKw != null) formData.value.maxChargingPowerKw = r.maxChargingPowerKw
+}
+
+const loading = ref(false)
+const errorMsg = ref('')
+const isFormValid = computed(() => {
+  const f = formData.value
+  const hasEnergy = (f.kwhCharged != null && f.kwhCharged > 0) || (f.kwhAtVehicle != null && f.kwhAtVehicle > 0)
+  return hasEnergy && f.costEur != null
+})
+
+// Standortsuche (Nominatim) - ersetzt den Geohash durch eine neue Position
 const locationSearchQuery = ref('')
 const suggestions = ref<any[]>([])
 const showSuggestions = ref(false)
 const newLocationName = ref('')
-
-let searchTimer: any = null
+let searchTimer: ReturnType<typeof setTimeout> | null = null
 watch(locationSearchQuery, (q) => {
-  clearTimeout(searchTimer)
+  if (searchTimer) clearTimeout(searchTimer)
   if (!q || q.length < 3) { suggestions.value = []; return }
   searchTimer = setTimeout(async () => {
     try {
@@ -176,7 +256,6 @@ watch(locationSearchQuery, (q) => {
     } catch { /* ignore */ }
   }, 300)
 })
-
 function selectLocation(s: any) {
   formData.value.latitude = parseFloat(s.lat)
   formData.value.longitude = parseFloat(s.lon)
@@ -187,73 +266,22 @@ function selectLocation(s: any) {
 
 async function save() {
   errorMsg.value = ''
-  const f = formData.value
-
-  // Normalize empty strings (from cleared number inputs) to null
-  const n = (v: any): number | null => (v === '' || v === null || v === undefined) ? null : Number(v)
-
-  const kwh = n(f.kwhCharged)
-  const kwhV = n(f.kwhAtVehicle)
-  const cost = n(f.costEur)
-  const odometer = n(f.odometerKm)
-  const soc = n(f.socAfterChargePercent)
-
-  // Frontend validation (same rules as LogForm)
-  fieldErrors.value = new Set()
-  const errors: string[] = []
-  if ((!kwh || kwh <= 0) && (!kwhV || kwhV <= 0)) { fieldErrors.value.add('kwh'); errors.push(t('logform.field_kwh')) }
-  if (cost === null) { fieldErrors.value.add('cost'); errors.push(t('logform.field_cost')) }
-  if (errors.length > 0) {
-    errorMsg.value = t('logform.error_required', { fields: errors.join(', ') })
+  if (!isFormValid.value) {
+    const fields = [!((formData.value.kwhCharged ?? 0) > 0 || (formData.value.kwhAtVehicle ?? 0) > 0) && t('logform.field_kwh'),
+                    formData.value.costEur == null && t('logform.field_cost')].filter(Boolean)
+    errorMsg.value = t('logform.error_required', { fields: fields.join(', ') })
     return
   }
-
   loading.value = true
   try {
-    const payload: Record<string, any> = {
-      costEur: Math.round((cost ?? 0) * 100) / 100,
-      kwhCharged: kwh != null && kwh > 0 ? Math.round(kwh * 100) / 100 : null,
-      kwhAtVehicle: kwhV != null && kwhV > 0 ? Math.round(kwhV * 100) / 100 : null,
-      chargeDurationMinutes: n(f.chargeDurationMinutes),
-      odometerKm: odometer,
-      maxChargingPowerKw: n(f.maxChargingPowerKw) !== null ? Math.round(n(f.maxChargingPowerKw)! * 100) / 100 : null,
-      socAfterChargePercent: soc,
-      socBeforeChargePercent: n(f.socBeforeChargePercent),
-      loggedAt: f.loggedAt ? datetimeLocalToUtcIso(f.loggedAt) : null,
-      chargingType: f.chargingType,
-      routeType: f.routeType,
-      tireType: f.tireType,
-      costExchangeRate: f.costExchangeRate,
-      costCurrency: f.costCurrency,
-      chargingProviderId: f.chargingProviderId ?? null,
-      isPublicCharging: f.isPublicCharging,
-      cpoName: f.isPublicCharging && f.cpoName ? f.cpoName : null,
-    }
-    if (f.latitude !== null && f.longitude !== null) {
-      payload.latitude = f.latitude
-      payload.longitude = f.longitude
-    }
-
-    const res = await api.patch(`/logs/${props.log.id}`, payload)
-    await applyTariffToLocationIfRequested(f)
+    const res = await api.patch(`/logs/${props.log.id}`, buildLogUpdatePayload(formData.value))
+    await applyTariffToLocationIfRequested(formData.value)
     savedLog.value = res.data
     sheet.value?.requestClose()
   } catch (e: any) {
-    errorMsg.value = e?.response?.data?.message ?? 'Speichern fehlgeschlagen'
+    errorMsg.value = e?.response?.data?.message ?? t('logform.error_save')
   } finally {
     loading.value = false
   }
 }
 </script>
-
-<style scoped>
-.btn-3d {
-  box-shadow: 0 4px 0 0 rgba(0,0,0,0.2);
-  transform: translateY(0);
-  transition: transform 0.08s ease, box-shadow 0.08s ease;
-}
-.btn-3d:active {
-  box-shadow: 0 1px 0 0 rgba(0,0,0,0.2);
-  transform: translateY(3px);
-}
-</style>

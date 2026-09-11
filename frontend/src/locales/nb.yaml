@@ -3115,3 +3115,7 @@ logwizard:
   change: "Endre"
   more_details: "Flere detaljer"
   watt_hint: "Watt gis ved lagring."
+  still_open: "Mangler"
+  done: "Ferdig"
+  time_now: "Nå"
+  open: "åpen"

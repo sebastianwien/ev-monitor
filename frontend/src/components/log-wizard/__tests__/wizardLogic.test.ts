@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  emptyLogForm, canProceed, applyPlace, buildLogPayload, netEnergyKwh, socToKwh,
+  emptyLogForm, canProceed, applyPlace, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh,
 } from '../wizardLogic'
 import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
@@ -113,5 +113,27 @@ describe('SoC-Rechnung', () => {
     expect(netEnergyKwh(20, 80, 77)).toBeCloseTo(46.2, 1)
     expect(netEnergyKwh(null, 80, 77)).toBeNull()
     expect(netEnergyKwh(90, 80, 77)).toBe(0)
+  })
+})
+
+describe('buildLogUpdatePayload', () => {
+  it('ist der Anlage-Payload ohne Auto und OCR-Marker', () => {
+    const f = emptyLogForm()
+    f.kwhCharged = 40; f.costEur = 10; f.odometerKm = 1000; f.socAfterChargePercent = 80
+    const p = buildLogUpdatePayload(f)
+    expect(p).toMatchObject({ kwhCharged: 40, costEur: 10, odometerKm: 1000, socAfterChargePercent: 80 })
+    expect(p).not.toHaveProperty('carId')
+    expect(p).not.toHaveProperty('ocrUsed')
+  })
+})
+
+describe('missingRequired', () => {
+  it('nennt die fehlenden Pflichtwerte in Wizard-Reihenfolge', () => {
+    const f = emptyLogForm()
+    expect(missingRequired(f)).toEqual(['energy', 'odometer', 'soc', 'cost'])
+    f.kwhAtVehicle = 5; f.socAfterChargePercent = 80
+    expect(missingRequired(f)).toEqual(['odometer', 'cost'])
+    f.odometerKm = 1; f.costEur = 0
+    expect(missingRequired(f)).toEqual([])
   })
 })

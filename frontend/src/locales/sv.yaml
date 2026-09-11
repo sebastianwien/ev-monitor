@@ -3115,3 +3115,7 @@ logwizard:
   change: "Ändra"
   more_details: "Fler detaljer"
   watt_hint: "Watt delas ut när du sparar."
+  still_open: "Saknas"
+  done: "Klar"
+  time_now: "Nu"
+  open: "öppen"

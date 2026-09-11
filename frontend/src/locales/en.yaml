@@ -3230,3 +3230,7 @@ logwizard:
   change: "Change"
   more_details: "More details"
   watt_hint: "Watt are awarded on save."
+  still_open: "Still open"
+  done: "Done"
+  time_now: "Now"
+  open: "open"

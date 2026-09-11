@@ -84,6 +84,24 @@ export function buildLogPayload(f: LogFormData, carId: string, ocrUsed: boolean)
   return payload
 }
 
+/** Der Request-Body für PATCH /logs/{id}: wie die Anlage, nur ohne Auto und OCR-Marker. */
+export function buildLogUpdatePayload(f: LogFormData): Record<string, unknown> {
+  const { carId: _carId, ocrUsed: _ocr, ...rest } = buildLogPayload(f, '', false)
+  return rest
+}
+
+export type RequiredField = 'energy' | 'odometer' | 'soc' | 'cost'
+
+/** Welche Pflichtwerte einem (älteren) Log fehlen - für den Block "Noch offen" beim Bearbeiten. */
+export function missingRequired(f: LogFormData): RequiredField[] {
+  const missing: RequiredField[] = []
+  if (!positive(f.kwhCharged) && !positive(f.kwhAtVehicle)) missing.push('energy')
+  if (!positive(f.odometerKm)) missing.push('odometer')
+  if (f.socAfterChargePercent == null) missing.push('soc')
+  if (f.costEur == null) missing.push('cost')
+  return missing
+}
+
 /** kWh im Akku aus SoC und SoH-bereinigter Kapazität (siehe CLAUDE.md, Batteriekapazität). */
 export function socToKwh(socPercent: number | null, effectiveCapacityKwh: number | null | undefined): number | null {
   if (socPercent == null || !effectiveCapacityKwh) return null

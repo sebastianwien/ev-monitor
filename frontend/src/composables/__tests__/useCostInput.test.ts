@@ -61,4 +61,22 @@ describe('useCostInput', () => {
     await nextTick()
     expect(form.value.costEur).toBeNull()
   })
+
+  it('initFromEur füllt den Gesamtbetrag aus einem gespeicherten Log, mit gespeichertem Kurs', async () => {
+    const { form, cost } = setup(false, 11.5, 'NOK')
+    form.value.costEur = 10
+    form.value.costExchangeRate = 11.2
+    cost.initFromEur()
+    await nextTick()
+    expect(cost.costMode.value).toBe('total')
+    expect(cost.costLocalTotal.value).toBe(112)
+    // der Sync rechnet mit dem aktuellen Kurs zurück - wie beim klassischen Formular
+    expect(form.value.costEur).toBe(9.74)
+  })
+
+  it('initFromEur ohne Kosten lässt alles leer', () => {
+    const { cost } = setup()
+    cost.initFromEur()
+    expect(cost.costLocalTotal.value).toBeNull()
+  })
 })

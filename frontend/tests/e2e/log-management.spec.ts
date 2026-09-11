@@ -145,10 +145,13 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     // Modal offen warten
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     // Auf "Auto"-Modus umschalten und Wert eintragen
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
     await page.locator('input[placeholder="z.B. 42.5"]').fill('36.0');
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Speichern")').click();
 
     // Modal muss schliessen
@@ -167,6 +170,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     // Beide Felder gesetzt -> Charger-Modus hat Prio, kwhCharged=35.5 sichtbar
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible({ timeout: 3_000 });
@@ -177,6 +182,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).toBeVisible();
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('36');
 
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Abbrechen")').click();
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).not.toBeVisible({ timeout: 3_000 });
     expect(errors).toEqual([]);
@@ -193,6 +199,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     // Charger-Modus weil kwhCharged Prio hat
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible({ timeout: 3_000 });
@@ -200,6 +208,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     // Brutto-Wert auf 38 aktualisieren und speichern
     await page.locator('input[placeholder="z.B. 42.5"]').fill('38.0');
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Speichern")').click();
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).not.toBeVisible({ timeout: 5_000 });
@@ -207,10 +216,13 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     // Nochmal oeffnen: Charger=38, Vehicle=36 (beide erhalten)
     await openFirstLogEditModal(page);
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible();
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('38');
 
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Abbrechen")').click();
     expect(errors).toEqual([]);
   });
@@ -300,6 +312,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     // Charger-Modus weil kwhCharged Prio hat - Wert = 38
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible({ timeout: 3_000 });
@@ -310,6 +324,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).toBeVisible();
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('36');
 
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Abbrechen")').click();
     expect(errors).toEqual([]);
   });
@@ -473,6 +488,8 @@ test.describe('Ladegruppe im Zeitraum-Feed', () => {
     // oeffnet genau diesen Log, nicht die Basis-Ladung.
     await page.getByTestId('period-topup-edit').and(visible).nth(1).click();
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue(/^6/);
   });
 });

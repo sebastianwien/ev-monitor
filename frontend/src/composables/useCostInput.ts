@@ -74,6 +74,18 @@ export function useCostInput(form: Ref<CostForm>, currency: CostCurrency) {
     costLocalPerKwh.value = currency.isEurCountry.value ? eurPerKwh : round3(eurToLocal(eurPerKwh))
   }
 
+  /**
+   * Beim Bearbeiten: den gespeicherten EUR-Betrag als Gesamtbetrag in Landeswährung zeigen.
+   * Ein gespeicherter Kurs hat Vorrang, damit die damalige Eingabe exakt wieder erscheint.
+   */
+  const initFromEur = () => {
+    if (form.value.costEur == null) return
+    const rate = form.value.costExchangeRate ?? currency.exchangeRate.value
+    const local = currency.isEurCountry.value ? form.value.costEur : form.value.costEur * rate
+    costMode.value = 'total'
+    costLocalTotal.value = round2(local)
+  }
+
   const reset = () => {
     costMode.value = 'total'
     costLocalTotal.value = null
@@ -83,6 +95,6 @@ export function useCostInput(form: Ref<CostForm>, currency: CostCurrency) {
   return {
     costMode, costLocalTotal, costLocalPerKwh,
     calculatedLocalTotal, calculatedLocalPerKwh,
-    setPerKwhEur, reset, eurToLocal,
+    setPerKwhEur, initFromEur, reset, eurToLocal,
   }
 }
