@@ -9,7 +9,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -29,6 +32,14 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class NearbyCpoService {
+
+    /** Mehr Kacheln passen nicht auf einen Handy-Screen, und mehr Auswahl hilft dort nicht. */
+    static final int MAX_STATIONS = 5;
+
+    /** Vier Nachkommastellen (~11 m): Saeulen desselben Betreibers dichter beieinander sind ein Standort. */
+    private static final double SITE_GRID = 1e4;
+
+    private static final double EARTH_RADIUS_M = 6_371_000;
 
     private final ChargingStationRegistryClient registry;
     private final CpoRegistryMatcher matcher;
@@ -71,5 +82,62 @@ public class NearbyCpoService {
             log.debug("Ungueltiger Geohash fuer CPO-Vorschlaege: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Die Ladestandorte im Umkreis der Geohash-Zelle, der naechste zuerst, hoechstens
+     * {@link #MAX_STATIONS}. Anders als {@link #findNearbyCpos} bleiben unbekannte Betreiber
+     * mit Rohnamen erhalten - im Formular soll die Saeule auftauchen, an der der Nutzer steht.
+     * Einrichtungen ohne Position im Register lassen sich nicht einordnen und fallen weg.
+     *
+     * @return die Vorschlaege, oder ein leeres Optional wenn das Register nicht antwortet
+     */
+    @Cacheable(value = "nearbyStations", key = "#geohash", unless = "#result == null")
+    public Optional<List<NearbyStation>> findNearbyStations(String geohash) {
+        WGS84Point center = centerOf(geohash);
+        if (center == null) {
+            return Optional.empty();
+        }
+        return registry.findStationsNearby(center.getLatitude(), center.getLongitude(), radiusMeters)
+                .map(stations -> groupBySite(stations, center));
+    }
+
+    private List<NearbyStation> groupBySite(List<Station> stations, WGS84Point center) {
+        Map<String, NearbyStation> sites = new LinkedHashMap<>();
+        for (Station s : stations) {
+            if (!s.hasPosition()) continue;
+            Optional<String> canonical = matcher.match(s);
+            String name = canonical.orElseGet(() -> s.brand() != null ? s.brand() : s.operator());
+            String key = name.toLowerCase() + "@" + Math.round(s.latitude() * SITE_GRID)
+                    + "," + Math.round(s.longitude() * SITE_GRID);
+            sites.merge(key, toNearby(s, name, canonical.isPresent(), center), NearbyCpoService::mergeSite);
+        }
+        return sites.values().stream()
+                .sorted(Comparator.comparingInt(NearbyStation::distanceMeters))
+                .limit(MAX_STATIONS)
+                .toList();
+    }
+
+    private static NearbyStation toNearby(Station s, String name, boolean known, WGS84Point center) {
+        int distance = (int) Math.round(distanceMeters(center, s.latitude(), s.longitude()));
+        return new NearbyStation(name, known, distance, s.powerKw(), s.fastCharging(),
+                s.chargePoints() == null ? 0 : s.chargePoints());
+    }
+
+    private static NearbyStation mergeSite(NearbyStation a, NearbyStation b) {
+        Double power = a.maxPowerKw() == null ? b.maxPowerKw()
+                : b.maxPowerKw() == null ? a.maxPowerKw() : Math.max(a.maxPowerKw(), b.maxPowerKw());
+        return new NearbyStation(a.name(), a.known(), Math.min(a.distanceMeters(), b.distanceMeters()),
+                power, a.fastCharging() || b.fastCharging(), a.chargePoints() + b.chargePoints());
+    }
+
+    /** Haversine - im Umkreis weniger hundert Meter mehr als genau genug. */
+    private static double distanceMeters(WGS84Point from, double lat, double lon) {
+        double dLat = Math.toRadians(lat - from.getLatitude());
+        double dLon = Math.toRadians(lon - from.getLongitude());
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(from.getLatitude())) * Math.cos(Math.toRadians(lat))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        return 2 * EARTH_RADIUS_M * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 }

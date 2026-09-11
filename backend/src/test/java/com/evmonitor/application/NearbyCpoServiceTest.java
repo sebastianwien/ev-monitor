@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
@@ -84,5 +85,91 @@ class NearbyCpoServiceTest {
         assertThat(service.findNearbyCpos(null)).isEmpty();
         assertThat(service.findNearbyCpos("")).isEmpty();
         verifyNoInteractions(registry);
+    }
+
+    // --- Standortvorschlaege fuer das Log-Formular ---
+
+    private static Station at(String operator, String brand, double lat, double lon, double kw, boolean fast, int points) {
+        return new Station(operator, brand, lat, lon, kw, fast, points);
+    }
+
+    @Test
+    void sortiertStandorteNachEntfernungZumZellmittelpunkt() {
+        // Zelle u33dc0c: Mittelpunkt 52.51945, 13.40538
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
+                at("Allego GmbH", "Allego", 52.5212, 13.4054, 150, true, 4),
+                at("IONITY GmbH", "IONITY", 52.5196, 13.4055, 350, true, 6))));
+
+        var stations = service.findNearbyStations("u33dc0c").orElseThrow();
+
+        assertThat(stations).extracting(NearbyStation::name).containsExactly("IONITY", "Allego");
+        assertThat(stations.getFirst().distanceMeters()).isLessThan(30);
+        assertThat(stations.get(1).distanceMeters()).isBetween(150, 250);
+    }
+
+    /** Das Register meldet jede Saeule einzeln - fuer den Nutzer ist das ein Standort. */
+    @Test
+    void fasstSaeulenDesselbenBetreibersAmSelbenOrtZusammen() {
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
+                at("IONITY GmbH", "IONITY", 52.5204, 13.4046, 350, true, 2),
+                at("IONITY GmbH", "IONITY", 52.5204, 13.4046, 350, true, 2),
+                at("IONITY GmbH", "IONITY", 52.52041, 13.40461, 400, true, 2))));
+
+        var stations = service.findNearbyStations("u33dc0c").orElseThrow();
+
+        assertThat(stations).hasSize(1);
+        assertThat(stations.getFirst().chargePoints()).isEqualTo(6);
+        assertThat(stations.getFirst().maxPowerKw()).isEqualTo(400.0);
+        assertThat(stations.getFirst().fastCharging()).isTrue();
+    }
+
+    /**
+     * Anders als bei der Namensliste faellt ein unbekannter Betreiber hier nicht weg:
+     * das waere genau die Saeule, an der der Nutzer gerade steht.
+     */
+    @Test
+    void unbekannteBetreiberBleibenMitRohnamenErhalten() {
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
+                at("Stadtwerke Musterstadt GmbH", null, 52.5204, 13.4046, 22, false, 2),
+                at("EnBW mobility+ AG und Co.KG", null, 52.5205, 13.4046, 300, true, 4))));
+
+        var stations = service.findNearbyStations("u33dc0c").orElseThrow();
+
+        assertThat(stations).extracting(NearbyStation::name, NearbyStation::known)
+                .containsExactly(tuple("Stadtwerke Musterstadt GmbH", false), tuple("EnBW", true));
+    }
+
+    @Test
+    void bevorzugtDenAnzeigenamenVorDemBetreiberBeiUnbekannten() {
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
+                at("BP Europa SE", "Aral pulse", 52.5204, 13.4046, 300, true, 4))));
+
+        assertThat(service.findNearbyStations("u33dc0c").orElseThrow().getFirst().name()).isEqualTo("Aral pulse");
+    }
+
+    @Test
+    void eintraegeOhnePositionKoennenNichtVorgeschlagenWerden() {
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
+                new Station("Allego GmbH", "Allego"))));
+
+        assertThat(service.findNearbyStations("u33dc0c")).contains(List.of());
+    }
+
+    @Test
+    void begrenztDieVorschlaegeAufDieNaechstenFuenf() {
+        var many = new java.util.ArrayList<Station>();
+        for (int i = 0; i < 8; i++) {
+            many.add(at("Betreiber " + i, null, 52.5204 + i * 0.0002, 13.4046, 22, false, 2));
+        }
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(many));
+
+        assertThat(service.findNearbyStations("u33dc0c").orElseThrow()).hasSize(5);
+    }
+
+    @Test
+    void ausfallDesRegistersIstBeiStandortenEinLeeresOptional() {
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.empty());
+
+        assertThat(service.findNearbyStations("u33dc0c")).isEmpty();
     }
 }
