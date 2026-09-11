@@ -17,7 +17,7 @@ import { tempBadgeClass } from '../../utils/temperatureColor'
 import { consumptionTextClass } from '../../utils/consumptionColor'
 import { costBadgeClass } from '../../utils/costColor'
 import { isShortTrip } from '../../utils/shortTrip'
-import { datetimeLocalToUtcIso } from '../../utils/datetime'
+import { buildLogPayload } from '../log-wizard/wizardLogic'
 import ConsumptionInfoBox from '../dashboard/ConsumptionInfoBox.vue'
 import EditLogModal from '../dashboard/EditLogModal.vue'
 
@@ -218,31 +218,7 @@ const submitLog = async () => {
   try {
     error.value = null
     fieldErrors.value = new Set()
-    const payload: any = {
-      carId: selectedCarId.value,
-      costEur: Math.round((f.costEur ?? 0) * 100) / 100,
-      odometerKm: f.odometerKm,
-      socAfterChargePercent: f.socAfterChargePercent,
-    }
-    if (f.kwhCharged != null && f.kwhCharged > 0) payload.kwhCharged = Math.round(f.kwhCharged * 100) / 100
-    if (f.kwhAtVehicle !== null && f.kwhAtVehicle > 0) payload.kwhAtVehicle = Math.round(f.kwhAtVehicle * 100) / 100
-    if (f.socBeforeChargePercent !== null) payload.socBeforeChargePercent = f.socBeforeChargePercent
-    if (f.chargeDurationMinutes) payload.chargeDurationMinutes = f.chargeDurationMinutes
-    if (f.latitude !== null && f.longitude !== null) {
-      payload.latitude = f.latitude
-      payload.longitude = f.longitude
-    }
-    if (f.maxChargingPowerKw !== null) payload.maxChargingPowerKw = Math.round(f.maxChargingPowerKw * 100) / 100
-    if (f.loggedAt) payload.loggedAt = datetimeLocalToUtcIso(f.loggedAt)
-    if (ocrUsed.value) payload.ocrUsed = true
-    payload.chargingType = f.chargingType
-    payload.routeType = f.routeType
-    payload.tireType = f.tireType
-    payload.isPublicCharging = f.isPublicCharging
-    if (f.isPublicCharging && f.cpoName) payload.cpoName = f.cpoName
-    if (f.chargingProviderId) payload.chargingProviderId = f.chargingProviderId
-    if (f.costExchangeRate != null) payload.costExchangeRate = f.costExchangeRate
-    if (f.costCurrency != null) payload.costCurrency = f.costCurrency
+    const payload = buildLogPayload(f, selectedCarId.value, ocrUsed.value)
 
     const isFirstLog = logs.value.length === 0
     const res = await api.post('/logs', payload)

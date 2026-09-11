@@ -1,8 +1,36 @@
-import { test, expect, request as playwrightRequest } from '@playwright/test';
+import { test, expect, request as playwrightRequest, type Page } from '@playwright/test';
 import { TEST_USER } from './global-setup';
 import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 
 const API_URL = process.env.API_URL || 'http://localhost:8080';
+
+/** Steigt je Sekunde: gleiche km-Staende wuerden im Feed zu einem Ladezyklus gebuendelt. */
+const nextOdometer = () => 100_000 + Math.floor(Date.now() / 1000) - 1_789_000_000;
+
+/**
+ * Fuehrt den Erfassen-Wizard bis zur Zusammenfassung durch: Ort "Zuhause", Energie,
+ * Tacho + SoC (Pflicht), Kosten. Der Tacho steigt mit der Zeit, damit Wiederholungen
+ * nie unter den letzten Wert fallen.
+ */
+async function fillWizardToReview(page: Page, opts: { kwh: string; cost: string; vehicleKwh?: string }) {
+  await page.goto('/erfassen');
+  await page.waitForLoadState('networkidle');
+  await page.locator('[data-testid="place-home"]').click();
+
+  await page.locator('input[placeholder="z.B. 42.5"]').fill(opts.kwh);
+  if (opts.vehicleKwh !== undefined) {
+    await page.locator('[data-testid="kwh-mode-vehicle"]').click();
+    await page.locator('input[placeholder="z.B. 42.5"]').fill(opts.vehicleKwh);
+  }
+  await page.locator('[data-testid="wizard-next"]').click();
+
+  await page.locator('#wizard-odometer').fill(String(nextOdometer()));
+  await page.locator('#wizard-soc').fill('80');
+  await page.locator('[data-testid="wizard-next"]').click();
+
+  await page.locator('input[placeholder="z.B. 12.50"]').fill(opts.cost);
+  await page.locator('[data-testid="wizard-next"]').click();
+}
 
 test.describe.configure({ mode: 'serial' });
 
@@ -68,12 +96,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
-    await page.goto('/erfassen');
-    await page.waitForLoadState('networkidle');
-
-    await page.locator('input[placeholder="z.B. 42.5"]').fill('35.5');
-    await page.locator('input[placeholder="z.B. 12.50"]').fill('8.90');
-    await page.locator('button[type="submit"]').click();
+    await fillWizardToReview(page, { kwh: '35.5', cost: '8.90' });
+    await page.locator('[data-testid="wizard-next"]').click();
 
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
     expect(errors).toEqual([]);
@@ -85,20 +109,26 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="place-home"]').click();
 
-    // Auf "Auto"-Modus (kwhAtVehicle) umschalten
+    // Auf "Fahrzeug"-Modus (kwhAtVehicle) umschalten und dort eintragen
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
-
-    // kWh im Auto-Modus eintragen (schreibt in kwhAtVehicle)
     await page.locator('input[placeholder="z.B. 42.5"]').fill('37.5');
+    await page.locator('[data-testid="wizard-next"]').click();
+
+    await page.locator('#wizard-odometer').fill(String(nextOdometer()));
+    await page.locator('#wizard-soc').fill('80');
+    await page.locator('[data-testid="wizard-next"]').click();
+
     await page.locator('input[placeholder="z.B. 12.50"]').fill('10.00');
+    await page.locator('[data-testid="wizard-next"]').click();
 
     // Eindeutiger Zeitstempel um Duplikat-Kollision mit Test 1 zu vermeiden
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     await page.locator('input[type="datetime-local"]').fill(yesterday.toISOString().slice(0, 16));
 
-    await page.locator('button[type="submit"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
 
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
     expect(errors).toEqual([]);
@@ -191,6 +221,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="place-home"]').click();
 
     await page.locator('input[placeholder="z.B. 42.5"]').fill('50.0');
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
@@ -215,25 +246,15 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000' }),
+          body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000', coinsAwarded: 0 }),
         });
       } else {
         await route.continue();
       }
     });
 
-    await page.goto('/erfassen');
-    await page.waitForLoadState('networkidle');
-
-    // Brutto eingeben
-    await page.locator('input[placeholder="z.B. 42.5"]').fill('50.0');
-
-    // Auf Netto wechseln und Netto eingeben
-    await page.locator('[data-testid="kwh-mode-vehicle"]').click();
-    await page.locator('input[placeholder="z.B. 42.5"]').fill('47.0');
-
-    await page.locator('input[placeholder="z.B. 12.50"]').fill('12.00');
-    await page.locator('button[type="submit"]').click();
+    await fillWizardToReview(page, { kwh: '50.0', cost: '12.00', vehicleKwh: '47.0' });
+    await page.locator('[data-testid="wizard-next"]').click();
 
     // Erfolgreiche Navigation zum Dashboard
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
@@ -252,6 +273,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="place-home"]').click();
 
     // Brutto eingeben
     await page.locator('input[placeholder="z.B. 42.5"]').fill('50.0');
@@ -321,27 +343,41 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await login(page);
   });
 
-  test('Oeffentliche Ladung ohne Karte: Prompt legt die Karte inline an und waehlt sie aus', async ({ page }) => {
+  test('Andere Ladestation: gewaehlter Anbieter landet als oeffentliche Ladung im Payload', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
+    let capturedPayload: Record<string, unknown> | null = null;
+    await page.route('**/api/logs', async route => {
+      if (route.request().method() === 'POST') {
+        capturedPayload = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000', coinsAwarded: 0 }) });
+      } else {
+        await route.continue();
+      }
+    });
+
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="place-other"]').click();
+    await page.locator('input[type="search"]').fill('EnBW');
+    await page.locator('button:has-text("EnBW")').first().click();
+    await page.locator('[data-testid="wizard-next"]').click();
 
-    // Heimladung: kein Prompt - eine Ladekarte zahlt keine Ladung an der eigenen Wallbox
-    await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible();
+    await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('#wizard-odometer').fill(String(nextOdometer()));
+    await page.locator('#wizard-soc').fill('80');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('input[placeholder="z.B. 12.50"]').fill('15');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
 
-    await page.locator('[data-testid="public-charging-toggle"]').click();
-    await expect(page.locator('[data-testid="charging-card-prompt"]')).toBeVisible();
-
-    await page.locator('[data-testid="charging-card-prompt-open"]').click();
-    await page.locator('#inline-card-provider').selectOption('EnBW mobility+');
-    await page.locator('input[type="number"][step="0.1"]').first().fill('39');
-    await page.locator('[data-testid="charging-card-save"]').click();
-
-    // Karte ist angelegt: Prompt weg, Tarif-Chip da und ausgewaehlt
-    await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('button:has-text("EnBW mobility+")')).toBeVisible();
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+    expect(capturedPayload).not.toBeNull();
+    expect(capturedPayload!['isPublicCharging']).toBe(true);
+    expect(String(capturedPayload!['cpoName'])).toContain('EnBW');
     expect(errors).toEqual([]);
   });
 });
