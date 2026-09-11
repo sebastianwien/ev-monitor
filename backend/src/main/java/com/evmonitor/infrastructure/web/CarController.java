@@ -111,7 +111,7 @@ public class CarController {
         com.evmonitor.domain.Car car = carService.getCarById(id);
 
         // Private images are only visible to the owner
-        if (!car.isImagePublic() && !car.getUserId().equals(requestingUserId)) {
+        if (!car.isImagePublic() && !car.isOwnedBy(requestingUserId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 

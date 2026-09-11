@@ -22,7 +22,7 @@ public class CarEntity {
     @Id
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private UUID userId;
 
     @Enumerated(EnumType.STRING)
@@ -80,4 +80,7 @@ public class CarEntity {
 
     @Column(name = "vehicle_specification_id")
     private UUID vehicleSpecificationId;
+
+    @Column(name = "anonymized_at")
+    private LocalDateTime anonymizedAt;
 }

@@ -49,7 +49,7 @@ public class EvLogStatisticsService {
     public List<EvLogResponse> getImplausibleLogs(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
@@ -80,7 +80,7 @@ public class EvLogStatisticsService {
     public List<EvLogResponse> getPricelessLogs(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
@@ -94,7 +94,7 @@ public class EvLogStatisticsService {
     public List<GeohashResponse> getGeohashData(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
         return evLogRepository.findGeohashDataByCarId(carId).stream()
@@ -119,7 +119,7 @@ public class EvLogStatisticsService {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
 
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw ForbiddenException.notOwner("Car", carId);
         }
 
@@ -330,7 +330,7 @@ public class EvLogStatisticsService {
         if (currentCar.getVehicleSpecificationId() != null) {
             List<Car> allCarsWithSpec = carRepository.findAllByVehicleSpecificationId(currentCar.getVehicleSpecificationId());
             peerCars = allCarsWithSpec.stream()
-                    .filter(c -> !c.getUserId().equals(currentCar.getUserId()))
+                    .filter(c -> !c.isOwnedBy(currentCar.getUserId()))
                     .toList();
         }
 
@@ -339,18 +339,20 @@ public class EvLogStatisticsService {
             matchType = EvLogStatisticsResponse.PeerBenchmark.MatchType.MODEL;
             List<Car> allCarsWithModel = carRepository.findAllByModel(currentCar.getModel());
             peerCars = allCarsWithModel.stream()
-                    .filter(c -> !c.getUserId().equals(currentCar.getUserId()))
+                    .filter(c -> !c.isOwnedBy(currentCar.getUserId()))
                     .toList();
         }
 
         if (peerCars.isEmpty()) return null;
 
-        List<UUID> peerUserIds = peerCars.stream().map(Car::getUserId).distinct().toList();
+        // Anonymisierte Autos (DSGVO-Kontolöschung) haben keinen User mehr - sie sind echte Nicht-Seed-Peers.
+        List<UUID> peerUserIds = peerCars.stream().map(Car::getUserId).filter(Objects::nonNull).distinct().toList();
         List<User> peerUsers = userRepository.findAllByIds(peerUserIds);
         Map<UUID, User> peerUserById = peerUsers.stream().collect(Collectors.toMap(User::getId, u -> u));
 
         List<Car> nonSeedPeerCars = peerCars.stream()
                 .filter(c -> {
+                    if (c.isAnonymized()) return true;
                     User u = peerUserById.get(c.getUserId());
                     return u != null && !u.isSeedData();
                 })
@@ -413,7 +415,9 @@ public class EvLogStatisticsService {
             peerAvgCostPerKwh = totalPeerCost.divide(totalPeerKwh, 4, RoundingMode.HALF_UP);
         }
 
-        long uniquePeerUsers = nonSeedPeerCars.stream().map(Car::getUserId).distinct().count();
+        // Jedes anonymisierte Auto zählt als eigener (ehemaliger) Nutzer.
+        long uniquePeerUsers = nonSeedPeerCars.stream().map(Car::getUserId).filter(Objects::nonNull).distinct().count()
+                + nonSeedPeerCars.stream().filter(Car::isAnonymized).count();
 
         return new EvLogStatisticsResponse.PeerBenchmark(
                 userLifetimeConsumption,
@@ -780,7 +784,7 @@ public class EvLogStatisticsService {
         for (VehicleSpecification spec : allSpecsOfModel) {
             // Alle cars mit dieser spec (außer des Users)
             List<Car> peerCars = carRepository.findAllByVehicleSpecificationId(spec.getId()).stream()
-                    .filter(c -> !c.getUserId().equals(user.getId()))
+                    .filter(c -> !c.isOwnedBy(user.getId()))
                     .toList();
 
             // Peer-Metriken

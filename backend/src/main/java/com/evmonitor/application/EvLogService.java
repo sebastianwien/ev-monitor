@@ -53,7 +53,7 @@ public class EvLogService {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
@@ -133,7 +133,7 @@ public class EvLogService {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
-        if (!car.getUserId().equals(request.userId())) {
+        if (!car.isOwnedBy(request.userId())) {
             throw new IllegalArgumentException("Car does not belong to user");
         }
 
@@ -236,7 +236,7 @@ public class EvLogService {
     public void verifyCarOwnership(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
     }
@@ -289,7 +289,7 @@ public class EvLogService {
     public void updateGeohash(UUID carId, UUID userId, LocalDateTime loggedAt, String geohash) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("Car does not belong to user");
         }
         evLogRepository.updateGeohash(carId, loggedAt, geohash).ifPresent(evLog -> {
@@ -307,7 +307,7 @@ public class EvLogService {
     public boolean backfillTemperature(UUID carId, UUID userId, LocalDateTime loggedAt, Double temperatureCelsius) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("Car does not belong to user");
         }
         return evLogRepository.updateTemperatureIfAbsent(carId, loggedAt, temperatureCelsius);
@@ -457,7 +457,7 @@ public class EvLogService {
         Car car = carRepository.findById(log.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
 
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
         }
 
@@ -582,7 +582,7 @@ public class EvLogService {
         Car car = carRepository.findById(existing.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
 
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
         }
 
@@ -663,7 +663,7 @@ public class EvLogService {
         Car car = carRepository.findById(log.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
 
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
         }
 
@@ -696,7 +696,7 @@ public class EvLogService {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
@@ -758,7 +758,7 @@ public class EvLogService {
                 .orElseThrow(() -> new IllegalArgumentException("Log not found"));
         Car car = carRepository.findById(log.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
         }
         EvLog updated = log.withIncludeInStatistics(includeInStatistics);
@@ -777,13 +777,13 @@ public class EvLogService {
 
         Car sourceCar = carRepository.findById(log.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Source car not found"));
-        if (!sourceCar.getUserId().equals(userId)) {
+        if (!sourceCar.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own this log");
         }
 
         Car targetCar = carRepository.findById(targetCarId)
                 .orElseThrow(() -> new IllegalArgumentException("Target car not found"));
-        if (!targetCar.getUserId().equals(userId)) {
+        if (!targetCar.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the target car");
         }
 
@@ -807,12 +807,12 @@ public class EvLogService {
 
         Car targetCar = carRepository.findById(target.getCarId())
                 .orElseThrow(() -> NotFoundException.forEntity("Target car", target.getCarId()));
-        if (!targetCar.getUserId().equals(userId)) {
+        if (!targetCar.isOwnedBy(userId)) {
             throw ForbiddenException.notOwner("log", targetLogId);
         }
         Car sourceCar = carRepository.findById(source.getCarId())
                 .orElseThrow(() -> NotFoundException.forEntity("Source car", source.getCarId()));
-        if (!sourceCar.getUserId().equals(userId)) {
+        if (!sourceCar.isOwnedBy(userId)) {
             throw ForbiddenException.notOwner("log", sourceLogId);
         }
         if (!target.getCarId().equals(source.getCarId())) {

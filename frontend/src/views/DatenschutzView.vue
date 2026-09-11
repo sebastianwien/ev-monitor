@@ -325,9 +325,14 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">20. Speicherdauer</h2>
           <p>
             Account- und Nutzungsdaten speichern wir, solange Ihr Account besteht. Bei Account-Löschung werden
-            alle personenbezogenen Daten unwiderruflich gelöscht; bereits anonymisierte, nicht mehr auf Sie
-            beziehbare Statistikwerte bleiben bestehen. Daten, für die gesetzliche Aufbewahrungsfristen gelten
-            (z. B. Rechnungsdaten bei Käufen), werden bis zum Ablauf dieser Fristen aufbewahrt und dann gelöscht.
+            alle personenbezogenen Daten unwiderruflich gelöscht: Zugangsdaten, Kennzeichen, Fahrzeugbilder,
+            Standorte (Geohashes), Routen, Freitexte, Tarife, Watt sowie sämtliche Verbindungs- und Rohdaten der
+            angebundenen Fahrzeug-Schnittstellen. Verbrauchswerte Ihrer Fahrzeuge (Modell, Baujahr, geladene kWh,
+            Kilometerstand, Preis pro kWh, Temperatur, Fahrtdistanz) bleiben anonymisiert erhalten: ohne Zuordnung
+            zu einer Person, ohne Ort und mit auf den Tag gerundeten Zeitpunkten. Diese Werte sind nicht mehr auf
+            Sie beziehbar und fließen in die Community-Statistik ein. Daten, für die gesetzliche
+            Aufbewahrungsfristen gelten (z. B. Rechnungsdaten bei Käufen), werden bis zum Ablauf dieser Fristen
+            aufbewahrt und dann gelöscht.
           </p>
         </section>
 

@@ -201,4 +201,25 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         // MatchType must be present - no sufficientData field anymore
         assertNotNull(benchmark.matchType());
     }
+
+    /** DSGVO: anonymisierte Autos (userId NULL) sind vollwertige Peers und dürfen keine NPE auslösen. */
+    @Test
+    void peerBenchmark_anonymizedCar_countsAsPeer() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "peer-test-anonymized");
+
+        User owner = createAndSaveUser("owner-anon@example.com");
+        Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLog(ownerCar.getId(), 22.0, 200);
+
+        User gone = createAndSaveUser("gone-anon@example.com");
+        Car anonCar = createCar(gone.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLog(anonCar.getId(), 18.0, 200);
+        carRepository.save(anonCar.anonymize());
+
+        EvLogStatisticsResponse result = evLogStatisticsService.getStatistics(ownerCar.getId(), owner.getId(), null, null, null);
+
+        assertNotNull(result.peerBenchmark());
+        assertEquals(EvLogStatisticsResponse.PeerBenchmark.MatchType.SPEC, result.peerBenchmark().matchType());
+        assertEquals(1, result.peerBenchmark().uniquePeerUsers());
+    }
 }

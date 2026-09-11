@@ -50,6 +50,28 @@ public class EvTrip {
      * fuer Speed-Quality-Checks, von Tessie (Trip-Aggregat) und XPeng
      * (per-row Sample) gleichermassen genutzt.
      */
+    /**
+     * DSGVO-Kontolöschung: Besitzer, Orte, Routen, Rohdaten und Freitext kappen; Start auf den Tag runden,
+     * Dauer erhalten. {@code sequenceInDay} hält die Reihenfolge der Trips eines Tages stabil.
+     */
+    public void anonymize(int sequenceInDay) {
+        userId = null;
+        locationStartGeohash = null;
+        locationEndGeohash = null;
+        routePolyline = null;
+        tracePolyline = null;
+        rawPayload = null;
+        telemetryExtras = null;
+        feedback = null;
+        externalId = null;
+        if (tripStartedAt != null) {
+            OffsetDateTime day = tripStartedAt.toLocalDate().atStartOfDay().atOffset(tripStartedAt.getOffset());
+            java.time.Duration duration = tripEndedAt == null ? null : java.time.Duration.between(tripStartedAt, tripEndedAt);
+            tripStartedAt = day.plusMinutes(sequenceInDay);
+            tripEndedAt = duration == null ? null : tripStartedAt.plus(duration);
+        }
+    }
+
     public static BigDecimal clampSpeedKmh(BigDecimal v) {
         if (v == null) return null;
         if (v.signum() < 0) return null;
@@ -61,7 +83,8 @@ public class EvTrip {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
+    /** NULL nach DSGVO-Anonymisierung (Besitzer hat sein Konto gelöscht). */
+    @Column(name = "user_id")
     private UUID userId;
 
     @Column(name = "car_id", nullable = false)

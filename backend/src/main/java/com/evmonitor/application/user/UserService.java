@@ -16,7 +16,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import java.util.List;
-import com.evmonitor.domain.Car;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -57,6 +56,7 @@ public class UserService {
     private final CarRepository carRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final AccountAnonymizationService anonymizationService;
 
     @Transactional(readOnly = true)
     public UserStatsResponse getUserStats(UUID userId) {
@@ -167,11 +167,10 @@ public class UserService {
             throw new ValidationException("WRONG_PASSWORD", "Passwort ist falsch");
         }
 
-        // Car-IDs vor dem Löschen lesen: die Connector-Telemetrie ist nur über car_id verknüpft,
-        // und der CASCADE nimmt die Autos gleich mit.
-        List<UUID> carIds = carRepository.findAllByUserId(userId).stream().map(Car::getId).toList();
+        // DSGVO Plan A: Autos, Logs und Trips anonymisiert behalten (user_id NULL), erst danach den User
+        // löschen - der CASCADE trifft dann nur noch die restlichen personenbezogenen Tabellen.
+        List<UUID> carIds = anonymizationService.anonymizeCarsOf(userId);
 
-        // Delete user (CASCADE will delete all related data: Cars, EvLogs, CoinLogs, Tokens)
         userRepository.delete(user);
         purgeConnectors(userId, carIds);
     }

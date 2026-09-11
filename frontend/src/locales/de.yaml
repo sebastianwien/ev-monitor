@@ -1521,7 +1521,7 @@ settings:
   support_title: "EV Monitor unterstützen"
   support_desc: "EV Monitor ist kostenlos und werbefrei. Wenn dir die App hilft, freue ich mich über einen Kaffee ☕"
   delete_modal_title: "Account löschen?"
-  delete_modal_desc: "Diese Aktion kann <strong>nicht rückgängig</strong> gemacht werden. Alle deine Daten (Ladevorgänge, Fahrzeuge, Watt) werden permanent gelöscht."
+  delete_modal_desc: "Diese Aktion kann <strong>nicht rückgängig</strong> gemacht werden. Dein Konto und alle personenbezogenen Daten (Zugangsdaten, Kennzeichen, Standorte, Fahrzeugbilder, Watt, Verbindungen) werden permanent gelöscht. Anonymisierte Verbrauchswerte deines Fahrzeugs bleiben ohne Orts-, Zeit- und Personenbezug Teil der Community-Statistik."
   delete_password_placeholder: "Passwort zur Bestätigung"
   delete_confirm_btn: "Endgültig löschen"
   tariff_title: "Meine Ladekarten"

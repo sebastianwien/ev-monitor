@@ -82,6 +82,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         entity.setBusinessCar(domain.isBusinessCar());
         entity.setHeatPump(domain.isHeatPump());
         entity.setVehicleSpecificationId(domain.getVehicleSpecificationId());
+        entity.setAnonymizedAt(domain.getAnonymizedAt());
         return entity;
     }
 
@@ -138,6 +139,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
                 .businessCar(entity.isBusinessCar())
                 .heatPump(entity.isHeatPump())
                 .vehicleSpecificationId(entity.getVehicleSpecificationId())
+                .anonymizedAt(entity.getAnonymizedAt())
                 .specNetBatteryCapacityKwh(specNetKwh)
                 .build();
     }

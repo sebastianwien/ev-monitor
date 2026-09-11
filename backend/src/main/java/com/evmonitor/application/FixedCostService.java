@@ -23,7 +23,7 @@ public class FixedCostService {
     public FixedCostResponse create(UUID carId, UUID userId, FixedCostRequest request) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw ForbiddenException.notOwner("Car", carId);
         }
         FixedCost fc = FixedCost.createNew(carId, userId, request.description(), request.amount(),
@@ -65,7 +65,7 @@ public class FixedCostService {
     public List<FixedCostResponse> list(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw ForbiddenException.notOwner("Car", carId);
         }
         return fixedCostRepository.findAllByCarId(carId).stream()
