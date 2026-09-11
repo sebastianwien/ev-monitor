@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CameraIcon } from '@heroicons/vue/24/outline'
-import type { LogFormData } from '../log-form/LogFormFields.vue'
+import type { LogFormData } from '../log-form/logFormData'
 import BigInput from './BigInput.vue'
 import SegmentToggle from './SegmentToggle.vue'
 const OcrPhotoCapture = defineAsyncComponent(() => import('../log-form/OcrPhotoCapture.vue'))

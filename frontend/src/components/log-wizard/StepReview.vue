@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { BoltIcon } from '@heroicons/vue/24/outline'
-import type { LogFormData } from '../log-form/LogFormFields.vue'
+import type { LogFormData } from '../log-form/logFormData'
 import type { WizardStep } from './wizardLogic'
 import LogSummary, { type SummarySection } from './LogSummary.vue'
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { LogFormData } from '../log-form/LogFormFields.vue'
+import type { LogFormData } from '../log-form/logFormData'
 import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'

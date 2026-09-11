@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TruckIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
-import type { LogFormData } from '../log-form/LogFormFields.vue'
+import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import CarSelector from '../car/CarSelector.vue'
 import { useCarStore } from '../../stores/car'
@@ -96,6 +96,13 @@ const requestLocation = async () => {
     locationStatus.value = 'error'
     if (e?.denied) permission.value = 'denied'
   }
+}
+
+const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
+  form.value.latitude = p.latitude
+  form.value.longitude = p.longitude
+  locationStatus.value = 'success'
+  await nearby.load(p.latitude, p.longitude)
 }
 
 const choosePlace = (choice: PlaceChoice) => {
@@ -194,11 +201,11 @@ onMounted(async () => {
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"
-        @choose="choosePlace" @request-location="requestLocation" />
+        @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked" />
       <StepEnergy v-else-if="step === 2" v-model="form" @ocr="onOcr" />
       <StepVehicle v-else-if="step === 3" v-model="form" :last-odometer-km="lastOdometerKm"
         :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" />
-      <StepCost v-else-if="step === 4" v-model="form" :cost="cost" :providers="providers" />
+      <StepCost v-else-if="step === 4" v-model="form" v-model:providers="providers" :cost="cost" />
       <StepReview v-else v-model="form" :place-label="placeLabel" :error="error" @goto="goto" />
     </WizardShell>
 

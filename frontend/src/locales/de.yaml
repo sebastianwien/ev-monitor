@@ -3235,3 +3235,6 @@ logwizard:
   done: "Fertig"
   time_now: "Jetzt"
   open: "offen"
+  card_add: "Ladekarte anlegen"
+  card_price_missing: "Tarif für {card} nachtragen"
+  place_search: "Ort suchen"

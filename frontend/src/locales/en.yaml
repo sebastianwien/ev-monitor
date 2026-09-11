@@ -3234,3 +3234,6 @@ logwizard:
   done: "Done"
   time_now: "Now"
   open: "open"
+  card_add: "Add charging card"
+  card_price_missing: "Add price for {card}"
+  place_search: "Search place"

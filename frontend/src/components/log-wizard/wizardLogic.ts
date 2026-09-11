@@ -1,4 +1,4 @@
-import type { LogFormData } from '../log-form/LogFormFields.vue'
+import type { LogFormData } from '../log-form/logFormData'
 import type { NearbyStation } from '../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 

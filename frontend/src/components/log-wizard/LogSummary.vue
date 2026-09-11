@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { LogFormData } from '../log-form/LogFormFields.vue'
+import type { LogFormData } from '../log-form/logFormData'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { RequiredField } from './wizardLogic'
 import SegmentToggle from './SegmentToggle.vue'

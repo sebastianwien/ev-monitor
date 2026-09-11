@@ -358,6 +358,43 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await login(page);
   });
 
+  test('Oeffentliche Ladung ohne Karte: Ladekarte inline anlegen, Preis landet im Kostenschritt', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', err => errors.push(err.message));
+
+    await page.goto('/erfassen');
+    await page.waitForLoadState('networkidle');
+
+    // Zuhause: keine Karte anbieten - eine Ladekarte zahlt keine Ladung an der eigenen Wallbox
+    await page.locator('[data-testid="place-home"]').click();
+    await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('#wizard-odometer').fill(String(nextOdometer()));
+    await page.locator('#wizard-soc').fill('80');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await expect(page.locator('[data-testid="charging-card-prompt-open"]')).not.toBeVisible();
+
+    // Zurueck auf Schritt 1, oeffentliche Station waehlen
+    for (let i = 0; i < 3; i++) await page.locator('header button[aria-label="Zurück"]').click();
+    await page.locator('[data-testid="place-other"]').click();
+    await page.locator('input[type="search"]').fill('EnBW');
+    await page.locator('button:has-text("EnBW")').first().click();
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
+
+    await page.locator('[data-testid="charging-card-prompt-open"]').click();
+    await page.locator('#inline-card-provider').selectOption('EnBW mobility+');
+    await page.locator('input[type="number"][step="0.1"]').first().fill('39');
+    await page.locator('[data-testid="charging-card-save"]').click();
+
+    // Karte ist angelegt und gewaehlt: Chip da, Preis je kWh uebernommen
+    await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('button[aria-pressed="true"]:has-text("EnBW mobility+")')).toBeVisible();
+    await expect(page.locator('#wizard-cost')).toHaveValue('0.39');
+    expect(errors).toEqual([]);
+  });
+
   test('Andere Ladestation: gewaehlter Anbieter landet als oeffentliche Ladung im Payload', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));

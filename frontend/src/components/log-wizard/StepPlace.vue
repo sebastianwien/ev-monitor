@@ -5,6 +5,8 @@ import { HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon } 
 import type { NearbyStation } from '../../composables/useNearbyStations'
 import type { LocationPermission } from '../../composables/useLocationPermission'
 import type { PlaceChoice, PlaceKind } from './wizardLogic'
+import type { PickedPlace } from '../../composables/useLocationSearch'
+import PlaceSearch from './PlaceSearch.vue'
 
 const props = defineProps<{
   place: PlaceKind | null
@@ -16,7 +18,7 @@ const props = defineProps<{
   recentCpos: string[]
   allCpos: string[]
 }>()
-const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: [] }>()
+const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace] }>()
 const { t } = useI18n()
 
 const query = ref('')
@@ -56,6 +58,10 @@ const stationSub = (s: NearbyStation) => [
     <p v-else-if="permission === 'denied' || locationStatus === 'error'" class="text-xs text-gray-500 dark:text-gray-400">
       {{ t('logwizard.location_blocked') }}
     </p>
+
+    <!-- Ohne Live-Position: Ort suchen - laedt danach ebenfalls die Saeulen im Umkreis -->
+    <PlaceSearch v-if="locationStatus !== 'success'" :label="t('logwizard.place_search')" :placeholder="t('logfields.location_create_placeholder')"
+      @picked="p => emit('placePicked', p)" />
 
     <button type="button" data-testid="place-home" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>

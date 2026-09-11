@@ -3119,3 +3119,6 @@ logwizard:
   done: "Ferdig"
   time_now: "Nå"
   open: "åpen"
+  card_add: "Legg til ladekort"
+  card_price_missing: "Legg til pris for {card}"
+  place_search: "Søk sted"

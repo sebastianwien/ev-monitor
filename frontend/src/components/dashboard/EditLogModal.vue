@@ -53,7 +53,7 @@
         </StepPlace>
         <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
         <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
-        <StepCost v-else-if="section === 'cost'" v-model="formData" :cost="cost" :providers="providers" />
+        <StepCost v-else-if="section === 'cost'" v-model="formData" v-model:providers="providers" :cost="cost" />
         <div v-else-if="section === 'time'">
           <label for="wizard-time" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('logfields.timestamp') }}</label>
           <input id="wizard-time" v-model="formData.loggedAt" type="datetime-local"
@@ -61,21 +61,9 @@
         </div>
 
         <!-- Standort aendern: nur im Ort-Editor, ohne Live-Position (es gibt nur den Geohash) -->
-        <div v-if="section === 'place'" class="space-y-1 pt-2">
-          <label class="block text-xs text-gray-500 dark:text-gray-400">{{ t('logfields.update_location') }}</label>
-          <div class="relative">
-            <input v-model="locationSearchQuery" type="text" :placeholder="t('logfields.location_search_placeholder')"
-              class="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm px-3 py-2 text-sm"
-              @focus="showSuggestions = suggestions.length > 0" />
-            <ul v-if="showSuggestions && suggestions.length > 0"
-              class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] max-h-48 overflow-y-auto">
-              <li v-for="s in suggestions" :key="s.place_id" class="px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" @mousedown.prevent="selectLocation(s)">
-                {{ s.display_name }}
-              </li>
-            </ul>
-          </div>
-          <p v-if="newLocationName" class="text-xs text-green-600">{{ t('logfields.new_location') }} {{ newLocationName }}</p>
-          <p v-else-if="log.geohash" class="text-xs text-gray-400 dark:text-gray-500">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
+        <div v-if="section === 'place'" class="pt-2">
+          <PlaceSearch :label="t('logfields.update_location')" :placeholder="t('logfields.location_search_placeholder')" @picked="onPlacePicked" />
+          <p v-if="formData.latitude == null && log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
         </div>
 
         <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 dark:bg-red-900/30 rounded-sm p-3">{{ errorMsg }}</p>
@@ -103,12 +91,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { XMarkIcon, ChevronLeftIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
 import BottomSheet from '../shared/BottomSheet.vue'
 import api from '../../api/axios'
-import type { LogFormData } from '../log-form/LogFormFields.vue'
+import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
 import { useCountryStore } from '../../stores/country'
@@ -124,6 +112,7 @@ import StepPlace from '../log-wizard/StepPlace.vue'
 import StepEnergy from '../log-wizard/StepEnergy.vue'
 import StepVehicle from '../log-wizard/StepVehicle.vue'
 import StepCost from '../log-wizard/StepCost.vue'
+import PlaceSearch from '../log-wizard/PlaceSearch.vue'
 
 export interface EvLogResponse {
   id: string
@@ -245,29 +234,9 @@ const isFormValid = computed(() => {
   return hasEnergy && f.costEur != null
 })
 
-// Standortsuche (Nominatim) - ersetzt den Geohash durch eine neue Position
-const locationSearchQuery = ref('')
-const suggestions = ref<any[]>([])
-const showSuggestions = ref(false)
-const newLocationName = ref('')
-let searchTimer: ReturnType<typeof setTimeout> | null = null
-watch(locationSearchQuery, (q) => {
-  if (searchTimer) clearTimeout(searchTimer)
-  if (!q || q.length < 3) { suggestions.value = []; return }
-  searchTimer = setTimeout(async () => {
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`)
-      suggestions.value = await res.json()
-      showSuggestions.value = suggestions.value.length > 0
-    } catch { /* ignore */ }
-  }, 300)
-})
-function selectLocation(s: any) {
-  formData.value.latitude = parseFloat(s.lat)
-  formData.value.longitude = parseFloat(s.lon)
-  newLocationName.value = s.display_name
-  locationSearchQuery.value = s.display_name
-  showSuggestions.value = false
+const onPlacePicked = (p: { latitude: number; longitude: number }) => {
+  formData.value.latitude = p.latitude
+  formData.value.longitude = p.longitude
 }
 
 async function save() {
