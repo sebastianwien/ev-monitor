@@ -15,6 +15,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import java.util.List;
+import com.evmonitor.domain.Car;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -164,23 +167,29 @@ public class UserService {
             throw new ValidationException("WRONG_PASSWORD", "Passwort ist falsch");
         }
 
+        // Car-IDs vor dem Löschen lesen: die Connector-Telemetrie ist nur über car_id verknüpft,
+        // und der CASCADE nimmt die Autos gleich mit.
+        List<UUID> carIds = carRepository.findAllByUserId(userId).stream().map(Car::getId).toList();
+
         // Delete user (CASCADE will delete all related data: Cars, EvLogs, CoinLogs, Tokens)
         userRepository.delete(user);
-        disconnectConnectors(userId);
+        purgeConnectors(userId, carIds);
     }
 
-    private void disconnectConnectors(UUID userId) {
+    /** DSGVO: alle Connector-Daten (Verbindungen, Telemetrie, Webhook-Rohdaten, Pre-Trips) löschen. */
+    private void purgeConnectors(UUID userId, List<UUID> carIds) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Internal-Token", internalToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
             restTemplate.exchange(
-                    connectorsBaseUrl + "/api/internal/smartcar/disconnect/" + userId,
+                    connectorsBaseUrl + "/api/internal/users/" + userId,
                     HttpMethod.DELETE,
-                    new HttpEntity<>(headers),
+                    new HttpEntity<>(Map.of("carIds", carIds), headers),
                     Void.class);
-            log.info("[USER] Smartcar disconnected for deleted userId={}", userId);
+            log.info("[USER] Connector data purged for deleted userId={} cars={}", userId, carIds.size());
         } catch (Exception e) {
-            log.warn("[USER] Smartcar disconnect failed for deleted userId={}: {}", userId, e.getMessage());
+            log.warn("[USER] Connector purge failed for deleted userId={}: {}", userId, e.getMessage());
         }
     }
 

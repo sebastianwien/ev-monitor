@@ -22,6 +22,10 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.springframework.http.HttpEntity;
+import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -234,17 +238,27 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteAccount_shouldCallSmartcarDisconnectInConnectors() {
+    void deleteAccount_shouldPurgeUserInConnectorsWithCarIdsReadBeforeDelete() {
         RestTemplate mockRest = installMockRestTemplate();
+        UUID carId = UUID.randomUUID();
+        Car car = Car.builder().id(carId).userId(userId).model(CarBrand.CarModel.MODEL_3).build();
+        when(carRepository.findAllByUserId(userId)).thenReturn(List.of(car));
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
 
         userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword"));
 
-        verify(userRepository).delete(testUser);
+        InOrder inOrder = inOrder(carRepository, userRepository);
+        inOrder.verify(carRepository).findAllByUserId(userId);
+        inOrder.verify(userRepository).delete(testUser);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<HttpEntity<Map<String, Object>>> entity = ArgumentCaptor.forClass(HttpEntity.class);
         verify(mockRest).exchange(
-                contains("/api/internal/smartcar/disconnect/" + userId),
-                eq(HttpMethod.DELETE), any(), eq(Void.class));
+                contains("/api/internal/users/" + userId),
+                eq(HttpMethod.DELETE), entity.capture(), eq(Void.class));
+        assertEquals(List.of(carId), entity.getValue().getBody().get("carIds"));
+        assertEquals("test-token", entity.getValue().getHeaders().getFirst("X-Internal-Token"));
     }
 
     @Test
