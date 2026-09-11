@@ -1,6 +1,7 @@
-import { provide, inject, ref, computed, watch, onMounted, type InjectionKey, type Ref, type ComputedRef } from 'vue'
+import { provide, inject, ref, computed, watch, onMounted, onActivated, type InjectionKey, type Ref, type ComputedRef } from 'vue'
 import { useDashboardStats } from './useDashboardStats'
 import { useLogList } from './useLogList'
+import { useCarStore } from '../stores/car'
 
 /**
  * Geteilter Zustand fuer Dashboard und Log-Feed. Beide Views teilen sich auf
@@ -46,6 +47,17 @@ export function provideCarContext(): CarContext {
   })
 
   onMounted(() => dash.initCars())
+
+  // Das Layout lebt in KeepAlive: nach /cars (Auto angelegt/geloescht -> Store
+  // invalidiert) wird es nur reaktiviert, nicht neu gemountet. Sonst bliebe die
+  // Fahrzeugliste bis zum Reload veraltet. onActivated feuert auch direkt nach
+  // dem ersten Mount - dort hat onMounted schon geladen.
+  const carStore = useCarStore()
+  let firstActivation = true
+  onActivated(() => {
+    if (firstActivation) { firstActivation = false; return }
+    if (!carStore.carsLoaded) dash.initCars()
+  })
 
   const currentOdometerKm = computed<number | null>(() => {
     let max: number | null = null

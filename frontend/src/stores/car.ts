@@ -10,15 +10,15 @@ export const useCarStore = defineStore('cars', () => {
     let carsPromise: Promise<Car[]> | null = null
     let brandsPromise: Promise<BrandInfo[]> | null = null
     const modelsPromises = new Map<string, Promise<ModelInfo[]>>()
-    let carsLoaded = false
+    const carsLoaded = ref(false)
     let brandsLoaded = false
 
     async function getCars(forceRefresh = false): Promise<Car[]> {
-        if (!forceRefresh && carsLoaded) return cars.value
+        if (!forceRefresh && carsLoaded.value) return cars.value
         if (!carsPromise) {
             carsPromise = carService.getCars().then(data => {
                 cars.value = data
-                carsLoaded = true
+                carsLoaded.value = true
                 carsPromise = null
                 return data
             }).catch(err => {
@@ -62,7 +62,7 @@ export const useCarStore = defineStore('cars', () => {
     }
 
     function invalidateCars() {
-        carsLoaded = false
+        carsLoaded.value = false
         carsPromise = null
     }
 
@@ -70,12 +70,12 @@ export const useCarStore = defineStore('cars', () => {
         cars.value = []
         brands.value = []
         modelsByBrand.value = new Map()
-        carsLoaded = false
+        carsLoaded.value = false
         brandsLoaded = false
         carsPromise = null
         brandsPromise = null
         modelsPromises.clear()
     }
 
-    return { cars, brands, getCars, getBrands, getModelsForBrand, invalidateCars, reset }
+    return { cars, brands, carsLoaded, getCars, getBrands, getModelsForBrand, invalidateCars, reset }
 })
