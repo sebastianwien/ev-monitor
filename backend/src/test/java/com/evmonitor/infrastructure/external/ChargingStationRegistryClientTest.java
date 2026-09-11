@@ -97,6 +97,17 @@ class ChargingStationRegistryClientTest {
         assertThat(station.chargePoints()).isNull();
     }
 
+    /** Privatpersonen tragen sich mit geschuetzten Leerzeichen und Doppelspaces ein. */
+    @Test
+    void normalisiertWhitespaceInNamen() {
+        respondWith(Map.of("Betreiber", "Norman Roger Martin\u00a0 Hesse", "Anzeigename__Karte_", "Frank  Höhn "));
+
+        var station = client.findStationsNearby(49.45, 11.05, 250).orElseThrow().getFirst();
+
+        assertThat(station.operator()).isEqualTo("Norman Roger Martin Hesse");
+        assertThat(station.brand()).isEqualTo("Frank Höhn");
+    }
+
     @Test
     void eintraegeOhneBetreiberWerdenUebersprungen() {
         respondWith(Map.of("Anzeigename__Karte_", "Irgendwas"), Map.of("Betreiber", "Allego GmbH"));

@@ -107,20 +107,42 @@ class NearbyCpoServiceTest {
         assertThat(stations.get(1).distanceMeters()).isBetween(150, 250);
     }
 
-    /** Das Register meldet jede Saeule einzeln - fuer den Nutzer ist das ein Standort. */
+    /**
+     * Das Register meldet jede Saeule einzeln, oft an mehreren Punkten desselben Parkplatzes.
+     * Fuer die Auswahl im Formular zaehlt der Betreiber, nicht die Saeule: ein Eintrag je Name,
+     * mit der kuerzesten Entfernung, der hoechsten Leistung und allen Ladepunkten.
+     */
     @Test
-    void fasstSaeulenDesselbenBetreibersAmSelbenOrtZusammen() {
+    void fasstSaeulenDesselbenBetreibersZusammen() {
         when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
-                at("IONITY GmbH", "IONITY", 52.5204, 13.4046, 350, true, 2),
-                at("IONITY GmbH", "IONITY", 52.5204, 13.4046, 350, true, 2),
-                at("IONITY GmbH", "IONITY", 52.52041, 13.40461, 400, true, 2))));
+                at("IONITY GmbH", "IONITY", 52.5196, 13.4055, 350, true, 2),
+                at("IONITY GmbH", "IONITY", 52.5196, 13.4055, 350, true, 2),
+                at("IONITY GmbH", "IONITY", 52.5205, 13.4060, 400, true, 2))));
 
         var stations = service.findNearbyStations("u33dc0c").orElseThrow();
 
         assertThat(stations).hasSize(1);
         assertThat(stations.getFirst().chargePoints()).isEqualTo(6);
         assertThat(stations.getFirst().maxPowerKw()).isEqualTo(400.0);
+        assertThat(stations.getFirst().distanceMeters()).isLessThan(30);
         assertThat(stations.getFirst().fastCharging()).isTrue();
+    }
+
+    /**
+     * Im Register stehen auch Privatpersonen mit einer 11-kW-Wallbox an der Strasse. Die sind
+     * fuer niemanden ein Ladeort und ihre Namen haben im Formular nichts verloren. Erkennbar
+     * sind sie nur an der Groesse: unbekannter Betreiber, ein Normal-Ladepunkt.
+     */
+    @Test
+    void unbekannteEinzelWallboxenFallenWeg() {
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
+                at("Maike Schaper", null, 52.5196, 13.4055, 11, false, 1),
+                at("Hotel Adlon GmbH", null, 52.5196, 13.4056, 22, false, 2),
+                at("Allego GmbH", "Allego", 52.5197, 13.4055, 11, false, 1))));
+
+        var stations = service.findNearbyStations("u33dc0c").orElseThrow();
+
+        assertThat(stations).extracting(NearbyStation::name).containsExactly("Hotel Adlon GmbH", "Allego");
     }
 
     /**

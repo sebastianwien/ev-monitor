@@ -143,10 +143,13 @@ public class ChargingStationRegistryClient {
         return value instanceof Number n ? n.intValue() : null;
     }
 
-    /** Das Register liefert Namen mit Leerzeichen am Rand und Zeilenumbruechen in Nachbarfeldern. */
+    /**
+     * Das Register liefert Namen mit Leerzeichen am Rand, geschuetzten Leerzeichen und
+     * Doppelspaces - alles auf einfache Leerzeichen zusammengezogen.
+     */
     private static String text(Object value) {
         if (!(value instanceof String s)) return null;
-        String trimmed = s.trim();
-        return trimmed.isEmpty() ? null : trimmed;
+        String cleaned = s.replaceAll("[\\s\\u00a0]+", " ").trim();
+        return cleaned.isEmpty() ? null : cleaned;
     }
 }

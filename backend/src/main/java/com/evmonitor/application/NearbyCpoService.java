@@ -36,9 +36,6 @@ public class NearbyCpoService {
     /** Mehr Kacheln passen nicht auf einen Handy-Screen, und mehr Auswahl hilft dort nicht. */
     static final int MAX_STATIONS = 5;
 
-    /** Vier Nachkommastellen (~11 m): Saeulen desselben Betreibers dichter beieinander sind ein Standort. */
-    private static final double SITE_GRID = 1e4;
-
     private static final double EARTH_RADIUS_M = 6_371_000;
 
     private final ChargingStationRegistryClient registry;
@@ -86,9 +83,10 @@ public class NearbyCpoService {
 
     /**
      * Die Ladestandorte im Umkreis der Geohash-Zelle, der naechste zuerst, hoechstens
-     * {@link #MAX_STATIONS}. Anders als {@link #findNearbyCpos} bleiben unbekannte Betreiber
-     * mit Rohnamen erhalten - im Formular soll die Saeule auftauchen, an der der Nutzer steht.
-     * Einrichtungen ohne Position im Register lassen sich nicht einordnen und fallen weg.
+     * {@link #MAX_STATIONS}, ein Eintrag je Betreiber. Anders als {@link #findNearbyCpos}
+     * bleiben unbekannte Betreiber mit Rohnamen erhalten - im Formular soll die Saeule
+     * auftauchen, an der der Nutzer steht. Einrichtungen ohne Position im Register lassen
+     * sich nicht einordnen und fallen weg, ebenso einzelne private Wallboxen.
      *
      * @return die Vorschlaege, oder ein leeres Optional wenn das Register nicht antwortet
      */
@@ -99,23 +97,31 @@ public class NearbyCpoService {
             return Optional.empty();
         }
         return registry.findStationsNearby(center.getLatitude(), center.getLongitude(), radiusMeters)
-                .map(stations -> groupBySite(stations, center));
+                .map(stations -> groupByOperator(stations, center));
     }
 
-    private List<NearbyStation> groupBySite(List<Station> stations, WGS84Point center) {
-        Map<String, NearbyStation> sites = new LinkedHashMap<>();
+    private List<NearbyStation> groupByOperator(List<Station> stations, WGS84Point center) {
+        Map<String, NearbyStation> byName = new LinkedHashMap<>();
         for (Station s : stations) {
             if (!s.hasPosition()) continue;
             Optional<String> canonical = matcher.match(s);
             String name = canonical.orElseGet(() -> s.brand() != null ? s.brand() : s.operator());
-            String key = name.toLowerCase() + "@" + Math.round(s.latitude() * SITE_GRID)
-                    + "," + Math.round(s.longitude() * SITE_GRID);
-            sites.merge(key, toNearby(s, name, canonical.isPresent(), center), NearbyCpoService::mergeSite);
+            byName.merge(name.toLowerCase(), toNearby(s, name, canonical.isPresent(), center), NearbyCpoService::merge);
         }
-        return sites.values().stream()
+        return byName.values().stream()
+                .filter(NearbyCpoService::isChargingSite)
                 .sorted(Comparator.comparingInt(NearbyStation::distanceMeters))
                 .limit(MAX_STATIONS)
                 .toList();
+    }
+
+    /**
+     * Im Register stehen auch Privatpersonen mit einer Wallbox an der Strasse. Ein unbekannter
+     * Betreiber mit einem einzigen Normal-Ladepunkt ist kein Ladeort fuer andere - und sein
+     * Name gehoert nicht ins Formular.
+     */
+    private static boolean isChargingSite(NearbyStation s) {
+        return s.known() || s.fastCharging() || s.chargePoints() > 1;
     }
 
     private static NearbyStation toNearby(Station s, String name, boolean known, WGS84Point center) {
@@ -124,7 +130,7 @@ public class NearbyCpoService {
                 s.chargePoints() == null ? 0 : s.chargePoints());
     }
 
-    private static NearbyStation mergeSite(NearbyStation a, NearbyStation b) {
+    private static NearbyStation merge(NearbyStation a, NearbyStation b) {
         Double power = a.maxPowerKw() == null ? b.maxPowerKw()
                 : b.maxPowerKw() == null ? a.maxPowerKw() : Math.max(a.maxPowerKw(), b.maxPowerKw());
         return new NearbyStation(a.name(), a.known(), Math.min(a.distanceMeters(), b.distanceMeters()),
