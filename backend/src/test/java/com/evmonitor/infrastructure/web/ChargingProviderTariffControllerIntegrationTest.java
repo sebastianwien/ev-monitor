@@ -140,4 +140,18 @@ class ChargingProviderTariffControllerIntegrationTest extends AbstractIntegratio
         e.setValidUntil(LocalDate.of(2025, 12, 31));
         return e;
     }
+
+    /**
+     * Die Umkreis-Endpunkte reichen Koordinaten an einen fremden Dienst weiter und sind
+     * deshalb - anders als der Rest des Controllers - nur fuer angemeldete Nutzer offen.
+     * Die Wildcard-Regel permitAll darf sie nicht einfangen.
+     */
+    @Test
+    void nearbyEndpointsRequireAuthentication() {
+        for (String path : List.of("/cpos/nearby", "/cpos/nearby-stations")) {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    "/api/charging-provider-tariffs" + path + "?lat=52.52&lon=13.40", String.class);
+            assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode(), path);
+        }
+    }
 }
