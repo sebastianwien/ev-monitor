@@ -1,9 +1,12 @@
 <template>
-    <!-- Ohne Abo: die AutoSync-Erzählseite (Tesla-Fahrer werden darin zum Supporter geleitet). -->
-    <AutoSyncPitch v-if="!loading && tier === 'NONE'" />
+    <!-- Ohne Abo: die AutoSync-Erzählseite (Tesla-Fahrer werden darin zum Supporter geleitet).
+         XPeng hat keine Live-Schnittstelle - statt des AutoSync-Verkaufs ein eigener, ehrlicher
+         Hinweis (kostenloser EU-Data-Act-Import + Supporter fuer die Auswertungen). -->
+    <XpengUpgradeNotice v-if="showPitch && activeCarIsXpeng" />
+    <AutoSyncPitch v-else-if="showPitch" />
 
     <div v-else class="py-6 md:py-12 px-4">
-        <div v-if="loading" class="max-w-md mx-auto text-center py-16 text-gray-500 dark:text-gray-400">
+        <div v-if="pageLoading" class="max-w-md mx-auto text-center py-16 text-gray-500 dark:text-gray-400">
             {{ t('upgrade.loading') }}
         </div>
 
@@ -37,11 +40,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { storeToRefs } from 'pinia';
 import { CheckBadgeIcon } from '@heroicons/vue/24/outline';
 import { subscriptionService } from '../api/subscriptionService';
 import { analytics } from '../services/analytics';
 import { type SubscriptionTier } from '../composables/useUpgradeTierState';
+import { useCarStore } from '../stores/car';
+import { useImportGating } from '../composables/useImportGating';
 import AutoSyncPitch from '../components/AutoSyncPitch.vue';
+import XpengUpgradeNotice from '../components/XpengUpgradeNotice.vue';
 
 const { t } = useI18n();
 
@@ -49,6 +56,18 @@ const tier = ref<SubscriptionTier>('NONE');
 const loading = ref(true);
 const portalLoading = ref(false);
 const portalError = ref('');
+
+// XPeng-Fahrer bekommen ohne Abo eine eigene Seite (kein AutoSync-Verkauf) - das Gating
+// laeuft ueber das aktive Auto, dieselbe Quelle wie /imports.
+const carStore = useCarStore();
+const { cars } = storeToRefs(carStore);
+const { activeCarIsXpeng } = useImportGating(cars);
+const carsReady = ref(false);
+
+// Solange Abo-Status oder (fuer Nicht-Abonnenten) die Garage laedt, keinen Pitch zeigen -
+// verhindert ein Aufflackern der AutoSync-Seite, bevor ein XPeng erkannt ist.
+const pageLoading = computed(() => loading.value || (tier.value === 'NONE' && !carsReady.value));
+const showPitch = computed(() => !pageLoading.value && tier.value === 'NONE');
 
 // Produktnamen - nicht uebersetzt.
 const TIER_LABELS: Record<string, string> = {
@@ -59,6 +78,8 @@ const TIER_LABELS: Record<string, string> = {
 const tierLabel = computed(() => TIER_LABELS[tier.value] ?? tier.value);
 
 onMounted(async () => {
+    // Garage parallel laden - bestimmt fuer Nicht-Abonnenten, ob die XPeng-Seite greift.
+    carStore.getCars().catch(() => { /* im Zweifel normaler Pitch */ }).finally(() => { carsReady.value = true; });
     try {
         const status = await subscriptionService.getStatus();
         tier.value = status.tier ?? 'NONE';
