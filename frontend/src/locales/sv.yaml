@@ -2451,7 +2451,7 @@ autosync_page:
   tesla_note_cta: "Till Supporter-paketet"
   xpeng_eyebrow: "XPeng · EU Data Act"
   xpeng_title: "Hämta dina XPeng-data gratis"
-  xpeng_body: "XPeng har ingen realtidsanslutning vi kan använda för att läsa av bilen automatiskt. Men tack vare EU Data Act tillhör dina resor och laddningar dig: begär exporten i XPeng-portalen, ladda upp ZIP-filen här - vi läser ut resor och laddningar automatiskt. Gratis, utan att skriva in något."
+  xpeng_body: "XPeng bygger just nu en officiell anslutning - tills den är live finns ännu ingen automatisk realtidsavläsning. Men tack vare EU Data Act tillhör dina resor och laddningar redan i dag dig: begär exporten i XPeng-portalen, ladda upp ZIP-filen här - vi läser ut resor och laddningar automatiskt. Gratis, utan att skriva in något."
   xpeng_import_cta: "Importera ZIP"
   xpeng_analytics_hint: "Vill du ha besparing, fantomförbrukning och laddkurvor från dessa data? Det låser Supporter-paketet upp."
   xpeng_supporter_cta: "Visa Supporter-paketet"

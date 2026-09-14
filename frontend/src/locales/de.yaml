@@ -2522,7 +2522,7 @@ autosync_page:
   tesla_note_cta: "Zum Supporter-Pack"
   xpeng_eyebrow: "XPeng · EU Data Act"
   xpeng_title: "Deine XPeng-Daten holst du dir kostenlos"
-  xpeng_body: "Für XPeng gibt es keine Live-Schnittstelle, über die wir dein Auto automatisch auslesen könnten. Dank EU Data Act gehören deine Fahrten und Ladungen aber dir: Fordere den Export im XPeng-Portal an, lade die ZIP hier hoch - wir lesen Fahrten und Ladevorgänge automatisch aus. Kostenlos, ohne Abtippen."
+  xpeng_body: "XPeng baut gerade an einer offiziellen Schnittstelle - bis die live ist, gibt es noch keinen automatischen Live-Abruf. Dank EU Data Act gehören deine Fahrten und Ladungen aber schon heute dir: Fordere den Export im XPeng-Portal an, lade die ZIP hier hoch - wir lesen Fahrten und Ladevorgänge automatisch aus. Kostenlos, ohne Abtippen."
   xpeng_import_cta: "ZIP importieren"
   xpeng_analytics_hint: "Willst du aus diesen Daten Ersparnis, Phantom-Drain und Ladekurven? Das schaltet das Supporter-Pack frei."
   xpeng_supporter_cta: "Supporter-Pack ansehen"

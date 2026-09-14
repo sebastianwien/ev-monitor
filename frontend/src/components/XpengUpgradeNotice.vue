@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ArrowTopRightOnSquareIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
+import XpengAutoSyncWaitlist from './imports/XpengAutoSyncWaitlist.vue'
 
 // Eigenstaendige /upgrade-Variante fuer XPeng: XPeng hat keine Live-Schnittstelle,
 // der einzige Weg ist der kostenlose EU-Data-Act-ZIP-Upload. Darum kein AutoSync-
@@ -39,6 +40,10 @@ const { t } = useI18n()
         <p class="text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('autosync_page.xpeng_analytics_hint') }}</p>
         <router-link to="/supporter" class="inline-block mt-1.5 text-[15px] font-semibold text-green-700 dark:text-green-400 hover:underline">{{ t('autosync_page.xpeng_supporter_cta') }} &rarr;</router-link>
       </div>
+    </div>
+
+    <div class="max-w-xl mx-auto mt-6">
+      <XpengAutoSyncWaitlist />
     </div>
   </div>
 </template>
