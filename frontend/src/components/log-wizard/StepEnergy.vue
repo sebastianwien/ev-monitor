@@ -31,12 +31,12 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
       :options="[{ value: 'charger', label: t('logwizard.kwh_charger'), testid: 'kwh-mode-charger' }, { value: 'vehicle', label: t('logwizard.kwh_vehicle'), testid: 'kwh-mode-vehicle' }]" />
     <p class="text-xs text-gray-500 dark:text-gray-400">{{ mode === 'charger' ? t('logfields.kwh_hint') : t('logfields.kwh_at_vehicle_hint') }}</p>
 
-    <div class="pt-2">
+    <div class="pt-2 text-center">
       <button type="button" @click="showOcr = !showOcr"
         class="btn-3d inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
         <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
       </button>
-      <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ t('logwizard.ocr_hint') }}</p>
+      <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">{{ t('logwizard.ocr_hint') }}</p>
       <OcrPhotoCapture v-if="showOcr" class="mt-3" @dataExtracted="onOcr" @cancel="showOcr = false" />
     </div>
   </div>
