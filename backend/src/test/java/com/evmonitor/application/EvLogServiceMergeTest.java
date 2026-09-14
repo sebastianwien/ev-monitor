@@ -183,6 +183,97 @@ class EvLogServiceMergeTest extends AbstractIntegrationTest {
         assertThat(evLogRepository.findById(source.getId())).isPresent();
     }
 
+    @Test
+    void mergeLog_sequentialCurves_keepsBothConcatenated() throws Exception {
+        // Zwei aufeinanderfolgende Ladungen: source deckt frueh (grosse Ladung), target spaet
+        // (kleine Nachladung) ab. Nach dem Merge muss die ueberlebende Kurve BEIDE Bereiche
+        // enthalten - die des geloeschten source darf nicht verloren gehen.
+        EvLog target = evLogRepository.save(buildLog(carId, DataSource.TESLA_LIVE, null, new BigDecimal("1.0"), null, null));
+        EvLog source = evLogRepository.save(buildLog(carId, DataSource.TESLA_LIVE, null, new BigDecimal("60.0"), null, null));
+        evLogRepository.updatePowerCurvePoints(target.getId(), powerCurve(2_000_000L, 2_020_000L));
+        evLogRepository.updatePowerCurvePoints(source.getId(), powerCurve(1_000_000L, 1_020_000L, 1_040_000L));
+
+        evLogService.mergeLog(target.getId(), source.getId(), userId, false);
+
+        String merged = evLogRepository.findPowerCurvePointsJson(target.getId()).orElseThrow();
+        assertThat(curvePointCount(merged)).isEqualTo(5);
+        assertThat(firstTs(merged)).isEqualTo(1_000_000L);
+        assertThat(lastTs(merged)).isEqualTo(2_020_000L);
+    }
+
+    @Test
+    void mergeLog_overlappingCurves_collapsesToOneCurve() throws Exception {
+        // Brutto/Netto: dieselbe physische Ladung, zwei Messungen mit denselben Zeitstempeln.
+        // Der Merge darf keine doppelte (Zickzack-)Kurve erzeugen.
+        EvLog target = evLogRepository.save(buildLog(carId, DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null, null, null));
+        EvLog source = evLogRepository.save(buildLog(carId, DataSource.TESLA_LIVE, null, new BigDecimal("21.0"), null, null));
+        evLogRepository.updatePowerCurvePoints(target.getId(), powerCurve(1_000_000L, 1_020_000L, 1_040_000L));
+        evLogRepository.updatePowerCurvePoints(source.getId(), powerCurve(1_000_000L, 1_020_000L, 1_040_000L));
+
+        evLogService.mergeLog(target.getId(), source.getId(), userId, false);
+
+        String merged = evLogRepository.findPowerCurvePointsJson(target.getId()).orElseThrow();
+        assertThat(curvePointCount(merged)).isEqualTo(3);
+    }
+
+    @Test
+    void mergeLog_onlySourceHasCurve_survivorInheritsIt() throws Exception {
+        // Genau der gemeldete Fall: der ueberlebende target hat keine Kurve, die des
+        // geloeschten source ist die einzige - sie muss auf den Survivor uebergehen.
+        EvLog target = evLogRepository.save(buildLog(carId, DataSource.WALLBOX_GOE, new BigDecimal("22.5"), null, null, null));
+        EvLog source = evLogRepository.save(buildLog(carId, DataSource.TESLA_LIVE, null, new BigDecimal("60.0"), null, null));
+        evLogRepository.updatePowerCurvePoints(source.getId(), powerCurve(1_000_000L, 1_020_000L, 1_040_000L));
+
+        evLogService.mergeLog(target.getId(), source.getId(), userId, false);
+
+        String merged = evLogRepository.findPowerCurvePointsJson(target.getId()).orElseThrow();
+        assertThat(curvePointCount(merged)).isEqualTo(3);
+    }
+
+    @Test
+    void mergeLog_socCurves_mergedToo() throws Exception {
+        EvLog target = evLogRepository.save(buildLog(carId, DataSource.SMARTCAR_LIVE, null, new BigDecimal("1.0"), null, null));
+        EvLog source = evLogRepository.save(buildLog(carId, DataSource.SMARTCAR_LIVE, null, new BigDecimal("60.0"), null, null));
+        evLogRepository.updateSocCurvePoints(target.getId(), socCurve(2_000_000L));
+        evLogRepository.updateSocCurvePoints(source.getId(), socCurve(1_000_000L, 1_020_000L));
+
+        evLogService.mergeLog(target.getId(), source.getId(), userId, false);
+
+        String merged = evLogRepository.findOwnerIdAndPowerCurveJson(target.getId()).orElseThrow().socCurvePointsJson();
+        assertThat(curvePointCount(merged)).isEqualTo(3);
+    }
+
+    private static String powerCurve(long... tsValues) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < tsValues.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append("{\"ts\":").append(tsValues[i]).append(",\"kw\":50.0,\"soc\":50.0}");
+        }
+        return sb.append("]").toString();
+    }
+
+    private static String socCurve(long... tsValues) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < tsValues.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append("{\"ts\":").append(tsValues[i]).append(",\"soc\":50.0}");
+        }
+        return sb.append("]").toString();
+    }
+
+    private static int curvePointCount(String json) throws Exception {
+        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(json).size();
+    }
+
+    private static long firstTs(String json) throws Exception {
+        return new com.fasterxml.jackson.databind.ObjectMapper().readTree(json).get(0).get("ts").asLong();
+    }
+
+    private static long lastTs(String json) throws Exception {
+        var arr = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+        return arr.get(arr.size() - 1).get("ts").asLong();
+    }
+
     private EvLog buildLogAt(UUID carId, LocalDateTime loggedAt, DataSource dataSource,
                              BigDecimal kwhCharged, BigDecimal kwhAtVehicle) {
         return buildLog(carId, dataSource, kwhCharged, kwhAtVehicle, null, null)

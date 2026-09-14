@@ -188,6 +188,12 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    @Transactional
+    public void replacePowerCurvePoints(UUID id, String powerCurvePointsJson) {
+        jpaRepository.replacePowerCurvePoints(id, powerCurvePointsJson);
+    }
+
+    @Override
     public Optional<String> findPowerCurvePointsJson(UUID id) {
         return jpaRepository.findById(id).map(EvLogEntity::getPowerCurvePoints);
     }
@@ -203,6 +209,12 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     @Transactional
     public void updateSocCurvePoints(UUID id, String socCurvePointsJson) {
         jpaRepository.updateSocCurvePoints(id, socCurvePointsJson);
+    }
+
+    @Override
+    @Transactional
+    public void replaceSocCurvePoints(UUID id, String socCurvePointsJson) {
+        jpaRepository.replaceSocCurvePoints(id, socCurvePointsJson);
     }
 
     @Override
