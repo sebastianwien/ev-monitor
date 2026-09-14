@@ -48,7 +48,7 @@ const tiles = computed<Tile[]>(() => [
   <div class="space-y-4">
     <div class="grid grid-cols-2 gap-2">
       <button v-for="tile in tiles" :key="tile.testid" type="button" :data-testid="tile.testid" @click="emit('edit', tile.section)"
-        :class="['text-left p-3 rounded-sm', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700' : 'bg-gray-100 dark:bg-gray-700/60']">
+        :class="['btn-3d text-left p-3 rounded-sm transition', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">
         <span class="block text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ tile.label }}</span>
         <b v-if="tile.value != null" class="block text-base font-semibold tabular-nums text-gray-800 dark:text-gray-100 truncate">{{ tile.value }}</b>
         <b v-else class="block text-base font-semibold text-amber-700 dark:text-amber-300">{{ t('logwizard.open') }}</b>

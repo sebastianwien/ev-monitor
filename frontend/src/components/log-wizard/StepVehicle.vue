@@ -50,7 +50,7 @@ const battery = computed(() => {
       <BigInput id="wizard-soc" v-model="form.socAfterChargePercent" unit="%" placeholder="80" step="1" :min="0" :max="100" inputmode="numeric" />
       <div class="flex gap-2 mt-2">
         <button v-for="p in [80, 90, 100]" :key="p" type="button" @click="form.socAfterChargePercent = p"
-          :class="['px-3 py-1.5 rounded-full text-sm border', form.socAfterChargePercent === p ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200']">
+          :class="['px-3 py-1.5 rounded-full text-sm border transition', form.socAfterChargePercent === p ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
           {{ p }} %
         </button>
       </div>
@@ -61,7 +61,7 @@ const battery = computed(() => {
       <BigInput id="wizard-soc-before" v-model="form.socBeforeChargePercent" unit="%" placeholder="20" step="1" :min="0" :max="100" inputmode="numeric" />
     </div>
     <button v-else type="button" @click="showBefore = true"
-      class="px-3 py-1.5 rounded-full text-sm border border-dashed border-gray-400 text-gray-600 dark:text-gray-300">
+      class="px-3 py-1.5 rounded-full text-sm border border-dashed border-gray-400 text-gray-600 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700">
       + {{ t('logwizard.soc_before_cta') }}
     </button>
 

@@ -7,7 +7,7 @@ const model = defineModel<T>({ required: true })
   <div class="grid gap-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-sm" :style="{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }" role="radiogroup">
     <button v-for="o in options" :key="o.value" type="button" role="radio" :aria-checked="model === o.value" :data-testid="o.testid"
       @click="model = o.value"
-      :class="['py-2 text-sm rounded-sm transition', model === o.value ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white font-semibold shadow-sm' : 'text-gray-500 dark:text-gray-300']">
+      :class="['py-2 text-sm rounded-sm transition', model === o.value ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white font-semibold shadow-sm' : 'text-gray-500 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white hover:bg-white/60 dark:hover:bg-gray-500/40']">
       {{ o.label }}
     </button>
   </div>

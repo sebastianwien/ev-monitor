@@ -8,6 +8,11 @@
   --breakpoint-gridfeed: 920px;
 }
 
+/* Tailwind 4 setzt Buttons auf cursor: default - bei uns sind sie klickbar. */
+@layer base {
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]) { cursor: pointer; }
+}
+
 html, body {
   overflow-x: clip;
 }

@@ -45,7 +45,7 @@ const { t } = useI18n()
 
     <footer class="sticky bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 md:px-6 flex items-center gap-3">
       <button v-if="step > 1" type="button" @click="emit('back')"
-        class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
+        class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 inline-flex items-center gap-1 rounded-sm transition hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
         <ChevronLeftIcon class="h-4 w-4" />{{ t('common.back') }}
       </button>
       <button type="button" data-testid="wizard-next" :disabled="!canProceed || saving" @click="emit('next')"

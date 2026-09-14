@@ -33,7 +33,7 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
 
     <div class="pt-2">
       <button type="button" @click="showOcr = !showOcr"
-        class="inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-200">
+        class="btn-3d inline-flex items-center gap-2 px-3 py-2 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
         <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
       </button>
       <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ t('logwizard.ocr_hint') }}</p>

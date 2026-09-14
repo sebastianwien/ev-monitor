@@ -33,8 +33,9 @@ const isStation = (s: NearbyStation) => props.place === 'station' && props.selec
 const isOtherCpo = (c: string) => props.place === 'other' && props.selectedCpo === c
 
 const tileClass = (on: boolean) => [
-  'w-full flex items-center gap-3 text-left p-3 rounded-sm border-2 transition',
-  on ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800',
+  'btn-3d w-full flex items-center gap-3 text-left p-3 rounded-sm border-2 transition',
+  on ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
+     : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-700',
 ]
 const stationSub = (s: NearbyStation) => [
   s.chargePoints ? t('logwizard.charge_points', { n: s.chargePoints }, s.chargePoints) : null,
@@ -51,7 +52,7 @@ const stationSub = (s: NearbyStation) => [
       <MapPinIcon class="h-5 w-5 text-indigo-600 flex-shrink-0" />
       <p class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ t('logwizard.location_offer') }}</p>
       <button type="button" data-testid="wizard-location" :disabled="locationStatus === 'loading'" @click="emit('requestLocation')"
-        class="text-sm font-semibold text-indigo-600 dark:text-indigo-300 whitespace-nowrap">
+        class="text-sm font-semibold text-indigo-600 dark:text-indigo-300 whitespace-nowrap hover:underline disabled:no-underline disabled:opacity-60">
         {{ locationStatus === 'loading' ? t('common.loading') : t('logwizard.location_cta') }}
       </button>
     </div>
@@ -116,7 +117,7 @@ const stationSub = (s: NearbyStation) => [
       <div class="flex flex-wrap gap-2">
         <button v-for="c in filteredCpos" :key="c" type="button" :aria-pressed="isOtherCpo(c)"
           @click="emit('choose', { kind: 'other', cpoName: c })"
-          :class="['px-3 py-1.5 rounded-full text-sm border', isOtherCpo(c) ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200']">
+          :class="['px-3 py-1.5 rounded-full text-sm border transition', isOtherCpo(c) ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
           {{ c }}
         </button>
       </div>

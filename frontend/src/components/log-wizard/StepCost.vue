@@ -121,11 +121,11 @@ onMounted(async () => {
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('logwizard.price_suggestions') }}</p>
       <div class="flex flex-wrap gap-2">
         <button v-for="s in suggestions" :key="s.key" type="button" :aria-pressed="selectedKey === s.key" @click="pick(s)"
-          :class="['px-3 py-1.5 rounded-full text-sm border', selectedKey === s.key ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200']">
+          :class="['px-3 py-1.5 rounded-full text-sm border transition', selectedKey === s.key ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
           {{ priceLabel(s.eurPerKwh) }} · {{ s.label }}
         </button>
         <button type="button" :aria-pressed="selectedKey === 'free'" @click="pickFree"
-          :class="['px-3 py-1.5 rounded-full text-sm border', selectedKey === 'free' ? 'bg-indigo-600 text-white border-indigo-600' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200']">
+          :class="['px-3 py-1.5 rounded-full text-sm border transition', selectedKey === 'free' ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
           {{ t('logwizard.price_free') }}
         </button>
       </div>
@@ -136,11 +136,11 @@ onMounted(async () => {
     <div v-if="form.isPublicCharging" class="space-y-2">
       <div v-if="!inlineCard.isOpen.value" class="flex flex-wrap gap-2">
         <button v-if="selectedNeedsPrice" type="button" data-testid="charging-card-price-missing" @click="openPriceForSelected"
-          class="px-3 py-1.5 rounded-full text-sm border border-dashed border-amber-400 text-amber-700 dark:text-amber-300">
+          class="px-3 py-1.5 rounded-full text-sm border border-dashed border-amber-400 text-amber-700 dark:text-amber-300 transition hover:bg-amber-50 dark:hover:bg-amber-900/20">
           {{ t('logwizard.card_price_missing', { card: selectedProvider!.label || selectedProvider!.providerName }) }}
         </button>
         <button type="button" data-testid="charging-card-prompt-open" @click="openNewCard"
-          class="px-3 py-1.5 rounded-full text-sm border border-dashed border-gray-400 text-gray-600 dark:text-gray-300">
+          class="px-3 py-1.5 rounded-full text-sm border border-dashed border-gray-400 text-gray-600 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700">
           + {{ t('logwizard.card_add') }}
         </button>
       </div>
@@ -173,9 +173,9 @@ onMounted(async () => {
         </div>
         <p v-if="inlineCard.failed.value" class="text-xs text-red-500">{{ t('logfields.card_save_failed') }}</p>
         <div class="flex gap-2">
-          <button type="button" @click="inlineCard.cancel()" class="flex-1 rounded-sm border border-gray-300 dark:border-gray-600 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300">{{ t('common.cancel') }}</button>
+          <button type="button" @click="inlineCard.cancel()" class="btn-3d flex-1 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">{{ t('common.cancel') }}</button>
           <button type="button" data-testid="charging-card-save" :disabled="!inlineCard.canSave.value" @click="saveCard"
-            class="flex-1 rounded-sm bg-indigo-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50">
+            class="btn-3d flex-1 rounded-sm bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600">
             {{ inlineCard.saving.value ? t('common.saving') : t('logfields.card_save') }}
           </button>
         </div>
