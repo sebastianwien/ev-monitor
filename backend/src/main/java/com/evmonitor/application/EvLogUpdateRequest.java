@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Positive;
@@ -36,7 +37,20 @@ public record EvLogUpdateRequest(
         @Size(max = 100) String cpoName,
         BigDecimal costExchangeRate,
         @Size(max = 3) String costCurrency,
-        UUID chargingProviderId) {
+        UUID chargingProviderId,
+        @Valid ChargingSiteRef chargingSite) {
+
+    /** Voller Datensatz ohne Standortverweis - fuer bestehende Aufrufer. */
+    public EvLogUpdateRequest(BigDecimal kwhCharged, BigDecimal costEur, Integer chargeDurationMinutes,
+            Double latitude, Double longitude, Integer odometerKm, BigDecimal maxChargingPowerKw,
+            BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent, BigDecimal kwhAtVehicle,
+            LocalDateTime loggedAt, ChargingType chargingType, RouteType routeType, TireType tireType,
+            Boolean isPublicCharging, String cpoName, BigDecimal costExchangeRate, String costCurrency,
+            UUID chargingProviderId) {
+        this(kwhCharged, costEur, chargeDurationMinutes, latitude, longitude, odometerKm, maxChargingPowerKw,
+                socAfterChargePercent, socBeforeChargePercent, kwhAtVehicle, loggedAt, chargingType, routeType,
+                tireType, isPublicCharging, cpoName, costExchangeRate, costCurrency, chargingProviderId, null);
+    }
 
     // Backward-compatible constructor for existing callers (tests)
     public EvLogUpdateRequest(BigDecimal kwhCharged, BigDecimal costEur,
@@ -47,6 +61,6 @@ public record EvLogUpdateRequest(
             RouteType routeType, TireType tireType) {
         this(kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,
                 odometerKm, maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent,
-                null, loggedAt, chargingType, routeType, tireType, null, null, null, null, null);
+                null, loggedAt, chargingType, routeType, tireType, null, null, null, null, null, null);
     }
 }

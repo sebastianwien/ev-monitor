@@ -127,14 +127,16 @@ public class NearbyCpoService {
     private static NearbyStation toNearby(Station s, String name, boolean known, WGS84Point center) {
         int distance = (int) Math.round(distanceMeters(center, s.latitude(), s.longitude()));
         return new NearbyStation(name, known, distance, s.powerKw(), s.fastCharging(),
-                s.chargePoints() == null ? 0 : s.chargePoints());
+                s.chargePoints() == null ? 0 : s.chargePoints(),
+                GeoHash.withCharacterPrecision(s.latitude(), s.longitude(), 7).toBase32());
     }
 
     private static NearbyStation merge(NearbyStation a, NearbyStation b) {
         Double power = a.maxPowerKw() == null ? b.maxPowerKw()
                 : b.maxPowerKw() == null ? a.maxPowerKw() : Math.max(a.maxPowerKw(), b.maxPowerKw());
-        return new NearbyStation(a.name(), a.known(), Math.min(a.distanceMeters(), b.distanceMeters()),
-                power, a.fastCharging() || b.fastCharging(), a.chargePoints() + b.chargePoints());
+        NearbyStation nearer = a.distanceMeters() <= b.distanceMeters() ? a : b;
+        return new NearbyStation(a.name(), a.known(), nearer.distanceMeters(),
+                power, a.fastCharging() || b.fastCharging(), a.chargePoints() + b.chargePoints(), nearer.geohash());
     }
 
     /** Haversine - im Umkreis weniger hundert Meter mehr als genau genug. */

@@ -3,6 +3,8 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import type { NearbyStation } from '../../composables/useNearbyStations'
+import type { RecentSite } from '../../composables/useRecentSites'
+import type { ChargingSiteRef } from '../log-form/logFormData'
 import type { LocationPermission } from '../../composables/useLocationPermission'
 import type { PlaceChoice, PlaceKind } from './wizardLogic'
 import type { PickedPlace } from '../../composables/useLocationSearch'
@@ -11,6 +13,8 @@ import PlaceSearch from './PlaceSearch.vue'
 const props = defineProps<{
   place: PlaceKind | null
   selectedCpo: string | null
+  selectedSite: ChargingSiteRef | null
+  recentSites: RecentSite[]
   stations: NearbyStation[]
   stationsLoading: boolean
   permission: LocationPermission
@@ -29,7 +33,10 @@ const filteredCpos = computed(() => {
   return (q ? list.filter(c => c.toLowerCase().includes(q)) : list).slice(0, 8)
 })
 
-const isStation = (s: NearbyStation) => props.place === 'station' && props.selectedCpo === s.name
+const sameSite = (name: string, geohash: string) =>
+  props.selectedSite?.geohash === geohash && props.selectedSite?.name === name
+const isStation = (s: NearbyStation) => props.place === 'station' && sameSite(s.name, s.geohash)
+const isSite = (s: RecentSite) => props.place === 'site' && sameSite(s.name, s.geohash)
 const isOtherCpo = (c: string) => props.place === 'other' && props.selectedCpo === c
 
 const tileClass = (on: boolean) => [
@@ -37,7 +44,7 @@ const tileClass = (on: boolean) => [
   on ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-700',
 ]
-const stationSub = (s: NearbyStation) => [
+const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxPowerKw' | 'fastCharging'>) => [
   s.chargePoints ? t('logwizard.charge_points', { n: s.chargePoints }, s.chargePoints) : null,
   s.maxPowerKw ? `${Math.round(s.maxPowerKw)} kW` : null,
   s.fastCharging ? 'DC' : 'AC',
@@ -92,7 +99,21 @@ const stationSub = (s: NearbyStation) => [
       </button>
     </template>
 
-    <template v-if="recentCpos.length">
+    <!-- Zuletzt genutzt: echte Standorte, sobald es welche gibt - sonst die Anbieter der letzten Logs -->
+    <template v-if="recentSites.length">
+      <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
+      <button v-for="s in recentSites" :key="s.id" type="button" :class="tileClass(isSite(s))" :data-testid="`recent-site-${s.id}`"
+        @click="emit('choose', { kind: 'site', site: s })">
+        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
+        <span class="flex-1 min-w-0">
+          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ s.name }}</b>
+          <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
+        </span>
+        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ t('logwizard.site_usage', { n: s.usageCount }, s.usageCount) }}</span>
+        <CheckCircleIcon v-if="isSite(s)" class="h-5 w-5 text-indigo-600" />
+      </button>
+    </template>
+    <template v-else-if="recentCpos.length">
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
       <button v-for="c in recentCpos" :key="c" type="button" :class="tileClass(isOtherCpo(c))"
         @click="emit('choose', { kind: 'other', cpoName: c })">

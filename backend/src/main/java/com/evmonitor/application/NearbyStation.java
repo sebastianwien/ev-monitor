@@ -9,6 +9,8 @@ package com.evmonitor.application;
  * @param maxPowerKw     hoechste Nennleistung am Standort, kann fehlen
  * @param fastCharging   ob mindestens eine Schnellladeeinrichtung (DC) dort steht
  * @param chargePoints   Ladepunkte am Standort insgesamt
+ * @param geohash        Zelle (7 Stellen) der naechstgelegenen Saeule dieses Betreibers
  */
 public record NearbyStation(String name, boolean known, int distanceMeters,
-                            Double maxPowerKw, boolean fastCharging, int chargePoints) {}
+                            Double maxPowerKw, boolean fastCharging, int chargePoints,
+                            String geohash) {}

@@ -109,7 +109,7 @@ class ChargingProviderTariffControllerNearbyTest {
 
     @Test
     void standorteReichenEbenfallsNurDieGeohashZelleWeiter() {
-        var station = new NearbyStation("IONITY", true, 40, 350.0, true, 6);
+        var station = new NearbyStation("IONITY", true, 40, 350.0, true, 6, "u33dc0c");
         when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.of(List.of(station)));
 
         ResponseEntity<?> response = controller.getNearbyStations(52.520008, 13.404954, request);

@@ -12,6 +12,8 @@ export interface NearbyStation {
   maxPowerKw: number | null
   fastCharging: boolean
   chargePoints: number
+  /** Zelle (7 Stellen) der nächsten Säule dieses Betreibers - identifiziert den Ladestandort */
+  geohash: string
 }
 
 /**

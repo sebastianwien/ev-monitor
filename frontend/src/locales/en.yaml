@@ -3221,6 +3221,7 @@ logwizard:
   nearby_title: "Nearby"
   nearby_loading: "Looking for nearby charging stations"
   recent_title: "Recently used"
+  site_usage: "{n} charge | {n} charges"
   charge_points: "{n} charge point | {n} charge points"
   kwh_charger: "Per charger"
   kwh_vehicle: "Per vehicle"

@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -34,12 +35,26 @@ public record EvLogRequest(
                 @Size(max = 100) String cpoName, // Optional: CPO name (e.g. IONITY, EnBW)
                 BigDecimal costExchangeRate, // Optional: EUR→local rate used at entry time
                 @Size(max = 3) String costCurrency, // Optional: ISO 4217 currency code
-                UUID chargingProviderId) { // Optional: which saved tariff was used
+                UUID chargingProviderId, // Optional: which saved tariff was used
+                @Valid ChargingSiteRef chargingSite) { // Optional: Register-Saeule, an der geladen wurde
 
     @AssertTrue(message = "Either kwhCharged or kwhAtVehicle must be provided")
     public boolean isEnergyDataPresent() {
         return (kwhCharged != null && kwhCharged.compareTo(BigDecimal.ZERO) > 0)
             || (kwhAtVehicle != null && kwhAtVehicle.compareTo(BigDecimal.ZERO) > 0);
+    }
+
+    /** Voller Datensatz ohne Standortverweis - fuer bestehende Aufrufer. */
+    public EvLogRequest(UUID carId, BigDecimal kwhCharged, BigDecimal costEur, Integer chargeDurationMinutes,
+            Double latitude, Double longitude, Integer odometerKm, BigDecimal maxChargingPowerKw,
+            BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent, BigDecimal kwhAtVehicle,
+            LocalDateTime loggedAt, Boolean ocrUsed, ChargingType chargingType, RouteType routeType,
+            TireType tireType, Boolean isPublicCharging, String cpoName, BigDecimal costExchangeRate,
+            String costCurrency, UUID chargingProviderId) {
+        this(carId, kwhCharged, costEur, chargeDurationMinutes, latitude, longitude, odometerKm,
+                maxChargingPowerKw, socAfterChargePercent, socBeforeChargePercent, kwhAtVehicle, loggedAt,
+                ocrUsed, chargingType, routeType, tireType, isPublicCharging, cpoName, costExchangeRate,
+                costCurrency, chargingProviderId, null);
     }
 
     // Backward-compatible constructor for existing callers (tests)
@@ -50,6 +65,6 @@ public record EvLogRequest(
             RouteType routeType, TireType tireType) {
         this(carId, kwhCharged, costEur, chargeDurationMinutes, latitude, longitude,
                 odometerKm, maxChargingPowerKw, socAfterChargePercent, null, null, loggedAt,
-                ocrUsed, chargingType, routeType, tireType, null, null, null, null, null);
+                ocrUsed, chargingType, routeType, tireType, null, null, null, null, null, null);
     }
 }

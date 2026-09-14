@@ -6,7 +6,7 @@ import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
 
 const ionity: NearbyStation = {
-  name: 'IONITY', known: true, distanceMeters: 40, maxPowerKw: 350, fastCharging: true, chargePoints: 6,
+  name: 'IONITY', known: true, distanceMeters: 40, maxPowerKw: 350, fastCharging: true, chargePoints: 6, geohash: 'u33dc0c',
 }
 
 describe('canProceed', () => {
@@ -54,9 +54,31 @@ describe('applyPlace', () => {
   it('Registerstandort setzt öffentlich, Anbieter und Ladeart aus der Säule', () => {
     const f = emptyLogForm()
     applyPlace(f, { kind: 'station', station: ionity })
-    expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'DC', cpoName: 'IONITY' })
+    expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'DC', cpoName: 'IONITY',
+      chargingSite: { name: 'IONITY', geohash: 'u33dc0c' } })
     applyPlace(f, { kind: 'station', station: { ...ionity, name: 'EWE Go', fastCharging: false } })
     expect(f).toMatchObject({ chargingType: 'AC', cpoName: 'EWE Go' })
+  })
+
+  it('Zuletzt genutzter Standort trägt den Katalognamen als Anbieter, sonst den Standortnamen', () => {
+    const f = emptyLogForm()
+    const site = { id: 's1', name: 'Stadtwerke Musterstadt', cpoName: null, geohash: 'u33dc0c', maxPowerKw: 22,
+      chargePoints: 2, fastCharging: false, lastUsedAt: '2026-09-10T10:00:00', usageCount: 2 }
+    applyPlace(f, { kind: 'site', site })
+    expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'AC', cpoName: 'Stadtwerke Musterstadt',
+      chargingSite: { name: 'Stadtwerke Musterstadt', geohash: 'u33dc0c' } })
+    applyPlace(f, { kind: 'site', site: { ...site, cpoName: 'Kaufland', fastCharging: true } })
+    expect(f).toMatchObject({ chargingType: 'DC', cpoName: 'Kaufland' })
+  })
+
+  it('Zuhause und anderer Anbieter löschen den Standortverweis', () => {
+    const f = emptyLogForm()
+    applyPlace(f, { kind: 'station', station: ionity })
+    applyPlace(f, { kind: 'home' })
+    expect(f.chargingSite).toBeNull()
+    applyPlace(f, { kind: 'station', station: ionity })
+    applyPlace(f, { kind: 'other', cpoName: 'EnBW' })
+    expect(f.chargingSite).toBeNull()
   })
 
   it('Anderer Anbieter ist öffentlich und behält die gewählte Ladeart', () => {
@@ -88,9 +110,18 @@ describe('buildLogPayload', () => {
   it('cpoName nur bei öffentlicher Ladung, ocrUsed nur wenn genutzt', () => {
     const f = emptyLogForm()
     f.kwhAtVehicle = 10; f.costEur = 0; f.cpoName = 'IONITY'; f.isPublicCharging = false
+    f.chargingSite = { name: 'IONITY', geohash: 'u33dc0c' }
     const p = buildLogPayload(f, 'car-1', true)
     expect(p).toMatchObject({ kwhAtVehicle: 10, costEur: 0, ocrUsed: true })
     expect(p).not.toHaveProperty('cpoName')
+    expect(p).not.toHaveProperty('chargingSite')
+  })
+
+  it('Standortverweis geht nur bei öffentlicher Ladung mit', () => {
+    const f = emptyLogForm()
+    f.kwhCharged = 5; f.costEur = 2; f.isPublicCharging = true
+    f.chargingSite = { name: 'IONITY', geohash: 'u33dc0c' }
+    expect(buildLogPayload(f, 'car-1', false)).toMatchObject({ chargingSite: { name: 'IONITY', geohash: 'u33dc0c' } })
   })
 
   it('Währungsdaten und Zeitstempel werden übernommen', () => {

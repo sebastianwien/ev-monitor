@@ -1,3 +1,9 @@
+/** Verweis auf einen Ladestandort: Name plus Geohash-Zelle der Säule. */
+export interface ChargingSiteRef {
+  name: string
+  geohash: string
+}
+
 /** Formularzustand eines Ladevorgangs - geteilt von Wizard, Editor und klassischem Formular. */
 export interface LogFormData {
   kwhCharged: number | null
@@ -19,6 +25,8 @@ export interface LogFormData {
   isPublicCharging: boolean
   cpoName: string | null
   chargingProviderId: string | null
+  /** Register-Säule, an der geladen wurde - der Server prüft sie gegen das Register und legt den Standort an. */
+  chargingSite: ChargingSiteRef | null
   /**
    * Geohash of an already-stored log (edit mode). lat/lon are never persisted, so when editing
    * an imported charge this is the only location the client has.

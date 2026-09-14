@@ -108,6 +108,23 @@ class NearbyCpoServiceTest {
     }
 
     /**
+     * Fuer die Wiedererkennung als Ladestandort (charging_site) traegt jeder Vorschlag die
+     * Geohash-Zelle der naechstgelegenen Saeule seines Betreibers - nicht die des Nutzers.
+     */
+    @Test
+    void traegtDieZelleDerNaechstenSaeuleDesBetreibers() {
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
+                at("IONITY GmbH", "IONITY", 52.5212, 13.4054, 350, true, 2),
+                at("IONITY GmbH", "IONITY", 52.5196, 13.4055, 350, true, 2))));
+
+        var stations = service.findNearbyStations("u33dc0c").orElseThrow();
+
+        String nearest = ch.hsr.geohash.GeoHash.withCharacterPrecision(52.5196, 13.4055, 7).toBase32();
+        assertThat(stations).hasSize(1);
+        assertThat(stations.getFirst().geohash()).isEqualTo(nearest);
+    }
+
+    /**
      * Das Register meldet jede Saeule einzeln, oft an mehreren Punkten desselben Parkplatzes.
      * Fuer die Auswahl im Formular zaehlt der Betreiber, nicht die Saeule: ein Eintrag je Name,
      * mit der kuerzesten Entfernung, der hoechsten Leistung und allen Ladepunkten.

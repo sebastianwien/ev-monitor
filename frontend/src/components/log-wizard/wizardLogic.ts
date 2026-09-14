@@ -1,15 +1,17 @@
 import type { LogFormData } from '../log-form/logFormData'
 import type { NearbyStation } from '../../composables/useNearbyStations'
+import type { RecentSite } from '../../composables/useRecentSites'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5
 export const LAST_STEP: WizardStep = 5
 
-export type PlaceKind = 'home' | 'station' | 'other'
+export type PlaceKind = 'home' | 'station' | 'site' | 'other'
 
 export type PlaceChoice =
   | { kind: 'home' }
   | { kind: 'station'; station: NearbyStation }
+  | { kind: 'site'; site: RecentSite }
   | { kind: 'other'; cpoName: string | null }
 
 export interface WizardState { place: PlaceKind | null }
@@ -21,7 +23,7 @@ export function emptyLogForm(): LogFormData {
     kwhAtVehicle: null, chargeDurationMinutes: null, maxChargingPowerKw: null,
     loggedAt: null, chargingType: 'AC', routeType: 'COMBINED', tireType: 'SUMMER',
     latitude: null, longitude: null, isPublicCharging: false, cpoName: null,
-    chargingProviderId: null, applyTariffToLocation: false,
+    chargingProviderId: null, chargingSite: null, applyTariffToLocation: false,
   }
 }
 
@@ -42,15 +44,22 @@ export function canProceed(step: WizardStep, f: LogFormData, state: WizardState)
 export function applyPlace(f: LogFormData, choice: PlaceChoice): void {
   switch (choice.kind) {
     case 'home':
-      f.isPublicCharging = false; f.chargingType = 'AC'; f.cpoName = null
+      f.isPublicCharging = false; f.chargingType = 'AC'; f.cpoName = null; f.chargingSite = null
       break
     case 'station':
       f.isPublicCharging = true
       f.chargingType = choice.station.fastCharging ? 'DC' : 'AC'
       f.cpoName = choice.station.name
+      f.chargingSite = { name: choice.station.name, geohash: choice.station.geohash }
+      break
+    case 'site':
+      f.isPublicCharging = true
+      f.chargingType = choice.site.fastCharging ? 'DC' : 'AC'
+      f.cpoName = choice.site.cpoName ?? choice.site.name
+      f.chargingSite = { name: choice.site.name, geohash: choice.site.geohash }
       break
     case 'other':
-      f.isPublicCharging = true; f.cpoName = choice.cpoName
+      f.isPublicCharging = true; f.cpoName = choice.cpoName; f.chargingSite = null
       break
   }
 }
@@ -79,6 +88,7 @@ export function buildLogPayload(f: LogFormData, carId: string, ocrUsed: boolean)
   if (ocrUsed) payload.ocrUsed = true
   if (f.isPublicCharging && f.cpoName) payload.cpoName = f.cpoName
   if (f.chargingProviderId) payload.chargingProviderId = f.chargingProviderId
+  if (f.isPublicCharging && f.chargingSite) payload.chargingSite = f.chargingSite
   if (f.costExchangeRate != null) payload.costExchangeRate = f.costExchangeRate
   if (f.costCurrency != null) payload.costCurrency = f.costCurrency
   return payload

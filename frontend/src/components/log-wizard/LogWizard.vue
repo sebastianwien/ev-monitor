@@ -13,6 +13,7 @@ import { useLogsRefreshStore } from '../../stores/logsRefresh'
 import { useHaptic } from '../../composables/useHaptic'
 import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useNearbyStations } from '../../composables/useNearbyStations'
+import { useRecentSites } from '../../composables/useRecentSites'
 import { useCostInput } from '../../composables/useCostInput'
 import { queryLocationPermission, getCurrentPosition, LOCATION_ENABLED_KEY, type LocationPermission } from '../../composables/useLocationPermission'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
@@ -79,6 +80,7 @@ watch(selectedCarId, fetchLogs)
 const permission = ref<LocationPermission>('unknown')
 const locationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 const nearby = useNearbyStations()
+const recentSites = useRecentSites()
 const cpo = useCpoOptions(computed(() => countryStore.country))
 const providers = ref<ChargingProvider[]>([])
 
@@ -171,6 +173,7 @@ onMounted(async () => {
     if (cars.value.length === 1) selectedCarId.value = cars.value[0].id
   } catch { hasCars.value = false }
   cpo.loadAll()
+  recentSites.load()
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
   permission.value = await queryLocationPermission()
   // Schon einmal erlaubt: kein Dialog mehr, direkt laden. Sonst wartet der Hinweis auf den Tap.
@@ -197,7 +200,8 @@ onMounted(async () => {
       @back="back" @next="next" @cancel="emit('cancel')">
       <div v-if="cars.length > 1 && step === 1" class="mb-4"><CarSelector v-model="selectedCarId" /></div>
 
-      <StepPlace v-if="step === 1" :place="state.place" :selected-cpo="form.cpoName"
+      <StepPlace v-if="step === 1" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
+        :recent-sites="recentSites.sites.value"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"

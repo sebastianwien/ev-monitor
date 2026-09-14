@@ -47,9 +47,9 @@
         </template>
 
         <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
-        <StepPlace v-else-if="section === 'place'" :place="place" :selected-cpo="formData.cpoName"
+        <StepPlace v-else-if="section === 'place'" :place="place" :selected-cpo="formData.cpoName" :selected-site="formData.chargingSite"
           :stations="[]" :stations-loading="false" permission="unavailable" location-status="idle"
-          :recent-cpos="[]" :all-cpos="cpo.allCpos.value" @choose="choosePlace">
+          :recent-cpos="[]" :recent-sites="recentSites.sites.value" :all-cpos="cpo.allCpos.value" @choose="choosePlace">
         </StepPlace>
         <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
         <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
@@ -109,6 +109,7 @@ import { buildLogUpdatePayload, missingRequired, applyPlace, type PlaceChoice, t
 import LogSummary, { type SummarySection } from '../log-wizard/LogSummary.vue'
 import BigInput from '../log-wizard/BigInput.vue'
 import StepPlace from '../log-wizard/StepPlace.vue'
+import { useRecentSites } from '../../composables/useRecentSites'
 import StepEnergy from '../log-wizard/StepEnergy.vue'
 import StepVehicle from '../log-wizard/StepVehicle.vue'
 import StepCost from '../log-wizard/StepCost.vue'
@@ -181,6 +182,7 @@ const formData = ref<LogFormData>({
   geohash: props.log.geohash ?? null,
   isPublicCharging: props.log.isPublicCharging ?? false,
   cpoName: props.log.cpoName ?? null,
+  chargingSite: null,
   chargingProviderId: props.log.chargingProviderId ?? null,
   applyTariffToLocation: false,
 })
@@ -207,13 +209,15 @@ const odometerLocal = computed({
 })
 
 const cpo = useCpoOptions(computed(() => countryStore.country))
+const recentSites = useRecentSites()
 const providers = ref<ChargingProvider[]>([])
 onMounted(() => {
+  recentSites.load()
   cpo.loadAll().then(() => cpo.keepSelected(formData.value.cpoName))
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
 })
 
-const place = computed<PlaceKind | null>(() => formData.value.isPublicCharging ? 'other' : 'home')
+const place = computed<PlaceKind | null>(() => !formData.value.isPublicCharging ? 'home' : formData.value.chargingSite ? 'site' : 'other')
 const placeLabel = computed(() => formData.value.isPublicCharging
   ? (formData.value.cpoName ?? t('logwizard.place_other'))
   : t('logwizard.place_home'))

@@ -3106,6 +3106,7 @@ logwizard:
   nearby_title: "I närheten"
   nearby_loading: "Söker laddstationer i närheten"
   recent_title: "Senast använda"
+  site_usage: "{n} laddning | {n} laddningar"
   charge_points: "{n} laddpunkt | {n} laddpunkter"
   kwh_charger: "Enligt laddare"
   kwh_vehicle: "Enligt bil"

@@ -56,6 +56,7 @@ public class EvLog {
     private final BigDecimal costExchangeRate; // EUR->local rate used at entry time (null = EUR direct)
     private final String costCurrency;         // ISO 4217 currency code (null = EUR)
     private final UUID chargingProviderId;   // Optional: FK to user_charging_providers (which tariff was used)
+    private final UUID chargingSiteId;       // Optional: FK to charging_site (Register-Saeule, an der geladen wurde)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
     /** True if a downsampled charging-power curve is persisted alongside this log
@@ -79,7 +80,7 @@ public class EvLog {
             RouteType routeType, TireType tireType, UUID sessionGroupId,
             Boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
             EnergySource energySource,
-            BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId,
+            BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId, UUID chargingSiteId,
             boolean hasPowerCurve,
             boolean hasSocCurve) {
         this.id = id;
@@ -123,6 +124,7 @@ public class EvLog {
         this.costExchangeRate = costExchangeRate;
         this.costCurrency = costCurrency;
         this.chargingProviderId = chargingProviderId;
+        this.chargingSiteId = chargingSiteId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.hasPowerCurve = hasPowerCurve;
