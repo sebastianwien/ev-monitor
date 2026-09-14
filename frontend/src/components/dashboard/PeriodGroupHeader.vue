@@ -145,7 +145,7 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
     </div>
 
     <!-- Tagesraster mittig unter der Bilanz - siehe Kopfkommentar. -->
-    <div v-if="hasBars" class="mt-0.5 flex justify-center overflow-x-auto">
+    <div v-if="hasBars" class="mt-0.5 flex justify-center overflow-x-auto overflow-y-hidden">
       <PeriodDayBars :bars="group.bars" :month="isMonth" class="shrink-0" />
     </div>
   </div>
