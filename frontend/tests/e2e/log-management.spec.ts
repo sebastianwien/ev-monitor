@@ -126,6 +126,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     // Eindeutiger Zeitstempel um Duplikat-Kollision mit Test 1 zu vermeiden
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
+    await page.locator('[data-testid="time-other"]').click();
     await page.locator('input[type="datetime-local"]').fill(yesterday.toISOString().slice(0, 16));
 
     await page.locator('[data-testid="wizard-next"]').click();
