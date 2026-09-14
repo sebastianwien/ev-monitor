@@ -18,6 +18,7 @@ public class UserChargingProviderService {
 
     private final JpaUserChargingProviderRepository repository;
     private final com.evmonitor.application.CoinLogService coinLogService;
+    private final EmpCatalog empCatalog;
 
     public List<UserChargingProviderResponse> getAll(UUID userId) {
         return repository.findByUserIdAndDeletedAtIsNullOrderByActiveFromDesc(userId).stream()
@@ -30,6 +31,7 @@ public class UserChargingProviderService {
         UserChargingProviderEntity entity = new UserChargingProviderEntity();
         entity.setUserId(userId);
         entity.setProviderName(request.providerName());
+        entity.setEmpName(empCatalog.resolve(request.providerName()).orElse(null));
         entity.setLabel(request.label());
         entity.setAcPricePerKwh(request.acPricePerKwh());
         entity.setDcPricePerKwh(request.dcPricePerKwh());
@@ -51,6 +53,7 @@ public class UserChargingProviderService {
         UserChargingProviderEntity entity = findOwnedCard(userId, providerId);
 
         entity.setProviderName(request.providerName());
+        entity.setEmpName(empCatalog.resolve(request.providerName()).orElse(null));
         entity.setLabel(request.label());
         entity.setAcPricePerKwh(request.acPricePerKwh());
         entity.setDcPricePerKwh(request.dcPricePerKwh());
@@ -119,6 +122,7 @@ public class UserChargingProviderService {
         return new UserChargingProviderResponse(
                 e.getId(),
                 e.getProviderName(),
+                e.getEmpName(),
                 e.getLabel(),
                 e.getAcPricePerKwh(),
                 e.getDcPricePerKwh(),

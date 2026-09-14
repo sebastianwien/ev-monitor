@@ -35,6 +35,9 @@ class UserChargingProviderServiceTest {
     @Mock
     private com.evmonitor.application.CoinLogService coinLogService;
 
+    @Mock
+    private EmpCatalog empCatalog;
+
     private UserChargingProviderService service;
 
     private final UUID userId = UUID.randomUUID();
@@ -42,8 +45,9 @@ class UserChargingProviderServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new UserChargingProviderService(repository, coinLogService);
+        service = new UserChargingProviderService(repository, coinLogService, empCatalog);
         lenient().when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        lenient().when(empCatalog.resolve(any())).thenReturn(java.util.Optional.empty());
     }
 
     // ── Heimtarif-Markierung ─────────────────────────────────────────────────
@@ -164,6 +168,26 @@ class UserChargingProviderServiceTest {
                 new BigDecimal("0.49"), BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), false));
 
         assertThat(home.getActiveUntil()).isNull();
+    }
+
+    // ── EMP-Katalog ──────────────────────────────────────────────────────────
+
+    /** Der Nutzer schreibt, was er will - der Katalogverweis wird beim Anlegen und Ändern aufgelöst. */
+    @Test
+    void addAndUpdateResolveTheEmpFromTheCatalog() {
+        when(empCatalog.resolve("enbw")).thenReturn(Optional.of("EnBW"));
+        UserChargingProviderRequest request = new UserChargingProviderRequest("enbw", null,
+                new BigDecimal("0.49"), new BigDecimal("0.59"), BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), false);
+
+        assertThat(service.add(userId, request).empName()).isEqualTo("EnBW");
+
+        UserChargingProviderEntity card = new UserChargingProviderEntity();
+        card.setId(UUID.randomUUID()); card.setUserId(userId); card.setEmpName("EnBW");
+        when(repository.findById(card.getId())).thenReturn(Optional.of(card));
+        UserChargingProviderRequest renamed = new UserChargingProviderRequest("Meine Karte", null,
+                new BigDecimal("0.49"), new BigDecimal("0.59"), BigDecimal.ZERO, BigDecimal.ZERO, LocalDate.now(), false);
+
+        assertThat(service.update(userId, card.getId(), renamed).empName()).isNull();
     }
 
     private UserChargingProviderRequest homeRequest(LocalDate from) {
