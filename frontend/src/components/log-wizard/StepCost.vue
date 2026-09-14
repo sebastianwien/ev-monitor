@@ -108,14 +108,12 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-4">
-    <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus />
-    <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus />
+    <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus
+      :hint="calculatedLocalPerKwh != null ? `= ${formatNumber(calculatedLocalPerKwh)} ${symbol}/kWh` : null" />
+    <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus
+      :hint="calculatedLocalTotal != null ? `= ${formatNumber(calculatedLocalTotal)} ${symbol}` : null" />
     <SegmentToggle v-model="costMode"
       :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
-    <p class="text-sm text-gray-500 dark:text-gray-400 tabular-nums min-h-5">
-      <template v-if="costMode === 'total' && calculatedLocalPerKwh != null">= {{ formatNumber(calculatedLocalPerKwh) }} {{ symbol }}/kWh</template>
-      <template v-else-if="costMode === 'per_kwh' && calculatedLocalTotal != null">= {{ formatNumber(calculatedLocalTotal) }} {{ symbol }}</template>
-    </p>
 
     <div class="pt-2">
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('logwizard.price_suggestions') }}</p>

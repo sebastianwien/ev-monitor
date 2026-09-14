@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ id: string; unit: string; placeholder?: string; step?: string; min?: number; max?: number; inputmode?: 'decimal' | 'numeric'; testid?: string; autofocus?: boolean; label?: string }>()
+defineProps<{ id: string; unit: string; placeholder?: string; step?: string; min?: number; max?: number; inputmode?: 'decimal' | 'numeric'; testid?: string; autofocus?: boolean; label?: string; hint?: string | null }>()
 const model = defineModel<number | null>()
 const onInput = (e: Event) => {
   const v = (e.target as HTMLInputElement).value
@@ -12,6 +12,8 @@ const onInput = (e: Event) => {
     <input :id="id" :data-testid="testid" :aria-label="label" type="number" :inputmode="inputmode ?? 'decimal'" :step="step ?? 'any'" :min="min" :max="max"
       :placeholder="placeholder" :value="model ?? ''" :autofocus="autofocus" @input="onInput"
       class="flex-1 min-w-0 bg-transparent border-0 p-0 text-4xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+    <!-- Abgeleiteter Wert (z. B. Gesamtpreis bei Eingabe je kWh) direkt neben der Eingabe -->
+    <span v-if="hint" class="text-base tabular-nums text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ hint }}</span>
     <span class="text-base text-gray-500 dark:text-gray-400">{{ unit }}</span>
   </div>
 </template>
