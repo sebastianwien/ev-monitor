@@ -2453,7 +2453,7 @@ autosync_page:
   xpeng_title: "Hämta dina XPeng-data gratis"
   xpeng_body: "XPeng bygger just nu en officiell anslutning - så någon automatisk realtidsavläsning finns ännu inte. Men tack vare EU Data Act kan du redan i dag begära dina kör- och laddningsdata själv som en ZIP i XPeng-portalen. Ladda upp dem här, så läser vi ut resor och laddningar automatiskt - gratis, utan att skriva in något."
   xpeng_import_cta: "Importera ZIP"
-  xpeng_analytics_hint: "Vill du ha besparing, fantomförbrukning och laddkurvor från dessa data? Det låser Supporter-paketet upp."
+  xpeng_supporter_eyebrow: "Få ut mer av dina data"
   xpeng_supporter_cta: "Visa Supporter-paketet"
   unlock_title: "Vad AutoSync gör synligt för dig"
   demo_row_when: "Idag, 22:14 · Hemma"

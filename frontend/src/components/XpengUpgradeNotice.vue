@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { ArrowTopRightOnSquareIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
+import { ArrowTopRightOnSquareIcon, ArrowUpTrayIcon, HomeIcon, ChartPieIcon, BoltIcon, ArrowTrendingUpIcon, MapIcon } from '@heroicons/vue/24/outline'
 import XpengAutoSyncWaitlist from './imports/XpengAutoSyncWaitlist.vue'
+import ChargingSavingsCard from './dashboard/ChargingSavingsCard.vue'
+import { chargingSavingsDemo } from './dashboard/chargingSavingsDemo'
 
 // Eigenstaendige /upgrade-Variante fuer XPeng: XPeng hat keine Live-Schnittstelle,
 // der einzige Weg ist der kostenlose EU-Data-Act-ZIP-Upload. Darum kein AutoSync-
@@ -41,8 +43,43 @@ const { t } = useI18n()
       </div>
 
       <div class="mt-6 pt-5 border-t border-green-200/70 dark:border-green-700/30">
-        <p class="text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('autosync_page.xpeng_analytics_hint') }}</p>
-        <router-link to="/supporter" class="inline-block mt-1.5 text-[15px] font-semibold text-green-700 dark:text-green-400 hover:underline">{{ t('autosync_page.xpeng_supporter_cta') }} &rarr;</router-link>
+        <p class="text-[13px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">{{ t('autosync_page.xpeng_supporter_eyebrow') }}</p>
+        <p class="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">{{ t('supporter.unlock_title') }}</p>
+
+        <div class="text-left space-y-5">
+          <div>
+            <div class="flex items-start gap-3 mb-3">
+              <HomeIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_savings') }}</span>
+            </div>
+            <ChargingSavingsCard :savings="chargingSavingsDemo" demo />
+          </div>
+
+          <div class="flex items-start gap-3">
+            <ChartPieIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_analytics') }}</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <BoltIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_phantom') }}</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <ArrowTrendingUpIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_curves') }}</span>
+          </div>
+          <div class="flex items-start gap-3">
+            <MapIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <span class="text-[15px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_trips') }}</span>
+          </div>
+        </div>
+
+        <router-link
+          to="/supporter"
+          class="inline-flex items-center gap-1.5 mt-6 text-[15px] font-bold text-amber-600 dark:text-amber-400 hover:underline"
+        >
+          {{ t('autosync_page.xpeng_supporter_cta') }}
+          <span aria-hidden="true">&rarr;</span>
+        </router-link>
       </div>
     </div>
   </div>
