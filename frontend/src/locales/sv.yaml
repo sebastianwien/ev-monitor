@@ -3094,7 +3094,7 @@ logwizard:
   charging_type: "Laddtyp"
   q_vehicle: "Vad visar din bil?"
   q_cost: "Vad kostade det?"
-  q_review: "Ser det rätt ut?"
+  q_review: "Stämmer allt?"
   hint_nearby: "Plats hittad, laddstationer i närheten visas först."
   hint_vehicle: "Vi behöver båda värdena för din förbrukning."
   location_offer: "Visa laddstationer i närheten?"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline'
-import { LAST_STEP, type WizardStep } from './wizardLogic'
+import { INPUT_STEPS, type WizardStep } from './wizardLogic'
 
 defineProps<{
   step: WizardStep
@@ -25,15 +25,16 @@ const { t } = useI18n()
         </button>
         <div v-else class="w-8" />
         <span class="text-xs font-medium tracking-wide uppercase text-gray-400 dark:text-gray-500">
-          {{ t('logwizard.step_of', { step, total: LAST_STEP }) }}
+          {{ t('logwizard.step_of', { step: Math.min(step, INPUT_STEPS), total: INPUT_STEPS }) }}
         </span>
         <button type="button" :aria-label="t('common.cancel')" @click="emit('cancel')"
           class="w-8 h-8 -mr-2 flex items-center justify-center rounded-sm text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700">
           <XMarkIcon class="h-5 w-5" />
         </button>
       </div>
-      <div class="flex gap-1 mt-3" role="progressbar" :aria-valuenow="step" :aria-valuemin="1" :aria-valuemax="LAST_STEP">
-        <i v-for="i in LAST_STEP" :key="i" :class="['flex-1 h-1 rounded-sm', i <= step ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']" />
+      <!-- Vier Eingabeschritte zaehlen; die Pruefseite danach ist eine Bestaetigung, kein fuenfter Schritt -->
+      <div class="flex gap-1 mt-3" role="progressbar" :aria-valuenow="Math.min(step, INPUT_STEPS)" :aria-valuemin="1" :aria-valuemax="INPUT_STEPS">
+        <i v-for="i in INPUT_STEPS" :key="i" :class="['flex-1 h-1 rounded-sm', i <= step ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']" />
       </div>
       <h1 class="mt-4 text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 text-balance">{{ question }}</h1>
       <p v-if="hint" class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ hint }}</p>

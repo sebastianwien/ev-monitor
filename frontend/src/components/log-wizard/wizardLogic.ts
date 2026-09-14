@@ -5,6 +5,8 @@ import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5
 export const LAST_STEP: WizardStep = 5
+/** Schritte mit Eingabe; Schritt 5 ist die Prüfseite und zählt in der Anzeige nicht mit. */
+export const INPUT_STEPS = 4
 
 export type PlaceKind = 'home' | 'station' | 'site' | 'other'
 

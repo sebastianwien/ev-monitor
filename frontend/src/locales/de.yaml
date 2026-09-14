@@ -3210,7 +3210,7 @@ logwizard:
   charging_type: "Ladeart"
   q_vehicle: "Was zeigt dein Auto?"
   q_cost: "Was hat es gekostet?"
-  q_review: "Passt das so?"
+  q_review: "Alles richtig?"
   hint_nearby: "Standort erkannt, Ladesäulen in der Nähe stehen oben."
   hint_vehicle: "Beide Werte brauchen wir für deinen Verbrauch."
   location_offer: "Ladesäulen in der Nähe anzeigen?"
