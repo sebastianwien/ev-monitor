@@ -2525,6 +2525,7 @@ autosync_page:
   xpeng_body: "XPeng baut gerade an einer offiziellen Schnittstelle - einen automatischen Live-Abruf gibt es also noch nicht. Aber dank EU Data Act kannst du deine Fahr- und Ladedaten schon heute selbst im XPeng-Portal als ZIP anfordern. Lade sie hier hoch, und wir lesen Fahrten und Ladevorgänge automatisch aus - kostenlos, ohne Abtippen."
   xpeng_import_cta: "ZIP importieren"
   xpeng_supporter_eyebrow: "Hol mehr aus deinen Daten"
+  xpeng_supporter_headline: "Als Supporter gibt's ein paar Extras"
   xpeng_supporter_cta: "Supporter-Pack ansehen"
   unlock_title: "Was AutoSync für dich sichtbar macht"
   demo_row_when: "Heute, 22:14 · Zuhause"

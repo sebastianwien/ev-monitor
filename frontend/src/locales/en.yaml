@@ -2525,6 +2525,7 @@ autosync_page:
   xpeng_body: "XPeng is currently building an official interface - so there is no automatic live read-out yet. But thanks to the EU Data Act you can already request your driving and charging data yourself as a ZIP in the XPeng portal today. Upload it here and we read out trips and charging sessions automatically - free, no manual typing."
   xpeng_import_cta: "Import ZIP"
   xpeng_supporter_eyebrow: "Get more from your data"
+  xpeng_supporter_headline: "As a supporter you get a few extras"
   xpeng_supporter_cta: "View the Supporter pack"
   unlock_title: "What AutoSync makes visible for you"
   demo_row_when: "Today, 22:14 · Home"

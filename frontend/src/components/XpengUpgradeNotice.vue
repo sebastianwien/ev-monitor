@@ -44,7 +44,7 @@ const { t } = useI18n()
 
       <div class="mt-6 pt-5 border-t border-green-200/70 dark:border-green-700/30">
         <p class="text-[13px] font-semibold uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-1">{{ t('autosync_page.xpeng_supporter_eyebrow') }}</p>
-        <p class="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">{{ t('supporter.unlock_title') }}</p>
+        <p class="text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">{{ t('autosync_page.xpeng_supporter_headline') }}</p>
 
         <div class="text-left space-y-5">
           <div>
