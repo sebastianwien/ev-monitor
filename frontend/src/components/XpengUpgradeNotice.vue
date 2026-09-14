@@ -13,7 +13,7 @@ const { t } = useI18n()
 
 <template>
   <div class="py-6 md:py-12 px-4">
-    <div class="max-w-xl mx-auto rounded-sm border border-green-300 dark:border-green-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none p-5 md:p-8">
+    <div class="max-w-xl mx-auto text-center rounded-sm border border-green-300 dark:border-green-700 bg-white dark:bg-gray-900 shadow-sm dark:shadow-none p-5 md:p-8">
       <p class="text-[13px] font-semibold uppercase tracking-wider text-green-700 dark:text-green-400 mb-2">{{ t('autosync_page.xpeng_eyebrow') }}</p>
       <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3" style="text-wrap:balance">{{ t('autosync_page.xpeng_title') }}</h1>
       <p class="text-base md:text-[17px] leading-relaxed text-gray-700 dark:text-gray-300">{{ t('autosync_page.xpeng_body') }}</p>

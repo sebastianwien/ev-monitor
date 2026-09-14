@@ -2830,8 +2830,8 @@ xpeng:
   import_in_progress: "Import running"
   waitlist:
     eyebrow: "Possible future"
-    title: "Fully automatic XPeng import - if it becomes possible"
-    body: "XPeng currently offers no official interface for automatic data access. If that changes, we'd offer the import fully automatically. Want us to let you know if it happens?"
+    title: "Stay in the loop"
+    body: "Sign up and we'll let you know as soon as we can offer the automatic XPeng import."
     cta: "Notify me"
     joining: "Adding you ..."
     joined_title: "You're on the waitlist"

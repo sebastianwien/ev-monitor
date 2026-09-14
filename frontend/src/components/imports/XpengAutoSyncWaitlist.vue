@@ -22,7 +22,9 @@ onMounted(load)
       : 'rounded-sm border-2 border-green-600 dark:border-green-700 bg-green-50/60 dark:bg-green-950/30 p-5 md:p-6 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#15803d]'">
 
     <template v-if="!onWaitlist">
-      <p class="text-green-700 dark:text-green-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-1.5">
+      <p
+        class="text-green-700 dark:text-green-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-1.5"
+        :class="props.bare ? 'justify-center' : ''">
         <BoltIcon class="w-4 h-4" />
         {{ t('xpeng.waitlist.eyebrow') }}
       </p>
@@ -52,7 +54,7 @@ onMounted(load)
     </template>
 
     <template v-else>
-      <div class="flex items-start gap-3">
+      <div class="flex items-start gap-3" :class="props.bare ? 'flex-col items-center text-center' : ''">
         <CheckCircleIcon class="w-6 h-6 shrink-0 text-green-600 dark:text-green-400" />
         <div class="min-w-0">
           <h3 class="text-lg font-bold text-gray-900 dark:text-white tracking-tight mb-1">

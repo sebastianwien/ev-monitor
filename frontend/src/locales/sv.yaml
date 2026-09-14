@@ -2715,8 +2715,8 @@ xpeng:
   import_in_progress: "Import pågår"
   waitlist:
     eyebrow: "Möjlig framtid"
-    title: "Helautomatisk XPeng-import - om det blir möjligt"
-    body: "XPeng erbjuder för närvarande inget officiellt gränssnitt för automatisk datahämtning. Om det ändras skulle vi erbjuda importen helautomatiskt. Vill du att vi hör av oss om det händer?"
+    title: "Håll dig uppdaterad"
+    body: "Anmäl dig, så hör vi av oss så snart vi kan erbjuda automatisk XPeng-import."
     cta: "Meddela mig"
     joining: "Lägger till dig ..."
     joined_title: "Du står på väntelistan"
