@@ -42,7 +42,7 @@ const { t } = useI18n()
       </div>
     </div>
 
-    <div class="max-w-xl mx-auto mt-6">
+    <div class="max-w-xl mx-auto mt-6 rounded-sm bg-white dark:bg-gray-900">
       <XpengAutoSyncWaitlist />
     </div>
   </div>
