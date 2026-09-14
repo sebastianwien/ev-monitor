@@ -30,22 +30,10 @@ public class XpengImportController {
 
     private final XpengImportService importService;
 
-    /** 5 uploads / hour / user. Prevents brute-force on decryption password + tempdir abuse. */
+    /** 5 uploads / hour / user. Prevents tempdir abuse and upload brute-forcing. */
     private final ConcurrentMap<UUID, Bucket> rateLimits = new ConcurrentHashMap<>();
 
-    /** Altes Format: (ggf. verschluesselte) XLSX. */
-    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> upload(@AuthenticationPrincipal UserPrincipal principal,
-                                    @RequestParam("carId") UUID carId,
-                                    @RequestParam("file") MultipartFile file,
-                                    @RequestParam(value = "password", required = false) String password,
-                                    HttpServletRequest http) {
-        UUID userId = principal.getUser().getId();
-        return runUpload(userId, file, () -> importService.uploadXlsx(userId, carId, file.getInputStream(),
-                password, WebUtils.clientIp(http), http.getHeader("User-Agent")));
-    }
-
-    /** Neues EU-Data-Act-Format: ZIP mit CSV-Clustern (manueller Portal-Upload, kein Passwort). */
+    /** EU-Data-Act-Format: ZIP mit CSV-Clustern (manueller Portal-Upload, kein Passwort). */
     @PostMapping(value = "/upload-zip", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadZip(@AuthenticationPrincipal UserPrincipal principal,
                                        @RequestParam("carId") UUID carId,
@@ -97,7 +85,6 @@ public class XpengImportController {
     /**
      * Loescht alle XPENG_IMPORT-Daten des eingeloggten Users:
      * Ladevorgaenge (ev_log), Fahrten (ev_trip, soft-delete) und Import-Jobs.
-     * Verbindung / Vollmacht (xpeng_connection) bleibt aktiv.
      */
     @DeleteMapping("/imported-data")
     public ResponseEntity<?> deleteAllImportedData(@AuthenticationPrincipal UserPrincipal principal) {

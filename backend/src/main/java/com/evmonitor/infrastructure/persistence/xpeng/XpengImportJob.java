@@ -28,9 +28,6 @@ public class XpengImportJob {
     @Column(name = "car_id", nullable = false)
     private UUID carId;
 
-    @Column(name = "connection_id")
-    private UUID connectionId;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private Status status;

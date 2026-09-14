@@ -9,13 +9,9 @@ import com.evmonitor.domain.CarStatus;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.EvTripRepository;
-import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
-import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
 import com.evmonitor.domain.xpeng.XpengImportFormat;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJobRepository;
-import com.evmonitor.application.AdminAlertService;
-import com.evmonitor.domain.xpeng.XpengParseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,11 +37,14 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+/**
+ * Manueller EU-Data-Act-ZIP-Import. Der Mail-Weg / die Vollmacht (xpeng_connection) sind
+ * entfernt - der Import haengt nur noch an userId + carId + der VIN aus der Datei.
+ */
 @ExtendWith(MockitoExtension.class)
 class XpengImportServiceTest {
 
     @Mock CarRepository carRepository;
-    @Mock XpengConnectionRepository connectionRepo;
     @Mock XpengImportJobRepository jobRepo;
     @Mock TripService tripService;
     @Mock PublicApiImportService publicApiImportService;
@@ -53,7 +52,6 @@ class XpengImportServiceTest {
     @Mock ApplicationEventPublisher eventPublisher;
     @Mock EvLogRepository evLogRepository;
     @Mock EvTripRepository evTripRepository;
-    @Mock AdminAlertService adminAlertService;
 
     @InjectMocks XpengImportService service;
 
@@ -68,126 +66,127 @@ class XpengImportServiceTest {
     void setup() throws IOException {
         tempDir = Files.createTempDirectory("xpeng-test-");
         ReflectionTestUtils.setField(service, "tempDir", tempDir.toString());
-        // self-injection returns the same instance under test; @Async/@Transactional are no-ops in unit tests
     }
 
     @Test
     void rejectsUploadForCarOfOtherUser() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(OTHER_USER)));
         SecurityException ex = assertThrows(SecurityException.class,
-                () -> service.uploadXlsx(USER, CAR, validXlsxStream(), null, "1.1.1.1", "ua"));
+                () -> service.uploadCsvZip(USER, CAR, validZipStream(), "1.1.1.1", "ua"));
         assertTrue(ex.getMessage().contains("gehört"));
         verify(jobRepo, never()).save(any());
     }
 
     @Test
-    void rejectsUploadWithoutActiveConnection() {
+    void rejectsNonZipByMagicBytes() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.empty());
-        assertThrows(IllegalStateException.class,
-                () -> service.uploadXlsx(USER, CAR, validXlsxStream(), null, "1.1.1.1", "ua"));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> service.uploadCsvZip(USER, CAR,
+                        new ByteArrayInputStream("not a zip file".getBytes()), "1.1.1.1", "ua"));
+        assertTrue(ex.getMessage().toLowerCase().contains("magic"),
+                "Expected magic-bytes failure, got: " + ex.getMessage());
         verify(jobRepo, never()).save(any());
     }
 
     @Test
-    void rejectsUploadWithRevokedConnection() {
+    void rejectsOleEncryptedFile() {
+        // Der Export ist immer ein echtes ZIP - verschluesseltes OLE ist ungueltig.
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(revokedConnection()));
-        assertThrows(IllegalStateException.class,
-                () -> service.uploadXlsx(USER, CAR, validXlsxStream(), null, "1.1.1.1", "ua"));
-    }
-
-    @Test
-    void rejectsFileWithoutValidMagicBytes() {
-        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
-        // Not a ZIP/xlsx - just text bytes
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> service.uploadXlsx(USER, CAR,
-                        new ByteArrayInputStream("not an xlsx file".getBytes()),
-                        null, "1.1.1.1", "ua"));
-        assertTrue(ex.getMessage().toLowerCase().contains("magic"),
-                "Expected magic-bytes failure, got: " + ex.getMessage());
-    }
-
-    @Test
-    void acceptsEncryptedXlsxWithOleCfbMagicBytes() {
-        // Password-protected xlsx uses OLE Compound File Format (D0 CF 11 E0 A1 B1 1A E1)
-        // instead of plain ZIP magic. Upload validation must NOT reject it - decryption happens
-        // later in the parser.
-        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
-        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        byte[] oleMagic = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
+        byte[] ole = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
                 (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1, 0, 0};
-        assertDoesNotThrow(() -> service.uploadXlsx(USER, CAR,
-                new ByteArrayInputStream(oleMagic), "pw", "1.1.1.1", "ua"));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(ole), "1.1.1.1", "ua"));
+        verify(jobRepo, never()).save(any());
     }
 
     @Test
     void rejectsTinyFile() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> service.uploadXlsx(USER, CAR,
-                        new ByteArrayInputStream(new byte[]{1, 2}),
-                        null, "1.1.1.1", "ua"));
+                () -> service.uploadCsvZip(USER, CAR,
+                        new ByteArrayInputStream(new byte[]{1, 2}), "1.1.1.1", "ua"));
         assertTrue(ex.getMessage().contains("klein"));
     }
 
     @Test
-    void allowsReuploadAfterPreviousAttemptFailed() {
-        // Same file hash, previous job FAILED (e.g. wrong VIN) - user must be able to retry.
+    void rejectsZipWithoutValidVin() throws Exception {
+        // Ein gueltiges ZIP ohne verwertbare VIN wird vor dem Anlegen eines Jobs abgelehnt.
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
+        byte[] zip = Files.readAllBytes(writeCsvZip("SHORTVIN"));
+        assertThrows(IllegalArgumentException.class,
+                () -> service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(zip), "1.1.1.1", "ua"));
+        verify(jobRepo, never()).save(any());
+    }
+
+    @Test
+    void queuesJobForValidZip() throws Exception {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
         when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
                 anyCollection())).thenReturn(Optional.empty());
         when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        assertDoesNotThrow(() -> service.uploadXlsx(USER, CAR, validXlsxStream(),
-                null, "1.1.1.1", "ua"));
+        byte[] zip = Files.readAllBytes(writeCsvZip(VIN));
+
+        XpengImportJob job = service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(zip), "1.1.1.1", "ua");
+
+        assertEquals(XpengImportJob.Status.QUEUED, job.getStatus());
+        assertEquals(XpengImportFormat.CSV_ZIP, job.getFormat());
+        assertTrue(Files.exists(Path.of(job.getTempfilePath())), "Tempfile bleibt fuer den Worker liegen");
+        verify(eventPublisher).publishEvent(any(XpengImportJobQueuedEvent.class));
+    }
+
+    @Test
+    void allowsReuploadAfterPreviousAttemptFailed() {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
+                anyCollection())).thenReturn(Optional.empty());
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        assertDoesNotThrow(() -> service.uploadCsvZip(USER, CAR, validZipStream(), "1.1.1.1", "ua"));
         verify(jobRepo).save(any());
     }
 
     @Test
     void blocksReuploadWhilePreviousJobStillRunning() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
         XpengImportJob inFlight = XpengImportJob.builder()
                 .id(UUID.randomUUID()).userId(USER).carId(CAR)
                 .status(XpengImportJob.Status.PROCESSING).build();
         when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
                 anyCollection())).thenReturn(Optional.of(inFlight));
         IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> service.uploadXlsx(USER, CAR, validXlsxStream(),
-                        null, "1.1.1.1", "ua"));
+                () -> service.uploadCsvZip(USER, CAR, validZipStream(), "1.1.1.1", "ua"));
         assertTrue(ex.getMessage().contains("bereits"));
         verify(jobRepo, never()).save(any());
     }
 
     @Test
-    void markiertJobFailedWennVerarbeitungMitErrorStirbt() {
-        // Regression: ein OutOfMemoryError (Error, keine Exception) beim Verarbeiten darf den
-        // Async-Job NICHT stumm in PROCESSING haengen lassen - er muss als FAILED enden.
-        UUID jobId = UUID.randomUUID();
-        UUID connId = UUID.randomUUID();
-        XpengImportJob job = processingJob(jobId, connId, XpengImportFormat.CSV_ZIP,
-                tempDir.resolve("nonexistent.zip"));
+    void process_validZip_marksDoneAndClearsFileReferences() throws Exception {
+        Path zip = writeCsvZip(VIN);
+        XpengImportJob job = processingJob(zip);
         when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(connectionRepo.findByCarId(CAR)).thenThrow(new OutOfMemoryError("heap"));
+
+        service.process(job);
+
+        assertEquals(XpengImportJob.Status.DONE, job.getStatus());
+        assertNull(job.getTempfilePath(), "Datei-Referenz wird nach Verarbeitung entfernt");
+        assertFalse(Files.exists(zip), "Tempfile wird nach Verarbeitung geloescht");
+    }
+
+    @Test
+    void process_marksFailedWhenProcessingThrows() {
+        // Regression: ein Fehler beim Verarbeiten (hier: fehlendes Tempfile) darf den Job NICHT
+        // stumm in PROCESSING haengen lassen - er muss als FAILED enden.
+        XpengImportJob job = processingJob(tempDir.resolve("nonexistent.zip"));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         service.process(job);
 
         ArgumentCaptor<XpengImportJob> captor = ArgumentCaptor.forClass(XpengImportJob.class);
         verify(jobRepo, atLeastOnce()).save(captor.capture());
-        assertEquals(XpengImportJob.Status.FAILED, captor.getValue().getStatus(),
-                "Job muss nach einem Error als FAILED markiert sein, nicht in PROCESSING haengen");
+        assertEquals(XpengImportJob.Status.FAILED, captor.getValue().getStatus());
     }
 
     @Test
     void deleteAllImportedData_clearsLogsTripsAndJobs() {
-        // Trips hart loeschen: der UNIQUE-Index auf external_id ignoriert deleted_at,
-        // sodass Soft-Delete einen Re-Import desselben Trips an einem Constraint-Violation
-        // scheitern liesse.
         when(evLogRepository.countByUserIdAndDataSource(USER, DataSource.XPENG_IMPORT)).thenReturn(42);
         when(evTripRepository.deleteAllByUserIdAndDataSource(USER, "XPENG_IMPORT")).thenReturn(70);
         when(jobRepo.deleteAllByUserId(USER)).thenReturn(4L);
@@ -210,11 +209,16 @@ class XpengImportServiceTest {
         verify(jobRepo).findByIdAndUserId(jobId, USER);
     }
 
-    private ByteArrayInputStream validXlsxStream() {
-        // ZIP magic bytes - enough to pass the magic-bytes check
-        // (parsing would fail later, but uploadXlsx never reaches parsing in these tests)
-        byte[] zipMagic = {0x50, 0x4B, 0x03, 0x04, 0, 0, 0, 0, 0, 0};
-        return new ByteArrayInputStream(zipMagic);
+    // --- helpers ---
+
+    private ByteArrayInputStream validZipStream() {
+        // ZIP-Magic reicht, um den Magic-Byte-Check zu passieren (die VIN-Pruefung liest weiter,
+        // wird aber in diesen Faellen ueber ein echtes ZIP-Fixture abgedeckt).
+        try {
+            return new ByteArrayInputStream(Files.readAllBytes(writeCsvZip(VIN)));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Car ownedBy(UUID owner) {
@@ -224,131 +228,6 @@ class XpengImportServiceTest {
                 .status(CarStatus.ACTIVE)
                 .createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
                 .build();
-    }
-
-    private XpengConnection activeConnection() {
-        return XpengConnection.builder()
-                .id(UUID.randomUUID()).userId(USER).carId(CAR).vin(VIN)
-                .consentGrantedAt(LocalDateTime.now())
-                .consentVersion(XpengConnection.CURRENT_CONSENT_VERSION)
-                .build();
-    }
-
-    private XpengConnection revokedConnection() {
-        XpengConnection c = activeConnection();
-        c.setConsentRevokedAt(LocalDateTime.now());
-        return c;
-    }
-
-    // --- CSV-ZIP Format (neues EU-Data-Act-Format) ---
-
-    @Test
-    void uploadCsvZip_rejectsNonZip() {
-        // Scheitert am Magic-Byte-Check noch vor der VIN-/Connection-Aufloesung.
-        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> service.uploadCsvZip(USER, CAR,
-                        new ByteArrayInputStream("plain,csv\n1,2".getBytes()), "1.1.1.1", "ua"));
-        assertTrue(ex.getMessage().toLowerCase().contains("magic"), ex.getMessage());
-        verify(jobRepo, never()).save(any());
-    }
-
-    @Test
-    void uploadCsvZip_rejectsOleEncrypted() {
-        // CSV-ZIP darf nur ein echtes ZIP sein - verschluesseltes OLE ist hier ungueltig.
-        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        byte[] ole = {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
-                (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1, 0, 0};
-        assertThrows(IllegalArgumentException.class,
-                () -> service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(ole), "1.1.1.1", "ua"));
-        verify(jobRepo, never()).save(any());
-    }
-
-    @Test
-    void uploadCsvZip_queuesJobForValidZip() throws Exception {
-        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
-        when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
-                anyCollection())).thenReturn(Optional.empty());
-        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        byte[] zip = Files.readAllBytes(writeCsvZip(VIN));
-
-        XpengImportJob job = service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(zip), "1.1.1.1", "ua");
-
-        assertEquals(XpengImportJob.Status.QUEUED, job.getStatus());
-        assertEquals(XpengImportFormat.CSV_ZIP, job.getFormat());
-        assertTrue(Files.exists(Path.of(job.getTempfilePath())), "Tempfile bleibt fuer den Worker liegen");
-        verify(eventPublisher).publishEvent(any(XpengImportJobQueuedEvent.class));
-    }
-
-    @Test
-    void uploadCsvZip_firstUpload_autoLinksVinFromFile() throws Exception {
-        // Keine bestehende Connection -> VIN aus dem ZIP wird automatisch ans Auto gebunden.
-        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.empty());
-        when(connectionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(jobRepo.findFirstByUserIdAndFileHashAndStatusIn(eq(USER), anyString(),
-                anyCollection())).thenReturn(Optional.empty());
-        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        byte[] zip = Files.readAllBytes(writeCsvZip(VIN));
-
-        service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(zip), "1.1.1.1", "ua");
-
-        ArgumentCaptor<XpengConnection> cap = ArgumentCaptor.forClass(XpengConnection.class);
-        verify(connectionRepo).save(cap.capture());
-        assertEquals(VIN, cap.getValue().getVin());
-        assertFalse(cap.getValue().isAutoSyncEnabled());
-        assertEquals(XpengConnection.MANUAL_CONSENT_VERSION, cap.getValue().getConsentVersion());
-        verify(jobRepo).save(any());
-    }
-
-    @Test
-    void uploadCsvZip_rejectsVinMismatchWithLinkedCar() throws Exception {
-        // Auto ist bereits mit VIN verknuepft; ein Export mit anderer VIN wird abgelehnt.
-        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
-        byte[] zip = Files.readAllBytes(writeCsvZip("WRONGVIN000000000"));
-
-        IllegalStateException ex = assertThrows(IllegalStateException.class,
-                () -> service.uploadCsvZip(USER, CAR, new ByteArrayInputStream(zip), "1.1.1.1", "ua"));
-        assertTrue(ex.getMessage().toLowerCase().contains("passt nicht"), ex.getMessage());
-        verify(jobRepo, never()).save(any());
-    }
-
-    @Test
-    void process_csvZip_matchingVin_marksDoneAndClearsFileReferences() throws Exception {
-        UUID jobId = UUID.randomUUID();
-        UUID connectionId = UUID.randomUUID();
-        Path zip = writeCsvZip(VIN);
-        XpengImportJob job = processingJob(jobId, connectionId, XpengImportFormat.CSV_ZIP, zip);
-        XpengConnection conn = activeConnection();
-        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(conn));
-        when(connectionRepo.findById(connectionId)).thenReturn(Optional.of(conn));
-
-        service.process(job);
-
-        assertEquals(XpengImportJob.Status.DONE, job.getStatus());
-        assertNull(job.getTempfilePath(), "Datei-Referenz wird nach Verarbeitung entfernt");
-        assertFalse(Files.exists(zip), "Tempfile wird nach Verarbeitung geloescht");
-        verify(adminAlertService, never()).sendXpengEncryptionAlert(any(), any(), any());
-    }
-
-    @Test
-    void process_csvZip_vinMismatch_marksFailed() throws Exception {
-        UUID jobId = UUID.randomUUID();
-        UUID connectionId = UUID.randomUUID();
-        Path zip = writeCsvZip("WRONGVIN000000000");
-        XpengImportJob job = processingJob(jobId, connectionId, XpengImportFormat.CSV_ZIP, zip);
-        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(activeConnection()));
-
-        service.process(job);
-
-        assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
-        assertTrue(job.getErrorMessage() != null
-                        && job.getErrorMessage().toLowerCase().contains("vin"),
-                "erwartete VIN-Mismatch-Meldung, war: " + job.getErrorMessage());
     }
 
     /** Baut ein minimales CSV-ZIP (operation + power_energy Cluster) mit der gegebenen VIN. */
@@ -373,81 +252,10 @@ class XpengImportServiceTest {
         return zip;
     }
 
-    // --- isEncryptionRelated ---
-
-    @Test
-    void detectsWrongPasswordException() {
-        assertTrue(XpengImportService.isEncryptionRelated(
-                new XpengParseException("Wrong password for encrypted xlsx")));
-    }
-
-    @Test
-    void detectsNoPasswordAvailableException() {
-        assertTrue(XpengImportService.isEncryptionRelated(
-                new XpengParseException("Encrypted XLSX - no password available")));
-    }
-
-    @Test
-    void detectsWrappedEncryptionException() {
-        RuntimeException wrapped = new RuntimeException("import failed",
-                new XpengParseException("Wrong password for encrypted xlsx"));
-        assertTrue(XpengImportService.isEncryptionRelated(wrapped));
-    }
-
-    @Test
-    void doesNotFlagUnrelatedFailures() {
-        assertFalse(XpengImportService.isEncryptionRelated(
-                new RuntimeException("VIN mismatch")));
-    }
-
-    // --- process: encryption alert ---
-
-    @Test
-    void sendsAlertWhenOleXlsxHasNoPassword() throws Exception {
-        UUID jobId = UUID.randomUUID();
-        UUID connectionId = UUID.randomUUID();
-
-        // Write a file with OLE magic bytes
-        Path oleTempFile = Files.createTempFile(tempDir, "test-ole-", ".xlsx");
-        Files.write(oleTempFile, new byte[]{
-                (byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
-                (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1, 0, 0, 0, 0
-        });
-
-        XpengImportJob job = processingJob(jobId, connectionId, XpengImportFormat.XLSX, oleTempFile);
-        XpengConnection conn = activeConnection();
-
-        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-        when(connectionRepo.findByCarId(CAR)).thenReturn(Optional.of(conn));
-        when(connectionRepo.findById(connectionId)).thenReturn(Optional.of(conn));
-
-        service.process(job);
-
-        verify(adminAlertService).sendXpengEncryptionAlert(eq(connectionId), anyString(), anyString());
-        assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
-    }
-
-    @Test
-    void doesNotSendAlertForNonEncryptionFailures() throws Exception {
-        UUID jobId = UUID.randomUUID();
-        UUID connectionId = UUID.randomUUID();
-
-        // Non-existent file → IOException, not encryption-related
-        XpengImportJob job = processingJob(jobId, connectionId, XpengImportFormat.XLSX,
-                Path.of("/nonexistent/path.xlsx"));
-
-        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        service.process(job);
-
-        verify(adminAlertService, never()).sendXpengEncryptionAlert(any(), any(), any());
-        assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
-    }
-
-    private static XpengImportJob processingJob(UUID jobId, UUID connectionId, XpengImportFormat format, Path tempfile) {
+    private static XpengImportJob processingJob(Path tempfile) {
         return XpengImportJob.builder()
-                .id(jobId).userId(USER).carId(CAR).connectionId(connectionId)
-                .format(format).tempfilePath(tempfile.toString())
+                .id(UUID.randomUUID()).userId(USER).carId(CAR)
+                .format(XpengImportFormat.CSV_ZIP).tempfilePath(tempfile.toString())
                 .status(XpengImportJob.Status.PROCESSING).build();
     }
 }

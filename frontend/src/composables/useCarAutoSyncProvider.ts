@@ -48,12 +48,10 @@ export function autoSyncProviderFor(car: Pick<Car, 'brand'>): AutoSyncProvider {
  * the paid connect/OAuth flow (see its usages in AutoSyncCarPicker/useCarSetupTeaser)
  * and deliberately excludes XPeng since it never goes through that flow.
  * - Tesla: Fleet Telemetry
- * - XPeng: EU Data Act email round-trip (XpengConnectionService)
  *
- * XPeng is hardcoded here rather than routed through a real connector because the
- * EU Data Act round-trip is the only option today. Revisit once XPeng ships a public
- * API (announced for later this year, as of 2026-08) - at that point it likely earns
- * its own AutoSyncProvider value instead of living in this brand list.
+ * XPeng is NOT a free data source: there is no live connection at all. XPeng owners
+ * import their own EU-Data-Act ZIP export manually (see XpengImportService). Should
+ * XPeng ever ship an official API, it would earn its own AutoSyncProvider value.
  */
 const FREE_DATA_SOURCE_BRANDS = new Set(['TESLA'])
 

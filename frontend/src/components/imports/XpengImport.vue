@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n'
 import { ExclamationCircleIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import XpengUploadStep from './XpengUploadStep.vue'
 import XpengJobStatus from './XpengJobStatus.vue'
-import XpengConnectionsList from './XpengConnectionsList.vue'
 import XpengAutoSyncWaitlist from './XpengAutoSyncWaitlist.vue'
 import { useXpengJobs } from '../../composables/useXpengJobs'
 import xpengService, { type XpengJobDto } from '../../api/xpengService'
@@ -14,7 +13,7 @@ const { t } = useI18n()
 const props = defineProps<{ cars: Car[] }>()
 
 const {
-  connections, jobs, activeJob, loading, error,
+  jobs, activeJob, loading, error,
   refresh, startPolling, tryResumeFromStorage,
 } = useXpengJobs()
 
@@ -117,16 +116,8 @@ async function onDeleteAllData() {
 
       <XpengJobStatus v-if="activeJob" :job="activeJob" />
 
-      <!-- Opt-in Warteliste fuer den kommenden automatischen XPeng-Import -->
+      <!-- Opt-in Warteliste, falls XPeng jemals eine offizielle Schnittstelle bereitstellt -->
       <XpengAutoSyncWaitlist v-if="xpengCars.length > 0" />
-
-      <XpengConnectionsList
-        :connections="connections"
-        :jobs="jobs"
-        filter="manual"
-        @refresh="refresh"
-        @error="onError"
-      />
 
       <!-- Destruktive Aktion: alle XPENG_IMPORT-Daten loeschen -->
       <div v-if="hasImportedData"

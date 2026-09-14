@@ -1,14 +1,13 @@
 import { onBeforeUnmount, ref } from 'vue'
-import xpengService, { type XpengConnectionDto, type XpengJobDto } from '../api/xpengService'
+import xpengService, { type XpengJobDto } from '../api/xpengService'
 
 const LS_KEY = 'xpeng:activeJobId'
 
 /**
- * Encapsulates XPeng connection + job listing, active-job polling, and
+ * Encapsulates XPeng import-job listing, active-job polling, and
  * localStorage-based resume after page reload.
  */
 export function useXpengJobs() {
-  const connections = ref<XpengConnectionDto[]>([])
   const jobs = ref<XpengJobDto[]>([])
   const activeJob = ref<XpengJobDto | null>(null)
   const loading = ref(true)
@@ -20,12 +19,7 @@ export function useXpengJobs() {
     loading.value = true
     error.value = ''
     try {
-      const [c, j] = await Promise.all([
-        xpengService.listConnections(),
-        xpengService.listJobs(),
-      ])
-      connections.value = c
-      jobs.value = j
+      jobs.value = await xpengService.listJobs()
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } }; message?: string }
       error.value = err.response?.data?.error ?? err.message ?? 'Unknown error'
@@ -78,7 +72,7 @@ export function useXpengJobs() {
   onBeforeUnmount(() => stopPolling())
 
   return {
-    connections, jobs, activeJob, loading, error,
+    jobs, activeJob, loading, error,
     refresh, startPolling, stopPolling, tryResumeFromStorage,
   }
 }

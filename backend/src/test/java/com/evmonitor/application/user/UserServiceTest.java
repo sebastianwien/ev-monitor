@@ -36,6 +36,9 @@ class UserServiceTest {
     private CarRepository carRepository;
 
     @Mock
+    private com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository xpengConsentAuditRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock

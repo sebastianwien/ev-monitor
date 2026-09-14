@@ -1,6 +1,5 @@
 package com.evmonitor.application.imports.xpeng;
 
-import com.evmonitor.application.AdminAlertService;
 import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.application.TripService;
 import com.evmonitor.application.publicapi.PublicApiImportService;
@@ -12,13 +11,9 @@ import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.xpeng.XpengImportFormat;
 import com.evmonitor.domain.xpeng.DetectedChargingSession;
 import com.evmonitor.domain.xpeng.DetectedTrip;
-import com.evmonitor.domain.xpeng.VinUtils;
 import com.evmonitor.domain.xpeng.XpengChargeDetector;
-import com.evmonitor.domain.xpeng.XpengExcelStreamingParser;
 import com.evmonitor.domain.xpeng.XpengParseException;
 import com.evmonitor.domain.xpeng.XpengTripDetector;
-import com.evmonitor.infrastructure.persistence.xpeng.XpengConnection;
-import com.evmonitor.infrastructure.persistence.xpeng.XpengConnectionRepository;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJobRepository;
 import lombok.RequiredArgsConstructor;
@@ -53,10 +48,10 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Pipeline for the XPeng XLSX import. Flow:
+ * Pipeline for the manual XPeng EU-Data-Act ZIP import. Flow:
  *
- *   uploadXlsx() (sync, caller thread):
- *     - validate file + ownership + connection consent
+ *   uploadCsvZip() (sync, caller thread):
+ *     - validate file + ownership + VIN present in export
  *     - hash file + reject duplicates
  *     - persist tempfile under restrictive permissions
  *     - create QUEUED XpengImportJob
@@ -68,6 +63,8 @@ import java.util.Set;
  *     - update job stats
  *
  * The job table is the queue; crash/restart recovery lives in {@link XpengImportJobWorker}.
+ * Der User laedt seinen eigenen Data-Act-Export hoch - es gibt keine Vollmacht/Connection
+ * und keinen Mail-Weg mehr; die VIN kommt ausschliesslich aus der Datei.
  */
 @Service
 @Slf4j
@@ -76,15 +73,9 @@ public class XpengImportService {
 
     private static final long MAX_UPLOAD_BYTES = 100L * 1024 * 1024;
     private static final ObjectMapper EXTRAS_MAPPER = new ObjectMapper();
-    // Plain xlsx (ZIP container) starts with "PK\x03\x04".
+    // Der EU-Data-Act-Export ist ein ZIP-Container ("PK\x03\x04").
     private static final byte[] ZIP_MAGIC = {0x50, 0x4B, 0x03, 0x04};
-    // Password-protected xlsx uses OLE Compound File Format - POIFSFileSystem decrypts these.
-    private static final byte[] OLE_CFB_MAGIC = {
-            (byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
-            (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1
-    };
 
-    private final XpengConnectionRepository connectionRepo;
     private final XpengImportJobRepository jobRepo;
     private final CarRepository carRepository;
     private final TripService tripService;
@@ -93,7 +84,6 @@ public class XpengImportService {
     private final ApplicationEventPublisher eventPublisher;
     private final com.evmonitor.domain.EvLogRepository evLogRepository;
     private final com.evmonitor.domain.EvTripRepository evTripRepository;
-    private final AdminAlertService adminAlertService;
 
     @Value("${xpeng.import.tempdir}")
     private String tempDir;
@@ -109,43 +99,21 @@ public class XpengImportService {
         }
     }
 
-    @Transactional
-    public XpengImportJob uploadXlsx(UUID userId, UUID carId, InputStream content, String password,
-                                      String clientIp, String userAgent) throws IOException {
-        return upload(userId, carId, content, XpengImportFormat.XLSX, password, clientIp, userAgent);
-    }
-
-    /** Neues EU-Data-Act-Format: ZIP mit unverschluesselten CSV-Clustern, kein Passwort. */
+    /** EU-Data-Act-Format: ZIP mit unverschluesselten CSV-Clustern, kein Passwort, keine Vollmacht. */
     @Transactional
     public XpengImportJob uploadCsvZip(UUID userId, UUID carId, InputStream content,
                                        String clientIp, String userAgent) throws IOException {
-        return upload(userId, carId, content, XpengImportFormat.CSV_ZIP, null, clientIp, userAgent);
-    }
-
-    private XpengImportJob upload(UUID userId, UUID carId, InputStream content, XpengImportFormat format,
-                                  String password, String clientIp, String userAgent) throws IOException {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
         if (!car.getUserId().equals(userId)) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
-        // Verbindung aufloesen: XLSX (Mail-Flow/Poller) verlangt eine bestehende aktive Vollmacht.
-        // CSV-ZIP (manueller Portal-Upload) bindet die VIN aus der Datei automatisch ans Auto.
-        Path tempfile;
-        XpengConnection connection;
-        if (format == XpengImportFormat.CSV_ZIP) {
-            tempfile = persistUpload(content, format);
-            try {
-                connection = resolveConnectionForCsv(userId, carId, tempfile);
-            } catch (RuntimeException e) {
-                try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
-                throw e;
-            }
-        } else {
-            connection = connectionRepo.findByCarId(carId)
-                    .filter(XpengConnection::isActive)
-                    .orElseThrow(() -> new IllegalStateException("Keine aktive XPeng-Vollmacht für dieses Fahrzeug"));
-            tempfile = persistUpload(content, format);
+        Path tempfile = persistUpload(content);
+        try {
+            validateZipHasVin(tempfile);
+        } catch (RuntimeException e) {
+            try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
+            throw e;
         }
         long size = Files.size(tempfile);
         String hash = sha256(tempfile);
@@ -166,13 +134,11 @@ public class XpengImportService {
         XpengImportJob job = jobRepo.save(XpengImportJob.builder()
                 .userId(userId)
                 .carId(carId)
-                .connectionId(connection.getId())
                 .status(XpengImportJob.Status.QUEUED)
                 .fileHash(hash)
                 .fileSizeBytes(size)
                 .tempfilePath(tempfile.toString())
-                .format(format)
-                .filePassword(password)
+                .format(XpengImportFormat.CSV_ZIP)
                 .build());
 
         log.info("XpengImport: queued job={} car={} size={}MB hash={}",
@@ -202,12 +168,6 @@ public class XpengImportService {
             job.setDataRangeEnd(stats.rangeEnd);
             job.setCompletedAt(LocalDateTime.now());
 
-            connectionRepo.findById(job.getConnectionId()).ifPresent(c -> {
-                c.setLastSuccessfulImportAt(LocalDateTime.now());
-                c.setTotalImportsCount(c.getTotalImportsCount() + 1);
-                connectionRepo.save(c);
-            });
-
             log.info("XpengImport: job={} DONE trips={} sessions={} skipped={} skippedTrips={}",
                     jobId, stats.importedTrips, stats.importedSessions, stats.skipped, stats.skippedTrips);
         } catch (Throwable e) {
@@ -218,11 +178,6 @@ public class XpengImportService {
             job.setStatus(XpengImportJob.Status.FAILED);
             job.setErrorMessage(truncate(e.getMessage(), 500));
             job.setCompletedAt(LocalDateTime.now());
-            if (isEncryptionRelated(e)) {
-                connectionRepo.findById(job.getConnectionId()).ifPresent(conn ->
-                        adminAlertService.sendXpengEncryptionAlert(
-                                job.getConnectionId(), VinUtils.mask(conn.getVin()), e.getMessage()));
-            }
         } finally {
             try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
             job.clearFileReferences();
@@ -231,13 +186,8 @@ public class XpengImportService {
     }
 
     private ImportStats runImport(XpengImportJob job, Path tempfile) throws Exception {
-        XpengImportFormat format = job.getFormat();
-        String password = job.getFilePassword();
         UUID userId = job.getUserId();
         UUID carId = job.getCarId();
-
-        XpengConnection connection = connectionRepo.findByCarId(carId).orElseThrow();
-        String expectedVin = connection.getVin();
 
         XpengTripDetector tripDet = new XpengTripDetector();
         XpengChargeDetector chargeDet = new XpengChargeDetector();
@@ -252,21 +202,15 @@ public class XpengImportService {
             chargeDet.consume(row).ifPresent(sessions::add);
         };
 
-        // Nur der Parser unterscheidet die Formate; alles ab hier (Detektoren, VIN-Guard,
-        // Trip-/Session-Persistenz) ist identisch.
-        String fileVin = parseTelematics(format, tempfile, password, rowHandler);
+        String fileVin = parseTelematics(tempfile, rowHandler);
         tripDet.finish().ifPresent(trips::add);
         chargeDet.finish().ifPresent(sessions::add);
 
-        // VIN guard (strict): the file MUST contain a VIN, and it MUST match the connection.
-        // A missing VIN means we cannot verify the file belongs to this car - reject rather than
-        // letting potentially mismatched data land in the user's account.
+        // VIN guard: die Datei MUSS eine VIN enthalten - sie ist der stabile Schluessel fuer die
+        // deterministische Trip-ID (Re-Import-Dedup). Das gewaehlte Auto bestimmt der User in der UI;
+        // eine gespeicherte Fahrzeug-VIN zum Gegenpruefen gibt es seit dem Wegfall der Connection nicht.
         if (fileVin == null || fileVin.isBlank()) {
             throw new XpengParseException("Die Datei enthält keine VIN - Zuordnung zum Fahrzeug nicht möglich.");
-        }
-        if (!fileVin.equalsIgnoreCase(expectedVin)) {
-            throw new XpengParseException("VIN in der Datei (" + VinUtils.mask(fileVin)
-                    + ") passt nicht zum gewählten Fahrzeug (" + VinUtils.mask(expectedVin) + ")");
         }
 
         ImportStats stats = new ImportStats();
@@ -283,7 +227,7 @@ public class XpengImportService {
                     stats.skippedTrips++;
                     continue;
                 }
-                UUID externalId = deterministicTripId(expectedVin, t.startedAt());
+                UUID externalId = deterministicTripId(fileVin, t.startedAt());
                 tripService.saveTrip(toTripRequest(externalId, carId, userId, t));
                 stats.importedTrips++;
             } catch (Exception e) {
@@ -326,22 +270,12 @@ public class XpengImportService {
         return stats;
     }
 
-    /**
-     * Parst die Telematik-Zeilen je nach Format und liefert die im File gefundene VIN.
-     * Der einzige formatspezifische Schritt im Import.
-     */
-    private String parseTelematics(XpengImportFormat format, Path tempfile, String password,
+    /** Parst die CSV-Cluster aus dem ZIP und liefert die im Export gefundene VIN. */
+    private String parseTelematics(Path tempfile,
                                    java.util.function.Consumer<com.evmonitor.domain.xpeng.XpengTelematicsRow> rowHandler)
             throws Exception {
-        if (format == XpengImportFormat.CSV_ZIP) {
-            return new com.evmonitor.domain.xpeng.XpengCsvExportParser()
-                    .parse(tempfile, rowHandler).vehicleInfo().vin();
-        }
-        if (password == null && isOleFile(tempfile)) {
-            throw new XpengParseException("Encrypted XLSX (OLE format) - no password available");
-        }
-        return new XpengExcelStreamingParser()
-                .parse(tempfile, password, rowHandler).vehicleInfo().vin();
+        return new com.evmonitor.domain.xpeng.XpengCsvExportParser()
+                .parse(tempfile, rowHandler).vehicleInfo().vin();
     }
 
     private String serializeExtras(java.util.Map<String, Object> extras) {
@@ -433,17 +367,11 @@ public class XpengImportService {
     }
 
     /**
-     * Verknuepft einen manuellen CSV-ZIP-Upload mit dem Fahrzeug: liest die VIN guenstig
-     * aus dem ZIP und bindet sie ans Auto.
-     *
-     * <ul>
-     *   <li>Keine Verbindung vorhanden -> neue schlanke Connection mit dieser VIN (kein
-     *       Vollmacht-Consent - der User laedt seine eigenen Daten hoch).</li>
-     *   <li>Widerrufene Verbindung -> mit dieser VIN reaktivieren.</li>
-     *   <li>Aktive Verbindung -> VIN muss uebereinstimmen, sonst Ablehnung (falsches Auto).</li>
-     * </ul>
+     * Guenstiger Vorab-Check: der Export muss eine gueltige 17-stellige VIN enthalten, sonst wird
+     * der Upload sofort abgelehnt (bevor ein Job entsteht). Keine Persistenz, keine Vollmacht -
+     * das gewaehlte Auto bestimmt der User in der UI.
      */
-    private XpengConnection resolveConnectionForCsv(UUID userId, UUID carId, Path tempfile) {
+    private void validateZipHasVin(Path tempfile) {
         String fileVin;
         try {
             fileVin = com.evmonitor.domain.xpeng.XpengCsvExportParser.peekVin(tempfile);
@@ -453,42 +381,12 @@ public class XpengImportService {
         if (fileVin == null || fileVin.length() != 17) {
             throw new IllegalArgumentException("Keine gültige VIN im Export gefunden");
         }
-        Optional<XpengConnection> existing = connectionRepo.findByCarId(carId);
-        if (existing.isPresent()) {
-            XpengConnection conn = existing.get();
-            if (conn.isActive()) {
-                if (!fileVin.equalsIgnoreCase(conn.getVin())) {
-                    throw new IllegalStateException("Die VIN im Export (" + VinUtils.mask(fileVin)
-                            + ") passt nicht zur verknüpften VIN dieses Fahrzeugs ("
-                            + VinUtils.mask(conn.getVin()) + ")");
-                }
-                return conn;
-            }
-            conn.setVin(fileVin);
-            conn.setConsentGrantedAt(LocalDateTime.now());
-            conn.setConsentRevokedAt(null);
-            conn.setConsentVersion(XpengConnection.MANUAL_CONSENT_VERSION);
-            conn.setAutoSyncEnabled(false);
-            return connectionRepo.save(conn);
-        }
-        XpengConnection conn = XpengConnection.builder()
-                .userId(userId)
-                .carId(carId)
-                .vin(fileVin)
-                .consentGrantedAt(LocalDateTime.now())
-                .consentVersion(XpengConnection.MANUAL_CONSENT_VERSION)
-                .autoSyncEnabled(false)
-                .totalImportsCount(0)
-                .build();
-        log.info("XpengImport: manual CSV upload linked new connection car={} vin={}",
-                carId, VinUtils.mask(fileVin));
-        return connectionRepo.save(conn);
     }
 
-    private Path persistUpload(InputStream content, XpengImportFormat format) throws IOException {
+    private Path persistUpload(InputStream content) throws IOException {
         Path dir = Paths.get(tempDir);
         Files.createDirectories(dir);
-        String suffix = format == XpengImportFormat.CSV_ZIP ? ".zip" : ".xlsx";
+        String suffix = ".zip";
         Path tempfile;
         try {
             tempfile = Files.createTempFile(dir, "xpeng-", suffix,
@@ -508,21 +406,16 @@ public class XpengImportService {
             Files.deleteIfExists(tempfile);
             throw new IllegalArgumentException("Datei ist zu klein");
         }
-        validateMagicBytes(tempfile, format);
+        validateMagicBytes(tempfile);
         return tempfile;
     }
 
-    private void validateMagicBytes(Path file, XpengImportFormat format) throws IOException {
+    private void validateMagicBytes(Path file) throws IOException {
         try (InputStream in = Files.newInputStream(file)) {
             byte[] header = in.readNBytes(8);
-            // CSV-ZIP ist immer ein ZIP-Container; nur XLSX darf zusaetzlich OLE (verschluesselt) sein.
-            boolean ok = matches(header, ZIP_MAGIC)
-                    || (format == XpengImportFormat.XLSX && matches(header, OLE_CFB_MAGIC));
-            if (ok) return;
+            if (matches(header, ZIP_MAGIC)) return;
             Files.deleteIfExists(file);
-            throw new IllegalArgumentException(format == XpengImportFormat.CSV_ZIP
-                    ? "Keine gültige ZIP-Datei (Magic Bytes fehlen)"
-                    : "Keine gültige xlsx-Datei (Magic Bytes fehlen)");
+            throw new IllegalArgumentException("Keine gültige ZIP-Datei (Magic Bytes fehlen)");
         }
     }
 
@@ -582,7 +475,6 @@ public class XpengImportService {
     /**
      * Loescht alle XPENG_IMPORT-Daten des Users: ev_log, ev_trip und xpeng_import_jobs
      * (alles Hard-Delete, damit der User die Daten ohne Dedup-Block neu hochladen kann).
-     * xpeng_connection und User-Consent bleiben unberuehrt.
      */
     @Transactional
     public DeleteSummary deleteAllImportedData(UUID userId) {
@@ -598,26 +490,6 @@ public class XpengImportService {
     }
 
     public record DeleteSummary(int chargingLogs, int trips, long importJobs) {}
-
-    static boolean isEncryptionRelated(Throwable e) {
-        for (Throwable t = e; t != null; t = t.getCause()) {
-            String name = t.getClass().getSimpleName().toLowerCase();
-            String msg = t.getMessage() != null ? t.getMessage().toLowerCase() : "";
-            if (name.contains("encrypt") || msg.contains("password") || msg.contains("encrypt")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean isOleFile(Path file) {
-        try (InputStream in = Files.newInputStream(file)) {
-            byte[] header = in.readNBytes(8);
-            return matches(header, OLE_CFB_MAGIC);
-        } catch (IOException e) {
-            return false;
-        }
-    }
 
     private static String truncate(String s, int max) {
         if (s == null) return null;

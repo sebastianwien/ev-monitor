@@ -52,6 +52,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
+    private final com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository xpengConsentAuditRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
 
@@ -163,6 +164,10 @@ public class UserService {
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ValidationException("WRONG_PASSWORD", "Passwort ist falsch");
         }
+
+        // XPeng-Einwilligungs-Nachweis hat keinen FK auf app_user (Quelltabelle entfernt) -
+        // daher explizit purgen, CASCADE greift hier nicht.
+        xpengConsentAuditRepository.deleteByUserId(userId);
 
         // Delete user (CASCADE will delete all related data: Cars, EvLogs, CoinLogs, Tokens)
         userRepository.delete(user);

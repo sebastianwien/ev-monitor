@@ -1,19 +1,5 @@
 import api from './axios'
 
-export interface XpengConnectionDto {
-  id: string
-  carId: string
-  vin: string
-  vinMasked: string
-  consentGrantedAt: string
-  consentVersion: string
-  lastSuccessfulImportAt: string | null
-  totalImportsCount: number
-  autoSyncEnabled: boolean
-  lastRequestSentAt: string | null
-  xpengEmailMasked: string | null
-}
-
 export interface XpengJobDto {
   id: string
   carId: string
@@ -30,52 +16,8 @@ export interface XpengJobDto {
 }
 
 export const xpengService = {
-  async listConnections(): Promise<XpengConnectionDto[]> {
-    const resp = await api.get('/imports/xpeng/connections')
-    return resp.data
-  },
-
-  async grantConsent(carId: string, vin: string, autoSync = false, xpengEmail?: string): Promise<XpengConnectionDto> {
-    const resp = await api.post('/imports/xpeng/connections', {
-      carId,
-      vin,
-      consentAccepted: true,
-      autoSync: autoSync || undefined,
-      xpengEmail: xpengEmail || undefined,
-    })
-    return resp.data
-  },
-
-  async activateAutoSync(connectionId: string, xpengEmail?: string): Promise<XpengConnectionDto> {
-    const resp = await api.patch(`/imports/xpeng/connections/${connectionId}/autosync`, {
-      consentAccepted: true,
-      xpengEmail: xpengEmail || undefined,
-    })
-    return resp.data
-  },
-
-  async updateEmail(connectionId: string, xpengEmail: string): Promise<XpengConnectionDto> {
-    const resp = await api.patch(`/imports/xpeng/connections/${connectionId}/email`, { xpengEmail })
-    return resp.data
-  },
-
-  async revoke(connectionId: string): Promise<void> {
-    await api.delete(`/imports/xpeng/connections/${connectionId}`)
-  },
-
-  async upload(carId: string, file: File, password?: string): Promise<XpengJobDto> {
-    const form = new FormData()
-    form.append('carId', carId)
-    form.append('file', file)
-    if (password) form.append('password', password)
-    const resp = await api.post('/imports/xpeng/upload', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-    return resp.data
-  },
-
-  // Neues EU-Data-Act-Format: ZIP mit CSV-Clustern (Portal-Download). Die VIN wird
-  // serverseitig aus der Datei gelesen und automatisch mit dem Fahrzeug verknuepft.
+  // EU-Data-Act-Format: ZIP mit CSV-Clustern (Portal-Download). Die VIN wird
+  // serverseitig aus der Datei gelesen und mit dem Fahrzeug abgeglichen.
   async uploadZip(carId: string, file: File): Promise<XpengJobDto> {
     const form = new FormData()
     form.append('carId', carId)

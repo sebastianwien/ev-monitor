@@ -102,7 +102,6 @@ class DemoAccountInterceptorTest {
 
         assertFalse(preHandle("GET", "/api/subscription/status", new MockHttpServletResponse()));
         assertFalse(preHandle("GET", "/api/user/api-keys", new MockHttpServletResponse()));
-        assertFalse(preHandle("GET", "/api/imports/xpeng/connections", new MockHttpServletResponse()));
         assertFalse(preHandle("GET", "/api/users/me/charging-providers", new MockHttpServletResponse()));
         assertFalse(preHandle("GET", "/api/tax-export/csv", new MockHttpServletResponse()));
     }

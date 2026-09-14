@@ -12,14 +12,13 @@ import BatterySohModal from '../components/car/BatterySohModal.vue'
 import SohPill from '../components/car/SohPill.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
-import XpengAutoSyncPrompt from '../components/car/XpengAutoSyncPrompt.vue'
 import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
 import type { Car } from '../api/carService'
 import teslaFleetService from '../api/teslaFleetService'
 import { analytics } from '../services/analytics'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { isXpengCar, isTeslaCar } from '../composables/useImportGating'
+import { isTeslaCar } from '../composables/useImportGating'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
@@ -71,7 +70,6 @@ const doFetchCars = async () => {
 const submitting = ref(false)
 // Frisch angelegter XPeng: AutoSync (EU Data Act) direkt anbieten, statt den User
 // erst in /imports danach suchen zu lassen.
-const xpengPromptCar = ref<Car | null>(null)
 // Dasselbe fuer Tesla: Fleet-Telemetry (gratis) direkt einrichten.
 const teslaPromptCar = ref<Car | null>(null)
 const teslaJustConnected = ref(false)
@@ -80,8 +78,7 @@ const doSubmitForm = async () => {
   submitting.value = true
   try {
     const created = await submitForm(doFetchCars)
-    if (isXpengCar(created)) xpengPromptCar.value = created
-    else if (isTeslaCar(created)) teslaPromptCar.value = created
+    if (isTeslaCar(created)) teslaPromptCar.value = created
   } finally { submitting.value = false }
 }
 const doDeleteCar = (id: string) => deleteCar(id, doFetchCars)
@@ -916,13 +913,6 @@ const filteredCapacities = computed(() => {
     </div>
       </div>
     </Transition>
-
-    <!-- XPeng-AutoSync direkt nach dem Anlegen anbieten -->
-    <XpengAutoSyncPrompt
-      v-if="xpengPromptCar"
-      :car="xpengPromptCar"
-      @close="xpengPromptCar = null"
-    />
 
     <!-- Tesla-Telemetry direkt nach dem Anlegen anbieten - und nach der OAuth-Rueckkehr fortsetzen -->
     <TeslaTelemetryPrompt
