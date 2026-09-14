@@ -20,7 +20,7 @@ const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const { t } = useI18n()
 const countryStore = useCountryStore()
-const { formatNumber } = useLocaleFormat()
+const { formatNumber, formatDecimal } = useLocaleFormat()
 
 const symbol = computed(() => countryStore.unitSystem.currencySymbol)
 const { costMode, costLocalTotal, costLocalPerKwh, calculatedLocalPerKwh, calculatedLocalTotal, setPerKwhEur } = props.cost
@@ -109,9 +109,9 @@ onMounted(async () => {
 <template>
   <div class="space-y-4">
     <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus
-      :hint="calculatedLocalPerKwh != null ? `= ${formatNumber(calculatedLocalPerKwh)} ${symbol}/kWh` : null" />
+      :hint="calculatedLocalPerKwh != null ? `= ${formatDecimal(calculatedLocalPerKwh, 2)} ${symbol}/kWh` : null" />
     <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus
-      :hint="calculatedLocalTotal != null ? `= ${formatNumber(calculatedLocalTotal)} ${symbol}` : null" />
+      :hint="calculatedLocalTotal != null ? `= ${formatDecimal(calculatedLocalTotal, 2)} ${symbol}` : null" />
     <SegmentToggle v-model="costMode"
       :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
 
