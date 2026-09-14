@@ -3091,6 +3091,7 @@ logwizard:
   step_of: "Steg {step} av {total}"
   q_place: "Hvor ladet du?"
   q_energy: "Hvor mye energi?"
+  charging_type: "Ladetype"
   q_vehicle: "Hva viser bilen din?"
   q_cost: "Hva kostet det?"
   q_review: "Ser dette riktig ut?"

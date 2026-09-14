@@ -27,6 +27,18 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
 <template>
   <div class="space-y-4">
     <BigInput id="wizard-kwh" v-model="kwh" unit="kWh" :label="t('logfields.energy')" :placeholder="t('logfields.kwh_placeholder')" step="0.1" :min="0" autofocus />
+    <!-- Ladeart: aus der Ortswahl vorbelegt (Säule DC, sonst AC), hier korrigierbar,
+         weil sie die Ladeverluste bestimmt, die der Hinweis darunter erklärt. -->
+    <div class="flex items-center gap-2">
+      <span class="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('logwizard.charging_type') }}</span>
+      <button v-for="ct in (['AC', 'DC'] as const)" :key="ct" type="button" :aria-pressed="form.chargingType === ct"
+        :data-testid="`charging-type-${ct.toLowerCase()}`" @click="form.chargingType = ct"
+        :class="['px-3 py-1 rounded-full text-sm border transition', form.chargingType === ct
+          ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
+          : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
+        {{ ct }}
+      </button>
+    </div>
     <SegmentToggle :model-value="mode" @update:model-value="switchMode"
       :options="[{ value: 'charger', label: t('logwizard.kwh_charger'), testid: 'kwh-mode-charger' }, { value: 'vehicle', label: t('logwizard.kwh_vehicle'), testid: 'kwh-mode-vehicle' }]" />
     <p class="text-xs text-gray-500 dark:text-gray-400">{{ mode === 'charger' ? t('logfields.kwh_hint') : t('logfields.kwh_at_vehicle_hint') }}</p>

@@ -3206,6 +3206,7 @@ logwizard:
   step_of: "Step {step} of {total}"
   q_place: "Where did you charge?"
   q_energy: "How much energy?"
+  charging_type: "Charging type"
   q_vehicle: "What does your car show?"
   q_cost: "What did it cost?"
   q_review: "Does this look right?"

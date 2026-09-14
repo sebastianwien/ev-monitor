@@ -125,7 +125,8 @@ const questions: Record<WizardStep, string> = {
 }
 const hint = computed(() => {
   if (step.value === 1 && permission.value === 'granted' && nearby.stations.value.length) return t('logwizard.hint_nearby')
-  if (step.value === 2 || step.value === 4) return `${placeLabel.value} · ${form.value.chargingType}`
+  if (step.value === 2) return placeLabel.value
+  if (step.value === 4) return `${placeLabel.value} · ${form.value.chargingType}`
   if (step.value === 3) return t('logwizard.hint_vehicle')
   return ''
 })
