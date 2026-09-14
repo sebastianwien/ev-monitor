@@ -2455,6 +2455,7 @@ autosync_page:
   xpeng_import_cta: "Importera ZIP"
   xpeng_supporter_eyebrow: "Få ut mer av dina data"
   xpeng_supporter_headline: "Som supporter får du några extrafunktioner"
+  xpeng_supporter_subline: "Du låser upp fler instrumentpanel-widgetar och stöttar mig med utveckling och drift - så förblir EV Monitor oberoende."
   xpeng_supporter_cta: "Visa Supporter-paketet"
   unlock_title: "Vad AutoSync gör synligt för dig"
   demo_row_when: "Idag, 22:14 · Hemma"

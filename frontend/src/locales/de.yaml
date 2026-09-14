@@ -2526,6 +2526,7 @@ autosync_page:
   xpeng_import_cta: "ZIP importieren"
   xpeng_supporter_eyebrow: "Hol mehr aus deinen Daten"
   xpeng_supporter_headline: "Als Supporter gibt's ein paar Extras"
+  xpeng_supporter_subline: "Du schaltest zusätzliche Dashboard-Widgets frei und unterstützt mich bei Entwicklung und Betrieb - so bleibt EV Monitor unabhängig."
   xpeng_supporter_cta: "Supporter-Pack ansehen"
   unlock_title: "Was AutoSync für dich sichtbar macht"
   demo_row_when: "Heute, 22:14 · Zuhause"
