@@ -60,8 +60,14 @@ public class ChargingSiteService {
     }
 
     private static ChargingSite fromRegister(NearbyStation s, String geohash) {
+        var register = new ChargingSite.RegisterDetails(s.registerId(), s.street(), s.houseNumber(),
+                s.postalCode(), s.city(), s.plugTypes(), s.commissionedOn(), s.siteLabel(), s.payment(), s.openingHours());
         return new ChargingSite(UUID.randomUUID(), s.name(), s.known() ? s.name() : null, geohash,
-                s.maxPowerKw() == null ? null : BigDecimal.valueOf(s.maxPowerKw()),
-                s.chargePoints(), s.fastCharging(), ChargingSiteSource.REGISTER, LocalDateTime.now());
+                kw(s.maxAcKw()), kw(s.maxDcKw()), s.chargePoints(), ChargingSiteSource.REGISTER,
+                register, LocalDateTime.now());
+    }
+
+    private static BigDecimal kw(Double v) {
+        return v == null ? null : BigDecimal.valueOf(v);
     }
 }

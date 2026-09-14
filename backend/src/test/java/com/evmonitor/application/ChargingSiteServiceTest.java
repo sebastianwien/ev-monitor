@@ -50,7 +50,7 @@ class ChargingSiteServiceTest {
     @Test
     void nimmtEinenBekanntenStandortOhneRegisterabfrage() {
         ChargingSite existing = new ChargingSite(UUID.randomUUID(), "IONITY", "IONITY", CELL,
-                new BigDecimal("350"), 6, true, ChargingSiteSource.REGISTER, LocalDateTime.now());
+                null, new BigDecimal("350"), 6, ChargingSiteSource.REGISTER, ChargingSite.RegisterDetails.NONE, LocalDateTime.now());
         when(repository.findByGeohashAndName(CELL, "IONITY")).thenReturn(Optional.of(existing));
 
         assertThat(service.resolve(userId, IONITY)).contains(existing);
@@ -68,7 +68,8 @@ class ChargingSiteServiceTest {
         assertThat(site.name()).isEqualTo("IONITY");
         assertThat(site.cpoName()).isEqualTo("IONITY");
         assertThat(site.geohash()).isEqualTo(CELL);
-        assertThat(site.maxPowerKw()).isEqualByComparingTo("350");
+        assertThat(site.maxDcKw()).isEqualByComparingTo("350");
+        assertThat(site.maxAcKw()).isNull();
         assertThat(site.chargePoints()).isEqualTo(6);
         assertThat(site.fastCharging()).isTrue();
         assertThat(site.source()).isEqualTo(ChargingSiteSource.REGISTER);
@@ -131,7 +132,7 @@ class ChargingSiteServiceTest {
     @Test
     void bekannterStandortVerbrauchtKeinKontingent() {
         when(repository.findByGeohashAndName(CELL, "IONITY")).thenReturn(Optional.of(new ChargingSite(
-                UUID.randomUUID(), "IONITY", "IONITY", CELL, null, 2, true, ChargingSiteSource.REGISTER, LocalDateTime.now())));
+                UUID.randomUUID(), "IONITY", "IONITY", CELL, null, null, 2, ChargingSiteSource.REGISTER, ChargingSite.RegisterDetails.NONE, LocalDateTime.now())));
 
         service.resolve(userId, IONITY);
         verifyNoInteractions(rateLimit);

@@ -6,7 +6,8 @@ import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
 
 const ionity: NearbyStation = {
-  name: 'IONITY', known: true, distanceMeters: 40, maxPowerKw: 350, fastCharging: true, chargePoints: 6, geohash: 'u33dc0c',
+  name: 'IONITY', known: true, distanceMeters: 40, maxAcKw: null, maxDcKw: 350, fastCharging: true, chargePoints: 6,
+  geohash: 'u33dc0c', address: 'A 9 Rasthof, 91710 Gunzenhausen', plugTypes: ['CCS'], registerId: 1,
 }
 
 describe('canProceed', () => {
@@ -62,8 +63,8 @@ describe('applyPlace', () => {
 
   it('Zuletzt genutzter Standort trägt den Katalognamen als Anbieter, sonst den Standortnamen', () => {
     const f = emptyLogForm()
-    const site = { id: 's1', name: 'Stadtwerke Musterstadt', cpoName: null, geohash: 'u33dc0c', maxPowerKw: 22,
-      chargePoints: 2, fastCharging: false, lastUsedAt: '2026-09-10T10:00:00', usageCount: 2 }
+    const site = { id: 's1', name: 'Stadtwerke Musterstadt', cpoName: null, geohash: 'u33dc0c', maxAcKw: 22, maxDcKw: null,
+      chargePoints: 2, fastCharging: false, address: null, plugTypes: ['Typ 2'], lastUsedAt: '2026-09-10T10:00:00', usageCount: 2 }
     applyPlace(f, { kind: 'site', site })
     expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'AC', cpoName: 'Stadtwerke Musterstadt',
       chargingSite: { name: 'Stadtwerke Musterstadt', geohash: 'u33dc0c' } })

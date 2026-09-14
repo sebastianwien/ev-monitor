@@ -126,17 +126,30 @@ public class NearbyCpoService {
 
     private static NearbyStation toNearby(Station s, String name, boolean known, WGS84Point center) {
         int distance = (int) Math.round(distanceMeters(center, s.latitude(), s.longitude()));
-        return new NearbyStation(name, known, distance, s.powerKw(), s.fastCharging(),
+        return new NearbyStation(name, known, distance, s.maxAcKw(), s.maxDcKw(),
                 s.chargePoints() == null ? 0 : s.chargePoints(),
-                GeoHash.withCharacterPrecision(s.latitude(), s.longitude(), 7).toBase32());
+                GeoHash.withCharacterPrecision(s.latitude(), s.longitude(), 7).toBase32(),
+                s.registerId(), s.street(), s.houseNumber(), s.postalCode(), s.city(),
+                s.plugTypes(), s.commissionedOn(), s.siteLabel(),
+                s.payment(), s.openingHours());
     }
 
+    private static Double max(Double a, Double b) {
+        // Kein verschachtelter Ternaer: der wuerde den Double zu double entpacken und bei null knallen.
+        if (a == null) return b;
+        if (b == null) return a;
+        return Math.max(a, b);
+    }
+
+    /** Leistung je Ladeart und Ladepunkte ueber alle Saeulen, Registerdaten der naechsten. */
     private static NearbyStation merge(NearbyStation a, NearbyStation b) {
-        Double power = a.maxPowerKw() == null ? b.maxPowerKw()
-                : b.maxPowerKw() == null ? a.maxPowerKw() : Math.max(a.maxPowerKw(), b.maxPowerKw());
-        NearbyStation nearer = a.distanceMeters() <= b.distanceMeters() ? a : b;
-        return new NearbyStation(a.name(), a.known(), nearer.distanceMeters(),
-                power, a.fastCharging() || b.fastCharging(), a.chargePoints() + b.chargePoints(), nearer.geohash());
+        NearbyStation near = a.distanceMeters() <= b.distanceMeters() ? a : b;
+        return new NearbyStation(a.name(), a.known(), near.distanceMeters(),
+                max(a.maxAcKw(), b.maxAcKw()), max(a.maxDcKw(), b.maxDcKw()),
+                a.chargePoints() + b.chargePoints(), near.geohash(),
+                near.registerId(), near.street(), near.houseNumber(), near.postalCode(), near.city(),
+                near.plugTypes(), near.commissionedOn(),
+                near.siteLabel(), near.payment(), near.openingHours());
     }
 
     /** Haversine - im Umkreis weniger hundert Meter mehr als genau genug. */

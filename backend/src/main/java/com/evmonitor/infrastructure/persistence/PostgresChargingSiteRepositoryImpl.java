@@ -31,10 +31,21 @@ public class PostgresChargingSiteRepositoryImpl implements ChargingSiteRepositor
         e.setNameKey(ChargingSite.nameKey(site.name()));
         e.setCpoName(site.cpoName());
         e.setGeohash(site.geohash());
-        e.setMaxPowerKw(site.maxPowerKw());
+        e.setMaxAcKw(site.maxAcKw());
+        e.setMaxDcKw(site.maxDcKw());
         e.setChargePoints(site.chargePoints());
-        e.setFastCharging(site.fastCharging());
         e.setSource(site.source().name());
+        var r = site.register() == null ? ChargingSite.RegisterDetails.NONE : site.register();
+        e.setRegisterId(r.registerId());
+        e.setStreet(r.street());
+        e.setHouseNumber(r.houseNumber());
+        e.setPostalCode(r.postalCode());
+        e.setCity(r.city());
+        e.setPlugTypes(r.plugTypes().isEmpty() ? null : String.join(", ", r.plugTypes()));
+        e.setCommissionedOn(r.commissionedOn());
+        e.setSiteLabel(r.siteLabel());
+        e.setPayment(r.payment());
+        e.setOpeningHours(r.openingHours());
         e.setCreatedAt(site.createdAt());
         return toDomain(jpa.save(e));
     }
@@ -47,7 +58,11 @@ public class PostgresChargingSiteRepositoryImpl implements ChargingSiteRepositor
     }
 
     private ChargingSite toDomain(ChargingSiteEntity e) {
-        return new ChargingSite(e.getId(), e.getName(), e.getCpoName(), e.getGeohash(), e.getMaxPowerKw(),
-                e.getChargePoints(), e.isFastCharging(), ChargingSiteSource.valueOf(e.getSource()), e.getCreatedAt());
+        var register = new ChargingSite.RegisterDetails(e.getRegisterId(), e.getStreet(), e.getHouseNumber(),
+                e.getPostalCode(), e.getCity(),
+                e.getPlugTypes() == null ? List.of() : List.of(e.getPlugTypes().split(", ")),
+                e.getCommissionedOn(), e.getSiteLabel(), e.getPayment(), e.getOpeningHours());
+        return new ChargingSite(e.getId(), e.getName(), e.getCpoName(), e.getGeohash(), e.getMaxAcKw(), e.getMaxDcKw(),
+                e.getChargePoints(), ChargingSiteSource.valueOf(e.getSource()), register, e.getCreatedAt());
     }
 }

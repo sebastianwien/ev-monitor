@@ -8,7 +8,7 @@ describe('useRecentSites', () => {
   beforeEach(() => vi.mocked(api.get).mockReset())
 
   it('lädt die zuletzt genutzten Standorte des Nutzers', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: [{ id: 's1', name: 'Kaufland', cpoName: 'Kaufland', geohash: 'u33dc0c', maxPowerKw: 93, chargePoints: 2, fastCharging: true, lastUsedAt: '2026-09-10T10:00:00', usageCount: 3 }] })
+    vi.mocked(api.get).mockResolvedValue({ data: [{ id: 's1', name: 'Kaufland', cpoName: 'Kaufland', geohash: 'u33dc0c', maxAcKw: 43, maxDcKw: 50, chargePoints: 2, fastCharging: true, address: 'Storkower Str. 139, 10407 Berlin', plugTypes: ['Typ 2', 'CCS'], lastUsedAt: '2026-09-10T10:00:00', usageCount: 3 }] })
     const { sites, load } = useRecentSites()
     await load()
     expect(api.get).toHaveBeenCalledWith('/charging-sites/recent')

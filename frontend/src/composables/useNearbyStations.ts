@@ -9,9 +9,15 @@ export interface NearbyStation {
   known: boolean
   /** Entfernung zum Mittelpunkt der Geohash-Zelle, nicht zur Nutzerposition */
   distanceMeters: number
-  maxPowerKw: number | null
+  /** Höchste AC- bzw. DC-Steckerleistung laut Register; DC null = kein Schnelllader */
+  maxAcKw: number | null
+  maxDcKw: number | null
   fastCharging: boolean
   chargePoints: number
+  /** "Straße Nr, PLZ Ort" der nächsten Säule, null wenn das Register keine Adresse führt */
+  address: string | null
+  plugTypes: string[]
+  registerId: number | null
   /** Zelle (7 Stellen) der nächsten Säule dieses Betreibers - identifiziert den Ladestandort */
   geohash: string
 }

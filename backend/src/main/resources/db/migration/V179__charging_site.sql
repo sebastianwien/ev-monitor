@@ -10,10 +10,21 @@ CREATE TABLE charging_site (
     name_key       VARCHAR(100) NOT NULL,          -- lower(trim(name)) fuer den Abgleich
     cpo_name       VARCHAR(100) NULL REFERENCES charging_networks(name) ON UPDATE CASCADE,
     geohash        VARCHAR(7)   NOT NULL,
-    max_power_kw   NUMERIC(6,1) NULL,
+    max_ac_kw      NUMERIC(6,1) NULL,             -- hoechste AC-Steckerleistung
+    max_dc_kw      NUMERIC(6,1) NULL,             -- hoechste DC-Steckerleistung, NULL = kein DC
     charge_points  INTEGER      NOT NULL DEFAULT 1,
-    fast_charging  BOOLEAN      NOT NULL DEFAULT false,
     source         VARCHAR(20)  NOT NULL DEFAULT 'REGISTER',
+    -- Registerdaten der naechstgelegenen Ladeeinrichtung des Betreibers in der Zelle
+    register_id    INTEGER      NULL,             -- Ladeeinrichtungs_ID der Bundesnetzagentur
+    street         VARCHAR(150) NULL,
+    house_number   VARCHAR(20)  NULL,
+    postal_code    VARCHAR(10)  NULL,
+    city           VARCHAR(100) NULL,
+    plug_types     VARCHAR(100) NULL,             -- "Typ 2, CCS, CHAdeMO"
+    commissioned_on DATE        NULL,
+    site_label     VARCHAR(150) NULL,             -- Standortbezeichnung des Betreibers
+    payment        VARCHAR(200) NULL,
+    opening_hours  VARCHAR(200) NULL,
     created_at     TIMESTAMP    NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_charging_site_cell_name UNIQUE (geohash, name_key)
 );

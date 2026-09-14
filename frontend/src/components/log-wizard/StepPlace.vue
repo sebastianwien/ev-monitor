@@ -44,10 +44,11 @@ const tileClass = (on: boolean) => [
   on ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-700',
 ]
-const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxPowerKw' | 'fastCharging'>) => [
+/** "DC 50 kW · AC 43 kW · 2 Ladepunkte" - Leistung je Ladeart aus den Steckern, nie die Summe. */
+const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw'>) => [
+  s.maxDcKw ? `DC ${Math.round(s.maxDcKw)} kW` : null,
+  s.maxAcKw ? `AC ${Math.round(s.maxAcKw)} kW` : null,
   s.chargePoints ? t('logwizard.charge_points', { n: s.chargePoints }, s.chargePoints) : null,
-  s.maxPowerKw ? `${Math.round(s.maxPowerKw)} kW` : null,
-  s.fastCharging ? 'DC' : 'AC',
 ].filter(Boolean).join(' · ')
 </script>
 
@@ -93,6 +94,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxPowerKw' | 'fast
         <span class="flex-1 min-w-0">
           <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ s.name }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
+          <small v-if="s.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ s.address }}</small>
         </span>
         <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ s.distanceMeters }} m</span>
         <CheckCircleIcon v-if="isStation(s)" class="h-5 w-5 text-indigo-600" />
@@ -108,6 +110,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxPowerKw' | 'fast
         <span class="flex-1 min-w-0">
           <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ s.name }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
+          <small v-if="s.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ s.address }}</small>
         </span>
         <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ t('logwizard.site_usage', { n: s.usageCount }, s.usageCount) }}</span>
         <CheckCircleIcon v-if="isSite(s)" class="h-5 w-5 text-indigo-600" />

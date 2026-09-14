@@ -7,9 +7,12 @@ export interface RecentSite {
   name: string
   cpoName: string | null
   geohash: string
-  maxPowerKw: number | null
+  maxAcKw: number | null
+  maxDcKw: number | null
   chargePoints: number
   fastCharging: boolean
+  address: string | null
+  plugTypes: string[]
   lastUsedAt: string
   usageCount: number
 }

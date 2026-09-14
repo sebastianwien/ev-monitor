@@ -29,12 +29,14 @@ public class ChargingSiteController {
     }
 
     public record RecentChargingSiteResponse(UUID id, String name, String cpoName, String geohash,
-                                             BigDecimal maxPowerKw, int chargePoints, boolean fastCharging,
+                                             BigDecimal maxAcKw, BigDecimal maxDcKw, int chargePoints, boolean fastCharging,
+                                             String address, java.util.List<String> plugTypes,
                                              LocalDateTime lastUsedAt, long usageCount) {
         static RecentChargingSiteResponse from(ChargingSiteUsage u) {
             var s = u.site();
-            return new RecentChargingSiteResponse(s.id(), s.name(), s.cpoName(), s.geohash(), s.maxPowerKw(),
-                    s.chargePoints(), s.fastCharging(), u.lastUsedAt(), u.usageCount());
+            return new RecentChargingSiteResponse(s.id(), s.name(), s.cpoName(), s.geohash(), s.maxAcKw(), s.maxDcKw(),
+                    s.chargePoints(), s.fastCharging(), s.register().address(), s.register().plugTypes(),
+                    u.lastUsedAt(), u.usageCount());
         }
     }
 }
