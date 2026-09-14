@@ -44,10 +44,16 @@ public class CpoRegistryConfig {
      */
     @Bean
     public CacheManagerCustomizer<CaffeineCacheManager> nearbyCposCacheCustomizer() {
-        return cacheManager -> cacheManager.registerCustomCache("nearbyCpos",
-                Caffeine.newBuilder()
-                        .maximumSize(50_000)
-                        .expireAfterWrite(Duration.ofDays(30))
-                        .build());
+        return cacheManager -> {
+            cacheManager.registerCustomCache("nearbyCpos", registryCache());
+            cacheManager.registerCustomCache("nearbyStations", registryCache());
+        };
+    }
+
+    private static com.github.benmanes.caffeine.cache.Cache<Object, Object> registryCache() {
+        return Caffeine.newBuilder()
+                .maximumSize(50_000)
+                .expireAfterWrite(Duration.ofDays(30))
+                .build();
     }
 }

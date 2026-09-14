@@ -87,6 +87,9 @@ public interface EvLogRepository {
     /** Persist the downsampled power-curve JSON for the given log id. No-op if id not found. */
     void updatePowerCurvePoints(UUID id, String powerCurvePointsJson);
 
+    /** Replace the power-curve JSON unconditionally (overwrites an existing curve). For log merges. */
+    void replacePowerCurvePoints(UUID id, String powerCurvePointsJson);
+
     /** Returns the raw JSON-Array string of the power-curve, or null if the log has no curve. */
     Optional<String> findPowerCurvePointsJson(UUID id);
 
@@ -98,6 +101,9 @@ public interface EvLogRepository {
 
     /** Persist the measured state-of-charge series for the given log id. No-op if id not found. */
     void updateSocCurvePoints(UUID id, String socCurvePointsJson);
+
+    /** Replace the state-of-charge series unconditionally (overwrites an existing series). For log merges. */
+    void replaceSocCurvePoints(UUID id, String socCurvePointsJson);
 
     record PowerCurveLookup(UUID ownerUserId, String powerCurvePointsJson, String socCurvePointsJson) {}
 

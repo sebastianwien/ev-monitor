@@ -1,8 +1,36 @@
-import { test, expect, request as playwrightRequest } from '@playwright/test';
+import { test, expect, request as playwrightRequest, type Page } from '@playwright/test';
 import { TEST_USER } from './global-setup';
 import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 
 const API_URL = process.env.API_URL || 'http://localhost:8080';
+
+/** Steigt je Sekunde: gleiche km-Staende wuerden im Feed zu einem Ladezyklus gebuendelt. */
+const nextOdometer = () => 100_000 + Math.floor(Date.now() / 1000) - 1_789_000_000;
+
+/**
+ * Fuehrt den Erfassen-Wizard bis zur Zusammenfassung durch: Ort "Zuhause", Energie,
+ * Tacho + SoC (Pflicht), Kosten. Der Tacho steigt mit der Zeit, damit Wiederholungen
+ * nie unter den letzten Wert fallen.
+ */
+async function fillWizardToReview(page: Page, opts: { kwh: string; cost: string; vehicleKwh?: string }) {
+  await page.goto('/erfassen');
+  await page.waitForLoadState('networkidle');
+  await page.locator('[data-testid="place-home"]').click();
+
+  await page.locator('input[placeholder="z.B. 42.5"]').fill(opts.kwh);
+  if (opts.vehicleKwh !== undefined) {
+    await page.locator('[data-testid="kwh-mode-vehicle"]').click();
+    await page.locator('input[placeholder="z.B. 42.5"]').fill(opts.vehicleKwh);
+  }
+  await page.locator('[data-testid="wizard-next"]').click();
+
+  await page.locator('#wizard-odometer').fill(String(nextOdometer()));
+  await page.locator('#wizard-soc').fill('80');
+  await page.locator('[data-testid="wizard-next"]').click();
+
+  await page.locator('input[placeholder="z.B. 12.50"]').fill(opts.cost);
+  await page.locator('[data-testid="wizard-next"]').click();
+}
 
 test.describe.configure({ mode: 'serial' });
 
@@ -68,12 +96,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
-    await page.goto('/erfassen');
-    await page.waitForLoadState('networkidle');
-
-    await page.locator('input[placeholder="z.B. 42.5"]').fill('35.5');
-    await page.locator('input[placeholder="z.B. 12.50"]').fill('8.90');
-    await page.locator('button[type="submit"]').click();
+    await fillWizardToReview(page, { kwh: '35.5', cost: '8.90' });
+    await page.locator('[data-testid="wizard-next"]').click();
 
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
     expect(errors).toEqual([]);
@@ -85,20 +109,26 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="place-home"]').click();
 
-    // Auf "Auto"-Modus (kwhAtVehicle) umschalten
+    // Auf "Fahrzeug"-Modus (kwhAtVehicle) umschalten und dort eintragen
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
-
-    // kWh im Auto-Modus eintragen (schreibt in kwhAtVehicle)
     await page.locator('input[placeholder="z.B. 42.5"]').fill('37.5');
+    await page.locator('[data-testid="wizard-next"]').click();
+
+    await page.locator('#wizard-odometer').fill(String(nextOdometer()));
+    await page.locator('#wizard-soc').fill('80');
+    await page.locator('[data-testid="wizard-next"]').click();
+
     await page.locator('input[placeholder="z.B. 12.50"]').fill('10.00');
+    await page.locator('[data-testid="wizard-next"]').click();
 
     // Eindeutiger Zeitstempel um Duplikat-Kollision mit Test 1 zu vermeiden
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     await page.locator('input[type="datetime-local"]').fill(yesterday.toISOString().slice(0, 16));
 
-    await page.locator('button[type="submit"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
 
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
     expect(errors).toEqual([]);
@@ -115,10 +145,13 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     // Modal offen warten
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     // Auf "Auto"-Modus umschalten und Wert eintragen
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
     await page.locator('input[placeholder="z.B. 42.5"]').fill('36.0');
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Speichern")').click();
 
     // Modal muss schliessen
@@ -137,6 +170,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     // Beide Felder gesetzt -> Charger-Modus hat Prio, kwhCharged=35.5 sichtbar
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible({ timeout: 3_000 });
@@ -147,6 +182,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).toBeVisible();
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('36');
 
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Abbrechen")').click();
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).not.toBeVisible({ timeout: 3_000 });
     expect(errors).toEqual([]);
@@ -163,6 +199,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     // Charger-Modus weil kwhCharged Prio hat
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible({ timeout: 3_000 });
@@ -170,6 +208,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     // Brutto-Wert auf 38 aktualisieren und speichern
     await page.locator('input[placeholder="z.B. 42.5"]').fill('38.0');
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Speichern")').click();
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).not.toBeVisible({ timeout: 5_000 });
@@ -177,10 +216,13 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     // Nochmal oeffnen: Charger=38, Vehicle=36 (beide erhalten)
     await openFirstLogEditModal(page);
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible();
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('38');
 
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Abbrechen")').click();
     expect(errors).toEqual([]);
   });
@@ -191,6 +233,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="place-home"]').click();
 
     await page.locator('input[placeholder="z.B. 42.5"]').fill('50.0');
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
@@ -215,25 +258,15 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000' }),
+          body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000', coinsAwarded: 0 }),
         });
       } else {
         await route.continue();
       }
     });
 
-    await page.goto('/erfassen');
-    await page.waitForLoadState('networkidle');
-
-    // Brutto eingeben
-    await page.locator('input[placeholder="z.B. 42.5"]').fill('50.0');
-
-    // Auf Netto wechseln und Netto eingeben
-    await page.locator('[data-testid="kwh-mode-vehicle"]').click();
-    await page.locator('input[placeholder="z.B. 42.5"]').fill('47.0');
-
-    await page.locator('input[placeholder="z.B. 12.50"]').fill('12.00');
-    await page.locator('button[type="submit"]').click();
+    await fillWizardToReview(page, { kwh: '50.0', cost: '12.00', vehicleKwh: '47.0' });
+    await page.locator('[data-testid="wizard-next"]').click();
 
     // Erfolgreiche Navigation zum Dashboard
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
@@ -252,6 +285,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="place-home"]').click();
 
     // Brutto eingeben
     await page.locator('input[placeholder="z.B. 42.5"]').fill('50.0');
@@ -278,6 +312,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await openFirstLogEditModal(page);
 
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
 
     // Charger-Modus weil kwhCharged Prio hat - Wert = 38
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).not.toBeVisible({ timeout: 3_000 });
@@ -288,6 +324,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).toBeVisible();
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('36');
 
+    await page.locator('[data-testid="edit-done"]').click();
     await page.locator('button:has-text("Abbrechen")').click();
     expect(errors).toEqual([]);
   });
@@ -321,27 +358,78 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await login(page);
   });
 
-  test('Oeffentliche Ladung ohne Karte: Prompt legt die Karte inline an und waehlt sie aus', async ({ page }) => {
+  test('Oeffentliche Ladung ohne Karte: Ladekarte inline anlegen, Preis landet im Kostenschritt', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
 
-    // Heimladung: kein Prompt - eine Ladekarte zahlt keine Ladung an der eigenen Wallbox
-    await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible();
+    // Zuhause: keine Karte anbieten - eine Ladekarte zahlt keine Ladung an der eigenen Wallbox
+    await page.locator('[data-testid="place-home"]').click();
+    await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('#wizard-odometer').fill(String(nextOdometer()));
+    await page.locator('#wizard-soc').fill('80');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await expect(page.locator('[data-testid="charging-card-prompt-open"]')).not.toBeVisible();
 
-    await page.locator('[data-testid="public-charging-toggle"]').click();
-    await expect(page.locator('[data-testid="charging-card-prompt"]')).toBeVisible();
+    // Zurueck auf Schritt 1, oeffentliche Station waehlen
+    for (let i = 0; i < 3; i++) await page.locator('header button[aria-label="Zurück"]').click();
+    await page.locator('[data-testid="place-other"]').click();
+    await page.locator('input[type="search"]').fill('EnBW');
+    await page.locator('button:has-text("EnBW")').first().click();
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
 
     await page.locator('[data-testid="charging-card-prompt-open"]').click();
     await page.locator('#inline-card-provider').selectOption('EnBW mobility+');
     await page.locator('input[type="number"][step="0.1"]').first().fill('39');
     await page.locator('[data-testid="charging-card-save"]').click();
 
-    // Karte ist angelegt: Prompt weg, Tarif-Chip da und ausgewaehlt
+    // Karte ist angelegt und gewaehlt: Chip da, Preis je kWh uebernommen
     await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('button:has-text("EnBW mobility+")')).toBeVisible();
+    await expect(page.locator('button[aria-pressed="true"]:has-text("EnBW mobility+")')).toBeVisible();
+    await expect(page.locator('#wizard-cost')).toHaveValue('0.39');
+    expect(errors).toEqual([]);
+  });
+
+  test('Andere Ladestation: gewaehlter Anbieter landet als oeffentliche Ladung im Payload', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', err => errors.push(err.message));
+
+    let capturedPayload: Record<string, unknown> | null = null;
+    await page.route('**/api/logs', async route => {
+      if (route.request().method() === 'POST') {
+        capturedPayload = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({ status: 200, contentType: 'application/json',
+          body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000', coinsAwarded: 0 }) });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto('/erfassen');
+    await page.waitForLoadState('networkidle');
+    await page.locator('[data-testid="place-other"]').click();
+    await page.locator('input[type="search"]').fill('EnBW');
+    await page.locator('button:has-text("EnBW")').first().click();
+    await page.locator('[data-testid="wizard-next"]').click();
+
+    await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('#wizard-odometer').fill(String(nextOdometer()));
+    await page.locator('#wizard-soc').fill('80');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('input[placeholder="z.B. 12.50"]').fill('15');
+    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
+
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+    expect(capturedPayload).not.toBeNull();
+    expect(capturedPayload!['isPublicCharging']).toBe(true);
+    expect(String(capturedPayload!['cpoName'])).toContain('EnBW');
     expect(errors).toEqual([]);
   });
 });
@@ -437,6 +525,8 @@ test.describe('Ladegruppe im Zeitraum-Feed', () => {
     // oeffnet genau diesen Log, nicht die Basis-Ladung.
     await page.getByTestId('period-topup-edit').and(visible).nth(1).click();
     await expect(page.locator('h2:has-text("Ladevorgang bearbeiten")')).toBeVisible({ timeout: 5_000 });
+    // Editor zeigt erst die Zusammenfassung - Energie ueber die Kachel oeffnen
+    await page.locator('[data-testid="summary-energy"]').click();
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue(/^6/);
   });
 });

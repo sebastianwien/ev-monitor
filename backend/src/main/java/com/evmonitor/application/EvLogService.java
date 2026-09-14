@@ -9,6 +9,8 @@ import com.evmonitor.domain.exception.NotFoundException;
 
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -36,6 +38,13 @@ public class EvLogService {
      * 24h, damit auch sehr langsame AC-Ladevorgaenge (z.B. 14h an 4 kW) noch abgedeckt sind.
      */
     public static final Duration MERGE_WINDOW = Duration.ofHours(24);
+
+    // Beim Kurven-Merge gelten Punkte im selben Zeitfenster als derselbe Moment. Das
+    // verkettet zwei aufeinanderfolgende Ladungen zur vollen Kurve, laesst aber zwei
+    // Messungen derselben Ladung (Brutto/Netto) nicht zur doppelten Kurve werden.
+    // 15 s liegt unter der 20-s-Speicherkadenz (thinnt normale Kurven nicht) und ueber
+    // der 5-s-Telemetrie-Kadenz.
+    private static final long CURVE_MERGE_BUCKET_MILLIS = 15_000L;
 
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
@@ -852,13 +861,89 @@ public class EvLogService {
                 .measurementType(mergedMeasurementType)
                 .build();
 
+        // Kurven beider Logs VOR dem Loeschen lesen: der ueberlebende (target) Datensatz
+        // darf die Kurve des geloeschten (source) nicht verlieren. Unabhaengig von
+        // preferSource werden immer beide zusammengefuehrt.
+        EvLogRepository.PowerCurveLookup targetCurves = evLogRepository.findOwnerIdAndPowerCurveJson(targetLogId).orElse(null);
+        EvLogRepository.PowerCurveLookup sourceCurves = evLogRepository.findOwnerIdAndPowerCurveJson(sourceLogId).orElse(null);
+
         EvLog saved = evLogRepository.save(merged);
         evLogRepository.deleteById(sourceLogId);
+
+        // save() persistiert die Kurvenspalten nicht - deshalb explizit ueber die
+        // update*-Methoden auf den Survivor schreiben.
+        String mergedPowerCurve = mergeCurveJson(
+                targetCurves != null ? targetCurves.powerCurvePointsJson() : null,
+                sourceCurves != null ? sourceCurves.powerCurvePointsJson() : null);
+        if (mergedPowerCurve != null) {
+            evLogRepository.replacePowerCurvePoints(targetLogId, mergedPowerCurve);
+        }
+        String mergedSocCurve = mergeCurveJson(
+                targetCurves != null ? targetCurves.socCurvePointsJson() : null,
+                sourceCurves != null ? sourceCurves.socCurvePointsJson() : null);
+        if (mergedSocCurve != null) {
+            evLogRepository.replaceSocCurvePoints(targetLogId, mergedSocCurve);
+        }
 
         if (mergedKwhAtVehicle != null) {
             eventPublisher.publishEvent(new SohAutoDetectEvent(targetCar));
         }
         return saved;
+    }
+
+    /**
+     * Fuegt zwei Kurven-JSON-Arrays (Leistung oder Ladeverlauf) zu einem zusammen: alle
+     * Punkte, nach Zeitstempel {@code ts} sortiert. Punkte im selben
+     * {@link #CURVE_MERGE_BUCKET_MILLIS}-Fenster werden auf einen reduziert, damit zwei
+     * Messungen derselben Ladung (Brutto/Netto) keine doppelte Kurve ergeben, waehrend
+     * zwei aufeinanderfolgende Ladungen zur durchgehenden Kurve verkettet werden.
+     *
+     * @return das zusammengefuehrte JSON, oder {@code null} wenn beide Eingaben leer sind
+     */
+    private String mergeCurveJson(String curveA, String curveB) {
+        List<JsonNode> points = new ArrayList<>();
+        points.addAll(readCurvePoints(curveA));
+        points.addAll(readCurvePoints(curveB));
+        if (points.isEmpty()) {
+            return null;
+        }
+        points.sort(Comparator.comparingLong(n -> n.path("ts").asLong()));
+
+        ArrayNode out = objectMapper.createArrayNode();
+        long lastBucket = Long.MIN_VALUE;
+        boolean any = false;
+        for (JsonNode point : points) {
+            long bucket = Math.floorDiv(point.path("ts").asLong(), CURVE_MERGE_BUCKET_MILLIS);
+            if (!any || bucket != lastBucket) {
+                out.add(point);
+                lastBucket = bucket;
+                any = true;
+            }
+        }
+        try {
+            return objectMapper.writeValueAsString(out);
+        } catch (Exception e) {
+            log.warn("Failed to serialize merged curve: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private List<JsonNode> readCurvePoints(String json) {
+        if (json == null || json.isBlank()) {
+            return List.of();
+        }
+        try {
+            JsonNode root = objectMapper.readTree(json);
+            if (!root.isArray()) {
+                return List.of();
+            }
+            List<JsonNode> points = new ArrayList<>();
+            root.forEach(points::add);
+            return points;
+        } catch (Exception e) {
+            log.warn("Failed to parse curve JSON for merge: {}", e.getMessage());
+            return List.of();
+        }
     }
 
 }

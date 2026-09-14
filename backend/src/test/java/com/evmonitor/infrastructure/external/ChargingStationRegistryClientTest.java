@@ -62,6 +62,52 @@ class ChargingStationRegistryClientTest {
         assertThat(stations.getFirst().brand()).isNull();
     }
 
+    /** Fuer die Standortvorschlaege im Log-Formular braucht es Position, Leistung und Ladeart. */
+    @Test
+    void liestPositionLeistungUndLadeartAus() {
+        Map<String, Object> row = new java.util.HashMap<>();
+        row.put("Betreiber", "IONITY GmbH");
+        row.put("Anzeigename__Karte_", "IONITY");
+        row.put("Breitengrad", 49.45);
+        row.put("Längengrad", 11.05432);
+        row.put("Nennleistung_Ladeeinrichtung__kW_", 350);
+        row.put("Art_der_Ladeeinrichtung", "Schnellladeeinrichtung");
+        row.put("Anzahl_Ladepunkte", 6);
+        respondWith(row);
+
+        var station = client.findStationsNearby(49.45, 11.05, 250).orElseThrow().getFirst();
+
+        assertThat(station.latitude()).isEqualTo(49.45);
+        assertThat(station.longitude()).isEqualTo(11.05432);
+        assertThat(station.powerKw()).isEqualTo(350.0);
+        assertThat(station.fastCharging()).isTrue();
+        assertThat(station.chargePoints()).isEqualTo(6);
+    }
+
+    /** Das Register fuehrt nicht jede Angabe - fehlende Zusatzfelder machen den Eintrag nicht unbrauchbar. */
+    @Test
+    void fehlendeZusatzfelderSindKeinFehler() {
+        respondWith(Map.of("Betreiber", "Stadtwerke X", "Art_der_Ladeeinrichtung", "Normalladeeinrichtung"));
+
+        var station = client.findStationsNearby(49.45, 11.05, 250).orElseThrow().getFirst();
+
+        assertThat(station.latitude()).isNull();
+        assertThat(station.powerKw()).isNull();
+        assertThat(station.fastCharging()).isFalse();
+        assertThat(station.chargePoints()).isNull();
+    }
+
+    /** Privatpersonen tragen sich mit geschuetzten Leerzeichen und Doppelspaces ein. */
+    @Test
+    void normalisiertWhitespaceInNamen() {
+        respondWith(Map.of("Betreiber", "Norman Roger Martin\u00a0 Hesse", "Anzeigename__Karte_", "Frank  Höhn "));
+
+        var station = client.findStationsNearby(49.45, 11.05, 250).orElseThrow().getFirst();
+
+        assertThat(station.operator()).isEqualTo("Norman Roger Martin Hesse");
+        assertThat(station.brand()).isEqualTo("Frank Höhn");
+    }
+
     @Test
     void eintraegeOhneBetreiberWerdenUebersprungen() {
         respondWith(Map.of("Anzeigename__Karte_", "Irgendwas"), Map.of("Betreiber", "Allego GmbH"));
@@ -84,6 +130,11 @@ class ChargingStationRegistryClientTest {
         assertThat(query).contains("\"x\":13.405").contains("\"y\":52.52");
         assertThat(query).contains("distance=250").contains("units=esriSRUnit_Meter");
         assertThat(query).contains("returnGeometry=false");
+        assertThat(query).contains("Breitengrad").contains("Längengrad")
+                .contains("Nennleistung_Ladeeinrichtung__kW_").contains("Art_der_Ladeeinrichtung")
+                .contains("Anzahl_Ladepunkte");
+        // jede Ladeeinrichtung einzeln: nur so lassen sich Ladepunkte je Standort zusammenzaehlen
+        assertThat(query).doesNotContain("returnDistinctValues=true");
     }
 
     /**

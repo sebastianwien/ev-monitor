@@ -40,7 +40,7 @@ class NearbyCpoServiceCachingTest {
     static class TestConfig {
         @Bean
         ConcurrentMapCacheManager cacheManager() {
-            return new ConcurrentMapCacheManager("nearbyCpos");
+            return new ConcurrentMapCacheManager("nearbyCpos", "nearbyStations");
         }
 
         @Bean
@@ -89,6 +89,31 @@ class NearbyCpoServiceCachingTest {
 
         assertThat(service.findNearbyCpos("u33dc0f")).isEmpty();
         assertThat(service.findNearbyCpos("u33dc0f")).isEmpty();
+
+        verify(registry, times(2)).findStationsNearby(anyDouble(), anyDouble(), anyInt());
+    }
+
+    @Test
+    void cachtStandortvorschlaegeEbenfallsProZelle() {
+        reset(registry);
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt()))
+                .thenReturn(Optional.of(List.of(new Station("Allego GmbH", null, 52.5204, 13.4046, 150.0, true, 2))));
+
+        assertThat(service.findNearbyStations("u33dc0f")).isPresent();
+        assertThat(service.findNearbyStations("u33dc0f")).isPresent();
+
+        verify(registry, times(1)).findStationsNearby(anyDouble(), anyDouble(), anyInt());
+    }
+
+    @Test
+    void ausfallWirdBeiStandortenNichtGecacht() {
+        reset(registry);
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt()))
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(List.of()));
+
+        assertThat(service.findNearbyStations("u33dc0g")).isEmpty();
+        assertThat(service.findNearbyStations("u33dc0g")).isPresent();
 
         verify(registry, times(2)).findStationsNearby(anyDouble(), anyDouble(), anyInt());
     }

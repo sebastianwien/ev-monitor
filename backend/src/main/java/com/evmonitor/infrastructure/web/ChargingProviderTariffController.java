@@ -4,6 +4,7 @@ import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.ChargingProviderTariffResponse;
 import com.evmonitor.application.ChargingProviderTariffService;
 import com.evmonitor.application.NearbyCpoService;
+import com.evmonitor.application.NearbyStation;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -66,6 +67,25 @@ public class ChargingProviderTariffController {
         // Antwortet das Register nicht, ist das fuer das Formular dasselbe wie "kein Vorschlag":
         // es zeigt dann die vollstaendige Anbieterliste.
         return ResponseEntity.ok(nearbyCpoService.findNearbyCpos(geohash).orElseGet(List::of));
+    }
+
+    /**
+     * Die Ladestandorte laut Ladesaeulenregister im Umkreis - als Kacheln im Log-Formular.
+     * Gleiche Regeln wie {@link #getNearbyCpos}: Drosselung, Geohash statt Rohkoordinaten,
+     * Ausfall des Registers ist eine leere Liste.
+     */
+    @GetMapping("/cpos/nearby-stations")
+    public ResponseEntity<List<NearbyStation>> getNearbyStations(@RequestParam double lat,
+                                                                 @RequestParam double lon,
+                                                                 HttpServletRequest request) {
+        if (!rateLimitService.tryConsumeCpoLookup(clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+        if (!isOnEarth(lat, lon)) {
+            return ResponseEntity.badRequest().build();
+        }
+        String geohash = GeoHash.withCharacterPrecision(lat, lon, PUBLIC_GEOHASH_PRECISION).toBase32();
+        return ResponseEntity.ok(nearbyCpoService.findNearbyStations(geohash).orElseGet(List::of));
     }
 
     private static boolean isOnEarth(double lat, double lon) {

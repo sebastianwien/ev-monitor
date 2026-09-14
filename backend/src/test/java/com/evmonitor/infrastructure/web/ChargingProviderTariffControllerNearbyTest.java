@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.ChargingProviderTariffService;
 import com.evmonitor.application.NearbyCpoService;
+import com.evmonitor.application.NearbyStation;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -102,5 +103,34 @@ class ChargingProviderTariffControllerNearbyTest {
         controller.getNearbyCpos(52.52, 13.40, request);
 
         verify(rateLimitService).tryConsumeCpoLookup("203.0.113.7");
+    }
+
+    // --- Standortvorschlaege ---
+
+    @Test
+    void standorteReichenEbenfallsNurDieGeohashZelleWeiter() {
+        var station = new NearbyStation("IONITY", true, 40, 350.0, true, 6);
+        when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.of(List.of(station)));
+
+        ResponseEntity<?> response = controller.getNearbyStations(52.520008, 13.404954, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo(List.of(station));
+        verify(nearbyCpoService).findNearbyStations("u33dc0c");
+    }
+
+    @Test
+    void ausfallDesRegistersLiefertBeiStandortenEineLeereListe() {
+        when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.empty());
+
+        assertThat(controller.getNearbyStations(52.52, 13.40, request).getBody()).isEqualTo(List.of());
+    }
+
+    @Test
+    void standortabfrageIstGedrosseltUndGeprueft() {
+        assertThat(controller.getNearbyStations(91.0, 13.4, request).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        when(rateLimitService.tryConsumeCpoLookup(anyString())).thenReturn(false);
+        assertThat(controller.getNearbyStations(52.52, 13.40, request).getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        verifyNoInteractions(nearbyCpoService);
     }
 }

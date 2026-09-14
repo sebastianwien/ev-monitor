@@ -293,6 +293,17 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     int updatePowerCurvePoints(@Param("id") UUID id, @Param("json") String json);
 
     /**
+     * Ersetzt die Leistungskurve bedingungslos (kein write-once-Guard). Fuer den
+     * Merge zweier Logs, wo der ueberlebende Datensatz eine bereits vorhandene Kurve
+     * durch die zusammengefuehrte ersetzen muss. {@code flushAutomatically} +
+     * {@code clearAutomatically} verhindern, dass die im Persistence-Context noch
+     * verwaltete (veraltete) Log-Entity den Update beim Commit ueberschreibt.
+     */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE EvLogEntity e SET e.powerCurvePoints = :json WHERE e.id = :id")
+    int replacePowerCurvePoints(@Param("id") UUID id, @Param("json") String json);
+
+    /**
      * Single-query ownership-aware lookup: returns the owner-userId + power-curve JSON
      * fuer den gegebenen Log. Ersetzt drei einzelne Roundtrips (findLog + findCar +
      * findCurve) durch eine JOIN-Query. Interface-based Projection vermeidet die
@@ -315,6 +326,11 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Modifying
     @Query("UPDATE EvLogEntity e SET e.socCurvePoints = :json WHERE e.id = :id AND e.socCurvePoints IS NULL")
     int updateSocCurvePoints(@Param("id") UUID id, @Param("json") String json);
+
+    /** Ersetzt den Ladeverlauf bedingungslos - siehe {@link #replacePowerCurvePoints}. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("UPDATE EvLogEntity e SET e.socCurvePoints = :json WHERE e.id = :id")
+    int replaceSocCurvePoints(@Param("id") UUID id, @Param("json") String json);
 
     // ── Oeffentlich geteilte Ladekurven ──────────────────────────────────────
 
