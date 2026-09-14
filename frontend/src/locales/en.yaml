@@ -3219,6 +3219,7 @@ logwizard:
   place_other: "Other charging station"
   place_other_sub: "Search provider"
   nearby_title: "Nearby"
+  nearby_loading: "Looking for nearby charging stations"
   recent_title: "Recently used"
   charge_points: "{n} charge point | {n} charge points"
   kwh_charger: "Per charger"

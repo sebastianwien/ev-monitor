@@ -3104,6 +3104,7 @@ logwizard:
   place_other: "Annen ladestasjon"
   place_other_sub: "Søk etter leverandør"
   nearby_title: "I nærheten"
+  nearby_loading: "Søker etter ladestasjoner i nærheten"
   recent_title: "Sist brukt"
   charge_points: "{n} ladepunkt | {n} ladepunkter"
   kwh_charger: "Ifølge lader"

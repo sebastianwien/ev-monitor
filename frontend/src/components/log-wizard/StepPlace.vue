@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import type { NearbyStation } from '../../composables/useNearbyStations'
 import type { LocationPermission } from '../../composables/useLocationPermission'
 import type { PlaceChoice, PlaceKind } from './wizardLogic'
@@ -72,7 +72,11 @@ const stationSub = (s: NearbyStation) => [
       <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 text-indigo-600" />
     </button>
 
-    <p v-if="stationsLoading" class="text-xs text-gray-400">{{ t('common.loading') }}</p>
+    <div v-if="stationsLoading" role="status" data-testid="stations-loading"
+      class="flex flex-col items-center gap-2 py-4 text-sm text-gray-500 dark:text-gray-400">
+      <ArrowPathIcon class="h-8 w-8 animate-spin text-indigo-600" aria-hidden="true" />
+      <span>{{ t('logwizard.nearby_loading') }}</span>
+    </div>
     <template v-if="stations.length">
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.nearby_title') }}</p>
       <button v-for="s in stations" :key="s.name" type="button" :class="tileClass(isStation(s))"

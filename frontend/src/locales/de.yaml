@@ -3220,6 +3220,7 @@ logwizard:
   place_other: "Andere Ladestation"
   place_other_sub: "Anbieter suchen"
   nearby_title: "In der Nähe"
+  nearby_loading: "Ladesäulen in der Nähe werden gesucht"
   recent_title: "Zuletzt genutzt"
   charge_points: "{n} Ladepunkt | {n} Ladepunkte"
   kwh_charger: "Laut Ladesäule"
