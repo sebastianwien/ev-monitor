@@ -5,6 +5,8 @@ import { BellAlertIcon, CheckCircleIcon, ExclamationCircleIcon, BoltIcon } from 
 import { useWaitlist } from '../../composables/useWaitlist'
 
 const { t } = useI18n()
+// bare: ohne eigene Box (Rahmen/Schatten/Tint) - fuer die Einbettung in eine bestehende Karte.
+const props = defineProps<{ bare?: boolean }>()
 const { onWaitlist, loaded, busy, error, load, join, leave } = useWaitlist('XPENG_AUTOSYNC')
 
 onMounted(load)
@@ -15,7 +17,9 @@ onMounted(load)
        wir Interessenten fuer den kommenden automatischen Import (Opt-in Warteliste). -->
   <section
     v-if="loaded"
-    class="rounded-sm border-2 border-green-600 dark:border-green-700 bg-green-50/60 dark:bg-green-950/30 p-5 md:p-6 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#15803d]">
+    :class="props.bare
+      ? ''
+      : 'rounded-sm border-2 border-green-600 dark:border-green-700 bg-green-50/60 dark:bg-green-950/30 p-5 md:p-6 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#15803d]'">
 
     <template v-if="!onWaitlist">
       <p class="text-green-700 dark:text-green-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-1.5">
