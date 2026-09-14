@@ -32,6 +32,6 @@ public class TemperatureEnrichmentEventListener {
             return;
         }
         if (event.geohash() == null) return;
-        temperatureEnricher.enrichLog(event.logId(), event.geohash(), event.loggedAt());
+        temperatureEnricher.enrichLog(event.logId(), event.geohash(), event.lookupAt());
     }
 }
