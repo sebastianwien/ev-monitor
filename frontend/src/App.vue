@@ -58,6 +58,14 @@ const route = useRoute()
 const isMobileViewport = useIsMobile()
 // Routen mit meta.mobileFullscreen (Wizard) laufen auf Mobile ohne Bottom-Nav, Ticker und Abstaende
 const mobileFullscreen = computed(() => !!route.meta.mobileFullscreen && isMobileViewport.value)
+// Android Chrome (ab 108) verschiebt bei offener Tastatur nur den sichtbaren Ausschnitt - der
+// Wizard-Kopf waechst dann nach oben raus. resizes-content laesst stattdessen das Layout
+// schrumpfen: Kopf bleibt oben, Footer ueber der Tastatur. Nur im Wizard, sonst Standard.
+const VIEWPORT_BASE = 'width=device-width, initial-scale=1.0, viewport-fit=cover'
+watch(mobileFullscreen, (on) => {
+  document.querySelector('meta[name="viewport"]')
+    ?.setAttribute('content', on ? `${VIEWPORT_BASE}, interactive-widget=resizes-content` : VIEWPORT_BASE)
+}, { immediate: true })
 
 // Statusbar-Filler faerbt sich lila, sobald der Ticker vorhanden ist - auch eingeklappt,
 // damit der Header nicht zwischen weiss/lila flippt (nahtloser Header bis in die Notch).
