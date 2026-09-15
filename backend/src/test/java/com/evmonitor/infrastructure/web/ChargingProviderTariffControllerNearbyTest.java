@@ -4,7 +4,9 @@ import com.evmonitor.application.ChargingProviderTariffService;
 import com.evmonitor.application.NearbyCpoService;
 import com.evmonitor.application.NearbyStation;
 import com.evmonitor.infrastructure.security.RateLimitService;
-import jakarta.servlet.http.HttpServletRequest;
+import com.evmonitor.domain.User;
+import com.evmonitor.infrastructure.security.UserPrincipal;
+import org.springframework.security.core.Authentication;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -27,14 +30,17 @@ class ChargingProviderTariffControllerNearbyTest {
     private NearbyCpoService nearbyCpoService;
     private RateLimitService rateLimitService;
     private ChargingProviderTariffController controller;
-    private HttpServletRequest request;
+    private Authentication request;
+    private final UUID userId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
         nearbyCpoService = mock(NearbyCpoService.class);
         rateLimitService = mock(RateLimitService.class);
-        request = mock(HttpServletRequest.class);
-        when(request.getRemoteAddr()).thenReturn("10.0.0.1");
+        User user = mock(User.class);
+        when(user.getId()).thenReturn(userId);
+        request = mock(Authentication.class);
+        when(request.getPrincipal()).thenReturn(UserPrincipal.create(user));
         when(rateLimitService.tryConsumeCpoLookup(anyString())).thenReturn(true);
         controller = new ChargingProviderTariffController(
                 mock(ChargingProviderTariffService.class), nearbyCpoService, rateLimitService);
@@ -95,14 +101,14 @@ class ChargingProviderTariffControllerNearbyTest {
         verifyNoInteractions(nearbyCpoService);
     }
 
+    /** Ein Topf je Nutzer, geteilt mit dem Speichern eines Logs mit Standort (ChargingSiteService). */
     @Test
-    void drosselungZaehltProAufrufer() {
-        when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.7, 10.0.0.1");
+    void drosselungZaehltProNutzer() {
         when(nearbyCpoService.findNearbyCpos(anyString())).thenReturn(Optional.of(List.of()));
 
         controller.getNearbyCpos(52.52, 13.40, request);
 
-        verify(rateLimitService).tryConsumeCpoLookup("203.0.113.7");
+        verify(rateLimitService).tryConsumeCpoLookup("user:" + userId);
     }
 
     // --- Standortvorschlaege ---

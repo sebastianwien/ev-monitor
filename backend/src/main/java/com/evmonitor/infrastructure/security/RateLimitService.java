@@ -174,17 +174,17 @@ public class RateLimitService {
     }
 
     /**
-     * Drosselt die Umkreisabfrage nach Ladenetzen pro IP.
+     * Drosselt die Abfragen beim Ladesaeulenregister je Schluessel (Nutzer).
      *
      * @return true if the request may proceed, false if rate limit exceeded
      */
-    public boolean tryConsumeCpoLookup(String clientIp) {
+    public boolean tryConsumeCpoLookup(String key) {
         if (!enabled) return true;
         boolean allowed = cpoLookupBuckets
-                .get(clientIp, ip -> Bucket.builder().addLimit(CPO_LOOKUP_LIMIT).build())
+                .get(key, k -> Bucket.builder().addLimit(CPO_LOOKUP_LIMIT).build())
                 .tryConsume(1);
         if (!allowed) {
-            log.warn("Rate limit exceeded for CPO lookup from IP: {}", clientIp);
+            log.warn("Rate limit exceeded for CPO lookup: {}", key);
         }
         return allowed;
     }

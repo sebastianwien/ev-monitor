@@ -6,10 +6,11 @@ import com.evmonitor.application.ChargingProviderTariffService;
 import com.evmonitor.application.NearbyCpoService;
 import com.evmonitor.application.NearbyStation;
 import com.evmonitor.infrastructure.security.RateLimitService;
-import jakarta.servlet.http.HttpServletRequest;
+import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -55,8 +56,8 @@ public class ChargingProviderTariffController {
     @GetMapping("/cpos/nearby")
     public ResponseEntity<List<String>> getNearbyCpos(@RequestParam double lat,
                                                       @RequestParam double lon,
-                                                      HttpServletRequest request) {
-        if (!rateLimitService.tryConsumeCpoLookup(clientIp(request))) {
+                                                      Authentication authentication) {
+        if (!rateLimitService.tryConsumeCpoLookup(quotaKey(authentication))) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
         if (!isOnEarth(lat, lon)) {
@@ -77,8 +78,8 @@ public class ChargingProviderTariffController {
     @GetMapping("/cpos/nearby-stations")
     public ResponseEntity<List<NearbyStation>> getNearbyStations(@RequestParam double lat,
                                                                  @RequestParam double lon,
-                                                                 HttpServletRequest request) {
-        if (!rateLimitService.tryConsumeCpoLookup(clientIp(request))) {
+                                                                 Authentication authentication) {
+        if (!rateLimitService.tryConsumeCpoLookup(quotaKey(authentication))) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
         if (!isOnEarth(lat, lon)) {
@@ -93,11 +94,11 @@ public class ChargingProviderTariffController {
                 && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
     }
 
-    private static String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+    /**
+     * Ein Kontingent je Nutzer, geteilt mit {@link com.evmonitor.application.ChargingSiteService}:
+     * beide Wege fuehren zum selben Fremddienst, ein zweiter Topf liesse sich sonst umgehen.
+     */
+    static String quotaKey(Authentication authentication) {
+        return "user:" + ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
     }
 }
