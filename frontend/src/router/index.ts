@@ -94,7 +94,8 @@ const router = createRouter({
             path: '/erfassen',
             name: 'log-form',
             component: LogFormView,
-            meta: { requiresAuth: true }
+            // Mobile: Vollbild ohne Bottom-Nav und Ticker - der Wizard ist eine geschlossene Aufgabe
+            meta: { requiresAuth: true, mobileFullscreen: true }
         },
         {
             path: '/dashboard',

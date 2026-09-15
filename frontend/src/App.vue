@@ -13,6 +13,7 @@ import { useCarStore } from './stores/car'
 import SpritMonitorImport from './components/imports/SpritMonitorImport.vue'
 import SupportPopover from './components/settings/SupportPopover.vue'
 import LeaderboardTicker from './components/shared/LeaderboardTicker.vue'
+import { useIsMobile } from './composables/useIsMobile'
 import LogFormModal from './components/log-form/LogFormModal.vue'
 import FloatingActionButton from './components/shared/FloatingActionButton.vue'
 import OnboardingWelcome from './components/shared/OnboardingWelcome.vue'
@@ -53,12 +54,16 @@ const { isDark } = storeToRefs(themeStore)
 // Native Statusbar-Icons ans Theme koppeln (sonst weisse Icons auf hellem Grund unsichtbar)
 useStatusBarTheme(isDark)
 const { tickerHasItems, tickerCollapsed } = useTickerState()
+const route = useRoute()
+const isMobileViewport = useIsMobile()
+// Routen mit meta.mobileFullscreen (Wizard) laufen auf Mobile ohne Bottom-Nav, Ticker und Abstaende
+const mobileFullscreen = computed(() => !!route.meta.mobileFullscreen && isMobileViewport.value)
 
 // Statusbar-Filler faerbt sich lila, sobald der Ticker vorhanden ist - auch eingeklappt,
 // damit der Header nicht zwischen weiss/lila flippt (nahtloser Header bis in die Notch).
 // Ohne Ticker: neutraler blickdichter Streifen mit dezenter Trennkante.
 const statusbarFillerClass = computed(() =>
-  tickerHasItems.value
+  tickerHasItems.value && !mobileFullscreen.value
     ? 'bg-indigo-800'
     : 'bg-white dark:bg-gray-950 border-b border-gray-200/60 dark:border-gray-800/60'
 )
@@ -78,13 +83,13 @@ const mainPaddingTop = computed(() => {
   const lasche = '20px'
   // Demo-Banner liegt unter der Nav (Banner-Hoehe 56px) - siehe DemoBanner.vue.
   if (authStore.isDemoAccount) return `calc(${nav} + 56px + ${safe})`
+  if (mobileFullscreen.value) return `calc(${nav} + ${safe})`
   if (tickerHasItems.value && !tickerCollapsed.value) return `calc(${nav} + 32px + ${lasche} + ${safe})` // Ticker 32px + Lasche
   if (tickerHasItems.value) return `calc(${nav} + ${lasche} + ${safe})` // eingeklappt: nur Lasche
   return `calc(${nav} + ${safe})`
 })
 
 const router = useRouter()
-const route = useRoute()
 
 // Edge-Swipe-Back (nur nativ): vom linken Rand nach rechts wischen => zurueck.
 useSwipeBack(() => router.back())
@@ -477,11 +482,11 @@ const handleBottomLogout = () => {
     />
 
     <!-- Leaderboard Ticker (below nav, only when authenticated) -->
-    <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && ['DE', 'AT', 'CH'].includes(countryStore.country)" />
+    <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !mobileFullscreen && ['DE', 'AT', 'CH'].includes(countryStore.country)" />
 
     <!-- Mobile: Bottom-Navigation + "Mehr"-Sheet (ersetzt das alte Hamburger-Menue) -->
     <BottomNav
-      v-if="authStore.isAuthenticated()"
+      v-if="authStore.isAuthenticated() && !mobileFullscreen"
       :more-open="moreOpen"
       :watt-balance="coinStore.balance"
       :is-demo="authStore.isDemoAccount"
@@ -514,7 +519,8 @@ const handleBottomLogout = () => {
       :class="[
         authStore.isAuthenticated() ? 'md:px-4' : '',
         // Mobile: Platz fuer die Bottom-Nav (h-14 + Safe-Area); Desktop unveraendert.
-        authStore.isAuthenticated() ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-10' : ''
+        authStore.isAuthenticated() && !mobileFullscreen ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-10' : '',
+        mobileFullscreen ? 'md:pb-10' : ''
       ]"
       style="overflow-x: clip;"
       :style="{ paddingTop: mainPaddingTop, transition: 'padding-top 0.3s ease' }">
