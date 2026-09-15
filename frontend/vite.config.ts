@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => ({
         __INTLIFY_JIT_COMPILATION__: true
     },
     server: {
+        // Auch im LAN erreichbar (Test am Handy). Nur Dev-Server, kein Einfluss auf den Build.
+        host: true,
         proxy: {
             // Connectors service - must come before /api to take precedence
             '/api/tesla': {
