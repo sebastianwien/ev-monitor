@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +24,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.stream.Stream;
 import java.util.zip.ZipInputStream;
 
 /**
@@ -43,7 +46,11 @@ import java.util.zip.ZipInputStream;
  * gleichzeitig im RAM, nie der ganze Export. Ein frueherer Ansatz hielt alle
  * Zeitpunkte in einer {@code TreeMap} und lief bei grossen Exporten (>~100 MB
  * entpackt) in {@code OutOfMemoryError}, was den Import-Thread stumm sterben liess.
- * Voraussetzung des Merge: jede CSV ist in sich nach {@code timer} aufsteigend
+ * Der Merge setzt sortierte Streams voraus - die Exports sind es aber nicht
+ * immer (Prod 09/2026: Tagesbloecke vertauscht). Deshalb wird jede CSV vorab in
+ * sortierte Laeufe fester Groesse auf Platte zerlegt (External Sort) und jeder
+ * Lauf als eigener Stream in den Merge gegeben. Historisch galt:
+ * jede CSV ist in sich nach {@code timer} aufsteigend
  * sortiert - ein Rueckwaertssprung wird mit {@link XpengParseException} gemeldet
  * (kein stiller Fehlmerge).
  *
@@ -63,6 +70,18 @@ public class XpengCsvExportParser {
     // des Fahrzeugs um - konsistent zum alten XLSX-Weg (dort trug XPeng lokale Zeitstrings).
     // Default Europe/Berlin fuer die aktuelle Nutzerbasis; spaeter ggf. pro Fahrzeug.
     private static final ZoneId EXPORT_ZONE = ZoneId.of("Europe/Berlin");
+    /** Zeilen pro Sortierlauf - bestimmt den Spitzen-Heap beim Sortieren (~100k Zeilen ≈ 30 MB). */
+    private static final int DEFAULT_RUN_LINES = 100_000;
+
+    private final int runLines;
+
+    public XpengCsvExportParser() {
+        this(DEFAULT_RUN_LINES);
+    }
+
+    XpengCsvExportParser(int runLines) {
+        this.runLines = runLines;
+    }
 
     public record ParseResult(XpengVehicleInfo vehicleInfo, long rowsProcessed) {}
 
@@ -71,13 +90,13 @@ public class XpengCsvExportParser {
      * reicht jede zusammengefuehrte Zeile in Zeitreihenfolge an {@code rowHandler}.
      *
      * @throws XpengParseException wenn Pflichtsignale ({@link XpengHeaderMapper#REQUIRED_LOGICAL})
-     *                             ueber alle CSVs hinweg nicht aufloesbar sind (Schema-Drift),
-     *                             eine CSV nicht nach {@code timer} sortiert ist, oder die
-     *                             entpackte Groesse das Limit sprengt.
+     *                             ueber alle CSVs hinweg nicht aufloesbar sind (Schema-Drift)
+     *                             oder die entpackte Groesse das Limit sprengt.
      */
     public ParseResult parse(Path zipPath, Consumer<XpengTelematicsRow> rowHandler) throws Exception {
         List<ClusterReader> readers = new ArrayList<>();
         long[] byteBudget = {MAX_TOTAL_UNCOMPRESSED_BYTES};
+        Path runDir = Files.createTempDirectory("xpeng-runs-");
         try (ZipFile zip = new ZipFile(zipPath.toFile())) {
             int entryCount = 0;
             Enumeration<? extends ZipEntry> entries = zip.entries();
@@ -92,9 +111,8 @@ public class XpengCsvExportParser {
                 if (++entryCount > MAX_ENTRIES) {
                     throw new XpengParseException("ZIP hat zu viele Entries (> " + MAX_ENTRIES + ")");
                 }
-                ClusterReader reader = ClusterReader.open(zip, entry, byteBudget);
-                if (reader != null) {
-                    readers.add(reader);
+                for (Path run : splitIntoSortedRuns(zip.getInputStream(entry), runDir, entryCount, byteBudget)) {
+                    readers.add(ClusterReader.open(run));
                 }
             }
 
@@ -150,12 +168,77 @@ public class XpengCsvExportParser {
             for (ClusterReader r : readers) {
                 r.close();
             }
+            deleteRecursively(runDir);
+        }
+    }
+
+    private record RunLine(long epoch, String raw) {}
+
+    /**
+     * External Sort: liest die CSV zeilenweise, sortiert Bloecke von {@link #runLines}
+     * Zeilen nach {@code timer} und schreibt jeden Block als eigene CSV (mit Header)
+     * nach {@code runDir}. Leer, wenn die CSV keinen Header oder keine timer-Spalte hat.
+     */
+    private List<Path> splitIntoSortedRuns(InputStream in, Path runDir, int entryNo, long[] byteBudget)
+            throws Exception {
+        List<Path> runs = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+            String headerLine = reader.readLine();
+            if (headerLine == null) return runs;
+            charge(byteBudget, headerLine);
+            List<String> headers = splitCsv(stripBom(headerLine));
+            Integer timerCol = XpengHeaderMapper.identifyColumns(headers).get(XpengHeaderMapper.TIMER);
+            if (timerCol == null) {
+                log.warn("XpengCsvExportParser: CSV ohne 'timer'-Spalte uebersprungen (Header: {})", headers);
+                return runs;
+            }
+            List<RunLine> buffer = new ArrayList<>(runLines);
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isBlank()) continue;
+                charge(byteBudget, line);
+                Long epoch = parseEpoch(cell(splitCsv(line), timerCol));
+                if (epoch == null) continue;
+                buffer.add(new RunLine(epoch, line));
+                if (buffer.size() >= runLines) {
+                    runs.add(writeRun(runDir, entryNo, runs.size(), headerLine, buffer));
+                    buffer.clear();
+                }
+            }
+            if (!buffer.isEmpty()) {
+                runs.add(writeRun(runDir, entryNo, runs.size(), headerLine, buffer));
+            }
+        }
+        return runs;
+    }
+
+    private static Path writeRun(Path runDir, int entryNo, int runNo, String headerLine, List<RunLine> buffer)
+            throws java.io.IOException {
+        buffer.sort(Comparator.comparingLong(RunLine::epoch)); // stabil -> Reihenfolge bei gleichem timer bleibt
+        Path run = runDir.resolve("entry" + entryNo + "-run" + runNo + ".csv");
+        try (Writer w = Files.newBufferedWriter(run, StandardCharsets.UTF_8)) {
+            w.write(headerLine);
+            w.write('\n');
+            for (RunLine l : buffer) {
+                w.write(l.raw());
+                w.write('\n');
+            }
+        }
+        return run;
+    }
+
+    private static void deleteRecursively(Path dir) {
+        try (Stream<Path> paths = Files.walk(dir)) {
+            paths.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete());
+        } catch (Exception e) {
+            log.warn("XpengCsvExportParser: Temp-Verzeichnis {} nicht aufgeraeumt: {}", dir, e.toString());
         }
     }
 
     /**
-     * Streamt eine einzelne CSV eines Clusters zeilenweise und haelt genau eine Datenzeile
-     * ({@link #headEpoch()}/{@link #mergeHeadInto}) im Speicher. Prueft die Zeit-Sortierung.
+     * Streamt einen sortierten Lauf eines Clusters zeilenweise und haelt genau eine Datenzeile
+     * ({@link #headEpoch()}/{@link #mergeHeadInto}) im Speicher. Die Sortierpruefung ist nur
+     * noch eine Invariante des vorgelagerten External Sort.
      */
     private static final class ClusterReader implements Closeable {
         private final BufferedReader reader;
@@ -163,7 +246,6 @@ public class XpengCsvExportParser {
         private final int timerCol;
         private final int vinCol;
         private final int vmodelCol;
-        private final long[] byteBudget;
 
         private Long headEpoch;
         private List<String> headFields;
@@ -172,35 +254,21 @@ public class XpengCsvExportParser {
         private String vmodel;
 
         private ClusterReader(BufferedReader reader, Map<String, Integer> logicalToColumn,
-                              int timerCol, int vinCol, int vmodelCol, long[] byteBudget) {
+                              int timerCol, int vinCol, int vmodelCol) {
             this.reader = reader;
             this.logicalToColumn = logicalToColumn;
             this.timerCol = timerCol;
             this.vinCol = vinCol;
             this.vmodelCol = vmodelCol;
-            this.byteBudget = byteBudget;
         }
 
-        /** Oeffnet den Reader und liest den Header. {@code null}, wenn die CSV keine timer-Spalte hat. */
-        static ClusterReader open(ZipFile zip, ZipEntry entry, long[] byteBudget) throws Exception {
-            InputStream in = zip.getInputStream(entry);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-            String headerLine = reader.readLine();
-            if (headerLine == null) {
-                reader.close();
-                return null;
-            }
-            charge(byteBudget, headerLine);
-            List<String> headers = splitCsv(stripBom(headerLine));
+        /** Oeffnet einen von {@link #splitIntoSortedRuns} geschriebenen Lauf (Header garantiert vorhanden). */
+        static ClusterReader open(Path run) throws Exception {
+            BufferedReader reader = Files.newBufferedReader(run, StandardCharsets.UTF_8);
+            List<String> headers = splitCsv(stripBom(reader.readLine()));
             Map<String, Integer> logicalToColumn = XpengHeaderMapper.identifyColumns(headers);
-            Integer timerCol = logicalToColumn.get(XpengHeaderMapper.TIMER);
-            if (timerCol == null) {
-                log.warn("XpengCsvExportParser: CSV ohne 'timer'-Spalte uebersprungen (Header: {})", headers);
-                reader.close();
-                return null;
-            }
-            return new ClusterReader(reader, logicalToColumn, timerCol,
-                    indexOfHeader(headers, "vin"), indexOfHeader(headers, "vmodel"), byteBudget);
+            return new ClusterReader(reader, logicalToColumn, logicalToColumn.get(XpengHeaderMapper.TIMER),
+                    indexOfHeader(headers, "vin"), indexOfHeader(headers, "vmodel"));
         }
 
         List<String> logicals() {
@@ -223,14 +291,10 @@ public class XpengCsvExportParser {
         void advance() throws Exception {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.isBlank()) continue;
-                charge(byteBudget, line);
                 List<String> fields = splitCsv(line);
                 Long epoch = parseEpoch(cell(fields, timerCol));
-                if (epoch == null) continue;
                 if (epoch < lastEpoch) {
-                    throw new XpengParseException("XPeng-Export ist nicht nach Zeit ('timer') sortiert ("
-                            + epoch + " < " + lastEpoch + ") - Streaming-Merge nicht moeglich.");
+                    throw new IllegalStateException("Sortierlauf nicht sortiert (" + epoch + " < " + lastEpoch + ")");
                 }
                 lastEpoch = epoch;
                 if (vin == null && vinCol >= 0) {

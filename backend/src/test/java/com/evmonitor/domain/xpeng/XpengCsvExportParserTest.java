@@ -105,9 +105,10 @@ class XpengCsvExportParserTest {
     }
 
     @Test
-    void meldetNichtNachZeitSortiertenExport() throws Exception {
-        // operation springt zeitlich rueckwaerts (1002 -> 1000). Der Streaming-Merge
-        // kann das nicht sicher joinen -> klarer Fehler statt stiller Fehlmerge.
+    void mergedNichtNachZeitSortiertenExport() throws Exception {
+        // Prod-Befund 09/2026: manche XPeng-Exports springen zeitlich rueckwaerts
+        // (Tagesbloecke vertauscht). Der Parser darf sich nicht auf die Sortierung
+        // verlassen, sondern muss selbst sortieren und dann korrekt joinen.
         String op = OP_HEADER + "\n"
                 + "L1NTEST,F57a,1002,20260901,0.0,4,12346.0\n"
                 + "L1NTEST,F57a,1000,20260901,42.5,1,12345.0\n";
@@ -118,11 +119,50 @@ class XpengCsvExportParserTest {
                 "driving_operation_di.csv", op,
                 "driving_power_energy_di.csv", pe));
 
-        XpengParseException ex = assertThrows(XpengParseException.class,
-                () -> new XpengCsvExportParser().parse(zip, r -> {}));
-        assertTrue(ex.getMessage().toLowerCase().contains("sortiert")
-                        || ex.getMessage().toLowerCase().contains("timer"),
-                "Meldung soll auf die fehlende Zeit-Sortierung hinweisen: " + ex.getMessage());
+        List<XpengTelematicsRow> rows = new ArrayList<>();
+        XpengCsvExportParser.ParseResult result = new XpengCsvExportParser().parse(zip, rows::add);
+
+        assertEquals(2, result.rowsProcessed());
+        ZoneId berlin = ZoneId.of("Europe/Berlin");
+        assertEquals(Instant.ofEpochSecond(1000).atZone(berlin).toLocalDateTime(), rows.get(0).timer());
+        assertEquals(Instant.ofEpochSecond(1002).atZone(berlin).toLocalDateTime(), rows.get(1).timer());
+        // t=1000 aus beiden Clustern korrekt gejoint (Speed aus op, SoC aus pe)
+        assertEquals(0, new BigDecimal("42.5").compareTo(rows.get(0).vehSpeedKmh()));
+        assertEquals(0, new BigDecimal("80.0").compareTo(rows.get(0).socDisplay()));
+        assertEquals(4, rows.get(1).gearLev());
+        assertEquals(0, new BigDecimal("79.0").compareTo(rows.get(1).socDisplay()));
+    }
+
+    @Test
+    void mergedUnsortiertenExportUeberMehrereSortierlaeufe() throws Exception {
+        // Sortierlauf-Groesse 2 -> die 5 op-Zeilen landen in 3 Laeufen, die
+        // untereinander und mit power_energy gemergt werden muessen.
+        String op = OP_HEADER + "\n"
+                + "L1NTEST,F57a,1004,20260901,0.0,4,12350.0\n"
+                + "L1NTEST,F57a,1001,20260901,0.0,4,12345.0\n"
+                + "L1NTEST,F57a,1003,20260901,0.0,4,12349.0\n"
+                + "L1NTEST,F57a,1000,20260901,42.5,1,12345.0\n"
+                + "L1NTEST,F57a,1002,20260901,0.0,4,12346.0\n";
+        String pe = PE_HEADER + "\n"
+                + "L1NTEST,F57a,1002,20260901,361.0,5.0,0.0,79.0,430.0\n"
+                + "L1NTEST,F57a,1000,20260901,360.0,-15.0,0.0,80.0,431.0\n";
+        Path zip = writeZip(Map.of(
+                "driving_operation_di.csv", op,
+                "driving_power_energy_di.csv", pe));
+
+        List<XpengTelematicsRow> rows = new ArrayList<>();
+        XpengCsvExportParser.ParseResult result = new XpengCsvExportParser(2).parse(zip, rows::add);
+
+        assertEquals(5, result.rowsProcessed());
+        ZoneId berlin = ZoneId.of("Europe/Berlin");
+        for (int i = 0; i < 5; i++) {
+            assertEquals(Instant.ofEpochSecond(1000 + i).atZone(berlin).toLocalDateTime(), rows.get(i).timer(),
+                    "Zeile " + i + " muss aufsteigend sortiert sein");
+        }
+        assertEquals(0, new BigDecimal("80.0").compareTo(rows.get(0).socDisplay()));
+        assertNull(rows.get(1).socDisplay(), "t=1001 nur in op");
+        assertEquals(0, new BigDecimal("79.0").compareTo(rows.get(2).socDisplay()));
+        assertEquals(0, new BigDecimal("12350.0").compareTo(rows.get(4).odometerKm()));
     }
 
     @Test
