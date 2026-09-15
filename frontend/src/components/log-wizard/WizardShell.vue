@@ -18,7 +18,9 @@ const isInputStep = computed(() => props.step <= INPUT_STEPS)
 </script>
 
 <template>
-  <div class="flex flex-col min-h-[calc(100dvh-env(safe-area-inset-top))] md:min-h-0">
+  <!-- Mobile: fest auf den Viewport gespannt - Kopf und Footer bleiben stehen, nur der Inhalt
+       dazwischen scrollt. Die Seite selbst kann nicht mehr scrollen, der Balken laeuft nie raus. -->
+  <div class="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0">
     <header class="px-4 pt-4 pb-3 md:px-6">
       <div class="flex items-center justify-between">
         <button v-if="step > 1" type="button" :aria-label="t('common.back')" @click="emit('back')"
@@ -43,12 +45,15 @@ const isInputStep = computed(() => props.step <= INPUT_STEPS)
       <p v-if="hint" class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ hint }}</p>
     </header>
 
-    <!-- Inhalt am unteren Rand: Tap-Ziele liegen so ueber dem Footer in Daumenreichweite -->
-    <div class="flex-1 flex flex-col justify-end md:justify-start px-4 pb-4 md:px-6">
-      <slot />
+    <!-- Inhalt am unteren Rand: Tap-Ziele liegen so ueber dem Footer in Daumenreichweite.
+         min-h-full statt fester Hoehe, damit justify-end bei langem Inhalt nichts oben abschneidet. -->
+    <div class="flex-1 min-h-0 overflow-y-auto">
+      <div class="min-h-full flex flex-col justify-end md:justify-start px-4 pb-4 md:px-6">
+        <slot />
+      </div>
     </div>
 
-    <footer class="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3 flex items-center gap-3">
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3 flex items-center gap-3">
       <button v-if="step > 1" type="button" @click="emit('back')"
         class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 inline-flex items-center gap-1 rounded-sm transition hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
         <ChevronLeftIcon class="h-4 w-4" />{{ t('common.back') }}
