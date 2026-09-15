@@ -86,7 +86,7 @@ const formData = ref<LogFormData>({
   longitude: null,
   isPublicCharging: false,
   cpoName: null,
-  chargingProviderId: null,
+  chargingProviderId: null, chargingSite: null,
 })
 
 // ── Location search ────────────────────────────────────────────────────────────
@@ -239,7 +239,7 @@ const submitLog = async () => {
       chargingType: 'AC', routeType: savedRouteType,
       tireType: savedTireType,
       latitude: null, longitude: null,
-      isPublicCharging: false, cpoName: null, chargingProviderId: null,
+      isPublicCharging: false, cpoName: null, chargingProviderId: null, chargingSite: null,
       applyTariffToLocation: false,
     }
     ocrUsed.value = false

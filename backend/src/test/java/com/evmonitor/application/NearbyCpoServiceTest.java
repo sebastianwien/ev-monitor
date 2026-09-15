@@ -93,6 +93,29 @@ class NearbyCpoServiceTest {
         return new Station(operator, brand, lat, lon, kw, fast, points);
     }
 
+    /**
+     * Der Vorschlag traegt die Leistung je Ladeart (Maximum ueber die Saeulen des Betreibers)
+     * und die Registerdaten der naechsten Saeule: ID, Adresse, Stecker.
+     */
+    @Test
+    void traegtLeistungJeLadeartUndRegisterdatenDerNaechstenSaeule() {
+        Station near = new Station("Kaufland Dienstleistung GmbH & Co. KG", "Kaufland", 52.5196, 13.4055, 43.0, 50.0, 2,
+                1064145, "Storkower Str.", "139", "10407", "Berlin", List.of("Typ 2", "CCS"),
+                java.time.LocalDate.of(2018, 11, 27), "3330", "Onlinezahlungsverfahren", "24/7");
+        Station far = new Station("Kaufland Dienstleistung GmbH & Co. KG", "Kaufland", 52.5212, 13.4054, 22.0, 150.0, 4,
+                1064146, "Storkower Str.", "141", "10407", "Berlin", List.of("CCS"), null, null, null, null);
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(far, near)));
+
+        var s = service.findNearbyStations("u33dc0c").orElseThrow().getFirst();
+
+        assertThat(s.maxAcKw()).isEqualTo(43.0);
+        assertThat(s.maxDcKw()).isEqualTo(150.0);
+        assertThat(s.chargePoints()).isEqualTo(6);
+        assertThat(s.registerId()).isEqualTo(1064145);
+        assertThat(s.address()).isEqualTo("Storkower Str. 139, 10407 Berlin");
+        assertThat(s.plugTypes()).containsExactly("Typ 2", "CCS");
+    }
+
     @Test
     void sortiertStandorteNachEntfernungZumZellmittelpunkt() {
         // Zelle u33dc0c: Mittelpunkt 52.51945, 13.40538
@@ -105,6 +128,23 @@ class NearbyCpoServiceTest {
         assertThat(stations).extracting(NearbyStation::name).containsExactly("IONITY", "Allego");
         assertThat(stations.getFirst().distanceMeters()).isLessThan(30);
         assertThat(stations.get(1).distanceMeters()).isBetween(150, 250);
+    }
+
+    /**
+     * Fuer die Wiedererkennung als Ladestandort (charging_site) traegt jeder Vorschlag die
+     * Geohash-Zelle der naechstgelegenen Saeule seines Betreibers - nicht die des Nutzers.
+     */
+    @Test
+    void traegtDieZelleDerNaechstenSaeuleDesBetreibers() {
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of(
+                at("IONITY GmbH", "IONITY", 52.5212, 13.4054, 350, true, 2),
+                at("IONITY GmbH", "IONITY", 52.5196, 13.4055, 350, true, 2))));
+
+        var stations = service.findNearbyStations("u33dc0c").orElseThrow();
+
+        String nearest = ch.hsr.geohash.GeoHash.withCharacterPrecision(52.5196, 13.4055, 7).toBase32();
+        assertThat(stations).hasSize(1);
+        assertThat(stations.getFirst().geohash()).isEqualTo(nearest);
     }
 
     /**

@@ -120,6 +120,9 @@ public class EvLogEntity {
     @Column(name = "cpo_name", length = 100)
     private String cpoName;
 
+    @Column(name = "charging_site_id")
+    private UUID chargingSiteId;
+
     @Column(name = "measurement_type", length = 20, nullable = false)
     private String measurementType = "AT_CHARGER";
 

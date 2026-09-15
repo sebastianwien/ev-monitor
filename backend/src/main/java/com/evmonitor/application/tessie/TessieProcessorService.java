@@ -158,7 +158,7 @@ public class TessieProcessorService {
                     isDc ? "DC" : "AC"
             });
             // Tessie liefert keine Aussentemperatur zur Ladung - die holt die Wetter-Anreicherung nach.
-            pendingEnrichment.add(new EvLogSavedEvent(logId, geohash, loggedAt.toLocalDateTime(), null));
+            pendingEnrichment.add(EvLogSavedEvent.of(logId, geohash, loggedAt.toLocalDateTime(), durationMinutes, null));
         }
 
         // Der Import schreibt per JdbcTemplate an EvLogService vorbei (Bulk-Insert) und muss die

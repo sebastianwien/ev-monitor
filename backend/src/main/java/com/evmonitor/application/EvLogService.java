@@ -55,6 +55,7 @@ public class EvLogService {
     private final JpaUserChargingProviderRepository chargingProviderRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final LocationPricing locationPricing;
+    private final ChargingSiteService chargingSiteService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     @Transactional
@@ -73,6 +74,9 @@ public class EvLogService {
             int precision = Boolean.TRUE.equals(request.isPublicCharging()) ? 7 : 6;
             geohash = GeoHash.withCharacterPrecision(request.latitude(), request.longitude(), precision).toBase32();
         }
+        // Register-Saeule gewaehlt: geladen wurde an der Saeule, nicht wo das Handy lag.
+        Optional<ChargingSite> site = chargingSiteService.resolve(userId, request.chargingSite());
+        if (site.isPresent()) geohash = site.get().geohash();
 
         EvLog newLog = EvLog.createNew(
                 request.carId(),
@@ -92,7 +96,11 @@ public class EvLogService {
 
         var builder = newLog.toBuilder()
                 .socBeforeChargePercent(request.socBeforeChargePercent())
-                .kwhAtVehicle(request.kwhAtVehicle());
+                .kwhAtVehicle(request.kwhAtVehicle())
+                .chargingSiteId(site.map(ChargingSite::id).orElse(null));
+        if (site.isPresent() && isBlank(request.cpoName())) {
+            builder.cpoName(site.get().cpoName() != null ? site.get().cpoName() : site.get().name());
+        }
         if (request.kwhAtVehicle() != null && request.kwhCharged() == null) {
             builder.measurementType(EnergyMeasurementType.AT_VEHICLE);
         }
@@ -445,7 +453,8 @@ public class EvLogService {
     @Transactional
     public EvLog save(EvLog evLog) {
         EvLog saved = evLogRepository.save(evLog);
-        eventPublisher.publishEvent(new EvLogSavedEvent(saved.getId(), saved.getGeohash(), saved.getLoggedAt(), saved.getTemperatureCelsius()));
+        eventPublisher.publishEvent(EvLogSavedEvent.of(saved.getId(), saved.getGeohash(), saved.getLoggedAt(),
+                saved.getChargeDurationMinutes(), saved.getTemperatureCelsius()));
         if (saved.getKwhAtVehicle() != null) {
             carRepository.findById(saved.getCarId()).ifPresent(car ->
                     eventPublisher.publishEvent(new SohAutoDetectEvent(car)));
@@ -617,6 +626,16 @@ public class EvLogService {
             geohashChanged = true;
         }
 
+        UUID updatedChargingSiteId = Boolean.TRUE.equals(updatedIsPublicCharging) ? existing.getChargingSiteId() : null;
+        if (request.chargingSite() != null) {
+            Optional<ChargingSite> site = chargingSiteService.resolve(userId, request.chargingSite());
+            if (site.isPresent()) {
+                updatedChargingSiteId = site.get().id();
+                geohashChanged = !site.get().geohash().equals(geohash);
+                geohash = site.get().geohash();
+            }
+        }
+
         UUID updatedChargingProviderId = existing.getChargingProviderId();
         if (request.chargingProviderId() != null) {
             if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(request.chargingProviderId(), userId)) {
@@ -655,6 +674,7 @@ public class EvLogService {
                 .costExchangeRate(request.costExchangeRate() != null ? request.costExchangeRate()     : existing.getCostExchangeRate())
                 .costCurrency(request.costCurrency()         != null ? request.costCurrency()          : existing.getCostCurrency())
                 .chargingProviderId(updatedChargingProviderId)
+                .chargingSiteId(updatedChargingSiteId)
                 .temperatureCelsius(geohashChanged ? null : existing.getTemperatureCelsius())
                 .updatedAt(LocalDateTime.now())
                 .build();

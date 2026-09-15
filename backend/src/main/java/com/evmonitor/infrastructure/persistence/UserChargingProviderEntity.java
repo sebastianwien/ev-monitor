@@ -48,6 +48,10 @@ public class UserChargingProviderEntity {
     @Column(name = "label", length = 100)
     private String label;
 
+    /** Katalogverweis (emp.name), wenn provider_name einem bekannten EMP entspricht. Siehe EmpCatalog. */
+    @Column(name = "emp_name", length = 100)
+    private String empName;
+
     /**
      * Privater Heimtarif (eigene Wallbox / Haushaltsstrom) statt einer Ladekarte fuer
      * oeffentliche Saeulen. Nur eine so markierte Karte darf eine Ladung automatisch

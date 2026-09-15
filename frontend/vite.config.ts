@@ -2,13 +2,21 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 import path from 'path'
+
+// `npm run dev:https`: selbstsigniertes Zertifikat, damit Standort und Kamera auch am Handy
+// im LAN gehen (Browser geben beides nur ueber HTTPS frei). Standard bleibt HTTP fuer
+// Playwright und Backend-CORS; nur Dev-Server, kein Einfluss auf den Build.
+const devHttps = process.env.DEV_HTTPS === '1'
 
 export default defineConfig(({ mode }) => ({
     define: {
         __INTLIFY_JIT_COMPILATION__: true
     },
     server: {
+        // Auch im LAN erreichbar (Test am Handy). Nur Dev-Server, kein Einfluss auf den Build.
+        host: true,
         proxy: {
             // Connectors service - must come before /api to take precedence
             '/api/tesla': {
@@ -40,7 +48,10 @@ export default defineConfig(({ mode }) => ({
             // Core backend
             '/api': {
                 target: 'http://localhost:8080',
-                changeOrigin: true
+                changeOrigin: true,
+                // Zugriff aus dem LAN (Handy-Test): das Backend erlaubt nur localhost als Origin,
+                // fuer den Browser ist der Proxy ohnehin same-origin.
+                headers: { Origin: 'http://localhost:5173' }
             },
             // Swagger UI + OpenAPI spec (springdoc-openapi, not under /api)
             '/swagger-ui': {
@@ -69,6 +80,7 @@ export default defineConfig(({ mode }) => ({
     },
     plugins: [
         vue(),
+        ...(devHttps ? [basicSsl()] : []),
         VueI18nPlugin({
             include: [path.resolve(__dirname, './src/locales/**')],
             strictMessage: false

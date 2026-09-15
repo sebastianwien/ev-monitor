@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
@@ -48,9 +49,9 @@ const battery = computed(() => {
     <div>
       <label for="wizard-soc" class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('logfields.soc_after') }}</label>
       <BigInput id="wizard-soc" v-model="form.socAfterChargePercent" unit="%" placeholder="80" step="1" :min="0" :max="100" inputmode="numeric" />
-      <div class="flex gap-2 mt-2">
+      <div :class="[CHIP_ROW, 'mt-2']">
         <button v-for="p in [80, 90, 100]" :key="p" type="button" @click="form.socAfterChargePercent = p"
-          :class="['px-3 py-1.5 rounded-full text-sm border transition', form.socAfterChargePercent === p ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
+          :class="chipClass(form.socAfterChargePercent === p)">
           {{ p }} %
         </button>
       </div>
@@ -60,10 +61,11 @@ const battery = computed(() => {
       <label for="wizard-soc-before" class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('logfields.soc_before') }}</label>
       <BigInput id="wizard-soc-before" v-model="form.socBeforeChargePercent" unit="%" placeholder="20" step="1" :min="0" :max="100" inputmode="numeric" />
     </div>
-    <button v-else type="button" @click="showBefore = true"
-      class="px-3 py-1.5 rounded-full text-sm border border-dashed border-gray-400 text-gray-600 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700">
-      + {{ t('logwizard.soc_before_cta') }}
-    </button>
+    <div v-else :class="CHIP_ROW">
+      <button type="button" @click="showBefore = true" :class="chipClass(false, 'dashed')">
+        + {{ t('logwizard.soc_before_cta') }}
+      </button>
+    </div>
 
     <p v-if="battery" class="text-sm text-gray-500 dark:text-gray-400 tabular-nums">{{ battery }}</p>
   </div>

@@ -90,9 +90,10 @@ class TessieProcessorEnrichmentTest {
         assertNotNull(event.logId());
         assertNotNull(event.geohash(), "Without a geohash the weather enrichment bails out");
         assertEquals(7, event.geohash().length(), "DC charge is public - 7 chars (~150m)");
-        assertEquals(LocalDateTime.ofEpochSecond(STARTED_AT, 0,
-                        java.time.ZoneId.systemDefault().getRules().getOffset(java.time.Instant.ofEpochSecond(STARTED_AT))),
-                event.loggedAt(), "Enrichment looks up the weather at the time of the charge");
+        LocalDateTime start = LocalDateTime.ofEpochSecond(STARTED_AT, 0,
+                java.time.ZoneId.systemDefault().getRules().getOffset(java.time.Instant.ofEpochSecond(STARTED_AT)));
+        assertEquals(start.plusMinutes(15), event.lookupAt(),
+                "Enrichment looks up the weather at the midpoint of the 30 min charge");
         assertNull(event.temperatureCelsius(), "Tessie charges carry no temperature - that is the point");
     }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TruckIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
@@ -13,6 +13,7 @@ import { useLogsRefreshStore } from '../../stores/logsRefresh'
 import { useHaptic } from '../../composables/useHaptic'
 import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useNearbyStations } from '../../composables/useNearbyStations'
+import { useRecentSites } from '../../composables/useRecentSites'
 import { useCostInput } from '../../composables/useCostInput'
 import { queryLocationPermission, getCurrentPosition, LOCATION_ENABLED_KEY, type LocationPermission } from '../../composables/useLocationPermission'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
@@ -79,6 +80,7 @@ watch(selectedCarId, fetchLogs)
 const permission = ref<LocationPermission>('unknown')
 const locationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 const nearby = useNearbyStations()
+const recentSites = useRecentSites()
 const cpo = useCpoOptions(computed(() => countryStore.country))
 const providers = ref<ChargingProvider[]>([])
 
@@ -88,10 +90,12 @@ const requestLocation = async () => {
     const pos = await getCurrentPosition()
     form.value.latitude = pos.latitude
     form.value.longitude = pos.longitude
-    locationStatus.value = 'success'
     permission.value = 'granted'
     localStorage.setItem(LOCATION_ENABLED_KEY, 'true')
+    // Erst nach den Säulen auf 'success': so klappt die Standort-Card in einem Zug zu,
+    // während die Liste erscheint, statt in zwei Sprüngen
     await nearby.load(pos.latitude, pos.longitude)
+    locationStatus.value = 'success'
   } catch (e: any) {
     locationStatus.value = 'error'
     if (e?.denied) permission.value = 'denied'
@@ -105,11 +109,16 @@ const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
   await nearby.load(p.latitude, p.longitude)
 }
 
+/** Kurze Pause vor dem Weiterspringen: die gewaehlte Kachel soll als ausgewaehlt sichtbar werden. */
+const PLACE_ADVANCE_MS = 350
+let advanceTimer: number | undefined
 const choosePlace = (choice: PlaceChoice) => {
   state.value.place = choice.kind
   applyPlace(form.value, choice)
-  if (choice.kind !== 'other') next()
+  window.clearTimeout(advanceTimer)
+  if (choice.kind !== 'other') advanceTimer = window.setTimeout(next, PLACE_ADVANCE_MS)
 }
+onUnmounted(() => window.clearTimeout(advanceTimer))
 
 const placeLabel = computed(() => {
   if (state.value.place === 'home') return t('logwizard.place_home')
@@ -123,7 +132,8 @@ const questions: Record<WizardStep, string> = {
 }
 const hint = computed(() => {
   if (step.value === 1 && permission.value === 'granted' && nearby.stations.value.length) return t('logwizard.hint_nearby')
-  if (step.value === 2 || step.value === 4) return `${placeLabel.value} · ${form.value.chargingType}`
+  if (step.value === 2) return placeLabel.value
+  if (step.value === 4) return `${placeLabel.value} · ${form.value.chargingType}`
   if (step.value === 3) return t('logwizard.hint_vehicle')
   return ''
 })
@@ -171,6 +181,7 @@ onMounted(async () => {
     if (cars.value.length === 1) selectedCarId.value = cars.value[0].id
   } catch { hasCars.value = false }
   cpo.loadAll()
+  recentSites.load()
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
   permission.value = await queryLocationPermission()
   // Schon einmal erlaubt: kein Dialog mehr, direkt laden. Sonst wartet der Hinweis auf den Tap.
@@ -197,7 +208,8 @@ onMounted(async () => {
       @back="back" @next="next" @cancel="emit('cancel')">
       <div v-if="cars.length > 1 && step === 1" class="mb-4"><CarSelector v-model="selectedCarId" /></div>
 
-      <StepPlace v-if="step === 1" :place="state.place" :selected-cpo="form.cpoName"
+      <StepPlace v-if="step === 1" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
+        :recent-sites="recentSites.sites.value"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"

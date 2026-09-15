@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
@@ -20,7 +21,7 @@ const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const { t } = useI18n()
 const countryStore = useCountryStore()
-const { formatNumber } = useLocaleFormat()
+const { formatNumber, formatDecimal } = useLocaleFormat()
 
 const symbol = computed(() => countryStore.unitSystem.currencySymbol)
 const { costMode, costLocalTotal, costLocalPerKwh, calculatedLocalPerKwh, calculatedLocalTotal, setPerKwhEur } = props.cost
@@ -107,40 +108,34 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus />
-    <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus />
-    <SegmentToggle v-model="costMode"
-      :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
-    <p class="text-sm text-gray-500 dark:text-gray-400 tabular-nums min-h-5">
-      <template v-if="costMode === 'total' && calculatedLocalPerKwh != null">= {{ formatNumber(calculatedLocalPerKwh) }} {{ symbol }}/kWh</template>
-      <template v-else-if="costMode === 'per_kwh' && calculatedLocalTotal != null">= {{ formatNumber(calculatedLocalTotal) }} {{ symbol }}</template>
-    </p>
+  <!-- Lese-Zone oben, Bedien-Zone unten in Daumenreichweite (siehe StepEnergy) -->
+  <div class="flex-1 flex flex-col gap-4">
+    <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('logwizard.price_hint') }}</p>
 
-    <div class="pt-2">
-      <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('logwizard.price_suggestions') }}</p>
-      <div class="flex flex-wrap gap-2">
+    <div class="mt-auto space-y-4">
+    <div>
+      <div :class="[CHIP_ROW, 'items-center']">
+        <span class="mr-auto text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('logwizard.price_suggestions') }}</span>
         <button v-for="s in suggestions" :key="s.key" type="button" :aria-pressed="selectedKey === s.key" @click="pick(s)"
-          :class="['px-3 py-1.5 rounded-full text-sm border transition', selectedKey === s.key ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
+          :class="chipClass(selectedKey === s.key)">
           {{ priceLabel(s.eurPerKwh) }} · {{ s.label }}
         </button>
         <button type="button" :aria-pressed="selectedKey === 'free'" @click="pickFree"
-          :class="['px-3 py-1.5 rounded-full text-sm border transition', selectedKey === 'free' ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
+          :class="chipClass(selectedKey === 'free')">
           {{ t('logwizard.price_free') }}
         </button>
       </div>
-      <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">{{ t('logwizard.price_hint') }}</p>
     </div>
 
     <!-- Ladekarte: anlegen oder der gewaehlten Karte den fehlenden Tarif geben -->
     <div v-if="form.isPublicCharging" class="space-y-2">
-      <div v-if="!inlineCard.isOpen.value" class="flex flex-wrap gap-2">
+      <div v-if="!inlineCard.isOpen.value" :class="CHIP_ROW">
         <button v-if="selectedNeedsPrice" type="button" data-testid="charging-card-price-missing" @click="openPriceForSelected"
-          class="px-3 py-1.5 rounded-full text-sm border border-dashed border-amber-400 text-amber-700 dark:text-amber-300 transition hover:bg-amber-50 dark:hover:bg-amber-900/20">
+          :class="chipClass(false, 'warn')">
           {{ t('logwizard.card_price_missing', { card: selectedProvider!.label || selectedProvider!.providerName }) }}
         </button>
         <button type="button" data-testid="charging-card-prompt-open" @click="openNewCard"
-          class="px-3 py-1.5 rounded-full text-sm border border-dashed border-gray-400 text-gray-600 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700">
+          :class="chipClass(false, 'dashed')">
           + {{ t('logwizard.card_add') }}
         </button>
       </div>
@@ -186,6 +181,14 @@ onMounted(async () => {
         <input v-model="form.applyTariffToLocation" type="checkbox" class="mt-0.5 rounded-sm border-gray-300 text-indigo-600" />
         <span>{{ t('logfields.apply_tariff_to_location', pricelessCount) }}</span>
       </label>
+    </div>
+
+    <SegmentToggle v-model="costMode"
+      :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
+    <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus
+      :hint="calculatedLocalPerKwh != null ? `= ${formatDecimal(calculatedLocalPerKwh, 2)} ${symbol}/kWh` : null" />
+    <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus
+      :hint="calculatedLocalTotal != null ? `= ${formatDecimal(calculatedLocalTotal, 2)} ${symbol}` : null" />
     </div>
   </div>
 </template>

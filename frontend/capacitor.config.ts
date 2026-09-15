@@ -18,6 +18,11 @@ const config: CapacitorConfig = {
     contentInset: 'never',
   },
   plugins: {
+    // Tastatur verkleinert die WebView (statt nur den sichtbaren Ausschnitt zu verschieben):
+    // Wizard-Kopf bleibt oben, Footer ueber der Tastatur - wie resizes-content im Browser.
+    Keyboard: {
+      resize: 'native',
+    },
     // Capacitor-8 SystemBars steuert auf Android-Edge-to-Edge den Statusbar-Stil.
     // Deklarativ gesetzt = deterministisch (kein Startup-Race mit einem Runtime-setStyle).
     // 'LIGHT' = dunkle Icons fuer den hellen Navbar-Hintergrund (unser Light-Mode-Default);

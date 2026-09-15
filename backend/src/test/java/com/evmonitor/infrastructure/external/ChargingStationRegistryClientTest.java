@@ -79,9 +79,82 @@ class ChargingStationRegistryClientTest {
 
         assertThat(station.latitude()).isEqualTo(49.45);
         assertThat(station.longitude()).isEqualTo(11.05432);
-        assertThat(station.powerKw()).isEqualTo(350.0);
+        assertThat(station.maxDcKw()).isEqualTo(350.0);
         assertThat(station.fastCharging()).isTrue();
         assertThat(station.chargePoints()).isEqualTo(6);
+    }
+
+    /**
+     * "Nennleistung Ladeeinrichtung" ist die Summe aller Stecker (Kaufland Berlin: 43 AC + 50 DC = 93)
+     * und fuer den Fahrer wertlos. Gebraucht wird die Leistung je Ladeart aus den Steckerfeldern,
+     * dazu Register-ID und Adresse, damit ein Standort wiedererkennbar und unterscheidbar ist.
+     */
+    @Test
+    void liestSteckerAdresseUndRegisterIdAus() {
+        Map<String, Object> row = new java.util.HashMap<>();
+        row.put("Ladeeinrichtungs_ID", 1064145);
+        row.put("Betreiber", "Kaufland Dienstleistung GmbH & Co. KG");
+        row.put("Anzeigename__Karte_", "Kaufland");
+        row.put("Status", "In Betrieb");
+        row.put("Art_der_Ladeeinrichtung", "Schnellladeeinrichtung");
+        row.put("Anzahl_Ladepunkte", 2);
+        row.put("Nennleistung_Ladeeinrichtung__kW_", 93);
+        row.put("Inbetriebnahmedatum", 1543273200000L);
+        row.put("Straße", "Storkower Str.");
+        row.put("Hausnummer", "139");
+        row.put("Postleitzahl", "10407");
+        row.put("Ort", "Berlin");
+        row.put("Standortbezeichnung", "3330_Kland_Berlin");
+        row.put("Bezahlsysteme", "Onlinezahlungsverfahren");
+        row.put("Öffnungszeiten", "24/7");
+        row.put("Steckertypen1", "AC Typ 2 Fahrzeugkupplung");
+        row.put("Nennleistung_Stecker1", "43");
+        row.put("Steckertypen2", "DC Fahrzeugkupplung Typ Combo 2 (CCS); DC CHAdeMO");
+        row.put("Nennleistung_Stecker2", "50; 50");
+        respondWith(row);
+
+        var s = client.findStationsNearby(52.53, 13.45, 250).orElseThrow().getFirst();
+
+        assertThat(s.registerId()).isEqualTo(1064145);
+        assertThat(s.maxAcKw()).isEqualTo(43.0);
+        assertThat(s.maxDcKw()).isEqualTo(50.0);
+        assertThat(s.fastCharging()).isTrue();
+        assertThat(s.plugTypes()).containsExactly("Typ 2", "CCS", "CHAdeMO");
+        assertThat(s.street()).isEqualTo("Storkower Str.");
+        assertThat(s.houseNumber()).isEqualTo("139");
+        assertThat(s.postalCode()).isEqualTo("10407");
+        assertThat(s.city()).isEqualTo("Berlin");
+        assertThat(s.commissionedOn()).isEqualTo(java.time.LocalDate.of(2018, 11, 27));
+        assertThat(s.siteLabel()).isEqualTo("3330_Kland_Berlin");
+        assertThat(s.payment()).isEqualTo("Onlinezahlungsverfahren");
+        assertThat(s.openingHours()).isEqualTo("24/7");
+    }
+
+    /** Ohne Steckerangaben entscheidet die Art der Ladeeinrichtung ueber DC. */
+    @Test
+    void ohneSteckerZaehltDieArtDerLadeeinrichtung() {
+        Map<String, Object> row = new java.util.HashMap<>();
+        row.put("Betreiber", "IONITY GmbH");
+        row.put("Art_der_Ladeeinrichtung", "Schnellladeeinrichtung");
+        row.put("Nennleistung_Ladeeinrichtung__kW_", 350);
+        respondWith(row);
+
+        var s = client.findStationsNearby(49.45, 11.05, 250).orElseThrow().getFirst();
+
+        assertThat(s.fastCharging()).isTrue();
+        assertThat(s.maxDcKw()).isEqualTo(350.0);
+        assertThat(s.maxAcKw()).isNull();
+    }
+
+    /** Ausser Betrieb gemeldete Einrichtungen sind kein Ladeort. */
+    @Test
+    void laesstEinrichtungenAusserBetriebWeg() {
+        Map<String, Object> row = new java.util.HashMap<>();
+        row.put("Betreiber", "IONITY GmbH");
+        row.put("Status", "Außer Betrieb");
+        respondWith(row);
+
+        assertThat(client.findStationsNearby(49.45, 11.05, 250).orElseThrow()).isEmpty();
     }
 
     /** Das Register fuehrt nicht jede Angabe - fehlende Zusatzfelder machen den Eintrag nicht unbrauchbar. */
@@ -92,7 +165,8 @@ class ChargingStationRegistryClientTest {
         var station = client.findStationsNearby(49.45, 11.05, 250).orElseThrow().getFirst();
 
         assertThat(station.latitude()).isNull();
-        assertThat(station.powerKw()).isNull();
+        assertThat(station.maxAcKw()).isNull();
+        assertThat(station.maxDcKw()).isNull();
         assertThat(station.fastCharging()).isFalse();
         assertThat(station.chargePoints()).isNull();
     }
@@ -132,7 +206,8 @@ class ChargingStationRegistryClientTest {
         assertThat(query).contains("returnGeometry=false");
         assertThat(query).contains("Breitengrad").contains("Längengrad")
                 .contains("Nennleistung_Ladeeinrichtung__kW_").contains("Art_der_Ladeeinrichtung")
-                .contains("Anzahl_Ladepunkte");
+                .contains("Anzahl_Ladepunkte").contains("Ladeeinrichtungs_ID").contains("Steckertypen1")
+                .contains("Nennleistung_Stecker6").contains("Status").contains("Straße");
         // jede Ladeeinrichtung einzeln: nur so lassen sich Ladepunkte je Standort zusammenzaehlen
         assertThat(query).doesNotContain("returnDistinctValues=true");
     }

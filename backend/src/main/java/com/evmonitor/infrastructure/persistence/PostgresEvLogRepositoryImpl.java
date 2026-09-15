@@ -467,6 +467,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setSessionGroupId(domain.getSessionGroupId());
         entity.setPublicCharging(domain.getPublicCharging());
         entity.setCpoName(domain.getCpoName());
+        entity.setChargingSiteId(domain.getChargingSiteId());
         entity.setMeasurementType(domain.getMeasurementType().name());
         entity.setEnergySource(domain.getEnergySource() != null ? domain.getEnergySource().name() : null);
         entity.setCostExchangeRate(domain.getCostExchangeRate());
@@ -508,6 +509,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .costExchangeRate(entity.getCostExchangeRate())
                 .costCurrency(entity.getCostCurrency())
                 .chargingProviderId(entity.getChargingProviderId())
+                .chargingSiteId(entity.getChargingSiteId())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .hasPowerCurve(entity.getPowerCurvePoints() != null && !entity.getPowerCurvePoints().isBlank())
