@@ -3231,7 +3231,7 @@ logwizard:
   site_usage: "{n} charge | {n} charges"
   charge_points: "{n} charge point | {n} charge points"
   kwh_charger: "Per charger"
-  kwh_vehicle: "Per vehicle"
+  kwh_vehicle: "Per car"
   ocr_cta: "Photograph receipt"
   soc_before_cta: "Also enter charge level before"
   soc_in_battery: "≈ {kwh} kWh in battery ({cap} kWh usable)"

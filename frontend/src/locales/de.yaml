@@ -3232,7 +3232,7 @@ logwizard:
   site_usage: "{n} Ladung | {n} Ladungen"
   charge_points: "{n} Ladepunkt | {n} Ladepunkte"
   kwh_charger: "Laut Ladesäule"
-  kwh_vehicle: "Laut Fahrzeug"
+  kwh_vehicle: "Laut Auto"
   ocr_cta: "Beleg fotografieren"
   soc_before_cta: "Ladestand vorher auch eintragen"
   soc_in_battery: "≈ {kwh} kWh im Akku ({cap} kWh nutzbar)"
