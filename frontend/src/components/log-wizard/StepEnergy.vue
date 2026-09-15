@@ -39,14 +39,14 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
     </div>
 
     <div class="mt-auto space-y-4">
-      <SegmentToggle :model-value="mode" @update:model-value="switchMode"
-        :options="[{ value: 'charger', label: t('logwizard.kwh_charger'), testid: 'kwh-mode-charger' }, { value: 'vehicle', label: t('logwizard.kwh_vehicle'), testid: 'kwh-mode-vehicle' }]" />
-      <!-- Ladeart: aus der Ortswahl vorbelegt (Säule DC, sonst AC), hier korrigierbar,
-           weil sie die Ladeverluste bestimmt, die der Hinweis oben erklärt. -->
-      <div class="flex items-center justify-end gap-2">
-        <span class="mr-auto text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('logwizard.charging_type') }}</span>
+      <!-- Quelle und Ladeart in einer Zeile - spart Hoehe. Ladeart aus der Ortswahl vorbelegt
+           (Säule DC, sonst AC), hier korrigierbar, weil sie die Ladeverluste bestimmt. -->
+      <div class="flex items-center gap-2">
+        <SegmentToggle class="flex-1 min-w-0" :model-value="mode" @update:model-value="switchMode"
+          :options="[{ value: 'charger', label: t('logwizard.kwh_charger'), testid: 'kwh-mode-charger' }, { value: 'vehicle', label: t('logwizard.kwh_vehicle'), testid: 'kwh-mode-vehicle' }]" />
         <button v-for="ct in (['AC', 'DC'] as const)" :key="ct" type="button" :aria-pressed="form.chargingType === ct"
-          :data-testid="`charging-type-${ct.toLowerCase()}`" @click="form.chargingType = ct" :class="chipClass(form.chargingType === ct)">
+          :data-testid="`charging-type-${ct.toLowerCase()}`" @click="form.chargingType = ct" :aria-label="t('logwizard.charging_type') + ' ' + ct"
+          :class="chipClass(form.chargingType === ct)">
           {{ ct }}
         </button>
       </div>

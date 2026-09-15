@@ -263,9 +263,9 @@ const handleBottomLogout = () => {
 </script>
 
 <template>
-  <!-- Vollbild-Wizard: Huelle in Wizard-Farbe, sonst scheint beim Scrollen um die Adressleiste
-       (100vh vs. 100dvh auf Android Chrome) das Wallpaper unter dem Footer durch -->
-  <div :class="['min-h-screen flex flex-col', !authStore.isAuthenticated() ? 'bg-gray-100 dark:bg-gray-950' : mobileFullscreen ? 'bg-white dark:bg-gray-800' : 'app-wallpaper']">
+  <!-- Vollbild-Wizard: Huelle exakt auf den aktuellen Viewport gekappt (h-dvh statt min-h-screen),
+       sonst hat Android Chrome um die Adressleistenhoehe Spielraum und "scrollt" ins Leere -->
+  <div :class="[mobileFullscreen ? 'h-dvh overflow-hidden' : 'min-h-screen', 'flex flex-col', !authStore.isAuthenticated() ? 'bg-gray-100 dark:bg-gray-950' : mobileFullscreen ? 'bg-white dark:bg-gray-800' : 'app-wallpaper']">
     <!-- Pull-to-Refresh-Indikator (nur nativ, erscheint beim Ziehen am Seitenanfang) -->
     <div
       v-if="ptrPull > 0 || ptrRefreshing"
