@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TruckIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
@@ -109,11 +109,16 @@ const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
   await nearby.load(p.latitude, p.longitude)
 }
 
+/** Kurze Pause vor dem Weiterspringen: die gewaehlte Kachel soll als ausgewaehlt sichtbar werden. */
+const PLACE_ADVANCE_MS = 350
+let advanceTimer: number | undefined
 const choosePlace = (choice: PlaceChoice) => {
   state.value.place = choice.kind
   applyPlace(form.value, choice)
-  if (choice.kind !== 'other') next()
+  window.clearTimeout(advanceTimer)
+  if (choice.kind !== 'other') advanceTimer = window.setTimeout(next, PLACE_ADVANCE_MS)
 }
+onUnmounted(() => window.clearTimeout(advanceTimer))
 
 const placeLabel = computed(() => {
   if (state.value.place === 'home') return t('logwizard.place_home')
