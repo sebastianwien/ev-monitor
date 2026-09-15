@@ -3105,6 +3105,7 @@ logwizard:
   location_steps_desktop: "Slik tillater du den igjen: klikk på ikonet til venstre for adressen og sett Posisjon til Tillat."
   location_open_settings: "Åpne innstillinger"
   location_retry: "Prøv igjen"
+  nearby_other_place: "Annet sted"
   place_home: "Hjemme"
   place_home_sub: "Egen ladeboks eller stikkontakt"
   place_other: "Annen ladestasjon"

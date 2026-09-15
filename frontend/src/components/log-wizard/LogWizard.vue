@@ -90,10 +90,12 @@ const requestLocation = async () => {
     const pos = await getCurrentPosition()
     form.value.latitude = pos.latitude
     form.value.longitude = pos.longitude
-    locationStatus.value = 'success'
     permission.value = 'granted'
     localStorage.setItem(LOCATION_ENABLED_KEY, 'true')
+    // Erst nach den Säulen auf 'success': so klappt die Standort-Card in einem Zug zu,
+    // während die Liste erscheint, statt in zwei Sprüngen
     await nearby.load(pos.latitude, pos.longitude)
+    locationStatus.value = 'success'
   } catch (e: any) {
     locationStatus.value = 'error'
     if (e?.denied) permission.value = 'denied'

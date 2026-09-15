@@ -3221,6 +3221,7 @@ logwizard:
   location_steps_desktop: "So erlaubst du ihn wieder: Klicke auf das Symbol links neben der Adresse und stelle Standort auf Zulassen."
   location_open_settings: "Einstellungen öffnen"
   location_retry: "Erneut versuchen"
+  nearby_other_place: "Anderer Ort"
   place_home: "Zuhause"
   place_home_sub: "Eigene Wallbox oder Steckdose"
   place_other: "Andere Ladestation"

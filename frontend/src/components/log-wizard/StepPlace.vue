@@ -10,6 +10,7 @@ import { settingsPlatform, openAppSettings, type LocationPermission } from '../.
 import type { PlaceChoice, PlaceKind } from './wizardLogic'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import PlaceSearch from './PlaceSearch.vue'
+import Collapse from './Collapse.vue'
 
 const props = defineProps<{
   place: PlaceKind | null
@@ -28,6 +29,9 @@ const { t } = useI18n()
 
 const query = ref('')
 const platform = settingsPlatform()
+// Nach erfolgreicher Ortung klappt die Suche zu; "Anderer Ort" holt sie zurück
+const searchReopened = ref(false)
+const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value)
 const showOther = computed(() => props.place === 'other')
 const filteredCpos = computed(() => {
   const q = query.value.trim().toLowerCase()
@@ -56,6 +60,9 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
 
 <template>
   <div class="space-y-3">
+    <!-- Standort-Card und Ortssuche kollabieren gemeinsam, sobald die Position steht -->
+    <Collapse :open="showLocationBlock">
+    <div class="space-y-3">
     <!-- Standort: noch nie gefragt -> Hinweis-Card mit Button, Dialog erst beim Tap -->
     <div v-if="permission === 'prompt' || permission === 'unknown'"
       class="flex items-center gap-3 p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60">
@@ -63,7 +70,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <p class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ t('logwizard.location_offer') }}</p>
       <button type="button" data-testid="wizard-location" :disabled="locationStatus === 'loading'" @click="emit('requestLocation')"
         class="text-sm font-semibold text-indigo-600 dark:text-indigo-300 whitespace-nowrap hover:underline disabled:no-underline disabled:opacity-60">
-        {{ locationStatus === 'loading' ? t('common.loading') : t('logwizard.location_cta') }}
+        <ArrowPathIcon v-if="locationStatus === 'loading'" class="h-5 w-5 animate-spin" :aria-label="t('common.loading')" />
+        <template v-else>{{ t('logwizard.location_cta') }}</template>
       </button>
     </div>
     <!-- Blockiert: Anleitung je Plattform, in der App der direkte Sprung in die Einstellungen -->
@@ -82,8 +90,10 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </div>
 
     <!-- Ohne Live-Position: Ort suchen - laedt danach ebenfalls die Saeulen im Umkreis -->
-    <PlaceSearch v-if="locationStatus !== 'success'" :label="t('logwizard.place_search')" :placeholder="t('logfields.location_create_placeholder')"
+    <PlaceSearch :label="t('logwizard.place_search')" :placeholder="t('logfields.location_create_placeholder')"
       @picked="p => emit('placePicked', p)" />
+    </div>
+    </Collapse>
 
     <button type="button" data-testid="place-home" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>
@@ -94,13 +104,19 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 text-indigo-600" />
     </button>
 
-    <div v-if="stationsLoading" role="status" data-testid="stations-loading"
+    <!-- Spinner nur bei der Ortssuche; bei der Live-Ortung dreht er in der Standort-Card -->
+    <div v-if="stationsLoading && locationStatus !== 'loading'" role="status" data-testid="stations-loading"
       class="flex flex-col items-center gap-2 py-4 text-sm text-gray-500 dark:text-gray-400">
       <ArrowPathIcon class="h-8 w-8 animate-spin text-indigo-600" aria-hidden="true" />
       <span>{{ t('logwizard.nearby_loading') }}</span>
     </div>
-    <template v-if="stations.length">
-      <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.nearby_title') }}</p>
+    <Collapse :open="stations.length > 0">
+    <div class="space-y-3">
+      <p class="flex items-baseline text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">
+        {{ t('logwizard.nearby_title') }}
+        <button v-if="!showLocationBlock" type="button" class="ml-auto normal-case tracking-normal text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline"
+          @click="searchReopened = true">{{ t('logwizard.nearby_other_place') }}</button>
+      </p>
       <button v-for="s in stations" :key="s.name" type="button" :class="tileClass(isStation(s))"
         @click="emit('choose', { kind: 'station', station: s })">
         <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
@@ -112,7 +128,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ s.distanceMeters }} m</span>
         <CheckCircleIcon v-if="isStation(s)" class="h-5 w-5 text-indigo-600" />
       </button>
-    </template>
+    </div>
+    </Collapse>
 
     <!-- Zuletzt genutzt: echte Standorte, sobald es welche gibt - sonst die Anbieter der letzten Logs -->
     <template v-if="recentSites.length">
