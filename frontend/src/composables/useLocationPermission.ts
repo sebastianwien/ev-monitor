@@ -6,6 +6,7 @@
  * trennt das Formular "noch nie gefragt" (Hinweis mit Button) von "blockiert" (Hinweis
  * auf die Einstellungen) und "erlaubt" (direkt laden).
  */
+import { Capacitor } from '@capacitor/core'
 export type LocationPermission = 'granted' | 'prompt' | 'denied' | 'unknown' | 'unavailable'
 
 export const LOCATION_ENABLED_KEY = 'ev_location_enabled'
@@ -41,4 +42,28 @@ export function getCurrentPosition(): Promise<Coordinates> {
       { timeout: 10_000, maximumAge: 60_000 },
     )
   })
+}
+
+/**
+ * Wo der Nutzer die Standortfreigabe wieder einschaltet, hängt von der Plattform ab:
+ * die App kann ihre Einstellungen direkt öffnen, im Browser gibt es nur eine Anleitung
+ * je System - iPadOS meldet sich als Mac und ist nur am Touch-Support erkennbar.
+ */
+export type SettingsPlatform = 'native' | 'ios' | 'android' | 'desktop'
+
+export function settingsPlatform(
+  ua = globalThis.navigator?.userAgent ?? '',
+  native = Capacitor.isNativePlatform(),
+  touchPoints = globalThis.navigator?.maxTouchPoints ?? 0,
+): SettingsPlatform {
+  if (native) return 'native'
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && touchPoints > 1)) return 'ios'
+  if (/Android/.test(ua)) return 'android'
+  return 'desktop'
+}
+
+/** Nur in der App: springt direkt in die Systemeinstellungen von ev-monitor. */
+export async function openAppSettings(): Promise<void> {
+  const { NativeSettings, IOSSettings, AndroidSettings } = await import('capacitor-native-settings')
+  await NativeSettings.open({ optionIOS: IOSSettings.App, optionAndroid: AndroidSettings.ApplicationDetails })
 }

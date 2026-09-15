@@ -2,11 +2,11 @@
 import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 import type { NearbyStation } from '../../composables/useNearbyStations'
 import type { RecentSite } from '../../composables/useRecentSites'
 import type { ChargingSiteRef } from '../log-form/logFormData'
-import type { LocationPermission } from '../../composables/useLocationPermission'
+import { settingsPlatform, openAppSettings, type LocationPermission } from '../../composables/useLocationPermission'
 import type { PlaceChoice, PlaceKind } from './wizardLogic'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import PlaceSearch from './PlaceSearch.vue'
@@ -27,6 +27,7 @@ const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; p
 const { t } = useI18n()
 
 const query = ref('')
+const platform = settingsPlatform()
 const showOther = computed(() => props.place === 'other')
 const filteredCpos = computed(() => {
   const q = query.value.trim().toLowerCase()
@@ -65,9 +66,20 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         {{ locationStatus === 'loading' ? t('common.loading') : t('logwizard.location_cta') }}
       </button>
     </div>
-    <p v-else-if="permission === 'denied' || locationStatus === 'error'" class="text-xs text-gray-500 dark:text-gray-400">
-      {{ t('logwizard.location_blocked') }}
-    </p>
+    <!-- Blockiert: Anleitung je Plattform, in der App der direkte Sprung in die Einstellungen -->
+    <div v-else-if="permission === 'denied' || locationStatus === 'error'" data-testid="wizard-location-blocked"
+      class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-2">
+      <p class="font-semibold">{{ t('logwizard.location_blocked') }}</p>
+      <p v-if="platform !== 'native'" class="text-gray-600 dark:text-gray-300">{{ t(`logwizard.location_steps_${platform}`) }}</p>
+      <div :class="CHIP_ROW">
+        <button v-if="platform === 'native'" type="button" :class="chipClass(true)" @click="openAppSettings()">
+          <Cog6ToothIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.location_open_settings') }}
+        </button>
+        <button type="button" :class="chipClass(platform !== 'native')" :disabled="locationStatus === 'loading'" @click="emit('requestLocation')">
+          <ArrowPathIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ locationStatus === 'loading' ? t('common.loading') : t('logwizard.location_retry') }}
+        </button>
+      </div>
+    </div>
 
     <!-- Ohne Live-Position: Ort suchen - laedt danach ebenfalls die Saeulen im Umkreis -->
     <PlaceSearch v-if="locationStatus !== 'success'" :label="t('logwizard.place_search')" :placeholder="t('logfields.location_create_placeholder')"

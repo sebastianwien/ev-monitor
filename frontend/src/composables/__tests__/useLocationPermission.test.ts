@@ -40,3 +40,18 @@ describe('getCurrentPosition', () => {
     await expect(getCurrentPosition()).rejects.toMatchObject({ denied: false })
   })
 })
+
+describe('settingsPlatform', () => {
+  it('erkennt App, iOS, Android und Desktop für die Freischalt-Anleitung', async () => {
+    const { settingsPlatform } = await import('../useLocationPermission')
+    const ios = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1'
+    const ipad = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15'
+    const android = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36'
+    const mac = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0 Safari/537.36'
+    expect(settingsPlatform(ios, true)).toBe('native')
+    expect(settingsPlatform(ios, false)).toBe('ios')
+    expect(settingsPlatform(ipad, false, 5)).toBe('ios')
+    expect(settingsPlatform(android, false)).toBe('android')
+    expect(settingsPlatform(mac, false, 0)).toBe('desktop')
+  })
+})
