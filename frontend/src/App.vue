@@ -263,7 +263,9 @@ const handleBottomLogout = () => {
 </script>
 
 <template>
-  <div :class="['min-h-screen flex flex-col', authStore.isAuthenticated() ? 'app-wallpaper' : 'bg-gray-100 dark:bg-gray-950']">
+  <!-- Vollbild-Wizard: Huelle in Wizard-Farbe, sonst scheint beim Scrollen um die Adressleiste
+       (100vh vs. 100dvh auf Android Chrome) das Wallpaper unter dem Footer durch -->
+  <div :class="['min-h-screen flex flex-col', !authStore.isAuthenticated() ? 'bg-gray-100 dark:bg-gray-950' : mobileFullscreen ? 'bg-white dark:bg-gray-800' : 'app-wallpaper']">
     <!-- Pull-to-Refresh-Indikator (nur nativ, erscheint beim Ziehen am Seitenanfang) -->
     <div
       v-if="ptrPull > 0 || ptrRefreshing"
