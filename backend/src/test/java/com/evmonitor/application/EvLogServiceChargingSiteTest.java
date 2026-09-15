@@ -80,6 +80,27 @@ class EvLogServiceChargingSiteTest extends AbstractIntegrationTest {
         assertEquals(ch.hsr.geohash.GeoHash.withCharacterPrecision(52.5215, 13.4090, 7).toBase32(), saved.getGeohash());
     }
 
+    /**
+     * Bearbeiten mit neuer Position plus Saeule in derselben Zelle: der Ort hat sich gegenueber
+     * dem gespeicherten Log geaendert, also darf die alte Temperatur nicht stehen bleiben.
+     */
+    @Test
+    void neuerStandortBeimBearbeitenVerwirftDieAlteTemperaturAuchMitSaeule() {
+        UUID id = evLogService.logCharging(userId, request(null, 52.5215, 13.4090)).log().id();
+        evLogRepository.updateTemperature(id, 12.0, com.evmonitor.domain.weather.TemperatureSource.FORECAST);
+        var center = ch.hsr.geohash.GeoHash.fromGeohashString(CELL).getBoundingBoxCenter();
+
+        evLogService.updateLog(id, userId, new EvLogUpdateRequest(null, null, null,
+                center.getLatitude(), center.getLongitude(), null, null, null, null, null, null,
+                null, null, null, true, null, null, null, null, IONITY));
+
+        EvLog updated = reload(id);
+        assertEquals(CELL, updated.getGeohash());
+        assertNotNull(updated.getChargingSiteId());
+        // Verworfen und ggf. vom Wetter-Listener fuer den neuen Ort neu geholt - nie der alte Wert
+        assertNotEquals(12.0, updated.getTemperatureCelsius());
+    }
+
     @Test
     void zuletztGenutzteStandorteGehoerenNurDemEigenenNutzer() {
         evLogService.logCharging(userId, request(IONITY, null, null));

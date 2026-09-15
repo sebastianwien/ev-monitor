@@ -631,8 +631,8 @@ public class EvLogService {
             Optional<ChargingSite> site = chargingSiteService.resolve(userId, request.chargingSite());
             if (site.isPresent()) {
                 updatedChargingSiteId = site.get().id();
-                geohashChanged = !site.get().geohash().equals(geohash);
                 geohash = site.get().geohash();
+                geohashChanged = !geohash.equals(existing.getGeohash());
             }
         }
 
