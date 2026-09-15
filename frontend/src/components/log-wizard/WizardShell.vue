@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { INPUT_STEPS, type WizardStep } from './wizardLogic'
+import { useIsMobile } from '../../composables/useIsMobile'
+import { useVisualViewportBox } from '../../composables/useVisualViewportBox'
 
 const props = defineProps<{
   step: WizardStep
@@ -15,12 +17,18 @@ const props = defineProps<{
 const emit = defineEmits<{ back: []; next: []; cancel: [] }>()
 const { t } = useI18n()
 const isInputStep = computed(() => props.step <= INPUT_STEPS)
+// Mobile: Rahmen an den sichtbaren Ausschnitt binden. iOS Safari verschiebt bei offener
+// Tastatur nur diesen Ausschnitt - ohne Bindung wandert der Kopf nach oben aus dem Bild.
+const isMobile = useIsMobile()
+const viewport = useVisualViewportBox()
+const frameStyle = computed(() => isMobile.value && viewport.value
+  ? { top: `${viewport.value.top}px`, height: `${viewport.value.height}px` } : undefined)
 </script>
 
 <template>
   <!-- Mobile: fest auf den Viewport gespannt - Kopf und Footer bleiben stehen, nur der Inhalt
        dazwischen scrollt. Die Seite selbst kann nicht mehr scrollen, der Balken laeuft nie raus. -->
-  <div class="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0">
+  <div :style="frameStyle" class="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0">
     <header class="px-4 pt-4 pb-3 md:px-6">
       <div class="flex items-center justify-between">
         <button v-if="step > 1" type="button" :aria-label="t('common.back')" @click="emit('back')"
