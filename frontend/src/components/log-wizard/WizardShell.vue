@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { INPUT_STEPS, type WizardStep } from './wizardLogic'
@@ -23,6 +23,9 @@ const isMobile = useIsMobile()
 const viewport = useVisualViewportBox()
 const frameStyle = computed(() => isMobile.value && viewport.value
   ? { top: `${viewport.value.top}px`, height: `${viewport.value.height}px` } : undefined)
+// Mobil scrollt nur dieser Container, nicht die Seite - jeder Schritt beginnt oben
+const scroller = ref<HTMLElement | null>(null)
+watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
 </script>
 
 <template>
@@ -55,7 +58,7 @@ const frameStyle = computed(() => isMobile.value && viewport.value
 
     <!-- Inhalt am unteren Rand: Tap-Ziele liegen so ueber dem Footer in Daumenreichweite.
          min-h-full statt fester Hoehe, damit justify-end bei langem Inhalt nichts oben abschneidet. -->
-    <div class="flex-1 min-h-0 overflow-y-auto">
+    <div ref="scroller" class="flex-1 min-h-0 overflow-y-auto">
       <div class="min-h-full flex flex-col justify-end md:justify-start px-4 pb-4 md:px-6">
         <slot />
       </div>

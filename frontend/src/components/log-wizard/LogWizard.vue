@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TruckIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
@@ -15,6 +15,7 @@ import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useNearbyStations } from '../../composables/useNearbyStations'
 import { useRecentSites } from '../../composables/useRecentSites'
 import { useCostInput } from '../../composables/useCostInput'
+import { useDelayedCall } from '../../composables/useDelayedCall'
 import { queryLocationPermission, getCurrentPosition, LOCATION_ENABLED_KEY, type LocationPermission } from '../../composables/useLocationPermission'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
@@ -111,14 +112,12 @@ const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
 
 /** Kurze Pause vor dem Weiterspringen: die gewaehlte Kachel soll als ausgewaehlt sichtbar werden. */
 const PLACE_ADVANCE_MS = 350
-let advanceTimer: number | undefined
+const advance = useDelayedCall(() => next(), PLACE_ADVANCE_MS)
 const choosePlace = (choice: PlaceChoice) => {
   state.value.place = choice.kind
   applyPlace(form.value, choice)
-  window.clearTimeout(advanceTimer)
-  if (choice.kind !== 'other') advanceTimer = window.setTimeout(next, PLACE_ADVANCE_MS)
+  if (choice.kind === 'other') advance.cancel(); else advance.schedule()
 }
-onUnmounted(() => window.clearTimeout(advanceTimer))
 
 const placeLabel = computed(() => {
   if (state.value.place === 'home') return t('logwizard.place_home')
@@ -137,7 +136,7 @@ const hint = computed(() => {
   if (step.value === 3) return t('logwizard.hint_vehicle')
   return ''
 })
-const goto = (s: WizardStep) => { error.value = null; step.value = s; window.scrollTo({ top: 0 }) }
+const goto = (s: WizardStep) => { error.value = null; step.value = s; window.scrollTo({ top: 0 }) } // Desktop: Seite; mobil setzt WizardShell ihren Scroller zurueck
 const back = () => { if (step.value > 1) goto((step.value - 1) as WizardStep) }
 const next = () => { if (step.value < LAST_STEP) goto((step.value + 1) as WizardStep); else submit() }
 
