@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  emptyLogForm, canProceed, applyPlace, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh,
+  emptyLogForm, canProceed, applyPlace, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
 } from '../wizardLogic'
 import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
@@ -167,5 +167,26 @@ describe('missingRequired', () => {
     expect(missingRequired(f)).toEqual(['odometer', 'cost'])
     f.odometerKm = 1; f.costEur = 0
     expect(missingRequired(f)).toEqual([])
+  })
+})
+
+describe('optionalFacts', () => {
+  it('liefert nur gesetzte Werte in fester Reihenfolge, Zeit und Vorbelegungen immer', () => {
+    const f = emptyLogForm()
+    expect(optionalFacts(f)).toEqual([
+      { kind: 'time', value: null },
+      { kind: 'route', value: 'COMBINED' },
+      { kind: 'tires', value: 'SUMMER' },
+    ])
+  })
+
+  it('nimmt Akku vorher, Dauer und Spitzenleistung auf, sobald sie eingetragen sind', () => {
+    const f = { ...emptyLogForm(), loggedAt: '2026-09-14T20:00', socBeforeChargePercent: 20, chargeDurationMinutes: 35, maxChargingPowerKw: 150, routeType: 'HIGHWAY' as const }
+    expect(optionalFacts(f).map(x => x.kind)).toEqual(['time', 'socBefore', 'route', 'tires', 'duration', 'peak'])
+    expect(optionalFacts(f)[0]).toEqual({ kind: 'time', value: '2026-09-14T20:00' })
+  })
+
+  it('kann die Zeit weglassen, wenn sie als eigene Kachel steht', () => {
+    expect(optionalFacts(emptyLogForm(), { withTime: false }).map(x => x.kind)).toEqual(['route', 'tires'])
   })
 })

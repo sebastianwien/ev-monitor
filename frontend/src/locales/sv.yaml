@@ -3133,6 +3133,7 @@ logwizard:
   d_when: "När laddade du?"
   d_time_other: "Annan tidpunkt"
   d_soc_before: "Batteri före laddning"
+  d_soc_before_short: "före"
   d_route: "Körning sedan senaste laddning"
   d_route_city: "Stad"
   d_route_mixed: "Blandat"

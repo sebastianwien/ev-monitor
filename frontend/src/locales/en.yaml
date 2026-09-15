@@ -3248,6 +3248,7 @@ logwizard:
   d_when: "When did you charge?"
   d_time_other: "Other time"
   d_soc_before: "Battery before charging"
+  d_soc_before_short: "before"
   d_route: "Driving since the last charge"
   d_route_city: "City"
   d_route_mixed: "Mixed"

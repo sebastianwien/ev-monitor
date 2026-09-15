@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import type { RequiredField } from './wizardLogic'
+import { optionalFacts, type RequiredField } from './wizardLogic'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 import OptionalDetails from './OptionalDetails.vue'
 
@@ -15,7 +15,6 @@ const props = defineProps<{
   missing?: RequiredField[]
   /** Zeit als eigene Kachel (Bearbeiten); beim Anlegen steht sie unter "Mehr Details" */
   showTimeTile?: boolean
-  detailsOpen?: boolean
 }>()
 const form = defineModel<LogFormData>({ required: true })
 const emit = defineEmits<{ edit: [section: SummarySection] }>()
@@ -32,6 +31,21 @@ const energy = computed(() => {
   const v = form.value.kwhCharged ?? form.value.kwhAtVehicle
   return v == null ? null : `${formatNumber(v)} kWh`
 })
+const routeLabel: Record<LogFormData['routeType'], string> = { CITY: 'd_route_city', COMBINED: 'd_route_mixed', HIGHWAY: 'd_route_highway' }
+const tireLabel: Record<LogFormData['tireType'], string> = { SUMMER: 'd_tire_summer', ALL_YEAR: 'd_tire_allyear', WINTER: 'd_tire_winter' }
+/** Schnellkontrolle: die gesetzten optionalen Werte als flache Zeile über dem zugeklappten Block */
+const optionalLine = computed(() => optionalFacts(form.value, { withTime: !props.showTimeTile }).map(f => {
+  switch (f.kind) {
+    case 'time': return timeLabel.value
+    case 'socBefore': return `${f.value} % ${t('logwizard.d_soc_before_short')}`
+    case 'route': return t(`logwizard.${routeLabel[f.value as LogFormData['routeType']]}`)
+    case 'tires': return t(`logwizard.${tireLabel[f.value as LogFormData['tireType']]}`)
+    case 'duration': return `${f.value} min`
+    case 'peak': return `${formatNumber(f.value as number)} kW`
+  }
+}))
+const details = ref<HTMLDetailsElement | null>(null)
+
 interface Tile { label: string; value: string | null; section: SummarySection; testid: string }
 const tiles = computed<Tile[]>(() => [
   { label: t('logwizard.place'), value: props.placeLabel, section: 'place', testid: 'summary-place' },
@@ -55,7 +69,9 @@ const tiles = computed<Tile[]>(() => [
       </button>
     </div>
 
-    <details :open="detailsOpen" class="group">
+    <button type="button" data-testid="summary-optional" class="w-full text-left text-xs text-gray-500 dark:text-gray-400 truncate"
+      :aria-label="t('logwizard.more_details')" @click="details && (details.open = true)">{{ optionalLine.join(' · ') }}</button>
+    <details ref="details" class="group !mt-1">
       <summary class="py-2 text-sm font-semibold cursor-pointer list-none flex items-center gap-1.5 text-gray-800 dark:text-gray-100">
         <ChevronRightIcon class="h-4 w-4 text-gray-400 transition group-open:rotate-90" />
         {{ t('logwizard.more_details') }} <span class="font-normal text-gray-400">· {{ t('logfields.optional') }}</span>

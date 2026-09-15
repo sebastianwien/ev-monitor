@@ -126,8 +126,14 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     // Eindeutiger Zeitstempel um Duplikat-Kollision mit Test 1 zu vermeiden
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
+    // "Mehr Details" ist zugeklappt; die Schnellkontroll-Zeile zeigt die Vorbelegung und klappt auf
+    const quickLine = page.locator('[data-testid="summary-optional"]');
+    await expect(quickLine).toContainText('Jetzt · Gemischt · Sommer');
+    await expect(page.locator('[data-testid="time-other"]')).toBeHidden();
+    await quickLine.click();
     await page.locator('[data-testid="time-other"]').click();
     await page.locator('input[type="datetime-local"]').fill(yesterday.toISOString().slice(0, 16));
+    await expect(quickLine).not.toContainText('Jetzt');
 
     await page.locator('[data-testid="wizard-next"]').click();
 

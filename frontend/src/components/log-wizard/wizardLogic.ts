@@ -126,3 +126,21 @@ export function netEnergyKwh(socBefore: number | null, socAfter: number | null,
   if (socBefore == null || socAfter == null || !effectiveCapacityKwh) return null
   return Math.max(0, ((socAfter - socBefore) / 100) * effectiveCapacityKwh)
 }
+
+export type OptionalFactKind = 'time' | 'socBefore' | 'route' | 'tires' | 'duration' | 'peak'
+export interface OptionalFact { kind: OptionalFactKind; value: string | number | null }
+
+/**
+ * Die optionalen Angaben, die gerade einen Wert tragen, als flache Liste für die
+ * Schnellkontrolle über dem zugeklappten "Mehr Details". Zeit gehört dazu, sobald sie
+ * nicht als eigene Kachel steht (null = jetzt); Strecke und Reifen sind immer vorbelegt.
+ */
+export function optionalFacts(f: LogFormData, opts: { withTime?: boolean } = {}): OptionalFact[] {
+  const facts: OptionalFact[] = []
+  if (opts.withTime !== false) facts.push({ kind: 'time', value: f.loggedAt })
+  if (f.socBeforeChargePercent != null) facts.push({ kind: 'socBefore', value: f.socBeforeChargePercent })
+  facts.push({ kind: 'route', value: f.routeType }, { kind: 'tires', value: f.tireType })
+  if (positive(f.chargeDurationMinutes)) facts.push({ kind: 'duration', value: f.chargeDurationMinutes })
+  if (positive(f.maxChargingPowerKw)) facts.push({ kind: 'peak', value: f.maxChargingPowerKw })
+  return facts
+}

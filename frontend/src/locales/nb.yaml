@@ -3133,6 +3133,7 @@ logwizard:
   d_when: "Når ladet du?"
   d_time_other: "Annet tidspunkt"
   d_soc_before: "Batteri før lading"
+  d_soc_before_short: "før"
   d_route: "Kjøring siden forrige lading"
   d_route_city: "By"
   d_route_mixed: "Blandet"

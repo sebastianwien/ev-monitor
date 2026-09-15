@@ -3249,6 +3249,7 @@ logwizard:
   d_when: "Wann geladen?"
   d_time_other: "Anderer Zeitpunkt"
   d_soc_before: "Akku vor dem Laden"
+  d_soc_before_short: "vorher"
   d_route: "Strecke seit der letzten Ladung"
   d_route_city: "Stadt"
   d_route_mixed: "Gemischt"
