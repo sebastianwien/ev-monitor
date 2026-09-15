@@ -42,7 +42,10 @@ export default defineConfig(({ mode }) => ({
             // Core backend
             '/api': {
                 target: 'http://localhost:8080',
-                changeOrigin: true
+                changeOrigin: true,
+                // Zugriff aus dem LAN (Handy-Test): das Backend erlaubt nur localhost als Origin,
+                // fuer den Browser ist der Proxy ohnehin same-origin.
+                headers: { Origin: 'http://localhost:5173' }
             },
             // Swagger UI + OpenAPI spec (springdoc-openapi, not under /api)
             '/swagger-ui': {
