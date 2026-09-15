@@ -108,7 +108,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <!-- Lese-Zone oben, Bedien-Zone unten in Daumenreichweite (siehe StepEnergy) -->
+  <div class="flex-1 flex flex-col gap-4">
+    <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('logwizard.price_hint') }}</p>
+
+    <div class="mt-auto space-y-4">
     <div>
       <div :class="[CHIP_ROW, 'items-center']">
         <span class="mr-auto text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('logwizard.price_suggestions') }}</span>
@@ -121,7 +125,6 @@ onMounted(async () => {
           {{ t('logwizard.price_free') }}
         </button>
       </div>
-      <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">{{ t('logwizard.price_hint') }}</p>
     </div>
 
     <!-- Ladekarte: anlegen oder der gewaehlten Karte den fehlenden Tarif geben -->
@@ -186,5 +189,6 @@ onMounted(async () => {
       :hint="calculatedLocalPerKwh != null ? `= ${formatDecimal(calculatedLocalPerKwh, 2)} ${symbol}/kWh` : null" />
     <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus
       :hint="calculatedLocalTotal != null ? `= ${formatDecimal(calculatedLocalTotal, 2)} ${symbol}` : null" />
+    </div>
   </div>
 </template>

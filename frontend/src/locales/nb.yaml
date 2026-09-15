@@ -3118,7 +3118,6 @@ logwizard:
   kwh_charger: "Ifølge lader"
   kwh_vehicle: "Ifølge bil"
   ocr_cta: "Fotografer kvittering"
-  ocr_hint: "Leser kWh, kostnad, varighet og effekt."
   soc_before_cta: "Legg også inn ladenivå før"
   soc_in_battery: "≈ {kwh} kWh i batteriet ({cap} kWh brukbart)"
   soc_net: "Netto {net} kWh i batteriet · ladetap {loss} kWh"

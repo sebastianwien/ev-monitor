@@ -3233,7 +3233,6 @@ logwizard:
   kwh_charger: "Per charger"
   kwh_vehicle: "Per vehicle"
   ocr_cta: "Photograph receipt"
-  ocr_hint: "Reads kWh, cost, duration and power."
   soc_before_cta: "Also enter charge level before"
   soc_in_battery: "≈ {kwh} kWh in battery ({cap} kWh usable)"
   soc_net: "Net {net} kWh in battery · charging loss {loss} kWh"

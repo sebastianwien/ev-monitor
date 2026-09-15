@@ -3234,7 +3234,6 @@ logwizard:
   kwh_charger: "Laut Ladesäule"
   kwh_vehicle: "Laut Fahrzeug"
   ocr_cta: "Beleg fotografieren"
-  ocr_hint: "Erkennt kWh, Kosten, Dauer und Leistung."
   soc_before_cta: "Ladestand vorher auch eintragen"
   soc_in_battery: "≈ {kwh} kWh im Akku ({cap} kWh nutzbar)"
   soc_net: "Netto {net} kWh im Akku · Ladeverlust {loss} kWh"
