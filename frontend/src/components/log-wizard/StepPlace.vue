@@ -63,11 +63,12 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <!-- Standort-Card und Ortssuche kollabieren gemeinsam, sobald die Position steht -->
     <Collapse :open="showLocationBlock">
     <div class="space-y-3">
-    <!-- Standort: noch nie gefragt -> Hinweis-Card mit Button, Dialog erst beim Tap -->
-    <div v-if="permission === 'prompt' || permission === 'unknown'"
+    <!-- Standort: noch nie gefragt -> Hinweis-Card mit Button, Dialog erst beim Tap.
+         Bereits erlaubt -> dieselbe Card zeigt waehrend der automatischen Ortung den Spinner. -->
+    <div v-if="permission === 'prompt' || permission === 'unknown' || locationStatus === 'loading'"
       class="flex items-center gap-3 p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60">
       <MapPinIcon class="h-5 w-5 text-indigo-600 flex-shrink-0" />
-      <p class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ t('logwizard.location_offer') }}</p>
+      <p class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ locationStatus === 'loading' ? t('logwizard.nearby_loading') : t('logwizard.location_offer') }}</p>
       <button type="button" data-testid="wizard-location" :disabled="locationStatus === 'loading'" @click="emit('requestLocation')"
         class="text-sm font-semibold text-indigo-600 dark:text-indigo-300 whitespace-nowrap hover:underline disabled:no-underline disabled:opacity-60">
         <ArrowPathIcon v-if="locationStatus === 'loading'" class="h-5 w-5 animate-spin" :aria-label="t('common.loading')" />
@@ -83,8 +84,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <button v-if="platform === 'native'" type="button" :class="chipClass(true)" @click="openAppSettings()">
           <Cog6ToothIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.location_open_settings') }}
         </button>
-        <button type="button" :class="chipClass(platform !== 'native')" :disabled="locationStatus === 'loading'" @click="emit('requestLocation')">
-          <ArrowPathIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ locationStatus === 'loading' ? t('common.loading') : t('logwizard.location_retry') }}
+        <button type="button" :class="chipClass(platform !== 'native')" @click="emit('requestLocation')">
+          <ArrowPathIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.location_retry') }}
         </button>
       </div>
     </div>
