@@ -43,7 +43,8 @@ const isInputStep = computed(() => props.step <= INPUT_STEPS)
       <p v-if="hint" class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ hint }}</p>
     </header>
 
-    <div class="flex-1 px-4 pb-4 md:px-6">
+    <!-- Inhalt am unteren Rand: Tap-Ziele liegen so ueber dem Footer in Daumenreichweite -->
+    <div class="flex-1 flex flex-col justify-end md:justify-start px-4 pb-4 md:px-6">
       <slot />
     </div>
 

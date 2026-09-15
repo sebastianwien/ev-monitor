@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
@@ -52,9 +53,6 @@ const tireChips = [
   { value: 'WINTER', label: t('logwizard.d_tire_winter') },
 ] as const
 
-const chip = (on: boolean) => ['px-3 py-1.5 rounded-full text-sm border transition', on
-  ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700'
-  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']
 const numField = 'w-20 rounded-sm border border-gray-300 dark:border-gray-600 bg-transparent dark:text-gray-100 px-2 py-1.5 text-sm text-right tabular-nums focus:border-indigo-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none'
 </script>
 
@@ -63,8 +61,8 @@ const numField = 'w-20 rounded-sm border border-gray-300 dark:border-gray-600 bg
     <!-- Wann -->
     <div v-if="showTime" class="py-3 space-y-2">
       <dt class="text-sm text-gray-500 dark:text-gray-400">{{ t('logwizard.d_when') }}</dt>
-      <dd class="flex flex-wrap gap-2">
-        <button v-for="c in timeChips" :key="c.value" type="button" :aria-pressed="timePick === c.value" :class="chip(timePick === c.value)"
+      <dd :class="CHIP_ROW">
+        <button v-for="c in timeChips" :key="c.value" type="button" :aria-pressed="timePick === c.value" :class="chipClass(timePick === c.value)"
           :data-testid="`time-${c.value}`" @click="pickTime(c.value)">{{ c.label }}</button>
       </dd>
       <dd v-if="timePick === 'other'">
@@ -86,8 +84,8 @@ const numField = 'w-20 rounded-sm border border-gray-300 dark:border-gray-600 bg
     <!-- Strecke seit der letzten Ladung -->
     <div class="py-3 space-y-2">
       <dt class="text-sm text-gray-500 dark:text-gray-400">{{ t('logwizard.d_route') }}</dt>
-      <dd class="flex flex-wrap gap-2">
-        <button v-for="c in routeChips" :key="c.value" type="button" :aria-pressed="form.routeType === c.value" :class="chip(form.routeType === c.value)"
+      <dd :class="CHIP_ROW">
+        <button v-for="c in routeChips" :key="c.value" type="button" :aria-pressed="form.routeType === c.value" :class="chipClass(form.routeType === c.value)"
           @click="form.routeType = c.value">{{ c.label }}</button>
       </dd>
     </div>
@@ -95,8 +93,8 @@ const numField = 'w-20 rounded-sm border border-gray-300 dark:border-gray-600 bg
     <!-- Reifen -->
     <div class="py-3 space-y-2">
       <dt class="text-sm text-gray-500 dark:text-gray-400">{{ t('logwizard.d_tires') }}</dt>
-      <dd class="flex flex-wrap gap-2">
-        <button v-for="c in tireChips" :key="c.value" type="button" :aria-pressed="form.tireType === c.value" :class="chip(form.tireType === c.value)"
+      <dd :class="CHIP_ROW">
+        <button v-for="c in tireChips" :key="c.value" type="button" :aria-pressed="form.tireType === c.value" :class="chipClass(form.tireType === c.value)"
           @click="form.tireType = c.value">{{ c.label }}</button>
       </dd>
     </div>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
@@ -138,10 +139,10 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <div v-if="showOther" class="space-y-2 pl-1">
       <input v-model="query" type="search" :placeholder="t('logfields.cpo_select_placeholder')"
         class="w-full rounded-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2 text-sm" />
-      <div class="flex flex-wrap gap-2">
+      <div :class="CHIP_ROW">
         <button v-for="c in filteredCpos" :key="c" type="button" :aria-pressed="isOtherCpo(c)"
           @click="emit('choose', { kind: 'other', cpoName: c })"
-          :class="['px-3 py-1.5 rounded-full text-sm border transition', isOtherCpo(c) ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30']">
+          :class="chipClass(isOtherCpo(c))">
           {{ c }}
         </button>
       </div>
