@@ -5,6 +5,7 @@ import com.evmonitor.domain.EvTrip;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -23,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class XpengTripDeduplicatorTest {
 
-    private static final LocalDateTime T0 = LocalDateTime.of(2026, 4, 22, 10, 0, 0);
+    private static final Instant T0 = LocalDateTime.of(2026, 4, 22, 10, 0, 0).toInstant(ZoneOffset.UTC);
 
     @Test
     void erkenntReImportTrotzLeichtVerschobenerStartzeit() {
@@ -37,7 +38,7 @@ class XpengTripDeduplicatorTest {
     @Test
     void unterschiedlicherKilometerstandIstKeinDuplikat() {
         List<EvTrip> existing = List.of(xpengTrip("1000.0", T0));
-        DetectedTrip other = trip("1005.0", T0.plusMinutes(2));
+        DetectedTrip other = trip("1005.0", T0.plusSeconds(120));
         assertFalse(XpengTripDeduplicator.isAlreadyImported(existing, other));
     }
 
@@ -46,7 +47,7 @@ class XpengTripDeduplicatorTest {
         // Zwei echte Kurztrips am selben (gerundeten) Kilometerstand, 10 min auseinander,
         // duerfen NICHT zusammengeworfen werden.
         List<EvTrip> existing = List.of(xpengTrip("1000.0", T0));
-        DetectedTrip laterShortTrip = trip("1000.2", T0.plusMinutes(10));
+        DetectedTrip laterShortTrip = trip("1000.2", T0.plusSeconds(600));
         assertFalse(XpengTripDeduplicator.isAlreadyImported(existing, laterShortTrip));
     }
 
@@ -69,9 +70,9 @@ class XpengTripDeduplicatorTest {
 
     // -- helpers --
 
-    private static DetectedTrip trip(String odoStart, LocalDateTime startedAt) {
+    private static DetectedTrip trip(String odoStart, Instant startedAt) {
         return new DetectedTrip(
-                startedAt, startedAt.plusMinutes(15),
+                startedAt, startedAt.plusSeconds(900),
                 odoStart == null ? null : new BigDecimal(odoStart),
                 odoStart == null ? null : new BigDecimal(odoStart).add(new BigDecimal("5")),
                 new BigDecimal("5"),
@@ -81,11 +82,11 @@ class XpengTripDeduplicatorTest {
                 Map.of());
     }
 
-    private static EvTrip xpengTrip(String odoStart, LocalDateTime startedAt) {
+    private static EvTrip xpengTrip(String odoStart, Instant startedAt) {
         return tripFromSource(odoStart, startedAt, DataSource.XPENG_IMPORT.name());
     }
 
-    private static EvTrip tripFromSource(String odoStart, LocalDateTime startedAt, String source) {
+    private static EvTrip tripFromSource(String odoStart, Instant startedAt, String source) {
         return EvTrip.builder()
                 .dataSource(source)
                 .tripStartedAt(startedAt.atOffset(ZoneOffset.UTC))

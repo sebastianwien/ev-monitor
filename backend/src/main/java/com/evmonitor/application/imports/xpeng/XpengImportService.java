@@ -35,6 +35,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -164,8 +165,8 @@ public class XpengImportService {
             job.setImportedTrips(stats.importedTrips);
             job.setImportedSessions(stats.importedSessions);
             job.setSkippedDuplicates(stats.skipped + stats.skippedTrips);
-            job.setDataRangeStart(stats.rangeStart);
-            job.setDataRangeEnd(stats.rangeEnd);
+            job.setDataRangeStart(toUtc(stats.rangeStart));
+            job.setDataRangeEnd(toUtc(stats.rangeEnd));
             job.setCompletedAt(LocalDateTime.now());
 
             log.info("XpengImport: job={} DONE trips={} sessions={} skipped={} skippedTrips={}",
@@ -194,7 +195,7 @@ public class XpengImportService {
 
         List<DetectedTrip> trips = new ArrayList<>();
         List<DetectedChargingSession> sessions = new ArrayList<>();
-        LocalDateTime[] range = new LocalDateTime[2];
+        Instant[] range = new Instant[2];
         java.util.function.Consumer<com.evmonitor.domain.xpeng.XpengTelematicsRow> rowHandler = row -> {
             if (range[0] == null || row.timer().isBefore(range[0])) range[0] = row.timer();
             if (range[1] == null || row.timer().isAfter(range[1])) range[1] = row.timer();
@@ -258,7 +259,7 @@ public class XpengImportService {
                     String json = serializeExtras(s.telemetryExtras());
                     if (json != null) {
                         try {
-                            evLogRepository.updateTelemetryExtras(carId, s.startedAt(), json);
+                            evLogRepository.updateTelemetryExtras(carId, toUtc(s.startedAt()), json);
                         } catch (Exception e) {
                             log.warn("XpengImport: telemetry_extras update for ev_log failed", e);
                         }
@@ -361,7 +362,12 @@ public class XpengImportService {
         return com.evmonitor.domain.xpeng.XpengTripDeduplicator.isAlreadyImported(candidates, t);
     }
 
-    private static UUID deterministicTripId(String vin, LocalDateTime startedAt) {
+    /** {@code ev_log.logged_at} / Job-Zeitraum sind UTC-Wanduhrzeit - einzige Umrechnung vom absoluten Zeitpunkt. */
+    private static LocalDateTime toUtc(Instant instant) {
+        return instant == null ? null : LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+    }
+
+    private static UUID deterministicTripId(String vin, Instant startedAt) {
         String key = (vin == null ? "" : vin) + "@" + startedAt.toString();
         return UUID.nameUUIDFromBytes(("xpeng:" + key).getBytes(StandardCharsets.UTF_8));
     }
@@ -498,7 +504,7 @@ public class XpengImportService {
 
     private static class ImportStats {
         int importedTrips, importedSessions, skipped, skippedTrips;
-        LocalDateTime rangeStart, rangeEnd;
+        Instant rangeStart, rangeEnd;
     }
 
     /** Caps total bytes read to prevent oversized uploads from filling tempdir. */

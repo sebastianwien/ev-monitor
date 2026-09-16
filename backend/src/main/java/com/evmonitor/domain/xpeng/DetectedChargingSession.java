@@ -1,7 +1,7 @@
 package com.evmonitor.domain.xpeng;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -20,8 +20,8 @@ import java.util.Map;
  * (OBC-Wirkungsgrad). Bei DC-Laden sind beide Werte nahezu identisch.
  */
 public record DetectedChargingSession(
-        LocalDateTime startedAt,
-        LocalDateTime endedAt,
+        Instant startedAt,
+        Instant endedAt,
         BigDecimal socStart,
         BigDecimal socEnd,
         BigDecimal kwhCharged,

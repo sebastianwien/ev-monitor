@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -96,25 +98,27 @@ public class XpengChargeMatcher {
 
     private GroupOutcome tryEnrichGroup(UUID carId, int odoKm, List<DetectedChargingSession> group) {
         // Zeitbereich der Gruppe
-        LocalDateTime earliestStart = group.stream()
+        Instant earliestStart = group.stream()
                 .map(DetectedChargingSession::startedAt)
-                .min(LocalDateTime::compareTo).orElseThrow();
-        LocalDateTime latestEnd = group.stream()
+                .min(Instant::compareTo).orElseThrow();
+        Instant latestEnd = group.stream()
                 .map(DetectedChargingSession::endedAt)
-                .max(LocalDateTime::compareTo).orElseThrow();
+                .max(Instant::compareTo).orElseThrow();
 
+        // ev_log.logged_at ist UTC-Wanduhrzeit -> Fenster an der Repository-Grenze umrechnen
         List<EvLog> candidates = evLogRepository.findChargeMatchCandidates(
                 carId, odoKm - 1, odoKm + 1,
-                earliestStart.minus(TIME_SLACK), latestEnd.plus(TIME_SLACK));
+                LocalDateTime.ofInstant(earliestStart.minus(TIME_SLACK), ZoneOffset.UTC),
+                LocalDateTime.ofInstant(latestEnd.plus(TIME_SLACK), ZoneOffset.UTC));
 
         if (candidates.isEmpty()) return GroupOutcome.NO_MATCH;
 
         // Tie-Breaker: zeitlich naechster Log zur fruehesten Session-Start-Zeit
         EvLog best = candidates.get(0);
-        long bestDelta = Math.abs(Duration.between(best.getLoggedAt(), earliestStart).toSeconds());
+        long bestDelta = Math.abs(Duration.between(best.getLoggedAt().toInstant(ZoneOffset.UTC), earliestStart).toSeconds());
         for (int i = 1; i < candidates.size(); i++) {
             EvLog c = candidates.get(i);
-            long delta = Math.abs(Duration.between(c.getLoggedAt(), earliestStart).toSeconds());
+            long delta = Math.abs(Duration.between(c.getLoggedAt().toInstant(ZoneOffset.UTC), earliestStart).toSeconds());
             if (delta < bestDelta) {
                 best = c;
                 bestDelta = delta;

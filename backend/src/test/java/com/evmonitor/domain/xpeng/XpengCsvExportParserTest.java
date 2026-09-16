@@ -9,8 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,11 +65,10 @@ class XpengCsvExportParserTest {
         assertEquals("L1NTEST", result.vehicleInfo().vin(), "VIN trotz BOM im Header");
         assertEquals("F57a", result.vehicleInfo().model());
 
-        // aufsteigend nach timer sortiert; Epoch -> lokale Fahrzeugzeit (Europe/Berlin)
-        ZoneId berlin = ZoneId.of("Europe/Berlin");
-        assertEquals(Instant.ofEpochSecond(1000).atZone(berlin).toLocalDateTime(), rows.get(0).timer());
-        assertEquals(Instant.ofEpochSecond(1001).atZone(berlin).toLocalDateTime(), rows.get(1).timer());
-        assertEquals(Instant.ofEpochSecond(1002).atZone(berlin).toLocalDateTime(), rows.get(2).timer());
+        // aufsteigend nach timer sortiert; timer ist der absolute Epoch-Zeitpunkt (kein Zonen-Raten)
+        assertEquals(Instant.ofEpochSecond(1000), rows.get(0).timer());
+        assertEquals(Instant.ofEpochSecond(1001), rows.get(1).timer());
+        assertEquals(Instant.ofEpochSecond(1002), rows.get(2).timer());
 
         // t=1000: beide Cluster -> vollstaendig
         assertEquals(0, new BigDecimal("42.5").compareTo(rows.get(0).vehSpeedKmh()));
@@ -123,9 +120,8 @@ class XpengCsvExportParserTest {
         XpengCsvExportParser.ParseResult result = new XpengCsvExportParser().parse(zip, rows::add);
 
         assertEquals(2, result.rowsProcessed());
-        ZoneId berlin = ZoneId.of("Europe/Berlin");
-        assertEquals(Instant.ofEpochSecond(1000).atZone(berlin).toLocalDateTime(), rows.get(0).timer());
-        assertEquals(Instant.ofEpochSecond(1002).atZone(berlin).toLocalDateTime(), rows.get(1).timer());
+        assertEquals(Instant.ofEpochSecond(1000), rows.get(0).timer());
+        assertEquals(Instant.ofEpochSecond(1002), rows.get(1).timer());
         // t=1000 aus beiden Clustern korrekt gejoint (Speed aus op, SoC aus pe)
         assertEquals(0, new BigDecimal("42.5").compareTo(rows.get(0).vehSpeedKmh()));
         assertEquals(0, new BigDecimal("80.0").compareTo(rows.get(0).socDisplay()));
@@ -154,9 +150,8 @@ class XpengCsvExportParserTest {
         XpengCsvExportParser.ParseResult result = new XpengCsvExportParser(2).parse(zip, rows::add);
 
         assertEquals(5, result.rowsProcessed());
-        ZoneId berlin = ZoneId.of("Europe/Berlin");
         for (int i = 0; i < 5; i++) {
-            assertEquals(Instant.ofEpochSecond(1000 + i).atZone(berlin).toLocalDateTime(), rows.get(i).timer(),
+            assertEquals(Instant.ofEpochSecond(1000 + i), rows.get(i).timer(),
                     "Zeile " + i + " muss aufsteigend sortiert sein");
         }
         assertEquals(0, new BigDecimal("80.0").compareTo(rows.get(0).socDisplay()));

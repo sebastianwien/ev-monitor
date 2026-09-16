@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -31,8 +31,8 @@ public class XpengTripDetector {
     private static final Duration MAX_INTEGRATION_GAP = Duration.ofSeconds(60);
 
     private State state = State.IDLE;
-    private LocalDateTime startedAt;
-    private LocalDateTime lastDrivingAt;
+    private Instant startedAt;
+    private Instant lastDrivingAt;
     private BigDecimal odometerStart;
     private BigDecimal odometerLast;
     private BigDecimal socStart;
@@ -41,7 +41,7 @@ public class XpengTripDetector {
     private BigDecimal speedSum = BigDecimal.ZERO;
     private long speedSamples = 0;
     private BigDecimal energyAccumWh = BigDecimal.ZERO;
-    private LocalDateTime prevSampleTime;
+    private Instant prevSampleTime;
     private BigDecimal prevPowerW;
     private TripExtrasAggregator extrasAggregator;
 
@@ -148,7 +148,7 @@ public class XpengTripDetector {
     private DetectedTrip finalizeTrip(XpengTelematicsRow endRow) {
         BigDecimal endOdo = odometerLast;
         BigDecimal endSoc = socLast;
-        LocalDateTime endedAt = lastDrivingAt;
+        Instant endedAt = lastDrivingAt;
         if (endRow != null) {
             if (endRow.odometerKm() != null) endOdo = endRow.odometerKm();
             if (endRow.socDisplay() != null) endSoc = endRow.socDisplay();

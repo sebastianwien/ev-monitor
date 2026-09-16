@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -45,8 +46,9 @@ class XpengChargeMatcherTest {
 
     private DetectedChargingSession session(BigDecimal odoKm, BigDecimal kwh,
                                             LocalDateTime startedAt, LocalDateTime endedAt) {
+        // Test-Zeiten sind UTC-Wanduhrzeiten wie ev_log.logged_at -> als Instant an die Session
         return new DetectedChargingSession(
-                startedAt, endedAt,
+                startedAt.toInstant(ZoneOffset.UTC), endedAt.toInstant(ZoneOffset.UTC),
                 new BigDecimal("50"), new BigDecimal("90"), kwh,
                 null,
                 new BigDecimal("11.0"),
@@ -238,8 +240,8 @@ class XpengChargeMatcherTest {
     @Test
     void enrichmentFillsMissingMaxPowerAndChargingType() {
         DetectedChargingSession s = new DetectedChargingSession(
-                LocalDateTime.of(2026, 5, 10, 12, 0),
-                LocalDateTime.of(2026, 5, 10, 13, 30),
+                LocalDateTime.of(2026, 5, 10, 12, 0).toInstant(ZoneOffset.UTC),
+                LocalDateTime.of(2026, 5, 10, 13, 30).toInstant(ZoneOffset.UTC),
                 new BigDecimal("50"), new BigDecimal("90"),
                 new BigDecimal("25.50"),
                 null,

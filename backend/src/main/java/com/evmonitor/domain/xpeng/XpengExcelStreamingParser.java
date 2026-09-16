@@ -24,7 +24,9 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.HashMap;
@@ -58,6 +60,8 @@ public class XpengExcelStreamingParser {
         ZipSecureFile.setMinInflateRatio(0.001);
     }
 
+    /** Der Legacy-XLSX-Timer ist eine Wanduhrzeit (Header {@code timer(GMT+1)}) - Fahrzeugzone Europe/Berlin. */
+    private static final ZoneId LEGACY_TIMER_ZONE = ZoneId.of("Europe/Berlin");
     private static final DateTimeFormatter[] TIMER_FORMATS = new DateTimeFormatter[] {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
             DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss"),
@@ -335,7 +339,7 @@ public class XpengExcelStreamingParser {
         private XpengTelematicsRow mapRow() {
             LocalDateTime timer = parseTimer(byLogical(XpengHeaderMapper.TIMER));
             if (timer == null) return null;
-            return XpengRowMapper.map(this::byLogical, timer);
+            return XpengRowMapper.map(this::byLogical, timer.atZone(LEGACY_TIMER_ZONE).toInstant());
         }
 
         private String byLogical(String logical) {

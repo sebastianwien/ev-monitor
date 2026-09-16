@@ -13,8 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -54,9 +52,10 @@ import java.util.zip.ZipInputStream;
  * sortiert - ein Rueckwaertssprung wird mit {@link XpengParseException} gemeldet
  * (kein stiller Fehlmerge).
  *
- * <p><b>Zeitzone:</b> {@code timer} ist ein absoluter Epoch-Zeitstempel; er wird
- * hier in die lokale Wanduhrzeit des Fahrzeugs ({@code Europe/Berlin}) umgewandelt,
- * konsistent zum alten XLSX-Weg (das {@code ds}-Feld ist nur ein Batch-Label).
+ * <p><b>Zeitzone:</b> {@code timer} ist ein absoluter Epoch-Zeitstempel und wird
+ * unveraendert als {@link Instant} weitergegeben - keine Zonen-Annahme im Parser.
+ * Die Umrechnung nach UTC-Wanduhrzeit passiert erst an der Persistenzgrenze
+ * (das {@code ds}-Feld ist nur ein Batch-Label).
  *
  * <p>Security: begrenzte Entry-Zahl und entpackte Gesamtgroesse gegen Zip-Bombs;
  * nur {@code .csv}-Entries ohne Pfadanteile werden gelesen.
@@ -66,10 +65,6 @@ public class XpengCsvExportParser {
 
     private static final int MAX_ENTRIES = 50;
     private static final long MAX_TOTAL_UNCOMPRESSED_BYTES = 2048L * 1024 * 1024; // 2 GB (entpackt; Parser streamt, Limit nur Zip-Bomb-Schutz)
-    // timer ist ein absoluter Epoch-Zeitstempel. Wir wandeln ihn in die lokale Wanduhrzeit
-    // des Fahrzeugs um - konsistent zum alten XLSX-Weg (dort trug XPeng lokale Zeitstrings).
-    // Default Europe/Berlin fuer die aktuelle Nutzerbasis; spaeter ggf. pro Fahrzeug.
-    private static final ZoneId EXPORT_ZONE = ZoneId.of("Europe/Berlin");
     /** Zeilen pro Sortierlauf - bestimmt den Spitzen-Heap beim Sortieren (~100k Zeilen ≈ 30 MB). */
     private static final int DEFAULT_RUN_LINES = 100_000;
 
@@ -159,8 +154,7 @@ public class XpengCsvExportParser {
                     }
                 }
 
-                LocalDateTime timer = Instant.ofEpochSecond(min).atZone(EXPORT_ZONE).toLocalDateTime();
-                rowHandler.accept(XpengRowMapper.map(merged::get, timer));
+                rowHandler.accept(XpengRowMapper.map(merged::get, Instant.ofEpochSecond(min)));
                 emitted++;
             }
             return new ParseResult(new XpengVehicleInfo(vin, vmodel, null, null, null), emitted);

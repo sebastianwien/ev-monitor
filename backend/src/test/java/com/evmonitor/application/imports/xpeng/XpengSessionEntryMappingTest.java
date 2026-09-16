@@ -5,7 +5,7 @@ import com.evmonitor.domain.xpeng.DetectedChargingSession;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -19,8 +19,25 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class XpengSessionEntryMappingTest {
 
-    private static final LocalDateTime START = LocalDateTime.of(2026, 5, 1, 12, 0);
-    private static final LocalDateTime END = LocalDateTime.of(2026, 5, 1, 13, 30);
+    private static final Instant START = Instant.parse("2026-05-01T12:00:00Z");
+    private static final Instant END = Instant.parse("2026-05-01T13:30:00Z");
+
+    @Test
+    void writesStartAsUtcOffsetTimestamp() {
+        // Regression: der Sessionstart ist ein absoluter Zeitpunkt. Der Public-API-Sink
+        // speichert UTC - eine Wanduhrzeit mit UTC-Label fuehrte zu +1h/+2h Versatz.
+        Instant start = Instant.parse("2026-08-02T12:00:00Z"); // = 14:00 CEST
+        DetectedChargingSession s = new DetectedChargingSession(
+                start, start.plusSeconds(3600),
+                new BigDecimal("20"), new BigDecimal("60"),
+                new BigDecimal("11.00"), null, new BigDecimal("11.00"),
+                new BigDecimal("13508"), "AC", null);
+
+        PublicApiSessionRequest.SessionEntry e = XpengImportService.toSessionEntry(s);
+
+        assertEquals("2026-08-02T12:00Z", e.date());
+        assertEquals(60, e.durationMin());
+    }
 
     @Test
     void writesGrossKwhAsKwhAndMarksAsAtCharger() {

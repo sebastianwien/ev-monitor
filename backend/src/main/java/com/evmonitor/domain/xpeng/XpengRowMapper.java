@@ -1,7 +1,7 @@
 package com.evmonitor.domain.xpeng;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -24,7 +24,7 @@ public final class XpengRowMapper {
      *                  den Rohwert, oder {@code null} wenn die Spalte fehlt/leer ist.
      * @param timer     bereits geparster Zeitstempel (non-null).
      */
-    public static XpengTelematicsRow map(Function<String, String> byLogical, LocalDateTime timer) {
+    public static XpengTelematicsRow map(Function<String, String> byLogical, Instant timer) {
         Map<String, BigDecimal> extras = new HashMap<>();
         putIfNotNull(extras, XpengExtraKeys.LONG_ACCEL_G,    scrub(XpengExtraKeys.LONG_ACCEL_G,    parseDecimal(byLogical.apply(XpengHeaderMapper.LONG_ACCEL))));
         putIfNotNull(extras, XpengExtraKeys.LAT_ACCEL_G,     scrub(XpengExtraKeys.LAT_ACCEL_G,     parseDecimal(byLogical.apply(XpengHeaderMapper.LAT_ACCEL))));

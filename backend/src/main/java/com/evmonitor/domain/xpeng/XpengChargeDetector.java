@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -38,9 +38,9 @@ public class XpengChargeDetector {
     private static final BigDecimal MAX_NET_GROSS_RATIO = new BigDecimal("1.05");
 
     private State state = State.IDLE;
-    private LocalDateTime startedAt;
-    private LocalDateTime lastEnergyAt;
-    private LocalDateTime lastPositivePowerAt;
+    private Instant startedAt;
+    private Instant lastEnergyAt;
+    private Instant lastPositivePowerAt;
     private BigDecimal socStart;
     private BigDecimal socLast;
     private BigDecimal odometerLast;
@@ -49,7 +49,7 @@ public class XpengChargeDetector {
     private BigDecimal energyAccumPackKwh = BigDecimal.ZERO;
     private boolean hasValidPackSample = false;
     private ChargingExtrasAggregator extrasAggregator;
-    private LocalDateTime prevSampleTime;
+    private Instant prevSampleTime;
     private BigDecimal prevPowerKw;
     private BigDecimal prevBattVolt;
     private BigDecimal prevBattCurrent;
@@ -203,7 +203,7 @@ public class XpengChargeDetector {
     }
 
     private DetectedChargingSession finalizeSession(XpengTelematicsRow endRow) {
-        LocalDateTime endedAt = lastPositivePowerAt != null ? lastPositivePowerAt : startedAt;
+        Instant endedAt = lastPositivePowerAt != null ? lastPositivePowerAt : startedAt;
         if (endRow != null && endRow.timer() != null) {
             // Cap the end timestamp at the last actual positive power sample - we don't want
             // to attribute the zero-power tail to the session duration.

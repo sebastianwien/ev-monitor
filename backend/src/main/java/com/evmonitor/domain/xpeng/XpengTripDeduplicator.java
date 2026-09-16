@@ -51,7 +51,7 @@ public final class XpengTripDeduplicator {
             if (odoDiff.compareTo(ODO_TOLERANCE_KM) > 0) continue;
 
             long secDiff = Math.abs(Duration.between(
-                    e.getTripStartedAt().toLocalDateTime(), candidate.startedAt()).toSeconds());
+                    e.getTripStartedAt().toInstant(), candidate.startedAt()).toSeconds());
             if (secDiff <= TIME_TOLERANCE_SECONDS) return true;
         }
         return false;

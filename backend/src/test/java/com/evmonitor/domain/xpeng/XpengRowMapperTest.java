@@ -3,7 +3,9 @@ package com.evmonitor.domain.xpeng;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,13 +18,13 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class XpengRowMapperTest {
 
-    private static XpengTelematicsRow map(Map<String, String> byLogical, LocalDateTime timer) {
+    private static XpengTelematicsRow map(Map<String, String> byLogical, Instant timer) {
         return XpengRowMapper.map(byLogical::get, timer);
     }
 
     @Test
     void maptKernfelderUndExtras() {
-        LocalDateTime t = LocalDateTime.of(2026, 9, 1, 12, 0, 0);
+        Instant t = LocalDateTime.of(2026, 9, 1, 12, 0, 0).toInstant(ZoneOffset.UTC);
         Map<String, String> v = new HashMap<>();
         v.put(XpengHeaderMapper.SPEED, "42.5");
         v.put(XpengHeaderMapper.GEAR, "1");
@@ -51,7 +53,7 @@ class XpengRowMapperTest {
         Map<String, String> v = new HashMap<>();
         v.put(XpengHeaderMapper.SPEED, "");   // leer
         // GEAR fehlt komplett
-        XpengTelematicsRow row = map(v, LocalDateTime.of(2026, 9, 1, 12, 0, 0));
+        XpengTelematicsRow row = map(v, LocalDateTime.of(2026, 9, 1, 12, 0, 0).toInstant(ZoneOffset.UTC));
 
         assertNull(row.vehSpeedKmh());
         assertNull(row.gearLev());
@@ -61,7 +63,7 @@ class XpengRowMapperTest {
 
     @Test
     void socSentinelAusserhalb0Bis100WirdNull() {
-        LocalDateTime t = LocalDateTime.of(2026, 9, 1, 12, 0, 0);
+        Instant t = LocalDateTime.of(2026, 9, 1, 12, 0, 0).toInstant(ZoneOffset.UTC);
         Map<String, String> v = new HashMap<>();
 
         v.put(XpengHeaderMapper.SOC, "255"); // 0xFF-Sentinel beim Aufwachen
@@ -81,14 +83,14 @@ class XpengRowMapperTest {
     void chargePowerSentinelWirdVomRecordEntschaerft() {
         Map<String, String> v = new HashMap<>();
         v.put(XpengHeaderMapper.CHARGE_POWER, "1638.3"); // > 400 kW Glitch
-        XpengTelematicsRow row = map(v, LocalDateTime.of(2026, 9, 1, 12, 0, 0));
+        XpengTelematicsRow row = map(v, LocalDateTime.of(2026, 9, 1, 12, 0, 0).toInstant(ZoneOffset.UTC));
 
         assertNull(row.chargePowerKw(), "unplausible Ladeleistung muss null werden");
     }
 
     @Test
     void extraSentinelsWerdenGefiltert() {
-        LocalDateTime t = LocalDateTime.of(2026, 9, 1, 12, 0, 0);
+        Instant t = LocalDateTime.of(2026, 9, 1, 12, 0, 0).toInstant(ZoneOffset.UTC);
 
         // BMS-Reichweite: 1638.3 ist der "kein Wert"-Sentinel des Sensors, keine echte Reichweite.
         Map<String, String> range = new HashMap<>();

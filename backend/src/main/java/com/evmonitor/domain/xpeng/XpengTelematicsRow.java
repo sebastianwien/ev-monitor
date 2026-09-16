@@ -3,7 +3,7 @@ package com.evmonitor.domain.xpeng;
 import com.evmonitor.domain.EvTrip;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 /**
@@ -17,7 +17,7 @@ import java.util.Map;
  * torque/rpm, BMS range estimate). Keys are defined in {@link XpengExtraKeys}.
  */
 public record XpengTelematicsRow(
-        LocalDateTime timer,
+        Instant timer,
         BigDecimal vehSpeedKmh,
         Integer gearLev,
         BigDecimal odometerKm,

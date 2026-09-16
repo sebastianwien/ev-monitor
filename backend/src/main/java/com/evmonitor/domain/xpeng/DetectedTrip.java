@@ -1,12 +1,12 @@
 package com.evmonitor.domain.xpeng;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Map;
 
 public record DetectedTrip(
-        LocalDateTime startedAt,
-        LocalDateTime endedAt,
+        Instant startedAt,
+        Instant endedAt,
         BigDecimal odometerStartKm,
         BigDecimal odometerEndKm,
         BigDecimal distanceKm,

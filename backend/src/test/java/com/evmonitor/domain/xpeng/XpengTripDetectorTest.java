@@ -3,7 +3,9 @@ package com.evmonitor.domain.xpeng;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class XpengTripDetectorTest {
 
-    private static final LocalDateTime T0 = LocalDateTime.of(2026, 4, 22, 10, 0, 0);
+    private static final Instant T0 = LocalDateTime.of(2026, 4, 22, 10, 0, 0).toInstant(ZoneOffset.UTC);
 
     @Test
     void emitsNothingWhenAlwaysParked() {
