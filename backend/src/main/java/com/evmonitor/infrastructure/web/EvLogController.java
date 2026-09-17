@@ -41,6 +41,7 @@ public class EvLogController {
     private final EvLogStatisticsService evLogStatisticsService;
     private final CarRepository carRepository;
     private final com.evmonitor.application.EvLogShareService evLogShareService;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
 
     @PostMapping
@@ -133,18 +134,35 @@ public class EvLogController {
             @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
-            String etag = "\"pc-" + id + "\"";
+            com.evmonitor.application.PowerCurveResponse body =
+                    evLogService.getPowerCurveForUser(id, principal.getUser());
+            // Der ETag muss am Inhalt haengen, nicht an der ID: der Connector schreibt
+            // eine Kurve nachtraeglich um (SoC-Anreicherung, Re-Sync). Ein ID-basierter
+            // ETag beantwortete jede Revalidierung mit 304 und fror den ersten - oft
+            // noch unvollstaendigen - Stand im Browser-Cache dauerhaft ein.
+            String etag = "\"pc-" + id + "-" + contentHash(body) + "\"";
             if (etag.equals(ifNoneMatch)) {
                 return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_MODIFIED).eTag(etag).build();
             }
-            com.evmonitor.application.PowerCurveResponse body =
-                    evLogService.getPowerCurveForUser(id, principal.getUser());
+            // no-cache = immer revalidieren; bei unveraenderter Kurve bleibt es ein
+            // billiges 304, bei geaenderter kommt sofort der neue Body.
             return ResponseEntity.ok()
                     .eTag(etag)
-                    .cacheControl(org.springframework.http.CacheControl.maxAge(java.time.Duration.ofDays(7)).cachePrivate())
+                    .cacheControl(org.springframework.http.CacheControl.noCache().cachePrivate())
                     .body(body);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    /** Kurzer, stabiler Fingerabdruck des Antwort-Bodys fuer den ETag. */
+    private String contentHash(com.evmonitor.application.PowerCurveResponse body) {
+        try {
+            byte[] json = objectMapper.writeValueAsBytes(body);
+            byte[] digest = java.security.MessageDigest.getInstance("SHA-256").digest(json);
+            return java.util.HexFormat.of().formatHex(digest, 0, 8);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException | java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException("power-curve etag", e);
         }
     }
 
