@@ -13,6 +13,7 @@ const TronityImport = defineAsyncComponent(() => import('../components/imports/T
 import TessieImport from '../components/imports/TessieImport.vue'
 const XpengImport = defineAsyncComponent(() => import('../components/imports/XpengImport.vue'))
 const EUDataActImport = defineAsyncComponent(() => import('../components/imports/EUDataActImport.vue'))
+const EudaAutoSync = defineAsyncComponent(() => import('../components/imports/EudaAutoSync.vue'))
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
@@ -578,7 +579,9 @@ const teslaConnectedLabel = ref<string | null>(null)
             <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'eu_data_act' ? 'rotate-180' : '']" />
           </button>
           <Transition name="accordion">
-            <div v-if="activeTab === 'eu_data_act'" class="border-t border-gray-100 dark:border-gray-700 p-4">
+            <div v-if="activeTab === 'eu_data_act'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
+              <!-- AutoSync zuerst (der bessere Weg), der manuelle Upload bleibt fuer alle darunter -->
+              <EudaAutoSync :cars="activeCars" :is-premium="subscriptionIsPremium" />
               <EUDataActImport :cars="activeCars" @close="toggle('eu_data_act')" />
             </div>
           </Transition>
