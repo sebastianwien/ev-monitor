@@ -8,11 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,9 +18,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
-import org.springframework.http.HttpEntity;
 import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,6 +44,8 @@ class UserServiceTest {
 
     @Mock
     private AccountAnonymizationService anonymizationService;
+    @Mock
+    private AccountPurgeClient purgeClient;
 
     @InjectMocks
     private UserService userService;
@@ -220,7 +216,6 @@ class UserServiceTest {
 
     @Test
     void deleteAccount_shouldDeleteUserWhenPasswordIsCorrect() {
-        installMockRestTemplate();
         DeleteAccountRequest request = new DeleteAccountRequest("correctPassword");
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
@@ -246,7 +241,6 @@ class UserServiceTest {
 
     @Test
     void deleteAccount_shouldAnonymizeThenPurgeConnectorsAndWallboxBeforeDeletingUser() {
-        RestTemplate mockRest = installMockRestTemplate();
         UUID carId = UUID.randomUUID();
         when(anonymizationService.anonymizeCarsOf(userId)).thenReturn(List.of(carId));
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
@@ -254,19 +248,11 @@ class UserServiceTest {
 
         userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword"));
 
-        InOrder inOrder = inOrder(anonymizationService, mockRest, userRepository);
+        InOrder inOrder = inOrder(anonymizationService, purgeClient, userRepository);
         inOrder.verify(anonymizationService).anonymizeCarsOf(userId);
-        inOrder.verify(mockRest).exchange(eq("http://test-connectors:8081/api/internal/users/" + userId),
-                eq(HttpMethod.DELETE), any(), eq(Void.class));
-        inOrder.verify(mockRest).exchange(eq("http://test-wallbox:8090/api/internal/users/" + userId),
-                eq(HttpMethod.DELETE), any(), eq(Void.class));
+        inOrder.verify(purgeClient).purgeConnectors(userId, List.of(carId));
+        inOrder.verify(purgeClient).purgeWallbox(userId);
         inOrder.verify(userRepository).delete(testUser);
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<HttpEntity<Map<String, Object>>> entity = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(mockRest).exchange(contains("test-connectors"), eq(HttpMethod.DELETE), entity.capture(), eq(Void.class));
-        assertEquals(List.of(carId), entity.getValue().getBody().get("carIds"));
-        assertEquals("test-token", entity.getValue().getHeaders().getFirst("X-Internal-Token"));
     }
 
     @Test
@@ -278,30 +264,27 @@ class UserServiceTest {
         assertThrows(RuntimeException.class, () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
 
         verify(userRepository, never()).delete(any());
+        verifyNoInteractions(purgeClient);
     }
 
     @Test
     void deleteAccount_shouldAbortAndKeepUserWhenConnectorPurgeFails() {
-        RestTemplate mockRest = installMockRestTemplate();
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
-        when(mockRest.exchange(contains("test-connectors"), any(HttpMethod.class), any(), eq(Void.class)))
-                .thenThrow(new RuntimeException("connectors unreachable"));
+        doThrow(new IllegalStateException("connectors")).when(purgeClient).purgeConnectors(eq(userId), any());
 
         assertThrows(IllegalStateException.class,
                 () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
 
         verify(userRepository, never()).delete(any());
-        verify(mockRest, never()).exchange(contains("test-wallbox"), any(HttpMethod.class), any(), eq(Void.class));
+        verify(purgeClient, never()).purgeWallbox(any());
     }
 
     @Test
     void deleteAccount_shouldAbortAndKeepUserWhenWallboxPurgeFails() {
-        RestTemplate mockRest = installMockRestTemplate();
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
-        when(mockRest.exchange(contains("test-wallbox"), any(HttpMethod.class), any(), eq(Void.class)))
-                .thenThrow(new RuntimeException("wallbox unreachable"));
+        doThrow(new IllegalStateException("wallbox")).when(purgeClient).purgeWallbox(userId);
 
         assertThrows(IllegalStateException.class,
                 () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
@@ -309,14 +292,4 @@ class UserServiceTest {
         verify(userRepository, never()).delete(any());
     }
 
-    private RestTemplate installMockRestTemplate() {
-        RestTemplate mockRest = mock(RestTemplate.class);
-        lenient().when(mockRest.exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class)))
-                .thenReturn(ResponseEntity.noContent().build());
-        ReflectionTestUtils.setField(userService, "restTemplate", mockRest);
-        ReflectionTestUtils.setField(userService, "connectorsBaseUrl", "http://test-connectors:8081");
-        ReflectionTestUtils.setField(userService, "wallboxBaseUrl", "http://test-wallbox:8090");
-        ReflectionTestUtils.setField(userService, "internalToken", "test-token");
-        return mockRest;
-    }
 }

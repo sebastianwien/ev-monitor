@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import com.evmonitor.application.user.AccountPurgeClient;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -36,6 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class UserControllerIntegrationTest {
+
+    /** Nebendienste (Connectors, Wallbox) laufen im Test nicht - Purge-Aufrufe stubben. */
+    @MockitoBean
+    private AccountPurgeClient purgeClient;
 
     @Autowired
     private MockMvc mockMvc;
