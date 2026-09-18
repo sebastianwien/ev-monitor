@@ -176,6 +176,7 @@ onMounted(load)
             type="button"
             :disabled="busy"
             @click="onRequestHistory"
+            data-testid="euda-history"
             class="inline-flex items-center gap-1.5 bg-gray-950 dark:bg-white text-white dark:text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-gray-950 dark:border-white disabled:opacity-60"
           >
             <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
@@ -185,6 +186,7 @@ onMounted(load)
             type="button"
             :disabled="busy"
             @click="reactivateSmartcar"
+            data-testid="euda-reactivate-smartcar"
             class="text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-60"
           >
             {{ t('eu_data_act_sync.btn_reactivate_smartcar') }}
@@ -193,6 +195,7 @@ onMounted(load)
             type="button"
             :disabled="busy"
             @click="disconnect"
+            data-testid="euda-disconnect"
             class="text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-sm border-2 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 disabled:opacity-60"
           >
             {{ t('eu_data_act_sync.btn_disconnect') }}
@@ -238,6 +241,7 @@ onMounted(load)
         </ul>
         <button
           type="submit"
+          data-testid="euda-connect"
           :disabled="connecting || !selectedCarId || !email || !password"
           class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px] disabled:opacity-60 disabled:cursor-not-allowed"
         >
