@@ -365,6 +365,19 @@ public class EvLog {
                 .build();
     }
 
+    /**
+     * DSGVO-Kontolöschung: Ort, Rohdaten und Tarif-Verknüpfung kappen, den Zeitpunkt auf den Tag runden.
+     * {@code sequenceInDay} hält die Reihenfolge der Logs eines Tages stabil (Verbrauchskette, Ladegruppen) -
+     * als Minutenversatz, weil loggedAt im Konstruktor auf Minuten gerundet wird.
+     */
+    public EvLog anonymize(int sequenceInDay) {
+        return toBuilder()
+                .geohash(null).rawImportData(null).chargingProviderId(null)
+                .loggedAt(loggedAt.toLocalDate().atStartOfDay().plusMinutes(sequenceInDay))
+                .updatedAt(LocalDateTime.now())
+                .build();
+    }
+
     public EvLog withIncludeInStatistics(boolean includeInStatistics) {
         return toBuilder()
                 .includeInStatistics(includeInStatistics)

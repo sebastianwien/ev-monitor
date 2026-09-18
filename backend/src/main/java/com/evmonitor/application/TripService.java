@@ -143,7 +143,7 @@ public class TripService {
         }
         Car car = carRepository.findById(req.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(user.getId())) {
+        if (!car.isOwnedBy(user.getId())) {
             throw new IllegalArgumentException("Car not owned by user");
         }
 
@@ -335,7 +335,7 @@ public class TripService {
     public List<EvTripResponse> getTripsForCar(UUID carId, User user, OffsetDateTime from, OffsetDateTime to, int limit) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(user.getId())) {
+        if (!car.isOwnedBy(user.getId())) {
             throw new IllegalArgumentException("Car not owned by user");
         }
         // Live trips are visible only if (a) the user may view live trips for this car's

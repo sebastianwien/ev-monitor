@@ -256,7 +256,7 @@ public class BatterySohService {
     private Car verifyOwnership(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
         return car;

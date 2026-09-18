@@ -60,7 +60,7 @@ public class LiveController {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
 
-        if (!car.getUserId().equals(user.getId())) {
+        if (!car.isOwnedBy(user.getId())) {
             throw ForbiddenException.notOwner("Car", carId);
         }
 
@@ -95,7 +95,7 @@ public class LiveController {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
 
-        if (!car.getUserId().equals(user.getId())) {
+        if (!car.isOwnedBy(user.getId())) {
             throw ForbiddenException.notOwner("Car", carId);
         }
 

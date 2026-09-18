@@ -42,7 +42,7 @@ class EvLogStatisticsServicePricelessTest {
     @Test
     void getPricelessLogs_mapsPricelessQueryResult() {
         Car car = mock(Car.class);
-        when(car.getUserId()).thenReturn(userId);
+        when(car.isOwnedBy(userId)).thenReturn(true);
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
         // Filtern (cost_eur IS NULL) + Sortierung uebernimmt der Repo-Query; der Service reicht durch.
@@ -61,7 +61,7 @@ class EvLogStatisticsServicePricelessTest {
     @Test
     void getPricelessLogs_throwsWhenNotOwner() {
         Car car = mock(Car.class);
-        when(car.getUserId()).thenReturn(UUID.randomUUID()); // ein anderer User
+        when(car.isOwnedBy(userId)).thenReturn(false); // ein anderer User
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
         assertThrows(IllegalArgumentException.class, () -> service.getPricelessLogs(carId, userId));

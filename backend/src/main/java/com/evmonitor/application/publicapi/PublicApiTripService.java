@@ -30,7 +30,7 @@ public class PublicApiTripService {
     public ApiTripResponse createTrip(UUID userId, PublicApiTripRequest request) {
         Car car = carRepository.findById(request.carId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
 
@@ -64,7 +64,7 @@ public class PublicApiTripService {
         if (carId != null) {
             Car car = carRepository.findById(carId)
                     .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-            if (!car.getUserId().equals(userId)) {
+            if (!car.isOwnedBy(userId)) {
                 throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
             }
         }

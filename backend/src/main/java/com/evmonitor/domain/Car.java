@@ -42,6 +42,8 @@ public class Car {
     private final BigDecimal batteryDegradationPercent;
     private final boolean businessCar;
     private final boolean heatPump;
+    /** DSGVO: gesetzt, sobald der Besitzer sein Konto gelöscht hat - userId ist dann NULL. */
+    private final LocalDateTime anonymizedAt;
 
     public static Car createNew(UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
             String trim, BigDecimal customNetCapacityKwh, BigDecimal powerKw,
@@ -62,6 +64,21 @@ public class Car {
                 .updatedAt(now)
                 .batteryDegradationPercent(batteryDegradationPercent)
                 .build();
+    }
+
+    /** Einziger erlaubter Ownership-Check: ein anonymisiertes Auto (userId NULL) gehört niemandem. */
+    public boolean isOwnedBy(UUID userId) {
+        return this.userId != null && this.userId.equals(userId);
+    }
+
+    public boolean isAnonymized() {
+        return anonymizedAt != null;
+    }
+
+    /** DSGVO-Kontolöschung: Personenbezug kappen, Spec/Baujahr/Kapazität für die Community-Statistik behalten. */
+    public Car anonymize() {
+        return toBuilder().userId(null).licensePlate(null).imagePath(null).imagePublic(false)
+                .anonymizedAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
     }
 
     public Car deregister(LocalDate deregistrationDate) {

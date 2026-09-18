@@ -1472,7 +1472,7 @@ settings:
   support_title: Støtt EV Monitor
   support_desc: EV Monitor er gratis og uten reklame. Hvis appen er til hjelp for deg, setter jeg pris på en kaffe ☕
   delete_modal_title: Slette kontoen?
-  delete_modal_desc: Denne handlingen <strong>kan ikke angres</strong>. Alle dine data (ladinger, kjøretøy, watt) vil bli slettet permanent.
+  delete_modal_desc: Denne handlingen <strong>kan ikke angres</strong>. Kontoen din og alle personopplysninger (innlogging, registreringsnummer, posisjoner, kjøretøybilder, watt, tilkoblinger) slettes permanent. Anonymiserte forbruksverdier for kjøretøyet ditt forblir en del av fellesskapsstatistikken uten kobling til sted, tid eller person.
   delete_password_placeholder: Bekreft passord
   delete_confirm_btn: Slett permanent
   tariff_title: Mine ladekort

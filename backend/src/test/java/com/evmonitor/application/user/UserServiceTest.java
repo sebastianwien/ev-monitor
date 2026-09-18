@@ -22,6 +22,10 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
+import org.springframework.http.HttpEntity;
+import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -43,6 +47,9 @@ class UserServiceTest {
 
     @Mock
     private ObjectMapper objectMapper;
+
+    @Mock
+    private AccountAnonymizationService anonymizationService;
 
     @InjectMocks
     private UserService userService;
@@ -237,17 +244,37 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteAccount_shouldCallSmartcarDisconnectInConnectors() {
+    void deleteAccount_shouldAnonymizeCarsBeforeDeleteAndPurgeConnectorsWithCarIds() {
         RestTemplate mockRest = installMockRestTemplate();
+        UUID carId = UUID.randomUUID();
+        when(anonymizationService.anonymizeCarsOf(userId)).thenReturn(List.of(carId));
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
 
         userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword"));
 
-        verify(userRepository).delete(testUser);
+        InOrder inOrder = inOrder(anonymizationService, userRepository);
+        inOrder.verify(anonymizationService).anonymizeCarsOf(userId);
+        inOrder.verify(userRepository).delete(testUser);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<HttpEntity<Map<String, Object>>> entity = ArgumentCaptor.forClass(HttpEntity.class);
         verify(mockRest).exchange(
-                contains("/api/internal/smartcar/disconnect/" + userId),
-                eq(HttpMethod.DELETE), any(), eq(Void.class));
+                contains("/api/internal/users/" + userId),
+                eq(HttpMethod.DELETE), entity.capture(), eq(Void.class));
+        assertEquals(List.of(carId), entity.getValue().getBody().get("carIds"));
+        assertEquals("test-token", entity.getValue().getHeaders().getFirst("X-Internal-Token"));
+    }
+
+    @Test
+    void deleteAccount_shouldNotDeleteUserWhenAnonymizationFails() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
+        when(anonymizationService.anonymizeCarsOf(userId)).thenThrow(new RuntimeException("db down"));
+
+        assertThrows(RuntimeException.class, () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
+
+        verify(userRepository, never()).delete(any());
     }
 
     @Test

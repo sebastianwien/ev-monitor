@@ -70,7 +70,7 @@ public class TessieProcessorService {
     public TessieProcessorResult processForCar(UUID userId, String vin, UUID carId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found: " + carId));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("Car does not belong to user");
         }
 

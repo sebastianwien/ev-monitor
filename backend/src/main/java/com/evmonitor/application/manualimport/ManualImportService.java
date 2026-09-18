@@ -32,7 +32,7 @@ public class ManualImportService {
         // Ownership check before parsing
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
 

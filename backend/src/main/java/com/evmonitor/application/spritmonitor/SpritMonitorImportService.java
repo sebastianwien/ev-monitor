@@ -55,7 +55,7 @@ public class SpritMonitorImportService {
     ) {
         Car car = carRepository.findById(evMonitorCarId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + evMonitorCarId));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
@@ -150,7 +150,7 @@ public class SpritMonitorImportService {
     ) {
         Car car = carRepository.findById(evMonitorCarId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found with ID: " + evMonitorCarId));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 

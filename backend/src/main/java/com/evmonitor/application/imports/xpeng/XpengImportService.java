@@ -106,7 +106,7 @@ public class XpengImportService {
                                        String clientIp, String userAgent) throws IOException {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
         Path tempfile = persistUpload(content);

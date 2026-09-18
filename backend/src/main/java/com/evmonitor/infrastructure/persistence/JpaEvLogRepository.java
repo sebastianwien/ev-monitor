@@ -531,7 +531,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                            END
                        ) AS kwh_for_cost,
                        l.cost_eur,
-                       c.user_id,
+                       c.user_id, -- NULL bei DSGVO-anonymisierten Autos: zählen unten je Auto als ein Beitragender
                        l.car_id,
                        l.odometer_km,
                        LAG(l.odometer_km) OVER (PARTITION BY l.car_id ORDER BY l.logged_at) AS prev_odometer
@@ -544,7 +544,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             )
             SELECT
                 COUNT(id) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS log_count,
-                COUNT(DISTINCT user_id)                                                                                AS unique_contributors,
+                COUNT(DISTINCT COALESCE(user_id, car_id))                                                              AS unique_contributors,
                 AVG(CASE WHEN cost_eur > 0 THEN cost_eur / NULLIF(kwh_for_cost, 0) END)                              AS avg_cost_per_kwh,
                 AVG(kwh_for_cost) FILTER (WHERE prev_odometer IS NULL OR odometer_km IS NULL OR odometer_km != prev_odometer) AS avg_kwh_per_session,
                 COUNT(DISTINCT car_id)                                                                                 AS unique_cars

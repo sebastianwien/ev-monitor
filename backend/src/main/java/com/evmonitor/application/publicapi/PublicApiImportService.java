@@ -67,7 +67,7 @@ public class PublicApiImportService {
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
 
         // Critical ownership check
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
 
@@ -201,7 +201,7 @@ public class PublicApiImportService {
 
         Car car = carRepository.findById(existing.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Kein Zugriff auf diesen Log");
         }
 
@@ -255,7 +255,7 @@ public class PublicApiImportService {
 
         Car car = carRepository.findById(existing.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Kein Zugriff auf diesen Log");
         }
 
@@ -281,7 +281,7 @@ public class PublicApiImportService {
         if (carId != null) {
             Car car = carRepository.findById(carId)
                     .orElseThrow(() -> new SecurityException("Dieses Fahrzeug gehört dir nicht"));
-            if (!car.getUserId().equals(userId)) {
+            if (!car.isOwnedBy(userId)) {
                 throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
             }
             sessions = evLogRepository.findPagedByCarId(carId, from, to, size, offset);
@@ -311,7 +311,7 @@ public class PublicApiImportService {
 
         Car car = carRepository.findById(existing.getCarId())
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-        if (!car.getUserId().equals(userId)) {
+        if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Kein Zugriff auf diesen Log");
         }
 

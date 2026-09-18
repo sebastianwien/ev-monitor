@@ -1521,7 +1521,7 @@ settings:
   support_title: "Support EV Monitor"
   support_desc: "EV Monitor is free and ad-free. If the app helps you, I'd appreciate a coffee ☕"
   delete_modal_title: "Delete account?"
-  delete_modal_desc: "This action <strong>cannot be undone</strong>. All your data (charging sessions, vehicles, Watt) will be permanently deleted."
+  delete_modal_desc: "This action <strong>cannot be undone</strong>. Your account and all personal data (credentials, license plate, locations, vehicle photos, Watt, connections) will be permanently deleted. Anonymised consumption values of your vehicle remain part of the community statistics without any link to a location, time or person."
   delete_password_placeholder: "Password to confirm"
   delete_confirm_btn: "Delete permanently"
   tariff_title: "My Charging Cards"

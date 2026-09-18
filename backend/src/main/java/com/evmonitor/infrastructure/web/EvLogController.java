@@ -492,7 +492,7 @@ public class EvLogController {
         // Fetch car and validate ownership
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-        if (!car.getUserId().equals(user.getId())) {
+        if (!car.isOwnedBy(user.getId())) {
             throw new IllegalArgumentException("Car does not belong to user");
         }
 

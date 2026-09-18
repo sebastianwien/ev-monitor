@@ -62,7 +62,7 @@ class TripServiceExposureTest {
         lenient().when(user.getId()).thenReturn(USER_ID);
         lenient().when(user.canViewLiveTrips(any())).thenReturn(true);
         lenient().when(user.canBypassEligibilityGate()).thenReturn(true);
-        lenient().when(car.getUserId()).thenReturn(USER_ID);
+        lenient().when(car.isOwnedBy(USER_ID)).thenReturn(true);
         lenient().when(car.getModel()).thenReturn(CarBrand.CarModel.MODEL_3);
         lenient().when(carRepository.findById(CAR_ID)).thenReturn(Optional.of(car));
     }

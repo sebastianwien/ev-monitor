@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import java.util.List;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -55,6 +57,7 @@ public class UserService {
     private final com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository xpengConsentAuditRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final AccountAnonymizationService anonymizationService;
 
     @Transactional(readOnly = true)
     public UserStatsResponse getUserStats(UUID userId) {
@@ -169,23 +172,28 @@ public class UserService {
         // daher explizit purgen, CASCADE greift hier nicht.
         xpengConsentAuditRepository.deleteByUserId(userId);
 
-        // Delete user (CASCADE will delete all related data: Cars, EvLogs, CoinLogs, Tokens)
+        // DSGVO Plan A: Autos, Logs und Trips anonymisiert behalten (user_id NULL), erst danach den User
+        // löschen - der CASCADE trifft dann nur noch die restlichen personenbezogenen Tabellen.
+        List<UUID> carIds = anonymizationService.anonymizeCarsOf(userId);
+
         userRepository.delete(user);
-        disconnectConnectors(userId);
+        purgeConnectors(userId, carIds);
     }
 
-    private void disconnectConnectors(UUID userId) {
+    /** DSGVO: alle Connector-Daten (Verbindungen, Telemetrie, Webhook-Rohdaten, Pre-Trips) löschen. */
+    private void purgeConnectors(UUID userId, List<UUID> carIds) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Internal-Token", internalToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
             restTemplate.exchange(
-                    connectorsBaseUrl + "/api/internal/smartcar/disconnect/" + userId,
+                    connectorsBaseUrl + "/api/internal/users/" + userId,
                     HttpMethod.DELETE,
-                    new HttpEntity<>(headers),
+                    new HttpEntity<>(Map.of("carIds", carIds), headers),
                     Void.class);
-            log.info("[USER] Smartcar disconnected for deleted userId={}", userId);
+            log.info("[USER] Connector data purged for deleted userId={} cars={}", userId, carIds.size());
         } catch (Exception e) {
-            log.warn("[USER] Smartcar disconnect failed for deleted userId={}: {}", userId, e.getMessage());
+            log.warn("[USER] Connector purge failed for deleted userId={}: {}", userId, e.getMessage());
         }
     }
 
