@@ -75,7 +75,24 @@
           class="flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold hover:bg-indigo-700">
           {{ t('logwizard.done') }}
         </button>
+        <!-- Loeschen: zweistufig im Sheet statt window.confirm (in der App unzuverlaessig) -->
+        <template v-else-if="confirmingDelete">
+          <span class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ t('logform.delete_confirm') }}</span>
+          <button type="button" data-testid="edit-delete-cancel" @click="confirmingDelete = false" v-haptic
+            class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+            {{ t('common.cancel') }}
+          </button>
+          <button type="button" data-testid="edit-delete-confirm" @click="deleteLog" v-haptic :disabled="loading"
+            class="px-4 py-3 rounded-sm btn-3d font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 flex items-center gap-2">
+            <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            {{ t('dashboard.action_delete') }}
+          </button>
+        </template>
         <template v-else>
+          <button type="button" data-testid="edit-delete" :aria-label="t('logform.delete_title')" @click="confirmingDelete = true" v-haptic
+            class="p-3 rounded-sm text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+            <TrashIcon class="w-5 h-5" />
+          </button>
           <button type="button" @click="close" v-haptic class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
             {{ t('common.cancel') }}
           </button>
@@ -92,7 +109,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { XMarkIcon, ChevronLeftIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
 import BottomSheet from '../shared/BottomSheet.vue'
 import api from '../../api/axios'
@@ -140,7 +157,7 @@ export interface EvLogResponse {
 }
 
 const props = defineProps<{ log: EvLogResponse }>()
-const emit = defineEmits<{ close: []; saved: [log: EvLogResponse] }>()
+const emit = defineEmits<{ close: []; saved: [log: EvLogResponse]; deleted: [logId: string] }>()
 const { t } = useI18n()
 const countryStore = useCountryStore()
 
@@ -149,9 +166,27 @@ const countryStore = useCountryStore()
 // Speichervorgang parkt hier sein Ergebnis, bis das Sheet draussen ist.
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
 const savedLog = ref<EvLogResponse | null>(null)
+const deletedLogId = ref<string | null>(null)
 function onClosed() {
-  if (savedLog.value) emit('saved', savedLog.value)
+  if (deletedLogId.value) emit('deleted', deletedLogId.value)
+  else if (savedLog.value) emit('saved', savedLog.value)
   else emit('close')
+}
+
+const confirmingDelete = ref(false)
+async function deleteLog() {
+  errorMsg.value = ''
+  loading.value = true
+  try {
+    await api.delete(`/logs/${props.log.id}`)
+    deletedLogId.value = props.log.id
+    sheet.value?.requestClose()
+  } catch {
+    confirmingDelete.value = false
+    errorMsg.value = t('logform.delete_failed')
+  } finally {
+    loading.value = false
+  }
 }
 
 const toDatetimeLocal = (iso: string): string => {

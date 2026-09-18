@@ -78,6 +78,12 @@ function onLogSaved() {
   emit('updated')
 }
 
+function onLogDeleted(logId: string) {
+  editingLog.value = null
+  logs.value = logs.value.filter(l => l.id !== logId)
+  emit('updated')
+}
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
@@ -258,6 +264,7 @@ function formatDate(iso: string) {
       :log="editingLog"
       @close="editingLog = null"
       @saved="onLogSaved"
+      @deleted="onLogDeleted"
     />
   </Teleport>
 </template>

@@ -71,6 +71,7 @@ const { t } = useI18n()
       :log="editingLog"
       @close="editingLog = null"
       @saved="() => { editingLog = null; refreshLogsAndGroups() }"
+      @deleted="() => { editingLog = null; refreshLogsAndGroups() }"
     />
 
     <!-- Schlanker Preis-Nachtrag: aus dem Warn-Chip an einer preislosen Ladung. -->

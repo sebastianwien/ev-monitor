@@ -510,6 +510,7 @@ onMounted(async () => {
     :log="editingLog"
     @close="editingLog = null"
     @saved="() => { editingLog = null; fetchLogs() }"
+    @deleted="() => { editingLog = null; fetchLogs() }"
   />
 </template>
 
