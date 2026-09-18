@@ -36,6 +36,9 @@ public class UserService {
     @Value("${connectors.base-url:http://connectors-service:8081}")
     private String connectorsBaseUrl;
 
+    @Value("${wallbox.base-url:http://wallbox-service:8090}")
+    private String wallboxBaseUrl;
+
     @Value("${internal.token:}")
     private String internalToken;
 
@@ -176,24 +179,26 @@ public class UserService {
         // löschen - der CASCADE trifft dann nur noch die restlichen personenbezogenen Tabellen.
         List<UUID> carIds = anonymizationService.anonymizeCarsOf(userId);
 
+        // Purge in den Nebendiensten VOR dem User-Delete: schlägt er fehl, bricht die Löschung ab und die
+        // Transaktion rollt zurück - sonst blieben GPS-Rohdaten ohne Wiederholungsmöglichkeit liegen.
+        purgeRemote("connectors", connectorsBaseUrl, userId, Map.of("carIds", carIds));
+        purgeRemote("wallbox", wallboxBaseUrl, userId, null);
+
         userRepository.delete(user);
-        purgeConnectors(userId, carIds);
     }
 
-    /** DSGVO: alle Connector-Daten (Verbindungen, Telemetrie, Webhook-Rohdaten, Pre-Trips) löschen. */
-    private void purgeConnectors(UUID userId, List<UUID> carIds) {
+    /** DSGVO: DELETE /api/internal/users/{id} im Nebendienst; jeder Fehler beendet die Kontolöschung. */
+    private void purgeRemote(String service, String baseUrl, UUID userId, Map<String, Object> body) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Internal-Token", internalToken);
             headers.setContentType(MediaType.APPLICATION_JSON);
-            restTemplate.exchange(
-                    connectorsBaseUrl + "/api/internal/users/" + userId,
-                    HttpMethod.DELETE,
-                    new HttpEntity<>(Map.of("carIds", carIds), headers),
-                    Void.class);
-            log.info("[USER] Connector data purged for deleted userId={} cars={}", userId, carIds.size());
+            restTemplate.exchange(baseUrl + "/api/internal/users/" + userId, HttpMethod.DELETE,
+                    new HttpEntity<>(body, headers), Void.class);
+            log.info("[USER] {} data purged for userId={}", service, userId);
         } catch (Exception e) {
-            log.warn("[USER] Connector purge failed for deleted userId={}: {}", userId, e.getMessage());
+            log.error("[USER] {} purge failed for userId={}, account deletion aborted: {}", service, userId, e.getMessage());
+            throw new IllegalStateException("Account deletion aborted: " + service + " purge failed", e);
         }
     }
 

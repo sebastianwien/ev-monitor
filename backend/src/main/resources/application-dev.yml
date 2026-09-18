@@ -90,3 +90,7 @@ internal:
 # nicht unter dem Docker-Compose-Hostnamen 'connectors-service'.
 connectors:
   base-url: ${CONNECTORS_BASE_URL:http://localhost:8081}
+
+# Wallbox-Service (DSGVO-Purge bei Kontolöschung)
+wallbox:
+  base-url: ${WALLBOX_BASE_URL:http://localhost:8090}

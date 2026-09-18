@@ -220,6 +220,7 @@ class UserServiceTest {
 
     @Test
     void deleteAccount_shouldDeleteUserWhenPasswordIsCorrect() {
+        installMockRestTemplate();
         DeleteAccountRequest request = new DeleteAccountRequest("correctPassword");
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
@@ -244,7 +245,7 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteAccount_shouldAnonymizeCarsBeforeDeleteAndPurgeConnectorsWithCarIds() {
+    void deleteAccount_shouldAnonymizeThenPurgeConnectorsAndWallboxBeforeDeletingUser() {
         RestTemplate mockRest = installMockRestTemplate();
         UUID carId = UUID.randomUUID();
         when(anonymizationService.anonymizeCarsOf(userId)).thenReturn(List.of(carId));
@@ -253,15 +254,17 @@ class UserServiceTest {
 
         userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword"));
 
-        InOrder inOrder = inOrder(anonymizationService, userRepository);
+        InOrder inOrder = inOrder(anonymizationService, mockRest, userRepository);
         inOrder.verify(anonymizationService).anonymizeCarsOf(userId);
+        inOrder.verify(mockRest).exchange(eq("http://test-connectors:8081/api/internal/users/" + userId),
+                eq(HttpMethod.DELETE), any(), eq(Void.class));
+        inOrder.verify(mockRest).exchange(eq("http://test-wallbox:8090/api/internal/users/" + userId),
+                eq(HttpMethod.DELETE), any(), eq(Void.class));
         inOrder.verify(userRepository).delete(testUser);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<HttpEntity<Map<String, Object>>> entity = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(mockRest).exchange(
-                contains("/api/internal/users/" + userId),
-                eq(HttpMethod.DELETE), entity.capture(), eq(Void.class));
+        verify(mockRest).exchange(contains("test-connectors"), eq(HttpMethod.DELETE), entity.capture(), eq(Void.class));
         assertEquals(List.of(carId), entity.getValue().getBody().get("carIds"));
         assertEquals("test-token", entity.getValue().getHeaders().getFirst("X-Internal-Token"));
     }
@@ -278,16 +281,32 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteAccount_shouldSucceedEvenIfConnectorsCallFails() {
+    void deleteAccount_shouldAbortAndKeepUserWhenConnectorPurgeFails() {
         RestTemplate mockRest = installMockRestTemplate();
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
-        when(mockRest.exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class)))
+        when(mockRest.exchange(contains("test-connectors"), any(HttpMethod.class), any(), eq(Void.class)))
                 .thenThrow(new RuntimeException("connectors unreachable"));
 
-        userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword"));
+        assertThrows(IllegalStateException.class,
+                () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
 
-        verify(userRepository).delete(testUser);
+        verify(userRepository, never()).delete(any());
+        verify(mockRest, never()).exchange(contains("test-wallbox"), any(HttpMethod.class), any(), eq(Void.class));
+    }
+
+    @Test
+    void deleteAccount_shouldAbortAndKeepUserWhenWallboxPurgeFails() {
+        RestTemplate mockRest = installMockRestTemplate();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
+        when(mockRest.exchange(contains("test-wallbox"), any(HttpMethod.class), any(), eq(Void.class)))
+                .thenThrow(new RuntimeException("wallbox unreachable"));
+
+        assertThrows(IllegalStateException.class,
+                () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
+
+        verify(userRepository, never()).delete(any());
     }
 
     private RestTemplate installMockRestTemplate() {
@@ -296,6 +315,7 @@ class UserServiceTest {
                 .thenReturn(ResponseEntity.noContent().build());
         ReflectionTestUtils.setField(userService, "restTemplate", mockRest);
         ReflectionTestUtils.setField(userService, "connectorsBaseUrl", "http://test-connectors:8081");
+        ReflectionTestUtils.setField(userService, "wallboxBaseUrl", "http://test-wallbox:8090");
         ReflectionTestUtils.setField(userService, "internalToken", "test-token");
         return mockRest;
     }

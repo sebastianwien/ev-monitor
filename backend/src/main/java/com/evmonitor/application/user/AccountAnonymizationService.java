@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
 import java.util.Comparator;
@@ -41,9 +43,22 @@ public class AccountAnonymizationService {
     @Transactional
     public List<UUID> anonymizeCarsOf(UUID userId) {
         List<Car> cars = carRepository.findAllByUserId(userId);
+        List<UUID> carsWithImage = cars.stream().filter(c -> c.getImagePath() != null).map(Car::getId).toList();
         for (Car car : cars) {
-            if (car.getImagePath() != null) carImageService.deleteImage(car.getId());
             carRepository.save(car.anonymize());
+        }
+        // Dateien erst nach erfolgreichem Commit löschen - bei Rollback bleibt das Auto samt Bild bestehen.
+        if (!carsWithImage.isEmpty()) {
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        carsWithImage.forEach(carImageService::deleteImage);
+                    }
+                });
+            } else {
+                carsWithImage.forEach(carImageService::deleteImage);
+            }
         }
         List<UUID> carIds = cars.stream().map(Car::getId).toList();
         if (carIds.isEmpty()) return carIds;

@@ -189,6 +189,10 @@ internal:
 connectors:
   base-url: ${CONNECTORS_BASE_URL:http://connectors-service:8081}
 
+# Wallbox-Service (DSGVO-Purge bei Kontolöschung)
+wallbox:
+  base-url: ${WALLBOX_BASE_URL:http://wallbox-service:8090}
+
 # Tankerkoenig Fuel Price API (kostenloser Key auf creativecommons.tankerkoenig.de)
 tankerkoenig:
   api-key: ${TANKERKOENIG_API_KEY:}
