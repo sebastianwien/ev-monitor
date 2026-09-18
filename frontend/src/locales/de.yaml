@@ -3271,7 +3271,7 @@ logwizard:
 
 eu_data_act_sync:
   title: "Automatisch synchronisieren (VW EU Data Act)"
-  desc: "Melde dich einmal mit deiner VW-, Škoda-, Audi-, SEAT- oder CUPRA-ID an - danach holt ev-monitor deine Ladevorgänge alle 15 Minuten aus dem EU-Data-Act-Portal."
+  desc: "Melde dich einmal mit deiner VW-, Škoda-, Audi-, SEAT- oder CUPRA-ID an - danach holt ev-monitor deine Ladevorgänge regelmäßig aus dem EU-Data-Act-Portal."
   teaser: "Automatische Synchronisation aus dem VW-Portal ist Teil von AutoSync. Den manuellen Upload unten kannst du jederzeit nutzen."
   label_brand: "Marke"
   label_email: "E-Mail deiner Marken-ID"
@@ -3312,7 +3312,7 @@ eu_data_act_sync:
   prompt_later_hint: "Du findest die Einrichtung jederzeit unter Importe."
   explainer_title: "Was der EU Data Act für dein Fahrzeug bedeutet"
   explainer_intro: "Seit September 2025 muss VW dir die Daten deines Fahrzeugs herausgeben - auch an Dienste, die du selbst bestimmst. ev-monitor holt deine Ladevorgänge damit direkt aus dem VW-Portal, ohne Smartcar und ohne Datei-Upload."
-  explainer_item1: "Ladevorgänge automatisch alle 15 Minuten - mit kWh und Ladezustand, je nach Modell auch Ladetyp, Kilometerstand und Außentemperatur"
+  explainer_item1: "Ladevorgänge automatisch, stündlich abgeholt - mit kWh und Ladezustand, je nach Modell auch Ladetyp, Kilometerstand und Außentemperatur"
   explainer_item2: "Ladehistorie einmalig nachholen: das Portal liefert die bisherigen Ladevorgänge deines Fahrzeugs nach"
   explainer_item3: "Kein Passwort gespeichert: du meldest dich einmal an, ev-monitor behält nur die verschlüsselte Anmeldesitzung"
   explainer_item4: "Du behältst die Kontrolle: die Datenanfrage steht in deinem VW-Portal und lässt sich dort oder hier jederzeit beenden"
