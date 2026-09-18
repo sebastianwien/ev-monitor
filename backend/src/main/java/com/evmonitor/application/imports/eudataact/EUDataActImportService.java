@@ -7,6 +7,7 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.DataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.FilterInputStream;
@@ -35,6 +36,7 @@ public class EUDataActImportService {
     private final PublicApiImportService publicApiImportService;
     private final long maxUnzippedBytes;
 
+    @Autowired
     public EUDataActImportService(EUDataActJsonParser parser, CarRepository carRepository,
                                   PublicApiImportService publicApiImportService) {
         this(parser, carRepository, publicApiImportService, DEFAULT_MAX_UNZIPPED_BYTES);
