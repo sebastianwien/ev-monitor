@@ -44,6 +44,8 @@ function sourceLabel(log: any): string {
   if (ds === 'WALLBOX_GOE') return 'Wallbox (go-e)'
   if (ds === 'WALLBOX_OCPP') return 'Wallbox (OCPP)'
   if (ds === 'SMARTCAR_LIVE') return 'AutoSync (Smartcar)'
+  if (ds === 'EU_DATA_ACT_SYNC') return 'AutoSync (VW Data Act)'
+  if (ds === 'EU_DATA_ACT_IMPORT') return 'VW Data Act (Upload)'
   if (ds === 'TESLA_LIVE' || ds === 'TESLA_FLEET_IMPORT') return 'Tesla'
   if (ds === 'USER_LOGGED') return 'Manuell'
   return ds

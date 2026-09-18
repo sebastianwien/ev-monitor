@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.imports.eudataact.EUDataActImportService;
 import com.evmonitor.application.imports.eudataact.EudaNotificationService;
 import com.evmonitor.application.publicapi.ImportApiResult;
+import com.evmonitor.domain.DataSource;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +52,7 @@ class InternalEuDataActControllerTest {
 
     @Test
     void import_forwardsToImportService_andReturnsCounts() throws Exception {
-        when(importService.importData(eq(userId), eq(carId), any(InputStreamSource.class), eq("20260918093000_VIN.zip")))
+        when(importService.importData(eq(userId), eq(carId), any(InputStreamSource.class), eq("20260918093000_VIN.zip"), eq(DataSource.EU_DATA_ACT_SYNC)))
                 .thenReturn(ImportApiResult.withoutIds(2, 1, 0));
 
         mockMvc.perform(multipart("/api/internal/eu-data-act/import")
@@ -70,7 +71,7 @@ class InternalEuDataActControllerTest {
                         .part(new org.springframework.mock.web.MockPart("userId", userId.toString().getBytes()))
                         .part(new org.springframework.mock.web.MockPart("carId", carId.toString().getBytes())))
                 .andExpect(status().isForbidden());
-        verify(importService, never()).importData(any(), any(), any(InputStreamSource.class), any());
+        verify(importService, never()).importData(any(), any(), any(InputStreamSource.class), any(), any());
     }
 
     @Test

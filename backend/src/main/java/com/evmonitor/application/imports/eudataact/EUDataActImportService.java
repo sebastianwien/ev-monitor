@@ -60,6 +60,12 @@ public class EUDataActImportService {
 
     public ImportApiResult importData(UUID userId, UUID carId, InputStreamSource file, String originalFilename)
             throws IOException {
+        return importData(userId, carId, file, originalFilename, DataSource.EU_DATA_ACT_IMPORT);
+    }
+
+    /** {@code dataSource} unterscheidet manuellen Upload (IMPORT) und AutoSync (SYNC) - gleicher Parser. */
+    public ImportApiResult importData(UUID userId, UUID carId, InputStreamSource file, String originalFilename,
+                                      DataSource dataSource) throws IOException {
         Car car = requireOwnedCar(userId, carId);
         EUDataActParseResult parsed = parse(file, originalFilename, car);
 
@@ -71,7 +77,7 @@ public class EUDataActImportService {
         return publicApiImportService.importSessions(
                 userId,
                 new PublicApiSessionRequest(carId, entries),
-                DataSource.EU_DATA_ACT_IMPORT
+                dataSource
         );
     }
 

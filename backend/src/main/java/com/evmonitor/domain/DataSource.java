@@ -16,7 +16,8 @@ public enum DataSource {
     TESSIE,              // Tessie fleet import
     XPENG_IMPORT,        // XPeng Phase 1: EU-Data-Act XLSX, manual user upload
     XPENG_LIVE,          // XPeng Phase 2+: automated mail-poll / future XPeng API (AutoSync Live tier)
-    EU_DATA_ACT_IMPORT;  // VW Group EU Data Act portal: manual JSON/ZIP upload (VW, Audi, Skoda, SEAT, CUPRA, Porsche)
+    EU_DATA_ACT_IMPORT,  // VW Group EU Data Act portal: manual JSON/ZIP upload (VW, Audi, Skoda, SEAT, CUPRA, Porsche)
+    EU_DATA_ACT_SYNC;    // VW Group EU Data Act portal: AutoSync via ev-monitor-connectors (same parser, polled every 15 min)
 
     public boolean includeInStatistics() {
         return this == USER_LOGGED || this == SPRITMONITOR_IMPORT
@@ -26,7 +27,7 @@ public enum DataSource {
                 || this == TRONITY_IMPORT || this == SMARTCAR_LIVE
                 || this == VWGROUP_LIVE || this == TESSIE
                 || this == XPENG_IMPORT || this == XPENG_LIVE
-                || this == EU_DATA_ACT_IMPORT;
+                || this == EU_DATA_ACT_IMPORT || this == EU_DATA_ACT_SYNC;
     }
 
     /**
@@ -57,7 +58,7 @@ public enum DataSource {
     /** Returns the measurement point for energy reported by this data source. */
     public EnergyMeasurementType measurementType() {
         return switch (this) {
-            case TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE, TESSIE, XPENG_IMPORT, XPENG_LIVE, EU_DATA_ACT_IMPORT -> EnergyMeasurementType.AT_VEHICLE;
+            case TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE, TESSIE, XPENG_IMPORT, XPENG_LIVE, EU_DATA_ACT_IMPORT, EU_DATA_ACT_SYNC -> EnergyMeasurementType.AT_VEHICLE;
             default -> EnergyMeasurementType.AT_CHARGER;
         };
     }

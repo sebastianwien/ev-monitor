@@ -413,6 +413,7 @@ function sourceInfo(ds: string): { label: string; icon: Component; classes: stri
     case 'WALLBOX_OCPP':
     case 'WALLBOX_GOE':         return { label: 'Wallbox',      icon: HomeIcon,          classes: 'bg-blue-900/40 text-blue-300 border border-blue-700' }
     case 'SMARTCAR_LIVE':       return { label: 'AutoSync',     icon: BoltIcon,          classes: 'bg-indigo-900/40 text-indigo-300 border border-indigo-700' }
+    case 'EU_DATA_ACT_SYNC':    return { label: 'AutoSync',     icon: BoltIcon,          classes: 'bg-indigo-900/40 text-indigo-300 border border-indigo-700' }
     case 'PUBLIC_API':          return { label: 'API',          icon: CommandLineIcon,   classes: 'bg-amber-900/40 text-amber-300 border border-amber-700' }
     default:                    return null
   }

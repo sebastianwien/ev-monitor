@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.imports.eudataact.EUDataActImportService;
 import com.evmonitor.application.imports.eudataact.EudaNotificationService;
 import com.evmonitor.application.publicapi.ImportApiResult;
+import com.evmonitor.domain.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -40,7 +41,7 @@ public class InternalEuDataActController {
                                                         @RequestPart("carId") String carId,
                                                         @RequestPart("file") MultipartFile file) throws IOException {
         ImportApiResult result = importService.importData(UUID.fromString(userId), UUID.fromString(carId),
-                file, file.getOriginalFilename());
+                file, file.getOriginalFilename(), DataSource.EU_DATA_ACT_SYNC);
         return ResponseEntity.ok(new ImportResponse(result.imported(), result.skipped(), result.errors()));
     }
 
