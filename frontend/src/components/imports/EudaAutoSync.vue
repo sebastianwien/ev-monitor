@@ -11,15 +11,18 @@ import euDataActSyncService, {
 } from '../../api/euDataActSyncService'
 import type { Car } from '../../api/carService'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
+import EudaExplainer from './EudaExplainer.vue'
 
 /**
  * VW EU-Data-Act-AutoSync: Nutzer meldet sich einmal mit seiner Marken-ID an, danach holt
  * ev-monitor die Ladevorgaenge alle 15 Minuten aus dem Portal. Das Passwort wird nur fuer die
  * Anmeldung uebertragen und nicht gespeichert - das sagt die Karte auch so.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   cars: Car[]
-}>()
+  /** Im Modal nach dem Anlegen eingebettet: dort rahmt das Modal, die Karte selbst bleibt ohne Rahmen. */
+  embedded?: boolean
+}>(), { embedded: false })
 
 const { t, locale } = useI18n()
 
@@ -133,8 +136,8 @@ onMounted(load)
 <template>
   <!-- Die Marken-Vorauswahl trifft die Import-Seite; hier entscheidet nur noch die Berechtigung
        (Abo oder launch-verankertes Trial), welcher Zustand zu sehen ist. -->
-  <div class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
-    <div class="flex items-start gap-3 mb-3">
+  <div :class="embedded ? '' : 'border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5'">
+    <div v-if="!embedded" class="flex items-start gap-3 mb-3">
       <BoltIcon class="h-6 w-6 shrink-0 text-indigo-500" aria-hidden="true" />
       <div class="min-w-0">
         <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base md:text-lg">{{ t('eu_data_act_sync.title') }}</h3>
@@ -142,6 +145,9 @@ onMounted(load)
       </div>
       <span class="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Beta</span>
     </div>
+
+      <!-- Erklaerung nur, solange noch keine Verbindung steht - danach ist sie Ballast -->
+      <EudaExplainer v-if="!loading && !connection" class="mb-4 pb-4 border-b-2 border-gray-200 dark:border-gray-700" />
 
       <CarSelectDropdown v-if="cars.length > 1" v-model="selectedCarId" :cars="cars" class="mb-3" />
 

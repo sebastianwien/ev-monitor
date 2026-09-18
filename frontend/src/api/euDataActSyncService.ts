@@ -21,7 +21,7 @@ const EUDA_BRAND_BY_CAR_BRAND: Record<string, EudaBrand> = {
 }
 
 export function eudaBrandOf(carBrand: string): EudaBrand | null {
-  return EUDA_BRAND_BY_CAR_BRAND[carBrand] ?? null
+  return EUDA_BRAND_BY_CAR_BRAND[carBrand?.toUpperCase() ?? ""] ?? null
 }
 
 export function isEudaBrand(carBrand: string): boolean {

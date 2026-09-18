@@ -14,11 +14,13 @@ import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
 import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
+import EudaAutoSyncPrompt from '../components/car/EudaAutoSyncPrompt.vue'
 import type { Car } from '../api/carService'
 import teslaFleetService from '../api/teslaFleetService'
 import { analytics } from '../services/analytics'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { isTeslaCar } from '../composables/useImportGating'
+import { isEudaBrand } from '../api/euDataActSyncService'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
@@ -74,11 +76,14 @@ const submitting = ref(false)
 const teslaPromptCar = ref<Car | null>(null)
 const teslaJustConnected = ref(false)
 const teslaCallbackError = ref<string | null>(null)
+// Frisch angelegtes VW-Group-Fahrzeug: EU-Data-Act-AutoSync erklaeren und direkt anbieten.
+const eudaPromptCar = ref<Car | null>(null)
 const doSubmitForm = async () => {
   submitting.value = true
   try {
     const created = await submitForm(doFetchCars)
     if (isTeslaCar(created)) teslaPromptCar.value = created
+    else if (created && isEudaBrand(created.brand)) eudaPromptCar.value = created
   } finally { submitting.value = false }
 }
 const doDeleteCar = (id: string) => deleteCar(id, doFetchCars)
@@ -922,6 +927,9 @@ const filteredCapacities = computed(() => {
       :callback-error="teslaCallbackError"
       @close="closeTeslaPrompt"
     />
+
+    <!-- VW-Group-Fahrzeug angelegt: EU-Data-Act-AutoSync erklaeren und verbinden lassen -->
+    <EudaAutoSyncPrompt v-if="eudaPromptCar" :car="eudaPromptCar" @close="eudaPromptCar = null" />
 
     <!-- Toast Notification (outside Transition) - Teleport wie das Modal, sonst richtet
          sich der Toast am Pager-Track aus und liegt auf Mobile ausserhalb des Bildes. -->

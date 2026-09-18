@@ -40,6 +40,18 @@ describe('useImportGating - aktives Auto', () => {
         const g = useImportGating(ref([]))
         expect(g.activeCarIsTesla.value).toBe(false)
         expect(g.activeCarIsXpeng.value).toBe(false)
+        expect(g.activeCarIsEudaBrand.value).toBe(false)
+    })
+
+    it('erkennt ein aktives VW-Group-Auto (EU-Data-Act-Tab soll offen starten)', () => {
+        const g = useImportGating(ref([tesla({ isPrimary: false }), buildCar({ id: 'skoda', brand: 'SKODA', isPrimary: true })]))
+        expect(g.activeCarIsEudaBrand.value).toBe(true)
+        expect(g.activeCarIsTesla.value).toBe(false)
+    })
+
+    it('zaehlt einen VW-Group-Zweitwagen nicht, wenn ein anderes Auto aktiv ist', () => {
+        const g = useImportGating(ref([tesla({ isPrimary: true }), vw({ isPrimary: false })]))
+        expect(g.activeCarIsEudaBrand.value).toBe(false)
     })
 })
 

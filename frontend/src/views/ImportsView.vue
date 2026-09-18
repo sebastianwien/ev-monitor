@@ -44,6 +44,7 @@ const liveUpgradeError = ref('')
 // Sichtbarkeit aller Import-Sektionen haengt am aktiven Auto - siehe useImportGating.
 const {
   activeCarIsTesla,
+  activeCarIsEudaBrand,
   showTeslaSection,
   showAutoSyncSection,
   showSmartcarPitch,
@@ -101,6 +102,9 @@ onMounted(async () => {
     activeTab.value = 'smartcar'
   } else if (activeCarIsTesla.value) {
     activeTab.value = 'tesla'
+  } else if (activeCarIsEudaBrand.value) {
+    // VW-Group-Fahrer landen direkt im EU-Data-Act-Tab - AutoSync ist fuer sie der Hauptweg.
+    activeTab.value = 'eu_data_act'
   } else if (authStore.isPremium) {
     activeTab.value = 'smartcar'
   }
