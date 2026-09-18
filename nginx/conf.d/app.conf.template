@@ -208,6 +208,31 @@ server {
         proxy_read_timeout 120s;
     }
 
+    # VW EU-Data-Act-AutoSync: das Verbinden (einziger Schritt mit Passwort) liegt im Core
+    # (oeffentliches Repo, EudaLoginClient). Regex-Locations gewinnen gegen Prefix-Locations,
+    # deshalb greift diese Regel vor /api/eu-data-act/ unabhaengig von der Reihenfolge.
+    location ~ ^/api/eu-data-act/cars/[^/]+/connect$ {
+        proxy_pass http://backend:8080;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_read_timeout 120s;
+    }
+
+    # Status, Trennen, Historie, Smartcar-Reaktivierung: Connectors-Service
+    location /api/eu-data-act/ {
+        proxy_pass http://connectors-service:8081/api/eu-data-act/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
     location /api/tesla/ {
         proxy_pass http://connectors-service:8081/api/tesla/;
         proxy_set_header Host $http_host;

@@ -1,0 +1,74 @@
+
+
+<!DOCTYPE html>
+    <html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport"
+          content="width=device-width, height=device-height, initial-scale=1"/>
+    <meta name="identitykit" content="loginAuthenticate"/>
+        <meta name="robots" content="nofollow"/>
+
+        <title>Log in – Enter password</title>
+
+    <link href="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/styles/skoda-theme.css"
+          rel="stylesheet"/>
+    <link rel="apple-touch-icon" sizes="180x180"
+          href="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/favicons/skoda/apple-touch-icon.png"/>
+    <link rel="icon" type="image/png" sizes="32x32"
+          href="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/favicons/skoda/favicon-32x32.png"/>
+    <link rel="icon" type="image/png" sizes="16x16"
+          href="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/favicons/skoda/favicon-16x16.png"/>
+<script src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/jquery-3.5.0.min.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/PasswordRevealer.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/InputFieldSessionPersistence.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/OnDocumentLoaded.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/TimeElapsedCounter.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/consent.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/InputFieldsButtonEnabler.js"></script>
+
+<script type="application/javascript">
+//<![CDATA[
+    new OnDocumentLoaded(document, callback);
+
+    function callback() {
+        new PasswordRevealer(document, document.querySelector('[type="password"]'), '#input_password_revealer');
+        new InputFieldSessionPersistence(document.getElementById("input_email"), window);
+    }
+
+//]]>
+</script>
+    <script>
+        window._IDK = {
+            templateModel: {"clientLegalEntityModel":{"clientId":"3ea88bf9-1d4e-4a68-b3ad-4098c1f1d246@apps_vw-dilab_com","clientAppName":"GIS Data Hub","clientAppDisplayName":"My Data Portal","legalEntityInfo":{"name":"Škoda","shortName":"SKODA","productName":"Škoda ID","theme":"skoda","defaultLanguage":"cs","termAndConditionsType":"DEFAULT","legalProperties":{"revokeDataContact":"infoline@skoda-auto.cz","imprintText":"IMPRINT","countryOfJurisdiction":"CZ"}},"informalLanguage":false,"legalEntityCode":"skoda","imprintTextKey":"imprint.link.text"},"template":"loginAuthenticate","hmac":"FIXTURE_HMAC","useClientRendering":true,"titleKey":"title.login.password","title":null,"emailPasswordForm":{"@class":"com.volkswagen.identitykit.signin.domain.model.dto.EmailPasswordForm","email":"user@example.com","password":null},"error":null,"relayState":"FIXTURE_RELAYSTATE","nextButtonDisabled":false,"enableNextButtonAfterSeconds":0,"postAction":"login/authenticate","identifierUrl":"login/identifier"},
+            disabledFeatures: {
+                isRTLEnabled: false,
+            },
+            currentLocale: 'en',
+            csrf_parameterName: '_csrf',
+            csrf_token: 'FIXTURE_CSRF',
+            userSession: {
+                userId: '',
+                countryOfResidence: ''
+            },
+            baseUrl: 'https://identity.vwgroup.io',
+            consentBaseUrl: 'http://consentapi-service.idk-peu.svc.cluster.local:8080',
+            cancelContractUrl: '',
+            withdrawContractUrl: '',
+            footerDocuments: ["imprint","termsOfUse","dataPrivacy","cookiePolicy","europeanAccessibilityAct"]
+        }
+    </script>
+</head>
+<body>
+
+    <div id="idk-react-loginAuthenticate"></div>
+    <div id="idk-react-app"></div>
+<script type="text/javascript" src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/signIn.bundle.js"></script>
+</body>
+</html>

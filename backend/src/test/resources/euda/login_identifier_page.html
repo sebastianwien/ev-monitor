@@ -1,0 +1,178 @@
+
+
+<!DOCTYPE html>
+    <html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport"
+          content="width=device-width, height=device-height, initial-scale=1"/>
+    <meta name="identitykit" content="loginIdentifier"/>
+
+        <title>Welcome – Enter email address</title>
+
+    <link href="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/styles/skoda-theme.css"
+          rel="stylesheet"/>
+    <link rel="apple-touch-icon" sizes="180x180"
+          href="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/favicons/skoda/apple-touch-icon.png"/>
+    <link rel="icon" type="image/png" sizes="32x32"
+          href="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/favicons/skoda/favicon-32x32.png"/>
+    <link rel="icon" type="image/png" sizes="16x16"
+          href="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/favicons/skoda/favicon-16x16.png"/>
+<script src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/jquery-3.5.0.min.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/PasswordRevealer.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/InputFieldSessionPersistence.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/OnDocumentLoaded.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/TimeElapsedCounter.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/consent.js"></script>
+<script type="application/javascript"
+        src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/InputFieldsButtonEnabler.js"></script>
+
+<script type="application/javascript">
+//<![CDATA[
+    new OnDocumentLoaded(document, callback);
+
+    function callback() {
+        new PasswordRevealer(document, document.querySelector('[type="password"]'), '#input_password_revealer');
+        new InputFieldSessionPersistence(document.getElementById("input_email"), window);
+    }
+
+//]]>
+</script>
+    <script>
+        window._IDK = {
+            templateModel: {"clientLegalEntityModel":{"clientId":"3ea88bf9-1d4e-4a68-b3ad-4098c1f1d246@apps_vw-dilab_com","clientAppName":"GIS Data Hub","clientAppDisplayName":"My Data Portal","legalEntityInfo":{"name":"Škoda","shortName":"SKODA","productName":"Škoda ID","theme":"skoda","defaultLanguage":"cs","termAndConditionsType":"DEFAULT","legalProperties":{"revokeDataContact":"infoline@skoda-auto.cz","imprintText":"IMPRINT","countryOfJurisdiction":"CZ"}},"informalLanguage":false,"legalEntityCode":"skoda","imprintTextKey":"imprint.link.text"},"template":"loginIdentifier","hmac":"FIXTURE_HMAC","useClientRendering":false,"titleKey":"title.login.email","title":null,"relayState":"FIXTURE_RELAYSTATE","emailPasswordForm":{"@class":"com.volkswagen.identitykit.signin.domain.model.dto.EmailPasswordForm","email":null,"password":null},"error":null},
+            disabledFeatures: {
+                isRTLEnabled: false,
+            },
+            currentLocale: 'en',
+            csrf_parameterName: '_csrf',
+            csrf_token: 'FIXTURE_CSRF',
+            userSession: {
+                userId: '',
+                countryOfResidence: ''
+            },
+            baseUrl: 'https://identity.vwgroup.io',
+            consentBaseUrl: 'http://consentapi-service.idk-peu.svc.cluster.local:8080',
+            cancelContractUrl: '',
+            withdrawContractUrl: '',
+            footerDocuments: ["imprint","termsOfUse","dataPrivacy","cookiePolicy","europeanAccessibilityAct"]
+        }
+    </script>
+</head>
+<body>
+
+
+
+    <div id="page-container-background" role="img"
+         aria-label="Skoda logo">
+    </div>
+
+    <div class="body-container">
+            <div id="header">
+                <div role="img" aria-label="Skoda logo"
+                     title="Skoda logo"></div>
+            </div>
+
+
+
+        <div class="page-container loginIdentifier-page">
+            <div class="page-content">
+                <div class="hide spacer-top"></div>
+
+
+
+                    <div id="legal-entity" class="legal-entity">
+                        <div class="legal-entity-logo" role="img"
+                             aria-label="Skoda logo"
+                             title="Skoda logo"></div>
+                            <div id="legal-entity-name" class="legal-entity-name">
+                                Škoda ID
+                            </div>
+                    </div>
+
+<form class="content" id="emailPasswordForm"
+      name="emailPasswordForm"
+      method="POST"
+      novalidate="true"
+      action="/signin-service/v1/3ea88bf9-1d4e-4a68-b3ad-4098c1f1d246@apps_vw-dilab_com/login/identifier">
+    <div id="title" class="title">
+        <div class="primary-title">Welcome</div>
+        <div class="sub-title">to My Data Portal.</div>
+    </div>
+    <input type="hidden" id="csrf" name="_csrf" value="FIXTURE_CSRF"/>
+    <input type="hidden" id="input_relayState" name="relayState" value="FIXTURE_RELAYSTATE"/>
+    <input type="hidden" id="hmac" name="hmac" value="FIXTURE_HMAC"/>
+    <div class="inputs">
+<div class="group">
+    <input
+            id="input_email"
+            data-testid="input-email"
+            name="email"
+            type="email"
+            required="true"
+            autofocus="true"
+            aria-labelledby="input-label"
+                onkeyup="this.setAttribute('input-value',this.value)"
+            
+            
+            autocomplete="email"
+    />
+    <span class="bar"></span>
+    <label id="input-label" for="input_email" aria-hidden="true">Email</label>
+    
+
+</div>
+    </div>
+    <div class="btn-group-single">
+<button
+        id="next-btn"
+        data-testid="btn-next"
+        
+        class="btn zenith-button btn-active"
+        type="submit"
+        
+>
+    Next
+</button>
+    </div>
+    <div class="link">
+        <a id="signup-link"
+           data-testid="link-signup"
+           class="zenith-link"
+           href="/signin-service/v1/3ea88bf9-1d4e-4a68-b3ad-4098c1f1d246@apps_vw-dilab_com/register/identifier?relayState=FIXTURE_RELAYSTATE">
+        Create account
+        </a>
+    </div>
+
+    <script type="application/javascript"
+            src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/javascripts/base/InputFieldsButtonEnabler.js"></script>
+    <script>
+        new OnDocumentLoaded(document, callback);
+
+        function callback() {
+            new InputFieldsButtonEnabler(document.querySelector("#input_email"), document.querySelector("#next-btn"));
+        }
+    </script>
+</form>
+
+
+                <div class="hide spacer-bottom"></div>
+
+
+
+    <div class="idk-react-footer"></div>
+            </div>
+        </div>
+
+
+
+    <div class="idk-react-footer"></div>
+    </div>
+<script type="text/javascript" src="https://identity-cdn.vwgroup.io/assets/6bc637a629d496036480836e38d5dd4598ebd5fd/signIn.bundle.js"></script>
+</body>
+</html>

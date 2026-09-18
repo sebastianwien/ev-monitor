@@ -35,6 +35,11 @@ export default defineConfig(({ mode }) => ({
                 target: 'http://localhost:8081',
                 changeOrigin: true
             },
+            // Verbinden (Passwort-Login) liegt im Core, der Rest beim Connectors-Service
+            '^/api/eu-data-act/cars/[^/]+/connect$': {
+                target: 'http://localhost:8080',
+                changeOrigin: true
+            },
             '/api/eu-data-act': {
                 target: 'http://localhost:8081',
                 changeOrigin: true

@@ -73,6 +73,12 @@ public class RateLimitService {
             .refillIntervally(120, Duration.ofMinutes(1))
             .build();
 
+    // 10 VW-ID-Logins pro Stunde und Nutzer - der EUDA-Connect darf kein Brute-Force-Proxy gegen VW sein
+    private static final Bandwidth EUDA_LOGIN_LIMIT = Bandwidth.builder()
+            .capacity(10)
+            .refillIntervally(10, Duration.ofHours(1))
+            .build();
+
     // Caffeine caches mit TTL + Größen-Limit — verhindert unbegrenztes Wachstum der Buckets.
     // expireAfterAccess: Bucket wird nach Inaktivität entfernt. maximumSize: Hard Cap gegen DoS.
     private final Cache<String, Bucket> loginBuckets = Caffeine.newBuilder()
@@ -88,6 +94,8 @@ public class RateLimitService {
     private final Cache<String, Bucket> demoRequestBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.MINUTES).maximumSize(10_000).build();
     private final Cache<String, Bucket> cpoLookupBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> eudaLoginBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
 
     /**
@@ -185,6 +193,22 @@ public class RateLimitService {
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for CPO lookup: {}", key);
+        }
+        return allowed;
+    }
+
+    /**
+     * VW-ID-Login fuer den EU-Data-Act-AutoSync, Schluessel ist die User-ID.
+     *
+     * @return true if the request may proceed, false if rate limit exceeded
+     */
+    public boolean tryConsumeEudaLogin(String userId) {
+        if (!enabled) return true;
+        boolean allowed = eudaLoginBuckets
+                .get(userId, k -> Bucket.builder().addLimit(EUDA_LOGIN_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for EUDA login: userId={}", userId);
         }
         return allowed;
     }

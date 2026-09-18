@@ -49,6 +49,20 @@ public class RestTemplateConfig {
         return new RestTemplate(factory);
     }
 
+    /**
+     * Uebergabe der VW-ID-Cookies an den Connectors-Service: der erneuert dabei die Portal-Session
+     * und liest die VINs, das sind mehrere Roundtrips zu VW - deshalb ein langer Read-Timeout.
+     */
+    @Bean("eudaHandoverRestTemplate")
+    public RestTemplate eudaHandoverRestTemplate() {
+        HttpClient httpClient = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(3))
+                .build();
+        JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
+        factory.setReadTimeout(Duration.ofSeconds(90));
+        return new RestTemplate(factory);
+    }
+
     @Bean("spritMonitorRestTemplate")
     public RestTemplate spritMonitorRestTemplate(
         RestTemplateBuilder builder,
