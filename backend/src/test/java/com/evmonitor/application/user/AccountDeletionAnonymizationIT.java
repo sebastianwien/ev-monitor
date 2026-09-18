@@ -51,7 +51,6 @@ class AccountDeletionAnonymizationIT {
         registry.add("spring.flyway.enabled", () -> "true");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-        registry.add("spring.task.scheduling.pool.size", () -> "0");
     }
 
     @Autowired AccountAnonymizationService anonymizationService;
