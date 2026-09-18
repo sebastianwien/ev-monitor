@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import euDataActSyncService, {
+  eudaBrandOf,
   eudaErrorCode,
   type EudaBrand,
   type EudaConnectionStatus,
@@ -37,10 +38,9 @@ const error = ref<string | null>(null)
 const connections = ref<EudaConnectionStatus[]>([])
 
 const selectedCarId = ref(props.cars.length === 1 ? props.cars[0].id : '')
-const BRAND_BY_CAR: Record<string, EudaBrand> = { VW: 'volkswagen', VOLKSWAGEN: 'volkswagen', SKODA: 'skoda', AUDI: 'audi', SEAT: 'seat', CUPRA: 'cupra' }
 function brandOfCar(carId: string): EudaBrand {
   const car = props.cars.find(c => c.id === carId)
-  return (car && BRAND_BY_CAR[car.brand]) || 'volkswagen'
+  return (car && eudaBrandOf(car.brand)) || 'volkswagen'
 }
 const brand = ref<EudaBrand>(brandOfCar(selectedCarId.value))
 watch(selectedCarId, id => { brand.value = brandOfCar(id) })

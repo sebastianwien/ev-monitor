@@ -13,14 +13,17 @@ const statusActive = (carId: string) => ({
   status: 'ACTIVE', lastSuccessAt: null, historyImportedAt: null, lastError: null,
 });
 
-/** Liest die echte Fahrzeug-ID des Testnutzers mit, ohne die Antwort zu veraendern. */
-async function captureCarId(page: Page): Promise<{ value: string }> {
+/**
+ * Macht die Fahrzeuge des Testnutzers zu Skodas (die Karte gibt es nur fuer VW-Group-Marken)
+ * und liest die echte Fahrzeug-ID mit.
+ */
+async function useSkodaCars(page: Page): Promise<{ value: string }> {
   const captured = { value: '' };
   await page.route('**/api/cars', async route => {
     const response = await route.fetch();
-    const cars = await response.json();
-    if (Array.isArray(cars) && cars.length > 0) captured.value = cars[0].id;
-    await route.fulfill({ response });
+    const cars = (await response.json() as { id: string; brand: string }[]).map(c => ({ ...c, brand: 'SKODA' }));
+    if (cars.length > 0) captured.value = cars[0].id;
+    await route.fulfill({ response, body: JSON.stringify(cars) });
   });
   return captured;
 }
@@ -65,8 +68,23 @@ test.describe('EU Data Act AutoSync', () => {
     await expect(page.getByText('Export-Datei (.json oder .zip)')).toBeVisible();
   });
 
+  test('Ohne VW-Group-Fahrzeug gibt es keine AutoSync-Karte, auch fuer Premium', async ({ page }) => {
+    await mockPremium(page, true);
+    await page.route('**/api/cars', async route => {
+      const response = await route.fetch();
+      const cars = (await response.json() as { brand: string }[]).map(c => ({ ...c, brand: 'TESLA' }));
+      await route.fulfill({ response, body: JSON.stringify(cars) });
+    });
+    await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+    await openEudaTab(page);
+
+    await expect(page.getByText('Export-Datei (.json oder .zip)')).toBeVisible();
+    await expect(page.getByText('Automatisch synchronisieren (VW EU Data Act)')).toHaveCount(0);
+  });
+
   test('Verbinden: Passwort geht genau einmal raus, danach Status-Karte', async ({ page }) => {
     await mockPremium(page, true);
+    await useSkodaCars(page);
     let statusCalls = 0;
     await page.route('**/api/eu-data-act/status', route => {
       statusCalls++;
@@ -101,6 +119,7 @@ test.describe('EU Data Act AutoSync', () => {
 
   test('Falsches Passwort zeigt den passenden Fehler, Formular bleibt', async ({ page }) => {
     await mockPremium(page, true);
+    await useSkodaCars(page);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     // 422, nicht 401 - ein 401 wuerde der Axios-Interceptor als abgelaufene Sitzung deuten
     await page.route('**/api/eu-data-act/cars/*/connect', route => route.fulfill({
@@ -119,7 +138,7 @@ test.describe('EU Data Act AutoSync', () => {
 
   test('Bestehende Verbindung: Status, Historie anfordern, Trennen', async ({ page }) => {
     await mockPremium(page, true);
-    const carId = await captureCarId(page);
+    const carId = await useSkodaCars(page);
     let connected = true;
     await page.route('**/api/eu-data-act/status', route => route.fulfill({
       status: 200, contentType: 'application/json', body: JSON.stringify(connected ? [statusActive(carId.value)] : []),

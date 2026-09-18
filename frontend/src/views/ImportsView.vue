@@ -16,6 +16,7 @@ const EUDataActImport = defineAsyncComponent(() => import('../components/imports
 const EudaAutoSync = defineAsyncComponent(() => import('../components/imports/EudaAutoSync.vue'))
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
+import { isEudaBrand } from '../api/euDataActSyncService'
 import { useCarStore } from '../stores/car'
 import { useImportsTab } from '../composables/useImportsTab'
 import { useImportGating } from '../composables/useImportGating'
@@ -190,6 +191,9 @@ const formatDate = (dateStr: string | null) => {
 const activeCars = computed(() =>
   Array.isArray(cars.value) ? cars.value.filter(c => c.status === 'ACTIVE') : []
 )
+
+/** AutoSync gibt es nur fuer Marken, die das VW-EU-Data-Act-Portal bedient. */
+const vwGroupCars = computed(() => activeCars.value.filter(c => isEudaBrand(c.brand)))
 
 const autoSyncActiveCarLabel = ref<string | null>(null)
 const teslaConnectedLabel = ref<string | null>(null)
@@ -581,7 +585,7 @@ const teslaConnectedLabel = ref<string | null>(null)
           <Transition name="accordion">
             <div v-if="activeTab === 'eu_data_act'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
               <!-- AutoSync zuerst (der bessere Weg), der manuelle Upload bleibt fuer alle darunter -->
-              <EudaAutoSync :cars="activeCars" :is-premium="subscriptionIsPremium" />
+              <EudaAutoSync v-if="vwGroupCars.length > 0" :cars="vwGroupCars" :is-premium="subscriptionIsPremium" />
               <EUDataActImport :cars="activeCars" @close="toggle('eu_data_act')" />
             </div>
           </Transition>

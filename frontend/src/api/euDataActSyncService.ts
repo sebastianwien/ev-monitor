@@ -14,6 +14,19 @@ export interface EudaConnectionStatus {
 
 export type EudaBrand = 'volkswagen' | 'skoda' | 'audi' | 'seat' | 'cupra'
 
+/** CarBrand-Enum (Backend) -> Portal-Marke. Nur diese Marken bedient das VW-EU-Data-Act-Portal. */
+const EUDA_BRAND_BY_CAR_BRAND: Record<string, EudaBrand> = {
+  VW: 'volkswagen', VOLKSWAGEN: 'volkswagen', SKODA: 'skoda', AUDI: 'audi', SEAT: 'seat', CUPRA: 'cupra',
+}
+
+export function eudaBrandOf(carBrand: string): EudaBrand | null {
+  return EUDA_BRAND_BY_CAR_BRAND[carBrand] ?? null
+}
+
+export function isEudaBrand(carBrand: string): boolean {
+  return eudaBrandOf(carBrand) !== null
+}
+
 /** Fehlercodes des Connectors - das Frontend mappt sie auf i18n-Texte. */
 export type EudaErrorCode =
   | 'INVALID_CREDENTIALS'
