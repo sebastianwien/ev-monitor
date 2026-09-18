@@ -40,7 +40,7 @@ public class EUDataActImportController {
             validateUpload(file);
             EUDataActPreviewResult result = importService.preview(
                     principal.getUser().getId(), carId,
-                    file.getInputStream(), file.getOriginalFilename());
+                    file, file.getOriginalFilename());
             return ResponseEntity.ok(result);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
@@ -63,7 +63,7 @@ public class EUDataActImportController {
             validateUpload(file);
             ImportApiResult result = importService.importData(
                     principal.getUser().getId(), carId,
-                    file.getInputStream(), file.getOriginalFilename());
+                    file, file.getOriginalFilename());
             return ResponseEntity.ok(result);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));

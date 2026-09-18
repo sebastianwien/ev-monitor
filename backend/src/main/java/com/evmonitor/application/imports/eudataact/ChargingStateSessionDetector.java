@@ -23,6 +23,19 @@ class ChargingStateSessionDetector implements SessionDetector {
     private static final String F_TYPE = "chargeType";
     private static final String F_TEMP = "temperatureOutsideVehicle";
 
+    private static final Set<String> FIELDS =
+            Set.of(F_STATE, F_POWER, F_SOC, F_MILEAGE, F_PLUG, F_TYPE, F_TEMP);
+
+    @Override
+    public boolean mightSupport(Set<String> fieldNames) {
+        return fieldNames.contains(F_STATE);
+    }
+
+    @Override
+    public boolean accepts(String field) {
+        return FIELDS.contains(field);
+    }
+
     @Override
     public boolean supports(EntryIndex index) {
         return index.has(F_STATE);

@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -43,6 +44,19 @@ class SocCurveSessionDetector implements SessionDetector {
     private static final Duration MAX_GAP = Duration.ofMinutes(45);
     /** Darunter ist es Messrauschen oder Rekuperation, kein Ladevorgang. */
     private static final double MIN_RISE_PCT = 2.0;
+
+    /** Diese Variante kennt nur rohe Signal-IDs - sprechende Feldnamen sind hier nie das Signal. */
+    private static final Pattern SIGNAL_ID = Pattern.compile("\\d+");
+
+    @Override
+    public boolean mightSupport(Set<String> fieldNames) {
+        return fieldNames.stream().anyMatch(f -> SIGNAL_ID.matcher(f).matches());
+    }
+
+    @Override
+    public boolean accepts(String field) {
+        return SIGNAL_ID.matcher(field).matches();
+    }
 
     @Override
     public boolean supports(EntryIndex index) {

@@ -35,6 +35,10 @@ export default defineConfig(({ mode }) => ({
                 target: 'http://localhost:8081',
                 changeOrigin: true
             },
+            '/api/eu-data-act': {
+                target: 'http://localhost:8081',
+                changeOrigin: true
+            },
             // Wallbox service — must come before /api to take precedence
             '/api/wallbox': {
                 target: 'http://localhost:8090',
