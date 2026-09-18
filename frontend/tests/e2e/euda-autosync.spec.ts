@@ -53,6 +53,9 @@ async function openEudaTab(page: Page) {
   await page.goto('/imports');
   const tab = page.getByRole('button', { name: /VW Gruppe \(EU Data Act\)/ });
   await tab.waitFor();
+  // Der Default-Tab wird erst nach dem Laden der Autos gesetzt - vorher zu klicken wuerde ihn
+  // gleich wieder zuklappen.
+  await page.waitForLoadState('networkidle');
   if (!(await page.getByText(UPLOAD_LABEL).isVisible().catch(() => false))) await tab.click();
 }
 
@@ -79,14 +82,15 @@ test.describe('EU Data Act AutoSync', () => {
     await expect(page.getByText('Export-Datei (.json oder .zip)')).toBeVisible();
   });
 
-  test('Im Trial: Formular mit Hinweis auf das Ablaufdatum', async ({ page }) => {
+  test('Im Trial: Schritt 1 mit Ablaufdatum, dann Formular', async ({ page }) => {
     await mockEntitlement(page, TRIAL);
     await useSkodaCars(page);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await openEudaTab(page);
 
-    await expect(page.locator('#euda-password')).toBeVisible();
     await expect(page.getByTestId('euda-trial-hint')).toContainText('21.10.2026');
+    await page.getByTestId('euda-start').click();
+    await expect(page.locator('#euda-password')).toBeVisible();
   });
 
   test('Abgelaufene Verbindung: pausiert, Upgrade-Link, Trennen bleibt, keine Historie', async ({ page }) => {
@@ -106,18 +110,23 @@ test.describe('EU Data Act AutoSync', () => {
     await expect(page.getByTestId('euda-reactivate-smartcar')).toHaveCount(0);
   });
 
-  test('VW-Group-Auto aktiv: Tab startet aufgeklappt, mit Erklaerung vor dem Formular', async ({ page }) => {
+  test('VW-Group-Auto aktiv: Tab startet aufgeklappt in Schritt 1, Erklaerung auf Wunsch', async ({ page }) => {
     await mockEntitlement(page, TRIAL);
     await useSkodaCars(page);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await page.goto('/imports');
 
     await expect(page.getByText(UPLOAD_LABEL)).toBeVisible();
+    // Schritt 1: Entscheidung ohne Formular, Erklaerung eingeklappt
+    await expect(page.getByTestId('euda-step-decide')).toBeVisible();
+    await expect(page.getByTestId('euda-trial-hint')).toBeVisible();
+    await expect(page.locator('#euda-password')).toHaveCount(0);
+    await expect(page.getByTestId('euda-explainer')).toHaveCount(0);
+    await page.getByTestId('euda-details-toggle').click();
     const explainer = page.getByTestId('euda-explainer');
     await expect(explainer).toBeVisible();
     await expect(explainer).toContainText('Was der EU Data Act für dein Fahrzeug bedeutet');
     await expect(explainer.getByRole('link', { name: /EU-Data-Act-Portal/ })).toHaveAttribute('href', 'https://eu-data-act.drivesomethinggreater.com');
-    await expect(page.getByTestId('euda-trial-hint')).toBeVisible();
   });
 
   test('Anderes Auto aktiv: Tab startet zugeklappt', async ({ page }) => {
@@ -132,7 +141,7 @@ test.describe('EU Data Act AutoSync', () => {
     await expect(page.getByText(UPLOAD_LABEL)).toHaveCount(0);
   });
 
-  test('VW-Group-Fahrzeug anlegen: Modal erklaert EU Data Act und bietet Verbinden an', async ({ page }) => {
+  test('VW-Group-Fahrzeug anlegen: Modal fuehrt in zwei Schritten zum Verbinden', async ({ page }) => {
     await mockEntitlement(page, TRIAL);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     // Das Anlegen selbst laeuft nicht gegen die DB - die Antwort ist ein Skoda.
@@ -160,8 +169,10 @@ test.describe('EU Data Act AutoSync', () => {
 
     const modal = page.getByTestId('euda-prompt');
     await expect(modal).toBeVisible();
-    await expect(modal.getByTestId('euda-explainer')).toBeVisible();
+    await expect(modal.getByTestId('euda-step-decide')).toBeVisible();
     await expect(modal.getByTestId('euda-trial-hint')).toBeVisible();
+    await expect(modal.getByTestId('euda-start')).toBeVisible();
+    await modal.getByTestId('euda-start').click();
     await expect(modal.getByTestId('euda-connect')).toBeVisible();
     await modal.getByRole('button', { name: 'Später einrichten' }).click();
     await expect(modal).toHaveCount(0);
@@ -183,7 +194,7 @@ test.describe('EU Data Act AutoSync', () => {
 
   test('Verbinden: Passwort geht genau einmal raus, danach Status-Karte', async ({ page }) => {
     await mockEntitlement(page, PAID);
-    await useSkodaCars(page);
+    const carId = await useSkodaCars(page);
     let statusCalls = 0;
     await page.route('**/api/eu-data-act/status', route => {
       statusCalls++;
@@ -195,18 +206,30 @@ test.describe('EU Data Act AutoSync', () => {
       const carId = route.request().url().match(/cars\/([^/]+)\/connect/)![1];
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(statusActive(carId)) });
     });
+    // Fahrzeug haengt ueber Smartcar - nur dann gehoert der Dubletten-Hinweis ins Formular
+    await page.route('**/api/smartcar/status', async route => {
+      // Die Fahrzeug-ID kommt aus dem /api/cars-Aufruf, der parallel laufen kann - kurz darauf warten
+      for (let i = 0; i < 50 && !carId.value; i++) await new Promise(r => setTimeout(r, 100));
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        connected: true, carId: carId.value, vehicleName: 'Enyaq', vin: null, vehicleState: null,
+        lastCheckedAt: null, lastSoc: null, sessionActive: false, sessionStartedAt: null, sessionEnergyAdded: null,
+      }) });
+    });
     await openEudaTab(page);
+    await page.getByTestId('euda-start').click();
 
     // Transparenz-Hinweise stehen im Formular, bevor der Nutzer etwas eingibt
-    await expect(page.getByText(/nicht gespeichert/)).toBeVisible();
+    await expect(page.getByText(/nicht gespeichert/).first()).toBeVisible();
     await expect(page.getByText(/Datenanfrage an/)).toBeVisible();
-    await expect(page.getByText(/Smartcar/).first()).toBeVisible();
+    await expect(page.getByTestId('euda-smartcar-note')).toBeVisible();
+    await expect(page.getByTestId('euda-open-source')).toHaveAttribute('href', /github\.com\/sebastianwien\/ev-monitor.*EudaLoginClient\.java$/);
 
     await page.getByRole('radio', { name: 'Škoda' }).click();
     await page.locator('#euda-email').fill('Max@Example.com');
     await page.locator('#euda-password').fill('geheim-123');
     await page.getByTestId('euda-connect').click();
 
+    await expect(page.getByTestId('euda-success')).toBeVisible();
     await expect(page.getByText('Verbunden - Ladevorgänge kommen automatisch')).toBeVisible();
     await expect(page.getByText('max@example.com')).toBeVisible();
     expect(connectBody).toEqual({ brand: 'skoda', email: 'Max@Example.com', password: 'geheim-123' });
@@ -226,6 +249,7 @@ test.describe('EU Data Act AutoSync', () => {
       body: JSON.stringify({ code: 'INVALID_CREDENTIALS', message: 'E-Mail oder Passwort falsch' }),
     }));
     await openEudaTab(page);
+    await page.getByTestId('euda-start').click();
 
     await page.locator('#euda-email').fill('max@example.com');
     await page.locator('#euda-password').fill('falsch');
@@ -256,6 +280,6 @@ test.describe('EU Data Act AutoSync', () => {
     expect(historyRequested).toBe(true);
 
     await page.getByTestId('euda-disconnect').click();
-    await expect(page.locator('#euda-password')).toBeVisible();
+    await expect(page.getByTestId('euda-step-decide')).toBeVisible();
   });
 });

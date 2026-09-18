@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon, LockClosedIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon, LockClosedIcon, ChevronRightIcon, ChevronDownIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
 import euDataActSyncService, {
   eudaBrandOf,
   eudaErrorCode,
@@ -10,6 +10,7 @@ import euDataActSyncService, {
   type EudaEntitlement,
 } from '../../api/euDataActSyncService'
 import type { Car } from '../../api/carService'
+import smartcarService from '../../api/smartcarService'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import EudaExplainer from './EudaExplainer.vue'
 
@@ -17,6 +18,9 @@ import EudaExplainer from './EudaExplainer.vue'
  * VW EU-Data-Act-AutoSync: Nutzer meldet sich einmal mit seiner Marken-ID an, danach holt
  * ev-monitor die Ladevorgaenge alle 15 Minuten aus dem Portal. Das Passwort wird nur fuer die
  * Anmeldung uebertragen und nicht gespeichert - das sagt die Karte auch so.
+ *
+ * Zwei Schritte statt einer Textwand: erst die Entscheidung (drei Saetze, Trial, Details auf
+ * Wunsch), dann das Anmeldeformular. Danach zeigt die Status-Karte, dass es geklappt hat.
  */
 const props = withDefaults(defineProps<{
   cars: Car[]
@@ -25,6 +29,9 @@ const props = withDefaults(defineProps<{
 }>(), { embedded: false })
 
 const { t, locale } = useI18n()
+
+/** Die eine Klasse im oeffentlichen Repo, die das Passwort sieht - damit die Aussage "nicht gespeichert" pruefbar ist. */
+const LOGIN_SOURCE_URL = 'https://github.com/sebastianwien/ev-monitor/blob/main/backend/src/main/java/com/evmonitor/application/euda/EudaLoginClient.java'
 
 const BRANDS: { key: EudaBrand; label: string }[] = [
   { key: 'volkswagen', label: 'Volkswagen' },
@@ -39,6 +46,13 @@ const connecting = ref(false)
 const busy = ref(false)
 const error = ref<string | null>(null)
 const connections = ref<EudaConnectionStatus[]>([])
+/** Fahrzeug-ID, die aktuell ueber Smartcar haengt - nur dann ist der Dubletten-Hinweis relevant. */
+const smartcarCarId = ref<string | null>(null)
+/** decide: Entscheidung ohne Formular. connect: Marke, E-Mail, Passwort. */
+const step = ref<'decide' | 'connect'>('decide')
+const detailsOpen = ref(false)
+/** Direkt nach einem erfolgreichen Verbinden: Erfolgssatz ueber der Status-Karte. */
+const justConnected = ref(false)
 // Ohne Antwort vom Core gilt "nicht berechtigt" - das Backend ist ohnehin die Sicherheitsgrenze,
 // hier geht es nur darum, keinem ein Formular zu zeigen, das dann mit 403 endet.
 const entitlement = ref<EudaEntitlement>({ entitled: false, viaTrial: false, trialEndsAt: null })
@@ -54,16 +68,19 @@ const email = ref('')
 const password = ref('')
 
 const connection = computed(() => connections.value.find(c => c.carId === selectedCarId.value) ?? null)
+const viaSmartcar = computed(() => !!smartcarCarId.value && smartcarCarId.value === selectedCarId.value)
 
 async function load() {
   loading.value = true
   try {
-    const [status, ent] = await Promise.all([
+    const [status, ent, smartcar] = await Promise.all([
       euDataActSyncService.getStatus().catch(() => [] as EudaConnectionStatus[]),
       euDataActSyncService.getEntitlement().catch(() => entitlement.value),
+      smartcarService.getStatus().catch(() => null),
     ])
     connections.value = status
     entitlement.value = ent
+    smartcarCarId.value = smartcar?.connected ? smartcar.carId : null
     if (!selectedCarId.value && connections.value.length > 0) {
       selectedCarId.value = connections.value[0].carId
     }
@@ -98,6 +115,8 @@ async function connect() {
   try {
     const status = await euDataActSyncService.connect(selectedCarId.value, brand.value, email.value, password.value)
     connections.value = [...connections.value.filter(c => c.carId !== status.carId), status]
+    justConnected.value = true
+    step.value = 'decide'
   } catch (err) {
     error.value = describeError(err)
   } finally {
@@ -146,15 +165,15 @@ onMounted(load)
       <span class="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Beta</span>
     </div>
 
-      <!-- Erklaerung nur, solange noch keine Verbindung steht - danach ist sie Ballast -->
-      <EudaExplainer v-if="!loading && !connection" class="mb-4 pb-4 border-b-2 border-gray-200 dark:border-gray-700" />
-
       <CarSelectDropdown v-if="cars.length > 1" v-model="selectedCarId" :cars="cars" class="mb-3" />
 
       <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">…</div>
 
       <!-- Verbunden -->
-      <div v-else-if="connection" class="space-y-3">
+      <div v-else-if="connection" class="space-y-3" data-testid="euda-connected">
+        <p v-if="justConnected" class="text-sm font-medium text-emerald-800 dark:text-emerald-300 border-l-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-r-sm" data-testid="euda-success">
+          {{ t('eu_data_act_sync.connected_success') }}
+        </p>
         <div class="flex items-center gap-2">
           <CheckCircleIcon v-if="connection.status === 'ACTIVE'" class="h-5 w-5 text-emerald-500" aria-hidden="true" />
           <LockClosedIcon v-else-if="connection.status === 'EXPIRED'" class="h-5 w-5 text-amber-500" aria-hidden="true" />
@@ -251,11 +270,48 @@ onMounted(load)
         </router-link>
       </div>
 
-      <!-- Nicht verbunden: Anmeldeformular -->
-      <form v-else class="space-y-3" @submit.prevent="connect">
-        <p v-if="entitlement.viaTrial" class="text-sm text-amber-800 dark:text-amber-300" data-testid="euda-trial-hint">
+      <!-- Schritt 1: Entscheiden - drei Saetze, Trial, Details auf Wunsch -->
+      <div v-else-if="step === 'decide'" class="space-y-4" data-testid="euda-step-decide">
+        <p class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{{ t('eu_data_act_sync.decide_pitch') }}</p>
+        <p v-if="entitlement.viaTrial" class="text-sm text-gray-600 dark:text-gray-400" data-testid="euda-trial-hint">
           {{ t('eu_data_act_sync.trial_hint', { date: trialEndsAt }) }}
         </p>
+        <button
+          type="button"
+          data-testid="euda-start"
+          @click="step = 'connect'"
+          class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px]"
+        >
+          {{ t('eu_data_act_sync.btn_start') }}
+        </button>
+        <div>
+          <button
+            type="button"
+            data-testid="euda-details-toggle"
+            :aria-expanded="detailsOpen"
+            aria-controls="euda-details"
+            @click="detailsOpen = !detailsOpen"
+            class="inline-flex items-center gap-1 text-sm font-medium text-indigo-700 dark:text-indigo-300 underline min-h-[44px]"
+          >
+            {{ t('eu_data_act_sync.details_toggle') }}
+            <ChevronDownIcon class="h-4 w-4 transition-transform" :class="detailsOpen ? 'rotate-180' : ''" aria-hidden="true" />
+          </button>
+          <EudaExplainer v-if="detailsOpen" id="euda-details" class="mt-3 pt-3 border-t-2 border-gray-200 dark:border-gray-700" />
+        </div>
+      </div>
+
+      <!-- Schritt 2: Anmelden -->
+      <form v-else class="space-y-3" data-testid="euda-step-connect" @submit.prevent="connect">
+        <button
+          type="button"
+          data-testid="euda-back"
+          @click="step = 'decide'"
+          class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 min-h-[44px]"
+        >
+          <ArrowLeftIcon class="h-4 w-4" aria-hidden="true" />
+          {{ t('common.back') }}
+        </button>
+        <p class="text-sm text-gray-700 dark:text-gray-300">{{ t('eu_data_act_sync.connect_intro') }}</p>
         <div>
           <span class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('eu_data_act_sync.label_brand') }}</span>
           <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="t('eu_data_act_sync.label_brand')">
@@ -286,8 +342,15 @@ onMounted(load)
         <ul class="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-disc pl-4">
           <li>{{ t('eu_data_act_sync.privacy_password') }}</li>
           <li>{{ t('eu_data_act_sync.privacy_request') }}</li>
-          <li>{{ t('eu_data_act_sync.privacy_smartcar') }}</li>
-          <li>{{ t('eu_data_act_sync.privacy_revoke') }}</li>
+          <li v-if="viaSmartcar" data-testid="euda-smartcar-note">{{ t('eu_data_act_sync.privacy_smartcar') }}</li>
+          <li>
+            {{ t('eu_data_act_sync.privacy_open_source') }}
+            <a :href="LOGIN_SOURCE_URL" target="_blank" rel="noopener noreferrer" data-testid="euda-open-source"
+               class="inline-flex items-center gap-1 text-indigo-700 dark:text-indigo-300 underline font-medium">
+              {{ t('eu_data_act_sync.privacy_open_source_link') }}
+              <ArrowTopRightOnSquareIcon class="h-3 w-3" aria-hidden="true" />
+            </a>
+          </li>
         </ul>
         <button
           type="submit"
