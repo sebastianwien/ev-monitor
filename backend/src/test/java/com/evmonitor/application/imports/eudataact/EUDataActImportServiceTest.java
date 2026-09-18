@@ -11,6 +11,7 @@ import com.evmonitor.testutil.TestDataBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.InputStreamSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -59,7 +60,7 @@ class EUDataActImportServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () ->
-                service.importData(userId, carId, sampleJsonStream(), "export.json"));
+                service.importData(userId, carId, this::sampleJsonStream, "export.json"));
     }
 
     @Test
@@ -68,7 +69,7 @@ class EUDataActImportServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.of(foreignCar));
 
         assertThrows(SecurityException.class, () ->
-                service.importData(userId, carId, sampleJsonStream(), "export.json"));
+                service.importData(userId, carId, this::sampleJsonStream, "export.json"));
     }
 
     // ── kWh sanity check ──────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ class EUDataActImportServiceTest {
         when(publicApiImportService.importSessions(any(), any(), any(DataSource.class)))
                 .thenReturn(ImportApiResult.withoutIds(1, 0, 0));
 
-        service.importData(userId, carId, realSampleStream(), "export.json");
+        service.importData(userId, carId, this::realSampleStream, "export.json");
 
         ArgumentCaptor<PublicApiSessionRequest> captor = ArgumentCaptor.forClass(PublicApiSessionRequest.class);
         verify(publicApiImportService).importSessions(eq(userId), captor.capture(), eq(DataSource.EU_DATA_ACT_IMPORT));
@@ -102,11 +103,11 @@ class EUDataActImportServiceTest {
         EUDataActSession sessionWithoutKwh = new EUDataActSession(
                 OffsetDateTime.now(), OffsetDateTime.now().plusHours(1),
                 60, 50, 80, null, "AC", 11.0, null, 1000, 10.0);
-        when(mockParser.parse(any())).thenReturn(new EUDataActParseResult("VIN", List.of(sessionWithoutKwh)));
+        when(mockParser.parse(any(InputStreamSource.class))).thenReturn(new EUDataActParseResult("VIN", List.of(sessionWithoutKwh)));
 
         EUDataActImportService serviceWithMockParser = new EUDataActImportService(
                 mockParser, carRepository, publicApiImportService);
-        ImportApiResult result = serviceWithMockParser.importData(userId, carId, sampleJsonStream(), "export.json");
+        ImportApiResult result = serviceWithMockParser.importData(userId, carId, this::sampleJsonStream, "export.json");
 
         // Service returns early without calling importSessions when all sessions have no kWh
         verifyNoInteractions(publicApiImportService);
@@ -129,7 +130,7 @@ class EUDataActImportServiceTest {
         when(publicApiImportService.importSessions(any(), any(), any(DataSource.class)))
                 .thenReturn(ImportApiResult.withoutIds(9, 0, 0));
 
-        service.importData(userId, carId, mebZipStream(), "export.zip");
+        service.importData(userId, carId, this::mebZipStream, "export.zip");
 
         ArgumentCaptor<PublicApiSessionRequest> captor = ArgumentCaptor.forClass(PublicApiSessionRequest.class);
         verify(publicApiImportService).importSessions(eq(userId), captor.capture(), any(DataSource.class));
@@ -148,7 +149,7 @@ class EUDataActImportServiceTest {
         Car car = carWithCapacity(null);
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
-        ImportApiResult result = service.importData(userId, carId, mebZipStream(), "export.zip");
+        ImportApiResult result = service.importData(userId, carId, this::mebZipStream, "export.zip");
 
         verifyNoInteractions(publicApiImportService);
         assertEquals(0, result.imported());
@@ -163,7 +164,7 @@ class EUDataActImportServiceTest {
         when(publicApiImportService.importSessions(any(), any(), any(DataSource.class)))
                 .thenReturn(ImportApiResult.withoutIds(3, 0, 0));
 
-        service.importData(userId, carId, realSampleStream(), "export.json");
+        service.importData(userId, carId, this::realSampleStream, "export.json");
 
         verify(publicApiImportService).importSessions(
                 eq(userId), any(), eq(DataSource.EU_DATA_ACT_IMPORT));
@@ -178,7 +179,7 @@ class EUDataActImportServiceTest {
         when(publicApiImportService.importSessions(any(), any(), any(DataSource.class)))
                 .thenReturn(ImportApiResult.withoutIds(3, 0, 0));
 
-        service.importData(userId, carId, realSampleStream(), "export.json");
+        service.importData(userId, carId, this::realSampleStream, "export.json");
 
         ArgumentCaptor<PublicApiSessionRequest> captor = ArgumentCaptor.forClass(PublicApiSessionRequest.class);
         verify(publicApiImportService).importSessions(eq(userId), captor.capture(), any(DataSource.class));
@@ -213,7 +214,7 @@ class EUDataActImportServiceTest {
                 .thenReturn(ImportApiResult.withoutIds(3, 0, 0));
 
         byte[] zipBytes = wrapInZip("export.json", readSampleJson());
-        service.importData(userId, carId, new ByteArrayInputStream(zipBytes), "export.zip");
+        service.importData(userId, carId, () -> new ByteArrayInputStream(zipBytes), "export.zip");
 
         verify(publicApiImportService).importSessions(any(UUID.class), any(), eq(DataSource.EU_DATA_ACT_IMPORT));
     }
@@ -225,7 +226,7 @@ class EUDataActImportServiceTest {
 
         byte[] zipBytes = wrapInZip("export.txt", "not json".getBytes());
         assertThrows(IllegalArgumentException.class, () ->
-                service.importData(userId, carId, new ByteArrayInputStream(zipBytes), "export.zip"));
+                service.importData(userId, carId, () -> new ByteArrayInputStream(zipBytes), "export.zip"));
     }
 
     @Test
@@ -234,12 +235,15 @@ class EUDataActImportServiceTest {
         // das echte Limit nennen (stand frueher faelschlich auf "20 MB").
         Car car = carWithCapacity(null);
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
+        EUDataActImportService smallLimit = new EUDataActImportService(
+                new EUDataActJsonParser(new ObjectMapper()), carRepository, publicApiImportService,
+                8 * 1024 * 1024L);
 
         byte[] zipBytes = zipWithOversizedJsonEntry();
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                service.importData(userId, carId, new ByteArrayInputStream(zipBytes), "export.zip"));
-        assertTrue(ex.getMessage().contains("64 MB"), "Unerwartete Meldung: " + ex.getMessage());
+                smallLimit.importData(userId, carId, () -> new ByteArrayInputStream(zipBytes), "export.zip"));
+        assertTrue(ex.getMessage().contains("8 MB"), "Unerwartete Meldung: " + ex.getMessage());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

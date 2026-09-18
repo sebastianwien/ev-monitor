@@ -3002,7 +3002,7 @@ cost_history:
 
 
 eu_data_act:
-  desc: "Lade deinen Datenexport vom VW EU Data Act Portal hoch (VW, Audi, Skoda, SEAT, CUPRA, Porsche). Ladevorgänge werden automatisch erkannt und importiert."
+  desc: "Lade deinen Datenexport vom VW EU Data Act Portal hoch (VW, Audi, Skoda, SEAT, CUPRA, Porsche). Ladevorgänge werden automatisch erkannt und importiert - aus dem einmaligen Historien-Export ebenso wie aus den 15-Minuten-Datensätzen."
   label_file: "Export-Datei (.json oder .zip)"
   file_placeholder: "Datei auswählen oder hierher ziehen"
   label_car: "Fahrzeug auswählen"

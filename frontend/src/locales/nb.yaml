@@ -2886,7 +2886,7 @@ cost_history:
 
 
 eu_data_act:
-  desc: "Last opp din dataeksport fra VW EU Data Act-portalen (VW, Audi, Skoda, SEAT, CUPRA, Porsche). Ladeøkter oppdages og importeres automatisk."
+  desc: "Last opp din dataeksport fra VW EU Data Act-portalen (VW, Audi, Skoda, SEAT, CUPRA, Porsche). Ladeøkter oppdages og importeres automatisk - både fra den engangs historikkeksporten og fra 15-minutters datasettene."
   label_file: "Eksportfil (.json eller .zip)"
   file_placeholder: "Velg fil eller dra hit"
   label_car: "Velg kjøretøy"

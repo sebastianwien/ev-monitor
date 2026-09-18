@@ -4,28 +4,36 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamSource;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Liest einen EU-Data-Act-Export und erkennt die Ladevorgaenge.
  * <p>
- * VW liefert je nach Fahrzeugplattform unterschiedliche Formate - der passende
- * {@link SessionDetector} wird pro Datei ermittelt. Die Datei wird gestreamt gelesen:
- * ein Objektbaum ueber 20+ MB JSON kostet mehrere hundert MB Heap.
+ * VW liefert je nach Fahrzeugplattform und Anfrageart unterschiedliche Formate - der passende
+ * {@link SessionDetector} wird pro Datei ermittelt. Exporte erreichen Hunderte MB (der
+ * Historien-Export ueber 1 Mio. Eintraege), deshalb wird zweimal gestreamt: erst nur die
+ * Feldnamen, dann - fuer den ersten Detektor, der in Frage kommt - nur dessen Eintraege.
  */
 @Component
 @Slf4j
 public class EUDataActJsonParser {
 
-    /** Reihenfolge = Prioritaet: die Variante mit echter Ladeleistung gewinnt. */
-    private static final List<SessionDetector> DETECTORS =
-            List.of(new ChargingStateSessionDetector(), new SocCurveSessionDetector());
+    /** Reihenfolge = Prioritaet: gemessene Records vor Leistungssignal vor SoC-Verlauf. */
+    private static final List<SessionDetector> DETECTORS = List.of(
+            new ChargingSessionRecordDetector(),
+            new ChargingStateSessionDetector(),
+            new SocCurveSessionDetector());
 
     private final ObjectMapper objectMapper;
 
@@ -33,11 +41,56 @@ public class EUDataActJsonParser {
         this.objectMapper = objectMapper;
     }
 
+    /** Fuer kleine, bereits im Speicher liegende Exporte (Tests). */
     public EUDataActParseResult parse(InputStream json) throws IOException {
-        String vin = null;
-        List<DataEntry> entries = new ArrayList<>();
+        byte[] bytes = json.readAllBytes();
+        return parse(() -> new ByteArrayInputStream(bytes));
+    }
 
-        try (JsonParser parser = objectMapper.getFactory().createParser(json)) {
+    public EUDataActParseResult parse(InputStreamSource source) throws IOException {
+        Header header = readHeader(source);
+
+        for (SessionDetector detector : DETECTORS) {
+            if (!detector.mightSupport(header.fieldNames())) continue;
+            EntryIndex index = EntryIndex.of(readEntries(source, detector::accepts));
+            if (!detector.supports(index)) continue;
+
+            log.debug("EU Data Act: {} Felder, Detektor {}", header.fieldNames().size(),
+                    detector.getClass().getSimpleName());
+            return new EUDataActParseResult(header.vin(), detector.detect(index));
+        }
+        throw new IllegalArgumentException(
+                "Format wird nicht unterstuetzt - die Datei enthaelt keine erkennbaren Ladedaten");
+    }
+
+    private record Header(String vin, Set<String> fieldNames) {}
+
+    /** Echte Exporte haben ~13.000 verschiedene Feldnamen; darueber ist es kein Export mehr. */
+    static final int MAX_DISTINCT_FIELDS = 100_000;
+
+    /** Pass 1: VIN und die Menge der Feldnamen - ohne Werte zu behalten. */
+    private Header readHeader(InputStreamSource source) throws IOException {
+        Set<String> fieldNames = new HashSet<>();
+        String[] vin = new String[1];
+        scan(source, vin, entry -> {
+            if (fieldNames.add(entry.field()) && fieldNames.size() > MAX_DISTINCT_FIELDS) {
+                throw new IllegalArgumentException("Kein gueltiger EU-Data-Act-Export (zu viele Felder)");
+            }
+        }, field -> true, false);
+        return new Header(vin[0], fieldNames);
+    }
+
+    /** Pass 2: nur die Eintraege, die der Detektor anfordert. */
+    private List<DataEntry> readEntries(InputStreamSource source, Predicate<String> accept) throws IOException {
+        List<DataEntry> entries = new ArrayList<>();
+        scan(source, new String[1], entries::add, accept, true);
+        return entries;
+    }
+
+    private void scan(InputStreamSource source, String[] vinOut, java.util.function.Consumer<DataEntry> sink,
+                      Predicate<String> accept, boolean withValues) throws IOException {
+        try (InputStream in = source.getInputStream();
+             JsonParser parser = objectMapper.getFactory().createParser(in)) {
             if (parser.nextToken() != JsonToken.START_OBJECT) {
                 throw new IllegalArgumentException("Kein gueltiger EU-Data-Act-Export");
             }
@@ -45,29 +98,18 @@ public class EUDataActJsonParser {
                 String name = parser.currentName();
                 parser.nextToken();
                 if ("vin".equals(name)) {
-                    vin = parser.getValueAsString();
+                    vinOut[0] = parser.getValueAsString();
                 } else if ("Data".equals(name)) {
-                    readEntries(parser, entries);
+                    readDataArray(parser, sink, accept, withValues);
                 } else {
                     parser.skipChildren();
                 }
             }
         }
-
-        EntryIndex index = EntryIndex.of(entries);
-        SessionDetector detector = DETECTORS.stream()
-                .filter(d -> d.supports(index))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Format wird nicht unterstuetzt - die Datei enthaelt keine erkennbaren Ladedaten"));
-
-        log.debug("EU Data Act: {} Eintraege, Detektor {}", entries.size(),
-                detector.getClass().getSimpleName());
-
-        return new EUDataActParseResult(vin, detector.detect(index));
     }
 
-    private void readEntries(JsonParser parser, List<DataEntry> out) throws IOException {
+    private void readDataArray(JsonParser parser, java.util.function.Consumer<DataEntry> sink,
+                               Predicate<String> accept, boolean withValues) throws IOException {
         if (parser.currentToken() != JsonToken.START_ARRAY) return;
 
         while (parser.nextToken() == JsonToken.START_OBJECT) {
@@ -80,15 +122,20 @@ public class EUDataActJsonParser {
                 parser.nextToken();
                 switch (name) {
                     case "dataFieldName" -> field = parser.getValueAsString();
-                    case "value" -> value = parser.getValueAsString();
-                    case "timestampUtc" -> timestamp = parser.getValueAsString();
+                    case "value" -> { if (withValues) value = parser.getValueAsString(); }
+                    case "timestampUtc" -> { if (withValues) timestamp = parser.getValueAsString(); }
                     default -> parser.skipChildren();
                 }
             }
 
-            if (field == null || value == null) continue;
+            if (field == null || !accept.test(field)) continue;
+            if (!withValues) {
+                sink.accept(new DataEntry(field, "", null));
+                continue;
+            }
+            if (value == null) continue;
             OffsetDateTime ts = parseTimestamp(timestamp);
-            if (ts != null) out.add(new DataEntry(field, value, ts));
+            if (ts != null) sink.accept(new DataEntry(field, value, ts));
         }
     }
 

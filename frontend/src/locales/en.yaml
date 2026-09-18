@@ -3001,7 +3001,7 @@ cost_history:
 
 
 eu_data_act:
-  desc: "Upload your data export from the VW EU Data Act portal (VW, Audi, Skoda, SEAT, CUPRA, Porsche). Charging sessions are detected and imported automatically."
+  desc: "Upload your data export from the VW EU Data Act portal (VW, Audi, Skoda, SEAT, CUPRA, Porsche). Charging sessions are detected and imported automatically - from the one-time history export as well as from the 15-minute data sets."
   label_file: "Export file (.json or .zip)"
   file_placeholder: "Select file or drag here"
   label_car: "Select vehicle"

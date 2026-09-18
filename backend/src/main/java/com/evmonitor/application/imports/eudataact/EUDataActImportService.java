@@ -6,13 +6,13 @@ import com.evmonitor.application.publicapi.PublicApiSessionRequest;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.DataSource;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import org.springframework.core.io.InputStreamSource;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,30 +22,44 @@ import java.util.zip.ZipInputStream;
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class EUDataActImportService {
 
-    // VW-Exporte komprimieren stark (MEB entpackt ~24 MB, PPE ~46 MB - gepackt jeweils wenige MB).
-    // Hochgeladen wird beides, ZIP wie entpackte JSON. Der Guard schuetzt gegen ZIP-Bomben und
-    // deckelt zugleich den Heap; gleicher Wert wie MAX_UPLOAD_BYTES im Controller.
-    private static final long MAX_UNZIPPED_BYTES = 64 * 1024 * 1024L; // 64 MB
+    // VW-Exporte komprimieren stark (MEB entpackt ~24 MB, PPE ~46 MB, Historien-Export ~170 MB
+    // bei 13 MB gepackt). Hochgeladen wird beides, ZIP wie entpackte JSON. Der Parser streamt und
+    // behaelt nur die benoetigten Eintraege - der Guard schuetzt nur noch gegen ZIP-Bomben.
+    private static final long DEFAULT_MAX_UNZIPPED_BYTES = 1024 * 1024 * 1024L; // 1 GB
     private static final int MAX_ZIP_ENTRIES = 10;
 
     private final EUDataActJsonParser parser;
     private final CarRepository carRepository;
     private final PublicApiImportService publicApiImportService;
+    private final long maxUnzippedBytes;
 
-    public EUDataActPreviewResult preview(UUID userId, UUID carId, InputStream fileStream, String originalFilename)
+    public EUDataActImportService(EUDataActJsonParser parser, CarRepository carRepository,
+                                  PublicApiImportService publicApiImportService) {
+        this(parser, carRepository, publicApiImportService, DEFAULT_MAX_UNZIPPED_BYTES);
+    }
+
+    /** Fuer Tests: der Entpack-Guard laesst sich nur mit kleinem Limit sinnvoll pruefen. */
+    EUDataActImportService(EUDataActJsonParser parser, CarRepository carRepository,
+                           PublicApiImportService publicApiImportService, long maxUnzippedBytes) {
+        this.parser = parser;
+        this.carRepository = carRepository;
+        this.publicApiImportService = publicApiImportService;
+        this.maxUnzippedBytes = maxUnzippedBytes;
+    }
+
+    public EUDataActPreviewResult preview(UUID userId, UUID carId, InputStreamSource file, String originalFilename)
             throws IOException {
         Car car = requireOwnedCar(userId, carId);
-        EUDataActParseResult parsed = parse(fileStream, originalFilename, car);
+        EUDataActParseResult parsed = parse(file, originalFilename, car);
         return EUDataActPreviewResult.from(parsed);
     }
 
-    public ImportApiResult importData(UUID userId, UUID carId, InputStream fileStream, String originalFilename)
+    public ImportApiResult importData(UUID userId, UUID carId, InputStreamSource file, String originalFilename)
             throws IOException {
         Car car = requireOwnedCar(userId, carId);
-        EUDataActParseResult parsed = parse(fileStream, originalFilename, car);
+        EUDataActParseResult parsed = parse(file, originalFilename, car);
 
         List<PublicApiSessionRequest.SessionEntry> entries = toSessionEntries(parsed.sessions(), car);
         if (entries.isEmpty()) {
@@ -68,8 +82,8 @@ public class EUDataActImportService {
         return car;
     }
 
-    private EUDataActParseResult parse(InputStream fileStream, String originalFilename, Car car) throws IOException {
-        EUDataActParseResult parsed = parser.parse(toJsonStream(fileStream, originalFilename));
+    private EUDataActParseResult parse(InputStreamSource file, String originalFilename, Car car) throws IOException {
+        EUDataActParseResult parsed = parser.parse(() -> toJsonStream(file.getInputStream(), originalFilename));
         List<EUDataActSession> sessions = parsed.sessions().stream()
                 .map(s -> withKwhFromSocIfMissing(s, car))
                 .toList();
@@ -158,7 +172,7 @@ public class EUDataActImportService {
 
             // Der Parser streamt - also auch hier streamen statt entpackt zu puffern.
             // Der Bomben-Guard zaehlt die Bytes im Vorbeifliegen.
-            return new SizeLimitedInputStream(zip, MAX_UNZIPPED_BYTES);
+            return new SizeLimitedInputStream(zip, maxUnzippedBytes);
         }
         throw new IllegalArgumentException("No JSON file found in ZIP");
     }
