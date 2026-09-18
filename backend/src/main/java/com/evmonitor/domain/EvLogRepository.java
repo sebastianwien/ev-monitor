@@ -51,6 +51,8 @@ public interface EvLogRepository {
 
     boolean existsByCarIdAndLoggedAtAndDataSource(UUID carId, LocalDateTime loggedAt, DataSource dataSource);
 
+    boolean existsByCarIdAndDataSourceAndLoggedAtBetween(UUID carId, DataSource dataSource, LocalDateTime start, LocalDateTime end);
+
     boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged);
 
     /**

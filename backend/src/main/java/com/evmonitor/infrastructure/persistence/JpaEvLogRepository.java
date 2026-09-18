@@ -165,6 +165,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
 
     boolean existsByCarIdAndLoggedAtAndDataSource(UUID carId, LocalDateTime loggedAt, String dataSource);
 
+    boolean existsByCarIdAndDataSourceAndLoggedAtBetween(UUID carId, String dataSource, LocalDateTime start, LocalDateTime end);
+
     boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged);
 
     @Query("""

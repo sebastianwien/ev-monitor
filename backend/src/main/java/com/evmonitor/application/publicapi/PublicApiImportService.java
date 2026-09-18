@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -317,8 +318,20 @@ public class PublicApiImportService {
         return ApiSessionResponse.fromEvLog(existing);
     }
 
+    /**
+     * Das VW-Portal liefert denselben Ladevorgang im 15-Minuten-Feed und im Historien-Export
+     * mit leicht abweichendem Startzeitpunkt - daher fuer EU-Data-Act-Importe ein
+     * Toleranzfenster um die Minute; alle anderen Quellen bleiben minutengenau.
+     */
+    static final Duration EU_DATA_ACT_DEDUP_TOLERANCE = Duration.ofMinutes(3);
+
     private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh, DataSource dataSource) {
-        return evLogRepository.existsByCarIdAndLoggedAtAndDataSource(carId, loggedAt.withSecond(0).withNano(0), dataSource);
+        LocalDateTime minute = loggedAt.withSecond(0).withNano(0);
+        if (dataSource == DataSource.EU_DATA_ACT_IMPORT) {
+            return evLogRepository.existsByCarIdAndDataSourceAndLoggedAtBetween(
+                    carId, dataSource, minute.minus(EU_DATA_ACT_DEDUP_TOLERANCE), minute.plus(EU_DATA_ACT_DEDUP_TOLERANCE));
+        }
+        return evLogRepository.existsByCarIdAndLoggedAtAndDataSource(carId, minute, dataSource);
     }
 
     private LocalDateTime parseDate(String raw) {
