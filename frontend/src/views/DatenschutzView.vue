@@ -55,10 +55,12 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             eines Vertrags zur Auftragsverarbeitung (Art. 28 DSGVO).
           </p>
           <p class="mt-4">
-            Bei jedem Aufruf verarbeitet unser Webserver technisch notwendige Zugriffsdaten: IP-Adresse,
-            Datum und Uhrzeit, aufgerufene Adresse, übertragene Datenmenge, Browser- und Betriebssystemangaben
-            sowie die verweisende Seite. Diese Server-Logfiles dienen der Sicherheit und Fehleranalyse und werden
-            rollierend überschrieben, spätestens nach 30 Tagen.
+            Bei jedem Aufruf verarbeitet unser Webserver technisch notwendige Zugriffsdaten: Datum und
+            Uhrzeit, aufgerufene Adresse, übertragene Datenmenge, Browser- und Betriebssystemangaben sowie die
+            verweisende Seite. Die IP-Adresse wird dabei <strong>vor dem Schreiben ins Logfile gekürzt</strong>
+            (IPv4 um das letzte Oktett, IPv6 auf die ersten 32 Bit), sodass die Logfiles keinen Personenbezug
+            mehr haben. Sie dienen der Sicherheit, Fehleranalyse und Reichweitenauswertung und werden rollierend
+            überschrieben.
           </p>
           <p class="mt-4">
             <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem
@@ -412,8 +414,8 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             sie sind danach keine personenbezogenen Daten mehr.
           </p>
           <p class="mt-4">
-            Technische Rohdaten aus Integrationen werden nach spätestens 28 Tagen, Server-Logfiles spätestens
-            nach 30 Tagen überschrieben. Daten, für die gesetzliche Aufbewahrungsfristen gelten (z. B.
+            Technische Rohdaten aus Integrationen werden nach spätestens 28 Tagen gelöscht; Server-Logfiles
+            enthalten nur gekürzte IP-Adressen (Abschnitt 3) und werden rollierend überschrieben. Daten, für die gesetzliche Aufbewahrungsfristen gelten (z. B.
             Rechnungsdaten bei Käufen, bis zu 10 Jahre nach § 147 AO), werden bis zum Ablauf dieser Fristen
             aufbewahrt und dann gelöscht. Sicherungskopien der Datenbank werden rotierend aufbewahrt; gelöschte
             Daten können darin für begrenzte Zeit verbleiben und werden nicht mehr in den Dienst zurückgespielt.
