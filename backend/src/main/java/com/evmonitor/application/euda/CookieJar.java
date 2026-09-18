@@ -28,8 +28,10 @@ class CookieJar {
             for (int i = 1; i < parts.length; i++) {
                 String attr = parts[i].trim();
                 if (attr.toLowerCase(Locale.ROOT).startsWith("domain=")) {
-                    domain = attr.substring(7).trim();
-                    if (domain.startsWith(".")) domain = domain.substring(1);
+                    String requested = attr.substring(7).trim().toLowerCase(Locale.ROOT);
+                    if (requested.startsWith(".")) requested = requested.substring(1);
+                    // Wie im Browser: nur der eigene Host oder eine Elterndomain, sonst bleibt es Host-Cookie
+                    if (host.equals(requested) || host.endsWith("." + requested)) domain = requested;
                 }
             }
             put(domain, name, value);

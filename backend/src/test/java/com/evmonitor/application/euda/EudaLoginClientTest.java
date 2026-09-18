@@ -120,6 +120,39 @@ class EudaLoginClientTest {
     }
 
     @Test
+    void redirectToForeignHost_abortsBeforeAnyRequestLeavesVwHosts() {
+        // Kompromittierte Seite oder MITM leitet auf fremden Host: kein Request dorthin, erst recht kein Passwort
+        http.respond(200, "", "Set-Cookie", "affinity=aff1; Path=/");
+        http.respond(302, "", "Location", "https://evil.example.org/signin?relayState=x");
+
+        assertThrows(EudaAuthException.InteractionRequired.class, () -> client.login("user@example.com", "secret-pw"));
+        assertEquals(2, http.requests.size());
+        http.requests.forEach(r -> assertFalse(r.url().contains("evil.example.org"), r.url()));
+    }
+
+    @Test
+    void redirectToPlainHttp_aborts_evenOnVwHost() {
+        http.respond(200, "", "Set-Cookie", "affinity=aff1; Path=/");
+        http.respond(302, "", "Location", "http://identity.vwgroup.io/signin-service/v1/signin/" + CID);
+
+        assertThrows(EudaAuthException.InteractionRequired.class, () -> client.login("user@example.com", "secret-pw"));
+        assertEquals(2, http.requests.size());
+    }
+
+    @Test
+    void passwordPostTargetOutsideIdp_isRefused() {
+        // Passwortseite (per Redirect) auf dem Portal-Host statt der VW-ID: der Passwort-POST darf nur an die VW-ID gehen
+        http.respond(200, "", "Set-Cookie", "affinity=aff1; Path=/");
+        http.respond(302, "", "Location", IDP + "/signin-service/v1/signin/" + CID + "?relayState=FIXTURE_RELAYSTATE");
+        http.respond(200, identifierPage);
+        http.respond(303, "", "Location", PORTAL + "/login/authenticate?relayState=FIXTURE_RELAYSTATE");
+        http.respond(200, passwordPage);
+
+        assertThrows(EudaAuthException.InteractionRequired.class, () -> client.login("user@example.com", "secret-pw"));
+        http.requests.forEach(r -> assertFalse(String.valueOf(r.formBody()).contains("secret-pw"), "Passwort in " + r.url()));
+    }
+
+    @Test
     void login_wrongPassword_throwsInvalidCredentials() {
         scriptLoginUpToPassword();
         String errorPage = passwordPage.replace("\"error\":null",

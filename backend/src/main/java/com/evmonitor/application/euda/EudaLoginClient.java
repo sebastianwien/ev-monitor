@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -45,6 +46,8 @@ public class EudaLoginClient {
     private static final String USER_AGENT =
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36";
     private static final int MAX_REDIRECTS = 15;
+    /** Jeder Request des Logins geht per https an genau diese Hosts - sonst Abbruch, bevor etwas gesendet wird. */
+    static final Set<String> ALLOWED_HOSTS = Set.of(PORTAL_HOST, IDP_HOST);
 
     record Brand(String clientId, String scope, String stateBrand) {}
 
@@ -119,6 +122,10 @@ public class EudaLoginClient {
         if (!postAction.isEmpty() && !authenticateUrl.endsWith("/" + postAction)) {
             authenticateUrl = resolve(passwordPage.url(), postAction).replace("/login/login/", "/login/");
         }
+        // Das Passwort geht ausschliesslich an die VW-ID - nicht ans Portal, nicht an einen Host aus der Seite
+        if (!IDP_HOST.equals(hostOf(authenticateUrl))) {
+            throw new EudaAuthException.InteractionRequired("Passwort-Schritt nicht bei der VW-ID: " + hostOf(authenticateUrl));
+        }
         Landing result = follow(EudaHttp.Request.postForm(authenticateUrl,
                 baseHeaders(passwordPage.url()), encode(pwForm)));
 
@@ -166,6 +173,7 @@ public class EudaLoginClient {
     private record Landing(int status, String url, String html) {}
 
     private EudaHttp.Response send(EudaHttp.Request request) {
+        requireVwHost(request.url());
         Map<String, String> headers = new LinkedHashMap<>(request.headers());
         String cookie = cookies.headerFor(request.url());
         if (cookie != null) headers.put("Cookie", cookie);
@@ -277,6 +285,18 @@ public class EudaLoginClient {
     }
 
     // ── URL-Helfer ───────────────────────────────────────────────────────────────
+    /** Allowlist statt Vertrauen in Redirects und Formular-Actions: nur https auf VW-ID oder Portal. */
+    static void requireVwHost(String url) {
+        URI uri = URI.create(url);
+        String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+        if (!"https".equalsIgnoreCase(uri.getScheme()) || !ALLOWED_HOSTS.contains(host)) {
+            throw new EudaAuthException.InteractionRequired("Login verlaesst die VW-Hosts: " + uri.getScheme() + "://" + host);
+        }
+    }
+    private static String hostOf(String url) {
+        String host = URI.create(url).getHost();
+        return host == null ? "" : host.toLowerCase(Locale.ROOT);
+    }
 
     static String resolve(String base, String location) {
         return URI.create(base).resolve(location.replace(" ", "%20")).toString();
