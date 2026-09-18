@@ -117,6 +117,14 @@ evmonitor:
       ac-charging-efficiency: 0.90
       dc-charging-efficiency: 0.95
 
+# VW EU-Data-Act-AutoSync: launch-verankertes Gratis-Fenster fuer alle. Launch = Deploy-Tag
+# des Features (sonst haben Bestandsnutzer weniger Tage), Dauer noch offen (14 oder 30 Tage).
+euda:
+  autosync:
+    trial:
+      launch-date: ${EUDA_AUTOSYNC_TRIAL_LAUNCH_DATE:2026-09-21}
+      days: ${EUDA_AUTOSYNC_TRIAL_DAYS:30}
+
 xpeng:
   import:
     # Tempdir for in-flight ZIP uploads. Files are deleted immediately after parsing

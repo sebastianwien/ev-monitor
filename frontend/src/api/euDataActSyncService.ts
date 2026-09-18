@@ -6,7 +6,8 @@ export interface EudaConnectionStatus {
   brand: string
   email: string
   vin: string | null
-  status: 'ACTIVE' | 'AUTH_FAILED'
+  /** EXPIRED: Trial vorbei, kein Abo - Abgleich pausiert, Kauf setzt ihn fort. */
+  status: 'ACTIVE' | 'AUTH_FAILED' | 'EXPIRED'
   lastSuccessAt: string | null
   historyImportedAt: string | null
   lastError: string | null
@@ -30,6 +31,7 @@ export function isEudaBrand(carBrand: string): boolean {
 /** Fehlercodes des Connectors - das Frontend mappt sie auf i18n-Texte. */
 export type EudaErrorCode =
   | 'INVALID_CREDENTIALS'
+  | 'NOT_ENTITLED'
   | 'PORTAL_INTERACTION_REQUIRED'
   | 'PORTAL_UNAVAILABLE'
   | 'CAPACITY_REACHED'
@@ -42,7 +44,19 @@ export function eudaErrorCode(err: unknown): EudaErrorCode | null {
   return (code as EudaErrorCode) ?? null
 }
 
+/** Entscheidung des Core: Abo, Rolle oder launch-verankertes Trial. */
+export interface EudaEntitlement {
+  entitled: boolean
+  viaTrial: boolean
+  trialEndsAt: string | null
+}
+
 export default {
+  /** Liegt beim Core, nicht beim Connector - deshalb unter /subscription. */
+  async getEntitlement(): Promise<EudaEntitlement> {
+    const resp = await api.get('/subscription/eu-data-act-autosync')
+    return resp.data
+  },
   async getStatus(): Promise<EudaConnectionStatus[]> {
     const resp = await api.get('/eu-data-act/status')
     return resp.data

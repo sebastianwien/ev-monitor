@@ -20,17 +20,13 @@ public enum FeatureTrial {
     /** Heimlade-Ersparnis-Kachel ({@link User#canViewChargingSavings()}). */
     HOME_CHARGING_SAVINGS(LocalDate.of(2026, 9, 3), 30);
 
-    private final LocalDate launchDate;
-    private final int trialDays;
+    private final TrialWindow window;
 
     FeatureTrial(LocalDate launchDate, int trialDays) {
-        this.launchDate = launchDate;
-        this.trialDays = trialDays;
+        this.window = new TrialWindow(launchDate, trialDays);
     }
 
-    /** Letzter Tag, an dem das Trial fuer einen an {@code registeredOn} registrierten Nutzer traegt. */
-    LocalDate endFor(LocalDate registeredOn) {
-        LocalDate anchor = registeredOn.isAfter(launchDate) ? registeredOn : launchDate;
-        return anchor.plusDays(trialDays);
+    TrialWindow window() {
+        return window;
     }
 }

@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -175,6 +178,35 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "Your charging history is here: " + imported + " sessions imported"
                 : "Deine Ladehistorie ist da: " + imported + " Ladevorgänge importiert";
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
+    public void sendEuDataActTrialEndingEmail(String toEmail, String username, String locale, LocalDate endsAt) {
+        String lang = resolveLocale(locale);
+        String endsAtText = endsAt.format(DateTimeFormatter.ofPattern("en".equals(lang) ? "d MMMM yyyy" : "d. MMMM yyyy",
+                "en".equals(lang) ? Locale.ENGLISH : Locale.GERMAN));
+        String html = loadTemplate("euda-trial-ending.html", lang, Map.of(
+                "username", username,
+                "endsAt", endsAtText,
+                "upgradeUrl", baseUrl + "/upgrade",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        String subject = "en".equals(lang)
+                ? "Your VW Data Act AutoSync trial ends on " + endsAtText
+                : "Dein VW-Data-Act-AutoSync-Test endet am " + endsAtText;
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
+    public void sendEuDataActTrialEndedEmail(String toEmail, String username, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("euda-trial-ended.html", lang, Map.of(
+                "username", username,
+                "upgradeUrl", baseUrl + "/upgrade",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        String subject = "en".equals(lang)
+                ? "VW Data Act AutoSync paused - your trial has ended"
+                : "VW-Data-Act-AutoSync pausiert - dein Test ist zu Ende";
         sendHtmlEmail(toEmail, subject, html);
     }
 

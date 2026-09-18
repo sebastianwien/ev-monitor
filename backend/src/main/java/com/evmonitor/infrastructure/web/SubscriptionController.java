@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.LiveEligibilityService;
 import com.evmonitor.application.PremiumProperties;
 import com.evmonitor.application.StripeService;
+import com.evmonitor.application.imports.eudataact.EudaAutoSyncEntitlementService;
 import com.evmonitor.domain.SubscriptionTier;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
@@ -27,6 +28,7 @@ public class SubscriptionController {
     private final UserRepository userRepository;
     private final PremiumProperties premiumProperties;
     private final LiveEligibilityService liveEligibilityService;
+    private final EudaAutoSyncEntitlementService eudaEntitlement;
 
     @Value("${app.base-url:http://localhost:5173}")
     private String appBaseUrl;
@@ -34,11 +36,13 @@ public class SubscriptionController {
     public SubscriptionController(StripeService stripeService,
                                    UserRepository userRepository,
                                    PremiumProperties premiumProperties,
-                                   LiveEligibilityService liveEligibilityService) {
+                                   LiveEligibilityService liveEligibilityService,
+                                   EudaAutoSyncEntitlementService eudaEntitlement) {
         this.stripeService = stripeService;
         this.userRepository = userRepository;
         this.premiumProperties = premiumProperties;
         this.liveEligibilityService = liveEligibilityService;
+        this.eudaEntitlement = eudaEntitlement;
     }
 
     @GetMapping("/status")
@@ -54,6 +58,18 @@ public class SubscriptionController {
                 ? user.getSubscriptionPeriodEnd().toString()
                 : null);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Berechtigung fuer den VW-EU-Data-Act-AutoSync. Liegt bewusst nicht unter
+     * {@code /api/eu-data-act} - dieser Pfad geht an den Connectors-Service.
+     */
+    @GetMapping("/eu-data-act-autosync")
+    public ResponseEntity<EudaAutoSyncEntitlementService.Entitlement> eudaAutoSync(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        User user = userRepository.findById(principal.getUser().getId())
+                .orElseThrow(() -> new IllegalStateException("User not found"));
+        return ResponseEntity.ok(eudaEntitlement.entitlementFor(user));
     }
 
     @PostMapping("/checkout")

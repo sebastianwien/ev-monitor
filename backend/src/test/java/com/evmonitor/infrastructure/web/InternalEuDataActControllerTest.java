@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.imports.eudataact.EUDataActImportService;
+import com.evmonitor.application.imports.eudataact.EudaAutoSyncEntitlementService;
 import com.evmonitor.application.imports.eudataact.EudaNotificationService;
 import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.domain.DataSource;
@@ -23,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,6 +44,8 @@ class InternalEuDataActControllerTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean EUDataActImportService importService;
     @MockitoBean EudaNotificationService notifications;
+    @MockitoBean EudaAutoSyncEntitlementService entitlement;
+    @MockitoBean com.evmonitor.domain.UserRepository userRepository;
 
     private final UUID userId = UUID.randomUUID();
     private final UUID carId = UUID.randomUUID();
@@ -72,6 +76,29 @@ class InternalEuDataActControllerTest {
                         .part(new org.springframework.mock.web.MockPart("carId", carId.toString().getBytes())))
                 .andExpect(status().isForbidden());
         verify(importService, never()).importData(any(), any(), any(InputStreamSource.class), any(), any());
+    }
+
+    @Test
+    void entitlement_returnsCoreDecision() throws Exception {
+        com.evmonitor.domain.User user = com.evmonitor.testutil.TestDataBuilder.createTestUserWithId(userId, "max@example.com", "x");
+        when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
+        when(entitlement.entitlementFor(user)).thenReturn(
+                new EudaAutoSyncEntitlementService.Entitlement(true, true, java.time.LocalDate.of(2026, 10, 21)));
+
+        mockMvc.perform(get("/api/internal/eu-data-act/entitlement/" + userId).header(TOKEN_HEADER, VALID_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entitled").value(true))
+                .andExpect(jsonPath("$.viaTrial").value(true))
+                .andExpect(jsonPath("$.trialEndsAt").value("2026-10-21"));
+    }
+
+    @Test
+    void entitlement_unknownUser_is404_andWithoutTokenForbidden() throws Exception {
+        when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
+        mockMvc.perform(get("/api/internal/eu-data-act/entitlement/" + userId).header(TOKEN_HEADER, VALID_TOKEN))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/internal/eu-data-act/entitlement/" + userId))
+                .andExpect(status().isForbidden());
     }
 
     @Test

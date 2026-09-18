@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<body style="font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;">
+  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <h1 style="color: #4f46e5; font-size: 26px; margin-bottom: 4px;">EV Monitor</h1>
+    <p style="color: #1f2937; line-height: 1.7; font-size: 15px;">
+      Hi {{username}},
+    </p>
+    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      your free trial of the VW Data Act AutoSync ends on {{endsAt}}. Until then EV Monitor keeps fetching your charging sessions from the VW portal automatically.
+    </p>
+    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      After that the sync pauses. Your sessions and the connection stay in place - with an AutoSync subscription it continues without signing in again. Without one you can still upload export files from the portal manually.
+    </p>
+
+    <div style="text-align: center; margin: 36px 0;">
+      <a href="{{upgradeUrl}}"
+         style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 14px 36px;
+                border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;
+                letter-spacing: 0.3px;">
+        Keep AutoSync →
+      </a>
+    </div>
+    <p style="color: #1f2937; font-size: 15px; margin-top: 8px;">
+      Thanks!<br>
+      Sebastian
+    </p>
+    <p style="color: #9ca3af; font-size: 13px; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      Don't want service notices anymore?
+      <a href="{{unsubscribeUrl}}" style="color: #9ca3af;">Unsubscribe</a>
+    </p>
+  </div>
+</body>
+</html>

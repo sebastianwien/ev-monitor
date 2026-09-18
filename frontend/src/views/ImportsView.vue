@@ -585,7 +585,7 @@ const teslaConnectedLabel = ref<string | null>(null)
           <Transition name="accordion">
             <div v-if="activeTab === 'eu_data_act'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
               <!-- AutoSync zuerst (der bessere Weg), der manuelle Upload bleibt fuer alle darunter -->
-              <EudaAutoSync v-if="vwGroupCars.length > 0" :cars="vwGroupCars" :is-premium="subscriptionIsPremium" />
+              <EudaAutoSync v-if="vwGroupCars.length > 0" :cars="vwGroupCars" />
               <EUDataActImport :cars="activeCars" @close="toggle('eu_data_act')" />
             </div>
           </Transition>

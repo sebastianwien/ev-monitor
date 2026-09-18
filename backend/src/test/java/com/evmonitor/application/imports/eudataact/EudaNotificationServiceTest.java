@@ -64,6 +64,27 @@ class EudaNotificationServiceTest {
     }
 
     @Test
+    void trialEnding_passesEndDateToMail() {
+        User u = user();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(u));
+
+        service.notify(userId, EudaNotificationService.EVENT_TRIAL_ENDING, Map.of("endsAt", "2026-10-21"));
+
+        verify(emailService).sendEuDataActTrialEndingEmail("max@example.com", u.getUsername(),
+                u.getRegistrationLocale(), java.time.LocalDate.of(2026, 10, 21));
+    }
+
+    @Test
+    void trialEnded_sendsTrialEndedMail() {
+        User u = user();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(u));
+
+        service.notify(userId, EudaNotificationService.EVENT_TRIAL_ENDED, Map.of());
+
+        verify(emailService).sendEuDataActTrialEndedEmail("max@example.com", u.getUsername(), u.getRegistrationLocale());
+    }
+
+    @Test
     void unknownUserOrEvent_sendsNothing() {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
         service.notify(userId, EudaNotificationService.EVENT_HANDOVER, Map.of());

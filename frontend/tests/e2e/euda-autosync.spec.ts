@@ -5,7 +5,7 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 /**
  * VW EU-Data-Act-AutoSync-Karte auf der Import-Seite. Der Connectors-Service laeuft im E2E
  * nicht - seine Endpunkte werden gemockt. Geprueft wird der Nutzer-Workflow: Formular mit
- * Transparenz-Hinweisen, Verbinden, Status-Karte, sprechende Fehler, Free-Teaser.
+ * Transparenz-Hinweisen, Verbinden, Status-Karte, sprechende Fehler, Trial-Hinweis, Teaser, Pause.
  */
 
 const statusActive = (carId: string) => ({
@@ -36,12 +36,15 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
 }
 
-async function mockPremium(page: Page, isPremium: boolean) {
-  await page.route('**/api/subscription/status', route => route.fulfill({
-    status: 200, contentType: 'application/json',
-    body: JSON.stringify({ isPremium, premiumEnabled: true, tier: isPremium ? 'AUTOSYNC' : 'NONE' }),
+/** Berechtigung kommt vom Core: Abo, Rolle oder launch-verankertes Trial. */
+async function mockEntitlement(page: Page, e: { entitled: boolean; viaTrial: boolean; trialEndsAt: string | null }) {
+  await page.route('**/api/subscription/eu-data-act-autosync', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify(e),
   }));
 }
+const PAID = { entitled: true, viaTrial: false, trialEndsAt: null };
+const TRIAL = { entitled: true, viaTrial: true, trialEndsAt: '2026-10-21' };
+const TRIAL_OVER = { entitled: false, viaTrial: false, trialEndsAt: '2026-10-21' };
 
 async function openEudaTab(page: Page) {
   await page.goto('/imports');
@@ -58,18 +61,48 @@ test.describe('EU Data Act AutoSync', () => {
     await login(page);
   });
 
-  test('Beta: Free-Nutzer sehen die AutoSync-Karte nicht, der Upload bleibt', async ({ page }) => {
-    await mockPremium(page, false);
+  test('Ohne Berechtigung: Teaser mit Ablaufdatum und Upgrade-Link statt Formular, Upload bleibt', async ({ page }) => {
+    await mockEntitlement(page, TRIAL_OVER);
+    await useSkodaCars(page);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await openEudaTab(page);
 
-    await expect(page.getByText('Automatisch synchronisieren (VW EU Data Act)')).toHaveCount(0);
+    await expect(page.getByTestId('euda-teaser')).toBeVisible();
+    await expect(page.getByTestId('euda-teaser')).toContainText('21.10.2026');
+    await expect(page.getByTestId('euda-upgrade')).toHaveAttribute('href', '/upgrade');
     await expect(page.locator('#euda-password')).toHaveCount(0);
     await expect(page.getByText('Export-Datei (.json oder .zip)')).toBeVisible();
   });
 
+  test('Im Trial: Formular mit Hinweis auf das Ablaufdatum', async ({ page }) => {
+    await mockEntitlement(page, TRIAL);
+    await useSkodaCars(page);
+    await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+    await openEudaTab(page);
+
+    await expect(page.locator('#euda-password')).toBeVisible();
+    await expect(page.getByTestId('euda-trial-hint')).toContainText('21.10.2026');
+  });
+
+  test('Abgelaufene Verbindung: pausiert, Upgrade-Link, Trennen bleibt, keine Historie', async ({ page }) => {
+    await mockEntitlement(page, TRIAL_OVER);
+    const carId = await useSkodaCars(page);
+    await page.route('**/api/eu-data-act/status', route => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify([{ ...statusActive(carId.value), status: 'EXPIRED' }]),
+    }));
+    await openEudaTab(page);
+
+    await expect(page.getByText('Pausiert - Testzeitraum beendet')).toBeVisible();
+    await expect(page.getByTestId('euda-expired-hint')).toBeVisible();
+    await expect(page.getByTestId('euda-upgrade')).toBeVisible();
+    await expect(page.getByTestId('euda-disconnect')).toBeVisible();
+    await expect(page.getByTestId('euda-history')).toHaveCount(0);
+    await expect(page.getByTestId('euda-reactivate-smartcar')).toHaveCount(0);
+  });
+
   test('Ohne VW-Group-Fahrzeug gibt es keine AutoSync-Karte, auch fuer Premium', async ({ page }) => {
-    await mockPremium(page, true);
+    await mockEntitlement(page, PAID);
     await page.route('**/api/cars', async route => {
       const response = await route.fetch();
       const cars = (await response.json() as { brand: string }[]).map(c => ({ ...c, brand: 'TESLA' }));
@@ -83,7 +116,7 @@ test.describe('EU Data Act AutoSync', () => {
   });
 
   test('Verbinden: Passwort geht genau einmal raus, danach Status-Karte', async ({ page }) => {
-    await mockPremium(page, true);
+    await mockEntitlement(page, PAID);
     await useSkodaCars(page);
     let statusCalls = 0;
     await page.route('**/api/eu-data-act/status', route => {
@@ -118,7 +151,7 @@ test.describe('EU Data Act AutoSync', () => {
   });
 
   test('Falsches Passwort zeigt den passenden Fehler, Formular bleibt', async ({ page }) => {
-    await mockPremium(page, true);
+    await mockEntitlement(page, PAID);
     await useSkodaCars(page);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     // 422, nicht 401 - ein 401 wuerde der Axios-Interceptor als abgelaufene Sitzung deuten
@@ -137,7 +170,7 @@ test.describe('EU Data Act AutoSync', () => {
   });
 
   test('Bestehende Verbindung: Status, Historie anfordern, Trennen', async ({ page }) => {
-    await mockPremium(page, true);
+    await mockEntitlement(page, PAID);
     const carId = await useSkodaCars(page);
     let connected = true;
     await page.route('**/api/eu-data-act/status', route => route.fulfill({

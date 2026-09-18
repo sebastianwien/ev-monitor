@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
 
@@ -23,6 +24,10 @@ public class EudaNotificationService {
     public static final String EVENT_HANDOVER = "SMARTCAR_HANDOVER";
     public static final String EVENT_CONNECTION_LOST = "CONNECTION_LOST";
     public static final String EVENT_HISTORY_IMPORTED = "HISTORY_IMPORTED";
+    /** Trial endet in wenigen Tagen - Param {@code endsAt} (ISO-Datum). */
+    public static final String EVENT_TRIAL_ENDING = "TRIAL_ENDING";
+    /** Trial abgelaufen, Abgleich pausiert - Kauf setzt ihn fort. */
+    public static final String EVENT_TRIAL_ENDED = "TRIAL_ENDED";
 
     private final UserRepository userRepository;
     private final EmailService emailService;
@@ -41,6 +46,11 @@ public class EudaNotificationService {
             case EVENT_HISTORY_IMPORTED -> emailService.sendEuDataActHistoryImportedEmail(
                     user.getEmail(), user.getUsername(), user.getRegistrationLocale(),
                     intParam(params, "imported"), intParam(params, "skipped"));
+            case EVENT_TRIAL_ENDING -> emailService.sendEuDataActTrialEndingEmail(
+                    user.getEmail(), user.getUsername(), user.getRegistrationLocale(),
+                    LocalDate.parse(String.valueOf(params.get("endsAt"))));
+            case EVENT_TRIAL_ENDED -> emailService.sendEuDataActTrialEndedEmail(
+                    user.getEmail(), user.getUsername(), user.getRegistrationLocale());
             default -> log.warn("[EUDA] Unbekanntes Ereignis {} fuer userId={}", event, userId);
         }
     }

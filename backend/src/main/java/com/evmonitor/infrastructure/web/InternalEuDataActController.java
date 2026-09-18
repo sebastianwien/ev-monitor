@@ -1,13 +1,17 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.imports.eudataact.EUDataActImportService;
+import com.evmonitor.application.imports.eudataact.EudaAutoSyncEntitlementService;
 import com.evmonitor.application.imports.eudataact.EudaNotificationService;
+import com.evmonitor.domain.UserRepository;
 import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.domain.DataSource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,6 +37,8 @@ public class InternalEuDataActController {
 
     private final EUDataActImportService importService;
     private final EudaNotificationService notifications;
+    private final EudaAutoSyncEntitlementService entitlement;
+    private final UserRepository userRepository;
 
     public record ImportResponse(int imported, int skipped, int errors) {}
 
@@ -43,6 +49,14 @@ public class InternalEuDataActController {
         ImportApiResult result = importService.importData(UUID.fromString(userId), UUID.fromString(carId),
                 file, file.getOriginalFilename(), DataSource.EU_DATA_ACT_SYNC);
         return ResponseEntity.ok(new ImportResponse(result.imported(), result.skipped(), result.errors()));
+    }
+
+    /** Darf der Nutzer AutoSync (noch) nutzen - der Connector fragt beim Verbinden und taeglich. */
+    @GetMapping("/entitlement/{userId}")
+    public ResponseEntity<EudaAutoSyncEntitlementService.Entitlement> entitlement(@PathVariable UUID userId) {
+        return userRepository.findById(userId)
+                .map(u -> ResponseEntity.ok(entitlement.entitlementFor(u)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     public record NotifyRequest(UUID userId, UUID carId, String event, Map<String, Object> params) {}

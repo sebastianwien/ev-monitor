@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon, LockClosedIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import euDataActSyncService, {
   eudaBrandOf,
   eudaErrorCode,
   type EudaBrand,
   type EudaConnectionStatus,
+  type EudaEntitlement,
 } from '../../api/euDataActSyncService'
 import type { Car } from '../../api/carService'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
@@ -18,10 +19,9 @@ import CarSelectDropdown from '../car/CarSelectDropdown.vue'
  */
 const props = defineProps<{
   cars: Car[]
-  isPremium: boolean
 }>()
 
-const { t, d } = useI18n()
+const { t, locale } = useI18n()
 
 const BRANDS: { key: EudaBrand; label: string }[] = [
   { key: 'volkswagen', label: 'Volkswagen' },
@@ -36,6 +36,9 @@ const connecting = ref(false)
 const busy = ref(false)
 const error = ref<string | null>(null)
 const connections = ref<EudaConnectionStatus[]>([])
+// Ohne Antwort vom Core gilt "nicht berechtigt" - das Backend ist ohnehin die Sicherheitsgrenze,
+// hier geht es nur darum, keinem ein Formular zu zeigen, das dann mit 403 endet.
+const entitlement = ref<EudaEntitlement>({ entitled: false, viaTrial: false, trialEndsAt: null })
 
 const selectedCarId = ref(props.cars.length === 1 ? props.cars[0].id : '')
 function brandOfCar(carId: string): EudaBrand {
@@ -52,21 +55,31 @@ const connection = computed(() => connections.value.find(c => c.carId === select
 async function load() {
   loading.value = true
   try {
-    connections.value = await euDataActSyncService.getStatus()
+    const [status, ent] = await Promise.all([
+      euDataActSyncService.getStatus().catch(() => [] as EudaConnectionStatus[]),
+      euDataActSyncService.getEntitlement().catch(() => entitlement.value),
+    ])
+    connections.value = status
+    entitlement.value = ent
     if (!selectedCarId.value && connections.value.length > 0) {
       selectedCarId.value = connections.value[0].carId
     }
-  } catch {
-    // Status ist optional - die Karte bleibt im "nicht verbunden"-Zustand nutzbar
   } finally {
     loading.value = false
   }
 }
 
+// Kein vue-i18n-Datumsformat konfiguriert - deshalb direkt ueber Intl mit der aktiven Sprache.
+const formatDate = (iso: string, withTime = false) => new Date(iso).toLocaleDateString(locale.value, {
+  day: '2-digit', month: '2-digit', year: 'numeric', ...(withTime ? { hour: '2-digit', minute: '2-digit' } : {}),
+})
+const trialEndsAt = computed(() => entitlement.value.trialEndsAt ? formatDate(entitlement.value.trialEndsAt) : '')
+
 function describeError(err: unknown): string {
   const code = eudaErrorCode(err)
   const known: Record<string, string> = {
     INVALID_CREDENTIALS: t('eu_data_act_sync.err_invalid_credentials'),
+    NOT_ENTITLED: t('eu_data_act_sync.err_not_entitled'),
     PORTAL_INTERACTION_REQUIRED: t('eu_data_act_sync.err_interaction_required'),
     PORTAL_UNAVAILABLE: t('eu_data_act_sync.err_portal_unavailable'),
     CAPACITY_REACHED: t('eu_data_act_sync.err_capacity'),
@@ -118,9 +131,9 @@ onMounted(load)
 </script>
 
 <template>
-  <!-- Beta: nur fuer AutoSync-Kunden sichtbar. Ein Teaser fuer Free-Nutzer kommt erst mit dem
-       Trial - sonst kauft jemand wegen dieses Features und sieht kurz darauf andere gratis testen. -->
-  <div v-if="isPremium" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
+  <!-- Die Marken-Vorauswahl trifft die Import-Seite; hier entscheidet nur noch die Berechtigung
+       (Abo oder launch-verankertes Trial), welcher Zustand zu sehen ist. -->
+  <div class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
     <div class="flex items-start gap-3 mb-3">
       <BoltIcon class="h-6 w-6 shrink-0 text-indigo-500" aria-hidden="true" />
       <div class="min-w-0">
@@ -138,9 +151,10 @@ onMounted(load)
       <div v-else-if="connection" class="space-y-3">
         <div class="flex items-center gap-2">
           <CheckCircleIcon v-if="connection.status === 'ACTIVE'" class="h-5 w-5 text-emerald-500" aria-hidden="true" />
+          <LockClosedIcon v-else-if="connection.status === 'EXPIRED'" class="h-5 w-5 text-amber-500" aria-hidden="true" />
           <ExclamationTriangleIcon v-else class="h-5 w-5 text-red-500" aria-hidden="true" />
           <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-            {{ connection.status === 'ACTIVE' ? t('eu_data_act_sync.status_active') : t('eu_data_act_sync.status_auth_failed') }}
+            {{ t(`eu_data_act_sync.status_${connection.status.toLowerCase()}`) }}
           </span>
         </div>
         <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
@@ -151,23 +165,38 @@ onMounted(load)
           <div class="flex justify-between sm:block">
             <dt class="text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.label_last_sync') }}</dt>
             <dd class="text-gray-900 dark:text-gray-100">
-              {{ connection.lastSuccessAt ? d(new Date(connection.lastSuccessAt), 'short') : t('eu_data_act_sync.waiting_first') }}
+              {{ connection.lastSuccessAt ? formatDate(connection.lastSuccessAt, true) : t('eu_data_act_sync.waiting_first') }}
             </dd>
           </div>
         </dl>
         <p v-if="connection.status === 'AUTH_FAILED'" class="text-sm text-gray-600 dark:text-gray-400">
           {{ t('eu_data_act_sync.auth_failed_hint') }}
         </p>
+        <p v-if="connection.status === 'EXPIRED'" class="text-sm text-gray-600 dark:text-gray-400" data-testid="euda-expired-hint">
+          {{ t('eu_data_act_sync.expired_hint') }}
+        </p>
+        <p v-else-if="connection.status === 'ACTIVE' && entitlement.viaTrial" class="text-sm text-amber-800 dark:text-amber-300" data-testid="euda-trial-hint">
+          {{ t('eu_data_act_sync.trial_hint', { date: trialEndsAt }) }}
+        </p>
         <p v-if="historyPending" class="text-sm text-gray-600 dark:text-gray-400">
           {{ t('eu_data_act_sync.history_pending') }}
         </p>
         <p v-else-if="connection.historyImportedAt" class="text-sm text-gray-600 dark:text-gray-400">
-          {{ t('eu_data_act_sync.history_done', { date: d(new Date(connection.historyImportedAt), 'short') }) }}
+          {{ t('eu_data_act_sync.history_done', { date: formatDate(connection.historyImportedAt) }) }}
         </p>
 
         <div class="flex flex-wrap gap-2">
+          <router-link
+            v-if="connection.status === 'EXPIRED'"
+            to="/upgrade"
+            data-testid="euda-upgrade"
+            class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500"
+          >
+            {{ t('eu_data_act_sync.teaser_cta') }}
+            <ChevronRightIcon class="h-3.5 w-3.5" aria-hidden="true" />
+          </router-link>
           <button
-            v-if="!connection.historyImportedAt && !historyPending"
+            v-if="connection.status !== 'EXPIRED' && !connection.historyImportedAt && !historyPending"
             type="button"
             :disabled="busy"
             @click="onRequestHistory"
@@ -178,6 +207,7 @@ onMounted(load)
             {{ t('eu_data_act_sync.btn_history') }}
           </button>
           <button
+            v-if="connection.status !== 'EXPIRED'"
             type="button"
             :disabled="busy"
             @click="reactivateSmartcar"
@@ -199,8 +229,27 @@ onMounted(load)
         <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.history_hint') }}</p>
       </div>
 
+      <!-- Nicht verbunden, nicht berechtigt: Teaser statt Formular -->
+      <div v-else-if="!entitlement.entitled" class="space-y-3" data-testid="euda-teaser">
+        <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('eu_data_act_sync.teaser') }}</p>
+        <p v-if="entitlement.trialEndsAt" class="text-xs text-gray-500 dark:text-gray-400">
+          {{ t('eu_data_act_sync.trial_ended', { date: trialEndsAt }) }}
+        </p>
+        <router-link
+          to="/upgrade"
+          data-testid="euda-upgrade"
+          class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500"
+        >
+          {{ t('eu_data_act_sync.teaser_cta') }}
+          <ChevronRightIcon class="h-3.5 w-3.5" aria-hidden="true" />
+        </router-link>
+      </div>
+
       <!-- Nicht verbunden: Anmeldeformular -->
       <form v-else class="space-y-3" @submit.prevent="connect">
+        <p v-if="entitlement.viaTrial" class="text-sm text-amber-800 dark:text-amber-300" data-testid="euda-trial-hint">
+          {{ t('eu_data_act_sync.trial_hint', { date: trialEndsAt }) }}
+        </p>
         <div>
           <span class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('eu_data_act_sync.label_brand') }}</span>
           <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="t('eu_data_act_sync.label_brand')">

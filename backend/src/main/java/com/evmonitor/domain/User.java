@@ -160,13 +160,27 @@ public class User {
      * Trial - dann greift nur der bezahlte Gate der jeweiligen Kachel.
      */
     boolean isWithinTrial(FeatureTrial trial, LocalDate today) {
-        LocalDate end = trialEndsAt(trial);
-        return end != null && !today.isAfter(end);
+        return isWithinTrial(trial.window(), today);
     }
 
     /** Letzter Tag, an dem {@code trial} den Nutzer traegt - null ohne bekanntes Registrierungsdatum. */
     LocalDate trialEndsAt(FeatureTrial trial) {
-        return createdAt == null ? null : trial.endFor(createdAt.toLocalDate());
+        return trialEndsAt(trial.window());
+    }
+
+    /** Wie {@link #isWithinTrial(FeatureTrial, LocalDate)}, fuer konfigurierte Fenster. */
+    public boolean isWithinTrial(TrialWindow window, LocalDate today) {
+        LocalDate end = trialEndsAt(window);
+        return end != null && !today.isAfter(end);
+    }
+
+    public LocalDate trialEndsAt(TrialWindow window) {
+        return createdAt == null ? null : window.endFor(createdAt.toLocalDate());
+    }
+
+    /** Rollen, die Funktionen unabhaengig vom Tarif nutzen duerfen (Admin, Beta-Tester). */
+    public boolean hasPrivilegedRole() {
+        return TRIP_PUSH_PRIVILEGED_ROLES.contains(role);
     }
 
     /**
