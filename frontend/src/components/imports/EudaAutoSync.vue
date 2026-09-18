@@ -182,7 +182,7 @@ onMounted(load)
           {{ t('eu_data_act_sync.expired_hint') }}
         </p>
         <p v-else-if="connection.status === 'ACTIVE' && entitlement.viaTrial" class="text-sm text-amber-800 dark:text-amber-300" data-testid="euda-trial-hint">
-          {{ t('eu_data_act_sync.trial_hint', { date: trialEndsAt }) }}
+          {{ t('eu_data_act_sync.trial_hint_connected', { date: trialEndsAt }) }}
         </p>
         <p v-if="historyPending" class="text-sm text-gray-600 dark:text-gray-400">
           {{ t('eu_data_act_sync.history_pending') }}
