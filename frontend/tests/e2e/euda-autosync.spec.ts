@@ -55,14 +55,14 @@ test.describe('EU Data Act AutoSync', () => {
     await login(page);
   });
 
-  test('Free-Nutzer sehen einen Teaser statt des Formulars', async ({ page }) => {
+  test('Beta: Free-Nutzer sehen die AutoSync-Karte nicht, der Upload bleibt', async ({ page }) => {
     await mockPremium(page, false);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
     await openEudaTab(page);
 
-    await expect(page.getByText('Automatisch synchronisieren (VW EU Data Act)')).toBeVisible();
-    await expect(page.getByText(/Teil von AutoSync/)).toBeVisible();
+    await expect(page.getByText('Automatisch synchronisieren (VW EU Data Act)')).toHaveCount(0);
     await expect(page.locator('#euda-password')).toHaveCount(0);
+    await expect(page.getByText('Export-Datei (.json oder .zip)')).toBeVisible();
   });
 
   test('Verbinden: Passwort geht genau einmal raus, danach Status-Karte', async ({ page }) => {

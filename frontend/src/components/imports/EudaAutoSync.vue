@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, CheckCircleIcon, ExclamationTriangleIcon, LockClosedIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import euDataActSyncService, {
   eudaErrorCode,
   type EudaBrand,
@@ -118,7 +118,9 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
+  <!-- Beta: nur fuer AutoSync-Kunden sichtbar. Ein Teaser fuer Free-Nutzer kommt erst mit dem
+       Trial - sonst kauft jemand wegen dieses Features und sieht kurz darauf andere gratis testen. -->
+  <div v-if="isPremium" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
     <div class="flex items-start gap-3 mb-3">
       <BoltIcon class="h-6 w-6 shrink-0 text-indigo-500" aria-hidden="true" />
       <div class="min-w-0">
@@ -128,13 +130,6 @@ onMounted(load)
       <span class="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Beta</span>
     </div>
 
-    <!-- Free-Nutzer: Teaser ohne Blur -->
-    <div v-if="!isPremium" class="flex items-start gap-3 rounded-sm border border-dashed border-gray-300 dark:border-gray-600 p-3">
-      <LockClosedIcon class="h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
-      <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('eu_data_act_sync.teaser') }}</p>
-    </div>
-
-    <template v-else>
       <CarSelectDropdown v-if="cars.length > 1" v-model="selectedCarId" :cars="cars" class="mb-3" />
 
       <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">…</div>
@@ -252,6 +247,5 @@ onMounted(load)
       <div v-if="error" class="mt-3 border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm text-sm text-red-800 dark:text-red-200" role="alert">
         {{ error }}
       </div>
-    </template>
   </div>
 </template>
