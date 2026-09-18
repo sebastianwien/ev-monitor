@@ -134,6 +134,50 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
+    // ── EU Data Act AutoSync (VW Group) ──────────────────────────────────────────
+
+    public void sendEuDataActHandoverEmail(String toEmail, String username, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("euda-handover.html", lang, Map.of(
+                "username", username,
+                "logbookUrl", baseUrl + "/dashboard",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        String subject = "en".equals(lang)
+                ? "Your car now reports via the VW Data Act portal - Smartcar paused"
+                : "Dein Auto meldet jetzt über das VW-Data-Act-Portal - Smartcar pausiert";
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
+    public void sendEuDataActConnectionLostEmail(String toEmail, String username, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("euda-connection-lost.html", lang, Map.of(
+                "username", username,
+                "reconnectUrl", baseUrl + "/dashboard",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        String subject = "en".equals(lang)
+                ? "VW Data Act connection interrupted - please sign in again"
+                : "VW-Data-Act-Verbindung unterbrochen - bitte einmal neu anmelden";
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
+    public void sendEuDataActHistoryImportedEmail(String toEmail, String username, String locale,
+                                                  int imported, int skipped) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("euda-history-imported.html", lang, Map.of(
+                "username", username,
+                "imported", String.valueOf(imported),
+                "skipped", String.valueOf(skipped),
+                "logbookUrl", baseUrl + "/dashboard",
+                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
+        ));
+        String subject = "en".equals(lang)
+                ? "Your charging history is here: " + imported + " sessions imported"
+                : "Deine Ladehistorie ist da: " + imported + " Ladevorgänge importiert";
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
     private void sendHtmlEmail(String toEmail, String subject, String html) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
