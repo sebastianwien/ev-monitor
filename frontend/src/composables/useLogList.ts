@@ -340,13 +340,15 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     fetchLogs()
   }
 
+  const deleteError = ref<string | null>(null)
   const deleteLog = async (id: string) => {
     if (!confirm(t('dashboard.delete_confirm'))) return
+    deleteError.value = null
     try {
       await api.delete(`/logs/${id}`)
       refreshLogsAndGroups()
     } catch {
-      // Network error
+      deleteError.value = t('logform.delete_failed')
     }
   }
 
@@ -645,6 +647,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     reassignSaving,
     reassignError,
     reassignSuccessMessage,
+    deleteError,
     otherCars,
     openReassignModal,
     saveReassign,

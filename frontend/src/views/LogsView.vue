@@ -122,7 +122,7 @@ const {
   feedResolution, feedTimeRange, feedCustomStartDate, feedCustomEndDate, feedNextOlderMonth, loadOlderFeed,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
-  reassignError, reassignSuccessMessage, otherCars, openReassignModal, saveReassign,
+  reassignError, reassignSuccessMessage, deleteError, otherCars, openReassignModal, saveReassign,
   mergeModalEntry, mergeSaving, mergeError, openMergeModal, mergeCandidates, saveMerge,
   refreshLogsAndGroups, deleteLog,
   formatLogDate, formatTripTimeRange, tripTimeParts, toggleOdometerDisplay, sourceInfo, mergedLogFeed,
@@ -1502,6 +1502,10 @@ function toggleAllCharges() {
               {{ reassignSuccessMessage }}
             </div>
           </Transition>
+          <div v-if="deleteError" role="alert" class="mb-2 px-3 py-2 rounded-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-sm text-red-700 dark:text-red-300 flex items-center justify-between gap-2">
+            {{ deleteError }}
+            <button type="button" :aria-label="t('common.close')" @click="deleteError = null" class="text-red-400 hover:text-red-600"><XMarkIcon class="w-4 h-4" /></button>
+          </div>
 
           <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum.
                Voll ausgeschriebene Segmente statt eines Menues - die vier Optionen passen
