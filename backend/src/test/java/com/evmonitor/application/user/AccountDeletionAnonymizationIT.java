@@ -70,8 +70,10 @@ class AccountDeletionAnonymizationIT {
         carId = UUID.randomUUID();
         otherUserId = UUID.randomUUID();
         otherCarId = UUID.randomUUID();
-        userRepository.save(user(userId, "anon-it@example.com", "anonuser", "ANON0001"));
-        userRepository.save(user(otherUserId, "other-it@example.com", "otheruser", "ANON0002"));
+        // Der Kontext (und damit die DB) wird zwischen den Tests wiederverwendet: eindeutige Werte je Test
+        String tag = UUID.randomUUID().toString().substring(0, 8);
+        userRepository.save(user(userId, "anon-" + tag + "@example.com", "anon" + tag, "A" + tag.substring(0, 7).toUpperCase()));
+        userRepository.save(user(otherUserId, "other-" + tag + "@example.com", "other" + tag, "B" + tag.substring(0, 7).toUpperCase()));
         carRepository.save(car(carId, userId, "B-AN 1234"));
         carRepository.save(car(otherCarId, otherUserId, "B-OT 9999"));
         evLogRepository.save(log(carId, LocalDateTime.of(2026, 3, 10, 18, 42), "u33dc1"));
