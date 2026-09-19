@@ -1,0 +1,48 @@
+{
+  "vin": "TMBTEST0000000001",
+  "user_id": "00000000-0000-0000-0000-000000000001",
+  "Data": [
+    {
+      "key": "62a0652d-2dae-32af-9404-4879cf6f669a",
+      "dataFieldName": "persLocation",
+      "value": "[52.000000,13.000000]",
+      "timestampUtc": "2026-09-18T13:37:30.669Z"
+    },
+    {
+      "key": "bfd914a7-e030-3dc1-99f4-93d3b945da07",
+      "dataFieldName": "speed",
+      "value": "0",
+      "timestampUtc": "2026-09-18T13:37:40.678Z"
+    },
+    {
+      "key": "8a5df67d-839f-3117-be3b-6f09d345ebfa",
+      "dataFieldName": "shortTermAverageConsumption",
+      "value": "15.5 kWh/100km",
+      "timestampUtc": "2026-09-18T13:37:30.669Z"
+    },
+    {
+      "key": "5150d35f-9f5d-3f61-b8d5-8bdca8178448",
+      "dataFieldName": "tripId",
+      "value": "a8239b83-595f-4f86-b91b-fa9d0065b980",
+      "timestampUtc": "2026-09-18T13:32:44.438Z"
+    },
+    {
+      "key": "85807008-0add-3e9c-86a7-949a07334e8c",
+      "dataFieldName": "ignition",
+      "value": "",
+      "timestampUtc": "2026-09-18T13:34:05.034Z"
+    },
+    {
+      "key": "56bc8dc1-e326-3da8-b0d0-8c5519001c17",
+      "dataFieldName": "heading",
+      "value": "247",
+      "timestampUtc": "2026-09-18T13:37:40.678Z"
+    },
+    {
+      "key": "0a18a053-b4b0-3db1-be44-a6c5dba629b1",
+      "dataFieldName": "currentSoc",
+      "value": "28.5",
+      "timestampUtc": "2026-09-18T13:37:30.656Z"
+    }
+  ]
+}

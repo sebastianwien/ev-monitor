@@ -116,4 +116,34 @@ class EUDataActJsonParserTest {
             assertTrue(sessions.get(i).startedAt().isAfter(sessions.get(i - 1).startedAt()));
         }
     }
+
+    // ── Telemetrie-Datensatz ohne Ladedaten ───────────────────────────────────
+
+    private InputStream telemetryOnlyJson() {
+        return getClass().getClassLoader().getResourceAsStream("eudataact/telemetry_only_15min_drop.json");
+    }
+
+    @Test
+    void telemetryOnlyDrop_strict_throws() {
+        // Manueller Upload: der Nutzer soll erfahren, dass seine Datei keine Ladedaten enthaelt.
+        assertThrows(IllegalArgumentException.class, () -> parser.parse(telemetryOnlyJson()));
+    }
+
+    @Test
+    void telemetryOnlyDrop_lenient_returnsNoSessions() throws Exception {
+        // AutoSync: ein stehendes Auto liefert reine Telemetrie - das ist der Normalfall, kein Fehler.
+        EUDataActParseResult result = parser.parse(this::telemetryOnlyJson, true);
+
+        assertEquals("TMBTEST0000000001", result.vin());
+        assertTrue(result.sessions().isEmpty());
+    }
+
+    @Test
+    void brokenJson_lenient_stillThrows() {
+        // Defekte Datei bleibt ein Fehler - sonst wuerde der AutoSync sie stillschweigend schlucken.
+        // Jackson meldet sie als JsonProcessingException; der ImportService uebersetzt das in
+        // EUDataActUnreadableException (siehe EUDataActImportServiceTest).
+        assertThrows(Exception.class,
+                () -> parser.parse(() -> new java.io.ByteArrayInputStream("nicht json".getBytes()), true));
+    }
 }

@@ -48,6 +48,17 @@ public class EUDataActJsonParser {
     }
 
     public EUDataActParseResult parse(InputStreamSource source) throws IOException {
+        return parse(source, false);
+    }
+
+    /**
+     * {@code lenient} fuer den AutoSync: dort ist eine Datei ohne Ladedaten der Normalfall - das
+     * Fahrzeug meldet im 15-Minuten-Feed auch dann Telemetrie, wenn es tagelang steht. Sie als
+     * Fehler zu behandeln wuerde denselben Datensatz bei jedem Poll erneut scheitern lassen.
+     * Beim manuellen Upload bleibt es ein Fehler, sonst bekaeme der Nutzer keine Rueckmeldung.
+     * Eine kaputte oder fremde Datei wirft in beiden Faellen.
+     */
+    public EUDataActParseResult parse(InputStreamSource source, boolean lenient) throws IOException {
         Header header = readHeader(source);
 
         for (SessionDetector detector : DETECTORS) {
@@ -58,6 +69,11 @@ public class EUDataActJsonParser {
             log.debug("EU Data Act: {} Felder, Detektor {}", header.fieldNames().size(),
                     detector.getClass().getSimpleName());
             return new EUDataActParseResult(header.vin(), detector.detect(index));
+        }
+        if (lenient) {
+            log.debug("EU Data Act: kein Detektor greift ({} Felder) - keine Ladedaten in dieser Datei",
+                    header.fieldNames().size());
+            return new EUDataActParseResult(header.vin(), List.of());
         }
         throw new IllegalArgumentException(
                 "Format wird nicht unterstuetzt - die Datei enthaelt keine erkennbaren Ladedaten");

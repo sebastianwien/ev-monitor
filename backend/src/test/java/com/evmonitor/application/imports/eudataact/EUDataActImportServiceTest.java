@@ -31,6 +31,7 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -103,7 +104,7 @@ class EUDataActImportServiceTest {
         EUDataActSession sessionWithoutKwh = new EUDataActSession(
                 OffsetDateTime.now(), OffsetDateTime.now().plusHours(1),
                 60, 50, 80, null, "AC", 11.0, null, 1000, 10.0);
-        when(mockParser.parse(any(InputStreamSource.class))).thenReturn(new EUDataActParseResult("VIN", List.of(sessionWithoutKwh)));
+        when(mockParser.parse(any(InputStreamSource.class), anyBoolean())).thenReturn(new EUDataActParseResult("VIN", List.of(sessionWithoutKwh)));
 
         EUDataActImportService serviceWithMockParser = new EUDataActImportService(
                 mockParser, carRepository, publicApiImportService);
@@ -315,5 +316,52 @@ class EUDataActImportServiceTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    // ── Telemetrie-Datensatz ohne Ladedaten ───────────────────────────────────
+
+    private java.io.InputStream telemetryOnlyStream() {
+        return getClass().getClassLoader().getResourceAsStream("eudataact/telemetry_only_15min_drop.json");
+    }
+
+    @Test
+    void autoSync_telemetryOnlyDrop_importsNothingWithoutError() throws Exception {
+        // Ein stehendes Auto liefert im 15-Minuten-Feed nur Telemetrie. Das darf den AutoSync
+        // nicht abbrechen, sonst blockiert derselbe Datensatz jeden weiteren Poll.
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(BigDecimal.valueOf(77.0))));
+
+        ImportApiResult result = service.importData(userId, carId, this::telemetryOnlyStream,
+                "20260919122855_TMBTEST0000000001.json", DataSource.EU_DATA_ACT_SYNC, true);
+
+        assertEquals(0, result.imported());
+        assertEquals(0, result.errors());
+        verifyNoInteractions(publicApiImportService);
+    }
+
+    @Test
+    void manualUpload_telemetryOnlyDrop_stillThrows() {
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(BigDecimal.valueOf(77.0))));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                service.importData(userId, carId, this::telemetryOnlyStream, "export.json"));
+    }
+
+    @Test
+    void preview_telemetryOnlyDrop_stillThrows() {
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(BigDecimal.valueOf(77.0))));
+
+        assertThrows(IllegalArgumentException.class, () ->
+                service.preview(userId, carId, this::telemetryOnlyStream, "export.json"));
+    }
+
+    @Test
+    void autoSync_brokenJson_throwsUnreadable_notServerError() {
+        // Auch im lenient-Modus muss eine kaputte Datei erkennbar scheitern - sonst laeuft der
+        // AutoSync endlos gegen sie oder verbucht sie still als "keine Ladevorgaenge".
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(BigDecimal.valueOf(77.0))));
+
+        assertThrows(EUDataActUnreadableException.class, () -> service.importData(userId, carId,
+                () -> new ByteArrayInputStream("nicht json".getBytes(StandardCharsets.UTF_8)),
+                "kaputt.json", DataSource.EU_DATA_ACT_SYNC, true));
     }
 }

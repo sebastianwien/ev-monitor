@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.imports.eudataact.EUDataActImportService;
+import com.evmonitor.application.imports.eudataact.EUDataActUnreadableException;
 import com.evmonitor.application.imports.eudataact.EudaAutoSyncEntitlementService;
 import com.evmonitor.application.imports.eudataact.EudaNotificationService;
 import com.evmonitor.domain.UserRepository;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,13 +44,31 @@ public class InternalEuDataActController {
 
     public record ImportResponse(int imported, int skipped, int errors) {}
 
+    /** Einmaliger Historien-Export - alles andere ist der laufende 15-Minuten-Feed. */
+    private static final String KIND_HISTORY = "HISTORY";
+
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ImportResponse> importDataset(@RequestPart("userId") String userId,
                                                         @RequestPart("carId") String carId,
+                                                        @RequestPart(value = "kind", required = false) String kind,
                                                         @RequestPart("file") MultipartFile file) throws IOException {
+        // Der laufende Feed liefert auch bei stehendem Fahrzeug Telemetrie ohne Ladedaten - das
+        // ist kein Fehler. Die Historie kommt nur einmal und wird deshalb strikt geparst.
+        boolean lenient = !KIND_HISTORY.equalsIgnoreCase(kind);
         ImportApiResult result = importService.importData(UUID.fromString(userId), UUID.fromString(carId),
-                file, file.getOriginalFilename(), DataSource.EU_DATA_ACT_SYNC);
+                file, file.getOriginalFilename(), DataSource.EU_DATA_ACT_SYNC, lenient);
         return ResponseEntity.ok(new ImportResponse(result.imported(), result.skipped(), result.errors()));
+    }
+
+    /**
+     * Nur eine unlesbare Datei ergibt 422 - daran erkennt der Connector, dass ein erneuter
+     * Versuch sinnlos ist. Fachliche Fehler wie ein unbekanntes Fahrzeug bleiben 400 und
+     * sollen sichtbar scheitern, statt den Datensatz still verschwinden zu lassen.
+     */
+    @ExceptionHandler(EUDataActUnreadableException.class)
+    public ResponseEntity<Map<String, String>> handleUnreadable(EUDataActUnreadableException e) {
+        log.info("[EUDA] Datensatz nicht verarbeitbar: {}", e.getMessage());
+        return ResponseEntity.unprocessableEntity().body(Map.of("message", String.valueOf(e.getMessage())));
     }
 
     /** Darf der Nutzer AutoSync (noch) nutzen - der Connector fragt beim Verbinden und taeglich. */

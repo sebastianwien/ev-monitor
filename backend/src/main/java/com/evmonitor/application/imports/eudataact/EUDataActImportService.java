@@ -54,7 +54,7 @@ public class EUDataActImportService {
     public EUDataActPreviewResult preview(UUID userId, UUID carId, InputStreamSource file, String originalFilename)
             throws IOException {
         Car car = requireOwnedCar(userId, carId);
-        EUDataActParseResult parsed = parse(file, originalFilename, car);
+        EUDataActParseResult parsed = parse(file, originalFilename, car, false);
         return EUDataActPreviewResult.from(parsed);
     }
 
@@ -66,8 +66,18 @@ public class EUDataActImportService {
     /** {@code dataSource} unterscheidet manuellen Upload (IMPORT) und AutoSync (SYNC) - gleicher Parser. */
     public ImportApiResult importData(UUID userId, UUID carId, InputStreamSource file, String originalFilename,
                                       DataSource dataSource) throws IOException {
+        return importData(userId, carId, file, originalFilename, dataSource, false);
+    }
+
+    /**
+     * {@code lenient} nur fuer den laufenden 15-Minuten-Feed: dort ist eine Datei ohne Ladedaten
+     * der Normalfall. Fuer den einmaligen Historien-Export und den manuellen Upload bleibt es
+     * strikt - ein unerkanntes Format duerfte dort nicht als "keine Ladevorgaenge" durchgehen.
+     */
+    public ImportApiResult importData(UUID userId, UUID carId, InputStreamSource file, String originalFilename,
+                                      DataSource dataSource, boolean lenient) throws IOException {
         Car car = requireOwnedCar(userId, carId);
-        EUDataActParseResult parsed = parse(file, originalFilename, car);
+        EUDataActParseResult parsed = parse(file, originalFilename, car, lenient);
 
         List<PublicApiSessionRequest.SessionEntry> entries = toSessionEntries(parsed.sessions(), car);
         if (entries.isEmpty()) {
@@ -90,8 +100,23 @@ public class EUDataActImportService {
         return car;
     }
 
-    private EUDataActParseResult parse(InputStreamSource file, String originalFilename, Car car) throws IOException {
-        EUDataActParseResult parsed = parser.parse(() -> toJsonStream(file.getInputStream(), originalFilename));
+    private EUDataActParseResult parse(InputStreamSource file, String originalFilename, Car car, boolean lenient)
+            throws IOException {
+        EUDataActParseResult parsed;
+        try {
+            parsed = parser.parse(() -> toJsonStream(file.getInputStream(), originalFilename), lenient);
+        } catch (EUDataActUnreadableException e) {
+            throw e;
+        } catch (IllegalArgumentException e) {
+            // Parser, Entpacker und Groessen-Guard melden Dateiprobleme als IllegalArgumentException.
+            // Als eigene Klasse weitergeben, damit der AutoSync sie von fachlichen Fehlern
+            // (unbekanntes Fahrzeug, fehlende Rechte) unterscheiden kann.
+            throw new EUDataActUnreadableException(e.getMessage(), e);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            // Kaputtes JSON ist ebenfalls ein Dateiproblem - als IOException wuerde es sonst
+            // einen Serverfehler ergeben und der AutoSync liefe endlos dagegen.
+            throw new EUDataActUnreadableException("Datei ist kein lesbares JSON", e);
+        }
         List<EUDataActSession> sessions = parsed.sessions().stream()
                 .map(s -> withKwhFromSocIfMissing(s, car))
                 .toList();
