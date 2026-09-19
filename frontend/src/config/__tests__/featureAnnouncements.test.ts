@@ -10,6 +10,8 @@ const baseCtx: AnnouncementContext = {
     isAutoSyncLive: false,
     hasTeslaConnection: false,
     teslaLocationScopeGranted: false,
+    hasEudaBrandCar: false,
+    hasEudaConnection: false,
 }
 
 const reconnect = featureAnnouncements.find(a => a.key === 'tesla_location_reconnect_v1')!
@@ -62,5 +64,38 @@ describe('tesla_location_reconnect_v1 ctaAction', () => {
         vi.mocked(teslaFleetService.startReconnect).mockResolvedValue('not_configured')
 
         await expect(reconnect.ctaAction!()).rejects.toThrow()
+    })
+})
+
+const euda = featureAnnouncements.find(a => a.key === 'euda_autosync_v1')!
+
+describe('euda_autosync_v1 condition', () => {
+    it('is hidden for users without a VW-group car', () => {
+        expect(euda.condition!({ ...baseCtx, hasEudaBrandCar: false })).toBe(false)
+    })
+
+    it('is hidden once that user already connected the portal', () => {
+        expect(euda.condition!({ ...baseCtx, hasEudaBrandCar: true, hasEudaConnection: true })).toBe(false)
+    })
+
+    it('shows for a VW-group owner who has not connected yet', () => {
+        expect(euda.condition!({ ...baseCtx, hasEudaBrandCar: true, hasEudaConnection: false })).toBe(true)
+    })
+
+    it('does not depend on the AutoSync entitlement - the trial is the hook', () => {
+        expect(euda.condition!({ ...baseCtx, hasEudaBrandCar: true, isAutoSyncLive: false })).toBe(true)
+    })
+})
+
+describe('euda_autosync_v1 Texte', () => {
+    // Direkt aus den YAML-Quellen gelesen: der i18n-Plugin kompiliert Messages zu Funktionen,
+    // ueber getLocaleMessage waere der Rohtext nicht mehr pruefbar.
+    it('traegt den Marken-Platzhalter in allen vier Sprachen', async () => {
+        const { readFileSync } = await import('node:fs')
+        for (const locale of ['de', 'en', 'nb', 'sv']) {
+            const yaml = readFileSync(new URL(`../../locales/${locale}.yaml`, import.meta.url), 'utf-8')
+            const line = yaml.split('\n').find(l => l.includes(`  ${euda.bodyKey.split('.')[1]}: `))
+            expect(line, locale).toContain('{brand}')
+        }
     })
 })

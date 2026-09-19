@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { SparklesIcon } from '@heroicons/vue/24/outline'
 
-const { announcement, dismiss, total, currentNumber } = useFeatureAnnouncements()
+const { announcement, announcementParams, dismiss, total, currentNumber } = useFeatureAnnouncements()
 const router = useRouter()
 const { t } = useI18n()
 
@@ -61,13 +61,13 @@ const handleCta = async () => {
           <SparklesIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
         </div>
         <div class="flex-1 min-w-0">
-          <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ t(announcement.titleKey) }}</h2>
+          <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">{{ t(announcement.titleKey, announcementParams) }}</h2>
         </div>
         <span v-if="total > 1" class="text-xs text-gray-400 dark:text-gray-500 shrink-0">{{ currentNumber }} / {{ total }}</span>
       </div>
 
       <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed" :class="announcement.credit ? 'mb-2' : 'mb-5'"
-         v-html="t(announcement.bodyKey)" />
+         v-html="t(announcement.bodyKey, announcementParams)" />
       <p v-if="announcement.credit" class="text-xs italic text-gray-400 dark:text-gray-500 mb-5">
         {{ announcement.credit }}
       </p>

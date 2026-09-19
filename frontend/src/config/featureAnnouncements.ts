@@ -4,6 +4,8 @@ export interface AnnouncementContext {
   isAutoSyncLive: boolean
   hasTeslaConnection: boolean
   teslaLocationScopeGranted: boolean
+  hasEudaBrandCar: boolean
+  hasEudaConnection: boolean
 }
 
 export interface FeatureAnnouncement {
@@ -81,5 +83,18 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     bodyKey: 'announcements.survey_ev_pain_points_2026_body',
     ctaLabelKey: 'announcements.survey_ev_pain_points_2026_cta',
     ctaRoute: '/umfrage/ev-pain-points-2026',
+  },
+  {
+    key: 'euda_autosync_v1',
+    releasedAt: '2026-09-19', // nur Bestandsuser - wer danach ein VW-Group-Auto anlegt, bekommt das Modal ohnehin direkt
+    expiresAt: '2026-11-30',
+    titleKey: 'announcements.euda_autosync_v1_title',
+    bodyKey: 'announcements.euda_autosync_v1_body',
+    ctaLabelKey: 'announcements.euda_autosync_v1_cta',
+    ctaRoute: '/imports',
+    // Nur Halter eines VW, Skoda, Audi, Seat oder Cupra, die das Portal noch nicht verbunden
+    // haben. Bewusst ohne Entitlement-Pruefung: der Probemonat ist der Aufhaenger, den Rest
+    // klaert der Wizard unter /imports.
+    condition: (ctx) => ctx.hasEudaBrandCar && !ctx.hasEudaConnection,
   },
 ]
