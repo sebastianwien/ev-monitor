@@ -76,3 +76,10 @@ CLAUDE.md
 
 # Lokales Stripe-Reporting (Business-Daten, gehoert nicht ins oeffentliche Repo)
 scripts/stripe-report.sh
+
+# Claude-Arbeitsverzeichnisse und lokale Backups
+.claude/worktrees/
+.claude/settings.local.json*
+
+# Serena (lokaler Index, generiert)
+.serena/
