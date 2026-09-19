@@ -1307,7 +1307,11 @@ cars:
   error_visibility: Fel vid uppdatering av synlighet
   error_upload: Fel vid uppladdning av bild
   error_delete_image: Fel vid borttagning av bild
-  confirm_delete: Vill du ta bort detta fordon? Denna åtgärd kan inte ångras.
+  confirm_delete: Vill du ta bort detta fordon? Du kan återställa det i 7 dagar, därefter tas fordonet och laddningssessionerna bort permanent.
+  toast_deleted: Fordon borttaget
+  toast_restored: Fordon återställt
+  undo_delete: Ångra
+  error_restore: Kunde inte återställa fordonet
   confirm_delete_image: Ta bort foto?
   toast_first: Din första bil! + {n}-poäng intjänade!
   toast_coins: + {n}-poäng intjänade!
@@ -3008,6 +3012,7 @@ soh:
   empty_no_capacity: "Ingen batterikapacitet är sparad för den här bilen. Utan den går det inte att beräkna hälsotalet - lägg in den i fordonsuppgifterna."
   empty_no_charges: "Det finns ännu ingen laddning med laddnivå. Så snart en fyller batteriet med minst {required} procentenheter beräknas värdet automatiskt."
   empty_hub_too_small: "Det krävs en laddning som fyller batteriet med minst {required} procentenheter, till exempel från 10 % till 90 %. Den största laddningen hittills var {largest} procentenheter. Mindre laddningar ger för oprecisa värden."
+  empty_too_few_charges: "Ett tillförlitligt värde kräver {required} lämpliga laddningar, hittills finns {current}. Enskilda mätningar varierar för mycket för att visas som ett procenttal."
   empty_pending: "Det finns lämpliga laddningar. Värdet visas så snart det skiljer sig tillräckligt tydligt från det förra."
   chart_title: "Historik"
   chart_too_few_points: "För få mätningar för att säga något om trenden."

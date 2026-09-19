@@ -11,6 +11,8 @@ import java.math.BigDecimal;
  * @param qualifyingChargeCount  charges currently meeting the requirement, capped at the
  *                               median window size - beyond that the exact number carries
  *                               no meaning, since only the window feeds the estimate
+ * @param requiredChargeCount    qualifying charges needed before any value is shown - a
+ *                               single estimate is too noisy to present as a measurement
  * @param capacityKnown          false if the car has no nominal net capacity, in which case
  *                               no amount of charging can produce a SoH value
  */
@@ -18,5 +20,6 @@ public record BatterySohStatusResponse(
         int requiredSocHubPercent,
         BigDecimal largestSocHubPercent,
         int qualifyingChargeCount,
+        int requiredChargeCount,
         boolean capacityKnown
 ) {}

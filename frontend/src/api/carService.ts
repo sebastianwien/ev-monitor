@@ -89,6 +89,8 @@ export interface BatterySohStatus {
     /** Largest SoC hub the car ever recorded, null if it has no usable charge. */
     largestSocHubPercent: number | null;
     qualifyingChargeCount: number;
+    /** Qualifying charges needed before a value is shown at all. */
+    requiredChargeCount: number;
     capacityKnown: boolean;
 }
 
@@ -120,6 +122,12 @@ export const carService = {
 
     async deleteCar(id: string): Promise<void> {
         await api.delete(`/cars/${id}`);
+    },
+
+    /** Macht ein Loeschen rueckgaengig, solange das Restore-Fenster laeuft. */
+    async restoreCar(id: string): Promise<Car> {
+        const response = await api.post(`/cars/${id}/restore`);
+        return response.data;
     },
 
     async getBrands(): Promise<BrandInfo[]> {

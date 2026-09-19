@@ -39,6 +39,16 @@ public class BatterySohAutoDetector {
 
     static final int MIN_SOC_DELTA_PERCENT = 75;
     static final int ROLLING_WINDOW_SIZE = 5;
+    /**
+     * Charges required before a value is persisted at all.
+     *
+     * A single estimate carries the full systematic error of the linearity assumption plus
+     * SoC quantization, and nothing averages it out. Worse, the first entry ever written
+     * has no predecessor to be sanity-checked against, and the 2% change threshold then
+     * keeps that value in place for months. Requiring a full window means the first number
+     * a user ever sees is already a median, not a single unlucky charge.
+     */
+    public static final int MIN_SAMPLE_SIZE = ROLLING_WINDOW_SIZE;
     private static final BigDecimal HUNDRED = new BigDecimal("100");
     private static final BigDecimal TWO = new BigDecimal("2");
     private static final BigDecimal MAX_SOH = new BigDecimal("100.00");

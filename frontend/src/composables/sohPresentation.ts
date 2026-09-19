@@ -21,7 +21,12 @@ export function sohAxisBounds(values: number[]): { min: number; max: number } {
   return { min: Math.floor(lowest / 5) * 5, max: CEILING }
 }
 
-export type SohEmptyStateKey = 'no_capacity' | 'no_charges' | 'hub_too_small' | 'pending'
+export type SohEmptyStateKey =
+  | 'no_capacity'
+  | 'no_charges'
+  | 'hub_too_small'
+  | 'too_few_charges'
+  | 'pending'
 
 /**
  * Picks what to tell the user when there is no SoH value yet. Ordered by what blocks
@@ -31,6 +36,7 @@ export function sohEmptyStateKey(status: BatterySohStatus): SohEmptyStateKey {
   if (!status.capacityKnown) return 'no_capacity'
   if (status.largestSocHubPercent == null) return 'no_charges'
   if (status.largestSocHubPercent < status.requiredSocHubPercent) return 'hub_too_small'
+  if (status.qualifyingChargeCount < status.requiredChargeCount) return 'too_few_charges'
   return 'pending'
 }
 

@@ -126,6 +126,11 @@ const emptyStateText = computed<string | null>(() => {
         required: s.requiredSocHubPercent,
         largest: Math.round(s.largestSocHubPercent ?? 0),
       })
+    case 'too_few_charges':
+      return t('soh.empty_too_few_charges', {
+        required: s.requiredChargeCount,
+        current: s.qualifyingChargeCount,
+      })
     default:
       return t('soh.empty_pending')
   }

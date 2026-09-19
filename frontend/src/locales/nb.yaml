@@ -1307,7 +1307,11 @@ cars:
   error_visibility: Feil ved oppdatering av synlighet
   error_upload: Feil ved opplasting av bilde
   error_delete_image: Feil ved sletting av bilde
-  confirm_delete: Vil du slette dette kjøretøyet? Denne handlingen kan ikke angres.
+  confirm_delete: Vil du slette dette kjøretøyet? Du kan gjenopprette det i 7 dager, deretter slettes kjøretøyet og ladeøktene for godt.
+  toast_deleted: Kjøretøy slettet
+  toast_restored: Kjøretøy gjenopprettet
+  undo_delete: Angre
+  error_restore: Kunne ikke gjenopprette kjøretøyet
   confirm_delete_image: Slette bildet?
   toast_first: Din første bil! + {n}-poeng opptjent!
   toast_coins: + {n}-poeng opptjent!
@@ -3008,6 +3012,7 @@ soh:
   empty_no_capacity: "Det er ikke lagret noen batterikapasitet for denne bilen. Uten den kan ikke helsetilstanden beregnes - legg den inn i kjøretøydataene."
   empty_no_charges: "Det finnes ingen lading med ladenivå ennå. Så snart én fyller batteriet med minst {required} prosentpoeng, beregnes verdien automatisk."
   empty_hub_too_small: "Det kreves en lading som fyller batteriet med minst {required} prosentpoeng, for eksempel fra 10 % til 90 %. Den største ladingen så langt var {largest} prosentpoeng. Mindre ladinger gir for unøyaktige verdier."
+  empty_too_few_charges: "En pålitelig verdi krever {required} passende ladinger, så langt finnes {current}. Enkeltmålinger varierer for mye til å vises som en prosentverdi."
   empty_pending: "Passende ladinger er registrert. Verdien vises så snart den skiller seg tydelig nok fra den forrige."
   chart_title: "Historikk"
   chart_too_few_points: "For få målinger til å si noe om trenden."

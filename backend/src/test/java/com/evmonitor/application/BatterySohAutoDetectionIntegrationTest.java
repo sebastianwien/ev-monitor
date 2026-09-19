@@ -27,6 +27,9 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private EvLogService evLogService;
 
+    @Autowired
+    private BatterySohRepository sohRepository;
+
     private EvLog smartcarLog(UUID carId, double kwh, int socBefore, int socAfter, int daysAgo) {
         return EvLog.createFromInternal(
                 carId, new BigDecimal(String.valueOf(kwh)),
@@ -35,6 +38,16 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 null, null,
                 DataSource.SMARTCAR_LIVE, null, ChargingType.AC,
                 60000 + daysAgo, new BigDecimal(socBefore), new BigDecimal(socAfter), null, null);
+    }
+
+    /**
+     * Fills a car with the minimum number of qualifying charges. Below that threshold no
+     * value is persisted at all, so every test targeting something else needs it met.
+     */
+    private void saveQualifyingLogs(UUID carId, double kwh, int count, int firstDaysAgo) {
+        for (int i = 0; i < count; i++) {
+            evLogRepository.save(smartcarLog(carId, kwh, 10, 90, firstDaysAgo + i));
+        }
     }
 
     @Test
@@ -48,6 +61,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         evLogRepository.save(smartcarLog(car.getId(), 55.212, 10, 90, 2));
         // 54.06 / 78 * 100 = 69.31 kWh → SoH = 92.41%
         evLogRepository.save(smartcarLog(car.getId(), 54.06, 13, 91, 5));
+        saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE - 2, 8);
 
         batterySohService.autoDetectAndPersist(car);
 
@@ -67,7 +81,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 user.getId(), CarBrand.CarModel.MODEL_3, 2019,
                 "DE-DU-P01", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
 
-        evLogRepository.save(smartcarLog(car.getId(), 55.212, 10, 90, 1));
+        saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE, 1);
 
         batterySohService.autoDetectAndPersist(car);
         batterySohService.autoDetectAndPersist(car); // second call same day
@@ -87,7 +101,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         batterySohService.addMeasurement(car.getId(), user.getId(),
                 new BatterySohRequest(new BigDecimal("92.00"), LocalDate.now().minusDays(1)));
 
-        evLogRepository.save(smartcarLog(car.getId(), 56.10, 10, 90, 2));
+        saveQualifyingLogs(car.getId(), 56.10, BatterySohAutoDetector.MIN_SAMPLE_SIZE, 2);
 
         batterySohService.autoDetectAndPersist(car);
 
@@ -106,7 +120,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         batterySohService.addMeasurement(car.getId(), user.getId(),
                 new BatterySohRequest(new BigDecimal("92.00"), LocalDate.now().minusDays(1)));
 
-        evLogRepository.save(smartcarLog(car.getId(), 57.60, 10, 90, 2));
+        saveQualifyingLogs(car.getId(), 57.60, BatterySohAutoDetector.MIN_SAMPLE_SIZE, 2);
 
         batterySohService.autoDetectAndPersist(car);
 
@@ -121,6 +135,8 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         Car car = carRepository.save(Car.createNew(
                 user.getId(), CarBrand.CarModel.MODEL_3, 2019,
                 "WB-SH-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE - 1, 3);
 
         // 55.212 kWh / 80% hub = 69.015 kWh capacity → SoH ≈ 92.02%
         evLogService.createInternalLog(new InternalEvLogRequest(
@@ -145,6 +161,8 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
         Car car = carRepository.save(Car.createNew(
                 user.getId(), CarBrand.CarModel.MODEL_3, 2019,
                 "UL-SH-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE - 1, 3);
 
         // Create a manual log without kwhAtVehicle (AT_CHARGER, no SoH detection yet)
         EvLog log = evLogRepository.save(EvLog.createNew(
@@ -284,14 +302,14 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 user.getId(), CarBrand.CarModel.MODEL_3, 2019,
                 "SR-CL-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
 
-        evLogRepository.save(smartcarLog(car.getId(), 55.212, 10, 90, 2));
-        evLogRepository.save(smartcarLog(car.getId(), 55.212, 10, 90, 3));
+        saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE, 2);
 
         batterySohService.autoDetectAndPersist(car);
 
         BatterySohResponse entry = batterySohService.getHistory(car.getId(), user.getId()).get(0);
         assertEquals(BatterySohSource.CHARGE_LOG, entry.source());
-        assertEquals(2, entry.sampleSize(), "Sample size must reflect the charges behind the estimate");
+        assertEquals(BatterySohAutoDetector.MIN_SAMPLE_SIZE, entry.sampleSize(),
+                "Sample size must reflect the charges behind the estimate");
         assertEquals(0, new BigDecimal("80").compareTo(entry.socHubPercent()),
                 "The SoC hub behind the estimate must be persisted");
     }
@@ -334,7 +352,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
                 user.getId(), CarBrand.CarModel.MODEL_3, 2019,
                 "SR-ED-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
 
-        evLogRepository.save(smartcarLog(car.getId(), 55.212, 10, 90, 2));
+        saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE, 2);
         batterySohService.autoDetectAndPersist(car);
         BatterySohResponse auto = batterySohService.getHistory(car.getId(), user.getId()).get(0);
         assertEquals(BatterySohSource.CHARGE_LOG, auto.source());
@@ -397,6 +415,102 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
 
         assertEquals(2, status.qualifyingChargeCount());
         assertEquals(0, new BigDecimal("80").compareTo(status.largestSocHubPercent()));
+    }
+
+    @Test
+    void autoDetectAndPersist_skipsWhenFewerThanMinimumQualifyingLogs() {
+        User user = createAndSaveUser("soh-few-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "FW-01-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE - 1, 2);
+
+        batterySohService.autoDetectAndPersist(car);
+
+        assertTrue(batterySohService.getHistory(car.getId(), user.getId()).isEmpty(),
+                "A single unlucky charge must not be able to seed a permanent SoH value");
+    }
+
+    @Test
+    void autoDetectAndPersist_createsEntryOnceMinimumQualifyingLogsExist() {
+        User user = createAndSaveUser("soh-enough-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "FW-02-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE, 2);
+
+        batterySohService.autoDetectAndPersist(car);
+
+        List<BatterySohResponse> history = batterySohService.getHistory(car.getId(), user.getId());
+        assertEquals(1, history.size());
+        assertEquals(BatterySohAutoDetector.MIN_SAMPLE_SIZE, history.get(0).sampleSize());
+    }
+
+    @Test
+    void detectionStatus_reportsRequiredChargeCount() {
+        User user = createAndSaveUser("soh-stat-req-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "ST-RQ-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        saveQualifyingLogs(car.getId(), 55.212, 2, 2);
+
+        BatterySohStatusResponse status = batterySohService.getDetectionStatus(car.getId(), user.getId());
+
+        assertEquals(BatterySohAutoDetector.MIN_SAMPLE_SIZE, status.requiredChargeCount());
+        assertEquals(2, status.qualifyingChargeCount());
+    }
+
+    @Test
+    void history_hidesLegacyEntriesBackedByTooFewCharges() {
+        User user = createAndSaveUser("soh-legacy-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "LG-01-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        // Written before the minimum sample size existed - a single charge behind it.
+        sohRepository.save(BatterySohEntry.fromChargeLogs(UUID.randomUUID(), car.getId(),
+                new BigDecimal("94.00"), LocalDate.now().minusDays(10), LocalDateTime.now(),
+                1, new BigDecimal("80")));
+
+        assertTrue(batterySohService.getHistory(car.getId(), user.getId()).isEmpty(),
+                "An estimate backed by one charge must not be presented as a measurement");
+    }
+
+    @Test
+    void history_keepsManualAndBmsEntriesRegardlessOfSampleSize() {
+        User user = createAndSaveUser("soh-keep-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "LG-02-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        batterySohService.addMeasurement(car.getId(), user.getId(),
+                new BatterySohRequest(new BigDecimal("91.00"), LocalDate.now().minusMonths(2)));
+        // persistBmsDerived allows one entry per calendar month, hence the gap above.
+        batterySohService.persistBmsDerived(car.getId(), new BigDecimal("69.375"));
+
+        assertEquals(2, batterySohService.getHistory(car.getId(), user.getId()).size(),
+                "Only charge-log estimates carry a sample size - the other sources stay visible");
+    }
+
+    @Test
+    void degradationCache_ignoresEntriesBackedByTooFewCharges() {
+        User user = createAndSaveUser("soh-cache-" + System.currentTimeMillis() + "@test.com");
+        Car car = carRepository.save(Car.createNew(
+                user.getId(), CarBrand.CarModel.MODEL_3, 2019,
+                "LG-03-001", "LR", new BigDecimal("75.00"), new BigDecimal("280.0"), null));
+
+        sohRepository.save(BatterySohEntry.fromChargeLogs(UUID.randomUUID(), car.getId(),
+                new BigDecimal("94.00"), LocalDate.now().minusDays(10), LocalDateTime.now(),
+                1, new BigDecimal("80")));
+        batterySohService.recalculateDegradationCache(car.getId());
+
+        Car reloaded = carRepository.findById(car.getId()).orElseThrow();
+        assertNull(reloaded.getBatteryDegradationPercent(),
+                "A hidden estimate must not keep shrinking the capacity shown on the car card");
+        assertEquals(0, new BigDecimal("75.00").compareTo(reloaded.getEffectiveBatteryCapacityKwh()));
     }
 
     @Test

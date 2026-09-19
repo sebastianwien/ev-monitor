@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.BatterySohEntry;
 import com.evmonitor.domain.BatterySohRepository;
+import com.evmonitor.domain.BatterySohSource;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLogRepository;
@@ -31,10 +32,41 @@ public class BatterySohService {
 
     public List<BatterySohResponse> getHistory(UUID carId, UUID userId) {
         verifyOwnership(carId, userId);
-        return sohRepository.findByCarId(carId)
+        return presentableHistory(carId)
                 .stream()
                 .map(BatterySohResponse::fromDomain)
                 .toList();
+    }
+
+    /**
+     * SoH entries the user gets to see, newest first.
+     *
+     * Charge-log estimates backed by fewer than {@link BatterySohAutoDetector#MIN_SAMPLE_SIZE}
+     * charges are filtered out. New ones are no longer written, but entries from before that
+     * rule exist in the database, and a value resting on a single charge carries the full
+     * systematic error of the estimate - showing it as a percentage claims a precision it
+     * does not have. Manual and BMS entries have no sample size and always pass.
+     */
+    private List<BatterySohEntry> presentableHistory(UUID carId) {
+        return sohRepository.findByCarId(carId).stream()
+                .filter(BatterySohService::isPresentable)
+                .toList();
+    }
+
+    private static boolean isPresentable(BatterySohEntry entry) {
+        if (entry.getSource() != BatterySohSource.CHARGE_LOG) return true;
+        return entry.getSampleSize() != null
+                && entry.getSampleSize() >= BatterySohAutoDetector.MIN_SAMPLE_SIZE;
+    }
+
+    /**
+     * Recomputes the denormalized degradation field on the car from its visible entries.
+     * Needed whenever the presentability rule changes underneath existing data; V183 does
+     * the same thing in SQL for the whole table in one pass.
+     */
+    @Transactional
+    public void recalculateDegradationCache(UUID carId) {
+        syncDegradationToCarField(carId);
     }
 
     /**
@@ -54,6 +86,7 @@ public class BatterySohService {
                 BatterySohAutoDetector.MIN_SOC_DELTA_PERCENT,
                 evLogRepository.findLargestSocHub(carId),
                 qualifying,
+                BatterySohAutoDetector.MIN_SAMPLE_SIZE,
                 nominalNet != null && nominalNet.compareTo(BigDecimal.ZERO) > 0);
     }
 
@@ -125,7 +158,9 @@ public class BatterySohService {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Car not found"));
 
-        List<BatterySohEntry> history = sohRepository.findByCarId(carId);
+        // Same filter as the history endpoint: a value we do not show must not shrink the
+        // capacity behind every consumption and phantom-drain calculation either.
+        List<BatterySohEntry> history = presentableHistory(carId);
         BigDecimal degradation = history.isEmpty() ? null
                 : BigDecimal.valueOf(100).subtract(history.get(0).getSohPercent());
 
@@ -183,9 +218,9 @@ public class BatterySohService {
         // BMS can report slightly >100% due to calibration; cap before DB constraint check
         if (sohPercent.compareTo(BMS_SOH_CAP) > 0) sohPercent = BMS_SOH_CAP;
 
-        List<BatterySohEntry> history = sohRepository.findByCarId(carId);
+        List<BatterySohEntry> history = presentableHistory(carId);
         LocalDate today = LocalDate.now();
-        boolean alreadyThisMonth = history.stream().anyMatch(e ->
+        boolean alreadyThisMonth = sohRepository.findByCarId(carId).stream().anyMatch(e ->
                 e.getRecordedAt().getYear() == today.getYear()
                 && e.getRecordedAt().getMonthValue() == today.getMonthValue());
         if (alreadyThisMonth) return;
@@ -202,16 +237,21 @@ public class BatterySohService {
 
     /**
      * Derives SoH from AT_VEHICLE logs via median capacity estimation and persists the result.
-     * Skips if: no qualifying logs, entry already exists for today, or change is <= 2% vs. last entry.
+     * Skips if: fewer than MIN_SAMPLE_SIZE qualifying logs, entry already exists for today,
+     * or change is <= 2% vs. last entry.
      * Triggered via SohAutoDetectEvent after each EV log save.
      */
     public void autoDetectAndPersist(Car car) {
         BigDecimal nominalNet = car.getNominalNetCapacityKwh();
         if (nominalNet == null || nominalNet.compareTo(BigDecimal.ZERO) <= 0) return;
 
-        List<BatterySohEntry> history = sohRepository.findByCarId(car.getId());
         LocalDate today = LocalDate.now();
-        if (history.stream().anyMatch(e -> e.getRecordedAt().equals(today))) return;
+        // Deduplication looks at every stored entry, not just the visible ones - a hidden
+        // entry still occupies its day. The comparison below deliberately uses the visible
+        // history, because that is what the new value would replace on screen.
+        if (sohRepository.findByCarId(car.getId()).stream()
+                .anyMatch(e -> e.getRecordedAt().equals(today))) return;
+        List<BatterySohEntry> history = presentableHistory(car.getId());
 
         Optional<BatterySohAutoDetector.Detection> detected = BatterySohAutoDetector.detect(
                 evLogRepository.findSohCandidateLogs(car.getId(),
@@ -220,6 +260,7 @@ public class BatterySohService {
                 nominalNet);
 
         if (detected.isEmpty()) return;
+        if (detected.get().sampleSize() < BatterySohAutoDetector.MIN_SAMPLE_SIZE) return;
 
         BigDecimal newSoh = detected.get().sohPercent();
 

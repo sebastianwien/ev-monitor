@@ -6,6 +6,7 @@ const status = (over: Partial<BatterySohStatus> = {}): BatterySohStatus => ({
   requiredSocHubPercent: 75,
   largestSocHubPercent: null,
   qualifyingChargeCount: 0,
+  requiredChargeCount: 5,
   capacityKnown: true,
   ...over,
 })
@@ -47,8 +48,14 @@ describe('sohEmptyStateKey', () => {
     expect(sohEmptyStateKey(status({ largestSocHubPercent: 58 }))).toBe('hub_too_small')
   })
 
-  it('reports pending when qualifying charges exist but no entry was written yet', () => {
+  it('reports too few charges while the sample is below the required count', () => {
+    // One estimate carries the full systematic error, so we show nothing rather than a number.
     expect(sohEmptyStateKey(status({ largestSocHubPercent: 82, qualifyingChargeCount: 2 })))
+      .toBe('too_few_charges')
+  })
+
+  it('reports pending once enough charges exist but no entry was written yet', () => {
+    expect(sohEmptyStateKey(status({ largestSocHubPercent: 82, qualifyingChargeCount: 5 })))
       .toBe('pending')
   })
 })
