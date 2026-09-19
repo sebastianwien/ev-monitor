@@ -18,15 +18,20 @@ import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
 import { isEudaBrand } from '../api/euDataActSyncService'
 import { useCarStore } from '../stores/car'
-import { useImportsTab } from '../composables/useImportsTab'
+import { useImportsTab, featuredImportSection, importSectionOrder, type Tab } from '../composables/useImportsTab'
 import { useImportGating } from '../composables/useImportGating'
 import { apiKeyService, type ApiKeyResponse, type ApiKeyCreatedResponse } from '../api/apiKeyService'
 import { analytics } from '../services/analytics'
 import DemoImportsModal from '../components/demo/DemoImportsModal.vue'
+import ImportAccordion from '../components/imports/ImportAccordion.vue'
 import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
 
 const { t } = useI18n()
 const { activeTab, toggle } = useImportsTab()
+// Die relevanteste Sektion steht oben und startet aufgeklappt - beides aus derselben Regel,
+// damit Position und Aufklapp-Zustand nicht auseinanderlaufen.
+const featuredSection = ref<Tab | null>(null)
+const sectionOrder = computed(() => importSectionOrder(featuredSection.value))
 const authStore = useAuthStore()
 const carStore = useCarStore()
 const showSpritMonitorModal = ref(false)
@@ -45,6 +50,7 @@ const liveUpgradeError = ref('')
 const {
   activeCarIsTesla,
   activeCarIsEudaBrand,
+  activeCarIsXpeng,
   showTeslaSection,
   showAutoSyncSection,
   showSmartcarPitch,
@@ -95,19 +101,17 @@ onMounted(async () => {
     cars.value = await carStore.getCars() ?? []
   } catch { /* ignore */ }
 
-  // Default-Tab erst nach dem Laden der Autos: Tesla-Fahrer landen im Tesla-Tab,
-  // fuer sie existiert der Smartcar-Tab gar nicht.
+  // Erst nach dem Laden der Autos, das aktive Auto entscheidet: Tesla-Fahrer landen im
+  // Tesla-Tab, VW-Group-Fahrer im EU-Data-Act-Tab - dort ist AutoSync fuer sie der Hauptweg.
   const params = new URLSearchParams(window.location.search)
-  if (params.get('smartcar-connected') || params.get('smartcar-error')) {
-    activeTab.value = 'smartcar'
-  } else if (activeCarIsTesla.value) {
-    activeTab.value = 'tesla'
-  } else if (activeCarIsEudaBrand.value) {
-    // VW-Group-Fahrer landen direkt im EU-Data-Act-Tab - AutoSync ist fuer sie der Hauptweg.
-    activeTab.value = 'eu_data_act'
-  } else if (authStore.isPremium) {
-    activeTab.value = 'smartcar'
-  }
+  featuredSection.value = featuredImportSection({
+    returningFromSmartcar: Boolean(params.get('smartcar-connected') || params.get('smartcar-error')),
+    activeCarIsTesla: activeCarIsTesla.value,
+    activeCarIsEudaBrand: activeCarIsEudaBrand.value,
+    activeCarIsXpeng: activeCarIsXpeng.value,
+    hasAutoSync: authStore.isPremium,
+  })
+  activeTab.value = featuredSection.value
 
   await new Promise(resolve => setTimeout(resolve, 100))
   loading.value = false
@@ -246,8 +250,9 @@ const teslaConnectedLabel = ref<string | null>(null)
         </div>
 
         <!-- Accordion -->
-        <div class="-mx-4 md:mx-0 border-y-2 md:border-2 border-gray-300 dark:border-gray-700 md:rounded-sm divide-y-2 divide-gray-300 dark:divide-gray-700 overflow-hidden md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151]">
+        <ImportAccordion :order="sectionOrder">
 
+        <template #tesla>
         <!-- 1. TESLA TELEMETRY - shown to every Tesla owner, first in the list.
              Tesla Fleet-Telemetry is free (no AutoSync subscription needed), so
              pairing lives here, decoupled from the paid AutoSync section below
@@ -274,6 +279,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #smartcar>
         <!-- 2. AUTOSYNC - fuer Tesla-Fahrer komplett ausgeblendet. Enthaelt den
              Smartcar-Weg (kostenpflichtig) und den XPeng-Weg (EU Data Act, gratis). -->
         <div v-if="showAutoSyncSection">
@@ -341,6 +348,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #api>
         <!-- 2. API -->
         <div>
           <button
@@ -449,6 +458,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #spritmonitor>
         <!-- 3. SPRIT-MONITOR -->
         <div>
           <button
@@ -489,6 +500,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #tronity>
         <!-- 4. TRONITY -->
         <div>
           <button
@@ -510,6 +523,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #tessie>
         <!-- 5. TESSIE -->
         <div>
           <button
@@ -542,6 +557,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #xpeng>
         <!-- 6. XPENG (nur sichtbar bei XPeng-Fahrzeug in Garage) -->
         <div v-if="hasXpeng">
           <button
@@ -568,6 +585,8 @@ const teslaConnectedLabel = ref<string | null>(null)
         </div>
 
 
+        </template>
+        <template #eu_data_act>
         <!-- 7. EU DATA ACT (VW Group) -->
         <div>
           <button
@@ -595,6 +614,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #manuell>
         <!-- 8. MANUELL -->
         <div>
           <button
@@ -638,6 +659,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #goe>
         <!-- 6. GO-ECHARGER -->
         <div>
           <button
@@ -664,6 +687,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
+        </template>
+        <template #wallbox>
         <!-- 7. OCPP WALLBOX -->
         <div>
           <button
@@ -702,7 +727,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           </Transition>
         </div>
 
-        </div><!-- end accordion -->
+        </template>
+        </ImportAccordion>
       </div>
     </Transition>
   </div>
