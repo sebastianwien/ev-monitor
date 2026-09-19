@@ -42,7 +42,8 @@ public class AccountAnonymizationService {
     /** @return die IDs der anonymisierten Autos (für den Connector-Purge) */
     @Transactional
     public List<UUID> anonymizeCarsOf(UUID userId) {
-        List<Car> cars = carRepository.findAllByUserId(userId);
+        // Auch soft-gelöschte Autos: deren Personenbezug muss mit dem Konto verschwinden.
+        List<Car> cars = carRepository.findAllByUserIdIncludingDeleted(userId);
         List<UUID> carsWithImage = cars.stream().filter(c -> c.getImagePath() != null).map(Car::getId).toList();
         for (Car car : cars) {
             carRepository.save(car.anonymize());

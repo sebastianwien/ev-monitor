@@ -121,6 +121,22 @@ class AccountDeletionAnonymizationIT {
     }
 
     @Test
+    void anonymize_alsoCoversSoftDeletedCars() {
+        // DSGVO: ein Auto, das im Papierkorb liegt, darf den Personenbezug
+        // nicht ueberleben, wenn der User sein Konto loescht.
+        CarEntity softDeleted = carRepository.findById(carId).orElseThrow();
+        softDeleted.setDeletedAt(LocalDateTime.now());
+        carRepository.save(softDeleted);
+
+        List<UUID> carIds = anonymizationService.anonymizeCarsOf(userId);
+
+        assertEquals(List.of(carId), carIds, "Soft-geloeschtes Auto muss mit anonymisiert werden");
+        CarEntity after = carRepository.findById(carId).orElseThrow();
+        assertNull(after.getUserId(), "user_id muss weg sein");
+        assertNull(after.getLicensePlate(), "Kennzeichen muss weg sein");
+    }
+
+    @Test
     void deleteUserWithoutAnonymization_stillCascades() {
         // Sicherheitsnetz: der CASCADE ist weiterhin aktiv für Autos mit Besitzer
         userRepository.deleteById(otherUserId);

@@ -91,6 +91,25 @@ class AccountAnonymizationServiceTest extends AbstractServiceTest {
     }
 
     @Test
+    void anonymize_alsoCoversSoftDeletedCars() {
+        // DSGVO: ein Auto im Papierkorb darf den Personenbezug nicht ueberleben,
+        // wenn der User sein Konto loescht. Der Purge raeumt es spaeter ohnehin hart ab.
+        User gone = createAndSaveUser("trashcan@example.com");
+        Car car = carRepository.save(Car.createNew(gone.getId(), CarBrand.CarModel.MODEL_3, 2022, "B-EV 9",
+                "LR", new BigDecimal("75"), new BigDecimal("300"), null));
+        carRepository.save(car.softDelete());
+
+        List<UUID> carIds = service.anonymizeCarsOf(gone.getId());
+
+        assertEquals(List.of(car.getId()), carIds, "Soft-geloeschtes Auto muss mit anonymisiert werden");
+        Car anon = carRepository.findByIdIncludingDeleted(car.getId()).orElseThrow();
+        assertTrue(anon.isAnonymized());
+        assertNull(anon.getUserId());
+        assertNull(anon.getLicensePlate());
+        assertTrue(anon.isDeleted(), "Der Soft-Delete bleibt bestehen, der Purge raeumt spaeter ab");
+    }
+
+    @Test
     void anonymizedCar_stillFeedsPublicModelStatsAndPeerBenchmarkWithoutErrors() {
         VehicleSpecification spec = vehicleSpecificationRepository.save(VehicleSpecification.createNew(
                 "Tesla", "Model 3", new BigDecimal("75.0"), null, new BigDecimal("490"), new BigDecimal("15.4"),
