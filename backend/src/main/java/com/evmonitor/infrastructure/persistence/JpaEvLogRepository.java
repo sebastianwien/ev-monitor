@@ -153,10 +153,11 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("before") LocalDateTime before,
             org.springframework.data.domain.Pageable pageable);
 
+    // Auskunftsrecht/Kontolöschung: bewusst inklusive soft-gelöschter Autos.
     @Query("SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId")
     List<EvLogEntity> findAllByUserId(@Param("userId") UUID userId);
 
-    @Query("SELECT COUNT(e) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId")
+    @Query("SELECT COUNT(e) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId AND c.deletedAt IS NULL")
     long countByUserId(@Param("userId") UUID userId);
 
     boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end);
@@ -208,7 +209,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                                  @Param("source") com.evmonitor.domain.weather.TemperatureSource source);
 
     @Query("""
-        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
         WHERE c.userId = :userId
           AND e.geohash LIKE :geohashPrefix
           AND COALESCE(e.publicCharging, false) = :isPublic
@@ -223,7 +224,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             org.springframework.data.domain.Pageable pageable);
 
     @Query("""
-        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
         WHERE c.userId = :userId
           AND e.geohash LIKE :geohashPrefix
           AND COALESCE(e.publicCharging, false) = :isPublic
@@ -235,7 +236,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             org.springframework.data.domain.Pageable pageable);
 
     @Query("""
-        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
         WHERE c.userId = :userId
           AND e.geohash = :geohash
           AND e.costEur IS NULL
@@ -248,7 +249,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
      * ortsbasierte Nachtrag erreicht sie nicht: Import-Quellen wie XPeng liefern keinen Geohash.
      */
     @Query("""
-        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
         WHERE c.userId = :userId
           AND e.costEur IS NULL
           AND (e.publicCharging IS NULL OR e.publicCharging = false)
@@ -273,7 +274,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource = :dataSource")
     void deleteAllByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
 
-    @Query("SELECT COUNT(e) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId AND e.dataSource = :dataSource")
+    @Query("SELECT COUNT(e) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId AND e.dataSource = :dataSource AND c.deletedAt IS NULL")
     int countByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
 
     @Modifying
@@ -321,7 +322,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             SELECT c.userId AS ownerUserId,
                    e.powerCurvePoints AS powerCurveJson,
                    e.socCurvePoints AS socCurveJson
-            FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE e.id = :id
+            FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL WHERE e.id = :id
             """)
     Optional<OwnerCurveRow> findOwnerIdAndPowerCurveJson(@Param("id") UUID id);
 
@@ -379,7 +380,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                    e.publicCharging AS publicCharging,
                    e.chargingType AS chargingType,
                    e.loggedAt AS loggedAt
-            FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id
+            FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
             WHERE e.shareToken = :token
             """)
     Optional<PublicCurveRow> findPublicCurveByShareToken(@Param("token") String token);
@@ -536,7 +537,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                        l.odometer_km,
                        LAG(l.odometer_km) OVER (PARTITION BY l.car_id ORDER BY l.logged_at) AS prev_odometer
                 FROM ev_log l
-                JOIN car c ON c.id = l.car_id
+                JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
                 WHERE c.model = :model
                   AND (l.include_in_statistics = true
                        OR (:isSeedUser = true
@@ -578,7 +579,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                        l.cost_eur,
                        l.is_public_charging
                 FROM ev_log l
-                JOIN car c ON c.id = l.car_id
+                JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
                 WHERE l.cost_eur > 0
                   AND (l.include_in_statistics = true
                        OR (:isSeedUser = true
@@ -596,7 +597,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = """
             SELECT c.manufacture_year, COUNT(DISTINCT l.car_id) AS car_count
             FROM ev_log l
-            JOIN car c ON c.id = l.car_id
+            JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
             WHERE c.model = :model
               AND c.manufacture_year IS NOT NULL
               AND (l.include_in_statistics = true
@@ -611,7 +612,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
 
     @Query(value = """
             SELECT COALESCE(l.route_type, 'UNKNOWN') AS route_type, COUNT(*) AS cnt
-            FROM ev_log l JOIN car c ON c.id = l.car_id
+            FROM ev_log l JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
             WHERE c.model = :model
               AND (l.include_in_statistics = true OR (:isSeedUser = true
                    AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
@@ -635,7 +636,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                      ELSE NULL
                 END
             FROM ev_log l
-            JOIN car c ON c.id = l.car_id
+            JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
             WHERE c.model = :model
               AND l.charge_duration_minutes > 0
               AND COALESCE(l.kwh_at_vehicle, l.kwh_charged) > 0
@@ -664,7 +665,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                      ELSE NULL END AS dc_avg_cost,
                 COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95) > 0) AS dc_count
             FROM ev_log l
-            JOIN car c ON c.id = l.car_id
+            JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
             WHERE c.model = :model
               AND (l.include_in_statistics = true
                    OR (:isSeedUser = true

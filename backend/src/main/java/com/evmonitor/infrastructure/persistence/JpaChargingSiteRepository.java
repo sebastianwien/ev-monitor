@@ -25,7 +25,7 @@ public interface JpaChargingSiteRepository extends JpaRepository<ChargingSiteEnt
             SELECT s AS site, MAX(l.loggedAt) AS lastUsedAt, COUNT(l) AS usageCount
             FROM EvLogEntity l
             JOIN ChargingSiteEntity s ON l.chargingSiteId = s.id
-            JOIN CarEntity c ON l.carId = c.id
+            JOIN CarEntity c ON l.carId = c.id AND c.deletedAt IS NULL
             WHERE c.userId = :userId
             GROUP BY s
             ORDER BY MAX(l.loggedAt) DESC

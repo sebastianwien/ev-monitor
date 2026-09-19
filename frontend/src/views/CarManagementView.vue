@@ -43,7 +43,7 @@ const {
   wltpData, customNetCapacityKwh, customGrossCapacityKwh, officialRangeKm, officialConsumptionKwhPer100km,
   ratingSource, resetCustomFields,
   fetchCars, fetchBrands, resetForm,
-  openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel,
+  openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel, toastUndo,
 } = useCarForm()
 
 // Zeitraum als Label; bei gleichem Zeitraum zusaetzlich die Variante (sonst ununterscheidbar)
@@ -940,7 +940,18 @@ const filteredCapacities = computed(() => {
           <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
           </svg>
-          <p class="text-sm font-medium">{{ toastMessage }}</p>
+          <div class="min-w-0">
+            <p class="text-sm font-medium">{{ toastMessage }}</p>
+            <!-- Undo zum Soft-Delete: Tap-Ziel gross genug fuer Mobile. -->
+            <button
+              v-if="toastUndo"
+              type="button"
+              class="mt-2 -ml-1 px-3 py-2 text-sm font-bold underline underline-offset-2 rounded-sm hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white"
+              @click="toastUndo?.()"
+            >
+              {{ $t('cars.undo_delete') }}
+            </button>
+          </div>
         </div>
       </div>
     </div>

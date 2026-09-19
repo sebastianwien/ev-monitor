@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.CarImageResponse;
+import com.evmonitor.application.CarService;
 import com.evmonitor.application.CarResponse;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
@@ -8,6 +9,7 @@ import com.evmonitor.domain.User;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.*;
@@ -19,6 +21,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,6 +39,9 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Value("${app.car-images.directory}")
     private String uploadDirectory;
+
+    @Autowired
+    private CarService carService;
 
     private User owner;
     private User otherUser;
@@ -345,7 +351,7 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void deletingCarAlsoDeletesImageFromDisk() throws IOException {
+    void deletingCarKeepsImageUntilPurge() throws IOException {
         uploadImage(owner, ownerCar, false);
         File imageFile = imageFileFor(ownerCar.getId());
         assertTrue(imageFile.exists(), "Image file must exist before car deletion");
@@ -356,7 +362,16 @@ class CarImageControllerIntegrationTest extends AbstractIntegrationTest {
                 HttpMethod.DELETE, request, Void.class);
 
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-        assertFalse(imageFile.exists(), "Image file must be deleted from disk when car is deleted");
+        // Soft-Delete: das Bild muss bleiben, sonst kommt ein wiederhergestelltes Auto ohne Foto zurueck.
+        assertTrue(imageFile.exists(), "Image must survive the soft delete so a restore is complete");
+
+        // Erst der Purge nach Ablauf des Restore-Fensters raeumt die Datei ab.
+        carRepository.findByIdIncludingDeleted(ownerCar.getId()).ifPresent(car ->
+                carRepository.save(car.toBuilder()
+                        .deletedAt(LocalDateTime.now().minusDays(Car.RESTORE_WINDOW_DAYS + 1)).build()));
+        carService.purgeExpiredDeletedCars();
+
+        assertFalse(imageFile.exists(), "Image file must be deleted from disk once the car is purged");
     }
 
     // -------------------------------------------------------------------------

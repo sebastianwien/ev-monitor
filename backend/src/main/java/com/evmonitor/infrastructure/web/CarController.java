@@ -75,6 +75,13 @@ public class CarController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Undo zum Soft-Delete, gueltig innerhalb des Restore-Fensters. */
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<CarResponse> restoreCar(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(carService.restoreCar(id, principal.getUser().getId()));
+    }
+
     @PatchMapping("/{id}/business-car")
     public ResponseEntity<CarResponse> setBusinessCar(
             @PathVariable UUID id,

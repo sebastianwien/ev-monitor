@@ -33,7 +33,7 @@ public class LeaderboardQueryRepository {
                 SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
                        SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)) AS value
                 FROM ev_log e
-                JOIN car c ON e.car_id = c.id
+                JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
                 WHERE e.include_in_statistics = true
                   AND u.is_seed_data = false
@@ -80,7 +80,7 @@ public class LeaderboardQueryRepository {
                            LAG(e.odometer_km) OVER (PARTITION BY e.car_id ORDER BY e.logged_at, e.id)
                                AS prev_odometer_km
                     FROM ev_log e
-                    JOIN car c ON e.car_id = c.id
+                    JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                     JOIN app_user u ON c.user_id = u.id
                     WHERE e.include_in_statistics = true
                       AND u.is_seed_data = false
@@ -110,7 +110,7 @@ public class LeaderboardQueryRepository {
                     SELECT c.id AS car_id, c.user_id, c.model AS car_model,
                            MAX(e.odometer_km) - MIN(e.odometer_km) AS delta_km
                     FROM ev_log e
-                    JOIN car c ON e.car_id = c.id
+                    JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                     WHERE e.include_in_statistics = true
                       AND e.odometer_km IS NOT NULL
                       AND e.logged_at >= :start
@@ -174,7 +174,7 @@ public class LeaderboardQueryRepository {
                        SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)) AS kwh_total,
                        COUNT(e.id) AS session_count
                 FROM ev_log e
-                JOIN car c ON e.car_id = c.id
+                JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
                 WHERE e.include_in_statistics = true
                   AND u.is_seed_data = false
@@ -211,7 +211,7 @@ public class LeaderboardQueryRepository {
                 SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
                        CAST(MIN(e.temperature_celsius) AS NUMERIC) AS value
                 FROM ev_log e
-                JOIN car c ON e.car_id = c.id
+                JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
                 WHERE e.include_in_statistics = true
                   AND u.is_seed_data = false
@@ -236,7 +236,7 @@ public class LeaderboardQueryRepository {
                 SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
                        CAST(MAX(e.temperature_celsius) AS NUMERIC) AS value
                 FROM ev_log e
-                JOIN car c ON e.car_id = c.id
+                JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
                 WHERE e.include_in_statistics = true
                   AND u.is_seed_data = false
@@ -261,7 +261,7 @@ public class LeaderboardQueryRepository {
                 SELECT CAST(c.id AS TEXT), CAST(u.id AS TEXT), u.username, c.model,
                        MAX(e.max_charging_power_kw) AS value
                 FROM ev_log e
-                JOIN car c ON e.car_id = c.id
+                JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
                 WHERE e.include_in_statistics = true
                   AND u.is_seed_data = false

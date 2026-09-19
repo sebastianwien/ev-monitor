@@ -83,4 +83,8 @@ public class CarEntity {
 
     @Column(name = "anonymized_at")
     private LocalDateTime anonymizedAt;
+
+    /** Soft-Delete-Marker. Alle Reads im Repository filtern auf NULL. */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

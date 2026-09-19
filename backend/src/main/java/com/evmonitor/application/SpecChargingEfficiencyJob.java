@@ -47,7 +47,7 @@ public class SpecChargingEfficiencyJob {
                 ) AS median_efficiency,
                 COUNT(*) AS log_count
             FROM ev_log e
-            JOIN car c ON c.id = e.car_id
+            JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
             JOIN vehicle_specification vs ON vs.id = c.vehicle_specification_id
             WHERE e.soc_start_percent IS NOT NULL
               AND e.soc_after_charge_percent IS NOT NULL

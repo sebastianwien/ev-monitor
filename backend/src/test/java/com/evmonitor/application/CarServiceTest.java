@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -205,7 +206,7 @@ class CarServiceTest {
     }
 
     @Test
-    void shouldDeleteCar_OnlyIfOwner() {
+    void shouldSoftDeleteCar_OnlyIfOwner() {
         // Given: User owns this car
         Car ownedCar = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3);
         when(carRepository.findById(carId)).thenReturn(Optional.of(ownedCar));
@@ -213,8 +214,12 @@ class CarServiceTest {
         // When
         carService.deleteCar(carId, userId);
 
-        // Then
-        verify(carRepository).deleteById(carId);
+        // Then: flag set, row untouched, image kept for a possible restore
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        assertTrue(captor.getValue().isDeleted());
+        verify(carRepository, never()).deleteById(any(UUID.class));
+        verify(carImageService, never()).deleteImage(any(UUID.class));
     }
 
     @Test
@@ -230,6 +235,7 @@ class CarServiceTest {
 
         // Verify no deletion happened
         verify(carRepository, never()).deleteById(any(UUID.class));
+        verify(carRepository, never()).save(any(Car.class));
     }
 
     @Test
@@ -242,6 +248,7 @@ class CarServiceTest {
 
         // Verify no deletion happened
         verify(carRepository, never()).deleteById(any(UUID.class));
+        verify(carRepository, never()).save(any(Car.class));
     }
 
     @Test
@@ -326,5 +333,78 @@ class CarServiceTest {
         // When & Then
         assertThrows(NotFoundException.class, () -> carService.setActiveCar(carId, userId));
         verify(carRepository, never()).save(any(Car.class));
+    }
+
+    // --- Soft-Delete: Wiederherstellung innerhalb des Restore-Fensters ---
+
+    @Test
+    void shouldRestoreCar_WithinRetentionWindow() {
+        // Given: gestern geloescht, User hat sonst kein Auto
+        Car deleted = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3)
+                .toBuilder().deletedAt(LocalDateTime.now().minusDays(1)).build();
+        when(carRepository.findByIdIncludingDeleted(carId)).thenReturn(Optional.of(deleted));
+        when(carRepository.findAllByUserId(userId)).thenReturn(List.of());
+        when(carRepository.save(any(Car.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        carService.restoreCar(carId, userId);
+
+        // Then
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        assertFalse(captor.getValue().isDeleted());
+    }
+
+    @Test
+    void shouldRejectRestore_AfterRetentionWindowExpired() {
+        // Given: vor 8 Tagen geloescht, Fenster sind 7 Tage
+        Car deleted = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3)
+                .toBuilder().deletedAt(LocalDateTime.now().minusDays(8)).build();
+        when(carRepository.findByIdIncludingDeleted(carId)).thenReturn(Optional.of(deleted));
+
+        // When & Then
+        assertThrows(NotFoundException.class, () -> carService.restoreCar(carId, userId));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void shouldRejectRestore_IfNotOwner() {
+        // SECURITY: ein fremdes geloeschtes Auto darf niemand zurueckholen
+        UUID otherUserId = UUID.randomUUID();
+        Car deleted = TestDataBuilder.createTestCarWithId(carId, otherUserId, CarBrand.CarModel.I4)
+                .toBuilder().deletedAt(LocalDateTime.now().minusHours(1)).build();
+        when(carRepository.findByIdIncludingDeleted(carId)).thenReturn(Optional.of(deleted));
+
+        assertThrows(ForbiddenException.class, () -> carService.restoreCar(carId, userId));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void shouldRejectRestore_IfCarWasNeverDeleted() {
+        Car alive = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3);
+        when(carRepository.findByIdIncludingDeleted(carId)).thenReturn(Optional.of(alive));
+
+        assertThrows(NotFoundException.class, () -> carService.restoreCar(carId, userId));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void shouldNotRestoreAsPrimary_WhenUserAlreadyHasPrimaryCar() {
+        // Given: geloeschtes Auto war primary, inzwischen ist ein anderes primary
+        Car deleted = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3)
+                .activate().toBuilder().deletedAt(LocalDateTime.now().minusHours(2)).build();
+        Car currentPrimary = TestDataBuilder.createTestCarWithId(UUID.randomUUID(), userId, CarBrand.CarModel.I4)
+                .activate();
+        when(carRepository.findByIdIncludingDeleted(carId)).thenReturn(Optional.of(deleted));
+        when(carRepository.findAllByUserId(userId)).thenReturn(List.of(currentPrimary));
+        when(carRepository.save(any(Car.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // When
+        carService.restoreCar(carId, userId);
+
+        // Then: kein zweites primary-Auto
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        assertFalse(captor.getValue().isPrimary());
     }
 }

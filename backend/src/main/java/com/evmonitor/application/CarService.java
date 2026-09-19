@@ -77,10 +77,48 @@ public class CarService {
         return CarResponse.fromDomain(carRepository.save(updatedCar));
     }
 
+    /**
+     * Soft-Delete: das Fahrzeug verschwindet sofort aus allen Ansichten, Ladelogs und Bild
+     * bleiben {@link Car#RESTORE_WINDOW_DAYS} Tage erhalten. Der Purge-Job löscht danach hart.
+     */
     public void deleteCar(UUID carId, UUID userId) {
-        requireOwnedCar(carId, userId);
-        carRepository.deleteById(carId);
-        carImageService.deleteImage(carId);
+        Car car = requireOwnedCar(carId, userId);
+        carRepository.save(car.softDelete());
+    }
+
+    /**
+     * Macht einen Soft-Delete innerhalb des Restore-Fensters rückgängig.
+     * Ein abgelaufenes oder nie gelöschtes Auto meldet {@link NotFoundException} -
+     * für den User ist beides schlicht "nicht wiederherstellbar".
+     */
+    @Transactional
+    public CarResponse restoreCar(UUID carId, UUID userId) {
+        Car car = carRepository.findByIdIncludingDeleted(carId)
+                .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
+        if (!car.isOwnedBy(userId)) {
+            throw ForbiddenException.notOwner("Car", carId);
+        }
+        if (!car.isRestorable()) {
+            throw NotFoundException.forEntity("Car", carId);
+        }
+        // Kein zweites Hauptfahrzeug: inzwischen kann ein anderes Auto primary geworden sein.
+        boolean userHasPrimary = carRepository.findAllByUserId(userId).stream().anyMatch(Car::isPrimary);
+        return CarResponse.fromDomain(carRepository.save(car.restore(!userHasPrimary)));
+    }
+
+    /**
+     * Endgültiges Löschen nach Ablauf des Restore-Fensters. Erst jetzt fällt das Bild weg
+     * und die FK-Kaskade räumt Ladelogs und abhängige Daten ab.
+     */
+    @Transactional
+    public int purgeExpiredDeletedCars() {
+        List<Car> expired = carRepository.findSoftDeletedBefore(
+                LocalDateTime.now().minusDays(Car.RESTORE_WINDOW_DAYS));
+        for (Car car : expired) {
+            carRepository.deleteById(car.getId());
+            carImageService.deleteImage(car.getId());
+        }
+        return expired.size();
     }
 
     public Car getCarById(UUID carId) {

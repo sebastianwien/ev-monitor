@@ -171,14 +171,14 @@ class UserDeletionCascadeTest {
         log2.setUpdatedAt(LocalDateTime.now());
         evLogRepository.save(log2);
 
-        assertEquals(2, carRepository.findAllByUserId(userId).size());
+        assertEquals(2, carRepository.findAllByUserIdAndDeletedAtIsNull(userId).size());
         assertEquals(2, evLogRepository.findAllByUserId(userId).size());
 
         // Only delete the user - DB CASCADE handles the rest
         userRepository.deleteById(userId);
 
         assertFalse(userRepository.existsById(userId));
-        assertEquals(0, carRepository.findAllByUserId(userId).size(), "All cars should be CASCADE deleted");
+        assertEquals(0, carRepository.findAllByUserIdAndDeletedAtIsNull(userId).size(), "All cars should be CASCADE deleted");
         assertEquals(0, evLogRepository.findAllByUserId(userId).size(), "All EvLogs should be CASCADE deleted");
     }
 

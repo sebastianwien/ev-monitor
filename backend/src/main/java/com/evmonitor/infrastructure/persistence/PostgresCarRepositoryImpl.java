@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,30 +25,49 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         return toDomain(savedEntity);
     }
 
+    /**
+     * Soft-Delete: alle Lesepfade blenden gelöschte Fahrzeuge aus. Einziger Zugang zu
+     * einem gelöschten Auto ist {@link #findByIdIncludingDeleted} (Restore und Purge).
+     */
     @Override
     public Optional<Car> findById(UUID id) {
+        return jpaCarRepository.findByIdAndDeletedAtIsNull(id).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<Car> findByIdIncludingDeleted(UUID id) {
         return jpaCarRepository.findById(id).map(this::toDomain);
     }
 
     @Override
     public List<Car> findAllByUserId(UUID userId) {
-        List<CarEntity> entities = jpaCarRepository.findAllByUserId(userId);
+        List<CarEntity> entities = jpaCarRepository.findAllByUserIdAndDeletedAtIsNull(userId);
         return toDomainList(entities);
     }
 
     @Override
     public long countByUserId(UUID userId) {
-        return jpaCarRepository.countByUserId(userId);
+        return jpaCarRepository.countByUserIdAndDeletedAtIsNull(userId);
     }
 
     @Override
     public List<Car> findAllByModel(CarBrand.CarModel model) {
-        return toDomainList(jpaCarRepository.findAllByModel(model));
+        return toDomainList(jpaCarRepository.findAllByModelAndDeletedAtIsNull(model));
     }
 
     @Override
     public void deleteById(UUID id) {
         jpaCarRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Car> findAllByUserIdIncludingDeleted(UUID userId) {
+        return toDomainList(jpaCarRepository.findAllByUserId(userId));
+    }
+
+    @Override
+    public List<Car> findSoftDeletedBefore(LocalDateTime cutoff) {
+        return toDomainList(jpaCarRepository.findAllByDeletedAtBefore(cutoff));
     }
 
     @Override
@@ -57,7 +77,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
 
     @Override
     public List<Car> findAllByVehicleSpecificationId(UUID vehicleSpecificationId) {
-        return toDomainList(jpaCarRepository.findAllByVehicleSpecificationId(vehicleSpecificationId));
+        return toDomainList(jpaCarRepository.findAllByVehicleSpecificationIdAndDeletedAtIsNull(vehicleSpecificationId));
     }
 
     private CarEntity toEntity(Car domain) {
@@ -83,6 +103,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
         entity.setHeatPump(domain.isHeatPump());
         entity.setVehicleSpecificationId(domain.getVehicleSpecificationId());
         entity.setAnonymizedAt(domain.getAnonymizedAt());
+        entity.setDeletedAt(domain.getDeletedAt());
         return entity;
     }
 
@@ -140,6 +161,7 @@ public class PostgresCarRepositoryImpl implements CarRepository {
                 .heatPump(entity.isHeatPump())
                 .vehicleSpecificationId(entity.getVehicleSpecificationId())
                 .anonymizedAt(entity.getAnonymizedAt())
+                .deletedAt(entity.getDeletedAt())
                 .specNetBatteryCapacityKwh(specNetKwh)
                 .build();
     }

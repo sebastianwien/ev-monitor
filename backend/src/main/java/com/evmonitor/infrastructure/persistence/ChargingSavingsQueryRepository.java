@@ -48,7 +48,7 @@ public class ChargingSavingsQueryRepository {
                 SELECT SUM(COALESCE(e.cost_eur, e.price_per_kwh * e.kwh_charged))
                          / NULLIF(SUM(e.kwh_charged), 0) AS preis,
                        count(*)::int AS n
-                FROM ev_log e JOIN car c ON c.id = e.car_id
+                FROM ev_log e JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS FALSE
                   AND e.kwh_charged > 0
@@ -65,7 +65,7 @@ public class ChargingSavingsQueryRepository {
     public List<BigDecimal> ownPublicPrices(UUID userId) {
         return jdbc.queryForList("""
                 SELECT %s AS price
-                FROM ev_log e JOIN car c ON c.id = e.car_id
+                FROM ev_log e JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS TRUE
                   AND e.kwh_charged > 0 AND e.cost_eur > 0
@@ -83,7 +83,7 @@ public class ChargingSavingsQueryRepository {
                 SELECT GREATEST(
                          EXTRACT(EPOCH FROM (now() - MIN(e.logged_at))) / (365.25 * 86400 / 12),
                          0.0)::numeric
-                FROM ev_log e JOIN car c ON c.id = e.car_id
+                FROM ev_log e JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS FALSE
                   AND e.kwh_charged > 0
@@ -96,7 +96,7 @@ public class ChargingSavingsQueryRepository {
     public String homeGeohash(UUID userId) {
         List<String> rows = jdbc.queryForList("""
                 SELECT e.geohash
-                FROM ev_log e JOIN car c ON c.id = e.car_id
+                FROM ev_log e JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE c.user_id = ? AND e.is_public_charging IS FALSE AND e.geohash IS NOT NULL
                 GROUP BY e.geohash ORDER BY count(*) DESC LIMIT 1
                 """, String.class, userId);
@@ -116,7 +116,7 @@ public class ChargingSavingsQueryRepository {
                 SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY %s) AS median,
                        count(*)::int AS n
                 FROM ev_log e
-                JOIN car c ON c.id = e.car_id
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 JOIN app_user u ON u.id = c.user_id
                 WHERE e.is_public_charging IS TRUE
                   AND e.kwh_charged > 0 AND e.cost_eur > 0
@@ -136,7 +136,7 @@ public class ChargingSavingsQueryRepository {
                 SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY %s) AS median,
                        count(*)::int AS n
                 FROM ev_log e
-                JOIN car c ON c.id = e.car_id
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 JOIN app_user u ON u.id = c.user_id
                 WHERE e.is_public_charging IS TRUE
                   AND e.kwh_charged > 0 AND e.cost_eur > 0
@@ -180,7 +180,7 @@ public class ChargingSavingsQueryRepository {
                        -- danach gerechnet faellt die Gebuehr unter den Tisch und die
                        -- ausgewiesene Ersparnis waere zu hoch.
                        SUM(COALESCE(e.cost_eur, e.price_per_kwh * e.kwh_charged)) AS kosten
-                FROM ev_log e JOIN car c ON c.id = e.car_id
+                FROM ev_log e JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE c.user_id = ?
                   AND e.is_public_charging IS FALSE
                   AND e.kwh_charged > 0
@@ -202,7 +202,7 @@ public class ChargingSavingsQueryRepository {
                   SELECT EXTRACT(YEAR FROM e.logged_at)::int AS jahr,
                          percentile_cont(0.5) WITHIN GROUP (ORDER BY %s) AS preis,
                          count(*)::int AS n
-                  FROM ev_log e JOIN car c ON c.id = e.car_id
+                  FROM ev_log e JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                   WHERE c.user_id = ? AND e.is_public_charging IS TRUE
                     AND e.kwh_charged > 0 AND e.cost_eur > 0
                     AND %s BETWEEN 0.01 AND 2.0
@@ -211,7 +211,7 @@ public class ChargingSavingsQueryRepository {
                   SELECT EXTRACT(YEAR FROM e.logged_at)::int AS jahr,
                          percentile_cont(0.5) WITHIN GROUP (ORDER BY %s) AS preis,
                          count(*)::int AS n
-                  FROM ev_log e JOIN car c ON c.id = e.car_id JOIN app_user u ON u.id = c.user_id
+                  FROM ev_log e JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL JOIN app_user u ON u.id = c.user_id
                   WHERE e.is_public_charging IS TRUE
                     AND e.kwh_charged > 0 AND e.cost_eur > 0
                     AND u.country IS NOT DISTINCT FROM ?

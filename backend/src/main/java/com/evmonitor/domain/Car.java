@@ -17,6 +17,9 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @AllArgsConstructor
 public class Car {
+    /** Frist, in der ein gelöschtes Fahrzeug wiederhergestellt werden kann. */
+    public static final int RESTORE_WINDOW_DAYS = 7;
+
     private final UUID id;
     private final UUID userId;
     private final CarBrand.CarModel model;
@@ -44,6 +47,12 @@ public class Car {
     private final boolean heatPump;
     /** DSGVO: gesetzt, sobald der Besitzer sein Konto gelöscht hat - userId ist dann NULL. */
     private final LocalDateTime anonymizedAt;
+    /**
+     * Soft-Delete: gesetzt, wenn der User das Fahrzeug gelöscht hat. Die Zeile und alle
+     * abhängigen Daten bleiben {@link #RESTORE_WINDOW_DAYS} Tage bestehen, danach räumt
+     * der Purge-Job hart ab und die FK-Kaskade greift wie zuvor.
+     */
+    private final LocalDateTime deletedAt;
 
     public static Car createNew(UUID userId, CarBrand.CarModel model, Integer year, String licensePlate,
             String trim, BigDecimal customNetCapacityKwh, BigDecimal powerKw,
@@ -73,6 +82,29 @@ public class Car {
 
     public boolean isAnonymized() {
         return anonymizedAt != null;
+    }
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
+    /** Nur innerhalb des Fensters darf der User selbst wiederherstellen. */
+    public boolean isRestorable() {
+        return deletedAt != null && deletedAt.isAfter(LocalDateTime.now().minusDays(RESTORE_WINDOW_DAYS));
+    }
+
+    /** Soft-Delete: Fahrzeug verschwindet aus allen Ansichten, Daten bleiben erhalten. */
+    public Car softDelete() {
+        return toBuilder().deletedAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+    }
+
+    /**
+     * Macht den Soft-Delete rückgängig. {@code keepPrimary} ist false, wenn der User
+     * inzwischen ein anderes Hauptfahrzeug hat - sonst gäbe es zwei davon.
+     */
+    public Car restore(boolean keepPrimary) {
+        return toBuilder().deletedAt(null).primary(primary && keepPrimary)
+                .updatedAt(LocalDateTime.now()).build();
     }
 
     /** DSGVO-Kontolöschung: Personenbezug kappen, Spec/Baujahr/Kapazität für die Community-Statistik behalten. */

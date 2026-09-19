@@ -1,4 +1,4 @@
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onUnmounted } from 'vue'
 import { formatPeriod } from '../utils/formatPeriod'
 import { useI18n } from 'vue-i18n'
 import { carService, type Car, type CarRequest, type BrandInfo, type ModelInfo, type CarCreateResponse, type CapacityOption } from '../api/carService'
@@ -64,6 +64,11 @@ export function useCarForm() {
   const editingCar = ref<Car | null>(null)
   const showToast = ref(false)
   const toastMessage = ref('')
+  /** Gesetzt, solange ein Toast eine Undo-Aktion anbietet (aktuell: Fahrzeug geloescht). */
+  const toastUndo = ref<(() => Promise<void>) | null>(null)
+  let undoTimer: ReturnType<typeof setTimeout> | null = null
+  // Sonst feuert der Timer noch, nachdem die View verlassen wurde.
+  onUnmounted(() => { if (undoTimer) clearTimeout(undoTimer) })
 
   // Form fields
   const selectedBrand = ref('')
@@ -326,6 +331,24 @@ export function useCarForm() {
       error.value = null
       await carService.deleteCar(id)
       await onCarsChanged()
+      // Soft-Delete: der Toast bietet das Undo an, serverseitig bleibt das Fenster laenger offen.
+      toastMessage.value = t('cars.toast_deleted')
+      toastUndo.value = async () => {
+        try {
+          await carService.restoreCar(id)
+          await onCarsChanged()
+          toastMessage.value = t('cars.toast_restored')
+        } catch (err: any) {
+          error.value = err.response?.data?.message || t('cars.error_restore')
+        } finally {
+          toastUndo.value = null
+          if (undoTimer) clearTimeout(undoTimer)
+          undoTimer = setTimeout(() => { showToast.value = false }, 3000)
+        }
+      }
+      showToast.value = true
+      if (undoTimer) clearTimeout(undoTimer)
+      undoTimer = setTimeout(() => { showToast.value = false; toastUndo.value = null }, 10000)
     } catch (err: any) {
       error.value = err.response?.data?.message || t('cars.error_delete')
     }
@@ -371,6 +394,6 @@ export function useCarForm() {
     capacityWasCorrected,
     // Actions
     fetchCars, fetchBrands, loadModelsForBrand, resetForm,
-    openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel,
+    openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel, toastUndo,
   }
 }
