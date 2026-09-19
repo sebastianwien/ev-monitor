@@ -4,6 +4,13 @@ import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import path from 'path'
 
 export default defineConfig({
+    // Gleicher '@'-Alias wie in vite.config.ts - Stores wie wallbox.ts importieren darueber,
+    // ohne den Alias bricht jeder Test, der so einen Store laedt.
+    resolve: {
+        alias: {
+            '@': path.resolve(__dirname, './src'),
+        },
+    },
     plugins: [
         // Erlaubt den Import von .vue-Dateien in Tests (Komponenten-DOM-Tests).
         vue(),
