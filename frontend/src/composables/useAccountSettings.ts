@@ -3,6 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
+import { onboardingSeenKey } from './useOnboardingState'
 import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
 
 export function useAccountSettings(
@@ -196,7 +197,7 @@ export function useAccountSettings(
   }
 
   const restartOnboarding = () => {
-    localStorage.removeItem('onboarding-completed')
+    localStorage.removeItem(onboardingSeenKey(authStore.user?.sub))
     localStorage.setItem('onboarding-force', 'true')
     message.value = { type: 'success', text: t('settings.tutorial_restarting') }
     setTimeout(() => { window.location.reload() }, 1000)
