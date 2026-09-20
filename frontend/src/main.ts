@@ -7,6 +7,10 @@ import { createHead } from '@unhead/vue/client'
 import { i18n, getSavedLocale, loadLocaleMessages } from './i18n'
 import { Capacitor } from '@capacitor/core'
 import { CapacitorUpdater } from '@capgo/capacitor-updater'
+// Seiteneffekt-Import: registriert den beforeinstallprompt-Listener auf Modul-Ebene.
+// Chrome feuert das Event einmal kurz nach dem Page-Load - ein Listener im Wizard, der
+// erst nach dem Login mountet, kaeme zu spaet und der Homescreen-Button bliebe aus.
+import './composables/usePwaInstall'
 
 // Markiert die native App (iOS/Android) am <html>, damit CSS nativ-spezifisch
 // straffen kann (z.B. kompaktere Navbar), ohne den mobilen Browser/PWA zu aendern.
@@ -147,13 +151,13 @@ if (import.meta.env.PROD) {
     }
 
     window.addEventListener('unhandledrejection', (event) => {
-        // Ignore service worker registration failures — not app errors
+        // Ignore service worker registration failures - not app errors
         const stack = event.reason instanceof Error ? (event.reason.stack ?? '') : ''
         if (stack.includes('ServiceWorker') || stack.includes('registerSW')) return
         // Ignore browser extension errors (e.g. chrome.runtime.sendMessage from ad blockers, password managers)
         const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
         if (message.includes('runtime.sendMessage') || message.includes('extension')) return
-        // Ignore known WebKit/Safari internal autofill errors — not our code
+        // Ignore known WebKit/Safari internal autofill errors - not our code
         if (message.includes('autofillFieldData')) return
         // Ignore known browser extension errors (Zotero, etc.)
         if (message.includes('Zotero') || message.includes('Failed to send message')) return
@@ -163,7 +167,7 @@ if (import.meta.env.PROD) {
             reloadOnceAfterDeploy()
             return
         }
-        // Network noise: user connectivity issues, browser extension content scripts — not actionable
+        // Network noise: user connectivity issues, browser extension content scripts - not actionable
         if (isNetworkNoise(message)) return
         reportError(event.reason, 'unhandledrejection')
     })
