@@ -16,7 +16,7 @@ import LeaderboardTicker from './components/shared/LeaderboardTicker.vue'
 import { useIsMobile } from './composables/useIsMobile'
 import LogFormModal from './components/log-form/LogFormModal.vue'
 import FloatingActionButton from './components/shared/FloatingActionButton.vue'
-import OnboardingWelcome from './components/shared/OnboardingWelcome.vue'
+import OnboardingWizard from './components/onboarding/OnboardingWizard.vue'
 import FeatureAnnouncementModal from './components/shared/FeatureAnnouncementModal.vue'
 import DemoBanner from './components/demo/DemoBanner.vue'
 import DemoWelcomeModal from './components/demo/DemoWelcomeModal.vue'
@@ -585,7 +585,7 @@ const handleBottomLogout = () => {
     <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />
 
     <!-- Onboarding Welcome (First-time users) -->
-    <OnboardingWelcome v-if="authStore.isAuthenticated()" />
+    <OnboardingWizard v-if="authStore.isAuthenticated()" />
     <FeatureAnnouncementModal v-if="authStore.isAuthenticated() && !authStore.isDemoAccount" />
 
     <!-- Reddit Consent Banner (only for paid Reddit traffic) -->

@@ -35,7 +35,7 @@ onMounted(async () => {
       analytics.trackEmailVerified();
 
       // Note: Onboarding flag is NOT reset here!
-      // OnboardingWelcome component will check if user has cars
+      // OnboardingWizard component will check if user has cars
       // and only show onboarding for truly new users (no cars yet)
 
       setTimeout(() => router.push('/dashboard'), 2000);

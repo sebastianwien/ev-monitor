@@ -1577,74 +1577,67 @@ fixed_costs:
   dashboard_total: Totalt
 
 onboarding:
-  skip_title: Hoppa över
-  badge: Inledning
-  step1_title: Välkommen till EV Monitor!
-  step1_desc: 'Håll koll på dina laddningar och ha alltid översikt över förbrukning, kostnader och din <strong>verkliga</strong> räckvidd. Jämför dig och din bil med communityn.'
-  feat_logs: Laddningsloggar
-  feat_stats: Statistik
-  feat_community: Gemenskap
-  start_btn: Kom så! →
-  step2_title: Lägg till din elbil
-  step2_desc: 'Över <strong>100 modeller</strong> – från Tesla till Renault.'
-  step2_search_placeholder: Sök märke...
-  step2_which_model: Vilken modell?
-  step2_which_trim: Vilken variant?
-  step2_which_year: Årsmodell
-  step2_create_btn: Lägg till bil
-  step2_create_error: Fel vid tillägg – försök igen senare.
-  step2_success: är klar!
-  step2_success_hint: Du kan justera alla detaljer i inställningarna när som helst.
-  step2_skip: Hoppa över →
-  back_btn: ← Tillbaka
-  next_btn: Nästa →
-  step3_title: Registrera din första laddning
-  step3_desc: Varje laddning ger dig insikt i din verkliga förbrukning och dina kostnader.
-  step3_photo_title: Med foto
-  step3_photo_desc: Fotografera displayen, fälten fylls i automatiskt
-  step3_manual_title: Manuellt
-  step3_manual_desc: Fyll i fälten själv
-  step4_section_wallbox: Wallbox-integration
-  step4_title: Importera befintliga data
-  step4_desc: Har du redan data från en annan tjänst? Importera dem med några klick.
-  step4_spritmonitor: Sprit-Monitor
-  step4_spritmonitor_desc: Importera tidigare laddningar
-  step4_goe: go-eCharger
-  step4_goe_desc: Direkt från din wallbox
-  step4_tesla: Tesla / TeslaLogger
-  step4_tesla_desc: Laddningshistorik från Tesla-appen
-  step4_tessie: Tessie
-  step4_tessie_desc: Importera laddningshistorik och körningar
-  step4_ocpp: OCPP Wallbox
-  step4_ocpp_desc: Kompatibel med många wallbox-modeller
-  step4_tronity: Tronity
-  step4_tronity_desc: Fordonsdata och laddningshistorik
-  step4_csv: CSV / JSON
-  step4_csv_desc: Egna data från andra appar
-  step4_api: Öppet API
-  step4_api_desc: För utvecklare och automatiseringar
-  step5_title: '... eller fånga allt automatiskt?'
-  step5_desc: 'Med <strong>AutoSync</strong> registrerar du alla framtida laddningar helt automatiskt.'
-  step5_brands: Över 40 tillverkare stöds – däribland Tesla, VW, Skoda, Audi, BMW, Hyundai, BYD, MG och många fler.
-  step5_trial: '7 dagar gratis – sedan {priceMonthly}/mån'
-  step5_cta: Testa AutoSync →
-  step5_skip: Hoppa över
-  step6_title: Använd direkt från din telefon
-  step6_desc: Lägg till EV Monitor på din startskärm – ingen appbutik behövs.
-  step6_installed: Redan installerat! Du använder redan EV Monitor som app.
-  step6_install_btn: Lägg till på startskärmen
-  step6_ios_title: 'I Safari:'
-  step6_ios_step1: Tryck på delningsknappen
-  step6_ios_step2: Välj “Lägg till på hemskärmen”
-  step6_ios_step3: Bekräfta med “Lägg till” – klart!
-  step6_android_title: 'I Chrome:'
-  step6_android_step1: Tryck på menyn (tre punkter)
-  step6_android_step2: '”Installera appen” eller “Lägg till på hemskärmen”'
-  step6_android_step3: Bekräfta – klart!
-  step6_generic: 'På telefonen: Öppna ev-monitor.net i Safari (iOS) eller Chrome (Android) och lägg till sidan på startskärmen.'
-  step6_feedback_title: Din åsikt är viktig!
-  step6_feedback_desc: Leta reda på knappen <strong>Feedback</strong> uppe till höger
-  complete_btn: Kom så!
+  badge: "Inledning"
+  close_label: "Stäng inledningen"
+  progress_label: "Steg {step} av {total}"
+  back_btn: "Tillbaka"
+  next_btn: "Vidare"
+  welcome_title: "Välkommen till EV Monitor!"
+  welcome_desc: "Efter några laddningar vet du vad din bil faktiskt drar, vad en kilometer kostar dig och hur du ligger till jämfört med andra som kör samma modell."
+  welcome_feat_logs: "Laddningsloggar"
+  welcome_feat_logs_desc: "Med foto eller för hand"
+  welcome_feat_stats: "Förbrukning och kostnad"
+  welcome_feat_stats_desc: "Verkliga siffror, inte WLTP"
+  welcome_feat_community: "Gemenskap"
+  welcome_feat_community_desc: "Jämfört med din modell"
+  welcome_cta: "Kör igång"
+  car_title: "Vilken elbil kör du?"
+  car_desc: "Över 100 modeller, från Tesla till Renault."
+  car_search_placeholder: "Sök märke"
+  car_brands_loading: "Laddar märken"
+  car_models_loading: "Laddar modeller"
+  car_no_brand_match: "Hittade inget märke. Kontrollera stavningen eller töm sökfältet."
+  car_load_failed: "Fordonslistan kunde inte laddas."
+  car_retry: "Försök igen"
+  car_which_model: "Vilken modell?"
+  car_which_trim: "Vilken variant?"
+  car_which_year: "Vilken årsmodell?"
+  car_year_decrease: "Ett år bakåt"
+  car_year_increase: "Ett år framåt"
+  car_create_btn: "Lägg till bil"
+  car_create_error: "Det gick inte. Försök igen senare."
+  car_skip: "Lägg till senare"
+  car_success_title: "{car} är med!"
+  car_success_hint: "Allt annat, från värmepump till registreringsnummer, fyller du i när du vill i bilinställningarna."
+  card_title: "Laddar du med ett laddkort?"
+  card_desc: "Med priset sparat räknar EV Monitor ut kostnaden åt dig. Du fyller bara i kWh."
+  card_provider_label: "Leverantör"
+  card_provider_placeholder: "Välj leverantör"
+  card_other_provider: "Annan leverantör"
+  card_custom_name_label: "Laddkortets namn"
+  card_custom_name_placeholder: "t.ex. Kommunalt energibolag"
+  card_ac_label: "AC-pris ({unit}/kWh)"
+  card_dc_label: "DC-pris ({unit}/kWh)"
+  card_price_hint: "Ett av de två priserna räcker. Månadsavgift och fler kort finns i inställningarna."
+  card_save_btn: "Spara laddkort"
+  card_save_failed: "Det gick inte att spara. Försök igen."
+  card_skip: "Det har jag inte"
+  card_success_title: "{name} är sparat"
+  card_success_hint: "Du kan välja kortet direkt när du registrerar en laddning."
+  install_title: "Lägg den i mobilen"
+  install_desc: "EV Monitor som app på hemskärmen, utan omvägen via en appbutik."
+  install_btn: "Lägg till på hemskärmen"
+  install_pending: "Lägger till ..."
+  install_done: "Klart. EV Monitor ligger nu på din hemskärm."
+  install_dismissed: "Ingen fara. Du hittar vägen i webbläsarens meny när du vill."
+  install_ios_title: "I Safari, tre steg:"
+  install_ios_step1: "Tryck på dela-symbolen"
+  install_ios_step2: "Välj \"Lägg till på hemskärmen\""
+  install_ios_step3: "Bekräfta med \"Lägg till\""
+  install_other_title: "I webbläsarens meny:"
+  install_other_desc: "Välj \"Installera app\" eller \"Lägg till på startskärmen\"."
+  install_skip: "Senare"
+  finish_btn: "Till översikten"
 notfound:
   subtitle: Sidan verkar ha stängts av sig själv...
   path_info: finns inte.

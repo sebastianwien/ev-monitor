@@ -1577,74 +1577,67 @@ fixed_costs:
   dashboard_total: Totalt
 
 onboarding:
-  skip_title: Hopp over
-  badge: Innledning
-  step1_title: Velkommen til EV Monitor!
-  step1_desc: 'Følg med på ladningene dine og ha alltid oversikt over forbruk, kostnader og din <strong>virkelige</strong> rekkevidde. Sammenlign deg og bilen din med fellesskapet.'
-  feat_logs: Ladingslogger
-  feat_stats: Statistikk
-  feat_community: Fellesskap
-  start_btn: Kom igjen! →
-  step2_title: Legg til din elbil
-  step2_desc: Over <strong>100 modeller</strong> – fra Tesla til Renault.
-  step2_search_placeholder: Søk etter merke...
-  step2_which_model: Hvilken modell?
-  step2_which_trim: Hvilken variant?
-  step2_which_year: Årsmodell
-  step2_create_btn: Legg til bil
-  step2_create_error: Feil ved opprettelse – prøv igjen senere.
-  step2_success: er klar!
-  step2_success_hint: Du kan justere alle detaljer i innstillingene når som helst.
-  step2_skip: Hopp over →
-  back_btn: ← Tilbake
-  next_btn: Neste →
-  step3_title: Registrer din første lading
-  step3_desc: Hver lading gir deg innsikt i ditt faktiske forbruk og kostnader.
-  step3_photo_title: Med bilde
-  step3_photo_desc: Fotografer displayet, feltene fylles ut automatisk
-  step3_manual_title: Manuelt
-  step3_manual_desc: Fyll inn feltene selv
-  step4_section_wallbox: Wallbox-integrasjon
-  step4_title: Importer eksisterende data
-  step4_desc: Har du allerede data fra en annen tjeneste? Importer dem med noen få klikk.
-  step4_spritmonitor: Sprit-Monitor
-  step4_spritmonitor_desc: Importer tidligere ladinger
-  step4_goe: go-eCharger
-  step4_goe_desc: Direkte fra din wallbox
-  step4_tesla: Tesla / TeslaLogger
-  step4_tesla_desc: Ladehistorikk fra Tesla-appen
-  step4_tessie: Tessie
-  step4_tessie_desc: Importer ladehistorikk og kjøreturer
-  step4_ocpp: OCPP Wallbox
-  step4_ocpp_desc: Kompatibel med mange wallbox-modeller
-  step4_tronity: Tronity
-  step4_tronity_desc: Kjøretøydata og ladehistorikk
-  step4_csv: CSV / JSON
-  step4_csv_desc: Egne data fra andre apper
-  step4_api: Offentlig API
-  step4_api_desc: For utviklere og automatisering
-  step5_title: "... eller fange alt automatisk?"
-  step5_desc: "Med <strong>AutoSync</strong> registrerer du alle fremtidige ladinger fullautomatisk."
-  step5_brands: Over 40 støttede produsenter – inkludert Tesla, VW, Skoda, Audi, BMW, Hyundai, BYD, MG og mange flere.
-  step5_trial: "7 dager gratis – deretter {priceMonthly}/mnd"
-  step5_cta: Prøv AutoSync →
-  step5_skip: Hopp over
-  step6_title: Bruk direkte fra telefonen din
-  step6_desc: Legg til EV Monitor på startskjermen – uten å måtte bruke en appbutikk.
-  step6_installed: Allerede installert! Du bruker allerede EV Monitor som app.
-  step6_install_btn: Legg til på startskjermen
-  step6_ios_title: "I Safari:"
-  step6_ios_step1: Trykk på del-knappen
-  step6_ios_step2: Velg «Legg til på startskjermen»
-  step6_ios_step3: Bekreft «Legg til» – ferdig!
-  step6_android_title: "I Chrome:"
-  step6_android_step1: Trykk på menyen (tre prikker)
-  step6_android_step2: «Installer app» eller «Legg til på startskjermen»
-  step6_android_step3: Bekreft – ferdig!
-  step6_generic: "På telefonen: Åpne <strong>ev-monitor.net</strong> i Safari (iOS) eller Chrome (Android), og legg siden til på startskjermen."
-  step6_feedback_title: Din mening teller!
-  step6_feedback_desc: Finn <strong>Tilbakemeldingsknappen</strong> øverst til høyre
-  complete_btn: Kom igjen!
+  badge: "Innledning"
+  close_label: "Lukk innledningen"
+  progress_label: "Steg {step} av {total}"
+  back_btn: "Tilbake"
+  next_btn: "Videre"
+  welcome_title: "Velkommen til EV Monitor!"
+  welcome_desc: "Etter noen få ladinger vet du hva bilen din faktisk bruker, hva en kilometer koster deg og hvordan du ligger an mot andre som kjører samme modell."
+  welcome_feat_logs: "Ladingslogger"
+  welcome_feat_logs_desc: "Med bilde eller for hånd"
+  welcome_feat_stats: "Forbruk og kostnader"
+  welcome_feat_stats_desc: "Virkelige tall, ikke WLTP"
+  welcome_feat_community: "Fellesskap"
+  welcome_feat_community_desc: "Sammenlignet med din modell"
+  welcome_cta: "Kom i gang"
+  car_title: "Hvilken elbil kjører du?"
+  car_desc: "Over 100 modeller, fra Tesla til Renault."
+  car_search_placeholder: "Søk etter merke"
+  car_brands_loading: "Laster merker"
+  car_models_loading: "Laster modeller"
+  car_no_brand_match: "Fant ingen merker. Sjekk stavemåten eller tøm søkefeltet."
+  car_load_failed: "Kjøretøylisten kunne ikke lastes."
+  car_retry: "Prøv igjen"
+  car_which_model: "Hvilken modell?"
+  car_which_trim: "Hvilken variant?"
+  car_which_year: "Hvilken årsmodell?"
+  car_year_decrease: "Ett år tilbake"
+  car_year_increase: "Ett år fram"
+  car_create_btn: "Legg til bil"
+  car_create_error: "Det gikk ikke. Prøv igjen senere."
+  car_skip: "Legg til senere"
+  car_success_title: "{car} er med!"
+  car_success_hint: "Alt annet, fra varmepumpe til skilt, kan du fylle ut når som helst i bilinnstillingene."
+  card_title: "Lader du med et ladekort?"
+  card_desc: "Med prisen lagret regner EV Monitor ut kostnaden for deg. Du taster bare inn kWh."
+  card_provider_label: "Leverandør"
+  card_provider_placeholder: "Velg leverandør"
+  card_other_provider: "Annen leverandør"
+  card_custom_name_label: "Navn på ladekortet"
+  card_custom_name_placeholder: "f.eks. Kommunalt kraftselskap"
+  card_ac_label: "AC-pris ({unit}/kWh)"
+  card_dc_label: "DC-pris ({unit}/kWh)"
+  card_price_hint: "Én av de to prisene holder. Månedsavgift og flere kort ligger i innstillingene."
+  card_save_btn: "Lagre ladekort"
+  card_save_failed: "Lagringen gikk ikke. Prøv igjen."
+  card_skip: "Det har jeg ikke"
+  card_success_title: "{name} er lagret"
+  card_success_hint: "Du kan velge kortet direkte når du registrerer en lading."
+  install_title: "Få den på mobilen"
+  install_desc: "EV Monitor som app på hjemskjermen, uten veien om en app-butikk."
+  install_btn: "Legg til på hjemskjermen"
+  install_pending: "Legger til ..."
+  install_done: "Ferdig. EV Monitor ligger nå på hjemskjermen din."
+  install_dismissed: "Helt greit. Du finner veien i nettlesermenyen når som helst."
+  install_ios_title: "I Safari, tre steg:"
+  install_ios_step1: "Trykk på del-symbolet"
+  install_ios_step2: "Velg \"Legg til på Hjem-skjerm\""
+  install_ios_step3: "Bekreft med \"Legg til\""
+  install_other_title: "I nettlesermenyen din:"
+  install_other_desc: "Velg \"Installer app\" eller \"Legg til på startskjermen\"."
+  install_skip: "Senere"
+  finish_btn: "Til dashbordet"
 notfound:
   subtitle: Siden ser ut til å ha lukket seg av seg selv...
   path_info: finnes ikke.
