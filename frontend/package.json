@@ -37,6 +37,7 @@
     "chartjs-plugin-datalabels": "^2.2.0",
     "dompurify": "^3.4.9",
     "gray-matter": "^4.0.3",
+    "jspdf": "^4.2.1",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "leaflet.heat": "^0.2.0",

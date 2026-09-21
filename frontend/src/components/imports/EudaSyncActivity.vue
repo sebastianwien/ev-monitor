@@ -2,11 +2,12 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, EnvelopeIcon, ChevronRightIcon, ChevronDownIcon, XCircleIcon, PauseCircleIcon,
+  CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, EnvelopeIcon, ChevronRightIcon, ChevronDownIcon, XCircleIcon, PauseCircleIcon, BuildingLibraryIcon,
 } from '@heroicons/vue/24/outline'
 import euDataActSyncService, { type EudaSyncActivity } from '../../api/euDataActSyncService'
 import { classifyEudaHealth, MANUFACTURER_AT_FAULT, type EudaHealth } from '../../composables/useEudaHealth'
 import { buildEudaComplaintMail } from '../../composables/useEudaComplaintMail'
+import EudaAuthorityComplaint from './EudaAuthorityComplaint.vue'
 
 /**
  * Sync-Protokoll einer Data-Act-Verbindung: Lagebild in Klartext, Fehler sichtbar, auf Wunsch
@@ -25,6 +26,7 @@ const { t, locale } = useI18n()
 const activity = ref<EudaSyncActivity | null>(null)
 const loadError = ref(false)
 const detailsOpen = ref(false)
+const authorityOpen = ref(false)
 
 async function load() {
   loadError.value = false
@@ -122,6 +124,21 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
       </a>
       <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.activity.complaint_note', { contact: activity.manufacturerContact }) }}</p>
     </div>
+
+    <!-- Beschwerde bei der Aufsichtsbehörde: erst wenn der Hersteller in der Pflicht ist -->
+    <div v-if="manufacturerAtFault && conn.status === 'ACTIVE'" class="space-y-1">
+      <button
+        type="button"
+        data-testid="euda-authority"
+        class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 underline hover:no-underline"
+        @click="authorityOpen = true"
+      >
+        <BuildingLibraryIcon class="h-4 w-4" aria-hidden="true" />
+        {{ t('eu_data_act_sync.activity.authority_btn') }}
+      </button>
+      <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.activity.authority_note') }}</p>
+    </div>
+    <EudaAuthorityComplaint v-if="authorityOpen && activity" :activity="activity" @close="authorityOpen = false" />
 
     <!-- Details -->
     <button type="button" class="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300" @click="detailsOpen = !detailsOpen" data-testid="euda-activity-toggle">
