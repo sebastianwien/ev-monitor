@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, CheckCircleIcon, ExclamationTriangleIcon, ArrowPathIcon, LockClosedIcon, ChevronRightIcon, ChevronDownIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ChevronRightIcon, ChevronDownIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
 import euDataActSyncService, {
   eudaBrandOf,
   eudaErrorCode,
@@ -165,7 +165,7 @@ onMounted(load)
       <BoltIcon class="h-6 w-6 shrink-0 text-indigo-500" aria-hidden="true" />
       <div class="min-w-0">
         <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base md:text-lg">{{ t('eu_data_act_sync.title') }}</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('eu_data_act_sync.desc') }}</p>
+        <p v-if="!connection" class="text-sm text-gray-600 dark:text-gray-400">{{ t('eu_data_act_sync.desc') }}</p>
       </div>
       <span class="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Beta</span>
     </div>
@@ -174,90 +174,21 @@ onMounted(load)
 
       <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">…</div>
 
-      <!-- Verbunden -->
+      <!-- Verbunden: das Panel (Lagebild, Fakten, Handlung, Details) gehört EudaSyncActivity -->
       <div v-else-if="connection" class="space-y-3" data-testid="euda-connected">
         <p v-if="justConnected" class="text-sm font-medium text-emerald-800 dark:text-emerald-300 border-l-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-r-sm" data-testid="euda-success">
           {{ t('eu_data_act_sync.connected_success') }}
         </p>
-        <div class="flex items-center gap-2">
-          <CheckCircleIcon v-if="connection.status === 'ACTIVE'" class="h-5 w-5 text-emerald-500" aria-hidden="true" />
-          <LockClosedIcon v-else-if="connection.status === 'EXPIRED'" class="h-5 w-5 text-amber-500" aria-hidden="true" />
-          <ExclamationTriangleIcon v-else class="h-5 w-5 text-red-500" aria-hidden="true" />
-          <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-            {{ t(`eu_data_act_sync.status_${connection.status.toLowerCase()}`) }}
-          </span>
-        </div>
-        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm">
-          <div class="flex justify-between sm:block">
-            <dt class="text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.label_account') }}</dt>
-            <dd class="text-gray-900 dark:text-gray-100 truncate">{{ connection.email }}</dd>
-          </div>
-          <div class="flex justify-between sm:block">
-            <dt class="text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.label_last_sync') }}</dt>
-            <dd class="text-gray-900 dark:text-gray-100">
-              {{ connection.lastSuccessAt ? formatDate(connection.lastSuccessAt, true) : t('eu_data_act_sync.waiting_first') }}
-            </dd>
-          </div>
-        </dl>
-        <p v-if="connection.status === 'AUTH_FAILED'" class="text-sm text-gray-600 dark:text-gray-400">
-          {{ t('eu_data_act_sync.auth_failed_hint') }}
-        </p>
-        <p v-if="connection.status === 'EXPIRED'" class="text-sm text-gray-600 dark:text-gray-400" data-testid="euda-expired-hint">
-          {{ t('eu_data_act_sync.expired_hint') }}
-        </p>
-        <p v-else-if="connection.status === 'ACTIVE' && entitlement.viaTrial" class="text-sm text-amber-800 dark:text-amber-300" data-testid="euda-trial-hint">
-          {{ t('eu_data_act_sync.trial_hint_connected', { date: trialEndsAt }) }}
-        </p>
-        <p v-if="historyPending" class="text-sm text-gray-600 dark:text-gray-400">
-          {{ t('eu_data_act_sync.history_pending') }}
-        </p>
-
-        <!-- Sync-Protokoll: was der Hersteller liefert, was daraus wird, Beschwerde bei Bedarf.
-             Historie und Fehler zeigt das Protokoll selbst. -->
-        <EudaSyncActivity :car-id="connection.carId" :version="activityVersion" />
-
-        <div class="flex flex-wrap gap-2">
-          <router-link
-            v-if="connection.status === 'EXPIRED'"
-            to="/upgrade"
-            data-testid="euda-upgrade"
-            class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500"
-          >
-            {{ t('eu_data_act_sync.teaser_cta') }}
-            <ChevronRightIcon class="h-3.5 w-3.5" aria-hidden="true" />
-          </router-link>
-          <button
-            v-if="connection.status !== 'EXPIRED' && !connection.historyImportedAt && !historyPending"
-            type="button"
-            :disabled="busy"
-            @click="onRequestHistory"
-            data-testid="euda-history"
-            class="inline-flex items-center gap-1.5 bg-gray-950 dark:bg-white text-white dark:text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-gray-950 dark:border-white disabled:opacity-60"
-          >
-            <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
-            {{ t('eu_data_act_sync.btn_history') }}
-          </button>
-          <button
-            v-if="connection.status !== 'EXPIRED'"
-            type="button"
-            :disabled="busy"
-            @click="reactivateSmartcar"
-            data-testid="euda-reactivate-smartcar"
-            class="text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-60"
-          >
-            {{ t('eu_data_act_sync.btn_reactivate_smartcar') }}
-          </button>
-          <button
-            type="button"
-            :disabled="busy"
-            @click="disconnect"
-            data-testid="euda-disconnect"
-            class="text-[11px] font-bold uppercase tracking-wider px-4 py-2.5 rounded-sm border-2 border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 disabled:opacity-60"
-          >
-            {{ t('eu_data_act_sync.btn_disconnect') }}
-          </button>
-        </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.history_hint') }}</p>
+        <EudaSyncActivity
+          :connection="connection"
+          :version="activityVersion"
+          :trial-ends-at="entitlement.viaTrial ? trialEndsAt : undefined"
+          :history-pending="historyPending"
+          :busy="busy"
+          @request-history="onRequestHistory"
+          @reactivate-smartcar="reactivateSmartcar"
+          @disconnect="disconnect"
+        />
       </div>
 
       <!-- Nicht verbunden, nicht berechtigt: Teaser statt Formular -->

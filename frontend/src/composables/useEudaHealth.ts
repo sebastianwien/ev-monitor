@@ -11,10 +11,10 @@ export type EudaHealth =
   | 'PAUSED'
   | 'NO_REQUEST'
   | 'FAILING'
-  | 'HISTORY_FAILED'
-  | 'WAITING_FIRST'
   | 'NO_CONTENT'
   | 'STALE'
+  | 'HISTORY_FAILED'
+  | 'WAITING_FIRST'
   | 'HEALTHY'
 
 const HOUR = 3_600_000
@@ -33,13 +33,16 @@ export function classifyEudaHealth(activity: EudaSyncActivity, now: Date = new D
   if (c.status === 'EXPIRED') return 'PAUSED'
   if (!c.dataRequestActive) return 'NO_REQUEST'
   if (c.consecutiveFailures >= FAILING_THRESHOLD) return 'FAILING'
-  if (c.history?.attemptsExhausted) return 'HISTORY_FAILED'
 
+  // Herstellerprobleme vor unseren eigenen: liefert das Portal nichts, ist der gescheiterte
+  // Historien-Import nur ein Symptom davon.
   const hadContent = activity.summary.deliveriesWithContent > 0 || c.lastDataAt !== null
   if (!hadContent) {
     const age = now.getTime() - new Date(c.connectedAt).getTime()
-    return age < WAITING_WINDOW_MS ? 'WAITING_FIRST' : 'NO_CONTENT'
+    if (age >= WAITING_WINDOW_MS) return 'NO_CONTENT'
+  } else if (c.lastDataAt && now.getTime() - new Date(c.lastDataAt).getTime() > STALE_WINDOW_MS) {
+    return 'STALE'
   }
-  if (c.lastDataAt && now.getTime() - new Date(c.lastDataAt).getTime() > STALE_WINDOW_MS) return 'STALE'
-  return 'HEALTHY'
+  if (c.history?.attemptsExhausted) return 'HISTORY_FAILED'
+  return hadContent ? 'HEALTHY' : 'WAITING_FIRST'
 }

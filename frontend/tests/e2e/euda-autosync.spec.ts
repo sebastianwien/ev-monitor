@@ -102,7 +102,7 @@ test.describe('EU Data Act AutoSync', () => {
     }));
     await openEudaTab(page);
 
-    await expect(page.getByText('Pausiert - Testzeitraum beendet')).toBeVisible();
+    await expect(page.getByTestId('euda-health')).toBeVisible();
     await expect(page.getByTestId('euda-expired-hint')).toBeVisible();
     await expect(page.getByTestId('euda-upgrade')).toBeVisible();
     await expect(page.getByTestId('euda-disconnect')).toBeVisible();

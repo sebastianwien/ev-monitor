@@ -55,6 +55,16 @@ describe('classifyEudaHealth', () => {
     expect(classifyEudaHealth(a, NOW)).toBe('HISTORY_FAILED')
   })
 
+  it('nur leere Lieferungen schlagen den gescheiterten Historien-Import: NO_CONTENT', () => {
+    const a = activity({ history: { requestedAt: '2026-09-19T15:00:00Z', importedAt: null, running: false, attempts: 3, attemptsExhausted: true, error: 'Read timed out' } })
+    expect(classifyEudaHealth(a, NOW)).toBe('NO_CONTENT')
+  })
+
+  it('frisch verbunden mit gescheiterter Historie: HISTORY_FAILED', () => {
+    const a = activity({ connectedAt: '2026-09-21T06:00:00Z', history: { requestedAt: '2026-09-21T06:05:00Z', importedAt: null, running: false, attempts: 3, attemptsExhausted: true, error: 'Read timed out' } })
+    expect(classifyEudaHealth(a, NOW)).toBe('HISTORY_FAILED')
+  })
+
   it('laufend Inhalt: HEALTHY', () => {
     expect(classifyEudaHealth(activity({ lastDataAt: '2026-09-21T09:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 2 }), NOW)).toBe('HEALTHY')
   })
