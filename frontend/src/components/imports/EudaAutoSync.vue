@@ -13,6 +13,7 @@ import type { Car } from '../../api/carService'
 import smartcarService from '../../api/smartcarService'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import EudaExplainer from './EudaExplainer.vue'
+import EudaSyncActivity from './EudaSyncActivity.vue'
 
 /**
  * VW EU-Data-Act-AutoSync: Nutzer meldet sich einmal mit seiner Marken-ID an, danach holt
@@ -126,12 +127,16 @@ async function connect() {
   }
 }
 
+/** Zaehlt hoch, wenn sich die Verbindung geaendert hat - das Sync-Protokoll laedt dann neu. */
+const activityVersion = ref(0)
+
 async function run(action: () => Promise<void>) {
   busy.value = true
   error.value = null
   try {
     await action()
     await load()
+    activityVersion.value++
   } catch (err) {
     error.value = describeError(err)
   } finally {
@@ -206,9 +211,10 @@ onMounted(load)
         <p v-if="historyPending" class="text-sm text-gray-600 dark:text-gray-400">
           {{ t('eu_data_act_sync.history_pending') }}
         </p>
-        <p v-else-if="connection.historyImportedAt" class="text-sm text-gray-600 dark:text-gray-400">
-          {{ t('eu_data_act_sync.history_done', { date: formatDate(connection.historyImportedAt) }) }}
-        </p>
+
+        <!-- Sync-Protokoll: was der Hersteller liefert, was daraus wird, Beschwerde bei Bedarf.
+             Historie und Fehler zeigt das Protokoll selbst. -->
+        <EudaSyncActivity :car-id="connection.carId" :version="activityVersion" />
 
         <div class="flex flex-wrap gap-2">
           <router-link

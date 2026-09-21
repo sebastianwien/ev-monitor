@@ -13,6 +13,78 @@ export interface EudaConnectionStatus {
   lastError: string | null
 }
 
+/** Herstellerneutrales Sync-Protokoll: Datenanfragen, Lieferungen, Importe - auch fuer XPeng/Polestar nutzbar. */
+export type EudaDeliveryOutcome = 'IMPORTED' | 'NO_CHARGING_DATA' | 'FAILED'
+export type EudaPollOutcome = 'OK' | 'NO_NEW_DATA' | 'PORTAL_ERROR' | 'IMPORT_ERROR' | 'AUTH_FAILED'
+
+export interface EudaIdentifier {
+  label: string
+  value: string
+}
+
+export interface EudaHistoryState {
+  requestedAt: string | null
+  importedAt: string | null
+  running: boolean
+  attempts: number
+  attemptsExhausted: boolean
+  error: string | null
+}
+
+export interface EudaActivityConnection {
+  carId: string
+  brand: string
+  status: 'ACTIVE' | 'AUTH_FAILED' | 'EXPIRED'
+  connectedAt: string
+  lastPolledAt: string | null
+  lastSuccessAt: string | null
+  consecutiveFailures: number
+  lastError: string | null
+  /** Beim Hersteller liegt eine laufende Datenanfrage vor. */
+  dataRequestActive: boolean
+  lastDeliveryAt: string | null
+  lastDataAt: string | null
+  history: EudaHistoryState | null
+}
+
+export interface EudaActivitySummary {
+  deliveriesSeen: number
+  deliveriesWithContent: number
+  sessionsImported: number
+  lastContentAt: string | null
+}
+
+export interface EudaPollEntry {
+  at: string
+  outcome: EudaPollOutcome
+  deliveriesSeen: number
+  deliveriesWithContent: number
+  sessionsImported: number
+  sessionsSkipped: number
+  history: boolean
+  error: string | null
+}
+
+export interface EudaDeliveryEntry {
+  filename: string
+  createdOn: string
+  sizeBytes: number
+  outcome: EudaDeliveryOutcome | null
+  sessionsImported: number | null
+  sessionsSkipped: number | null
+  error: string | null
+}
+
+export interface EudaSyncActivity {
+  provider: string
+  manufacturerContact: string
+  connection: EudaActivityConnection
+  identifiers: EudaIdentifier[]
+  summary: EudaActivitySummary
+  polls: EudaPollEntry[]
+  deliveries: EudaDeliveryEntry[]
+}
+
 export type EudaBrand = 'volkswagen' | 'skoda' | 'audi' | 'seat' | 'cupra'
 
 /** CarBrand-Enum (Backend) -> Portal-Marke. Nur diese Marken bedient das VW-EU-Data-Act-Portal. */
@@ -68,6 +140,10 @@ export default {
   },
   async disconnect(carId: string): Promise<void> {
     await api.delete(`/eu-data-act/cars/${carId}`)
+  },
+  async getActivity(carId: string): Promise<EudaSyncActivity> {
+    const resp = await api.get(`/eu-data-act/cars/${carId}/activity`)
+    return resp.data
   },
   async requestHistory(carId: string): Promise<void> {
     await api.post(`/eu-data-act/cars/${carId}/history`)
