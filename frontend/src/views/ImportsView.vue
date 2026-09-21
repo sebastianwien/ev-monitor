@@ -16,7 +16,7 @@ const EUDataActImport = defineAsyncComponent(() => import('../components/imports
 const EudaAutoSync = defineAsyncComponent(() => import('../components/imports/EudaAutoSync.vue'))
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
-import { isEudaBrand } from '../api/euDataActSyncService'
+import euDataActSyncService, { isEudaBrand } from '../api/euDataActSyncService'
 import { useCarStore } from '../stores/car'
 import { useImportsTab, featuredImportSection, importSectionOrder, type Tab } from '../composables/useImportsTab'
 import { useImportGating } from '../composables/useImportGating'
@@ -45,6 +45,9 @@ const subscriptionIsPremium = ref(authStore.isPremium)
 const subscriptionTier = ref<SubscriptionTier>('NONE')
 const liveUpgradeLoading = ref(false)
 const liveUpgradeError = ref('')
+// Waehrend des EU-Data-Act-Trials ist AutoSync fuer diesen Nutzer schon freigeschaltet;
+// ein Kauf-Teaser darueber widerspraeche dem, was die Karte darunter sagt.
+const eudaTrialActive = ref(false)
 
 // Sichtbarkeit aller Import-Sektionen haengt am aktiven Auto - siehe useImportGating.
 const {
@@ -117,6 +120,11 @@ onMounted(async () => {
   loading.value = false
 
   fetchApiKeys()
+  if (activeCarIsEudaBrand.value) {
+    euDataActSyncService.getEntitlement()
+      .then(e => { eudaTrialActive.value = e.entitled && e.viaTrial })
+      .catch(() => {})
+  }
   subscriptionService.getStatus().then(s => {
     premiumEnabled.value = s.premiumEnabled
     subscriptionIsPremium.value = s.isPremium
@@ -226,7 +234,7 @@ const teslaConnectedLabel = ref<string | null>(null)
         <!-- AutoSync Pro Teaser - der Kauf-CTA. Nur wenn der User ueberhaupt ein
              Smartcar-Fahrzeug hat: Tesla-Telemetry und XPeng-AutoSync sind gratis,
              das Abo wuerde diesen Fahrzeugen nichts bringen. -->
-        <div v-if="showSmartcarPitch && premiumEnabled && !authStore.isPremium"
+        <div v-if="showSmartcarPitch && premiumEnabled && !authStore.isPremium && !eudaTrialActive"
              class="mb-3 border border-amber-500/60 bg-amber-50 dark:bg-amber-950/20 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-none p-3 text-center md:text-left">
           <div class="flex flex-col items-center md:flex-row md:items-start gap-2.5">
             <div class="shrink-0 rounded-sm bg-amber-500/15 dark:bg-amber-500/10 p-1.5 w-8 h-8 flex items-center justify-center">
