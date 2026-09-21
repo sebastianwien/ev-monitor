@@ -113,7 +113,7 @@ const primary = computed<Primary>(() => {
   return null
 })
 const primaryClass = 'inline-flex items-center justify-center gap-1.5 w-full sm:w-auto font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 disabled:opacity-60'
-const secondaryClass = 'inline-flex items-center gap-1 min-h-[44px] text-[11px] font-bold uppercase tracking-wider underline hover:no-underline'
+const secondaryClass = 'inline-flex items-center gap-1.5 min-h-[44px] text-[11px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-sm border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-gray-500 dark:hover:border-gray-400 disabled:opacity-60'
 
 const OUTCOME_TONE: Record<string, string> = {
   OK: 'text-emerald-700 dark:text-emerald-300', IMPORTED: 'text-emerald-700 dark:text-emerald-300',
@@ -187,12 +187,12 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
       </button>
       <p v-if="primary === 'complaint'" class="text-xs text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.activity.complaint_note', { contact: activity?.manufacturerContact }) }}</p>
 
-      <div class="flex flex-wrap gap-x-5 gap-y-0 text-gray-600 dark:text-gray-300">
+      <div class="flex flex-wrap gap-2">
         <button v-if="primary !== 'history' && historyOpen && status === 'ACTIVE'" type="button" :disabled="busy" data-testid="euda-history" :class="secondaryClass" @click="emit('requestHistory')">{{ t('eu_data_act_sync.btn_history') }}</button>
         <a v-if="primary !== 'complaint' && complaint && status === 'ACTIVE'" :href="complaint.href" data-testid="euda-complaint" :class="secondaryClass">{{ t('eu_data_act_sync.activity.complaint_btn') }}</a>
         <button v-if="manufacturerAtFault && status === 'ACTIVE'" type="button" data-testid="euda-authority" :class="secondaryClass" @click="authorityOpen = true">{{ t('eu_data_act_sync.activity.authority_btn') }}</button>
         <button v-if="status !== 'EXPIRED'" type="button" :disabled="busy" data-testid="euda-reactivate-smartcar" :class="secondaryClass" @click="emit('reactivateSmartcar')">{{ t('eu_data_act_sync.btn_reactivate_smartcar') }}</button>
-        <button type="button" :disabled="busy" data-testid="euda-disconnect" :class="[secondaryClass, 'text-red-700 dark:text-red-300']" @click="emit('disconnect')">{{ t('eu_data_act_sync.btn_disconnect') }}</button>
+        <button type="button" :disabled="busy" data-testid="euda-disconnect" :class="[secondaryClass, 'border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:border-red-500']" @click="emit('disconnect')">{{ t('eu_data_act_sync.btn_disconnect') }}</button>
       </div>
     </div>
     <EudaAuthorityComplaint v-if="authorityOpen && activity" :activity="activity" @close="authorityOpen = false" />
