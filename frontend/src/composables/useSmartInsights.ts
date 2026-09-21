@@ -37,13 +37,13 @@ export function computeInsights(
   if (
     pb != null &&
     pb.peerAvgCostPerKwh != null &&
-    pb.userLifetimeCostPerKwh != null
+    pb.userPeriodCostPerKwh != null
   ) {
     const diffPct = Math.round(
-      ((pb.userLifetimeCostPerKwh - pb.peerAvgCostPerKwh) / pb.peerAvgCostPerKwh) * 100,
+      ((pb.userPeriodCostPerKwh - pb.peerAvgCostPerKwh) / pb.peerAvgCostPerKwh) * 100,
     )
     if (Math.abs(diffPct) >= 5) {
-      const absCt = Math.abs((pb.userLifetimeCostPerKwh - pb.peerAvgCostPerKwh) * 100)
+      const absCt = Math.abs((pb.userPeriodCostPerKwh - pb.peerAvgCostPerKwh) * 100)
       candidates.push({
         id: 'peer_cost',
         sentiment: diffPct < 0 ? 'positive' : 'warning',
@@ -52,7 +52,7 @@ export function computeInsights(
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absCt.toFixed(1)} ct/kWh`,
         chartBars: [
-          { value: pb.userLifetimeCostPerKwh, formattedValue: `${(pb.userLifetimeCostPerKwh * 100).toFixed(1)} ct`, style: 'solid', label: 'chart_you' },
+          { value: pb.userPeriodCostPerKwh, formattedValue: `${(pb.userPeriodCostPerKwh * 100).toFixed(1)} ct`, style: 'solid', label: 'chart_you' },
           { value: pb.peerAvgCostPerKwh, formattedValue: `${(pb.peerAvgCostPerKwh * 100).toFixed(1)} ct`, style: 'solid', muted: true, label: 'chart_avg' },
         ],
       })
@@ -63,16 +63,16 @@ export function computeInsights(
   if (
     pb != null &&
     pb.peerAvgConsumptionKwhPer100km != null &&
-    pb.userLifetimeConsumptionKwhPer100km != null
+    pb.userPeriodConsumptionKwhPer100km != null
   ) {
     const diffPct = Math.round(
-      ((pb.userLifetimeConsumptionKwhPer100km - pb.peerAvgConsumptionKwhPer100km) /
+      ((pb.userPeriodConsumptionKwhPer100km - pb.peerAvgConsumptionKwhPer100km) /
         pb.peerAvgConsumptionKwhPer100km) *
         100,
     )
     if (Math.abs(diffPct) >= 5) {
       const absKwh = Math.abs(
-        pb.userLifetimeConsumptionKwhPer100km - pb.peerAvgConsumptionKwhPer100km,
+        pb.userPeriodConsumptionKwhPer100km - pb.peerAvgConsumptionKwhPer100km,
       )
       candidates.push({
         id: 'peer_consumption',
@@ -82,7 +82,7 @@ export function computeInsights(
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absKwh.toFixed(1)} kWh/100km`,
         chartBars: [
-          { value: pb.userLifetimeConsumptionKwhPer100km, formattedValue: `${pb.userLifetimeConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', label: 'chart_you' },
+          { value: pb.userPeriodConsumptionKwhPer100km, formattedValue: `${pb.userPeriodConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', label: 'chart_you' },
           { value: pb.peerAvgConsumptionKwhPer100km, formattedValue: `${pb.peerAvgConsumptionKwhPer100km.toFixed(1)}`, style: 'solid', muted: true, label: 'chart_avg' },
         ],
       })

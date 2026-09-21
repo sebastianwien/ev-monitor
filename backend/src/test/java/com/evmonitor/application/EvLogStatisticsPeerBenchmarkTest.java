@@ -52,6 +52,13 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         evLogRepository.save(log);
     }
 
+    private void addLogWithCostAt(UUID carId, String kwh, String costEur, int odometer, LocalDateTime loggedAt) {
+        EvLog log = EvLog.createNew(carId, new BigDecimal(kwh), new BigDecimal(costEur),
+                60, null, odometer, null, null,
+                loggedAt, null, null, null, false, null);
+        evLogRepository.save(log);
+    }
+
     // --- tests ---
 
     @Test
@@ -221,5 +228,37 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         assertNotNull(result.peerBenchmark());
         assertEquals(EvLogStatisticsResponse.PeerBenchmark.MatchType.SPEC, result.peerBenchmark().matchType());
         assertEquals(1, result.peerBenchmark().uniquePeerUsers());
+    }
+
+    @Test
+    void peerBenchmark_userCostPerKwh_respectsSelectedPeriod() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "peer-test-period-cost");
+
+        User owner = createAndSaveUser("owner-period@example.com");
+        Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        // Alte Ladung: 40 ct/kWh, liegt ausserhalb des Zeitraums
+        addLogWithCostAt(ownerCar.getId(), "10.0", "4.00", 100, LocalDateTime.now().minusDays(40));
+        // Aktuelle Ladung: 29 ct/kWh, liegt im Zeitraum
+        addLogWithCostAt(ownerCar.getId(), "10.0", "2.90", 200, LocalDateTime.now().minusDays(1));
+
+        User peer = createAndSaveUser("peer-period@example.com");
+        Car peerCar = createCar(peer.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLogWithCostAt(peerCar.getId(), "10.0", "3.50", 100, LocalDateTime.now().minusDays(40));
+        addLogWithCostAt(peerCar.getId(), "10.0", "3.50", 200, LocalDateTime.now().minusDays(1));
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        EvLogStatisticsResponse period = evLogStatisticsService.getStatistics(
+                ownerCar.getId(), owner.getId(), today.minusDays(5), today, null);
+
+        assertNotNull(period.peerBenchmark());
+        assertEquals(0, new BigDecimal("0.2900").compareTo(period.peerBenchmark().userPeriodCostPerKwh()),
+                "user cost must only include logs within the selected period");
+        // Peer-Seite bleibt Lifetime als stabile Referenz
+        assertEquals(0, new BigDecimal("0.3500").compareTo(period.peerBenchmark().peerAvgCostPerKwh()));
+
+        EvLogStatisticsResponse lifetime = evLogStatisticsService.getStatistics(
+                ownerCar.getId(), owner.getId(), null, null, null);
+        assertEquals(0, new BigDecimal("0.3450").compareTo(lifetime.peerBenchmark().userPeriodCostPerKwh()),
+                "without a period the user cost stays lifetime");
     }
 }

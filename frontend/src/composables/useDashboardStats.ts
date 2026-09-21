@@ -20,9 +20,9 @@ export interface ChargeDataPoint {
 }
 
 export interface PeerBenchmark {
-  userLifetimeConsumptionKwhPer100km: number | null
+  userPeriodConsumptionKwhPer100km: number | null
   peerAvgConsumptionKwhPer100km: number | null
-  userLifetimeCostPerKwh: number | null
+  userPeriodCostPerKwh: number | null
   peerAvgCostPerKwh: number | null
   uniquePeerUsers: number
   peerTripCount: number

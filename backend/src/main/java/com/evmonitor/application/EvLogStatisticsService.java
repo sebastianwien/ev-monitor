@@ -268,7 +268,7 @@ public class EvLogStatisticsService {
         // Peer benchmark — only when car has a vehicle spec linked
         EvLogStatisticsResponse.PeerBenchmark peerBenchmark = null;
         if (car.getVehicleSpecificationId() != null) {
-            peerBenchmark = buildPeerBenchmark(car, allLogsForCar, isSeedUser);
+            peerBenchmark = buildPeerBenchmark(car, allLogsForCar, logs);
         }
 
         // Charging type split
@@ -320,8 +320,15 @@ public class EvLogStatisticsService {
         );
     }
 
+    /**
+     * @param allLogsForCurrentCar alle Logs des Autos, unabhängig vom Zeitraum - nötig als Kontext
+     *                             für SoC-Differenzen und Distanzen
+     * @param periodLogs           die statistik-relevanten Logs im gewählten Zeitraum - Basis für
+     *                             die Nutzer-Seite des Vergleichs. Die Peer-Seite bleibt bewusst
+     *                             Lifetime, weil ein Monatsfenster über wenige Fahrer zu dünn ist.
+     */
     private EvLogStatisticsResponse.PeerBenchmark buildPeerBenchmark(
-            Car currentCar, List<EvLog> allLogsForCurrentCar, boolean isSeedUser) {
+            Car currentCar, List<EvLog> allLogsForCurrentCar, List<EvLog> periodLogs) {
 
         // Primary match: same vehicleSpecificationId
         EvLogStatisticsResponse.PeerBenchmark.MatchType matchType = EvLogStatisticsResponse.PeerBenchmark.MatchType.SPEC;
@@ -363,12 +370,9 @@ public class EvLogStatisticsService {
         // Peer consumption
         CommunityConsumptionResult peerConsumption = calculateCommunityAvgConsumption(nonSeedPeerCars, false);
 
-        // User lifetime consumption (all logs, no time filter)
-        List<EvLog> userStatsLogs = allLogsForCurrentCar.stream()
-                .filter(l -> isSeedUser || l.isIncludeInStatistics())
-                .toList();
-        BigDecimal userLifetimeConsumption = null;
-        List<PlausibleEntry> userEntries = getPlausibleEntriesForCar(currentCar, allLogsForCurrentCar, userStatsLogs);
+        // User consumption within the selected period (full log list as context for SoC/distance)
+        BigDecimal userPeriodConsumption = null;
+        List<PlausibleEntry> userEntries = getPlausibleEntriesForCar(currentCar, allLogsForCurrentCar, periodLogs);
         if (!userEntries.isEmpty()) {
             BigDecimal weighted = BigDecimal.ZERO;
             int dist = 0;
@@ -376,14 +380,14 @@ public class EvLogStatisticsService {
                 weighted = weighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
                 dist += e.distanceKm();
             }
-            userLifetimeConsumption = ConsumptionMath.weightedAverage(weighted, dist);
+            userPeriodConsumption = ConsumptionMath.weightedAverage(weighted, dist);
         }
 
-        // User lifetime cost/kWh
-        BigDecimal userLifetimeCostPerKwh = null;
+        // User cost/kWh within the selected period
+        BigDecimal userPeriodCostPerKwh = null;
         BigDecimal totalUserCost = BigDecimal.ZERO;
         BigDecimal totalUserKwh = BigDecimal.ZERO;
-        for (EvLog log : userStatsLogs) {
+        for (EvLog log : periodLogs) {
             if (log.getCostEur() == null) continue;
             BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
             if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
@@ -391,7 +395,7 @@ public class EvLogStatisticsService {
             totalUserKwh = totalUserKwh.add(kwh);
         }
         if (totalUserKwh.compareTo(BigDecimal.ZERO) > 0) {
-            userLifetimeCostPerKwh = totalUserCost.divide(totalUserKwh, 4, RoundingMode.HALF_UP);
+            userPeriodCostPerKwh = totalUserCost.divide(totalUserKwh, 4, RoundingMode.HALF_UP);
         }
 
         // Peer cost — energy-weighted across all non-seed peers, regardless of country.
@@ -420,9 +424,9 @@ public class EvLogStatisticsService {
                 + nonSeedPeerCars.stream().filter(Car::isAnonymized).count();
 
         return new EvLogStatisticsResponse.PeerBenchmark(
-                userLifetimeConsumption,
+                userPeriodConsumption,
                 peerConsumption.value(),
-                userLifetimeCostPerKwh,
+                userPeriodCostPerKwh,
                 peerAvgCostPerKwh,
                 (int) uniquePeerUsers,
                 peerConsumption.tripCount(),

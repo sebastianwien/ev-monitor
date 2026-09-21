@@ -48,14 +48,14 @@ public record EvLogStatisticsResponse(
     ) {}
 
     /**
-     * Peer comparison for the user's own lifetime stats vs. anonymized community avg.
+     * Peer comparison for the user's own stats in the selected period vs. anonymized community lifetime avg.
      * Match is first attempted by vehicleSpecificationId (exact variant), with fallback to
      * car model (all variants) when no spec-level peers exist.
      *
-     * @param userLifetimeConsumptionKwhPer100km  distance-weighted lifetime avg for this user (no time filter)
+     * @param userPeriodConsumptionKwhPer100km    distance-weighted avg for this user within the selected period (lifetime when no period is set)
      * @param peerAvgConsumptionKwhPer100km       community avg across all non-seed peer cars
-     * @param userLifetimeCostPerKwh              user's own lifetime avg cost/kWh (null if no cost data)
-     * @param peerAvgCostPerKwh                   community avg cost/kWh across all non-seed peers (null if no peer has cost data)
+     * @param userPeriodCostPerKwh                user's own avg cost/kWh within the selected period (lifetime when no period is set, null if no cost data)
+     * @param peerAvgCostPerKwh                   community lifetime avg cost/kWh across all non-seed peers, worldwide (null if no peer has cost data)
      * @param uniquePeerUsers                     distinct user count among peer cars
      * @param peerTripCount                       plausible trip count used for consumption avg
      * @param peerLogCount                        peer charging logs included in statistics - the data basis behind the averages
@@ -81,9 +81,9 @@ public record EvLogStatisticsResponse(
     ) {}
 
     public record PeerBenchmark(
-            BigDecimal userLifetimeConsumptionKwhPer100km,
+            BigDecimal userPeriodConsumptionKwhPer100km,
             BigDecimal peerAvgConsumptionKwhPer100km,
-            BigDecimal userLifetimeCostPerKwh,
+            BigDecimal userPeriodCostPerKwh,
             BigDecimal peerAvgCostPerKwh,
             int uniquePeerUsers,
             int peerTripCount,

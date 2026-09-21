@@ -40,8 +40,8 @@ function calcRange(batteryKwh: number, consumptionKwhPer100km: number): number {
 }
 
 const userRange = computed(() => {
-  if (!props.effectiveBatteryKwh || !props.benchmark.userLifetimeConsumptionKwhPer100km) return null
-  return calcRange(props.effectiveBatteryKwh, props.benchmark.userLifetimeConsumptionKwhPer100km)
+  if (!props.effectiveBatteryKwh || !props.benchmark.userPeriodConsumptionKwhPer100km) return null
+  return calcRange(props.effectiveBatteryKwh, props.benchmark.userPeriodConsumptionKwhPer100km)
 })
 
 const peerRange = computed(() => {
@@ -50,7 +50,7 @@ const peerRange = computed(() => {
 })
 
 const consumptionDelta = computed<DeltaBadge | null>(() => {
-  const u = props.benchmark.userLifetimeConsumptionKwhPer100km
+  const u = props.benchmark.userPeriodConsumptionKwhPer100km
   const p = props.benchmark.peerAvgConsumptionKwhPer100km
   if (!u || !p) return null
   const pct = ((u - p) / p) * 100
@@ -70,7 +70,7 @@ const rangeDelta = computed<DeltaBadge | null>(() => {
 })
 
 const costDelta = computed<DeltaBadge | null>(() => {
-  const u = props.benchmark.userLifetimeCostPerKwh
+  const u = props.benchmark.userPeriodCostPerKwh
   const p = props.benchmark.peerAvgCostPerKwh
   if (!u || !p) return null
   const pct = ((u - p) / p) * 100
@@ -81,14 +81,14 @@ const costDelta = computed<DeltaBadge | null>(() => {
 })
 
 const showCost = computed(() =>
-  props.benchmark.userLifetimeCostPerKwh !== null &&
+  props.benchmark.userPeriodCostPerKwh !== null &&
   props.benchmark.peerAvgCostPerKwh !== null
 )
 
 // €/100km = €/kWh × kWh/100km — nur wenn Kostendaten verfügbar
 const userCostPer100km = computed(() => {
-  const cost = props.benchmark.userLifetimeCostPerKwh
-  const cons = props.benchmark.userLifetimeConsumptionKwhPer100km
+  const cost = props.benchmark.userPeriodCostPerKwh
+  const cons = props.benchmark.userPeriodConsumptionKwhPer100km
   if (!cost || !cons) return null
   return cost * cons
 })
@@ -165,7 +165,7 @@ function formatCostPer100km(val: number | null | undefined): string {
           <span v-if="consumptionDelta" :class="['text-xs font-semibold', consumptionDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">{{ consumptionDelta.label }}</span>
         </div>
         <div class="flex items-center justify-center gap-1.5 text-sm flex-wrap">
-          <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(benchmark.userLifetimeConsumptionKwhPer100km) }} kWh</span>
+          <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatConsumption(benchmark.userPeriodConsumptionKwhPer100km) }} kWh</span>
           <span class="text-xs text-gray-400 dark:text-gray-500">vs</span>
           <span class="text-gray-400 dark:text-gray-500">Ø {{ formatConsumption(benchmark.peerAvgConsumptionKwhPer100km) }} kWh</span>
         </div>
@@ -191,7 +191,7 @@ function formatCostPer100km(val: number | null | undefined): string {
           <span v-if="costDelta" :class="['text-xs font-semibold', costDelta.isGood ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400']">{{ costDelta.label }}</span>
         </div>
         <div class="flex items-center justify-center gap-1.5 text-sm flex-wrap">
-          <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatCost(benchmark.userLifetimeCostPerKwh) }}/kWh</span>
+          <span class="font-bold text-gray-900 dark:text-gray-100">{{ formatCost(benchmark.userPeriodCostPerKwh) }}/kWh</span>
           <span class="text-xs text-gray-400 dark:text-gray-500">vs</span>
           <span class="text-gray-400 dark:text-gray-500">Ø {{ formatCost(benchmark.peerAvgCostPerKwh) }}/kWh</span>
         </div>

@@ -34,9 +34,9 @@ describe('peer_cost insight', () => {
   it('fires when user is cheaper than peers', () => {
     const stats = makeStats({
       peerBenchmark: {
-        userLifetimeConsumptionKwhPer100km: 22,
+        userPeriodConsumptionKwhPer100km: 22,
         peerAvgConsumptionKwhPer100km: 20,
-        userLifetimeCostPerKwh: 0.25,
+        userPeriodCostPerKwh: 0.25,
         peerAvgCostPerKwh: 0.35,
         uniquePeerUsers: 10,
         peerTripCount: 100,
@@ -53,9 +53,9 @@ describe('peer_cost insight', () => {
   it('fires when user is more expensive than peers', () => {
     const stats = makeStats({
       peerBenchmark: {
-        userLifetimeConsumptionKwhPer100km: 22,
+        userPeriodConsumptionKwhPer100km: 22,
         peerAvgConsumptionKwhPer100km: 20,
-        userLifetimeCostPerKwh: 0.45,
+        userPeriodCostPerKwh: 0.45,
         peerAvgCostPerKwh: 0.30,
         uniquePeerUsers: 10,
         peerTripCount: 100,
@@ -71,9 +71,9 @@ describe('peer_cost insight', () => {
   it('fires with a single same-country peer (no minimum threshold)', () => {
     const stats = makeStats({
       peerBenchmark: {
-        userLifetimeConsumptionKwhPer100km: 22,
+        userPeriodConsumptionKwhPer100km: 22,
         peerAvgConsumptionKwhPer100km: 20,
-        userLifetimeCostPerKwh: 0.25,
+        userPeriodCostPerKwh: 0.25,
         peerAvgCostPerKwh: 0.35,
         uniquePeerUsers: 1,
         peerTripCount: 3,
@@ -88,9 +88,9 @@ describe('peer_cost insight', () => {
   it('guard: does not fire when peerAvgCostPerKwh is null', () => {
     const stats = makeStats({
       peerBenchmark: {
-        userLifetimeConsumptionKwhPer100km: 22,
+        userPeriodConsumptionKwhPer100km: 22,
         peerAvgConsumptionKwhPer100km: 20,
-        userLifetimeCostPerKwh: 0.25,
+        userPeriodCostPerKwh: 0.25,
         peerAvgCostPerKwh: null,
         uniquePeerUsers: 10,
         peerTripCount: 100,
@@ -109,9 +109,9 @@ describe('peer_consumption insight', () => {
   it('fires positive when user consumes less than peers', () => {
     const stats = makeStats({
       peerBenchmark: {
-        userLifetimeConsumptionKwhPer100km: 18,
+        userPeriodConsumptionKwhPer100km: 18,
         peerAvgConsumptionKwhPer100km: 22,
-        userLifetimeCostPerKwh: null,
+        userPeriodCostPerKwh: null,
         peerAvgCostPerKwh: null,
         uniquePeerUsers: 10,
         peerTripCount: 100,
@@ -127,9 +127,9 @@ describe('peer_consumption insight', () => {
   it('fires with a single peer (no minimum threshold)', () => {
     const stats = makeStats({
       peerBenchmark: {
-        userLifetimeConsumptionKwhPer100km: 18,
+        userPeriodConsumptionKwhPer100km: 18,
         peerAvgConsumptionKwhPer100km: 22,
-        userLifetimeCostPerKwh: null,
+        userPeriodCostPerKwh: null,
         peerAvgCostPerKwh: null,
         uniquePeerUsers: 1,
         peerTripCount: 3,
@@ -475,9 +475,9 @@ describe('prioritization', () => {
       summerConsumptionKwhPer100km: 18,
       winterConsumptionKwhPer100km: 25,
       peerBenchmark: {
-        userLifetimeConsumptionKwhPer100km: 18,
+        userPeriodConsumptionKwhPer100km: 18,
         peerAvgConsumptionKwhPer100km: 22,
-        userLifetimeCostPerKwh: 0.25,
+        userPeriodCostPerKwh: 0.25,
         peerAvgCostPerKwh: 0.35,
         uniquePeerUsers: 10,
         peerTripCount: 100,
@@ -495,9 +495,9 @@ describe('prioritization', () => {
       summerConsumptionKwhPer100km: 18,
       winterConsumptionKwhPer100km: 25,
       peerBenchmark: {
-        userLifetimeConsumptionKwhPer100km: 18,
+        userPeriodConsumptionKwhPer100km: 18,
         peerAvgConsumptionKwhPer100km: 22,
-        userLifetimeCostPerKwh: 0.25,
+        userPeriodCostPerKwh: 0.25,
         peerAvgCostPerKwh: 0.35,
         uniquePeerUsers: 10,
         peerTripCount: 100,

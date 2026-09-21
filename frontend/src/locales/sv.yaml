@@ -2834,10 +2834,10 @@ insights:
   peer_title: Gemenskapsjamforelse
   peer_cost_cheaper: Du laddar billigare an jamborbara forare
   peer_cost_expensive: Du laddar dyrare an jamborbara forare
-  peer_cost_body: Jamfort med forare av samma modell i ditt land.
+  peer_cost_body: Din period, jämfört med totalsnittet för alla förare av samma modell globalt.
   peer_consumption_better: Din forbrukning ar under modellsnittet
   peer_consumption_worse: Din forbrukning ar over modellsnittet
-  peer_consumption_body: Jamfort med forare av samma modell globalt.
+  peer_consumption_body: Din period, jämfört med totalsnittet för alla förare av samma modell globalt.
   trend_consumption_down: Din forbrukning minskade denna manad
   trend_consumption_up: Din forbrukning okade denna manad
   trend_consumption_body: Jamfort med forra manaden.
