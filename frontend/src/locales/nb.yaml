@@ -3265,7 +3265,7 @@ eu_data_act_sync:
     history_fact_none: "ikke hentet ennå"
     access_trial: "Prøveperiode til {date}"
     access_trial_note: "Deretter fortsetter synkingen med AutoSync-abonnementet, ellers pauses den. Importerte ladeøkter beholdes."
-    btn_relogin: "Logg inn på nytt"
+    btn_relogin: "Koble fra og logg inn på nytt"
     errors_title: "Feilmeldinger"
     authority_btn: "Klage til Bundesnetzagentur"
     authority_note: "Hvis produsenten ikke har levert 14 dager etter e-posten din. Bevis-PDF og utfylte skjemaverdier, du sender inn selv."

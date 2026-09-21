@@ -3265,7 +3265,7 @@ eu_data_act_sync:
     history_fact_none: "inte hämtad ännu"
     access_trial: "Provperiod till {date}"
     access_trial_note: "Därefter fortsätter synken med AutoSync-abonnemanget, annars pausas den. Importerade laddningar finns kvar."
-    btn_relogin: "Logga in igen"
+    btn_relogin: "Koppla från och logga in igen"
     errors_title: "Felmeddelanden"
     authority_btn: "Klagomål till Bundesnetzagentur"
     authority_note: "Om tillverkaren inte har levererat 14 dagar efter ditt e-postmeddelande. Bevis-PDF och ifyllda formulärvärden, du skickar in själv."

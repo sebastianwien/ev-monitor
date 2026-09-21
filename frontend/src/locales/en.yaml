@@ -3380,7 +3380,7 @@ eu_data_act_sync:
     history_fact_none: "not fetched yet"
     access_trial: "Trial until {date}"
     access_trial_note: "After that the sync continues with the AutoSync plan, otherwise it pauses. Imported charging sessions stay."
-    btn_relogin: "Sign in again"
+    btn_relogin: "Disconnect and sign in again"
     errors_title: "Error messages"
     authority_btn: "Complaint to the Bundesnetzagentur"
     authority_note: "If the manufacturer has not delivered 14 days after your e-mail. Evidence PDF and prefilled form values, you submit yourself."

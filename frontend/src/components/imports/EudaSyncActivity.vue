@@ -8,6 +8,7 @@ import {
 import euDataActSyncService, { type EudaSyncActivity, type EudaConnectionStatus } from '../../api/euDataActSyncService'
 import { classifyEudaHealth, MANUFACTURER_AT_FAULT, type EudaHealth } from '../../composables/useEudaHealth'
 import { buildEudaComplaintMail } from '../../composables/useEudaComplaintMail'
+import { deriveEudaPrimaryAction, isEudaHistoryOpen } from '../../composables/useEudaPrimaryAction'
 import EudaAuthorityComplaint from './EudaAuthorityComplaint.vue'
 
 /**
@@ -102,16 +103,10 @@ const historyLabel = computed(() => {
   if (h?.requestedAt || props.historyPending) return t('eu_data_act_sync.activity.history_fact_requested')
   return t('eu_data_act_sync.activity.history_fact_none')
 })
-const historyOpen = computed(() => !(conn.value?.history?.importedAt ?? props.connection.historyImportedAt) && !props.historyPending && !conn.value?.history?.running)
-
-type Primary = 'upgrade' | 'relogin' | 'complaint' | 'history' | null
-const primary = computed<Primary>(() => {
-  if (status.value === 'EXPIRED') return 'upgrade'
-  if (status.value === 'AUTH_FAILED') return 'relogin'
-  if (manufacturerAtFault.value && complaint.value) return 'complaint'
-  if (historyOpen.value) return 'history'
-  return null
-})
+const historyOpen = computed(() => isEudaHistoryOpen(conn.value?.history, props.connection.historyImportedAt, props.historyPending ?? false))
+const primary = computed(() => deriveEudaPrimaryAction({
+  status: status.value, health: health.value, hasComplaint: complaint.value !== null, historyOpen: historyOpen.value,
+}))
 const primaryClass = 'inline-flex items-center justify-center gap-1.5 w-full sm:w-auto font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 disabled:opacity-60'
 const secondaryClass = 'inline-flex items-center gap-1.5 min-h-[44px] text-[11px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-sm border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-gray-500 dark:hover:border-gray-400 disabled:opacity-60'
 

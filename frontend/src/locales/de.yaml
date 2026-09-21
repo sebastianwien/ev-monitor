@@ -3381,7 +3381,7 @@ eu_data_act_sync:
     history_fact_none: "noch nicht geholt"
     access_trial: "Testphase bis {date}"
     access_trial_note: "Danach läuft der Abgleich im AutoSync-Abo weiter, sonst pausiert er. Importierte Ladevorgänge bleiben."
-    btn_relogin: "Neu anmelden"
+    btn_relogin: "Trennen und neu anmelden"
     errors_title: "Fehlermeldungen"
     authority_btn: "Beschwerde bei der Bundesnetzagentur"
     authority_note: "Wenn der Hersteller 14 Tage nach deiner E-Mail nicht liefert. Beleg-PDF und ausgefüllte Formularwerte, du reichst selbst ein."
