@@ -55,8 +55,13 @@ public class InternalEuDataActController {
         // Der laufende Feed liefert auch bei stehendem Fahrzeug Telemetrie ohne Ladedaten - das
         // ist kein Fehler. Die Historie kommt nur einmal und wird deshalb strikt geparst.
         boolean lenient = !KIND_HISTORY.equalsIgnoreCase(kind);
+        long started = System.nanoTime();
         ImportApiResult result = importService.importData(UUID.fromString(userId), UUID.fromString(carId),
                 file, file.getOriginalFilename(), DataSource.EU_DATA_ACT_SYNC, lenient);
+        // Dauer ist die Messgroesse fuer den Connector-Timeout (Historien-Exporte brauchen Minuten).
+        log.info("[EUDA] Import {} kind={} {} B carId={}: {} importiert, {} uebersprungen, {} Fehler in {} ms",
+                file.getOriginalFilename(), lenient ? "CONTINUOUS" : "HISTORY", file.getSize(), carId,
+                result.imported(), result.skipped(), result.errors(), (System.nanoTime() - started) / 1_000_000);
         return ResponseEntity.ok(new ImportResponse(result.imported(), result.skipped(), result.errors()));
     }
 
