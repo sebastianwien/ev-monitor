@@ -931,7 +931,7 @@ onUnmounted(() => {
           :location-split="stats.locationSplit"
         />
 
-        <!-- Peer Benchmark (old) — können wir später löschen -->
+        <!-- Kompaktvergleich: Du vs. Community -->
         <PeerBenchmarkCard
           v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
           :benchmark="stats.peerBenchmark"
