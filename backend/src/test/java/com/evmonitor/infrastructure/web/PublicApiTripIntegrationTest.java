@@ -93,6 +93,63 @@ class PublicApiTripIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void createTrip_duplicateStartedAt_returns400() {
+        OffsetDateTime startedAt = OffsetDateTime.of(2025, 6, 1, 8, 0, 0, 0, ZoneOffset.UTC);
+        EvTrip existing = apiUploadTrip(car.getId(), user.getId(), startedAt);
+        existing.setDataSource(EvTrip.DATA_SOURCE_TESLA_LIVE);
+        evTripRepository.save(existing);
+
+        Map<String, Object> body = Map.of(
+                "car_id", car.getId().toString(),
+                "started_at", "2025-06-01T10:00:00+02:00",
+                "ended_at", "2025-06-01T11:00:00+02:00",
+                "distance_km", 10.0
+        );
+
+        ResponseEntity<Map> response = apiPost("/api/v1/trips", body);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().get("error"));
+        assertEquals(1, evTripRepository.findAllByCarIdAndDeletedAtIsNull(car.getId()).size());
+    }
+
+    @Test
+    void createTrip_withOdometer_storesOdometerFields() {
+        Map<String, Object> body = Map.of(
+                "car_id", car.getId().toString(),
+                "started_at", "2025-06-03T08:00:00+02:00",
+                "ended_at", "2025-06-03T09:00:00+02:00",
+                "distance_km", 41.3,
+                "odometer_start_km", 7852,
+                "odometer_end_km", 7893.3
+        );
+
+        ResponseEntity<Map> response = apiPost("/api/v1/trips", body);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        EvTrip saved = evTripRepository.findAllByCarIdAndDeletedAtIsNull(car.getId()).get(0);
+        assertEquals(0, new BigDecimal("7852").compareTo(saved.getOdometerStartKm()));
+        assertEquals(0, new BigDecimal("7893.3").compareTo(saved.getOdometerEndKm()));
+    }
+
+    @Test
+    void createTrip_withoutDistanceOrOdometer_returns400() {
+        Map<String, Object> body = Map.of(
+                "car_id", car.getId().toString(),
+                "started_at", "2025-06-05T08:00:00+02:00",
+                "ended_at", "2025-06-05T09:00:00+02:00",
+                "soc_start", 80,
+                "soc_end", 62
+        );
+
+        ResponseEntity<Map> response = apiPost("/api/v1/trips", body);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertTrue(evTripRepository.findAllByCarIdAndDeletedAtIsNull(car.getId()).isEmpty());
+    }
+
+    @Test
     void createTrip_noApiKey_returns401() {
         ResponseEntity<Map> response = restTemplate.exchange(
                 "/api/v1/trips", HttpMethod.POST,

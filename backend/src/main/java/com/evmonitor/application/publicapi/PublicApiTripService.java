@@ -15,7 +15,10 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -28,25 +31,85 @@ public class PublicApiTripService {
 
     @Transactional
     public ApiTripResponse createTrip(UUID userId, PublicApiTripRequest request) {
-        Car car = carRepository.findById(request.carId())
+        Car car = loadOwnedCar(userId, request.carId());
+
+        EvTrip trip = buildTrip(userId, car, request);
+        if (tripRepository.existsByCarIdAndTripStartedAtAndDeletedAtIsNull(car.getId(), trip.getTripStartedAt())) {
+            throw new IllegalArgumentException("Für dieses Fahrzeug existiert bereits eine Fahrt mit diesem Startzeitpunkt");
+        }
+
+        return ApiTripResponse.fromDomain(tripRepository.save(trip));
+    }
+
+    /**
+     * Bulk upload for the manual import. Ownership is checked once; per entry an
+     * invalid row counts as error, an existing trip with the same start (any source,
+     * or an earlier row of the same batch) counts as skipped. No coins are awarded.
+     */
+    @Transactional
+    public ImportApiResult createTrips(UUID userId, UUID carId, List<PublicApiTripRequest> entries) {
+        Car car = loadOwnedCar(userId, carId);
+
+        int imported = 0, skipped = 0, errors = 0;
+        Set<OffsetDateTime> seenStarts = new HashSet<>();
+        for (PublicApiTripRequest entry : entries) {
+            EvTrip trip;
+            try {
+                trip = buildTrip(userId, car, entry);
+            } catch (IllegalArgumentException e) {
+                errors++;
+                continue;
+            }
+            OffsetDateTime startInstant = trip.getTripStartedAt().withOffsetSameInstant(ZoneOffset.UTC);
+            if (!seenStarts.add(startInstant)
+                    || tripRepository.existsByCarIdAndTripStartedAtAndDeletedAtIsNull(car.getId(), trip.getTripStartedAt())) {
+                skipped++;
+                continue;
+            }
+            tripRepository.save(trip);
+            imported++;
+        }
+        log.info("Trip bulk import: user={} car={} rows={} imported={} skipped={} errors={}",
+                userId, carId, entries.size(), imported, skipped, errors);
+        return ImportApiResult.withoutIds(imported, skipped, errors);
+    }
+
+    private Car loadOwnedCar(UUID userId, UUID carId) {
+        if (carId == null) throw new IllegalArgumentException("car_id darf nicht leer sein");
+        Car car = carRepository.findById(carId)
                 .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
         if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
+        return car;
+    }
 
+    /** Validates and maps one request to an unsaved trip. Throws IllegalArgumentException on invalid data. */
+    private EvTrip buildTrip(UUID userId, Car car, PublicApiTripRequest request) {
         OffsetDateTime start = parseTimestamp(request.startedAt(), "started_at");
         OffsetDateTime end = parseTimestamp(request.endedAt(), "ended_at");
         if (!start.isBefore(end)) {
             throw new IllegalArgumentException("ended_at muss nach started_at liegen");
         }
+        requireRange(request.distanceKm(), 0, 100_000, "distance_km");
+        requireRange(request.odometerStartKm(), 0, 10_000_000, "odometer_start_km");
+        requireRange(request.odometerEndKm(), 0, 10_000_000, "odometer_end_km");
+        BigDecimal distanceKm = resolveDistance(request);
+        requireRange(request.socStart(), 0, 100, "soc_start");
+        requireRange(request.socEnd(), 0, 100, "soc_end");
+        if (request.routeType() != null && !ALLOWED_ROUTE_TYPES.contains(request.routeType())) {
+            throw new IllegalArgumentException("route_type muss CITY, COMBINED oder HIGHWAY sein");
+        }
 
-        EvTrip trip = EvTrip.builder()
-                .carId(request.carId())
+        return EvTrip.builder()
+                .carId(car.getId())
                 .userId(userId)
                 .dataSource(EvTrip.DATA_SOURCE_API_UPLOAD)
                 .tripStartedAt(start)
                 .tripEndedAt(end)
-                .distanceKm(request.distanceKm())
+                .distanceKm(distanceKm)
+                .odometerStartKm(request.odometerStartKm())
+                .odometerEndKm(request.odometerEndKm())
                 .socStart(request.socStart())
                 .socEnd(request.socEnd())
                 .routeType(request.routeType())
@@ -55,8 +118,36 @@ public class PublicApiTripService {
                 .status("COMPLETED")
                 .userCreated(true)
                 .build();
+    }
 
-        return ApiTripResponse.fromDomain(tripRepository.save(trip));
+    /**
+     * A trip without a distance carries no information the app can use, so either
+     * distance_km or both odometer readings are required; the latter derive the distance.
+     */
+    private static BigDecimal resolveDistance(PublicApiTripRequest request) {
+        if (request.distanceKm() != null) {
+            if (request.distanceKm().signum() <= 0) {
+                throw new IllegalArgumentException("distance_km muss größer als 0 sein");
+            }
+            return request.distanceKm();
+        }
+        if (request.odometerStartKm() != null && request.odometerEndKm() != null) {
+            BigDecimal delta = request.odometerEndKm().subtract(request.odometerStartKm());
+            if (delta.signum() <= 0) {
+                throw new IllegalArgumentException("odometer_end_km muss größer als odometer_start_km sein");
+            }
+            return delta;
+        }
+        throw new IllegalArgumentException("distance_km oder odometer_start_km und odometer_end_km sind erforderlich");
+    }
+
+    private static final Set<String> ALLOWED_ROUTE_TYPES = Set.of("CITY", "COMBINED", "HIGHWAY");
+
+    private static void requireRange(BigDecimal value, long min, long max, String field) {
+        if (value == null) return;
+        if (value.compareTo(BigDecimal.valueOf(min)) < 0 || value.compareTo(BigDecimal.valueOf(max)) > 0) {
+            throw new IllegalArgumentException(field + " muss zwischen " + min + " und " + max + " liegen");
+        }
     }
 
     @Transactional(readOnly = true)

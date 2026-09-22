@@ -39,29 +39,32 @@ class PublicApiTripRateLimitIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void createTrip_exceeding60RequestsPerHour_returns429() {
-        Map<String, Object> body = Map.of(
-                "car_id", car.getId().toString(),
-                "started_at", "2025-06-01T08:00:00Z",
-                "ended_at", "2025-06-01T09:00:00Z",
-                "distance_km", 10.0
-        );
-
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + plaintextKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-        // Exhaust the 60-request bucket
+        // Exhaust the 60-request bucket. Each trip gets its own start time,
+        // because an identical started_at is rejected as a duplicate (400).
         for (int i = 0; i < 60; i++) {
             ResponseEntity<Map> response = restTemplate.exchange(
-                    "/api/v1/trips", HttpMethod.POST, request, Map.class);
+                    "/api/v1/trips", HttpMethod.POST, tripRequest(i, headers), Map.class);
             assertEquals(HttpStatus.CREATED, response.getStatusCode(),
                     "Request " + (i + 1) + " should succeed");
         }
 
         // 61st request must be rejected
         ResponseEntity<Map> response = restTemplate.exchange(
-                "/api/v1/trips", HttpMethod.POST, request, Map.class);
+                "/api/v1/trips", HttpMethod.POST, tripRequest(60, headers), Map.class);
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+    }
+
+    private HttpEntity<Map<String, Object>> tripRequest(int dayOffset, HttpHeaders headers) {
+        Map<String, Object> body = Map.of(
+                "car_id", car.getId().toString(),
+                "started_at", java.time.OffsetDateTime.parse("2025-01-01T08:00:00Z").plusDays(dayOffset).toString(),
+                "ended_at", java.time.OffsetDateTime.parse("2025-01-01T09:00:00Z").plusDays(dayOffset).toString(),
+                "distance_km", 10.0
+        );
+        return new HttpEntity<>(body, headers);
     }
 }

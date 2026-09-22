@@ -23,6 +23,14 @@ public record PublicApiTripRequest(
         @DecimalMin("0.0") @DecimalMax("100000.0") @JsonProperty("distance_km")
         BigDecimal distanceKm,
 
+        @Schema(description = "Odometer reading at trip start in km.")
+        @DecimalMin("0.0") @DecimalMax("10000000.0") @JsonProperty("odometer_start_km")
+        BigDecimal odometerStartKm,
+
+        @Schema(description = "Odometer reading at trip end in km.")
+        @DecimalMin("0.0") @DecimalMax("10000000.0") @JsonProperty("odometer_end_km")
+        BigDecimal odometerEndKm,
+
         @Schema(description = "State of Charge at trip start in percent (0-100).")
         @DecimalMin("0.0") @DecimalMax("100.0") @JsonProperty("soc_start")
         BigDecimal socStart,

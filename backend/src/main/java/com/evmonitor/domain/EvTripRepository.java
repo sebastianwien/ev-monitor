@@ -18,6 +18,9 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
     Optional<EvTrip> findByExternalIdAndDeletedAtIsNull(UUID externalId);
 
+    /** Duplicate guard for user uploads: any live, non-deleted trip of this car starting at this instant. */
+    boolean existsByCarIdAndTripStartedAtAndDeletedAtIsNull(UUID carId, OffsetDateTime tripStartedAt);
+
     @Query("SELECT t FROM EvTrip t WHERE t.carId = :carId AND t.deletedAt IS NULL ORDER BY t.tripStartedAt ASC")
     List<EvTrip> findAllByCarIdAndDeletedAtIsNull(@Param("carId") UUID carId);
 
