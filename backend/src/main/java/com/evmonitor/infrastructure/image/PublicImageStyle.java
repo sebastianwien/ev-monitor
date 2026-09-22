@@ -88,6 +88,12 @@ public final class PublicImageStyle {
             return String.format(numbers, "%,." + decimals + "f", value.setScale(decimals, RoundingMode.HALF_UP));
         }
 
+        /*
+         * Texte wortgleich mit dem Block share_car der Frontend-Locales
+         * (masthead_claim, fallback_title, charges_count, peer_*, tile_*).
+         * PublicImageTextsMatchLocalesTest prueft das gegen die YAML-Dateien.
+         */
+
         String claim() {
             return switch (this) {
                 case DE -> "Echter Verbrauch statt WLTP";
@@ -108,10 +114,10 @@ public final class PublicImageStyle {
 
         String charges(int n) {
             return switch (this) {
-                case DE -> n + (n == 1 ? " Ladung" : " Ladungen");
-                case EN -> n + (n == 1 ? " charge" : " charges");
-                case NB -> n + (n == 1 ? " lading" : " ladinger");
-                case SV -> n + (n == 1 ? " laddning" : " laddningar");
+                case DE -> n + " Ladungen";
+                case EN -> n + " charges";
+                case NB -> n + " ladinger";
+                case SV -> n + " laddningar";
             };
         }
 
@@ -126,13 +132,13 @@ public final class PublicImageStyle {
             int pct = Math.abs(delta);
             return switch (this) {
                 case DE -> delta == 0 ? "Genau im Schnitt " + scope : pct + " % " + (delta < 0 ? "unter" : "über") + " dem Schnitt " + scope;
-                case EN -> delta == 0 ? "Right on the average " + scope : pct + " % " + (delta < 0 ? "below" : "above") + " average " + scope;
+                case EN -> delta == 0 ? "Right at the average " + scope : pct + " % " + (delta < 0 ? "below" : "above") + " the average " + scope;
                 case NB -> delta == 0 ? "Akkurat på snittet " + scope : pct + " % " + (delta < 0 ? "under" : "over") + " snittet " + scope;
                 case SV -> delta == 0 ? "Precis på snittet " + scope : pct + " % " + (delta < 0 ? "under" : "över") + " snittet " + scope;
             };
         }
 
-        /** Kurzform fuer das Banner. */
+        /** Kurzform fuer das Banner, ohne Gegenstueck auf der Seite. */
         String peerShort(int delta) {
             int pct = Math.abs(delta);
             return switch (this) {
@@ -143,13 +149,15 @@ public final class PublicImageStyle {
             };
         }
 
+        /** "gemessen an n anderen Fahrern", davor der Schnitt als Zahl. */
         String peerDetail(String avg, int others) {
-            return switch (this) {
-                case DE -> "Community-Schnitt " + avg + " kWh/100km · " + others + (others == 1 ? " anderer Fahrer" : " andere Fahrer");
-                case EN -> "Community average " + avg + " kWh/100km · " + others + (others == 1 ? " other driver" : " other drivers");
-                case NB -> "Fellesskapets snitt " + avg + " kWh/100km · " + others + (others == 1 ? " annen sjåfør" : " andre sjåfører");
-                case SV -> "Gemenskapens snitt " + avg + " kWh/100km · " + others + (others == 1 ? " annan förare" : " andra förare");
+            String measured = switch (this) {
+                case DE -> "gemessen an " + others + (others == 1 ? " anderem Fahrer" : " anderen Fahrern");
+                case EN -> "measured against " + others + (others == 1 ? " other driver" : " other drivers");
+                case NB -> "målt mot " + others + (others == 1 ? " annen fører" : " andre førere");
+                case SV -> "mätt mot " + others + (others == 1 ? " annan förare" : " andra förare");
             };
+            return "Ø " + avg + " kWh/100km · " + measured;
         }
 
         String labelCostPer100() {
