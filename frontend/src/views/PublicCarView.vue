@@ -66,10 +66,9 @@
 
         <div class="md:grid md:grid-cols-2 md:gap-10">
           <!-- Bilanz als Datenblatt -->
-          <section v-if="ledger.length" class="mt-7 border-b border-[var(--pc-rule)]">
-            <h2 class="pc-h2">{{ t('share_car.ledger_title') }}</h2>
+          <section v-if="ledger.length" class="border-b border-[var(--pc-rule)]" :aria-label="t('share_car.ledger_title')">
             <dl>
-              <div v-for="row in ledger" :key="row.key" class="grid grid-cols-[1fr_auto] items-baseline py-2.5 border-t border-[var(--pc-rule)]">
+              <div v-for="row in ledger" :key="row.key" class="grid grid-cols-[1fr_auto] items-baseline py-2.5 border-t first:border-t-0 border-[var(--pc-rule)]">
                 <dt class="text-[var(--pc-ink-2)]">
                   {{ row.label }}
                   <small v-if="row.hint" class="block text-xs text-[var(--pc-ink-3)]">{{ row.hint }}</small>
