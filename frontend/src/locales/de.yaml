@@ -3075,7 +3075,7 @@ share_car:
   peer_equal: "Genau im Schnitt {scope}"
   peer_scope_spec: "dieser Variante"
   peer_scope_model: "dieses Modells"
-  peer_detail: "Schnitt {avg} aus {n} anderem Fahrer | Schnitt {avg} aus {n} anderen Fahrern"
+  peer_detail: "gemessen an {n} anderem Fahrer | gemessen an {n} anderen Fahrern"
   og_title: "{model}: {facts}"
   months_title: "Verbrauch pro Monat"
   charges_title: "Letzte Ladungen"

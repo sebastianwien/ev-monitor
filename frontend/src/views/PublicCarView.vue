@@ -1,7 +1,12 @@
 <template>
   <div class="pc min-h-screen">
-    <PublicNav />
-    <main class="max-w-3xl mx-auto px-4 pb-14 md:pt-6">
+    <!-- Kein App-Header: die Seite hat ein anderes Publikum. Nur der Absender, der
+         Aufruf zum Mitmachen steht am Ende, wo der Leser das Auto schon kennt. -->
+    <main class="max-w-3xl mx-auto px-4 pb-14">
+      <a href="/" class="inline-flex items-center gap-2 min-h-[44px] text-[var(--pc-ink-2)]">
+        <BoltLogo class="h-5 w-5" />
+        <span class="text-sm font-semibold tracking-wide">EV Monitor</span>
+      </a>
       <div v-if="loading" class="text-center py-16 text-[var(--pc-ink-3)]">
         {{ t('common.loading') }}
       </div>
@@ -14,7 +19,7 @@
 
       <article v-else>
         <!-- Titel liegt ueber der unteren Kante des Fotos, das Foto blendet in den Grund aus. -->
-        <header class="relative -mx-4 md:mx-0 md:rounded-md overflow-hidden" :class="car.hasImage ? 'aspect-[4/3] md:aspect-[2/1]' : ''">
+        <header class="relative -mx-4 mt-1 md:mx-0 md:rounded-md overflow-hidden" :class="car.hasImage ? 'aspect-[4/3] md:aspect-[2/1]' : ''">
           <template v-if="car.hasImage">
             <img :src="imageUrl" :alt="car.carModel ?? ''" class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 pc-fade" />
@@ -41,18 +46,16 @@
           </div>
           <p class="mt-2 text-[17px] max-w-[32em] text-balance">
             <template v-if="peer">
-              <span :class="peer.delta <= 0 ? 'text-[var(--pc-good)] font-semibold' : 'text-[var(--pc-warn)] font-semibold'">{{ peer.headline }}.</span>
-              <template v-if="car.modelPagePath"> <RouterLink :to="car.modelPagePath" class="underline decoration-[var(--pc-rule)] underline-offset-4">{{ peer.detail }}</RouterLink>.</template>
-              <template v-else> {{ peer.detail }}.</template>
+              <span :class="peer.delta <= 0 ? 'text-[var(--pc-good)] font-semibold' : 'text-[var(--pc-warn)] font-semibold'">{{ peer.headline }}</span>{{ ', ' }}<RouterLink v-if="car.modelPagePath" :to="car.modelPagePath" class="underline decoration-[var(--pc-rule)] underline-offset-4">{{ peer.detail }}</RouterLink><span v-else>{{ peer.detail }}</span>{{ '. ' }}
             </template>
-            <template v-if="seasonSentence"> {{ seasonSentence }}</template>
+            <template v-if="seasonSentence">{{ seasonSentence }}</template>
           </p>
 
           <svg v-if="peer" class="w-full max-w-[520px] h-auto mt-4 overflow-visible" viewBox="0 0 400 46" role="img" :aria-label="peer.headline">
             <line x1="10" y1="22" x2="390" y2="22" stroke="var(--pc-rule)" stroke-width="2" />
             <g font-size="11" fill="var(--pc-ink-3)" class="tabular-nums">
-              <text x="10" y="42">{{ formatConsumption(peer.scale.minLabel, { showUnit: false }) }} {{ t('share_car.scale_min') }}</text>
-              <text x="390" y="42" text-anchor="end">{{ formatConsumption(peer.scale.maxLabel, { showUnit: false }) }} {{ t('share_car.scale_max') }}</text>
+              <text x="10" y="42">{{ formatConsumption(peer.scale.minLabel, { showUnit: false, decimals: isImperial ? 1 : 0 }) }} {{ t('share_car.scale_min') }}</text>
+              <text x="390" y="42" text-anchor="end">{{ formatConsumption(peer.scale.maxLabel, { showUnit: false, decimals: isImperial ? 1 : 0 }) }} {{ t('share_car.scale_max') }}</text>
             </g>
             <line :x1="scaleX(peer.scale.avgPos)" y1="12" :x2="scaleX(peer.scale.avgPos)" y2="32" stroke="var(--pc-ink-3)" stroke-width="1.5" stroke-dasharray="3 3" />
             <text :x="scaleX(peer.scale.avgPos)" y="8" text-anchor="middle" font-size="11" fill="var(--pc-ink-2)">{{ t('share_car.scale_avg', { avg: peer.avgLabel }) }}</text>
@@ -148,7 +151,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useHead } from '@unhead/vue'
-import PublicNav from '../components/shared/PublicNav.vue'
+import BoltLogo from '../components/shared/BoltLogo.vue'
 import { carShareService, type PublicCar, type PublicCarCharge } from '../api/carShareService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { buildStepChart, peerScale } from '../composables/publicCarChart'
@@ -339,7 +342,7 @@ onMounted(async () => {
 .pc-disp { font-family: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.01em; }
 .pc-eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--pc-ink-3); font-weight: 500; }
 .pc-h2 { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 500; color: var(--pc-ink-3); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.pc-fade { background: linear-gradient(180deg, rgba(0,0,0,0) 45%, var(--pc-paper) 100%); }
+.pc-fade { background: linear-gradient(180deg, rgba(0,0,0,0) 50%, var(--pc-paper) 100%); }
 .pc-badge { font-size: 11px; font-weight: 600; letter-spacing: .06em; border: 1px solid var(--pc-rule); border-radius: 3px; padding: 3px 0; text-align: center; color: var(--pc-ink-2); }
 .pc-badge-dc { background: var(--pc-ink); color: var(--pc-paper); border-color: var(--pc-ink); }
 .pc-lg::before { content: ""; display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--pc-ink); vertical-align: middle; margin-right: 6px; }

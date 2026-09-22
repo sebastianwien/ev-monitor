@@ -2959,7 +2959,7 @@ share_car:
   peer_equal: "Precis på snittet {scope}"
   peer_scope_spec: "för den här varianten"
   peer_scope_model: "för den här modellen"
-  peer_detail: "Snitt {avg} från {n} annan förare | Snitt {avg} från {n} andra förare"
+  peer_detail: "mätt mot {n} annan förare | mätt mot {n} andra förare"
   og_title: "{model}: {facts}"
   months_title: "Förbrukning per månad"
   charges_title: "Senaste laddningar"

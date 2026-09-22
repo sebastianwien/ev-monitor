@@ -3074,7 +3074,7 @@ share_car:
   peer_equal: "Right at the average {scope}"
   peer_scope_spec: "for this variant"
   peer_scope_model: "for this model"
-  peer_detail: "Average {avg} from {n} other driver | Average {avg} from {n} other drivers"
+  peer_detail: "measured against {n} other driver | measured against {n} other drivers"
   og_title: "{model}: {facts}"
   months_title: "Consumption per month"
   charges_title: "Recent charges"
