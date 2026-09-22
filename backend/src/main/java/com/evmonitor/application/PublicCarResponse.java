@@ -32,10 +32,19 @@ public record PublicCarResponse(
         BigDecimal publicChargingSharePercent,
         BigDecimal summerConsumptionKwhPer100km,
         BigDecimal winterConsumptionKwhPer100km,
+        /** Vergleich zum Community-Schnitt desselben Modells, null ohne Peers. */
+        PeerComparison peerComparison,
         /** Letzte zwoelf Monate mit Daten, aelteste zuerst. */
         List<MonthPoint> months,
         /** Neueste Ladungen zuerst. */
         List<Charge> recentCharges) {
+
+    public record PeerComparison(
+            BigDecimal peerAvgConsumptionKwhPer100km,
+            /** Anzahl anderer Fahrer hinter dem Schnitt - nie wer. */
+            int peerUsers,
+            /** SPEC = gleiche Variante, MODEL = alle Varianten des Modells. */
+            String matchType) {}
 
     public record MonthPoint(
             /** Erster Tag des Monats. */

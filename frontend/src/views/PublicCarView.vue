@@ -32,6 +32,18 @@
             </div>
           </div>
 
+          <div v-if="peer" class="mb-6 rounded-lg border px-3 py-2.5 flex items-start gap-3"
+            :class="peer.delta <= 0
+              ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20'
+              : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20'">
+            <ArrowTrendingDownIcon v-if="peer.delta <= 0" class="w-5 h-5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+            <ArrowTrendingUpIcon v-else class="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ peer.headline }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ peer.detail }}</p>
+            </div>
+          </div>
+
           <section v-if="chartMonths.length > 1" class="mb-6">
             <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
               {{ t('share_car.months_title') }} <span class="font-normal text-gray-400 dark:text-gray-500">({{ consumptionUnitLabel() }})</span>
@@ -84,6 +96,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useHead } from '@unhead/vue'
+import { ArrowTrendingDownIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import { carShareService, type PublicCar } from '../api/carShareService'
 import { useAuthStore } from '../stores/auth'
@@ -130,6 +143,28 @@ const tiles = computed<Tile[]>(() => {
   if (c.publicChargingSharePercent != null) out.push({ key: 'pub', label: t('share_car.tile_public_share'), value: `${formatDecimal(c.publicChargingSharePercent, 0)} %` })
   else if (c.totalKwhCharged != null) out.push({ key: 'kwh', label: t('share_car.tile_kwh'), value: `${formatDecimal(c.totalKwhCharged, 0)} kWh` })
   return out
+})
+
+/**
+ * Vergleich zum Community-Schnitt desselben Modells. Prozent-Abweichung, weil
+ * ein Aussenstehender mit "18,8 kWh/100km" allein nichts anfangen kann.
+ */
+const peer = computed(() => {
+  const c = car.value
+  const p = c?.peerComparison
+  if (!c || !p || c.avgConsumptionKwhPer100km == null || p.peerAvgConsumptionKwhPer100km <= 0) return null
+  const deltaPct = Math.round(((c.avgConsumptionKwhPer100km - p.peerAvgConsumptionKwhPer100km) / p.peerAvgConsumptionKwhPer100km) * 100)
+  const scope = p.matchType === 'SPEC' ? t('share_car.peer_scope_spec') : t('share_car.peer_scope_model')
+  const headline = deltaPct === 0
+    ? t('share_car.peer_equal', { scope })
+    : deltaPct < 0
+      ? t('share_car.peer_below', { pct: Math.abs(deltaPct), scope })
+      : t('share_car.peer_above', { pct: deltaPct, scope })
+  return {
+    delta: deltaPct,
+    headline,
+    detail: t('share_car.peer_detail', { avg: formatConsumption(p.peerAvgConsumptionKwhPer100km), n: p.peerUsers }),
+  }
 })
 
 /**

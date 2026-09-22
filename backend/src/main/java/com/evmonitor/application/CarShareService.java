@@ -150,8 +150,16 @@ public class CarShareService {
                 publicShare(stats.locationSplit()),
                 stats.summerConsumptionKwhPer100km(),
                 stats.winterConsumptionKwhPer100km(),
+                peerComparison(stats.peerBenchmark()),
                 months,
                 charges);
+    }
+
+    private static PublicCarResponse.PeerComparison peerComparison(EvLogStatisticsResponse.PeerBenchmark b) {
+        if (b == null || b.peerAvgConsumptionKwhPer100km() == null || b.uniquePeerUsers() <= 0) return null;
+        return new PublicCarResponse.PeerComparison(
+                b.peerAvgConsumptionKwhPer100km(), b.uniquePeerUsers(),
+                b.matchType() != null ? b.matchType().name() : null);
     }
 
     private static BigDecimal costPer100km(BigDecimal energyCost, BigDecimal distanceKm) {

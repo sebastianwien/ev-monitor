@@ -43,6 +43,12 @@ export interface PublicCar {
   publicChargingSharePercent?: number | null;
   summerConsumptionKwhPer100km?: number | null;
   winterConsumptionKwhPer100km?: number | null;
+  /** Vergleich zum Community-Schnitt desselben Modells, fehlt ohne Peers. */
+  peerComparison?: {
+    peerAvgConsumptionKwhPer100km: number;
+    peerUsers: number;
+    matchType?: 'SPEC' | 'MODEL' | null;
+  } | null;
   months: PublicCarMonth[];
   recentCharges: PublicCarCharge[];
 }

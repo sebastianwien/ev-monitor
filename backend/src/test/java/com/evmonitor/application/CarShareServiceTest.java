@@ -8,6 +8,8 @@ import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
+import com.evmonitor.domain.VehicleSpecification;
+import com.evmonitor.domain.VehicleSpecificationRepository;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,7 @@ class CarShareServiceTest extends AbstractIntegrationTest {
     @Autowired private CarShareService shareService;
     @Autowired private CarRepository carRepository;
     @Autowired private EvLogRepository evLogRepository;
+    @Autowired private VehicleSpecificationRepository vehicleSpecificationRepository;
     @Autowired private com.evmonitor.application.user.AccountAnonymizationService anonymizationService;
 
     @Test
@@ -105,6 +108,43 @@ class CarShareServiceTest extends AbstractIntegrationTest {
         anonymizationService.anonymizeCarsOf(user.getId());
 
         assertTrue(shareService.getPublicCar(token).isEmpty());
+    }
+
+    @Test
+    void getPublicCar_includesPeerComparison_whenPeersExist() {
+        // Der Vergleich zum Modell-Schnitt ist die eine Zahl, die die Seite fuer
+        // einen Aussenstehenden einordnet. Anzahl der Fahrer ja, nie wer.
+        VehicleSpecification spec = vehicleSpecificationRepository.save(VehicleSpecification.createNew(
+                "Tesla", "Model 3", new BigDecimal("75.0"), null, new BigDecimal("490"), new BigDecimal("15.4"),
+                VehicleSpecification.WltpType.COMBINED, VehicleSpecification.RatingSource.WLTP,
+                "carshare-peer-" + System.nanoTime()));
+        User owner = createAndSaveUser("carshare-peer-owner-" + System.nanoTime() + "@test.com");
+        Car ownerCar = carRepository.save(createAndSaveCar(owner.getId(), CarBrand.CarModel.MODEL_3)
+                .toBuilder().vehicleSpecificationId(spec.getId()).build());
+        User peer = createAndSaveUser("carshare-peer-" + System.nanoTime() + "@test.com");
+        Car peerCar = carRepository.save(createAndSaveCar(peer.getId(), CarBrand.CarModel.MODEL_3)
+                .toBuilder().vehicleSpecificationId(spec.getId()).build());
+        saveLog(ownerCar.getId(), LocalDateTime.now().minusDays(2), 10_000);
+        saveLog(ownerCar.getId(), LocalDateTime.now().minusDays(1), 10_250);
+        saveLog(peerCar.getId(), LocalDateTime.now().minusDays(2), 20_000);
+        saveLog(peerCar.getId(), LocalDateTime.now().minusDays(1), 20_200);
+
+        PublicCarResponse pub = shareService.getPublicCar(shareService.createShare(ownerCar.getId(), owner).token()).orElseThrow();
+
+        assertNotNull(pub.peerComparison());
+        assertNotNull(pub.peerComparison().peerAvgConsumptionKwhPer100km());
+        assertEquals(1, pub.peerComparison().peerUsers());
+        assertFalse(pub.toString().contains(peer.getId().toString()), "Peer-Identitaet darf nicht exponiert werden");
+    }
+
+    @Test
+    void getPublicCar_noPeers_hasNoComparison() {
+        User user = createAndSaveUser("carshare-nopeer-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+
+        PublicCarResponse pub = shareService.getPublicCar(shareService.createShare(car.getId(), user).token()).orElseThrow();
+
+        assertNull(pub.peerComparison());
     }
 
     @Test
