@@ -42,6 +42,15 @@ describe('classifyEudaHealth', () => {
     expect(classifyEudaHealth(activity(), NOW)).toBe('NO_CONTENT')
   })
 
+  it('nur Telemetrie-Lieferungen ohne Ladevorgaenge zaehlen nicht als Inhalt: NO_CONTENT', () => {
+    // Prod 21.09.2026: 114 gefuellte Drops, 0 Ladevorgaenge - die Ampel stand trotzdem auf gruen
+    expect(classifyEudaHealth(activity({ lastDataAt: null }, { deliveriesWithContent: 114, sessionsImported: 0 }), NOW)).toBe('NO_CONTENT')
+  })
+
+  it('nur Telemetrie-Lieferungen, frisch verbunden: WAITING_FIRST', () => {
+    expect(classifyEudaHealth(activity({ connectedAt: '2026-09-21T06:00:00Z', lastDataAt: null }, { deliveriesWithContent: 3 }), NOW)).toBe('WAITING_FIRST')
+  })
+
   it('Inhalt kam, aber seit 72h nichts mehr: STALE', () => {
     expect(classifyEudaHealth(activity({ lastDataAt: '2026-09-17T09:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 3 }), NOW)).toBe('STALE')
   })

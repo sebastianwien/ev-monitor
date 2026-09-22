@@ -36,7 +36,9 @@ export function classifyEudaHealth(activity: EudaSyncActivity, now: Date = new D
 
   // Herstellerprobleme vor unseren eigenen: liefert das Portal nichts, ist der gescheiterte
   // Historien-Import nur ein Symptom davon.
-  const hadContent = activity.summary.deliveriesWithContent > 0 || c.lastDataAt !== null
+  // "Inhalt" heisst Ladevorgaenge. deliveriesWithContent zaehlt nur gefuellte ZIPs - das Portal
+  // liefert auch reine Trip-Telemetrie ohne Ladedaten, die darf die Ampel nicht gruen faerben.
+  const hadContent = c.lastDataAt !== null || activity.summary.sessionsImported > 0
   if (!hadContent) {
     const age = now.getTime() - new Date(c.connectedAt).getTime()
     if (age >= WAITING_WINDOW_MS) return 'NO_CONTENT'

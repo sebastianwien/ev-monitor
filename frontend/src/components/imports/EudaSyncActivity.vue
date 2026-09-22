@@ -92,7 +92,8 @@ const shortError = computed(() => {
   return head.length > 0 && head.length < e.length ? head : e.slice(0, 80)
 })
 
-const lastDataLabel = computed(() => fmt(conn.value?.lastDataAt ?? props.connection.lastSuccessAt) ?? t('eu_data_act_sync.activity.no_data_yet'))
+// Kein Rueckfall auf lastSuccessAt: ein erfolgreicher Poll ohne Ladevorgaenge sind keine "Daten".
+const lastDataLabel = computed(() => fmt(conn.value?.lastDataAt) ?? t('eu_data_act_sync.activity.no_data_yet'))
 
 const historyLabel = computed(() => {
   const h = conn.value?.history
