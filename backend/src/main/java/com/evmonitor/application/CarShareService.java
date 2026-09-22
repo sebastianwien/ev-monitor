@@ -6,6 +6,7 @@ import com.evmonitor.domain.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,13 +45,16 @@ public class CarShareService {
     private final CarRepository carRepository;
     private final EvLogStatisticsService statisticsService;
     private final EvLogService evLogService;
+    private final ApplicationEventPublisher eventPublisher;
     private final SecureRandom random = new SecureRandom();
     private final String baseUrl;
 
     public CarShareService(CarRepository carRepository,
                            EvLogStatisticsService statisticsService,
                            EvLogService evLogService,
+                           ApplicationEventPublisher eventPublisher,
                            @Value("${app.base-url}") String baseUrl) {
+        this.eventPublisher = eventPublisher;
         this.carRepository = carRepository;
         this.statisticsService = statisticsService;
         this.evLogService = evLogService;
@@ -67,26 +71,31 @@ public class CarShareService {
         requireOwnership(carId, user);
         String existing = carRepository.findShareToken(carId).orElse(null);
         if (existing != null && !existing.isBlank()) {
-            return toResponse(existing);
+            return toResponse(existing, user);
         }
         String token = generateToken();
         carRepository.setShareToken(carId, token, LocalDateTime.now());
         log.info("Fahrzeug geteilt: car={} user={}", carId, user.getId());
-        return toResponse(token);
+        return toResponse(token, user);
     }
 
     /** Macht die oeffentliche URL ungueltig. Idempotent. */
     @Transactional
     public void revokeShare(UUID carId, User user) {
         requireOwnership(carId, user);
+        String token = carRepository.findShareToken(carId).orElse(null);
         carRepository.clearShareToken(carId);
+        if (token != null && !token.isBlank()) {
+            // Nimmt das gecachte Vorschaubild mit.
+            eventPublisher.publishEvent(new ShareRevokedEvent(imageCacheKey(token)));
+        }
         log.info("Fahrzeug nicht mehr geteilt: car={} user={}", carId, user.getId());
     }
 
     @Transactional(readOnly = true)
     public Optional<ShareResponse> findShare(UUID carId, User user) {
         requireOwnership(carId, user);
-        return carRepository.findShareToken(carId).filter(t -> !t.isBlank()).map(this::toResponse);
+        return carRepository.findShareToken(carId).filter(t -> !t.isBlank()).map(t -> toResponse(t, user));
     }
 
     /**
@@ -141,6 +150,7 @@ public class CarShareService {
                         : null,
                 car.getYear(),
                 car.isImagePublic() && car.getImagePath() != null,
+                modelPagePath(car),
                 stats.totalCharges(),
                 stats.totalKwhCharged(),
                 stats.totalDistanceKm(),
@@ -160,6 +170,17 @@ public class CarShareService {
         return new PublicCarResponse.PeerComparison(
                 b.peerAvgConsumptionKwhPer100km(), b.uniquePeerUsers(),
                 b.matchType() != null ? b.matchType().name() : null);
+    }
+
+    /** Gleiche Slug-Regel wie SitemapController: Marke als Anzeigename, Modell mit "_" statt Leerzeichen. */
+    private static String modelPagePath(Car car) {
+        if (car.getModel() == null || car.getModel().getBrand() == null) return null;
+        return "/modelle/" + encode(car.getModel().getBrand().getDisplayString())
+                + "/" + encode(car.getModel().getDisplayName().replace(" ", "_"));
+    }
+
+    private static String encode(String segment) {
+        return java.net.URLEncoder.encode(segment, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private static BigDecimal costPer100km(BigDecimal energyCost, BigDecimal distanceKm) {
@@ -187,8 +208,21 @@ public class CarShareService {
         }
     }
 
-    private ShareResponse toResponse(String token) {
-        return new ShareResponse(token, baseUrl + SHARE_PATH + token);
+    /** Cache-Schluessel des Vorschaubilds - mit Praefix, damit er nicht mit Kurven-Tokens kollidiert. */
+    public static String imageCacheKey(String token) {
+        return "car:" + token;
+    }
+
+    /**
+     * Der Link traegt den Empfehlungscode des Teilenden: registriert sich der
+     * Empfaenger darueber, zaehlt das als Empfehlung. Sonst nichts ueber den Nutzer.
+     */
+    private ShareResponse toResponse(String token, User user) {
+        String url = baseUrl + SHARE_PATH + token;
+        if (user.getReferralCode() != null && !user.getReferralCode().isBlank()) {
+            url += "?ref=" + user.getReferralCode();
+        }
+        return new ShareResponse(token, url);
     }
 
     private String generateToken() {

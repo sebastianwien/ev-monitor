@@ -24,23 +24,44 @@
             {{ subtitle }}
           </p>
 
-          <div v-if="tiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-            <div v-for="tile in tiles" :key="tile.key"
-              class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 py-2">
-              <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ tile.label }}</div>
-              <div class="text-base font-semibold text-gray-900 dark:text-gray-100 tabular-nums whitespace-nowrap">{{ tile.value }}</div>
+          <!-- Verbrauch als Kopfzahl. Der Vergleich ist Teil derselben Kachel: eine
+               Skala mit zwei Markierungen sagt mehr als ein farbiger Kasten. -->
+          <section v-if="car.avgConsumptionKwhPer100km != null"
+            class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 mb-2">
+            <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('share_car.tile_consumption') }}</div>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span class="text-3xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">{{ formatConsumption(car.avgConsumptionKwhPer100km, { showUnit: false }) }}</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
+              <span v-if="peer" class="ml-auto text-sm font-semibold tabular-nums"
+                :class="peer.delta <= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'">
+                {{ peer.deltaLabel }}
+              </span>
             </div>
-          </div>
 
-          <div v-if="peer" class="mb-6 rounded-lg border px-3 py-2.5 flex items-start gap-3"
-            :class="peer.delta <= 0
-              ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20'
-              : 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20'">
-            <ArrowTrendingDownIcon v-if="peer.delta <= 0" class="w-5 h-5 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-            <ArrowTrendingUpIcon v-else class="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-            <div class="min-w-0">
-              <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ peer.headline }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ peer.detail }}</p>
+            <template v-if="peer">
+              <div class="relative h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 mt-3" role="img" :aria-label="peer.headline">
+                <span class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-3.5 w-0.5 bg-gray-400 dark:bg-gray-500 rounded"
+                  :style="{ left: peer.avgPos + '%' }" />
+                <span class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-4 w-4 rounded-full border-2 border-white dark:border-gray-800 shadow"
+                  :class="peer.delta <= 0 ? 'bg-emerald-500' : 'bg-amber-500'"
+                  :style="{ left: peer.youPos + '%' }" />
+              </div>
+              <div class="flex justify-between gap-3 mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                <span>{{ peer.headline }}</span>
+                <RouterLink v-if="car.modelPagePath" :to="car.modelPagePath"
+                  class="text-emerald-600 dark:text-emerald-400 font-medium hover:underline whitespace-nowrap">
+                  {{ peer.detail }}
+                </RouterLink>
+                <span v-else class="whitespace-nowrap">{{ peer.detail }}</span>
+              </div>
+            </template>
+          </section>
+
+          <div v-if="tiles.length" class="grid grid-cols-3 gap-2 mb-6">
+            <div v-for="tile in tiles" :key="tile.key"
+              class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 py-2 min-w-0">
+              <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ tile.label }}</div>
+              <div class="text-base font-semibold text-gray-900 dark:text-gray-100 tabular-nums truncate">{{ tile.value }}</div>
             </div>
           </div>
 
@@ -81,7 +102,7 @@
 
           <div class="mt-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 text-sm text-gray-600 dark:text-gray-300">
             {{ t('share_car.cta_text') }}
-            <RouterLink to="/register" class="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
+            <RouterLink :to="registerTo" class="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
               {{ t('common.free_start') }}
             </RouterLink>
           </div>
@@ -96,7 +117,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useHead } from '@unhead/vue'
-import { ArrowTrendingDownIcon, ArrowTrendingUpIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import { carShareService, type PublicCar } from '../api/carShareService'
 import { useAuthStore } from '../stores/auth'
@@ -136,7 +156,6 @@ const tiles = computed<Tile[]>(() => {
   const c = car.value
   if (!c) return []
   const out: Tile[] = []
-  if (c.avgConsumptionKwhPer100km != null) out.push({ key: 'cons', label: t('share_car.tile_consumption'), value: formatConsumption(c.avgConsumptionKwhPer100km) })
   if (c.costPer100km != null) out.push({ key: 'cost100', label: t('share_car.tile_cost_per_100'), value: formatCurrency(c.costPer100km) })
   else if (c.avgCostPerKwh != null) out.push({ key: 'costkwh', label: t('share_car.tile_cost_per_kwh'), value: formatCostPerKwh(c.avgCostPerKwh) })
   if (c.totalDistanceKm != null) out.push({ key: 'dist', label: t('share_car.tile_distance'), value: formatDistance(c.totalDistanceKm) })
@@ -153,7 +172,11 @@ const peer = computed(() => {
   const c = car.value
   const p = c?.peerComparison
   if (!c || !p || c.avgConsumptionKwhPer100km == null || p.peerAvgConsumptionKwhPer100km <= 0) return null
-  const deltaPct = Math.round(((c.avgConsumptionKwhPer100km - p.peerAvgConsumptionKwhPer100km) / p.peerAvgConsumptionKwhPer100km) * 100)
+  const you = c.avgConsumptionKwhPer100km
+  const avg = p.peerAvgConsumptionKwhPer100km
+  const deltaPct = Math.round(((you - avg) / avg) * 100)
+  // Skala: Schnitt in der Mitte, plus/minus 40 Prozent an den Raendern.
+  const pos = (v: number) => Math.min(96, Math.max(4, 50 + ((v - avg) / avg) * 125))
   const scope = p.matchType === 'SPEC' ? t('share_car.peer_scope_spec') : t('share_car.peer_scope_model')
   const headline = deltaPct === 0
     ? t('share_car.peer_equal', { scope })
@@ -162,8 +185,11 @@ const peer = computed(() => {
       : t('share_car.peer_above', { pct: deltaPct, scope })
   return {
     delta: deltaPct,
+    deltaLabel: deltaPct === 0 ? '±0 %' : `${deltaPct > 0 ? '+' : '−'}${Math.abs(deltaPct)} %`,
+    youPos: pos(you),
+    avgPos: 50,
     headline,
-    detail: t('share_car.peer_detail', { avg: formatConsumption(p.peerAvgConsumptionKwhPer100km), n: p.peerUsers }),
+    detail: t('share_car.peer_detail', { avg: formatConsumption(avg, { showUnit: false }), n: p.peerUsers }, p.peerUsers),
   }
 })
 
@@ -190,7 +216,20 @@ function dateLabel(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString(locale.value, { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-const shareTitle = computed(() => car.value?.carModel || t('share_car.fallback_title'))
+const shareTitle = computed(() => {
+  const c = car.value
+  const model = c?.carModel || t('share_car.fallback_title')
+  if (!c || c.avgConsumptionKwhPer100km == null) return model
+  const parts = [formatConsumption(c.avgConsumptionKwhPer100km)]
+  if (peer.value) parts.push(peer.value.headline)
+  return t('share_car.og_title', { model, facts: parts.join(', ') })
+})
+
+/** Der Empfehlungscode des Teilenden wandert in die Registrierung, sonst nirgendwohin. */
+const registerTo = computed(() => {
+  const ref = route.query.ref
+  return ref ? { path: '/register', query: { ref: String(ref) } } : '/register'
+})
 const shareDescription = computed(() => {
   const c = car.value
   if (!c || c.avgConsumptionKwhPer100km == null) return t('share_car.og_description_plain')
@@ -206,7 +245,13 @@ useHead(computed(() => ({
     { property: 'og:title', content: shareTitle.value },
     { property: 'og:description', content: shareDescription.value },
     { property: 'og:url', content: `${BASE_URL}/fahrzeug/${token.value}` },
-    ...(car.value?.hasImage ? [{ property: 'og:image', content: `${BASE_URL}/api/public/car/${token.value}/image` }] : []),
+    { property: 'og:image', content: `${BASE_URL}/api/public/car/${token.value}/og.png` },
+    { property: 'og:image:width', content: '1200' },
+    { property: 'og:image:height', content: '630' },
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: shareTitle.value },
+    { name: 'twitter:description', content: shareDescription.value },
+    { name: 'twitter:image', content: `${BASE_URL}/api/public/car/${token.value}/og.png` },
   ],
 })))
 

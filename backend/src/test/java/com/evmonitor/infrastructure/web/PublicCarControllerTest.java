@@ -71,6 +71,22 @@ class PublicCarControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void publicCarOgImage_rendersAndDiesWithRevoke() {
+        User user = createAndSaveUser("pubcar-og-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        String token = shareService.createShare(car.getId(), user).token();
+
+        ResponseEntity<byte[]> first = restTemplate.getForEntity("/api/public/car/" + token + "/og.png", byte[].class);
+        assertEquals(HttpStatus.OK, first.getStatusCode());
+        assertTrue(first.getBody().length > 0);
+
+        shareService.revokeShare(car.getId(), user);
+
+        assertEquals(HttpStatus.NOT_FOUND,
+                restTemplate.getForEntity("/api/public/car/" + token + "/og.png", byte[].class).getStatusCode());
+    }
+
+    @Test
     @SuppressWarnings("rawtypes")
     void publicCarImage_onlyWhenImagePublic() {
         User user = createAndSaveUser("pubcar-img-" + System.nanoTime() + "@test.com");

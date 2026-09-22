@@ -34,6 +34,8 @@ export interface PublicCar {
   carModel?: string | null;
   year?: number | null;
   hasImage: boolean;
+  /** Pfad der oeffentlichen Modell-Seite, z.B. "/modelle/Tesla/Model_3". */
+  modelPagePath?: string | null;
   totalCharges?: number | null;
   totalKwhCharged?: number | null;
   totalDistanceKm?: number | null;

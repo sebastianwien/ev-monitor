@@ -21,6 +21,8 @@ public record PublicCarResponse(
         Integer year,
         /** true wenn der Besitzer sein Foto oeffentlich gestellt hat - dann liegt es unter /image. */
         boolean hasImage,
+        /** Pfad der oeffentlichen Modell-Seite, z.B. "/modelle/Tesla/Model_3". */
+        String modelPagePath,
         Integer totalCharges,
         BigDecimal totalKwhCharged,
         BigDecimal totalDistanceKm,

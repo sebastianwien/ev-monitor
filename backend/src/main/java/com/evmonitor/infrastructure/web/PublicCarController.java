@@ -29,6 +29,19 @@ public class PublicCarController {
 
     private final CarShareService shareService;
     private final CarImageService carImageService;
+    private final com.evmonitor.infrastructure.image.SharedCarImageRenderer imageRenderer;
+    private final com.evmonitor.infrastructure.image.SharedCurveImageCache imageCache;
+
+    /** Vorschaubild fuer Link-Karten. Laenger cachebar als das JSON, siehe PublicCurveController. */
+    @GetMapping(value = "/{token}/og.png", produces = "image/png")
+    public ResponseEntity<byte[]> getSharedCarOgImage(@PathVariable String token) {
+        byte[] png = imageCache.get(CarShareService.imageCacheKey(token),
+                k -> shareService.getPublicCar(token).map(imageRenderer::render).orElse(null));
+        if (png == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic())
+                .body(png);
+    }
 
     @GetMapping("/{token}")
     public ResponseEntity<PublicCarResponse> getSharedCar(@PathVariable String token) {

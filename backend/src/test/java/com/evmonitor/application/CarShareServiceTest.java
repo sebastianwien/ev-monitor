@@ -43,12 +43,35 @@ class CarShareServiceTest extends AbstractIntegrationTest {
 
         assertNotNull(share.token());
         assertTrue(share.token().length() >= 10, "Token muss lang genug sein um nicht ratbar zu sein");
-        assertTrue(share.url().endsWith("/fahrzeug/" + share.token()));
+        assertTrue(share.url().contains("/fahrzeug/" + share.token()), share.url());
 
         PublicCarResponse pub = shareService.getPublicCar(share.token()).orElseThrow();
         assertEquals("Tesla Model 3", pub.carModel());
         assertEquals(2, pub.totalCharges());
         assertEquals(2, pub.recentCharges().size());
+    }
+
+    @Test
+    void createShare_carriesReferralCodeOfOwner() {
+        // Der Link ist die einzige Stelle, an der der Teilende selbst etwas davon hat:
+        // registriert sich der Empfaenger, zaehlt das als Empfehlung.
+        User user = createAndSaveUser("carshare-ref-" + System.nanoTime() + "@test.com");
+        assertNotNull(user.getReferralCode(), "Testnutzer braucht einen Referral-Code");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+
+        ShareResponse share = shareService.createShare(car.getId(), user);
+
+        assertTrue(share.url().contains("/fahrzeug/" + share.token() + "?ref=" + user.getReferralCode()), share.url());
+    }
+
+    @Test
+    void getPublicCar_linksToModelPage() {
+        User user = createAndSaveUser("carshare-model-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+
+        PublicCarResponse pub = shareService.getPublicCar(shareService.createShare(car.getId(), user).token()).orElseThrow();
+
+        assertEquals("/modelle/Tesla/Model_3", pub.modelPagePath());
     }
 
     @Test
