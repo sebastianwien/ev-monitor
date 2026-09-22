@@ -37,6 +37,7 @@ public class CarController {
 
     private final CarService carService;
     private final CarImageService carImageService;
+    private final com.evmonitor.application.CarShareService carShareService;
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
 
     @PostMapping
@@ -108,6 +109,44 @@ public class CarController {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         CarImageResponse response = carService.uploadCarImage(principal.getUser().getId(), id, file, isPublic);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    // ── Oeffentliche Fahrzeugseite ───────────────────────────────────────────
+
+    /** Gibt das Fahrzeug oeffentlich frei und liefert die teilbare URL. Idempotent. 404 bei fremdem Auto. */
+    @PostMapping("/{id}/share")
+    public ResponseEntity<?> shareCar(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            return ResponseEntity.ok(carShareService.createShare(id, principal.getUser()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /** Aktueller Freigabe-Status. 204 wenn nicht geteilt. */
+    @GetMapping("/{id}/share")
+    public ResponseEntity<?> getCarShare(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            return carShareService.findShare(id, principal.getUser())
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.noContent().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /** Zieht die Freigabe zurueck, die URL ist danach tot. Idempotent. */
+    @DeleteMapping("/{id}/share")
+    public ResponseEntity<?> revokeCarShare(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            carShareService.revokeShare(id, principal.getUser());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/{id}/image")

@@ -1466,7 +1466,7 @@ settings:
   delete_btn: Slett kontoen permanent
   leaderboard_title: Poengliste
   leaderboard_visible_label: Vises på topplistene
-  leaderboard_visible_hint: Når denne funksjonen er deaktivert, vises ikke brukernavnet ditt i noen kategorier.
+  leaderboard_visible_hint: "Gjelder kun topplistene: når deaktivert, vises ikke brukernavnet ditt i noen kategori. Dataene dine forblir uansett private. En bil deler du via lenke under Kjøretøy."
   leaderboard_enable: Aktiver
   leaderboard_disable: Deaktiver
   help_title: Hjelp og støtte
@@ -2927,6 +2927,30 @@ share_curve:
   og_title: "{model} - {peak} kW topp"
   og_description: "Ekte ladekurve: {soc}, {kwh} kWh på {minutes} minutter."
   cta_text: "Denne ladekurven ble tatt opp med EV Monitor. Ta opp dine egne ladinger og se hvordan bilen din faktisk lader."
+share_car:
+  label: "Kan deles via lenke"
+  hint: "Alle med lenken ser forbruk, ladekostnader og ladinger for denne bilen. Skilt, steder og navnet ditt er aldri med. Slår du det av, slutter lenken å virke umiddelbart."
+  share_link: "Del lenke"
+  link_copied: "Lenke kopiert"
+  error_failed: "Det gikk ikke. Prøv igjen."
+  fallback_title: "Kjøretøy"
+  not_found_title: "Dette kjøretøyet deles ikke lenger"
+  not_found_body: "Lenken ble trukket tilbake eller har aldri eksistert."
+  to_start: "Til startsiden"
+  charges_count: "{n} ladinger"
+  tile_consumption: "Forbruk"
+  tile_cost_per_100: "Kostnad / 100 km"
+  tile_cost_per_kwh: "Kostnad / kWh"
+  tile_distance: "Distanse"
+  tile_public_share: "Offentlig lading"
+  tile_kwh: "Ladet"
+  months_title: "Forbruk per måned"
+  charges_title: "Siste ladinger"
+  charges_hint: "Uten sted og operatør"
+  public_charge: "offentlig"
+  og_description: "Reelt forbruk: {consumption} over alle ladinger, registrert med EV Monitor."
+  og_description_plain: "Ladinger og forbruk, registrert med EV Monitor."
+  cta_text: "Dette kjøretøyet spores med EV Monitor. Registrer dine egne ladinger og se hva bilen din faktisk bruker."
 stories:
   heading: "Trip-historier"
   subtitle: "Reiseberetninger fra fellesskapet - med ekte forbruks- og turdata."

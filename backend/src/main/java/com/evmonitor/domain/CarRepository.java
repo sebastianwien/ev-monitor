@@ -39,4 +39,16 @@ public interface CarRepository {
 
     /** All cars linked to a given vehicle specification (across all users). */
     List<Car> findAllByVehicleSpecificationId(UUID vehicleSpecificationId);
+
+    // ── Oeffentliche Fahrzeugseite ───────────────────────────────────────────
+
+    /** Aktueller Share-Token, leer wenn nicht geteilt. */
+    Optional<String> findShareToken(UUID carId);
+
+    void setShareToken(UUID carId, String token, LocalDateTime createdAt);
+
+    void clearShareToken(UUID carId);
+
+    /** Oeffentlicher Lookup - nur nicht-geloeschte Fahrzeuge. */
+    Optional<Car> findByShareToken(String token);
 }

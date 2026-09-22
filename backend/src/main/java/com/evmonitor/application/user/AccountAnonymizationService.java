@@ -47,6 +47,8 @@ public class AccountAnonymizationService {
         List<UUID> carsWithImage = cars.stream().filter(c -> c.getImagePath() != null).map(Car::getId).toList();
         for (Car car : cars) {
             carRepository.save(car.anonymize());
+            // Ein oeffentlicher Fahrzeug-Link darf das Konto nicht ueberleben.
+            carRepository.clearShareToken(car.getId());
         }
         // Dateien erst nach erfolgreichem Commit löschen - bei Rollback bleibt das Auto samt Bild bestehen.
         if (!carsWithImage.isEmpty()) {

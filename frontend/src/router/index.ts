@@ -434,6 +434,12 @@ const router = createRouter({
             // public SEO page for a single published story
         },
         {
+            path: '/fahrzeug/:token',
+            name: 'public-car',
+            component: () => import('../views/PublicCarView.vue')
+            // public - ein vom Besitzer freigegebenes Fahrzeug, noindex (siehe View)
+        },
+        {
             path: '/ladekurve/:token',
             name: 'public-power-curve',
             component: () => import('../views/PublicPowerCurveView.vue')

@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.persistence;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
@@ -20,7 +22,14 @@ public class PostgresCarRepositoryImpl implements CarRepository {
 
     @Override
     public Car save(Car car) {
+        // Bestehende Zeile laden statt eine frische Entity zu bauen: Spalten, die das
+        // Domain-Modell nicht kennt (share_token), fielen sonst bei jedem Update auf NULL.
+        CarEntity existing = car.getId() != null ? jpaCarRepository.findById(car.getId()).orElse(null) : null;
         CarEntity entity = toEntity(car);
+        if (existing != null) {
+            entity.setShareToken(existing.getShareToken());
+            entity.setShareCreatedAt(existing.getShareCreatedAt());
+        }
         CarEntity savedEntity = jpaCarRepository.save(entity);
         return toDomain(savedEntity);
     }
@@ -78,6 +87,28 @@ public class PostgresCarRepositoryImpl implements CarRepository {
     @Override
     public List<Car> findAllByVehicleSpecificationId(UUID vehicleSpecificationId) {
         return toDomainList(jpaCarRepository.findAllByVehicleSpecificationIdAndDeletedAtIsNull(vehicleSpecificationId));
+    }
+
+    @Override
+    public Optional<String> findShareToken(UUID carId) {
+        return jpaCarRepository.findShareToken(carId);
+    }
+
+    @Override
+    @Transactional
+    public void setShareToken(UUID carId, String token, LocalDateTime createdAt) {
+        jpaCarRepository.updateShareToken(carId, token, createdAt);
+    }
+
+    @Override
+    @Transactional
+    public void clearShareToken(UUID carId) {
+        jpaCarRepository.clearShareToken(carId);
+    }
+
+    @Override
+    public Optional<Car> findByShareToken(String token) {
+        return jpaCarRepository.findByShareTokenAndDeletedAtIsNull(token).map(this::toDomain);
     }
 
     private CarEntity toEntity(Car domain) {

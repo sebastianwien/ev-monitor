@@ -87,4 +87,11 @@ public class CarEntity {
     /** Soft-Delete-Marker. Alle Reads im Repository filtern auf NULL. */
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    /** Zufalls-Token der oeffentlichen Fahrzeugseite. NULL = nicht geteilt. */
+    @Column(name = "share_token", length = 16)
+    private String shareToken;
+
+    @Column(name = "share_created_at")
+    private LocalDateTime shareCreatedAt;
 }

@@ -1466,7 +1466,7 @@ settings:
   delete_btn: Ta bort kontot permanent
   leaderboard_title: Resultatlista
   leaderboard_visible_label: Visa i topplistorna
-  leaderboard_visible_hint: Om funktionen är inaktiverad visas ditt användarnamn inte i någon kategori.
+  leaderboard_visible_hint: "Gäller bara topplistorna: om inaktiverad visas ditt användarnamn inte i någon kategori. Dina data förblir privata oavsett. En bil delar du via länk under Fordon."
   leaderboard_enable: Aktivera
   leaderboard_disable: Inaktivera
   help_title: Hjälp och support
@@ -2927,6 +2927,30 @@ share_curve:
   og_title: "{model} - {peak} kW topp"
   og_description: "Verklig laddkurva: {soc}, {kwh} kWh på {minutes} minuter."
   cta_text: "Den här laddkurvan spelades in med EV Monitor. Spela in dina egna laddningar och se hur din bil faktiskt laddar."
+share_car:
+  label: "Delbar via länk"
+  hint: "Alla med länken ser förbrukning, laddkostnader och laddningar för den här bilen. Registreringsnummer, platser och ditt namn ingår aldrig. Stänger du av slutar länken fungera direkt."
+  share_link: "Dela länk"
+  link_copied: "Länk kopierad"
+  error_failed: "Det gick inte. Försök igen."
+  fallback_title: "Fordon"
+  not_found_title: "Det här fordonet delas inte längre"
+  not_found_body: "Länken drogs tillbaka eller har aldrig funnits."
+  to_start: "Till startsidan"
+  charges_count: "{n} laddningar"
+  tile_consumption: "Förbrukning"
+  tile_cost_per_100: "Kostnad / 100 km"
+  tile_cost_per_kwh: "Kostnad / kWh"
+  tile_distance: "Sträcka"
+  tile_public_share: "Publik laddning"
+  tile_kwh: "Laddat"
+  months_title: "Förbrukning per månad"
+  charges_title: "Senaste laddningar"
+  charges_hint: "Utan plats och operatör"
+  public_charge: "publik"
+  og_description: "Verklig förbrukning: {consumption} över alla laddningar, registrerad med EV Monitor."
+  og_description_plain: "Laddningar och förbrukning, registrerade med EV Monitor."
+  cta_text: "Det här fordonet spåras med EV Monitor. Logga dina egna laddningar och se vad din bil verkligen förbrukar."
 stories:
   heading: "Trip-berättelser"
   subtitle: "Reseberättelser från communityt - med riktiga förbruknings- och resdata."

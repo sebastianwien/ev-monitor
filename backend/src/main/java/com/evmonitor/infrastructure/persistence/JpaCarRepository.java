@@ -2,6 +2,8 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.domain.CarBrand;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -42,4 +44,19 @@ public interface JpaCarRepository extends JpaRepository<CarEntity, UUID> {
             )
             """, nativeQuery = true)
     List<CarEntity> findCarsNeedingSohDetection();
+
+    // ── Oeffentliche Fahrzeugseite (share_token) ─────────────────────────────
+
+    @Query("SELECT c.shareToken FROM CarEntity c WHERE c.id = :id")
+    Optional<String> findShareToken(@Param("id") UUID id);
+
+    @Modifying
+    @Query("UPDATE CarEntity c SET c.shareToken = :token, c.shareCreatedAt = :createdAt WHERE c.id = :id")
+    int updateShareToken(@Param("id") UUID id, @Param("token") String token, @Param("createdAt") LocalDateTime createdAt);
+
+    @Modifying
+    @Query("UPDATE CarEntity c SET c.shareToken = NULL, c.shareCreatedAt = NULL WHERE c.id = :id")
+    int clearShareToken(@Param("id") UUID id);
+
+    Optional<CarEntity> findByShareTokenAndDeletedAtIsNull(String shareToken);
 }

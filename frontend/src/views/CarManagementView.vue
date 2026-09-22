@@ -12,6 +12,7 @@ import BatterySohModal from '../components/car/BatterySohModal.vue'
 import SohPill from '../components/car/SohPill.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import FixedCostManager from '../components/car/FixedCostManager.vue'
+import CarShareBox from '../components/car/CarShareBox.vue'
 import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
 import EudaAutoSyncPrompt from '../components/car/EudaAutoSyncPrompt.vue'
@@ -652,6 +653,8 @@ const filteredCapacities = computed(() => {
                 {{ t('cars.delete_btn') }}
               </button>
             </div>
+
+            <CarShareBox :car-id="car.id" :title="getModelLabel(car.model)" />
 
             <FixedCostManager :car-id="car.id" />
           </div>
