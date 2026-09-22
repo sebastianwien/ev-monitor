@@ -11,6 +11,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.font.TextAttribute;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -26,7 +27,8 @@ import static com.evmonitor.infrastructure.image.PublicImageStyle.*;
  * Aufbau von links: Wortmarke, Modell, Verbrauch, Einordnung gegen den
  * Modell-Schnitt. Was nicht mehr in die Breite passt, wird von rechts nach
  * links weggelassen, der Modellname notfalls mit Ellipse gekuerzt. Nichts
- * laeuft ueber den Rand. Optik wie die Seite: Papier, Tinte, Barlow Condensed.
+ * laeuft ueber den Rand. Optik wie die Seite: Papier, Tinte, durchgehend
+ * Barlow Condensed, damit die kleine Flaeche ruhig wirkt.
  */
 @Component
 public class SharedCarBannerRenderer {
@@ -39,11 +41,13 @@ public class SharedCarBannerRenderer {
     private static final int GAP = 10;
     private static final int BASELINE = 38;
 
-    private static final Font BRAND_FONT = display(15f);
+    private static final Font BRAND_FONT = display(16f);
     private static final Font MODEL_FONT = display(20f);
     private static final Font VALUE_FONT = display(24f);
-    private static final Font UNIT_FONT = text(11f, false);
-    private static final Font PEER_FONT = text(11f, true);
+    private static final Font UNIT_FONT = displayMedium(13f);
+    private static final Font PEER_FONT = displayMedium(13f);
+    /** Leichte Sperrung der Wortmarke wie auf der Seite. */
+    private static final float BRAND_TRACKING = 0.06f;
 
     public byte[] render(PublicCarResponse car) {
         return render(car, Lang.DE);
@@ -81,12 +85,12 @@ public class SharedCarBannerRenderer {
         int x = PAD;
         int right = WIDTH - PAD;
 
-        // Wortmarke in zwei Zeilen links, damit sie wenig Breite braucht.
+        // Wortmarke einzeilig und gesperrt, wie im grossen Vorschaubild.
         g.setColor(INK);
-        g.setFont(BRAND_FONT);
-        g.drawString("EV", x, 27);
-        g.drawString("MONITOR", x, 43);
-        int brandWidth = g.getFontMetrics(BRAND_FONT).stringWidth("MONITOR");
+        Font brandFont = BRAND_FONT.deriveFont(java.util.Map.of(TextAttribute.TRACKING, BRAND_TRACKING));
+        g.setFont(brandFont);
+        g.drawString("EV MONITOR", x, BASELINE);
+        int brandWidth = g.getFontMetrics(brandFont).stringWidth("EV MONITOR");
         x += brandWidth + GAP;
         g.setColor(RULE);
         g.fillRect(x - GAP / 2, 12, 1, HEIGHT - 24);
