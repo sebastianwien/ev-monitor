@@ -139,6 +139,56 @@ describe('useCarShare - Forum-Signatur', () => {
         expect(writeText).toHaveBeenCalledWith(buildSignature(withBanner, 'Tesla Model 3', 'bbcode'))
     })
 
+    it('legt HTML zusaetzlich gerendert ab, damit WYSIWYG-Editoren das Banner einfuegen', async () => {
+        const write = vi.fn().mockResolvedValue(undefined)
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        class FakeClipboardItem {
+            constructor(public items: Record<string, Blob>) {}
+        }
+        vi.stubGlobal('ClipboardItem', FakeClipboardItem)
+        Object.defineProperty(navigator, 'clipboard', { value: { write, writeText }, configurable: true })
+        vi.mocked(carShareService.create).mockResolvedValue(withBanner)
+        const s = useCarShare()
+        await s.enable('car-1')
+
+        expect(await s.copySignature('Tesla Model 3', 'html')).toBe('copied')
+        expect(writeText).not.toHaveBeenCalled()
+        const item = write.mock.calls[0][0][0] as FakeClipboardItem
+        const html = buildSignature(withBanner, 'Tesla Model 3', 'html')
+        expect(item.items['text/html'].type).toBe('text/html')
+        expect(await item.items['text/html'].text()).toBe(html)
+        expect(await item.items['text/plain'].text()).toBe(html)
+        vi.unstubAllGlobals()
+    })
+
+    it('faellt ohne ClipboardItem auf reinen Text zurueck', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        vi.stubGlobal('ClipboardItem', undefined)
+        Object.defineProperty(navigator, 'clipboard', { value: { write: vi.fn(), writeText }, configurable: true })
+        vi.mocked(carShareService.create).mockResolvedValue(withBanner)
+        const s = useCarShare()
+        await s.enable('car-1')
+
+        expect(await s.copySignature('Tesla Model 3', 'html')).toBe('copied')
+        expect(writeText).toHaveBeenCalledWith(buildSignature(withBanner, 'Tesla Model 3', 'html'))
+        vi.unstubAllGlobals()
+    })
+
+    it('BBCode bleibt reiner Text, auch wenn reiche Zwischenablage verfuegbar ist', async () => {
+        const write = vi.fn().mockResolvedValue(undefined)
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        vi.stubGlobal('ClipboardItem', class { constructor(public items: Record<string, Blob>) {} })
+        Object.defineProperty(navigator, 'clipboard', { value: { write, writeText }, configurable: true })
+        vi.mocked(carShareService.create).mockResolvedValue(withBanner)
+        const s = useCarShare()
+        await s.enable('car-1')
+
+        expect(await s.copySignature('Tesla Model 3', 'bbcode')).toBe('copied')
+        expect(write).not.toHaveBeenCalled()
+        expect(writeText).toHaveBeenCalledWith(buildSignature(withBanner, 'Tesla Model 3', 'bbcode'))
+        vi.unstubAllGlobals()
+    })
+
     it('meldet failed ohne Zwischenablage', async () => {
         Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
         vi.mocked(carShareService.create).mockResolvedValue(withBanner)

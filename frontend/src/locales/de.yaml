@@ -3089,7 +3089,7 @@ share_car:
   og_description_plain: "Ladungen und Verbrauch, aufgezeichnet mit EV Monitor."
   cta_text: "Dieses Fahrzeug wird mit EV Monitor getrackt. Erfasse deine eigenen Ladungen und sieh, was dein Auto wirklich verbraucht."
   signature_title: "Forum-Signatur"
-  signature_hint: "Das Banner zeigt Modell, Verbrauch und den Vergleich zum Modell-Schnitt, aktualisiert stündlich. Es verlinkt auf deine Fahrzeugseite. Deaktivierst du den Link, ist auch das Banner sofort ungültig."
+  signature_hint: "Das Banner zeigt Modell, Verbrauch und den Vergleich zum Modell-Schnitt, aktualisiert stündlich. Es verlinkt auf deine Fahrzeugseite. BBCode für Foren mit Code-Eingabe, HTML für Blogs und für Editoren ohne Code-Eingabe (z.B. WoltLab): dort einfach direkt einfügen. Deaktivierst du den Link, ist auch das Banner sofort ungültig."
   copy_bbcode: "BBCode kopieren"
   copy_html: "HTML kopieren"
   signature_copied: "Kopiert"

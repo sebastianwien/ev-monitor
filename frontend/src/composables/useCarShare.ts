@@ -107,11 +107,23 @@ export function useCarShare() {
         }
     }
 
-    /** Legt den Signatur-Schnipsel in die Zwischenablage. */
+    /**
+     * Legt den Signatur-Schnipsel in die Zwischenablage. HTML zusaetzlich als text/html,
+     * damit WYSIWYG-Editoren ohne Code-Eingabe (WoltLab, Discourse) das verlinkte Banner
+     * direkt einfuegen; reine Textfelder erhalten weiter den Quelltext.
+     */
     async function copySignature(title: string, kind: SignatureKind, lang?: string): Promise<CarShareOutcome> {
         if (!share.value) return 'failed'
         try {
-            await navigator.clipboard.writeText(buildSignature(share.value, title, kind, lang))
+            const snippet = buildSignature(share.value, title, kind, lang)
+            if (kind === 'html' && typeof ClipboardItem !== 'undefined' && navigator.clipboard.write) {
+                await navigator.clipboard.write([new ClipboardItem({
+                    'text/html': new Blob([snippet], { type: 'text/html' }),
+                    'text/plain': new Blob([snippet], { type: 'text/plain' }),
+                })])
+            } else {
+                await navigator.clipboard.writeText(snippet)
+            }
             analytics.track('car_share_signature_copied', { kind })
             return 'copied'
         } catch {

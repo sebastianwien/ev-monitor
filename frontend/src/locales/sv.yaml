@@ -2973,7 +2973,7 @@ share_car:
   og_description_plain: "Laddningar och förbrukning, registrerade med EV Monitor."
   cta_text: "Det här fordonet spåras med EV Monitor. Logga dina egna laddningar och se vad din bil verkligen förbrukar."
   signature_title: "Forumsignatur"
-  signature_hint: "Bannern visar modell, förbrukning och jämförelsen med modellsnittet, uppdaterad varje timme. Den länkar till din fordonssida. Stänger du av länken slutar bannern fungera direkt."
+  signature_hint: "Bannern visar modell, förbrukning och jämförelsen med modellsnittet, uppdaterad varje timme. Den länkar till din fordonssida. BBCode för forum med kodinmatning, HTML för bloggar och för redigerare utan kodinmatning (t.ex. WoltLab): klistra bara in direkt där. Stänger du av länken slutar bannern fungera direkt."
   copy_bbcode: "Kopiera BBCode"
   copy_html: "Kopiera HTML"
   signature_copied: "Kopierat"

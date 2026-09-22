@@ -3088,7 +3088,7 @@ share_car:
   og_description_plain: "Charges and consumption, recorded with EV Monitor."
   cta_text: "This vehicle is tracked with EV Monitor. Log your own charges and see what your car really uses."
   signature_title: "Forum signature"
-  signature_hint: "The banner shows model, consumption and the comparison with the model average, updated hourly. It links to your vehicle page. If you disable the link, the banner stops working immediately."
+  signature_hint: "The banner shows model, consumption and the comparison with the model average, updated hourly. It links to your vehicle page. Use BBCode for forums with code input, HTML for blogs and for editors without code input (e.g. WoltLab): just paste it there directly. If you disable the link, the banner stops working immediately."
   copy_bbcode: "Copy BBCode"
   copy_html: "Copy HTML"
   signature_copied: "Copied"
