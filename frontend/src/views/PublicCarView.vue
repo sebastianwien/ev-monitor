@@ -15,15 +15,12 @@
 
         <article v-else>
           <img v-if="car.hasImage" :src="imageUrl" :alt="car.carModel ?? ''"
-            class="w-full h-44 md:h-64 object-cover rounded-lg mb-4" loading="lazy" />
+            class="w-full h-44 md:h-56 object-cover rounded-lg mb-4" loading="lazy" />
 
-          <div class="flex items-start gap-3 mb-1">
-            <TruckIcon class="w-6 h-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" aria-hidden="true" />
-            <h1 class="text-2xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
-              {{ car.carModel || t('share_car.fallback_title') }}
-            </h1>
-          </div>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 ml-9">
+          <h1 class="text-2xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-1">
+            {{ car.carModel || t('share_car.fallback_title') }}
+          </h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
             {{ subtitle }}
           </p>
 
@@ -35,17 +32,17 @@
             </div>
           </div>
 
-          <section v-if="car.months.length > 1" class="mb-6">
-            <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">{{ t('share_car.months_title') }}</h2>
-            <div class="flex items-end gap-1 h-24" role="img" :aria-label="t('share_car.months_title')">
-              <div v-for="m in car.months" :key="m.month" class="flex-1 flex flex-col items-center gap-1 min-w-0">
-                <div class="w-full rounded-t bg-emerald-500/70 dark:bg-emerald-400/70"
-                  :style="{ height: barHeight(m.consumptionKwhPer100km) }"
-                  :title="m.consumptionKwhPer100km != null ? formatConsumption(m.consumptionKwhPer100km) : ''" />
-                <span class="text-[9px] text-gray-400 dark:text-gray-500 truncate w-full text-center">{{ monthLabel(m.month) }}</span>
+          <section v-if="chartMonths.length > 1" class="mb-6">
+            <h2 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              {{ t('share_car.months_title') }} <span class="font-normal text-gray-400 dark:text-gray-500">({{ consumptionUnitLabel() }})</span>
+            </h2>
+            <div class="flex items-end gap-1" role="img" :aria-label="t('share_car.months_title')">
+              <div v-for="m in chartMonths" :key="m.month" class="flex-1 min-w-0 text-center">
+                <div class="text-[9px] text-gray-500 dark:text-gray-400 tabular-nums mb-0.5">{{ formatConsumption(m.value, { showUnit: false }) }}</div>
+                <div class="w-full rounded-t bg-emerald-500/70 dark:bg-emerald-400/70" :style="{ height: m.px + 'px' }" />
+                <div class="text-[9px] text-gray-400 dark:text-gray-500 truncate mt-1">{{ m.label }}</div>
               </div>
             </div>
-            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">{{ consumptionUnitLabel() }}</p>
           </section>
 
           <section v-if="car.recentCharges.length">
@@ -87,7 +84,6 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useHead } from '@unhead/vue'
-import { TruckIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import { carShareService, type PublicCar } from '../api/carShareService'
 import { useAuthStore } from '../stores/auth'
@@ -136,17 +132,24 @@ const tiles = computed<Tile[]>(() => {
   return out
 })
 
-const maxMonthly = computed(() =>
-  Math.max(0, ...(car.value?.months.map(m => m.consumptionKwhPer100km ?? 0) ?? [])))
-
-function barHeight(v: number | null | undefined): string {
-  if (v == null || maxMonthly.value <= 0) return '2px'
-  return `${Math.max(4, Math.round((v / maxMonthly.value) * 100))}%`
-}
-
-function monthLabel(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString(locale.value, { month: 'short' })
-}
+/**
+ * Nur Monate mit Verbrauchswert, chronologisch. Die Achse ist nicht fortlaufend,
+ * deshalb traegt jedes Label den Monat und bei Jahreswechsel das Jahr.
+ */
+const CHART_MAX_PX = 72
+const chartMonths = computed(() => {
+  const withValue = (car.value?.months ?? []).filter(m => m.consumptionKwhPer100km != null && m.consumptionKwhPer100km > 0)
+  const max = Math.max(0, ...withValue.map(m => m.consumptionKwhPer100km as number))
+  let lastYear = ''
+  return withValue.map(m => {
+    const d = new Date(`${m.month}T00:00:00`)
+    const year = String(d.getFullYear())
+    const label = d.toLocaleDateString(locale.value, year !== lastYear ? { month: 'short', year: '2-digit' } : { month: 'short' })
+    lastYear = year
+    const value = m.consumptionKwhPer100km as number
+    return { month: m.month, value, label, px: max > 0 ? Math.max(4, Math.round((value / max) * CHART_MAX_PX)) : 4 }
+  })
+})
 
 function dateLabel(iso: string): string {
   return new Date(`${iso}T00:00:00`).toLocaleDateString(locale.value, { day: '2-digit', month: '2-digit', year: 'numeric' })
