@@ -3080,6 +3080,7 @@ share_car:
   charges_title: "Recent charges"
   charges_hint: "Without location or operator"
   public_charge: "public"
+  grouped_sessions: "{n} sessions combined"
   og_description: "Real consumption: {consumption} across all charges, recorded with EV Monitor."
   og_description_plain: "Charges and consumption, recorded with EV Monitor."
   cta_text: "This vehicle is tracked with EV Monitor. Log your own charges and see what your car really uses."

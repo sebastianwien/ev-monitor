@@ -26,6 +26,8 @@ export interface PublicCarCharge {
   maxChargingPowerKw?: number | null;
   consumptionKwhPer100km?: number | null;
   publicCharging?: boolean | null;
+  /** Zusammengefasste Vorgaenge (Ueberschussladen, Nachladungen), 1 = einzelne Ladung. */
+  sessions: number;
 }
 
 /**

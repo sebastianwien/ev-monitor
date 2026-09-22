@@ -2965,6 +2965,7 @@ share_car:
   charges_title: "Senaste laddningar"
   charges_hint: "Utan plats och operatör"
   public_charge: "publik"
+  grouped_sessions: "{n} sessioner sammanslagna"
   og_description: "Verklig förbrukning: {consumption} över alla laddningar, registrerad med EV Monitor."
   og_description_plain: "Laddningar och förbrukning, registrerade med EV Monitor."
   cta_text: "Det här fordonet spåras med EV Monitor. Logga dina egna laddningar och se vad din bil verkligen förbrukar."

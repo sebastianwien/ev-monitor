@@ -43,7 +43,9 @@ public class CarShareService {
             "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final int TOKEN_LENGTH = 12;
     private static final int MONTHS_SHOWN = 12;
-    private static final int RECENT_CHARGES = 20;
+    /** Sichtbare Zeilen der Ladeliste und wie viele Vorgaenge dafuer geholt werden (Ueberschussladen wird gruppiert). */
+    private static final int RECENT_CHARGES = 8;
+    private static final int RECENT_LOGS_FETCHED = 60;
 
     private final CarRepository carRepository;
     private final EvLogStatisticsService statisticsService;
@@ -136,17 +138,8 @@ public class CarShareService {
                                 p.kwhCharged(), p.costEur(), p.consumptionKwhPer100km()))
                         .toList();
 
-        List<PublicCarResponse.Charge> charges = evLogService.getLogsForCar(car.getId(), owner, RECENT_CHARGES).stream()
-                .map(l -> new PublicCarResponse.Charge(
-                        l.loggedAt().toLocalDate(),
-                        l.kwhCharged(),
-                        l.costEur(),
-                        l.chargeDurationMinutes(),
-                        l.chargingType() != null ? l.chargingType().name() : null,
-                        l.maxChargingPowerKw(),
-                        Boolean.TRUE.equals(l.consumptionImplausible()) ? null : l.consumptionKwhPer100km(),
-                        l.isPublicCharging()))
-                .toList();
+        List<PublicCarResponse.Charge> charges = PublicChargeGrouper.group(
+                evLogService.getLogsForCar(car.getId(), owner, RECENT_LOGS_FETCHED), RECENT_CHARGES);
 
         return new PublicCarResponse(
                 car.getModel() != null

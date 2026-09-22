@@ -63,5 +63,7 @@ public record PublicCarResponse(
             String chargingType,
             BigDecimal maxChargingPowerKw,
             BigDecimal consumptionKwhPer100km,
-            Boolean publicCharging) {}
+            Boolean publicCharging,
+            /** Anzahl der zusammengefassten Vorgaenge, 1 = einzelne Ladung. */
+            int sessions) {}
 }

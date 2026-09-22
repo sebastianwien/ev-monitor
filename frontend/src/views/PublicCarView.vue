@@ -266,6 +266,7 @@ function chargeFacts(c: PublicCarCharge): string {
   }
   if (c.maxChargingPowerKw != null) parts.push(t('share_car.peak_kw', { kw: formatDecimal(c.maxChargingPowerKw, 0) }))
   if (c.publicCharging === true) parts.push(t('share_car.public_charge'))
+  if (c.sessions > 1) parts.push(t('share_car.grouped_sessions', { n: c.sessions }))
   return parts.join(' · ')
 }
 
