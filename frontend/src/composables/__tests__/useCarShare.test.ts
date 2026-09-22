@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { useCarShare, buildSignature } from '../useCarShare'
+import { useCarShare, buildSignature, bannerUrlFor } from '../useCarShare'
 import { carShareService } from '../../api/carShareService'
 
 vi.mock('../../api/carShareService', () => ({
@@ -109,6 +109,12 @@ describe('useCarShare - Forum-Signatur', () => {
         expect(buildSignature(withBanner, 'Tesla Model 3', 'bbcode')).toBe(
             '[url=https://ev-monitor.net/fahrzeug/abc123xyz789?ref=MAX&x=1][img]https://ev-monitor.net/api/public/car/abc123xyz789/banner.png[/img][/url]',
         )
+    })
+
+    it('haengt die Sprache der Bildtexte an die Banner-URL', () => {
+        expect(bannerUrlFor(withBanner, 'en')).toBe('https://ev-monitor.net/api/public/car/abc123xyz789/banner.png?lang=en')
+        expect(bannerUrlFor(withBanner)).toBe(withBanner.bannerUrl)
+        expect(buildSignature(withBanner, 'Tesla Model 3', 'bbcode', 'sv')).toContain('banner.png?lang=sv[/img]')
     })
 
     it('baut HTML mit escapten Attributen und festen Massen', () => {

@@ -15,16 +15,22 @@ function escapeAttr(value: string): string {
         .replace(/>/g, '&gt;')
 }
 
+/** Banner-URL mit Sprache der Bildtexte; ohne Sprache rendert der Server Deutsch. */
+export function bannerUrlFor(share: CarShare, lang?: string): string {
+    return lang ? `${share.bannerUrl}?lang=${encodeURIComponent(lang)}` : share.bannerUrl
+}
+
 /**
  * Schnipsel fuer eine Forum-Signatur: das Banner, verlinkt auf die Fahrzeugseite.
  * BBCode fuer phpBB, XenForo und Co., HTML fuer Foren und Blogs, die das erlauben.
  */
-export function buildSignature(share: CarShare, title: string, kind: SignatureKind): string {
+export function buildSignature(share: CarShare, title: string, kind: SignatureKind, lang?: string): string {
+    const banner = bannerUrlFor(share, lang)
     if (kind === 'bbcode') {
-        return `[url=${share.url}][img]${share.bannerUrl}[/img][/url]`
+        return `[url=${share.url}][img]${banner}[/img][/url]`
     }
     return `<a href="${escapeAttr(share.url)}">`
-        + `<img src="${escapeAttr(share.bannerUrl)}" alt="${escapeAttr(title)}" width="${BANNER_WIDTH}" height="${BANNER_HEIGHT}"></a>`
+        + `<img src="${escapeAttr(banner)}" alt="${escapeAttr(title)}" width="${BANNER_WIDTH}" height="${BANNER_HEIGHT}"></a>`
 }
 
 /**
@@ -92,10 +98,10 @@ export function useCarShare() {
     }
 
     /** Legt den Signatur-Schnipsel in die Zwischenablage. */
-    async function copySignature(title: string, kind: SignatureKind): Promise<CarShareOutcome> {
+    async function copySignature(title: string, kind: SignatureKind, lang?: string): Promise<CarShareOutcome> {
         if (!share.value) return 'failed'
         try {
-            await navigator.clipboard.writeText(buildSignature(share.value, title, kind))
+            await navigator.clipboard.writeText(buildSignature(share.value, title, kind, lang))
             return 'copied'
         } catch {
             return 'failed'

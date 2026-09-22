@@ -85,6 +85,22 @@ class SharedCurveImageCacheTest {
     }
 
     @Test
+    void revoke_dropsAllLanguageVariantsOfTheKey() {
+        SharedCurveImageCache cache = new SharedCurveImageCache(Clock.systemUTC());
+        AtomicInteger renders = new AtomicInteger();
+        cache.get("car-img:tok:de", Duration.ofHours(1), k -> { renders.incrementAndGet(); return PNG; });
+        cache.get("car-img:tok:en", Duration.ofHours(1), k -> { renders.incrementAndGet(); return PNG; });
+        cache.get("car-img:token2:de", Duration.ofHours(1), k -> { renders.incrementAndGet(); return PNG; });
+
+        cache.onShareRevoked(new ShareRevokedEvent("car-img:tok"));
+
+        cache.get("car-img:tok:de", Duration.ofHours(1), k -> { renders.incrementAndGet(); return PNG; });
+        cache.get("car-img:tok:en", Duration.ofHours(1), k -> { renders.incrementAndGet(); return PNG; });
+        cache.get("car-img:token2:de", Duration.ofHours(1), k -> { renders.incrementAndGet(); return PNG; });
+        assertEquals(5, renders.get(), "beide Sprachvarianten weg, anderer Token unberuehrt");
+    }
+
+    @Test
     void slowRenderOfOneKey_doesNotBlockOtherKeys() throws Exception {
         SharedCurveImageCache cache = new SharedCurveImageCache(Clock.systemUTC());
         CountDownLatch slowStarted = new CountDownLatch(1);

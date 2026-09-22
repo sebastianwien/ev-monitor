@@ -59,6 +59,15 @@ class SharedCarBannerRendererTest {
     }
 
     @Test
+    void languageChangesTheTexts() {
+        PublicCarResponse car = car("Tesla Model 3", peers());
+        byte[] de = renderer.render(car, PublicImageStyle.Lang.DE);
+        byte[] en = renderer.render(car, PublicImageStyle.Lang.EN);
+        assertFalse(java.util.Arrays.equals(de, en), "englische Einordnung muss anders aussehen");
+        assertArrayEquals(de, renderer.render(car, PublicImageStyle.Lang.of("xx")), "unbekannte Sprache faellt auf Deutsch zurueck");
+    }
+
+    @Test
     void peerDeltaIsRoundedPercent() {
         assertEquals(-8, SharedCarBannerRenderer.peerDeltaPercent(car("X", peers())));
         assertNull(SharedCarBannerRenderer.peerDeltaPercent(car("X", null)));

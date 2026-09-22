@@ -44,7 +44,7 @@
         <ChevronDownIcon :class="['w-4 h-4 shrink-0 text-gray-400 transition-transform', signatureOpen ? 'rotate-180' : '']" />
       </button>
       <div v-if="signatureOpen" class="pb-1">
-        <img :src="share.bannerUrl" :alt="t('share_car.banner_alt', { model: title })"
+        <img :src="bannerUrlFor(share, locale)" :alt="t('share_car.banner_alt', { model: title })"
           width="468" height="60" loading="lazy"
           class="block max-w-full h-auto rounded-sm" />
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">{{ t('share_car.signature_hint') }}</p>
@@ -67,10 +67,10 @@
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ShareIcon, CheckIcon, CodeBracketIcon, ChevronDownIcon, ClipboardDocumentIcon } from '@heroicons/vue/24/outline'
-import { useCarShare, type CarShareOutcome, type SignatureKind } from '../../composables/useCarShare'
+import { useCarShare, bannerUrlFor, type CarShareOutcome, type SignatureKind } from '../../composables/useCarShare'
 
 const props = defineProps<{ carId: string; title: string }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { share, busy, error, load, enable, revoke, shareLink, copySignature } = useCarShare()
 const outcome = ref<CarShareOutcome | null>(null)
 const kinds: SignatureKind[] = ['bbcode', 'html']
@@ -94,7 +94,7 @@ async function onShare() {
 
 async function onCopySignature(kind: SignatureKind) {
   copyFailed.value = false
-  const result = await copySignature(t('share_car.banner_alt', { model: props.title }), kind)
+  const result = await copySignature(t('share_car.banner_alt', { model: props.title }), kind, locale.value)
   if (result === 'copied') {
     copiedKind.value = kind
     setTimeout(() => { copiedKind.value = null }, 2000)

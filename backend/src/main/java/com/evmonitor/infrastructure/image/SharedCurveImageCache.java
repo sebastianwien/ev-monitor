@@ -103,6 +103,9 @@ public class SharedCurveImageCache {
      */
     @EventListener
     public void onShareRevoked(ShareRevokedEvent event) {
-        cache.remove(event.token());
+        String prefix = event.token() + ":";
+        synchronized (cache) {
+            cache.keySet().removeIf(k -> k.equals(event.token()) || k.startsWith(prefix));
+        }
     }
 }

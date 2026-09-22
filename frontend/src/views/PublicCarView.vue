@@ -177,6 +177,8 @@ const car = ref<PublicCar | null>(null)
 const loading = ref(true)
 const token = computed(() => String(route.params.token ?? ''))
 const imageUrl = computed(() => `/api/public/car/${token.value}/image`)
+/** Bildtexte in der Sprache der Seite, die Bilder selbst kennen keinen Browser. */
+const ogImageUrl = computed(() => `${BASE_URL}/api/public/car/${token.value}/og.png?lang=${locale.value}`)
 
 const sinceLabel = computed(() => {
   const first = car.value?.months?.[0]?.month
@@ -299,13 +301,13 @@ useHead(computed(() => ({
     { property: 'og:title', content: shareTitle.value },
     { property: 'og:description', content: shareDescription.value },
     { property: 'og:url', content: `${BASE_URL}/fahrzeug/${token.value}` },
-    { property: 'og:image', content: `${BASE_URL}/api/public/car/${token.value}/og.png` },
+    { property: 'og:image', content: ogImageUrl.value },
     { property: 'og:image:width', content: '1200' },
     { property: 'og:image:height', content: '630' },
     { name: 'twitter:card', content: 'summary_large_image' },
     { name: 'twitter:title', content: shareTitle.value },
     { name: 'twitter:description', content: shareDescription.value },
-    { name: 'twitter:image', content: `${BASE_URL}/api/public/car/${token.value}/og.png` },
+    { name: 'twitter:image', content: ogImageUrl.value },
   ],
 })))
 

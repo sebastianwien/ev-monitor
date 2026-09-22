@@ -96,11 +96,16 @@ class PublicCarControllerTest extends AbstractIntegrationTest {
         assertEquals(HttpStatus.OK, first.getStatusCode());
         assertEquals("image/png", first.getHeaders().getContentType().toString());
         assertTrue(first.getBody().length > 0);
+        ResponseEntity<byte[]> english = restTemplate.getForEntity("/api/public/car/" + token + "/banner.png?lang=en", byte[].class);
+        assertEquals(HttpStatus.OK, english.getStatusCode());
 
         shareService.revokeShare(car.getId(), user);
 
         assertEquals(HttpStatus.NOT_FOUND,
                 restTemplate.getForEntity("/api/public/car/" + token + "/banner.png", byte[].class).getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND,
+                restTemplate.getForEntity("/api/public/car/" + token + "/banner.png?lang=en", byte[].class).getStatusCode(),
+                "Widerruf raeumt auch die Sprachvariante aus dem Cache");
     }
 
     @Test

@@ -11,9 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
+import com.evmonitor.infrastructure.image.PublicImageStyle.Lang;
 
 /**
  * Oeffentlich geteilte Fahrzeugseiten. Liegt unter {@code /api/public/**} und ist
@@ -38,9 +40,11 @@ public class PublicCarController {
 
     /** Vorschaubild fuer Link-Karten. Laenger cachebar als das JSON, siehe PublicCurveController. */
     @GetMapping(value = "/{token}/og.png", produces = "image/png")
-    public ResponseEntity<byte[]> getSharedCarOgImage(@PathVariable String token) {
-        byte[] png = imageCache.get(CarShareService.imageCacheKey(token), IMAGE_TTL,
-                k -> shareService.getPublicCar(token).map(imageRenderer::render).orElse(null));
+    public ResponseEntity<byte[]> getSharedCarOgImage(@PathVariable String token,
+                                                      @RequestParam(required = false) String lang) {
+        Lang l = Lang.of(lang);
+        byte[] png = imageCache.get(langKey(CarShareService.imageCacheKey(token), l), IMAGE_TTL,
+                k -> shareService.getPublicCar(token).map(c -> imageRenderer.render(c, l)).orElse(null));
         return pngOr404(png);
     }
 
@@ -49,10 +53,17 @@ public class PublicCarController {
      * geladen, deshalb serverseitig gecacht und mit langer Client-Cache-Zeit.
      */
     @GetMapping(value = "/{token}/banner.png", produces = "image/png")
-    public ResponseEntity<byte[]> getSharedCarBanner(@PathVariable String token) {
-        byte[] png = imageCache.get(CarShareService.bannerCacheKey(token), IMAGE_TTL,
-                k -> shareService.getPublicCar(token).map(bannerRenderer::render).orElse(null));
+    public ResponseEntity<byte[]> getSharedCarBanner(@PathVariable String token,
+                                                     @RequestParam(required = false) String lang) {
+        Lang l = Lang.of(lang);
+        byte[] png = imageCache.get(langKey(CarShareService.bannerCacheKey(token), l), IMAGE_TTL,
+                k -> shareService.getPublicCar(token).map(c -> bannerRenderer.render(c, l)).orElse(null));
         return pngOr404(png);
+    }
+
+    /** Ein Bild je Sprache; der Widerruf raeumt alle Varianten ueber das Schluessel-Praefix ab. */
+    private static String langKey(String key, Lang lang) {
+        return key + ":" + lang.code;
     }
 
     private static ResponseEntity<byte[]> pngOr404(byte[] png) {

@@ -1,32 +1,32 @@
 package com.evmonitor.infrastructure.image;
 
 import com.evmonitor.application.PublicCarResponse;
+import com.evmonitor.infrastructure.image.PublicImageStyle.Lang;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
-import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
-import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Locale;
+
+import static com.evmonitor.infrastructure.image.PublicImageStyle.*;
 
 /**
  * Forum-Signatur-Banner (468x60) der geteilten Fahrzeugseite. Wird in Foren
  * unter jedem Beitrag geladen und verlinkt auf die Seite - deshalb knapp,
  * gut lesbar und mit denselben Zahlen wie das grosse Vorschaubild.
  *
- * Aufbau von links: Marke, Modell, Verbrauch, Einordnung gegen den
+ * Aufbau von links: Wortmarke, Modell, Verbrauch, Einordnung gegen den
  * Modell-Schnitt. Was nicht mehr in die Breite passt, wird von rechts nach
  * links weggelassen, der Modellname notfalls mit Ellipse gekuerzt. Nichts
- * laeuft ueber den Rand.
+ * laeuft ueber den Rand. Optik wie die Seite: Papier, Tinte, Barlow Condensed.
  */
 @Component
 public class SharedCarBannerRenderer {
@@ -37,24 +37,20 @@ public class SharedCarBannerRenderer {
     public static final int HEIGHT = 60;
     private static final int PAD = 12;
     private static final int GAP = 10;
-    private static final int BASELINE = 37;
+    private static final int BASELINE = 38;
 
-    private static final Color BG = new Color(0x0F172A);
-    private static final Color BG_ACCENT = new Color(0x14243F);
-    private static final Color EMERALD = new Color(0x10B981);
-    private static final Color AMBER = new Color(0xF59E0B);
-    private static final Color TEXT = new Color(0xF1F5F9);
-    private static final Color TEXT_MUTED = new Color(0x94A3B8);
-    private static final Locale NUM = Locale.GERMANY;
+    private static final Font BRAND_FONT = display(15f);
+    private static final Font MODEL_FONT = display(20f);
+    private static final Font VALUE_FONT = display(24f);
+    private static final Font UNIT_FONT = text(11f, false);
+    private static final Font PEER_FONT = text(11f, true);
 
-    private static final Font BRAND_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 11);
-    private static final Font MODEL_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 15);
-    private static final Font VALUE_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 17);
-    private static final Font UNIT_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 11);
-    private static final Font PEER_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 12);
+    public byte[] render(PublicCarResponse car) {
+        return render(car, Lang.DE);
+    }
 
     /** @return PNG-Bytes oder {@code null}, wenn Eingabe fehlt oder das Rendern fehlschlaegt. */
-    public byte[] render(PublicCarResponse car) {
+    public byte[] render(PublicCarResponse car, Lang lang) {
         if (car == null) return null;
         try {
             BufferedImage img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
@@ -62,11 +58,13 @@ public class SharedCarBannerRenderer {
             try {
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-                g.setPaint(new GradientPaint(0, 0, BG_ACCENT, WIDTH, HEIGHT, BG));
+                g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+                g.setColor(PAPER);
                 g.fillRect(0, 0, WIDTH, HEIGHT);
-                g.setColor(EMERALD);
-                g.fillRect(0, 0, 4, HEIGHT);
-                paintContent(g, car);
+                g.setColor(INK);
+                g.fillRect(0, 0, WIDTH, 2);
+                g.fillRect(0, HEIGHT - 1, WIDTH, 1);
+                paintContent(g, car, lang);
             } finally {
                 g.dispose();
             }
@@ -79,27 +77,30 @@ public class SharedCarBannerRenderer {
         }
     }
 
-    private void paintContent(Graphics2D g, PublicCarResponse car) {
-        int x = PAD + 4;
+    private void paintContent(Graphics2D g, PublicCarResponse car, Lang lang) {
+        int x = PAD;
         int right = WIDTH - PAD;
 
-        // Marke vertikal in zwei Zeilen links, damit sie wenig Breite braucht.
-        g.setColor(EMERALD);
+        // Wortmarke in zwei Zeilen links, damit sie wenig Breite braucht.
+        g.setColor(INK);
         g.setFont(BRAND_FONT);
         g.drawString("EV", x, 27);
-        g.drawString("MONITOR", x, 41);
-        x += g.getFontMetrics(BRAND_FONT).stringWidth("MONITOR") + GAP;
+        g.drawString("MONITOR", x, 43);
+        int brandWidth = g.getFontMetrics(BRAND_FONT).stringWidth("MONITOR");
+        x += brandWidth + GAP;
+        g.setColor(RULE);
+        g.fillRect(x - GAP / 2, 12, 1, HEIGHT - 24);
+        x += GAP / 2;
 
         // Rechts zuerst reservieren, was fest dazugehoert: Verbrauch und Einordnung.
         // Der Modellname bekommt den Rest und wird gekuerzt.
-        String value = car.avgConsumptionKwhPer100km() == null ? null : num(car.avgConsumptionKwhPer100km(), 1);
+        String value = car.avgConsumptionKwhPer100km() == null ? null : lang.num(car.avgConsumptionKwhPer100km(), 1);
         String unit = "kWh/100km";
         int valueWidth = value == null ? 0
                 : g.getFontMetrics(VALUE_FONT).stringWidth(value) + 4 + g.getFontMetrics(UNIT_FONT).stringWidth(unit);
 
         Integer delta = peerDeltaPercent(car);
-        String peer = delta == null ? null
-                : delta == 0 ? "im Schnitt" : Math.abs(delta) + " % " + (delta < 0 ? "unter" : "über") + " Schnitt";
+        String peer = delta == null ? null : lang.peerShort(delta);
         int peerWidth = peer == null ? 0 : g.getFontMetrics(PEER_FONT).stringWidth(peer);
 
         int reserved = (value == null ? 0 : valueWidth + GAP) + (peer == null ? 0 : peerWidth + GAP);
@@ -112,26 +113,26 @@ public class SharedCarBannerRenderer {
         }
 
         // Ohne Jahr: die Breite gehoert dem Modellnamen, das Jahr steht auf der Seite.
-        String model = car.carModel() != null ? car.carModel() : "Fahrzeug";
-        g.setColor(TEXT);
+        String model = car.carModel() != null ? car.carModel() : lang.fallbackModel();
+        g.setColor(INK);
         g.setFont(MODEL_FONT);
         String shown = fit(model, g.getFontMetrics(MODEL_FONT), modelMax);
         g.drawString(shown, x, BASELINE);
         x += g.getFontMetrics(MODEL_FONT).stringWidth(shown) + GAP;
 
         if (value != null) {
-            g.setColor(TEXT);
+            g.setColor(INK);
             g.setFont(VALUE_FONT);
             g.drawString(value, x, BASELINE);
             x += g.getFontMetrics(VALUE_FONT).stringWidth(value) + 4;
-            g.setColor(TEXT_MUTED);
+            g.setColor(INK_3);
             g.setFont(UNIT_FONT);
             g.drawString(unit, x, BASELINE);
             x += g.getFontMetrics(UNIT_FONT).stringWidth(unit) + GAP;
         }
 
         if (peer != null) {
-            g.setColor(delta <= 0 ? EMERALD : AMBER);
+            g.setColor(delta <= 0 ? GOOD : WARN);
             g.setFont(PEER_FONT);
             g.drawString(peer, x, BASELINE);
         }
@@ -155,15 +156,11 @@ public class SharedCarBannerRenderer {
     }
 
     /** Kuerzt {@code text} mit Ellipse, bis er in {@code maxWidth} Pixel passt. */
-    private static String fit(String text, FontMetrics fm, int maxWidth) {
+    static String fit(String text, FontMetrics fm, int maxWidth) {
         if (fm.stringWidth(text) <= maxWidth) return text;
         String ellipsis = "…";
         int end = text.length();
         while (end > 1 && fm.stringWidth(text.substring(0, end).stripTrailing() + ellipsis) > maxWidth) end--;
         return text.substring(0, end).stripTrailing() + ellipsis;
-    }
-
-    private String num(BigDecimal value, int decimals) {
-        return String.format(NUM, "%,." + decimals + "f", value.setScale(decimals, RoundingMode.HALF_UP));
     }
 }
