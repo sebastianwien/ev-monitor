@@ -7,6 +7,11 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -77,5 +82,53 @@ class SharedCurveImageCacheTest {
         cache.get("a", Duration.ofHours(1), k -> { renders.incrementAndGet(); return PNG; });
 
         assertEquals(2, renders.get());
+    }
+
+    @Test
+    void slowRenderOfOneKey_doesNotBlockOtherKeys() throws Exception {
+        SharedCurveImageCache cache = new SharedCurveImageCache(Clock.systemUTC());
+        CountDownLatch slowStarted = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        try {
+            Future<byte[]> slow = pool.submit(() -> cache.get("slow", Duration.ofHours(1), k -> {
+                slowStarted.countDown();
+                try { release.await(5, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                return PNG;
+            }));
+            assertTrue(slowStarted.await(2, TimeUnit.SECONDS));
+
+            Future<byte[]> fast = pool.submit(() -> cache.get("fast", Duration.ofHours(1), k -> PNG));
+            assertArrayEquals(PNG, fast.get(2, TimeUnit.SECONDS), "anderer Schluessel wartet nicht auf das langsame Rendern");
+
+            release.countDown();
+            assertArrayEquals(PNG, slow.get(2, TimeUnit.SECONDS));
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
+    void concurrentRequestsForSameKey_renderOnce() throws Exception {
+        SharedCurveImageCache cache = new SharedCurveImageCache(Clock.systemUTC());
+        AtomicInteger renders = new AtomicInteger();
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(4);
+        try {
+            java.util.List<Future<byte[]>> futures = new java.util.ArrayList<>();
+            for (int i = 0; i < 4; i++) {
+                futures.add(pool.submit(() -> cache.get("a", Duration.ofHours(1), k -> {
+                    renders.incrementAndGet();
+                    try { release.await(5, TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                    return PNG;
+                })));
+            }
+            Thread.sleep(200);
+            release.countDown();
+            for (Future<byte[]> f : futures) assertArrayEquals(PNG, f.get(2, TimeUnit.SECONDS));
+            assertEquals(1, renders.get(), "gleicher Schluessel wird nur einmal gerendert");
+        } finally {
+            pool.shutdownNow();
+        }
     }
 }
