@@ -3,9 +3,12 @@
     <!-- Kein App-Header: die Seite hat ein anderes Publikum. Nur der Absender, der
          Aufruf zum Mitmachen steht am Ende, wo der Leser das Auto schon kennt. -->
     <main class="max-w-3xl mx-auto px-4 pb-14">
-      <a href="/" class="inline-flex items-center gap-2 min-h-[44px] text-[var(--pc-ink-2)]">
-        <BoltLogo class="h-5 w-5" />
-        <span class="text-sm font-semibold tracking-wide">EV Monitor</span>
+      <a href="/" class="flex items-center justify-between gap-4 py-3 border-b border-[var(--pc-ink)] mb-3">
+        <span class="flex items-center gap-2">
+          <BoltLogo class="h-7 w-7" />
+          <span class="pc-disp text-[28px] leading-none uppercase tracking-tight">EV Monitor</span>
+        </span>
+        <span class="text-xs text-[var(--pc-ink-3)] whitespace-nowrap">{{ t('share_car.masthead_claim') }}</span>
       </a>
       <div v-if="loading" class="text-center py-16 text-[var(--pc-ink-3)]">
         {{ t('common.loading') }}
@@ -19,7 +22,7 @@
 
       <article v-else>
         <!-- Titel liegt ueber der unteren Kante des Fotos, das Foto blendet in den Grund aus. -->
-        <header class="relative -mx-4 mt-1 md:mx-0 md:rounded-md overflow-hidden" :class="car.hasImage ? 'aspect-[4/3] md:aspect-[2/1]' : ''">
+        <header class="relative -mx-4 md:mx-0 md:rounded-md overflow-hidden" :class="car.hasImage ? 'aspect-[4/3] md:aspect-[2/1]' : ''">
           <template v-if="car.hasImage">
             <img :src="imageUrl" :alt="car.carModel ?? ''" class="absolute inset-0 w-full h-full object-cover" />
             <div class="absolute inset-0 pc-fade" />

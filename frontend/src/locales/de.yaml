@@ -3109,6 +3109,7 @@ share_car:
   cta_title: "Und dein Auto?"
   cta_button: "Eigenes Fahrzeug anlegen"
   footnote: "Aufgezeichnet mit EV Monitor. Keine Standorte, kein Kennzeichen, kein Name."
+  masthead_claim: "Echter Verbrauch statt WLTP"
 stories:
   heading: "Trip-Stories"
   subtitle: "Reiseberichte aus der Community - mit echten Verbrauchs- und Tripdaten."

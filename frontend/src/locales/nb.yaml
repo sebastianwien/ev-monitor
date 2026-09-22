@@ -2993,6 +2993,7 @@ share_car:
   cta_title: "Og bilen din?"
   cta_button: "Legg til din egen bil"
   footnote: "Registrert med EV Monitor. Ingen steder, ingen skilt, ikke noe navn."
+  masthead_claim: "Faktisk forbruk, ikke WLTP"
 stories:
   heading: "Trip-historier"
   subtitle: "Reiseberetninger fra fellesskapet - med ekte forbruks- og turdata."

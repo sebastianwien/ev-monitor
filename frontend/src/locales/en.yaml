@@ -3108,6 +3108,7 @@ share_car:
   cta_title: "And your car?"
   cta_button: "Add your own car"
   footnote: "Recorded with EV Monitor. No locations, no licence plate, no name."
+  masthead_claim: "Real consumption, not WLTP"
 stories:
   heading: "Trip Stories"
   subtitle: "Road-trip reports from the community - backed by real consumption and trip data."
