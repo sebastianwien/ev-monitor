@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { carShareService, type CarShare } from '../api/carShareService'
+import { analytics } from '../services/analytics'
 
 export type CarShareOutcome = 'shared' | 'copied' | 'failed'
 export type SignatureKind = 'bbcode' | 'html'
@@ -54,6 +55,7 @@ export function useCarShare() {
         error.value = false
         try {
             share.value = await carShareService.create(carId)
+            analytics.track('car_share_created')
             return share.value
         } catch {
             error.value = true
@@ -69,6 +71,7 @@ export function useCarShare() {
         try {
             await carShareService.revoke(carId)
             share.value = null
+            analytics.track('car_share_revoked')
         } catch {
             error.value = true
         } finally {
@@ -81,6 +84,12 @@ export function useCarShare() {
      * meisten Desktops - landet er in der Zwischenablage.
      */
     async function shareLink(url: string, title: string): Promise<CarShareOutcome> {
+        const outcome = await shareOrCopy(url, title)
+        if (outcome !== 'failed') analytics.track('car_share_link_shared', { method: outcome === 'shared' ? 'share_sheet' : 'clipboard' })
+        return outcome
+    }
+
+    async function shareOrCopy(url: string, title: string): Promise<CarShareOutcome> {
         if (typeof navigator !== 'undefined' && navigator.share) {
             try {
                 await navigator.share({ title, url })
@@ -102,6 +111,7 @@ export function useCarShare() {
         if (!share.value) return 'failed'
         try {
             await navigator.clipboard.writeText(buildSignature(share.value, title, kind, lang))
+            analytics.track('car_share_signature_copied', { kind })
             return 'copied'
         } catch {
             return 'failed'

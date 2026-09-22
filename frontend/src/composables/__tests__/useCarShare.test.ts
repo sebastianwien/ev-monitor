@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useCarShare, buildSignature, bannerUrlFor } from '../useCarShare'
+import { analytics } from '../../services/analytics'
 import { carShareService } from '../../api/carShareService'
 
 vi.mock('../../api/carShareService', () => ({
@@ -11,6 +12,8 @@ vi.mock('../../api/carShareService', () => ({
         getPublic: vi.fn(),
     },
 }))
+
+vi.mock('../../services/analytics', () => ({ analytics: { track: vi.fn() } }))
 
 const SHARE = { token: 'abc123xyz789', url: 'https://ev-monitor.net/fahrzeug/abc123xyz789', bannerUrl: 'https://ev-monitor.net/api/public/car/abc123xyz789/banner.png' }
 
@@ -143,5 +146,41 @@ describe('useCarShare - Forum-Signatur', () => {
         await s.enable('car-1')
 
         expect(await s.copySignature('Tesla Model 3', 'html')).toBe('failed')
+    })
+})
+
+describe('useCarShare - Plausible-Goals', () => {
+    beforeEach(() => vi.mocked(analytics.track).mockClear())
+
+    it('meldet Erstellen und Deaktivieren', async () => {
+        vi.mocked(carShareService.create).mockResolvedValue(SHARE)
+        vi.mocked(carShareService.revoke).mockResolvedValue(undefined)
+        const s = useCarShare()
+        await s.enable('car-1')
+        expect(analytics.track).toHaveBeenCalledWith('car_share_created')
+        await s.revoke('car-1')
+        expect(analytics.track).toHaveBeenCalledWith('car_share_revoked')
+    })
+
+    it('meldet das Teilen mit dem Weg, nicht aber einen Fehlschlag', async () => {
+        Object.defineProperty(navigator, 'share', { value: undefined, configurable: true })
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true })
+        const s = useCarShare()
+        await s.shareLink(SHARE.url, 'Titel')
+        expect(analytics.track).toHaveBeenCalledWith('car_share_link_shared', { method: 'clipboard' })
+
+        vi.mocked(analytics.track).mockClear()
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockRejectedValue(new Error('nope')) }, configurable: true })
+        await s.shareLink(SHARE.url, 'Titel')
+        expect(analytics.track).not.toHaveBeenCalled()
+    })
+
+    it('meldet die kopierte Signatur mit Format', async () => {
+        vi.mocked(carShareService.create).mockResolvedValue(SHARE)
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true })
+        const s = useCarShare()
+        await s.enable('car-1')
+        await s.copySignature('Tesla', 'html')
+        expect(analytics.track).toHaveBeenCalledWith('car_share_signature_copied', { kind: 'html' })
     })
 })
