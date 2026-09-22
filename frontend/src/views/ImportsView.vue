@@ -642,7 +642,7 @@ const teslaConnectedLabel = ref<string | null>(null)
             <div v-if="activeTab === 'manuell'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5 space-y-4">
               <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('imports.manuell_desc') }}</p>
               <ul class="space-y-2">
-                <li v-for="i in 5" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                <li v-for="i in 6" :key="i" class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
                   <span class="shrink-0 w-5 h-5 bg-green-700 text-white rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">→</span>
                   <span class="font-medium">{{ t(`imports.manuell_feat${i}`) }}</span>
                 </li>
@@ -752,7 +752,7 @@ const teslaConnectedLabel = ref<string | null>(null)
     v-if="showManualImportModal && manualImportCarId"
     :car-id="manualImportCarId"
     @close="showManualImportModal = false"
-    @imported="(count) => { showManualImportModal = false; analytics.trackImportCompleted('manual', count) }"
+    @imported="(count, type) => { showManualImportModal = false; analytics.trackImportCompleted(type === 'trips' ? 'manual_trips' : 'manual', count) }"
   />
   <DemoImportsModal v-if="authStore.isDemoAccount" />
 </div>

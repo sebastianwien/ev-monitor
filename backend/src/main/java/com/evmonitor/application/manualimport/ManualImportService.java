@@ -6,8 +6,6 @@ import com.evmonitor.application.publicapi.PublicApiSessionRequest;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.DataSource;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,7 +20,7 @@ public class ManualImportService {
 
     private final PublicApiImportService publicApiImportService;
     private final CarRepository carRepository;
-    private final ObjectMapper objectMapper;
+    private final ImportRowParser rowParser;
 
     public ImportApiResult importData(UUID userId, UUID carId, String format, String data) {
         return importData(userId, carId, format, data, DataSource.API_UPLOAD);
@@ -39,13 +37,9 @@ public class ManualImportService {
         List<Map<String, String>> rows;
         int columnMismatches = 0;
         try {
-            if ("json".equalsIgnoreCase(format)) {
-                rows = parseJson(data);
-            } else {
-                ParseCsvResult csvResult = parseCsvWithWarnings(data);
-                rows = csvResult.rows();
-                columnMismatches = csvResult.columnMismatches();
-            }
+            ImportRowParser.ParsedRows parsed = rowParser.parse(format, data);
+            rows = parsed.rows();
+            columnMismatches = parsed.columnMismatches();
         } catch (Exception e) {
             log.warn("ManualImport: Datei konnte nicht geparst werden: {}", e.getMessage());
             return ImportApiResult.withoutIds(0, 0, 1);
@@ -76,31 +70,31 @@ public class ManualImportService {
     }
 
     private PublicApiSessionRequest.SessionEntry mapRowToEntry(Map<String, String> row) {
-        String date = get(row, "date");
+        String date = rowParser.get(row, "date");
         if (date == null) return null;
 
-        Double kwh = parseDouble(get(row, "kwh"));
-        Double kwhAtVehicle = parseDouble(get(row, "kwh_at_vehicle"));
+        Double kwh = rowParser.parseDouble(rowParser.get(row, "kwh"));
+        Double kwhAtVehicle = rowParser.parseDouble(rowParser.get(row, "kwh_at_vehicle"));
         // At least one of the two energy fields must be present and > 0 - otherwise
         // the row is rejected as an error (same rule as @AssertTrue on SessionEntry).
         boolean hasKwh = kwh != null && kwh > 0;
         boolean hasKwhAtVehicle = kwhAtVehicle != null && kwhAtVehicle > 0;
         if (!hasKwh && !hasKwhAtVehicle) return null;
 
-        Integer odometerKm = parseInteger(get(row, "odometer_km"));
-        BigDecimal socBefore = parseBigDecimal(get(row, "soc_before"));
-        BigDecimal socAfter = parseBigDecimal(get(row, "soc_after"));
-        Double costEur = parseDouble(get(row, "cost_eur"));
-        Integer durationMin = parseInteger(get(row, "duration_min"));
-        String location = get(row, "location");
-        String chargingType = get(row, "charging_type");
-        Double maxChargingPowerKw = parseDouble(get(row, "max_charging_power_kw"));
-        String routeType = get(row, "route_type");
-        String tireType = get(row, "tire_type");
-        String rawImportData = get(row, "raw_import_data");
-        Boolean isPublicCharging = parseBoolean(get(row, "is_public_charging"));
-        String cpoName = get(row, "cpo_name");
-        String measurementType = get(row, "measurement_type");
+        Integer odometerKm = rowParser.parseInteger(rowParser.get(row, "odometer_km"));
+        BigDecimal socBefore = rowParser.parseBigDecimal(rowParser.get(row, "soc_before"));
+        BigDecimal socAfter = rowParser.parseBigDecimal(rowParser.get(row, "soc_after"));
+        Double costEur = rowParser.parseDouble(rowParser.get(row, "cost_eur"));
+        Integer durationMin = rowParser.parseInteger(rowParser.get(row, "duration_min"));
+        String location = rowParser.get(row, "location");
+        String chargingType = rowParser.get(row, "charging_type");
+        Double maxChargingPowerKw = rowParser.parseDouble(rowParser.get(row, "max_charging_power_kw"));
+        String routeType = rowParser.get(row, "route_type");
+        String tireType = rowParser.get(row, "tire_type");
+        String rawImportData = rowParser.get(row, "raw_import_data");
+        Boolean isPublicCharging = rowParser.parseBoolean(rowParser.get(row, "is_public_charging"));
+        String cpoName = rowParser.get(row, "cpo_name");
+        String measurementType = rowParser.get(row, "measurement_type");
 
         return new PublicApiSessionRequest.SessionEntry(
                 date, kwh, kwhAtVehicle, odometerKm, socBefore, socAfter,
@@ -109,97 +103,5 @@ public class ManualImportService {
                 isPublicCharging, cpoName, measurementType,
                 null  // temperatureCelsius not available via manual import
         );
-    }
-
-    // --- CSV / JSON parsing (quote-aware, trimmed headers) ---
-
-    private record ParseCsvResult(List<Map<String, String>> rows, int columnMismatches) {}
-
-    private ParseCsvResult parseCsvWithWarnings(String data) {
-        String[] lines = data.strip().split("\\r?\\n");
-        if (lines.length < 2) return new ParseCsvResult(List.of(), 0);
-
-        String[] headers = splitCsvLine(lines[0]);
-        List<Map<String, String>> rows = new ArrayList<>();
-        int columnMismatches = 0;
-        for (int i = 1; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (line.isEmpty()) continue;
-            String[] values = splitCsvLine(line);
-            if (values.length < headers.length) {
-                columnMismatches++;
-            }
-            Map<String, String> row = new LinkedHashMap<>();
-            for (int j = 0; j < headers.length; j++) {
-                String value = j < values.length ? values[j].trim() : "";
-                if (!value.isEmpty()) row.put(headers[j].trim().toLowerCase(), value);
-            }
-            rows.add(row);
-        }
-        return new ParseCsvResult(rows, columnMismatches);
-    }
-
-    private String[] splitCsvLine(String line) {
-        List<String> result = new ArrayList<>();
-        boolean inQuotes = false;
-        StringBuilder current = new StringBuilder();
-        for (char c : line.toCharArray()) {
-            if (c == '"') {
-                inQuotes = !inQuotes;
-            } else if (c == ',' && !inQuotes) {
-                result.add(current.toString());
-                current = new StringBuilder();
-            } else {
-                current.append(c);
-            }
-        }
-        result.add(current.toString());
-        return result.toArray(new String[0]);
-    }
-
-    private List<Map<String, String>> parseJson(String data) throws Exception {
-        List<Map<String, Object>> rawList = objectMapper.readValue(data, new TypeReference<>() {});
-        List<Map<String, String>> result = new ArrayList<>();
-        for (Map<String, Object> raw : rawList) {
-            Map<String, String> row = new LinkedHashMap<>();
-            for (Map.Entry<String, Object> entry : raw.entrySet()) {
-                if (entry.getValue() != null) {
-                    row.put(entry.getKey().toLowerCase(), entry.getValue().toString());
-                }
-            }
-            result.add(row);
-        }
-        return result;
-    }
-
-    // --- Helpers ---
-
-    private String get(Map<String, String> row, String key) {
-        String value = row.get(key);
-        return (value == null || value.isBlank()) ? null : value;
-    }
-
-    private Integer parseInteger(String raw) {
-        if (raw == null) return null;
-        try { return (int) Double.parseDouble(raw.replace(",", ".").trim()); }
-        catch (NumberFormatException e) { return null; }
-    }
-
-    private Double parseDouble(String raw) {
-        if (raw == null) return null;
-        try { return Double.parseDouble(raw.replace(",", ".").trim()); }
-        catch (NumberFormatException e) { return null; }
-    }
-
-    private BigDecimal parseBigDecimal(String raw) {
-        if (raw == null) return null;
-        try { return new BigDecimal(raw.replace(",", ".").trim()); }
-        catch (NumberFormatException e) { return null; }
-    }
-
-    private Boolean parseBoolean(String raw) {
-        if (raw == null) return null;
-        String v = raw.trim();
-        return "true".equalsIgnoreCase(v) || "1".equals(v);
     }
 }

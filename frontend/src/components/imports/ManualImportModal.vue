@@ -3,17 +3,33 @@
     <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
       <!-- Header -->
       <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('manual_import.title') }}</h2>
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ importType === 'trips' ? t('manual_import.title_trips') : t('manual_import.title') }}</h2>
         <button @click="$emit('close')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
           <XMarkIcon class="w-5 h-5" />
         </button>
       </div>
 
       <div class="overflow-y-auto p-5 space-y-5">
+        <!-- Import type -->
+        <div role="tablist" :aria-label="t('manual_import.type_label')" class="grid grid-cols-2 gap-1 p-1 bg-gray-100 dark:bg-gray-900 rounded-xl">
+          <button
+            v-for="type in (['sessions', 'trips'] as const)"
+            :key="type"
+            role="tab"
+            :aria-selected="importType === type ? 'true' : 'false'"
+            :data-testid="`import-type-${type}`"
+            @click="selectType(type)"
+            :class="['min-h-[44px] rounded-lg text-sm font-medium transition-colors',
+              importType === type
+                ? 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200']"
+          >{{ type === 'trips' ? t('manual_import.type_trips') : t('manual_import.type_sessions') }}</button>
+        </div>
+
         <!-- Info -->
         <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex gap-2.5">
           <ExclamationTriangleIcon class="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
-          <p class="text-sm text-amber-800 dark:text-amber-200" v-html="t('manual_import.format_info')" />
+          <p class="text-sm text-amber-800 dark:text-amber-200" v-html="importType === 'trips' ? t('manual_import.format_info_trips') : t('manual_import.format_info')" />
         </div>
 
         <!-- Format toggle -->
@@ -45,7 +61,12 @@
           <pre v-if="selectedFormat === 'csv'" class="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre">{{ csvTemplate }}</pre>
           <pre v-else class="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre">{{ jsonTemplate }}</pre>
 
-          <p class="text-xs text-gray-500 dark:text-gray-400">
+          <p v-if="importType === 'trips'" class="text-xs text-gray-500 dark:text-gray-400">
+            <span v-html="t('manual_import.required_fields_trips')" /><br>
+            <span v-html="t('manual_import.trips_fields_hint')" /><br>
+            <span v-html="t('manual_import.trips_date_hint')" />
+          </p>
+          <p v-else class="text-xs text-gray-500 dark:text-gray-400">
             <span v-html="t('manual_import.required_fields')" /><br>
             <span v-html="t('manual_import.kwh_hint')" /><br>
             <span v-html="t('manual_import.date_formats')" /><br>
@@ -96,7 +117,7 @@
             <template v-if="(result.warnings ?? 0) > 0">{{ t('manual_import.result_warnings', { warnings: result.warnings }) }}</template>
           </p>
           <p v-if="result.errors > 0 && result.imported === 0" class="text-xs text-red-600 dark:text-red-400">
-            {{ t('manual_import.hint_all_errors') }}
+            {{ importType === 'trips' ? t('manual_import.hint_all_errors_trips') : t('manual_import.hint_all_errors') }}
           </p>
         </div>
 
@@ -117,6 +138,7 @@
           class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
         >{{ t('manual_import.close_btn') }}</button>
         <button
+          data-testid="import-submit"
           @click="runImport"
           :disabled="!rawData.trim() || loading"
           class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
@@ -130,16 +152,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, ClipboardDocumentIcon } from '@heroicons/vue/24/outline'
 import { manualImportService, type ManualImportResult } from '../../api/manualImportService'
 
 const { t } = useI18n()
 
-const props = defineProps<{ carId: string }>()
-const emit = defineEmits<{ close: []; imported: [count: number] }>()
+export type ManualImportType = 'sessions' | 'trips'
 
+const props = withDefaults(defineProps<{ carId: string; initialType?: ManualImportType }>(), { initialType: 'sessions' })
+const emit = defineEmits<{ close: []; imported: [count: number, type: ManualImportType] }>()
+
+const importType = ref<ManualImportType>(props.initialType)
 const selectedFormat = ref<'csv' | 'json'>('csv')
 const rawData = ref('')
 const fileName = ref('')
@@ -149,10 +174,10 @@ const errorMsg = ref('')
 const fileInput = ref<HTMLInputElement>()
 const copied = ref(false)
 
-const csvTemplate = `date,kwh,kwh_at_vehicle,odometer_km,soc_before,soc_after,cost_eur,duration_min,location,charging_type,max_charging_power_kw,route_type,tire_type,is_public_charging,cpo_name
+const sessionsCsvTemplate = `date,kwh,kwh_at_vehicle,odometer_km,soc_before,soc_after,cost_eur,duration_min,location,charging_type,max_charging_power_kw,route_type,tire_type,is_public_charging,cpo_name
 2025-08-31T15:07:14+02:00,32.09,30.10,7893,42,80,0,26,48.2082 16.3738,DC,150.0,,,true,IONITY`
 
-const jsonTemplate = `[
+const sessionsJsonTemplate = `[
   {
     "date": "2025-08-31T15:07:14+02:00",
     "kwh": 32.09,
@@ -170,8 +195,36 @@ const jsonTemplate = `[
   }
 ]`
 
+const tripsCsvTemplate = `started_at,ended_at,distance_km,odometer_start_km,odometer_end_km,soc_start,soc_end,route_type
+2025-08-31T15:07:14+02:00,2025-08-31T15:52:00+02:00,41.3,7852,7893,80,62,COMBINED`
+
+const tripsJsonTemplate = `[
+  {
+    "started_at": "2025-08-31T15:07:14+02:00",
+    "ended_at": "2025-08-31T15:52:00+02:00",
+    "distance_km": 41.3,
+    "odometer_start_km": 7852,
+    "odometer_end_km": 7893,
+    "soc_start": 80,
+    "soc_end": 62,
+    "route_type": "COMBINED"
+  }
+]`
+
+const csvTemplate = computed(() => importType.value === 'trips' ? tripsCsvTemplate : sessionsCsvTemplate)
+const jsonTemplate = computed(() => importType.value === 'trips' ? tripsJsonTemplate : sessionsJsonTemplate)
+
+function selectType(type: ManualImportType) {
+  if (importType.value === type) return
+  importType.value = type
+  rawData.value = ''
+  fileName.value = ''
+  result.value = null
+  errorMsg.value = ''
+}
+
 async function copyTemplate() {
-  const text = selectedFormat.value === 'csv' ? csvTemplate : jsonTemplate
+  const text = selectedFormat.value === 'csv' ? csvTemplate.value : jsonTemplate.value
   await navigator.clipboard.writeText(text)
   copied.value = true
   setTimeout(() => { copied.value = false }, 2000)
@@ -202,9 +255,11 @@ async function runImport() {
   errorMsg.value = ''
 
   try {
-    result.value = await manualImportService.importData(props.carId, selectedFormat.value, rawData.value, false)
+    result.value = importType.value === 'trips'
+      ? await manualImportService.importTrips(props.carId, selectedFormat.value, rawData.value)
+      : await manualImportService.importData(props.carId, selectedFormat.value, rawData.value, false)
     if (result.value.imported > 0) {
-      emit('imported', result.value.imported)
+      emit('imported', result.value.imported, importType.value)
     }
   } catch (e: any) {
     errorMsg.value = e?.response?.data?.error ?? t('manual_import.err_import')

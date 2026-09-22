@@ -1874,12 +1874,13 @@ imports:
   wallbox_ocpp_goe_link: Import via sky-API
   wallbox_btn: Konfigurer OCPP Wallbox
   manuell_title: Manuell import
-  manuell_desc: Importer tidligere ladingsøkter fra hvilken som helst kilde – som CSV- eller JSON-fil. Kompatibelt med TeslaMate, TeslaFi, dine egne eksporter og alle andre formater du kan tilpasse.
+  manuell_desc: Importer tidligere ladeøkter og turer fra hvilken som helst kilde – som CSV- eller JSON-fil.
   manuell_feat1: CSV eller JSON – formatet er forhåndsdefinert
-  manuell_feat2: "Obligatoriske felt: dato og kWh – alt annet er valgfritt"
-  manuell_feat3: "Datoformater: ISO 8601, tysk, amerikansk, Unix-tidsstempel"
-  manuell_feat4: "Plassering: Koordinater (breddegrad/lengdegrad) for kartvisning"
-  manuell_feat5: Duplikater oppdages og hoppes over – basert på tidsstempel og kWh
+  manuell_feat2: "Ladeøkter: dato og kWh er obligatorisk – alt annet er valgfritt"
+  manuell_feat3: "Ladeøkter: datogjenkjenning for ISO 8601, tysk, US og Unix-tidsstempel – turer kun ISO 8601 med tidssone"
+  manuell_feat4: "Ladeøkter: sted som koordinater (lat/lon) for kartvisningen"
+  manuell_feat5: "Duplikater oppdages og hoppes over – ladeøkter etter tidsstempel og kWh, turer etter starttid"
+  manuell_feat6: "Turer: start, slutt og distanse (eller kilometerstand før/etter) er obligatorisk – uten start- og slutt-SoC intet forbruk"
   manuell_select_car: Velg kjøretøy
   manuell_btn: Start import
   manuell_no_car: Det ble ikke funnet noen aktive kjøretøy.
@@ -1968,6 +1969,15 @@ spritmonitor:
   refresh_done_btn: Ferdig
   back_to_mapping: Tilbake til tilordning
 manual_import:
+  type_label: Hva vil du importere?
+  type_sessions: Ladeøkter
+  type_trips: Turer
+  title_trips: Importer turer
+  format_info_trips: Filen må følge <strong>EV Monitor-formatet</strong> - ikke en direkte eksport fra andre apper. Kopier malen nedenfor først og fyll den med turene dine.
+  required_fields_trips: "<strong>Obligatoriske felt:</strong> <code>started_at</code>, <code>ended_at</code> og <code>distance_km</code> – eller i stedet for distansen <code>odometer_start_km</code> og <code>odometer_end_km</code>, som den beregnes fra"
+  trips_fields_hint: "<strong>Valgfritt:</strong> <code>soc_start</code>, <code>soc_end</code> (brukes til å anslå turens forbruk), <code>route_type</code> (CITY, COMBINED, HIGHWAY)"
+  trips_date_hint: "<strong>Tidsstempler:</strong> ISO 8601 med tidssone, f.eks. <code>2025-08-31T15:07:14+02:00</code>. Turer med identisk starttid hoppes over."
+  hint_all_errors_trips: Sjekk at <code>started_at</code> og <code>ended_at</code> bruker ISO 8601 med tidssone, at <code>ended_at</code> er etter <code>started_at</code>, og at hver rad har en distanse eller begge kilometerstandene.
   title: Importer ladingsøkter
   format_info: Filen må være i samsvar med <strong>EV Monitor-formatet</strong> – ikke en direkte eksport fra andre apper. Kopier først malen nedenfor og fyll den ut med dine data.
   template_label: Mal (påkrevd format)
@@ -2958,6 +2968,12 @@ share_car:
   og_description: "Reelt forbruk: {consumption} over alle ladinger, registrert med EV Monitor."
   og_description_plain: "Ladinger og forbruk, registrert med EV Monitor."
   cta_text: "Dette kjøretøyet spores med EV Monitor. Registrer dine egne ladinger og se hva bilen din faktisk bruker."
+  signature_title: "Forumsignatur"
+  signature_hint: "Banneret viser modell, forbruk og sammenligningen med modellsnittet, oppdatert hver time. Det lenker til kjøretøysiden din. Slår du av lenken, slutter banneret å virke med en gang."
+  copy_bbcode: "Kopier BBCode"
+  copy_html: "Kopier HTML"
+  signature_copied: "Kopiert"
+  banner_alt: "{model}: faktisk forbruk på EV Monitor"
 stories:
   heading: "Trip-historier"
   subtitle: "Reiseberetninger fra fellesskapet - med ekte forbruks- og turdata."
@@ -2968,12 +2984,6 @@ stories:
   back_to_stories: "Tilbake til alle historier"
   cta_text: "Vil du dokumentere din egen reise? Spor ladeøktene og turene dine med EV Monitor."
   my_stories: "Mine historier"
-  signature_title: "Forumsignatur"
-  signature_hint: "Banneret viser modell, forbruk og sammenligningen med modellsnittet, oppdatert hver time. Det lenker til kjøretøysiden din. Slår du av lenken, slutter banneret å virke med en gang."
-  copy_bbcode: "Kopier BBCode"
-  copy_html: "Kopier HTML"
-  signature_copied: "Kopiert"
-  banner_alt: "{model}: faktisk forbruk på EV Monitor"
   new_story: "Ny historie"
   untitled: "Historie uten tittel"
   latest: "Nyeste historier"
