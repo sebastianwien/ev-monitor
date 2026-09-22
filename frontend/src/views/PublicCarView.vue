@@ -330,9 +330,9 @@ onMounted(async () => {
 
 /* Eigene Farbwelt: Papier statt Dashboard. Graphit im Dark Mode. */
 .pc {
-  --pc-paper: #F7F6F2; --pc-ink: #14161A; --pc-ink-2: #4B4F58; --pc-ink-3: #767B86;
+  --pc-paper: #F7F6F2; --pc-ink: #14161A; --pc-ink-2: #4B4F58; --pc-ink-3: #666B75;
   --pc-rule: #D9D7D0; --pc-rule-2: #EDECE6; --pc-band: #ECEAE2;
-  --pc-good: #0F8A5F; --pc-warn: #B86E08;
+  --pc-good: #0B7350; --pc-warn: #9A5A05;
   background: var(--pc-paper);
   color: var(--pc-ink);
 }
