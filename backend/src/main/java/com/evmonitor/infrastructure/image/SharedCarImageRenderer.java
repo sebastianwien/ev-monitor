@@ -111,14 +111,9 @@ public class SharedCarImageRenderer {
         g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 30));
         g.drawString("kWh/100km", MARGIN + valueWidth + 18, 320);
 
+        Integer delta = SharedCarBannerRenderer.peerDeltaPercent(car);
+        if (delta == null) return;
         PublicCarResponse.PeerComparison peer = car.peerComparison();
-        if (peer == null || peer.peerAvgConsumptionKwhPer100km() == null || peer.peerAvgConsumptionKwhPer100km().signum() <= 0) {
-            return;
-        }
-        int delta = car.avgConsumptionKwhPer100km().subtract(peer.peerAvgConsumptionKwhPer100km())
-                .multiply(BigDecimal.valueOf(100))
-                .divide(peer.peerAvgConsumptionKwhPer100km(), 0, RoundingMode.HALF_UP)
-                .intValue();
         String scope = "SPEC".equals(peer.matchType()) ? "dieser Variante" : "dieses Modells";
         String headline = delta == 0 ? "Genau im Schnitt " + scope
                 : Math.abs(delta) + " % " + (delta < 0 ? "unter" : "über") + " dem Schnitt " + scope;

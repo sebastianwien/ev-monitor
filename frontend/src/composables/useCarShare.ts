@@ -2,6 +2,30 @@ import { ref } from 'vue'
 import { carShareService, type CarShare } from '../api/carShareService'
 
 export type CarShareOutcome = 'shared' | 'copied' | 'failed'
+export type SignatureKind = 'bbcode' | 'html'
+
+export const BANNER_WIDTH = 468
+export const BANNER_HEIGHT = 60
+
+function escapeAttr(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+}
+
+/**
+ * Schnipsel fuer eine Forum-Signatur: das Banner, verlinkt auf die Fahrzeugseite.
+ * BBCode fuer phpBB, XenForo und Co., HTML fuer Foren und Blogs, die das erlauben.
+ */
+export function buildSignature(share: CarShare, title: string, kind: SignatureKind): string {
+    if (kind === 'bbcode') {
+        return `[url=${share.url}][img]${share.bannerUrl}[/img][/url]`
+    }
+    return `<a href="${escapeAttr(share.url)}">`
+        + `<img src="${escapeAttr(share.bannerUrl)}" alt="${escapeAttr(title)}" width="${BANNER_WIDTH}" height="${BANNER_HEIGHT}"></a>`
+}
 
 /**
  * Freigabe einer Fahrzeugseite per Link. Ein Composable pro Fahrzeug-Karte.
@@ -67,5 +91,16 @@ export function useCarShare() {
         }
     }
 
-    return { share, busy, error, load, enable, revoke, shareLink }
+    /** Legt den Signatur-Schnipsel in die Zwischenablage. */
+    async function copySignature(title: string, kind: SignatureKind): Promise<CarShareOutcome> {
+        if (!share.value) return 'failed'
+        try {
+            await navigator.clipboard.writeText(buildSignature(share.value, title, kind))
+            return 'copied'
+        } catch {
+            return 'failed'
+        }
+    }
+
+    return { share, busy, error, load, enable, revoke, shareLink, copySignature }
 }

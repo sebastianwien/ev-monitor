@@ -39,7 +39,7 @@ class CarShareServiceTest extends AbstractIntegrationTest {
         saveLog(car.getId(), LocalDateTime.now().minusDays(2), 10_000);
         saveLog(car.getId(), LocalDateTime.now().minusDays(1), 10_300);
 
-        ShareResponse share = shareService.createShare(car.getId(), user);
+        CarShareResponse share = shareService.createShare(car.getId(), user);
 
         assertNotNull(share.token());
         assertTrue(share.token().length() >= 10, "Token muss lang genug sein um nicht ratbar zu sein");
@@ -59,9 +59,22 @@ class CarShareServiceTest extends AbstractIntegrationTest {
         assertNotNull(user.getReferralCode(), "Testnutzer braucht einen Referral-Code");
         Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
 
-        ShareResponse share = shareService.createShare(car.getId(), user);
+        CarShareResponse share = shareService.createShare(car.getId(), user);
 
         assertTrue(share.url().contains("/fahrzeug/" + share.token() + "?ref=" + user.getReferralCode()), share.url());
+    }
+
+    @Test
+    void createShare_carriesAbsoluteBannerUrl() {
+        // Die Banner-URL baut der Server, damit Web und App dieselbe in die Signatur schreiben.
+        User user = createAndSaveUser("carshare-banner-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+
+        CarShareResponse share = shareService.createShare(car.getId(), user);
+
+        assertTrue(share.bannerUrl().startsWith("http"), share.bannerUrl());
+        assertTrue(share.bannerUrl().endsWith("/api/public/car/" + share.token() + "/banner.png"), share.bannerUrl());
+        assertFalse(share.bannerUrl().contains("?"), "Banner-URL traegt keinen Referral, der sitzt im Link");
     }
 
     @Test

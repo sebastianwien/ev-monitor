@@ -30,16 +30,36 @@ public class PublicCarController {
     private final CarShareService shareService;
     private final CarImageService carImageService;
     private final com.evmonitor.infrastructure.image.SharedCarImageRenderer imageRenderer;
+    private final com.evmonitor.infrastructure.image.SharedCarBannerRenderer bannerRenderer;
     private final com.evmonitor.infrastructure.image.SharedCurveImageCache imageCache;
+
+    /** Kennzahlen aendern sich mit jeder Ladung - so lange darf ein Bild veraltet sein. */
+    private static final Duration IMAGE_TTL = Duration.ofHours(1);
 
     /** Vorschaubild fuer Link-Karten. Laenger cachebar als das JSON, siehe PublicCurveController. */
     @GetMapping(value = "/{token}/og.png", produces = "image/png")
     public ResponseEntity<byte[]> getSharedCarOgImage(@PathVariable String token) {
-        byte[] png = imageCache.get(CarShareService.imageCacheKey(token),
+        byte[] png = imageCache.get(CarShareService.imageCacheKey(token), IMAGE_TTL,
                 k -> shareService.getPublicCar(token).map(imageRenderer::render).orElse(null));
+        return pngOr404(png);
+    }
+
+    /**
+     * Forum-Signatur-Banner (468x60). Wird unter jedem Forenbeitrag des Besitzers
+     * geladen, deshalb serverseitig gecacht und mit langer Client-Cache-Zeit.
+     */
+    @GetMapping(value = "/{token}/banner.png", produces = "image/png")
+    public ResponseEntity<byte[]> getSharedCarBanner(@PathVariable String token) {
+        byte[] png = imageCache.get(CarShareService.bannerCacheKey(token), IMAGE_TTL,
+                k -> shareService.getPublicCar(token).map(bannerRenderer::render).orElse(null));
+        return pngOr404(png);
+    }
+
+    private static ResponseEntity<byte[]> pngOr404(byte[] png) {
         if (png == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok()
-                .cacheControl(CacheControl.maxAge(Duration.ofHours(1)).cachePublic())
+                .contentType(MediaType.IMAGE_PNG)
+                .cacheControl(CacheControl.maxAge(IMAGE_TTL).cachePublic())
                 .body(png);
     }
 

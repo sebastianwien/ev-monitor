@@ -35,6 +35,9 @@ public class CarShareService {
 
     /** Pfad der oeffentlichen Seite - muss zur Vue-Route passen. */
     static final String SHARE_PATH = "/fahrzeug/";
+    /** Pfad des Signatur-Banners - muss zum PublicCarController passen. */
+    static final String BANNER_PATH_PREFIX = "/api/public/car/";
+    static final String BANNER_PATH_SUFFIX = "/banner.png";
 
     private static final String TOKEN_ALPHABET =
             "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -67,7 +70,7 @@ public class CarShareService {
      * @throws IllegalArgumentException Auto unbekannt oder gehoert einem anderen Nutzer (-> 404)
      */
     @Transactional
-    public ShareResponse createShare(UUID carId, User user) {
+    public CarShareResponse createShare(UUID carId, User user) {
         requireOwnership(carId, user);
         String existing = carRepository.findShareToken(carId).orElse(null);
         if (existing != null && !existing.isBlank()) {
@@ -86,14 +89,15 @@ public class CarShareService {
         String token = carRepository.findShareToken(carId).orElse(null);
         carRepository.clearShareToken(carId);
         if (token != null && !token.isBlank()) {
-            // Nimmt das gecachte Vorschaubild mit.
+            // Nimmt Vorschaubild und Signatur-Banner aus dem Cache mit.
             eventPublisher.publishEvent(new ShareRevokedEvent(imageCacheKey(token)));
+            eventPublisher.publishEvent(new ShareRevokedEvent(bannerCacheKey(token)));
         }
         log.info("Fahrzeug nicht mehr geteilt: car={} user={}", carId, user.getId());
     }
 
     @Transactional(readOnly = true)
-    public Optional<ShareResponse> findShare(UUID carId, User user) {
+    public Optional<CarShareResponse> findShare(UUID carId, User user) {
         requireOwnership(carId, user);
         return carRepository.findShareToken(carId).filter(t -> !t.isBlank()).map(t -> toResponse(t, user));
     }
@@ -213,16 +217,21 @@ public class CarShareService {
         return "car:" + token;
     }
 
+    /** Cache-Schluessel des Signatur-Banners. */
+    public static String bannerCacheKey(String token) {
+        return "car-banner:" + token;
+    }
+
     /**
      * Der Link traegt den Empfehlungscode des Teilenden: registriert sich der
      * Empfaenger darueber, zaehlt das als Empfehlung. Sonst nichts ueber den Nutzer.
      */
-    private ShareResponse toResponse(String token, User user) {
+    private CarShareResponse toResponse(String token, User user) {
         String url = baseUrl + SHARE_PATH + token;
         if (user.getReferralCode() != null && !user.getReferralCode().isBlank()) {
             url += "?ref=" + user.getReferralCode();
         }
-        return new ShareResponse(token, url);
+        return new CarShareResponse(token, url, baseUrl + BANNER_PATH_PREFIX + token + BANNER_PATH_SUFFIX);
     }
 
     private String generateToken() {

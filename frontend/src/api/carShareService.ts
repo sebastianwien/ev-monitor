@@ -4,6 +4,8 @@ export interface CarShare {
   token: string;
   /** Fertige absolute URL - kommt vom Server, damit Web und App dieselbe teilen. */
   url: string;
+  /** Absolute URL des Forum-Signatur-Banners (468x60 PNG). */
+  bannerUrl: string;
 }
 
 export interface PublicCarMonth {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { useCarShare } from '../useCarShare'
+import { useCarShare, buildSignature } from '../useCarShare'
 import { carShareService } from '../../api/carShareService'
 
 vi.mock('../../api/carShareService', () => ({
@@ -12,7 +12,7 @@ vi.mock('../../api/carShareService', () => ({
     },
 }))
 
-const SHARE = { token: 'abc123xyz789', url: 'https://ev-monitor.net/fahrzeug/abc123xyz789' }
+const SHARE = { token: 'abc123xyz789', url: 'https://ev-monitor.net/fahrzeug/abc123xyz789', bannerUrl: 'https://ev-monitor.net/api/public/car/abc123xyz789/banner.png' }
 
 describe('useCarShare - Freigabe', () => {
     beforeEach(() => vi.clearAllMocks())
@@ -90,5 +90,52 @@ describe('useCarShare - Link weitergeben', () => {
         const s = useCarShare()
 
         expect(await s.shareLink(SHARE.url, 'Titel')).toBe('shared')
+    })
+})
+
+describe('useCarShare - Forum-Signatur', () => {
+    const originalClipboard = navigator.clipboard
+    const withBanner = {
+        token: 'abc123xyz789',
+        url: 'https://ev-monitor.net/fahrzeug/abc123xyz789?ref=MAX&x=1',
+        bannerUrl: 'https://ev-monitor.net/api/public/car/abc123xyz789/banner.png',
+    }
+
+    afterEach(() => {
+        Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true })
+    })
+
+    it('baut BBCode mit Link (inkl. Referral) und Banner-Bild', () => {
+        expect(buildSignature(withBanner, 'Tesla Model 3', 'bbcode')).toBe(
+            '[url=https://ev-monitor.net/fahrzeug/abc123xyz789?ref=MAX&x=1][img]https://ev-monitor.net/api/public/car/abc123xyz789/banner.png[/img][/url]',
+        )
+    })
+
+    it('baut HTML mit escapten Attributen und festen Massen', () => {
+        const html = buildSignature(withBanner, 'Tesla "Model" 3', 'html')
+        expect(html).toBe(
+            '<a href="https://ev-monitor.net/fahrzeug/abc123xyz789?ref=MAX&amp;x=1">'
+            + '<img src="https://ev-monitor.net/api/public/car/abc123xyz789/banner.png" alt="Tesla &quot;Model&quot; 3" width="468" height="60"></a>',
+        )
+    })
+
+    it('kopiert die Signatur in die Zwischenablage', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined)
+        Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+        vi.mocked(carShareService.create).mockResolvedValue(withBanner)
+        const s = useCarShare()
+        await s.enable('car-1')
+
+        expect(await s.copySignature('Tesla Model 3', 'bbcode')).toBe('copied')
+        expect(writeText).toHaveBeenCalledWith(buildSignature(withBanner, 'Tesla Model 3', 'bbcode'))
+    })
+
+    it('meldet failed ohne Zwischenablage', async () => {
+        Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
+        vi.mocked(carShareService.create).mockResolvedValue(withBanner)
+        const s = useCarShare()
+        await s.enable('car-1')
+
+        expect(await s.copySignature('Tesla Model 3', 'html')).toBe('failed')
     })
 })
