@@ -23,6 +23,7 @@ import {
   InformationCircleIcon,
   XMarkIcon,
   UsersIcon,
+  ShareIcon,
 } from '@heroicons/vue/24/outline'
 import { useRouter, useRoute } from 'vue-router'
 import LicensePlate from '../components/car/LicensePlate.vue'
@@ -33,6 +34,7 @@ import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
+import { useCarShareSheet } from '../composables/useCarShareSheet'
 import PeerModelComparisonCard from '../components/dashboard/PeerModelComparisonCard.vue'
 import WltpComparisonCard from '../components/dashboard/WltpComparisonCard.vue'
 import RangeCard from '../components/dashboard/RangeCard.vue'
@@ -173,6 +175,10 @@ const showImplausibleModal = ref(false)
 const implausibleModalDirty = ref(false)
 
 // -- Range calculator --
+
+const { open: openShareSheet } = useCarShareSheet()
+const shareTitle = (car: { brand: string; model: string; trim?: string | null }) =>
+  [carDisplayName(car.brand, car.model), car.trim].filter(Boolean).join(' ')
 
 const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
@@ -497,6 +503,15 @@ onUnmounted(() => {
                     @open-soh="sohModalCar = car"
                   />
                 </div>
+              </button>
+              <!-- Teilen des gewaehlten Autos, als Geschwister der Kacheln (kein Button im Button). -->
+              <button
+                v-if="selectedCar"
+                type="button"
+                @click="openShareSheet(selectedCar.id, shareTitle(selectedCar), 'car_header')"
+                class="btn-3d [--btn-shadow-color:#a5b4fc] dark:[--btn-shadow-color:#3730a3] self-center flex-shrink-0 inline-flex items-center gap-1.5 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-sm text-sm font-semibold min-h-[44px]">
+                <ShareIcon class="w-4 h-4" />
+                {{ t('share_car.sheet_title') }}
               </button>
             </div>
           </div>
@@ -937,6 +952,7 @@ onUnmounted(() => {
           :benchmark="stats.peerBenchmark"
           :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
           :car-model="enumToLabel(selectedCar?.model)"
+          @share="selectedCar && openShareSheet(selectedCar.id, shareTitle(selectedCar), 'peer_card')"
         />
 
         <!-- WLTP-Vergleich (Fallback wenn keine Peer-Daten aber WLTP vorhanden) -->

@@ -157,7 +157,7 @@ describe('useCarShare - Plausible-Goals', () => {
         vi.mocked(carShareService.revoke).mockResolvedValue(undefined)
         const s = useCarShare()
         await s.enable('car-1')
-        expect(analytics.track).toHaveBeenCalledWith('car_share_created')
+        expect(analytics.track).toHaveBeenCalledWith('car_share_created', { source: 'car_management' })
         await s.revoke('car-1')
         expect(analytics.track).toHaveBeenCalledWith('car_share_revoked')
     })
@@ -167,12 +167,19 @@ describe('useCarShare - Plausible-Goals', () => {
         Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true })
         const s = useCarShare()
         await s.shareLink(SHARE.url, 'Titel')
-        expect(analytics.track).toHaveBeenCalledWith('car_share_link_shared', { method: 'clipboard' })
+        expect(analytics.track).toHaveBeenCalledWith('car_share_link_shared', { method: 'clipboard', source: 'car_management' })
 
         vi.mocked(analytics.track).mockClear()
         Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockRejectedValue(new Error('nope')) }, configurable: true })
         await s.shareLink(SHARE.url, 'Titel')
         expect(analytics.track).not.toHaveBeenCalled()
+    })
+
+    it('traegt den Einstieg als source mit', async () => {
+        vi.mocked(carShareService.create).mockResolvedValue(SHARE)
+        const s = useCarShare()
+        await s.enable('car-1', 'peer_card')
+        expect(analytics.track).toHaveBeenCalledWith('car_share_created', { source: 'peer_card' })
     })
 
     it('meldet die kopierte Signatur mit Format', async () => {

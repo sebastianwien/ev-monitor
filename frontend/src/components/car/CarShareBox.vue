@@ -6,6 +6,7 @@
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('share_car.hint') }}</p>
       </div>
       <button
+        ref="toggleEl"
         type="button"
         role="switch"
         :aria-checked="!!share"
@@ -68,8 +69,16 @@ import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ShareIcon, CheckIcon, CodeBracketIcon, ChevronDownIcon, ClipboardDocumentIcon } from '@heroicons/vue/24/outline'
 import { useCarShare, bannerUrlFor, type CarShareOutcome, type SignatureKind } from '../../composables/useCarShare'
+import type { CarShareSource } from '../../composables/useCarShareSheet'
 
-const props = defineProps<{ carId: string; title: string }>()
+const props = withDefaults(defineProps<{
+  carId: string
+  title: string
+  /** Einstieg, landet im Plausible-Event. */
+  source?: CarShareSource
+  /** Schalter beim Einblenden fokussieren (im Sheet: der naechste Schritt ist klar). */
+  autofocusToggle?: boolean
+}>(), { source: 'car_management', autofocusToggle: false })
 const { t, locale } = useI18n()
 const { share, busy, error, load, enable, revoke, shareLink, copySignature } = useCarShare()
 const outcome = ref<CarShareOutcome | null>(null)
@@ -77,18 +86,22 @@ const kinds: SignatureKind[] = ['bbcode', 'html']
 const signatureOpen = ref(false)
 const copiedKind = ref<SignatureKind | null>(null)
 const copyFailed = ref(false)
+const toggleEl = ref<HTMLButtonElement | null>(null)
 
-onMounted(() => load(props.carId))
+onMounted(async () => {
+  await load(props.carId)
+  if (props.autofocusToggle && !share.value) toggleEl.value?.focus()
+})
 
 async function toggle() {
   if (share.value) await revoke(props.carId)
-  else await enable(props.carId)
+  else await enable(props.carId, props.source)
   signatureOpen.value = false
 }
 
 async function onShare() {
   if (!share.value) return
-  outcome.value = await shareLink(share.value.url, props.title)
+  outcome.value = await shareLink(share.value.url, props.title, props.source)
   if (outcome.value === 'copied') setTimeout(() => { outcome.value = null }, 2000)
 }
 

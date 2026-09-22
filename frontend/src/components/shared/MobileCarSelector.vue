@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TruckIcon } from '@heroicons/vue/24/outline'
+import { TruckIcon, ShareIcon } from '@heroicons/vue/24/outline'
+import type { Car } from '../../api/carService'
 import LicensePlate from '../car/LicensePlate.vue'
 import CarCardDetails from '../dashboard/CarCardDetails.vue'
 import { carDisplayName } from '../../utils/enumLabel'
@@ -35,7 +36,7 @@ const props = withDefaults(defineProps<{
   showInlineDetails: false,
 })
 
-const emit = defineEmits<{ 'update:modelValue': [carId: string] }>()
+const emit = defineEmits<{ 'update:modelValue': [carId: string]; share: [car: Car] }>()
 
 const { t } = useI18n()
 
@@ -54,14 +55,25 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
       : 'mt-2 mb-4'"
   >
     <div class="flex gap-3 overflow-x-auto car-scroll-hide pb-1">
-      <button
+      <!-- Karte plus Teilen-Knopf als Geschwister: ein Button im Button waere ungueltig. -->
+      <div
         v-for="car in cars"
         :key="car.id"
+        :class="['relative', cars.length === 1 ? 'w-full' : 'flex-shrink-0']">
+      <button
+        v-if="car.id === modelValue"
+        type="button"
+        @click.stop="emit('share', car)"
+        :aria-label="t('share_car.sheet_title')"
+        class="absolute top-0 right-0 z-[1] min-h-[44px] min-w-[44px] flex items-center justify-center text-indigo-700 dark:text-indigo-300">
+        <ShareIcon class="w-5 h-5" />
+      </button>
+      <button
         @click="emit('update:modelValue', car.id)"
         :class="[
           cars.length === 1
             ? 'flex items-start rounded-sm border-2 text-left transition w-full overflow-hidden'
-            : 'flex items-center rounded-sm border-2 text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] overflow-hidden',
+            : 'flex items-center rounded-sm border-2 text-left transition w-full min-w-[180px] max-w-[240px] overflow-hidden',
           // Farbgebung identisch zum Desktop-Selektor in DashboardView: das aktive Auto
           // traegt indigo (bzw. gruen waehrend des Ladens), auch wenn es das einzige ist.
           // Im Dark Mode deckende Flaechen statt der Desktop-Alpha-Toene - die Karte liegt
@@ -87,7 +99,7 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
             class="w-full h-full object-cover" />
           <TruckIcon v-else class="w-6 h-6 text-gray-400" />
         </div>
-        <div class="min-w-0 flex-1 px-3 py-1.5 flex flex-col justify-center">
+        <div :class="['min-w-0 flex-1 px-3 py-1.5 flex flex-col justify-center', car.id === modelValue ? 'pr-11' : '']">
           <!-- Kompakt-Zeile: Name, Trim, Kennzeichen (single), Charging-Badges -->
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="font-semibold text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ carDisplayName(car.brand, car.model) }}</span>
@@ -137,6 +149,7 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
           </div>
         </div>
       </button>
+      </div>
     </div>
   </div>
 </template>

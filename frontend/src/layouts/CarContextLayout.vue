@@ -8,6 +8,10 @@ import SwipeTabPager from '../components/shared/SwipeTabPager.vue'
 import EditLogModal from '../components/dashboard/EditLogModal.vue'
 import PriceAmendModal from '../components/dashboard/PriceAmendModal.vue'
 import WattToast from '../components/shared/WattToast.vue'
+import CarShareSheet from '../components/car/CarShareSheet.vue'
+import { useCarShareSheet } from '../composables/useCarShareSheet'
+import { carDisplayName } from '../utils/enumLabel'
+import type { Car } from '../api/carService'
 import { useCoinStore } from '../stores/coins'
 import { CONTEXT_TABS } from '../config/tabs'
 import DashboardView from '../views/DashboardView.vue'
@@ -36,6 +40,11 @@ const activeIndex = useStickyTabIndex(TAB_PATHS)
 const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
 const coinStore = useCoinStore()
 const { t } = useI18n()
+
+const { sheet: shareSheet, open: openShareSheet, close: closeShareSheet } = useCarShareSheet()
+function shareFromHeader(car: Car) {
+  openShareSheet(car.id, [carDisplayName(car.brand, car.model), car.trim].filter(Boolean).join(' '), 'car_header')
+}
 </script>
 
 <template>
@@ -53,8 +62,18 @@ const { t } = useI18n()
         :smartcar-status="smartcarStatus"
         :vw-group-status="vwGroupStatus"
         :show-inline-details="true"
+        @share="shareFromHeader"
       />
     </div>
+
+    <!-- Ein Teilen-Sheet fuer alle Einstiege (Header, Vergleichskarte). -->
+    <CarShareSheet
+      v-if="shareSheet"
+      :car-id="shareSheet.carId"
+      :title="shareSheet.title"
+      :source="shareSheet.source"
+      @close="closeShareSheet"
+    />
 
     <!-- Die Desktop-Leiste mit allen vier Zielen liegt in App.vue - sie bleibt beim
          Tab-Wechsel stehen, waehrend der Inhalt darunter durchwischt. -->

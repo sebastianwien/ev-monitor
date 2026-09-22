@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { carShareService, type CarShare } from '../api/carShareService'
 import { analytics } from '../services/analytics'
+import type { CarShareSource } from './useCarShareSheet'
 
 export type CarShareOutcome = 'shared' | 'copied' | 'failed'
 export type SignatureKind = 'bbcode' | 'html'
@@ -50,12 +51,12 @@ export function useCarShare() {
         }
     }
 
-    async function enable(carId: string): Promise<CarShare | null> {
+    async function enable(carId: string, source: CarShareSource = 'car_management'): Promise<CarShare | null> {
         busy.value = true
         error.value = false
         try {
             share.value = await carShareService.create(carId)
-            analytics.track('car_share_created')
+            analytics.track('car_share_created', { source })
             return share.value
         } catch {
             error.value = true
@@ -83,9 +84,9 @@ export function useCarShare() {
      * Reicht den Link an das System weiter. Ohne Web-Share-API - also auf den
      * meisten Desktops - landet er in der Zwischenablage.
      */
-    async function shareLink(url: string, title: string): Promise<CarShareOutcome> {
+    async function shareLink(url: string, title: string, source: CarShareSource = 'car_management'): Promise<CarShareOutcome> {
         const outcome = await shareOrCopy(url, title)
-        if (outcome !== 'failed') analytics.track('car_share_link_shared', { method: outcome === 'shared' ? 'share_sheet' : 'clipboard' })
+        if (outcome !== 'failed') analytics.track('car_share_link_shared', { method: outcome === 'shared' ? 'share_sheet' : 'clipboard', source })
         return outcome
     }
 

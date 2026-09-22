@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon, ShareIcon } from '@heroicons/vue/24/outline'
 import { useSlideTransition } from '../../composables/useSlideTransition'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
@@ -19,6 +19,8 @@ const props = defineProps<{
   effectiveBatteryKwh: number | null
   carModel: string
 }>()
+
+const emit = defineEmits<{ share: [] }>()
 
 const { t, n } = useI18n()
 
@@ -212,6 +214,15 @@ function formatCostPer100km(val: number | null | undefined): string {
       </div>
     </div>
 
+    <!-- Der Moment, in dem man es zeigen will: von hier direkt zur oeffentlichen Seite. -->
+    <button type="button" @click="emit('share')"
+      class="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] border-t border-gray-100 dark:border-gray-600 text-left hover:bg-gray-50 dark:hover:bg-gray-600/40 transition">
+      <ShareIcon class="w-5 h-5 shrink-0 text-indigo-700 dark:text-indigo-300" />
+      <span class="min-w-0">
+        <span class="block text-sm font-semibold text-gray-800 dark:text-gray-200">{{ t('share_car.peer_cta') }}</span>
+        <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('share_car.peer_cta_hint') }}</span>
+      </span>
+    </button>
 
     </div>
     </Transition>
