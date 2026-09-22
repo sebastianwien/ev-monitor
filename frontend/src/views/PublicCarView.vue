@@ -109,7 +109,7 @@
         </div>
 
         <section v-if="car.recentCharges.length" class="mt-7">
-          <h2 class="pc-h2">{{ t('share_car.charges_title') }} <span class="normal-case tracking-normal">{{ t('share_car.charges_hint') }}</span></h2>
+          <h2 class="pc-h2">{{ t('share_car.charges_title') }}</h2>
           <ol>
             <li v-for="(c, i) in car.recentCharges" :key="i"
               class="grid grid-cols-[44px_1fr_auto] gap-2.5 items-center py-2.5 border-t"
