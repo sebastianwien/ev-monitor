@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { ArrowLeftIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
-import api from '../api/axios'
-import LogsPaginationBar from '../components/dashboard/LogsPaginationBar.vue'
-import type { PageSize } from '../components/dashboard/pageSize'
+import { ArrowPathIcon } from '@heroicons/vue/24/outline'
+import api from '../../api/axios'
+import LogsPaginationBar from '../dashboard/LogsPaginationBar.vue'
+import type { PageSize } from '../dashboard/pageSize'
 import {
   changedCells,
   runSegment,
@@ -13,7 +13,7 @@ import {
   type RunSummary,
   type WebhookRow,
   type SignalKey,
-} from '../utils/webhookDiff'
+} from '../../utils/webhookDiff'
 
 interface AdminConnection {
   username: string | null
@@ -164,14 +164,8 @@ const fmtEnergy = (run: RunSummary) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-950 text-gray-200 px-2 py-4 md:px-6">
-    <div class="max-w-full">
-      <div class="flex items-center gap-3 mb-4 flex-wrap">
-        <router-link to="/admin" class="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200">
-          <ArrowLeftIcon class="w-4 h-4" /> Admin
-        </router-link>
-        <h1 class="text-xl font-bold text-white">Smartcar Webhook Inspector</h1>
-      </div>
+  <div>
+    <h2 class="text-lg font-semibold text-white mb-4">Smartcar-Ladungen</h2>
 
       <!-- Fahrzeug-Auswahl + Reload -->
       <div class="flex items-center gap-2 mb-4 flex-wrap">
@@ -274,6 +268,5 @@ const fmtEnergy = (run: RunSummary) => {
           @page-size-change="changePageSize"
         />
       </div>
-    </div>
   </div>
 </template>

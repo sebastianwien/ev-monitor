@@ -83,6 +83,8 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         // Actuator — nur intern erreichbar (kein nginx-Proxy), trotzdem explizit freigeben
                         .requestMatchers("/actuator/health").permitAll()
+                        // Admin-Endpoints zentral dicht, zusätzlich zu @PreAuthorize (Defense in Depth)
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // Require Auth for remaining API endpoints
                         .requestMatchers("/api/**").authenticated()
                         // Permit any other endpoints, assuming they are static resources or frontend

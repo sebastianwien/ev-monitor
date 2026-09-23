@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, type Component } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import api from '../api/axios'
 import teslaFleetService, { type TelemetryRepushResult } from '../api/teslaFleetService'
@@ -24,14 +24,19 @@ import {
   Filler,
 } from 'chart.js'
 import { Line } from 'vue-chartjs'
+import AdminStripeTab from '../components/admin/AdminStripeTab.vue'
+import AdminWebhooksTab from '../components/admin/AdminWebhooksTab.vue'
+import AdminSurveysTab from '../components/admin/AdminSurveysTab.vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'wartung'
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'stripe' | 'webhooks' | 'surveys' | 'wartung'
+const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'stripe', 'webhooks', 'surveys', 'impersonate', 'wartung']
 const activeTab = ref<Tab>('users')
 
 // ── Wartung: Telemetrie-Config neu pushen ────────────────────────────────────
@@ -400,6 +405,12 @@ onMounted(() => {
 
 const setTab = (tab: Tab) => {
   activeTab.value = tab
+  router.replace({ query: { ...route.query, tab } })
+}
+
+const initialTab = route.query.tab
+if (typeof initialTab === 'string' && TABS.includes(initialTab as Tab)) {
+  activeTab.value = initialTab as Tab
 }
 
 function sourceInfo(ds: string): { label: string; icon: Component; classes: string } | null {
@@ -462,13 +473,16 @@ const onResizeUp = () => {
       </div>
 
       <!-- Tabs -->
-      <div class="flex gap-1 mb-6 bg-gray-900 rounded-sm p-1 w-fit">
+      <div class="flex gap-1 mb-6 bg-gray-900 rounded-sm p-1 w-fit max-w-full overflow-x-auto">
         <button
           v-for="tab in ([
             { key: 'users', label: 'User' },
             { key: 'growth', label: 'User-Wachstum' },
             { key: 'activity', label: 'Ladeaktivitat' },
             { key: 'traffic', label: 'Traffic' },
+            { key: 'stripe', label: 'Stripe' },
+            { key: 'webhooks', label: 'Smartcar-Ladungen' },
+            { key: 'surveys', label: 'Umfragen' },
             { key: 'impersonate', label: 'Impersonieren' },
             { key: 'wartung', label: 'Wartung' },
           ] as { key: Tab; label: string }[])"
@@ -483,12 +497,6 @@ const onResizeUp = () => {
         >
           {{ tab.label }}
         </button>
-        <router-link
-          to="/admin/webhooks"
-          class="px-4 py-2 rounded-sm text-sm font-medium transition text-gray-400 hover:text-gray-200 hover:bg-gray-800"
-        >
-          Webhooks
-        </router-link>
       </div>
 
       <!-- Tab: User Table -->
@@ -740,6 +748,13 @@ const onResizeUp = () => {
           </template>
         </div>
       </div>
+
+      <!-- Tab: Stripe -->
+      <AdminStripeTab v-else-if="activeTab === 'stripe'" />
+
+      <AdminWebhooksTab v-else-if="activeTab === 'webhooks'" />
+
+      <AdminSurveysTab v-else-if="activeTab === 'surveys'" />
 
       <!-- Tab: Impersonate -->
       <!-- Tab: Wartung -->

@@ -42,7 +42,6 @@ import WallboxSetupView from '../views/WallboxSetupView.vue';
 import ImportsView from '../views/ImportsView.vue';
 import ForgotPasswordView from '../views/ForgotPasswordView.vue';
 import ResetPasswordView from '../views/ResetPasswordView.vue';
-import AdminView from '../views/AdminView.vue';
 import LeaderboardView from '../views/LeaderboardView.vue';
 import TaxExportView from '../views/TaxExportView.vue';
 import SurveyView from '../views/SurveyView.vue';
@@ -478,15 +477,11 @@ const router = createRouter({
         {
             path: '/admin',
             name: 'admin',
-            component: AdminView,
+            component: () => import('../views/AdminView.vue'),
             meta: { requiresAuth: true, requiresAdmin: true }
         },
-        {
-            path: '/admin/webhooks',
-            name: 'admin-webhooks',
-            component: () => import('../views/AdminWebhooksView.vue'),
-            meta: { requiresAuth: true, requiresAdmin: true }
-        },
+        { path: '/admin/webhooks', redirect: { path: '/admin', query: { tab: 'webhooks' } } },
+        { path: '/admin/umfragen', redirect: { path: '/admin', query: { tab: 'surveys' } } },
         {
             path: '/:pathMatch(.*)*',
             name: 'not-found',
