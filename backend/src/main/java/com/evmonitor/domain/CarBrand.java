@@ -282,26 +282,53 @@ public enum CarBrand {
             cap(87.5)), // 80.0 = chinesische Variante
 
       // --- MERCEDES ---
-      // Netto-Werte: EQA/EQB haben eine einzige Batterie (66.5 kWh netto / 70.5 kWh brutto)
+      // Bruttowerte wie in vehicle_specification (V187): EQA/EQB 69.7 (66.5 netto) bzw. 73.9 (70.5 netto, 250+)
       EQA(CarBrand.MERCEDES, VehicleCategory.COMPACT, "EQA",
-            cap(66.5)),
+            cap(69.7),
+            cap(73.9, "250+")),
       EQB(CarBrand.MERCEDES, VehicleCategory.COMPACT, "EQB",
-            cap(66.5)),
+            cap(69.7),
+            cap(73.9, "250+")),
       EQC(CarBrand.MERCEDES, VehicleCategory.LARGE_SUV, "EQC",
-            cap(80.0)),
+            cap(85.0)),
+      // EQE/EQE SUV: 98 (89 netto), 100 (90.6 netto), 105 (96 netto, 350+ ab MY24 bzw. 500 4MATIC ab MY23-24)
       EQE(CarBrand.MERCEDES, VehicleCategory.SEDAN, "EQE",
-            cap(89.0),
-            cap(90.6)),
+            cap(98.0),
+            cap(100.0),
+            cap(105.0)),
       EQE_SUV(CarBrand.MERCEDES, VehicleCategory.SUV, "EQE SUV",
-            cap(90.6),
-            cap(96.0)),
-      // EQS/EQS SUV: 118 kWh ist Bruttowert, alle Varianten teilen 107.8/108.4 kWh netto
+            cap(98.0),
+            cap(100.0),
+            cap(105.0)),
+      // EQS/EQS SUV: Bruttowerte wie in vehicle_specification (V186).
+      // Gen 1: 120 kWh (107.8/108.4 netto), Facelift 125 kWh (118 netto), EQS MY26 129 kWh (122 netto).
       EQS(CarBrand.MERCEDES, VehicleCategory.LUXURY, "EQS",
-            cap(107.8)),
+            cap(120.0),
+            cap(125.0, "Facelift"),
+            cap(129.0, "MY26")),
       EQS_SUV(CarBrand.MERCEDES, VehicleCategory.LARGE_SUV, "EQS SUV",
-            cap(108.4)),
+            cap(120.0),
+            cap(125.0, "Facelift")),
       EQV(CarBrand.MERCEDES, VehicleCategory.VAN, "EQV",
+            cap(66.0, "250"),
+            cap(100.0, "300")),
+      EQT(CarBrand.MERCEDES, VehicleCategory.VAN, "EQT",
+            cap(48.0)),
+      // MMA-Plattform (800 V): 90 kWh brutto / 85 kWh netto (NMC), CLA 200 mit 60/58 kWh LFP
+      CLA(CarBrand.MERCEDES, VehicleCategory.SEDAN, "CLA",
+            cap(60.0, "CLA 200 (LFP)"),
             cap(90.0)),
+      CLA_SHOOTING_BRAKE(CarBrand.MERCEDES, VehicleCategory.SEDAN, "CLA Shooting Brake",
+            cap(90.0)),
+      GLA(CarBrand.MERCEDES, VehicleCategory.COMPACT, "GLA",
+            cap(90.0)),
+      GLB(CarBrand.MERCEDES, VehicleCategory.SUV, "GLB",
+            cap(90.0)),
+      GLC(CarBrand.MERCEDES, VehicleCategory.SUV, "GLC",
+            cap(90.0, "GLC 300"),
+            cap(100.0, "GLC 400")),
+      G_580(CarBrand.MERCEDES, VehicleCategory.LARGE_SUV, "G 580",
+            cap(124.0)),
 
       // --- AUDI ---
       A6_E_TRON(CarBrand.AUDI, VehicleCategory.SEDAN, "A6 e-tron",
