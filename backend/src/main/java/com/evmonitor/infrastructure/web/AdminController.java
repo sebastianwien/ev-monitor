@@ -1,11 +1,13 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.AdminChargingActivityRow;
+import com.evmonitor.application.AdminStripeReport;
 import com.evmonitor.application.AdminUserGrowthRow;
 import com.evmonitor.application.AdminUserRow;
 import com.evmonitor.application.BatterySohService;
 import com.evmonitor.application.PlausibleTrafficRow;
 import com.evmonitor.application.SpecChargingEfficiencyJob;
+import com.evmonitor.application.StripeReportService;
 import com.evmonitor.infrastructure.external.PlausibleService;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
@@ -32,6 +34,7 @@ public class AdminController {
     private final PlausibleService plausibleService;
     private final BatterySohService batterySohService;
     private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
+    private final StripeReportService stripeReportService;
 
     /**
      * Triggers one-time temperature backfill for all logs with geohash but no temperature.
@@ -92,5 +95,17 @@ public class AdminController {
     public ResponseEntity<List<PlausibleTrafficRow>> getTraffic(
             @RequestParam(defaultValue = "30d") String period) {
         return ResponseEntity.ok(plausibleService.getTimeseries(period));
+    }
+
+    /**
+     * Accounting and subscription report straight from Stripe (cached 10 min).
+     * months=0 means all time; refresh=true bypasses the cache.
+     */
+    @GetMapping("/stripe/report")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminStripeReport> getStripeReport(
+            @RequestParam(defaultValue = "12") int months,
+            @RequestParam(defaultValue = "false") boolean refresh) {
+        return ResponseEntity.ok(stripeReportService.getReport(months, refresh));
     }
 }
