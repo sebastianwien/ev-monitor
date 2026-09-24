@@ -54,7 +54,7 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
                   SELECT MAX(e.logged_at)::date
                   FROM ev_log e
                   JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
-                  WHERE c.user_id = u.id
+                  WHERE e.deleted_at IS NULL AND c.user_id = u.id
                 ),
                 (
                   SELECT MAX(t.trip_ended_at)::date
@@ -94,7 +94,7 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
               AND EXISTS (
                 SELECT 1 FROM ev_log e
                 JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
-                WHERE c.user_id = u.id
+                WHERE e.deleted_at IS NULL AND c.user_id = u.id
                   AND e.data_source IN ('TESLA_LIVE', 'SMARTCAR_LIVE', 'VWGROUP_LIVE', 'XPENG_LIVE')
                   AND e.logged_at >= (CURRENT_DATE - 7)
               )

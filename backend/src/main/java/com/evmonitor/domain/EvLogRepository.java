@@ -70,7 +70,28 @@ public interface EvLogRepository {
 
     long countByUserId(UUID userId);
 
+    /**
+     * Harte Löschung. Nur für Disconnect-Flows und Purge, im Nutzerpfad gilt {@link #softDelete(UUID)}.
+     */
     void deleteById(UUID id);
+
+    /** Soft-Delete: Log verschwindet aus allen Abfragen, bleibt als Tombstone für Dedupe und Restore. */
+    void softDelete(UUID id);
+
+    /** Macht {@link #softDelete(UUID)} rückgängig. */
+    void restore(UUID id);
+
+    /** Sieht auch soft-gelöschte Logs, für Restore und Ownership-Check. */
+    Optional<EvLog> findByIdIncludingDeleted(UUID id);
+
+    /** Soft-gelöschte Logs eines Autos, neueste zuerst (Papierkorb). */
+    List<EvLog> findDeletedByCarId(UUID carId);
+
+    /**
+     * Räumt Tombstones hart weg. Für die Kontolöschung: die Anonymisierung sieht sie nicht,
+     * und ohne Account gibt es keinen Sync mehr, gegen den sie schützen müssten.
+     */
+    int deleteSoftDeletedByCarIds(List<UUID> carIds);
 
     void deleteAllByUserIdAndDataSource(UUID userId, DataSource dataSource);
 

@@ -59,6 +59,8 @@ public class EvLog {
     private final UUID chargingSiteId;       // Optional: FK to charging_site (Register-Saeule, an der geladen wurde)
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+    /** Soft-Delete-Zeitpunkt, null für sichtbare Logs. Read-only: gesetzt wird er nur im Repository. */
+    private final LocalDateTime deletedAt;
     /** True if a downsampled charging-power curve is persisted alongside this log
      *  (only Tesla FULL-Profil currently writes it). Read-side flag derived from
      *  the persistence layer - not stored on the domain itself. */
@@ -76,7 +78,7 @@ public class EvLog {
             LocalDateTime loggedAt, DataSource dataSource,
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
-            LocalDateTime createdAt, LocalDateTime updatedAt,
+            LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime deletedAt,
             RouteType routeType, TireType tireType, UUID sessionGroupId,
             Boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
             EnergySource energySource,
@@ -127,6 +129,7 @@ public class EvLog {
         this.chargingSiteId = chargingSiteId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.deletedAt = deletedAt;
         this.hasPowerCurve = hasPowerCurve;
         this.hasSocCurve = hasSocCurve;
     }

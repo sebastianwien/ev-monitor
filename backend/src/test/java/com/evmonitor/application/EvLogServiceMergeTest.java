@@ -49,6 +49,10 @@ class EvLogServiceMergeTest extends AbstractIntegrationTest {
         assertThat(merged.getSocAfterChargePercent()).isEqualByComparingTo("80.0");
         assertThat(merged.getMeasurementType()).isEqualTo(EnergyMeasurementType.AT_CHARGER);
         assertThat(evLogRepository.findById(source.getId())).isEmpty();
+        // Soft-Delete: der Source bleibt als Tombstone, damit ein Re-Import ihn nicht neu anlegt.
+        assertThat(evLogRepository.findByIdIncludingDeleted(source.getId()))
+                .isPresent()
+                .hasValueSatisfying(t -> assertThat(t.getDeletedAt()).isNotNull());
     }
 
     @Test

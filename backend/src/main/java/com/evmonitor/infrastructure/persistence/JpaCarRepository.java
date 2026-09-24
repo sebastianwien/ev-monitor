@@ -34,7 +34,7 @@ public interface JpaCarRepository extends JpaRepository<CarEntity, UUID> {
             WHERE c.deleted_at IS NULL
             AND EXISTS (
                 SELECT 1 FROM ev_log el
-                WHERE el.car_id = c.id
+                WHERE el.deleted_at IS NULL AND el.car_id = c.id
                   AND el.measurement_type = 'AT_VEHICLE'
             )
             AND NOT EXISTS (

@@ -242,6 +242,14 @@ public class EvLogController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Macht einen gelöschten Ladevorgang wieder sichtbar. 404 wenn nie gelöscht, 403 wenn fremd. */
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<Void> restoreLog(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        evLogService.restoreLog(id, principal.getUser().getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/batch")
     public ResponseEntity<Void> deleteLogs(@RequestBody List<UUID> ids, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
@@ -249,7 +257,7 @@ public class EvLogController {
             try {
                 evLogService.deleteLog(id, principal.getUser().getId());
             } catch (IllegalArgumentException ignored) {
-                // Log not found or not owned by user — skip silently
+                // Log not found or not owned by user - skip silently
             }
         }
         return ResponseEntity.noContent().build();

@@ -5,14 +5,22 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Soft-Delete: {@code @SQLRestriction} blendet gelöschte Zeilen aus jeder JPQL-, Derived- und
+ * Bulk-Query aus. Natives SQL muss {@code deleted_at IS NULL} selbst setzen (Guard-Test
+ * {@code NativeSqlSoftDeleteGuardTest}). Soft-Delete und Restore laufen ausschließlich über
+ * native UPDATEs, weil {@code save()} auf eine ausgeblendete Zeile in ein INSERT liefe.
+ */
 @Entity
 @Table(name = "ev_log")
+@SQLRestriction("deleted_at IS NULL")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -145,4 +153,8 @@ public class EvLogEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /** Soft-Delete-Zeitpunkt. Wird nur über native UPDATEs geschrieben, siehe Klassen-Javadoc. */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

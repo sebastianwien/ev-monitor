@@ -35,7 +35,7 @@ public class LeaderboardQueryRepository {
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND u.is_seed_data = false
                   AND u.leaderboard_visible = true
                   AND e.logged_at >= :start
@@ -82,7 +82,7 @@ public class LeaderboardQueryRepository {
                     FROM ev_log e
                     JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                     JOIN app_user u ON c.user_id = u.id
-                    WHERE e.include_in_statistics = true
+                    WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                       AND u.is_seed_data = false
                       AND u.leaderboard_visible = true
                       AND e.logged_at >= :start
@@ -111,7 +111,7 @@ public class LeaderboardQueryRepository {
                            MAX(e.odometer_km) - MIN(e.odometer_km) AS delta_km
                     FROM ev_log e
                     JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
-                    WHERE e.include_in_statistics = true
+                    WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                       AND e.odometer_km IS NOT NULL
                       AND e.logged_at >= :start
                       AND e.logged_at < :end
@@ -176,7 +176,7 @@ public class LeaderboardQueryRepository {
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND u.is_seed_data = false
                   AND u.leaderboard_visible = true
                   AND e.cost_eur IS NOT NULL
@@ -213,7 +213,7 @@ public class LeaderboardQueryRepository {
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND u.is_seed_data = false
                   AND u.leaderboard_visible = true
                   AND e.temperature_celsius IS NOT NULL
@@ -238,7 +238,7 @@ public class LeaderboardQueryRepository {
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND u.is_seed_data = false
                   AND u.leaderboard_visible = true
                   AND e.temperature_celsius IS NOT NULL
@@ -263,7 +263,7 @@ public class LeaderboardQueryRepository {
                 FROM ev_log e
                 JOIN car c ON e.car_id = c.id AND c.deleted_at IS NULL
                 JOIN app_user u ON c.user_id = u.id
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND u.is_seed_data = false
                   AND u.leaderboard_visible = true
                   AND e.max_charging_power_kw IS NOT NULL
@@ -284,7 +284,7 @@ public class LeaderboardQueryRepository {
         Object result = em.createNativeQuery("""
                 SELECT COALESCE(SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)), 0)
                 FROM ev_log e
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
                 """)
@@ -299,7 +299,7 @@ public class LeaderboardQueryRepository {
                 SELECT COUNT(e.id),
                        COUNT(e.id) FILTER (WHERE e.is_public_charging = false)
                 FROM ev_log e
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
                 """)
@@ -313,7 +313,7 @@ public class LeaderboardQueryRepository {
         Object result = em.createNativeQuery("""
                 SELECT COALESCE(SUM(e.charge_duration_minutes), 0)
                 FROM ev_log e
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
                 """)
@@ -327,7 +327,7 @@ public class LeaderboardQueryRepository {
         Object result = em.createNativeQuery("""
                 SELECT COALESCE(SUM(e.cost_eur), 0)
                 FROM ev_log e
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.cost_eur IS NOT NULL
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
@@ -349,7 +349,7 @@ public class LeaderboardQueryRepository {
                 SELECT COALESCE(ucp.provider_name, e.cpo_name) AS provider, COUNT(e.id) AS cnt
                 FROM ev_log e
                 LEFT JOIN user_charging_providers ucp ON ucp.id = e.charging_provider_id
-                WHERE e.include_in_statistics = true
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.is_public_charging = true
                   AND COALESCE(ucp.provider_name, e.cpo_name) IS NOT NULL
                   AND e.logged_at >= :start

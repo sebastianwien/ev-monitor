@@ -75,6 +75,24 @@ class PublicApiImportDedupWindowTest extends AbstractIntegrationTest {
         assertEquals(1, second.imported());
     }
 
+    /**
+     * Der User hat den Vorgang gelöscht. Der nächste AutoSync liefert ihn wieder und darf ihn
+     * nicht neu anlegen, sonst wäre Löschen wirkungslos.
+     */
+    @Test
+    void softDeletedSession_isStillTreatedAsDuplicate() {
+        var car = carOf("dd-deleted");
+        importOne(car, "2026-09-10T10:00:00Z", DataSource.EU_DATA_ACT_IMPORT);
+        var logId = evLogRepository.findAllByCarId(car.carId()).get(0).getId();
+        evLogRepository.softDelete(logId);
+
+        ImportApiResult again = importOne(car, "2026-09-10T10:00:00Z", DataSource.EU_DATA_ACT_IMPORT);
+
+        assertEquals(0, again.imported());
+        assertEquals(1, again.skipped());
+        assertEquals(0, evLogRepository.findAllByCarId(car.carId()).size());
+    }
+
     private record CarRef(UUID userId, UUID carId) {}
 
     private CarRef carOf(String prefix) {

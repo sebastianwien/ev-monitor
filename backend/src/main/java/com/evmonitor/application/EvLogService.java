@@ -119,8 +119,8 @@ public class EvLogService {
         EvLog savedLog = save(newLog);
 
         // Award coins for this log entry. CoinEvent determines first vs. subsequent, with optional OCR bonus.
-        // First-time detection is via coin history (immutable), not log count — prevents delete-and-recreate farming.
-        // NOTE: ocrUsed is client-supplied and not server-verifiable — the +2 bonus is accepted risk
+        // First-time detection is via coin history (immutable), not log count - prevents delete-and-recreate farming.
+        // NOTE: ocrUsed is client-supplied and not server-verifiable - the +2 bonus is accepted risk
         // (low value, requires conscious manipulation, not worth server-side OCR session tracking).
         CoinLogService.CoinEvent coinEvent;
         if (Boolean.TRUE.equals(request.ocrUsed())) {
@@ -143,7 +143,7 @@ public class EvLogService {
 
     /**
      * Creates a charging log on behalf of a user from an OCPP wallbox session.
-     * Called by the internal Wallbox Service — not user-facing.
+     * Called by the internal Wallbox Service - not user-facing.
      */
     @Transactional
     public EvLogResponse createInternalLog(InternalEvLogRequest request) {
@@ -697,14 +697,35 @@ public class EvLogService {
         }
 
         // Deduct coins that were awarded for this log (identified via source_entity_id).
-        // Only deduct if coins were actually awarded — prevents creating negative phantom entries.
+        // Only deduct if coins were actually awarded - prevents creating negative phantom entries.
         int coinSum = coinLogService.sumCoinsForSourceEntity(id);
         if (coinSum > 0) {
             coinLogService.awardCoins(userId, CoinType.ACHIEVEMENT_COIN, -coinSum,
                     CoinLogService.CoinEvent.LOG_DELETED_DEDUCTION.getDescription(), id);
         }
 
-        evLogRepository.deleteById(id);
+        // Soft-Delete: der Tombstone verhindert, dass ein Re-Import (z. B. EUDA AutoSync)
+        // den gelöschten Vorgang wieder anlegt.
+        evLogRepository.softDelete(id);
+    }
+
+    /**
+     * Macht einen Soft-Delete rückgängig. Coins werden nicht erneut vergeben - der Abzug beim
+     * Löschen bleibt stehen, das Coin-Log ist Audit-Trail und kein Saldo-Replay.
+     */
+    @Transactional
+    public void restoreLog(UUID id, UUID userId) {
+        EvLog log = evLogRepository.findByIdIncludingDeleted(id)
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
+        Car car = carRepository.findById(log.getCarId())
+                .orElseThrow(() -> NotFoundException.forEntity("Car", log.getCarId()));
+        if (!car.isOwnedBy(userId)) {
+            throw ForbiddenException.notOwner("EvLog", id);
+        }
+        if (log.getDeletedAt() == null) {
+            throw NotFoundException.forEntity("EvLog", id);
+        }
+        evLogRepository.restore(id);
     }
 
     public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId) {
@@ -729,25 +750,25 @@ public class EvLogService {
             throw new IllegalArgumentException("User does not own the specified car");
         }
 
-        // All logs sorted ascending — needed for consumption context (logX lookups)
+        // All logs sorted ascending - needed for consumption context (logX lookups)
         List<EvLog> allLogsSorted = evLogRepository.findAllByCarId(carId).stream()
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .toList();
 
-        // Load vehicle spec for spec-level charging efficiency override (nullable — car may not have a spec)
+        // Load vehicle spec for spec-level charging efficiency override (nullable - car may not have a spec)
         VehicleSpecification spec = car.getVehicleSpecificationId() != null
                 ? vehicleSpecificationRepository.findById(car.getVehicleSpecificationId()).orElse(null)
                 : null;
 
         // Compute per-log consumption + plausibility on the full dataset (SoC-based).
         // absorbedLogIds: Teilladungen ohne Odometer (z.B. Spritmonitor), deren kWh in einem
-        // Fensterwert aufgegangen sind — das Frontend erklärt damit den fehlenden Einzelwert.
+        // Fensterwert aufgegangen sind - das Frontend erklärt damit den fehlenden Einzelwert.
         ConsumptionCalculationService.PerLogConsumptionResult perLog = car.getNominalNetCapacityKwh() != null
                 ? calculationService.calculateConsumptionPerLogDetailed(allLogsSorted, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car), spec)
                 : new ConsumptionCalculationService.PerLogConsumptionResult(Map.of(), Set.of());
         Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(perLog.byLogId());
 
-        // Distance since last charge — covers logs with odometer regardless of SoC availability
+        // Distance since last charge - covers logs with odometer regardless of SoC availability
         Map<UUID, Integer> distanceByLogId = calculationService.computeDistanceByLogId(allLogsSorted);
 
         // Fallback: for logs with distance but no SoC-based consumption, estimate via kWh_charged/distance.
@@ -888,7 +909,7 @@ public class EvLogService {
         EvLogRepository.PowerCurveLookup sourceCurves = evLogRepository.findOwnerIdAndPowerCurveJson(sourceLogId).orElse(null);
 
         EvLog saved = evLogRepository.save(merged);
-        evLogRepository.deleteById(sourceLogId);
+        evLogRepository.softDelete(sourceLogId);
 
         // save() persistiert die Kurvenspalten nicht - deshalb explizit ueber die
         // update*-Methoden auf den Survivor schreiben.

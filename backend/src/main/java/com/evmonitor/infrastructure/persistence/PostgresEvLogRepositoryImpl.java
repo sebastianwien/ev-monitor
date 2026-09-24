@@ -154,6 +154,35 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     @Transactional
+    public void softDelete(UUID id) {
+        jpaRepository.softDelete(id, LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional
+    public void restore(UUID id) {
+        jpaRepository.restore(id);
+    }
+
+    @Override
+    public Optional<EvLog> findByIdIncludingDeleted(UUID id) {
+        return jpaRepository.findByIdIncludingDeleted(id).map(this::toDomain);
+    }
+
+    @Override
+    public List<EvLog> findDeletedByCarId(UUID carId) {
+        return jpaRepository.findDeletedByCarId(carId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    @Transactional
+    public int deleteSoftDeletedByCarIds(List<UUID> carIds) {
+        if (carIds.isEmpty()) return 0;
+        return jpaRepository.deleteSoftDeletedByCarIds(carIds);
+    }
+
+    @Override
+    @Transactional
     public void deleteAllByUserIdAndDataSource(UUID userId, DataSource dataSource) {
         jpaRepository.deleteAllByUserIdAndDataSource(userId, dataSource.name());
     }
@@ -517,6 +546,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .chargingSiteId(entity.getChargingSiteId())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
+                .deletedAt(entity.getDeletedAt())
                 .hasPowerCurve(entity.getPowerCurvePoints() != null && !entity.getPowerCurvePoints().isBlank())
                 .hasSocCurve(entity.getSocCurvePoints() != null && !entity.getSocCurvePoints().isBlank())
                 .build();

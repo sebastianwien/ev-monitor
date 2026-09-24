@@ -25,9 +25,9 @@ public class AdminQueryRepository {
                        STRING_AGG(DISTINCT c.model, ', ' ORDER BY c.model) AS models,
                        au.utm_source,
                        au.referrer_source,
-                       (SELECT COUNT(*) FROM ev_log el JOIN car c2 ON el.car_id = c2.id AND c2.deleted_at IS NULL WHERE c2.user_id = au.id) AS evlog_count,
+                       (SELECT COUNT(*) FROM ev_log el JOIN car c2 ON el.car_id = c2.id AND c2.deleted_at IS NULL WHERE el.deleted_at IS NULL AND c2.user_id = au.id) AS evlog_count,
                        (SELECT STRING_AGG(DISTINCT el.data_source, ', ' ORDER BY el.data_source)
-                        FROM ev_log el JOIN car c2 ON el.car_id = c2.id AND c2.deleted_at IS NULL WHERE c2.user_id = au.id) AS data_sources
+                        FROM ev_log el JOIN car c2 ON el.car_id = c2.id AND c2.deleted_at IS NULL WHERE el.deleted_at IS NULL AND c2.user_id = au.id) AS data_sources
                 FROM app_user au
                 LEFT JOIN car c ON au.id = c.user_id AND c.deleted_at IS NULL
                 WHERE au.is_seed_data IS FALSE
@@ -83,7 +83,7 @@ public class AdminQueryRepository {
                        COALESCE(ROUND(AVG(cost_eur), 2), 0)       AS kosten_eur_durchschnitt,
                        COALESCE(ROUND(AVG(charge_duration_minutes), 0), 0) AS dauer_minuten_durchschnitt
                 FROM ev_log
-                WHERE logged_at IS NOT NULL
+                WHERE deleted_at IS NULL AND logged_at IS NOT NULL
                 GROUP BY DATE(logged_at)
                 ORDER BY tag ASC
                 """).getResultList();

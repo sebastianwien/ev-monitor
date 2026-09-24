@@ -160,15 +160,55 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT COUNT(e) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId AND c.deletedAt IS NULL")
     long countByUserId(@Param("userId") UUID userId);
 
-    boolean existsByCarIdAndLoggedAtBetween(UUID carId, LocalDateTime start, LocalDateTime end);
+    // ---- Dedupe für Importe: sieht absichtlich auch soft-gelöschte Logs. Sonst legt der nächste
+    // ---- Sync (EUDA alle 15 Minuten) einen vom User gelöschten Vorgang wieder an.
 
-    boolean existsByCarIdAndOdometerKmAndLoggedAtBetween(UUID carId, Integer odometerKm, LocalDateTime start, LocalDateTime end);
+    // soft-delete-bypass: Dedupe muss Tombstones sehen
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE car_id = :carId AND logged_at BETWEEN :start AND :end)", nativeQuery = true)
+    boolean existsByCarIdAndLoggedAtBetween(@Param("carId") UUID carId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    boolean existsByCarIdAndLoggedAtAndDataSource(UUID carId, LocalDateTime loggedAt, String dataSource);
+    // soft-delete-bypass: Dedupe muss Tombstones sehen
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE car_id = :carId AND odometer_km = :odometerKm AND logged_at BETWEEN :start AND :end)", nativeQuery = true)
+    boolean existsByCarIdAndOdometerKmAndLoggedAtBetween(@Param("carId") UUID carId, @Param("odometerKm") Integer odometerKm,
+                                                          @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    boolean existsByCarIdAndDataSourceAndLoggedAtBetween(UUID carId, String dataSource, LocalDateTime start, LocalDateTime end);
+    // soft-delete-bypass: Dedupe muss Tombstones sehen
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE car_id = :carId AND logged_at = :loggedAt AND data_source = :dataSource)", nativeQuery = true)
+    boolean existsByCarIdAndLoggedAtAndDataSource(@Param("carId") UUID carId, @Param("loggedAt") LocalDateTime loggedAt, @Param("dataSource") String dataSource);
 
-    boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged);
+    // soft-delete-bypass: Dedupe muss Tombstones sehen
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE car_id = :carId AND data_source = :dataSource AND logged_at BETWEEN :start AND :end)", nativeQuery = true)
+    boolean existsByCarIdAndDataSourceAndLoggedAtBetween(@Param("carId") UUID carId, @Param("dataSource") String dataSource,
+                                                          @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // soft-delete-bypass: Dedupe muss Tombstones sehen
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE car_id = :carId AND logged_at = :loggedAt AND kwh_charged = :kwhCharged)", nativeQuery = true)
+    boolean existsByCarIdAndLoggedAtAndKwhCharged(@Param("carId") UUID carId, @Param("loggedAt") LocalDateTime loggedAt, @Param("kwhCharged") BigDecimal kwhCharged);
+
+    // ---- Soft-Delete und Restore. Native UPDATEs, weil save() eine ausgeblendete Zeile nicht findet.
+
+    // soft-delete-bypass: setzt den Tombstone
+    @Modifying
+    @Query(value = "UPDATE ev_log SET deleted_at = :now WHERE id = :id AND deleted_at IS NULL", nativeQuery = true)
+    int softDelete(@Param("id") UUID id, @Param("now") LocalDateTime now);
+
+    // soft-delete-bypass: Restore arbeitet auf dem Tombstone
+    @Modifying
+    @Query(value = "UPDATE ev_log SET deleted_at = NULL WHERE id = :id AND deleted_at IS NOT NULL", nativeQuery = true)
+    int restore(@Param("id") UUID id);
+
+    // soft-delete-bypass: Restore und Ownership-Check brauchen den Tombstone
+    @Query(value = "SELECT * FROM ev_log WHERE id = :id", nativeQuery = true)
+    Optional<EvLogEntity> findByIdIncludingDeleted(@Param("id") UUID id);
+
+    // soft-delete-bypass: Papierkorb
+    @Query(value = "SELECT * FROM ev_log WHERE car_id = :carId AND deleted_at IS NOT NULL ORDER BY logged_at DESC", nativeQuery = true)
+    List<EvLogEntity> findDeletedByCarId(@Param("carId") UUID carId);
+
+    // soft-delete-bypass: Kontolöschung räumt Tombstones hart weg
+    @Modifying
+    @Query(value = "DELETE FROM ev_log WHERE car_id IN (:carIds) AND deleted_at IS NOT NULL", nativeQuery = true)
+    int deleteSoftDeletedByCarIds(@Param("carIds") List<UUID> carIds);
 
     @Query("""
             SELECT e FROM EvLogEntity e
@@ -270,8 +310,11 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
 
+    // Wipe einer Datenquelle (Integration trennen): nativ, damit auch Tombstones fallen. Sonst
+    // blockieren sie beim Neu-Verbinden als "Duplikat" den Re-Import genau dieser Vorgänge.
+    // soft-delete-bypass: Wipe muss Tombstones mitnehmen
     @Modifying
-    @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource = :dataSource")
+    @Query(value = "DELETE FROM ev_log WHERE car_id IN (SELECT id FROM car WHERE user_id = :userId) AND data_source = :dataSource", nativeQuery = true)
     void deleteAllByUserIdAndDataSource(@Param("userId") UUID userId, @Param("dataSource") String dataSource);
 
     @Query("SELECT COUNT(e) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE c.userId = :userId AND e.dataSource = :dataSource AND c.deletedAt IS NULL")
@@ -388,8 +431,9 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT e.shareToken FROM EvLogEntity e WHERE e.id = :id")
     Optional<String> findShareToken(@Param("id") UUID id);
 
+    // soft-delete-bypass: Wipe muss Tombstones mitnehmen (siehe deleteAllByUserIdAndDataSource)
     @Modifying
-    @Query("DELETE FROM EvLogEntity e WHERE e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId) AND e.dataSource IN :dataSources")
+    @Query(value = "DELETE FROM ev_log WHERE car_id IN (SELECT id FROM car WHERE user_id = :userId) AND data_source IN (:dataSources)", nativeQuery = true)
     void deleteAllByUserIdAndDataSourceIn(@Param("userId") UUID userId, @Param("dataSources") List<String> dataSources);
 
     @Modifying
@@ -420,7 +464,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     void updateRawImportData(@Param("id") UUID id, @Param("rawJson") String rawJson);
 
     @Modifying(clearAutomatically = true)
-    @Query(value = "UPDATE ev_log SET route_type = :routeType WHERE id = :id", nativeQuery = true)
+    @Query(value = "UPDATE ev_log SET route_type = :routeType WHERE deleted_at IS NULL AND id = :id", nativeQuery = true)
     void updateRouteType(@Param("id") UUID id, @Param("routeType") String routeType);
 
     /** Tesla-eigene Quellen - nur diese Logs darf die Billing-Anreicherung anfassen. */
@@ -503,7 +547,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                     LAG(odometer_km)              OVER (PARTITION BY car_id ORDER BY logged_at) AS prev_odometer,
                     LAG(soc_after_charge_percent) OVER (PARTITION BY car_id ORDER BY logged_at) AS prev_soc
                 FROM ev_log
-                WHERE include_in_statistics = true
+                WHERE deleted_at IS NULL AND include_in_statistics = true
             )
             SELECT COUNT(*) FROM ranked
             WHERE odometer_km IS NOT NULL
@@ -538,7 +582,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                        LAG(l.odometer_km) OVER (PARTITION BY l.car_id ORDER BY l.logged_at) AS prev_odometer
                 FROM ev_log l
                 JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-                WHERE c.model = :model
+                WHERE l.deleted_at IS NULL AND c.model = :model
                   AND (l.include_in_statistics = true
                        OR (:isSeedUser = true
                            AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
@@ -580,7 +624,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                        l.is_public_charging
                 FROM ev_log l
                 JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-                WHERE l.cost_eur > 0
+                WHERE l.deleted_at IS NULL AND l.cost_eur > 0
                   AND (l.include_in_statistics = true
                        OR (:isSeedUser = true
                            AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
@@ -598,7 +642,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             SELECT c.manufacture_year, COUNT(DISTINCT l.car_id) AS car_count
             FROM ev_log l
             JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-            WHERE c.model = :model
+            WHERE l.deleted_at IS NULL AND c.model = :model
               AND c.manufacture_year IS NOT NULL
               AND (l.include_in_statistics = true
                    OR (:isSeedUser = true
@@ -613,7 +657,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = """
             SELECT COALESCE(l.route_type, 'UNKNOWN') AS route_type, COUNT(*) AS cnt
             FROM ev_log l JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-            WHERE c.model = :model
+            WHERE l.deleted_at IS NULL AND c.model = :model
               AND (l.include_in_statistics = true OR (:isSeedUser = true
                    AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
             GROUP BY l.route_type
@@ -637,7 +681,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                 END
             FROM ev_log l
             JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-            WHERE c.model = :model
+            WHERE l.deleted_at IS NULL AND c.model = :model
               AND l.charge_duration_minutes > 0
               AND COALESCE(l.kwh_at_vehicle, l.kwh_charged) > 0
               AND l.charging_type = 'DC'
@@ -666,7 +710,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                 COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95) > 0) AS dc_count
             FROM ev_log l
             JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-            WHERE c.model = :model
+            WHERE l.deleted_at IS NULL AND c.model = :model
               AND (l.include_in_statistics = true
                    OR (:isSeedUser = true
                        AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
