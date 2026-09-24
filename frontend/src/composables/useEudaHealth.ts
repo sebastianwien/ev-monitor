@@ -55,12 +55,13 @@ export function classifyEudaHealth(activity: EudaSyncActivity, now: Date = new D
 }
 
 /**
- * Zeitpunkt der letzten gefuellten Lieferung. summary.lastContentAt ist im Backend nur lastDataAt
- * (letzter Import). Leere Drops werden nicht abgelegt, deliveries ist absteigend sortiert:
- * [0] ist der letzte gefuellte.
+ * Zeitpunkt der letzten gefuellten Lieferung. Quelle ist summary.lastContentAt (Connectors: juengster
+ * Rohdrop, sonst letzter Import). deliveries[0] und lastDataAt fangen einen Connectors-Stand ab, der
+ * lastContentAt noch mit dem letzten Import gleichsetzt - Frontend und Connectors deployen getrennt.
  */
 export function lastContentAt(activity: EudaSyncActivity): string | null {
-  const candidates = [activity.connection.lastDataAt, activity.deliveries[0]?.createdOn].filter((v): v is string => !!v)
+  const candidates = [activity.summary.lastContentAt, activity.connection.lastDataAt, activity.deliveries[0]?.createdOn]
+    .filter((v): v is string => !!v)
   if (!candidates.length) return null
   return candidates.reduce((a, b) => (new Date(b).getTime() > new Date(a).getTime() ? b : a))
 }

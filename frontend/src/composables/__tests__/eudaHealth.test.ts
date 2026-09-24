@@ -72,6 +72,11 @@ describe('classifyEudaHealth', () => {
     expect(classifyEudaHealth(activity({ lastDataAt: null }, { deliveriesWithContent: 50 }), NOW)).toBe('STALE')
   })
 
+  it('summary.lastContentAt aus Connectors zaehlt als letzte gefuellte Lieferung', () => {
+    const a = activity({ lastDataAt: null }, { deliveriesWithContent: 50, lastContentAt: '2026-09-21T09:45:00Z' })
+    expect(classifyEudaHealth(a, NOW)).toBe('RECEIVING')
+  })
+
   it('Ladevorgang innerhalb von 72h: HEALTHY', () => {
     const a = activity({ lastDataAt: '2026-09-21T08:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 1 }, [delivery('2026-09-21T09:45:00Z')])
     expect(classifyEudaHealth(a, NOW)).toBe('HEALTHY')
