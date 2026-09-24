@@ -125,6 +125,12 @@ euda:
       launch-date: ${EUDA_AUTOSYNC_TRIAL_LAUNCH_DATE:2026-09-21}
       days: ${EUDA_AUTOSYNC_TRIAL_DAYS:30}
 
+# Pseudonymisierte Kopien von Hersteller-Uploads (VW, XPeng-CSV) als Testgrundlage, siehe docs/features/import-samples.md
+import-samples:
+  enabled: ${IMPORT_SAMPLES_ENABLED:true}
+  retention: P180D
+  max-bytes: 26214400  # 25 MB je Kopie, groessere werden nicht abgelegt
+
 xpeng:
   import:
     # Tempdir for in-flight ZIP uploads. Files are deleted immediately after parsing
