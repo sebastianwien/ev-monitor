@@ -1,5 +1,9 @@
 package com.evmonitor.application.imports.eudataact;
 
+import com.evmonitor.application.imports.sample.ImportSampleService;
+import java.util.Optional;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.evmonitor.application.publicapi.ImportApiResult;
 import com.evmonitor.application.publicapi.PublicApiImportService;
 import com.evmonitor.application.publicapi.PublicApiSessionRequest;
@@ -35,26 +39,30 @@ public class EUDataActImportService {
     private final CarRepository carRepository;
     private final PublicApiImportService publicApiImportService;
     private final long maxUnzippedBytes;
+    private final ImportSampleService samples;
+    private final EuDataActSampleAnonymizer anonymizer = new EuDataActSampleAnonymizer(new ObjectMapper());
 
     @Autowired
     public EUDataActImportService(EUDataActJsonParser parser, CarRepository carRepository,
-                                  PublicApiImportService publicApiImportService) {
-        this(parser, carRepository, publicApiImportService, DEFAULT_MAX_UNZIPPED_BYTES);
+                                  PublicApiImportService publicApiImportService, ImportSampleService samples) {
+        this(parser, carRepository, publicApiImportService, samples, DEFAULT_MAX_UNZIPPED_BYTES);
     }
 
     /** Fuer Tests: der Entpack-Guard laesst sich nur mit kleinem Limit sinnvoll pruefen. */
     EUDataActImportService(EUDataActJsonParser parser, CarRepository carRepository,
-                           PublicApiImportService publicApiImportService, long maxUnzippedBytes) {
+                           PublicApiImportService publicApiImportService, ImportSampleService samples,
+                           long maxUnzippedBytes) {
         this.parser = parser;
         this.carRepository = carRepository;
         this.publicApiImportService = publicApiImportService;
+        this.samples = samples;
         this.maxUnzippedBytes = maxUnzippedBytes;
     }
 
     public EUDataActPreviewResult preview(UUID userId, UUID carId, InputStreamSource file, String originalFilename)
             throws IOException {
         Car car = requireOwnedCar(userId, carId);
-        EUDataActParseResult parsed = parse(file, originalFilename, car, false);
+        EUDataActParseResult parsed = parseAndRecord(file, originalFilename, car, userId, ImportSampleService.Channel.UPLOAD);
         return EUDataActPreviewResult.from(parsed);
     }
 
@@ -77,7 +85,11 @@ public class EUDataActImportService {
     public ImportApiResult importData(UUID userId, UUID carId, InputStreamSource file, String originalFilename,
                                       DataSource dataSource, boolean lenient) throws IOException {
         Car car = requireOwnedCar(userId, carId);
-        EUDataActParseResult parsed = parse(file, originalFilename, car, lenient);
+        // Laufende 15-Minuten-Drops liegen roh in Connectors - kopiert werden nur Uploads und Historien-Exporte
+        EUDataActParseResult parsed = lenient
+                ? parse(file, originalFilename, car, true)
+                : parseAndRecord(file, originalFilename, car, userId, dataSource == DataSource.EU_DATA_ACT_SYNC
+                        ? ImportSampleService.Channel.HISTORY : ImportSampleService.Channel.UPLOAD);
 
         List<PublicApiSessionRequest.SessionEntry> entries = toSessionEntries(parsed.sessions(), car);
         if (entries.isEmpty()) {
@@ -89,6 +101,39 @@ public class EUDataActImportService {
                 new PublicApiSessionRequest(carId, entries),
                 dataSource
         );
+    }
+
+    /** Parst strikt und legt eine pseudonymisierte Kopie ab - auch (gerade) wenn die Datei nicht lesbar ist. */
+    private EUDataActParseResult parseAndRecord(InputStreamSource file, String originalFilename, Car car, UUID userId,
+                                                ImportSampleService.Channel channel) throws IOException {
+        try {
+            EUDataActParseResult parsed = parse(file, originalFilename, car, false);
+            recordSample(file, originalFilename, car, userId, channel, parsed.sessions().isEmpty()
+                    ? ImportSampleService.Outcome.NO_SESSIONS : ImportSampleService.Outcome.OK, parsed.sessions().size(), null);
+            return parsed;
+        } catch (EUDataActUnreadableException e) {
+            recordSample(file, originalFilename, car, userId, channel, ImportSampleService.Outcome.UNREADABLE, null, e.getMessage());
+            throw e;
+        }
+    }
+
+    private void recordSample(InputStreamSource file, String originalFilename, Car car, UUID userId,
+                              ImportSampleService.Channel channel, ImportSampleService.Outcome outcome,
+                              Integer sessions, String error) {
+        if (!samples.isEnabled()) return;
+        String sha;
+        try {
+            sha = ImportSampleService.sha256(file.getInputStream());
+        } catch (IOException e) {
+            return;
+        }
+        samples.record(new ImportSampleService.SampleMeta(userId, ImportSampleService.Provider.VW_EUDA, channel,
+                        car.getModel() != null ? car.getModel().name() : null, sha, outcome, sessions, null, error),
+                () -> {
+                    EuDataActSampleAnonymizer.Result r = anonymizer.anonymize(
+                            toJsonStream(file.getInputStream(), originalFilename), originalFilename);
+                    return Optional.of(new ImportSampleService.Anonymized(r.fileName(), r.zip()));
+                });
     }
 
     private Car requireOwnedCar(UUID userId, UUID carId) {

@@ -31,6 +31,9 @@ import java.util.zip.ZipOutputStream;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import com.evmonitor.application.imports.sample.ImportSampleService;
+import com.evmonitor.application.imports.sample.ImportSampleService.SampleMeta;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
@@ -39,6 +42,7 @@ class EUDataActImportServiceTest {
 
     @Mock private CarRepository carRepository;
     @Mock private PublicApiImportService publicApiImportService;
+    @Mock private ImportSampleService samples;
 
     private EUDataActImportService service;
 
@@ -50,7 +54,8 @@ class EUDataActImportServiceTest {
         service = new EUDataActImportService(
                 new EUDataActJsonParser(new ObjectMapper()),
                 carRepository,
-                publicApiImportService
+                publicApiImportService,
+                samples
         );
     }
 
@@ -107,7 +112,7 @@ class EUDataActImportServiceTest {
         when(mockParser.parse(any(InputStreamSource.class), anyBoolean())).thenReturn(new EUDataActParseResult("VIN", List.of(sessionWithoutKwh)));
 
         EUDataActImportService serviceWithMockParser = new EUDataActImportService(
-                mockParser, carRepository, publicApiImportService);
+                mockParser, carRepository, publicApiImportService, samples);
         ImportApiResult result = serviceWithMockParser.importData(userId, carId, this::sampleJsonStream, "export.json");
 
         // Service returns early without calling importSessions when all sessions have no kWh
@@ -237,7 +242,7 @@ class EUDataActImportServiceTest {
         Car car = carWithCapacity(null);
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         EUDataActImportService smallLimit = new EUDataActImportService(
-                new EUDataActJsonParser(new ObjectMapper()), carRepository, publicApiImportService,
+                new EUDataActJsonParser(new ObjectMapper()), carRepository, publicApiImportService, samples,
                 8 * 1024 * 1024L);
 
         byte[] zipBytes = zipWithOversizedJsonEntry();
@@ -245,6 +250,44 @@ class EUDataActImportServiceTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
                 smallLimit.importData(userId, carId, () -> new ByteArrayInputStream(zipBytes), "export.zip"));
         assertTrue(ex.getMessage().contains("8 MB"), "Unerwartete Meldung: " + ex.getMessage());
+    }
+
+    // ── Upload-Kopien ─────────────────────────────────────────────────────────
+
+    @Test
+    void manualImport_isRecordedAsUploadCopy_withoutTheVin() throws Exception {
+        when(samples.isEnabled()).thenReturn(true);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(new BigDecimal("77"))));
+        when(publicApiImportService.importSessions(eq(userId), any(), eq(DataSource.EU_DATA_ACT_IMPORT)))
+                .thenReturn(ImportApiResult.withoutIds(3, 0, 0));
+
+        service.importData(userId, carId, this::realSampleStream, "WVWZZZ-ID7_20251213015510.json");
+
+        ArgumentCaptor<SampleMeta> meta = ArgumentCaptor.forClass(SampleMeta.class);
+        ArgumentCaptor<ImportSampleService.Anonymizer> copy = ArgumentCaptor.forClass(ImportSampleService.Anonymizer.class);
+        verify(samples).record(meta.capture(), copy.capture());
+        assertEquals(ImportSampleService.Channel.UPLOAD, meta.getValue().channel());
+        assertEquals(ImportSampleService.Outcome.OK, meta.getValue().outcome());
+        assertEquals(3, meta.getValue().sessionsDetected());
+        byte[] zip = copy.getValue().anonymize().orElseThrow().zip();
+        try (var z = new java.util.zip.ZipInputStream(new ByteArrayInputStream(zip))) {
+            z.getNextEntry();
+            assertFalse(new String(z.readAllBytes(), StandardCharsets.UTF_8).contains("WVWZZZ-ID7"));
+        }
+    }
+
+    @Test
+    void unreadablePreview_isRecorded_andContinuousDropsAreNot() throws Exception {
+        when(samples.isEnabled()).thenReturn(true);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(new BigDecimal("77"))));
+
+        assertThrows(EUDataActUnreadableException.class, () -> service.preview(userId, carId,
+                () -> new ByteArrayInputStream("kein json".getBytes(StandardCharsets.UTF_8)), "x.json"));
+        service.importData(userId, carId, this::sampleJsonStream, "drop.json", DataSource.EU_DATA_ACT_SYNC, true);
+
+        ArgumentCaptor<SampleMeta> meta = ArgumentCaptor.forClass(SampleMeta.class);
+        verify(samples, times(1)).record(meta.capture(), any());
+        assertEquals(ImportSampleService.Outcome.UNREADABLE, meta.getValue().outcome());
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
