@@ -284,6 +284,7 @@ public class LeaderboardQueryRepository {
         Object result = em.createNativeQuery("""
                 SELECT COALESCE(SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)), 0)
                 FROM ev_log e
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
@@ -299,6 +300,7 @@ public class LeaderboardQueryRepository {
                 SELECT COUNT(e.id),
                        COUNT(e.id) FILTER (WHERE e.is_public_charging = false)
                 FROM ev_log e
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
@@ -313,6 +315,7 @@ public class LeaderboardQueryRepository {
         Object result = em.createNativeQuery("""
                 SELECT COALESCE(SUM(e.charge_duration_minutes), 0)
                 FROM ev_log e
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.logged_at >= :start
                   AND e.logged_at < :end
@@ -327,6 +330,7 @@ public class LeaderboardQueryRepository {
         Object result = em.createNativeQuery("""
                 SELECT COALESCE(SUM(e.cost_eur), 0)
                 FROM ev_log e
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
                 WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
                   AND e.cost_eur IS NOT NULL
                   AND e.logged_at >= :start
