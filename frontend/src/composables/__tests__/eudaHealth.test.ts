@@ -4,7 +4,11 @@ import type { EudaSyncActivity } from '../../api/euDataActSyncService'
 
 const NOW = new Date('2026-09-21T10:00:00Z')
 
-function activity(over: Partial<EudaSyncActivity['connection']> = {}, summary: Partial<EudaSyncActivity['summary']> = {}): EudaSyncActivity {
+function delivery(createdOn: string): EudaSyncActivity['deliveries'][number] {
+  return { filename: `${createdOn}.zip`, createdOn, sizeBytes: 4000, outcome: 'NO_CHARGING_DATA', sessionsImported: 0, sessionsSkipped: 0, error: null }
+}
+
+function activity(over: Partial<EudaSyncActivity['connection']> = {}, summary: Partial<EudaSyncActivity['summary']> = {}, deliveries: EudaSyncActivity['deliveries'] = []): EudaSyncActivity {
   return {
     provider: 'VW_GROUP',
     manufacturerContact: 'euda-support@cariad.technology',
@@ -17,7 +21,7 @@ function activity(over: Partial<EudaSyncActivity['connection']> = {}, summary: P
     identifiers: [],
     summary: { deliveriesSeen: 180, deliveriesWithContent: 0, sessionsImported: 0, lastContentAt: null, ...summary },
     polls: [],
-    deliveries: [],
+    deliveries,
   }
 }
 
@@ -42,13 +46,35 @@ describe('classifyEudaHealth', () => {
     expect(classifyEudaHealth(activity(), NOW)).toBe('NO_CONTENT')
   })
 
-  it('nur Telemetrie-Lieferungen ohne Ladevorgaenge zaehlen nicht als Inhalt: NO_CONTENT', () => {
-    // Prod 21.09.2026: 114 gefuellte Drops, 0 Ladevorgaenge - die Ampel stand trotzdem auf gruen
-    expect(classifyEudaHealth(activity({ lastDataAt: null }, { deliveriesWithContent: 114, sessionsImported: 0 }), NOW)).toBe('NO_CONTENT')
+  // Prod 24.09.2026: VW liefert gefuellte Drops mit Ladedaten, unser Parser erkennt sie nicht.
+  // Gefuellte Lieferungen ohne uebernommene Ladevorgaenge liegen daher nicht beim Hersteller.
+  it('gefuellte Lieferungen ohne Ladevorgaenge: RECEIVING statt Beschwerde', () => {
+    const a = activity({ lastDataAt: null }, { deliveriesWithContent: 114, sessionsImported: 0 }, [delivery('2026-09-21T09:45:00Z')])
+    expect(classifyEudaHealth(a, NOW)).toBe('RECEIVING')
   })
 
-  it('nur Telemetrie-Lieferungen, frisch verbunden: WAITING_FIRST', () => {
-    expect(classifyEudaHealth(activity({ connectedAt: '2026-09-21T06:00:00Z', lastDataAt: null }, { deliveriesWithContent: 3 }), NOW)).toBe('WAITING_FIRST')
+  it('gefuellte Lieferungen, frisch verbunden: RECEIVING', () => {
+    const a = activity({ connectedAt: '2026-09-21T06:00:00Z' }, { deliveriesWithContent: 3 }, [delivery('2026-09-21T09:45:00Z')])
+    expect(classifyEudaHealth(a, NOW)).toBe('RECEIVING')
+  })
+
+  it('letzter Ladevorgang aelter als 72h, gefuellte Lieferungen laufen weiter: RECEIVING statt STALE', () => {
+    const a = activity({ lastDataAt: '2026-09-17T09:00:00Z' }, { deliveriesWithContent: 300, sessionsImported: 3 }, [delivery('2026-09-21T09:45:00Z')])
+    expect(classifyEudaHealth(a, NOW)).toBe('RECEIVING')
+  })
+
+  it('gefuellte Lieferungen sind seit 72h ausgeblieben: STALE', () => {
+    const a = activity({ lastDataAt: null }, { deliveriesWithContent: 50 }, [delivery('2026-09-17T09:00:00Z')])
+    expect(classifyEudaHealth(a, NOW)).toBe('STALE')
+  })
+
+  it('Inhalt gezaehlt, aber alle Rohdrops schon verfallen: STALE', () => {
+    expect(classifyEudaHealth(activity({ lastDataAt: null }, { deliveriesWithContent: 50 }), NOW)).toBe('STALE')
+  })
+
+  it('Ladevorgang innerhalb von 72h: HEALTHY', () => {
+    const a = activity({ lastDataAt: '2026-09-21T08:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 1 }, [delivery('2026-09-21T09:45:00Z')])
+    expect(classifyEudaHealth(a, NOW)).toBe('HEALTHY')
   })
 
   it('Inhalt kam, aber seit 72h nichts mehr: STALE', () => {

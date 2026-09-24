@@ -3405,6 +3405,7 @@ eu_data_act_sync:
   connected_success: "Verbunden. Die ersten Ladevorgänge erscheinen in wenigen Stunden im Logbuch."
   activity:
     health_healthy: "Läuft. Der Hersteller liefert, Ladevorgänge kommen an."
+    health_receiving: "Der Hersteller liefert Daten. In den letzten drei Tagen wurde daraus noch kein Ladevorgang übernommen."
     health_waiting_first: "Verbunden, warte auf die erste Lieferung mit Inhalt (bis zu 24 Stunden)."
     health_no_content: "Der Hersteller liefert seit über 24 Stunden nur leere Datensätze. Die Ursache liegt beim Hersteller."
     health_stale: "Seit über drei Tagen keine Lieferung mit Inhalt mehr, obwohl vorher Daten kamen."

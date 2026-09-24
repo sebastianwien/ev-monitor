@@ -53,7 +53,7 @@ const complaint = computed(() => activity.value ? buildEudaComplaintMail(activit
 
 type Tone = 'ok' | 'wait' | 'warn' | 'bad' | 'off'
 const TONE: Record<EudaHealth, Tone> = {
-  HEALTHY: 'ok', WAITING_FIRST: 'wait', NO_CONTENT: 'warn', STALE: 'warn', HISTORY_FAILED: 'warn',
+  HEALTHY: 'ok', RECEIVING: 'wait', WAITING_FIRST: 'wait', NO_CONTENT: 'warn', STALE: 'warn', HISTORY_FAILED: 'warn',
   NO_REQUEST: 'bad', FAILING: 'bad', AUTH_FAILED: 'bad', PAUSED: 'off',
 }
 const tone = computed<Tone>(() => {

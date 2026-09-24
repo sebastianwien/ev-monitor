@@ -14,6 +14,7 @@ export type EudaHealth =
   | 'NO_CONTENT'
   | 'STALE'
   | 'HISTORY_FAILED'
+  | 'RECEIVING'
   | 'WAITING_FIRST'
   | 'HEALTHY'
 
@@ -36,15 +37,24 @@ export function classifyEudaHealth(activity: EudaSyncActivity, now: Date = new D
 
   // Herstellerprobleme vor unseren eigenen: liefert das Portal nichts, ist der gescheiterte
   // Historien-Import nur ein Symptom davon.
-  // "Inhalt" heisst Ladevorgaenge. deliveriesWithContent zaehlt nur gefuellte ZIPs - das Portal
-  // liefert auch reine Trip-Telemetrie ohne Ladedaten, die darf die Ampel nicht gruen faerben.
-  const hadContent = c.lastDataAt !== null || activity.summary.sessionsImported > 0
+  // "Inhalt" heisst gefuellte Lieferung, nicht importierter Ladevorgang: ob ein gefuellter Drop
+  // keine Ladedaten hat oder unser Parser sie nicht erkennt, laesst sich von hier nicht
+  // unterscheiden - dafuer darf der Hersteller keine Beschwerde bekommen.
+  const hadContent = c.lastDataAt !== null || activity.summary.sessionsImported > 0 || activity.summary.deliveriesWithContent > 0
+  // Leere Drops werden nicht abgelegt, deliveries ist absteigend sortiert: [0] ist der letzte gefuellte.
+  const lastContentMs = Math.max(msOrZero(c.lastDataAt), msOrZero(activity.deliveries[0]?.createdOn))
   if (!hadContent) {
     const age = now.getTime() - new Date(c.connectedAt).getTime()
     if (age >= WAITING_WINDOW_MS) return 'NO_CONTENT'
-  } else if (c.lastDataAt && now.getTime() - new Date(c.lastDataAt).getTime() > STALE_WINDOW_MS) {
+  } else if (now.getTime() - lastContentMs > STALE_WINDOW_MS) {
     return 'STALE'
   }
   if (c.history?.attemptsExhausted) return 'HISTORY_FAILED'
-  return hadContent ? 'HEALTHY' : 'WAITING_FIRST'
+  if (!hadContent) return 'WAITING_FIRST'
+  const sessionRecently = c.lastDataAt !== null && now.getTime() - new Date(c.lastDataAt).getTime() <= STALE_WINDOW_MS
+  return sessionRecently ? 'HEALTHY' : 'RECEIVING'
+}
+
+function msOrZero(iso: string | null | undefined): number {
+  return iso ? new Date(iso).getTime() : 0
 }
