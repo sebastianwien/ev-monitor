@@ -37,6 +37,9 @@ class UserServiceTest {
     private com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository xpengConsentAuditRepository;
 
     @Mock
+    private com.evmonitor.infrastructure.persistence.sample.ImportSampleRepository importSampleRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -222,6 +225,7 @@ class UserServiceTest {
 
         userService.deleteAccount(userId, request);
 
+        verify(importSampleRepository).deleteByUserId(userId);
         verify(userRepository).delete(testUser);
     }
 

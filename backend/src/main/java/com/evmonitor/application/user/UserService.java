@@ -33,6 +33,7 @@ public class UserService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository xpengConsentAuditRepository;
+    private final com.evmonitor.infrastructure.persistence.sample.ImportSampleRepository importSampleRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final AccountAnonymizationService anonymizationService;
@@ -150,6 +151,8 @@ public class UserService {
         // XPeng-Einwilligungs-Nachweis hat keinen FK auf app_user (Quelltabelle entfernt) -
         // daher explizit purgen, CASCADE greift hier nicht.
         xpengConsentAuditRepository.deleteByUserId(userId);
+        // Pseudonymisierte Upload-Kopien: FK-CASCADE greift beim User-Delete ohnehin, explizit fuer die Lesbarkeit.
+        importSampleRepository.deleteByUserId(userId);
 
         // DSGVO Plan A: Autos, Logs und Trips anonymisiert behalten (user_id NULL), erst danach den User
         // löschen - der CASCADE trifft dann nur noch die restlichen personenbezogenen Tabellen.
