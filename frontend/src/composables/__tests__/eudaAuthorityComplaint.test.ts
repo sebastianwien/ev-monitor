@@ -54,6 +54,11 @@ describe('buildEudaEvidenceDocument', () => {
     expect(deliveries.lines[0]).toContain('WVW_2026-09-20.zip')
   })
 
+  it('letzte Lieferung mit Inhalt kommt aus den Lieferungen, nicht aus dem letzten Import', () => {
+    const summary = doc.sections.find(s => s.key === 'summary')!
+    expect(summary.lines.find(l => l.startsWith('Letzte Lieferung mit Inhalt'))).toMatch(/20\.09\.2026/)
+  })
+
   it('nennt die Rechtsgrundlage und dass ev-monitor nicht Partei ist', () => {
     expect(text).toContain('2023/2854')
     expect(text).toMatch(/nicht Partei/)

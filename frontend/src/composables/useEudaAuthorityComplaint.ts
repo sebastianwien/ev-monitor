@@ -1,4 +1,5 @@
 import type { EudaSyncActivity, EudaPollEntry, EudaDeliveryEntry } from '../api/euDataActSyncService'
+import { lastContentAt } from './useEudaHealth'
 
 /**
  * Beschwerde bei der Aufsichtsbehörde (Bundesnetzagentur, Art. 37 Data Act, DA-DG seit 29.05.2026).
@@ -131,7 +132,7 @@ export function buildEudaEvidenceDocument(activity: EudaSyncActivity, locale: st
     de ? `Datenempfänger (Dritter nach Art. 5): ev-monitor.net` : `Data recipient (third party under Art. 5): ev-monitor.net`,
     de ? `Verbunden seit: ${f.since}` : `Connected since: ${f.since}`,
     situationSentence(f),
-    de ? `Letzte Lieferung mit Inhalt: ${fmtDateTime(c.lastDataAt, locale)}` : `Last delivery with content: ${fmtDateTime(c.lastDataAt, locale)}`,
+    de ? `Letzte Lieferung mit Inhalt: ${fmtDateTime(lastContentAt(activity), locale)}` : `Last delivery with content: ${fmtDateTime(lastContentAt(activity), locale)}`,
     de ? `Laufende Datenanfrage beim Hersteller: ${c.dataRequestActive ? 'ja' : 'nein'}` : `Active data request at manufacturer: ${c.dataRequestActive ? 'yes' : 'no'}`,
   ]
   if (c.lastError) summary.push(de ? `Letzte Fehlermeldung des Portals (${c.consecutiveFailures} in Folge, zuletzt ${fmtDateTime(c.lastPolledAt, locale)}): ${c.lastError}` : `Last portal error (${c.consecutiveFailures} in a row, last ${fmtDateTime(c.lastPolledAt, locale)}): ${c.lastError}`)

@@ -41,8 +41,7 @@ export function classifyEudaHealth(activity: EudaSyncActivity, now: Date = new D
   // keine Ladedaten hat oder unser Parser sie nicht erkennt, laesst sich von hier nicht
   // unterscheiden - dafuer darf der Hersteller keine Beschwerde bekommen.
   const hadContent = c.lastDataAt !== null || activity.summary.sessionsImported > 0 || activity.summary.deliveriesWithContent > 0
-  // Leere Drops werden nicht abgelegt, deliveries ist absteigend sortiert: [0] ist der letzte gefuellte.
-  const lastContentMs = Math.max(msOrZero(c.lastDataAt), msOrZero(activity.deliveries[0]?.createdOn))
+  const lastContentMs = msOrZero(lastContentAt(activity))
   if (!hadContent) {
     const age = now.getTime() - new Date(c.connectedAt).getTime()
     if (age >= WAITING_WINDOW_MS) return 'NO_CONTENT'
@@ -53,6 +52,17 @@ export function classifyEudaHealth(activity: EudaSyncActivity, now: Date = new D
   if (!hadContent) return 'WAITING_FIRST'
   const sessionRecently = c.lastDataAt !== null && now.getTime() - new Date(c.lastDataAt).getTime() <= STALE_WINDOW_MS
   return sessionRecently ? 'HEALTHY' : 'RECEIVING'
+}
+
+/**
+ * Zeitpunkt der letzten gefuellten Lieferung. summary.lastContentAt ist im Backend nur lastDataAt
+ * (letzter Import). Leere Drops werden nicht abgelegt, deliveries ist absteigend sortiert:
+ * [0] ist der letzte gefuellte.
+ */
+export function lastContentAt(activity: EudaSyncActivity): string | null {
+  const candidates = [activity.connection.lastDataAt, activity.deliveries[0]?.createdOn].filter((v): v is string => !!v)
+  if (!candidates.length) return null
+  return candidates.reduce((a, b) => (new Date(b).getTime() > new Date(a).getTime() ? b : a))
 }
 
 function msOrZero(iso: string | null | undefined): number {
