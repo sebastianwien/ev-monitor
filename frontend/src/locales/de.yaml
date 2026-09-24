@@ -1749,6 +1749,8 @@ compare:
   head_desc: "Direkter Vergleich: {names}. Realer Verbrauch, Reichweite, Kosten und WLTP-Abweichung aus echten Community-Daten."
 
 imports:
+  sample_notice: "Damit wir die Erkennung verbessern können, speichern wir eine Kopie der Datei 180 Tage lang, ohne Fahrgestellnummer, Konto-IDs und Standorte. Du kannst jederzeit per Mail widersprechen."
+  sample_notice_link: "Mehr dazu"
   title: "Ladevorgänge importieren"
   subtitle: "Importiere deine bisherigen Ladevorgänge oder verbinde eine Heimwallbox für automatischen Import."
   tab_smartcar: "AutoSync"

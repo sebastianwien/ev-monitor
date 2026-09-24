@@ -165,6 +165,18 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
           <p class="mt-4">
             <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (von Ihnen angeforderte Funktion).
           </p>
+          <p class="mt-4">
+            <strong>Kopien importierter Herstellerdateien:</strong> Von Dateien, die Sie aus dem VW-EU-Data-Act-Portal
+            (Upload oder Historien-Export) oder als XPeng-CSV-Export importieren, speichern wir eine Kopie, um die
+            Erkennung von Ladevorgängen und Fahrten zu prüfen und zu verbessern, insbesondere bei Dateien, die nicht
+            erkannt wurden. Vor dem Speichern ersetzen wir Fahrgestellnummer, Konto- und Datensatz-IDs und
+            verschieben Standortangaben; Zeitstempel und Messwerte bleiben erhalten. Die Kopie ist damit
+            pseudonymisiert, nicht anonym. Sie ist nur intern zugänglich, wird nach 180 Tagen gelöscht und bei
+            Löschung Ihres Kontos sofort mitgelöscht. Rechtsgrundlage ist unser berechtigtes Interesse an einer
+            zuverlässigen Import-Funktion (Art. 6 Abs. 1 lit. f DSGVO). Sie können jederzeit per E-Mail an
+            <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a> widersprechen;
+            wir löschen Ihre Kopien dann.
+          </p>
         </section>
 
         <section>
@@ -414,7 +426,8 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             sie sind danach keine personenbezogenen Daten mehr.
           </p>
           <p class="mt-4">
-            Technische Rohdaten aus Integrationen werden nach spätestens 28 Tagen gelöscht; Server-Logfiles
+            Technische Rohdaten aus Integrationen werden nach spätestens 28 Tagen gelöscht, pseudonymisierte
+            Kopien importierter Herstellerdateien (Abschnitt 7) nach 180 Tagen; Server-Logfiles
             enthalten nur gekürzte IP-Adressen (Abschnitt 3) und werden rollierend überschrieben. Daten, für die gesetzliche Aufbewahrungsfristen gelten (z. B.
             Rechnungsdaten bei Käufen, bis zu 10 Jahre nach § 147 AO), werden bis zum Ablauf dieser Fristen
             aufbewahrt und dann gelöscht. Sicherungskopien der Datenbank werden rotierend aufbewahrt; gelöschte

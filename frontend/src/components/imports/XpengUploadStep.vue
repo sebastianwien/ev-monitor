@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UploadSampleNotice from './UploadSampleNotice.vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowUpTrayIcon, ExclamationCircleIcon, ChevronDownIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
@@ -125,5 +126,6 @@ async function submit() {
       <ArrowUpTrayIcon v-else class="w-4 h-4" />
       <span>{{ busy ? t('xpeng.uploading') : t('xpeng.btn_upload') }}</span>
     </button>
+    <UploadSampleNotice class="mt-3" />
   </section>
 </template>

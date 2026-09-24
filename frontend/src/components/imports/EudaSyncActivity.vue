@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UploadSampleNotice from './UploadSampleNotice.vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -190,6 +191,7 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
         <button v-if="status !== 'EXPIRED'" type="button" :disabled="busy" data-testid="euda-reactivate-smartcar" :class="secondaryClass" @click="emit('reactivateSmartcar')">{{ t('eu_data_act_sync.btn_reactivate_smartcar') }}</button>
         <button type="button" :disabled="busy" data-testid="euda-disconnect" :class="[secondaryClass, 'border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:border-red-500']" @click="emit('disconnect')">{{ t('eu_data_act_sync.btn_disconnect') }}</button>
       </div>
+      <UploadSampleNotice v-if="primary === 'history' || (historyOpen && status === 'ACTIVE')" />
     </div>
     <EudaAuthorityComplaint v-if="authorityOpen && activity" :activity="activity" @close="authorityOpen = false" />
 

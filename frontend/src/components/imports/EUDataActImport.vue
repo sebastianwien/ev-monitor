@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UploadSampleNotice from './UploadSampleNotice.vue'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowUpTrayIcon, CheckCircleIcon, ExclamationCircleIcon, BoltIcon } from '@heroicons/vue/24/outline'
@@ -108,6 +109,8 @@ function formatKwh(v: number | null) {
           <ExclamationCircleIcon class="w-4 h-4 shrink-0" />
           {{ error }}
         </p>
+
+        <UploadSampleNotice />
 
         <button
           class="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-sm py-2.5 px-4 rounded-lg transition-colors"
