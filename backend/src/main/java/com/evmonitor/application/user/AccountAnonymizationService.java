@@ -73,6 +73,9 @@ public class AccountAnonymizationService {
     }
 
     private int anonymizeLogs(List<UUID> carIds) {
+        // Soft-gelöschte Logs sind für findAllByCarIds unsichtbar und würden Geohash und Rohdaten
+        // behalten. Ohne Konto schützt der Tombstone vor nichts mehr, also hart weg (wie bei Trips).
+        evLogRepository.deleteSoftDeletedByCarIds(carIds);
         List<EvLog> logs = evLogRepository.findAllByCarIds(carIds).stream()
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .toList();

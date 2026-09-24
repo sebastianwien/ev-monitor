@@ -137,6 +137,26 @@ class AccountDeletionAnonymizationIT {
     }
 
     @Test
+    void anonymize_hardDeletesSoftDeletedLogs() {
+        // DSGVO: ein soft-geloeschter Ladevorgang ist fuer die Anonymisierung unsichtbar
+        // (SQLRestriction) und wuerde Geohash und Rohdaten behalten. Nach der Kontoloeschung
+        // braucht niemand den Tombstone mehr (kein Sync mehr), also weg damit.
+        UUID tombstoneId = evLogRepository.findAllByCarId(carId).get(0).getId();
+        evLogRepository.softDelete(tombstoneId, LocalDateTime.now());
+
+        anonymizationService.anonymizeCarsOf(userId);
+
+        Integer tombstones = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ev_log WHERE car_id = ? AND deleted_at IS NOT NULL", Integer.class, carId);
+        assertEquals(0, tombstones, "Tombstones muessen hart geloescht sein");
+        Integer withId = jdbc.queryForObject("SELECT COUNT(*) FROM ev_log WHERE id = ?", Integer.class, tombstoneId);
+        assertEquals(0, withId);
+        List<EvLogEntity> kept = evLogRepository.findAllByCarId(carId);
+        assertEquals(1, kept.size(), "Sichtbare Logs bleiben anonymisiert erhalten");
+        assertNull(kept.get(0).getGeohash(), "und ohne Geohash");
+    }
+
+    @Test
     void deleteUserWithoutAnonymization_stillCascades() {
         // Sicherheitsnetz: der CASCADE ist weiterhin aktiv für Autos mit Besitzer
         userRepository.deleteById(otherUserId);

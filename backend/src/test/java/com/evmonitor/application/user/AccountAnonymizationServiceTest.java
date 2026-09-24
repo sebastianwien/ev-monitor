@@ -32,6 +32,25 @@ class AccountAnonymizationServiceTest extends AbstractServiceTest {
     @Autowired org.springframework.cache.CacheManager cacheManager;
 
     @Test
+    void anonymize_hardDeletesSoftDeletedLogs() {
+        // Soft-gelöschte Logs sind für die Anonymisierung unsichtbar und würden Geohash und
+        // Rohdaten behalten. Ohne Konto schützt der Tombstone vor nichts mehr: hart weg.
+        User gone = createAndSaveUser("gone-tombstone@example.com");
+        Car car = carRepository.save(Car.createNew(gone.getId(), CarBrand.CarModel.MODEL_3, 2022, "B-EV 2",
+                "LR", new BigDecimal("75"), new BigDecimal("300"), null));
+        LocalDateTime day = LocalDateTime.of(2026, 3, 10, 0, 0);
+        EvLog visible = save(car.getId(), day.plusHours(7), 20_000, "u33dc0");
+        EvLog tombstone = save(car.getId(), day.plusHours(18), 20_300, "u33dc0");
+        evLogRepository.softDelete(tombstone.getId());
+
+        service.anonymizeCarsOf(gone.getId());
+
+        assertTrue(evLogRepository.findByIdIncludingDeleted(tombstone.getId()).isEmpty(), "Tombstone hart gelöscht");
+        EvLog kept = evLogRepository.findById(visible.getId()).orElseThrow();
+        assertNull(kept.getGeohash(), "sichtbarer Log anonymisiert");
+    }
+
+    @Test
     void anonymize_cutsPersonalDataKeepsStatisticsAndOrder() {
         User gone = createAndSaveUser("gone@example.com");
         Car car = carRepository.save(Car.createNew(gone.getId(), CarBrand.CarModel.MODEL_3, 2022, "B-EV 1",
