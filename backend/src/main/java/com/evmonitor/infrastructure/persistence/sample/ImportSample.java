@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -45,6 +47,7 @@ public class ImportSample {
 
     /** SHA-256 der Originaldatei, nur fuer die Dedup (dieselbe Datei aus Vorschau und Import). */
     @Column(name = "content_sha256", nullable = false, length = 64)
+    @JdbcTypeCode(SqlTypes.CHAR)
     private String contentSha256;
 
     @Column(name = "file_name", nullable = false)
