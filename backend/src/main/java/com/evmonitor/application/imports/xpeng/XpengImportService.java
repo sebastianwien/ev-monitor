@@ -16,6 +16,8 @@ import com.evmonitor.domain.xpeng.XpengParseException;
 import com.evmonitor.domain.xpeng.XpengTripDetector;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJobRepository;
+import com.evmonitor.application.imports.sample.ImportSampleService;
+import com.evmonitor.domain.xpeng.XpengSampleAnonymizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -85,6 +87,7 @@ public class XpengImportService {
     private final ApplicationEventPublisher eventPublisher;
     private final com.evmonitor.domain.EvLogRepository evLogRepository;
     private final com.evmonitor.domain.EvTripRepository evTripRepository;
+    private final ImportSampleService samples;
 
     @Value("${xpeng.import.tempdir}")
     private String tempDir;
@@ -180,10 +183,28 @@ public class XpengImportService {
             job.setErrorMessage(truncate(e.getMessage(), 500));
             job.setCompletedAt(LocalDateTime.now());
         } finally {
+            recordSample(job, tempfile);
             try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
             job.clearFileReferences();
             jobRepo.save(job);
         }
+    }
+
+    /** Pseudonymisierte Kopie des CSV-Exports ablegen (Best Effort, XLSX wird uebersprungen). */
+    private void recordSample(XpengImportJob job, Path tempfile) {
+        if (!samples.isEnabled() || job.getFileHash() == null) return;
+        boolean done = job.getStatus() == XpengImportJob.Status.DONE;
+        String carModel = carRepository.findById(job.getCarId())
+                .map(c -> c.getModel() != null ? c.getModel().name() : null).orElse(null);
+        samples.record(new ImportSampleService.SampleMeta(
+                        job.getUserId(), ImportSampleService.Provider.XPENG,
+                        ImportSampleService.Channel.UPLOAD, carModel, job.getFileHash(),
+                        done ? ImportSampleService.Outcome.OK
+                             : ImportSampleService.Outcome.FAILED,
+                        job.getImportedSessions(), job.getImportedTrips(), job.getErrorMessage()),
+                () -> new XpengSampleAnonymizer(samples.maxBytes())
+                        .anonymize(tempfile, tempfile.getFileName().toString())
+                        .map(r -> new ImportSampleService.Anonymized(r.fileName(), r.zip())));
     }
 
     private ImportStats runImport(XpengImportJob job, Path tempfile) throws Exception {

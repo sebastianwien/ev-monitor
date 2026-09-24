@@ -52,6 +52,7 @@ class XpengImportServiceTest {
     @Mock ApplicationEventPublisher eventPublisher;
     @Mock EvLogRepository evLogRepository;
     @Mock EvTripRepository evTripRepository;
+    @Mock com.evmonitor.application.imports.sample.ImportSampleService samples;
 
     @InjectMocks XpengImportService service;
 
@@ -183,6 +184,22 @@ class XpengImportServiceTest {
         ArgumentCaptor<XpengImportJob> captor = ArgumentCaptor.forClass(XpengImportJob.class);
         verify(jobRepo, atLeastOnce()).save(captor.capture());
         assertEquals(XpengImportJob.Status.FAILED, captor.getValue().getStatus());
+    }
+
+    @Test
+    void process_failedJob_isRecordedAsSampleBeforeTheTempfileIsDeleted() {
+        XpengImportJob job = processingJob(tempDir.resolve("nonexistent.zip"));
+        job.setFileHash("b".repeat(64));
+        when(samples.isEnabled()).thenReturn(true);
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.process(job);
+
+        ArgumentCaptor<com.evmonitor.application.imports.sample.ImportSampleService.SampleMeta> meta =
+                ArgumentCaptor.forClass(com.evmonitor.application.imports.sample.ImportSampleService.SampleMeta.class);
+        verify(samples).record(meta.capture(), any());
+        assertEquals(com.evmonitor.application.imports.sample.ImportSampleService.Outcome.FAILED, meta.getValue().outcome());
+        assertEquals("b".repeat(64), meta.getValue().originalSha256());
     }
 
     @Test
