@@ -34,7 +34,7 @@ public class PublicApiTripService {
         Car car = loadOwnedCar(userId, request.carId());
 
         EvTrip trip = buildTrip(userId, car, request);
-        if (tripRepository.existsByCarIdAndTripStartedAtAndDeletedAtIsNull(car.getId(), trip.getTripStartedAt())) {
+        if (tripRepository.existsByCarIdAndTripStartedAt(car.getId(), trip.getTripStartedAt())) {
             throw new IllegalArgumentException("Für dieses Fahrzeug existiert bereits eine Fahrt mit diesem Startzeitpunkt");
         }
 
@@ -62,7 +62,7 @@ public class PublicApiTripService {
             }
             OffsetDateTime startInstant = trip.getTripStartedAt().withOffsetSameInstant(ZoneOffset.UTC);
             if (!seenStarts.add(startInstant)
-                    || tripRepository.existsByCarIdAndTripStartedAtAndDeletedAtIsNull(car.getId(), trip.getTripStartedAt())) {
+                    || tripRepository.existsByCarIdAndTripStartedAt(car.getId(), trip.getTripStartedAt())) {
                 skipped++;
                 continue;
             }

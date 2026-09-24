@@ -41,9 +41,12 @@ public class TripService {
             throw new ValidationException("userId is required");
         }
         if (req.externalId() != null) {
-            var existing = tripRepository.findByExternalIdAndDeletedAtIsNull(req.externalId());
+            // Auch gelöschte Trips zählen: vom User gelöscht heißt gelöscht, der Sync legt
+            // sie nicht neu an und fasst den Tombstone nicht an.
+            var existing = tripRepository.findByExternalId(req.externalId());
             if (existing.isPresent()) {
-                log.debug("Trip with externalId={} already exists - skipping", req.externalId());
+                log.debug("Trip with externalId={} already exists (deleted={}) - skipping",
+                        req.externalId(), existing.get().getDeletedAt() != null);
                 return existing.get().getId();
             }
         }

@@ -114,6 +114,30 @@ class PublicApiTripIntegrationTest extends AbstractIntegrationTest {
         assertEquals(1, evTripRepository.findAllByCarIdAndDeletedAtIsNull(car.getId()).size());
     }
 
+    /**
+     * Der User hat die Fahrt gelöscht. Kommt sie erneut (Re-Sync, zweiter Upload), bleibt sie
+     * gelöscht: der Tombstone gilt weiter als Duplikat, sonst wäre Löschen wirkungslos.
+     */
+    @Test
+    void createTrip_afterUserDeletedIt_isStillRejectedAsDuplicate() {
+        Map<String, Object> body = Map.of(
+                "car_id", car.getId().toString(),
+                "started_at", "2025-06-02T10:00:00+02:00",
+                "ended_at", "2025-06-02T11:00:00+02:00",
+                "distance_km", 10.0
+        );
+        ResponseEntity<Map> created = apiPost("/api/v1/trips", body);
+        assertEquals(HttpStatus.CREATED, created.getStatusCode());
+        String tripId = created.getBody().get("id").toString();
+        assertEquals(HttpStatus.NO_CONTENT, apiDelete("/api/v1/trips/" + tripId).getStatusCode());
+
+        ResponseEntity<Map> again = apiPost("/api/v1/trips", body);
+
+        assertEquals(HttpStatus.BAD_REQUEST, again.getStatusCode());
+        assertTrue(evTripRepository.findAllByCarIdAndDeletedAtIsNull(car.getId()).isEmpty(), "bleibt gelöscht");
+        assertNotNull(evTripRepository.findById(UUID.fromString(tripId)).orElseThrow().getDeletedAt(), "Tombstone unverändert");
+    }
+
     @Test
     void createTrip_withOdometer_storesOdometerFields() {
         Map<String, Object> body = Map.of(

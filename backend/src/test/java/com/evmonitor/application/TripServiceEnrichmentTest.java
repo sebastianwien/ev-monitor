@@ -182,7 +182,7 @@ class TripServiceEnrichmentTest {
         UUID existingId = UUID.randomUUID();
         UUID externalId = UUID.randomUUID();
         EvTrip existing = EvTrip.builder().id(existingId).externalId(externalId).build();
-        when(tripRepository.findByExternalIdAndDeletedAtIsNull(externalId))
+        when(tripRepository.findByExternalId(externalId))
                 .thenReturn(java.util.Optional.of(existing));
 
         InternalTripRequest req = baseRequest()
@@ -197,6 +197,28 @@ class TripServiceEnrichmentTest {
         verifyNoInteractions(temperatureEnricher);
         verify(tripRepository, never()).save(any());
         org.assertj.core.api.Assertions.assertThat(returned).isEqualTo(existingId);
+    }
+
+    /**
+     * Vom User gelöschte Fahrt: der Sync liefert sie erneut und darf sie weder neu anlegen
+     * noch anfassen. Der Tombstone ist der Schutz gegen Wiederkehr.
+     */
+    @Test
+    void saveTrip_existingTripWasDeletedByUser_isNeitherRecreatedNorTouched() {
+        UUID existingId = UUID.randomUUID();
+        UUID externalId = UUID.randomUUID();
+        EvTrip deleted = EvTrip.builder().id(existingId).externalId(externalId)
+                .deletedAt(OffsetDateTime.now().minusDays(1)).build();
+        when(tripRepository.findByExternalId(externalId)).thenReturn(java.util.Optional.of(deleted));
+
+        UUID returned = tripService.saveTrip(baseRequest().externalId(externalId).build());
+        triggerAfterCommit();
+
+        verify(tripRepository, never()).save(any());
+        verify(tripRepository, never()).saveAll(any());
+        verifyNoInteractions(temperatureEnricher, routeSketcher);
+        org.assertj.core.api.Assertions.assertThat(returned).isEqualTo(existingId);
+        org.assertj.core.api.Assertions.assertThat(deleted.getDeletedAt()).isNotNull();
     }
 
     // ── Router: gerechnete Linie nur ohne eigene Trace ───────────────────────
