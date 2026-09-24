@@ -1,0 +1,83 @@
+{
+  "_doc": "Vertrag Connectors (CoreApiClient) -> Core (/api/internal/*). Identische Kopie in ev-monitor/backend und ev-monitor-connectors unter src/test/resources/contract/. Beide Repos prüfen ihre Seite dagegen: Connectors sendet genau diese Felder, der Core liest genau diese Felder. Feld ändern = beide Kopien und beide Seiten ändern.",
+  "types": {
+    "uuid": "JSON-String, UUID",
+    "number": "JSON-Zahl",
+    "integer": "JSON-Ganzzahl",
+    "boolean": "JSON-Boolean",
+    "string": "JSON-String",
+    "local-date-time-array": "JSON-Array [Jahr, Monat, Tag, Stunde, Minute(, Sekunde(, Nano))], z.B. [2026,1,15,8,0]. So schreibt das RestTemplate von Connectors LocalDateTime heute (Spring-Default ohne WRITE_DATES_AS_TIMESTAMPS=false), der Core liest es über JSR-310.",
+    "offset-date-time": "JSON-String ISO-8601 mit Offset, z.B. 2026-01-15T08:00:00Z",
+    "part": "Multipart-Textteil",
+    "file": "Multipart-Dateiteil"
+  },
+  "endpoints": {
+    "POST /api/internal/logs": {
+      "encoding": "json",
+      "fields": {
+        "carId": "uuid",
+        "userId": "uuid",
+        "kwhCharged": "number",
+        "chargeDurationMinutes": "integer",
+        "loggedAt": "local-date-time-array",
+        "geohash": "string",
+        "odometerSuggestionMinKm": "integer",
+        "odometerSuggestionMaxKm": "integer",
+        "dataSource": "string",
+        "costEur": "number",
+        "chargingType": "string",
+        "mergeSessions": "boolean",
+        "odometerKm": "integer",
+        "socBefore": "number",
+        "socAfter": "number",
+        "temperatureCelsius": "number",
+        "rawImportData": "string",
+        "isPublicCharging": "boolean",
+        "cpoName": "string",
+        "powerCurvePointsJson": "string",
+        "socCurvePointsJson": "string",
+        "maxChargingPowerKw": "number",
+        "energySource": "string",
+        "socStartMissed": "boolean",
+        "pricePerKwh": "number"
+      }
+    },
+    "POST /api/internal/trips": {
+      "encoding": "json",
+      "fields": {
+        "externalId": "uuid",
+        "carId": "uuid",
+        "userId": "uuid",
+        "dataSource": "string",
+        "tripStartedAt": "offset-date-time",
+        "tripEndedAt": "offset-date-time",
+        "socStart": "number",
+        "socEnd": "number",
+        "odometerStartKm": "number",
+        "odometerEndKm": "number",
+        "distanceKm": "number",
+        "locationStartGeohash": "string",
+        "locationEndGeohash": "string",
+        "outsideTempCelsius": "number",
+        "energyRemainingStartKwh": "number",
+        "energyRemainingEndKwh": "number",
+        "estimatedConsumedKwh": "number",
+        "avgSpeedKmh": "number",
+        "maxSpeedKmh": "number",
+        "status": "string",
+        "rawPayload": "string",
+        "telemetryExtras": "string",
+        "tracePolyline": "string"
+      }
+    },
+    "POST /api/internal/eu-data-act/import": {
+      "encoding": "multipart",
+      "fields": {
+        "userId": "part",
+        "carId": "part",
+        "kind": "part",
+        "file": "file"
+      }
+    }
+  }
+}
