@@ -142,7 +142,8 @@ class AccountDeletionAnonymizationIT {
         // (SQLRestriction) und wuerde Geohash und Rohdaten behalten. Nach der Kontoloeschung
         // braucht niemand den Tombstone mehr (kein Sync mehr), also weg damit.
         UUID tombstoneId = evLogRepository.findAllByCarId(carId).get(0).getId();
-        evLogRepository.softDelete(tombstoneId, LocalDateTime.now());
+        // Direkt per SQL: das @Modifying im JPA-Repository braucht eine Transaktion, die hier fehlt.
+        jdbc.update("UPDATE ev_log SET deleted_at = now() WHERE id = ?", tombstoneId);
 
         anonymizationService.anonymizeCarsOf(userId);
 

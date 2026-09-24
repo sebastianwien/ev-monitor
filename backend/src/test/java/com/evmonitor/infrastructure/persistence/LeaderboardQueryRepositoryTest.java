@@ -45,9 +45,12 @@ class LeaderboardQueryRepositoryTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.flyway.enabled", () -> "true");
+        // Das test-Profil setzt den H2-Treiber, hier muss Postgres gewinnen.
+        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         // Disable scheduled jobs and external services during test
-        registry.add("spring.task.scheduling.pool.size", () -> "0");
+        registry.add("spring.task.scheduling.pool.size", () -> "1"); // 0 ist seit Boot 3 ungültig
     }
 
     @Autowired

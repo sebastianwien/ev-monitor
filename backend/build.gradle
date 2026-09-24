@@ -8,6 +8,10 @@ group = 'com.example'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
 
+// Boot 3.5.0 managt Testcontainers 1.21.0, dessen Docker-Client spricht API 1.32.
+// Docker Engine ab 28 verlangt mindestens API 1.44, sonst starten die Postgres-ITs nicht.
+ext['testcontainers.version'] = '1.21.4'
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
