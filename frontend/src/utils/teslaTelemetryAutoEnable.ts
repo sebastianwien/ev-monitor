@@ -16,6 +16,7 @@ export function shouldAutoEnableTelemetry(
     if (!status) return false
     if (pendingError) return false
     if (status.dataSource === 'TELEMETRY') return false
+    if (!status.vin) return false
     if (!status.keyPaired) return false
     if (status.telemetryConfigPushed) return false
     return true

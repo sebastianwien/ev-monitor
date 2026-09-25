@@ -2028,6 +2028,9 @@ tesla:
   pairing_key_missing: Nej - parning i appen krävs
   pairing_key_unreliable_summary: "Om denna statusflagga"
   pairing_key_unreliable_hint: "Obs: Teslas statusflagga är känd för att vara opålitlig. Du kan ändå aktivera telemetry nedan - om den verkligen inte är parad avvisar Tesla begäran."
+  pairing_no_vehicle_title: "Inget fordon hittades i ditt Tesla-konto"
+  pairing_no_vehicle_hint: "När du anslöt fanns ännu ingen bil i ditt Tesla-konto, t.ex. för att du hämtade den efteråt. Anslut Tesla en gång till - du behöver inte konfigurera den virtuella nyckeln igen."
+  pairing_no_vehicle_btn: "Anslut Tesla igen"
   pairing_config_label: Telemetry-konfig aktiv
   pairing_config_ok: Ja
   pairing_config_missing: Nej
