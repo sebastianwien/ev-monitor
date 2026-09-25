@@ -7,6 +7,7 @@ import com.evmonitor.application.ingest.IngestCommand;
 import com.evmonitor.application.ingest.IngestDoor;
 import com.evmonitor.application.ingest.IngestGateway;
 import com.evmonitor.application.ingest.IngestResult;
+import com.evmonitor.application.ingest.LenientEnums;
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ConflictException;
 import com.evmonitor.domain.exception.ForbiddenException;
@@ -160,27 +161,10 @@ public class EvLogService {
             try { source = DataSource.valueOf(request.dataSource()); } catch (IllegalArgumentException ignored) {}
         }
 
-        ChargingType chargingType = ChargingType.UNKNOWN;
-        if (request.chargingType() != null) {
-            try { chargingType = ChargingType.valueOf(request.chargingType()); } catch (IllegalArgumentException ignored) {}
-        }
-
-        // Provenance of kwhCharged - decides whether SoH auto-detection trusts this row.
-        // Unknown strings fall back to null (= legacy behaviour, trusted) instead of failing
-        // the whole request, mirroring the dataSource handling above. The CHECK constraint on
-        // ev_log.energy_source would otherwise reject anything outside the enum.
-        EnergySource energySource = null;
-        if (request.energySource() != null) {
-            try { energySource = EnergySource.valueOf(request.energySource()); }
-            catch (IllegalArgumentException ignored) {
-                log.warn("Unknown energySource '{}' from internal client - storing as NULL", request.energySource());
-            }
-        }
-
         ChargingEntry entry = ChargingEntry.builder()
                 .loggedAt(request.loggedAt())
                 .kwhCharged(request.kwhCharged())
-                .energySource(energySource)
+                .energySource(LenientEnums.energySource(request.energySource()))
                 .costEur(request.costEur())
                 .pricePerKwh(request.pricePerKwh())
                 .chargeDurationMinutes(request.chargeDurationMinutes())
@@ -194,7 +178,7 @@ public class EvLogService {
                 .socBefore(request.socBefore())
                 .socAfter(request.socAfter())
                 .socStartMissed(request.socStartMissed())
-                .chargingType(chargingType)
+                .chargingType(LenientEnums.chargingType(request.chargingType()))
                 .temperatureCelsius(request.temperatureCelsius())
                 .rawImportData(request.rawImportData())
                 .powerCurvePointsJson(request.powerCurvePointsJson())
