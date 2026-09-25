@@ -110,10 +110,6 @@ echo "🔄 Switching to new backend + nginx containers..."
 docker compose $COMPOSE_FILE up -d --no-deps --force-recreate backend nginx
 
 echo ""
-echo "🔄 Building + starting fcm-bridge (non-blocking)..."
-docker compose $COMPOSE_FILE build fcm-bridge && docker compose $COMPOSE_FILE up -d --no-deps --force-recreate fcm-bridge || echo "⚠️  fcm-bridge build failed - connectors-service bleibt unberührt"
-
-echo ""
 echo "⏳ Waiting for services to start..."
 sleep 15
 
