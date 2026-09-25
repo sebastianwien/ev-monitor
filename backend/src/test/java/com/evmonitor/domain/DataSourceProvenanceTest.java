@@ -35,6 +35,7 @@ class DataSourceProvenanceTest {
             XPENG_LIVE,          XPENG,        SYNC
             EU_DATA_ACT_IMPORT,  VW_GROUP,     UPLOAD
             EU_DATA_ACT_SYNC,    VW_GROUP,     SYNC
+            TESLA_INFERRED,      TESLA,        LIVE
             """;
 
     @ParameterizedTest(name = "{0} → {1} / {2}")

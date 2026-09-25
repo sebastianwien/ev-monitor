@@ -125,6 +125,22 @@ class InternalIngestControllerTest extends AbstractIntegrationTest {
         assertThat(tripRepository.findByExternalId(externalId)).isEmpty();
     }
 
+    /** Connectors meldet abgeleitete Tesla-Fahrten (InferredTripService) mit eigener Quelle. */
+    @Test
+    @SuppressWarnings("unchecked")
+    void teslaInferredTrip_isCreated() {
+        UUID externalId = UUID.randomUUID();
+        Map<String, Object> body = body(owner.getId(), null, List.of(trip(externalId)));
+        body.put("dataSource", "TESLA_INFERRED");
+
+        ResponseEntity<Map> response = post(body, VALID_TOKEN);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(((List<Map<String, Object>>) response.getBody().get("trips")).get(0)).containsEntry("status", "CREATED");
+        assertThat(tripRepository.findByExternalId(externalId)).get()
+                .extracting(t -> t.getDataSource()).isEqualTo("TESLA_INFERRED");
+    }
+
     @Test
     void unknownCar_is404() {
         Map<String, Object> body = body(owner.getId(), null, List.of(trip(UUID.randomUUID())));
