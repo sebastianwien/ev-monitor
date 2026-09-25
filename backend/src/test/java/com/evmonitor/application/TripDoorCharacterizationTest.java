@@ -6,6 +6,7 @@ import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.domain.User;
+import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.xpeng.DetectedTrip;
 import com.evmonitor.domain.xpeng.XpengTripDeduplicator;
 import com.evmonitor.testutil.AbstractIntegrationTest;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Charakterisierung der Trip-Tür ({@link TripService#saveTrip}) und ihrer Dedup- und Löschpfade
@@ -97,19 +99,17 @@ class TripDoorCharacterizationTest extends AbstractIntegrationTest {
     }
 
     /**
-     * Befund Inventur 9.7: {@code saveTrip} prüft nicht, ob das Auto dem Nutzer gehört. Geschützt
-     * ist die Tür heute nur durch das Internal-Token (und XPeng ruft sie mit geprüftem Auto auf).
-     * Das IngestGateway (R2) prüft Ownership; dann wird dieser Test umgedreht.
+     * Befund Inventur 9.7, behoben in R2c: eine Fahrt wird nur für ein Auto des Nutzers angenommen.
+     * Vorher legte {@code saveTrip} sie auch für ein fremdes Auto an.
      */
     @Test
-    void saveTrip_todayAcceptsForeignCar_noOwnershipCheck() {
+    void saveTrip_rejectsForeignCar() {
         User stranger = createAndSaveUser("ch-trip-stranger-" + UUID.randomUUID().toString().substring(0, 8) + "@t.de");
+        UUID externalId = UUID.randomUUID();
 
-        UUID id = tripService.saveTrip(trip(UUID.randomUUID(), stranger.getId(), DataSource.SMARTCAR_LIVE, START));
-
-        EvTrip saved = tripRepository.findById(id).orElseThrow();
-        assertThat(saved.getCarId()).isEqualTo(car.getId());
-        assertThat(saved.getUserId()).isEqualTo(stranger.getId());
+        assertThatThrownBy(() -> tripService.saveTrip(trip(externalId, stranger.getId(), DataSource.SMARTCAR_LIVE, START)))
+                .isInstanceOf(ForbiddenException.class);
+        assertThat(tripRepository.findByExternalId(externalId)).isEmpty();
     }
 
     /** Nachbau von {@code XpengImportService.isTripAlreadyImported} (privat): Query plus Deduplicator. */

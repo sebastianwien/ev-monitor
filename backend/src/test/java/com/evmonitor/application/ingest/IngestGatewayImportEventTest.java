@@ -158,6 +158,20 @@ class IngestGatewayImportEventTest extends AbstractIntegrationTest {
                 .filter(e -> car.getId().equals(e.getCarId())).toList());
     }
 
+    @Test
+    void trip_foreignCar_recordsRejected() {
+        User stranger = createAndSaveUser("ev-stranger-" + UUID.randomUUID().toString().substring(0, 8) + "@t.de");
+
+        assertThatThrownBy(() -> gateway.ingestTrip(trip(UUID.randomUUID(), "SMARTCAR_LIVE", stranger.getId())))
+                .isInstanceOf(ForbiddenException.class);
+
+        assertThat(eventsOf(stranger.getId())).singleElement().satisfies(e -> {
+            assertThat(e.getOutcome()).isEqualTo(ImportEventOutcome.REJECTED);
+            assertThat(e.getTripsImported()).isZero();
+        });
+        importEventRepository.deleteByUserId(stranger.getId());
+    }
+
     private List<ImportEvent> events() {
         return eventsOf(user.getId());
     }

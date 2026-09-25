@@ -1,9 +1,13 @@
 package com.evmonitor.application.ingest;
 
 import com.evmonitor.application.InternalTripRequest;
+import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
+import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.domain.route.RouteSketcher;
 import com.evmonitor.domain.weather.TemperatureEnricher;
 import org.junit.jupiter.api.AfterEach;
@@ -22,8 +26,10 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -51,6 +57,8 @@ class IngestGatewayTripTest {
 
     private static final OffsetDateTime START = OffsetDateTime.of(2026, 5, 10, 9, 0, 0, 0, ZoneOffset.UTC);
     private static final OffsetDateTime END = OffsetDateTime.of(2026, 5, 10, 9, 45, 0, 0, ZoneOffset.UTC);
+    private static final UUID USER_ID = UUID.randomUUID();
+    private static final UUID CAR_ID = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -60,6 +68,8 @@ class IngestGatewayTripTest {
             trip.setId(UUID.randomUUID());
             return trip;
         });
+        lenient().when(carRepository.findById(CAR_ID))
+                .thenReturn(Optional.of(Car.builder().id(CAR_ID).userId(USER_ID).build()));
     }
 
     @AfterEach
@@ -288,10 +298,40 @@ class IngestGatewayTripTest {
         verify(routeSketcher).sketchTrip(any(UUID.class), eq("u2ewmk"), eq("u33d0k"));
     }
 
+    /** Befund 9.7: eine Fahrt für ein fremdes Auto wird abgelehnt, bevor die Dedup antwortet. */
+    @Test
+    void ingestTrip_foreignCar_isRejectedBeforeDedup() {
+        InternalTripRequest req = baseRequest().externalId(UUID.randomUUID()).userId(UUID.randomUUID()).build();
+
+        assertThatThrownBy(() -> gateway.ingestTrip(req)).isInstanceOf(ForbiddenException.class);
+
+        verify(tripRepository, never()).findByExternalId(any());
+        verify(tripRepository, never()).save(any());
+    }
+
+    /** Unbekanntes oder soft-gelöschtes Auto ({@code findById} sieht nur nicht gelöschte). */
+    @Test
+    void ingestTrip_unknownOrDeletedCar_isNotFound() {
+        InternalTripRequest req = baseRequest().carId(UUID.randomUUID()).build();
+
+        assertThatThrownBy(() -> gateway.ingestTrip(req)).isInstanceOf(NotFoundException.class);
+
+        verify(tripRepository, never()).save(any());
+    }
+
+    @Test
+    void ingestTrip_withoutCar_isRejected() {
+        InternalTripRequest req = baseRequest().carId(null).build();
+
+        assertThatThrownBy(() -> gateway.ingestTrip(req)).isInstanceOf(ValidationException.class);
+
+        verify(tripRepository, never()).save(any());
+    }
+
     private InternalTripRequest.InternalTripRequestBuilder baseRequest() {
         return InternalTripRequest.builder()
-                .userId(UUID.randomUUID())
-                .carId(UUID.randomUUID())
+                .userId(USER_ID)
+                .carId(CAR_ID)
                 .dataSource("SMARTCAR_LIVE")
                 .tripStartedAt(START)
                 .tripEndedAt(END)

@@ -290,6 +290,8 @@ public class IngestGateway {
      * gelöschte Fahrten: vom Nutzer gelöscht heißt gelöscht, der Sync legt sie nicht neu an.
      *
      * @return id der angelegten oder schon vorhandenen Fahrt
+     * @throws NotFoundException  Auto unbekannt oder gelöscht
+     * @throws ForbiddenException Auto gehört nicht dem Nutzer
      */
     @Transactional
     public UUID ingestTrip(InternalTripRequest req) {
@@ -315,6 +317,11 @@ public class IngestGateway {
         if (req.userId() == null) {
             throw new ValidationException("userId is required");
         }
+        if (req.carId() == null) {
+            throw new ValidationException("carId is required");
+        }
+        // Vor der Dedup: sonst verriete eine bekannte externalId die id einer fremden Fahrt.
+        Car car = requireOwnedCar(req.carId(), req.userId());
         if (req.externalId() != null) {
             var existing = tripRepository.findByExternalId(req.externalId());
             if (existing.isPresent()) {
@@ -353,7 +360,7 @@ public class IngestGateway {
 
         if (trip.getEstimatedConsumedKwh() == null) {
             trip.setEstimatedConsumedKwh(EvTrip.estimateConsumedKwh(
-                    req.socStart(), req.socEnd(), () -> carRepository.findById(req.carId())));
+                    req.socStart(), req.socEnd(), () -> Optional.of(car)));
         }
 
         EvTrip saved = tripRepository.save(trip);

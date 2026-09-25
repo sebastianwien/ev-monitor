@@ -1,8 +1,12 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.domain.Car;
+import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
+import com.evmonitor.domain.User;
 import com.evmonitor.testutil.AbstractIntegrationTest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
@@ -21,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * - Happy path: trip persisted, id returned
  * - Idempotency: same externalId -> 200, no duplicate
  * - Auth: missing/wrong token -> 403
+ * - Ownership: Fahrt für fremdes Auto -> 403, nichts gespeichert
  */
 class InternalTripControllerTest extends AbstractIntegrationTest {
 
@@ -29,11 +34,20 @@ class InternalTripControllerTest extends AbstractIntegrationTest {
     @Autowired
     EvTripRepository tripRepository;
 
+    private User owner;
+    private Car car;
+
+    @BeforeEach
+    void setUp() {
+        owner = createAndSaveUser("trip-owner-" + UUID.randomUUID().toString().substring(0, 8) + "@t.de");
+        car = createAndSaveCar(owner.getId(), CarBrand.CarModel.MODEL_3);
+    }
+
     @Test
     void submitTrip_withValidToken_returns200AndPersists() {
         UUID externalId = UUID.randomUUID();
-        UUID carId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
+        UUID userId = owner.getId();
+        UUID carId = car.getId();
 
         ResponseEntity<Map> response = restTemplate.exchange(
                 "/api/internal/trips", HttpMethod.POST,
@@ -56,8 +70,8 @@ class InternalTripControllerTest extends AbstractIntegrationTest {
     @Test
     void submitTrip_idempotent_sameExternalIdReturns200WithoutDuplicate() {
         UUID externalId = UUID.randomUUID();
-        UUID carId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
+        UUID userId = owner.getId();
+        UUID carId = car.getId();
         var request = new HttpEntity<>(tripRequest(externalId, carId, userId), internalHeaders(VALID_TOKEN));
 
         restTemplate.exchange("/api/internal/trips", HttpMethod.POST, request, Map.class);
@@ -104,7 +118,7 @@ class InternalTripControllerTest extends AbstractIntegrationTest {
 
     @Test
     void submitTrip_withoutExternalId_persistsWithNullExternalId() {
-        Map<String, Object> request = tripRequest(null, UUID.randomUUID(), UUID.randomUUID());
+        Map<String, Object> request = tripRequest(null, car.getId(), owner.getId());
 
         ResponseEntity<Map> response = restTemplate.exchange(
                 "/api/internal/trips", HttpMethod.POST,
@@ -114,6 +128,20 @@ class InternalTripControllerTest extends AbstractIntegrationTest {
         UUID id = UUID.fromString(response.getBody().get("id").toString());
         EvTrip saved = tripRepository.findById(id).orElseThrow();
         assertNull(saved.getExternalId());
+    }
+
+    @Test
+    void submitTrip_forForeignCar_returns403AndPersistsNothing() {
+        UUID externalId = UUID.randomUUID();
+        User stranger = createAndSaveUser("trip-stranger-" + UUID.randomUUID().toString().substring(0, 8) + "@t.de");
+
+        ResponseEntity<Map> response = restTemplate.exchange(
+                "/api/internal/trips", HttpMethod.POST,
+                new HttpEntity<>(tripRequest(externalId, car.getId(), stranger.getId()), internalHeaders(VALID_TOKEN)),
+                Map.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertTrue(tripRepository.findByExternalId(externalId).isEmpty());
     }
 
     // --- helpers ---
