@@ -19,7 +19,6 @@ import com.evmonitor.infrastructure.persistence.ingest.ImportEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -142,17 +141,7 @@ public class IngestGateway {
         }
         evLog = locationPricing.enrich(evLog, command.userId());
 
-        EvLog saved;
-        if (policy.isolateEntryErrors()) {
-            try {
-                saved = evLogWriter.save(evLog);
-            } catch (DataIntegrityViolationException e) {
-                log.debug("Ingest {}: Duplikat beim Speichern erkannt (race condition) - übersprungen", command.dataSource());
-                return null;
-            }
-        } else {
-            saved = evLogWriter.save(evLog);
-        }
+        EvLog saved = evLogWriter.save(evLog);
 
         // Kurven-Snapshot als JSONB neben dem Log: überlebt die Retention der Rohsignale.
         if (entry.socCurvePointsJson() != null && !entry.socCurvePointsJson().isBlank()) {

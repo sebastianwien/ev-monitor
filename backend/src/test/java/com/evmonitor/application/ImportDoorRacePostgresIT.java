@@ -77,14 +77,13 @@ class ImportDoorRacePostgresIT {
     }
 
     /**
-     * Der Code fängt {@code DataIntegrityViolationException} beim {@code save} und zählt skipped.
-     * Gemessen: das INSERT läuft erst beim Flush am Commit ({@code JpaTransactionManager.doCommit}),
-     * also hinter dem {@code catch}. Die Exception fliegt aus {@code importSessions}, der ganze
-     * Batch wird zurückgerollt, auch die konfliktfreie zweite Session. Das Gateway (R2) muss das
-     * bewusst entscheiden (skip je Session oder Batch scheitert).
+     * Gewollt (R2f): ein Import-Batch ist atomar. Das INSERT läuft erst beim Flush am Commit
+     * ({@code JpaTransactionManager.doCommit}); ein Unique-Konflikt rollt den ganzen Batch zurück,
+     * auch die konfliktfreie zweite Session. Der Client wiederholt den Batch, die Dedup überspringt
+     * dann die vorhandenen Sessions.
      */
     @Test
-    void door1_raceOnUniqueConstraint_failsAtCommit_andRollsBackWholeBatch() {
+    void door1_raceOnUniqueConstraint_failsWholeBatch_byDesign() {
         concurrentRowExists(DataSource.API_UPLOAD);
         dedupCheckMissesConcurrentRow();
         var request = new PublicApiSessionRequest(car.getId(),
