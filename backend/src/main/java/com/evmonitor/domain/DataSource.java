@@ -55,6 +55,34 @@ public enum DataSource {
         return this == SPRITMONITOR_IMPORT;
     }
 
+    /** Herkunft für Admin-Sicht und Import-Protokoll (R2): wer geliefert hat. */
+    public DataProvider provider() {
+        return switch (this) {
+            case USER_LOGGED -> DataProvider.MANUAL;
+            case SPRITMONITOR_IMPORT -> DataProvider.SPRITMONITOR;
+            case TESLA_IMPORT, TESLA_FLEET_IMPORT, TESLA_LIVE, TESLA_MANUAL_IMPORT -> DataProvider.TESLA;
+            case WALLBOX_OCPP -> DataProvider.OCPP_WALLBOX;
+            case WALLBOX_GOE -> DataProvider.GOE;
+            case API_UPLOAD -> DataProvider.PUBLIC_API;
+            case TRONITY_IMPORT -> DataProvider.TRONITY;
+            case SMARTCAR_LIVE -> DataProvider.SMARTCAR;
+            case VWGROUP_LIVE, EU_DATA_ACT_IMPORT, EU_DATA_ACT_SYNC -> DataProvider.VW_GROUP;
+            case TESSIE -> DataProvider.TESSIE;
+            case XPENG_IMPORT, XPENG_LIVE -> DataProvider.XPENG;
+        };
+    }
+
+    /** Herkunft für Admin-Sicht und Import-Protokoll (R2): auf welchem Weg. */
+    public DataChannel channel() {
+        return switch (this) {
+            case USER_LOGGED -> DataChannel.MANUAL;
+            case SPRITMONITOR_IMPORT, TESLA_MANUAL_IMPORT, API_UPLOAD, TRONITY_IMPORT, TESSIE,
+                 XPENG_IMPORT, EU_DATA_ACT_IMPORT -> DataChannel.UPLOAD;
+            case TESLA_IMPORT, TESLA_FLEET_IMPORT, WALLBOX_GOE, XPENG_LIVE, EU_DATA_ACT_SYNC -> DataChannel.SYNC;
+            case TESLA_LIVE, WALLBOX_OCPP, SMARTCAR_LIVE, VWGROUP_LIVE -> DataChannel.LIVE;
+        };
+    }
+
     /** Returns the measurement point for energy reported by this data source. */
     public EnergyMeasurementType measurementType() {
         return switch (this) {
