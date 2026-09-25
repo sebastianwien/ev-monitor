@@ -18,26 +18,26 @@ import java.util.Optional;
  * The formula assumes every percentage point of SoC holds the same amount of energy, which
  * it does not - charging from 10% to 20% takes a different amount than 80% to 90%. Inferring
  * total capacity from a narrow SoC slice therefore carries a SYSTEMATIC error whose sign
- * depends on where in the range the charge happened. That is the main reason for the 75%
+ * depends on where in the range the charge happened. That is the main reason for the 80%
  * threshold: no averaging fixes a bias that always points the same way, only a wider hub
  * covering more of the pack does.
  *
  * Secondary: SoC is stored as whole percent, so the +-1% quantization error propagates
- * inversely to the hub (~3.3% capacity error at 30%, ~1.3% at 75%). With entries persisted
+ * inversely to the hub (~3.3% capacity error at 30%, ~1.25% at 80%). With entries persisted
  * from a 2% change, small hubs would let rounding noise alone create them.
  *
  * Two mechanisms suppress the remaining noise:
  *   1. A rolling window of the last 5 qualifying logs.
  *   2. A hub-weighted median over that window: each estimate carries its SoC hub as
- *      weight, so a 95% charge outvotes a 75% one. Weighted median (not mean) keeps
+ *      weight, so a 95% charge outvotes an 80% one. Weighted median (not mean) keeps
  *      a single broken estimate from dragging the result.
  *
- * Qualifying log: AT_VEHICLE + both SoC values present + hub >= 75%.
+ * Qualifying log: AT_VEHICLE + both SoC values present + hub >= 80%.
  * Pure static logic - no Spring, no side effects, easily unit-testable.
  */
 public class BatterySohAutoDetector {
 
-    static final int MIN_SOC_DELTA_PERCENT = 75;
+    static final int MIN_SOC_DELTA_PERCENT = 80;
     static final int ROLLING_WINDOW_SIZE = 5;
     /**
      * Charges required before a value is persisted at all.

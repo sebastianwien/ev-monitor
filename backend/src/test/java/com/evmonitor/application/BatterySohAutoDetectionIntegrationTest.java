@@ -59,8 +59,8 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
 
         // 55.212 / 80 * 100 = 69.015 kWh → SoH = 92.02%
         evLogRepository.save(smartcarLog(car.getId(), 55.212, 10, 90, 2));
-        // 54.06 / 78 * 100 = 69.31 kWh → SoH = 92.41%
-        evLogRepository.save(smartcarLog(car.getId(), 54.06, 13, 91, 5));
+        // 55.448 / 80 * 100 = 69.31 kWh → SoH = 92.41%
+        evLogRepository.save(smartcarLog(car.getId(), 55.448, 11, 91, 5));
         saveQualifyingLogs(car.getId(), 55.212, BatterySohAutoDetector.MIN_SAMPLE_SIZE - 2, 8);
 
         batterySohService.autoDetectAndPersist(car);
@@ -381,7 +381,7 @@ class BatterySohAutoDetectionIntegrationTest extends AbstractIntegrationTest {
 
         BatterySohStatusResponse status = batterySohService.getDetectionStatus(car.getId(), user.getId());
 
-        assertEquals(75, status.requiredSocHubPercent());
+        assertEquals(80, status.requiredSocHubPercent());
         assertEquals(0, new BigDecimal("58").compareTo(status.largestSocHubPercent()));
         assertEquals(0, status.qualifyingChargeCount());
         assertTrue(status.capacityKnown());

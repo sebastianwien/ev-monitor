@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Fixtures use a SoC hub of 80% (10 -> 90) unless a test targets the threshold or
- * the hub weighting itself. With MIN_SOC_DELTA_PERCENT = 75 the estimated capacity
+ * the hub weighting itself. With MIN_SOC_DELTA_PERCENT = 80 the estimated capacity
  * is kwh * 100 / 80, i.e. kwh = 0.8 * capacity.
  */
 class BatterySohAutoDetectorTest {
@@ -90,22 +90,22 @@ class BatterySohAutoDetectorTest {
 
     @Test
     void ignoresLogJustBelowThreshold() {
-        // hub = 74% -> rejected. The boundary is a judgement call about how much of the
+        // hub = 79% -> rejected. The boundary is a judgement call about how much of the
         // pack a charge has to cover before extrapolating to full capacity is defensible.
-        EvLog log = atVehicleLog(51.06, 16, 90, LocalDateTime.now());
+        EvLog log = atVehicleLog(54.52, 11, 90, LocalDateTime.now());
 
         assertTrue(detectSoh(List.of(log), BATTERY_75).isEmpty(),
-                "A 74% SoC hub must not qualify");
+                "A 79% SoC hub must not qualify");
     }
 
     @Test
     void acceptsLogExactlyAtThreshold() {
-        // hub = 75% -> qualifies. 51.7613 / 75 * 100 = 69.0150 kWh -> 92.02%
-        EvLog log = atVehicleLog(51.76125, 15, 90, LocalDateTime.now());
+        // hub = 80% -> qualifies. 55.212 / 80 * 100 = 69.015 kWh -> 92.02%
+        EvLog log = atVehicleLog(55.212, 10, 90, LocalDateTime.now());
 
         Optional<BigDecimal> soh = detectSoh(List.of(log), BATTERY_75);
 
-        assertTrue(soh.isPresent(), "A 75% SoC hub must qualify (boundary is inclusive)");
+        assertTrue(soh.isPresent(), "An 80% SoC hub must qualify (boundary is inclusive)");
         assertEquals(new BigDecimal("92.02"), soh.get());
     }
 
@@ -180,11 +180,11 @@ class BatterySohAutoDetectorTest {
 
     @Test
     void weightsEstimatesBySocHub_largerHubWins() {
-        // 60 kWh from a 75% hub (weight 75), 70 kWh from a 100% hub (weight 100).
-        // Cumulative weight crosses half of 175 only at the 70 kWh estimate.
+        // 60 kWh from an 80% hub (weight 80), 70 kWh from a 100% hub (weight 100).
+        // Cumulative weight crosses half of 180 only at the 70 kWh estimate.
         // Unweighted this would land on 60 kWh (lower middle of two values).
         List<EvLog> logs = List.of(
-                atVehicleLog(45.00, 15, 90, LocalDateTime.now().minusDays(2)),  // 60 kWh, hub 75
+                atVehicleLog(48.00, 10, 90, LocalDateTime.now().minusDays(2)),  // 60 kWh, hub 80
                 atVehicleLog(70.00, 0, 100, LocalDateTime.now().minusDays(1))   // 70 kWh, hub 100
         );
 
@@ -202,7 +202,7 @@ class BatterySohAutoDetectorTest {
         // the magnitude of the capacity.
         List<EvLog> logs = List.of(
                 atVehicleLog(60.00, 0, 100, LocalDateTime.now().minusDays(2)),  // 60 kWh, hub 100
-                atVehicleLog(52.50, 15, 90, LocalDateTime.now().minusDays(1))   // 70 kWh, hub 75
+                atVehicleLog(56.00, 10, 90, LocalDateTime.now().minusDays(1))   // 70 kWh, hub 80
         );
 
         Optional<BigDecimal> soh = detectSoh(logs, BATTERY_75);
@@ -217,8 +217,8 @@ class BatterySohAutoDetectorTest {
         // One wildly wrong estimate (100 kWh) with the largest hub must not take over:
         // a weighted median picks a value, it does not average toward the outlier.
         List<EvLog> logs = List.of(
-                atVehicleLog(52.50, 15, 90, LocalDateTime.now().minusDays(3)),  // 70 kWh, hub 75
-                atVehicleLog(53.25, 15, 90, LocalDateTime.now().minusDays(2)),  // 71 kWh, hub 75
+                atVehicleLog(56.00, 10, 90, LocalDateTime.now().minusDays(3)),  // 70 kWh, hub 80
+                atVehicleLog(56.80, 10, 90, LocalDateTime.now().minusDays(2)),  // 71 kWh, hub 80
                 atVehicleLog(100.00, 0, 100, LocalDateTime.now().minusDays(1))  // 100 kWh, hub 100
         );
 
@@ -282,9 +282,9 @@ class BatterySohAutoDetectorTest {
     @Test
     void reportsSocHubOfTheEstimateThatCarriedTheMedian() {
         // The 70 kWh estimate (hub 100) wins the weighted median, so 100 is the hub the
-        // displayed value actually rests on - not the 75 of the other charge.
+        // displayed value actually rests on - not the 80 of the other charge.
         List<EvLog> logs = List.of(
-                atVehicleLog(45.00, 15, 90, LocalDateTime.now().minusDays(2)),  // 60 kWh, hub 75
+                atVehicleLog(48.00, 10, 90, LocalDateTime.now().minusDays(2)),  // 60 kWh, hub 80
                 atVehicleLog(70.00, 0, 100, LocalDateTime.now().minusDays(1))   // 70 kWh, hub 100
         );
 
