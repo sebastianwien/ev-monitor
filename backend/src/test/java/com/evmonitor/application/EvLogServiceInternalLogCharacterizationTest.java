@@ -29,7 +29,7 @@ class EvLogServiceInternalLogCharacterizationTest extends AbstractIntegrationTes
     private EvLogService evLogService;
 
     private User user;
-    /** 75 kWh Netto-Kapazität, also 0,75 kWh je SoC-Punkt im R15-Fallback. */
+    /** 75 kWh Netto-Kapazität ohne Degradation. */
     private Car car;
 
     @BeforeEach
@@ -62,13 +62,15 @@ class EvLogServiceInternalLogCharacterizationTest extends AbstractIntegrationTes
         assertThat(singleLog().getDataSource()).isEqualTo(DataSource.WALLBOX_OCPP);
     }
 
-    /** R15 ohne saubere Vorladungen: Fallback Nominal-Netto-Kapazität / 100 (nicht SoH-bereinigt). */
+    /** R15 ohne saubere Vorladungen: Fallback SoH-bereinigte Kapazität / 100 (R2f). */
     @Test
-    void missedStart_withoutCleanCharges_derivesSocBeforeFromNominalCapacity() {
+    void missedStart_withoutCleanCharges_derivesSocBeforeFromEffectiveCapacity() {
+        car = carRepository.save(car.toBuilder().batteryDegradationPercent(new BigDecimal("20")).build());
+
         evLogService.createInternalLog(missedStart(at(10), "15.0", "80"));
 
-        // 15 kWh / 0,75 kWh je Punkt = 20 Punkte → 80 - 20
-        assertThat(singleLog().getSocBeforeChargePercent()).isEqualByComparingTo("60");
+        // 75 kWh bei 20 % Degradation = 60 kWh, 15 kWh / 0,6 kWh je Punkt = 25 Punkte → 80 - 25
+        assertThat(singleLog().getSocBeforeChargePercent()).isEqualByComparingTo("55");
     }
 
     /** R15 mit sauberen Vorladungen: Median kWh je SoC-Punkt aus eigenen AT_VEHICLE-Ladungen. */

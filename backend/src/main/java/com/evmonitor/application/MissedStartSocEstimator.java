@@ -12,7 +12,7 @@ import java.util.List;
  * <ul>
  *   <li>primaer aus den vollstaendigen Ladungen desselben Autos (median kWh/Punkt) - das faengt
  *       echte Kapazitaet + Ladeverluste ohne SoH-Modell,</li>
- *   <li>Fallback: Nominalkapazitaet / 100.</li>
+ *   <li>Fallback: Kapazitaet / 100 (der Aufrufer liefert sie SoH-bereinigt).</li>
  * </ul>
  * Pure Rechnung, kein DB-/Framework-Zugriff - der Aufrufer liefert die sauberen Ladungen.
  */
@@ -32,15 +32,15 @@ public final class MissedStartSocEstimator {
 
     /**
      * @return geschaetzter Start-SoC (ganze Prozent, geklemmt auf [0, socAfter]) oder null,
-     *         wenn weder saubere Ladungen noch Nominalkapazitaet eine Basis liefern.
+     *         wenn weder saubere Ladungen noch Kapazitaet eine Basis liefern.
      */
     public static BigDecimal estimateSocStart(BigDecimal socAfter, BigDecimal kwh,
-                                              List<Charge> cleanCharges, BigDecimal nominalCapacityKwh) {
+                                              List<Charge> cleanCharges, BigDecimal capacityKwh) {
         if (socAfter == null || kwh == null || kwh.signum() <= 0) return null;
 
         BigDecimal kwhPerPoint = medianKwhPerPoint(cleanCharges);
-        if (kwhPerPoint == null && nominalCapacityKwh != null && nominalCapacityKwh.signum() > 0) {
-            kwhPerPoint = nominalCapacityKwh.divide(HUNDRED, 4, RoundingMode.HALF_UP);
+        if (kwhPerPoint == null && capacityKwh != null && capacityKwh.signum() > 0) {
+            kwhPerPoint = capacityKwh.divide(HUNDRED, 4, RoundingMode.HALF_UP);
         }
         if (kwhPerPoint == null || kwhPerPoint.signum() <= 0) return null;
 

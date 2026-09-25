@@ -227,7 +227,7 @@ public class IngestGateway {
 
     /**
      * R15: median kWh je SoC-Punkt aus den vollständigen Ladungen des Autos, Fallback
-     * Nominalkapazität. Rein rechnend - siehe {@link MissedStartSocEstimator}.
+     * SoH-bereinigte Kapazität. Rein rechnend - siehe {@link MissedStartSocEstimator}.
      */
     private BigDecimal deriveMissedStartSoc(Car car, ChargingEntry entry) {
         List<MissedStartSocEstimator.Charge> cleanCharges = evLogRepository
@@ -236,7 +236,7 @@ public class IngestGateway {
                         l.getSocBeforeChargePercent(), l.getSocAfterChargePercent(), l.getKwhAtVehicle()))
                 .toList();
         return MissedStartSocEstimator.estimateSocStart(
-                entry.socAfter(), entry.kwhCharged(), cleanCharges, car.getNominalNetCapacityKwh());
+                entry.socAfter(), entry.kwhCharged(), cleanCharges, car.getEffectiveBatteryCapacityKwh());
     }
 
     /**
