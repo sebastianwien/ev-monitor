@@ -177,6 +177,16 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a> widersprechen;
             wir löschen Ihre Kopien dann.
           </p>
+          <p class="mt-4">
+            <strong>Import-Protokoll:</strong> Bei jedem Import von Lade- oder Fahrtdaten (Datei-Upload, automatischer
+            Abruf, Übermittlung durch Hersteller oder Wallbox) protokollieren wir Zeitpunkt, Quelle, Anzahl neuer und
+            übersprungener Einträge, Dauer und bei Fehlern die Fehlerart, nicht aber die Inhalte. Zweck ist, Störungen
+            und Formatänderungen bei Herstellern früh zu erkennen. Das Protokoll ist nur intern zugänglich, wird nach
+            90 Tagen gelöscht und bei Löschung Ihres Kontos sofort mitgelöscht. Rechtsgrundlage ist unser berechtigtes
+            Interesse an zuverlässigen Importen (Art. 6 Abs. 1 lit. f DSGVO). Sie können per E-Mail an
+            <a :href="`mailto:${email}`" class="text-green-600 hover:text-green-700">{{ email }}</a> widersprechen;
+            wir löschen Ihre Einträge dann.
+          </p>
         </section>
 
         <section>
@@ -427,7 +437,8 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
           </p>
           <p class="mt-4">
             Technische Rohdaten aus Integrationen werden nach spätestens 28 Tagen gelöscht, pseudonymisierte
-            Kopien importierter Herstellerdateien (Abschnitt 7) nach 180 Tagen; Server-Logfiles
+            Kopien importierter Herstellerdateien (Abschnitt 7) nach 180 Tagen, Import-Protokolle (Abschnitt 7)
+            nach 90 Tagen; Server-Logfiles
             enthalten nur gekürzte IP-Adressen (Abschnitt 3) und werden rollierend überschrieben. Daten, für die gesetzliche Aufbewahrungsfristen gelten (z. B.
             Rechnungsdaten bei Käufen, bis zu 10 Jahre nach § 147 AO), werden bis zum Ablauf dieser Fristen
             aufbewahrt und dann gelöscht. Sicherungskopien der Datenbank werden rotierend aufbewahrt; gelöschte
