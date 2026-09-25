@@ -15,6 +15,10 @@ import java.util.Base64;
  * Der Schluessel wird per SHA-256 aus dem konfigurierten Key abgeleitet, damit jede Key-Laenge
  * volle 256 Bit ergibt. Werte ohne Praefix stammen aus dem frueheren AES-ECB-Format und werden
  * weiterhin gelesen; beim naechsten Schreiben landen sie automatisch im neuen Format.
+ * <p>
+ * Referenzkopie: Genutzt wird die Klasse nur in ev-monitor-connectors (Zugangsdaten der
+ * Hersteller-Anbindungen). Im Core ist sie unbenutzt und liegt hier, damit die Verschlüsselung
+ * öffentlich nachprüfbar ist. Der Connectors-Deploy prüft per diff, dass beide Kopien identisch sind.
  */
 public final class AesEncryption {
 
