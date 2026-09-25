@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import PaymentMethodLogos from '../components/PaymentMethodLogos.vue'
 import { ChartPieIcon, BoltIcon, ArrowTrendingUpIcon, ArrowLeftIcon, MapIcon, HomeIcon } from '@heroicons/vue/24/outline'
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import ChargingSavingsCard from '../components/dashboard/ChargingSavingsCard.vue'
@@ -27,6 +28,12 @@ const carStore = useCarStore()
 const hasFreeSource = computed(() => carStore.cars.some(hasFreeDataSource))
 onMounted(() => { carStore.getCars().catch(() => { /* Kasten bleibt aus - kein Grund die Seite zu stoeren */ }) })
 
+// Trial nur bewerben, wenn der Nutzer ihn noch bekommt (siehe AutoSyncPitch).
+const trialEligible = ref(false)
+onMounted(async () => {
+  try { trialEligible.value = (await subscriptionService.getStatus()).trialEligible === true } catch { trialEligible.value = false }
+})
+
 const plan = ref<'monthly' | 'yearly'>('yearly')
 const loading = ref(false)
 const error = ref('')
@@ -50,7 +57,6 @@ async function checkout() {
 const phantomImgOk = ref(true)
 const curvesImgOk = ref(true)
 
-const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Klarna']
 
 // Beispiel-Fahrt fuer den Trip-Block: eine Winterfahrt, bei der Heizung und Batterie-
 // vorwaermung den Verbrauch erklaeren - genau der Zusammenhang, den das Pack sichtbar macht.
@@ -246,6 +252,7 @@ const dummyEntries = [
 
         <div class="text-center mb-5">
           <p class="text-4xl font-bold text-gray-900 dark:text-gray-100">{{ price }}<span class="text-lg font-normal text-gray-400 dark:text-gray-500"> {{ priceUnit }}</span></p>
+          <p v-if="trialEligible" class="text-sm font-medium text-green-700 dark:text-green-400 mt-2">{{ t('supporter.trial_hint') }} <span class="whitespace-nowrap">{{ price }} {{ priceUnit }}</span></p>
           <p class="text-sm text-gray-400 dark:text-gray-500 mt-1.5">{{ t('supporter.cancel_hint') }}</p>
         </div>
 
@@ -257,14 +264,7 @@ const dummyEntries = [
           <template v-else><HeartIcon class="w-4 h-4" />{{ t('supporter.cta') }}</template>
         </button>
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400 text-center mt-2">{{ error }}</p>
-      </div>
-
-      <!-- Trust + Payments -->
-      <div class="mt-8 text-center">
-        <p class="text-sm text-gray-400 dark:text-gray-500 mb-3">{{ t('supporter.footer_note') }}</p>
-        <div class="flex flex-wrap justify-center gap-1.5">
-          <span v-for="m in payments" :key="m" class="text-xs text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2.5 py-1">{{ m }}</span>
-        </div>
+        <PaymentMethodLogos class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800" :note="t('supporter.footer_note')" />
       </div>
     </div>
   </div>

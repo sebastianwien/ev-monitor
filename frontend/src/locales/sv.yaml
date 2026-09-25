@@ -2482,7 +2482,9 @@ autosync_page:
   b_curve_d: "Se laddkurvan för dina snabbladdningar och vid vilken laddnivå effekten faller. Förutsatt att ditt fordon levererar datan."
   cancel_hint: "Gäller 1 fordon · kan avslutas när som helst"
   cta: "Aktivera AutoSync"
-  footer_note: "Säker betalning, avsluta månadsvis"
+  cta_trial: "Prova gratis i 7 dagar"
+  trial_hint: "De första 7 dagarna gratis, sedan"
+  footer_note: "Säker betalning via Stripe · avsluta när som helst"
   error: "Något gick fel. Försök igen."
 
 supporter:
@@ -2507,6 +2509,7 @@ supporter:
   per_month: "/ månad"
   per_year: "/ år"
   cancel_hint: "Avsluta när som helst. Ingen risk."
+  trial_hint: "De första 7 dagarna gratis, sedan"
   cta: "Bli supporter"
   error: "Kunde inte starta betalningen. Försök igen."
   footer_note: "Säker betalning via Stripe · avsluta när som helst · inga dolda kostnader."
@@ -3357,3 +3360,8 @@ eu_data_act_sync:
     form_btn: "Öppna Bundesnetzagenturs formulär"
     disclaimer: "Mall utan garanti, kontrollera. EV Monitor är inte part och ger ingen juridisk rådgivning."
 
+
+payment_methods:
+  aria: "Accepterade betalsätt"
+  express_apple: "Apple Pay på sekunder"
+  express_google: "Google Pay på sekunder"

@@ -9,6 +9,7 @@ import { useCarStore } from '../stores/car'
 import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
 import { getPricing } from '../config/pricingConfig'
 import { subscriptionService } from '../api/subscriptionService'
+import PaymentMethodLogos from './PaymentMethodLogos.vue'
 
 const { t } = useI18n()
 const countryStore = useCountryStore()
@@ -20,6 +21,13 @@ const pricing = computed(() => getPricing(countryStore.country))
 const carStore = useCarStore()
 const hasFreeSource = computed(() => carStore.cars.some(hasFreeDataSource))
 onMounted(() => { carStore.getCars().catch(() => { /* Kasten bleibt aus */ }) })
+
+// Trial nur bewerben, wenn der Nutzer ihn noch bekommt. Unbekannt (Request fehlgeschlagen)
+// heißt: nicht bewerben, lieber eine Zusage zu wenig als eine falsche.
+const trialEligible = ref(false)
+onMounted(async () => {
+  try { trialEligible.value = (await subscriptionService.getStatus()).trialEligible === true } catch { trialEligible.value = false }
+})
 
 const plan = ref<'monthly' | 'yearly'>('yearly')
 const loading = ref(false)
@@ -42,7 +50,6 @@ async function checkout() {
 
 const phantomImgOk = ref(true)
 const curvesImgOk = ref(true)
-const payments = ['Visa', 'Mastercard', 'Apple Pay', 'Google Pay', 'PayPal', 'Klarna']
 
 const HOUR_MS = 3_600_000
 function daysAgo(days: number, hour = 10): string {
@@ -224,6 +231,7 @@ const dummyEntries = [
 
         <div class="text-center mb-5">
           <p class="text-4xl font-bold text-gray-900 dark:text-gray-100">{{ price }}<span class="text-lg font-normal text-gray-400 dark:text-gray-500"> {{ priceUnit }}</span></p>
+          <p v-if="trialEligible" class="text-sm font-medium text-green-700 dark:text-green-400 mt-2">{{ t('autosync_page.trial_hint') }} <span class="whitespace-nowrap">{{ price }} {{ priceUnit }}</span></p>
           <p class="text-sm text-gray-400 dark:text-gray-500 mt-1.5">{{ t('autosync_page.cancel_hint') }}</p>
         </div>
 
@@ -232,17 +240,10 @@ const dummyEntries = [
           class="w-full inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white dark:text-gray-900 font-semibold py-3.5 rounded-sm text-base shadow-[0_4px_0_0_#166534] dark:shadow-[0_4px_0_0_#064e3b] active:translate-y-1 active:shadow-none transition"
         >
           <template v-if="loading">…</template>
-          <template v-else>{{ t('autosync_page.cta') }}</template>
+          <template v-else>{{ trialEligible ? t('autosync_page.cta_trial') : t('autosync_page.cta') }}</template>
         </button>
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400 text-center mt-2">{{ error }}</p>
-      </div>
-
-      <!-- Trust + Payments -->
-      <div class="mt-8 text-center">
-        <p class="text-sm text-gray-400 dark:text-gray-500 mb-3">{{ t('autosync_page.footer_note') }}</p>
-        <div class="flex flex-wrap justify-center gap-1.5">
-          <span v-for="m in payments" :key="m" class="text-xs text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2.5 py-1">{{ m }}</span>
-        </div>
+        <PaymentMethodLogos class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800" :note="t('autosync_page.footer_note')" />
       </div>
     </div>
   </div>
