@@ -6,7 +6,10 @@ import {
   formatRate,
   sourceLabel,
   HEALTH_LABEL,
+  importCards,
+  connectionSummary,
   type ImportGroup,
+  type ProviderConnectionHealth,
 } from '../importStats'
 
 const group = (over: Partial<ImportGroup>): ImportGroup => ({
@@ -82,5 +85,68 @@ describe('labels', () => {
 
   it('names every health state in words, not only by color', () => {
     expect(HEALTH_LABEL).toEqual({ OK: 'OK', WARN: 'Auffällig', ERROR: 'Gestört' })
+  })
+})
+
+const conn = (over: Partial<ProviderConnectionHealth>): ProviderConnectionHealth => ({
+  provider: 'VW_GROUP',
+  channel: 'SYNC',
+  total: 1,
+  active: 1,
+  failing: 0,
+  paused: 0,
+  inactive: 0,
+  oldestLastSuccessAt: null,
+  topErrors: [],
+  ...over,
+})
+
+describe('connectionSummary', () => {
+  it('shows the total and only the non-zero states in words', () => {
+    expect(connectionSummary(conn({ total: 14, active: 11, failing: 2, paused: 1 }))).toBe(
+      '14 · 11 aktiv, 2 gestört, 1 pausiert',
+    )
+    expect(connectionSummary(conn({ total: 3, active: 0, inactive: 3 }))).toBe('3 · 3 inaktiv')
+  })
+})
+
+describe('importCards', () => {
+  it('attaches connections to the card of the same provider and channel', () => {
+    const cards = importCards(
+      [group({ provider: 'VW_GROUP', channel: 'SYNC' }), group({ provider: 'VW_GROUP', channel: 'UPLOAD' })],
+      { available: true, providers: [conn({ total: 4, active: 4 })] },
+    )
+    expect(cards.map((c) => [c.channel, c.connections?.total ?? null])).toEqual([
+      ['SYNC', 4],
+      ['UPLOAD', null],
+    ])
+  })
+
+  it('adds a card for providers with connections but no imports, failing ones before OK sources', () => {
+    const cards = importCards(
+      [group({ provider: 'TESLA', health: 'OK', events: 90 }), group({ provider: 'XPENG', health: 'WARN' })],
+      {
+        available: true,
+        providers: [
+          conn({ provider: 'SMARTCAR', channel: 'LIVE', total: 2, active: 2 }),
+          conn({ provider: 'GOE', channel: 'SYNC', total: 5, active: 0, failing: 5 }),
+        ],
+      },
+    )
+    expect(cards.map((c) => [c.provider, c.group === null])).toEqual([
+      ['XPENG', false],
+      ['GOE', true],
+      ['TESLA', false],
+      ['SMARTCAR', true],
+    ])
+  })
+
+  it('without connection data every card keeps its imports only', () => {
+    const groups = [group({ provider: 'VW_GROUP', channel: 'SYNC' })]
+    for (const health of [null, { available: false, providers: [] }]) {
+      const cards = importCards(groups, health)
+      expect(cards).toHaveLength(1)
+      expect(cards[0].connections).toBeNull()
+    }
   })
 })

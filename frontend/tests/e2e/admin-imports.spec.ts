@@ -51,7 +51,22 @@ const STATS = {
   ],
 };
 
-async function openImportsTab(page: Page, stats: object = STATS) {
+const CONNECTIONS = {
+  available: true,
+  providers: [
+    {
+      provider: 'VW_GROUP', channel: 'SYNC', total: 14, active: 11, failing: 2, paused: 1, inactive: 0,
+      oldestLastSuccessAt: iso(5 * 3600_000), topErrors: [{ error: 'VwEudaPortalException', count: 2 }],
+    },
+    {
+      provider: 'GOE', channel: 'SYNC', total: 5, active: 0, failing: 5, paused: 0, inactive: 0,
+      oldestLastSuccessAt: null, topErrors: [{ error: 'Connection refused', count: 5 }],
+    },
+  ],
+};
+
+/** connections: Antwort-Body oder HTTP-Status für /stats/imports/connections; ohne Angabe greift der Catch-all. */
+async function openImportsTab(page: Page, stats: object = STATS, connections?: object | number) {
   const requestedDays: string[] = [];
   await page.addInitScript(({ token, keys }) => {
     localStorage.setItem('token', token);
@@ -66,6 +81,12 @@ async function openImportsTab(page: Page, stats: object = STATS) {
     requestedDays.push(new URL(route.request().url()).searchParams.get('days') ?? '');
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(stats) });
   });
+  if (connections !== undefined) {
+    await page.route((url) => url.pathname === '/api/admin/stats/imports/connections', (route) =>
+      typeof connections === 'number'
+        ? route.fulfill({ status: connections, contentType: 'application/json', body: '{}' })
+        : route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(connections) }));
+  }
   await page.goto('/admin?tab=imports');
   return requestedDays;
 }
@@ -86,6 +107,46 @@ test.describe('Admin: Importe', () => {
     await expect(cards.nth(1)).toContainText('Tesla · Live');
     await expect(cards.nth(1)).toContainText('OK');
     expect(requestedDays).toEqual(['30']);
+  });
+
+  test('Verbindungen je Quelle, Hersteller ohne Importe bekommt eigene Karte', async ({ page }) => {
+    await openImportsTab(page, STATS, CONNECTIONS);
+
+    const cards = page.getByTestId('import-source-card');
+    await expect(cards).toHaveCount(3);
+    await expect(cards.first()).toContainText('VW Group · Sync');
+    await expect(cards.first().getByTestId('import-connections')).toHaveText('14 · 11 aktiv, 2 gestört, 1 pausiert');
+    await expect(cards.first()).toContainText('vor 5 Std.');
+    await expect(cards.first()).toContainText('VwEudaPortalException');
+
+    await expect(cards.nth(1)).toContainText('go-e · Sync');
+    await expect(cards.nth(1)).toContainText('Keine Importe im Zeitraum');
+    await expect(cards.nth(1).getByTestId('import-connections')).toHaveText('5 · 5 gestört');
+    await expect(cards.nth(1)).toContainText('Connection refused');
+
+    await expect(cards.nth(2)).toContainText('Tesla · Live');
+    await expect(cards.nth(2).getByTestId('import-connections')).toHaveText('–');
+
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test('Verbindungen nicht abrufbar: Importe bleiben, Spalte zeigt –', async ({ page }) => {
+    await openImportsTab(page, STATS, 502);
+
+    const cards = page.getByTestId('import-source-card');
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first()).toContainText('VW Group · Sync');
+    await expect(cards.first().getByTestId('import-connections')).toHaveText('–');
+    await expect(page.getByText('konnte nicht geladen werden')).toHaveCount(0);
+  });
+
+  test('Connectors ohne Summary-Endpoint: available false zeigt –', async ({ page }) => {
+    await openImportsTab(page, STATS, { available: false, providers: [] });
+
+    const cards = page.getByTestId('import-source-card');
+    await expect(cards).toHaveCount(2);
+    await expect(cards.first().getByTestId('import-connections')).toHaveText('–');
   });
 
   test('Zeitraum 7 Tage lädt neu', async ({ page }) => {

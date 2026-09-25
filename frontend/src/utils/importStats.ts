@@ -39,6 +39,32 @@ export interface ImportStats {
   daily: ImportDailyCount[]
 }
 
+/** Antwort von GET /api/admin/stats/imports/connections (Verbindungen aus Connectors, R2e). */
+export interface ProviderConnectionHealth {
+  provider: string
+  channel: string
+  total: number
+  active: number
+  failing: number
+  paused: number
+  inactive: number
+  oldestLastSuccessAt: string | null
+  topErrors: { error: string; count: number }[]
+}
+
+export interface ConnectionHealth {
+  available: boolean
+  providers: ProviderConnectionHealth[]
+}
+
+/** Eine Karte im Tab: Importe einer Quelle (null, wenn es nur Verbindungen gibt) plus ihre Verbindungen. */
+export interface ImportCard {
+  provider: string
+  channel: string
+  group: ImportGroup | null
+  connections: ProviderConnectionHealth | null
+}
+
 export const HEALTH_LABEL: Record<ImportHealth, string> = { OK: 'OK', WARN: 'Auffällig', ERROR: 'Gestört' }
 
 /** Reihenfolge im Diagramm: Erfolg unten, Störungen oben. */
@@ -90,6 +116,48 @@ const HEALTH_RANK: Record<ImportHealth, number> = { ERROR: 0, WARN: 1, OK: 2 }
 /** Gestörte Quellen zuerst, innerhalb der Ampelfarbe nach Aufrufen. */
 export function sortGroups(groups: ImportGroup[]): ImportGroup[] {
   return [...groups].sort((a, b) => HEALTH_RANK[a.health] - HEALTH_RANK[b.health] || b.events - a.events)
+}
+
+const cardKey = (provider: string, channel: string) => `${provider}-${channel}`
+
+/**
+ * Karten für den Tab: jede Import-Quelle mit ihren Verbindungen. Hersteller mit Verbindungen, aber ohne
+ * Importe im Zeitraum bekommen eine eigene Karte, sonst bliebe genau der Ausfall unsichtbar. Diese stehen,
+ * wenn Verbindungen gestört sind, nach den gestörten und auffälligen Quellen und vor den OK-Quellen.
+ */
+export function importCards(groups: ImportGroup[], health: ConnectionHealth | null): ImportCard[] {
+  const connections = new Map(
+    (health?.available ? health.providers : []).map((c) => [cardKey(c.provider, c.channel), c]),
+  )
+  const cards: ImportCard[] = sortGroups(groups).map((g) => ({
+    provider: g.provider,
+    channel: g.channel,
+    group: g,
+    connections: connections.get(cardKey(g.provider, g.channel)) ?? null,
+  }))
+  const withImports = new Set(groups.map((g) => cardKey(g.provider, g.channel)))
+  const connectionOnly = [...connections.values()]
+    .filter((c) => !withImports.has(cardKey(c.provider, c.channel)))
+    .sort((a, b) => b.failing - a.failing || b.total - a.total)
+    .map((c): ImportCard => ({ provider: c.provider, channel: c.channel, group: null, connections: c }))
+
+  const firstOk = cards.findIndex((c) => c.group?.health === 'OK')
+  const insertAt = firstOk === -1 ? cards.length : firstOk
+  const failing = connectionOnly.filter((c) => c.connections!.failing > 0)
+  const healthy = connectionOnly.filter((c) => c.connections!.failing === 0)
+  return [...cards.slice(0, insertAt), ...failing, ...cards.slice(insertAt), ...healthy]
+}
+
+/** "14 · 11 aktiv, 2 gestört, 1 pausiert": Gesamtzahl und nur die Zustände, die vorkommen. */
+export function connectionSummary(c: ProviderConnectionHealth): string {
+  const states = [
+    [c.active, 'aktiv'],
+    [c.failing, 'gestört'],
+    [c.paused, 'pausiert'],
+    [c.inactive, 'inaktiv'],
+  ] as const
+  const parts = states.filter(([n]) => n > 0).map(([n, label]) => `${n} ${label}`)
+  return parts.length ? `${c.total} · ${parts.join(', ')}` : String(c.total)
 }
 
 export function sourceLabel(provider: string, channel: string): string {
