@@ -54,6 +54,8 @@ public class SubscriptionController {
         response.put("isPremium", user.isPremium());
         response.put("tier", user.getSubscriptionTier().name());
         response.put("premiumEnabled", premiumProperties.isEnabled() || isAdmin);
+        // Spiegelt StripeService.createCheckoutSession: Erstkaeufer bekommen 7 Tage Trial.
+        response.put("trialEligible", !user.isTrialUsed());
         response.put("subscriptionPeriodEnd", user.getSubscriptionPeriodEnd() != null
                 ? user.getSubscriptionPeriodEnd().toString()
                 : null);

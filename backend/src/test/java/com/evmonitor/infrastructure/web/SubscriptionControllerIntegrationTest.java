@@ -49,6 +49,36 @@ class SubscriptionControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getStatus_forNewUser_reportsTrialEligible() {
+        HttpEntity<Void> request = createAuthRequest(testUser.getId(), testUser.getEmail());
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "/api/subscription/status",
+                HttpMethod.GET,
+                request,
+                new ParameterizedTypeReference<>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(true, response.getBody().get("trialEligible"));
+    }
+
+    @Test
+    void getStatus_afterTrialUsed_reportsNotTrialEligible() {
+        userRepository.markTrialUsed(testUser.getId());
+        HttpEntity<Void> request = createAuthRequest(testUser.getId(), testUser.getEmail());
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "/api/subscription/status",
+                HttpMethod.GET,
+                request,
+                new ParameterizedTypeReference<>() {}
+        );
+
+        assertEquals(false, response.getBody().get("trialEligible"));
+    }
+
+    @Test
     void getStatus_withoutAuth_returns403() {
         ResponseEntity<String> response = restTemplate.getForEntity(
                 "/api/subscription/status", String.class);
