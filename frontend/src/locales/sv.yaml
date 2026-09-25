@@ -635,8 +635,6 @@ dashboard:
   tesla_sleeping: Sömn
   smartcar_charging: Laddning
   wallbox_charging: Laddning
-  vwgroup_charging: Laddning
-  vwgroup_connected: Ansluten
   real_range_title: Din verkliga räckvidd
   peer_benchmark_title: i jämförelse
   peer_compact_title: "Snabbjämförelse: Du vs. Community"
@@ -1751,46 +1749,6 @@ imports:
   smartcar_connecting: Ansluter...
   smartcar_connect_btn: Anslut fordonet
   smartcar_support_hint: Har du frågor om installationen?
-  vwgroup_teaser_title: AutoSync för VW Group-fordon
-  vwgroup_teaser_desc: Anslut din Škoda, VW, Audi, SEAT eller CUPRA - automatisk import av alla laddningar och resor.
-  vwgroup_connect_desc: Anslut ditt {brand}-konto för automatisk import av laddningar och resor.
-  vwgroup_connect_btn: Anslut {brand}
-  vwgroup_connecting: Startar...
-  vwgroup_auth_step1: Öppna den här länken i din webbläsare
-  vwgroup_auth_step2: Och ange den här koden
-  vwgroup_expires_in: Går ut om {s}s
-  vwgroup_waiting: Väntar på behörighet...
-  vwgroup_cancel: Avbryt
-  vwgroup_code_expired: Koden har gått ut - försök ansluta igen.
-  vwgroup_confirm_disconnect: Vill du verkligen koppla bort fordonet?
-  vwgroup_disconnect_btn: Koppla bort fordonet
-  vwgroup_state_charging: Laddar
-  vwgroup_state_idle: Parkerad
-  vwgroup_state_unknown: Okänd
-  vwgroup_session_active: Laddning pågår
-  vwgroup_range: Räckvidd
-  vwgroup_cred_desc: Ange dina {brand}-inloggningsuppgifter. Anslutningen underhålls automatiskt - du behöver inte logga in igen.
-  vwgroup_cred_email: E-postadress
-  vwgroup_cred_password: Lösenord
-  vwgroup_cred_submit: Anslut {brand}
-  vwgroup_cred_signing_in: Loggar in...
-  vwgroup_cred_security_note: Dina inloggningsuppgifter lagras inte. De används en gång för att skapa en långlivad åtkomsttoken.
-  vwgroup_cred_wait_hint: Inloggningen kan ta upp till 30 sekunder - vänligen avbryt inte.
-  vwgroup_cred_error_network: Servern kan inte nås. Kontrollera internetanslutningen och försök igen.
-  vwgroup_cred_error_generic: Inloggning misslyckades. Försök igen senare.
-  vwgroup_cred_error_title_auth: Fel inloggningsuppgifter
-  vwgroup_cred_error_title_technical: Tekniskt fel
-  vwgroup_mfa_title: Bekräftelsekod från e-post
-  vwgroup_mfa_desc: "Volkswagen har precis skickat dig en kod via e-post (avsändare vanligtvis noreply{'@'}vw.com). Ange den här för att slutföra inloggningen."
-  vwgroup_mfa_label: Kod
-  vwgroup_mfa_submit: Bekräfta kod
-  vwgroup_mfa_submitting: Kontrollerar...
-  vwgroup_mfa_cancel: Avbryt och starta om
-  vwgroup_mfa_expires_in: Giltig i {m}:{s}
-  vwgroup_mfa_expired: Bekräftelsekoden har gått ut. Starta om med e-post och lösenord.
-  vwgroup_mfa_too_many: För många felaktiga koder. Starta om med e-post och lösenord.
-  vwgroup_mfa_wrong_code: Fel kod. Kontrollera e-posten och försök igen.
-  vwgroup_mfa_email_hint: Kontrollera även skräpmappen. E-postmeddelandet kan ta upp till 2 minuter.
   smartcar_how_title: Hur fungerar AutoSync?
   smartcar_how_q1: Vad är Smartcar?
   smartcar_how_a1: AutoSync använder en tjänst som heter Smartcar i bakgrunden – ett officiellt gränssnitt genom vilket biltillverkare ger appar behörig åtkomst till fordonsdata. Över 30 tillverkare har officiellt godkänt Smartcar, däribland BMW, Volkswagen, Mercedes och Volvo.

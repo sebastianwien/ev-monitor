@@ -6,10 +6,8 @@ import type { Car } from '../../api/carService'
 import LicensePlate from '../car/LicensePlate.vue'
 import CarCardDetails from '../dashboard/CarCardDetails.vue'
 import { carDisplayName } from '../../utils/enumLabel'
-import { isVwGroupBrand } from '../../api/vwGroupService'
 import { useVehicleCharging } from '../../composables/useVehicleCharging'
 import type { SmartcarConnectionStatus } from '../../api/smartcarService'
-import type { VwGroupConnectionStatus } from '../../api/vwGroupService'
 
 /**
  * Mobile Auto-Card-Selektor (<768px). Geteilte Quelle fuer Dashboard + Log-Feed.
@@ -26,7 +24,6 @@ const props = withDefaults(defineProps<{
   currentOdometerKm: number | null
   teslaStatus: any
   smartcarStatus: SmartcarConnectionStatus | null
-  vwGroupStatus: VwGroupConnectionStatus | null
   /**
    * Single-Car-Details direkt in der Card zeigen (Log-Feed). Das Dashboard hat
    * einen eigenen "Mehr Details"-Toggle darunter und setzt dies auf false.
@@ -43,7 +40,6 @@ const { t } = useI18n()
 const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleCharging(
   computed(() => props.cars),
   computed(() => props.smartcarStatus),
-  computed(() => props.vwGroupStatus),
 )
 </script>
 
@@ -123,19 +119,6 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
               class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
               <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
             </span>
-            <template v-if="isVwGroupBrand(car.brand) && vwGroupStatus?.connected">
-              <span v-if="vwGroupStatus.vehicleState === 'charging'"
-                class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>
-                {{ t('dashboard.vwgroup_charging') }}
-                <span v-if="vwGroupStatus.lastSoc != null" class="opacity-75">· {{ vwGroupStatus.lastSoc }}%</span>
-              </span>
-              <span v-else
-                class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                {{ vwGroupStatus.lastSoc != null ? vwGroupStatus.lastSoc + '%' : t('dashboard.vwgroup_connected') }}
-              </span>
-            </template>
             <span v-if="isWallboxCharging()"
               class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
               <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}

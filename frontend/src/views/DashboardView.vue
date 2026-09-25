@@ -70,7 +70,6 @@ import { summarizeTripMonth, resolveTripWindow, tripsInWindow } from '../utils/t
 import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { carDisplayName, enumToLabel } from '../utils/enumLabel'
-import { isVwGroupBrand } from '../api/vwGroupService'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -83,7 +82,7 @@ const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLab
 const {
   selectedCarId, stats, lastMonthStats, insightStats, carInfo, wltp, loading, chartsReady, isInitialLoad, error,
   cars, carImageUrls, selectedTimeRange, selectedGroupBy, customStartDate, customEndDate,
-  importBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, hasDistanceData, avgCostPer100km,
+  importBannerDismissed, teslaStatus, smartcarStatus, hasDistanceData, avgCostPer100km,
   fixedCostPerMonth, displayedCostPer100km, canShowFixedModes, effectiveCostMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
   hasAnyLogs, mergedLogFeed, trips, latestLog, latestTrip: latestTripRaw, currentOdometerKm, sourceInfo, initCars,
@@ -185,7 +184,7 @@ const selectedCar = computed(() =>
 )
 
 const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
-  useVehicleCharging(cars, smartcarStatus, vwGroupStatus)
+  useVehicleCharging(cars, smartcarStatus)
 
 // -- Lifecycle --
 const LS_ACTIVATION_KEY = 'ev_activation_reached'
@@ -466,19 +465,6 @@ onUnmounted(() => {
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
                       </span>
-                      <template v-if="isVwGroupBrand(car.brand) && vwGroupStatus?.connected">
-                        <span v-if="vwGroupStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>
-                          {{ t('dashboard.vwgroup_charging') }}
-                          <span v-if="vwGroupStatus.lastSoc != null" class="opacity-75">· {{ vwGroupStatus.lastSoc }}%</span>
-                        </span>
-                        <span v-else
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                          {{ vwGroupStatus.lastSoc != null ? vwGroupStatus.lastSoc + '%' : t('dashboard.vwgroup_connected') }}
-                        </span>
-                      </template>
                       <span v-if="isWallboxCharging()"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}

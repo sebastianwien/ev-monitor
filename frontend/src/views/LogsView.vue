@@ -92,7 +92,6 @@ import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
 import { useCountryStore } from '../stores/country'
 import { getPricing } from '../config/pricingConfig'
 import { carDisplayName } from '../utils/enumLabel'
-import { isVwGroupBrand } from '../api/vwGroupService'
 import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
 import {
   computeRealCostHint,
@@ -114,7 +113,7 @@ const route = useRoute()
 const {
   selectedCarId, stats, loading, isInitialLoad,
   cars, carImageUrls, wltp,
-  implausibleBannerDismissed, teslaStatus, smartcarStatus, vwGroupStatus, implausibleCount,
+  implausibleBannerDismissed, teslaStatus, smartcarStatus, implausibleCount,
   dismissImplausibleBanner, fetchImplausibleCount, fetchStatistics,
   pricelessCount, pricelessBannerDismissed, dismissPricelessBanner, fetchPricelessCount,
   setLogsSection, currentOdometerKm,
@@ -787,7 +786,7 @@ function chargeCardName(entry: any): string | null {
 }
 
 const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
-  useVehicleCharging(cars, smartcarStatus, vwGroupStatus)
+  useVehicleCharging(cars, smartcarStatus)
 
 // Daten-Reload bei Auto-Wechsel liegt zentral im CarContextLayout.
 const authStore = useAuthStore()
@@ -1315,19 +1314,6 @@ function toggleAllCharges() {
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
                       </span>
-                      <template v-if="isVwGroupBrand(car.brand) && vwGroupStatus?.connected">
-                        <span v-if="vwGroupStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>
-                          {{ t('dashboard.vwgroup_charging') }}
-                          <span v-if="vwGroupStatus.lastSoc != null" class="opacity-75">· {{ vwGroupStatus.lastSoc }}%</span>
-                        </span>
-                        <span v-else
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                          {{ vwGroupStatus.lastSoc != null ? vwGroupStatus.lastSoc + '%' : t('dashboard.vwgroup_connected') }}
-                        </span>
-                      </template>
                       <span v-if="isWallboxCharging()"
                         class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}

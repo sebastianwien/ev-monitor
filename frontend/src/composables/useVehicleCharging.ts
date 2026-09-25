@@ -1,8 +1,6 @@
 import type { Ref } from 'vue'
 import { useWallboxStore } from '../stores/wallbox'
-import { isVwGroupBrand } from '../api/vwGroupService'
 import type { SmartcarConnectionStatus } from '../api/smartcarService'
-import type { VwGroupConnectionStatus } from '../api/vwGroupService'
 
 /** Minimal-Shape, das die Charging-Predicates brauchen. */
 export interface ChargingCar {
@@ -12,7 +10,7 @@ export interface ChargingCar {
 
 /**
  * Kapselt die Frage "laedt dieses Fahrzeug gerade?" fuer die verschiedenen
- * Provider (Smartcar, VW Group, Wallbox). Einzige Quelle fuer Dashboard-
+ * Provider (Smartcar, Wallbox). Einzige Quelle fuer Dashboard-
  * und Log-Feed-Auto-Cards, damit die Glow-Logik nicht dupliziert wird.
  *
  * Wallbox kennt keine carId -> eine laufende Wallbox-Ladung ist nur bei
@@ -21,7 +19,6 @@ export interface ChargingCar {
 export function useVehicleCharging(
   cars: Ref<ChargingCar[]>,
   smartcarStatus: Ref<SmartcarConnectionStatus | null>,
-  vwGroupStatus: Ref<VwGroupConnectionStatus | null>,
 ) {
   const wallboxStore = useWallboxStore()
 
@@ -34,13 +31,8 @@ export function useVehicleCharging(
   const isWallboxCharging = () =>
     wallboxStore.isCharging && cars.value.length === 1
 
-  const isVwGroupCharging = (car: ChargingCar) =>
-    isVwGroupBrand(car.brand) &&
-    vwGroupStatus.value?.connected === true &&
-    vwGroupStatus.value?.vehicleState === 'charging'
-
   const isVehicleCharging = (car: ChargingCar) =>
-    isSmartcarCharging(car) || isVwGroupCharging(car) || isWallboxCharging()
+    isSmartcarCharging(car) || isWallboxCharging()
 
-  return { isVehicleCharging, isSmartcarCharging, isVwGroupCharging, isWallboxCharging }
+  return { isVehicleCharging, isSmartcarCharging, isWallboxCharging }
 }

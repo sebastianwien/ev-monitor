@@ -32,7 +32,7 @@ const TAB_PATHS: readonly string[] = CONTEXT_TABS.map(tab => tab.to)
 
 const {
   selectedCarId, cars, carImageUrls, wltp, currentOdometerKm,
-  teslaStatus, smartcarStatus, vwGroupStatus,
+  teslaStatus, smartcarStatus,
   editingLog, priceAmendingLog, refreshLogsAndGroups, fetchPricelessCount,
 } = provideCarContext()
 
@@ -60,7 +60,6 @@ function shareFromHeader(car: Car) {
         :current-odometer-km="currentOdometerKm"
         :tesla-status="teslaStatus"
         :smartcar-status="smartcarStatus"
-        :vw-group-status="vwGroupStatus"
         :show-inline-details="true"
         @share="shareFromHeader"
       />

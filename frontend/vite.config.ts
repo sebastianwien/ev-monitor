@@ -27,10 +27,6 @@ export default defineConfig(({ mode }) => ({
                 target: 'http://localhost:8081',
                 changeOrigin: true
             },
-            '/api/vwgroup': {
-                target: 'http://localhost:8081',
-                changeOrigin: true
-            },
             '/api/goe': {
                 target: 'http://localhost:8081',
                 changeOrigin: true
