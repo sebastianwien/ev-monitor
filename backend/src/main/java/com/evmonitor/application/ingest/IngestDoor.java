@@ -9,6 +9,9 @@ package com.evmonitor.application.ingest;
 public enum IngestDoor {
     /** Tür 1: Batch aus Public API, Datei-Importen und VW-Historie/Feed ({@code PublicApiImportService}). */
     IMPORT_BATCH,
-    /** Tür 2: Einzelsatz aus Connectors und Wallbox ({@code /api/internal/logs}). */
+    /**
+     * Tür 2: Einzelsatz aus Connectors und Wallbox ({@code /api/internal/logs}); auch
+     * {@code /api/internal/ingest} (Vertrag B), dort je Eintrag ein Aufruf.
+     */
     CONNECTOR_PUSH
 }

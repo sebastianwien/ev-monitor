@@ -289,12 +289,12 @@ public class IngestGateway {
      * Legt eine abgeschlossene Fahrt an. Dedup über {@code externalId} global, auch gegen
      * gelöschte Fahrten: vom Nutzer gelöscht heißt gelöscht, der Sync legt sie nicht neu an.
      *
-     * @return id der angelegten oder schon vorhandenen Fahrt
+     * @return id der angelegten oder schon vorhandenen Fahrt und ob sie neu ist
      * @throws NotFoundException  Auto unbekannt oder gelöscht
      * @throws ForbiddenException Auto gehört nicht dem Nutzer
      */
     @Transactional
-    public UUID ingestTrip(InternalTripRequest req) {
+    public TripIngest ingestTrip(InternalTripRequest req) {
         long started = System.nanoTime();
         try {
             TripIngest ingest = ingestTripOnce(req);
@@ -304,14 +304,15 @@ public class IngestGateway {
                     .tripsSkipped(ingest.created() ? 0 : 1)
                     .durationMs(elapsedMs(started))
                     .build());
-            return ingest.id();
+            return ingest;
         } catch (RuntimeException e) {
             importEvents.record(rejectedOrFailed(tripEvent(req), e, started));
             throw e;
         }
     }
 
-    private record TripIngest(UUID id, boolean created) {}
+    /** @param created false = schon vorhanden (auch gelöscht), {@code id} ist dann die vorhandene Fahrt */
+    public record TripIngest(UUID id, boolean created) {}
 
     private TripIngest ingestTripOnce(InternalTripRequest req) {
         if (req.userId() == null) {

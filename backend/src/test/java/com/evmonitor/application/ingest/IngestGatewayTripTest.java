@@ -87,7 +87,7 @@ class IngestGatewayTripTest {
                 .locationEndGeohash("u33d0k")
                 .build();
 
-        UUID savedId = gateway.ingestTrip(req);
+        UUID savedId = gateway.ingestTrip(req).id();
 
         // Before commit: enricher must not be touched
         verifyNoInteractions(temperatureEnricher);
@@ -111,7 +111,7 @@ class IngestGatewayTripTest {
                 .locationEndGeohash("u33d0k")
                 .build();
 
-        UUID savedId = gateway.ingestTrip(req);
+        UUID savedId = gateway.ingestTrip(req).id();
         triggerAfterCommit();
 
         verify(temperatureEnricher).enrichTrip(
@@ -174,7 +174,7 @@ class IngestGatewayTripTest {
                 .tripEndedAt(null)
                 .build();
 
-        UUID savedId = gateway.ingestTrip(req);
+        UUID savedId = gateway.ingestTrip(req).id();
         triggerAfterCommit();
 
         verify(temperatureEnricher).enrichTrip(
@@ -200,7 +200,7 @@ class IngestGatewayTripTest {
                 .locationStartGeohash("u2ewmk")
                 .build();
 
-        UUID returned = gateway.ingestTrip(req);
+        UUID returned = gateway.ingestTrip(req).id();
         triggerAfterCommit();
 
         verifyNoInteractions(temperatureEnricher);
@@ -220,7 +220,7 @@ class IngestGatewayTripTest {
                 .deletedAt(OffsetDateTime.now().minusDays(1)).build();
         when(tripRepository.findByExternalId(externalId)).thenReturn(java.util.Optional.of(deleted));
 
-        UUID returned = gateway.ingestTrip(baseRequest().externalId(externalId).build());
+        UUID returned = gateway.ingestTrip(baseRequest().externalId(externalId).build()).id();
         triggerAfterCommit();
 
         verify(tripRepository, never()).save(any());

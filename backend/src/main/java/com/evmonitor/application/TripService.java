@@ -32,7 +32,7 @@ public class TripService {
 
     /** Adapter für {@code /api/internal/trips} und den XPeng-Import; Regeln im {@link IngestGateway}. */
     public UUID saveTrip(InternalTripRequest req) {
-        return ingestGateway.ingestTrip(req);
+        return ingestGateway.ingestTrip(req).id();
     }
 
     /**

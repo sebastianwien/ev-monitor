@@ -8,6 +8,9 @@
     "string": "JSON-String",
     "local-date-time-array": "JSON-Array [Jahr, Monat, Tag, Stunde, Minute(, Sekunde(, Nano))], z.B. [2026,1,15,8,0]. So schreibt das RestTemplate von Connectors LocalDateTime heute (Spring-Default ohne WRITE_DATES_AS_TIMESTAMPS=false), der Core liest es über JSR-310.",
     "offset-date-time": "JSON-String ISO-8601 mit Offset, z.B. 2026-01-15T08:00:00Z",
+    "local-date-time": "JSON-String ISO-8601 ohne Offset, z.B. 2026-01-15T08:00:00. Gleiche Semantik wie local-date-time-array.",
+    "array:<Name>": "JSON-Array aus Objekten der Form objects.<Name>",
+    "object:<Name>": "JSON-Objekt der Form objects.<Name>",
     "part": "Multipart-Textteil",
     "file": "Multipart-Dateiteil"
   },
@@ -78,6 +81,75 @@
         "kind": "part",
         "file": "file"
       }
+    },
+    "POST /api/internal/ingest": {
+      "encoding": "json",
+      "fields": {
+        "dataSource": "string",
+        "externalRef": "string",
+        "userId": "uuid",
+        "carId": "uuid",
+        "chargingSessions": "array:IngestChargingSession",
+        "trips": "array:IngestTrip"
+      },
+      "response": {
+        "chargingSessions": "array:IngestEntryResult",
+        "trips": "array:IngestEntryResult"
+      }
+    }
+  },
+  "objects": {
+    "IngestChargingSession": {
+      "loggedAt": "local-date-time",
+      "kwhCharged": "number",
+      "chargeDurationMinutes": "integer",
+      "geohash": "string",
+      "odometerKm": "integer",
+      "odometerSuggestionMinKm": "integer",
+      "odometerSuggestionMaxKm": "integer",
+      "costEur": "number",
+      "pricePerKwh": "number",
+      "chargingType": "string",
+      "energySource": "string",
+      "socBefore": "number",
+      "socAfter": "number",
+      "socStartMissed": "boolean",
+      "temperatureCelsius": "number",
+      "rawImportData": "string",
+      "publicCharging": "boolean",
+      "cpoName": "string",
+      "maxChargingPowerKw": "number",
+      "extras": "object:IngestChargingExtras"
+    },
+    "IngestChargingExtras": {
+      "powerCurvePointsJson": "string",
+      "socCurvePointsJson": "string"
+    },
+    "IngestTrip": {
+      "externalId": "uuid",
+      "tripStartedAt": "offset-date-time",
+      "tripEndedAt": "offset-date-time",
+      "socStart": "number",
+      "socEnd": "number",
+      "odometerStartKm": "number",
+      "odometerEndKm": "number",
+      "distanceKm": "number",
+      "locationStartGeohash": "string",
+      "locationEndGeohash": "string",
+      "outsideTempCelsius": "number",
+      "energyRemainingStartKwh": "number",
+      "energyRemainingEndKwh": "number",
+      "estimatedConsumedKwh": "number",
+      "avgSpeedKmh": "number",
+      "maxSpeedKmh": "number",
+      "status": "string",
+      "rawPayload": "string",
+      "telemetryExtras": "string",
+      "tracePolyline": "string"
+    },
+    "IngestEntryResult": {
+      "status": "string",
+      "id": "uuid"
     }
   }
 }
