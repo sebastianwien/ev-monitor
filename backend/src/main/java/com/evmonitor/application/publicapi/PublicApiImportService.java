@@ -1,17 +1,21 @@
 package com.evmonitor.application.publicapi;
 
 import ch.hsr.geohash.GeoHash;
-import com.evmonitor.application.CoinLogService;
+import com.evmonitor.application.ingest.ChargingEntry;
+import com.evmonitor.application.ingest.IngestCommand;
+import com.evmonitor.application.ingest.IngestDoor;
+import com.evmonitor.application.ingest.IngestGateway;
+import com.evmonitor.application.ingest.IngestResult;
 import com.evmonitor.domain.*;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -51,143 +55,78 @@ public class PublicApiImportService {
 
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
-    private final CoinLogService coinLogService;
     private final CpoNameNormalizer cpoNameNormalizer;
     private final com.evmonitor.application.EvLogService evLogService;
-    private final com.evmonitor.application.LocationPricing locationPricing;
+    private final IngestGateway ingestGateway;
 
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, ApiKey apiKey) {
         return importSessions(userId, request, DataSource.API_UPLOAD);
     }
 
+    /**
+     * Tür 1: parst Datum, Ort und Enums und übergibt an das {@link IngestGateway}. Einträge mit
+     * ungültigem Datum zählen als Fehler; alle Regeln (Bump, Dedup, Tronity, Coins) stehen in der Policy.
+     */
     @Transactional
     public ImportApiResult importSessions(UUID userId, PublicApiSessionRequest request, DataSource dataSource) {
-        Car car = carRepository.findById(request.carId())
-                .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
+        int dateErrors = 0;
+        List<ChargingEntry> entries = new ArrayList<>();
+        for (PublicApiSessionRequest.SessionEntry entry : request.sessions()) {
+            LocalDateTime loggedAt = parseDate(entry.date());
+            if (loggedAt == null) {
+                log.warn("API Upload: Ungültiges Datum '{}' - übersprungen", entry.date());
+                dateErrors++;
+                continue;
+            }
+            entries.add(toChargingEntry(entry, loggedAt));
+        }
 
-        // Critical ownership check
-        if (!car.isOwnedBy(userId)) {
+        IngestResult result;
+        try {
+            result = ingestGateway.ingestCharging(new IngestCommand(
+                    userId, request.carId(), dataSource, IngestDoor.IMPORT_BATCH, entries));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Fahrzeug nicht gefunden");
+        } catch (ForbiddenException e) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
 
-        // Sort chronologically so session grouping works correctly for bulk imports
-        List<PublicApiSessionRequest.SessionEntry> sortedEntries = request.sessions().stream()
-                .sorted((a, b) -> {
-                    LocalDateTime da = parseDate(a.date());
-                    LocalDateTime db = parseDate(b.date());
-                    if (da == null && db == null) return 0;
-                    if (da == null) return 1;
-                    if (db == null) return -1;
-                    return da.compareTo(db);
-                })
+        List<ImportApiResult.ImportedSession> importedResults = result.created().stream()
+                .map(saved -> new ImportApiResult.ImportedSession(
+                        saved.getLoggedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), saved.getId()))
                 .toList();
+        return new ImportApiResult(result.imported(), result.skipped(), result.errors() + dateErrors, 0, importedResults);
+    }
 
-        int imported = 0;
-        int skipped = 0;
-        int errors = 0;
-        List<ImportApiResult.ImportedSession> importedResults = new ArrayList<>();
-        java.util.Set<LocalDateTime> batchUsedTimestamps = new java.util.HashSet<>();
-
-        for (PublicApiSessionRequest.SessionEntry entry : sortedEntries) {
-            try {
-                LocalDateTime loggedAt = parseDate(entry.date());
-                if (loggedAt == null) {
-                    log.warn("API Upload: Ungültiges Datum '{}' — übersprungen", entry.date());
-                    errors++;
-                    continue;
-                }
-
-                // If multiple entries share the same timestamp (e.g. date-only imports with several
-                // sessions per day), bump each one by 10 minutes so they are distinguishable in the log feed.
-                while (batchUsedTimestamps.contains(loggedAt)) {
-                    loggedAt = loggedAt.plusMinutes(10);
-                }
-                batchUsedTimestamps.add(loggedAt);
-
-                if (isDuplicate(request.carId(), loggedAt, entry.kwh(), dataSource)) {
-                    skipped++;
-                    continue;
-                }
-
-                boolean isPublic = Boolean.TRUE.equals(entry.isPublicCharging());
-                String cpoName = cpoNameNormalizer.normalize(entry.cpoName());
-                String geohash = parseGeohash(entry.location(), isPublic ? 7 : 6);
-                ChargingType chargingType = parseEnum(ChargingType.class, entry.chargingType(), ChargingType.UNKNOWN);
-                // Anders als EvLogService.createInternalLog gibt es hier KEINE Inheritance von
-                // tireType/routeType aus dem letzten Log. Bulk-Imports (Tronity etc.) kommen
-                // historisch und u.U. nicht in chronologischer Reihenfolge - "letzter Wert in DB"
-                // wäre dann der zukünftige Wert relativ zum importierten Log und würde stille
-                // Datenkorruption über die gesamte Historik propagieren.
-                RouteType routeType = parseEnum(RouteType.class, entry.routeType(), null);
-                TireType tireType = parseEnum(TireType.class, entry.tireType(), null);
-                EnergyMeasurementType measurementType = parseEnum(EnergyMeasurementType.class, entry.measurementType(), null);
-                // If only kwh_at_vehicle is provided, infer AT_VEHICLE so the EvLog
-                // constructor doesn't fall back to the data-source default (AT_CHARGER for API_UPLOAD).
-                if (measurementType == null && entry.kwhAtVehicle() != null && entry.kwh() == null) {
-                    measurementType = EnergyMeasurementType.AT_VEHICLE;
-                }
-
-                // Tronity reports vehicle-side kWh in the "kwh" field (not grid-side).
-                // Remap to kwh_at_vehicle so the consumption formula uses effectiveKwh directly
-                // instead of applying a charging efficiency factor to a value that already excludes losses.
-                BigDecimal kwhCharged;
-                BigDecimal kwhAtVehicle;
-                if (dataSource == DataSource.TRONITY_IMPORT && entry.kwh() != null && entry.kwhAtVehicle() == null) {
-                    kwhCharged = null;
-                    kwhAtVehicle = BigDecimal.valueOf(entry.kwh());
-                    measurementType = EnergyMeasurementType.AT_VEHICLE;
-                } else {
-                    kwhCharged = entry.kwh() != null ? BigDecimal.valueOf(entry.kwh()) : null;
-                    kwhAtVehicle = entry.kwhAtVehicle() != null ? BigDecimal.valueOf(entry.kwhAtVehicle()) : null;
-                }
-
-                EvLog evLog = EvLog.createFromPublicApi(
-                        request.carId(),
-                        kwhCharged,
-                        kwhAtVehicle,
-                        entry.costEur() != null ? BigDecimal.valueOf(entry.costEur()) : null,
-                        entry.durationMin(),
-                        geohash,
-                        entry.odometerKm(),
-                        entry.maxChargingPowerKw() != null ? BigDecimal.valueOf(entry.maxChargingPowerKw()) : null,
-                        entry.socAfter(),
-                        entry.socBefore(),
-                        loggedAt,
-                        chargingType,
-                        routeType,
-                        tireType,
-                        dataSource,
-                        entry.rawImportData(),
-                        isPublic,
-                        cpoName,
-                        measurementType,
-                        entry.temperatureCelsius()
-                );
-
-                evLog = locationPricing.enrich(evLog, userId);
-
-                EvLog saved;
-                try {
-                    saved = evLogService.save(evLog);
-                } catch (DataIntegrityViolationException e) {
-                    log.debug("API Upload: Duplikat beim Speichern erkannt (race condition) — übersprungen");
-                    skipped++;
-                    continue;
-                }
-                coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.API_UPLOAD_LOG, saved.getId());
-
-                importedResults.add(new ImportApiResult.ImportedSession(
-                        saved.getLoggedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), saved.getId()));
-                imported++;
-
-            } catch (Exception e) {
-                log.warn("API Upload: Fehler beim Verarbeiten einer Session: {}", e.getMessage());
-                errors++;
-            }
+    private ChargingEntry toChargingEntry(PublicApiSessionRequest.SessionEntry entry, LocalDateTime loggedAt) {
+        boolean isPublic = Boolean.TRUE.equals(entry.isPublicCharging());
+        EnergyMeasurementType measurementType = parseEnum(EnergyMeasurementType.class, entry.measurementType(), null);
+        // If only kwh_at_vehicle is provided, infer AT_VEHICLE so the EvLog
+        // constructor doesn't fall back to the data-source default (AT_CHARGER for API_UPLOAD).
+        if (measurementType == null && entry.kwhAtVehicle() != null && entry.kwh() == null) {
+            measurementType = EnergyMeasurementType.AT_VEHICLE;
         }
-
-        return new ImportApiResult(imported, skipped, errors, 0, importedResults);
+        return ChargingEntry.builder()
+                .loggedAt(loggedAt)
+                .kwhCharged(entry.kwh() != null ? BigDecimal.valueOf(entry.kwh()) : null)
+                .kwhAtVehicle(entry.kwhAtVehicle() != null ? BigDecimal.valueOf(entry.kwhAtVehicle()) : null)
+                .measurementType(measurementType)
+                .costEur(entry.costEur() != null ? BigDecimal.valueOf(entry.costEur()) : null)
+                .chargeDurationMinutes(entry.durationMin())
+                .geohash(parseGeohash(entry.location(), isPublic ? 7 : 6))
+                .publicCharging(isPublic)
+                .cpoName(cpoNameNormalizer.normalize(entry.cpoName()))
+                .odometerKm(entry.odometerKm())
+                .maxChargingPowerKw(entry.maxChargingPowerKw() != null ? BigDecimal.valueOf(entry.maxChargingPowerKw()) : null)
+                .socBefore(entry.socBefore())
+                .socAfter(entry.socAfter())
+                .chargingType(parseEnum(ChargingType.class, entry.chargingType(), ChargingType.UNKNOWN))
+                .routeType(parseEnum(RouteType.class, entry.routeType(), null))
+                .tireType(parseEnum(TireType.class, entry.tireType(), null))
+                .temperatureCelsius(entry.temperatureCelsius())
+                .rawImportData(entry.rawImportData())
+                .build();
     }
 
     @Transactional
@@ -245,6 +184,7 @@ public class PublicApiImportService {
                 patch.temperatureCelsius()
         );
 
+        // ingest-bypass: PATCH einer bestehenden API-Ladung
         evLogService.save(patched);
     }
 
@@ -316,22 +256,6 @@ public class PublicApiImportService {
         }
 
         return ApiSessionResponse.fromEvLog(existing);
-    }
-
-    /**
-     * Das VW-Portal liefert denselben Ladevorgang im 15-Minuten-Feed und im Historien-Export
-     * mit leicht abweichendem Startzeitpunkt - daher fuer EU-Data-Act-Importe ein
-     * Toleranzfenster um die Minute; alle anderen Quellen bleiben minutengenau.
-     */
-    static final Duration EU_DATA_ACT_DEDUP_TOLERANCE = Duration.ofMinutes(3);
-
-    private boolean isDuplicate(UUID carId, LocalDateTime loggedAt, Double kwh, DataSource dataSource) {
-        LocalDateTime minute = loggedAt.withSecond(0).withNano(0);
-        if (dataSource == DataSource.EU_DATA_ACT_IMPORT) {
-            return evLogRepository.existsByCarIdAndDataSourceAndLoggedAtBetween(
-                    carId, dataSource, minute.minus(EU_DATA_ACT_DEDUP_TOLERANCE), minute.plus(EU_DATA_ACT_DEDUP_TOLERANCE));
-        }
-        return evLogRepository.existsByCarIdAndLoggedAtAndDataSource(carId, minute, dataSource);
     }
 
     private LocalDateTime parseDate(String raw) {

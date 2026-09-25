@@ -6,8 +6,11 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Entity
 @Table(name = "ev_trip")
@@ -207,5 +210,21 @@ public class EvTrip {
     void prePersist() {
         if (createdAt == null) createdAt = OffsetDateTime.now();
         if (status == null) status = "COMPLETED";
+    }
+
+    /**
+     * Verbrauch einer Fahrt aus dem SoC-Rückgang, mit der SoH-bereinigten Kapazität. Das Auto wird
+     * nur geladen, wenn es etwas zu rechnen gibt. {@code null}, wenn ein SoC fehlt, der SoC nicht
+     * fällt oder Auto bzw. Kapazität unbekannt sind.
+     */
+    public static BigDecimal estimateConsumedKwh(BigDecimal socStart, BigDecimal socEnd, Supplier<Optional<Car>> car) {
+        if (socStart == null || socEnd == null) return null;
+        BigDecimal delta = socStart.subtract(socEnd);
+        if (delta.compareTo(BigDecimal.ZERO) <= 0) return null;
+        BigDecimal capacity = car.get().map(Car::getEffectiveBatteryCapacityKwh).orElse(null);
+        if (capacity == null) return null;
+        return delta.divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP)
+                .multiply(capacity)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 }

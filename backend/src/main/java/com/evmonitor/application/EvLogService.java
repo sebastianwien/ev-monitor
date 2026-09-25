@@ -2,6 +2,11 @@ package com.evmonitor.application;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.consumption.ConsumptionCalculationService;
+import com.evmonitor.application.ingest.ChargingEntry;
+import com.evmonitor.application.ingest.IngestCommand;
+import com.evmonitor.application.ingest.IngestDoor;
+import com.evmonitor.application.ingest.IngestGateway;
+import com.evmonitor.application.ingest.IngestResult;
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ConflictException;
 import com.evmonitor.domain.exception.ForbiddenException;
@@ -54,6 +59,8 @@ public class EvLogService {
     private final ConsumptionCalculationService calculationService;
     private final JpaUserChargingProviderRepository chargingProviderRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final EvLogWriter evLogWriter;
+    private final IngestGateway ingestGateway;
     private final LocationPricing locationPricing;
     private final ChargingSiteService chargingSiteService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
@@ -147,23 +154,10 @@ public class EvLogService {
      */
     @Transactional
     public EvLogResponse createInternalLog(InternalEvLogRequest request) {
-        Car car = carRepository.findById(request.carId())
-                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
-
-        if (!car.isOwnedBy(request.userId())) {
-            throw new IllegalArgumentException("Car does not belong to user");
-        }
-
+        // Unbekannte oder fehlende Quelle: WALLBOX_OCPP, der älteste Aufrufer dieser Tür.
         DataSource source = DataSource.WALLBOX_OCPP;
         if (request.dataSource() != null) {
             try { source = DataSource.valueOf(request.dataSource()); } catch (IllegalArgumentException ignored) {}
-        }
-
-        // Idempotent: skip if already imported (same car + timestamp + data source).
-        // loggedAt wird im EvLog-Konstruktor auf Minuten truncated, daher exakter Match sicher.
-        LocalDateTime loggedAtTruncated = request.loggedAt() != null ? request.loggedAt().withSecond(0).withNano(0) : LocalDateTime.now().withSecond(0).withNano(0);
-        if (evLogRepository.existsByCarIdAndLoggedAtAndDataSource(request.carId(), loggedAtTruncated, source)) {
-            return null;
         }
 
         ChargingType chargingType = ChargingType.UNKNOWN;
@@ -183,67 +177,41 @@ public class EvLogService {
             }
         }
 
-        // R15: hat der Connector einen verpassten Ladestart gemeldet, ist socBefore null.
-        // Aus den vollstaendigen Ladungen desselben Autos herleiten (median kWh/SoC-Punkt).
-        BigDecimal socBefore = request.socBefore();
-        if (Boolean.TRUE.equals(request.socStartMissed()) && socBefore == null) {
-            socBefore = deriveMissedStartSoc(car, request);
+        ChargingEntry entry = ChargingEntry.builder()
+                .loggedAt(request.loggedAt())
+                .kwhCharged(request.kwhCharged())
+                .energySource(energySource)
+                .costEur(request.costEur())
+                .pricePerKwh(request.pricePerKwh())
+                .chargeDurationMinutes(request.chargeDurationMinutes())
+                .geohash(request.geohash())
+                .publicCharging(request.isPublicCharging())
+                .cpoName(request.cpoName())
+                .odometerKm(request.odometerKm())
+                .odometerSuggestionMinKm(request.odometerSuggestionMinKm())
+                .odometerSuggestionMaxKm(request.odometerSuggestionMaxKm())
+                .maxChargingPowerKw(request.maxChargingPowerKw())
+                .socBefore(request.socBefore())
+                .socAfter(request.socAfter())
+                .socStartMissed(request.socStartMissed())
+                .chargingType(chargingType)
+                .temperatureCelsius(request.temperatureCelsius())
+                .rawImportData(request.rawImportData())
+                .powerCurvePointsJson(request.powerCurvePointsJson())
+                .socCurvePointsJson(request.socCurvePointsJson())
+                .build();
+
+        IngestResult result;
+        try {
+            result = ingestGateway.ingestCharging(new IngestCommand(
+                    request.userId(), request.carId(), source, IngestDoor.CONNECTOR_PUSH, List.of(entry)));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Car not found");
+        } catch (ForbiddenException e) {
+            throw new IllegalArgumentException("Car does not belong to user");
         }
-
-        EvLog newLog = EvLog.createFromInternal(
-                request.carId(),
-                request.kwhCharged(),
-                request.chargeDurationMinutes(),
-                request.geohash(),
-                request.loggedAt(),
-                request.odometerSuggestionMinKm(),
-                request.odometerSuggestionMaxKm(),
-                source,
-                request.costEur(),
-                chargingType,
-                request.odometerKm(),
-                socBefore,
-                request.socAfter(),
-                request.temperatureCelsius(),
-                request.rawImportData(),
-                request.isPublicCharging(),
-                request.cpoName(),
-                request.maxChargingPowerKw(),
-                energySource,
-                request.pricePerKwh());
-
-        // Inherit tireType/routeType from the most recent prior log so auto-created logs
-        // (Tesla/Wallbox/SmartCar) don't reset the user's last known setting to NULL/SUMMER.
-        // Uses "before this log's timestamp" so late-arriving logs pick the contemporaneous value.
-        newLog = inheritTireAndRouteType(newLog);
-
-        newLog = locationPricing.enrich(newLog, request.userId());
-
-        EvLog savedLog = save(newLog);
-
-        // Power-curve-Snapshot (~30 Punkte) als JSONB neben den Log persistieren -
-        // ueberlebt das 28-Tage-Retention-Limit auf vehicle_signal_events. Nur Tesla
-        // FULL-Profil-Connectoren liefern hier was, alle anderen lassen NULL.
-        if (request.socCurvePointsJson() != null && !request.socCurvePointsJson().isBlank()) {
-            evLogRepository.updateSocCurvePoints(savedLog.getId(), request.socCurvePointsJson());
-        }
-        if (request.powerCurvePointsJson() != null && !request.powerCurvePointsJson().isBlank()) {
-            evLogRepository.updatePowerCurvePoints(savedLog.getId(), request.powerCurvePointsJson());
-        }
-
-        // Award per-log coins for Tesla imports.
-        // go-eCharger and plain OCPP wallbox coins are TBD and intentionally not awarded here yet.
-        if (source == DataSource.TESLA_FLEET_IMPORT || source == DataSource.TESLA_LIVE) {
-            coinLogService.awardCoinsForEvent(request.userId(), CoinLogService.CoinEvent.TESLA_DAILY_LOG, savedLog.getId());
-        }
-
-        // Internal logs trigger SoH even when only kwhCharged is present (no kwhAtVehicle).
-        // save() already fires SohAutoDetectEvent when kwhAtVehicle != null.
-        if (savedLog.getKwhAtVehicle() == null) {
-            eventPublisher.publishEvent(new SohAutoDetectEvent(car));
-        }
-
-        return EvLogResponse.fromDomain(savedLog);
+        // Idempotent: schon importiert (gleiches Auto, gleiche Minute, gleiche Quelle, auch gelöscht)
+        return result.created().isEmpty() ? null : EvLogResponse.fromDomain(result.created().get(0));
     }
 
     /**
@@ -328,36 +296,6 @@ public class EvLogService {
             throw new IllegalArgumentException("Car does not belong to user");
         }
         return evLogRepository.updateTemperatureIfAbsent(carId, loggedAt, temperatureCelsius);
-    }
-
-    /**
-     * Fills in tireType/routeType from the most recent prior log (per car, by loggedAt) when
-     * the incoming log left them null. Auto-creation paths (Tesla telemetry, OCPP wallbox,
-     * SmartCar) don't carry this metadata, so without inheritance every auto-log writes NULL
-     * and the frontend's "carry over last value" UX silently drifts to SUMMER/COMBINED.
-     * Uses "before loggedAt" so late-arriving telemetry inherits the value that was current
-     * at the time of the charge, not whatever happens to be the latest in DB.
-     */
-    private EvLog inheritTireAndRouteType(EvLog log) {
-        if (log.getTireType() != null && log.getRouteType() != null) return log;
-        LocalDateTime before = log.getLoggedAt() != null ? log.getLoggedAt() : LocalDateTime.now();
-        EvLog.EvLogBuilder builder = log.toBuilder();
-        boolean changed = false;
-        if (log.getTireType() == null) {
-            Optional<TireType> inherited = evLogRepository.findMostRecentTireTypeBefore(log.getCarId(), before);
-            if (inherited.isPresent()) {
-                builder.tireType(inherited.get());
-                changed = true;
-            }
-        }
-        if (log.getRouteType() == null) {
-            Optional<RouteType> inherited = evLogRepository.findMostRecentRouteTypeBefore(log.getCarId(), before);
-            if (inherited.isPresent()) {
-                builder.routeType(inherited.get());
-                changed = true;
-            }
-        }
-        return changed ? builder.build() : log;
     }
 
     /**
@@ -452,14 +390,7 @@ public class EvLogService {
 
     @Transactional
     public EvLog save(EvLog evLog) {
-        EvLog saved = evLogRepository.save(evLog);
-        eventPublisher.publishEvent(EvLogSavedEvent.of(saved.getId(), saved.getGeohash(), saved.getLoggedAt(),
-                saved.getChargeDurationMinutes(), saved.getTemperatureCelsius()));
-        if (saved.getKwhAtVehicle() != null) {
-            carRepository.findById(saved.getCarId()).ifPresent(car ->
-                    eventPublisher.publishEvent(new SohAutoDetectEvent(car)));
-        }
-        return saved;
+        return evLogWriter.save(evLog);
     }
 
     public List<EvLogResponse> getStandaloneLogsForUser(UUID userId) {
@@ -542,22 +473,6 @@ public class EvLogService {
             log.warn("Failed to parse soc-curve JSON for log {}: {}", logId, e.getMessage());
             return PowerCurveResponse.empty();
         }
-    }
-
-    @Transactional
-    /**
-     * R15: leitet den verpassten Start-SoC aus den vollstaendigen Ladungen desselben Autos her
-     * (median kWh/SoC-Punkt), Fallback Nominalkapazitaet. Rein rechnend - siehe
-     * {@link MissedStartSocEstimator}.
-     */
-    private BigDecimal deriveMissedStartSoc(Car car, InternalEvLogRequest request) {
-        List<MissedStartSocEstimator.Charge> cleanCharges = evLogRepository
-                .findRecentAtVehicleLogsWithSoc(car.getId(), 40).stream()
-                .map(l -> new MissedStartSocEstimator.Charge(
-                        l.getSocBeforeChargePercent(), l.getSocAfterChargePercent(), l.getKwhAtVehicle()))
-                .toList();
-        return MissedStartSocEstimator.estimateSocStart(
-                request.socAfter(), request.kwhCharged(), cleanCharges, car.getNominalNetCapacityKwh());
     }
 
     /**

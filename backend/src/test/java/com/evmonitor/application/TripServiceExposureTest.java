@@ -6,7 +6,6 @@ import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.domain.User;
-import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +46,6 @@ class TripServiceExposureTest {
 
     @Mock EvTripRepository tripRepository;
     @Mock CarRepository carRepository;
-    @Mock TemperatureEnricher temperatureEnricher;
     @Mock Car car;
     @Mock User user;
 
@@ -58,7 +56,7 @@ class TripServiceExposureTest {
 
     @BeforeEach
     void setUp() {
-        tripService = new TripService(tripRepository, carRepository, new ObjectMapper(), temperatureEnricher, org.mockito.Mockito.mock(com.evmonitor.domain.route.RouteSketcher.class));
+        tripService = new TripService(tripRepository, carRepository, new ObjectMapper(), org.mockito.Mockito.mock(com.evmonitor.application.ingest.IngestGateway.class));
         lenient().when(user.getId()).thenReturn(USER_ID);
         lenient().when(user.canViewLiveTrips(any())).thenReturn(true);
         lenient().when(user.canBypassEligibilityGate()).thenReturn(true);

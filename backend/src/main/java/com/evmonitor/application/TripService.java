@@ -1,9 +1,8 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.ingest.IngestGateway;
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ValidationException;
-import com.evmonitor.domain.route.RouteSketcher;
-import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
@@ -11,12 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import org.springframework.data.domain.Pageable;
 import java.time.ZoneOffset;
@@ -32,107 +28,11 @@ public class TripService {
     private final EvTripRepository tripRepository;
     private final CarRepository carRepository;
     private final ObjectMapper objectMapper;
-    private final TemperatureEnricher temperatureEnricher;
-    private final RouteSketcher routeSketcher;
+    private final IngestGateway ingestGateway;
 
-    @Transactional
+    /** Adapter für {@code /api/internal/trips} und den XPeng-Import; Regeln im {@link IngestGateway}. */
     public UUID saveTrip(InternalTripRequest req) {
-        if (req.userId() == null) {
-            throw new ValidationException("userId is required");
-        }
-        if (req.externalId() != null) {
-            // Auch gelöschte Trips zählen: vom User gelöscht heißt gelöscht, der Sync legt
-            // sie nicht neu an und fasst den Tombstone nicht an.
-            var existing = tripRepository.findByExternalId(req.externalId());
-            if (existing.isPresent()) {
-                log.debug("Trip with externalId={} already exists (deleted={}) - skipping",
-                        req.externalId(), existing.get().getDeletedAt() != null);
-                return existing.get().getId();
-            }
-        }
-
-        EvTrip trip = EvTrip.builder()
-                .externalId(req.externalId())
-                .carId(req.carId())
-                .userId(req.userId())
-                .dataSource(req.dataSource())
-                .tripStartedAt(req.tripStartedAt())
-                .tripEndedAt(req.tripEndedAt())
-                .socStart(req.socStart())
-                .socEnd(req.socEnd())
-                .odometerStartKm(req.odometerStartKm())
-                .odometerEndKm(req.odometerEndKm())
-                .distanceKm(req.distanceKm())
-                .locationStartGeohash(req.locationStartGeohash())
-                .locationEndGeohash(req.locationEndGeohash())
-                .outsideTempCelsius(req.outsideTempCelsius())
-                .energyRemainingStartKwh(req.energyRemainingStartKwh())
-                .energyRemainingEndKwh(req.energyRemainingEndKwh())
-                .estimatedConsumedKwh(req.estimatedConsumedKwh())
-                .avgSpeedKmh(req.avgSpeedKmh())
-                .maxSpeedKmh(req.maxSpeedKmh())
-                .status(req.status() != null ? req.status() : "COMPLETED")
-                .rawPayload(req.rawPayload())
-                .telemetryExtras(req.telemetryExtras())
-                .tracePolyline(req.tracePolyline())
-                .userCreated(false)
-                .build();
-
-        if (trip.getEstimatedConsumedKwh() == null) {
-            trip.setEstimatedConsumedKwh(
-                    calculateEstimatedConsumedKwh(req.socStart(), req.socEnd(), req.carId()));
-        }
-
-        EvTrip saved = tripRepository.save(trip);
-        log.info("Trip saved: id={} externalId={} car={} distance={} km",
-                saved.getId(), req.externalId(), req.carId(), req.distanceKm());
-
-        if (req.outsideTempCelsius() == null
-                && req.tripStartedAt() != null
-                && (req.locationStartGeohash() != null || req.locationEndGeohash() != null)) {
-            final UUID tripId = saved.getId();
-            final String startGeohash = req.locationStartGeohash();
-            final String endGeohash = req.locationEndGeohash();
-            final LocalDateTime startedAt = req.tripStartedAt().toLocalDateTime();
-            final LocalDateTime endedAt = req.tripEndedAt() != null ? req.tripEndedAt().toLocalDateTime() : null;
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    temperatureEnricher.enrichTrip(tripId, startGeohash, endGeohash, startedAt, endedAt);
-                }
-            });
-        }
-
-        // Die Linie haengt an denselben Geohashes wie die Temperatur, wird aber unabhaengig
-        // davon geholt - eine Fahrt kann ihre Temperatur schon mitbringen und trotzdem eine
-        // Route brauchen. Nach dem Commit, damit der Trip in der DB steht, bevor der
-        // asynchrone Task ihn aktualisiert.
-        //
-        // Bringt die Fahrt ihre gefahrene Spur mit, bekommt der Router sie statt der beiden
-        // Enden: er legt sie auf das Strassennetz, statt einen Weg zu erfinden. Erst ohne
-        // Spur bleibt die Skizze zwischen Start- und Zielgegend.
-        final UUID tripIdForRoute = saved.getId();
-        if (req.tracePolyline() != null) {
-            final String trace = req.tracePolyline();
-            final BigDecimal drivenKm = trip.getDistanceKm();
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    routeSketcher.matchTrace(tripIdForRoute, trace, drivenKm);
-                }
-            });
-        } else if (req.locationStartGeohash() != null && req.locationEndGeohash() != null) {
-            final String routeStart = req.locationStartGeohash();
-            final String routeEnd = req.locationEndGeohash();
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    routeSketcher.sketchTrip(tripIdForRoute, routeStart, routeEnd);
-                }
-            });
-        }
-
-        return saved.getId();
+        return ingestGateway.ingestTrip(req);
     }
 
     /**
@@ -234,8 +134,8 @@ public class TripService {
 
         BigDecimal mergedSocStart = earlier.getSocStart();
         BigDecimal mergedSocEnd   = later.getSocEnd();
-        BigDecimal estimatedConsumedKwh = calculateEstimatedConsumedKwh(
-                mergedSocStart, mergedSocEnd, surviving.getCarId());
+        BigDecimal estimatedConsumedKwh = EvTrip.estimateConsumedKwh(
+                mergedSocStart, mergedSocEnd, () -> carRepository.findById(surviving.getCarId()));
         if (estimatedConsumedKwh == null) {
             estimatedConsumedKwh = sumNullable(
                     earlier.getEstimatedConsumedKwh(), later.getEstimatedConsumedKwh(), 2);
@@ -270,19 +170,6 @@ public class TripService {
         tripRepository.save(other);
 
         return project(tripRepository.save(surviving), user);
-    }
-
-    private BigDecimal calculateEstimatedConsumedKwh(BigDecimal socStart, BigDecimal socEnd, UUID carId) {
-        if (socStart == null || socEnd == null) return null;
-        BigDecimal delta = socStart.subtract(socEnd);
-        if (delta.compareTo(BigDecimal.ZERO) <= 0) return null;
-        Car car = carRepository.findById(carId).orElse(null);
-        if (car == null) return null;
-        BigDecimal capacity = car.getEffectiveBatteryCapacityKwh();
-        if (capacity == null) return null;
-        return delta.divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP)
-                .multiply(capacity)
-                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private String mergeRouteType(String a, String b) {

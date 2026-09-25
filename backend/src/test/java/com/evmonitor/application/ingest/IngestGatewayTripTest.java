@@ -1,11 +1,11 @@
-package com.evmonitor.application;
+package com.evmonitor.application.ingest;
 
+import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.domain.route.RouteSketcher;
 import com.evmonitor.domain.weather.TemperatureEnricher;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Verifies that {@link TripService#saveTrip} wires its two afterCommit hooks correctly:
+ * Verifies that {@link IngestGateway#ingestTrip} wires its two afterCommit hooks correctly:
  *
  * <ul>
  *   <li>der Temperatur-Enricher, sobald die Fahrt keine Temperatur, aber mindestens einen
@@ -39,22 +39,20 @@ import static org.mockito.Mockito.*;
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
-class TripServiceEnrichmentTest {
+class IngestGatewayTripTest {
 
     @Mock EvTripRepository tripRepository;
     @Mock CarRepository carRepository;
     @Mock TemperatureEnricher temperatureEnricher;
     @Mock RouteSketcher routeSketcher;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private TripService tripService;
+    @InjectMocks IngestGateway gateway;
 
     private static final OffsetDateTime START = OffsetDateTime.of(2026, 5, 10, 9, 0, 0, 0, ZoneOffset.UTC);
     private static final OffsetDateTime END = OffsetDateTime.of(2026, 5, 10, 9, 45, 0, 0, ZoneOffset.UTC);
 
     @BeforeEach
     void setUp() {
-        tripService = new TripService(tripRepository, carRepository, objectMapper, temperatureEnricher, routeSketcher);
         TransactionSynchronizationManager.initSynchronization();
         lenient().when(tripRepository.save(any(EvTrip.class))).thenAnswer(inv -> {
             EvTrip trip = inv.getArgument(0);
@@ -71,14 +69,14 @@ class TripServiceEnrichmentTest {
     }
 
     @Test
-    void saveTrip_missingTempWithBothGeohashes_triggersEnricherAfterCommit() {
+    void ingestTrip_missingTempWithBothGeohashes_triggersEnricherAfterCommit() {
         InternalTripRequest req = baseRequest()
                 .outsideTempCelsius(null)
                 .locationStartGeohash("u2ewmk")
                 .locationEndGeohash("u33d0k")
                 .build();
 
-        UUID savedId = tripService.saveTrip(req);
+        UUID savedId = gateway.ingestTrip(req);
 
         // Before commit: enricher must not be touched
         verifyNoInteractions(temperatureEnricher);
@@ -95,14 +93,14 @@ class TripServiceEnrichmentTest {
     }
 
     @Test
-    void saveTrip_missingTempWithOnlyEndGeohash_triggersEnricherWithNullStartGeohash() {
+    void ingestTrip_missingTempWithOnlyEndGeohash_triggersEnricherWithNullStartGeohash() {
         InternalTripRequest req = baseRequest()
                 .outsideTempCelsius(null)
                 .locationStartGeohash(null)
                 .locationEndGeohash("u33d0k")
                 .build();
 
-        UUID savedId = tripService.saveTrip(req);
+        UUID savedId = gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verify(temperatureEnricher).enrichTrip(
@@ -115,49 +113,49 @@ class TripServiceEnrichmentTest {
     }
 
     @Test
-    void saveTrip_withExistingTemperature_doesNotEnrich() {
+    void ingestTrip_withExistingTemperature_doesNotEnrich() {
         InternalTripRequest req = baseRequest()
                 .outsideTempCelsius(new BigDecimal("12.3"))
                 .locationStartGeohash("u2ewmk")
                 .locationEndGeohash("u33d0k")
                 .build();
 
-        tripService.saveTrip(req);
+        gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verifyNoInteractions(temperatureEnricher);
     }
 
     @Test
-    void saveTrip_withNoGeohashes_doesNotEnrich() {
+    void ingestTrip_withNoGeohashes_doesNotEnrich() {
         InternalTripRequest req = baseRequest()
                 .outsideTempCelsius(null)
                 .locationStartGeohash(null)
                 .locationEndGeohash(null)
                 .build();
 
-        tripService.saveTrip(req);
+        gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verifyNoInteractions(temperatureEnricher);
     }
 
     @Test
-    void saveTrip_withNullTripStartedAt_doesNotEnrich() {
+    void ingestTrip_withNullTripStartedAt_doesNotEnrich() {
         InternalTripRequest req = baseRequest()
                 .outsideTempCelsius(null)
                 .locationStartGeohash("u2ewmk")
                 .tripStartedAt(null)
                 .build();
 
-        tripService.saveTrip(req);
+        gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verifyNoInteractions(temperatureEnricher);
     }
 
     @Test
-    void saveTrip_withNullTripEndedAt_stillEnrichesWithNullEnd() {
+    void ingestTrip_withNullTripEndedAt_stillEnrichesWithNullEnd() {
         InternalTripRequest req = baseRequest()
                 .outsideTempCelsius(null)
                 .locationStartGeohash("u2ewmk")
@@ -165,7 +163,7 @@ class TripServiceEnrichmentTest {
                 .tripEndedAt(null)
                 .build();
 
-        UUID savedId = tripService.saveTrip(req);
+        UUID savedId = gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verify(temperatureEnricher).enrichTrip(
@@ -178,7 +176,7 @@ class TripServiceEnrichmentTest {
     }
 
     @Test
-    void saveTrip_existingTripByExternalId_skipsEnricher() {
+    void ingestTrip_existingTripByExternalId_skipsEnricher() {
         UUID existingId = UUID.randomUUID();
         UUID externalId = UUID.randomUUID();
         EvTrip existing = EvTrip.builder().id(existingId).externalId(externalId).build();
@@ -191,7 +189,7 @@ class TripServiceEnrichmentTest {
                 .locationStartGeohash("u2ewmk")
                 .build();
 
-        UUID returned = tripService.saveTrip(req);
+        UUID returned = gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verifyNoInteractions(temperatureEnricher);
@@ -204,14 +202,14 @@ class TripServiceEnrichmentTest {
      * noch anfassen. Der Tombstone ist der Schutz gegen Wiederkehr.
      */
     @Test
-    void saveTrip_existingTripWasDeletedByUser_isNeitherRecreatedNorTouched() {
+    void ingestTrip_existingTripWasDeletedByUser_isNeitherRecreatedNorTouched() {
         UUID existingId = UUID.randomUUID();
         UUID externalId = UUID.randomUUID();
         EvTrip deleted = EvTrip.builder().id(existingId).externalId(externalId)
                 .deletedAt(OffsetDateTime.now().minusDays(1)).build();
         when(tripRepository.findByExternalId(externalId)).thenReturn(java.util.Optional.of(deleted));
 
-        UUID returned = tripService.saveTrip(baseRequest().externalId(externalId).build());
+        UUID returned = gateway.ingestTrip(baseRequest().externalId(externalId).build());
         triggerAfterCommit();
 
         verify(tripRepository, never()).save(any());
@@ -229,12 +227,12 @@ class TripServiceEnrichmentTest {
      * blieben gruen, weil sie entweder den Request oder eine von Hand gesetzte Entity lesen.
      */
     @Test
-    void saveTrip_persistsTheTraceOnTheStoredTrip() {
+    void ingestTrip_persistsTheTraceOnTheStoredTrip() {
         InternalTripRequest req = baseRequest()
                 .tracePolyline("_p~iF~ps|U_ulLnnqC")
                 .build();
 
-        tripService.saveTrip(req);
+        gateway.ingestTrip(req);
 
         ArgumentCaptor<EvTrip> saved = ArgumentCaptor.forClass(EvTrip.class);
         verify(tripRepository).save(saved.capture());
@@ -243,7 +241,7 @@ class TripServiceEnrichmentTest {
     }
 
     @Test
-    void saveTrip_withTrace_matchesItInsteadOfSketchingBetweenTheEnds() {
+    void ingestTrip_withTrace_matchesItInsteadOfSketchingBetweenTheEnds() {
         InternalTripRequest req = baseRequest()
                 .locationStartGeohash("u2ewmk")
                 .locationEndGeohash("u33d0k")
@@ -251,7 +249,7 @@ class TripServiceEnrichmentTest {
                 .tracePolyline("_p~iF~ps|U_ulLnnqC")
                 .build();
 
-        tripService.saveTrip(req);
+        gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verify(routeSketcher).matchTrace(any(UUID.class), eq("_p~iF~ps|U_ulLnnqC"), eq(new BigDecimal("25.0")));
@@ -263,27 +261,27 @@ class TripServiceEnrichmentTest {
      * Geohashes nicht.
      */
     @Test
-    void saveTrip_withTraceButWithoutGeohashes_stillMatches() {
+    void ingestTrip_withTraceButWithoutGeohashes_stillMatches() {
         InternalTripRequest req = baseRequest()
                 .outsideTempCelsius(new BigDecimal("12.0"))
                 .tracePolyline("_p~iF~ps|U_ulLnnqC")
                 .build();
 
-        tripService.saveTrip(req);
+        gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verify(routeSketcher).matchTrace(any(UUID.class), eq("_p~iF~ps|U_ulLnnqC"), eq(new BigDecimal("25.0")));
     }
 
     @Test
-    void saveTrip_withoutTrace_sketchesTheRouteBetweenBothEnds() {
+    void ingestTrip_withoutTrace_sketchesTheRouteBetweenBothEnds() {
         InternalTripRequest req = baseRequest()
                 .locationStartGeohash("u2ewmk")
                 .locationEndGeohash("u33d0k")
                 .outsideTempCelsius(new BigDecimal("12.0"))
                 .build();
 
-        tripService.saveTrip(req);
+        gateway.ingestTrip(req);
         triggerAfterCommit();
 
         verify(routeSketcher).sketchTrip(any(UUID.class), eq("u2ewmk"), eq("u33d0k"));
