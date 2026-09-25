@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { classifyEudaHealth } from '../useEudaHealth'
-import type { EudaSyncActivity } from '../../api/euDataActSyncService'
+import { classifyVwEudaHealth } from '../useVwEudaHealth'
+import type { VwEudaSyncActivity } from '../../api/vwEudaSyncService'
 
 const NOW = new Date('2026-09-21T10:00:00Z')
 
-function delivery(createdOn: string): EudaSyncActivity['deliveries'][number] {
+function delivery(createdOn: string): VwEudaSyncActivity['deliveries'][number] {
   return { filename: `${createdOn}.zip`, createdOn, sizeBytes: 4000, outcome: 'NO_CHARGING_DATA', sessionsImported: 0, sessionsSkipped: 0, error: null }
 }
 
-function activity(over: Partial<EudaSyncActivity['connection']> = {}, summary: Partial<EudaSyncActivity['summary']> = {}, deliveries: EudaSyncActivity['deliveries'] = []): EudaSyncActivity {
+function activity(over: Partial<VwEudaSyncActivity['connection']> = {}, summary: Partial<VwEudaSyncActivity['summary']> = {}, deliveries: VwEudaSyncActivity['deliveries'] = []): VwEudaSyncActivity {
   return {
     provider: 'VW_GROUP',
     manufacturerContact: 'euda-support@cariad.technology',
@@ -25,87 +25,87 @@ function activity(over: Partial<EudaSyncActivity['connection']> = {}, summary: P
   }
 }
 
-describe('classifyEudaHealth', () => {
+describe('classifyVwEudaHealth', () => {
   it('AUTH_FAILED hat Vorrang', () => {
-    expect(classifyEudaHealth(activity({ status: 'AUTH_FAILED' }), NOW)).toBe('AUTH_FAILED')
+    expect(classifyVwEudaHealth(activity({ status: 'AUTH_FAILED' }), NOW)).toBe('AUTH_FAILED')
   })
 
   it('EXPIRED wird als PAUSED gemeldet', () => {
-    expect(classifyEudaHealth(activity({ status: 'EXPIRED' }), NOW)).toBe('PAUSED')
+    expect(classifyVwEudaHealth(activity({ status: 'EXPIRED' }), NOW)).toBe('PAUSED')
   })
 
   it('ohne Datenanfrage beim Hersteller: NO_REQUEST', () => {
-    expect(classifyEudaHealth(activity({ dataRequestActive: false, consecutiveFailures: 27, lastError: 'Anfrage anlegen HTTP 400' }), NOW)).toBe('NO_REQUEST')
+    expect(classifyVwEudaHealth(activity({ dataRequestActive: false, consecutiveFailures: 27, lastError: 'Anfrage anlegen HTTP 400' }), NOW)).toBe('NO_REQUEST')
   })
 
   it('frisch verbunden ohne Inhalt: WAITING_FIRST', () => {
-    expect(classifyEudaHealth(activity({ connectedAt: '2026-09-21T06:00:00Z' }), NOW)).toBe('WAITING_FIRST')
+    expect(classifyVwEudaHealth(activity({ connectedAt: '2026-09-21T06:00:00Z' }), NOW)).toBe('WAITING_FIRST')
   })
 
   it('seit ueber 24h nur leere Lieferungen: NO_CONTENT', () => {
-    expect(classifyEudaHealth(activity(), NOW)).toBe('NO_CONTENT')
+    expect(classifyVwEudaHealth(activity(), NOW)).toBe('NO_CONTENT')
   })
 
   // Prod 24.09.2026: VW liefert gefuellte Drops mit Ladedaten, unser Parser erkennt sie nicht.
   // Gefuellte Lieferungen ohne uebernommene Ladevorgaenge liegen daher nicht beim Hersteller.
   it('gefuellte Lieferungen ohne Ladevorgaenge: RECEIVING statt Beschwerde', () => {
     const a = activity({ lastDataAt: null }, { deliveriesWithContent: 114, sessionsImported: 0 }, [delivery('2026-09-21T09:45:00Z')])
-    expect(classifyEudaHealth(a, NOW)).toBe('RECEIVING')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('RECEIVING')
   })
 
   it('gefuellte Lieferungen, frisch verbunden: RECEIVING', () => {
     const a = activity({ connectedAt: '2026-09-21T06:00:00Z' }, { deliveriesWithContent: 3 }, [delivery('2026-09-21T09:45:00Z')])
-    expect(classifyEudaHealth(a, NOW)).toBe('RECEIVING')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('RECEIVING')
   })
 
   it('letzter Ladevorgang aelter als 72h, gefuellte Lieferungen laufen weiter: RECEIVING statt STALE', () => {
     const a = activity({ lastDataAt: '2026-09-17T09:00:00Z' }, { deliveriesWithContent: 300, sessionsImported: 3 }, [delivery('2026-09-21T09:45:00Z')])
-    expect(classifyEudaHealth(a, NOW)).toBe('RECEIVING')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('RECEIVING')
   })
 
   it('gefuellte Lieferungen sind seit 72h ausgeblieben: STALE', () => {
     const a = activity({ lastDataAt: null }, { deliveriesWithContent: 50 }, [delivery('2026-09-17T09:00:00Z')])
-    expect(classifyEudaHealth(a, NOW)).toBe('STALE')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('STALE')
   })
 
   it('Inhalt gezaehlt, aber alle Rohdrops schon verfallen: STALE', () => {
-    expect(classifyEudaHealth(activity({ lastDataAt: null }, { deliveriesWithContent: 50 }), NOW)).toBe('STALE')
+    expect(classifyVwEudaHealth(activity({ lastDataAt: null }, { deliveriesWithContent: 50 }), NOW)).toBe('STALE')
   })
 
   it('summary.lastContentAt aus Connectors zaehlt als letzte gefuellte Lieferung', () => {
     const a = activity({ lastDataAt: null }, { deliveriesWithContent: 50, lastContentAt: '2026-09-21T09:45:00Z' })
-    expect(classifyEudaHealth(a, NOW)).toBe('RECEIVING')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('RECEIVING')
   })
 
   it('Ladevorgang innerhalb von 72h: HEALTHY', () => {
     const a = activity({ lastDataAt: '2026-09-21T08:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 1 }, [delivery('2026-09-21T09:45:00Z')])
-    expect(classifyEudaHealth(a, NOW)).toBe('HEALTHY')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('HEALTHY')
   })
 
   it('Inhalt kam, aber seit 72h nichts mehr: STALE', () => {
-    expect(classifyEudaHealth(activity({ lastDataAt: '2026-09-17T09:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 3 }), NOW)).toBe('STALE')
+    expect(classifyVwEudaHealth(activity({ lastDataAt: '2026-09-17T09:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 3 }), NOW)).toBe('STALE')
   })
 
   it('wiederholte Fehler ueberlagern einen gesunden Verlauf', () => {
-    expect(classifyEudaHealth(activity({ lastDataAt: '2026-09-21T09:00:00Z', consecutiveFailures: 3, lastError: 'Portal HTTP 503' }, { deliveriesWithContent: 5 }), NOW)).toBe('FAILING')
+    expect(classifyVwEudaHealth(activity({ lastDataAt: '2026-09-21T09:00:00Z', consecutiveFailures: 3, lastError: 'Portal HTTP 503' }, { deliveriesWithContent: 5 }), NOW)).toBe('FAILING')
   })
 
   it('Historie mit ausgeschoepften Versuchen: HISTORY_FAILED, wenn sonst alles laeuft', () => {
     const a = activity({ lastDataAt: '2026-09-21T09:00:00Z', history: { requestedAt: '2026-09-19T15:00:00Z', importedAt: null, running: false, attempts: 3, attemptsExhausted: true, error: 'Read timed out' } }, { deliveriesWithContent: 5 })
-    expect(classifyEudaHealth(a, NOW)).toBe('HISTORY_FAILED')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('HISTORY_FAILED')
   })
 
   it('nur leere Lieferungen schlagen den gescheiterten Historien-Import: NO_CONTENT', () => {
     const a = activity({ history: { requestedAt: '2026-09-19T15:00:00Z', importedAt: null, running: false, attempts: 3, attemptsExhausted: true, error: 'Read timed out' } })
-    expect(classifyEudaHealth(a, NOW)).toBe('NO_CONTENT')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('NO_CONTENT')
   })
 
   it('frisch verbunden mit gescheiterter Historie: HISTORY_FAILED', () => {
     const a = activity({ connectedAt: '2026-09-21T06:00:00Z', history: { requestedAt: '2026-09-21T06:05:00Z', importedAt: null, running: false, attempts: 3, attemptsExhausted: true, error: 'Read timed out' } })
-    expect(classifyEudaHealth(a, NOW)).toBe('HISTORY_FAILED')
+    expect(classifyVwEudaHealth(a, NOW)).toBe('HISTORY_FAILED')
   })
 
   it('laufend Inhalt: HEALTHY', () => {
-    expect(classifyEudaHealth(activity({ lastDataAt: '2026-09-21T09:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 2 }), NOW)).toBe('HEALTHY')
+    expect(classifyVwEudaHealth(activity({ lastDataAt: '2026-09-21T09:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 2 }), NOW)).toBe('HEALTHY')
   })
 })

@@ -15,13 +15,13 @@ import FixedCostManager from '../components/car/FixedCostManager.vue'
 import CarShareBox from '../components/car/CarShareBox.vue'
 import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
-import EudaAutoSyncPrompt from '../components/car/EudaAutoSyncPrompt.vue'
+import VwEudaAutoSyncPrompt from '../components/car/VwEudaAutoSyncPrompt.vue'
 import type { Car } from '../api/carService'
 import teslaFleetService from '../api/teslaFleetService'
 import { analytics } from '../services/analytics'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { isTeslaCar } from '../composables/useImportGating'
-import { isEudaBrand } from '../api/euDataActSyncService'
+import { isVwEudaBrand } from '../api/vwEudaSyncService'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
@@ -84,7 +84,7 @@ const doSubmitForm = async () => {
   try {
     const created = await submitForm(doFetchCars)
     if (isTeslaCar(created)) teslaPromptCar.value = created
-    else if (created && isEudaBrand(created.brand)) eudaPromptCar.value = created
+    else if (created && isVwEudaBrand(created.brand)) eudaPromptCar.value = created
   } finally { submitting.value = false }
 }
 const doDeleteCar = (id: string) => deleteCar(id, doFetchCars)
@@ -932,7 +932,7 @@ const filteredCapacities = computed(() => {
     />
 
     <!-- VW-Group-Fahrzeug angelegt: EU-Data-Act-AutoSync erklaeren und verbinden lassen -->
-    <EudaAutoSyncPrompt v-if="eudaPromptCar" :car="eudaPromptCar" @close="eudaPromptCar = null" />
+    <VwEudaAutoSyncPrompt v-if="eudaPromptCar" :car="eudaPromptCar" @close="eudaPromptCar = null" />
 
     <!-- Toast Notification (outside Transition) - Teleport wie das Modal, sonst richtet
          sich der Toast am Pager-Track aus und liegt auf Mobile ausserhalb des Bildes. -->

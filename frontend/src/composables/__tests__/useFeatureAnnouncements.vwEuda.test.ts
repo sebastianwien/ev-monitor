@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
 vi.mock('../../api/teslaFleetService', () => ({ default: { getStatus: vi.fn().mockRejectedValue(new Error('no tesla')) } }))
-vi.mock('../../api/euDataActSyncService', async (orig) => {
-    const actual = await orig<typeof import('../../api/euDataActSyncService')>()
+vi.mock('../../api/vwEudaSyncService', async (orig) => {
+    const actual = await orig<typeof import('../../api/vwEudaSyncService')>()
     return { ...actual, default: { ...actual.default, getStatus: vi.fn().mockResolvedValue([]) } }
 })
 vi.mock('../../api/carService', () => ({ carService: { getCars: vi.fn() } }))
@@ -15,7 +15,7 @@ async function setup(brands: string[]) {
     setActivePinia(createPinia())
     const { carService } = await import('../../api/carService')
     vi.mocked(carService.getCars).mockResolvedValue(carsOf(...brands) as never)
-    const eudaService = (await import('../../api/euDataActSyncService')).default
+    const eudaService = (await import('../../api/vwEudaSyncService')).default
     const authStore = (await import('../../stores/auth')).useAuthStore()
     vi.spyOn(authStore, 'isAuthenticated').mockReturnValue(true)
     const { useFeatureAnnouncements } = await import('../useFeatureAnnouncements')
@@ -65,7 +65,7 @@ describe('useFeatureAnnouncements - kein Aufblitzen vor dem Portal-Status', () =
         setActivePinia(createPinia())
         const { carService } = await import('../../api/carService')
         vi.mocked(carService.getCars).mockResolvedValue(carsOf('SKODA') as never)
-        const eudaService = (await import('../../api/euDataActSyncService')).default
+        const eudaService = (await import('../../api/vwEudaSyncService')).default
         let resolveStatus: (v: unknown[]) => void = () => {}
         vi.mocked(eudaService.getStatus).mockReturnValue(
             new Promise(resolve => { resolveStatus = resolve as (v: unknown[]) => void }) as never)

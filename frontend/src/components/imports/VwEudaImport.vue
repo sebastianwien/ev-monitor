@@ -3,7 +3,7 @@ import UploadSampleNotice from './UploadSampleNotice.vue'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowUpTrayIcon, CheckCircleIcon, ExclamationCircleIcon, BoltIcon } from '@heroicons/vue/24/outline'
-import { euDataActService, type EUDataActPreviewResult, type EUDataActImportResult } from '../../api/euDataActService'
+import { vwEudaImportService, type VwEudaPreviewResult, type VwEudaImportResult } from '../../api/vwEudaImportService'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import type { Car } from '../../api/carService'
 
@@ -18,8 +18,8 @@ const file = ref<File | null>(null)
 const carId = ref<string | null>(null)
 const loading = ref(false)
 const error = ref('')
-const preview = ref<EUDataActPreviewResult | null>(null)
-const result = ref<EUDataActImportResult | null>(null)
+const preview = ref<VwEudaPreviewResult | null>(null)
+const result = ref<VwEudaImportResult | null>(null)
 
 if (props.cars.length === 1) carId.value = props.cars[0].id
 
@@ -34,7 +34,7 @@ async function loadPreview() {
   error.value = ''
   loading.value = true
   try {
-    preview.value = await euDataActService.preview(file.value, carId.value)
+    preview.value = await vwEudaImportService.preview(file.value, carId.value)
     if (preview.value.sessions.length === 0) {
       error.value = t('eu_data_act.err_no_sessions')
       return
@@ -53,7 +53,7 @@ async function confirmImport() {
   error.value = ''
   loading.value = true
   try {
-    result.value = await euDataActService.importData(file.value, carId.value)
+    result.value = await vwEudaImportService.importData(file.value, carId.value)
     step.value = 'done'
   } catch (e: unknown) {
     const err = e as { response?: { data?: { error?: string } } }

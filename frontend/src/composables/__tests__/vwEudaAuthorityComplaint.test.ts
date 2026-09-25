@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import {
-  buildEudaEvidenceDocument, buildEudaAuthorityFormValues, AUTHORITY_FORM_URL,
-} from '../useEudaAuthorityComplaint'
-import type { EudaSyncActivity } from '../../api/euDataActSyncService'
+  buildVwEudaEvidenceDocument, buildVwEudaAuthorityFormValues, AUTHORITY_FORM_URL,
+} from '../useVwEudaAuthorityComplaint'
+import type { VwEudaSyncActivity } from '../../api/vwEudaSyncService'
 
 const NOW = new Date('2026-09-21T10:00:00Z')
 
-const activity: EudaSyncActivity = {
+const activity: VwEudaSyncActivity = {
   provider: 'VW_GROUP',
   manufacturerContact: 'euda-support@cariad.technology',
   connection: {
@@ -30,8 +30,8 @@ const activity: EudaSyncActivity = {
   ],
 }
 
-describe('buildEudaEvidenceDocument', () => {
-  const doc = buildEudaEvidenceDocument(activity, 'de', NOW)
+describe('buildVwEudaEvidenceDocument', () => {
+  const doc = buildVwEudaEvidenceDocument(activity, 'de', NOW)
   const text = doc.sections.flatMap(s => [s.heading, ...s.lines]).join('\n')
 
   it('benennt Datei nach VIN und Datum', () => {
@@ -65,14 +65,14 @@ describe('buildEudaEvidenceDocument', () => {
   })
 
   it('englisch fuer andere Locales', () => {
-    const en = buildEudaEvidenceDocument(activity, 'sv', NOW)
+    const en = buildVwEudaEvidenceDocument(activity, 'sv', NOW)
     expect(en.title).toMatch(/Evidence/)
     expect(en.sections.find(s => s.key === 'polls')!.lines[1]).toMatch(/Portal error/)
   })
 })
 
-describe('buildEudaAuthorityFormValues', () => {
-  const values = buildEudaAuthorityFormValues(activity, 'de', NOW)
+describe('buildVwEudaAuthorityFormValues', () => {
+  const values = buildVwEudaAuthorityFormValues(activity, 'de', NOW)
   const byKey = Object.fromEntries(values.map(v => [v.key, v.value]))
 
   it('liefert die Felder in Formular-Reihenfolge', () => {
@@ -102,7 +102,7 @@ describe('buildEudaAuthorityFormValues', () => {
   })
 
   it('englische Werte fuer andere Locales', () => {
-    const en = Object.fromEntries(buildEudaAuthorityFormValues(activity, 'en', NOW).map(v => [v.key, v.value]))
+    const en = Object.fromEntries(buildVwEudaAuthorityFormValues(activity, 'en', NOW).map(v => [v.key, v.value]))
     expect(en.role).toBe('Nutzer (User)')
     expect(en.comment).toContain('Art. 4(1)')
   })

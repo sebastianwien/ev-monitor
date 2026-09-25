@@ -4,8 +4,8 @@ export interface AnnouncementContext {
   isAutoSyncLive: boolean
   hasTeslaConnection: boolean
   teslaLocationScopeGranted: boolean
-  hasEudaBrandCar: boolean
-  hasEudaConnection: boolean
+  hasVwEudaBrandCar: boolean
+  hasVwEudaConnection: boolean
 }
 
 export interface FeatureAnnouncement {
@@ -95,6 +95,6 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     // Nur Halter eines VW, Skoda, Audi, Seat oder Cupra, die das Portal noch nicht verbunden
     // haben. Bewusst ohne Entitlement-Pruefung: der Probemonat ist der Aufhaenger, den Rest
     // klaert der Wizard unter /imports.
-    condition: (ctx) => ctx.hasEudaBrandCar && !ctx.hasEudaConnection,
+    condition: (ctx) => ctx.hasVwEudaBrandCar && !ctx.hasVwEudaConnection,
   },
 ]

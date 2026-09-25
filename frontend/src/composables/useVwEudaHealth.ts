@@ -1,4 +1,4 @@
-import type { EudaSyncActivity } from '../api/euDataActSyncService'
+import type { VwEudaSyncActivity } from '../api/vwEudaSyncService'
 
 /**
  * Lagebild einer Data-Act-Verbindung, aus dem Sync-Protokoll abgeleitet. Steuert Hinweistext,
@@ -6,7 +6,7 @@ import type { EudaSyncActivity } from '../api/euDataActSyncService'
  * Reihenfolge = Prioritaet: ein Zustand, der den Nutzer zum Handeln zwingt, schlaegt einen, der
  * nur Geduld braucht.
  */
-export type EudaHealth =
+export type VwEudaHealth =
   | 'AUTH_FAILED'
   | 'PAUSED'
   | 'NO_REQUEST'
@@ -26,9 +26,9 @@ export const STALE_WINDOW_MS = 72 * HOUR
 export const FAILING_THRESHOLD = 3
 
 /** Zustaende, in denen der Hersteller in der Pflicht ist - dort ist die Beschwerde der naechste Schritt. */
-export const MANUFACTURER_AT_FAULT: ReadonlySet<EudaHealth> = new Set(['NO_REQUEST', 'NO_CONTENT', 'STALE'])
+export const MANUFACTURER_AT_FAULT: ReadonlySet<VwEudaHealth> = new Set(['NO_REQUEST', 'NO_CONTENT', 'STALE'])
 
-export function classifyEudaHealth(activity: EudaSyncActivity, now: Date = new Date()): EudaHealth {
+export function classifyVwEudaHealth(activity: VwEudaSyncActivity, now: Date = new Date()): VwEudaHealth {
   const c = activity.connection
   if (c.status === 'AUTH_FAILED') return 'AUTH_FAILED'
   if (c.status === 'EXPIRED') return 'PAUSED'
@@ -59,7 +59,7 @@ export function classifyEudaHealth(activity: EudaSyncActivity, now: Date = new D
  * Rohdrop, sonst letzter Import). deliveries[0] und lastDataAt fangen einen Connectors-Stand ab, der
  * lastContentAt noch mit dem letzten Import gleichsetzt - Frontend und Connectors deployen getrennt.
  */
-export function lastContentAt(activity: EudaSyncActivity): string | null {
+export function lastContentAt(activity: VwEudaSyncActivity): string | null {
   const candidates = [activity.summary.lastContentAt, activity.connection.lastDataAt, activity.deliveries[0]?.createdOn]
     .filter((v): v is string => !!v)
   if (!candidates.length) return null

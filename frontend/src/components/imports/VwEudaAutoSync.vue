@@ -2,18 +2,18 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, ChevronRightIcon, ChevronDownIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
-import euDataActSyncService, {
+import vwEudaSyncService, {
   eudaBrandOf,
   eudaErrorCode,
-  type EudaBrand,
-  type EudaConnectionStatus,
-  type EudaEntitlement,
-} from '../../api/euDataActSyncService'
+  type VwEudaBrand,
+  type VwEudaConnectionStatus,
+  type VwEudaEntitlement,
+} from '../../api/vwEudaSyncService'
 import type { Car } from '../../api/carService'
 import smartcarService from '../../api/smartcarService'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
-import EudaExplainer from './EudaExplainer.vue'
-import EudaSyncActivity from './EudaSyncActivity.vue'
+import VwEudaExplainer from './VwEudaExplainer.vue'
+import VwEudaSyncActivity from './VwEudaSyncActivity.vue'
 
 /**
  * VW EU-Data-Act-AutoSync: Nutzer meldet sich einmal mit seiner Marken-ID an, danach holt
@@ -32,9 +32,9 @@ const props = withDefaults(defineProps<{
 const { t, locale } = useI18n()
 
 /** Die eine Klasse im oeffentlichen Repo, die das Passwort sieht - damit die Aussage "nicht gespeichert" pruefbar ist. */
-const LOGIN_SOURCE_URL = 'https://github.com/sebastianwien/ev-monitor/blob/main/backend/src/main/java/com/evmonitor/application/euda/EudaLoginClient.java'
+const LOGIN_SOURCE_URL = 'https://github.com/sebastianwien/ev-monitor/blob/main/backend/src/main/java/com/evmonitor/application/vweuda/VwEudaLoginClient.java'
 
-const BRANDS: { key: EudaBrand; label: string }[] = [
+const BRANDS: { key: VwEudaBrand; label: string }[] = [
   { key: 'volkswagen', label: 'Volkswagen' },
   { key: 'skoda', label: 'Škoda' },
   { key: 'audi', label: 'Audi' },
@@ -46,7 +46,7 @@ const loading = ref(true)
 const connecting = ref(false)
 const busy = ref(false)
 const error = ref<string | null>(null)
-const connections = ref<EudaConnectionStatus[]>([])
+const connections = ref<VwEudaConnectionStatus[]>([])
 /** Fahrzeug-ID, die aktuell ueber Smartcar haengt - nur dann ist der Dubletten-Hinweis relevant. */
 const smartcarCarId = ref<string | null>(null)
 /** decide: Entscheidung ohne Formular. connect: Marke, E-Mail, Passwort. */
@@ -56,14 +56,14 @@ const detailsOpen = ref(false)
 const justConnected = ref(false)
 // Ohne Antwort vom Core gilt "nicht berechtigt" - das Backend ist ohnehin die Sicherheitsgrenze,
 // hier geht es nur darum, keinem ein Formular zu zeigen, das dann mit 403 endet.
-const entitlement = ref<EudaEntitlement>({ entitled: false, viaTrial: false, trialEndsAt: null })
+const entitlement = ref<VwEudaEntitlement>({ entitled: false, viaTrial: false, trialEndsAt: null })
 
 const selectedCarId = ref(props.cars.length === 1 ? props.cars[0].id : '')
-function brandOfCar(carId: string): EudaBrand {
+function brandOfCar(carId: string): VwEudaBrand {
   const car = props.cars.find(c => c.id === carId)
   return (car && eudaBrandOf(car.brand)) || 'volkswagen'
 }
-const brand = ref<EudaBrand>(brandOfCar(selectedCarId.value))
+const brand = ref<VwEudaBrand>(brandOfCar(selectedCarId.value))
 watch(selectedCarId, id => { brand.value = brandOfCar(id) })
 const email = ref('')
 const password = ref('')
@@ -75,8 +75,8 @@ async function load() {
   loading.value = true
   try {
     const [status, ent, smartcar] = await Promise.all([
-      euDataActSyncService.getStatus().catch(() => [] as EudaConnectionStatus[]),
-      euDataActSyncService.getEntitlement().catch(() => entitlement.value),
+      vwEudaSyncService.getStatus().catch(() => [] as VwEudaConnectionStatus[]),
+      vwEudaSyncService.getEntitlement().catch(() => entitlement.value),
       smartcarService.getStatus().catch(() => null),
     ])
     connections.value = status
@@ -114,7 +114,7 @@ async function connect() {
   connecting.value = true
   error.value = null
   try {
-    const status = await euDataActSyncService.connect(selectedCarId.value, brand.value, email.value, password.value)
+    const status = await vwEudaSyncService.connect(selectedCarId.value, brand.value, email.value, password.value)
     connections.value = [...connections.value.filter(c => c.carId !== status.carId), status]
     justConnected.value = true
     step.value = 'decide'
@@ -144,9 +144,9 @@ async function run(action: () => Promise<void>) {
   }
 }
 
-const disconnect = () => run(() => euDataActSyncService.disconnect(selectedCarId.value))
-const requestHistory = () => run(() => euDataActSyncService.requestHistory(selectedCarId.value))
-const reactivateSmartcar = () => run(() => euDataActSyncService.reactivateSmartcar(selectedCarId.value))
+const disconnect = () => run(() => vwEudaSyncService.disconnect(selectedCarId.value))
+const requestHistory = () => run(() => vwEudaSyncService.requestHistory(selectedCarId.value))
+const reactivateSmartcar = () => run(() => vwEudaSyncService.reactivateSmartcar(selectedCarId.value))
 
 const historyPending = ref(false)
 async function onRequestHistory() {
@@ -174,12 +174,12 @@ onMounted(load)
 
       <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">…</div>
 
-      <!-- Verbunden: das Panel (Lagebild, Fakten, Handlung, Details) gehört EudaSyncActivity -->
+      <!-- Verbunden: das Panel (Lagebild, Fakten, Handlung, Details) gehört VwEudaSyncActivity -->
       <div v-else-if="connection" class="space-y-3" data-testid="euda-connected">
         <p v-if="justConnected" class="text-sm font-medium text-emerald-800 dark:text-emerald-300 border-l-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-r-sm" data-testid="euda-success">
           {{ t('eu_data_act_sync.connected_success') }}
         </p>
-        <EudaSyncActivity
+        <VwEudaSyncActivity
           :connection="connection"
           :version="activityVersion"
           :trial-ends-at="entitlement.viaTrial ? trialEndsAt : undefined"
@@ -233,7 +233,7 @@ onMounted(load)
             {{ t('eu_data_act_sync.details_toggle') }}
             <ChevronDownIcon class="h-4 w-4 transition-transform" :class="detailsOpen ? 'rotate-180' : ''" aria-hidden="true" />
           </button>
-          <EudaExplainer v-if="detailsOpen" id="euda-details" class="mt-3 pt-3 border-t-2 border-gray-200 dark:border-gray-700" />
+          <VwEudaExplainer v-if="detailsOpen" id="euda-details" class="mt-3 pt-3 border-t-2 border-gray-200 dark:border-gray-700" />
         </div>
       </div>
 

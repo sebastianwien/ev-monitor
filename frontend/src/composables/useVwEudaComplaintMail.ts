@@ -1,4 +1,4 @@
-import type { EudaSyncActivity } from '../api/euDataActSyncService'
+import type { VwEudaSyncActivity } from '../api/vwEudaSyncService'
 
 /**
  * Beschwerde an den Hersteller als mailto-Link. Der Nutzer schickt sie selbst aus seinem
@@ -15,7 +15,7 @@ export interface ComplaintMail {
 const dateOf = (iso: string | null, locale: string) =>
   iso ? new Date(iso).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'
 
-export function buildEudaComplaintMail(activity: EudaSyncActivity, locale: string, now: Date = new Date()): ComplaintMail {
+export function buildVwEudaComplaintMail(activity: VwEudaSyncActivity, locale: string, now: Date = new Date()): ComplaintMail {
   const de = locale === 'de'
   const c = activity.connection
   const s = activity.summary

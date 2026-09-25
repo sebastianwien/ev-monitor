@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
-import EudaAutoSync from '../imports/EudaAutoSync.vue'
+import VwEudaAutoSync from '../imports/VwEudaAutoSync.vue'
 import type { Car } from '../../api/carService'
 
 /**
  * AutoSync-Einrichtung direkt nach dem Anlegen eines VW-Group-Fahrzeugs in /cars -
  * das Gegenstueck zu TeslaTelemetryPrompt. Erklaerung, Trial-Hinweis und das
- * Verbinden-Formular kommen aus derselben Karte wie auf /imports (EudaAutoSync),
+ * Verbinden-Formular kommen aus derselben Karte wie auf /imports (VwEudaAutoSync),
  * damit beide Wege dasselbe versprechen.
  */
 defineProps<{ car: Car }>()
@@ -41,7 +41,7 @@ const { t } = useI18n()
       </div>
 
       <div class="p-5 md:p-6 space-y-5">
-        <EudaAutoSync :cars="[car]" embedded />
+        <VwEudaAutoSync :cars="[car]" embedded />
 
         <div class="text-center">
           <button type="button"

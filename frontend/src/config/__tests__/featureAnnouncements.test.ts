@@ -10,8 +10,8 @@ const baseCtx: AnnouncementContext = {
     isAutoSyncLive: false,
     hasTeslaConnection: false,
     teslaLocationScopeGranted: false,
-    hasEudaBrandCar: false,
-    hasEudaConnection: false,
+    hasVwEudaBrandCar: false,
+    hasVwEudaConnection: false,
 }
 
 const reconnect = featureAnnouncements.find(a => a.key === 'tesla_location_reconnect_v1')!
@@ -71,19 +71,19 @@ const euda = featureAnnouncements.find(a => a.key === 'euda_autosync_v1')!
 
 describe('euda_autosync_v1 condition', () => {
     it('is hidden for users without a VW-group car', () => {
-        expect(euda.condition!({ ...baseCtx, hasEudaBrandCar: false })).toBe(false)
+        expect(euda.condition!({ ...baseCtx, hasVwEudaBrandCar: false })).toBe(false)
     })
 
     it('is hidden once that user already connected the portal', () => {
-        expect(euda.condition!({ ...baseCtx, hasEudaBrandCar: true, hasEudaConnection: true })).toBe(false)
+        expect(euda.condition!({ ...baseCtx, hasVwEudaBrandCar: true, hasVwEudaConnection: true })).toBe(false)
     })
 
     it('shows for a VW-group owner who has not connected yet', () => {
-        expect(euda.condition!({ ...baseCtx, hasEudaBrandCar: true, hasEudaConnection: false })).toBe(true)
+        expect(euda.condition!({ ...baseCtx, hasVwEudaBrandCar: true, hasVwEudaConnection: false })).toBe(true)
     })
 
     it('does not depend on the AutoSync entitlement - the trial is the hook', () => {
-        expect(euda.condition!({ ...baseCtx, hasEudaBrandCar: true, isAutoSyncLive: false })).toBe(true)
+        expect(euda.condition!({ ...baseCtx, hasVwEudaBrandCar: true, isAutoSyncLive: false })).toBe(true)
     })
 })
 

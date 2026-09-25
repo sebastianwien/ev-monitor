@@ -12,11 +12,11 @@ import ManualImportModal from '../components/imports/ManualImportModal.vue'
 const TronityImport = defineAsyncComponent(() => import('../components/imports/TronityImport.vue'))
 import TessieImport from '../components/imports/TessieImport.vue'
 const XpengImport = defineAsyncComponent(() => import('../components/imports/XpengImport.vue'))
-const EUDataActImport = defineAsyncComponent(() => import('../components/imports/EUDataActImport.vue'))
-const EudaAutoSync = defineAsyncComponent(() => import('../components/imports/EudaAutoSync.vue'))
+const VwEudaImport = defineAsyncComponent(() => import('../components/imports/VwEudaImport.vue'))
+const VwEudaAutoSync = defineAsyncComponent(() => import('../components/imports/VwEudaAutoSync.vue'))
 import CarSelectDropdown from '../components/car/CarSelectDropdown.vue'
 import type { Car } from '../api/carService'
-import euDataActSyncService, { isEudaBrand } from '../api/euDataActSyncService'
+import vwEudaSyncService, { isVwEudaBrand } from '../api/vwEudaSyncService'
 import { useCarStore } from '../stores/car'
 import { useImportsTab, featuredImportSection, importSectionOrder, type Tab } from '../composables/useImportsTab'
 import { useImportGating } from '../composables/useImportGating'
@@ -52,7 +52,7 @@ const eudaTrialActive = ref(false)
 // Sichtbarkeit aller Import-Sektionen haengt am aktiven Auto - siehe useImportGating.
 const {
   activeCarIsTesla,
-  activeCarIsEudaBrand,
+  activeCarIsVwEudaBrand,
   activeCarIsXpeng,
   showTeslaSection,
   showAutoSyncSection,
@@ -110,7 +110,7 @@ onMounted(async () => {
   featuredSection.value = featuredImportSection({
     returningFromSmartcar: Boolean(params.get('smartcar-connected') || params.get('smartcar-error')),
     activeCarIsTesla: activeCarIsTesla.value,
-    activeCarIsEudaBrand: activeCarIsEudaBrand.value,
+    activeCarIsVwEudaBrand: activeCarIsVwEudaBrand.value,
     activeCarIsXpeng: activeCarIsXpeng.value,
     hasAutoSync: authStore.isPremium,
   })
@@ -120,8 +120,8 @@ onMounted(async () => {
   loading.value = false
 
   fetchApiKeys()
-  if (activeCarIsEudaBrand.value) {
-    euDataActSyncService.getEntitlement()
+  if (activeCarIsVwEudaBrand.value) {
+    vwEudaSyncService.getEntitlement()
       .then(e => { eudaTrialActive.value = e.entitled && e.viaTrial })
       .catch(() => {})
   }
@@ -209,7 +209,7 @@ const activeCars = computed(() =>
 )
 
 /** AutoSync gibt es nur fuer Marken, die das VW-EU-Data-Act-Portal bedient. */
-const vwGroupCars = computed(() => activeCars.value.filter(c => isEudaBrand(c.brand)))
+const vwGroupCars = computed(() => activeCars.value.filter(c => isVwEudaBrand(c.brand)))
 
 const autoSyncActiveCarLabel = ref<string | null>(null)
 const teslaConnectedLabel = ref<string | null>(null)
@@ -616,8 +616,8 @@ const teslaConnectedLabel = ref<string | null>(null)
           <Transition name="accordion">
             <div v-if="activeTab === 'eu_data_act'" class="border-t border-gray-100 dark:border-gray-700 p-4 space-y-4">
               <!-- AutoSync zuerst (der bessere Weg), der manuelle Upload bleibt fuer alle darunter -->
-              <EudaAutoSync v-if="vwGroupCars.length > 0" :cars="vwGroupCars" />
-              <EUDataActImport :cars="activeCars" @close="toggle('eu_data_act')" />
+              <VwEudaAutoSync v-if="vwGroupCars.length > 0" :cars="vwGroupCars" />
+              <VwEudaImport :cars="activeCars" @close="toggle('eu_data_act')" />
             </div>
           </Transition>
         </div>

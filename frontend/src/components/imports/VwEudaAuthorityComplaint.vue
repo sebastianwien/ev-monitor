@@ -2,21 +2,21 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
-import type { EudaSyncActivity } from '../../api/euDataActSyncService'
-import { buildEudaEvidenceDocument, buildEudaAuthorityFormValues, AUTHORITY_FORM_URL } from '../../composables/useEudaAuthorityComplaint'
-import { downloadEvidencePdf } from '../../composables/eudaEvidencePdf'
+import type { VwEudaSyncActivity } from '../../api/vwEudaSyncService'
+import { buildVwEudaEvidenceDocument, buildVwEudaAuthorityFormValues, AUTHORITY_FORM_URL } from '../../composables/useVwEudaAuthorityComplaint'
+import { downloadEvidencePdf } from '../../composables/vwEudaEvidencePdf'
 
 /**
  * Assistent für die Beschwerde bei der Bundesnetzagentur. Die Behörde hat nur ein Web-Formular,
  * keine API und keine Vorbelegung per URL. Drei Schritte: Beleg-PDF laden, Formularwerte kopieren,
  * Formular in neuem Tab öffnen. Der Nutzer reicht selbst ein; ev-monitor ist nicht Partei.
  */
-const props = defineProps<{ activity: EudaSyncActivity }>()
+const props = defineProps<{ activity: VwEudaSyncActivity }>()
 const emit = defineEmits<{ close: [] }>()
 
 const { t, locale } = useI18n()
 
-const values = computed(() => buildEudaAuthorityFormValues(props.activity, locale.value))
+const values = computed(() => buildVwEudaAuthorityFormValues(props.activity, locale.value))
 const pdfBusy = ref(false)
 const pdfError = ref(false)
 const copiedKey = ref<string | null>(null)
@@ -25,7 +25,7 @@ async function downloadPdf() {
   pdfBusy.value = true
   pdfError.value = false
   try {
-    await downloadEvidencePdf(buildEudaEvidenceDocument(props.activity, locale.value))
+    await downloadEvidencePdf(buildVwEudaEvidenceDocument(props.activity, locale.value))
   } catch {
     pdfError.value = true
   } finally {

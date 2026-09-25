@@ -1,4 +1,4 @@
-import type { EvidenceDocument } from './useEudaAuthorityComplaint'
+import type { EvidenceDocument } from './useVwEudaAuthorityComplaint'
 
 /**
  * Rendert das Beleg-Dokument als PDF im Browser und löst den Download aus.

@@ -12,7 +12,7 @@ export interface FeaturedSectionContext {
   /** Rueckkehr aus dem Smartcar-OAuth: der User erwartet das Ergebnis seiner Aktion. */
   returningFromSmartcar: boolean
   activeCarIsTesla: boolean
-  activeCarIsEudaBrand: boolean
+  activeCarIsVwEudaBrand: boolean
   /** XPeng laeuft ueber den eigenen EU-Data-Act-Weg, Smartcar deckt die Marke nicht ab. */
   activeCarIsXpeng: boolean
   hasAutoSync: boolean
@@ -28,7 +28,7 @@ export interface FeaturedSectionContext {
 export function featuredImportSection(ctx: FeaturedSectionContext): Tab | null {
   if (ctx.returningFromSmartcar) return 'smartcar'
   if (ctx.activeCarIsTesla) return 'tesla'
-  if (ctx.activeCarIsEudaBrand) return 'eu_data_act'
+  if (ctx.activeCarIsVwEudaBrand) return 'eu_data_act'
   if (ctx.activeCarIsXpeng) return 'xpeng'
   if (ctx.hasAutoSync) return 'smartcar'
   return null

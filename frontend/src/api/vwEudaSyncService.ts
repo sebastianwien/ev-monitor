@@ -1,7 +1,7 @@
 import api from './axios'
 
 /** Verbindung eines Fahrzeugs zum VW EU-Data-Act-Portal (AutoSync), wie der Connectors-Service sie meldet. */
-export interface EudaConnectionStatus {
+export interface VwEudaConnectionStatus {
   carId: string
   brand: string
   email: string
@@ -14,15 +14,15 @@ export interface EudaConnectionStatus {
 }
 
 /** Herstellerneutrales Sync-Protokoll: Datenanfragen, Lieferungen, Importe - auch fuer XPeng/Polestar nutzbar. */
-export type EudaDeliveryOutcome = 'IMPORTED' | 'NO_CHARGING_DATA' | 'FAILED'
-export type EudaPollOutcome = 'OK' | 'NO_NEW_DATA' | 'PORTAL_ERROR' | 'IMPORT_ERROR' | 'AUTH_FAILED'
+export type VwEudaDeliveryOutcome = 'IMPORTED' | 'NO_CHARGING_DATA' | 'FAILED'
+export type VwEudaPollOutcome = 'OK' | 'NO_NEW_DATA' | 'PORTAL_ERROR' | 'IMPORT_ERROR' | 'AUTH_FAILED'
 
-export interface EudaIdentifier {
+export interface VwEudaIdentifier {
   label: string
   value: string
 }
 
-export interface EudaHistoryState {
+export interface VwEudaHistoryState {
   requestedAt: string | null
   importedAt: string | null
   running: boolean
@@ -31,7 +31,7 @@ export interface EudaHistoryState {
   error: string | null
 }
 
-export interface EudaActivityConnection {
+export interface VwEudaActivityConnection {
   carId: string
   brand: string
   status: 'ACTIVE' | 'AUTH_FAILED' | 'EXPIRED'
@@ -44,19 +44,19 @@ export interface EudaActivityConnection {
   dataRequestActive: boolean
   lastDeliveryAt: string | null
   lastDataAt: string | null
-  history: EudaHistoryState | null
+  history: VwEudaHistoryState | null
 }
 
-export interface EudaActivitySummary {
+export interface VwEudaActivitySummary {
   deliveriesSeen: number
   deliveriesWithContent: number
   sessionsImported: number
   lastContentAt: string | null
 }
 
-export interface EudaPollEntry {
+export interface VwEudaPollEntry {
   at: string
-  outcome: EudaPollOutcome
+  outcome: VwEudaPollOutcome
   deliveriesSeen: number
   deliveriesWithContent: number
   sessionsImported: number
@@ -65,43 +65,43 @@ export interface EudaPollEntry {
   error: string | null
 }
 
-export interface EudaDeliveryEntry {
+export interface VwEudaDeliveryEntry {
   filename: string
   createdOn: string
   sizeBytes: number
-  outcome: EudaDeliveryOutcome | null
+  outcome: VwEudaDeliveryOutcome | null
   sessionsImported: number | null
   sessionsSkipped: number | null
   error: string | null
 }
 
-export interface EudaSyncActivity {
+export interface VwEudaSyncActivity {
   provider: string
   manufacturerContact: string
-  connection: EudaActivityConnection
-  identifiers: EudaIdentifier[]
-  summary: EudaActivitySummary
-  polls: EudaPollEntry[]
-  deliveries: EudaDeliveryEntry[]
+  connection: VwEudaActivityConnection
+  identifiers: VwEudaIdentifier[]
+  summary: VwEudaActivitySummary
+  polls: VwEudaPollEntry[]
+  deliveries: VwEudaDeliveryEntry[]
 }
 
-export type EudaBrand = 'volkswagen' | 'skoda' | 'audi' | 'seat' | 'cupra'
+export type VwEudaBrand = 'volkswagen' | 'skoda' | 'audi' | 'seat' | 'cupra'
 
 /** CarBrand-Enum (Backend) -> Portal-Marke. Nur diese Marken bedient das VW-EU-Data-Act-Portal. */
-const EUDA_BRAND_BY_CAR_BRAND: Record<string, EudaBrand> = {
+const EUDA_BRAND_BY_CAR_BRAND: Record<string, VwEudaBrand> = {
   VW: 'volkswagen', VOLKSWAGEN: 'volkswagen', SKODA: 'skoda', AUDI: 'audi', SEAT: 'seat', CUPRA: 'cupra',
 }
 
-export function eudaBrandOf(carBrand: string): EudaBrand | null {
+export function eudaBrandOf(carBrand: string): VwEudaBrand | null {
   return EUDA_BRAND_BY_CAR_BRAND[carBrand?.toUpperCase() ?? ""] ?? null
 }
 
-export function isEudaBrand(carBrand: string): boolean {
+export function isVwEudaBrand(carBrand: string): boolean {
   return eudaBrandOf(carBrand) !== null
 }
 
 /** Fehlercodes des Connectors - das Frontend mappt sie auf i18n-Texte. */
-export type EudaErrorCode =
+export type VwEudaErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'NOT_ENTITLED'
   | 'PORTAL_INTERACTION_REQUIRED'
@@ -111,13 +111,13 @@ export type EudaErrorCode =
   | 'FORBIDDEN'
   | 'BAD_REQUEST'
 
-export function eudaErrorCode(err: unknown): EudaErrorCode | null {
+export function eudaErrorCode(err: unknown): VwEudaErrorCode | null {
   const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code
-  return (code as EudaErrorCode) ?? null
+  return (code as VwEudaErrorCode) ?? null
 }
 
 /** Entscheidung des Core: Abo, Rolle oder launch-verankertes Trial. */
-export interface EudaEntitlement {
+export interface VwEudaEntitlement {
   entitled: boolean
   viaTrial: boolean
   trialEndsAt: string | null
@@ -125,23 +125,23 @@ export interface EudaEntitlement {
 
 export default {
   /** Liegt beim Core, nicht beim Connector - deshalb unter /subscription. */
-  async getEntitlement(): Promise<EudaEntitlement> {
+  async getEntitlement(): Promise<VwEudaEntitlement> {
     const resp = await api.get('/subscription/eu-data-act-autosync')
     return resp.data
   },
-  async getStatus(): Promise<EudaConnectionStatus[]> {
+  async getStatus(): Promise<VwEudaConnectionStatus[]> {
     const resp = await api.get('/eu-data-act/status')
     return resp.data
   },
   /** Das Passwort wird nur für diesen Aufruf übertragen; der Server speichert es nicht. */
-  async connect(carId: string, brand: EudaBrand, email: string, password: string): Promise<EudaConnectionStatus> {
+  async connect(carId: string, brand: VwEudaBrand, email: string, password: string): Promise<VwEudaConnectionStatus> {
     const resp = await api.post(`/eu-data-act/cars/${carId}/connect`, { brand, email, password })
     return resp.data
   },
   async disconnect(carId: string): Promise<void> {
     await api.delete(`/eu-data-act/cars/${carId}`)
   },
-  async getActivity(carId: string): Promise<EudaSyncActivity> {
+  async getActivity(carId: string): Promise<VwEudaSyncActivity> {
     const resp = await api.get(`/eu-data-act/cars/${carId}/activity`)
     return resp.data
   },

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { buildEudaComplaintMail } from '../useEudaComplaintMail'
-import type { EudaSyncActivity } from '../../api/euDataActSyncService'
+import { buildVwEudaComplaintMail } from '../useVwEudaComplaintMail'
+import type { VwEudaSyncActivity } from '../../api/vwEudaSyncService'
 
 const NOW = new Date('2026-09-21T10:00:00Z')
 
-const activity: EudaSyncActivity = {
+const activity: VwEudaSyncActivity = {
   provider: 'VW_GROUP',
   manufacturerContact: 'euda-support@cariad.technology',
   connection: {
@@ -31,20 +31,20 @@ function decoded(href: string) {
   return { subject: params.get('subject') ?? '', body: params.get('body') ?? '' }
 }
 
-describe('buildEudaComplaintMail', () => {
+describe('buildVwEudaComplaintMail', () => {
   it('adressiert den Hersteller-Kontakt aus dem Vertrag', () => {
-    expect(buildEudaComplaintMail(activity, 'de', NOW).href.startsWith('mailto:euda-support@cariad.technology?')).toBe(true)
+    expect(buildVwEudaComplaintMail(activity, 'de', NOW).href.startsWith('mailto:euda-support@cariad.technology?')).toBe(true)
   })
 
   it('traegt VIN im Betreff und alle Identifier im Text', () => {
-    const { subject, body } = decoded(buildEudaComplaintMail(activity, 'de', NOW).href)
+    const { subject, body } = decoded(buildVwEudaComplaintMail(activity, 'de', NOW).href)
     expect(subject).toContain('WVWZZZE1ZM8000365')
     expect(subject).toContain('Art. 4')
     for (const id of activity.identifiers) expect(body).toContain(id.value)
   })
 
   it('nennt Zahlen, Rechtsgrundlage, Frist und Bundesnetzagentur (de)', () => {
-    const { body } = decoded(buildEudaComplaintMail(activity, 'de', NOW).href)
+    const { body } = decoded(buildVwEudaComplaintMail(activity, 'de', NOW).href)
     expect(body).toContain('180')
     expect(body).toContain('2023/2854')
     expect(body).toContain('14 Tagen')
@@ -53,7 +53,7 @@ describe('buildEudaComplaintMail', () => {
   })
 
   it('schreibt fuer andere Sprachen Englisch', () => {
-    const { body, subject } = decoded(buildEudaComplaintMail(activity, 'sv', NOW).href)
+    const { body, subject } = decoded(buildVwEudaComplaintMail(activity, 'sv', NOW).href)
     expect(subject).toContain('Complaint')
     expect(body).toContain('Regulation (EU) 2023/2854')
     expect(body).toContain('Bundesnetzagentur')
@@ -61,13 +61,13 @@ describe('buildEudaComplaintMail', () => {
 
   it('nimmt die letzte Portal-Fehlermeldung woertlich auf', () => {
     const failing = { ...activity, connection: { ...activity.connection, dataRequestActive: false, consecutiveFailures: 27, lastError: 'Anfrage anlegen HTTP 400: {"error":"not eligible"}' } }
-    const { body } = decoded(buildEudaComplaintMail(failing, 'de', NOW).href)
+    const { body } = decoded(buildVwEudaComplaintMail(failing, 'de', NOW).href)
     expect(body).toContain('Anfrage anlegen HTTP 400: {"error":"not eligible"}')
   })
 
   it('bleibt unter dem mailto-Limit', () => {
-    expect(buildEudaComplaintMail(activity, 'de', NOW).href.length).toBeLessThan(2000 * 3)
-    expect(decoded(buildEudaComplaintMail(activity, 'de', NOW).href).body.length).toBeLessThan(2000)
-    expect(decoded(buildEudaComplaintMail(activity, 'en', NOW).href).body.length).toBeLessThan(2000)
+    expect(buildVwEudaComplaintMail(activity, 'de', NOW).href.length).toBeLessThan(2000 * 3)
+    expect(decoded(buildVwEudaComplaintMail(activity, 'de', NOW).href).body.length).toBeLessThan(2000)
+    expect(decoded(buildVwEudaComplaintMail(activity, 'en', NOW).href).body.length).toBeLessThan(2000)
   })
 })

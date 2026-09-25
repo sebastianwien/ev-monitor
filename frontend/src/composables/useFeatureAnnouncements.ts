@@ -4,7 +4,7 @@ import { useWallboxStore } from '../stores/wallbox'
 import { useAuthStore } from '../stores/auth'
 import { useCarStore } from '../stores/car'
 import teslaFleetService from '../api/teslaFleetService'
-import euDataActSyncService, { eudaBrandOf, type EudaBrand } from '../api/euDataActSyncService'
+import vwEudaSyncService, { eudaBrandOf, type VwEudaBrand } from '../api/vwEudaSyncService'
 
 const STORAGE_KEY = 'seen-announcements'
 
@@ -17,14 +17,14 @@ let teslaStatusLoaded = false
 // Halter eines VW, Skoda, Audi, Seat oder Cupra - und ob dieser Halter das Portal schon
 // verbunden hat. Beides false, solange nichts geladen ist: die Ankuendigung soll erst
 // erscheinen, wenn wir es wirklich wissen, nicht schon beim ersten Render.
-const hasEudaBrandCar = ref<boolean>(false)
+const hasVwEudaBrandCar = ref<boolean>(false)
 // Anzeigename der Marke fuer den Titel der Ankuendigung - "Dein Skoda" trifft den Leser, "Dein
 // Auto" nicht. Volkswagen kuerzen wir auf VW ab, so nennen die Halter ihr Auto selbst.
-const EUDA_BRAND_LABEL: Record<EudaBrand, string> = {
+const EUDA_BRAND_LABEL: Record<VwEudaBrand, string> = {
   volkswagen: 'VW', skoda: 'Skoda', audi: 'Audi', seat: 'Seat', cupra: 'Cupra',
 }
 const eudaBrandLabel = ref<string | null>(null)
-const hasEudaConnection = ref<boolean>(false)
+const hasVwEudaConnection = ref<boolean>(false)
 let eudaStatusLoaded = false
 
 function getSeenKeys(): string[] {
@@ -59,23 +59,23 @@ async function loadTeslaConnectionStatus() {
  * Der Portal-Status wird nur fuer Halter einer VW-Group-Marke abgefragt. Alle anderen sehen die
  * Ankuendigung ohnehin nie, fuer die waere der Request reine Last.
  */
-async function loadEudaStatus(carStore: ReturnType<typeof useCarStore>) {
+async function loadVwEudaStatus(carStore: ReturnType<typeof useCarStore>) {
   if (eudaStatusLoaded) return
   eudaStatusLoaded = true
   try {
     const cars = await carStore.getCars()
     const brand = cars.map(car => eudaBrandOf(car.brand ?? '')).find(b => b !== null) ?? null
     if (!brand) return
-    // Erst schreiben, wenn auch der Verbindungsstatus vorliegt: waere hasEudaBrandCar schon
+    // Erst schreiben, wenn auch der Verbindungsstatus vorliegt: waere hasVwEudaBrandCar schon
     // vor dem Request true, wuerde die Ankuendigung einem laengst verbundenen Nutzer kurz
     // aufblitzen - und ein Klick darauf verbraucht sie dauerhaft.
-    const connections = await euDataActSyncService.getStatus()
-    hasEudaConnection.value = connections.length > 0
+    const connections = await vwEudaSyncService.getStatus()
+    hasVwEudaConnection.value = connections.length > 0
     eudaBrandLabel.value = EUDA_BRAND_LABEL[brand]
-    hasEudaBrandCar.value = true
+    hasVwEudaBrandCar.value = true
   } catch {
-    hasEudaBrandCar.value = false
-    hasEudaConnection.value = false
+    hasVwEudaBrandCar.value = false
+    hasVwEudaConnection.value = false
     eudaBrandLabel.value = null
   }
 }
@@ -93,7 +93,7 @@ export const useFeatureAnnouncements = () => {
   // are gated by an actual connection rather than shown to every user.
   if (authStore.isAuthenticated()) {
     void loadTeslaConnectionStatus()
-    void loadEudaStatus(carStore)
+    void loadVwEudaStatus(carStore)
   }
 
   const pending = computed<FeatureAnnouncement[]>(() => {
@@ -103,8 +103,8 @@ export const useFeatureAnnouncements = () => {
       isAutoSyncLive: authStore.isAutoSyncLive,
       hasTeslaConnection: hasTeslaConnection.value,
       teslaLocationScopeGranted: teslaLocationScopeGranted.value,
-      hasEudaBrandCar: hasEudaBrandCar.value,
-      hasEudaConnection: hasEudaConnection.value,
+      hasVwEudaBrandCar: hasVwEudaBrandCar.value,
+      hasVwEudaConnection: hasVwEudaConnection.value,
     }
     const registeredAt = authStore.user?.registeredAt
     return featureAnnouncements.filter(a =>

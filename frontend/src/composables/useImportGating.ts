@@ -1,6 +1,6 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
 import type { Car } from '../api/carService'
-import { isEudaBrand } from '../api/euDataActSyncService'
+import { isVwEudaBrand } from '../api/vwEudaSyncService'
 
 const brandIs = (car: Car | null | undefined, brand: string) => car?.brand?.toLowerCase() === brand
 
@@ -28,7 +28,7 @@ export function useImportGating(cars: Ref<Car[]>): {
     activeCarIsTesla: ComputedRef<boolean>
     activeCarIsXpeng: ComputedRef<boolean>
     /** Aktives Auto ist eine VW-Group-Marke: der EU-Data-Act-Tab startet dann aufgeklappt. */
-    activeCarIsEudaBrand: ComputedRef<boolean>
+    activeCarIsVwEudaBrand: ComputedRef<boolean>
     showTeslaSection: ComputedRef<boolean>
     showAutoSyncSection: ComputedRef<boolean>
     showSmartcarPitch: ComputedRef<boolean>
@@ -43,7 +43,7 @@ export function useImportGating(cars: Ref<Car[]>): {
     const activeCar = computed(() => carList.value.find(c => c.isPrimary) ?? carList.value[0] ?? null)
     const activeCarIsTesla = computed(() => brandIs(activeCar.value, 'tesla'))
     const activeCarIsXpeng = computed(() => brandIs(activeCar.value, 'xpeng'))
-    const activeCarIsEudaBrand = computed(() => isEudaBrand(activeCar.value?.brand ?? ''))
+    const activeCarIsVwEudaBrand = computed(() => isVwEudaBrand(activeCar.value?.brand ?? ''))
 
     const hasAnyTesla = computed(() => carList.value.some(c => brandIs(c, 'tesla')))
     const hasAnyXpeng = computed(() => carList.value.some(c => brandIs(c, 'xpeng')))
@@ -58,7 +58,7 @@ export function useImportGating(cars: Ref<Car[]>): {
     return {
         activeCarIsTesla,
         activeCarIsXpeng,
-        activeCarIsEudaBrand,
+        activeCarIsVwEudaBrand,
         smartcarCars,
         showTeslaSection: hasAnyTesla,
         showAutoSyncSection,

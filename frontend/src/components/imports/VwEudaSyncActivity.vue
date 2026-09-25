@@ -6,11 +6,11 @@ import {
   CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, EnvelopeIcon, ChevronRightIcon, ChevronDownIcon,
   XCircleIcon, PauseCircleIcon, ArrowPathIcon, LockClosedIcon,
 } from '@heroicons/vue/24/outline'
-import euDataActSyncService, { type EudaSyncActivity, type EudaConnectionStatus } from '../../api/euDataActSyncService'
-import { classifyEudaHealth, MANUFACTURER_AT_FAULT, type EudaHealth } from '../../composables/useEudaHealth'
-import { buildEudaComplaintMail } from '../../composables/useEudaComplaintMail'
-import { deriveEudaPrimaryAction, isEudaHistoryOpen } from '../../composables/useEudaPrimaryAction'
-import EudaAuthorityComplaint from './EudaAuthorityComplaint.vue'
+import vwEudaSyncService, { type VwEudaSyncActivity, type VwEudaConnectionStatus } from '../../api/vwEudaSyncService'
+import { classifyVwEudaHealth, MANUFACTURER_AT_FAULT, type VwEudaHealth } from '../../composables/useVwEudaHealth'
+import { buildVwEudaComplaintMail } from '../../composables/useVwEudaComplaintMail'
+import { deriveVwEudaPrimaryAction, isVwEudaHistoryOpen } from '../../composables/useVwEudaPrimaryAction'
+import VwEudaAuthorityComplaint from './VwEudaAuthorityComplaint.vue'
 
 /**
  * Das komplette Panel einer verbundenen Data-Act-Verbindung, in vier Zonen:
@@ -20,7 +20,7 @@ import EudaAuthorityComplaint from './EudaAuthorityComplaint.vue'
  * Herstellerneutral: alles kommt aus dem Activity-Vertrag.
  */
 const props = defineProps<{
-  connection: EudaConnectionStatus
+  connection: VwEudaConnectionStatus
   /** Vom Elternteil hochgezählt, wenn sich die Verbindung geändert hat (Historie angefordert, Reconnect). */
   version?: number
   trialEndsAt?: string
@@ -31,13 +31,13 @@ const emit = defineEmits<{ requestHistory: []; reactivateSmartcar: []; disconnec
 
 const { t, locale } = useI18n()
 
-const activity = ref<EudaSyncActivity | null>(null)
+const activity = ref<VwEudaSyncActivity | null>(null)
 const detailsOpen = ref(false)
 const authorityOpen = ref(false)
 
 async function load() {
   try {
-    const a = await euDataActSyncService.getActivity(props.connection.carId)
+    const a = await vwEudaSyncService.getActivity(props.connection.carId)
     activity.value = a?.connection ? a : null
   } catch {
     activity.value = null
@@ -47,12 +47,12 @@ onMounted(load)
 watch(() => [props.connection.carId, props.version], load)
 
 const status = computed(() => props.connection.status)
-const health = computed<EudaHealth | null>(() => activity.value ? classifyEudaHealth(activity.value) : null)
+const health = computed<VwEudaHealth | null>(() => activity.value ? classifyVwEudaHealth(activity.value) : null)
 const manufacturerAtFault = computed(() => health.value !== null && MANUFACTURER_AT_FAULT.has(health.value))
-const complaint = computed(() => activity.value ? buildEudaComplaintMail(activity.value, locale.value) : null)
+const complaint = computed(() => activity.value ? buildVwEudaComplaintMail(activity.value, locale.value) : null)
 
 type Tone = 'ok' | 'wait' | 'warn' | 'bad' | 'off'
-const TONE: Record<EudaHealth, Tone> = {
+const TONE: Record<VwEudaHealth, Tone> = {
   HEALTHY: 'ok', RECEIVING: 'wait', WAITING_FIRST: 'wait', NO_CONTENT: 'warn', STALE: 'warn', HISTORY_FAILED: 'warn',
   NO_REQUEST: 'bad', FAILING: 'bad', AUTH_FAILED: 'bad', PAUSED: 'off',
 }
@@ -105,8 +105,8 @@ const historyLabel = computed(() => {
   if (h?.requestedAt || props.historyPending) return t('eu_data_act_sync.activity.history_fact_requested')
   return t('eu_data_act_sync.activity.history_fact_none')
 })
-const historyOpen = computed(() => isEudaHistoryOpen(conn.value?.history, props.connection.historyImportedAt, props.historyPending ?? false))
-const primary = computed(() => deriveEudaPrimaryAction({
+const historyOpen = computed(() => isVwEudaHistoryOpen(conn.value?.history, props.connection.historyImportedAt, props.historyPending ?? false))
+const primary = computed(() => deriveVwEudaPrimaryAction({
   status: status.value, health: health.value, hasComplaint: complaint.value !== null, historyOpen: historyOpen.value,
 }))
 const primaryClass = 'inline-flex items-center justify-center gap-1.5 w-full sm:w-auto font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 disabled:opacity-60'
@@ -193,7 +193,7 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
       </div>
       <UploadSampleNotice v-if="primary === 'history' || (historyOpen && status === 'ACTIVE')" />
     </div>
-    <EudaAuthorityComplaint v-if="authorityOpen && activity" :activity="activity" @close="authorityOpen = false" />
+    <VwEudaAuthorityComplaint v-if="authorityOpen && activity" :activity="activity" @close="authorityOpen = false" />
 
     <!-- 4. Details -->
     <div v-if="activity && conn">

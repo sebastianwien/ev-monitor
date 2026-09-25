@@ -4,7 +4,7 @@ import { featuredImportSection, importSectionOrder, IMPORT_SECTION_ORDER } from 
 const ctx = {
     returningFromSmartcar: false,
     activeCarIsTesla: false,
-    activeCarIsEudaBrand: false,
+    activeCarIsVwEudaBrand: false,
     activeCarIsXpeng: false,
     hasAutoSync: false,
 }
@@ -19,7 +19,7 @@ describe('featuredImportSection', () => {
     })
 
     it('hebt den EU-Data-Act-Weg fuer VW-Group-Fahrer hervor', () => {
-        expect(featuredImportSection({ ...ctx, activeCarIsEudaBrand: true })).toBe('eu_data_act')
+        expect(featuredImportSection({ ...ctx, activeCarIsVwEudaBrand: true })).toBe('eu_data_act')
     })
 
     it('hebt den XPeng-Weg hervor, Smartcar deckt diese Marke nicht ab', () => {
@@ -36,12 +36,12 @@ describe('featuredImportSection', () => {
 
     it('gewinnt die Rueckkehr aus dem Smartcar-OAuth gegen jedes andere Signal', () => {
         expect(featuredImportSection({
-            ...ctx, returningFromSmartcar: true, activeCarIsTesla: true, activeCarIsEudaBrand: true,
+            ...ctx, returningFromSmartcar: true, activeCarIsTesla: true, activeCarIsVwEudaBrand: true,
         })).toBe('smartcar')
     })
 
     it('Tesla schlaegt die VW-Group-Marke, ein Auto kann nur eines von beiden sein', () => {
-        expect(featuredImportSection({ ...ctx, activeCarIsTesla: true, activeCarIsEudaBrand: true })).toBe('tesla')
+        expect(featuredImportSection({ ...ctx, activeCarIsTesla: true, activeCarIsVwEudaBrand: true })).toBe('tesla')
     })
 })
 

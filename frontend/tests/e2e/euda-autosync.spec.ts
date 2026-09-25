@@ -68,7 +68,7 @@ const TRIAL_OVER = { entitled: false, viaTrial: false, trialEndsAt: '2026-10-21'
 const UPLOAD_LABEL = 'Export-Datei (.json oder .zip)';
 
 /** Oeffnet den Tab - oder laesst ihn offen, wenn er (VW-Group-Auto aktiv) schon aufgeklappt startet. */
-async function openEudaTab(page: Page) {
+async function openVwEudaTab(page: Page) {
   await page.goto('/imports');
   const tab = page.getByRole('button', { name: /VW Gruppe \(EU Data Act\)/ });
   await tab.waitFor();
@@ -92,7 +92,7 @@ test.describe('EU Data Act AutoSync', () => {
     await mockEntitlement(page, TRIAL_OVER);
     await useSkodaCars(page);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
-    await openEudaTab(page);
+    await openVwEudaTab(page);
 
     await expect(page.getByTestId('euda-teaser')).toBeVisible();
     await expect(page.getByTestId('euda-teaser')).toContainText('21.10.2026');
@@ -105,7 +105,7 @@ test.describe('EU Data Act AutoSync', () => {
     await mockEntitlement(page, TRIAL);
     await useSkodaCars(page);
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
-    await openEudaTab(page);
+    await openVwEudaTab(page);
 
     await expect(page.getByTestId('euda-trial-hint')).toContainText('21.10.2026');
     await page.getByTestId('euda-start').click();
@@ -119,7 +119,7 @@ test.describe('EU Data Act AutoSync', () => {
       status: 200, contentType: 'application/json',
       body: JSON.stringify([{ ...statusActive(carId.value), status: 'EXPIRED' }]),
     }));
-    await openEudaTab(page);
+    await openVwEudaTab(page);
 
     await expect(page.getByTestId('euda-health')).toBeVisible();
     await expect(page.getByTestId('euda-expired-hint')).toBeVisible();
@@ -205,7 +205,7 @@ test.describe('EU Data Act AutoSync', () => {
       await route.fulfill({ response, body: JSON.stringify(cars) });
     });
     await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
-    await openEudaTab(page);
+    await openVwEudaTab(page);
 
     await expect(page.getByText('Export-Datei (.json oder .zip)')).toBeVisible();
     await expect(page.getByText('Automatisch synchronisieren (VW EU Data Act)')).toHaveCount(0);
@@ -235,14 +235,14 @@ test.describe('EU Data Act AutoSync', () => {
         lastCheckedAt: null, lastSoc: null, sessionActive: false, sessionStartedAt: null, sessionEnergyAdded: null,
       }) });
     });
-    await openEudaTab(page);
+    await openVwEudaTab(page);
     await page.getByTestId('euda-start').click();
 
     // Transparenz-Hinweise stehen im Formular, bevor der Nutzer etwas eingibt
     await expect(page.getByText(/nicht gespeichert/).first()).toBeVisible();
     await expect(page.getByText(/Datenanfrage an/)).toBeVisible();
     await expect(page.getByTestId('euda-smartcar-note')).toBeVisible();
-    await expect(page.getByTestId('euda-open-source')).toHaveAttribute('href', /github\.com\/sebastianwien\/ev-monitor.*EudaLoginClient\.java$/);
+    await expect(page.getByTestId('euda-open-source')).toHaveAttribute('href', /github\.com\/sebastianwien\/ev-monitor.*VwEudaLoginClient\.java$/);
 
     await page.getByRole('radio', { name: 'Škoda' }).click();
     await page.locator('#euda-email').fill('Max@Example.com');
@@ -268,7 +268,7 @@ test.describe('EU Data Act AutoSync', () => {
       status: 422, contentType: 'application/json',
       body: JSON.stringify({ code: 'INVALID_CREDENTIALS', message: 'E-Mail oder Passwort falsch' }),
     }));
-    await openEudaTab(page);
+    await openVwEudaTab(page);
     await page.getByTestId('euda-start').click();
 
     await page.locator('#euda-email').fill('max@example.com');
@@ -293,7 +293,7 @@ test.describe('EU Data Act AutoSync', () => {
       if (route.request().method() === 'DELETE') { connected = false; return route.fulfill({ status: 204 }); }
       return route.fallback();
     });
-    await openEudaTab(page);
+    await openVwEudaTab(page);
 
     await expect(page.getByText(WAITING_FIRST)).toBeVisible();
     await page.getByTestId('euda-history').click();

@@ -1,5 +1,5 @@
-import type { EudaSyncActivity, EudaPollEntry, EudaDeliveryEntry } from '../api/euDataActSyncService'
-import { lastContentAt } from './useEudaHealth'
+import type { VwEudaSyncActivity, VwEudaPollEntry, VwEudaDeliveryEntry } from '../api/vwEudaSyncService'
+import { lastContentAt } from './useVwEudaHealth'
 
 /**
  * Beschwerde bei der Aufsichtsbehörde (Bundesnetzagentur, Art. 37 Data Act, DA-DG seit 29.05.2026).
@@ -79,7 +79,7 @@ interface Facts {
   imported: number
 }
 
-function facts(activity: EudaSyncActivity, locale: string, now: Date): Facts {
+function facts(activity: VwEudaSyncActivity, locale: string, now: Date): Facts {
   const s = activity.summary
   return {
     de: isDe(locale),
@@ -100,7 +100,7 @@ function situationSentence(f: Facts): string {
     : `Since ${f.since}, ${f.seen} data sets have been provided, ${f.empty} of them without content (no_content_found) and ${f.content} with content. ${f.imported} charging sessions were imported from them.`
 }
 
-function historyLines(activity: EudaSyncActivity, locale: string): string[] {
+function historyLines(activity: VwEudaSyncActivity, locale: string): string[] {
   const h = activity.connection.history
   const de = isDe(locale)
   if (!h?.requestedAt) return [de ? 'Kein Historien-Export (Request File) angefordert.' : 'No history export (Request File) requested.']
@@ -111,7 +111,7 @@ function historyLines(activity: EudaSyncActivity, locale: string): string[] {
   return lines
 }
 
-const pollLine = (p: EudaPollEntry, locale: string) => {
+const pollLine = (p: VwEudaPollEntry, locale: string) => {
   const de = isDe(locale)
   const counts = p.history
     ? (de ? `Historie, ${p.sessionsImported} Ladevorgänge` : `history, ${p.sessionsImported} sessions`)
@@ -119,10 +119,10 @@ const pollLine = (p: EudaPollEntry, locale: string) => {
   return [fmtDateTime(p.at, locale), label(POLL_OUTCOME, p.outcome, locale), counts, p.error].filter(Boolean).join(' | ')
 }
 
-const deliveryLine = (d: EudaDeliveryEntry, locale: string) =>
+const deliveryLine = (d: VwEudaDeliveryEntry, locale: string) =>
   [fmtDateTime(d.createdOn, locale), label(DELIVERY_OUTCOME, d.outcome, locale), `${Math.max(1, Math.round(d.sizeBytes / 1024))} KB`, d.filename, d.error].filter(Boolean).join(' | ')
 
-export function buildEudaEvidenceDocument(activity: EudaSyncActivity, locale: string, now: Date = new Date()): EvidenceDocument {
+export function buildVwEudaEvidenceDocument(activity: VwEudaSyncActivity, locale: string, now: Date = new Date()): EvidenceDocument {
   const f = facts(activity, locale, now)
   const c = activity.connection
   const de = f.de
@@ -162,7 +162,7 @@ export function buildEudaEvidenceDocument(activity: EudaSyncActivity, locale: st
   }
 }
 
-export function buildEudaAuthorityFormValues(activity: EudaSyncActivity, locale: string, now: Date = new Date()): AuthorityFormValue[] {
+export function buildVwEudaAuthorityFormValues(activity: VwEudaSyncActivity, locale: string, now: Date = new Date()): AuthorityFormValue[] {
   const f = facts(activity, locale, now)
   const c = activity.connection
   const de = f.de

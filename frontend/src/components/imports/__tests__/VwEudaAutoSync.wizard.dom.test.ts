@@ -25,7 +25,7 @@ vi.mock('../../../api/axios', () => ({
     delete: vi.fn(),
   },
 }))
-import EudaAutoSync from '../EudaAutoSync.vue'
+import VwEudaAutoSync from '../VwEudaAutoSync.vue'
 
 const car = { id: 'car-1', brand: 'SKODA', model: 'Enyaq', year: 2024, status: 'ACTIVE' } as never
 
@@ -42,7 +42,7 @@ async function mount() {
   const el = document.createElement('div')
   document.body.appendChild(el)
   const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/:p*', component: { render: () => null } }] })
-  app = createApp(defineComponent({ render: () => h(EudaAutoSync, { cars: [car] }) }))
+  app = createApp(defineComponent({ render: () => h(VwEudaAutoSync, { cars: [car] }) }))
   app.use(createPinia()).use(i18n).use(router)
   app.mount(el)
   await flush()
@@ -51,7 +51,7 @@ async function mount() {
 async function flush() { for (let i = 0; i < 5; i++) await nextTick(); await new Promise(r => setTimeout(r, 0)); await nextTick() }
 const byId = (el: HTMLElement, id: string) => el.querySelector<HTMLElement>(`[data-testid="${id}"]`)
 
-describe('EudaAutoSync Wizard', () => {
+describe('VwEudaAutoSync Wizard', () => {
   it('Schritt 1: Entscheidung ohne Formular, Erklärung eingeklappt, Trial-Satz sichtbar', async () => {
     const el = await mount()
     expect(byId(el, 'euda-step-decide')).not.toBeNull()
@@ -100,7 +100,7 @@ describe('EudaAutoSync Wizard', () => {
     await nextTick()
     const link = byId(el, 'euda-open-source') as HTMLAnchorElement | null
     expect(link).not.toBeNull()
-    expect(link!.getAttribute('href')).toBe('https://github.com/sebastianwien/ev-monitor/blob/main/backend/src/main/java/com/evmonitor/application/euda/EudaLoginClient.java')
+    expect(link!.getAttribute('href')).toBe('https://github.com/sebastianwien/ev-monitor/blob/main/backend/src/main/java/com/evmonitor/application/vweuda/VwEudaLoginClient.java')
     expect(link!.getAttribute('rel')).toContain('noopener')
   })
 
