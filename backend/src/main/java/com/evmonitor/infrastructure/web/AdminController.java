@@ -14,6 +14,8 @@ import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
 import com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import com.evmonitor.application.ingest.event.ConnectionHealthResponse;
+import com.evmonitor.application.ingest.event.ConnectionHealthService;
 import com.evmonitor.application.ingest.event.ImportStatsResponse;
 import com.evmonitor.application.ingest.event.ImportStatsService;
 import com.evmonitor.domain.exception.ValidationException;
@@ -39,6 +41,7 @@ public class AdminController {
     private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
     private final StripeReportService stripeReportService;
     private final ImportStatsService importStatsService;
+    private final ConnectionHealthService connectionHealthService;
 
     /**
      * Triggers one-time temperature backfill for all logs with geohash but no temperature.
@@ -102,6 +105,13 @@ public class AdminController {
             throw new ValidationException("INVALID_DAYS", "days muss zwischen 1 und " + ImportStatsService.MAX_DAYS + " liegen");
         }
         return ResponseEntity.ok(importStatsService.stats(days));
+    }
+
+    /** Verbindungs-Gesundheit je Hersteller aus Connectors (R2e); eigener Aufruf, damit das Protokoll nie auf Connectors wartet. */
+    @GetMapping("/stats/imports/connections")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ConnectionHealthResponse> getImportConnections() {
+        return ResponseEntity.ok(connectionHealthService.health());
     }
 
     @GetMapping("/stats/traffic")
