@@ -53,6 +53,7 @@ class XpengImportServiceTest {
     @Mock EvLogRepository evLogRepository;
     @Mock EvTripRepository evTripRepository;
     @Mock com.evmonitor.application.imports.sample.ImportSampleService samples;
+    @Mock com.evmonitor.application.ingest.event.ImportEventRecorder importEvents;
 
     @InjectMocks XpengImportService service;
 
@@ -200,6 +201,52 @@ class XpengImportServiceTest {
         verify(samples).record(meta.capture(), any());
         assertEquals(com.evmonitor.application.imports.sample.ImportSampleService.Outcome.FAILED, meta.getValue().outcome());
         assertEquals("b".repeat(64), meta.getValue().originalSha256());
+    }
+
+    // ── Import-Protokoll ──────────────────────────────────────────────────────
+
+    @Test
+    void unreadableUpload_isLoggedAsParseError() {
+        when(carRepository.findById(CAR)).thenReturn(Optional.of(ownedBy(USER)));
+        assertThrows(IllegalArgumentException.class, () -> service.uploadCsvZip(USER, CAR,
+                new ByteArrayInputStream("not a zip file".getBytes()), "1.1.1.1", "ua"));
+
+        var event = loggedEvent();
+        assertEquals(com.evmonitor.application.ingest.event.ImportEventOutcome.PARSE_ERROR, event.getOutcome());
+        assertEquals("XPENG_IMPORT", event.getDataSource());
+        assertEquals(USER, event.getUserId());
+        assertEquals(CAR, event.getCarId());
+        assertEquals("IllegalArgumentException: Keine gültige ZIP-Datei", event.getError());
+    }
+
+    @Test
+    void process_fileWithoutVin_isLoggedAsParseError() throws Exception {
+        XpengImportJob job = processingJob(writeCsvZip(""));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.process(job);
+
+        assertEquals(XpengImportJob.Status.FAILED, job.getStatus());
+        assertEquals(com.evmonitor.application.ingest.event.ImportEventOutcome.PARSE_ERROR, loggedEvent().getOutcome());
+    }
+
+    @Test
+    void process_infrastructureError_isLoggedAsFailed_withoutPath() {
+        XpengImportJob job = processingJob(tempDir.resolve("nonexistent.zip"));
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.process(job);
+
+        var event = loggedEvent();
+        assertEquals(com.evmonitor.application.ingest.event.ImportEventOutcome.FAILED, event.getOutcome());
+        assertFalse(event.getError().contains("nonexistent"), "kein Pfad im Protokoll: " + event.getError());
+    }
+
+    private com.evmonitor.infrastructure.persistence.ingest.ImportEvent loggedEvent() {
+        ArgumentCaptor<com.evmonitor.infrastructure.persistence.ingest.ImportEvent> event =
+                ArgumentCaptor.forClass(com.evmonitor.infrastructure.persistence.ingest.ImportEvent.class);
+        verify(importEvents).record(event.capture());
+        return event.getValue();
     }
 
     @Test

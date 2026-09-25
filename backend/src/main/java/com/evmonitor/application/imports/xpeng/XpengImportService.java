@@ -17,6 +17,10 @@ import com.evmonitor.domain.xpeng.XpengTripDetector;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJob;
 import com.evmonitor.infrastructure.persistence.xpeng.XpengImportJobRepository;
 import com.evmonitor.application.imports.sample.ImportSampleService;
+import com.evmonitor.application.ingest.event.ImportEventErrors;
+import com.evmonitor.application.ingest.event.ImportEventOutcome;
+import com.evmonitor.application.ingest.event.ImportEventRecorder;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEvent;
 import com.evmonitor.domain.xpeng.XpengSampleAnonymizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,6 +92,7 @@ public class XpengImportService {
     private final com.evmonitor.domain.EvLogRepository evLogRepository;
     private final com.evmonitor.domain.EvTripRepository evTripRepository;
     private final ImportSampleService samples;
+    private final ImportEventRecorder importEvents;
 
     @Value("${xpeng.import.tempdir}")
     private String tempDir;
@@ -112,11 +117,18 @@ public class XpengImportService {
         if (!car.isOwnedBy(userId)) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
-        Path tempfile = persistUpload(content);
+        Path tempfile;
+        try {
+            tempfile = persistUpload(content);
+        } catch (IllegalArgumentException e) {
+            logParseError(userId, carId, e);
+            throw e;
+        }
         try {
             validateZipHasVin(tempfile);
         } catch (RuntimeException e) {
             try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
+            if (e instanceof IllegalArgumentException) logParseError(userId, carId, e);
             throw e;
         }
         long size = Files.size(tempfile);
@@ -182,12 +194,26 @@ public class XpengImportService {
             job.setStatus(XpengImportJob.Status.FAILED);
             job.setErrorMessage(truncate(e.getMessage(), 500));
             job.setCompletedAt(LocalDateTime.now());
+            // Was bis zum Gateway kam, protokolliert das Gateway selbst; hier nur der Abbruch des Jobs.
+            boolean unreadable = e instanceof XpengParseException || e instanceof IllegalArgumentException;
+            importEvents.record(ImportEvent.of(DataSource.XPENG_IMPORT, job.getUserId(), job.getCarId())
+                    .outcome(unreadable ? ImportEventOutcome.PARSE_ERROR : ImportEventOutcome.FAILED)
+                    .error(ImportEventErrors.describe(e))
+                    .build());
         } finally {
             recordSample(job, tempfile);
             try { Files.deleteIfExists(tempfile); } catch (Exception ignored) {}
             job.clearFileReferences();
             jobRepo.save(job);
         }
+    }
+
+    /** Nicht lesbarer Upload: das Gateway wird nie gerufen, also hier ins Import-Protokoll. */
+    private void logParseError(UUID userId, UUID carId, RuntimeException e) {
+        importEvents.record(ImportEvent.of(DataSource.XPENG_IMPORT, userId, carId)
+                .outcome(ImportEventOutcome.PARSE_ERROR)
+                .error(ImportEventErrors.describe(e))
+                .build());
     }
 
     /** Pseudonymisierte Kopie des CSV-Exports ablegen (Best Effort, XLSX wird uebersprungen). */

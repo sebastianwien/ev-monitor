@@ -32,6 +32,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import com.evmonitor.application.imports.sample.ImportSampleService;
+import com.evmonitor.application.ingest.event.ImportEventOutcome;
+import com.evmonitor.application.ingest.event.ImportEventRecorder;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEvent;
 import com.evmonitor.application.imports.sample.ImportSampleService.SampleMeta;
 import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -43,6 +46,7 @@ class VwEudaImportServiceTest {
     @Mock private CarRepository carRepository;
     @Mock private PublicApiImportService publicApiImportService;
     @Mock private ImportSampleService samples;
+    @Mock private ImportEventRecorder importEvents;
 
     private VwEudaImportService service;
 
@@ -55,7 +59,8 @@ class VwEudaImportServiceTest {
                 new VwEudaJsonParser(new ObjectMapper()),
                 carRepository,
                 publicApiImportService,
-                samples
+                samples,
+                importEvents
         );
     }
 
@@ -112,7 +117,7 @@ class VwEudaImportServiceTest {
         when(mockParser.parse(any(InputStreamSource.class), anyBoolean())).thenReturn(new VwEudaParseResult("VIN", List.of(sessionWithoutKwh)));
 
         VwEudaImportService serviceWithMockParser = new VwEudaImportService(
-                mockParser, carRepository, publicApiImportService, samples);
+                mockParser, carRepository, publicApiImportService, samples, importEvents);
         ImportApiResult result = serviceWithMockParser.importData(userId, carId, this::sampleJsonStream, "export.json");
 
         // Service returns early without calling importSessions when all sessions have no kWh
@@ -243,7 +248,7 @@ class VwEudaImportServiceTest {
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
         VwEudaImportService smallLimit = new VwEudaImportService(
                 new VwEudaJsonParser(new ObjectMapper()), carRepository, publicApiImportService, samples,
-                8 * 1024 * 1024L);
+                importEvents, 8 * 1024 * 1024L);
 
         byte[] zipBytes = zipWithOversizedJsonEntry();
 
@@ -406,5 +411,49 @@ class VwEudaImportServiceTest {
         assertThrows(VwEudaUnreadableException.class, () -> service.importData(userId, carId,
                 () -> new ByteArrayInputStream("nicht json".getBytes(StandardCharsets.UTF_8)),
                 "kaputt.json", DataSource.EU_DATA_ACT_SYNC, true));
+    }
+
+    // ── Import-Protokoll ──────────────────────────────────────────────────────
+
+    @Test
+    void unreadablePreview_isLoggedAsParseError_withoutContent() {
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(new BigDecimal("77"))));
+
+        assertThrows(VwEudaUnreadableException.class, () -> service.preview(userId, carId,
+                () -> new ByteArrayInputStream("kein json".getBytes(StandardCharsets.UTF_8)), "max-mustermann.json"));
+
+        ArgumentCaptor<ImportEvent> event = ArgumentCaptor.forClass(ImportEvent.class);
+        verify(importEvents).record(event.capture());
+        assertEquals(ImportEventOutcome.PARSE_ERROR, event.getValue().getOutcome());
+        assertEquals("EU_DATA_ACT_IMPORT", event.getValue().getDataSource());
+        assertEquals("UPLOAD", event.getValue().getChannel());
+        assertEquals(userId, event.getValue().getUserId());
+        assertEquals(carId, event.getValue().getCarId());
+        assertEquals("VwEudaUnreadableException: Datei ist kein lesbares JSON", event.getValue().getError());
+    }
+
+    @Test
+    void autoSync_brokenDrop_isLoggedAsParseErrorOnSyncChannel() {
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(BigDecimal.valueOf(77.0))));
+
+        assertThrows(VwEudaUnreadableException.class, () -> service.importData(userId, carId,
+                () -> new ByteArrayInputStream("nicht json".getBytes(StandardCharsets.UTF_8)),
+                "kaputt.json", DataSource.EU_DATA_ACT_SYNC, true));
+
+        ArgumentCaptor<ImportEvent> event = ArgumentCaptor.forClass(ImportEvent.class);
+        verify(importEvents).record(event.capture());
+        assertEquals(ImportEventOutcome.PARSE_ERROR, event.getValue().getOutcome());
+        assertEquals("SYNC", event.getValue().getChannel());
+    }
+
+    @Test
+    void readableImport_leavesTheLogToTheGateway() throws Exception {
+        when(carRepository.findById(carId)).thenReturn(Optional.of(carWithCapacity(null)));
+        when(publicApiImportService.importSessions(any(), any(PublicApiSessionRequest.class), any(DataSource.class)))
+                .thenReturn(ImportApiResult.withoutIds(3, 0, 0));
+
+        service.importData(userId, carId, this::realSampleStream, "export.json");
+
+        verifyNoInteractions(importEvents);
     }
 }

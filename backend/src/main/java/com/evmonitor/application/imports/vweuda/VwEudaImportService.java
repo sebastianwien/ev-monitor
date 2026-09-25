@@ -1,6 +1,10 @@
 package com.evmonitor.application.imports.vweuda;
 
 import com.evmonitor.application.imports.sample.ImportSampleService;
+import com.evmonitor.application.ingest.event.ImportEventErrors;
+import com.evmonitor.application.ingest.event.ImportEventOutcome;
+import com.evmonitor.application.ingest.event.ImportEventRecorder;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEvent;
 import java.util.Optional;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -40,29 +44,33 @@ public class VwEudaImportService {
     private final PublicApiImportService publicApiImportService;
     private final long maxUnzippedBytes;
     private final ImportSampleService samples;
+    private final ImportEventRecorder importEvents;
     private final VwEudaSampleAnonymizer anonymizer = new VwEudaSampleAnonymizer(new ObjectMapper());
 
     @Autowired
     public VwEudaImportService(VwEudaJsonParser parser, CarRepository carRepository,
-                                  PublicApiImportService publicApiImportService, ImportSampleService samples) {
-        this(parser, carRepository, publicApiImportService, samples, DEFAULT_MAX_UNZIPPED_BYTES);
+                                  PublicApiImportService publicApiImportService, ImportSampleService samples,
+                                  ImportEventRecorder importEvents) {
+        this(parser, carRepository, publicApiImportService, samples, importEvents, DEFAULT_MAX_UNZIPPED_BYTES);
     }
 
     /** Fuer Tests: der Entpack-Guard laesst sich nur mit kleinem Limit sinnvoll pruefen. */
     VwEudaImportService(VwEudaJsonParser parser, CarRepository carRepository,
                            PublicApiImportService publicApiImportService, ImportSampleService samples,
-                           long maxUnzippedBytes) {
+                           ImportEventRecorder importEvents, long maxUnzippedBytes) {
         this.parser = parser;
         this.carRepository = carRepository;
         this.publicApiImportService = publicApiImportService;
         this.samples = samples;
+        this.importEvents = importEvents;
         this.maxUnzippedBytes = maxUnzippedBytes;
     }
 
     public VwEudaPreviewResult preview(UUID userId, UUID carId, InputStreamSource file, String originalFilename)
             throws IOException {
         Car car = requireOwnedCar(userId, carId);
-        VwEudaParseResult parsed = parseAndRecord(file, originalFilename, car, userId, ImportSampleService.Channel.UPLOAD);
+        VwEudaParseResult parsed = parseAndRecord(file, originalFilename, car, userId, ImportSampleService.Channel.UPLOAD,
+                DataSource.EU_DATA_ACT_IMPORT);
         return VwEudaPreviewResult.from(parsed);
     }
 
@@ -87,9 +95,9 @@ public class VwEudaImportService {
         Car car = requireOwnedCar(userId, carId);
         // Laufende 15-Minuten-Drops liegen roh in Connectors - kopiert werden nur Uploads und Historien-Exporte
         VwEudaParseResult parsed = lenient
-                ? parse(file, originalFilename, car, true)
+                ? parse(file, originalFilename, car, userId, dataSource, true)
                 : parseAndRecord(file, originalFilename, car, userId, dataSource == DataSource.EU_DATA_ACT_SYNC
-                        ? ImportSampleService.Channel.HISTORY : ImportSampleService.Channel.UPLOAD);
+                        ? ImportSampleService.Channel.HISTORY : ImportSampleService.Channel.UPLOAD, dataSource);
 
         List<PublicApiSessionRequest.SessionEntry> entries = toSessionEntries(parsed.sessions(), car);
         if (entries.isEmpty()) {
@@ -105,9 +113,10 @@ public class VwEudaImportService {
 
     /** Parst strikt und legt eine pseudonymisierte Kopie ab - auch (gerade) wenn die Datei nicht lesbar ist. */
     private VwEudaParseResult parseAndRecord(InputStreamSource file, String originalFilename, Car car, UUID userId,
-                                                ImportSampleService.Channel channel) throws IOException {
+                                                ImportSampleService.Channel channel, DataSource dataSource)
+            throws IOException {
         try {
-            VwEudaParseResult parsed = parse(file, originalFilename, car, false);
+            VwEudaParseResult parsed = parse(file, originalFilename, car, userId, dataSource, false);
             recordSample(file, originalFilename, car, userId, channel, parsed.sessions().isEmpty()
                     ? ImportSampleService.Outcome.NO_SESSIONS : ImportSampleService.Outcome.OK, parsed.sessions().size(), null);
             return parsed;
@@ -143,6 +152,23 @@ public class VwEudaImportService {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
         return car;
+    }
+
+    /**
+     * Parst und protokolliert eine unlesbare Datei als {@code PARSE_ERROR}: das Gateway wird dann gar
+     * nicht erst gerufen, ohne diese Zeile sähe der Admin-Tab ein geändertes Drop-Format nie.
+     */
+    private VwEudaParseResult parse(InputStreamSource file, String originalFilename, Car car, UUID userId,
+                                    DataSource dataSource, boolean lenient) throws IOException {
+        try {
+            return parse(file, originalFilename, car, lenient);
+        } catch (VwEudaUnreadableException e) {
+            importEvents.record(ImportEvent.of(dataSource, userId, car.getId())
+                    .outcome(ImportEventOutcome.PARSE_ERROR)
+                    .error(ImportEventErrors.describe(e))
+                    .build());
+            throw e;
+        }
     }
 
     private VwEudaParseResult parse(InputStreamSource file, String originalFilename, Car car, boolean lenient)

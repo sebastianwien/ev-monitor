@@ -47,6 +47,14 @@ class ImportEventErrorsTest {
     }
 
     @Test
+    void pathsAreRemoved() {
+        assertThat(ImportEventErrors.describe(new java.nio.file.NoSuchFileException("/tmp/xpeng/max-export.zip")))
+                .isEqualTo("NoSuchFileException");
+        assertThat(ImportEventErrors.describe(new IllegalStateException("Datei C:\\Users\\max\\a.zip fehlt")))
+                .isEqualTo("IllegalStateException: Datei fehlt");
+    }
+
+    @Test
     void noMessage_givesClassOnly() {
         assertThat(ImportEventErrors.describe(new NullPointerException())).isEqualTo("NullPointerException");
     }
