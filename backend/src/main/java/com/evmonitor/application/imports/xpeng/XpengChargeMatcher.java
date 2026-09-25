@@ -156,6 +156,7 @@ public class XpengChargeMatcher {
                         : inferredType)
                 .updatedAt(LocalDateTime.now())
                 .build();
+        // ingest-bypass: ergänzt eine bestehende Ladung, legt keine an
         evLogService.save(patched);
 
         // telemetry_extras: erste Session mit nicht-leerem extras-Map gewinnt (per-row-Aggregation

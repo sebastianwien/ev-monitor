@@ -81,6 +81,7 @@ public class AccountAnonymizationService {
                 .toList();
         DaySequence seq = new DaySequence();
         for (EvLog l : logs) {
+            // ingest-bypass: anonymisiert bestehende Ladungen
             evLogRepository.save(l.anonymize(seq.next(l.getCarId(), l.getLoggedAt().toLocalDate())));
         }
         return logs.size();
@@ -99,6 +100,7 @@ public class AccountAnonymizationService {
             LocalDate day = t.getTripStartedAt() == null ? null : t.getTripStartedAt().toLocalDate();
             t.anonymize(seq.next(t.getCarId(), day));
         }
+        // ingest-bypass: anonymisiert bestehende Fahrten
         evTripRepository.saveAll(kept);
         return kept.size();
     }
