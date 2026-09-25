@@ -15,6 +15,12 @@ public enum ImportEventOutcome {
     /** Datei oder Lieferung nicht lesbar, das Gateway wurde gar nicht erst gerufen. */
     PARSE_ERROR;
 
+    /** Ergebnis aus den Zählern eines Aufrufs; Duplikate zählen nicht als Fehler. */
+    public static ImportEventOutcome of(int imported, int failed) {
+        if (failed == 0) return imported > 0 ? IMPORTED : NO_NEW_DATA;
+        return imported > 0 ? PARTIAL : FAILED;
+    }
+
     /** Hat angelegt oder hatte nichts Neues - zählt als Lebenszeichen der Quelle. */
     public boolean isSuccess() {
         return this == IMPORTED || this == NO_NEW_DATA || this == PARTIAL;

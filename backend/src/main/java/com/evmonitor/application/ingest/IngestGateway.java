@@ -6,12 +6,16 @@ import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.application.LocationPricing;
 import com.evmonitor.application.MissedStartSocEstimator;
 import com.evmonitor.application.SohAutoDetectEvent;
+import com.evmonitor.application.ingest.event.ImportEventErrors;
+import com.evmonitor.application.ingest.event.ImportEventOutcome;
+import com.evmonitor.application.ingest.event.ImportEventRecorder;
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.domain.route.RouteSketcher;
 import com.evmonitor.domain.weather.TemperatureEnricher;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -34,6 +38,9 @@ import java.util.*;
  * <p>Die alten Einstiege ({@code PublicApiImportService.importSessions},
  * {@code EvLogService.createInternalLog}, {@code TripService.saveTrip}) parsen nur noch ihr Format
  * und rufen hierher. Unterschiede zwischen ihnen stehen in {@link IngestPolicies}, nicht im Code.
+ *
+ * <p>Jeder Aufruf hinterlässt eine Zeile Import-Protokoll ({@link ImportEventRecorder}), auch wenn er
+ * abgelehnt wird oder scheitert. Rückgaben und Exceptions bleiben davon unberührt.
  */
 @Service
 @RequiredArgsConstructor
@@ -49,6 +56,7 @@ public class IngestGateway {
     private final EvTripRepository tripRepository;
     private final TemperatureEnricher temperatureEnricher;
     private final RouteSketcher routeSketcher;
+    private final ImportEventRecorder importEvents;
 
     /**
      * Legt die Ladungen eines Autos an. Ein Aufruf ist eine Transaktion: scheitert der Commit (z. B.
@@ -59,6 +67,26 @@ public class IngestGateway {
      */
     @Transactional
     public IngestResult ingestCharging(IngestCommand command) {
+        long started = System.nanoTime();
+        try {
+            IngestResult result = ingestChargingEntries(command);
+            importEvents.record(ImportEvent.of(command.dataSource(), command.userId(), command.carId())
+                    .outcome(ImportEventOutcome.of(result.imported(), result.errors()))
+                    .sessionsImported(result.imported())
+                    .sessionsSkipped(result.skipped())
+                    .sessionsFailed(result.errors())
+                    .durationMs(elapsedMs(started))
+                    .build());
+            return result;
+        } catch (RuntimeException e) {
+            // Unbekanntes Auto: car_id bleibt leer, sonst scheitert das Protokoll am Fremdschlüssel.
+            UUID carId = e instanceof NotFoundException ? null : command.carId();
+            importEvents.record(rejectedOrFailed(ImportEvent.of(command.dataSource(), command.userId(), carId), e, started));
+            throw e;
+        }
+    }
+
+    private IngestResult ingestChargingEntries(IngestCommand command) {
         Car car = requireOwnedCar(command.carId(), command.userId());
         IngestPolicy policy = IngestPolicies.forSource(command.dataSource(), command.door());
 
@@ -265,6 +293,25 @@ public class IngestGateway {
      */
     @Transactional
     public UUID ingestTrip(InternalTripRequest req) {
+        long started = System.nanoTime();
+        try {
+            TripIngest ingest = ingestTripOnce(req);
+            importEvents.record(tripEvent(req)
+                    .outcome(ingest.created() ? ImportEventOutcome.IMPORTED : ImportEventOutcome.NO_NEW_DATA)
+                    .tripsImported(ingest.created() ? 1 : 0)
+                    .tripsSkipped(ingest.created() ? 0 : 1)
+                    .durationMs(elapsedMs(started))
+                    .build());
+            return ingest.id();
+        } catch (RuntimeException e) {
+            importEvents.record(rejectedOrFailed(tripEvent(req), e, started));
+            throw e;
+        }
+    }
+
+    private record TripIngest(UUID id, boolean created) {}
+
+    private TripIngest ingestTripOnce(InternalTripRequest req) {
         if (req.userId() == null) {
             throw new ValidationException("userId is required");
         }
@@ -273,7 +320,7 @@ public class IngestGateway {
             if (existing.isPresent()) {
                 log.debug("Trip with externalId={} already exists (deleted={}) - skipping",
                         req.externalId(), existing.get().getDeletedAt() != null);
-                return existing.get().getId();
+                return new TripIngest(existing.get().getId(), false);
             }
         }
 
@@ -339,7 +386,31 @@ public class IngestGateway {
             afterCommit(() -> routeSketcher.sketchTrip(tripIdForRoute, routeStart, routeEnd));
         }
 
-        return saved.getId();
+        return new TripIngest(saved.getId(), true);
+    }
+
+    /** Fahrten melden ihre Quelle als Text; eine unbekannte wird trotzdem protokolliert. */
+    private static ImportEvent.ImportEventBuilder tripEvent(InternalTripRequest req) {
+        try {
+            return ImportEvent.of(DataSource.valueOf(req.dataSource()), req.userId(), req.carId());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return ImportEvent.ofUnknownSource(req.dataSource(), req.userId(), req.carId());
+        }
+    }
+
+    /** Abgelehnt, wenn die Anfrage selbst nicht passt (Auto, Besitz, Pflichtfeld), sonst gescheitert. */
+    private static ImportEvent rejectedOrFailed(ImportEvent.ImportEventBuilder event, RuntimeException e, long started) {
+        boolean rejected = e instanceof NotFoundException || e instanceof ForbiddenException
+                || e instanceof ValidationException;
+        return event
+                .outcome(rejected ? ImportEventOutcome.REJECTED : ImportEventOutcome.FAILED)
+                .error(ImportEventErrors.describe(e))
+                .durationMs(elapsedMs(started))
+                .build();
+    }
+
+    private static int elapsedMs(long startedNanos) {
+        return (int) Duration.ofNanos(System.nanoTime() - startedNanos).toMillis();
     }
 
     private static void afterCommit(Runnable task) {

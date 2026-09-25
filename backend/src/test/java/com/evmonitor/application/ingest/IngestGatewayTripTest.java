@@ -46,6 +46,7 @@ class IngestGatewayTripTest {
     @Mock TemperatureEnricher temperatureEnricher;
     @Mock RouteSketcher routeSketcher;
 
+    @Mock com.evmonitor.application.ingest.event.ImportEventRecorder importEvents;
     @InjectMocks IngestGateway gateway;
 
     private static final OffsetDateTime START = OffsetDateTime.of(2026, 5, 10, 9, 0, 0, 0, ZoneOffset.UTC);

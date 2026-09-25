@@ -85,6 +85,7 @@ public class ImportEvent {
 
     /** Vorbelegt mit Herkunft aus der Quelle. */
     public static ImportEventBuilder of(DataSource source, UUID userId, UUID carId) {
+        if (source == null) return ofUnknownSource(null, userId, carId);
         return builder()
                 .userId(userId)
                 .carId(carId)
