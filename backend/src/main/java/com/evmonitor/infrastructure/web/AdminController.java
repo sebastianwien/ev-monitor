@@ -14,6 +14,9 @@ import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
 import com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import com.evmonitor.application.ingest.event.ImportStatsResponse;
+import com.evmonitor.application.ingest.event.ImportStatsService;
+import com.evmonitor.domain.exception.ValidationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,6 +38,7 @@ public class AdminController {
     private final BatterySohService batterySohService;
     private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
     private final StripeReportService stripeReportService;
+    private final ImportStatsService importStatsService;
 
     /**
      * Triggers one-time temperature backfill for all logs with geohash but no temperature.
@@ -88,6 +92,16 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<AdminChargingActivityRow>> getChargingActivity() {
         return ResponseEntity.ok(adminQueryRepository.getChargingActivity());
+    }
+
+    /** Import-Protokoll je Provider und Kanal (Herstellerarchitektur R2b), höchstens so weit zurück wie die Aufbewahrung. */
+    @GetMapping("/stats/imports")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ImportStatsResponse> getImportStats(@RequestParam(defaultValue = "30") int days) {
+        if (days < 1 || days > ImportStatsService.MAX_DAYS) {
+            throw new ValidationException("INVALID_DAYS", "days muss zwischen 1 und " + ImportStatsService.MAX_DAYS + " liegen");
+        }
+        return ResponseEntity.ok(importStatsService.stats(days));
     }
 
     @GetMapping("/stats/traffic")
