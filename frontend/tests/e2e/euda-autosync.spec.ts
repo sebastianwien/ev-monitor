@@ -13,6 +13,25 @@ const statusActive = (carId: string) => ({
   status: 'ACTIVE', lastSuccessAt: null, historyImportedAt: null, lastError: null,
 });
 
+/** Sync-Protokoll einer frisch verbundenen Verbindung: Datenanfrage laeuft, noch keine Lieferung. */
+async function mockFreshActivity(page: Page) {
+  await page.route('**/api/eu-data-act/cars/*/activity', route => {
+    const carId = route.request().url().match(/cars\/([^/]+)\/activity/)![1];
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+      provider: 'VW_GROUP', manufacturerContact: 'euda-support@cariad.technology',
+      connection: {
+        carId, brand: 'skoda', status: 'ACTIVE', connectedAt: new Date().toISOString(),
+        lastPolledAt: null, lastSuccessAt: null, consecutiveFailures: 0, lastError: null,
+        dataRequestActive: true, lastDeliveryAt: null, lastDataAt: null, history: null,
+      },
+      identifiers: [],
+      summary: { deliveriesSeen: 0, deliveriesWithContent: 0, sessionsImported: 0, lastContentAt: null },
+      polls: [], deliveries: [],
+    }) });
+  });
+}
+const WAITING_FIRST = 'Verbunden, warte auf die erste Lieferung mit Inhalt (bis zu 24 Stunden).';
+
 /**
  * Macht die Fahrzeuge des Testnutzers zu Skodas (die Karte gibt es nur fuer VW-Group-Marken)
  * und liest die echte Fahrzeug-ID mit.
@@ -200,6 +219,7 @@ test.describe('EU Data Act AutoSync', () => {
       statusCalls++;
       return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
     });
+    await mockFreshActivity(page);
     let connectBody: Record<string, string> | null = null;
     await page.route('**/api/eu-data-act/cars/*/connect', route => {
       connectBody = route.request().postDataJSON() as Record<string, string>;
@@ -230,7 +250,7 @@ test.describe('EU Data Act AutoSync', () => {
     await page.getByTestId('euda-connect').click();
 
     await expect(page.getByTestId('euda-success')).toBeVisible();
-    await expect(page.getByText('Verbunden - Ladevorgänge kommen automatisch')).toBeVisible();
+    await expect(page.getByText(WAITING_FIRST)).toBeVisible();
     await expect(page.getByText('max@example.com')).toBeVisible();
     expect(connectBody).toEqual({ brand: 'skoda', email: 'Max@Example.com', password: 'geheim-123' });
     expect(statusCalls).toBeGreaterThan(0);
@@ -266,6 +286,7 @@ test.describe('EU Data Act AutoSync', () => {
     await page.route('**/api/eu-data-act/status', route => route.fulfill({
       status: 200, contentType: 'application/json', body: JSON.stringify(connected ? [statusActive(carId.value)] : []),
     }));
+    await mockFreshActivity(page);
     let historyRequested = false;
     await page.route('**/api/eu-data-act/cars/*/history', route => { historyRequested = true; return route.fulfill({ status: 202 }); });
     await page.route('**/api/eu-data-act/cars/*', route => {
@@ -274,9 +295,11 @@ test.describe('EU Data Act AutoSync', () => {
     });
     await openEudaTab(page);
 
-    await expect(page.getByText('Verbunden - Ladevorgänge kommen automatisch')).toBeVisible();
+    await expect(page.getByText(WAITING_FIRST)).toBeVisible();
     await page.getByTestId('euda-history').click();
-    await expect(page.getByText(/Ladehistorie angefordert/)).toBeVisible();
+    // Der Stand steht in der Faktenzeile "Ladehistorie", der Knopf verschwindet
+    await expect(page.getByText('angefordert, kommt in einigen Stunden')).toBeVisible();
+    await expect(page.getByTestId('euda-history')).toHaveCount(0);
     expect(historyRequested).toBe(true);
 
     await page.getByTestId('euda-disconnect').click();
