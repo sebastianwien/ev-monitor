@@ -143,6 +143,7 @@ const connect = async () => {
             :error="pairingError"
             @enable="enableTelemetry"
             @refresh="loadPairingStatus"
+            @reconnect="connect"
           />
 
           <!-- Schritt 1: Tesla-Account verbinden. -->

@@ -8,7 +8,7 @@ function buildStatus(overrides: Partial<TeslaPairingStatus>): TeslaPairingStatus
         telemetryConfigPushed: false,
         dataSource: 'POLLING',
         telemetryProfile: 'CHARGING_ONLY',
-        vin: null,
+        vin: 'LRW3E7EL8PC798571',
         ...overrides,
     } as TeslaPairingStatus
 }
@@ -43,5 +43,14 @@ describe('shouldAutoEnableTelemetry', () => {
         // to re-fire enable, even if config flag drift'd.
         const status = buildStatus({ keyPaired: true, telemetryConfigPushed: true, dataSource: 'TELEMETRY' })
         expect(shouldAutoEnableTelemetry(status, null)).toBe(false)
+    })
+})
+
+describe('shouldAutoEnableTelemetry without VIN', () => {
+    it('does not auto-enable when no vehicle is known, even if keyPaired were true', () => {
+        expect(shouldAutoEnableTelemetry(
+            { vin: null, keyPaired: true, telemetryConfigPushed: false, dataSource: 'POLLING' },
+            null,
+        )).toBe(false)
     })
 })

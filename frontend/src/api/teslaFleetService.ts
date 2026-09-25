@@ -13,7 +13,8 @@ export interface TeslaConnectionStatus {
 }
 
 export interface TeslaPairingStatus {
-  vin: string
+  /** null when no vehicle was found in the Tesla account at OAuth time. */
+  vin: string | null
   keyPaired: boolean
   telemetryConfigPushed: boolean
   dataSource?: string

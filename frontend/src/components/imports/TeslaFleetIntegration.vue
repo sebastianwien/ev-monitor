@@ -296,6 +296,7 @@ async function retryConnect() {
           :error="pairingError"
           @enable="enableTelemetry"
           @refresh="loadPairingStatus"
+          @reconnect="handleConnect"
         />
 
         <!-- History-Sync controls: Info-Box, "Ladehistorie importieren", Undo, Delete-All. -->

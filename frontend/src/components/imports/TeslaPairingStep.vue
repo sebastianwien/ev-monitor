@@ -4,13 +4,14 @@ import { useI18n } from 'vue-i18n'
 import { ArrowTopRightOnSquareIcon, ArrowPathIcon, ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 import type { TeslaPairingStatus } from '@/api/teslaFleetService'
 import { useAuthStore } from '@/stores/auth'
+import { isTeslaVehicleMissing } from '@/utils/teslaVehicleMissing'
 
 /**
  * Schritt 2 der Tesla-Einrichtung: Virtual Key in der Tesla-App pairen, danach
  * Telemetry aktivieren. Rein darstellend - den Zustand haelt `useTeslaPairing`
  * beim Aufrufer (Tesla-Sektion in /imports, Modal in /cars).
  */
-defineProps<{
+const props = defineProps<{
   status: TeslaPairingStatus | null
   loading: boolean
   error: string | null
@@ -19,9 +20,14 @@ defineProps<{
 defineEmits<{
   (e: 'enable'): void
   (e: 'refresh'): void
+  (e: 'reconnect'): void
 }>()
 
 const { t } = useI18n()
+
+// Ohne VIN kann Tesla weder Pairing-Status liefern noch Telemetry annehmen - dann hilft nur
+// ein erneuter OAuth-Durchlauf, nicht der Virtual-Key-Hinweis.
+const vehicleMissing = computed(() => isTeslaVehicleMissing(props.status))
 const authStore = useAuthStore()
 
 // Rollenabhaengige Kennzeichnung: Beta-Tester helfen bei der Trip-Erkennung,
@@ -43,7 +49,26 @@ const roleBadge = computed(() => {
       <span v-if="roleBadge" class="text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-gray-950 px-1.5 py-0.5 rounded-sm">{{ roleBadge }}</span>
     </div>
 
-    <div v-if="status" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm p-3 text-xs space-y-2">
+    <div v-if="vehicleMissing" class="border-2 border-amber-500 bg-amber-50 dark:bg-amber-900/20 rounded-sm p-3 space-y-3">
+      <div class="flex items-start gap-2">
+        <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <div class="space-y-1">
+          <p class="text-xs font-bold text-gray-900 dark:text-gray-100">{{ t('tesla.pairing_no_vehicle_title') }}</p>
+          <p class="text-xs text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('tesla.pairing_no_vehicle_hint') }}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        @click="$emit('reconnect')"
+        :disabled="loading"
+        class="w-full inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-red-600 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+      >
+        <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+        {{ t('tesla.pairing_no_vehicle_btn') }}
+      </button>
+    </div>
+
+    <div v-else-if="status" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm p-3 text-xs space-y-2">
       <div class="flex items-center justify-between">
         <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('tesla.pairing_key_label') }}</span>
         <span :class="status.keyPaired
@@ -72,7 +97,7 @@ const roleBadge = computed(() => {
     </div>
 
     <a
-      v-if="!status?.keyPaired"
+      v-if="!vehicleMissing && !status?.keyPaired"
       href="https://tesla.com/_ak/ev-monitor.net"
       target="_blank"
       rel="noopener"
@@ -83,7 +108,7 @@ const roleBadge = computed(() => {
     </a>
 
     <button
-      v-if="status"
+      v-if="status && !vehicleMissing"
       @click="$emit('enable')"
       :disabled="loading"
       class="w-full inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-red-600 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
