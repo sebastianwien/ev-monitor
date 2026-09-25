@@ -2555,7 +2555,9 @@ autosync_page:
   b_curve_d: "Sieh die Ladekurve deiner Schnellladungen und ab welchem Ladestand die Leistung einbricht. Sofern dein Fahrzeug diese Daten liefert."
   cancel_hint: "Gilt für 1 Fahrzeug · jederzeit kündbar"
   cta: "AutoSync aktivieren"
-  footer_note: "Sichere Zahlung, monatlich kündbar"
+  cta_trial: "7 Tage kostenlos testen"
+  trial_hint: "Die ersten 7 Tage kostenlos, danach"
+  footer_note: "Sichere Zahlung über Stripe · jederzeit kündbar"
   error: "Da ist etwas schiefgelaufen. Bitte versuche es erneut."
 
 supporter:
@@ -2580,6 +2582,7 @@ supporter:
   per_month: "/ Monat"
   per_year: "/ Jahr"
   cancel_hint: "Jederzeit kündbar. Kein Risiko."
+  trial_hint: "Die ersten 7 Tage kostenlos, danach"
   cta: "Supporter werden"
   error: "Checkout konnte nicht gestartet werden. Bitte versuche es erneut."
   footer_note: "Sichere Zahlung über Stripe · jederzeit kündbar · keine versteckten Kosten."
@@ -3475,3 +3478,8 @@ eu_data_act_sync:
     form_btn: "Zum Formular der Bundesnetzagentur"
     disclaimer: "Vorlage ohne Gewähr, bitte prüfen. EV Monitor ist nicht Partei und gibt keine Rechtsberatung."
 
+
+payment_methods:
+  aria: "Akzeptierte Zahlarten"
+  express_apple: "Apple Pay in Sekunden"
+  express_google: "Google Pay in Sekunden"

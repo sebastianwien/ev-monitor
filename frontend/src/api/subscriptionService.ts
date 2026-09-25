@@ -7,6 +7,8 @@ export interface SubscriptionStatus {
     tier: SubscriptionTier;
     premiumEnabled: boolean;
     subscriptionPeriodEnd: string | null;
+    /** Erstkäufer bekommen im Stripe-Checkout 7 Tage Trial. */
+    trialEligible?: boolean;
 }
 
 export interface CheckoutResponse {

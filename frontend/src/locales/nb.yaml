@@ -2482,7 +2482,9 @@ autosync_page:
   b_curve_d: "Se ladekurven til hurtigladingene dine og ved hvilken ladegrad effekten faller. Så fremt bilen din leverer dataene."
   cancel_hint: "Gjelder 1 bil · kan sies opp når som helst"
   cta: "Aktiver AutoSync"
-  footer_note: "Sikker betaling, kan sies opp månedlig"
+  cta_trial: "Prøv gratis i 7 dager"
+  trial_hint: "De første 7 dagene gratis, deretter"
+  footer_note: "Sikker betaling via Stripe · kan sies opp når som helst"
   error: "Noe gikk galt. Prøv igjen."
 
 supporter:
@@ -2507,6 +2509,7 @@ supporter:
   per_month: "/ måned"
   per_year: "/ år"
   cancel_hint: "Avslutt når som helst. Ingen risiko."
+  trial_hint: "De første 7 dagene gratis, deretter"
   cta: "Bli supporter"
   error: "Kunne ikke starte betaling. Prøv igjen."
   footer_note: "Sikker betaling via Stripe · avslutt når som helst · ingen skjulte kostnader."
@@ -3357,3 +3360,8 @@ eu_data_act_sync:
     form_btn: "Åpne skjemaet til Bundesnetzagentur"
     disclaimer: "Mal uten garanti, kontroller. EV Monitor er ikke part og gir ikke juridisk rådgivning."
 
+
+payment_methods:
+  aria: "Aksepterte betalingsmåter"
+  express_apple: "Apple Pay på sekunder"
+  express_google: "Google Pay på sekunder"

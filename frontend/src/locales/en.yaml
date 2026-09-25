@@ -2553,7 +2553,9 @@ autosync_page:
   b_curve_d: "See the charging curve of your fast charges and the state of charge where the power tapers off. If your vehicle provides the data."
   cancel_hint: "Applies to 1 vehicle · cancel anytime"
   cta: "Activate AutoSync"
-  footer_note: "Secure payment, cancel monthly"
+  cta_trial: "Try 7 days for free"
+  trial_hint: "First 7 days free, then"
+  footer_note: "Secure payment via Stripe · cancel anytime"
   error: "Something went wrong. Please try again."
 
 supporter:
@@ -2578,6 +2580,7 @@ supporter:
   per_month: "/ month"
   per_year: "/ year"
   cancel_hint: "Cancel anytime. No risk."
+  trial_hint: "First 7 days free, then"
   cta: "Become a supporter"
   error: "Could not start checkout. Please try again."
   footer_note: "Secure payment via Stripe · cancel anytime · no hidden costs."
@@ -3472,3 +3475,8 @@ eu_data_act_sync:
     form_btn: "Open the Bundesnetzagentur form"
     disclaimer: "Template without warranty, please check. EV Monitor is not a party and does not give legal advice."
 
+
+payment_methods:
+  aria: "Accepted payment methods"
+  express_apple: "Apple Pay in seconds"
+  express_google: "Google Pay in seconds"

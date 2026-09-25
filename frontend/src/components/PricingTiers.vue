@@ -303,16 +303,7 @@
 
     <!-- Trust + Payments -->
     <div v-if="tier === 'NONE'" class="mt-8 text-center">
-      <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">{{ t('upgrade.tier_trust_hint') }}</p>
-      <div class="flex flex-wrap justify-center gap-1.5">
-        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Visa</span>
-        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Mastercard</span>
-        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Apple Pay</span>
-        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Google Pay</span>
-        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Amazon Pay</span>
-        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">Klarna</span>
-        <span class="text-[11px] text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded px-2 py-0.5">PayPal</span>
-      </div>
+      <PaymentMethodLogos size="sm" :note="t('upgrade.tier_trust_hint')" />
       <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
         {{ t('upgrade.support_hint') }}
         <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline">support@ev-monitor.net</a>
@@ -325,6 +316,7 @@
 import { computed, ref, toRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CheckCircleIcon } from '@heroicons/vue/24/solid';
+import PaymentMethodLogos from './PaymentMethodLogos.vue';
 import { ChevronDownIcon, ChevronUpIcon, HeartIcon } from '@heroicons/vue/24/outline';
 import { AUTOSYNC_BRANDS } from '../config/smartcarBrands';
 import type { PricingInfo } from '../config/pricingConfig';
