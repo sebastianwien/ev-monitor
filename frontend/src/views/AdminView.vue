@@ -27,6 +27,7 @@ import { Line } from 'vue-chartjs'
 import AdminStripeTab from '../components/admin/AdminStripeTab.vue'
 import AdminWebhooksTab from '../components/admin/AdminWebhooksTab.vue'
 import AdminSurveysTab from '../components/admin/AdminSurveysTab.vue'
+import AdminImportsTab from '../components/admin/AdminImportsTab.vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
@@ -35,8 +36,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'stripe' | 'webhooks' | 'surveys' | 'wartung'
-const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'stripe', 'webhooks', 'surveys', 'impersonate', 'wartung']
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'wartung'
+const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'stripe', 'webhooks', 'imports', 'surveys', 'impersonate', 'wartung']
 const activeTab = ref<Tab>('users')
 
 // ── Wartung: Telemetrie-Config neu pushen ────────────────────────────────────
@@ -482,6 +483,7 @@ const onResizeUp = () => {
             { key: 'traffic', label: 'Traffic' },
             { key: 'stripe', label: 'Stripe' },
             { key: 'webhooks', label: 'Smartcar-Ladungen' },
+            { key: 'imports', label: 'Importe' },
             { key: 'surveys', label: 'Umfragen' },
             { key: 'impersonate', label: 'Impersonieren' },
             { key: 'wartung', label: 'Wartung' },
@@ -753,6 +755,8 @@ const onResizeUp = () => {
       <AdminStripeTab v-else-if="activeTab === 'stripe'" />
 
       <AdminWebhooksTab v-else-if="activeTab === 'webhooks'" />
+
+      <AdminImportsTab v-else-if="activeTab === 'imports'" />
 
       <AdminSurveysTab v-else-if="activeTab === 'surveys'" />
 
