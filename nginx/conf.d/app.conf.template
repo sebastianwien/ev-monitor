@@ -209,7 +209,7 @@ server {
     }
 
     # VW EU-Data-Act-AutoSync: das Verbinden (einziger Schritt mit Passwort) liegt im Core
-    # (oeffentliches Repo, EudaLoginClient). Regex-Locations gewinnen gegen Prefix-Locations,
+    # (oeffentliches Repo, VwEudaLoginClient). Regex-Locations gewinnen gegen Prefix-Locations,
     # deshalb greift diese Regel vor /api/eu-data-act/ unabhaengig von der Reihenfolge.
     location ~ ^/api/eu-data-act/cars/[^/]+/connect$ {
         proxy_pass http://backend:8080;

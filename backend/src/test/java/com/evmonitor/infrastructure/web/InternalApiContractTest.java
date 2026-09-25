@@ -47,7 +47,7 @@ class InternalApiContractTest {
 
     @Test
     void eudaImportEndpointReadsExactlyTheContractParts() throws Exception {
-        Method m = InternalEuDataActController.class.getMethod("importDataset",
+        Method m = InternalVwEudaController.class.getMethod("importDataset",
                 String.class, String.class, String.class, MultipartFile.class);
         Map<String, String> parts = new TreeMap<>();
         for (Parameter p : m.getParameters()) {

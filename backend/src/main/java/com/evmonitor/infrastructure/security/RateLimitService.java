@@ -202,7 +202,7 @@ public class RateLimitService {
      *
      * @return true if the request may proceed, false if rate limit exceeded
      */
-    public boolean tryConsumeEudaLogin(String userId) {
+    public boolean tryConsumeVwEudaLogin(String userId) {
         if (!enabled) return true;
         boolean allowed = eudaLoginBuckets
                 .get(userId, k -> Bucket.builder().addLimit(EUDA_LOGIN_LIMIT).build())

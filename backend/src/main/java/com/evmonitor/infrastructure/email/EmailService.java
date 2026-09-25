@@ -139,7 +139,7 @@ public class EmailService {
 
     // ── EU Data Act AutoSync (VW Group) ──────────────────────────────────────────
 
-    public void sendEuDataActHandoverEmail(String toEmail, String username, String locale) {
+    public void sendVwEudaHandoverEmail(String toEmail, String username, String locale) {
         String lang = resolveLocale(locale);
         String html = loadTemplate("euda-handover.html", lang, Map.of(
                 "username", username,
@@ -152,7 +152,7 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
-    public void sendEuDataActConnectionLostEmail(String toEmail, String username, String locale) {
+    public void sendVwEudaConnectionLostEmail(String toEmail, String username, String locale) {
         String lang = resolveLocale(locale);
         String html = loadTemplate("euda-connection-lost.html", lang, Map.of(
                 "username", username,
@@ -165,7 +165,7 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
-    public void sendEuDataActHistoryImportedEmail(String toEmail, String username, String locale,
+    public void sendVwEudaHistoryImportedEmail(String toEmail, String username, String locale,
                                                   int imported, int skipped) {
         String lang = resolveLocale(locale);
         String html = loadTemplate("euda-history-imported.html", lang, Map.of(
@@ -181,7 +181,7 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
-    public void sendEuDataActTrialEndingEmail(String toEmail, String username, String locale, LocalDate endsAt) {
+    public void sendVwEudaTrialEndingEmail(String toEmail, String username, String locale, LocalDate endsAt) {
         String lang = resolveLocale(locale);
         String endsAtText = endsAt.format(DateTimeFormatter.ofPattern("en".equals(lang) ? "d MMMM yyyy" : "d. MMMM yyyy",
                 "en".equals(lang) ? Locale.ENGLISH : Locale.GERMAN));
@@ -197,7 +197,7 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
-    public void sendEuDataActTrialEndedEmail(String toEmail, String username, String locale) {
+    public void sendVwEudaTrialEndedEmail(String toEmail, String username, String locale) {
         String lang = resolveLocale(locale);
         String html = loadTemplate("euda-trial-ended.html", lang, Map.of(
                 "username", username,
