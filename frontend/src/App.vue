@@ -22,6 +22,7 @@ import DemoBanner from './components/demo/DemoBanner.vue'
 import DemoWelcomeModal from './components/demo/DemoWelcomeModal.vue'
 import RedditConsentBanner from './components/shared/RedditConsentBanner.vue'
 import FeedbackToast from './components/shared/FeedbackToast.vue'
+import LogUndoToast from './components/shared/LogUndoToast.vue'
 import BoltLogo from './components/shared/BoltLogo.vue'
 import WorkspaceNav from './components/shared/WorkspaceNav.vue'
 import { WORKSPACE_TABS } from './config/tabs'
@@ -593,6 +594,7 @@ const handleBottomLogout = () => {
 
     <!-- Feedback Toast (delayed, dismissible) -->
     <FeedbackToast />
+    <LogUndoToast />
     <DemoWelcomeModal v-if="authStore.isDemoAccount" />
   </div>
 </template>

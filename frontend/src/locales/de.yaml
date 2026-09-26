@@ -639,6 +639,9 @@ logs:
     desc_total: "Die geladene Energie brutto ab Steckdose, inklusive der Ladeverluste."
 
 dashboard:
+  log_deleted: "Ladevorgang gelöscht"
+  log_undo: "Rückgängig"
+  log_restore_failed: "Wiederherstellen nicht möglich: zur selben Zeit gibt es schon einen Ladevorgang."
   title: "Dashboard"
   ac_gross_label_brutto: "Brutto"
   ac_gross_label_netto: "Netto"

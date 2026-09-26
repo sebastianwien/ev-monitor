@@ -599,6 +599,9 @@ logs:
     desc_total: "Den laddade energin vid uttaget (brutto), inklusive laddningsförluster."
 
 dashboard:
+  log_deleted: "Laddningssession raderad"
+  log_undo: "Ångra"
+  log_restore_failed: "Kan inte återställas: det finns redan en laddningssession vid samma tidpunkt."
   title: Dashboard
   ac_gross_label_brutto: "Brutto"
   ac_gross_label_netto: "Netto"

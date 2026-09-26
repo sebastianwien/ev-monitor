@@ -113,6 +113,7 @@ import { XMarkIcon, ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline
 import { useI18n } from 'vue-i18n'
 import BottomSheet from '../shared/BottomSheet.vue'
 import api from '../../api/axios'
+import { useLogUndo } from '../../composables/useLogUndo'
 import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
@@ -174,11 +175,12 @@ function onClosed() {
 }
 
 const confirmingDelete = ref(false)
+const { deleteWithUndo } = useLogUndo()
 async function deleteLog() {
   errorMsg.value = ''
   loading.value = true
   try {
-    await api.delete(`/logs/${props.log.id}`)
+    await deleteWithUndo(props.log.id)
     deletedLogId.value = props.log.id
     sheet.value?.requestClose()
   } catch {

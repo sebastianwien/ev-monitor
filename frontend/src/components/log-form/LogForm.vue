@@ -4,6 +4,7 @@ import { nominatimSearchUrl } from '../../composables/useLocationSearch'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
+import { useLogUndo } from '../../composables/useLogUndo'
 import CarSelector from '../car/CarSelector.vue'
 const OcrPhotoCapture = defineAsyncComponent(() => import('./OcrPhotoCapture.vue'))
 import LogFormFields, { type LogFormData } from './LogFormFields.vue'
@@ -175,11 +176,12 @@ const fetchLogs = async () => {
 
 watch(selectedCarId, fetchLogs)
 
+const { deleteWithUndo } = useLogUndo()
 const deleteLog = async (logId: string) => {
   if (pendingDeleteId.value !== logId) { pendingDeleteId.value = logId; return }
   pendingDeleteId.value = null
   try {
-    await api.delete(`/logs/${logId}`)
+    await deleteWithUndo(logId, fetchLogs)
     await fetchLogs()
   } catch {
     error.value = t('logform.delete_failed')

@@ -639,6 +639,9 @@ logs:
     desc_total: "The charged energy at the socket (gross), including charging losses."
 
 dashboard:
+  log_deleted: "Charging session deleted"
+  log_undo: "Undo"
+  log_restore_failed: "Restore not possible: another charging session exists at the same time."
   title: "Dashboard"
   ac_gross_label_brutto: "Gross"
   ac_gross_label_netto: "Netto"

@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon, ExclamationTriangleIcon, CheckCircleIcon, InformationCircleIcon, PencilSquareIcon, TrashIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import api from '@/api/axios'
+import { useLogUndo } from '../../composables/useLogUndo'
 import EditLogModal from './EditLogModal.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 
@@ -61,10 +62,10 @@ async function toggle(log: ImplausibleLog) {
   }
 }
 
+const { deleteWithUndo } = useLogUndo()
 async function deleteLog(log: ImplausibleLog) {
-  if (!confirm(t('implausible.confirm_delete'))) return
   try {
-    await api.delete(`/logs/${log.id}`)
+    await deleteWithUndo(log.id, () => { loadLogs(); emit('updated') })
     logs.value = logs.value.filter(l => l.id !== log.id)
     emit('updated')
   } catch {

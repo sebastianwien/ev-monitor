@@ -8,6 +8,7 @@ import { formatTripDateTimeRange, tripDateTimeParts } from '../utils/tripTimeFor
 import { annotatePhantomDrains } from '../utils/phantomDrain'
 import { aggregateGroupCost, costBasisKwh } from './useChargingEfficiency'
 import { useFeedWindow } from './useFeedWindow'
+import { useLogUndo } from './useLogUndo'
 
 /** Maximaler zeitlicher Abstand zweier Logs, damit sie zusammengeführt werden dürfen.
  *  24h, damit auch sehr langsame AC-Ladevorgänge (z. B. 14h an 4 kW) noch abgedeckt sind. */
@@ -341,11 +342,11 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   }
 
   const deleteError = ref<string | null>(null)
+  const { deleteWithUndo } = useLogUndo()
   const deleteLog = async (id: string) => {
-    if (!confirm(t('dashboard.delete_confirm'))) return
     deleteError.value = null
     try {
-      await api.delete(`/logs/${id}`)
+      await deleteWithUndo(id, refreshLogsAndGroups)
       refreshLogsAndGroups()
     } catch {
       deleteError.value = t('logform.delete_failed')
