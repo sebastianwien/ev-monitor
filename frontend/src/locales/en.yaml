@@ -601,6 +601,18 @@ auth:
     error_generic: "An error occurred. Please try again."
 
 logs:
+  trash:
+    row: "1 deleted charging session | {count} deleted charging sessions"
+    hint: "Won't be imported again. Tap to restore."
+    title: "Deleted charging sessions"
+    intro: "We remember deleted charging sessions so syncs and uploads don't create them again. You can restore them or remove them permanently."
+    restore: "Restore"
+    purge: "Remove permanently"
+    purge_confirm: "Remove permanently? A later sync or upload may then create the charging session again."
+    purge_yes: "Yes, remove"
+    cancel: "Cancel"
+    failed: "That didn't work. There may already be a charging session at the same time."
+    empty: "No deleted charging sessions."
   title: "Charges & Trips"
   load_older: "Load older ({month})"
   empty_window: "No charges or trips in the selected period."

@@ -561,6 +561,18 @@ auth:
     error_invalid: Ogiltig återställningslänk. Begär en ny.
     error_generic: Ett fel har uppstått. Försök igen.
 logs:
+  trash:
+    row: "1 raderad laddningssession | {count} raderade laddningssessioner"
+    hint: "Importeras inte igen. Tryck för att återställa."
+    title: "Raderade laddningssessioner"
+    intro: "Vi kommer ihåg raderade laddningssessioner så att synkningar och uppladdningar inte skapar dem igen. Du kan återställa dem eller ta bort dem permanent."
+    restore: "Återställ"
+    purge: "Ta bort permanent"
+    purge_confirm: "Ta bort permanent? En senare synkning eller uppladdning kan då skapa laddningssessionen igen."
+    purge_yes: "Ja, ta bort"
+    cancel: "Avbryt"
+    failed: "Det fungerade inte. Det finns kanske redan en laddningssession vid samma tidpunkt."
+    empty: "Inga raderade laddningssessioner."
   title: Laddningar & resor
   load_older: "Ladda äldre ({month})"
   empty_window: "Inga laddningar eller resor under vald period."

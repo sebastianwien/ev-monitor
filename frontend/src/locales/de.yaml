@@ -601,6 +601,18 @@ auth:
     error_generic: "Ein Fehler ist aufgetreten. Bitte versuche es erneut."
 
 logs:
+  trash:
+    row: "1 gelöschter Ladevorgang | {count} gelöschte Ladevorgänge"
+    hint: "Werden nicht erneut importiert. Tippe zum Wiederherstellen."
+    title: "Gelöschte Ladevorgänge"
+    intro: "Gelöschte Ladevorgänge merken wir uns, damit Syncs und Uploads sie nicht erneut anlegen. Du kannst sie wiederherstellen oder endgültig entfernen."
+    restore: "Wiederherstellen"
+    purge: "Endgültig entfernen"
+    purge_confirm: "Endgültig entfernen? Ein späterer Sync oder Upload kann den Ladevorgang dann wieder anlegen."
+    purge_yes: "Ja, entfernen"
+    cancel: "Abbrechen"
+    failed: "Das hat nicht geklappt. Zur selben Zeit gibt es vielleicht schon einen Ladevorgang."
+    empty: "Keine gelöschten Ladevorgänge."
   title: "Ladevorgänge & Trips"
   load_older: "Ältere laden ({month})"
   empty_window: "Keine Ladungen oder Fahrten im gewählten Zeitraum."

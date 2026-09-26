@@ -561,6 +561,18 @@ auth:
     error_invalid: Ugyldig tilbakestillingslenke. Be om en ny.
     error_generic: Det oppstod en feil. Prøv på nytt.
 logs:
+  trash:
+    row: "1 slettet ladesesjon | {count} slettede ladesesjoner"
+    hint: "Blir ikke importert på nytt. Trykk for å gjenopprette."
+    title: "Slettede ladesesjoner"
+    intro: "Vi husker slettede ladesesjoner slik at synkronisering og opplasting ikke oppretter dem på nytt. Du kan gjenopprette dem eller fjerne dem permanent."
+    restore: "Gjenopprett"
+    purge: "Fjern permanent"
+    purge_confirm: "Fjerne permanent? En senere synkronisering eller opplasting kan da opprette ladesesjonen på nytt."
+    purge_yes: "Ja, fjern"
+    cancel: "Avbryt"
+    failed: "Det fungerte ikke. Det finnes kanskje allerede en ladesesjon på samme tidspunkt."
+    empty: "Ingen slettede ladesesjoner."
   title: Ladinger og turer
   load_older: "Last eldre ({month})"
   empty_window: "Ingen ladinger eller turer i valgt periode."
