@@ -47,6 +47,7 @@ public class CpoRegistryConfig {
         return cacheManager -> {
             cacheManager.registerCustomCache("nearbyCpos", registryCache());
             cacheManager.registerCustomCache("nearbyStations", registryCache());
+            cacheManager.registerCustomCache("stationSearch", registryCache());
         };
     }
 

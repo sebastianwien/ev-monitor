@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowTopRightOnSquareIcon, ArrowPathIcon, ExclamationTriangleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
-import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult } from '@/api/teslaFleetService'
+import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult, type TeslaLatestImport } from '@/api/teslaFleetService'
 import type { Car } from '@/api/carService'
 import { useCarStore } from '@/stores/car'
 import { useTeslaPairing } from '@/composables/useTeslaPairing'
@@ -18,7 +18,7 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const callbackErrorCode = ref<string | null>(null)
 
 const status = ref<TeslaConnectionStatus>({ connected: false, vehicleName: null, carId: null, lastSyncAt: null, autoImportEnabled: false, geocodingInProgress: false, vehicleState: null })
@@ -51,6 +51,7 @@ onMounted(async () => {
     startGeocodingPoll()
   }
   await loadPairingStatus()
+  if (status.value.connected) loadLatestImport()
   if (route.query['tesla-connected']) {
     success.value = t('tesla.success_connected')
     await loadStatus()
@@ -61,6 +62,25 @@ onMounted(async () => {
     router.replace({ query: { ...route.query, 'tesla-error': undefined } })
   }
 })
+
+const latestImport = ref<TeslaLatestImport | null>(null)
+
+async function loadLatestImport() {
+  try {
+    latestImport.value = await teslaFleetService.getLatestImport()
+  } catch { /* rein informativ */ }
+}
+
+function formatImportTime(iso: string | null): string {
+  if (!iso) return t('tesla.latest_import_none')
+  const loc = ({ en: 'en-GB', nb: 'nb-NO', sv: 'sv-SE' } as Record<string, string>)[locale.value] ?? 'de-DE'
+  return new Date(iso).toLocaleString(loc, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+function refreshTelemetryCard() {
+  loadPairingStatus()
+  loadLatestImport()
+}
 
 async function loadStatus() {
   try {
@@ -243,9 +263,18 @@ async function retryConnect() {
             {{ isFullProfile ? t('tesla.telemetry_live_desc_full') : t('tesla.telemetry_live_desc_charging_only') }}
           </p>
 
+          <dl v-if="latestImport" class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+            <dt class="text-gray-500 dark:text-gray-400">{{ t('tesla.latest_import_charge') }}</dt>
+            <dd class="text-gray-700 dark:text-gray-200 font-mono tabular-nums">{{ formatImportTime(latestImport.lastChargeAt) }}</dd>
+            <template v-if="isFullProfile">
+              <dt class="text-gray-500 dark:text-gray-400">{{ t('tesla.latest_import_trip') }}</dt>
+              <dd class="text-gray-700 dark:text-gray-200 font-mono tabular-nums">{{ formatImportTime(latestImport.lastTripAt) }}</dd>
+            </template>
+          </dl>
+
           <div class="mt-4 pt-3 border-t-2 border-dashed border-emerald-300 dark:border-emerald-800 flex flex-wrap items-center justify-end gap-2 sm:gap-3">
             <button
-              @click="loadPairingStatus"
+              @click="refreshTelemetryCard"
               :disabled="pairingLoading"
               :title="t('tesla.pairing_refresh')"
               :aria-label="t('tesla.pairing_refresh')"

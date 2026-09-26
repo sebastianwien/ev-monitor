@@ -188,6 +188,12 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public Optional<LocalDateTime> findLatestLoggedAtByUserIdAndDataSourceIn(UUID userId, List<DataSource> dataSources) {
+        List<String> names = dataSources.stream().map(DataSource::name).toList();
+        return jpaRepository.findLatestLoggedAtByUserIdAndDataSourceIn(userId, names);
+    }
+
+    @Override
     @Transactional
     public void deleteAllByUserIdAndDataSourceIn(UUID userId, List<DataSource> dataSources) {
         List<String> names = dataSources.stream().map(DataSource::name).toList();

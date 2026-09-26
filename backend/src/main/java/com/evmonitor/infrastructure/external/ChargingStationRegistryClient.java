@@ -109,7 +109,6 @@ public class ChargingStationRegistryClient {
      * @return die gefundenen Standorte - eine leere Liste heisst "dort steht nichts",
      *         ein leeres Optional heisst "das Register hat nicht geantwortet"
      */
-    @SuppressWarnings("unchecked")
     public Optional<List<Station>> findStationsNearby(double lat, double lon, int radiusMeters) {
         if (!enabled) {
             return Optional.empty();
@@ -129,7 +128,64 @@ public class ChargingStationRegistryClient {
                 .build()
                 .encode()
                 .toUri();
+        return fetchStations(uri);
+    }
 
+    /** Hoechstens so viele Suchbegriffe; mehr ist kein Suchtext mehr, sondern Rauschen. */
+    static final int MAX_SEARCH_TOKENS = 5;
+
+    /**
+     * Textsuche: jeder Begriff muss in Betreiber, Anzeigename, Ort oder Strasse vorkommen,
+     * Zahlen als Postleitzahl-Praefix oder Hausnummer. So findet "EnBW Lichtenau" die Saeule
+     * ohne Strassenangabe und "Fuchsgraben Lichtenau" dieselbe ohne Betreiber.
+     *
+     * @return wie {@link #findStationsNearby}; ohne brauchbaren Begriff eine leere Liste ohne Anfrage
+     */
+    public Optional<List<Station>> searchStations(String query) {
+        if (!enabled) {
+            return Optional.empty();
+        }
+        String where = whereClause(query);
+        if (where == null) {
+            return Optional.of(List.of());
+        }
+        URI uri = UriComponentsBuilder.fromUriString(QUERY_URL)
+                .queryParam("where", where)
+                .queryParam("outFields", OUT_FIELDS)
+                .queryParam("returnGeometry", false)
+                .queryParam("resultRecordCount", MAX_RECORDS)
+                .queryParam("f", "json")
+                .build()
+                .encode()
+                .toUri();
+        return fetchStations(uri);
+    }
+
+    /**
+     * Where-Klausel aus Suchbegriffen. Der Text geht an einen fremden Dienst: Hochkommas werden
+     * verdoppelt, die Wildcards des Dienstes ({@code %} und {@code _}) entfernt, Begriffe unter
+     * zwei Zeichen ignoriert. Null, wenn kein Begriff uebrig bleibt.
+     */
+    static String whereClause(String query) {
+        if (query == null) return null;
+        List<String> clauses = new java.util.ArrayList<>();
+        for (String raw : query.split("[\\s,]+")) {
+            String token = raw.replaceAll("[%_]", "").replace("'", "''").trim();
+            if (token.length() < 2) continue;
+            if (token.chars().allMatch(Character::isDigit)) {
+                clauses.add("(Postleitzahl LIKE '" + token + "%' OR Hausnummer = '" + token + "')");
+            } else {
+                String t = "'%" + token.toUpperCase(java.util.Locale.ROOT) + "%'";
+                clauses.add("(UPPER(Betreiber) LIKE " + t + " OR UPPER(Anzeigename__Karte_) LIKE " + t
+                        + " OR UPPER(Ort) LIKE " + t + " OR UPPER(Straße) LIKE " + t + ")");
+            }
+            if (clauses.size() == MAX_SEARCH_TOKENS) break;
+        }
+        return clauses.isEmpty() ? null : String.join(" AND ", clauses);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Optional<List<Station>> fetchStations(URI uri) {
         try {
             Map<String, Object> response = restTemplate.getForObject(uri, Map.class);
             if (response == null || !(response.get("features") instanceof List<?> features)) {

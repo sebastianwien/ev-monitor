@@ -2103,6 +2103,9 @@ tesla:
   pairing_err_disable: "Could not disable telemetry"
   pairing_err_not_connected: "Not connected to Tesla yet. Connect Tesla first using the button above."
   telemetry_live_desc_full: "Charging sessions and trips are detected automatically."
+  latest_import_charge: "Last charge"
+  latest_import_trip: "Last trip"
+  latest_import_none: "none yet"
   telemetry_live_desc_charging_only: "Charging sessions are detected automatically."
   prompt_eyebrow: "Car added"
   prompt_eyebrow_connected: "Tesla connected"
@@ -3303,6 +3306,10 @@ logwizard:
   card_add: "Add charging card"
   card_price_missing: "Add price for {card}"
   place_search: "Search place"
+  place_search_placeholder: "Operator and town, or an address"
+  search_as_address: "Search as address: {q}"
+  address_not_found: "No address found. Check street and town."
+  no_stations_found: "The charging station register lists no station here. Pick Other charging station below and choose the operator there."
 
 eu_data_act_sync:
   title: "Sync automatically (VW EU Data Act)"

@@ -3,6 +3,8 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.ChargingProviderTariffService;
 import com.evmonitor.application.NearbyCpoService;
 import com.evmonitor.application.NearbyStation;
+import com.evmonitor.application.StationMatch;
+import com.evmonitor.application.StationSearchService;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.domain.User;
 import com.evmonitor.infrastructure.security.UserPrincipal;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.*;
 class ChargingProviderTariffControllerNearbyTest {
 
     private NearbyCpoService nearbyCpoService;
+    private StationSearchService stationSearchService;
     private RateLimitService rateLimitService;
     private ChargingProviderTariffController controller;
     private Authentication request;
@@ -36,14 +39,16 @@ class ChargingProviderTariffControllerNearbyTest {
     @BeforeEach
     void setUp() {
         nearbyCpoService = mock(NearbyCpoService.class);
+        stationSearchService = mock(StationSearchService.class);
         rateLimitService = mock(RateLimitService.class);
         User user = mock(User.class);
         when(user.getId()).thenReturn(userId);
         request = mock(Authentication.class);
         when(request.getPrincipal()).thenReturn(UserPrincipal.create(user));
         when(rateLimitService.tryConsumeCpoLookup(anyString())).thenReturn(true);
+        when(rateLimitService.tryConsumeStationSearch(anyString())).thenReturn(true);
         controller = new ChargingProviderTariffController(
-                mock(ChargingProviderTariffService.class), nearbyCpoService, rateLimitService);
+                mock(ChargingProviderTariffService.class), nearbyCpoService, stationSearchService, rateLimitService);
     }
 
     @Test
@@ -138,5 +143,45 @@ class ChargingProviderTariffControllerNearbyTest {
         when(rateLimitService.tryConsumeCpoLookup(anyString())).thenReturn(false);
         assertThat(controller.getNearbyStations(52.52, 13.40, request).getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
         verifyNoInteractions(nearbyCpoService);
+    }
+
+    // ── Textsuche ────────────────────────────────────────────────────────────────
+
+    /** Gleiche Eingabe in anderer Schreibweise ist derselbe Cache-Eintrag und dieselbe Registeranfrage. */
+    @Test
+    void textsucheNormalisiertDieEingabe() {
+        when(stationSearchService.search(anyString())).thenReturn(Optional.of(List.of()));
+
+        controller.searchStations("  EnBW   Lichtenau ", request);
+
+        verify(stationSearchService).search("enbw lichtenau");
+    }
+
+    @Test
+    void textsucheLehntZuKurzeUndZuLangeEingabenAb() {
+        assertThat(controller.searchStations("En", request).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(controller.searchStations("x".repeat(81), request).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        verifyNoInteractions(stationSearchService);
+    }
+
+    /** Autocomplete tippt viele Anfragen: eigener Topf, damit nicht die 60 Umkreisabfragen leerlaufen. */
+    @Test
+    void textsucheNutztEigenenDrosselTopf() {
+        when(rateLimitService.tryConsumeStationSearch("user:" + userId)).thenReturn(false);
+
+        assertThat(controller.searchStations("EnBW Lichtenau", request).getStatusCode())
+                .isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        verify(rateLimitService, never()).tryConsumeCpoLookup(anyString());
+        verifyNoInteractions(stationSearchService);
+    }
+
+    @Test
+    void textsucheBeiRegisterausfallIstEineLeereListe() {
+        when(stationSearchService.search(anyString())).thenReturn(Optional.empty());
+
+        ResponseEntity<List<StationMatch>> response = controller.searchStations("EnBW Lichtenau", request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEmpty();
     }
 }

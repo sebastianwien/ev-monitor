@@ -67,6 +67,13 @@ public class RateLimitService {
             .refillIntervally(60, Duration.ofHours(1))
             .build();
 
+    // 600 Textsuchen im Ladesaeulenregister pro Stunde und Nutzer: Autocomplete tippt viele Anfragen,
+    // der Umkreis-Topf mit 60 waere nach einem Log leer. Eigener Topf, damit beides unabhaengig bleibt.
+    private static final Bandwidth STATION_SEARCH_LIMIT = Bandwidth.builder()
+            .capacity(600)
+            .refillIntervally(600, Duration.ofHours(1))
+            .build();
+
     // 120 demo read requests per minute per IP — generous for human browsing, blocks scraping.
     private static final Bandwidth DEMO_REQUEST_LIMIT = Bandwidth.builder()
             .capacity(120)
@@ -94,6 +101,8 @@ public class RateLimitService {
     private final Cache<String, Bucket> demoRequestBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.MINUTES).maximumSize(10_000).build();
     private final Cache<String, Bucket> cpoLookupBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> stationSearchBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     private final Cache<String, Bucket> eudaLoginBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
@@ -193,6 +202,18 @@ public class RateLimitService {
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for CPO lookup: {}", key);
+        }
+        return allowed;
+    }
+
+    /** Drosselt die Textsuche im Ladesaeulenregister je Nutzer. */
+    public boolean tryConsumeStationSearch(String key) {
+        if (!enabled) return true;
+        boolean allowed = stationSearchBuckets
+                .get(key, k -> Bucket.builder().addLimit(STATION_SEARCH_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for station search: {}", key);
         }
         return allowed;
     }

@@ -26,6 +26,11 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
     /** Dedupe für Public API und Manual Import: sieht absichtlich auch soft-gelöschte Trips. */
     boolean existsByCarIdAndTripStartedAt(UUID carId, OffsetDateTime tripStartedAt);
 
+    @Query("SELECT MAX(t.tripEndedAt) FROM EvTrip t WHERE t.userId = :userId "
+            + "AND t.deletedAt IS NULL AND t.dataSource IN :dataSources")
+    Optional<OffsetDateTime> findLatestTripEndedAtByUserIdAndDataSourceIn(
+            @Param("userId") UUID userId, @Param("dataSources") java.util.Collection<String> dataSources);
+
     @Query("SELECT t FROM EvTrip t WHERE t.carId = :carId AND t.deletedAt IS NULL ORDER BY t.tripStartedAt ASC")
     List<EvTrip> findAllByCarIdAndDeletedAtIsNull(@Param("carId") UUID carId);
 
