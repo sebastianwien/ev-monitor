@@ -8,12 +8,12 @@ const { pending, restoreFailed, undo, dismiss } = useLogUndo()
 </script>
 
 <template>
-  <!-- Mobile: volle Breite über der Bottom-Navigation, Desktop: rechts unten -->
+  <!-- Mobile: volle Breite über der Bottom-Navigation (h-14 plus Safe-Area), Desktop: rechts unten -->
   <div
     v-if="pending"
     role="status"
     aria-live="polite"
-    class="fixed inset-x-3 bottom-20 z-50 md:inset-x-auto md:right-6 md:bottom-6 md:max-w-md animate-slide-in"
+    class="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 md:inset-x-auto md:right-6 md:bottom-6 md:max-w-md animate-slide-in"
   >
     <div class="flex items-center gap-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 pl-4 pr-1 py-1 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)]">
       <TrashIcon class="w-5 h-5 flex-shrink-0" aria-hidden="true" />
