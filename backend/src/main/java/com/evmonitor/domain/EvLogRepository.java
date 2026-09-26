@@ -97,6 +97,9 @@ public interface EvLogRepository {
 
     void deleteAllByUserIdAndDataSourceIn(UUID userId, List<DataSource> dataSources);
 
+    /** Jüngstes loggedAt (UTC) über alle aktiven Autos des Users, eingeschränkt auf die Quellen. */
+    Optional<LocalDateTime> findLatestLoggedAtByUserIdAndDataSourceIn(UUID userId, List<DataSource> dataSources);
+
     int countByUserIdAndDataSource(UUID userId, DataSource dataSource);
 
     /** Set the JSON-blob telemetry_extras on the unique (carId, loggedAt) entry, if it exists. */

@@ -431,6 +431,10 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT e.shareToken FROM EvLogEntity e WHERE e.id = :id")
     Optional<String> findShareToken(@Param("id") UUID id);
 
+    @Query("SELECT MAX(e.loggedAt) FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id "
+            + "WHERE c.userId = :userId AND c.deletedAt IS NULL AND e.dataSource IN :dataSources")
+    Optional<LocalDateTime> findLatestLoggedAtByUserIdAndDataSourceIn(@Param("userId") UUID userId, @Param("dataSources") List<String> dataSources);
+
     // soft-delete-bypass: Wipe muss Tombstones mitnehmen (siehe deleteAllByUserIdAndDataSource)
     @Modifying
     @Query(value = "DELETE FROM ev_log WHERE car_id IN (SELECT id FROM car WHERE user_id = :userId) AND data_source IN (:dataSources)", nativeQuery = true)
