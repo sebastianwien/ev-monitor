@@ -14,6 +14,11 @@ public final class ConflictException extends DomainException {
         return new ConflictException("EMAIL_TAKEN", "Email is already in use.");
     }
 
+    public static ConflictException evLogTimeTaken(java.time.LocalDateTime loggedAt) {
+        return new ConflictException("EVLOG_TIME_TAKEN",
+                "Zu diesem Zeitpunkt (" + loggedAt + ") existiert bereits ein aktiver Ladevorgang.");
+    }
+
     public static ConflictException usernameTaken() {
         return new ConflictException("USERNAME_TAKEN", "Username is already taken.");
     }
