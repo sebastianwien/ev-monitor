@@ -66,7 +66,8 @@ public class SecurityConfig {
                         // Reicht Koordinaten an einen fremden Dienst weiter - nur fuer angemeldete Nutzer,
                         // zusaetzlich per RateLimitService gedrosselt. Muss vor der permitAll-Regel stehen.
                         .requestMatchers("/api/charging-provider-tariffs/cpos/nearby",
-                                "/api/charging-provider-tariffs/cpos/nearby-stations").authenticated()
+                                "/api/charging-provider-tariffs/cpos/nearby-stations",
+                                "/api/charging-provider-tariffs/cpos/search-stations").authenticated()
                         .requestMatchers("/api/charging-provider-tariffs", "/api/charging-provider-tariffs/**").permitAll()
                         .requestMatchers("/api/vehicle-specifications/lookup").permitAll()
                         .requestMatchers("/api/public/**").permitAll()

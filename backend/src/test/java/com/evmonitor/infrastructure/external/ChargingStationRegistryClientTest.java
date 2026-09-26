@@ -248,4 +248,89 @@ class ChargingStationRegistryClientTest {
         assertThat(disabled.findStationsNearby(52.52, 13.405, 250)).isEmpty();
         verifyNoInteractions(restTemplate);
     }
+
+    // ── Textsuche ────────────────────────────────────────────────────────────────
+
+    private String capturedQuery() {
+        ArgumentCaptor<URI> uri = ArgumentCaptor.forClass(URI.class);
+        verify(restTemplate).getForObject(uri.capture(), eq(Map.class));
+        return java.net.URLDecoder.decode(uri.getValue().toString(), java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /** Jeder Begriff muss irgendwo treffen: Betreiber, Anzeigename, Ort oder Strasse. */
+    @Test
+    void textsucheVerknuepftBegriffeMitUndUeberAlleNamensfelder() {
+        respondWith();
+
+        client.searchStations("EnBW Lichtenau Fuchs");
+
+        String q = capturedQuery();
+        assertThat(q).contains("UPPER(Betreiber) LIKE '%ENBW%'")
+                .contains("UPPER(Anzeigename__Karte_) LIKE '%ENBW%'")
+                .contains("UPPER(Ort) LIKE '%LICHTENAU%'")
+                .contains("UPPER(Straße) LIKE '%FUCHS%'");
+        assertThat(q.split(" AND ")).hasSize(3);
+        assertThat(q).doesNotContain("geometry=").contains("returnGeometry=false");
+    }
+
+    /** Zahlen sind Postleitzahl oder Hausnummer, nie Teil eines Namens. */
+    @Test
+    void zahlenSuchenPostleitzahlUndHausnummer() {
+        respondWith();
+
+        client.searchStations("91586 Lichtenau");
+
+        assertThat(capturedQuery()).contains("(Postleitzahl LIKE '91586%' OR Hausnummer = '91586')")
+                .doesNotContain("LIKE '%91586%'");
+    }
+
+    /** Der Suchtext landet in einer Where-Klausel eines fremden Dienstes: Quotes und Wildcards entschaerfen. */
+    @Test
+    void textsucheEntschaerftQuotesUndWildcards() {
+        respondWith();
+
+        client.searchStations("O'Neil %Stadt_");
+
+        String q = capturedQuery();
+        assertThat(q).contains("'%O''NEIL%'").contains("'%STADT%'").doesNotContain("%%").doesNotContain("_%'");
+    }
+
+    /** Ein Buchstabe trifft alles und bringt nichts; mehr als fuenf Begriffe sind kein Suchtext mehr. */
+    @Test
+    void textsucheIgnoriertKurzeUndUeberzaehligeBegriffe() {
+        respondWith();
+
+        client.searchStations("a EnBW, bb cc dd ee ff gg");
+
+        String q = capturedQuery();
+        assertThat(q).doesNotContain("'%A%'").doesNotContain("'%FF%'");
+        assertThat(q.split(" AND ")).hasSize(5);
+    }
+
+    @Test
+    void textsucheOhneBrauchbarenBegriffFragtNichtAn() {
+        assertThat(client.searchStations("a 1")).isPresent()
+                .get(org.assertj.core.api.InstanceOfAssertFactories.LIST).isEmpty();
+        verifyNoInteractions(restTemplate);
+    }
+
+    @Test
+    void textsucheLiefertDieselbenStationenWieDieUmkreissuche() {
+        respondWith(Map.of("Betreiber", "EnBW mobility+ AG und Co.KG ", "Ort", "Lichtenau", "Status", "In Betrieb"),
+                Map.of("Betreiber", "N-ERGIE", "Status", "Außer Betrieb"));
+
+        var stations = client.searchStations("EnBW Lichtenau").orElseThrow();
+
+        assertThat(stations).extracting(ChargingStationRegistryClient.Station::operator)
+                .containsExactly("EnBW mobility+ AG und Co.KG");
+        assertThat(stations.getFirst().city()).isEqualTo("Lichtenau");
+    }
+
+    @Test
+    void textsucheBeiAusfallIstLeeresOptional() {
+        when(restTemplate.getForObject(any(URI.class), eq(Map.class)))
+                .thenThrow(new RestClientException("timeout"));
+
+        assertThat(client.searchStations("EnBW Lichtenau")).isEmpty();
+    }
 }
