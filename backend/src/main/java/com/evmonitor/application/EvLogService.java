@@ -633,6 +633,35 @@ public class EvLogService {
         }
     }
 
+    /** Papierkorb: gelöschte Ladevorgänge eines eigenen Autos, neueste zuerst. */
+    public List<DeletedLogResponse> getDeletedLogs(UUID carId, UUID userId) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
+        if (!car.isOwnedBy(userId)) {
+            throw ForbiddenException.notOwner("Car", carId);
+        }
+        return evLogRepository.findDeletedByCarId(carId).stream().map(DeletedLogResponse::from).toList();
+    }
+
+    /**
+     * Endgültig entfernen: löscht den Tombstone hart. Danach darf ein Re-Import den Vorgang wieder anlegen.
+     * Nur für bereits gelöschte Vorgänge, Coins wurden beim Soft-Delete schon abgezogen.
+     */
+    @Transactional
+    public void purgeLog(UUID id, UUID userId) {
+        EvLog log = evLogRepository.findByIdIncludingDeleted(id)
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
+        Car car = carRepository.findById(log.getCarId())
+                .orElseThrow(() -> NotFoundException.forEntity("Car", log.getCarId()));
+        if (!car.isOwnedBy(userId)) {
+            throw ForbiddenException.notOwner("EvLog", id);
+        }
+        if (log.getDeletedAt() == null) {
+            throw new ConflictException("EVLOG_NOT_DELETED", "Nur gelöschte Ladevorgänge können endgültig entfernt werden.");
+        }
+        evLogRepository.deleteById(id);
+    }
+
     public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId) {
         return getLogsForCar(carId, userId, null);
     }

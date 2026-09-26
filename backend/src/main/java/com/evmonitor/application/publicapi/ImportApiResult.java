@@ -1,5 +1,6 @@
 package com.evmonitor.application.publicapi;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
@@ -14,6 +15,16 @@ public record ImportApiResult(int imported, int skipped, int errors, int warning
 
     public ImportApiResult(int imported, int skipped, int errors, int warnings, List<ImportedSession> results) {
         this(imported, skipped, errors, warnings, results, 0);
+    }
+
+    /** Hinweis für API-Nutzer, warum ein Re-Upload nichts anlegt. */
+    @JsonProperty("hint")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public String hint() {
+        return skippedDeleted > 0
+                ? skippedDeleted + " Ladevorgang/Ladevorgänge hast du gelöscht, sie werden nicht erneut importiert. "
+                  + "Wiederherstellen oder endgültig entfernen unter Ladevorgänge > Gelöscht."
+                : null;
     }
 
     public record ImportedSession(

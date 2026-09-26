@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.domain.exception.ConflictException;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.testutil.AbstractIntegrationTest;
@@ -177,6 +178,57 @@ class EvLogServiceSoftDeleteTest extends AbstractIntegrationTest {
 
         evLogService.restoreLog(log.getId(), userId);
         assertThat(coinLogService.sumCoinsForSourceEntity(log.getId())).isZero();
+    }
+
+    @Test
+    void getDeletedLogs_listsTombstonesOfOwnCar() {
+        EvLog kept = evLogRepository.save(buildLog(LocalDateTime.of(2026, 3, 1, 10, 0)));
+        EvLog gone = evLogRepository.save(buildLog(LocalDateTime.of(2026, 3, 2, 10, 0)));
+        evLogService.deleteLog(gone.getId(), userId);
+
+        assertThat(evLogService.getDeletedLogs(carId, userId))
+                .extracting(DeletedLogResponse::id).containsExactly(gone.getId());
+        assertThat(kept).isNotNull();
+    }
+
+    @Test
+    void getDeletedLogs_foreignCar_isForbidden() {
+        User other = createAndSaveUser("softdel-o2-" + UUID.randomUUID().toString().substring(0, 8) + "@ev-monitor.net");
+
+        assertThatThrownBy(() -> evLogService.getDeletedLogs(carId, other.getId()))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void purgeLog_removesTombstone_soReimportIsPossible() {
+        LocalDateTime loggedAt = LocalDateTime.of(2026, 3, 1, 10, 0);
+        EvLog log = evLogRepository.save(buildLog(loggedAt));
+        evLogService.deleteLog(log.getId(), userId);
+
+        evLogService.purgeLog(log.getId(), userId);
+
+        assertThat(evLogRepository.findByIdIncludingDeleted(log.getId())).isEmpty();
+        assertThat(evLogRepository.existsByCarIdAndLoggedAtAndDataSource(carId, loggedAt, DataSource.EU_DATA_ACT_SYNC)).isFalse();
+    }
+
+    @Test
+    void purgeLog_activeLog_isConflict() {
+        EvLog log = evLogRepository.save(buildLog(LocalDateTime.of(2026, 3, 1, 10, 0)));
+
+        assertThatThrownBy(() -> evLogService.purgeLog(log.getId(), userId))
+                .isInstanceOf(ConflictException.class);
+        assertThat(evLogRepository.findById(log.getId())).isPresent();
+    }
+
+    @Test
+    void purgeLog_foreignLog_isForbidden() {
+        User other = createAndSaveUser("softdel-o3-" + UUID.randomUUID().toString().substring(0, 8) + "@ev-monitor.net");
+        EvLog log = evLogRepository.save(buildLog(LocalDateTime.of(2026, 3, 1, 10, 0)));
+        evLogService.deleteLog(log.getId(), userId);
+
+        assertThatThrownBy(() -> evLogService.purgeLog(log.getId(), other.getId()))
+                .isInstanceOf(ForbiddenException.class);
+        assertThat(evLogRepository.findByIdIncludingDeleted(log.getId())).isPresent();
     }
 
     private EvLog buildLog(LocalDateTime loggedAt) {

@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.DeletedLogResponse;
+
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.EvLogCreateResponse;
 import com.evmonitor.application.EvLogRequest;
@@ -247,6 +249,21 @@ public class EvLogController {
     public ResponseEntity<Void> restoreLog(@PathVariable UUID id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         evLogService.restoreLog(id, principal.getUser().getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Papierkorb eines eigenen Autos. 403 wenn fremd. */
+    @GetMapping("/deleted")
+    public ResponseEntity<List<DeletedLogResponse>> getDeletedLogs(@RequestParam UUID carId, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(evLogService.getDeletedLogs(carId, principal.getUser().getId()));
+    }
+
+    /** Endgültig entfernen. 409 wenn der Vorgang nicht gelöscht ist, 403 wenn fremd. */
+    @DeleteMapping("/{id}/purge")
+    public ResponseEntity<Void> purgeLog(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        evLogService.purgeLog(id, principal.getUser().getId());
         return ResponseEntity.noContent().build();
     }
 
