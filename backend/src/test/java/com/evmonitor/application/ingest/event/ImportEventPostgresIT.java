@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * {@code import_event} gegen das echte Schema (V190 per Flyway): Fremdschlüssel, Kontolöschung per
+ * {@code import_event} gegen das echte Schema (V191 per Flyway): Fremdschlüssel, Kontolöschung per
  * CASCADE und die Statistik-Queries, die in H2 nur angenähert laufen. Übersprungen ohne Docker.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
