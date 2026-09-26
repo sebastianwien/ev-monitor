@@ -1,5 +1,11 @@
 import api from './axios'
 
+/** Zeitpunkt der letzten Tesla-Ladung und -Fahrt (ISO-UTC), null wenn noch keine da ist. */
+export interface TeslaLatestImport {
+  lastChargeAt: string | null
+  lastTripAt: string | null
+}
+
 export interface TeslaConnectionStatus {
   connected: boolean
   vehicleName: string | null
@@ -71,6 +77,11 @@ export default {
 
   async deleteByIds(ids: string[]): Promise<void> {
     await api.delete('/logs/batch', { data: ids })
+  },
+
+  async getLatestImport(): Promise<TeslaLatestImport> {
+    const resp = await api.get('/import/tesla/latest')
+    return resp.data
   },
 
   async deleteAllImports(): Promise<void> {
