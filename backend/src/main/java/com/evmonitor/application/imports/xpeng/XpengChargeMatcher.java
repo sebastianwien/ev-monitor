@@ -37,7 +37,8 @@ import java.util.UUID;
  *   4. Tie-Breaker bei mehreren Kandidaten: zeitlich naechster zur fruehesten Session-Start-Zeit.
  *   5. Hat der gewaehlte Kandidat schon kwh_at_vehicle -> skip (kein doppelter Eintrag,
  *      auch kein unmatched, weil die Daten konzeptionell schon drin sind).
- *   6. Sonst: Summe aller Session-kWh in kwh_at_vehicle, max_power und charging_type
+ *   6. Sonst: Summe der Netto-kWh (U x I am Pack) aller Sessions in kwh_at_vehicle - fehlt
+ *      bei einer Session der Netto-Wert, bleibt kwh_at_vehicle leer statt unvollstaendig; max_power und charging_type
  *      werden nur befuellt wenn leer. Brutto-kWh und Preis bleiben unangetastet.
  *   7. Restliche Sessions (kein passender ev_log gefunden) -> unmatched.
  */
@@ -132,11 +133,16 @@ public class XpengChargeMatcher {
             return GroupOutcome.SKIPPED;
         }
 
+        // Netto, nicht kwhCharged: chrgpwr ist Brutto und entspricht dem Wallbox-Zaehler.
         BigDecimal kwhSum = BigDecimal.ZERO;
         for (DetectedChargingSession s : group) {
-            kwhSum = kwhSum.add(s.kwhCharged());
+            if (s.kwhAtVehicle() == null) {
+                kwhSum = null;
+                break;
+            }
+            kwhSum = kwhSum.add(s.kwhAtVehicle());
         }
-        kwhSum = kwhSum.setScale(4, RoundingMode.HALF_UP);
+        if (kwhSum != null) kwhSum = kwhSum.setScale(4, RoundingMode.HALF_UP);
 
         // Max-Power: groesster maxPower-Wert der Gruppe (z.B. erste Session 3.9 kW, zweite 10.1 kW -> 10.1)
         BigDecimal groupMaxPower = group.stream()

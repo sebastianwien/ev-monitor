@@ -46,11 +46,16 @@ class XpengChargeMatcherTest {
 
     private DetectedChargingSession session(BigDecimal odoKm, BigDecimal kwh,
                                             LocalDateTime startedAt, LocalDateTime endedAt) {
+        return session(odoKm, kwh, kwh, startedAt, endedAt);
+    }
+
+    private DetectedChargingSession session(BigDecimal odoKm, BigDecimal grossKwh, BigDecimal netKwh,
+                                            LocalDateTime startedAt, LocalDateTime endedAt) {
         // Test-Zeiten sind UTC-Wanduhrzeiten wie ev_log.logged_at -> als Instant an die Session
         return new DetectedChargingSession(
                 startedAt.toInstant(ZoneOffset.UTC), endedAt.toInstant(ZoneOffset.UTC),
-                new BigDecimal("50"), new BigDecimal("90"), kwh,
-                null,
+                new BigDecimal("50"), new BigDecimal("90"), grossKwh,
+                netKwh,
                 new BigDecimal("11.0"),
                 odoKm,
                 "AC",
@@ -102,6 +107,47 @@ class XpengChargeMatcherTest {
         // Brutto + Preis unangetastet
         assertEquals(0, saved.getKwhCharged().compareTo(new BigDecimal("31.13")));
         assertEquals(0, saved.getCostEur().compareTo(new BigDecimal("9.49")));
+    }
+
+    // -- Regression: Netto-kWh aus U x I, nicht die Brutto-kWh aus chrgpwr, gehoert in kwh_at_vehicle.
+    // Sonst landet Wallbox-Brutto gegen XPeng-Brutto als "Ladeeffizienz" von ~98 %.
+    @Test
+    void writesNetPackEnergyNotGrossIntoKwhAtVehicle() {
+        LocalDateTime base = LocalDateTime.of(2026, 5, 6, 10, 0);
+        DetectedChargingSession s1 = session(new BigDecimal("14230"),
+                new BigDecimal("10.0"), new BigDecimal("9.2"), base.plusMinutes(5), base.plusHours(1));
+        DetectedChargingSession s2 = session(new BigDecimal("14230"),
+                new BigDecimal("20.0"), new BigDecimal("18.4"), base.plusHours(2), base.plusHours(4));
+        EvLog manual = logBuilder(14230, base).kwhCharged(new BigDecimal("30.6")).build();
+        when(evLogRepository.findChargeMatchCandidates(eq(CAR), anyInt(), anyInt(),
+                any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of(manual));
+
+        matcher.matchAndEnrich(CAR, List.of(s1, s2));
+
+        ArgumentCaptor<EvLog> captor = ArgumentCaptor.forClass(EvLog.class);
+        verify(evLogService).save(captor.capture());
+        assertEquals(0, captor.getValue().getKwhAtVehicle().compareTo(new BigDecimal("27.6")));
+    }
+
+    // -- Fehlt fuer eine Sub-Session der Netto-Wert, ist die Summe unvollstaendig -> kein kwh_at_vehicle
+    @Test
+    void leavesKwhAtVehicleEmptyWhenAnySessionLacksNetEnergy() {
+        LocalDateTime base = LocalDateTime.of(2026, 5, 6, 10, 0);
+        DetectedChargingSession s1 = session(new BigDecimal("14230"),
+                new BigDecimal("10.0"), new BigDecimal("9.2"), base.plusMinutes(5), base.plusHours(1));
+        DetectedChargingSession s2 = session(new BigDecimal("14230"),
+                new BigDecimal("20.0"), null, base.plusHours(2), base.plusHours(4));
+        EvLog manual = logBuilder(14230, base).kwhCharged(new BigDecimal("30.6")).build();
+        when(evLogRepository.findChargeMatchCandidates(eq(CAR), anyInt(), anyInt(),
+                any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of(manual));
+
+        matcher.matchAndEnrich(CAR, List.of(s1, s2));
+
+        ArgumentCaptor<EvLog> captor = ArgumentCaptor.forClass(EvLog.class);
+        verify(evLogService).save(captor.capture());
+        assertNull(captor.getValue().getKwhAtVehicle());
     }
 
     // -- Szenario B: AC morgens (odo 14000) + DC nachmittags (odo 14150) am gleichen Tag
