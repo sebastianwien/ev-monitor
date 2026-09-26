@@ -84,6 +84,12 @@ public interface EvLogRepository {
     /** Macht {@link #softDelete(UUID)} rückgängig. */
     void restore(UUID id);
 
+    /** Soft-Delete der Quelle beim Zusammenführen: bleibt Tombstone für Dedupe, erscheint nicht im Papierkorb. */
+    void softDeleteAsMerged(UUID id, UUID targetId);
+
+    /** true, wenn der Log beim Zusammenführen aufgegangen ist. */
+    boolean isMergedTombstone(UUID id);
+
     /** Sieht auch soft-gelöschte Logs, für Restore und Ownership-Check. */
     Optional<EvLog> findByIdIncludingDeleted(UUID id);
 

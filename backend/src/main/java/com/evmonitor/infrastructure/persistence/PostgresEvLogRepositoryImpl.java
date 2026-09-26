@@ -170,6 +170,17 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    @Transactional
+    public void softDeleteAsMerged(UUID id, UUID targetId) {
+        jpaRepository.softDeleteAsMerged(id, targetId, LocalDateTime.now());
+    }
+
+    @Override
+    public boolean isMergedTombstone(UUID id) {
+        return jpaRepository.isMergedTombstone(id);
+    }
+
+    @Override
     public Optional<EvLog> findByIdIncludingDeleted(UUID id) {
         return jpaRepository.findByIdIncludingDeleted(id).map(this::toDomain);
     }

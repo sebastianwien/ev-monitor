@@ -201,12 +201,20 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = "UPDATE ev_log SET deleted_at = NULL WHERE id = :id AND deleted_at IS NOT NULL", nativeQuery = true)
     int restore(@Param("id") UUID id);
 
+    @Modifying
+    @Query(value = "UPDATE ev_log SET deleted_at = :now, merged_into = :targetId WHERE id = :id AND deleted_at IS NULL", nativeQuery = true)
+    int softDeleteAsMerged(@Param("id") UUID id, @Param("targetId") UUID targetId, @Param("now") LocalDateTime now);
+
+    // soft-delete-bypass: zusammengeführte Quelle erkennen
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE id = :id AND merged_into IS NOT NULL)", nativeQuery = true)
+    boolean isMergedTombstone(@Param("id") UUID id);
+
     // soft-delete-bypass: Restore und Ownership-Check brauchen den Tombstone
     @Query(value = "SELECT * FROM ev_log WHERE id = :id", nativeQuery = true)
     Optional<EvLogEntity> findByIdIncludingDeleted(@Param("id") UUID id);
 
     // soft-delete-bypass: Papierkorb
-    @Query(value = "SELECT * FROM ev_log WHERE car_id = :carId AND deleted_at IS NOT NULL ORDER BY logged_at DESC", nativeQuery = true)
+    @Query(value = "SELECT * FROM ev_log WHERE car_id = :carId AND deleted_at IS NOT NULL AND merged_into IS NULL ORDER BY logged_at DESC", nativeQuery = true)
     List<EvLogEntity> findDeletedByCarId(@Param("carId") UUID carId);
 
     // soft-delete-bypass: Kontolöschung räumt Tombstones hart weg

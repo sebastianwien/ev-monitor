@@ -625,6 +625,10 @@ public class EvLogService {
         if (log.getDeletedAt() == null) {
             throw NotFoundException.forEntity("EvLog", id);
         }
+        if (evLogRepository.isMergedTombstone(id)) {
+            // Werte stecken schon im Ziel-Log, Wiederherstellen würde die Ladung doppelt zählen
+            throw new ConflictException("EVLOG_MERGED", "Dieser Ladevorgang wurde zusammengeführt und kann nicht wiederhergestellt werden.");
+        }
         try {
             evLogRepository.restore(id);
         } catch (DataIntegrityViolationException e) {
@@ -843,7 +847,7 @@ public class EvLogService {
         EvLogRepository.PowerCurveLookup sourceCurves = evLogRepository.findOwnerIdAndPowerCurveJson(sourceLogId).orElse(null);
 
         EvLog saved = evLogRepository.save(merged);
-        evLogRepository.softDelete(sourceLogId);
+        evLogRepository.softDeleteAsMerged(sourceLogId, targetLogId);
 
         // save() persistiert die Kurvenspalten nicht - deshalb explizit ueber die
         // update*-Methoden auf den Survivor schreiben.

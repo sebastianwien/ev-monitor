@@ -231,6 +231,20 @@ class EvLogServiceSoftDeleteTest extends AbstractIntegrationTest {
         assertThat(evLogRepository.findByIdIncludingDeleted(log.getId())).isPresent();
     }
 
+    @Test
+    void mergedSource_isNotInTrash_andCannotBeRestored() {
+        EvLog target = evLogRepository.save(buildLog(LocalDateTime.of(2026, 3, 1, 10, 0)));
+        EvLog source = evLogRepository.save(buildLog(LocalDateTime.of(2026, 3, 1, 10, 30)));
+
+        evLogService.mergeLog(target.getId(), source.getId(), userId, false);
+
+        assertThat(evLogService.getDeletedLogs(carId, userId)).isEmpty();
+        assertThatThrownBy(() -> evLogService.restoreLog(source.getId(), userId))
+                .isInstanceOf(ConflictException.class);
+        // Tombstone bleibt für den Dedup
+        assertThat(evLogRepository.findByIdIncludingDeleted(source.getId())).isPresent();
+    }
+
     private EvLog buildLog(LocalDateTime loggedAt) {
         return EvLog.builder()
                 .id(UUID.randomUUID())

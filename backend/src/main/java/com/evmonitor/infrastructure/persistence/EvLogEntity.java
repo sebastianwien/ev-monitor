@@ -157,4 +157,8 @@ public class EvLogEntity {
     /** Soft-Delete-Zeitpunkt. Wird nur über native UPDATEs geschrieben, siehe Klassen-Javadoc. */
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    /** Ziel-Log, in dem dieser beim Zusammenführen aufgegangen ist. Nur per nativem UPDATE geschrieben. */
+    @Column(name = "merged_into", insertable = false, updatable = false)
+    private UUID mergedInto;
 }
