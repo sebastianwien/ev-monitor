@@ -14,6 +14,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,7 +52,8 @@ class ImportStatsServiceTest extends AbstractIntegrationTest {
 
     @Test
     void groupsByProviderAndChannel_withCountsLastSuccessAndTopErrors() {
-        LocalDateTime now = LocalDateTime.now();
+        // Auf Millisekunden gekürzt: Linux liefert Nanosekunden, die Spalte speichert Mikrosekunden.
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);
         save(DataSource.EU_DATA_ACT_SYNC, ImportEventOutcome.IMPORTED, 3, 1, null, now.minusDays(2));
         save(DataSource.EU_DATA_ACT_SYNC, ImportEventOutcome.NO_NEW_DATA, 0, 2, null, now.minusDays(1));
         save(DataSource.EU_DATA_ACT_SYNC, ImportEventOutcome.PARSE_ERROR, 0, 0, "E: Format A", now.minusHours(3));
