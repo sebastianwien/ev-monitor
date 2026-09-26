@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed, defineAsyncComponent } from 'vue'
+import { nominatimSearchUrl } from '../../composables/useLocationSearch'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
@@ -101,7 +102,7 @@ watch(locationSearchQuery, (q) => {
   if (!q || q.length < 3) { locationSuggestions.value = []; return }
   locationSearchTimer = setTimeout(async () => {
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`)
+      const res = await fetch(nominatimSearchUrl(q))
       locationSuggestions.value = await res.json()
       showLocationSuggestions.value = locationSuggestions.value.length > 0
     } catch { /* ignore */ }

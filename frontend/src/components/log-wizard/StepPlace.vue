@@ -11,6 +11,7 @@ import type { PlaceChoice, PlaceKind } from './wizardLogic'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import PlaceSearch from './PlaceSearch.vue'
 import Collapse from './Collapse.vue'
+import { stationSub as stationSubBase } from './stationSub'
 
 const props = defineProps<{
   place: PlaceKind | null
@@ -33,6 +34,9 @@ const platform = settingsPlatform()
 const searchReopened = ref(false)
 const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value)
 const showOther = computed(() => props.place === 'other')
+// Ort steht, aber das Register kennt dort keine Säule: ohne Kachel bliebe "Weiter" grau
+const noStationsFound = computed(() =>
+  props.locationStatus === 'success' && !props.stationsLoading && props.stations.length === 0 && !searchReopened.value)
 const filteredCpos = computed(() => {
   const q = query.value.trim().toLowerCase()
   const list = props.allCpos.filter(c => !props.recentCpos.includes(c))
@@ -50,12 +54,7 @@ const tileClass = (on: boolean) => [
   on ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50'
      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-700',
 ]
-/** "DC 50 kW · AC 43 kW · 2 Ladepunkte" - Leistung je Ladeart aus den Steckern, nie die Summe. */
-const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw'>) => [
-  s.maxDcKw ? `DC ${Math.round(s.maxDcKw)} kW` : null,
-  s.maxAcKw ? `AC ${Math.round(s.maxAcKw)} kW` : null,
-  s.chargePoints ? t('logwizard.charge_points', { n: s.chargePoints }, s.chargePoints) : null,
-].filter(Boolean).join(' · ')
+const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw'>) => stationSubBase(s, t)
 </script>
 
 <template>
@@ -91,8 +90,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </div>
 
     <!-- Ohne Live-Position: Ort suchen - laedt danach ebenfalls die Saeulen im Umkreis -->
-    <PlaceSearch :label="t('logwizard.place_search')" :placeholder="t('logfields.location_create_placeholder')"
-      @picked="p => emit('placePicked', p)" />
+    <PlaceSearch :label="t('logwizard.place_search')"
+      @choose="c => emit('choose', c)" @picked="p => emit('placePicked', p)" />
     </div>
     </Collapse>
 
@@ -110,6 +109,15 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       class="flex flex-col items-center gap-2 py-4 text-sm text-gray-500 dark:text-gray-400">
       <ArrowPathIcon class="h-8 w-8 animate-spin text-indigo-600" aria-hidden="true" />
       <span>{{ t('logwizard.nearby_loading') }}</span>
+    </div>
+    <div v-if="noStationsFound" data-testid="wizard-no-stations"
+      class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-2">
+      <p>{{ t('logwizard.no_stations_found') }}</p>
+      <div :class="CHIP_ROW">
+        <button type="button" :class="chipClass(false)" @click="searchReopened = true">
+          <MagnifyingGlassIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.nearby_other_place') }}
+        </button>
+      </div>
     </div>
     <Collapse :open="stations.length > 0">
     <div class="space-y-3">

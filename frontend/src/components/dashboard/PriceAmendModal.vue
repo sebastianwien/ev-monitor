@@ -250,6 +250,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
+import { nominatimSearchUrl } from '../../composables/useLocationSearch'
 import { XMarkIcon, CheckCircleIcon, CreditCardIcon, MapPinIcon, SparklesIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
 import ChargingCardTile from '../shared/ChargingCardTile.vue'
@@ -477,7 +478,7 @@ watch(locationSearchQuery, (q) => {
   if (!q || q.length < 3) { suggestions.value = []; return }
   searchTimer = setTimeout(async () => {
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=5`)
+      const res = await fetch(nominatimSearchUrl(q))
       suggestions.value = await res.json()
       showSuggestions.value = suggestions.value.length > 0
     } catch { /* ignore */ }

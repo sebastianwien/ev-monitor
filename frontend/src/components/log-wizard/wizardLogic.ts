@@ -1,5 +1,5 @@
 import type { LogFormData } from '../log-form/logFormData'
-import type { NearbyStation } from '../../composables/useNearbyStations'
+import type { StationMatch } from '../../composables/useNearbyStations'
 import type { RecentSite } from '../../composables/useRecentSites'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
@@ -12,7 +12,7 @@ export type PlaceKind = 'home' | 'station' | 'site' | 'other'
 
 export type PlaceChoice =
   | { kind: 'home' }
-  | { kind: 'station'; station: NearbyStation }
+  | { kind: 'station'; station: StationMatch }
   | { kind: 'site'; site: RecentSite }
   | { kind: 'other'; cpoName: string | null }
 

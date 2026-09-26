@@ -1,27 +1,35 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { nextTick } from 'vue'
-import { useLocationSearch } from '../useLocationSearch'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { useLocationSearch, nominatimSearchUrl } from '../useLocationSearch'
 
 describe('useLocationSearch', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
     globalThis.fetch = vi.fn().mockResolvedValue({ json: async () => [{ place_id: 1, lat: '52.5', lon: '13.4', display_name: 'Berlin' }] }) as any
   })
-  afterEach(() => vi.useRealTimers())
 
-  it('fragt erst ab drei Zeichen und mit Verzögerung an', async () => {
+  /** Nominatim verbietet Autocomplete: genau ein Aufruf je ausdrücklicher Suche, kein Watcher. */
+  it('search ruft Nominatim genau einmal auf, ohne Länderfilter', async () => {
     const s = useLocationSearch()
-    s.query.value = 'Be'
-    await nextTick(); vi.advanceTimersByTime(400)
-    expect(fetch).not.toHaveBeenCalled()
+    s.query.value = 'Ber'
     s.query.value = 'Berlin'
-    await nextTick(); vi.advanceTimersByTime(400); await vi.runAllTimersAsync()
+    expect(fetch).not.toHaveBeenCalled()
+    await s.search('Berlin')
     expect(fetch).toHaveBeenCalledTimes(1)
-    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain('q=Berlin')
+    const url = String(vi.mocked(fetch).mock.calls[0][0])
+    expect(url).toContain('q=Berlin')
+    expect(url).not.toContain('countrycodes')
     expect(s.suggestions.value).toHaveLength(1)
+    expect(s.noResults.value).toBe(false)
   })
 
-  it('select liefert Koordinaten als Zahlen und übernimmt den Namen', async () => {
+  it('meldet "kein Treffer" nach einer leeren Antwort', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({ json: async () => [] } as any)
+    const s = useLocationSearch()
+    await s.search('EnBW Lichtenau')
+    expect(s.suggestions.value).toEqual([])
+    expect(s.noResults.value).toBe(true)
+  })
+
+  it('select liefert Koordinaten als Zahlen und übernimmt den Namen', () => {
     const s = useLocationSearch()
     const picked = s.select({ place_id: 1, lat: '52.5', lon: '13.4', display_name: 'Berlin' })
     expect(picked).toEqual({ latitude: 52.5, longitude: 13.4, name: 'Berlin' })
@@ -33,8 +41,12 @@ describe('useLocationSearch', () => {
   it('ein Netzfehler leert die Vorschläge statt zu werfen', async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error('offline'))
     const s = useLocationSearch()
-    s.query.value = 'Rasthof'
-    await nextTick(); await vi.runAllTimersAsync()
+    await s.search('Rasthof')
     expect(s.suggestions.value).toEqual([])
+    expect(s.noResults.value).toBe(false)
+  })
+
+  it('URL-Builder ist für alle Aufrufstellen derselbe', () => {
+    expect(nominatimSearchUrl('a b')).toBe('https://nominatim.openstreetmap.org/search?q=a%20b&format=json&limit=5')
   })
 })

@@ -2045,6 +2045,9 @@ tesla:
   pairing_err_disable: Kunne ikke deaktivere telemetry
   pairing_err_not_connected: Ikke koblet til Tesla ennå. Koble til Tesla først via knappen ovenfor.
   telemetry_live_desc_full: Ladesesjoner og turer registreres automatisk.
+  latest_import_charge: "Siste lading"
+  latest_import_trip: "Siste tur"
+  latest_import_none: "ingen ennå"
   telemetry_live_desc_charging_only: Ladesesjoner registreres automatisk.
   prompt_eyebrow: "Bil lagt til"
   prompt_eyebrow_connected: "Tesla tilkoblet"
@@ -3188,6 +3191,10 @@ logwizard:
   card_add: "Legg til ladekort"
   card_price_missing: "Legg til pris for {card}"
   place_search: "Søk sted"
+  place_search_placeholder: "Operatør og sted, eller adresse"
+  search_as_address: "Søk som adresse: {q}"
+  address_not_found: "Ingen adresse funnet. Sjekk gate og sted."
+  no_stations_found: "Ladestasjonsregisteret har ingen stasjon her. Velg Annen ladestasjon nedenfor og operatøren der."
 
 eu_data_act_sync:
   title: "Synkroniser automatisk (VW EU Data Act)"

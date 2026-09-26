@@ -1,14 +1,12 @@
 import { ref } from 'vue'
 import api from '../api/axios'
 
-/** Ein Ladestandort aus dem Ladesäulenregister, wie ihn das Backend im Umkreis liefert. */
-export interface NearbyStation {
+/** Ein Ladestandort aus dem Ladesäulenregister: ein Betreiber an einer Geohash-Zelle. */
+export interface StationMatch {
   /** Kanonischer Ladenetz-Name, sonst Rohname aus dem Register */
   name: string
   /** Ob der Name einem bekannten Ladenetz zugeordnet werden konnte */
   known: boolean
-  /** Entfernung zum Mittelpunkt der Geohash-Zelle, nicht zur Nutzerposition */
-  distanceMeters: number
   /** Höchste AC- bzw. DC-Steckerleistung laut Register; DC null = kein Schnelllader */
   maxAcKw: number | null
   maxDcKw: number | null
@@ -20,6 +18,12 @@ export interface NearbyStation {
   registerId: number | null
   /** Zelle (7 Stellen) der nächsten Säule dieses Betreibers - identifiziert den Ladestandort */
   geohash: string
+}
+
+/** Standort im Umkreis, zusätzlich mit Entfernung. */
+export interface NearbyStation extends StationMatch {
+  /** Entfernung zum Mittelpunkt der Geohash-Zelle, nicht zur Nutzerposition */
+  distanceMeters: number
 }
 
 /**

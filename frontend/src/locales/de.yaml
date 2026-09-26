@@ -2105,6 +2105,9 @@ tesla:
   pairing_err_disable: "Telemetry konnte nicht deaktiviert werden"
   pairing_err_not_connected: "Noch nicht mit Tesla verbunden. Verbinde zuerst Tesla über den Button oben."
   telemetry_live_desc_full: "Ladesessions und Fahrten werden automatisch erkannt."
+  latest_import_charge: "Letzte Ladung"
+  latest_import_trip: "Letzte Fahrt"
+  latest_import_none: "noch keine"
   telemetry_live_desc_charging_only: "Ladesessions werden automatisch erkannt."
   prompt_eyebrow: "Fahrzeug angelegt"
   prompt_eyebrow_connected: "Tesla verbunden"
@@ -3306,6 +3309,10 @@ logwizard:
   card_add: "Ladekarte anlegen"
   card_price_missing: "Tarif für {card} nachtragen"
   place_search: "Ort suchen"
+  place_search_placeholder: "Anbieter und Ort, oder Adresse"
+  search_as_address: "Als Adresse suchen: {q}"
+  address_not_found: "Keine Adresse gefunden. Straße und Ort prüfen."
+  no_stations_found: "Im Ladesäulenregister steht hier keine Säule. Wähle unten Andere Ladestation und dort den Anbieter."
 
 eu_data_act_sync:
   title: "Automatisch synchronisieren (VW EU Data Act)"
