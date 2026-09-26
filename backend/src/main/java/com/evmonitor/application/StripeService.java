@@ -141,6 +141,7 @@ public class StripeService {
     private final RestTemplate restTemplate = buildRestTemplate();
     private final UserRepository userRepository;
     private final AdminAlertService adminAlertService;
+    private final StripeSubscriptionLookup subscriptionLookup;
 
     private static RestTemplate buildRestTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -149,9 +150,11 @@ public class StripeService {
         return new RestTemplate(factory);
     }
 
-    public StripeService(UserRepository userRepository, AdminAlertService adminAlertService) {
+    public StripeService(UserRepository userRepository, AdminAlertService adminAlertService,
+                         StripeSubscriptionLookup subscriptionLookup) {
         this.userRepository = userRepository;
         this.adminAlertService = adminAlertService;
+        this.subscriptionLookup = subscriptionLookup;
     }
 
     @PostConstruct
@@ -262,14 +265,23 @@ public class StripeService {
             case "customer.subscription.created", "customer.subscription.updated" -> {
                 String customerId = data.get("customer").getAsString();
                 String status = data.get("status").getAsString();
+                // incomplete = Checkout läuft, erste Zahlung steht aus. Stripe schickt created(incomplete)
+                // und kurz danach updated(active), liefert beide aber oft gleichzeitig aus; ein spät
+                // verarbeitetes incomplete würde den Kauf sonst auf NONE zurücksetzen.
+                if ("incomplete".equals(status)) {
+                    log.info("[STRIPE] subscription incomplete for customer={} - tier unchanged", customerId);
+                    return;
+                }
                 boolean isTrialing = "trialing".equals(status);
                 boolean isActive = "active".equals(status) || isTrialing;
                 Instant periodEnd = data.has("current_period_end") && !data.get("current_period_end").isJsonNull()
                         ? Instant.ofEpochSecond(data.get("current_period_end").getAsLong())
                         : null;
-                // Tier comes from the subscription items, not the event diff. Reading
-                // the current item state is idempotent on out-of-order webhooks.
-                SubscriptionTier newTier = isActive ? tierFromSubscriptionItems(data) : SubscriptionTier.NONE;
+                // Tier comes from the subscription items, not the event diff. Ends this subscription,
+                // the customer keeps the tier of any other running subscription (e.g. one per car).
+                SubscriptionTier newTier = isActive
+                        ? tierFromSubscriptionItems(data)
+                        : tierOfOtherActiveSubscriptions(customerId, subscriptionId(data));
                 findUserByCustomerId(customerId).ifPresent(u -> {
                     SubscriptionTier oldTier = u.getSubscriptionTier();
                     userRepository.setSubscriptionTier(u.getId(), newTier);
@@ -326,12 +338,15 @@ public class StripeService {
             }
             case "customer.subscription.deleted" -> {
                 String customerId = data.get("customer").getAsString();
+                SubscriptionTier remaining = tierOfOtherActiveSubscriptions(customerId, subscriptionId(data));
                 findUserByCustomerId(customerId).ifPresent(u -> {
-                    userRepository.setSubscriptionTier(u.getId(), SubscriptionTier.NONE);
-                    disconnectSmartcar(u.getId());
-                    disableTeslaTelemetry(u.getId());
+                    userRepository.setSubscriptionTier(u.getId(), remaining);
+                    if (remaining == SubscriptionTier.NONE) {
+                        disconnectSmartcar(u.getId());
+                        disableTeslaTelemetry(u.getId());
+                    }
                 });
-                log.info("[STRIPE] subscription deleted -> tier=NONE for customer={}", customerId);
+                log.info("[STRIPE] subscription deleted -> tier={} for customer={}", remaining, customerId);
             }
             case "invoice.payment_failed" -> {
                 // Revoke premium AND disconnect Smartcar immediately. We previously kept Smartcar
@@ -605,6 +620,20 @@ public class StripeService {
             }
         }
         return highest != null ? highest : SubscriptionTier.AUTOSYNC;
+    }
+
+    /** Tarif der übrigen laufenden Abos des Kunden, {@code NONE} wenn keins mehr läuft. */
+    private SubscriptionTier tierOfOtherActiveSubscriptions(String customerId, String endingSubscriptionId) {
+        return subscriptionLookup.activePriceIdsExcept(customerId, endingSubscriptionId).stream()
+                .map(this::tierFromPriceId)
+                .max(java.util.Comparator.comparingInt(StripeService::tierRank))
+                .orElse(SubscriptionTier.NONE);
+    }
+
+    private static String subscriptionId(JsonObject subscriptionData) {
+        return subscriptionData.has("id") && !subscriptionData.get("id").isJsonNull()
+                ? subscriptionData.get("id").getAsString()
+                : null;
     }
 
     private String ensureCustomer(User user) throws StripeException {

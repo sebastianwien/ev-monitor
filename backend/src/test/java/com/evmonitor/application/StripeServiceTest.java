@@ -20,6 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -53,6 +54,9 @@ class StripeServiceTest {
     @Mock
     private AdminAlertService adminAlertService;
 
+    @Mock
+    private StripeSubscriptionLookup subscriptionLookup;
+
     private StripeService stripeService;
 
     private static final String CUSTOMER_ID = "cus_testABC123";
@@ -61,7 +65,7 @@ class StripeServiceTest {
 
     @BeforeEach
     void setUp() {
-        stripeService = new StripeService(userRepository, adminAlertService);
+        stripeService = new StripeService(userRepository, adminAlertService, subscriptionLookup);
     }
 
     // -------------------------------------------------------------------------
@@ -265,6 +269,42 @@ class StripeServiceTest {
             verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.NONE);
         }
 
+        /**
+         * Stripe schickt beim Kauf created(incomplete) und 2 s später updated(active), liefert beide aber
+         * oft gleichzeitig aus. Verarbeiten wir incomplete zuletzt, darf das den Kauf nicht zurücksetzen.
+         */
+        @Test
+        void statusIncomplete_leavesTierUntouched() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User alreadyActive = userWithRole(USER_ID, "USER", true);
+            lenient().when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(alreadyActive));
+            lenient().when(userRepository.findById(USER_ID)).thenReturn(Optional.of(alreadyActive));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "incomplete", 1_800_000_000L));
+
+            verify(userRepository, never()).setSubscriptionTier(any(), any());
+            verify(mockRest, never()).exchange(anyString(), any(HttpMethod.class), any(), eq(Void.class));
+        }
+
+        /** Ein Kunde mit zwei Abos (z. B. eins je Auto) verliert AutoSync nicht, wenn nur eins endet. */
+        @Test
+        void statusCanceled_withOtherActiveSubscription_keepsTierOfThatSubscription() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(subscriptionLookup.activePriceIdsExcept(CUSTOMER_ID, "sub_ending")).thenReturn(List.of("price_other"));
+
+            JsonObject data = subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L);
+            data.addProperty("id", "sub_ending");
+            stripeService.dispatch("customer.subscription.updated", data);
+
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.AUTOSYNC);
+            verify(userRepository, never()).setSubscriptionTier(USER_ID, SubscriptionTier.NONE);
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/smartcar/disconnect/"), any(HttpMethod.class), any(), eq(Void.class));
+        }
+
         @Test
         void noPeriodEnd_doesNotCallSetSubscriptionPeriodEnd() {
             User user = buildUser(USER_ID, null);
@@ -462,6 +502,25 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.deleted", data);
 
             verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.NONE);
+        }
+
+        /** Ein Kunde mit zwei Abos (z. B. eins je Auto) verliert AutoSync nicht, wenn nur eins gelöscht wird. */
+        @Test
+        void withOtherActiveSubscription_keepsTierOfThatSubscription() {
+            RestTemplate mockRest = installMockRestTemplate();
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(subscriptionLookup.activePriceIdsExcept(CUSTOMER_ID, "sub_deleted")).thenReturn(List.of("price_other"));
+
+            JsonObject data = JsonParser.parseString("""
+                    {"id": "sub_deleted", "customer": "%s"}
+                    """.formatted(CUSTOMER_ID)).getAsJsonObject();
+            stripeService.dispatch("customer.subscription.deleted", data);
+
+            verify(userRepository).setSubscriptionTier(USER_ID, SubscriptionTier.AUTOSYNC);
+            verify(userRepository, never()).setSubscriptionTier(USER_ID, SubscriptionTier.NONE);
+            verify(mockRest, never()).exchange(
+                    contains("/api/internal/smartcar/disconnect/"), any(HttpMethod.class), any(), eq(Void.class));
         }
 
         @Test
