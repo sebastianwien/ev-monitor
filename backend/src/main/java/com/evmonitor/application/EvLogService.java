@@ -9,6 +9,7 @@ import com.evmonitor.application.ingest.IngestGateway;
 import com.evmonitor.application.ingest.IngestResult;
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ConflictException;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
 
@@ -640,7 +641,12 @@ public class EvLogService {
         if (log.getDeletedAt() == null) {
             throw NotFoundException.forEntity("EvLog", id);
         }
-        evLogRepository.restore(id);
+        try {
+            evLogRepository.restore(id);
+        } catch (DataIntegrityViolationException e) {
+            // Partieller Unique-Index (V190): inzwischen existiert ein aktiver Vorgang zur selben Zeit
+            throw ConflictException.evLogTimeTaken(log.getLoggedAt());
+        }
     }
 
     public List<EvLogResponse> getLogsForCar(UUID carId, UUID userId) {
