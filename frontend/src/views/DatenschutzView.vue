@@ -444,6 +444,14 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
             aufbewahrt und dann gelöscht. Sicherungskopien der Datenbank werden rotierend aufbewahrt; gelöschte
             Daten können darin für begrenzte Zeit verbleiben und werden nicht mehr in den Dienst zurückgespielt.
           </p>
+          <p class="mt-4">
+            Löschen Sie einen einzelnen Ladevorgang, verschwindet er aus Ihren Listen und Statistiken. Den Eintrag
+            (Zeitpunkt, Herkunft und erfasste Werte) bewahren wir weiter auf, damit automatische Abrufe und Uploads
+            ihn nicht erneut anlegen, und zeigen ihn Ihnen unter „Gelöschte Ladevorgänge“. Dort können Sie ihn
+            wiederherstellen oder endgültig entfernen; endgültig entfernte Einträge werden sofort unwiderruflich
+            gelöscht. Bei Kontolöschung werden alle gelöschten Ladevorgänge mitgelöscht. Rechtsgrundlage ist
+            Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).
+          </p>
         </section>
 
         <section>
