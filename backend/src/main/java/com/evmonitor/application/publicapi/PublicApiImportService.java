@@ -96,7 +96,8 @@ public class PublicApiImportService {
                 .map(saved -> new ImportApiResult.ImportedSession(
                         saved.getLoggedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME), saved.getId()))
                 .toList();
-        return new ImportApiResult(result.imported(), result.skipped(), result.errors() + dateErrors, 0, importedResults);
+        return new ImportApiResult(result.imported(), result.skipped(), result.errors() + dateErrors, 0, importedResults,
+                result.skippedDeleted());
     }
 
     private ChargingEntry toChargingEntry(PublicApiSessionRequest.SessionEntry entry, LocalDateTime loggedAt) {

@@ -127,6 +127,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public boolean existsActiveByCarIdAndDataSourceAndLoggedAtBetween(UUID carId, DataSource dataSource, LocalDateTime start, LocalDateTime end) {
+        return jpaRepository.existsActiveByCarIdAndDataSourceAndLoggedAtBetween(carId, dataSource.name(), start, end);
+    }
+
+    @Override
     public boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged) {
         return jpaRepository.existsByCarIdAndLoggedAtAndKwhCharged(carId, loggedAt, kwhCharged);
     }

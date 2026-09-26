@@ -64,6 +64,18 @@ class IngestGatewayTest extends AbstractIntegrationTest {
         assertThat(evLogRepository.findAllByCarId(car.getId())).hasSize(3);
     }
 
+    @Test
+    void reuploadOfDeletedLog_isSkipped_andReportedAsDeleted() {
+        IngestResult first = gateway.ingestCharging(command(user.getId(), car.getId(), entry(10), entry(11)));
+        evLogRepository.softDelete(first.created().get(0).getId());
+
+        IngestResult again = gateway.ingestCharging(command(user.getId(), car.getId(), entry(10), entry(11)));
+
+        assertThat(again.imported()).isZero();
+        assertThat(again.skipped()).isEqualTo(2);
+        assertThat(again.skippedDeleted()).isEqualTo(1);
+    }
+
     private static IngestCommand command(UUID userId, UUID carId, ChargingEntry... entries) {
         return new IngestCommand(userId, carId, DataSource.SMARTCAR_LIVE, IngestDoor.CONNECTOR_PUSH, List.of(entries));
     }

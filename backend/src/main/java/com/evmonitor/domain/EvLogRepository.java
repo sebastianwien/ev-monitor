@@ -53,6 +53,9 @@ public interface EvLogRepository {
 
     boolean existsByCarIdAndDataSourceAndLoggedAtBetween(UUID carId, DataSource dataSource, LocalDateTime start, LocalDateTime end);
 
+    /** Wie {@link #existsByCarIdAndDataSourceAndLoggedAtBetween}, ohne Tombstones. */
+    boolean existsActiveByCarIdAndDataSourceAndLoggedAtBetween(UUID carId, DataSource dataSource, LocalDateTime start, LocalDateTime end);
+
     boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged);
 
     /**

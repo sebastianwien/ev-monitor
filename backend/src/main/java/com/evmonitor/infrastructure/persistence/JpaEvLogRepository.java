@@ -181,6 +181,10 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     boolean existsByCarIdAndDataSourceAndLoggedAtBetween(@Param("carId") UUID carId, @Param("dataSource") String dataSource,
                                                           @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE car_id = :carId AND data_source = :dataSource AND logged_at BETWEEN :start AND :end AND deleted_at IS NULL)", nativeQuery = true)
+    boolean existsActiveByCarIdAndDataSourceAndLoggedAtBetween(@Param("carId") UUID carId, @Param("dataSource") String dataSource,
+                                                               @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
     // soft-delete-bypass: Dedupe muss Tombstones sehen
     @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE car_id = :carId AND logged_at = :loggedAt AND kwh_charged = :kwhCharged)", nativeQuery = true)
     boolean existsByCarIdAndLoggedAtAndKwhCharged(@Param("carId") UUID carId, @Param("loggedAt") LocalDateTime loggedAt, @Param("kwhCharged") BigDecimal kwhCharged);

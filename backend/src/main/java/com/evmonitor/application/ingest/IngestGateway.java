@@ -95,30 +95,35 @@ public class IngestGateway {
                 .toList();
 
         int skipped = 0;
+        int skippedDeleted = 0;
         int errors = 0;
         List<EvLog> created = new ArrayList<>();
         Set<LocalDateTime> batchUsedTimestamps = new HashSet<>();
 
         for (ChargingEntry entry : sorted) {
             if (!policy.isolateEntryErrors()) {
-                EvLog saved = ingestOne(car, command, policy, entry, batchUsedTimestamps);
-                if (saved == null) skipped++; else created.add(saved);
+                IngestOutcome outcome = ingestOne(car, command, policy, entry, batchUsedTimestamps);
+                if (outcome.saved() != null) created.add(outcome.saved());
+                else { skipped++; if (outcome.blockedByDeleted()) skippedDeleted++; }
                 continue;
             }
             try {
-                EvLog saved = ingestOne(car, command, policy, entry, batchUsedTimestamps);
-                if (saved == null) skipped++; else created.add(saved);
+                IngestOutcome outcome = ingestOne(car, command, policy, entry, batchUsedTimestamps);
+                if (outcome.saved() != null) created.add(outcome.saved());
+                else { skipped++; if (outcome.blockedByDeleted()) skippedDeleted++; }
             } catch (Exception e) {
                 log.warn("Ingest {}: Fehler beim Verarbeiten einer Ladung: {}", command.dataSource(), e.getMessage());
                 errors++;
             }
         }
 
-        return new IngestResult(created.size(), skipped, errors, List.copyOf(created));
+        return new IngestResult(created.size(), skipped, skippedDeleted, errors, List.copyOf(created));
     }
 
-    /** @return die angelegte Ladung, {@code null} bei Duplikat */
-    private EvLog ingestOne(Car car, IngestCommand command, IngestPolicy policy, ChargingEntry entry,
+    /** Angelegte Ladung oder Duplikat; {@code blockedByDeleted}, wenn nur ein Tombstone den Zeitpunkt belegt. */
+    private record IngestOutcome(EvLog saved, boolean blockedByDeleted) {}
+
+    private IngestOutcome ingestOne(Car car, IngestCommand command, IngestPolicy policy, ChargingEntry entry,
                             Set<LocalDateTime> batchUsedTimestamps) {
         LocalDateTime loggedAt = entry.loggedAt() != null ? entry.loggedAt() : LocalDateTime.now();
 
@@ -132,7 +137,8 @@ public class IngestGateway {
         }
 
         if (isDuplicate(car.getId(), loggedAt, command.dataSource(), policy.dedupWindow())) {
-            return null;
+            return new IngestOutcome(null,
+                    !hasActive(car.getId(), loggedAt, command.dataSource(), policy.dedupWindow()));
         }
 
         EvLog evLog = toEvLog(car, command.dataSource(), policy, entry, loggedAt);
@@ -160,7 +166,14 @@ public class IngestGateway {
             eventPublisher.publishEvent(new SohAutoDetectEvent(car));
         }
 
-        return saved;
+        return new IngestOutcome(saved, false);
+    }
+
+    /** Wie {@link #isDuplicate}, zählt aber nur nicht gelöschte Ladungen. */
+    private boolean hasActive(UUID carId, LocalDateTime loggedAt, DataSource dataSource, Duration window) {
+        LocalDateTime minute = loggedAt.withSecond(0).withNano(0);
+        return evLogRepository.existsActiveByCarIdAndDataSourceAndLoggedAtBetween(
+                carId, dataSource, minute.minus(window), minute.plus(window));
     }
 
     /** Dedup je Auto und Quelle auf die Minute, mit Toleranzfenster laut Policy. Sieht Tombstones. */
