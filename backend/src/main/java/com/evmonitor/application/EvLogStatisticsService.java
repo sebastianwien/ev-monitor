@@ -268,7 +268,7 @@ public class EvLogStatisticsService {
         // Peer benchmark — only when car has a vehicle spec linked
         EvLogStatisticsResponse.PeerBenchmark peerBenchmark = null;
         if (car.getVehicleSpecificationId() != null) {
-            peerBenchmark = buildPeerBenchmark(car, allLogsForCar, logs);
+            peerBenchmark = buildPeerBenchmark(car, allLogsForCar, logs, startDate, endDate);
         }
 
         // Charging type split
@@ -324,11 +324,13 @@ public class EvLogStatisticsService {
      * @param allLogsForCurrentCar alle Logs des Autos, unabhängig vom Zeitraum - nötig als Kontext
      *                             für SoC-Differenzen und Distanzen
      * @param periodLogs           die statistik-relevanten Logs im gewählten Zeitraum - Basis für
-     *                             die Nutzer-Seite des Vergleichs. Die Peer-Seite bleibt bewusst
-     *                             Lifetime, weil ein Monatsfenster über wenige Fahrer zu dünn ist.
+     *                             die Nutzer-Seite des Vergleichs.
+     * @param startDate            optionaler Zeitraum-Beginn, gilt für beide Seiten des Vergleichs
+     * @param endDate              optionales Zeitraum-Ende, gilt für beide Seiten des Vergleichs
      */
     private EvLogStatisticsResponse.PeerBenchmark buildPeerBenchmark(
-            Car currentCar, List<EvLog> allLogsForCurrentCar, List<EvLog> periodLogs) {
+            Car currentCar, List<EvLog> allLogsForCurrentCar, List<EvLog> periodLogs,
+            java.time.LocalDate startDate, java.time.LocalDate endDate) {
 
         // Primary match: same vehicleSpecificationId
         EvLogStatisticsResponse.PeerBenchmark.MatchType matchType = EvLogStatisticsResponse.PeerBenchmark.MatchType.SPEC;
@@ -367,8 +369,8 @@ public class EvLogStatisticsService {
 
         if (nonSeedPeerCars.isEmpty()) return null;
 
-        // Peer consumption
-        CommunityConsumptionResult peerConsumption = calculateCommunityAvgConsumption(nonSeedPeerCars, false);
+        // Peer consumption within the same period as the user side
+        CommunityConsumptionResult peerConsumption = calculateCommunityAvgConsumption(nonSeedPeerCars, false, startDate, endDate);
 
         // User consumption within the selected period (full log list as context for SoC/distance)
         BigDecimal userPeriodConsumption = null;
@@ -398,7 +400,7 @@ public class EvLogStatisticsService {
             userPeriodCostPerKwh = totalUserCost.divide(totalUserKwh, 4, RoundingMode.HALF_UP);
         }
 
-        // Peer cost — energy-weighted across all non-seed peers, regardless of country.
+        // Peer cost — energy-weighted across all non-seed peers within the same period, regardless of country.
         // Country is unreliable (null for a large share of users) and filtering on it
         // shrinks the sample to the point where single outliers dominate the average.
         List<UUID> peerCarIds = nonSeedPeerCars.stream().map(Car::getId).toList();
@@ -408,6 +410,7 @@ public class EvLogStatisticsService {
         int peerLogCount = 0;
         for (EvLog log : evLogRepository.findAllByCarIds(peerCarIds)) {
             if (!log.isIncludeInStatistics()) continue;
+            if (!log.isLoggedWithin(startDate, endDate)) continue;
             peerLogCount++;
             if (log.getCostEur() == null) continue;
             BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
@@ -489,6 +492,15 @@ public class EvLogStatisticsService {
      * @return distance-weighted avg kWh/100km, or null if no valid data
      */
     public CommunityConsumptionResult calculateCommunityAvgConsumption(List<Car> cars, boolean isSeedUser) {
+        return calculateCommunityAvgConsumption(cars, isSeedUser, null, null);
+    }
+
+    /**
+     * Variante mit optionalem Zeitraum: nur Logs innerhalb [startDate, endDate] zählen als Trips,
+     * die Vollhistorie bleibt Kontext für SoC- und Distanz-Differenzen (wie bei der Nutzer-Statistik).
+     */
+    public CommunityConsumptionResult calculateCommunityAvgConsumption(
+            List<Car> cars, boolean isSeedUser, java.time.LocalDate startDate, java.time.LocalDate endDate) {
         if (cars.isEmpty()) return CommunityConsumptionResult.EMPTY;
 
         List<UUID> carIds = cars.stream().map(Car::getId).toList();
@@ -507,6 +519,7 @@ public class EvLogStatisticsService {
             List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
             List<EvLog> statsLogs = allLogs.stream()
                     .filter(l -> isSeedUser || l.isIncludeInStatistics())
+                    .filter(l -> l.isLoggedWithin(startDate, endDate))
                     .toList();
             if (statsLogs.isEmpty()) continue;
 
