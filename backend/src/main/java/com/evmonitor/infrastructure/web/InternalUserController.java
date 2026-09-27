@@ -61,7 +61,8 @@ public class InternalUserController {
             String role,
             boolean premium,
             String tier,
-            String preferredProfile) {}
+            String preferredProfile,
+            int autoSyncSlots) {}
 
     private TelemetryAccessResponse toResponse(com.evmonitor.domain.User user,
             com.evmonitor.domain.TelemetrySource source) {
@@ -70,7 +71,8 @@ public class InternalUserController {
                 user.getRole(),
                 user.isPremium(),
                 user.getSubscriptionTier().name(),
-                user.preferredTelemetryProfile().name());
+                user.preferredTelemetryProfile().name(),
+                user.getAutosyncSlots());
     }
 
     /**

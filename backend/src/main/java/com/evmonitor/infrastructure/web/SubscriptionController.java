@@ -53,6 +53,7 @@ public class SubscriptionController {
         var response = new java.util.HashMap<String, Object>();
         response.put("isPremium", user.isPremium());
         response.put("tier", user.getSubscriptionTier().name());
+        response.put("autoSyncSlots", user.getAutosyncSlots());
         response.put("premiumEnabled", premiumProperties.isEnabled() || isAdmin);
         // Spiegelt StripeService.createCheckoutSession: Erstkaeufer bekommen 7 Tage Trial.
         response.put("trialEligible", !user.isTrialUsed());

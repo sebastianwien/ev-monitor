@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1047,6 +1048,83 @@ class StripeServiceTest {
             assertThat(StripeService.appendTargetTier(
                     "https://ev-monitor.net/upgrade/success", null))
                     .isEqualTo("https://ev-monitor.net/upgrade/success");
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // AutoSync-Slots: ein Abo je Fahrzeug
+    // -------------------------------------------------------------------------
+
+    @Nested
+    class AutosyncSlots {
+
+        /** Zweites aktives AutoSync-Abo (eins je Auto) ergibt zwei Slots. */
+        @Test
+        void secondActiveAutosyncSubscription_setsTwoSlots() {
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(subscriptionLookup.activePriceIds(CUSTOMER_ID)).thenReturn(List.of("price_a", "price_b"));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(userRepository).setAutosyncSlots(USER_ID, 2);
+        }
+
+        /** Endet eins von zwei Abos, bleibt ein Slot. */
+        @Test
+        void deletedOneOfTwo_setsOneSlot() {
+            installMockRestTemplate();
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(subscriptionLookup.activePriceIdsExcept(CUSTOMER_ID, "sub_deleted")).thenReturn(List.of("price_other"));
+            when(subscriptionLookup.activePriceIds(CUSTOMER_ID)).thenReturn(List.of("price_other"));
+
+            JsonObject data = JsonParser.parseString("""
+                    {"id": "sub_deleted", "customer": "%s"}
+                    """.formatted(CUSTOMER_ID)).getAsJsonObject();
+            stripeService.dispatch("customer.subscription.deleted", data);
+
+            verify(userRepository).setAutosyncSlots(USER_ID, 1);
+        }
+
+        /** Supporter-Abos schalten kein AutoSync frei und zählen deshalb nicht als Slot. */
+        @Test
+        void supporterSubscription_doesNotCountAsSlot() {
+            ReflectionTestUtils.setField(stripeService, "priceIdSupporterMonthly", "price_SUPPORTER_M");
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(subscriptionLookup.activePriceIds(CUSTOMER_ID)).thenReturn(List.of("price_a", "price_SUPPORTER_M"));
+
+            stripeService.dispatch("customer.subscription.updated",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L, "price_a"));
+
+            verify(userRepository).setAutosyncSlots(USER_ID, 1);
+        }
+
+        /** Ohne laufendes Abo bleibt der Standard von einem Slot, nie null. */
+        @Test
+        void noActiveSubscription_keepsOneSlot() {
+            installMockRestTemplate();
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+
+            JsonObject data = JsonParser.parseString("""
+                    {"id": "sub_deleted", "customer": "%s"}
+                    """.formatted(CUSTOMER_ID)).getAsJsonObject();
+            stripeService.dispatch("customer.subscription.deleted", data);
+
+            verify(userRepository).setAutosyncSlots(USER_ID, 1);
+        }
+
+        /** incomplete ändert weder Tarif noch Slots. */
+        @Test
+        void statusIncomplete_doesNotTouchSlots() {
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "incomplete", 1_800_000_000L));
+
+            verify(userRepository, never()).setAutosyncSlots(any(), anyInt());
+            verify(subscriptionLookup, never()).activePriceIds(anyString());
         }
     }
 }

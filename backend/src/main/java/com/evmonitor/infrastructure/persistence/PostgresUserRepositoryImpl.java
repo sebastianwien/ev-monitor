@@ -180,6 +180,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
 
     @Override
     @Transactional
+    public void setAutosyncSlots(UUID userId, int slots) {
+        jpaUserRepository.setAutosyncSlots(userId, Math.max(1, slots));
+    }
+
+    @Override
+    @Transactional
     public void markTrialUsed(UUID userId) {
         jpaUserRepository.markTrialUsed(userId);
     }
@@ -226,6 +232,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setCountry(domain.getCountry());
         entity.setSubscriptionPeriodEnd(domain.getSubscriptionPeriodEnd());
         entity.setAutosyncStartedAt(domain.getAutosyncStartedAt());
+        entity.setAutosyncSlots(domain.getAutosyncSlots());
         entity.setCreatedAt(domain.getCreatedAt());
         entity.setUpdatedAt(domain.getUpdatedAt());
         return entity;
@@ -262,6 +269,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 .country(entity.getCountry())
                 .subscriptionPeriodEnd(entity.getSubscriptionPeriodEnd())
                 .autosyncStartedAt(entity.getAutosyncStartedAt())
+                .autosyncSlots(entity.getAutosyncSlots())
                 .trialUsed(entity.isTrialUsed())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

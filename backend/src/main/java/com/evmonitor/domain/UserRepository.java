@@ -74,6 +74,9 @@ public interface UserRepository {
 
     void setSubscriptionPeriodEnd(UUID userId, Instant periodEnd);
 
+    /** AutoSync-Plätze (ein Abo je Fahrzeug), mindestens 1. */
+    void setAutosyncSlots(UUID userId, int slots);
+
     void markTrialUsed(UUID userId);
 
     /**

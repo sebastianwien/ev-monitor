@@ -22,6 +22,11 @@ public class StripeSubscriptionLookup {
      *
      * @throws StripeLookupException Stripe nicht erreichbar; der Webhook scheitert dann und Stripe wiederholt ihn
      */
+    /** Preis-IDs aller aktiven oder trialenden Abos des Kunden. */
+    public List<String> activePriceIds(String customerId) {
+        return activePriceIdsExcept(customerId, null);
+    }
+
     public List<String> activePriceIdsExcept(String customerId, @Nullable String excludedSubscriptionId) {
         SubscriptionListParams params = SubscriptionListParams.builder()
                 .setCustomer(customerId)

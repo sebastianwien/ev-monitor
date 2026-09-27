@@ -33,6 +33,8 @@ public class User {
     private final String country;
     private final Instant subscriptionPeriodEnd;
     private final Instant autosyncStartedAt;
+    /** Anzahl AutoSync-Plätze: ein Abo deckt ein Fahrzeug. Mindestens 1. */
+    private final int autosyncSlots;
     private final boolean trialUsed;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
@@ -44,7 +46,7 @@ public class User {
             boolean referralRewardGiven, String referralCode, UUID referredByUserId, String stripeCustomerId,
             String utmSource, String utmMedium, String utmCampaign, String referrerSource,
             String registrationLocale, String country, Instant subscriptionPeriodEnd, Instant autosyncStartedAt,
-            boolean trialUsed, LocalDateTime createdAt, LocalDateTime updatedAt) {
+            Integer autosyncSlots, boolean trialUsed, LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
             throw new IllegalArgumentException("User ID cannot be null");
         if (email == null || email.isBlank())
@@ -91,6 +93,7 @@ public class User {
         this.country = country;
         this.subscriptionPeriodEnd = subscriptionPeriodEnd;
         this.autosyncStartedAt = autosyncStartedAt;
+        this.autosyncSlots = autosyncSlots == null || autosyncSlots < 1 ? 1 : autosyncSlots;
         this.trialUsed = trialUsed;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;

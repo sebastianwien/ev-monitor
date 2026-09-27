@@ -285,6 +285,7 @@ public class StripeService {
                 findUserByCustomerId(customerId).ifPresent(u -> {
                     SubscriptionTier oldTier = u.getSubscriptionTier();
                     userRepository.setSubscriptionTier(u.getId(), newTier);
+                    userRepository.setAutosyncSlots(u.getId(), autosyncSlotCount(customerId));
                     if (periodEnd != null) {
                         userRepository.setSubscriptionPeriodEnd(u.getId(), periodEnd);
                     }
@@ -341,6 +342,7 @@ public class StripeService {
                 SubscriptionTier remaining = tierOfOtherActiveSubscriptions(customerId, subscriptionId(data));
                 findUserByCustomerId(customerId).ifPresent(u -> {
                     userRepository.setSubscriptionTier(u.getId(), remaining);
+                    userRepository.setAutosyncSlots(u.getId(), autosyncSlotCount(customerId));
                     if (remaining == SubscriptionTier.NONE) {
                         disconnectSmartcar(u.getId());
                         disableTeslaTelemetry(u.getId());
@@ -628,6 +630,18 @@ public class StripeService {
                 .map(this::tierFromPriceId)
                 .max(java.util.Comparator.comparingInt(StripeService::tierRank))
                 .orElse(SubscriptionTier.NONE);
+    }
+
+    /**
+     * AutoSync-Plätze = Anzahl laufender Abos mit AutoSync-Tarif (ein Abo je Fahrzeug), mindestens 1.
+     * Supporter zählt nicht. Stripe nicht erreichbar: Ausnahme, Webhook scheitert, Stripe wiederholt.
+     */
+    private int autosyncSlotCount(String customerId) {
+        long autosyncSubscriptions = subscriptionLookup.activePriceIds(customerId).stream()
+                .map(this::tierFromPriceId)
+                .filter(SubscriptionTier::grantsTelemetry)
+                .count();
+        return (int) Math.max(1, autosyncSubscriptions);
     }
 
     private static String subscriptionId(JsonObject subscriptionData) {

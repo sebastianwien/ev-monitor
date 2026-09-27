@@ -137,6 +137,10 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     void setSubscriptionPeriodEnd(@Param("userId") UUID userId, @Param("periodEnd") Instant periodEnd);
 
     @Modifying
+    @Query("UPDATE UserEntity u SET u.autosyncSlots = :slots WHERE u.id = :userId")
+    void setAutosyncSlots(@Param("userId") UUID userId, @Param("slots") int slots);
+
+    @Modifying
     @Query("UPDATE UserEntity u SET u.trialUsed = true WHERE u.id = :userId")
     void markTrialUsed(@Param("userId") UUID userId);
 
