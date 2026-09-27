@@ -1,7 +1,11 @@
 package com.evmonitor.application.tessie;
 
+import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.User;
+import com.evmonitor.domain.UserRepository;
+import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,8 +18,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,9 +43,6 @@ import static org.junit.jupiter.api.Assertions.*;
  *  - ownership check (foreign carId throws)
  *  - idempotent rerun (processed flag prevents double-insert)
  */
-@Disabled("Local: re-enable to verify Postgres-specific SQL against a real container. " +
-        "Skipped by default to match the project pattern (UserDeletionCascadeTest, LeaderboardQueryRepositoryTest) - " +
-        "Testcontainers' bundled docker-java is older than current Docker Desktop API and does not skip cleanly via disabledWithoutDocker.")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @ActiveProfiles("test")
@@ -61,7 +60,6 @@ class TessieProcessorServiceIT {
         registry.add("spring.flyway.enabled", () -> "true");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-        registry.add("spring.task.scheduling.pool.size", () -> "0");
     }
 
     @Autowired
@@ -70,36 +68,21 @@ class TessieProcessorServiceIT {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private CarRepository carRepository;
+
     private UUID userId;
     private UUID carId;
     private final String vin = "5YJ3E7EAXKF000001";
 
     @BeforeEach
     void setUp() {
-        long nano = System.nanoTime();
-        userId = UUID.randomUUID();
-        carId = UUID.randomUUID();
-        LocalDateTime now = LocalDateTime.now();
-
-        jdbc.update("""
-                INSERT INTO app_user (id, email, auth_provider, role, username,
-                    email_verified, is_seed_data, email_notifications_enabled,
-                    leaderboard_visible, is_premium, referral_reward_given, trial_used,
-                    country, registration_locale, created_at, updated_at)
-                VALUES (?, ?, 'LOCAL', 'USER', ?, true, false, false,
-                        false, false, false, false, 'DE', 'de', ?, ?)
-                """,
-                userId, "tessie-it-" + nano + "@example.com", "tessie-it-" + nano,
-                Timestamp.valueOf(now), Timestamp.valueOf(now));
-
-        jdbc.update("""
-                INSERT INTO car (id, user_id, model, manufacture_year, license_plate,
-                    battery_capacity_kwh, status, is_primary, image_public, is_business_car, has_heat_pump,
-                    created_at, updated_at)
-                VALUES (?, ?, 'MODEL_3', 2023, ?, 75.00, 'ACTIVE', true, false, false, false, ?, ?)
-                """,
-                carId, userId, "TST-" + (nano % 1000),
-                Timestamp.valueOf(now), Timestamp.valueOf(now));
+        User user = userRepository.save(TestDataBuilder.createTestUser("tessie-it-" + System.nanoTime() + "@example.com"));
+        userId = user.getId();
+        carId = carRepository.save(TestDataBuilder.createTestCar(userId, CarBrand.CarModel.MODEL_3, new BigDecimal("75.00"))).getId();
     }
 
     @Test
@@ -323,6 +306,33 @@ class TessieProcessorServiceIT {
                 "SELECT COUNT(*) FROM ev_log WHERE car_id = ? AND data_source = 'TESSIE'",
                 Long.class, carId);
         assertEquals(1L, count);
+    }
+
+    /**
+     * Eine gelöschte Tessie-Ladung zur selben Startzeit blockiert die Anlage wie vor V190 (damals zählte die
+     * Unique-Constraint Tombstones mit): vom Nutzer gelöscht heißt gelöscht.
+     */
+    @Test
+    void processForCar_deletedChargeAtSameStart_blocksInsert() {
+        long t = 1700800000L;
+        String charge = """
+                {"id":%d,"started_at":%d,"ended_at":%d,"energy_added":12.0,
+                 "starting_battery":40,"ending_battery":58,"odometer":64000,
+                 "latitude":52.50,"longitude":13.40,
+                 "is_supercharger":false,"is_fast_charger":false,"charger_power":11.0}
+                """;
+        insertCharge(40L, charge.formatted(40, t, t + 1800));
+        processor.processForCar(userId, vin, carId);
+        jdbc.update("UPDATE ev_log SET deleted_at = NOW() WHERE car_id = ? AND data_source = 'TESSIE'", carId);
+        insertCharge(41L, charge.formatted(41, t, t + 1800));
+
+        var result = processor.processForCar(userId, vin, carId);
+
+        assertEquals(0, result.evLogsCreated());
+        Long active = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM ev_log WHERE car_id = ? AND data_source = 'TESSIE' AND deleted_at IS NULL",
+                Long.class, carId);
+        assertEquals(0L, active);
     }
 
     private void insertCharge(long tessieId, String json) {

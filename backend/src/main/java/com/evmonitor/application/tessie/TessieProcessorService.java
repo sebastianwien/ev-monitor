@@ -111,6 +111,8 @@ public class TessieProcessorService {
 
         if (merged.isEmpty()) return 0;
 
+        // Gelöschte Ladungen blockieren wie vor V190 (NOT EXISTS sieht Tombstones); der Unique-Index gilt
+        // seit V190 nur für aktive Zeilen, ON CONFLICT braucht deshalb dessen Prädikat.
         String insertSql = """
                 INSERT INTO ev_log (
                     id, car_id,
@@ -120,7 +122,8 @@ public class TessieProcessorService {
                     geohash, is_public_charging, charging_type,
                     data_source, measurement_type, include_in_statistics,
                     created_at, updated_at
-                ) VALUES (
+                )
+                SELECT
                     ?::uuid, ?::uuid,
                     ?, ?,
                     ?, ?,
@@ -128,8 +131,10 @@ public class TessieProcessorService {
                     ?, ?, ?,
                     'TESSIE', 'AT_VEHICLE', true,
                     NOW(), NOW()
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM ev_log WHERE car_id = ?::uuid AND logged_at = ? AND data_source = 'TESSIE'
                 )
-                ON CONFLICT (car_id, logged_at, data_source) DO NOTHING
+                ON CONFLICT (car_id, logged_at, data_source) WHERE deleted_at IS NULL DO NOTHING
                 """;
 
         List<Object[]> batch = new ArrayList<>(merged.size());
@@ -155,7 +160,9 @@ public class TessieProcessorService {
                     c.socEnd(),
                     geohash,
                     isPublic,
-                    isDc ? "DC" : "AC"
+                    isDc ? "DC" : "AC",
+                    carId.toString(),
+                    loggedAt
             });
             // Tessie liefert keine Aussentemperatur zur Ladung - die holt die Wetter-Anreicherung nach.
             pendingEnrichment.add(EvLogSavedEvent.of(logId, geohash, loggedAt.toLocalDateTime(), durationMinutes, null));
@@ -167,7 +174,7 @@ public class TessieProcessorService {
         int[] result = jdbc.getJdbcTemplate().batchUpdate(insertSql, batch);
         int inserted = 0;
         for (int i = 0; i < result.length; i++) {
-            if (result[i] <= 0) continue;   // ON CONFLICT DO NOTHING - Zeile existierte schon
+            if (result[i] <= 0) continue;   // Zeile existierte schon (aktiv oder gelöscht)
             inserted++;
             eventPublisher.publishEvent(pendingEnrichment.get(i));
         }
