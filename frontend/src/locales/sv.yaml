@@ -1801,13 +1801,11 @@ imports:
   autosync_state_locked: Låst
   autosync_state_unavailable: N/T
   autosync_footer_label: Notera
-  autosync_footer_hint: "Varje AutoSync-prenumeration täcker ett fordon. Du kan flytta anslutningen till ett annat fordon när som helst."
+  autosync_footer_hint: Endast ett fordon kan synkroniseras åt gången. Du kan byta när som helst.
   autosync_disconnect: Koppla från
   autosync_confirm_disconnect: Säker?
-  autosync_locked_title: "Din AutoSync täcker {count} fordon | Din AutoSync täcker {count} fordon"
-  autosync_locked_desc: "För ytterligare ett fordon behöver du en AutoSync-prenumeration till. Eller koppla först från <strong>{activeCars}</strong> och anslut det här fordonet i stället."
-  autosync_locked_cta: "Lägg till AutoSync-prenumeration"
-  smartcar_error_slots_exhausted: "Alla AutoSync-platser är upptagna. Varje AutoSync-prenumeration täcker ett fordon: lägg till en prenumeration eller koppla först från ett annat fordon."
+  autosync_locked_title: AutoSync körs redan för ett annat fordon
+  autosync_locked_desc: Koppla från <strong>{activeCar}</strong> först, så kan du sätta upp AutoSync för det här fordonet.
   autosync_unavailable_desc: Det finns ingen automatisk integration för {brand} ännu.
   autosync_unavailable_alternatives: Du kan importera laddningssessioner manuellt eller via Public API.
   autosync_tesla_teaser_title: Registrera din Teslas laddningar automatiskt

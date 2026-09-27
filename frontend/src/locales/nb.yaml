@@ -1801,13 +1801,11 @@ imports:
   autosync_state_locked: Låst
   autosync_state_unavailable: N/T
   autosync_footer_label: Merknad
-  autosync_footer_hint: "Hvert AutoSync-abonnement dekker ett kjøretøy. Du kan flytte tilkoblingen til et annet kjøretøy når som helst."
+  autosync_footer_hint: Kun ett kjøretøy kan synkronisere om gangen. Du kan bytte når som helst.
   autosync_disconnect: Koble fra
   autosync_confirm_disconnect: Sikker?
-  autosync_locked_title: "Din AutoSync dekker {count} kjøretøy | Din AutoSync dekker {count} kjøretøy"
-  autosync_locked_desc: "For enda et kjøretøy trenger du ett AutoSync-abonnement til. Eller koble først fra <strong>{activeCars}</strong> og koble til dette kjøretøyet i stedet."
-  autosync_locked_cta: "Legg til AutoSync-abonnement"
-  smartcar_error_slots_exhausted: "Alle AutoSync-plasser er i bruk. Hvert AutoSync-abonnement dekker ett kjøretøy: legg til et abonnement eller koble først fra et annet kjøretøy."
+  autosync_locked_title: AutoSync kjører allerede for et annet kjøretøy
+  autosync_locked_desc: Koble fra <strong>{activeCar}</strong> først, så kan du sette opp AutoSync for dette kjøretøyet.
   autosync_unavailable_desc: Det finnes ingen automatisk integrasjon for {brand} ennå.
   autosync_unavailable_alternatives: Du kan importere ladeøkter manuelt eller via Public API.
   autosync_tesla_teaser_title: Registrer Teslaens ladeøkter automatisk
