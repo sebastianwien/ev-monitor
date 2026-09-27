@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Leitplanke D15: Importe schreiben {@code ev_log} und {@code ev_trip} nur über das
  * {@code IngestGateway}, und im Gateway entscheidet die Policy-Tabelle, nicht ein Vergleich auf
  * die Quelle. Bearbeitungen bestehender Zeilen tragen den Marker {@value #BYPASS_MARKER}; offene
- * Importe stehen benannt in {@code PENDING} und schrumpfen je Release (R2g, R2h).
+ * Importe stehen benannt in {@code PENDING} und schrumpfen je Release (R2h).
  */
 class IngestGuardTest {
 
@@ -46,7 +46,6 @@ class IngestGuardTest {
 
     /** Importe, die noch nicht durchs Gateway laufen. Jede Zeile hier ist offene Arbeit. */
     private static final Map<String, String> PENDING = Map.of(
-            "application/publicapi/PublicApiTripService.java", "R2g",
             "application/tessie/TessieProcessorService.java", "R2h");
 
     private static final Pattern SOURCE_COMPARISON = Pattern.compile(

@@ -5,6 +5,8 @@ import com.evmonitor.application.ingest.ChargingEntry;
 import com.evmonitor.application.ingest.IngestCommand;
 import com.evmonitor.application.ingest.IngestDoor;
 import com.evmonitor.application.ingest.IngestGateway;
+import com.evmonitor.application.ingest.TripEntry;
+import com.evmonitor.application.ingest.TripUploadCommand;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
@@ -93,7 +95,7 @@ class ImportEventPostgresIT {
         assertThat(repository.findAll()).isEmpty();
     }
 
-    /** Fahrt für ein unbekanntes Auto: REJECTED mit car_id NULL, sonst scheiterte die Zeile am Fremdschlüssel. */
+    /** Fahrt für ein unbekanntes Auto (Push und Upload): REJECTED mit car_id NULL, sonst scheiterte die Zeile am Fremdschlüssel. */
     @Test
     void tripForUnknownCar_isLoggedRejected_withoutCarId() {
         User user = userRepository.save(TestDataBuilder.createTestUser("event-pg-trip-" + UUID.randomUUID().toString().substring(0, 8) + "@t.de"));
@@ -103,11 +105,15 @@ class ImportEventPostgresIT {
                     DataSource.TESLA_LIVE.name(), start, start.plusMinutes(30), null, null, null, null,
                     new BigDecimal("12.0"), null, null, null, null, null, null, null, null, null, null, null, null);
 
+            TripUploadCommand upload = new TripUploadCommand(user.getId(), UUID.randomUUID(), DataSource.API_UPLOAD,
+                    List.of(new TripEntry(start, start.plusMinutes(30), new BigDecimal("12.0"), null, null, null, null, null)));
+
             assertThatThrownBy(() -> gateway.ingestTrip(trip)).isInstanceOf(NotFoundException.class);
+            assertThatThrownBy(() -> gateway.ingestTrips(upload)).isInstanceOf(NotFoundException.class);
 
             assertThat(repository.findAll()).filteredOn(e -> user.getId().equals(e.getUserId()))
-                    .singleElement()
-                    .satisfies(e -> {
+                    .hasSize(2)
+                    .allSatisfy(e -> {
                         assertThat(e.getOutcome()).isEqualTo(ImportEventOutcome.REJECTED);
                         assertThat(e.getCarId()).isNull();
                     });

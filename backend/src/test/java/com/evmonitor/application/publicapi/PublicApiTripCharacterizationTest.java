@@ -1,11 +1,14 @@
 package com.evmonitor.application.publicapi;
 
+import com.evmonitor.application.ingest.event.ImportEventOutcome;
 import com.evmonitor.application.manualimport.ManualTripImportService;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.domain.User;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEvent;
 import com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,11 +21,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 /**
  * Charakterisierung der Fahrten-Uploads ({@link PublicApiTripService#createTrip}, {@link PublicApiTripService#createTrips}
  * und {@link ManualTripImportService#importData}) vor der Umstellung auf das IngestGateway (Herstellerarchitektur R2g).
  * Die Tests beschreiben das heutige Verhalten, nicht das gewünschte: wer eine Regel bewusst ändert, passt den Test mit an.
+ * Mit der Umstellung (R2g) bewusst geändert: Import-Protokoll je Upload.
  * HTTP-Status und einfache Validierungen decken {@code PublicApiTripIntegrationTest} und
  * {@code ManualTripImportControllerIntegrationTest} ab; Dedup auf echtem timestamptz {@code PublicApiTripDedupPostgresIT}.
  */
@@ -146,6 +151,18 @@ class PublicApiTripCharacterizationTest extends AbstractIntegrationTest {
         assertThat(tripRepository.findAllByCarIdAndDeletedAtIsNull(car.getId())).isEmpty();
     }
 
+    /** Einzel-Upload: der Besitz wird vor den Daten geprüft, ein fremdes Auto mit ungültigen Daten ist 403, nicht 400. */
+    @Test
+    void single_ownershipIsCheckedBeforeValidation() {
+        User stranger = createAndSaveUser("trip-char-stranger-" + System.nanoTime() + "@example.com");
+        PublicApiTripRequest invalid = trip("2025-06-01T09:00:00Z", "2025-06-01T08:00:00Z");
+
+        assertThatThrownBy(() -> tripService.createTrip(stranger.getId(), invalid))
+                .isInstanceOf(SecurityException.class);
+        assertThatThrownBy(() -> tripService.createTrip(user.getId(), trip(UUID.randomUUID(), "2025-06-01T09:00:00Z", END)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Fahrzeug nicht gefunden");
+    }
+
     /** Manueller Import: auch eine Datei aus lauter ungültigen Zeilen prüft den Besitz. */
     @Test
     void manualImport_allRowsInvalid_stillChecksOwnership() {
@@ -225,16 +242,51 @@ class PublicApiTripCharacterizationTest extends AbstractIntegrationTest {
         assertThat(coinLogRepository.findAllByUserId(user.getId())).isEmpty();
     }
 
-    /** Heute kein Import-Protokoll, weder Einzel-Upload noch Batch noch manueller Import. */
+    /** Je Upload eine Zeile Import-Protokoll (R2g, bewusst geändert): Einzel-Upload, Batch und manueller Import. */
     @Test
-    void writesNoImportEvent() {
+    void writesOneImportEventPerUpload() {
         tripService.createTrip(user.getId(), trip(START, END));
-        tripService.createTrips(user.getId(), car.getId(), List.of(trip("2025-06-02T08:00:00Z", "2025-06-02T09:00:00Z")));
+        tripService.createTrips(user.getId(), car.getId(), List.of(
+                trip(START, END),
+                trip("2025-06-02T08:00:00Z", "2025-06-02T09:00:00Z"),
+                trip("2025-06-03T08:00:00Z", "2025-06-03T09:00:00Z")));
         manualImport.importData(user.getId(), car.getId(), "csv",
-                CSV_HEADER + "\n2025-06-03T08:00:00Z,2025-06-03T09:00:00Z,10,,,,,");
+                CSV_HEADER + "\n2025-06-04T08:00:00Z,2025-06-04T09:00:00Z,10,,,,,");
 
-        assertThat(liveTrips()).hasSize(3);
-        assertThat(importEventRepository.findAll()).filteredOn(e -> user.getId().equals(e.getUserId())).isEmpty();
+        assertThat(liveTrips()).hasSize(4);
+        assertThat(importEvents())
+                .allSatisfy(e -> {
+                    assertThat(e.getDataSource()).isEqualTo(DataSource.API_UPLOAD.name());
+                    assertThat(e.getCarId()).isEqualTo(car.getId());
+                    assertThat(e.getOutcome()).isEqualTo(ImportEventOutcome.IMPORTED);
+                })
+                .extracting(ImportEvent::getTripsImported, ImportEvent::getTripsSkipped, ImportEvent::getSessionsImported)
+                .containsExactlyInAnyOrder(tuple(1, 0, 0), tuple(2, 1, 0), tuple(1, 0, 0));
+    }
+
+    /** Doppelter Einzel-Upload: im Protokoll "keine neuen Daten", der Nutzer bekommt weiter 400. */
+    @Test
+    void duplicateSingleUpload_isLoggedAsNoNewData() {
+        tripService.createTrip(user.getId(), trip(START, END));
+
+        assertThatThrownBy(() -> tripService.createTrip(user.getId(), trip(START, END)))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(importEvents()).extracting(ImportEvent::getOutcome)
+                .containsExactlyInAnyOrder(ImportEventOutcome.IMPORTED, ImportEventOutcome.NO_NEW_DATA);
+    }
+
+    /** Fremdes Auto: im Protokoll abgelehnt, beim Nutzer weiter 403. */
+    @Test
+    void foreignCar_isLoggedAsRejected() {
+        User stranger = createAndSaveUser("trip-char-stranger-" + System.nanoTime() + "@example.com");
+
+        assertThatThrownBy(() -> tripService.createTrips(stranger.getId(), car.getId(), List.of(trip(START, END))))
+                .isInstanceOf(SecurityException.class);
+
+        assertThat(importEventRepository.findAll()).filteredOn(e -> stranger.getId().equals(e.getUserId()))
+                .extracting(ImportEvent::getOutcome)
+                .containsExactly(ImportEventOutcome.REJECTED);
     }
 
     /** Die Strecke kommt nur aus dem Eintrag, nichts wird von der Fahrt davor übernommen. */
@@ -296,6 +348,10 @@ class PublicApiTripCharacterizationTest extends AbstractIntegrationTest {
 
     private static PublicApiTripRequest trip(UUID carId, String startedAt, String endedAt) {
         return new PublicApiTripRequest(carId, startedAt, endedAt, new BigDecimal("10"), null, null, null, null, null);
+    }
+
+    private List<ImportEvent> importEvents() {
+        return importEventRepository.findAll().stream().filter(e -> user.getId().equals(e.getUserId())).toList();
     }
 
     private List<EvTrip> liveTrips() {

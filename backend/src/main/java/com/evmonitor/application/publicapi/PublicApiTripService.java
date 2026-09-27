@@ -1,6 +1,12 @@
 package com.evmonitor.application.publicapi;
 
+import com.evmonitor.application.ingest.IngestGateway;
+import com.evmonitor.application.ingest.TripEntry;
+import com.evmonitor.application.ingest.TripUploadCommand;
+import com.evmonitor.application.ingest.TripUploadResult;
 import com.evmonitor.domain.*;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -9,15 +15,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -28,64 +34,61 @@ public class PublicApiTripService {
 
     private final EvTripRepository tripRepository;
     private final CarRepository carRepository;
+    private final IngestGateway ingestGateway;
 
-    @Transactional
+    /** Ohne eigene Transaktion: das Gateway committet, erst danach wird ein ungültiger oder doppelter Eintrag gemeldet. */
     public ApiTripResponse createTrip(UUID userId, PublicApiTripRequest request) {
-        Car car = loadOwnedCar(userId, request.carId());
-
-        EvTrip trip = buildTrip(userId, car, request);
-        if (tripRepository.existsByCarIdAndTripStartedAt(car.getId(), trip.getTripStartedAt())) {
+        TripEntry entry = null;
+        IllegalArgumentException invalid = null;
+        try {
+            entry = toEntry(request);
+        } catch (IllegalArgumentException e) {
+            invalid = e;
+        }
+        // Auch ein ungültiger Eintrag geht leer ans Gateway: der Besitz wird vor den Daten geprüft (403 vor 400).
+        TripUploadResult result = ingest(userId, request.carId(), entry == null ? List.of() : List.of(entry));
+        if (invalid != null) throw invalid;
+        if (result.created().isEmpty()) {
             throw new IllegalArgumentException("Für dieses Fahrzeug existiert bereits eine Fahrt mit diesem Startzeitpunkt");
         }
-
-        return ApiTripResponse.fromDomain(tripRepository.save(trip));
+        return ApiTripResponse.fromDomain(result.created().get(0));
     }
 
     /**
-     * Bulk upload for the manual import. Ownership is checked once; per entry an
-     * invalid row counts as error, an existing trip with the same start (any source,
-     * or an earlier row of the same batch) counts as skipped. No coins are awarded.
+     * Bulk upload for the manual import. An invalid row counts as error; ownership and duplicate rules
+     * (same start on this car, any source, deleted trips and earlier rows included) live in the
+     * {@link IngestGateway}. No coins are awarded.
      */
-    @Transactional
     public ImportApiResult createTrips(UUID userId, UUID carId, List<PublicApiTripRequest> entries) {
-        Car car = loadOwnedCar(userId, carId);
-
-        int imported = 0, skipped = 0, errors = 0;
-        Set<OffsetDateTime> seenStarts = new HashSet<>();
+        List<TripEntry> valid = new ArrayList<>();
+        int errors = 0;
         for (PublicApiTripRequest entry : entries) {
-            EvTrip trip;
             try {
-                trip = buildTrip(userId, car, entry);
+                valid.add(toEntry(entry));
             } catch (IllegalArgumentException e) {
                 errors++;
-                continue;
             }
-            OffsetDateTime startInstant = trip.getTripStartedAt().withOffsetSameInstant(ZoneOffset.UTC);
-            if (!seenStarts.add(startInstant)
-                    || tripRepository.existsByCarIdAndTripStartedAt(car.getId(), trip.getTripStartedAt())) {
-                skipped++;
-                continue;
-            }
-            tripRepository.save(trip);
-            imported++;
         }
+        TripUploadResult result = ingest(userId, carId, valid);
         log.info("Trip bulk import: user={} car={} rows={} imported={} skipped={} errors={}",
-                userId, carId, entries.size(), imported, skipped, errors);
-        return ImportApiResult.withoutIds(imported, skipped, errors);
+                userId, carId, entries.size(), result.imported(), result.skipped(), errors);
+        return ImportApiResult.withoutIds(result.imported(), result.skipped(), errors);
     }
 
-    private Car loadOwnedCar(UUID userId, UUID carId) {
+    /** Übersetzt die Gateway-Fehler in die bisherigen Antworten: unbekannt 400, fremd 403. */
+    private TripUploadResult ingest(UUID userId, UUID carId, List<TripEntry> entries) {
         if (carId == null) throw new IllegalArgumentException("car_id darf nicht leer sein");
-        Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new IllegalArgumentException("Fahrzeug nicht gefunden"));
-        if (!car.isOwnedBy(userId)) {
+        try {
+            return ingestGateway.ingestTrips(new TripUploadCommand(userId, carId, DataSource.API_UPLOAD, entries));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Fahrzeug nicht gefunden");
+        } catch (ForbiddenException e) {
             throw new SecurityException("Dieses Fahrzeug gehört dir nicht");
         }
-        return car;
     }
 
-    /** Validates and maps one request to an unsaved trip. Throws IllegalArgumentException on invalid data. */
-    private EvTrip buildTrip(UUID userId, Car car, PublicApiTripRequest request) {
+    /** Validates and maps one request to a gateway entry. Throws IllegalArgumentException on invalid data. */
+    private TripEntry toEntry(PublicApiTripRequest request) {
         OffsetDateTime start = parseTimestamp(request.startedAt(), "started_at");
         OffsetDateTime end = parseTimestamp(request.endedAt(), "ended_at");
         if (!start.isBefore(end)) {
@@ -100,24 +103,8 @@ public class PublicApiTripService {
         if (request.routeType() != null && !ALLOWED_ROUTE_TYPES.contains(request.routeType())) {
             throw new IllegalArgumentException("route_type muss CITY, COMBINED oder HIGHWAY sein");
         }
-
-        return EvTrip.builder()
-                .carId(car.getId())
-                .userId(userId)
-                .dataSource(EvTrip.DATA_SOURCE_API_UPLOAD)
-                .tripStartedAt(start)
-                .tripEndedAt(end)
-                .distanceKm(distanceKm)
-                .odometerStartKm(request.odometerStartKm())
-                .odometerEndKm(request.odometerEndKm())
-                .socStart(request.socStart())
-                .socEnd(request.socEnd())
-                .routeType(request.routeType())
-                .estimatedConsumedKwh(calculateEstimatedConsumedKwh(
-                        request.socStart(), request.socEnd(), car))
-                .status("COMPLETED")
-                .userCreated(true)
-                .build();
+        return new TripEntry(start, end, distanceKm, request.odometerStartKm(), request.odometerEndKm(),
+                request.socStart(), request.socEnd(), request.routeType());
     }
 
     /**
@@ -211,13 +198,11 @@ public class PublicApiTripService {
         trip.setUserEditedAt(OffsetDateTime.now());
 
         if (patch.socStart() != null || patch.socEnd() != null) {
-            Car car = carRepository.findById(trip.getCarId()).orElse(null);
-            if (car != null) {
-                trip.setEstimatedConsumedKwh(calculateEstimatedConsumedKwh(
-                        trip.getSocStart(), trip.getSocEnd(), car));
-            }
+            carRepository.findById(trip.getCarId()).ifPresent(car -> trip.setEstimatedConsumedKwh(
+                    EvTrip.estimateConsumedKwh(trip.getSocStart(), trip.getSocEnd(), () -> Optional.of(car))));
         }
 
+        // ingest-bypass: PATCH einer bestehenden Fahrt
         return ApiTripResponse.fromDomain(tripRepository.save(trip));
     }
 
@@ -230,6 +215,7 @@ public class PublicApiTripService {
             throw new SecurityException("Kein Zugriff auf diesen Trip");
         }
         trip.setDeletedAt(OffsetDateTime.now());
+        // ingest-bypass: löscht eine bestehende Fahrt (Soft-Delete)
         tripRepository.save(trip);
     }
 
@@ -252,16 +238,5 @@ public class PublicApiTripService {
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("Ungültiges Datumsformat für " + fieldName + ". Erwartet: ISO 8601 mit Timezone-Offset");
         }
-    }
-
-    private BigDecimal calculateEstimatedConsumedKwh(BigDecimal socStart, BigDecimal socEnd, Car car) {
-        if (socStart == null || socEnd == null) return null;
-        BigDecimal delta = socStart.subtract(socEnd);
-        if (delta.compareTo(BigDecimal.ZERO) <= 0) return null;
-        BigDecimal capacity = car.getEffectiveBatteryCapacityKwh();
-        if (capacity == null) return null;
-        return delta.divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP)
-                .multiply(capacity)
-                .setScale(2, RoundingMode.HALF_UP);
     }
 }

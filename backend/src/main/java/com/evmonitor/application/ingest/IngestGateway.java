@@ -26,6 +26,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -35,8 +36,10 @@ import java.util.*;
  * legt an, bepreist, vergibt Watt und hängt Extras wie Ladekurven an.
  *
  * <p>Die alten Einstiege ({@code PublicApiImportService.importSessions},
- * {@code EvLogService.createInternalLog}, {@code TripService.saveTrip}) parsen nur noch ihr Format
- * und rufen hierher. Unterschiede zwischen ihnen stehen in {@link IngestPolicies}, nicht im Code.
+ * {@code EvLogService.createInternalLog}, {@code TripService.saveTrip}, {@code PublicApiTripService})
+ * parsen nur noch ihr Format und rufen hierher. Unterschiede zwischen Ladungen stehen in
+ * {@link IngestPolicies}; Fahrten haben je Tür eine Methode: {@link #ingestTrip} für Push und Sync
+ * (Dedup über externalId), {@link #ingestTrips} für Uploads (Dedup über Auto und Start).
  *
  * <p>Jeder Aufruf hinterlässt eine Zeile Import-Protokoll ({@link ImportEventRecorder}), auch wenn er
  * abgelehnt wird oder scheitert. Rückgaben und Exceptions bleiben davon unberührt.
@@ -399,6 +402,66 @@ public class IngestGateway {
         }
 
         return new TripIngest(saved.getId(), true);
+    }
+
+    /**
+     * Legt hochgeladene Fahrten eines Autos an (Public API, CSV). Dedup je Auto und exaktem Start, gleich
+     * aus welcher Quelle und auch gegen gelöschte Fahrten; innerhalb des Uploads gewinnt der erste Eintrag,
+     * auch wenn ein späterer denselben Zeitpunkt in einem anderen Offset meldet. Die Fahrten gelten als vom
+     * Nutzer angelegt. Ein Aufruf ist eine Transaktion und eine Zeile Import-Protokoll; der Besitz wird
+     * auch bei leerer Liste geprüft.
+     *
+     * @throws NotFoundException  Auto unbekannt oder gelöscht
+     * @throws ForbiddenException Auto gehört nicht dem Nutzer
+     */
+    @Transactional
+    public TripUploadResult ingestTrips(TripUploadCommand command) {
+        long started = System.nanoTime();
+        try {
+            TripUploadResult result = ingestTripEntries(command);
+            importEvents.record(ImportEvent.of(command.dataSource(), command.userId(), command.carId())
+                    .outcome(ImportEventOutcome.of(result.imported(), 0))
+                    .tripsImported(result.imported())
+                    .tripsSkipped(result.skipped())
+                    .durationMs(elapsedMs(started))
+                    .build());
+            return result;
+        } catch (RuntimeException e) {
+            UUID carId = e instanceof NotFoundException ? null : command.carId();
+            importEvents.record(rejectedOrFailed(ImportEvent.of(command.dataSource(), command.userId(), carId), e, started));
+            throw e;
+        }
+    }
+
+    private TripUploadResult ingestTripEntries(TripUploadCommand command) {
+        Car car = requireOwnedCar(command.carId(), command.userId());
+        int skipped = 0;
+        List<EvTrip> created = new ArrayList<>();
+        Set<Instant> uploadStarts = new HashSet<>();
+        for (TripEntry entry : command.entries()) {
+            if (!uploadStarts.add(entry.startedAt().toInstant())
+                    || tripRepository.existsByCarIdAndTripStartedAt(car.getId(), entry.startedAt())) {
+                skipped++;
+                continue;
+            }
+            created.add(tripRepository.save(EvTrip.builder()
+                    .carId(car.getId())
+                    .userId(command.userId())
+                    .dataSource(command.dataSource().name())
+                    .tripStartedAt(entry.startedAt())
+                    .tripEndedAt(entry.endedAt())
+                    .distanceKm(entry.distanceKm())
+                    .odometerStartKm(entry.odometerStartKm())
+                    .odometerEndKm(entry.odometerEndKm())
+                    .socStart(entry.socStart())
+                    .socEnd(entry.socEnd())
+                    .routeType(entry.routeType())
+                    .estimatedConsumedKwh(EvTrip.estimateConsumedKwh(entry.socStart(), entry.socEnd(), () -> Optional.of(car)))
+                    .status("COMPLETED")
+                    .userCreated(true)
+                    .build()));
+        }
+        return new TripUploadResult(created.size(), skipped, List.copyOf(created));
     }
 
     /** Fahrten melden ihre Quelle als Text; eine unbekannte wird trotzdem protokolliert. */

@@ -14,8 +14,8 @@ import java.util.UUID;
 
 /**
  * Manual CSV/JSON upload of driving trips. Parses the raw text into trip requests
- * and hands them to {@link PublicApiTripService#createTrips} which owns validation,
- * ownership and duplicate rules.
+ * and hands them to {@link PublicApiTripService#createTrips}, which validates them; ownership
+ * and duplicate rules live in the IngestGateway.
  *
  * Columns (snake_case, same as the public API):
  *   started_at, ended_at, distance_km, odometer_start_km, odometer_end_km,
