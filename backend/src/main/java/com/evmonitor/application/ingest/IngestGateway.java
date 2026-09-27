@@ -300,7 +300,7 @@ public class IngestGateway {
         long started = System.nanoTime();
         try {
             TripIngest ingest = ingestTripOnce(req);
-            importEvents.record(tripEvent(req)
+            importEvents.record(tripEvent(req, req.carId())
                     .outcome(ingest.created() ? ImportEventOutcome.IMPORTED : ImportEventOutcome.NO_NEW_DATA)
                     .tripsImported(ingest.created() ? 1 : 0)
                     .tripsSkipped(ingest.created() ? 0 : 1)
@@ -308,7 +308,9 @@ public class IngestGateway {
                     .build());
             return ingest;
         } catch (RuntimeException e) {
-            importEvents.record(rejectedOrFailed(tripEvent(req), e, started));
+            // Unbekanntes Auto: car_id bleibt leer, sonst scheitert das Protokoll am Fremdschlüssel.
+            UUID carId = e instanceof NotFoundException ? null : req.carId();
+            importEvents.record(rejectedOrFailed(tripEvent(req, carId), e, started));
             throw e;
         }
     }
@@ -400,11 +402,11 @@ public class IngestGateway {
     }
 
     /** Fahrten melden ihre Quelle als Text; eine unbekannte wird trotzdem protokolliert. */
-    private static ImportEvent.ImportEventBuilder tripEvent(InternalTripRequest req) {
+    private static ImportEvent.ImportEventBuilder tripEvent(InternalTripRequest req, UUID carId) {
         try {
-            return ImportEvent.of(DataSource.valueOf(req.dataSource()), req.userId(), req.carId());
+            return ImportEvent.of(DataSource.valueOf(req.dataSource()), req.userId(), carId);
         } catch (IllegalArgumentException | NullPointerException e) {
-            return ImportEvent.ofUnknownSource(req.dataSource(), req.userId(), req.carId());
+            return ImportEvent.ofUnknownSource(req.dataSource(), req.userId(), carId);
         }
     }
 

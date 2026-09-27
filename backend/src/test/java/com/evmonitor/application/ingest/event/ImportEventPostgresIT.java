@@ -1,5 +1,6 @@
 package com.evmonitor.application.ingest.event;
 
+import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.application.ingest.ChargingEntry;
 import com.evmonitor.application.ingest.IngestCommand;
 import com.evmonitor.application.ingest.IngestDoor;
@@ -26,6 +27,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -88,5 +91,28 @@ class ImportEventPostgresIT {
 
         userRepository.delete(user);
         assertThat(repository.findAll()).isEmpty();
+    }
+
+    /** Fahrt für ein unbekanntes Auto: REJECTED mit car_id NULL, sonst scheiterte die Zeile am Fremdschlüssel. */
+    @Test
+    void tripForUnknownCar_isLoggedRejected_withoutCarId() {
+        User user = userRepository.save(TestDataBuilder.createTestUser("event-pg-trip-" + UUID.randomUUID().toString().substring(0, 8) + "@t.de"));
+        try {
+            OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).withNano(0);
+            InternalTripRequest trip = new InternalTripRequest(UUID.randomUUID(), UUID.randomUUID(), user.getId(),
+                    DataSource.TESLA_LIVE.name(), start, start.plusMinutes(30), null, null, null, null,
+                    new BigDecimal("12.0"), null, null, null, null, null, null, null, null, null, null, null, null);
+
+            assertThatThrownBy(() -> gateway.ingestTrip(trip)).isInstanceOf(NotFoundException.class);
+
+            assertThat(repository.findAll()).filteredOn(e -> user.getId().equals(e.getUserId()))
+                    .singleElement()
+                    .satisfies(e -> {
+                        assertThat(e.getOutcome()).isEqualTo(ImportEventOutcome.REJECTED);
+                        assertThat(e.getCarId()).isNull();
+                    });
+        } finally {
+            userRepository.delete(user);
+        }
     }
 }
