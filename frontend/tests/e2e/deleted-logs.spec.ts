@@ -57,10 +57,10 @@ test.describe('Gelöschte Ladevorgänge', () => {
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
   });
 
-  test('Zeile zeigt die Anzahl, Wiederherstellen und endgültig Entfernen leeren den Papierkorb', async ({ page }) => {
+  test('Sheet lädt beim Öffnen, Wiederherstellen und endgültig Entfernen leeren den Papierkorb', async ({ page }) => {
     await page.goto('/logs');
     const row = page.locator('[data-testid="deleted-logs-row"]');
-    await expect(row).toContainText('2 gelöschte Ladevorgänge', { timeout: 10_000 });
+    await expect(row).toContainText('Gelöschte Ladevorgänge', { timeout: 10_000 });
 
     await row.click();
     const sheet = page.locator('[data-testid="deleted-logs-sheet"]');

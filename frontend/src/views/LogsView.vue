@@ -77,7 +77,6 @@ import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import DeletedLogsSheet from '../components/dashboard/DeletedLogsSheet.vue'
 import { useDeletedLogs } from '../composables/useDeletedLogs'
-import { useLogUndo } from '../composables/useLogUndo'
 import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
@@ -135,11 +134,13 @@ const {
 } = useCarContext()
 const wattForAllPriceless = computed(() => wattPossiblePerLogMax(coinStore.catalog) * pricelessCount.value)
 
-// -- Papierkorb: Zeile am Listenende, nur wenn es gelöschte Ladevorgänge gibt --
+// -- Papierkorb: Liste erst laden, wenn der Nutzer das Sheet öffnet --
 const deletedLogs = useDeletedLogs(selectedCarId)
-const { trashVersion } = useLogUndo()
 const showDeletedSheet = ref(false)
-watch([selectedCarId, trashVersion], () => deletedLogs.load(), { immediate: true })
+function openDeletedSheet() {
+  showDeletedSheet.value = true
+  deletedLogs.load()
+}
 
 const deletingTripId = ref<string | null>(null)
 let _deleteTimer: ReturnType<typeof setTimeout> | null = null
@@ -3317,13 +3318,13 @@ function toggleAllCharges() {
             <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
           </div>
 
-          <!-- Papierkorb: unaufdringlich, nur sichtbar wenn es gelöschte Ladevorgänge gibt -->
-          <button v-if="deletedLogs.logs.value.length > 0" type="button" data-testid="deleted-logs-row"
-            @click="showDeletedSheet = true"
+          <!-- Papierkorb: unaufdringlicher Einstieg, die Liste lädt erst beim Öffnen -->
+          <button type="button" data-testid="deleted-logs-row"
+            @click="openDeletedSheet"
             class="mt-4 w-full min-h-11 flex items-center gap-3 px-3 py-2 rounded-sm text-left text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400">
             <TrashIcon class="w-5 h-5 flex-shrink-0 opacity-70" aria-hidden="true" />
             <span class="min-w-0">
-              <span class="block text-sm font-medium">{{ t('logs.trash.row', deletedLogs.logs.value.length) }}</span>
+              <span class="block text-sm font-medium">{{ t('logs.trash.row') }}</span>
               <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('logs.trash.hint') }}</span>
             </span>
           </button>
@@ -3344,6 +3345,7 @@ function toggleAllCharges() {
     v-if="showDeletedSheet"
     :logs="deletedLogs.logs.value"
     :busy-id="deletedLogs.busyId.value"
+    :loading="deletedLogs.loading.value"
     :failed="deletedLogs.failed.value"
     :format-date="formatLogDate"
     @restore="deletedLogs.restore"

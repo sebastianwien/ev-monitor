@@ -602,7 +602,8 @@ auth:
 
 logs:
   trash:
-    row: "1 deleted charging session | {count} deleted charging sessions"
+    row: "Deleted charging sessions"
+    loading: "Loading deleted charging sessions"
     hint: "Won't be imported again. Tap to restore."
     title: "Deleted charging sessions"
     intro: "We remember deleted charging sessions so syncs and uploads don't create them again. You can restore them or remove them permanently."

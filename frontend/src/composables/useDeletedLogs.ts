@@ -14,20 +14,25 @@ export interface DeletedLog {
 /**
  * Papierkorb eines Autos: gelöschte Ladevorgänge wiederherstellen oder endgültig entfernen.
  * Endgültig entfernt heißt: ein späterer Sync oder Upload darf den Vorgang wieder anlegen.
+ * Geladen wird erst beim Öffnen, nicht mit der Ladeliste.
  */
 export function useDeletedLogs(carId: Ref<string | null>) {
   const logs = ref<DeletedLog[]>([])
   /** Letzte fehlgeschlagene Aktion je Eintrag, damit die Zeile den passenden Text zeigt. */
   const failed = ref(new Map<string, 'restore' | 'purge'>())
   const busyId = ref<string | null>(null)
+  const loading = ref(false)
 
   async function load() {
     if (!carId.value) { logs.value = []; return }
+    loading.value = true
     try {
       const res = await api.get('/logs/deleted', { params: { carId: carId.value } })
       logs.value = res.data
     } catch {
       logs.value = []
+    } finally {
+      loading.value = false
     }
   }
 
@@ -65,5 +70,5 @@ export function useDeletedLogs(carId: Ref<string | null>) {
     }
   }
 
-  return { logs, failed, busyId, load, restore, purge }
+  return { logs, failed, busyId, loading, load, restore, purge }
 }

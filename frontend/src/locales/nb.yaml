@@ -562,7 +562,8 @@ auth:
     error_generic: Det oppstod en feil. Prøv på nytt.
 logs:
   trash:
-    row: "1 slettet ladesesjon | {count} slettede ladesesjoner"
+    row: "Slettede ladesesjoner"
+    loading: "Laster slettede ladesesjoner"
     hint: "Blir ikke importert på nytt. Trykk for å gjenopprette."
     title: "Slettede ladesesjoner"
     intro: "Vi husker slettede ladesesjoner slik at synkronisering og opplasting ikke oppretter dem på nytt. Du kan gjenopprette dem eller fjerne dem permanent."

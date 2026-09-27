@@ -602,7 +602,8 @@ auth:
 
 logs:
   trash:
-    row: "1 gelöschter Ladevorgang | {count} gelöschte Ladevorgänge"
+    row: "Gelöschte Ladevorgänge"
+    loading: "Lade gelöschte Ladevorgänge"
     hint: "Werden nicht erneut importiert. Tippe zum Wiederherstellen."
     title: "Gelöschte Ladevorgänge"
     intro: "Gelöschte Ladevorgänge merken wir uns, damit Syncs und Uploads sie nicht erneut anlegen. Du kannst sie wiederherstellen oder endgültig entfernen."

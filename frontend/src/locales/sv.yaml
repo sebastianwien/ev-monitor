@@ -562,7 +562,8 @@ auth:
     error_generic: Ett fel har uppstått. Försök igen.
 logs:
   trash:
-    row: "1 raderad laddningssession | {count} raderade laddningssessioner"
+    row: "Raderade laddningssessioner"
+    loading: "Laddar raderade laddningssessioner"
     hint: "Importeras inte igen. Tryck för att återställa."
     title: "Raderade laddningssessioner"
     intro: "Vi kommer ihåg raderade laddningssessioner så att synkningar och uppladdningar inte skapar dem igen. Du kan återställa dem eller ta bort dem permanent."

@@ -27,6 +27,18 @@ describe('useDeletedLogs', () => {
     expect(logs.value.map(l => l.id)).toEqual(['a', 'b'])
   })
 
+  it('zeigt den Ladezustand, bis die Liste da ist', async () => {
+    let resolve!: (v: unknown) => void
+    vi.mocked(api.get).mockReturnValueOnce(new Promise(r => { resolve = r }) as never)
+    const { loading, load } = useDeletedLogs(ref('car-1'))
+    const done = load()
+
+    expect(loading.value).toBe(true)
+    resolve({ data: [a] })
+    await done
+    expect(loading.value).toBe(false)
+  })
+
   it('ohne Auto kein Request', async () => {
     const { logs, load } = useDeletedLogs(ref(null))
     await load()

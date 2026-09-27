@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, ArrowUturnLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ArrowUturnLeftIcon, TrashIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
 import type { DeletedLog } from '../../composables/useDeletedLogs'
 import { sourceInfo } from '../../utils/logSource'
@@ -9,6 +9,7 @@ import { sourceInfo } from '../../utils/logSource'
 defineProps<{
   logs: DeletedLog[]
   busyId: string | null
+  loading: boolean
   failed: Map<string, 'restore' | 'purge'>
   formatDate: (iso: string) => string
 }>()
@@ -47,7 +48,10 @@ defineExpose({ requestClose: () => sheet.value?.requestClose() })
     <p class="px-4 pb-3 text-sm text-gray-600 dark:text-gray-300">{{ t('logs.trash.intro') }}</p>
 
     <ul class="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
-      <li v-if="logs.length === 0" class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+      <li v-if="loading" class="py-6 flex justify-center" role="status" :aria-label="t('logs.trash.loading')">
+        <ArrowPathIcon class="w-5 h-5 animate-spin text-gray-400" aria-hidden="true" />
+      </li>
+      <li v-else-if="logs.length === 0" class="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
         {{ t('logs.trash.empty') }}
       </li>
       <li v-for="log in logs" :key="log.id" data-testid="deleted-log-row"
