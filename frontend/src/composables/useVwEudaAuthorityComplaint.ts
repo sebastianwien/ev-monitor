@@ -62,6 +62,7 @@ const POLL_OUTCOME: Record<string, [string, string]> = {
 const DELIVERY_OUTCOME: Record<string, [string, string]> = {
   IMPORTED: ['Importiert', 'Imported'],
   NO_CHARGING_DATA: ['Keine Ladedaten enthalten', 'No charging data'],
+  SHADOW: ['Abgelegt, nicht importiert (Smartcar aktiv)', 'Stored, not imported (Smartcar active)'],
   FAILED: ['Import fehlgeschlagen', 'Import failed'],
 }
 const label = (table: Record<string, [string, string]>, key: string | null, locale: string) =>

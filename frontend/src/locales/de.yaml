@@ -3429,6 +3429,7 @@ eu_data_act_sync:
     outcome_auth_failed: "Anmeldung abgelaufen"
     outcome_imported: "Importiert"
     outcome_no_charging_data: "Keine Ladedaten enthalten"
+    outcome_shadow: "Nur mitgeschrieben (Smartcar liefert)"
     outcome_failed: "Import fehlgeschlagen"
     outcome_pending: "Ausstehend"
     status_only_active: "Verbunden. Das Sync-Protokoll ist gerade nicht erreichbar."

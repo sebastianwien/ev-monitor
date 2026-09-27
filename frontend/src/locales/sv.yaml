@@ -3311,6 +3311,7 @@ eu_data_act_sync:
     outcome_auth_failed: "Inloggning utgången"
     outcome_imported: "Importerad"
     outcome_no_charging_data: "Inga laddningsdata"
+    outcome_shadow: "Endast sparad (Smartcar levererar)"
     outcome_failed: "Import misslyckades"
     outcome_pending: "Väntar"
     status_only_active: "Ansluten. Synkloggen är inte tillgänglig just nu."

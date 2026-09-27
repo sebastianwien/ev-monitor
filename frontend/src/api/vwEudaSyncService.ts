@@ -14,7 +14,7 @@ export interface VwEudaConnectionStatus {
 }
 
 /** Herstellerneutrales Sync-Protokoll: Datenanfragen, Lieferungen, Importe - auch fuer XPeng/Polestar nutzbar. */
-export type VwEudaDeliveryOutcome = 'IMPORTED' | 'NO_CHARGING_DATA' | 'FAILED'
+export type VwEudaDeliveryOutcome = 'IMPORTED' | 'NO_CHARGING_DATA' | 'SHADOW' | 'FAILED'
 export type VwEudaPollOutcome = 'OK' | 'NO_NEW_DATA' | 'PORTAL_ERROR' | 'IMPORT_ERROR' | 'AUTH_FAILED'
 
 export interface VwEudaIdentifier {
