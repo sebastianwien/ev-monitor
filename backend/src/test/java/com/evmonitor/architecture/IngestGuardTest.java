@@ -46,7 +46,6 @@ class IngestGuardTest {
 
     /** Importe, die noch nicht durchs Gateway laufen. Jede Zeile hier ist offene Arbeit. */
     private static final Map<String, String> PENDING = Map.of(
-            "application/spritmonitor/SpritMonitorImportService.java", "R2g",
             "application/publicapi/PublicApiTripService.java", "R2g",
             "application/tessie/TessieProcessorService.java", "R2h");
 

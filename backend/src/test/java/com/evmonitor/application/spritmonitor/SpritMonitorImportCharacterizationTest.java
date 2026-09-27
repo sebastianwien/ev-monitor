@@ -2,6 +2,7 @@ package com.evmonitor.application.spritmonitor;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService.CoinEvent;
+import com.evmonitor.application.ingest.event.ImportEventOutcome;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.ChargingType;
@@ -44,6 +45,7 @@ import static org.mockito.Mockito.when;
  * Charakterisierung des Spritmonitor-Imports ({@link SpritMonitorImportService#importFuelings}) vor
  * der Umstellung auf das IngestGateway (Herstellerarchitektur R2g). Die Tests beschreiben das
  * heutige Verhalten, nicht das gewünschte: wer eine Regel bewusst ändert, passt den Test mit an.
+ * Mit der Umstellung (R2g) bewusst geändert: Location-Pricing statt 0 EUR für fehlende Kosten, Import-Protokoll.
  * Einfache Pfade (Geohash, Nicht-kWh, Teilfehler, Rohdaten) deckt {@code SpritMonitorImportIntegrationTest} ab.
  */
 class SpritMonitorImportCharacterizationTest extends AbstractIntegrationTest {
@@ -51,6 +53,9 @@ class SpritMonitorImportCharacterizationTest extends AbstractIntegrationTest {
     private static final int KWH = 5;
     private static final int VEHICLE = 42;
     private static final String TOKEN = "token";
+    private static final SpritMonitorFuelingDTO.Position BERLIN =
+            new SpritMonitorFuelingDTO.Position(new BigDecimal("52.5200"), new BigDecimal("13.4050"));
+    private static final String BERLIN_GEOHASH = GeoHash.withCharacterPrecision(52.52, 13.405, 6).toBase32();
 
     @MockitoBean
     private SpritMonitorClient client;
@@ -183,36 +188,59 @@ class SpritMonitorImportCharacterizationTest extends AbstractIntegrationTest {
     }
 
     /**
-     * Kein Location-Pricing: fehlende Kosten werden als 0 gespeichert (nicht NULL), und die Ladekarte
-     * eines früheren Eintrags am selben Ort wird nicht übernommen.
+     * Location-Pricing (R2g, bewusst geändert): fehlt der Preis in Spritmonitor, bleiben die Kosten leer
+     * und werden vom letzten bezahlten Eintrag am selben Ort übernommen, samt Ladekarte.
      */
     @Test
-    void noLocationPricing_missingCostIsZero_cardAtSameGeohashNotAttached() {
-        BigDecimal lat = new BigDecimal("52.5200");
-        BigDecimal lon = new BigDecimal("13.4050");
-        String geohash = GeoHash.withCharacterPrecision(lat.doubleValue(), lon.doubleValue(), 6).toBase32();
-        evLogRepository.save(EvLog.createNewWithSource(car.getId(), new BigDecimal("30"), new BigDecimal("9.00"), 60,
-                        geohash, null, null, null, at("10.01.2024", 0), DataSource.USER_LOGGED, ChargingType.AC, null)
-                .toBuilder().chargingProviderId(UUID.randomUUID()).pricePerKwh(new BigDecimal("0.30")).build());
+    void locationPricing_missingCostIsPricedFromSameGeohash_withCard() {
+        UUID card = UUID.randomUUID();
+        savePricedUserLogAt(BERLIN_GEOHASH, card);
 
-        importNow(new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("40"), KWH, new BigDecimal("1000"),
-                null, null, null, null, new SpritMonitorFuelingDTO.Position(lat, lon), null, null, "AC", null));
+        importNow(fuelingAt(BERLIN, null));
 
         EvLog imported = importedLog();
-        assertThat(imported.getGeohash()).isEqualTo(geohash);
+        assertThat(imported.getGeohash()).isEqualTo(BERLIN_GEOHASH);
+        assertThat(imported.getCostEur()).isEqualByComparingTo("12.00");
+        assertThat(imported.getPricePerKwh()).isEqualByComparingTo("0.30");
+        assertThat(imported.getChargingProviderId()).isEqualTo(card);
+    }
+
+    /** Ein in Spritmonitor ausdrücklich eingetragener Preis von 0 bleibt 0 (Gratis-Ladung). */
+    @Test
+    void locationPricing_explicitZeroCostIsKept() {
+        savePricedUserLogAt(BERLIN_GEOHASH, UUID.randomUUID());
+
+        importNow(fuelingAt(BERLIN, BigDecimal.ZERO));
+
+        EvLog imported = importedLog();
         assertThat(imported.getCostEur()).isEqualByComparingTo("0");
         assertThat(imported.getPricePerKwh()).isNull();
-        assertThat(imported.getChargingProviderId()).isNull();
+    }
+
+    /** Ohne Preis und ohne bekannten Ort bleiben die Kosten leer statt 0. */
+    @Test
+    void missingCostWithoutLocation_staysEmpty() {
+        importNow(new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("40"), KWH, new BigDecimal("1000"),
+                null, null, null, null, null, null, null, "AC", null));
+
+        assertThat(importedLog().getCostEur()).isNull();
     }
 
     // --- Protokoll und Ownership ---------------------------------------------------------------
 
-    /** Der Spritmonitor-Import schreibt kein Import-Protokoll. */
+    /** Je Import eine Zeile Import-Protokoll (R2g, bewusst geändert), wie bei allen Gateway-Quellen. */
     @Test
-    void writesNoImportEvent() {
-        importNow(fueling("15.01.2024", "40", 1000));
+    void writesImportEvent() {
+        importNow(fueling("15.01.2024", "40", 1000), fueling("16.01.2024", "30", 1200));
 
-        assertThat(importEventRepository.findAll()).noneMatch(e -> user.getId().equals(e.getUserId()));
+        assertThat(importEventRepository.findAll()).filteredOn(e -> user.getId().equals(e.getUserId()))
+                .singleElement()
+                .satisfies(e -> {
+                    assertThat(e.getDataSource()).isEqualTo(DataSource.SPRITMONITOR_IMPORT.name());
+                    assertThat(e.getOutcome()).isEqualTo(ImportEventOutcome.IMPORTED);
+                    assertThat(e.getSessionsImported()).isEqualTo(2);
+                    assertThat(e.getCarId()).isEqualTo(car.getId());
+                });
     }
 
     /** Fremdes oder unbekanntes Auto: IllegalArgumentException vor dem Abruf, der Controller antwortet 500. */
@@ -247,6 +275,18 @@ class SpritMonitorImportCharacterizationTest extends AbstractIntegrationTest {
     private static SpritMonitorFuelingDTO fueling(String date, String kwh, int odometer) {
         return new SpritMonitorFuelingDTO(date, new BigDecimal(kwh), KWH, new BigDecimal(odometer),
                 new BigDecimal("10.00"), 60, null, null, null, null, null, "AC", null);
+    }
+
+    private static SpritMonitorFuelingDTO fuelingAt(SpritMonitorFuelingDTO.Position position, BigDecimal cost) {
+        return new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("40"), KWH, new BigDecimal("1000"),
+                cost, null, null, null, position, null, null, "AC", null);
+    }
+
+    /** Bezahlte Heimladung am Ort: 30 kWh zu 0,30 EUR/kWh mit Ladekarte. */
+    private void savePricedUserLogAt(String geohash, UUID card) {
+        evLogRepository.save(EvLog.createNewWithSource(car.getId(), new BigDecimal("30"), new BigDecimal("9.00"), 60,
+                        geohash, null, null, null, at("10.01.2024", 0), DataSource.USER_LOGGED, ChargingType.AC, null)
+                .toBuilder().chargingProviderId(card).pricePerKwh(new BigDecimal("0.30")).build());
     }
 
     private static LocalDateTime at(String date, int minute) {
