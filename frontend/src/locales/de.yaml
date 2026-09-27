@@ -1547,7 +1547,7 @@ settings:
   tariff_moved_hint: "Karten anlegen und Tarife pflegen"
   tariff_active_since: "seit"
   tariff_private_label: "Privater Heimtarif"
-  tariff_private_hint: "Bepreist deine privaten Ladungen automatisch - auch importierte ohne Standort."
+  tariff_private_hint: "Bepreist deine Heimladungen mit Standort automatisch. Ladungen ohne Standort oder mit unbekanntem Ladeort bleiben offen."
   tariff_private_badge: "Heimtarif"
   tariff_private_ends_previous: "Dein bisheriger Heimtarif \"{card}\" endet dann am {date}."
   tariff_private_overlap: "Für diesen Zeitraum gibt es schon einen Heimtarif. Wähle ein späteres Startdatum oder beende den bisherigen zuerst."

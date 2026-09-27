@@ -1498,7 +1498,7 @@ settings:
   tariff_moved_hint: "Legg til kort og vedlikehold tariffer"
   tariff_active_since: siden
   tariff_private_label: Privat hjemmetariff
-  tariff_private_hint: Prissetter de private ladingene dine automatisk - også importerte uten sted.
+  tariff_private_hint: Prissetter hjemmeladingene dine med sted automatisk. Ladinger uten sted eller med ukjent ladested forblir åpne.
   tariff_private_badge: Hjemmetariff
   tariff_private_ends_previous: Den nåværende hjemmetariffen "{card}" avsluttes da {date}.
   tariff_private_overlap: Det finnes allerede en hjemmetariff for denne perioden. Velg en senere startdato eller avslutt den eksisterende først.

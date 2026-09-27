@@ -57,7 +57,7 @@ public record PublicApiSessionRequest(
             @Schema(hidden = true)
             @Size(max = 2000) @JsonProperty("raw_import_data") String rawImportData,
 
-            @Schema(description = "Whether this session was at a public charger (CPO). Set to `true` for any non-home charging. Affects geohash precision (7 chars instead of 5).")
+            @Schema(description = "Whether this session was at a public charger (CPO): `true` for any non-home charging, `false` for charging at home. Omit if unknown - only `false` lets the user's home tariff price the session. Affects geohash precision (7 chars instead of 6).")
             @JsonProperty("is_public_charging") Boolean isPublicCharging,
 
             @Schema(description = "CPO (Charge Point Operator) name. Use canonical names from `GET /api/v1/charging-providers`. Unknown values are accepted and stored as-is.")

@@ -118,6 +118,22 @@ class PublicApiImportCharacterizationTest extends AbstractIntegrationTest {
         assertThat(imported.getRouteType()).isNull();
     }
 
+    /**
+     * Öffentlich/daheim wird so gespeichert, wie die Quelle es sagt; ohne Angabe bleibt es unbekannt
+     * (V166). Nur ein ausdrückliches false zählt später als Heimladung für den Heimtarif.
+     */
+    @Test
+    void publicCharging_isStoredAsTheSourceStatesIt_missingStaysUnknown() {
+        var car = carOf("ch-public");
+
+        importBatch(car, DataSource.API_UPLOAD, entry("2026-09-10T08:00:00Z", null),
+                entry("2026-09-10T09:00:00Z", false), entry("2026-09-10T10:00:00Z", true));
+
+        assertThat(evLogRepository.findAllByCarId(car.carId()).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt)).map(EvLog::getPublicCharging).toList())
+                .containsExactly(null, false, true);
+    }
+
     private record CarRef(UUID userId, UUID carId) {}
 
     private CarRef carOf(String prefix) {
@@ -127,9 +143,13 @@ class PublicApiImportCharacterizationTest extends AbstractIntegrationTest {
     }
 
     private static PublicApiSessionRequest.SessionEntry entry(String date) {
+        return entry(date, false);
+    }
+
+    private static PublicApiSessionRequest.SessionEntry entry(String date, Boolean publicCharging) {
         return new PublicApiSessionRequest.SessionEntry(
                 date, 20.0, null, null, null, null, null, null,
-                null, null, null, null, null, null, false, null, null, null);
+                null, null, null, null, null, null, publicCharging, null, null, null);
     }
 
     private ImportApiResult importBatch(CarRef car, DataSource source, PublicApiSessionRequest.SessionEntry... entries) {

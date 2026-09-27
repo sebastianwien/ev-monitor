@@ -1498,7 +1498,7 @@ settings:
   tariff_moved_hint: "Lägg till kort och hantera tariffer"
   tariff_active_since: sedan
   tariff_private_label: Privat hemtariff
-  tariff_private_hint: Prissätter dina privata laddningar automatiskt - även importerade utan plats.
+  tariff_private_hint: Prissätter dina hemmaladdningar med plats automatiskt. Laddningar utan plats eller med okänd laddplats lämnas öppna.
   tariff_private_badge: Hemtariff
   tariff_private_ends_previous: Din nuvarande hemtariff "{card}" avslutas då {date}.
   tariff_private_overlap: Det finns redan en hemtariff för den här perioden. Välj ett senare startdatum eller avsluta den befintliga först.
