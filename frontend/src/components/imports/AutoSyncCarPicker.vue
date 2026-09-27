@@ -93,6 +93,21 @@ function tileStateFor(car: Car): AutoSyncTileState {
 
 const activeCarsLabel = computed(() => activeCars.value.map(carLabel).join(', '))
 
+/** Zweitkauf direkt in den Stripe-Checkout: /upgrade zeigt Abonnenten nur die Abo-Verwaltung. */
+const checkoutBusy = ref(false)
+const checkoutError = ref<string | null>(null)
+async function buyAnotherSubscription(plan: 'monthly' | 'yearly') {
+    checkoutBusy.value = true
+    checkoutError.value = null
+    try {
+        const { checkoutUrl } = await subscriptionService.createCheckoutSession(plan, 'autosync')
+        window.location.href = checkoutUrl
+    } catch {
+        checkoutError.value = t('upgrade.error')
+        checkoutBusy.value = false
+    }
+}
+
 /** Nach Verbinden oder Trennen in einer Kachel den Status neu laden, damit Sperren stimmen. */
 async function refreshStatus() {
     smartcarStatus.value = await smartcarService.getStatus().catch(() => null)
@@ -253,13 +268,22 @@ function toggleExpand(carId: string) {
                                         class="text-sm text-gray-700 dark:text-gray-200 font-medium leading-relaxed"
                                         v-html="t('imports.autosync_locked_desc', { activeCars: activeCarsLabel })"
                                     />
-                                    <router-link
-                                        v-if="props.premiumEnabled"
-                                        to="/upgrade"
-                                        class="inline-block bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
-                                    >
-                                        {{ t('imports.autosync_locked_cta') }}
-                                    </router-link>
+                                    <div v-if="props.premiumEnabled" class="space-y-2">
+                                        <p class="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">{{ t('imports.autosync_locked_cta') }}</p>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button
+                                                v-for="plan in (['monthly', 'yearly'] as const)"
+                                                :key="plan"
+                                                type="button"
+                                                :disabled="checkoutBusy"
+                                                class="bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                                                @click="buyAnotherSubscription(plan)"
+                                            >
+                                                {{ t(plan === 'monthly' ? 'upgrade.plan_monthly' : 'upgrade.plan_yearly') }}
+                                            </button>
+                                        </div>
+                                        <p v-if="checkoutError" class="text-xs text-red-600 dark:text-red-400">{{ checkoutError }}</p>
+                                    </div>
                                 </div>
                             </div>
 

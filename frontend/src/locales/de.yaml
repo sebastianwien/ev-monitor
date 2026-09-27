@@ -1863,7 +1863,7 @@ imports:
   autosync_confirm_disconnect: "Sicher?"
   autosync_locked_title: "Dein AutoSync deckt {count} Fahrzeug ab | Dein AutoSync deckt {count} Fahrzeuge ab"
   autosync_locked_desc: "Für ein weiteres Fahrzeug brauchst du ein weiteres AutoSync-Abo. Oder du trennst zuerst <strong>{activeCars}</strong> und verbindest dieses Fahrzeug stattdessen."
-  autosync_locked_cta: "Weiteres AutoSync-Abo"
+  autosync_locked_cta: "Weiteres AutoSync-Abo buchen"
   smartcar_error_slots_exhausted: "Alle AutoSync-Plätze sind belegt. Jedes AutoSync-Abo deckt ein Fahrzeug ab: buche ein weiteres Abo oder trenne zuerst ein anderes Fahrzeug."
   autosync_unavailable_desc: "Für {brand} gibt es noch keine automatische Anbindung."
   autosync_unavailable_alternatives: "Du kannst Ladevorgänge manuell oder über die Public API importieren."

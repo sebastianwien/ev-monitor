@@ -1807,7 +1807,7 @@ imports:
   autosync_confirm_disconnect: Säker?
   autosync_locked_title: "Din AutoSync täcker {count} fordon | Din AutoSync täcker {count} fordon"
   autosync_locked_desc: "För ytterligare ett fordon behöver du en AutoSync-prenumeration till. Eller koppla först från <strong>{activeCars}</strong> och anslut det här fordonet i stället."
-  autosync_locked_cta: "Lägg till AutoSync-prenumeration"
+  autosync_locked_cta: "Lägg till en AutoSync-prenumeration till"
   smartcar_error_slots_exhausted: "Alla AutoSync-platser är upptagna. Varje AutoSync-prenumeration täcker ett fordon: lägg till en prenumeration eller koppla först från ett annat fordon."
   autosync_unavailable_desc: Det finns ingen automatisk integration för {brand} ännu.
   autosync_unavailable_alternatives: Du kan importera laddningssessioner manuellt eller via Public API.

@@ -1807,7 +1807,7 @@ imports:
   autosync_confirm_disconnect: Sikker?
   autosync_locked_title: "Din AutoSync dekker {count} kjøretøy | Din AutoSync dekker {count} kjøretøy"
   autosync_locked_desc: "For enda et kjøretøy trenger du ett AutoSync-abonnement til. Eller koble først fra <strong>{activeCars}</strong> og koble til dette kjøretøyet i stedet."
-  autosync_locked_cta: "Legg til AutoSync-abonnement"
+  autosync_locked_cta: "Legg til enda et AutoSync-abonnement"
   smartcar_error_slots_exhausted: "Alle AutoSync-plasser er i bruk. Hvert AutoSync-abonnement dekker ett kjøretøy: legg til et abonnement eller koble først fra et annet kjøretøy."
   autosync_unavailable_desc: Det finnes ingen automatisk integrasjon for {brand} ennå.
   autosync_unavailable_alternatives: Du kan importere ladeøkter manuelt eller via Public API.
