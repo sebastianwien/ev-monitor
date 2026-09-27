@@ -3343,7 +3343,7 @@ eu_data_act_sync:
   privacy_request: "EV Monitor creates a data request in your VW portal. You can see it there at any time and end it there or here."
   privacy_open_source: "EV Monitor is open source. You can check in the code at any time how the sign-in works and that your password is not stored:"
   privacy_open_source_link: "Sign-in code on GitHub"
-  privacy_smartcar: "If this car is connected via Smartcar, Smartcar is paused after the first received data set. During the transition, charging sessions may appear twice - the logbook shows the source of each entry so you can delete duplicates."
+  privacy_smartcar: "This car is connected via Smartcar. Charging sessions keep coming from Smartcar; the EU Data Act only runs in the background so we can check its data quality. No duplicate entries are created."
   status_active: "Connected - charging sessions arrive automatically"
   status_auth_failed: "Connection interrupted - please sign in again"
   auth_failed_hint: "The sign-in session of your VW ID has expired or was reset (e.g. after a password change). Disconnect and sign in again."
