@@ -5,17 +5,19 @@
  * tile expands an inline accordion with the appropriate provider component
  * (TeslaFleetIntegration for Tesla, SmartcarIntegration for everything else).
  *
- * Premium-=-1-active-connection limit is surfaced UI-side: when a connection
- * is active for car A, tiles for other cars are locked with a clear hint that
- * the user must disconnect car A first. Backend soft-enforcement is the
- * security boundary; this UI is the visible-exit and the friendly explanation.
+ * AutoSync-Slots: ein Abo deckt ein Fahrzeug. Sind alle Plätze belegt, werden weitere Kacheln
+ * gesperrt, mit Hinweis auf ein weiteres Abo oder das Trennen eines verbundenen Autos. Die
+ * Server-Prüfung in Connectors (409 AUTOSYNC_SLOTS_EXHAUSTED) ist die Sicherheitsgrenze, diese
+ * UI ist die freundliche Erklärung. Bei einem Auto und einem Abo bleibt die Sperre unsichtbar.
  */
 import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { LockClosedIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import type { Car } from '../../api/carService'
-import smartcarService, { type SmartcarConnectionStatus } from '../../api/smartcarService'
-import { autoSyncProviderFor, type AutoSyncProvider } from '../../composables/useCarAutoSyncProvider'
+import smartcarService, { connectionsOf, type SmartcarConnectionStatus } from '../../api/smartcarService'
+import { subscriptionService } from '../../api/subscriptionService'
+import { autoSyncTileState, type AutoSyncTileState } from '../../composables/useAutoSyncTiles'
+import { autoSyncProviderFor } from '../../composables/useCarAutoSyncProvider'
 import { enumToLabel, carDisplayName } from '../../utils/enumLabel'
 
 const SmartcarIntegration = defineAsyncComponent(() => import('./SmartcarIntegration.vue'))
@@ -36,6 +38,7 @@ const emit = defineEmits<{
 }>()
 
 const smartcarStatus = ref<SmartcarConnectionStatus | null>(null)
+const slots = ref(1)
 const statusesLoaded = ref(false)
 const expandedCarId = ref<string | null>(null)
 
@@ -46,51 +49,53 @@ onMounted(async () => {
         return
     }
     try {
-        smartcarStatus.value = await smartcarService.getStatus().catch(() => null)
+        const [status, subscription] = await Promise.all([
+            smartcarService.getStatus().catch(() => null),
+            subscriptionService.getStatus().catch(() => null),
+        ])
+        smartcarStatus.value = status
+        slots.value = Math.max(1, subscription?.autoSyncSlots ?? 1)
     } finally {
         statusesLoaded.value = true
         // Auto-expand: active connection takes priority, else single-car shortcut.
-        if (activeConnection.value) {
-            expandedCarId.value = activeConnection.value.carId
+        if (connectedCarIds.value.length > 0) {
+            expandedCarId.value = connectedCarIds.value[0]
         } else if (props.cars.length === 1) {
             expandedCarId.value = props.cars[0].id
         }
     }
 })
 
-interface ActiveConnection {
-    provider: AutoSyncProvider
-    carId: string
-}
+/** Autos mit laufender Smartcar-Verbindung (eine je Fahrzeug). */
+const connectedCarIds = computed<string[]>(() =>
+    connectionsOf(smartcarStatus.value).map(c => c.carId).filter((id): id is string => !!id),
+)
 
-const activeConnection = computed<ActiveConnection | null>(() => {
-    if (smartcarStatus.value?.connected && smartcarStatus.value.carId) {
-        return { provider: 'SMARTCAR', carId: smartcarStatus.value.carId }
-    }
-    return null
-})
+const activeCars = computed<Car[]>(() =>
+    props.cars.filter(c => connectedCarIds.value.includes(c.id)),
+)
 
-const activeCar = computed<Car | null>(() => {
-    if (!activeConnection.value) return null
-    return props.cars.find(c => c.id === activeConnection.value!.carId) ?? null
-})
+/** Erstes verbundenes Auto, für die Kopfzeile "Aktiv für ...". */
+const activeCar = computed<Car | null>(() => activeCars.value[0] ?? null)
 
 const sortedCars = computed(() => {
-    if (!activeConnection.value) return props.cars
+    if (connectedCarIds.value.length === 0) return props.cars
     return [...props.cars].sort((a, b) => {
-        if (a.id === activeConnection.value!.carId) return -1
-        if (b.id === activeConnection.value!.carId) return 1
-        return 0
+        const ai = connectedCarIds.value.includes(a.id) ? 0 : 1
+        const bi = connectedCarIds.value.includes(b.id) ? 0 : 1
+        return ai - bi
     })
 })
 
-type TileState = 'available' | 'active' | 'locked' | 'unavailable'
+function tileStateFor(car: Car): AutoSyncTileState {
+    return autoSyncTileState(car, connectedCarIds.value, slots.value)
+}
 
-function tileStateFor(car: Car): TileState {
-    if (autoSyncProviderFor(car) === 'NONE') return 'unavailable'
-    if (activeConnection.value?.carId === car.id) return 'active'
-    if (activeConnection.value) return 'locked'
-    return 'available'
+const activeCarsLabel = computed(() => activeCars.value.map(carLabel).join(', '))
+
+/** Nach Verbinden oder Trennen in einer Kachel den Status neu laden, damit Sperren stimmen. */
+async function refreshStatus() {
+    smartcarStatus.value = await smartcarService.getStatus().catch(() => null)
 }
 
 function carLabel(car: Car): string {
@@ -238,16 +243,23 @@ function toggleExpand(carId: string) {
                     <!-- Expanded body -->
                     <Transition name="accordion">
                         <div v-if="expandedCarId === car.id" class="border-t-2 border-gray-200 dark:border-gray-700">
-                            <!-- Locked: another car holds the connection -->
+                            <!-- Locked: alle AutoSync-Plätze belegt (ein Abo je Fahrzeug) -->
                             <div v-if="tileStateFor(car) === 'locked' && activeCar" class="p-4 md:p-5">
-                                <div class="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 rounded-r-sm">
-                                    <p class="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1">
-                                        {{ t('imports.autosync_locked_title') }}
+                                <div class="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 rounded-r-sm space-y-3">
+                                    <p class="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                        {{ t('imports.autosync_locked_title', { count: slots }) }}
                                     </p>
                                     <p
                                         class="text-sm text-gray-700 dark:text-gray-200 font-medium leading-relaxed"
-                                        v-html="t('imports.autosync_locked_desc', { activeCar: carLabel(activeCar) })"
+                                        v-html="t('imports.autosync_locked_desc', { activeCars: activeCarsLabel })"
                                     />
+                                    <router-link
+                                        v-if="props.premiumEnabled"
+                                        to="/upgrade"
+                                        class="inline-block bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
+                                    >
+                                        {{ t('imports.autosync_locked_cta') }}
+                                    </router-link>
                                 </div>
                             </div>
 
@@ -271,6 +283,7 @@ function toggleExpand(carId: string) {
                                     :is-premium="props.isPremium"
                                     :embedded="true"
                                     :forced-car-id="car.id"
+                                    @disconnected="refreshStatus"
                                 />
                             </div>
                         </div>
@@ -278,7 +291,7 @@ function toggleExpand(carId: string) {
                 </div>
             </div>
 
-            <!-- Footer-Hint (nur wenn 2+ Autos, da 1-Auto-Constraint relevant) -->
+            <!-- Footer-Hinweis nur bei 2+ Autos: erst dann ist die Slot-Regel für den Nutzer relevant -->
             <div v-if="sortedCars.length >= 2" class="border-l-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/40 px-4 py-3 rounded-r-sm">
                 <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                     <strong class="font-bold uppercase tracking-wider text-[11px]">{{ t('imports.autosync_footer_label') }} ·</strong>

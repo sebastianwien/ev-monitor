@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, XCircleIcon } from '@heroicons/vue/24/outline'
 import { useCarStore } from '../../stores/car'
 import { purchasesAvailable } from '../../utils/iapPolicy'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import SmartcarFaq from '../SmartcarFaq.vue'
-import smartcarService, { type SmartcarConnectionStatus } from '../../api/smartcarService'
+import smartcarService, { connectionForCar, DISCONNECTED_STATUS, type SmartcarCarConnection, type SmartcarConnectionStatus } from '../../api/smartcarService'
 import type { Car } from '../../api/carService'
 import { AUTOSYNC_BRANDS } from '../../config/smartcarBrands'
 
@@ -23,10 +23,15 @@ const props = defineProps<{
     forcedCarId?: string
 }>()
 
+const emit = defineEmits<{ (e: 'connected' | 'disconnected', carId: string): void }>()
+
 const brands = AUTOSYNC_BRANDS
 const carStore = useCarStore()
 
-const status = ref<SmartcarConnectionStatus | null>(null)
+const rawStatus = ref<SmartcarConnectionStatus | null>(null)
+// Im Kachel-Modus zählt nur die Verbindung dieses Autos (AutoSync-Slots: eine je Fahrzeug).
+const status = computed<SmartcarCarConnection | SmartcarConnectionStatus | null>(() =>
+  props.forcedCarId && rawStatus.value ? connectionForCar(rawStatus.value, props.forcedCarId) : rawStatus.value)
 const loading = ref(true)
 const connecting = ref(false)
 const disconnecting = ref(false)
@@ -41,7 +46,7 @@ onMounted(async () => {
       smartcarService.getStatus(),
       carStore.getCars(),
     ])
-    status.value = s
+    rawStatus.value = s
     cars.value = (c ?? []).filter((car: Car) => car.status === 'ACTIVE')
     if (props.forcedCarId) {
       // Tile-context: car is fixed by the surrounding picker.
@@ -52,13 +57,15 @@ onMounted(async () => {
     // Handle redirect params after OAuth callback
     const params = new URLSearchParams(window.location.search)
     if (params.get('smartcar-connected')) {
-      await smartcarService.getStatus().then(s => status.value = s)
+      await smartcarService.getStatus().then(s => rawStatus.value = s)
       window.history.replaceState({}, '', window.location.pathname)
     }
     if (params.get('smartcar-error')) {
       const code = params.get('smartcar-error')!
       if (code === 'VIN_ALREADY_LINKED') {
         error.value = t('imports.smartcar_error_vin_linked_title') + ' - ' + t('imports.smartcar_error_vin_linked_body')
+      } else if (code === 'AUTOSYNC_SLOTS_EXHAUSTED') {
+        error.value = t('imports.smartcar_error_slots_exhausted')
       } else if (code === 'NO_VEHICLES_FOUND') {
         error.value = t('imports.smartcar_error_no_vehicles_body')
       } else {
@@ -85,7 +92,9 @@ const connect = async () => {
     }
     window.location.href = authUrl
   } catch (e: any) {
-    error.value = e.response?.data?.message || e.message
+    error.value = e.response?.status === 409 && String(e.response?.data?.message ?? '').includes('AUTOSYNC_SLOTS_EXHAUSTED')
+      ? t('imports.smartcar_error_slots_exhausted')
+      : (e.response?.data?.message || e.message)
   } finally {
     connecting.value = false
   }
@@ -95,8 +104,11 @@ const disconnect = async () => {
   if (!confirm(t('imports.smartcar_confirm_disconnect'))) return
   disconnecting.value = true
   try {
-    await smartcarService.disconnect()
-    status.value = { connected: false, vehicleName: null, carId: null, vin: null, vehicleState: null, lastCheckedAt: null, lastSoc: null, sessionActive: false, sessionStartedAt: null, sessionEnergyAdded: null }
+    const carId = selectedCarId.value ?? status.value?.carId
+    if (!carId) return
+    await smartcarService.disconnect(carId)
+    rawStatus.value = await smartcarService.getStatus().catch(() => DISCONNECTED_STATUS)
+    emit('disconnected', carId)
   } catch (e: any) {
     error.value = e.message
   } finally {

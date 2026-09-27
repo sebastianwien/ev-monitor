@@ -1,6 +1,6 @@
 import type { Ref } from 'vue'
 import { useWallboxStore } from '../stores/wallbox'
-import type { SmartcarConnectionStatus } from '../api/smartcarService'
+import { connectionsOf, type SmartcarConnectionStatus } from '../api/smartcarService'
 
 /** Minimal-Shape, das die Charging-Predicates brauchen. */
 export interface ChargingCar {
@@ -22,11 +22,11 @@ export function useVehicleCharging(
 ) {
   const wallboxStore = useWallboxStore()
 
+  // Mehrere Verbindungen je Nutzer (AutoSync-Slots): die Verbindung dieses Autos zählt.
   const isSmartcarCharging = (car: ChargingCar) =>
-    smartcarStatus.value?.connected === true &&
-    smartcarStatus.value?.vehicleState === 'CHARGING' &&
-    (smartcarStatus.value?.carId === car.id ||
-      (smartcarStatus.value?.carId === null && cars.value.length === 1))
+    connectionsOf(smartcarStatus.value).some(c =>
+      c.vehicleState === 'CHARGING' &&
+      (c.carId === car.id || (c.carId === null && cars.value.length === 1)))
 
   const isWallboxCharging = () =>
     wallboxStore.isCharging && cars.value.length === 1

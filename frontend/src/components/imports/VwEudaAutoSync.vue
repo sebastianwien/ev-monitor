@@ -10,7 +10,7 @@ import vwEudaSyncService, {
   type VwEudaEntitlement,
 } from '../../api/vwEudaSyncService'
 import type { Car } from '../../api/carService'
-import smartcarService from '../../api/smartcarService'
+import smartcarService, { connectionsOf } from '../../api/smartcarService'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import VwEudaExplainer from './VwEudaExplainer.vue'
 import VwEudaSyncActivity from './VwEudaSyncActivity.vue'
@@ -48,7 +48,7 @@ const busy = ref(false)
 const error = ref<string | null>(null)
 const connections = ref<VwEudaConnectionStatus[]>([])
 /** Fahrzeug-ID, die aktuell ueber Smartcar haengt - nur dann ist der Dubletten-Hinweis relevant. */
-const smartcarCarId = ref<string | null>(null)
+const smartcarCarIds = ref<string[]>([])
 /** decide: Entscheidung ohne Formular. connect: Marke, E-Mail, Passwort. */
 const step = ref<'decide' | 'connect'>('decide')
 const detailsOpen = ref(false)
@@ -69,7 +69,7 @@ const email = ref('')
 const password = ref('')
 
 const connection = computed(() => connections.value.find(c => c.carId === selectedCarId.value) ?? null)
-const viaSmartcar = computed(() => !!smartcarCarId.value && smartcarCarId.value === selectedCarId.value)
+const viaSmartcar = computed(() => !!selectedCarId.value && smartcarCarIds.value.includes(selectedCarId.value))
 
 async function load() {
   loading.value = true
@@ -81,7 +81,7 @@ async function load() {
     ])
     connections.value = status
     entitlement.value = ent
-    smartcarCarId.value = smartcar?.connected ? smartcar.carId : null
+    smartcarCarIds.value = connectionsOf(smartcar).map(c => c.carId).filter((id): id is string => !!id)
     if (!selectedCarId.value && connections.value.length > 0) {
       selectedCarId.value = connections.value[0].carId
     }

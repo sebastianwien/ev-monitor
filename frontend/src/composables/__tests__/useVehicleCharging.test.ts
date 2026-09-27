@@ -30,6 +30,21 @@ beforeEach(() => {
   wallboxMock.isCharging = false
 })
 
+describe('isSmartcarCharging mit mehreren Verbindungen (AutoSync-Slots)', () => {
+  it('zweites Auto lädt, erstes nicht', () => {
+    const status: SmartcarConnectionStatus = {
+      ...smartcarBase, vehicleState: 'NOT_CHARGING',
+      connections: [
+        { ...smartcarBase, carId: 'car-1', vehicleState: 'NOT_CHARGING' },
+        { ...smartcarBase, carId: 'car-2', vehicleState: 'CHARGING' },
+      ],
+    }
+    const { isSmartcarCharging } = setup({ cars: [carTesla, carVw], smartcar: status })
+    expect(isSmartcarCharging(carVw)).toBe(true)
+    expect(isSmartcarCharging(carTesla)).toBe(false)
+  })
+})
+
 describe('isSmartcarCharging', () => {
   it('true wenn verbunden, CHARGING und carId passt', () => {
     const { isSmartcarCharging } = setup({ cars: [carTesla, carVw], smartcar: smartcarBase })

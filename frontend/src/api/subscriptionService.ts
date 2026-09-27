@@ -9,6 +9,8 @@ export interface SubscriptionStatus {
     subscriptionPeriodEnd: string | null;
     /** Erstkäufer bekommen im Stripe-Checkout 7 Tage Trial. */
     trialEligible?: boolean;
+    /** AutoSync-Plätze: ein Abo deckt ein Fahrzeug. Fehlt bei älteren Backends, dann 1. */
+    autoSyncSlots?: number;
 }
 
 export interface CheckoutResponse {
