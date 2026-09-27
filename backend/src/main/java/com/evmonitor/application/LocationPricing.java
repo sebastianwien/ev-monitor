@@ -133,17 +133,18 @@ public class LocationPricing {
      * Letzte Instanz fuer Ladungen, die der Ort nicht bepreisen kann: der als privat markierte
      * Heimtarif des Nutzers. Das ist die einzige Stelle, an der ein Listenpreis ohne
      * Ortsnachweis angewendet wird - erlaubt allein deshalb, weil die Markierung "privat" die
-     * ausdrueckliche Aussage des Nutzers ist, dass dieser Preis fuer seine nicht-oeffentlichen
-     * Ladungen gilt. Import-Quellen wie XPeng liefern weder Ort noch Preis; ohne diesen
-     * Fallback bliebe jede importierte Heimladung dauerhaft ohne Kosten.
+     * ausdrueckliche Aussage des Nutzers ist, dass dieser Preis fuer seine Heimladungen gilt.
      *
-     * Bewusst zurueckhaltend: nur nicht-oeffentliche Ladungen, nur bei genau einem zum
-     * Ladezeitpunkt gueltigen Heimtarif, und nur wenn die Karte fuer diese Ladeart einen
-     * Preis hat. In jedem anderen Fall bleibt die Ladung lieber offen als falsch bepreist.
+     * Bewusst zurueckhaltend: nur Ladungen, die die Quelle ausdruecklich als Heimladung meldet
+     * (public = false; NULL heisst unbekannt, V166) und die einen Ort tragen; nur bei genau einem
+     * zum Ladezeitpunkt gueltigen Heimtarif, und nur wenn die Karte fuer diese Ladeart einen
+     * Preis hat. In jedem anderen Fall bleibt die Ladung lieber offen als falsch bepreist - ein
+     * falscher Preis auf vielen importierten Ladungen kostet den Nutzer mehr als ein fehlender.
      */
     private EvLog enrichFromHomeCard(EvLog log, UUID userId) {
         if (log.getCostEur() != null) return log;
-        if (Boolean.TRUE.equals(log.getPublicCharging())) return log;
+        if (!Boolean.FALSE.equals(log.getPublicCharging())) return log;
+        if (log.getGeohash() == null || log.getGeohash().length() < MIN_GEOHASH_LENGTH) return log;
 
         UserChargingProviderEntity card = homeCardFor(
                 chargingProviderRepository.findByUserIdAndPrivateCardTrueAndDeletedAtIsNull(userId),
