@@ -3228,7 +3228,7 @@ eu_data_act_sync:
   privacy_request: "EV Monitor oppretter en dataforespørsel i VW-portalen din. Du kan se den der når som helst og avslutte den der eller her."
   privacy_open_source: "EV Monitor er åpen kildekode. Du kan når som helst sjekke i koden hvordan innloggingen fungerer og at passordet ditt ikke lagres:"
   privacy_open_source_link: "Innloggingskode på GitHub"
-  privacy_smartcar: "Hvis denne bilen er koblet til via Smartcar, settes Smartcar på pause etter det første mottatte datasettet. I overgangsfasen kan ladeøkter vises dobbelt - loggboken viser kilden til hver oppføring, så du kan slette duplikater."
+  privacy_smartcar: "Denne bilen er koblet til via Smartcar. Pågående ladeøkter kommer fortsatt fra Smartcar; EU Data Act kjører bare i bakgrunnen slik at vi kan sjekke datakvaliteten. Hvis du importerer ladehistorikken, kan den inneholde økter Smartcar allerede har registrert - loggboken viser kilden til hver oppføring."
   status_active: "Tilkoblet - ladeøkter kommer automatisk"
   status_auth_failed: "Tilkoblingen er avbrutt - logg inn på nytt"
   auth_failed_hint: "Innloggingsøkten til VW-ID-en din er utløpt eller tilbakestilt (f.eks. etter passordendring). Koble fra og logg inn på nytt."
