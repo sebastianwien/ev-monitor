@@ -2,6 +2,7 @@ package com.evmonitor.application.ingest;
 
 import com.evmonitor.application.CoinLogService.CoinEvent;
 import com.evmonitor.domain.DataSource;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
@@ -13,13 +14,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Die Policy-Tabelle bildet die gemessenen Regeln der beiden alten Türen ab (R2a, Verhalten
- * identisch). Fast alles hängt heute an der Tür; nur Dedup-Fenster, Tronity-Remap und Tesla-Coins
- * hängen an der Quelle.
+ * identisch). Fast alles hängt heute an der Tür; nur Dedup-Fenster, Tronity-Remap, Tesla-Coins und
+ * Spritmonitor (kein Bump, eigene Watt, R2g) hängen an der Quelle.
  */
 class IngestPoliciesTest {
 
     @ParameterizedTest
-    @EnumSource(DataSource.class)
+    @EnumSource(value = DataSource.class, names = "SPRITMONITOR_IMPORT", mode = EnumSource.Mode.EXCLUDE)
     void importBatch_bumpsIsolatesAndPaysApiCoins_withoutInheritanceOrSohEvent(DataSource source) {
         IngestPolicy p = IngestPolicies.forSource(source, IMPORT_BATCH);
 
@@ -28,6 +29,22 @@ class IngestPoliciesTest {
         assertThat(p.coinEvent()).isEqualTo(CoinEvent.API_UPLOAD_LOG);
         assertThat(p.inheritTireAndRouteType()).isFalse();
         assertThat(p.sohEventWithoutVehicleKwh()).isFalse();
+    }
+
+    /**
+     * Spritmonitor setzt die Uhrzeit je Tagesposition selbst (00:00, 00:01, ...), das Gateway versetzt
+     * nicht; Watt wie bisher {@code SPRITMONITOR_LOG} statt {@code API_UPLOAD_LOG}.
+     */
+    @Test
+    void importBatch_spritmonitor_noBump_paysSpritmonitorCoins() {
+        IngestPolicy p = IngestPolicies.forSource(DataSource.SPRITMONITOR_IMPORT, IMPORT_BATCH);
+
+        assertThat(p.bumpSameTimestampInBatch()).isFalse();
+        assertThat(p.coinEvent()).isEqualTo(CoinEvent.SPRITMONITOR_LOG);
+        assertThat(p.isolateEntryErrors()).isTrue();
+        assertThat(p.inheritTireAndRouteType()).isFalse();
+        assertThat(p.sohEventWithoutVehicleKwh()).isFalse();
+        assertThat(p.dedupWindow()).isEqualTo(Duration.ZERO);
     }
 
     @ParameterizedTest

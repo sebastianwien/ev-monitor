@@ -23,8 +23,8 @@ public final class IngestPolicies {
         return switch (door) {
             // Kein Erben: Bulk-Importe kommen historisch und u.U. nicht chronologisch - "letzter Wert
             // in der DB" wäre dann der zukünftige Wert und würde still über die Historie propagieren.
-            case IMPORT_BATCH -> new IngestPolicy(batchDedupWindow(source), true, false,
-                    CoinEvent.API_UPLOAD_LOG, reportsVehicleSideKwh(source), true, false);
+            case IMPORT_BATCH -> new IngestPolicy(batchDedupWindow(source), bumpsSameTimestamp(source), false,
+                    batchCoinEvent(source), reportsVehicleSideKwh(source), true, false);
             // Live-Daten tragen weder Reifen noch Strecke; ohne Erben kippt die "letzten Wert
             // übernehmen"-UX still auf SUMMER/COMBINED.
             case CONNECTOR_PUSH -> new IngestPolicy(Duration.ZERO, false, true,
@@ -36,6 +36,21 @@ public final class IngestPolicies {
         return switch (source) {
             case EU_DATA_ACT_IMPORT -> VW_UPLOAD_DEDUP_TOLERANCE;
             default -> Duration.ZERO;
+        };
+    }
+
+    /** Spritmonitor vergibt die Uhrzeit je Position am Tag selbst (00:00, 00:01, ...). */
+    private static boolean bumpsSameTimestamp(DataSource source) {
+        return switch (source) {
+            case SPRITMONITOR_IMPORT -> false;
+            default -> true;
+        };
+    }
+
+    private static CoinEvent batchCoinEvent(DataSource source) {
+        return switch (source) {
+            case SPRITMONITOR_IMPORT -> CoinEvent.SPRITMONITOR_LOG;
+            default -> CoinEvent.API_UPLOAD_LOG;
         };
     }
 

@@ -2,14 +2,19 @@ package com.evmonitor.application.spritmonitor;
 
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.CoinLogService;
-import com.evmonitor.application.EvLogService;
+import com.evmonitor.application.ingest.ChargingEntry;
+import com.evmonitor.application.ingest.IngestCommand;
+import com.evmonitor.application.ingest.IngestDoor;
+import com.evmonitor.application.ingest.IngestGateway;
+import com.evmonitor.application.ingest.IngestResult;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
-import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +28,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -39,7 +46,7 @@ public class SpritMonitorImportService {
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
-    private final EvLogService evLogService;
+    private final IngestGateway ingestGateway;
 
     public List<SpritMonitorVehicleDTO> fetchVehicles(String token) {
         return client.getVehicles(token);
@@ -60,7 +67,9 @@ public class SpritMonitorImportService {
         }
 
         ImportResult result = new ImportResult();
-        List<EvLog> savedLogs = new ArrayList<>();
+        List<ChargingEntry> entries = new ArrayList<>();
+        // Station genannt, aber ohne Position: zählt erst, wenn die Ladung auch angelegt wird
+        Set<LocalDateTime> stationWithoutLocation = new HashSet<>();
 
         try {
             int tankId = spritMonitorMainTankId != null ? spritMonitorMainTankId : 1;
@@ -83,7 +92,8 @@ public class SpritMonitorImportService {
                     .toList();
 
             // Track how many kWh fuelings we've seen per date to make timestamps unique
-            // (multiple charges on the same day → 00:00:00, 00:00:01, 00:00:02 …)
+            // (multiple charges on the same day → 00:00, 00:01, 00:02 …). Die Position am Tag ist
+            // damit die Identität einer Ladung für die Dedup im Gateway.
             Map<String, Integer> perDateCounter = new HashMap<>();
 
             for (RawFueling rawFueling : sortedFuelings) {
@@ -101,22 +111,11 @@ public class SpritMonitorImportService {
                     int dayIndex = perDateCounter.merge(fueling.date(), 1, Integer::sum) - 1;
                     LocalDateTime loggedAt = LocalDate.parse(fueling.date(), DD_MM_YYYY).atStartOfDay().plusMinutes(dayIndex);
 
-                    // Skip if already imported (same car + timestamp + source)
-                    if (evLogRepository.existsByCarIdAndLoggedAtAndDataSource(evMonitorCarId, loggedAt, DATA_SOURCE)) {
-                        result.incrementSkipped();
-                        continue;
+                    ChargingEntry entry = toEntry(fueling, loggedAt, rawFueling.rawJson());
+                    if (entry.geohash() == null && fueling.stationname() != null && !fueling.stationname().isBlank()) {
+                        stationWithoutLocation.add(loggedAt);
                     }
-
-                    EvLog evLog = convertToEvLog(fueling, evMonitorCarId, loggedAt, rawFueling.rawJson());
-                    if (evLog.getGeohash() == null && fueling.stationname() != null && !fueling.stationname().isBlank()) {
-                        result.incrementWithoutLocation();
-                    }
-                    EvLog savedLog = evLogService.save(evLog);
-                    savedLogs.add(savedLog);
-                    result.incrementImported();
-
-                    coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.SPRITMONITOR_LOG, savedLog.getId());
-                    result.addCoinsAwarded(CoinLogService.CoinEvent.SPRITMONITOR_LOG.getDefaultAmount());
+                    entries.add(entry);
                 } catch (Exception e) {
                     log.error("Failed to import fueling from " + fueling.date() + ": " + e.getMessage(), e);
                     result.addError("Failed to import fueling from " + fueling.date() + ": " + e.getMessage());
@@ -128,11 +127,42 @@ public class SpritMonitorImportService {
             return result;
         }
 
+        IngestResult ingested = ingest(userId, evMonitorCarId, entries);
+        for (EvLog saved : ingested.created()) {
+            result.incrementImported();
+            result.addCoinsAwarded(CoinLogService.CoinEvent.SPRITMONITOR_LOG.getDefaultAmount());
+            if (stationWithoutLocation.contains(saved.getLoggedAt())) {
+                result.incrementWithoutLocation();
+            }
+        }
+        for (int i = 0; i < ingested.skipped(); i++) {
+            result.incrementSkipped();
+        }
+        if (ingested.errors() > 0) {
+            result.addError(ingested.errors() + " fuelings could not be saved");
+        }
+
         if (result.getImported() > 0) {
             result.addCoinsAwarded(coinLogService.awardCoinsForEvent(userId, CoinLogService.CoinEvent.SPRITMONITOR_CONNECTED, null));
         }
 
         return result;
+    }
+
+    /**
+     * Anlegen, Dedup (minutengenau je Quelle, Tombstones zählen mit), Bepreisung und Watt je Ladung
+     * übernimmt das Gateway. Die Ownership ist schon vor dem Abruf geprüft; verschwindet das Auto
+     * dazwischen, bleibt es beim bisherigen Fehlerbild.
+     */
+    private IngestResult ingest(UUID userId, UUID carId, List<ChargingEntry> entries) {
+        try {
+            return ingestGateway.ingestCharging(
+                    new IngestCommand(userId, carId, DATA_SOURCE, IngestDoor.IMPORT_BATCH, entries));
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Car not found with ID: " + carId, e);
+        } catch (ForbiddenException e) {
+            throw new IllegalArgumentException("User does not own the specified car", e);
+        }
     }
 
     @Transactional
@@ -202,7 +232,7 @@ public class SpritMonitorImportService {
         return result.build();
     }
 
-    private EvLog convertToEvLog(SpritMonitorFuelingDTO fueling, UUID carId, LocalDateTime loggedAt, String rawJson) {
+    private static ChargingEntry toEntry(SpritMonitorFuelingDTO fueling, LocalDateTime loggedAt, String rawJson) {
         String geohash = null;
         if (fueling.position() != null && fueling.position().lat() != null && fueling.position().lon() != null) {
             geohash = GeoHash.withCharacterPrecision(
@@ -212,29 +242,20 @@ public class SpritMonitorImportService {
             ).toBase32();
         }
 
-        BigDecimal kwhCharged = fueling.quantity() != null ? fueling.quantity() : BigDecimal.ZERO;
-        BigDecimal costEur = fueling.cost() != null ? fueling.cost() : BigDecimal.ZERO;
-        Integer durationMinutes = fueling.chargingDuration() != null ? fueling.chargingDuration() : 0;
-        Integer odometerKm = fueling.odometer() != null ? fueling.odometer().intValue() : null;
-        BigDecimal socAfterChargePercent = fueling.percent();
-
-        ChargingType chargingType = fueling.parseChargingType();
-        RouteType routeType = fueling.parseRouteType();
-
-        EvLog base = EvLog.createNewWithSource(
-            carId,
-            kwhCharged,
-            costEur,
-            durationMinutes,
-            geohash,
-            odometerKm,
-            fueling.chargingPower(),
-            socAfterChargePercent,
-            loggedAt,
-            DATA_SOURCE,
-            chargingType,
-            rawJson
-        );
-        return routeType != null ? base.toBuilder().routeType(routeType).build() : base;
+        return ChargingEntry.builder()
+                .loggedAt(loggedAt)
+                .kwhCharged(fueling.quantity() != null ? fueling.quantity() : BigDecimal.ZERO)
+                // Fehlender Preis bleibt leer (nicht 0): das Gateway bepreist dann über den Ort. Den Heimtarif
+                // bekommt Spritmonitor nicht, weil öffentlich/daheim unbekannt bleibt.
+                .costEur(fueling.cost())
+                .chargeDurationMinutes(fueling.chargingDuration() != null ? fueling.chargingDuration() : 0)
+                .geohash(geohash)
+                .odometerKm(fueling.odometer() != null ? fueling.odometer().intValue() : null)
+                .maxChargingPowerKw(fueling.chargingPower())
+                .socAfter(fueling.percent())
+                .chargingType(fueling.parseChargingType())
+                .routeType(fueling.parseRouteType())
+                .rawImportData(rawJson)
+                .build();
     }
 }
