@@ -17,7 +17,8 @@ export interface DeletedLog {
  */
 export function useDeletedLogs(carId: Ref<string | null>) {
   const logs = ref<DeletedLog[]>([])
-  const failedIds = ref(new Set<string>())
+  /** Letzte fehlgeschlagene Aktion je Eintrag, damit die Zeile den passenden Text zeigt. */
+  const failed = ref(new Map<string, 'restore' | 'purge'>())
   const busyId = ref<string | null>(null)
 
   async function load() {
@@ -28,6 +29,10 @@ export function useDeletedLogs(carId: Ref<string | null>) {
     } catch {
       logs.value = []
     }
+  }
+
+  function markFailed(id: string, action: 'restore' | 'purge') {
+    failed.value = new Map(failed.value).set(id, action)
   }
 
   function drop(id: string) {
@@ -42,7 +47,7 @@ export function useDeletedLogs(carId: Ref<string | null>) {
       useLogsRefreshStore().notifyLogSaved()
     } catch {
       // 409: zur selben Zeit gibt es inzwischen einen aktiven Ladevorgang
-      failedIds.value = new Set([...failedIds.value, id])
+      markFailed(id, 'restore')
     } finally {
       busyId.value = null
     }
@@ -54,11 +59,11 @@ export function useDeletedLogs(carId: Ref<string | null>) {
       await api.delete(`/logs/${id}/purge`)
       drop(id)
     } catch {
-      failedIds.value = new Set([...failedIds.value, id])
+      markFailed(id, 'purge')
     } finally {
       busyId.value = null
     }
   }
 
-  return { logs, failedIds, busyId, load, restore, purge }
+  return { logs, failed, busyId, load, restore, purge }
 }

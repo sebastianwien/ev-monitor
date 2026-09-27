@@ -3344,7 +3344,7 @@ function toggleAllCharges() {
     v-if="showDeletedSheet"
     :logs="deletedLogs.logs.value"
     :busy-id="deletedLogs.busyId.value"
-    :failed-ids="deletedLogs.failedIds.value"
+    :failed="deletedLogs.failed.value"
     :format-date="formatLogDate"
     @restore="deletedLogs.restore"
     @purge="deletedLogs.purge"

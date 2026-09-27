@@ -9,7 +9,7 @@ import { sourceInfo } from '../../utils/logSource'
 defineProps<{
   logs: DeletedLog[]
   busyId: string | null
-  failedIds: Set<string>
+  failed: Map<string, 'restore' | 'purge'>
   formatDate: (iso: string) => string
 }>()
 const emit = defineEmits<{ close: []; restore: [id: string]; purge: [id: string] }>()
@@ -58,8 +58,8 @@ defineExpose({ requestClose: () => sheet.value?.requestClose() })
         </div>
         <div v-if="source(log)" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ source(log) }}</div>
 
-        <p v-if="failedIds.has(log.id)" role="alert" class="mt-2 text-sm text-red-700 dark:text-red-300">
-          {{ t('logs.trash.failed') }}
+        <p v-if="failed.has(log.id)" role="alert" class="mt-2 text-sm text-red-700 dark:text-red-300">
+          {{ failed.get(log.id) === 'purge' ? t('logs.trash.purge_failed') : t('logs.trash.failed') }}
         </p>
 
         <div v-if="confirmingPurgeId === log.id" class="mt-2 rounded-sm bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 p-2">

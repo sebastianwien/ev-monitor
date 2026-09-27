@@ -47,12 +47,22 @@ describe('useDeletedLogs', () => {
 
   it('Wiederherstellen mit 409 markiert die Zeile und behält den Eintrag', async () => {
     vi.mocked(api.post).mockRejectedValueOnce({ response: { status: 409 } })
-    const { logs, load, restore, failedIds } = useDeletedLogs(ref('car-1'))
+    const { logs, load, restore, failed } = useDeletedLogs(ref('car-1'))
     await load()
     await restore('a')
 
     expect(logs.value.map(l => l.id)).toEqual(['a', 'b'])
-    expect(failedIds.value.has('a')).toBe(true)
+    expect(failed.value.get('a')).toBe('restore')
+  })
+
+  it('fehlgeschlagenes Entfernen wird als eigener Fehler markiert', async () => {
+    vi.mocked(api.delete).mockRejectedValueOnce({ response: { status: 500 } })
+    const { logs, load, purge, failed } = useDeletedLogs(ref('car-1'))
+    await load()
+    await purge('b')
+
+    expect(logs.value.map(l => l.id)).toEqual(['a', 'b'])
+    expect(failed.value.get('b')).toBe('purge')
   })
 
   it('Endgültig entfernen löscht hart und entfernt den Eintrag', async () => {
