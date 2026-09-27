@@ -38,6 +38,15 @@ public class EmailService {
     }
 
     /**
+     * Link for a lifecycle mail, tagged with UTM parameters so Plausible attributes the visit
+     * to the mail instead of "Direct / None" (mail clients usually send no referrer).
+     * Transactional links (verification, password reset, unsubscribe) stay untagged.
+     */
+    private String campaignUrl(String path, String campaign) {
+        return baseUrl + path + "?utm_source=email&utm_medium=lifecycle&utm_campaign=" + campaign;
+    }
+
+    /**
      * Normalizes a raw locale string (e.g. "en-US", "en", "de-DE", null) to "en" or "de".
      * Defaults to "de" for any unrecognized or null locale.
      */
@@ -74,8 +83,8 @@ public class EmailService {
         String lang = resolveLocale(locale);
         String html = loadTemplate("re-engagement.html", lang, Map.of(
                 "username", username,
-                "dashboardUrl", baseUrl + "/dashboard",
-                "surveyUrl", baseUrl + "/umfrage/why-away",
+                "dashboardUrl", campaignUrl("/dashboard", "re-engagement"),
+                "surveyUrl", campaignUrl("/umfrage/why-away", "re-engagement"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -87,8 +96,8 @@ public class EmailService {
     public void sendAutoSyncAnnouncementEmail(String toEmail, String locale) {
         String lang = resolveLocale(locale);
         String html = loadTemplate("autosync-announcement.html", lang, Map.of(
-                "upgradeUrl", baseUrl + "/upgrade",
-                "consumptionMethodologyUrl", baseUrl + "/consumption-methodology",
+                "upgradeUrl", campaignUrl("/upgrade", "autosync-announcement"),
+                "consumptionMethodologyUrl", campaignUrl("/consumption-methodology", "autosync-announcement"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -101,7 +110,7 @@ public class EmailService {
         String lang = resolveLocale(locale);
         String html = loadTemplate("autosync-satisfaction.html", lang, Map.of(
                 "username", username,
-                "surveyUrl", baseUrl + "/umfrage/autosync-satisfaction",
+                "surveyUrl", campaignUrl("/umfrage/autosync-satisfaction", "autosync-satisfaction"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -114,8 +123,8 @@ public class EmailService {
         String lang = resolveLocale(locale);
         String html = loadTemplate("autosync-dormant.html", lang, Map.of(
                 "username", username,
-                "dashboardUrl", baseUrl + "/dashboard",
-                "surveyUrl", baseUrl + "/umfrage/why-away",
+                "dashboardUrl", campaignUrl("/dashboard", "autosync-dormant"),
+                "surveyUrl", campaignUrl("/umfrage/why-away", "autosync-dormant"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -128,7 +137,7 @@ public class EmailService {
         String lang = resolveLocale(locale);
         String html = loadTemplate("onboarding-reminder.html", lang, Map.of(
                 "username", username,
-                "dashboardUrl", baseUrl + "/dashboard",
+                "dashboardUrl", campaignUrl("/dashboard", "onboarding-reminder"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -143,7 +152,7 @@ public class EmailService {
         String lang = resolveLocale(locale);
         String html = loadTemplate("euda-handover.html", lang, Map.of(
                 "username", username,
-                "logbookUrl", baseUrl + "/dashboard",
+                "logbookUrl", campaignUrl("/dashboard", "euda-handover"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -156,7 +165,7 @@ public class EmailService {
         String lang = resolveLocale(locale);
         String html = loadTemplate("euda-connection-lost.html", lang, Map.of(
                 "username", username,
-                "reconnectUrl", baseUrl + "/dashboard",
+                "reconnectUrl", campaignUrl("/dashboard", "euda-connection-lost"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -172,7 +181,7 @@ public class EmailService {
                 "username", username,
                 "imported", String.valueOf(imported),
                 "skipped", String.valueOf(skipped),
-                "logbookUrl", baseUrl + "/dashboard",
+                "logbookUrl", campaignUrl("/dashboard", "euda-history-imported"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -188,7 +197,7 @@ public class EmailService {
         String html = loadTemplate("euda-trial-ending.html", lang, Map.of(
                 "username", username,
                 "endsAt", endsAtText,
-                "upgradeUrl", baseUrl + "/upgrade",
+                "upgradeUrl", campaignUrl("/upgrade", "euda-trial-ending"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)
@@ -201,7 +210,7 @@ public class EmailService {
         String lang = resolveLocale(locale);
         String html = loadTemplate("euda-trial-ended.html", lang, Map.of(
                 "username", username,
-                "upgradeUrl", baseUrl + "/upgrade",
+                "upgradeUrl", campaignUrl("/upgrade", "euda-trial-ended"),
                 "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
         ));
         String subject = "en".equals(lang)

@@ -1,6 +1,8 @@
 package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.infrastructure.security.JwtService;
+import jakarta.mail.Multipart;
+import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,6 +114,56 @@ class EmailServiceTest {
 
         verify(mailSender).send(mimeMessage);
         assertThat(mimeMessage.getSubject()).isEqualTo("A quick note from me");
+    }
+
+    @Test
+    void lifecycleEmails_tagLinksWithUtmCampaign_forPlausibleAttribution() throws Exception {
+        when(jwtService.generateUnsubscribeToken(anyString())).thenReturn("jwt-token");
+
+        assertThat(sendAndGetHtml(() -> emailService.sendReEngagementEmail("u@example.com", "u", "de")))
+                .contains("http://localhost:5173/dashboard?utm_source=email&amp;utm_medium=lifecycle&amp;utm_campaign=re-engagement")
+                .contains("http://localhost:5173/umfrage/why-away?utm_source=email&amp;utm_medium=lifecycle&amp;utm_campaign=re-engagement");
+        assertThat(sendAndGetHtml(() -> emailService.sendOnboardingReminderEmail("u@example.com", "u", "de")))
+                .contains("utm_campaign=onboarding-reminder");
+        assertThat(sendAndGetHtml(() -> emailService.sendAutoSyncDormantEmail("u@example.com", "u", "de")))
+                .contains("utm_campaign=autosync-dormant");
+        assertThat(sendAndGetHtml(() -> emailService.sendAutoSyncSatisfactionEmail("u@example.com", "u", "de")))
+                .contains("/umfrage/autosync-satisfaction?utm_source=email&amp;utm_medium=lifecycle&amp;utm_campaign=autosync-satisfaction");
+    }
+
+    @Test
+    void lifecycleEmails_leaveUnsubscribeLinkUntagged() throws Exception {
+        when(jwtService.generateUnsubscribeToken(anyString())).thenReturn("jwt-token");
+
+        assertThat(sendAndGetHtml(() -> emailService.sendReEngagementEmail("u@example.com", "u", "de")))
+                .contains("/api/unsubscribe?token=jwt-token\"");
+    }
+
+    @Test
+    void transactionalEmails_carryNoUtmParameters() throws Exception {
+        assertThat(sendAndGetHtml(() -> emailService.sendVerificationEmail("u@example.com", "t", "de")))
+                .doesNotContain("utm_");
+        assertThat(sendAndGetHtml(() -> emailService.sendPasswordResetEmail("u@example.com", "t", "de")))
+                .doesNotContain("utm_");
+    }
+
+    private String sendAndGetHtml(Runnable send) throws Exception {
+        MimeMessage mimeMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        send.run();
+        mimeMessage.saveChanges();
+        return findHtml(mimeMessage);
+    }
+
+    private static String findHtml(Part part) throws Exception {
+        if (part.isMimeType("text/html")) return (String) part.getContent();
+        if (part.getContent() instanceof Multipart multipart) {
+            for (int i = 0; i < multipart.getCount(); i++) {
+                String html = findHtml(multipart.getBodyPart(i));
+                if (html != null) return html;
+            }
+        }
+        return null;
     }
 
 }
