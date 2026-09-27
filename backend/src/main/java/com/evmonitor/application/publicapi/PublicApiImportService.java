@@ -101,7 +101,8 @@ public class PublicApiImportService {
     }
 
     private ChargingEntry toChargingEntry(PublicApiSessionRequest.SessionEntry entry, LocalDateTime loggedAt) {
-        boolean isPublic = Boolean.TRUE.equals(entry.isPublicCharging());
+        // Ohne Angabe bleibt öffentlich/daheim unbekannt (V166), sonst gälte jede Ladung als Heimladung.
+        Boolean isPublic = entry.isPublicCharging();
         EnergyMeasurementType measurementType = parseEnum(EnergyMeasurementType.class, entry.measurementType(), null);
         // If only kwh_at_vehicle is provided, infer AT_VEHICLE so the EvLog
         // constructor doesn't fall back to the data-source default (AT_CHARGER for API_UPLOAD).
@@ -115,7 +116,7 @@ public class PublicApiImportService {
                 .measurementType(measurementType)
                 .costEur(entry.costEur() != null ? BigDecimal.valueOf(entry.costEur()) : null)
                 .chargeDurationMinutes(entry.durationMin())
-                .geohash(parseGeohash(entry.location(), isPublic ? 7 : 6))
+                .geohash(parseGeohash(entry.location(), Boolean.TRUE.equals(isPublic) ? 7 : 6))
                 .publicCharging(isPublic)
                 .cpoName(cpoNameNormalizer.normalize(entry.cpoName()))
                 .odometerKm(entry.odometerKm())
