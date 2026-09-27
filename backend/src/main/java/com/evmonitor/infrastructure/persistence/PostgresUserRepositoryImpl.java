@@ -186,6 +186,12 @@ public class PostgresUserRepositoryImpl implements UserRepository {
 
     @Override
     @Transactional
+    public void raiseAutosyncSlotsTo(UUID userId, int slots) {
+        jpaUserRepository.raiseAutosyncSlotsTo(userId, Math.max(1, slots));
+    }
+
+    @Override
+    @Transactional
     public void markTrialUsed(UUID userId) {
         jpaUserRepository.markTrialUsed(userId);
     }

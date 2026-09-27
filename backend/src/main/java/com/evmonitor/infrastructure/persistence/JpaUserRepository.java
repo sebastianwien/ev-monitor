@@ -141,6 +141,11 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     void setAutosyncSlots(@Param("userId") UUID userId, @Param("slots") int slots);
 
     @Modifying
+    @Query(value = "UPDATE app_user SET autosync_slots = GREATEST(autosync_slots, :slots) WHERE id = :userId",
+            nativeQuery = true)
+    void raiseAutosyncSlotsTo(@Param("userId") UUID userId, @Param("slots") int slots);
+
+    @Modifying
     @Query("UPDATE UserEntity u SET u.trialUsed = true WHERE u.id = :userId")
     void markTrialUsed(@Param("userId") UUID userId);
 

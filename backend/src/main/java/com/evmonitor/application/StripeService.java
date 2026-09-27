@@ -285,7 +285,15 @@ public class StripeService {
                 findUserByCustomerId(customerId).ifPresent(u -> {
                     SubscriptionTier oldTier = u.getSubscriptionTier();
                     userRepository.setSubscriptionTier(u.getId(), newTier);
-                    userRepository.setAutosyncSlots(u.getId(), autosyncSlotCount(customerId));
+                    // Kauf: nur anheben. Zwei Käufe kurz nacheinander (eins je Auto) kommen parallel an;
+                    // der zuerst gezählte Stand darf den zweiten nicht wieder überschreiben.
+                    // Abo-Ende (canceled, past_due, ...): tatsächlichen Stand setzen, auch nach unten.
+                    int slotCount = autosyncSlotCount(customerId);
+                    if (isActive) {
+                        userRepository.raiseAutosyncSlotsTo(u.getId(), slotCount);
+                    } else {
+                        userRepository.setAutosyncSlots(u.getId(), slotCount);
+                    }
                     if (periodEnd != null) {
                         userRepository.setSubscriptionPeriodEnd(u.getId(), periodEnd);
                     }

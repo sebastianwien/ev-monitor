@@ -77,6 +77,12 @@ public interface UserRepository {
     /** AutoSync-Plätze (ein Abo je Fahrzeug), mindestens 1. */
     void setAutosyncSlots(UUID userId, int slots);
 
+    /**
+     * Hebt die AutoSync-Plätze auf {@code slots}, senkt sie nie. Für Kauf-Webhooks: zwei parallel
+     * verarbeitete Käufe dürfen sich nicht gegenseitig auf einen veralteten Stand zurücksetzen.
+     */
+    void raiseAutosyncSlotsTo(UUID userId, int slots);
+
     void markTrialUsed(UUID userId);
 
     /**

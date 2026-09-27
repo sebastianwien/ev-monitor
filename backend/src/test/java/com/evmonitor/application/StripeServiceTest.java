@@ -1068,7 +1068,41 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.created",
                     subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
 
-            verify(userRepository).setAutosyncSlots(USER_ID, 2);
+            verify(userRepository).raiseAutosyncSlotsTo(USER_ID, 2);
+        }
+
+        /**
+         * Zwei Käufe kurz nacheinander kommen parallel an. Zählt der erste Webhook noch 1, während der
+         * zweite schon 2 gesetzt hat, darf der erste nicht auf 1 zurücksetzen: Kauf hebt nur an.
+         */
+        @Test
+        void activeEvent_neverLowersSlots() {
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(subscriptionLookup.activePriceIds(CUSTOMER_ID)).thenReturn(List.of("price_a"));
+
+            stripeService.dispatch("customer.subscription.created",
+                    subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L));
+
+            verify(userRepository).raiseAutosyncSlotsTo(USER_ID, 1);
+            verify(userRepository, never()).setAutosyncSlots(any(), anyInt());
+        }
+
+        /** Endet ein Abo über updated(canceled), wird der echte Stand gesetzt, auch nach unten. */
+        @Test
+        void canceledEvent_setsSlotsDownward() {
+            installMockRestTemplate();
+            User user = userWithRole(USER_ID, "USER", true);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            when(subscriptionLookup.activePriceIdsExcept(CUSTOMER_ID, "sub_ending")).thenReturn(List.of("price_other"));
+            when(subscriptionLookup.activePriceIds(CUSTOMER_ID)).thenReturn(List.of("price_other"));
+
+            JsonObject data = subscriptionPayload(CUSTOMER_ID, "canceled", 1_800_000_000L);
+            data.addProperty("id", "sub_ending");
+            stripeService.dispatch("customer.subscription.updated", data);
+
+            verify(userRepository).setAutosyncSlots(USER_ID, 1);
+            verify(userRepository, never()).raiseAutosyncSlotsTo(any(), anyInt());
         }
 
         /** Endet eins von zwei Abos, bleibt ein Slot. */
@@ -1099,7 +1133,7 @@ class StripeServiceTest {
             stripeService.dispatch("customer.subscription.updated",
                     subscriptionPayload(CUSTOMER_ID, "active", 1_800_000_000L, "price_a"));
 
-            verify(userRepository).setAutosyncSlots(USER_ID, 1);
+            verify(userRepository).raiseAutosyncSlotsTo(USER_ID, 1);
         }
 
         /** Ohne laufendes Abo bleibt der Standard von einem Slot, nie null. */
@@ -1124,6 +1158,7 @@ class StripeServiceTest {
                     subscriptionPayload(CUSTOMER_ID, "incomplete", 1_800_000_000L));
 
             verify(userRepository, never()).setAutosyncSlots(any(), anyInt());
+            verify(userRepository, never()).raiseAutosyncSlotsTo(any(), anyInt());
             verify(subscriptionLookup, never()).activePriceIds(anyString());
         }
     }
