@@ -13,6 +13,7 @@ import {
     type SurveyAnswers,
 } from '../config/surveys'
 import { getSurveyStatus, submitSurvey } from '../api/surveyService'
+import { analytics } from '../services/analytics'
 
 const route = useRoute()
 const { locale } = useI18n()
@@ -95,6 +96,7 @@ async function submit() {
         }
         await submitSurvey(slug, payload)
         submitted.value = true
+        analytics.track('survey_submitted', { slug })
     } catch {
         error.value = loc(surveyText.error)
     } finally {
