@@ -1,9 +1,13 @@
 package com.evmonitor.application.tessie;
 
+import com.evmonitor.application.EvLogSavedEvent;
+import com.evmonitor.application.SohAutoDetectEvent;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.CoinLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +17,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -46,6 +52,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Testcontainers(disabledWithoutDocker = true)
 @ActiveProfiles("test")
+@RecordApplicationEvents
 class TessieProcessorServiceIT {
 
     @Container
@@ -73,6 +80,15 @@ class TessieProcessorServiceIT {
 
     @Autowired
     private CarRepository carRepository;
+
+    @Autowired
+    private CoinLogRepository coinLogRepository;
+
+    @Autowired
+    private ImportEventRepository importEventRepository;
+
+    @Autowired
+    private ApplicationEvents events;
 
     private UUID userId;
     private UUID carId;
@@ -333,6 +349,38 @@ class TessieProcessorServiceIT {
                 "SELECT COUNT(*) FROM ev_log WHERE car_id = ? AND data_source = 'TESSIE' AND deleted_at IS NULL",
                 Long.class, carId);
         assertEquals(0L, active);
+    }
+
+    /**
+     * Heute ohne alles, was das Gateway sonst tut: Uhrzeit mit Sekunden, kein Preis, keine Watt,
+     * Heimtarif), keine Watt, kein Import-Protokoll, keine SoH-Erkennung. Temperatur wird nachgeholt.
+     */
+    @Test
+    void processForCar_charge_keepsSeconds_noCostNoCoinsNoProtocolNoSoh() {
+        long t = 1700900005L;   // 2023-11-25T08:13:25Z
+        insertCharge(50L, """
+                {"id":50,"started_at":%d,"ended_at":%d,"energy_added":12.0,
+                 "starting_battery":40,"ending_battery":58,"odometer":64000,
+                 "latitude":52.50,"longitude":13.40,
+                 "is_supercharger":false,"is_fast_charger":false,"charger_power":11.0}
+                """.formatted(t, t + 7200));
+
+        processor.processForCar(userId, vin, carId);
+
+        Map<String, Object> row = jdbc.queryForMap("""
+                SELECT EXTRACT(SECOND FROM logged_at)::int AS sec, cost_eur, kwh_charged, kwh_at_vehicle,
+                       is_public_charging
+                FROM ev_log WHERE car_id = ? AND data_source = 'TESSIE'
+                """, carId);
+        assertEquals(25, row.get("sec"));
+        assertNull(row.get("cost_eur"));
+        assertNull(row.get("kwh_charged"));
+        assertEquals(0, new BigDecimal("12.00").compareTo((BigDecimal) row.get("kwh_at_vehicle")));
+        assertEquals(false, row.get("is_public_charging"));
+        assertTrue(coinLogRepository.findAllByUserId(userId).isEmpty());
+        assertTrue(importEventRepository.findAll().stream().noneMatch(e -> userId.equals(e.getUserId())));
+        assertEquals(0, events.stream(SohAutoDetectEvent.class).count());
+        assertEquals(1, events.stream(EvLogSavedEvent.class).count());
     }
 
     private void insertCharge(long tessieId, String json) {
