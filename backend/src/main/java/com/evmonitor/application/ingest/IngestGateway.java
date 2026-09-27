@@ -300,9 +300,18 @@ public class IngestGateway {
      */
     @Transactional
     public TripIngest ingestTrip(InternalTripRequest req) {
+        return ingestTrip(req, null);
+    }
+
+    /**
+     * Wie {@link #ingestTrip(InternalTripRequest)}, mit Streckenart. Der Vertrag der internen API kennt das
+     * Feld nicht; nur Importe, die sie selbst ableiten (Tessie aus der Durchschnittsgeschwindigkeit), geben sie mit.
+     */
+    @Transactional
+    public TripIngest ingestTrip(InternalTripRequest req, String routeType) {
         long started = System.nanoTime();
         try {
-            TripIngest ingest = ingestTripOnce(req);
+            TripIngest ingest = ingestTripOnce(req, routeType);
             importEvents.record(tripEvent(req, req.carId())
                     .outcome(ingest.created() ? ImportEventOutcome.IMPORTED : ImportEventOutcome.NO_NEW_DATA)
                     .tripsImported(ingest.created() ? 1 : 0)
@@ -321,7 +330,7 @@ public class IngestGateway {
     /** @param created false = schon vorhanden (auch gelöscht), {@code id} ist dann die vorhandene Fahrt */
     public record TripIngest(UUID id, boolean created) {}
 
-    private TripIngest ingestTripOnce(InternalTripRequest req) {
+    private TripIngest ingestTripOnce(InternalTripRequest req, String routeType) {
         if (req.userId() == null) {
             throw new ValidationException("userId is required");
         }
@@ -363,6 +372,7 @@ public class IngestGateway {
                 .rawPayload(req.rawPayload())
                 .telemetryExtras(req.telemetryExtras())
                 .tracePolyline(req.tracePolyline())
+                .routeType(routeType)
                 .userCreated(false)
                 .build();
 

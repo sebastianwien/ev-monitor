@@ -1,13 +1,19 @@
 package com.evmonitor.application.tessie;
 
 import ch.hsr.geohash.GeoHash;
-import com.evmonitor.application.EvLogSavedEvent;
-import com.evmonitor.domain.Car;
-import com.evmonitor.domain.CarRepository;
+import com.evmonitor.application.InternalTripRequest;
+import com.evmonitor.application.ingest.ChargingEntry;
+import com.evmonitor.application.ingest.IngestCommand;
+import com.evmonitor.application.ingest.IngestDoor;
+import com.evmonitor.application.ingest.IngestGateway;
+import com.evmonitor.domain.ChargingType;
+import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.EnergyMeasurementType;
 import com.evmonitor.domain.EvTrip;
+import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -19,8 +25,10 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -31,8 +39,8 @@ import java.util.UUID;
  * Two-stage architecture:
  *  - Stage A (SQL): merge consecutive sub-sessions via window functions, returns aggregated rows.
  *  - Stage B (Java): compute geohash with the project's canonical {@link GeoHash} library,
- *    classify public/private (DC always public; AC > 11 kW public; otherwise private),
- *    batch-insert into ev_log / ev_trip via JdbcTemplate.
+ *    classify public (DC always public; AC > 11 kW public; otherwise unknown - Tessie says nothing
+ *    about home vs. elsewhere), hand charges and drives to the {@link IngestGateway}.
  *
  * After processing, sets {@code tessie_raw_imports.processed = true} for the (user, vin) scope.
  */
@@ -44,38 +52,39 @@ public class TessieProcessorService {
     static final BigDecimal AC_PUBLIC_THRESHOLD_KW = new BigDecimal("11.0");
 
     private final NamedParameterJdbcTemplate jdbc;
-    private final CarRepository carRepository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final IngestGateway ingestGateway;
     private final String chargesMergeSql;
     private final String drivesMergeSql;
     private final String routeTypeBackfillSql;
 
     public TessieProcessorService(
             NamedParameterJdbcTemplate jdbc,
-            CarRepository carRepository,
-            ApplicationEventPublisher eventPublisher,
+            IngestGateway ingestGateway,
             @Value("classpath:sql/tessie/process_charges_merge.sql") Resource chargesMergeResource,
             @Value("classpath:sql/tessie/process_drives_merge.sql") Resource drivesMergeResource,
             @Value("classpath:sql/tessie/route_type_backfill.sql") Resource routeTypeBackfillResource
     ) {
         this.jdbc = jdbc;
-        this.carRepository = carRepository;
-        this.eventPublisher = eventPublisher;
+        this.ingestGateway = ingestGateway;
         this.chargesMergeSql = readResource(chargesMergeResource);
         this.drivesMergeSql = readResource(drivesMergeResource);
         this.routeTypeBackfillSql = readResource(routeTypeBackfillResource);
     }
 
+    /** Eine Transaktion für Ladungen, Fahrten, Streckenart-Nachtrag und processed-Flag. */
     @Transactional
     public TessieProcessorResult processForCar(UUID userId, String vin, UUID carId) {
-        Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new IllegalArgumentException("Car not found: " + carId));
-        if (!car.isOwnedBy(userId)) {
+        int evLogsCreated;
+        int evTripsCreated;
+        try {
+            // Das Gateway prüft den Besitz auch bei leerer Liste, also vor den Fahrten.
+            evLogsCreated = processCharges(userId, vin, carId);
+            evTripsCreated = processDrives(userId, vin, carId);
+        } catch (NotFoundException e) {
+            throw new IllegalArgumentException("Car not found: " + carId);
+        } catch (ForbiddenException e) {
             throw new IllegalArgumentException("Car does not belong to user");
         }
-
-        int evLogsCreated = processCharges(userId, vin, carId);
-        int evTripsCreated = processDrives(userId, vin, carId);
 
         if (evLogsCreated > 0 && evTripsCreated > 0) {
             jdbc.update(routeTypeBackfillSql, new MapSqlParameterSource("carId", carId));
@@ -109,76 +118,29 @@ public class TessieProcessorService {
                 rs.getBigDecimal("charger_power_kw")
         ));
 
-        if (merged.isEmpty()) return 0;
-
-        // Gelöschte Ladungen blockieren wie vor V190 (NOT EXISTS sieht Tombstones); der Unique-Index gilt
-        // seit V190 nur für aktive Zeilen, ON CONFLICT braucht deshalb dessen Prädikat.
-        String insertSql = """
-                INSERT INTO ev_log (
-                    id, car_id,
-                    kwh_at_vehicle, charge_duration_minutes,
-                    logged_at, odometer_km,
-                    soc_start_percent, soc_after_charge_percent,
-                    geohash, is_public_charging, charging_type,
-                    data_source, measurement_type, include_in_statistics,
-                    created_at, updated_at
-                )
-                SELECT
-                    ?::uuid, ?::uuid,
-                    ?, ?,
-                    ?, ?,
-                    ?, ?,
-                    ?, ?, ?,
-                    'TESSIE', 'AT_VEHICLE', true,
-                    NOW(), NOW()
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM ev_log WHERE car_id = ?::uuid AND logged_at = ? AND data_source = 'TESSIE'
-                )
-                ON CONFLICT (car_id, logged_at, data_source) WHERE deleted_at IS NULL DO NOTHING
-                """;
-
-        List<Object[]> batch = new ArrayList<>(merged.size());
-        List<EvLogSavedEvent> pendingEnrichment = new ArrayList<>(merged.size());
+        List<ChargingEntry> entries = new ArrayList<>(merged.size());
         for (MergedCharge c : merged) {
             BigDecimal effectivePower = effectivePowerKw(c.kwhCharged(), c.startedAtEpoch(), c.endedAtEpoch(), c.chargerPowerKw());
             boolean isDc = c.isSupercharger() || c.isFastCharger();
             boolean isPublic = isDc || (effectivePower != null && effectivePower.compareTo(AC_PUBLIC_THRESHOLD_KW) > 0);
-            String geohash = geohash(c.lat(), c.lon(), isPublic ? 7 : 6);
-            int durationMinutes = (int) Math.round((c.endedAtEpoch() - c.startedAtEpoch()) / 60.0);
-            Integer odometerKm = c.odometerKm() != null ? c.odometerKm().setScale(0, RoundingMode.HALF_UP).intValue() : null;
-            UUID logId = UUID.randomUUID();
-            Timestamp loggedAt = Timestamp.from(Instant.ofEpochSecond(c.startedAtEpoch()));
-
-            batch.add(new Object[]{
-                    logId.toString(),
-                    carId.toString(),
-                    c.kwhCharged() != null ? c.kwhCharged().setScale(2, RoundingMode.HALF_UP) : null,
-                    durationMinutes,
-                    loggedAt,
-                    odometerKm,
-                    c.socStart(),
-                    c.socEnd(),
-                    geohash,
-                    isPublic,
-                    isDc ? "DC" : "AC",
-                    carId.toString(),
-                    loggedAt
-            });
-            // Tessie liefert keine Aussentemperatur zur Ladung - die holt die Wetter-Anreicherung nach.
-            pendingEnrichment.add(EvLogSavedEvent.of(logId, geohash, loggedAt.toLocalDateTime(), durationMinutes, null));
+            entries.add(ChargingEntry.builder()
+                    .loggedAt(LocalDateTime.ofEpochSecond(c.startedAtEpoch(), 0, ZoneOffset.UTC))
+                    .kwhAtVehicle(c.kwhCharged() != null ? c.kwhCharged().setScale(2, RoundingMode.HALF_UP) : null)
+                    .measurementType(EnergyMeasurementType.AT_VEHICLE)
+                    .chargeDurationMinutes((int) Math.round((c.endedAtEpoch() - c.startedAtEpoch()) / 60.0))
+                    .odometerKm(c.odometerKm() != null ? c.odometerKm().setScale(0, RoundingMode.HALF_UP).intValue() : null)
+                    .socBefore(c.socStart() != null ? BigDecimal.valueOf(c.socStart()) : null)
+                    .socAfter(c.socEnd() != null ? BigDecimal.valueOf(c.socEnd()) : null)
+                    .geohash(geohash(c.lat(), c.lon(), isPublic ? 7 : 6))
+                    // Langsames AC sagt nichts über daheim: ohne Angabe bleibt es unbekannt, der Heimtarif greift nicht.
+                    .publicCharging(isPublic ? Boolean.TRUE : null)
+                    .chargingType(isDc ? ChargingType.DC : ChargingType.AC)
+                    .build());
         }
 
-        // Der Import schreibt per JdbcTemplate an EvLogService vorbei (Bulk-Insert) und muss die
-        // Wetter-Anreicherung deshalb selbst anstossen - sonst bleibt jede importierte Ladung ohne
-        // Temperatur. Der Listener haengt an AFTER_COMMIT, laeuft also erst wenn der Import durch ist.
-        int[] result = jdbc.getJdbcTemplate().batchUpdate(insertSql, batch);
-        int inserted = 0;
-        for (int i = 0; i < result.length; i++) {
-            if (result[i] <= 0) continue;   // Zeile existierte schon (aktiv oder gelöscht)
-            inserted++;
-            eventPublisher.publishEvent(pendingEnrichment.get(i));
-        }
-        return inserted;
+        // Auch leer: das Gateway prüft den Besitz und protokolliert den Import.
+        return ingestGateway.ingestCharging(
+                new IngestCommand(userId, carId, DataSource.TESSIE, IngestDoor.IMPORT_BATCH, entries)).imported();
     }
 
     // ---------- drives ------------------------------------------------------
@@ -206,63 +168,31 @@ public class TessieProcessorService {
                 rs.getBigDecimal("max_speed")
         ));
 
-        if (merged.isEmpty()) return 0;
-
-        String insertSql = """
-                INSERT INTO ev_trip (
-                    id, user_id, car_id, data_source,
-                    trip_started_at, trip_ended_at,
-                    soc_start, soc_end,
-                    odometer_start_km, odometer_end_km, distance_km,
-                    estimated_consumed_kwh,
-                    location_start_geohash, location_end_geohash,
-                    outside_temp_celsius, route_type,
-                    avg_speed_kmh, max_speed_kmh,
-                    status, created_at, user_created
-                ) VALUES (
-                    ?::uuid, ?::uuid, ?::uuid, 'TESSIE',
-                    ?, ?,
-                    ?, ?,
-                    ?, ?, ?,
-                    ?,
-                    ?, ?,
-                    ?, ?,
-                    ?, ?,
-                    'COMPLETED', NOW(), false
-                )
-                """;
-
-        List<Object[]> batch = new ArrayList<>(merged.size());
-        for (MergedDrive d : merged) {
-            String startGeohash = geohash(d.latStart(), d.lonStart(), 6);
-            String endGeohash = geohash(d.latEnd(), d.lonEnd(), 6);
-            String routeType = classifyRouteType(d.weightedAvgSpeed());
-            BigDecimal[] speeds = sanitizeSpeedPair(d.weightedAvgSpeed(), d.maxSpeed());
-
-            batch.add(new Object[]{
-                    UUID.randomUUID().toString(),
-                    userId.toString(),
-                    carId.toString(),
-                    Timestamp.from(Instant.ofEpochSecond(d.startedAtEpoch())),
-                    Timestamp.from(Instant.ofEpochSecond(d.endedAtEpoch())),
-                    d.socStart(),
-                    d.socEnd(),
-                    scale1(d.odoStartKm()),
-                    scale1(d.odoEndKm()),
-                    scale1(d.distanceKm()),
-                    scale2(d.energyKwh()),
-                    startGeohash,
-                    endGeohash,
-                    scale1(d.tempCelsius()),
-                    routeType,
-                    speeds[0],
-                    speeds[1]
-            });
-        }
-
-        int[] result = jdbc.getJdbcTemplate().batchUpdate(insertSql, batch);
         int inserted = 0;
-        for (int r : result) inserted += Math.max(r, 0);
+        for (MergedDrive d : merged) {
+            BigDecimal[] speeds = sanitizeSpeedPair(d.weightedAvgSpeed(), d.maxSpeed());
+            InternalTripRequest trip = InternalTripRequest.builder()
+                    .carId(carId)
+                    .userId(userId)
+                    .dataSource(DataSource.TESSIE.name())
+                    .tripStartedAt(OffsetDateTime.ofInstant(Instant.ofEpochSecond(d.startedAtEpoch()), ZoneOffset.UTC))
+                    .tripEndedAt(OffsetDateTime.ofInstant(Instant.ofEpochSecond(d.endedAtEpoch()), ZoneOffset.UTC))
+                    .socStart(d.socStart())
+                    .socEnd(d.socEnd())
+                    .odometerStartKm(scale1(d.odoStartKm()))
+                    .odometerEndKm(scale1(d.odoEndKm()))
+                    .distanceKm(scale1(d.distanceKm()))
+                    .estimatedConsumedKwh(scale2(d.energyKwh()))
+                    .locationStartGeohash(geohash(d.latStart(), d.lonStart(), 6))
+                    .locationEndGeohash(geohash(d.latEnd(), d.lonEnd(), 6))
+                    .outsideTempCelsius(scale1(d.tempCelsius()))
+                    .avgSpeedKmh(speeds[0])
+                    .maxSpeedKmh(speeds[1])
+                    .status("COMPLETED")
+                    .build();
+            // Ohne externalId keine Dedup, wie bisher: erneute Läufe verhindert das processed-Flag.
+            if (ingestGateway.ingestTrip(trip, classifyRouteType(d.weightedAvgSpeed())).created()) inserted++;
+        }
         return inserted;
     }
 

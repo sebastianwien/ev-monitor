@@ -17,8 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Leitplanke D15: Importe schreiben {@code ev_log} und {@code ev_trip} nur über das
  * {@code IngestGateway}, und im Gateway entscheidet die Policy-Tabelle, nicht ein Vergleich auf
- * die Quelle. Bearbeitungen bestehender Zeilen tragen den Marker {@value #BYPASS_MARKER}; offene
- * Importe stehen benannt in {@code PENDING} und schrumpfen je Release (R2h).
+ * die Quelle. Bearbeitungen bestehender Zeilen tragen den Marker {@value #BYPASS_MARKER}. Seit R2h
+ * läuft jeder Import durchs Gateway, es gibt keine offenen Ausnahmen mehr.
  */
 class IngestGuardTest {
 
@@ -44,10 +44,6 @@ class IngestGuardTest {
      */
     static final String BYPASS_MARKER = "ingest-bypass:";
 
-    /** Importe, die noch nicht durchs Gateway laufen. Jede Zeile hier ist offene Arbeit. */
-    private static final Map<String, String> PENDING = Map.of(
-            "application/tessie/TessieProcessorService.java", "R2h");
-
     private static final Pattern SOURCE_COMPARISON = Pattern.compile(
             "DataSource\\.[A-Z_]+\\s*[!=]=|[!=]=\\s*DataSource\\.[A-Z_]+"
                     + "|DataSource\\.[A-Z_]+\\.equals\\(|\\.equals\\(\\s*DataSource\\.[A-Z_]+");
@@ -57,7 +53,7 @@ class IngestGuardTest {
         List<String> offenders = new ArrayList<>();
         for (Path file : javaFiles(MAIN)) {
             String rel = MAIN.relativize(file).toString();
-            if (ALLOWED.containsKey(rel) || PENDING.containsKey(rel)) continue;
+            if (ALLOWED.containsKey(rel)) continue;
             String source = Files.readString(file);
             Matcher m = WRITE.matcher(source);
             while (m.find()) {
@@ -67,16 +63,6 @@ class IngestGuardTest {
             }
         }
         assertThat(offenders).as("Schreibzugriff auf ev_log/ev_trip außerhalb des IngestGateway").isEmpty();
-    }
-
-    /** Wer einen Import aufs Gateway umstellt, streicht ihn hier; sonst bleibt die Liste zu groß. */
-    @Test
-    void pendingExceptionsStillWrite() throws IOException {
-        for (String rel : PENDING.keySet()) {
-            assertThat(WRITE.matcher(Files.readString(MAIN.resolve(rel))).find())
-                    .as("%s schreibt nicht mehr selbst, Ausnahme aus PENDING streichen", rel)
-                    .isTrue();
-        }
     }
 
     @Test

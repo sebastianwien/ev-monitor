@@ -14,13 +14,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Die Policy-Tabelle bildet die gemessenen Regeln der beiden alten Türen ab (R2a, Verhalten
- * identisch). Fast alles hängt heute an der Tür; nur Dedup-Fenster, Tronity-Remap, Tesla-Coins und
- * Spritmonitor (kein Bump, eigene Watt, R2g) hängen an der Quelle.
+ * identisch). Fast alles hängt heute an der Tür; nur Dedup-Fenster, Tronity-Remap, Tesla-Coins,
+ * Spritmonitor (kein Bump, eigene Watt, R2g) und Tessie (keine Watt, R2h) hängen an der Quelle.
  */
 class IngestPoliciesTest {
 
     @ParameterizedTest
-    @EnumSource(value = DataSource.class, names = "SPRITMONITOR_IMPORT", mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = DataSource.class, names = {"SPRITMONITOR_IMPORT", "TESSIE"}, mode = EnumSource.Mode.EXCLUDE)
     void importBatch_bumpsIsolatesAndPaysApiCoins_withoutInheritanceOrSohEvent(DataSource source) {
         IngestPolicy p = IngestPolicies.forSource(source, IMPORT_BATCH);
 
@@ -41,6 +41,19 @@ class IngestPoliciesTest {
 
         assertThat(p.bumpSameTimestampInBatch()).isFalse();
         assertThat(p.coinEvent()).isEqualTo(CoinEvent.SPRITMONITOR_LOG);
+        assertThat(p.isolateEntryErrors()).isTrue();
+        assertThat(p.inheritTireAndRouteType()).isFalse();
+        assertThat(p.sohEventWithoutVehicleKwh()).isFalse();
+        assertThat(p.dedupWindow()).isEqualTo(Duration.ZERO);
+    }
+
+    /** Tessie bekommt wie bisher keine Watt (R2h); sonst Regeln der Import-Tür. */
+    @Test
+    void importBatch_tessie_paysNoCoins() {
+        IngestPolicy p = IngestPolicies.forSource(DataSource.TESSIE, IMPORT_BATCH);
+
+        assertThat(p.coinEvent()).isNull();
+        assertThat(p.bumpSameTimestampInBatch()).isTrue();
         assertThat(p.isolateEntryErrors()).isTrue();
         assertThat(p.inheritTireAndRouteType()).isFalse();
         assertThat(p.sohEventWithoutVehicleKwh()).isFalse();

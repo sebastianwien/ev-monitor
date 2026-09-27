@@ -47,9 +47,11 @@ public final class IngestPolicies {
         };
     }
 
+    /** Tessie bekam nie Watt (früher eigener SQL-Weg), das bleibt so. */
     private static CoinEvent batchCoinEvent(DataSource source) {
         return switch (source) {
             case SPRITMONITOR_IMPORT -> CoinEvent.SPRITMONITOR_LOG;
+            case TESSIE -> null;
             default -> CoinEvent.API_UPLOAD_LOG;
         };
     }

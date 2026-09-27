@@ -1,12 +1,20 @@
 package com.evmonitor.application.tessie;
 
+import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.EvLogSavedEvent;
 import com.evmonitor.application.SohAutoDetectEvent;
+import com.evmonitor.application.ingest.event.ImportEventOutcome;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.CoinLogRepository;
+import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.EvLog;
+import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.domain.route.RouteSketcher;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEvent;
 import com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,17 +26,20 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verify;
 
 /**
  * Integration test for {@link TessieProcessorService} against a real PostgreSQL
@@ -90,6 +101,12 @@ class TessieProcessorServiceIT {
     @Autowired
     private ApplicationEvents events;
 
+    @Autowired
+    private EvLogRepository evLogRepository;
+
+    @MockitoBean
+    private RouteSketcher routeSketcher;
+
     private UUID userId;
     private UUID carId;
     private final String vin = "5YJ3E7EAXKF000001";
@@ -145,7 +162,7 @@ class TessieProcessorServiceIT {
         assertEquals(0, ((BigDecimal) rows.get(0).get("kwh_at_vehicle")).compareTo(new BigDecimal("40.00")));
 
         assertEquals("AC", rows.get(1).get("charging_type"));
-        assertEquals(Boolean.FALSE, rows.get(1).get("is_public_charging"));
+        assertNull(rows.get(1).get("is_public_charging"), "AC bis 11 kW: öffentlich/daheim unbekannt (R2h)");
         assertEquals(6, ((String) rows.get(1).get("geohash")).length());
 
         assertEquals("AC", rows.get(2).get("charging_type"));
@@ -352,35 +369,95 @@ class TessieProcessorServiceIT {
     }
 
     /**
-     * Heute ohne alles, was das Gateway sonst tut: Uhrzeit mit Sekunden, kein Preis, keine Watt,
-     * Heimtarif), keine Watt, kein Import-Protokoll, keine SoH-Erkennung. Temperatur wird nachgeholt.
+     * Über das Gateway (R2h, bewusst geändert): Uhrzeit auf die Minute, SoH-Erkennung angestoßen, eine Zeile
+     * Import-Protokoll, AC bis 11 kW ohne Aussage öffentlich/daheim. Wie bisher: keine Watt, ohne bezahlte
+     * Ladung am Ort kein Preis, Temperatur wird nachgeholt (ein EvLogSavedEvent je Ladung).
      */
     @Test
-    void processForCar_charge_keepsSeconds_noCostNoCoinsNoProtocolNoSoh() {
+    void processForCar_charge_viaGateway() {
         long t = 1700900005L;   // 2023-11-25T08:13:25Z
-        insertCharge(50L, """
-                {"id":50,"started_at":%d,"ended_at":%d,"energy_added":12.0,
-                 "starting_battery":40,"ending_battery":58,"odometer":64000,
-                 "latitude":52.50,"longitude":13.40,
-                 "is_supercharger":false,"is_fast_charger":false,"charger_power":11.0}
-                """.formatted(t, t + 7200));
+        insertCharge(50L, privateAcCharge(50, t));
 
         processor.processForCar(userId, vin, carId);
 
         Map<String, Object> row = jdbc.queryForMap("""
                 SELECT EXTRACT(SECOND FROM logged_at)::int AS sec, cost_eur, kwh_charged, kwh_at_vehicle,
-                       is_public_charging
+                       is_public_charging, measurement_type
                 FROM ev_log WHERE car_id = ? AND data_source = 'TESSIE'
                 """, carId);
-        assertEquals(25, row.get("sec"));
+        assertEquals(0, row.get("sec"));
         assertNull(row.get("cost_eur"));
         assertNull(row.get("kwh_charged"));
         assertEquals(0, new BigDecimal("12.00").compareTo((BigDecimal) row.get("kwh_at_vehicle")));
-        assertEquals(false, row.get("is_public_charging"));
+        assertEquals("AT_VEHICLE", row.get("measurement_type"));
+        assertNull(row.get("is_public_charging"));
         assertTrue(coinLogRepository.findAllByUserId(userId).isEmpty());
-        assertTrue(importEventRepository.findAll().stream().noneMatch(e -> userId.equals(e.getUserId())));
-        assertEquals(0, events.stream(SohAutoDetectEvent.class).count());
+        assertEquals(1, events.stream(SohAutoDetectEvent.class).count());
         assertEquals(1, events.stream(EvLogSavedEvent.class).count());
+        List<ImportEvent> protocol = importEvents();
+        assertEquals(1, protocol.size());
+        assertEquals("TESSIE", protocol.get(0).getDataSource());
+        assertEquals(ImportEventOutcome.IMPORTED, protocol.get(0).getOutcome());
+        assertEquals(1, protocol.get(0).getSessionsImported());
+    }
+
+    /** Preis vom Ort (R2h, bewusst geändert): eine bezahlte Ladung am selben Ort bepreist die Tessie-Ladung mit. */
+    @Test
+    void processForCar_charge_isPricedFromSameLocation() {
+        evLogRepository.save(EvLog.createNewWithSource(carId, new BigDecimal("30"), new BigDecimal("9.00"), 60,
+                        GeoHash.withCharacterPrecision(52.50, 13.40, 6).toBase32(), null, null, null,
+                        LocalDateTime.of(2023, 11, 1, 18, 0), DataSource.USER_LOGGED, ChargingType.AC, null)
+                .toBuilder().pricePerKwh(new BigDecimal("0.30")).build());
+        insertCharge(51L, privateAcCharge(51, 1700900005L));
+
+        processor.processForCar(userId, vin, carId);
+
+        Map<String, Object> row = jdbc.queryForMap("""
+                SELECT cost_eur, price_per_kwh
+                FROM ev_log WHERE car_id = ? AND data_source = 'TESSIE'
+                """, carId);
+        assertNotNull(row.get("cost_eur"));
+        assertEquals(0, new BigDecimal("0.30").compareTo((BigDecimal) row.get("price_per_kwh")));
+    }
+
+    /**
+     * Fahrten über das Gateway (R2h, bewusst geändert): nach dem Commit die Routenlinie aus Start- und Zielort,
+     * je Fahrt eine Zeile Import-Protokoll. Streckenart weiter aus der Durchschnittsgeschwindigkeit.
+     */
+    @Test
+    void processForCar_drive_getsRouteSketch_andImportEvent() {
+        long t = 1701000000L;
+        insertDrive(60L, """
+                {"id":60,"started_at":%d,"ended_at":%d,"starting_battery":80,"ending_battery":70,
+                 "starting_odometer":1000.0,"ending_odometer":1030.0,"odometer_distance":30.0,
+                 "energy_used":5.0,"starting_latitude":52.50,"starting_longitude":13.40,
+                 "ending_latitude":52.60,"ending_longitude":13.60,"average_outside_temperature":12.0,
+                 "average_speed":100,"max_speed":130}
+                """.formatted(t, t + 1800));
+
+        processor.processForCar(userId, vin, carId);
+
+        Map<String, Object> trip = jdbc.queryForMap(
+                "SELECT id, location_start_geohash, location_end_geohash, route_type, user_created FROM ev_trip "
+                        + "WHERE car_id = ? AND data_source = 'TESSIE'", carId);
+        verify(routeSketcher).sketchTrip((UUID) trip.get("id"),
+                (String) trip.get("location_start_geohash"), (String) trip.get("location_end_geohash"));
+        assertEquals(Boolean.FALSE, trip.get("user_created"));
+        assertEquals(1, importEvents().stream().filter(e -> e.getTripsImported() == 1).count());
+    }
+
+    /** Private AC-Ladung in Berlin: 12 kWh in 2 Stunden (6 kW), Start zur Sekunde {@code startedAt}. */
+    private static String privateAcCharge(long tessieId, long startedAt) {
+        return """
+                {"id":%d,"started_at":%d,"ended_at":%d,"energy_added":12.0,
+                 "starting_battery":40,"ending_battery":58,"odometer":64000,
+                 "latitude":52.50,"longitude":13.40,
+                 "is_supercharger":false,"is_fast_charger":false,"charger_power":11.0}
+                """.formatted(tessieId, startedAt, startedAt + 7200);
+    }
+
+    private List<ImportEvent> importEvents() {
+        return importEventRepository.findAll().stream().filter(e -> userId.equals(e.getUserId())).toList();
     }
 
     private void insertCharge(long tessieId, String json) {
