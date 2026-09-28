@@ -36,7 +36,16 @@ import { useLightbox } from '../composables/useLightbox'
 import CommunityLeaderboard from '../components/shared/CommunityLeaderboard.vue'
 import PublicModelCard from '../components/shared/PublicModelCard.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+
+// Erklärfilm ist nur deutsch vertont, daher nur für deutschsprachige Locale.
+const showExplainerVideo = computed(() => locale.value.startsWith('de'))
+let explainerPlayTracked = false
+const onExplainerPlay = () => {
+  if (explainerPlayTracked) return
+  explainerPlayTracked = true
+  analytics.track('explainer_video_play', { source: 'landing_consumption_trust' })
+}
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
@@ -524,6 +533,25 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
           <p class="mt-3 max-w-2xl mx-auto text-gray-600 dark:text-gray-300">
             {{ t('landing.consumption_trust.intro') }}
           </p>
+
+          <!-- Erklärfilm (nur de): illustriert genau diese Aussage. Kein Autoplay,
+               preload none, damit Mobilfunk-Nutzer die 4,6 MB nicht ungefragt laden. -->
+          <div v-if="showExplainerVideo" class="mt-6 -mx-6 sm:mx-auto sm:max-w-2xl">
+            <video
+              controls
+              playsinline
+              preload="none"
+              poster="/video/erklaerfilm-poster.jpg"
+              width="1920"
+              height="1080"
+              :aria-label="t('landing.explainer_video.aria')"
+              class="w-full h-auto block bg-white sm:rounded-lg sm:border sm:border-gray-200 sm:dark:border-gray-600"
+              @play="onExplainerPlay"
+            >
+              <source src="/video/erklaerfilm-16x9.mp4" type="video/mp4" />
+            </video>
+            <p class="mt-2 px-6 sm:px-0 text-xs text-gray-500 dark:text-gray-400">{{ t('landing.explainer_video.label') }}</p>
+          </div>
 
           <!-- Flow: Aufladen -> Parken -> Fahren -> Parken -> Aufladen -->
           <div class="mt-7 grid grid-cols-1 gap-2.5 md:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr_auto_1fr] md:items-stretch">

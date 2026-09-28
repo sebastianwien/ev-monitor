@@ -160,6 +160,9 @@ landing:
     chip_soh: "Akku-Gesundheit 94,3%"
     chip_efficiency: "91,8% Effizienz"
     chip_range: "+236 km Reichweite"
+  explainer_video:
+    label: "47 Sekunden, Beispielwerte eines fiktiven Autos"
+    aria: "Erklärfilm: Ehrliche Zahlen statt Prospektwerte"
     gallery_title: "Noch mehr Einblicke"
     map_label: "Lade-Standorte"
     map_title: "Wo du überall geladen hast"
