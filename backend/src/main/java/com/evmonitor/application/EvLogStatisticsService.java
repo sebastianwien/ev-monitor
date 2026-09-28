@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 public class EvLogStatisticsService {
 
     private static final int MIN_TRIPS_FOR_CAR_RANGE = 5;
+    /** Unter dieser Stichprobe im Zeitraum fällt die Peer-Seite auf Lifetime zurück. */
+    private static final int MIN_PEER_PERIOD_SAMPLE = 3;
 
     private final EvLogRepository evLogRepository;
     private final EvTripRepository evTripRepository;
@@ -369,8 +371,14 @@ public class EvLogStatisticsService {
 
         if (nonSeedPeerCars.isEmpty()) return null;
 
-        // Peer consumption within the same period as the user side
+        // Peer consumption within the same period as the user side; too thin a sample falls back to lifetime
+        boolean hasPeriod = startDate != null || endDate != null;
         CommunityConsumptionResult peerConsumption = calculateCommunityAvgConsumption(nonSeedPeerCars, false, startDate, endDate);
+        boolean peerConsumptionLifetime = false;
+        if (hasPeriod && (peerConsumption.value() == null || peerConsumption.tripCount() < MIN_PEER_PERIOD_SAMPLE)) {
+            peerConsumption = calculateCommunityAvgConsumption(nonSeedPeerCars, false);
+            peerConsumptionLifetime = true;
+        }
 
         // User consumption within the selected period (full log list as context for SoC/distance)
         BigDecimal userPeriodConsumption = null;
@@ -400,26 +408,18 @@ public class EvLogStatisticsService {
             userPeriodCostPerKwh = totalUserCost.divide(totalUserKwh, 4, RoundingMode.HALF_UP);
         }
 
-        // Peer cost — energy-weighted across all non-seed peers within the same period, regardless of country.
+        // Peer cost — energy-weighted across all non-seed peers within the same period (lifetime if too thin), regardless of country.
         // Country is unreliable (null for a large share of users) and filtering on it
         // shrinks the sample to the point where single outliers dominate the average.
         List<UUID> peerCarIds = nonSeedPeerCars.stream().map(Car::getId).toList();
-        BigDecimal peerAvgCostPerKwh = null;
-        BigDecimal totalPeerCost = BigDecimal.ZERO;
-        BigDecimal totalPeerKwh = BigDecimal.ZERO;
-        int peerLogCount = 0;
-        for (EvLog log : evLogRepository.findAllByCarIds(peerCarIds)) {
-            if (!log.isIncludeInStatistics()) continue;
-            if (!log.isLoggedWithin(startDate, endDate)) continue;
-            peerLogCount++;
-            if (log.getCostEur() == null) continue;
-            BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
-            if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
-            totalPeerCost = totalPeerCost.add(log.getCostEur());
-            totalPeerKwh = totalPeerKwh.add(kwh);
-        }
-        if (totalPeerKwh.compareTo(BigDecimal.ZERO) > 0) {
-            peerAvgCostPerKwh = totalPeerCost.divide(totalPeerKwh, 4, RoundingMode.HALF_UP);
+        List<EvLog> peerLogs = evLogRepository.findAllByCarIds(peerCarIds).stream()
+                .filter(EvLog::isIncludeInStatistics)
+                .toList();
+        PeerCost peerCost = peerCost(peerLogs, startDate, endDate);
+        boolean peerCostLifetime = false;
+        if (hasPeriod && peerCost.costLogCount() < MIN_PEER_PERIOD_SAMPLE) {
+            peerCost = peerCost(peerLogs, null, null);
+            peerCostLifetime = true;
         }
 
         // Jedes anonymisierte Auto zählt als eigener (ehemaliger) Nutzer.
@@ -430,12 +430,38 @@ public class EvLogStatisticsService {
                 userPeriodConsumption,
                 peerConsumption.value(),
                 userPeriodCostPerKwh,
-                peerAvgCostPerKwh,
+                peerCost.avgPerKwh(),
                 (int) uniquePeerUsers,
                 peerConsumption.tripCount(),
-                peerLogCount,
-                matchType
+                peerCost.logCount(),
+                matchType,
+                peerConsumptionLifetime,
+                peerCostLifetime
         );
+    }
+
+    private record PeerCost(BigDecimal avgPerKwh, int logCount, int costLogCount) {}
+
+    /** Energy-weighted cost/kWh across peer logs within [startDate, endDate] (null = open). */
+    private PeerCost peerCost(List<EvLog> peerLogs, java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        BigDecimal totalCost = BigDecimal.ZERO;
+        BigDecimal totalKwh = BigDecimal.ZERO;
+        int logCount = 0;
+        int costLogCount = 0;
+        for (EvLog log : peerLogs) {
+            if (!log.isLoggedWithin(startDate, endDate)) continue;
+            logCount++;
+            if (log.getCostEur() == null) continue;
+            BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
+            if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
+            costLogCount++;
+            totalCost = totalCost.add(log.getCostEur());
+            totalKwh = totalKwh.add(kwh);
+        }
+        BigDecimal avg = totalKwh.compareTo(BigDecimal.ZERO) > 0
+                ? totalCost.divide(totalKwh, 4, RoundingMode.HALF_UP)
+                : null;
+        return new PeerCost(avg, logCount, costLogCount);
     }
 
     private record PlausibleEntry(EvLog log, BigDecimal consumptionKwhPer100km, int distanceKm, boolean estimated) {}

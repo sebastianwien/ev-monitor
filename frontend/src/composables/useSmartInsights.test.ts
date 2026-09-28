@@ -48,6 +48,27 @@ describe('peer_cost insight', () => {
     expect(insights.some(i => i.id === 'peer_cost')).toBe(true)
     const insight = insights.find(i => i.id === 'peer_cost')!
     expect(insight.sentiment).toBe('positive')
+    expect(insight.body).toBe('peer_cost_body')
+  })
+
+  it('uses the lifetime body when the peer side fell back to lifetime', () => {
+    const stats = makeStats({
+      peerBenchmark: {
+        userPeriodConsumptionKwhPer100km: 22,
+        peerAvgConsumptionKwhPer100km: 18,
+        userPeriodCostPerKwh: 0.25,
+        peerAvgCostPerKwh: 0.35,
+        uniquePeerUsers: 1,
+        peerTripCount: 10,
+        peerLogCount: 10,
+        matchType: 'SPEC',
+        peerConsumptionLifetime: true,
+        peerCostLifetime: true,
+      },
+    })
+    const insights = computeInsights(stats, null)
+    expect(insights.find(i => i.id === 'peer_cost')!.body).toBe('peer_cost_body_lifetime')
+    expect(insights.find(i => i.id === 'peer_consumption')!.body).toBe('peer_consumption_body_lifetime')
   })
 
   it('fires when user is more expensive than peers', () => {

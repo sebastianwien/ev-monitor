@@ -48,7 +48,7 @@ export function computeInsights(
         id: 'peer_cost',
         sentiment: diffPct < 0 ? 'positive' : 'warning',
         headline: `peer_cost_${diffPct < 0 ? 'cheaper' : 'expensive'}`,
-        body: 'peer_cost_body',
+        body: pb.peerCostLifetime ? 'peer_cost_body_lifetime' : 'peer_cost_body',
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absCt.toFixed(1)} ct/kWh`,
         chartBars: [
@@ -78,7 +78,7 @@ export function computeInsights(
         id: 'peer_consumption',
         sentiment: diffPct < 0 ? 'positive' : 'neutral',
         headline: `peer_consumption_${diffPct < 0 ? 'better' : 'worse'}`,
-        body: 'peer_consumption_body',
+        body: pb.peerConsumptionLifetime ? 'peer_consumption_body_lifetime' : 'peer_consumption_body',
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absKwh.toFixed(1)} kWh/100km`,
         chartBars: [

@@ -245,13 +245,16 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         Car peerCar = createCar(peer.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
         // Peer: alte Ladung 45 ct/kWh ausserhalb, aktuelle 35 ct/kWh im Zeitraum
         addLogWithCostAt(peerCar.getId(), "10.0", "4.50", 100, LocalDateTime.now().minusDays(40));
-        addLogWithCostAt(peerCar.getId(), "10.0", "3.50", 200, LocalDateTime.now().minusDays(1));
+        addLogWithCostAt(peerCar.getId(), "10.0", "3.50", 200, LocalDateTime.now().minusDays(3));
+        addLogWithCostAt(peerCar.getId(), "10.0", "3.50", 300, LocalDateTime.now().minusDays(2));
+        addLogWithCostAt(peerCar.getId(), "10.0", "3.50", 400, LocalDateTime.now().minusDays(1));
 
         java.time.LocalDate today = java.time.LocalDate.now();
         EvLogStatisticsResponse period = evLogStatisticsService.getStatistics(
                 ownerCar.getId(), owner.getId(), today.minusDays(5), today, null);
 
         assertNotNull(period.peerBenchmark());
+        assertFalse(period.peerBenchmark().peerCostLifetime());
         assertEquals(0, new BigDecimal("0.2900").compareTo(period.peerBenchmark().userPeriodCostPerKwh()),
                 "user cost must only include logs within the selected period");
         // Peer-Seite wird auf denselben Zeitraum gefiltert - gleiche Zeiträume vergleichen
@@ -262,7 +265,7 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
                 ownerCar.getId(), owner.getId(), null, null, null);
         assertEquals(0, new BigDecimal("0.3450").compareTo(lifetime.peerBenchmark().userPeriodCostPerKwh()),
                 "without a period the user cost stays lifetime");
-        assertEquals(0, new BigDecimal("0.4000").compareTo(lifetime.peerBenchmark().peerAvgCostPerKwh()),
+        assertEquals(0, new BigDecimal("0.3750").compareTo(lifetime.peerBenchmark().peerAvgCostPerKwh()),
                 "without a period the peer cost stays lifetime");
     }
 
@@ -279,7 +282,9 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         Car peerCar = createCar(peer.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
         addLogWithCostAt(peerCar.getId(), "18.0", null, 100, LocalDateTime.now().minusDays(60));
         addLogWithCostAt(peerCar.getId(), "18.0", null, 200, LocalDateTime.now().minusDays(40));
-        addLogWithCostAt(peerCar.getId(), "18.0", null, 300, LocalDateTime.now().minusDays(1));
+        addLogWithCostAt(peerCar.getId(), "18.0", null, 300, LocalDateTime.now().minusDays(3));
+        addLogWithCostAt(peerCar.getId(), "18.0", null, 400, LocalDateTime.now().minusDays(2));
+        addLogWithCostAt(peerCar.getId(), "18.0", null, 500, LocalDateTime.now().minusDays(1));
 
         java.time.LocalDate today = java.time.LocalDate.now();
         EvLogStatisticsResponse period = evLogStatisticsService.getStatistics(
@@ -291,5 +296,33 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         assertNotNull(lifetime.peerBenchmark());
         assertTrue(period.peerBenchmark().peerTripCount() < lifetime.peerBenchmark().peerTripCount(),
                 "peer trips must be limited to the selected period");
+        assertFalse(period.peerBenchmark().peerConsumptionLifetime());
+    }
+
+    @Test
+    void peerBenchmark_fallsBackToLifetime_whenPeersHaveTooFewDataInPeriod() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "peer-test-period-fallback");
+
+        User owner = createAndSaveUser("owner-period-fallback@example.com");
+        Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLogWithCostAt(ownerCar.getId(), "18.0", "5.40", 100, LocalDateTime.now().minusDays(40));
+        addLogWithCostAt(ownerCar.getId(), "18.0", "5.40", 200, LocalDateTime.now().minusDays(1));
+
+        // Peer hat nur Daten ausserhalb des Zeitraums
+        User peer = createAndSaveUser("peer-period-fallback@example.com");
+        Car peerCar = createCar(peer.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLogWithCostAt(peerCar.getId(), "18.0", "7.20", 100, LocalDateTime.now().minusDays(60));
+        addLogWithCostAt(peerCar.getId(), "18.0", "7.20", 200, LocalDateTime.now().minusDays(50));
+        addLogWithCostAt(peerCar.getId(), "18.0", "7.20", 300, LocalDateTime.now().minusDays(40));
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        EvLogStatisticsResponse.PeerBenchmark pb = evLogStatisticsService.getStatistics(
+                ownerCar.getId(), owner.getId(), today.minusDays(5), today, null).peerBenchmark();
+
+        assertNotNull(pb);
+        assertTrue(pb.peerCostLifetime(), "too few peer cost logs in period must fall back to lifetime");
+        assertEquals(0, new BigDecimal("0.4000").compareTo(pb.peerAvgCostPerKwh()));
+        assertTrue(pb.peerConsumptionLifetime(), "too few peer trips in period must fall back to lifetime");
+        assertNotNull(pb.peerAvgConsumptionKwhPer100km());
     }
 }

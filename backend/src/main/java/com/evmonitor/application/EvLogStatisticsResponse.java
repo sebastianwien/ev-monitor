@@ -88,7 +88,9 @@ public record EvLogStatisticsResponse(
             int uniquePeerUsers,
             int peerTripCount,
             int peerLogCount,
-            MatchType matchType
+            MatchType matchType,
+            boolean peerConsumptionLifetime,
+            boolean peerCostLifetime
     ) {
         public enum MatchType { SPEC, MODEL }
     }

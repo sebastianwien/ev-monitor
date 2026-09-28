@@ -26,6 +26,9 @@ export interface PeerBenchmark {
   peerTripCount: number
   peerLogCount: number
   matchType: 'SPEC' | 'MODEL'
+  /** Peer-Seite nutzt Lifetime statt Zeitraum, weil der Zeitraum zu wenig Peer-Daten hatte */
+  peerConsumptionLifetime?: boolean
+  peerCostLifetime?: boolean
 }
 
 export interface ChargingTypeSplit {
