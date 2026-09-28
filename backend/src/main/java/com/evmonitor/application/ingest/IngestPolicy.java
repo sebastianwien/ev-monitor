@@ -15,6 +15,9 @@ import java.time.Duration;
  * @param kwhIsVehicleSide          die Quelle meldet im kWh-Feld fahrzeugseitige Energie (Tronity)
  * @param isolateEntryErrors        ein fehlerhafter Eintrag zählt als Fehler statt den Aufruf abzubrechen
  * @param sohEventWithoutVehicleKwh SoH-Erkennung auch ohne fahrzeugseitige kWh anstoßen
+ * @param rejectOverlapWithAnyCharge Ladung nicht anlegen, wenn sie sich zeitlich mit irgendeiner Ladung desselben
+ *                                  Autos überschneidet, egal welche Quelle, Tombstones zählen mit (VW-Drops: der
+ *                                  Start ist geschätzt, eine Ladungs-ID fehlt, ein Auto lädt nicht zweimal gleichzeitig)
  */
 public record IngestPolicy(
         Duration dedupWindow,
@@ -23,5 +26,6 @@ public record IngestPolicy(
         CoinEvent coinEvent,
         boolean kwhIsVehicleSide,
         boolean isolateEntryErrors,
-        boolean sohEventWithoutVehicleKwh) {
+        boolean sohEventWithoutVehicleKwh,
+        boolean rejectOverlapWithAnyCharge) {
 }

@@ -24,11 +24,11 @@ public final class IngestPolicies {
             // Kein Erben: Bulk-Importe kommen historisch und u.U. nicht chronologisch - "letzter Wert
             // in der DB" wäre dann der zukünftige Wert und würde still über die Historie propagieren.
             case IMPORT_BATCH -> new IngestPolicy(batchDedupWindow(source), bumpsSameTimestamp(source), false,
-                    batchCoinEvent(source), reportsVehicleSideKwh(source), true, false);
+                    batchCoinEvent(source), reportsVehicleSideKwh(source), true, false, false);
             // Live-Daten tragen weder Reifen noch Strecke; ohne Erben kippt die "letzten Wert
             // übernehmen"-UX still auf SUMMER/COMBINED.
             case CONNECTOR_PUSH -> new IngestPolicy(Duration.ZERO, false, true,
-                    pushCoinEvent(source), false, false, true);
+                    pushCoinEvent(source), false, false, true, rejectsOverlap(source));
         };
     }
 
@@ -60,6 +60,17 @@ public final class IngestPolicies {
     private static boolean reportsVehicleSideKwh(DataSource source) {
         return switch (source) {
             case TRONITY_IMPORT -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * VW-Drops tragen keine Ladungs-ID und der Start ist geschätzt: dieselbe Ladung kann mit anderer Zeit wiederkommen
+     * oder schon manuell, per Smartcar oder Upload vorliegen. Andere Quellen untereinander bleiben wie bisher (D10).
+     */
+    private static boolean rejectsOverlap(DataSource source) {
+        return switch (source) {
+            case EU_DATA_ACT_SYNC -> true;
             default -> false;
         };
     }

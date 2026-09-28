@@ -75,6 +75,19 @@ class IngestPoliciesTest {
         assertThat(IngestPolicies.forSource(DataSource.TRONITY_IMPORT, IMPORT_BATCH).kwhIsVehicleSide()).isTrue();
     }
 
+    /**
+     * VW-Drops: keine Ladungs-ID, Start geschaetzt - eine VW-Ladung wird nicht angelegt, wenn sie sich mit irgendeiner
+     * Ladung des Autos ueberschneidet. Alle anderen Quellen bleiben bei der Dedup je Quelle (D10 spaeter).
+     */
+    @ParameterizedTest
+    @EnumSource(value = DataSource.class, names = "EU_DATA_ACT_SYNC", mode = EnumSource.Mode.EXCLUDE)
+    void connectorPush_onlyVwDropsRejectOverlapWithAnyCharge(DataSource source) {
+        assertThat(IngestPolicies.forSource(source, CONNECTOR_PUSH).rejectOverlapWithAnyCharge()).isFalse();
+        assertThat(IngestPolicies.forSource(source, IMPORT_BATCH).rejectOverlapWithAnyCharge()).isFalse();
+        assertThat(IngestPolicies.forSource(DataSource.EU_DATA_ACT_SYNC, CONNECTOR_PUSH).rejectOverlapWithAnyCharge()).isTrue();
+        assertThat(IngestPolicies.forSource(DataSource.EU_DATA_ACT_SYNC, IMPORT_BATCH).rejectOverlapWithAnyCharge()).isFalse();
+    }
+
     @ParameterizedTest
     @EnumSource(DataSource.class)
     void connectorPush_inheritsAndFiresSoh_withoutBumpRemapOrWindow(DataSource source) {

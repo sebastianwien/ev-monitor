@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -134,6 +135,25 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     @Override
     public boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged) {
         return jpaRepository.existsByCarIdAndLoggedAtAndKwhCharged(carId, loggedAt, kwhCharged);
+    }
+
+    /** Laenger als zwei Tage laedt kein Auto: aeltere Starts koennen [start, end] nicht mehr erreichen. */
+    private static final Duration MAX_CHARGE_LOOKBACK = Duration.ofHours(48);
+
+    @Override
+    public boolean existsOverlappingByCarId(UUID carId, LocalDateTime start, LocalDateTime end) {
+        return jpaRepository.findStartAndDurationIncludingDeleted(carId, start.minus(MAX_CHARGE_LOOKBACK), end).stream()
+                .anyMatch(row -> {
+                    LocalDateTime loggedAt = toLocalDateTime(row[0]);
+                    int minutes = row[1] == null ? 0 : ((Number) row[1]).intValue();
+                    return !loggedAt.plusMinutes(Math.max(0, minutes)).isBefore(start);
+                });
+    }
+
+    private static LocalDateTime toLocalDateTime(Object value) {
+        if (value instanceof LocalDateTime ldt) return ldt;
+        if (value instanceof java.sql.Timestamp ts) return ts.toLocalDateTime();
+        throw new IllegalStateException("Unerwarteter Zeittyp: " + value.getClass());
     }
 
     @Override

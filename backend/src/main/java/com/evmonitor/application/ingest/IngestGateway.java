@@ -32,7 +32,8 @@ import java.util.*;
 
 /**
  * Die eine Tür, durch die Importe Ladungen und Fahrten anlegen (Herstellerarchitektur R2). Prüft
- * Ownership, wendet die {@link IngestPolicy} der Quelle an, dedupliziert (Tombstones zählen mit),
+ * Ownership, wendet die {@link IngestPolicy} der Quelle an, dedupliziert (Tombstones zählen mit; VW-Drops zusätzlich
+ * gegen jede zeitlich überlappende Ladung des Autos),
  * legt an, bepreist, vergibt Watt und hängt Extras wie Ladekurven an.
  *
  * <p>Die alten Einstiege ({@code PublicApiImportService.importSessions},
@@ -143,6 +144,11 @@ public class IngestGateway {
             return new IngestOutcome(null,
                     !hasActive(car.getId(), loggedAt, command.dataSource(), policy.dedupWindow()));
         }
+        if (policy.rejectOverlapWithAnyCharge() && overlapsAnyCharge(car.getId(), loggedAt, entry.chargeDurationMinutes())) {
+            log.info("Ingest {}: Ladung {} ueberschneidet sich mit einer bestehenden Ladung von Auto {}, nicht angelegt",
+                    command.dataSource(), loggedAt, car.getId());
+            return new IngestOutcome(null, false);
+        }
 
         EvLog evLog = toEvLog(car, command.dataSource(), policy, entry, loggedAt);
         if (policy.inheritTireAndRouteType()) {
@@ -170,6 +176,12 @@ public class IngestGateway {
         }
 
         return new IngestOutcome(saved, false);
+    }
+
+    /** Ein Auto lädt nicht zweimal gleichzeitig: Zeitraum der neuen Ladung gegen alle Ladungen des Autos, Tombstones inklusive. */
+    private boolean overlapsAnyCharge(UUID carId, LocalDateTime loggedAt, Integer durationMinutes) {
+        LocalDateTime end = durationMinutes != null && durationMinutes > 0 ? loggedAt.plusMinutes(durationMinutes) : loggedAt;
+        return evLogRepository.existsOverlappingByCarId(carId, loggedAt, end);
     }
 
     /** Wie {@link #isDuplicate}, zählt aber nur nicht gelöschte Ladungen. */

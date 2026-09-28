@@ -189,6 +189,14 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = "SELECT EXISTS(SELECT 1 FROM ev_log WHERE car_id = :carId AND logged_at = :loggedAt AND kwh_charged = :kwhCharged)", nativeQuery = true)
     boolean existsByCarIdAndLoggedAtAndKwhCharged(@Param("carId") UUID carId, @Param("loggedAt") LocalDateTime loggedAt, @Param("kwhCharged") BigDecimal kwhCharged);
 
+    // soft-delete-bypass: Ueberschneidungsregel (VW-Drops) muss Tombstones sehen, eine geloeschte Ladung kommt nicht
+    // zurueck. Kein Intervall-Rechnen in SQL (H2 in den Tests kennt Postgres-INTERVAL nicht): Kandidaten liefern,
+    // Ueberschneidung im Repository-Impl pruefen.
+    @Query(value = "SELECT logged_at, charge_duration_minutes FROM ev_log WHERE car_id = :carId "
+            + "AND logged_at <= :end AND logged_at >= :from", nativeQuery = true)
+    List<Object[]> findStartAndDurationIncludingDeleted(@Param("carId") UUID carId, @Param("from") LocalDateTime from,
+                                                        @Param("end") LocalDateTime end);
+
     // ---- Soft-Delete und Restore. Native UPDATEs, weil save() eine ausgeblendete Zeile nicht findet.
 
     // soft-delete-bypass: setzt den Tombstone

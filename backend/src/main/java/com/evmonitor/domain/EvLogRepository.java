@@ -59,6 +59,12 @@ public interface EvLogRepository {
     boolean existsByCarIdAndLoggedAtAndKwhCharged(UUID carId, LocalDateTime loggedAt, BigDecimal kwhCharged);
 
     /**
+     * Gibt es eine Ladung des Autos (jede Quelle, auch gelöscht), deren Zeitraum [loggedAt, loggedAt + Dauer] sich
+     * mit [start, end] überschneidet? Ohne Dauer zählt die Ladung als Zeitpunkt.
+     */
+    boolean existsOverlappingByCarId(UUID carId, LocalDateTime start, LocalDateTime end);
+
+    /**
      * Findet existierende Logs, die durch XPeng-Telemetrie angereichert werden koennten.
      *
      * Reine Filter-Query: Log gehoert zum Auto, loggedAt liegt im Zeitfenster,

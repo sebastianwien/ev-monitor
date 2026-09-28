@@ -76,8 +76,81 @@ class IngestGatewayTest extends AbstractIntegrationTest {
         assertThat(again.skippedDeleted()).isEqualTo(1);
     }
 
+    // ── Ueberschneidungsregel fuer VW-Drops (EU_DATA_ACT_SYNC): ein Auto laedt nicht zweimal gleichzeitig ──
+
+    @Test
+    void vwDropCharge_overlappingUserLoggedCharge_isSkipped_otherSourcesUnchanged() {
+        // Nutzer hat 10:00 bis 11:00 geloggt (ID.3b: Nutzer loggt manuell, VW liefert dieselbe Ladung mit geschaetztem Start)
+        gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.USER_LOGGED, entry(10, 60)));
+
+        IngestResult vw = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.EU_DATA_ACT_SYNC, entry(9, 90)));
+        IngestResult smartcar = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.SMARTCAR_LIVE, entry(9, 90)));
+
+        assertThat(vw.imported()).isZero();
+        assertThat(vw.skipped()).isEqualTo(1);
+        assertThat(vw.skippedDeleted()).isZero();
+        assertThat(smartcar.imported()).isEqualTo(1);
+        assertThat(evLogRepository.findAllByCarId(car.getId())).hasSize(2);
+    }
+
+    @Test
+    void vwDropCharge_touchingOnlyAtBoundary_orDisjoint_isCreated() {
+        gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.USER_LOGGED, entry(10, 60)));
+
+        IngestResult after = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.EU_DATA_ACT_SYNC, entry(12, 30)));
+        IngestResult before = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.EU_DATA_ACT_SYNC, entry(7, 60)));
+
+        assertThat(after.imported()).isEqualTo(1);
+        assertThat(before.imported()).isEqualTo(1);
+    }
+
+    @Test
+    void vwDropCharge_overlappingDeletedCharge_staysDeleted() {
+        IngestResult first = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.SMARTCAR_LIVE, entry(10, 60)));
+        evLogRepository.softDelete(first.created().get(0).getId());
+
+        IngestResult vw = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.EU_DATA_ACT_SYNC, entry(10, 45)));
+
+        assertThat(vw.imported()).isZero();
+        assertThat(evLogRepository.findAllByCarId(car.getId())).isEmpty();
+    }
+
+    @Test
+    void vwDropCharge_withoutDuration_overlapsAsPointInTime() {
+        gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.USER_LOGGED, entry(10, 60)));
+
+        IngestResult inside = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.EU_DATA_ACT_SYNC, entry(10, 0)));
+        IngestResult outside = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.EU_DATA_ACT_SYNC, entry(13, 0)));
+
+        assertThat(inside.imported()).isZero();
+        assertThat(outside.imported()).isEqualTo(1);
+    }
+
+    @Test
+    void vwDropCharge_rawImportDataIsStored() {
+        IngestResult r = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.EU_DATA_ACT_SYNC,
+                ChargingEntry.builder().loggedAt(LocalDateTime.of(2026, 9, 10, 20, 0)).kwhCharged(new BigDecimal("16.5"))
+                        .chargeDurationMinutes(114).rawImportData("{\"startEstimated\":true,\"startMethod\":\"ENERGY_OVER_POWER\"}").build()));
+
+        assertThat(r.imported()).isEqualTo(1);
+        assertThat(evLogRepository.findById(r.created().get(0).getId()).orElseThrow().getRawImportData()).contains("ENERGY_OVER_POWER");
+    }
+
     private static IngestCommand command(UUID userId, UUID carId, ChargingEntry... entries) {
-        return new IngestCommand(userId, carId, DataSource.SMARTCAR_LIVE, IngestDoor.CONNECTOR_PUSH, List.of(entries));
+        return command(userId, carId, DataSource.SMARTCAR_LIVE, entries);
+    }
+
+    private static IngestCommand command(UUID userId, UUID carId, DataSource source, ChargingEntry... entries) {
+        return new IngestCommand(userId, carId, source, IngestDoor.CONNECTOR_PUSH, List.of(entries));
+    }
+
+    /** Ladung ab {@code hour} Uhr mit Dauer; 0 = ohne Dauer (Zeitpunkt). */
+    private static ChargingEntry entry(int hour, int minutes) {
+        return ChargingEntry.builder()
+                .loggedAt(LocalDateTime.of(2026, 9, 10, hour, 0))
+                .kwhCharged(new BigDecimal("20.0"))
+                .chargeDurationMinutes(minutes > 0 ? minutes : null)
+                .build();
     }
 
     private static ChargingEntry entry(int hour) {
