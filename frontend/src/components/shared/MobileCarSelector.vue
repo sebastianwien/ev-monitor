@@ -60,7 +60,7 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
         v-if="car.id === modelValue"
         type="button"
         @click.stop="emit('share', car)"
-        :aria-label="t('share_car.sheet_title')"
+        :aria-label="t('share_car.share_named', { name: [carDisplayName(car.brand, car.model), car.trim].filter(Boolean).join(' ') })"
         class="absolute top-0 right-0 z-[1] min-h-[44px] min-w-[44px] flex items-center justify-center text-indigo-700 dark:text-indigo-300">
         <ShareIcon class="w-5 h-5" />
       </button>

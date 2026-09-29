@@ -410,14 +410,21 @@ onUnmounted(() => {
               : 'mb-6 md:w-fit md:mx-auto'"
           >
             <div class="flex gap-3 overflow-x-auto car-scroll-hide pb-1 lg:flex-wrap lg:overflow-x-visible">
-              <button
+              <!-- Wrapper je Auto: Karte plus Teilen-Knopf als Geschwister (kein Button im Button).
+                   Bei nur einem Auto gibt es nichts auszuwaehlen - die Karte ist dann ein div,
+                   damit SoH-Pill und Teilen als echte Buttons darin liegen duerfen. -->
+              <div
                 v-for="car in cars"
                 :key="car.id"
-                @click="selectedCarId = car.id"
+                :class="['relative', cars.length === 1
+                  ? 'w-full md:w-auto'
+                  : 'flex-shrink-0 min-w-[180px] max-w-[280px] lg:flex-shrink lg:min-w-0 lg:max-w-none']">
+              <component
+                :is="cars.length === 1 ? 'div' : 'button'"
+                :type="cars.length === 1 ? undefined : 'button'"
+                @click="cars.length > 1 && (selectedCarId = car.id)"
                 :class="[
-                  cars.length === 1
-                    ? 'flex items-center md:items-stretch rounded-sm border-2 text-left transition w-full md:w-auto overflow-hidden'
-                    : 'flex items-center md:items-stretch rounded-sm border-2 text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
+                  'flex items-center md:items-stretch rounded-sm border-2 text-left transition w-full h-full overflow-hidden',
                   selectedCarId === car.id
                     ? isVehicleCharging(car)
                       ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#14532d]'
@@ -435,7 +442,7 @@ onUnmounted(() => {
                     class="w-full h-full object-cover" />
                   <TruckIcon v-else class="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
                 </div>
-                <div class="min-w-0 flex-1 px-3 py-1.5 md:px-3 md:py-2">
+                <div :class="['min-w-0 flex-1 px-3 py-1.5 md:px-3 md:py-2', cars.length > 1 && car.id === selectedCarId ? 'md:pr-11' : '']">
                   <!-- Desktop: zweizeiliges Layout. Ab md sichtbar - die Kachel passt mit
                        vollem Inhalt auch in den schmalsten Desktop-Viewport; vorher fiel sie
                        unterhalb von lg auf das blosse Bild zusammen. -->
@@ -489,16 +496,28 @@ onUnmounted(() => {
                     @open-soh="sohModalCar = car"
                   />
                 </div>
-              </button>
-              <!-- Teilen des gewaehlten Autos, als Geschwister der Kacheln (kein Button im Button). -->
+                <!-- Ein Auto: Teilen als letzte Spalte der Karte, mit Label (Feature ist neu). -->
+                <button
+                  v-if="cars.length === 1"
+                  type="button"
+                  @click="openShareSheet(car.id, shareTitle(car), 'car_header')"
+                  :aria-label="t('share_car.share_named', { name: shareTitle(car) })"
+                  class="flex-shrink-0 self-stretch flex flex-col items-center justify-center gap-1 min-w-[44px] px-4 border-l border-gray-200 dark:border-gray-600 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-indigo-500 text-xs font-semibold transition-colors">
+                  <ShareIcon class="w-5 h-5" />
+                  {{ t('share_car.share_short') }}
+                </button>
+              </component>
+              <!-- Mehrere Autos: Teilen-Icon in der Ecke der gewaehlten Kachel, wie auf Mobile. -->
               <button
-                v-if="selectedCar"
+                v-if="cars.length > 1 && car.id === selectedCarId"
                 type="button"
-                @click="openShareSheet(selectedCar.id, shareTitle(selectedCar), 'car_header')"
-                class="btn-3d [--btn-shadow-color:#a5b4fc] dark:[--btn-shadow-color:#3730a3] self-center flex-shrink-0 inline-flex items-center gap-1.5 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-sm text-sm font-semibold min-h-[44px]">
-                <ShareIcon class="w-4 h-4" />
-                {{ t('share_car.sheet_title') }}
+                @click="openShareSheet(car.id, shareTitle(car), 'car_header')"
+                :aria-label="t('share_car.share_named', { name: shareTitle(car) })"
+                :title="t('share_car.sheet_title')"
+                class="absolute top-0 right-0 z-[1] min-h-[44px] min-w-[44px] flex items-center justify-center rounded-sm text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 focus-visible:outline-2 focus-visible:outline-indigo-500">
+                <ShareIcon class="w-5 h-5" />
               </button>
+              </div>
             </div>
           </div>
           <!-- Letzte Aktivität: letzter Ladevorgang + letzte Fahrt. Bewusst ÜBER dem

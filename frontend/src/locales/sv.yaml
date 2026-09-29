@@ -2955,6 +2955,8 @@ share_car:
   public_charge: "publik"
   grouped_sessions: "{n} sessioner sammanslagna"
   sheet_title: "Dela fordon"
+  share_short: "Dela"
+  share_named: "Dela {name}"
   peer_cta: "Dela den här jämförelsen"
   peer_cta_hint: "Som offentlig sida, utan platser"
   og_description: "Verklig förbrukning: {consumption} över alla laddningar, registrerad med EV Monitor."

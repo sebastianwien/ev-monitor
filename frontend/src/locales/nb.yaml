@@ -2955,6 +2955,8 @@ share_car:
   public_charge: "offentlig"
   grouped_sessions: "{n} økter slått sammen"
   sheet_title: "Del kjøretøy"
+  share_short: "Del"
+  share_named: "Del {name}"
   peer_cta: "Del denne sammenligningen"
   peer_cta_hint: "Som offentlig side, uten steder"
   og_description: "Reelt forbruk: {consumption} over alle ladinger, registrert med EV Monitor."
