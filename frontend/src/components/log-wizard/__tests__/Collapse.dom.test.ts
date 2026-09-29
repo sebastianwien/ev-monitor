@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, defineComponent, h, nextTick, ref, type App } from 'vue'
 import Collapse from '../Collapse.vue'
 
 let app: App | null = null
-afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
+afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.unstubAllGlobals() })
 
 function mount(initialOpen: boolean) {
   const host = document.createElement('div')
@@ -43,5 +43,16 @@ describe('Collapse', () => {
     open.value = false
     await nextTick()
     expect(inner().className).toContain('overflow-hidden')
+  })
+
+  it('mit reduced-motion: klappt ohne transitionend auf und verschwindet beim Zuklappen', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }))
+    const { open, inner, outer } = mount(false)
+    open.value = true
+    await nextTick(); await raf(); await nextTick()
+    expect(inner().className).not.toContain('overflow-hidden')
+    open.value = false
+    await nextTick()
+    expect(outer().style.display).toBe('none')
   })
 })

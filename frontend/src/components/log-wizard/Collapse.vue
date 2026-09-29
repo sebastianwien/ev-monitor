@@ -31,6 +31,7 @@ watch(() => props.open, async (open) => {
     })
   } else {
     expanded.value = false
+    if (reducedMotion()) rendered.value = false
   }
 })
 
