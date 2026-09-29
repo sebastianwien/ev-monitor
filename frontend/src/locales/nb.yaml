@@ -3324,6 +3324,7 @@ eu_data_act_sync:
     last_error_short: "Siste feil: {error}. Detaljer nedenfor."
     no_data_yet: "ingen ennå"
     fact_last_data: "Siste ladedata"
+    fact_data_state: "Datastatus fra produsenten"
     fact_history: "Ladehistorikk"
     fact_access: "Tilgang"
     history_fact_done: "importert {date}"

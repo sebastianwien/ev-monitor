@@ -3324,6 +3324,7 @@ eu_data_act_sync:
     last_error_short: "Senaste fel: {error}. Detaljer nedan."
     no_data_yet: "inga ännu"
     fact_last_data: "Senaste laddningsdata"
+    fact_data_state: "Datastatus från tillverkaren"
     fact_history: "Laddningshistorik"
     fact_access: "Åtkomst"
     history_fact_done: "importerad {date}"
