@@ -12,7 +12,7 @@ const activity: VwEudaSyncActivity = {
   connection: {
     carId: 'c1', brand: 'volkswagen', status: 'ACTIVE', connectedAt: '2026-09-01T15:12:19Z',
     lastPolledAt: '2026-09-21T09:58:00Z', lastSuccessAt: '2026-09-21T09:58:00Z', consecutiveFailures: 0,
-    lastError: 'Anfrage anlegen HTTP 400: {"error":"x"}', dataRequestActive: true, lastDeliveryAt: '2026-09-21T09:58:00Z', lastDataAt: null,
+    lastError: 'Anfrage anlegen HTTP 400: {"error":"x"}', dataRequestActive: true, lastDeliveryAt: '2026-09-21T09:58:00Z', lastDataAt: null, lastCapturedAt: null,
     history: { requestedAt: '2026-09-01T15:20:00Z', importedAt: null, running: false, attempts: 3, attemptsExhausted: true, error: 'Read timed out' },
   },
   identifiers: [

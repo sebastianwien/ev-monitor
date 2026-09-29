@@ -44,6 +44,8 @@ export interface VwEudaActivityConnection {
   dataRequestActive: boolean
   lastDeliveryAt: string | null
   lastDataAt: string | null
+  /** Jüngste Erfassungszeit eines Batterie-Reports: der Datenstand, den der Hersteller liefert. */
+  lastCapturedAt: string | null
   history: VwEudaHistoryState | null
 }
 

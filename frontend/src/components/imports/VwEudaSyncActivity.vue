@@ -95,6 +95,8 @@ const shortError = computed(() => {
 
 // Kein Rueckfall auf lastSuccessAt: ein erfolgreicher Poll ohne Ladevorgaenge sind keine "Daten".
 const lastDataLabel = computed(() => fmt(conn.value?.lastDataAt) ?? t('eu_data_act_sync.activity.no_data_yet'))
+// Datenstand: wie alt die Signale sind, die der Hersteller zuletzt geliefert hat (unabhängig von erkannten Ladungen).
+const dataStateLabel = computed(() => fmt(conn.value?.lastCapturedAt) ?? t('eu_data_act_sync.activity.no_data_yet'))
 
 const historyLabel = computed(() => {
   const h = conn.value?.history
@@ -150,6 +152,10 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
       <div class="flex justify-between gap-4 py-1.5">
         <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('eu_data_act_sync.activity.fact_last_data') }}</dt>
         <dd class="text-gray-900 dark:text-gray-100 text-right">{{ lastDataLabel }}</dd>
+      </div>
+      <div class="flex justify-between gap-4 py-1.5">
+        <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('eu_data_act_sync.activity.fact_data_state') }}</dt>
+        <dd class="text-gray-900 dark:text-gray-100 text-right" data-testid="euda-data-state">{{ dataStateLabel }}</dd>
       </div>
       <div class="flex justify-between gap-4 py-1.5">
         <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('eu_data_act_sync.activity.fact_history') }}</dt>
