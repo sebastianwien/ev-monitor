@@ -125,6 +125,22 @@ export interface VwEudaEntitlement {
   trialEndsAt: string | null
 }
 
+const ZONELESS_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/
+
+/**
+ * Connectors serialisiert seine UTC-Zeiten als LocalDateTime ohne Zonenangabe. `new Date()` liest so einen
+ * String als Ortszeit, in Berlin also zwei Stunden zu früh. Hier bekommt jeder zonenlose Zeitstempel im
+ * Sync-Protokoll ein "Z", damit Anzeige, Ampel und Beschwerde-Texte mit echten UTC-Zeiten rechnen.
+ */
+export function withUtcTimestamps<T>(value: T): T {
+  if (typeof value === 'string') return (ZONELESS_ISO.test(value) ? `${value}Z` : value) as T
+  if (Array.isArray(value)) return value.map(withUtcTimestamps) as T
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, withUtcTimestamps(v)])) as T
+  }
+  return value
+}
+
 export default {
   /** Liegt beim Core, nicht beim Connector - deshalb unter /subscription. */
   async getEntitlement(): Promise<VwEudaEntitlement> {
@@ -145,7 +161,7 @@ export default {
   },
   async getActivity(carId: string): Promise<VwEudaSyncActivity> {
     const resp = await api.get(`/eu-data-act/cars/${carId}/activity`)
-    return resp.data
+    return withUtcTimestamps(resp.data)
   },
   async requestHistory(carId: string): Promise<void> {
     await api.post(`/eu-data-act/cars/${carId}/history`)
