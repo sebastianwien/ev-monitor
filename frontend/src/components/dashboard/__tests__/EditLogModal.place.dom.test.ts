@@ -47,4 +47,22 @@ describe('EditLogModal - Ort per Adresse', () => {
     await vi.waitFor(() => expect(api.patch).toHaveBeenCalled())
     expect((api.patch as any).mock.calls[0][1]).toMatchObject({ latitude: 48.51, longitude: 14.5 })
   })
+
+  it('zeigt eine per Suche gewählte Säule als ausgewählte Kachel', async () => {
+    ;(api.get as any).mockImplementation((url: string) => Promise.resolve({ data: url.includes('search-stations')
+      ? [{ name: 'Electra', geohash: 'u3b1234', address: 'Westfalendamm 290, Dortmund', fastCharging: true, chargePoints: 4, maxAcKw: null, maxDcKw: 300 }] : [] }))
+    app = createApp(defineComponent({ render: () => h(EditLogModal, { log }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+    await nextTick()
+    q('[data-testid="summary-place"]')!.click()
+    await nextTick()
+    const input = q('#wizard-place-search') as HTMLInputElement
+    input.value = 'Electra dortmund'
+    input.dispatchEvent(new Event('input'))
+    await vi.waitFor(() => expect(q('[data-testid="place-search-station"]')).not.toBeNull())
+    q('[data-testid="place-search-station"]')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await nextTick()
+    expect(q('[data-testid="place-searched-station"]')).not.toBeNull()
+  })
 })

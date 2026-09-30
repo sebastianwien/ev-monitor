@@ -45,7 +45,9 @@ const filteredCpos = computed(() => {
 
 const sameSite = (name: string, geohash: string) =>
   props.selectedSite?.geohash === geohash && props.selectedSite?.name === name
-const isStation = (s: NearbyStation) => props.place === 'station' && sameSite(s.name, s.geohash)
+// Im Bearbeiten-Dialog steht eine gewählte Säule als 'site' (der Dialog kennt nur den gespeicherten Standort)
+const atStation = computed(() => props.place === 'station' || props.place === 'site')
+const isStation = (s: NearbyStation) => atStation.value && sameSite(s.name, s.geohash)
 // Aus der Textsuche gewählte Säule: als eigene Kachel zeigen, solange sie nicht ohnehin in der Umkreis-Liste steht
 const searchedStation = ref<StationMatch | null>(null)
 const onSearchChoose = (c: PlaceChoice) => {
@@ -54,7 +56,7 @@ const onSearchChoose = (c: PlaceChoice) => {
 }
 const showSearchedStation = computed(() => {
   const s = searchedStation.value
-  return !!s && props.place === 'station' && sameSite(s.name, s.geohash)
+  return !!s && atStation.value && sameSite(s.name, s.geohash)
     && !props.stations.some(n => n.name === s.name && n.geohash === s.geohash)
 })
 const isSite = (s: RecentSite) => props.place === 'site' && sameSite(s.name, s.geohash)
