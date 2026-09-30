@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, BoltIcon, MapPinIcon } from '@heroicons/vue/24/outline'
 import { useLocationSearch, type PickedPlace } from '../../composables/useLocationSearch'
@@ -16,13 +16,16 @@ const { t } = useI18n()
 const stations = useStationSearch()
 const address = useLocationSearch()
 
+// Name der aus dem Register gewählten Säule: solange er im Feld steht, gibt es nichts mehr zu suchen
+const chosenStation = ref<string | null>(null)
 const query = computed({
   get: () => stations.query.value,
-  set: (v: string) => { stations.query.value = v; address.reset() },
+  set: (v: string) => { stations.query.value = v; address.reset(); chosenStation.value = null },
 })
 const trimmed = computed(() => query.value.trim())
 const showAddressRow = computed(() => trimmed.value.length >= 3 && !address.loading.value
-  && !address.suggestions.value.length && !address.noResults.value && trimmed.value !== address.selectedName.value)
+  && !address.suggestions.value.length && !address.noResults.value
+  && trimmed.value !== address.selectedName.value && trimmed.value !== chosenStation.value)
 const open = computed(() => stations.matches.value.length > 0 || showAddressRow.value
   || address.loading.value || address.suggestions.value.length > 0 || address.noResults.value)
 const busy = computed(() => stations.loading.value || address.loading.value)
@@ -30,13 +33,13 @@ const busy = computed(() => stations.loading.value || address.loading.value)
 watch(() => address.selectedName.value, (name) => { if (name) stations.reset() })
 
 const chooseStation = (s: StationMatch) => {
-  stations.query.value = s.name
-  stations.reset()
-  emit('choose', { kind: 'station', station: s })
+  stations.select(s.name)
+  chosenStation.value = s.name.trim()
+  emit('choose', { kind: 'station', station: s, viaSearch: true })
 }
 const pickAddress = (s: Parameters<typeof address.select>[0]) => {
   const picked = address.select(s)
-  stations.query.value = picked.name
+  stations.select(picked.name)
   emit('picked', picked)
 }
 const rowClass = 'w-full flex items-start gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'

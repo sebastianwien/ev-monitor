@@ -47,8 +47,19 @@ describe('PlaceSearch', () => {
     expect(row.textContent).toContain('Am Fuchsgraben 1, 91586 Lichtenau')
     expect(row.textContent).toContain('DC 300 kW')
     row.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
-    expect(choose).toHaveBeenCalledWith({ kind: 'station', station: enbw })
+    expect(choose).toHaveBeenCalledWith({ kind: 'station', station: enbw, viaSearch: true })
     expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('nach der Wahl startet der übernommene Name keine neue Suche und die Liste bleibt zu', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: [enbw] } as never)
+    const { host } = mount()
+    await type(host, 'EnBW Lichtenau')
+    const calls = vi.mocked(api.get).mock.calls.length
+    ;(host.querySelector('[data-testid="place-search-station"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await nextTick(); await vi.runAllTimersAsync(); await nextTick()
+    expect(vi.mocked(api.get).mock.calls.length).toBe(calls)
+    expect(host.querySelector('[role="listbox"]')).toBeNull()
   })
 
   it('Adresse suchen ist eine eigene Zeile, ruft Nominatim erst auf Tap und meldet den gewählten Ort', async () => {
