@@ -13,6 +13,7 @@ export type VwEudaHealth =
   | 'FAILING'
   | 'NO_CONTENT'
   | 'STALE'
+  | 'STALE_CONTENT'
   | 'HISTORY_FAILED'
   | 'RECEIVING'
   | 'WAITING_FIRST'
@@ -27,6 +28,16 @@ export const FAILING_THRESHOLD = 3
 
 /** Zustaende, in denen der Hersteller in der Pflicht ist - dort ist die Beschwerde der naechste Schritt. */
 export const MANUFACTURER_AT_FAULT: ReadonlySet<VwEudaHealth> = new Set(['NO_REQUEST', 'NO_CONTENT', 'STALE'])
+
+/**
+ * Hersteller in der Pflicht? STALE_CONTENT nur mit Bestaetigung des Nutzers: ein Auto, das drei Tage
+ * steht, liefert dieselben alten Signale wie ein haengendes Portal, und nur der Nutzer weiss, was zutrifft.
+ */
+export function isVwEudaManufacturerAtFault(health: VwEudaHealth | null, contentStaleConfirmed: boolean): boolean {
+  if (!health) return false
+  if (health === 'STALE_CONTENT') return contentStaleConfirmed
+  return MANUFACTURER_AT_FAULT.has(health)
+}
 
 export function classifyVwEudaHealth(activity: VwEudaSyncActivity, now: Date = new Date()): VwEudaHealth {
   const c = activity.connection
@@ -47,6 +58,10 @@ export function classifyVwEudaHealth(activity: VwEudaSyncActivity, now: Date = n
     if (age >= WAITING_WINDOW_MS) return 'NO_CONTENT'
   } else if (now.getTime() - lastContentMs > STALE_WINDOW_MS) {
     return 'STALE'
+  } else if (c.lastCapturedAt && now.getTime() - new Date(c.lastCapturedAt).getTime() > STALE_WINDOW_MS) {
+    // Lieferungen kommen, tragen aber nur alte Signale: das Portal wiederholt sich. Ob das Auto stand
+    // oder der Hersteller haengt, entscheidet der Nutzer (isVwEudaManufacturerAtFault).
+    return 'STALE_CONTENT'
   }
   if (c.history?.attemptsExhausted) return 'HISTORY_FAILED'
   if (!hadContent) return 'WAITING_FIRST'

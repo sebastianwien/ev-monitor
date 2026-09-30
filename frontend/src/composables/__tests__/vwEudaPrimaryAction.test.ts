@@ -52,3 +52,14 @@ describe('isVwEudaHistoryOpen', () => {
     expect(isVwEudaHistoryOpen(h({ requestedAt: '2026-09-19T10:00:00Z' }), null, false)).toBe(true)
   })
 })
+
+describe('deriveVwEudaPrimaryAction: veralteter Inhalt', () => {
+  it('ohne Bestaetigung keine Beschwerde, Historie bleibt die Handlung', () => {
+    expect(deriveVwEudaPrimaryAction({ ...base, health: 'STALE_CONTENT' })).toBe('history')
+    expect(deriveVwEudaPrimaryAction({ ...base, health: 'STALE_CONTENT', historyOpen: false })).toBe(null)
+  })
+
+  it('mit Bestaetigung "Auto war in Betrieb": Beschwerde', () => {
+    expect(deriveVwEudaPrimaryAction({ ...base, health: 'STALE_CONTENT', contentStaleConfirmed: true })).toBe('complaint')
+  })
+})

@@ -7,7 +7,7 @@ import {
   XCircleIcon, PauseCircleIcon, ArrowPathIcon, LockClosedIcon,
 } from '@heroicons/vue/24/outline'
 import vwEudaSyncService, { type VwEudaSyncActivity, type VwEudaConnectionStatus } from '../../api/vwEudaSyncService'
-import { classifyVwEudaHealth, MANUFACTURER_AT_FAULT, type VwEudaHealth } from '../../composables/useVwEudaHealth'
+import { classifyVwEudaHealth, isVwEudaManufacturerAtFault, type VwEudaHealth } from '../../composables/useVwEudaHealth'
 import { buildVwEudaComplaintMail } from '../../composables/useVwEudaComplaintMail'
 import { deriveVwEudaPrimaryAction, isVwEudaHistoryOpen } from '../../composables/useVwEudaPrimaryAction'
 import VwEudaAuthorityComplaint from './VwEudaAuthorityComplaint.vue'
@@ -48,12 +48,15 @@ watch(() => [props.connection.carId, props.version], load)
 
 const status = computed(() => props.connection.status)
 const health = computed<VwEudaHealth | null>(() => activity.value ? classifyVwEudaHealth(activity.value) : null)
-const manufacturerAtFault = computed(() => health.value !== null && MANUFACTURER_AT_FAULT.has(health.value))
-const complaint = computed(() => activity.value ? buildVwEudaComplaintMail(activity.value, locale.value) : null)
+/** Bei veraltetem Inhalt entscheidet der Nutzer: stand das Auto, oder haengt der Hersteller? Nicht persistiert. */
+const carInUseConfirmed = ref(false)
+watch(health, () => { carInUseConfirmed.value = false })
+const manufacturerAtFault = computed(() => isVwEudaManufacturerAtFault(health.value, carInUseConfirmed.value))
+const complaint = computed(() => activity.value ? buildVwEudaComplaintMail(activity.value, locale.value, new Date(), health.value) : null)
 
 type Tone = 'ok' | 'wait' | 'warn' | 'bad' | 'off'
 const TONE: Record<VwEudaHealth, Tone> = {
-  HEALTHY: 'ok', RECEIVING: 'wait', WAITING_FIRST: 'wait', NO_CONTENT: 'warn', STALE: 'warn', HISTORY_FAILED: 'warn',
+  HEALTHY: 'ok', RECEIVING: 'wait', WAITING_FIRST: 'wait', NO_CONTENT: 'warn', STALE: 'warn', STALE_CONTENT: 'warn', HISTORY_FAILED: 'warn',
   NO_REQUEST: 'bad', FAILING: 'bad', AUTH_FAILED: 'bad', PAUSED: 'off',
 }
 const tone = computed<Tone>(() => {
@@ -73,7 +76,7 @@ const toneIcon = computed(() => ({
 
 /** Überschrift des Lagebilds: aus dem Protokoll, sonst aus dem Verbindungsstatus. */
 const headline = computed(() => health.value
-  ? t(`eu_data_act_sync.activity.health_${health.value.toLowerCase()}`)
+  ? t(`eu_data_act_sync.activity.health_${health.value.toLowerCase()}`, { since: fmt(conn.value?.lastCapturedAt) ?? '-' })
   : t(`eu_data_act_sync.activity.status_only_${status.value.toLowerCase()}`))
 
 const fmt = (iso: string | null | undefined, withTime = true) => iso
@@ -110,6 +113,7 @@ const historyLabel = computed(() => {
 const historyOpen = computed(() => isVwEudaHistoryOpen(conn.value?.history, props.connection.historyImportedAt, props.historyPending ?? false))
 const primary = computed(() => deriveVwEudaPrimaryAction({
   status: status.value, health: health.value, hasComplaint: complaint.value !== null, historyOpen: historyOpen.value,
+  contentStaleConfirmed: carInUseConfirmed.value,
 }))
 const primaryClass = 'inline-flex items-center justify-center gap-1.5 w-full sm:w-auto font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 disabled:opacity-60'
 const secondaryClass = 'inline-flex items-center gap-1.5 min-h-[44px] text-[11px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-sm border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-gray-500 dark:hover:border-gray-400 disabled:opacity-60'
@@ -139,6 +143,13 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
           <p v-if="shortError" class="text-xs" data-testid="euda-last-error">
             {{ t('eu_data_act_sync.activity.last_error_short', { error: shortError }) }}
           </p>
+          <template v-if="health === 'STALE_CONTENT' && status === 'ACTIVE'">
+            <p class="text-xs opacity-80">{{ t('eu_data_act_sync.activity.stale_content_hint') }}</p>
+            <label class="flex items-start gap-2 min-h-[44px] text-xs font-medium cursor-pointer">
+              <input v-model="carInUseConfirmed" type="checkbox" data-testid="euda-confirm-in-use" class="mt-0.5 h-4 w-4 rounded border-gray-400 accent-current" />
+              <span>{{ t('eu_data_act_sync.activity.confirm_in_use') }}</span>
+            </label>
+          </template>
         </div>
       </div>
     </div>

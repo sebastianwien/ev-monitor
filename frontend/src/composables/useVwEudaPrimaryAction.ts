@@ -1,5 +1,5 @@
 import type { VwEudaHistoryState } from '../api/vwEudaSyncService'
-import { MANUFACTURER_AT_FAULT, type VwEudaHealth } from './useVwEudaHealth'
+import { isVwEudaManufacturerAtFault, type VwEudaHealth } from './useVwEudaHealth'
 
 /**
  * Genau eine primäre Handlung je Zustand der Data-Act-Verbindung. Reihenfolge = Dringlichkeit:
@@ -14,12 +14,14 @@ export interface PrimaryActionInput {
   /** Ein Beschwerde-Mailtext liegt vor (braucht das Protokoll). */
   hasComplaint: boolean
   historyOpen: boolean
+  /** Nutzer hat bestaetigt, dass das Auto trotz veralteter Signale in Betrieb war (nur bei STALE_CONTENT relevant). */
+  contentStaleConfirmed?: boolean
 }
 
 export function deriveVwEudaPrimaryAction(i: PrimaryActionInput): VwEudaPrimaryAction {
   if (i.status === 'EXPIRED') return 'upgrade'
   if (i.status === 'AUTH_FAILED') return 'relogin'
-  if (i.health && MANUFACTURER_AT_FAULT.has(i.health) && i.hasComplaint) return 'complaint'
+  if (isVwEudaManufacturerAtFault(i.health, i.contentStaleConfirmed ?? false) && i.hasComplaint) return 'complaint'
   if (i.historyOpen) return 'history'
   return null
 }

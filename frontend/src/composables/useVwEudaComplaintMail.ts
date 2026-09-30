@@ -1,4 +1,5 @@
 import type { VwEudaSyncActivity } from '../api/vwEudaSyncService'
+import type { VwEudaHealth } from './useVwEudaHealth'
 
 /**
  * Beschwerde an den Hersteller als mailto-Link. Der Nutzer schickt sie selbst aus seinem
@@ -15,7 +16,11 @@ export interface ComplaintMail {
 const dateOf = (iso: string | null, locale: string) =>
   iso ? new Date(iso).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-'
 
-export function buildVwEudaComplaintMail(activity: VwEudaSyncActivity, locale: string, now: Date = new Date()): ComplaintMail {
+/**
+ * @param health Lagebild; bei STALE_CONTENT lautet der Sachverhalt "Lieferungen kommen, aber ohne neue
+ *   Fahrzeugdaten seit X", sonst "keine bzw. leere Lieferungen".
+ */
+export function buildVwEudaComplaintMail(activity: VwEudaSyncActivity, locale: string, now: Date = new Date(), health?: VwEudaHealth | null): ComplaintMail {
   const de = locale === 'de'
   const c = activity.connection
   const s = activity.summary
@@ -30,9 +35,19 @@ export function buildVwEudaComplaintMail(activity: VwEudaSyncActivity, locale: s
           : `The history export (Request File) requested on ${dateOf(c.history.requestedAt, locale)} has not been provided.`)
     : ''
 
+  const staleContent = health === 'STALE_CONTENT' && !!c.lastCapturedAt
+  const capturedAt = dateOf(c.lastCapturedAt, locale)
+
   const subject = de
-    ? `Beschwerde nach Art. 4 Data Act - keine Datenbereitstellung - FIN ${vin}`
-    : `Complaint under Art. 4 Data Act - no data provided - VIN ${vin}`
+    ? `Beschwerde nach Art. 4 Data Act - ${staleContent ? 'veraltete Daten' : 'keine Datenbereitstellung'} - FIN ${vin}`
+    : `Complaint under Art. 4 Data Act - ${staleContent ? 'outdated data' : 'no data provided'} - VIN ${vin}`
+
+  const factsDe = staleContent
+    ? `Sachverhalt (Stand ${today}): Seit dem ${since} wurden ${s.deliveriesWithContent} Datensätze mit Inhalt bereitgestellt. Sie enthalten jedoch seit dem ${capturedAt} keine neueren Fahrzeugdaten mehr, die Erfassungszeitpunkte der Signale stehen seitdem still. Das Fahrzeug war in dieser Zeit in Betrieb. ${errorLine}`
+    : `Sachverhalt (Stand ${today}): Seit dem ${since} wurden ${s.deliveriesSeen} Datensätze bereitgestellt, davon ${empty} ohne Inhalt (no_content_found) und ${s.deliveriesWithContent} mit Inhalt. ${historyLine} ${errorLine}`
+  const factsEn = staleContent
+    ? `Facts (as of ${today}): Since ${since}, ${s.deliveriesWithContent} data sets with content have been provided. However, since ${capturedAt} they no longer contain any newer vehicle data; the capture timestamps of the signals have not advanced since then. The vehicle was in use during this period. ${errorLine}`
+    : `Facts (as of ${today}): Since ${since}, ${s.deliveriesSeen} data sets have been provided, ${empty} of them without content (no_content_found) and ${s.deliveriesWithContent} with content. ${historyLine} ${errorLine}`
 
   const body = de ? [
     'Sehr geehrte Damen und Herren,',
@@ -42,7 +57,7 @@ export function buildVwEudaComplaintMail(activity: VwEudaSyncActivity, locale: s
     'Identifier zur Anfrage:',
     ids,
     '',
-    `Sachverhalt (Stand ${today}): Seit dem ${since} wurden ${s.deliveriesSeen} Datensätze bereitgestellt, davon ${empty} ohne Inhalt (no_content_found) und ${s.deliveriesWithContent} mit Inhalt. ${historyLine} ${errorLine}`.replace(/\s+/g, ' ').trim(),
+    factsDe.replace(/\s+/g, ' ').trim(),
     '',
     'Nach Art. 4 Abs. 1 und Art. 5 Abs. 1 der Verordnung (EU) 2023/2854 (Data Act), anwendbar seit dem 12.09.2025, sind mir bzw. dem von mir benannten Dritten die Daten unverzüglich, unentgeltlich, kontinuierlich und in Echtzeit bereitzustellen. Das ist derzeit nicht der Fall.',
     '',
@@ -58,7 +73,7 @@ export function buildVwEudaComplaintMail(activity: VwEudaSyncActivity, locale: s
     'Identifiers of the request:',
     ids,
     '',
-    `Facts (as of ${today}): Since ${since}, ${s.deliveriesSeen} data sets have been provided, ${empty} of them without content (no_content_found) and ${s.deliveriesWithContent} with content. ${historyLine} ${errorLine}`.replace(/\s+/g, ' ').trim(),
+    factsEn.replace(/\s+/g, ' ').trim(),
     '',
     'Under Art. 4(1) and Art. 5(1) of Regulation (EU) 2023/2854 (Data Act), applicable since 12 September 2025, the data must be made available to me or to the third party I designate without undue delay, free of charge, continuously and in real time. This is currently not the case.',
     '',

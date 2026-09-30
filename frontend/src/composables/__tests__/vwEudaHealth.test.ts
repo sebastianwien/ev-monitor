@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { classifyVwEudaHealth } from '../useVwEudaHealth'
+import { classifyVwEudaHealth, isVwEudaManufacturerAtFault } from '../useVwEudaHealth'
 import type { VwEudaSyncActivity } from '../../api/vwEudaSyncService'
 
 const NOW = new Date('2026-09-21T10:00:00Z')
@@ -107,5 +107,46 @@ describe('classifyVwEudaHealth', () => {
 
   it('laufend Inhalt: HEALTHY', () => {
     expect(classifyVwEudaHealth(activity({ lastDataAt: '2026-09-21T09:00:00Z' }, { deliveriesWithContent: 5, sessionsImported: 2 }), NOW)).toBe('HEALTHY')
+  })
+})
+
+describe('classifyVwEudaHealth: veralteter Inhalt', () => {
+  const contentRunning = { deliveriesWithContent: 5, lastContentAt: '2026-09-21T09:00:00Z' }
+
+  it('Lieferungen mit Inhalt laufen, aber die Signale darin sind aelter als 72h: STALE_CONTENT', () => {
+    expect(classifyVwEudaHealth(activity({ lastCapturedAt: '2026-09-17T09:00:00Z' }, contentRunning), NOW)).toBe('STALE_CONTENT')
+  })
+
+  it('Signale juenger als 72h: kein STALE_CONTENT', () => {
+    expect(classifyVwEudaHealth(activity({ lastCapturedAt: '2026-09-20T09:00:00Z' }, contentRunning), NOW)).toBe('RECEIVING')
+  })
+
+  it('ohne Datenstand (alter Connectors-Stand) bleibt alles wie bisher', () => {
+    expect(classifyVwEudaHealth(activity({ lastCapturedAt: null }, contentRunning), NOW)).toBe('RECEIVING')
+  })
+
+  it('ausgebliebene Lieferungen schlagen veralteten Inhalt: STALE', () => {
+    expect(classifyVwEudaHealth(activity({ lastCapturedAt: '2026-09-17T09:00:00Z' }, { deliveriesWithContent: 5, lastContentAt: '2026-09-17T10:00:00Z' }), NOW)).toBe('STALE')
+  })
+
+  it('veralteter Inhalt schlaegt den gescheiterten Historien-Import', () => {
+    const h = { requestedAt: '2026-09-19T15:20:00Z', importedAt: null, running: false, attempts: 3, attemptsExhausted: true, error: 'x' }
+    expect(classifyVwEudaHealth(activity({ lastCapturedAt: '2026-09-17T09:00:00Z', history: h }, contentRunning), NOW)).toBe('STALE_CONTENT')
+  })
+})
+
+describe('isVwEudaManufacturerAtFault', () => {
+  it('NO_CONTENT, STALE, NO_REQUEST: immer', () => {
+    for (const h of ['NO_CONTENT', 'STALE', 'NO_REQUEST'] as const) expect(isVwEudaManufacturerAtFault(h, false)).toBe(true)
+  })
+
+  it('STALE_CONTENT nur, wenn der Nutzer bestaetigt, dass das Auto in Betrieb war', () => {
+    expect(isVwEudaManufacturerAtFault('STALE_CONTENT', false)).toBe(false)
+    expect(isVwEudaManufacturerAtFault('STALE_CONTENT', true)).toBe(true)
+  })
+
+  it('HEALTHY auch mit Bestaetigung nie', () => {
+    expect(isVwEudaManufacturerAtFault('HEALTHY', true)).toBe(false)
+    expect(isVwEudaManufacturerAtFault(null, true)).toBe(false)
   })
 })

@@ -71,3 +71,32 @@ describe('buildVwEudaComplaintMail', () => {
     expect(decoded(buildVwEudaComplaintMail(activity, 'en', NOW).href).body.length).toBeLessThan(2000)
   })
 })
+
+describe('buildVwEudaComplaintMail: veralteter Inhalt', () => {
+  const stale: VwEudaSyncActivity = {
+    ...activity,
+    connection: { ...activity.connection, lastCapturedAt: '2026-09-17T09:00:00Z', lastDeliveryAt: '2026-09-21T09:58:00Z' },
+    summary: { deliveriesSeen: 180, deliveriesWithContent: 60, sessionsImported: 4, lastContentAt: '2026-09-21T09:00:00Z' },
+  }
+
+  it('benennt den Befund: Lieferungen kommen, Signale stehen seit Datum X, Auto war in Betrieb (de)', () => {
+    const { subject, body } = decoded(buildVwEudaComplaintMail(stale, 'de', NOW, 'STALE_CONTENT').href)
+    expect(subject).toContain('veraltete Daten')
+    expect(body).toContain('17.09.2026')
+    expect(body).toContain('60')
+    expect(body).toContain('in Betrieb')
+    expect(body).not.toContain('no_content_found')
+  })
+
+  it('englisch', () => {
+    const { subject, body } = decoded(buildVwEudaComplaintMail(stale, 'en', NOW, 'STALE_CONTENT').href)
+    expect(subject).toContain('outdated data')
+    expect(body).toContain('17/09/2026')
+    expect(body).toContain('in use')
+  })
+
+  it('ohne Zustand bleibt der bisherige Text', () => {
+    const { body } = decoded(buildVwEudaComplaintMail(stale, 'de', NOW).href)
+    expect(body).toContain('no_content_found')
+  })
+})
