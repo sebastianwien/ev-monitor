@@ -113,10 +113,13 @@ const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
 /** Kurze Pause vor dem Weiterspringen: die gewaehlte Kachel soll als ausgewaehlt sichtbar werden. */
 const PLACE_ADVANCE_MS = 350
 const advance = useDelayedCall(() => next(), PLACE_ADVANCE_MS)
+/** Aus der Textsuche gewählt: erst die Kachel als ausgewählt zeigen, "Weiter" tippt der Nutzer selbst */
+const autoAdvances = (choice: PlaceChoice) =>
+  choice.kind !== 'other' && !(choice.kind === 'station' && choice.viaSearch)
 const choosePlace = (choice: PlaceChoice) => {
   state.value.place = choice.kind
   applyPlace(form.value, choice)
-  if (choice.kind === 'other') advance.cancel(); else advance.schedule()
+  if (autoAdvances(choice)) advance.schedule(); else advance.cancel()
 }
 
 const placeLabel = computed(() => {

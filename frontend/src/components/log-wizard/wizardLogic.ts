@@ -12,7 +12,8 @@ export type PlaceKind = 'home' | 'station' | 'site' | 'other'
 
 export type PlaceChoice =
   | { kind: 'home' }
-  | { kind: 'station'; station: StationMatch }
+  /** viaSearch: aus der Textsuche gewählt - der Wizard springt dann nicht automatisch weiter */
+  | { kind: 'station'; station: StationMatch; viaSearch?: boolean }
   | { kind: 'site'; site: RecentSite }
   | { kind: 'other'; cpoName: string | null }
 

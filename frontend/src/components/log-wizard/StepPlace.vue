@@ -3,7 +3,7 @@ import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
-import type { NearbyStation } from '../../composables/useNearbyStations'
+import type { NearbyStation, StationMatch } from '../../composables/useNearbyStations'
 import type { RecentSite } from '../../composables/useRecentSites'
 import type { ChargingSiteRef } from '../log-form/logFormData'
 import { settingsPlatform, openAppSettings, type LocationPermission } from '../../composables/useLocationPermission'
@@ -46,6 +46,17 @@ const filteredCpos = computed(() => {
 const sameSite = (name: string, geohash: string) =>
   props.selectedSite?.geohash === geohash && props.selectedSite?.name === name
 const isStation = (s: NearbyStation) => props.place === 'station' && sameSite(s.name, s.geohash)
+// Aus der Textsuche gewählte Säule: als eigene Kachel zeigen, solange sie nicht ohnehin in der Umkreis-Liste steht
+const searchedStation = ref<StationMatch | null>(null)
+const onSearchChoose = (c: PlaceChoice) => {
+  searchedStation.value = c.kind === 'station' ? c.station : null
+  emit('choose', c)
+}
+const showSearchedStation = computed(() => {
+  const s = searchedStation.value
+  return !!s && props.place === 'station' && sameSite(s.name, s.geohash)
+    && !props.stations.some(n => n.name === s.name && n.geohash === s.geohash)
+})
 const isSite = (s: RecentSite) => props.place === 'site' && sameSite(s.name, s.geohash)
 const isOtherCpo = (c: string) => props.place === 'other' && props.selectedCpo === c
 
@@ -91,9 +102,19 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
 
     <!-- Ohne Live-Position: Ort suchen - laedt danach ebenfalls die Saeulen im Umkreis -->
     <PlaceSearch :label="t('logwizard.place_search')"
-      @choose="c => emit('choose', c)" @picked="p => emit('placePicked', p)" />
+      @choose="onSearchChoose" @picked="p => emit('placePicked', p)" />
     </div>
     </Collapse>
+    <button v-if="showSearchedStation && searchedStation" type="button" data-testid="place-searched-station" :class="tileClass(true)"
+      @click="emit('choose', { kind: 'station', station: searchedStation, viaSearch: true })">
+      <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
+      <span class="flex-1 min-w-0">
+        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ searchedStation.name }}</b>
+        <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(searchedStation) }}</small>
+        <small v-if="searchedStation.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ searchedStation.address }}</small>
+      </span>
+      <CheckCircleIcon class="h-5 w-5 text-indigo-600" />
+    </button>
 
     <button type="button" data-testid="place-home" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>
