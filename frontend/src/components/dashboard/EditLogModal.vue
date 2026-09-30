@@ -49,7 +49,7 @@
         <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
         <StepPlace v-else-if="section === 'place'" :place="place" :selected-cpo="formData.cpoName" :selected-site="formData.chargingSite"
           :stations="[]" :stations-loading="false" permission="unavailable" location-status="idle"
-          :recent-cpos="[]" :recent-sites="recentSites.sites.value" :all-cpos="cpo.allCpos.value" @choose="choosePlace">
+          :recent-cpos="[]" :recent-sites="recentSites.sites.value" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked">
         </StepPlace>
         <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
         <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
@@ -62,7 +62,6 @@
 
         <!-- Standort aendern: nur im Ort-Editor, ohne Live-Position (es gibt nur den Geohash) -->
         <div v-if="section === 'place'" class="pt-2">
-          <PlaceSearch :label="t('logfields.update_location')" :placeholder="t('logfields.location_search_placeholder')" @picked="onPlacePicked" />
           <p v-if="formData.latitude == null && log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
         </div>
 
@@ -131,7 +130,6 @@ import { useRecentSites } from '../../composables/useRecentSites'
 import StepEnergy from '../log-wizard/StepEnergy.vue'
 import StepVehicle from '../log-wizard/StepVehicle.vue'
 import StepCost from '../log-wizard/StepCost.vue'
-import PlaceSearch from '../log-wizard/PlaceSearch.vue'
 
 export interface EvLogResponse {
   id: string
