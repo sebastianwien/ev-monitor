@@ -44,7 +44,7 @@ const hasMap = computed(() => props.context.lat != null && props.context.lon != 
     <!-- Kopf: Minimap mit Säule, Adresse und Karte eingeblendet; ohne Position nur die Textzeile. -->
     <div data-testid="numbers-context" class="relative -mx-4 md:mx-0 md:rounded-sm overflow-hidden" :class="hasMap ? 'h-28' : ''">
       <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" class="absolute inset-0" />
-      <div :class="hasMap ? 'absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-gray-900 dark:via-gray-900/90 px-4 pt-6 pb-1' : 'px-4'">
+      <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] bg-gradient-to-t from-white via-white/90 to-transparent dark:from-gray-900 dark:via-gray-900/90 px-4 pt-6 pb-1' : 'px-4'">
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
             <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate"><MapPinIcon class="h-4 w-4 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />{{ context.title }}</p>

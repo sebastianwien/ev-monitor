@@ -130,7 +130,7 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
 <template>
   <div :data-testid="testid ? `${testid}-row` : undefined" :class="['rounded-sm border-2 px-3 py-2 transition cursor-pointer select-none',
       active ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800']"
-    @click="activate">
+    v-haptic @click="activate">
     <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
       <span class="text-sm text-gray-500 dark:text-gray-400 cursor-pointer py-2 -my-2" aria-hidden="true" @click.stop="toggleFromLabel">{{ label }}</span>
       <input :id="id" :data-testid="testid" type="number" :inputmode="inputmode" :step="step" :min="min" :max="max"
