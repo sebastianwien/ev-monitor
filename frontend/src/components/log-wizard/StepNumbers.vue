@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import type { useCostInput } from '../../composables/useCostInput'
-import { consumptionPreview, type PreviousLogRef } from '../../utils/consumptionPreview'
+import type { ConsumptionPreview } from '../../utils/consumptionPreview'
 import StepEnergy from './StepEnergy.vue'
 import StepVehicle from './StepVehicle.vue'
 import StepCost from './StepCost.vue'
 import OptionalPanel from './OptionalPanel.vue'
 import PlaceHeader, { type NumbersContext } from './PlaceHeader.vue'
+import { useFillHeight } from '../../composables/useFillHeight'
 
 export type { NumbersContext }
 
@@ -20,41 +21,16 @@ export type { NumbersContext }
  */
 const props = defineProps<{
   cost: ReturnType<typeof useCostInput>; lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined
-  openCard?: 'new' | 'price' | null; context: NumbersContext; previousLog: PreviousLogRef | null
+  openCard?: 'new' | 'price' | null; context: NumbersContext; preview: ConsumptionPreview | null
 }>()
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const emit = defineEmits<{ ocr: [result: any] }>()
 
-const preview = computed(() => consumptionPreview({
-  kwhCharged: form.value.kwhCharged, kwhAtVehicle: form.value.kwhAtVehicle, chargingType: form.value.chargingType,
-  odometerKm: form.value.odometerKm, socAfter: form.value.socAfterChargePercent, capacityKwh: props.effectiveCapacityKwh,
-  costEur: form.value.costEur, previous: props.previousLog,
-}))
 
-// ── Kartenhöhe: füllt den freien Platz zwischen Kopfzeile und Eingaben, animiert, wenn die Eingaben
-// wachsen (aufgeklapptes Rädchen, Ladekarte, Details). Gemessen wird der Scrollbereich der Shell,
-// nicht das eigene Element - das wüchse sonst mit der Karte und die Messung bisse sich in den Schwanz.
-const MAP_MIN = 112, MAP_MAX = 640
 const root = ref<HTMLElement | null>(null)
 const body = ref<HTMLElement | null>(null)
-const mapHeight = ref(MAP_MIN)
-let sizeWatch: ResizeObserver | null = null
-const measure = () => {
-  const scroller = root.value?.parentElement?.parentElement
-  if (!scroller || !body.value) return
-  const pad = parseFloat(getComputedStyle(root.value!.parentElement!).paddingBottom) || 0
-  const free = scroller.clientHeight - pad - body.value.offsetHeight
-  mapHeight.value = Math.max(MAP_MIN, Math.min(MAP_MAX, free))
-}
-onMounted(() => {
-  if (typeof ResizeObserver === 'undefined') return
-  sizeWatch = new ResizeObserver(measure)
-  if (body.value) sizeWatch.observe(body.value)
-  const scroller = root.value?.parentElement?.parentElement
-  if (scroller) sizeWatch.observe(scroller)
-})
-onBeforeUnmount(() => sizeWatch?.disconnect())
+const mapHeight = useFillHeight(root, body)
 </script>
 
 <template>

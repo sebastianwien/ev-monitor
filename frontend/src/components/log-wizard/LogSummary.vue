@@ -5,7 +5,7 @@ import type { LogFormData } from '../log-form/logFormData'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { type RequiredField } from './wizardLogic'
 import OptionalPanel from './OptionalPanel.vue'
-import PlaceHeader, { type NumbersContext } from './PlaceHeader.vue'
+import type { CostMetric } from './costMetrics'
 
 export type SummarySection = 'place' | 'energy' | 'vehicle' | 'cost' | 'time'
 
@@ -15,8 +15,10 @@ const props = defineProps<{
   missing?: RequiredField[]
   /** Zeit als eigene Kachel (Bearbeiten); beim Anlegen steht sie unter "Mehr Details" */
   showTimeTile?: boolean
-  /** Wizard: Säule mit Minimap als Kopf statt der Ort-Kachel, dann bleiben vier Kacheln im Raster */
-  context?: NumbersContext | null
+  /** Wizard: der Ort steht als Kartenkopf darüber, die Ort-Kachel entfällt und es bleiben vier im Raster */
+  hidePlace?: boolean
+  /** ct/kWh, €/100 km, kWh/100 km für die Kosten-Kachel; ersetzt dort die Zeile "Ändern", die Kachel bleibt gleich hoch */
+  costMetrics?: CostMetric[]
 }>()
 const form = defineModel<LogFormData>({ required: true })
 const emit = defineEmits<{ edit: [section: SummarySection] }>()
@@ -28,6 +30,9 @@ const timeLabel = computed(() => {
   return new Date(form.value.loggedAt).toLocaleString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 })
 
+/** Kosten-Kachel: Preis je kWh in die Kopfzeile, die beiden Werte je 100 km in die dritte Zeile */
+const perKwh = computed(() => props.costMetrics?.find(m => m.unit.endsWith('/kWh')) ?? null)
+const per100 = computed(() => props.costMetrics?.filter(m => !m.unit.endsWith('/kWh')) ?? [])
 const isMissing = (f: RequiredField) => props.missing?.includes(f) ?? false
 const energy = computed(() => {
   const v = form.value.kwhCharged ?? form.value.kwhAtVehicle
@@ -36,7 +41,7 @@ const energy = computed(() => {
 
 interface Tile { label: string; value: string | null; section: SummarySection; testid: string }
 const tiles = computed<Tile[]>(() => [
-  ...(props.context ? [] : [{ label: t('logwizard.place'), value: props.placeLabel, section: 'place' as SummarySection, testid: 'summary-place' }]),
+  ...(props.hidePlace ? [] : [{ label: t('logwizard.place'), value: props.placeLabel, section: 'place' as SummarySection, testid: 'summary-place' }]),
   ...(props.showTimeTile ? [{ label: t('logfields.timestamp'), value: timeLabel.value, section: 'time' as SummarySection, testid: 'summary-time' }] : []),
   { label: t('logfields.energy'), value: isMissing('energy') ? null : energy.value, section: 'energy', testid: 'summary-energy' },
   { label: t('logfields.odometer'), value: isMissing('odometer') || form.value.odometerKm == null ? null : formatDistance(form.value.odometerKm), section: 'vehicle', testid: 'summary-odometer' },
@@ -47,14 +52,23 @@ const tiles = computed<Tile[]>(() => [
 
 <template>
   <div class="space-y-4">
-    <PlaceHeader v-if="context" :context="context" :height="160" clickable data-testid="summary-place" @click="emit('edit', 'place')" />
     <div class="grid grid-cols-2 gap-2">
       <button v-for="tile in tiles" :key="tile.testid" type="button" :data-testid="tile.testid" @click="emit('edit', tile.section)"
         :class="['btn-3d text-left p-3 rounded-sm transition', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">
-        <span class="block text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ tile.label }}</span>
+        <span class="flex items-baseline justify-between gap-1 text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
+          <span class="truncate">{{ tile.label }}</span>
+          <!-- Kosten: der Preis je kWh gehört zum Betrag und steht in der Kopfzeile, die Werte je 100 km in der dritten Zeile -->
+          <span v-if="tile.section === 'cost' && perKwh" class="flex-shrink-0 normal-case tabular-nums text-gray-500 dark:text-gray-400"><b class="font-semibold text-gray-700 dark:text-gray-200">{{ perKwh.value }}</b> {{ perKwh.unit }}</span>
+        </span>
         <b v-if="tile.value != null" class="block text-base font-semibold tabular-nums text-gray-800 dark:text-gray-100 truncate">{{ tile.value }}</b>
         <b v-else class="block text-base font-semibold text-amber-700 dark:text-amber-300">{{ t('logwizard.open') }}</b>
-        <span class="text-xs text-indigo-600 dark:text-indigo-300">{{ t('logwizard.change') }}</span>
+        <!-- Kosten: dritte Zeile zeigt die Kennzahlen, Wert dunkel und Einheit grau, Trenner als Punkt; Tippen ändert wie bei allen Kacheln -->
+        <span v-if="tile.section === 'cost' && per100.length" class="flex items-baseline gap-1 overflow-hidden text-[10px] leading-4 tabular-nums text-gray-500 dark:text-gray-400 whitespace-nowrap">
+          <span v-for="(m, i) in per100" :key="m.unit" class="inline-flex items-baseline gap-0.5">
+            <span v-if="i > 0" class="pr-1">·</span><b :class="['font-semibold', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-gray-200']">{{ m.value }}</b>{{ m.unit.replace(' km', '') }}
+          </span>
+        </span>
+        <span v-else class="text-xs text-indigo-600 dark:text-indigo-300">{{ t('logwizard.change') }}</span>
       </button>
     </div>
 

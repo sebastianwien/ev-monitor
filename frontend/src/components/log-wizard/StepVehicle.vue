@@ -69,7 +69,7 @@ const battery = computed(() => {
 <template>
   <div :class="compact ? 'space-y-2' : 'space-y-3'">
     <RulerInput id="wizard-odometer" v-model="odometer" :label="t('logfields.odometer')" :unit="usesMiles ? t('logfields.unit_miles') : t('logfields.unit_km')"
-      :placeholder="lastOdometerKm != null ? String(odoMin) : ''" :step="1" :min="odoMin" :max="odoMax" :px-per-step="7" :label-every="50"
+      :placeholder="lastOdometerKm != null ? String(odoMin) : ''" :step="1" :min="odoMin" :max="odoMax" :px-per-step="7" :label-every="50" :label-base="lastOdometerKm != null ? odoMin : null"
       inputmode="numeric" :prefix="odoPrefix" :sub="odoSub" :sub-tone="belowLast ? 'warn' : 'muted'" :autofocus="!compact" />
 
     <div class="space-y-2">

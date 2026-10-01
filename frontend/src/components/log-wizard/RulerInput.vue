@@ -30,6 +30,8 @@ const props = withDefaults(defineProps<{
   pxPerStep?: number
   /** Beschriftung alle n Schritte */
   labelEvery?: number
+  /** Beschriftung als Differenz zu diesem Wert ("+50", "+100") statt absolut - Tacho zeigt die gefahrene Strecke */
+  labelBase?: number | null
 }>(), { inputmode: 'decimal', pxPerStep: 9, labelEvery: 10, subTone: 'muted' })
 const model = defineModel<number | null>()
 
@@ -82,7 +84,10 @@ const draw = () => {
     const x = W / 2 + i * props.pxPerStep + 0.5
     const major = i % props.labelEvery === 0, mid = !major && i % half === 0
     g.beginPath(); g.moveTo(x, 4); g.lineTo(x, major ? 22 : mid ? 16 : 11); g.stroke()
-    if (major) g.fillText(toValue(i).toLocaleString('de-DE'), x, 36)
+    if (major) {
+      const v = toValue(i)
+      g.fillText(props.labelBase != null ? `+${(v - props.labelBase).toLocaleString('de-DE')}` : v.toLocaleString('de-DE'), x, 36)
+    }
   }
   syncScroll()
 }
@@ -99,6 +104,7 @@ const syncScroll = () => {
 }
 watch(model, () => { syncScroll() })
 watch(() => props.start, () => { if (model.value == null) syncScroll() })
+watch(() => props.labelBase, () => { drawnWidth = 0; if (active.value) draw() })
 
 /**
  * Einmal pro Gerät: beim ersten offenen Maßstab ruckt der Streifen kurz an und zurück, mit

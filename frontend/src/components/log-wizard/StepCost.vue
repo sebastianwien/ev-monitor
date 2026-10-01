@@ -10,6 +10,8 @@ import { useInlineChargingCard, CUSTOM_PROVIDER } from '../../composables/useInl
 import { KNOWN_EMPS, HOME_TARIFF_NAME } from '../../composables/useChargingProviders'
 import { tariffLocationParams } from '../../utils/tariffLocation'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
+import { costMetrics } from './costMetrics'
+import type { ConsumptionPreview } from '../../utils/consumptionPreview'
 import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
@@ -19,7 +21,7 @@ import SegmentToggle from './SegmentToggle.vue'
 
 const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null
   /** Richtwert seit der letzten Ladung - steht in der Kostenzeile, weil Preis und Verbrauch zusammen gelesen werden */
-  preview?: { kwhPer100km: number; eurPer100km: number | null; plausible: boolean } | null }>()
+  preview?: ConsumptionPreview | null }>()
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const { t } = useI18n()
@@ -111,23 +113,10 @@ const manual = ref(false)
 const derived = computed(() => !manual.value && (
   (costMode.value === 'per_kwh' && costLocalPerKwh.value != null)
   || (costMode.value === 'total' && costLocalTotal.value === 0 && !form.value.chargingProviderId)))
-/** Preis je kWh in der Landesschreibweise: Euro-Länder in Cent, sonst Währung/kWh */
-const perKwhLabel = (local: number) => isEurCountry.value
-  ? `${formatNumber(Math.round(local * 100))} ${subunit.value}/kWh` : `${formatDecimal(local, 2)} ${symbol.value}/kWh`
 /** Unterzeile der Kostenbox: Preis je kWh, dann Kosten und Verbrauch je 100 km, sobald sie berechenbar sind */
-interface Metric { value: string; unit: string; tone?: 'notice' }
-const metrics = (perKwh: number | null): Metric[] => {
-  const m: Metric[] = []
-  if (perKwh != null) {
-    const [value, unit] = perKwhLabel(perKwh).split(' ')
-    m.push({ value, unit })
-  }
-  if (props.preview?.eurPer100km != null) m.push({ value: formatDecimal(props.cost.eurToLocal(props.preview.eurPer100km), 2), unit: `${symbol.value}/100 km` })
-  if (props.preview) m.push({ value: formatNumber(Math.round(props.preview.kwhPer100km * 10) / 10), unit: 'kWh/100 km', tone: props.preview.plausible ? undefined : 'notice' })
-  return m
-}
-const derivedMetrics = computed<Metric[]>(() => costMode.value === 'total' ? [] : metrics(costLocalPerKwh.value))
-const manualMetrics = computed<Metric[]>(() => metrics(costMode.value === 'per_kwh' ? costLocalPerKwh.value : calculatedLocalPerKwh.value))
+const metricFormat = computed(() => ({ isEurCountry: isEurCountry.value, subunit: subunit.value, symbol: symbol.value, eurToLocal: props.cost.eurToLocal, formatNumber, formatDecimal }))
+const derivedMetrics = computed(() => costMode.value === 'total' ? [] : costMetrics(costLocalPerKwh.value, props.preview, metricFormat.value))
+const manualMetrics = computed(() => costMetrics(costMode.value === 'per_kwh' ? costLocalPerKwh.value : calculatedLocalPerKwh.value, props.preview, metricFormat.value))
 const derivedSub = computed(() => costMode.value === 'total' ? t('logwizard.price_free') : null)
 
 /** Noch nichts eingegeben: dann darf ein Vorschlag vorbelegen, sonst nie. */
@@ -188,13 +177,12 @@ onMounted(async () => {
         <span v-if="derivedSub" class="text-xs text-gray-500 dark:text-gray-400">{{ derivedSub }}</span>
         <button type="button" data-testid="cost-other" @click="manual = true" class="min-h-11 px-2 text-sm font-semibold text-green-700 dark:text-green-300">{{ t('logwizard.cost_other') }}</button>
       </div>
-      <!-- Kennzahlen als drei Kacheln: Wert groß, Einheit klein darunter, getrennt vom Betrag -->
-      <dl v-if="derivedMetrics.length" class="mt-2 grid grid-cols-3 gap-2 border-t border-green-200 dark:border-green-900 pt-2">
-        <div v-for="m in derivedMetrics" :key="m.unit" class="min-w-0">
-          <dd :class="['text-base font-semibold leading-tight tabular-nums truncate', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</dd>
-          <dt class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ m.unit }}</dt>
-        </div>
-      </dl>
+      <!-- Kennzahlen in einer Zeile: Wert fett, Einheit grau, feine Trenner -->
+      <p v-if="derivedMetrics.length" class="mt-0.5 flex items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums overflow-hidden">
+        <span v-for="(m, i) in derivedMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
+          <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
+        </span>
+      </p>
     </div>
     <div v-else class="rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 focus-within:border-indigo-600">
       <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
@@ -204,12 +192,11 @@ onMounted(async () => {
           class="w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
         <span class="text-base text-gray-500 dark:text-gray-400">{{ symbol }}</span>
       </div>
-      <dl v-if="manualMetrics.length" class="mt-2 grid grid-cols-3 gap-2 border-t border-gray-200 dark:border-gray-700 pt-2">
-        <div v-for="m in manualMetrics" :key="m.unit" class="min-w-0">
-          <dd :class="['text-base font-semibold leading-tight tabular-nums truncate', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</dd>
-          <dt class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ m.unit }}</dt>
-        </div>
-      </dl>
+      <p v-if="manualMetrics.length" class="mt-0.5 flex justify-end items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums overflow-hidden">
+        <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
+          <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
+        </span>
+      </p>
     </div>
       <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">
         <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">

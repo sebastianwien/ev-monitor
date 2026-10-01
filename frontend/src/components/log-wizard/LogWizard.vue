@@ -12,7 +12,7 @@ import { useCoinStore } from '../../stores/coins'
 import { useLogsRefreshStore } from '../../stores/logsRefresh'
 import { useHaptic } from '../../composables/useHaptic'
 import { useCpoOptions } from '../../composables/useCpoOptions'
-import { useNearbyStations } from '../../composables/useNearbyStations'
+import { useNearbyStations, type StationMatch } from '../../composables/useNearbyStations'
 import { useRecentSites } from '../../composables/useRecentSites'
 import { useChargingSuggestion } from '../../composables/useChargingSuggestion'
 import { useCostInput } from '../../composables/useCostInput'
@@ -26,7 +26,8 @@ import { emptyLogForm, canProceed, applyPlace, applySuggestion, buildLogPayload,
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
 import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
-import type { PreviousLogRef } from '../../utils/consumptionPreview'
+import { consumptionPreview, type PreviousLogRef } from '../../utils/consumptionPreview'
+import { costMetrics } from './costMetrics'
 import geohashLib from 'ngeohash'
 import type { CardChoice, CommunityPrice } from './CardStrip.vue'
 import { providerPriceForType } from '../../utils/chargingProviderPricing'
@@ -36,7 +37,7 @@ import StepReview from './StepReview.vue'
 const emit = defineEmits<{ success: []; cancel: [] }>()
 const { t } = useI18n()
 const { haptic } = useHaptic()
-const { formatNumber } = useLocaleFormat()
+const { formatNumber, formatDecimal } = useLocaleFormat()
 const carStore = useCarStore()
 const countryStore = useCountryStore()
 const coinStore = useCoinStore()
@@ -146,6 +147,7 @@ const choosePlace = (choice: PlaceChoice) => {
   state.value.place = choice.kind
   siteCoords.value = choice.kind === 'station' && choice.station.latitude != null && choice.station.longitude != null
     ? { lat: choice.station.latitude, lon: choice.station.longitude } : null
+  siteAddress.value = choice.kind === 'station' ? choice.station.address ?? null : null
   applyPlace(form.value, choice)
   resetCard()
   if (autoAdvances(choice)) advance.schedule(); else { advance.cancel(); preselectCard() }
@@ -237,13 +239,17 @@ const numbersContext = computed<NumbersContext>(() => {
   const card = providers.value.find(x => x.id === form.value.chargingProviderId)
   const station = form.value.chargingSite ? nearby.stations.value.find(s => s.name === form.value.chargingSite!.name) : null
   return {
-    title: form.value.chargingSite?.name ?? placeLabel.value, address: station?.address ?? null,
+    title: form.value.chargingSite?.name ?? placeLabel.value, address: siteAddress.value ?? station?.address ?? null,
     card: card ? (card.label || card.providerName) : null,
     ...siteCenter(),
   }
 })
 /** Exakte Position der gewählten Säule aus dem Register - nur für die Minimap, geht nie ins Log. */
 const siteCoords = ref<{ lat: number; lon: number } | null>(null)
+/** Aus der Textsuche gewählte Säule - überlebt den Wechsel zwischen den Schritten */
+const searchedStation = ref<StationMatch | null>(null)
+/** Adresse der gewählten Säule (auch aus der Textsuche, die nicht in der Umkreisliste steht) */
+const siteAddress = ref<string | null>(null)
 /**
  * Minimap-Mittelpunkt als Bestätigung "das ist die Säule": exakt aus dem Register, sonst die Zelle
  * des gespeicherten Standorts (~150 m). Nicht die Handy-Position, die liegt gern daneben. Ohne Säule
@@ -260,6 +266,20 @@ const siteCenter = (): { lat: number | null; lon: number | null } => {
 const previousLog = computed<PreviousLogRef | null>(() => {
   const l = logs.value.find(x => x.odometerKm != null)
   return l ? { odometerKm: l.odometerKm, socAfter: l.socAfterChargePercent ?? null } : null
+})
+/** Richtwert kWh und Euro je 100 km seit der letzten Ladung - Schritt 2 zeigt ihn in der Kostenbox, Schritt 3 in der Kachel */
+const preview = computed(() => consumptionPreview({
+  kwhCharged: form.value.kwhCharged, kwhAtVehicle: form.value.kwhAtVehicle, chargingType: form.value.chargingType,
+  odometerKm: form.value.odometerKm, socAfter: form.value.socAfterChargePercent, capacityKwh: selectedCar.value?.effectiveBatteryCapacityKwh,
+  costEur: form.value.costEur, previous: previousLog.value,
+}))
+const summaryMetrics = computed(() => {
+  const kwh = form.value.kwhCharged ?? form.value.kwhAtVehicle
+  const perKwh = form.value.costEur != null && kwh ? cost.eurToLocal(form.value.costEur / kwh) : null
+  return costMetrics(perKwh, preview.value, {
+    isEurCountry: EUR_ZONE_COUNTRIES.includes(countryStore.country), subunit: countryStore.unitSystem.currencySubunit || countryStore.unitSystem.currencySymbol,
+    symbol: countryStore.unitSystem.currencySymbol, eurToLocal: cost.eurToLocal, formatNumber, formatDecimal,
+  })
 })
 const goto = (s: WizardStep) => { error.value = null; step.value = s; window.scrollTo({ top: 0 }) } // Desktop: Seite; mobil setzt WizardShell ihren Scroller zurueck
 const back = () => { if (step.value > 1) goto((step.value - 1) as WizardStep) }
@@ -332,7 +352,7 @@ onMounted(async () => {
       @back="back" @next="next" @cancel="emit('cancel')">
       <div v-if="cars.length > 1 && step === 1" class="mb-4"><CarSelector v-model="selectedCarId" /></div>
 
-      <StepPlace v-if="step === 1" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
+      <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
         :recent-sites="recentSites.sites.value"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
@@ -343,8 +363,8 @@ onMounted(async () => {
         @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked"
         @accept-suggestion="acceptSuggestion" @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost"
-        :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :previous-log="previousLog" @ocr="onOcr" />
-      <StepReview v-else v-model="form" :place-label="placeLabel" :context="numbersContext" :error="error" @goto="goto" />
+        :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :preview="preview" @ocr="onOcr" />
+      <StepReview v-else v-model="form" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto" />
     </WizardShell>
 
     <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-slide-in">

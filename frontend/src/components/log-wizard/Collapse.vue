@@ -48,9 +48,9 @@ const onEnd = () => {
 
 <template>
   <div v-show="rendered" :inert="!open" @transitionend.self="onEnd"
-    :class="['grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none',
+    :class="['grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none',
              expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0']">
     <!-- p-1 -m-1: die 4 px Schatten der 3D-Kacheln bleiben auch sichtbar, solange geclippt wird -->
-    <div :class="['min-h-0 p-1 -m-1', settled ? 'overflow-visible' : 'overflow-hidden']"><slot /></div>
+    <div :class="['min-h-0 min-w-0 p-1 -m-1', settled ? 'overflow-visible' : 'overflow-hidden']"><slot /></div>
   </div>
 </template>

@@ -70,8 +70,9 @@ const sameSite = (name: string, geohash: string) =>
 // Im Bearbeiten-Dialog steht eine gewählte Säule als 'site' (der Dialog kennt nur den gespeicherten Standort)
 const atStation = computed(() => props.place === 'station' || props.place === 'site')
 const isStation = (s: NearbyStation) => atStation.value && sameSite(s.name, s.geohash)
-// Aus der Textsuche gewählte Säule: als eigene Kachel zeigen, solange sie nicht ohnehin in der Umkreis-Liste steht
-const searchedStation = ref<StationMatch | null>(null)
+// Aus der Textsuche gewählte Säule: als eigene Kachel zeigen, solange sie nicht ohnehin in der Umkreis-Liste steht.
+// Lebt im Wizard (v-model), damit sie beim Zurückblättern aus Schritt 2 nicht verschwindet - Schritt 1 wird neu aufgebaut.
+const searchedStation = defineModel<StationMatch | null>('searchedStation', { default: null })
 const onSearchChoose = (c: PlaceChoice) => {
   searchedStation.value = c.kind === 'station' ? c.station : null
   emit('choose', c)
