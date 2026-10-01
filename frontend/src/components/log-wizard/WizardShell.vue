@@ -39,10 +39,8 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
           <ChevronLeftIcon class="h-5 w-5" />
         </button>
         <div v-else class="w-8" />
-        <span v-if="isInputStep" class="text-xs font-medium tracking-wide uppercase text-gray-400 dark:text-gray-500">
-          {{ t('logwizard.step_of', { step, total: INPUT_STEPS }) }}
-        </span>
-        <span v-else class="w-8" />
+        <!-- Die Frage steht in der Kopfzeile statt eines Zaehlers "Schritt x von y": der Balken zaehlt schon. -->
+        <h1 class="flex-1 min-w-0 px-2 text-base md:text-xl font-bold text-gray-800 dark:text-gray-100 text-center truncate">{{ question }}</h1>
         <button type="button" :aria-label="t('common.cancel')" @click="emit('cancel')"
           class="w-8 h-8 -mr-2 flex items-center justify-center rounded-sm text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700">
           <XMarkIcon class="h-5 w-5" />
@@ -52,8 +50,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
       <div v-if="isInputStep" class="flex gap-1 mt-3" role="progressbar" :aria-valuenow="step" :aria-valuemin="1" :aria-valuemax="INPUT_STEPS">
         <i v-for="i in INPUT_STEPS" :key="i" :class="['flex-1 h-1 rounded-sm', i <= step ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']" />
       </div>
-      <h1 class="mt-4 text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 text-balance text-center">{{ question }}</h1>
-      <p v-if="hint" class="mt-1 text-sm text-center text-gray-500 dark:text-gray-400">{{ hint }}</p>
+      <p v-if="hint" class="mt-2 text-sm text-center text-gray-500 dark:text-gray-400">{{ hint }}</p>
     </header>
 
     <!-- Inhalt am unteren Rand: Tap-Ziele liegen so ueber dem Footer in Daumenreichweite.
