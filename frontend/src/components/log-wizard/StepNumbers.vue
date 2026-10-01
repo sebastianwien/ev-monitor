@@ -30,12 +30,12 @@ const emit = defineEmits<{ ocr: [result: any] }>()
 
 const root = ref<HTMLElement | null>(null)
 const body = ref<HTMLElement | null>(null)
-// Zuschlag: Kosten und Pillen rutschen unter die Falz, die drei Kernfelder bleiben sichtbar
-const mapHeight = useFillHeight(root, body, { extra: 104 })
+const mapHeight = useFillHeight(root, body)
 </script>
 
 <template>
-  <div ref="root" class="space-y-2">
+  <!-- Kein Abstand zur Karte: der Verlauf läuft direkt in die Schalter, der Text steht weiter oben auf der Karte -->
+  <div ref="root">
     <PlaceHeader :context="context" :height="mapHeight" />
 
     <div ref="body" class="space-y-2">

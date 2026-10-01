@@ -36,13 +36,14 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
   <!-- Lese-Zone oben (Erklaerung, seltene Foto-Aktion), Bedien-Zone unten in Daumenreichweite.
        Der Freiraum dazwischen trennt Lesen von Bedienen, statt als Loch ueber dem Inhalt zu stehen. -->
   <div :class="props.compact ? 'space-y-2' : 'flex-1 flex flex-col gap-4'">
-    <div :class="props.compact ? 'space-y-2' : 'space-y-3'">
-      <p v-if="!props.compact" :class="props.compact ? 'text-xs text-gray-500 dark:text-gray-400' : 'text-sm text-gray-500 dark:text-gray-400'">{{ mode === 'charger' ? t('logfields.kwh_hint') : t('logfields.kwh_at_vehicle_hint') }}</p>
-      <button v-if="!props.compact" type="button" @click="showOcr = !showOcr"
+    <!-- Nur im vollen Layout: kompakt wäre das ein leeres Div, dessen space-y-Abstand als 8-px-Lücke über die Karte durchschlägt -->
+    <div v-if="!props.compact" class="space-y-3">
+      <p class="text-sm text-gray-500 dark:text-gray-400">{{ mode === 'charger' ? t('logfields.kwh_hint') : t('logfields.kwh_at_vehicle_hint') }}</p>
+      <button type="button" @click="showOcr = !showOcr"
         class="btn-3d inline-flex items-center gap-2 min-h-11 px-4 py-2 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
         <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
       </button>
-      <OcrPhotoCapture v-if="!props.compact && showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
+      <OcrPhotoCapture v-if="showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
     </div>
 
     <div :class="props.compact ? 'space-y-2' : 'mt-auto space-y-4'">
