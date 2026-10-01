@@ -188,8 +188,8 @@ const cardMatchingCpo = () => {
   return hits.length === 1 ? hits[0] : null
 }
 /**
- * Vorauswahl ohne Weiterspringen: letzter Preis an diesem Ort (mit seiner Karte), sonst die
- * Karte, deren Name zum Betreiber passt. Der Preisvorschlag kommt vom Backend und braucht die
+ * Vorauswahl ohne Weiterspringen: die Karte vom letzten Mal an diesem Ort (ohne Karte der
+ * letzte Preis als "Zuletzt hier"), sonst die Karte, deren Name zum Betreiber passt. Der Preisvorschlag kommt vom Backend und braucht die
  * Position; kommt er nach einer Nutzerwahl an, bleibt die Nutzerwahl.
  */
 let communitySeq = 0
@@ -207,7 +207,12 @@ const preselectCard = async () => {
     } catch { /* kein Vorschlag - kein Problem */ }
   }
   if (cardKey.value != null) return
-  if (community.value) { applyCard({ kind: 'community', price: community.value }); return }
+  if (community.value) {
+    const last = providers.value.find(p => p.id === community.value!.providerId && !p.isPrivate)
+    if (last) applyCard({ kind: 'provider', provider: last, eurPerKwh: providerPriceForType(last, form.value.chargingType) ?? community.value.eurPerKwh })
+    else applyCard({ kind: 'community', price: community.value })
+    return
+  }
   const match = cardMatchingCpo()
   if (match) applyCard({ kind: 'provider', provider: match, eurPerKwh: providerPriceForType(match, form.value.chargingType) })
 }

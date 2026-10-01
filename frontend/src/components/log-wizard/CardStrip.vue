@@ -34,6 +34,8 @@ const { t } = useI18n()
 
 /** Öffentlich die Ladekarten, zuhause nur der Heimtarif - auch Karten ohne Tarif, die holen ihn sich beim Tap. */
 const strip = computed(() => props.providers.filter(p => props.isPublic ? !p.isPrivate : p.isPrivate))
+/** "Zuletzt hier" nur, wenn die Karte von damals nicht selbst im Streifen steht - sonst ist sie die Vorauswahl. */
+const communityTile = computed(() => props.community && !strip.value.some(p => p.id === props.community!.providerId) ? props.community : null)
 const price = (p: ChargingProvider) => providerPriceForType(p, props.chargingType)
 const TILE = 'btn-3d snap-start relative flex-shrink-0 h-[4.5rem] rounded-sm'
 const PLAIN = 'p-2.5 text-left flex flex-col justify-between bg-gray-100 dark:bg-gray-700'
@@ -43,11 +45,11 @@ const on = (key: string) => props.selected === key ? 'active ring-2 ring-inset r
 <template>
   <div data-testid="card-strip" @click.stop
     class="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pt-1 pb-2 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-    <button v-if="community" type="button" :aria-pressed="selected === 'community'" @click="emit('choose', { kind: 'community', price: community })"
+    <button v-if="communityTile" type="button" :aria-pressed="selected === 'community'" @click="emit('choose', { kind: 'community', price: communityTile })"
       :class="[TILE, PLAIN, 'w-28', on('community')]">
       <ClockIcon class="h-4 w-4 text-gray-500 dark:text-gray-300" />
       <span><b class="block text-[11px] font-bold leading-tight text-gray-800 dark:text-gray-100">{{ t('logwizard.price_community') }}</b>
-        <span class="block text-[10px] leading-tight text-gray-500 dark:text-gray-400 tabular-nums">{{ priceLabel(community.eurPerKwh) }}</span></span>
+        <span class="block text-[10px] leading-tight text-gray-500 dark:text-gray-400 tabular-nums">{{ priceLabel(communityTile.eurPerKwh) }}</span></span>
       <CheckCircleIcon v-if="selected === 'community'" class="absolute top-1 right-1 h-5 w-5 rounded-full bg-white text-indigo-600 dark:bg-gray-800" aria-hidden="true" />
     </button>
     <button v-for="p in strip" :key="p.id" type="button" :aria-pressed="selected === p.id" :data-testid="`card-${p.id}`"
