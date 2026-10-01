@@ -22,7 +22,7 @@ const hasMap = computed(() => props.context.lat != null && props.context.lon != 
            die Karte wird nur beschnitten statt neu layoutet - sonst flackern die Kacheln bei jeder Zwischenhöhe. -->
       <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[640px]" />
       <!-- Säule, Adresse, Karte stehen direkt auf der Karte; der hohe Verlauf nach unten macht den Text lesbar und führt zu den Schaltern -->
-      <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] px-4 pb-1 pt-16 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-gray-900 dark:via-gray-900/90' : 'px-4'">
+      <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] px-4 pb-1 pt-14 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-gray-900 dark:via-gray-900/80' : 'px-4'">
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
             <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate"><MapPinIcon class="h-4 w-4 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />{{ context.title }}</p>

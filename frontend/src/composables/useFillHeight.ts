@@ -13,7 +13,11 @@ export function useFillHeight(root: Ref<HTMLElement | null>, body: Ref<HTMLEleme
     const scroller = root.value?.parentElement?.parentElement
     if (!scroller || !body.value) return
     const pad = parseFloat(getComputedStyle(root.value!.parentElement!).paddingBottom) || 0
-    const free = scroller.clientHeight - pad - body.value.offsetHeight
+    // Abstand zwischen Kopf und Body (space-y) mitrechnen, sonst bleibt genau diese Lücke als Scrollweg übrig
+    // Tailwind 4 setzt space-y als margin-bottom auf das vorige Kind, ältere Versionen als margin-top auf das Kind
+    const prev = body.value.previousElementSibling
+    const gap = (parseFloat(getComputedStyle(body.value).marginTop) || 0) + (prev ? parseFloat(getComputedStyle(prev).marginBottom) || 0 : 0)
+    const free = scroller.clientHeight - pad - body.value.offsetHeight - gap
     height.value = Math.max(min, Math.min(max, free))
   }
   onMounted(() => {

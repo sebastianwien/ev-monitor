@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, type Component } from 'vue'
+import { computed, nextTick, ref, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ClockIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import type { LogFormData } from '../log-form/logFormData'
@@ -31,7 +31,13 @@ const pills = computed<Pill[]>(() => {
     { field: 'tires', text: t(tires.key), icon: tires.icon, label: t('logwizard.d_tires') },
   ]
 })
-const toggle = (f: Field) => { editing.value = editing.value === f ? null : f }
+const editor = ref<HTMLElement | null>(null)
+/** Die Pillen stehen am unteren Rand - der aufgeklappte Editor muss in den Blick, sonst öffnet er unsichtbar unter dem Footer */
+const toggle = async (f: Field) => {
+  editing.value = editing.value === f ? null : f
+  await nextTick()
+  editor.value?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+}
 const pickRoute = (v: LogFormData['routeType']) => { form.value.routeType = v; editing.value = null }
 const pickTires = (v: LogFormData['tireType']) => { form.value.tireType = v; editing.value = null }
 const onTime = (p: typeof timeChips[number]['value']) => { pickTime(p); if (p !== 'other') editing.value = null }
@@ -41,7 +47,7 @@ const active = computed(() => pills.value.find(p => p.field === editing.value) ?
 <template>
   <div data-testid="optional-pills" class="space-y-2">
     <!-- Zeile: drei Pillen, die gerade bearbeitete hervorgehoben; aufgeklappt bleibt nur sie stehen, rechts ein X zum Schließen -->
-    <div class="flex items-center gap-1.5">
+    <div :class="['flex items-center gap-1.5', editing ? '' : 'justify-center']">
       <button v-for="p in pills" v-show="!editing || editing === p.field" :key="p.field" type="button" :aria-label="p.label" :aria-expanded="editing === p.field"
         :data-testid="`pill-${p.field}`" @click="toggle(p.field)"
         :class="['inline-flex items-center gap-1 min-h-9 rounded-full px-3 text-xs tabular-nums transition',
@@ -54,7 +60,7 @@ const active = computed(() => pills.value.find(p => p.field === editing.value) ?
       </button>
     </div>
 
-    <div v-if="editing === 'time'" class="space-y-1.5">
+    <div v-if="editing === 'time'" ref="editor" class="space-y-1.5">
       <div :class="[SEG_GROUP, 'grid-cols-2']" role="radiogroup" :aria-label="t('logwizard.d_when')">
         <button v-for="c in timeChips" :key="c.value" type="button" role="radio" :aria-checked="timePick === c.value" :class="segClass(timePick === c.value)"
           :data-testid="`time-${c.value}`" @click="onTime(c.value)">{{ c.label }}</button>
@@ -62,11 +68,11 @@ const active = computed(() => pills.value.find(p => p.field === editing.value) ?
       <input v-if="timePick === 'other'" id="wizard-time" v-model="form.loggedAt" type="datetime-local" :max="nowLocal()" :aria-label="t('logfields.timestamp')"
         class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-transparent dark:text-gray-100 p-2 text-sm focus:border-indigo-600 focus:ring-0 focus:outline-none" />
     </div>
-    <div v-else-if="editing === 'route'" :class="[SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_route')">
+    <div v-else-if="editing === 'route'" ref="editor" :class="[SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_route')">
       <button v-for="c in ROUTE_CHIPS" :key="c.value" type="button" role="radio" :aria-checked="form.routeType === c.value" :class="segClass(form.routeType === c.value)"
         @click="pickRoute(c.value)"><component :is="c.icon" class="h-4 w-4 flex-shrink-0" />{{ t(c.key) }}</button>
     </div>
-    <div v-else-if="editing === 'tires'" :class="[SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_tires')">
+    <div v-else-if="editing === 'tires'" ref="editor" :class="[SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_tires')">
       <button v-for="c in TIRE_CHIPS" :key="c.value" type="button" role="radio" :aria-checked="form.tireType === c.value" :class="segClass(form.tireType === c.value)"
         @click="pickTires(c.value)"><component :is="c.icon" class="h-4 w-4 flex-shrink-0" />{{ t(c.key) }}</button>
     </div>

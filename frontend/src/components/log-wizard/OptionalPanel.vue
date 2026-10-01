@@ -60,6 +60,6 @@ const open = ref(false)
         </span>
       </span>
     </summary>
-    <OptionalDetails v-model="form" :show-time="showTime" :numbers-only="numbersOnly" />
+    <OptionalDetails v-model="form" :show-time="showTime" />
   </details>
 </template>
