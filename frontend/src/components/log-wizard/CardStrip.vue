@@ -44,7 +44,7 @@ const on = (key: string) => props.selected === key ? 'active ring-2 ring-inset r
 
 <template>
   <div data-testid="card-strip" @click.stop
-    class="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pt-1 pb-2 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    class="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 scroll-pl-4 pt-1 pb-2 md:mx-0 md:px-0 md:scroll-pl-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
     <button v-if="communityTile" type="button" :aria-pressed="selected === 'community'" @click="emit('choose', { kind: 'community', price: communityTile })"
       :class="[TILE, PLAIN, 'w-28', on('community')]">
       <ClockIcon class="h-4 w-4 text-gray-500 dark:text-gray-300" />
