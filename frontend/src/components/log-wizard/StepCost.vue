@@ -17,12 +17,14 @@ import BigInput from './BigInput.vue'
 import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 import SegmentToggle from './SegmentToggle.vue'
 
-const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null; eurPer100km?: number | null }>()
+const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null
+  /** Richtwert seit der letzten Ladung - steht in der Kostenzeile, weil Preis und Verbrauch zusammen gelesen werden */
+  preview?: { kwhPer100km: number; eurPer100km: number | null; plausible: boolean } | null }>()
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const { t } = useI18n()
 const countryStore = useCountryStore()
-const { formatNumber, formatDecimal } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption } = useLocaleFormat()
 
 const symbol = computed(() => countryStore.unitSystem.currencySymbol)
 const { costMode, costLocalTotal, costLocalPerKwh, calculatedLocalPerKwh, calculatedLocalTotal, setPerKwhEur } = props.cost
@@ -52,13 +54,6 @@ const onCompactInput = (e: Event) => {
   costMode.value = 'total'
   costLocalTotal.value = v === '' ? null : Number(v)
 }
-const compactSub = computed(() => {
-  if (costMode.value === 'per_kwh' && costLocalPerKwh.value != null) {
-    const kwh = form.value.kwhCharged ?? form.value.kwhAtVehicle
-    return `${formatDecimal(costLocalPerKwh.value, 2)} ${symbol.value}/kWh${kwh ? ` × ${formatNumber(kwh)} kWh` : ''}`
-  }
-  return calculatedLocalPerKwh.value != null ? `= ${formatDecimal(calculatedLocalPerKwh.value, 2)} ${symbol.value}/kWh${per100km.value}` : null
-})
 const priceLabel = (eur: number) => `${formatNumber(Math.round(props.cost.eurToLocal(eur) * 100) / 100)} ${symbol.value}/kWh`
 
 // ── Ladekarte inline anlegen / Tarif nachtragen ───────────────────────────────
@@ -116,13 +111,20 @@ const manual = ref(false)
 const derived = computed(() => !manual.value && (
   (costMode.value === 'per_kwh' && costLocalPerKwh.value != null)
   || (costMode.value === 'total' && costLocalTotal.value === 0 && !form.value.chargingProviderId)))
-const derivedSub = computed(() => {
-  if (costMode.value === 'total') return t('logwizard.price_free')
-  const kwh = form.value.kwhCharged ?? form.value.kwhAtVehicle
-  return `${formatDecimal(costLocalPerKwh.value!, 2)} ${symbol.value}/kWh${kwh ? ` × ${formatNumber(kwh)} kWh` : ''}${per100km.value}`
-})
-/** Kosten je 100 km seit der letzten Ladung - gehört zum Preis, nicht in einen eigenen Block. */
-const per100km = computed(() => props.eurPer100km != null ? ` · ${formatDecimal(props.cost.eurToLocal(props.eurPer100km), 2)} ${symbol.value}/100 km` : '')
+/** Preis je kWh in der Landesschreibweise: Euro-Länder in Cent, sonst Währung/kWh */
+const perKwhLabel = (local: number) => isEurCountry.value
+  ? `${formatNumber(Math.round(local * 100))} ${subunit.value}/kWh` : `${formatDecimal(local, 2)} ${symbol.value}/kWh`
+/** Unterzeile der Kostenbox: Preis je kWh, dann Kosten und Verbrauch je 100 km, sobald sie berechenbar sind */
+interface MetricPart { text: string; tone?: 'notice' }
+const metricParts = (perKwh: number | null): MetricPart[] => {
+  const parts: MetricPart[] = []
+  if (perKwh != null) parts.push({ text: perKwhLabel(perKwh) })
+  if (props.preview?.eurPer100km != null) parts.push({ text: `${formatDecimal(props.cost.eurToLocal(props.preview.eurPer100km), 2)} ${symbol.value}/100 km` })
+  if (props.preview) parts.push({ text: `≈ ${formatConsumption(props.preview.kwhPer100km)}`, tone: props.preview.plausible ? undefined : 'notice' })
+  return parts
+}
+const derivedParts = computed<MetricPart[]>(() => costMode.value === 'total' ? [{ text: t('logwizard.price_free') }] : metricParts(costLocalPerKwh.value))
+const manualParts = computed<MetricPart[]>(() => metricParts(costMode.value === 'per_kwh' ? costLocalPerKwh.value : calculatedLocalPerKwh.value))
 
 /** Noch nichts eingegeben: dann darf ein Vorschlag vorbelegen, sonst nie. */
 const untouched = () => selectedKey.value == null && costLocalTotal.value == null && costLocalPerKwh.value == null
@@ -179,7 +181,9 @@ onMounted(async () => {
       <CheckCircleIcon class="h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
       <div class="flex-1 min-w-0">
         <b class="block text-lg leading-tight tabular-nums text-gray-900 dark:text-gray-100">{{ compactTotal != null ? `${formatDecimal(compactTotal, 2)} ${symbol}` : '–' }}</b>
-        <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ derivedSub }}</span>
+        <span class="flex flex-wrap gap-x-2 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+          <span v-for="p in derivedParts" :key="p.text" :class="p.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : ''">{{ p.text }}</span>
+        </span>
       </div>
       <button type="button" data-testid="cost-other" @click="manual = true" class="min-h-11 px-2 text-sm font-semibold text-green-700 dark:text-green-300">{{ t('logwizard.cost_other') }}</button>
     </div>
@@ -190,7 +194,9 @@ onMounted(async () => {
           :value="compactTotal ?? ''" :aria-label="t('logfields.cost_eur')" @input="onCompactInput"
           class="w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
         <span class="text-base text-gray-500 dark:text-gray-400">{{ symbol }}</span>
-        <span v-if="compactSub" class="col-span-3 text-right text-xs tabular-nums -mt-1 text-gray-400 dark:text-gray-500">{{ compactSub }}</span>
+        <span v-if="manualParts.length" class="col-span-3 flex flex-wrap justify-end gap-x-2 text-xs tabular-nums -mt-1 text-gray-400 dark:text-gray-500">
+          <span v-for="p in manualParts" :key="p.text" :class="p.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : ''">{{ p.text }}</span>
+        </span>
       </div>
     </div>
       <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">

@@ -7,15 +7,14 @@ import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 import { netEnergyKwh, socToKwh } from './wizardLogic'
+import { AC_CHARGING_EFFICIENCY, DC_CHARGING_EFFICIENCY } from '../../utils/consumptionPreview'
 import RulerInput from './RulerInput.vue'
 
-/** Richtwert seit der letzten Ladung (Schritt 2) - steht unter dem Tacho-Delta, wo die Strecke herkommt. */
-export interface ConsumptionHint { kwhPer100km: number; plausible: boolean }
-const props = defineProps<{ lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined; compact?: boolean; consumption?: ConsumptionHint | null }>()
+const props = defineProps<{ lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined; compact?: boolean }>()
 const form = defineModel<LogFormData>({ required: true })
 const { t } = useI18n()
 const countryStore = useCountryStore()
-const { formatDistance, formatNumber, formatConsumption } = useLocaleFormat()
+const { formatDistance, formatNumber } = useLocaleFormat()
 
 const usesMiles = computed(() => countryStore.unitSystem.distanceUnit === 'miles')
 const odometer = computed({
@@ -30,12 +29,26 @@ const odoMin = computed(() => props.lastOdometerKm != null ? Math.round(odometer
 const odoMax = computed(() => odoMin.value + (props.lastOdometerKm != null ? 1500 : 999_999))
 const odoSub = computed(() => {
   if (belowLast.value) return t('logform.odometer_min', { min: formatDistance(props.lastOdometerKm!) })
-  if (props.lastOdometerKm == null) return null
-  if (form.value.odometerKm == null) return t('logform.odometer_last', { km: formatDistance(props.lastOdometerKm) })
-  const delta = t('logwizard.odometer_delta', { km: formatDistance(form.value.odometerKm - props.lastOdometerKm) })
-  return props.consumption ? `${delta} · ≈ ${formatConsumption(props.consumption.kwhPer100km)}` : delta
+  if (props.lastOdometerKm == null || form.value.odometerKm != null) return null
+  return t('logform.odometer_last', { km: formatDistance(props.lastOdometerKm) })
 })
-const odoTone = computed(() => belowLast.value ? 'warn' : props.consumption && !props.consumption.plausible ? 'notice' : 'muted')
+/** Das Delta steht grau direkt vor dem Tachostand, nicht als eigene Zeile */
+const odoPrefix = computed(() => !belowLast.value && props.lastOdometerKm != null && form.value.odometerKm != null
+  ? `+${formatDistance(form.value.odometerKm - props.lastOdometerKm)}` : null)
+/**
+ * Untergrenze für "Akku nach Laden": mindestens der Anteil, den die geladene Energie an der
+ * Kapazität ausmacht (Start bei 0 %). Der Maßstab beginnt dort, statt bei 0 - ein ungefährer
+ * Startbereich aus den schon getippten kWh, ohne SoC vorher zu kennen.
+ */
+const socMin = computed(() => {
+  const cap = props.effectiveCapacityKwh
+  if (!cap) return 0
+  const net = form.value.kwhAtVehicle ?? (form.value.kwhCharged != null
+    ? form.value.kwhCharged * (form.value.chargingType === 'DC' ? DC_CHARGING_EFFICIENCY : AC_CHARGING_EFFICIENCY) : null)
+  if (net == null || net <= 0) return 0
+  return Math.min(100, Math.ceil(net / cap * 100))
+})
+const socPlaceholder = computed(() => String(Math.max(80, socMin.value)))
 const fmt1 = (n: number) => formatNumber(Math.round(n * 10) / 10)
 const battery = computed(() => {
   const net = netEnergyKwh(form.value.socBeforeChargePercent, form.value.socAfterChargePercent, props.effectiveCapacityKwh)
@@ -53,19 +66,10 @@ const battery = computed(() => {
   <div :class="compact ? 'space-y-2' : 'space-y-3'">
     <RulerInput id="wizard-odometer" v-model="odometer" :label="t('logfields.odometer')" :unit="usesMiles ? t('logfields.unit_miles') : t('logfields.unit_km')"
       :placeholder="lastOdometerKm != null ? String(odoMin) : ''" :step="1" :min="odoMin" :max="odoMax" :px-per-step="7" :label-every="50"
-      inputmode="numeric" :sub="odoSub" :sub-tone="odoTone" :autofocus="!compact" />
+      inputmode="numeric" :prefix="odoPrefix" :sub="odoSub" :sub-tone="belowLast ? 'warn' : 'muted'" :autofocus="!compact" />
 
     <div class="space-y-2">
-      <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" placeholder="80" :step="1" :min="0" :max="100" :px-per-step="10" inputmode="numeric">
-        <template #quick>
-          <div :class="CHIP_ROW">
-            <button v-for="p in [80, 90, 100]" :key="p" type="button" @click="form.socAfterChargePercent = p"
-              :class="chipClass(form.socAfterChargePercent === p)">
-              {{ p }} %
-            </button>
-          </div>
-        </template>
-      </RulerInput>
+      <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" :placeholder="socPlaceholder" :step="1" :min="socMin" :max="100" :px-per-step="10" inputmode="numeric" />
     </div>
 
     <RulerInput v-if="showBefore" id="wizard-soc-before" v-model="form.socBeforeChargePercent" :label="t('logfields.soc_before')" unit="%" placeholder="20" :step="1" :min="0" :max="100" :px-per-step="10" inputmode="numeric" />

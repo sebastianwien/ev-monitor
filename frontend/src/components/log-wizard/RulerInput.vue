@@ -21,6 +21,8 @@ const props = withDefaults(defineProps<{
   testid?: string
   autofocus?: boolean
   /** Zweite Zeile unter dem Wert, z. B. "+312 km seit dem letzten Log" */
+  /** Grauer Zusatz in der Wertzeile direkt vor dem Wert, z. B. "+310 km" */
+  prefix?: string | null
   sub?: string | null
   subTone?: 'muted' | 'warn' | 'notice'
   /** Pixel je Schritt - kleiner = mehr Strecke pro Wisch */
@@ -131,14 +133,15 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
   <div :data-testid="testid ? `${testid}-row` : undefined" :class="['rounded-sm border-2 px-3 py-2 transition cursor-pointer select-none',
       active ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800']"
     v-haptic @click="activate">
-    <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
+    <div :class="['grid items-baseline gap-x-2 min-h-9', prefix ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto]']">
       <span class="text-sm text-gray-500 dark:text-gray-400 cursor-pointer py-2 -my-2" aria-hidden="true" @click.stop="toggleFromLabel">{{ label }}</span>
+      <span v-if="prefix" class="text-xs tabular-nums text-gray-400 dark:text-gray-500">{{ prefix }}</span>
       <input :id="id" :data-testid="testid" type="number" :inputmode="inputmode" :step="step" :min="min" :max="max"
         :placeholder="placeholder" :value="shown" :aria-label="label" @input="onInput" @focus="activate" @pointerdown="onInputPointerDown"
         :class="['w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none transition-[font-size]',
                  active ? 'text-3xl' : 'text-2xl']" />
       <span class="text-base text-gray-500 dark:text-gray-400">{{ unit }}</span>
-      <span v-if="sub" :class="['col-span-3 text-right text-xs tabular-nums -mt-1', subTone === 'warn' ? 'text-red-500' : subTone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500']">{{ sub }}</span>
+      <span v-if="sub" :class="['col-span-full text-right text-xs tabular-nums -mt-1', subTone === 'warn' ? 'text-red-500' : subTone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500']">{{ sub }}</span>
     </div>
     <!-- Der Maßstab: Mittelmarke steht fest, der Streifen scrollt darunter durch -->
     <div v-show="active && rulerable" ref="ruler" class="ruler relative h-10 -mx-3 mt-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x cursor-grab"

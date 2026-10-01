@@ -56,7 +56,7 @@ const rowClass = 'w-full flex items-start gap-2 px-3 py-2 text-left text-sm hove
         class="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
         <!-- Säulen aus dem Register -->
         <li v-for="s in stations.matches.value" :key="s.name + s.geohash" role="option" data-testid="place-search-station"
-          :class="rowClass" @mousedown.prevent="chooseStation(s)">
+          v-haptic :class="rowClass" @mousedown.prevent="chooseStation(s)">
           <BoltIcon class="h-4 w-4 mt-0.5 text-indigo-600 flex-shrink-0" />
           <span class="min-w-0">
             <b class="block font-semibold text-gray-800 dark:text-gray-100 truncate">{{ s.name }}</b>
@@ -71,7 +71,7 @@ const rowClass = 'w-full flex items-start gap-2 px-3 py-2 text-left text-sm hove
           <span class="min-w-0 text-gray-700 dark:text-gray-200">{{ t('logwizard.search_as_address', { q: trimmed }) }}</span>
         </li>
         <li v-for="s in address.suggestions.value" :key="s.place_id" role="option" data-testid="place-search-suggestion"
-          :class="rowClass" @mousedown.prevent="pickAddress(s)">
+          v-haptic :class="rowClass" @mousedown.prevent="pickAddress(s)">
           <MapPinIcon class="h-4 w-4 mt-0.5 text-gray-500 flex-shrink-0" />
           <span class="min-w-0 text-gray-700 dark:text-gray-200">{{ s.display_name }}</span>
         </li>
