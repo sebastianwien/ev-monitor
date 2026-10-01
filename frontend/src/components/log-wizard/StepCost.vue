@@ -110,22 +110,46 @@ watch(() => form.value.chargingProviderId, (id) => {
   fetchPricelessCount()
 }, { immediate: true })
 
+/** Noch nichts eingegeben: dann darf ein Vorschlag vorbelegen, sonst nie. */
+const untouched = () => selectedKey.value == null && costLocalTotal.value == null && costLocalPerKwh.value == null
+
+/**
+ * Die Ladekarte, die zum Betreiber passt: "EnBW mobility+" an einer EnBW-Säule, die Karte
+ * "Kaufland" bei Kaufland. Nur bei genau einem Treffer, sonst rät der Wizard nicht.
+ */
+const cardMatchingCpo = (): Suggestion | null => {
+  const cpo = form.value.cpoName?.trim().toLowerCase()
+  if (!cpo || !form.value.isPublicCharging) return null
+  const hits = cardSuggestions.value.filter(c => {
+    const name = c.label.toLowerCase()
+    return name.includes(cpo) || cpo.includes(name)
+  })
+  return hits.length === 1 ? hits[0] : null
+}
+
 onMounted(async () => {
-  // Ladekarte schon gewählt (Trefferkarte: "wie beim letzten Mal") und noch kein Preis: den
-  // Kartentarif übernehmen, der Gesamtpreis folgt aus den kWh. Ohne Tarif bleibt der Preis offen.
-  if (form.value.chargingProviderId && costLocalTotal.value == null && costLocalPerKwh.value == null) {
+  // Vorbelegung in dieser Reihenfolge, nur solange der Nutzer nichts eingegeben hat:
+  // 1. Ladekarte schon gewählt (Trefferkarte: "wie beim letzten Mal") - ihr Tarif,
+  // 2. letzter Preis an genau diesem Ort (mit seiner Karte),
+  // 3. die Karte, deren Name zum Betreiber passt.
+  // Ohne Treffer bleibt der Preis offen - ein falscher Preis ist schlimmer als ein leerer.
+  if (form.value.chargingProviderId && untouched()) {
     const preset = cardSuggestions.value.find(c => c.providerId === form.value.chargingProviderId)
     if (preset) pick(preset)
   }
-  if (form.value.latitude == null || form.value.longitude == null) return
-  try {
-    const res = await api.get('/logs/price-suggestion', {
-      params: { lat: form.value.latitude, lon: form.value.longitude, isPublic: form.value.isPublicCharging, chargingType: form.value.chargingType },
-    })
-    if (res.data?.costPerKwh != null) {
-      community.value = { key: 'community', label: t('logwizard.price_community'), eurPerKwh: Number(res.data.costPerKwh), providerId: res.data.chargingProviderId ?? null }
-    }
-  } catch { /* kein Vorschlag - kein Problem */ }
+  if (form.value.latitude != null && form.value.longitude != null) {
+    try {
+      const res = await api.get('/logs/price-suggestion', {
+        params: { lat: form.value.latitude, lon: form.value.longitude, isPublic: form.value.isPublicCharging, chargingType: form.value.chargingType },
+      })
+      if (res.data?.costPerKwh != null) {
+        community.value = { key: 'community', label: t('logwizard.price_community'), eurPerKwh: Number(res.data.costPerKwh), providerId: res.data.chargingProviderId ?? null }
+      }
+    } catch { /* kein Vorschlag - kein Problem */ }
+  }
+  if (!untouched()) return
+  const auto = community.value ?? cardMatchingCpo()
+  if (auto) pick(auto)
 })
 </script>
 

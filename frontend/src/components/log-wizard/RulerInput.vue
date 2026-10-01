@@ -146,6 +146,8 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
       <i aria-hidden="true" class="absolute left-1/2 top-0.5 h-6 w-0.5 -ml-px rounded-sm bg-indigo-600 pointer-events-none" />
     </div>
     <p v-if="active && rulerable" class="mt-1 text-[11px] text-gray-400 dark:text-gray-500 text-center">{{ t('logwizard.ruler_hint') }}</p>
+    <!-- Schnellwahl (z. B. 80/90/100 %) gehört in die offene Box, nicht darunter -->
+    <div v-if="active && $slots.quick" class="mt-2" @click.stop><slot name="quick" /></div>
   </div>
 </template>
 

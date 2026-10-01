@@ -8,7 +8,6 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 import { netEnergyKwh, socToKwh } from './wizardLogic'
 import RulerInput from './RulerInput.vue'
-import { activeRuler } from './rulerState'
 
 const props = defineProps<{ lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined; compact?: boolean }>()
 const form = defineModel<LogFormData>({ required: true })
@@ -22,8 +21,6 @@ const odometer = computed({
   set: (v) => { form.value.odometerKm = v == null ? null : odometerLocalToKm(v, usesMiles.value) },
 })
 const showBefore = ref(form.value.socBeforeChargePercent != null)
-// Kompakt: Chips nur, solange das Akku-Rädchen aktiv ist - sonst eine Zeile wie die anderen
-const socChips = computed(() => !props.compact || activeRuler.value === 'wizard-soc')
 
 const belowLast = computed(() => props.lastOdometerKm != null && form.value.odometerKm != null && form.value.odometerKm < props.lastOdometerKm)
 // Der Maßstab beginnt beim letzten Stand - absolute Zahl bleibt der Wert, das Delta nur die Unterzeile
@@ -55,13 +52,16 @@ const battery = computed(() => {
       inputmode="numeric" :sub="odoSub" :sub-tone="belowLast ? 'warn' : 'muted'" :autofocus="!compact" />
 
     <div class="space-y-2">
-      <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" placeholder="80" :step="1" :min="0" :max="100" :px-per-step="10" inputmode="numeric" />
-      <div v-if="socChips" :class="CHIP_ROW">
-        <button v-for="p in [80, 90, 100]" :key="p" type="button" @click="form.socAfterChargePercent = p"
-          :class="chipClass(form.socAfterChargePercent === p)">
-          {{ p }} %
-        </button>
-      </div>
+      <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" placeholder="80" :step="1" :min="0" :max="100" :px-per-step="10" inputmode="numeric">
+        <template #quick>
+          <div :class="CHIP_ROW">
+            <button v-for="p in [80, 90, 100]" :key="p" type="button" @click="form.socAfterChargePercent = p"
+              :class="chipClass(form.socAfterChargePercent === p)">
+              {{ p }} %
+            </button>
+          </div>
+        </template>
+      </RulerInput>
     </div>
 
     <RulerInput v-if="showBefore" id="wizard-soc-before" v-model="form.socBeforeChargePercent" :label="t('logfields.soc_before')" unit="%" placeholder="20" :step="1" :min="0" :max="100" :px-per-step="10" inputmode="numeric" />
