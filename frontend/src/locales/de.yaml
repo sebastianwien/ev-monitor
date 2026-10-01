@@ -3271,6 +3271,16 @@ watt:
   toast: "+{n} Watt erhalten!"
 
 logwizard:
+  q_numbers: "Die Zahlen"
+  suggestion_site: "Treffer in der Nähe"
+  suggestion_private: "Dein privater Anschluss hier"
+  suggestion_private_title: "Zuhause oder privat geladen?"
+  suggestion_private_sub: "Ladeart und Tarif wie bei deinen bisherigen Ladungen hier."
+  suggestion_accept: "Übernehmen"
+  expand_radius: "Nicht dabei? Umkreis auf 2,5 km erweitern"
+  nearby_title_radius: "Im Umkreis von {r}"
+  ruler_hint: "Wischen zum Einstellen, auf die Zahl tippen für die Tastatur"
+  odometer_delta: "+{km} seit dem letzten Log"
   step_of: "Schritt {step} von {total}"
   q_place: "Wo hast du geladen?"
   q_energy: "Wie viel Energie?"

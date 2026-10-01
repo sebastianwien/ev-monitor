@@ -17,6 +17,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -103,6 +104,32 @@ class NearbyCpoServiceCachingTest {
         assertThat(service.findNearbyStations("u33dc0f")).isPresent();
 
         verify(registry, times(1)).findStationsNearby(anyDouble(), anyDouble(), anyInt());
+    }
+
+    /** Der weite Umkreis hat einen eigenen Schluessel - sonst bekaeme die enge Suche die weite Antwort. */
+    @Test
+    void weiterUmkreisWirdGetrenntVonDerEngenSucheGecacht() {
+        reset(registry);
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt()))
+                .thenReturn(Optional.of(List.of(new Station("Allego GmbH", null, 52.5204, 13.4046, 150.0, true, 2))));
+
+        service.findNearbyStations("u33dc0p");
+        service.findNearbyStations("u33dc0p", 2_500);
+        service.findNearbyStations("u33dc0p", 2_500);
+
+        verify(registry, times(1)).findStationsNearby(anyDouble(), anyDouble(), eq(250));
+        verify(registry, times(1)).findStationsNearby(anyDouble(), anyDouble(), eq(2_500));
+    }
+
+    /** Der Radius ist nach oben begrenzt - das Register liefert sonst Tausende Saeulen. */
+    @Test
+    void radiusIstNachObenBegrenzt() {
+        reset(registry);
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of()));
+
+        service.findNearbyStations("u33dc0n", 50_000);
+
+        verify(registry).findStationsNearby(anyDouble(), anyDouble(), eq(NearbyCpoService.MAX_RADIUS_METERS));
     }
 
     @Test

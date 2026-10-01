@@ -429,6 +429,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<com.evmonitor.domain.PrivateCellCount> countPrivateLogsByCell(UUID userId) {
+        return jpaRepository.countPrivateLogsByCell(userId).stream()
+                .map(r -> new com.evmonitor.domain.PrivateCellCount((String) r[0], ((Number) r[1]).longValue()))
+                .toList();
+    }
+
+    @Override
     public Optional<TireType> findMostRecentTireTypeBefore(UUID carId, LocalDateTime before) {
         var results = jpaRepository.findMostRecentTireTypeBefore(carId, before, PageRequest.of(0, 1));
         if (results.isEmpty()) return Optional.empty();

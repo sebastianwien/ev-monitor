@@ -10,7 +10,7 @@ const form = defineModel<LogFormData>({ required: true })
 const emit = defineEmits<{ goto: [step: WizardStep] }>()
 const { t } = useI18n()
 
-const stepFor: Record<SummarySection, WizardStep> = { place: 1, energy: 2, vehicle: 3, cost: 4, time: 5 }
+const stepFor: Record<SummarySection, WizardStep> = { place: 1, energy: 2, vehicle: 2, cost: 2, time: 3 }
 </script>
 
 <template>

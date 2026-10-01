@@ -36,6 +36,9 @@ public class NearbyCpoService {
     /** Mehr Kacheln passen nicht auf einen Handy-Screen, und mehr Auswahl hilft dort nicht. */
     static final int MAX_STATIONS = 5;
 
+    /** Weitester Umkreis fuer "Umkreis erweitern" - mehr liefert nur Rauschen und kostet Registerkontingent. */
+    public static final int MAX_RADIUS_METERS = 2_500;
+
     private static final double EARTH_RADIUS_M = 6_371_000;
 
     private final ChargingStationRegistryClient registry;
@@ -92,11 +95,28 @@ public class NearbyCpoService {
      */
     @Cacheable(value = "nearbyStations", key = "#geohash", unless = "#result == null")
     public Optional<List<NearbyStation>> findNearbyStations(String geohash) {
+        return lookupStations(geohash, radiusMeters);
+    }
+
+    /**
+     * Wie {@link #findNearbyStations(String)}, aber mit weiterem Umkreis - fuer "Nicht dabei?
+     * Umkreis erweitern" im Wizard. Eigener Cache-Schluessel je Radius, damit die enge Suche
+     * nicht die weite Antwort bekommt. Der Radius ist auf {@link #MAX_RADIUS_METERS} begrenzt,
+     * das Register liefert sonst Tausende Saeulen.
+     */
+    @Cacheable(value = "nearbyStations", key = "#geohash + ':' + #radius", unless = "#result == null")
+    public Optional<List<NearbyStation>> findNearbyStations(String geohash, int radius) {
+        return lookupStations(geohash, Math.max(radiusMeters, Math.min(radius, MAX_RADIUS_METERS)));
+    }
+
+    // Beide Cacheable-Methoden rufen diese Hilfsmethode direkt: eine Cacheable-Methode darf die
+    // andere nicht aufrufen, der Selbstaufruf ginge am Spring-Proxy und damit am Cache vorbei.
+    private Optional<List<NearbyStation>> lookupStations(String geohash, int radius) {
         WGS84Point center = centerOf(geohash);
         if (center == null) {
             return Optional.empty();
         }
-        return registry.findStationsNearby(center.getLatitude(), center.getLongitude(), radiusMeters)
+        return registry.findStationsNearby(center.getLatitude(), center.getLongitude(), radius)
                 .map(stations -> groupByOperator(stations, center));
     }
 

@@ -3,6 +3,9 @@ package com.evmonitor.application;
 import com.evmonitor.domain.ChargingSite;
 import com.evmonitor.domain.ChargingSiteRepository;
 import com.evmonitor.domain.ChargingSiteSource;
+import com.evmonitor.domain.ChargingSiteUsage;
+import com.evmonitor.domain.EvLogRepository;
+import com.evmonitor.domain.PrivateCellCount;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
 /**
@@ -30,6 +34,7 @@ class ChargingSiteServiceTest {
     private ChargingSiteRepository repository;
     private NearbyCpoService nearby;
     private RateLimitService rateLimit;
+    private EvLogRepository evLogs;
     private ChargingSiteService service;
     private final UUID userId = UUID.randomUUID();
 
@@ -38,8 +43,11 @@ class ChargingSiteServiceTest {
         repository = mock(ChargingSiteRepository.class);
         nearby = mock(NearbyCpoService.class);
         rateLimit = mock(RateLimitService.class);
+        evLogs = mock(EvLogRepository.class);
         when(rateLimit.tryConsumeCpoLookup(any())).thenReturn(true);
-        service = new ChargingSiteService(repository, nearby, rateLimit);
+        when(evLogs.findMostRecentChargingProviderAtGeohash(any(), any(), anyBoolean())).thenReturn(Optional.empty());
+        when(evLogs.countPrivateLogsByCell(any())).thenReturn(List.of());
+        service = new ChargingSiteService(repository, nearby, rateLimit, evLogs);
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -150,5 +158,65 @@ class ChargingSiteServiceTest {
     void ohneReferenzKeinStandort() {
         assertThat(service.resolve(userId, null)).isEmpty();
         verifyNoInteractions(repository, nearby, rateLimit);
+    }
+
+    // ── Vorschlag: "du stehst an einem bekannten Ort" ─────────────────────────────
+
+    /** Mittelpunkt der Zelle u33dc0c (Berlin, Alexanderplatz). */
+    private static final double LAT = 52.5195, LON = 13.4054;
+
+    private static ChargingSiteUsage usage(String name, String geohash, long count) {
+        return new ChargingSiteUsage(new ChargingSite(UUID.randomUUID(), name, name, geohash, null, new BigDecimal("150"), 2,
+                ChargingSiteSource.REGISTER, ChargingSite.RegisterDetails.NONE, LocalDateTime.now()), LocalDateTime.now(), count);
+    }
+
+    @Test
+    void schlaegtDenBekanntenStandortVorAnDemDerNutzerSteht() {
+        UUID card = UUID.randomUUID();
+        when(repository.findRecentlyUsedByUser(userId, ChargingSiteService.SUGGESTION_CANDIDATES))
+                .thenReturn(List.of(usage("IONITY Feuchtwangen", "u0zpr5p", 2), usage("EnBW Alexanderplatz", CELL, 7)));
+        when(evLogs.findMostRecentChargingProviderAtGeohash(userId, CELL, true)).thenReturn(Optional.of(card));
+
+        ChargingSuggestion s = service.suggest(userId, LAT, LON).orElseThrow();
+
+        assertThat(s.kind()).isEqualTo(ChargingSuggestion.Kind.SITE);
+        assertThat(s.site().site().name()).isEqualTo("EnBW Alexanderplatz");
+        assertThat(s.lastProviderId()).isEqualTo(card);
+    }
+
+    @Test
+    void ohneBekanntenStandortInDerNaeheKeinVorschlag() {
+        when(repository.findRecentlyUsedByUser(userId, ChargingSiteService.SUGGESTION_CANDIDATES))
+                .thenReturn(List.of(usage("IONITY Feuchtwangen", "u0zpr5p", 2)));
+
+        assertThat(service.suggest(userId, LAT, LON)).isEmpty();
+    }
+
+    @Test
+    void privateZelleGiltNurMitGenugUndKlarDominantenLadungen() {
+        assertThat(ChargingSiteService.privateCell(List.of())).isEmpty();
+        assertThat(ChargingSiteService.privateCell(List.of(new PrivateCellCount("u33dc0", 4)))).isEmpty();
+        assertThat(ChargingSiteService.privateCell(List.of(new PrivateCellCount("u33dc0", 5), new PrivateCellCount("u0zpr5", 5)))).isEmpty();
+        assertThat(ChargingSiteService.privateCell(List.of(new PrivateCellCount("u33dc0", 9), new PrivateCellCount("u0zpr5", 3)))).contains("u33dc0");
+    }
+
+    @Test
+    void schlaegtDenPrivatenAnschlussVorWennDerNutzerInSeinerZelleSteht() {
+        when(repository.findRecentlyUsedByUser(userId, ChargingSiteService.SUGGESTION_CANDIDATES)).thenReturn(List.of());
+        when(evLogs.countPrivateLogsByCell(userId)).thenReturn(List.of(new PrivateCellCount("u33dc0", 12)));
+
+        assertThat(service.suggest(userId, LAT, LON)).map(ChargingSuggestion::kind).contains(ChargingSuggestion.Kind.PRIVATE);
+        // Muenchen liegt nicht in der Berliner Zelle
+        assertThat(service.suggest(userId, 48.137, 11.575)).isEmpty();
+    }
+
+    /** Oeffentlicher Treffer schlaegt die private Zelle - er ist die praezisere Aussage. */
+    @Test
+    void bekannterStandortGewinntVorDerPrivatenZelle() {
+        when(repository.findRecentlyUsedByUser(userId, ChargingSiteService.SUGGESTION_CANDIDATES))
+                .thenReturn(List.of(usage("EnBW Alexanderplatz", CELL, 7)));
+        when(evLogs.countPrivateLogsByCell(userId)).thenReturn(List.of(new PrivateCellCount("u33dc0", 12)));
+
+        assertThat(service.suggest(userId, LAT, LON)).map(ChargingSuggestion::kind).contains(ChargingSuggestion.Kind.SITE);
     }
 }

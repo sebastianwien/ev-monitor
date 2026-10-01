@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  emptyLogForm, canProceed, applyPlace, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
+  emptyLogForm, canProceed, applyPlace, applySuggestion, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
 } from '../wizardLogic'
 import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
@@ -17,33 +17,46 @@ describe('canProceed', () => {
     expect(canProceed(1, f, { place: 'home' })).toBe(true)
   })
 
-  it('Schritt 2 braucht Energie an Säule oder Fahrzeug', () => {
+  it('Schritt 2 braucht Energie, Tachostand, Ladestand danach und Kosten zusammen', () => {
     const f = emptyLogForm()
     expect(canProceed(2, f, { place: 'home' })).toBe(false)
-    f.kwhAtVehicle = 12
+    f.kwhAtVehicle = 12; f.odometerKm = 48_210; f.socAfterChargePercent = 80
+    expect(canProceed(2, f, { place: 'home' })).toBe(false)
+    f.costEur = 0
     expect(canProceed(2, f, { place: 'home' })).toBe(true)
     f.kwhAtVehicle = null; f.kwhCharged = 0
     expect(canProceed(2, f, { place: 'home' })).toBe(false)
+    f.kwhCharged = 30; f.odometerKm = 0
+    expect(canProceed(2, f, { place: 'home' })).toBe(false)
   })
 
-  it('Schritt 3 braucht Tachostand und Ladestand danach', () => {
-    const f = emptyLogForm()
-    f.odometerKm = 48211
-    expect(canProceed(3, f, { place: 'home' })).toBe(false)
-    f.socAfterChargePercent = 80
-    expect(canProceed(3, f, { place: 'home' })).toBe(true)
-    f.odometerKm = 0
-    expect(canProceed(3, f, { place: 'home' })).toBe(false)
-  })
-
-  it('Schritt 4 braucht Kosten, auch 0 ist gültig', () => {
-    const f = emptyLogForm()
-    expect(canProceed(4, f, { place: 'home' })).toBe(false)
-    f.costEur = 0
-    expect(canProceed(4, f, { place: 'home' })).toBe(true)
+  it('Die Prüfseite blockiert nie', () => {
+    expect(canProceed(3, emptyLogForm(), { place: 'home' })).toBe(true)
   })
 })
 
+describe('applySuggestion', () => {
+  const site = { id: 's1', name: 'EnBW Kaufland', cpoName: 'EnBW', geohash: 'u33dc0c', maxAcKw: null, maxDcKw: 150, chargePoints: 4,
+    fastCharging: true, address: null, plugTypes: ['CCS'], lastUsedAt: '2026-09-24T10:00:00', usageCount: 7 }
+
+  it('übernimmt den Standort samt Ladekarte vom letzten Mal', () => {
+    const f = emptyLogForm()
+    const choice = applySuggestion(f, { kind: 'SITE', site, lastProviderId: 'card-1' })
+    expect(choice.kind).toBe('site')
+    expect(f.isPublicCharging).toBe(true)
+    expect(f.chargingType).toBe('DC')
+    expect(f.chargingSite).toEqual({ name: 'EnBW Kaufland', geohash: 'u33dc0c' })
+    expect(f.chargingProviderId).toBe('card-1')
+  })
+
+  it('privater Anschluss ist Zuhause ohne Ladekarte', () => {
+    const f = emptyLogForm(); f.chargingProviderId = 'stale'
+    const choice = applySuggestion(f, { kind: 'PRIVATE', site: null, lastProviderId: null })
+    expect(choice.kind).toBe('home')
+    expect(f.isPublicCharging).toBe(false)
+    expect(f.chargingProviderId).toBeNull()
+  })
+})
 describe('applyPlace', () => {
   it('Zuhause ist privat und AC', () => {
     const f = emptyLogForm()

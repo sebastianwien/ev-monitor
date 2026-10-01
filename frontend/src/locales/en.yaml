@@ -3265,6 +3265,16 @@ watt:
   toast: "+{n} Watt earned!"
 
 logwizard:
+  q_numbers: "The numbers"
+  suggestion_site: "Match nearby"
+  suggestion_private: "Your private charger here"
+  suggestion_private_title: "Charged at home or privately?"
+  suggestion_private_sub: "Charging type and tariff as in your previous charges here."
+  suggestion_accept: "Use this"
+  expand_radius: "Not listed? Widen search to 2.5 km"
+  nearby_title_radius: "Within {r}"
+  ruler_hint: "Swipe to set, tap the number for the keyboard"
+  odometer_delta: "+{km} since your last log"
   step_of: "Step {step} of {total}"
   q_place: "Where did you charge?"
   q_energy: "How much energy?"

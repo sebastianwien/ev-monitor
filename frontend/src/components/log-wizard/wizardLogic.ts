@@ -3,10 +3,11 @@ import type { StationMatch } from '../../composables/useNearbyStations'
 import type { RecentSite } from '../../composables/useRecentSites'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
-export type WizardStep = 1 | 2 | 3 | 4 | 5
-export const LAST_STEP: WizardStep = 5
-/** Schritte mit Eingabe; Schritt 5 ist die Prüfseite und zählt in der Anzeige nicht mit. */
-export const INPUT_STEPS = 4
+/** Ort, Zahlen (Energie, Tacho, SoC, Kosten), Prüfen - drei Schritte, drei Taps, drei Zahlen. */
+export type WizardStep = 1 | 2 | 3
+export const LAST_STEP: WizardStep = 3
+/** Schritte mit Eingabe; Schritt 3 ist die Prüfseite und zählt in der Anzeige nicht mit. */
+export const INPUT_STEPS = 2
 
 export type PlaceKind = 'home' | 'station' | 'site' | 'other'
 
@@ -32,15 +33,28 @@ export function emptyLogForm(): LogFormData {
 
 const positive = (v: number | null | undefined) => v != null && v > 0
 
-/** Pflicht je Schritt: Ort, Energie, Tacho + SoC danach, Kosten. Schritt 5 prüft nur. */
+/** Pflicht je Schritt: Ort; dann Energie, Tacho, SoC danach und Kosten zusammen. Schritt 3 prüft nur. */
 export function canProceed(step: WizardStep, f: LogFormData, state: WizardState): boolean {
   switch (step) {
     case 1: return state.place !== null
-    case 2: return positive(f.kwhCharged) || positive(f.kwhAtVehicle)
-    case 3: return positive(f.odometerKm) && f.socAfterChargePercent != null
-    case 4: return f.costEur != null
+    case 2: return missingRequired(f).length === 0
     default: return true
   }
+}
+
+/** Der Treffer aus der Umkreissuche gegen die eigenen Logs, wie ihn GET /charging-sites/suggestion liefert. */
+export interface ChargingSuggestion {
+  kind: 'SITE' | 'PRIVATE'
+  site: RecentSite | null
+  lastProviderId: string | null
+}
+
+/** Ein Tap auf die Trefferkarte: Ort wie beim letzten Mal, dazu die Ladekarte von damals. */
+export function applySuggestion(f: LogFormData, s: ChargingSuggestion): PlaceChoice {
+  const choice: PlaceChoice = s.kind === 'SITE' && s.site ? { kind: 'site', site: s.site } : { kind: 'home' }
+  applyPlace(f, choice)
+  f.chargingProviderId = choice.kind === 'site' ? s.lastProviderId : null
+  return choice
 }
 
 /** Die Ortswahl setzt öffentlich/privat, Anbieter und Ladeart in einem Schritt. */

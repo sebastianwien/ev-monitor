@@ -223,6 +223,12 @@ public interface EvLogRepository {
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash, boolean isPublic);
 
     /**
+     * Private Ladungen des Nutzers je 6-stelliger Zelle, haeufigste zuerst - daraus leitet der
+     * Wizard "du stehst an deinem privaten Anschluss" ab, ohne einen Heimatort zu speichern.
+     */
+    List<PrivateCellCount> countPrivateLogsByCell(UUID userId);
+
+    /**
      * All logs of this user at exactly this geohash that still have no cost.
      *
      * Exact match, not the 6-char prefix used by {@link #findMostRecentChargingProviderAtGeohash}:

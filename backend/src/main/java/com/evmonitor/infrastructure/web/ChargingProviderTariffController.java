@@ -85,6 +85,7 @@ public class ChargingProviderTariffController {
     @GetMapping("/cpos/nearby-stations")
     public ResponseEntity<List<NearbyStation>> getNearbyStations(@RequestParam double lat,
                                                                  @RequestParam double lon,
+                                                                 @RequestParam(required = false) Integer radius,
                                                                  Authentication authentication) {
         if (!rateLimitService.tryConsumeCpoLookup(quotaKey(authentication))) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
@@ -93,7 +94,10 @@ public class ChargingProviderTariffController {
             return ResponseEntity.badRequest().build();
         }
         String geohash = GeoHash.withCharacterPrecision(lat, lon, PUBLIC_GEOHASH_PRECISION).toBase32();
-        return ResponseEntity.ok(nearbyCpoService.findNearbyStations(geohash).orElseGet(List::of));
+        // Ohne Radius der Standardumkreis (gecacht je Zelle); mit Radius die weite Suche fuer "Umkreis erweitern"
+        var stations = radius == null ? nearbyCpoService.findNearbyStations(geohash)
+                : nearbyCpoService.findNearbyStations(geohash, radius);
+        return ResponseEntity.ok(stations.orElseGet(List::of));
     }
 
     /**

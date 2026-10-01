@@ -8,9 +8,9 @@ const API_URL = process.env.API_URL || 'http://localhost:8080';
 const nextOdometer = () => 100_000 + Math.floor(Date.now() / 1000) - 1_789_000_000;
 
 /**
- * Fuehrt den Erfassen-Wizard bis zur Zusammenfassung durch: Ort "Zuhause", Energie,
- * Tacho + SoC (Pflicht), Kosten. Der Tacho steigt mit der Zeit, damit Wiederholungen
- * nie unter den letzten Wert fallen.
+ * Fuehrt den Erfassen-Wizard bis zur Zusammenfassung durch: Ort "Zuhause", dann auf einem
+ * Schritt Energie, Tacho + SoC (Pflicht) und Kosten. Der Tacho steigt mit der Zeit, damit
+ * Wiederholungen nie unter den letzten Wert fallen.
  */
 async function fillWizardToReview(page: Page, opts: { kwh: string; cost: string; vehicleKwh?: string }) {
   await page.goto('/erfassen');
@@ -22,12 +22,8 @@ async function fillWizardToReview(page: Page, opts: { kwh: string; cost: string;
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
     await page.locator('input[placeholder="z.B. 42.5"]').fill(opts.vehicleKwh);
   }
-  await page.locator('[data-testid="wizard-next"]').click();
-
   await page.locator('#wizard-odometer').fill(String(nextOdometer()));
   await page.locator('#wizard-soc').fill('80');
-  await page.locator('[data-testid="wizard-next"]').click();
-
   await page.locator('input[placeholder="z.B. 12.50"]').fill(opts.cost);
   await page.locator('[data-testid="wizard-next"]').click();
 }
@@ -114,12 +110,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     // Auf "Fahrzeug"-Modus (kwhAtVehicle) umschalten und dort eintragen
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
     await page.locator('input[placeholder="z.B. 42.5"]').fill('37.5');
-    await page.locator('[data-testid="wizard-next"]').click();
-
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
     await page.locator('#wizard-soc').fill('80');
-    await page.locator('[data-testid="wizard-next"]').click();
-
     await page.locator('input[placeholder="z.B. 12.50"]').fill('10.00');
     await page.locator('[data-testid="wizard-next"]').click();
 
@@ -375,24 +367,20 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     // Zuhause: keine Karte anbieten - eine Ladekarte zahlt keine Ladung an der eigenen Wallbox
     await page.locator('[data-testid="place-home"]').click();
     await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
-    await page.locator('[data-testid="wizard-next"]').click();
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
     await page.locator('#wizard-soc').fill('80');
-    await page.locator('[data-testid="wizard-next"]').click();
     await expect(page.locator('[data-testid="charging-card-prompt-open"]')).not.toBeVisible();
 
     // Zurueck auf Schritt 1, oeffentliche Station waehlen
-    for (let i = 0; i < 3; i++) await page.locator('header button[aria-label="Zurück"]').click();
+    await page.locator('header button[aria-label="Zurück"]').click();
     await page.locator('[data-testid="place-other"]').click();
     await page.locator('input[type="search"]').fill('EnBW');
     await page.locator('button:has-text("EnBW")').first().click();
     await page.locator('[data-testid="wizard-next"]').click();
-    await page.locator('[data-testid="wizard-next"]').click();
-    await page.locator('[data-testid="wizard-next"]').click();
 
     await page.locator('[data-testid="charging-card-prompt-open"]').click();
     await page.locator('#inline-card-provider').selectOption('EnBW mobility+');
-    await page.locator('input[type="number"][step="0.1"]').first().fill('39');
+    await page.locator('[data-testid="charging-card-prompt"] input[type="number"][step="0.1"]').first().fill('39');
     await page.locator('[data-testid="charging-card-save"]').click();
 
     // Karte ist angelegt und gewaehlt: Chip da, Preis je kWh uebernommen
@@ -425,10 +413,8 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await page.locator('[data-testid="wizard-next"]').click();
 
     await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
-    await page.locator('[data-testid="wizard-next"]').click();
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
     await page.locator('#wizard-soc').fill('80');
-    await page.locator('[data-testid="wizard-next"]').click();
     await page.locator('input[placeholder="z.B. 12.50"]').fill('15');
     await page.locator('[data-testid="wizard-next"]').click();
     await page.locator('[data-testid="wizard-next"]').click();

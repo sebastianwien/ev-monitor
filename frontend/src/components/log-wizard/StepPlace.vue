@@ -7,7 +7,8 @@ import type { NearbyStation, StationMatch } from '../../composables/useNearbySta
 import type { RecentSite } from '../../composables/useRecentSites'
 import type { ChargingSiteRef } from '../log-form/logFormData'
 import { settingsPlatform, openAppSettings, type LocationPermission } from '../../composables/useLocationPermission'
-import type { PlaceChoice, PlaceKind } from './wizardLogic'
+import type { ChargingSuggestion, PlaceChoice, PlaceKind } from './wizardLogic'
+import SuggestionCard from './SuggestionCard.vue'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import PlaceSearch from './PlaceSearch.vue'
 import Collapse from './Collapse.vue'
@@ -24,14 +25,25 @@ const props = defineProps<{
   locationStatus: 'idle' | 'loading' | 'success' | 'error'
   recentCpos: string[]
   allCpos: string[]
+  /** Treffer aus Position x eigene Logs - steht als Karte über allem, bis der Nutzer ihn wegtippt */
+  suggestion?: ChargingSuggestion | null
+  suggestionProviderLabel?: string | null
+  /** Umkreis der aktuellen Liste in Metern, und ob "Umkreis erweitern" noch etwas bringt */
+  radiusMeters?: number
+  canExpand?: boolean
 }>()
-const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace] }>()
+const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace]; acceptSuggestion: []; expandRadius: [] }>()
 const { t } = useI18n()
 
 const query = ref('')
 const platform = settingsPlatform()
 // Nach erfolgreicher Ortung klappt die Suche zu; "Anderer Ort" holt sie zurück
 const searchReopened = ref(false)
+// "Anderer Ort" auf der Trefferkarte: Karte weg, Liste da - bis zur nächsten Ortung
+const suggestionDismissed = ref(false)
+const showSuggestion = computed(() => !!props.suggestion && !suggestionDismissed.value)
+const radiusLabel = computed(() => props.radiusMeters && props.radiusMeters >= 1000
+  ? `${(props.radiusMeters / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} km` : `${props.radiusMeters ?? 250} m`)
 const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value)
 const showOther = computed(() => props.place === 'other')
 // Ort steht, aber das Register kennt dort keine Säule: ohne Kachel bliebe "Weiter" grau
@@ -107,6 +119,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       @choose="onSearchChoose" @picked="p => emit('placePicked', p)" />
     </div>
     </Collapse>
+    <SuggestionCard v-if="showSuggestion && suggestion" :suggestion="suggestion" :provider-label="suggestionProviderLabel ?? null"
+      @accept="emit('acceptSuggestion')" @dismiss="suggestionDismissed = true" />
     <button v-if="showSearchedStation && searchedStation" type="button" data-testid="place-searched-station" :class="tileClass(true)"
       @click="emit('choose', { kind: 'station', station: searchedStation, viaSearch: true })">
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
@@ -137,6 +151,9 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-2">
       <p>{{ t('logwizard.no_stations_found') }}</p>
       <div :class="CHIP_ROW">
+        <button v-if="canExpand" type="button" data-testid="expand-radius" :class="chipClass(false)" @click="emit('expandRadius')">
+          <ArrowPathIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.expand_radius') }}
+        </button>
         <button type="button" :class="chipClass(false)" @click="searchReopened = true">
           <MagnifyingGlassIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.nearby_other_place') }}
         </button>
@@ -145,7 +162,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <Collapse :open="stations.length > 0">
     <div class="space-y-3">
       <p class="flex items-baseline text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">
-        {{ t('logwizard.nearby_title') }}
+        {{ radiusMeters && radiusMeters > 250 ? t('logwizard.nearby_title_radius', { r: radiusLabel }) : t('logwizard.nearby_title') }}
         <button v-if="!showLocationBlock" type="button" class="ml-auto normal-case tracking-normal text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline"
           @click="searchReopened = true">{{ t('logwizard.nearby_other_place') }}</button>
       </p>
@@ -157,8 +174,13 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
           <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
           <small v-if="s.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ s.address }}</small>
         </span>
-        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ s.distanceMeters }} m</span>
+        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ s.distanceMeters >= 1000 ? `${(s.distanceMeters / 1000).toFixed(1)} km` : `${s.distanceMeters} m` }}</span>
         <CheckCircleIcon v-if="isStation(s)" class="h-5 w-5 text-indigo-600" />
+      </button>
+      <!-- "Nicht dabei?": die weite Suche ersetzt diese Liste, statt sie zu verlängern -->
+      <button v-if="canExpand && !stationsLoading" type="button" data-testid="expand-radius" @click="emit('expandRadius')"
+        class="btn-3d w-full min-h-11 rounded-sm border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-semibold text-indigo-600 dark:text-indigo-300 hover:border-indigo-400 transition">
+        {{ t('logwizard.expand_radius') }}
       </button>
     </div>
     </Collapse>
