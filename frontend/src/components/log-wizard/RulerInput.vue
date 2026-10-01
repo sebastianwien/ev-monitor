@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import Collapse from './Collapse.vue'
 import { activeRuler } from './rulerState'
 
 /**
@@ -152,7 +153,7 @@ const onInput = (e: Event) => {
 
 // Beim Wiederöffnen zeichnet draw() nicht neu (gleiche Breite), der Streifen stünde sonst auf dem alten
 // Wert und der erste Wisch setzt das Modell zurück - deshalb immer nachziehen.
-watch(active, async (on) => { if (on) { await nextTick(); draw(); syncScroll(); nudgeOnce() } })
+watch(active, async (on) => { if (on) { drawnWidth = 0; await nextTick(); draw(); syncScroll(); nudgeOnce() } })
 onMounted(() => { if (props.autofocus) activate(); if (active.value) nextTick(draw) })
 onBeforeUnmount(() => { if (raf) cancelAnimationFrame(raf); if (activeRuler.value === props.id) activeRuler.value = null })
 const shown = computed(() => model.value == null ? '' : String(model.value))
@@ -174,14 +175,19 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
     </div>
     <!-- Der Maßstab: Mittelmarke steht fest, der Streifen scrollt darunter durch -->
     <!-- Ränder laufen weich aus (Maske), die Mittelmarke ist kräftig: so liest sich der Streifen als etwas, das weitergeht -->
-    <div v-show="active && rulerable" ref="ruler" class="ruler relative h-10 -mx-3 mt-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x cursor-grab [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]"
+    <!-- Collapse statt v-show: Höhe fährt an- und ab, die Karte darüber folgt pro Frame (useFillHeight) -->
+    <Collapse :open="active && rulerable">
+    <div ref="ruler" class="ruler relative h-10 -mx-3 mt-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x cursor-grab [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]"
       role="slider" :aria-label="label" :aria-valuemin="min" :aria-valuemax="max" :aria-valuenow="model ?? min" tabindex="0"
       @scroll.passive="onScroll" @keydown="onKey">
       <canvas ref="canvas" :class="['block h-10', nudging && 'ruler-nudge']" />
       <i aria-hidden="true" class="absolute left-1/2 top-0 h-7 w-1 -ml-0.5 rounded-full bg-indigo-600 shadow-[0_0_0_2px_rgba(255,255,255,0.9)] dark:shadow-[0_0_0_2px_rgba(31,41,55,0.9)] pointer-events-none" />
     </div>
+    </Collapse>
     <!-- Schnellwahl (z. B. 80/90/100 %) gehört in die offene Box, nicht darunter -->
-    <div v-if="active && $slots.quick" class="mt-2" @click.stop><slot name="quick" /></div>
+    <Collapse :open="active && !!$slots.quick">
+      <div class="mt-2" @click.stop><slot name="quick" /></div>
+    </Collapse>
   </div>
 </template>
 

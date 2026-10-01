@@ -8,6 +8,7 @@ import AcDcSwitch from './AcDcSwitch.vue'
 import ChargingPileIcon from '../icons/ChargingPileIcon.vue'
 import CarIcon from '../icons/CarIcon.vue'
 const OcrPhotoCapture = defineAsyncComponent(() => import('../log-form/OcrPhotoCapture.vue'))
+import Collapse from './Collapse.vue'
 
 const props = defineProps<{ compact?: boolean }>()
 const form = defineModel<LogFormData>({ required: true })
@@ -65,7 +66,9 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
         </button>
         <AcDcSwitch v-model="form.chargingType" />
       </div>
-      <OcrPhotoCapture v-if="props.compact && showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
+      <Collapse :open="props.compact && showOcr">
+        <OcrPhotoCapture v-if="showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
+      </Collapse>
       <RulerInput id="wizard-kwh" v-model="kwh" unit="kWh" :label="modeLabel" :placeholder="t('logfields.kwh_placeholder')" :step="0.1" :min="0" :max="150" :autofocus="!props.compact" />
     </div>
   </div>

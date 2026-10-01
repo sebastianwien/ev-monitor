@@ -34,11 +34,13 @@ describe('RulerInput', () => {
   it('nur das angetippte Feld zeigt seinen Maßstab', async () => {
     const { host } = mount([{ id: 'a', autofocus: true }, { id: 'b' }])
     await nextTick()
-    const sliders = () => [...host.querySelectorAll('[role="slider"]')] as HTMLElement[]
-    expect(sliders().map(s => s.style.display)).toEqual(['', 'none'])
+    // Der Maßstab sitzt in einem Collapse: zugeklappt ist er inert, bis die Animation ihn ausblendet.
+    // jsdom kennt die inert-Eigenschaft nicht, Vue schreibt dann das Attribut mit "true"/"false".
+    const shown = () => [...host.querySelectorAll('[role="slider"]')].map(s => !s.closest('[inert]:not([inert="false"])'))
+    expect(shown()).toEqual([true, false])
     ;(host.querySelector('#b') as HTMLInputElement).dispatchEvent(new Event('focus'))
     await nextTick()
-    expect(sliders().map(s => s.style.display)).toEqual(['none', ''])
+    expect(shown()).toEqual([false, true])
     expect(activeRuler.value).toBe('b')
   })
 

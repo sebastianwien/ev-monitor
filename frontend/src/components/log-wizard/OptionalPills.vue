@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, type Component } from 'vue'
+import { computed, nextTick, ref, watch, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ClockIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import type { LogFormData } from '../log-form/logFormData'
 import { ROUTE_CHIPS, TIRE_CHIPS } from './optionalChips'
 import { SEG_GROUP, segClass } from './segments'
 import { useTimePick, nowLocal } from './useTimePick'
+import Collapse from './Collapse.vue'
 
 /**
  * Zeit, Strecke und Reifen als drei Pillen in einer Zeile (Schritt 2). Tipp auf eine Pille klappt
@@ -16,6 +17,9 @@ const form = defineModel<LogFormData>({ required: true })
 const { t, locale } = useI18n()
 const { timePick, pickTime, timeChips } = useTimePick(form)
 const editing = ref<Field | null>(null)
+/** Bleibt beim Schließen stehen, damit der Editor während der Zuklapp-Animation noch Inhalt hat */
+const shownEditor = ref<Field | null>(null)
+watch(editing, f => { if (f) shownEditor.value = f })
 
 const timeLabel = computed(() => {
   if (!form.value.loggedAt) return t('logwizard.time_now')
@@ -45,7 +49,8 @@ const active = computed(() => pills.value.find(p => p.field === editing.value) ?
 </script>
 
 <template>
-  <div data-testid="optional-pills" class="space-y-2">
+  <!-- Kein space-y: das zugeklappte (display:none) Collapse zählt als letztes Kind und gäbe der Pillenzeile 8 px Rand -->
+  <div data-testid="optional-pills">
     <!-- Zeile: drei Pillen, die gerade bearbeitete hervorgehoben; aufgeklappt bleibt nur sie stehen, rechts ein X zum Schließen -->
     <div :class="['flex items-center gap-1.5', editing ? '' : 'justify-center']">
       <button v-for="p in pills" v-show="!editing || editing === p.field" :key="p.field" type="button" :aria-label="p.label" :aria-expanded="editing === p.field"
@@ -60,7 +65,9 @@ const active = computed(() => pills.value.find(p => p.field === editing.value) ?
       </button>
     </div>
 
-    <div v-if="editing === 'time'" ref="editor" class="space-y-1.5">
+    <!-- Editor fährt animiert auf und zu; die Karte darüber folgt der Höhe pro Frame -->
+    <Collapse :open="!!editing">
+    <div v-if="shownEditor === 'time'" ref="editor" class="mt-2 space-y-1.5">
       <div :class="[SEG_GROUP, 'grid-cols-2']" role="radiogroup" :aria-label="t('logwizard.d_when')">
         <button v-for="c in timeChips" :key="c.value" type="button" role="radio" :aria-checked="timePick === c.value" :class="segClass(timePick === c.value)"
           :data-testid="`time-${c.value}`" @click="onTime(c.value)">{{ c.label }}</button>
@@ -68,13 +75,14 @@ const active = computed(() => pills.value.find(p => p.field === editing.value) ?
       <input v-if="timePick === 'other'" id="wizard-time" v-model="form.loggedAt" type="datetime-local" :max="nowLocal()" :aria-label="t('logfields.timestamp')"
         class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-transparent dark:text-gray-100 p-2 text-sm focus:border-indigo-600 focus:ring-0 focus:outline-none" />
     </div>
-    <div v-else-if="editing === 'route'" ref="editor" :class="[SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_route')">
+    <div v-else-if="shownEditor === 'route'" ref="editor" :class="['mt-2', SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_route')">
       <button v-for="c in ROUTE_CHIPS" :key="c.value" type="button" role="radio" :aria-checked="form.routeType === c.value" :class="segClass(form.routeType === c.value)"
         @click="pickRoute(c.value)"><component :is="c.icon" class="h-4 w-4 flex-shrink-0" />{{ t(c.key) }}</button>
     </div>
-    <div v-else-if="editing === 'tires'" ref="editor" :class="[SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_tires')">
+    <div v-else-if="shownEditor === 'tires'" ref="editor" :class="['mt-2', SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_tires')">
       <button v-for="c in TIRE_CHIPS" :key="c.value" type="button" role="radio" :aria-checked="form.tireType === c.value" :class="segClass(form.tireType === c.value)"
         @click="pickTires(c.value)"><component :is="c.icon" class="h-4 w-4 flex-shrink-0" />{{ t(c.key) }}</button>
     </div>
+    </Collapse>
   </div>
 </template>
