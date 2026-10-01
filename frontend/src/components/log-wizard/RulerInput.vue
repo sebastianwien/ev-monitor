@@ -37,7 +37,22 @@ const steps = computed(() => Math.round((props.max - props.min) / props.step))
 const MAX_STEPS = 5000
 const rulerable = computed(() => steps.value > 0 && steps.value <= MAX_STEPS)
 const active = computed(() => activeRuler.value === props.id)
-const activate = () => { activeRuler.value = props.id }
+/**
+ * Zeile antippen öffnet nur das Rädchen. Die Tastatur kommt erst, wenn der Nutzer in der
+ * offenen Zeile direkt auf die Zahl tippt - sonst schiebt sich bei jedem Zeilenwechsel die
+ * Tastatur über den Maßstab. Ein noch fokussiertes Feld der vorigen Zeile verliert den Fokus.
+ */
+const activate = () => {
+  if (activeRuler.value === props.id) return
+  activeRuler.value = props.id
+  const el = document.activeElement
+  if (el instanceof HTMLElement && el.id !== props.id && el.tagName === 'INPUT') el.blur()
+}
+const onInputPointerDown = (e: Event) => {
+  if (active.value) return
+  e.preventDefault()
+  activate()
+}
 
 const ruler = ref<HTMLElement | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -115,9 +130,9 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
       active ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800']"
     @click="activate">
     <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
-      <label :for="id" class="text-sm text-gray-500 dark:text-gray-400 cursor-pointer">{{ label }}</label>
+      <span class="text-sm text-gray-500 dark:text-gray-400" aria-hidden="true">{{ label }}</span>
       <input :id="id" :data-testid="testid" type="number" :inputmode="inputmode" :step="step" :min="min" :max="max"
-        :placeholder="placeholder" :value="shown" :aria-label="label" @input="onInput" @focus="activate"
+        :placeholder="placeholder" :value="shown" :aria-label="label" @input="onInput" @focus="activate" @pointerdown="onInputPointerDown"
         :class="['w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none transition-[font-size]',
                  active ? 'text-3xl' : 'text-2xl']" />
       <span class="text-base text-gray-500 dark:text-gray-400">{{ unit }}</span>
