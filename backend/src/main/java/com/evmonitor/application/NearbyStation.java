@@ -17,11 +17,13 @@ import java.util.List;
  * @param maxDcKw        hoechste DC-Steckerleistung am Standort, kann fehlen
  * @param chargePoints   Ladepunkte am Standort insgesamt
  * @param geohash        Zelle (7 Stellen) der naechstgelegenen Saeule dieses Betreibers
+ * @param latitude       Position der naechsten Saeule laut Register - nur zur Anzeige, wird nie gespeichert
  * @param registerId     Ladeeinrichtungs-ID der Bundesnetzagentur (naechste Saeule), kann fehlen
  * @param street         Adresse der naechsten Saeule, Felder koennen fehlen
  */
 public record NearbyStation(String name, boolean known, int distanceMeters,
                             Double maxAcKw, Double maxDcKw, int chargePoints, String geohash,
+                            Double latitude, Double longitude,
                             Integer registerId, String street, String houseNumber, String postalCode, String city,
                             List<String> plugTypes,
                             LocalDate commissionedOn, String siteLabel, String payment, String openingHours) {
@@ -30,7 +32,7 @@ public record NearbyStation(String name, boolean known, int distanceMeters,
     public NearbyStation(String name, boolean known, int distanceMeters, Double maxPowerKw,
                          boolean fastCharging, int chargePoints, String geohash) {
         this(name, known, distanceMeters, fastCharging ? null : maxPowerKw, fastCharging ? maxPowerKw : null,
-                chargePoints, geohash, null, null, null, null, null, List.of(), null, null, null, null);
+                chargePoints, geohash, null, null, null, null, null, null, null, List.of(), null, null, null, null);
     }
 
     public boolean fastCharging() {

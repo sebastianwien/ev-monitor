@@ -112,6 +112,8 @@ class NearbyCpoServiceTest {
         assertThat(s.maxDcKw()).isEqualTo(150.0);
         assertThat(s.chargePoints()).isEqualTo(6);
         assertThat(s.registerId()).isEqualTo(1064145);
+        assertThat(s.latitude()).isEqualTo(52.5196);
+        assertThat(s.longitude()).isEqualTo(13.4055);
         assertThat(s.address()).isEqualTo("Storkower Str. 139, 10407 Berlin");
         assertThat(s.plugTypes()).containsExactly("Typ 2", "CCS");
     }

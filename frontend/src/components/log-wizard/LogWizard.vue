@@ -144,6 +144,8 @@ const advance = useDelayedCall(() => next(), PLACE_ADVANCE_MS)
 const autoAdvances = (choice: PlaceChoice) => choice.kind === 'home'
 const choosePlace = (choice: PlaceChoice) => {
   state.value.place = choice.kind
+  siteCoords.value = choice.kind === 'station' && choice.station.latitude != null && choice.station.longitude != null
+    ? { lat: choice.station.latitude, lon: choice.station.longitude } : null
   applyPlace(form.value, choice)
   resetCard()
   if (autoAdvances(choice)) advance.schedule(); else { advance.cancel(); preselectCard() }
@@ -240,13 +242,16 @@ const numbersContext = computed<NumbersContext>(() => {
     ...siteCenter(),
   }
 })
+/** Exakte Position der gewählten Säule aus dem Register - nur für die Minimap, geht nie ins Log. */
+const siteCoords = ref<{ lat: number; lon: number } | null>(null)
 /**
- * Minimap-Mittelpunkt: die Zelle der gewählten Säule (7 Stellen, ~150 m), nicht die Handy-Position -
- * die liegt beim Erfassen gern ein paar hundert Meter daneben. Ohne Säule (freier Anbieter) die eigene
- * Position, zuhause gar keine Karte.
+ * Minimap-Mittelpunkt als Bestätigung "das ist die Säule": exakt aus dem Register, sonst die Zelle
+ * des gespeicherten Standorts (~150 m). Nicht die Handy-Position, die liegt gern daneben. Ohne Säule
+ * (freier Anbieter) die eigene Position, zuhause gar keine Karte.
  */
 const siteCenter = (): { lat: number | null; lon: number | null } => {
   if (state.value.place === 'home') return { lat: null, lon: null }
+  if (siteCoords.value) return siteCoords.value
   const cell = form.value.chargingSite?.geohash
   if (cell) { const c = geohashLib.decode(cell); return { lat: c.latitude, lon: c.longitude } }
   return { lat: form.value.latitude, lon: form.value.longitude }

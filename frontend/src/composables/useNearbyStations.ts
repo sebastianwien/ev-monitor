@@ -18,6 +18,9 @@ export interface StationMatch {
   registerId: number | null
   /** Zelle (7 Stellen) der nächsten Säule dieses Betreibers - identifiziert den Ladestandort */
   geohash: string
+  /** Exakte Position der nächsten Säule laut Register - nur zur Anzeige (Minimap), wird nie gespeichert. Textsuche liefert keine. */
+  latitude?: number | null
+  longitude?: number | null
 }
 
 /** Standort im Umkreis, zusätzlich mit Entfernung. */

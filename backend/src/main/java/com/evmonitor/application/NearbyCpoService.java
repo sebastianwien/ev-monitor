@@ -149,6 +149,7 @@ public class NearbyCpoService {
         return new NearbyStation(name, known, distance, s.maxAcKw(), s.maxDcKw(),
                 s.chargePoints() == null ? 0 : s.chargePoints(),
                 GeoHash.withCharacterPrecision(s.latitude(), s.longitude(), 7).toBase32(),
+                s.latitude(), s.longitude(),
                 s.registerId(), s.street(), s.houseNumber(), s.postalCode(), s.city(),
                 s.plugTypes(), s.commissionedOn(), s.siteLabel(),
                 s.payment(), s.openingHours());
@@ -167,6 +168,7 @@ public class NearbyCpoService {
         return new NearbyStation(a.name(), a.known(), near.distanceMeters(),
                 max(a.maxAcKw(), b.maxAcKw()), max(a.maxDcKw(), b.maxDcKw()),
                 a.chargePoints() + b.chargePoints(), near.geohash(),
+                near.latitude(), near.longitude(),
                 near.registerId(), near.street(), near.houseNumber(), near.postalCode(), near.city(),
                 near.plugTypes(), near.commissionedOn(),
                 near.siteLabel(), near.payment(), near.openingHours());
