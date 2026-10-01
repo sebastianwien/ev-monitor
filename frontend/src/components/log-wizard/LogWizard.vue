@@ -27,6 +27,7 @@ import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
 import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
 import type { PreviousLogRef } from '../../utils/consumptionPreview'
+import geohashLib from 'ngeohash'
 import type { CardChoice, CommunityPrice } from './CardStrip.vue'
 import { providerPriceForType } from '../../utils/chargingProviderPricing'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -236,9 +237,20 @@ const numbersContext = computed<NumbersContext>(() => {
   return {
     title: form.value.chargingSite?.name ?? placeLabel.value, address: station?.address ?? null,
     card: card ? (card.label || card.providerName) : null,
-    lat: state.value.place === 'home' ? null : form.value.latitude, lon: state.value.place === 'home' ? null : form.value.longitude,
+    ...siteCenter(),
   }
 })
+/**
+ * Minimap-Mittelpunkt: die Zelle der gewählten Säule (7 Stellen, ~150 m), nicht die Handy-Position -
+ * die liegt beim Erfassen gern ein paar hundert Meter daneben. Ohne Säule (freier Anbieter) die eigene
+ * Position, zuhause gar keine Karte.
+ */
+const siteCenter = (): { lat: number | null; lon: number | null } => {
+  if (state.value.place === 'home') return { lat: null, lon: null }
+  const cell = form.value.chargingSite?.geohash
+  if (cell) { const c = geohashLib.decode(cell); return { lat: c.latitude, lon: c.longitude } }
+  return { lat: form.value.latitude, lon: form.value.longitude }
+}
 /** Letzter Log mit Tacho - Referenz für den Richtwert kWh und Euro je 100 km. */
 const previousLog = computed<PreviousLogRef | null>(() => {
   const l = logs.value.find(x => x.odometerKm != null)
