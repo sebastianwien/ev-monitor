@@ -14,6 +14,9 @@ import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
 import BigInput from './BigInput.vue'
+import ChargingCardTile from '../shared/ChargingCardTile.vue'
+import { cardContainerStyle } from '../../composables/useChargingCardDesign'
+import { CheckCircleIcon, PlusIcon, ClockIcon, GiftIcon } from '@heroicons/vue/24/outline'
 import SegmentToggle from './SegmentToggle.vue'
 
 const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean }>()
@@ -58,6 +61,16 @@ const compactSub = computed(() => {
   }
   return calculatedLocalPerKwh.value != null ? `= ${formatDecimal(calculatedLocalPerKwh.value, 2)} ${symbol.value}/kWh` : null
 })
+/** Kartenstreifen: öffentlich die Ladekarten, zuhause nur der Heimtarif - auch Karten ohne Tarif, die holen ihn sich beim Tap. */
+const stripProviders = computed(() => providers.value.filter(p => form.value.isPublicCharging ? !p.isPrivate : p.isPrivate))
+const stripPrice = (p: ChargingProvider) => providerPriceForType(p, form.value.chargingType)
+const pickProvider = (p: ChargingProvider) => {
+  const price = stripPrice(p)
+  if (price != null) { pick({ key: p.id, label: p.label || p.providerName, eurPerKwh: price, providerId: p.id }); return }
+  selectedKey.value = p.id
+  form.value.chargingProviderId = p.id
+  openPriceForSelected()
+}
 const priceLabel = (eur: number) => `${formatNumber(Math.round(props.cost.eurToLocal(eur) * 100) / 100)} ${symbol.value}/kWh`
 
 // ── Ladekarte inline anlegen / Tarif nachtragen ───────────────────────────────
@@ -166,17 +179,38 @@ onMounted(async () => {
         <span v-if="compactSub" class="col-span-3 text-right text-xs tabular-nums -mt-1 text-gray-400 dark:text-gray-500">{{ compactSub }}</span>
       </div>
     </div>
-    <div v-if="!inlineCard.isOpen.value" class="flex flex-wrap justify-end gap-2">
-      <button v-for="s in suggestions" :key="s.key" type="button" :aria-pressed="selectedKey === s.key" @click="pick(s)" :class="chipClass(selectedKey === s.key)">
-        {{ priceLabel(s.eurPerKwh) }} · {{ s.label }}
+    <!-- Eine Zeile, horizontal wischbar, edge-to-edge auf Mobile: "Zuletzt hier", die Ladekarten
+         im Kreditkarten-Look, Gratis, neue Karte. Die gewählte trägt Ring und Haken. -->
+    <div v-if="!inlineCard.isOpen.value" data-testid="card-strip"
+      class="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pt-1 pb-2 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <button v-if="community" type="button" :aria-pressed="selectedKey === 'community'" @click="pick(community)"
+        :class="['btn-3d snap-start relative flex-shrink-0 w-28 h-[4.5rem] rounded-sm p-2.5 text-left flex flex-col justify-between bg-gray-100 dark:bg-gray-700',
+                 selectedKey === 'community' ? 'active ring-2 ring-inset ring-indigo-500' : '']">
+        <ClockIcon class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+        <span><b class="block text-[11px] font-bold leading-tight text-gray-800 dark:text-gray-100">{{ community.label }}</b>
+          <span class="block text-[10px] leading-tight text-gray-500 dark:text-gray-400 tabular-nums">{{ priceLabel(community.eurPerKwh) }}</span></span>
+        <CheckCircleIcon v-if="selectedKey === 'community'" class="absolute top-1 right-1 h-5 w-5 rounded-full bg-white text-indigo-600 dark:bg-gray-800" aria-hidden="true" />
       </button>
-      <button type="button" :aria-pressed="selectedKey === 'free'" @click="pickFree" :class="chipClass(selectedKey === 'free')">{{ t('logwizard.price_free') }}</button>
-      <template v-if="form.isPublicCharging">
-        <button v-if="selectedNeedsPrice" type="button" data-testid="charging-card-price-missing" @click="openPriceForSelected" :class="chipClass(false, 'warn')">
-          {{ t('logwizard.card_price_missing', { card: selectedProvider!.label || selectedProvider!.providerName }) }}
-        </button>
-        <button type="button" data-testid="charging-card-prompt-open" @click="openNewCard" :class="chipClass(false, 'dashed')">+ {{ t('logwizard.card_add') }}</button>
-      </template>
+      <button v-for="p in stripProviders" :key="p.id" type="button" :aria-pressed="selectedKey === p.id" @click="pickProvider(p)"
+        :class="['btn-3d snap-start relative flex-shrink-0 w-28 h-[4.5rem] rounded-sm', selectedKey === p.id ? 'active ring-2 ring-inset ring-indigo-500' : '']"
+        :style="{ '--btn-shadow-color': cardContainerStyle(p.id)['--btn-shadow-color'] }">
+        <ChargingCardTile class="w-full h-full" :id="p.id" :title="p.label || p.providerName"
+          :subtitle="stripPrice(p) != null ? priceLabel(stripPrice(p)!) : t('logfields.card_no_price_dot')" />
+        <CheckCircleIcon v-if="selectedKey === p.id" class="absolute top-1 right-1 h-5 w-5 rounded-full bg-white text-indigo-600 dark:bg-gray-800" aria-hidden="true" />
+        <span v-else-if="stripPrice(p) == null" class="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-gray-800" aria-hidden="true" />
+      </button>
+      <button type="button" :aria-pressed="selectedKey === 'free'" @click="pickFree"
+        :class="['btn-3d snap-start relative flex-shrink-0 w-20 h-[4.5rem] rounded-sm p-2.5 text-left flex flex-col justify-between bg-gray-100 dark:bg-gray-700',
+                 selectedKey === 'free' ? 'active ring-2 ring-inset ring-indigo-500' : '']">
+        <GiftIcon class="h-4 w-4 text-gray-500 dark:text-gray-300" />
+        <b class="block text-[11px] font-bold leading-tight text-gray-800 dark:text-gray-100">{{ t('logwizard.price_free') }}</b>
+        <CheckCircleIcon v-if="selectedKey === 'free'" class="absolute top-1 right-1 h-5 w-5 rounded-full bg-white text-indigo-600 dark:bg-gray-800" aria-hidden="true" />
+      </button>
+      <button v-if="form.isPublicCharging" type="button" data-testid="charging-card-prompt-open" @click="openNewCard"
+        class="snap-start flex-shrink-0 w-20 h-[4.5rem] rounded-sm border-2 border-dashed border-gray-300 dark:border-gray-600 p-2 flex flex-col items-start justify-between text-left text-gray-500 dark:text-gray-400 hover:border-indigo-400 hover:text-indigo-600">
+        <PlusIcon class="h-4 w-4" />
+        <span class="text-[11px] font-semibold leading-tight">{{ t('logwizard.card_add') }}</span>
+      </button>
     </div>
       <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">
         <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">
