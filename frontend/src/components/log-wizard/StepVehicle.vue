@@ -36,19 +36,20 @@ const odoSub = computed(() => {
 const odoPrefix = computed(() => !belowLast.value && props.lastOdometerKm != null && form.value.odometerKm != null
   ? `+${formatDistance(form.value.odometerKm - props.lastOdometerKm)}` : null)
 /**
- * Untergrenze für "Akku nach Laden": mindestens der Anteil, den die geladene Energie an der
- * Kapazität ausmacht (Start bei 0 %). Der Maßstab beginnt dort, statt bei 0 - ein ungefährer
- * Startbereich aus den schon getippten kWh, ohne SoC vorher zu kennen.
+ * Startpunkt für "Akku nach Laden": angenommene 10 % vor dem Laden plus der Anteil, den die
+ * geladene Energie an der Kapazität ausmacht. Nur ein Ausgangspunkt für das Rädchen, damit
+ * niemand bei 0 % anfängt - nach links drehen bleibt möglich, der Anschlag ist 0.
  */
-const socMin = computed(() => {
+const SOC_START_BEFORE = 10
+const socStart = computed(() => {
   const cap = props.effectiveCapacityKwh
-  if (!cap) return 0
+  if (!cap) return null
   const net = form.value.kwhAtVehicle ?? (form.value.kwhCharged != null
     ? form.value.kwhCharged * (form.value.chargingType === 'DC' ? DC_CHARGING_EFFICIENCY : AC_CHARGING_EFFICIENCY) : null)
-  if (net == null || net <= 0) return 0
-  return Math.min(100, Math.ceil(net / cap * 100))
+  if (net == null || net <= 0) return null
+  return Math.min(100, SOC_START_BEFORE + Math.round(net / cap * 100))
 })
-const socPlaceholder = computed(() => String(Math.max(80, socMin.value)))
+const socPlaceholder = computed(() => String(socStart.value ?? 80))
 const fmt1 = (n: number) => formatNumber(Math.round(n * 10) / 10)
 const battery = computed(() => {
   const net = netEnergyKwh(form.value.socBeforeChargePercent, form.value.socAfterChargePercent, props.effectiveCapacityKwh)
@@ -69,7 +70,7 @@ const battery = computed(() => {
       inputmode="numeric" :prefix="odoPrefix" :sub="odoSub" :sub-tone="belowLast ? 'warn' : 'muted'" :autofocus="!compact" />
 
     <div class="space-y-2">
-      <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" :placeholder="socPlaceholder" :step="1" :min="socMin" :max="100" :px-per-step="10" inputmode="numeric" />
+      <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" :placeholder="socPlaceholder" :step="1" :min="0" :max="100" :start="socStart" :px-per-step="10" inputmode="numeric" />
     </div>
 
     <RulerInput v-if="showBefore" id="wizard-soc-before" v-model="form.socBeforeChargePercent" :label="t('logfields.soc_before')" unit="%" placeholder="20" :step="1" :min="0" :max="100" :px-per-step="10" inputmode="numeric" />

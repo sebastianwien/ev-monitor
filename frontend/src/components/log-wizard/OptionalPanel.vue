@@ -12,7 +12,8 @@ import OptionalDetails from './OptionalDetails.vue'
  * die gerade gesetzt sind - als Schnellkontrolle, ohne das Formular zu öffnen.
  * Steht in Schritt 2 unter dem Preis und in der Zusammenfassung (Bearbeiten).
  */
-const props = defineProps<{ showTime?: boolean }>()
+// Boolean-Props ohne Angabe werden false - die Zeit soll aber standardmäßig dabei sein
+const props = withDefaults(defineProps<{ showTime?: boolean }>(), { showTime: true })
 const form = defineModel<LogFormData>({ required: true })
 const { t, locale } = useI18n()
 const { formatNumber } = useLocaleFormat()
@@ -23,7 +24,7 @@ const timeLabel = computed(() => {
 })
 const routeLabel: Record<LogFormData['routeType'], string> = { CITY: 'd_route_city', COMBINED: 'd_route_mixed', HIGHWAY: 'd_route_highway' }
 const tireLabel: Record<LogFormData['tireType'], string> = { SUMMER: 'd_tire_summer', ALL_YEAR: 'd_tire_allyear', WINTER: 'd_tire_winter' }
-const facts = computed(() => optionalFacts(form.value, { withTime: props.showTime !== false }).map(f => {
+const facts = computed(() => optionalFacts(form.value, { withTime: props.showTime }).map(f => {
   switch (f.kind) {
     case 'time': return timeLabel.value
     case 'socBefore': return `${f.value} % ${t('logwizard.d_soc_before_short')}`
@@ -49,6 +50,6 @@ const open = ref(false)
         <span v-for="f in facts" :key="f" class="whitespace-nowrap rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-[11px] tabular-nums text-gray-600 dark:text-gray-300">{{ f }}</span>
       </span>
     </summary>
-    <OptionalDetails v-model="form" :show-time="showTime !== false" />
+    <OptionalDetails v-model="form" :show-time="showTime" />
   </details>
 </template>

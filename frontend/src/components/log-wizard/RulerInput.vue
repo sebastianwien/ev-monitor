@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { activeRuler } from './rulerState'
 
 /**
@@ -25,13 +24,14 @@ const props = withDefaults(defineProps<{
   prefix?: string | null
   sub?: string | null
   subTone?: 'muted' | 'warn' | 'notice'
+  /** Wo der Maßstab steht, solange noch kein Wert gesetzt ist (z. B. geschätzter SoC); min bleibt der Anschlag */
+  start?: number | null
   /** Pixel je Schritt - kleiner = mehr Strecke pro Wisch */
   pxPerStep?: number
   /** Beschriftung alle n Schritte */
   labelEvery?: number
 }>(), { inputmode: 'decimal', pxPerStep: 9, labelEvery: 10, subTone: 'muted' })
 const model = defineModel<number | null>()
-const { t } = useI18n()
 
 const decimals = computed(() => Math.max(0, Math.ceil(-Math.log10(props.step))))
 const steps = computed(() => Math.round((props.max - props.min) / props.step))
@@ -90,12 +90,33 @@ const draw = () => {
 /** Modell → Maßstab (Tastatur, Chips, Vorbelegung); der Scroll-Handler ignoriert das Echo. */
 let echo = false
 const syncScroll = () => {
-  const el = ruler.value; if (!el || model.value == null) return
-  const left = toIndex(model.value) * props.pxPerStep
+  const el = ruler.value; if (!el) return
+  const v = model.value ?? props.start
+  if (v == null) return
+  const left = toIndex(v) * props.pxPerStep
   if (Math.abs(el.scrollLeft - left) < 1) return
   echo = true; el.scrollLeft = left
 }
 watch(model, () => { syncScroll() })
+watch(() => props.start, () => { if (model.value == null) syncScroll() })
+
+/**
+ * Einmal pro Gerät: beim ersten offenen Maßstab ruckt der Streifen kurz an und zurück, mit
+ * Haptik - das zeigt die Wischgeste, ohne dass ein Hinweistext Höhe kostet. Reine CSS-Animation
+ * auf dem Canvas, kein Scroll, also kein Modell-Update.
+ */
+const NUDGE_KEY = 'wizard-ruler-nudged'
+const nudging = ref(false)
+const nudgeOnce = () => {
+  try {
+    if (localStorage.getItem(NUDGE_KEY)) return
+    localStorage.setItem(NUDGE_KEY, '1')
+  } catch { return }
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+  nudging.value = true
+  navigator.vibrate?.(3)
+  setTimeout(() => { nudging.value = false }, 700)
+}
 
 /** Maßstab → Modell, gedrosselt auf einen Frame; Haptik alle labelEvery Schritte. */
 let raf = 0, lastIndex = -1
@@ -123,7 +144,7 @@ const onInput = (e: Event) => {
   model.value = v === '' ? null : Number(v)
 }
 
-watch(active, async (on) => { if (on) { await nextTick(); draw() } })
+watch(active, async (on) => { if (on) { await nextTick(); draw(); nudgeOnce() } })
 onMounted(() => { if (props.autofocus) activate(); if (active.value) nextTick(draw) })
 onBeforeUnmount(() => { if (raf) cancelAnimationFrame(raf); if (activeRuler.value === props.id) activeRuler.value = null })
 const shown = computed(() => model.value == null ? '' : String(model.value))
@@ -144,13 +165,13 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
       <span v-if="sub" :class="['col-span-full text-right text-xs tabular-nums -mt-1', subTone === 'warn' ? 'text-red-500' : subTone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500']">{{ sub }}</span>
     </div>
     <!-- Der Maßstab: Mittelmarke steht fest, der Streifen scrollt darunter durch -->
-    <div v-show="active && rulerable" ref="ruler" class="ruler relative h-10 -mx-3 mt-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x cursor-grab"
+    <!-- Ränder laufen weich aus (Maske), die Mittelmarke ist kräftig: so liest sich der Streifen als etwas, das weitergeht -->
+    <div v-show="active && rulerable" ref="ruler" class="ruler relative h-10 -mx-3 mt-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x cursor-grab [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]"
       role="slider" :aria-label="label" :aria-valuemin="min" :aria-valuemax="max" :aria-valuenow="model ?? min" tabindex="0"
       @scroll.passive="onScroll" @keydown="onKey">
-      <canvas ref="canvas" class="block h-10" />
-      <i aria-hidden="true" class="absolute left-1/2 top-0.5 h-6 w-0.5 -ml-px rounded-sm bg-indigo-600 pointer-events-none" />
+      <canvas ref="canvas" :class="['block h-10', nudging && 'ruler-nudge']" />
+      <i aria-hidden="true" class="absolute left-1/2 top-0 h-7 w-1 -ml-0.5 rounded-full bg-indigo-600 shadow-[0_0_0_2px_rgba(255,255,255,0.9)] dark:shadow-[0_0_0_2px_rgba(31,41,55,0.9)] pointer-events-none" />
     </div>
-    <p v-if="active && rulerable" class="mt-1 text-[11px] text-gray-400 dark:text-gray-500 text-center">{{ t('logwizard.ruler_hint') }}</p>
     <!-- Schnellwahl (z. B. 80/90/100 %) gehört in die offene Box, nicht darunter -->
     <div v-if="active && $slots.quick" class="mt-2" @click.stop><slot name="quick" /></div>
   </div>

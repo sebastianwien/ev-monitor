@@ -24,7 +24,7 @@ const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const { t } = useI18n()
 const countryStore = useCountryStore()
-const { formatNumber, formatDecimal, formatConsumption } = useLocaleFormat()
+const { formatNumber, formatDecimal } = useLocaleFormat()
 
 const symbol = computed(() => countryStore.unitSystem.currencySymbol)
 const { costMode, costLocalTotal, costLocalPerKwh, calculatedLocalPerKwh, calculatedLocalTotal, setPerKwhEur } = props.cost
@@ -115,16 +115,20 @@ const derived = computed(() => !manual.value && (
 const perKwhLabel = (local: number) => isEurCountry.value
   ? `${formatNumber(Math.round(local * 100))} ${subunit.value}/kWh` : `${formatDecimal(local, 2)} ${symbol.value}/kWh`
 /** Unterzeile der Kostenbox: Preis je kWh, dann Kosten und Verbrauch je 100 km, sobald sie berechenbar sind */
-interface MetricPart { text: string; tone?: 'notice' }
-const metricParts = (perKwh: number | null): MetricPart[] => {
-  const parts: MetricPart[] = []
-  if (perKwh != null) parts.push({ text: perKwhLabel(perKwh) })
-  if (props.preview?.eurPer100km != null) parts.push({ text: `${formatDecimal(props.cost.eurToLocal(props.preview.eurPer100km), 2)} ${symbol.value}/100 km` })
-  if (props.preview) parts.push({ text: `≈ ${formatConsumption(props.preview.kwhPer100km)}`, tone: props.preview.plausible ? undefined : 'notice' })
-  return parts
+interface Metric { value: string; unit: string; tone?: 'notice' }
+const metrics = (perKwh: number | null): Metric[] => {
+  const m: Metric[] = []
+  if (perKwh != null) {
+    const [value, unit] = perKwhLabel(perKwh).split(' ')
+    m.push({ value, unit })
+  }
+  if (props.preview?.eurPer100km != null) m.push({ value: formatDecimal(props.cost.eurToLocal(props.preview.eurPer100km), 2), unit: `${symbol.value}/100 km` })
+  if (props.preview) m.push({ value: formatNumber(Math.round(props.preview.kwhPer100km * 10) / 10), unit: 'kWh/100 km', tone: props.preview.plausible ? undefined : 'notice' })
+  return m
 }
-const derivedParts = computed<MetricPart[]>(() => costMode.value === 'total' ? [{ text: t('logwizard.price_free') }] : metricParts(costLocalPerKwh.value))
-const manualParts = computed<MetricPart[]>(() => metricParts(costMode.value === 'per_kwh' ? costLocalPerKwh.value : calculatedLocalPerKwh.value))
+const derivedMetrics = computed<Metric[]>(() => costMode.value === 'total' ? [] : metrics(costLocalPerKwh.value))
+const manualMetrics = computed<Metric[]>(() => metrics(costMode.value === 'per_kwh' ? costLocalPerKwh.value : calculatedLocalPerKwh.value))
+const derivedSub = computed(() => costMode.value === 'total' ? t('logwizard.price_free') : null)
 
 /** Noch nichts eingegeben: dann darf ein Vorschlag vorbelegen, sonst nie. */
 const untouched = () => selectedKey.value == null && costLocalTotal.value == null && costLocalPerKwh.value == null
@@ -177,15 +181,20 @@ onMounted(async () => {
   <div v-if="props.compact" class="space-y-2">
     <!-- Preis steht schon (Karte aus Schritt 1 oder Gratis): eine grüne Zeile, "Anders" macht sie zur Eingabe -->
     <div v-if="derived" data-testid="cost-derived"
-      class="flex items-center gap-3 rounded-sm border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 px-3 py-2 min-h-[3.25rem]">
-      <CheckCircleIcon class="h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
-      <div class="flex-1 min-w-0">
-        <b class="block text-lg leading-tight tabular-nums text-gray-900 dark:text-gray-100">{{ compactTotal != null ? `${formatDecimal(compactTotal, 2)} ${symbol}` : '–' }}</b>
-        <span class="flex flex-wrap gap-x-2 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-          <span v-for="p in derivedParts" :key="p.text" :class="p.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : ''">{{ p.text }}</span>
-        </span>
+      class="rounded-sm border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 px-3 py-2">
+      <div class="flex items-center gap-3 min-h-9">
+        <CheckCircleIcon class="h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
+        <b class="flex-1 min-w-0 text-2xl leading-tight tabular-nums text-gray-900 dark:text-gray-100">{{ compactTotal != null ? `${formatDecimal(compactTotal, 2)} ${symbol}` : '–' }}</b>
+        <span v-if="derivedSub" class="text-xs text-gray-500 dark:text-gray-400">{{ derivedSub }}</span>
+        <button type="button" data-testid="cost-other" @click="manual = true" class="min-h-11 px-2 text-sm font-semibold text-green-700 dark:text-green-300">{{ t('logwizard.cost_other') }}</button>
       </div>
-      <button type="button" data-testid="cost-other" @click="manual = true" class="min-h-11 px-2 text-sm font-semibold text-green-700 dark:text-green-300">{{ t('logwizard.cost_other') }}</button>
+      <!-- Kennzahlen als drei Kacheln: Wert groß, Einheit klein darunter, getrennt vom Betrag -->
+      <dl v-if="derivedMetrics.length" class="mt-2 grid grid-cols-3 gap-2 border-t border-green-200 dark:border-green-900 pt-2">
+        <div v-for="m in derivedMetrics" :key="m.unit" class="min-w-0">
+          <dd :class="['text-base font-semibold leading-tight tabular-nums truncate', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</dd>
+          <dt class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ m.unit }}</dt>
+        </div>
+      </dl>
     </div>
     <div v-else class="rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 focus-within:border-indigo-600">
       <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
@@ -194,10 +203,13 @@ onMounted(async () => {
           :value="compactTotal ?? ''" :aria-label="t('logfields.cost_eur')" @input="onCompactInput"
           class="w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
         <span class="text-base text-gray-500 dark:text-gray-400">{{ symbol }}</span>
-        <span v-if="manualParts.length" class="col-span-3 flex flex-wrap justify-end gap-x-2 text-xs tabular-nums -mt-1 text-gray-400 dark:text-gray-500">
-          <span v-for="p in manualParts" :key="p.text" :class="p.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : ''">{{ p.text }}</span>
-        </span>
       </div>
+      <dl v-if="manualMetrics.length" class="mt-2 grid grid-cols-3 gap-2 border-t border-gray-200 dark:border-gray-700 pt-2">
+        <div v-for="m in manualMetrics" :key="m.unit" class="min-w-0">
+          <dd :class="['text-base font-semibold leading-tight tabular-nums truncate', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</dd>
+          <dt class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ m.unit }}</dt>
+        </div>
+      </dl>
     </div>
       <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">
         <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">

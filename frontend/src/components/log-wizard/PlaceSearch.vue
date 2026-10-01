@@ -32,12 +32,16 @@ const busy = computed(() => stations.loading.value || address.loading.value)
 
 watch(() => address.selectedName.value, (name) => { if (name) stations.reset() })
 
+/** Nach der Wahl Fokus weg vom Suchfeld: sonst schluckt Android den nächsten Tap fürs Schließen der Tastatur */
+const blurSearch = () => { const el = document.activeElement; if (el instanceof HTMLElement) el.blur() }
 const chooseStation = (s: StationMatch) => {
+  blurSearch()
   stations.select(s.name)
   chosenStation.value = s.name.trim()
   emit('choose', { kind: 'station', station: s, viaSearch: true })
 }
 const pickAddress = (s: Parameters<typeof address.select>[0]) => {
+  blurSearch()
   const picked = address.select(s)
   stations.select(picked.name)
   emit('picked', picked)
