@@ -30,7 +30,8 @@ const emit = defineEmits<{ ocr: [result: any] }>()
 
 const root = ref<HTMLElement | null>(null)
 const body = ref<HTMLElement | null>(null)
-const mapHeight = useFillHeight(root, body)
+// Zuschlag: Kosten und Pillen rutschen unter die Falz, die drei Kernfelder bleiben sichtbar
+const mapHeight = useFillHeight(root, body, { extra: 104 })
 </script>
 
 <template>

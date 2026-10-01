@@ -164,7 +164,7 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
     v-haptic @click="activate">
     <div :class="['grid items-baseline gap-x-2 min-h-9', prefix ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto]']">
       <span class="text-sm text-gray-500 dark:text-gray-400 cursor-pointer py-2 -my-2" aria-hidden="true" @click.stop="toggleFromLabel">{{ label }}</span>
-      <span v-if="prefix" class="text-xs tabular-nums text-gray-400 dark:text-gray-500">{{ prefix }}</span>
+      <span v-if="prefix" class="text-xs tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500">{{ prefix }}</span>
       <input :id="id" :data-testid="testid" type="number" :inputmode="inputmode" :step="step" :min="min" :max="max"
         :placeholder="placeholder" :value="shown" :aria-label="label" @input="onInput" @focus="activate" @pointerdown="onInputPointerDown"
         :class="['w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none transition-[font-size]',
