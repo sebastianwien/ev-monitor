@@ -369,7 +369,8 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
     await page.locator('#wizard-soc').fill('80');
-    await expect(page.locator('[data-testid="charging-card-prompt-open"]')).not.toBeVisible();
+    // Zugeklappte Streifen bleiben im DOM (Collapse), deshalb nur sichtbare zaehlen
+    await expect(page.locator('[data-testid="charging-card-prompt-open"]:visible')).toHaveCount(0);
 
     // Zurueck auf Schritt 1, oeffentliche Station waehlen
     await page.locator('header button[aria-label="Zurück"]').click();
@@ -379,7 +380,7 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
 
     // Der Ladekarten-Streifen steht unter dem gewaehlten Anbieter; "+ neue Karte" springt in
     // Schritt 2 und oeffnet dort den Editor
-    await page.locator('[data-testid="charging-card-prompt-open"]').click();
+    await page.locator('[data-testid="charging-card-prompt-open"]:visible').click();
     await expect(page.locator('[data-testid="charging-card-prompt"]')).toBeVisible();
     await page.locator('#inline-card-provider').selectOption('EnBW mobility+');
     await page.locator('[data-testid="charging-card-prompt"] input[type="number"][step="0.1"]').first().fill('39');
