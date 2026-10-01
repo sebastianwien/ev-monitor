@@ -43,8 +43,10 @@ fetchChargingProviders()
       <template v-for="provider in chargingProviders" :key="provider.id">
         <!-- Card (normale Ansicht) -->
         <div v-if="editingProviderId !== provider.id"
-          class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm flex items-start gap-4">
-          <div class="min-w-0 flex-1">
+          class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-4">
+          <!-- Mobil: Kachel und Aktionen oben, Text in voller Breite darunter.
+               Ab sm: Text links, Kachel und Aktionen rechts in einer Zeile. -->
+          <div class="order-3 sm:order-1 basis-full sm:basis-auto min-w-0 sm:flex-1">
             <p class="font-semibold text-gray-800 dark:text-gray-100 truncate">
               {{ provider.providerName }}
               <span v-if="provider.isPrivate"
@@ -63,17 +65,17 @@ fetchChargingProviders()
           <!-- Dieselbe Kachel wie im Log-Formular - der User erkennt seine Karte wieder.
                Hier groesser als im Formular, aber im selben Kartenformat (1.56:1). -->
           <ChargingCardTile
-            class="flex-shrink-0 w-36 h-[5.75rem]"
+            class="order-1 sm:order-2 flex-shrink-0 w-28 h-[4.5rem] sm:w-36 sm:h-[5.75rem]"
             :id="provider.id"
             :title="provider.label || provider.providerName"
             :subtitle="provider.acPricePerKwh != null ? formatPrice(provider.acPricePerKwh) : null" />
-          <div class="flex gap-1 flex-shrink-0 mt-0.5">
-            <button @click="startEditProvider(provider)"
-              class="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition rounded">
+          <div class="order-2 sm:order-3 ml-auto sm:ml-0 flex gap-1 flex-shrink-0 mt-0.5">
+            <button @click="startEditProvider(provider)" :aria-label="t('settings.tariff_form_edit')"
+              class="p-2 sm:p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition rounded">
               <PencilIcon class="h-4 w-4" />
             </button>
-            <button @click="deleteChargingProvider(provider.id)"
-              class="p-1.5 text-gray-400 hover:text-red-500 transition rounded">
+            <button @click="deleteChargingProvider(provider.id)" :aria-label="t('settings.tariff_delete')"
+              class="p-2 sm:p-1.5 text-gray-400 hover:text-red-500 transition rounded">
               <TrashIcon class="h-4 w-4" />
             </button>
           </div>

@@ -1507,6 +1507,7 @@ settings:
   tariff_add_btn: Nytt ladekort
   tariff_form_title_new: Nytt ladekort
   tariff_form_edit: Rediger ladekort
+  tariff_delete: "Slett ladekort"
   tariff_label_label: Etikett (valgfritt)
   tariff_label_placeholder: f.eks. EnBW-arbeid med RFID, Maingau-hjem
   tariff_provider_label: Leverandør

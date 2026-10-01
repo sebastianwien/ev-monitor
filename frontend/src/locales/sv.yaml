@@ -1507,6 +1507,7 @@ settings:
   tariff_add_btn: Nytt laddningskort
   tariff_form_title_new: Nytt laddningskort
   tariff_form_edit: Redigera laddningskort
+  tariff_delete: "Ta bort laddkort"
   tariff_label_label: Etikett (valfritt)
   tariff_label_placeholder: t.ex. EnBW:s arbets-RFID, Maingau hem
   tariff_provider_label: Leverantör

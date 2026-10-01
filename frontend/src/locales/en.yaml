@@ -1556,6 +1556,7 @@ settings:
   tariff_add_btn: "New charging card"
   tariff_form_title_new: "New charging card"
   tariff_form_edit: "Edit charging card"
+  tariff_delete: "Delete charging card"
   tariff_label_label: "Label (optional)"
   tariff_label_placeholder: "e.g. EnBW work RFID, Maingau home"
   tariff_provider_label: "Provider"

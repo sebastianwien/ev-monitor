@@ -1559,6 +1559,7 @@ settings:
   tariff_add_btn: "Neue Ladekarte"
   tariff_form_title_new: "Neue Ladekarte"
   tariff_form_edit: "Ladekarte bearbeiten"
+  tariff_delete: "Ladekarte löschen"
   tariff_label_label: "Label (optional)"
   tariff_label_placeholder: "z.B. EnBW Arbeit RFID, Maingau Zuhause"
   tariff_provider_label: "Anbieter"
