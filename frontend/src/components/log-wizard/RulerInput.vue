@@ -22,7 +22,7 @@ const props = withDefaults(defineProps<{
   autofocus?: boolean
   /** Zweite Zeile unter dem Wert, z. B. "+312 km seit dem letzten Log" */
   sub?: string | null
-  subTone?: 'muted' | 'warn'
+  subTone?: 'muted' | 'warn' | 'notice'
   /** Pixel je Schritt - kleiner = mehr Strecke pro Wisch */
   pxPerStep?: number
   /** Beschriftung alle n Schritte */
@@ -138,7 +138,7 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
         :class="['w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none transition-[font-size]',
                  active ? 'text-3xl' : 'text-2xl']" />
       <span class="text-base text-gray-500 dark:text-gray-400">{{ unit }}</span>
-      <span v-if="sub" :class="['col-span-3 text-right text-xs tabular-nums -mt-1', subTone === 'warn' ? 'text-red-500' : 'text-gray-400 dark:text-gray-500']">{{ sub }}</span>
+      <span v-if="sub" :class="['col-span-3 text-right text-xs tabular-nums -mt-1', subTone === 'warn' ? 'text-red-500' : subTone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500']">{{ sub }}</span>
     </div>
     <!-- Der Maßstab: Mittelmarke steht fest, der Streifen scrollt darunter durch -->
     <div v-show="active && rulerable" ref="ruler" class="ruler relative h-10 -mx-3 mt-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x cursor-grab"

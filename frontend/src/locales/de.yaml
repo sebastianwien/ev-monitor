@@ -3273,7 +3273,6 @@ watt:
 
 logwizard:
   cost_other: "Ändern"
-  preview_since: "Richtwert seit der letzten Ladung vor {km}"
   q_numbers: "Die Zahlen"
   suggestion_site: "Treffer in der Nähe"
   suggestion_private: "Dein privater Anschluss hier"

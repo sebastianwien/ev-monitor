@@ -9,11 +9,13 @@ import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversion
 import { netEnergyKwh, socToKwh } from './wizardLogic'
 import RulerInput from './RulerInput.vue'
 
-const props = defineProps<{ lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined; compact?: boolean }>()
+/** Richtwert seit der letzten Ladung (Schritt 2) - steht unter dem Tacho-Delta, wo die Strecke herkommt. */
+export interface ConsumptionHint { kwhPer100km: number; plausible: boolean }
+const props = defineProps<{ lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined; compact?: boolean; consumption?: ConsumptionHint | null }>()
 const form = defineModel<LogFormData>({ required: true })
 const { t } = useI18n()
 const countryStore = useCountryStore()
-const { formatDistance, formatNumber } = useLocaleFormat()
+const { formatDistance, formatNumber, formatConsumption } = useLocaleFormat()
 
 const usesMiles = computed(() => countryStore.unitSystem.distanceUnit === 'miles')
 const odometer = computed({
@@ -30,8 +32,10 @@ const odoSub = computed(() => {
   if (belowLast.value) return t('logform.odometer_min', { min: formatDistance(props.lastOdometerKm!) })
   if (props.lastOdometerKm == null) return null
   if (form.value.odometerKm == null) return t('logform.odometer_last', { km: formatDistance(props.lastOdometerKm) })
-  return t('logwizard.odometer_delta', { km: formatDistance(form.value.odometerKm - props.lastOdometerKm) })
+  const delta = t('logwizard.odometer_delta', { km: formatDistance(form.value.odometerKm - props.lastOdometerKm) })
+  return props.consumption ? `${delta} · ≈ ${formatConsumption(props.consumption.kwhPer100km)}` : delta
 })
+const odoTone = computed(() => belowLast.value ? 'warn' : props.consumption && !props.consumption.plausible ? 'notice' : 'muted')
 const fmt1 = (n: number) => formatNumber(Math.round(n * 10) / 10)
 const battery = computed(() => {
   const net = netEnergyKwh(form.value.socBeforeChargePercent, form.value.socAfterChargePercent, props.effectiveCapacityKwh)
@@ -49,7 +53,7 @@ const battery = computed(() => {
   <div :class="compact ? 'space-y-2' : 'space-y-3'">
     <RulerInput id="wizard-odometer" v-model="odometer" :label="t('logfields.odometer')" :unit="usesMiles ? t('logfields.unit_miles') : t('logfields.unit_km')"
       :placeholder="lastOdometerKm != null ? String(odoMin) : ''" :step="1" :min="odoMin" :max="odoMax" :px-per-step="7" :label-every="50"
-      inputmode="numeric" :sub="odoSub" :sub-tone="belowLast ? 'warn' : 'muted'" :autofocus="!compact" />
+      inputmode="numeric" :sub="odoSub" :sub-tone="odoTone" :autofocus="!compact" />
 
     <div class="space-y-2">
       <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" placeholder="80" :step="1" :min="0" :max="100" :px-per-step="10" inputmode="numeric">

@@ -3267,7 +3267,6 @@ watt:
 
 logwizard:
   cost_other: "Change"
-  preview_since: "Estimate since the last charge {km} ago"
   q_numbers: "The numbers"
   suggestion_site: "Match nearby"
   suggestion_private: "Your private charger here"

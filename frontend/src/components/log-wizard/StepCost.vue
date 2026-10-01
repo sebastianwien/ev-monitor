@@ -17,7 +17,7 @@ import BigInput from './BigInput.vue'
 import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 import SegmentToggle from './SegmentToggle.vue'
 
-const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null }>()
+const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null; eurPer100km?: number | null }>()
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const { t } = useI18n()
@@ -57,7 +57,7 @@ const compactSub = computed(() => {
     const kwh = form.value.kwhCharged ?? form.value.kwhAtVehicle
     return `${formatDecimal(costLocalPerKwh.value, 2)} ${symbol.value}/kWh${kwh ? ` × ${formatNumber(kwh)} kWh` : ''}`
   }
-  return calculatedLocalPerKwh.value != null ? `= ${formatDecimal(calculatedLocalPerKwh.value, 2)} ${symbol.value}/kWh` : null
+  return calculatedLocalPerKwh.value != null ? `= ${formatDecimal(calculatedLocalPerKwh.value, 2)} ${symbol.value}/kWh${per100km.value}` : null
 })
 const priceLabel = (eur: number) => `${formatNumber(Math.round(props.cost.eurToLocal(eur) * 100) / 100)} ${symbol.value}/kWh`
 
@@ -119,9 +119,10 @@ const derived = computed(() => !manual.value && (
 const derivedSub = computed(() => {
   if (costMode.value === 'total') return t('logwizard.price_free')
   const kwh = form.value.kwhCharged ?? form.value.kwhAtVehicle
-  const card = selectedProvider.value ? (selectedProvider.value.label || selectedProvider.value.providerName) : null
-  return `${card ? card + ' · ' : ''}${formatDecimal(costLocalPerKwh.value!, 2)} ${symbol.value}/kWh${kwh ? ` × ${formatNumber(kwh)} kWh` : ''}`
+  return `${formatDecimal(costLocalPerKwh.value!, 2)} ${symbol.value}/kWh${kwh ? ` × ${formatNumber(kwh)} kWh` : ''}${per100km.value}`
 })
+/** Kosten je 100 km seit der letzten Ladung - gehört zum Preis, nicht in einen eigenen Block. */
+const per100km = computed(() => props.eurPer100km != null ? ` · ${formatDecimal(props.cost.eurToLocal(props.eurPer100km), 2)} ${symbol.value}/100 km` : '')
 
 /** Noch nichts eingegeben: dann darf ein Vorschlag vorbelegen, sonst nie. */
 const untouched = () => selectedKey.value == null && costLocalTotal.value == null && costLocalPerKwh.value == null

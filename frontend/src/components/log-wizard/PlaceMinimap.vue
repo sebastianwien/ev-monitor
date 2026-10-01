@@ -32,6 +32,5 @@ onUnmounted(() => { map?.remove(); map = null })
 </template>
 
 <style scoped>
-.minimap :deep(.leaflet-tile) { filter: grayscale(1) contrast(0.85) brightness(1.08); }
 :global(.dark) .minimap :deep(.leaflet-tile) { filter: grayscale(1) invert(1) contrast(0.8) brightness(0.75); }
 </style>

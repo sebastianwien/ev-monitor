@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { MapPinIcon, CreditCardIcon } from '@heroicons/vue/24/outline'
 import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import type { useCostInput } from '../../composables/useCostInput'
-import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { consumptionPreview, type PreviousLogRef } from '../../utils/consumptionPreview'
 import StepEnergy from './StepEnergy.vue'
 import StepVehicle from './StepVehicle.vue'
@@ -19,7 +17,7 @@ export interface NumbersContext { title: string; address: string | null; card: s
  * Schritt 2: nur die Werte, die kein früheres Log liefern kann - Energie, Tacho, Akku, Preis.
  * Ein Screen statt drei: die Teilschritte bleiben eigene Komponenten (der Bearbeiten-Dialog
  * nutzt sie einzeln), hier stehen sie kompakt untereinander. Sobald Tacho und kWh stehen,
- * erscheint unten ein Richtwert für Verbrauch und Kosten je 100 km seit der letzten Ladung.
+ * zeigt die Tacho-Zeile den Verbrauch und die Preis-Zeile die Kosten je 100 km seit der letzten Ladung.
  */
 const props = defineProps<{
   cost: ReturnType<typeof useCostInput>; lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined
@@ -28,8 +26,6 @@ const props = defineProps<{
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const emit = defineEmits<{ ocr: [result: any] }>()
-const { t } = useI18n()
-const { formatConsumption, formatCurrency, formatDistance } = useLocaleFormat()
 
 const preview = computed(() => consumptionPreview({
   kwhCharged: form.value.kwhCharged, kwhAtVehicle: form.value.kwhAtVehicle, chargingType: form.value.chargingType,
@@ -56,13 +52,7 @@ const hasMap = computed(() => props.context.lat != null && props.context.lon != 
     </div>
 
     <StepEnergy v-model="form" compact @ocr="r => emit('ocr', r)" />
-    <StepVehicle v-model="form" compact :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="effectiveCapacityKwh" />
-    <StepCost v-model="form" v-model:providers="providers" :cost="cost" compact :open-on-mount="openCard" />
-
-    <p v-if="preview" data-testid="consumption-preview" class="pt-1 text-center text-xs text-gray-500 dark:text-gray-400 tabular-nums">
-      <span :class="['font-semibold', preview.plausible ? 'text-gray-800 dark:text-gray-100' : 'text-amber-600 dark:text-amber-400']">≈ {{ formatConsumption(preview.kwhPer100km) }}</span>
-      <template v-if="preview.eurPer100km != null"> · <span class="font-semibold text-gray-800 dark:text-gray-100">{{ formatCurrency(preview.eurPer100km) }}/100 km</span></template>
-      <br>{{ t('logwizard.preview_since', { km: formatDistance(preview.distanceKm) }) }}
-    </p>
+    <StepVehicle v-model="form" compact :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="effectiveCapacityKwh" :consumption="preview" />
+    <StepCost v-model="form" v-model:providers="providers" :cost="cost" compact :open-on-mount="openCard" :eur-per100km="preview?.eurPer100km ?? null" />
   </div>
 </template>

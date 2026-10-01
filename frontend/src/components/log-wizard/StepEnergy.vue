@@ -42,7 +42,7 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
         class="btn-3d inline-flex items-center gap-2 min-h-11 px-4 py-2 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
         <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
       </button>
-      <OcrPhotoCapture v-if="showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
+      <OcrPhotoCapture v-if="!props.compact && showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
     </div>
 
     <div :class="props.compact ? 'space-y-2' : 'mt-auto space-y-4'">
@@ -57,15 +57,15 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
             <component :is="m.icon" class="h-6 w-6" />
           </button>
         </div>
+        <!-- Seltene Aktion: Beleg fotografieren sitzt im Leerraum zwischen den Schaltern statt in eigener Zeile -->
+        <button v-if="props.compact" type="button" @click="showOcr = !showOcr" :aria-label="t('logwizard.ocr_cta')" :title="t('logwizard.ocr_cta')"
+          :class="['flex items-center justify-center h-11 w-11 rounded-full transition-colors', showOcr ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'text-gray-500 dark:text-gray-400 hover:text-indigo-600']">
+          <CameraIcon class="h-6 w-6" />
+        </button>
         <AcDcSwitch v-model="form.chargingType" />
       </div>
+      <OcrPhotoCapture v-if="props.compact && showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
       <RulerInput id="wizard-kwh" v-model="kwh" unit="kWh" :label="modeLabel" :placeholder="t('logfields.kwh_placeholder')" :step="0.1" :min="0" :max="150" autofocus />
-      <div v-if="props.compact" class="flex justify-end -mt-1">
-        <button type="button" @click="showOcr = !showOcr"
-          class="inline-flex items-center gap-1.5 min-h-9 px-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600">
-          <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
-        </button>
-      </div>
     </div>
   </div>
 </template>
