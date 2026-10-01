@@ -1463,14 +1463,26 @@ function toggleAllCharges() {
 
           <!-- Preislose Ladungen: macht auch alte, im Feed versteckte Logs ohne Preis auffindbar -->
           <div v-if="pricelessCount > 0 && !pricelessBannerDismissed" data-testid="priceless-banner"
-            class="w-full mb-4 flex items-center gap-3 pl-3 pr-2 py-2.5 rounded-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            class="w-full mb-4 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2.5 px-3 sm:pr-2 py-2.5 rounded-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-400 text-amber-950" aria-hidden="true">
               <CurrencyEuroIcon class="h-5 w-5" />
             </span>
             <div class="flex-1 min-w-0">
               <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('priceless.banner', pricelessCount) }}</div>
-              <div class="hidden sm:block text-xs text-gray-500 dark:text-gray-400 truncate">{{ t('priceless.info') }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 sm:truncate">{{ t('priceless.info') }}</div>
             </div>
+            <!-- Mobil: Schliessen oben rechts, CTA volle Breite darunter. Ab sm alles in einer Zeile. -->
+            <button type="button" @click="dismissPricelessBanner"
+              class="order-2 sm:order-3 shrink-0 p-2 sm:p-1.5 rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              :title="t('priceless.dismiss')" :aria-label="t('priceless.dismiss')">
+              <XMarkIcon class="h-4 w-4" aria-hidden="true" />
+            </button>
+            <button type="button" @click="showPricelessModal = true" v-haptic
+              class="btn-3d order-3 sm:order-2 basis-full sm:basis-auto shrink-0 inline-flex items-center justify-center gap-2 px-3 py-2 sm:py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-sm">
+              {{ t('priceless.banner_cta') }}
+              <WattBadge :amount="wattForAllPriceless" up-to on-dark />
+            </button>
+          </div>
             <button type="button" @click="showPricelessModal = true" v-haptic
               class="btn-3d shrink-0 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-sm">
               {{ t('priceless.banner_cta') }}
