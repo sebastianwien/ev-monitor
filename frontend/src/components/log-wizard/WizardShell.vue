@@ -52,8 +52,8 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
       <div v-if="isInputStep" class="flex gap-1 mt-3" role="progressbar" :aria-valuenow="step" :aria-valuemin="1" :aria-valuemax="INPUT_STEPS">
         <i v-for="i in INPUT_STEPS" :key="i" :class="['flex-1 h-1 rounded-sm', i <= step ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']" />
       </div>
-      <h1 class="mt-4 text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 text-balance">{{ question }}</h1>
-      <p v-if="hint" class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ hint }}</p>
+      <h1 class="mt-4 text-xl md:text-2xl font-bold text-gray-800 dark:text-gray-100 text-balance text-center">{{ question }}</h1>
+      <p v-if="hint" class="mt-1 text-sm text-center text-gray-500 dark:text-gray-400">{{ hint }}</p>
     </header>
 
     <!-- Inhalt am unteren Rand: Tap-Ziele liegen so ueber dem Footer in Daumenreichweite.

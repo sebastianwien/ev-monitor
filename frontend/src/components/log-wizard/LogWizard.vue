@@ -226,7 +226,6 @@ const placeLabel = computed(() => {
 const proceedAllowed = computed(() => canProceed(step.value, form.value, state.value))
 const questions: Record<WizardStep, string> = { 1: 'logwizard.q_place', 2: 'logwizard.q_numbers', 3: 'logwizard.q_review' }
 const hint = computed(() => {
-  if (step.value === 1 && permission.value === 'granted' && nearby.stations.value.length) return t('logwizard.hint_nearby')
   if (step.value === 2) {
     const p = providers.value.find(x => x.id === form.value.chargingProviderId)
     return [placeLabel.value, form.value.chargingType, p ? (p.label || p.providerName) : null].filter(Boolean).join(' · ')
