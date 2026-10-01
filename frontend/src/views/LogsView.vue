@@ -1483,17 +1483,6 @@ function toggleAllCharges() {
               <WattBadge :amount="wattForAllPriceless" up-to on-dark />
             </button>
           </div>
-            <button type="button" @click="showPricelessModal = true" v-haptic
-              class="btn-3d shrink-0 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-sm">
-              {{ t('priceless.banner_cta') }}
-              <WattBadge :amount="wattForAllPriceless" up-to on-dark />
-            </button>
-            <button type="button" @click="dismissPricelessBanner"
-              class="shrink-0 p-1.5 rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              :title="t('priceless.dismiss')" :aria-label="t('priceless.dismiss')">
-              <XMarkIcon class="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
 
 
           <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
