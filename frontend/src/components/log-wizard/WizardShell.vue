@@ -48,7 +48,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
           <XMarkIcon class="h-5 w-5" />
         </button>
       </div>
-      <!-- Vier Eingabeschritte zaehlen; die Pruefseite danach ist eine Bestaetigung ohne Zaehler und Balken -->
+      <!-- Zwei Eingabeschritte zaehlen; die Pruefseite danach ist eine Bestaetigung ohne Zaehler und Balken -->
       <div v-if="isInputStep" class="flex gap-1 mt-3" role="progressbar" :aria-valuenow="step" :aria-valuemin="1" :aria-valuemax="INPUT_STEPS">
         <i v-for="i in INPUT_STEPS" :key="i" :class="['flex-1 h-1 rounded-sm', i <= step ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']" />
       </div>

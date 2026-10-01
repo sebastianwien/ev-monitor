@@ -16,7 +16,7 @@ import api from '../../api/axios'
 import BigInput from './BigInput.vue'
 import SegmentToggle from './SegmentToggle.vue'
 
-const props = defineProps<{ cost: ReturnType<typeof useCostInput> }>()
+const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean }>()
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const { t } = useI18n()
@@ -95,6 +95,12 @@ watch(() => form.value.chargingProviderId, (id) => {
 }, { immediate: true })
 
 onMounted(async () => {
+  // Ladekarte schon gewählt (Trefferkarte: "wie beim letzten Mal") und noch kein Preis: den
+  // Kartentarif übernehmen, der Gesamtpreis folgt aus den kWh. Ohne Tarif bleibt der Preis offen.
+  if (form.value.chargingProviderId && costLocalTotal.value == null && costLocalPerKwh.value == null) {
+    const preset = cardSuggestions.value.find(c => c.providerId === form.value.chargingProviderId)
+    if (preset) pick(preset)
+  }
   if (form.value.latitude == null || form.value.longitude == null) return
   try {
     const res = await api.get('/logs/price-suggestion', {
@@ -109,10 +115,10 @@ onMounted(async () => {
 
 <template>
   <!-- Lese-Zone oben, Bedien-Zone unten in Daumenreichweite (siehe StepEnergy) -->
-  <div class="flex-1 flex flex-col gap-4">
-    <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('logwizard.price_hint') }}</p>
+  <div :class="props.compact ? 'space-y-3' : 'flex-1 flex flex-col gap-4'">
+    <p v-if="!props.compact" class="text-sm text-gray-500 dark:text-gray-400">{{ t('logwizard.price_hint') }}</p>
 
-    <div class="mt-auto space-y-4">
+    <div :class="props.compact ? 'space-y-3' : 'mt-auto space-y-4'">
     <div>
       <div :class="[CHIP_ROW, 'items-center']">
         <span class="mr-auto text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('logwizard.price_suggestions') }}</span>
@@ -185,9 +191,9 @@ onMounted(async () => {
 
     <SegmentToggle v-model="costMode"
       :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
-    <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus
+    <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" :autofocus="!props.compact"
       :hint="calculatedLocalPerKwh != null ? `= ${formatDecimal(calculatedLocalPerKwh, 2)} ${symbol}/kWh` : null" />
-    <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus
+    <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" :autofocus="!props.compact"
       :hint="calculatedLocalTotal != null ? `= ${formatDecimal(calculatedLocalTotal, 2)} ${symbol}` : null" />
     </div>
   </div>

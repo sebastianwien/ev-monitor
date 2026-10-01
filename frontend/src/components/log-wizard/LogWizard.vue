@@ -14,6 +14,7 @@ import { useHaptic } from '../../composables/useHaptic'
 import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useNearbyStations } from '../../composables/useNearbyStations'
 import { useRecentSites } from '../../composables/useRecentSites'
+import { useChargingSuggestion } from '../../composables/useChargingSuggestion'
 import { useCostInput } from '../../composables/useCostInput'
 import { useDelayedCall } from '../../composables/useDelayedCall'
 import { queryLocationPermission, getCurrentPosition, LOCATION_ENABLED_KEY, type LocationPermission } from '../../composables/useLocationPermission'
@@ -21,12 +22,10 @@ import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { analytics } from '../../services/analytics'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
-import { emptyLogForm, canProceed, applyPlace, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice } from './wizardLogic'
+import { emptyLogForm, canProceed, applyPlace, applySuggestion, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice } from './wizardLogic'
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
-import StepEnergy from './StepEnergy.vue'
-import StepVehicle from './StepVehicle.vue'
-import StepCost from './StepCost.vue'
+import StepNumbers from './StepNumbers.vue'
 import StepReview from './StepReview.vue'
 
 const emit = defineEmits<{ success: []; cancel: [] }>()
@@ -82,6 +81,7 @@ const permission = ref<LocationPermission>('unknown')
 const locationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 const nearby = useNearbyStations()
 const recentSites = useRecentSites()
+const suggestion = useChargingSuggestion()
 const cpo = useCpoOptions(computed(() => countryStore.country))
 const providers = ref<ChargingProvider[]>([])
 
@@ -94,8 +94,8 @@ const requestLocation = async () => {
     permission.value = 'granted'
     localStorage.setItem(LOCATION_ENABLED_KEY, 'true')
     // Erst nach den Säulen auf 'success': so klappt die Standort-Card in einem Zug zu,
-    // während die Liste erscheint, statt in zwei Sprüngen
-    await nearby.load(pos.latitude, pos.longitude)
+    // während die Liste erscheint, statt in zwei Sprüngen. Der Treffer läuft parallel.
+    await Promise.all([nearby.load(pos.latitude, pos.longitude), suggestion.load(pos.latitude, pos.longitude)])
     locationStatus.value = 'success'
   } catch (e: any) {
     locationStatus.value = 'error'
@@ -107,8 +107,22 @@ const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
   form.value.latitude = p.latitude
   form.value.longitude = p.longitude
   locationStatus.value = 'success'
-  await nearby.load(p.latitude, p.longitude)
+  await Promise.all([nearby.load(p.latitude, p.longitude), suggestion.load(p.latitude, p.longitude)])
 }
+
+/** Die Trefferkarte: Ort und Ladekarte wie beim letzten Mal, dann direkt weiter. */
+const acceptSuggestion = () => {
+  if (!suggestion.suggestion.value) return
+  const choice = applySuggestion(form.value, suggestion.suggestion.value)
+  state.value.place = choice.kind
+  haptic(10)
+  advance.schedule()
+}
+const suggestionProviderLabel = computed(() => {
+  const id = suggestion.suggestion.value?.lastProviderId
+  const p = id ? providers.value.find(x => x.id === id) : null
+  return p ? (p.label || p.providerName) : null
+})
 
 /** Kurze Pause vor dem Weiterspringen: die gewaehlte Kachel soll als ausgewaehlt sichtbar werden. */
 const PLACE_ADVANCE_MS = 350
@@ -129,14 +143,10 @@ const placeLabel = computed(() => {
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 const proceedAllowed = computed(() => canProceed(step.value, form.value, state.value))
-const questions: Record<WizardStep, string> = {
-  1: 'logwizard.q_place', 2: 'logwizard.q_energy', 3: 'logwizard.q_vehicle', 4: 'logwizard.q_cost', 5: 'logwizard.q_review',
-}
+const questions: Record<WizardStep, string> = { 1: 'logwizard.q_place', 2: 'logwizard.q_numbers', 3: 'logwizard.q_review' }
 const hint = computed(() => {
   if (step.value === 1 && permission.value === 'granted' && nearby.stations.value.length) return t('logwizard.hint_nearby')
-  if (step.value === 2) return placeLabel.value
-  if (step.value === 4) return `${placeLabel.value} · ${form.value.chargingType}`
-  if (step.value === 3) return t('logwizard.hint_vehicle')
+  if (step.value === 2) return `${placeLabel.value} · ${form.value.chargingType}`
   return ''
 })
 const goto = (s: WizardStep) => { error.value = null; step.value = s; window.scrollTo({ top: 0 }) } // Desktop: Seite; mobil setzt WizardShell ihren Scroller zurueck
@@ -215,11 +225,12 @@ onMounted(async () => {
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"
-        @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked" />
-      <StepEnergy v-else-if="step === 2" v-model="form" @ocr="onOcr" />
-      <StepVehicle v-else-if="step === 3" v-model="form" :last-odometer-km="lastOdometerKm"
-        :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" />
-      <StepCost v-else-if="step === 4" v-model="form" v-model:providers="providers" :cost="cost" />
+        :suggestion="suggestion.suggestion.value" :suggestion-provider-label="suggestionProviderLabel"
+        :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value"
+        @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked"
+        @accept-suggestion="acceptSuggestion" @expand-radius="nearby.expand()" />
+      <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost"
+        :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" @ocr="onOcr" />
       <StepReview v-else v-model="form" :place-label="placeLabel" :error="error" @goto="goto" />
     </WizardShell>
 

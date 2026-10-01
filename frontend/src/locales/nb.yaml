@@ -3150,6 +3150,16 @@ watt:
   toast: "+{n} Watt opptjent!"
 
 logwizard:
+  q_numbers: "Tallene"
+  suggestion_site: "Treff i nærheten"
+  suggestion_private: "Din private lader her"
+  suggestion_private_title: "Ladet hjemme eller privat?"
+  suggestion_private_sub: "Ladetype og tariff som ved dine tidligere ladinger her."
+  suggestion_accept: "Bruk denne"
+  expand_radius: "Ikke med? Utvid søket til 2,5 km"
+  nearby_title_radius: "Innenfor {r}"
+  ruler_hint: "Sveip for å stille inn, trykk på tallet for tastaturet"
+  odometer_delta: "+{km} siden forrige logg"
   step_of: "Steg {step} av {total}"
   q_place: "Hvor ladet du?"
   q_energy: "Hvor mye energi?"
