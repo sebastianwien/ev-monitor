@@ -344,7 +344,7 @@ onMounted(async () => {
         @accept-suggestion="acceptSuggestion" @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost"
         :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :previous-log="previousLog" @ocr="onOcr" />
-      <StepReview v-else v-model="form" :place-label="placeLabel" :error="error" @goto="goto" />
+      <StepReview v-else v-model="form" :place-label="placeLabel" :context="numbersContext" :error="error" @goto="goto" />
     </WizardShell>
 
     <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-slide-in">

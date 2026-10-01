@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
-import { MapPinIcon, CreditCardIcon } from '@heroicons/vue/24/outline'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import type { useCostInput } from '../../composables/useCostInput'
@@ -9,10 +8,9 @@ import StepEnergy from './StepEnergy.vue'
 import StepVehicle from './StepVehicle.vue'
 import StepCost from './StepCost.vue'
 import OptionalPanel from './OptionalPanel.vue'
-const PlaceMinimap = defineAsyncComponent(() => import('./PlaceMinimap.vue'))
+import PlaceHeader, { type NumbersContext } from './PlaceHeader.vue'
 
-/** Was Schritt 1 ergeben hat - steht als Kopf über den Zahlen, damit niemand zurückblättern muss. */
-export interface NumbersContext { title: string; address: string | null; card: string | null; lat: number | null; lon: number | null }
+export type { NumbersContext }
 
 /**
  * Schritt 2: nur die Werte, die kein früheres Log liefern kann - Energie, Tacho, Akku, Preis.
@@ -33,12 +31,11 @@ const preview = computed(() => consumptionPreview({
   odometerKm: form.value.odometerKm, socAfter: form.value.socAfterChargePercent, capacityKwh: props.effectiveCapacityKwh,
   costEur: form.value.costEur, previous: props.previousLog,
 }))
-const hasMap = computed(() => props.context.lat != null && props.context.lon != null)
 
 // ── Kartenhöhe: füllt den freien Platz zwischen Kopfzeile und Eingaben, animiert, wenn die Eingaben
 // wachsen (aufgeklapptes Rädchen, Ladekarte, Details). Gemessen wird der Scrollbereich der Shell,
 // nicht das eigene Element - das wüchse sonst mit der Karte und die Messung bisse sich in den Schwanz.
-const MAP_MIN = 112, MAP_MAX = 420
+const MAP_MIN = 112, MAP_MAX = 640
 const root = ref<HTMLElement | null>(null)
 const body = ref<HTMLElement | null>(null)
 const mapHeight = ref(MAP_MIN)
@@ -62,20 +59,7 @@ onBeforeUnmount(() => sizeWatch?.disconnect())
 
 <template>
   <div ref="root" class="space-y-2">
-    <!-- Kopf: Minimap mit Säule, Adresse und Karte eingeblendet; ohne Position nur die Textzeile. -->
-    <div data-testid="numbers-context" class="relative -mx-4 md:mx-0 md:rounded-sm overflow-hidden transition-[height] duration-300 ease-out motion-reduce:transition-none"
-      :style="hasMap ? { height: `${mapHeight}px` } : undefined">
-      <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" class="absolute inset-0" />
-      <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] bg-gradient-to-t from-white via-white/90 to-transparent dark:from-gray-900 dark:via-gray-900/90 px-4 pt-6 pb-1' : 'px-4'">
-        <div class="flex items-end justify-between gap-3">
-          <div class="min-w-0">
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate"><MapPinIcon class="h-4 w-4 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />{{ context.title }}</p>
-            <p v-if="context.address" class="text-xs text-gray-500 dark:text-gray-400 truncate pl-[1.375rem]">{{ context.address }}</p>
-          </div>
-          <p v-if="context.card" class="flex items-center gap-1 flex-shrink-0 text-xs text-gray-600 dark:text-gray-300"><CreditCardIcon class="h-4 w-4" />{{ context.card }}</p>
-        </div>
-      </div>
-    </div>
+    <PlaceHeader :context="context" :height="mapHeight" />
 
     <div ref="body" class="space-y-2">
       <StepEnergy v-model="form" compact @ocr="r => emit('ocr', r)" />

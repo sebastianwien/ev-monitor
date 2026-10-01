@@ -19,8 +19,12 @@ const reducedMotion = () =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function'
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+let settleTimer: ReturnType<typeof setTimeout> | undefined
 watch(() => props.open, async (open) => {
   settled.value = false
+  clearTimeout(settleTimer)
+  // Bleibt transitionend aus (Tab im Hintergrund, Browser überspringt die Transition), trotzdem freigeben
+  settleTimer = setTimeout(onEnd, 400)
   if (open) {
     rendered.value = true
     await nextTick()
@@ -36,6 +40,7 @@ watch(() => props.open, async (open) => {
 })
 
 const onEnd = () => {
+  clearTimeout(settleTimer)
   if (props.open) settled.value = true
   else rendered.value = false
 }
@@ -45,6 +50,7 @@ const onEnd = () => {
   <div v-show="rendered" :inert="!open" @transitionend.self="onEnd"
     :class="['grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none',
              expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0']">
-    <div :class="['min-h-0', settled ? 'overflow-visible' : 'overflow-hidden']"><slot /></div>
+    <!-- p-1 -m-1: die 4 px Schatten der 3D-Kacheln bleiben auch sichtbar, solange geclippt wird -->
+    <div :class="['min-h-0 p-1 -m-1', settled ? 'overflow-visible' : 'overflow-hidden']"><slot /></div>
   </div>
 </template>

@@ -5,6 +5,7 @@ import type { LogFormData } from '../log-form/logFormData'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { type RequiredField } from './wizardLogic'
 import OptionalPanel from './OptionalPanel.vue'
+import PlaceHeader, { type NumbersContext } from './PlaceHeader.vue'
 
 export type SummarySection = 'place' | 'energy' | 'vehicle' | 'cost' | 'time'
 
@@ -14,6 +15,8 @@ const props = defineProps<{
   missing?: RequiredField[]
   /** Zeit als eigene Kachel (Bearbeiten); beim Anlegen steht sie unter "Mehr Details" */
   showTimeTile?: boolean
+  /** Wizard: Säule mit Minimap als Kopf statt der Ort-Kachel, dann bleiben vier Kacheln im Raster */
+  context?: NumbersContext | null
 }>()
 const form = defineModel<LogFormData>({ required: true })
 const emit = defineEmits<{ edit: [section: SummarySection] }>()
@@ -33,7 +36,7 @@ const energy = computed(() => {
 
 interface Tile { label: string; value: string | null; section: SummarySection; testid: string }
 const tiles = computed<Tile[]>(() => [
-  { label: t('logwizard.place'), value: props.placeLabel, section: 'place', testid: 'summary-place' },
+  ...(props.context ? [] : [{ label: t('logwizard.place'), value: props.placeLabel, section: 'place' as SummarySection, testid: 'summary-place' }]),
   ...(props.showTimeTile ? [{ label: t('logfields.timestamp'), value: timeLabel.value, section: 'time' as SummarySection, testid: 'summary-time' }] : []),
   { label: t('logfields.energy'), value: isMissing('energy') ? null : energy.value, section: 'energy', testid: 'summary-energy' },
   { label: t('logfields.odometer'), value: isMissing('odometer') || form.value.odometerKm == null ? null : formatDistance(form.value.odometerKm), section: 'vehicle', testid: 'summary-odometer' },
@@ -44,6 +47,7 @@ const tiles = computed<Tile[]>(() => [
 
 <template>
   <div class="space-y-4">
+    <PlaceHeader v-if="context" :context="context" :height="160" clickable data-testid="summary-place" @click="emit('edit', 'place')" />
     <div class="grid grid-cols-2 gap-2">
       <button v-for="tile in tiles" :key="tile.testid" type="button" :data-testid="tile.testid" @click="emit('edit', tile.section)"
         :class="['btn-3d text-left p-3 rounded-sm transition', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">

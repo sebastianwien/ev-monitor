@@ -144,7 +144,9 @@ const onInput = (e: Event) => {
   model.value = v === '' ? null : Number(v)
 }
 
-watch(active, async (on) => { if (on) { await nextTick(); draw(); nudgeOnce() } })
+// Beim Wiederöffnen zeichnet draw() nicht neu (gleiche Breite), der Streifen stünde sonst auf dem alten
+// Wert und der erste Wisch setzt das Modell zurück - deshalb immer nachziehen.
+watch(active, async (on) => { if (on) { await nextTick(); draw(); syncScroll(); nudgeOnce() } })
 onMounted(() => { if (props.autofocus) activate(); if (active.value) nextTick(draw) })
 onBeforeUnmount(() => { if (raf) cancelAnimationFrame(raf); if (activeRuler.value === props.id) activeRuler.value = null })
 const shown = computed(() => model.value == null ? '' : String(model.value))
