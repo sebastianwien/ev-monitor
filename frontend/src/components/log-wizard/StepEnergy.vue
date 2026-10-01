@@ -29,9 +29,9 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
 <template>
   <!-- Lese-Zone oben (Erklaerung, seltene Foto-Aktion), Bedien-Zone unten in Daumenreichweite.
        Der Freiraum dazwischen trennt Lesen von Bedienen, statt als Loch ueber dem Inhalt zu stehen. -->
-  <div :class="props.compact ? 'space-y-3' : 'flex-1 flex flex-col gap-4'">
-    <div class="space-y-3">
-      <p :class="props.compact ? 'text-xs text-gray-500 dark:text-gray-400' : 'text-sm text-gray-500 dark:text-gray-400'">{{ mode === 'charger' ? t('logfields.kwh_hint') : t('logfields.kwh_at_vehicle_hint') }}</p>
+  <div :class="props.compact ? 'space-y-2' : 'flex-1 flex flex-col gap-4'">
+    <div :class="props.compact ? 'space-y-2' : 'space-y-3'">
+      <p v-if="!props.compact || mode === 'vehicle'" :class="props.compact ? 'text-xs text-gray-500 dark:text-gray-400' : 'text-sm text-gray-500 dark:text-gray-400'">{{ mode === 'charger' ? t('logfields.kwh_hint') : t('logfields.kwh_at_vehicle_hint') }}</p>
       <button v-if="!props.compact" type="button" @click="showOcr = !showOcr"
         class="btn-3d inline-flex items-center gap-2 min-h-11 px-4 py-2 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
         <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
@@ -39,7 +39,7 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
       <OcrPhotoCapture v-if="showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
     </div>
 
-    <div :class="props.compact ? 'space-y-3' : 'mt-auto space-y-4'">
+    <div :class="props.compact ? 'space-y-2' : 'mt-auto space-y-4'">
       <!-- Quelle und Ladeart in einer Zeile - spart Hoehe. Ladeart aus der Ortswahl vorbelegt
            (Säule DC, sonst AC), hier korrigierbar, weil sie die Ladeverluste bestimmt. -->
       <div class="flex items-center gap-2">
@@ -52,10 +52,12 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
         </button>
       </div>
       <RulerInput id="wizard-kwh" v-model="kwh" unit="kWh" :label="t('logfields.energy')" :placeholder="t('logfields.kwh_placeholder')" :step="0.1" :min="0" :max="150" autofocus />
-      <button v-if="props.compact" type="button" @click="showOcr = !showOcr"
-        class="inline-flex items-center gap-1.5 min-h-9 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600">
-        <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
-      </button>
+      <div v-if="props.compact" class="flex justify-end -mt-1">
+        <button type="button" @click="showOcr = !showOcr"
+          class="inline-flex items-center gap-1.5 min-h-9 px-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600">
+          <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
+        </button>
+      </div>
     </div>
   </div>
 </template>

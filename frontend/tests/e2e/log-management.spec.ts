@@ -386,7 +386,8 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     // Karte ist angelegt und gewaehlt: Chip da, Preis je kWh uebernommen
     await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible({ timeout: 5_000 });
     await expect(page.locator('button[aria-pressed="true"]:has-text("EnBW mobility+")')).toBeVisible();
-    await expect(page.locator('#wizard-cost')).toHaveValue('0.39');
+    // Kompakte Kostenzeile zeigt den Gesamtbetrag: 30 kWh x 0,39
+    await expect(page.locator('#wizard-cost')).toHaveValue('11.7');
     expect(errors).toEqual([]);
   });
 
