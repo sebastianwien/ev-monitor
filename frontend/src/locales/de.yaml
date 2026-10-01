@@ -3271,6 +3271,7 @@ watt:
   toast: "+{n} Watt erhalten!"
 
 logwizard:
+  cost_other: "Anders"
   q_numbers: "Die Zahlen"
   suggestion_site: "Treffer in der Nähe"
   suggestion_private: "Dein privater Anschluss hier"

@@ -3150,6 +3150,7 @@ watt:
   toast: "+{n} Watt intjänade!"
 
 logwizard:
+  cost_other: "Ändra"
   q_numbers: "Siffrorna"
   suggestion_site: "Träff i närheten"
   suggestion_private: "Din privata laddare här"

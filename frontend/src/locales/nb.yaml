@@ -3150,6 +3150,7 @@ watt:
   toast: "+{n} Watt opptjent!"
 
 logwizard:
+  cost_other: "Endre"
   q_numbers: "Tallene"
   suggestion_site: "Treff i nærheten"
   suggestion_private: "Din private lader her"

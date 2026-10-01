@@ -9,6 +9,8 @@ import type { ChargingSiteRef } from '../log-form/logFormData'
 import { settingsPlatform, openAppSettings, type LocationPermission } from '../../composables/useLocationPermission'
 import type { ChargingSuggestion, PlaceChoice, PlaceKind } from './wizardLogic'
 import SuggestionCard from './SuggestionCard.vue'
+import CardStrip, { type CardChoice, type CommunityPrice } from './CardStrip.vue'
+import type { ChargingProvider } from '../../composables/useChargingProviders'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import PlaceSearch from './PlaceSearch.vue'
 import Collapse from './Collapse.vue'
@@ -31,8 +33,16 @@ const props = defineProps<{
   /** Umkreis der aktuellen Liste in Metern, und ob "Umkreis erweitern" noch etwas bringt */
   radiusMeters?: number
   canExpand?: boolean
+  /** Ladekarten-Streifen unter der gewählten Säule; fehlt im Bearbeiten-Dialog */
+  cardStrip?: {
+    providers: ChargingProvider[]
+    chargingType: 'AC' | 'DC'
+    community: CommunityPrice | null
+    selected: string | null
+    priceLabel: (eur: number) => string
+  } | null
 }>()
-const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace]; acceptSuggestion: []; expandRadius: [] }>()
+const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace]; acceptSuggestion: []; expandRadius: []; chooseCard: [choice: CardChoice] }>()
 const { t } = useI18n()
 
 const query = ref('')
@@ -131,6 +141,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       </span>
       <CheckCircleIcon class="h-5 w-5 text-indigo-600" />
     </button>
+    <CardStrip v-if="cardStrip && showSearchedStation" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
+        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
 
     <button type="button" data-testid="place-home" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>
@@ -166,7 +178,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <button v-if="!showLocationBlock" type="button" class="ml-auto normal-case tracking-normal text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline"
           @click="searchReopened = true">{{ t('logwizard.nearby_other_place') }}</button>
       </p>
-      <button v-for="s in stations" :key="s.name" type="button" :class="tileClass(isStation(s))"
+      <template v-for="s in stations" :key="s.name">
+      <button type="button" :class="tileClass(isStation(s))"
         @click="emit('choose', { kind: 'station', station: s })">
         <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
@@ -177,6 +190,9 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ s.distanceMeters >= 1000 ? `${(s.distanceMeters / 1000).toFixed(1)} km` : `${s.distanceMeters} m` }}</span>
         <CheckCircleIcon v-if="isStation(s)" class="h-5 w-5 text-indigo-600" />
       </button>
+      <CardStrip v-if="cardStrip && isStation(s)" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
+        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
+      </template>
       <!-- "Nicht dabei?": die weite Suche ersetzt diese Liste, statt sie zu verlängern -->
       <button v-if="canExpand && !stationsLoading" type="button" data-testid="expand-radius" @click="emit('expandRadius')"
         class="btn-3d w-full min-h-11 rounded-sm border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-semibold text-indigo-600 dark:text-indigo-300 hover:border-indigo-400 transition">
@@ -188,7 +204,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <!-- Zuletzt genutzt: echte Standorte, sobald es welche gibt - sonst die Anbieter der letzten Logs -->
     <template v-if="recentSites.length">
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
-      <button v-for="s in recentSites" :key="s.id" type="button" :class="tileClass(isSite(s))" :data-testid="`recent-site-${s.id}`"
+      <template v-for="s in recentSites" :key="s.id">
+      <button type="button" :class="tileClass(isSite(s))" :data-testid="`recent-site-${s.id}`"
         @click="emit('choose', { kind: 'site', site: s })">
         <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
@@ -199,6 +216,9 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ t('logwizard.site_usage', { n: s.usageCount }, s.usageCount) }}</span>
         <CheckCircleIcon v-if="isSite(s)" class="h-5 w-5 text-indigo-600" />
       </button>
+      <CardStrip v-if="cardStrip && isSite(s)" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
+        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
+      </template>
     </template>
     <template v-else-if="recentCpos.length">
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
@@ -229,6 +249,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
           {{ c }}
         </button>
       </div>
+      <CardStrip v-if="cardStrip && !!selectedCpo" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
+        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
     </div>
   </div>
 </template>

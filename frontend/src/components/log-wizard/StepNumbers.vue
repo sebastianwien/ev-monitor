@@ -11,7 +11,7 @@ import StepCost from './StepCost.vue'
  * Ein Screen statt drei: die Teilschritte bleiben eigene Komponenten (der Bearbeiten-Dialog
  * nutzt sie einzeln), hier stehen sie kompakt untereinander.
  */
-defineProps<{ cost: ReturnType<typeof useCostInput>; lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined }>()
+defineProps<{ cost: ReturnType<typeof useCostInput>; lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined; openCard?: 'new' | 'price' | null }>()
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const emit = defineEmits<{ ocr: [result: any] }>()
@@ -22,6 +22,6 @@ const emit = defineEmits<{ ocr: [result: any] }>()
   <div class="space-y-2">
     <StepEnergy v-model="form" compact @ocr="r => emit('ocr', r)" />
     <StepVehicle v-model="form" compact :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="effectiveCapacityKwh" />
-    <StepCost v-model="form" v-model:providers="providers" :cost="cost" compact />
+    <StepCost v-model="form" v-model:providers="providers" :cost="cost" compact :open-on-mount="openCard" />
   </div>
 </template>

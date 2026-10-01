@@ -376,18 +376,19 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await page.locator('[data-testid="place-other"]').click();
     await page.locator('input[type="search"]').fill('EnBW');
     await page.locator('button:has-text("EnBW")').first().click();
-    await page.locator('[data-testid="wizard-next"]').click();
 
+    // Der Ladekarten-Streifen steht unter dem gewaehlten Anbieter; "+ neue Karte" springt in
+    // Schritt 2 und oeffnet dort den Editor
     await page.locator('[data-testid="charging-card-prompt-open"]').click();
+    await expect(page.locator('[data-testid="charging-card-prompt"]')).toBeVisible();
     await page.locator('#inline-card-provider').selectOption('EnBW mobility+');
     await page.locator('[data-testid="charging-card-prompt"] input[type="number"][step="0.1"]').first().fill('39');
     await page.locator('[data-testid="charging-card-save"]').click();
 
-    // Karte ist angelegt und gewaehlt: Chip da, Preis je kWh uebernommen
+    // Karte ist angelegt und gewaehlt: der Preis steht als abgeleitete Zeile, 30 kWh x 0,39
     await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('button[aria-pressed="true"]:has-text("EnBW mobility+")')).toBeVisible();
-    // Kompakte Kostenzeile zeigt den Gesamtbetrag: 30 kWh x 0,39
-    await expect(page.locator('#wizard-cost')).toHaveValue('11.7');
+    await expect(page.locator('[data-testid="cost-derived"]')).toContainText('EnBW mobility+');
+    await expect(page.locator('[data-testid="cost-derived"]')).toContainText('11,70');
     expect(errors).toEqual([]);
   });
 
@@ -416,6 +417,9 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
     await page.locator('#wizard-soc').fill('80');
+    // Passt eine Karte zum Anbieter, ist der Preis schon abgeleitet - "Anders" oeffnet die Eingabe
+    const other = page.locator('[data-testid="cost-other"]');
+    if (await other.isVisible()) await other.click();
     await page.locator('input[placeholder="z.B. 12.50"]').fill('15');
     await page.locator('[data-testid="wizard-next"]').click();
     await page.locator('[data-testid="wizard-next"]').click();

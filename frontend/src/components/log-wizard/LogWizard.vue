@@ -26,11 +26,15 @@ import { emptyLogForm, canProceed, applyPlace, applySuggestion, buildLogPayload,
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
 import StepNumbers from './StepNumbers.vue'
+import type { CardChoice, CommunityPrice } from './CardStrip.vue'
+import { providerPriceForType } from '../../utils/chargingProviderPricing'
+import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import StepReview from './StepReview.vue'
 
 const emit = defineEmits<{ success: []; cancel: [] }>()
 const { t } = useI18n()
 const { haptic } = useHaptic()
+const { formatNumber } = useLocaleFormat()
 const carStore = useCarStore()
 const countryStore = useCountryStore()
 const coinStore = useCoinStore()
@@ -115,6 +119,10 @@ const acceptSuggestion = () => {
   if (!suggestion.suggestion.value) return
   const choice = applySuggestion(form.value, suggestion.suggestion.value)
   state.value.place = choice.kind
+  cost.reset(); cardKey.value = null; openCard.value = null
+  const id = form.value.chargingProviderId
+  const p = id ? providers.value.find(x => x.id === id) : null
+  if (p) applyCard({ kind: 'provider', provider: p, eurPerKwh: providerPriceForType(p, form.value.chargingType) })
   haptic(10)
   advance.schedule()
 }
@@ -127,13 +135,81 @@ const suggestionProviderLabel = computed(() => {
 /** Kurze Pause vor dem Weiterspringen: die gewaehlte Kachel soll als ausgewaehlt sichtbar werden. */
 const PLACE_ADVANCE_MS = 350
 const advance = useDelayedCall(() => next(), PLACE_ADVANCE_MS)
-/** Aus der Textsuche gewählt: erst die Kachel als ausgewählt zeigen, "Weiter" tippt der Nutzer selbst */
-const autoAdvances = (choice: PlaceChoice) =>
-  choice.kind !== 'other' && !(choice.kind === 'station' && choice.viaSearch)
+/**
+ * Nur Zuhause springt von selbst weiter. An einer Säule klappt der Ladekarten-Streifen auf:
+ * der Tipp auf eine Karte springt weiter, die vorgewählte bestätigt der Nutzer mit "Weiter".
+ */
+const autoAdvances = (choice: PlaceChoice) => choice.kind === 'home'
 const choosePlace = (choice: PlaceChoice) => {
   state.value.place = choice.kind
   applyPlace(form.value, choice)
-  if (autoAdvances(choice)) advance.schedule(); else advance.cancel()
+  resetCard()
+  if (autoAdvances(choice)) advance.schedule(); else { advance.cancel(); preselectCard() }
+}
+
+// ── Ladekarte (Schritt 1, unter der gewählten Säule) ──────────────────────────
+/** Provider-ID, 'community' oder 'free' - was im Streifen markiert ist */
+const cardKey = ref<string | null>(null)
+const community = ref<CommunityPrice | null>(null)
+/** "+ neue Karte" oder Karte ohne Tarif: der Editor öffnet in Schritt 2 */
+const openCard = ref<'new' | 'price' | null>(null)
+const resetCard = () => { cardKey.value = null; openCard.value = null; form.value.chargingProviderId = null; cost.reset() }
+const priceLabel = (eur: number) => `${formatNumber(Math.round(cost.eurToLocal(eur) * 100) / 100)} ${countryStore.unitSystem.currencySymbol}/kWh`
+const cardStrip = computed(() => form.value.isPublicCharging
+  ? { providers: providers.value, chargingType: form.value.chargingType, community: community.value, selected: cardKey.value, priceLabel }
+  : null)
+
+const applyCard = (c: CardChoice) => {
+  openCard.value = null
+  switch (c.kind) {
+    case 'provider':
+      form.value.chargingProviderId = c.provider.id; cardKey.value = c.provider.id
+      if (c.eurPerKwh != null) cost.setPerKwhEur(c.eurPerKwh); else { cost.reset(); openCard.value = 'price' }
+      break
+    case 'community':
+      form.value.chargingProviderId = c.price.providerId; cardKey.value = 'community'; cost.setPerKwhEur(c.price.eurPerKwh)
+      break
+    case 'free':
+      form.value.chargingProviderId = null; cardKey.value = 'free'; cost.reset(); cost.costLocalTotal.value = 0
+      break
+    case 'new':
+      form.value.chargingProviderId = null; cardKey.value = null; cost.reset(); openCard.value = 'new'
+      break
+  }
+}
+const chooseCard = (c: CardChoice) => { applyCard(c); haptic(10); advance.schedule() }
+
+/** Die Karte, deren Name zum Betreiber passt - nur bei genau einem Treffer. */
+const cardMatchingCpo = () => {
+  const cpo = form.value.cpoName?.trim().toLowerCase()
+  if (!cpo) return null
+  const hits = providers.value.filter(p => !p.isPrivate && providerPriceForType(p, form.value.chargingType) != null)
+    .filter(p => { const n = (p.label || p.providerName).toLowerCase(); return n.includes(cpo) || cpo.includes(n) })
+  return hits.length === 1 ? hits[0] : null
+}
+/**
+ * Vorauswahl ohne Weiterspringen: letzter Preis an diesem Ort (mit seiner Karte), sonst die
+ * Karte, deren Name zum Betreiber passt. Der Preisvorschlag kommt vom Backend und braucht die
+ * Position; kommt er nach einer Nutzerwahl an, bleibt die Nutzerwahl.
+ */
+let communitySeq = 0
+const preselectCard = async () => {
+  if (!form.value.isPublicCharging) return
+  const mine = ++communitySeq
+  community.value = null
+  if (form.value.latitude != null && form.value.longitude != null) {
+    try {
+      const res = await api.get('/logs/price-suggestion', {
+        params: { lat: form.value.latitude, lon: form.value.longitude, isPublic: true, chargingType: form.value.chargingType },
+      })
+      if (mine !== communitySeq) return
+      if (res.data?.costPerKwh != null) community.value = { eurPerKwh: Number(res.data.costPerKwh), providerId: res.data.chargingProviderId ?? null }
+    } catch { /* kein Vorschlag - kein Problem */ }
+  }
+  if (cardKey.value != null) return
+  if (community.value) { applyCard({ kind: 'community', price: community.value }); return }
+  const match = cardMatchingCpo()
+  if (match) applyCard({ kind: 'provider', provider: match, eurPerKwh: providerPriceForType(match, form.value.chargingType) })
 }
 
 const placeLabel = computed(() => {
@@ -146,7 +222,10 @@ const proceedAllowed = computed(() => canProceed(step.value, form.value, state.v
 const questions: Record<WizardStep, string> = { 1: 'logwizard.q_place', 2: 'logwizard.q_numbers', 3: 'logwizard.q_review' }
 const hint = computed(() => {
   if (step.value === 1 && permission.value === 'granted' && nearby.stations.value.length) return t('logwizard.hint_nearby')
-  if (step.value === 2) return `${placeLabel.value} · ${form.value.chargingType}`
+  if (step.value === 2) {
+    const p = providers.value.find(x => x.id === form.value.chargingProviderId)
+    return [placeLabel.value, form.value.chargingType, p ? (p.label || p.providerName) : null].filter(Boolean).join(' · ')
+  }
   return ''
 })
 const goto = (s: WizardStep) => { error.value = null; step.value = s; window.scrollTo({ top: 0 }) } // Desktop: Seite; mobil setzt WizardShell ihren Scroller zurueck
@@ -227,10 +306,11 @@ onMounted(async () => {
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"
         :suggestion="suggestion.suggestion.value" :suggestion-provider-label="suggestionProviderLabel"
         :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value"
+        :card-strip="cardStrip" @choose-card="chooseCard"
         @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked"
         @accept-suggestion="acceptSuggestion" @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost"
-        :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" @ocr="onOcr" />
+        :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" @ocr="onOcr" />
       <StepReview v-else v-model="form" :place-label="placeLabel" :error="error" @goto="goto" />
     </WizardShell>
 
