@@ -1375,54 +1375,46 @@ function toggleAllCharges() {
 
           <!-- AutoSync discoverability hint (users without subscription and without a free data source, dismissible) -->
           <div v-if="showAutoSyncBanner"
-            class="w-full flex items-center justify-between gap-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-900/20 shadow-[2px_2px_0_0_#c7d2fe] dark:shadow-[2px_2px_0_0_#312e81]">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.autosync_banner_new_chip') }}</span>
-              <ArrowPathIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-300 flex-shrink-0" aria-hidden="true" />
-              <p class="text-xs text-gray-700 dark:text-gray-200 leading-snug">
-                {{ t('dashboard.autosync_banner_text_prefix') }}
-                <span class="font-semibold text-indigo-700 dark:text-indigo-300">AutoSync</span>
-                {{ t('dashboard.autosync_banner_text_suffix') }}
-                <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ t('dashboard.autosync_banner_price', { price: autoSyncPrice }) }}</span>
-              </p>
-            </div>
-            <div class="flex items-center gap-1.5 flex-shrink-0">
-              <router-link to="/upgrade"
-                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-sm bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
-                {{ t('dashboard.autosync_banner_cta') }}
-              </router-link>
-              <button type="button" @click="dismissAutoSyncBanner"
-                class="p-0.5 rounded hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                :aria-label="t('dashboard.autosync_banner_dismiss')">
-                <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-              </button>
-            </div>
+            class="w-full flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-2.5 sm:gap-x-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-900/20 shadow-[2px_2px_0_0_#c7d2fe] dark:shadow-[2px_2px_0_0_#312e81]">
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.autosync_banner_new_chip') }}</span>
+            <ArrowPathIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-300 flex-shrink-0" aria-hidden="true" />
+            <p class="order-1 sm:order-none basis-full sm:basis-auto sm:flex-1 min-w-0 text-xs text-gray-700 dark:text-gray-200 leading-snug">
+              {{ t('dashboard.autosync_banner_text_prefix') }}
+              <span class="font-semibold text-indigo-700 dark:text-indigo-300">AutoSync</span>
+              {{ t('dashboard.autosync_banner_text_suffix') }}
+              <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ t('dashboard.autosync_banner_price', { price: autoSyncPrice }) }}</span>
+            </p>
+            <router-link to="/upgrade"
+              class="order-2 sm:order-none basis-full sm:basis-auto inline-flex items-center justify-center gap-1 px-3 py-2 sm:py-1.5 rounded-sm bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
+              {{ t('dashboard.autosync_banner_cta') }}
+            </router-link>
+            <button type="button" @click="dismissAutoSyncBanner"
+              class="ml-auto sm:ml-0 flex-shrink-0 p-1 sm:p-0.5 rounded hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              :aria-label="t('dashboard.autosync_banner_dismiss')">
+              <XMarkIcon class="w-4 h-4 sm:w-3.5 sm:h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            </button>
           </div>
 
           <!-- Supporter hint (Tesla/XPeng drivers - their data already flows for free, only the analysis is missing) -->
           <div v-if="showSupporterBanner"
-            class="w-full flex items-center justify-between gap-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 shadow-[2px_2px_0_0_#fde68a] dark:shadow-[2px_2px_0_0_#78350f]">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.supporter_banner_new_chip') }}</span>
-              <HeartIcon class="w-4 h-4 text-amber-600 dark:text-amber-300 flex-shrink-0" aria-hidden="true" />
-              <p class="text-xs text-gray-700 dark:text-gray-200 leading-snug">
-                {{ t('dashboard.supporter_banner_text_prefix') }}
-                <span class="font-semibold text-amber-700 dark:text-amber-300">{{ t('dashboard.supporter_banner_pack') }}</span>
-                {{ t('dashboard.supporter_banner_text_suffix') }}
-                <span class="font-semibold text-amber-700 dark:text-amber-300 whitespace-nowrap">{{ t('dashboard.supporter_banner_price', { price: supporterPrice }) }}</span>
-              </p>
-            </div>
-            <div class="flex items-center gap-1.5 flex-shrink-0">
-              <router-link to="/supporter"
-                class="inline-flex items-center gap-1 px-3 py-1.5 rounded-sm bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-                {{ t('dashboard.supporter_banner_cta') }}
-              </router-link>
-              <button type="button" @click="dismissSupporterBanner"
-                class="p-0.5 rounded hover:bg-amber-500/20 dark:hover:bg-amber-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                :aria-label="t('dashboard.supporter_banner_dismiss')">
-                <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-              </button>
-            </div>
+            class="w-full flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-2.5 sm:gap-x-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 shadow-[2px_2px_0_0_#fde68a] dark:shadow-[2px_2px_0_0_#78350f]">
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.supporter_banner_new_chip') }}</span>
+            <HeartIcon class="w-4 h-4 text-amber-600 dark:text-amber-300 flex-shrink-0" aria-hidden="true" />
+            <p class="order-1 sm:order-none basis-full sm:basis-auto sm:flex-1 min-w-0 text-xs text-gray-700 dark:text-gray-200 leading-snug">
+              {{ t('dashboard.supporter_banner_text_prefix') }}
+              <span class="font-semibold text-amber-700 dark:text-amber-300">{{ t('dashboard.supporter_banner_pack') }}</span>
+              {{ t('dashboard.supporter_banner_text_suffix') }}
+              <span class="font-semibold text-amber-700 dark:text-amber-300 whitespace-nowrap">{{ t('dashboard.supporter_banner_price', { price: supporterPrice }) }}</span>
+            </p>
+            <router-link to="/supporter"
+              class="order-2 sm:order-none basis-full sm:basis-auto inline-flex items-center justify-center gap-1 px-3 py-2 sm:py-1.5 rounded-sm bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
+              {{ t('dashboard.supporter_banner_cta') }}
+            </router-link>
+            <button type="button" @click="dismissSupporterBanner"
+              class="ml-auto sm:ml-0 flex-shrink-0 p-1 sm:p-0.5 rounded hover:bg-amber-500/20 dark:hover:bg-amber-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              :aria-label="t('dashboard.supporter_banner_dismiss')">
+              <XMarkIcon class="w-4 h-4 sm:w-3.5 sm:h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            </button>
           </div>
 
           <!-- Cost-reuse tip (shown once, dismissible via localStorage) -->
