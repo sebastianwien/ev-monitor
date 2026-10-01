@@ -38,7 +38,7 @@ const hasMap = computed(() => props.context.lat != null && props.context.lon != 
 // ── Kartenhöhe: füllt den freien Platz zwischen Kopfzeile und Eingaben, animiert, wenn die Eingaben
 // wachsen (aufgeklapptes Rädchen, Ladekarte, Details). Gemessen wird der Scrollbereich der Shell,
 // nicht das eigene Element - das wüchse sonst mit der Karte und die Messung bisse sich in den Schwanz.
-const MAP_MIN = 112, MAP_MAX = 320
+const MAP_MIN = 112, MAP_MAX = 420
 const root = ref<HTMLElement | null>(null)
 const body = ref<HTMLElement | null>(null)
 const mapHeight = ref(MAP_MIN)

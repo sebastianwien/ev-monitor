@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CHIP_ROW, chipClass } from './chipClass'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
 import { useCountryStore } from '../../stores/country'
@@ -49,7 +49,10 @@ const socStart = computed(() => {
   if (net == null || net <= 0) return null
   return Math.min(100, SOC_START_BEFORE + Math.round(net / cap * 100))
 })
-const socPlaceholder = computed(() => String(socStart.value ?? 80))
+/** Der Startpunkt wird als Wert gesetzt, bis der Nutzer SoC selbst anfasst - danach nie wieder überschrieben. */
+const socTouched = ref(form.value.socAfterChargePercent != null)
+watch(socStart, (v) => { if (!socTouched.value && v != null) form.value.socAfterChargePercent = v })
+watch(() => form.value.socAfterChargePercent, (v) => { if (v !== socStart.value) socTouched.value = true })
 const fmt1 = (n: number) => formatNumber(Math.round(n * 10) / 10)
 const battery = computed(() => {
   const net = netEnergyKwh(form.value.socBeforeChargePercent, form.value.socAfterChargePercent, props.effectiveCapacityKwh)
@@ -70,7 +73,7 @@ const battery = computed(() => {
       inputmode="numeric" :prefix="odoPrefix" :sub="odoSub" :sub-tone="belowLast ? 'warn' : 'muted'" :autofocus="!compact" />
 
     <div class="space-y-2">
-      <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" :placeholder="socPlaceholder" :step="1" :min="0" :max="100" :start="socStart" :px-per-step="10" inputmode="numeric" />
+      <RulerInput id="wizard-soc" v-model="form.socAfterChargePercent" :label="t('logfields.soc_after')" unit="%" placeholder="80" :step="1" :min="0" :max="100" :start="socStart" :px-per-step="10" inputmode="numeric" />
     </div>
 
     <RulerInput v-if="showBefore" id="wizard-soc-before" v-model="form.socBeforeChargePercent" :label="t('logfields.soc_before')" unit="%" placeholder="20" :step="1" :min="0" :max="100" :px-per-step="10" inputmode="numeric" />

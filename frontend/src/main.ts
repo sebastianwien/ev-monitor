@@ -49,7 +49,12 @@ const app = createApp(App)
 
 // Global haptic feedback for all buttons (vibration on Android, soft click sound on iOS)
 function triggerHaptic() {
-  if (navigator.vibrate?.(10)) return
+  if (navigator.vibrate) {
+    // Android: vor der ersten abgeschlossenen Berührung liefert vibrate() false (keine User-Activation).
+    // Dann den Tick einmalig beim pointerup derselben Berührung nachholen, sonst fehlt er beim ersten Tap.
+    if (!navigator.vibrate(10)) document.addEventListener('pointerup', () => navigator.vibrate?.(10), { once: true, passive: true })
+    return
+  }
   try {
     const ctx = new AudioContext()
     const osc = ctx.createOscillator()

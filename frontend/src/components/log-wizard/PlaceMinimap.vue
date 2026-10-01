@@ -16,7 +16,7 @@ onMounted(() => {
     zoomControl: false, attributionControl: true, dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
     boxZoom: false, keyboard: false, touchZoom: false, fadeAnimation: false,
   }).setView([props.lat, props.lon], 17)
-  map.attributionControl.setPrefix(false)
+  map.attributionControl.setPrefix(false).setPosition('topright')
   // OSM-Kacheln, per CSS entsättigt (siehe Template): keine Schlüssel, keine fremden Konten. CARTO und
   // Stadia verlangen inzwischen API-Keys, die Kacheln tragen sonst ein Wasserzeichen.
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map)

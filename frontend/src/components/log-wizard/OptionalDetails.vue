@@ -2,12 +2,8 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
-import { ClockIcon, SunIcon } from '@heroicons/vue/24/outline'
-import CityIcon from '../icons/CityIcon.vue'
-import RouteIcon from '../icons/RouteIcon.vue'
-import RoadIcon from '../icons/RoadIcon.vue'
-import WheelIcon from '../icons/WheelIcon.vue'
-import SnowflakeIcon from '../icons/SnowflakeIcon.vue'
+import { ClockIcon } from '@heroicons/vue/24/outline'
+import { ROUTE_CHIPS, TIRE_CHIPS } from './optionalChips'
 
 /**
  * "Mehr Details": die optionalen Angaben als Fakten-Zeilen mit Chips statt als Formular.
@@ -47,16 +43,8 @@ const timeChips: { value: TimePick; label: string }[] = [
   { value: 'yesterday', label: t('logfields.timestamp_chip_yesterday_evening') },
   { value: 'other', label: t('logwizard.d_time_other') },
 ]
-const routeChips = [
-  { value: 'CITY', label: t('logwizard.d_route_city'), icon: CityIcon },
-  { value: 'COMBINED', label: t('logwizard.d_route_mixed'), icon: RouteIcon },
-  { value: 'HIGHWAY', label: t('logwizard.d_route_highway'), icon: RoadIcon },
-] as const
-const tireChips = [
-  { value: 'SUMMER', label: t('logwizard.d_tire_summer'), icon: SunIcon },
-  { value: 'ALL_YEAR', label: t('logwizard.d_tire_allyear'), icon: WheelIcon },
-  { value: 'WINTER', label: t('logwizard.d_tire_winter'), icon: SnowflakeIcon },
-] as const
+const routeChips = ROUTE_CHIPS.map(c => ({ ...c, label: t(c.key) }))
+const tireChips = TIRE_CHIPS.map(c => ({ ...c, label: t(c.key) }))
 
 // Segmente statt Pillen: gleich breite Zellen füllen die Zeile auch auf 360 px, jede Zelle 44 px hoch.
 const segClass = (on: boolean) => [

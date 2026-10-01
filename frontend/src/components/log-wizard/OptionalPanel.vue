@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
+import type { Component } from 'vue'
+import { ROUTE_CHIPS, TIRE_CHIPS } from './optionalChips'
 import type { LogFormData } from '../log-form/logFormData'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { optionalFacts } from './wizardLogic'
@@ -22,16 +24,15 @@ const timeLabel = computed(() => {
   if (!form.value.loggedAt) return t('logwizard.time_now')
   return new Date(form.value.loggedAt).toLocaleString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 })
-const routeLabel: Record<LogFormData['routeType'], string> = { CITY: 'd_route_city', COMBINED: 'd_route_mixed', HIGHWAY: 'd_route_highway' }
-const tireLabel: Record<LogFormData['tireType'], string> = { SUMMER: 'd_tire_summer', ALL_YEAR: 'd_tire_allyear', WINTER: 'd_tire_winter' }
-const facts = computed(() => optionalFacts(form.value, { withTime: props.showTime }).map(f => {
+interface Pill { text: string; icon?: Component }
+const facts = computed<Pill[]>(() => optionalFacts(form.value, { withTime: props.showTime }).map(f => {
   switch (f.kind) {
-    case 'time': return timeLabel.value
-    case 'socBefore': return `${f.value} % ${t('logwizard.d_soc_before_short')}`
-    case 'route': return t(`logwizard.${routeLabel[f.value as LogFormData['routeType']]}`)
-    case 'tires': return t(`logwizard.${tireLabel[f.value as LogFormData['tireType']]}`)
-    case 'duration': return `${f.value} min`
-    case 'peak': return `${formatNumber(f.value as number)} kW`
+    case 'time': return { text: timeLabel.value }
+    case 'socBefore': return { text: `${f.value} % ${t('logwizard.d_soc_before_short')}` }
+    case 'route': { const c = ROUTE_CHIPS.find(c => c.value === f.value)!; return { text: t(c.key), icon: c.icon } }
+    case 'tires': { const c = TIRE_CHIPS.find(c => c.value === f.value)!; return { text: t(c.key), icon: c.icon } }
+    case 'duration': return { text: `${f.value} min` }
+    case 'peak': return { text: `${formatNumber(f.value as number)} kW` }
   }
 }))
 const details = ref<HTMLDetailsElement | null>(null)
@@ -40,14 +41,16 @@ const open = ref(false)
 
 <template>
   <details ref="details" data-testid="optional-panel" class="group" @toggle="open = details?.open ?? false">
-    <summary class="py-2 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-      <span class="flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-gray-100">
-        <ChevronRightIcon class="h-4 w-4 text-gray-400 transition group-open:rotate-90" />
-        {{ t('logwizard.more_details') }} <span class="font-normal text-gray-400">· {{ t('logfields.optional') }}</span>
+    <!-- Eine Zeile: Titel links, zugeklappt rechts die gesetzten Werte als Pillen mit Icon; was nicht passt, läuft weich aus -->
+    <summary class="flex items-center gap-2 min-h-11 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+      <span class="flex items-center gap-1 flex-shrink-0 text-sm font-semibold text-gray-800 dark:text-gray-100">
+        <ChevronRightIcon class="h-4 w-4 text-gray-400 transition group-open:rotate-90" />{{ t('logwizard.more_details') }}
       </span>
-      <!-- Zugeklappt: die gesetzten Werte als Pillen, eine Zeile, Rest läuft weich aus -->
-      <span v-if="!open && facts.length" data-testid="summary-optional" class="mt-1 flex gap-1.5 overflow-hidden pl-[1.375rem] [mask-image:linear-gradient(to_right,black_85%,transparent)]">
-        <span v-for="f in facts" :key="f" class="whitespace-nowrap rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-[11px] tabular-nums text-gray-600 dark:text-gray-300">{{ f }}</span>
+      <span v-if="open" class="text-xs text-gray-400">· {{ t('logfields.optional') }}</span>
+      <span v-else-if="facts.length" data-testid="summary-optional" class="flex flex-1 min-w-0 justify-end gap-1.5 overflow-hidden [mask-image:linear-gradient(to_left,black_88%,transparent)]">
+        <span v-for="f in facts" :key="f.text" class="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-1 text-[11px] tabular-nums text-gray-600 dark:text-gray-300">
+          <component :is="f.icon" v-if="f.icon" class="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />{{ f.text }}
+        </span>
       </span>
     </summary>
     <OptionalDetails v-model="form" :show-time="showTime" />
