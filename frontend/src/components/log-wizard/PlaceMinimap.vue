@@ -8,7 +8,6 @@ const props = defineProps<{ lat: number; lon: number }>()
 const container = ref<HTMLElement | null>(null)
 let map: L.Map | null = null
 let dot: L.CircleMarker | null = null
-let sizeWatch: ResizeObserver | null = null
 
 onMounted(() => {
   if (!container.value) return
@@ -21,14 +20,9 @@ onMounted(() => {
   // Stadia verlangen inzwischen API-Keys, die Kacheln tragen sonst ein Wasserzeichen.
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }).addTo(map)
   dot = L.circleMarker([props.lat, props.lon], { radius: 7, color: '#ffffff', weight: 2, fillColor: '#4f46e5', fillOpacity: 1 }).addTo(map)
-  // Der Kopf wächst und schrumpft mit dem freien Platz - Leaflet muss das erfahren, die Säule bleibt mittig
-  if (typeof ResizeObserver !== 'undefined') {
-    sizeWatch = new ResizeObserver(() => map?.invalidateSize({ animate: false }))
-    sizeWatch.observe(container.value)
-  }
 })
 watch(() => [props.lat, props.lon], ([lat, lon]) => { map?.setView([lat, lon]); dot?.setLatLng([lat, lon]) })
-onUnmounted(() => { sizeWatch?.disconnect(); sizeWatch = null; map?.remove(); map = null })
+onUnmounted(() => { map?.remove(); map = null })
 </script>
 
 <template>

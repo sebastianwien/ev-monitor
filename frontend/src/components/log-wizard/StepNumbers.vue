@@ -7,7 +7,7 @@ import type { ConsumptionPreview } from '../../utils/consumptionPreview'
 import StepEnergy from './StepEnergy.vue'
 import StepVehicle from './StepVehicle.vue'
 import StepCost from './StepCost.vue'
-import OptionalPanel from './OptionalPanel.vue'
+import OptionalPills from './OptionalPills.vue'
 import PlaceHeader, { type NumbersContext } from './PlaceHeader.vue'
 import { useFillHeight } from '../../composables/useFillHeight'
 
@@ -41,7 +41,7 @@ const mapHeight = useFillHeight(root, body)
       <StepEnergy v-model="form" compact @ocr="r => emit('ocr', r)" />
       <StepVehicle v-model="form" compact :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="effectiveCapacityKwh" />
       <StepCost v-model="form" v-model:providers="providers" :cost="cost" compact :open-on-mount="openCard" :preview="preview" />
-      <OptionalPanel v-model="form" />
+      <OptionalPills v-model="form" />
     </div>
   </div>
 </template>

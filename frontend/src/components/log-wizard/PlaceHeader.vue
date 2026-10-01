@@ -18,7 +18,9 @@ const hasMap = computed(() => props.context.lat != null && props.context.lon != 
 <template>
     <div data-testid="numbers-context" :class="['relative', clickable && 'cursor-pointer']" @click="emit('click')" class=" -mx-4 md:mx-0 md:rounded-sm overflow-hidden transition-[height] duration-300 ease-out motion-reduce:transition-none"
       :style="hasMap ? { height: `${height}px` } : undefined">
-      <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" class="absolute inset-0" />
+      <!-- Die Karte ist immer so hoch wie der größte Kopf und mittig verankert: der Rahmen wächst und schrumpft animiert,
+           die Karte wird nur beschnitten statt neu layoutet - sonst flackern die Kacheln bei jeder Zwischenhöhe. -->
+      <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[640px]" />
       <!-- Säule, Adresse, Karte stehen direkt auf der Karte; der hohe Verlauf nach unten macht den Text lesbar und führt zu den Schaltern -->
       <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] px-4 pb-1 pt-16 bg-gradient-to-t from-white via-white/90 to-transparent dark:from-gray-900 dark:via-gray-900/90' : 'px-4'">
         <div class="flex items-end justify-between gap-3">

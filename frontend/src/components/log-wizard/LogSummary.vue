@@ -17,6 +17,8 @@ const props = defineProps<{
   showTimeTile?: boolean
   /** Wizard: der Ort steht als Kartenkopf darüber, die Ort-Kachel entfällt und es bleiben vier im Raster */
   hidePlace?: boolean
+  /** Wizard: "Mehr Details" nur mit Akku vorher, Ladedauer, Leistung - Zeit, Strecke, Reifen wurden in Schritt 2 gesetzt */
+  detailsNumbersOnly?: boolean
   /** ct/kWh, €/100 km, kWh/100 km für die Kosten-Kachel; ersetzt dort die Zeile "Ändern", die Kachel bleibt gleich hoch */
   costMetrics?: CostMetric[]
 }>()
@@ -72,6 +74,6 @@ const tiles = computed<Tile[]>(() => [
       </button>
     </div>
 
-    <OptionalPanel v-model="form" :show-time="!showTimeTile" />
+    <OptionalPanel v-model="form" :show-time="!showTimeTile" :numbers-only="detailsNumbersOnly" />
   </div>
 </template>
