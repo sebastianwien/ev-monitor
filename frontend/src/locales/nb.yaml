@@ -3152,6 +3152,7 @@ watt:
 
 logwizard:
   cost_other: "Endre"
+  preview_since: "Anslag siden forrige lading for {km} siden"
   q_numbers: "Tallene"
   suggestion_site: "Treff i nærheten"
   suggestion_private: "Din private lader her"

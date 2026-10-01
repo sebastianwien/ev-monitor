@@ -3152,6 +3152,7 @@ watt:
 
 logwizard:
   cost_other: "Ändra"
+  preview_since: "Uppskattning sedan senaste laddning för {km} sedan"
   q_numbers: "Siffrorna"
   suggestion_site: "Träff i närheten"
   suggestion_private: "Din privata laddare här"

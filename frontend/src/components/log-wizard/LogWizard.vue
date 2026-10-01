@@ -25,7 +25,8 @@ import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocat
 import { emptyLogForm, canProceed, applyPlace, applySuggestion, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice } from './wizardLogic'
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
-import StepNumbers from './StepNumbers.vue'
+import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
+import type { PreviousLogRef } from '../../utils/consumptionPreview'
 import type { CardChoice, CommunityPrice } from './CardStrip.vue'
 import { providerPriceForType } from '../../utils/chargingProviderPricing'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -226,11 +227,22 @@ const placeLabel = computed(() => {
 const proceedAllowed = computed(() => canProceed(step.value, form.value, state.value))
 const questions: Record<WizardStep, string> = { 1: 'logwizard.q_place', 2: 'logwizard.q_numbers', 3: 'logwizard.q_review' }
 const hint = computed(() => {
-  if (step.value === 2) {
-    const p = providers.value.find(x => x.id === form.value.chargingProviderId)
-    return [placeLabel.value, form.value.chargingType, p ? (p.label || p.providerName) : null].filter(Boolean).join(' · ')
-  }
   return ''
+})
+/** Kopf von Schritt 2: gewählter Ort mit Adresse (aus der Umkreisliste) und Karte, Position für die Minimap. */
+const numbersContext = computed<NumbersContext>(() => {
+  const card = providers.value.find(x => x.id === form.value.chargingProviderId)
+  const station = form.value.chargingSite ? nearby.stations.value.find(s => s.name === form.value.chargingSite!.name) : null
+  return {
+    title: form.value.chargingSite?.name ?? placeLabel.value, address: station?.address ?? null,
+    card: card ? (card.label || card.providerName) : null,
+    lat: state.value.place === 'home' ? null : form.value.latitude, lon: state.value.place === 'home' ? null : form.value.longitude,
+  }
+})
+/** Letzter Log mit Tacho - Referenz für den Richtwert kWh und Euro je 100 km. */
+const previousLog = computed<PreviousLogRef | null>(() => {
+  const l = logs.value.find(x => x.odometerKm != null)
+  return l ? { odometerKm: l.odometerKm, socAfter: l.socAfterChargePercent ?? null } : null
 })
 const goto = (s: WizardStep) => { error.value = null; step.value = s; window.scrollTo({ top: 0 }) } // Desktop: Seite; mobil setzt WizardShell ihren Scroller zurueck
 const back = () => { if (step.value > 1) goto((step.value - 1) as WizardStep) }
@@ -314,7 +326,7 @@ onMounted(async () => {
         @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked"
         @accept-suggestion="acceptSuggestion" @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost"
-        :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" @ocr="onOcr" />
+        :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :previous-log="previousLog" @ocr="onOcr" />
       <StepReview v-else v-model="form" :place-label="placeLabel" :error="error" @goto="goto" />
     </WizardShell>
 

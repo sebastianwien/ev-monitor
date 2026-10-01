@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { chipClass } from './chipClass'
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CameraIcon } from '@heroicons/vue/24/outline'
 import type { LogFormData } from '../log-form/logFormData'
 import RulerInput from './RulerInput.vue'
-import SegmentToggle from './SegmentToggle.vue'
+import AcDcSwitch from './AcDcSwitch.vue'
+import ChargingPileIcon from '../icons/ChargingPileIcon.vue'
+import CarIcon from '../icons/CarIcon.vue'
 const OcrPhotoCapture = defineAsyncComponent(() => import('../log-form/OcrPhotoCapture.vue'))
 
 const props = defineProps<{ compact?: boolean }>()
@@ -15,6 +16,11 @@ const { t } = useI18n()
 
 const mode = ref<'charger' | 'vehicle'>(form.value.kwhAtVehicle && !form.value.kwhCharged ? 'vehicle' : 'charger')
 const showOcr = ref(false)
+const modes = computed(() => [
+  { value: 'charger' as const, label: t('logwizard.kwh_charger'), icon: ChargingPileIcon, testid: 'kwh-mode-charger' },
+  { value: 'vehicle' as const, label: t('logwizard.kwh_vehicle'), icon: CarIcon, testid: 'kwh-mode-vehicle' },
+])
+const modeLabel = computed(() => mode.value === 'charger' ? t('logwizard.kwh_charger') : t('logwizard.kwh_vehicle'))
 
 const kwh = computed({
   get: () => mode.value === 'charger' ? form.value.kwhCharged : form.value.kwhAtVehicle,
@@ -42,16 +48,18 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
     <div :class="props.compact ? 'space-y-2' : 'mt-auto space-y-4'">
       <!-- Quelle und Ladeart in einer Zeile - spart Hoehe. Ladeart aus der Ortswahl vorbelegt
            (Säule DC, sonst AC), hier korrigierbar, weil sie die Ladeverluste bestimmt. -->
-      <div class="flex items-center gap-2">
-        <SegmentToggle class="flex-1 min-w-0" :model-value="mode" @update:model-value="switchMode"
-          :options="[{ value: 'charger', label: t('logwizard.kwh_charger'), testid: 'kwh-mode-charger' }, { value: 'vehicle', label: t('logwizard.kwh_vehicle'), testid: 'kwh-mode-vehicle' }]" />
-        <button v-for="ct in (['AC', 'DC'] as const)" :key="ct" type="button" :aria-pressed="form.chargingType === ct"
-          :data-testid="`charging-type-${ct.toLowerCase()}`" @click="form.chargingType = ct" :aria-label="t('logwizard.charging_type') + ' ' + ct"
-          :class="chipClass(form.chargingType === ct)">
-          {{ ct }}
-        </button>
+      <div class="flex items-center justify-between gap-2">
+        <!-- Quelle der kWh als Icon-Paar: Säule (brutto) oder Auto (netto). Der Feldname darunter sagt die Wahl in Worten. -->
+        <div role="radiogroup" :aria-label="t('logfields.energy')" class="grid grid-cols-2 gap-1 h-11 w-[5.5rem] rounded-full bg-gray-200 dark:bg-gray-700 p-1">
+          <button v-for="m in modes" :key="m.value" type="button" role="radio" :aria-checked="mode === m.value" :aria-label="m.label" :title="m.label"
+            :data-testid="m.testid" @click="switchMode(m.value)"
+            :class="['flex items-center justify-center rounded-full transition-colors', mode === m.value ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow' : 'text-gray-500 dark:text-gray-300']">
+            <component :is="m.icon" class="h-6 w-6" />
+          </button>
+        </div>
+        <AcDcSwitch v-model="form.chargingType" />
       </div>
-      <RulerInput id="wizard-kwh" v-model="kwh" unit="kWh" :label="t('logfields.energy')" :placeholder="t('logfields.kwh_placeholder')" :step="0.1" :min="0" :max="150" autofocus />
+      <RulerInput id="wizard-kwh" v-model="kwh" unit="kWh" :label="modeLabel" :placeholder="t('logfields.kwh_placeholder')" :step="0.1" :min="0" :max="150" autofocus />
       <div v-if="props.compact" class="flex justify-end -mt-1">
         <button type="button" @click="showOcr = !showOcr"
           class="inline-flex items-center gap-1.5 min-h-9 px-1 text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600">
