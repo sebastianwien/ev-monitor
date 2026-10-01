@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -123,25 +124,36 @@ class ChargingProviderTariffControllerNearbyTest {
         var station = new NearbyStation("IONITY", true, 40, 350.0, true, 6, "u33dc0c");
         when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.of(List.of(station)));
 
-        ResponseEntity<?> response = controller.getNearbyStations(52.520008, 13.404954, request);
+        ResponseEntity<?> response = controller.getNearbyStations(52.520008, 13.404954, null, request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo(List.of(station));
         verify(nearbyCpoService).findNearbyStations("u33dc0c");
     }
 
+    /** "Umkreis erweitern": mit Radius laeuft die weite Suche, ohne Radius die gecachte enge. */
+    @Test
+    void radiusSchaltetAufDieWeiteSucheUm() {
+        when(nearbyCpoService.findNearbyStations(anyString(), anyInt())).thenReturn(Optional.of(List.of()));
+
+        controller.getNearbyStations(52.520008, 13.404954, 2_500, request);
+
+        verify(nearbyCpoService).findNearbyStations("u33dc0c", 2_500);
+        verify(nearbyCpoService, never()).findNearbyStations(anyString());
+    }
+
     @Test
     void ausfallDesRegistersLiefertBeiStandortenEineLeereListe() {
         when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.empty());
 
-        assertThat(controller.getNearbyStations(52.52, 13.40, request).getBody()).isEqualTo(List.of());
+        assertThat(controller.getNearbyStations(52.52, 13.40, null, request).getBody()).isEqualTo(List.of());
     }
 
     @Test
     void standortabfrageIstGedrosseltUndGeprueft() {
-        assertThat(controller.getNearbyStations(91.0, 13.4, request).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(controller.getNearbyStations(91.0, 13.4, null, request).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         when(rateLimitService.tryConsumeCpoLookup(anyString())).thenReturn(false);
-        assertThat(controller.getNearbyStations(52.52, 13.40, request).getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(controller.getNearbyStations(52.52, 13.40, null, request).getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
         verifyNoInteractions(nearbyCpoService);
     }
 
