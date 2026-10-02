@@ -201,9 +201,9 @@ const cardMatchingCpo = () => {
  */
 let communitySeq = 0
 const preselectCard = async () => {
-  if (!form.value.isPublicCharging) return
   const mine = ++communitySeq
   community.value = null
+  if (!form.value.isPublicCharging) return
   if (form.value.latitude != null && form.value.longitude != null) {
     try {
       const res = await api.get('/logs/price-suggestion', {
@@ -367,7 +367,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
         :card-strip="cardStrip" @choose-card="chooseCard"
         @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked"
         @accept-suggestion="acceptSuggestion" @expand-radius="nearby.expand()" />
-      <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost"
+      <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost" :community-price="community"
         :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :preview="preview" @ocr="onOcr" />
       <StepReview v-else v-model="form" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto" />
     </WizardShell>

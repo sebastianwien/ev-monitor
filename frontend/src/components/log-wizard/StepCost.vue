@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { CHIP_ROW, chipClass } from './chipClass'
+import type { CommunityPrice } from './CardStrip.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
@@ -21,7 +22,9 @@ import SegmentToggle from './SegmentToggle.vue'
 
 const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null
   /** Richtwert seit der letzten Ladung - steht in der Kostenzeile, weil Preis und Verbrauch zusammen gelesen werden */
-  preview?: ConsumptionPreview | null }>()
+  preview?: ConsumptionPreview | null
+  /** Preisvorschlag, den der Wizard schon in Schritt 1 geholt hat (null = keiner). undefined = selbst holen (Bearbeiten-Dialog). */
+  communityPrice?: CommunityPrice | null }>()
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const { t } = useI18n()
@@ -149,14 +152,15 @@ onMounted(async () => {
     const preset = cardSuggestions.value.find(c => c.providerId === form.value.chargingProviderId)
     if (preset) pick(preset)
   }
-  if (form.value.latitude != null && form.value.longitude != null) {
+  const asSuggestion = (c: CommunityPrice): Suggestion => ({ key: 'community', label: t('logwizard.price_community'), eurPerKwh: c.eurPerKwh, providerId: c.providerId })
+  if (props.communityPrice !== undefined) {
+    if (props.communityPrice) community.value = asSuggestion(props.communityPrice)
+  } else if (form.value.latitude != null && form.value.longitude != null) {
     try {
       const res = await api.get('/logs/price-suggestion', {
         params: { lat: form.value.latitude, lon: form.value.longitude, isPublic: form.value.isPublicCharging, chargingType: form.value.chargingType },
       })
-      if (res.data?.costPerKwh != null) {
-        community.value = { key: 'community', label: t('logwizard.price_community'), eurPerKwh: Number(res.data.costPerKwh), providerId: res.data.chargingProviderId ?? null }
-      }
+      if (res.data?.costPerKwh != null) community.value = asSuggestion({ eurPerKwh: Number(res.data.costPerKwh), providerId: res.data.chargingProviderId ?? null })
     } catch { /* kein Vorschlag - kein Problem */ }
   }
   if (!untouched()) return
