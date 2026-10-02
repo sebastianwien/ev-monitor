@@ -123,6 +123,7 @@ const acceptSuggestion = () => {
   if (!suggestion.suggestion.value) return
   const choice = applySuggestion(form.value, suggestion.suggestion.value)
   state.value.place = choice.kind
+  viaSuggestion.value = true
   cost.reset(); cardKey.value = null; openCard.value = null
   const id = form.value.chargingProviderId
   const p = id ? providers.value.find(x => x.id === id) : null
@@ -150,6 +151,7 @@ const choosePlace = (choice: PlaceChoice) => {
     ? { lat: choice.station.latitude, lon: choice.station.longitude } : null
   siteAddress.value = choice.kind === 'station' ? choice.station.address ?? null : null
   applyPlace(form.value, choice)
+  viaSuggestion.value = false
   resetCard()
   if (autoAdvances(choice)) advance.schedule(); else { advance.cancel(); preselectCard() }
 }
@@ -162,7 +164,9 @@ const community = ref<CommunityPrice | null>(null)
 const openCard = ref<'new' | 'price' | null>(null)
 const resetCard = () => { cardKey.value = null; openCard.value = null; form.value.chargingProviderId = null; cost.reset() }
 const priceLabel = (eur: number) => `${formatNumber(Math.round(cost.eurToLocal(eur) * 100) / 100)} ${countryStore.unitSystem.currencySymbol}/kWh`
-const cardStrip = computed(() => form.value.isPublicCharging
+/** Trefferkarte "Übernehmen": Karte wie beim letzten Mal, der Streifen bleibt zu. Wer wechseln will, tippt die Kachel. */
+const viaSuggestion = ref(false)
+const cardStrip = computed(() => form.value.isPublicCharging && !viaSuggestion.value
   ? { providers: providers.value, chargingType: form.value.chargingType, community: community.value, selected: cardKey.value, priceLabel }
   : null)
 
