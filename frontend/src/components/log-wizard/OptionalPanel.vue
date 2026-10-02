@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 import type { Component } from 'vue'
@@ -8,6 +8,7 @@ import type { LogFormData } from '../log-form/logFormData'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { optionalFacts } from './wizardLogic'
 import OptionalDetails from './OptionalDetails.vue'
+import Collapse from './Collapse.vue'
 
 /**
  * "Mehr Details" zum Aufklappen. Zugeklappt zeigt eine Zeile kleiner Pillen nur die Werte,
@@ -41,16 +42,35 @@ const facts = computed<Pill[]>(() => props.numbersOnly ? numberPills.value : opt
     case 'peak': return { text: `${formatNumber(f.value as number)} kW` }
   }
 }))
-const details = ref<HTMLDetailsElement | null>(null)
 const open = ref(false)
+const panel = ref<HTMLElement | null>(null)
+/**
+ * Aufklappen ist animiert (Collapse). Während der Inhalt wächst, folgt der Scrollbereich pro Frame bis
+ * an sein Ende, damit das Formular samt dem, was darunter steht, in den Blick kommt statt unsichtbar
+ * unter dem Footer aufzugehen. Das Panel ist das letzte große Element, darum "ans Ende" statt "Panel sichtbar".
+ */
+const toggle = async () => {
+  open.value = !open.value
+  if (!open.value) return
+  await nextTick()
+  const scroller = panel.value?.closest<HTMLElement>('.overflow-y-auto')
+  if (!scroller) return
+  const t0 = performance.now()
+  const follow = () => {
+    scroller.scrollTop = scroller.scrollHeight
+    if (performance.now() - t0 < 360) requestAnimationFrame(follow)
+  }
+  requestAnimationFrame(follow)
+}
 </script>
 
 <template>
-  <details ref="details" data-testid="optional-panel" class="group" @toggle="open = details?.open ?? false">
+  <!-- Kein natives details: dessen Inhalt lässt sich nicht animieren. Button plus Collapse, gleiche Semantik über aria-expanded. -->
+  <div ref="panel" data-testid="optional-panel">
     <!-- Eine Zeile: Titel links, zugeklappt rechts die gesetzten Werte als Pillen mit Icon; was nicht passt, läuft weich aus -->
-    <summary class="flex items-center gap-2 min-h-11 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+    <button type="button" :aria-expanded="open" aria-controls="optional-details" class="flex items-center gap-2 w-full min-h-11 text-left" @click="toggle">
       <span class="flex items-center gap-1 flex-shrink-0 text-sm font-semibold text-gray-800 dark:text-gray-100">
-        <ChevronRightIcon class="h-4 w-4 text-gray-400 transition group-open:rotate-90" />{{ t('logwizard.more_details') }}
+        <ChevronRightIcon :class="['h-4 w-4 text-gray-400 transition-transform duration-200', open && 'rotate-90']" />{{ t('logwizard.more_details') }}
       </span>
       <span v-if="open" class="text-xs text-gray-400">· {{ t('logfields.optional') }}</span>
       <span v-else-if="facts.length" data-testid="summary-optional" class="flex flex-1 min-w-0 gap-1.5 overflow-hidden [mask-image:linear-gradient(to_right,black_88%,transparent)]">
@@ -59,7 +79,9 @@ const open = ref(false)
           <component :is="f.icon" v-if="f.icon" class="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />{{ f.text }}
         </span>
       </span>
-    </summary>
-    <OptionalDetails v-model="form" :show-time="showTime" />
-  </details>
+    </button>
+    <Collapse :open="open">
+      <div id="optional-details"><OptionalDetails v-model="form" :show-time="showTime" /></div>
+    </Collapse>
+  </div>
 </template>
