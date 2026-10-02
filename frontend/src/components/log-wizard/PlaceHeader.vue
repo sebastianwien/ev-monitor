@@ -18,7 +18,9 @@ const hasMap = computed(() => props.map && props.context.lat != null && props.co
 </script>
 
 <template>
+    <!-- Klickbar (Prüfung: Tipp springt zum Ort) auch per Tastatur: role, tabindex und Enter/Leertaste -->
     <div data-testid="numbers-context" :class="['relative', clickable && 'cursor-pointer']" @click="emit('click')" class=" -mx-4 md:mx-0 md:rounded-sm overflow-hidden"
+      :role="clickable ? 'button' : undefined" :tabindex="clickable ? 0 : undefined" @keydown.enter.prevent="clickable && emit('click')" @keydown.space.prevent="clickable && emit('click')"
       :style="hasMap ? { height: `${height}px` } : undefined">
       <!-- Die Karte ist immer so hoch wie der größte Kopf und mittig verankert: der Rahmen wächst und schrumpft animiert,
            die Karte wird nur beschnitten statt neu layoutet - sonst flackern die Kacheln bei jeder Zwischenhöhe. -->
