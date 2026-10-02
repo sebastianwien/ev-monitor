@@ -14,7 +14,9 @@ const props = defineProps<{
   primaryLabel: string
   saving?: boolean
 }>()
-const emit = defineEmits<{ back: []; next: []; cancel: [] }>()
+const emit = defineEmits<{ back: []; next: []; blocked: []; cancel: [] }>()
+/** Unvollständig bleibt der Button fokussierbar (aria-disabled statt disabled): ein Druck sagt, was fehlt. */
+const onPrimary = () => { if (props.saving) return; if (props.canProceed) emit('next'); else emit('blocked') }
 const { t } = useI18n()
 const isInputStep = computed(() => props.step <= INPUT_STEPS)
 // Mobile: Rahmen an den sichtbaren Ausschnitt binden. iOS Safari verschiebt bei offener
@@ -50,7 +52,8 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
       <div v-if="isInputStep" class="flex gap-1 mt-3" role="progressbar" :aria-valuenow="step" :aria-valuemin="1" :aria-valuemax="INPUT_STEPS">
         <i v-for="i in INPUT_STEPS" :key="i" :class="['flex-1 h-1 rounded-sm', i <= step ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']" />
       </div>
-      <p v-if="hint" class="mt-2 text-sm text-center text-gray-500 dark:text-gray-400">{{ hint }}</p>
+      <!-- Immer im DOM, damit Screenreader den Hinweis vorlesen, sobald er erscheint -->
+      <p role="status" aria-live="polite" :class="['text-sm text-center text-amber-700 dark:text-amber-400', hint && 'mt-2']">{{ hint }}</p>
     </header>
 
     <!-- Inhalt am unteren Rand: Tap-Ziele liegen so ueber dem Footer in Daumenreichweite.
@@ -66,7 +69,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
         class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 inline-flex items-center gap-1 rounded-sm transition hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
         <ChevronLeftIcon class="h-4 w-4" />{{ t('common.back') }}
       </button>
-      <button type="button" data-testid="wizard-next" :disabled="!canProceed || saving" @click="emit('next')"
+      <button type="button" data-testid="wizard-next" :disabled="saving" :aria-disabled="!canProceed" @click="onPrimary"
         :class="['flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold transition',
                  !canProceed || saving ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700']">
         {{ saving ? t('common.saving') : primaryLabel }}

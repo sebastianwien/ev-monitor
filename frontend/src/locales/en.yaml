@@ -3321,6 +3321,8 @@ logwizard:
   d_when: "When did you charge?"
   d_time_other: "Other time"
   d_time_pick: "Pick"
+  missing_place: "First choose where you charged."
+  missing_fields: "Still missing: {fields}"
   d_soc_before: "Battery before charging"
   d_soc_before_tile: "SoC before"
   d_peak_tile: "Peak power"

@@ -3206,6 +3206,8 @@ logwizard:
   d_when: "Når ladet du?"
   d_time_other: "Annet tidspunkt"
   d_time_pick: "Velg"
+  missing_place: "Velg først hvor du ladet."
+  missing_fields: "Mangler fortsatt: {fields}"
   d_soc_before: "Batteri før lading"
   d_soc_before_tile: "SoC før"
   d_peak_tile: "Toppeffekt"

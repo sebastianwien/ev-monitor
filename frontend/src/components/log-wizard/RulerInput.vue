@@ -2,12 +2,17 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Collapse from './Collapse.vue'
 import { activeRuler } from './rulerState'
+import { useIsMobile } from '../../composables/useIsMobile'
 
 /**
  * Zahl mit Rädchen: ein horizontal wischbarer Maßstab unter dem Wert, als nativer Scroll-Container
  * mit Scroll-Snap - kein eigenes Touch-Handling, deshalb auf iOS und Android gleich robust.
  * Nur das aktive Feld zeigt seinen Maßstab (Akkordeon über `activeRuler`), die anderen sind eine
  * Zeile. Tipp auf die Zeile aktiviert das Rädchen, Tipp auf die Zahl öffnet die Tastatur.
+ *
+ * Mit Maus oder Trackpad (feiner Zeiger mit Hover, nicht die Bildschirmbreite: ein Touch-Tablet
+ * behält das Rädchen) bleibt der Maßstab zu - dort ist das Feld ein normales Zahlenfeld.
+ * Pfeil hoch/runter im Feld ändert den Wert um einen Schritt, mit Shift um labelEvery Schritte.
  */
 const props = withDefaults(defineProps<{
   id: string
@@ -42,6 +47,9 @@ const steps = computed(() => Math.round((props.max - props.min) / props.step))
 const MAX_STEPS = 5000
 const rulerable = computed(() => steps.value > 0 && steps.value <= MAX_STEPS)
 const active = computed(() => activeRuler.value === props.id)
+const finePointer = useIsMobile('(hover: hover) and (pointer: fine)')
+const showRuler = computed(() => active.value && rulerable.value && !finePointer.value)
+const input = ref<HTMLInputElement | null>(null)
 /**
  * Zeile antippen öffnet nur das Rädchen. Die Tastatur kommt erst, wenn der Nutzer in der
  * offenen Zeile direkt auf die Zahl tippt - sonst schiebt sich bei jedem Zeilenwechsel die
@@ -56,7 +64,7 @@ const activate = () => {
 /** Tipp auf das Label: offene Box zu, geschlossene auf. */
 const toggleFromLabel = () => { if (active.value) activeRuler.value = null; else activate() }
 const onInputPointerDown = (e: Event) => {
-  if (active.value) return
+  if (active.value || finePointer.value) return
   e.preventDefault()
   activate()
 }
@@ -105,7 +113,7 @@ const syncScroll = () => {
 }
 watch(model, () => { syncScroll() })
 watch(() => props.start, () => { if (model.value == null) syncScroll() })
-watch(() => props.labelBase, () => { drawnWidth = 0; if (active.value) draw() })
+watch(() => props.labelBase, () => { drawnWidth = 0; if (showRuler.value) draw() })
 
 /**
  * Einmal pro Gerät: beim ersten offenen Maßstab ruckt der Streifen kurz an und zurück, mit
@@ -140,12 +148,25 @@ const onScroll = () => {
     if (i % props.labelEvery === 0) navigator.vibrate?.(3)
   })
 }
+/** Ein Schritt (mit Shift labelEvery Schritte) vom aktuellen Wert, sonst vom Startwert des Maßstabs. */
+const stepBy = (dir: number, big: boolean) => {
+  model.value = toValue(Math.max(0, Math.min(steps.value, toIndex(model.value ?? props.start ?? props.min) + dir * (big ? props.labelEvery : 1))))
+}
 const onKey = (e: KeyboardEvent) => {
   const dir = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
   if (!dir) return
   e.preventDefault()
-  model.value = toValue(Math.max(0, Math.min(steps.value, toIndex(model.value ?? props.min) + dir * (e.shiftKey ? props.labelEvery : 1))))
+  stepBy(dir, e.shiftKey)
 }
+/** Im Zahlenfeld: hoch/runter statt des nativen Spinners, damit Shift gleich wirkt wie auf dem Maßstab. */
+const onInputKey = (e: KeyboardEvent) => {
+  const dir = e.key === 'ArrowUp' ? 1 : e.key === 'ArrowDown' ? -1 : 0
+  if (!dir) return
+  e.preventDefault()
+  stepBy(dir, e.shiftKey)
+}
+/** Klick auf die Zeile: auf Touch öffnet das Rädchen, mit Maus geht der Fokus gleich ins Feld. */
+const onRowClick = () => { if (finePointer.value) input.value?.focus(); else activate() }
 const onInput = (e: Event) => {
   const v = (e.target as HTMLInputElement).value
   model.value = v === '' ? null : Number(v)
@@ -153,8 +174,8 @@ const onInput = (e: Event) => {
 
 // Beim Wiederöffnen zeichnet draw() nicht neu (gleiche Breite), der Streifen stünde sonst auf dem alten
 // Wert und der erste Wisch setzt das Modell zurück - deshalb immer nachziehen.
-watch(active, async (on) => { if (on) { drawnWidth = 0; await nextTick(); draw(); syncScroll(); nudgeOnce() } })
-onMounted(() => { if (props.autofocus) activate(); if (active.value) nextTick(draw) })
+watch(showRuler, async (on) => { if (on) { drawnWidth = 0; await nextTick(); draw(); syncScroll(); nudgeOnce() } })
+onMounted(() => { if (props.autofocus) activate(); if (showRuler.value) nextTick(draw) })
 onBeforeUnmount(() => { if (raf) cancelAnimationFrame(raf); if (activeRuler.value === props.id) activeRuler.value = null })
 const shown = computed(() => model.value == null ? '' : String(model.value))
 </script>
@@ -162,23 +183,24 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
 <template>
   <div :data-testid="testid ? `${testid}-row` : undefined" :class="['rounded-sm border-2 px-3 py-2 transition cursor-pointer select-none',
       active ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800']"
-    v-haptic @click="activate">
+    v-haptic @click="onRowClick">
     <div :class="['grid items-baseline gap-x-2 min-h-9', prefix ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto]']">
       <span class="text-sm text-gray-500 dark:text-gray-400 cursor-pointer py-2 -my-2" aria-hidden="true" @click.stop="toggleFromLabel">{{ label }}</span>
       <span v-if="prefix" class="text-xs tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500">{{ prefix }}</span>
-      <input :id="id" :data-testid="testid" type="number" :inputmode="inputmode" :step="step" :min="min" :max="max"
-        :placeholder="placeholder" :value="shown" :aria-label="label" @input="onInput" @focus="activate" @pointerdown="onInputPointerDown"
+      <input ref="input" :id="id" :data-testid="testid" type="number" :inputmode="inputmode" :step="step" :min="min" :max="max"
+        :placeholder="placeholder" :value="shown" :aria-label="label" @input="onInput" @keydown="onInputKey" @focus="activate" @pointerdown="onInputPointerDown"
         :class="['w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none transition-[font-size]',
                  active ? 'text-3xl' : 'text-2xl']" />
       <span class="text-base text-gray-500 dark:text-gray-400">{{ unit }}</span>
       <span v-if="sub" :class="['col-span-full text-right text-xs tabular-nums -mt-1', subTone === 'warn' ? 'text-red-500' : subTone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500']">{{ sub }}</span>
     </div>
-    <!-- Der Maßstab: Mittelmarke steht fest, der Streifen scrollt darunter durch -->
+    <!-- Der Maßstab: Mittelmarke steht fest, der Streifen scrollt darunter durch. Für Tastatur und
+         Screenreader trägt das Zahlenfeld Wert und Pfeiltasten, der Streifen ist reine Fingergeste. -->
     <!-- Ränder laufen weich aus (Maske), die Mittelmarke ist kräftig: so liest sich der Streifen als etwas, das weitergeht -->
     <!-- Collapse statt v-show: Höhe fährt an- und ab, die Karte darüber folgt pro Frame (useFillHeight) -->
-    <Collapse :open="active && rulerable">
+    <Collapse :open="showRuler">
     <div ref="ruler" class="ruler relative h-10 -mx-3 mt-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory touch-pan-x cursor-grab [mask-image:linear-gradient(to_right,transparent,black_18%,black_82%,transparent)]"
-      role="slider" :aria-label="label" :aria-valuemin="min" :aria-valuemax="max" :aria-valuenow="model ?? min" tabindex="0"
+      tabindex="-1" aria-hidden="true"
       @scroll.passive="onScroll" @keydown="onKey">
       <canvas ref="canvas" :class="['block h-10', nudging && 'ruler-nudge']" />
       <i aria-hidden="true" class="absolute left-1/2 top-0 h-7 w-1 -ml-0.5 rounded-full bg-indigo-600 shadow-[0_0_0_2px_rgba(255,255,255,0.9)] dark:shadow-[0_0_0_2px_rgba(31,41,55,0.9)] pointer-events-none" />

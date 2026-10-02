@@ -1,12 +1,17 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, nextTick, ref, defineComponent, h, type App } from 'vue'
 import { i18n } from '../../../i18n'
 import RulerInput from '../RulerInput.vue'
 import { activeRuler } from '../rulerState'
 
 let app: App | null = null
-afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; activeRuler.value = null })
+afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; activeRuler.value = null; vi.unstubAllGlobals() })
+
+/** Maus oder Trackpad: matchMedia meldet einen feinen Zeiger mit Hover. */
+const stubFinePointer = () => vi.stubGlobal('matchMedia', (q: string) => ({
+  matches: q.includes('pointer: fine'), media: q, addEventListener: () => {}, removeEventListener: () => {},
+}))
 
 function mount(fields: { id: string; autofocus?: boolean }[]) {
   const host = document.createElement('div'); document.body.appendChild(host)
@@ -36,7 +41,7 @@ describe('RulerInput', () => {
     await nextTick()
     // Der Maßstab sitzt in einem Collapse: zugeklappt ist er inert, bis die Animation ihn ausblendet.
     // jsdom kennt die inert-Eigenschaft nicht, Vue schreibt dann das Attribut mit "true"/"false".
-    const shown = () => [...host.querySelectorAll('[role="slider"]')].map(s => !s.closest('[inert]:not([inert="false"])'))
+    const shown = () => [...host.querySelectorAll('.ruler')].map(s => !s.closest('[inert]:not([inert="false"])'))
     expect(shown()).toEqual([true, false])
     ;(host.querySelector('#b') as HTMLInputElement).dispatchEvent(new Event('focus'))
     await nextTick()
@@ -47,12 +52,39 @@ describe('RulerInput', () => {
   it('Pfeiltasten auf dem Maßstab ändern den Wert um einen Schritt, mit Shift um zehn', async () => {
     const { host, values } = mount([{ id: 'kwh', autofocus: true }])
     await nextTick()
-    const slider = host.querySelector('[role="slider"]') as HTMLElement
+    const slider = host.querySelector('.ruler') as HTMLElement
     slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); await nextTick()
     expect(values[0].value).toBe(0.1)
     slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true })); await nextTick()
     expect(values[0].value).toBe(1.1)
     slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' })); await nextTick()
     expect(values[0].value).toBe(1)
+  })
+
+  it('Pfeiltasten hoch/runter im Zahlenfeld ändern den Wert, mit Shift um zehn Schritte', async () => {
+    const { host, values } = mount([{ id: 'kwh' }])
+    const input = host.querySelector('#kwh') as HTMLInputElement
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' })); await nextTick()
+    expect(values[0].value).toBe(0.1)
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', shiftKey: true })); await nextTick()
+    expect(values[0].value).toBe(1.1)
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' })); await nextTick()
+    expect(values[0].value).toBe(1)
+  })
+
+  it('der Maßstab ist kein eigener Tab-Stopp, das Zahlenfeld trägt den Wert', async () => {
+    const { host } = mount([{ id: 'kwh', autofocus: true }])
+    await nextTick()
+    const slider = host.querySelector('.ruler') as HTMLElement
+    expect(slider.getAttribute('tabindex')).toBe('-1')
+    expect(slider.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('mit Maus oder Trackpad bleibt der Maßstab zu, auch im aktiven Feld', async () => {
+    stubFinePointer()
+    const { host } = mount([{ id: 'kwh', autofocus: true }])
+    await nextTick()
+    expect(activeRuler.value).toBe('kwh')
+    expect(host.querySelector('.ruler')!.closest('[inert]:not([inert="false"])')).not.toBeNull()
   })
 })

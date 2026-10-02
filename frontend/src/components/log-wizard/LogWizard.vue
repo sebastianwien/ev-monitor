@@ -22,7 +22,7 @@ import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { analytics } from '../../services/analytics'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
-import { emptyLogForm, canProceed, applyPlace, applySuggestion, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice } from './wizardLogic'
+import { emptyLogForm, canProceed, missingRequired, applyPlace, applySuggestion, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice } from './wizardLogic'
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
 import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
@@ -34,6 +34,8 @@ import { providerPriceForType } from '../../utils/chargingProviderPricing'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import StepReview from './StepReview.vue'
 import { prefetchMinimapTiles, MINIMAP_MAX_PX } from './minimapTiles'
+import { nextField } from './keyboardNav'
+import { useIsMobile } from '../../composables/useIsMobile'
 
 const emit = defineEmits<{ success: []; cancel: [] }>()
 const { t } = useI18n()
@@ -236,9 +238,10 @@ const placeLabel = computed(() => {
 // ── Navigation ────────────────────────────────────────────────────────────────
 const proceedAllowed = computed(() => canProceed(step.value, form.value, state.value))
 const questions: Record<WizardStep, string> = { 1: 'logwizard.q_place', 2: 'logwizard.q_numbers', 3: 'logwizard.q_review' }
-const hint = computed(() => {
-  return ''
-})
+/** Hinweis nach "Weiter" mit Lücke: was noch fehlt. Verschwindet, sobald der Schritt wechselt oder vollständig ist. */
+const blockedHint = ref('')
+const hint = computed(() => blockedHint.value)
+watch([step, proceedAllowed], () => { blockedHint.value = '' })
 /** Kopf von Schritt 2: gewählter Ort mit Adresse (aus der Umkreisliste) und Karte, Position für die Minimap. */
 const numbersContext = computed<NumbersContext>(() => {
   const card = providers.value.find(x => x.id === form.value.chargingProviderId)
@@ -291,6 +294,53 @@ const dir = ref<'forward' | 'back'>('forward')
 const goto = (s: WizardStep) => { error.value = null; dir.value = s > step.value ? 'forward' : 'back'; step.value = s; window.scrollTo({ top: 0 }) } // Desktop: Seite; mobil setzt WizardShell ihren Scroller zurueck
 const back = () => { if (step.value > 1) goto((step.value - 1) as WizardStep) }
 const next = () => { if (step.value < LAST_STEP) goto((step.value + 1) as WizardStep); else submit() }
+
+// ── Tastatur ──────────────────────────────────────────────────────────────────
+/** Feld-IDs der Pflichtangaben in Schritt 2 - ihr aria-label ist zugleich der Name im Hinweis. */
+const REQUIRED_FIELD_IDS = { energy: 'wizard-kwh', odometer: 'wizard-odometer', soc: 'wizard-soc', cost: 'wizard-cost' } as const
+/** "Weiter" trotz Lücke: Hinweis nennt, was fehlt, der Fokus springt zum ersten offenen Feld (bzw. zur ersten Kachel). */
+const onBlocked = () => {
+  if (step.value === 1) {
+    blockedHint.value = t('logwizard.missing_place')
+    stepEl.value?.querySelector<HTMLElement>('button')?.focus()
+    return
+  }
+  const fields = missingRequired(form.value).map(f => document.getElementById(REQUIRED_FIELD_IDS[f]))
+  const names = fields.map(el => el?.getAttribute('aria-label')).filter(Boolean)
+  if (names.length) blockedHint.value = t('logwizard.missing_fields', { fields: names.join(', ') })
+  fields.find(Boolean)?.focus()
+}
+/** Enter in einem Zahlenfeld: ins nächste Feld, im letzten Feld wie "Weiter". */
+const onEnter = (e: KeyboardEvent) => {
+  const target = e.target as HTMLElement
+  if (!(target instanceof HTMLInputElement) || target.type !== 'number' || !stepEl.value) return
+  e.preventDefault()
+  const following = nextField(stepEl.value, target)
+  if (following) following.focus()
+  else if (proceedAllowed.value) next()
+  else onBlocked()
+}
+/**
+ * Nach jedem Schrittwechsel steht der Fokus im neuen Schritt, nicht auf dem Seitenkörper. Mit Maus und
+ * Tastatur direkt auf dem ersten Bedienelement (Schritt 3: Speichern); auf Touch nur auf dem Schritt
+ * selbst, sonst springt die Bildschirmtastatur auf.
+ */
+const finePointer = useIsMobile('(hover: hover) and (pointer: fine)')
+const stepEl = ref<HTMLElement | null>(null)
+const focusStep = (el: HTMLElement) => {
+  if (!finePointer.value) { el.focus({ preventScroll: true }); return }
+  const target = step.value === LAST_STEP
+    ? document.querySelector<HTMLElement>('[data-testid="wizard-next"]')
+    : step.value === 2 ? el.querySelector<HTMLElement>('#wizard-kwh')
+    // Schritt 1: Trefferkarte, sonst "Zuhause" - nicht der erste Button, das ist oft "Standort freigeben", der nach der Ortung verschwindet
+    : el.querySelector<HTMLElement>('[data-testid="suggestion-accept"], [data-testid="place-home"]')
+  ;(target ?? el).focus({ preventScroll: true })
+}
+const onStepEl = (el: unknown) => {
+  const node = el instanceof HTMLElement ? el : null
+  if (node && node !== stepEl.value) { stepEl.value = node; requestAnimationFrame(() => focusStep(node)) }
+  else if (!node) stepEl.value = null
+}
 
 // ── OCR ───────────────────────────────────────────────────────────────────────
 const onOcr = (r: any) => {
@@ -360,13 +410,13 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
     <WizardShell v-else-if="hasCars" :step="step" :question="t(questions[step])" :hint="hint"
       :can-proceed="proceedAllowed && !!selectedCarId" :saving="saving"
       :primary-label="step === LAST_STEP ? t('common.save') : t('common.next')"
-      @back="back" @next="next" @cancel="emit('cancel')">
+      @back="back" @next="next" @blocked="onBlocked" @cancel="emit('cancel')">
       <div v-if="cars.length > 1 && step === 1" class="mb-4"><CarSelector v-model="selectedCarId" /></div>
 
       <!-- Schrittwechsel als horizontaler Slide, out-in: der alte Schritt ist weg, bevor der neue seine Karte misst.
            Gekeyter Wrapper statt Transition direkt auf den Komponenten: so hängt der Wechsel nicht an deren Wurzelelement. -->
       <Transition :name="`step-${dir}`" mode="out-in">
-      <div :key="step">
+      <div :key="step" :ref="onStepEl" tabindex="-1" class="outline-none" @keydown.enter="onEnter">
       <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="viaSuggestion ? null : state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
         :recent-sites="recentSites.sites.value"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"

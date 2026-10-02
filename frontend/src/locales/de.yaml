@@ -3327,6 +3327,8 @@ logwizard:
   d_when: "Wann geladen?"
   d_time_other: "Anderer Zeitpunkt"
   d_time_pick: "Wählen"
+  missing_place: "Wähle zuerst, wo du geladen hast."
+  missing_fields: "Noch offen: {fields}"
   d_soc_before: "Akku vor dem Laden"
   d_soc_before_tile: "Akku vorher"
   d_peak_tile: "Max. Leistung"

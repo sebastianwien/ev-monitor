@@ -532,3 +532,63 @@ test.describe('Ladegruppe im Zeitraum-Feed', () => {
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue(/^6/);
   });
 });
+
+test.describe('Wizard nur mit Tastatur', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  test('Ort, drei Zahlen und Speichern ohne Maus; Weiter mit Lücke nennt das fehlende Feld', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', err => errors.push(err.message));
+    // Speichern abfangen: der Lauf prüft die Tastaturführung, nicht die Persistenz (und kollidiert so nicht mit Logs derselben Minute)
+    let capturedPayload: Record<string, unknown> | null = null;
+    await page.route('**/api/logs', async route => {
+      if (route.request().method() !== 'POST') return route.continue();
+      capturedPayload = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000', coinsAwarded: 0 }) });
+    });
+
+    await login(page);
+    await page.goto('/erfassen');
+    await page.waitForLoadState('networkidle');
+    const focused = page.locator(':focus');
+
+    // Schritt 1: Fokus steht auf der ersten Kachel, Enter wählt
+    await expect(focused).toHaveAttribute('data-testid', /suggestion-accept|place-home/);
+    await page.locator('[data-testid="place-home"]').focus();
+    await page.keyboard.press('Enter');
+
+    // Schritt 2: Fokus im kWh-Feld, kein Rädchen mit Maus/Tastatur; Pfeiltasten zählen
+    await expect(focused).toHaveId('wizard-kwh');
+    await expect(page.locator('.ruler').first()).toBeHidden();
+    await page.keyboard.type('30');
+    await page.keyboard.press('ArrowUp');
+    await expect(page.locator('#wizard-kwh')).toHaveValue('30.1');
+    await page.keyboard.press('Enter');
+    await expect(focused).toHaveId('wizard-odometer');
+
+    // Weiter mit Lücke: Hinweis nennt das Feld, der Fokus springt hin
+    await page.locator('[data-testid="wizard-next"]').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[role="status"]')).toContainText('Tachostand');
+    await expect(focused).toHaveId('wizard-odometer');
+
+    await page.keyboard.type(String(nextOdometer()));
+    await page.keyboard.press('Enter');
+    await expect(focused).toHaveId('wizard-soc');
+    await page.keyboard.type('80');
+    await page.keyboard.press('Enter');
+    await expect(focused).toHaveId('wizard-cost');
+    await page.keyboard.type('9');
+    await page.keyboard.press('Enter');
+
+    // Schritt 3: Fokus auf Speichern
+    await expect(focused).toHaveAttribute('data-testid', 'wizard-next');
+    await expect(focused).toHaveText('Speichern');
+    await page.keyboard.press('Enter');
+
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+    expect(capturedPayload!['kwhCharged']).toBe(30.1);
+    expect(errors).toEqual([]);
+  });
+});
