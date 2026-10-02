@@ -7,6 +7,7 @@ import type { WizardStep } from './wizardLogic'
 import LogSummary, { type SummarySection } from './LogSummary.vue'
 import PlaceHeader, { type NumbersContext } from './PlaceHeader.vue'
 import { useFillHeight } from '../../composables/useFillHeight'
+import { MINIMAP_MAX_PX } from './minimapTiles'
 import type { CostMetric } from './costMetrics'
 
 defineProps<{ placeLabel: string; error: string | null; context: NumbersContext; costMetrics: CostMetric[] }>()
@@ -16,7 +17,7 @@ const { t } = useI18n()
 
 const root = ref<HTMLElement | null>(null)
 const body = ref<HTMLElement | null>(null)
-const mapHeight = useFillHeight(root, body)
+const mapHeight = useFillHeight(root, body, 112, MINIMAP_MAX_PX)
 const stepFor: Record<SummarySection, WizardStep> = { place: 1, energy: 2, vehicle: 2, cost: 2, time: 3 }
 </script>
 

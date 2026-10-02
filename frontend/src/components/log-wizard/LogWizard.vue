@@ -33,6 +33,7 @@ import type { CardChoice, CommunityPrice } from './CardStrip.vue'
 import { providerPriceForType } from '../../utils/chargingProviderPricing'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import StepReview from './StepReview.vue'
+import { prefetchMinimapTiles, MINIMAP_MAX_PX } from './minimapTiles'
 
 const emit = defineEmits<{ success: []; cancel: [] }>()
 const { t } = useI18n()
@@ -332,6 +333,10 @@ onMounted(async () => {
   if (permission.value === 'granted' || (permission.value === 'unknown' && localStorage.getItem(LOCATION_ENABLED_KEY) === 'true')) {
     requestLocation()
   }
+})
+// Kacheln der Prüfseiten-Karte schon in Schritt 1 in den Cache holen: die Karte steht dann beim Betreten, statt kachelweise reinzuploppen
+watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat, lon]) => {
+  if (lat != null && lon != null) prefetchMinimapTiles(lat, lon, window.innerWidth, Math.min(MINIMAP_MAX_PX, window.innerHeight * 0.6))
 })
 </script>
 

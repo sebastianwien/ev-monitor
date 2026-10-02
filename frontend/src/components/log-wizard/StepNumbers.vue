@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import type { useCostInput } from '../../composables/useCostInput'
@@ -9,7 +8,6 @@ import StepVehicle from './StepVehicle.vue'
 import StepCost from './StepCost.vue'
 import OptionalPills from './OptionalPills.vue'
 import PlaceHeader, { type NumbersContext } from './PlaceHeader.vue'
-import { useFillHeight } from '../../composables/useFillHeight'
 
 export type { NumbersContext }
 
@@ -26,19 +24,14 @@ const props = defineProps<{
 const form = defineModel<LogFormData>({ required: true })
 const providers = defineModel<ChargingProvider[]>('providers', { required: true })
 const emit = defineEmits<{ ocr: [result: any] }>()
-
-
-const root = ref<HTMLElement | null>(null)
-const body = ref<HTMLElement | null>(null)
-const mapHeight = useFillHeight(root, body)
 </script>
 
 <template>
-  <!-- Kein Abstand zur Karte: der Verlauf läuft direkt in die Schalter, der Text steht weiter oben auf der Karte -->
-  <div ref="root">
-    <PlaceHeader :context="context" :height="mapHeight" />
+  <!-- Ohne Karte: ein Held pro Schritt, hier die Zahlen. Der Ort steht als Zeile darüber, der freie Platz bleibt frei (Daumenzone). -->
+  <div class="space-y-3">
+    <PlaceHeader :context="context" :map="false" />
 
-    <div ref="body" class="space-y-2">
+    <div class="space-y-2">
       <StepEnergy v-model="form" compact @ocr="r => emit('ocr', r)" />
       <StepVehicle v-model="form" compact :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="effectiveCapacityKwh" />
       <StepCost v-model="form" v-model:providers="providers" :cost="cost" compact :open-on-mount="openCard" :preview="preview" />
