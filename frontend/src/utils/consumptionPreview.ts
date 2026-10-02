@@ -18,9 +18,6 @@
  * Nicht gespiegelt (zu viel Kontext für eine Vorschau): fahrzeugspezifische Wirkungsgrade aus der
  * Spezifikation, Zwischen-Logs ohne Tacho, statistische und WLTP-Plausibilität.
  */
-/** Wirkungsgrade wie im Backend - hier nur noch für den SoC-Startpunkt (StepVehicle), nicht für den Richtwert */
-export const AC_CHARGING_EFFICIENCY = 0.90
-export const DC_CHARGING_EFFICIENCY = 0.95
 export const MIN_TRIP_DISTANCE_KM = 10
 export const ABSOLUTE_MIN_KWH_PER_100KM = 10
 export const ABSOLUTE_MAX_KWH_PER_100KM = 40

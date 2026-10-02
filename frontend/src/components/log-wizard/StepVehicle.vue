@@ -7,7 +7,6 @@ import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
 import { netEnergyKwh, socToKwh } from './wizardLogic'
-import { AC_CHARGING_EFFICIENCY, DC_CHARGING_EFFICIENCY } from '../../utils/consumptionPreview'
 import RulerInput from './RulerInput.vue'
 
 const props = defineProps<{ lastOdometerKm: number | null; effectiveCapacityKwh: number | null | undefined; compact?: boolean }>()
@@ -39,15 +38,16 @@ const odoPrefix = computed(() => !belowLast.value && props.lastOdometerKm != nul
  * Startpunkt für "Akku nach Laden": angenommene 10 % vor dem Laden plus der Anteil, den die
  * geladene Energie an der Kapazität ausmacht. Nur ein Ausgangspunkt für das Rädchen, damit
  * niemand bei 0 % anfängt - nach links drehen bleibt möglich, der Anschlag ist 0.
+ * Ohne Ladewirkungsgrad (Entscheidung Sebastian 02.10.2026): sonst verschiebt der AC/DC-Schalter
+ * den geschätzten SoC und damit den Richtwert kWh/100 km, obwohl sich an den Eingaben nichts ändert.
  */
 const SOC_START_BEFORE = 10
 const socStart = computed(() => {
   const cap = props.effectiveCapacityKwh
   if (!cap) return null
-  const net = form.value.kwhAtVehicle ?? (form.value.kwhCharged != null
-    ? form.value.kwhCharged * (form.value.chargingType === 'DC' ? DC_CHARGING_EFFICIENCY : AC_CHARGING_EFFICIENCY) : null)
-  if (net == null || net <= 0) return null
-  return Math.min(100, SOC_START_BEFORE + Math.round(net / cap * 100))
+  const energy = form.value.kwhAtVehicle ?? form.value.kwhCharged
+  if (energy == null || energy <= 0) return null
+  return Math.min(100, SOC_START_BEFORE + Math.round(energy / cap * 100))
 })
 /** Der Startpunkt wird als Wert gesetzt, bis der Nutzer SoC selbst anfasst - danach nie wieder überschrieben. */
 const socTouched = ref(form.value.socAfterChargePercent != null)
