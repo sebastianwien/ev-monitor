@@ -16,9 +16,11 @@ import java.util.List;
  * @param chargePoints Ladepunkte am Standort insgesamt
  * @param geohash      Zelle des Standorts - identifiziert ihn zusammen mit dem Namen
  * @param registerId   Ladeeinrichtungs-ID der ersten Saeule dieses Standorts, kann fehlen
+ * @param latitude     Position der ersten Saeule laut Register - nur zur Anzeige (Minimap), wird nie gespeichert
+ * @param longitude    siehe latitude
  */
 public record StationMatch(String name, boolean known, Double maxAcKw, Double maxDcKw, int chargePoints,
-                           String geohash, Integer registerId,
+                           String geohash, Integer registerId, Double latitude, Double longitude,
                            String street, String houseNumber, String postalCode, String city,
                            List<String> plugTypes) {
 

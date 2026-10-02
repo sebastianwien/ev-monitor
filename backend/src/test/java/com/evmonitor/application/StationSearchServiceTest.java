@@ -53,6 +53,8 @@ class StationSearchServiceTest {
         assertThat(m.maxDcKw()).isEqualTo(300.0);
         assertThat(m.chargePoints()).isEqualTo(4);
         assertThat(m.geohash()).hasSize(7);
+        assertThat(m.latitude()).isNotNull();
+        assertThat(m.longitude()).isNotNull();
         assertThat(m.address()).isEqualTo("Am Fuchsgraben 1, Lichtenau");
     }
 

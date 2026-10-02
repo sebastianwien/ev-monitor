@@ -60,14 +60,14 @@ public class StationSearchService {
 
     private static StationMatch toMatch(Station s, String name, boolean known, String geohash) {
         return new StationMatch(name, known, s.maxAcKw(), s.maxDcKw(),
-                s.chargePoints() == null ? 0 : s.chargePoints(), geohash, s.registerId(),
+                s.chargePoints() == null ? 0 : s.chargePoints(), geohash, s.registerId(), s.latitude(), s.longitude(),
                 s.street(), s.houseNumber(), s.postalCode(), s.city(), s.plugTypes());
     }
 
     /** Leistung je Ladeart als Maximum, Ladepunkte als Summe, Registerdaten der ersten Saeule. */
     private static StationMatch merge(StationMatch a, StationMatch b) {
         return new StationMatch(a.name(), a.known(), max(a.maxAcKw(), b.maxAcKw()), max(a.maxDcKw(), b.maxDcKw()),
-                a.chargePoints() + b.chargePoints(), a.geohash(), a.registerId(),
+                a.chargePoints() + b.chargePoints(), a.geohash(), a.registerId(), a.latitude(), a.longitude(),
                 a.street(), a.houseNumber(), a.postalCode(), a.city(), a.plugTypes());
     }
 
