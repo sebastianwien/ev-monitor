@@ -118,14 +118,15 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     // Eindeutiger Zeitstempel um Duplikat-Kollision mit Test 1 zu vermeiden
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    // "Mehr Details" ist zugeklappt; die Schnellkontroll-Zeile zeigt die Vorbelegung und klappt auf
+    // Zeit, Strecke und Reifen stehen als Pillen in Schritt 2; die Prüfseite zeigt zugeklappt nur die Zahlen-Pillen
     const quickLine = page.locator('[data-testid="summary-optional"]');
-    await expect(quickLine).toContainText('Jetzt · Gemischt · Sommer');
+    await expect(quickLine).toContainText('Akku vorher');
     await expect(page.locator('[data-testid="time-other"]')).toBeHidden();
     await quickLine.click();
     await page.locator('[data-testid="time-other"]').click();
-    await page.locator('input[type="datetime-local"]').fill(yesterday.toISOString().slice(0, 16));
-    await expect(quickLine).not.toContainText('Jetzt');
+    const when = yesterday.toISOString().slice(0, 16);
+    await page.locator('[data-testid="optional-panel"] input[type="datetime-local"]').fill(when);
+    await expect(page.locator('[data-testid="optional-panel"] input[type="datetime-local"]')).toHaveValue(when);
 
     await page.locator('[data-testid="wizard-next"]').click();
 
@@ -239,8 +240,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     // Kein Carry-Over: Feld muss leer sein
     await expect(page.locator('input[placeholder="z.B. 42.5"]')).toHaveValue('');
-    // Vehicle-Hint sichtbar
-    await expect(page.locator('text=Netto-kWh die dein Akku aufgenommen hat')).toBeVisible();
+    // Kompakter Schritt 2: statt Hinweistext trägt das Feld die Quelle im Namen
+    await expect(page.locator('#wizard-kwh')).toHaveAttribute('aria-label', 'Laut Auto');
 
     expect(errors).toEqual([]);
   });
@@ -376,7 +377,7 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await page.locator('header button[aria-label="Zurück"]').click();
     await page.locator('[data-testid="place-other"]').click();
     await page.locator('input[type="search"]').fill('EnBW');
-    await page.locator('button:has-text("EnBW")').first().click();
+    await page.locator('button:has-text("EnBW"):visible').first().click();
 
     // Der Ladekarten-Streifen steht unter dem gewaehlten Anbieter; "+ neue Karte" springt in
     // Schritt 2 und oeffnet dort den Editor
@@ -386,9 +387,9 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await page.locator('[data-testid="charging-card-prompt"] input[type="number"][step="0.1"]').first().fill('39');
     await page.locator('[data-testid="charging-card-save"]').click();
 
-    // Karte ist angelegt und gewaehlt: der Preis steht als abgeleitete Zeile, 30 kWh x 0,39
+    // Karte ist angelegt und gewaehlt: sie steht in der Ortszeile, der Preis als abgeleitete Zeile, 30 kWh x 0,39
     await expect(page.locator('[data-testid="charging-card-prompt"]')).not.toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('[data-testid="cost-derived"]')).toContainText('EnBW mobility+');
+    await expect(page.locator('[data-testid="numbers-context"]')).toContainText('EnBW mobility+');
     await expect(page.locator('[data-testid="cost-derived"]')).toContainText('11,70');
     expect(errors).toEqual([]);
   });
@@ -412,8 +413,10 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await page.waitForLoadState('networkidle');
     await page.locator('[data-testid="place-other"]').click();
     await page.locator('input[type="search"]').fill('EnBW');
-    await page.locator('button:has-text("EnBW")').first().click();
-    await page.locator('[data-testid="wizard-next"]').click();
+    await page.locator('button:has-text("EnBW"):visible').first().click();
+    // Passt genau eine Karte mit Tarif zum Anbieter (aus dem Test davor), springt der Wizard von selbst weiter
+    await page.waitForTimeout(800);
+    if (!(await page.locator('#wizard-kwh').isVisible())) await page.locator('[data-testid="wizard-next"]').click();
 
     await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
