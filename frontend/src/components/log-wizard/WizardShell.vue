@@ -33,7 +33,8 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
 <template>
   <!-- Mobile: fest auf den Viewport gespannt - Kopf und Footer bleiben stehen, nur der Inhalt
        dazwischen scrollt. Die Seite selbst kann nicht mehr scrollen, der Balken laeuft nie raus. -->
-  <div :style="frameStyle" class="fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0">
+  <!-- Deutlicher Fokusring für alles im Wizard: der Browser-Standard (1 px blau) verschwindet auf Indigo und grauen Kacheln -->
+  <div :style="frameStyle" class="[&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-2 [&_:focus-visible]:outline-indigo-500 fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0">
     <header class="px-4 pt-4 pb-3 md:px-6">
       <div class="flex items-center justify-between">
         <button v-if="step > 1" type="button" :aria-label="t('common.back')" @click="emit('back')"

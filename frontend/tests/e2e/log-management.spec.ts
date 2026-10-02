@@ -576,7 +576,10 @@ test.describe('Wizard nur mit Tastatur', () => {
     await page.keyboard.type(String(nextOdometer()));
     await page.keyboard.press('Enter');
     await expect(focused).toHaveId('wizard-soc');
+    // SoC ist aus den kWh vorbelegt: der Enter-Sprung markiert ihn, Tippen ersetzt statt anzuhängen
+    await expect(page.locator('#wizard-soc')).not.toHaveValue('');
     await page.keyboard.type('80');
+    await expect(page.locator('#wizard-soc')).toHaveValue('80');
     await page.keyboard.press('Enter');
     await expect(focused).toHaveId('wizard-cost');
     await page.keyboard.type('9');

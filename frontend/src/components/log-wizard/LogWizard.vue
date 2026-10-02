@@ -316,7 +316,8 @@ const onEnter = (e: KeyboardEvent) => {
   if (!(target instanceof HTMLInputElement) || target.type !== 'number' || !stepEl.value) return
   e.preventDefault()
   const following = nextField(stepEl.value, target)
-  if (following) following.focus()
+  // Markieren wie beim Tab: ein vorbelegter Wert (z. B. geschätzter SoC) wird überschrieben, nicht ergänzt
+  if (following) { following.focus(); following.select() }
   else if (proceedAllowed.value) next()
   else onBlocked()
 }
@@ -335,6 +336,7 @@ const focusStep = (el: HTMLElement) => {
     // Schritt 1: Trefferkarte, sonst "Zuhause" - nicht der erste Button, das ist oft "Standort freigeben", der nach der Ortung verschwindet
     : el.querySelector<HTMLElement>('[data-testid="suggestion-accept"], [data-testid="place-home"]')
   ;(target ?? el).focus({ preventScroll: true })
+  if (target instanceof HTMLInputElement) target.select()
 }
 const onStepEl = (el: unknown) => {
   const node = el instanceof HTMLElement ? el : null
