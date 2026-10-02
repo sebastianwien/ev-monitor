@@ -282,7 +282,9 @@ const summaryMetrics = computed(() => {
     symbol: countryStore.unitSystem.currencySymbol, eurToLocal: cost.eurToLocal, formatNumber, formatDecimal,
   })
 })
-const goto = (s: WizardStep) => { error.value = null; step.value = s; window.scrollTo({ top: 0 }) } // Desktop: Seite; mobil setzt WizardShell ihren Scroller zurueck
+/** Richtung des letzten Schrittwechsels: vorwärts schiebt von rechts rein, zurück von links */
+const dir = ref<'forward' | 'back'>('forward')
+const goto = (s: WizardStep) => { error.value = null; dir.value = s > step.value ? 'forward' : 'back'; step.value = s; window.scrollTo({ top: 0 }) } // Desktop: Seite; mobil setzt WizardShell ihren Scroller zurueck
 const back = () => { if (step.value > 1) goto((step.value - 1) as WizardStep) }
 const next = () => { if (step.value < LAST_STEP) goto((step.value + 1) as WizardStep); else submit() }
 
@@ -357,6 +359,10 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
       @back="back" @next="next" @cancel="emit('cancel')">
       <div v-if="cars.length > 1 && step === 1" class="mb-4"><CarSelector v-model="selectedCarId" /></div>
 
+      <!-- Schrittwechsel als horizontaler Slide, out-in: der alte Schritt ist weg, bevor der neue seine Karte misst.
+           Gekeyter Wrapper statt Transition direkt auf den Komponenten: so hängt der Wechsel nicht an deren Wurzelelement. -->
+      <Transition :name="`step-${dir}`" mode="out-in">
+      <div :key="step">
       <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
         :recent-sites="recentSites.sites.value"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
@@ -370,6 +376,8 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost" :community-price="community"
         :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :preview="preview" @ocr="onOcr" />
       <StepReview v-else v-model="form" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto" />
+      </div>
+      </Transition>
     </WizardShell>
 
     <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
@@ -379,3 +387,16 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Vorwärts: neuer Schritt kommt von rechts, alter geht nach links. Zurück spiegelverkehrt. */
+.step-forward-enter-active, .step-back-enter-active { transition: opacity 250ms ease-out, translate 250ms ease-out; }
+.step-forward-leave-active, .step-back-leave-active { transition: opacity 200ms ease-in, translate 200ms ease-in; }
+.step-forward-enter-from { opacity: 0; translate: 24px 0; }
+.step-forward-leave-to { opacity: 0; translate: -24px 0; }
+.step-back-enter-from { opacity: 0; translate: -24px 0; }
+.step-back-leave-to { opacity: 0; translate: 24px 0; }
+@media (prefers-reduced-motion: reduce) {
+  .step-forward-enter-from, .step-forward-leave-to, .step-back-enter-from, .step-back-leave-to { translate: 0 0; }
+}
+</style>

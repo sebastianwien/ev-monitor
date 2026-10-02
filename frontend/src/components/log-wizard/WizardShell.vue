@@ -55,7 +55,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
 
     <!-- Inhalt am unteren Rand: Tap-Ziele liegen so ueber dem Footer in Daumenreichweite.
          min-h-full statt fester Hoehe, damit justify-end bei langem Inhalt nichts oben abschneidet. -->
-    <div ref="scroller" class="flex-1 min-h-0 overflow-y-auto">
+    <div ref="scroller" data-wizard-scroller class="flex-1 min-h-0 overflow-y-auto">
       <div class="min-h-full flex flex-col justify-end md:justify-start px-4 pb-4 md:px-6">
         <slot />
       </div>

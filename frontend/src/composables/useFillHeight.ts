@@ -2,17 +2,20 @@ import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
 
 /**
  * Höhe für einen Kopf (Minimap), der den freien Platz zwischen Shell-Kopfzeile und Inhalt füllt.
- * Gemessen wird der Scrollbereich der WizardShell (Großeltern des Wurzelelements), nicht das eigene
- * Element - das wüchse sonst mit dem Kopf und die Messung bisse sich in den Schwanz. Wächst der
- * Inhalt (aufgeklapptes Rädchen, Details), schrumpft der Kopf bis zum Minimum; der Aufrufer animiert.
+ * Gemessen wird der Scrollbereich der WizardShell (data-wizard-scroller, per closest gefunden, also
+ * unabhängig von Wrappern dazwischen), nicht das eigene Element - das wüchse sonst mit dem Kopf und
+ * die Messung bisse sich in den Schwanz. Wächst der Inhalt (aufgeklapptes Rädchen, Details), schrumpft
+ * der Kopf bis zum Minimum; die Karte folgt der Höhe pro Frame.
  */
 export function useFillHeight(root: Ref<HTMLElement | null>, body: Ref<HTMLElement | null>, min = 112, max = 640) {
   const height = ref(min)
   let watch: ResizeObserver | null = null
+  const findScroller = () => root.value?.closest<HTMLElement>('[data-wizard-scroller]') ?? null
   const measure = () => {
-    const scroller = root.value?.parentElement?.parentElement
+    const scroller = findScroller()
     if (!scroller || !body.value) return
-    const pad = parseFloat(getComputedStyle(root.value!.parentElement!).paddingBottom) || 0
+    // Innenabstand des Inhaltsrahmens (px-4 pb-4) direkt unter dem Scroller
+    const pad = parseFloat(getComputedStyle(scroller.firstElementChild as Element).paddingBottom) || 0
     // Abstand zwischen Kopf und Body (space-y) mitrechnen, sonst bleibt genau diese Lücke als Scrollweg übrig
     // Tailwind 4 setzt space-y als margin-bottom auf das vorige Kind, ältere Versionen als margin-top auf das Kind
     const prev = body.value.previousElementSibling
@@ -24,7 +27,7 @@ export function useFillHeight(root: Ref<HTMLElement | null>, body: Ref<HTMLEleme
     if (typeof ResizeObserver === 'undefined') return
     watch = new ResizeObserver(measure)
     if (body.value) watch.observe(body.value)
-    const scroller = root.value?.parentElement?.parentElement
+    const scroller = findScroller()
     if (scroller) watch.observe(scroller)
   })
   onBeforeUnmount(() => watch?.disconnect())

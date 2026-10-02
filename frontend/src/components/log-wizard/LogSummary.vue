@@ -19,6 +19,8 @@ const props = defineProps<{
   hidePlace?: boolean
   /** Wizard: "Mehr Details" nur mit Akku vorher, Ladedauer, Leistung - Zeit, Strecke, Reifen wurden in Schritt 2 gesetzt */
   detailsNumbersOnly?: boolean
+  /** Kacheln beim Erscheinen nacheinander leicht von unten aufsteigen lassen (Prüfseite: "Ergebnis wird aufgedeckt") */
+  reveal?: boolean
   /** ct/kWh, €/100 km, kWh/100 km für die Kosten-Kachel; ersetzt dort die Zeile "Ändern", die Kachel bleibt gleich hoch */
   costMetrics?: CostMetric[]
 }>()
@@ -55,8 +57,9 @@ const tiles = computed<Tile[]>(() => [
 <template>
   <div class="space-y-4">
     <div class="grid grid-cols-2 gap-2">
-      <button v-for="tile in tiles" :key="tile.testid" type="button" :data-testid="tile.testid" @click="emit('edit', tile.section)"
-        :class="['btn-3d text-left p-3 rounded-sm transition', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">
+      <button v-for="(tile, i) in tiles" :key="tile.testid" type="button" :data-testid="tile.testid" @click="emit('edit', tile.section)"
+        :style="reveal ? { animationDelay: `${i * 40}ms` } : undefined"
+        :class="['btn-3d text-left p-3 rounded-sm transition', reveal && 'tile-rise', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">
         <span class="flex items-baseline justify-between gap-1 text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
           <span class="truncate">{{ tile.label }}</span>
           <!-- Kosten: der Preis je kWh gehört zum Betrag und steht in der Kopfzeile, die Werte je 100 km in der dritten Zeile -->
@@ -77,3 +80,9 @@ const tiles = computed<Tile[]>(() => [
     <OptionalPanel v-model="form" :show-time="!showTimeTile" :numbers-only="detailsNumbersOnly" />
   </div>
 </template>
+
+<style scoped>
+@keyframes tile-rise { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+.tile-rise { animation: tile-rise 300ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { .tile-rise { animation: none; } }
+</style>
