@@ -56,7 +56,7 @@ const onTimePicked = () => { editing.value = null }
   <!-- Beide Lagen liegen in derselben Grid-Zelle: die Höhe ist die der Segmente (44 px), die Zeile wächst nie -->
   <div data-testid="optional-pills" class="grid overflow-hidden">
     <!-- Lage 1: drei Pillen, gleiten beim Öffnen nach links raus -->
-    <div :inert="!!editing" :class="['[grid-area:1/1] flex items-center justify-center gap-1.5 min-h-[46px] transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none',
+    <div :inert="!!editing" :class="['[grid-area:1/1] flex items-center justify-center gap-1.5 min-h-[46px] transition-[translate,opacity] duration-200 ease-out motion-reduce:transition-none',
              editing ? '-translate-x-6 opacity-0' : 'translate-x-0 opacity-100']">
       <button v-for="p in pills" :key="p.field" type="button" :aria-label="p.label" :aria-expanded="editing === p.field"
         :data-testid="`pill-${p.field}`" @click="toggle(p.field)"
@@ -65,7 +65,7 @@ const onTimePicked = () => { editing.value = null }
       </button>
     </div>
     <!-- Lage 2: Segmentgruppe plus X, gleitet von rechts rein; bleibt beim Schließen gerendert (shownEditor), bis sie draußen ist -->
-    <div :inert="!editing" :class="['[grid-area:1/1] flex items-center gap-1.5 transition-[transform,opacity] duration-200 ease-out motion-reduce:transition-none',
+    <div :inert="!editing" :class="['[grid-area:1/1] flex items-center gap-1.5 transition-[translate,opacity] duration-200 ease-out motion-reduce:transition-none',
              editing ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0']">
       <div v-if="shownEditor === 'time'" :class="[SEG_GROUP, 'flex-1 grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_when')">
         <button v-for="c in segTimeChips" :key="c.value" type="button" role="radio" :aria-checked="timePick === c.value" :class="segClass(timePick === c.value)"
