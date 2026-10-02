@@ -69,7 +69,7 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
       <Collapse :open="props.compact && showOcr">
         <OcrPhotoCapture v-if="showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
       </Collapse>
-      <RulerInput id="wizard-kwh" v-model="kwh" unit="kWh" :label="modeLabel" :placeholder="t('logfields.kwh_placeholder')" :step="0.1" :min="0" :max="150" :autofocus="!props.compact" />
+      <RulerInput id="wizard-kwh" v-model="kwh" unit="kWh" :label="modeLabel" :placeholder="t('logfields.kwh_placeholder')" :step="0.1" :min="0" :max="150" autofocus />
     </div>
   </div>
 </template>

@@ -367,7 +367,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
            Gekeyter Wrapper statt Transition direkt auf den Komponenten: so hängt der Wechsel nicht an deren Wurzelelement. -->
       <Transition :name="`step-${dir}`" mode="out-in">
       <div :key="step">
-      <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
+      <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="viaSuggestion ? null : state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
         :recent-sites="recentSites.sites.value"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"

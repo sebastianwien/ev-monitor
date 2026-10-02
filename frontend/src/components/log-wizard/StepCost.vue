@@ -111,6 +111,16 @@ watch(() => form.value.chargingProviderId, (id) => {
   fetchPricelessCount()
 }, { immediate: true })
 
+/** AC/DC umgeschaltet: die gewählte Karte behält ihren Platz, ihr Tarif wechselt mit (29 ct AC, 44 ct DC). */
+watch(() => form.value.chargingType, type => {
+  const id = form.value.chargingProviderId
+  // Nur solange der Preis aus der Karte kommt (je kWh) - ein getippter Gesamtbetrag bleibt stehen
+  if (!id || costMode.value !== 'per_kwh') return
+  const p = providers.value.find(x => x.id === id)
+  const price = p ? providerPriceForType(p, type) : null
+  if (price != null) { selectedKey.value = id; setPerKwhEur(price) }
+})
+
 // ── Kompakt: ist der Preis aus Karte oder Gratis abgeleitet, reicht eine Zeile mit "Anders" ──
 const manual = ref(false)
 const derived = computed(() => !manual.value && (
