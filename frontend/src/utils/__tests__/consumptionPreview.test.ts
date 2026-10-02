@@ -10,8 +10,17 @@ describe('consumptionPreview (Richtwert, Spiegel der Backend-Regel)', () => {
     expect(p.eurPer100km).toBeCloseTo(6, 5)
     expect(p.plausible).toBe(true)
   })
-  it('Netto laut Auto hat Vorrang und wird nicht korrigiert', () => {
-    expect(consumptionPreview({ ...base, kwhAtVehicle: 25 })!.kwhPer100km).toBeCloseTo(12.5, 5)
+  it('Brutto hat Vorrang vor Netto und ist kein Schätzwert', () => {
+    const p = consumptionPreview({ ...base, kwhAtVehicle: 25 })!
+    expect(p.kwhPer100km).toBeCloseTo(15, 5)
+    expect(p.estimated).toBe(false)
+  })
+  it('nur Netto laut Auto: auf brutto hochgerechnet (AC 0,90, DC 0,95) und als Schätzwert markiert', () => {
+    const ac = consumptionPreview({ ...base, kwhCharged: null, kwhAtVehicle: 27 })!
+    expect(ac.kwhPer100km).toBeCloseTo(27 / 0.9 / 2, 5)
+    expect(ac.estimated).toBe(true)
+    const dc = consumptionPreview({ ...base, kwhCharged: null, kwhAtVehicle: 28.5, chargingType: 'DC' })!
+    expect(dc.kwhPer100km).toBeCloseTo(28.5 / 0.95 / 2, 5)
   })
   it('DC rechnet genauso brutto wie AC', () => {
     expect(consumptionPreview({ ...base, chargingType: 'DC' })!.kwhPer100km).toBeCloseTo(15, 5)

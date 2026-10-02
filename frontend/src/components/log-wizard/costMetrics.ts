@@ -25,6 +25,6 @@ export function costMetrics(perKwhLocal: number | null, preview: ConsumptionPrev
       : { value: f.formatDecimal(perKwhLocal, 2), unit: `${f.symbol}/kWh` })
   }
   if (preview?.eurPer100km != null) m.push({ value: f.formatDecimal(f.eurToLocal(preview.eurPer100km), 2), unit: `${f.symbol}/100 km` })
-  if (preview) m.push({ value: f.formatNumber(Math.round(preview.kwhPer100km * 10) / 10), unit: 'kWh/100 km', tone: preview.plausible ? undefined : 'notice' })
+  if (preview) m.push({ value: `${preview.estimated ? '~' : ''}${f.formatNumber(Math.round(preview.kwhPer100km * 10) / 10)}`, unit: 'kWh/100 km', tone: preview.plausible ? undefined : 'notice' })
   return m
 }
