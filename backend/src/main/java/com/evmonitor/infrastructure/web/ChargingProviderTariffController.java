@@ -64,14 +64,14 @@ public class ChargingProviderTariffController {
     public ResponseEntity<List<String>> getNearbyCpos(@RequestParam double lat,
                                                       @RequestParam double lon,
                                                       Authentication authentication) {
-        if (!rateLimitService.tryConsumeCpoLookup(quotaKey(authentication))) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-        }
         if (!isOnEarth(lat, lon)) {
             return ResponseEntity.badRequest().build();
         }
-
         String geohash = GeoHash.withCharacterPrecision(lat, lon, PUBLIC_GEOHASH_PRECISION).toBase32();
+        if (!nearbyCpoService.isCposCached(geohash) && !rateLimitService.tryConsumeCpoLookup(quotaKey(authentication))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+
         // Antwortet das Register nicht, ist das fuer das Formular dasselbe wie "kein Vorschlag":
         // es zeigt dann die vollstaendige Anbieterliste.
         return ResponseEntity.ok(nearbyCpoService.findNearbyCpos(geohash).orElseGet(List::of));
@@ -87,13 +87,14 @@ public class ChargingProviderTariffController {
                                                                  @RequestParam double lon,
                                                                  @RequestParam(required = false) Integer radius,
                                                                  Authentication authentication) {
-        if (!rateLimitService.tryConsumeCpoLookup(quotaKey(authentication))) {
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
-        }
         if (!isOnEarth(lat, lon)) {
             return ResponseEntity.badRequest().build();
         }
         String geohash = GeoHash.withCharacterPrecision(lat, lon, PUBLIC_GEOHASH_PRECISION).toBase32();
+        // Gedrosselt wird nur, was das fremde Register fragt: Antworten aus dem Cache sind frei
+        if (!nearbyCpoService.isStationsCached(geohash, radius) && !rateLimitService.tryConsumeCpoLookup(quotaKey(authentication))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         // Ohne Radius der Standardumkreis (gecacht je Zelle); mit Radius die weite Suche fuer "Umkreis erweitern"
         var stations = radius == null ? nearbyCpoService.findNearbyStations(geohash)
                 : nearbyCpoService.findNearbyStations(geohash, radius);
