@@ -13,10 +13,13 @@ import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.User;
+import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
+import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -24,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -45,6 +49,9 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
     private Car testCar;
     private UUID userId;
     private UUID carId;
+
+    @Autowired
+    private JpaUserChargingProviderRepository chargingProviderRepository;
 
     @BeforeEach
     void setUpTestData() {
@@ -627,6 +634,65 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
         );
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void updateLog_keepsArchivedOwnCard() {
+        // Eine archivierte Karte bleibt Bezugspunkt der Vergangenheit - das Formular schickt sie unveraendert mit.
+        UUID archivedCard = saveCard(userId, LocalDateTime.now().minusDays(1));
+        EvLog existing = evLogRepository.save(EvLog.createNew(
+                carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
+                60, null, 12000, null, new BigDecimal("75"), LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN,
+                null, null,
+                false, null).toBuilder().chargingProviderId(archivedCard).build());
+
+        ResponseEntity<EvLogResponse> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(),
+                HttpMethod.PATCH,
+                createAuthRequest(updateWithCard(archivedCard), userId, testUser.getEmail()),
+                EvLogResponse.class
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(archivedCard, response.getBody().chargingProviderId());
+        assertEquals(0, new BigDecimal("40.0").compareTo(response.getBody().kwhCharged()));
+    }
+
+    @Test
+    void updateLog_foreignCard_returns400() {
+        User other = createAndSaveUser("card-other-" + System.nanoTime() + "@example.com");
+        UUID foreignCard = saveCard(other.getId(), null);
+        EvLog existing = evLogRepository.save(EvLog.createNew(
+                carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
+                60, null, 12000, null, new BigDecimal("75"), LocalDateTime.parse("2025-08-20T10:00:00"), ChargingType.UNKNOWN,
+                null, null,
+                false, null));
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/logs/" + existing.getId(),
+                HttpMethod.PATCH,
+                createAuthRequest(updateWithCard(foreignCard), userId, testUser.getEmail()),
+                String.class
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNull(evLogRepository.findById(existing.getId()).orElseThrow().getChargingProviderId());
+    }
+
+    private UUID saveCard(UUID owner, LocalDateTime deletedAt) {
+        UserChargingProviderEntity card = new UserChargingProviderEntity();
+        card.setUserId(owner);
+        card.setProviderName("EnBW mobility+");
+        card.setSessionFeeEur(BigDecimal.ZERO);
+        card.setMonthlyFeeEur(BigDecimal.ZERO);
+        card.setActiveFrom(LocalDate.now().minusYears(1));
+        card.setDeletedAt(deletedAt);
+        return chargingProviderRepository.save(card).getId();
+    }
+
+    private static EvLogUpdateRequest updateWithCard(UUID cardId) {
+        return new EvLogUpdateRequest(new BigDecimal("40.0"), null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, cardId);
     }
 
     @Test

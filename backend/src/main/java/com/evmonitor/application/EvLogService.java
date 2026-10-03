@@ -13,6 +13,7 @@ import com.evmonitor.domain.exception.ConflictException;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
+import com.evmonitor.domain.exception.ValidationException;
 
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
@@ -118,9 +119,7 @@ public class EvLogService {
                    .costCurrency(request.costCurrency());
         }
         if (request.chargingProviderId() != null) {
-            if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(request.chargingProviderId(), userId)) {
-                throw new IllegalArgumentException("Charging provider not found for current user");
-            }
+            requireOwnCard(request.chargingProviderId(), userId);
             builder.chargingProviderId(request.chargingProviderId());
         }
         newLog = locationPricing.enrich(builder.build(), userId);
@@ -478,7 +477,7 @@ public class EvLogService {
      */
     public EvLogUpdateResult updateLogAwardingCoins(UUID id, UUID userId, EvLogUpdateRequest request) {
         EvLog before = evLogRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("EvLog not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
         EvLogResponse updated = updateLogInternal(id, userId, request);
 
         int coins = 0;
@@ -491,17 +490,27 @@ public class EvLogService {
         return new EvLogUpdateResult(updated, coins);
     }
 
+    /**
+     * Eine Ladung darf jede eigene Karte tragen, auch eine archivierte: Archivieren nimmt die Karte
+     * nur aus der Auswahl fuer neue Ladungen, die damals damit bezahlten bleiben ihr zugeordnet.
+     */
+    private void requireOwnCard(UUID cardId, UUID userId) {
+        if (!chargingProviderRepository.existsByIdAndUserId(cardId, userId)) {
+            throw new ValidationException("CHARGING_PROVIDER_INVALID", "Ladekarte gehört nicht zu deinem Konto.");
+        }
+    }
+
     private static boolean isBlank(String s) { return s == null || s.isBlank(); }
 
     private EvLogResponse updateLogInternal(UUID id, UUID userId, EvLogUpdateRequest request) {
         EvLog existing = evLogRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + id));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
 
         Car car = carRepository.findById(existing.getCarId())
-                .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
 
         if (!car.isOwnedBy(userId)) {
-            throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+            throw NotFoundException.forEntity("EvLog", id);
         }
 
         // Compute new geohash from lat/lon if provided; otherwise keep existing.
@@ -538,9 +547,7 @@ public class EvLogService {
 
         UUID updatedChargingProviderId = existing.getChargingProviderId();
         if (request.chargingProviderId() != null) {
-            if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(request.chargingProviderId(), userId)) {
-                throw new IllegalArgumentException("Charging provider not found for current user");
-            }
+            requireOwnCard(request.chargingProviderId(), userId);
             updatedChargingProviderId = request.chargingProviderId();
         }
 

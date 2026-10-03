@@ -14,6 +14,9 @@ public interface JpaUserChargingProviderRepository extends JpaRepository<UserCha
 
     boolean existsByIdAndUserIdAndDeletedAtIsNull(UUID id, UUID userId);
 
+    /** Besitz unabhaengig vom Archiv: eine archivierte Karte bleibt gueltiger Bezug einer Ladung. */
+    boolean existsByIdAndUserId(UUID id, UUID userId);
+
     /**
      * Alle Heimtarife des Users. Welcher davon zu einer Ladung passt, entscheidet
      * {@code LocationPricing#homeCardFor} anhand des Ladedatums - so bleibt die Regel an

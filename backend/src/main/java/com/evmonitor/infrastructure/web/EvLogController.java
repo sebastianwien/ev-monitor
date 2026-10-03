@@ -229,8 +229,6 @@ public class EvLogController {
             return ResponseEntity.ok()
                     .header(COINS_AWARDED_HEADER, String.valueOf(result.coinsAwarded()))
                     .body(result.log());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
         } catch (DataIntegrityViolationException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("message", "Ein Eintrag mit diesem Datum und dieser Uhrzeit existiert bereits für dieses Fahrzeug. Bitte ändere die Uhrzeit."));
