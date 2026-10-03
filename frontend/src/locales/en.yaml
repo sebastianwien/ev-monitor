@@ -3273,7 +3273,7 @@ logwizard:
   suggestion_private_title: "Charged at home or privately?"
   suggestion_private_sub: "Charging type and tariff as in your previous charges here."
   suggestion_accept: "Use this"
-  expand_radius: "Not listed? Widen search to 2.5 km"
+  expand_radius: "Not listed? Widen search to {r}"
   nearby_title_radius: "Within {r}"
   odometer_delta: "+{km} since your last log"
   step_of: "Step {step} of {total}"
@@ -3349,7 +3349,12 @@ logwizard:
   place_search_placeholder: "Operator and town, or an address"
   search_as_address: "Search as address: {q}"
   address_not_found: "No address found. Check street and town."
-  no_stations_found: "The charging station register lists no station here. Pick Other charging station below and choose the operator there."
+  nearby_expanding: "No station within {from} - searching within {r} …"
+  no_stations_in_radius: "No known charging station within {r}"
+  no_stations_hint: "Search for the place or pick one of your charging spots."
+  location_inaccurate: "Your location is imprecise (±{r})"
+  location_relocate: "Locate again"
+  place_other_sub_missing: "Station not listed? Just pick the provider"
 
 eu_data_act_sync:
   title: "Sync automatically (VW EU Data Act)"

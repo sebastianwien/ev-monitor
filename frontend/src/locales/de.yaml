@@ -3279,7 +3279,7 @@ logwizard:
   suggestion_private_title: "Zuhause oder privat geladen?"
   suggestion_private_sub: "Ladeart und Tarif wie bei deinen bisherigen Ladungen hier."
   suggestion_accept: "Übernehmen"
-  expand_radius: "Nicht dabei? Umkreis auf 2,5 km erweitern"
+  expand_radius: "Nicht dabei? Umkreis auf {r} erweitern"
   nearby_title_radius: "Im Umkreis von {r}"
   odometer_delta: "+{km} seit dem letzten Log"
   step_of: "Schritt {step} von {total}"
@@ -3355,7 +3355,12 @@ logwizard:
   place_search_placeholder: "Anbieter und Ort, oder Adresse"
   search_as_address: "Als Adresse suchen: {q}"
   address_not_found: "Keine Adresse gefunden. Straße und Ort prüfen."
-  no_stations_found: "Im Ladesäulenregister steht hier keine Säule. Wähle unten Andere Ladestation und dort den Anbieter."
+  nearby_expanding: "Keine Säule in {from} - suche im Umkreis von {r} …"
+  no_stations_in_radius: "Im Umkreis von {r} ist keine Ladesäule bekannt"
+  no_stations_hint: "Such den Ort oder wähl einen deiner Ladeorte."
+  location_inaccurate: "Dein Standort ist ungenau (±{r})"
+  location_relocate: "Erneut orten"
+  place_other_sub_missing: "Säule nicht dabei? Nur den Anbieter wählen"
 
 eu_data_act_sync:
   title: "Automatisch synchronisieren (VW EU Data Act)"

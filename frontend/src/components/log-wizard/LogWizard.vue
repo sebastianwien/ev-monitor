@@ -93,6 +93,8 @@ watch(selectedCarId, fetchLogs)
 // ── Ort: Standort, Registerstandorte, Anbieterliste ───────────────────────────
 const permission = ref<LocationPermission>('unknown')
 const locationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
+/** Ungenauigkeit der letzten Ortung in Metern; null bei einer gesuchten Adresse */
+const locationAccuracy = ref<number | null>(null)
 const nearby = useNearbyStations()
 const recentSites = useRecentSites()
 const suggestion = useChargingSuggestion()
@@ -105,6 +107,7 @@ const requestLocation = async () => {
     const pos = await getCurrentPosition()
     form.value.latitude = pos.latitude
     form.value.longitude = pos.longitude
+    locationAccuracy.value = pos.accuracy ?? null
     permission.value = 'granted'
     localStorage.setItem(LOCATION_ENABLED_KEY, 'true')
     // Erst nach den Säulen auf 'success': so klappt die Standort-Card in einem Zug zu,
@@ -120,6 +123,7 @@ const requestLocation = async () => {
 const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
   form.value.latitude = p.latitude
   form.value.longitude = p.longitude
+  locationAccuracy.value = null
   locationStatus.value = 'success'
   await Promise.all([nearby.load(p.latitude, p.longitude), suggestion.load(p.latitude, p.longitude)])
 }
@@ -497,7 +501,8 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
         :permission="permission" :location-status="locationStatus"
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"
         :suggestion="activeSuggestion" :suggestion-provider-label="suggestionProviderLabel"
-        :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value"
+        :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value" :next-radius="nearby.nextRadius.value"
+        :exhausted="nearby.exhausted.value" :location-accuracy="locationAccuracy" :latitude="form.latitude" :longitude="form.longitude"
         :card-strip="cardStrip" @choose-card="chooseCard"
         @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked"
         @expand-radius="nearby.expand()" />

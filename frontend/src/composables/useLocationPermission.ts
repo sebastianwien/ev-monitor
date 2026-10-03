@@ -24,7 +24,8 @@ export async function queryLocationPermission(): Promise<LocationPermission> {
   }
 }
 
-export interface Coordinates { latitude: number; longitude: number }
+/** accuracy: Radius in Metern, in dem die Position laut Gerät mit 95 % liegt */
+export interface Coordinates { latitude: number; longitude: number; accuracy?: number }
 
 export class LocationError extends Error {
   constructor(readonly denied: boolean) {
@@ -37,7 +38,7 @@ export function getCurrentPosition(): Promise<Coordinates> {
     const geo = (globalThis.navigator as Navigator | undefined)?.geolocation
     if (!geo) { reject(new LocationError(false)); return }
     geo.getCurrentPosition(
-      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy }),
       (err) => reject(new LocationError(err.code === 1)),
       { timeout: 10_000, maximumAge: 60_000 },
     )

@@ -3158,7 +3158,7 @@ logwizard:
   suggestion_private_title: "Laddat hemma eller privat?"
   suggestion_private_sub: "Laddtyp och tariff som vid dina tidigare laddningar här."
   suggestion_accept: "Använd denna"
-  expand_radius: "Inte med? Utöka sökningen till 2,5 km"
+  expand_radius: "Inte med? Utöka sökningen till {r}"
   nearby_title_radius: "Inom {r}"
   odometer_delta: "+{km} sedan senaste loggen"
   step_of: "Steg {step} av {total}"
@@ -3234,7 +3234,12 @@ logwizard:
   place_search_placeholder: "Operatör och ort, eller adress"
   search_as_address: "Sök som adress: {q}"
   address_not_found: "Ingen adress hittades. Kontrollera gata och ort."
-  no_stations_found: "Laddstationsregistret har ingen station här. Välj Annan laddstation nedan och operatören där."
+  nearby_expanding: "Ingen station inom {from} - söker inom {r} …"
+  no_stations_in_radius: "Ingen känd laddstation inom {r}"
+  no_stations_hint: "Sök efter platsen eller välj en av dina laddplatser."
+  location_inaccurate: "Din position är osäker (±{r})"
+  location_relocate: "Hämta position igen"
+  place_other_sub_missing: "Stationen saknas? Välj bara leverantören"
 
 eu_data_act_sync:
   title: "Synkronisera automatiskt (VW EU Data Act)"

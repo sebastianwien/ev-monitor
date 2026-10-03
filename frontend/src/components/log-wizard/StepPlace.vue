@@ -3,7 +3,8 @@ import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
-import type { NearbyStation, StationMatch } from '../../composables/useNearbyStations'
+import { RADIUS_STEPS, type NearbyStation, type StationMatch } from '../../composables/useNearbyStations'
+import { sitesByDistance, isLocationInaccurate, formatDistance } from './placeDistance'
 import type { RecentSite } from '../../composables/useRecentSites'
 import type { ChargingSiteRef } from '../log-form/logFormData'
 import { settingsPlatform, openAppSettings, type LocationPermission } from '../../composables/useLocationPermission'
@@ -33,6 +34,15 @@ const props = defineProps<{
   /** Umkreis der aktuellen Liste in Metern, und ob "Umkreis erweitern" noch etwas bringt */
   radiusMeters?: number
   canExpand?: boolean
+  /** Nächste Stufe für "Nicht dabei?" */
+  nextRadius?: number | null
+  /** Der Umkreis ist bis zur größten Stufe abgesucht, ohne Treffer */
+  exhausted?: boolean
+  /** Ungenauigkeit der Ortung in Metern; null bei gesuchter Adresse */
+  locationAccuracy?: number | null
+  /** Position für die Entfernung zu den letzten Ladeorten; wird nirgends hingeschickt */
+  latitude?: number | null
+  longitude?: number | null
   /** Ladekarten-Streifen über der gewählten Säule; fehlt im Bearbeiten-Dialog */
   cardStrip?: {
     providers: ChargingProvider[]
@@ -43,7 +53,7 @@ const props = defineProps<{
   } | null
 }>()
 const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace]; expandRadius: []; chooseCard: [choice: CardChoice] }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const query = ref('')
 const platform = settingsPlatform()
@@ -51,13 +61,24 @@ const platform = settingsPlatform()
 const searchReopened = ref(false)
 // "Anderer Ort" auf der Trefferkarte: Karte weg, Liste da - bis zur nächsten Ortung
 const showSuggestion = computed(() => !!props.suggestion)
-const radiusLabel = computed(() => props.radiusMeters && props.radiusMeters >= 1000
-  ? `${(props.radiusMeters / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} km` : `${props.radiusMeters ?? 250} m`)
-const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value)
-const showOther = computed(() => props.place === 'other')
-// Ort steht, aber das Register kennt dort keine Säule: ohne Kachel bliebe "Weiter" grau
+const dist = (m: number) => formatDistance(m, locale.value)
+const radiusLabel = computed(() => dist(props.radiusMeters ?? RADIUS_STEPS[0]))
+// Während der wachsende Umkreis läuft, sagt der Ladetext, welche Stufe leer war
+const loadingText = computed(() => {
+  const i = RADIUS_STEPS.indexOf((props.radiusMeters ?? RADIUS_STEPS[0]) as typeof RADIUS_STEPS[number])
+  return i > 0 ? t('logwizard.nearby_expanding', { from: dist(RADIUS_STEPS[i - 1]), r: radiusLabel.value }) : t('logwizard.nearby_loading')
+})
+// Ort steht, aber das Register kennt bis zur größten Stufe keine Säule: die Seite fragt, wo geladen wurde
 const noStationsFound = computed(() =>
-  props.locationStatus === 'success' && !props.stationsLoading && props.stations.length === 0 && !searchReopened.value)
+  props.locationStatus === 'success' && !props.stationsLoading && props.stations.length === 0 && !!props.exhausted)
+const inaccurate = computed(() => isLocationInaccurate(props.locationAccuracy))
+// Im Leerzustand steht die Suche offen da: ein Tap ins Feld, kein "Anderer Ort" davor
+const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value || noStationsFound.value)
+const showOther = computed(() => props.place === 'other')
+// Im Leerzustand die nächsten zuerst: wer nachträglich einträgt, hat meist an einem davon geladen
+const recentEntries = computed(() => noStationsFound.value
+  ? sitesByDistance(props.recentSites, props.latitude ?? null, props.longitude ?? null)
+  : props.recentSites.map(site => ({ site, distanceMeters: null as number | null })))
 const filteredCpos = computed(() => {
   const q = query.value.trim().toLowerCase()
   const list = props.allCpos.filter(c => !props.recentCpos.includes(c))
@@ -94,6 +115,18 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
 
 <template>
   <div class="space-y-3">
+    <!-- Leerzustand: keine Fehlermeldung, sondern die Frage, wo geladen wurde. Darunter Suche, Zuhause, letzte Orte. -->
+    <div v-if="noStationsFound" role="status" data-testid="wizard-no-stations"
+      class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-1">
+      <p v-if="inaccurate" class="font-semibold">{{ t('logwizard.location_inaccurate', { r: dist(locationAccuracy!) }) }}</p>
+      <p v-else class="font-semibold">{{ t('logwizard.no_stations_in_radius', { r: radiusLabel }) }}</p>
+      <div class="flex items-center gap-2">
+        <p class="flex-1 text-gray-600 dark:text-gray-300">{{ t('logwizard.no_stations_hint') }}</p>
+        <button v-if="inaccurate" type="button" data-testid="wizard-relocate" :class="chipClass(false)" @click="emit('requestLocation')">
+          <ArrowPathIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.location_relocate') }}
+        </button>
+      </div>
+    </div>
     <!-- Standort-Card und Ortssuche kollabieren gemeinsam, sobald die Position steht -->
     <Collapse :open="showLocationBlock">
     <div class="space-y-3">
@@ -102,7 +135,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <div v-if="permission === 'prompt' || permission === 'unknown' || locationStatus === 'loading'"
       class="flex items-center gap-3 p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60">
       <MapPinIcon class="h-5 w-5 text-indigo-600 flex-shrink-0" />
-      <p class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ locationStatus === 'loading' ? t('logwizard.nearby_loading') : t('logwizard.location_offer') }}</p>
+      <p class="flex-1 text-sm text-gray-700 dark:text-gray-200" aria-live="polite">{{ locationStatus === 'loading' ? loadingText : t('logwizard.location_offer') }}</p>
       <button type="button" data-testid="wizard-location" :disabled="locationStatus === 'loading'" @click="emit('requestLocation')"
         class="text-sm font-semibold text-indigo-600 dark:text-indigo-300 whitespace-nowrap hover:underline disabled:no-underline disabled:opacity-60">
         <ArrowPathIcon v-if="locationStatus === 'loading'" class="h-5 w-5 animate-spin" :aria-label="t('common.loading')" />
@@ -159,19 +192,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <div v-if="stationsLoading && locationStatus !== 'loading'" role="status" data-testid="stations-loading"
       class="flex flex-col items-center gap-2 py-4 text-sm text-gray-500 dark:text-gray-400">
       <ArrowPathIcon class="h-8 w-8 animate-spin text-indigo-600" aria-hidden="true" />
-      <span>{{ t('logwizard.nearby_loading') }}</span>
-    </div>
-    <div v-if="noStationsFound" data-testid="wizard-no-stations"
-      class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-2">
-      <p>{{ t('logwizard.no_stations_found') }}</p>
-      <div :class="CHIP_ROW">
-        <button v-if="canExpand" type="button" data-testid="expand-radius" :class="chipClass(false)" @click="emit('expandRadius')">
-          <ArrowPathIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.expand_radius') }}
-        </button>
-        <button type="button" :class="chipClass(false)" @click="searchReopened = true">
-          <MagnifyingGlassIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.nearby_other_place') }}
-        </button>
-      </div>
+      <span>{{ loadingText }}</span>
     </div>
     <Collapse :open="stations.length > 0">
     <div class="space-y-3">
@@ -194,14 +215,14 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
           <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
           <small v-if="s.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ s.address }}</small>
         </span>
-        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ s.distanceMeters >= 1000 ? `${(s.distanceMeters / 1000).toFixed(1)} km` : `${s.distanceMeters} m` }}</span>
+        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ dist(s.distanceMeters) }}</span>
         <CheckCircleIcon v-if="isStation(s)" class="h-5 w-5 text-indigo-600" />
       </button>
       </template>
       <!-- "Nicht dabei?": die weite Suche ersetzt diese Liste, statt sie zu verlängern -->
       <button v-if="canExpand && !stationsLoading" type="button" data-testid="expand-radius" @click="emit('expandRadius')"
         class="btn-3d w-full min-h-11 rounded-sm border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-semibold text-indigo-600 dark:text-indigo-300 hover:border-indigo-400 transition">
-        {{ t('logwizard.expand_radius') }}
+        {{ t('logwizard.expand_radius', { r: dist(nextRadius ?? RADIUS_STEPS[RADIUS_STEPS.length - 1]) }) }}
       </button>
     </div>
     </Collapse>
@@ -209,7 +230,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <!-- Zuletzt genutzt: echte Standorte, sobald es welche gibt - sonst die Anbieter der letzten Logs -->
     <template v-if="recentSites.length">
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
-      <template v-for="s in recentSites" :key="s.id">
+      <template v-for="{ site: s, distanceMeters } in recentEntries" :key="s.id">
       <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
       <Collapse :open="!!cardStrip && isSite(s)">
         <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
@@ -223,7 +244,10 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
           <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
           <small v-if="s.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ s.address }}</small>
         </span>
-        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ t('logwizard.site_usage', { n: s.usageCount }, s.usageCount) }}</span>
+        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap text-right">
+          {{ t('logwizard.site_usage', { n: s.usageCount }, s.usageCount) }}
+          <small v-if="distanceMeters != null" class="block">{{ dist(distanceMeters) }}</small>
+        </span>
         <CheckCircleIcon v-if="isSite(s)" class="h-5 w-5 text-indigo-600" />
       </button>
       </template>
@@ -243,7 +267,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><MagnifyingGlassIcon class="h-5 w-5" /></span>
       <span class="flex-1 min-w-0">
         <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('logwizard.place_other') }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400">{{ t('logwizard.place_other_sub') }}</small>
+        <small class="block text-xs text-gray-500 dark:text-gray-400">{{ noStationsFound ? t('logwizard.place_other_sub_missing') : t('logwizard.place_other_sub') }}</small>
       </span>
     </button>
 

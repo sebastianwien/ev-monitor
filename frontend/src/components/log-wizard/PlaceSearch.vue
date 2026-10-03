@@ -46,6 +46,8 @@ const pickAddress = (s: Parameters<typeof address.select>[0]) => {
   stations.select(picked.name)
   emit('picked', picked)
 }
+/** Such-Taste der Tastatur: fragt die Adresse direkt ab, statt erst "Als Adresse suchen" antippen zu lassen */
+const onEnter = () => { if (showAddressRow.value) address.search(trimmed.value) }
 const rowClass = 'w-full flex items-start gap-2 px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
 </script>
 
@@ -54,6 +56,7 @@ const rowClass = 'w-full flex items-start gap-2 px-3 py-2 text-left text-sm hove
     <label for="wizard-place-search" class="block text-xs text-gray-500 dark:text-gray-400">{{ label }}</label>
     <div class="relative">
       <input id="wizard-place-search" v-model="query" type="text" :placeholder="t('logwizard.place_search_placeholder')" autocomplete="off"
+        enterkeyhint="search" @keydown.enter.prevent="onEnter"
         class="w-full rounded-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 pr-9 text-sm" />
       <ArrowPathIcon v-if="busy" class="absolute right-3 top-2.5 h-4 w-4 animate-spin text-gray-400" :aria-label="t('common.loading')" />
       <ul v-if="open" role="listbox"
