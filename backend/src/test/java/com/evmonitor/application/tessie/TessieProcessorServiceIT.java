@@ -1,5 +1,6 @@
 package com.evmonitor.application.tessie;
 
+import com.evmonitor.testutil.SharedPostgres;
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.EvLogSavedEvent;
 import com.evmonitor.application.SohAutoDetectEvent;
@@ -28,8 +29,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.RecordApplicationEvents;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
@@ -66,14 +65,9 @@ import static org.mockito.Mockito.verify;
 @RecordApplicationEvents
 class TessieProcessorServiceIT {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
-
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        SharedPostgres.registerMigrated(registry);
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
         registry.add("spring.flyway.enabled", () -> "true");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
