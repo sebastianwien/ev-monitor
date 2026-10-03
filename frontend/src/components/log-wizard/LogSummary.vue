@@ -34,9 +34,11 @@ const timeLabel = computed(() => {
   return new Date(form.value.loggedAt).toLocaleString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
 })
 
-/** Kosten-Kachel: Preis je kWh in die Kopfzeile, die beiden Werte je 100 km in die dritte Zeile */
+/** Kosten-Kachel: Preis je kWh leise neben dem Betrag */
 const perKwh = computed(() => props.costMetrics?.find(m => m.unit.endsWith('/kWh')) ?? null)
+/** Je Kachel genau eine Kennzahlzeile: Kosten je 100 km auf die Kosten, Verbrauch je 100 km auf die Energie */
 const per100 = computed(() => props.costMetrics?.filter(m => !m.unit.endsWith('/kWh')) ?? [])
+const metricFor = (section: SummarySection) => per100.value.find(m => section === 'energy' ? m.unit.startsWith('kWh') : section === 'cost' && !m.unit.startsWith('kWh')) ?? null
 const isMissing = (f: RequiredField) => props.missing?.includes(f) ?? false
 const energy = computed(() => {
   const v = form.value.kwhCharged ?? form.value.kwhAtVehicle
@@ -68,10 +70,8 @@ const tiles = computed<Tile[]>(() => [
         </span>
         <b v-else class="block text-base font-semibold text-amber-700 dark:text-amber-300">{{ t('logwizard.open') }}</b>
         <!-- Kosten: dritte Zeile zeigt die Kennzahlen, Wert dunkel und Einheit grau, Trenner als Punkt; Tippen ändert wie bei allen Kacheln -->
-        <!-- Kosten: Kennzahlen je 100 km in Kachel-Schrift (text-xs), umbrechend statt abgeschnitten -->
-        <span v-if="tile.section === 'cost' && per100.length" class="flex flex-wrap gap-x-2 text-xs tabular-nums text-gray-500 dark:text-gray-400">
-          <span v-for="m in per100" :key="m.unit" :class="['whitespace-nowrap', m.tone === 'notice' && 'text-amber-600 dark:text-amber-400']">{{ m.value }} {{ m.unit }}</span>
-        </span>
+        <!-- Statt "Ändern" (die ganze Kachel ist der Button) die eine passende Kennzahl, einzeilig wie die übrigen Kacheln -->
+        <span v-if="metricFor(tile.section)" :class="['block truncate text-xs tabular-nums', metricFor(tile.section)!.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400']">{{ metricFor(tile.section)!.value }} {{ metricFor(tile.section)!.unit }}</span>
         <span v-else class="text-xs text-indigo-600 dark:text-indigo-300">{{ t('logwizard.change') }}</span>
       </button>
     </div>
