@@ -121,9 +121,12 @@ const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
 }
 
 /** Die Trefferkarte: Ort und Ladekarte wie beim letzten Mal, dann direkt weiter. */
+/** "Anderer Ort" blendet den Vorschlag aus; die Fußleiste zeigt dann wieder "Weiter". */
+const suggestionDismissed = ref(false)
+const activeSuggestion = computed(() => suggestionDismissed.value ? null : suggestion.suggestion.value)
 const acceptSuggestion = () => {
-  if (!suggestion.suggestion.value) return
-  const choice = applySuggestion(form.value, suggestion.suggestion.value)
+  if (!activeSuggestion.value) return
+  const choice = applySuggestion(form.value, activeSuggestion.value)
   state.value.place = choice.kind
   viaSuggestion.value = true
   cost.reset(); cardKey.value = null; openCard.value = null
@@ -154,6 +157,7 @@ const choosePlace = (choice: PlaceChoice) => {
   siteAddress.value = choice.kind === 'station' ? choice.station.address ?? null : null
   applyPlace(form.value, choice)
   viaSuggestion.value = false
+  suggestionDismissed.value = true
   resetCard()
   if (autoAdvances(choice)) advance.schedule(); else { advance.cancel(); preselectCard() }
 }
@@ -334,7 +338,7 @@ const focusStep = (el: HTMLElement) => {
     ? document.querySelector<HTMLElement>('[data-testid="wizard-next"]')
     : step.value === 2 ? el.querySelector<HTMLElement>('#wizard-kwh')
     // Schritt 1: Trefferkarte, sonst "Zuhause" - nicht der erste Button, das ist oft "Standort freigeben", der nach der Ortung verschwindet
-    : el.querySelector<HTMLElement>('[data-testid="suggestion-accept"], [data-testid="place-home"]')
+    : document.querySelector<HTMLElement>('[data-testid="suggestion-accept"]') ?? el.querySelector<HTMLElement>('[data-testid="place-home"]')
   ;(target ?? el).focus({ preventScroll: true })
   if (target instanceof HTMLInputElement) target.select()
 }
@@ -424,16 +428,26 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"
-        :suggestion="suggestion.suggestion.value" :suggestion-provider-label="suggestionProviderLabel"
+        :suggestion="activeSuggestion" :suggestion-provider-label="suggestionProviderLabel"
         :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value"
         :card-strip="cardStrip" @choose-card="chooseCard"
         @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked"
-        @accept-suggestion="acceptSuggestion" @expand-radius="nearby.expand()" />
+        @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost" :community-price="community"
         :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :preview="preview" @ocr="onOcr" />
       <StepReview v-else v-model="form" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto" />
       </div>
       </Transition>
+      <template v-if="step === 1 && activeSuggestion" #primary>
+        <button type="button" data-testid="suggestion-dismiss" @click="suggestionDismissed = true"
+          class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-sm transition hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+          {{ t('logwizard.suggestion_other') }}
+        </button>
+        <button type="button" data-testid="suggestion-accept" @click="acceptSuggestion"
+          class="flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold transition hover:bg-indigo-700">
+          {{ t('logwizard.suggestion_accept') }}
+        </button>
+      </template>
     </WizardShell>
 
     <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-slide-in">

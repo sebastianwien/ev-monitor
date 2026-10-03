@@ -3294,6 +3294,7 @@ logwizard:
   location_open_settings: "Open settings"
   location_retry: "Try again"
   nearby_other_place: "Other place"
+  suggestion_other: "Elsewhere"
   place_home: "Home"
   place_home_sub: "Own wallbox or socket"
   place_other: "Other charging station"

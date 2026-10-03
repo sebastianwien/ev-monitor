@@ -42,7 +42,7 @@ const props = defineProps<{
     priceLabel: (eur: number) => string
   } | null
 }>()
-const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace]; acceptSuggestion: []; expandRadius: []; chooseCard: [choice: CardChoice] }>()
+const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace]; expandRadius: []; chooseCard: [choice: CardChoice] }>()
 const { t } = useI18n()
 
 const query = ref('')
@@ -50,8 +50,7 @@ const platform = settingsPlatform()
 // Nach erfolgreicher Ortung klappt die Suche zu; "Anderer Ort" holt sie zurück
 const searchReopened = ref(false)
 // "Anderer Ort" auf der Trefferkarte: Karte weg, Liste da - bis zur nächsten Ortung
-const suggestionDismissed = ref(false)
-const showSuggestion = computed(() => !!props.suggestion && !suggestionDismissed.value)
+const showSuggestion = computed(() => !!props.suggestion)
 const radiusLabel = computed(() => props.radiusMeters && props.radiusMeters >= 1000
   ? `${(props.radiusMeters / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })} km` : `${props.radiusMeters ?? 250} m`)
 const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value)
@@ -130,8 +129,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       @choose="onSearchChoose" @picked="p => emit('placePicked', p)" />
     </div>
     </Collapse>
-    <SuggestionCard v-if="showSuggestion && suggestion" :suggestion="suggestion" :provider-label="suggestionProviderLabel ?? null"
-      @accept="emit('acceptSuggestion')" @dismiss="suggestionDismissed = true" />
+    <SuggestionCard v-if="showSuggestion && suggestion" :suggestion="suggestion" :provider-label="suggestionProviderLabel ?? null" />
     <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
     <Collapse :open="!!cardStrip && showSearchedStation">
       <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"

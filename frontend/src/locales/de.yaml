@@ -3300,6 +3300,7 @@ logwizard:
   location_open_settings: "Einstellungen öffnen"
   location_retry: "Erneut versuchen"
   nearby_other_place: "Anderer Ort"
+  suggestion_other: "Woanders"
   place_home: "Zuhause"
   place_home_sub: "Eigene Wallbox oder Steckdose"
   place_other: "Andere Ladestation"

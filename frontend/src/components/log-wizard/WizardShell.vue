@@ -66,6 +66,9 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
     </div>
 
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3 flex items-center gap-3">
+      <!-- Slot primary: ein Schritt kann die Hauptaktion ersetzen, z. B. "Vorschlag übernehmen" in Daumenreichweite -->
+      <slot v-if="$slots.primary" name="primary" />
+      <template v-else>
       <button v-if="step > 1" type="button" @click="emit('back')"
         class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 inline-flex items-center gap-1 rounded-sm transition hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
         <ChevronLeftIcon class="h-4 w-4" />{{ t('common.back') }}
@@ -75,6 +78,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
                  !canProceed || saving ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700']">
         {{ saving ? t('common.saving') : primaryLabel }}
       </button>
+      </template>
     </footer>
   </div>
 </template>

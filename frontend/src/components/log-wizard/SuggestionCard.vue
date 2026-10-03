@@ -6,12 +6,11 @@ import type { ChargingSuggestion } from './wizardLogic'
 import { stationSub } from './stationSub'
 
 /**
- * Die Trefferkarte: der Nutzer steht an einem Ort, an dem er schon geladen hat. Ein Tap
- * übernimmt Ort, Ladeart und die Ladekarte vom letzten Mal. Keine Ja/Nein-Frage - die
- * Karte ist der Button, der Ausweg darunter öffnet die Liste.
+ * Die Trefferkarte: der Nutzer steht an einem Ort, an dem er schon geladen hat. Die Karte
+ * zeigt nur, was übernommen würde - "Übernehmen" und "Anderer Ort" stehen in der Fußleiste
+ * des Wizards, in Daumenreichweite.
  */
 const props = defineProps<{ suggestion: ChargingSuggestion; providerLabel: string | null }>()
-const emit = defineEmits<{ accept: []; dismiss: [] }>()
 const { t, locale } = useI18n()
 
 const site = computed(() => props.suggestion.kind === 'SITE' ? props.suggestion.site : null)
@@ -39,13 +38,5 @@ const line = computed(() => [lastUsed.value, props.providerLabel, site.value ? `
         <small v-else class="block text-sm text-gray-600 dark:text-gray-300">{{ t('logwizard.suggestion_private_sub') }}</small>
       </div>
     </div>
-    <button type="button" data-testid="suggestion-accept" @click="emit('accept')"
-      class="btn-3d w-full min-h-12 rounded-sm bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition">
-      {{ t('logwizard.suggestion_accept') }}
-    </button>
-    <button type="button" data-testid="suggestion-dismiss" @click="emit('dismiss')"
-      class="block mx-auto min-h-9 px-3 text-sm text-gray-500 dark:text-gray-400 underline underline-offset-2 hover:text-gray-800 dark:hover:text-gray-100">
-      {{ t('logwizard.nearby_other_place') }}
-    </button>
   </div>
 </template>

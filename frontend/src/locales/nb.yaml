@@ -3179,6 +3179,7 @@ logwizard:
   location_open_settings: "Åpne innstillinger"
   location_retry: "Prøv igjen"
   nearby_other_place: "Annet sted"
+  suggestion_other: "Et annet sted"
   place_home: "Hjemme"
   place_home_sub: "Egen ladeboks eller stikkontakt"
   place_other: "Annen ladestasjon"

@@ -3179,6 +3179,7 @@ logwizard:
   location_open_settings: "Öppna inställningar"
   location_retry: "Försök igen"
   nearby_other_place: "Annan plats"
+  suggestion_other: "Någon annanstans"
   place_home: "Hemma"
   place_home_sub: "Egen laddbox eller uttag"
   place_other: "Annan laddstation"

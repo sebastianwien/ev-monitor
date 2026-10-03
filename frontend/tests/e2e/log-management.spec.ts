@@ -535,6 +535,8 @@ test.describe('Ladegruppe im Zeitraum-Feed', () => {
 
 test.describe('Wizard nur mit Tastatur', () => {
   test.use({ viewport: { width: 1280, height: 900 } });
+  // Touch-Projekte: der Wizard fokussiert dort bewusst nur den Rahmen (keine Bildschirmtastatur)
+  test.skip(({ hasTouch }) => hasTouch, 'Tastaturführung gilt für Maus/Tastatur');
 
   test('Ort, drei Zahlen und Speichern ohne Maus; Weiter mit Lücke nennt das fehlende Feld', async ({ page }) => {
     const errors: string[] = [];
