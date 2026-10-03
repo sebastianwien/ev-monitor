@@ -30,3 +30,39 @@ describe('usePullToRefresh - reine Pull-Logik', () => {
     })
   })
 })
+
+import { vi } from 'vitest'
+import { registerSoftReload, runReload } from '../usePullToRefresh'
+
+describe('usePullToRefresh - weicher Reload', () => {
+  it('nutzt den harten Reload, wenn nichts angemeldet ist', async () => {
+    const hard = vi.fn()
+    await runReload(hard)
+    expect(hard).toHaveBeenCalledTimes(1)
+  })
+
+  it('ruft die angemeldete Funktion statt des harten Reloads', async () => {
+    const soft = vi.fn().mockResolvedValue(undefined)
+    const hard = vi.fn()
+    const off = registerSoftReload(soft)
+    await runReload(hard)
+    expect(soft).toHaveBeenCalledTimes(1)
+    expect(hard).not.toHaveBeenCalled()
+    off()
+    await runReload(hard)
+    expect(hard).toHaveBeenCalledTimes(1)
+  })
+
+  it('eine veraltete Abmeldung loescht keine neuere Anmeldung', async () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    const offFirst = registerSoftReload(first)
+    registerSoftReload(second)
+    offFirst()
+    const hard = vi.fn()
+    await runReload(hard)
+    expect(second).toHaveBeenCalledTimes(1)
+    expect(hard).not.toHaveBeenCalled()
+    registerSoftReload(second)()
+  })
+})

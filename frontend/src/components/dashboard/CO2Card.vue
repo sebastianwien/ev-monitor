@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import { useSlideTransition } from '../../composables/useSlideTransition'
+import { VERBRENNER_G_PER_KM, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from './co2'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
 const LS_KEY = 'co2_card_collapsed'
@@ -19,10 +20,6 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-// CO2 constants (g/km)
-const VERBRENNER_G_PER_KM = 178       // 7.5 L/100km × 2.37 kg CO2/L Benzin
-const STROMMIX_G_PER_KWH = 380        // dt. Strommix 2024 (Umweltbundesamt)
-const OEKO_G_PER_KWH = 30             // Lifecycle Solar/Wind
 
 const evStrommixGPerKm = computed(() =>
   (props.avgConsumptionKwhPer100km / 100) * STROMMIX_G_PER_KWH

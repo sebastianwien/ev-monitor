@@ -18,6 +18,26 @@ export function shouldTriggerRefresh(dampedPx: number): boolean {
   return dampedPx >= PULL_THRESHOLD_PX
 }
 
+type SoftReload = () => Promise<void> | void
+
+/**
+ * Eine Seite kann einen weichen Reload anmelden (Daten neu laden statt Seite neu laden).
+ * Modulweit, weil der Zieh-Mechanismus in App.vue lebt und die Seite nicht kennt.
+ * Die Abmelde-Funktion loescht nur die eigene Anmeldung, nie eine neuere.
+ */
+let softReload: SoftReload | null = null
+
+export function registerSoftReload(fn: SoftReload): () => void {
+  softReload = fn
+  return () => { if (softReload === fn) softReload = null }
+}
+
+/** Weicher Reload, falls angemeldet, sonst harter Seiten-Reload. */
+export async function runReload(hardReload: () => void = () => window.location.reload()): Promise<void> {
+  if (softReload) await softReload()
+  else hardReload()
+}
+
 /**
  * Klassisches Pull-to-Refresh: am oberen Seitenanfang nach unten ziehen => Reload.
  *
@@ -25,9 +45,9 @@ export function shouldTriggerRefresh(dampedPx: number): boolean {
  * kein eigenes Pull-to-Refresh, hier wuerde es sonst fehlen. Auf Web/PWA uebernimmt
  * der Browser; dort bleibt das Composable inaktiv (keine Listener, kein Leak).
  *
- * @param reload Aktion zum Neuladen (Default: harter Seiten-Reload).
+ * @param reload Aktion zum Neuladen (Default: angemeldeter weicher Reload, sonst harter Seiten-Reload).
  */
-export function usePullToRefresh(reload: () => void = () => window.location.reload()) {
+export function usePullToRefresh(reload: () => Promise<void> | void = () => runReload()) {
   /** Gedaempfte Pull-Distanz in px fuer den Indikator (0 = nicht sichtbar). */
   const pull = ref(0)
   /** True waehrend des Reloads (Spinner). */
@@ -68,8 +88,15 @@ export function usePullToRefresh(reload: () => void = () => window.location.relo
     tracking = false
     if (shouldTriggerRefresh(pull.value)) {
       refreshing.value = true
-      // Kurz halten, damit der Spinner sichtbar ist, dann neu laden.
-      window.setTimeout(reload, 300)
+      // Kurz halten, damit der Spinner sichtbar ist, dann neu laden. Nach einem weichen
+      // Reload bleibt die Seite stehen, deshalb den Indikator zuruecksetzen.
+      window.setTimeout(async () => {
+        try { await reload() } finally {
+          refreshing.value = false
+          pull.value = 0
+          armed.value = false
+        }
+      }, 300)
     } else {
       pull.value = 0
       armed.value = false

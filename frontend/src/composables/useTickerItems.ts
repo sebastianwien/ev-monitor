@@ -75,7 +75,7 @@ export async function loadTickerRaw(get: TickerGet, withUserItems: boolean): Pro
 }
 
 // Backend category enum name -> i18n key suffix (reused leaderboard.cat_* labels)
-const CAT_LABEL: Record<string, string> = {
+export const CAT_LABEL: Record<string, string> = {
     MONTHLY_KWH: 'kwh',
     MONTHLY_CHARGES: 'charges',
     MONTHLY_DISTANCE: 'distance',
