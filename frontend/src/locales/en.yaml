@@ -1117,6 +1117,7 @@ logform:
   error_no_car: "Please select a vehicle"
   error_required: "Please fill in all required fields correctly: {fields}"
   error_save: "Charging session could not be saved"
+  error_card_invalid: "This charging card does not belong to your account. Please choose another one."
   odometer_last: "last {km}"
   odometer_placeholder: "Odometer (km)"
   odometer_min: "should be >= {min}"

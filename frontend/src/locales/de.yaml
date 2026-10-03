@@ -1120,6 +1120,7 @@ logform:
   error_no_car: "Bitte wähle ein Fahrzeug aus"
   error_required: "Bitte fülle alle Pflichtfelder korrekt aus: {fields}"
   error_save: "Ladevorgang konnte nicht gespeichert werden"
+  error_card_invalid: "Diese Ladekarte gehört nicht zu deinem Konto. Bitte wähle eine andere."
   odometer_last: "zuletzt {km}"
   odometer_placeholder: "Tachostand"
   odometer_min: "sollte >= {min} sein"

@@ -1076,6 +1076,7 @@ logform:
   error_no_car: Vennligst velg et kjøretøy
   error_required: "Fyll ut alle obligatoriske felt riktig: {fields}"
   error_save: Ladingsøkten kunne ikke lagres
+  error_card_invalid: "Dette ladekortet tilhører ikke kontoen din. Velg et annet."
   odometer_last: siste {km}
   odometer_placeholder: Kilometerteller (km)
   odometer_min: børde være minst {min}

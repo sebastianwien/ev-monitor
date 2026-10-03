@@ -130,6 +130,7 @@ import { useRecentSites } from '../../composables/useRecentSites'
 import StepEnergy from '../log-wizard/StepEnergy.vue'
 import StepVehicle from '../log-wizard/StepVehicle.vue'
 import StepCost from '../log-wizard/StepCost.vue'
+import { logSaveErrorMessage } from '../../utils/logSaveError'
 
 export interface EvLogResponse {
   id: string
@@ -292,8 +293,8 @@ async function save() {
     await applyTariffToLocationIfRequested(formData.value)
     savedLog.value = res.data
     sheet.value?.requestClose()
-  } catch (e: any) {
-    errorMsg.value = e?.response?.data?.message ?? t('logform.error_save')
+  } catch (e) {
+    errorMsg.value = logSaveErrorMessage(e, t)
   } finally {
     loading.value = false
   }

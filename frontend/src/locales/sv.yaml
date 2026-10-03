@@ -1076,6 +1076,7 @@ logform:
   error_no_car: Välj ett fordon
   error_required: "Fyll i alla obligatoriska fält korrekt: {fields}"
   error_save: Laddningssessionen kunde inte sparas
+  error_card_invalid: "Det här laddkortet hör inte till ditt konto. Välj ett annat."
   odometer_last: sista {km}
   odometer_placeholder: Mätarställning
   odometer_min: bör vara minst {min}
