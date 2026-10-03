@@ -60,18 +60,17 @@ const tiles = computed<Tile[]>(() => [
       <button v-for="(tile, i) in tiles" :key="tile.testid" type="button" :data-testid="tile.testid" @click="emit('edit', tile.section)"
         :style="reveal ? { animationDelay: `${i * 40}ms` } : undefined"
         :class="['btn-3d text-left p-3 rounded-sm transition', reveal && 'tile-rise', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">
-        <span class="flex items-baseline justify-between gap-1 text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
-          <span class="truncate">{{ tile.label }}</span>
-          <!-- Kosten: der Preis je kWh gehört zum Betrag und steht in der Kopfzeile, die Werte je 100 km in der dritten Zeile -->
-          <span v-if="tile.section === 'cost' && perKwh" class="flex-shrink-0 normal-case tabular-nums text-gray-500 dark:text-gray-400"><b class="font-semibold text-gray-700 dark:text-gray-200">{{ perKwh.value }}</b> {{ perKwh.unit }}</span>
+        <span class="block truncate text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ tile.label }}</span>
+        <!-- Gleicher Aufbau wie alle Kacheln: Label, Wert, eine graue Zeile. Kosten: der Preis je kWh steht leise neben dem Betrag. -->
+        <span v-if="tile.value != null" class="flex items-baseline gap-1.5 min-w-0">
+          <b class="text-base font-semibold tabular-nums text-gray-800 dark:text-gray-100 truncate">{{ tile.value }}</b>
+          <span v-if="tile.section === 'cost' && perKwh" class="flex-shrink-0 text-xs tabular-nums text-gray-500 dark:text-gray-400">{{ perKwh.value }} {{ perKwh.unit }}</span>
         </span>
-        <b v-if="tile.value != null" class="block text-base font-semibold tabular-nums text-gray-800 dark:text-gray-100 truncate">{{ tile.value }}</b>
         <b v-else class="block text-base font-semibold text-amber-700 dark:text-amber-300">{{ t('logwizard.open') }}</b>
         <!-- Kosten: dritte Zeile zeigt die Kennzahlen, Wert dunkel und Einheit grau, Trenner als Punkt; Tippen ändert wie bei allen Kacheln -->
-        <span v-if="tile.section === 'cost' && per100.length" class="flex items-baseline gap-1 overflow-hidden text-[10px] leading-4 tabular-nums text-gray-500 dark:text-gray-400 whitespace-nowrap">
-          <span v-for="(m, i) in per100" :key="m.unit" class="inline-flex items-baseline gap-0.5">
-            <span v-if="i > 0" class="pr-1">·</span><b :class="['font-semibold', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-gray-200']">{{ m.value }}</b>{{ m.unit.replace(' km', '') }}
-          </span>
+        <!-- Kosten: Kennzahlen je 100 km in Kachel-Schrift (text-xs), umbrechend statt abgeschnitten -->
+        <span v-if="tile.section === 'cost' && per100.length" class="flex flex-wrap gap-x-2 text-xs tabular-nums text-gray-500 dark:text-gray-400">
+          <span v-for="m in per100" :key="m.unit" :class="['whitespace-nowrap', m.tone === 'notice' && 'text-amber-600 dark:text-amber-400']">{{ m.value }} {{ m.unit }}</span>
         </span>
         <span v-else class="text-xs text-indigo-600 dark:text-indigo-300">{{ t('logwizard.change') }}</span>
       </button>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TruckIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
@@ -342,6 +342,14 @@ const focusStep = (el: HTMLElement) => {
   ;(target ?? el).focus({ preventScroll: true })
   if (target instanceof HTMLInputElement) target.select()
 }
+// Der Vorschlag lädt nach der Ortung, also nach dem ersten Fokussieren: Fokus nachziehen, solange er noch auf dem Startpunkt steht
+watch(activeSuggestion, async (s) => {
+  if (!s || step.value !== 1 || !finePointer.value) return
+  const a = document.activeElement as HTMLElement | null
+  if (a && a !== document.body && a !== stepEl.value && a.dataset.testid !== 'place-home') return
+  await nextTick()
+  document.querySelector<HTMLElement>('[data-testid="suggestion-accept"]')?.focus({ preventScroll: true })
+})
 const onStepEl = (el: unknown) => {
   const node = el instanceof HTMLElement ? el : null
   if (node && node !== stepEl.value) { stepEl.value = node; requestAnimationFrame(() => focusStep(node)) }
