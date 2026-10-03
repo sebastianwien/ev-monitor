@@ -139,7 +139,7 @@ class AnalyticsService {
     this.track('car_added', { first_car: isFirst })
   }
 
-  trackLogCreated(source: 'manual' | 'ocr', isFirst: boolean) {
+  trackLogCreated(source: 'manual' | 'ocr' | 'voice', isFirst: boolean) {
     this.track('log_created', { source, first_log: isFirst })
   }
 

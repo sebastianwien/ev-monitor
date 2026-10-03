@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TruckIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
@@ -10,6 +10,8 @@ import { useCarStore } from '../../stores/car'
 import { useCountryStore } from '../../stores/country'
 import { useCoinStore } from '../../stores/coins'
 import { useLogsRefreshStore } from '../../stores/logsRefresh'
+import { useAuthStore } from '../../stores/auth'
+import { isVoiceSupported } from '../../composables/useVoiceRecorder'
 import { useHaptic } from '../../composables/useHaptic'
 import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useNearbyStations, type StationMatch } from '../../composables/useNearbyStations'
@@ -22,7 +24,8 @@ import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { analytics } from '../../services/analytics'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
-import { emptyLogForm, canProceed, missingRequired, applyPlace, applySuggestion, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice } from './wizardLogic'
+import { emptyLogForm, canProceed, missingRequired, applyPlace, applySuggestion, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice,
+  applyVoiceDraft, voiceCost, voiceFlags, canJumpToReview, type VoiceDraft, type VoiceCost, type VoiceFlag, type VoiceUsage } from './wizardLogic'
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
 import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
@@ -36,6 +39,7 @@ import StepReview from './StepReview.vue'
 import { prefetchMinimapTiles, MINIMAP_MAX_PX } from './minimapTiles'
 import { nextField } from './keyboardNav'
 import { useIsMobile } from '../../composables/useIsMobile'
+const VoiceCapture = defineAsyncComponent(() => import('./VoiceCapture.vue'))
 
 const emit = defineEmits<{ success: []; cancel: [] }>()
 const { t } = useI18n()
@@ -152,11 +156,15 @@ const advance = useDelayedCall(() => next(), PLACE_ADVANCE_MS)
  * der Tipp auf eine Karte springt weiter, die vorgewählte bestätigt der Nutzer mit "Weiter".
  */
 const autoAdvances = (choice: PlaceChoice) => choice.kind === 'home'
-const choosePlace = (choice: PlaceChoice) => {
+/** Ortswahl im Wizard-Zustand: Art, dazu Position und Adresse der Säule für Minimap und Kopfzeile. */
+const setPlaceContext = (choice: PlaceChoice) => {
   state.value.place = choice.kind
   siteCoords.value = choice.kind === 'station' && choice.station.latitude != null && choice.station.longitude != null
     ? { lat: choice.station.latitude, lon: choice.station.longitude } : null
   siteAddress.value = choice.kind === 'station' ? choice.station.address ?? null : null
+}
+const choosePlace = (choice: PlaceChoice) => {
+  setPlaceContext(choice)
   applyPlace(form.value, choice)
   viaSuggestion.value = false
   suggestionDismissed.value = true
@@ -170,7 +178,7 @@ const cardKey = ref<string | null>(null)
 const community = ref<CommunityPrice | null>(null)
 /** "+ neue Karte" oder Karte ohne Tarif: der Editor öffnet in Schritt 2 */
 const openCard = ref<'new' | 'price' | null>(null)
-const resetCard = () => { cardKey.value = null; openCard.value = null; form.value.chargingProviderId = null; cost.reset() }
+const resetCard = () => { cardKey.value = null; openCard.value = null; form.value.chargingProviderId = null; cost.reset(); applySpokenCost() }
 const priceLabel = (eur: number) => `${formatNumber(Math.round(cost.eurToLocal(eur) * 100) / 100)} ${countryStore.unitSystem.currencySymbol}/kWh`
 /** Trefferkarte "Übernehmen": Karte wie beim letzten Mal, der Streifen bleibt zu. Wer wechseln will, tippt die Kachel. */
 const viaSuggestion = ref(false)
@@ -195,6 +203,8 @@ const applyCard = (c: CardChoice) => {
       form.value.chargingProviderId = null; cardKey.value = null; cost.reset(); openCard.value = 'new'
       break
   }
+  // Gesagter Betrag geht vor den Kartenpreis; ohne Tarif muss dann auch kein Preis nachgetragen werden
+  if (applySpokenCost() && openCard.value === 'price') openCard.value = null
 }
 const chooseCard = (c: CardChoice) => { applyCard(c); haptic(10); advance.schedule() }
 
@@ -367,6 +377,53 @@ const onOcr = (r: any) => {
   ocrUsed.value = true
 }
 
+// ── Sprachlog ─────────────────────────────────────────────────────────────────
+const authStore = useAuthStore()
+const voiceSupported = isVoiceSupported()
+/** Testbetrieb: Mikrofon nur für Admins (das Backend antwortet sonst 404) und nur mit gewähltem Auto. */
+const showVoice = computed(() => authStore.isAdmin && voiceSupported && !!selectedCarId.value)
+const voice = ref<{ transcript: string; flags: VoiceFlag[]; usage: VoiceUsage } | null>(null)
+const voiceUsed = ref(false)
+/** Gesagte Kosten bleiben stehen, auch wenn Ort oder Karte erst danach gewählt werden. */
+const spokenCost = ref<VoiceCost | null>(null)
+function applySpokenCost(): boolean {
+  const c = spokenCost.value
+  if (!c) return false
+  if (c.mode === 'per_kwh') { cost.setPerKwhEur(c.eur); return true }
+  cost.costMode.value = 'total'; cost.costLocalPerKwh.value = null
+  cost.costLocalTotal.value = Math.round(cost.eurToLocal(c.eur) * 100) / 100
+  return true
+}
+/**
+ * Aufnahme ins Formular: Ort (sonst der Treffer aus Position und eigenen Logs, zur Prüfung markiert),
+ * Ladekarte, Werte, Kosten. Danach direkt auf die Prüfseite, wenn nichts fehlt, sonst zum ersten offenen Schritt.
+ */
+const onVoiceDraft = async (draft: VoiceDraft) => {
+  advance.cancel()
+  spokenCost.value = voiceCost(draft.fields)
+  const flags = voiceFlags(draft.fields.uncertain)
+  const suggested = !draft.place && !state.value.place ? activeSuggestion.value : null
+  if (draft.place || suggested) resetCard()
+  let choice = applyVoiceDraft(form.value, draft)
+  if (!choice && suggested) {
+    choice = applySuggestion(form.value, suggested)
+    if (draft.chargingProviderId) form.value.chargingProviderId = draft.chargingProviderId
+    if (!flags.includes('place')) flags.unshift('place')
+  }
+  if (choice) { setPlaceContext(choice); viaSuggestion.value = false; suggestionDismissed.value = true }
+  const id = form.value.chargingProviderId
+  const card = id ? providers.value.find(x => x.id === id) : null
+  if (card) applyCard({ kind: 'provider', provider: card, eurPerKwh: providerPriceForType(card, form.value.chargingType) })
+  else if (choice && form.value.isPublicCharging) preselectCard()
+  else applySpokenCost()
+  voice.value = { transcript: draft.transcript, flags, usage: draft.usage }
+  voiceUsed.value = true
+  haptic(10)
+  await nextTick() // der Kosten-Abgleich (Watcher) schreibt costEur erst im nächsten Tick
+  const target: WizardStep = canJumpToReview(form.value, state.value) ? 3 : state.value.place ? 2 : 1
+  if (target !== step.value) goto(target)
+}
+
 // ── Speichern ─────────────────────────────────────────────────────────────────
 const toast = ref<string | null>(null)
 const submit = async () => {
@@ -380,7 +437,7 @@ const submit = async () => {
     toast.value = t('logform.coin_toast', { n: res.data.coinsAwarded })
     setTimeout(() => { toast.value = null }, 4000)
     coinStore.refresh()
-    analytics.trackLogCreated(ocrUsed.value ? 'ocr' : 'manual', isFirstLog)
+    analytics.trackLogCreated(voiceUsed.value ? 'voice' : ocrUsed.value ? 'ocr' : 'manual', isFirstLog)
     await applyTariffToLocationIfRequested(form.value)
     logsRefreshStore.notifyLogSaved()
     emit('success')
@@ -433,6 +490,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
            Gekeyter Wrapper statt Transition direkt auf den Komponenten: so hängt der Wechsel nicht an deren Wurzelelement. -->
       <Transition :name="`step-${dir}`" mode="out-in">
       <div :key="step" :ref="onStepEl" tabindex="-1" class="outline-none" @keydown.enter="onEnter">
+      <VoiceCapture v-if="step === 1 && showVoice" class="mb-4" :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
       <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="viaSuggestion ? null : state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
         :recent-sites="recentSites.sites.value"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
@@ -445,7 +503,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
         @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost" :community-price="community"
         :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :preview="preview" @ocr="onOcr" />
-      <StepReview v-else v-model="form" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto" />
+      <StepReview v-else v-model="form" :voice="voice" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto" />
       </div>
       </Transition>
       <template v-if="step === 1 && activeSuggestion" #primary>

@@ -23,6 +23,8 @@ const props = defineProps<{
   reveal?: boolean
   /** ct/kWh, €/100 km, kWh/100 km für die Kosten-Kachel; ersetzt dort die Zeile "Ändern", die Kachel bleibt gleich hoch */
   costMetrics?: CostMetric[]
+  /** Sprachlog: Werte, bei denen das Modell unsicher war - Kachel mit Wert, aber gelb umrandet */
+  flagged?: RequiredField[]
 }>()
 const form = defineModel<LogFormData>({ required: true })
 const emit = defineEmits<{ edit: [section: SummarySection] }>()
@@ -40,19 +42,20 @@ const perKwh = computed(() => props.costMetrics?.find(m => m.unit.endsWith('/kWh
 const per100 = computed(() => props.costMetrics?.filter(m => !m.unit.endsWith('/kWh')) ?? [])
 const metricFor = (section: SummarySection) => per100.value.find(m => section === 'energy' ? m.unit.startsWith('kWh') : section === 'cost' && !m.unit.startsWith('kWh')) ?? null
 const isMissing = (f: RequiredField) => props.missing?.includes(f) ?? false
+const isFlagged = (tile: Tile) => !!tile.field && (props.flagged?.includes(tile.field) ?? false)
 const energy = computed(() => {
   const v = form.value.kwhCharged ?? form.value.kwhAtVehicle
   return v == null ? null : `${formatNumber(v)} kWh`
 })
 
-interface Tile { label: string; value: string | null; section: SummarySection; testid: string }
+interface Tile { label: string; value: string | null; section: SummarySection; testid: string; field?: RequiredField }
 const tiles = computed<Tile[]>(() => [
   ...(props.hidePlace ? [] : [{ label: t('logwizard.place'), value: props.placeLabel, section: 'place' as SummarySection, testid: 'summary-place' }]),
   ...(props.showTimeTile ? [{ label: t('logfields.timestamp'), value: timeLabel.value, section: 'time' as SummarySection, testid: 'summary-time' }] : []),
-  { label: t('logfields.energy'), value: isMissing('energy') ? null : energy.value, section: 'energy', testid: 'summary-energy' },
-  { label: t('logfields.odometer'), value: isMissing('odometer') || form.value.odometerKm == null ? null : formatDistance(form.value.odometerKm), section: 'vehicle', testid: 'summary-odometer' },
-  { label: t('logfields.soc_after'), value: isMissing('soc') || form.value.socAfterChargePercent == null ? null : `${form.value.socAfterChargePercent} %`, section: 'vehicle', testid: 'summary-soc' },
-  { label: t('logfields.cost_eur'), value: isMissing('cost') || form.value.costEur == null ? null : formatCurrency(form.value.costEur), section: 'cost', testid: 'summary-cost' },
+  { label: t('logfields.energy'), value: isMissing('energy') ? null : energy.value, section: 'energy', testid: 'summary-energy', field: 'energy' },
+  { label: t('logfields.odometer'), value: isMissing('odometer') || form.value.odometerKm == null ? null : formatDistance(form.value.odometerKm), section: 'vehicle', testid: 'summary-odometer', field: 'odometer' },
+  { label: t('logfields.soc_after'), value: isMissing('soc') || form.value.socAfterChargePercent == null ? null : `${form.value.socAfterChargePercent} %`, section: 'vehicle', testid: 'summary-soc', field: 'soc' },
+  { label: t('logfields.cost_eur'), value: isMissing('cost') || form.value.costEur == null ? null : formatCurrency(form.value.costEur), section: 'cost', testid: 'summary-cost', field: 'cost' },
 ])
 </script>
 
@@ -61,7 +64,8 @@ const tiles = computed<Tile[]>(() => [
     <div class="grid grid-cols-2 gap-2">
       <button v-for="(tile, i) in tiles" :key="tile.testid" type="button" :data-testid="tile.testid" @click="emit('edit', tile.section)"
         :style="reveal ? { animationDelay: `${i * 40}ms` } : undefined"
-        :class="['btn-3d text-left p-3 rounded-sm transition', reveal && 'tile-rise', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">
+        :data-flagged="isFlagged(tile) || undefined"
+        :class="['btn-3d text-left p-3 rounded-sm transition', reveal && 'tile-rise', isFlagged(tile) && 'ring-2 ring-inset ring-amber-400 dark:ring-amber-600', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">
         <span class="block truncate text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ tile.label }}</span>
         <!-- Gleicher Aufbau wie alle Kacheln: Label, Wert, eine graue Zeile. Kosten: der Preis je kWh steht leise neben dem Betrag. -->
         <span v-if="tile.value != null" class="flex items-baseline gap-1.5 min-w-0">
