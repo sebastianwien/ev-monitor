@@ -30,3 +30,12 @@ describe('scoped styles', () => {
         expect(offenders).toEqual([])
     })
 })
+
+describe('Dark-Mode-Schatten der 3D-Familie', () => {
+    // Stand bis Oktober 2026 versehentlich global in ViewSegmentedControl (":global(.dark) .tab-btn"
+    // kompilierte zu ".dark") und ist damit der gelebte Look aller btn-3d im Dark Mode.
+    it('steht bewusst global in index.css', () => {
+        const css = readFileSync(join(__dirname, '..', 'index.css'), 'utf8')
+        expect(css).toMatch(/\n\.dark\s*\{\s*--btn-shadow-color:\s*rgba\(255,\s*255,\s*255,\s*0?\.30?\)/)
+    })
+})
