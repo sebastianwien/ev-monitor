@@ -153,7 +153,7 @@ public class CarShareService {
                 stats.totalDistanceKm(),
                 stats.avgConsumptionKwhPer100km(),
                 stats.avgCostPerKwh(),
-                costPer100km(stats.energyCostEur(), stats.totalDistanceKm()),
+                costPer100km(stats.avgCostPerKwh(), stats.avgConsumptionKwhPer100km()),
                 publicShare(stats.locationSplit()),
                 stats.summerConsumptionKwhPer100km(),
                 stats.winterConsumptionKwhPer100km(),
@@ -180,9 +180,11 @@ public class CarShareService {
         return java.net.URLEncoder.encode(segment, java.nio.charset.StandardCharsets.UTF_8).replace("+", "%20");
     }
 
-    private static BigDecimal costPer100km(BigDecimal energyCost, BigDecimal distanceKm) {
-        if (energyCost == null || distanceKm == null || distanceKm.signum() <= 0) return null;
-        return energyCost.multiply(BigDecimal.valueOf(100)).divide(distanceKm, 2, RoundingMode.HALF_UP);
+    // EUR/kWh x kWh/100km statt Gesamtkosten / Strecke: Logs ohne Kilometerstand haben Kosten,
+    // aber keine Strecke, und wuerden den Wert sonst aufblaehen. Gleiche Formel wie LogsView.
+    private static BigDecimal costPer100km(BigDecimal costPerKwh, BigDecimal consumptionKwhPer100km) {
+        if (costPerKwh == null || consumptionKwhPer100km == null || costPerKwh.signum() <= 0) return null;
+        return costPerKwh.multiply(consumptionKwhPer100km).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal publicShare(EvLogStatisticsResponse.LocationSplit split) {

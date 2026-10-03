@@ -209,7 +209,24 @@ class CarShareServiceTest extends AbstractIntegrationTest {
         assertNotNull(pub.recentCharges().get(0).chargedOn(), "Datum ja, Uhrzeit nicht");
     }
 
-    private EvLog saveLog(UUID carId, LocalDateTime loggedAt, int odometerKm) {
+    @Test
+    void getPublicCar_costPer100km_ignoresCostsOfLogsWithoutDistance() {
+        // Regression: Alt-Importe ohne Kilometerstand trieben den Wert hoch (21 statt ~7 EUR),
+        // weil ihre Kosten im Zaehler, ihre Strecke aber nicht im Nenner landete.
+        User user = createAndSaveUser("carshare-cost100-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        for (int i = 0; i < 10; i++) saveLog(car.getId(), LocalDateTime.now().minusYears(3).plusDays(i), null);
+        saveLog(car.getId(), LocalDateTime.now().minusDays(2), 10_000);
+        saveLog(car.getId(), LocalDateTime.now().minusDays(1), 10_250);
+
+        PublicCarResponse pub = shareService.getPublicCar(shareService.createShare(car.getId(), user).token()).orElseThrow();
+
+        BigDecimal expected = pub.avgCostPerKwh().multiply(pub.avgConsumptionKwhPer100km())
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        assertEquals(0, expected.compareTo(pub.costPer100km()), "EUR/100km = EUR/kWh x kWh/100km, war " + pub.costPer100km());
+    }
+
+    private EvLog saveLog(UUID carId, LocalDateTime loggedAt, Integer odometerKm) {
         EvLog log = EvLog.createFromInternal(
                 carId, new BigDecimal("43.8"), 40, "u1hcv8", loggedAt,
                 null, null, DataSource.USER_LOGGED, new BigDecimal("18.50"), ChargingType.AC,
