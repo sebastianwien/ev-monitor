@@ -27,6 +27,7 @@ import RegisterView from '../views/RegisterView.vue';
 import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarContextLayout from '../layouts/CarContextLayout.vue';
+import { isStoryOptIn } from '../composables/useStoryOptIn';
 import CarsLayout from '../layouts/CarsLayout.vue';
 import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListEntry from '../views/PublicModelsListEntry.vue';
@@ -88,6 +89,12 @@ const router = createRouter({
             path: '/dashboard',
             name: 'statistics',
             component: CarContextLayout,
+            meta: { requiresAuth: true }
+        },
+        {
+            path: '/story',
+            name: 'story',
+            component: () => import('../views/StoryDashboardView.vue'),
             meta: { requiresAuth: true }
         },
         {
@@ -478,6 +485,13 @@ const router = createRouter({
 // Ueber die Paar-Grenze hinweg (z.B. Log-Feed -> Ladekarten) wechselt die Komponente,
 // und der Uebergang laeuft als Routen-Transition. Beide nutzen dieselbe Richtung und
 // dieselben CSS-Klassen, damit sich jeder Tab-Klick gleich anfuehlt.
+// Story-Dashboard (Experiment): wer es eingeschaltet hat, landet statt auf /dashboard dort.
+router.beforeEach((to) => {
+    if (to.path === '/dashboard' && isStoryOptIn()) {
+        return '/story';
+    }
+});
+
 router.beforeEach((to, from) => {
     to.meta.transition = slideDirection(from.path, to.path);
 });

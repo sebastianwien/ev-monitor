@@ -30,6 +30,7 @@ import LicensePlate from '../components/car/LicensePlate.vue'
 const ChargingHeatMap = defineAsyncComponent(() => import('../components/dashboard/ChargingHeatMap.vue'))
 import StartCodeTeaser from '../components/codes/StartCodeTeaser.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
+import DesignTeaserBanner from '../components/dashboard/DesignTeaserBanner.vue'
 import { useCountryStore } from '../stores/country'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
@@ -376,6 +377,7 @@ onUnmounted(() => {
   <div class="md:max-w-6xl md:mx-auto md:px-6 md:pb-6">
     <RewardSystemUpdateBanner class="mb-4" />
     <StartCodeTeaser class="mb-4 mx-4 md:mx-0" />
+    <DesignTeaserBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="!loading || !isInitialLoad">
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6 pb-6">

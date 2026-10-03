@@ -27,7 +27,7 @@ const { t } = useI18n()
 const { haptic } = useHaptic()
 const keyboardOpen = useKeyboardOpen()
 
-const isStart = computed(() => route.path === '/dashboard')
+const isStart = computed(() => route.path === '/dashboard' || route.path === '/story')
 const isLogs = computed(() => route.path === '/logs')
 const isWatt = computed(() => route.path === '/coins/history')
 

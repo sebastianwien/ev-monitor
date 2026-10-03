@@ -6,6 +6,9 @@
  * get the dense grid view instead of the mobile card layout. */
 @theme {
   --breakpoint-gridfeed: 920px;
+  /* Story-Dashboard: Gruen als Akzent, hell und dunkel getrennt */
+  --color-story-accent: #0f6e56;
+  --color-story-accent-dark: #5fc9a6;
 }
 
 /* Tailwind 4 setzt Buttons auf cursor: default - bei uns sind sie klickbar. */
@@ -331,4 +334,55 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .sl-rise { animation: none; opacity: 1; }
   .sl-gold { animation: none; }
+}
+
+/* Story-Dashboard: SoC-Ring. --soc ist als Zahl registriert, damit der Browser den
+   Wechsel zwischen zwei Poll-Werten weich animiert, ohne JavaScript. */
+@property --soc { syntax: '<number>'; inherits: false; initial-value: 0; }
+@property --soc-start { syntax: '<number>'; inherits: false; initial-value: 0; }
+@property --soc-limit { syntax: '<number>'; inherits: false; initial-value: 100; }
+.story-soc-ring {
+  background:
+    conic-gradient(
+      from 0deg,
+      var(--color-story-accent) 0 calc(var(--soc) * 1%),
+      color-mix(in oklab, var(--color-story-accent) 28%, transparent) calc(var(--soc) * 1%) calc(var(--soc-limit) * 1%),
+      #e5e7eb calc(var(--soc-limit) * 1%) 100%
+    );
+  transition: --soc 900ms cubic-bezier(0.2, 0.7, 0.2, 1), --soc-limit 900ms ease;
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-story-accent) 10%, transparent);
+}
+.dark .story-soc-ring {
+  background:
+    conic-gradient(
+      from 0deg,
+      var(--color-story-accent-dark) 0 calc(var(--soc) * 1%),
+      color-mix(in oklab, var(--color-story-accent-dark) 28%, transparent) calc(var(--soc) * 1%) calc(var(--soc-limit) * 1%),
+      #374151 calc(var(--soc-limit) * 1%) 100%
+    );
+  box-shadow: 0 0 0 6px color-mix(in oklab, var(--color-story-accent-dark) 12%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-soc-ring { transition: none; }
+}
+
+/* Story-Dashboard: Feed-Saetze gleiten beim Scrollen ein. Nur wo der Browser
+   Scroll-Timelines kann, sonst bleiben sie statisch sichtbar. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .story-feed-item {
+      animation: story-feed-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}
+@keyframes story-feed-in {
+  from { opacity: 0.2; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Story-Dashboard: bei Datensparmodus keine Partikel auf den Sankey-Baendern. */
+@media (prefers-reduced-data: reduce) {
+  .story-particle { display: none; }
 }
