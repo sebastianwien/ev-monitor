@@ -9,6 +9,7 @@ import { useHaptic } from '../../composables/useHaptic'
 const props = defineProps<{
   stats: StatisticsData | null
   lastMonthStats: StatisticsData | null
+  carModel?: string | null
 }>()
 
 const { t } = useI18n()
@@ -17,6 +18,7 @@ const { haptic } = useHaptic()
 const { insights } = useSmartInsights(
   () => props.stats,
   () => props.lastMonthStats,
+  () => props.carModel ?? null,
 )
 
 const visible = computed(() => insights.value.length > 0)
@@ -160,7 +162,10 @@ function barClass(bar: ChartBar, sentiment: InsightSentiment): string {
           :class="isOpen(insight.id) ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
         >
           <div class="overflow-hidden">
-            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 pb-2.5 leading-snug pl-3.5 pr-3">{{ insight.body }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mt-1 pb-2.5 leading-snug pl-3.5 pr-3">
+              {{ insight.body }}
+              <span v-if="insight.hint" class="hidden md:inline text-gray-400 dark:text-gray-500">{{ insight.hint }}</span>
+            </p>
 
             <!-- Bar chart -->
             <div v-if="insight.chartBars?.length" class="px-3 pb-3 border-t border-gray-100 dark:border-gray-700/50 pt-2.5 space-y-1.5">

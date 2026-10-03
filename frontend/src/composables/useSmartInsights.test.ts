@@ -49,6 +49,7 @@ describe('peer_cost insight', () => {
     const insight = insights.find(i => i.id === 'peer_cost')!
     expect(insight.sentiment).toBe('positive')
     expect(insight.body).toBe('peer_cost_body')
+    expect(insight.hint).toBeUndefined()
   })
 
   it('uses the lifetime body when the peer side fell back to lifetime', () => {
@@ -67,8 +68,12 @@ describe('peer_cost insight', () => {
       },
     })
     const insights = computeInsights(stats, null)
-    expect(insights.find(i => i.id === 'peer_cost')!.body).toBe('peer_cost_body_lifetime')
-    expect(insights.find(i => i.id === 'peer_consumption')!.body).toBe('peer_consumption_body_lifetime')
+    const cost = insights.find(i => i.id === 'peer_cost')!
+    const cons = insights.find(i => i.id === 'peer_consumption')!
+    expect(cost.body).toBe('peer_cost_body')
+    expect(cons.body).toBe('peer_consumption_body')
+    expect(cost.hint).toBe('peer_lifetime_hint')
+    expect(cons.hint).toBe('peer_lifetime_hint')
   })
 
   it('fires when user is more expensive than peers', () => {

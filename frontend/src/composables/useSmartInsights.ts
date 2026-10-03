@@ -18,6 +18,7 @@ export interface SmartInsight {
   sentiment: InsightSentiment
   headline: string
   body: string
+  hint?: string  // i18n key, desktop-only secondary line
   delta?: string
   deltaSecondary?: string
   deltaTertiary?: string
@@ -48,7 +49,8 @@ export function computeInsights(
         id: 'peer_cost',
         sentiment: diffPct < 0 ? 'positive' : 'warning',
         headline: `peer_cost_${diffPct < 0 ? 'cheaper' : 'expensive'}`,
-        body: pb.peerCostLifetime ? 'peer_cost_body_lifetime' : 'peer_cost_body',
+        body: 'peer_cost_body',
+        hint: pb.peerCostLifetime ? 'peer_lifetime_hint' : undefined,
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absCt.toFixed(1)} ct/kWh`,
         chartBars: [
@@ -78,7 +80,8 @@ export function computeInsights(
         id: 'peer_consumption',
         sentiment: diffPct < 0 ? 'positive' : 'neutral',
         headline: `peer_consumption_${diffPct < 0 ? 'better' : 'worse'}`,
-        body: pb.peerConsumptionLifetime ? 'peer_consumption_body_lifetime' : 'peer_consumption_body',
+        body: 'peer_consumption_body',
+        hint: pb.peerConsumptionLifetime ? 'peer_lifetime_hint' : undefined,
         delta: `${diffPct > 0 ? '+' : ''}${diffPct}%`,
         deltaSecondary: `${diffPct > 0 ? '+' : '-'}${absKwh.toFixed(1)} kWh/100km`,
         chartBars: [
@@ -260,6 +263,7 @@ export function computeInsights(
 export function useSmartInsights(
   stats: () => StatisticsData | null,
   lastMonthStats: () => StatisticsData | null,
+  carModel: () => string | null = () => null,
 ) {
   const { t, locale } = useI18n()
 
@@ -272,11 +276,16 @@ export function useSmartInsights(
     const fmt = new Intl.DateTimeFormat(locale.value, { month: 'short' })
     const prevMonthLabel = fmt.format(new Date(now.getFullYear(), now.getMonth() - 1, 1))
     const currentMonthLabel = fmt.format(now)
+    const bodyParams = {
+      month: new Intl.DateTimeFormat(locale.value, { month: 'long' }).format(now),
+      model: carModel() ?? t('insights.peer_model_fallback'),
+    }
 
     return raw.map(insight => ({
       ...insight,
       headline: t(`insights.${insight.headline}`),
-      body: t(`insights.${insight.body}`),
+      body: t(`insights.${insight.body}`, bodyParams),
+      hint: insight.hint ? t(`insights.${insight.hint}`, bodyParams) : undefined,
       chartBars: insight.chartBars?.map(bar => ({
         ...bar,
         label: bar.label === 'chart_prev' ? prevMonthLabel

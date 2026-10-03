@@ -616,6 +616,7 @@ onUnmounted(() => {
         <SmartInsightsCard
           :stats="insightStats"
           :last-month-stats="lastMonthStats"
+          :car-model="enumToLabel(selectedCar?.model)"
           class="mb-5"
         />
 
