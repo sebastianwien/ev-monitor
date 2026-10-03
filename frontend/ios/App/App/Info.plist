@@ -47,6 +47,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Zum Einsprechen eines Ladevorgangs: die Aufnahme wird in Text umgewandelt und nicht gespeichert.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

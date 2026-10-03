@@ -35,4 +35,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Haptik: navigator.vibrate() im WebView braucht die VIBRATE-Permission, sonst no-op -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Sprachlog: getUserMedia im WebView; Capacitor fragt beide beim ersten Antippen des Mikrofons an -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>
