@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  emptyLogForm, canProceed, applyPlace, applySuggestion, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
+  emptyLogForm, canProceed, applyPlace, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, applySuggestion, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
 } from '../wizardLogic'
 import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
@@ -201,5 +201,104 @@ describe('optionalFacts', () => {
 
   it('kann die Zeit weglassen, wenn sie als eigene Kachel steht', () => {
     expect(optionalFacts(emptyLogForm(), { withTime: false }).map(x => x.kind)).toEqual(['route', 'tires'])
+  })
+})
+
+describe('applyVoiceDraft', () => {
+  const fields = (over: Partial<VoiceDraftFields> = {}): VoiceDraftFields => ({
+    kwhCharged: null, kwhAtVehicle: null, socBefore: null, socAfter: null, odometerKm: null, costEur: null, pricePerKwh: null,
+    loggedAt: null, chargeDurationMinutes: null, maxChargingPowerKw: null, chargingType: null, routeType: null, tireType: null,
+    uncertain: [], ...over,
+  })
+  const draft = (over: Partial<VoiceDraft> = {}): VoiceDraft => ({
+    transcript: 'x', fields: fields(), place: null, chargingProviderId: null, usage: { limit: null, remaining: null, resetsOn: '2026-11-01' }, ...over,
+  })
+
+  it('übernimmt die gesagten Zahlen in die Formularfelder', () => {
+    const f = emptyLogForm()
+    applyVoiceDraft(f, draft({ fields: fields({ kwhCharged: 32, socBefore: 20, socAfter: 80, odometerKm: 48_210,
+      loggedAt: '2026-10-02T19:00', chargeDurationMinutes: 25, maxChargingPowerKw: 140, routeType: 'HIGHWAY', tireType: 'WINTER' }) }))
+    expect(f).toMatchObject({ kwhCharged: 32, socBeforeChargePercent: 20, socAfterChargePercent: 80, odometerKm: 48_210,
+      loggedAt: '2026-10-02T19:00', chargeDurationMinutes: 25, maxChargingPowerKw: 140, routeType: 'HIGHWAY', tireType: 'WINTER' })
+  })
+
+  it('Ungesagtes überschreibt nichts: Reifen und Strecke vom letzten Mal bleiben', () => {
+    const f = emptyLogForm(); f.tireType = 'WINTER'; f.routeType = 'CITY'
+    applyVoiceDraft(f, draft())
+    expect(f.tireType).toBe('WINTER'); expect(f.routeType).toBe('CITY')
+  })
+
+  it('Kosten setzt es nicht direkt - die laufen über die Kosteneingabe', () => {
+    const f = emptyLogForm()
+    applyVoiceDraft(f, draft({ fields: fields({ costEur: 18.4 }) }))
+    expect(f.costEur).toBeNull()
+  })
+
+  it('ohne Ort bleibt die Ortswahl offen', () => {
+    const f = emptyLogForm()
+    expect(applyVoiceDraft(f, draft())).toBeNull()
+  })
+
+  it('Säule aus der Umkreissuche wird zur Ortswahl, die Ladekarte kommt mit', () => {
+    const f = emptyLogForm()
+    const choice = applyVoiceDraft(f, draft({ place: { kind: 'station', station: ionity, site: null, cpoName: null }, chargingProviderId: 'p1' }))
+    expect(choice).toEqual({ kind: 'station', station: ionity })
+    expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'DC', cpoName: 'IONITY', chargingProviderId: 'p1',
+      chargingSite: { name: 'IONITY', geohash: 'u33dc0c' } })
+  })
+
+  it('gesagte Ladeart schlägt die Ladeart der Säule', () => {
+    const f = emptyLogForm()
+    applyVoiceDraft(f, draft({ place: { kind: 'station', station: ionity, site: null, cpoName: null }, fields: fields({ chargingType: 'AC' }) }))
+    expect(f.chargingType).toBe('AC')
+  })
+
+  it('Zuhause und freier Betreiber mappen 1:1', () => {
+    const f = emptyLogForm()
+    expect(applyVoiceDraft(f, draft({ place: { kind: 'home', station: null, site: null, cpoName: null } }))).toEqual({ kind: 'home' })
+    expect(f.isPublicCharging).toBe(false)
+    expect(applyVoiceDraft(f, draft({ place: { kind: 'other', station: null, site: null, cpoName: 'Aral pulse' } })))
+      .toEqual({ kind: 'other', cpoName: 'Aral pulse' })
+    expect(f).toMatchObject({ isPublicCharging: true, cpoName: 'Aral pulse' })
+  })
+
+  it('bekannter Standort wird zur Kachel "zuletzt genutzt"', () => {
+    const site = { id: 's1', name: 'EnBW Kaufland', cpoName: 'EnBW', geohash: 'u33dc0c', maxAcKw: null, maxDcKw: 150, chargePoints: 4,
+      fastCharging: true, address: null, plugTypes: ['CCS'], lastUsedAt: '2026-09-24T10:00:00', usageCount: 7 }
+    const f = emptyLogForm()
+    expect(applyVoiceDraft(f, draft({ place: { kind: 'site', station: null, site, cpoName: null } }))).toEqual({ kind: 'site', site })
+    expect(f.cpoName).toBe('EnBW')
+  })
+})
+
+describe('voiceCost', () => {
+  it('Gesamtbetrag vor Preis je kWh', () => {
+    expect(voiceCost({ costEur: 18.4, pricePerKwh: 0.59 })).toEqual({ mode: 'total', eur: 18.4 })
+    expect(voiceCost({ costEur: null, pricePerKwh: 0.59 })).toEqual({ mode: 'per_kwh', eur: 0.59 })
+    expect(voiceCost({ costEur: 0, pricePerKwh: null })).toEqual({ mode: 'total', eur: 0 })
+    expect(voiceCost({ costEur: null, pricePerKwh: null })).toBeNull()
+  })
+})
+
+describe('canJumpToReview', () => {
+  it('nur mit Ort und allen Pflichtwerten direkt auf die Prüfseite', () => {
+    const f = emptyLogForm()
+    f.kwhCharged = 30; f.odometerKm = 48_210; f.socAfterChargePercent = 80; f.costEur = 12
+    expect(canJumpToReview(f, { place: 'home' })).toBe(true)
+    expect(canJumpToReview(f, { place: null })).toBe(false)
+    f.costEur = null
+    expect(canJumpToReview(f, { place: 'home' })).toBe(false)
+  })
+})
+
+describe('voiceFlags', () => {
+  it('fasst unsichere Felder zu den Kacheln der Prüfseite zusammen', () => {
+    expect(voiceFlags(['kwhCharged', 'kwhAtVehicle', 'tariffIndex', 'costEur', 'placeIndex', 'loggedAt', 'odometerKm', 'socAfter']))
+      .toEqual(['place', 'energy', 'odometer', 'soc', 'cost', 'time'])
+  })
+
+  it('Details ohne eigene Kachel landen gesammelt unter "details"', () => {
+    expect(voiceFlags(['socBefore', 'maxChargingPowerKw', 'tireType'])).toEqual(['details'])
+    expect(voiceFlags([])).toEqual([])
   })
 })

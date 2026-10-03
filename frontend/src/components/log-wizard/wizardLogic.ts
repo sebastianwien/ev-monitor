@@ -159,3 +159,107 @@ export function optionalFacts(f: LogFormData, opts: { withTime?: boolean } = {})
   if (positive(f.maxChargingPowerKw)) facts.push({ kind: 'peak', value: f.maxChargingPowerKw })
   return facts
 }
+
+// ── Sprachlog ─────────────────────────────────────────────────────────────────
+
+/** Felder aus POST /logs/voice-draft; null = nicht gesagt. Kosten in Euro. */
+export interface VoiceDraftFields {
+  kwhCharged: number | null
+  kwhAtVehicle: number | null
+  socBefore: number | null
+  socAfter: number | null
+  odometerKm: number | null
+  costEur: number | null
+  pricePerKwh: number | null
+  loggedAt: string | null
+  chargeDurationMinutes: number | null
+  maxChargingPowerKw: number | null
+  chargingType: 'AC' | 'DC' | null
+  routeType: LogFormData['routeType'] | null
+  tireType: LogFormData['tireType'] | null
+  /** Feldnamen, bei denen das Modell unsicher war - werden markiert, nicht verworfen */
+  uncertain: string[]
+}
+
+/** Der erkannte Ort in der Form der PlaceChoice: station wie die Umkreissuche, site wie die zuletzt genutzten Standorte. */
+export interface VoicePlace {
+  kind: PlaceKind
+  station: StationMatch | null
+  site: RecentSite | null
+  cpoName: string | null
+}
+
+export interface VoiceUsage { limit: number | null; remaining: number | null; resetsOn: string }
+
+export interface VoiceDraft {
+  transcript: string
+  fields: VoiceDraftFields
+  place: VoicePlace | null
+  chargingProviderId: string | null
+  usage: VoiceUsage
+}
+
+const toPlaceChoice = (p: VoicePlace): PlaceChoice | null => {
+  switch (p.kind) {
+    case 'home': return { kind: 'home' }
+    case 'station': return p.station ? { kind: 'station', station: p.station } : null
+    case 'site': return p.site ? { kind: 'site', site: p.site } : null
+    case 'other': return { kind: 'other', cpoName: p.cpoName }
+  }
+}
+
+/**
+ * Eine Sprachaufnahme ins Formular übernehmen: Ort (samt Ladekarte) und alle gesagten Werte.
+ * Ungesagtes (null) überschreibt nichts. Kosten bleiben draußen, die laufen über die
+ * Kosteneingabe des Wizards (siehe voiceCost), sonst setzt deren Abgleich sie zurück.
+ */
+export function applyVoiceDraft(f: LogFormData, draft: VoiceDraft): PlaceChoice | null {
+  const choice = draft.place ? toPlaceChoice(draft.place) : null
+  if (choice) applyPlace(f, choice)
+  if (choice || draft.chargingProviderId) f.chargingProviderId = draft.chargingProviderId
+  const v = draft.fields
+  const set = <K extends keyof LogFormData>(key: K, value: LogFormData[K] | null) => { if (value != null) f[key] = value }
+  set('kwhCharged', v.kwhCharged)
+  set('kwhAtVehicle', v.kwhAtVehicle)
+  set('socBeforeChargePercent', v.socBefore)
+  set('socAfterChargePercent', v.socAfter)
+  set('odometerKm', v.odometerKm)
+  set('loggedAt', v.loggedAt)
+  set('chargeDurationMinutes', v.chargeDurationMinutes)
+  set('maxChargingPowerKw', v.maxChargingPowerKw)
+  set('chargingType', v.chargingType)
+  set('routeType', v.routeType)
+  set('tireType', v.tireType)
+  return choice
+}
+
+export type VoiceCost = { mode: 'total' | 'per_kwh'; eur: number }
+
+/** Gesagte Kosten für die Kosteneingabe: Gesamtbetrag vor Preis je kWh. */
+export function voiceCost(v: Pick<VoiceDraftFields, 'costEur' | 'pricePerKwh'>): VoiceCost | null {
+  if (v.costEur != null) return { mode: 'total', eur: v.costEur }
+  if (v.pricePerKwh != null) return { mode: 'per_kwh', eur: v.pricePerKwh }
+  return null
+}
+
+/**
+ * Nach der Sprachaufnahme direkt auf die Prüfseite - nur wenn nichts fehlt. Die Prüfseite selbst
+ * blockiert nie (canProceed), der lineare Weg sichert die Pflichtwerte über Schritt 2 ab.
+ */
+export function canJumpToReview(f: LogFormData, state: WizardState): boolean {
+  return state.place !== null && missingRequired(f).length === 0
+}
+
+export type VoiceFlag = 'place' | RequiredField | 'time' | 'details'
+const VOICE_FLAG_OF: Record<string, VoiceFlag> = {
+  placeIndex: 'place', placeKind: 'place', spokenOperator: 'place',
+  kwhCharged: 'energy', kwhAtVehicle: 'energy', odometerKm: 'odometer', socAfter: 'soc',
+  costEur: 'cost', pricePerKwh: 'cost', tariffIndex: 'cost', loggedAt: 'time',
+}
+const VOICE_FLAG_ORDER: VoiceFlag[] = ['place', 'energy', 'odometer', 'soc', 'cost', 'time', 'details']
+
+/** Unsichere Felder als Kacheln der Prüfseite; was keine eigene Kachel hat, steht unter "details". */
+export function voiceFlags(uncertain: string[]): VoiceFlag[] {
+  const flags = new Set(uncertain.map(u => VOICE_FLAG_OF[u] ?? 'details'))
+  return VOICE_FLAG_ORDER.filter(f => flags.has(f))
+}
