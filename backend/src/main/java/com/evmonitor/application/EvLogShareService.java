@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,7 +64,7 @@ public class EvLogShareService {
      * liefert denselben Token - sonst blieben Links im Umlauf, die der Nutzer
      * spaeter nicht mehr widerrufen kann.
      *
-     * @throws IllegalArgumentException Log unbekannt oder gehoert einem anderen Nutzer (-> 404)
+     * @throws NotFoundException Log unbekannt oder gehoert einem anderen Nutzer (-> 404)
      * @throws AccessDeniedException    Nutzer darf Ladekurven nicht sehen (-> 403)
      * @throws IllegalStateException    zu dieser Ladung existiert keine Kurve (-> 409)
      */
@@ -141,9 +142,9 @@ public class EvLogShareService {
     /** Ownership zuerst, damit ein Fremder auch bei fehlendem Entitlement nur 404 sieht. */
     private EvLogRepository.PowerCurveLookup requireOwnership(UUID logId, User user) {
         EvLogRepository.PowerCurveLookup lookup = evLogRepository.findOwnerIdAndPowerCurveJson(logId)
-                .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + logId));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", logId));
         if (!lookup.ownerUserId().equals(user.getId())) {
-            throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+            throw NotFoundException.forEntity("EvLog", logId);
         }
         return lookup;
     }

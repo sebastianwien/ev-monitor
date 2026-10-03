@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
@@ -64,7 +65,7 @@ class EvLogStatisticsServicePricelessTest {
         when(car.isOwnedBy(userId)).thenReturn(false); // ein anderer User
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
-        assertThrows(IllegalArgumentException.class, () -> service.getPricelessLogs(carId, userId));
+        assertThrows(NotFoundException.class, () -> service.getPricelessLogs(carId, userId));
     }
 
     private EvLog log(BigDecimal costEur, LocalDateTime loggedAt) {

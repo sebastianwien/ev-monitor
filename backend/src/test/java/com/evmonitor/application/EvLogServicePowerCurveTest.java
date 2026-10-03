@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.DataSource;
@@ -192,14 +193,14 @@ class EvLogServicePowerCurveTest extends AbstractIntegrationTest {
 
         // Ownership is checked before the analytics gate, so a non-owner gets 404 even
         // though they hold the entitlement.
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NotFoundException.class,
                 () -> evLogService.getPowerCurveForUser(log.getId(), intruder));
     }
 
     @Test
     void getPowerCurve_unknownLogId_throws() {
         User user = createAndSaveAutoSyncLiveUser("pc-unknown-" + System.nanoTime() + "@test.com");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NotFoundException.class,
                 () -> evLogService.getPowerCurveForUser(UUID.randomUUID(), user));
     }
 

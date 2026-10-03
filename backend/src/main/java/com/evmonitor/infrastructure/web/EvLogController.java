@@ -135,26 +135,23 @@ public class EvLogController {
             @PathVariable UUID id, Authentication authentication,
             @RequestHeader(value = "If-None-Match", required = false) String ifNoneMatch) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        try {
-            com.evmonitor.application.PowerCurveResponse body =
-                    evLogService.getPowerCurveForUser(id, principal.getUser());
-            // Der ETag muss am Inhalt haengen, nicht an der ID: der Connector schreibt
-            // eine Kurve nachtraeglich um (SoC-Anreicherung, Re-Sync). Ein ID-basierter
-            // ETag beantwortete jede Revalidierung mit 304 und fror den ersten - oft
-            // noch unvollstaendigen - Stand im Browser-Cache dauerhaft ein.
-            String etag = "\"pc-" + id + "-" + contentHash(body) + "\"";
-            if (etag.equals(ifNoneMatch)) {
-                return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_MODIFIED).eTag(etag).build();
-            }
-            // no-cache = immer revalidieren; bei unveraenderter Kurve bleibt es ein
-            // billiges 304, bei geaenderter kommt sofort der neue Body.
-            return ResponseEntity.ok()
-                    .eTag(etag)
-                    .cacheControl(org.springframework.http.CacheControl.noCache().cachePrivate())
-                    .body(body);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+        com.evmonitor.application.PowerCurveResponse body =
+                evLogService.getPowerCurveForUser(id, principal.getUser());
+        // Der ETag muss am Inhalt haengen, nicht an der ID: der Connector schreibt
+        // eine Kurve nachtraeglich um (SoC-Anreicherung, Re-Sync). Ein ID-basierter
+        // ETag beantwortete jede Revalidierung mit 304 und fror den ersten - oft
+        // noch unvollstaendigen - Stand im Browser-Cache dauerhaft ein.
+        String etag = "\"pc-" + id + "-" + contentHash(body) + "\"";
+        if (etag.equals(ifNoneMatch)) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.NOT_MODIFIED).eTag(etag).build();
         }
+        // no-cache = immer revalidieren; bei unveraenderter Kurve bleibt es ein
+        // billiges 304, bei geaenderter kommt sofort der neue Body.
+        return ResponseEntity.ok()
+                .eTag(etag)
+                .cacheControl(org.springframework.http.CacheControl.noCache().cachePrivate())
+                .body(body);
+
     }
 
     /** Kurzer, stabiler Fingerabdruck des Antwort-Bodys fuer den ETag. */
@@ -181,8 +178,6 @@ public class EvLogController {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         try {
             return ResponseEntity.ok(evLogShareService.createShare(id, principal.getUser()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("message", "Ladekurven teilen ist ein AutoSync-Live-Feature."));
@@ -196,25 +191,19 @@ public class EvLogController {
     @GetMapping("/{id}/share")
     public ResponseEntity<?> getShare(@PathVariable UUID id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        try {
-            return evLogShareService.findShare(id, principal.getUser())
-                    .<ResponseEntity<?>>map(ResponseEntity::ok)
-                    .orElseGet(() -> ResponseEntity.noContent().build());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return evLogShareService.findShare(id, principal.getUser())
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+
     }
 
     /** Zieht die Freigabe zurueck, die URL ist danach tot. Idempotent. */
     @DeleteMapping("/{id}/share")
     public ResponseEntity<?> revokeShare(@PathVariable UUID id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        try {
-            evLogShareService.revokeShare(id, principal.getUser());
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        evLogShareService.revokeShare(id, principal.getUser());
+        return ResponseEntity.noContent().build();
+
     }
 
     @PatchMapping("/{id}")
@@ -327,13 +316,12 @@ public class EvLogController {
         String location = resolveGeohash(body.geohash(), body.lat(), body.lon(), body.isPublic());
         if (location == null) return ResponseEntity.badRequest().build();
 
-        try {
-            EvLogService.TariffApplied applied = evLogService.applyTariffAtLocation(
-                    principal.getUser().getId(), location, body.chargingProviderId());
-            return ResponseEntity.ok(Map.of("priced", applied.priced(), "coinsAwarded", applied.coinsAwarded()));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        EvLogService.TariffApplied applied = evLogService.applyTariffAtLocation(
+
+                principal.getUser().getId(), location, body.chargingProviderId());
+
+        return ResponseEntity.ok(Map.of("priced", applied.priced(), "coinsAwarded", applied.coinsAwarded()));
+
     }
 
     /**
@@ -354,12 +342,9 @@ public class EvLogController {
             @RequestParam UUID carId,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        try {
-            List<GeohashResponse> data = evLogStatisticsService.getGeohashData(carId, principal.getUser().getId());
-            return ResponseEntity.ok(data);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        List<GeohashResponse> data = evLogStatisticsService.getGeohashData(carId, principal.getUser().getId());
+        return ResponseEntity.ok(data);
+
     }
 
     @GetMapping("/implausible")
@@ -367,12 +352,9 @@ public class EvLogController {
             @RequestParam UUID carId,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        try {
-            List<EvLogResponse> logs = evLogStatisticsService.getImplausibleLogs(carId, principal.getUser().getId());
-            return ResponseEntity.ok(logs);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        List<EvLogResponse> logs = evLogStatisticsService.getImplausibleLogs(carId, principal.getUser().getId());
+        return ResponseEntity.ok(logs);
+
     }
 
     /** All cost-less logs of a car (newest first) - feeds the "add price" banner + modal. */
@@ -381,12 +363,9 @@ public class EvLogController {
             @RequestParam UUID carId,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        try {
-            List<EvLogResponse> logs = evLogStatisticsService.getPricelessLogs(carId, principal.getUser().getId());
-            return ResponseEntity.ok(logs);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        List<EvLogResponse> logs = evLogStatisticsService.getPricelessLogs(carId, principal.getUser().getId());
+        return ResponseEntity.ok(logs);
+
     }
 
     @PatchMapping("/{id}/statistics-inclusion")
@@ -399,12 +378,9 @@ public class EvLogController {
         if (include == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "includeInStatistics is required"));
         }
-        try {
-            EvLogResponse updated = evLogService.updateIncludeInStatistics(id, principal.getUser().getId(), include);
-            return ResponseEntity.ok(updated);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        EvLogResponse updated = evLogService.updateIncludeInStatistics(id, principal.getUser().getId(), include);
+        return ResponseEntity.ok(updated);
+
     }
 
     record MergeLogRequest(UUID sourceLogId, boolean preferSource) {}
@@ -439,12 +415,9 @@ public class EvLogController {
         if (targetCarId == null) {
             return ResponseEntity.badRequest().build();
         }
-        try {
-            evLogService.reassignLog(logId, targetCarId, principal.getUser().getId());
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
+        evLogService.reassignLog(logId, targetCarId, principal.getUser().getId());
+        return ResponseEntity.ok().build();
+
     }
 
     @GetMapping("/statistics")

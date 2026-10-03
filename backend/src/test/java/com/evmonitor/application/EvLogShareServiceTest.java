@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.DataSource;
@@ -79,7 +80,7 @@ class EvLogShareServiceTest extends AbstractIntegrationTest {
         Car car = createAndSaveCar(owner.getId(), CarBrand.CarModel.MODEL_3);
         EvLog log = saveLogWithCurve(car.getId());
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NotFoundException.class,
                 () -> shareService.createShare(log.getId(), intruder));
     }
 
@@ -141,7 +142,7 @@ class EvLogShareServiceTest extends AbstractIntegrationTest {
         EvLog log = saveLogWithCurve(car.getId());
         String token = shareService.createShare(log.getId(), owner).token();
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(NotFoundException.class,
                 () -> shareService.revokeShare(log.getId(), intruder));
         assertTrue(shareService.getPublicCurve(token).isPresent(), "Fremder Widerruf darf nichts bewirken");
     }

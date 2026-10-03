@@ -50,9 +50,9 @@ public class EvLogStatisticsService {
      */
     public List<EvLogResponse> getImplausibleLogs(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
         if (!car.isOwnedBy(userId)) {
-            throw new IllegalArgumentException("User does not own the specified car");
+            throw NotFoundException.forEntity("Car", carId);
         }
 
         List<EvLog> allLogs = evLogRepository.findAllByCarId(carId).stream()
@@ -81,9 +81,9 @@ public class EvLogStatisticsService {
      */
     public List<EvLogResponse> getPricelessLogs(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
         if (!car.isOwnedBy(userId)) {
-            throw new IllegalArgumentException("User does not own the specified car");
+            throw NotFoundException.forEntity("Car", carId);
         }
 
         // Targeted query (cost_eur IS NULL, newest first) instead of loading every log into memory:
@@ -95,9 +95,9 @@ public class EvLogStatisticsService {
 
     public List<GeohashResponse> getGeohashData(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
-                .orElseThrow(() -> new IllegalArgumentException("Car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
         if (!car.isOwnedBy(userId)) {
-            throw new IllegalArgumentException("User does not own the specified car");
+            throw NotFoundException.forEntity("Car", carId);
         }
         return evLogRepository.findGeohashDataByCarId(carId).stream()
                 .map(p -> new GeohashResponse(p.geohash(), p.kwh()))

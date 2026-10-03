@@ -164,7 +164,7 @@ class EvLogApplyTariffControllerTest extends AbstractIntegrationTest {
                         user.getId(), user.getEmail()),
                 String.class);
 
-        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+        assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
         assertNull(costOf(mine), "A rejected request must not price anything");
     }
 

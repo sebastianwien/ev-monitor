@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.domain.*;
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
@@ -130,7 +131,7 @@ class EvLogServiceApplyTariffAtLocationTest extends AbstractIntegrationTest {
 
         saveLog(LOCATION, ChargingType.DC, new BigDecimal("50.0"), null);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ValidationException.class,
                 () -> evLogService.applyTariffAtLocation(userId, LOCATION, foreignProvider));
     }
 

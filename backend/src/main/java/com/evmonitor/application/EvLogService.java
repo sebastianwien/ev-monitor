@@ -310,10 +310,10 @@ public class EvLogService {
 
     public TariffApplied applyTariffAtLocation(UUID userId, String geohash, UUID providerId) {
         if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(providerId, userId)) {
-            throw new IllegalArgumentException("Charging provider does not belong to user");
+            throw new ValidationException("CHARGING_PROVIDER_INVALID", "Ladekarte gehört nicht zu deinem Konto.");
         }
         UserChargingProviderEntity provider = chargingProviderRepository.findById(providerId)
-                .orElseThrow(() -> new IllegalArgumentException("Charging provider not found"));
+                .orElseThrow(() -> new ValidationException("CHARGING_PROVIDER_INVALID", "Ladekarte gehört nicht zu deinem Konto."));
 
         int priced = 0;
         int coins = 0;
@@ -411,10 +411,10 @@ public class EvLogService {
         // Spart zwei separate findById-Calls (Log + Car) gegenueber der vorherigen
         // Implementierung, ohne die Ownership-Garantie zu schwaechen.
         EvLogRepository.PowerCurveLookup lookup = evLogRepository.findOwnerIdAndPowerCurveJson(logId)
-                .orElseThrow(() -> new IllegalArgumentException("Log not found with ID: " + logId));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", logId));
 
         if (!lookup.ownerUserId().equals(user.getId())) {
-            throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+            throw NotFoundException.forEntity("EvLog", logId);
         }
 
         // Historical power curves are a paid AutoSync-Live analytics feature. Ownership is
@@ -750,11 +750,11 @@ public class EvLogService {
     @Transactional
     public EvLogResponse updateIncludeInStatistics(UUID id, UUID userId, boolean includeInStatistics) {
         EvLog log = evLogRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Log not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
         Car car = carRepository.findById(log.getCarId())
-                .orElseThrow(() -> new IllegalArgumentException("Associated car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
         if (!car.isOwnedBy(userId)) {
-            throw new IllegalArgumentException("Log not found for current user (ownership mismatch).");
+            throw NotFoundException.forEntity("EvLog", id);
         }
         EvLog updated = log.withIncludeInStatistics(includeInStatistics);
         EvLog saved = evLogRepository.save(updated);
@@ -768,18 +768,18 @@ public class EvLogService {
     @Transactional
     public void reassignLog(UUID logId, UUID targetCarId, UUID userId) {
         EvLog log = evLogRepository.findById(logId)
-                .orElseThrow(() -> new IllegalArgumentException("Log not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", logId));
 
         Car sourceCar = carRepository.findById(log.getCarId())
-                .orElseThrow(() -> new IllegalArgumentException("Source car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", logId));
         if (!sourceCar.isOwnedBy(userId)) {
-            throw new IllegalArgumentException("User does not own this log");
+            throw NotFoundException.forEntity("EvLog", logId);
         }
 
         Car targetCar = carRepository.findById(targetCarId)
-                .orElseThrow(() -> new IllegalArgumentException("Target car not found"));
+                .orElseThrow(() -> NotFoundException.forEntity("Car", targetCarId));
         if (!targetCar.isOwnedBy(userId)) {
-            throw new IllegalArgumentException("User does not own the target car");
+            throw NotFoundException.forEntity("Car", targetCarId);
         }
 
         evLogRepository.updateCarIdForLog(logId, targetCarId);
