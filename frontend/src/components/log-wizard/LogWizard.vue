@@ -123,6 +123,8 @@ const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
 /** Die Trefferkarte: Ort und Ladekarte wie beim letzten Mal, dann direkt weiter. */
 /** "Anderer Ort" blendet den Vorschlag aus; die Fußleiste zeigt dann wieder "Weiter". */
 const suggestionDismissed = ref(false)
+// Neuer Ort, neuer Vorschlag: das Verwerfen galt nur dem alten
+watch(() => suggestion.suggestion.value, () => { suggestionDismissed.value = false })
 const activeSuggestion = computed(() => suggestionDismissed.value ? null : suggestion.suggestion.value)
 const acceptSuggestion = () => {
   if (!activeSuggestion.value) return
