@@ -16,10 +16,12 @@ const CAR = { id: 'car-1', brand: 'Skoda', model: 'Enyaq', batteryCapacityKwh: 7
 const HERE = { latitude: 52.5342, longitude: 13.4516 }
 const site = (id: string, name: string, lat: number, lon: number) => ({ id, name, cpoName: name, geohash: ngeohash.encode(lat, lon, 7),
   maxAcKw: 22, maxDcKw: null, chargePoints: 2, fastCharging: false, address: null, plugTypes: [], lastUsedAt: '2026-10-01T10:00:00Z', usageCount: 3 })
+/** Collapse klappt animiert zu (Fallback 400 ms): erst danach sagt "sichtbar" etwas aus */
+const settle = (page: Page) => page.waitForTimeout(600)
 const STATION = { name: 'EnBW', known: true, distanceMeters: 480, maxAcKw: 22, maxDcKw: null, fastCharging: false, chargePoints: 2,
   geohash: 'u33dbx1', address: 'Sigridstraße 6, 10439 Berlin', plugTypes: [], registerId: null }
 
-async function open(page: Page, byRadius: Record<number, unknown[]>) {
+async function open(page: Page, byRadius: Record<number, unknown[]>, status = 200) {
   await page.addInitScript(({ t, keys }) => {
     localStorage.setItem('token', t)
     localStorage.setItem('onboarding-completed-radius@e2e.local', 'true')
@@ -35,7 +37,7 @@ async function open(page: Page, byRadius: Record<number, unknown[]>) {
   await page.route(url => url.pathname === '/api/charging-provider-tariffs/cpos/nearby-stations', route => {
     const r = Number(new URL(route.request().url()).searchParams.get('radius') ?? 250)
     radii.push(r)
-    return route.fulfill(json(byRadius[r] ?? []))
+    return status === 200 ? route.fulfill(json(byRadius[r] ?? [])) : route.fulfill({ status, body: '' })
   })
   return radii
 }
@@ -60,11 +62,22 @@ test.describe('wachsender Umkreis', () => {
     await expect(empty).toContainText('Such den Ort oder wähl einen deiner Ladeorte')
     expect(radii).toEqual([250, 1000, 2500])
     // Die Suche steht offen da: ein Tap ins Feld, kein "Anderer Ort" davor
+    await settle(page)
     await expect(page.locator('#wizard-place-search')).toBeVisible()
     const recent = page.locator('[data-testid^="recent-site-"]')
     await expect(recent.first()).toContainText('Aral Prenzlauer Berg')
     await expect(recent.first()).toContainText(/\d{3} m/)
     await expect(page.getByTestId('place-other')).toContainText('Nur den Anbieter wählen')
+  })
+
+  test('Fehler (Drossel): keine Umkreis-Behauptung, aber die Suche steht offen', async ({ page }) => {
+    const radii = await open(page, {}, 429)
+    await page.goto('/erfassen')
+    await expect(page.getByTestId('place-home')).toBeVisible()
+    await settle(page)
+    await expect(page.locator('#wizard-place-search')).toBeVisible()
+    await expect(page.getByTestId('wizard-no-stations')).toHaveCount(0)
+    expect(radii).toEqual([250])
   })
 
   test('Such-Taste startet die Adresssuche ohne Extra-Tap', async ({ page }) => {

@@ -68,12 +68,13 @@ const loadingText = computed(() => {
   const i = RADIUS_STEPS.indexOf((props.radiusMeters ?? RADIUS_STEPS[0]) as typeof RADIUS_STEPS[number])
   return i > 0 ? t('logwizard.nearby_expanding', { from: dist(RADIUS_STEPS[i - 1]), r: radiusLabel.value }) : t('logwizard.nearby_loading')
 })
-// Ort steht, aber das Register kennt bis zur größten Stufe keine Säule: die Seite fragt, wo geladen wurde
-const noStationsFound = computed(() =>
-  props.locationStatus === 'success' && !props.stationsLoading && props.stations.length === 0 && !!props.exhausted)
+// Ort steht, aber keine Säule in der Liste: leer gesucht oder Abfrage gescheitert (z. B. Drossel)
+const listEmpty = computed(() => props.locationStatus === 'success' && !props.stationsLoading && props.stations.length === 0)
+// Nur wenn bis zur größten Stufe gesucht wurde, darf der Kasten "keine Säule im Umkreis" behaupten
+const noStationsFound = computed(() => listEmpty.value && !!props.exhausted)
 const inaccurate = computed(() => isLocationInaccurate(props.locationAccuracy))
-// Im Leerzustand steht die Suche offen da: ein Tap ins Feld, kein "Anderer Ort" davor
-const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value || noStationsFound.value)
+// Ohne Säulen steht die Suche offen da: ein Tap ins Feld, kein "Anderer Ort" davor
+const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value || listEmpty.value)
 const showOther = computed(() => props.place === 'other')
 // Im Leerzustand die nächsten zuerst: wer nachträglich einträgt, hat meist an einem davon geladen
 const recentEntries = computed(() => noStationsFound.value
