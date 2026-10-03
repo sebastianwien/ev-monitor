@@ -43,6 +43,9 @@ class UserServiceTest {
     private com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository importEventRepository;
 
     @Mock
+    private com.evmonitor.infrastructure.persistence.voice.VoiceDraftRepository voiceDraftRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @Mock
@@ -230,6 +233,7 @@ class UserServiceTest {
 
         verify(importSampleRepository).deleteByUserId(userId);
         verify(importEventRepository).deleteByUserId(userId);
+        verify(voiceDraftRepository).deleteByUserId(userId);
         verify(userRepository).delete(testUser);
     }
 

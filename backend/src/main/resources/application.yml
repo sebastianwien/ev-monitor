@@ -237,6 +237,24 @@ stripe:
   referral-coupon-id: ${STRIPE_REFERRAL_COUPON_ID:}
   referral-reward-cents: ${STRIPE_REFERRAL_REWARD_CENTS:399}
 
+# Mistral AI (La Plateforme, EU) fuer den Sprachlog. Ohne Key ist das Feature aus (503).
+# Preise frieren beim Aufruf als voice_draft.cost_usd ein. Transcribe laut Mistral-Modellkarte,
+# Voxtral-Small-Tokenpreise laut Drittquellen (03.10.2026) - gegen mistral.ai/pricing pruefen.
+# Sprachlog im Testbetrieb nur fuer ADMIN; false gibt ihn fuer alle frei.
+voice-log:
+  admin-only: ${VOICE_LOG_ADMIN_ONLY:true}
+
+mistral:
+  api-key: ${MISTRAL_API_KEY:}
+  transcribe-model: ${MISTRAL_TRANSCRIBE_MODEL:voxtral-mini-latest}
+  extract-model: ${MISTRAL_EXTRACT_MODEL:voxtral-small-latest}
+  pricing:
+    "[voxtral-mini-latest]":
+      usd-per-audio-minute: 0.003
+    "[voxtral-small-latest]":
+      usd-per-million-input-tokens: 0.10
+      usd-per-million-output-tokens: 0.30
+
 # Ladesaeulenregister der Bundesnetzagentur (offener ArcGIS-Dienst, CC BY 4.0).
 # Liefert die Vorauswahl der Ladenetze im Umkreis einer Ladung.
 charging-station-registry:

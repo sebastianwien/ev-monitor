@@ -35,6 +35,7 @@ public class UserService {
     private final com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository xpengConsentAuditRepository;
     private final com.evmonitor.infrastructure.persistence.sample.ImportSampleRepository importSampleRepository;
     private final com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository importEventRepository;
+    private final com.evmonitor.infrastructure.persistence.voice.VoiceDraftRepository voiceDraftRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final AccountAnonymizationService anonymizationService;
@@ -156,6 +157,8 @@ public class UserService {
         importSampleRepository.deleteByUserId(userId);
         // Import-Protokoll: ebenfalls FK-CASCADE, explizit für die Lesbarkeit.
         importEventRepository.deleteByUserId(userId);
+        // Sprachlog-Nutzung: ebenfalls FK-CASCADE, explizit für die Lesbarkeit.
+        voiceDraftRepository.deleteByUserId(userId);
 
         // DSGVO Plan A: Autos, Logs und Trips anonymisiert behalten (user_id NULL), erst danach den User
         // löschen - der CASCADE trifft dann nur noch die restlichen personenbezogenen Tabellen.

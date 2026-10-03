@@ -63,6 +63,15 @@ public class RestTemplateConfig {
         return new RestTemplate(factory);
     }
 
+    /** Sprachlog: der Nutzer wartet auf die Antwort, darum harte 15 s statt der 30 s des Standard-Templates. */
+    @Bean("mistralRestTemplate")
+    public RestTemplate mistralRestTemplate(RestTemplateBuilder builder) {
+        return builder
+            .connectTimeout(Duration.ofSeconds(5))
+            .readTimeout(Duration.ofSeconds(15))
+            .build();
+    }
+
     @Bean("spritMonitorRestTemplate")
     public RestTemplate spritMonitorRestTemplate(
         RestTemplateBuilder builder,

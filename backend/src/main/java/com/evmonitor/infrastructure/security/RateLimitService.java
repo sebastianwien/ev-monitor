@@ -86,6 +86,13 @@ public class RateLimitService {
             .refillIntervally(10, Duration.ofHours(1))
             .build();
 
+    // 20 Sprachaufnahmen pro Stunde und Nutzer. Fehlschlaege zaehlen nicht gegen den Monatsdeckel,
+    // kosten bei Mistral aber trotzdem - ohne diesen Topf liessen sie sich beliebig wiederholen.
+    private static final Bandwidth VOICE_DRAFT_LIMIT = Bandwidth.builder()
+            .capacity(20)
+            .refillIntervally(20, Duration.ofHours(1))
+            .build();
+
     // Caffeine caches mit TTL + Größen-Limit — verhindert unbegrenztes Wachstum der Buckets.
     // expireAfterAccess: Bucket wird nach Inaktivität entfernt. maximumSize: Hard Cap gegen DoS.
     private final Cache<String, Bucket> loginBuckets = Caffeine.newBuilder()
@@ -105,6 +112,8 @@ public class RateLimitService {
     private final Cache<String, Bucket> stationSearchBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     private final Cache<String, Bucket> eudaLoginBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> voiceDraftBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
 
     /**
@@ -230,6 +239,18 @@ public class RateLimitService {
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for EUDA login: userId={}", userId);
+        }
+        return allowed;
+    }
+
+    /** Sprachlog je Nutzer, Schluessel ist die User-ID. */
+    public boolean tryConsumeVoiceDraft(String userId) {
+        if (!enabled) return true;
+        boolean allowed = voiceDraftBuckets
+                .get(userId, k -> Bucket.builder().addLimit(VOICE_DRAFT_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for voice draft: userId={}", userId);
         }
         return allowed;
     }
