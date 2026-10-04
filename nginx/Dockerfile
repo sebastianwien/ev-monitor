@@ -1,8 +1,8 @@
 # Stage 1: Build Frontend
-FROM node:20-alpine AS build-stage
+FROM node:22-alpine AS build-stage
 WORKDIR /app
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm ci
 COPY frontend/ ./
 # Set API base URL to use Nginx proxy
 ENV VITE_API_BASE_URL=/api
@@ -15,7 +15,7 @@ ENV VITE_GOOGLE_OAUTH_ENABLED=${VITE_GOOGLE_OAUTH_ENABLED}
 RUN npm run build
 
 # Stage 2: Serve with Nginx
-FROM nginx:alpine
+FROM nginx:1.31.6-alpine
 # Copy frontend build to nginx html directory
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 # Copy basic nginx config
