@@ -15,8 +15,7 @@ import { isVoiceSupported } from '../../composables/useVoiceRecorder'
 import { useHaptic } from '../../composables/useHaptic'
 import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useNearbyStations, type StationMatch } from '../../composables/useNearbyStations'
-import { useRecentSites } from '../../composables/useRecentSites'
-import { useChargingSuggestion } from '../../composables/useChargingSuggestion'
+import { useKnownPlaces, type KnownPlace } from '../../composables/useKnownPlaces'
 import { useCostInput } from '../../composables/useCostInput'
 import { useDelayedCall } from '../../composables/useDelayedCall'
 import { queryLocationPermission, getCurrentPosition, LOCATION_ENABLED_KEY, type LocationPermission } from '../../composables/useLocationPermission'
@@ -24,7 +23,7 @@ import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { analytics } from '../../services/analytics'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
-import { emptyLogForm, canProceed, missingRequired, applyPlace, applySuggestion, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice,
+import { emptyLogForm, canProceed, missingRequired, applyPlace, placeKind, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice,
   applyVoiceDraft, voiceCost, voiceFlags, canJumpToReview, type VoiceDraft, type VoiceCost, type VoiceFlag, type VoiceUsage } from './wizardLogic'
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
@@ -96,8 +95,7 @@ const locationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 /** Ungenauigkeit der letzten Ortung in Metern; null bei einer gesuchten Adresse */
 const locationAccuracy = ref<number | null>(null)
 const nearby = useNearbyStations()
-const recentSites = useRecentSites()
-const suggestion = useChargingSuggestion()
+const known = useKnownPlaces()
 const cpo = useCpoOptions(computed(() => countryStore.country))
 const providers = ref<ChargingProvider[]>([])
 
@@ -112,7 +110,7 @@ const requestLocation = async () => {
     localStorage.setItem(LOCATION_ENABLED_KEY, 'true')
     // Erst nach den Säulen auf 'success': so klappt die Standort-Card in einem Zug zu,
     // während die Liste erscheint, statt in zwei Sprüngen. Der Treffer läuft parallel.
-    await Promise.all([nearby.load(pos.latitude, pos.longitude), suggestion.load(pos.latitude, pos.longitude)])
+    await Promise.all([nearby.load(pos.latitude, pos.longitude), known.load(pos.latitude, pos.longitude)])
     locationStatus.value = 'success'
   } catch (e: any) {
     locationStatus.value = 'error'
@@ -125,55 +123,51 @@ const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
   form.value.longitude = p.longitude
   locationAccuracy.value = null
   locationStatus.value = 'success'
-  await Promise.all([nearby.load(p.latitude, p.longitude), suggestion.load(p.latitude, p.longitude)])
+  await Promise.all([nearby.load(p.latitude, p.longitude), known.load(p.latitude, p.longitude)])
+  preselectForAddress()
 }
-
-/** Die Trefferkarte: Ort und Ladekarte wie beim letzten Mal, dann direkt weiter. */
-/** "Anderer Ort" blendet den Vorschlag aus; die Fußleiste zeigt dann wieder "Weiter". */
-const suggestionDismissed = ref(false)
-// Neuer Ort, neuer Vorschlag: das Verwerfen galt nur dem alten
-watch(() => suggestion.suggestion.value, () => { suggestionDismissed.value = false })
-const activeSuggestion = computed(() => suggestionDismissed.value ? null : suggestion.suggestion.value)
-const acceptSuggestion = () => {
-  if (!activeSuggestion.value) return
-  const choice = applySuggestion(form.value, activeSuggestion.value)
-  state.value.place = choice.kind
-  viaSuggestion.value = true
-  cost.reset(); cardKey.value = null; openCard.value = null
-  const id = form.value.chargingProviderId
-  const p = id ? providers.value.find(x => x.id === id) : null
-  if (p) applyCard({ kind: 'provider', provider: p, eurPerKwh: providerPriceForType(p, form.value.chargingType) })
-  haptic(10)
-  advance.schedule()
+/**
+ * Getippte Adresse: liegt sie in einer bekannten Zelle, ist dieser Ort vorgewählt; liegt sie an keiner Säule
+ * und keinem bekannten Ort, ist Privat vorgewählt (die Chips zeigen es). Kein Weiterspringen - der Nutzer
+ * sieht die Wahl und tippt "Weiter".
+ */
+const preselectForAddress = () => {
+  if (state.value.place !== null) return
+  const here = herePlace.value
+  if (here) choosePlace({ kind: 'known', place: here }, { advance: false })
+  else if (nearby.stations.value.length === 0) choosePlace({ kind: 'home' }, { advance: false })
 }
-const suggestionProviderLabel = computed(() => {
-  const id = suggestion.suggestion.value?.lastProviderId
-  const p = id ? providers.value.find(x => x.id === id) : null
-  return p ? (p.label || p.providerName) : null
-})
+/** Der bekannte Ort an der aktuellen Position, falls es einen gibt */
+const herePlace = computed<KnownPlace | null>(() => known.places.value.find(p => p.here) ?? null)
 
 /** Kurze Pause vor dem Weiterspringen: die gewaehlte Kachel soll als ausgewaehlt sichtbar werden. */
 const PLACE_ADVANCE_MS = 350
 const advance = useDelayedCall(() => next(), PLACE_ADVANCE_MS)
 /**
- * Nur Zuhause springt von selbst weiter. An einer Säule klappt der Ladekarten-Streifen auf:
- * der Tipp auf eine Karte springt weiter, die vorgewählte bestätigt der Nutzer mit "Weiter".
+ * Zuhause und ein bekannter Ort springen von selbst weiter (Ort und Karte wie beim letzten Mal).
+ * An einer neuen Säule klappt der Ladekarten-Streifen auf: der Tipp auf eine Karte springt weiter,
+ * die vorgewählte bestätigt der Nutzer mit "Weiter".
  */
-const autoAdvances = (choice: PlaceChoice) => choice.kind === 'home'
+const autoAdvances = (choice: PlaceChoice) => choice.kind === 'home' || choice.kind === 'known'
 /** Ortswahl im Wizard-Zustand: Art, dazu Position und Adresse der Säule für Minimap und Kopfzeile. */
 const setPlaceContext = (choice: PlaceChoice) => {
-  state.value.place = choice.kind
+  state.value.place = placeKind(choice)
   siteCoords.value = choice.kind === 'station' && choice.station.latitude != null && choice.station.longitude != null
     ? { lat: choice.station.latitude, lon: choice.station.longitude } : null
-  siteAddress.value = choice.kind === 'station' ? choice.station.address ?? null : null
+  siteAddress.value = choice.kind === 'station' ? choice.station.address ?? null
+    : choice.kind === 'known' ? choice.place.site?.address ?? null : null
 }
-const choosePlace = (choice: PlaceChoice) => {
+const choosePlace = (choice: PlaceChoice, opts: { advance?: boolean } = {}) => {
   setPlaceContext(choice)
   applyPlace(form.value, choice)
-  viaSuggestion.value = false
-  suggestionDismissed.value = true
+  viaKnown.value = false
   resetCard()
-  if (autoAdvances(choice)) advance.schedule(); else { advance.cancel(); preselectCard() }
+  // Bekannter Ort: die Karte vom letzten Mal, der Streifen bleibt zu. Wer wechseln will, tippt die Kachel.
+  if (choice.kind === 'known' && choice.place.isPublic) {
+    const p = choice.place.lastProviderId ? providers.value.find(x => x.id === choice.place.lastProviderId) : null
+    if (p) { applyCard({ kind: 'provider', provider: p, eurPerKwh: providerPriceForType(p, form.value.chargingType) }); viaKnown.value = true }
+  }
+  if (autoAdvances(choice) && opts.advance !== false) advance.schedule(); else { advance.cancel(); if (!viaKnown.value) preselectCard() }
 }
 
 // ── Ladekarte (Schritt 1, unter der gewählten Säule) ──────────────────────────
@@ -184,9 +178,9 @@ const community = ref<CommunityPrice | null>(null)
 const openCard = ref<'new' | 'price' | null>(null)
 const resetCard = () => { cardKey.value = null; openCard.value = null; form.value.chargingProviderId = null; cost.reset(); applySpokenCost() }
 const priceLabel = (eur: number) => `${formatNumber(Math.round(cost.eurToLocal(eur) * 100) / 100)} ${countryStore.unitSystem.currencySymbol}/kWh`
-/** Trefferkarte "Übernehmen": Karte wie beim letzten Mal, der Streifen bleibt zu. Wer wechseln will, tippt die Kachel. */
-const viaSuggestion = ref(false)
-const cardStrip = computed(() => form.value.isPublicCharging && !viaSuggestion.value
+/** Bekannter Ort mit Karte vom letzten Mal: der Streifen bleibt zu. Wer wechseln will, tippt die Kachel. */
+const viaKnown = ref(false)
+const cardStrip = computed(() => form.value.isPublicCharging && !viaKnown.value
   ? { providers: providers.value, chargingType: form.value.chargingType, community: community.value, selected: cardKey.value, priceLabel }
   : null)
 
@@ -353,18 +347,18 @@ const focusStep = (el: HTMLElement) => {
   const target = step.value === LAST_STEP
     ? document.querySelector<HTMLElement>('[data-testid="wizard-next"]')
     : step.value === 2 ? el.querySelector<HTMLElement>('#wizard-kwh')
-    // Schritt 1: Trefferkarte, sonst "Zuhause" - nicht der erste Button, das ist oft "Standort freigeben", der nach der Ortung verschwindet
-    : document.querySelector<HTMLElement>('[data-testid="suggestion-accept"]') ?? el.querySelector<HTMLElement>('[data-testid="place-home"]')
+    // Schritt 1: "Hier hast du schon geladen", sonst "Zuhause" - nicht der erste Button, das ist oft "Standort freigeben", der nach der Ortung verschwindet
+    : el.querySelector<HTMLElement>('[data-testid="known-here"]') ?? el.querySelector<HTMLElement>('[data-testid="place-home"]')
   ;(target ?? el).focus({ preventScroll: true })
   if (target instanceof HTMLInputElement) target.select()
 }
-// Der Vorschlag lädt nach der Ortung, also nach dem ersten Fokussieren: Fokus nachziehen, solange er noch auf dem Startpunkt steht
-watch(activeSuggestion, async (s) => {
+// Der Ort "hier" lädt nach der Ortung, also nach dem ersten Fokussieren: Fokus nachziehen, solange er noch auf dem Startpunkt steht
+watch(herePlace, async (s) => {
   if (!s || step.value !== 1 || !finePointer.value) return
   const a = document.activeElement as HTMLElement | null
   if (a && a !== document.body && a !== stepEl.value && a.dataset.testid !== 'place-home') return
   await nextTick()
-  document.querySelector<HTMLElement>('[data-testid="suggestion-accept"]')?.focus({ preventScroll: true })
+  document.querySelector<HTMLElement>('[data-testid="known-here"]')?.focus({ preventScroll: true })
 })
 const onStepEl = (el: unknown) => {
   const node = el instanceof HTMLElement ? el : null
@@ -406,15 +400,16 @@ const onVoiceDraft = async (draft: VoiceDraft) => {
   advance.cancel()
   spokenCost.value = voiceCost(draft.fields)
   const flags = voiceFlags(draft.fields.uncertain)
-  const suggested = !draft.place && !state.value.place ? activeSuggestion.value : null
+  const suggested = !draft.place && !state.value.place ? herePlace.value : null
   if (draft.place || suggested) resetCard()
   let choice = applyVoiceDraft(form.value, draft)
   if (!choice && suggested) {
-    choice = applySuggestion(form.value, suggested)
+    choice = { kind: 'known', place: suggested }
+    applyPlace(form.value, choice)
     if (draft.chargingProviderId) form.value.chargingProviderId = draft.chargingProviderId
     if (!flags.includes('place')) flags.unshift('place')
   }
-  if (choice) { setPlaceContext(choice); viaSuggestion.value = false; suggestionDismissed.value = true }
+  if (choice) { setPlaceContext(choice); viaKnown.value = false }
   const id = form.value.chargingProviderId
   const card = id ? providers.value.find(x => x.id === id) : null
   if (card) applyCard({ kind: 'provider', provider: card, eurPerKwh: providerPriceForType(card, form.value.chargingType) })
@@ -459,7 +454,7 @@ onMounted(async () => {
     if (cars.value.length === 1) selectedCarId.value = cars.value[0].id
   } catch { hasCars.value = false }
   cpo.loadAll()
-  recentSites.load()
+  known.load()
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
   permission.value = await queryLocationPermission()
   // Schon einmal erlaubt: kein Dialog mehr, direkt laden. Sonst wartet der Hinweis auf den Tap.
@@ -495,32 +490,21 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
       <Transition :name="`step-${dir}`" mode="out-in">
       <div :key="step" :ref="onStepEl" tabindex="-1" class="outline-none" @keydown.enter="onEnter">
       <VoiceCapture v-if="step === 1 && showVoice" class="mb-4" :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
-      <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="viaSuggestion ? null : state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
-        :recent-sites="recentSites.sites.value"
+      <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
+        :known-places="known.places.value"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"
-        :suggestion="activeSuggestion" :suggestion-provider-label="suggestionProviderLabel"
         :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value" :next-radius="nearby.nextRadius.value"
         :exhausted="nearby.exhausted.value" :location-accuracy="locationAccuracy" :latitude="form.latitude" :longitude="form.longitude"
         :card-strip="cardStrip" @choose-card="chooseCard"
-        @choose="choosePlace" @request-location="requestLocation" @place-picked="onPlacePicked"
+        @choose="c => choosePlace(c)" @request-location="requestLocation" @place-picked="onPlacePicked"
         @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost" :community-price="community"
         :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :preview="preview" @ocr="onOcr" />
       <StepReview v-else v-model="form" :voice="voice" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto" />
       </div>
       </Transition>
-      <template v-if="step === 1 && activeSuggestion" #primary>
-        <button type="button" data-testid="suggestion-dismiss" @click="suggestionDismissed = true"
-          class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 rounded-sm transition hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
-          {{ t('logwizard.suggestion_other') }}
-        </button>
-        <button type="button" data-testid="suggestion-accept" @click="acceptSuggestion"
-          class="flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold transition hover:bg-indigo-700">
-          {{ t('logwizard.suggestion_accept') }}
-        </button>
-      </template>
     </WizardShell>
 
     <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-slide-in">

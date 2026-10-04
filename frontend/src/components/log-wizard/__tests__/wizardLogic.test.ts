@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
-  emptyLogForm, canProceed, applyPlace, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, applySuggestion, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
+  emptyLogForm, canProceed, applyPlace, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, placeKind, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
 } from '../wizardLogic'
 import type { NearbyStation } from '../../../composables/useNearbyStations'
+import type { KnownPlace } from '../../../composables/useKnownPlaces'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
 
 const ionity: NearbyStation = {
@@ -35,28 +36,38 @@ describe('canProceed', () => {
   })
 })
 
-describe('applySuggestion', () => {
+describe('applyPlace mit bekanntem Ort', () => {
   const site = { id: 's1', name: 'EnBW Kaufland', cpoName: 'EnBW', geohash: 'u33dc0c', maxAcKw: null, maxDcKw: 150, chargePoints: 4,
     fastCharging: true, address: null, plugTypes: ['CCS'], lastUsedAt: '2026-09-24T10:00:00', usageCount: 7 }
+  const known = (o: Partial<KnownPlace>): KnownPlace => ({ geohash: 'u33dc0', isPublic: false, usageCount: 4, lastUsedAt: '2026-09-27T18:00:00',
+    cpoName: null, lastProviderId: null, placeName: null, site: null, distanceMeters: null, here: true, ...o })
 
-  it('übernimmt den Standort samt Ladekarte vom letzten Mal', () => {
+  it('Säule: wie der zuletzt genutzte Standort, samt Ladekarte vom letzten Mal', () => {
     const f = emptyLogForm()
-    const choice = applySuggestion(f, { kind: 'SITE', site, lastProviderId: 'card-1' })
-    expect(choice.kind).toBe('site')
-    expect(f.isPublicCharging).toBe(true)
-    expect(f.chargingType).toBe('DC')
-    expect(f.chargingSite).toEqual({ name: 'EnBW Kaufland', geohash: 'u33dc0c' })
-    expect(f.chargingProviderId).toBe('card-1')
+    const place = known({ site, isPublic: true, geohash: 'u33dc0c', lastProviderId: 'card-1' })
+    applyPlace(f, { kind: 'known', place })
+    expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'DC', cpoName: 'EnBW',
+      chargingSite: { name: 'EnBW Kaufland', geohash: 'u33dc0c' }, chargingProviderId: 'card-1' })
+    expect(placeKind({ kind: 'known', place })).toBe('site')
   })
 
-  it('privater Anschluss ist Zuhause ohne Ladekarte', () => {
+  it('öffentlich ohne Säule: Anbieter vom letzten Mal, kein Standortverweis', () => {
+    const f = emptyLogForm(); f.chargingType = 'DC'
+    const place = known({ isPublic: true, geohash: 'u33dc0c', cpoName: 'Ionity', lastProviderId: 'card-2' })
+    applyPlace(f, { kind: 'known', place })
+    expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'DC', cpoName: 'Ionity', chargingSite: null, chargingProviderId: 'card-2' })
+    expect(placeKind({ kind: 'known', place })).toBe('other')
+  })
+
+  it('privat ist Zuhause ohne Ladekarte', () => {
     const f = emptyLogForm(); f.chargingProviderId = 'stale'
-    const choice = applySuggestion(f, { kind: 'PRIVATE', site: null, lastProviderId: null })
-    expect(choice.kind).toBe('home')
-    expect(f.isPublicCharging).toBe(false)
-    expect(f.chargingProviderId).toBeNull()
+    const place = known({ isPublic: false, lastProviderId: 'card-3' })
+    applyPlace(f, { kind: 'known', place })
+    expect(f).toMatchObject({ isPublicCharging: false, chargingType: 'AC', cpoName: null, chargingSite: null, chargingProviderId: null })
+    expect(placeKind({ kind: 'known', place })).toBe('home')
   })
 })
+
 describe('applyPlace', () => {
   it('Zuhause ist privat und AC', () => {
     const f = emptyLogForm()

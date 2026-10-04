@@ -49,7 +49,7 @@
         <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
         <StepPlace v-else-if="section === 'place'" :place="place" :selected-cpo="formData.cpoName" :selected-site="formData.chargingSite"
           :stations="[]" :stations-loading="false" permission="unavailable" location-status="idle"
-          :recent-cpos="[]" :recent-sites="recentSites.sites.value" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked">
+          :recent-cpos="[]" :known-places="known.places.value" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked">
         </StepPlace>
         <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
         <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
@@ -127,7 +127,7 @@ import { buildLogUpdatePayload, missingRequired, applyPlace, type PlaceChoice, t
 import LogSummary, { type SummarySection } from '../log-wizard/LogSummary.vue'
 import BigInput from '../log-wizard/BigInput.vue'
 import StepPlace from '../log-wizard/StepPlace.vue'
-import { useRecentSites } from '../../composables/useRecentSites'
+import { useKnownPlaces } from '../../composables/useKnownPlaces'
 import StepEnergy from '../log-wizard/StepEnergy.vue'
 import StepVehicle from '../log-wizard/StepVehicle.vue'
 import StepCost from '../log-wizard/StepCost.vue'
@@ -245,10 +245,10 @@ const odometerLocal = computed({
 })
 
 const cpo = useCpoOptions(computed(() => countryStore.country))
-const recentSites = useRecentSites()
+const known = useKnownPlaces()
 const providers = ref<ChargingProvider[]>([])
 onMounted(() => {
-  recentSites.load()
+  known.load()
   cpo.loadAll().then(() => cpo.keepSelected(formData.value.cpoName))
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
 })
@@ -279,10 +279,14 @@ const isFormValid = computed(() => {
   return hasEnergy && f.costEur != null
 })
 
-const onPlacePicked = (p: PickedPlace) => {
+const onPlacePicked = async (p: PickedPlace) => {
   pickedName.value = p.name
   formData.value.latitude = p.latitude
   formData.value.longitude = p.longitude
+  // Liegt die Adresse in einer bekannten Zelle, steht der Ort als Zeile oben und ist vorgewählt
+  await known.load(p.latitude, p.longitude)
+  const here = known.places.value.find(k => k.here)
+  if (here) choosePlace({ kind: 'known', place: here })
 }
 
 async function save() {

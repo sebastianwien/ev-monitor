@@ -3,13 +3,14 @@ import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
+import { knownIcon } from './knownIcon'
 import { RADIUS_STEPS, type NearbyStation, type StationMatch } from '../../composables/useNearbyStations'
-import { sitesByDistance, isLocationInaccurate, formatDistance } from './placeDistance'
-import type { RecentSite } from '../../composables/useRecentSites'
+import { isLocationInaccurate, formatDistance } from './placeDistance'
+import type { KnownPlace } from '../../composables/useKnownPlaces'
+import { knownInRadius, knownPlaceTitle, knownTiles, placeKindOf } from './knownPlace'
 import type { ChargingSiteRef } from '../log-form/logFormData'
 import { settingsPlatform, openAppSettings, type LocationPermission } from '../../composables/useLocationPermission'
-import type { ChargingSuggestion, PlaceChoice, PlaceKind } from './wizardLogic'
-import SuggestionCard from './SuggestionCard.vue'
+import type { PlaceChoice, PlaceKind } from './wizardLogic'
 import CardStrip, { type CardChoice, type CommunityPrice } from './CardStrip.vue'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import type { PickedPlace } from '../../composables/useLocationSearch'
@@ -21,16 +22,14 @@ const props = defineProps<{
   place: PlaceKind | null
   selectedCpo: string | null
   selectedSite: ChargingSiteRef | null
-  recentSites: RecentSite[]
+  /** Orte, an denen der Nutzer schon geladen hat - häufigste zuerst, mit Position die Orte "hier" vorn */
+  knownPlaces: KnownPlace[]
   stations: NearbyStation[]
   stationsLoading: boolean
   permission: LocationPermission
   locationStatus: 'idle' | 'loading' | 'success' | 'error'
   recentCpos: string[]
   allCpos: string[]
-  /** Treffer aus Position x eigene Logs - steht als Karte über allem, bis der Nutzer ihn wegtippt */
-  suggestion?: ChargingSuggestion | null
-  suggestionProviderLabel?: string | null
   /** Umkreis der aktuellen Liste in Metern, und ob "Umkreis erweitern" noch etwas bringt */
   radiusMeters?: number
   canExpand?: boolean
@@ -59,8 +58,6 @@ const query = ref('')
 const platform = settingsPlatform()
 // Nach erfolgreicher Ortung klappt die Suche zu; "Anderer Ort" holt sie zurück
 const searchReopened = ref(false)
-// "Anderer Ort" auf der Trefferkarte: Karte weg, Liste da - bis zur nächsten Ortung
-const showSuggestion = computed(() => !!props.suggestion)
 const dist = (m: number) => formatDistance(m, locale.value)
 const radiusLabel = computed(() => dist(props.radiusMeters ?? RADIUS_STEPS[0]))
 // Während der wachsende Umkreis läuft, sagt der Ladetext, welche Stufe leer war
@@ -76,10 +73,34 @@ const inaccurate = computed(() => isLocationInaccurate(props.locationAccuracy))
 // Ohne Säulen steht die Suche offen da: ein Tap ins Feld, kein "Anderer Ort" davor
 const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value || listEmpty.value)
 const showOther = computed(() => props.place === 'other')
-// Im Leerzustand die nächsten zuerst: wer nachträglich einträgt, hat meist an einem davon geladen
-const recentEntries = computed(() => noStationsFound.value
-  ? sitesByDistance(props.recentSites, props.latitude ?? null, props.longitude ?? null)
-  : props.recentSites.map(site => ({ site, distanceMeters: null as number | null })))
+// Kachelreihe "Zuletzt genutzt": hier zuerst, dann nach Häufigkeit (Reihenfolge des Backends). Im Leerzustand
+// nach Entfernung, denn wer nachträglich einträgt, hat meist am nächsten davon geladen.
+const tiles = computed(() => {
+  const list = knownTiles(props.knownPlaces)
+  return noStationsFound.value && list.every(p => p.distanceMeters != null)
+    ? [...list].sort((a, b) => a.distanceMeters! - b.distanceMeters!) : list
+})
+const title = (p: KnownPlace) => knownPlaceTitle(p, t)
+const lastUsed = (p: KnownPlace) => new Date(p.lastUsedAt).toLocaleDateString(locale.value === 'en' ? 'en-GB' : locale.value, { day: 'numeric', month: 'short' })
+const usage = (p: KnownPlace) => t('logwizard.known_usage', { n: p.usageCount, d: lastUsed(p) }, p.usageCount)
+/** Der Ort, an dem der Nutzer gerade steht (oder die getippte Adresse liegt) - als eigene Zeile über der Liste */
+const herePlace = computed(() => props.knownPlaces.find(p => p.here) ?? null)
+// Ob dieser bekannte Ort die aktuelle Wahl ist: Säule über Zelle und Name, Anbieter über den Namen, privat über Zuhause
+const isKnown = (p: KnownPlace) => {
+  switch (placeKindOf(p)) {
+    case 'site': return atStation.value && sameSite(p.site!.name, p.site!.geohash)
+    case 'other': return props.place === 'other' && props.selectedCpo === p.cpoName
+    default: return props.place === 'home'
+  }
+}
+// Die Zeile "Hier hast du schon geladen" bleibt, bis der Nutzer etwas anderes wählt
+const showHere = computed(() => !!herePlace.value && (props.place === null || isKnown(herePlace.value)))
+// Weitere bekannte Orte im Umkreis der Liste, vor den Säulen
+const knownNearby = computed(() => knownInRadius(props.knownPlaces, props.radiusMeters ?? RADIUS_STEPS[0], props.stations))
+// Getippte Adresse ohne Säule und ohne bekannten Ort: Privat oder Öffentlich, ein Tap
+const addressPicked = ref(false)
+const showChips = computed(() => addressPicked.value && !herePlace.value && !props.stationsLoading && props.stations.length === 0)
+const onPicked = (p: PickedPlace) => { addressPicked.value = true; emit('placePicked', p) }
 const filteredCpos = computed(() => {
   const q = query.value.trim().toLowerCase()
   const list = props.allCpos.filter(c => !props.recentCpos.includes(c))
@@ -96,6 +117,7 @@ const isStation = (s: NearbyStation) => atStation.value && sameSite(s.name, s.ge
 const searchedStation = defineModel<StationMatch | null>('searchedStation', { default: null })
 const onSearchChoose = (c: PlaceChoice) => {
   searchedStation.value = c.kind === 'station' ? c.station : null
+  addressPicked.value = false
   emit('choose', c)
 }
 const showSearchedStation = computed(() => {
@@ -103,7 +125,6 @@ const showSearchedStation = computed(() => {
   return !!s && atStation.value && sameSite(s.name, s.geohash)
     && !props.stations.some(n => n.name === s.name && n.geohash === s.geohash)
 })
-const isSite = (s: RecentSite) => props.place === 'site' && sameSite(s.name, s.geohash)
 const isOtherCpo = (c: string) => props.place === 'other' && props.selectedCpo === c
 
 const tileClass = (on: boolean) => [
@@ -160,10 +181,32 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
 
     <!-- Ohne Live-Position: Ort suchen - laedt danach ebenfalls die Saeulen im Umkreis -->
     <PlaceSearch :label="t('logwizard.place_search')"
-      @choose="onSearchChoose" @picked="p => emit('placePicked', p)" />
+      @choose="onSearchChoose" @picked="onPicked" />
+    <!-- Datenschutz-Satz zur Ortserkennung, einmal neben "Standort nutzen" -->
+    <p v-if="permission === 'prompt' || permission === 'unknown'" class="text-xs text-gray-500 dark:text-gray-400">{{ t('logwizard.known_place_hint') }}</p>
     </div>
     </Collapse>
-    <SuggestionCard v-if="showSuggestion && suggestion" :suggestion="suggestion" :provider-label="suggestionProviderLabel ?? null" />
+    <!-- Hier hast du schon geladen: der bekannte Ort an der Position, ein Tap wählt ihn samt Anbieter und Karte vom letzten Mal -->
+    <button v-if="showHere && herePlace" type="button" data-testid="known-here"
+      class="btn-3d w-full flex items-center gap-3 text-left p-3 rounded-sm border-2 border-green-600 bg-green-50 dark:bg-green-900/30 transition hover:bg-green-100 dark:hover:bg-green-900/40"
+      @click="emit('choose', { kind: 'known', place: herePlace })">
+      <span class="w-9 h-9 rounded-sm bg-white dark:bg-gray-800 grid place-items-center flex-shrink-0 text-green-700 dark:text-green-300"><MapPinIcon class="h-5 w-5" /></span>
+      <span class="flex-1 min-w-0">
+        <b class="block text-sm font-semibold text-green-800 dark:text-green-200">{{ t('logwizard.known_here') }}</b>
+        <small class="block text-xs text-gray-600 dark:text-gray-300 truncate">{{ title(herePlace) }} · {{ usage(herePlace) }}</small>
+      </span>
+      <CheckCircleIcon v-if="isKnown(herePlace)" class="h-5 w-5 text-green-700 dark:text-green-300" />
+    </button>
+    <!-- Getippte Adresse an unbekanntem Ort: Privat oder Öffentlich, dann Weiter -->
+    <div v-if="showChips" data-testid="known-chips" :class="CHIP_ROW">
+      <button type="button" :aria-pressed="place === 'home'" :class="chipClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
+        <HomeIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.chip_private') }}
+      </button>
+      <button type="button" :aria-pressed="place === 'other' && !selectedCpo" :class="chipClass(place === 'other' && !selectedCpo)"
+        @click="emit('choose', { kind: 'other', cpoName: null })">
+        <BoltIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.chip_public') }}
+      </button>
+    </div>
     <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
     <Collapse :open="!!cardStrip && showSearchedStation">
       <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
@@ -202,6 +245,17 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <button v-if="!showLocationBlock" type="button" class="ml-auto normal-case tracking-normal text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline"
           @click="searchReopened = true">{{ t('logwizard.nearby_other_place') }}</button>
       </p>
+      <!-- Weitere bekannte Orte im Umkreis, vor den Säulen -->
+      <button v-for="p in knownNearby" :key="'known-' + p.geohash" type="button" :class="tileClass(isKnown(p))" :data-testid="`known-nearby-${p.geohash}`"
+        @click="emit('choose', { kind: 'known', place: p })">
+        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><component :is="knownIcon(p)" class="h-5 w-5" /></span>
+        <span class="flex-1 min-w-0">
+          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ title(p) }}</b>
+          <small class="block text-xs text-gray-500 dark:text-gray-400">{{ usage(p) }}</small>
+        </span>
+        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ dist(p.distanceMeters!) }}</span>
+        <CheckCircleIcon v-if="isKnown(p)" class="h-5 w-5 text-indigo-600" />
+      </button>
       <template v-for="s in stations" :key="s.name">
       <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
       <Collapse :open="!!cardStrip && isStation(s)">
@@ -228,28 +282,30 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </div>
     </Collapse>
 
-    <!-- Zuletzt genutzt: echte Standorte, sobald es welche gibt - sonst die Anbieter der letzten Logs -->
-    <template v-if="recentSites.length">
+    <!-- Zuletzt genutzt: Säulen und Orte gemischt, sobald es welche gibt - sonst die Anbieter der letzten Logs -->
+    <template v-if="knownPlaces.length">
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
-      <template v-for="{ site: s, distanceMeters } in recentEntries" :key="s.id">
+      <template v-for="p in tiles" :key="p.geohash + (p.site?.id ?? '')">
       <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
-      <Collapse :open="!!cardStrip && isSite(s)">
+      <Collapse :open="!!cardStrip && p.isPublic && isKnown(p)">
         <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
         :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
       </Collapse>
-      <button type="button" :class="tileClass(isSite(s))" :data-testid="`recent-site-${s.id}`"
-        @click="emit('choose', { kind: 'site', site: s })">
-        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
+      <button type="button" :class="tileClass(isKnown(p))" :data-testid="p.site ? `recent-site-${p.site.id}` : `known-place-${p.geohash}`"
+        @click="emit('choose', { kind: 'known', place: p })">
+        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><component :is="knownIcon(p)" class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
-          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ s.name }}</b>
-          <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
-          <small v-if="s.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ s.address }}</small>
+          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ title(p) }}</b>
+          <small v-if="p.here" class="block text-xs font-semibold text-green-700 dark:text-green-300">{{ t('logwizard.you_are_here') }}</small>
+          <small v-else-if="p.site" class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(p.site) }}</small>
+          <small v-else class="block text-xs text-gray-500 dark:text-gray-400">{{ usage(p) }}</small>
+          <small v-if="p.site?.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ p.site.address }}</small>
         </span>
         <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap text-right">
-          {{ t('logwizard.site_usage', { n: s.usageCount }, s.usageCount) }}
-          <small v-if="distanceMeters != null" class="block">{{ dist(distanceMeters) }}</small>
+          <template v-if="p.site || p.here">{{ t('logwizard.site_usage', { n: p.usageCount }, p.usageCount) }}</template>
+          <small v-if="noStationsFound && p.distanceMeters != null" class="block">{{ dist(p.distanceMeters) }}</small>
         </span>
-        <CheckCircleIcon v-if="isSite(s)" class="h-5 w-5 text-indigo-600" />
+        <CheckCircleIcon v-if="isKnown(p)" class="h-5 w-5 text-indigo-600" />
       </button>
       </template>
     </template>

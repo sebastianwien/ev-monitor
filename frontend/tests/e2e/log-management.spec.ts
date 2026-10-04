@@ -556,7 +556,7 @@ test.describe('Wizard nur mit Tastatur', () => {
     const focused = page.locator(':focus');
 
     // Schritt 1: Fokus steht auf der ersten Kachel, Enter wählt
-    await expect(focused).toHaveAttribute('data-testid', /suggestion-accept|place-home/);
+    await expect(focused).toHaveAttribute('data-testid', /known-here|place-home/);
     await page.locator('[data-testid="place-home"]').focus();
     await page.keyboard.press('Enter');
 

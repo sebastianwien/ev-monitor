@@ -1,6 +1,7 @@
 import type { LogFormData } from '../log-form/logFormData'
 import type { StationMatch } from '../../composables/useNearbyStations'
-import type { RecentSite } from '../../composables/useRecentSites'
+import type { KnownPlace, RecentSite } from '../../composables/useKnownPlaces'
+import { placeKindOf } from './knownPlace'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
 /** Ort, Zahlen (Energie, Tacho, SoC, Kosten), Prüfen - drei Schritte, drei Taps, drei Zahlen. */
@@ -17,6 +18,8 @@ export type PlaceChoice =
   | { kind: 'station'; station: StationMatch; viaSearch?: boolean }
   | { kind: 'site'; site: RecentSite }
   | { kind: 'other'; cpoName: string | null }
+  /** Ein Ort, an dem der Nutzer schon geladen hat - Säule, Anbieter ohne Säule oder privat, wie beim letzten Mal */
+  | { kind: 'known'; place: KnownPlace }
 
 export interface WizardState { place: PlaceKind | null }
 
@@ -42,21 +45,6 @@ export function canProceed(step: WizardStep, f: LogFormData, state: WizardState)
   }
 }
 
-/** Der Treffer aus der Umkreissuche gegen die eigenen Logs, wie ihn GET /charging-sites/suggestion liefert. */
-export interface ChargingSuggestion {
-  kind: 'SITE' | 'PRIVATE'
-  site: RecentSite | null
-  lastProviderId: string | null
-}
-
-/** Ein Tap auf die Trefferkarte: Ort wie beim letzten Mal, dazu die Ladekarte von damals. */
-export function applySuggestion(f: LogFormData, s: ChargingSuggestion): PlaceChoice {
-  const choice: PlaceChoice = s.kind === 'SITE' && s.site ? { kind: 'site', site: s.site } : { kind: 'home' }
-  applyPlace(f, choice)
-  f.chargingProviderId = choice.kind === 'site' ? s.lastProviderId : null
-  return choice
-}
-
 /** Die Ortswahl setzt öffentlich/privat, Anbieter und Ladeart in einem Schritt. */
 export function applyPlace(f: LogFormData, choice: PlaceChoice): void {
   switch (choice.kind) {
@@ -78,7 +66,26 @@ export function applyPlace(f: LogFormData, choice: PlaceChoice): void {
     case 'other':
       f.isPublicCharging = true; f.cpoName = choice.cpoName; f.chargingSite = null
       break
+    case 'known':
+      applyPlace(f, resolveKnown(choice.place))
+      // Die Ladekarte vom letzten Mal an diesem Ort; privat gibt es keine
+      f.chargingProviderId = choice.place.isPublic ? choice.place.lastProviderId : null
+      break
   }
+}
+
+/** Ein bekannter Ort in der Form, die das Formular kennt: Säule, Anbieter oder Zuhause. */
+export function resolveKnown(p: KnownPlace): PlaceChoice {
+  switch (placeKindOf(p)) {
+    case 'site': return { kind: 'site', site: p.site! }
+    case 'other': return { kind: 'other', cpoName: p.cpoName }
+    default: return { kind: 'home' }
+  }
+}
+
+/** Die Art der Wahl im Wizard-Zustand: ein bekannter Ort zählt als das, was er ist. */
+export function placeKind(choice: PlaceChoice): PlaceKind {
+  return choice.kind === 'known' ? placeKindOf(choice.place) : choice.kind
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100

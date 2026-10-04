@@ -16,6 +16,9 @@ const CAR = { id: 'car-1', brand: 'Skoda', model: 'Enyaq', batteryCapacityKwh: 7
 const HERE = { latitude: 52.5342, longitude: 13.4516 }
 const site = (id: string, name: string, lat: number, lon: number) => ({ id, name, cpoName: name, geohash: ngeohash.encode(lat, lon, 7),
   maxAcKw: 22, maxDcKw: null, chargePoints: 2, fastCharging: false, address: null, plugTypes: [], lastUsedAt: '2026-10-01T10:00:00Z', usageCount: 3 })
+/** Ein bekannter Ort mit Säule, wie GET /charging-sites/known ihn liefert - Entfernung rechnet das Backend */
+const known = (s: ReturnType<typeof site>, distanceMeters: number) => ({ geohash: s.geohash, isPublic: true, usageCount: s.usageCount,
+  lastUsedAt: s.lastUsedAt, cpoName: s.cpoName, lastProviderId: null, placeName: null, site: s, distanceMeters, here: false })
 /** Collapse klappt animiert zu (Fallback 400 ms): erst danach sagt "sichtbar" etwas aus */
 const settle = (page: Page) => page.waitForTimeout(600)
 const STATION = { name: 'EnBW', known: true, distanceMeters: 480, maxAcKw: 22, maxDcKw: null, fastCharging: false, chargePoints: 2,
@@ -31,8 +34,8 @@ async function open(page: Page, byRadius: Record<number, unknown[]>, status = 20
   const json = (body: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
   await page.route(url => url.pathname.startsWith('/api/'), route => route.fulfill(json([])))
   await page.route(url => url.pathname === '/api/cars', route => route.fulfill(json([CAR])))
-  await page.route(url => url.pathname === '/api/charging-sites/recent', route =>
-    route.fulfill(json([site('far', 'Ionity Pankow', 52.60, 13.45), site('near', 'Aral Prenzlauer Berg', 52.536, 13.458)])))
+  await page.route(url => url.pathname === '/api/charging-sites/known', route =>
+    route.fulfill(json([known(site('far', 'Ionity Pankow', 52.60, 13.45), 7300), known(site('near', 'Aral Prenzlauer Berg', 52.536, 13.458), 480)])))
   const radii: number[] = []
   await page.route(url => url.pathname === '/api/charging-provider-tariffs/cpos/nearby-stations', route => {
     const r = Number(new URL(route.request().url()).searchParams.get('radius') ?? 250)
