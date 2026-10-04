@@ -3,11 +3,8 @@ import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
-import { knownIcon } from './knownIcon'
 import { RADIUS_STEPS, type NearbyStation, type StationMatch } from '../../composables/useNearbyStations'
 import { isLocationInaccurate, formatDistance } from './placeDistance'
-import type { KnownPlace } from '../../composables/useKnownPlaces'
-import { knownPlaceTitle, placeKindOf, stationIsKnown } from './knownPlace'
 import type { ChargingSiteRef } from '../log-form/logFormData'
 import { settingsPlatform, openAppSettings, type LocationPermission } from '../../composables/useLocationPermission'
 import type { PlaceChoice, PlaceKind } from './wizardLogic'
@@ -22,11 +19,7 @@ const props = defineProps<{
   place: PlaceKind | null
   selectedCpo: string | null
   selectedSite: ChargingSiteRef | null
-  /** Orte, an denen der Nutzer schon geladen hat: mit Position nur die in seiner Zelle ("hier"), sonst die häufigsten */
-  knownPlaces: KnownPlace[]
-  /** Die eigene Zelle wird gerade abgefragt - der Platzhalter sagt das, statt die Liste springen zu lassen */
-  knownLoading?: boolean
-  /** Getippte Adresse, als Untertitel der Zeile "Hier hast du schon geladen" */
+  /** Getippte Adresse, als Untertitel der Zeile "Hier privat geladen" */
   addressLabel?: string | null
   stations: NearbyStation[]
   stationsLoading: boolean
@@ -43,9 +36,11 @@ const props = defineProps<{
   exhausted?: boolean
   /** Ungenauigkeit der Ortung in Metern; null bei gesuchter Adresse */
   locationAccuracy?: number | null
-  /** Position für die Entfernung zu den letzten Ladeorten; wird nirgends hingeschickt */
+  /** Position des Logs (GPS oder gewählte Adresse); ohne sie wird privat ohne Ortsangabe gespeichert */
   latitude?: number | null
   longitude?: number | null
+  /** Bearbeiten-Dialog: das Log hat schon einen Ort, der ohne neue Adresse erhalten bleibt */
+  storedPlace?: boolean
   /** Ladekarten-Streifen über der gewählten Säule; fehlt im Bearbeiten-Dialog */
   cardStrip?: {
     providers: ChargingProvider[]
@@ -60,7 +55,7 @@ const { t, locale } = useI18n()
 
 const query = ref('')
 const platform = settingsPlatform()
-// Nach erfolgreicher Ortung klappt die Suche zu; "Anderer Ort" holt sie zurück
+// Nach erfolgreicher Ortung klappt die Suche zu; "Woanders geladen" holt sie zurück
 const searchReopened = ref(false)
 const dist = (m: number) => formatDistance(m, locale.value)
 const radiusLabel = computed(() => dist(props.radiusMeters ?? RADIUS_STEPS[0]))
@@ -77,33 +72,12 @@ const inaccurate = computed(() => isLocationInaccurate(props.locationAccuracy))
 // Ohne Säulen steht die Suche offen da: ein Tap ins Feld, kein "Anderer Ort" davor
 const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value || listEmpty.value)
 const showOther = computed(() => props.place === 'other')
-// Kachelreihe "Zuletzt genutzt" nur ohne Position: mit Position sagt die Zeile "hier" alles, der Rest wäre Rauschen
-const tiles = computed(() => props.latitude == null ? props.knownPlaces.filter(p => !p.here) : [])
-const title = (p: KnownPlace) => knownPlaceTitle(p, t)
-const lastUsed = (p: KnownPlace) => new Date(p.lastUsedAt).toLocaleDateString(locale.value === 'en' ? 'en-GB' : locale.value, { day: 'numeric', month: 'short' })
-const usage = (p: KnownPlace) => t('logwizard.known_usage', { n: p.usageCount, d: lastUsed(p) }, p.usageCount)
-/** Die Orte in der eigenen Zelle (höchstens drei, Säule zuerst) - als grüner Block über der Liste */
-const herePlaces = computed(() => props.knownPlaces.filter(p => p.here))
-// Ob dieser bekannte Ort die aktuelle Wahl ist: Säule über Zelle und Name, Anbieter über den Namen, privat über Zuhause
-const isKnown = (p: KnownPlace) => {
-  switch (placeKindOf(p)) {
-    case 'site': return atStation.value && sameSite(p.site!.name, p.site!.geohash)
-    case 'other': return props.place === 'other' && props.selectedCpo === p.cpoName
-    default: return props.place === 'home'
-  }
-}
-// Der Block "Hier hast du schon geladen" bleibt, bis der Nutzer etwas anderes wählt
-const showHere = computed(() => herePlaces.value.length > 0 && (props.place === null || herePlaces.value.some(isKnown)))
-// Eine Säule, die schon oben als "hier" steht, erscheint in der Registerliste nicht noch einmal
-const listedStations = computed(() => props.stations.filter(s => !stationIsKnown(s, herePlaces.value)))
-// Getippte Adresse ohne Säule und ohne bekannten Ort: Privat oder Öffentlich, ein Tap
-const addressPicked = ref(false)
-const showChips = computed(() => addressPicked.value && !props.knownLoading && herePlaces.value.length === 0
-  && !props.stationsLoading && props.stations.length === 0)
-const onPicked = (p: PickedPlace) => { addressPicked.value = true; emit('placePicked', p) }
+// Mit Position (GPS oder gewählte Adresse) ist "privat" ein Ort: hier. Ohne Position wird privat ohne Ortsangabe gespeichert.
+const hasPosition = computed(() => props.latitude != null)
 const filteredCpos = computed(() => {
   const q = query.value.trim().toLowerCase()
-  const list = props.allCpos.filter(c => !props.recentCpos.includes(c))
+  // Die Anbieter der letzten Ladungen zuerst
+  const list = [...props.recentCpos, ...props.allCpos.filter(c => !props.recentCpos.includes(c))]
   return (q ? list.filter(c => c.toLowerCase().includes(q)) : list).slice(0, 8)
 })
 
@@ -117,7 +91,6 @@ const isStation = (s: NearbyStation) => atStation.value && sameSite(s.name, s.ge
 const searchedStation = defineModel<StationMatch | null>('searchedStation', { default: null })
 const onSearchChoose = (c: PlaceChoice) => {
   searchedStation.value = c.kind === 'station' ? c.station : null
-  addressPicked.value = false
   emit('choose', c)
 }
 const showSearchedStation = computed(() => {
@@ -137,7 +110,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
 
 <template>
   <div class="space-y-3">
-    <!-- Leerzustand: keine Fehlermeldung, sondern die Frage, wo geladen wurde. Darunter Suche, Zuhause, letzte Orte. -->
+    <!-- Leerzustand: keine Fehlermeldung, sondern die Frage, wo geladen wurde. Darunter Suche, privat hier, öffentlich ohne Säule. -->
     <div v-if="noStationsFound" role="status" data-testid="wizard-no-stations"
       class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-1">
       <p v-if="inaccurate" class="font-semibold">{{ t('logwizard.location_inaccurate', { r: dist(locationAccuracy!) }) }}</p>
@@ -181,46 +154,9 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
 
     <!-- Ohne Live-Position: Ort suchen - laedt danach ebenfalls die Saeulen im Umkreis -->
     <PlaceSearch :label="t('logwizard.place_search')"
-      @choose="onSearchChoose" @picked="onPicked" />
-    <!-- Datenschutz-Satz zur Ortserkennung, einmal neben "Standort nutzen" -->
-    <p v-if="permission === 'prompt' || permission === 'unknown'" class="text-xs text-gray-500 dark:text-gray-400">{{ t('logwizard.known_place_hint') }}</p>
+      @choose="onSearchChoose" @picked="p => emit('placePicked', p)" />
     </div>
     </Collapse>
-    <!-- Die eigene Zelle wird geprüft: sofort sagen, was passiert, statt die Zeile später reinspringen zu lassen -->
-    <div v-if="knownLoading && !herePlaces.length" role="status" data-testid="known-loading"
-      class="flex items-center gap-3 p-3 rounded-sm border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm text-gray-500 dark:text-gray-400">
-      <ArrowPathIcon class="h-5 w-5 animate-spin text-green-600 flex-shrink-0" aria-hidden="true" />{{ t('logwizard.known_checking') }}
-    </div>
-    <!-- Hier hast du schon geladen: die eigenen Orte in dieser Zelle (höchstens drei), ein Tap wählt samt Anbieter und Karte vom letzten Mal -->
-    <div v-if="showHere" data-testid="known-here" class="rounded-sm border-2 border-green-600 bg-green-50 dark:bg-green-900/30 overflow-hidden">
-      <div class="flex items-center gap-3 p-3">
-        <span class="w-9 h-9 rounded-sm bg-white dark:bg-gray-800 grid place-items-center flex-shrink-0 text-green-700 dark:text-green-300"><MapPinIcon class="h-5 w-5" /></span>
-        <span class="flex-1 min-w-0">
-          <b class="block text-sm font-semibold text-green-800 dark:text-green-200">{{ t('logwizard.known_here') }}</b>
-          <small class="block text-xs text-gray-600 dark:text-gray-300 truncate">{{ addressLabel ?? t('logwizard.known_here_sub') }}</small>
-        </span>
-      </div>
-      <button v-for="p in herePlaces" :key="p.geohash + (p.site?.id ?? '')" type="button" :data-testid="`known-here-${p.geohash}`"
-        class="w-full flex items-center gap-3 text-left px-3 py-2.5 min-h-11 border-t border-green-200 dark:border-green-800 bg-white/70 dark:bg-gray-900/30 hover:bg-white dark:hover:bg-gray-900/50 transition"
-        @click="emit('choose', { kind: 'known', place: p })">
-        <component :is="knownIcon(p)" class="h-5 w-5 text-gray-600 dark:text-gray-300 flex-shrink-0" />
-        <span class="flex-1 min-w-0">
-          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ title(p) }}</b>
-          <small class="block text-xs text-gray-500 dark:text-gray-400">{{ usage(p) }}</small>
-        </span>
-        <CheckCircleIcon v-if="isKnown(p)" class="h-5 w-5 text-green-700 dark:text-green-300" />
-      </button>
-    </div>
-    <!-- Getippte Adresse an unbekanntem Ort: Privat oder Öffentlich, dann Weiter -->
-    <div v-if="showChips" data-testid="known-chips" :class="CHIP_ROW">
-      <button type="button" :aria-pressed="place === 'home'" :class="chipClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
-        <HomeIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.chip_private') }}
-      </button>
-      <button type="button" :aria-pressed="place === 'other' && !selectedCpo" :class="chipClass(place === 'other' && !selectedCpo)"
-        @click="emit('choose', { kind: 'other', cpoName: null })">
-        <BoltIcon class="h-4 w-4 inline mr-1 -mt-0.5" />{{ t('logwizard.chip_public') }}
-      </button>
-    </div>
     <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
     <Collapse :open="!!cardStrip && showSearchedStation">
       <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
@@ -237,11 +173,13 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <CheckCircleIcon class="h-5 w-5 text-indigo-600" />
     </button>
 
-    <button type="button" data-testid="place-home" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
+    <!-- Privat: mit Position der Ort hier (Untertitel die gewählte Adresse), ohne Position ohne Ortsangabe.
+         Ein Zuhause gibt es im Datenmodell nicht - privat heißt nur "nicht öffentlich", der Ort ist die Position. -->
+    <button type="button" data-testid="place-here" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>
       <span class="flex-1 min-w-0">
-        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('logwizard.place_home') }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400">{{ t('logwizard.place_home_sub') }}</small>
+        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
+        <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ hasPosition ? (addressLabel ?? t('logwizard.place_here_sub')) : storedPlace ? t('logwizard.place_private_sub') : t('logwizard.place_private_sub_nowhere') }}</small>
       </span>
       <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 text-indigo-600" />
     </button>
@@ -259,7 +197,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <button v-if="!showLocationBlock" type="button" class="ml-auto normal-case tracking-normal text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline"
           @click="searchReopened = true">{{ t('logwizard.nearby_other_place') }}</button>
       </p>
-      <template v-for="s in listedStations" :key="s.name">
+      <template v-for="s in stations" :key="s.name">
       <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
       <Collapse :open="!!cardStrip && isStation(s)">
         <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
@@ -285,46 +223,12 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </div>
     </Collapse>
 
-    <!-- Zuletzt genutzt: Säulen und Orte gemischt, sobald es welche gibt - sonst die Anbieter der letzten Logs -->
-    <template v-if="tiles.length">
-      <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
-      <template v-for="p in tiles" :key="p.geohash + (p.site?.id ?? '')">
-      <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
-      <Collapse :open="!!cardStrip && p.isPublic && isKnown(p)">
-        <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
-        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
-      </Collapse>
-      <button type="button" :class="tileClass(isKnown(p))" :data-testid="p.site ? `recent-site-${p.site.id}` : `known-place-${p.geohash}`"
-        @click="emit('choose', { kind: 'known', place: p })">
-        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><component :is="knownIcon(p)" class="h-5 w-5" /></span>
-        <span class="flex-1 min-w-0">
-          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ title(p) }}</b>
-          <small v-if="p.site" class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(p.site) }}</small>
-          <small v-else class="block text-xs text-gray-500 dark:text-gray-400">{{ usage(p) }}</small>
-          <small v-if="p.site?.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ p.site.address }}</small>
-        </span>
-        <span v-if="p.site" class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ t('logwizard.site_usage', { n: p.usageCount }, p.usageCount) }}</span>
-        <CheckCircleIcon v-if="isKnown(p)" class="h-5 w-5 text-indigo-600" />
-      </button>
-      </template>
-    </template>
-    <!-- Anbieter der letzten Logs nur ohne Position: mit Position sagt der Block "hier" alles -->
-    <template v-else-if="recentCpos.length && latitude == null">
-      <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
-      <button v-for="c in recentCpos" :key="c" type="button" :class="tileClass(isOtherCpo(c))"
-        @click="emit('choose', { kind: 'other', cpoName: c })">
-        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><MapPinIcon class="h-5 w-5" /></span>
-        <b class="flex-1 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ c }}</b>
-        <CheckCircleIcon v-if="isOtherCpo(c)" class="h-5 w-5 text-indigo-600" />
-      </button>
-    </template>
-
     <button type="button" data-testid="place-other" :class="tileClass(showOther && !selectedCpo)"
       @click="emit('choose', { kind: 'other', cpoName: null })">
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><MagnifyingGlassIcon class="h-5 w-5" /></span>
       <span class="flex-1 min-w-0">
-        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('logwizard.place_other') }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400">{{ noStationsFound ? t('logwizard.place_other_sub_missing') : t('logwizard.place_other_sub') }}</small>
+        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ stations.length ? t('logwizard.place_other_missing') : t('logwizard.place_public') }}</b>
+        <small class="block text-xs text-gray-500 dark:text-gray-400">{{ t('logwizard.place_other_sub') }}</small>
       </span>
     </button>
 

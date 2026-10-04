@@ -1,7 +1,5 @@
 import type { LogFormData } from '../log-form/logFormData'
 import type { StationMatch } from '../../composables/useNearbyStations'
-import type { KnownPlace, RecentSite } from '../../composables/useKnownPlaces'
-import { placeKindOf } from './knownPlace'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
 /** Ort, Zahlen (Energie, Tacho, SoC, Kosten), Prüfen - drei Schritte, drei Taps, drei Zahlen. */
@@ -12,14 +10,28 @@ export const INPUT_STEPS = 2
 
 export type PlaceKind = 'home' | 'station' | 'site' | 'other'
 
+/** Ein gespeicherter Ladestandort, an dem der Nutzer schon geladen hat (kommt aus der Sprachaufnahme). */
+export interface RecentSite {
+  id: string
+  name: string
+  cpoName: string | null
+  geohash: string
+  maxAcKw: number | null
+  maxDcKw: number | null
+  chargePoints: number
+  fastCharging: boolean
+  address: string | null
+  plugTypes: string[]
+  lastUsedAt: string
+  usageCount: number
+}
+
 export type PlaceChoice =
   | { kind: 'home' }
   /** viaSearch: aus der Textsuche gewählt - der Wizard springt dann nicht automatisch weiter */
   | { kind: 'station'; station: StationMatch; viaSearch?: boolean }
   | { kind: 'site'; site: RecentSite }
   | { kind: 'other'; cpoName: string | null }
-  /** Ein Ort, an dem der Nutzer schon geladen hat - Säule, Anbieter ohne Säule oder privat, wie beim letzten Mal */
-  | { kind: 'known'; place: KnownPlace }
 
 export interface WizardState { place: PlaceKind | null }
 
@@ -66,26 +78,7 @@ export function applyPlace(f: LogFormData, choice: PlaceChoice): void {
     case 'other':
       f.isPublicCharging = true; f.cpoName = choice.cpoName; f.chargingSite = null
       break
-    case 'known':
-      applyPlace(f, resolveKnown(choice.place))
-      // Die Ladekarte vom letzten Mal an diesem Ort; privat gibt es keine
-      f.chargingProviderId = choice.place.isPublic ? choice.place.lastProviderId : null
-      break
   }
-}
-
-/** Ein bekannter Ort in der Form, die das Formular kennt: Säule, Anbieter oder Zuhause. */
-export function resolveKnown(p: KnownPlace): PlaceChoice {
-  switch (placeKindOf(p)) {
-    case 'site': return { kind: 'site', site: p.site! }
-    case 'other': return { kind: 'other', cpoName: p.cpoName }
-    default: return { kind: 'home' }
-  }
-}
-
-/** Die Art der Wahl im Wizard-Zustand: ein bekannter Ort zählt als das, was er ist. */
-export function placeKind(choice: PlaceChoice): PlaceKind {
-  return choice.kind === 'known' ? placeKindOf(choice.place) : choice.kind
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100
