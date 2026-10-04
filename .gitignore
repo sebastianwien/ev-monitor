@@ -49,7 +49,7 @@ docker-compose.full.yml
 
 
 # Server/Deployment Scripts (stored on server, not in repo)
-backup.sh
+/backup.sh
 init-letsencrypt.sh
 
 # Admin Scripts (manual operations)
