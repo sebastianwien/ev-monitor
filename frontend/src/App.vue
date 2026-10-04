@@ -80,6 +80,10 @@ const statusbarFillerClass = computed(() =>
 // Pull-to-Refresh (nur nativ): am Seitenanfang nach unten ziehen => Reload.
 const { pull: ptrPull, refreshing: ptrRefreshing, armed: ptrArmed } = usePullToRefresh()
 
+// Die Ticker-Aufklapp-Lasche haengt unter das Band; der Content muss sie freihalten,
+// sonst ragt sie in die erste Card (siehe LeaderboardTicker.vue).
+const LASCHE_H = '20px'
+
 const mainPaddingTop = computed(() => {
   if (!authStore.isAuthenticated()) return '0px'
   // --top-nav-h ist 0 auf Mobile (keine Top-Nav) und 64px auf Desktop.
@@ -87,14 +91,11 @@ const mainPaddingTop = computed(() => {
   // der Content-Offset muss mitwachsen (auf Web/PWA ohne Notch ist env() = 0).
   const safe = 'env(safe-area-inset-top)'
   const nav = 'var(--top-nav-h)'
-  // Die Ticker-Aufklapp-Lasche haengt unter das Band; der Content muss sie freihalten,
-  // sonst ragt sie in die erste Card (siehe LeaderboardTicker.vue).
-  const lasche = '20px'
   // Demo-Banner liegt unter der Nav (Banner-Hoehe 56px) - siehe DemoBanner.vue.
   if (authStore.isDemoAccount) return `calc(${nav} + 56px + ${safe})`
   if (mobileFullscreen.value) return `calc(${nav} + ${safe})`
-  if (tickerHasItems.value && !tickerCollapsed.value) return `calc(${nav} + 32px + ${lasche} + ${safe})` // Ticker 32px + Lasche
-  if (tickerHasItems.value) return `calc(${nav} + ${lasche} + ${safe})` // eingeklappt: nur Lasche
+  if (tickerHasItems.value && !tickerCollapsed.value) return `calc(${nav} + 32px + ${LASCHE_H} + ${safe})` // Ticker 32px + Lasche
+  if (tickerHasItems.value) return `calc(${nav} + ${LASCHE_H} + ${safe})` // eingeklappt: nur Lasche
   return `calc(${nav} + ${safe})`
 })
 
@@ -119,6 +120,13 @@ const authStore = useAuthStore()
  */
 watch(mainPaddingTop, (v) => {
   document.documentElement.style.setProperty('--content-top', v)
+}, { immediate: true })
+// Anteil der Lasche an --content-top. Neben der Lasche ist das Band durchsichtig; klebende
+// Koepfe decken diesen Streifen damit ab, sonst scheint dort Inhalt durch (Log-Feed).
+const lascheInContentTop = computed(() =>
+  authStore.isAuthenticated() && !authStore.isDemoAccount && !mobileFullscreen.value && tickerHasItems.value)
+watch(lascheInContentTop, (shown) => {
+  document.documentElement.style.setProperty('--ticker-lasche-h', shown ? LASCHE_H : '0px')
 }, { immediate: true })
 const coinStore = useCoinStore()
 const wallboxStore = useWallboxStore()
