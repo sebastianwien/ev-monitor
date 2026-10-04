@@ -3308,6 +3308,8 @@ logwizard:
   soc_net: "Net {net} kWh in battery · charging loss {loss} kWh"
   cost_total: "Total"
   cost_per_kwh: "Per kWh"
+  cost_price: "Price"
+  cost_unit_switch: "Switch unit"
   price_suggestions: "Suggestions"
   price_community: "Last time here"
   price_free: "Free"

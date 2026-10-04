@@ -3193,6 +3193,8 @@ logwizard:
   soc_net: "Netto {net} kWh i batteriet · ladetap {loss} kWh"
   cost_total: "Totalt"
   cost_per_kwh: "Per kWh"
+  cost_price: "Pris"
+  cost_unit_switch: "Bytt enhet"
   price_suggestions: "Forslag"
   price_community: "Sist her"
   price_free: "Gratis"

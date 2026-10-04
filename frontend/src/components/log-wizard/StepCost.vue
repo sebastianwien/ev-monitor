@@ -17,7 +17,7 @@ import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
 import BigInput from './BigInput.vue'
-import { CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { ArrowsRightLeftIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
 import SegmentToggle from './SegmentToggle.vue'
 
 const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null
@@ -50,15 +50,10 @@ const pick = (s: Suggestion) => {
   setPerKwhEur(s.eurPerKwh)
 }
 const pickFree = () => { selectedKey.value = 'free'; form.value.chargingProviderId = null; costMode.value = 'total'; costLocalPerKwh.value = null; costLocalTotal.value = 0 }
-// ── Kompakt (Schritt 2): eine Zeile "Bezahlt", Chips darunter, kein Gesamt/Je-kWh-Umschalter.
-// Ein Chip setzt den Preis je kWh, die Zeile zeigt dann den errechneten Gesamtbetrag; tippt
-// der Nutzer in die Zeile, gilt wieder sein Gesamtbetrag.
+// ── Kompakt (Schritt 2): eine Zeile "Kosten". Die Einheit rechts schaltet zwischen Gesamtbetrag und
+// Preis je kWh (Euroraum in ct, wie beim Anlegen einer Karte); die Zeile darunter zeigt den anderen Wert.
 const compactTotal = computed(() => costMode.value === 'total' ? costLocalTotal.value : calculatedLocalTotal.value)
-const onCompactInput = (e: Event) => {
-  const v = (e.target as HTMLInputElement).value
-  costMode.value = 'total'
-  costLocalTotal.value = v === '' ? null : Number(v)
-}
+const compactPerKwh = computed(() => costMode.value === 'per_kwh' ? costLocalPerKwh.value : calculatedLocalPerKwh.value)
 const priceLabel = (eur: number) => `${formatNumber(Math.round(props.cost.eurToLocal(eur) * 100) / 100)} ${symbol.value}/kWh`
 
 // ── Ladekarte inline anlegen / Tarif nachtragen ───────────────────────────────
@@ -129,8 +124,38 @@ const derived = computed(() => !manual.value && (
 /** Unterzeile der Kostenbox: Preis je kWh, dann Kosten und Verbrauch je 100 km, sobald sie berechenbar sind */
 const metricFormat = computed(() => ({ isEurCountry: isEurCountry.value, subunit: subunit.value, symbol: symbol.value, eurToLocal: props.cost.eurToLocal, formatNumber, formatDecimal }))
 const derivedMetrics = computed(() => costMode.value === 'total' ? [] : costMetrics(costLocalPerKwh.value, props.preview, metricFormat.value))
-const manualMetrics = computed(() => costMetrics(costMode.value === 'per_kwh' ? costLocalPerKwh.value : calculatedLocalPerKwh.value, props.preview, metricFormat.value))
+// Unter dem Feld der jeweils andere Wert: bei Eingabe je kWh der Gesamtbetrag, sonst der Preis je kWh
+const manualMetrics = computed(() => inputUnit.value === 'per_kwh'
+  ? [...(compactTotal.value != null ? [{ value: formatDecimal(compactTotal.value, 2), unit: symbol.value }] : []), ...costMetrics(null, props.preview, metricFormat.value)]
+  : costMetrics(compactPerKwh.value, props.preview, metricFormat.value))
 const derivedSub = computed(() => costMode.value === 'total' ? t('logwizard.price_free') : null)
+
+// Wer immer den kWh-Preis tippt, soll nicht jedes Mal umschalten: die Wahl bleibt in diesem Browser
+const UNIT_KEY = 'cost-input-unit'
+const readUnit = (): 'total' | 'per_kwh' => { try { return localStorage.getItem(UNIT_KEY) === 'per_kwh' ? 'per_kwh' : 'total' } catch { return 'total' } }
+const inputUnit = ref(readUnit())
+const toggleUnit = () => {
+  inputUnit.value = inputUnit.value === 'total' ? 'per_kwh' : 'total'
+  try { localStorage.setItem(UNIT_KEY, inputUnit.value) } catch { /* Speicher gesperrt: gilt nur jetzt */ }
+}
+const perKwhFactor = computed(() => isEurCountry.value ? 100 : 1)
+const unitLabel = computed(() => inputUnit.value === 'total' ? symbol.value : `${isEurCountry.value ? subunit.value : symbol.value}/kWh`)
+const compactValue = computed(() => {
+  if (inputUnit.value === 'total') return compactTotal.value
+  const v = compactPerKwh.value
+  return v == null ? null : Math.round(v * perKwhFactor.value * 1000) / 1000
+})
+const onCompactInput = (e: Event) => {
+  const v = (e.target as HTMLInputElement).value
+  const n = v === '' ? null : Number(v)
+  // Getippt ist getippt: die grüne Zeile kommt nicht mitten im Tippen zurück
+  manual.value = true
+  if (inputUnit.value === 'total') { costMode.value = 'total'; costLocalTotal.value = n; return }
+  costMode.value = 'per_kwh'
+  costLocalTotal.value = null
+  costLocalPerKwh.value = n == null ? null : n / perKwhFactor.value
+}
+const chooseFree = () => { pickFree(); manual.value = false }
 
 /** Noch nichts eingegeben: dann darf ein Vorschlag vorbelegen, sonst nie. */
 const untouched = () => selectedKey.value == null && costLocalTotal.value == null && costLocalPerKwh.value == null
@@ -200,17 +225,24 @@ onMounted(async () => {
     </div>
     <div v-else class="rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 focus-within:border-indigo-600">
       <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
-        <label for="wizard-cost" class="text-sm text-gray-500 dark:text-gray-400">{{ t('logfields.cost_eur') }}</label>
-        <input id="wizard-cost" type="number" inputmode="decimal" step="0.01" min="0" :placeholder="t('logfields.cost_eur_placeholder')"
-          :value="compactTotal ?? ''" :aria-label="t('logfields.cost_eur')" @input="onCompactInput"
+        <label for="wizard-cost" class="text-sm text-gray-500 dark:text-gray-400">{{ inputUnit === 'total' ? t('logfields.cost_eur') : t('logwizard.cost_price') }}</label>
+        <input id="wizard-cost" type="number" inputmode="decimal" :step="inputUnit === 'total' ? 0.01 : 0.1" min="0"
+          :placeholder="inputUnit === 'total' ? t('logfields.cost_eur_placeholder') : (isEurCountry ? '39' : '0.39')"
+          :value="compactValue ?? ''" @input="onCompactInput"
           class="w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-        <span class="text-base text-gray-500 dark:text-gray-400">{{ symbol }}</span>
+        <button type="button" data-testid="cost-unit" @click="toggleUnit"
+          class="-my-2 min-h-11 inline-flex items-center gap-1 rounded-sm px-2 text-base font-semibold text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/40">
+          {{ unitLabel }}<ArrowsRightLeftIcon class="h-4 w-4" aria-hidden="true" /><span class="sr-only">{{ t('logwizard.cost_unit_switch') }}</span>
+        </button>
       </div>
       <p v-if="manualMetrics.length" class="mt-0.5 flex justify-end items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums overflow-hidden">
         <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
           <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
         </span>
       </p>
+    </div>
+    <div v-if="!derived" :class="CHIP_ROW">
+      <button type="button" data-testid="cost-free" :class="chipClass(false)" @click="chooseFree">{{ t('logwizard.price_free') }}</button>
     </div>
       <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">
         <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">
