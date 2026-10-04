@@ -20,14 +20,16 @@ upstream wallbox_ocpp {
 }
 
 # Intern (nur im Docker-Netz, nicht veröffentlicht): Connectors und Wallbox rufen
-# http://backend_app auf, nginx trägt den Alias "backend" und leitet auf die aktive Farbe.
+# http://backend:8080 auf, nginx trägt den Alias "backend" und leitet auf die aktive Farbe.
+# Ohne eigene Grenzen, wie vorher beim direkten Aufruf: die Clients setzen ihre Timeouts
+# selbst (EU-Data-Act-Import läuft Minuten, Client-Timeout 5 min).
 server {
     listen 8080;
     server_name _;
     server_tokens off;
     access_log off;
 
-    client_max_body_size 100m;
+    client_max_body_size 0;
 
     location / {
         proxy_pass http://backend_app;
@@ -35,8 +37,8 @@ server {
         proxy_http_version 1.1;
         proxy_buffering off;
         proxy_request_buffering off;
-        proxy_read_timeout 300s;
-        proxy_send_timeout 300s;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
     }
 }
 
