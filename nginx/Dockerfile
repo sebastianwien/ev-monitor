@@ -20,15 +20,23 @@ FROM nginx:1.31.6-alpine AS runtime
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 # Copy site configuration template
 COPY nginx/conf.d/app.conf.template /etc/nginx/templates/default.conf.template
+# Backend-Upstream (Prod: per Mount überschrieben, siehe Datei)
+COPY nginx/state /etc/nginx/state
 # Copy .well-known files (Tesla Fleet API public key etc.)
 COPY nginx/well-known /usr/share/nginx/well-known
 
-# CI: das im Testlauf gebaute frontend/dist statt erneut zu bauen.
-# Die VITE_*-Variablen setzt dann der CI-Build (siehe deploy.yml).
+# Prod (CI): nur Konfiguration, das Frontend kommt als eigenes Image (Target frontend)
+# und liegt auf dem Server unter /opt/ev-monitor/frontend, gemountet nach /srv/frontend.
+# Image-Tag = Git-Tree-Hash von nginx/, nginx wird nur bei Config-Änderung neu erzeugt.
 # Aufruf: docker build --target prebuilt
 FROM runtime AS prebuilt
-COPY frontend/dist /usr/share/nginx/html
+
+# Prod (CI): das im Testlauf gebaute frontend/dist als reiner Dateiträger. Der Deploy
+# kopiert es per docker create/cp nach /opt/ev-monitor/frontend/releases/<sha>.
+# Die VITE_*-Variablen setzt der CI-Build (siehe deploy.yml).
+FROM scratch AS frontend
+COPY frontend/dist /dist
 
 # Stage 3 (Default): baut das Frontend selbst, für lokalen Bau und Community-Setup
 FROM runtime
-COPY --from=build-stage /app/dist /usr/share/nginx/html
+COPY --from=build-stage /app/dist /srv/frontend/current
