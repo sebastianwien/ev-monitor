@@ -475,7 +475,10 @@ public class EvLogService {
      * Partial update that also pays Watt for data the charge did not have before: a first price,
      * a first card, a first CPO. Changing an existing value pays nothing; the reward is bound to
      * the log id, so it is deducted again if the log is deleted.
+     * Transaktional aus demselben Grund wie {@link #updateLog}: der Controller ruft diese Methode
+     * direkt, ohne Transaktion verfallen Temperatur-Ermittlung und SoH-Erkennung (AFTER_COMMIT).
      */
+    @Transactional
     public EvLogUpdateResult updateLogAwardingCoins(UUID id, UUID userId, EvLogUpdateRequest request) {
         EvLog before = evLogRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("EvLog not found"));
