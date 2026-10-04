@@ -96,12 +96,12 @@ test('Server versteht nichts: Hinweis am Mikrofon, Wizard bleibt in Schritt 1', 
   await page.waitForTimeout(800)
   await mic.click()
   await expect(page.getByTestId('voice-status')).toContainText('Nichts verstanden')
-  await expect(page.getByTestId('place-home')).toBeVisible()
+  await expect(page.getByTestId('place-here')).toBeVisible()
 })
 
 test('Nicht-Admins sehen kein Mikrofon', async ({ page }) => {
   await open(page, 'USER')
   await page.goto('/erfassen')
-  await expect(page.getByTestId('place-home')).toBeVisible()
+  await expect(page.getByTestId('place-here')).toBeVisible()
   await expect(page.getByTestId('voice-mic')).toHaveCount(0)
 })

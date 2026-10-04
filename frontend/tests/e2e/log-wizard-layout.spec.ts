@@ -19,7 +19,7 @@ test('Wizard fuellt den Viewport, Seite scrollt nicht, Balken bleibt sichtbar', 
   await page.waitForURL(/dashboard|logs|cars/)
   await page.goto('/erfassen')
   await page.waitForLoadState('networkidle')
-  await page.locator('[data-testid="place-home"]').click()
+  await page.locator('[data-testid="place-here"]').click()
   await page.locator('#wizard-kwh').waitFor()
 
   const bar = page.locator('[role="progressbar"]')

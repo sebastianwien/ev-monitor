@@ -3354,7 +3354,7 @@ logwizard:
   address_not_found: "Keine Adresse gefunden. Straße und Ort prüfen."
   nearby_expanding: "Keine Säule in {from} - suche im Umkreis von {r} …"
   no_stations_in_radius: "Im Umkreis von {r} ist keine Ladesäule bekannt"
-  no_stations_hint: "Such den Ort oder wähl einen deiner Ladeorte."
+  no_stations_hint: "Such den Ort oder wähl darunter, wie du geladen hast."
   location_inaccurate: "Dein Standort ist ungenau (±{r})"
   location_relocate: "Erneut orten"
 

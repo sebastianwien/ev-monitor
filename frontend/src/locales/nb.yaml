@@ -3233,7 +3233,7 @@ logwizard:
   address_not_found: "Ingen adresse funnet. Sjekk gate og sted."
   nearby_expanding: "Ingen stasjon innen {from} - søker innen {r} …"
   no_stations_in_radius: "Ingen kjent ladestasjon innen {r}"
-  no_stations_hint: "Søk etter stedet eller velg et av ladestedene dine."
+  no_stations_hint: "Søk etter stedet eller velg nedenfor hvordan du ladet."
   location_inaccurate: "Posisjonen din er unøyaktig (±{r})"
   location_relocate: "Finn posisjon igjen"
 

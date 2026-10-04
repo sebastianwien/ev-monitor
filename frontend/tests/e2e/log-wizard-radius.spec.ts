@@ -1,11 +1,10 @@
 import { test, expect, type Page } from '@playwright/test'
-import ngeohash from 'ngeohash'
 import { featureAnnouncements } from '../../src/config/featureAnnouncements'
 
 /**
  * Ortswahl im Wizard: der Umkreis wächst von selbst (250 m, 1 km, 2,5 km). Bleibt er leer,
- * fragt die Seite "Wo hast du geladen?" und zeigt Suche, Zuhause und die letzten Ladeorte
- * nach Entfernung. Reiner FE-Test, Backend und Nominatim sind gemockt.
+ * fragt die Seite "Wo hast du geladen?" und zeigt Suche, "Hier privat geladen" und "Öffentlich geladen".
+ * Eine gewählte Adresse verhält sich wie die eigene Position. Reiner FE-Test, Backend und Nominatim sind gemockt.
  */
 const b64url = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
 const now = Math.floor(Date.now() / 1000)
@@ -14,11 +13,6 @@ const TOKEN = [b64url({ alg: 'none', typ: 'JWT' }),
     username: 'e2e-radius', demoAccount: false, authProvider: 'LOCAL', role: 'USER', premium: true }), 'sig'].join('.')
 const CAR = { id: 'car-1', brand: 'Skoda', model: 'Enyaq', batteryCapacityKwh: 77, effectiveBatteryCapacityKwh: 77, status: 'ACTIVE' }
 const HERE = { latitude: 52.5342, longitude: 13.4516 }
-const site = (id: string, name: string, lat: number, lon: number) => ({ id, name, cpoName: name, geohash: ngeohash.encode(lat, lon, 7),
-  maxAcKw: 22, maxDcKw: null, chargePoints: 2, fastCharging: false, address: null, plugTypes: [], lastUsedAt: '2026-10-01T10:00:00Z', usageCount: 3 })
-/** Ein bekannter Ort mit Säule, wie GET /charging-sites/known ihn ohne Position liefert */
-const known = (s: ReturnType<typeof site>) => ({ geohash: s.geohash, isPublic: true, usageCount: s.usageCount,
-  lastUsedAt: s.lastUsedAt, cpoName: s.cpoName, lastProviderId: null, placeName: null, site: s, here: false })
 /** Collapse klappt animiert zu (Fallback 400 ms): erst danach sagt "sichtbar" etwas aus */
 const settle = (page: Page) => page.waitForTimeout(600)
 const STATION = { name: 'EnBW', known: true, distanceMeters: 480, maxAcKw: 22, maxDcKw: null, fastCharging: false, chargePoints: 2,
@@ -34,10 +28,6 @@ async function open(page: Page, byRadius: Record<number, unknown[]>, status = 20
   const json = (body: unknown) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
   await page.route(url => url.pathname.startsWith('/api/'), route => route.fulfill(json([])))
   await page.route(url => url.pathname === '/api/cars', route => route.fulfill(json([CAR])))
-  // Mit Position liefert das Backend nur die Orte der eigenen Zelle - hier keine
-  await page.route(url => url.pathname === '/api/charging-sites/known', route =>
-    route.fulfill(json(new URL(route.request().url()).searchParams.has('lat') ? []
-      : [known(site('far', 'Ionity Pankow', 52.60, 13.45)), known(site('near', 'Aral Prenzlauer Berg', 52.536, 13.458))])))
   const radii: number[] = []
   await page.route(url => url.pathname === '/api/charging-provider-tariffs/cpos/nearby-stations', route => {
     const r = Number(new URL(route.request().url()).searchParams.get('radius') ?? 250)
@@ -59,25 +49,25 @@ test.describe('wachsender Umkreis', () => {
     expect(radii).toEqual([250, 1000])
   })
 
-  test('bis 2,5 km leer: Frage, offene Suche, keine Kachelreihe', async ({ page }) => {
+  test('bis 2,5 km leer: Frage, offene Suche, privat hier oder öffentlich', async ({ page }) => {
     const radii = await open(page, {})
     await page.goto('/erfassen')
     const empty = page.getByTestId('wizard-no-stations')
     await expect(empty).toContainText('Im Umkreis von 2,5 km ist keine Ladesäule bekannt')
-    await expect(empty).toContainText('Such den Ort oder wähl einen deiner Ladeorte')
+    await expect(empty).toContainText('Such den Ort oder wähl darunter, wie du geladen hast')
     expect(radii).toEqual([250, 1000, 2500])
-    // Die Suche steht offen da: ein Tap ins Feld, kein "Anderer Ort" davor
+    // Die Suche steht offen da: ein Tap ins Feld, kein "Woanders geladen" davor
     await settle(page)
     await expect(page.locator('#wizard-place-search')).toBeVisible()
-    // Mit Position keine Kachelreihe: die eigene Zelle ist leer, alles andere wäre Rauschen
-    await expect(page.locator('[data-testid^="recent-site-"]')).toHaveCount(0)
-    await expect(page.getByTestId('place-other')).toContainText('Nur den Anbieter wählen')
+    await expect(page.getByTestId('place-here')).toContainText('Hier privat geladen')
+    await expect(page.getByTestId('place-here')).toContainText('an deinem Standort')
+    await expect(page.getByTestId('place-other')).toContainText('Öffentlich geladen')
   })
 
   test('Fehler (Drossel): keine Umkreis-Behauptung, aber die Suche steht offen', async ({ page }) => {
     const radii = await open(page, {}, 429)
     await page.goto('/erfassen')
-    await expect(page.getByTestId('place-home')).toBeVisible()
+    await expect(page.getByTestId('place-here')).toBeVisible()
     await settle(page)
     await expect(page.locator('#wizard-place-search')).toBeVisible()
     await expect(page.getByTestId('wizard-no-stations')).toHaveCount(0)
@@ -99,6 +89,30 @@ test.describe('wachsender Umkreis', () => {
     await search.press('Enter')
     await expect(page.getByTestId('place-search-suggestion')).toContainText('Sigridstraße 6')
     expect(nominatim).toContain('Sigridstra')
+  })
+})
+
+test.describe('Ort per Adresse', () => {
+  test.use({ permissions: [] })
+
+  test('Säulen an der Adresse, darüber "Hier privat geladen" mit der Adresse; Tap wählt privat', async ({ page }) => {
+    await open(page, { 250: [STATION] })
+    await page.route(url => url.hostname === 'nominatim.openstreetmap.org', route =>
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify([{ place_id: 1, display_name: 'Sigridstraße 6, Berlin', lat: '52.5359', lon: '13.4579' }]) }))
+    await page.goto('/erfassen')
+    const search = page.locator('#wizard-place-search')
+    await search.fill('Sigridstraße 6')
+    await search.press('Enter')
+    await page.getByTestId('place-search-suggestion').click()
+
+    await expect(page.getByRole('button', { name: /EnBW/ })).toBeVisible()
+    await expect(page.getByTestId('place-other')).toContainText('Säule nicht dabei?')
+    const here = page.getByTestId('place-here')
+    await expect(here).toContainText('Hier privat geladen')
+    await expect(here).toContainText('Sigridstraße 6, Berlin')
+    await here.click()
+    await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
   })
 })
 

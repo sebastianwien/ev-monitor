@@ -3348,7 +3348,7 @@ logwizard:
   address_not_found: "No address found. Check street and town."
   nearby_expanding: "No station within {from} - searching within {r} …"
   no_stations_in_radius: "No known charging station within {r}"
-  no_stations_hint: "Search for the place or pick one of your charging spots."
+  no_stations_hint: "Search for the place or choose below how you charged."
   location_inaccurate: "Your location is imprecise (±{r})"
   location_relocate: "Locate again"
 

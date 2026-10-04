@@ -8,14 +8,14 @@ const API_URL = process.env.API_URL || 'http://localhost:8080';
 const nextOdometer = () => 100_000 + Math.floor(Date.now() / 1000) - 1_789_000_000;
 
 /**
- * Fuehrt den Erfassen-Wizard bis zur Zusammenfassung durch: Ort "Zuhause", dann auf einem
+ * Fuehrt den Erfassen-Wizard bis zur Zusammenfassung durch: Ort privat, dann auf einem
  * Schritt Energie, Tacho + SoC (Pflicht) und Kosten. Der Tacho steigt mit der Zeit, damit
  * Wiederholungen nie unter den letzten Wert fallen.
  */
 async function fillWizardToReview(page: Page, opts: { kwh: string; cost: string; vehicleKwh?: string }) {
   await page.goto('/erfassen');
   await page.waitForLoadState('networkidle');
-  await page.locator('[data-testid="place-home"]').click();
+  await page.locator('[data-testid="place-here"]').click();
 
   await page.locator('input[placeholder="z.B. 42.5"]').fill(opts.kwh);
   if (opts.vehicleKwh !== undefined) {
@@ -105,7 +105,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
-    await page.locator('[data-testid="place-home"]').click();
+    await page.locator('[data-testid="place-here"]').click();
 
     // Auf "Fahrzeug"-Modus (kwhAtVehicle) umschalten und dort eintragen
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
@@ -233,7 +233,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
-    await page.locator('[data-testid="place-home"]').click();
+    await page.locator('[data-testid="place-here"]').click();
 
     await page.locator('input[placeholder="z.B. 42.5"]').fill('50.0');
     await page.locator('[data-testid="kwh-mode-vehicle"]').click();
@@ -285,7 +285,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
-    await page.locator('[data-testid="place-home"]').click();
+    await page.locator('[data-testid="place-here"]').click();
 
     // Brutto eingeben
     await page.locator('input[placeholder="z.B. 42.5"]').fill('50.0');
@@ -365,8 +365,8 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
 
-    // Zuhause: keine Karte anbieten - eine Ladekarte zahlt keine Ladung an der eigenen Wallbox
-    await page.locator('[data-testid="place-home"]').click();
+    // Privat: keine Karte anbieten - eine Ladekarte zahlt keine Ladung an der eigenen Wallbox
+    await page.locator('[data-testid="place-here"]').click();
     await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
     await page.locator('#wizard-soc').fill('80');
@@ -394,7 +394,7 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Andere Ladestation: gewaehlter Anbieter landet als oeffentliche Ladung im Payload', async ({ page }) => {
+  test('Oeffentlich ohne Saeule: gewaehlter Anbieter landet als oeffentliche Ladung im Payload', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
@@ -556,8 +556,7 @@ test.describe('Wizard nur mit Tastatur', () => {
     const focused = page.locator(':focus');
 
     // Schritt 1: Fokus steht auf der ersten Kachel, Enter wählt
-    await expect(focused).toHaveAttribute('data-testid', /known-here|place-home/);
-    await page.locator('[data-testid="place-home"]').focus();
+    await expect(focused).toHaveAttribute('data-testid', 'place-here');
     await page.keyboard.press('Enter');
 
     // Schritt 2: Fokus im kWh-Feld, kein Rädchen mit Maus/Tastatur; Pfeiltasten zählen
