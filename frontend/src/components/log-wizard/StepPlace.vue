@@ -8,7 +8,6 @@ import { RADIUS_STEPS, type NearbyStation, type StationMatch } from '../../compo
 import { isLocationInaccurate, formatDistance } from './placeDistance'
 import type { KnownPlace } from '../../composables/useKnownPlaces'
 import { knownPlaceTitle, placeKindOf, stationIsKnown } from './knownPlace'
-import PlaceMinimap from './PlaceMinimap.vue'
 import type { ChargingSiteRef } from '../log-form/logFormData'
 import { settingsPlatform, openAppSettings, type LocationPermission } from '../../composables/useLocationPermission'
 import type { PlaceChoice, PlaceKind } from './wizardLogic'
@@ -200,10 +199,6 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
           <b class="block text-sm font-semibold text-green-800 dark:text-green-200">{{ t('logwizard.known_here') }}</b>
           <small class="block text-xs text-gray-600 dark:text-gray-300 truncate">{{ addressLabel ?? t('logwizard.known_here_sub') }}</small>
         </span>
-        <!-- Stummes Kartenbild der Position: Bestätigung "ja, hier", nicht bedienbar -->
-        <span v-if="latitude != null && longitude != null" class="w-16 h-16 rounded-sm overflow-hidden flex-shrink-0 bg-gray-200 dark:bg-gray-700">
-          <PlaceMinimap :lat="latitude" :lon="longitude" />
-        </span>
       </div>
       <button v-for="p in herePlaces" :key="p.geohash + (p.site?.id ?? '')" type="button" :data-testid="`known-here-${p.geohash}`"
         class="w-full flex items-center gap-3 text-left px-3 py-2.5 min-h-11 border-t border-green-200 dark:border-green-800 bg-white/70 dark:bg-gray-900/30 hover:bg-white dark:hover:bg-gray-900/50 transition"
@@ -313,7 +308,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       </button>
       </template>
     </template>
-    <template v-else-if="recentCpos.length">
+    <!-- Anbieter der letzten Logs nur ohne Position: mit Position sagt der Block "hier" alles -->
+    <template v-else-if="recentCpos.length && latitude == null">
       <p class="text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">{{ t('logwizard.recent_title') }}</p>
       <button v-for="c in recentCpos" :key="c" type="button" :class="tileClass(isOtherCpo(c))"
         @click="emit('choose', { kind: 'other', cpoName: c })">
