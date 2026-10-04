@@ -10,12 +10,12 @@ const now = () => new Date('2026-09-10T08:00:00Z')
 describe('useFeedWindow', () => {
   beforeEach(() => localStorage.clear())
 
-  it('defaults to the last three months in every resolution', () => {
-    expect(FEED_RANGE_DEFAULT).toBe('LAST_3_MONTHS')
+  it('defaults to the current month in every resolution', () => {
+    expect(FEED_RANGE_DEFAULT).toBe('THIS_MONTH')
     const feed = useFeedWindow(now)
     for (const r of ['day', 'week', 'month', 'cycle'] as const) {
       feed.resolution.value = r
-      expect(feed.timeRange.value).toBe('LAST_3_MONTHS')
+      expect(feed.timeRange.value).toBe('THIS_MONTH')
     }
   })
 
@@ -50,10 +50,10 @@ describe('useFeedWindow', () => {
 
   it('ignores stored ranges the feed does not offer (ALL_TIME)', () => {
     localStorage.setItem(FEED_TIME_RANGE_KEY, 'ALL_TIME')
-    expect(useFeedWindow(now).timeRange.value).toBe('LAST_3_MONTHS')
+    expect(useFeedWindow(now).timeRange.value).toBe('THIS_MONTH')
     localStorage.setItem(FEED_RESOLUTION_KEY, 'cycle')
     localStorage.setItem(FEED_TIME_RANGE_KEY, JSON.stringify({ cycle: 'ALL_TIME' }))
-    expect(useFeedWindow(now).timeRange.value).toBe('LAST_3_MONTHS')
+    expect(useFeedWindow(now).timeRange.value).toBe('THIS_MONTH')
   })
 
   it('open-ended ranges send only `from` - logs carry naive local time, a UTC "now" would cut off today', () => {
@@ -95,7 +95,7 @@ describe('useFeedWindow', () => {
   it('CUSTOM without both dates falls back to the default range', () => {
     const feed = useFeedWindow(now)
     feed.timeRange.value = 'CUSTOM'
-    expect(feed.queryParams.value.startsWith('&from=2026-07-01T00:00:00.000Z')).toBe(true)
+    expect(feed.queryParams.value.startsWith('&from=2026-09-01T00:00:00.000Z')).toBe(true)
     feed.customStartDate.value = '2026-05-01'
     feed.customEndDate.value = '2026-05-31'
     expect(feed.queryParams.value).toBe('&from=2026-05-01T00:00:00.000Z&to=2026-05-31T23:59:59.999Z')

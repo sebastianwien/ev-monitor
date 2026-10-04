@@ -12,7 +12,7 @@ import type { PeriodResolution } from '../utils/tripPeriods'
  */
 export type FeedResolution = 'cycle' | PeriodResolution
 export const FEED_RESOLUTIONS: FeedResolution[] = ['day', 'week', 'month', 'cycle']
-export const FEED_RANGE_DEFAULT = 'LAST_3_MONTHS'
+export const FEED_RANGE_DEFAULT = 'THIS_MONTH'
 /** "Alle" gibt es im Feed bewusst nicht - das ist genau das Fenster, das den Browser stocken laesst. */
 export const FEED_TIME_RANGES = ['THIS_MONTH', 'LAST_MONTH', 'LAST_3_MONTHS', 'LAST_6_MONTHS', 'LAST_12_MONTHS', 'THIS_YEAR', 'CUSTOM']
 
