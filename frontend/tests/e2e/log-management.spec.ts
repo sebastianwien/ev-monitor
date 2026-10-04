@@ -29,6 +29,8 @@ async function fillWizardToReview(page: Page, opts: { kwh: string; cost: string;
 }
 
 test.describe.configure({ mode: 'serial' });
+// Privat und oeffentlich gibt es im Wizard nur mit Ort: alle Tests laufen mit einer Position
+test.use({ geolocation: { latitude: 52.5342, longitude: 13.4516 }, permissions: ['geolocation'] });
 
 async function openFirstLogEditModal(page: any) {
   // Der Feed startet in der Monats-Ansicht - fuer das Aktionen-Menue der
@@ -46,6 +48,8 @@ async function login(page: any) {
   await page.locator('input[type="password"]').fill(TEST_USER.password);
   await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+  // Umkreissuche gemockt: das echte Backend fragt sonst das externe Ladesaeulenregister ab
+  await page.route('**/api/charging-provider-tariffs/cpos/nearby-stations**', (r: any) => r.fulfill({ json: [] }));
 }
 
 test.describe('Ladevorgänge anlegen und bearbeiten', () => {
@@ -373,13 +377,11 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     // Zugeklappte Streifen bleiben im DOM (Collapse), deshalb nur sichtbare zaehlen
     await expect(page.locator('[data-testid="charging-card-prompt-open"]:visible')).toHaveCount(0);
 
-    // Zurueck auf Schritt 1, oeffentliche Station waehlen
+    // Zurueck auf Schritt 1, oeffentlich ohne Saeule aus dem Register
     await page.locator('header button[aria-label="Zurück"]').click();
-    await page.locator('[data-testid="place-other"]').click();
-    await page.locator('input[type="search"]').fill('EnBW');
-    await page.locator('button:has-text("EnBW"):visible').first().click();
+    await page.locator('[data-testid="place-public"]').click();
 
-    // Der Ladekarten-Streifen steht unter dem gewaehlten Anbieter; "+ neue Karte" springt in
+    // Der Ladekarten-Streifen faehrt ueber der Zeile aus; "+ neue Karte" springt in
     // Schritt 2 und oeffnet dort den Editor
     await page.locator('[data-testid="charging-card-prompt-open"]:visible').click();
     await expect(page.locator('[data-testid="charging-card-prompt"]')).toBeVisible();
@@ -394,7 +396,7 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Oeffentlich ohne Saeule: gewaehlter Anbieter landet als oeffentliche Ladung im Payload', async ({ page }) => {
+  test('Hier oeffentlich: oeffentliche Ladung an der Position, ohne Anbieter', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
@@ -411,17 +413,14 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
-    await page.locator('[data-testid="place-other"]').click();
-    await page.locator('input[type="search"]').fill('EnBW');
-    await page.locator('button:has-text("EnBW"):visible').first().click();
-    // Passt genau eine Karte mit Tarif zum Anbieter (aus dem Test davor), springt der Wizard von selbst weiter
-    await page.waitForTimeout(800);
-    if (!(await page.locator('#wizard-kwh').isVisible())) await page.locator('[data-testid="wizard-next"]').click();
+    await expect(page.locator('[data-testid="place-public"]')).toContainText('Hier öffentlich geladen');
+    await page.locator('[data-testid="place-public"]').click();
+    await page.locator('[data-testid="wizard-next"]').click();
 
     await page.locator('input[placeholder="z.B. 42.5"]').fill('30');
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
     await page.locator('#wizard-soc').fill('80');
-    // Passt eine Karte zum Anbieter, ist der Preis schon abgeleitet - "Anders" oeffnet die Eingabe
+    // Ist eine Karte vorgewaehlt, ist der Preis schon abgeleitet - "Anders" oeffnet die Eingabe
     const other = page.locator('[data-testid="cost-other"]');
     if (await other.isVisible()) await other.click();
     await page.locator('input[placeholder="z.B. 12.50"]').fill('15');
@@ -431,7 +430,8 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
     expect(capturedPayload).not.toBeNull();
     expect(capturedPayload!['isPublicCharging']).toBe(true);
-    expect(String(capturedPayload!['cpoName'])).toContain('EnBW');
+    expect(capturedPayload!['cpoName'] ?? null).toBeNull();
+    expect(capturedPayload!['latitude']).toBeCloseTo(52.5342, 3);
     expect(errors).toEqual([]);
   });
 });

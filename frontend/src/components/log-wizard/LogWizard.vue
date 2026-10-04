@@ -13,7 +13,6 @@ import { useLogsRefreshStore } from '../../stores/logsRefresh'
 import { useAuthStore } from '../../stores/auth'
 import { isVoiceSupported } from '../../composables/useVoiceRecorder'
 import { useHaptic } from '../../composables/useHaptic'
-import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useNearbyStations, type StationMatch } from '../../composables/useNearbyStations'
 import { useCostInput } from '../../composables/useCostInput'
 import { useDelayedCall } from '../../composables/useDelayedCall'
@@ -74,8 +73,6 @@ const lastOdometerKm = computed<number | null>(() => {
   const withOdo = logs.value.filter(l => l.odometerKm != null)
   return withOdo.length ? withOdo[0].odometerKm : null
 })
-const recentCpos = computed<string[]>(() =>
-  [...new Set(logs.value.map(l => l.cpoName).filter((c): c is string => !!c))].slice(0, 3))
 
 const fetchLogs = async () => {
   if (!selectedCarId.value) { logs.value = []; return }
@@ -94,7 +91,6 @@ const locationStatus = ref<'idle' | 'loading' | 'success' | 'error'>('idle')
 /** Ungenauigkeit der letzten Ortung in Metern; null bei einer gesuchten Adresse */
 const locationAccuracy = ref<number | null>(null)
 const nearby = useNearbyStations()
-const cpo = useCpoOptions(computed(() => countryStore.country))
 const providers = ref<ChargingProvider[]>([])
 
 const requestLocation = async () => {
@@ -331,6 +327,14 @@ const focusStep = (el: HTMLElement) => {
   ;(target ?? el).focus({ preventScroll: true })
   if (target instanceof HTMLInputElement) target.select()
 }
+// Die Privat-Zeile erscheint erst mit Position: Fokus nachziehen, solange er noch auf dem Startpunkt steht
+watch(() => form.value.latitude, async (lat) => {
+  if (lat == null || step.value !== 1 || !finePointer.value) return
+  const active = document.activeElement
+  if (active && active !== document.body && active !== stepEl.value) return
+  await nextTick()
+  document.querySelector<HTMLElement>('[data-testid="place-here"]')?.focus({ preventScroll: true })
+})
 const onStepEl = (el: unknown) => {
   const node = el instanceof HTMLElement ? el : null
   if (node && node !== stepEl.value) { stepEl.value = node; requestAnimationFrame(() => focusStep(node)) }
@@ -417,7 +421,6 @@ onMounted(async () => {
     hasCars.value = cars.value.length > 0
     if (cars.value.length === 1) selectedCarId.value = cars.value[0].id
   } catch { hasCars.value = false }
-  cpo.loadAll()
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
   permission.value = await queryLocationPermission()
   // Schon einmal erlaubt: kein Dialog mehr, direkt laden. Sonst wartet der Hinweis auf den Tap.
@@ -457,7 +460,6 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
         :address-label="pickedAddress"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
-        :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"
         :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value" :next-radius="nearby.nextRadius.value"
         :exhausted="nearby.exhausted.value" :location-accuracy="locationAccuracy" :latitude="form.latitude" :longitude="form.longitude"
         :card-strip="cardStrip" @choose-card="chooseCard"

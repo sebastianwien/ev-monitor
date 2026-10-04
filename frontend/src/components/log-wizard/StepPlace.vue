@@ -2,7 +2,7 @@
 import { CHIP_ROW, chipClass } from './chipClass'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 import { RADIUS_STEPS, type NearbyStation, type StationMatch } from '../../composables/useNearbyStations'
 import { isLocationInaccurate, formatDistance } from './placeDistance'
 import type { ChargingSiteRef } from '../log-form/logFormData'
@@ -25,8 +25,6 @@ const props = defineProps<{
   stationsLoading: boolean
   permission: LocationPermission
   locationStatus: 'idle' | 'loading' | 'success' | 'error'
-  recentCpos: string[]
-  allCpos: string[]
   /** Umkreis der aktuellen Liste in Metern, und ob "Umkreis erweitern" noch etwas bringt */
   radiusMeters?: number
   canExpand?: boolean
@@ -53,7 +51,6 @@ const props = defineProps<{
 const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; placePicked: [place: PickedPlace]; expandRadius: []; chooseCard: [choice: CardChoice] }>()
 const { t, locale } = useI18n()
 
-const query = ref('')
 const platform = settingsPlatform()
 // Nach erfolgreicher Ortung klappt die Suche zu; "Woanders geladen" holt sie zurück
 const searchReopened = ref(false)
@@ -71,16 +68,10 @@ const noStationsFound = computed(() => listEmpty.value && !!props.exhausted)
 const inaccurate = computed(() => isLocationInaccurate(props.locationAccuracy))
 // Ohne Säulen steht die Suche offen da: ein Tap ins Feld, kein "Anderer Ort" davor
 const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value || listEmpty.value)
-const showOther = computed(() => props.place === 'other')
-// Mit Position (GPS oder gewählte Adresse) ist "privat" ein Ort: hier. Ohne Position wird privat ohne Ortsangabe gespeichert.
+// Mit Position (GPS oder gewählte Adresse) heißen die Zeilen "hier privat/öffentlich geladen"
 const hasPosition = computed(() => props.latitude != null)
-const filteredCpos = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  // Die Anbieter der letzten Ladungen zuerst
-  const list = [...props.recentCpos, ...props.allCpos.filter(c => !props.recentCpos.includes(c))]
-  return (q ? list.filter(c => c.toLowerCase().includes(q)) : list).slice(0, 8)
-})
-
+// Privat und öffentlich gibt es nur mit Ort: ein Log ohne Geohash soll nicht entstehen
+const placeKnown = computed(() => hasPosition.value || !!props.storedPlace)
 const sameSite = (name: string, geohash: string) =>
   props.selectedSite?.geohash === geohash && props.selectedSite?.name === name
 // Im Bearbeiten-Dialog steht eine gewählte Säule als 'site' (der Dialog kennt nur den gespeicherten Standort)
@@ -98,7 +89,6 @@ const showSearchedStation = computed(() => {
   return !!s && atStation.value && sameSite(s.name, s.geohash)
     && !props.stations.some(n => n.name === s.name && n.geohash === s.geohash)
 })
-const isOtherCpo = (c: string) => props.place === 'other' && props.selectedCpo === c
 
 const tileClass = (on: boolean) => [
   'btn-3d w-full flex items-center gap-3 text-left p-3 rounded-sm border-2 transition',
@@ -173,16 +163,31 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <CheckCircleIcon class="h-5 w-5 text-indigo-600" />
     </button>
 
-    <!-- Privat: mit Position der Ort hier (Untertitel die gewählte Adresse), ohne Position ohne Ortsangabe.
-         Ein Zuhause gibt es im Datenmodell nicht - privat heißt nur "nicht öffentlich", der Ort ist die Position. -->
+    <!-- Privat und öffentlich hier: nur mit Ort (GPS, gewählte Adresse oder im Bearbeiten-Dialog der gespeicherte).
+         Ein Zuhause gibt es im Datenmodell nicht - privat heißt "nicht öffentlich", der Ort ist die Position. -->
+    <template v-if="placeKnown">
     <button type="button" data-testid="place-here" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
       <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>
       <span class="flex-1 min-w-0">
         <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ hasPosition ? (addressLabel ?? t('logwizard.place_here_sub')) : storedPlace ? t('logwizard.place_private_sub') : t('logwizard.place_private_sub_nowhere') }}</small>
+        <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ hasPosition ? (addressLabel ?? t('logwizard.place_here_sub')) : t('logwizard.place_private_sub') }}</small>
       </span>
       <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 text-indigo-600" />
     </button>
+    <!-- Öffentlich ohne Säule aus dem Register (Ausland, neue Säule): der Ort bleibt die Position, die Ladekarte fährt darüber aus -->
+    <Collapse :open="!!cardStrip && place === 'other'">
+      <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
+        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
+    </Collapse>
+    <button type="button" data-testid="place-public" :class="tileClass(place === 'other')" @click="emit('choose', { kind: 'other', cpoName: null })">
+      <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
+      <span class="flex-1 min-w-0">
+        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_public_here') : t('logwizard.place_public') }}</b>
+        <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ place === 'other' && selectedCpo ? selectedCpo : t('logwizard.place_public_sub') }}</small>
+      </span>
+      <CheckCircleIcon v-if="place === 'other'" class="h-5 w-5 text-indigo-600" />
+    </button>
+    </template>
 
     <!-- Spinner nur bei der Ortssuche; bei der Live-Ortung dreht er in der Standort-Card -->
     <div v-if="stationsLoading && locationStatus !== 'loading'" role="status" data-testid="stations-loading"
@@ -223,30 +228,5 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </div>
     </Collapse>
 
-    <button type="button" data-testid="place-other" :class="tileClass(showOther && !selectedCpo)"
-      @click="emit('choose', { kind: 'other', cpoName: null })">
-      <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><MagnifyingGlassIcon class="h-5 w-5" /></span>
-      <span class="flex-1 min-w-0">
-        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ stations.length ? t('logwizard.place_other_missing') : t('logwizard.place_public') }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400">{{ t('logwizard.place_other_sub') }}</small>
-      </span>
-    </button>
-
-    <div v-if="showOther" class="space-y-2 pl-1">
-      <input v-model="query" type="search" :placeholder="t('logfields.cpo_select_placeholder')"
-        class="w-full rounded-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2 text-sm" />
-      <div :class="CHIP_ROW">
-        <button v-for="c in filteredCpos" :key="c" type="button" :aria-pressed="isOtherCpo(c)"
-          @click="emit('choose', { kind: 'other', cpoName: c })"
-          :class="chipClass(isOtherCpo(c))">
-          {{ c }}
-        </button>
-      </div>
-      <!-- Streifen faehrt animiert auf, statt die Liste springen zu lassen -->
-      <Collapse :open="!!cardStrip && !!selectedCpo">
-        <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
-        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
-      </Collapse>
-    </div>
   </div>
 </template>

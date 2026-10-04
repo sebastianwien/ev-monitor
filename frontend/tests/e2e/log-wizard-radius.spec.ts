@@ -61,7 +61,7 @@ test.describe('wachsender Umkreis', () => {
     await expect(page.locator('#wizard-place-search')).toBeVisible()
     await expect(page.getByTestId('place-here')).toContainText('Hier privat geladen')
     await expect(page.getByTestId('place-here')).toContainText('an deinem Standort')
-    await expect(page.getByTestId('place-other')).toContainText('Öffentlich geladen')
+    await expect(page.getByTestId('place-public')).toContainText('Hier öffentlich geladen')
   })
 
   test('Fehler (Drossel): keine Umkreis-Behauptung, aber die Suche steht offen', async ({ page }) => {
@@ -107,7 +107,7 @@ test.describe('Ort per Adresse', () => {
     await page.getByTestId('place-search-suggestion').click()
 
     await expect(page.getByRole('button', { name: /EnBW/ })).toBeVisible()
-    await expect(page.getByTestId('place-other')).toContainText('Säule nicht dabei?')
+    await expect(page.getByTestId('place-public')).toContainText('Hier öffentlich geladen')
     const here = page.getByTestId('place-here')
     await expect(here).toContainText('Hier privat geladen')
     await expect(here).toContainText('Sigridstraße 6, Berlin')
@@ -122,6 +122,10 @@ test.describe('Ort per Adresse', () => {
         body: JSON.stringify([{ place_id: 2, display_name: 'Dorfstraße 1, Kleinkleckersdorf', lat: '52.1', lon: '13.1' }]) }))
     await page.goto('/erfassen')
     const search = page.locator('#wizard-place-search')
+    // Ohne Ort weder privat noch öffentlich: ein Log ohne Ort soll nicht entstehen
+    await expect(page.getByTestId('wizard-location-blocked')).toBeVisible()
+    await expect(page.getByTestId('place-here')).toHaveCount(0)
+    await expect(page.getByTestId('place-public')).toHaveCount(0)
     await search.fill('Dorfstraße 1')
     await search.press('Enter')
     await page.getByTestId('place-search-suggestion').click()

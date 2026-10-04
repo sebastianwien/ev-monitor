@@ -51,7 +51,7 @@
           :stations="nearby.stations.value" :stations-loading="nearby.loading.value" permission="unavailable" :location-status="locationStatus"
           :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value" :next-radius="nearby.nextRadius.value" :exhausted="nearby.exhausted.value"
           :latitude="formData.latitude" :longitude="formData.longitude" :stored-place="!!log.geohash"
-          :recent-cpos="[]" :address-label="pickedAddress" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked"
+          :address-label="pickedAddress" @choose="choosePlace" @place-picked="onPlacePicked"
           @expand-radius="nearby.expand()">
         </StepPlace>
         <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
@@ -121,7 +121,6 @@ import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
 import { useCountryStore } from '../../stores/country'
-import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useCostInput } from '../../composables/useCostInput'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
@@ -247,13 +246,11 @@ const odometerLocal = computed({
   set: (v) => { formData.value.odometerKm = v == null ? null : odometerLocalToKm(v, usesMiles.value) },
 })
 
-const cpo = useCpoOptions(computed(() => countryStore.country))
 // Säulen im Umkreis einer neu gewählten Adresse - wie im Wizard
 const nearby = useNearbyStations()
 const locationStatus = ref<'idle' | 'success'>('idle')
 const providers = ref<ChargingProvider[]>([])
 onMounted(() => {
-  cpo.loadAll().then(() => cpo.keepSelected(formData.value.cpoName))
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
 })
 
