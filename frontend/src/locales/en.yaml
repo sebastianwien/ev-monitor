@@ -1024,6 +1024,8 @@ dashboard:
   recent_trip_title: "Last trip"
   recent_charge_edit: "Edit last charge"
   recent_trip_edit: "Edit last trip"
+  recent_charge_short: "Last charge"
+  recent_trip_short: "Last trip"
   trip_climate_load_comfort_heat: "Seat/steering heating"
   trip_climate_load_hvac_heating: "Heating"
   trip_climate_load_hvac_cooling: "Air conditioning"

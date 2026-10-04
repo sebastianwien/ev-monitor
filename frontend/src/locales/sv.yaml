@@ -984,6 +984,8 @@ dashboard:
   recent_trip_title: "Senaste resa"
   recent_charge_edit: "Redigera senaste laddning"
   recent_trip_edit: "Redigera senaste resa"
+  recent_charge_short: "Senaste laddning"
+  recent_trip_short: "Senaste resa"
   trip_climate_load_comfort_heat: "Säte-/rattvärme"
   trip_climate_load_hvac_heating: "Värme"
   trip_climate_load_hvac_cooling: "Luftkonditionering"

@@ -5,6 +5,9 @@ import { BoltIcon, MapPinIcon, PencilSquareIcon, ExclamationTriangleIcon } from 
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { normalizeCharge, relativeTimeParts, tripTimestamp, tripSpeedKeyAndArgs } from '../../utils/recentActivity'
 import { tripConsumption } from '../../utils/tripCalculations'
+import { tripLine, isRoutedLine } from '../../utils/tripMap'
+import { useIsMobile } from '../../composables/useIsMobile'
+import RecentActivityRow from './RecentActivityRow.vue'
 import TripClimateMarkers from '../TripClimateMarkers.vue'
 // Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
 // heatmap) - the map only loads when a trip actually carries a location.
@@ -150,32 +153,108 @@ const hasTripLocation = computed(
     !!props.trip?.tracePolyline,
 )
 
-// -- Mobile: kompakte Inline-Metriken (ein dichter Fließtext statt Balken) --
-const chargeSocText = computed(() =>
-  chargeSoc.value ? `${Math.round(chargeSoc.value.before)}→${Math.round(chargeSoc.value.after)}%` : null,
-)
-const tripSocText = computed(() =>
-  tripSoc.value ? `${Math.round(tripSoc.value.start)}→${Math.round(tripSoc.value.end)}%` : null,
-)
-// Mobile zeigt in der schmalen Kachel nur das Wesentliche (Zeit steht separat davor);
-// Leistung/Kosten/Temp/Route bleiben Desktop + Detailseite vorbehalten.
-const chargeInline = computed<string[]>(() => {
-  const out: string[] = []
-  if (ch.value?.costEur != null && ch.value.isFullyPriced) out.push(formatCurrency(ch.value.costEur))
-  if (chargeSocText.value) out.push(chargeSocText.value)
-  return out
-})
-const tripInline = computed<string[]>(() => {
-  const out: string[] = []
-  if (tripConsumptionResult.value)
-    out.push(`${tripConsumptionResult.value.estimated ? '~' : ''}${formatConsumption(tripConsumptionResult.value.kwhPer100km)}`)
-  if (tripSocText.value) out.push(tripSocText.value)
-  return out
+// -- Mobile: eine Liste mit zwei Zeilen statt zwei schmaler Kacheln --
+// Nur eine der beiden Darstellungen wird gerendert, damit nicht vier Leaflet-Karten laufen.
+const isMobile = useIsMobile()
+
+const chargeMetaMobile = computed<string[]>(() => [...(chargeTypeLabel.value ? [chargeTypeLabel.value] : []), ...chargeMetrics.value])
+const tripMetaMobile = computed<string[]>(() => [...(tripRouteLabel.value ? [tripRouteLabel.value] : []), ...tripMetrics.value])
+
+/** Die Thumbnails tragen keine eigene Attribution - sie steht gesammelt unter der Liste. */
+const mapCredit = computed<string | null>(() => {
+  if (!hasChargeLocation.value && !hasTripLocation.value) return null
+  const routed = hasTripLocation.value && isRoutedLine(tripLine(props.trip?.tracePolyline, props.trip?.routePolyline, props.trip?.routeKind))
+  return routed ? '© OpenStreetMap · Route © openrouteservice by HeiGIT' : '© OpenStreetMap'
 })
 </script>
 
 <template>
-  <div v-if="ch" class="grid grid-cols-2 gap-2 mb-2.5 md:gap-2.5 md:mb-3">
+  <!-- Mobile: eine Liste, Vorschaubild neben dem Text statt Text auf der Karte -->
+  <div v-if="ch && isMobile" class="mb-2.5">
+    <div class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+      <RecentActivityRow
+        tone="charge"
+        data-testid="recent-charge-tile"
+        :label="t('dashboard.recent_charge_short')"
+        :when="relativeTime(ch.loggedAt)"
+        :soc="chargeSoc ? { from: chargeSoc.before, to: chargeSoc.after } : null"
+        :aria-label="t('dashboard.recent_charge_edit')"
+        @click="emit('edit-charge')"
+      >
+        <template #thumb>
+          <ActivityLocationMap v-if="hasChargeLocation" variant="thumb" :start-geohash="ch.geohash" :end-geohash="null" />
+          <BoltIcon v-else class="absolute inset-0 m-auto w-7 h-7 text-amber-500 dark:text-amber-400" aria-hidden="true" />
+        </template>
+        <template #value>
+          <span class="text-xl font-bold leading-tight">{{ ch.kwh != null ? formatDecimal(ch.kwh, 1) : '–' }}</span>
+          <span class="text-[13px] text-gray-500 dark:text-gray-400">kWh</span>
+          <template v-if="ch.costEur != null && ch.isFullyPriced">
+            <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">&middot;</span>
+            <span class="text-[15px] font-semibold">{{ formatCurrency(ch.costEur) }}</span>
+          </template>
+        </template>
+        <template #meta>
+          <span
+            v-if="chargePriceless"
+            role="button"
+            tabindex="0"
+            data-testid="charge-price-chip"
+            :aria-label="t('priceamend.chip_aria')"
+            @click.stop="emit('amend-charge')"
+            @keydown.enter.stop.prevent="emit('amend-charge')"
+            @keydown.space.stop.prevent="emit('amend-charge')"
+            class="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer">
+            <ExclamationTriangleIcon class="w-3.5 h-3.5" aria-hidden="true" />
+            {{ t('priceamend.chip') }}
+            <WattBadge :amount="pricelessWatt" up-to />
+          </span>
+          <span v-if="chargeSource" :class="['inline-flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10px] font-medium', chargeSource.classes]">
+            <component :is="chargeSource.icon" class="w-3 h-3" aria-hidden="true" />
+            {{ chargeSource.label }}
+          </span>
+          <span v-for="m in chargeMetaMobile" :key="'cmm' + m" class="tabular-nums whitespace-nowrap">{{ m }}</span>
+        </template>
+      </RecentActivityRow>
+
+      <RecentActivityRow
+        v-if="showTrip"
+        tone="trip"
+        data-testid="recent-trip-tile"
+        :label="t('dashboard.recent_trip_short')"
+        :when="relativeTime(tripTimestamp(trip))"
+        :soc="tripSoc ? { from: tripSoc.end, to: tripSoc.start } : null"
+        :aria-label="t('dashboard.recent_trip_edit')"
+        @click="emit('edit-trip')"
+      >
+        <template #thumb>
+          <ActivityLocationMap
+            v-if="hasTripLocation"
+            variant="thumb"
+            :start-geohash="trip.locationStartGeohash"
+            :end-geohash="trip.locationEndGeohash"
+            :route-polyline="trip.routePolyline"
+            :route-kind="trip.routeKind"
+            :trace-polyline="trip.tracePolyline"
+          />
+          <MapPinIcon v-else class="absolute inset-0 m-auto w-7 h-7 text-indigo-500 dark:text-indigo-400" aria-hidden="true" />
+        </template>
+        <template #value>
+          <span class="text-xl font-bold leading-tight whitespace-nowrap">{{ trip.distanceKm != null ? formatDistance(trip.distanceKm) : '–' }}</span>
+          <template v-if="tripConsumptionResult">
+            <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">&middot;</span>
+            <span class="text-[15px] font-semibold whitespace-nowrap">{{ tripConsumptionResult.estimated ? '~' : '' }}{{ formatConsumption(tripConsumptionResult.kwhPer100km) }}</span>
+          </template>
+        </template>
+        <template #meta>
+          <span v-for="m in tripMetaMobile" :key="'tmm' + m" class="tabular-nums whitespace-nowrap">{{ m }}</span>
+          <TripClimateMarkers v-if="trip.climate" :climate="trip.climate" class="!justify-start !text-xs" />
+        </template>
+      </RecentActivityRow>
+    </div>
+    <p v-if="mapCredit" class="mt-1 text-right text-[10px] text-gray-400 dark:text-gray-500">{{ mapCredit }}</p>
+  </div>
+
+  <div v-else-if="ch" class="grid grid-cols-2 gap-2 mb-2.5 md:gap-2.5 md:mb-3">
     <!-- Letzter Ladevorgang -->
     <button
       type="button"
@@ -211,14 +290,13 @@ const tripInline = computed<string[]>(() => {
             <WattBadge :amount="pricelessWatt" up-to />
           </span>
         </div>
-        <!-- Relativzeit: Desktop immer im Header | Mobile nur bei voller Breite (dann ist Platz) -->
-        <div class="items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400" :class="showTrip ? 'hidden md:flex' : 'flex'">
+        <div class="flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400">
           <span>{{ relativeTime(ch.loggedAt) }}</span>
           <PencilSquareIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
         </div>
       </div>
 
-      <div class="flex items-baseline gap-2" :class="showTrip ? 'justify-between' : 'justify-center md:justify-between'">
+      <div class="flex items-baseline justify-between gap-2">
         <div class="flex items-baseline gap-x-2.5 gap-y-0 flex-wrap min-w-0">
           <div class="flex items-baseline gap-1">
             <span class="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 tabular-nums leading-none">{{ ch.kwh != null ? formatDecimal(ch.kwh, 1) : '–' }}</span>
@@ -226,17 +304,8 @@ const tripInline = computed<string[]>(() => {
             <!-- Nur wenn ein Brutto-Wert danebensteht, muss die grosse Zahl sich abgrenzen -->
             <span v-if="chargeGross" class="hidden md:inline text-[10px] text-gray-400 dark:text-gray-400 font-medium">{{ t('dashboard.ac_gross_label_netto') }}</span>
           </div>
-          <!-- Volle Breite (keine Fahrt): Ladedaten inline neben kWh, Zeit steht im Header -->
-          <div v-if="!showTrip" class="md:hidden flex items-baseline gap-x-2.5 text-[11px] text-gray-500 dark:text-gray-400">
-            <span v-for="m in chargeInline" :key="'wci' + m" class="tabular-nums">{{ m }}</span>
-            <span v-if="chargeSource" :class="['inline-flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10px] font-medium', chargeSource.classes]">
-              <component :is="chargeSource.icon" class="w-3 h-3" aria-hidden="true" />
-              {{ chargeSource.label }}
-            </span>
-          </div>
         </div>
         <span v-if="ch.costEur != null && ch.isFullyPriced" class="hidden md:inline-block text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ formatCurrency(ch.costEur) }}</span>
-        <span v-if="showTrip" class="md:hidden text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">{{ relativeTime(ch.loggedAt) }}</span>
       </div>
 
       <!-- Desktop: SoC-Balken (Labels flankieren das Segment) + Chips -->
@@ -264,14 +333,6 @@ const tripInline = computed<string[]>(() => {
         </div>
       </div>
 
-      <!-- Mobile (schmal, neben Fahrt): gedämpfte Meta-Zeile unter der kWh-Zeile -->
-      <div v-if="showTrip" class="md:hidden mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-        <span v-for="m in chargeInline" :key="'ci' + m" class="tabular-nums">{{ m }}</span>
-        <span v-if="chargeSource" :class="['inline-flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10px] font-medium', chargeSource.classes]">
-          <component :is="chargeSource.icon" class="w-3 h-3" aria-hidden="true" />
-          {{ chargeSource.label }}
-        </span>
-      </div>
     </button>
 
     <!-- Letzte Fahrt (nur wenn Trip vorhanden - Premium/AutoSync) -->
@@ -300,8 +361,7 @@ const tripInline = computed<string[]>(() => {
           <MapPinIcon class="w-4 h-4 text-indigo-500 dark:text-indigo-400" aria-hidden="true" />
           {{ t('dashboard.recent_trip_title') }}
         </div>
-        <!-- Relativzeit: Desktop im Header rechts | Mobile in der Meta-Zeile (Platz) -->
-        <div class="hidden md:flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400">
+        <div class="flex items-center gap-0.5 text-xs text-gray-400 dark:text-gray-400">
           <span>{{ relativeTime(tripTimestamp(trip)) }}</span>
           <PencilSquareIcon class="w-3.5 h-3.5 opacity-0 group-hover:opacity-60 transition-opacity" aria-hidden="true" />
         </div>
@@ -313,7 +373,6 @@ const tripInline = computed<string[]>(() => {
           <span class="text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 tabular-nums">{{ tripConsumptionResult.estimated ? '~' : '' }}{{ formatConsumption(tripConsumptionResult.kwhPer100km, { showUnit: false }) }}</span>
           <span class="text-xs text-gray-400 dark:text-gray-400 font-medium">{{ consumptionUnitLabel() }}</span>
         </span>
-        <span class="md:hidden text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">{{ relativeTime(tripTimestamp(trip)) }}</span>
       </div>
 
       <!-- Desktop: SoC-Balken (Labels flankieren das Segment) + Chips -->
@@ -343,10 +402,6 @@ const tripInline = computed<string[]>(() => {
         </div>
       </div>
 
-      <!-- Mobile: gedämpfte Meta-Zeile statt Balken - nur Abstand trennt (sauberer Umbruch) -->
-      <div class="md:hidden mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-        <span v-for="m in tripInline" :key="'ti' + m" class="tabular-nums">{{ m }}</span>
-      </div>
     </button>
   </div>
 </template>
