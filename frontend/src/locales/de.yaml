@@ -3314,7 +3314,6 @@ logwizard:
   soc_net: "Netto {net} kWh im Akku · Ladeverlust {loss} kWh"
   cost_total: "Gesamt"
   cost_per_kwh: "Je kWh"
-  cost_price: "Preis"
   price_suggestions: "Vorschläge"
   price_community: "Zuletzt hier"
   price_free: "Gratis"

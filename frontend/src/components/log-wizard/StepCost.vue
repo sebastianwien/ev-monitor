@@ -124,34 +124,30 @@ const derived = computed(() => !manual.value && (
 /** Unterzeile der Kostenbox: Preis je kWh, dann Kosten und Verbrauch je 100 km, sobald sie berechenbar sind */
 const metricFormat = computed(() => ({ isEurCountry: isEurCountry.value, subunit: subunit.value, symbol: symbol.value, eurToLocal: props.cost.eurToLocal, formatNumber, formatDecimal }))
 const derivedMetrics = computed(() => costMode.value === 'total' ? [] : costMetrics(costLocalPerKwh.value, props.preview, metricFormat.value))
-// Unter dem Feld der jeweils andere Wert: bei Eingabe je kWh der Gesamtbetrag, sonst der Preis je kWh
-const manualMetrics = computed(() => inputUnit.value === 'per_kwh'
-  ? [...(compactTotal.value != null ? [{ value: formatDecimal(compactTotal.value, 2), unit: symbol.value }] : []), ...costMetrics(null, props.preview, metricFormat.value)]
-  : costMetrics(compactPerKwh.value, props.preview, metricFormat.value))
+// Unter dem Gesamtbetrag: das Feld je kWh, danach Kosten und Verbrauch je 100 km - in einer Zeile
+const manualMetrics = computed(() => costMetrics(null, props.preview, metricFormat.value))
 const derivedSub = computed(() => costMode.value === 'total' ? t('logwizard.price_free') : null)
 
-// Wer immer den kWh-Preis tippt, soll nicht jedes Mal umschalten: die Wahl bleibt in diesem Browser
-const UNIT_KEY = 'cost-input-unit'
-const readUnit = (): 'total' | 'per_kwh' => { try { return localStorage.getItem(UNIT_KEY) === 'per_kwh' ? 'per_kwh' : 'total' } catch { return 'total' } }
-const inputUnit = ref(readUnit())
-watch(inputUnit, u => { try { localStorage.setItem(UNIT_KEY, u) } catch { /* Speicher gesperrt: gilt nur jetzt */ } })
+// Zwei Felder, beide immer sichtbar: Gesamtbetrag und Preis je kWh (Euroraum in ct, wie beim Anlegen
+// einer Karte). Was zuletzt getippt wurde, gilt; das andere Feld rechnet mit.
 const perKwhFactor = computed(() => isEurCountry.value ? 100 : 1)
-// Beide Einheiten stehen sichtbar nebeneinander, die aktive markiert: man sieht, dass es zwei gibt
-const unitOptions = computed(() => [
-  { value: 'total' as const, label: symbol.value },
-  { value: 'per_kwh' as const, label: `${isEurCountry.value ? subunit.value : symbol.value}/kWh` },
-])
-const compactValue = computed(() => {
-  if (inputUnit.value === 'total') return compactTotal.value
+const perKwhUnit = computed(() => `${isEurCountry.value ? subunit.value : symbol.value}/kWh`)
+const perKwhShown = computed(() => {
   const v = compactPerKwh.value
-  return v == null ? null : Math.round(v * perKwhFactor.value * 1000) / 1000
+  if (v == null) return null
+  const digits = isEurCountry.value ? 10 : 1000
+  return Math.round(v * perKwhFactor.value * digits) / digits
 })
-const onCompactInput = (e: Event) => {
-  const v = (e.target as HTMLInputElement).value
-  const n = v === '' ? null : Number(v)
+const typed = (e: Event) => { const v = (e.target as HTMLInputElement).value; return v === '' ? null : Number(v) }
+const onTotalInput = (e: Event) => {
   // Getippt ist getippt: die grüne Zeile kommt nicht mitten im Tippen zurück
   manual.value = true
-  if (inputUnit.value === 'total') { costMode.value = 'total'; costLocalTotal.value = n; return }
+  costMode.value = 'total'
+  costLocalTotal.value = typed(e)
+}
+const onPerKwhInput = (e: Event) => {
+  manual.value = true
+  const n = typed(e)
   costMode.value = 'per_kwh'
   costLocalTotal.value = null
   costLocalPerKwh.value = n == null ? null : n / perKwhFactor.value
@@ -226,30 +222,26 @@ onMounted(async () => {
     <template v-else>
     <!-- Box wie die Rädchen-Zeilen: Feldname, Zahl, Einheit; darunter die Kennzahlen. Gratis: 0 tippen. -->
     <div data-testid="cost-box" class="rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 focus-within:border-indigo-600">
-      <!-- Schalter rechts über beide Zeilen; die Kennzahlen enden unter der Zahl -->
-      <div class="grid grid-cols-[1fr_auto] items-center gap-x-2">
-        <div class="flex items-baseline justify-between gap-x-2 min-h-9">
-        <label for="wizard-cost" class="text-sm text-gray-500 dark:text-gray-400">{{ inputUnit === 'total' ? t('logfields.cost_eur') : t('logwizard.cost_price') }}</label>
-        <input id="wizard-cost" type="number" inputmode="decimal" :step="inputUnit === 'total' ? 0.01 : 0.1" min="0"
-          :placeholder="inputUnit === 'total' ? t('logfields.cost_eur_placeholder') : (isEurCountry ? '39' : '0.39')"
-          :value="compactValue ?? ''" @input="onCompactInput"
+      <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
+        <label for="wizard-cost" class="text-sm text-gray-500 dark:text-gray-400">{{ t('logfields.cost_eur') }}</label>
+        <input id="wizard-cost" type="number" inputmode="decimal" step="0.01" min="0" :placeholder="t('logfields.cost_eur_placeholder')"
+          :value="compactTotal ?? ''" @input="onTotalInput"
           class="w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-        </div>
-        <!-- Die Einheit ist der Schalter: beide stehen übereinander, die aktive hinterlegt. Ein Tap irgendwo schaltet um
-             (zwei Hälften wären je nur 22 px hoch). -->
-        <button type="button" role="switch" data-testid="cost-unit" :aria-checked="inputUnit === 'per_kwh'" :aria-label="t('logwizard.cost_per_kwh')"
-          @click="inputUnit = inputUnit === 'total' ? 'per_kwh' : 'total'"
-          class="relative row-span-2 grid grid-rows-2 h-11 w-[4.5rem] rounded-lg bg-gray-200 dark:bg-gray-700 p-1 select-none">
-          <span aria-hidden="true" class="absolute left-1 right-1 top-1 h-[calc(50%-0.25rem)] rounded-md bg-white dark:bg-gray-500 shadow transition-transform duration-200 ease-out"
-            :class="inputUnit === 'per_kwh' ? 'translate-y-full' : ''" />
-          <span v-for="o in unitOptions" :key="o.value" aria-hidden="true"
-            :class="['relative z-10 flex items-center justify-center text-xs leading-none font-bold whitespace-nowrap transition-colors', inputUnit === o.value ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-300']">{{ o.label }}</span>
-        </button>
-        <p class="min-h-4 flex flex-wrap justify-end items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums">
-          <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
-            <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
-          </span>
-        </p>
+        <span class="text-base text-gray-500 dark:text-gray-400">{{ symbol }}</span>
+      </div>
+      <!-- Zweites Feld in der Kennzahlenzeile: der Preis je kWh ist selbst eingebbar, erkennbar an der gestrichelten Linie.
+           Ohne Kasten und mit der Breite des Inhalts, damit die drei Kennzahlen auch bei 360 px in eine Zeile passen. -->
+      <div data-testid="cost-metrics" class="mt-1 flex justify-end items-baseline gap-x-1.5 text-xs max-[374px]:text-[11px] leading-tight text-gray-500 dark:text-gray-400 tabular-nums whitespace-nowrap">
+        <!-- Das Label ist der Tap-Bereich (Feld plus Einheit, 44 px hoch über -my) -->
+        <label class="inline-flex items-baseline gap-0.5 py-3 -my-3 cursor-text">
+          <input id="wizard-cost-per-kwh" type="number" inputmode="decimal" :step="isEurCountry ? 0.1 : 0.001" min="0" :placeholder="isEurCountry ? '39' : '0.39'"
+            :value="perKwhShown ?? ''" @input="onPerKwhInput" :aria-label="`${t('logfields.cost_eur')} ${t('logwizard.cost_per_kwh')}`"
+            :style="{ width: `${Math.max(2, String(perKwhShown ?? (isEurCountry ? '39' : '0.39')).length) + 0.6}ch` }"
+            class="h-6 leading-none min-w-0 bg-transparent border-0 border-b-2 border-dashed border-indigo-400 dark:border-indigo-500 rounded-none p-0 text-right text-sm max-[374px]:text-[13px] font-bold text-indigo-700 dark:text-indigo-300 placeholder:font-normal placeholder:text-gray-300 dark:placeholder:text-gray-500 focus:border-solid focus:border-indigo-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />{{ perKwhUnit }}
+        </label>
+        <span v-for="m in manualMetrics" :key="m.unit" class="inline-flex items-baseline gap-0.5 border-l border-gray-300 dark:border-gray-600 pl-1.5">
+          <b :class="['text-sm max-[374px]:text-[13px]', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
+        </span>
       </div>
     </div>
     </template>
