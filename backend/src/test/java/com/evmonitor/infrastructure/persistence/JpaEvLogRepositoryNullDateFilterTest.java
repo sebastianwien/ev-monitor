@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.persistence;
 
+import com.evmonitor.testutil.SharedPostgres;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarStatus;
@@ -11,8 +12,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
@@ -35,14 +34,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @org.springframework.test.context.ActiveProfiles("test")
 class JpaEvLogRepositoryNullDateFilterTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
-
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+        SharedPostgres.registerMigrated(registry);
         registry.add("spring.flyway.enabled", () -> "true");
         // Das test-Profil setzt den H2-Treiber, hier muss Postgres gewinnen.
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
