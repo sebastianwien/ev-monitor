@@ -67,6 +67,8 @@ describe('StepCost kompakt: Gesamt oder je kWh', () => {
 
   it('Gratis setzt 0 € und zeigt die grüne Zeile', async () => {
     const { form, q } = await mount()
+    // Gratis steht in der Kostenbox, nicht als eigene Zeile darunter
+    expect(q('cost-box')!.contains(q('cost-free'))).toBe(true)
     q('cost-free')!.click(); await nextTick()
     expect(form.value.costEur).toBe(0)
     expect(q('cost-derived')!.textContent).toContain('Gratis')

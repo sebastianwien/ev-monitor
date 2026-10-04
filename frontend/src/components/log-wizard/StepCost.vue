@@ -17,7 +17,7 @@ import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
 import BigInput from './BigInput.vue'
-import { CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { CheckCircleIcon, GiftIcon } from '@heroicons/vue/24/outline'
 import SegmentToggle from './SegmentToggle.vue'
 
 const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null
@@ -224,7 +224,7 @@ onMounted(async () => {
         </span>
       </p>
     </div>
-    <div v-else class="rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 focus-within:border-indigo-600">
+    <div v-else data-testid="cost-box" class="rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 focus-within:border-indigo-600">
       <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
         <label for="wizard-cost" class="text-sm text-gray-500 dark:text-gray-400">{{ inputUnit === 'total' ? t('logfields.cost_eur') : t('logwizard.cost_price') }}</label>
         <input id="wizard-cost" type="number" inputmode="decimal" :step="inputUnit === 'total' ? 0.01 : 0.1" min="0"
@@ -233,14 +233,18 @@ onMounted(async () => {
           class="w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
         <SegmentToggle v-model="inputUnit" :options="unitOptions" :aria-label="t('logwizard.cost_unit_switch')" class="w-32 self-center -my-1" />
       </div>
-      <p v-if="manualMetrics.length" class="mt-0.5 flex justify-end items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums overflow-hidden">
-        <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
-          <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
-        </span>
-      </p>
-    </div>
-    <div v-if="!derived" :class="CHIP_ROW">
-      <button type="button" data-testid="cost-free" :class="chipClass(false)" @click="chooseFree">{{ t('logwizard.price_free') }}</button>
+      <!-- Zweite Zeile: links Gratis (Kosten sind Pflicht, Gratis muss immer erreichbar sein), rechts die Kennzahlen -->
+      <div class="mt-0.5 flex items-center gap-x-2">
+        <button type="button" data-testid="cost-free" @click="chooseFree"
+          class="-my-2.5 -ml-1 py-2.5 px-1 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline whitespace-nowrap">
+          <GiftIcon class="h-4 w-4" aria-hidden="true" />{{ t('logwizard.price_free') }}
+        </button>
+        <p v-if="manualMetrics.length" class="ml-auto min-w-0 flex justify-end items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums overflow-hidden">
+          <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
+            <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
+          </span>
+        </p>
+      </div>
     </div>
       <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">
         <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">
