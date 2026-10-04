@@ -6,6 +6,7 @@ import com.evmonitor.application.PlaceNameService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -47,7 +48,7 @@ public class NominatimPlaceNameService implements PlaceNameService {
     private final Object gate = new Object();
     private long lastRequestAt;
 
-    public NominatimPlaceNameService(RestTemplate http,
+    public NominatimPlaceNameService(@Qualifier("restTemplate") RestTemplate http,
                                      @Value("${nominatim.base-url:https://nominatim.openstreetmap.org}") String baseUrl,
                                      @Value("${nominatim.user-agent:ev-monitor.net (kontakt@ev-monitor.net)}") String userAgent,
                                      @Value("${nominatim.enabled:true}") boolean enabled) {
