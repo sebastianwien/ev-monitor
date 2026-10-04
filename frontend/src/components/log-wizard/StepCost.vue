@@ -234,7 +234,7 @@ onMounted(async () => {
       <div data-testid="cost-metrics" class="mt-1 flex justify-end items-baseline gap-x-1.5 text-xs max-[374px]:text-[11px] leading-tight text-gray-500 dark:text-gray-400 tabular-nums whitespace-nowrap">
         <!-- Das Label ist der Tap-Bereich (Feld plus Einheit, 44 px hoch über -my) -->
         <label class="inline-flex items-baseline gap-0.5 py-3 -my-3 cursor-text">
-          <input id="wizard-cost-per-kwh" type="number" inputmode="decimal" :step="isEurCountry ? 0.1 : 0.001" min="0" :placeholder="isEurCountry ? '39' : '0.39'"
+          <input id="wizard-cost-per-kwh" data-enter-skip type="number" inputmode="decimal" :step="isEurCountry ? 0.1 : 0.001" min="0" :placeholder="isEurCountry ? '39' : '0.39'"
             :value="perKwhShown ?? ''" @input="onPerKwhInput" :aria-label="`${t('logfields.cost_eur')} ${t('logwizard.cost_per_kwh')}`"
             :style="{ width: `${Math.max(2, String(perKwhShown ?? (isEurCountry ? '39' : '0.39')).length) + 0.6}ch` }"
             class="h-6 leading-none min-w-0 bg-transparent border-0 border-b-2 border-dashed border-indigo-400 dark:border-indigo-500 rounded-none p-0 text-right text-sm max-[374px]:text-[13px] font-bold text-indigo-700 dark:text-indigo-300 placeholder:font-normal placeholder:text-gray-300 dark:placeholder:text-gray-500 focus:border-solid focus:border-indigo-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />{{ perKwhUnit }}
