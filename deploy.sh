@@ -107,61 +107,19 @@ docker compose $COMPOSE_FILE up -d db certbot
 
 echo ""
 echo "🔄 Switching to new backend + nginx containers..."
-docker compose $COMPOSE_FILE up -d --no-deps --force-recreate backend nginx
-
-echo ""
-echo "⏳ Waiting for services to start..."
-sleep 15
+# --wait blockiert, bis backend healthy ist (Healthcheck in docker-compose.full.yml),
+# und schlägt fehl, wenn es das innerhalb des Timeouts nicht wird.
+if ! docker compose $COMPOSE_FILE up -d --no-deps --force-recreate --wait --wait-timeout 180 backend nginx; then
+  echo "❌ ERROR: backend/nginx not healthy. Check logs:"
+  echo "   docker compose $COMPOSE_FILE logs backend --tail=100"
+  exit 1
+fi
 
 # Reload nginx to pick up new container IPs after restart
 echo "🔄 Reloading nginx configuration..."
-docker exec ev-monitor-nginx-1 nginx -s reload 2>/dev/null || echo "⚠️  nginx reload skipped (container not ready yet)"
+docker compose $COMPOSE_FILE exec -T nginx nginx -s reload || echo "⚠️  nginx reload failed"
 
-# Check if services are running
-if docker compose $COMPOSE_FILE ps | grep -q "Up"; then
-  echo "✅ Services are running!"
-  echo ""
-  echo "🌍 Application deployed:"
-
-  if [ "$DOMAIN" == "localhost" ]; then
-    echo "   http://localhost"
-  else
-    echo "   http://$DOMAIN (redirects to HTTPS)"
-    echo "   https://$DOMAIN"
-  fi
-
-  echo ""
-  echo "📊 Check logs:"
-  echo "   docker compose logs -f backend"
-  echo "   docker compose logs -f nginx"
-  echo ""
-  echo "🔄 Restart services:"
-  echo "   docker compose restart"
-
-  # Setup automated Docker cleanup cron job
-  echo ""
-  echo "🧹 Setting up automated Docker cleanup..."
-  CLEANUP_SCRIPT="/opt/docker-cleanup.sh"
-  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-  # Copy cleanup script to /opt
-  if [ -f "$SCRIPT_DIR/scripts/docker-cleanup.sh" ]; then
-    sudo cp "$SCRIPT_DIR/scripts/docker-cleanup.sh" "$CLEANUP_SCRIPT"
-    sudo chmod +x "$CLEANUP_SCRIPT"
-
-    # Add cron job if not already present (runs daily at 3 AM)
-    CRON_JOB="0 3 * * * $CLEANUP_SCRIPT >> /var/log/docker-cleanup.log 2>&1"
-    if ! sudo crontab -l 2>/dev/null | grep -q "$CLEANUP_SCRIPT"; then
-      (sudo crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo crontab -
-      echo "✅ Cron job installed: Daily cleanup at 3 AM"
-    else
-      echo "✅ Cron job already configured"
-    fi
-  else
-    echo "⚠️  Cleanup script not found at $SCRIPT_DIR/scripts/docker-cleanup.sh"
-  fi
-else
-  echo "❌ ERROR: Services failed to start. Check logs:"
-  echo "   docker compose logs"
-  exit 1
-fi
+echo "✅ Services are running!"
+echo ""
+echo "🌍 Application deployed: https://$DOMAIN"
+# Cron (docker-cleanup) wird einmalig per scripts/server-setup.sh eingerichtet, nicht bei jedem Deploy.
