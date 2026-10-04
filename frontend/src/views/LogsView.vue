@@ -1588,7 +1588,7 @@ function toggleAllFeed() {
                 <ChevronDoubleDownIcon v-else class="w-4 h-4" />
               </button>
             </div>
-            <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, pro Darstellung gemerkt.
+            <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, ein Wert fuer alle Darstellungen.
                  Unter xl: Darstellung (Mobile volle Breite) + Legende rechts, darunter der Picker
                  mittig zwischen Trennlinien. Ab xl: alles in einer Zeile, Picker mittig. -->
             <div class="order-3 xl:order-2 w-full xl:flex-1 xl:w-auto flex items-center gap-4">

@@ -3,18 +3,16 @@ import { resolveTripWindow, type TripWindow } from '../utils/tripMonthSummary'
 import type { PeriodResolution } from '../utils/tripPeriods'
 
 /**
- * Zeitfenster des Log-Feeds. Der Feed laedt keine Seiten mehr, sondern ein Fenster - und das
- * haengt an der Darstellung: Tag und Woche zeigen den laufenden Monat, Monat drei Monate,
- * Einzeln den laufenden Monat und laedt auf Wunsch monatsweise weiter zurueck. Nutzer mit
- * hunderten Fahrten rendern so nur, was sie gerade ansehen.
+ * Zeitfenster des Log-Feeds. Der Feed laedt keine Seiten mehr, sondern ein Fenster; Einzeln
+ * laedt auf Wunsch monatsweise weiter zurueck. Nutzer mit hunderten Fahrten rendern so nur,
+ * was sie gerade ansehen.
  *
- * Aufloesung und Zeitraum (pro Aufloesung) halten ueber Sitzungen hinweg.
+ * Ein Zeitraum fuer alle Darstellungen: der Wechsel zwischen Tag, Woche und Monat aendert nur
+ * die Gruppierung, nicht, was man sieht. Aufloesung und Zeitraum halten ueber Sitzungen hinweg.
  */
 export type FeedResolution = 'cycle' | PeriodResolution
 export const FEED_RESOLUTIONS: FeedResolution[] = ['day', 'week', 'month', 'cycle']
-export const FEED_RANGE_DEFAULTS: Record<FeedResolution, string> = {
-  day: 'THIS_MONTH', week: 'THIS_MONTH', month: 'LAST_3_MONTHS', cycle: 'THIS_MONTH',
-}
+export const FEED_RANGE_DEFAULT = 'LAST_3_MONTHS'
 /** "Alle" gibt es im Feed bewusst nicht - das ist genau das Fenster, das den Browser stocken laesst. */
 export const FEED_TIME_RANGES = ['THIS_MONTH', 'LAST_MONTH', 'LAST_3_MONTHS', 'LAST_6_MONTHS', 'LAST_12_MONTHS', 'THIS_YEAR', 'CUSTOM']
 
@@ -30,16 +28,18 @@ function writeStored(key: string, value: string) {
   try { localStorage.setItem(key, value) } catch { /* Safari private mode, quota */ }
 }
 
-function readStoredRanges(): Partial<Record<FeedResolution, string>> {
+/**
+ * Frueher lag hier ein Zeitraum pro Darstellung als JSON-Map. Davon gilt der Wert der zuletzt
+ * genutzten Darstellung - das ist der, den der Nutzer zuletzt gesehen hat.
+ */
+function readStoredRange(resolution: FeedResolution): string | null {
+  const raw = readStored(FEED_TIME_RANGE_KEY)
+  if (raw == null || FEED_TIME_RANGES.includes(raw)) return raw
   try {
-    const parsed = JSON.parse(readStored(FEED_TIME_RANGE_KEY) ?? '{}')
-    const valid: Partial<Record<FeedResolution, string>> = {}
-    for (const r of FEED_RESOLUTIONS) {
-      if (FEED_TIME_RANGES.includes(parsed?.[r])) valid[r] = parsed[r]
-    }
-    return valid
+    const legacy = JSON.parse(raw)?.[resolution]
+    return FEED_TIME_RANGES.includes(legacy) ? legacy : null
   } catch {
-    return {}
+    return null
   }
 }
 
@@ -49,29 +49,27 @@ export function useFeedWindow(now: () => Date = () => new Date()) {
     storedResolution && FEED_RESOLUTIONS.includes(storedResolution) ? storedResolution : 'month')
   watch(resolution, (value) => writeStored(FEED_RESOLUTION_KEY, value))
 
-  const ranges = ref<Partial<Record<FeedResolution, string>>>(readStoredRanges())
-  watch(ranges, (value) => writeStored(FEED_TIME_RANGE_KEY, JSON.stringify(value)), { deep: true })
-
-  const timeRange = computed<string>({
-    get: () => ranges.value[resolution.value] ?? FEED_RANGE_DEFAULTS[resolution.value],
-    set: (value) => { ranges.value = { ...ranges.value, [resolution.value]: value } },
-  })
+  const storedRange = readStoredRange(resolution.value)
+  const timeRange = ref<string>(storedRange ?? FEED_RANGE_DEFAULT)
+  // immediate schreibt eine alte Map sofort als einzelnen Wert zurueck.
+  watch(timeRange, (value) => writeStored(FEED_TIME_RANGE_KEY, value), { immediate: storedRange != null })
 
   const customStartDate = ref<string>(readStored(FEED_CUSTOM_START_KEY) ?? '')
   const customEndDate = ref<string>(readStored(FEED_CUSTOM_END_KEY) ?? '')
   watch(customStartDate, (v) => writeStored(FEED_CUSTOM_START_KEY, v))
   watch(customEndDate, (v) => writeStored(FEED_CUSTOM_END_KEY, v))
 
-  // "Aeltere laden": verlaengert das Fenster monatsweise nach hinten, bis der Nutzer
-  // Zeitraum oder Darstellung wechselt - dann faengt es wieder beim gewaehlten Fenster an.
+  // "Aeltere laden": verlaengert das Fenster monatsweise nach hinten, bis der Nutzer den
+  // Zeitraum wechselt - dann faengt es wieder beim gewaehlten Fenster an. Ein Wechsel der
+  // Darstellung behaelt das Fenster, er gruppiert nur anders.
   const olderMonths = ref(0)
-  watch([resolution, timeRange, customStartDate, customEndDate], () => { olderMonths.value = 0 }, { flush: 'sync' })
+  watch([timeRange, customStartDate, customEndDate], () => { olderMonths.value = 0 }, { flush: 'sync' })
   const loadOlder = () => { olderMonths.value += 1 }
 
   const baseWindow = computed<TripWindow>(() => {
     const current = now()
     return resolveTripWindow(timeRange.value, customStartDate.value || null, customEndDate.value || null, current)
-      ?? resolveTripWindow(FEED_RANGE_DEFAULTS[resolution.value], null, null, current)!
+      ?? resolveTripWindow(FEED_RANGE_DEFAULT, null, null, current)!
   })
 
   const shiftMonths = (ms: number, months: number) => {
