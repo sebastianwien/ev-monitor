@@ -20,7 +20,7 @@
 import { ref, watch, onMounted, onActivated, onDeactivated, onUnmounted, nextTick } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { tripMapView, tripLine } from '../../utils/tripMap'
+import { tripMapView, tripLine, isRoutedLine } from '../../utils/tripMap'
 
 const props = defineProps<{
   startGeohash: string | null | undefined
@@ -40,13 +40,16 @@ const props = defineProps<{
   /**
    * `backdrop` (Vorgabe): Hintergrund einer Kachel - gedaempft, ohne eigene Bedeutung.
    * `panel`: eigenstaendige Karte mit Rahmen, die den Weg der Fahrt zeigt.
+   * `thumb`: kleines Vorschaubild neben dem Text (Mobile-Liste) - volle Farbe wie panel, aber
+   * dekorativ und ohne eigene Attribution: die steht gesammelt unter der Liste.
    */
-  variant?: 'backdrop' | 'panel'
+  variant?: 'backdrop' | 'panel' | 'thumb'
   /** Textalternative im panel-Modus; als backdrop bleibt die Karte fuer Screenreader unsichtbar. */
   label?: string
 }>()
 
 const isPanel = () => props.variant === 'panel'
+const isBackdrop = () => !props.variant || props.variant === 'backdrop'
 
 const container = ref<HTMLDivElement | null>(null)
 const visible = ref(false)
@@ -91,7 +94,7 @@ async function render() {
   const line = tripLine(props.tracePolyline, props.routePolyline, props.routeKind)
   // Beide gerechneten Formen stammen vom Router - seine Nennung haengt an ihnen, nicht an
   // der rohen Spur, die aus dem Fahrzeug kommt.
-  const routed = line?.source === 'sketch' || line?.source === 'matched'
+  const routed = isRoutedLine(line)
   if (!view && !line) return
   if (!container.value) return
   if (!hasSize()) {
@@ -101,7 +104,7 @@ async function render() {
 
   map = L.map(container.value, {
     zoomControl: false,
-    attributionControl: true,
+    attributionControl: props.variant !== 'thumb',
     dragging: false,
     scrollWheelZoom: false,
     doubleClickZoom: false,
@@ -111,7 +114,7 @@ async function render() {
     fadeAnimation: false,
     zoomSnap: 0.25,
   })
-  map.attributionControl.setPrefix(false)
+  map.attributionControl?.setPrefix(false)
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     // CC-BY-SA 4.0 verlangt die Nennung von openrouteservice, sobald deren Ergebnis
@@ -217,7 +220,7 @@ onUnmounted(teardown)
 <template>
   <div
     class="activity-map overflow-hidden pointer-events-none"
-    :class="isPanel() ? 'panel absolute inset-0' : 'absolute inset-0'"
+    :class="isBackdrop() ? 'absolute inset-0' : 'panel absolute inset-0'"
     :role="isPanel() ? 'img' : undefined"
     :aria-label="isPanel() ? label : undefined"
     :aria-hidden="isPanel() ? undefined : 'true'"
@@ -236,7 +239,7 @@ onUnmounted(teardown)
     <!-- Lesbarkeits-Schleier: die Karte bleibt vollflaechig sichtbar, der Text braucht aber
          einen ruhigen Grund. Links (Titel, grosse Zahl) deckender als rechts, wo nur die
          Relativzeit steht. Im panel-Modus steht kein Text darauf - dort waere er nur Nebel. -->
-    <div v-if="!isPanel()" class="absolute inset-0 bg-gradient-to-r from-white/80 via-white/70 to-white/60
+    <div v-if="isBackdrop()" class="absolute inset-0 bg-gradient-to-r from-white/80 via-white/70 to-white/60
                 dark:from-gray-900/70 dark:via-gray-900/55 dark:to-gray-900/45"></div>
   </div>
 </template>

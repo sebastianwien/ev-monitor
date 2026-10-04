@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tripMapView, tripLine, hasTripMap } from '../tripMap'
+import { tripMapView, tripLine, hasTripMap, isRoutedLine } from '../tripMap'
 
 // u33d0k / u33d0m are neighbouring geohash-6 cells near Berlin.
 describe('tripMapView', () => {
@@ -99,5 +99,17 @@ describe('hasTripMap', () => {
     // routePolyline ohne Geohashes kann es nicht geben; kaeme es doch vor, waere die
     // Karte leer statt falsch.
     expect(hasTripMap({ routePolyline: SKETCH })).toBe(false)
+  })
+})
+
+describe('isRoutedLine', () => {
+  const pts: [number, number][] = [[52.5, 13.4], [52.51, 13.41]]
+  it('Router-Formen brauchen die openrouteservice-Nennung', () => {
+    expect(isRoutedLine({ points: pts, source: 'sketch' })).toBe(true)
+    expect(isRoutedLine({ points: pts, source: 'matched' })).toBe(true)
+  })
+  it('die Fahrzeugspur und keine Linie nicht', () => {
+    expect(isRoutedLine({ points: pts, source: 'trace' })).toBe(false)
+    expect(isRoutedLine(null)).toBe(false)
   })
 })

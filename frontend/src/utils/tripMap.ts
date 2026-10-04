@@ -118,3 +118,8 @@ export interface TripMapSource {
 export function hasTripMap(trip: TripMapSource | null | undefined): boolean {
   return !!(trip?.locationStartGeohash || trip?.locationEndGeohash || trip?.tracePolyline)
 }
+
+/** Beide gerechneten Formen stammen vom Router - seine Nennung (CC-BY-SA) haengt an ihnen, nicht an der rohen Spur. */
+export function isRoutedLine(line: TripLine | null): boolean {
+  return line?.source === 'sketch' || line?.source === 'matched'
+}
