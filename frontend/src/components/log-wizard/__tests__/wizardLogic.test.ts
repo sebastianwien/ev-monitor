@@ -40,7 +40,7 @@ describe('applyPlace mit bekanntem Ort', () => {
   const site = { id: 's1', name: 'EnBW Kaufland', cpoName: 'EnBW', geohash: 'u33dc0c', maxAcKw: null, maxDcKw: 150, chargePoints: 4,
     fastCharging: true, address: null, plugTypes: ['CCS'], lastUsedAt: '2026-09-24T10:00:00', usageCount: 7 }
   const known = (o: Partial<KnownPlace>): KnownPlace => ({ geohash: 'u33dc0', isPublic: false, usageCount: 4, lastUsedAt: '2026-09-27T18:00:00',
-    cpoName: null, lastProviderId: null, placeName: null, site: null, distanceMeters: null, here: true, ...o })
+    cpoName: null, lastProviderId: null, placeName: null, site: null, here: true, ...o })
 
   it('Säule: wie der zuletzt genutzte Standort, samt Ladekarte vom letzten Mal', () => {
     const f = emptyLogForm()

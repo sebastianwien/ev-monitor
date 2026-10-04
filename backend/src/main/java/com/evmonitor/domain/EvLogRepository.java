@@ -228,6 +228,9 @@ public interface EvLogRepository {
      */
     List<KnownCell> findKnownCells(UUID userId, int limit);
 
+    /** Wie {@link #findKnownCells}, aber nur die Zellen aus {@code cells} - "steht er hier?" ohne Abstandsrechnung. */
+    List<KnownCell> findKnownCellsIn(UUID userId, java.util.Collection<String> cells, int limit);
+
     /**
      * All logs of this user at exactly this geohash that still have no cost.
      *

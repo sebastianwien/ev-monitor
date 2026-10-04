@@ -10,7 +10,6 @@ import com.evmonitor.infrastructure.security.RateLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ch.hsr.geohash.GeoHash;
-import ch.hsr.geohash.WGS84Point;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -37,16 +36,10 @@ import java.util.stream.Collectors;
 public class ChargingSiteService {
 
     static final int RECENT_LIMIT = 5;
-    /** So viele bekannte Orte liest der Wizard - mehr als ein Nutzer je unterscheidet. */
-    static final int KNOWN_LIMIT = 50;
-    /** So viele Orte ohne Saeule werden je Anfrage frisch geocodiert (je rund 1 s Drossel) - der Rest kommt beim naechsten Mal. */
-    static final int GEOCODE_PER_REQUEST = 5;
-    /** Zelle eines Standorts hat 7 Stellen (~150 m): bis hierhin "steht er dort". */
-    static final double SITE_MATCH_METERS = 300;
-    /** Private Zelle hat 6 Stellen (~1,2 x 0,6 km): Mittelpunkt bis Ecke sind rund 670 m. */
-    static final double PRIVATE_MATCH_METERS = 800;
-
-    private static final double EARTH_RADIUS_M = 6_371_000;
+    /** Hoechstens so viele bekannte Orte je Antwort - mehr unterscheidet niemand auf einen Blick. */
+    static final int KNOWN_LIMIT = 3;
+    static final int PUBLIC_PRECISION = 7;
+    static final int PRIVATE_PRECISION = 6;
 
     private final ChargingSiteRepository repository;
     private final NearbyCpoService nearbyCpoService;
@@ -81,64 +74,37 @@ public class ChargingSiteService {
     }
 
     /**
-     * Die Orte, an denen der Nutzer schon geladen hat: jede Zelle aus den eigenen Logs, haeufigste
-     * zuerst. Register-Saeulen werden in einem Zugriff angereichert, Orte ohne Saeule bekommen den
-     * Ortsteil aus dem Geocoder. Mit Position stehen die Orte "hier" vorn, darunter die Saeule vor
-     * der privaten Zelle. Nichts davon wird gespeichert.
+     * Mit Position: die Orte, an denen der Nutzer genau hier schon geladen hat - seine Logs in der
+     * 7-stelligen Zelle der Position (oeffentlich, ~150 m) und in der 6-stelligen (privat, ~600 m),
+     * haeufigste zuerst, Saeule vor Zelle. Ohne Position: seine haeufigsten Orte, mit Ortsteil vom
+     * Geocoder fuer Orte ohne Saeule. Nichts davon wird gespeichert.
      */
     public List<KnownPlace> knownPlaces(UUID userId, Position at) {
-        List<KnownCell> cells = evLogRepository.findKnownCells(userId, KNOWN_LIMIT);
+        List<KnownCell> cells = at == null
+                ? evLogRepository.findKnownCells(userId, KNOWN_LIMIT)
+                : evLogRepository.findKnownCellsIn(userId, cellsAt(at), KNOWN_LIMIT);
         List<UUID> siteIds = cells.stream().map(KnownCell::chargingSiteId).filter(Objects::nonNull).distinct().toList();
         Map<UUID, ChargingSite> sites = siteIds.isEmpty() ? Map.of()
                 : repository.findAllById(siteIds).stream().collect(Collectors.toMap(ChargingSite::id, s -> s));
         List<KnownPlace> places = new ArrayList<>();
-        int lookups = 0;
         for (KnownCell cell : cells) {
             ChargingSite site = cell.chargingSiteId() == null ? null : sites.get(cell.chargingSiteId());
-            String name = null;
-            if (site == null) {
-                Optional<String> cached = placeNameService.cachedNameFor(cell.geohash());
-                if (cached.isPresent()) name = cached.get();
-                else if (lookups < GEOCODE_PER_REQUEST) { lookups++; name = placeNameService.nameFor(cell.geohash()).orElse(null); }
-            }
-            KnownPlace place = new KnownPlace(cell, site, name, null, false);
-            if (at != null) {
-                int d = (int) Math.round(distanceMeters(new WGS84Point(at.lat(), at.lon()), cell.geohash()));
-                place = place.withPosition(d, d <= (cell.isPublic() ? SITE_MATCH_METERS : PRIVATE_MATCH_METERS));
-            }
-            places.add(place);
+            String name = site == null && at == null ? placeNameService.nameFor(cell.geohash()).orElse(null) : null;
+            places.add(new KnownPlace(cell, site, name, at != null));
         }
-        places.sort(BY_RELEVANCE);
+        if (at != null) places.sort(Comparator.comparing((KnownPlace p) -> p.site() == null));
         return places;
     }
 
-    /** Hier zuerst (Saeule vor Zelle, oeffentlich vor privat), dann nach Haeufigkeit, dann die juengste. */
-    private static final Comparator<KnownPlace> BY_RELEVANCE = Comparator
-            .comparing(KnownPlace::here).reversed()
-            .thenComparing(p -> p.here() && p.site() != null, Comparator.reverseOrder())
-            .thenComparing(p -> p.here() && p.cell().isPublic(), Comparator.reverseOrder())
-            .thenComparing(p -> p.cell().usageCount(), Comparator.reverseOrder())
-            .thenComparing(p -> p.cell().lastUsedAt(), Comparator.nullsLast(Comparator.reverseOrder()));
-
-    /** Steht der Nutzer an einem Ort, an dem er schon geladen hat? Der erste Treffer "hier", sonst nichts. */
-    public Optional<KnownPlace> suggest(UUID userId, double lat, double lon) {
-        return knownPlaces(userId, new Position(lat, lon)).stream().filter(KnownPlace::here).findFirst();
+    /** Die Zellen "hier": 7 Stellen fuer oeffentliche Logs, 6 fuer private. */
+    static List<String> cellsAt(Position at) {
+        String cell7 = GeoHash.withCharacterPrecision(at.lat(), at.lon(), PUBLIC_PRECISION).toBase32();
+        return List.of(cell7, cell7.substring(0, PRIVATE_PRECISION));
     }
 
-    private static double distanceMeters(WGS84Point from, String geohash) {
-        if (geohash == null || geohash.isBlank()) return Double.MAX_VALUE;
-        WGS84Point to;
-        try {
-            to = GeoHash.fromGeohashString(geohash.trim()).getBoundingBoxCenter();
-        } catch (IllegalArgumentException e) {
-            return Double.MAX_VALUE;
-        }
-        double dLat = Math.toRadians(to.getLatitude() - from.getLatitude());
-        double dLon = Math.toRadians(to.getLongitude() - from.getLongitude());
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(from.getLatitude())) * Math.cos(Math.toRadians(to.getLatitude()))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return EARTH_RADIUS_M * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    /** Steht der Nutzer an einem Ort, an dem er schon geladen hat? Der haeufigste Treffer, Saeule zuerst. */
+    public Optional<KnownPlace> suggest(UUID userId, double lat, double lon) {
+        return knownPlaces(userId, new Position(lat, lon)).stream().findFirst();
     }
 
     private static ChargingSite fromRegister(NearbyStation s, String geohash) {

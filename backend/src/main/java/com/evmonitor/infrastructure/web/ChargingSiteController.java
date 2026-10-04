@@ -33,8 +33,8 @@ public class ChargingSiteController {
     }
 
     /**
-     * Die Orte, an denen der Nutzer schon geladen hat, fuer den Ortsschritt: haeufigste zuerst, mit
-     * Position die Orte "hier" vorn samt Entfernung. Die Koordinaten werden nur mit den eigenen Logs
+     * Die Orte, an denen der Nutzer schon geladen hat, fuer den Ortsschritt: ohne Position seine
+     * haeufigsten, mit Position nur die in der Zelle der Position ("hier"). Die Koordinaten werden nur mit den eigenen Logs
      * verglichen, nie gespeichert; an den Geocoder geht nur die Mitte einer Zelle aus den eigenen Logs.
      */
     @GetMapping("/known")
@@ -72,12 +72,12 @@ public class ChargingSiteController {
      */
     public record KnownPlaceResponse(String geohash, boolean isPublic, long usageCount, LocalDateTime lastUsedAt,
                                      String cpoName, UUID lastProviderId, String placeName,
-                                     RecentChargingSiteResponse site, Integer distanceMeters, boolean here) {
+                                     RecentChargingSiteResponse site, boolean here) {
         static KnownPlaceResponse from(KnownPlace p) {
             var c = p.cell();
             var site = p.site() == null ? null : RecentChargingSiteResponse.from(new ChargingSiteUsage(p.site(), c.lastUsedAt(), c.usageCount()));
             return new KnownPlaceResponse(c.geohash(), c.isPublic(), c.usageCount(), c.lastUsedAt(), c.cpoName(),
-                    c.lastProviderId(), p.placeName(), site, p.distanceMeters(), p.here());
+                    c.lastProviderId(), p.placeName(), site, p.here());
         }
     }
 

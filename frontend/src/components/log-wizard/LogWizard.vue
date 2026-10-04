@@ -110,6 +110,7 @@ const requestLocation = async () => {
     localStorage.setItem(LOCATION_ENABLED_KEY, 'true')
     // Erst nach den Säulen auf 'success': so klappt die Standort-Card in einem Zug zu, während die
     // Liste erscheint. Die bekannten Orte laufen parallel und warten nicht (Geocoding kann dauern).
+    pickedAddress.value = null
     known.load(pos.latitude, pos.longitude)
     await nearby.load(pos.latitude, pos.longitude)
     locationStatus.value = 'success'
@@ -119,7 +120,10 @@ const requestLocation = async () => {
   }
 }
 
-const onPlacePicked = async (p: { latitude: number; longitude: number }) => {
+/** Getippte Adresse: steht als Untertitel in "Hier hast du schon geladen" */
+const pickedAddress = ref<string | null>(null)
+const onPlacePicked = async (p: { latitude: number; longitude: number; name: string }) => {
+  pickedAddress.value = p.name
   form.value.latitude = p.latitude
   form.value.longitude = p.longitude
   locationAccuracy.value = null
@@ -492,7 +496,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat
       <div :key="step" :ref="onStepEl" tabindex="-1" class="outline-none" @keydown.enter="onEnter">
       <VoiceCapture v-if="step === 1 && showVoice" class="mb-4" :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
       <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
-        :known-places="known.places.value"
+        :known-places="known.places.value" :known-loading="known.loading.value" :address-label="pickedAddress"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
         :permission="permission" :location-status="locationStatus"
         :recent-cpos="recentCpos" :all-cpos="cpo.allCpos.value"

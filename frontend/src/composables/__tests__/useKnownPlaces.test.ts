@@ -5,7 +5,7 @@ import api from '../../api/axios'
 import { useKnownPlaces } from '../useKnownPlaces'
 
 const place = { geohash: 'u33dc0', isPublic: false, usageCount: 4, lastUsedAt: '2026-09-27T18:00:00', cpoName: null,
-  lastProviderId: null, placeName: 'Mitte', site: null, distanceMeters: null, here: false }
+  lastProviderId: null, placeName: 'Mitte', site: null, here: false }
 
 describe('useKnownPlaces', () => {
   beforeEach(() => vi.mocked(api.get).mockReset())
@@ -19,9 +19,12 @@ describe('useKnownPlaces', () => {
   })
 
   it('gibt die Position nur als Vergleichswert mit', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: [{ ...place, distanceMeters: 120, here: true }] })
-    const { places, load } = useKnownPlaces()
-    await load(52.52, 13.405)
+    vi.mocked(api.get).mockResolvedValue({ data: [{ ...place, here: true }] })
+    const { places, loading, load } = useKnownPlaces()
+    const p = load(52.52, 13.405)
+    expect(loading.value).toBe(true)
+    await p
+    expect(loading.value).toBe(false)
     expect(api.get).toHaveBeenCalledWith('/charging-sites/known', { params: { lat: 52.52, lon: 13.405 } })
     expect(places.value[0].here).toBe(true)
   })

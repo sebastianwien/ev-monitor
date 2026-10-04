@@ -43,14 +43,14 @@ class ChargingSiteControllerTest {
         controller = new ChargingSiteController(service);
     }
 
-    private static KnownPlace place(String geohash, boolean isPublic, long count, Integer distance, boolean here) {
+    private static KnownPlace place(String geohash, boolean isPublic, long count, boolean here) {
         var cell = new KnownCell(geohash, isPublic, count, LocalDateTime.of(2026, 9, 27, 18, 0), "Ionity", null, UUID.randomUUID());
-        return new KnownPlace(cell, null, "Mitte", distance, here);
+        return new KnownPlace(cell, null, "Mitte", here);
     }
 
     @Test
     void ohnePositionDieOrteDesAngemeldetenNutzers() {
-        when(service.knownPlaces(eq(userId), isNull())).thenReturn(List.of(place("u33dc0", false, 4, null, false)));
+        when(service.knownPlaces(eq(userId), isNull())).thenReturn(List.of(place("u33dc0", false, 4, false)));
 
         var response = controller.known(null, null, request);
 
@@ -61,19 +61,17 @@ class ChargingSiteControllerTest {
         assertThat(p.placeName()).isEqualTo("Mitte");
         assertThat(p.cpoName()).isEqualTo("Ionity");
         assertThat(p.lastProviderId()).isNotNull();
-        assertThat(p.distanceMeters()).isNull();
         assertThat(p.here()).isFalse();
     }
 
     @Test
     void mitPositionGehtSieNurAlsVergleichswertAnDenService() {
-        when(service.knownPlaces(eq(userId), any(Position.class))).thenReturn(List.of(place("u33dc0c", true, 2, 120, true)));
+        when(service.knownPlaces(eq(userId), any(Position.class))).thenReturn(List.of(place("u33dc0c", true, 2, true)));
 
         var response = controller.known(52.52, 13.405, request);
 
         verify(service).knownPlaces(userId, new Position(52.52, 13.405));
         assertThat(response.getBody().get(0).here()).isTrue();
-        assertThat(response.getBody().get(0).distanceMeters()).isEqualTo(120);
     }
 
     @Test

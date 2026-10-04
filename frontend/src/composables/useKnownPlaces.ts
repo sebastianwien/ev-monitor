@@ -34,22 +34,22 @@ export interface KnownPlace {
   /** Ortsteil, Dorf oder Stadt der Zellmitte; null wenn unbekannt oder eine Säule den Namen stellt */
   placeName: string | null
   site: RecentSite | null
-  /** Entfernung der Position zur Zellmitte, null ohne Position */
-  distanceMeters: number | null
-  /** Die Position liegt in dieser Zelle */
+  /** Die Position liegt in dieser Zelle (7 Stellen öffentlich, 6 Stellen privat) */
   here: boolean
 }
 
 /**
- * Bekannte Orte für den Ortsschritt, häufigste zuerst. Mit Position stehen die Orte "hier" vorn;
- * die Koordinaten gehen nur ans eigene Backend zum Vergleich mit den eigenen Logs.
+ * Bekannte Orte für den Ortsschritt: ohne Position die häufigsten (höchstens drei), mit Position nur die in
+ * der eigenen Zelle. Die Koordinaten gehen nur ans eigene Backend zum Vergleich mit den eigenen Logs.
  */
 export function useKnownPlaces() {
   const places = ref<KnownPlace[]>([])
+  const loading = ref(false)
   let seq = 0
 
   const load = async (lat?: number, lon?: number) => {
     const mine = ++seq
+    loading.value = true
     try {
       const params = lat != null && lon != null ? { lat, lon } : undefined
       const res = await api.get('/charging-sites/known', { params })
@@ -57,8 +57,10 @@ export function useKnownPlaces() {
       places.value = Array.isArray(res.data) ? res.data : []
     } catch {
       if (mine === seq) places.value = []
+    } finally {
+      if (mine === seq) loading.value = false
     }
   }
 
-  return { places, load }
+  return { places, loading, load }
 }

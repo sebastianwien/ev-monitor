@@ -431,10 +431,18 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
 
     @Override
     public List<KnownCell> findKnownCells(UUID userId, int limit) {
-        return jpaRepository.findKnownCells(userId, limit).stream()
-                .map(r -> new KnownCell((String) r[0], Boolean.TRUE.equals(r[1]), ((Number) r[2]).longValue(),
-                        toLocalDateTime(r[3]), (String) r[4], (UUID) r[5], (UUID) r[6]))
-                .toList();
+        return jpaRepository.findKnownCells(userId, limit).stream().map(PostgresEvLogRepositoryImpl::toKnownCell).toList();
+    }
+
+    @Override
+    public List<KnownCell> findKnownCellsIn(UUID userId, java.util.Collection<String> cells, int limit) {
+        if (cells.isEmpty()) return List.of();
+        return jpaRepository.findKnownCellsIn(userId, cells, limit).stream().map(PostgresEvLogRepositoryImpl::toKnownCell).toList();
+    }
+
+    private static KnownCell toKnownCell(Object[] r) {
+        return new KnownCell((String) r[0], Boolean.TRUE.equals(r[1]), ((Number) r[2]).longValue(),
+                toLocalDateTime(r[3]), (String) r[4], (UUID) r[5], (UUID) r[6]);
     }
 
     @Override

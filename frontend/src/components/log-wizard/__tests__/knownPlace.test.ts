@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest'
-import { placeKindOf, knownPlaceTitle, knownInRadius, knownTiles } from '../knownPlace'
+import { placeKindOf, knownPlaceTitle, stationIsKnown } from '../knownPlace'
 import type { KnownPlace, RecentSite } from '../../../composables/useKnownPlaces'
 import type { StationMatch } from '../../../composables/useNearbyStations'
 
 const site: RecentSite = { id: 's1', name: 'EnBW Kaufland', cpoName: 'EnBW', geohash: 'u33dc0c', maxAcKw: null, maxDcKw: 150,
   chargePoints: 4, fastCharging: true, address: null, plugTypes: ['CCS'], lastUsedAt: '2026-09-24T10:00:00', usageCount: 7 }
 const known = (o: Partial<KnownPlace>): KnownPlace => ({ geohash: 'u33dc0', isPublic: false, usageCount: 4, lastUsedAt: '2026-09-27T18:00:00',
-  cpoName: null, lastProviderId: null, placeName: null, site: null, distanceMeters: null, here: false, ...o })
+  cpoName: null, lastProviderId: null, placeName: null, site: null, here: false, ...o })
 const t = (k: string) => k
 
 describe('placeKindOf', () => {
@@ -26,24 +26,13 @@ describe('knownPlaceTitle', () => {
   })
 })
 
-describe('knownInRadius', () => {
+describe('stationIsKnown', () => {
   const enbw: StationMatch = { name: 'enbw kaufland', known: true, maxAcKw: null, maxDcKw: 150, fastCharging: true, chargePoints: 4,
     address: null, plugTypes: [], registerId: null, geohash: 'u33dc0c' }
 
-  it('nur im Umkreis, nicht der Ort hier, keine Säule, die schon in der Liste steht', () => {
-    const here = known({ here: true, distanceMeters: 50 })
-    const near = known({ geohash: 'u33dc1', distanceMeters: 800, placeName: 'Pankow' })
-    const far = known({ geohash: 'u33dc2', distanceMeters: 3000 })
-    const listed = known({ site, isPublic: true, distanceMeters: 400 })
-    const unlisted = known({ site: { ...site, geohash: 'u33dc0d' }, isPublic: true, distanceMeters: 600 })
-    const noPos = known({ geohash: 'u33dc3' })
-    expect(knownInRadius([here, near, far, listed, unlisted, noPos], 1000, [enbw])).toEqual([near, unlisted])
-  })
-})
-
-describe('knownTiles', () => {
-  it('höchstens fünf, in der Reihenfolge des Backends', () => {
-    const places = Array.from({ length: 7 }, (_, i) => known({ geohash: `u33dc${i}` }))
-    expect(knownTiles(places)).toEqual(places.slice(0, 5))
+  it('gleiche Zelle und gleicher Name ohne Groß-Kleinschreibung, sonst nicht', () => {
+    expect(stationIsKnown(enbw, [known({ site, isPublic: true, here: true })])).toBe(true)
+    expect(stationIsKnown(enbw, [known({ site: { ...site, geohash: 'u33dc0d' }, isPublic: true })])).toBe(false)
+    expect(stationIsKnown(enbw, [known({ placeName: 'Mitte' })])).toBe(false)
   })
 })

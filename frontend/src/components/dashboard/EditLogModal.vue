@@ -49,7 +49,7 @@
         <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
         <StepPlace v-else-if="section === 'place'" :place="place" :selected-cpo="formData.cpoName" :selected-site="formData.chargingSite"
           :stations="[]" :stations-loading="false" permission="unavailable" location-status="idle"
-          :recent-cpos="[]" :known-places="known.places.value" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked">
+          :recent-cpos="[]" :known-places="known.places.value" :known-loading="known.loading.value" :address-label="pickedName" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked">
         </StepPlace>
         <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
         <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />

@@ -59,15 +59,10 @@ public class NominatimPlaceNameService implements PlaceNameService {
     }
 
     @Override
-    public Optional<String> cachedNameFor(String geohash) {
-        return geohash == null ? Optional.empty() : Optional.ofNullable(names.getIfPresent(geohash));
-    }
-
-    @Override
     public Optional<String> nameFor(String geohash) {
         if (!enabled || geohash == null || geohash.isBlank()) return Optional.empty();
-        Optional<String> cached = cachedNameFor(geohash);
-        if (cached.isPresent()) return cached;
+        String cached = names.getIfPresent(geohash);
+        if (cached != null) return Optional.of(cached);
         Optional<String> name = lookup(geohash);
         name.ifPresent(n -> names.put(geohash, n));
         return name;

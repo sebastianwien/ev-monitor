@@ -48,8 +48,8 @@ class ChargingSiteServiceTest {
         when(rateLimit.tryConsumeCpoLookup(any())).thenReturn(true);
         placeNames = mock(PlaceNameService.class);
         when(evLogs.findKnownCells(any(), anyInt())).thenReturn(List.of());
+        when(evLogs.findKnownCellsIn(any(), any(), anyInt())).thenReturn(List.of());
         when(placeNames.nameFor(any())).thenReturn(Optional.empty());
-        when(placeNames.cachedNameFor(any())).thenReturn(Optional.empty());
         service = new ChargingSiteService(repository, nearby, rateLimit, evLogs, placeNames);
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -167,6 +167,7 @@ class ChargingSiteServiceTest {
 
     /** Mittelpunkt der Zelle u33dc0c (Berlin, Alexanderplatz). */
     private static final double LAT = 52.5195, LON = 13.4054;
+    private static final Position HERE = new Position(LAT, LON);
     private static final LocalDateTime T0 = LocalDateTime.of(2026, 9, 27, 18, 0);
 
     private static ChargingSite site(String name, String geohash) {
@@ -182,98 +183,50 @@ class ChargingSiteServiceTest {
         return new KnownCell(geohash, false, count, T0.minusDays(count), null, null, null);
     }
 
-    private void cells(KnownCell... cells) {
-        when(evLogs.findKnownCells(eq(userId), anyInt())).thenReturn(List.of(cells));
+    @Test
+    void diePositionWirdZurSiebenerUndSechserZelle() {
+        assertThat(ChargingSiteService.cellsAt(HERE)).containsExactly("u33dc0c", "u33dc0");
     }
 
     @Test
-    void bekannteOrteOhnePositionNachHaeufigkeitOhneEntfernung() {
-        cells(privateCell("u33dc0", 3), publicCell("u0zpr5p", 9, null));
-
-        List<KnownPlace> places = service.knownPlaces(userId, null);
-
-        assertThat(places).extracting(p -> p.cell().usageCount()).containsExactly(9L, 3L);
-        assertThat(places).allSatisfy(p -> { assertThat(p.distanceMeters()).isNull(); assertThat(p.here()).isFalse(); });
-    }
-
-    @Test
-    void reichertSaeulenInEinemZugriffAnUndFragtDenGeocoderNurFuerOrteOhneSaeule() {
+    void ohnePositionDieHaeufigstenOrteMitOrtsteilFuerOrteOhneSaeule() {
         ChargingSite enbw = site("EnBW Alexanderplatz", CELL);
-        cells(publicCell(CELL, 7, enbw.id()), privateCell("u33dc0", 3));
+        when(evLogs.findKnownCells(userId, ChargingSiteService.KNOWN_LIMIT))
+                .thenReturn(List.of(publicCell(CELL, 7, enbw.id()), privateCell("u33dc0", 3)));
         when(repository.findAllById(List.of(enbw.id()))).thenReturn(List.of(enbw));
         when(placeNames.nameFor("u33dc0")).thenReturn(Optional.of("Mitte"));
 
         List<KnownPlace> places = service.knownPlaces(userId, null);
 
+        assertThat(places).extracting(p -> p.cell().usageCount()).containsExactly(7L, 3L);
         assertThat(places.get(0).site()).isEqualTo(enbw);
         assertThat(places.get(0).placeName()).isNull();
         assertThat(places.get(1).placeName()).isEqualTo("Mitte");
+        assertThat(places).noneMatch(KnownPlace::here);
         verify(placeNames, never()).nameFor(CELL);
     }
 
     @Test
-    void mitPositionStehtDerOrtHierZuerstDanachNachHaeufigkeit() {
-        // Alexanderplatz: private Zelle u33dc0 (hier), oeffentliche Zelle in Feuchtwangen (haeufiger, weit weg)
-        cells(publicCell("u0zpr5p", 20, null), privateCell("u33dc0", 3), publicCell("u33dc0c", 1, null));
-
-        List<KnownPlace> places = service.knownPlaces(userId, new Position(LAT, LON));
-
-        assertThat(places).extracting(p -> p.cell().geohash()).containsExactly("u33dc0c", "u33dc0", "u0zpr5p");
-        assertThat(places.get(0).here()).isTrue();
-        assertThat(places.get(1).here()).isTrue();
-        assertThat(places.get(2).here()).isFalse();
-        assertThat(places.get(2).distanceMeters()).isGreaterThan(100_000);
-    }
-
-    @Test
-    void hierGiltBeiOeffentlicherZelleBis300MeternBeiPrivaterBis800Metern() {
-        // u33dc0c Mitte ist (LAT, LON); 500 m noerdlich liegt noch in der privaten 6er-Zelle, nicht mehr in der 7er
-        cells(publicCell("u33dc0c", 2, null), privateCell("u33dc0", 2));
-
-        List<KnownPlace> places = service.knownPlaces(userId, new Position(LAT + 0.0045, LON));
-
-        assertThat(places).filteredOn(p -> p.cell().geohash().equals("u33dc0")).allMatch(KnownPlace::here);
-        assertThat(places).filteredOn(p -> p.cell().geohash().equals("u33dc0c")).noneMatch(KnownPlace::here);
-    }
-
-    @Test
-    void suggestLiefertDenOrtHierUndNichtsWennKeinerPasst() {
-        cells(publicCell("u0zpr5p", 20, null), privateCell("u33dc0", 1));
-
-        assertThat(service.suggest(userId, LAT, LON)).map(p -> p.cell().geohash()).contains("u33dc0");
-        // Muenchen liegt in keiner bekannten Zelle
-        assertThat(service.suggest(userId, 48.137, 11.575)).isEmpty();
-    }
-
-    /** Die Saeule ist die praezisere Aussage als die private Zelle am selben Ort - auch wenn sie seltener genutzt wurde. */
-    @Test
-    void saeuleSchlaegtDiePrivateZelleAmSelbenOrt() {
+    void mitPositionNurDieOrteInDerZelleSaeuleZuerstOhneGeocoder() {
         ChargingSite enbw = site("EnBW Alexanderplatz", CELL);
-        cells(privateCell("u33dc0", 12), publicCell(CELL, 2, enbw.id()));
+        when(evLogs.findKnownCellsIn(userId, List.of("u33dc0c", "u33dc0"), ChargingSiteService.KNOWN_LIMIT))
+                .thenReturn(List.of(privateCell("u33dc0", 12), publicCell(CELL, 2, enbw.id())));
         when(repository.findAllById(List.of(enbw.id()))).thenReturn(List.of(enbw));
 
-        assertThat(service.suggest(userId, LAT, LON)).map(KnownPlace::site).contains(enbw);
+        List<KnownPlace> places = service.knownPlaces(userId, HERE);
+
+        assertThat(places).extracting(p -> p.cell().geohash()).containsExactly(CELL, "u33dc0");
+        assertThat(places).allMatch(KnownPlace::here);
+        assertThat(places).extracting(KnownPlace::placeName).containsOnlyNulls();
+        verifyNoInteractions(placeNames);
     }
 
     @Test
-    void jedeEinzelnePrivateZelleZaehltAlsBekannterOrt() {
-        cells(privateCell("u33dc0", 1));
+    void suggestLiefertDenHaeufigstenTrefferHierUndNichtsOhneTreffer() {
+        when(evLogs.findKnownCellsIn(eq(userId), any(), anyInt())).thenReturn(List.of(privateCell("u33dc0", 1)));
+        assertThat(service.suggest(userId, LAT, LON)).map(p -> p.cell().geohash()).contains("u33dc0");
 
-        assertThat(service.suggest(userId, LAT, LON)).isPresent();
-    }
-
-    /** Jedes frische Geocoding kostet rund eine Sekunde - mehr als fuenf je Anfrage wartet niemand. Gecachte Namen sind frei. */
-    @Test
-    void geocodiertHoechstensFuenfOrteJeAnfrageGecachteNamenZaehlenNicht() {
-        KnownCell[] many = new KnownCell[8];
-        for (int i = 0; i < 8; i++) many[i] = privateCell("u33dc" + i, 8 - i);
-        cells(many);
-        when(placeNames.cachedNameFor("u33dc0")).thenReturn(Optional.of("Mitte"));
-
-        List<KnownPlace> places = service.knownPlaces(userId, null);
-
-        assertThat(places.get(0).placeName()).isEqualTo("Mitte");
-        verify(placeNames, never()).nameFor("u33dc0");
-        verify(placeNames, times(ChargingSiteService.GEOCODE_PER_REQUEST)).nameFor(any());
+        when(evLogs.findKnownCellsIn(eq(userId), any(), anyInt())).thenReturn(List.of());
+        assertThat(service.suggest(userId, 48.137, 11.575)).isEmpty();
     }
 }
