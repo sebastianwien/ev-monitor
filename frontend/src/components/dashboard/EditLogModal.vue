@@ -108,6 +108,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import type { PickedPlace } from '../../composables/useLocationSearch'
 import { XMarkIcon, ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
 import BottomSheet from '../shared/BottomSheet.vue'
@@ -253,10 +254,15 @@ onMounted(() => {
 })
 
 const place = computed<PlaceKind | null>(() => !formData.value.isPublicCharging ? 'home' : formData.value.chargingSite ? 'site' : 'other')
-const placeLabel = computed(() => formData.value.isPublicCharging
+// Per Suche gewählte Adresse: muss nach "Fertig" in der Übersicht stehen, sonst wirkt sie verworfen
+const pickedName = ref<string | null>(null)
+const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCharging
   ? (formData.value.cpoName ?? t('logwizard.place_other'))
-  : t('logwizard.place_home'))
-const choosePlace = (choice: PlaceChoice) => { applyPlace(formData.value, choice) }
+  : t('logwizard.place_home')))
+const choosePlace = (choice: PlaceChoice) => {
+  if (choice.kind === 'station' || choice.kind === 'site') pickedName.value = null
+  applyPlace(formData.value, choice)
+}
 
 const onOcr = (r: any) => {
   if (r.kwh != null) { formData.value.kwhCharged = r.kwh; formData.value.kwhAtVehicle = null }
@@ -273,7 +279,8 @@ const isFormValid = computed(() => {
   return hasEnergy && f.costEur != null
 })
 
-const onPlacePicked = (p: { latitude: number; longitude: number }) => {
+const onPlacePicked = (p: PickedPlace) => {
+  pickedName.value = p.name
   formData.value.latitude = p.latitude
   formData.value.longitude = p.longitude
 }
