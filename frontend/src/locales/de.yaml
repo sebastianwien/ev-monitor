@@ -1080,6 +1080,10 @@ leaderboard:
   next_category: "Nächste Kategorie"
 
 ticker:
+  region: "Community-Ticker"
+  pause: "Ticker pausieren"
+  play: "Ticker fortsetzen"
+  next: "Nächste Meldung"
   leader: "#1 {category}: {name} mit {value} {unit}"
   stat_base: "Community {month}: {kwh} kWh in {charges} Ladevorgängen"
   co2_saved: "Community {month}: {amount} {unit} CO2 gegenüber Verbrennern gespart"

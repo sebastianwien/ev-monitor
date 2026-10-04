@@ -1036,6 +1036,10 @@ leaderboard:
   next_category: Nästa kategori
 
 ticker:
+  region: "Community-ticker"
+  pause: "Pausa tickern"
+  play: "Fortsätt tickern"
+  next: "Nästa meddelande"
   leader: "#1 {category}: {name} med {value} {unit}"
   stat_base: "Gemenskapen {month}: {kwh} kWh på {charges} laddningar"
   co2_saved: "Gemenskapen {month}: {amount} {unit} CO2 sparat jämfört med fossilbilar"

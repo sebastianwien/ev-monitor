@@ -1077,6 +1077,10 @@ leaderboard:
   next_category: "Next category"
 
 ticker:
+  region: "Community ticker"
+  pause: "Pause ticker"
+  play: "Resume ticker"
+  next: "Next item"
   leader: "#1 {category}: {name} with {value} {unit}"
   stat_base: "Community {month}: {kwh} kWh across {charges} charging sessions"
   co2_saved: "Community {month}: {amount} {unit} of CO2 saved vs. combustion cars"

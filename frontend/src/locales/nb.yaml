@@ -1036,6 +1036,10 @@ leaderboard:
   next_category: Neste kategori
 
 ticker:
+  region: "Fellesskapsticker"
+  pause: "Sett tickeren på pause"
+  play: "Fortsett tickeren"
+  next: "Neste melding"
   leader: "#1 {category}: {name} med {value} {unit}"
   stat_base: "Fellesskapet {month}: {kwh} kWh på {charges} ladinger"
   co2_saved: "Fellesskapet {month}: {amount} {unit} CO2 spart mot fossilbiler"
