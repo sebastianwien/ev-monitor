@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { CHIP_ROW, chipClass } from './chipClass'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
 import { RADIUS_STEPS, type NearbyStation, type StationMatch } from '../../composables/useNearbyStations'
 import { isLocationInaccurate, formatDistance } from './placeDistance'
 import type { ChargingSiteRef } from '../log-form/logFormData'
@@ -19,7 +19,7 @@ const props = defineProps<{
   place: PlaceKind | null
   selectedCpo: string | null
   selectedSite: ChargingSiteRef | null
-  /** Getippte Adresse, als Untertitel der Zeile "Hier privat geladen" */
+  /** Getippte Adresse, als Untertitel der Zeile "Hier privat" */
   addressLabel?: string | null
   stations: NearbyStation[]
   stationsLoading: boolean
@@ -52,8 +52,13 @@ const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; p
 const { t, locale } = useI18n()
 
 const platform = settingsPlatform()
-// Nach erfolgreicher Ortung klappt die Suche zu; "Woanders geladen" holt sie zurück
+// Nach erfolgreicher Ortung klappt die Suche zu; "Woanders" holt sie zurück
 const searchReopened = ref(false)
+const reopenSearch = async () => {
+  searchReopened.value = true
+  await nextTick()
+  document.getElementById('wizard-place-search')?.focus()
+}
 const dist = (m: number) => formatDistance(m, locale.value)
 const radiusLabel = computed(() => dist(props.radiusMeters ?? RADIUS_STEPS[0]))
 // Während der wachsende Umkreis läuft, sagt der Ladetext, welche Stufe leer war
@@ -72,6 +77,8 @@ const showLocationBlock = computed(() => props.locationStatus !== 'success' || s
 const hasPosition = computed(() => props.latitude != null)
 // Privat und öffentlich gibt es nur mit Ort: ein Log ohne Geohash soll nicht entstehen
 const placeKnown = computed(() => hasPosition.value || !!props.storedPlace)
+// "Woanders" nur, solange die Suche zugeklappt ist - sonst steht sie schon da
+const showElsewhere = computed(() => placeKnown.value && !showLocationBlock.value)
 const sameSite = (name: string, geohash: string) =>
   props.selectedSite?.geohash === geohash && props.selectedSite?.name === name
 // Im Bearbeiten-Dialog steht eine gewählte Säule als 'site' (der Dialog kennt nur den gespeicherten Standort)
@@ -100,7 +107,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
 
 <template>
   <div class="space-y-3">
-    <!-- Leerzustand: keine Fehlermeldung, sondern die Frage, wo geladen wurde. Darunter Suche, privat hier, öffentlich ohne Säule. -->
+    <!-- Leerzustand: keine Fehlermeldung, sondern die Frage, wo geladen wurde. Darunter Suche, privat hier, ganz unten öffentlich ohne Säule. -->
     <div v-if="noStationsFound" role="status" data-testid="wizard-no-stations"
       class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-1">
       <p v-if="inaccurate" class="font-semibold">{{ t('logwizard.location_inaccurate', { r: dist(locationAccuracy!) }) }}</p>
@@ -163,31 +170,25 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <CheckCircleIcon class="h-5 w-5 text-indigo-600" />
     </button>
 
-    <!-- Privat und öffentlich hier: nur mit Ort (GPS, gewählte Adresse oder im Bearbeiten-Dialog der gespeicherte).
-         Ein Zuhause gibt es im Datenmodell nicht - privat heißt "nicht öffentlich", der Ort ist die Position. -->
-    <template v-if="placeKnown">
-    <button type="button" data-testid="place-here" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
-      <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>
-      <span class="flex-1 min-w-0">
-        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ hasPosition ? (addressLabel ?? t('logwizard.place_here_sub')) : t('logwizard.place_private_sub') }}</small>
-      </span>
-      <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 text-indigo-600" />
-    </button>
-    <!-- Öffentlich ohne Säule aus dem Register (Ausland, neue Säule): der Ort bleibt die Position, die Ladekarte fährt darüber aus -->
-    <Collapse :open="!!cardStrip && place === 'other'">
-      <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
-        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
-    </Collapse>
-    <button type="button" data-testid="place-public" :class="tileClass(place === 'other')" @click="emit('choose', { kind: 'other', cpoName: null })">
-      <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
-      <span class="flex-1 min-w-0">
-        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_public_here') : t('logwizard.place_public') }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ place === 'other' && selectedCpo ? selectedCpo : t('logwizard.place_public_sub') }}</small>
-      </span>
-      <CheckCircleIcon v-if="place === 'other'" class="h-5 w-5 text-indigo-600" />
-    </button>
-    </template>
+    <!-- Privat hier und "Woanders" nebeneinander: kurze, feste Zeilen. Nur mit Ort (GPS, gewählte Adresse oder im
+         Bearbeiten-Dialog der gespeicherte) - ein Zuhause gibt es im Datenmodell nicht, privat heißt "nicht öffentlich". -->
+    <div v-if="placeKnown" class="grid grid-cols-2 gap-3">
+      <button type="button" data-testid="place-here" :class="[tileClass(place === 'home'), !showElsewhere && 'col-span-2']" @click="emit('choose', { kind: 'home' })">
+        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>
+        <span class="flex-1 min-w-0">
+          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
+          <small class="block text-xs text-gray-500 dark:text-gray-400 truncate" :title="addressLabel ?? undefined">{{ hasPosition ? (addressLabel ?? t('logwizard.place_here_sub')) : t('logwizard.place_private_sub') }}</small>
+        </span>
+        <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 flex-shrink-0 text-indigo-600" />
+      </button>
+      <button v-if="showElsewhere" type="button" data-testid="place-elsewhere" :class="tileClass(false)" @click="reopenSearch">
+        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><MagnifyingGlassIcon class="h-5 w-5" /></span>
+        <span class="flex-1 min-w-0">
+          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('logwizard.place_elsewhere') }}</b>
+          <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ t('logwizard.place_elsewhere_sub') }}</small>
+        </span>
+      </button>
+    </div>
 
     <!-- Spinner nur bei der Ortssuche; bei der Live-Ortung dreht er in der Standort-Card -->
     <div v-if="stationsLoading && locationStatus !== 'loading'" role="status" data-testid="stations-loading"
@@ -199,8 +200,6 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <div class="space-y-3">
       <p class="flex items-baseline text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">
         {{ radiusMeters && radiusMeters > 250 ? t('logwizard.nearby_title_radius', { r: radiusLabel }) : t('logwizard.nearby_title') }}
-        <button v-if="!showLocationBlock" type="button" class="ml-auto normal-case tracking-normal text-xs font-semibold text-indigo-600 dark:text-indigo-300 hover:underline"
-          @click="searchReopened = true">{{ t('logwizard.nearby_other_place') }}</button>
       </p>
       <template v-for="s in stations" :key="s.name">
       <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
@@ -228,5 +227,21 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </div>
     </Collapse>
 
+    <!-- Öffentlich ohne Säule aus dem Register (Ausland, neue Säule): ganz unten, damit niemand sie statt der Säule tippt.
+         Erst wenn die Säulen geladen sind - sonst träfe ein schneller Tap diese Zeile. Der Ort bleibt die Position. -->
+    <template v-if="placeKnown && !stationsLoading">
+    <Collapse :open="!!cardStrip && place === 'other'">
+      <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
+        :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
+    </Collapse>
+    <button type="button" data-testid="place-public" :class="tileClass(place === 'other')" @click="emit('choose', { kind: 'other', cpoName: null })">
+      <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
+      <span class="flex-1 min-w-0">
+        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_public_here') : t('logwizard.place_public') }}</b>
+        <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ place === 'other' && selectedCpo ? selectedCpo : t('logwizard.place_public_sub') }}</small>
+      </span>
+      <CheckCircleIcon v-if="place === 'other'" class="h-5 w-5 text-indigo-600" />
+    </button>
+    </template>
   </div>
 </template>

@@ -3,7 +3,7 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements'
 
 /**
  * Ortswahl im Wizard: der Umkreis wächst von selbst (250 m, 1 km, 2,5 km). Bleibt er leer,
- * fragt die Seite "Wo hast du geladen?" und zeigt Suche, "Hier privat geladen" und "Öffentlich geladen".
+ * fragt die Seite "Wo hast du geladen?" und zeigt Suche, "Hier privat" und "Öffentlich geladen".
  * Eine gewählte Adresse verhält sich wie die eigene Position. Reiner FE-Test, Backend und Nominatim sind gemockt.
  */
 const b64url = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
@@ -56,11 +56,11 @@ test.describe('wachsender Umkreis', () => {
     await expect(empty).toContainText('Im Umkreis von 2,5 km ist keine Ladesäule bekannt')
     await expect(empty).toContainText('Such den Ort oder wähl darunter, wie du geladen hast')
     expect(radii).toEqual([250, 1000, 2500])
-    // Die Suche steht offen da: ein Tap ins Feld, kein "Woanders geladen" davor
+    // Die Suche steht offen da: ein Tap ins Feld, kein "Woanders" davor
     await settle(page)
     await expect(page.locator('#wizard-place-search')).toBeVisible()
-    await expect(page.getByTestId('place-here')).toContainText('Hier privat geladen')
-    await expect(page.getByTestId('place-here')).toContainText('an deinem Standort')
+    await expect(page.getByTestId('place-here')).toContainText('Hier privat')
+    await expect(page.getByTestId('place-here')).toContainText('Dein Standort')
     await expect(page.getByTestId('place-public')).toContainText('Hier öffentlich geladen')
   })
 
@@ -95,7 +95,7 @@ test.describe('wachsender Umkreis', () => {
 test.describe('Ort per Adresse', () => {
   test.use({ permissions: [] })
 
-  test('Säulen an der Adresse, darüber "Hier privat geladen" mit der Adresse; Tap wählt privat', async ({ page }) => {
+  test('Säulen an der Adresse, darüber "Hier privat" mit der Adresse; Tap wählt privat', async ({ page }) => {
     await open(page, { 250: [STATION] })
     await page.route(url => url.hostname === 'nominatim.openstreetmap.org', route =>
       route.fulfill({ status: 200, contentType: 'application/json',
@@ -109,7 +109,7 @@ test.describe('Ort per Adresse', () => {
     await expect(page.getByRole('button', { name: /EnBW/ })).toBeVisible()
     await expect(page.getByTestId('place-public')).toContainText('Hier öffentlich geladen')
     const here = page.getByTestId('place-here')
-    await expect(here).toContainText('Hier privat geladen')
+    await expect(here).toContainText('Hier privat')
     await expect(here).toContainText('Sigridstraße 6, Berlin')
     await here.click()
     await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')

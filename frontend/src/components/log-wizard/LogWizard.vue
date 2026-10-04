@@ -112,7 +112,7 @@ const requestLocation = async () => {
   }
 }
 
-/** Gewählte Adresse: steht als Untertitel in "Hier privat geladen" */
+/** Gewählte Adresse: steht als Untertitel in "Hier privat" */
 const pickedAddress = ref<string | null>(null)
 const onPlacePicked = async (p: { latitude: number; longitude: number; name: string }) => {
   pickedAddress.value = p.name

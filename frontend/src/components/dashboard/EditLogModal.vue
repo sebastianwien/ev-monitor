@@ -257,7 +257,7 @@ onMounted(() => {
 const place = computed<PlaceKind | null>(() => !formData.value.isPublicCharging ? 'home' : formData.value.chargingSite ? 'site' : 'other')
 // Per Suche gewählte Adresse: muss nach "Fertig" in der Übersicht stehen, sonst wirkt sie verworfen
 const pickedName = ref<string | null>(null)
-// Die gewählte Adresse selbst: Untertitel von "Hier privat geladen", auch wenn danach eine Säule gewählt wurde
+// Die gewählte Adresse selbst: Untertitel von "Hier privat", auch wenn danach eine Säule gewählt wurde
 const pickedAddress = ref<string | null>(null)
 const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCharging
   ? (formData.value.cpoName ?? t('logwizard.place_public'))
