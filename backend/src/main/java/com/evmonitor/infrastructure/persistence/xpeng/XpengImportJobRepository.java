@@ -25,11 +25,21 @@ public interface XpengImportJobRepository extends JpaRepository<XpengImportJob, 
             + "ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED", nativeQuery = true)
     Optional<XpengImportJob> findNextQueuedForUpdate();
 
-    /** Nach einem Neustart: PROCESSING-Jobs wurden mitten in der Arbeit abgebrochen. */
+    /**
+     * Haengengebliebene PROCESSING-Jobs (Container abgestuerzt) als FAILED markieren. Nur Jobs, die
+     * vor {@code startedBefore} begonnen haben und nicht {@code excludeId} sind: beim Blue/Green-Deploy
+     * arbeitet der alte Container noch, dessen laufende Jobs bleiben unangetastet.
+     */
     @Modifying
     @Query("UPDATE XpengImportJob j SET j.status = 'FAILED', j.errorMessage = :reason, j.completedAt = :now "
-            + "WHERE j.status = 'PROCESSING'")
-    int markProcessingAsFailed(String reason, LocalDateTime now);
+            + "WHERE j.status = 'PROCESSING' AND j.startedAt < :startedBefore AND j.id <> :excludeId")
+    int markStaleProcessingAsFailed(String reason, LocalDateTime now, LocalDateTime startedBefore, UUID excludeId);
+
+    /** Beim Herunterfahren: den eigenen, gerade abgebrochenen Job als FAILED markieren. */
+    @Modifying
+    @Query("UPDATE XpengImportJob j SET j.status = 'FAILED', j.errorMessage = :reason, j.completedAt = :now "
+            + "WHERE j.id = :id AND j.status = 'PROCESSING'")
+    int markProcessingAsFailed(UUID id, String reason, LocalDateTime now);
 
     @Modifying
     long deleteAllByUserId(UUID userId);

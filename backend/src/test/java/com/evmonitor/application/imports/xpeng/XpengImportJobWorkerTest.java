@@ -22,6 +22,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -91,10 +92,62 @@ class XpengImportJobWorkerTest {
 
         worker.recoverInterruptedJobs();
 
-        verify(jobRepo).markProcessingAsFailed(anyString(), any(LocalDateTime.class));
+        verify(jobRepo).markStaleProcessingAsFailed(anyString(), any(LocalDateTime.class),
+                any(LocalDateTime.class), any(UUID.class));
         assertEquals(XpengImportJob.Status.QUEUED, withFile.getStatus(), "Job mit Tempfile ueberlebt Neustart");
         assertEquals(XpengImportJob.Status.FAILED, withoutFile.getStatus(), "Job ohne Tempfile ist verloren");
         assertNotNull(withoutFile.getErrorMessage());
+    }
+
+    @Test
+    void recover_onlyAbortsJobsStuckLongerThanTenMinutes() {
+        // Beim Blue/Green-Deploy laeuft der alte Container noch: dessen frische PROCESSING-Jobs
+        // darf der neue beim Start nicht abbrechen.
+        LocalDateTime before = LocalDateTime.now();
+
+        worker.recoverInterruptedJobs();
+        LocalDateTime after = LocalDateTime.now();
+
+        var startedBefore = org.mockito.ArgumentCaptor.forClass(LocalDateTime.class);
+        verify(jobRepo).markStaleProcessingAsFailed(anyString(), any(LocalDateTime.class),
+                startedBefore.capture(), any(UUID.class));
+        assertFalse(startedBefore.getValue().isBefore(before.minusMinutes(10)), "Schwelle 10 min");
+        assertFalse(startedBefore.getValue().isAfter(after.minusMinutes(10)),
+                "nur Jobs, die seit mindestens 10 min laufen");
+        verify(jobRepo, never()).markProcessingAsFailed(any(UUID.class), anyString(), any(LocalDateTime.class));
+    }
+
+    @Test
+    void poll_abortsStuckJobsButNeverTheOwnRunningJob() {
+        XpengImportJob running = queued();
+        when(jobRepo.findNextQueuedForUpdate()).thenReturn(Optional.of(running), Optional.empty());
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doAnswer(inv -> { worker.abortStaleJobs(); return null; }).when(importService).process(running);
+
+        worker.drain();
+
+        verify(jobRepo).markStaleProcessingAsFailed(anyString(), any(LocalDateTime.class),
+                any(LocalDateTime.class), eq(running.getId()));
+    }
+
+    @Test
+    void shutdown_abortsTheJobThisInstanceIsProcessing() {
+        // Der stoppende Container raeumt seinen eigenen Job auf, nicht der neu startende.
+        XpengImportJob running = queued();
+        when(jobRepo.findNextQueuedForUpdate()).thenReturn(Optional.of(running), Optional.empty());
+        when(jobRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        doAnswer(inv -> { worker.shutdown(); return null; }).when(importService).process(running);
+
+        worker.drain();
+
+        verify(jobRepo).markProcessingAsFailed(eq(running.getId()), anyString(), any(LocalDateTime.class));
+    }
+
+    @Test
+    void shutdown_withoutRunningJob_touchesNothing() {
+        worker.shutdown();
+
+        verifyNoInteractions(jobRepo);
     }
 
     private static XpengImportJob queued() {
