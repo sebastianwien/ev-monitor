@@ -37,9 +37,12 @@ async function mount(opts: { providers?: any[]; providerId?: string } = {}) {
 describe('StepCost kompakt: Gesamt oder je kWh', () => {
   it('Einheit tippen schaltet auf ct/kWh, 34 ct bei 30 kWh ergeben 10,20 €', async () => {
     const { form, q, typeIn } = await mount()
-    expect(q('cost-unit')!.textContent).toContain('€')
-    q('cost-unit')!.click(); await nextTick()
-    expect(q('cost-unit')!.textContent).toContain('ct/kWh')
+    // Beide Einheiten sichtbar, die aktive markiert: man sieht, dass es zwei gibt
+    expect(q('cost-unit-total')!.textContent).toContain('€')
+    expect(q('cost-unit-per-kwh')!.textContent).toContain('ct/kWh')
+    expect(q('cost-unit-total')!.getAttribute('aria-checked')).toBe('true')
+    q('cost-unit-per-kwh')!.click(); await nextTick()
+    expect(q('cost-unit-per-kwh')!.getAttribute('aria-checked')).toBe('true')
     await typeIn('34')
     expect(form.value.costEur).toBe(10.2)
     // Kein Sprung in die grüne Zeile mitten im Tippen
@@ -48,18 +51,18 @@ describe('StepCost kompakt: Gesamt oder je kWh', () => {
 
   it('zurück auf €: das Feld zeigt den errechneten Gesamtbetrag', async () => {
     const { q, input, typeIn } = await mount()
-    q('cost-unit')!.click(); await nextTick()
+    q('cost-unit-per-kwh')!.click(); await nextTick()
     await typeIn('34')
-    q('cost-unit')!.click(); await nextTick()
+    q('cost-unit-total')!.click(); await nextTick()
     expect(input().value).toBe('10.2')
   })
 
   it('die gewählte Einheit gilt beim nächsten Mal', async () => {
     const first = await mount()
-    first.q('cost-unit')!.click(); await nextTick()
+    first.q('cost-unit-per-kwh')!.click(); await nextTick()
     app!.unmount(); app = null; document.body.innerHTML = ''
     const second = await mount()
-    expect(second.q('cost-unit')!.textContent).toContain('ct/kWh')
+    expect(second.q('cost-unit-per-kwh')!.getAttribute('aria-checked')).toBe('true')
   })
 
   it('Gratis setzt 0 € und zeigt die grüne Zeile', async () => {

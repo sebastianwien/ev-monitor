@@ -3309,7 +3309,7 @@ logwizard:
   cost_total: "Total"
   cost_per_kwh: "Per kWh"
   cost_price: "Price"
-  cost_unit_switch: "Switch unit"
+  cost_unit_switch: "Unit"
   price_suggestions: "Suggestions"
   price_community: "Last time here"
   price_free: "Free"

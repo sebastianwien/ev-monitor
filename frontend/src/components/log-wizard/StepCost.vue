@@ -17,7 +17,7 @@ import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
 import BigInput from './BigInput.vue'
-import { ArrowsRightLeftIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 import SegmentToggle from './SegmentToggle.vue'
 
 const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null
@@ -134,12 +134,13 @@ const derivedSub = computed(() => costMode.value === 'total' ? t('logwizard.pric
 const UNIT_KEY = 'cost-input-unit'
 const readUnit = (): 'total' | 'per_kwh' => { try { return localStorage.getItem(UNIT_KEY) === 'per_kwh' ? 'per_kwh' : 'total' } catch { return 'total' } }
 const inputUnit = ref(readUnit())
-const toggleUnit = () => {
-  inputUnit.value = inputUnit.value === 'total' ? 'per_kwh' : 'total'
-  try { localStorage.setItem(UNIT_KEY, inputUnit.value) } catch { /* Speicher gesperrt: gilt nur jetzt */ }
-}
+watch(inputUnit, u => { try { localStorage.setItem(UNIT_KEY, u) } catch { /* Speicher gesperrt: gilt nur jetzt */ } })
 const perKwhFactor = computed(() => isEurCountry.value ? 100 : 1)
-const unitLabel = computed(() => inputUnit.value === 'total' ? symbol.value : `${isEurCountry.value ? subunit.value : symbol.value}/kWh`)
+// Beide Einheiten stehen sichtbar nebeneinander, die aktive markiert: man sieht, dass es zwei gibt
+const unitOptions = computed(() => [
+  { value: 'total' as const, label: symbol.value, testid: 'cost-unit-total' },
+  { value: 'per_kwh' as const, label: `${isEurCountry.value ? subunit.value : symbol.value}/kWh`, testid: 'cost-unit-per-kwh' },
+])
 const compactValue = computed(() => {
   if (inputUnit.value === 'total') return compactTotal.value
   const v = compactPerKwh.value
@@ -230,10 +231,7 @@ onMounted(async () => {
           :placeholder="inputUnit === 'total' ? t('logfields.cost_eur_placeholder') : (isEurCountry ? '39' : '0.39')"
           :value="compactValue ?? ''" @input="onCompactInput"
           class="w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-        <button type="button" data-testid="cost-unit" @click="toggleUnit"
-          class="-my-2 min-h-11 inline-flex items-center gap-1 rounded-sm px-2 text-base font-semibold text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/40">
-          {{ unitLabel }}<ArrowsRightLeftIcon class="h-4 w-4" aria-hidden="true" /><span class="sr-only">{{ t('logwizard.cost_unit_switch') }}</span>
-        </button>
+        <SegmentToggle v-model="inputUnit" :options="unitOptions" :aria-label="t('logwizard.cost_unit_switch')" class="w-32 self-center -my-1" />
       </div>
       <p v-if="manualMetrics.length" class="mt-0.5 flex justify-end items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums overflow-hidden">
         <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
