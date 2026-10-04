@@ -1,3 +1,45 @@
+# Upstreams mit "resolve": nginx startet auch, wenn ein Dienst (noch) fehlt, und folgt
+# neuen Container-IPs ohne Reload. Das Backend-Ziel steht in state/backend-upstream.conf;
+# auf Prod schreibt der Blue/Green-Deploy die Datei um und lädt nginx neu.
+resolver 127.0.0.11 valid=10s ipv6=off;
+include /etc/nginx/state/backend-upstream.conf;
+
+upstream connectors_app {
+    zone connectors_app 64k;
+    server connectors-service:8081 resolve;
+}
+
+upstream wallbox_app {
+    zone wallbox_app 64k;
+    server wallbox-service:8090 resolve;
+}
+
+upstream wallbox_ocpp {
+    zone wallbox_ocpp 64k;
+    server wallbox-service:9090 resolve;
+}
+
+# Intern (nur im Docker-Netz, nicht veröffentlicht): Connectors und Wallbox rufen
+# http://backend_app auf, nginx trägt den Alias "backend" und leitet auf die aktive Farbe.
+server {
+    listen 8080;
+    server_name _;
+    server_tokens off;
+    access_log off;
+
+    client_max_body_size 100m;
+
+    location / {
+        proxy_pass http://backend_app;
+        proxy_set_header Host $http_host;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}
+
 # HTTP - Redirect to HTTPS
 server {
     listen 80;
@@ -69,8 +111,8 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
-    # Note: Using static hostnames instead of variables for reliable URI path handling
-    # nginx reloads automatically after container restarts via deploy.sh
+    # Statische Upstream-Namen statt Variablen, damit die URI-Pfade in proxy_pass gelten.
+    # Frontend: /srv/frontend/current ist auf Prod ein Symlink auf das aktive Release.
 
     # Tesla Fleet API public key (required for partner registration)
     location /.well-known/appspecific/ {
@@ -80,7 +122,7 @@ server {
 
     # Android TWA verification (Digital Asset Links)
     location = /.well-known/assetlinks.json {
-        root /usr/share/nginx/html;
+        root /srv/frontend/current;
         add_header Content-Type application/json;
         add_header Access-Control-Allow-Origin "*";
     }
@@ -97,7 +139,7 @@ server {
             access_log /var/log/nginx/prerender.log prerender;
             proxy_pass $prerender_url;
         }
-        root /usr/share/nginx/html;
+        root /srv/frontend/current;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
@@ -114,7 +156,7 @@ server {
             access_log /var/log/nginx/prerender.log prerender;
             proxy_pass $prerender_url;
         }
-        root /usr/share/nginx/html;
+        root /srv/frontend/current;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
@@ -127,7 +169,7 @@ server {
     # index.html must never be cached - stale index.html references old asset hashes
     # that no longer exist after a deploy, causing "text/html is not valid JS MIME type"
     location = /index.html {
-        root /usr/share/nginx/html;
+        root /srv/frontend/current;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         expires 0;
@@ -141,7 +183,7 @@ server {
     # Service Worker - must never be cached so browsers always get the latest version
     # Stale sw.js can reference workbox files from old deployments that no longer exist
     location = /sw.js {
-        root /usr/share/nginx/html;
+        root /srv/frontend/current;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         expires 0;
@@ -153,22 +195,34 @@ server {
     }
 
     location = /sitemap.xml {
-        proxy_pass http://backend:8080/sitemap.xml;
+        proxy_pass http://backend_app/sitemap.xml;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Gehashte Assets: offene Tabs mit altem index.html laden nach einem Deploy noch
+    # Chunks des vorherigen Releases nach. Fehlt die Datei auch dort: 404 statt index.html.
+    location /assets/ {
+        root /srv/frontend/current;
+        try_files $uri @previous_assets;
+    }
+
+    location @previous_assets {
+        root /srv/frontend/previous;
+        try_files $uri =404;
+    }
+
     location / {
-        root /usr/share/nginx/html;
+        root /srv/frontend/current;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
 
     # Health check endpoint (public, fuer Uptime-Monitoring)
     location = /actuator/health {
-        proxy_pass http://backend:8080/actuator/health;
+        proxy_pass http://backend_app/actuator/health;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -181,7 +235,7 @@ server {
     # XPeng Excel-Import: EU-Data-Act-Exports koennen ~30-50 MB gross sein, groessere Zeitraeume mehr
     location /api/imports/xpeng/ {
         client_max_body_size 100m;
-        proxy_pass http://backend:8080/api/imports/xpeng/;
+        proxy_pass http://backend_app/api/imports/xpeng/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -197,7 +251,7 @@ server {
     # der Wert hier ist bewusst hoeher, damit nginx nicht vorher mit einer 413-Seite abbricht.
     location /api/import/eu-data-act/ {
         client_max_body_size 100m;
-        proxy_pass http://backend:8080/api/import/eu-data-act/;
+        proxy_pass http://backend_app/api/import/eu-data-act/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -212,7 +266,7 @@ server {
     # (oeffentliches Repo, VwEudaLoginClient). Regex-Locations gewinnen gegen Prefix-Locations,
     # deshalb greift diese Regel vor /api/eu-data-act/ unabhaengig von der Reihenfolge.
     location ~ ^/api/eu-data-act/cars/[^/]+/connect$ {
-        proxy_pass http://backend:8080;
+        proxy_pass http://backend_app;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -224,7 +278,7 @@ server {
 
     # Status, Trennen, Historie, Smartcar-Reaktivierung: Connectors-Service
     location /api/eu-data-act/ {
-        proxy_pass http://connectors-service:8081/api/eu-data-act/;
+        proxy_pass http://connectors_app/api/eu-data-act/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -234,7 +288,7 @@ server {
     }
 
     location /api/tesla/ {
-        proxy_pass http://connectors-service:8081/api/tesla/;
+        proxy_pass http://connectors_app/api/tesla/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -244,7 +298,7 @@ server {
     }
 
     location /api/smartcar/ {
-        proxy_pass http://connectors-service:8081/api/smartcar/;
+        proxy_pass http://connectors_app/api/smartcar/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -254,7 +308,7 @@ server {
     }
 
     location /api/goe/ {
-        proxy_pass http://connectors-service:8081/api/goe/;
+        proxy_pass http://connectors_app/api/goe/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -265,7 +319,7 @@ server {
 
     # Swagger UI + OpenAPI docs
     location /swagger-ui/ {
-        proxy_pass http://backend:8080/swagger-ui/;
+        proxy_pass http://backend_app/swagger-ui/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -273,7 +327,7 @@ server {
     }
 
     location /v3/api-docs {
-        proxy_pass http://backend:8080/v3/api-docs;
+        proxy_pass http://backend_app/v3/api-docs;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -282,7 +336,7 @@ server {
 
     # Proxy API requests to backend (must come after specific /api/ blocks)
     location /api/ {
-        proxy_pass http://backend:8080/api/;
+        proxy_pass http://backend_app/api/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -293,7 +347,7 @@ server {
 
     # Proxy Wallbox REST API
     location /api/wallbox/ {
-        proxy_pass http://wallbox-service:8090/api/wallbox/;
+        proxy_pass http://wallbox_app/api/wallbox/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -304,7 +358,7 @@ server {
 
     # Proxy OCPP WebSocket to wallbox-service (OCPP 1.6 runs on port 9090, not 8090)
     location /ocpp/ws/ {
-        proxy_pass http://wallbox-service:9090/ocpp/ws/;
+        proxy_pass http://wallbox_ocpp/ocpp/ws/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -318,7 +372,7 @@ server {
 
     # Proxy OAuth2 requests to backend
     location /oauth2/ {
-        proxy_pass http://backend:8080/oauth2/;
+        proxy_pass http://backend_app/oauth2/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -326,7 +380,7 @@ server {
     }
 
     location /login/oauth2/ {
-        proxy_pass http://backend:8080/login/oauth2/;
+        proxy_pass http://backend_app/login/oauth2/;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

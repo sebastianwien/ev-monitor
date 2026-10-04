@@ -5,11 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:  # Manual trigger
 
-# Images liegen privat in GHCR, Tag = Commit-SHA (auf main zusätzlich latest-main).
-# Der Server baut nichts mehr, er startet genau das hier getestete Jar und Frontend.
+# Images liegen in GHCR. backend und frontend: Tag = Commit-SHA (auf main zusätzlich
+# latest-main). nginx (nur Konfiguration): Tag = Git-Tree-Hash von nginx/, wird nur gebaut
+# und neu erzeugt, wenn sich der Ordner ändert. Der Server baut nichts, er startet genau
+# das hier getestete Jar und Frontend.
 env:
   BACKEND_IMAGE: ghcr.io/sebastianwien/ev-monitor-backend
   NGINX_IMAGE: ghcr.io/sebastianwien/ev-monitor-nginx
+  FRONTEND_IMAGE: ghcr.io/sebastianwien/ev-monitor-frontend
 
 jobs:
   build:
@@ -83,7 +86,35 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
 
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: nginx/Dockerfile
+          target: frontend
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ github.ref == 'refs/heads/main' && format('{0}:latest-main', env.FRONTEND_IMAGE) || '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      # Gleicher Tree-Hash wie deploy-release.sh auf dem Server (git rev-parse <sha>:nginx)
+      - name: Check nginx image
+        id: nginx
+        run: |
+          TAG=$(git rev-parse HEAD:nginx)
+          if docker buildx imagetools inspect "$NGINX_IMAGE:$TAG" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "✅ $NGINX_IMAGE:$TAG existiert, kein Neubau"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Build and push nginx image
+        if: steps.nginx.outputs.exists != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -91,7 +122,7 @@ jobs:
           target: prebuilt
           push: true
           tags: |
-            ${{ env.NGINX_IMAGE }}:${{ github.sha }}
+            ${{ env.NGINX_IMAGE }}:${{ steps.nginx.outputs.tag }}
             ${{ github.ref == 'refs/heads/main' && format('{0}:latest-main', env.NGINX_IMAGE) || '' }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -113,8 +144,9 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      # Zieht die Images, setzt die Tags in release.env, wartet auf healthy und
-      # rollt bei Fehler automatisch auf den vorherigen Stand zurück.
+      # Blue/Green: startet das neue Backend neben dem alten, schaltet nginx erst nach
+      # healthy um und tauscht das Frontend per Symlink. Bei Fehler bleibt der alte Stand.
+      # Den nginx-Tag (Tree-Hash von nginx/) ermittelt das Skript aus dem Checkout.
       - name: Deploy to Hetzner Server
         uses: appleboy/ssh-action@v1.0.3
         env:
