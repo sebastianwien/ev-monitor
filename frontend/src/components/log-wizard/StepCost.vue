@@ -17,9 +17,8 @@ import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
 import BigInput from './BigInput.vue'
-import { CheckCircleIcon, GiftIcon } from '@heroicons/vue/24/outline'
+import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 import SegmentToggle from './SegmentToggle.vue'
-import PillSwitch from './PillSwitch.vue'
 
 const props = defineProps<{ cost: ReturnType<typeof useCostInput>; compact?: boolean; openOnMount?: 'new' | 'price' | null
   /** Richtwert seit der letzten Ladung - steht in der Kostenzeile, weil Preis und Verbrauch zusammen gelesen werden */
@@ -138,9 +137,9 @@ const inputUnit = ref(readUnit())
 watch(inputUnit, u => { try { localStorage.setItem(UNIT_KEY, u) } catch { /* Speicher gesperrt: gilt nur jetzt */ } })
 const perKwhFactor = computed(() => isEurCountry.value ? 100 : 1)
 // Beide Einheiten stehen sichtbar nebeneinander, die aktive markiert: man sieht, dass es zwei gibt
-const unitOptions = computed((): [{ value: 'total'; label: string; testid: string }, { value: 'per_kwh'; label: string; testid: string }] => [
-  { value: 'total', label: symbol.value, testid: 'cost-unit-total' },
-  { value: 'per_kwh', label: `${isEurCountry.value ? subunit.value : symbol.value}/kWh`, testid: 'cost-unit-per-kwh' },
+const unitOptions = computed(() => [
+  { value: 'total' as const, label: symbol.value },
+  { value: 'per_kwh' as const, label: `${isEurCountry.value ? subunit.value : symbol.value}/kWh` },
 ])
 const compactValue = computed(() => {
   if (inputUnit.value === 'total') return compactTotal.value
@@ -157,7 +156,6 @@ const onCompactInput = (e: Event) => {
   costLocalTotal.value = null
   costLocalPerKwh.value = n == null ? null : n / perKwhFactor.value
 }
-const chooseFree = () => { pickFree(); manual.value = false }
 
 /** Noch nichts eingegeben: dann darf ein Vorschlag vorbelegen, sonst nie. */
 const untouched = () => selectedKey.value == null && costLocalTotal.value == null && costLocalPerKwh.value == null
@@ -226,30 +224,33 @@ onMounted(async () => {
       </p>
     </div>
     <template v-else>
-    <!-- Leiste über der Box wie bei der Energie (Quelle, AC/DC): links Gratis, rechts die Einheit.
-         Kosten sind Pflicht - Gratis steht darum immer sichtbar da. -->
-    <div data-testid="cost-controls" class="flex items-center justify-between gap-2 pt-1">
-      <button type="button" data-testid="cost-free" @click="chooseFree"
-        class="h-11 px-4 inline-flex items-center gap-1.5 rounded-full bg-gray-200 dark:bg-gray-700 text-xs font-bold tracking-wide text-gray-600 dark:text-gray-300 hover:text-indigo-700 dark:hover:text-white transition-colors">
-        <GiftIcon class="h-4 w-4" aria-hidden="true" />{{ t('logwizard.price_free') }}
-      </button>
-      <PillSwitch v-model="inputUnit" :options="unitOptions" :label="t('logwizard.cost_unit_switch')" class="w-[7.5rem]" />
-    </div>
-    <!-- Box wie die Rädchen-Zeilen: Feldname, Zahl, Einheit; darunter die Kennzahlen -->
+    <!-- Box wie die Rädchen-Zeilen: Feldname, Zahl, Einheit; darunter die Kennzahlen. Gratis: 0 tippen. -->
     <div data-testid="cost-box" class="rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 focus-within:border-indigo-600">
-      <div class="grid grid-cols-[1fr_auto_auto] items-baseline gap-x-2 min-h-9">
+      <!-- Schalter rechts über beide Zeilen; die Kennzahlen enden unter der Zahl -->
+      <div class="grid grid-cols-[1fr_auto] items-center gap-x-2">
+        <div class="flex items-baseline justify-between gap-x-2 min-h-9">
         <label for="wizard-cost" class="text-sm text-gray-500 dark:text-gray-400">{{ inputUnit === 'total' ? t('logfields.cost_eur') : t('logwizard.cost_price') }}</label>
         <input id="wizard-cost" type="number" inputmode="decimal" :step="inputUnit === 'total' ? 0.01 : 0.1" min="0"
           :placeholder="inputUnit === 'total' ? t('logfields.cost_eur_placeholder') : (isEurCountry ? '39' : '0.39')"
           :value="compactValue ?? ''" @input="onCompactInput"
           class="w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right text-2xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-        <span class="text-base text-gray-500 dark:text-gray-400">{{ inputUnit === 'total' ? unitOptions[0].label : unitOptions[1].label }}</span>
+        </div>
+        <!-- Die Einheit ist der Schalter: beide stehen übereinander, die aktive hinterlegt. Ein Tap irgendwo schaltet um
+             (zwei Hälften wären je nur 22 px hoch). -->
+        <button type="button" role="switch" data-testid="cost-unit" :aria-checked="inputUnit === 'per_kwh'" :aria-label="t('logwizard.cost_per_kwh')"
+          @click="inputUnit = inputUnit === 'total' ? 'per_kwh' : 'total'"
+          class="relative row-span-2 grid grid-rows-2 h-11 w-[4.5rem] rounded-lg bg-gray-200 dark:bg-gray-700 p-1 select-none">
+          <span aria-hidden="true" class="absolute left-1 right-1 top-1 h-[calc(50%-0.25rem)] rounded-md bg-white dark:bg-gray-500 shadow transition-transform duration-200 ease-out"
+            :class="inputUnit === 'per_kwh' ? 'translate-y-full' : ''" />
+          <span v-for="o in unitOptions" :key="o.value" aria-hidden="true"
+            :class="['relative z-10 flex items-center justify-center text-xs leading-none font-bold whitespace-nowrap transition-colors', inputUnit === o.value ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-300']">{{ o.label }}</span>
+        </button>
+        <p class="min-h-4 flex flex-wrap justify-end items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums">
+          <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
+            <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
+          </span>
+        </p>
       </div>
-      <p v-if="manualMetrics.length" class="mt-0.5 flex justify-end items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums overflow-hidden">
-        <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
-          <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
-        </span>
-      </p>
     </div>
     </template>
       <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">

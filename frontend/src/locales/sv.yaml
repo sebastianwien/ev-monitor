@@ -3194,7 +3194,6 @@ logwizard:
   cost_total: "Totalt"
   cost_per_kwh: "Per kWh"
   cost_price: "Pris"
-  cost_unit_switch: "Enhet"
   price_suggestions: "Förslag"
   price_community: "Senast här"
   price_free: "Gratis"

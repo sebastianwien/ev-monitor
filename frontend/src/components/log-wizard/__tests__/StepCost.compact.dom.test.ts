@@ -35,14 +35,16 @@ async function mount(opts: { providers?: any[]; providerId?: string } = {}) {
 }
 
 describe('StepCost kompakt: Gesamt oder je kWh', () => {
-  it('Einheit tippen schaltet auf ct/kWh, 34 ct bei 30 kWh ergeben 10,20 €', async () => {
+  it('die Einheit ist ein Schalter in der Zeile: beide sichtbar, ein Tap auf ct/kWh, 34 ct bei 30 kWh ergeben 10,20 €', async () => {
     const { form, q, typeIn } = await mount()
-    // Beide Einheiten sichtbar, die aktive markiert: man sieht, dass es zwei gibt
-    expect(q('cost-unit-total')!.textContent).toContain('€')
-    expect(q('cost-unit-per-kwh')!.textContent).toContain('ct/kWh')
-    expect(q('cost-unit-total')!.getAttribute('aria-checked')).toBe('true')
-    q('cost-unit-per-kwh')!.click(); await nextTick()
-    expect(q('cost-unit-per-kwh')!.getAttribute('aria-checked')).toBe('true')
+    const unit = q('cost-unit')!
+    expect(q('cost-box')!.contains(unit)).toBe(true)
+    expect(unit.getAttribute('role')).toBe('switch')
+    expect(unit.textContent).toContain('€')
+    expect(unit.textContent).toContain('ct/kWh')
+    expect(unit.getAttribute('aria-checked')).toBe('false')
+    unit.click(); await nextTick()
+    expect(q('cost-unit')!.getAttribute('aria-checked')).toBe('true')
     await typeIn('34')
     expect(form.value.costEur).toBe(10.2)
     // Kein Sprung in die grüne Zeile mitten im Tippen
@@ -51,39 +53,35 @@ describe('StepCost kompakt: Gesamt oder je kWh', () => {
 
   it('zurück auf €: das Feld zeigt den errechneten Gesamtbetrag', async () => {
     const { q, input, typeIn } = await mount()
-    q('cost-unit-per-kwh')!.click(); await nextTick()
+    q('cost-unit')!.click(); await nextTick()
     await typeIn('34')
-    q('cost-unit-total')!.click(); await nextTick()
+    q('cost-unit')!.click(); await nextTick()
     expect(input().value).toBe('10.2')
   })
 
   it('die gewählte Einheit gilt beim nächsten Mal', async () => {
     const first = await mount()
-    first.q('cost-unit-per-kwh')!.click(); await nextTick()
+    first.q('cost-unit')!.click(); await nextTick()
     app!.unmount(); app = null; document.body.innerHTML = ''
     const second = await mount()
-    expect(second.q('cost-unit-per-kwh')!.getAttribute('aria-checked')).toBe('true')
+    expect(second.q('cost-unit')!.getAttribute('aria-checked')).toBe('true')
   })
 
-  it('Gratis setzt 0 € und zeigt die grüne Zeile', async () => {
-    const { form, q } = await mount()
-    // Gratis und Einheit stehen in der Leiste über der Box, wie Quelle und AC/DC über der Energie
-    expect(q('cost-controls')!.contains(q('cost-free'))).toBe(true)
-    expect(q('cost-controls')!.contains(q('cost-unit-per-kwh'))).toBe(true)
-    q('cost-free')!.click(); await nextTick()
+  it('kein eigener Gratis-Knopf: 0 tippen speichert 0 € und bleibt im Feld', async () => {
+    const { form, q, typeIn } = await mount()
+    expect(q('cost-free')).toBeNull()
+    await typeIn('0')
     expect(form.value.costEur).toBe(0)
-    expect(q('cost-derived')!.textContent).toContain('Gratis')
+    expect(q('cost-derived')).toBeNull()
   })
 
-  it('Preis aus der Ladekarte: über "Ändern" ist Gratis immer erreichbar - Kosten sind Pflicht', async () => {
+  it('Preis aus der Ladekarte: über "Ändern" lässt sich 0 eintippen - Kosten sind Pflicht, kein Deadlock', async () => {
     const card = { id: 'c1', providerName: 'EnBW', label: null, acPricePerKwh: 0.39, dcPricePerKwh: 0.59, isPrivate: false }
-    const { form, q } = await mount({ providers: [card], providerId: 'c1' })
+    const { form, q, typeIn } = await mount({ providers: [card], providerId: 'c1' })
     await nextTick()
     expect(q('cost-derived')).not.toBeNull()
-    expect(q('cost-free')).toBeNull()
     q('cost-other')!.click(); await nextTick()
-    q('cost-free')!.click(); await nextTick()
+    await typeIn('0')
     expect(form.value.costEur).toBe(0)
-    expect(form.value.chargingProviderId).toBeNull()
   })
 })
