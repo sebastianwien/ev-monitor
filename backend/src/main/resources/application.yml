@@ -104,6 +104,11 @@ management:
     health:
       enabled: true
       show-details: never
+  # Der Healthcheck entscheidet über Deploy und Rollback. Ein gestörter Mailserver darf
+  # das Backend nicht DOWN melden, sonst wird jeder Deploy abgelehnt (wie in Connectors).
+  health:
+    mail:
+      enabled: false
   metrics:
     web:
       client:
