@@ -65,4 +65,34 @@ describe('EditLogModal - Ort per Adresse', () => {
     await nextTick()
     expect(q('[data-testid="place-searched-station"]')).not.toBeNull()
   })
+
+  it('zeigt nach der Adresse die Säulen dort; die Privat-Zeile behält die Adresse, auch nach Wahl einer Säule', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ json: () => Promise.resolve([
+      { place_id: 1, lat: '48.51', lon: '14.50', display_name: 'Linzer Straße 51, Freistadt' }]) })))
+    ;(api.get as any).mockImplementation((url: string) => Promise.resolve({ data: url.includes('nearby-stations')
+      ? [{ name: 'Billa', known: false, distanceMeters: 120, geohash: 'u2dr3ab', address: 'Linzer Straße 49, Freistadt',
+          fastCharging: false, chargePoints: 2, maxAcKw: 22, maxDcKw: null, plugTypes: [], registerId: null }] : [] }))
+    app = createApp(defineComponent({ render: () => h(EditLogModal, { log }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+    await nextTick()
+    q('[data-testid="summary-place"]')!.click()
+    await nextTick()
+    const input = q('#wizard-place-search') as HTMLInputElement
+    input.value = 'Linzer Str. 51, Freistadt'
+    input.dispatchEvent(new Event('input'))
+    await nextTick()
+    q('[data-testid="place-search-address"]')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await vi.waitFor(() => expect(q('[data-testid="place-search-suggestion"]')).not.toBeNull())
+    q('[data-testid="place-search-suggestion"]')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+
+    const billa = await vi.waitFor(() => {
+      const b = [...document.body.querySelectorAll('button')].find(x => x.textContent?.includes('Billa'))
+      expect(b).toBeTruthy(); return b!
+    })
+    expect(q('[data-testid="place-here"]')!.textContent).toContain('Linzer Straße 51, Freistadt')
+    billa.click()
+    await nextTick()
+    expect(q('[data-testid="place-here"]')!.textContent).toContain('Linzer Straße 51, Freistadt')
+  })
 })

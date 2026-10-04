@@ -51,7 +51,7 @@
           :stations="nearby.stations.value" :stations-loading="nearby.loading.value" permission="unavailable" :location-status="locationStatus"
           :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value" :next-radius="nearby.nextRadius.value" :exhausted="nearby.exhausted.value"
           :latitude="formData.latitude" :longitude="formData.longitude" :stored-place="!!log.geohash"
-          :recent-cpos="[]" :address-label="pickedName" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked"
+          :recent-cpos="[]" :address-label="pickedAddress" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked"
           @expand-radius="nearby.expand()">
         </StepPlace>
         <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
@@ -260,6 +260,8 @@ onMounted(() => {
 const place = computed<PlaceKind | null>(() => !formData.value.isPublicCharging ? 'home' : formData.value.chargingSite ? 'site' : 'other')
 // Per Suche gewählte Adresse: muss nach "Fertig" in der Übersicht stehen, sonst wirkt sie verworfen
 const pickedName = ref<string | null>(null)
+// Die gewählte Adresse selbst: Untertitel von "Hier privat geladen", auch wenn danach eine Säule gewählt wurde
+const pickedAddress = ref<string | null>(null)
 const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCharging
   ? (formData.value.cpoName ?? t('logwizard.place_public'))
   : t('logwizard.place_private')))
@@ -285,6 +287,7 @@ const isFormValid = computed(() => {
 
 const onPlacePicked = async (p: PickedPlace) => {
   pickedName.value = p.name
+  pickedAddress.value = p.name
   formData.value.latitude = p.latitude
   formData.value.longitude = p.longitude
   locationStatus.value = 'success'

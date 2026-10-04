@@ -3184,7 +3184,6 @@ logwizard:
   place_other_sub: "Ange leverantör"
   nearby_title: "I närheten"
   nearby_loading: "Söker laddstationer i närheten"
-  site_usage: "{n} laddning | {n} laddningar"
   charge_points: "{n} laddpunkt | {n} laddpunkter"
   kwh_charger: "Enligt laddare"
   kwh_vehicle: "Enligt bil"

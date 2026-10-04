@@ -114,6 +114,25 @@ test.describe('Ort per Adresse', () => {
     await here.click()
     await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
   })
+
+  test('Adresse ohne Säule: privat ist vorgewählt, der Wizard bleibt stehen', async ({ page }) => {
+    await open(page, {})
+    await page.route(url => url.hostname === 'nominatim.openstreetmap.org', route =>
+      route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify([{ place_id: 2, display_name: 'Dorfstraße 1, Kleinkleckersdorf', lat: '52.1', lon: '13.1' }]) }))
+    await page.goto('/erfassen')
+    const search = page.locator('#wizard-place-search')
+    await search.fill('Dorfstraße 1')
+    await search.press('Enter')
+    await page.getByTestId('place-search-suggestion').click()
+
+    const here = page.getByTestId('place-here')
+    await expect(here).toContainText('Dorfstraße 1, Kleinkleckersdorf')
+    await expect(here.locator('svg')).toHaveCount(2) // Haus und Häkchen: vorgewählt
+    await expect(page.getByTestId('wizard-next')).not.toHaveAttribute('aria-disabled', 'true')
+    await page.waitForTimeout(600)
+    await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1')
+  })
 })
 
 test.describe('ungenaue Ortung', () => {
