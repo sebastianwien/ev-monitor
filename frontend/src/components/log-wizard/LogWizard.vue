@@ -144,7 +144,8 @@ const choosePlace = (choice: PlaceChoice, opts: { advance?: boolean } = {}) => {
   setPlaceContext(choice)
   applyPlace(form.value, choice)
   resetCard()
-  if (autoAdvances(choice) && opts.advance !== false) advance.schedule(); else { advance.cancel(); preselectCard() }
+  if (autoAdvances(choice) && opts.advance !== false) advance.schedule(); else advance.cancel()
+  preselectCard()
 }
 
 // ── Ladekarte (Schritt 1, unter der gewählten Säule) ──────────────────────────
@@ -190,27 +191,29 @@ const cardMatchingCpo = () => {
   return hits.length === 1 ? hits[0] : null
 }
 /**
- * Vorauswahl ohne Weiterspringen: die Karte vom letzten Mal an diesem Ort (ohne Karte der
- * letzte Preis als "Zuletzt hier"), sonst die Karte, deren Name zum Betreiber passt. Der Preisvorschlag kommt vom Backend und braucht die
- * Position; kommt er nach einer Nutzerwahl an, bleibt die Nutzerwahl.
+ * Vorauswahl: der zuletzt an diesem Ort bezahlte Preis ("Zuletzt hier"), mit seiner Karte, falls
+ * es eine gab - öffentlich wie privat. Öffentlich gilt der Tarif einer noch vorhandenen Karte,
+ * ohne Treffer die Karte, deren Name zum Betreiber passt. Der Preisvorschlag kommt vom Backend und
+ * braucht die Position; kommt er nach einer Nutzerwahl oder einem getippten Betrag an, bleibt die Nutzerwahl.
  */
 let communitySeq = 0
 const preselectCard = async () => {
   const mine = ++communitySeq
   community.value = null
-  if (!form.value.isPublicCharging) return
+  const isPublic = !!form.value.isPublicCharging
+  const costBefore = form.value.costEur
   if (form.value.latitude != null && form.value.longitude != null) {
     try {
       const res = await api.get('/logs/price-suggestion', {
-        params: { lat: form.value.latitude, lon: form.value.longitude, isPublic: true, chargingType: form.value.chargingType },
+        params: { lat: form.value.latitude, lon: form.value.longitude, isPublic, chargingType: form.value.chargingType },
       })
       if (mine !== communitySeq) return
       if (res.data?.costPerKwh != null) community.value = { eurPerKwh: Number(res.data.costPerKwh), providerId: res.data.chargingProviderId ?? null }
     } catch { /* kein Vorschlag - kein Problem */ }
   }
-  if (cardKey.value != null) return
+  if (cardKey.value != null || form.value.costEur !== costBefore) return
   if (community.value) {
-    const last = providers.value.find(p => p.id === community.value!.providerId && !p.isPrivate)
+    const last = isPublic ? providers.value.find(p => p.id === community.value!.providerId && !p.isPrivate) : null
     if (last) applyCard({ kind: 'provider', provider: last, eurPerKwh: providerPriceForType(last, form.value.chargingType) ?? community.value.eurPerKwh })
     else applyCard({ kind: 'community', price: community.value })
     return
@@ -381,7 +384,7 @@ const onVoiceDraft = async (draft: VoiceDraft) => {
   const id = form.value.chargingProviderId
   const card = id ? providers.value.find(x => x.id === id) : null
   if (card) applyCard({ kind: 'provider', provider: card, eurPerKwh: providerPriceForType(card, form.value.chargingType) })
-  else if (choice && form.value.isPublicCharging) preselectCard()
+  else if (choice) preselectCard()
   else applySpokenCost()
   voice.value = { transcript: draft.transcript, flags, usage: draft.usage }
   voiceUsed.value = true

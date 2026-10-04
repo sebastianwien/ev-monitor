@@ -139,6 +139,24 @@ test.describe('Ort per Adresse', () => {
   })
 })
 
+test.describe('Preis vom letzten Mal', () => {
+  test.use({ geolocation: HERE, permissions: ['geolocation'] })
+
+  test('Hier privat: der zuletzt hier bezahlte Preis steht vor, auch ohne Ladekarte', async ({ page }) => {
+    await open(page, {})
+    let asked = ''
+    await page.route(url => url.pathname === '/api/logs/price-suggestion', route => {
+      asked = route.request().url()
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ costPerKwh: 0.32 }) })
+    })
+    await page.goto('/erfassen')
+    await page.getByTestId('place-here').click()
+    await page.locator('#wizard-kwh').fill('30')
+    await expect(page.getByTestId('cost-derived')).toContainText('9,60')
+    expect(asked).toContain('isPublic=false')
+  })
+})
+
 test.describe('ungenaue Ortung', () => {
   test.use({ geolocation: { ...HERE, accuracy: 1200 }, permissions: ['geolocation'] })
 

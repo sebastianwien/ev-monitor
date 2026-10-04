@@ -24,7 +24,7 @@ async function fillWizardToReview(page: Page, opts: { kwh: string; cost: string;
   }
   await page.locator('#wizard-odometer').fill(String(nextOdometer()));
   await page.locator('#wizard-soc').fill('80');
-  await page.locator('input[placeholder="z.B. 12.50"]').fill(opts.cost);
+  await page.locator('#wizard-cost').fill(opts.cost);
   await page.locator('[data-testid="wizard-next"]').click();
 }
 
@@ -89,6 +89,8 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
       localStorage.setItem('seen-announcements', JSON.stringify(keys));
     }, allKeys);
 
+    // Kein "Zuletzt hier": frühere Testläufe an derselben Position würden den Preis vorbelegen
+    await page.route('**/api/logs/price-suggestion**', route => route.fulfill({ status: 204 }));
     await login(page);
   });
 
@@ -116,7 +118,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     await page.locator('input[placeholder="z.B. 42.5"]').fill('37.5');
     await page.locator('#wizard-odometer').fill(String(nextOdometer()));
     await page.locator('#wizard-soc').fill('80');
-    await page.locator('input[placeholder="z.B. 12.50"]').fill('10.00');
+    await page.locator('#wizard-cost').fill('10.00');
     await page.locator('[data-testid="wizard-next"]').click();
 
     // Eindeutiger Zeitstempel um Duplikat-Kollision mit Test 1 zu vermeiden
@@ -423,7 +425,7 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
     // Ist eine Karte vorgewaehlt, ist der Preis schon abgeleitet - "Anders" oeffnet die Eingabe
     const other = page.locator('[data-testid="cost-other"]');
     if (await other.isVisible()) await other.click();
-    await page.locator('input[placeholder="z.B. 12.50"]').fill('15');
+    await page.locator('#wizard-cost').fill('15');
     await page.locator('[data-testid="wizard-next"]').click();
     await page.locator('[data-testid="wizard-next"]').click();
 
