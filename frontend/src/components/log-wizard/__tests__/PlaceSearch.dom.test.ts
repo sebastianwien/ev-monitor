@@ -122,4 +122,14 @@ describe('PlaceSearch', () => {
     ;(host.querySelector('[data-testid="place-search-suggestion"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
     expect(JSON.parse(localStorage.getItem('recent-addresses:u1')!)[0].name).toBe('Am Fuchsgraben, Lichtenau')
   })
+
+  it('X im Feld leert die Eingabe', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: [] } as never)
+    const { host } = mount()
+    expect(host.querySelector('[data-testid="place-search-clear"]')).toBeNull()
+    await type(host, 'Storkower')
+    ;(host.querySelector('[data-testid="place-search-clear"]') as HTMLElement).click(); await nextTick()
+    expect((host.querySelector('input') as HTMLInputElement).value).toBe('')
+    expect(host.querySelector('[data-testid="place-search-clear"]')).toBeNull()
+  })
 })

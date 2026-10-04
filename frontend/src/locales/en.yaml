@@ -3346,6 +3346,7 @@ logwizard:
   place_search: "Search place"
   place_search_placeholder: "Operator and town, or an address"
   search_as_address: "Search as address: {q}"
+  search_clear: "Clear input"
   address_not_found: "No address found. Check street and town."
   nearby_expanding: "No station within {from} - searching within {r} …"
   no_stations_in_radius: "No known charging station within {r}"

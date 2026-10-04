@@ -3231,6 +3231,7 @@ logwizard:
   place_search: "Søk sted"
   place_search_placeholder: "Operatør og sted, eller adresse"
   search_as_address: "Søk som adresse: {q}"
+  search_clear: "Tøm feltet"
   address_not_found: "Ingen adresse funnet. Sjekk gate og sted."
   nearby_expanding: "Ingen stasjon innen {from} - søker innen {r} …"
   no_stations_in_radius: "Ingen kjent ladestasjon innen {r}"

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useLocationSearch, nominatimSearchUrl } from '../useLocationSearch'
+import { useLocationSearch, nominatimSearchUrl, shortAddress } from '../useLocationSearch'
 
 describe('useLocationSearch', () => {
   beforeEach(() => {
@@ -47,6 +47,33 @@ describe('useLocationSearch', () => {
   })
 
   it('URL-Builder ist für alle Aufrufstellen derselbe', () => {
-    expect(nominatimSearchUrl('a b')).toBe('https://nominatim.openstreetmap.org/search?q=a%20b&format=json&limit=5')
+    expect(nominatimSearchUrl('a b')).toBe('https://nominatim.openstreetmap.org/search?q=a%20b&format=json&addressdetails=1&limit=5')
+  })
+
+  /** Der Name ist nur Beschriftung (Untertitel, Suchfeld, letzte Adressen) - der Ort sind die Koordinaten */
+  describe('shortAddress', () => {
+    const base = { place_id: 1, lat: '52.5', lon: '13.4' }
+    it('Straße und Hausnummer, dazu der Ort', () => {
+      expect(shortAddress({ ...base, display_name: '140, Storkower Straße, Prenzlauer Berg, Pankow, Berlin, 10407, Deutschland',
+        address: { house_number: '140', road: 'Storkower Straße', suburb: 'Prenzlauer Berg', city: 'Berlin', postcode: '10407', country: 'Deutschland' } }))
+        .toBe('Storkower Straße 140, Berlin')
+    })
+    it('Kleinstadt und Dorf statt Stadt', () => {
+      expect(shortAddress({ ...base, display_name: 'x', address: { road: 'Linzer Straße', town: 'Freistadt' } })).toBe('Linzer Straße, Freistadt')
+      expect(shortAddress({ ...base, display_name: 'x', address: { road: 'Dorfstraße', village: 'Lichtenau' } })).toBe('Dorfstraße, Lichtenau')
+    })
+    it('ohne Straße: die ersten zwei Teile des langen Namens', () => {
+      expect(shortAddress({ ...base, display_name: 'Lichtenau, Landkreis Ansbach, Bayern, Deutschland' })).toBe('Lichtenau, Landkreis Ansbach')
+    })
+    it('select übernimmt den kurzen Namen', () => {
+      const s = useLocationSearch()
+      const picked = s.select({ ...base, display_name: 'lang, lang, lang', address: { road: 'Storkower Straße', house_number: '140', city: 'Berlin' } })
+      expect(picked.name).toBe('Storkower Straße 140, Berlin')
+      expect(s.query.value).toBe('Storkower Straße 140, Berlin')
+    })
+  })
+
+  it('fragt die Adressteile mit ab', () => {
+    expect(nominatimSearchUrl('Berlin')).toContain('addressdetails=1')
   })
 })

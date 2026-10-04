@@ -3352,6 +3352,7 @@ logwizard:
   place_search: "Ort suchen"
   place_search_placeholder: "Anbieter und Ort, oder Adresse"
   search_as_address: "Als Adresse suchen: {q}"
+  search_clear: "Eingabe löschen"
   address_not_found: "Keine Adresse gefunden. Straße und Ort prüfen."
   nearby_expanding: "Keine Säule in {from} - suche im Umkreis von {r} …"
   no_stations_in_radius: "Im Umkreis von {r} ist keine Ladesäule bekannt"
