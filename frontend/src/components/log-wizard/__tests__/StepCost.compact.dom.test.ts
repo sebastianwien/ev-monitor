@@ -16,10 +16,10 @@ let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 beforeEach(() => { localStorage.clear(); i18n.global.locale.value = 'de' })
 
-async function mount() {
+async function mount(opts: { providers?: any[]; providerId?: string } = {}) {
   const form = ref<any>({ kwhCharged: 30, kwhAtVehicle: null, costEur: null, costExchangeRate: null, costCurrency: null,
-    chargingProviderId: null, chargingType: 'AC', isPublicCharging: false, latitude: null, longitude: null, cpoName: null, applyTariffToLocation: false })
-  const providers = ref([])
+    chargingProviderId: opts.providerId ?? null, chargingType: 'AC', isPublicCharging: false, latitude: null, longitude: null, cpoName: null, applyTariffToLocation: false })
+  const providers = ref<any[]>(opts.providers ?? [])
   const cost = useCostInput(form, { isEurCountry: computed(() => true), exchangeRate: computed(() => 1), localCurrency: computed(() => 'EUR') })
   app = createApp(defineComponent({ render: () => h(StepCost, {
     modelValue: form.value, 'onUpdate:modelValue': (v: any) => { form.value = v },
@@ -67,5 +67,17 @@ describe('StepCost kompakt: Gesamt oder je kWh', () => {
     q('cost-free')!.click(); await nextTick()
     expect(form.value.costEur).toBe(0)
     expect(q('cost-derived')!.textContent).toContain('Gratis')
+  })
+
+  it('Preis aus der Ladekarte: über "Ändern" ist Gratis immer erreichbar - Kosten sind Pflicht', async () => {
+    const card = { id: 'c1', providerName: 'EnBW', label: null, acPricePerKwh: 0.39, dcPricePerKwh: 0.59, isPrivate: false }
+    const { form, q } = await mount({ providers: [card], providerId: 'c1' })
+    await nextTick()
+    expect(q('cost-derived')).not.toBeNull()
+    expect(q('cost-free')).toBeNull()
+    q('cost-other')!.click(); await nextTick()
+    q('cost-free')!.click(); await nextTick()
+    expect(form.value.costEur).toBe(0)
+    expect(form.value.chargingProviderId).toBeNull()
   })
 })
