@@ -3294,6 +3294,7 @@ logwizard:
   place_here: "Private, here"
   place_here_sub: "Your location"
   place_private: "Charged privately"
+  place_area_hint: "Only this area is stored, not your address"
   place_private_sub: "Wallbox or socket"
   place_public: "Charged publicly"
   place_public_here: "Charged publicly here"

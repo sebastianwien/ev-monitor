@@ -2,31 +2,43 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { MINIMAP_ZOOM } from './minimapTiles'
+import { MINIMAP_ZOOM, type MinimapArea } from './minimapTiles'
 
-/** Stummes Kartenbild der gewählten Säule: nicht bedienbar, nur Orientierung. Kein Marker-Bild (Vite), ein Kreis reicht. */
-const props = defineProps<{ lat: number; lon: number }>()
+/**
+ * Stummes Kartenbild der gewählten Säule: nicht bedienbar, nur Orientierung. Kein Marker-Bild (Vite), ein Kreis reicht.
+ * Mit area statt Punkt eine Fläche (private Ladung: die gespeicherte Zelle, nicht die Position darin).
+ */
+const props = withDefaults(defineProps<{ lat: number; lon: number; zoom?: number; area?: MinimapArea | null }>(), { zoom: MINIMAP_ZOOM, area: null })
 const container = ref<HTMLElement | null>(null)
 /** Erst wenn alle Kacheln des Ausschnitts da sind, blendet die Karte ein - bis dahin ruhige graue Fläche statt Kachel-Geploppe */
 const ready = ref(false)
 let map: L.Map | null = null
-let dot: L.CircleMarker | null = null
+let mark: L.CircleMarker | L.Rectangle | null = null
+const bounds = (a: MinimapArea): L.LatLngBoundsExpression => [[a.south, a.west], [a.north, a.east]]
+const ACCENT = '#4f46e5'
 
 onMounted(() => {
   if (!container.value) return
   map = L.map(container.value, {
     zoomControl: false, attributionControl: true, dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
     boxZoom: false, keyboard: false, touchZoom: false, fadeAnimation: false,
-  }).setView([props.lat, props.lon], MINIMAP_ZOOM)
+  }).setView([props.lat, props.lon], props.zoom)
   map.attributionControl.setPrefix(false).setPosition('topright')
   // OSM-Kacheln, per CSS entsättigt (siehe Template): keine Schlüssel, keine fremden Konten. CARTO und
   // Stadia verlangen inzwischen API-Keys, die Kacheln tragen sonst ein Wasserzeichen.
   const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 })
   tiles.once('load', () => { ready.value = true })
   tiles.addTo(map)
-  dot = L.circleMarker([props.lat, props.lon], { radius: 7, color: '#ffffff', weight: 2, fillColor: '#4f46e5', fillOpacity: 1 }).addTo(map)
+  drawMark()
 })
-watch(() => [props.lat, props.lon], ([lat, lon]) => { map?.setView([lat, lon]); dot?.setLatLng([lat, lon]) })
+const drawMark = () => {
+  if (!map) return
+  mark?.remove()
+  mark = props.area
+    ? L.rectangle(bounds(props.area), { color: ACCENT, weight: 2, fillColor: ACCENT, fillOpacity: 0.15, interactive: false }).addTo(map)
+    : L.circleMarker([props.lat, props.lon], { radius: 7, color: '#ffffff', weight: 2, fillColor: ACCENT, fillOpacity: 1 }).addTo(map)
+}
+watch(() => [props.lat, props.lon, props.zoom, props.area], () => { map?.setView([props.lat, props.lon], props.zoom); drawMark() })
 onUnmounted(() => { map?.remove(); map = null })
 </script>
 

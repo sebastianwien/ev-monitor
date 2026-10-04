@@ -3300,6 +3300,7 @@ logwizard:
   place_here: "Hier privat"
   place_here_sub: "Dein Standort"
   place_private: "Privat geladen"
+  place_area_hint: "Gespeichert wird nur dieser Bereich, nicht deine Adresse"
   place_private_sub: "Wallbox oder Steckdose"
   place_public: "Öffentlich geladen"
   place_public_here: "Hier öffentlich geladen"

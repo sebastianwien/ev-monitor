@@ -3179,6 +3179,7 @@ logwizard:
   place_here: "Privat, här"
   place_here_sub: "Där du är"
   place_private: "Laddat privat"
+  place_area_hint: "Bara det här området sparas, inte din adress"
   place_private_sub: "Laddbox eller uttag"
   place_public: "Laddat offentligt"
   place_public_here: "Laddat offentligt här"

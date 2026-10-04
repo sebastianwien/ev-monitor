@@ -157,6 +157,29 @@ test.describe('Preis vom letzten Mal', () => {
   })
 })
 
+test.describe('Prüfseite privat', () => {
+  test.use({ geolocation: HERE, permissions: ['geolocation'], viewport: { width: 390, height: 800 } })
+
+  test('Karte zeigt die gespeicherte Zelle als Fläche, nicht die Position, mit Hinweis', async ({ page }) => {
+    await open(page, {})
+    if (!process.env.SHOT) await page.route(url => url.hostname.endsWith('tile.openstreetmap.org'), route => route.fulfill({ status: 404 }))
+    await page.goto('/erfassen')
+    await page.getByTestId('place-here').click()
+    await page.locator('#wizard-kwh').fill('30')
+    await page.locator('#wizard-odometer').fill('12345')
+    await page.locator('#wizard-soc').fill('80')
+    await page.locator('#wizard-cost').fill('9')
+    await page.getByTestId('wizard-next').click()
+    const head = page.getByTestId('summary-place')
+    await expect(head.getByTestId('place-area-hint')).toHaveText('Gespeichert wird nur dieser Bereich, nicht deine Adresse')
+    // Ein Rechteck, kein Punkt: Leaflet zeichnet beides als Pfad, der Kreis hätte einen Bogen ("a") im d-Attribut
+    const path = head.locator('.leaflet-overlay-pane path')
+    await expect(path).toHaveCount(1)
+    expect(await path.getAttribute('d')).not.toMatch(/a/i)
+    if (process.env.SHOT) { await page.waitForTimeout(1500); await page.screenshot({ path: process.env.SHOT }) }
+  })
+})
+
 test.describe('ungenaue Ortung', () => {
   test.use({ geolocation: { ...HERE, accuracy: 1200 }, permissions: ['geolocation'] })
 

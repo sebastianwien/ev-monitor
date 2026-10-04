@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
-import { MINIMAP_MAX_CLASS } from './minimapTiles'
+import { MINIMAP_MAX_CLASS, MINIMAP_AREA_ZOOM, MINIMAP_ZOOM, type MinimapArea } from './minimapTiles'
+import { useI18n } from 'vue-i18n'
 import { MapPinIcon, CreditCardIcon } from '@heroicons/vue/24/outline'
 const PlaceMinimap = defineAsyncComponent(() => import('./PlaceMinimap.vue'))
 
 /** Was Schritt 1 ergeben hat - steht als Kopf über den Zahlen und in der Zusammenfassung, damit niemand zurückblättern muss. */
-export interface NumbersContext { title: string; address: string | null; card: string | null; lat: number | null; lon: number | null }
+export interface NumbersContext { title: string; address: string | null; card: string | null; lat: number | null; lon: number | null
+  /** Private Ladung: die gespeicherte Zelle als Fläche statt Punkt */
+  area?: MinimapArea | null }
 
 /**
  * Kopf mit Minimap der Säule, darauf schwebend Name, Adresse und Ladekarte. Ohne Position oder mit
@@ -15,6 +18,7 @@ export interface NumbersContext { title: string; address: string | null; card: s
 const props = withDefaults(defineProps<{ context: NumbersContext; height?: number; clickable?: boolean; map?: boolean }>(), { height: 0, map: true })
 const emit = defineEmits<{ click: [] }>()
 const hasMap = computed(() => props.map && props.context.lat != null && props.context.lon != null)
+const { t } = useI18n()
 </script>
 
 <template>
@@ -24,13 +28,14 @@ const hasMap = computed(() => props.map && props.context.lat != null && props.co
       :style="hasMap ? { height: `${height}px` } : undefined">
       <!-- Die Karte ist immer so hoch wie der größte Kopf und mittig verankert: der Rahmen wächst und schrumpft animiert,
            die Karte wird nur beschnitten statt neu layoutet - sonst flackern die Kacheln bei jeder Zwischenhöhe. -->
-      <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
+      <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" :area="context.area ?? null" :zoom="context.area ? MINIMAP_AREA_ZOOM : MINIMAP_ZOOM" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
       <!-- Säule, Adresse, Karte stehen direkt auf der Karte; der hohe Verlauf nach unten macht den Text lesbar und führt zu den Schaltern -->
       <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] px-4 pb-3 pt-14 bg-gradient-to-t from-white via-white/70 to-transparent dark:from-gray-900 dark:via-gray-900/70' : 'px-4'">
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
             <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate"><MapPinIcon class="h-4 w-4 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />{{ context.title }}</p>
             <p v-if="context.address" class="text-xs text-gray-500 dark:text-gray-400 truncate pl-[1.375rem]">{{ context.address }}</p>
+            <p v-if="hasMap && context.area" data-testid="place-area-hint" class="text-xs text-gray-500 dark:text-gray-400 pl-[1.375rem]">{{ t('logwizard.place_area_hint') }}</p>
           </div>
           <p v-if="context.card" class="flex items-center gap-1 flex-shrink-0 text-xs text-gray-600 dark:text-gray-300"><CreditCardIcon class="h-4 w-4" />{{ context.card }}</p>
         </div>

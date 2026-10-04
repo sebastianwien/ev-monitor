@@ -33,7 +33,7 @@ import type { CardChoice, CommunityPrice } from './CardStrip.vue'
 import { providerPriceForType } from '../../utils/chargingProviderPricing'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import StepReview from './StepReview.vue'
-import { prefetchMinimapTiles, MINIMAP_MAX_PX } from './minimapTiles'
+import { prefetchMinimapTiles, privateArea, MINIMAP_MAX_PX, MINIMAP_AREA_ZOOM, MINIMAP_ZOOM, type MinimapArea } from './minimapTiles'
 import { nextField } from './keyboardNav'
 import { useIsMobile } from '../../composables/useIsMobile'
 const VoiceCapture = defineAsyncComponent(() => import('./VoiceCapture.vue'))
@@ -253,10 +253,14 @@ const siteAddress = ref<string | null>(null)
 /**
  * Minimap-Mittelpunkt als Bestätigung "das ist die Säule": exakt aus dem Register, sonst die Zelle
  * des gespeicherten Standorts (~150 m). Nicht die Handy-Position, die liegt gern daneben. Ohne Säule
- * (freier Anbieter) die eigene Position, zuhause gar keine Karte.
+ * (freier Anbieter) die eigene Position. Privat die gespeicherte Zelle als Fläche, nie die Position darin.
  */
-const siteCenter = (): { lat: number | null; lon: number | null } => {
-  if (state.value.place === 'home') return { lat: null, lon: null }
+const siteCenter = (): { lat: number | null; lon: number | null; area?: MinimapArea | null } => {
+  if (state.value.place === 'home') {
+    if (form.value.latitude == null || form.value.longitude == null) return { lat: null, lon: null }
+    const area = privateArea(form.value.latitude, form.value.longitude)
+    return { lat: area.lat, lon: area.lon, area }
+  }
   if (siteCoords.value) return siteCoords.value
   const cell = form.value.chargingSite?.geohash
   if (cell) { const c = geohashLib.decode(cell); return { lat: c.latitude, lon: c.longitude } }
@@ -432,8 +436,8 @@ onMounted(async () => {
   }
 })
 // Kacheln der Prüfseiten-Karte schon in Schritt 1 in den Cache holen: die Karte steht dann beim Betreten, statt kachelweise reinzuploppen
-watch(() => [numbersContext.value.lat, numbersContext.value.lon] as const, ([lat, lon]) => {
-  if (lat != null && lon != null) prefetchMinimapTiles(lat, lon, window.innerWidth, Math.min(MINIMAP_MAX_PX, window.innerHeight * 0.6))
+watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.value.area != null] as const, ([lat, lon, isArea]) => {
+  if (lat != null && lon != null) prefetchMinimapTiles(lat, lon, window.innerWidth, Math.min(MINIMAP_MAX_PX, window.innerHeight * 0.6), isArea ? MINIMAP_AREA_ZOOM : MINIMAP_ZOOM)
 })
 </script>
 
