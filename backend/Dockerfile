@@ -26,7 +26,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 EXPOSE 8080
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# exec: Java wird PID 1 und bekommt das SIGTERM von docker stop (sonst kein Graceful Shutdown)
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
 
 # CI: das im Testlauf gebaute Jar (build/app.jar) statt erneut zu kompilieren.
 # Aufruf: docker build --target prebuilt
