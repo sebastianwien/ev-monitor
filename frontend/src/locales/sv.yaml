@@ -3234,6 +3234,7 @@ logwizard:
   search_clear: "Rensa fältet"
   address_not_found: "Ingen adress hittades. Kontrollera gata och ort."
   nearby_expanding: "Ingen station inom {from} - söker inom {r} …"
+  nearby_searching_radius: "Söker inom {r} …"
   no_stations_in_radius: "Ingen känd laddstation inom {r}"
   no_stations_hint: "Sök efter platsen eller välj nedan hur du laddade."
   location_inaccurate: "Din position är osäker (±{r})"

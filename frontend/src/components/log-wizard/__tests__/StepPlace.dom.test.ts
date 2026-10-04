@@ -108,5 +108,8 @@ describe('StepPlace: privat und öffentlich hier', () => {
     expect(order.indexOf('stations-loading')).toBeGreaterThan(order.indexOf('Kaufland'))
     expect(order.filter(x => x === 'stations-loading')).toHaveLength(1)
     expect(q('place-public')).not.toBeNull()
+    // Über dem Spinner stehen Säulen: "keine Säule in 250 m" wäre falsch
+    expect(q('stations-loading')!.textContent).toContain('Suche im Umkreis von 1 km')
+    expect(q('stations-loading')!.textContent).not.toContain('Keine Säule')
   })
 })

@@ -224,7 +224,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <div v-if="stationsLoading" role="status" data-testid="stations-loading"
         class="min-h-11 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
         <ArrowPathIcon class="h-5 w-5 animate-spin text-indigo-600" aria-hidden="true" />
-        <span>{{ loadingText }}</span>
+        <span>{{ t('logwizard.nearby_searching_radius', { r: radiusLabel }) }}</span>
       </div>
       <button v-else-if="canExpand" type="button" data-testid="expand-radius" @click="emit('expandRadius')"
         class="btn-3d w-full min-h-11 rounded-sm border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-semibold text-indigo-600 dark:text-indigo-300 hover:border-indigo-400 transition">
