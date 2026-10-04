@@ -295,18 +295,6 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("isPublic") boolean isPublic,
             org.springframework.data.domain.Pageable pageable);
 
-    /** Private Ladungen je 6-stelliger Zelle, haeufigste zuerst: [cell, count]. */
-    @Query("""
-        SELECT SUBSTRING(e.geohash, 1, 6), COUNT(e)
-        FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
-        WHERE c.userId = :userId
-          AND COALESCE(e.publicCharging, false) = false
-          AND e.geohash IS NOT NULL
-        GROUP BY SUBSTRING(e.geohash, 1, 6)
-        ORDER BY COUNT(e) DESC
-        """)
-    List<Object[]> countPrivateLogsByCell(@Param("userId") UUID userId);
-
     @Query("""
         SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
         WHERE c.userId = :userId

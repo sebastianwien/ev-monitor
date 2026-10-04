@@ -8,7 +8,8 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements'
  * Der Viewport ist bewusst kuerzer als Schritt 2, damit der Unterschied zwischen Seiten- und
  * Inhalts-Scroll sichtbar wird. Adressleisten-Kollaps und Tastatur von Android Chrome lassen sich hier nicht simulieren.
  */
-test.use({ viewport: { width: 390, height: 520 }, hasTouch: true, isMobile: true })
+test.use({ viewport: { width: 390, height: 520 }, hasTouch: true, isMobile: true,
+  geolocation: { latitude: 52.5342, longitude: 13.4516 }, permissions: ['geolocation'] })
 
 test('Wizard fuellt den Viewport, Seite scrollt nicht, Balken bleibt sichtbar', async ({ page }) => {
   await page.addInitScript((k: string[]) => localStorage.setItem('seen-announcements', JSON.stringify(k)), featureAnnouncements.map(a => a.key))
@@ -17,9 +18,11 @@ test('Wizard fuellt den Viewport, Seite scrollt nicht, Balken bleibt sichtbar', 
   await page.fill('input[type="password"]', TEST_USER.password)
   await page.click('button[type="submit"]')
   await page.waitForURL(/dashboard|logs|cars/)
+  // Umkreissuche gemockt: das echte Backend fragt sonst das externe Ladesäulenregister ab
+  await page.route('**/api/charging-provider-tariffs/cpos/nearby-stations**', r => r.fulfill({ json: [] }))
   await page.goto('/erfassen')
   await page.waitForLoadState('networkidle')
-  await page.locator('[data-testid="place-home"]').click()
+  await page.locator('[data-testid="place-here"]').click()
   await page.locator('#wizard-kwh').waitFor()
 
   const bar = page.locator('[role="progressbar"]')

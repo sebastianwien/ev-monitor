@@ -61,7 +61,7 @@ const tabClass = (active: boolean) =>
   box-shadow: 4px 4px 0 0 var(--btn-shadow-color);
   transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
-:global(.dark) .tab-btn {
+.dark .tab-btn {
   --btn-shadow-color: rgba(255, 255, 255, 0.30);
 }
 

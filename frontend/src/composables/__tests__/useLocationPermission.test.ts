@@ -29,8 +29,8 @@ describe('getCurrentPosition', () => {
   afterEach(() => setNavigator({}))
 
   it('löst mit Koordinaten auf', async () => {
-    setNavigator({ geolocation: { getCurrentPosition: (ok: any) => ok({ coords: { latitude: 1, longitude: 2 } }) } as any })
-    expect(await getCurrentPosition()).toEqual({ latitude: 1, longitude: 2 })
+    setNavigator({ geolocation: { getCurrentPosition: (ok: any) => ok({ coords: { latitude: 1, longitude: 2, accuracy: 850 } }) } as any })
+    expect(await getCurrentPosition()).toEqual({ latitude: 1, longitude: 2, accuracy: 850 })
   })
 
   it('unterscheidet Verweigerung von anderen Fehlern', async () => {

@@ -6,6 +6,8 @@ import com.evmonitor.infrastructure.external.ChargingStationRegistryClient;
 import com.evmonitor.infrastructure.external.ChargingStationRegistryClient.Station;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -41,16 +43,41 @@ public class NearbyCpoService {
 
     private static final double EARTH_RADIUS_M = 6_371_000;
 
+    private static final String CPOS_CACHE = "nearbyCpos";
+    private static final String STATIONS_CACHE = "nearbyStations";
+
     private final ChargingStationRegistryClient registry;
     private final CpoRegistryMatcher matcher;
     private final int radiusMeters;
+    private final CacheManager cacheManager;
 
     public NearbyCpoService(ChargingStationRegistryClient registry,
                             CpoRegistryMatcher matcher,
-                            @Value("${charging-station-registry.radius-meters:250}") int radiusMeters) {
+                            @Value("${charging-station-registry.radius-meters:250}") int radiusMeters,
+                            CacheManager cacheManager) {
         this.registry = registry;
         this.matcher = matcher;
         this.radiusMeters = radiusMeters;
+        this.cacheManager = cacheManager;
+    }
+
+    /**
+     * Ob {@link #findNearbyStations} fuer diese Zelle und diesen Radius schon eine Antwort im Cache
+     * hat, das Register also nicht gefragt wird. Die Drosselung zaehlt nur solche Anfragen: sie
+     * schuetzt das fremde Register, nicht unseren Cache. Schluessel wie in den Cacheable-Annotationen.
+     */
+    public boolean isStationsCached(String geohash, Integer radius) {
+        return isCached(STATIONS_CACHE, radius == null ? geohash : geohash + ":" + radius);
+    }
+
+    /** Wie {@link #isStationsCached}, fuer {@link #findNearbyCpos}. */
+    public boolean isCposCached(String geohash) {
+        return isCached(CPOS_CACHE, geohash);
+    }
+
+    private boolean isCached(String cacheName, String key) {
+        Cache cache = cacheManager.getCache(cacheName);
+        return cache != null && cache.get(key) != null;
     }
 
     /**
@@ -61,7 +88,7 @@ public class NearbyCpoService {
      */
     // Spring packt das Optional aus, bevor es "unless" auswertet: #result ist hier die Liste
     // selbst, bei Optional.empty() null. Deshalb der Null-Vergleich und nicht isPresent().
-    @Cacheable(value = "nearbyCpos", key = "#geohash", unless = "#result == null")
+    @Cacheable(value = CPOS_CACHE, key = "#geohash", unless = "#result == null")
     public Optional<List<String>> findNearbyCpos(String geohash) {
         WGS84Point center = centerOf(geohash);
         if (center == null) {
@@ -93,7 +120,7 @@ public class NearbyCpoService {
      *
      * @return die Vorschlaege, oder ein leeres Optional wenn das Register nicht antwortet
      */
-    @Cacheable(value = "nearbyStations", key = "#geohash", unless = "#result == null")
+    @Cacheable(value = STATIONS_CACHE, key = "#geohash", unless = "#result == null")
     public Optional<List<NearbyStation>> findNearbyStations(String geohash) {
         return lookupStations(geohash, radiusMeters);
     }
@@ -104,7 +131,7 @@ public class NearbyCpoService {
      * nicht die weite Antwort bekommt. Der Radius ist auf {@link #MAX_RADIUS_METERS} begrenzt,
      * das Register liefert sonst Tausende Saeulen.
      */
-    @Cacheable(value = "nearbyStations", key = "#geohash + ':' + #radius", unless = "#result == null")
+    @Cacheable(value = STATIONS_CACHE, key = "#geohash + ':' + #radius", unless = "#result == null")
     public Optional<List<NearbyStation>> findNearbyStations(String geohash, int radius) {
         return lookupStations(geohash, Math.max(radiusMeters, Math.min(radius, MAX_RADIUS_METERS)));
     }

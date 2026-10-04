@@ -104,7 +104,7 @@ class ChargingProviderTariffControllerNearbyTest {
         ResponseEntity<?> response = controller.getNearbyCpos(52.52, 13.40, request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
-        verifyNoInteractions(nearbyCpoService);
+        verify(nearbyCpoService, never()).findNearbyCpos(anyString());
     }
 
     /** Ein Topf je Nutzer, geteilt mit dem Speichern eines Logs mit Standort (ChargingSiteService). */
@@ -154,7 +154,8 @@ class ChargingProviderTariffControllerNearbyTest {
         assertThat(controller.getNearbyStations(91.0, 13.4, null, request).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         when(rateLimitService.tryConsumeCpoLookup(anyString())).thenReturn(false);
         assertThat(controller.getNearbyStations(52.52, 13.40, null, request).getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
-        verifyNoInteractions(nearbyCpoService);
+        verify(nearbyCpoService, never()).findNearbyStations(anyString());
+        verify(nearbyCpoService, never()).findNearbyStations(anyString(), anyInt());
     }
 
     // ── Textsuche ────────────────────────────────────────────────────────────────
@@ -195,5 +196,45 @@ class ChargingProviderTariffControllerNearbyTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEmpty();
+    }
+
+    /** Das Limit schuetzt das fremde Register: eine Antwort aus dem Cache kostet kein Kontingent. */
+    @Test
+    void gecachteStandorteVerbrauchenKeinKontingent() {
+        when(nearbyCpoService.isStationsCached("u33dc0c", 1_000)).thenReturn(true);
+        when(nearbyCpoService.findNearbyStations("u33dc0c", 1_000)).thenReturn(Optional.of(List.of()));
+
+        ResponseEntity<?> response = controller.getNearbyStations(52.520008, 13.404954, 1_000, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(rateLimitService, never()).tryConsumeCpoLookup(anyString());
+    }
+
+    @Test
+    void ungecachteStandorteVerbrauchenKontingent() {
+        when(nearbyCpoService.isStationsCached("u33dc0c", null)).thenReturn(false);
+        when(nearbyCpoService.findNearbyStations("u33dc0c")).thenReturn(Optional.of(List.of()));
+
+        controller.getNearbyStations(52.520008, 13.404954, null, request);
+
+        verify(rateLimitService).tryConsumeCpoLookup(anyString());
+    }
+
+    @Test
+    void gecachteAnbieterVerbrauchenKeinKontingent() {
+        when(nearbyCpoService.isCposCached("u33dc0c")).thenReturn(true);
+        when(nearbyCpoService.findNearbyCpos("u33dc0c")).thenReturn(Optional.of(List.of("EnBW")));
+
+        controller.getNearbyCpos(52.520008, 13.404954, request);
+
+        verify(rateLimitService, never()).tryConsumeCpoLookup(anyString());
+    }
+
+    /** Ungueltige Koordinaten bleiben 400, auch ohne Kontingent-Abfrage davor. */
+    @Test
+    void ungueltigeKoordinatenSindWeiterBadRequest() {
+        ResponseEntity<?> response = controller.getNearbyStations(91, 13.40, null, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 }

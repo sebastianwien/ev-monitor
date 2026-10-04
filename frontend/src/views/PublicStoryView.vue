@@ -144,7 +144,7 @@ useHead(computed(() => {
   color: rgb(55 65 81);
   line-height: 1.7;
 }
-:global(.dark) .story-prose {
+.dark .story-prose {
   color: rgb(209 213 219);
 }
 .story-prose :deep(h1), .story-prose :deep(h2), .story-prose :deep(h3), .story-prose :deep(h4) {
@@ -152,8 +152,8 @@ useHead(computed(() => {
   color: rgb(17 24 39);
   margin: 1.5em 0 0.5em;
 }
-:global(.dark) .story-prose :deep(h1), :global(.dark) .story-prose :deep(h2),
-:global(.dark) .story-prose :deep(h3), :global(.dark) .story-prose :deep(h4) {
+.dark .story-prose :deep(h1), .dark .story-prose :deep(h2),
+.dark .story-prose :deep(h3), .dark .story-prose :deep(h4) {
   color: rgb(243 244 246);
 }
 .story-prose :deep(h1) { font-size: 1.5rem; }
@@ -176,14 +176,14 @@ useHead(computed(() => {
   border-radius: 0.25rem;
   font-size: 0.875em;
 }
-:global(.dark) .story-prose :deep(code) { background: rgb(31 41 55); }
+.dark .story-prose :deep(code) { background: rgb(31 41 55); }
 .story-prose :deep(table) { border-collapse: collapse; margin: 1em 0; width: 100%; }
 .story-prose :deep(th), .story-prose :deep(td) {
   border: 1px solid rgb(229 231 235);
   padding: 0.4em 0.6em;
   text-align: left;
 }
-:global(.dark) .story-prose :deep(th), :global(.dark) .story-prose :deep(td) {
+.dark .story-prose :deep(th), .dark .story-prose :deep(td) {
   border-color: rgb(55 65 81);
 }
 </style>

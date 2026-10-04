@@ -1,6 +1,5 @@
 import type { LogFormData } from '../log-form/logFormData'
 import type { StationMatch } from '../../composables/useNearbyStations'
-import type { RecentSite } from '../../composables/useRecentSites'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
 
 /** Ort, Zahlen (Energie, Tacho, SoC, Kosten), Prüfen - drei Schritte, drei Taps, drei Zahlen. */
@@ -10,6 +9,22 @@ export const LAST_STEP: WizardStep = 3
 export const INPUT_STEPS = 2
 
 export type PlaceKind = 'home' | 'station' | 'site' | 'other'
+
+/** Ein gespeicherter Ladestandort, an dem der Nutzer schon geladen hat (kommt aus der Sprachaufnahme). */
+export interface RecentSite {
+  id: string
+  name: string
+  cpoName: string | null
+  geohash: string
+  maxAcKw: number | null
+  maxDcKw: number | null
+  chargePoints: number
+  fastCharging: boolean
+  address: string | null
+  plugTypes: string[]
+  lastUsedAt: string
+  usageCount: number
+}
 
 export type PlaceChoice =
   | { kind: 'home' }
@@ -40,21 +55,6 @@ export function canProceed(step: WizardStep, f: LogFormData, state: WizardState)
     case 2: return missingRequired(f).length === 0
     default: return true
   }
-}
-
-/** Der Treffer aus der Umkreissuche gegen die eigenen Logs, wie ihn GET /charging-sites/suggestion liefert. */
-export interface ChargingSuggestion {
-  kind: 'SITE' | 'PRIVATE'
-  site: RecentSite | null
-  lastProviderId: string | null
-}
-
-/** Ein Tap auf die Trefferkarte: Ort wie beim letzten Mal, dazu die Ladekarte von damals. */
-export function applySuggestion(f: LogFormData, s: ChargingSuggestion): PlaceChoice {
-  const choice: PlaceChoice = s.kind === 'SITE' && s.site ? { kind: 'site', site: s.site } : { kind: 'home' }
-  applyPlace(f, choice)
-  f.chargingProviderId = choice.kind === 'site' ? s.lastProviderId : null
-  return choice
 }
 
 /** Die Ortswahl setzt öffentlich/privat, Anbieter und Ladeart in einem Schritt. */

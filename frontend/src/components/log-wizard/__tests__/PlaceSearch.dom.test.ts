@@ -2,6 +2,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createApp, nextTick, type App } from 'vue'
 import { i18n } from '../../../i18n'
+import { createPinia, setActivePinia } from 'pinia'
+import { useAuthStore } from '../../../stores/auth'
 
 vi.mock('../../../api/axios', () => ({ default: { get: vi.fn() } }))
 import api from '../../../api/axios'
@@ -13,7 +15,11 @@ const enbw = { name: 'EnBW', known: true, maxAcKw: null, maxDcKw: 300, fastCharg
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.useRealTimers() })
 
-function mount() {
+function mount(opts: { userId?: string } = {}) {
+  if (opts.userId) {
+    const pinia = createPinia(); setActivePinia(pinia)
+    useAuthStore().user = { userId: opts.userId } as never
+  }
   const host = document.createElement('div')
   document.body.appendChild(host)
   const choose = vi.fn(); const picked = vi.fn()
@@ -90,5 +96,40 @@ describe('PlaceSearch', () => {
     ;(host.querySelector('[data-testid="place-search-address"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
     await vi.runAllTimersAsync(); await nextTick()
     expect(host.querySelector('[data-testid="place-search-no-address"]')).not.toBeNull()
+  })
+
+  it('beim Fokus ins leere Feld: zuletzt gewählte Adressen, ein Tap übernimmt sie', async () => {
+    localStorage.setItem('recent-addresses:u1', JSON.stringify([{ latitude: 52.53, longitude: 13.45, name: 'Storkower Str. 140, Berlin' }]))
+    const { host, picked } = mount({ userId: 'u1' })
+    expect(host.querySelector('[data-testid="place-search-recent"]')).toBeNull()
+    const input = host.querySelector('input') as HTMLInputElement
+    input.dispatchEvent(new Event('focus')); await nextTick()
+    const row = host.querySelector('[data-testid="place-search-recent"]') as HTMLElement
+    expect(row.textContent).toContain('Storkower Str. 140, Berlin')
+    row.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); await nextTick()
+    expect(picked).toHaveBeenCalledWith({ latitude: 52.53, longitude: 13.45, name: 'Storkower Str. 140, Berlin' })
+    expect(input.value).toBe('Storkower Str. 140, Berlin')
+    expect(host.querySelector('[data-testid="place-search-recent"]')).toBeNull()
+  })
+
+  it('eine gewählte Adresse steht beim nächsten Mal oben', async () => {
+    localStorage.clear()
+    vi.mocked(api.get).mockResolvedValue({ data: [] } as never)
+    const { host } = mount({ userId: 'u1' })
+    await type(host, 'Fuchsgraben 1 Lichtenau')
+    ;(host.querySelector('[data-testid="place-search-address"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    await vi.runAllTimersAsync(); await nextTick()
+    ;(host.querySelector('[data-testid="place-search-suggestion"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+    expect(JSON.parse(localStorage.getItem('recent-addresses:u1')!)[0].name).toBe('Am Fuchsgraben, Lichtenau')
+  })
+
+  it('X im Feld leert die Eingabe', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: [] } as never)
+    const { host } = mount()
+    expect(host.querySelector('[data-testid="place-search-clear"]')).toBeNull()
+    await type(host, 'Storkower')
+    ;(host.querySelector('[data-testid="place-search-clear"]') as HTMLElement).click(); await nextTick()
+    expect((host.querySelector('input') as HTMLInputElement).value).toBe('')
+    expect(host.querySelector('[data-testid="place-search-clear"]')).toBeNull()
   })
 })

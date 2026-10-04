@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  emptyLogForm, canProceed, applyPlace, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, applySuggestion, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
+  emptyLogForm, canProceed, applyPlace, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
 } from '../wizardLogic'
 import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
@@ -35,28 +35,6 @@ describe('canProceed', () => {
   })
 })
 
-describe('applySuggestion', () => {
-  const site = { id: 's1', name: 'EnBW Kaufland', cpoName: 'EnBW', geohash: 'u33dc0c', maxAcKw: null, maxDcKw: 150, chargePoints: 4,
-    fastCharging: true, address: null, plugTypes: ['CCS'], lastUsedAt: '2026-09-24T10:00:00', usageCount: 7 }
-
-  it('übernimmt den Standort samt Ladekarte vom letzten Mal', () => {
-    const f = emptyLogForm()
-    const choice = applySuggestion(f, { kind: 'SITE', site, lastProviderId: 'card-1' })
-    expect(choice.kind).toBe('site')
-    expect(f.isPublicCharging).toBe(true)
-    expect(f.chargingType).toBe('DC')
-    expect(f.chargingSite).toEqual({ name: 'EnBW Kaufland', geohash: 'u33dc0c' })
-    expect(f.chargingProviderId).toBe('card-1')
-  })
-
-  it('privater Anschluss ist Zuhause ohne Ladekarte', () => {
-    const f = emptyLogForm(); f.chargingProviderId = 'stale'
-    const choice = applySuggestion(f, { kind: 'PRIVATE', site: null, lastProviderId: null })
-    expect(choice.kind).toBe('home')
-    expect(f.isPublicCharging).toBe(false)
-    expect(f.chargingProviderId).toBeNull()
-  })
-})
 describe('applyPlace', () => {
   it('Zuhause ist privat und AC', () => {
     const f = emptyLogForm()

@@ -11,12 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ChargingSiteControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
-    void suggestionRequiresAuthentication() {
-        ResponseEntity<String> response = restTemplate.getForEntity("/api/charging-sites/suggestion?lat=52.52&lon=13.4", String.class);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-    }
-
-    @Test
     void recentSitesRequireAuthentication() {
         ResponseEntity<String> response = restTemplate.getForEntity("/api/charging-sites/recent", String.class);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());

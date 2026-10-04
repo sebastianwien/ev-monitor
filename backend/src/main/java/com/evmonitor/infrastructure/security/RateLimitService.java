@@ -60,7 +60,8 @@ public class RateLimitService {
             .refillIntervally(60, Duration.ofHours(1))
             .build();
 
-    // 60 CPO-Umkreisabfragen pro Stunde und IP. Reicht fuer das Eintragen von Ladungen,
+    // 60 CPO-Umkreisabfragen pro Stunde und IP, gezaehlt nur ohne Cache-Treffer (die erreichen das
+    // Register nicht). Reicht fuer das Eintragen von Ladungen,
     // verhindert aber, den Endpunkt als kostenlosen Proxy auf das Ladesaeulenregister zu nutzen.
     private static final Bandwidth CPO_LOOKUP_LIMIT = Bandwidth.builder()
             .capacity(60)

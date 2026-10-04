@@ -29,4 +29,11 @@ describe('nextField', () => {
     const c = document.getElementById('c')!
     expect(nextField(c, document.getElementById('a')!)?.id).toBe('b')
   })
+
+  it('Ausweichfelder (Preis je kWh neben dem Gesamtbetrag) überspringt Enter, aus ihnen geht es normal weiter', () => {
+    document.body.innerHTML = '<div id="c"><input id="cost" type="number"><input id="alt" type="number" data-enter-skip><input id="b" type="number"></div>'
+    const c = document.getElementById('c')!
+    expect(nextField(c, document.getElementById('cost')!)?.id).toBe('b')
+    expect(nextField(c, document.getElementById('alt')!)?.id).toBe('b')
+  })
 })

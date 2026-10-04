@@ -166,6 +166,10 @@ html {
   box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
 }
 
+/* Dark Mode: heller Bodenschatten für die ganze 3D-Familie. Elemente mit eigener
+   --btn-shadow-color (Ladekarten, Banner) überschreiben ihn wie gehabt. */
+.dark { --btn-shadow-color: rgba(255, 255, 255, 0.30); }
+
 /* Global 3D press effect */
 .btn-3d {
   box-shadow: 4px 4px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));

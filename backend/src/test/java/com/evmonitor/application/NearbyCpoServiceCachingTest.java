@@ -50,9 +50,9 @@ class NearbyCpoServiceCachingTest {
         }
 
         @Bean
-        NearbyCpoService nearbyCpoService(ChargingStationRegistryClient registry) {
+        NearbyCpoService nearbyCpoService(ChargingStationRegistryClient registry, ConcurrentMapCacheManager cacheManager) {
             return new NearbyCpoService(registry,
-                    new CpoRegistryMatcher(List.of("Allego"), Map.of()), 250);
+                    new CpoRegistryMatcher(List.of("Allego"), Map.of()), 250, cacheManager);
         }
     }
 
@@ -143,5 +143,34 @@ class NearbyCpoServiceCachingTest {
         assertThat(service.findNearbyStations("u33dc0g")).isPresent();
 
         verify(registry, times(2)).findStationsNearby(anyDouble(), anyDouble(), anyInt());
+    }
+
+    /** Grundlage der Drosselung: nur Antworten, die das Register nicht mehr fragen, sind kostenlos. */
+    @Test
+    void weissObEineAntwortSchonImCacheLiegt() {
+        reset(registry);
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.of(List.of()));
+
+        assertThat(service.isStationsCached("u33dc0q", null)).isFalse();
+        service.findNearbyStations("u33dc0q");
+        service.findNearbyStations("u33dc0q", 1_000);
+        service.findNearbyCpos("u33dc0q");
+
+        assertThat(service.isStationsCached("u33dc0q", null)).isTrue();
+        assertThat(service.isStationsCached("u33dc0q", 1_000)).isTrue();
+        assertThat(service.isStationsCached("u33dc0q", 2_500)).isFalse();
+        assertThat(service.isCposCached("u33dc0q")).isTrue();
+        assertThat(service.isCposCached("u33dc0r")).isFalse();
+    }
+
+    /** Ein Ausfall landet nicht im Cache - der naechste Versuch fragt das Register und kostet wieder. */
+    @Test
+    void ausfallGiltNichtAlsGecacht() {
+        reset(registry);
+        when(registry.findStationsNearby(anyDouble(), anyDouble(), anyInt())).thenReturn(Optional.empty());
+
+        service.findNearbyStations("u33dc0s", 1_000);
+
+        assertThat(service.isStationsCached("u33dc0s", 1_000)).isFalse();
     }
 }

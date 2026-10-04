@@ -48,8 +48,11 @@
 
         <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
         <StepPlace v-else-if="section === 'place'" :place="place" :selected-cpo="formData.cpoName" :selected-site="formData.chargingSite"
-          :stations="[]" :stations-loading="false" permission="unavailable" location-status="idle"
-          :recent-cpos="[]" :recent-sites="recentSites.sites.value" :all-cpos="cpo.allCpos.value" @choose="choosePlace" @place-picked="onPlacePicked">
+          :stations="nearby.stations.value" :stations-loading="nearby.loading.value" permission="unavailable" :location-status="locationStatus"
+          :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value" :next-radius="nearby.nextRadius.value" :exhausted="nearby.exhausted.value"
+          :latitude="formData.latitude" :longitude="formData.longitude" :stored-place="!!log.geohash"
+          :address-label="pickedAddress" @choose="choosePlace" @place-picked="onPlacePicked"
+          @expand-radius="nearby.expand()">
         </StepPlace>
         <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
         <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
@@ -108,6 +111,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import type { PickedPlace } from '../../composables/useLocationSearch'
 import { XMarkIcon, ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
 import BottomSheet from '../shared/BottomSheet.vue'
@@ -117,7 +121,6 @@ import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
 import { useCountryStore } from '../../stores/country'
-import { useCpoOptions } from '../../composables/useCpoOptions'
 import { useCostInput } from '../../composables/useCostInput'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversions'
@@ -126,7 +129,7 @@ import { buildLogUpdatePayload, missingRequired, applyPlace, type PlaceChoice, t
 import LogSummary, { type SummarySection } from '../log-wizard/LogSummary.vue'
 import BigInput from '../log-wizard/BigInput.vue'
 import StepPlace from '../log-wizard/StepPlace.vue'
-import { useRecentSites } from '../../composables/useRecentSites'
+import { useNearbyStations } from '../../composables/useNearbyStations'
 import StepEnergy from '../log-wizard/StepEnergy.vue'
 import StepVehicle from '../log-wizard/StepVehicle.vue'
 import StepCost from '../log-wizard/StepCost.vue'
@@ -244,20 +247,26 @@ const odometerLocal = computed({
   set: (v) => { formData.value.odometerKm = v == null ? null : odometerLocalToKm(v, usesMiles.value) },
 })
 
-const cpo = useCpoOptions(computed(() => countryStore.country))
-const recentSites = useRecentSites()
+// Säulen im Umkreis einer neu gewählten Adresse - wie im Wizard
+const nearby = useNearbyStations()
+const locationStatus = ref<'idle' | 'success'>('idle')
 const providers = ref<ChargingProvider[]>([])
 onMounted(() => {
-  recentSites.load()
-  cpo.loadAll().then(() => cpo.keepSelected(formData.value.cpoName))
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
 })
 
 const place = computed<PlaceKind | null>(() => !formData.value.isPublicCharging ? 'home' : formData.value.chargingSite ? 'site' : 'other')
-const placeLabel = computed(() => formData.value.isPublicCharging
-  ? (formData.value.cpoName ?? t('logwizard.place_other'))
-  : t('logwizard.place_home'))
-const choosePlace = (choice: PlaceChoice) => { applyPlace(formData.value, choice) }
+// Per Suche gewählte Adresse: muss nach "Fertig" in der Übersicht stehen, sonst wirkt sie verworfen
+const pickedName = ref<string | null>(null)
+// Die gewählte Adresse selbst: Untertitel von "Hier privat", auch wenn danach eine Säule gewählt wurde
+const pickedAddress = ref<string | null>(null)
+const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCharging
+  ? (formData.value.cpoName ?? t('logwizard.place_public'))
+  : t('logwizard.place_private')))
+const choosePlace = (choice: PlaceChoice) => {
+  if (choice.kind === 'station' || choice.kind === 'site') pickedName.value = null
+  applyPlace(formData.value, choice)
+}
 
 const onOcr = (r: any) => {
   if (r.kwh != null) { formData.value.kwhCharged = r.kwh; formData.value.kwhAtVehicle = null }
@@ -274,9 +283,13 @@ const isFormValid = computed(() => {
   return hasEnergy && f.costEur != null
 })
 
-const onPlacePicked = (p: { latitude: number; longitude: number }) => {
+const onPlacePicked = async (p: PickedPlace) => {
+  pickedName.value = p.name
+  pickedAddress.value = p.name
   formData.value.latitude = p.latitude
   formData.value.longitude = p.longitude
+  locationStatus.value = 'success'
+  await nearby.load(p.latitude, p.longitude)
 }
 
 async function save() {

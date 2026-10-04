@@ -36,7 +36,7 @@ class NearbyCpoServiceTest {
         CpoRegistryMatcher matcher = new CpoRegistryMatcher(
                 List.of("Allego", "IONITY", "EnBW"),
                 Map.of("enbw mobility+ ag und co.kg", "EnBW"));
-        service = new NearbyCpoService(registry, matcher, 250);
+        service = new NearbyCpoService(registry, matcher, 250, new org.springframework.cache.concurrent.ConcurrentMapCacheManager());
     }
 
     /** Nicht die Nutzerposition, sondern der Zellmittelpunkt geht an den fremden Dienst. */

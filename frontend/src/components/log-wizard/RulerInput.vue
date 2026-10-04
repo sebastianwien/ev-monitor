@@ -216,5 +216,5 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
 <style scoped>
 .ruler { scrollbar-width: none; --ruler-tick: #9ca3af; --ruler-text: #6b7280; }
 .ruler::-webkit-scrollbar { display: none; }
-:global(.dark) .ruler { --ruler-tick: #6b7180; --ruler-text: #9aa0b0; }
+.dark .ruler { --ruler-tick: #6b7180; --ruler-text: #9aa0b0; }
 </style>

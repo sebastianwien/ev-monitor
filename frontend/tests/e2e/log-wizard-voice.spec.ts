@@ -8,7 +8,8 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements'
  * iOS-Safari (MP4-Aufnahme) bleibt Handarbeit am Gerät.
  */
 test.skip(({ browserName }) => browserName !== 'chromium', 'Fake-Mikrofon gibt es nur in Chromium')
-test.use({ permissions: ['microphone'], launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] } })
+// Mit Position: "Hier privat" gibt es nur mit Ort
+test.use({ geolocation: { latitude: 52.5342, longitude: 13.4516 }, permissions: ['microphone', 'geolocation'], launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] } })
 
 const b64url = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
 const now = Math.floor(Date.now() / 1000)
@@ -96,12 +97,12 @@ test('Server versteht nichts: Hinweis am Mikrofon, Wizard bleibt in Schritt 1', 
   await page.waitForTimeout(800)
   await mic.click()
   await expect(page.getByTestId('voice-status')).toContainText('Nichts verstanden')
-  await expect(page.getByTestId('place-home')).toBeVisible()
+  await expect(page.getByTestId('place-here')).toBeVisible()
 })
 
 test('Nicht-Admins sehen kein Mikrofon', async ({ page }) => {
   await open(page, 'USER')
   await page.goto('/erfassen')
-  await expect(page.getByTestId('place-home')).toBeVisible()
+  await expect(page.getByTestId('place-here')).toBeVisible()
   await expect(page.getByTestId('voice-mic')).toHaveCount(0)
 })
