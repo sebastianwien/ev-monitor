@@ -5,7 +5,7 @@ import com.evmonitor.domain.ChargingSiteRepository;
 import com.evmonitor.domain.ChargingSiteSource;
 import com.evmonitor.domain.ChargingSiteUsage;
 import com.evmonitor.domain.EvLogRepository;
-import com.evmonitor.domain.PrivateCellCount;
+import com.evmonitor.domain.KnownCell;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +15,14 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Ladestandorte entstehen nur aus Saeulen, die das Register im Umkreis dieser Zelle fuehrt.
@@ -32,16 +37,12 @@ import java.util.UUID;
 public class ChargingSiteService {
 
     static final int RECENT_LIMIT = 5;
-    /** So viele Standorte werden fuer den Treffer verglichen - mehr als der Nutzer je anfaehrt. */
-    static final int SUGGESTION_CANDIDATES = 30;
+    /** So viele bekannte Orte liest der Wizard - mehr als ein Nutzer je unterscheidet. */
+    static final int KNOWN_LIMIT = 50;
     /** Zelle eines Standorts hat 7 Stellen (~150 m): bis hierhin "steht er dort". */
     static final double SITE_MATCH_METERS = 300;
     /** Private Zelle hat 6 Stellen (~1,2 x 0,6 km): Mittelpunkt bis Ecke sind rund 670 m. */
     static final double PRIVATE_MATCH_METERS = 800;
-    /** Ab wie vielen privaten Ladungen in einer Zelle sie als "sein Anschluss" gilt ... */
-    static final int PRIVATE_MIN_LOGS = 5;
-    /** ... und welchen Anteil an allen privaten Ladungen sie dafuer haben muss (Annahme, nicht gemessen). */
-    static final double PRIVATE_MIN_SHARE = 0.6;
 
     private static final double EARTH_RADIUS_M = 6_371_000;
 
@@ -49,6 +50,7 @@ public class ChargingSiteService {
     private final NearbyCpoService nearbyCpoService;
     private final RateLimitService rateLimitService;
     private final EvLogRepository evLogRepository;
+    private final PlaceNameService placeNameService;
 
     public Optional<ChargingSite> resolve(UUID userId, ChargingSiteRef ref) {
         if (ref == null) return Optional.empty();
@@ -77,33 +79,42 @@ public class ChargingSiteService {
     }
 
     /**
-     * Steht der Nutzer an einem Ort, an dem er schon geladen hat? Ein bekannter oeffentlicher
-     * Standort gewinnt vor der privaten Zelle, weil er die praezisere Aussage ist. Nichts davon
-     * wird gespeichert, es sind nur die eigenen Logs. Nutzer ohne Logs mit Zelle bekommen nie
-     * einen Vorschlag - sie waehlen wie bisher aus der Liste.
+     * Die Orte, an denen der Nutzer schon geladen hat: jede Zelle aus den eigenen Logs, haeufigste
+     * zuerst. Register-Saeulen werden in einem Zugriff angereichert, Orte ohne Saeule bekommen den
+     * Ortsteil aus dem Geocoder. Mit Position stehen die Orte "hier" vorn, darunter die Saeule vor
+     * der privaten Zelle. Nichts davon wird gespeichert.
      */
-    public Optional<ChargingSuggestion> suggest(UUID userId, double lat, double lon) {
-        WGS84Point here = new WGS84Point(lat, lon);
-        Optional<ChargingSiteUsage> site = repository.findRecentlyUsedByUser(userId, SUGGESTION_CANDIDATES).stream()
-                .filter(u -> distanceMeters(here, u.site().geohash()) <= SITE_MATCH_METERS)
-                .findFirst();
-        if (site.isPresent()) {
-            UUID provider = evLogRepository.findMostRecentChargingProviderAtGeohash(userId, site.get().site().geohash(), true)
-                    .orElse(null);
-            return Optional.of(ChargingSuggestion.site(site.get(), provider));
+    public List<KnownPlace> knownPlaces(UUID userId, Position at) {
+        List<KnownCell> cells = evLogRepository.findKnownCells(userId, KNOWN_LIMIT);
+        List<UUID> siteIds = cells.stream().map(KnownCell::chargingSiteId).filter(Objects::nonNull).distinct().toList();
+        Map<UUID, ChargingSite> sites = siteIds.isEmpty() ? Map.of()
+                : repository.findAllById(siteIds).stream().collect(Collectors.toMap(ChargingSite::id, s -> s));
+        List<KnownPlace> places = new ArrayList<>();
+        for (KnownCell cell : cells) {
+            ChargingSite site = cell.chargingSiteId() == null ? null : sites.get(cell.chargingSiteId());
+            String name = site == null ? placeNameService.nameFor(cell.geohash()).orElse(null) : null;
+            KnownPlace place = new KnownPlace(cell, site, name, null, false);
+            if (at != null) {
+                int d = (int) Math.round(distanceMeters(new WGS84Point(at.lat(), at.lon()), cell.geohash()));
+                place = place.withPosition(d, d <= (cell.isPublic() ? SITE_MATCH_METERS : PRIVATE_MATCH_METERS));
+            }
+            places.add(place);
         }
-        return privateCell(evLogRepository.countPrivateLogsByCell(userId))
-                .filter(cell -> distanceMeters(here, cell) <= PRIVATE_MATCH_METERS)
-                .map(cell -> ChargingSuggestion.privateCell());
+        places.sort(BY_RELEVANCE);
+        return places;
     }
 
-    /** Die dominante private Zelle: genug Ladungen und klar die haeufigste, sonst keine. */
-    static Optional<String> privateCell(List<PrivateCellCount> counts) {
-        if (counts.isEmpty()) return Optional.empty();
-        long total = counts.stream().mapToLong(PrivateCellCount::count).sum();
-        PrivateCellCount top = counts.stream().max(java.util.Comparator.comparingLong(PrivateCellCount::count)).orElseThrow();
-        if (top.count() < PRIVATE_MIN_LOGS || (double) top.count() / total < PRIVATE_MIN_SHARE) return Optional.empty();
-        return Optional.of(top.cell());
+    /** Hier zuerst (Saeule vor Zelle, oeffentlich vor privat), dann nach Haeufigkeit, dann die juengste. */
+    private static final Comparator<KnownPlace> BY_RELEVANCE = Comparator
+            .comparing(KnownPlace::here).reversed()
+            .thenComparing(p -> p.here() && p.site() != null, Comparator.reverseOrder())
+            .thenComparing(p -> p.here() && p.cell().isPublic(), Comparator.reverseOrder())
+            .thenComparing(p -> p.cell().usageCount(), Comparator.reverseOrder())
+            .thenComparing(p -> p.cell().lastUsedAt(), Comparator.nullsLast(Comparator.reverseOrder()));
+
+    /** Steht der Nutzer an einem Ort, an dem er schon geladen hat? Der erste Treffer "hier", sonst nichts. */
+    public Optional<KnownPlace> suggest(UUID userId, double lat, double lon) {
+        return knownPlaces(userId, new Position(lat, lon)).stream().filter(KnownPlace::here).findFirst();
     }
 
     private static double distanceMeters(WGS84Point from, String geohash) {

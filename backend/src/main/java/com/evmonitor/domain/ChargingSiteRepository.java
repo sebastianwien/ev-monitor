@@ -13,4 +13,7 @@ public interface ChargingSiteRepository {
 
     /** Standorte, an denen der Nutzer geladen hat, zuletzt genutzte zuerst. */
     List<ChargingSiteUsage> findRecentlyUsedByUser(UUID userId, int limit);
+
+    /** Standorte zu diesen IDs in einem Zugriff - zum Anreichern der bekannten Orte. */
+    List<ChargingSite> findAllById(java.util.Collection<UUID> ids);
 }

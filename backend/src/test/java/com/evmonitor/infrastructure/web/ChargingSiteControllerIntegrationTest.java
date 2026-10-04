@@ -17,6 +17,12 @@ class ChargingSiteControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void knownPlacesRequireAuthentication() {
+        ResponseEntity<String> response = restTemplate.getForEntity("/api/charging-sites/known", String.class);
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+    }
+
+    @Test
     void recentSitesRequireAuthentication() {
         ResponseEntity<String> response = restTemplate.getForEntity("/api/charging-sites/recent", String.class);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());

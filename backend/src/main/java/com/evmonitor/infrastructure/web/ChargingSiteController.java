@@ -1,7 +1,8 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.ChargingSiteService;
-import com.evmonitor.application.ChargingSuggestion;
+import com.evmonitor.application.KnownPlace;
+import com.evmonitor.application.Position;
 import com.evmonitor.domain.ChargingSiteUsage;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -32,25 +33,51 @@ public class ChargingSiteController {
     }
 
     /**
-     * Der Vorschlag fuer den Ortsschritt: steht der Nutzer an einem Ort, an dem er schon geladen
-     * hat? Die Koordinaten werden nur mit den eigenen Logs verglichen, nie gespeichert und nie
-     * an einen Fremddienst gegeben. Kein Treffer ist 204 - fuer den Wizard dasselbe wie "Liste zeigen".
+     * Die Orte, an denen der Nutzer schon geladen hat, fuer den Ortsschritt: haeufigste zuerst, mit
+     * Position die Orte "hier" vorn samt Entfernung. Die Koordinaten werden nur mit den eigenen Logs
+     * verglichen, nie gespeichert; an den Geocoder geht nur die Mitte einer Zelle aus den eigenen Logs.
+     */
+    @GetMapping("/known")
+    public ResponseEntity<List<KnownPlaceResponse>> known(@RequestParam(required = false) Double lat,
+                                                          @RequestParam(required = false) Double lon,
+                                                          Authentication authentication) {
+        Position at = null;
+        if (lat != null || lon != null) {
+            if (lat == null || lon == null || !Position.onEarth(lat, lon)) return ResponseEntity.badRequest().build();
+            at = new Position(lat, lon);
+        }
+        UUID userId = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
+        return ResponseEntity.ok(chargingSiteService.knownPlaces(userId, at).stream().map(KnownPlaceResponse::from).toList());
+    }
+
+    /**
+     * Der Ort "hier" allein: steht der Nutzer an einem Ort, an dem er schon geladen hat? Kein
+     * Treffer ist 204 - fuer den Aufrufer dasselbe wie "Liste zeigen".
      */
     @GetMapping("/suggestion")
-    public ResponseEntity<SuggestionResponse> suggestion(@RequestParam double lat, @RequestParam double lon,
+    public ResponseEntity<KnownPlaceResponse> suggestion(@RequestParam double lat, @RequestParam double lon,
                                                          Authentication authentication) {
-        if (Double.isNaN(lat) || Double.isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+        if (!Position.onEarth(lat, lon)) {
             return ResponseEntity.badRequest().build();
         }
         UUID userId = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
         return chargingSiteService.suggest(userId, lat, lon)
-                .map(s -> ResponseEntity.ok(SuggestionResponse.from(s)))
+                .map(p -> ResponseEntity.ok(KnownPlaceResponse.from(p)))
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
-    public record SuggestionResponse(ChargingSuggestion.Kind kind, RecentChargingSiteResponse site, UUID lastProviderId) {
-        static SuggestionResponse from(ChargingSuggestion s) {
-            return new SuggestionResponse(s.kind(), s.site() == null ? null : RecentChargingSiteResponse.from(s.site()), s.lastProviderId());
+    /**
+     * @param placeName Ortsteil fuer Orte ohne Saeule, null wenn unbekannt (Frontend zeigt dann Anbieter oder "Privat")
+     * @param lastProviderId Ladekarte der letzten Ladung dort, null ohne Karte
+     */
+    public record KnownPlaceResponse(String geohash, boolean isPublic, long usageCount, LocalDateTime lastUsedAt,
+                                     String cpoName, UUID lastProviderId, String placeName,
+                                     RecentChargingSiteResponse site, Integer distanceMeters, boolean here) {
+        static KnownPlaceResponse from(KnownPlace p) {
+            var c = p.cell();
+            var site = p.site() == null ? null : RecentChargingSiteResponse.from(new ChargingSiteUsage(p.site(), c.lastUsedAt(), c.usageCount()));
+            return new KnownPlaceResponse(c.geohash(), c.isPublic(), c.usageCount(), c.lastUsedAt(), c.cpoName(),
+                    c.lastProviderId(), p.placeName(), site, p.distanceMeters(), p.here());
         }
     }
 

@@ -57,6 +57,11 @@ public class PostgresChargingSiteRepositoryImpl implements ChargingSiteRepositor
                 .toList();
     }
 
+    @Override
+    public List<ChargingSite> findAllById(java.util.Collection<UUID> ids) {
+        return jpa.findAllById(ids).stream().map(this::toDomain).toList();
+    }
+
     private ChargingSite toDomain(ChargingSiteEntity e) {
         var register = new ChargingSite.RegisterDetails(e.getRegisterId(), e.getStreet(), e.getHouseNumber(),
                 e.getPostalCode(), e.getCity(),

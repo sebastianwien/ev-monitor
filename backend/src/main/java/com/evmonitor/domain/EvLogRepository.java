@@ -223,10 +223,10 @@ public interface EvLogRepository {
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash, boolean isPublic);
 
     /**
-     * Private Ladungen des Nutzers je 6-stelliger Zelle, haeufigste zuerst - daraus leitet der
-     * Wizard "du stehst an deinem privaten Anschluss" ab, ohne einen Heimatort zu speichern.
+     * Alle Zellen, in denen der Nutzer schon geladen hat (ueber alle seine Autos), haeufigste
+     * zuerst - die "bekannten Orte" des Wizards. Nur eigene, nicht geloeschte Logs mit Zelle.
      */
-    List<PrivateCellCount> countPrivateLogsByCell(UUID userId);
+    List<KnownCell> findKnownCells(UUID userId, int limit);
 
     /**
      * All logs of this user at exactly this geohash that still have no cost.

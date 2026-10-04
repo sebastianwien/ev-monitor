@@ -295,17 +295,22 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("isPublic") boolean isPublic,
             org.springframework.data.domain.Pageable pageable);
 
-    /** Private Ladungen je 6-stelliger Zelle, haeufigste zuerst: [cell, count]. */
-    @Query("""
-        SELECT SUBSTRING(e.geohash, 1, 6), COUNT(e)
-        FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
-        WHERE c.userId = :userId
-          AND COALESCE(e.publicCharging, false) = false
-          AND e.geohash IS NOT NULL
-        GROUP BY SUBSTRING(e.geohash, 1, 6)
-        ORDER BY COUNT(e) DESC
-        """)
-    List<Object[]> countPrivateLogsByCell(@Param("userId") UUID userId);
+    /**
+     * Zellen, in denen der Nutzer geladen hat, haeufigste zuerst: [geohash, isPublic, count, lastUsedAt,
+     * cpoName der letzten Ladung, chargingSiteId der letzten Ladung, letzte Ladekarte].
+     */
+    @Query(value = """
+        SELECT l.geohash, COALESCE(l.is_public_charging, false), COUNT(*), MAX(l.logged_at),
+               (array_agg(l.cpo_name ORDER BY l.logged_at DESC) FILTER (WHERE l.cpo_name IS NOT NULL))[1],
+               (array_agg(l.charging_site_id ORDER BY l.logged_at DESC) FILTER (WHERE l.charging_site_id IS NOT NULL))[1],
+               (array_agg(l.charging_provider_id ORDER BY l.logged_at DESC) FILTER (WHERE l.charging_provider_id IS NOT NULL))[1]
+        FROM ev_log l JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
+        WHERE c.user_id = :userId AND l.deleted_at IS NULL AND l.geohash IS NOT NULL
+        GROUP BY l.geohash, COALESCE(l.is_public_charging, false)
+        ORDER BY COUNT(*) DESC, MAX(l.logged_at) DESC
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Object[]> findKnownCells(@Param("userId") UUID userId, @Param("limit") int limit);
 
     @Query("""
         SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL

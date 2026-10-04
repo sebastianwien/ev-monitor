@@ -3,9 +3,8 @@ package com.evmonitor.application;
 import com.evmonitor.domain.ChargingSite;
 import com.evmonitor.domain.ChargingSiteRepository;
 import com.evmonitor.domain.ChargingSiteSource;
-import com.evmonitor.domain.ChargingSiteUsage;
 import com.evmonitor.domain.EvLogRepository;
-import com.evmonitor.domain.PrivateCellCount;
+import com.evmonitor.domain.KnownCell;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -35,6 +35,7 @@ class ChargingSiteServiceTest {
     private NearbyCpoService nearby;
     private RateLimitService rateLimit;
     private EvLogRepository evLogs;
+    private PlaceNameService placeNames;
     private ChargingSiteService service;
     private final UUID userId = UUID.randomUUID();
 
@@ -45,9 +46,10 @@ class ChargingSiteServiceTest {
         rateLimit = mock(RateLimitService.class);
         evLogs = mock(EvLogRepository.class);
         when(rateLimit.tryConsumeCpoLookup(any())).thenReturn(true);
-        when(evLogs.findMostRecentChargingProviderAtGeohash(any(), any(), anyBoolean())).thenReturn(Optional.empty());
-        when(evLogs.countPrivateLogsByCell(any())).thenReturn(List.of());
-        service = new ChargingSiteService(repository, nearby, rateLimit, evLogs);
+        placeNames = mock(PlaceNameService.class);
+        when(evLogs.findKnownCells(any(), anyInt())).thenReturn(List.of());
+        when(placeNames.nameFor(any())).thenReturn(Optional.empty());
+        service = new ChargingSiteService(repository, nearby, rateLimit, evLogs, placeNames);
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -164,59 +166,98 @@ class ChargingSiteServiceTest {
 
     /** Mittelpunkt der Zelle u33dc0c (Berlin, Alexanderplatz). */
     private static final double LAT = 52.5195, LON = 13.4054;
+    private static final LocalDateTime T0 = LocalDateTime.of(2026, 9, 27, 18, 0);
 
-    private static ChargingSiteUsage usage(String name, String geohash, long count) {
-        return new ChargingSiteUsage(new ChargingSite(UUID.randomUUID(), name, name, geohash, null, new BigDecimal("150"), 2,
-                ChargingSiteSource.REGISTER, ChargingSite.RegisterDetails.NONE, LocalDateTime.now()), LocalDateTime.now(), count);
+    private static ChargingSite site(String name, String geohash) {
+        return new ChargingSite(UUID.randomUUID(), name, name, geohash, null, new BigDecimal("150"), 2,
+                ChargingSiteSource.REGISTER, ChargingSite.RegisterDetails.NONE, LocalDateTime.now());
+    }
+
+    private static KnownCell publicCell(String geohash, long count, UUID siteId) {
+        return new KnownCell(geohash, true, count, T0.minusDays(count), "EnBW", siteId, null);
+    }
+
+    private static KnownCell privateCell(String geohash, long count) {
+        return new KnownCell(geohash, false, count, T0.minusDays(count), null, null, null);
+    }
+
+    private void cells(KnownCell... cells) {
+        when(evLogs.findKnownCells(eq(userId), anyInt())).thenReturn(List.of(cells));
     }
 
     @Test
-    void schlaegtDenBekanntenStandortVorAnDemDerNutzerSteht() {
-        UUID card = UUID.randomUUID();
-        when(repository.findRecentlyUsedByUser(userId, ChargingSiteService.SUGGESTION_CANDIDATES))
-                .thenReturn(List.of(usage("IONITY Feuchtwangen", "u0zpr5p", 2), usage("EnBW Alexanderplatz", CELL, 7)));
-        when(evLogs.findMostRecentChargingProviderAtGeohash(userId, CELL, true)).thenReturn(Optional.of(card));
+    void bekannteOrteOhnePositionNachHaeufigkeitOhneEntfernung() {
+        cells(privateCell("u33dc0", 3), publicCell("u0zpr5p", 9, null));
 
-        ChargingSuggestion s = service.suggest(userId, LAT, LON).orElseThrow();
+        List<KnownPlace> places = service.knownPlaces(userId, null);
 
-        assertThat(s.kind()).isEqualTo(ChargingSuggestion.Kind.SITE);
-        assertThat(s.site().site().name()).isEqualTo("EnBW Alexanderplatz");
-        assertThat(s.lastProviderId()).isEqualTo(card);
+        assertThat(places).extracting(p -> p.cell().usageCount()).containsExactly(9L, 3L);
+        assertThat(places).allSatisfy(p -> { assertThat(p.distanceMeters()).isNull(); assertThat(p.here()).isFalse(); });
     }
 
     @Test
-    void ohneBekanntenStandortInDerNaeheKeinVorschlag() {
-        when(repository.findRecentlyUsedByUser(userId, ChargingSiteService.SUGGESTION_CANDIDATES))
-                .thenReturn(List.of(usage("IONITY Feuchtwangen", "u0zpr5p", 2)));
+    void reichertSaeulenInEinemZugriffAnUndFragtDenGeocoderNurFuerOrteOhneSaeule() {
+        ChargingSite enbw = site("EnBW Alexanderplatz", CELL);
+        cells(publicCell(CELL, 7, enbw.id()), privateCell("u33dc0", 3));
+        when(repository.findAllById(List.of(enbw.id()))).thenReturn(List.of(enbw));
+        when(placeNames.nameFor("u33dc0")).thenReturn(Optional.of("Mitte"));
 
-        assertThat(service.suggest(userId, LAT, LON)).isEmpty();
+        List<KnownPlace> places = service.knownPlaces(userId, null);
+
+        assertThat(places.get(0).site()).isEqualTo(enbw);
+        assertThat(places.get(0).placeName()).isNull();
+        assertThat(places.get(1).placeName()).isEqualTo("Mitte");
+        verify(placeNames, never()).nameFor(CELL);
     }
 
     @Test
-    void privateZelleGiltNurMitGenugUndKlarDominantenLadungen() {
-        assertThat(ChargingSiteService.privateCell(List.of())).isEmpty();
-        assertThat(ChargingSiteService.privateCell(List.of(new PrivateCellCount("u33dc0", 4)))).isEmpty();
-        assertThat(ChargingSiteService.privateCell(List.of(new PrivateCellCount("u33dc0", 5), new PrivateCellCount("u0zpr5", 5)))).isEmpty();
-        assertThat(ChargingSiteService.privateCell(List.of(new PrivateCellCount("u33dc0", 9), new PrivateCellCount("u0zpr5", 3)))).contains("u33dc0");
+    void mitPositionStehtDerOrtHierZuerstDanachNachHaeufigkeit() {
+        // Alexanderplatz: private Zelle u33dc0 (hier), oeffentliche Zelle in Feuchtwangen (haeufiger, weit weg)
+        cells(publicCell("u0zpr5p", 20, null), privateCell("u33dc0", 3), publicCell("u33dc0c", 1, null));
+
+        List<KnownPlace> places = service.knownPlaces(userId, new Position(LAT, LON));
+
+        assertThat(places).extracting(p -> p.cell().geohash()).containsExactly("u33dc0c", "u33dc0", "u0zpr5p");
+        assertThat(places.get(0).here()).isTrue();
+        assertThat(places.get(1).here()).isTrue();
+        assertThat(places.get(2).here()).isFalse();
+        assertThat(places.get(2).distanceMeters()).isGreaterThan(100_000);
     }
 
     @Test
-    void schlaegtDenPrivatenAnschlussVorWennDerNutzerInSeinerZelleSteht() {
-        when(repository.findRecentlyUsedByUser(userId, ChargingSiteService.SUGGESTION_CANDIDATES)).thenReturn(List.of());
-        when(evLogs.countPrivateLogsByCell(userId)).thenReturn(List.of(new PrivateCellCount("u33dc0", 12)));
+    void hierGiltBeiOeffentlicherZelleBis300MeternBeiPrivaterBis800Metern() {
+        // u33dc0c Mitte ist (LAT, LON); 500 m noerdlich liegt noch in der privaten 6er-Zelle, nicht mehr in der 7er
+        cells(publicCell("u33dc0c", 2, null), privateCell("u33dc0", 2));
 
-        assertThat(service.suggest(userId, LAT, LON)).map(ChargingSuggestion::kind).contains(ChargingSuggestion.Kind.PRIVATE);
-        // Muenchen liegt nicht in der Berliner Zelle
+        List<KnownPlace> places = service.knownPlaces(userId, new Position(LAT + 0.0045, LON));
+
+        assertThat(places).filteredOn(p -> p.cell().geohash().equals("u33dc0")).allMatch(KnownPlace::here);
+        assertThat(places).filteredOn(p -> p.cell().geohash().equals("u33dc0c")).noneMatch(KnownPlace::here);
+    }
+
+    @Test
+    void suggestLiefertDenOrtHierUndNichtsWennKeinerPasst() {
+        cells(publicCell("u0zpr5p", 20, null), privateCell("u33dc0", 1));
+
+        assertThat(service.suggest(userId, LAT, LON)).map(p -> p.cell().geohash()).contains("u33dc0");
+        // Muenchen liegt in keiner bekannten Zelle
         assertThat(service.suggest(userId, 48.137, 11.575)).isEmpty();
     }
 
-    /** Oeffentlicher Treffer schlaegt die private Zelle - er ist die praezisere Aussage. */
+    /** Die Saeule ist die praezisere Aussage als die private Zelle am selben Ort - auch wenn sie seltener genutzt wurde. */
     @Test
-    void bekannterStandortGewinntVorDerPrivatenZelle() {
-        when(repository.findRecentlyUsedByUser(userId, ChargingSiteService.SUGGESTION_CANDIDATES))
-                .thenReturn(List.of(usage("EnBW Alexanderplatz", CELL, 7)));
-        when(evLogs.countPrivateLogsByCell(userId)).thenReturn(List.of(new PrivateCellCount("u33dc0", 12)));
+    void saeuleSchlaegtDiePrivateZelleAmSelbenOrt() {
+        ChargingSite enbw = site("EnBW Alexanderplatz", CELL);
+        cells(privateCell("u33dc0", 12), publicCell(CELL, 2, enbw.id()));
+        when(repository.findAllById(List.of(enbw.id()))).thenReturn(List.of(enbw));
 
-        assertThat(service.suggest(userId, LAT, LON)).map(ChargingSuggestion::kind).contains(ChargingSuggestion.Kind.SITE);
+        assertThat(service.suggest(userId, LAT, LON)).map(KnownPlace::site).contains(enbw);
+    }
+
+    @Test
+    void jedeEinzelnePrivateZelleZaehltAlsBekannterOrt() {
+        cells(privateCell("u33dc0", 1));
+
+        assertThat(service.suggest(userId, LAT, LON)).isPresent();
     }
 }

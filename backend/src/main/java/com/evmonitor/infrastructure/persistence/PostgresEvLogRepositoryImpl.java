@@ -7,6 +7,7 @@ import com.evmonitor.domain.EnergySource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.weather.TemperatureSource;
 import com.evmonitor.domain.EvLogRepository;
+import com.evmonitor.domain.KnownCell;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import lombok.RequiredArgsConstructor;
@@ -429,9 +430,10 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public List<com.evmonitor.domain.PrivateCellCount> countPrivateLogsByCell(UUID userId) {
-        return jpaRepository.countPrivateLogsByCell(userId).stream()
-                .map(r -> new com.evmonitor.domain.PrivateCellCount((String) r[0], ((Number) r[1]).longValue()))
+    public List<KnownCell> findKnownCells(UUID userId, int limit) {
+        return jpaRepository.findKnownCells(userId, limit).stream()
+                .map(r -> new KnownCell((String) r[0], Boolean.TRUE.equals(r[1]), ((Number) r[2]).longValue(),
+                        toLocalDateTime(r[3]), (String) r[4], (UUID) r[5], (UUID) r[6]))
                 .toList();
     }
 
