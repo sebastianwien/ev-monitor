@@ -108,9 +108,10 @@ const requestLocation = async () => {
     locationAccuracy.value = pos.accuracy ?? null
     permission.value = 'granted'
     localStorage.setItem(LOCATION_ENABLED_KEY, 'true')
-    // Erst nach den Säulen auf 'success': so klappt die Standort-Card in einem Zug zu,
-    // während die Liste erscheint, statt in zwei Sprüngen. Der Treffer läuft parallel.
-    await Promise.all([nearby.load(pos.latitude, pos.longitude), known.load(pos.latitude, pos.longitude)])
+    // Erst nach den Säulen auf 'success': so klappt die Standort-Card in einem Zug zu, während die
+    // Liste erscheint. Die bekannten Orte laufen parallel und warten nicht (Geocoding kann dauern).
+    known.load(pos.latitude, pos.longitude)
+    await nearby.load(pos.latitude, pos.longitude)
     locationStatus.value = 'success'
   } catch (e: any) {
     locationStatus.value = 'error'

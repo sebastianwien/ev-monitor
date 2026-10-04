@@ -39,6 +39,8 @@ public class ChargingSiteService {
     static final int RECENT_LIMIT = 5;
     /** So viele bekannte Orte liest der Wizard - mehr als ein Nutzer je unterscheidet. */
     static final int KNOWN_LIMIT = 50;
+    /** So viele Orte ohne Saeule werden je Anfrage frisch geocodiert (je rund 1 s Drossel) - der Rest kommt beim naechsten Mal. */
+    static final int GEOCODE_PER_REQUEST = 5;
     /** Zelle eines Standorts hat 7 Stellen (~150 m): bis hierhin "steht er dort". */
     static final double SITE_MATCH_METERS = 300;
     /** Private Zelle hat 6 Stellen (~1,2 x 0,6 km): Mittelpunkt bis Ecke sind rund 670 m. */
@@ -90,9 +92,15 @@ public class ChargingSiteService {
         Map<UUID, ChargingSite> sites = siteIds.isEmpty() ? Map.of()
                 : repository.findAllById(siteIds).stream().collect(Collectors.toMap(ChargingSite::id, s -> s));
         List<KnownPlace> places = new ArrayList<>();
+        int lookups = 0;
         for (KnownCell cell : cells) {
             ChargingSite site = cell.chargingSiteId() == null ? null : sites.get(cell.chargingSiteId());
-            String name = site == null ? placeNameService.nameFor(cell.geohash()).orElse(null) : null;
+            String name = null;
+            if (site == null) {
+                Optional<String> cached = placeNameService.cachedNameFor(cell.geohash());
+                if (cached.isPresent()) name = cached.get();
+                else if (lookups < GEOCODE_PER_REQUEST) { lookups++; name = placeNameService.nameFor(cell.geohash()).orElse(null); }
+            }
             KnownPlace place = new KnownPlace(cell, site, name, null, false);
             if (at != null) {
                 int d = (int) Math.round(distanceMeters(new WGS84Point(at.lat(), at.lon()), cell.geohash()));

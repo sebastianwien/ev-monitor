@@ -49,6 +49,7 @@ class ChargingSiteServiceTest {
         placeNames = mock(PlaceNameService.class);
         when(evLogs.findKnownCells(any(), anyInt())).thenReturn(List.of());
         when(placeNames.nameFor(any())).thenReturn(Optional.empty());
+        when(placeNames.cachedNameFor(any())).thenReturn(Optional.empty());
         service = new ChargingSiteService(repository, nearby, rateLimit, evLogs, placeNames);
         when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
@@ -259,5 +260,20 @@ class ChargingSiteServiceTest {
         cells(privateCell("u33dc0", 1));
 
         assertThat(service.suggest(userId, LAT, LON)).isPresent();
+    }
+
+    /** Jedes frische Geocoding kostet rund eine Sekunde - mehr als fuenf je Anfrage wartet niemand. Gecachte Namen sind frei. */
+    @Test
+    void geocodiertHoechstensFuenfOrteJeAnfrageGecachteNamenZaehlenNicht() {
+        KnownCell[] many = new KnownCell[8];
+        for (int i = 0; i < 8; i++) many[i] = privateCell("u33dc" + i, 8 - i);
+        cells(many);
+        when(placeNames.cachedNameFor("u33dc0")).thenReturn(Optional.of("Mitte"));
+
+        List<KnownPlace> places = service.knownPlaces(userId, null);
+
+        assertThat(places.get(0).placeName()).isEqualTo("Mitte");
+        verify(placeNames, never()).nameFor("u33dc0");
+        verify(placeNames, times(ChargingSiteService.GEOCODE_PER_REQUEST)).nameFor(any());
     }
 }

@@ -48,7 +48,7 @@ public class NominatimPlaceNameService implements PlaceNameService {
     private final Object gate = new Object();
     private long lastRequestAt;
 
-    public NominatimPlaceNameService(@Qualifier("restTemplate") RestTemplate http,
+    public NominatimPlaceNameService(@Qualifier("nominatimRestTemplate") RestTemplate http,
                                      @Value("${nominatim.base-url:https://nominatim.openstreetmap.org}") String baseUrl,
                                      @Value("${nominatim.user-agent:ev-monitor.net (kontakt@ev-monitor.net)}") String userAgent,
                                      @Value("${nominatim.enabled:true}") boolean enabled) {
@@ -59,10 +59,15 @@ public class NominatimPlaceNameService implements PlaceNameService {
     }
 
     @Override
+    public Optional<String> cachedNameFor(String geohash) {
+        return geohash == null ? Optional.empty() : Optional.ofNullable(names.getIfPresent(geohash));
+    }
+
+    @Override
     public Optional<String> nameFor(String geohash) {
         if (!enabled || geohash == null || geohash.isBlank()) return Optional.empty();
-        String cached = names.getIfPresent(geohash);
-        if (cached != null) return Optional.of(cached);
+        Optional<String> cached = cachedNameFor(geohash);
+        if (cached.isPresent()) return cached;
         Optional<String> name = lookup(geohash);
         name.ifPresent(n -> names.put(geohash, n));
         return name;
