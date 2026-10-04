@@ -60,18 +60,12 @@ jobs:
           script: |
             cd /opt/ev-monitor/ev-monitor
             echo "🔄 Pulling latest changes..."
+            OLD_SHA=$(git rev-parse HEAD)
             git fetch origin main
             git reset --hard origin/main
 
-            echo "🗄️  Creating database backup..."
-            BACKUP_FILE=backup-$(date +%Y%m%d-%H%M%S).sql.gz
-            if (set -o pipefail; docker compose -f docker-compose.full.yml exec -T db pg_dump -U evmonitor ev_monitor | gzip > "$BACKUP_FILE") && [ -s "$BACKUP_FILE" ]; then
-              echo "✅ Backup: $BACKUP_FILE ($(du -h "$BACKUP_FILE" | cut -f1))"
-              bash scripts/rotate-backups.sh . || echo "⚠️  Backup rotation failed"
-            else
-              rm -f "$BACKUP_FILE"
-              echo "⚠️  Backup failed (DB might not be running yet) - keeping old backups"
-            fi
+            # Dump nur bei neuen Migrationen, sonst reicht das Nacht-Backup (scripts/backup.sh)
+            bash scripts/predeploy-dump.sh ev_monitor . "$OLD_SHA" backend/src/main/resources/db/migration || exit 1
 
             echo "🚀 Deploying application..."
             flock -w 180 /tmp/ev-monitor-deploy.lock ./deploy.sh
@@ -95,7 +89,7 @@ jobs:
               echo "Attempt $i/18 failed, retrying in 10s..."
               sleep 10
             done
-            echo "❌ Backend health check failed — dumping logs:"
+            echo "❌ Backend health check failed - dumping logs:"
             cd /opt/ev-monitor/ev-monitor && docker compose -f docker-compose.full.yml logs backend --tail=50
             exit 1
 
