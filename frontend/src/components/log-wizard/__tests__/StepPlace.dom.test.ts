@@ -101,4 +101,12 @@ describe('StepPlace: privat und öffentlich hier', () => {
     const { q } = await mount({ ...HERE, exhausted: true })
     expect(q('place-elsewhere')).toBeNull()
   })
+
+  it('Umkreis erweitern: der Spinner steht dort, wo der Knopf war; öffentlich bleibt stehen', async () => {
+    const { host, q } = await mount({ ...HERE, stations: [kaufland], stationsLoading: true, radiusMeters: 1000 })
+    const order = [...host.querySelectorAll('button, [data-testid="stations-loading"]')].map(b => (b as HTMLElement).dataset.testid ?? b.textContent!.trim().slice(0, 8))
+    expect(order.indexOf('stations-loading')).toBeGreaterThan(order.indexOf('Kaufland'))
+    expect(order.filter(x => x === 'stations-loading')).toHaveLength(1)
+    expect(q('place-public')).not.toBeNull()
+  })
 })

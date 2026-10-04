@@ -190,8 +190,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       </button>
     </div>
 
-    <!-- Spinner nur bei der Ortssuche; bei der Live-Ortung dreht er in der Standort-Card -->
-    <div v-if="stationsLoading && locationStatus !== 'loading'" role="status" data-testid="stations-loading"
+    <!-- Spinner nur bei der Ortssuche; bei der Live-Ortung dreht er in der Standort-Card, beim Erweitern unter der Liste -->
+    <div v-if="stationsLoading && locationStatus !== 'loading' && stations.length === 0" role="status" data-testid="stations-loading"
       class="flex flex-col items-center gap-2 py-4 text-sm text-gray-500 dark:text-gray-400">
       <ArrowPathIcon class="h-8 w-8 animate-spin text-indigo-600" aria-hidden="true" />
       <span>{{ loadingText }}</span>
@@ -220,7 +220,13 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       </button>
       </template>
       <!-- "Nicht dabei?": die weite Suche ersetzt diese Liste, statt sie zu verlängern -->
-      <button v-if="canExpand && !stationsLoading" type="button" data-testid="expand-radius" @click="emit('expandRadius')"
+      <!-- Beim Erweitern dreht der Spinner dort, wo der Knopf war: dort schaut der Nutzer hin -->
+      <div v-if="stationsLoading" role="status" data-testid="stations-loading"
+        class="min-h-11 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+        <ArrowPathIcon class="h-5 w-5 animate-spin text-indigo-600" aria-hidden="true" />
+        <span>{{ loadingText }}</span>
+      </div>
+      <button v-else-if="canExpand" type="button" data-testid="expand-radius" @click="emit('expandRadius')"
         class="btn-3d w-full min-h-11 rounded-sm border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-semibold text-indigo-600 dark:text-indigo-300 hover:border-indigo-400 transition">
         {{ t('logwizard.expand_radius', { r: dist(nextRadius ?? RADIUS_STEPS[RADIUS_STEPS.length - 1]) }) }}
       </button>
@@ -228,8 +234,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </Collapse>
 
     <!-- Öffentlich ohne Säule aus dem Register (Ausland, neue Säule): ganz unten, damit niemand sie statt der Säule tippt.
-         Erst wenn die Säulen geladen sind - sonst träfe ein schneller Tap diese Zeile. Der Ort bleibt die Position. -->
-    <template v-if="placeKnown && !stationsLoading">
+         Erst wenn die ersten Säulen geladen sind - sonst träfe ein schneller Tap diese Zeile. Der Ort bleibt die Position. -->
+    <template v-if="placeKnown && !(stationsLoading && stations.length === 0)">
     <Collapse :open="!!cardStrip && place === 'other'">
       <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
         :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
