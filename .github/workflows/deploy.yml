@@ -75,8 +75,8 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # Dump nur bei neuen Migrationen, sonst reicht das Nacht-Backup (scripts/backup.sh)
-            bash scripts/predeploy-dump.sh ev_monitor . "$OLD_SHA" backend/src/main/resources/db/migration || exit 1
+            # Dump nur bei neuen Migrationen, sonst reicht das Nacht-Backup (ev-monitor-infra/scripts/backup.sh)
+            bash /opt/ev-monitor/ev-monitor-infra/scripts/predeploy-dump.sh ev_monitor . "$OLD_SHA" backend/src/main/resources/db/migration || exit 1
 
             echo "🚀 Deploying application..."
             ./deploy.sh

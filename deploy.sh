@@ -122,4 +122,4 @@ docker compose $COMPOSE_FILE exec -T nginx nginx -s reload || echo "⚠️  ngin
 echo "✅ Services are running!"
 echo ""
 echo "🌍 Application deployed: https://$DOMAIN"
-# Cron (docker-cleanup) wird einmalig per scripts/server-setup.sh eingerichtet, nicht bei jedem Deploy.
+# Cron (docker-cleanup) wird einmalig per server-setup.sh im privaten Repo ev-monitor-infra eingerichtet, nicht bei jedem Deploy.
