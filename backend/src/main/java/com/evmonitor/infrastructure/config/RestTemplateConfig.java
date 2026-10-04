@@ -72,15 +72,6 @@ public class RestTemplateConfig {
             .build();
     }
 
-    /** Nominatim-Reverse-Geocoding laeuft im Ortsschritt des Wizards: der Nutzer wartet, darum harte 3 s. */
-    @Bean("nominatimRestTemplate")
-    public RestTemplate nominatimRestTemplate(RestTemplateBuilder builder) {
-        return builder
-            .connectTimeout(Duration.ofSeconds(3))
-            .readTimeout(Duration.ofSeconds(3))
-            .build();
-    }
-
     @Bean("spritMonitorRestTemplate")
     public RestTemplate spritMonitorRestTemplate(
         RestTemplateBuilder builder,

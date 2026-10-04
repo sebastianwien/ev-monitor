@@ -7,7 +7,6 @@ import com.evmonitor.domain.EnergySource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.weather.TemperatureSource;
 import com.evmonitor.domain.EvLogRepository;
-import com.evmonitor.domain.KnownCell;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import lombok.RequiredArgsConstructor;
@@ -427,22 +426,6 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 org.springframework.data.domain.PageRequest.of(0, 1));
         if (results.isEmpty()) return Optional.empty();
         return Optional.ofNullable(results.get(0).getChargingProviderId());
-    }
-
-    @Override
-    public List<KnownCell> findKnownCells(UUID userId, int limit) {
-        return jpaRepository.findKnownCells(userId, limit).stream().map(PostgresEvLogRepositoryImpl::toKnownCell).toList();
-    }
-
-    @Override
-    public List<KnownCell> findKnownCellsIn(UUID userId, java.util.Collection<String> cells, int limit) {
-        if (cells.isEmpty()) return List.of();
-        return jpaRepository.findKnownCellsIn(userId, cells, limit).stream().map(PostgresEvLogRepositoryImpl::toKnownCell).toList();
-    }
-
-    private static KnownCell toKnownCell(Object[] r) {
-        return new KnownCell((String) r[0], Boolean.TRUE.equals(r[1]), ((Number) r[2]).longValue(),
-                toLocalDateTime(r[3]), (String) r[4], (UUID) r[5], (UUID) r[6]);
     }
 
     @Override

@@ -223,15 +223,6 @@ public interface EvLogRepository {
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash, boolean isPublic);
 
     /**
-     * Alle Zellen, in denen der Nutzer schon geladen hat (ueber alle seine Autos), haeufigste
-     * zuerst - die "bekannten Orte" des Wizards. Nur eigene, nicht geloeschte Logs mit Zelle.
-     */
-    List<KnownCell> findKnownCells(UUID userId, int limit);
-
-    /** Wie {@link #findKnownCells}, aber nur die Zellen aus {@code cells} - "steht er hier?" ohne Abstandsrechnung. */
-    List<KnownCell> findKnownCellsIn(UUID userId, java.util.Collection<String> cells, int limit);
-
-    /**
      * All logs of this user at exactly this geohash that still have no cost.
      *
      * Exact match, not the 6-char prefix used by {@link #findMostRecentChargingProviderAtGeohash}:

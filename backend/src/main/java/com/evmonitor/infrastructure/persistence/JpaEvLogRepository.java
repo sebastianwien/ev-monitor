@@ -295,41 +295,6 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("isPublic") boolean isPublic,
             org.springframework.data.domain.Pageable pageable);
 
-    /**
-     * Zellen, in denen der Nutzer geladen hat, haeufigste zuerst (private Logs auf 6 Stellen zusammengefasst,
-     * auch wenn sie mit 7 gespeichert wurden): [geohash, isPublic, count, lastUsedAt,
-     * cpoName der letzten Ladung, chargingSiteId der letzten Ladung, letzte Ladekarte].
-     */
-    @Query(value = """
-        SELECT CASE WHEN COALESCE(l.is_public_charging, false) THEN l.geohash ELSE SUBSTRING(l.geohash, 1, 6) END,
-               COALESCE(l.is_public_charging, false), COUNT(*), MAX(l.logged_at),
-               (array_agg(l.cpo_name ORDER BY l.logged_at DESC) FILTER (WHERE l.cpo_name IS NOT NULL))[1],
-               (array_agg(l.charging_site_id ORDER BY l.logged_at DESC) FILTER (WHERE l.charging_site_id IS NOT NULL))[1],
-               (array_agg(l.charging_provider_id ORDER BY l.logged_at DESC) FILTER (WHERE l.charging_provider_id IS NOT NULL))[1]
-        FROM ev_log l JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-        WHERE c.user_id = :userId AND l.deleted_at IS NULL AND l.geohash IS NOT NULL
-        GROUP BY 1, 2
-        ORDER BY COUNT(*) DESC, MAX(l.logged_at) DESC
-        LIMIT :limit
-        """, nativeQuery = true)
-    List<Object[]> findKnownCells(@Param("userId") UUID userId, @Param("limit") int limit);
-
-    /** Dieselben Spalten, nur fuer die Zellen in {@code cells} (die 7er- und 6er-Zelle der Position). */
-    @Query(value = """
-        SELECT CASE WHEN COALESCE(l.is_public_charging, false) THEN l.geohash ELSE SUBSTRING(l.geohash, 1, 6) END,
-               COALESCE(l.is_public_charging, false), COUNT(*), MAX(l.logged_at),
-               (array_agg(l.cpo_name ORDER BY l.logged_at DESC) FILTER (WHERE l.cpo_name IS NOT NULL))[1],
-               (array_agg(l.charging_site_id ORDER BY l.logged_at DESC) FILTER (WHERE l.charging_site_id IS NOT NULL))[1],
-               (array_agg(l.charging_provider_id ORDER BY l.logged_at DESC) FILTER (WHERE l.charging_provider_id IS NOT NULL))[1]
-        FROM ev_log l JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-        WHERE c.user_id = :userId AND l.deleted_at IS NULL AND l.geohash IS NOT NULL
-          AND (l.geohash IN (:cells) OR (COALESCE(l.is_public_charging, false) = false AND SUBSTRING(l.geohash, 1, 6) IN (:cells)))
-        GROUP BY 1, 2
-        ORDER BY COUNT(*) DESC, MAX(l.logged_at) DESC
-        LIMIT :limit
-        """, nativeQuery = true)
-    List<Object[]> findKnownCellsIn(@Param("userId") UUID userId, @Param("cells") java.util.Collection<String> cells, @Param("limit") int limit);
-
     @Query("""
         SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
         WHERE c.userId = :userId
