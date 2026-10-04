@@ -5,6 +5,13 @@
 
 set -e
 
+# Auf Prod laufen fertige Images aus GHCR (Tags in release.env). Ein lokaler Bau hier
+# würde ungetesteten Code unter dem GHCR-Namen starten.
+if [ -f /opt/ev-monitor/release.env ]; then
+  echo "❌ Prod deployt über ev-monitor-infra/scripts/deploy-release.sh (GitHub Actions), nicht über deploy.sh."
+  exit 1
+fi
+
 echo "🚀 EV Monitor Deployment"
 echo "========================"
 echo ""
