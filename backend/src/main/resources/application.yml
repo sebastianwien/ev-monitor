@@ -1,4 +1,6 @@
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   application:
     name: ev-monitor
 
@@ -78,6 +80,9 @@ demo:
 server:
   port: 8080
   forward-headers-strategy: NATIVE
+  # Blue/Green-Deploy: laufende Requests beim Stoppen zu Ende bringen. Passt zu
+  # stop_grace_period 35s in der Prod-Compose.
+  shutdown: graceful
 
 springdoc:
   api-docs:
