@@ -1,0 +1,8 @@
+# Build-Kontext für nginx/Dockerfile (Kontext = Repo-Root). Das Frontend wird im
+# Image per npm ci installiert, lokale node_modules würden den Kontext nur aufblähen.
+.git
+**/node_modules
+backend
+frontend/android
+frontend/ios
+graphify-out
