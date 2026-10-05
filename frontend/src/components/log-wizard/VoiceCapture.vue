@@ -13,6 +13,7 @@ import { useVoiceQuota } from './useVoiceQuota'
 import { quotaFromLimit, quotaFromUsage } from './voiceQuota'
 import { getPricing } from '../../config/pricingConfig'
 import { useCountryStore } from '../../stores/country'
+import { recordVoiceUse, voiceFamiliar } from './voiceFamiliar'
 
 const props = withDefaults(defineProps<{
   carId: string; latitude?: number | null; longitude?: number | null
@@ -22,7 +23,9 @@ const props = withDefaults(defineProps<{
   variant?: 'card' | 'inline'
   /** inline: Text statt "Ergänzen oder korrigieren", z. B. was noch fehlt */
   label?: string | null
-}>(), { latitude: null, longitude: null, entry: 'create', variant: 'card', label: null })
+  /** card: zweites Mikrofon im Wizard-Footer neben "Weiter" - nach zwei Aufnahmen das einzige, die Karte klappt weg */
+  footerMic?: boolean
+}>(), { latitude: null, longitude: null, entry: 'create', variant: 'card', label: null, footerMic: false })
 const emit = defineEmits<{ draft: [draft: VoiceDraft] }>()
 const { t, locale } = useI18n()
 
@@ -41,6 +44,10 @@ const month = computed(() => new Date().toLocaleDateString(locale.value, { month
 const onUpsell = () => analytics.trackVoice('upsell', { entry: props.entry, kind: notice.value?.kind ?? 'low' })
 const extension = (type: string) => type.startsWith('audio/mp4') ? 'm4a' : type.startsWith('audio/ogg') ? 'ogg' : 'webm'
 const again = computed(() => props.variant === 'inline')
+// Beim Öffnen festgelegt: die Karte verschwindet nicht mitten im Ablauf
+const collapsed = props.variant === 'card' && props.footerMic && voiceFamiliar()
+type Via = 'card' | 'footer'
+let via: Via = 'card'
 
 let uploadStartedAt = 0
 const upload = async (audio: Blob) => {
@@ -61,6 +68,7 @@ const upload = async (audio: Blob) => {
       place: placeOutcome(res.data), latency: latencyBucket(Date.now() - uploadStartedAt),
     })
     if (res.data.usage) setQuota(quotaFromUsage(res.data.usage))
+    recordVoiceUse()
     emit('draft', res.data)
   } catch (e) {
     problem.value = voiceProblem(e)
@@ -83,17 +91,18 @@ watch(rec.state, (s, prev) => {
 })
 
 const begin = () => {
-  analytics.trackVoice('open', { entry: props.entry, again: again.value })
+  analytics.trackVoice('open', { entry: props.entry, again: again.value, ...(props.footerMic ? { via } : {}) })
   if (again.value) analytics.trackVoice('retry', { entry: props.entry })
   rec.press()
 }
-const onPress = (e?: PointerEvent) => {
+const onPress = (e?: PointerEvent, from: Via = 'card') => {
   // Finger bleibt beim Halten auf dem Knopf, auch wenn das Vollbild darüber aufgeht
   if (e) (e.currentTarget as Element | null)?.setPointerCapture?.(e.pointerId)
   problem.value = null
   if (rec.state.value === 'recording') { rec.press(); return }
   if (rec.state.value !== 'idle' && rec.state.value !== 'done' && rec.state.value !== 'error') return
   if (out.value) return
+  via = from
   if (!consentSeen()) { showConsent.value = true; return }
   begin()
 }
@@ -111,6 +120,7 @@ const cancel = () => {
 const sheetOpen = computed(() => rec.state.value === 'recording' || rec.state.value === 'uploading')
 const busy = computed(() => rec.state.value === 'requesting' || rec.state.value === 'uploading')
 const disabled = computed(() => busy.value || out.value)
+const showFooterMic = computed(() => props.footerMic && !out.value && rec.state.value !== 'denied')
 const resetsOn = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(locale.value, { day: 'numeric', month: 'long' })
 const status = computed(() => {
   const p = problem.value
@@ -123,11 +133,12 @@ const status = computed(() => {
 </script>
 
 <template>
-  <div :class="variant === 'card' ? 'p-3 rounded-sm bg-indigo-50 dark:bg-indigo-900/30' : ''" data-testid="voice-capture" :data-variant="variant">
+  <!-- empty:hidden: eingeklappt ohne Hinweis bleibt kein Abstand stehen -->
+  <div :class="[variant === 'card' && !collapsed ? 'p-3 rounded-sm bg-indigo-50 dark:bg-indigo-900/30' : '', 'empty:hidden']" data-testid="voice-capture" :data-variant="variant">
     <p v-if="rec.state.value === 'denied'" data-testid="voice-denied" class="text-sm text-gray-700 dark:text-gray-200">{{ t('voicelog.denied') }}</p>
-    <div v-else class="flex items-center gap-3">
+    <div v-else-if="!collapsed || status || notice" class="flex items-center gap-3">
       <!-- Tippen startet, "Fertig" im Vollbild beendet; Halten nimmt auf, bis der Finger loslässt. Kein click-Handler, der würde doppelt auslösen. -->
-      <button type="button" data-testid="voice-mic" :disabled="disabled"
+      <button v-if="!collapsed" type="button" data-testid="voice-mic" :disabled="disabled"
         :aria-label="variant === 'inline' ? (label ?? t('voicelog.again')) : t('voicelog.mic_label')"
         :class="['relative flex-shrink-0 grid place-items-center rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition select-none touch-none [-webkit-touch-callout:none] disabled:opacity-70',
                  variant === 'card' ? 'h-16 w-16' : 'h-11 w-11', out ? '!bg-gray-400 dark:!bg-gray-600 !opacity-100' : '']"
@@ -150,12 +161,12 @@ const status = computed(() => {
             <span class="text-sm text-gray-600 dark:text-gray-300">{{ t('voicelog.quota_type_on') }}</span>
           </div>
         </div>
-        <template v-else-if="variant === 'card'">
+        <template v-else-if="variant === 'card' && !collapsed">
           <!-- Ein kurzes Beispiel statt Bedienanleitung: zeigt, dass ein lockerer Halbsatz reicht. Die volle Liste steht im Vollbild. -->
           <p class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ t('voicelog.title') }}</p>
           <p class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{{ t('voicelog.card_example') }}</p>
         </template>
-        <template v-else>
+        <template v-else-if="variant === 'inline'">
           <p class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{ label ?? t('voicelog.again') }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('voicelog.again_hint') }}</p>
         </template>
@@ -177,6 +188,16 @@ const status = computed(() => {
       <button type="button" data-testid="voice-consent-ok" @click="acceptConsent"
         class="btn-3d min-h-11 px-4 rounded-sm bg-indigo-600 text-white font-semibold hover:bg-indigo-700">{{ t('voicelog.consent_ok') }}</button>
     </div>
+    <!-- defer: der Footer der WizardShell steht erst nach diesem Schritt im DOM -->
+    <Teleport v-if="showFooterMic" defer to="#wizard-footer-lead">
+      <button type="button" data-testid="voice-mic-footer" :disabled="busy" :aria-label="t('voicelog.mic_label')"
+        class="flex-shrink-0 grid place-items-center h-12 w-12 rounded-full border-2 border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-300 bg-white dark:bg-gray-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition select-none touch-none [-webkit-touch-callout:none] disabled:opacity-70"
+        @pointerdown.prevent="onPress($event, 'footer')" @pointerup="rec.release()" @pointercancel="rec.release()" @contextmenu.prevent
+        @keydown.enter.prevent="onPress(undefined, 'footer')" @keydown.space.prevent="onPress(undefined, 'footer')">
+        <ArrowPathIcon v-if="busy" class="h-6 w-6 animate-spin" />
+        <MicrophoneIcon v-else class="h-6 w-6" />
+      </button>
+    </Teleport>
     <VoiceSheet v-if="sheetOpen" :processing="rec.state.value === 'uploading'" :elapsed-ms="rec.elapsedMs.value" :level="rec.level.value"
       :entry="entry" @stop="rec.press()" @cancel="cancel" />
   </div>

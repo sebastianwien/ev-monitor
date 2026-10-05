@@ -518,7 +518,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
            Gekeyter Wrapper statt Transition direkt auf den Komponenten: so hängt der Wechsel nicht an deren Wurzelelement. -->
       <Transition :name="`step-${dir}`" mode="out-in">
       <div :key="step" :ref="onStepEl" tabindex="-1" class="outline-none" @keydown.enter="onEnter">
-      <VoiceCapture v-if="step === 1 && showVoice" class="mb-4" :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
+      <VoiceCapture v-if="step === 1 && showVoice" class="mb-4" footer-mic :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
       <VoiceCapture v-else-if="step === 2 && showVoice && voiceUsed && missingSpoken" class="mb-4" variant="inline" :label="t('voicelog.missing_say', { fields: missingSpoken })"
         :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
       <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
