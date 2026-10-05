@@ -1570,7 +1570,7 @@ function toggleAllFeed() {
                    class="inline-flex flex-1 sm:flex-none p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
                 <button v-for="option in RESOLUTIONS" :key="option" type="button"
                         @click="feedResolution = option" :aria-pressed="feedResolution === option"
-                        :class="['flex-1 sm:flex-none px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
+                        :class="['flex-1 sm:flex-none min-h-11 sm:min-h-0 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
                           feedResolution === option
                             ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
                             : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
