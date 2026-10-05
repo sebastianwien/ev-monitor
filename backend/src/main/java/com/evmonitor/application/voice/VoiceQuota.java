@@ -9,8 +9,8 @@ import java.time.temporal.TemporalAdjusters;
 
 /**
  * Monatsdeckel fuer Sprachaufnahmen. Free 5 je Kalendermonat, im ersten Monat nach der ersten
- * Aufnahme 10 (Kennenlernphase). Bezahlte Tiers (auch Supporter) 30, sichtbar. Admins (Testbetrieb
- * auf Prod) sehen keinen Deckel, haben aber ein stilles Fair-Use-Limit. Gezaehlt werden nur
+ * Aufnahme 10 (Kennenlernphase). Bezahlte Tiers (auch Supporter) 30, sichtbar. Admins (Tests auf
+ * Prod) sehen keinen Deckel, haben aber ein stilles Fair-Use-Limit. Gezaehlt werden nur
  * erfolgreiche Aufnahmen; alles ergibt sich aus {@code voice_draft}, es gibt keinen gespeicherten Zustand.
  *
  * @param plan      bestimmt den Deckel und im Frontend den Hinweis (Upgrade nur bei FREE)

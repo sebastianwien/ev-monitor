@@ -243,9 +243,9 @@ stripe:
 # Mistral AI (La Plateforme, EU) fuer den Sprachlog. Ohne Key ist das Feature aus (503).
 # Preise frieren beim Aufruf als voice_draft.cost_usd ein. Transcribe laut Mistral-Modellkarte,
 # Voxtral-Small-Tokenpreise laut Drittquellen (03.10.2026) - gegen mistral.ai/pricing pruefen.
-# Sprachlog im Testbetrieb nur fuer ADMIN; false gibt ihn fuer alle frei.
+# Sprachlog fuer alle; VOICE_LOG_ADMIN_ONLY=true ist der Notschalter (nur Admins, sonst 404).
 voice-log:
-  admin-only: ${VOICE_LOG_ADMIN_ONLY:true}
+  admin-only: ${VOICE_LOG_ADMIN_ONLY:false}
 
 mistral:
   api-key: ${MISTRAL_API_KEY:}

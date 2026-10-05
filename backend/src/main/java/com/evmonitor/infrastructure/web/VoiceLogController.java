@@ -38,8 +38,8 @@ import java.util.UUID;
  * Sprachlog: Aufnahme rein, Entwurf fuer die Pruefansicht raus. Gespeichert wird hier nichts,
  * das Log entsteht erst, wenn der Nutzer den Entwurf im Wizard abschickt.
  *
- * <p>Testbetrieb: solange {@code voice-log.admin-only} gilt (Default), existiert der Endpoint fuer
- * alle anderen Rollen nicht (404). Freigabe fuer alle per {@code VOICE_LOG_ADMIN_ONLY=false}.
+ * <p>Notschalter: mit {@code VOICE_LOG_ADMIN_ONLY=true} existieren die Endpoints nur fuer Admins,
+ * alle anderen bekommen 404 und das Frontend blendet das Mikrofon aus.
  */
 @RestController
 @RequestMapping("/api/logs")
@@ -55,7 +55,7 @@ public class VoiceLogController {
     private final boolean adminOnly;
 
     public VoiceLogController(VoiceLogService voiceLogService, VoiceQuotaService quotaService, RateLimitService rateLimitService,
-                              @Value("${voice-log.admin-only:true}") boolean adminOnly) {
+                              @Value("${voice-log.admin-only:false}") boolean adminOnly) {
         this.voiceLogService = voiceLogService;
         this.quotaService = quotaService;
         this.rateLimitService = rateLimitService;

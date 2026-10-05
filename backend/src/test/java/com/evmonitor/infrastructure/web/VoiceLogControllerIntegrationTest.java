@@ -62,7 +62,7 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Testbetrieb: nur Admins sehen den Sprachlog (voice-log.admin-only, Default an)
+        // Admin: stilles Limit statt Zähler, so laufen die 60 Aufnahmen im Deckel-Test ohne Free-Grenze
         user = createAndSaveAdminUser("voice-" + UUID.randomUUID() + "@test.local");
         car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
         when(transcriber.transcribe(any(), anyString(), anyList()))
@@ -173,14 +173,18 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void hiddenForNonAdminsWhileInTesting() {
+    void regularUsersRecordWithinTheFreeQuota() throws Exception {
         User regular = createAndSaveUser("voice-regular-" + UUID.randomUUID() + "@test.local");
         Car own = createAndSaveCar(regular.getId(), CarBrand.CarModel.MODEL_3);
 
         ResponseEntity<String> response = post(request(regular, own.getId(), new byte[]{1}, "audio/webm", "Europe/Berlin"));
 
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        verify(transcriber, never()).transcribe(any(), anyString(), anyList());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode usage = objectMapper.readTree(response.getBody()).path("usage");
+        // Erster Monat: 10, eine davon ist verbraucht
+        assertThat(usage.path("plan").asText()).isEqualTo("free");
+        assertThat(usage.path("limit").asInt()).isEqualTo(10);
+        assertThat(usage.path("remaining").asInt()).isEqualTo(9);
     }
 
     @Test
@@ -215,11 +219,13 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void quotaNeedsLoginAValidZoneAndIsHiddenForNonAdminsWhileInTesting() {
+    void quotaNeedsLoginAndAValidZone() throws Exception {
         User regular = createAndSaveUser("voice-quota-" + UUID.randomUUID() + "@test.local");
 
         assertThat(getQuota(null, "Europe/Berlin").getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         assertThat(getQuota(user, "Mars/Olympus").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(getQuota(regular, "Europe/Berlin").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        ResponseEntity<String> free = getQuota(regular, "Europe/Berlin");
+        assertThat(free.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(objectMapper.readTree(free.getBody()).path("plan").asText()).isEqualTo("free");
     }
 }
