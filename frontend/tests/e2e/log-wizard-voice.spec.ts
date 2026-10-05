@@ -249,34 +249,45 @@ test('Deckel beim Aufnehmen erreicht: Mikrofon aus, Supporter-Angebot, Tippen ge
   await record(page)
   await expect(page.getByTestId('voice-quota-out')).toContainText('Deine 5 Aufnahmen für')
   await expect(page.getByTestId('voice-quota-out')).toContainText('Als Supporter hast du 30 im Monat')
-  await expect(page.getByTestId('voice-mic')).toBeDisabled()
   // Kein toter Knopf im Daumenbereich
-  await expect(page.getByTestId('voice-mic-footer')).toHaveCount(0)
+  await expect(page.getByTestId('voice-mic')).toHaveCount(0)
   await expect(page.getByTestId('voice-problem')).toHaveCount(0)
   await expect(page.getByTestId('place-here')).toBeVisible()
   await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'quota', kind: 'out', plan: 'free' }])
 })
 
-test('Mikrofon im Footer neben Weiter startet die Aufnahme, Einstieg wird gemessen', async ({ page }) => {
+test('Erstnutzer: ein Mikrofon im Footer mit Text, Beispielsatz darüber', async ({ page }) => {
   await open(page, 'ADMIN')
   await page.addInitScript(() => localStorage.setItem('voicelog_consent_seen_v2', 'true'))
   await page.goto('/erfassen')
 
-  const footerMic = page.locator('footer').getByTestId('voice-mic-footer')
-  await expect(footerMic).toBeVisible()
-  await expect(page.getByTestId('voice-mic')).toBeVisible()
-  await footerMic.click()
+  const mic = page.locator('footer').getByTestId('voice-mic')
+  await expect(mic).toHaveText('Einsprechen')
+  await expect(page.getByTestId('voice-mic')).toHaveCount(1)
+  await expect(page.getByTestId('voice-note')).toContainText('EnBW, 32 kWh')
+  await mic.click()
   await expect(page.getByTestId('voice-sheet')).toBeVisible()
   await page.keyboard.press('Escape')
-  await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'open', entry: 'create', again: false, via: 'footer' }])
+  await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'open', entry: 'create', again: false, stage: 'new' }])
 })
 
-test('Nach zwei Aufnahmen: Karte weg, Mikrofon nur im Footer, Kontingent-Hinweis bleibt', async ({ page }) => {
+test('Nach zwei Aufnahmen: nur noch das Symbol, kein Beispiel, Kontingent-Hinweis bleibt', async ({ page }) => {
+  await open(page, 'USER', { plan: 'free', limit: 5, remaining: 3, exhausted: false, resetsOn: '2026-11-01' })
+  await page.addInitScript(() => localStorage.setItem('voicelog_uses', '2'))
+  await page.goto('/erfassen')
+
+  const mic = page.locator('footer').getByTestId('voice-mic')
+  await expect(mic).toBeVisible()
+  await expect(mic).toHaveText('')
+  await expect(mic).toHaveAttribute('aria-label', 'Ladevorgang einsprechen')
+  await expect(page.getByTestId('voice-note')).toHaveCount(0)
+})
+
+test('Vertraut mit wenig Kontingent: Streifen zeigt nur den Hinweis', async ({ page }) => {
   await open(page, 'USER', { plan: 'free', limit: 5, remaining: 2, exhausted: false, resetsOn: '2026-11-01' })
   await page.addInitScript(() => localStorage.setItem('voicelog_uses', '2'))
   await page.goto('/erfassen')
 
-  await expect(page.getByTestId('voice-mic-footer')).toBeVisible()
-  await expect(page.getByTestId('voice-mic')).toHaveCount(0)
   await expect(page.getByTestId('voice-quota-low')).toContainText('Noch 2 Aufnahmen im')
+  await expect(page.getByTestId('voice-note')).not.toContainText('EnBW')
 })

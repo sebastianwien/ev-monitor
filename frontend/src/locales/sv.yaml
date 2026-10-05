@@ -3395,6 +3395,7 @@ payment_methods:
 
 voicelog:
   mic_label: "Läs in laddningen"
+  footer_cta: "Tala in"
   mic_stop: "Stoppa inspelningen"
   title: "Säg det bara"
   card_example: "”Ionity, 32 kWh, batteri på 80 %”"
@@ -3418,7 +3419,7 @@ voicelog:
   quota_out_upsell: "Tillgängligt igen från {date}. Som Supporter får du 30 i månaden, för {price}."
   quota_out_body: "Tillgängligt igen från {date}."
   quota_cta: "Bli Supporter"
-  quota_type_on: "Du kan skriva vidare nedan som vanligt."
+  quota_type_on: "Du kan fortfarande fylla i för hand."
   quota_low_free: "En inspelning kvar i {month} | {n} inspelningar kvar i {month}"
   quota_low_cta: "30 med Supporter"
   quota_low_paid: "En av {limit} inspelningar kvar i {month} | {n} av {limit} inspelningar kvar i {month}"

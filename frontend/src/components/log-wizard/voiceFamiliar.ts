@@ -1,6 +1,6 @@
 /**
- * Wer schon zweimal erfolgreich gesprochen hat, braucht die erklärende Karte in Schritt 1 nicht mehr:
- * dann bleibt nur das Mikrofon im Footer. Zähler nur im Browser, ohne Speicher (privater Modus) bleibt die Karte.
+ * Wer schon zweimal erfolgreich gesprochen hat, braucht Beispielsatz und Knopftext in Schritt 1 nicht mehr:
+ * dann bleibt nur das Mikrofon-Symbol im Footer. Zähler nur im Browser, ohne Speicher (privater Modus) bleibt alles erklärt.
  */
 const USES_KEY = 'voicelog_uses'
 const FAMILIAR_AFTER = 2

@@ -3516,6 +3516,7 @@ payment_methods:
 
 voicelog:
   mic_label: "Ladevorgang einsprechen"
+  footer_cta: "Einsprechen"
   mic_stop: "Aufnahme beenden"
   title: "Sag’s einfach"
   card_example: "„EnBW, 32 kWh, 18,40 €, Akku auf 80 %“"
@@ -3539,7 +3540,7 @@ voicelog:
   quota_out_upsell: "Ab {date} geht’s wieder. Als Supporter hast du 30 im Monat, für {price}."
   quota_out_body: "Ab {date} geht’s wieder."
   quota_cta: "Supporter werden"
-  quota_type_on: "Unten tippst du wie gewohnt weiter."
+  quota_type_on: "Von Hand eintragen geht wie gewohnt."
   quota_low_free: "Noch eine Aufnahme im {month} | Noch {n} Aufnahmen im {month}"
   quota_low_cta: "mit Supporter 30"
   quota_low_paid: "Noch eine von {limit} Aufnahmen im {month} | Noch {n} von {limit} Aufnahmen im {month}"
