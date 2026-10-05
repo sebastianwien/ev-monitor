@@ -211,7 +211,7 @@ public class StripeService {
 
         // Referral discount: only for monthly plan.
         // A "100% off, once" coupon on a yearly subscription would waive the full
-        // annual price (~€45) instead of one month (~€3.99) — never apply to yearly.
+        // annual price (~€45) instead of one month (~€3.99) - never apply to yearly.
         if ("monthly".equals(plan) && user.getReferredByUserId() != null && !referralCouponId.isBlank()) {
             builder.addDiscount(SessionCreateParams.Discount.builder()
                     .setCoupon(referralCouponId)
@@ -231,7 +231,7 @@ public class StripeService {
 
     /**
      * Verifies the Stripe webhook signature and dispatches the event.
-     * Uses raw JSON parsing to stay compatible across all Stripe API versions —
+     * Uses raw JSON parsing to stay compatible across all Stripe API versions -
      * the SDK's EventDataObjectDeserializer silently returns empty when the webhook
      * API version is newer than the SDK was built against.
      */
@@ -274,9 +274,7 @@ public class StripeService {
                 }
                 boolean isTrialing = "trialing".equals(status);
                 boolean isActive = "active".equals(status) || isTrialing;
-                Instant periodEnd = data.has("current_period_end") && !data.get("current_period_end").isJsonNull()
-                        ? Instant.ofEpochSecond(data.get("current_period_end").getAsLong())
-                        : null;
+                Instant periodEnd = periodEnd(data);
                 // Tier comes from the subscription items, not the event diff. Ends this subscription,
                 // the customer keeps the tier of any other running subscription (e.g. one per car).
                 SubscriptionTier newTier = isActive
@@ -361,7 +359,7 @@ public class StripeService {
             case "invoice.payment_failed" -> {
                 // Revoke premium AND disconnect Smartcar immediately. We previously kept Smartcar
                 // connected during Stripe's dunning window for "seamless recovery", but Stripe
-                // retries up to 21 days — that's $1.66 of Smartcar billing per failed payment we
+                // retries up to 21 days - that's $1.66 of Smartcar billing per failed payment we
                 // don't want to eat. If the user recovers later, they re-OAuth with one click.
                 // The 6h reconciler is the backstop in case this fast-path itself fails.
                 String customerId = data.get("customer").getAsString();
@@ -372,7 +370,7 @@ public class StripeService {
                             disableTeslaTelemetry(u.getId());
                             log.warn("[STRIPE] payment failed for customer={} userId={} - tier=NONE, Smartcar disconnected, Tesla telemetry stopped", customerId, u.getId());
                         },
-                        () -> log.warn("[STRIPE] payment failed for unknown customer={} — no action taken", customerId)
+                        () -> log.warn("[STRIPE] payment failed for unknown customer={} - no action taken", customerId)
                 );
             }
             case "invoice.payment_succeeded" -> {
@@ -384,7 +382,7 @@ public class StripeService {
                         if (u.getReferredByUserId() == null) return;
 
                         // Atomic DB claim BEFORE any Stripe call.
-                        // Uses UPDATE WHERE referral_reward_given = false — only one concurrent
+                        // Uses UPDATE WHERE referral_reward_given = false - only one concurrent
                         // webhook delivery can win this race. The loser gets false and exits.
                         // If the subsequent Stripe call fails, the reward is permanently lost for
                         // this user (no retry possible). This is intentional: under-rewarding is
@@ -408,7 +406,7 @@ public class StripeService {
                                 log.info("Referral reward credited: referrer={} for referred user={}",
                                         referrer.getId(), u.getId());
                             } catch (StripeException e) {
-                                // DB flag is already set to true — this reward is permanently lost.
+                                // DB flag is already set to true - this reward is permanently lost.
                                 // Manual recovery required: check logs and credit referrer manually.
                                 log.error("REFERRAL_REWARD_FAILED: Stripe credit failed for referrer={} (referred={}). " +
                                         "DB flag already set. Manual credit required.", referrer.getId(), u.getId(), e);
@@ -418,7 +416,7 @@ public class StripeService {
                 }
             }
             default -> {
-                // Unhandled event type — ignore silently
+                // Unhandled event type - ignore silently
             }
         }
     }
@@ -605,6 +603,32 @@ public class StripeService {
             case AUTOSYNC -> 2;
             case AUTOSYNC_LIVE -> 3;
         };
+    }
+
+    /**
+     * End of the current billing period. Since API version 2025-03-31.basil Stripe carries
+     * current_period_end on each subscription item, older versions on the subscription itself.
+     * Items win; with several items the latest end counts. Null when neither is present.
+     */
+    static Instant periodEnd(JsonObject subscriptionData) {
+        Long latest = null;
+        if (subscriptionData.has("items") && subscriptionData.get("items").isJsonObject()) {
+            JsonObject items = subscriptionData.getAsJsonObject("items");
+            if (items.has("data") && items.get("data").isJsonArray()) {
+                for (var element : items.getAsJsonArray("data")) {
+                    JsonObject item = element.getAsJsonObject();
+                    if (item.has("current_period_end") && !item.get("current_period_end").isJsonNull()) {
+                        long end = item.get("current_period_end").getAsLong();
+                        if (latest == null || end > latest) latest = end;
+                    }
+                }
+            }
+        }
+        if (latest == null && subscriptionData.has("current_period_end")
+                && !subscriptionData.get("current_period_end").isJsonNull()) {
+            latest = subscriptionData.get("current_period_end").getAsLong();
+        }
+        return latest != null ? Instant.ofEpochSecond(latest) : null;
     }
 
     /**

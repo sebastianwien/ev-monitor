@@ -322,6 +322,20 @@ public class StripeReportService {
         return n == null || n.isNull() || n.isMissingNode() ? null : Instant.ofEpochSecond(n.asLong());
     }
 
+    /**
+     * End of the current billing period. Since API version 2025-03-31.basil Stripe carries
+     * current_period_end on each subscription item, older versions on the subscription itself.
+     * Items win; with several items the latest end counts.
+     */
+    private static Instant periodEnd(JsonNode sub) {
+        Instant latest = null;
+        for (JsonNode item : sub.path("items").path("data")) {
+            Instant end = epoch(item.get("current_period_end"));
+            if (end != null && (latest == null || end.isAfter(latest))) latest = end;
+        }
+        return latest != null ? latest : epoch(sub.get("current_period_end"));
+    }
+
     private static double cents(JsonNode n) {
         return n.asLong(0) / 100.0;
     }
@@ -389,7 +403,7 @@ public class StripeReportService {
             return new Sub(
                     n.path("id").asText(), customerId, email, country, n.path("status").asText(),
                     Instant.ofEpochSecond(n.path("created").asLong()), canceledAt, ended,
-                    epoch(n.get("trial_end")), epoch(n.get("current_period_end")),
+                    epoch(n.get("trial_end")), periodEnd(n),
                     n.path("cancel_at_period_end").asBoolean(false),
                     discount != null && discount.isObject(),
                     product, interval, amount, monthly,

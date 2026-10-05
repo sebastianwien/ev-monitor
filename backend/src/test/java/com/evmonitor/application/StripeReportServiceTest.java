@@ -301,6 +301,23 @@ class StripeReportServiceTest {
     }
 
     @Test
+    void currentPeriodEnd_readFromItems_whenMissingOnSubscription() throws Exception {
+        // Since Stripe API 2025-03-31.basil current_period_end lives on the items only.
+        String newApiSub = """
+            {"id":"sub_n","status":"active","created":%d,"canceled_at":null,"ended_at":null,"trial_end":null,
+             "cancel_at_period_end":false,"discount":null,
+             "customer":{"id":"cus_n","email":"n@x.de","address":{"country":"DE"}},
+             "items":{"data":[{"current_period_end":%d,"price":{"product":"prod_supporter","unit_amount":200,
+               "currency":"eur","recurring":{"interval":"month"},"nickname":null}}]}}
+            """.formatted(T_2026_09_15, T_2026_09_28);
+        when(client.fetchAll()).thenReturn(Optional.of(raw(List.of(newApiSub), List.of(), List.of())));
+
+        AdminStripeReport.SubscriptionRow row = service.getReport(12, true).subscriptions().get(0);
+
+        assertThat(row.currentPeriodEnd()).isEqualTo("2026-09-28");
+    }
+
+    @Test
     void openInvoices_listsOpenAndPastDueOnly() throws Exception {
         when(client.fetchAll()).thenReturn(Optional.of(standardFixture()));
 

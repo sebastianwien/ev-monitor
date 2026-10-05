@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for StripeService.dispatch() — the validated event handler.
+ * Unit tests for StripeService.dispatch() - the validated event handler.
  *
  * We bypass Webhook.constructEvent() (a Stripe SDK static method) by testing
  * the package-private dispatch() method directly. This is intentional: the
@@ -43,7 +43,7 @@ import static org.mockito.Mockito.*;
  * All Stripe API calls (Customer.retrieve, balanceTransactions().create, etc.)
  * are static methods on Stripe SDK objects and cannot be mocked without PowerMock.
  * The referral reward Stripe credit path is therefore tested only up to the point
- * where claimReferralReward() returns true — the subsequent Stripe call is
+ * where claimReferralReward() returns true - the subsequent Stripe call is
  * left untested at the unit level (covered by integration/manual testing).
  */
 @ExtendWith(MockitoExtension.class)
@@ -197,6 +197,22 @@ class StripeServiceTest {
             ArgumentCaptor<Instant> captor = ArgumentCaptor.forClass(Instant.class);
             verify(userRepository).setSubscriptionPeriodEnd(eq(USER_ID), captor.capture());
             assertThat(captor.getValue()).isEqualTo(Instant.ofEpochSecond(periodEndEpoch));
+        }
+
+        @Test
+        void periodEndOnlyOnItems_newerApiVersion_setsLatestItemPeriodEnd() {
+            // Since Stripe API 2025-03-31.basil current_period_end lives on the subscription items only.
+            User user = buildUser(USER_ID, null);
+            when(userRepository.findByStripeCustomerId(CUSTOMER_ID)).thenReturn(Optional.of(user));
+            JsonObject payload = JsonParser.parseString("{\"customer\":\"" + CUSTOMER_ID + "\","
+                    + "\"status\":\"active\","
+                    + "\"items\":{\"data\":["
+                    + "{\"current_period_end\":1800000000,\"price\":{\"id\":\"price_a\"}},"
+                    + "{\"current_period_end\":1810000000,\"price\":{\"id\":\"price_b\"}}]}}").getAsJsonObject();
+
+            stripeService.dispatch("customer.subscription.updated", payload);
+
+            verify(userRepository).setSubscriptionPeriodEnd(USER_ID, Instant.ofEpochSecond(1_810_000_000L));
         }
 
         @Test
@@ -550,7 +566,7 @@ class StripeServiceTest {
             stripeService.dispatch("invoice.payment_succeeded",
                     invoicePayload(CUSTOMER_ID, 0L));
 
-            // amount=0 path exits immediately — no user lookup at all
+            // amount=0 path exits immediately - no user lookup at all
             verify(userRepository, never()).findByStripeCustomerId(any());
             verify(userRepository, never()).claimReferralReward(any());
         }
@@ -576,7 +592,7 @@ class StripeServiceTest {
                     invoicePayload(CUSTOMER_ID, 390L));
 
             verify(userRepository).claimReferralReward(USER_ID);
-            // Stripe credit call never reached — claimReferralReward was false
+            // Stripe credit call never reached - claimReferralReward was false
             verify(userRepository, never()).findById(any());
         }
 
@@ -589,7 +605,7 @@ class StripeServiceTest {
             when(userRepository.claimReferralReward(USER_ID)).thenReturn(true);
             when(userRepository.findById(REFERRER_ID)).thenReturn(Optional.of(referrer));
 
-            // The subsequent Customer.retrieve() is a Stripe static call — it will
+            // The subsequent Customer.retrieve() is a Stripe static call - it will
             // throw a NullPointerException or StripeException in a unit test because
             // the Stripe HTTP client is not initialized. The service catches all
             // StripeExceptions and logs them, so the test must not expect an exception.
@@ -598,7 +614,7 @@ class StripeServiceTest {
                 stripeService.dispatch("invoice.payment_succeeded",
                         invoicePayload(CUSTOMER_ID, 390L));
             } catch (Exception e) {
-                // Any exception from the Stripe SDK layer is acceptable here —
+                // Any exception from the Stripe SDK layer is acceptable here -
                 // we only care that the DB path executed correctly.
             }
 
@@ -999,7 +1015,7 @@ class StripeServiceTest {
         void unknownType_doesNotThrow_noDbCalls() {
             JsonObject data = new JsonObject();
 
-            // Must not throw — unknown events are silently ignored
+            // Must not throw - unknown events are silently ignored
             stripeService.dispatch("some.completely.unknown.event", data);
 
             verifyNoInteractions(userRepository);
