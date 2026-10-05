@@ -179,12 +179,17 @@ class AnalyticsService {
     this.track('upgrade_page_viewed')
   }
 
-  trackCheckoutStarted(plan: 'monthly' | 'yearly') {
-    this.track('checkout_started', { plan })
+  /** Supporter- oder Upgrade-Seite gesehen; source = ?from oder die vorige Route (siehe upsellSource) */
+  trackUpsellViewed(page: 'supporter' | 'upgrade', source: string) {
+    this.track('upsell_viewed', { page, source })
   }
 
-  trackCheckoutCompleted() {
-    this.track('checkout_completed')
+  trackCheckoutStarted(plan: 'monthly' | 'yearly', tier: string, source: string) {
+    this.track('checkout_started', { plan, tier, source })
+  }
+
+  trackCheckoutCompleted(tier: string, source: string) {
+    this.track('checkout_completed', { tier, source })
   }
 
   // Affiliate Events

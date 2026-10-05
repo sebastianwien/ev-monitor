@@ -145,7 +145,7 @@ const status = computed(() => {
           <p class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">
             {{ notice.upsell ? t('voicelog.quota_out_upsell', { date: resetsOn(notice.resetsOn), price: supporterPrice }) : t('voicelog.quota_out_body', { date: resetsOn(notice.resetsOn) }) }}</p>
           <div v-if="notice.upsell" class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <router-link :to="{ name: 'supporter' }" data-testid="voice-upsell" @click="onUpsell"
+            <router-link :to="{ name: 'supporter', query: { from: 'voice' } }" data-testid="voice-upsell" @click="onUpsell"
               class="btn-3d inline-flex items-center min-h-11 px-4 rounded-sm bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700">{{ t('voicelog.quota_cta') }}</router-link>
             <span class="text-sm text-gray-600 dark:text-gray-300">{{ t('voicelog.quota_type_on') }}</span>
           </div>
@@ -161,7 +161,7 @@ const status = computed(() => {
         </template>
         <p v-if="notice?.kind === 'low' && !status" data-testid="voice-quota-low" class="text-xs text-gray-600 dark:text-gray-300 mt-1">
           {{ t(notice.upsell ? 'voicelog.quota_low_free' : 'voicelog.quota_low_paid', { n: notice.remaining, limit: notice.limit, month }, notice.remaining) }}<template v-if="notice.upsell"> ·
-            <router-link :to="{ name: 'supporter' }" data-testid="voice-upsell" @click="onUpsell"
+            <router-link :to="{ name: 'supporter', query: { from: 'voice' } }" data-testid="voice-upsell" @click="onUpsell"
               class="whitespace-nowrap font-semibold text-indigo-700 dark:text-indigo-300 underline underline-offset-2">{{ t('voicelog.quota_low_cta') }}</router-link></template>
         </p>
       </div>

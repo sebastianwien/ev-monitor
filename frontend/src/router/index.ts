@@ -49,6 +49,7 @@ import UpgradeView from '../views/UpgradeView.vue';
 import SupporterView from '../views/SupporterView.vue';
 import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
 import UpgradeCancelView from '../views/UpgradeCancelView.vue';
+import { onUpsellNavigation } from '../services/upsellSource'
 
 // First-time visitors without a saved locale preference whose browser is not
 // German are sent to the English variant for UX. Crawlers/prerender are NEVER
@@ -499,6 +500,9 @@ const router = createRouter({
 router.beforeEach((to, from) => {
     to.meta.transition = slideDirection(from.path, to.path);
 });
+
+// Aufrufe der Bezahlseiten mit Herkunft messen (Plausible upsell_viewed)
+router.afterEach((to, from) => onUpsellNavigation(to, from));
 
 // Kauf-/Upgrade-Seiten in der nativen App sperren (Apple Guideline 3.1.1).
 // Backstop fuer den Fall, dass irgendwo ein Kauf-Link uebersehen wurde.

@@ -1,4 +1,6 @@
 import api from './axios';
+import { analytics } from '../services/analytics';
+import { currentUpsellSource } from '../services/upsellSource';
 
 export type SubscriptionTier = 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' | 'SUPPORTER';
 
@@ -27,6 +29,8 @@ export const subscriptionService = {
         plan: 'monthly' | 'yearly',
         tier: 'autosync' | 'autosync_live' | 'supporter' = 'autosync',
     ): Promise<CheckoutResponse> {
+        // Hier statt an jedem Kaufknopf: alle Wege zu Stripe laufen durch diese Methode
+        analytics.trackCheckoutStarted(plan, tier, currentUpsellSource());
         const response = await api.post('/subscription/checkout', { plan, tier });
         return response.data;
     },

@@ -67,6 +67,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { analytics } from '../services/analytics';
+import { currentUpsellSource } from '../services/upsellSource';
 import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService';
 
 const { t } = useI18n();
@@ -82,6 +83,12 @@ const tier = ref<SubscriptionTier>('NONE');
 // would exit the poll loop on the first iteration (isPremium already true) and land
 // on the dashboard before the webhook applied the new tier. Default AUTOSYNC keeps
 // the legacy NONE -> AUTOSYNC flow working for old checkout links.
+/** Gekaufter Tarif für die Messung, roh aus der success_url (auch SUPPORTER) */
+const purchasedTier = computed(() => {
+    const raw = route.query.target_tier;
+    return raw === 'AUTOSYNC_LIVE' || raw === 'SUPPORTER' ? raw.toLowerCase() : 'autosync';
+});
+
 const targetTier = computed<'AUTOSYNC' | 'AUTOSYNC_LIVE'>(() => {
     const raw = route.query.target_tier;
     return raw === 'AUTOSYNC_LIVE' ? 'AUTOSYNC_LIVE' : 'AUTOSYNC';
@@ -110,7 +117,7 @@ onMounted(async () => {
         } catch { /* keep current value, try again next iteration */ }
         if (tier.value === targetTier.value) {
             isPolling.value = false;
-            analytics.trackCheckoutCompleted();
+            analytics.trackCheckoutCompleted(purchasedTier.value, currentUpsellSource());
             return;
         }
         if (i < POLL_ATTEMPTS - 1) {
@@ -121,6 +128,6 @@ onMounted(async () => {
     // All attempts exhausted - webhook likely delayed
     isPolling.value = false;
     pollTimedOut.value = true;
-    analytics.trackCheckoutCompleted();
+    analytics.trackCheckoutCompleted(purchasedTier.value, currentUpsellSource());
 });
 </script>

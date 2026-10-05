@@ -228,6 +228,7 @@ test('Free mit 2 übrigen Aufnahmen: Hinweis mit Supporter-Link, Klick wird geme
   await page.getByTestId('voice-upsell').click()
   await expect(page).toHaveURL(/\/supporter/)
   await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'upsell', entry: 'create', kind: 'low' }])
+  await expect.poll(() => events(page)).toContainEqual(['upsell_viewed', { page: 'supporter', source: 'voice' }])
 })
 
 test('Supporter sieht den Zähler erst bei den letzten fünf, ohne Upgrade', async ({ page }) => {
