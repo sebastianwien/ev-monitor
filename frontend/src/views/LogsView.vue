@@ -12,6 +12,8 @@ import {
   SunIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ChevronDoubleDownIcon,
+  ChevronDoubleUpIcon,
   TrashIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -55,6 +57,7 @@ import { formatSocRange } from '../utils/socRange'
 import { hasTripMap } from '../utils/tripMap'
 import { formatPauseDuration, tripDayLabel } from '../utils/tripTimeFormat'
 import { buildPeriodGroups } from '../utils/tripPeriods'
+import { collapseAnchorScrollY, isGroupScrolledPast } from '../utils/stickyGroup'
 import { normalizeCharge } from '../utils/recentActivity'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
 import FeedLegend from '../components/dashboard/FeedLegend.vue'
@@ -87,7 +90,6 @@ import { useRoute } from 'vue-router'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
-import { useBulkBarOffset } from '../composables/useBulkBarOffset'
 import { useHaptic } from '../composables/useHaptic'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
@@ -121,6 +123,7 @@ const {
   setLogsSection, currentOdometerKm,
   logs, logsLoading, editingLog, priceAmendingLog,
   feedResolution, feedTimeRange, feedCustomStartDate, feedCustomEndDate, feedNextOlderMonth, loadOlderFeed,
+  widenFeedAutomatically,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, deleteError, otherCars, openReassignModal, saveReassign,
@@ -314,8 +317,10 @@ function toggleTripGroup(groupId: string) {
   haptic()
   if (isPeriodGroupId(groupId)) {
     const next = new Set(expandedPeriodGroups.value)
-    if (next.has(groupId)) next.delete(groupId)
-    else next.add(groupId)
+    if (next.has(groupId)) {
+      keepCollapsingHeaderInPlace(groupId)
+      next.delete(groupId)
+    } else next.add(groupId)
     expandedPeriodGroups.value = next
     return
   }
@@ -948,6 +953,64 @@ function setPeriodHeaderRef(groupId: string, variant: string, el: unknown) {
 }
 onUnmounted(() => periodHeaderObserver.disconnect())
 
+/** Der sichtbare Kopf einer Zeitraum-Gruppe - Mobil- und Desktop-Template rendern je einen. */
+function visiblePeriodHeader(groupId: string): HTMLElement | null {
+  for (const variant of ['m', 'd']) {
+    const el = periodHeaderEls.get(`${groupId}:${variant}`)
+    if (el && el.offsetHeight > 0) return el
+  }
+  return null
+}
+
+const stickyTopPx = (el: HTMLElement) => parseFloat(getComputedStyle(el).top) || 0
+/** Wo der Kopf ohne Kleben stuende: Gruppenanfang innerhalb des Rahmens. */
+const headerRestTop = (group: HTMLElement) => group.getBoundingClientRect().top + group.clientTop
+
+/** Klebt der Kopf, bleibt er beim Zuklappen stehen, statt dass die Gruppe unter dem Finger wegschrumpft. */
+function keepCollapsingHeaderInPlace(groupId: string) {
+  const header = visiblePeriodHeader(groupId)
+  const group = header?.parentElement
+  if (!header || !group) return
+  const target = collapseAnchorScrollY(window.scrollY, headerRestTop(group), stickyTopPx(header))
+  if (target != null) window.scrollTo({ top: target, behavior: 'instant' })
+}
+
+// Welcher Zeitraum-Kopf gerade klebt. Er deckt dann die Luecke unter der Ticker-Lasche ab
+// (.period-head-stuck) - sonst scrollen links und rechts der Lasche Fahrten sichtbar durch.
+// Nur Farbe, kein Layout: der Kopf darf beim Ankleben nicht springen.
+const stuckPeriodGroupId = ref<string | null>(null)
+let stuckFrame = 0
+function updateStuckPeriodHeader() {
+  stuckFrame = 0
+  let stuck: string | null = null
+  if (viewActive.value) {
+    let stickyTop: number | null = null
+    for (const el of periodHeaderEls.values()) {
+      const group = el.parentElement
+      if (!group || el.offsetHeight === 0) continue
+      stickyTop ??= stickyTopPx(el)
+      if (isGroupScrolledPast(headerRestTop(group), stickyTop) && group.getBoundingClientRect().bottom > stickyTop) {
+        stuck = el.dataset.groupId ?? null
+        break
+      }
+    }
+  }
+  stuckPeriodGroupId.value = stuck
+}
+function scheduleStuckUpdate() {
+  if (!stuckFrame) stuckFrame = requestAnimationFrame(updateStuckPeriodHeader)
+}
+watch([groupedFeed, expandedPeriodGroups], scheduleStuckUpdate, { flush: 'post' })
+onMounted(() => {
+  window.addEventListener('scroll', scheduleStuckUpdate, { passive: true })
+  window.addEventListener('resize', scheduleStuckUpdate, { passive: true })
+})
+onUnmounted(() => {
+  window.removeEventListener('scroll', scheduleStuckUpdate)
+  window.removeEventListener('resize', scheduleStuckUpdate)
+  if (stuckFrame) cancelAnimationFrame(stuckFrame)
+})
+
 function dayBandStyle(groupId: string) {
   return {
     top: `calc(var(--content-top, var(--top-nav-h)) + ${stickyCarSelectorHeight.value + (periodHeaderHeights[groupId] ?? 0)}px)`,
@@ -1106,7 +1169,7 @@ function onTripFormLeave(el: Element, done: () => void) {
   })
 }
 
-// -- Bulk expand/collapse for trips + charges (mobile sticky bar) --
+// -- Klappzustand von Fahrtgruppen und Ladekarten, pro Auto gemerkt --
 const expandedLogsStorageKey  = (carId: string | number | null) => `logfeed_expanded_logs_${carId}`
 const expandedGroupsStorageKey = (carId: string | number | null) => `logfeed_expanded_groups_${carId}`
 
@@ -1168,8 +1231,7 @@ const allChargesExpanded = computed(() =>
   ),
 )
 
-function toggleAllTrips() {
-  const expandAll = !allTripsExpanded.value
+function setAllTripsExpanded(expandAll: boolean) {
   const nextCollapsed = new Set(collapsedTripGroups.value)
   const nextExpanded = new Set(expandedPeriodGroups.value)
   for (const g of visibleTripGroups.value) {
@@ -1191,32 +1253,54 @@ function toggleAllTrips() {
   }
 }
 
-// -- Coordinate FAB position with the sticky bulk-bar (mobile only) --
 // Beide Bodies sind im Pager dauerhaft gerendert -> aktiv = die Route zeigt sie.
-// Verhindert, dass der Teleport-Footer (Bulk-Bar) im inaktiven Tab sichtbar bleibt.
 const viewActive = computed(() => route.name === 'logs')
-const bulkBar = ref<HTMLElement | null>(null)
-const bulkBarVisible = computed(() =>
-  viewActive.value && hasAnyLogs.value && (totalTripCount.value > 0 || chargeCount.value > 0),
-)
-useBulkBarOffset(bulkBar, bulkBarVisible)
 
-function toggleAllCharges() {
-  const expanded = allChargesExpanded.value
+function setAllChargesExpanded(expand: boolean) {
   const newLogs   = new Set(expandedLogs.value)
   const newGroups = new Set(expandedGroups.value)
   visibleChargeEntries.value.forEach(item => {
     if (item.entry._isLadegruppe) {
-      if (expanded) newGroups.delete(item.entry.id)
-      else newGroups.add(item.entry.id)
+      if (expand) newGroups.add(item.entry.id)
+      else newGroups.delete(item.entry.id)
     } else {
-      if (expanded) newLogs.delete(item.entry.id)
-      else newLogs.add(item.entry.id)
+      if (expand) newLogs.add(item.entry.id)
+      else newLogs.delete(item.entry.id)
     }
   })
   expandedLogs.value   = newLogs
   expandedGroups.value = newGroups
 }
+
+// "Alle auf/zu" steht in der Steuerzeile und klappt Fahrtgruppen und Ladekarten gemeinsam.
+// Vorher eine fixe Leiste am unteren Rand, die seit der Bottom-Nav dahinter verschwunden war.
+const allFeedExpanded = computed(() =>
+  (visibleTripGroups.value.length > 0 || visibleChargeEntries.value.length > 0)
+  && (visibleTripGroups.value.length === 0 || allTripsExpanded.value)
+  && (visibleChargeEntries.value.length === 0 || allChargesExpanded.value))
+
+function toggleAllFeed() {
+  const expand = !allFeedExpanded.value
+  setAllTripsExpanded(expand)
+  setAllChargesExpanded(expand)
+}
+
+// Ist der Feed kuerzer als ein Bildschirm, sieht er leer aus - etwa am Monatsanfang oder in
+// "Monat" mit nur einem Monat. Dann laedt er von selbst den naechstgroesseren Zeitraum
+// (useFeedWindow.widenAutomatically), bis der Bildschirm voll ist oder 12 Monate erreicht sind.
+// Nur wenn Daten oder Ansicht wechseln (oder die Liste erscheint): Zuklappen soll nichts nachladen.
+const feedListEl = ref<HTMLElement | null>(null)
+let fillFrame = 0
+function widenFeedIfEmpty() {
+  fillFrame = 0
+  if (!viewActive.value || logsLoading.value || !hasAnyLogs.value || !feedListEl.value) return
+  if (feedListEl.value.offsetHeight < window.innerHeight) widenFeedAutomatically()
+}
+function scheduleFillCheck() {
+  if (!fillFrame) fillFrame = requestAnimationFrame(widenFeedIfEmpty)
+}
+watch([feedListEl, mergedLogFeed, logsLoading, feedResolution, viewActive], scheduleFillCheck, { flush: 'post' })
+onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
 </script>
 
 <template>
@@ -1346,8 +1430,7 @@ function toggleAllCharges() {
           </div>
 
         <!-- Log List -->
-        <div :ref="setLogsSection" class="pt-3 scroll-mt-4"
-          :style="{ paddingBottom: `calc(var(--bulk-bar-offset, 0px) + 1.5rem)` }">
+        <div :ref="setLogsSection" class="pt-3 pb-6 scroll-mt-4">
           <!-- AutoSync Live discoverability hint (users without a free data source, without Live, dismissible) -->
           <div v-if="showLiveBanner"
             class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-sm border-l-2 border-indigo-400 bg-indigo-500/15">
@@ -1500,18 +1583,30 @@ function toggleAllCharges() {
                Voll ausgeschriebene Segmente statt eines Menues - die vier Optionen passen
                nebeneinander und eine Auswahl, die man sieht, muss man nicht suchen. -->
           <div v-if="hasAnyLogs" class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <div role="group" :aria-label="t('logs.resolution.label')"
-                 class="order-1 inline-flex w-full sm:w-auto p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
-              <button v-for="option in RESOLUTIONS" :key="option" type="button"
-                      @click="feedResolution = option" :aria-pressed="feedResolution === option"
-                      :class="['flex-1 sm:flex-none px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
-                        feedResolution === option
-                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
-                {{ t('logs.resolution.' + option) }}
+            <div class="order-1 flex items-stretch gap-2 w-full sm:w-auto">
+              <div role="group" :aria-label="t('logs.resolution.label')"
+                   class="inline-flex flex-1 sm:flex-none p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
+                <button v-for="option in RESOLUTIONS" :key="option" type="button"
+                        @click="feedResolution = option" :aria-pressed="feedResolution === option"
+                        :class="['flex-1 sm:flex-none min-h-11 sm:min-h-0 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
+                          feedResolution === option
+                            ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
+                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
+                  {{ t('logs.resolution.' + option) }}
+                </button>
+              </div>
+              <!-- Alles auf- oder zuklappen. Steht hier, wo man vor dem Lesen ohnehin hinschaut;
+                   die Doppel-Chevrons wiederholen die Einzel-Chevrons der Gruppenkoepfe. -->
+              <button v-if="totalTripCount > 0 || chargeCount > 0" type="button" data-testid="logfeed-toggle-all"
+                      @click="toggleAllFeed"
+                      :aria-label="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
+                      :title="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
+                      class="shrink-0 inline-flex items-center justify-center w-11 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+                <ChevronDoubleUpIcon v-if="allFeedExpanded" class="w-4 h-4" />
+                <ChevronDoubleDownIcon v-else class="w-4 h-4" />
               </button>
             </div>
-            <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, pro Darstellung gemerkt.
+            <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, ein Wert fuer alle Darstellungen.
                  Unter xl: Darstellung (Mobile volle Breite) + Legende rechts, darunter der Picker
                  mittig zwischen Trennlinien. Ab xl: alles in einer Zeile, Picker mittig. -->
             <div class="order-3 xl:order-2 w-full xl:flex-1 xl:w-auto flex items-center gap-4">
@@ -1527,7 +1622,7 @@ function toggleAllCharges() {
                         :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
 
-          <div :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
+          <div ref="feedListEl" :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
             <template v-if="logsLoading && !hasAnyLogs">
               <div v-for="n in 5" :key="n" class="relative p-3 border-2 rounded-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] animate-pulse">
                 <div class="flex items-center justify-between gap-2">
@@ -1568,14 +1663,22 @@ function toggleAllCharges() {
               <template v-if="item.kind === 'tripGroup'">
                 <div class="gridfeed:hidden rounded-sm border-2 border-emerald-300 dark:border-emerald-800/60 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
 
-                  <!-- Kopf des Zeitraums - Tag, Woche oder Monat -->
-                  <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
-                          :aria-expanded="!isGroupCollapsed(item.groupId)"
-                          :ref="(el) => setPeriodHeaderRef(item.groupId, 'm', el)" :style="stickyHeaderStyle"
-                          class="w-full text-left sticky z-[3] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors border-b border-gray-100 dark:border-gray-600">
-                    <PeriodGroupHeader :group="item.period" :expanded="!isGroupCollapsed(item.groupId)" compact
-                                       :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
-                  </button>
+                  <!-- Kopf des Zeitraums - Tag, Woche oder Monat. Nur die Titelzeile klebt; Chips
+                       und Tagesraster scrollen mit, sonst belegte der Kopf ein Drittel des Bildschirms. -->
+                  <template v-if="item.period">
+                    <button type="button" @click="toggleTripGroup(item.groupId)"
+                            :aria-expanded="!isGroupCollapsed(item.groupId)"
+                            :ref="(el) => setPeriodHeaderRef(item.groupId, 'm', el)" :style="stickyHeaderStyle"
+                            :class="['w-full text-left sticky z-[3] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors',
+                                     { 'period-head-stuck': stuckPeriodGroupId === item.groupId }]">
+                      <PeriodGroupHeader part="title" :group="item.period" :expanded="!isGroupCollapsed(item.groupId)" compact />
+                    </button>
+                    <div @click="toggleTripGroup(item.groupId)"
+                         class="cursor-pointer bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors border-b border-gray-100 dark:border-gray-600">
+                      <PeriodGroupHeader part="body" :group="item.period" :expanded="!isGroupCollapsed(item.groupId)" compact
+                                         :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
+                    </div>
+                  </template>
 
                   <!-- Group header -->
                   <div v-else @click="toggleTripGroup(item.groupId)"
@@ -1871,6 +1974,7 @@ function toggleAllCharges() {
                   <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!isGroupCollapsed(item.groupId)"
                     :ref="(el) => setPeriodHeaderRef(item.groupId, 'd', el)" :style="stickyHeaderStyle"
+                    :class="{ 'period-head-stuck': stuckPeriodGroupId === item.groupId }"
                     class="w-full text-left sticky z-[3] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 border-b border-gray-100 dark:border-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
                     <PeriodGroupHeader :group="item.period" :expanded="!isGroupCollapsed(item.groupId)"
                                        :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
@@ -3300,8 +3404,8 @@ function toggleAllCharges() {
               </template><!-- end v-for groupedFeed -->
             </template>
           </div>
-          <!-- Einzeln: monatsweise weiter zurueck, statt eines festen Seitenendes. -->
-          <div v-if="feedResolution === 'cycle'" class="mt-4 flex items-center gap-4">
+          <!-- Monatsweise weiter zurueck, statt eines festen Seitenendes - in jeder Darstellung. -->
+          <div v-if="hasAnyLogs" class="mt-4 flex items-center gap-4">
             <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
             <button type="button" data-testid="logfeed-load-older" :disabled="logsLoading" @click="loadOlderFeed()"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition">
@@ -3435,56 +3539,19 @@ function toggleAllCharges() {
     @close="powerCurveEntry = null"
   />
 
-  <!-- Mobile sticky bottom bar: bulk expand/collapse with toggle switches -->
-  <Teleport to="body">
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 translate-y-2"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 translate-y-2">
-      <div v-if="bulkBarVisible"
-        ref="bulkBar"
-        class="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-gray-900/95 dark:bg-gray-800/95 backdrop-blur border-t border-white/10 flex items-center justify-around gap-3 px-4 py-2.5"
-        style="padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);">
-        <label v-if="totalTripCount > 0" class="flex items-center gap-2 cursor-pointer select-none">
-          <span class="text-xs font-medium text-white whitespace-nowrap">
-            {{ t('dashboard.bulk_trips_label') }}
-          </span>
-          <button
-            type="button"
-            role="switch"
-            :aria-checked="allTripsExpanded"
-            @click="toggleAllTrips"
-            :class="['relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
-                     allTripsExpanded ? 'bg-indigo-500' : 'bg-gray-600 dark:bg-gray-500']">
-            <span :class="['inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-150 shadow',
-                           allTripsExpanded ? 'translate-x-[18px]' : 'translate-x-[3px]']" />
-          </button>
-        </label>
-        <label v-if="chargeCount > 0" class="flex items-center gap-2 cursor-pointer select-none">
-          <span class="text-xs font-medium text-white whitespace-nowrap">
-            {{ t('dashboard.bulk_charges_label') }}
-          </span>
-          <button
-            type="button"
-            role="switch"
-            :aria-checked="allChargesExpanded"
-            @click="toggleAllCharges"
-            :class="['relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400',
-                     allChargesExpanded ? 'bg-indigo-500' : 'bg-gray-600 dark:bg-gray-500']">
-            <span :class="['inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform duration-150 shadow',
-                           allChargesExpanded ? 'translate-x-[18px]' : 'translate-x-[3px]']" />
-          </button>
-        </label>
-      </div>
-    </Transition>
-  </Teleport>
 </div>
 </template>
 
 <style scoped>
+/* Klebender Zeitraum-Kopf: der Schatten deckt die Luecke unter der Ticker-Lasche ab und zieht
+   unten eine Haarlinie gegen die durchscrollenden Fahrten. Nur Farbe, kein Layout. */
+.period-head-stuck {
+  box-shadow: 0 calc(-1 * var(--ticker-lasche-h, 0px)) 0 0 #fff, 0 1px 0 0 #e5e7eb;
+}
+.dark .period-head-stuck {
+  box-shadow: 0 calc(-1 * var(--ticker-lasche-h, 0px)) 0 0 #374151, 0 1px 0 0 #4b5563;
+}
+
 .fade-enter-active {
   transition: opacity 0.2s ease;
 }

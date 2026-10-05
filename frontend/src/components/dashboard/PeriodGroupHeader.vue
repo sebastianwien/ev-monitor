@@ -31,7 +31,18 @@ const props = defineProps<{
   community?: CommunityBenchmark | null
   /** Standverlust-Summe des Zeitraums in kWh - bereits gegated, null blendet den Chip aus. */
   phantomKwh?: number | null
+  /**
+   * Nur einen Teil rendern: 'title' ist die Zeile, die beim Scrollen kleben bleibt (Name,
+   * Zaehlung, Chevron), 'body' die Bilanz-Chips samt Tagesraster, die mitscrollen. Ein ganzer
+   * klebender Kopf belegte auf dem Handy bis zu 240 px - ein Drittel des Bildschirms.
+   */
+  part?: 'title' | 'body'
 }>()
+
+const showTitle = computed(() => props.part !== 'body')
+const showBody = computed(() => props.part !== 'title')
+const paddingClass = computed(() =>
+  props.part === 'title' ? 'pt-2.5 pb-1.5' : props.part === 'body' ? 'pb-2.5' : 'py-2.5')
 
 const { t, locale } = useI18n()
 const { formatDistance, formatConsumption, formatCurrency } = useLocaleFormat()
@@ -72,12 +83,12 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
 </script>
 
 <template>
-  <div class="flex flex-col gap-1.5 px-3 py-2.5 select-none">
+  <div class="flex flex-col gap-1.5 px-3 select-none" :class="paddingClass">
     <!-- Ab 1024px stehen Name, Kennzahlen und Chevron in einer Zeile; darunter bricht die
          Bilanz um, weil sie sonst die Namen abschneiden wuerde. -->
     <div class="flex items-start gap-2">
       <div class="min-w-0 flex-1 flex flex-col gap-1" :class="compact ? '' : 'lg:flex-row lg:items-baseline lg:gap-4'">
-        <div class="flex items-baseline gap-2 min-w-0">
+        <div v-if="showTitle" data-testid="period-title" class="flex items-baseline gap-2 min-w-0">
           <span class="text-base sm:text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100 whitespace-nowrap">
             {{ label }}
           </span>
@@ -92,7 +103,7 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
 
         <!-- Bilanz als Chips: nur Summen und was direkt daraus folgt, nichts Geschaetztes.
              Verbrauch und Kosten tragen die Community-Einordnung als Farbe, der Rest bleibt neutral. -->
-        <div class="flex items-center gap-x-1.5 gap-y-1 flex-wrap tabular-nums"
+        <div v-if="showBody" data-testid="period-chips" class="flex items-center gap-x-1.5 gap-y-1 flex-wrap tabular-nums"
              :class="compact ? '' : 'lg:flex-1 lg:gap-x-2'">
           <!-- Ohne Fahrten stammt die Strecke aus dem Odometer-Delta der Ladungen - eine
                Schaetzung (nur der Kern zwischen In-Period-Ladungen). "~" statt "+" plus
@@ -140,12 +151,14 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
         </div>
       </div>
 
-      <ChevronUpIcon v-if="expanded" class="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
-      <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
+      <template v-if="showTitle">
+        <ChevronUpIcon v-if="expanded" class="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
+        <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
+      </template>
     </div>
 
     <!-- Tagesraster mittig unter der Bilanz - siehe Kopfkommentar. -->
-    <div v-if="hasBars" class="mt-0.5 flex justify-center overflow-x-auto overflow-y-hidden">
+    <div v-if="showBody && hasBars" data-testid="period-bars" class="mt-0.5 flex justify-center overflow-x-auto overflow-y-hidden">
       <PeriodDayBars :bars="group.bars" :month="isMonth" class="shrink-0" />
     </div>
   </div>

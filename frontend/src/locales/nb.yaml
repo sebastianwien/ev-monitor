@@ -578,6 +578,8 @@ logs:
   title: Ladinger og turer
   load_older: "Last eldre ({month})"
   empty_window: "Ingen ladinger eller turer i valgt periode."
+  expand_all: "Vis alle"
+  collapse_all: "Skjul alle"
   resolution:
     label: "Visning"
     cycle: "Enkeltvis"
@@ -804,8 +806,6 @@ dashboard:
   logs_title: Ladingsøktene dine
   logs_title_short: Ladingsøkter
   logs_page: Side {n}
-  bulk_trips_label: Vis turer
-  bulk_charges_label: Vis ladingsøkter
   implausible_banner: "{n} {noun} med et usannsynlig forbruk"
   implausible_entry: oppføring
   implausible_entries: oppføringer

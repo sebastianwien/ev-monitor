@@ -578,6 +578,8 @@ logs:
   title: Laddningar & resor
   load_older: "Ladda äldre ({month})"
   empty_window: "Inga laddningar eller resor under vald period."
+  expand_all: "Visa alla"
+  collapse_all: "Dölj alla"
   resolution:
     label: "Vy"
     cycle: "Enskilda"
@@ -804,8 +806,6 @@ dashboard:
   logs_title: Dina laddningar
   logs_title_short: Laddningssessioner
   logs_page: Sida {n}
-  bulk_trips_label: Visa resor
-  bulk_charges_label: Visa laddningssessioner
   implausible_banner: "{n} {noun} med osannolik förbrukning"
   implausible_entry: post
   implausible_entries: poster
