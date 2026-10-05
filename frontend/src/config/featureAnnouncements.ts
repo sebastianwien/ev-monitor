@@ -97,4 +97,13 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     // klaert der Wizard unter /imports.
     condition: (ctx) => ctx.hasVwEudaBrandCar && !ctx.hasVwEudaConnection,
   },
+  {
+    key: 'log_wizard_voice_v1',
+    releasedAt: '2026-10-05', // nur Bestandsuser - Neue kennen das alte Formular nicht, sie landen direkt im Assistenten
+    expiresAt: '2026-11-15',
+    titleKey: 'announcements.log_wizard_voice_v1_title',
+    bodyKey: 'announcements.log_wizard_voice_v1_body',
+    ctaLabelKey: 'announcements.log_wizard_voice_v1_cta',
+    ctaRoute: '/erfassen',
+  },
 ]
