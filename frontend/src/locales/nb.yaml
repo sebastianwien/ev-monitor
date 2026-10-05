@@ -2360,7 +2360,7 @@ announcements:
   euda_autosync_v1_body: "Kjøretøydataene dine tilhører deg - EV Monitor krever dem inn for deg hos {brand}, direkte, uten Smartcar og uten adapter. Det som kommer inn som rådata der, blir til ekte ladinger hos oss: kWh, SoC, ladeeffekt og forbruket som faktisk ligger bak."
   euda_autosync_v1_cta: "Koble til bilen"
   log_wizard_voice_v1_title: "Å registrere lading går nå mye raskere"
-  log_wizard_voice_v1_body: "Vi har bygget registreringen av ladingene dine på nytt. Ladestasjoner i nærheten foreslår vi med en gang, og til slutt ser du alt med ett blikk. Og orker du ikke å skrive: trykk på mikrofonen og fortell hvordan du ladet. For eksempel: «Mer, 32 kWh, batteri på 80 %». Resten fyller vi ut for deg. 5 opptak i måneden er gratis, som Supporter får du 30."
+  log_wizard_voice_v1_body: "Vi har bygget registreringen av ladingene dine på nytt. Ladestasjoner i nærheten foreslår vi med en gang, og til slutt ser du alt med ett blikk. Og orker du ikke å skrive: trykk på mikrofonen og fortell hvordan du ladet. For eksempel: «Mer, 32 kWh, batteri på 80 %». Resten fyller vi ut for deg."
   log_wizard_voice_v1_cta: "Prøv nå"
   consumption_methodology_v1_title: "Hvorfor er forbruket mitt høyere enn tripptelleren?"
   consumption_methodology_v1_body: "Vi har forklart dette i detalj - med ekte tall og hele energikjeden fra nettet til motoren."

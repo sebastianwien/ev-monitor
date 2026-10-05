@@ -2426,7 +2426,7 @@ announcements:
   euda_autosync_v1_body: "Your vehicle data belongs to you - EV Monitor claims it for you at {brand}, directly, without Smartcar and without an adapter. What arrives there as raw data turns into real charging sessions here: kWh, SoC, charging power and the consumption that is actually behind it."
   euda_autosync_v1_cta: "Connect car"
   log_wizard_voice_v1_title: "Logging your charging sessions just got a lot faster"
-  log_wizard_voice_v1_body: "We rebuilt how you log your charging sessions. We suggest chargers near you right away, and at the end you see everything at a glance. And if you don't feel like typing: press the microphone and just tell us how you charged. For example: “EnBW, 32 kWh, €18.40, battery at 80%”. We fill in the rest for you. 5 recordings a month are free, as a Supporter you get 30."
+  log_wizard_voice_v1_body: "We rebuilt how you log your charging sessions. We suggest chargers near you right away, and at the end you see everything at a glance. And if you don't feel like typing: press the microphone and just tell us how you charged. For example: “EnBW, 32 kWh, €18.40, battery at 80%”. We fill in the rest for you."
   log_wizard_voice_v1_cta: "Try it now"
   consumption_methodology_v1_title: "Why is my consumption higher than my trip computer?"
   consumption_methodology_v1_body: "We have explained this in detail - with real numbers, the full energy chain from the grid to the motor, and the reason why both values are correct."

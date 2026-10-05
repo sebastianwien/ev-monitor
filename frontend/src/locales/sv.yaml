@@ -2360,7 +2360,7 @@ announcements:
   euda_autosync_v1_body: "Dina fordonsdata tillhör dig - EV Monitor begär ut dem åt dig hos {brand}, direkt, utan Smartcar och utan adapter. Det som kommer in som rådata där blir till riktiga laddningar hos oss: kWh, SoC, laddeffekt och förbrukningen som faktiskt ligger bakom."
   euda_autosync_v1_cta: "Anslut bilen"
   log_wizard_voice_v1_title: "Att logga dina laddningar går nu mycket snabbare"
-  log_wizard_voice_v1_body: "Vi har byggt om hur du loggar dina laddningar. Laddstationer i närheten föreslår vi direkt, och till sist ser du allt på en gång. Och om du inte orkar skriva: tryck på mikrofonen och berätta hur du laddade. Till exempel: ”Ionity, 32 kWh, batteri på 80 %”. Resten fyller vi i åt dig. 5 inspelningar i månaden är gratis, som Supporter får du 30."
+  log_wizard_voice_v1_body: "Vi har byggt om hur du loggar dina laddningar. Laddstationer i närheten föreslår vi direkt, och till sist ser du allt på en gång. Och om du inte orkar skriva: tryck på mikrofonen och berätta hur du laddade. Till exempel: ”Ionity, 32 kWh, batteri på 80 %”. Resten fyller vi i åt dig."
   log_wizard_voice_v1_cta: "Testa nu"
   consumption_methodology_v1_title: "Varför är min förbrukning högre än trippdatorn?"
   consumption_methodology_v1_body: "Vi har förklarat detta i detalj - med riktiga siffror och hela energikedjan från elnätet till motorn."

@@ -2431,7 +2431,7 @@ announcements:
   euda_autosync_v1_body: "Deine Fahrzeugdaten gehören dir - EV Monitor fordert sie für dich bei {brand} ein, direkt, ohne Smartcar und ohne Adapter. Was dort als Rohdaten ankommt, wird bei uns zu echten Ladevorgängen: kWh, SoC, Ladeleistung und der Verbrauch, der wirklich dahintersteckt."
   euda_autosync_v1_cta: "Auto verbinden"
   log_wizard_voice_v1_title: "Ladevorgänge eintragen geht jetzt viel schneller"
-  log_wizard_voice_v1_body: "Wir haben das Eintragen deiner Ladevorgänge neu gebaut. Ladesäulen in deiner Nähe schlagen wir dir direkt vor, und am Ende siehst du alles noch einmal auf einen Blick. Und wenn du gerade keine Lust zum Tippen hast: Drück aufs Mikrofon und erzähl einfach, wie du geladen hast. Zum Beispiel: „EnBW, 32 kWh, 18,40 €, Akku auf 80 %“. Den Rest füllen wir für dich aus. 5 Aufnahmen im Monat sind kostenlos, als Supporter hast du 30."
+  log_wizard_voice_v1_body: "Wir haben das Eintragen deiner Ladevorgänge neu gebaut. Ladesäulen in deiner Nähe schlagen wir dir direkt vor, und am Ende siehst du alles noch einmal auf einen Blick. Und wenn du gerade keine Lust zum Tippen hast: Drück aufs Mikrofon und erzähl einfach, wie du geladen hast. Zum Beispiel: „EnBW, 32 kWh, 18,40 €, Akku auf 80 %“. Den Rest füllen wir für dich aus."
   log_wizard_voice_v1_cta: "Gleich ausprobieren"
   consumption_methodology_v1_title: "Warum liegt mein Verbrauch über dem Bordcomputer?"
   consumption_methodology_v1_body: "Das haben wir jetzt ausführlich erklärt - mit echten Zahlen, der vollen Energiekette vom Stromnetz bis zum Motor, und dem Grund warum beide Werte korrekt sind."
