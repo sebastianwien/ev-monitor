@@ -167,7 +167,13 @@ const status = computed(() => {
       </div>
     </div>
     <div v-if="showConsent" data-testid="voice-consent" class="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-200">
-      <p>{{ t('voicelog.consent_text') }}</p>
+      <!-- Kurz halten, Details in der DSE. Neuer Tab, damit die Eingaben im Wizard bleiben. -->
+      <i18n-t keypath="voicelog.consent_text" tag="p">
+        <template #privacy>
+          <a href="/datenschutz#spracheingabe" target="_blank" rel="noopener" data-testid="voice-consent-privacy"
+            class="underline underline-offset-2 text-indigo-700 dark:text-indigo-300">{{ t('voicelog.consent_privacy') }}</a>
+        </template>
+      </i18n-t>
       <button type="button" data-testid="voice-consent-ok" @click="acceptConsent"
         class="btn-3d min-h-11 px-4 rounded-sm bg-indigo-600 text-white font-semibold hover:bg-indigo-700">{{ t('voicelog.consent_ok') }}</button>
     </div>

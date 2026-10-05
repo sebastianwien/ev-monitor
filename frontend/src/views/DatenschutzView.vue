@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, onMounted } from 'vue'
 import { BoltIcon } from '@heroicons/vue/24/outline'
 
 const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
+
+// Sprunglinks wie /datenschutz#spracheingabe (aus dem Hinweis vor der ersten Sprachaufnahme, neuer Tab):
+// der Router scrollt immer nach oben, also hier selbst zum Abschnitt springen
+onMounted(async () => {
+  if (!location.hash) return
+  await nextTick()
+  document.getElementById(decodeURIComponent(location.hash.slice(1)))?.scrollIntoView()
+})
 </script>
 
 <template>
@@ -200,6 +208,30 @@ const email = computed(() => ['impressum', 'ev-monitor.net'].join('@'))
           </p>
           <p class="mt-4">
             <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Bestandteil der Verbrauchsauswertung).
+          </p>
+        </section>
+
+        <section id="spracheingabe" class="scroll-mt-4">
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8a. Spracheingabe (Mistral AI)</h2>
+          <p>
+            Wenn Sie einen Ladevorgang einsprechen, überträgt unser Server die Aufnahme an <strong>Mistral AI</strong>
+            (Mistral AI SAS, Paris, Frankreich). Mistral wandelt die Sprache in Text um und liest daraus die Werte für
+            das Formular. Zur Zuordnung erhält Mistral zusätzlich das Datum, die nutzbare Akkukapazität und den letzten
+            Tachostand Ihres Fahrzeugs, die Namen möglicher Ladeorte (Ladesäulen in der Nähe, Ihre zuletzt genutzten
+            Ladeorte) und die Namen Ihrer Ladetarife. Ihre Koordinaten, Ihr Name und Ihre E-Mail-Adresse werden nicht übertragen.
+          </p>
+          <p class="mt-4">
+            Mistral speichert Ein- und Ausgaben bis zu 30 Tage, um Missbrauch zu erkennen, und löscht sie danach.
+            Zum Training der Modelle von Mistral werden Ihre Daten nicht verwendet.
+          </p>
+          <p class="mt-4">
+            Wir speichern weder die Aufnahme noch den erkannten Text. Gespeichert werden nur Nutzungsdaten je Aufnahme
+            (Zeitpunkt, Dauer, Erfolg, Anzahl erkannter Felder, Kosten), um Ihr monatliches Kontingent zu berechnen;
+            sie werden mit Ihrem Konto gelöscht. Eine gesprochene Adresse sucht Ihr Gerät wie bei der Ortssuche über
+            OpenStreetMap Nominatim (siehe Abschnitt 6). Die Spracheingabe ist freiwillig, alle Werte lassen sich auch tippen.
+          </p>
+          <p class="mt-4">
+            <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (von Ihnen gewünschte Funktion).
           </p>
         </section>
 
