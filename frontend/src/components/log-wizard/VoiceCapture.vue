@@ -122,8 +122,9 @@ const status = computed(() => {
       <div class="flex-1 min-w-0" aria-live="polite">
         <p v-if="status" data-testid="voice-problem" class="text-sm text-amber-700 dark:text-amber-300">{{ status }}</p>
         <template v-else-if="variant === 'card'">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('voicelog.title') }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ t('voicelog.hint') }}</span></p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('voicelog.example') }}</p>
+          <!-- Ein kurzes Beispiel statt Bedienanleitung: zeigt, dass ein lockerer Halbsatz reicht. Die volle Liste steht im Vollbild. -->
+          <p class="text-base font-semibold text-gray-800 dark:text-gray-100">{{ t('voicelog.title') }}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-300 mt-0.5">{{ t('voicelog.card_example') }}</p>
         </template>
         <template v-else>
           <p class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{ label ?? t('voicelog.again') }}</p>

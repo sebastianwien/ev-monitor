@@ -3513,8 +3513,8 @@ payment_methods:
 voicelog:
   mic_label: "Ladevorgang einsprechen"
   mic_stop: "Aufnahme beenden"
-  title: "Einfach sagen"
-  hint: "Tippen und sprechen oder gedrückt halten."
+  title: "Sag’s einfach"
+  card_example: "„EnBW, 32 kWh, 18,40 €, Akku auf 80 %“"
   example: "Zum Beispiel: „EnBW, 32 Kilowattstunden, 18 Euro 40, Akku von 20 auf 80 Prozent, Tacho 48.210.“"
   recording: "Ich höre zu, {time} von 1:00. Tippen beendet."
   uploading: "Wird verstanden …"

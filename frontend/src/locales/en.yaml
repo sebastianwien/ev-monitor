@@ -3508,7 +3508,7 @@ voicelog:
   mic_label: "Speak your charging session"
   mic_stop: "Stop recording"
   title: "Just say it"
-  hint: "Tap and speak, or press and hold."
+  card_example: "“EnBW, 32 kWh, €18.40, battery at 80%”"
   example: "For example: “EnBW, 32 kilowatt hours, 18 euros 40, battery from 20 to 80 percent, odometer 48,210.”"
   recording: "Listening, {time} of 1:00. Tap to finish."
   uploading: "Understanding …"

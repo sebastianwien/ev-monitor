@@ -3393,7 +3393,7 @@ voicelog:
   mic_label: "Läs in laddningen"
   mic_stop: "Stoppa inspelningen"
   title: "Säg det bara"
-  hint: "Tryck och prata, eller håll inne."
+  card_example: "”Ionity, 32 kWh, batteri på 80 %”"
   example: "Till exempel: ”Ionity, 32 kilowattimmar, batteri från 20 till 80 procent, mätarställning 48 210.”"
   recording: "Jag lyssnar, {time} av 1:00. Tryck för att avsluta."
   uploading: "Tolkar …"

@@ -3393,7 +3393,7 @@ voicelog:
   mic_label: "Les inn ladingen"
   mic_stop: "Stopp opptaket"
   title: "Bare si det"
-  hint: "Trykk og snakk, eller hold inne."
+  card_example: "«Mer, 32 kWh, batteri på 80 %»"
   example: "For eksempel: «Mer, 32 kilowattimer, batteri fra 20 til 80 prosent, kilometerstand 48 210.»"
   recording: "Jeg lytter, {time} av 1:00. Trykk for å avslutte."
   uploading: "Tolker …"
