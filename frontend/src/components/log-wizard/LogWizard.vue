@@ -24,7 +24,7 @@ import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocat
 import { emptyLogForm, canProceed, missingRequired, applyPlace, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice,
   applyVoiceDraft, voiceCost, voiceFlags, mergeUncertain, canJumpToReview, type VoiceDraft, type VoiceCost, type VoiceFlag, type VoiceUsage } from './wizardLogic'
 import { spokenSnapshot, correctedFields, type SpokenSnapshot } from './voiceAnalytics'
-import { geocodeSpokenAddress, addressPlace } from './voiceAddress'
+import { resolveSpokenAddress, placeFromAddress } from './voiceAddress'
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
 import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
@@ -399,15 +399,14 @@ const onVoiceDraft = async (draft: VoiceDraft) => {
   if (said) spokenCost.value = said
   uncertainFields.value = mergeUncertain(uncertainFields.value, draft.fields)
   // Adresse statt Listentreffer: suchen, Umkreis dort laden, Ort wählen
-  const address = draft.fields.spokenAddress
-  const viaAddress = !!address && (!draft.place || draft.place.kind === 'other')
+  const viaAddress = placeFromAddress(draft)
   const listed = viaAddress ? { ...draft, place: null } : draft
   if (listed.place) resetCard()
   const choice = applyVoiceDraft(form.value, listed)
   if (choice) setPlaceContext(choice)
   let placeUnsure = false
   if (viaAddress) {
-    placeUnsure = !(await placeAtAddress(address!, draft.place?.cpoName ?? null))
+    placeUnsure = !(await placeAtAddress(draft))
     if (draft.fields.chargingType) form.value.chargingType = draft.fields.chargingType
     if (draft.chargingProviderId) form.value.chargingProviderId = draft.chargingProviderId
   }
@@ -432,18 +431,17 @@ const onVoiceDraft = async (draft: VoiceDraft) => {
  * Gesprochene Adresse: wie die getippte Adresssuche, nur ohne Tippen. false = nicht gefunden oder
  * der Ort ist nicht eindeutig (Säulen in der Nähe, genannter Betreiber fehlt) - dann prüft der Nutzer in Schritt 1.
  */
-const placeAtAddress = async (q: string, operator: string | null): Promise<boolean> => {
-  const hit = await geocodeSpokenAddress(q)
-  if (!hit) { voiceHint.value = t('voicelog.address_not_found', { q }); return false }
-  pickedAddress.value = hit.name
-  form.value.latitude = hit.latitude
-  form.value.longitude = hit.longitude
+const placeAtAddress = async (draft: VoiceDraft): Promise<boolean> => {
+  const near = form.value.latitude != null && form.value.longitude != null ? { lat: form.value.latitude, lon: form.value.longitude } : null
+  const r = await resolveSpokenAddress(draft, { near, loadStations: async (lat, lon) => { await nearby.load(lat, lon); return nearby.stations.value } })
+  if (!r) { voiceHint.value = t('voicelog.address_not_found', { q: draft.fields.spokenAddress }); return false }
+  pickedAddress.value = r.hit.name
+  form.value.latitude = r.hit.latitude
+  form.value.longitude = r.hit.longitude
   locationAccuracy.value = null
   locationStatus.value = 'success'
-  await nearby.load(hit.latitude, hit.longitude)
-  const { choice, unsure } = addressPlace(nearby.stations.value, operator)
-  choosePlace(choice, { advance: false })
-  return !unsure
+  choosePlace(r.choice, { advance: false })
+  return !r.unsure
 }
 
 /** Nach dem Speichern: wie viel von dem Gesagten musste der Nutzer korrigieren? */
