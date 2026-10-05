@@ -152,6 +152,35 @@ class VoiceLogServiceTest {
     }
 
     @Test
+    void spokenAddressReplacesHere() {
+        // "zuhause" heisst im Wizard "hier privat" - mit einer Adresse ist aber woanders gemeint
+        extracted(DraftFields.builder().placeIndex(0).placeKind("home").spokenAddress("Lindenweg 4, Bamberg").build());
+
+        VoiceDraftResult result = service.draft(command());
+
+        assertThat(result.place()).isNull();
+        assertThat(result.fields().spokenAddress()).isEqualTo("Lindenweg 4, Bamberg");
+    }
+
+    @Test
+    void withAnAddressAListedStationStaysOnlyIfItsNameWasSpoken() {
+        // Transkript: "Geladen bei EnBW, 32 Kilowattstunden" - EnBW gesagt, Lidl nicht
+        extracted(DraftFields.builder().placeIndex(2).placeKind("station").spokenAddress("Hauptstrasse 5").build());
+        assertThat(service.draft(command()).place().station().name()).isEqualTo("EnBW");
+
+        // Eval 05.10.: "Bei der Firma, Industriestrasse 7" bekam eine nie genannte Saeule aus der Liste
+        extracted(DraftFields.builder().placeIndex(1).placeKind("station").spokenAddress("Industriestrasse 7").build());
+        VoiceDraftResult invented = service.draft(command());
+        assertThat(invented.place()).isNull();
+        assertThat(invented.fields().placeIndex()).isNull();
+        assertThat(invented.fields().uncertain()).contains("placeIndex");
+
+        // Freier Betreiber an der Adresse bleibt: der Client sucht dessen Saeule dort
+        extracted(DraftFields.builder().placeKind("other").spokenOperator("Aral").spokenAddress("Hauptstrasse 5").build());
+        assertThat(service.draft(command()).place().cpoName()).isEqualTo("Aral");
+    }
+
+    @Test
     void noPlaceSpokenMeansNoPlace() {
         extracted(DraftFields.builder().kwhCharged(30.0).build());
 

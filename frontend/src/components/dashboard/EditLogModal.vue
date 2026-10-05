@@ -23,6 +23,23 @@
       <div class="flex-1 overflow-y-auto p-4 space-y-4">
         <!-- Uebersicht: was da ist, was fehlt, Optionales -->
         <template v-if="!section">
+          <!-- Sprache: nur Handy, sagt nur, was sich ändert; danach Vorher/Nachher mit Rückgängig -->
+          <VoiceCapture v-if="showVoice" entry="edit" variant="inline" :label="t('voicelog.edit_title')" :car-id="log.carId" @draft="onVoiceDraft" />
+          <div v-if="voiceChanges" class="rounded-sm bg-indigo-50 dark:bg-indigo-900/30 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">
+            <p v-if="voiceNothing" class="text-sm text-gray-700 dark:text-gray-200">{{ t('voicelog.edit_nothing') }}</p>
+            <template v-if="voiceChanges.length">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('voicelog.edit_changed') }}</p>
+                <button type="button" data-testid="edit-voice-undo" @click="undoVoice" class="min-h-11 px-2 text-sm font-semibold text-indigo-600 dark:text-indigo-300">{{ t('voicelog.edit_undo') }}</button>
+              </div>
+              <ul class="space-y-1 text-sm">
+                <li v-for="c in voiceChanges" :key="c.key" :data-testid="`edit-voice-change-${c.key}`" class="flex flex-wrap gap-x-2 text-gray-700 dark:text-gray-200">
+                  <span class="text-gray-500 dark:text-gray-400">{{ changeLabel(c.key) }}</span>
+                  <span class="tabular-nums"><s class="text-gray-400">{{ changeValue(c.key, c.from) }}</s> → <b class="font-semibold">{{ changeValue(c.key, c.to) }}</b></span>
+                </li>
+              </ul>
+            </template>
+          </div>
           <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingAtOpen" show-time-tile @edit="s => section = s" />
 
           <div v-if="missingAtOpen.length" class="rounded-sm border border-amber-300 dark:border-amber-700 p-3 space-y-4" data-testid="edit-missing">
@@ -110,7 +127,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick, defineAsyncComponent } from 'vue'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import { XMarkIcon, ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
@@ -134,6 +151,17 @@ import StepEnergy from '../log-wizard/StepEnergy.vue'
 import StepVehicle from '../log-wizard/StepVehicle.vue'
 import StepCost from '../log-wizard/StepCost.vue'
 import { logSaveErrorMessage } from '../../utils/logSaveError'
+import { useAuthStore } from '../../stores/auth'
+import { isVoiceSupported } from '../../composables/useVoiceRecorder'
+import { useIsMobile } from '../../composables/useIsMobile'
+import { useLocaleFormat } from '../../composables/useLocaleFormat'
+import { analytics } from '../../services/analytics'
+import { applyVoiceDraft, voiceCost, type VoiceDraft } from '../log-wizard/wizardLogic'
+import { spokenSnapshot, correctedFields, type SpokenSnapshot } from '../log-wizard/voiceAnalytics'
+import { resolveSpokenAddress, placeFromAddress } from '../log-wizard/voiceAddress'
+import geohashLib from 'ngeohash'
+import { formChanges, undoVoiceChanges, type FieldChange, type EditDiffKey } from '../log-wizard/voiceEdit'
+const VoiceCapture = defineAsyncComponent(() => import('../log-wizard/VoiceCapture.vue'))
 
 export interface EvLogResponse {
   id: string
@@ -292,6 +320,100 @@ const onPlacePicked = async (p: PickedPlace) => {
   await nearby.load(p.latitude, p.longitude)
 }
 
+// ── Sprache ───────────────────────────────────────────────────────────────────
+const authStore = useAuthStore()
+const isMobile = useIsMobile()
+/** Testbetrieb wie im Wizard: nur Admins. Beim Bearbeiten nur auf dem Handy, am Desktop ist Tippen schneller. */
+const showVoice = computed(() => authStore.isAdmin && isMobile.value && isVoiceSupported())
+/** Alle Änderungen seit der ersten Aufnahme; null = noch keine Aufnahme */
+const voiceChanges = ref<FieldChange[] | null>(null)
+/** Die letzte Aufnahme hat nichts geändert */
+const voiceNothing = ref(false)
+let beforeVoice: { form: LogFormData; pickedName: string | null; pickedAddress: string | null } | null = null
+/** Stand direkt nach der letzten Aufnahme: was danach abweicht, hat der Nutzer selbst geändert */
+let afterVoice: LogFormData | null = null
+const spoken = ref<SpokenSnapshot>({})
+
+/** Nur Gesagtes überschreibt; Adresse wie die Adresssuche im Ort-Editor. Vorher-Stand bleibt fürs Rückgängig. */
+async function onVoiceDraft(draft: VoiceDraft) {
+  const before = cloneForm()
+  if (!beforeVoice) beforeVoice = { form: before, pickedName: pickedName.value, pickedAddress: pickedAddress.value }
+  const viaAddress = placeFromAddress(draft)
+  const choice = applyVoiceDraft(formData.value, viaAddress ? { ...draft, place: null } : draft)
+  if (choice && (choice.kind === 'station' || choice.kind === 'site')) pickedName.value = null
+  if (viaAddress) {
+    // Bekannte Zelle des Logs als Umgebung für die Suche (es gibt keine Live-Position)
+    const cell = props.log.geohash ? geohashLib.decode(props.log.geohash) : null
+    const r = await resolveSpokenAddress(draft, {
+      near: cell ? { lat: cell.latitude, lon: cell.longitude } : null,
+      loadStations: async (lat, lon) => { await onPlacePicked({ latitude: lat, longitude: lon, name: '' }); return nearby.stations.value },
+    })
+    if (r) {
+      pickedName.value = r.hit.name
+      pickedAddress.value = r.hit.name
+      choosePlace(r.choice)
+      if (draft.fields.chargingType) formData.value.chargingType = draft.fields.chargingType
+    } else {
+      errorMsg.value = t('voicelog.address_not_found', { q: draft.fields.spokenAddress })
+    }
+  }
+  const said = voiceCost(draft.fields)
+  if (said?.mode === 'per_kwh') cost.setPerKwhEur(said.eur)
+  else if (said) { cost.costMode.value = 'total'; cost.costLocalPerKwh.value = null; cost.costLocalTotal.value = Math.round(cost.eurToLocal(said.eur) * 100) / 100 }
+  await nextTick() // Kosten-Abgleich schreibt costEur im nächsten Tick
+  spoken.value = { ...spoken.value, ...spokenSnapshot(formData.value, draft.fields) }
+  afterVoice = cloneForm()
+  voiceNothing.value = formChanges(before, formData.value).length === 0
+  voiceChanges.value = formChanges(beforeVoice.form, formData.value)
+}
+/** Reiner Datenstand ohne Vue-Proxy (structuredClone scheitert an reaktiven Objekten) */
+const cloneForm = (): LogFormData => JSON.parse(JSON.stringify(formData.value))
+
+/** Nimmt nur zurück, was die Sprache gesetzt hat; spätere Handänderungen bleiben. */
+function undoVoice() {
+  if (!beforeVoice || !afterVoice) return
+  const placeKept = JSON.stringify([formData.value.isPublicCharging, formData.value.cpoName, formData.value.latitude]) !== JSON.stringify([afterVoice.isPublicCharging, afterVoice.cpoName, afterVoice.latitude])
+  formData.value = undoVoiceChanges(beforeVoice.form, afterVoice, cloneForm())
+  if (!placeKept) { pickedName.value = beforeVoice.pickedName; pickedAddress.value = beforeVoice.pickedAddress }
+  cost.initFromEur()
+  beforeVoice = null
+  afterVoice = null
+  voiceChanges.value = null
+  voiceNothing.value = false
+  spoken.value = {}
+}
+
+const { formatNumber, formatDistance, formatCurrency } = useLocaleFormat()
+const CHANGE_LABEL: Record<EditDiffKey, string> = {
+  place: 'logwizard.place', kwhCharged: 'logfields.energy', kwhAtVehicle: 'logfields.kwh_at_vehicle', socBeforeChargePercent: 'logfields.soc_before',
+  socAfterChargePercent: 'logfields.soc_after', odometerKm: 'logfields.odometer', costEur: 'logfields.cost_eur', loggedAt: 'logfields.timestamp',
+  chargeDurationMinutes: 'logfields.duration', maxChargingPowerKw: 'logfields.max_power', chargingType: 'voicelog.chip_type',
+  routeType: 'logfields.route_type_label', tireType: 'logfields.tire_type_label',
+}
+const ENUM_LABEL: Record<string, string> = {
+  CITY: 'logfields.route_city', COMBINED: 'logfields.route_mix', HIGHWAY: 'logfields.route_highway',
+  SUMMER: 'logfields.tire_summer', ALL_YEAR: 'logfields.tire_allyear', WINTER: 'logfields.tire_winter',
+}
+const changeLabel = (k: EditDiffKey) => t(CHANGE_LABEL[k])
+function changeValue(k: EditDiffKey, v: unknown): string {
+  if (k === 'place') {
+    const p = v as { isPublic: boolean; name: string | null }
+    return p.isPublic ? (p.name ?? t('logwizard.place_public')) : t('logwizard.place_private')
+  }
+  if (v == null || v === '') return '–'
+  switch (k) {
+    case 'kwhCharged': case 'kwhAtVehicle': return `${formatNumber(v as number)} kWh`
+    case 'socBeforeChargePercent': case 'socAfterChargePercent': return `${v} %`
+    case 'odometerKm': return formatDistance(v as number)
+    case 'costEur': return formatCurrency(v as number)
+    case 'chargeDurationMinutes': return `${v} min`
+    case 'maxChargingPowerKw': return `${formatNumber(v as number)} kW`
+    case 'loggedAt': return new Date(v as string).toLocaleString(undefined, { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+    case 'routeType': case 'tireType': return t(ENUM_LABEL[v as string] ?? String(v))
+    default: return String(v)
+  }
+}
+
 async function save() {
   errorMsg.value = ''
   if (!isFormValid.value) {
@@ -305,6 +427,11 @@ async function save() {
     const res = await api.patch(`/logs/${props.log.id}`, buildLogUpdatePayload(formData.value))
     await applyTariffToLocationIfRequested(formData.value)
     savedLog.value = res.data
+    if (beforeVoice) {
+      const fields: string[] = correctedFields(spoken.value, formData.value)
+      analytics.trackVoice('saved', { entry: 'edit', corrected: fields.length })
+      fields.forEach(field => analytics.trackVoice('corrected', { entry: 'edit', field }))
+    }
     sheet.value?.requestClose()
   } catch (e) {
     errorMsg.value = logSaveErrorMessage(e, t)

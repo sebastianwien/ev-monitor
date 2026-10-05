@@ -33,7 +33,9 @@ const stepFor: Record<SummarySection, WizardStep> = { place: 1, energy: 2, vehic
     <!-- Karte füllt den Platz unter der Kopfzeile wie in Schritt 2; Tipp darauf springt zum Ort -->
     <PlaceHeader :context="context" :height="mapHeight" clickable data-testid="summary-place" @click="emit('goto', 1)" />
     <div ref="body" class="space-y-4">
-      <VoiceTranscript v-if="voice" :transcript="voice.transcript" :flags="voice.flags" :usage="voice.usage" />
+      <VoiceTranscript v-if="voice" :transcript="voice.transcript" :flags="voice.flags" :usage="voice.usage">
+        <slot name="voice-action" />
+      </VoiceTranscript>
       <LogSummary :flagged="flagged" v-model="form" :place-label="placeLabel" hide-place details-numbers-only reveal :cost-metrics="costMetrics" @edit="s => emit('goto', stepFor[s])" />
       <p v-if="error" class="text-sm text-red-500 dark:text-red-400 text-center">{{ error }}</p>
       <p class="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400"><BoltIcon class="h-4 w-4" />{{ t('logwizard.watt_hint') }}</p>

@@ -139,6 +139,15 @@ class AnalyticsService {
     this.track('car_added', { first_car: isFirst })
   }
 
+  /**
+   * Sprachlog: ein Event "Voice", der Schritt steht in `step` - so reicht ein Plausible-Goal.
+   * Props nur Zählwerte, Buckets und Feldnamen, nie Werte, Transkript oder Orte.
+   */
+  trackVoice(step: 'open' | 'consent' | 'stop' | 'cancel' | 'error' | 'draft' | 'retry' | 'saved' | 'corrected',
+             props: Record<string, string | number | boolean> = {}) {
+    this.track('Voice', { step, ...props })
+  }
+
   trackLogCreated(source: 'manual' | 'ocr' | 'voice', isFirst: boolean) {
     this.track('log_created', { source, first_log: isFirst })
   }

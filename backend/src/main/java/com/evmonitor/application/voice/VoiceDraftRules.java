@@ -19,13 +19,15 @@ import java.util.Set;
  */
 final class VoiceDraftRules {
 
-    static final Set<String> FIELDS = Set.of("placeIndex", "placeKind", "spokenOperator", "tariffIndex",
+    static final Set<String> FIELDS = Set.of("placeIndex", "placeKind", "spokenOperator", "spokenAddress", "tariffIndex",
             "kwhCharged", "kwhAtVehicle", "socBefore", "socAfter", "odometerKm", "costEur", "pricePerKwh",
             "loggedAt", "chargeDurationMinutes", "maxChargingPowerKw", "chargingType", "routeType", "tireType");
 
     private static final double AC_MAX_KW = 22;
     /** Wie {@code ChargingSiteRef.name}: freier Modelltext wird nicht beliebig lang. */
     private static final int MAX_OPERATOR_LENGTH = 100;
+    /** Strasse, Hausnummer, PLZ und Ort passen locker hinein; mehr ist kein Adress-Diktat mehr. */
+    private static final int MAX_ADDRESS_LENGTH = 200;
     private static final DateTimeFormatter LOCAL_MINUTES = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm")
             .withResolverStyle(ResolverStyle.STRICT);
     private static final double MIN_PRICE_PER_KWH = 0.05;
@@ -54,8 +56,8 @@ final class VoiceDraftRules {
         return in.toBuilder()
                 .maxChargingPowerKw(peak)
                 .loggedAt(loggedAt)
-                .spokenOperator(in.spokenOperator() == null || in.spokenOperator().length() <= MAX_OPERATOR_LENGTH
-                        ? in.spokenOperator() : in.spokenOperator().substring(0, MAX_OPERATOR_LENGTH))
+                .spokenOperator(capped(in.spokenOperator(), MAX_OPERATOR_LENGTH))
+                .spokenAddress(capped(in.spokenAddress(), MAX_ADDRESS_LENGTH))
                 .chargingType(chargingType(in.chargingType(), peak, energy, in.chargeDurationMinutes()))
                 .costEur(in.costEur() != null ? in.costEur() : cost(in.kwhCharged(), in.pricePerKwh()))
                 .uncertain(List.copyOf(uncertain))
@@ -91,6 +93,13 @@ final class VoiceDraftRules {
         } catch (DateTimeParseException e) {
             return false;
         }
+    }
+
+    /** Freier Modelltext: getrimmt, gekappt, leer wird null. */
+    private static String capped(String v, int max) {
+        if (v == null || v.isBlank()) return null;
+        String trimmed = v.strip();
+        return trimmed.length() <= max ? trimmed : trimmed.substring(0, max);
     }
 
     private static boolean outOfPercent(Integer v) {

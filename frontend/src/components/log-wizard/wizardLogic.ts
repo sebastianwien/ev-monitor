@@ -177,6 +177,8 @@ export interface VoiceDraftFields {
   chargingType: 'AC' | 'DC' | null
   routeType: LogFormData['routeType'] | null
   tireType: LogFormData['tireType'] | null
+  /** Gesprochene Adresse ("Lindenweg 4, Bamberg") - der Client sucht sie per Nominatim */
+  spokenAddress: string | null
   /** Feldnamen, bei denen das Modell unsicher war - werden markiert, nicht verworfen */
   uncertain: string[]
 }
@@ -252,7 +254,7 @@ export function canJumpToReview(f: LogFormData, state: WizardState): boolean {
 
 export type VoiceFlag = 'place' | RequiredField | 'time' | 'details'
 const VOICE_FLAG_OF: Record<string, VoiceFlag> = {
-  placeIndex: 'place', placeKind: 'place', spokenOperator: 'place',
+  placeIndex: 'place', placeKind: 'place', spokenOperator: 'place', spokenAddress: 'place',
   kwhCharged: 'energy', kwhAtVehicle: 'energy', odometerKm: 'odometer', socAfter: 'soc',
   costEur: 'cost', pricePerKwh: 'cost', tariffIndex: 'cost', loggedAt: 'time',
 }
@@ -262,4 +264,13 @@ const VOICE_FLAG_ORDER: VoiceFlag[] = ['place', 'energy', 'odometer', 'soc', 'co
 export function voiceFlags(uncertain: string[]): VoiceFlag[] {
   const flags = new Set(uncertain.map(u => VOICE_FLAG_OF[u] ?? 'details'))
   return VOICE_FLAG_ORDER.filter(f => flags.has(f))
+}
+
+/**
+ * Unsichere Felder über mehrere Aufnahmen: was die neue Aufnahme erneut gesagt hat, gilt ab jetzt
+ * als ihr Wert (unsicher nur, wenn sie selbst zweifelt); alte Zweifel an Ungesagtem bleiben.
+ */
+export function mergeUncertain(prev: string[], f: VoiceDraftFields): string[] {
+  const said = (k: string) => k in f && k !== 'uncertain' && (f as unknown as Record<string, unknown>)[k] != null
+  return [...new Set([...prev.filter(k => !said(k)), ...f.uncertain])]
 }

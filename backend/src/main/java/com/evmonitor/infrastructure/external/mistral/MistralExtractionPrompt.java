@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Prompt v3 und JSON-Schema der Extraktion, uebernommen aus dem Eval vom 03.10.2026
- * ({@code sprachlog/eval/bias/extract.py}). Aenderungen am Prompt nur mit erneuter Messung.
+ * Prompt v4 und JSON-Schema der Extraktion: v3 aus dem Eval vom 03.10.2026, v4 (Adresse) gemessen am
+ * 05.10.2026 ({@code sprachlog/eval/bias/extract_v4.py}). Aenderungen am Prompt nur mit erneuter Messung.
  */
 final class MistralExtractionPrompt {
 
@@ -16,6 +16,7 @@ Das Transkript stammt aus automatischer Spracherkennung: Wörter können falsch,
 Regeln:
 - Nie raten. Was nicht gesagt wurde, ist null. Felder, bei denen du interpretieren musstest, kommen in "uncertain".
 - Ort: Wähle placeIndex aus der Kandidatenliste, wenn der gesprochene Betreiber oder Ort klar zu einem Kandidaten passt (auch bei Fehlschreibung). "zuhause", "daheim", "eigene Wallbox" = Kandidat mit kind home. Passt kein Kandidat: placeIndex null, placeKind other. spokenOperator nur mit einem Namen, der im Transkript tatsächlich vorkommt, nie aus der Kandidatenliste übernehmen. Wird kein Ort genannt: placeIndex, placeKind und spokenOperator null.
+- Adresse: Nennt der Sprecher eine Straße (mit oder ohne Hausnummer, z. B. "bei meinen Eltern, Lindenweg 4 in Bamberg"), steht sie in spokenAddress als "Straße Hausnummer, PLZ Ort", soweit gesagt. Ein Ortsname ohne Straße oder ein Betreibername allein ist keine Adresse. Bei einer Adresse nie den Kandidaten mit kind home wählen; einen Säulen-Kandidaten nur, wenn auch dessen Betreiber genannt wird. Ohne Adresse ist spokenAddress null.
 - Ladekarte/Tarif ("mit der X-Karte", "über X bezahlt"): tariffIndex nur, wenn der gesprochene Name klanglich eindeutig zu genau einem Tarif passt; im Zweifel null und "tariffIndex" in uncertain. Ein Tarif ist kein Ort.
 - kwhCharged = an der Säule/Wallbox geladene Energie. kwhAtVehicle nur, wenn ausdrücklich die im Auto angekommene Energie genannt wird.
 - Tacho/Kilometerstand: ganze km. Tausendertrennzeichen können als Komma oder Punkt erscheinen ("31,207" = 31207 km). Der Wert liegt typischerweise wenig über dem letzten Tachostand.
@@ -34,6 +35,7 @@ Regeln:
         props.put("placeIndex", integer());
         props.put("placeKind", oneOf("home", "station", "other"));
         props.put("spokenOperator", nullable("string"));
+        props.put("spokenAddress", nullable("string"));
         props.put("tariffIndex", integer());
         props.put("kwhCharged", number());
         props.put("kwhAtVehicle", number());

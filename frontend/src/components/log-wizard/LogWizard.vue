@@ -22,7 +22,9 @@ import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { analytics } from '../../services/analytics'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
 import { emptyLogForm, canProceed, missingRequired, applyPlace, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice,
-  applyVoiceDraft, voiceCost, voiceFlags, canJumpToReview, type VoiceDraft, type VoiceCost, type VoiceFlag, type VoiceUsage } from './wizardLogic'
+  applyVoiceDraft, voiceCost, voiceFlags, mergeUncertain, canJumpToReview, type VoiceDraft, type VoiceCost, type VoiceFlag, type VoiceUsage } from './wizardLogic'
+import { spokenSnapshot, correctedFields, type SpokenSnapshot } from './voiceAnalytics'
+import { resolveSpokenAddress, placeFromAddress } from './voiceAddress'
 import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
 import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
@@ -141,6 +143,7 @@ const setPlaceContext = (choice: PlaceChoice) => {
   siteAddress.value = choice.kind === 'station' ? choice.station.address ?? null : null
 }
 const choosePlace = (choice: PlaceChoice, opts: { advance?: boolean } = {}) => {
+  voiceHint.value = ''
   setPlaceContext(choice)
   applyPlace(form.value, choice)
   resetCard()
@@ -232,7 +235,9 @@ const proceedAllowed = computed(() => canProceed(step.value, form.value, state.v
 const questions: Record<WizardStep, string> = { 1: 'logwizard.q_place', 2: 'logwizard.q_numbers', 3: 'logwizard.q_review' }
 /** Hinweis nach "Weiter" mit Lücke: was noch fehlt. Verschwindet, sobald der Schritt wechselt oder vollständig ist. */
 const blockedHint = ref('')
-const hint = computed(() => blockedHint.value)
+/** Hinweis aus der Sprachaufnahme (Adresse nicht gefunden) - bleibt, bis ein Ort gewählt ist */
+const voiceHint = ref('')
+const hint = computed(() => blockedHint.value || voiceHint.value)
 watch([step, proceedAllowed], () => { blockedHint.value = '' })
 /** Kopf von Schritt 2: gewählter Ort mit Adresse (aus der Umkreisliste) und Karte, Position für die Minimap. */
 const numbersContext = computed<NumbersContext>(() => {
@@ -364,6 +369,15 @@ const voiceSupported = isVoiceSupported()
 const showVoice = computed(() => authStore.isAdmin && voiceSupported && !!selectedCarId.value)
 const voice = ref<{ transcript: string; flags: VoiceFlag[]; usage: VoiceUsage } | null>(null)
 const voiceUsed = ref(false)
+/** Über alle Aufnahmen: unsichere Felder, das Gesagte im Formular (für die Korrekturmessung), die Transkripte */
+const uncertainFields = ref<string[]>([])
+const spoken = ref<SpokenSnapshot>({})
+const transcripts = ref<string[]>([])
+/** Ort, wie ihn die Sprache gesetzt hat - Vergleich beim Speichern */
+const spokenPlaceKey = ref<string | null>(null)
+const placeKey = () => `${form.value.isPublicCharging}|${form.value.cpoName ?? ''}|${form.value.chargingSite?.geohash ?? ''}`
+/** Pflichtwerte, die nach der Aufnahme noch fehlen - als Text für "Fehlendes einsprechen" */
+const missingSpoken = computed(() => missingRequired(form.value).map(f => t(`voicelog.flag_${f}`)).join(', '))
 /** Gesagte Kosten bleiben stehen, auch wenn Ort oder Karte erst danach gewählt werden. */
 const spokenCost = ref<VoiceCost | null>(null)
 function applySpokenCost(): boolean {
@@ -380,22 +394,62 @@ function applySpokenCost(): boolean {
  */
 const onVoiceDraft = async (draft: VoiceDraft) => {
   advance.cancel()
-  spokenCost.value = voiceCost(draft.fields)
-  const flags = voiceFlags(draft.fields.uncertain)
-  if (draft.place) resetCard()
-  const choice = applyVoiceDraft(form.value, draft)
+  // Nachsprechen ohne Kosten lässt die zuerst gesagten stehen
+  const said = voiceCost(draft.fields)
+  if (said) spokenCost.value = said
+  uncertainFields.value = mergeUncertain(uncertainFields.value, draft.fields)
+  // Adresse statt Listentreffer: suchen, Umkreis dort laden, Ort wählen
+  const viaAddress = placeFromAddress(draft)
+  const listed = viaAddress ? { ...draft, place: null } : draft
+  if (listed.place) resetCard()
+  const choice = applyVoiceDraft(form.value, listed)
   if (choice) setPlaceContext(choice)
+  let placeUnsure = false
+  if (viaAddress) {
+    placeUnsure = !(await placeAtAddress(draft))
+    if (draft.fields.chargingType) form.value.chargingType = draft.fields.chargingType
+    if (draft.chargingProviderId) form.value.chargingProviderId = draft.chargingProviderId
+  }
   const id = form.value.chargingProviderId
   const card = id ? providers.value.find(x => x.id === id) : null
   if (card) applyCard({ kind: 'provider', provider: card, eurPerKwh: providerPriceForType(card, form.value.chargingType) })
   else if (choice) preselectCard()
-  else applySpokenCost()
-  voice.value = { transcript: draft.transcript, flags, usage: draft.usage }
+  else if (!viaAddress) applySpokenCost()
+  transcripts.value.push(draft.transcript)
+  const flags = voiceFlags(uncertainFields.value)
+  voice.value = { transcript: transcripts.value.join(' … '), flags: placeUnsure && !flags.includes('place') ? ['place', ...flags] : flags, usage: draft.usage }
   voiceUsed.value = true
   haptic(10)
   await nextTick() // der Kosten-Abgleich (Watcher) schreibt costEur erst im nächsten Tick
-  const target: WizardStep = canJumpToReview(form.value, state.value) ? 3 : state.value.place ? 2 : 1
+  spoken.value = { ...spoken.value, ...spokenSnapshot(form.value, draft.fields) }
+  if (choice || viaAddress) spokenPlaceKey.value = placeKey()
+  const target: WizardStep = !placeUnsure && canJumpToReview(form.value, state.value) ? 3 : state.value.place && !placeUnsure ? 2 : 1
   if (target !== step.value) goto(target)
+}
+
+/**
+ * Gesprochene Adresse: wie die getippte Adresssuche, nur ohne Tippen. false = nicht gefunden oder
+ * der Ort ist nicht eindeutig (Säulen in der Nähe, genannter Betreiber fehlt) - dann prüft der Nutzer in Schritt 1.
+ */
+const placeAtAddress = async (draft: VoiceDraft): Promise<boolean> => {
+  const near = form.value.latitude != null && form.value.longitude != null ? { lat: form.value.latitude, lon: form.value.longitude } : null
+  const r = await resolveSpokenAddress(draft, { near, loadStations: async (lat, lon) => { await nearby.load(lat, lon); return nearby.stations.value } })
+  if (!r) { voiceHint.value = t('voicelog.address_not_found', { q: draft.fields.spokenAddress }); return false }
+  pickedAddress.value = r.hit.name
+  form.value.latitude = r.hit.latitude
+  form.value.longitude = r.hit.longitude
+  locationAccuracy.value = null
+  locationStatus.value = 'success'
+  choosePlace(r.choice, { advance: false })
+  return !r.unsure
+}
+
+/** Nach dem Speichern: wie viel von dem Gesagten musste der Nutzer korrigieren? */
+const trackVoiceSaved = () => {
+  const fields: string[] = correctedFields(spoken.value, form.value)
+  if (spokenPlaceKey.value != null && spokenPlaceKey.value !== placeKey()) fields.push('place')
+  analytics.trackVoice('saved', { entry: 'create', corrected: fields.length, recordings: transcripts.value.length })
+  fields.forEach(field => analytics.trackVoice('corrected', { entry: 'create', field }))
 }
 
 // ── Speichern ─────────────────────────────────────────────────────────────────
@@ -412,6 +466,7 @@ const submit = async () => {
     setTimeout(() => { toast.value = null }, 4000)
     coinStore.refresh()
     analytics.trackLogCreated(voiceUsed.value ? 'voice' : ocrUsed.value ? 'ocr' : 'manual', isFirstLog)
+    if (voiceUsed.value) trackVoiceSaved()
     await applyTariffToLocationIfRequested(form.value)
     logsRefreshStore.notifyLogSaved()
     emit('success')
@@ -463,6 +518,8 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
       <Transition :name="`step-${dir}`" mode="out-in">
       <div :key="step" :ref="onStepEl" tabindex="-1" class="outline-none" @keydown.enter="onEnter">
       <VoiceCapture v-if="step === 1 && showVoice" class="mb-4" :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
+      <VoiceCapture v-else-if="step === 2 && showVoice && voiceUsed && missingSpoken" class="mb-4" variant="inline" :label="t('voicelog.missing_say', { fields: missingSpoken })"
+        :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
       <StepPlace v-if="step === 1" v-model:searched-station="searchedStation" :place="state.place" :selected-cpo="form.cpoName" :selected-site="form.chargingSite"
         :address-label="pickedAddress"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value"
@@ -474,7 +531,11 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
         @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost" :community-price="community"
         :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :preview="preview" @ocr="onOcr" />
-      <StepReview v-else v-model="form" :voice="voice" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto" />
+      <StepReview v-else v-model="form" :voice="voice" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto">
+        <template v-if="showVoice && voice" #voice-action>
+          <VoiceCapture variant="inline" :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
+        </template>
+      </StepReview>
       </div>
       </Transition>
     </WizardShell>

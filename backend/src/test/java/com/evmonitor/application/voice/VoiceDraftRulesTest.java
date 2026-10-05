@@ -133,4 +133,28 @@ class VoiceDraftRulesTest {
 
         assertThat(out.spokenOperator()).hasSize(100);
     }
+
+    @Test
+    void spokenAddressIsTrimmedCappedAndBlankBecomesNull() {
+        DraftFields longOne = VoiceDraftRules.apply(fields().spokenAddress("  " + "x".repeat(300) + " ").build(), null);
+        DraftFields blank = VoiceDraftRules.apply(fields().spokenAddress("   ").build(), null);
+        DraftFields normal = VoiceDraftRules.apply(fields().spokenAddress(" Lindenweg 4, Bamberg ").build(), null);
+
+        assertThat(longOne.spokenAddress()).hasSize(200);
+        assertThat(blank.spokenAddress()).isNull();
+        assertThat(normal.spokenAddress()).isEqualTo("Lindenweg 4, Bamberg");
+    }
+
+    @Test
+    void spokenAddressCanBeMarkedUncertain() {
+        DraftFields out = VoiceDraftRules.apply(fields().spokenAddress("Lindenweg 4").uncertain(List.of("spokenAddress")).build(), null);
+
+        assertThat(out.uncertain()).containsExactly("spokenAddress");
+    }
+
+    @Test
+    void spokenAddressCountsAsThePlaceOnce() {
+        assertThat(fields().spokenAddress("Lindenweg 4").build().filledCount()).isEqualTo(1);
+        assertThat(fields().spokenAddress("Lindenweg 4").placeKind("other").build().filledCount()).isEqualTo(1);
+    }
 }

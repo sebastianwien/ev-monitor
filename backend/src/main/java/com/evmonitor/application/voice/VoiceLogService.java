@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -55,7 +57,7 @@ public class VoiceLogService {
             throw e;
         }
 
-        Resolved resolved = resolve(extraction.fields(), context);
+        Resolved resolved = resolve(extraction.fields(), context, transcript.text());
         DraftFields fields = VoiceDraftRules.apply(resolved.fields(), context.lastOdometerKm());
         quotaService.record(row(cmd, started, transcript, extraction)
                 .success(true).fieldsFilled(fields.filledCount()).uncertainCount(fields.uncertain().size()).build());
@@ -67,7 +69,7 @@ public class VoiceLogService {
     private record Resolved(DraftFields fields, PlaceDraft place, UUID providerId) {}
 
     /** Indizes gelten nur fuer diesen Request: ausserhalb der Liste fallen sie weg und werden markiert. */
-    private static Resolved resolve(DraftFields f, VoiceContext context) {
+    private static Resolved resolve(DraftFields f, VoiceContext context, String transcript) {
         List<String> uncertain = new ArrayList<>(f.uncertain());
         DraftFields.DraftFieldsBuilder out = f.toBuilder();
 
@@ -85,6 +87,17 @@ public class VoiceLogService {
             else place = null;
         }
 
+        // Mit gesprochener Adresse ist ein anderer Ort als die aktuelle Position gemeint: "hier privat" faellt
+        // weg, der Client sucht die Adresse. Eine Saeule aus der Liste bleibt nur, wenn ihr Name im Transkript
+        // vorkommt - im Eval vom 05.10.2026 waehlte das Modell zur Adresse eine nie genannte Saeule.
+        boolean addressSpoken = f.spokenAddress() != null && !f.spokenAddress().isBlank();
+        if (addressSpoken && place != null && "home".equals(place.kind())) place = null;
+        else if (addressSpoken && place != null && !"other".equals(place.kind()) && !mentioned(f.placeIndex(), candidates, transcript)) {
+            uncertain.add("placeIndex");
+            out.placeIndex(null);
+            place = null;
+        }
+
         UUID providerId = null;
         List<UserChargingProviderResponse> tariffs = context.tariffs();
         if (f.tariffIndex() != null) {
@@ -96,6 +109,19 @@ public class VoiceLogService {
             }
         }
         return new Resolved(out.uncertain(uncertain).build(), place, providerId);
+    }
+
+    /** Ob der Name des gewaehlten Kandidaten (ein Wort ab 3 Zeichen) im Transkript steht. */
+    private static boolean mentioned(Integer index, List<PlaceCandidate> candidates, String transcript) {
+        if (index == null || index < 0 || index >= candidates.size()) return false;
+        PlaceCandidate c = candidates.get(index);
+        String text = normalize(transcript);
+        return Arrays.stream(c.name().split("\\s+")).map(VoiceLogService::normalize)
+                .anyMatch(w -> w.length() >= 3 && text.contains(w));
+    }
+
+    private static String normalize(String s) {
+        return s == null ? "" : s.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
     }
 
     private static VoiceDraftEntity.VoiceDraftEntityBuilder row(VoiceDraftCommand cmd, long started,

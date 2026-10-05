@@ -21,5 +21,7 @@ const { t } = useI18n()
     <p v-if="usage.limit != null && usage.remaining != null" class="text-xs text-gray-500 dark:text-gray-400" data-testid="voice-usage">
       {{ t('voicelog.usage', { remaining: usage.remaining, limit: usage.limit }) }}
     </p>
+    <!-- Nachsprechen: Fehlendes ergänzen oder einen Wert korrigieren, ohne Tastatur -->
+    <div v-if="$slots.default" class="pt-2 border-t border-indigo-100 dark:border-indigo-800"><slot /></div>
   </div>
 </template>

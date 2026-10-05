@@ -186,7 +186,7 @@ describe('applyVoiceDraft', () => {
   const fields = (over: Partial<VoiceDraftFields> = {}): VoiceDraftFields => ({
     kwhCharged: null, kwhAtVehicle: null, socBefore: null, socAfter: null, odometerKm: null, costEur: null, pricePerKwh: null,
     loggedAt: null, chargeDurationMinutes: null, maxChargingPowerKw: null, chargingType: null, routeType: null, tireType: null,
-    uncertain: [], ...over,
+    spokenAddress: null, uncertain: [], ...over,
   })
   const draft = (over: Partial<VoiceDraft> = {}): VoiceDraft => ({
     transcript: 'x', fields: fields(), place: null, chargingProviderId: null, usage: { limit: null, remaining: null, resetsOn: '2026-11-01' }, ...over,
