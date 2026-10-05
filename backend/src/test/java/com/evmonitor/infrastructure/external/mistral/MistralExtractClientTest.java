@@ -73,7 +73,8 @@ class MistralExtractClientTest {
                     assertThat(format.path("json_schema").path("strict").asBoolean()).isTrue();
                     JsonNode schema = format.path("json_schema").path("schema");
                     assertThat(schema.path("additionalProperties").asBoolean()).isFalse();
-                    assertThat(schema.path("required")).hasSize(18);
+                    assertThat(schema.path("required")).hasSize(19);
+                    assertThat(schema.path("properties").has("spokenAddress")).isTrue();
                     assertThat(body.path("messages").get(0).path("content").asText()).contains("Nie raten");
                     String user = body.path("messages").get(1).path("content").asText();
                     assertThat(user).contains("\"letzterTachostand\":48000", "\"ortKandidaten\"", "\"tarife\"",
@@ -89,7 +90,7 @@ class MistralExtractClientTest {
     @Test
     void parsesFieldsAndUsage() throws Exception {
         server.expect(requestTo(URL)).andRespond(withSuccess(response("""
-                {"placeIndex":1,"placeKind":"station","spokenOperator":null,"tariffIndex":0,"kwhCharged":32,
+                {"placeIndex":1,"placeKind":"station","spokenOperator":null,"spokenAddress":"Lindenweg 4, Bamberg","tariffIndex":0,"kwhCharged":32,
                  "kwhAtVehicle":null,"socBefore":60,"socAfter":95,"odometerKm":48210,"costEur":18.4,"pricePerKwh":null,
                  "loggedAt":null,"chargeDurationMinutes":null,"maxChargingPowerKw":null,"chargingType":"DC",
                  "routeType":null,"tireType":"WINTER","uncertain":["tariffIndex"]}"""), MediaType.APPLICATION_JSON));
@@ -97,6 +98,7 @@ class MistralExtractClientTest {
         Extraction e = client.extract("...", context);
 
         assertThat(e.fields().placeIndex()).isEqualTo(1);
+        assertThat(e.fields().spokenAddress()).isEqualTo("Lindenweg 4, Bamberg");
         assertThat(e.fields().kwhCharged()).isEqualTo(32.0);
         assertThat(e.fields().odometerKm()).isEqualTo(48_210);
         assertThat(e.fields().chargingType()).isEqualTo(ChargingType.DC);

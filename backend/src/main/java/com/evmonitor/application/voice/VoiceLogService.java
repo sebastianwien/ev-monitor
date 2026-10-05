@@ -85,6 +85,10 @@ public class VoiceLogService {
             else place = null;
         }
 
+        // "Hier privat" meint die aktuelle Position. Mit gesprochener Adresse ist ein anderer Ort gemeint:
+        // der Client sucht die Adresse, eine konkrete Saeule aus der Liste bleibt dagegen stehen.
+        if (f.spokenAddress() != null && !f.spokenAddress().isBlank() && place != null && "home".equals(place.kind())) place = null;
+
         UUID providerId = null;
         List<UserChargingProviderResponse> tariffs = context.tariffs();
         if (f.tariffIndex() != null) {

@@ -152,6 +152,18 @@ class VoiceLogServiceTest {
     }
 
     @Test
+    void spokenAddressReplacesHereButNotAConcreteStation() {
+        // "zuhause" heisst im Wizard "hier privat" - mit einer Adresse ist aber woanders gemeint
+        extracted(DraftFields.builder().placeIndex(0).placeKind("home").spokenAddress("Lindenweg 4, Bamberg").build());
+        VoiceDraftResult home = service.draft(command());
+        assertThat(home.place()).isNull();
+        assertThat(home.fields().spokenAddress()).isEqualTo("Lindenweg 4, Bamberg");
+
+        extracted(DraftFields.builder().placeIndex(1).placeKind("station").spokenAddress("Lindenweg 4").build());
+        assertThat(service.draft(command()).place().kind()).isEqualTo("site");
+    }
+
+    @Test
     void noPlaceSpokenMeansNoPlace() {
         extracted(DraftFields.builder().kwhCharged(30.0).build());
 
