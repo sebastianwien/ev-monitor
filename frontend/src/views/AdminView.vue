@@ -28,6 +28,7 @@ import AdminStripeTab from '../components/admin/AdminStripeTab.vue'
 import AdminWebhooksTab from '../components/admin/AdminWebhooksTab.vue'
 import AdminSurveysTab from '../components/admin/AdminSurveysTab.vue'
 import AdminImportsTab from '../components/admin/AdminImportsTab.vue'
+import AdminVoiceUsageTab from '../components/admin/AdminVoiceUsageTab.vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
@@ -36,8 +37,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'wartung'
-const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'stripe', 'webhooks', 'imports', 'surveys', 'impersonate', 'wartung']
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'voice' | 'wartung'
+const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'stripe', 'webhooks', 'imports', 'surveys', 'voice', 'impersonate', 'wartung']
 const activeTab = ref<Tab>('users')
 
 // ── Wartung: Telemetrie-Config neu pushen ────────────────────────────────────
@@ -485,6 +486,7 @@ const onResizeUp = () => {
             { key: 'webhooks', label: 'Smartcar-Ladungen' },
             { key: 'imports', label: 'Importe' },
             { key: 'surveys', label: 'Umfragen' },
+            { key: 'voice', label: 'Mistral' },
             { key: 'impersonate', label: 'Impersonieren' },
             { key: 'wartung', label: 'Wartung' },
           ] as { key: Tab; label: string }[])"
@@ -759,6 +761,8 @@ const onResizeUp = () => {
       <AdminImportsTab v-else-if="activeTab === 'imports'" />
 
       <AdminSurveysTab v-else-if="activeTab === 'surveys'" />
+
+      <AdminVoiceUsageTab v-else-if="activeTab === 'voice'" />
 
       <!-- Tab: Impersonate -->
       <!-- Tab: Wartung -->

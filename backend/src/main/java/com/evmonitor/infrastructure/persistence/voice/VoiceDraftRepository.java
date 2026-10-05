@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,6 +28,9 @@ public interface VoiceDraftRepository extends JpaRepository<VoiceDraftEntity, UU
 
     @Query("SELECT COALESCE(SUM(v.costUsd), 0) FROM VoiceDraftEntity v WHERE v.createdAt >= :since")
     BigDecimal sumCostUsdSince(@Param("since") LocalDateTime since);
+
+    /** Admin-Insights: alle Aufnahmen eines Zeitraums, Aggregation im Service. */
+    List<VoiceDraftEntity> findAllByCreatedAtGreaterThanEqualOrderByCreatedAtAsc(LocalDateTime since);
 
     /** Kontoloeschung (zusaetzlich zum FK-CASCADE, damit auch ohne Flyway-Schema testbar). */
     @Modifying
