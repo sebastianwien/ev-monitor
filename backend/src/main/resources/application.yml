@@ -161,6 +161,9 @@ app:
   bundle-publish-token: ${APP_BUNDLE_PUBLISH_TOKEN:}
   mail:
     from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
+  report:
+    # Kommagetrennte interne Empfaenger des Wochenreports (Montag 17:00). Leer = aus.
+    weekly-recipients: ${WEEKLY_REPORT_RECIPIENTS:}
   github:
     token: ${GITHUB_ISSUE_TOKEN:}
     repo: ${GITHUB_REPO:}

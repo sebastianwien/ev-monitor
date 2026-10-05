@@ -3,13 +3,10 @@ package com.evmonitor.infrastructure.email;
 import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -233,33 +230,7 @@ public class EmailService {
         }
     }
 
-    /**
-     * Loads a template from email-templates/{locale}/{templateName}.
-     * Falls back to email-templates/{templateName} if the locale-specific file doesn't exist.
-     */
     private String loadTemplate(String templateName, String lang, Map<String, String> variables) {
-        try {
-            ClassPathResource localeResource = new ClassPathResource("email-templates/" + lang + "/" + templateName);
-            ClassPathResource fallbackResource = new ClassPathResource("email-templates/" + templateName);
-
-            ClassPathResource resource = localeResource.exists() ? localeResource : fallbackResource;
-            String template = resource.getContentAsString(StandardCharsets.UTF_8);
-
-            for (Map.Entry<String, String> entry : variables.entrySet()) {
-                template = template.replace("{{" + entry.getKey() + "}}", escapeHtml(entry.getValue()));
-            }
-            return template;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load email template: " + templateName, e);
-        }
-    }
-
-    private String escapeHtml(String value) {
-        return value
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#x27;");
+        return EmailTemplateRenderer.render(templateName, lang, variables);
     }
 }

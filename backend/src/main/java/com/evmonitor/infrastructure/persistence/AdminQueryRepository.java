@@ -8,6 +8,7 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -101,5 +102,33 @@ public class AdminQueryRepository {
                         r[8] != null ? ((Number) r[8]).longValue() : 0L
                 ))
                 .toList();
+    }
+    // ── Wochenreport: Neuzugaenge im Zeitfenster [from, to) ───────────────────
+
+    public long countNewUsers(LocalDateTime from, LocalDateTime to) {
+        return countCreatedBetween("app_user", "is_seed_data = false", from, to);
+    }
+
+    public long countNewCars(LocalDateTime from, LocalDateTime to) {
+        return countCreatedBetween("car", "deleted_at IS NULL", from, to);
+    }
+
+    public long countNewEvLogs(LocalDateTime from, LocalDateTime to) {
+        return countCreatedBetween("ev_log", "deleted_at IS NULL", from, to);
+    }
+
+    public long countNewTrips(LocalDateTime from, LocalDateTime to) {
+        return countCreatedBetween("ev_trip", "1 = 1", from, to);
+    }
+
+    /** Tabelle und Filter sind Konstanten aus dieser Klasse, nie Nutzerinput. */
+    private long countCreatedBetween(String table, String filter, LocalDateTime from, LocalDateTime to) {
+        Object result = em.createNativeQuery(
+                        "SELECT COUNT(*) FROM " + table + " WHERE " + filter
+                                + " AND created_at >= :from AND created_at < :to")
+                .setParameter("from", from)
+                .setParameter("to", to)
+                .getSingleResult();
+        return ((Number) result).longValue();
     }
 }

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>Wochenreport {{weekLabel}} - EV Monitor</title>
+</head>
+<body style="font-family: Arial, Helvetica, sans-serif; background-color: #f3f4f6; margin: 0; padding: 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+
+          <!-- Kopf -->
+          <tr>
+            <td style="background: #4f46e5; border-radius: 12px 12px 0 0; padding: 28px 28px 24px;">
+              <div style="color: #c7d2fe; font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">EV Monitor Wochenreport</div>
+              <div style="color: #ffffff; font-size: 28px; font-weight: bold; margin-top: 6px;">{{weekLabel}}</div>
+              <div style="color: #e0e7ff; font-size: 14px; margin-top: 4px;">{{periodLabel}}</div>
+            </td>
+          </tr>
+
+          <!-- Wachstum -->
+          <tr>
+            <td style="padding: 28px 28px 8px;">
+              <div style="color: #6b7280; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: bold;">Wachstum</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 20px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td width="50%" valign="top" style="padding: 8px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #f9fafb; border-radius: 10px;">
+                      <tr><td style="padding: 16px;">
+                        <div style="color: #6b7280; font-size: 13px;">Neue Nutzer</div>
+                        <div style="color: #111827; font-size: 32px; font-weight: bold; line-height: 1.2; margin-top: 4px;">{{users}}</div>
+                        <div style="font-size: 13px; margin-top: 6px; color: {{usersColor}};">{{usersDelta}}</div>
+                      </td></tr>
+                    </table>
+                  </td>
+                  <td width="50%" valign="top" style="padding: 8px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #f9fafb; border-radius: 10px;">
+                      <tr><td style="padding: 16px;">
+                        <div style="color: #6b7280; font-size: 13px;">Neue Autos</div>
+                        <div style="color: #111827; font-size: 32px; font-weight: bold; line-height: 1.2; margin-top: 4px;">{{cars}}</div>
+                        <div style="font-size: 13px; margin-top: 6px; color: {{carsColor}};">{{carsDelta}}</div>
+                      </td></tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td width="50%" valign="top" style="padding: 8px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #f9fafb; border-radius: 10px;">
+                      <tr><td style="padding: 16px;">
+                        <div style="color: #6b7280; font-size: 13px;">Ladevorgänge</div>
+                        <div style="color: #111827; font-size: 32px; font-weight: bold; line-height: 1.2; margin-top: 4px;">{{logs}}</div>
+                        <div style="font-size: 13px; margin-top: 6px; color: {{logsColor}};">{{logsDelta}}</div>
+                      </td></tr>
+                    </table>
+                  </td>
+                  <td width="50%" valign="top" style="padding: 8px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background: #f9fafb; border-radius: 10px;">
+                      <tr><td style="padding: 16px;">
+                        <div style="color: #6b7280; font-size: 13px;">Fahrten</div>
+                        <div style="color: #111827; font-size: 32px; font-weight: bold; line-height: 1.2; margin-top: 4px;">{{trips}}</div>
+                        <div style="font-size: 13px; margin-top: 6px; color: {{tripsColor}};">{{tripsDelta}}</div>
+                      </td></tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Trials -->
+          <tr>
+            <td style="padding: 24px 28px 8px;">
+              <div style="color: #6b7280; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: bold;">Trials</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border: 1px solid #e5e7eb; border-radius: 10px;">
+                <tr>
+                  <td width="33%" align="center" style="padding: 16px 8px; border-right: 1px solid #e5e7eb;">
+                    <div style="color: #6b7280; font-size: 12px;">Gestartet</div>
+                    <div style="color: #111827; font-size: 24px; font-weight: bold; margin-top: 4px;">{{trialsStarted}}</div>
+                    <div style="font-size: 12px; margin-top: 4px; color: {{trialsStartedColor}};">{{trialsStartedDelta}}</div>
+                  </td>
+                  <td width="33%" align="center" style="padding: 16px 8px; border-right: 1px solid #e5e7eb;">
+                    <div style="color: #6b7280; font-size: 12px;">Beendet</div>
+                    <div style="color: #111827; font-size: 24px; font-weight: bold; margin-top: 4px;">{{trialsEnded}}</div>
+                    <div style="font-size: 12px; margin-top: 4px; color: {{trialsEndedColor}};">{{trialsEndedDelta}}</div>
+                  </td>
+                  <td width="34%" align="center" style="padding: 16px 8px;">
+                    <div style="color: #6b7280; font-size: 12px;">Umgewandelt</div>
+                    <div style="color: #059669; font-size: 24px; font-weight: bold; margin-top: 4px;">{{trialsConverted}}</div>
+                    <div style="font-size: 12px; margin-top: 4px; color: {{trialsConvertedColor}};">{{trialsConvertedDelta}}</div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="3" style="padding: 10px 16px; background: #f9fafb; border-top: 1px solid #e5e7eb; border-radius: 0 0 10px 10px; color: #374151; font-size: 13px;">
+                    Umwandlungsquote diese Woche: <strong>{{conversionRate}}</strong>
+                  </td>
+                </tr>
+              </table>
+              <p style="color: #9ca3af; font-size: 12px; line-height: 1.5; margin: 10px 0 0;">{{trialsNote}}</p>
+            </td>
+          </tr>
+
+          <!-- CTA -->
+          <tr>
+            <td align="center" style="padding: 28px;">
+              <a href="{{adminUrl}}"
+                 style="display: inline-block; background-color: #4f46e5; color: #ffffff; padding: 12px 28px;
+                        border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px;">
+                Zum Admin-Dashboard
+              </a>
+            </td>
+          </tr>
+
+          <!-- Fuss -->
+          <tr>
+            <td style="padding: 0 28px 28px; color: #9ca3af; font-size: 12px; line-height: 1.6; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+              Zeitraum: die letzten 7 Tage bis Montag 17:00 Uhr, Vergleich mit den 7 Tagen davor.
+              Nutzer ohne Seed-Daten, Autos und Ladevorgänge ohne gelöschte Einträge.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

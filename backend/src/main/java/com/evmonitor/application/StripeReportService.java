@@ -74,6 +74,47 @@ public class StripeReportService {
                 .orElseGet(() -> AdminStripeReport.notConfigured(now.toString(), window));
     }
 
+    // ── Trial-Funnel (Wochenreport) ───────────────────────────────────────────
+
+    /** Trial-Kennzahlen fuer ein Zeitfenster [from, to). {@code configured=false} ohne Stripe-Key. */
+    public record TrialFunnel(boolean configured, int started, int ended, int converted) {
+        public static TrialFunnel empty() {
+            return new TrialFunnel(false, 0, 0, 0);
+        }
+    }
+
+    /**
+     * Zaehlt im Fenster gestartete Trials (Subscription mit trial_end, created im Fenster),
+     * beendete Trials (trial_end im Fenster) und davon umgewandelte (nicht bis trial_end gekuendigt).
+     * Nutzt den gleichen Rohdaten-Cache wie {@link #getReport}.
+     */
+    public synchronized TrialFunnel trialFunnel(Instant from, Instant to) {
+        Instant now = clock.instant();
+        if (cached.isEmpty() || cachedAt.plus(CACHE_TTL).isBefore(now)) {
+            cached = client.fetchAll();
+            cachedAt = now;
+        }
+        if (cached.isEmpty()) {
+            return TrialFunnel.empty();
+        }
+        int started = 0, ended = 0, converted = 0;
+        for (JsonNode n : cached.get().subscriptions()) {
+            Sub s = Sub.of(n, Map.of());
+            if (s.trialEnd == null) continue;
+            if (inWindow(s.created, from, to)) started++;
+            if (inWindow(s.trialEnd, from, to)) {
+                ended++;
+                boolean cancelledInTrial = s.ended != null && !s.ended.isAfter(s.trialEnd);
+                if (!cancelledInTrial) converted++;
+            }
+        }
+        return new TrialFunnel(true, started, ended, converted);
+    }
+
+    private static boolean inWindow(Instant t, Instant from, Instant to) {
+        return !t.isBefore(from) && t.isBefore(to);
+    }
+
     // ── Aggregation ───────────────────────────────────────────────────────────
 
     AdminStripeReport build(StripeRawData raw, int months, Instant now) {

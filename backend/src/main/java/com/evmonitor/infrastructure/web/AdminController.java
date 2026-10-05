@@ -8,6 +8,7 @@ import com.evmonitor.application.BatterySohService;
 import com.evmonitor.application.PlausibleTrafficRow;
 import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.application.StripeReportService;
+import com.evmonitor.application.WeeklyReportService;
 import com.evmonitor.infrastructure.external.PlausibleService;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
@@ -40,6 +41,7 @@ public class AdminController {
     private final BatterySohService batterySohService;
     private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
     private final StripeReportService stripeReportService;
+    private final WeeklyReportService weeklyReportService;
     private final ImportStatsService importStatsService;
     private final ConnectionHealthService connectionHealthService;
 
@@ -131,5 +133,12 @@ public class AdminController {
             @RequestParam(defaultValue = "12") int months,
             @RequestParam(defaultValue = "false") boolean refresh) {
         return ResponseEntity.ok(stripeReportService.getReport(months, refresh));
+    }
+    /** Loest den internen Wochenreport sofort aus (an die konfigurierten Empfaenger). */
+    @PostMapping("/weekly-report/send")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> sendWeeklyReport() {
+        weeklyReportService.send();
+        return ResponseEntity.ok("Wochenreport ausgeloest");
     }
 }

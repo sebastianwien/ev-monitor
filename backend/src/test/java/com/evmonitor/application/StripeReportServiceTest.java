@@ -320,4 +320,49 @@ class StripeReportServiceTest {
 
         org.mockito.Mockito.verify(client, org.mockito.Mockito.times(1)).fetchAll();
     }
+    // ── Trial-Funnel fuer den Wochenreport ────────────────────────────────────
+
+    @Test
+    void trialFunnel_countsStartedEndedAndConvertedWithinWindow() throws Exception {
+        long day = 86400;
+        long winStart = T_2026_09_15;          // Fenster: 15.09. bis 22.09.
+        long winEnd = winStart + 7 * day;
+        List<String> subs = List.of(
+                // Trial im Fenster gestartet, Trial-Ende nach Fenster -> nur "started"
+                sub("sub_1", "cus_1", "1@x.de", "DE", "trialing", winStart + day, null, null,
+                        winStart + 10 * day, false, "prod_autosync", 390, "month", "eur", false),
+                // Trial vor dem Fenster gestartet, im Fenster beendet und aktiv geblieben -> ended + converted
+                sub("sub_2", "cus_2", "2@x.de", "DE", "active", winStart - 5 * day, null, null,
+                        winStart + 2 * day, false, "prod_autosync", 390, "month", "eur", false),
+                // Trial im Fenster beendet, aber waehrend des Trials gekuendigt -> ended, nicht converted
+                sub("sub_3", "cus_3", "3@x.de", "DE", "canceled", winStart - 5 * day, winStart + day,
+                        winStart + day, winStart + 3 * day, false, "prod_autosync", 390, "month", "eur", false),
+                // Trial komplett vor dem Fenster -> zaehlt nirgends
+                sub("sub_4", "cus_4", "4@x.de", "DE", "active", T_2026_06_10, null, null,
+                        T_2026_06_10 + 7 * day, false, "prod_autosync", 390, "month", "eur", false),
+                // Abo ohne Trial im Fenster erstellt -> zaehlt nirgends
+                sub("sub_5", "cus_5", "5@x.de", "DE", "active", winStart + day, null, null,
+                        null, false, "prod_autosync", 390, "month", "eur", false));
+        when(client.fetchAll()).thenReturn(Optional.of(raw(subs, List.of(), List.of())));
+
+        StripeReportService.TrialFunnel f = service.trialFunnel(
+                Instant.ofEpochSecond(winStart), Instant.ofEpochSecond(winEnd));
+
+        assertThat(f.configured()).isTrue();
+        assertThat(f.started()).isEqualTo(1);
+        assertThat(f.ended()).isEqualTo(2);
+        assertThat(f.converted()).isEqualTo(1);
+    }
+
+    @Test
+    void trialFunnel_notConfigured_returnsZeros() {
+        when(client.fetchAll()).thenReturn(Optional.empty());
+
+        StripeReportService.TrialFunnel f = service.trialFunnel(NOW.minusSeconds(7 * 86400), NOW);
+
+        assertThat(f.configured()).isFalse();
+        assertThat(f.started()).isZero();
+        assertThat(f.ended()).isZero();
+        assertThat(f.converted()).isZero();
+    }
 }
