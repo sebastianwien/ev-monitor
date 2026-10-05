@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -108,6 +109,7 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(body.path("fields").path("odometerKm").asInt()).isEqualTo(48_210);
         // Admins haben nur das stille Fair-Use-Limit, keinen sichtbaren Zaehler
         assertThat(body.path("usage").path("limit").isNull()).isTrue();
+        assertThat(body.path("usage").path("plan").asText()).isEqualTo("admin");
         verify(transcriber).transcribe(any(), eq("audio/webm"), anyList());
 
         assertThat(voiceDraftRepository.countSuccessfulSince(user.getId(), LocalDateTime.now().minusDays(1))).isEqualTo(1);
@@ -190,6 +192,34 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<String> response = post(request(user, car.getId(), new byte[]{1}, "audio/webm", "Europe/Berlin"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
-        assertThat(response.getBody()).contains("VOICE_LIMIT_REACHED", "resetsOn").doesNotContain("\"limit\"");
+        assertThat(response.getBody()).contains("VOICE_LIMIT_REACHED", "resetsOn", "\"plan\":\"admin\"").doesNotContain("\"limit\"");
+    }
+
+    private ResponseEntity<String> getQuota(User who, String zone) {
+        HttpHeaders headers = who == null ? new HttpHeaders() : createAuthHeaders(who.getId(), who.getEmail());
+        return restTemplate.exchange("/api/logs/voice-quota?timeZone=" + zone, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+    }
+
+    @Test
+    void quotaShowsTheStandBeforeTheFirstRecording() throws Exception {
+        post(request(user, car.getId(), new byte[]{1}, "audio/webm", "Europe/Berlin"));
+
+        ResponseEntity<String> response = getQuota(user, "Europe/Berlin");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode body = objectMapper.readTree(response.getBody());
+        assertThat(body.path("plan").asText()).isEqualTo("admin");
+        assertThat(body.path("limit").isNull()).isTrue();
+        assertThat(body.path("exhausted").asBoolean()).isFalse();
+        assertThat(body.path("resetsOn").asText()).isNotBlank();
+    }
+
+    @Test
+    void quotaNeedsLoginAValidZoneAndIsHiddenForNonAdminsWhileInTesting() {
+        User regular = createAndSaveUser("voice-quota-" + UUID.randomUUID() + "@test.local");
+
+        assertThat(getQuota(null, "Europe/Berlin").getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(getQuota(user, "Mars/Olympus").getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(getQuota(regular, "Europe/Berlin").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 }

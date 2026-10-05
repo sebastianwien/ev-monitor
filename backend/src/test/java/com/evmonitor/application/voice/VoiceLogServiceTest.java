@@ -59,7 +59,7 @@ class VoiceLogServiceTest {
     void setUp() {
         when(carRepository.findById(CAR)).thenReturn(Optional.of(car));
         when(car.isOwnedBy(USER)).thenReturn(true);
-        when(quotaService.quota(USER, BERLIN)).thenReturn(new VoiceQuota(5, 3, false, LocalDate.of(2026, 11, 1)));
+        when(quotaService.quota(USER, BERLIN)).thenReturn(new VoiceQuota(VoiceQuota.Plan.FREE, 5, 3, false, LocalDate.of(2026, 11, 1)));
         when(contextBuilder.build(eq(USER), eq(car), any(), any(), eq(BERLIN))).thenReturn(context);
         when(transcriber.transcribe(any(), anyString(), anyList()))
                 .thenReturn(new Transcript("Geladen bei EnBW, 32 Kilowattstunden", TRANSCRIBE_USAGE));
@@ -90,7 +90,7 @@ class VoiceLogServiceTest {
 
     @Test
     void exhaustedQuotaStopsBeforeMistral() {
-        when(quotaService.quota(USER, BERLIN)).thenReturn(new VoiceQuota(5, 0, true, LocalDate.of(2026, 11, 1)));
+        when(quotaService.quota(USER, BERLIN)).thenReturn(new VoiceQuota(VoiceQuota.Plan.FREE, 5, 0, true, LocalDate.of(2026, 11, 1)));
 
         assertThatThrownBy(() -> service.draft(command()))
                 .isInstanceOfSatisfying(VoiceQuotaExceededException.class,

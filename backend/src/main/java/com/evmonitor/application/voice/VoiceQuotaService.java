@@ -26,15 +26,15 @@ public class VoiceQuotaService {
     private final VoiceDraftRepository repository;
 
     public VoiceQuota quota(UUID userId, ZoneId zone) {
-        boolean fairUseOnly = userRepository.findById(userId)
-                .map(u -> VoiceQuota.fairUseOnly(u.getSubscriptionTier(), u.getRole()))
-                .orElse(false);
+        VoiceQuota.Plan plan = userRepository.findById(userId)
+                .map(u -> VoiceQuota.plan(u.getSubscriptionTier(), u.getRole()))
+                .orElse(VoiceQuota.Plan.FREE);
         ZonedDateTime now = ZonedDateTime.now(Clock.systemDefaultZone()).withZoneSameInstant(zone);
         LocalDateTime since = VoiceQuota.monthStart(now).withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime();
         LocalDateTime firstUse = repository.findFirstSuccessAt(userId)
                 .map(t -> t.atZone(ZoneId.systemDefault()).withZoneSameInstant(zone).toLocalDateTime())
                 .orElse(null);
-        return VoiceQuota.of(fairUseOnly, repository.countSuccessfulSince(userId, since), firstUse, now);
+        return VoiceQuota.of(plan, repository.countSuccessfulSince(userId, since), firstUse, now);
     }
 
     /** Best Effort: ein fehlendes Protokoll darf dem Nutzer seinen Entwurf nicht nehmen. */

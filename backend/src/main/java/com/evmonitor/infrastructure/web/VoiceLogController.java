@@ -9,6 +9,7 @@ import com.evmonitor.application.voice.VoiceLogService;
 import com.evmonitor.application.voice.VoiceProviderException;
 import com.evmonitor.application.voice.VoiceQuota;
 import com.evmonitor.application.voice.VoiceQuotaExceededException;
+import com.evmonitor.application.voice.VoiceQuotaService;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import com.evmonitor.domain.User;
@@ -17,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -48,14 +50,27 @@ public class VoiceLogController {
     static final Set<String> ALLOWED_TYPES = Set.of("audio/mp4", "audio/webm", "audio/ogg", "audio/wav");
 
     private final VoiceLogService voiceLogService;
+    private final VoiceQuotaService quotaService;
     private final RateLimitService rateLimitService;
     private final boolean adminOnly;
 
-    public VoiceLogController(VoiceLogService voiceLogService, RateLimitService rateLimitService,
+    public VoiceLogController(VoiceLogService voiceLogService, VoiceQuotaService quotaService, RateLimitService rateLimitService,
                               @Value("${voice-log.admin-only:true}") boolean adminOnly) {
         this.voiceLogService = voiceLogService;
+        this.quotaService = quotaService;
         this.rateLimitService = rateLimitService;
         this.adminOnly = adminOnly;
+    }
+
+    /** Stand vor der Aufnahme, damit das Mikrofon den Hinweis oder das aufgebrauchte Kontingent zeigen kann. */
+    @GetMapping("/voice-quota")
+    public ResponseEntity<?> voiceQuota(@RequestParam String timeZone, Authentication authentication) {
+        User user = ((UserPrincipal) authentication.getPrincipal()).getUser();
+        if (adminOnly && !"ADMIN".equals(user.getRole())) return ResponseEntity.notFound().build();
+        ZoneId zone = zone(timeZone);
+        if (zone == null) return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR");
+        VoiceQuota q = quotaService.quota(user.getId(), zone);
+        return ResponseEntity.ok(new QuotaResponse(planName(q), q.limit(), q.remaining(), q.exhausted(), q.resetsOn()));
     }
 
     @PostMapping(value = "/voice-draft", consumes = "multipart/form-data")
@@ -84,10 +99,10 @@ public class VoiceLogController {
     @ExceptionHandler(VoiceQuotaExceededException.class)
     ResponseEntity<Map<String, Object>> quotaExceeded(VoiceQuotaExceededException e) {
         VoiceQuota q = e.quota();
-        // Bezahlte Tiers haben keinen sichtbaren Deckel, nur das stille Fair-Use-Limit
+        // Admins haben keinen sichtbaren Deckel, nur das stille Fair-Use-Limit
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(q.limit() == null
-                ? Map.of("code", "VOICE_LIMIT_REACHED", "resetsOn", q.resetsOn())
-                : Map.of("code", "VOICE_LIMIT_REACHED", "limit", q.limit(), "resetsOn", q.resetsOn()));
+                ? Map.of("code", "VOICE_LIMIT_REACHED", "plan", planName(q), "resetsOn", q.resetsOn())
+                : Map.of("code", "VOICE_LIMIT_REACHED", "plan", planName(q), "limit", q.limit(), "resetsOn", q.resetsOn()));
     }
 
     @ExceptionHandler(VoiceProviderException.class)
@@ -128,7 +143,7 @@ public class VoiceLogController {
                                      UUID chargingProviderId, UsageResponse usage) {
         static VoiceDraftResponse from(VoiceDraftResult r) {
             return new VoiceDraftResponse(r.transcript(), r.fields(), PlaceResponse.from(r.place()), r.chargingProviderId(),
-                    new UsageResponse(r.quota().limit(), r.quota().remaining(), r.quota().resetsOn()));
+                    new UsageResponse(planName(r.quota()), r.quota().limit(), r.quota().remaining(), r.quota().resetsOn()));
         }
     }
 
@@ -143,5 +158,12 @@ public class VoiceLogController {
     }
 
     /** @param limit null bei bezahlten Tiers, dort gibt es keinen sichtbaren Zaehler */
-    public record UsageResponse(Integer limit, Integer remaining, LocalDate resetsOn) {}
+    public record UsageResponse(String plan, Integer limit, Integer remaining, LocalDate resetsOn) {}
+
+    public record QuotaResponse(String plan, Integer limit, Integer remaining, boolean exhausted, LocalDate resetsOn) {}
+
+    /** free, paid oder admin */
+    private static String planName(VoiceQuota q) {
+        return q.plan().name().toLowerCase(Locale.ROOT);
+    }
 }
