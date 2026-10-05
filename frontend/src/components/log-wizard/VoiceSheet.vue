@@ -33,8 +33,9 @@ onMounted(async () => {
 
 <template>
   <Teleport to="body">
+    <!-- Über jedem Modal: der Wizard läuft auf dem Desktop im Erfassen-Modal (z-[1000]) -->
     <div ref="root" tabindex="-1" role="dialog" aria-modal="true" :aria-label="title" data-testid="voice-sheet"
-      class="outline-none fixed inset-0 z-[70] flex flex-col bg-white dark:bg-gray-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+      class="outline-none fixed inset-0 z-[1100] flex flex-col bg-white dark:bg-gray-900 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
       @keydown.escape.prevent="!processing && emit('cancel')">
       <header class="px-4 pt-4 pb-3 md:max-w-xl md:mx-auto md:w-full">
         <div class="flex items-center gap-3">

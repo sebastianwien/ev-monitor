@@ -291,3 +291,16 @@ test('Vertraut mit wenig Kontingent: Streifen zeigt nur den Hinweis', async ({ p
   await expect(page.getByTestId('voice-quota-low')).toContainText('Noch 2 Aufnahmen im')
   await expect(page.getByTestId('voice-note')).not.toContainText('EnBW')
 })
+
+test('Desktop-Modal: Aufnahme-Vollbild liegt über dem Erfassen-Modal', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await open(page, 'ADMIN')
+  await page.addInitScript(() => localStorage.setItem('voicelog_consent_seen_v2', 'true'))
+  await page.goto('/dashboard')
+  await page.getByRole('button', { name: 'Ladevorgang erfassen' }).first().click()
+  await page.getByTestId('voice-mic').click()
+  const sheet = page.getByTestId('voice-sheet')
+  await expect(sheet).toBeVisible()
+  // Oberstes Element in der Bildmitte gehört zum Vollbild, nicht zum Modal darunter
+  expect(await page.evaluate(() => !!document.elementFromPoint(640, 400)?.closest('[data-testid="voice-sheet"]'))).toBe(true)
+})
