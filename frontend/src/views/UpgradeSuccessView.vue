@@ -20,15 +20,15 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
                     </svg>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ t('upgrade.success_title') }}</h1>
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ successTitle }}</h1>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-8">{{ t('upgrade.success_slow') }}</p>
                 <router-link
-                    to="/imports"
+                    :to="cta.to"
                     class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-sm transition-colors"
                 >
-                    {{ t('upgrade.success_cta') }}
+                    {{ cta.label }}
                 </router-link>
-                <div class="mt-4">
+                <div v-if="!isSupporter" class="mt-4">
                     <router-link to="/dashboard" class="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                         {{ t('upgrade.back_dashboard') }}
                     </router-link>
@@ -45,12 +45,12 @@
                 <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ successTitle }}</h1>
                 <p class="text-gray-600 dark:text-gray-400 mb-8">{{ successDesc }}</p>
                 <router-link
-                    to="/imports"
+                    :to="cta.to"
                     class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-sm transition-colors"
                 >
-                    {{ t('upgrade.success_cta') }}
+                    {{ cta.label }}
                 </router-link>
-                <div class="mt-4">
+                <div v-if="!isSupporter" class="mt-4">
                     <router-link to="/dashboard" class="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                         {{ t('upgrade.back_dashboard') }}
                     </router-link>
@@ -68,6 +68,7 @@ import { useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { analytics } from '../services/analytics';
 import { currentUpsellSource } from '../services/upsellSource';
+import { targetTierFrom } from './upgradeSuccessTarget';
 import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService';
 
 const { t } = useI18n();
@@ -83,23 +84,20 @@ const tier = ref<SubscriptionTier>('NONE');
 // would exit the poll loop on the first iteration (isPremium already true) and land
 // on the dashboard before the webhook applied the new tier. Default AUTOSYNC keeps
 // the legacy NONE -> AUTOSYNC flow working for old checkout links.
-/** Gekaufter Tarif für die Messung, roh aus der success_url (auch SUPPORTER) */
-const purchasedTier = computed(() => {
-    const raw = route.query.target_tier;
-    return raw === 'AUTOSYNC_LIVE' || raw === 'SUPPORTER' ? raw.toLowerCase() : 'autosync';
-});
+const targetTier = computed(() => targetTierFrom(route.query.target_tier));
+/** Für die Messung: autosync, autosync_live oder supporter */
+const purchasedTier = computed(() => targetTier.value.toLowerCase());
 
-const targetTier = computed<'AUTOSYNC' | 'AUTOSYNC_LIVE'>(() => {
-    const raw = route.query.target_tier;
-    return raw === 'AUTOSYNC_LIVE' ? 'AUTOSYNC_LIVE' : 'AUTOSYNC';
-});
-
-// Live-tier success messages differ from AutoSync ("pair your Tesla" instead
-// of generic "connect your car"). Falls back to AutoSync wording while polling.
-const successTitle = computed(() =>
-    tier.value === 'AUTOSYNC_LIVE' ? t('upgrade.live_success_title') : t('upgrade.success_title'));
-const successDesc = computed(() =>
-    tier.value === 'AUTOSYNC_LIVE' ? t('upgrade.live_success_desc') : t('upgrade.success_desc'));
+// Texte nach gekauftem Tarif: Live will den Tesla koppeln, AutoSync ein Auto verbinden,
+// Supporter hat nichts zu verbinden und geht zurück ins Dashboard.
+const isSupporter = computed(() => targetTier.value === 'SUPPORTER');
+const successTitle = computed(() => isSupporter.value ? t('upgrade.supporter_success_title')
+    : tier.value === 'AUTOSYNC_LIVE' ? t('upgrade.live_success_title') : t('upgrade.success_title'));
+const successDesc = computed(() => isSupporter.value ? t('upgrade.supporter_success_desc')
+    : tier.value === 'AUTOSYNC_LIVE' ? t('upgrade.live_success_desc') : t('upgrade.success_desc'));
+const cta = computed(() => isSupporter.value
+    ? { to: '/dashboard', label: t('upgrade.supporter_success_cta') }
+    : { to: '/imports', label: t('upgrade.success_cta') });
 
 const POLL_ATTEMPTS = 15;
 const POLL_DELAY_MS = 2000;
