@@ -63,7 +63,7 @@ wipe-prod-db.sh
 # Exception: Tesla Fleet API public key must be publicly served via nginx
 !nginx/well-known/appspecific/com.tesla.3p.public-key.pem
 frontend/dist/
-frontend/node_modules/
+frontend/node_modules
 cache.json
 
 tesla_explorer.py
