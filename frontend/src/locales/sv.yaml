@@ -1444,6 +1444,7 @@ settings:
   logout: Logga ut
   tier_autosync: AutoSync
   tier_live: AutoSync Live
+  tier_supporter: Supporterpaket
   tier_founder: Tesla Founder
   tier_beta: Betatestare
   tier_none: Inget aktivt abonnemang

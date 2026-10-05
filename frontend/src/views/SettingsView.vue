@@ -278,7 +278,7 @@ onMounted(async () => {
           {{ t('upgrade.pro_section_title') }}
           <span class="text-xs font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">PRO</span>
         </h2>
-        <div v-if="authStore.isPremium" class="space-y-3">
+        <div v-if="authStore.isPremium || authStore.isSupporter" class="space-y-3">
           <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-sm">
             <div class="flex items-center gap-3">
               <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center shrink-0">
@@ -288,7 +288,7 @@ onMounted(async () => {
               </div>
               <div>
                 <span class="text-sm font-medium text-indigo-800 dark:text-indigo-200">
-                  {{ subscriptionTier === 'AUTOSYNC_LIVE' ? t('settings.tier_live') : t('settings.tier_autosync') }}
+                  {{ subscriptionTier === 'AUTOSYNC_LIVE' ? t('settings.tier_live') : subscriptionTier === 'SUPPORTER' ? t('settings.tier_supporter') : t('settings.tier_autosync') }}
                 </span>
                 <p v-if="subscriptionPeriodEnd" class="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-0.5">
                   {{ t('settings.tier_period_end', { date: formattedPeriodEnd }) }}

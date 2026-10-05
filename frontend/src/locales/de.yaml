@@ -1496,6 +1496,7 @@ settings:
   logout: "Abmelden"
   tier_autosync: "AutoSync"
   tier_live: "AutoSync Live"
+  tier_supporter: "Supporter-Paket"
   tier_founder: "Tesla Founder"
   tier_beta: "Beta-Tester"
   tier_none: "Kein aktives Abo"
