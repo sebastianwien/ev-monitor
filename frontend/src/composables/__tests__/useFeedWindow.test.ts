@@ -92,6 +92,53 @@ describe('useFeedWindow', () => {
     expect(feed.queryParams.value.startsWith('&from=2026-07-01T00:00:00.000Z')).toBe(true)
   })
 
+  // Gruppen am Fensterrand sind immer vollstaendig: eine Woche, die am Monatsersten beginnt,
+  // zeigte sonst nur ihre Tage im Fenster - mit falschen Summen unter einem ganzen Wochenkopf.
+  describe('whole periods at the window edges', () => {
+    it('week view starts on the Monday of the first week (2026-09-01 is a Tuesday)', () => {
+      const feed = useFeedWindow(now)
+      feed.resolution.value = 'week'
+      feed.timeRange.value = 'THIS_MONTH'
+      expect(feed.queryParams.value).toBe('&from=2026-08-31T00:00:00.000Z')
+    })
+
+    it('week view of a closed range also ends on the Sunday of the last week', () => {
+      const feed = useFeedWindow(now)
+      feed.resolution.value = 'week'
+      feed.timeRange.value = 'LAST_MONTH'
+      expect(feed.queryParams.value).toBe('&from=2026-07-27T00:00:00.000Z&to=2026-09-06T23:59:59.999Z')
+    })
+
+    it('month view widens a custom range to whole months', () => {
+      const feed = useFeedWindow(now)
+      feed.resolution.value = 'month'
+      feed.timeRange.value = 'CUSTOM'
+      feed.customStartDate.value = '2026-05-10'
+      feed.customEndDate.value = '2026-06-20'
+      expect(feed.queryParams.value).toBe('&from=2026-05-01T00:00:00.000Z&to=2026-06-30T23:59:59.999Z')
+    })
+
+    it('day and single view keep the window as chosen', () => {
+      const feed = useFeedWindow(now)
+      feed.timeRange.value = 'THIS_MONTH'
+      for (const r of ['day', 'cycle'] as const) {
+        feed.resolution.value = r
+        expect(feed.queryParams.value).toBe('&from=2026-09-01T00:00:00.000Z')
+      }
+    })
+
+    it('loading older in week view still steps whole months', () => {
+      const feed = useFeedWindow(now)
+      feed.resolution.value = 'week'
+      feed.timeRange.value = 'THIS_MONTH'
+      expect(feed.nextOlderMonth.value.toISOString().slice(0, 7)).toBe('2026-08')
+      feed.loadOlder()
+      // 2026-08-01 ist ein Samstag -> Montag davor
+      expect(feed.queryParams.value).toBe('&from=2026-07-27T00:00:00.000Z')
+      expect(feed.nextOlderMonth.value.toISOString().slice(0, 7)).toBe('2026-07')
+    })
+  })
+
   it('CUSTOM without both dates falls back to the default range', () => {
     const feed = useFeedWindow(now)
     feed.timeRange.value = 'CUSTOM'

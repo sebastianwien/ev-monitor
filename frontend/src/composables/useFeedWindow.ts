@@ -21,6 +21,34 @@ export const FEED_TIME_RANGE_KEY = 'logfeed_time_range'
 const FEED_CUSTOM_START_KEY = 'logfeed_custom_start'
 const FEED_CUSTOM_END_KEY = 'logfeed_custom_end'
 
+const DAY_MS = 86_400_000
+
+/** Montag 00:00 der Woche, in der `ms` liegt - in UTC gerechnet wie die Monatsgrenzen (Wandzeit). */
+function mondayOf(ms: number): number {
+  const d = new Date(ms)
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7))
+}
+
+/**
+ * Weitet das Fenster auf ganze Wochen bzw. Monate der Darstellung. Eine Gruppe am Rand zeigte
+ * sonst nur ihre Tage im Fenster - mit zu kleinen Summen unter einem Kopf, der die ganze Woche
+ * nennt. Ein offenes Ende ("bis jetzt") bleibt offen.
+ */
+function widenToWholePeriods(w: TripWindow, resolution: FeedResolution, openEnd: boolean): TripWindow {
+  if (resolution === 'week') {
+    return { startMs: mondayOf(w.startMs), endMs: openEnd ? w.endMs : mondayOf(w.endMs) + 7 * DAY_MS - 1 }
+  }
+  if (resolution === 'month') {
+    const start = new Date(w.startMs)
+    const end = new Date(w.endMs)
+    return {
+      startMs: Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1),
+      endMs: openEnd ? w.endMs : Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 1) - 1,
+    }
+  }
+  return w
+}
+
 function readStored(key: string): string | null {
   try { return localStorage.getItem(key) } catch { return null }
 }
@@ -61,7 +89,7 @@ export function useFeedWindow(now: () => Date = () => new Date()) {
 
   // "Aeltere laden": verlaengert das Fenster monatsweise nach hinten, bis der Nutzer den
   // Zeitraum wechselt - dann faengt es wieder beim gewaehlten Fenster an. Ein Wechsel der
-  // Darstellung behaelt das Fenster, er gruppiert nur anders.
+  // Darstellung behaelt Zeitraum und Verlaengerung; Woche und Monat runden nur die Raender.
   const olderMonths = ref(0)
   watch([timeRange, customStartDate, customEndDate], () => { olderMonths.value = 0 }, { flush: 'sync' })
   const loadOlder = () => { olderMonths.value += 1 }
@@ -77,19 +105,21 @@ export function useFeedWindow(now: () => Date = () => new Date()) {
     return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - months, 1)
   }
 
-  const window = computed<TripWindow>(() => ({
+  const monthWindow = computed<TripWindow>(() => ({
     startMs: olderMonths.value > 0 ? shiftMonths(baseWindow.value.startMs, olderMonths.value) : baseWindow.value.startMs,
     endMs: baseWindow.value.endMs,
   }))
 
   /** Der Monat, den der naechste "Aeltere laden"-Klick dazuholt. */
-  const nextOlderMonth = computed(() => new Date(shiftMonths(window.value.startMs, 1)))
+  const nextOlderMonth = computed(() => new Date(shiftMonths(monthWindow.value.startMs, 1)))
 
   /**
    * Zeitraeume, die "bis jetzt" reichen, schicken kein `to`: Ladungen tragen ihre Zeit als
    * lokale Wandzeit ohne Zone, ein UTC-"jetzt" wuerde die Ladung von heute frueh abschneiden.
    */
   const openEnded = computed(() => !['LAST_MONTH', 'CUSTOM'].includes(timeRange.value))
+
+  const window = computed(() => widenToWholePeriods(monthWindow.value, resolution.value, openEnded.value))
   const queryParams = computed(() =>
     `&from=${new Date(window.value.startMs).toISOString()}`
     + (openEnded.value ? '' : `&to=${new Date(window.value.endMs).toISOString()}`))
