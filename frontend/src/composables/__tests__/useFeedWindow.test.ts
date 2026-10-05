@@ -139,6 +139,62 @@ describe('useFeedWindow', () => {
     })
   })
 
+  // Sieht der Feed leer aus, weitet LogsView den Zeitraum stufenweise: 1 -> 3 -> 6 -> 12 Monate.
+  // Gilt nur fuer die Sitzung; eine eigene Wahl bleibt genau so, wie sie ist.
+  describe('widenAutomatically', () => {
+    it('steps through the wider presets and stops after twelve months', () => {
+      const feed = useFeedWindow(now)
+      const steps: string[] = []
+      while (feed.widenAutomatically()) steps.push(feed.timeRange.value)
+      expect(steps).toEqual(['LAST_3_MONTHS', 'LAST_6_MONTHS', 'LAST_12_MONTHS'])
+      expect(feed.queryParams.value).toBe('&from=2025-10-01T00:00:00.000Z')
+    })
+
+    it('does not persist the automatic range', async () => {
+      localStorage.setItem(FEED_TIME_RANGE_KEY, 'THIS_MONTH')
+      const feed = useFeedWindow(now)
+      feed.widenAutomatically()
+      await nextTick()
+      expect(feed.timeRange.value).toBe('LAST_3_MONTHS')
+      expect(localStorage.getItem(FEED_TIME_RANGE_KEY)).toBe('THIS_MONTH')
+      expect(useFeedWindow(now).timeRange.value).toBe('THIS_MONTH')
+    })
+
+    it('an explicit choice wins and switches the automatic off for the session', async () => {
+      const feed = useFeedWindow(now)
+      feed.widenAutomatically()
+      feed.timeRange.value = 'THIS_MONTH'
+      expect(feed.timeRange.value).toBe('THIS_MONTH')
+      expect(feed.widenAutomatically()).toBe(false)
+      expect(feed.timeRange.value).toBe('THIS_MONTH')
+      await nextTick()
+      expect(localStorage.getItem(FEED_TIME_RANGE_KEY)).toBe('THIS_MONTH')
+    })
+
+    it('never widens closed ranges', () => {
+      for (const range of ['LAST_MONTH', 'CUSTOM']) {
+        localStorage.setItem(FEED_TIME_RANGE_KEY, range)
+        const feed = useFeedWindow(now)
+        expect(feed.widenAutomatically()).toBe(false)
+        expect(feed.timeRange.value).toBe(range)
+      }
+    })
+
+    it('this year widens straight to twelve months', () => {
+      localStorage.setItem(FEED_TIME_RANGE_KEY, 'THIS_YEAR')
+      const feed = useFeedWindow(now)
+      expect(feed.widenAutomatically()).toBe(true)
+      expect(feed.timeRange.value).toBe('LAST_12_MONTHS')
+    })
+
+    it('stays out of the way once older months were loaded by hand', () => {
+      const feed = useFeedWindow(now)
+      feed.loadOlder()
+      expect(feed.widenAutomatically()).toBe(false)
+      expect(feed.queryParams.value).toBe('&from=2026-08-01T00:00:00.000Z')
+    })
+  })
+
   it('CUSTOM without both dates falls back to the default range', () => {
     const feed = useFeedWindow(now)
     feed.timeRange.value = 'CUSTOM'

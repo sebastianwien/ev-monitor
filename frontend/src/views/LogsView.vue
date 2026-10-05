@@ -123,6 +123,7 @@ const {
   setLogsSection, currentOdometerKm,
   logs, logsLoading, editingLog, priceAmendingLog,
   feedResolution, feedTimeRange, feedCustomStartDate, feedCustomEndDate, feedNextOlderMonth, loadOlderFeed,
+  widenFeedAutomatically,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, deleteError, otherCars, openReassignModal, saveReassign,
@@ -1283,6 +1284,23 @@ function toggleAllFeed() {
   setAllTripsExpanded(expand)
   setAllChargesExpanded(expand)
 }
+
+// Ist der Feed kuerzer als ein Bildschirm, sieht er leer aus - etwa am Monatsanfang oder in
+// "Monat" mit nur einem Monat. Dann laedt er von selbst den naechstgroesseren Zeitraum
+// (useFeedWindow.widenAutomatically), bis der Bildschirm voll ist oder 12 Monate erreicht sind.
+// Nur wenn Daten oder Ansicht wechseln (oder die Liste erscheint): Zuklappen soll nichts nachladen.
+const feedListEl = ref<HTMLElement | null>(null)
+let fillFrame = 0
+function widenFeedIfEmpty() {
+  fillFrame = 0
+  if (!viewActive.value || logsLoading.value || !hasAnyLogs.value || !feedListEl.value) return
+  if (feedListEl.value.offsetHeight < window.innerHeight) widenFeedAutomatically()
+}
+function scheduleFillCheck() {
+  if (!fillFrame) fillFrame = requestAnimationFrame(widenFeedIfEmpty)
+}
+watch([feedListEl, mergedLogFeed, logsLoading, feedResolution, viewActive], scheduleFillCheck, { flush: 'post' })
+onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
 </script>
 
 <template>
@@ -1604,7 +1622,7 @@ function toggleAllFeed() {
                         :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
 
-          <div :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
+          <div ref="feedListEl" :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
             <template v-if="logsLoading && !hasAnyLogs">
               <div v-for="n in 5" :key="n" class="relative p-3 border-2 rounded-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] animate-pulse">
                 <div class="flex items-center justify-between gap-2">
@@ -3386,8 +3404,8 @@ function toggleAllFeed() {
               </template><!-- end v-for groupedFeed -->
             </template>
           </div>
-          <!-- Einzeln: monatsweise weiter zurueck, statt eines festen Seitenendes. -->
-          <div v-if="feedResolution === 'cycle'" class="mt-4 flex items-center gap-4">
+          <!-- Monatsweise weiter zurueck, statt eines festen Seitenendes - in jeder Darstellung. -->
+          <div v-if="hasAnyLogs" class="mt-4 flex items-center gap-4">
             <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
             <button type="button" data-testid="logfeed-load-older" :disabled="logsLoading" @click="loadOlderFeed()"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition">

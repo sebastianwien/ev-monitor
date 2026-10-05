@@ -16,6 +16,18 @@ export const FEED_RANGE_DEFAULT = 'THIS_MONTH'
 /** "Alle" gibt es im Feed bewusst nicht - das ist genau das Fenster, das den Browser stocken laesst. */
 export const FEED_TIME_RANGES = ['THIS_MONTH', 'LAST_MONTH', 'LAST_3_MONTHS', 'LAST_6_MONTHS', 'LAST_12_MONTHS', 'THIS_YEAR', 'CUSTOM']
 
+/**
+ * Naechstgroesserer Zeitraum, wenn der Feed leer aussieht - immer eine Option des Pickers, damit
+ * er den echten Zeitraum zeigt. Abgeschlossene Zeitraeume (letzter Monat, eigene Daten) hat der
+ * Nutzer bewusst gewaehlt; die weiten sich nie.
+ */
+const WIDER_RANGE: Record<string, string> = {
+  THIS_MONTH: 'LAST_3_MONTHS',
+  LAST_3_MONTHS: 'LAST_6_MONTHS',
+  LAST_6_MONTHS: 'LAST_12_MONTHS',
+  THIS_YEAR: 'LAST_12_MONTHS',
+}
+
 export const FEED_RESOLUTION_KEY = 'logfeed_resolution'
 export const FEED_TIME_RANGE_KEY = 'logfeed_time_range'
 const FEED_CUSTOM_START_KEY = 'logfeed_custom_start'
@@ -78,9 +90,26 @@ export function useFeedWindow(now: () => Date = () => new Date()) {
   watch(resolution, (value) => writeStored(FEED_RESOLUTION_KEY, value))
 
   const storedRange = readStoredRange(resolution.value)
-  const timeRange = ref<string>(storedRange ?? FEED_RANGE_DEFAULT)
-  // immediate schreibt eine alte Map sofort als einzelnen Wert zurueck.
-  watch(timeRange, (value) => writeStored(FEED_TIME_RANGE_KEY, value), { immediate: storedRange != null })
+  const chosenRange = ref<string>(storedRange ?? FEED_RANGE_DEFAULT)
+  // Eine alte Map sofort als einzelnen Wert zurueckschreiben.
+  if (storedRange != null) writeStored(FEED_TIME_RANGE_KEY, storedRange)
+
+  // Automatisch geweiteter Zeitraum (widenAutomatically) - nur fuer die Sitzung, nie gespeichert.
+  // Eine eigene Wahl im Picker hebt ihn auf und schaltet die Automatik bis zum Neuladen ab.
+  const autoRange = ref<string | null>(null)
+  const autoAllowed = ref(true)
+
+  /** Der Zeitraum, den der Feed zeigt. Schreiben = eigene Wahl des Nutzers. */
+  const timeRange = computed<string>({
+    get: () => autoRange.value ?? chosenRange.value,
+    set: (value) => {
+      autoRange.value = null
+      autoAllowed.value = false
+      olderMonths.value = 0
+      chosenRange.value = value
+      writeStored(FEED_TIME_RANGE_KEY, value)
+    },
+  })
 
   const customStartDate = ref<string>(readStored(FEED_CUSTOM_START_KEY) ?? '')
   const customEndDate = ref<string>(readStored(FEED_CUSTOM_END_KEY) ?? '')
@@ -91,8 +120,19 @@ export function useFeedWindow(now: () => Date = () => new Date()) {
   // Zeitraum wechselt - dann faengt es wieder beim gewaehlten Fenster an. Ein Wechsel der
   // Darstellung behaelt Zeitraum und Verlaengerung; Woche und Monat runden nur die Raender.
   const olderMonths = ref(0)
-  watch([timeRange, customStartDate, customEndDate], () => { olderMonths.value = 0 }, { flush: 'sync' })
+  watch([customStartDate, customEndDate], () => { olderMonths.value = 0 }, { flush: 'sync' })
   const loadOlder = () => { olderMonths.value += 1 }
+
+  /**
+   * Weitet den Zeitraum eine Stufe, wenn der Feed leer aussieht. false = nichts mehr zu tun:
+   * eigene Wahl, abgeschlossener Zeitraum, schon 12 Monate, oder "Aeltere laden" von Hand.
+   */
+  function widenAutomatically(): boolean {
+    const wider = WIDER_RANGE[timeRange.value]
+    if (!autoAllowed.value || olderMonths.value > 0 || !wider) return false
+    autoRange.value = wider
+    return true
+  }
 
   const baseWindow = computed<TripWindow>(() => {
     const current = now()
@@ -124,5 +164,8 @@ export function useFeedWindow(now: () => Date = () => new Date()) {
     `&from=${new Date(window.value.startMs).toISOString()}`
     + (openEnded.value ? '' : `&to=${new Date(window.value.endMs).toISOString()}`))
 
-  return { resolution, timeRange, customStartDate, customEndDate, window, queryParams, loadOlder, nextOlderMonth }
+  return {
+    resolution, timeRange, customStartDate, customEndDate, window, queryParams, loadOlder, nextOlderMonth,
+    widenAutomatically,
+  }
 }
