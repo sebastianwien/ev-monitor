@@ -8,6 +8,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -31,6 +33,10 @@ public class AdminAlertService {
      */
     @Value("${app.alert.purchase-recipients:}")
     private String purchaseRecipients;
+
+    /** Empfaenger des Sprachlog-Kostenalarms (voice-log.alert-email). Leer = aus. */
+    @Value("${voice-log.alert-email:}")
+    private String voiceCostAlertEmail;
 
     /** Hand-written, rotated per send so the mail never gets stale. Pure flavor - the hard facts go below. */
     private static final String[] CELEBRATION_LINES = {
@@ -144,6 +150,34 @@ public class AdminAlertService {
                     tier, recipients.length);
         } catch (Exception e) {
             log.error("AdminAlert: Trial-Conversion-Celebration konnte nicht gesendet werden", e);
+        }
+    }
+
+    /**
+     * Sprachlog-Kosten dieses Monats haben eine weitere Stufe (z. B. 10, 20, 30 USD) ueberschritten.
+     * Fire-and-forget, darf den Sprachlog-Request nie brechen.
+     */
+    public void sendVoiceCostAlert(BigDecimal monthUsd, BigDecimal totalUsd, BigDecimal stepUsd) {
+        if (voiceCostAlertEmail == null || voiceCostAlertEmail.isBlank()) {
+            log.debug("AdminAlert: kein Sprachlog-Kostenalarm-Empfaenger konfiguriert, ueberspringe");
+            return;
+        }
+        try {
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setFrom(fromAddress);
+            msg.setTo(voiceCostAlertEmail);
+            msg.setSubject("EV Monitor - Sprachlog-Kosten diesen Monat über " + stepUsd.toPlainString() + " USD");
+            msg.setText(
+                    "Die Mistral-Kosten des Sprachlogs haben in diesem Monat " + stepUsd.toPlainString() + " USD überschritten.\n\n" +
+                    "Dieser Monat:  " + monthUsd.setScale(2, RoundingMode.HALF_UP).toPlainString() + " USD\n" +
+                    "Seit Start:    " + totalUsd.setScale(2, RoundingMode.HALF_UP).toPlainString() + " USD\n\n" +
+                    "Quelle: voice_draft.cost_usd (eingefrorene Preise aus mistral.pricing).\n" +
+                    "Nächste Mail bei der nächsten Stufe, Zählung beginnt jeden Monat neu."
+            );
+            mailSender.send(msg);
+            log.info("AdminAlert: Sprachlog-Kostenalarm gesendet (stufe={} USD, monat={})", stepUsd, monthUsd);
+        } catch (Exception e) {
+            log.error("AdminAlert: Sprachlog-Kostenalarm konnte nicht gesendet werden", e);
         }
     }
 

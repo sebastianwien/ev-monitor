@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,6 +20,13 @@ public interface VoiceDraftRepository extends JpaRepository<VoiceDraftEntity, UU
     /** Beginn der Kennenlernphase. */
     @Query("SELECT MIN(v.createdAt) FROM VoiceDraftEntity v WHERE v.userId = :userId AND v.success = true")
     Optional<LocalDateTime> findFirstSuccessAt(@Param("userId") UUID userId);
+
+    /** Kumulierte Mistral-Kosten aller Aufnahmen (auch Fehlschlaege, die kosten ebenfalls). */
+    @Query("SELECT COALESCE(SUM(v.costUsd), 0) FROM VoiceDraftEntity v")
+    BigDecimal sumCostUsd();
+
+    @Query("SELECT COALESCE(SUM(v.costUsd), 0) FROM VoiceDraftEntity v WHERE v.createdAt >= :since")
+    BigDecimal sumCostUsdSince(@Param("since") LocalDateTime since);
 
     /** Kontoloeschung (zusaetzlich zum FK-CASCADE, damit auch ohne Flyway-Schema testbar). */
     @Modifying

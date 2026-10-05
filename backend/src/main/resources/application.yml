@@ -246,6 +246,9 @@ stripe:
 # Sprachlog fuer alle; VOICE_LOG_ADMIN_ONLY=true ist der Notschalter (nur Admins, sonst 404).
 voice-log:
   admin-only: ${VOICE_LOG_ADMIN_ONLY:false}
+  # Kostenalarm: Mail je ueberschrittener Stufe der voice_draft.cost_usd im laufenden Monat. Leer = aus.
+  alert-email: ${VOICE_LOG_ALERT_EMAIL:sebastian.wien@ev-monitor.net}
+  alert-step-usd: ${VOICE_LOG_ALERT_STEP_USD:10}
 
 mistral:
   api-key: ${MISTRAL_API_KEY:}

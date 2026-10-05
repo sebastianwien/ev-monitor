@@ -24,6 +24,7 @@ public class VoiceQuotaService {
 
     private final UserRepository userRepository;
     private final VoiceDraftRepository repository;
+    private final VoiceCostAlertService costAlert;
 
     public VoiceQuota quota(UUID userId, ZoneId zone) {
         VoiceQuota.Plan plan = userRepository.findById(userId)
@@ -41,6 +42,7 @@ public class VoiceQuotaService {
     public void record(VoiceDraftEntity row) {
         try {
             repository.save(row);
+            costAlert.afterRecorded(row.getCostUsd());
         } catch (Exception e) {
             log.warn("voice_draft nicht gespeichert: {}", e.getClass().getSimpleName());
         }
