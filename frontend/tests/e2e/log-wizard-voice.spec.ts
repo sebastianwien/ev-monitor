@@ -25,13 +25,33 @@ const DRAFT = {
   transcript: 'Zuhause geladen, 32 Kilowattstunden, 9 Euro 60, Akku auf 80 Prozent, Tacho 48210',
   fields: { kwhCharged: 32, kwhAtVehicle: null, socBefore: null, socAfter: 80, odometerKm: 48210, costEur: 9.6, pricePerKwh: null,
     loggedAt: null, chargeDurationMinutes: null, maxChargingPowerKw: null, chargingType: 'AC', routeType: null, tireType: null,
-    placeIndex: 0, placeKind: 'home', spokenOperator: null, tariffIndex: null, uncertain: ['costEur'] },
+    placeIndex: 0, placeKind: 'home', spokenOperator: null, spokenAddress: null, tariffIndex: null, uncertain: ['costEur'] },
   place: { kind: 'home', station: null, site: null, cpoName: null },
   chargingProviderId: null,
   usage: { limit: null, remaining: null, resetsOn: '2026-11-01' },
 }
 
-async function open(page: import('@playwright/test').Page, role: 'ADMIN' | 'USER') {
+type Page = import('@playwright/test').Page
+/** Plausible-Events der Seite: [name, props] */
+const events = (page: Page) => page.evaluate(() => (window as any).__events as [string, Record<string, unknown>][])
+const voiceSteps = async (page: Page) => (await events(page)).filter(([e]) => e === 'Voice').map(([, p]) => p.step)
+
+/** Aufnahme über das Vollbild: Mikrofon, kurz sprechen (Fake-Signal), "Fertig". */
+async function record(page: Page, mic = page.getByTestId('voice-mic').first()) {
+  await mic.click()
+  await expect(page.getByTestId('voice-sheet')).toBeVisible()
+  await expect(page.getByTestId('voice-status')).toContainText('Ich höre zu')
+  await page.waitForTimeout(900)
+  await page.getByTestId('voice-done').click()
+}
+
+async function open(page: Page, role: 'ADMIN' | 'USER') {
+  // Echtes Plausible-Skript blockieren, sonst ersetzt es den Mitschreiber unten
+  await page.route(url => url.hostname === 'plausible.io', route => route.abort())
+  await page.addInitScript(() => {
+    ;(window as any).__events = []
+    ;(window as any).plausible = (e: string, o?: { props?: Record<string, unknown> }) => (window as any).__events.push([e, o?.props ?? {}])
+  })
   await page.addInitScript(({ t, keys }) => {
     localStorage.setItem('token', t)
     localStorage.setItem('onboarding-completed-voice@e2e.local', 'true')
@@ -60,12 +80,17 @@ test('Admin spricht den Ladevorgang ein und speichert ihn von der Prüfseite', a
 
   const mic = page.getByTestId('voice-mic')
   await mic.click()
-  // Erstes Antippen: erst der Transparenz-Satz, dann nimmt "Verstanden" auf
+  // Erstes Antippen: erst der Transparenz-Satz (inkl. Adresssuche), dann nimmt "Verstanden" auf
   await expect(page.getByTestId('voice-consent')).toContainText('Mistral AI')
+  await expect(page.getByTestId('voice-consent')).toContainText('OpenStreetMap')
   await page.getByTestId('voice-consent-ok').click()
+  // Vollbild mit Spickzettel, Fertig im Daumenbereich
+  await expect(page.getByTestId('voice-sheet')).toBeVisible()
   await expect(page.getByTestId('voice-status')).toContainText('Ich höre zu')
+  await expect(page.getByTestId('voice-chips-core')).toContainText('Tachostand')
+  await expect(page.getByTestId('voice-chips-more')).toContainText('Ladekarte')
   await page.waitForTimeout(1200)
-  await mic.click()
+  await page.getByTestId('voice-done').click()
 
   await expect(page.getByTestId('voice-transcript')).toContainText('32 Kilowattstunden')
   expect(draftRequest!.contentType).toContain('multipart/form-data')
@@ -82,22 +107,24 @@ test('Admin spricht den Ladevorgang ein und speichert ihn von der Prüfseite', a
   expect(saved).toMatchObject({ carId: 'car-1', kwhCharged: 32, costEur: 9.6, odometerKm: 48210, socAfterChargePercent: 80,
     isPublicCharging: false, chargingType: 'AC' })
   expect(saved).not.toHaveProperty('voiceUsed')
+  await expect.poll(() => voiceSteps(page)).toEqual(['consent', 'open', 'stop', 'draft', 'saved'])
+  const draftEvent = (await events(page)).find(([e, p]) => e === 'Voice' && p.step === 'draft')![1]
+  expect(draftEvent).toMatchObject({ entry: 'create', filled: 6, uncertain: 1, place: 'match' })
+  expect(JSON.stringify(await events(page))).not.toContain('48210')
 })
 
 test('Server versteht nichts: Hinweis am Mikrofon, Wizard bleibt in Schritt 1', async ({ page }) => {
   await open(page, 'ADMIN')
-  await page.addInitScript(() => localStorage.setItem('voicelog_consent_seen', 'true'))
+  await page.addInitScript(() => localStorage.setItem('voicelog_consent_seen_v2', 'true'))
   await page.route(url => url.pathname === '/api/logs/voice-draft', route =>
     route.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ code: 'VOICE_NOT_UNDERSTOOD' }) }))
   await page.goto('/erfassen')
 
-  const mic = page.getByTestId('voice-mic')
-  await mic.click()
-  await expect(page.getByTestId('voice-status')).toContainText('Ich höre zu')
-  await page.waitForTimeout(800)
-  await mic.click()
-  await expect(page.getByTestId('voice-status')).toContainText('Nichts verstanden')
+  await record(page)
+  await expect(page.getByTestId('voice-sheet')).toHaveCount(0)
+  await expect(page.getByTestId('voice-problem')).toContainText('Nichts verstanden')
   await expect(page.getByTestId('place-here')).toBeVisible()
+  await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'error', entry: 'create', kind: 'not_understood' }])
 })
 
 test('Nicht-Admins sehen kein Mikrofon', async ({ page }) => {
@@ -105,4 +132,84 @@ test('Nicht-Admins sehen kein Mikrofon', async ({ page }) => {
   await page.goto('/erfassen')
   await expect(page.getByTestId('place-here')).toBeVisible()
   await expect(page.getByTestId('voice-mic')).toHaveCount(0)
+})
+
+test('Abbrechen im Vollbild verwirft die Aufnahme ohne Upload', async ({ page }) => {
+  await open(page, 'ADMIN')
+  await page.addInitScript(() => localStorage.setItem('voicelog_consent_seen_v2', 'true'))
+  let uploads = 0
+  await page.route(url => url.pathname === '/api/logs/voice-draft', route => { uploads++; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(DRAFT) }) })
+  await page.goto('/erfassen')
+  await page.getByTestId('voice-mic').click()
+  await expect(page.getByTestId('voice-sheet')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('voice-sheet')).toHaveCount(0)
+  await page.waitForTimeout(300)
+  expect(uploads).toBe(0)
+  expect(await voiceSteps(page)).toEqual(['open', 'cancel'])
+})
+
+test('Fehlendes nachsprechen: zweite Aufnahme füllt die Lücke, der Rest bleibt', async ({ page }) => {
+  await open(page, 'ADMIN')
+  await page.addInitScript(() => localStorage.setItem('voicelog_consent_seen_v2', 'true'))
+  const first = { ...DRAFT, fields: { ...DRAFT.fields, odometerKm: null, uncertain: [] } }
+  const second = { ...DRAFT, transcript: 'Tacho 48210', place: null,
+    fields: { ...DRAFT.fields, kwhCharged: null, socAfter: null, costEur: null, chargingType: null, placeIndex: null, placeKind: null, odometerKm: 48210, uncertain: [] } }
+  const drafts = [first, second]
+  await page.route(url => url.pathname === '/api/logs/voice-draft', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(drafts.shift()) }))
+  let saved: Record<string, unknown> | null = null
+  await page.route(url => url.pathname === '/api/logs', route => {
+    if (route.request().method() !== 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    saved = route.request().postDataJSON()
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ coinsAwarded: 5 }) })
+  })
+  await page.goto('/erfassen')
+
+  await record(page)
+  // Tacho fehlt: Schritt 2 bietet das Nachsprechen an
+  const missing = page.locator('[data-testid="voice-capture"][data-variant="inline"]')
+  await expect(missing).toContainText('Fehlt noch: Tachostand')
+  await record(page, missing.getByTestId('voice-mic'))
+
+  await expect(page.getByTestId('voice-transcript')).toContainText('Tacho 48210')
+  await expect(page.getByTestId('summary-energy')).toContainText('32')
+  await page.getByTestId('wizard-next').click()
+  await expect.poll(() => saved).not.toBeNull()
+  expect(saved).toMatchObject({ kwhCharged: 32, odometerKm: 48210, socAfterChargePercent: 80, costEur: 9.6 })
+  await expect.poll(() => voiceSteps(page)).toEqual(['open', 'stop', 'draft', 'open', 'retry', 'stop', 'draft', 'saved'])
+})
+
+test('Gesprochene Adresse ohne Säule dort: privat an dieser Adresse', async ({ page }) => {
+  await open(page, 'ADMIN')
+  await page.addInitScript(() => localStorage.setItem('voicelog_consent_seen_v2', 'true'))
+  const atAddress = { ...DRAFT, transcript: 'Bei meinen Eltern, Lindenweg 4 in Bamberg, 18 kWh, kostenlos, 80 Prozent, Tacho 41020',
+    place: { kind: 'other', station: null, site: null, cpoName: null },
+    fields: { ...DRAFT.fields, kwhCharged: 18, costEur: 0, odometerKm: 41020, chargingType: null, placeIndex: null, placeKind: 'other',
+      spokenAddress: 'Lindenweg 4, Bamberg', uncertain: [] } }
+  await page.route(url => url.pathname === '/api/logs/voice-draft', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(atAddress) }))
+  let nominatimQuery = ''
+  await page.route(url => url.hostname === 'nominatim.openstreetmap.org', route => {
+    nominatimQuery = new URL(route.request().url()).searchParams.get('q') ?? ''
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+      { place_id: 1, lat: '49.8988', lon: '10.9028', display_name: 'Lindenweg 4, Bamberg', address: { road: 'Lindenweg', house_number: '4', city: 'Bamberg' } }]) })
+  })
+  let saved: Record<string, unknown> | null = null
+  await page.route(url => url.pathname === '/api/logs', route => {
+    if (route.request().method() !== 'POST') return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    saved = route.request().postDataJSON()
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ coinsAwarded: 5 }) })
+  })
+  await page.goto('/erfassen')
+  await record(page)
+
+  // Alles gesagt, Adresse gefunden, keine Säule dort: direkt auf die Prüfseite
+  await expect(page.getByTestId('voice-transcript')).toContainText('Lindenweg')
+  expect(nominatimQuery).toBe('Lindenweg 4, Bamberg')
+  await page.getByTestId('wizard-next').click()
+  await expect.poll(() => saved).not.toBeNull()
+  expect(saved).toMatchObject({ isPublicCharging: false, latitude: 49.8988, longitude: 10.9028, kwhCharged: 18, costEur: 0 })
+  const draftEvent = (await events(page)).find(([e, p]) => e === 'Voice' && p.step === 'draft')![1]
+  expect(draftEvent.place).toBe('address')
 })
