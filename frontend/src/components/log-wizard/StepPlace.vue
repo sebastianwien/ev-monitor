@@ -97,6 +97,16 @@ const showSearchedStation = computed(() => {
     && !props.stations.some(n => n.name === s.name && n.geohash === s.geohash)
 })
 
+/**
+ * Icon-Box der Kacheln: Farbe sagt den Ortstyp (grün privat, gelb Säule - wie im Dashboard),
+ * der indigo Rahmen sagt weiterhin allein "ausgewählt".
+ */
+const iconBox = (kind: 'home' | 'station', on: boolean) => [
+  'w-9 h-9 rounded-sm grid place-items-center flex-shrink-0 transition-colors',
+  kind === 'home'
+    ? (on ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300')
+    : (on ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300'),
+]
 const tileClass = (on: boolean) => [
   'btn-3d w-full flex items-center gap-3 text-left p-3 rounded-sm border-2 transition',
   on ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/60 ring-1 ring-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/70'
@@ -161,7 +171,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </Collapse>
     <button v-if="showSearchedStation && searchedStation" type="button" data-testid="place-searched-station" :class="tileClass(true)"
       @click="emit('choose', { kind: 'station', station: searchedStation, viaSearch: true })">
-      <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
+      <span :class="iconBox('station', true)"><BoltIcon class="h-5 w-5" /></span>
       <span class="flex-1 min-w-0">
         <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ searchedStation.name }}</b>
         <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(searchedStation) }}</small>
@@ -174,7 +184,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
          Bearbeiten-Dialog der gespeicherte) - ein Zuhause gibt es im Datenmodell nicht, privat heißt "nicht öffentlich". -->
     <div v-if="placeKnown" class="grid grid-cols-2 gap-3">
       <button type="button" data-testid="place-here" :class="[tileClass(place === 'home'), !showElsewhere && 'col-span-2']" @click="emit('choose', { kind: 'home' })">
-        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><HomeIcon class="h-5 w-5" /></span>
+        <span :class="iconBox('home', place === 'home')"><HomeIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
           <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400 truncate" :title="addressLabel ?? undefined">{{ hasPosition ? (addressLabel ?? t('logwizard.place_here_sub')) : t('logwizard.place_private_sub') }}</small>
@@ -209,7 +219,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       </Collapse>
       <button type="button" :class="tileClass(isStation(s))"
         @click="emit('choose', { kind: 'station', station: s })">
-        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
+        <span :class="iconBox('station', isStation(s))"><BoltIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
           <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ s.name }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
@@ -241,7 +251,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
     </Collapse>
     <button type="button" data-testid="place-public" :class="tileClass(place === 'other')" @click="emit('choose', { kind: 'other', cpoName: null })">
-      <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><BoltIcon class="h-5 w-5" /></span>
+      <span :class="iconBox('station', place === 'other')"><BoltIcon class="h-5 w-5" /></span>
       <span class="flex-1 min-w-0">
         <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_public_here') : t('logwizard.place_public') }}</b>
         <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ place === 'other' && selectedCpo ? selectedCpo : t('logwizard.place_public_sub') }}</small>

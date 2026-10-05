@@ -55,7 +55,7 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
         <div role="radiogroup" :aria-label="t('logfields.energy')" class="grid grid-cols-2 gap-1 h-11 w-[5.5rem] rounded-full bg-gray-200 dark:bg-gray-700 p-1">
           <button v-for="m in modes" :key="m.value" type="button" role="radio" :aria-checked="mode === m.value" :aria-label="m.label" :title="m.label"
             :data-testid="m.testid" @click="switchMode(m.value)"
-            :class="['flex items-center justify-center rounded-full transition-colors', mode === m.value ? 'bg-white dark:bg-gray-500 text-indigo-700 dark:text-white shadow' : 'text-gray-500 dark:text-gray-300']">
+            :class="['flex items-center justify-center rounded-full transition-colors', mode === m.value ? ['bg-white dark:bg-gray-500 shadow', m.value === 'charger' ? 'text-amber-600 dark:text-amber-300' : 'text-indigo-700 dark:text-white'] : 'text-gray-500 dark:text-gray-300']">
             <component :is="m.icon" class="h-6 w-6" />
           </button>
         </div>
