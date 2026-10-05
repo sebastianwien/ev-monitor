@@ -65,10 +65,11 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
       </div>
     </div>
 
-    <!-- Ziele für Schritt-eigene Werkzeuge in Daumenreichweite (Schritt 1: Spracheingabe):
-         note als Streifen über dem Footer, lead links neben der Hauptaktion. Bleiben leer, wenn niemand sie füllt. -->
-    <div id="wizard-footer-note" />
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3 flex items-center gap-3">
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3">
+      <!-- Ziele für Schritt-eigene Werkzeuge in Daumenreichweite (Schritt 1: Spracheingabe): note über der Knopfzeile
+           (Sprechblase zum Mikrofon, gehört so sichtbar zum Footer), lead links neben der Hauptaktion. Leer bleiben sie unsichtbar. -->
+      <div id="wizard-footer-note" />
+      <div class="flex items-center gap-3">
       <!-- Slot primary: ein Schritt kann die Hauptaktion ersetzen, z. B. "Vorschlag übernehmen" in Daumenreichweite -->
       <div id="wizard-footer-lead" class="contents" />
       <slot v-if="$slots.primary" name="primary" />
@@ -83,6 +84,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
         {{ saving ? t('common.saving') : primaryLabel }}
       </button>
       </template>
+      </div>
     </footer>
   </div>
 </template>

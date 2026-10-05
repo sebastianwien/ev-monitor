@@ -130,6 +130,8 @@ const note = computed(() => {
   if (stage === 'new' && !keyboardOpen.value) return 'example'
   return null
 })
+/** Spitze zum Knopf nur, wenn es den Knopf gibt */
+const tail = computed(() => note.value !== 'out' && note.value !== 'denied')
 const resetsOn = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString(locale.value, { day: 'numeric', month: 'long' })
 const status = computed(() => {
   const p = problem.value
@@ -147,8 +149,11 @@ const status = computed(() => {
   <div v-if="variant === 'footer'" class="contents" data-testid="voice-capture" data-variant="footer">
     <Teleport defer to="#wizard-footer-note">
       <div aria-live="polite">
+        <!-- Sprechblase: gleiche Linie wie der Knopf (2 px Indigo, weißer Grund), die Spitze zeigt auf dessen Mitte - Blase und
+             Mikrofon lesen sich als eine Einheit. Aufgebraucht gibt es keinen Knopf: dann ein Kasten ohne Spitze. -->
         <div v-if="note" data-testid="voice-note" :data-note="note"
-          class="border-t border-indigo-100 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/60 px-4 py-2.5 md:px-6 text-sm text-gray-700 dark:text-gray-200">
+          :class="['relative mb-3 rounded-sm px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200',
+                   tail ? 'border-2 border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800' : 'border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/60']">
           <p v-if="note === 'denied'" data-testid="voice-denied">{{ t('voicelog.denied') }}</p>
           <div v-else-if="note === 'consent'" data-testid="voice-consent" class="space-y-2">
             <!-- Kurz halten, Details in der DSE. Neuer Tab, damit die Eingaben im Wizard bleiben. -->
@@ -179,7 +184,12 @@ const status = computed(() => {
                 class="whitespace-nowrap font-semibold text-indigo-700 dark:text-indigo-300 underline underline-offset-2">{{ t('voicelog.quota_low_cta') }}</router-link></template>
           </p>
           <!-- Ein kurzes Beispiel statt Bedienanleitung: ein lockerer Halbsatz reicht. Die volle Liste steht im Vollbild. -->
-          <p v-else-if="note === 'example'"><span class="font-semibold text-gray-900 dark:text-gray-100">{{ t('voicelog.title') }}</span> {{ t('voicelog.card_example') }}</p>
+          <p v-else-if="note === 'example'"><span class="font-semibold text-indigo-700 dark:text-indigo-300">{{ t('voicelog.title') }}</span> {{ t('voicelog.card_example') }}</p>
+          <!-- Spitze: gedrehtes Quadrat mit Rand nur unten/rechts, deckt den unteren Rand der Blase ab.
+               Mitte des Knopfs: neu die linke von zwei gleich breiten Spalten (gap-3), vertraut 48 px rund. -->
+          <span v-if="tail" aria-hidden="true"
+            :class="['absolute -bottom-[7px] h-3 w-3 rotate-45 border-b-2 border-r-2 border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800',
+                     stage === 'new' ? 'left-[calc((100%_-_0.75rem)/4_-_0.375rem)]' : 'left-[1.125rem]']" />
         </div>
       </div>
     </Teleport>
