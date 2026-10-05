@@ -220,7 +220,7 @@ onUnmounted(teardown)
 <template>
   <div
     class="activity-map overflow-hidden pointer-events-none"
-    :class="isBackdrop() ? 'absolute inset-0' : 'panel absolute inset-0'"
+    :class="[isBackdrop() ? '' : 'panel', variant === 'thumb' ? 'thumb' : '', 'absolute inset-0']"
     :role="isPanel() ? 'img' : undefined"
     :aria-label="isPanel() ? label : undefined"
     :aria-hidden="isPanel() ? undefined : 'true'"
@@ -282,5 +282,10 @@ onUnmounted(teardown)
 }
 .dark .activity-map:not(.panel) .leaflet-tile {
   filter: grayscale(0.6) saturate(0.55) brightness(0.45) contrast(1) blur(0.5px);
+}
+/* Als Vorschaubild steht die Karte in voller Farbe neben dem Text - im Dark Mode
+   gedaempft, damit sie nicht greller ist als alles um sie herum. */
+.dark .activity-map.thumb .leaflet-tile {
+  filter: brightness(0.75) saturate(0.85);
 }
 </style>
