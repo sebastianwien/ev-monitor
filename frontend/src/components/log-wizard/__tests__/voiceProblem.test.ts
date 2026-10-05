@@ -13,11 +13,11 @@ describe('voiceProblem', () => {
     expect(voiceProblem(httpError(503, { code: 'VOICE_UNAVAILABLE' }))).toEqual({ kind: 'unavailable' })
   })
 
-  it('Deckel erreicht: mit Rückstellungsdatum, Limit nur wenn mitgeliefert (fehlt bei Fair-Use)', () => {
-    expect(voiceProblem(httpError(429, { code: 'VOICE_LIMIT_REACHED', limit: 5, resetsOn: '2026-11-01' })))
-      .toEqual({ kind: 'limit', limit: 5, resetsOn: '2026-11-01' })
-    expect(voiceProblem(httpError(429, { code: 'VOICE_LIMIT_REACHED', resetsOn: '2026-11-01' })))
-      .toEqual({ kind: 'limit', limit: null, resetsOn: '2026-11-01' })
+  it('Deckel erreicht: mit Modell und Rückstellungsdatum, Limit nur wenn mitgeliefert (fehlt bei Admins)', () => {
+    expect(voiceProblem(httpError(429, { code: 'VOICE_LIMIT_REACHED', plan: 'free', limit: 5, resetsOn: '2026-11-01' })))
+      .toEqual({ kind: 'limit', plan: 'free', limit: 5, resetsOn: '2026-11-01' })
+    expect(voiceProblem(httpError(429, { code: 'VOICE_LIMIT_REACHED', plan: 'admin', resetsOn: '2026-11-01' })))
+      .toEqual({ kind: 'limit', plan: 'admin', limit: null, resetsOn: '2026-11-01' })
   })
 
   it('Unbekanntes, 404 und Netzwerkfehler sind "hat nicht geklappt"', () => {

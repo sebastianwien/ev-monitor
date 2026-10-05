@@ -9,7 +9,7 @@ const fields = (over: Partial<VoiceDraftFields> = {}): VoiceDraftFields => ({
 })
 const draft = (over: Partial<VoiceDraft> = {}): VoiceDraft => ({
   transcript: 'x', fields: fields(), place: null, chargingProviderId: null,
-  usage: { limit: 30, remaining: 29, resetsOn: '2026-11-01' }, ...over,
+  usage: { plan: 'paid', limit: 30, remaining: 29, resetsOn: '2026-11-01' }, ...over,
 })
 
 describe('durationBucket', () => {

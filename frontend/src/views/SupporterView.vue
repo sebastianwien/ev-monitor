@@ -3,13 +3,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import PaymentMethodLogos from '../components/PaymentMethodLogos.vue'
-import { ChartPieIcon, BoltIcon, ArrowTrendingUpIcon, ArrowLeftIcon, MapIcon, HomeIcon } from '@heroicons/vue/24/outline'
+import { ChartPieIcon, BoltIcon, ArrowTrendingUpIcon, ArrowLeftIcon, MapIcon, HomeIcon, MicrophoneIcon } from '@heroicons/vue/24/outline'
 import { HeartIcon } from '@heroicons/vue/24/solid'
 import ChargingSavingsCard from '../components/dashboard/ChargingSavingsCard.vue'
 import { chargingSavingsDemo } from '../components/dashboard/chargingSavingsDemo'
 import { useCountryStore } from '../stores/country'
 import { useCarStore } from '../stores/car'
 import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
+import { useVoiceQuota } from '../components/log-wizard/useVoiceQuota'
 import { getPricing } from '../config/pricingConfig'
 import { subscriptionService } from '../api/subscriptionService'
 import DashboardInsights from '../components/dashboard/DashboardInsights.vue'
@@ -27,6 +28,10 @@ const pricing = computed(() => getPricing(countryStore.country))
 const carStore = useCarStore()
 const hasFreeSource = computed(() => carStore.cars.some(hasFreeDataSource))
 onMounted(() => { carStore.getCars().catch(() => { /* Kasten bleibt aus - kein Grund die Seite zu stoeren */ }) })
+
+// Sprachlog nur bewerben, wenn er für diesen Nutzer freigegeben ist (Testbetrieb: 404, dann kein Punkt)
+const voiceQuota = useVoiceQuota()
+onMounted(() => { void voiceQuota.load() })
 
 // Trial nur bewerben, wenn der Nutzer ihn noch bekommt (siehe AutoSyncPitch).
 const trialEligible = ref(false)
@@ -143,6 +148,12 @@ const dummyEntries = [
         <p class="text-center text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-5">{{ t('supporter.unlock_title') }}</p>
 
         <div class="space-y-8">
+          <!-- Sprachlog: der einzige Punkt, der jedem Fahrer hilft, nicht nur mit Telemetrie. Daher vor den Auswertungen. -->
+          <div v-if="voiceQuota.available.value" class="flex items-start gap-3" data-testid="supporter-voice">
+            <MicrophoneIcon class="w-5 h-5 text-amber-500 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <span class="text-base md:text-[17px] text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('supporter.u_voice') }}</span>
+          </div>
+
           <!-- Kostenersparnis: steht bewusst zuerst. Von allen freigeschalteten Ansichten
                ist sie die einzige, die in Euro antwortet - das greifbarste Argument fuer
                einen bezahlten Tarif. Echte Komponente mit Demo-Daten, damit sie nicht

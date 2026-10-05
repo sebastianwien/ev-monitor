@@ -189,7 +189,7 @@ describe('applyVoiceDraft', () => {
     spokenAddress: null, uncertain: [], ...over,
   })
   const draft = (over: Partial<VoiceDraft> = {}): VoiceDraft => ({
-    transcript: 'x', fields: fields(), place: null, chargingProviderId: null, usage: { limit: null, remaining: null, resetsOn: '2026-11-01' }, ...over,
+    transcript: 'x', fields: fields(), place: null, chargingProviderId: null, usage: { plan: 'admin', limit: null, remaining: null, resetsOn: '2026-11-01' }, ...over,
   })
 
   it('übernimmt die gesagten Zahlen in die Formularfelder', () => {

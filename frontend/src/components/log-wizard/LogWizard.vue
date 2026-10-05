@@ -10,7 +10,7 @@ import { useCarStore } from '../../stores/car'
 import { useCountryStore } from '../../stores/country'
 import { useCoinStore } from '../../stores/coins'
 import { useLogsRefreshStore } from '../../stores/logsRefresh'
-import { useAuthStore } from '../../stores/auth'
+import { useVoiceQuota } from './useVoiceQuota'
 import { isVoiceSupported } from '../../composables/useVoiceRecorder'
 import { useHaptic } from '../../composables/useHaptic'
 import { useNearbyStations, type StationMatch } from '../../composables/useNearbyStations'
@@ -363,10 +363,11 @@ const onOcr = (r: any) => {
 }
 
 // ── Sprachlog ─────────────────────────────────────────────────────────────────
-const authStore = useAuthStore()
 const voiceSupported = isVoiceSupported()
-/** Testbetrieb: Mikrofon nur für Admins (das Backend antwortet sonst 404) und nur mit gewähltem Auto. */
-const showVoice = computed(() => authStore.isAdmin && voiceSupported && !!selectedCarId.value)
+/** Freigabe steuert das Backend (voice-log.admin-only): ohne Kontingent-Stand (404) kein Mikrofon. Nur mit gewähltem Auto. */
+const voiceQuota = useVoiceQuota()
+if (voiceSupported) void voiceQuota.load()
+const showVoice = computed(() => voiceQuota.available.value && voiceSupported && !!selectedCarId.value)
 const voice = ref<{ transcript: string; flags: VoiceFlag[]; usage: VoiceUsage } | null>(null)
 const voiceUsed = ref(false)
 /** Über alle Aufnahmen: unsichere Felder, das Gesagte im Formular (für die Korrekturmessung), die Transkripte */

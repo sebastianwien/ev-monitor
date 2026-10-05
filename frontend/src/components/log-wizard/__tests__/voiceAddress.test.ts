@@ -53,7 +53,7 @@ describe('geocodeSpokenAddress near a position', () => {
 })
 
 const draft = (address: string | null, place: VoiceDraft['place']): VoiceDraft => ({ transcript: 'x', place, chargingProviderId: null,
-  usage: { limit: null, remaining: null, resetsOn: '2026-11-01' },
+  usage: { plan: 'admin', limit: null, remaining: null, resetsOn: '2026-11-01' },
   fields: { kwhCharged: null, kwhAtVehicle: null, socBefore: null, socAfter: null, odometerKm: null, costEur: null, pricePerKwh: null,
     loggedAt: null, chargeDurationMinutes: null, maxChargingPowerKw: null, chargingType: null, routeType: null, tireType: null,
     spokenAddress: address, uncertain: [] } })

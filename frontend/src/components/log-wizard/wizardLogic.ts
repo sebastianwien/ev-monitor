@@ -1,6 +1,7 @@
 import type { LogFormData } from '../log-form/logFormData'
 import type { StationMatch } from '../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../utils/datetime'
+import type { VoicePlan } from './voiceQuota'
 
 /** Ort, Zahlen (Energie, Tacho, SoC, Kosten), Prüfen - drei Schritte, drei Taps, drei Zahlen. */
 export type WizardStep = 1 | 2 | 3
@@ -191,7 +192,7 @@ export interface VoicePlace {
   cpoName: string | null
 }
 
-export interface VoiceUsage { limit: number | null; remaining: number | null; resetsOn: string }
+export interface VoiceUsage { plan: VoicePlan; limit: number | null; remaining: number | null; resetsOn: string }
 
 export interface VoiceDraft {
   transcript: string

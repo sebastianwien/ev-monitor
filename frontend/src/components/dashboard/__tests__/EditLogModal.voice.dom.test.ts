@@ -7,7 +7,10 @@ import { i18n } from '../../../i18n'
 vi.mock('../../../api/axios', () => ({
   default: { get: vi.fn(() => Promise.resolve({ data: [] })), patch: vi.fn(), delete: vi.fn() },
 }))
-vi.mock('../../../stores/auth', () => ({ useAuthStore: () => ({ isAdmin: true }) }))
+vi.mock('../../log-wizard/useVoiceQuota', async () => {
+  const { ref } = await import('vue')
+  return { useVoiceQuota: () => ({ available: ref(true), load: vi.fn() }) }
+})
 vi.mock('../../../composables/useIsMobile', () => ({ useIsMobile: () => ref(true) }))
 vi.mock('../../../composables/useVoiceRecorder', () => ({ isVoiceSupported: () => true }))
 vi.mock('../../../services/analytics', () => ({ analytics: { trackVoice: vi.fn() } }))
@@ -34,7 +37,7 @@ const fields = (over: Record<string, unknown>) => ({
   spokenAddress: null, uncertain: [], ...over,
 })
 const draft = (over: Record<string, unknown>) => ({ transcript: 'x', fields: fields(over), place: null, chargingProviderId: null,
-  usage: { limit: null, remaining: null, resetsOn: '2026-11-01' } })
+  usage: { plan: 'admin', limit: null, remaining: null, resetsOn: '2026-11-01' } })
 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })

@@ -1,7 +1,9 @@
+import type { VoicePlan } from './voiceQuota'
+
 /** Was beim Sprachlog schiefging, in der Sprache der Hinweise unter dem Mikrofon. */
 export type VoiceProblem =
   | { kind: 'not_understood' | 'too_large' | 'unsupported' | 'rate_limited' | 'failed' | 'unavailable' }
-  | { kind: 'limit'; limit: number | null; resetsOn: string }
+  | { kind: 'limit'; plan: VoicePlan; limit: number | null; resetsOn: string }
 
 const BY_CODE: Record<string, Exclude<VoiceProblem['kind'], 'limit'>> = {
   VOICE_NOT_UNDERSTOOD: 'not_understood',
@@ -16,6 +18,6 @@ const BY_CODE: Record<string, Exclude<VoiceProblem['kind'], 'limit'>> = {
 export function voiceProblem(err: unknown): VoiceProblem {
   const data = (err as any)?.response?.data
   const code = typeof data === 'object' && data ? data.code : undefined
-  if (code === 'VOICE_LIMIT_REACHED') return { kind: 'limit', limit: data.limit ?? null, resetsOn: data.resetsOn }
+  if (code === 'VOICE_LIMIT_REACHED') return { kind: 'limit', plan: data.plan ?? 'free', limit: data.limit ?? null, resetsOn: data.resetsOn }
   return { kind: (code && BY_CODE[code]) || 'failed' }
 }

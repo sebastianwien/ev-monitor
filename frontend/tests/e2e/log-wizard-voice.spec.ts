@@ -28,8 +28,9 @@ const DRAFT = {
     placeIndex: 0, placeKind: 'home', spokenOperator: null, spokenAddress: null, tariffIndex: null, uncertain: ['costEur'] },
   place: { kind: 'home', station: null, site: null, cpoName: null },
   chargingProviderId: null,
-  usage: { limit: null, remaining: null, resetsOn: '2026-11-01' },
+  usage: { plan: 'admin', limit: null, remaining: null, resetsOn: '2026-11-01' },
 }
+const ADMIN_QUOTA = { plan: 'admin', limit: null, remaining: null, exhausted: false, resetsOn: '2026-11-01' }
 
 type Page = import('@playwright/test').Page
 /** Plausible-Events der Seite: [name, props] */
@@ -45,7 +46,8 @@ async function record(page: Page, mic = page.getByTestId('voice-mic').first()) {
   await page.getByTestId('voice-done').click()
 }
 
-async function open(page: Page, role: 'ADMIN' | 'USER') {
+/** quota: Stand von GET /logs/voice-quota; null = 404 wie im Testbetrieb für Nicht-Admins */
+async function open(page: Page, role: 'ADMIN' | 'USER', quota: object | null = role === 'ADMIN' ? ADMIN_QUOTA : null) {
   // Echtes Plausible-Skript blockieren, sonst ersetzt es den Mitschreiber unten
   await page.route(url => url.hostname === 'plausible.io', route => route.abort())
   await page.addInitScript(() => {
@@ -61,6 +63,9 @@ async function open(page: Page, role: 'ADMIN' | 'USER') {
     route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
   await page.route(url => url.pathname === '/api/cars', route =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([CAR]) }))
+  await page.route(url => url.pathname === '/api/logs/voice-quota', route => quota
+    ? route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(quota) })
+    : route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }))
 }
 
 test('Admin spricht den Ladevorgang ein und speichert ihn von der Prüfseite', async ({ page }) => {
@@ -127,7 +132,7 @@ test('Server versteht nichts: Hinweis am Mikrofon, Wizard bleibt in Schritt 1', 
   await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'error', entry: 'create', kind: 'not_understood' }])
 })
 
-test('Nicht-Admins sehen kein Mikrofon', async ({ page }) => {
+test('Ohne Freigabe (404 beim Kontingent) kein Mikrofon', async ({ page }) => {
   await open(page, 'USER')
   await page.goto('/erfassen')
   await expect(page.getByTestId('place-here')).toBeVisible()
@@ -212,4 +217,39 @@ test('Gesprochene Adresse ohne Säule dort: privat an dieser Adresse', async ({ 
   expect(saved).toMatchObject({ isPublicCharging: false, latitude: 49.8988, longitude: 10.9028, kwhCharged: 18, costEur: 0 })
   const draftEvent = (await events(page)).find(([e, p]) => e === 'Voice' && p.step === 'draft')![1]
   expect(draftEvent.place).toBe('address')
+})
+
+test('Free mit 2 übrigen Aufnahmen: Hinweis mit Supporter-Link, Klick wird gemessen', async ({ page }) => {
+  await open(page, 'USER', { plan: 'free', limit: 5, remaining: 2, exhausted: false, resetsOn: '2026-11-01' })
+  await page.goto('/erfassen')
+
+  await expect(page.getByTestId('voice-quota-low')).toContainText('Noch 2 Aufnahmen im')
+  await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'quota', kind: 'low', plan: 'free' }])
+  await page.getByTestId('voice-upsell').click()
+  await expect(page).toHaveURL(/\/supporter/)
+  await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'upsell', entry: 'create', kind: 'low' }])
+})
+
+test('Supporter sieht den Zähler erst bei den letzten fünf, ohne Upgrade', async ({ page }) => {
+  await open(page, 'USER', { plan: 'paid', limit: 30, remaining: 5, exhausted: false, resetsOn: '2026-11-01' })
+  await page.goto('/erfassen')
+
+  await expect(page.getByTestId('voice-quota-low')).toContainText('Noch 5 von 30 Aufnahmen im')
+  await expect(page.getByTestId('voice-upsell')).toHaveCount(0)
+})
+
+test('Deckel beim Aufnehmen erreicht: Mikrofon aus, Supporter-Angebot, Tippen geht weiter', async ({ page }) => {
+  await open(page, 'USER', { plan: 'free', limit: 5, remaining: 1, exhausted: false, resetsOn: '2026-11-01' })
+  await page.addInitScript(() => localStorage.setItem('voicelog_consent_seen_v2', 'true'))
+  await page.route(url => url.pathname === '/api/logs/voice-draft', route => route.fulfill({ status: 429, contentType: 'application/json',
+    body: JSON.stringify({ code: 'VOICE_LIMIT_REACHED', plan: 'free', limit: 5, resetsOn: '2026-11-01' }) }))
+  await page.goto('/erfassen')
+
+  await record(page)
+  await expect(page.getByTestId('voice-quota-out')).toContainText('Deine 5 Aufnahmen für')
+  await expect(page.getByTestId('voice-quota-out')).toContainText('Als Supporter hast du 30 im Monat')
+  await expect(page.getByTestId('voice-mic')).toBeDisabled()
+  await expect(page.getByTestId('voice-problem')).toHaveCount(0)
+  await expect(page.getByTestId('place-here')).toBeVisible()
+  await expect.poll(() => events(page)).toContainEqual(['Voice', { step: 'quota', kind: 'out', plan: 'free' }])
 })

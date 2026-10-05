@@ -151,7 +151,7 @@ import StepEnergy from '../log-wizard/StepEnergy.vue'
 import StepVehicle from '../log-wizard/StepVehicle.vue'
 import StepCost from '../log-wizard/StepCost.vue'
 import { logSaveErrorMessage } from '../../utils/logSaveError'
-import { useAuthStore } from '../../stores/auth'
+import { useVoiceQuota } from '../log-wizard/useVoiceQuota'
 import { isVoiceSupported } from '../../composables/useVoiceRecorder'
 import { useIsMobile } from '../../composables/useIsMobile'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -321,10 +321,11 @@ const onPlacePicked = async (p: PickedPlace) => {
 }
 
 // ── Sprache ───────────────────────────────────────────────────────────────────
-const authStore = useAuthStore()
 const isMobile = useIsMobile()
-/** Testbetrieb wie im Wizard: nur Admins. Beim Bearbeiten nur auf dem Handy, am Desktop ist Tippen schneller. */
-const showVoice = computed(() => authStore.isAdmin && isMobile.value && isVoiceSupported())
+/** Freigabe wie im Wizard über den Kontingent-Stand. Beim Bearbeiten nur auf dem Handy, am Desktop ist Tippen schneller. */
+const voiceQuota = useVoiceQuota()
+if (isMobile.value && isVoiceSupported()) void voiceQuota.load()
+const showVoice = computed(() => voiceQuota.available.value && isMobile.value && isVoiceSupported())
 /** Alle Änderungen seit der ersten Aufnahme; null = noch keine Aufnahme */
 const voiceChanges = ref<FieldChange[] | null>(null)
 /** Die letzte Aufnahme hat nichts geändert */
