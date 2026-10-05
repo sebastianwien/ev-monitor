@@ -158,8 +158,9 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
 import { applyVoiceDraft, voiceCost, type VoiceDraft } from '../log-wizard/wizardLogic'
 import { spokenSnapshot, correctedFields, type SpokenSnapshot } from '../log-wizard/voiceAnalytics'
-import { geocodeSpokenAddress, addressPlace } from '../log-wizard/voiceAddress'
-import { formChanges, type FieldChange, type EditDiffKey } from '../log-wizard/voiceEdit'
+import { resolveSpokenAddress, placeFromAddress } from '../log-wizard/voiceAddress'
+import geohashLib from 'ngeohash'
+import { formChanges, undoVoiceChanges, type FieldChange, type EditDiffKey } from '../log-wizard/voiceEdit'
 const VoiceCapture = defineAsyncComponent(() => import('../log-wizard/VoiceCapture.vue'))
 
 export interface EvLogResponse {
@@ -329,24 +330,31 @@ const voiceChanges = ref<FieldChange[] | null>(null)
 /** Die letzte Aufnahme hat nichts geändert */
 const voiceNothing = ref(false)
 let beforeVoice: { form: LogFormData; pickedName: string | null; pickedAddress: string | null } | null = null
+/** Stand direkt nach der letzten Aufnahme: was danach abweicht, hat der Nutzer selbst geändert */
+let afterVoice: LogFormData | null = null
 const spoken = ref<SpokenSnapshot>({})
 
 /** Nur Gesagtes überschreibt; Adresse wie die Adresssuche im Ort-Editor. Vorher-Stand bleibt fürs Rückgängig. */
 async function onVoiceDraft(draft: VoiceDraft) {
   const before = cloneForm()
   if (!beforeVoice) beforeVoice = { form: before, pickedName: pickedName.value, pickedAddress: pickedAddress.value }
-  const address = draft.fields.spokenAddress
-  const viaAddress = !!address && (!draft.place || draft.place.kind === 'other')
+  const viaAddress = placeFromAddress(draft)
   const choice = applyVoiceDraft(formData.value, viaAddress ? { ...draft, place: null } : draft)
   if (choice && (choice.kind === 'station' || choice.kind === 'site')) pickedName.value = null
   if (viaAddress) {
-    const hit = await geocodeSpokenAddress(address!)
-    if (hit) {
-      await onPlacePicked(hit)
-      choosePlace(addressPlace(nearby.stations.value, draft.place?.cpoName ?? null).choice)
+    // Bekannte Zelle des Logs als Umgebung für die Suche (es gibt keine Live-Position)
+    const cell = props.log.geohash ? geohashLib.decode(props.log.geohash) : null
+    const r = await resolveSpokenAddress(draft, {
+      near: cell ? { lat: cell.latitude, lon: cell.longitude } : null,
+      loadStations: async (lat, lon) => { await onPlacePicked({ latitude: lat, longitude: lon, name: '' }); return nearby.stations.value },
+    })
+    if (r) {
+      pickedName.value = r.hit.name
+      pickedAddress.value = r.hit.name
+      choosePlace(r.choice)
       if (draft.fields.chargingType) formData.value.chargingType = draft.fields.chargingType
     } else {
-      errorMsg.value = t('voicelog.address_not_found', { q: address })
+      errorMsg.value = t('voicelog.address_not_found', { q: draft.fields.spokenAddress })
     }
   }
   const said = voiceCost(draft.fields)
@@ -354,19 +362,22 @@ async function onVoiceDraft(draft: VoiceDraft) {
   else if (said) { cost.costMode.value = 'total'; cost.costLocalPerKwh.value = null; cost.costLocalTotal.value = Math.round(cost.eurToLocal(said.eur) * 100) / 100 }
   await nextTick() // Kosten-Abgleich schreibt costEur im nächsten Tick
   spoken.value = { ...spoken.value, ...spokenSnapshot(formData.value, draft.fields) }
+  afterVoice = cloneForm()
   voiceNothing.value = formChanges(before, formData.value).length === 0
   voiceChanges.value = formChanges(beforeVoice.form, formData.value)
 }
 /** Reiner Datenstand ohne Vue-Proxy (structuredClone scheitert an reaktiven Objekten) */
 const cloneForm = (): LogFormData => JSON.parse(JSON.stringify(formData.value))
 
+/** Nimmt nur zurück, was die Sprache gesetzt hat; spätere Handänderungen bleiben. */
 function undoVoice() {
-  if (!beforeVoice) return
-  formData.value = beforeVoice.form
-  pickedName.value = beforeVoice.pickedName
-  pickedAddress.value = beforeVoice.pickedAddress
+  if (!beforeVoice || !afterVoice) return
+  const placeKept = JSON.stringify([formData.value.isPublicCharging, formData.value.cpoName, formData.value.latitude]) !== JSON.stringify([afterVoice.isPublicCharging, afterVoice.cpoName, afterVoice.latitude])
+  formData.value = undoVoiceChanges(beforeVoice.form, afterVoice, cloneForm())
+  if (!placeKept) { pickedName.value = beforeVoice.pickedName; pickedAddress.value = beforeVoice.pickedAddress }
   cost.initFromEur()
   beforeVoice = null
+  afterVoice = null
   voiceChanges.value = null
   voiceNothing.value = false
   spoken.value = {}

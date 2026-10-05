@@ -23,3 +23,21 @@ export function formChanges(before: LogFormData, after: LogFormData): FieldChang
   for (const key of EDIT_DIFF_KEYS) if (!same(before[key], after[key])) out.push({ key, from: before[key], to: after[key] })
   return out
 }
+
+/** Was zusammen den Ort ausmacht - wird nur als Ganzes zurückgenommen */
+const PLACE_KEYS = ['isPublicCharging', 'cpoName', 'chargingSite', 'latitude', 'longitude'] as const satisfies readonly (keyof LogFormData)[]
+const UNDO_KEYS = [...EDIT_DIFF_KEYS, 'chargingProviderId'] as const
+
+/**
+ * Rückgängig nur für das, was die Sprache gesetzt hat: ein Feld (bzw. der Ort als Ganzes) geht
+ * auf den Stand vor der Aufnahme zurück, solange der Nutzer es danach nicht selbst geändert hat.
+ */
+export function undoVoiceChanges(before: LogFormData, afterVoice: LogFormData, current: LogFormData): LogFormData {
+  const out: LogFormData = { ...current }
+  for (const key of UNDO_KEYS) {
+    if (same(current[key], afterVoice[key])) (out as unknown as Record<string, unknown>)[key] = before[key]
+  }
+  const group = (f: LogFormData) => JSON.stringify(PLACE_KEYS.map(k => f[k] ?? null))
+  if (group(current) === group(afterVoice)) for (const key of PLACE_KEYS) (out as unknown as Record<string, unknown>)[key] = before[key]
+  return out
+}
