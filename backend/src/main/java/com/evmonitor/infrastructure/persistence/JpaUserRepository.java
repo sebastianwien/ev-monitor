@@ -186,6 +186,13 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("UPDATE UserEntity u SET u.leaderboardVisible = :visible, u.updatedAt = current_timestamp WHERE u.id = :userId")
     void setLeaderboardVisible(@Param("userId") UUID userId, @Param("visible") boolean visible);
 
+    @Query("SELECT u.tickerShareCharges FROM UserEntity u WHERE u.id = :userId")
+    boolean isTickerShareCharges(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.tickerShareCharges = :enabled, u.updatedAt = current_timestamp WHERE u.id = :userId")
+    void setTickerShareCharges(@Param("userId") UUID userId, @Param("enabled") boolean enabled);
+
     @Modifying
     @Query("UPDATE UserEntity u SET u.lastSeen = :now WHERE u.id IN :ids")
     void batchUpdateLastSeen(@Param("ids") List<UUID> ids, @Param("now") LocalDateTime now);

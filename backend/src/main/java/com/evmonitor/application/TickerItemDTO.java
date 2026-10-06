@@ -17,7 +17,7 @@ import java.util.Map;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TickerItemDTO(
-        String type,                 // LEADER, STAT, NEWS
+        String type,                 // LEADER, STAT, NEWS, PERSONAL
         String messageKey,           // i18n key for LEADER/STAT (e.g. "co2_saved"); null for NEWS
         Map<String, String> params,  // interpolation params; null for NEWS
         String variant,              // icon/colour hint: leader | eco | money | energy | news
@@ -33,6 +33,11 @@ public record TickerItemDTO(
     /** A community statistic. {@code variant} drives icon/colour on the frontend. */
     public static TickerItemDTO stat(String messageKey, String variant, Map<String, String> params) {
         return new TickerItemDTO("STAT", messageKey, params, variant, null, null);
+    }
+
+    /** An entry built from the requesting user's own data. Never cached across users. */
+    public static TickerItemDTO personal(String messageKey, Map<String, String> params) {
+        return new TickerItemDTO("PERSONAL", messageKey, params, "personal", null, null);
     }
 
     /** An external news headline (passed through, no translation). */

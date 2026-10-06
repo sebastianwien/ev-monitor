@@ -109,6 +109,16 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    /** Opt-out für den "Heute"-Eintrag im Ticker. Wirkt nach spätestens 15 Minuten (Cache tickerToday). */
+    @PutMapping("/me/ticker-share-charges")
+    public ResponseEntity<Void> setTickerShareCharges(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam boolean enabled
+    ) {
+        userService.setTickerShareCharges(principal.getUser().getId(), enabled);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(
             @AuthenticationPrincipal UserPrincipal principal,

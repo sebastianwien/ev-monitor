@@ -114,6 +114,11 @@ public interface UserRepository {
 
     void setLeaderboardVisible(UUID userId, boolean visible);
 
+    /** Opt-out: dürfen öffentliche Ladungen anonym im "Heute"-Eintrag des Tickers erscheinen. */
+    boolean isTickerShareCharges(UUID userId);
+
+    void setTickerShareCharges(UUID userId, boolean enabled);
+
     void updateCountry(UUID userId, String country);
 
     List<User> findAllByIds(List<UUID> ids);

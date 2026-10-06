@@ -323,6 +323,34 @@ public class EvLogStatisticsService {
     }
 
     /**
+     * Vergleich mit Fahrern desselben Modells für ein eigenes Auto, ohne die übrige Statistik zu
+     * berechnen (für den persönlichen Ticker). Gleiche Regeln wie in {@link #getStatistics}.
+     */
+    @Transactional(readOnly = true)
+    public Optional<EvLogStatisticsResponse.PeerBenchmark> getPeerBenchmark(UUID carId, UUID userId,
+            java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
+        if (!car.isOwnedBy(userId)) {
+            throw ForbiddenException.notOwner("Car", carId);
+        }
+        if (car.getVehicleSpecificationId() == null) return Optional.empty();
+
+        boolean isSeedUser = userRepository.findById(userId)
+                .orElseThrow(() -> NotFoundException.forEntity("User", userId))
+                .isSeedData();
+        List<EvLog> allLogsForCar = evLogRepository.findAllByCarId(carId).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .toList();
+        List<EvLog> periodLogs = allLogsForCar.stream()
+                .filter(log -> isSeedUser || log.isIncludeInStatistics())
+                .filter(log -> log.isLoggedWithin(startDate, endDate))
+                .toList();
+        if (periodLogs.isEmpty()) return Optional.empty();
+        return Optional.ofNullable(buildPeerBenchmark(car, allLogsForCar, periodLogs, startDate, endDate));
+    }
+
+    /**
      * @param allLogsForCurrentCar alle Logs des Autos, unabhängig vom Zeitraum - nötig als Kontext
      *                             für SoC-Differenzen und Distanzen
      * @param periodLogs           die statistik-relevanten Logs im gewählten Zeitraum - Basis für

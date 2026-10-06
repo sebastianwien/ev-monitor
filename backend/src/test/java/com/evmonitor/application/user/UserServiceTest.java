@@ -81,6 +81,7 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(evLogRepository.findAllByUserId(userId)).thenReturn(List.of());
         when(userRepository.isLeaderboardVisible(userId)).thenReturn(true);
+        when(userRepository.isTickerShareCharges(userId)).thenReturn(false);
 
         UserStatsResponse stats = userService.getUserStats(userId);
 
@@ -88,6 +89,7 @@ class UserServiceTest {
         assertEquals(testUser.getCreatedAt(), stats.registeredSince());
         assertEquals(0, stats.totalLogs());
         assertTrue(stats.leaderboardVisible());
+        assertFalse(stats.tickerShareCharges());
         verify(userRepository).findById(userId);
         verify(evLogRepository).findAllByUserId(userId);
         verify(userRepository).isLeaderboardVisible(userId);

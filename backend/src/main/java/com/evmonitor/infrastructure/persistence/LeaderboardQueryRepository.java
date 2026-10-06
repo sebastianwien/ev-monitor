@@ -2,6 +2,8 @@ package com.evmonitor.infrastructure.persistence;
 
 import com.evmonitor.application.ChargeCountStats;
 import com.evmonitor.application.LeaderboardRankRow;
+import com.evmonitor.application.MonthChargeSummary;
+import com.evmonitor.application.TodayChargeRow;
 import com.evmonitor.application.TopProviderResult;
 import com.evmonitor.domain.CarBrand;
 import jakarta.persistence.EntityManager;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -371,7 +374,101 @@ public class LeaderboardQueryRepository {
         return new TopProviderResult((String) row[0], ((Number) row[1]).longValue());
     }
 
+    // ---- Personal ticker ----
+
+    /**
+     * Monatssumme des Autos, mit dem der Nutzer im Zeitraum am häufigsten geladen hat.
+     * Nur eigene, nicht gelöschte Autos; Heimladung = belegt nicht öffentlich (wie home_quota).
+     */
+    public Optional<MonthChargeSummary> getTopCarMonthSummary(UUID userId, LocalDateTime start, LocalDateTime endExclusive) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = em.createNativeQuery("""
+                SELECT e.car_id,
+                       COUNT(e.id) AS cnt,
+                       SUM(CASE WHEN e.is_public_charging = false THEN 1 ELSE 0 END),
+                       COALESCE(SUM(COALESCE(e.kwh_charged, e.kwh_at_vehicle)), 0) AS kwh
+                FROM ev_log e
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
+                WHERE c.user_id = :userId
+                  AND e.deleted_at IS NULL AND e.include_in_statistics = true
+                  AND e.logged_at >= :start
+                  AND e.logged_at < :end
+                GROUP BY e.car_id
+                ORDER BY cnt DESC, kwh DESC
+                LIMIT 1
+                """)
+                .setParameter("userId", userId)
+                .setParameter("start", start)
+                .setParameter("end", endExclusive)
+                .getResultList();
+        if (rows.isEmpty()) return Optional.empty();
+        Object[] r = rows.get(0);
+        return Optional.of(new MonthChargeSummary(toUuid(r[0]), ((Number) r[1]).longValue(),
+                ((Number) r[2]).longValue(), new BigDecimal(r[3].toString())));
+    }
+
+    /**
+     * Öffentliche Ladungen im Fenster für den "Heute"-Eintrag, neueste zuerst (höchstens 20).
+     * Ausgeschlossen: Opt-out-Nutzer, Seed-Nutzer, gelöschte Autos und Logs, Heim- und
+     * unbekannter Ort, Ladungen ohne Preis und Troll-Werte (1-150 kWh, 0,10-1,50 EUR/kWh).
+     * Der Anbietername kommt nur mit, wenn ihn mindestens drei verschiedene Nutzer verwenden -
+     * so landet kein Freitext eines einzelnen Nutzers im Ticker.
+     */
+    public List<TodayChargeRow> getTodayPublicCharges(LocalDateTime start, LocalDateTime endExclusive) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = em.createNativeQuery("""
+                SELECT c.user_id,
+                       COALESCE(e.kwh_charged, e.kwh_at_vehicle) AS kwh,
+                       e.cost_eur,
+                       p.provider
+                FROM ev_log e
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
+                JOIN app_user u ON u.id = c.user_id
+                LEFT JOIN user_charging_providers ucp ON ucp.id = e.charging_provider_id
+                LEFT JOIN (
+                    SELECT COALESCE(ucp2.provider_name, e2.cpo_name) AS provider
+                    FROM ev_log e2
+                    JOIN car c2 ON c2.id = e2.car_id AND c2.deleted_at IS NULL
+                    JOIN app_user u2 ON u2.id = c2.user_id AND u2.is_seed_data = false
+                    LEFT JOIN user_charging_providers ucp2 ON ucp2.id = e2.charging_provider_id
+                    WHERE e2.deleted_at IS NULL AND e2.is_public_charging = true
+                      AND COALESCE(ucp2.provider_name, e2.cpo_name) IS NOT NULL
+                    GROUP BY COALESCE(ucp2.provider_name, e2.cpo_name)
+                    HAVING COUNT(DISTINCT c2.user_id) >= 3
+                ) p ON p.provider = COALESCE(ucp.provider_name, e.cpo_name)
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
+                  AND e.is_public_charging = true
+                  AND u.is_seed_data = false
+                  AND u.ticker_share_charges = true
+                  AND e.cost_eur IS NOT NULL
+                  AND COALESCE(e.kwh_charged, e.kwh_at_vehicle) BETWEEN 1 AND 150
+                  AND e.cost_eur BETWEEN 0.10 * COALESCE(e.kwh_charged, e.kwh_at_vehicle)
+                                     AND 1.50 * COALESCE(e.kwh_charged, e.kwh_at_vehicle)
+                  AND e.logged_at >= :start
+                  AND e.logged_at < :end
+                ORDER BY e.logged_at DESC, e.id
+                LIMIT 20
+                """)
+                .setParameter("start", start)
+                .setParameter("end", endExclusive)
+                .getResultList();
+        return rows.stream()
+                .map(r -> new TodayChargeRow(toUuid(r[0]), new BigDecimal(r[1].toString()),
+                        new BigDecimal(r[2].toString()), (String) r[3]))
+                .toList();
+    }
+
     // ---- Helpers ----
+
+    /** Postgres liefert uuid als UUID, H2 (Tests) als 16 Byte. */
+    private static UUID toUuid(Object value) {
+        if (value instanceof UUID uuid) return uuid;
+        if (value instanceof byte[] bytes) {
+            java.nio.ByteBuffer buffer = java.nio.ByteBuffer.wrap(bytes);
+            return new UUID(buffer.getLong(), buffer.getLong());
+        }
+        return UUID.fromString(value.toString());
+    }
 
     /** Maps car-based query rows: [carId, userId, username, carModel, value] */
     private List<LeaderboardRankRow> mapCarRows(List<Object[]> rows) {

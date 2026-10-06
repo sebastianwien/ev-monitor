@@ -167,6 +167,17 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public boolean isTickerShareCharges(UUID userId) {
+        return jpaUserRepository.isTickerShareCharges(userId);
+    }
+
+    @Override
+    @Transactional
+    public void setTickerShareCharges(UUID userId, boolean enabled) {
+        jpaUserRepository.setTickerShareCharges(userId, enabled);
+    }
+
+    @Override
     @Transactional
     public void updateCountry(UUID userId, String country) {
         jpaUserRepository.updateCountry(userId, country);

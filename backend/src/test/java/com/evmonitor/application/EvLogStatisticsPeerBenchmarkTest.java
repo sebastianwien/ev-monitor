@@ -325,4 +325,34 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
         assertTrue(pb.peerConsumptionLifetime(), "too few peer trips in period must fall back to lifetime");
         assertNotNull(pb.peerAvgConsumptionKwhPer100km());
     }
+
+    // --- getPeerBenchmark (Ticker) ---
+
+    @Test
+    void getPeerBenchmark_matchesStatisticsForSamePeriod() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "peer-test-ticker-same");
+        User owner = createAndSaveUser("owner-ticker@example.com");
+        Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLog(ownerCar.getId(), 22.0, 200);
+        User peer = createAndSaveUser("peer-ticker@example.com");
+        addLog(createCar(peer.getId(), CarBrand.CarModel.MODEL_3, spec.getId()).getId(), 18.0, 200);
+
+        java.time.LocalDate start = java.time.LocalDate.now().minusDays(30);
+        java.time.LocalDate end = java.time.LocalDate.now();
+        EvLogStatisticsResponse stats = evLogStatisticsService.getStatistics(ownerCar.getId(), owner.getId(), start, end, null);
+
+        assertEquals(stats.peerBenchmark(),
+                evLogStatisticsService.getPeerBenchmark(ownerCar.getId(), owner.getId(), start, end).orElse(null));
+    }
+
+    @Test
+    void getPeerBenchmark_foreignCar_isForbidden() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "peer-test-ticker-owner");
+        User owner = createAndSaveUser("owner-ticker-own@example.com");
+        Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        User stranger = createAndSaveUser("stranger-ticker@example.com");
+
+        assertThrows(com.evmonitor.domain.exception.ForbiddenException.class,
+                () -> evLogStatisticsService.getPeerBenchmark(ownerCar.getId(), stranger.getId(), null, null));
+    }
 }

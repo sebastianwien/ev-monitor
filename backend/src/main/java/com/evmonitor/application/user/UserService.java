@@ -65,7 +65,8 @@ public class UserService {
                 totalKwh,
                 totalCostEur,
                 user.getReferralCode(),
-                userRepository.isLeaderboardVisible(userId)
+                userRepository.isLeaderboardVisible(userId),
+                userRepository.isTickerShareCharges(userId)
         );
     }
 
@@ -175,6 +176,11 @@ public class UserService {
     @Transactional
     public void setLeaderboardVisible(UUID userId, boolean visible) {
         userRepository.setLeaderboardVisible(userId, visible);
+    }
+
+    @Transactional
+    public void setTickerShareCharges(UUID userId, boolean enabled) {
+        userRepository.setTickerShareCharges(userId, enabled);
     }
 
     @Transactional
