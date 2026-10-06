@@ -1081,6 +1081,8 @@ leaderboard:
 
 ticker:
   region: "Community-Ticker"
+  show: "Ticker einblenden"
+  hide: "Ticker ausblenden"
   pause: "Ticker pausieren"
   play: "Ticker fortsetzen"
   next: "Nächste Meldung"

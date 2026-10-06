@@ -1037,6 +1037,8 @@ leaderboard:
 
 ticker:
   region: "Fellesskapsticker"
+  show: "Vis ticker"
+  hide: "Skjul ticker"
   pause: "Sett tickeren på pause"
   play: "Fortsett tickeren"
   next: "Neste melding"

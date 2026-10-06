@@ -2,7 +2,8 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { TrophyIcon, BoltIcon, SparklesIcon, BanknotesIcon, NewspaperIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
-import { useTickerState } from '../../composables/useTickerState'
+import { useTickerState, setTickerHasItems } from '../../composables/useTickerState'
+import { analytics } from '../../services/analytics'
 import { useTickerItems } from '../../composables/useTickerItems'
 import { useTickerRotation, dwellMs } from '../../composables/useTickerRotation'
 
@@ -13,6 +14,23 @@ import { useTickerRotation, dwellMs } from '../../composables/useTickerRotation'
  */
 const { t } = useI18n()
 const { tickerHasItems, tickerCollapsed: collapsed, toggle } = useTickerState()
+
+/* Plausible: misst, ob der Ticker überhaupt beachtet wird. Nur Typ, kein Inhalt. */
+function onToggle() {
+  toggle()
+  analytics.track('ticker_toggle', { state: collapsed.value ? 'collapsed' : 'expanded' })
+}
+function onTogglePause() {
+  userPaused.value = !userPaused.value
+  if (userPaused.value) analytics.track('ticker_pause')
+}
+function onTextClick() {
+  if (current.value) analytics.track('ticker_tap', { type: current.value.type })
+  next()
+}
+function onNewsClick() {
+  analytics.track('ticker_tap', { type: 'NEWS' })
+}
 const { items, fetchTicker } = useTickerItems()
 
 const tabVisible = ref(typeof document !== 'undefined' ? !document.hidden : true)
@@ -79,7 +97,7 @@ const TYPE_STYLE = {
 
 onMounted(async () => {
   await fetchTicker()
-  tickerHasItems.value = items.value.length > 0
+  setTickerHasItems(items.value.length > 0)
   document.addEventListener('visibilitychange', onVisibilityChange)
   measure()
 })
@@ -93,7 +111,7 @@ onUnmounted(() => {
   <!-- top = Nav-Höhe (--top-nav-h: 0 auf Mobile, 64px auf Desktop) + Notch: der Ticker dockt
        direkt unter der Top-Nav an; auf Mobile (keine Nav) sitzt er unter der Statusbar. -->
   <section
-    v-if="items.length > 0"
+    v-if="tickerHasItems"
     class="fixed left-0 right-0 z-39"
     style="top: calc(var(--top-nav-h) + env(safe-area-inset-top))"
     :aria-label="t('ticker.region')"
@@ -117,7 +135,7 @@ onUnmounted(() => {
           class="ticker-viewport relative flex-1 min-w-0 h-full overflow-hidden ml-2 cursor-pointer select-none"
           :class="{ 'ticker-fade-end': overflowPx > 0 && !scrolling, 'ticker-fade-start': scrolling }"
           aria-live="off"
-          @click="next"
+          @click="onTextClick"
           @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
           <Transition :name="reducedMotion ? 'ticker-fade' : `ticker-${direction}`">
             <div v-if="current" :key="index" class="absolute inset-0 flex items-center">
@@ -126,7 +144,7 @@ onUnmounted(() => {
                 :href="current.url" target="_blank" rel="noopener noreferrer"
                 :class="['ticker-text flex items-center gap-1 text-xs font-medium whitespace-nowrap underline decoration-lime-400/40 underline-offset-2 hover:decoration-lime-300', TYPE_STYLE.NEWS.text]"
                 :style="scrolling ? { transform: `translateX(-${overflowPx}px)`, transitionDuration: `${overflowPx / OVERFLOW_PX_PER_S}s` } : undefined"
-                @click.stop>
+                @click.stop="onNewsClick">
                 {{ current.text }}
                 <ArrowTopRightOnSquareIcon class="h-3 w-3 flex-shrink-0 opacity-60" />
               </a>
@@ -148,10 +166,10 @@ onUnmounted(() => {
 
         <!-- Steuerung: Pause (WCAG 2.2.2) und Weiter; volle Bandhöhe als Trefferfläche -->
         <button type="button"
-          class="ml-1 flex h-8 w-9 flex-shrink-0 items-center justify-center text-indigo-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4 rounded"
+          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center text-indigo-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4 rounded"
           :aria-label="userPaused ? t('ticker.play') : t('ticker.pause')"
           :aria-pressed="userPaused"
-          @click="userPaused = !userPaused">
+          @click="onTogglePause">
           <PlayIcon v-if="userPaused" class="h-3.5 w-3.5" />
           <PauseIcon v-else class="h-3.5 w-3.5" />
         </button>
@@ -166,10 +184,11 @@ onUnmounted(() => {
 
     <!-- Lasche: hängt mittig unter dem Band -->
     <button type="button"
-      @click="toggle"
-      class="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-indigo-800 border border-t-0 border-indigo-700 rounded-b-lg px-7 py-0.5 flex items-center gap-1 text-indigo-300 hover:text-white transition-colors"
+      @click="onToggle"
+      class="before:absolute before:-inset-x-2 before:-top-1 before:-bottom-3 absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-indigo-800 border border-t-0 border-indigo-700 rounded-b-lg px-7 py-0.5 flex items-center gap-1 text-indigo-300 hover:text-white transition-colors"
       :aria-expanded="!collapsed"
-      :title="collapsed ? 'Ticker einblenden' : 'Ticker ausblenden'">
+      :aria-label="collapsed ? t('ticker.show') : t('ticker.hide')"
+      :title="collapsed ? t('ticker.show') : t('ticker.hide')">
       <ChevronUpIcon v-if="!collapsed" class="h-3 w-3" />
       <ChevronDownIcon v-else class="h-3 w-3" />
     </button>

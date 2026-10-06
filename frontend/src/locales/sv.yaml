@@ -1037,6 +1037,8 @@ leaderboard:
 
 ticker:
   region: "Community-ticker"
+  show: "Visa ticker"
+  hide: "Dölj ticker"
   pause: "Pausa tickern"
   play: "Fortsätt tickern"
   next: "Nästa meddelande"

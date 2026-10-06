@@ -1078,6 +1078,8 @@ leaderboard:
 
 ticker:
   region: "Community ticker"
+  show: "Show ticker"
+  hide: "Hide ticker"
   pause: "Pause ticker"
   play: "Resume ticker"
   next: "Next item"
