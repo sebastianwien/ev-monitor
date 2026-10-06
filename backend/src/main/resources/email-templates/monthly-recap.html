@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="de">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin: 0; padding: 16px; background-color: #eef0f4; font-family: Arial, sans-serif; color: #111827;">
+<body style="margin: 0; padding: 8px; background-color: #eef0f4; font-family: Arial, sans-serif; color: #111827;">
   <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 10px; overflow: hidden;">
 
-    <div style="background-color: #4f46e5; padding: 28px 24px 24px; color: #ffffff;">
+    <div style="background-color: #4f46e5; padding: 24px 16px 20px; color: #ffffff;">
       <p style="margin: 0; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: #e0e7ff;">ev-monitor · Monatsrückblick</p>
       <p style="margin: 6px 0 0; font-size: 30px; font-weight: bold; line-height: 1.15; color: #ffffff;">Dein {{month}} mit dem {{carName}}</p>
       <!--if:distance--><p style="margin: 8px 0 0; font-size: 15px; color: #e0e7ff;">{{km}}<!--if:more-->, {{kmDiff}} mehr als im {{prevMonth}}<!--end:more--><!--if:less-->, {{kmDiff}} weniger als im {{prevMonth}}<!--end:less-->.</p><!--end:distance-->
       <!--if:noDistance--><p style="margin: 8px 0 0; font-size: 15px; color: #e0e7ff;">{{charges}} Ladungen, {{kwh}} kWh.</p><!--end:noDistance-->
     </div>
 
-    <div style="padding: 24px;">
+    <div style="padding: 20px 16px;">
       <p style="margin: 0 0 18px; font-size: 15px; line-height: 1.6;">Hallo {{username}},</p>
 
       <!--if:savings-->
@@ -25,33 +25,33 @@
       </table>
       <!--end:savings-->
 
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 26px 0 0; border-collapse: separate; border-spacing: 6px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 26px 0 0; border-collapse: separate; border-spacing: 4px 0;">
         <tr>
-          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 12px 10px; vertical-align: top;">
-            <p style="margin: 0; font-size: 22px; font-weight: bold; white-space: nowrap;">{{kwh}}<span style="font-size: 13px; font-weight: normal;"> kWh</span></p>
+          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 10px 8px; vertical-align: top;">
+            <p style="margin: 0; font-size: 20px; font-weight: bold;">{{kwh}}<span style="font-size: 13px; font-weight: normal;"> kWh</span></p>
             <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #4b5563;">geladen,<br>{{charges}} Ladungen</p>
           </td>
           <!--if:consumption-->
-          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 12px 10px; vertical-align: top;">
-            <p style="margin: 0; font-size: 22px; font-weight: bold; white-space: nowrap;">{{consumption}}<span style="font-size: 13px; font-weight: normal;"> kWh</span></p>
+          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 10px 8px; vertical-align: top;">
+            <p style="margin: 0; font-size: 20px; font-weight: bold;">{{consumption}}<span style="font-size: 13px; font-weight: normal;"> kWh</span></p>
             <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #4b5563;">Verbrauch<br>pro 100 km</p>
           </td>
           <!--end:consumption-->
           <!--if:costPer100-->
-          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 12px 10px; vertical-align: top;">
-            <p style="margin: 0; font-size: 22px; font-weight: bold; white-space: nowrap;">{{costPer100}}</p>
+          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 10px 8px; vertical-align: top;">
+            <p style="margin: 0; font-size: 20px; font-weight: bold;">{{costPer100}}</p>
             <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #4b5563;">Strom<br>pro 100 km</p>
           </td>
           <!--end:costPer100-->
           <!--if:costTotal-->
-          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 12px 10px; vertical-align: top;">
-            <p style="margin: 0; font-size: 22px; font-weight: bold; white-space: nowrap;">{{costTotal}}</p>
+          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 10px 8px; vertical-align: top;">
+            <p style="margin: 0; font-size: 20px; font-weight: bold;">{{costTotal}}</p>
             <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #4b5563;">Strom<br>im {{month}}</p>
           </td>
           <!--end:costTotal-->
         </tr>
       </table>
-      <!--if:details--><p style="margin: 10px 6px 0; font-size: 13px; line-height: 1.5; color: #4b5563;"><!--if:dcAll-->Alle {{charges}} Ladungen am Schnelllader.<!--end:dcAll--><!--if:dcSome-->{{dc}} von {{charges}} Ladungen am Schnelllader.<!--end:dcSome--><!--if:home--> {{homeShare}} daheim geladen.<!--end:home--></p><!--end:details-->
+      <!--if:details--><p style="margin: 10px 4px 0; font-size: 13px; line-height: 1.5; color: #4b5563;"><!--if:dcAll-->Alle {{charges}} Ladungen am Schnelllader.<!--end:dcAll--><!--if:dcSome-->{{dc}} von {{charges}} Ladungen am Schnelllader.<!--end:dcSome--><!--if:home--> {{homeShare}} daheim geladen.<!--end:home--></p><!--end:details-->
 
       <!--if:hintOne-->
       <div style="margin: 24px 0 0; padding: 14px 16px; border-radius: 8px; background-color: #fef3c7;">
@@ -75,7 +75,7 @@
       <p style="margin: 26px 0 0; font-size: 15px; line-height: 1.6;">Bis nächsten Monat<br>Sebastian</p>
     </div>
 
-    <div style="padding: 14px 24px 20px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.5; color: #6b7280;">
+    <div style="padding: 14px 16px 20px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.5; color: #6b7280;">
       <!--if:savings-->* 7,0 l/100 km bei {{fuelPrice}}/l, Durchschnitt aus Benzin und Diesel laut Tankerkönig.<br><!--end:savings-->
       Diese Mail kommt einmal im Monat, wenn du mindestens drei Ladungen hattest. <a href="{{unsubscribeUrl}}" style="color: #6b7280;">Abbestellen</a>: ein Klick, kein Login nötig.
     </div>
