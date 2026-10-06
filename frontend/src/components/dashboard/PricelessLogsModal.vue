@@ -73,9 +73,11 @@ async function loadLogs() {
   }
 }
 
-watch(() => props.open, (open) => {
+// immediate: über den Deep-Link aus der Monatsmail entsteht das Modal schon geöffnet, ohne
+// Wechsel von zu auf. carId mit beobachten, damit ein Autowechsel bei offenem Modal neu lädt.
+watch(() => [props.open, props.carId] as const, ([open]) => {
   if (open) { loadLogs(); loadHomeCard() }
-})
+}, { immediate: true })
 
 const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
 const coinStore = useCoinStore()
