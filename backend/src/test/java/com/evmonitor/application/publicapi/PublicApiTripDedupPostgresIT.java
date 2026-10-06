@@ -1,21 +1,15 @@
 package com.evmonitor.application.publicapi;
 
-import com.evmonitor.testutil.SharedPostgres;
+import com.evmonitor.testutil.AbstractPostgresIT;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
-import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,24 +21,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Dedup der Fahrten-Uploads gegen Postgres mit Flyway ({@code trip_started_at} ist {@code timestamptz}, H2 speichert
  * den Offset mit). Charakterisiert das heutige Verhalten vor dem IngestGateway (R2g). Übersprungen ohne Docker.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
-class PublicApiTripDedupPostgresIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class PublicApiTripDedupPostgresIT extends AbstractPostgresIT {
 
     @Autowired PublicApiTripService tripService;
     @Autowired UserRepository userRepository;
     @Autowired CarRepository carRepository;
-    @Autowired EvTripRepository tripRepository;
 
     private User user;
     private Car car;

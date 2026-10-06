@@ -1,6 +1,6 @@
 package com.evmonitor.application;
 
-import com.evmonitor.testutil.SharedPostgres;
+import com.evmonitor.testutil.AbstractPostgresIT;
 import com.evmonitor.application.ingest.ChargingEntry;
 import com.evmonitor.application.ingest.IngestCommand;
 import com.evmonitor.application.ingest.IngestDoor;
@@ -16,12 +16,7 @@ import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,19 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Umbau) gegen das echte Schema: Soft-Delete, Purge nach dem Restore-Fenster und was dabei per
  * Fremdschlüssel mitgeht und was nicht. H2 kennt die FKs nicht, deshalb Postgres. Übersprungen ohne Docker.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
-class CarDeletionChainPostgresIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class CarDeletionChainPostgresIT extends AbstractPostgresIT {
 
     @Autowired CarService carService;
     @Autowired IngestGateway gateway;

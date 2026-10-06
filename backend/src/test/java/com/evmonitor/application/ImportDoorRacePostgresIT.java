@@ -1,6 +1,6 @@
 package com.evmonitor.application;
 
-import com.evmonitor.testutil.SharedPostgres;
+import com.evmonitor.testutil.AbstractPostgresIT;
 import com.evmonitor.application.publicapi.PublicApiImportService;
 import com.evmonitor.application.publicapi.PublicApiSessionRequest;
 import com.evmonitor.domain.Car;
@@ -9,20 +9,13 @@ import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
-import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,19 +32,7 @@ import static org.mockito.Mockito.doReturn;
  * {@code uq_ev_log_car_loggedat_datasource} (V24), die H2-Tests kennen ihn nicht. Charakterisiert
  * das heutige Verhalten vor dem IngestGateway (Herstellerarchitektur R2). Übersprungen ohne Docker.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
-class ImportDoorRacePostgresIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class ImportDoorRacePostgresIT extends AbstractPostgresIT {
 
     private static final LocalDateTime RACED = LocalDateTime.of(2026, 9, 10, 10, 0);
 
@@ -59,7 +40,6 @@ class ImportDoorRacePostgresIT {
     @Autowired EvLogService evLogService;
     @Autowired UserRepository userRepository;
     @Autowired CarRepository carRepository;
-    @SpyBean EvLogRepository evLogRepository;
 
     private User user;
     private Car car;

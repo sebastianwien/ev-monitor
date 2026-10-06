@@ -1,6 +1,6 @@
 package com.evmonitor.application.user;
 
-import com.evmonitor.testutil.SharedPostgres;
+import com.evmonitor.testutil.AbstractPostgresIT;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarStatus;
@@ -13,12 +13,7 @@ import com.evmonitor.infrastructure.persistence.UserEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,19 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * dass kein personenbezogenes Feld übrig bleibt. Mockito kann das nicht abdecken, weil die Löschung
  * über DB-Constraints läuft. Übersprungen ohne Docker.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
-class AccountDeletionAnonymizationIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class AccountDeletionAnonymizationIT extends AbstractPostgresIT {
 
     @Autowired AccountAnonymizationService anonymizationService;
     @Autowired JpaUserRepository userRepository;

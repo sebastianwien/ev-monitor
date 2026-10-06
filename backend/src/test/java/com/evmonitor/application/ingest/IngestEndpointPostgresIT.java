@@ -1,6 +1,6 @@
 package com.evmonitor.application.ingest;
 
-import com.evmonitor.testutil.SharedPostgres;
+import com.evmonitor.testutil.AbstractPostgresIT;
 import com.evmonitor.application.ingest.api.InternalIngestRequest;
 import com.evmonitor.application.ingest.api.InternalIngestRequest.ChargingSession;
 import com.evmonitor.application.ingest.api.InternalIngestRequest.Trip;
@@ -16,12 +16,6 @@ import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -42,19 +36,7 @@ import static org.mockito.Mockito.doReturn;
  * Commit scheitert. Der Race wird wie in {@code ImportDoorRacePostgresIT} nachgestellt: die
  * konkurrierende Zeile steht schon, der Dedup-Check sieht sie aber nicht. Übersprungen ohne Docker.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
-class IngestEndpointPostgresIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class IngestEndpointPostgresIT extends AbstractPostgresIT {
 
     private static final LocalDateTime RACED = LocalDateTime.of(2026, 9, 10, 10, 0);
     private static final OffsetDateTime TRIP_START = OffsetDateTime.of(2026, 9, 10, 12, 0, 0, 0, ZoneOffset.UTC);
@@ -64,8 +46,6 @@ class IngestEndpointPostgresIT {
     @Autowired CarRepository carRepository;
     @Autowired ImportEventRepository importEventRepository;
     @Autowired JpaCoinLogRepository coinLogRepository;
-    @SpyBean EvLogRepository evLogRepository;
-    @SpyBean EvTripRepository tripRepository;
 
     private User user;
     private Car car;

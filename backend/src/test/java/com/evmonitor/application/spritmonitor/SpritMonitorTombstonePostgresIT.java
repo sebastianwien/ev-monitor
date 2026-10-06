@@ -1,25 +1,17 @@
 package com.evmonitor.application.spritmonitor;
 
-import com.evmonitor.testutil.SharedPostgres;
+import com.evmonitor.testutil.AbstractPostgresIT;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
-import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
-import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,27 +27,13 @@ import static org.mockito.Mockito.when;
  * partielle Unique-Index {@code uq_ev_log_car_loggedat_datasource} (V190, nur aktive Zeilen).
  * Charakterisiert das heutige Verhalten vor dem IngestGateway (R2g). Übersprungen ohne Docker.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
-class SpritMonitorTombstonePostgresIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class SpritMonitorTombstonePostgresIT extends AbstractPostgresIT {
 
     private static final LocalDateTime MIDNIGHT = LocalDateTime.of(2024, 1, 15, 0, 0);
 
-    @MockitoBean SpritMonitorClient client;
     @Autowired SpritMonitorImportService importService;
     @Autowired UserRepository userRepository;
     @Autowired CarRepository carRepository;
-    @Autowired EvLogRepository evLogRepository;
 
     /**
      * Der Index würde eine neue Zeile über dem Tombstone erlauben; übersprungen wird trotzdem, weil
@@ -65,7 +43,7 @@ class SpritMonitorTombstonePostgresIT {
     void tombstone_blocksReimport_thoughPartialIndexWouldAllowInsert() {
         User user = userRepository.save(TestDataBuilder.createTestUser("sm-pg-" + UUID.randomUUID().toString().substring(0, 8) + "@t.de"));
         Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, new BigDecimal("75.0")));
-        when(client.getFuelings(any(), any(), any())).thenReturn(List.of(new RawFueling(
+        when(spritMonitorClient.getFuelings(any(), any(), any())).thenReturn(List.of(new RawFueling(
                 new SpritMonitorFuelingDTO("15.01.2024", new BigDecimal("40"), 5, new BigDecimal("1000"),
                         new BigDecimal("10.00"), 60, null, null, null, null, null, "AC", null), "{}")));
 

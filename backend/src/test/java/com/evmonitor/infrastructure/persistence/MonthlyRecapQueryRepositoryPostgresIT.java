@@ -1,22 +1,16 @@
 package com.evmonitor.infrastructure.persistence;
 
+import com.evmonitor.testutil.AbstractPostgresIT;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLog;
-import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.persistence.MonthlyRecapQueryRepository.RecapCandidate;
-import com.evmonitor.testutil.SharedPostgres;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,28 +23,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Auf echtem Postgres, weil die Abfrage DISTINCT ON und ON CONFLICT nutzt (H2 kann beides nicht).
  * Ohne umschließende Transaktion: das Repository liest per JdbcTemplate und sähe ungeflushte
- * JPA-Saves nicht. Die Datenbank ist pro Testklasse frisch, eindeutige Mails trennen die Fälle.
+ * JPA-Saves nicht. Die Datenbank teilen sich alle Postgres-Tests, eindeutige Mails trennen die Fälle.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
-class MonthlyRecapQueryRepositoryPostgresIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class MonthlyRecapQueryRepositoryPostgresIT extends AbstractPostgresIT {
 
     private static final LocalDate MONTH = LocalDate.of(2024, 8, 1);
 
     @Autowired MonthlyRecapQueryRepository repository;
     @Autowired UserRepository userRepository;
     @Autowired CarRepository carRepository;
-    @Autowired EvLogRepository evLogRepository;
 
     @Test
     void userWithThreeLogsInMonth_isCandidateWithThatCar() {

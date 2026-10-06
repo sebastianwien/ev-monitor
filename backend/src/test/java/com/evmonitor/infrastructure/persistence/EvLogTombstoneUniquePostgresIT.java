@@ -1,6 +1,6 @@
 package com.evmonitor.infrastructure.persistence;
 
-import com.evmonitor.testutil.SharedPostgres;
+import com.evmonitor.testutil.AbstractPostgresIT;
 import com.evmonitor.application.EvLogRequest;
 import com.evmonitor.application.EvLogService;
 import com.evmonitor.domain.Car;
@@ -9,7 +9,6 @@ import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
-import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.domain.exception.ConflictException;
@@ -17,11 +16,6 @@ import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,24 +30,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * durch einen partiellen Unique-Index auf aktive Zeilen. Nur gegen Postgres mit Flyway prüfbar,
  * die H2-Tests kennen die Constraint nicht. Übersprungen ohne Docker.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
-class EvLogTombstoneUniquePostgresIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class EvLogTombstoneUniquePostgresIT extends AbstractPostgresIT {
 
     private static final LocalDateTime AT = LocalDateTime.of(2026, 9, 20, 18, 30);
 
     @Autowired EvLogService evLogService;
-    @Autowired EvLogRepository evLogRepository;
     @Autowired UserRepository userRepository;
     @Autowired CarRepository carRepository;
 
