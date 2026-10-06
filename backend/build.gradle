@@ -62,4 +62,7 @@ tasks.named('test') {
 	// jeder Fork baut seinen eigenen Spring-Context-Cache auf, mehr Forks
 	// wuerden das mehrfache Booten der Contexts wieder auffressen.
 	maxParallelForks = Math.max(1, Runtime.runtime.availableProcessors().intdiv(2))
+	// Der Context-Cache haelt pro Fork bis zu 32 Spring-Contexts; mit dem Gradle-Default
+	// von 512 MB lief ein Fork auf CI (2 Forks) bei ~23 JPA-Contexts in einen OOM.
+	maxHeapSize = '1g'
 }
