@@ -81,7 +81,9 @@ public class UserEntity {
     @Column(name = "country", length = 2)
     private String country;
 
-    @Column(name = "leaderboard_visible", nullable = false)
+    // updatable = false: toEntity() baut die Entity bei jedem Save neu auf und würde das Opt-out
+    // sonst auf den Default zurücksetzen. Geändert wird nur per setLeaderboardVisible-Query.
+    @Column(name = "leaderboard_visible", nullable = false, updatable = false)
     private boolean leaderboardVisible = true;
 
     @Column(name = "last_seen")
