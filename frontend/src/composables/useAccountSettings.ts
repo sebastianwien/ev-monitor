@@ -29,6 +29,7 @@ export function useAccountSettings(
 
   // Community
   const leaderboardVisible = ref(true)
+  const tickerShareCharges = ref(true)
 
   // Subscription
   const subscriptionPeriodEnd = ref<string | null>(null)
@@ -89,6 +90,7 @@ export function useAccountSettings(
       totalCostEur.value = stats.totalCostEur ?? 0
       referralCode.value = stats.referralCode || ''
       leaderboardVisible.value = stats.leaderboardVisible ?? true
+      tickerShareCharges.value = stats.tickerShareCharges ?? true
       coinBalance.value = coinsRes.data.totalCoins || 0
     } catch { /* non-critical */ }
   }
@@ -196,6 +198,16 @@ export function useAccountSettings(
     }
   }
 
+  const toggleTickerShareCharges = async () => {
+    const newVal = !tickerShareCharges.value
+    try {
+      await api.put(`/users/me/ticker-share-charges?enabled=${newVal}`)
+      tickerShareCharges.value = newVal
+    } catch {
+      message.value = { type: 'error', text: t('settings.err_ticker_share') }
+    }
+  }
+
   const restartOnboarding = () => {
     localStorage.removeItem(onboardingSeenKey(authStore.user?.sub))
     localStorage.setItem('onboarding-force', 'true')
@@ -250,7 +262,7 @@ export function useAccountSettings(
 
   return {
     email, username, registeredSince, totalLogs, totalKwh, totalCostEur,
-    coinBalance, referralCode, referralCopied, leaderboardVisible,
+    coinBalance, referralCode, referralCopied, leaderboardVisible, tickerShareCharges,
     subscriptionPeriodEnd, subscriptionTier, portalLoading,
     tierActionLoading, tierActionError,
     showEmailForm, showUsernameForm, showPasswordForm,
@@ -259,7 +271,7 @@ export function useAccountSettings(
     showDeleteConfirm, deletePassword,
     referralLink, copyReferralLink, openPortal,
     fetchUserData, changeEmail, changeUsername, changePassword,
-    exportData, deleteAccount, toggleLeaderboardVisible, restartOnboarding,
+    exportData, deleteAccount, toggleLeaderboardVisible, toggleTickerShareCharges, restartOnboarding,
     initSubscription, reloadSubscriptionStatus,
     downgradeToAutoSync, cancelSubscription,
     authStore,

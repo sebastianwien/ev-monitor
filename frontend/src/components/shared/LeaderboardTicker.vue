@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TrophyIcon, BoltIcon, SparklesIcon, BanknotesIcon, NewspaperIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { TrophyIcon, BoltIcon, SparklesIcon, BanknotesIcon, NewspaperIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon, ChevronRightIcon, UserIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
 import { useTickerState, setTickerHasItems } from '../../composables/useTickerState'
 import { analytics } from '../../services/analytics'
 import { useTickerItems } from '../../composables/useTickerItems'
@@ -30,6 +30,9 @@ function onTextClick() {
 }
 function onNewsClick() {
   analytics.track('ticker_tap', { type: 'NEWS' })
+}
+function onTargetClick() {
+  if (current.value?.target) analytics.track('ticker_tap', { type: current.value.type, target: current.value.target })
 }
 const { items, fetchTicker } = useTickerItems()
 
@@ -88,15 +91,16 @@ const onTouchEnd = (e: TouchEvent) => {
 const direction = ref<'fwd' | 'back'>('fwd')
 watch(index, (n, o) => { direction.value = (n === 0 && o === count.value - 1) || n > o ? 'fwd' : 'back' })
 
-const VARIANT_ICON = { leader: TrophyIcon, eco: SparklesIcon, money: BanknotesIcon, news: NewspaperIcon, energy: BoltIcon } as const
+const VARIANT_ICON = { leader: TrophyIcon, eco: SparklesIcon, money: BanknotesIcon, news: NewspaperIcon, energy: BoltIcon, personal: UserIcon } as const
 const TYPE_STYLE = {
   LEADER: { chip: 'bg-yellow-400/15 text-yellow-300 ring-yellow-300/30', text: 'text-yellow-100' },
   STAT: { chip: 'bg-emerald-400/15 text-emerald-300 ring-emerald-300/30', text: 'text-emerald-50' },
   NEWS: { chip: 'bg-lime-400/15 text-lime-300 ring-lime-300/30', text: 'text-lime-50' },
+  PERSONAL: { chip: 'bg-sky-400/15 text-sky-300 ring-sky-300/30', text: 'text-sky-50' },
 } as const
 
 onMounted(async () => {
-  await fetchTicker()
+  await fetchTicker({ withUserItems: true })
   setTickerHasItems(items.value.length > 0)
   document.addEventListener('visibilitychange', onVisibilityChange)
   measure()
@@ -158,6 +162,18 @@ onUnmounted(() => {
             </div>
           </Transition>
         </div>
+
+        <!-- Ziel-Link: nur bei Einträgen mit echter Seite; Antippen des Texts bleibt "nächster Eintrag" -->
+        <RouterLink v-if="current?.target"
+          :to="current.target"
+          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4"
+          :aria-label="t('ticker.open')"
+          :title="t('ticker.open')"
+          @click="onTargetClick">
+          <span :class="['flex h-5 w-5 items-center justify-center rounded-full ring-1', TYPE_STYLE[current.type].chip]">
+            <ArrowRightIcon class="h-3 w-3" />
+          </span>
+        </RouterLink>
 
         <!-- Position, nur Desktop -->
         <span class="hidden sm:inline ml-3 text-[10px] tabular-nums text-indigo-300/80" aria-hidden="true">

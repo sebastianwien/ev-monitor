@@ -23,7 +23,7 @@ const message = ref<{ type: 'success' | 'error', text: string } | null>(null)
 // -- Account Settings --
 const {
   email, username, registeredSince, totalLogs, totalKwh, totalCostEur,
-  coinBalance, referralCode, referralCopied, leaderboardVisible,
+  coinBalance, referralCode, referralCopied, leaderboardVisible, tickerShareCharges,
   subscriptionPeriodEnd, subscriptionTier, portalLoading,
   tierActionLoading, tierActionError,
   showEmailForm, showUsernameForm, showPasswordForm,
@@ -32,7 +32,7 @@ const {
   showDeleteConfirm, deletePassword,
   referralLink, copyReferralLink, openPortal,
   fetchUserData, changeEmail, changeUsername, changePassword,
-  exportData, deleteAccount, toggleLeaderboardVisible, restartOnboarding,
+  exportData, deleteAccount, toggleLeaderboardVisible, toggleTickerShareCharges, restartOnboarding,
   initSubscription, downgradeToAutoSync, cancelSubscription,
   authStore,
 } = useAccountSettings(loading, message)
@@ -462,6 +462,28 @@ onMounted(async () => {
               :class="[
                 'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
                 leaderboardVisible ? 'translate-x-5' : 'translate-x-0'
+              ]" />
+          </button>
+        </div>
+        <div class="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-4">
+          <div>
+            <p id="ticker-share-label" class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.ticker_share_label') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.ticker_share_hint') }}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="tickerShareCharges"
+            aria-labelledby="ticker-share-label"
+            @click="toggleTickerShareCharges"
+            :class="[
+              'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
+              tickerShareCharges ? 'bg-green-500' : 'bg-gray-300'
+            ]">
+            <span
+              :class="[
+                'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                tickerShareCharges ? 'translate-x-5' : 'translate-x-0'
               ]" />
           </button>
         </div>

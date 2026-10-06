@@ -1052,6 +1052,13 @@ ticker:
   charge_time: "Vår gemenskap laddade totalt {amount} {unit} i sträck i {month}"
   home_quota: "{percent}% av alla laddningar i {month} skedde hemma"
   top_provider: "Populäraste publika laddoperatören i {month}: {provider} med {count} laddningar"
+  today_charge: "I dag laddade någon {kwh} kWh hos {provider} för {cost} € ({ct} ct/kWh)"
+  today_charge_anon: "I dag laddade någon {kwh} kWh publikt för {cost} € ({ct} ct/kWh)"
+  my_month: "Din {month}: {kwh} kWh på {charges} laddningar, {percent}% hemma"
+  my_consumption: "Din förbrukning i {month}: {mine} kWh/100 km, förare av din modell: {peers}"
+  my_rank: "Du är #{rank} i {category}, {gap} {unit} efter platsen före"
+  my_rank_leader: "Du leder {category} med {value} {unit}"
+  open: "Visa"
   units:
     kwh: "kWh"
     charges: "laddningar"
@@ -1494,6 +1501,8 @@ settings:
   leaderboard_visible_hint: "Gäller bara topplistorna: om inaktiverad visas ditt användarnamn inte i någon kategori. Dina data förblir privata oavsett. En bil delar du via länk under Fordon."
   leaderboard_enable: Aktivera
   leaderboard_disable: Inaktivera
+  ticker_share_label: "Visa laddningar anonymt i tickern"
+  ticker_share_hint: "Dina publika laddningar kan visas i tickern utan namn, bil, plats och klockslag, t.ex. 'I dag laddade någon 42 kWh hos Ionity för 16,38 €'. Avstängning gäller senast efter 15 minuter."
   help_title: Hjälp och support
   tutorial_title: Titta på handledningen igen
   tutorial_desc: Vill du gå igenom introduktionsguiden igen? Perfekt om du behöver en uppfriskning eller vill upptäcka nya funktioner.
@@ -1543,6 +1552,7 @@ settings:
   err_export: Det gick inte att exportera data
   err_delete: Det gick inte att ta bort kontot
   err_leaderboard: Det gick inte att spara inställningen.
+  err_ticker_share: Det gick inte att spara inställningen.
   err_password_enter: Ange ditt lösenord
   ok_username: Användarnamnet har ändrats!
   ok_password: Lösenordet har ändrats!
