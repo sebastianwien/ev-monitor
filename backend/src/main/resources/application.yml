@@ -161,6 +161,11 @@ app:
   bundle-publish-token: ${APP_BUNDLE_PUBLISH_TOKEN:}
   mail:
     from: ${APP_MAIL_FROM:noreply@ev-monitor.net}
+    # Antwortadresse persoenlicher Mails (Monatsrueckblick). Leer = Antworten gehen an from.
+    personal-reply-to: ${APP_MAIL_PERSONAL_REPLY_TO:}
+  monthly-recap:
+    # Monatsrueckblick am 2. (Nachholer am 3.) um 10:00 Europe/Berlin. Aus, bis bewusst eingeschaltet.
+    enabled: ${MONTHLY_RECAP_ENABLED:false}
   report:
     # Kommagetrennte interne Empfaenger des Wochenreports (Montag 17:00). Leer = aus.
     weekly-recipients: ${WEEKLY_REPORT_RECIPIENTS:}

@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.email;
 
+import com.evmonitor.application.recap.MonthlyRecap;
 import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,10 @@ public class EmailService {
 
     @Value("${app.mail.from:noreply@ev-monitor.net}")
     private String fromAddress;
+
+    /** Antwortadresse für persönliche Mails (Monatsrückblick). Leer = Antworten gehen an den Absender. */
+    @Value("${app.mail.personal-reply-to:}")
+    private String personalReplyTo;
 
     public EmailService(JavaMailSender mailSender, JwtService jwtService) {
         this.mailSender = mailSender;
@@ -214,6 +219,38 @@ public class EmailService {
                 ? "VW Data Act AutoSync paused - your trial has ended"
                 : "VW-Data-Act-AutoSync pausiert - dein Test ist zu Ende";
         sendHtmlEmail(toEmail, subject, html);
+    }
+
+    // ── Monatsrückblick ─────────────────────────────────────────────────────────────
+
+    /**
+     * Persönliche Monatsmail. Trägt List-Unsubscribe plus List-Unsubscribe-Post (RFC 8058), damit
+     * Gmail und Apple Mail einen Abmelden-Knopf zeigen, der ohne Login per POST abmeldet.
+     */
+    public void sendMonthlyRecapEmail(MonthlyRecap recap) {
+        String unsubscribeUrl = buildUnsubscribeUrl(recap.email());
+        // Öffnet auf /logs das Modal "Preise nachtragen" für genau dieses Auto (LogsView, pricelessDeepLink).
+        String priceUrl = campaignUrl("/logs", "monthly-recap") + "&car=" + recap.carId() + "&nachtragen=preis";
+        MonthlyRecapMail.Rendered mail = MonthlyRecapMail.render(recap, unsubscribeUrl, priceUrl);
+        String senderName = MonthlyRecapMail.isEnglish(recap.locale())
+                ? "Sebastian from ev-monitor"
+                : "Sebastian von ev-monitor";
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromAddress, senderName);
+            if (personalReplyTo != null && !personalReplyTo.isBlank()) {
+                helper.setReplyTo(personalReplyTo);
+            }
+            helper.setTo(recap.email());
+            helper.setSubject(mail.subject());
+            helper.setText(mail.html(), true);
+            message.setHeader("List-Unsubscribe", "<" + unsubscribeUrl + ">");
+            message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+            mailSender.send(message);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send email '" + mail.subject() + "' to " + recap.email(), e);
+        }
     }
 
     private void sendHtmlEmail(String toEmail, String subject, String html) {

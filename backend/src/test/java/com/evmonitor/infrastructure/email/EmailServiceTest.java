@@ -166,4 +166,59 @@ class EmailServiceTest {
         return null;
     }
 
+
+    @Test
+    void monthlyRecap_carriesOneClickUnsubscribeHeadersAndPersonalSender() throws Exception {
+        MimeMessage mimeMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(jwtService.generateUnsubscribeToken("ihle@example.com")).thenReturn("jwt-token");
+        ReflectionTestUtils.setField(emailService, "personalReplyTo", "sebastian@ev-monitor.net");
+
+        emailService.sendMonthlyRecapEmail(recap());
+
+        verify(mailSender).send(mimeMessage);
+        assertThat(mimeMessage.getSubject()).isEqualTo("Dein August mit dem Model 3");
+        assertThat(mimeMessage.getHeader("List-Unsubscribe", null))
+                .isEqualTo("<http://localhost:5173/api/unsubscribe?token=jwt-token>");
+        assertThat(mimeMessage.getHeader("List-Unsubscribe-Post", null)).isEqualTo("List-Unsubscribe=One-Click");
+        assertThat(((jakarta.mail.internet.InternetAddress) mimeMessage.getFrom()[0]).getPersonal())
+                .isEqualTo("Sebastian von ev-monitor");
+        assertThat(mimeMessage.getReplyTo()[0].toString()).isEqualTo("sebastian@ev-monitor.net");
+    }
+
+    @Test
+    void monthlyRecap_withoutPersonalReplyTo_repliesGoToSender() throws Exception {
+        MimeMessage mimeMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        when(jwtService.generateUnsubscribeToken(anyString())).thenReturn("jwt-token");
+
+        emailService.sendMonthlyRecapEmail(recap());
+
+        assertThat(mimeMessage.getHeader("Reply-To", null)).isNull();
+    }
+
+    private static final java.util.UUID CAR_ID = java.util.UUID.fromString("11111111-2222-3333-4444-555555555555");
+
+    @Test
+    void monthlyRecap_pricelessHintLinksToPriceBackfillForThatCar() throws Exception {
+        when(jwtService.generateUnsubscribeToken(anyString())).thenReturn("jwt-token");
+        com.evmonitor.application.recap.MonthlyRecap r = recap();
+        com.evmonitor.application.recap.MonthlyRecap withHint = new com.evmonitor.application.recap.MonthlyRecap(
+                r.userId(), r.carId(), r.email(), r.username(), r.locale(), r.month(), r.carName(), r.charges(),
+                r.acCharges(), r.dcCharges(), r.kwh(), r.costEur(), r.distanceKm(), r.consumptionKwhPer100km(),
+                r.homeSharePercent(), r.fuelCostEur(), r.fuelPricePerLiter(),
+                new com.evmonitor.application.recap.MonthlyRecap.PricelessHint(2, java.time.LocalDateTime.of(2026, 8, 3, 9, 0), null),
+                null);
+
+        assertThat(sendAndGetHtml(() -> emailService.sendMonthlyRecapEmail(withHint)))
+                .contains("http://localhost:5173/logs?utm_source=email&amp;utm_medium=lifecycle&amp;utm_campaign=monthly-recap"
+                        + "&amp;car=11111111-2222-3333-4444-555555555555&amp;nachtragen=preis");
+    }
+
+    private com.evmonitor.application.recap.MonthlyRecap recap() {
+        return new com.evmonitor.application.recap.MonthlyRecap(java.util.UUID.randomUUID(), CAR_ID, "ihle@example.com", "Ihle", "de",
+                java.time.YearMonth.of(2026, 8), "Model 3", 12, 2, 10, new java.math.BigDecimal("351.4"),
+                new java.math.BigDecimal("147.37"), new java.math.BigDecimal("1777"), null, null,
+                new java.math.BigDecimal("217.69"), new java.math.BigDecimal("1.75"), null, null);
+    }
 }
