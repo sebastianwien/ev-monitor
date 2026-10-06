@@ -283,7 +283,15 @@ onMounted(async () => {
           </ul>
           <p class="mt-4">
             In öffentlichen Statistiken werden <strong>keine persönlichen Daten oder Nutzernamen</strong>
-            angezeigt; alle Werte sind aggregiert.
+            angezeigt; alle Werte sind aggregiert. Einzige Ausnahme ist der Community-Ticker (siehe unten).
+          </p>
+          <p class="mt-4">
+            <strong>Community-Ticker:</strong> Eingeloggte Nutzer sehen im Ticker bis zu zwei einzelne
+            öffentliche Ladungen des Tages mit Energiemenge und Preis, z. B. „Heute hat jemand 42 kWh bei Ionity
+            für 16,38 € geladen“. Der Ladeanbieter erscheint nur, wenn ihn mindestens drei Nutzer verwenden.
+            Nutzername, Fahrzeug, Ort und Uhrzeit werden nicht angezeigt. Sie können das in den Einstellungen
+            unter „Ladungen anonym im Ticker zeigen“ jederzeit abschalten; die Änderung wirkt nach spätestens
+            15 Minuten.
           </p>
           <p class="mt-4">
             <strong>Geteilte Ladekurven:</strong> Sie können einzelne Ladekurven über einen öffentlichen Link
