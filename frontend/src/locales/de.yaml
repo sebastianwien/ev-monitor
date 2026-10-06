@@ -1510,7 +1510,7 @@ settings:
   tier_founder: "Tesla Founder"
   tier_beta: "Beta-Tester"
   tier_none: "Kein aktives Abo"
-  tier_period_end: "Verlängert sich am {date}"
+  tier_period_end: "Aktueller Zeitraum bis {date}"
   portal_hint: "Im Portal kannst du den Plan wechseln (z.B. auf Jährlich), die Zahlungsmethode aktualisieren oder kündigen."
   tier_live_disconnected_warning: "Live aktiv, aber Tesla nicht verbunden"
   tier_live_repair_cta: "Tesla wieder verbinden"

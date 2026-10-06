@@ -1507,7 +1507,7 @@ settings:
   tier_founder: "Tesla Founder"
   tier_beta: "Beta tester"
   tier_none: "No active subscription"
-  tier_period_end: "Renews on {date}"
+  tier_period_end: "Current period until {date}"
   portal_hint: "In the portal you can switch plan (e.g. to yearly), update your payment method or cancel."
   tier_live_disconnected_warning: "Live active, but Tesla not connected"
   tier_live_repair_cta: "Reconnect Tesla"

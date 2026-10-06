@@ -1458,7 +1458,7 @@ settings:
   tier_founder: Tesla Founder
   tier_beta: Beta-tester
   tier_none: Ingen aktivt abonnement
-  tier_period_end: "Fornyes {date}"
+  tier_period_end: "Gjeldende periode til {date}"
   portal_hint: "I portalen kan du bytte plan (f.eks. til årlig), oppdatere betalingsmetode eller si opp."
   tier_live_disconnected_warning: "Live aktiv, men Tesla ikke tilkoblet"
   tier_live_repair_cta: "Koble til Tesla på nytt"
