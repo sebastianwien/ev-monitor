@@ -1,11 +1,16 @@
 package com.evmonitor.testutil;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.application.voice.LogDraftExtractor;
+import com.evmonitor.application.voice.SpeechTranscriber;
+import com.evmonitor.infrastructure.external.SpritMonitorClient;
+import com.evmonitor.infrastructure.external.StripeReportClient;
 import com.evmonitor.infrastructure.security.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
@@ -48,6 +53,21 @@ public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected JwtService jwtService;
+
+    // Externe Dienste zentral gemockt: Tests rufen nie echte APIs, und alle Unterklassen
+    // teilen sich damit denselben Spring-Context. Eigene @MockitoBean-Felder in Unterklassen
+    // erzeugen je einen zusätzlichen Context, daher nur mit gutem Grund.
+    @MockitoBean
+    protected SpritMonitorClient spritMonitorClient;
+
+    @MockitoBean
+    protected StripeReportClient stripeReportClient;
+
+    @MockitoBean
+    protected SpeechTranscriber speechTranscriber;
+
+    @MockitoBean
+    protected LogDraftExtractor logDraftExtractor;
 
     /**
      * Create HTTP headers with JWT Bearer token for authenticated requests.

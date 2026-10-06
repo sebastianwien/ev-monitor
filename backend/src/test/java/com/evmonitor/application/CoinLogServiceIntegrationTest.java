@@ -6,12 +6,10 @@ import com.evmonitor.application.spritmonitor.RawFueling;
 import com.evmonitor.application.spritmonitor.SpritMonitorFuelingDTO;
 import com.evmonitor.application.spritmonitor.SpritMonitorImportService;
 import com.evmonitor.domain.*;
-import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -37,8 +35,6 @@ class CoinLogServiceIntegrationTest extends AbstractIntegrationTest {
     @Autowired private ManualImportService manualImportService;
     @Autowired private EvLogService evLogService;
     @Autowired private CoinLogService coinLogService;
-
-    @MockitoBean private SpritMonitorClient spritMonitorClient;
 
     private static final int KWH_UNIT = 5;
 

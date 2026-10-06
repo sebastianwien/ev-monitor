@@ -12,7 +12,6 @@ import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.TireType;
 import com.evmonitor.domain.User;
-import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -57,8 +55,6 @@ class SpritMonitorImportCharacterizationTest extends AbstractIntegrationTest {
             new SpritMonitorFuelingDTO.Position(new BigDecimal("52.5200"), new BigDecimal("13.4050"));
     private static final String BERLIN_GEOHASH = GeoHash.withCharacterPrecision(52.52, 13.405, 6).toBase32();
 
-    @MockitoBean
-    private SpritMonitorClient client;
 
     @Autowired
     private SpritMonitorImportService importService;
@@ -254,7 +250,7 @@ class SpritMonitorImportCharacterizationTest extends AbstractIntegrationTest {
         assertThatThrownBy(() -> importService.importFuelings(user.getId(), TOKEN, VEHICLE, 1, UUID.randomUUID()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageStartingWith("Car not found");
-        verify(client, never()).getFuelings(anyString(), anyInt(), anyInt());
+        verify(spritMonitorClient, never()).getFuelings(anyString(), anyInt(), anyInt());
 
         var response = restTemplate.exchange("/api/import/sprit-monitor/fuelings", HttpMethod.POST,
                 createAuthRequest(Map.of("token", TOKEN, "vehicleId", VEHICLE, "carId", car.getId().toString()),
@@ -268,7 +264,7 @@ class SpritMonitorImportCharacterizationTest extends AbstractIntegrationTest {
 
     private ImportResult importNow(SpritMonitorFuelingDTO... fuelings) {
         List<RawFueling> raw = Arrays.stream(fuelings).map(f -> new RawFueling(f, "{}")).toList();
-        when(client.getFuelings(any(), any(), any())).thenReturn(raw);
+        when(spritMonitorClient.getFuelings(any(), any(), any())).thenReturn(raw);
         return importService.importFuelings(user.getId(), TOKEN, VEHICLE, 1, car.getId());
     }
 

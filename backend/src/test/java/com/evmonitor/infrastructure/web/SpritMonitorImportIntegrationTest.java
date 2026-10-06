@@ -11,13 +11,11 @@ import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.User;
-import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -46,8 +44,6 @@ import static org.mockito.Mockito.when;
  */
 class SpritMonitorImportIntegrationTest extends AbstractIntegrationTest {
 
-    @MockitoBean
-    private SpritMonitorClient spritMonitorClient;
 
     private User testUser;
     private Car testCar;

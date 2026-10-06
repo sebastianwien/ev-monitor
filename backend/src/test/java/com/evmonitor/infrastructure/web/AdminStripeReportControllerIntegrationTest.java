@@ -2,13 +2,11 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.AdminStripeReport;
 import com.evmonitor.domain.User;
-import com.evmonitor.infrastructure.external.StripeReportClient;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.Optional;
 
@@ -19,9 +17,6 @@ import static org.mockito.Mockito.when;
 
 class AdminStripeReportControllerIntegrationTest extends AbstractIntegrationTest {
 
-    /** Never hit Stripe from tests, even when a test-mode key is present in the local env. */
-    @MockitoBean
-    private StripeReportClient stripeReportClient;
 
     @Test
     void nonAdmin_isForbidden() {

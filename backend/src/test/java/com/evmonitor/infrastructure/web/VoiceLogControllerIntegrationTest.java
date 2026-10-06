@@ -2,8 +2,6 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.voice.DraftFields;
 import com.evmonitor.application.voice.Extraction;
-import com.evmonitor.application.voice.LogDraftExtractor;
-import com.evmonitor.application.voice.SpeechTranscriber;
 import com.evmonitor.application.voice.Transcript;
 import com.evmonitor.application.voice.VoiceProviderException;
 import com.evmonitor.application.voice.VoiceUsage;
@@ -24,7 +22,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -48,10 +45,6 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
     static final VoiceUsage T_USAGE = new VoiceUsage("voxtral-mini-latest", 11.0, 9, 44, new BigDecimal("0.000550"));
     static final VoiceUsage E_USAGE = new VoiceUsage("voxtral-small-latest", null, 1450, 80, new BigDecimal("0.000169"));
 
-    @MockitoBean
-    private SpeechTranscriber transcriber;
-    @MockitoBean
-    private LogDraftExtractor extractor;
     @Autowired
     private VoiceDraftRepository voiceDraftRepository;
     @Autowired
@@ -65,9 +58,9 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
         // Admin: stilles Limit statt Zähler, so laufen die 60 Aufnahmen im Deckel-Test ohne Free-Grenze
         user = createAndSaveAdminUser("voice-" + UUID.randomUUID() + "@test.local");
         car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
-        when(transcriber.transcribe(any(), anyString(), anyList()))
+        when(speechTranscriber.transcribe(any(), anyString(), anyList()))
                 .thenReturn(new Transcript("Zuhause geladen, 32 Kilowattstunden, Tacho 48210, auf 80 Prozent, 9 Euro 60", T_USAGE));
-        when(extractor.extract(anyString(), any())).thenReturn(new Extraction(DraftFields.builder()
+        when(logDraftExtractor.extract(anyString(), any())).thenReturn(new Extraction(DraftFields.builder()
                 .placeIndex(0).placeKind("home").kwhCharged(32.0).odometerKm(48_210).socAfter(80).costEur(9.6).build(), E_USAGE));
     }
 
@@ -110,7 +103,7 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
         // Admins haben nur das stille Fair-Use-Limit, keinen sichtbaren Zaehler
         assertThat(body.path("usage").path("limit").isNull()).isTrue();
         assertThat(body.path("usage").path("plan").asText()).isEqualTo("admin");
-        verify(transcriber).transcribe(any(), eq("audio/webm"), anyList());
+        verify(speechTranscriber).transcribe(any(), eq("audio/webm"), anyList());
 
         assertThat(voiceDraftRepository.countSuccessfulSince(user.getId(), LocalDateTime.now().minusDays(1))).isEqualTo(1);
         var row = voiceDraftRepository.findAll().stream().filter(r -> r.getUserId().equals(user.getId())).findFirst().orElseThrow();
@@ -119,7 +112,7 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void failedDraftIsRecordedButDoesNotCountAgainstTheQuota() {
-        when(transcriber.transcribe(any(), anyString(), anyList()))
+        when(speechTranscriber.transcribe(any(), anyString(), anyList()))
                 .thenThrow(new VoiceProviderException(VoiceProviderException.Reason.UNAVAILABLE, "Mistral 503"));
 
         ResponseEntity<String> response = post(request(user, car.getId(), new byte[]{1}, "audio/mp4", "Europe/Berlin"));
@@ -132,7 +125,7 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void emptyTranscriptIsUnprocessable() {
-        when(transcriber.transcribe(any(), anyString(), anyList())).thenReturn(new Transcript("", T_USAGE));
+        when(speechTranscriber.transcribe(any(), anyString(), anyList())).thenReturn(new Transcript("", T_USAGE));
 
         ResponseEntity<String> response = post(request(user, car.getId(), new byte[]{1}, "audio/mp4", "Europe/Berlin"));
 
@@ -147,7 +140,7 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<String> response = post(request(other, car.getId(), new byte[]{1}, "audio/webm", "Europe/Berlin"));
 
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
-        verify(transcriber, never()).transcribe(any(), anyString(), anyList());
+        verify(speechTranscriber, never()).transcribe(any(), anyString(), anyList());
     }
 
     @Test
@@ -155,7 +148,7 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<String> response = post(request(user, car.getId(), new byte[]{1}, "video/mp4", "Europe/Berlin"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
-        verify(transcriber, never()).transcribe(any(), anyString(), anyList());
+        verify(speechTranscriber, never()).transcribe(any(), anyString(), anyList());
     }
 
     @Test
@@ -163,7 +156,7 @@ class VoiceLogControllerIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<String> response = post(request(user, car.getId(), new byte[2 * 1024 * 1024 + 1], "audio/webm", "Europe/Berlin"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE);
-        verify(transcriber, never()).transcribe(any(), anyString(), anyList());
+        verify(speechTranscriber, never()).transcribe(any(), anyString(), anyList());
     }
 
     @Test
