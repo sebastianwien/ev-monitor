@@ -440,6 +440,9 @@ public enum CarBrand {
             cap(55.0),
             cap(63.0),
             cap(82.0)),
+      CITIGO_E_IV(CarBrand.SKODA, VehicleCategory.CITY_CAR, "Citigo e iV",
+            cap(32.3),
+            cap(36.8)),
 
       // --- SEAT & CUPRA ---
       MII_ELECTRIC(CarBrand.SEAT, VehicleCategory.CITY_CAR, "Mii electric",

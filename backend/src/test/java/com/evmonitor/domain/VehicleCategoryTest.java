@@ -33,6 +33,8 @@ class VehicleCategoryTest {
         List<CarBrand.CarModel> cityCars = CarBrand.CarModel.byCategory(VehicleCategory.CITY_CAR);
         assertFalse(cityCars.isEmpty(), "CITY_CAR category should not be empty");
         assertTrue(cityCars.contains(CarBrand.CarModel.E_UP), "e-up! should be CITY_CAR");
+        assertTrue(cityCars.contains(CarBrand.CarModel.CITIGO_E_IV), "Citigo e iV should be CITY_CAR");
+        assertTrue(cityCars.contains(CarBrand.CarModel.MII_ELECTRIC), "Mii electric should be CITY_CAR");
         assertTrue(cityCars.contains(CarBrand.CarModel.AMI), "Ami should be CITY_CAR");
         assertTrue(cityCars.contains(CarBrand.CarModel.DACIA_SPRING), "Dacia Spring should be CITY_CAR");
     }
