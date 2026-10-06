@@ -163,6 +163,20 @@ class MonthlyRecapServiceTest {
     }
 
     @Test
+    void pricelessCharges_areLeftOutOfThePetrolComparison_byTheirKwhShare() {
+        addLog(ChargingType.DC, "20.00", 1);
+        addLog(ChargingType.DC, "20.00", 2);
+        addLog(ChargingType.DC, null, 3);
+        stats("90", "40", "1000", null, null);
+
+        MonthlyRecap recap = service.build(candidate(), AUGUST).orElseThrow();
+
+        // 1000 km * 7 l/100 km * 1,75 €/l = 122,50 €, davon 60 von 90 kWh mit Preis
+        assertThat(recap.fuelCostEur()).isEqualByComparingTo("81.67");
+        assertThat(recap.savingsEur()).isEqualByComparingTo("41.67");
+    }
+
+    @Test
     void noPriceAtAll_hasNoCostButHintForAllCharges() {
         addLog(ChargingType.AC, null, 1);
         addLog(ChargingType.AC, null, 2);

@@ -101,7 +101,8 @@ public class MonthlyRecapService {
                 distance,
                 stats.avgConsumptionKwhPer100km(),
                 homeSharePercent(stats.locationSplit()),
-                distance == null ? null : fuelCost(distance, fuelPrice),
+                distance == null || cost == null ? null : fuelCost(distance, fuelPrice).multiply(pricedShare(logs))
+                        .setScale(2, RoundingMode.HALF_UP),
                 fuelPrice,
                 priceless.isEmpty() ? null : new PricelessHint(priceless.size(),
                         priceless.get(0).getLoggedAt(), kwhOf(priceless.get(0))),
@@ -113,6 +114,27 @@ public class MonthlyRecapService {
         EvLogStatisticsResponse stats = statisticsService.getStatistics(
                 car.getId(), candidate.userId(), previous.atDay(1), previous.atEndOfMonth(), "MONTH");
         return stats == null ? null : positiveOrNull(stats.totalDistanceKm());
+    }
+
+    /**
+     * Anteil der kWh aus Ladungen mit Preis. Der Benziner-Vergleich nimmt nur diesen Teil der
+     * Strecke, sonst stünden die Stromkosten ohne die preislosen Ladungen gegen den Sprit für die
+     * ganze Strecke, und die Ersparnis wäre zu hoch. Gilt nur für die Mail, die Statistik bleibt.
+     */
+    private static BigDecimal pricedShare(List<EvLog> logs) {
+        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal priced = BigDecimal.ZERO;
+        for (EvLog log : logs) {
+            BigDecimal kwh = kwhOf(log);
+            if (kwh == null) {
+                continue;
+            }
+            total = total.add(kwh);
+            if (log.getCostEur() != null) {
+                priced = priced.add(kwh);
+            }
+        }
+        return total.signum() > 0 ? priced.divide(total, 6, RoundingMode.HALF_UP) : BigDecimal.ZERO;
     }
 
     private static int count(List<EvLog> logs, ChargingType type) {

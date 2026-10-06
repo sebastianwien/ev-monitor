@@ -99,6 +99,9 @@ public final class MonthlyRecapMail {
             return;
         }
         sections.add("savings");
+        if (recap.pricelessHint() != null) {
+            sections.add("partial");
+        }
         vars.put("savings", money(savings, "#,##0.00", en));
         vars.put("cost", money(recap.costEur(), "#,##0.00", en));
         vars.put("fuelCost", money(recap.fuelCostEur(), "#,##0", en));

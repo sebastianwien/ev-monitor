@@ -99,6 +99,15 @@ class MonthlyRecapMailTest {
     }
 
     @Test
+    void savingsWithPricelessCharges_footnoteSaysTheyAreLeftOut() {
+        Recap r = ihle();
+        r.hint = new PricelessHint(1, LocalDateTime.of(2026, 8, 16, 11, 9), new BigDecimal("6.1"));
+
+        assertThat(render(r).html()).contains("* Nur Ladungen mit Preis, die Strecke anteilig nach kWh.");
+        assertThat(render(ihle()).html()).doesNotContain("Nur Ladungen mit Preis");
+    }
+
+    @Test
     void noPriceAtAll_showsChargesAndHint() {
         Recap r = ihle();
         r.cost = null;
