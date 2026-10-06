@@ -3,14 +3,12 @@ package com.evmonitor.application;
 import com.evmonitor.application.ChargeCountStats;
 import com.evmonitor.application.TopProviderResult;
 import com.evmonitor.domain.LeaderboardCategory;
-import com.evmonitor.infrastructure.external.ExternalJokeService;
 import com.evmonitor.infrastructure.external.ExternalNewsService;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -42,15 +40,11 @@ class LeaderboardServiceIntegrationTest {
     private CoinLogService coinLogService;
 
     @Mock
-    private ExternalJokeService externalJokeService;
-
-    @Mock
     private ExternalNewsService externalNewsService;
 
     @Mock
     private FuelPriceService fuelPriceService;
 
-    @InjectMocks
     private LeaderboardService leaderboardService;
 
     private final UUID userA = UUID.randomUUID();
@@ -58,7 +52,9 @@ class LeaderboardServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        when(externalJokeService.getJokes()).thenReturn(List.of());
+        // Echter RankingProvider ohne Spring-Proxy (kein Cache) über dem gemockten Repository.
+        leaderboardService = new LeaderboardService(queryRepository, new LeaderboardRankingProvider(queryRepository),
+                coinLogService, externalNewsService, fuelPriceService);
         when(externalNewsService.getNewsItems()).thenReturn(List.of());
     }
 

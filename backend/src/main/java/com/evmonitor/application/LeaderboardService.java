@@ -2,7 +2,6 @@ package com.evmonitor.application;
 
 import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.LeaderboardCategory;
-import com.evmonitor.infrastructure.external.ExternalJokeService;
 import com.evmonitor.infrastructure.external.ExternalNewsService;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
@@ -24,8 +23,8 @@ public class LeaderboardService {
     private static final int TOP_N = 10;
 
     private final LeaderboardQueryRepository queryRepository;
+    private final LeaderboardRankingProvider rankingProvider;
     private final CoinLogService coinLogService;
-    private final ExternalJokeService externalJokeService;
     private final ExternalNewsService externalNewsService;
     private final FuelPriceService fuelPriceService;
 
@@ -337,7 +336,7 @@ public class LeaderboardService {
         for (LeaderboardCategory cat : LeaderboardCategory.values()) {
             if (!cat.isHasMonthEndReward()) continue;
 
-            List<LeaderboardRankRow> ranking = getRanking(cat, start, end);
+            List<LeaderboardRankRow> ranking = rankingProvider.getFreshRanking(cat, start, end);
             int[] amounts = {100, 50, 25};
 
             for (int place = 1; place <= Math.min(3, ranking.size()); place++) {
@@ -353,16 +352,7 @@ public class LeaderboardService {
     // ---- Private helpers ----
 
     private List<LeaderboardRankRow> getRanking(LeaderboardCategory category, LocalDateTime start, LocalDateTime end) {
-        return switch (category) {
-            case MONTHLY_KWH -> queryRepository.getKwhRanking(start, end);
-            case MONTHLY_CHARGES -> queryRepository.getChargesRanking(start, end);
-            case MONTHLY_DISTANCE -> queryRepository.getDistanceRanking(start, end);
-            case MONTHLY_CHEAPEST -> queryRepository.getCheapestRanking(start, end);
-            case MONTHLY_NIGHT_OWL -> queryRepository.getNightOwlRanking(start, end);
-            case MONTHLY_ICE_CHARGER -> queryRepository.getIceChargerRanking(start, end);
-            case MONTHLY_HEAT_CHARGER -> queryRepository.getHeatChargerRanking(start, end);
-            case MONTHLY_POWER_CHARGER -> queryRepository.getPowerChargerRanking(start, end);
-        };
+        return rankingProvider.getRanking(category, start, end);
     }
 
     private Map<UUID, Integer> buildRankMap(List<LeaderboardRankRow> ranking) {

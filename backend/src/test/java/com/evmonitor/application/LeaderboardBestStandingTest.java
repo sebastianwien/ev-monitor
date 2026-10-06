@@ -4,7 +4,7 @@ import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -27,10 +27,16 @@ class LeaderboardBestStandingTest {
     @Mock
     private LeaderboardQueryRepository queryRepository;
 
-    @InjectMocks
     private LeaderboardService leaderboardService;
 
     private final UUID me = UUID.randomUUID();
+
+    @BeforeEach
+    void setUp() {
+        // Echter RankingProvider ohne Spring-Proxy (kein Cache) über dem gemockten Repository.
+        leaderboardService = new LeaderboardService(queryRepository, new LeaderboardRankingProvider(queryRepository),
+                null, null, null);
+    }
 
     @Test
     void notRankedAnywhere_returnsEmpty() {
