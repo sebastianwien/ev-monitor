@@ -59,6 +59,7 @@ import { formatPauseDuration, tripDayLabel } from '../utils/tripTimeFormat'
 import { buildPeriodGroups } from '../utils/tripPeriods'
 import { collapseAnchorScrollY, isGroupScrolledPast } from '../utils/stickyGroup'
 import { normalizeCharge } from '../utils/recentActivity'
+import { pricelessDeepLink } from '../utils/pricelessDeepLink'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
 import FeedLegend from '../components/dashboard/FeedLegend.vue'
 import PeriodChargeLine from '../components/dashboard/PeriodChargeLine.vue'
@@ -86,7 +87,7 @@ import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import PeriodFilterDropdown from '../components/dashboard/PeriodFilterDropdown.vue'
 import { useTimeRangeOptions } from '../composables/useTimeRangeOptions'
 import { FEED_RESOLUTIONS, FEED_TIME_RANGES } from '../composables/useFeedWindow'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
@@ -112,6 +113,7 @@ coinStore.ensureCatalog()
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 const { haptic } = useHaptic()
 const route = useRoute()
+const router = useRouter()
 
 // -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
@@ -734,6 +736,19 @@ const sendNegativeFeedback = async (tripId: string) => {
 const showImplausibleModal = ref(false)
 const showPricelessModal = ref(false)
 const implausibleModalDirty = ref(false)
+
+// Einstieg aus der Monatsrückblick-Mail (/logs?car=<id>&nachtragen=preis). Wartet, bis die Autos
+// geladen sind, und nimmt die Parameter danach aus der URL, damit Neuladen das Modal nicht erneut öffnet.
+let pricelessLinkHandled = false
+watch(cars, (list) => {
+  if (pricelessLinkHandled || !list.length) return
+  pricelessLinkHandled = true
+  const link = pricelessDeepLink(route.query, list)
+  if (!link) return
+  if (link.carId) selectedCarId.value = link.carId
+  showPricelessModal.value = true
+  router.replace({ query: { ...route.query, car: undefined, nachtragen: undefined } })
+}, { immediate: true })
 
 // -- Range calculator --
 
