@@ -37,6 +37,7 @@ const PERSONAL_TARGET: Record<string, string> = {
     my_consumption: '/dashboard',
     my_rank: '/leaderboard',
     my_rank_leader: '/leaderboard',
+    my_rank_tied: '/leaderboard',
 }
 
 export function tickerTarget(item: RawTickerItem): string | undefined {
@@ -162,6 +163,8 @@ export function useTickerItems() {
                     gap: num(p.gap),
                     unit: unit(CAT_UNIT[p.category]),
                 })
+            case 'my_rank_tied':
+                return t('ticker.my_rank_tied', { category: t(`leaderboard.cat_${CAT_LABEL[p.category]}`), rank: p.rank })
             case 'my_rank_leader':
                 return t('ticker.my_rank_leader', {
                     category: t(`leaderboard.cat_${CAT_LABEL[p.category]}`),

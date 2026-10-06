@@ -146,9 +146,9 @@ public class LeaderboardService {
     }
 
     /**
-     * Bester Rang des Nutzers im laufenden Monat über alle Kategorien. Gleiche Werte teilen sich
-     * den besseren Rang, der Abstand zählt bis zum nächstbesseren Wert. Bei gleichem Rang gewinnt
-     * die Kategorie, die in {@link LeaderboardCategory} zuerst steht.
+     * Bester Rang des Nutzers im laufenden Monat über alle Kategorien. Der Rang ist die Position
+     * wie in der Bestenliste, der Abstand zählt zum Eintrag direkt davor (0 bei Gleichstand).
+     * Bei gleichem Rang gewinnt die Kategorie, die in {@link LeaderboardCategory} zuerst steht.
      */
     public Optional<MyBestStanding> getMyBestStanding(UUID userId) {
         LocalDate today = LocalDate.now();
@@ -168,20 +168,11 @@ public class LeaderboardService {
     private MyBestStanding standingIn(LeaderboardCategory cat, List<LeaderboardRankRow> ranking, UUID userId) {
         for (int i = 0; i < ranking.size(); i++) {
             if (!ranking.get(i).userId().equals(userId)) continue; // erster Treffer = bestes Auto
-            // Verglichen wird auf angezeigter Genauigkeit, sonst stünde "0,0 kWh Abstand" im Ticker.
+            // Abstand auf angezeigter Genauigkeit, damit er zu den Werten in der Bestenliste passt.
             BigDecimal mine = formatValue(cat, ranking.get(i).value());
-            int rank = i + 1;
-            BigDecimal better = null;
-            for (int j = i - 1; j >= 0; j--) {
-                BigDecimal other = formatValue(cat, ranking.get(j).value());
-                if (other.compareTo(mine) != 0) {
-                    better = other;
-                    break;
-                }
-                rank = j + 1;
-            }
-            BigDecimal gap = better == null ? null : better.subtract(mine).abs();
-            return new MyBestStanding(cat, rank, mine, gap);
+            BigDecimal gap = i == 0 ? null
+                    : formatValue(cat, ranking.get(i - 1).value()).subtract(mine).abs();
+            return new MyBestStanding(cat, i + 1, mine, gap);
         }
         return null;
     }

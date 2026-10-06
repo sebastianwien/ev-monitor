@@ -70,26 +70,25 @@ class LeaderboardBestStandingTest {
     }
 
     @Test
-    void tie_sharesTheHigherRank_andGapCountsToNextBetterValue() {
-        UUID first = UUID.randomUUID();
+    void tie_countsPositionLikeTheLeaderboard_withZeroGap() {
         when(queryRepository.getKwhRanking(any(), any())).thenReturn(List.of(
-                row(first, "300.0"), row(UUID.randomUUID(), "250.0"), row(me, "250.0")));
+                row(UUID.randomUUID(), "300.0"), row(UUID.randomUUID(), "250.0"), row(me, "250.0")));
 
         MyBestStanding best = leaderboardService.getMyBestStanding(me).orElseThrow();
 
-        assertThat(best.rank()).isEqualTo(2);
-        assertThat(best.gapToNext()).isEqualByComparingTo("50.0");
+        assertThat(best.rank()).isEqualTo(3);
+        assertThat(best.gapToNext()).isEqualByComparingTo("0");
     }
 
     @Test
-    void tieAtTheTop_countsAsLeading() {
+    void tieAtTheTop_isSecondPlace() {
         when(queryRepository.getChargesRanking(any(), any())).thenReturn(List.of(
                 row(UUID.randomUUID(), "14"), row(me, "14")));
 
         MyBestStanding best = leaderboardService.getMyBestStanding(me).orElseThrow();
 
-        assertThat(best.rank()).isEqualTo(1);
-        assertThat(best.gapToNext()).isNull();
+        assertThat(best.rank()).isEqualTo(2);
+        assertThat(best.gapToNext()).isEqualByComparingTo("0");
     }
 
     @Test

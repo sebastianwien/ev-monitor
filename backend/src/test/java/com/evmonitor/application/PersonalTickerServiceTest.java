@@ -129,6 +129,17 @@ class PersonalTickerServiceTest {
     }
 
     @Test
+    void rank_tiedWithPlaceAhead_getsOwnSentence() {
+        when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.of(
+                new MyBestStanding(LeaderboardCategory.MONTHLY_KWH, 3, new BigDecimal("250.0"), new BigDecimal("0.0"))));
+
+        TickerItemDTO item = byKey(service.getItems(userId), "my_rank_tied");
+
+        assertThat(item.params()).containsEntry("category", "MONTHLY_KWH").containsEntry("rank", "3")
+                .doesNotContainKey("gap");
+    }
+
+    @Test
     void rank_leaderGetsOwnSentence() {
         when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.of(
                 new MyBestStanding(LeaderboardCategory.MONTHLY_CHARGES, 1, new BigDecimal("14"), null)));

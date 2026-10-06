@@ -1099,6 +1099,7 @@ ticker:
   my_consumption: "Your consumption in {month}: {mine} kWh/100 km, drivers of your model: {peers}"
   my_rank: "#{rank} {category}: you, {gap} {unit} behind the place ahead"
   my_rank_leader: "#1 {category}: you, {value} {unit}"
+  my_rank_tied: "#{rank} {category}: you, level with the place ahead"
   open: "View"
   units:
     kwh: "kWh"

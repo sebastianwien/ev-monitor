@@ -1058,6 +1058,7 @@ ticker:
   my_consumption: "Din förbrukning i {month}: {mine} kWh/100 km, förare av din modell: {peers}"
   my_rank: "#{rank} {category}: du, {gap} {unit} efter platsen före"
   my_rank_leader: "#1 {category}: du, {value} {unit}"
+  my_rank_tied: "#{rank} {category}: du, lika med platsen före"
   open: "Visa"
   units:
     kwh: "kWh"

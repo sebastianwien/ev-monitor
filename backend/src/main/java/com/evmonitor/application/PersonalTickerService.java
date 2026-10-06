@@ -73,6 +73,11 @@ public class PersonalTickerService {
                         "category", standing.category().name(),
                         "value", standing.value().toPlainString()));
             }
+            if (standing.gapToNext().signum() == 0) {
+                return TickerItemDTO.personal("my_rank_tied", Map.of(
+                        "category", standing.category().name(),
+                        "rank", Integer.toString(standing.rank())));
+            }
             return TickerItemDTO.personal("my_rank", Map.of(
                     "category", standing.category().name(),
                     "rank", Integer.toString(standing.rank()),

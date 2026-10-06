@@ -24,6 +24,7 @@ const PERSONAL: RawTickerItem[] = [
   mine('my_consumption', { month: '10', mine: '16.8', peers: '18.2' }),
   mine('my_rank', { category: 'MONTHLY_KWH', rank: '3', gap: '12.5' }),
   mine('my_rank_leader', { category: 'MONTHLY_CHARGES', value: '14' }),
+  mine('my_rank_tied', { category: 'MONTHLY_KWH', rank: '3' }),
 ]
 const TODAY: RawTickerItem[] = [
   stat('today_charge', { kwh: '42', cost: '16.38', ct: '39', provider: 'Ionity' }),
@@ -56,16 +57,17 @@ describe('useTickerItems - Sätze der neuen Einträge', () => {
       'Dein Verbrauch im Oktober: 16,8 kWh/100 km, Fahrer deines Modells: 18,2',
       '#3 Meiste Energie geladen: du, 12,5 kWh hinter dem Platz davor',
       '#1 Ladevorgänge: du, 14 Ladevorgänge',
+      '#3 Meiste Energie geladen: du, gleichauf mit dem Platz davor',
       'Heute hat jemand 42 kWh bei Ionity für 16,38 € geladen (39 ct/kWh)',
       'Heute hat jemand 26 kWh öffentlich für 12,00 € geladen (47 ct/kWh)',
     ]))
-    expect(texts).toHaveLength(6)
+    expect(texts).toHaveLength(7)
   })
 
   it.each(['de', 'en', 'nb', 'sv'] as const)('lässt in %s keinen Platzhalter und keinen Eintrag leer', async (locale) => {
     const texts = await renderAll(locale)
 
-    expect(texts).toHaveLength(6)
+    expect(texts).toHaveLength(7)
     for (const text of texts) expect(text).not.toMatch(/[{}]|undefined|NaN/)
   })
 })
