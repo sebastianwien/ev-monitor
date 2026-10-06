@@ -1100,8 +1100,8 @@ ticker:
   today_charge_anon: "Heute hat jemand {kwh} kWh öffentlich für {cost} € geladen ({ct} ct/kWh)"
   my_month: "Dein {month}: {kwh} kWh in {charges} Ladevorgängen, {percent}% zu Hause"
   my_consumption: "Dein Verbrauch im {month}: {mine} kWh/100 km, Fahrer deines Modells: {peers}"
-  my_rank: "Du bist #{rank} bei {category}, {gap} {unit} hinter dem Platz davor"
-  my_rank_leader: "Du führst bei {category} mit {value} {unit}"
+  my_rank: "#{rank} {category}: du, {gap} {unit} hinter dem Platz davor"
+  my_rank_leader: "#1 {category}: du, {value} {unit}"
   open: "Ansehen"
   units:
     kwh: "kWh"

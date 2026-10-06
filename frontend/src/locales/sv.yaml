@@ -1056,8 +1056,8 @@ ticker:
   today_charge_anon: "I dag laddade någon {kwh} kWh publikt för {cost} € ({ct} ct/kWh)"
   my_month: "Din {month}: {kwh} kWh på {charges} laddningar, {percent}% hemma"
   my_consumption: "Din förbrukning i {month}: {mine} kWh/100 km, förare av din modell: {peers}"
-  my_rank: "Du är #{rank} i {category}, {gap} {unit} efter platsen före"
-  my_rank_leader: "Du leder {category} med {value} {unit}"
+  my_rank: "#{rank} {category}: du, {gap} {unit} efter platsen före"
+  my_rank_leader: "#1 {category}: du, {value} {unit}"
   open: "Visa"
   units:
     kwh: "kWh"

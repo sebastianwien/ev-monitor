@@ -1097,8 +1097,8 @@ ticker:
   today_charge_anon: "Today someone charged {kwh} kWh publicly for €{cost} ({ct} ct/kWh)"
   my_month: "Your {month}: {kwh} kWh in {charges} sessions, {percent}% at home"
   my_consumption: "Your consumption in {month}: {mine} kWh/100 km, drivers of your model: {peers}"
-  my_rank: "You're #{rank} in {category}, {gap} {unit} behind the place ahead"
-  my_rank_leader: "You lead {category} with {value} {unit}"
+  my_rank: "#{rank} {category}: you, {gap} {unit} behind the place ahead"
+  my_rank_leader: "#1 {category}: you, {value} {unit}"
   open: "View"
   units:
     kwh: "kWh"
