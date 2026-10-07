@@ -1,7 +1,8 @@
 /**
  * Curated official model images for the public model cards (/modelle).
  * Keyed by the CarModel enum name (same value as TopModelPreview.model).
- * Images live in frontend/public/model-images/ and ship with the app.
+ * Images live in frontend/public/model-images/ (900 px) with a 240 px copy in thumbs/ for list
+ * rows; run scripts/model-image-thumbs.py after adding a file.
  * LICENSING: every entry carries verbatim attribution from the source (Wikimedia Commons).
  * Only free licences (CC / public domain). Attribution is rendered on the card hero.
  */
@@ -90,6 +91,12 @@ export const MODEL_IMAGES: Record<string, ModelImageEntry> = {
 export function officialModelImageUrl(model: string): string | null {
   const entry = MODEL_IMAGES[model]
   return entry ? `${MODEL_IMAGE_BASE}/${entry.file}` : null
+}
+
+/** 240 px variant for list rows (scripts/model-image-thumbs.py), the hero keeps the 900 px file */
+export function officialModelThumbUrl(model: string): string | null {
+  const entry = MODEL_IMAGES[model]
+  return entry ? `${MODEL_IMAGE_BASE}/thumbs/${entry.file}` : null
 }
 
 export function officialModelImageAttribution(model: string): ModelImageAttribution | null {

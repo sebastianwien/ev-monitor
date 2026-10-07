@@ -135,7 +135,7 @@ import { useI18n } from 'vue-i18n'
 import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, ClockIcon, DocumentTextIcon, InformationCircleIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
 import ConsumptionBars from './ConsumptionBars.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { officialModelImageUrl } from '../../config/modelImages'
+import { officialModelThumbUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
 import type { LadderAxis } from '../../utils/ladderScale'
 import { stopsRangeKm, ONE_STOP_MINUTES, USABLE_BATTERY_SHARE } from '../../utils/needsCheck'
@@ -174,7 +174,7 @@ const {
 
 const m = computed(() => props.item.model)
 const detailId = computed(() => `mr-detail-${props.item.key.replace(/[^A-Za-z0-9_-]/g, '-')}`)
-const imageUrl = computed(() => officialModelImageUrl(m.value.model))
+const imageUrl = computed(() => officialModelThumbUrl(m.value.model))
 const modelName = computed(() => m.value.modelUrlSlug.replace(/_/g, ' '))
 // "Renault 5", "Polestar 2": the model name already carries the brand, show it once
 const nameRepeatsBrand = computed(() => modelName.value.toLowerCase().startsWith(m.value.brandDisplayName.toLowerCase()))
