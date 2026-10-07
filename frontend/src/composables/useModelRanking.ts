@@ -1,7 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import type { ChargingReferencePrices, ModelWithoutData, TopModelPreview } from '../api/publicModelService'
 import { consumptionDeltaPercent } from '../utils/unitConversions'
-import { assessModel, summarizeNeeds, NEEDS_DEFAULTS, STOP_MINUTES_MIN, STOP_MINUTES_MAX, type NeedsAssessment, type NeedsInput, type NeedsSummary } from '../utils/needsCheck'
+import { assessModel, summarizeNeeds, NEEDS_DEFAULTS, MIN_STOPS, MAX_STOPS, type NeedsAssessment, type NeedsInput, type NeedsSummary } from '../utils/needsCheck'
 import {
   COST_DEFAULTS, PRICE_MAX, effectiveHomeShare, mixedPricePerKwh, combustionLiters, savingsPer100km, savingsPerYear, isCostAssumptions,
   type CostAssumptions,
@@ -91,10 +91,10 @@ function isNeedsInput(v: unknown): v is NeedsInput {
   if (!v || typeof v !== 'object') return false
   const o = v as Record<string, unknown>
   const km = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= NEEDS_KM_MAX
-  const minutes = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= STOP_MINUTES_MIN && x <= STOP_MINUTES_MAX
-  // stopMinutes came later; an older stored value without it is still valid and gets the default
+  const stops = (x: unknown) => Number.isInteger(x) && (x as number) >= MIN_STOPS && (x as number) <= MAX_STOPS
+  // maxStops came later; an older stored value without it is still valid and gets the default
   return km(o.dailyKm) && km(o.longestTripKm) && typeof o.homeCharging === 'boolean'
-    && (o.stopMinutes === undefined || minutes(o.stopMinutes))
+    && (o.maxStops === undefined || stops(o.maxStops))
 }
 
 function readStoredNeeds(): NeedsInput | null {
@@ -102,7 +102,8 @@ function readStoredNeeds(): NeedsInput | null {
     const raw = localStorage.getItem(NEEDS_STORAGE_KEY)
     if (raw === null) return null
     const parsed: unknown = JSON.parse(raw)
-    return isNeedsInput(parsed) ? { ...NEEDS_DEFAULTS, ...parsed } : null
+    if (!isNeedsInput(parsed)) return null
+    return { dailyKm: parsed.dailyKm, longestTripKm: parsed.longestTripKm, homeCharging: parsed.homeCharging, maxStops: parsed.maxStops ?? NEEDS_DEFAULTS.maxStops }
   } catch {
     return null
   }
@@ -218,7 +219,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     return enriched.value
       .filter(r => category.value === null || r.model.category === category.value)
       .filter(r => matchesSearch(r.model, query.value))
-      .filter(r => !tripOnly.value || (r.needs.assessable && r.needs.tripStops.min === 0))
+      .filter(r => !tripOnly.value || (r.needs.assessable && r.needs.tripStops.min <= needs.value.maxStops))
       .sort((a, b) => {
         const va = valueOf(a)
         const vb = valueOf(b)

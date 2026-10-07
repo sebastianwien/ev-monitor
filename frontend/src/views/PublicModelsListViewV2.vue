@@ -84,7 +84,7 @@
             data-testid="trip-chip"
             @click="tripOnly = !tripOnly"
           >
-            <CheckIcon v-if="tripOnly" class="h-4 w-4" aria-hidden="true" />{{ t('models_ranking.filters.trip_chip') }}
+            <CheckIcon v-if="tripOnly" class="h-4 w-4" aria-hidden="true" />{{ t('models_ranking.filters.trip_chip', { count: needs.maxStops }, needs.maxStops) }}
           </button>
         </div>
       </div>
@@ -180,7 +180,6 @@
           :main-value="cost.mainValue"
           :daily-km="needs.dailyKm"
           :longest-trip-km="needs.longestTripKm"
-          :stop-minutes="needs.stopMinutes"
           :fuel="cost.fuel"
           @toggle="openKey = openKey === item.key ? null : item.key"
           @compare="toggleCompare(item.key)"

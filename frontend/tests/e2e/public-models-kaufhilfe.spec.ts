@@ -52,15 +52,15 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('needs-longest')).toHaveValue('400');
       await expect(page.getByTestId('needs-summary')).toContainText(/\d+ von \d+/);
       await expect(page.getByTestId('needs-summary')).toContainText('bei 40 km am Tag');
-      await expect(page.getByTestId('needs-stop')).toHaveValue('20');
-      await expect(page.getByTestId('needs-summary')).toContainText(/400 km ohne Stopp.*20-Minuten-Stopp/s);
+      await expect(page.getByTestId('needs-stops-1')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByTestId('needs-summary')).toContainText(/400 km mit höchstens 1 Stopp.*davon ohne Stopp/s);
 
-      // the stop length is the reader's number: the sentence and the rows follow it
-      await page.getByTestId('needs-stop').fill('30');
-      await page.getByTestId('needs-stop').press('Tab');
-      await expect(page.getByTestId('needs-summary')).toContainText('30-Minuten-Stopp');
+      // the stop count is the reader's choice: the figure and the filter chip follow it
+      await page.getByTestId('needs-stops-3').click();
+      await expect(page.getByTestId('needs-summary')).toContainText('mit höchstens 3 Stopps');
+      await expect(page.getByTestId('trip-chip')).toContainText('höchstens 3 Stopps');
       if (viewport.width >= 1280) {
-        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/mit 30 min \d+|ohne DC-Daten/);
+        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/1 Stopp \d+ · 2 Stopps \d+|ohne DC-Daten/);
       }
     });
 
@@ -78,9 +78,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect.poll(() => firstHint.innerText()).not.toBe(hintBefore);
     });
 
-    test('Chip "Schafft meine längste Fahrt ohne Stopp" filtert die Liste', async ({ page }) => {
+    test('Chip "Längste Fahrt mit höchstens 1 Stopp" filtert die Liste', async ({ page }) => {
       await openRanking(page);
-      // 100 km schafft jedes bewertbare Modell, 5000 km keins
+      // 100 km schafft jedes bewertbare Modell, 5000 km keins mit einem Stopp
       await setDistance(page, 'needs-longest', '5000');
       await page.getByTestId('trip-chip').click();
       await expect(page.getByTestId('trip-chip')).toHaveAttribute('aria-pressed', 'true');

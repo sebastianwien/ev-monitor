@@ -29,10 +29,23 @@
           >{{ opt.label }}</button>
         </div>
       </div>
-      <label class="grid gap-1">
-        <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.stop') }}</span>
-        <input :value="String(modelValue.stopMinutes)" v-bind="numeric" data-testid="needs-stop" @change="onMinutes($event)" />
-      </label>
+      <div class="grid gap-1">
+        <span :id="stopsId" class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.stops') }}</span>
+        <div class="grid h-11 grid-cols-4 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="stopsId">
+          <button
+            v-for="n in stopOptions"
+            :key="n"
+            type="button"
+            class="text-sm font-semibold"
+            :class="modelValue.maxStops === n
+              ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+              : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'"
+            :aria-pressed="modelValue.maxStops === n"
+            :data-testid="`needs-stops-${n}`"
+            @click="emit('update:modelValue', { ...modelValue, maxStops: n })"
+          >{{ formatNumber(n) }}</button>
+        </div>
+      </div>
     </div>
 
     <!-- The answer as three figures; the middle one filters the list to the models it counts -->
@@ -49,22 +62,21 @@
             class="-mx-1 -my-0.5 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[22px] font-semibold leading-tight tracking-tight tabular-nums hover:bg-gray-100 dark:hover:bg-gray-800"
             :class="tripOnly ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-gray-100'"
             :aria-pressed="tripOnly"
-            :aria-label="t('models_ranking.needs.show_models', { count: formatNumber(summary.tripOk) }, summary.tripOk)"
+            :aria-label="t('models_ranking.needs.show_models', { count: formatNumber(within) }, within)"
             data-testid="needs-show-models"
             @click="emit('show')"
           >
-            {{ formatNumber(summary.tripOk) }}
+            {{ formatNumber(within) }}
             <FunnelIcon class="h-4 w-4 text-green-700 dark:text-green-400" aria-hidden="true" />
           </button>
         </dd>
-        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.stat_trip', { longest: longestLocal, unit: distanceUnitLabel() }) }}</dt>
+        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.stat_trip', { longest: longestLocal, unit: distanceUnitLabel(), count: formatNumber(modelValue.maxStops) }, modelValue.maxStops) }}</dt>
       </div>
       <div class="grid content-start gap-0.5 pl-3">
-        <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ formatNumber(summary.tripOneStopOk) }}</dd>
-        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.stat_one_stop', { minutes: formatNumber(modelValue.stopMinutes) }) }}</dt>
+        <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ formatNumber(summary.tripOk) }}</dd>
+        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.stat_no_stop') }}</dt>
       </div>
     </dl>
-    <p class="text-[12px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.assumptions') }}</p>
   </section>
 </template>
 
@@ -75,7 +87,7 @@ import { FunnelIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { odometerLocalToKm } from '../../utils/unitConversions'
 import { NEEDS_KM_MAX } from '../../composables/useModelRanking'
-import { ONE_STOP_MINUTES, STOP_MINUTES_MIN, STOP_MINUTES_MAX, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
+import { MIN_STOPS, MAX_STOPS, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
 
 const props = defineProps<{
   modelValue: NeedsInput
@@ -90,6 +102,7 @@ const { formatNumber, distanceUnitLabel, convertDistance, isImperial } = useLoca
 
 const titleId = useId()
 const homeId = useId()
+const stopsId = useId()
 const dailyInput = ref<HTMLInputElement | null>(null)
 /** "Ändern" in the sticky list header brings the reader back here */
 function focusFirst() {
@@ -118,14 +131,9 @@ function onDistance(field: 'dailyKm' | 'longestTripKm', event: Event) {
   emit('update:modelValue', { ...props.modelValue, [field]: Math.min(km, NEEDS_KM_MAX) })
 }
 
-// Stop length: typed on change (not on every keystroke, "2" on the way to "25" would be clamped), clamped to the sensible window
-function onMinutes(event: Event) {
-  const input = event.target as HTMLInputElement
-  const raw = input.value.replace(/[^\d]/g, '')
-  const minutes = raw === '' ? ONE_STOP_MINUTES : Math.min(STOP_MINUTES_MAX, Math.max(STOP_MINUTES_MIN, Number(raw)))
-  input.value = String(minutes)
-  emit('update:modelValue', { ...props.modelValue, stopMinutes: minutes })
-}
+const stopOptions = Array.from({ length: MAX_STOPS - MIN_STOPS + 1 }, (_, i) => MIN_STOPS + i)
+/** Models that make the trip with at most the chosen number of stops */
+const within = computed(() => props.summary.tripOkWithin[props.modelValue.maxStops] ?? 0)
 
 const homeOptions = computed(() => [
   { value: true, label: t('models_ranking.needs.home_yes') },

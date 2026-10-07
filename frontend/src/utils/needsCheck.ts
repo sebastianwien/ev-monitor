@@ -13,14 +13,15 @@ export interface NeedsInput {
   dailyKm: number
   longestTripKm: number
   homeCharging: boolean
-  /** length of a fast-charge stop on the road */
-  stopMinutes: number
+  /** fast-charge stops the reader accepts on the longest trip, MIN_STOPS to MAX_STOPS */
+  maxStops: number
 }
 
+/** Every stop on the road is counted as this long */
 export const ONE_STOP_MINUTES = 20
-export const STOP_MINUTES_MIN = 5
-export const STOP_MINUTES_MAX = 120
-export const NEEDS_DEFAULTS: NeedsInput = { dailyKm: 40, longestTripKm: 400, homeCharging: true, stopMinutes: ONE_STOP_MINUTES }
+export const MIN_STOPS = 1
+export const MAX_STOPS = 4
+export const NEEDS_DEFAULTS: NeedsInput = { dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 1 }
 export const USABLE_BATTERY_SHARE = 0.8
 export const FAST_CHARGE_SHARE = 0.7
 const DAYS_PER_WEEK = 7
@@ -119,7 +120,7 @@ export function assessModel(m: RangeFields, input: NeedsInput): NeedsAssessment 
     const b = fn(basis.max)
     return a != null && b != null ? formatSpan(a, b) : null
   }
-  const trip = span(r => tripStops(r, input.longestTripKm, stopAddedKm(r, m.avgConsumptionKwhPer100km, m.fastChargePowerKw, input.stopMinutes)))
+  const trip = span(r => tripStops(r, input.longestTripKm, stopAddedKm(r, m.avgConsumptionKwhPer100km, m.fastChargePowerKw, ONE_STOP_MINUTES)))
   if (!trip) return { assessable: false }
   return {
     assessable: true,
@@ -137,37 +138,37 @@ export interface NeedsSummary {
   weeklyOk: number
   /** at least one battery variant makes the longest trip without a stop */
   tripOk: number
-  /** at least one battery variant makes the longest trip with at most one stop */
-  tripOneStopOk: number
+  /** index = stops allowed (0 to MAX_STOPS): models whose best battery makes the trip with at most that many */
+  tripOkWithin: number[]
 }
 
 export function summarizeNeeds(models: RangeFields[], input: NeedsInput): NeedsSummary {
   let total = 0
   let weeklyOk = 0
   let tripOk = 0
-  let tripOneStopOk = 0
+  const tripOkWithin = Array.from({ length: MAX_STOPS + 1 }, () => 0)
   for (const m of models) {
     const a = assessModel(m, input)
     if (!a.assessable) continue
     total++
     if (a.interval ? a.interval.min >= DAYS_PER_WEEK : (a.stopsPerWeek?.max ?? Infinity) <= 1) weeklyOk++
     if (a.tripStops.min === 0) tripOk++
-    if (a.tripStops.min <= 1) tripOneStopOk++
+    for (let n = a.tripStops.min; n <= MAX_STOPS; n++) tripOkWithin[n]++
   }
-  return { total, weeklyOk, tripOk, tripOneStopOk }
+  return { total, weeklyOk, tripOk, tripOkWithin }
 }
 
 /**
- * Range with one fast-charge stop of stopMinutes: the usable share of the battery plus what
- * the model's community DC power adds in that time. Null without range, consumption or DC data
- * (then the flat share would say nothing about the model).
+ * Range with `stops` fast-charge stops of ONE_STOP_MINUTES each: the usable share of the
+ * battery plus what the model's community DC power adds per stop. Null without range,
+ * consumption or DC data (then the flat share would say nothing about the model).
  */
-export function oneStopRangeKm(
+export function stopsRangeKm(
   rangeKm: number | null | undefined,
   consumptionKwhPer100km: number | null | undefined,
   dcPowerKw: number | null | undefined,
-  stopMinutes: number = ONE_STOP_MINUTES,
+  stops: number,
 ): number | null {
   if (rangeKm == null || rangeKm <= 0 || consumptionKwhPer100km == null || consumptionKwhPer100km <= 0 || dcPowerKw == null || dcPowerKw <= 0) return null
-  return Math.round(rangeKm * USABLE_BATTERY_SHARE + stopAddedKm(rangeKm, consumptionKwhPer100km, dcPowerKw, stopMinutes))
+  return Math.round(rangeKm * USABLE_BATTERY_SHARE + stops * stopAddedKm(rangeKm, consumptionKwhPer100km, dcPowerKw, ONE_STOP_MINUTES))
 }

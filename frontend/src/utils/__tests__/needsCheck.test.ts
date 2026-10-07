@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  oneStopRangeKm, stopAddedKm,
+  stopsRangeKm, stopAddedKm,
   NEEDS_DEFAULTS, USABLE_BATTERY_SHARE, FAST_CHARGE_SHARE,
   chargeIntervalDays, stopsPerWeek, tripStops, rangeBasis, assessModel, summarizeNeeds, formatSpan,
   type RangeFields,
@@ -11,8 +11,8 @@ const ranges = (over: Partial<RangeFields>): RangeFields => ({
 })
 
 describe('needsCheck', () => {
-  it('defaults are 40 km a day, 400 km longest trip, charging at home, 20-minute stops', () => {
-    expect(NEEDS_DEFAULTS).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, stopMinutes: 20 })
+  it('defaults are 40 km a day, 400 km longest trip, charging at home, one stop on the road', () => {
+    expect(NEEDS_DEFAULTS).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 1 })
     expect(USABLE_BATTERY_SHARE).toBe(0.8)
     expect(FAST_CHARGE_SHARE).toBe(0.7)
   })
@@ -107,7 +107,7 @@ describe('needsCheck', () => {
     const twoBatteries = ranges({ typicalRangeMinKm: 400, typicalRangeMaxKm: 500, winterRangeMinKm: 300, winterRangeMaxKm: 400 })
 
     it('gives the charging interval per battery when charging at home', () => {
-      const a = assessModel(twoBatteries, { dailyKm: 40, longestTripKm: 400, homeCharging: true, stopMinutes: 20 })
+      const a = assessModel(twoBatteries, { dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 1 })
       expect(a).toEqual({
         assessable: true,
         winter: true,
@@ -119,7 +119,7 @@ describe('needsCheck', () => {
     })
 
     it('gives stops per week without home charging', () => {
-      const a = assessModel(twoBatteries, { dailyKm: 40, longestTripKm: 200, homeCharging: false, stopMinutes: 20 })
+      const a = assessModel(twoBatteries, { dailyKm: 40, longestTripKm: 200, homeCharging: false, maxStops: 1 })
       expect(a.assessable && a.interval).toBeNull()
       // 280 a week: 300 × 0.7 = 210 → 2, 400 × 0.7 = 280 → 1
       expect(a.assessable && a.stopsPerWeek).toEqual({ min: 1, max: 2, single: false })
@@ -132,9 +132,6 @@ describe('needsCheck', () => {
       expect(flat.assessable && flat.tripStops).toEqual({ min: 1, max: 2, single: false })
       const withDc = assessModel({ ...twoBatteries, avgConsumptionKwhPer100km: 16, fastChargePowerKw: 100 }, { ...NEEDS_DEFAULTS, longestTripKm: 600 })
       expect(withDc.assessable && withDc.tripStops).toEqual({ min: 2, max: 2, single: true })
-      // a longer stop brings the big battery back to one stop
-      const longer = assessModel({ ...twoBatteries, avgConsumptionKwhPer100km: 16, fastChargePowerKw: 100 }, { ...NEEDS_DEFAULTS, longestTripKm: 600, stopMinutes: 30 })
-      expect(longer.assessable && longer.tripStops).toEqual({ min: 1, max: 2, single: false })
     })
 
     it('marks the fallback when winter data is missing and is not assessable without ranges', () => {
@@ -155,35 +152,35 @@ describe('needsCheck', () => {
     ]
 
     it('counts assessable models, weekly chargers and trips without a stop', () => {
-      expect(summarizeNeeds(models, { dailyKm: 40, longestTripKm: 400, homeCharging: true, stopMinutes: 20 }))
-        .toEqual({ total: 2, weeklyOk: 1, tripOk: 0, tripOneStopOk: 2 })
+      expect(summarizeNeeds(models, { dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 1 }))
+        .toEqual({ total: 2, weeklyOk: 1, tripOk: 0, tripOkWithin: [0, 2, 2, 2, 2] })
       // largest battery of the first model covers 400 km in winter: 400 × 0.8 = 320 < 400 → still 1 stop;
       // with a 300 km trip both models make it
-      expect(summarizeNeeds(models, { dailyKm: 40, longestTripKm: 300, homeCharging: true, stopMinutes: 20 }).tripOk).toBe(2)
+      expect(summarizeNeeds(models, { dailyKm: 40, longestTripKm: 300, homeCharging: true, maxStops: 1 }).tripOk).toBe(2)
     })
 
     it('uses at most one stop per week as the bar without home charging', () => {
       // 280 km a week: 300 × 0.7 = 210 → 2 stops (no), 380 × 0.7 = 266 → 2 stops (no)
-      expect(summarizeNeeds(models, { dailyKm: 40, longestTripKm: 400, homeCharging: false, stopMinutes: 20 }).weeklyOk).toBe(0)
+      expect(summarizeNeeds(models, { dailyKm: 40, longestTripKm: 400, homeCharging: false, maxStops: 1 }).weeklyOk).toBe(0)
       // 20 km a day = 140 a week → both one stop
-      expect(summarizeNeeds(models, { dailyKm: 20, longestTripKm: 400, homeCharging: false, stopMinutes: 20 }).weeklyOk).toBe(2)
+      expect(summarizeNeeds(models, { dailyKm: 20, longestTripKm: 400, homeCharging: false, maxStops: 1 }).weeklyOk).toBe(2)
     })
   })
 })
 
-describe('oneStopRangeKm', () => {
-  it('adds what 20 minutes at the community DC power recharge, capped at the fast-charge share', () => {
+describe('stopsRangeKm', () => {
+  it('adds 20 minutes at the community DC power per stop, capped at the fast-charge share', () => {
     // 400 km × 0.8 = 320, 100 kW × 1/3 h = 33.3 kWh → 208 km at 16 kWh/100 km
-    expect(oneStopRangeKm(400, 16, 100)).toBe(528)
+    expect(stopsRangeKm(400, 16, 100, 1)).toBe(528)
+    expect(stopsRangeKm(400, 16, 100, 2)).toBe(737)
     // 300 kW would add 625 km, the stop is capped at 70 % of the battery = 280 km
-    expect(oneStopRangeKm(400, 16, 300)).toBe(600)
-    // a 30-minute stop at 100 kW: 50 kWh → 312 km, capped at 280
-    expect(oneStopRangeKm(400, 16, 100, 30)).toBe(600)
+    expect(stopsRangeKm(400, 16, 300, 1)).toBe(600)
+    expect(stopsRangeKm(400, 16, 100, 0)).toBe(320)
   })
   it('is null without range, consumption or DC data', () => {
-    expect(oneStopRangeKm(null, 16, 100)).toBeNull()
-    expect(oneStopRangeKm(400, null, 100)).toBeNull()
-    expect(oneStopRangeKm(400, 16, null)).toBeNull()
-    expect(oneStopRangeKm(400, 16, 0)).toBeNull()
+    expect(stopsRangeKm(null, 16, 100, 1)).toBeNull()
+    expect(stopsRangeKm(400, null, 100, 1)).toBeNull()
+    expect(stopsRangeKm(400, 16, null, 1)).toBeNull()
+    expect(stopsRangeKm(400, 16, 0, 1)).toBeNull()
   })
 })
