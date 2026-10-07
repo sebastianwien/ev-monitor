@@ -77,7 +77,9 @@ class PublicModelServiceWithoutDataIntegrationTest extends AbstractIntegrationTe
 
     @Test
     void getModelsWithoutData_excludesSonstige() {
-        saveWltpSpec(CarBrand.CarModel.SONSTIGE_CUSTOM, new BigDecimal("60.0"), new BigDecimal("58.0"), new BigDecimal("17.0"));
+        // 61.5 kWh: the top-models test already stores a 60.0 kWh spec for this model, and the
+        // shared test database keeps it (unique on brand, model, capacity, variant, type, source)
+        saveWltpSpec(CarBrand.CarModel.SONSTIGE_CUSTOM, new BigDecimal("61.5"), new BigDecimal("58.0"), new BigDecimal("17.0"));
 
         List<ModelWithoutDataResponse> result = publicModelService.getModelsWithoutData(false);
 
