@@ -116,25 +116,25 @@
             @click="openAssumptions"
           >{{ t('models_ranking.assumptions.chip') }}</button>
         </div>
-        <!-- Where the hints per row come from, with the way back to the card -->
-        <p class="flex min-w-0 flex-wrap items-baseline gap-x-2 pb-1 text-[13px] leading-snug text-gray-700 dark:text-gray-300">
+        <!-- Where the hints per row come from, with the way back to the card. Only once the
+             card has scrolled away: while it is in view the line would repeat the fields above it. -->
+        <p v-if="!needsCardInView" class="flex min-w-0 flex-wrap items-baseline gap-x-2 pb-2 text-[13px] leading-snug text-gray-700 dark:text-gray-300">
           <span>{{ needsBasis }}</span>
           <button type="button" class="pointer-events-auto flex-none font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="needs-change" @click="editNeeds">{{ t('models_ranking.needs.basis_change') }}</button>
         </p>
-        <div class="flex justify-between gap-3 whitespace-nowrap pb-2 pt-0.5 text-[13px] text-gray-500 dark:text-gray-400">
-          <span aria-live="polite">{{ loading ? '' : t('models_ranking.count', { shown: ranked.length, total: models.length }) }}</span>
-          <span class="truncate">
-            {{ t(`models_ranking.sort.note_${sort}`) }}
-          </span>
-        </div>
+        <!-- The count only matters when something narrows the list -->
+        <p v-if="!loading && ranked.length !== models.length" class="flex flex-wrap items-baseline gap-x-2 pb-2 text-[13px] text-gray-500 dark:text-gray-400" aria-live="polite" data-testid="ranking-count">
+          <span>{{ t('models_ranking.count', { shown: ranked.length, total: models.length }) }}</span>
+          <button type="button" class="pointer-events-auto font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" @click="resetFilters">{{ t('models_ranking.count_reset') }}</button>
+        </p>
         <!-- Column heads (desktop only; on the phone the bars are labelled in the row).
              .mr-grid sets display itself, so plain `hidden` would lose the cascade. -->
         <div class="mr-grid mr-ruler h-[30px] max-lg:!hidden" aria-hidden="true">
-          <span class="mr-who self-center text-left text-[11.5px] font-semibold text-gray-700 dark:text-gray-300">{{ t('models_ranking.columns.model') }}</span>
-          <span class="mr-ld self-center text-left text-[11.5px] font-semibold text-gray-700 dark:text-gray-300">
+          <span class="mr-who self-center text-left text-[11.5px] font-semibold" :class="headClass('mr-who')">{{ t('models_ranking.columns.model') }}</span>
+          <span class="mr-ld self-center text-left text-[11.5px] font-semibold" :class="headClass('mr-ld')">
             {{ t('models_ranking.columns.consumption') }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
           </span>
-          <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block']" class="hidden self-center whitespace-nowrap text-right text-[11.5px] font-semibold leading-tight text-gray-700 dark:text-gray-300">
+          <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block', headClass(col.cls)]" class="hidden self-center whitespace-nowrap text-right text-[11.5px] font-semibold leading-tight">
             {{ col.label }}
           </span>
         </div>
@@ -286,7 +286,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, toRef, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -300,7 +300,7 @@ import {
 } from '../api/publicModelService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
-import { useModelRanking, modelKey, RANKING_SORTS } from '../composables/useModelRanking'
+import { useModelRanking, modelKey, RANKING_SORTS, type RankingSort } from '../composables/useModelRanking'
 import { combustionAllowed } from '../utils/costMix'
 import { analytics } from '../services/analytics'
 import { useModelsListSeo } from '../composables/useModelsListSeo'
@@ -422,6 +422,16 @@ const needsBasis = computed(() => t('models_ranking.needs.basis', {
 function showTripModels() {
   tripOnly.value = !tripOnly.value
 }
+// The sticky header repeats the needs only while the card itself is out of view
+const needsCardInView = ref(true)
+let needsObserver: IntersectionObserver | null = null
+onMounted(() => {
+  const el = needsCard.value?.$el
+  if (!(el instanceof HTMLElement) || typeof IntersectionObserver === 'undefined') return
+  needsObserver = new IntersectionObserver(([entry]) => { needsCardInView.value = entry.isIntersecting }, { threshold: 0 })
+  needsObserver.observe(el)
+})
+onUnmounted(() => needsObserver?.disconnect())
 function editNeeds() {
   const el = needsCard.value?.$el
   if (el instanceof HTMLElement) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -485,6 +495,11 @@ const columnHeads = computed(() => [
   { cls: 'mr-c3', label: t('models_ranking.columns.cost_per', { unit: distanceUnitLabel() }) },
   { cls: 'mr-c4', label: t('models_ranking.columns.range') },
 ])
+// The sorted column carries the accent; the chip names the sort, the head shows where it acts
+const SORT_COLUMN: Record<RankingSort, string> = { efficient: 'mr-ld', wltp: 'mr-ld', winter: 'mr-ld', range: 'mr-c4', data: 'mr-who' }
+function headClass(cls: string) {
+  return SORT_COLUMN[sort.value] === cls ? 'text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'
+}
 
 const stickyTopClass = computed(() => isAuthenticated.value
   ? 'top-[calc(env(safe-area-inset-top)+var(--top-nav-h,0px))]'

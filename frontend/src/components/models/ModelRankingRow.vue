@@ -138,7 +138,7 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { officialModelThumbUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
 import type { LadderAxis } from '../../utils/ladderScale'
-import { stopsRangeKm, ONE_STOP_MINUTES, USABLE_BATTERY_SHARE } from '../../utils/needsCheck'
+import { stopsRangeKm, ONE_STOP_MINUTES, USABLE_BATTERY_SHARE, meetsNeeds } from '../../utils/needsCheck'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
 import type { FuelKind, MainValue } from '../../utils/costMix'
 
@@ -228,11 +228,12 @@ const needsHint = computed(() => {
   }
   return parts.join(' · ')
 })
-// Dot in front of the hint: green when every battery makes the trip without a stop, orange otherwise
+// Dot in front of the hint: green when the model meets everything the reader asked for
+// (weekly rhythm, trip within the chosen stops, every battery), orange when something falls short
 const tripStatusClass = computed(() => {
   const n = props.item.needs
   if (!n.assessable) return 'bg-gray-300 dark:bg-gray-600'
-  return n.tripStops.max === 0 ? 'bg-green-600 dark:bg-green-400' : 'bg-orange-500 dark:bg-orange-400'
+  return meetsNeeds(n, props.maxStops) ? 'bg-green-600 dark:bg-green-400' : 'bg-orange-500 dark:bg-orange-400'
 })
 const costNumber = computed(() => props.item.costPer100kmEur != null
   ? formatDecimal(convertCostPerDistance(props.item.costPer100kmEur, unitSystem.value), 2)

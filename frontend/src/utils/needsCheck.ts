@@ -131,6 +131,17 @@ export function assessModel(m: RangeFields, input: NeedsInput): NeedsAssessment 
   }
 }
 
+/** Home charging: at most once a week even with the smallest battery; otherwise at most one stop a week */
+export function weeklyOk(a: NeedsAssessment): boolean {
+  if (!a.assessable) return false
+  return a.interval ? a.interval.min >= DAYS_PER_WEEK : (a.stopsPerWeek?.max ?? Infinity) <= 1
+}
+
+/** Everything the reader asked for holds for every battery variant: weekly rhythm and the trip within the allowed stops */
+export function meetsNeeds(a: NeedsAssessment, maxStops: number): boolean {
+  return a.assessable && weeklyOk(a) && a.tripStops.max <= maxStops
+}
+
 export interface NeedsSummary {
   /** models with a range span */
   total: number
@@ -144,18 +155,18 @@ export interface NeedsSummary {
 
 export function summarizeNeeds(models: RangeFields[], input: NeedsInput): NeedsSummary {
   let total = 0
-  let weeklyOk = 0
+  let weeklyOkCount = 0
   let tripOk = 0
   const tripOkWithin = Array.from({ length: MAX_STOPS + 1 }, () => 0)
   for (const m of models) {
     const a = assessModel(m, input)
     if (!a.assessable) continue
     total++
-    if (a.interval ? a.interval.min >= DAYS_PER_WEEK : (a.stopsPerWeek?.max ?? Infinity) <= 1) weeklyOk++
+    if (weeklyOk(a)) weeklyOkCount++
     if (a.tripStops.min === 0) tripOk++
     for (let n = a.tripStops.min; n <= MAX_STOPS; n++) tripOkWithin[n]++
   }
-  return { total, weeklyOk, tripOk, tripOkWithin }
+  return { total, weeklyOk: weeklyOkCount, tripOk, tripOkWithin }
 }
 
 /**

@@ -50,10 +50,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       await expect(page.getByTestId('needs-daily')).toHaveValue('40');
       await expect(page.getByTestId('needs-longest')).toHaveValue('400');
-      await expect(page.getByTestId('needs-summary')).toContainText(/\d+ von \d+/);
-      await expect(page.getByTestId('needs-summary')).toContainText('bei 40 km am Tag');
+      await expect(page.getByTestId('needs-summary')).toContainText(/\d+ von \d+ Modellen schaffen 400 km mit höchstens 1 Stopp/);
       await expect(page.getByTestId('needs-stops-1')).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.getByTestId('needs-summary')).toContainText(/400 km mit höchstens 1 Stopp.*davon ohne Stopp/s);
+      // nothing narrows the list yet, so no count line and no repeated basis under the chips
+      await expect(page.getByTestId('ranking-count')).toHaveCount(0);
+      await expect(page.getByTestId('needs-change')).toHaveCount(0);
 
       // the stop count is the reader's choice: the figure and the filter chip follow it
       await page.getByTestId('needs-stops-3').click();
@@ -64,18 +65,17 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       }
     });
 
-    test('Tagesstrecke ändern ändert Satz und Hinweis der ersten Zeile', async ({ page }) => {
+    test('Tagesstrecke ändert den Hinweis der ersten Zeile, längste Fahrt den Satz', async ({ page }) => {
       await openRanking(page);
       const summary = page.getByTestId('needs-summary');
       const firstHint = rows(page).first().getByTestId('needs-hint');
-      const summaryBefore = await summary.innerText();
       const hintBefore = await firstHint.innerText();
 
       await setDistance(page, 'needs-daily', '120');
-
-      await expect(summary).toContainText('bei 120 km am Tag');
-      expect(await summary.innerText()).not.toBe(summaryBefore);
       await expect.poll(() => firstHint.innerText()).not.toBe(hintBefore);
+
+      await setDistance(page, 'needs-longest', '150');
+      await expect(summary).toContainText('schaffen 150 km');
     });
 
     test('Chip "Längste Fahrt mit höchstens 1 Stopp" filtert die Liste', async ({ page }) => {
@@ -174,8 +174,14 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await setDistance(page, 'needs-longest', '100');
       await page.getByTestId('needs-show-models').click();
       await expect(page.getByTestId('trip-chip')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByTestId('needs-show-models')).toContainText('Alle zeigen');
       await expect(page.locator('section.mr-board')).toBeInViewport();
 
+      // the basis line appears in the sticky header once the card has scrolled away
+      await page.getByTestId('needs-change').waitFor({ state: 'hidden' });
+      await rows(page).nth(5).scrollIntoViewIfNeeded();
+      await page.mouse.wheel(0, 600);
+      await expect(page.getByTestId('needs-change')).toBeVisible();
       await expect(page.locator('section.mr-board')).toContainText('Für 40 km am Tag, 100 km längste Fahrt, Laden zuhause');
       await page.getByTestId('needs-change').click();
       await expect(page.getByTestId('needs-daily')).toBeFocused();
