@@ -1,5 +1,7 @@
 <template>
-<div :class="isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950'">
+<!-- Own background also when signed in: the ranking is a flat page, the app wallpaper
+     would show through between hero, filter column and board. -->
+<div class="min-h-screen bg-gray-50 dark:bg-gray-950">
   <PublicNav />
 
   <!-- Hero -->
