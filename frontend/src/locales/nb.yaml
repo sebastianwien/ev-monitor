@@ -381,7 +381,6 @@ models_ranking:
     real: "Reell"
     wltp: "WLTP"
     cost: "Kostnad"
-    vs: "vs. {fuel}"
     range: "Rekkevidde"
   row:
     details_open: "{name}, vis detaljer"
@@ -412,8 +411,7 @@ models_ranking:
     needs_unrated: "kan ikke vurderes ennå"
     span: "{min} til {max}"
     per_100: "per 100 {unit}"
-    cheaper_short: "{amount} under {fuel}"
-    dearer_short: "{amount} over {fuel}"
+    combustion_short: "{fuel} {amount}"
   detail:
     real: "Reelt forbruk Ø"
     variant_range: "Spenn {min} til {max} per batterivariant"

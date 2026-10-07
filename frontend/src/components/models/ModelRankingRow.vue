@@ -40,7 +40,7 @@
            across the row that also carries the data basis (the name block is too narrow for it there) -->
       <span class="mr-hint pointer-events-none line-clamp-3 text-[12.5px] leading-snug text-gray-700 lg:line-clamp-none lg:flex lg:min-w-0 lg:flex-wrap lg:items-center lg:gap-x-1 dark:text-gray-300">
         <span data-testid="needs-hint">{{ needsHint }}</span>
-        <span v-if="savingsLabel" class="lg:hidden"> · <span :class="savingsClass" data-testid="savings">{{ savingsLabel }}</span></span>
+        <span v-if="savingsLabel" class="lg:hidden"> · <span data-testid="savings">{{ savingsLabel }}</span></span>
         <span class="hidden whitespace-nowrap text-gray-500 lg:inline dark:text-gray-400"> · {{ dataBasis }}</span>
         <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto hidden h-4 w-4 flex-none text-orange-600 lg:block dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
       </span>
@@ -62,7 +62,7 @@
       <span class="mr-c1 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('efficient')">{{ formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: false }) }}</span>
       <span class="mr-c2 pointer-events-none hidden text-right text-sm tabular-nums xl:block" :class="colClass('wltp')">{{ formatConsumption(item.wltpKwhPer100km, { showUnit: false }) }}</span>
       <span class="mr-c3 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('cost')">{{ costNumber }}</span>
-      <span class="mr-c6 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="savingsNumber ? savingsClass : 'text-gray-500 dark:text-gray-400'" data-testid="savings-column">{{ savingsNumber ?? '–' }}</span>
+      <span class="mr-c6 pointer-events-none hidden text-right text-sm tabular-nums text-gray-500 lg:block dark:text-gray-400" data-testid="savings-column">{{ savingsNumber ?? '–' }}</span>
       <span class="mr-c4 pointer-events-none hidden whitespace-nowrap text-right text-sm tabular-nums xl:block" :class="colClass('range')">{{ rangeCell }}</span>
 
       <button
@@ -227,19 +227,20 @@ const savingsParams = computed(() => {
   if (s == null) return null
   return { amount: formatCurrency(Math.abs(convertCostPerDistance(s, unitSystem.value))), fuel: fuelLabel.value, unit: distanceUnitLabel() }
 })
-// Meta line: short form; the expanded detail carries the full sentence with "per 100 km"
-const savingsLabel = computed(() => savingsParams.value
-  ? t((props.item.savingsPer100kmEur ?? 0) >= 0 ? 'models_ranking.row.cheaper_short' : 'models_ranking.row.dearer_short', savingsParams.value)
-  : null)
-const savingsClass = computed(() => (props.item.savingsPer100kmEur ?? 0) >= 0
-  ? 'text-green-700 dark:text-green-400'
-  : 'text-orange-700 dark:text-orange-400')
-// Desktop column "vs. petrol": signed number in the cost column's unit, minus = EV cheaper
-const savingsNumber = computed(() => {
+// Absolute cost of the assumed combustion car per 100 km (EV cost plus savings); the
+// expanded detail carries the difference per 100 km and per year
+const combustionCostEur = computed(() => {
+  const ev = props.item.costPer100kmEur
   const s = props.item.savingsPer100kmEur
-  if (s == null) return null
-  return `${s >= 0 ? '−' : '+'}${formatDecimal(Math.abs(convertCostPerDistance(s, unitSystem.value)), 2)}`
+  return ev != null && s != null ? ev + s : null
 })
+const savingsLabel = computed(() => combustionCostEur.value != null
+  ? t('models_ranking.row.combustion_short', { fuel: fuelLabel.value, amount: formatCostPerDistance(combustionCostEur.value) })
+  : null)
+// Desktop column "Benziner": the combustion cost in the cost column's unit
+const savingsNumber = computed(() => combustionCostEur.value != null
+  ? formatDecimal(convertCostPerDistance(combustionCostEur.value, unitSystem.value), 2)
+  : null)
 
 // Range column: typical span from the smallest to the largest battery, real range as fallback
 const typicalSpan = computed(() => {

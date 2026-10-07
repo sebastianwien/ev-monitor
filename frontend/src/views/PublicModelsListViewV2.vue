@@ -506,7 +506,7 @@ const columnHeads = computed(() => {
     { cls: 'mr-c1', label: t('models_ranking.columns.real'), unit: consumptionUnitLabel() },
     { cls: 'mr-c2', label: t('models_ranking.columns.wltp'), unit: consumptionUnitLabel() },
     { cls: 'mr-c3', label: t('models_ranking.columns.cost'), unit: costUnit },
-    { cls: 'mr-c6', label: t('models_ranking.columns.vs', { fuel: t(`models_ranking.assumptions.${cost.value.fuel}`) }), unit: costUnit },
+    { cls: 'mr-c6', label: t(`models_ranking.assumptions.${cost.value.fuel}`), unit: costUnit },
     { cls: 'mr-c4', label: t('models_ranking.columns.range'), unit: distanceUnitLabel() },
   ]
 })

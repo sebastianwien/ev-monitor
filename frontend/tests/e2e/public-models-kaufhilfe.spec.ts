@@ -29,7 +29,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       const first = rows(page).first();
       await expect(first.locator(viewport.width >= 1024 ? '.mr-hint' : '.mr-who')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
       if (viewport.width >= 1024) {
-        await expect(first.getByTestId('savings-column')).toContainText(/^[−+]\d/);
+        await expect(first.getByTestId('savings-column')).toContainText(/^\d+,\d\d$/);
       }
     });
 
@@ -99,7 +99,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       const first = rows(page).first();
       // DE: Kraftstoffpreis ist vorbelegt, der Vergleich steht sofort
-      await expect(first.getByTestId('savings')).toContainText(/(unter|über) Benziner/);
+      await expect(first.getByTestId('savings')).toContainText(/Benziner \d+,\d\d €\/100km/);
 
       await page.getByTestId('assumptions-chip').click();
       await page.getByTestId('main-value-cost').click();

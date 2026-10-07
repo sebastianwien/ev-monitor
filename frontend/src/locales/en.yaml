@@ -418,7 +418,6 @@ models_ranking:
     real: "Real"
     wltp: "WLTP"
     cost: "Cost"
-    vs: "vs. {fuel}"
     range: "Range"
   row:
     details_open: "{name}, show details"
@@ -449,8 +448,7 @@ models_ranking:
     needs_unrated: "not assessable yet"
     span: "{min} to {max}"
     per_100: "per 100 {unit}"
-    cheaper_short: "{amount} below {fuel}"
-    dearer_short: "{amount} above {fuel}"
+    combustion_short: "{fuel} {amount}"
   detail:
     real: "Real consumption Ø"
     variant_range: "Range {min} to {max} per battery variant"
