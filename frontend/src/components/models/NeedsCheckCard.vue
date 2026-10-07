@@ -1,66 +1,60 @@
 <template>
-  <section class="grid gap-3.5 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900" :aria-labelledby="titleId">
-    <h2 :id="titleId" class="text-[17px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
+  <section class="grid gap-3" :aria-labelledby="titleId">
+    <!-- Single root (no comment before it, a root comment makes $el a comment node): the list
+         header scrolls to $el. One sentence with the three inputs inside, right above the rows. -->
+    <h2 :id="titleId" class="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
 
-    <div class="grid grid-cols-2 gap-3">
-      <label class="grid gap-1">
-        <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.daily', { unit: distanceUnitLabel() }) }}</span>
+    <p class="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-[15px] leading-snug text-gray-900 dark:text-gray-100">
+      <label class="contents">
+        <span>{{ t('models_ranking.needs.sentence_daily') }}</span>
         <input
           ref="dailyInput"
           :value="dailyLocal"
-          type="text"
-          inputmode="numeric"
-          pattern="[0-9]*"
-          autocomplete="off"
+          v-bind="numeric"
           data-testid="needs-daily"
-          class="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-base tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
           @input="onDistance('dailyKm', $event)"
         />
+        <span>{{ t('models_ranking.needs.sentence_daily_unit', { unit: distanceUnitLabel() }) }}</span>
       </label>
-      <label class="grid gap-1">
-        <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.longest', { unit: distanceUnitLabel() }) }}</span>
+      <label class="contents">
+        <span>{{ t('models_ranking.needs.sentence_longest') }}</span>
         <input
           :value="longestLocal"
-          type="text"
-          inputmode="numeric"
-          pattern="[0-9]*"
-          autocomplete="off"
+          v-bind="numeric"
           data-testid="needs-longest"
-          class="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-base tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
           @input="onDistance('longestTripKm', $event)"
         />
+        <span>{{ t('models_ranking.needs.sentence_longest_unit', { unit: distanceUnitLabel() }) }}</span>
       </label>
-    </div>
-
-    <div class="grid gap-1">
-      <span :id="homeId" class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.home') }}</span>
-      <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-200 bg-gray-200 dark:border-gray-700 dark:bg-gray-700" role="group" :aria-labelledby="homeId">
+      <span :id="homeId">{{ t('models_ranking.needs.sentence_home') }}</span>
+      <span class="inline-grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="homeId">
         <button
           v-for="opt in homeOptions"
           :key="String(opt.value)"
           type="button"
-          class="min-h-11 text-sm font-semibold"
+          class="min-h-10 px-3.5 text-sm font-semibold"
           :class="modelValue.homeCharging === opt.value
             ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
             : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'"
           :aria-pressed="modelValue.homeCharging === opt.value"
           @click="emit('update:modelValue', { ...modelValue, homeCharging: opt.value })"
         >{{ opt.label }}</button>
-      </div>
-    </div>
+      </span>
+    </p>
 
-    <p class="text-[15px] leading-snug text-gray-900 dark:text-gray-100" aria-live="polite" data-testid="needs-summary">{{ summaryText }}</p>
-    <button
-      v-if="summary.tripOk > 0"
-      type="button"
-      class="inline-flex min-h-11 items-center justify-self-start gap-1.5 text-[15px] font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400"
-      data-testid="needs-show-models"
-      @click="emit('show')"
-    >
-      {{ t('models_ranking.needs.show_models', { count: formatNumber(summary.tripOk) }, summary.tripOk) }}
-      <ArrowDownIcon class="h-4 w-4" aria-hidden="true" />
-    </button>
-    <slot />
+    <p class="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px] leading-snug text-gray-700 dark:text-gray-300">
+      <span aria-live="polite" data-testid="needs-summary">{{ summaryText }}</span>
+      <button
+        v-if="summary.tripOk > 0"
+        type="button"
+        class="inline-flex min-h-8 items-center gap-1 font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400"
+        data-testid="needs-show-models"
+        @click="emit('show')"
+      >
+        {{ t('models_ranking.needs.show_models', { count: formatNumber(summary.tripOk) }, summary.tripOk) }}
+        <ArrowDownIcon class="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+    </p>
     <p class="text-[12px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.assumptions') }}</p>
   </section>
 </template>
@@ -86,12 +80,20 @@ const { formatNumber, distanceUnitLabel, convertDistance, isImperial } = useLoca
 const titleId = useId()
 const homeId = useId()
 const dailyInput = ref<HTMLInputElement | null>(null)
-/** "Ändern" in the list header brings the reader back here */
+/** "Ändern" in the sticky list header brings the reader back here */
 function focusFirst() {
   dailyInput.value?.focus()
   dailyInput.value?.select()
 }
 defineExpose({ focusFirst })
+
+const numeric = {
+  type: 'text',
+  inputmode: 'numeric',
+  pattern: '[0-9]*',
+  autocomplete: 'off',
+  class: 'h-10 w-[72px] rounded-lg border border-gray-300 bg-white px-2.5 text-center text-base font-semibold tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100',
+} as const
 
 // Inputs show the market's distance unit; the model keeps kilometres.
 const toLocal = (km: number) => String(Math.round(convertDistance(km)))

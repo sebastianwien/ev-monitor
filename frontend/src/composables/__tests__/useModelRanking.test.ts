@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { nextTick, ref } from 'vue'
-import { useModelRanking, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY, COST_STORAGE_KEY, PRIORITY_STORAGE_KEY } from '../useModelRanking'
+import { useModelRanking, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY, COST_STORAGE_KEY, SORT_STORAGE_KEY } from '../useModelRanking'
 import type { TopModelPreview, ModelWithoutData } from '../../api/publicModelService'
 import { COST_DEFAULTS } from '../../utils/costMix'
 
@@ -258,26 +258,18 @@ describe('useModelRanking', () => {
     })
   })
 
-  describe('priority', () => {
-    it('maps the answer to a sort and keeps it in the browser', async () => {
+  describe('sort', () => {
+    it('keeps the chosen sort in the browser and starts with it next time', () => {
       const r = useModelRanking(ref([]))
-      expect(r.priority.value).toBeNull()
-      r.priority.value = 'winter'
-      expect(r.sort.value).toBe('winter')
-      r.priority.value = 'cost'
       expect(r.sort.value).toBe('efficient')
-      await nextTick()
-      expect(localStorage.getItem(PRIORITY_STORAGE_KEY)).toBe('cost')
-      const again = useModelRanking(ref([]))
-      expect(again.priority.value).toBe('cost')
-      expect(again.sort.value).toBe('efficient')
+      r.sort.value = 'data'
+      expect(localStorage.getItem(SORT_STORAGE_KEY)).toBe('data')
+      expect(useModelRanking(ref([])).sort.value).toBe('data')
     })
 
-    it('changing the sort by chip clears the priority answer', () => {
-      const r = useModelRanking(ref([]))
-      r.priority.value = 'data'
-      r.sort.value = 'range'
-      expect(r.priority.value).toBeNull()
+    it('ignores an unknown stored sort', () => {
+      localStorage.setItem(SORT_STORAGE_KEY, 'bogus')
+      expect(useModelRanking(ref([])).sort.value).toBe('efficient')
     })
   })
 

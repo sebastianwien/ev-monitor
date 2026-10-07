@@ -331,7 +331,7 @@ models_list:
 
 models_ranking:
   hero:
-    eyebrow: "Community-Daten · Stand {date}"
+    eyebrow: "Community-Daten, Stand {date}"
     title_start: "Elektroautos im Vergleich:"
     title_highlight: "echter Verbrauch"
     title_end: "statt WLTP"
@@ -369,19 +369,6 @@ models_ranking:
     reset: "Angaben zurücksetzen"
     close: "Schließen"
     privacy: "Deine Angaben bleiben in deinem Browser und werden nicht an EV Monitor gesendet."
-  priority:
-    question: "Was ist dir am wichtigsten?"
-    cost: "Kosten"
-    range: "Reichweite"
-    winter: "Winterfest"
-    wltp: "Nah an WLTP"
-    data: "Viele Daten"
-  legend:
-    title: "Legende"
-    real: "Realverbrauch Ø"
-    band: "Spanne der Akku-Varianten"
-    wltp: "WLTP-Angabe"
-    gap: "Abweichung"
   sort:
     label: "Sortieren nach"
     efficient: "Sparsamste"
@@ -401,6 +388,11 @@ models_ranking:
     daily: "{unit} am Tag"
     longest: "Längste Fahrt ({unit})"
     home: "Laden zuhause"
+    sentence_daily: "Ich fahre"
+    sentence_daily_unit: "{unit} am Tag,"
+    sentence_longest: "längste Fahrt"
+    sentence_longest_unit: "{unit},"
+    sentence_home: "Laden zuhause"
     home_yes: "Ja"
     home_no: "Nein"
     summary_home: "Bei {daily} {unit} am Tag musst du mit {weekly} von {total} Modellen auch im Winter höchstens einmal pro Woche laden. {trip} schaffen deine {longest} {unit} ohne Ladestopp."

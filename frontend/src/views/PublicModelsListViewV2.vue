@@ -3,25 +3,17 @@
   <PublicNav />
 
   <!-- Hero -->
-  <header v-if="!isRedditSource" class="mx-auto grid max-w-7xl gap-[18px] px-4 pb-5 pt-7 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center lg:gap-x-12 lg:px-6 lg:pb-8 lg:pt-12">
-    <div class="grid gap-[18px]">
-      <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
-        <span class="h-2 w-2 rounded-full bg-green-600 ring-4 ring-green-100 dark:bg-green-400 dark:ring-green-950" aria-hidden="true"></span>
-        {{ t('models_ranking.hero.eyebrow', { date: asOf }) }}
-      </p>
+  <header v-if="!isRedditSource" class="mx-auto grid max-w-7xl gap-6 px-4 pb-5 pt-7 lg:px-6 lg:pb-8 lg:pt-12">
+    <div class="grid gap-4">
+      <p class="text-[13px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.hero.eyebrow', { date: asOf }) }}</p>
       <h1 class="max-w-[18ch] text-balance text-[clamp(30px,7.4vw,52px)] font-bold leading-[1.04] tracking-tight text-gray-900 dark:text-gray-100">
-        {{ t('models_ranking.hero.title_start') }}
-        <span class="text-green-600 dark:text-green-400">{{ t('models_ranking.hero.title_highlight') }}</span>
-        {{ t('models_ranking.hero.title_end') }}
+        {{ t('models_ranking.hero.title_start') }} {{ t('models_ranking.hero.title_highlight') }} {{ t('models_ranking.hero.title_end') }}
       </h1>
       <p v-if="totalLogs > 0" class="max-w-[60ch] text-gray-600 dark:text-gray-400">
         {{ t('models_ranking.hero.lede', { logs: formatNumber(totalLogs), drivers: formatNumber(platformStats?.userCount ?? 0) }) }}
       </p>
     </div>
-    <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" @show="showTripModels">
-      <PriorityPicker v-model="priority" />
-    </NeedsCheckCard>
-    <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-4 lg:col-span-2 dark:border-gray-800 dark:bg-gray-800">
+    <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-4 dark:border-gray-800 dark:bg-gray-800">
       <div v-for="fact in heroFacts" :key="fact.label" class="flex flex-col-reverse bg-white px-3.5 py-3 dark:bg-gray-900">
         <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ fact.label }}</dt>
         <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums" :class="fact.highlight ? 'text-orange-700 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'">{{ fact.value }}</dd>
@@ -97,16 +89,12 @@
         </div>
       </div>
 
-      <ul class="flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-gray-600 dark:text-gray-400" :aria-label="t('models_ranking.legend.title')">
-        <li class="inline-flex items-center gap-1.5"><i class="h-3 w-3 rounded-full bg-green-600 dark:bg-green-400"></i>{{ t('models_ranking.legend.real') }}</li>
-        <li class="inline-flex items-center gap-1.5"><i class="h-2 w-[22px] rounded bg-green-200 dark:bg-green-900"></i>{{ t('models_ranking.legend.band') }}</li>
-        <li class="inline-flex items-center gap-1.5"><i class="h-3 w-3 rounded-full border-2 border-gray-400 dark:border-gray-500"></i>{{ t('models_ranking.legend.wltp') }}</li>
-        <li class="inline-flex items-center gap-1.5"><i class="h-[3px] w-[22px] rounded-sm bg-orange-500 dark:bg-orange-400"></i>{{ t('models_ranking.legend.gap') }}</li>
-      </ul>
     </aside>
 
     <!-- Ranking -->
-    <section ref="board" class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm dark:lg:border-gray-800 dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
+    <section class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm dark:lg:border-gray-800 dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
+      <!-- Needs check sits where it acts: right above the rows -->
+      <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" class="border-b border-gray-200 px-4 py-4 lg:px-5 dark:border-gray-800" @show="showTripModels" />
       <div class="sticky z-20 border-b border-gray-200 bg-gray-50 px-4 pt-2.5 lg:px-5 lg:pt-3 dark:border-gray-800 dark:bg-gray-950 lg:bg-white dark:lg:bg-gray-900" :class="stickyTopClass">
         <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0 lg:pb-2.5" role="group" :aria-label="t('models_ranking.sort.label')">
           <button
@@ -321,7 +309,6 @@ import ThgBanner from '../components/shared/ThgBanner.vue'
 import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
 import ModelRankingRow from '../components/models/ModelRankingRow.vue'
 import NeedsCheckCard from '../components/models/NeedsCheckCard.vue'
-import PriorityPicker from '../components/models/PriorityPicker.vue'
 import AssumptionsSheet from '../components/models/AssumptionsSheet.vue'
 
 const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: false })
@@ -351,7 +338,7 @@ const loading = ref(true)
 const loadError = ref(false)
 
 const {
-  sort, category, query, price, cost, homeShare, combustionMarket, applyReferencePrices, resetCost, priority,
+  sort, category, query, price, cost, homeShare, combustionMarket, applyReferencePrices, resetCost,
   needs, needsSummary, tripOnly, ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
   compareKeys, canAddCompare, isInCompare, toggleCompare, clearCompare,
 } = useModelRanking(models, modelsWithoutData)
@@ -424,7 +411,6 @@ function chipClass(active: boolean, compact = false) {
 
 // ── Needs check: the card and the list point at each other ──────────────────
 const needsCard = ref<InstanceType<typeof NeedsCheckCard> | null>(null)
-const board = ref<HTMLElement | null>(null)
 const needsBasis = computed(() => t('models_ranking.needs.basis', {
   daily: formatNumber(Math.round(convertDistance(needs.value.dailyKm))),
   longest: formatNumber(Math.round(convertDistance(needs.value.longestTripKm))),
@@ -433,10 +419,10 @@ const needsBasis = computed(() => t('models_ranking.needs.basis', {
 }))
 function showTripModels() {
   tripOnly.value = true
-  board.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 function editNeeds() {
-  needsCard.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  const el = needsCard.value?.$el
+  if (el instanceof HTMLElement) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
   needsCard.value?.focusFirst()
 }
 

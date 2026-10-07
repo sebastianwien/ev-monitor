@@ -328,7 +328,7 @@ models_list:
 
 models_ranking:
   hero:
-    eyebrow: "Community data · as of {date}"
+    eyebrow: "Community data, as of {date}"
     title_start: "Electric cars compared:"
     title_highlight: "real consumption"
     title_end: "instead of WLTP"
@@ -366,19 +366,6 @@ models_ranking:
     reset: "Reset inputs"
     close: "Close"
     privacy: "Your inputs stay in your browser and are not sent to EV Monitor."
-  priority:
-    question: "What matters most to you?"
-    cost: "Cost"
-    range: "Range"
-    winter: "Winter proof"
-    wltp: "Close to WLTP"
-    data: "Lots of data"
-  legend:
-    title: "Legend"
-    real: "Real consumption Ø"
-    band: "Range across battery variants"
-    wltp: "WLTP rating"
-    gap: "Deviation"
   sort:
     label: "Sort by"
     efficient: "Most efficient"
@@ -398,6 +385,11 @@ models_ranking:
     daily: "{unit} a day"
     longest: "Longest trip ({unit})"
     home: "Charging at home"
+    sentence_daily: "I drive"
+    sentence_daily_unit: "{unit} a day,"
+    sentence_longest: "longest trip"
+    sentence_longest_unit: "{unit},"
+    sentence_home: "charging at home"
     home_yes: "Yes"
     home_no: "No"
     summary_home: "At {daily} {unit} a day, {weekly} of {total} models need charging at most once a week, even in winter. {trip} make your {longest} {unit} without a charging stop."

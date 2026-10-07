@@ -291,7 +291,7 @@ models_list:
   og_description: "Reelle forbruksdata fra fellesskapet for alle elbiler. WLTP mot hverdagsvirkeligheten i direkte sammenligning."
 models_ranking:
   hero:
-    eyebrow: "Fellesskapsdata · per {date}"
+    eyebrow: "Fellesskapsdata, per {date}"
     title_start: "Elbiler sammenlignet:"
     title_highlight: "ekte forbruk"
     title_end: "i stedet for WLTP"
@@ -329,19 +329,6 @@ models_ranking:
     reset: "Nullstill"
     close: "Lukk"
     privacy: "Det du skriver inn blir i nettleseren din og sendes ikke til EV Monitor."
-  priority:
-    question: "Hva er viktigst for deg?"
-    cost: "Kostnad"
-    range: "Rekkevidde"
-    winter: "Vintersikker"
-    wltp: "Nær WLTP"
-    data: "Mye data"
-  legend:
-    title: "Forklaring"
-    real: "Reelt forbruk Ø"
-    band: "Spenn mellom batterivarianter"
-    wltp: "WLTP-oppgitt"
-    gap: "Avvik"
   sort:
     label: "Sorter etter"
     efficient: "Mest sparsom"
@@ -361,6 +348,11 @@ models_ranking:
     daily: "{unit} per dag"
     longest: "Lengste tur ({unit})"
     home: "Lading hjemme"
+    sentence_daily: "Jeg kjører"
+    sentence_daily_unit: "{unit} per dag,"
+    sentence_longest: "lengste tur"
+    sentence_longest_unit: "{unit},"
+    sentence_home: "lading hjemme"
     home_yes: "Ja"
     home_no: "Nei"
     summary_home: "Med {daily} {unit} per dag må du lade {weekly} av {total} modeller høyst én gang i uken, også om vinteren. {trip} klarer dine {longest} {unit} uten ladestopp."

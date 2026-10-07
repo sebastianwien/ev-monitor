@@ -142,20 +142,19 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(first.getByTestId('savings')).not.toContainText('Benziner');
     });
 
-    test('Priorität "Meiste Daten" sortiert um und bleibt nach Neuladen', async ({ page }) => {
+    test('Sortierung "Meiste Daten" sortiert um und bleibt nach Neuladen', async ({ page }) => {
       await openRanking(page);
       const firstBefore = await rows(page).first().locator('.mr-who').innerText();
-      await page.getByTestId('priority-data').click();
+      await page.getByRole('button', { name: 'Meiste Daten' }).click();
       await expect(page.getByRole('button', { name: 'Meiste Daten' })).toHaveAttribute('aria-pressed', 'true');
       await expect.poll(() => rows(page).first().locator('.mr-who').innerText()).not.toBe(firstBefore);
 
       await page.reload();
       await expect(rows(page).first()).toBeVisible({ timeout: 15_000 });
-      await expect(page.getByTestId('priority-data')).toHaveAttribute('aria-pressed', 'true');
       await expect(page.getByRole('button', { name: 'Meiste Daten' })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    test('Karte und Liste zeigen aufeinander: Modelle zeigen setzt den Chip, Ändern fokussiert die Karte', async ({ page }) => {
+    test('Bedarfs-Satz und Liste zeigen aufeinander: Modelle zeigen setzt den Chip, Ändern fokussiert die Eingabe', async ({ page }) => {
       await openRanking(page);
       await setDistance(page, 'needs-longest', '100');
       await page.getByTestId('needs-show-models').click();

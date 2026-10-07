@@ -291,7 +291,7 @@ models_list:
   og_description: "Verkliga förbrukningsdata från communityn för alla elbilar. WLTP mot vardagsverkligheten i direkt jämförelse."
 models_ranking:
   hero:
-    eyebrow: "Communitydata · per {date}"
+    eyebrow: "Communitydata, per {date}"
     title_start: "Elbilar jämförda:"
     title_highlight: "verklig förbrukning"
     title_end: "i stället för WLTP"
@@ -329,19 +329,6 @@ models_ranking:
     reset: "Återställ"
     close: "Stäng"
     privacy: "Det du anger stannar i din webbläsare och skickas inte till EV Monitor."
-  priority:
-    question: "Vad är viktigast för dig?"
-    cost: "Kostnad"
-    range: "Räckvidd"
-    winter: "Vintersäker"
-    wltp: "Nära WLTP"
-    data: "Mycket data"
-  legend:
-    title: "Förklaring"
-    real: "Verklig förbrukning Ø"
-    band: "Spann mellan batterivarianter"
-    wltp: "WLTP-värde"
-    gap: "Avvikelse"
   sort:
     label: "Sortera efter"
     efficient: "Snålast"
@@ -361,6 +348,11 @@ models_ranking:
     daily: "{unit} per dag"
     longest: "Längsta resa ({unit})"
     home: "Laddning hemma"
+    sentence_daily: "Jag kör"
+    sentence_daily_unit: "{unit} per dag,"
+    sentence_longest: "längsta resa"
+    sentence_longest_unit: "{unit},"
+    sentence_home: "laddning hemma"
     home_yes: "Ja"
     home_no: "Nej"
     summary_home: "Med {daily} {unit} per dag behöver du ladda {weekly} av {total} modeller högst en gång i veckan, även på vintern. {trip} klarar dina {longest} {unit} utan laddstopp."

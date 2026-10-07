@@ -15,12 +15,8 @@ export const MAX_COMPARE = 3
 export const PRICE_STORAGE_KEY = 'ev-price-per-kwh'
 /** Cost assumptions stay in the browser only, nothing is sent to the server. */
 export const COST_STORAGE_KEY = 'ev-cost-assumptions-v2'
-export const PRIORITY_STORAGE_KEY = 'ev-ranking-priority'
-
-/** "What matters most to you?" One answer, mapped to a sort. */
-export type Priority = 'cost' | 'range' | 'winter' | 'wltp' | 'data'
-export const PRIORITIES: Priority[] = ['cost', 'range', 'winter', 'wltp', 'data']
-const PRIORITY_SORT: Record<Priority, RankingSort> = { cost: 'efficient', range: 'range', winter: 'winter', wltp: 'wltp', data: 'data' }
+/** The chosen sort stays in the browser, so a returning reader finds the list as left. */
+export const SORT_STORAGE_KEY = 'ev-ranking-sort'
 /** Needs-check inputs stay in the browser only, nothing is sent to the server. */
 export const NEEDS_STORAGE_KEY = 'ev-needs-check'
 export const NEEDS_KM_MAX = 5000
@@ -127,12 +123,12 @@ function readStoredCost(): { cost: CostAssumptions; seeded: boolean } | null {
   }
 }
 
-function readStoredPriority(): Priority | null {
+function readStoredSort(): RankingSort {
   try {
-    const raw = localStorage.getItem(PRIORITY_STORAGE_KEY)
-    return (PRIORITIES as string[]).includes(raw ?? '') ? raw as Priority : null
+    const raw = localStorage.getItem(SORT_STORAGE_KEY)
+    return (RANKING_SORTS as string[]).includes(raw ?? '') ? raw as RankingSort : 'efficient'
   } catch {
-    return null
+    return 'efficient'
   }
 }
 
@@ -144,19 +140,9 @@ const round2 = (v: number) => Math.round(v * 100) / 100
  * the top-models DTO, no consumption formula of its own.
  */
 export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutData: Ref<ModelWithoutData[]> = ref([])) {
-  const sort = ref<RankingSort>('efficient')
-  const priority = ref<Priority | null>(readStoredPriority())
-  if (priority.value) sort.value = PRIORITY_SORT[priority.value]
-  watch(priority, p => {
-    if (p) sort.value = PRIORITY_SORT[p]
-    try {
-      if (p) localStorage.setItem(PRIORITY_STORAGE_KEY, p)
-      else localStorage.removeItem(PRIORITY_STORAGE_KEY)
-    } catch { /* private mode */ }
-  }, { flush: 'sync' })
-  // A chip click that leaves the priority's sort is a new decision: the answer no longer applies
+  const sort = ref<RankingSort>(readStoredSort())
   watch(sort, s => {
-    if (priority.value && PRIORITY_SORT[priority.value] !== s) priority.value = null
+    try { localStorage.setItem(SORT_STORAGE_KEY, s) } catch { /* private mode */ }
   }, { flush: 'sync' })
   const category = ref<string | null>(null)
   const query = ref('')
@@ -274,7 +260,6 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     combustionMarket,
     applyReferencePrices,
     resetCost,
-    priority,
     needs,
     needsSummary,
     tripOnly,
