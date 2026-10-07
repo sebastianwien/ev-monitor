@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.ChargingPriceService;
 import com.evmonitor.application.ChargingReferencePrices;
+import com.evmonitor.application.ModelWithoutDataResponse;
 import com.evmonitor.application.PlatformStatsResponse;
 import com.evmonitor.application.PublicBrandResponse;
 import com.evmonitor.application.PublicModelService;
@@ -35,6 +36,8 @@ public class PublicModelController {
 
     private static final CacheControl PUBLIC_1H = CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic();
     private static final CacheControl NO_STORE = CacheControl.noStore();
+    /** Ceiling for /models/top: the ranking page lists every model with data. */
+    private static final int MAX_TOP_LIMIT = 200;
 
     /**
      * GET /api/public/stats
@@ -133,7 +136,7 @@ public class PublicModelController {
     /**
      * GET /api/public/models/top?limit=N
      * Returns top N models by community log count with lightweight stats.
-     * Used by landing page and model index — replaces N individual getModelStats calls.
+     * Used by landing page and model index - replaces N individual getModelStats calls.
      */
     @GetMapping("/models/top")
     public ResponseEntity<List<TopModelResponse>> getTopModels(
@@ -142,7 +145,19 @@ public class PublicModelController {
 
         boolean isSeedUser = principal != null && principal.getUser().isSeedData();
         CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
-        return ResponseEntity.ok().cacheControl(cc).body(publicModelService.getTopModels(Math.min(limit, 50), isSeedUser));
+        return ResponseEntity.ok().cacheControl(cc).body(publicModelService.getTopModels(Math.min(limit, MAX_TOP_LIMIT), isSeedUser));
+    }
+
+    /**
+     * GET /api/public/models/without-data
+     * Models with a WLTP spec but no community logs yet, spec values only.
+     */
+    @GetMapping("/models/without-data")
+    public ResponseEntity<List<ModelWithoutDataResponse>> getModelsWithoutData(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
+        CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
+        return ResponseEntity.ok().cacheControl(cc).body(publicModelService.getModelsWithoutData(isSeedUser));
     }
 
     /**

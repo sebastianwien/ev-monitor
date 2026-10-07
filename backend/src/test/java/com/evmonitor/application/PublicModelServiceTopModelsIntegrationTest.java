@@ -15,7 +15,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration tests for PublicModelService.getTopModels() — specifically the
+ * Integration tests for PublicModelService.getTopModels() - specifically the
  * per-variant real consumption range (minRealConsumption / maxRealConsumption).
  *
  * Uses only Polestar models since no other test class touches them,
@@ -97,9 +97,9 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         assertNotNull(polestar3.avgConsumptionKwhPer100km(),
                 "overall avg consumption must still be set even without a range");
         assertNull(polestar3.minRealConsumptionKwhPer100km(),
-                "minReal must be null — only 1 of 2 variants has >= 100 trips");
+                "minReal must be null - only 1 of 2 variants has >= 100 trips");
         assertNull(polestar3.maxRealConsumptionKwhPer100km(),
-                "maxReal must be null — only 1 of 2 variants has >= 100 trips");
+                "maxReal must be null - only 1 of 2 variants has >= 100 trips");
     }
 
     // --- Boundary: exactly 100 trips vs. 99 trips ---
@@ -121,9 +121,9 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
 
         assertNotNull(polestar4, "POLESTAR_4 should appear in top models");
         assertNull(polestar4.minRealConsumptionKwhPer100km(),
-                "minReal must be null — only 1 variant qualifies (99 trips < threshold)");
+                "minReal must be null - only 1 variant qualifies (99 trips < threshold)");
         assertNull(polestar4.maxRealConsumptionKwhPer100km(),
-                "maxReal must be null — only 1 variant qualifies (99 trips < threshold)");
+                "maxReal must be null - only 1 variant qualifies (99 trips < threshold)");
     }
 
     // --- Placeholder brand "Andere Marke" never shows up in rankings ---
@@ -190,6 +190,81 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         assertEquals(0, new BigDecimal("20.50").compareTo(eletre.maxWltpConsumptionKwhPer100km()));
     }
 
+    // --- Data basis: drivers and cars behind the numbers (Kaufhilfe Phase A) ---
+
+    @Test
+    void getTopModels_returnsContributorAndCarCount() {
+        // MACAN_ELECTRIC: two cars of one driver plus one car of a second driver → 2 drivers, 3 cars
+        saveWltpSpec(CarBrand.CarModel.MACAN_ELECTRIC, new BigDecimal("95.0"), new BigDecimal("20.0"));
+        Car first = createCarWithBattery(CarBrand.CarModel.MACAN_ELECTRIC, new BigDecimal("95.0"));
+        Car second = createCarWithBattery(CarBrand.CarModel.MACAN_ELECTRIC, new BigDecimal("95.0"));
+        User otherDriver = createAndSaveUser("topmodels-other-" + System.currentTimeMillis() + "@example.com");
+        Car third = createCarForUser(otherDriver.getId(), CarBrand.CarModel.MACAN_ELECTRIC, new BigDecimal("95.0"));
+        saveLogsForCar(first.getId(), 3, new BigDecimal("20.0"));
+        saveLogsForCar(second.getId(), 3, new BigDecimal("20.0"));
+        saveLogsForCar(third.getId(), 3, new BigDecimal("20.0"));
+
+        TopModelResponse macan = findModel(publicModelService.getTopModels(ALL_MODELS, false), "MACAN_ELECTRIC");
+
+        assertNotNull(macan, "MACAN_ELECTRIC should appear in top models");
+        assertEquals(2, macan.contributorCount());
+        assertEquals(3, macan.carCount());
+    }
+
+    @Test
+    void getTopModels_returnsMinAndMaxNetCapacityFromWltpSpecs() {
+        // MEGANE_E_TECH: two WLTP specs, net 40.0 and 60.0 kWh (gross 42.0 and 63.0)
+        saveWltpSpecWithNet(CarBrand.CarModel.MEGANE_E_TECH, new BigDecimal("42.0"), new BigDecimal("40.0"), new BigDecimal("15.5"));
+        saveWltpSpecWithNet(CarBrand.CarModel.MEGANE_E_TECH, new BigDecimal("63.0"), new BigDecimal("60.0"), new BigDecimal("16.1"));
+        Car car = createCarWithBattery(CarBrand.CarModel.MEGANE_E_TECH, new BigDecimal("63.0"));
+        saveLogsForCar(car.getId(), 3, new BigDecimal("16.0"));
+
+        TopModelResponse megane = findModel(publicModelService.getTopModels(ALL_MODELS, false), "MEGANE_E_TECH");
+
+        assertNotNull(megane, "MEGANE_E_TECH should appear in top models");
+        assertEquals(0, new BigDecimal("40.0").compareTo(megane.minNetCapacityKwh()));
+        assertEquals(0, new BigDecimal("60.0").compareTo(megane.maxNetCapacityKwh()));
+    }
+
+    // --- Range span for the needs check (Kaufhilfe Phase B): net capacity × 100 / consumption ---
+
+    @Test
+    void getTopModels_derivesTypicalAndWinterRangeFromSmallestAndLargestBattery() {
+        // G80_ELECTRIFIED, net 60.0 and 75.0: 10 summer trips at 15.0 and 10 winter trips at 20.0
+        // → overall Ø 17.5, winter 20.0. Typical: 60 × 100 / 17.5 = 343, 75 × 100 / 17.5 = 429.
+        // Winter: 60 × 100 / 20 = 300, 75 × 100 / 20 = 375.
+        saveWltpSpecWithNet(CarBrand.CarModel.G80_ELECTRIFIED, new BigDecimal("65.0"), new BigDecimal("60.0"), new BigDecimal("19.0"));
+        saveWltpSpecWithNet(CarBrand.CarModel.G80_ELECTRIFIED, new BigDecimal("80.0"), new BigDecimal("75.0"), new BigDecimal("19.5"));
+        Car car = createCarWithBattery(CarBrand.CarModel.G80_ELECTRIFIED, new BigDecimal("65.0"));
+        saveLogsForCarFrom(car.getId(), 40000, 11, new BigDecimal("15.0"), LocalDateTime.of(2025, 7, 1, 12, 0));
+        saveLogsForCarFrom(car.getId(), 41100, 10, new BigDecimal("20.0"), LocalDateTime.of(2026, 1, 5, 12, 0));
+
+        TopModelResponse g80 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "G80_ELECTRIFIED");
+
+        assertNotNull(g80, "G80_ELECTRIFIED should appear in top models");
+        assertEquals(new BigDecimal("17.5"), g80.avgConsumptionKwhPer100km());
+        assertEquals(343, g80.typicalRangeMinKm());
+        assertEquals(429, g80.typicalRangeMaxKm());
+        assertEquals(300, g80.winterRangeMinKm());
+        assertEquals(375, g80.winterRangeMaxKm());
+    }
+
+    @Test
+    void getTopModels_singleVariantWithoutWinterLogs_returnsEqualTypicalRangeAndNullWinterRange() {
+        // E_TRON_GT: one spec (net 84.0), logs outside the seasons → typical 84 × 100 / 20 = 420, no winter
+        saveWltpSpecWithNet(CarBrand.CarModel.E_TRON_GT, new BigDecimal("93.4"), new BigDecimal("84.0"), new BigDecimal("20.5"));
+        Car car = createCarWithBattery(CarBrand.CarModel.E_TRON_GT, new BigDecimal("93.4"));
+        saveLogsForCarFrom(car.getId(), 50000, 6, new BigDecimal("20.0"), LocalDateTime.of(2025, 10, 1, 12, 0));
+
+        TopModelResponse etron = findModel(publicModelService.getTopModels(ALL_MODELS, false), "E_TRON_GT");
+
+        assertNotNull(etron, "E_TRON_GT should appear in top models");
+        assertEquals(420, etron.typicalRangeMinKm());
+        assertEquals(420, etron.typicalRangeMaxKm());
+        assertNull(etron.winterRangeMinKm(), "no winter trips → winter range must be null");
+        assertNull(etron.winterRangeMaxKm(), "no winter trips → winter range must be null");
+    }
+
     // --- Helpers ---
 
     private void saveWltpSpec(CarBrand.CarModel carModel, BigDecimal batteryKwh, BigDecimal wltpConsumption) {
@@ -203,9 +278,26 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         ));
     }
 
+    private void saveWltpSpecWithNet(CarBrand.CarModel carModel, BigDecimal grossKwh, BigDecimal netKwh, BigDecimal wltpConsumption) {
+        vehicleSpecificationRepository.save(VehicleSpecification.createNew(
+                carModel.getBrand().name(),
+                carModel.name(),
+                grossKwh,
+                netKwh,
+                new BigDecimal("400.0"),
+                wltpConsumption,
+                VehicleSpecification.WltpType.COMBINED,
+                VehicleSpecification.RatingSource.WLTP
+        ));
+    }
+
     private Car createCarWithBattery(CarBrand.CarModel model, BigDecimal batteryKwh) {
+        return createCarForUser(userId, model, batteryKwh);
+    }
+
+    private Car createCarForUser(UUID ownerId, CarBrand.CarModel model, BigDecimal batteryKwh) {
         return carRepository.save(Car.createNew(
-                userId, model, 2023,
+                ownerId, model, 2023,
                 "P-" + UUID.randomUUID().toString().substring(0, 8),
                 "Test Trim", batteryKwh, new BigDecimal("200.0"), null
         ));

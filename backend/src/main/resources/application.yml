@@ -26,6 +26,7 @@ spring:
       - modelsWithData
       - modelStats
       - topModels
+      - modelsWithoutData
       - efficientModels
       - longestRangeModels
       - leaderboard
