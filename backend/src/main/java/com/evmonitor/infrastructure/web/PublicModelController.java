@@ -145,7 +145,11 @@ public class PublicModelController {
 
         boolean isSeedUser = principal != null && principal.getUser().isSeedData();
         CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
-        return ResponseEntity.ok().cacheControl(cc).body(publicModelService.getTopModels(Math.min(limit, MAX_TOP_LIMIT), isSeedUser));
+        // One cached list per seed path; the limit is a plain cut on it (0 and below: empty)
+        List<TopModelResponse> models = publicModelService.getTopModels(isSeedUser).stream()
+                .limit(Math.max(0, Math.min(limit, MAX_TOP_LIMIT)))
+                .toList();
+        return ResponseEntity.ok().cacheControl(cc).body(models);
     }
 
     /**

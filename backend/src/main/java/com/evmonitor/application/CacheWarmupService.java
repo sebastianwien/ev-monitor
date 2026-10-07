@@ -34,11 +34,10 @@ public class CacheWarmupService {
         try {
             publicModelService.getPlatformStats();
             publicModelService.getModelsWithWltpData(false);
-            publicModelService.getTopModels(12, false);
-            // Model ranking (/modelle) asks for every model with data, also on the seed path:
+            // Model ranking (/modelle) lists every model with data, also on the seed path:
             // a cold miss takes 7 to 9 s, which demo users would otherwise wait for.
-            publicModelService.getTopModels(200, false);
-            publicModelService.getTopModels(200, true);
+            publicModelService.getTopModels(false);
+            publicModelService.getTopModels(true);
             publicModelService.getModelsWithoutData(false);
             publicModelService.getModelsWithoutData(true);
             publicModelService.getMostEfficientModels(12, false);

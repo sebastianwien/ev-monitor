@@ -202,6 +202,19 @@ class PublicModelControllerIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
+    @Test
+    void shouldAnswerEmptyListForZeroOrNegativeLimit() {
+        // The limit is applied in the controller on one cached list; it must never reach
+        // Stream.limit as a negative number (IllegalArgumentException, 500).
+        for (String limit : new String[]{"0", "-1"}) {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    "/api/public/models/top?limit=" + limit, String.class);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode(), "limit=" + limit);
+            assertEquals("[]", response.getBody(), "limit=" + limit);
+        }
+    }
+
     // --- /api/public/models/without-data ---
 
     @Test

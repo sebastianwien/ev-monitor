@@ -17,7 +17,7 @@
         <span
           v-if="bar.width !== null"
           class="absolute inset-y-0 flex items-center gap-1.5 whitespace-nowrap px-1.5 text-[11px] font-semibold tabular-nums"
-          :class="bar.inside ? 'text-white dark:text-gray-950' : 'text-gray-900 dark:text-gray-100'"
+          :class="bar.inside ? 'text-gray-950' : 'text-gray-900 dark:text-gray-100'"
           :style="bar.inside ? { right: `${100 - bar.width}%` } : { left: `${bar.width}%` }"
         >{{ bar.text }}<span v-if="bar.deviation" :class="bar.inside ? '' : bar.deviationCls">{{ bar.deviation }}</span></span>
         <span v-else class="absolute inset-y-0 left-0 flex items-center px-1.5 text-[11px] text-gray-500 dark:text-gray-400">{{ bar.text }}</span>

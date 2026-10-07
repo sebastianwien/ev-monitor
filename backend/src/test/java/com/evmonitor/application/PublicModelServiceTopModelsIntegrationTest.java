@@ -39,7 +39,6 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
     private CacheManager cacheManager;
 
     /** Large enough that ranking position by log count never hides the model under test. */
-    private static final int ALL_MODELS = 500;
 
     private UUID userId;
 
@@ -64,7 +63,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car car82 = createCarWithBattery(CarBrand.CarModel.POLESTAR_2, new BigDecimal("82.0"));
         saveLogsForCar(car82.getId(), 101, new BigDecimal("14.0"));
 
-        List<TopModelResponse> results = publicModelService.getTopModels(20, false);
+        List<TopModelResponse> results = publicModelService.getTopModels(false);
         TopModelResponse polestar2 = findModel(results, "POLESTAR_2");
 
         assertNotNull(polestar2, "POLESTAR_2 should appear in top models");
@@ -90,7 +89,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car car120 = createCarWithBattery(CarBrand.CarModel.POLESTAR_3, new BigDecimal("120.0"));
         saveLogsForCar(car120.getId(), 5, new BigDecimal("20.0"));
 
-        List<TopModelResponse> results = publicModelService.getTopModels(20, false);
+        List<TopModelResponse> results = publicModelService.getTopModels(false);
         TopModelResponse polestar3 = findModel(results, "POLESTAR_3");
 
         assertNotNull(polestar3, "POLESTAR_3 should appear in top models");
@@ -116,7 +115,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car car110 = createCarWithBattery(CarBrand.CarModel.POLESTAR_4, new BigDecimal("110.0"));
         saveLogsForCar(car110.getId(), 100, new BigDecimal("18.0")); // 100 logs → 99 trips
 
-        List<TopModelResponse> results = publicModelService.getTopModels(20, false);
+        List<TopModelResponse> results = publicModelService.getTopModels(false);
         TopModelResponse polestar4 = findModel(results, "POLESTAR_4");
 
         assertNotNull(polestar4, "POLESTAR_4 should appear in top models");
@@ -134,7 +133,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car custom = createCarWithBattery(CarBrand.CarModel.SONSTIGE_CUSTOM, new BigDecimal("60.0"));
         saveLogsForCar(custom.getId(), 101, new BigDecimal("17.0"));
 
-        List<TopModelResponse> results = publicModelService.getTopModels(ALL_MODELS, false);
+        List<TopModelResponse> results = publicModelService.getTopModels(false);
 
         assertTrue(results.stream().noneMatch(r -> r.brand().equals(CarBrand.SONSTIGE.name())),
                 "placeholder brand SONSTIGE must not appear in top models");
@@ -151,7 +150,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         saveLogsForCarFrom(car.getId(), 20000, 11, new BigDecimal("15.0"), LocalDateTime.of(2025, 7, 1, 12, 0));
         saveLogsForCarFrom(car.getId(), 21100, 10, new BigDecimal("20.0"), LocalDateTime.of(2026, 1, 5, 12, 0));
 
-        TopModelResponse gv60 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "GV60");
+        TopModelResponse gv60 = findModel(publicModelService.getTopModels(false), "GV60");
 
         assertNotNull(gv60, "GV60 should appear in top models");
         assertEquals(new BigDecimal("15.0"), gv60.summerConsumptionKwhPer100km());
@@ -164,7 +163,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car car = createCarWithBattery(CarBrand.CarModel.GV70_ELECTRIFIED, new BigDecimal("77.4"));
         saveLogsForCarFrom(car.getId(), 30000, 11, new BigDecimal("18.0"), LocalDateTime.of(2025, 6, 1, 12, 0));
 
-        TopModelResponse gv70 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "GV70_ELECTRIFIED");
+        TopModelResponse gv70 = findModel(publicModelService.getTopModels(false), "GV70_ELECTRIFIED");
 
         assertNotNull(gv70, "GV70_ELECTRIFIED should appear in top models");
         assertEquals(new BigDecimal("18.0"), gv70.summerConsumptionKwhPer100km());
@@ -182,7 +181,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car car = createCarWithBattery(CarBrand.CarModel.ELETRE, new BigDecimal("105.0"));
         saveLogsForCar(car.getId(), 11, new BigDecimal("22.0"));
 
-        TopModelResponse eletre = findModel(publicModelService.getTopModels(ALL_MODELS, false), "ELETRE");
+        TopModelResponse eletre = findModel(publicModelService.getTopModels(false), "ELETRE");
 
         assertNotNull(eletre, "ELETRE should appear in top models");
         assertEquals(new BigDecimal("17.8"), eletre.avgWltpConsumptionKwhPer100km());
@@ -204,7 +203,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         saveLogsForCar(second.getId(), 3, new BigDecimal("20.0"));
         saveLogsForCar(third.getId(), 3, new BigDecimal("20.0"));
 
-        TopModelResponse macan = findModel(publicModelService.getTopModels(ALL_MODELS, false), "MACAN_ELECTRIC");
+        TopModelResponse macan = findModel(publicModelService.getTopModels(false), "MACAN_ELECTRIC");
 
         assertNotNull(macan, "MACAN_ELECTRIC should appear in top models");
         assertEquals(2, macan.contributorCount());
@@ -219,7 +218,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car car = createCarWithBattery(CarBrand.CarModel.MEGANE_E_TECH, new BigDecimal("63.0"));
         saveLogsForCar(car.getId(), 3, new BigDecimal("16.0"));
 
-        TopModelResponse megane = findModel(publicModelService.getTopModels(ALL_MODELS, false), "MEGANE_E_TECH");
+        TopModelResponse megane = findModel(publicModelService.getTopModels(false), "MEGANE_E_TECH");
 
         assertNotNull(megane, "MEGANE_E_TECH should appear in top models");
         assertEquals(0, new BigDecimal("40.0").compareTo(megane.minNetCapacityKwh()));
@@ -239,7 +238,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         saveLogsForCarFrom(car.getId(), 40000, 11, new BigDecimal("15.0"), LocalDateTime.of(2025, 7, 1, 12, 0));
         saveLogsForCarFrom(car.getId(), 41100, 10, new BigDecimal("20.0"), LocalDateTime.of(2026, 1, 5, 12, 0));
 
-        TopModelResponse g80 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "G80_ELECTRIFIED");
+        TopModelResponse g80 = findModel(publicModelService.getTopModels(false), "G80_ELECTRIFIED");
 
         assertNotNull(g80, "G80_ELECTRIFIED should appear in top models");
         assertEquals(new BigDecimal("17.5"), g80.avgConsumptionKwhPer100km());
@@ -256,7 +255,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car car = createCarWithBattery(CarBrand.CarModel.E_TRON_GT, new BigDecimal("93.4"));
         saveLogsForCarFrom(car.getId(), 50000, 6, new BigDecimal("20.0"), LocalDateTime.of(2025, 10, 1, 12, 0));
 
-        TopModelResponse etron = findModel(publicModelService.getTopModels(ALL_MODELS, false), "E_TRON_GT");
+        TopModelResponse etron = findModel(publicModelService.getTopModels(false), "E_TRON_GT");
 
         assertNotNull(etron, "E_TRON_GT should appear in top models");
         assertEquals(420, etron.typicalRangeMinKm());
@@ -377,7 +376,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         saveDcSession(car.getId(), 8, "40.0", 30, "60", "90");
         saveDcSession(car.getId(), 9, "40.0", 30, "20", "100");
 
-        TopModelResponse ioniq6 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "IONIQ_6");
+        TopModelResponse ioniq6 = findModel(publicModelService.getTopModels(false), "IONIQ_6");
         assertNotNull(ioniq6);
         assertEquals(new BigDecimal("80.0"), ioniq6.fastChargePowerKw());
 
@@ -387,7 +386,7 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         Car eqs = createCarWithBattery(CarBrand.CarModel.EQS, new BigDecimal("108.4"));
         saveLogsForCar(eqs.getId(), 3, new BigDecimal("20.0"));
         for (int i = 0; i < 7; i++) saveDcSession(eqs.getId(), i, "40.0", 30, "15", "70");
-        assertNull(findModel(publicModelService.getTopModels(ALL_MODELS, false), "EQS").fastChargePowerKw());
+        assertNull(findModel(publicModelService.getTopModels(false), "EQS").fastChargePowerKw());
     }
 
     private TopModelResponse findModel(List<TopModelResponse> results, String modelEnum) {

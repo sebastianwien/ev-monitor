@@ -400,13 +400,14 @@ public class PublicModelService {
     }
 
     /**
-     * Returns the top N models sorted by community log count.
+     * Returns every model with community logs, sorted by log count.
      * Much cheaper than N individual getModelStats calls: logCount, overall avgConsumption,
-     * WLTP lookup and per-variant range. Seasonal consumption is computed only for the
-     * N models that make the cut. The placeholder brand SONSTIGE is never listed.
+     * WLTP lookup and per-variant range. One cached list per seed path; callers cut it
+     * to the length they need, so a public "limit" can never trigger a fresh computation.
+     * The placeholder brand SONSTIGE is never listed.
      */
-    @Cacheable("topModels")
-    public List<TopModelResponse> getTopModels(int limit, boolean isSeedUser) {
+    @Cacheable(value = "topModels", sync = true)
+    public List<TopModelResponse> getTopModels(boolean isSeedUser) {
         record ModelData(CarBrand.CarModel carModel, long logCount, int contributorCount, int carCount,
                          BigDecimal avgConsumption, BigDecimal minRealConsumption,
                          BigDecimal maxRealConsumption, WltpSummary wltp,
@@ -490,7 +491,6 @@ public class PublicModelService {
                 })
                 .filter(m -> m != null)
                 .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
-                .limit(limit)
                 .map(m -> {
                     String brandDisplay = m.carModel().getBrand().getDisplayString();
                     String modelDisplay = m.carModel().getDisplayName();
@@ -528,8 +528,7 @@ public class PublicModelService {
                     );
                 })
                 .toList();
-        log.info("topModels computed: limit={}, {} models, {} ms",
-                limit, topModels.size(), System.currentTimeMillis() - startedAt);
+        log.info("topModels computed: {} models, {} ms", topModels.size(), System.currentTimeMillis() - startedAt);
         return topModels;
     }
 
@@ -627,7 +626,7 @@ public class PublicModelService {
         int MIN_LOG_COUNT = 10;
         // Self-call: bypasses Spring AOP, so topModels cache is not hit here.
         // CacheWarmupService pre-warms topModels separately to compensate.
-        return getTopModels(50, isSeedUser).stream()
+        return getTopModels(isSeedUser).stream()
                 .filter(m -> m.avgConsumptionKwhPer100km() != null)
                 .filter(m -> m.logCount() >= MIN_LOG_COUNT)
                 .sorted(Comparator.comparing(TopModelResponse::avgConsumptionKwhPer100km))
@@ -644,7 +643,7 @@ public class PublicModelService {
     public List<TopModelResponse> getLongestRangeModels(int limit, boolean isSeedUser) {
         // Self-call: bypasses Spring AOP, so topModels cache is not hit here.
         // CacheWarmupService pre-warms topModels separately to compensate.
-        return getTopModels(50, isSeedUser).stream()
+        return getTopModels(isSeedUser).stream()
                 .filter(m -> m.realRangeKm() != null)
                 .sorted(Comparator.comparing(TopModelResponse::realRangeKm).reversed())
                 .limit(limit)
