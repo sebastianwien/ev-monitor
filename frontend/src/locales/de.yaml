@@ -418,7 +418,6 @@ models_ranking:
     cta_register: "Kostenlos starten"
     cta_add_car: "Fahrzeug anlegen"
     wltp: "WLTP {value}"
-  scale: "Punkt = Realverbrauch in {unit}"
   columns:
     model: "Modell"
     consumption: "Verbrauch"
@@ -457,8 +456,9 @@ models_ranking:
     span: "{min} bis {max}"
     per_100: "pro 100 {unit}"
     combustion_short: "{fuel} {amount}"
-    manufacturer: "Hersteller {value}"
-    combustion_cell: "{fuel} ({liters} l) {amount}"
+    bar_manufacturer: "Hersteller"
+    bar_drivers: "Fahrer"
+    electricity: "Strom"
     winter_range: "Winter {value}"
     winter_range_missing: "ohne Winterdaten"
   detail:

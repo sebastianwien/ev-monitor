@@ -378,7 +378,6 @@ models_ranking:
     cta_register: "Start gratis"
     cta_add_car: "Legg til bil"
     wltp: "WLTP {value}"
-  scale: "Prikk = reelt forbruk i {unit}"
   columns:
     model: "Modell"
     consumption: "Forbruk"
@@ -417,8 +416,9 @@ models_ranking:
     span: "{min} til {max}"
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
-    manufacturer: "Oppgitt {value}"
-    combustion_cell: "{fuel} ({liters} l) {amount}"
+    bar_manufacturer: "Oppgitt"
+    bar_drivers: "Førere"
+    electricity: "Strøm"
     winter_range: "Vinter {value}"
     winter_range_missing: "ingen vinterdata ennå"
   detail:

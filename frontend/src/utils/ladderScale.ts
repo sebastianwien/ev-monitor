@@ -75,3 +75,10 @@ export function ladderPosition(kwhPer100km: number | null | undefined, axis: Lad
   const pct = ((v - axis.min) / (axis.max - axis.min)) * 100
   return Math.min(100, Math.max(0, pct))
 }
+
+/** Bar length in percent from zero to the axis maximum (same scale in every row), null without a value. */
+export function barLength(kwhPer100km: number | null | undefined, axis: LadderAxis): number | null {
+  if (kwhPer100km == null || kwhPer100km <= 0) return null
+  const v = convertConsumption(kwhPer100km, axis.unit)
+  return Math.min(100, Math.max(0, (v / axis.max) * 100))
+}

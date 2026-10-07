@@ -46,18 +46,27 @@
         <small class="text-[11px] text-gray-500 dark:text-gray-400">{{ mainValue.unit }}</small>
       </span>
 
-      <ConsumptionLadder
+      <ConsumptionBars
         class="mr-ld pointer-events-none pb-3.5 lg:pb-0"
         :axis="axis"
         :real="m.avgConsumptionKwhPer100km"
-        :band-min="m.minRealConsumptionKwhPer100km"
-        :band-max="m.maxRealConsumptionKwhPer100km"
+        :wltp="item.wltpKwhPer100km"
+        :real-text="formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: false })"
+        :wltp-text="formatConsumption(item.wltpKwhPer100km, { showUnit: false })"
+        :deviation-pct="item.wltpDeviationPct"
       />
 
-      <!-- Desktop cells: the number with its unit, below it the figure to compare against -->
-      <span v-for="cell in cells" :key="cell.cls" :class="[cell.cls, cell.cls === 'mr-c4' ? 'xl:grid' : 'lg:grid']" class="pointer-events-none hidden content-center justify-items-end gap-0.5 whitespace-nowrap text-right leading-tight" :data-testid="cell.testid">
-        <span class="text-[15px] tabular-nums" :class="colClass(cell.sort)">{{ cell.value }} <span class="text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ cell.unit }}</span></span>
-        <span class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ cell.caption }}</span>
+      <!-- Desktop cost cell: electricity and the class's combustion car, both per 100 km -->
+      <span class="mr-c3 pointer-events-none hidden content-center gap-0.5 whitespace-nowrap text-right leading-tight lg:grid" data-testid="cost-cell">
+        <span class="text-[15px] tabular-nums" :class="colClass('cost')">
+          <span class="mr-1 text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ t('models_ranking.row.electricity') }}</span>{{ costNumber }} <span class="text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ unitSystem.currencySymbol }}</span>
+        </span>
+        <span class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ combustionCaption }}</span>
+      </span>
+      <!-- Desktop range cell (from 1280 px): typical span, below it the winter span -->
+      <span class="mr-c4 pointer-events-none hidden content-center gap-0.5 whitespace-nowrap text-right leading-tight xl:grid" data-testid="range-cell">
+        <span class="text-[15px] tabular-nums" :class="colClass('range')">{{ rangeCell }} <span class="text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span></span>
+        <span class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ winterCaption }}</span>
       </span>
 
       <button
@@ -124,7 +133,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, DocumentTextIcon, InformationCircleIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
-import ConsumptionLadder from './ConsumptionLadder.vue'
+import ConsumptionBars from './ConsumptionBars.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { officialModelImageUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
@@ -248,12 +257,11 @@ const costVsCombustion = computed(() => combustionCostEur.value != null
       combustion: formatDecimal(convertCostPerDistance(combustionCostEur.value, unitSystem.value), 2),
     })
   : costLabel.value)
-// Desktop cost cell caption: "Benziner (6,8 l) 14,62 €", the litres show the class assumption
+// Desktop cost cell caption: "Benziner 14,62 €" (the litres per class sit in the detail and the sheet)
 const litersLabel = computed(() => props.item.combustionLitersPer100km != null ? formatDecimal(props.item.combustionLitersPer100km, 1) : '')
 const combustionCaption = computed(() => combustionCostEur.value != null
-  ? t('models_ranking.row.combustion_cell', {
+  ? t('models_ranking.row.combustion_short', {
       fuel: fuelLabel.value,
-      liters: litersLabel.value,
       amount: formatCurrency(convertCostPerDistance(combustionCostEur.value, unitSystem.value)),
     })
   : '')
@@ -281,30 +289,6 @@ const winterCaption = computed(() => {
     ? t('models_ranking.row.winter_range', { value: fmtSpan(lo, hi) })
     : t('models_ranking.row.winter_range_missing')
 })
-
-// Desktop cells, each a number with unit and a caption naming what it is compared against
-const cells = computed(() => [
-  {
-    cls: 'mr-c1', sort: 'efficient' as const, testid: 'consumption-cell',
-    value: formatConsumption(m.value.avgConsumptionKwhPer100km, { showUnit: false }),
-    unit: consumptionUnitLabel(),
-    caption: props.item.wltpKwhPer100km != null
-      ? t('models_ranking.row.manufacturer', { value: formatConsumption(props.item.wltpKwhPer100km, { showUnit: false }) })
-      : t('models_ranking.row.no_value'),
-  },
-  {
-    cls: 'mr-c3', sort: 'cost' as const, testid: 'cost-cell',
-    value: costNumber.value,
-    unit: unitSystem.value.currencySymbol,
-    caption: combustionCaption.value,
-  },
-  {
-    cls: 'mr-c4', sort: 'range' as const, testid: 'range-cell',
-    value: rangeCell.value,
-    unit: distanceUnitLabel(),
-    caption: winterCaption.value,
-  },
-])
 
 function signedPct(v: number, decimals = 0): string {
   return `${v > 0 ? '+' : ''}${formatDecimal(v, decimals)} %`
@@ -467,34 +451,32 @@ const seasonBars = computed(() => {
 .mr-val { grid-area: val; }
 .mr-hint { grid-area: hint; }
 .mr-ld { grid-area: ld; }
-.mr-c1 { grid-area: c1; }
 .mr-c3 { grid-area: c3; }
 .mr-c4 { grid-area: c4; }
 .mr-cb { grid-area: cb; }
 /* Desktop: name block wide enough for the meta line, the hint runs across the whole row.
-   Three cells (consumption, cost, range), each a number plus the figure it is compared
-   against. The range cell joins at 1280 px; below that the board next to the filter
-   column is too narrow for it. */
+   The bar pair (manufacturer vs. drivers) carries the consumption, then the cost cell and
+   from 1280 px the range cell; below that the board next to the filter column is too
+   narrow for it. 626 px of content at 1024 px. */
 @media (min-width: 1024px) {
   .mr-grid {
-    /* 626 px of content at 1024 px: the cost cell needs 140 px for "Benziner (5,8 l) 12,47 €" */
-    grid-template-columns: 112px minmax(140px, 1.6fr) minmax(70px, 1fr) 92px 140px 26px;
-    grid-template-areas: "th who ld c1 c3 cb" "th meta ld c1 c3 cb" "th hint hint c1 c3 cb";
+    grid-template-columns: 112px minmax(140px, 1.6fr) minmax(180px, 1.3fr) 128px 26px;
+    grid-template-areas: "th who ld c3 cb" "th meta ld c3 cb" "th hint hint c3 cb";
     column-gap: 8px;
     row-gap: 2px;
   }
   .mr-grid.mr-ruler {
-    grid-template-areas: ". who ld c1 c3 cb";
+    grid-template-areas: ". who ld c3 cb";
   }
 }
 @media (min-width: 1280px) {
   .mr-grid {
-    grid-template-columns: 112px minmax(215px, 1.6fr) minmax(110px, 1fr) 96px 140px 104px 26px;
+    grid-template-columns: 112px minmax(215px, 1.6fr) minmax(220px, 1.3fr) 128px 104px 26px;
     column-gap: 10px;
-    grid-template-areas: "th who ld c1 c3 c4 cb" "th meta ld c1 c3 c4 cb" "th hint hint c1 c3 c4 cb";
+    grid-template-areas: "th who ld c3 c4 cb" "th meta ld c3 c4 cb" "th hint hint c3 c4 cb";
   }
   .mr-grid.mr-ruler {
-    grid-template-areas: ". who ld c1 c3 c4 cb";
+    grid-template-areas: ". who ld c3 c4 cb";
   }
 }
 </style>

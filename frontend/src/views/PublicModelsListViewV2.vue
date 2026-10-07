@@ -136,19 +136,16 @@
         <div class="flex justify-between gap-3 whitespace-nowrap pb-2 pt-0.5 text-[13px] text-gray-500 dark:text-gray-400">
           <span aria-live="polite">{{ loading ? '' : t('models_ranking.count', { shown: ranked.length, total: models.length }) }}</span>
           <span class="truncate">
-            <span class="hidden lg:inline">{{ t(`models_ranking.sort.note_${sort}`) }} · </span>{{ t('models_ranking.scale', { unit: consumptionUnitLabel() }) }}
+            {{ t(`models_ranking.sort.note_${sort}`) }}
           </span>
         </div>
-        <div class="mr-grid mr-ruler h-[22px] lg:h-[38px]" aria-hidden="true">
-          <span class="mr-who hidden self-center text-left text-[11.5px] font-semibold text-gray-700 lg:block dark:text-gray-300">{{ t('models_ranking.columns.model') }}</span>
-          <div class="mr-ld relative h-[22px] text-[10.5px] tabular-nums text-gray-500 dark:text-gray-400">
-            <span
-              v-for="tick in axis.ticks"
-              :key="tick"
-              class="absolute top-1 -translate-x-1/2 after:absolute after:left-1/2 after:top-3.5 after:h-1.5 after:w-px after:bg-gray-300 dark:after:bg-gray-700"
-              :style="{ left: `${tickPosition(tick)}%` }"
-            >{{ formatDecimal(tick, tickDecimals) }}</span>
-          </div>
+        <!-- Column heads (desktop only; on the phone the bars are labelled in the row).
+             .mr-grid sets display itself, so plain `hidden` would lose the cascade. -->
+        <div class="mr-grid mr-ruler h-[30px] max-lg:!hidden" aria-hidden="true">
+          <span class="mr-who self-center text-left text-[11.5px] font-semibold text-gray-700 dark:text-gray-300">{{ t('models_ranking.columns.model') }}</span>
+          <span class="mr-ld self-center text-left text-[11.5px] font-semibold text-gray-700 dark:text-gray-300">
+            {{ t('models_ranking.columns.consumption') }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
+          </span>
           <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block']" class="hidden self-center whitespace-nowrap text-right text-[11.5px] font-semibold leading-tight text-gray-700 dark:text-gray-300">
             {{ col.label }}
           </span>
@@ -495,14 +492,8 @@ const axis = computed(() => buildLadderAxis(
   ]),
   unitSystem.value.consumptionUnit,
 ))
-const tickDecimals = computed(() => (axis.value.ticks.every(Number.isInteger) ? 0 : 1))
-// Ticks are already in the display unit; position them on the same 0-100 scale as the values.
-function tickPosition(tick: number) {
-  return ((tick - axis.value.min) / (axis.value.max - axis.value.min)) * 100
-}
 // Units live in the cells next to the numbers, the heads only name the column
 const columnHeads = computed(() => [
-  { cls: 'mr-c1', label: t('models_ranking.columns.consumption') },
   { cls: 'mr-c3', label: t('models_ranking.columns.cost_per', { unit: distanceUnitLabel() }) },
   { cls: 'mr-c4', label: t('models_ranking.columns.range') },
 ])

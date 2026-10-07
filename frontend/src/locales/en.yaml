@@ -415,7 +415,6 @@ models_ranking:
     cta_register: "Start for free"
     cta_add_car: "Add vehicle"
     wltp: "WLTP {value}"
-  scale: "Dot = real consumption in {unit}"
   columns:
     model: "Model"
     consumption: "Consumption"
@@ -454,8 +453,9 @@ models_ranking:
     span: "{min} to {max}"
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
-    manufacturer: "Official {value}"
-    combustion_cell: "{fuel} ({liters} l) {amount}"
+    bar_manufacturer: "Official"
+    bar_drivers: "Drivers"
+    electricity: "Electricity"
     winter_range: "Winter {value}"
     winter_range_missing: "no winter data yet"
   detail:

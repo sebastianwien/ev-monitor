@@ -378,7 +378,6 @@ models_ranking:
     cta_register: "Börja gratis"
     cta_add_car: "Lägg till fordon"
     wltp: "WLTP {value}"
-  scale: "Punkt = verklig förbrukning i {unit}"
   columns:
     model: "Modell"
     consumption: "Förbrukning"
@@ -417,8 +416,9 @@ models_ranking:
     span: "{min} till {max}"
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
-    manufacturer: "Uppgiven {value}"
-    combustion_cell: "{fuel} ({liters} l) {amount}"
+    bar_manufacturer: "Uppgiven"
+    bar_drivers: "Förare"
+    electricity: "El"
     winter_range: "Vinter {value}"
     winter_range_missing: "inga vinterdata ännu"
   detail:

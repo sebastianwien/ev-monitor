@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildLadderAxis, ladderPosition } from '../ladderScale'
+import { buildLadderAxis, ladderPosition, barLength } from '../ladderScale'
 
 describe('buildLadderAxis', () => {
   it('rounds kWh/100km data to nice bounds with step 5', () => {
@@ -80,5 +80,18 @@ describe('ladderPosition', () => {
 
   it('returns null for missing values', () => {
     expect(ladderPosition(null, axis)).toBeNull()
+  })
+})
+
+describe('barLength', () => {
+  const axis = buildLadderAxis([12, 14, 16, 18, 20, 22, 24], 'kWh/100km')
+  it('is the share of the axis maximum, so bars start at zero and share one scale', () => {
+    expect(barLength(axis.max / 2, axis)).toBeCloseTo(50, 6)
+    expect(barLength(axis.max, axis)).toBe(100)
+  })
+  it('clamps above the maximum and is null without a value', () => {
+    expect(barLength(axis.max * 2, axis)).toBe(100)
+    expect(barLength(null, axis)).toBeNull()
+    expect(barLength(0, axis)).toBeNull()
   })
 })

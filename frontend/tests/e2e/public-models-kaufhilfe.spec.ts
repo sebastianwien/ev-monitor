@@ -29,13 +29,16 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       const first = rows(page).first();
       await expect(first.locator('.mr-meta')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
       if (viewport.width >= 1024) {
-        // cost cell: EV number plus the combustion car of the class with its litres
-        await expect(first.getByTestId('cost-cell')).toContainText(/Benziner \(\d+,\d l\) \d+,\d\d €/);
-        await expect(first.getByTestId('consumption-cell')).toContainText(/Hersteller \d+,\d/);
+        // cost cell: electricity plus the combustion car of the class
+        await expect(first.getByTestId('cost-cell')).toContainText(/Strom\s*\d+,\d\d €\s*Benziner \d+,\d\d €/);
         // litres follow the vehicle class, so the combustion figure differs between classes
         const captions = await rows(page).getByTestId('cost-cell').allTextContents();
-        const liters = new Set(captions.map(c => c.match(/\((\d+,\d) l\)/)?.[1]).filter(Boolean));
-        expect(liters.size).toBeGreaterThan(1);
+        const amounts = new Set(captions.map(c => c.match(/Benziner (\d+,\d\d) €/)?.[1]).filter(Boolean));
+        expect(amounts.size).toBeGreaterThan(1);
+      }
+      // bar pair: manufacturer figure against the drivers' figure, with the deviation
+      await expect(first.getByTestId('consumption-bars')).toContainText(/Hersteller\s*\d+,\d.*Fahrer\s*\d+,\d\s*[+−]\d+ %/);
+      if (viewport.width >= 1024) {
       }
     });
 
@@ -124,8 +127,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.keyboard.press('Escape');
       if (viewport.width >= 1024) {
         const captions = await rows(page).getByTestId('cost-cell').allTextContents();
-        // rows without consumption data carry no comparison
-        expect(new Set(captions.map(c => c.match(/\((\d+,\d) l\)/)?.[1]).filter(Boolean))).toEqual(new Set(['9,0']));
+        // 9 l for every class: one combustion figure in every row that has one
+        expect(new Set(captions.map(c => c.match(/Benziner (\d+,\d\d) €/)?.[1]).filter(Boolean)).size).toBe(1);
       }
       await page.getByTestId('assumptions-chip').click();
       await page.getByTestId('assumption-liters').fill('');
