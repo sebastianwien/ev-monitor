@@ -29,7 +29,7 @@ import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarContextLayout from '../layouts/CarContextLayout.vue';
 import CarsLayout from '../layouts/CarsLayout.vue';
 import SettingsView from '../views/SettingsView.vue';
-import PublicModelsListView from '../views/PublicModelsListView.vue';
+import PublicModelsListEntry from '../views/PublicModelsListEntry.vue';
 import PublicBrandView from '../views/PublicBrandView.vue';
 import PublicModelView from '../views/PublicModelViewV2.vue';
 import PublicModelsCompareView from '../views/PublicModelsCompareView.vue';
@@ -228,7 +228,7 @@ const router = createRouter({
         {
             path: '/modelle',
             name: 'public-models-list',
-            component: PublicModelsListView,
+            component: PublicModelsListEntry,
             beforeEnter: () => redirectNonGermanVisitor('/en/models')
             // no auth guard - public page for SEO
         },
@@ -286,7 +286,7 @@ const router = createRouter({
         {
             path: '/en/models',
             name: 'public-models-list-en',
-            component: PublicModelsListView,
+            component: PublicModelsListEntry,
             meta: { locale: 'en' }
         },
         {
@@ -311,7 +311,7 @@ const router = createRouter({
         {
             path: '/gb/models',
             name: 'public-models-list-gb',
-            component: PublicModelsListView,
+            component: PublicModelsListEntry,
             meta: { locale: 'en', country: 'GB' }
         },
         {
@@ -330,7 +330,7 @@ const router = createRouter({
         {
             path: '/us/models',
             name: 'public-models-list-us',
-            component: PublicModelsListView,
+            component: PublicModelsListEntry,
             meta: { locale: 'en', country: 'US' }
         },
         {
@@ -349,7 +349,7 @@ const router = createRouter({
         {
             path: '/no/modeller',
             name: 'public-models-list-no',
-            component: PublicModelsListView,
+            component: PublicModelsListEntry,
             meta: { locale: 'nb', country: 'NO' }
         },
         {
@@ -368,7 +368,7 @@ const router = createRouter({
         {
             path: '/se/modeller',
             name: 'public-models-list-se',
-            component: PublicModelsListView,
+            component: PublicModelsListEntry,
             meta: { locale: 'sv', country: 'SE' }
         },
         {
