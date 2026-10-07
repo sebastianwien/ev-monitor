@@ -412,8 +412,9 @@ models_ranking:
     model: "Model"
     real: "Real"
     wltp: "WLTP"
+    cost: "Cost"
+    vs: "vs. {fuel}"
     range: "Range"
-    data: "Data"
   row:
     details_open: "{name}, show details"
     details_close: "{name}, hide details"
@@ -421,6 +422,7 @@ models_ranking:
     to_wltp: "vs. WLTP"
     in_winter: "in winter"
     real_range: "real"
+    typical_range: "large battery"
     no_value: "no data"
     no_season: "no values"
     compare_add: "Add {name} to comparison"

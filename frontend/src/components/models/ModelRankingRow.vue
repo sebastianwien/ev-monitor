@@ -14,7 +14,7 @@
 
       <span class="mr-rk pointer-events-none text-right text-[13px] font-semibold tabular-nums" :class="inCompare ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{ item.rank }}</span>
 
-      <span class="mr-th pointer-events-none grid h-9 w-[52px] place-items-center overflow-hidden rounded-lg bg-gray-200 lg:h-[38px] lg:w-14 dark:bg-gray-800" :class="inCompare ? 'ring-2 ring-green-600 dark:ring-green-400' : ''">
+      <span class="mr-th pointer-events-none grid h-9 w-[52px] place-items-center overflow-hidden rounded-lg bg-gray-200 lg:h-[34px] lg:w-12 dark:bg-gray-800" :class="inCompare ? 'ring-2 ring-green-600 dark:ring-green-400' : ''">
         <img v-if="imageUrl" :src="imageUrl" alt="" loading="lazy" class="h-full w-full object-cover" />
         <span v-else class="text-[13px] font-bold text-gray-500 dark:text-gray-400">{{ m.brandDisplayName.slice(0, 2) }}</span>
       </span>
@@ -24,14 +24,25 @@
           <template v-if="nameRepeatsBrand">{{ modelName }}</template>
           <template v-else>{{ m.brandDisplayName }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ modelName }}</span></template>
         </span>
-        <span class="truncate text-[12.5px] text-gray-500 dark:text-gray-400">
-          {{ categoryLabel }}<span v-if="!savingsLabel" class="lg:hidden"> · {{ costLabel }}</span><span v-if="savingsLabel"> · <span :class="savingsClass" data-testid="savings">{{ savingsLabel }}</span></span>
+        <span class="flex min-w-0 items-center gap-1 text-[12.5px] text-gray-500 dark:text-gray-400">
+          <span class="truncate">
+            {{ categoryLabel }}
+            <span class="lg:hidden"> · {{ costLabel }}</span>
+          </span>
         </span>
         <span class="flex min-w-0 items-center gap-1 text-[12.5px] text-gray-500 lg:hidden dark:text-gray-400">
           <span class="truncate">{{ dataBasis }}</span>
           <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto h-4 w-4 flex-none text-orange-600 dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
         </span>
-        <span class="truncate text-[12.5px] text-gray-700 dark:text-gray-300" data-testid="needs-hint">{{ needsHint }}</span>
+      </span>
+
+      <!-- Needs hint: full width under the name block, two lines on the phone; on the desktop one line
+           across the row that also carries the data basis (the name block is too narrow for it there) -->
+      <span class="mr-hint pointer-events-none line-clamp-3 text-[12.5px] leading-snug text-gray-700 lg:line-clamp-none lg:flex lg:min-w-0 lg:flex-wrap lg:items-center lg:gap-x-1 dark:text-gray-300">
+        <span data-testid="needs-hint">{{ needsHint }}</span>
+        <span v-if="savingsLabel" class="lg:hidden"> · <span :class="savingsClass" data-testid="savings">{{ savingsLabel }}</span></span>
+        <span class="hidden whitespace-nowrap text-gray-500 lg:inline dark:text-gray-400"> · {{ dataBasis }}</span>
+        <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto hidden h-4 w-4 flex-none text-orange-600 lg:block dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
       </span>
 
       <span class="mr-val pointer-events-none grid text-right lg:hidden">
@@ -49,13 +60,10 @@
       />
 
       <span class="mr-c1 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('efficient')">{{ formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: false }) }}</span>
-      <span class="mr-c2 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('wltp')">{{ formatConsumption(item.wltpKwhPer100km, { showUnit: false }) }}</span>
+      <span class="mr-c2 pointer-events-none hidden text-right text-sm tabular-nums xl:block" :class="colClass('wltp')">{{ formatConsumption(item.wltpKwhPer100km, { showUnit: false }) }}</span>
       <span class="mr-c3 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('cost')">{{ costNumber }}</span>
-      <span class="mr-c4 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('range')">{{ m.realRangeKm != null ? formatDistance(m.realRangeKm, { showUnit: false }) : '–' }}</span>
-      <span class="mr-c5 pointer-events-none hidden min-w-0 items-center justify-end gap-1 text-right text-[12px] leading-tight lg:flex" :class="colClass('data')">
-        <span class="truncate">{{ formatNumber(m.logCount) }}<br>{{ driversLabel }}</span>
-        <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto relative h-4 w-4 flex-none text-orange-600 dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
-      </span>
+      <span class="mr-c6 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="savingsNumber ? savingsClass : 'text-gray-500 dark:text-gray-400'" data-testid="savings-column">{{ savingsNumber ?? '–' }}</span>
+      <span class="mr-c4 pointer-events-none hidden whitespace-nowrap text-right text-sm tabular-nums xl:block" :class="colClass('range')">{{ rangeCell }}</span>
 
       <button
         type="button"
@@ -226,6 +234,26 @@ const savingsLabel = computed(() => savingsParams.value
 const savingsClass = computed(() => (props.item.savingsPer100kmEur ?? 0) >= 0
   ? 'text-green-700 dark:text-green-400'
   : 'text-orange-700 dark:text-orange-400')
+// Desktop column "vs. petrol": signed number in the cost column's unit, minus = EV cheaper
+const savingsNumber = computed(() => {
+  const s = props.item.savingsPer100kmEur
+  if (s == null) return null
+  return `${s >= 0 ? '−' : '+'}${formatDecimal(Math.abs(convertCostPerDistance(s, unitSystem.value)), 2)}`
+})
+
+// Range column: typical span from the smallest to the largest battery, real range as fallback
+const typicalSpan = computed(() => {
+  const lo = m.value.typicalRangeMinKm
+  const hi = m.value.typicalRangeMaxKm
+  if (lo == null || hi == null) return null
+  return { lo, hi }
+})
+const rangeCell = computed(() => {
+  const span = typicalSpan.value
+  const fmt = (km: number) => formatDistance(km, { showUnit: false })
+  if (span) return span.lo === span.hi ? fmt(span.hi) : `${fmt(span.lo)}–${fmt(span.hi)}`
+  return m.value.realRangeKm != null ? fmt(m.value.realRangeKm) : '–'
+})
 
 function signedPct(v: number, decimals = 0): string {
   return `${v > 0 ? '+' : ''}${formatDecimal(v, decimals)} %`
@@ -249,6 +277,9 @@ const mainValue = computed(() => {
   const na = { value: '–', unit: t('models_ranking.row.no_value'), cls: '' }
   switch (props.sort) {
     case 'range':
+      if (typicalSpan.value) {
+        return { value: formatDistance(typicalSpan.value.hi, { showUnit: false }), unit: `${distanceUnitLabel()}, ${t('models_ranking.row.typical_range')}`, cls: '' }
+      }
       return m.value.realRangeKm != null
         ? { value: formatDistance(m.value.realRangeKm, { showUnit: false }), unit: `${distanceUnitLabel()} ${t('models_ranking.row.real_range')}`, cls: '' }
         : na
@@ -272,7 +303,7 @@ const mainValue = computed(() => {
   }
 })
 
-function colClass(column: RankingSort | 'data' | 'cost' | null): string {
+function colClass(column: RankingSort | 'cost' | null): string {
   const active = column === props.sort || (column === 'cost' && props.sort === 'efficient' && props.mainValue === 'cost')
   return active
     ? 'font-bold text-gray-900 dark:text-gray-100'
@@ -373,9 +404,9 @@ const seasonBars = computed(() => {
 .mr-grid {
   display: grid;
   grid-template-columns: 26px 52px minmax(0, 1fr) auto;
-  grid-template-areas: "rk th who val" ". ld ld ld";
+  grid-template-areas: "rk th who val" ". hint hint hint" ". ld ld ld";
   column-gap: 10px;
-  row-gap: 8px;
+  row-gap: 6px;
   align-items: center;
 }
 .mr-grid.mr-ruler { grid-template-areas: "rk ld ld ld"; row-gap: 0; }
@@ -383,19 +414,35 @@ const seasonBars = computed(() => {
 .mr-th { grid-area: th; }
 .mr-who { grid-area: who; }
 .mr-val { grid-area: val; }
+.mr-hint { grid-area: hint; }
 .mr-ld { grid-area: ld; }
 .mr-c1 { grid-area: c1; }
 .mr-c2 { grid-area: c2; }
 .mr-c3 { grid-area: c3; }
 .mr-c4 { grid-area: c4; }
-.mr-c5 { grid-area: c5; }
+.mr-c6 { grid-area: c6; }
 .mr-cb { grid-area: cb; }
+/* Desktop: name block wide enough for the meta line, the hint runs across the whole row.
+   The WLTP and range columns join at 1280 px; below that the board next to the filter
+   column is too narrow for them (the ladder's ring still carries the WLTP value). */
 @media (min-width: 1024px) {
-  .mr-grid,
+  .mr-grid {
+    grid-template-columns: 24px 48px minmax(200px, 1.6fr) minmax(100px, 1fr) 52px 60px 70px 26px;
+    grid-template-areas: "rk th who ld c1 c3 c6 cb" ". . hint hint hint hint hint .";
+    column-gap: 10px;
+    row-gap: 4px;
+  }
   .mr-grid.mr-ruler {
-    grid-template-columns: 24px 56px minmax(190px, 1.4fr) minmax(150px, 1.4fr) 52px 52px 60px 64px 100px 26px;
-    grid-template-areas: "rk th who ld c1 c2 c3 c4 c5 cb";
-    column-gap: 12px;
+    grid-template-areas: "rk th who ld c1 c3 c6 cb";
+  }
+}
+@media (min-width: 1280px) {
+  .mr-grid {
+    grid-template-columns: 24px 48px minmax(250px, 1.6fr) minmax(110px, 1fr) 52px 52px 60px 70px 68px 26px;
+    grid-template-areas: "rk th who ld c1 c2 c3 c6 c4 cb" ". . hint hint hint hint hint hint hint .";
+  }
+  .mr-grid.mr-ruler {
+    grid-template-areas: "rk th who ld c1 c2 c3 c6 c4 cb";
   }
 }
 </style>

@@ -134,8 +134,8 @@
             <span class="hidden lg:inline">{{ t(`models_ranking.sort.note_${sort}`) }} · </span>{{ t('models_ranking.scale', { unit: consumptionUnitLabel() }) }}
           </span>
         </div>
-        <div class="mr-grid mr-ruler h-[22px] lg:h-[34px]" aria-hidden="true">
-          <span class="mr-who hidden text-left text-[10.5px] font-semibold uppercase tracking-wide text-gray-500 lg:block dark:text-gray-400">{{ t('models_ranking.columns.model') }}</span>
+        <div class="mr-grid mr-ruler h-[22px] lg:h-[38px]" aria-hidden="true">
+          <span class="mr-who hidden self-center text-left text-[11.5px] font-semibold text-gray-700 lg:block dark:text-gray-300">{{ t('models_ranking.columns.model') }}</span>
           <div class="mr-ld relative h-[22px] text-[10.5px] tabular-nums text-gray-500 dark:text-gray-400">
             <span
               v-for="tick in axis.ticks"
@@ -144,7 +144,9 @@
               :style="{ left: `${tickPosition(tick)}%` }"
             >{{ formatDecimal(tick, tickDecimals) }}</span>
           </div>
-          <span v-for="col in columnHeads" :key="col.cls" :class="col.cls" class="hidden self-center whitespace-nowrap text-right text-[10.5px] font-semibold uppercase leading-tight tracking-wide text-gray-500 lg:block dark:text-gray-400">{{ col.label }}</span>
+          <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c2' || col.cls === 'mr-c4' ? 'xl:block' : 'lg:block']" class="hidden self-center whitespace-nowrap text-right text-[11.5px] font-semibold leading-tight text-gray-700 dark:text-gray-300">
+            {{ col.label }}<br><span class="font-normal text-gray-500 dark:text-gray-400">{{ col.unit }}</span>
+          </span>
         </div>
       </div>
 
@@ -152,7 +154,7 @@
       <ol v-if="loading" class="list-none" aria-hidden="true">
         <li v-for="n in 8" :key="n" class="mr-grid border-b border-gray-200 px-4 py-3 lg:px-5 dark:border-gray-800">
           <span class="mr-rk h-3 w-4 justify-self-end rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
-          <span class="mr-th h-9 w-[52px] rounded-lg bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
+          <span class="mr-th h-9 w-[52px] rounded-lg bg-gray-200 lg:h-[34px] lg:w-12 dark:bg-gray-800 animate-pulse"></span>
           <span class="mr-who h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
           <span class="mr-ld h-2 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
         </li>
@@ -475,13 +477,16 @@ const tickDecimals = computed(() => (axis.value.ticks.every(Number.isInteger) ? 
 function tickPosition(tick: number) {
   return ((tick - axis.value.min) / (axis.value.max - axis.value.min)) * 100
 }
-const columnHeads = computed(() => [
-  { cls: 'mr-c1', label: t('models_ranking.columns.real') },
-  { cls: 'mr-c2', label: t('models_ranking.columns.wltp') },
-  { cls: 'mr-c3', label: `${currencySymbol.value}/100 ${isImperial.value ? 'mi' : 'km'}` },
-  { cls: 'mr-c4', label: `${t('models_ranking.columns.range')} ${distanceUnitLabel()}` },
-  { cls: 'mr-c5', label: t('models_ranking.columns.data') },
-])
+const columnHeads = computed(() => {
+  const costUnit = `${currencySymbol.value}/100 ${isImperial.value ? 'mi' : 'km'}`
+  return [
+    { cls: 'mr-c1', label: t('models_ranking.columns.real'), unit: consumptionUnitLabel() },
+    { cls: 'mr-c2', label: t('models_ranking.columns.wltp'), unit: consumptionUnitLabel() },
+    { cls: 'mr-c3', label: t('models_ranking.columns.cost'), unit: costUnit },
+    { cls: 'mr-c6', label: t('models_ranking.columns.vs', { fuel: t(`models_ranking.assumptions.${cost.value.fuel}`) }), unit: costUnit },
+    { cls: 'mr-c4', label: t('models_ranking.columns.range'), unit: distanceUnitLabel() },
+  ]
+})
 
 const stickyTopClass = computed(() => isAuthenticated.value
   ? 'top-[calc(env(safe-area-inset-top)+var(--top-nav-h,0px))]'

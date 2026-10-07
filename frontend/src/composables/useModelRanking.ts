@@ -81,7 +81,8 @@ function matchesSearch(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelDispl
 // Sort value per mode; null always sorts last. Ascending unless listed in DESCENDING.
 const SORT_VALUE: Record<RankingSort, (r: Omit<RankedModel, 'rank'>) => number | null> = {
   efficient: r => r.model.avgConsumptionKwhPer100km,
-  range: r => r.model.realRangeKm,
+  // What the range column shows: typical range of the largest battery, real range as fallback
+  range: r => r.model.typicalRangeMaxKm ?? r.model.realRangeKm,
   wltp: r => (r.wltpDeviationPct != null ? Math.abs(r.wltpDeviationPct) : null),
   winter: r => r.winterSurchargePct,
   data: r => r.model.logCount,

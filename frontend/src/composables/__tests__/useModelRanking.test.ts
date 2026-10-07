@@ -68,6 +68,15 @@ describe('useModelRanking', () => {
       expect(keys(r.ranked.value)).toEqual(['C/long', 'B/short', 'A/none'])
     })
 
+    it('range: prefers the typical span of the largest battery, real range only as fallback', () => {
+      const r = useModelRanking(ref([
+        model({ brandDisplayName: 'A', modelUrlSlug: 'real', realRangeKm: 450 }),
+        model({ brandDisplayName: 'B', modelUrlSlug: 'typical', realRangeKm: 300, typicalRangeMinKm: 320, typicalRangeMaxKm: 480 }),
+      ]))
+      r.sort.value = 'range'
+      expect(keys(r.ranked.value)).toEqual(['B/typical', 'A/real'])
+    })
+
     it('wltp: smallest absolute deviation first, both directions count', () => {
       const r = useModelRanking(ref([
         // +12.5 %

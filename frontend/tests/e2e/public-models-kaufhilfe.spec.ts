@@ -27,10 +27,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     test('Datenlage: jede Zeile nennt Ladevorgänge und Fahrer', async ({ page }) => {
       await openRanking(page);
       const first = rows(page).first();
+      await expect(first.locator(viewport.width >= 1024 ? '.mr-hint' : '.mr-who')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
       if (viewport.width >= 1024) {
-        await expect(first.locator('.mr-c5')).toContainText(/Fahrer/);
-      } else {
-        await expect(first.locator('.mr-who')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
+        await expect(first.getByTestId('savings-column')).toContainText(/^[−+]\d/);
       }
     });
 
