@@ -177,10 +177,11 @@ describe('stopsRangeKm', () => {
     expect(stopsRangeKm(400, 16, 300, 1)).toBe(600)
     expect(stopsRangeKm(400, 16, 100, 0)).toBe(320)
   })
-  it('is null without range, consumption or DC data', () => {
+  it('falls back to the flat 70 % per stop without consumption or DC data, null without range', () => {
+    expect(stopsRangeKm(400, null, 100, 1)).toBe(600)
+    expect(stopsRangeKm(400, 16, null, 1)).toBe(600)
+    expect(stopsRangeKm(400, 16, 0, 2)).toBe(880)
     expect(stopsRangeKm(null, 16, 100, 1)).toBeNull()
-    expect(stopsRangeKm(400, null, 100, 1)).toBeNull()
-    expect(stopsRangeKm(400, 16, null, 1)).toBeNull()
-    expect(stopsRangeKm(400, 16, 0, 1)).toBeNull()
+    expect(stopsRangeKm(0, 16, 100, 1)).toBeNull()
   })
 })

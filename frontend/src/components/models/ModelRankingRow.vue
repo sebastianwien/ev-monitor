@@ -65,8 +65,8 @@
       </span>
       <!-- Desktop range cell (from 1280 px): typical span, below it the winter span -->
       <span class="mr-c4 pointer-events-none hidden content-center gap-0.5 whitespace-nowrap text-right leading-tight xl:grid" data-testid="range-cell">
-        <span class="text-[15px] tabular-nums" :class="colClass('range')">{{ rangeCell }} <span class="text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span></span>
-        <span v-for="line in stopsCaption" :key="line" class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ line }}</span>
+        <span class="text-[15px] tabular-nums" :class="colClass('range')">{{ rangeValue }} <span class="text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span></span>
+        <span v-for="line in rangeLines" :key="line" class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ line }}</span>
       </span>
 
       <button
@@ -274,28 +274,31 @@ const typicalSpan = computed(() => {
   if (lo == null || hi == null) return null
   return { lo, hi }
 })
-const fmtSpan = (lo: number, hi: number) => {
-  const fmt = (km: number) => formatDistance(km, { showUnit: false })
-  return lo === hi ? fmt(hi) : `${fmt(lo)}–${fmt(hi)}`
-}
-const rangeCell = computed(() => {
-  const span = typicalSpan.value
-  if (span) return fmtSpan(span.lo, span.hi)
-  return m.value.realRangeKm != null ? formatDistance(m.value.realRangeKm, { showUnit: false }) : '–'
-})
-// Range with one and with two 20-minute fast-charge stops (largest battery), from the model's community DC power
+// Range with one and with two 20-minute fast-charge stops (largest battery); the stop adds
+// the model's community DC power when known, else the flat 70 % (same rule as the hint)
 const stopsRange = computed(() => {
   const base = typicalSpan.value?.hi ?? m.value.realRangeKm ?? null
   if (base == null) return null
   const one = stopsRangeKm(base, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, 1)
   const two = stopsRangeKm(base, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, 2)
-  return one != null && two != null ? { one, two, addedKm: one - Math.round(base * USABLE_BATTERY_SHARE) } : null
+  if (one == null || two == null) return null
+  const dcBased = m.value.fastChargePowerKw != null && m.value.avgConsumptionKwhPer100km != null
+  return { one, two, addedKm: one - Math.round(base * USABLE_BATTERY_SHARE), dcBased }
 })
 const fmtKm = (km: number) => formatDistance(km, { showUnit: false })
-// Two short lines under the range, one per stop count
-const stopsCaption = computed(() => stopsRange.value
-  ? [t('models_ranking.row.stops_one', { value: fmtKm(stopsRange.value.one) }), t('models_ranking.row.stops_two', { value: fmtKm(stopsRange.value.two) })]
-  : [t('models_ranking.row.one_stop_missing')])
+// Desktop range cell: the largest battery as the number, below it the smallest battery and one stop
+const rangeValue = computed(() => {
+  const span = typicalSpan.value
+  if (span) return fmtKm(span.hi)
+  return m.value.realRangeKm != null ? fmtKm(m.value.realRangeKm) : '–'
+})
+const rangeLines = computed(() => {
+  const lines: string[] = []
+  const span = typicalSpan.value
+  if (span && span.lo !== span.hi) lines.push(t('models_ranking.row.small_battery', { value: fmtKm(span.lo) }))
+  if (stopsRange.value) lines.push(t('models_ranking.row.stops_one', { value: fmtKm(stopsRange.value.one) }))
+  return lines
+})
 
 function signedPct(v: number, decimals = 0): string {
   return `${v > 0 ? '+' : ''}${formatDecimal(v, decimals)} %`
@@ -404,14 +407,14 @@ const facts = computed(() => {
       icon: ClockIcon,
       label: t('models_ranking.detail.stops'),
       value: stopsRange.value ? `${fmtKm(stopsRange.value.one)} / ${formatDistance(stopsRange.value.two)}` : '–',
-      hint: stopsRange.value && x.fastChargePowerKw != null
+      hint: stopsRange.value && stopsRange.value.dcBased && x.fastChargePowerKw != null
         ? t('models_ranking.detail.stops_hint', {
             minutes: formatNumber(ONE_STOP_MINUTES),
             added: fmtKm(stopsRange.value.addedKm),
             unit: distanceUnitLabel(),
             kw: formatNumber(Math.round(x.fastChargePowerKw)),
           })
-        : t('models_ranking.detail.one_stop_missing'),
+        : t('models_ranking.detail.stops_flat'),
     },
     {
       icon: TagIcon,

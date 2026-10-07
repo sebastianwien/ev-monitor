@@ -160,8 +160,8 @@ export function summarizeNeeds(models: RangeFields[], input: NeedsInput): NeedsS
 
 /**
  * Range with `stops` fast-charge stops of ONE_STOP_MINUTES each: the usable share of the
- * battery plus what the model's community DC power adds per stop. Null without range,
- * consumption or DC data (then the flat share would say nothing about the model).
+ * battery plus what a stop adds (the model's community DC power, else the flat share, see
+ * stopAddedKm). Null without range.
  */
 export function stopsRangeKm(
   rangeKm: number | null | undefined,
@@ -169,6 +169,6 @@ export function stopsRangeKm(
   dcPowerKw: number | null | undefined,
   stops: number,
 ): number | null {
-  if (rangeKm == null || rangeKm <= 0 || consumptionKwhPer100km == null || consumptionKwhPer100km <= 0 || dcPowerKw == null || dcPowerKw <= 0) return null
+  if (rangeKm == null || rangeKm <= 0) return null
   return Math.round(rangeKm * USABLE_BATTERY_SHARE + stops * stopAddedKm(rangeKm, consumptionKwhPer100km, dcPowerKw, ONE_STOP_MINUTES))
 }

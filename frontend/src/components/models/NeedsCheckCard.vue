@@ -4,17 +4,24 @@
          header scrolls to $el. Four labelled fields, below them three figures the rows follow. -->
     <h2 :id="titleId" class="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
 
-    <div class="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
-      <label class="grid gap-1">
-        <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.daily', { unit: distanceUnitLabel() }) }}</span>
-        <input ref="dailyInput" :value="dailyLocal" v-bind="numeric" data-testid="needs-daily" @input="onDistance('dailyKm', $event)" />
+    <!-- Four questions; inputs line up at the bottom even when a question wraps differently -->
+    <div class="grid grid-cols-2 items-end gap-x-3 gap-y-3 sm:grid-cols-4">
+      <label class="grid gap-1.5">
+        <span class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_daily') }}</span>
+        <span class="flex items-center gap-2">
+          <input ref="dailyInput" :value="dailyLocal" v-bind="numeric" data-testid="needs-daily" @input="onDistance('dailyKm', $event)" />
+          <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
+        </span>
       </label>
-      <label class="grid gap-1">
-        <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.longest', { unit: distanceUnitLabel() }) }}</span>
-        <input :value="longestLocal" v-bind="numeric" data-testid="needs-longest" @input="onDistance('longestTripKm', $event)" />
+      <label class="grid gap-1.5">
+        <span class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_longest') }}</span>
+        <span class="flex items-center gap-2">
+          <input :value="longestLocal" v-bind="numeric" data-testid="needs-longest" @input="onDistance('longestTripKm', $event)" />
+          <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
+        </span>
       </label>
-      <div class="grid gap-1">
-        <span :id="homeId" class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.home') }}</span>
+      <div class="grid gap-1.5">
+        <span :id="homeId" class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_home') }}</span>
         <div class="grid h-11 grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="homeId">
           <button
             v-for="opt in homeOptions"
@@ -29,8 +36,8 @@
           >{{ opt.label }}</button>
         </div>
       </div>
-      <div class="grid gap-1">
-        <span :id="stopsId" class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.stops') }}</span>
+      <div class="grid gap-1.5">
+        <span :id="stopsId" class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_stops') }}</span>
         <div class="grid h-11 grid-cols-4 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="stopsId">
           <button
             v-for="n in stopOptions"
@@ -116,7 +123,7 @@ const numeric = {
   inputmode: 'numeric',
   pattern: '[0-9]*',
   autocomplete: 'off',
-  class: 'h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-base font-semibold tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100',
+  class: 'h-11 w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 text-base font-semibold tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100',
 } as const
 
 // Inputs show the market's distance unit; the model keeps kilometres.

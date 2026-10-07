@@ -40,7 +40,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(first.getByTestId('consumption-bars')).toContainText(/Hersteller\s*\d+,\d.*Fahrer\s*\d+,\d\s*[+−]\d+ %/);
       if (viewport.width >= 1280) {
         // range cell: one-stop range from the community DC power, or the honest gap
-        await expect(first.getByTestId('range-cell')).toContainText(/mit 20 min \d+|ohne DC-Daten/);
+        await expect(first.getByTestId('range-cell')).toContainText(/mit 1 Stopp \d+/);
       }
       if (viewport.width >= 1024) {
       }
@@ -60,7 +60,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('needs-summary')).toContainText('mit höchstens 3 Stopps');
       await expect(page.getByTestId('trip-chip')).toContainText('höchstens 3 Stopps');
       if (viewport.width >= 1280) {
-        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/1 Stopp \d+\s*2 Stopps \d+|ohne DC-Daten/);
+        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/mit 1 Stopp \d+/);
       }
     });
 
