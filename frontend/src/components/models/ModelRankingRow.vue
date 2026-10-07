@@ -159,6 +159,8 @@ const props = defineProps<{
   dailyKm: number
   /** Longest trip in km, named in the hint so the reader sees their own number */
   longestTripKm: number
+  /** Stops the reader accepts on long trips; the range cell shows the range with that many */
+  maxStops: number
   fuel: FuelKind
 }>()
 
@@ -281,9 +283,10 @@ const stopsRange = computed(() => {
   if (base == null) return null
   const one = stopsRangeKm(base, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, 1)
   const two = stopsRangeKm(base, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, 2)
-  if (one == null || two == null) return null
+  const chosen = stopsRangeKm(base, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, props.maxStops)
+  if (one == null || two == null || chosen == null) return null
   const dcBased = m.value.fastChargePowerKw != null && m.value.avgConsumptionKwhPer100km != null
-  return { one, two, addedKm: one - Math.round(base * USABLE_BATTERY_SHARE), dcBased }
+  return { one, two, chosen, addedKm: one - Math.round(base * USABLE_BATTERY_SHARE), dcBased }
 })
 const fmtKm = (km: number) => formatDistance(km, { showUnit: false })
 // Desktop range cell: the largest battery as the number, below it the smallest battery and one stop
@@ -296,7 +299,7 @@ const rangeLines = computed(() => {
   const lines: string[] = []
   const span = typicalSpan.value
   if (span && span.lo !== span.hi) lines.push(t('models_ranking.row.small_battery', { value: fmtKm(span.lo) }))
-  if (stopsRange.value) lines.push(t('models_ranking.row.stops_one', { value: fmtKm(stopsRange.value.one) }))
+  if (stopsRange.value) lines.push(t('models_ranking.row.stops_n', { count: formatNumber(props.maxStops), value: fmtKm(stopsRange.value.chosen) }, props.maxStops))
   return lines
 })
 

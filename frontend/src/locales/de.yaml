@@ -447,7 +447,7 @@ models_ranking:
     per_100: "pro 100 {unit}"
     combustion_short: "{fuel} {amount}"
     small_battery: "kleiner Akku {value}"
-    stops_one: "mit 1 Stopp {value}"
+    stops_n: "mit 1 Stopp {value} | mit {count} Stopps {value}"
     bar_manufacturer: "Hersteller"
     bar_drivers: "Fahrer"
     electricity: "Strom"

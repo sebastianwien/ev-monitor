@@ -444,7 +444,7 @@ models_ranking:
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
     small_battery: "small battery {value}"
-    stops_one: "with 1 stop {value}"
+    stops_n: "with 1 stop {value} | with {count} stops {value}"
     bar_manufacturer: "Official"
     bar_drivers: "Drivers"
     electricity: "Electricity"

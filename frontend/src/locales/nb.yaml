@@ -407,7 +407,7 @@ models_ranking:
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
     small_battery: "lite batteri {value}"
-    stops_one: "med 1 stopp {value}"
+    stops_n: "med 1 stopp {value} | med {count} stopp {value}"
     bar_manufacturer: "Oppgitt"
     bar_drivers: "Førere"
     electricity: "Strøm"
