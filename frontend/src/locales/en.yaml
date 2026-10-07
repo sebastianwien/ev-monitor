@@ -385,7 +385,7 @@ models_ranking:
     q_daily: "How far do you drive a day?"
     q_longest: "How long is your longest trip?"
     q_home: "Can you charge at home?"
-    q_stops: "How many charging stops will you accept on the road?"
+    q_stops: "How many charging stops will you accept on long trips?"
     home_yes: "Yes"
     home_no: "No"
     summary_empty: "No models with range data yet."

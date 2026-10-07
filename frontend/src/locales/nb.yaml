@@ -348,7 +348,7 @@ models_ranking:
     q_daily: "Hvor langt kjører du per dag?"
     q_longest: "Hvor lang er din lengste tur?"
     q_home: "Kan du lade hjemme?"
-    q_stops: "Hvor mange ladestopp godtar du underveis?"
+    q_stops: "Hvor mange ladestopp godtar du på langturer?"
     home_yes: "Ja"
     home_no: "Nei"
     summary_empty: "Ingen modeller med rekkeviddedata ennå."

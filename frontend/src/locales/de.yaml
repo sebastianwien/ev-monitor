@@ -388,7 +388,7 @@ models_ranking:
     q_daily: "Wie viel fährst du am Tag?"
     q_longest: "Wie lang ist deine längste Fahrt?"
     q_home: "Kannst du zuhause laden?"
-    q_stops: "Wie viele Ladestopps nimmst du unterwegs in Kauf?"
+    q_stops: "Wie viele Ladestopps nimmst du auf Langstrecken in Kauf?"
     home_yes: "Ja"
     home_no: "Nein"
     summary_empty: "Noch keine Modelle mit Reichweitendaten."
