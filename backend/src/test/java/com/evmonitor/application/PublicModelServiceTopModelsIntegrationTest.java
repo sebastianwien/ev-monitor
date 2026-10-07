@@ -352,35 +352,42 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         }
     }
 
-    // --- Average DC charging power (energy-weighted) rides along for the one-stop range ---
+    // --- Fast-charge power for the one-stop range: short sessions from a low SoC, upper quartile ---
+
+    private void saveDcSession(UUID carId, int i, String kwh, int minutes, String socStart, String socEnd) {
+        EvLog log = EvLog.createNew(carId, new BigDecimal(kwh), new BigDecimal("30.00"), minutes,
+                "u33d1", 20000 + i * 300, null,
+                socEnd == null ? null : new BigDecimal(socEnd),
+                LocalDateTime.now().minusDays(40 + i), ChargingType.DC, null, null, true, null);
+        evLogRepository.save(log.toBuilder()
+                .socBeforeChargePercent(socStart == null ? null : new BigDecimal(socStart))
+                .build());
+    }
 
     @Test
-    void getTopModels_carriesEnergyWeightedDcPower_onlyFromFiveDcSessions() {
-        // IONIQ_6: 5 DC sessions, 40 kWh in 30 min each → 80 kW; AC sessions do not count
+    void getTopModels_fastChargePower_isUpperQuartileOfShortLowSocSessions() {
+        // IONIQ_6: six sessions at 80 kW (40 kWh in 30 min, 15 → 70 %), two on a slow 50 kW charger,
+        // one from 60 % SoC (ignored), one to 100 % (ignored) → 8 qualify, p75 = 80
         saveWltpSpec(CarBrand.CarModel.IONIQ_6, new BigDecimal("77.4"), new BigDecimal("15.0"));
         Car car = createCarWithBattery(CarBrand.CarModel.IONIQ_6, new BigDecimal("77.4"));
         saveLogsForCar(car.getId(), 3, new BigDecimal("16.0"));
-        for (int i = 0; i < 5; i++) {
-            evLogRepository.save(EvLog.createNew(car.getId(), new BigDecimal("40.0"), new BigDecimal("30.00"), 30,
-                    "u33d1", 20000 + i * 300, new BigDecimal("150.0"), null,
-                    LocalDateTime.now().minusDays(40 + i), ChargingType.DC, null, null, true, null));
-        }
+        for (int i = 0; i < 6; i++) saveDcSession(car.getId(), i, "40.0", 30, "15", "70");
+        saveDcSession(car.getId(), 6, "25.0", 30, "15", "50");
+        saveDcSession(car.getId(), 7, "25.0", 30, null, null);
+        saveDcSession(car.getId(), 8, "40.0", 30, "60", "90");
+        saveDcSession(car.getId(), 9, "40.0", 30, "20", "100");
 
         TopModelResponse ioniq6 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "IONIQ_6");
         assertNotNull(ioniq6);
-        assertEquals(new BigDecimal("80.0"), ioniq6.avgDcChargingPowerKw());
+        assertEquals(new BigDecimal("80.0"), ioniq6.fastChargePowerKw());
 
-        // EQS: four DC sessions are below the noise guard → null
+        // EQS: seven qualifying sessions are below the noise guard → null
         cacheManager.getCache("topModels").clear();
         saveWltpSpec(CarBrand.CarModel.EQS, new BigDecimal("108.4"), new BigDecimal("19.0"));
         Car eqs = createCarWithBattery(CarBrand.CarModel.EQS, new BigDecimal("108.4"));
         saveLogsForCar(eqs.getId(), 3, new BigDecimal("20.0"));
-        for (int i = 0; i < 4; i++) {
-            evLogRepository.save(EvLog.createNew(eqs.getId(), new BigDecimal("40.0"), new BigDecimal("30.00"), 30,
-                    "u33d1", 20000 + i * 300, new BigDecimal("150.0"), null,
-                    LocalDateTime.now().minusDays(40 + i), ChargingType.DC, null, null, true, null));
-        }
-        assertNull(findModel(publicModelService.getTopModels(ALL_MODELS, false), "EQS").avgDcChargingPowerKw());
+        for (int i = 0; i < 7; i++) saveDcSession(eqs.getId(), i, "40.0", 30, "15", "70");
+        assertNull(findModel(publicModelService.getTopModels(ALL_MODELS, false), "EQS").fastChargePowerKw());
     }
 
     private TopModelResponse findModel(List<TopModelResponse> results, String modelEnum) {

@@ -482,7 +482,7 @@ models_ranking:
     savings_year_cheaper: "günstiger, {amount} pro Jahr bei {daily} {unit} am Tag"
     savings_year_dearer: "teurer, {amount} pro Jahr bei {daily} {unit} am Tag"
     one_stop: "Mit einem 20-Minuten-Stopp"
-    one_stop_hint: "+{added} {unit} nachgeladen bei Ø {kw} kW an DC"
+    one_stop_hint: "+{added} {unit} nachgeladen bei {kw} kW an DC"
     one_stop_missing: "Noch zu wenige Schnellladevorgänge"
     savings_none: "Kraftstoffpreis fehlt, siehe Annahmen"
   empty:

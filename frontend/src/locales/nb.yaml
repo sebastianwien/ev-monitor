@@ -442,7 +442,7 @@ models_ranking:
     savings_year_cheaper: "billigere, {amount} per år ved {daily} {unit} per dag"
     savings_year_dearer: "dyrere, {amount} per år ved {daily} {unit} per dag"
     one_stop: "Med ett 20-minutters stopp"
-    one_stop_hint: "+{added} {unit} ladet ved Ø {kw} kW DC"
+    one_stop_hint: "+{added} {unit} ladet ved {kw} kW DC"
     one_stop_missing: "For få hurtigladinger ennå"
     savings_none: "Drivstoffpris mangler, se forutsetninger"
   empty:

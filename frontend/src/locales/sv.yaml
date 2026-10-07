@@ -442,7 +442,7 @@ models_ranking:
     savings_year_cheaper: "billigare, {amount} per år vid {daily} {unit} per dag"
     savings_year_dearer: "dyrare, {amount} per år vid {daily} {unit} per dag"
     one_stop: "Med ett 20-minuters stopp"
-    one_stop_hint: "+{added} {unit} laddat vid Ø {kw} kW DC"
+    one_stop_hint: "+{added} {unit} laddat vid {kw} kW DC"
     one_stop_missing: "För få snabbladdningar ännu"
     savings_none: "Bränslepris saknas, se antaganden"
   empty:

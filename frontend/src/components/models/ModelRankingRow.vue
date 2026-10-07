@@ -288,8 +288,8 @@ const oneStop = computed(() => {
   const span = typicalSpan.value
   const base = span ? { lo: span.lo, hi: span.hi } : m.value.realRangeKm != null ? { lo: m.value.realRangeKm, hi: m.value.realRangeKm } : null
   if (!base) return null
-  const lo = oneStopRangeKm(base.lo, m.value.avgConsumptionKwhPer100km, m.value.avgDcChargingPowerKw)
-  const hi = oneStopRangeKm(base.hi, m.value.avgConsumptionKwhPer100km, m.value.avgDcChargingPowerKw)
+  const lo = oneStopRangeKm(base.lo, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw)
+  const hi = oneStopRangeKm(base.hi, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw)
   return lo != null && hi != null ? { lo, hi, addedKm: hi - Math.round(base.hi * USABLE_BATTERY_SHARE) } : null
 })
 const oneStopCaption = computed(() => oneStop.value
@@ -403,11 +403,11 @@ const facts = computed(() => {
       icon: ClockIcon,
       label: t('models_ranking.detail.one_stop'),
       value: oneStop.value ? formatDistance(oneStop.value.hi) : '–',
-      hint: oneStop.value && x.avgDcChargingPowerKw != null
+      hint: oneStop.value && x.fastChargePowerKw != null
         ? t('models_ranking.detail.one_stop_hint', {
             added: formatDistance(oneStop.value.addedKm, { showUnit: false }),
             unit: distanceUnitLabel(),
-            kw: formatNumber(Math.round(x.avgDcChargingPowerKw)),
+            kw: formatNumber(Math.round(x.fastChargePowerKw)),
           })
         : t('models_ranking.detail.one_stop_missing'),
     },

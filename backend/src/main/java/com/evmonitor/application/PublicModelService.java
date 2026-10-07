@@ -524,7 +524,7 @@ public class PublicModelService {
                             rangeKm(m.wltp().maxNetCapacityKwh(), m.avgConsumption()),
                             rangeKm(m.wltp().minNetCapacityKwh(), winter),
                             rangeKm(m.wltp().maxNetCapacityKwh(), winter),
-                            scale1(evLogRepository.findAvgDcChargingPowerKwByModel(m.carModel().name(), isSeedUser))
+                            scale1(evLogRepository.findFastChargePowerKwByModel(m.carModel().name(), isSeedUser))
                     );
                 })
                 .toList();

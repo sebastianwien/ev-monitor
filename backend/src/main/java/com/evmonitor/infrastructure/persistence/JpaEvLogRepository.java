@@ -697,6 +697,39 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("isSeedUser") boolean isSeedUser);
 
     /**
+     * Fast-charge power a model reaches on a short stop from a low state of charge, kW.
+     * Pool: DC sessions of 10 to 45 minutes with at least 25 kW mean power, SoC start at most
+     * 30 % (or unknown), SoC end at most 85 % (or unknown, keeps the taper out), SoC window at
+     * least 15 points when both are known. The 75th percentile of the mean power approximates
+     * "the charger did not limit". Null below 8 qualifying sessions.
+     */
+    @Query(value = """
+            SELECT CASE WHEN COUNT(*) >= 8
+                        THEN PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY s.kw)
+                        ELSE NULL END
+            FROM (
+                SELECT COALESCE(l.kwh_at_vehicle, l.kwh_charged) / (l.charge_duration_minutes / 60.0) AS kw
+                FROM ev_log l
+                JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
+                WHERE l.deleted_at IS NULL AND c.model = :model
+                  AND l.charging_type = 'DC'
+                  AND l.charge_duration_minutes BETWEEN 10 AND 45
+                  AND COALESCE(l.kwh_at_vehicle, l.kwh_charged) > 0
+                  AND (l.soc_start_percent IS NULL OR l.soc_start_percent <= 30)
+                  AND (l.soc_after_charge_percent IS NULL OR l.soc_after_charge_percent <= 85)
+                  AND (l.soc_start_percent IS NULL OR l.soc_after_charge_percent IS NULL
+                       OR l.soc_after_charge_percent - l.soc_start_percent >= 15)
+                  AND (l.include_in_statistics = true
+                       OR (:isSeedUser = true
+                           AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+            ) s
+            WHERE s.kw >= 25
+            """, nativeQuery = true)
+    BigDecimal findFastChargePowerKwByModel(
+            @Param("model") String model,
+            @Param("isSeedUser") boolean isSeedUser);
+
+    /**
      * Returns AC and DC average cost per kWh for a model.
      * Only included if at least 5 sessions with cost data exist per type.
      * Returns: [acAvgCostPerKwh, acCount, dcAvgCostPerKwh, dcCount]

@@ -43,6 +43,6 @@ public record TopModelResponse(
         Integer typicalRangeMaxKm,
         Integer winterRangeMinKm,
         Integer winterRangeMaxKm,
-        /** Energy-weighted community average at DC chargers, null below 5 sessions */
-        BigDecimal avgDcChargingPowerKw
+        /** Fast-charge power on a short stop from a low SoC (75th percentile), null below 8 sessions */
+        BigDecimal fastChargePowerKw
 ) {}
