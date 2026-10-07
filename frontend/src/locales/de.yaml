@@ -449,7 +449,7 @@ models_ranking:
     per_100: "pro 100 {unit}"
     combustion_short: "{fuel} {amount}"
     one_stop: "20-min-Stopp {value}"
-    one_stop_missing: "Ladeleistung noch ohne Daten"
+    one_stop_missing: "ohne DC-Daten"
     bar_manufacturer: "Hersteller"
     bar_drivers: "Fahrer"
     electricity: "Strom"

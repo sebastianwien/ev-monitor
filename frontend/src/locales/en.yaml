@@ -446,7 +446,7 @@ models_ranking:
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
     one_stop: "20-min stop {value}"
-    one_stop_missing: "no fast-charging data yet"
+    one_stop_missing: "no DC data yet"
     bar_manufacturer: "Official"
     bar_drivers: "Drivers"
     electricity: "Electricity"

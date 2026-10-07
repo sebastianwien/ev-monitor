@@ -409,7 +409,7 @@ models_ranking:
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
     one_stop: "20-min stopp {value}"
-    one_stop_missing: "inga snabbladdningsdata ännu"
+    one_stop_missing: "utan DC-data"
     bar_manufacturer: "Uppgiven"
     bar_drivers: "Förare"
     electricity: "El"

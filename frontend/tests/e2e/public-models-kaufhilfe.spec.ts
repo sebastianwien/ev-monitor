@@ -40,7 +40,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(first.getByTestId('consumption-bars')).toContainText(/Hersteller\s*\d+,\d.*Fahrer\s*\d+,\d\s*[+−]\d+ %/);
       if (viewport.width >= 1280) {
         // range cell: one-stop range from the community DC power, or the honest gap
-        await expect(first.getByTestId('range-cell')).toContainText(/20-min-Stopp \d+|Ladeleistung noch ohne Daten/);
+        await expect(first.getByTestId('range-cell')).toContainText(/20-min-Stopp \d+|ohne DC-Daten/);
       }
       if (viewport.width >= 1024) {
       }

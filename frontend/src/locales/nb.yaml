@@ -409,7 +409,7 @@ models_ranking:
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
     one_stop: "20-min stopp {value}"
-    one_stop_missing: "ingen hurtigladedata ennå"
+    one_stop_missing: "uten DC-data"
     bar_manufacturer: "Oppgitt"
     bar_drivers: "Førere"
     electricity: "Strøm"
