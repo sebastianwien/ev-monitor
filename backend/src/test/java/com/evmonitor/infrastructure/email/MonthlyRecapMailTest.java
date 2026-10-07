@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.application.recap.MonthlyRecap;
+import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.application.recap.MonthlyRecap.PricelessHint;
 import org.junit.jupiter.api.Test;
 
@@ -164,6 +165,17 @@ class MonthlyRecapMailTest {
     }
 
     @Test
+    void footnote_namesTheLitresAndTheClassOfTheCar() {
+        Recap r = ihle();
+        assertThat(render(r).html()).contains("7,6 l/100 km für einen Benziner der Klasse Mittelklasse bei ");
+
+        r.locale = "en";
+        r.liters = "8.4";
+        r.category = VehicleCategory.SUV;
+        assertThat(render(r).html()).contains("8.4 l/100 km for a petrol car in the SUV class at ");
+    }
+
+    @Test
     void usernameIsEscaped() {
         Recap r = ihle();
         r.username = "<b>x</b>";
@@ -186,6 +198,8 @@ class MonthlyRecapMailTest {
         int dc = 10;
         Integer home = null;
         PricelessHint hint = null;
+        String liters = "7.6";
+        VehicleCategory category = VehicleCategory.SEDAN;
 
         MonthlyRecap build() {
             BigDecimal distance = km == null ? null : new BigDecimal(km);
@@ -194,7 +208,8 @@ class MonthlyRecapMailTest {
             return new MonthlyRecap(UUID.randomUUID(), UUID.randomUUID(), "ihle@example.com", username, locale,
                     YearMonth.of(2026, 8), "Model 3", 12, ac, dc, new BigDecimal("351.43"),
                     cost == null ? null : new BigDecimal(cost), distance,
-                    distance == null ? null : new BigDecimal("16.81"), home, fuelCost, fuelPrice, hint,
+                    distance == null ? null : new BigDecimal("16.81"), home, fuelCost, fuelPrice,
+                    new BigDecimal(liters), category, hint,
                     previousKm == null ? null : new BigDecimal(previousKm));
         }
     }

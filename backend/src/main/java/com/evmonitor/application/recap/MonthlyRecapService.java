@@ -8,6 +8,7 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.EvLog;
+import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
@@ -36,7 +37,6 @@ import java.util.Optional;
 public class MonthlyRecapService {
 
     /** Durchschnittsverbrauch des Vergleichs-Verbrenners, wie im Ticker. */
-    static final BigDecimal FUEL_LITERS_PER_100_KM = FuelPriceService.COMBUSTION_LITERS_PER_100_KM;
 
     private final EvLogStatisticsService statisticsService;
     private final EvLogRepository evLogRepository;
@@ -83,7 +83,10 @@ public class MonthlyRecapService {
                 .toList();
         BigDecimal cost = priceless.size() == logs.size() ? null : stats.energyCostEur();
         BigDecimal distance = positiveOrNull(stats.totalDistanceKm());
-        BigDecimal fuelPrice = BigDecimal.valueOf(fuelPriceService.getAvgFuelPrice());
+        // Benziner der Fahrzeugklasse des Autos zum Benzinpreis, passend zur Zeile "gegenüber einem Benziner"
+        BigDecimal fuelPrice = BigDecimal.valueOf(fuelPriceService.getBenzinPrice());
+        VehicleCategory category = car.get().getModel().getCategory();
+        BigDecimal fuelLiters = category.getPetrolLitersPer100Km();
 
         return Optional.of(new MonthlyRecap(
                 user.get().getId(),
@@ -101,9 +104,11 @@ public class MonthlyRecapService {
                 distance,
                 stats.avgConsumptionKwhPer100km(),
                 homeSharePercent(stats.locationSplit()),
-                distance == null || cost == null ? null : fuelCost(distance, fuelPrice).multiply(pricedShare(logs))
+                distance == null || cost == null ? null : fuelCost(distance, fuelLiters, fuelPrice).multiply(pricedShare(logs))
                         .setScale(2, RoundingMode.HALF_UP),
                 fuelPrice,
+                fuelLiters,
+                category,
                 priceless.isEmpty() ? null : new PricelessHint(priceless.size(),
                         priceless.get(0).getLoggedAt(), kwhOf(priceless.get(0))),
                 previousDistance(candidate, car.get(), month)));
@@ -149,8 +154,8 @@ public class MonthlyRecapService {
         return value != null && value.signum() > 0 ? value : null;
     }
 
-    private static BigDecimal fuelCost(BigDecimal distanceKm, BigDecimal pricePerLiter) {
-        return distanceKm.multiply(FUEL_LITERS_PER_100_KM).multiply(pricePerLiter)
+    private static BigDecimal fuelCost(BigDecimal distanceKm, BigDecimal litersPer100Km, BigDecimal pricePerLiter) {
+        return distanceKm.multiply(litersPer100Km).multiply(pricePerLiter)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 

@@ -206,7 +206,7 @@ class EmailServiceTest {
         com.evmonitor.application.recap.MonthlyRecap withHint = new com.evmonitor.application.recap.MonthlyRecap(
                 r.userId(), r.carId(), r.email(), r.username(), r.locale(), r.month(), r.carName(), r.charges(),
                 r.acCharges(), r.dcCharges(), r.kwh(), r.costEur(), r.distanceKm(), r.consumptionKwhPer100km(),
-                r.homeSharePercent(), r.fuelCostEur(), r.fuelPricePerLiter(),
+                r.homeSharePercent(), r.fuelCostEur(), r.fuelPricePerLiter(), r.fuelLitersPer100Km(), r.carCategory(),
                 new com.evmonitor.application.recap.MonthlyRecap.PricelessHint(2, java.time.LocalDateTime.of(2026, 8, 3, 9, 0), null),
                 null);
 
@@ -219,6 +219,7 @@ class EmailServiceTest {
         return new com.evmonitor.application.recap.MonthlyRecap(java.util.UUID.randomUUID(), CAR_ID, "ihle@example.com", "Ihle", "de",
                 java.time.YearMonth.of(2026, 8), "Model 3", 12, 2, 10, new java.math.BigDecimal("351.4"),
                 new java.math.BigDecimal("147.37"), new java.math.BigDecimal("1777"), null, null,
-                new java.math.BigDecimal("217.69"), new java.math.BigDecimal("1.75"), null, null);
+                new java.math.BigDecimal("217.69"), new java.math.BigDecimal("1.75"), new java.math.BigDecimal("7.6"),
+                com.evmonitor.domain.VehicleCategory.SEDAN, null, null);
     }
 }
