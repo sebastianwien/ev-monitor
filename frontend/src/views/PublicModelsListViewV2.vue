@@ -94,7 +94,7 @@
     <!-- Ranking -->
     <section class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm dark:lg:border-gray-800 dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
       <!-- Needs check sits where it acts: right above the rows -->
-      <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" class="border-b border-gray-200 px-4 py-4 lg:px-5 dark:border-gray-800" @show="showTripModels" />
+      <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" :trip-only="tripOnly" class="border-b border-gray-200 px-4 py-4 lg:px-5 dark:border-gray-800" @show="showTripModels" />
       <div class="sticky z-20 border-b border-gray-200 bg-gray-50 px-4 pt-2.5 lg:px-5 lg:pt-3 dark:border-gray-800 dark:bg-gray-950 lg:bg-white dark:lg:bg-gray-900" :class="stickyTopClass">
         <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0 lg:pb-2.5" role="group" :aria-label="t('models_ranking.sort.label')">
           <button
@@ -418,8 +418,9 @@ const needsBasis = computed(() => t('models_ranking.needs.basis', {
   unit: distanceUnitLabel(),
   home: t(needs.value.homeCharging ? 'models_ranking.needs.basis_home' : 'models_ranking.needs.basis_no_home'),
 }))
+// The middle figure is a toggle: on filters the list to the models it counts, off shows all
 function showTripModels() {
-  tripOnly.value = true
+  tripOnly.value = !tripOnly.value
 }
 function editNeeds() {
   const el = needsCard.value?.$el

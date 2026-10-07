@@ -1,70 +1,69 @@
 <template>
-  <section class="grid gap-3" :aria-labelledby="titleId">
+  <section class="grid gap-4" :aria-labelledby="titleId">
     <!-- Single root (no comment before it, a root comment makes $el a comment node): the list
-         header scrolls to $el. One sentence with the three inputs inside, right above the rows. -->
+         header scrolls to $el. Four labelled fields, below them three figures the rows follow. -->
     <h2 :id="titleId" class="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
 
-    <p class="flex flex-wrap items-center gap-x-1.5 gap-y-2 text-[15px] leading-snug text-gray-900 dark:text-gray-100">
-      <label class="contents">
-        <span>{{ t('models_ranking.needs.sentence_daily') }}</span>
-        <input
-          ref="dailyInput"
-          :value="dailyLocal"
-          v-bind="numeric"
-          data-testid="needs-daily"
-          @input="onDistance('dailyKm', $event)"
-        />
-        <span>{{ t('models_ranking.needs.sentence_daily_unit', { unit: distanceUnitLabel() }) }}</span>
+    <div class="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4">
+      <label class="grid gap-1">
+        <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.daily', { unit: distanceUnitLabel() }) }}</span>
+        <input ref="dailyInput" :value="dailyLocal" v-bind="numeric" data-testid="needs-daily" @input="onDistance('dailyKm', $event)" />
       </label>
-      <label class="contents">
-        <span>{{ t('models_ranking.needs.sentence_longest') }}</span>
-        <input
-          :value="longestLocal"
-          v-bind="numeric"
-          data-testid="needs-longest"
-          @input="onDistance('longestTripKm', $event)"
-        />
-        <span>{{ t('models_ranking.needs.sentence_longest_unit', { unit: distanceUnitLabel() }) }}</span>
+      <label class="grid gap-1">
+        <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.longest', { unit: distanceUnitLabel() }) }}</span>
+        <input :value="longestLocal" v-bind="numeric" data-testid="needs-longest" @input="onDistance('longestTripKm', $event)" />
       </label>
-      <span :id="homeId">{{ t('models_ranking.needs.sentence_home') }}</span>
-      <span class="inline-grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="homeId">
-        <button
-          v-for="opt in homeOptions"
-          :key="String(opt.value)"
-          type="button"
-          class="min-h-10 px-3.5 text-sm font-semibold"
-          :class="modelValue.homeCharging === opt.value
-            ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-            : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'"
-          :aria-pressed="modelValue.homeCharging === opt.value"
-          @click="emit('update:modelValue', { ...modelValue, homeCharging: opt.value })"
-        >{{ opt.label }}</button>
-      </span>
-      <label class="contents">
-        <span>{{ t('models_ranking.needs.sentence_stop') }}</span>
-        <input
-          :value="String(modelValue.stopMinutes)"
-          v-bind="numeric"
-          data-testid="needs-stop"
-          @change="onMinutes($event)"
-        />
-        <span>{{ t('models_ranking.needs.sentence_stop_unit') }}</span>
+      <div class="grid gap-1">
+        <span :id="homeId" class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.home') }}</span>
+        <div class="grid h-11 grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="homeId">
+          <button
+            v-for="opt in homeOptions"
+            :key="String(opt.value)"
+            type="button"
+            class="text-sm font-semibold"
+            :class="modelValue.homeCharging === opt.value
+              ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+              : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'"
+            :aria-pressed="modelValue.homeCharging === opt.value"
+            @click="emit('update:modelValue', { ...modelValue, homeCharging: opt.value })"
+          >{{ opt.label }}</button>
+        </div>
+      </div>
+      <label class="grid gap-1">
+        <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.stop') }}</span>
+        <input :value="String(modelValue.stopMinutes)" v-bind="numeric" data-testid="needs-stop" @change="onMinutes($event)" />
       </label>
-    </p>
+    </div>
 
-    <p class="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px] leading-snug text-gray-700 dark:text-gray-300">
-      <span aria-live="polite" data-testid="needs-summary">{{ summaryText }}</span>
-      <button
-        v-if="summary.tripOk > 0"
-        type="button"
-        class="inline-flex min-h-8 items-center gap-1 font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400"
-        data-testid="needs-show-models"
-        @click="emit('show')"
-      >
-        {{ t('models_ranking.needs.show_models', { count: formatNumber(summary.tripOk) }, summary.tripOk) }}
-        <ArrowDownIcon class="h-3.5 w-3.5" aria-hidden="true" />
-      </button>
-    </p>
+    <!-- The answer as three figures; the middle one filters the list to the models it counts -->
+    <p v-if="summary.total === 0" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.summary_empty') }}</p>
+    <dl v-else class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700" aria-live="polite" data-testid="needs-summary">
+      <div class="grid content-start gap-0.5 pr-3">
+        <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.stat_of', { n: formatNumber(summary.weeklyOk), total: formatNumber(summary.total) }) }}</dd>
+        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t(modelValue.homeCharging ? 'models_ranking.needs.stat_weekly_home' : 'models_ranking.needs.stat_weekly_public', { daily: dailyLocal, unit: distanceUnitLabel() }) }}</dt>
+      </div>
+      <div class="grid content-start gap-0.5 px-3">
+        <dd>
+          <button
+            type="button"
+            class="-mx-1 -my-0.5 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[22px] font-semibold leading-tight tracking-tight tabular-nums hover:bg-gray-100 dark:hover:bg-gray-800"
+            :class="tripOnly ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-gray-100'"
+            :aria-pressed="tripOnly"
+            :aria-label="t('models_ranking.needs.show_models', { count: formatNumber(summary.tripOk) }, summary.tripOk)"
+            data-testid="needs-show-models"
+            @click="emit('show')"
+          >
+            {{ formatNumber(summary.tripOk) }}
+            <FunnelIcon class="h-4 w-4 text-green-700 dark:text-green-400" aria-hidden="true" />
+          </button>
+        </dd>
+        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.stat_trip', { longest: longestLocal, unit: distanceUnitLabel() }) }}</dt>
+      </div>
+      <div class="grid content-start gap-0.5 pl-3">
+        <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ formatNumber(summary.tripOneStopOk) }}</dd>
+        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.stat_one_stop', { minutes: formatNumber(modelValue.stopMinutes) }) }}</dt>
+      </div>
+    </dl>
     <p class="text-[12px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.assumptions') }}</p>
   </section>
 </template>
@@ -72,7 +71,7 @@
 <script setup lang="ts">
 import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowDownIcon } from '@heroicons/vue/24/outline'
+import { FunnelIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { odometerLocalToKm } from '../../utils/unitConversions'
 import { NEEDS_KM_MAX } from '../../composables/useModelRanking'
@@ -81,6 +80,8 @@ import { ONE_STOP_MINUTES, STOP_MINUTES_MIN, STOP_MINUTES_MAX, type NeedsInput, 
 const props = defineProps<{
   modelValue: NeedsInput
   summary: NeedsSummary
+  /** The list is filtered to the models that make the trip without a stop */
+  tripOnly: boolean
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: NeedsInput]; show: [] }>()
 
@@ -102,7 +103,7 @@ const numeric = {
   inputmode: 'numeric',
   pattern: '[0-9]*',
   autocomplete: 'off',
-  class: 'h-10 w-[72px] rounded-lg border border-gray-300 bg-white px-2.5 text-center text-base font-semibold tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100',
+  class: 'h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-base font-semibold tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100',
 } as const
 
 // Inputs show the market's distance unit; the model keeps kilometres.
@@ -130,21 +131,4 @@ const homeOptions = computed(() => [
   { value: true, label: t('models_ranking.needs.home_yes') },
   { value: false, label: t('models_ranking.needs.home_no') },
 ])
-
-const summaryText = computed(() => {
-  const s = props.summary
-  if (s.total === 0) return t('models_ranking.needs.summary_empty')
-  const params = {
-    daily: dailyLocal.value,
-    longest: longestLocal.value,
-    unit: distanceUnitLabel(),
-    weekly: formatNumber(s.weeklyOk),
-    total: formatNumber(s.total),
-    trip: formatNumber(s.tripOk),
-    oneStop: formatNumber(s.tripOneStopOk),
-    minutes: formatNumber(props.modelValue.stopMinutes),
-  }
-  // Weekly charging first, then the longest trip without and with one stop of the typed length
-  return `${t(props.modelValue.homeCharging ? 'models_ranking.needs.summary_home' : 'models_ranking.needs.summary_public', params)} ${t('models_ranking.needs.summary_trip', params)}`
-})
 </script>

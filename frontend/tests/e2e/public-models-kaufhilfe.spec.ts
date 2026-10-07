@@ -50,9 +50,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       await expect(page.getByTestId('needs-daily')).toHaveValue('40');
       await expect(page.getByTestId('needs-longest')).toHaveValue('400');
-      await expect(page.getByTestId('needs-summary')).toContainText(/Bei 40 km am Tag musst du mit \d+ von \d+ Modellen/);
+      await expect(page.getByTestId('needs-summary')).toContainText(/\d+ von \d+/);
+      await expect(page.getByTestId('needs-summary')).toContainText('bei 40 km am Tag');
       await expect(page.getByTestId('needs-stop')).toHaveValue('20');
-      await expect(page.getByTestId('needs-summary')).toContainText(/\d+ mit höchstens einem 20-Minuten-Stopp/);
+      await expect(page.getByTestId('needs-summary')).toContainText(/400 km ohne Stopp.*20-Minuten-Stopp/s);
 
       // the stop length is the reader's number: the sentence and the rows follow it
       await page.getByTestId('needs-stop').fill('30');
@@ -72,7 +73,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
       await setDistance(page, 'needs-daily', '120');
 
-      await expect(summary).toContainText('Bei 120 km am Tag');
+      await expect(summary).toContainText('bei 120 km am Tag');
       expect(await summary.innerText()).not.toBe(summaryBefore);
       await expect.poll(() => firstHint.innerText()).not.toBe(hintBefore);
     });
