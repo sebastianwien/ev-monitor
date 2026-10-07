@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ public class ChargingPriceService {
     static final int MIN_SESSIONS = 30;
 
     private final JpaEvLogRepository evLogRepository;
+    private final FuelPriceService fuelPriceService;
 
     public ChargingReferencePrices getReferencePrices(boolean isSeedUser) {
         Object[] row = evLogRepository.findCommunityChargingPrices(isSeedUser);
@@ -31,7 +33,10 @@ public class ChargingPriceService {
 
         BigDecimal home = resolve(stats, 0, 2, DEFAULT_HOME_PRICE);
         BigDecimal pub = resolve(stats, 1, 3, DEFAULT_PUBLIC_PRICE);
-        return new ChargingReferencePrices(home, pub);
+        return new ChargingReferencePrices(home, pub,
+                BigDecimal.valueOf(fuelPriceService.getBenzinPrice()).setScale(3, RoundingMode.HALF_UP),
+                BigDecimal.valueOf(fuelPriceService.getDieselPrice()).setScale(3, RoundingMode.HALF_UP),
+                FuelPriceService.COMBUSTION_LITERS_PER_100_KM);
     }
 
     private BigDecimal resolve(Object[] stats, int valueIdx, int countIdx, BigDecimal fallback) {

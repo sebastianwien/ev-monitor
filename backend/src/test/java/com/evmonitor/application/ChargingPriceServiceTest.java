@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +18,9 @@ class ChargingPriceServiceTest {
 
     @Mock
     private JpaEvLogRepository evLogRepository;
+
+    @Mock
+    private FuelPriceService fuelPriceService;
 
     @InjectMocks
     private ChargingPriceService service;
@@ -64,5 +68,19 @@ class ChargingPriceServiceTest {
 
         assertThat(prices.homePricePerKwh()).isEqualByComparingTo("0.3100");
         assertThat(prices.publicPricePerKwh()).isEqualByComparingTo(ChargingPriceService.DEFAULT_PUBLIC_PRICE);
+    }
+
+    @Test
+    void includesFuelPricesAndTheCombustionConstant() {
+        when(evLogRepository.findCommunityChargingPrices(false))
+                .thenReturn(new Object[]{0.30, 0.55, 500L, 400L});
+        when(fuelPriceService.getBenzinPrice()).thenReturn(1.789);
+        when(fuelPriceService.getDieselPrice()).thenReturn(1.659);
+
+        ChargingReferencePrices prices = service.getReferencePrices(false);
+
+        assertThat(prices.petrolPricePerLiter()).isEqualByComparingTo("1.789");
+        assertThat(prices.dieselPricePerLiter()).isEqualByComparingTo("1.659");
+        assertThat(prices.combustionLitersPer100km()).isEqualByComparingTo(FuelPriceService.COMBUSTION_LITERS_PER_100_KM);
     }
 }

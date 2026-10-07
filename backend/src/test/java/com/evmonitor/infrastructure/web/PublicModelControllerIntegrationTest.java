@@ -188,12 +188,46 @@ class PublicModelControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void shouldCapLimitAt50() {
-        // Requesting 999 should be silently capped to 50
+    void shouldPassLimit200ThroughAndCapAbove() {
+        // 200 is the ceiling the ranking page asks for; 999 is silently capped to 200.
+        // Both must answer 200 OK with a JSON array (the cap itself is a service argument,
+        // observable only as "no 400 and no truncation below 200").
+        for (String limit : new String[]{"200", "999"}) {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    "/api/public/models/top?limit=" + limit, String.class);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode(), "limit=" + limit);
+            assertNotNull(response.getBody());
+            assertTrue(response.getBody().startsWith("["), "limit=" + limit + " should return a JSON array");
+        }
+    }
+
+    @Test
+    void shouldAnswerEmptyListForZeroOrNegativeLimit() {
+        // The limit is applied in the controller on one cached list; it must never reach
+        // Stream.limit as a negative number (IllegalArgumentException, 500).
+        for (String limit : new String[]{"0", "-1"}) {
+            ResponseEntity<String> response = restTemplate.getForEntity(
+                    "/api/public/models/top?limit=" + limit, String.class);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode(), "limit=" + limit);
+            assertEquals("[]", response.getBody(), "limit=" + limit);
+        }
+    }
+
+    // --- /api/public/models/without-data ---
+
+    @Test
+    void shouldReturnModelsWithoutDataAsPublicJsonArray() {
+        // No Authorization header: must be reachable like the other /api/public/models endpoints
         ResponseEntity<String> response = restTemplate.getForEntity(
-                "/api/public/models/top?limit=999", String.class);
+                "/api/public/models/without-data", String.class);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().startsWith("["), "Response should be a JSON array");
+        assertFalse(response.getBody().contains("\"userId\""), "must not expose userId");
+        assertFalse(response.getBody().contains("\"email\""), "must not expose email");
     }
 
     @Test
@@ -233,7 +267,7 @@ class PublicModelControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void shouldBeAccessibleWithoutAuthentication() {
-        // No Authorization header — must return 200, not 401/403
+        // No Authorization header - must return 200, not 401/403
         ResponseEntity<String> response = restTemplate.getForEntity(
                 "/api/public/models/top", String.class);
 

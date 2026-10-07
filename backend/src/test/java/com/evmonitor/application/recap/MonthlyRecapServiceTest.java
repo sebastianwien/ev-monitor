@@ -5,6 +5,7 @@ import com.evmonitor.application.EvLogStatisticsResponse.LocationSplit;
 import com.evmonitor.application.EvLogStatisticsService;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.EvLog;
@@ -57,7 +58,7 @@ class MonthlyRecapServiceTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(carRepository.findById(car.getId())).thenReturn(Optional.of(car));
         when(evLogRepository.findAllByCarId(car.getId())).thenReturn(logs);
-        when(fuelPriceService.getAvgFuelPrice()).thenReturn(1.75);
+        when(fuelPriceService.getBenzinPrice()).thenReturn(1.75);
     }
 
     @Test
@@ -77,8 +78,10 @@ class MonthlyRecapServiceTest {
         assertThat(recap.distanceKm()).isEqualByComparingTo("863");
         assertThat(recap.consumptionKwhPer100km()).isEqualByComparingTo("17.1");
         assertThat(recap.costPer100Km()).isEqualByComparingTo("5.76");
-        // 863 km * 7 l/100 km * 1,75 €/l
-        assertThat(recap.fuelCostEur()).isEqualByComparingTo("105.72");
+        // 863 km * 7,6 l/100 km (Mittelklasse-Benziner, Model 3) * 1,75 €/l
+        assertThat(recap.fuelCostEur()).isEqualByComparingTo("114.78");
+        assertThat(recap.fuelLitersPer100Km()).isEqualByComparingTo("7.6");
+        assertThat(recap.carCategory()).isEqualTo(VehicleCategory.SEDAN);
         assertThat(recap.carName()).isEqualTo("Model 3");
         assertThat(recap.carId()).isEqualTo(car.getId());
         assertThat(recap.pricelessHint()).isNull();
@@ -171,9 +174,27 @@ class MonthlyRecapServiceTest {
 
         MonthlyRecap recap = service.build(candidate(), AUGUST).orElseThrow();
 
-        // 1000 km * 7 l/100 km * 1,75 €/l = 122,50 €, davon 60 von 90 kWh mit Preis
-        assertThat(recap.fuelCostEur()).isEqualByComparingTo("81.67");
-        assertThat(recap.savingsEur()).isEqualByComparingTo("41.67");
+        // 1000 km * 7,6 l/100 km * 1,75 €/l = 133,00 €, davon 60 von 90 kWh mit Preis
+        assertThat(recap.fuelCostEur()).isEqualByComparingTo("88.67");
+        assertThat(recap.savingsEur()).isEqualByComparingTo("48.67");
+    }
+
+    @Test
+    void petrolComparison_usesTheLitresOfTheCarsVehicleClass() {
+        Car suv = TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_Y, BigDecimal.valueOf(75))
+                .toBuilder().id(car.getId()).build();
+        when(carRepository.findById(car.getId())).thenReturn(Optional.of(suv));
+        addLog(ChargingType.DC, "20.00", 1);
+        addLog(ChargingType.DC, "20.00", 2);
+        addLog(ChargingType.DC, "20.00", 3);
+        stats("60", "40", "1000", null, null);
+
+        MonthlyRecap recap = service.build(candidate(), AUGUST).orElseThrow();
+
+        // 1000 km * 8,4 l/100 km (SUV-Benziner, Model Y) * 1,75 €/l
+        assertThat(recap.fuelCostEur()).isEqualByComparingTo("147.00");
+        assertThat(recap.fuelLitersPer100Km()).isEqualByComparingTo("8.4");
+        assertThat(recap.carCategory()).isEqualTo(VehicleCategory.SUV);
     }
 
     @Test

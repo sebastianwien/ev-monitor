@@ -124,6 +124,44 @@ export interface TopModelPreview {
     category: string
     categoryDisplayName: string
     realRangeKm: number | null
+    // Optional: an older backend instance (Blue/Green) does not send them yet
+    avgWltpConsumptionKwhPer100km?: number | null
+    summerConsumptionKwhPer100km?: number | null
+    winterConsumptionKwhPer100km?: number | null
+    /** Drivers and cars behind logCount */
+    contributorCount?: number | null
+    carCount?: number | null
+    /** Smallest and largest net battery of the WLTP specs */
+    minNetCapacityKwh?: number | null
+    maxNetCapacityKwh?: number | null
+    /** Net capacity (small/large battery) × 100 / community consumption; winter with winter consumption */
+    typicalRangeMinKm?: number | null
+    typicalRangeMaxKm?: number | null
+    winterRangeMinKm?: number | null
+    winterRangeMaxKm?: number | null
+    /** Fast-charge power on a short stop from a low SoC (75th percentile of short DC sessions), null below 8 sessions */
+    fastChargePowerKw?: number | null
+}
+
+/** A model with a WLTP spec but no community logs yet (spec values only). */
+export interface ModelWithoutData {
+    brand: string
+    model: string
+    brandDisplayName: string
+    modelDisplayName: string
+    modelUrlSlug: string
+    category: string
+    categoryDisplayName: string
+    minWltpConsumptionKwhPer100km: number | null
+    avgWltpConsumptionKwhPer100km: number | null
+    maxWltpConsumptionKwhPer100km: number | null
+    minNetCapacityKwh: number | null
+    maxNetCapacityKwh: number | null
+}
+
+export async function getModelsWithoutData(): Promise<ModelWithoutData[]> {
+    const response = await apiClient.get<ModelWithoutData[]>('/public/models/without-data')
+    return response.data
 }
 
 export interface VehicleCategoryItem {
@@ -132,10 +170,12 @@ export interface VehicleCategoryItem {
 }
 
 export interface ChargingReferencePrices {
-    /** Community avg private-charging price, EUR/kWh */
     homePricePerKwh: number
-    /** Community avg public-charging price, EUR/kWh */
     publicPricePerKwh: number
+    /** German daily averages (fallback values without API key); optional for an older backend */
+    petrolPricePerLiter?: number | null
+    dieselPricePerLiter?: number | null
+    combustionLitersPer100km?: number | null
 }
 
 /** Normalized community reference prices (home vs public) for the model comparison slider. */

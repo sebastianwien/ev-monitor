@@ -9,6 +9,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -25,6 +26,9 @@ import java.time.Duration;
 @Service
 @Slf4j
 public class FuelPriceService {
+
+    /** Assumed combustion-car consumption for every petrol/diesel comparison (ticker, recap, model ranking). */
+    public static final BigDecimal COMBUSTION_LITERS_PER_100_KM = new BigDecimal("7.0");
 
     // Fallback prices (updated roughly quarterly)
     private static final double FALLBACK_BENZIN = 2.15;

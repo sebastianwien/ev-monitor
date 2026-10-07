@@ -178,7 +178,7 @@ public class PublicModelService {
             avgChargingPowerKw = avgChargingPowerKw.setScale(1, RoundingMode.HALF_UP);
         }
 
-        // Fetch WLTP variants (rating_source = 'WLTP' only — avoids mixing with EPA after V78 migration)
+        // Fetch WLTP variants (rating_source = 'WLTP' only - avoids mixing with EPA after V78 migration)
         List<VehicleSpecificationEntity> wltpEntities =
                 vehicleSpecificationRepository.findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(modelEnumName, "WLTP");
 
@@ -266,7 +266,7 @@ public class PublicModelService {
     @Cacheable(value = "modelsWithData", key = "#isSeedUser")
     public List<String> getModelsWithWltpData(boolean isSeedUser) {
         // Get all models with WLTP data.
-        // Filter out rows whose car_model is not a valid CarBrand.CarModel enum name —
+        // Filter out rows whose car_model is not a valid CarBrand.CarModel enum name -
         // defensive guard against accidentally persisted display names like "Model 3"
         // (vs. the canonical "MODEL_3"). Such rows would otherwise crash the downstream
         // SQL query, which compares against the car_model enum column.
@@ -348,7 +348,7 @@ public class PublicModelService {
             return Optional.empty();
         }
 
-        // Build model summaries — include all models, even those with 0 logs
+        // Build model summaries - include all models, even those with 0 logs
         List<PublicBrandResponse.ModelSummary> summaries = models.stream()
                 .map(model -> {
                     // Get community log count
@@ -400,27 +400,29 @@ public class PublicModelService {
     }
 
     /**
-     * Returns the top N models sorted by community log count.
-     * Much cheaper than N individual getModelStats calls — no seasonal queries,
-     * no per-variant consumption, just logCount + overall avgConsumption + WLTP lookup.
+     * Returns every model with community logs, sorted by log count.
+     * Much cheaper than N individual getModelStats calls: logCount, overall avgConsumption,
+     * WLTP lookup and per-variant range. One cached list per seed path; callers cut it
+     * to the length they need, so a public "limit" can never trigger a fresh computation.
+     * The placeholder brand SONSTIGE is never listed.
      */
-    @Cacheable("topModels")
-    public List<TopModelResponse> getTopModels(int limit, boolean isSeedUser) {
-        record ModelData(CarBrand.CarModel carModel, long logCount,
+    @Cacheable(value = "topModels", sync = true)
+    public List<TopModelResponse> getTopModels(boolean isSeedUser) {
+        record ModelData(CarBrand.CarModel carModel, long logCount, int contributorCount, int carCount,
                          BigDecimal avgConsumption, BigDecimal minRealConsumption,
-                         BigDecimal maxRealConsumption, BigDecimal minWltpConsumption,
-                         BigDecimal maxWltpConsumption, BigDecimal avgCostPerKwh,
-                         BigDecimal realRangeKm) {}
+                         BigDecimal maxRealConsumption, WltpSummary wltp,
+                         BigDecimal avgCostPerKwh, BigDecimal realRangeKm, List<Car> cars) {}
         // Per-variant consumption + derived real range (km). Range only for variants
         // that clear the same >= 100 trip gate used for variant consumption.
         record VariantPoint(BigDecimal consumption, BigDecimal rangeKm) {}
 
+        long startedAt = System.currentTimeMillis();
         List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
                 .map(VehicleSpecificationEntity::getCarModel)
                 .distinct()
                 .toList();
 
-        return modelsWithWltp.stream()
+        List<TopModelResponse> topModels = modelsWithWltp.stream()
                 .map(modelName -> {
                     CarBrand.CarModel carModel;
                     try {
@@ -428,6 +430,7 @@ public class PublicModelService {
                     } catch (IllegalArgumentException e) {
                         return null;
                     }
+                    if (carModel.getBrand() == CarBrand.SONSTIGE) return null;
 
                     Object[] stats = evLogRepository.findPublicBasicStatsByModel(modelName, isSeedUser);
                     if (stats == null || stats.length == 0) return null;
@@ -435,6 +438,9 @@ public class PublicModelService {
                     if (first instanceof Object[]) stats = (Object[]) first;
                     long logCount = stats[0] != null ? ((Number) stats[0]).longValue() : 0;
                     if (logCount == 0) return null;
+                    // Index 1 = unique_contributors, 4 = unique_cars (see findPublicBasicStatsByModel)
+                    int contributorCount = stats.length > 1 && stats[1] != null ? ((Number) stats[1]).intValue() : 0;
+                    int carCount = stats.length > 4 && stats[4] != null ? ((Number) stats[4]).intValue() : 0;
 
                     BigDecimal avgCostPerKwh = null;
                     if (stats.length > 2 && stats[2] != null) {
@@ -446,14 +452,7 @@ public class PublicModelService {
                     BigDecimal avgConsumption = result.value() != null
                             ? result.value().setScale(1, RoundingMode.HALF_UP) : null;
 
-                    List<VehicleSpecificationEntity> wltpSpecs =
-                            vehicleSpecificationRepository.findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(modelName, "WLTP");
-                    List<BigDecimal> wltpValues = wltpSpecs.stream()
-                            .map(VehicleSpecificationEntity::getOfficialConsumptionKwhPer100km)
-                            .filter(v -> v != null)
-                            .toList();
-                    BigDecimal minWltp = wltpValues.stream().min(BigDecimal::compareTo).orElse(null);
-                    BigDecimal maxWltp = wltpValues.stream().max(BigDecimal::compareTo).orElse(null);
+                    WltpSummary wltp = summarizeWltpSpecs(modelName);
 
                     // Per-variant real consumption + real range, grouped by the car's actual net
                     // capacity (spec-linked via vehicleSpecificationId, custom override as fallback -
@@ -487,14 +486,17 @@ public class PublicModelService {
                             .map(VariantPoint::rangeKm).filter(Objects::nonNull)
                             .max(BigDecimal::compareTo).orElse(null);
 
-                    return new ModelData(carModel, logCount, avgConsumption, minReal, maxReal, minWltp, maxWltp, avgCostPerKwh, realRangeKm);
+                    return new ModelData(carModel, logCount, contributorCount, carCount, avgConsumption,
+                            minReal, maxReal, wltp, avgCostPerKwh, realRangeKm, cars);
                 })
                 .filter(m -> m != null)
                 .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
-                .limit(limit)
                 .map(m -> {
                     String brandDisplay = m.carModel().getBrand().getDisplayString();
                     String modelDisplay = m.carModel().getDisplayName();
+                    // Seasonal split via EvLogService, same as getModelStats - only for the listed models
+                    SeasonalConsumptionResult seasonal = evLogStatisticsService.calculateSeasonalConsumption(m.cars(), isSeedUser);
+                    BigDecimal winter = scale1(seasonal.winterConsumptionKwhPer100km());
                     return new TopModelResponse(
                             m.carModel().getBrand().name(),
                             m.carModel().name(),
@@ -505,15 +507,114 @@ public class PublicModelService {
                             m.avgConsumption(),
                             m.minRealConsumption(),
                             m.maxRealConsumption(),
-                            m.minWltpConsumption(),
-                            m.maxWltpConsumption(),
+                            m.wltp().minConsumption(),
+                            m.wltp().maxConsumption(),
                             m.avgCostPerKwh(),
                             m.carModel().getCategory().name(),
                             m.carModel().getCategory().getDisplayName(),
-                            m.realRangeKm()
+                            m.realRangeKm(),
+                            m.wltp().avgConsumption(),
+                            scale1(seasonal.summerConsumptionKwhPer100km()),
+                            winter,
+                            m.contributorCount(),
+                            m.carCount(),
+                            m.wltp().minNetCapacityKwh(),
+                            m.wltp().maxNetCapacityKwh(),
+                            rangeKm(m.wltp().minNetCapacityKwh(), m.avgConsumption()),
+                            rangeKm(m.wltp().maxNetCapacityKwh(), m.avgConsumption()),
+                            rangeKm(m.wltp().minNetCapacityKwh(), winter),
+                            rangeKm(m.wltp().maxNetCapacityKwh(), winter),
+                            scale1(evLogRepository.findFastChargePowerKwByModel(m.carModel().name(), isSeedUser))
                     );
                 })
                 .toList();
+        log.info("topModels computed: {} models, {} ms", topModels.size(), System.currentTimeMillis() - startedAt);
+        return topModels;
+    }
+
+    /**
+     * Models with a WLTP spec but no community logs: listed below the ranking with spec
+     * values only. Same model universe and SONSTIGE rule as getTopModels, no consumption maths.
+     */
+    @Cacheable(value = "modelsWithoutData", key = "#isSeedUser")
+    public List<ModelWithoutDataResponse> getModelsWithoutData(boolean isSeedUser) {
+        return vehicleSpecificationRepository.findAll().stream()
+                .map(VehicleSpecificationEntity::getCarModel)
+                .distinct()
+                .map(modelName -> {
+                    CarBrand.CarModel carModel;
+                    try {
+                        carModel = CarBrand.CarModel.valueOf(modelName);
+                    } catch (IllegalArgumentException e) {
+                        return null;
+                    }
+                    if (carModel.getBrand() == CarBrand.SONSTIGE) return null;
+                    if (logCountFor(modelName, isSeedUser) > 0) return null;
+                    WltpSummary wltp = summarizeWltpSpecs(modelName);
+                    if (wltp.avgConsumption() == null) return null;
+                    String brandDisplay = carModel.getBrand().getDisplayString();
+                    String modelDisplay = carModel.getDisplayName();
+                    return new ModelWithoutDataResponse(
+                            carModel.getBrand().name(),
+                            carModel.name(),
+                            brandDisplay,
+                            brandDisplay + " " + modelDisplay,
+                            modelDisplay.replace(" ", "_"),
+                            carModel.getCategory().name(),
+                            carModel.getCategory().getDisplayName(),
+                            wltp.minConsumption(),
+                            wltp.avgConsumption(),
+                            wltp.maxConsumption(),
+                            wltp.minNetCapacityKwh(),
+                            wltp.maxNetCapacityKwh());
+                })
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(ModelWithoutDataResponse::modelDisplayName))
+                .toList();
+    }
+
+    private long logCountFor(String modelName, boolean isSeedUser) {
+        Object[] stats = evLogRepository.findPublicBasicStatsByModel(modelName, isSeedUser);
+        if (stats == null || stats.length == 0) return 0;
+        if (stats[0] instanceof Object[] inner) stats = inner;
+        return stats[0] != null ? ((Number) stats[0]).longValue() : 0;
+    }
+
+    /** Min, mean and max WLTP consumption plus smallest and largest net battery of a model's WLTP specs. */
+    private record WltpSummary(BigDecimal minConsumption, BigDecimal avgConsumption, BigDecimal maxConsumption,
+                               BigDecimal minNetCapacityKwh, BigDecimal maxNetCapacityKwh) {}
+
+    private WltpSummary summarizeWltpSpecs(String modelName) {
+        List<VehicleSpecificationEntity> specs =
+                vehicleSpecificationRepository.findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(modelName, "WLTP");
+        List<BigDecimal> consumptions = specs.stream()
+                .map(VehicleSpecificationEntity::getOfficialConsumptionKwhPer100km)
+                .filter(Objects::nonNull)
+                .toList();
+        List<BigDecimal> capacities = specs.stream()
+                .map(VehicleSpecificationEntity::getNominalNetCapacityKwh)
+                .filter(Objects::nonNull)
+                .toList();
+        BigDecimal avg = consumptions.isEmpty() ? null
+                : consumptions.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(consumptions.size()), 1, RoundingMode.HALF_UP);
+        return new WltpSummary(
+                consumptions.stream().min(BigDecimal::compareTo).orElse(null),
+                avg,
+                consumptions.stream().max(BigDecimal::compareTo).orElse(null),
+                capacities.stream().min(BigDecimal::compareTo).orElse(null),
+                capacities.stream().max(BigDecimal::compareTo).orElse(null));
+    }
+
+    /** Range in km from a net capacity and a consumption in kWh/100 km; null if either is missing. */
+    private static Integer rangeKm(BigDecimal netCapacityKwh, BigDecimal consumptionKwhPer100km) {
+        if (netCapacityKwh == null || consumptionKwhPer100km == null || consumptionKwhPer100km.signum() <= 0) return null;
+        return netCapacityKwh.multiply(BigDecimal.valueOf(100))
+                .divide(consumptionKwhPer100km, 0, RoundingMode.HALF_UP).intValue();
+    }
+
+    private static BigDecimal scale1(BigDecimal value) {
+        return value != null ? value.setScale(1, RoundingMode.HALF_UP) : null;
     }
 
     /**
@@ -525,7 +626,7 @@ public class PublicModelService {
         int MIN_LOG_COUNT = 10;
         // Self-call: bypasses Spring AOP, so topModels cache is not hit here.
         // CacheWarmupService pre-warms topModels separately to compensate.
-        return getTopModels(50, isSeedUser).stream()
+        return getTopModels(isSeedUser).stream()
                 .filter(m -> m.avgConsumptionKwhPer100km() != null)
                 .filter(m -> m.logCount() >= MIN_LOG_COUNT)
                 .sorted(Comparator.comparing(TopModelResponse::avgConsumptionKwhPer100km))
@@ -542,7 +643,7 @@ public class PublicModelService {
     public List<TopModelResponse> getLongestRangeModels(int limit, boolean isSeedUser) {
         // Self-call: bypasses Spring AOP, so topModels cache is not hit here.
         // CacheWarmupService pre-warms topModels separately to compensate.
-        return getTopModels(50, isSeedUser).stream()
+        return getTopModels(isSeedUser).stream()
                 .filter(m -> m.realRangeKm() != null)
                 .sorted(Comparator.comparing(TopModelResponse::realRangeKm).reversed())
                 .limit(limit)
@@ -562,7 +663,7 @@ public class PublicModelService {
 
     private static final int MIN_TRIPS_FOR_REAL_RANGE = 5;
 
-    /** Intermediate shape used by buildVariantStats — source-agnostic. */
+    /** Intermediate shape used by buildVariantStats - source-agnostic. */
     private record VariantStats(
             BigDecimal batteryCapacityKwh,
             String variantName,

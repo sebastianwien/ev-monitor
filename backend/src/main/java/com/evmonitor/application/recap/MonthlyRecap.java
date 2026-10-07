@@ -1,5 +1,6 @@
 package com.evmonitor.application.recap;
 
+import com.evmonitor.domain.VehicleCategory;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
@@ -14,7 +15,9 @@ import java.util.UUID;
  * @param distanceKm             gefahrene Strecke aus dem Kilometerstand, null ohne Odometer-Daten
  * @param consumptionKwhPer100km Verbrauch aus der Statistik (dieselbe Rechnung wie im Dashboard)
  * @param homeSharePercent       Anteil der daheim geladenen kWh, null wenn nichts privat geladen wurde
- * @param fuelCostEur            was ein Verbrenner für dieselbe Strecke getankt hätte, null ohne Strecke
+ * @param fuelCostEur            was ein Benziner der Fahrzeugklasse für dieselbe Strecke getankt hätte, null ohne Strecke
+ * @param fuelLitersPer100Km     Realverbrauch dieses Benziners (aus der Fahrzeugklasse), für die Fußnote
+ * @param carCategory            Fahrzeugklasse des Autos, für die Fußnote
  * @param pricelessHint          der eine Datenqualitätshinweis der Mail, null wenn alle Preise da sind
  * @param previousDistanceKm     Strecke des Vormonats aus derselben Statistik, null ohne Daten
  */
@@ -36,6 +39,8 @@ public record MonthlyRecap(
         Integer homeSharePercent,
         BigDecimal fuelCostEur,
         BigDecimal fuelPricePerLiter,
+        BigDecimal fuelLitersPer100Km,
+        VehicleCategory carCategory,
         PricelessHint pricelessHint,
         BigDecimal previousDistanceKm
 ) {

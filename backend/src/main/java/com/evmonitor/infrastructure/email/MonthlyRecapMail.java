@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.application.recap.MonthlyRecap;
 import com.evmonitor.application.recap.MonthlyRecap.PricelessHint;
+import com.evmonitor.domain.VehicleCategory;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -92,6 +93,21 @@ public final class MonthlyRecapMail {
         vars.put("prevMonth", monthName(recap.month().minusMonths(1), locale));
     }
 
+    /** VehicleCategory kennt nur deutsche Namen; die englische Mail braucht ihre eigenen. */
+    private static String englishClassName(VehicleCategory category) {
+        return switch (category) {
+            case CITY_CAR -> "city car";
+            case COMPACT -> "compact";
+            case SEDAN -> "mid-size";
+            case SUV -> "SUV";
+            case LARGE_SUV -> "large SUV";
+            case LUXURY -> "luxury";
+            case SPORTS -> "sports car";
+            case VAN -> "van";
+            case PICKUP -> "pickup";
+        };
+    }
+
     /** Ersparnis als Hero, nur wenn Strom wirklich günstiger war. Nie die Stromkosten allein groß. */
     private static void addSavings(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
         BigDecimal savings = recap.savingsEur();
@@ -106,6 +122,8 @@ public final class MonthlyRecapMail {
         vars.put("cost", money(recap.costEur(), "#,##0.00", en));
         vars.put("fuelCost", money(recap.fuelCostEur(), "#,##0", en));
         vars.put("fuelPrice", money(recap.fuelPricePerLiter(), "#,##0.00", en));
+        vars.put("fuelLiters", number(recap.fuelLitersPer100Km(), "#,##0.0", en));
+        vars.put("carClass", en ? englishClassName(recap.carCategory()) : recap.carCategory().getDisplayName());
         int bar = recap.costEur().multiply(BigDecimal.valueOf(100))
                 .divide(recap.fuelCostEur(), 0, RoundingMode.HALF_UP).intValue();
         vars.put("costBar", String.valueOf(Math.max(bar, 2)));
