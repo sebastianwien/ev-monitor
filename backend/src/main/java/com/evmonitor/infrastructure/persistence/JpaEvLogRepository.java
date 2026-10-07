@@ -701,7 +701,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
      * Pool: DC sessions of 10 to 45 minutes with at least 25 kW mean power, SoC start at most
      * 30 % (or unknown), SoC end at most 85 % (or unknown, keeps the taper out), SoC window at
      * least 15 points when both are known. The 75th percentile of the mean power approximates
-     * "the charger did not limit". Null below 8 qualifying sessions.
+     * "the charger did not limit". Wallbox imports are AC by definition, some arrive flagged DC
+     * with bogus durations, so they are out. Null below 8 qualifying sessions.
      */
     @Query(value = """
             SELECT CASE WHEN COUNT(*) >= 8
@@ -713,6 +714,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                 JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
                 WHERE l.deleted_at IS NULL AND c.model = :model
                   AND l.charging_type = 'DC'
+                  AND l.data_source NOT LIKE 'WALLBOX%'
                   AND l.charge_duration_minutes BETWEEN 10 AND 45
                   AND COALESCE(l.kwh_at_vehicle, l.kwh_charged) > 0
                   AND (l.soc_start_percent IS NULL OR l.soc_start_percent <= 30)
