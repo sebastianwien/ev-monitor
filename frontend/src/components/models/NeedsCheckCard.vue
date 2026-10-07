@@ -9,14 +9,14 @@
       <label class="grid gap-1.5">
         <span class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_daily') }}</span>
         <span class="flex items-center gap-2">
-          <input ref="dailyInput" :value="dailyLocal" v-bind="numeric" data-testid="needs-daily" @input="onDistance('dailyKm', $event)" />
+          <input ref="dailyInput" :value="dailyText" v-bind="numeric" data-testid="needs-daily" @input="onDistance('dailyKm', $event)" @blur="flush" @keydown.enter="flush" />
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
         </span>
       </label>
       <label class="grid gap-1.5">
         <span class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_longest') }}</span>
         <span class="flex items-center gap-2">
-          <input :value="longestLocal" v-bind="numeric" data-testid="needs-longest" @input="onDistance('longestTripKm', $event)" />
+          <input :value="longestText" v-bind="numeric" data-testid="needs-longest" @input="onDistance('longestTripKm', $event)" @blur="flush" @keydown.enter="flush" />
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
         </span>
       </label>
@@ -88,10 +88,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FunnelIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
+import { useDebouncedCommit } from '../../composables/useDebouncedCommit'
 import { odometerLocalToKm } from '../../utils/unitConversions'
 import { NEEDS_KM_MAX } from '../../composables/useModelRanking'
 import { MIN_STOPS, MAX_STOPS, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
@@ -126,16 +127,33 @@ const numeric = {
   class: 'h-11 w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 text-base font-semibold tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100',
 } as const
 
-// Inputs show the market's distance unit; the model keeps kilometres.
+// Inputs show the market's distance unit; the model keeps kilometres. The committed values
+// feed the figures below; the fields keep their own text while the reader is still typing.
 const toLocal = (km: number) => String(Math.round(convertDistance(km)))
 const dailyLocal = computed(() => toLocal(props.modelValue.dailyKm))
 const longestLocal = computed(() => toLocal(props.modelValue.longestTripKm))
+const dailyText = ref(dailyLocal.value)
+const longestText = ref(longestLocal.value)
+watch(dailyLocal, v => { dailyText.value = v })
+watch(longestLocal, v => { longestText.value = v })
+
+/** Typing "120" re-ranks the list once, not three times: commit after a short pause, or on blur/enter */
+const COMMIT_DELAY_MS = 300
+let draft: Partial<NeedsInput> = {}
+const { set: scheduleCommit, flush } = useDebouncedCommit<Partial<NeedsInput>>(patch => {
+  draft = {}
+  emit('update:modelValue', { ...props.modelValue, ...patch })
+  if (patch.dailyKm !== undefined) dailyText.value = toLocal(patch.dailyKm)
+  if (patch.longestTripKm !== undefined) longestText.value = toLocal(patch.longestTripKm)
+}, COMMIT_DELAY_MS)
 
 function onDistance(field: 'dailyKm' | 'longestTripKm', event: Event) {
   const raw = (event.target as HTMLInputElement).value.replace(/[^\d]/g, '')
+  ;(field === 'dailyKm' ? dailyText : longestText).value = raw
   const local = raw === '' ? 0 : Math.min(Number(raw), NEEDS_KM_MAX)
   const km = Math.round(odometerLocalToKm(local, isImperial.value))
-  emit('update:modelValue', { ...props.modelValue, [field]: Math.min(km, NEEDS_KM_MAX) })
+  draft = { ...draft, [field]: Math.min(km, NEEDS_KM_MAX) }
+  scheduleCommit({ ...draft })
 }
 
 const stopOptions = Array.from({ length: MAX_STOPS - MIN_STOPS + 1 }, (_, i) => MIN_STOPS + i)
