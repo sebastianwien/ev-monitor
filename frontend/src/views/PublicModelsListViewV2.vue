@@ -18,7 +18,7 @@
         {{ t('models_ranking.hero.lede', { logs: formatNumber(totalLogs), drivers: formatNumber(platformStats?.userCount ?? 0) }) }}
       </p>
     </div>
-    <NeedsCheckCard v-model="needs" :summary="needsSummary">
+    <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" @show="showTripModels">
       <PriorityPicker v-model="priority" />
     </NeedsCheckCard>
     <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-4 lg:col-span-2 dark:border-gray-800 dark:bg-gray-800">
@@ -106,7 +106,7 @@
     </aside>
 
     <!-- Ranking -->
-    <section class="mr-board min-w-0 lg:overflow-clip lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm dark:lg:border-gray-800 dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
+    <section ref="board" class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm dark:lg:border-gray-800 dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
       <div class="sticky z-20 border-b border-gray-200 bg-gray-50 px-4 pt-2.5 lg:px-5 lg:pt-3 dark:border-gray-800 dark:bg-gray-950 lg:bg-white dark:lg:bg-gray-900" :class="stickyTopClass">
         <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0 lg:pb-2.5" role="group" :aria-label="t('models_ranking.sort.label')">
           <button
@@ -128,6 +128,11 @@
             @click="openAssumptions"
           >{{ t('models_ranking.assumptions.chip') }}</button>
         </div>
+        <!-- Where the hints per row come from, with the way back to the card -->
+        <p class="flex min-w-0 flex-wrap items-baseline gap-x-2 pb-1 text-[13px] leading-snug text-gray-700 dark:text-gray-300">
+          <span>{{ needsBasis }}</span>
+          <button type="button" class="pointer-events-auto flex-none font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="needs-change" @click="editNeeds">{{ t('models_ranking.needs.basis_change') }}</button>
+        </p>
         <div class="flex justify-between gap-3 whitespace-nowrap pb-2 pt-0.5 text-[13px] text-gray-500 dark:text-gray-400">
           <span aria-live="polite">{{ loading ? '' : t('models_ranking.count', { shown: ranked.length, total: models.length }) }}</span>
           <span class="truncate">
@@ -327,7 +332,7 @@ const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: fals
 const { t, te, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, currencySymbol, isImperial, unitSystem } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, convertDistance, currencySymbol, isImperial, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS } = useMarketRoute()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
@@ -418,6 +423,24 @@ function chipClass(active: boolean, compact = false) {
       ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
       : 'bg-gray-200/70 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
   ]
+}
+
+// ── Needs check: the card and the list point at each other ──────────────────
+const needsCard = ref<InstanceType<typeof NeedsCheckCard> | null>(null)
+const board = ref<HTMLElement | null>(null)
+const needsBasis = computed(() => t('models_ranking.needs.basis', {
+  daily: formatNumber(Math.round(convertDistance(needs.value.dailyKm))),
+  longest: formatNumber(Math.round(convertDistance(needs.value.longestTripKm))),
+  unit: distanceUnitLabel(),
+  home: t(needs.value.homeCharging ? 'models_ranking.needs.basis_home' : 'models_ranking.needs.basis_no_home'),
+}))
+function showTripModels() {
+  tripOnly.value = true
+  board.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+function editNeeds() {
+  needsCard.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  needsCard.value?.focusFirst()
 }
 
 // ── Assumptions (cost) ──────────────────────────────────────────────────────

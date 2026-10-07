@@ -363,6 +363,11 @@ models_ranking:
     summary_home: "Med {daily} {unit} per dag må du lade {weekly} av {total} modeller høyst én gang i uken, også om vinteren. {trip} klarer dine {longest} {unit} uten ladestopp."
     summary_public: "Uten lading hjemme klarer {weekly} av {total} modeller {daily} {unit} per dag med høyst ett ladestopp i uken. {trip} klarer dine {longest} {unit} uten stopp."
     summary_empty: "Ingen modeller med rekkeviddedata ennå."
+    show_models: "Vis denne modellen | Vis disse {count} modellene"
+    basis: "For {daily} {unit} per dag, {longest} {unit} lengste tur, {home}"
+    basis_home: "lading hjemme"
+    basis_no_home: "uten lading hjemme"
+    basis_change: "Endre"
     assumptions: "Antakelser: 80 % av batteriet brukes i hverdagen, 70 % lades per hurtigladestopp, vintertall der de finnes. Det du skriver inn blir i nettleseren din."
   without_data:
     title: "Ingen sjåførdata ennå ({count} modeller)"

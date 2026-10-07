@@ -400,6 +400,11 @@ models_ranking:
     summary_home: "At {daily} {unit} a day, {weekly} of {total} models need charging at most once a week, even in winter. {trip} make your {longest} {unit} without a charging stop."
     summary_public: "Without charging at home, {weekly} of {total} models get you through {daily} {unit} a day with at most one charging stop a week. {trip} make your {longest} {unit} without a stop."
     summary_empty: "No models with range data yet."
+    show_models: "Show this model | Show these {count} models"
+    basis: "For {daily} {unit} a day, {longest} {unit} longest trip, {home}"
+    basis_home: "charging at home"
+    basis_no_home: "no charging at home"
+    basis_change: "Change"
     assumptions: "Assumptions: 80 % of the battery usable day to day, 70 % added per fast-charge stop, winter values where available. Your inputs stay in your browser."
   without_data:
     title: "No driver data yet ({count} models)"

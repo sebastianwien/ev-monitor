@@ -128,5 +128,17 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('priority-data')).toHaveAttribute('aria-pressed', 'true');
       await expect(page.getByRole('button', { name: 'Meiste Daten' })).toHaveAttribute('aria-pressed', 'true');
     });
+
+    test('Karte und Liste zeigen aufeinander: Modelle zeigen setzt den Chip, Ändern fokussiert die Karte', async ({ page }) => {
+      await openRanking(page);
+      await setDistance(page, 'needs-longest', '100');
+      await page.getByTestId('needs-show-models').click();
+      await expect(page.getByTestId('trip-chip')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.locator('section.mr-board')).toBeInViewport();
+
+      await expect(page.locator('section.mr-board')).toContainText('Für 40 km am Tag, 100 km längste Fahrt, Laden zuhause');
+      await page.getByTestId('needs-change').click();
+      await expect(page.getByTestId('needs-daily')).toBeFocused();
+    });
   });
 }

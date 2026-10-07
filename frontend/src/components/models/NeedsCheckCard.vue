@@ -6,6 +6,7 @@
       <label class="grid gap-1">
         <span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.daily', { unit: distanceUnitLabel() }) }}</span>
         <input
+          ref="dailyInput"
           :value="dailyLocal"
           type="text"
           inputmode="numeric"
@@ -49,14 +50,25 @@
     </div>
 
     <p class="text-[15px] leading-snug text-gray-900 dark:text-gray-100" aria-live="polite" data-testid="needs-summary">{{ summaryText }}</p>
+    <button
+      v-if="summary.tripOk > 0"
+      type="button"
+      class="inline-flex min-h-11 items-center justify-self-start gap-1.5 text-[15px] font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400"
+      data-testid="needs-show-models"
+      @click="emit('show')"
+    >
+      {{ t('models_ranking.needs.show_models', { count: formatNumber(summary.tripOk) }, summary.tripOk) }}
+      <ArrowDownIcon class="h-4 w-4" aria-hidden="true" />
+    </button>
     <slot />
     <p class="text-[12px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.assumptions') }}</p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, useId } from 'vue'
+import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ArrowDownIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { odometerLocalToKm } from '../../utils/unitConversions'
 import { NEEDS_KM_MAX } from '../../composables/useModelRanking'
@@ -66,13 +78,20 @@ const props = defineProps<{
   modelValue: NeedsInput
   summary: NeedsSummary
 }>()
-const emit = defineEmits<{ 'update:modelValue': [value: NeedsInput] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: NeedsInput]; show: [] }>()
 
 const { t } = useI18n()
 const { formatNumber, distanceUnitLabel, convertDistance, isImperial } = useLocaleFormat()
 
 const titleId = useId()
 const homeId = useId()
+const dailyInput = ref<HTMLInputElement | null>(null)
+/** "Ändern" in the list header brings the reader back here */
+function focusFirst() {
+  dailyInput.value?.focus()
+  dailyInput.value?.select()
+}
+defineExpose({ focusFirst })
 
 // Inputs show the market's distance unit; the model keeps kilometres.
 const toLocal = (km: number) => String(Math.round(convertDistance(km)))

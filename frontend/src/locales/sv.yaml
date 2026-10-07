@@ -363,6 +363,11 @@ models_ranking:
     summary_home: "Med {daily} {unit} per dag behöver du ladda {weekly} av {total} modeller högst en gång i veckan, även på vintern. {trip} klarar dina {longest} {unit} utan laddstopp."
     summary_public: "Utan laddning hemma klarar {weekly} av {total} modeller {daily} {unit} per dag med högst ett laddstopp i veckan. {trip} klarar dina {longest} {unit} utan stopp."
     summary_empty: "Inga modeller med räckviddsdata ännu."
+    show_models: "Visa den här modellen | Visa dessa {count} modeller"
+    basis: "För {daily} {unit} per dag, {longest} {unit} längsta resa, {home}"
+    basis_home: "laddning hemma"
+    basis_no_home: "utan laddning hemma"
+    basis_change: "Ändra"
     assumptions: "Antaganden: 80 % av batteriet används i vardagen, 70 % laddas per snabbladdningsstopp, vintervärden där de finns. Det du anger stannar i din webbläsare."
   without_data:
     title: "Inga förardata ännu ({count} modeller)"
