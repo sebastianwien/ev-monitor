@@ -36,7 +36,7 @@ import java.util.Optional;
 public class MonthlyRecapService {
 
     /** Durchschnittsverbrauch des Vergleichs-Verbrenners, wie im Ticker. */
-    static final BigDecimal FUEL_LITERS_PER_100_KM = new BigDecimal("7.0");
+    static final BigDecimal FUEL_LITERS_PER_100_KM = FuelPriceService.COMBUSTION_LITERS_PER_100_KM;
 
     private final EvLogStatisticsService statisticsService;
     private final EvLogRepository evLogRepository;

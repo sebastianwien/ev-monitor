@@ -260,9 +260,9 @@ public class LeaderboardService {
                         "unit", hours ? "hours" : "minutes")));
             }
 
-            // Ersparnis vs. Benzin/Diesel (7L/100km Verbrenner-Durchschnitt)
+            // Ersparnis vs. Benzin/Diesel (Verbrenner-Durchschnitt aus FuelPriceService)
             double avgFuelPrice = fuelPriceService.getAvgFuelPrice();
-            double fuelCost = distanceKm / 100.0 * 7.0 * avgFuelPrice;
+            double fuelCost = distanceKm / 100.0 * FuelPriceService.COMBUSTION_LITERS_PER_100_KM.doubleValue() * avgFuelPrice;
             double evCost = totalCostEur.doubleValue();
             if (evCost > 0) {
                 double savings = fuelCost - evCost;
