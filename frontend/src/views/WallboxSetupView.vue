@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../stores/auth'
 import type { Car } from '../api/carService'
 import { useCarStore } from '../stores/car'
 import { wallboxService, type WallboxConnection } from '../api/wallboxService'
@@ -24,9 +23,7 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 
 const { t } = useI18n()
 const { formatCostPerKwh } = useLocaleFormat()
-const authStore = useAuthStore()
 const carStore = useCarStore()
-const userId = computed(() => authStore.user?.userId || '')
 
 const connections = ref<WallboxConnection[]>([])
 const cars = ref<Car[]>([])
@@ -149,7 +146,7 @@ async function saveLocation(conn: WallboxConnection) {
   const s = getEditState(conn.id)
   s.saving = true
   try {
-    const updated = await wallboxService.updateSettings(conn.id, userId.value, {
+    const updated = await wallboxService.updateSettings(conn.id, {
       geohash: s.pendingGeohash,
       tariffCentsPerKwh: conn.tariffCentsPerKwh
     })
@@ -175,7 +172,7 @@ async function saveTariff(conn: WallboxConnection) {
   if (isNaN(n) || n < 0 || n > 9999) return
   s.saving = true
   try {
-    const updated = await wallboxService.updateSettings(conn.id, userId.value, {
+    const updated = await wallboxService.updateSettings(conn.id, {
       geohash: conn.geohash,
       tariffCentsPerKwh: n
     })
@@ -195,7 +192,7 @@ const load = async () => {
   error.value = null
   try {
     const [conns, carList] = await Promise.all([
-      wallboxService.getConnections(userId.value),
+      wallboxService.getConnections(),
       carStore.getCars()
     ])
     connections.value = conns
@@ -217,7 +214,6 @@ const save = async () => {
   success.value = null
   try {
     const conn = await wallboxService.registerConnection({
-      userId: userId.value,
       ocppChargePointId: formChargePointId.value.trim(),
       carId: formCarId.value || null,
       displayName: formDisplayName.value.trim() || null
@@ -241,7 +237,7 @@ const save = async () => {
 
 const remove = async (id: string) => {
   try {
-    await wallboxService.deleteConnection(id, userId.value)
+    await wallboxService.deleteConnection(id)
     connections.value = connections.value.filter(c => c.id !== id)
     success.value = t('wallbox.success_removed')
   } catch {
