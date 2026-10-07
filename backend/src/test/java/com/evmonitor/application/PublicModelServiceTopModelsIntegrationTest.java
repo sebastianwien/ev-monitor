@@ -352,6 +352,37 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         }
     }
 
+    // --- Average DC charging power (energy-weighted) rides along for the one-stop range ---
+
+    @Test
+    void getTopModels_carriesEnergyWeightedDcPower_onlyFromFiveDcSessions() {
+        // IONIQ_6: 5 DC sessions, 40 kWh in 30 min each → 80 kW; AC sessions do not count
+        saveWltpSpec(CarBrand.CarModel.IONIQ_6, new BigDecimal("77.4"), new BigDecimal("15.0"));
+        Car car = createCarWithBattery(CarBrand.CarModel.IONIQ_6, new BigDecimal("77.4"));
+        saveLogsForCar(car.getId(), 3, new BigDecimal("16.0"));
+        for (int i = 0; i < 5; i++) {
+            evLogRepository.save(EvLog.createNew(car.getId(), new BigDecimal("40.0"), new BigDecimal("30.00"), 30,
+                    "u33d1", 20000 + i * 300, new BigDecimal("150.0"), null,
+                    LocalDateTime.now().minusDays(40 + i), ChargingType.DC, null, null, true, null));
+        }
+
+        TopModelResponse ioniq6 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "IONIQ_6");
+        assertNotNull(ioniq6);
+        assertEquals(new BigDecimal("80.0"), ioniq6.avgDcChargingPowerKw());
+
+        // EQS: four DC sessions are below the noise guard → null
+        cacheManager.getCache("topModels").clear();
+        saveWltpSpec(CarBrand.CarModel.EQS, new BigDecimal("108.4"), new BigDecimal("19.0"));
+        Car eqs = createCarWithBattery(CarBrand.CarModel.EQS, new BigDecimal("108.4"));
+        saveLogsForCar(eqs.getId(), 3, new BigDecimal("20.0"));
+        for (int i = 0; i < 4; i++) {
+            evLogRepository.save(EvLog.createNew(eqs.getId(), new BigDecimal("40.0"), new BigDecimal("30.00"), 30,
+                    "u33d1", 20000 + i * 300, new BigDecimal("150.0"), null,
+                    LocalDateTime.now().minusDays(40 + i), ChargingType.DC, null, null, true, null));
+        }
+        assertNull(findModel(publicModelService.getTopModels(ALL_MODELS, false), "EQS").avgDcChargingPowerKw());
+    }
+
     private TopModelResponse findModel(List<TopModelResponse> results, String modelEnum) {
         return results.stream()
                 .filter(r -> r.model().equals(modelEnum))

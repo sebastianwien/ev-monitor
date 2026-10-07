@@ -42,5 +42,7 @@ public record TopModelResponse(
         Integer typicalRangeMinKm,
         Integer typicalRangeMaxKm,
         Integer winterRangeMinKm,
-        Integer winterRangeMaxKm
+        Integer winterRangeMaxKm,
+        /** Energy-weighted community average at DC chargers, null below 5 sessions */
+        BigDecimal avgDcChargingPowerKw
 ) {}

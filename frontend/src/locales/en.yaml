@@ -445,6 +445,8 @@ models_ranking:
     span: "{min} to {max}"
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
+    one_stop: "20-min stop {value}"
+    one_stop_missing: "no fast-charging data yet"
     bar_manufacturer: "Official"
     bar_drivers: "Drivers"
     electricity: "Electricity"
@@ -476,6 +478,9 @@ models_ranking:
     savings: "Compared with {fuel} ({liters} l) per 100 {unit}"
     savings_year_cheaper: "cheaper, {amount} a year at {daily} {unit} a day"
     savings_year_dearer: "dearer, {amount} a year at {daily} {unit} a day"
+    one_stop: "With one 20-minute stop"
+    one_stop_hint: "+{added} {unit} added at Ø {kw} kW DC"
+    one_stop_missing: "Too few fast-charging sessions yet"
     savings_none: "Fuel price missing, see assumptions"
   empty:
     search: "No model matches “{query}”. Check the spelling or choose “All” for the vehicle class."

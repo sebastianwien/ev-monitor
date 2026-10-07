@@ -448,6 +448,8 @@ models_ranking:
     span: "{min} bis {max}"
     per_100: "pro 100 {unit}"
     combustion_short: "{fuel} {amount}"
+    one_stop: "20-min-Stopp {value}"
+    one_stop_missing: "Ladeleistung noch ohne Daten"
     bar_manufacturer: "Hersteller"
     bar_drivers: "Fahrer"
     electricity: "Strom"
@@ -479,6 +481,9 @@ models_ranking:
     savings: "Gegenüber {fuel} ({liters} l) pro 100 {unit}"
     savings_year_cheaper: "günstiger, {amount} pro Jahr bei {daily} {unit} am Tag"
     savings_year_dearer: "teurer, {amount} pro Jahr bei {daily} {unit} am Tag"
+    one_stop: "Mit einem 20-Minuten-Stopp"
+    one_stop_hint: "+{added} {unit} nachgeladen bei Ø {kw} kW an DC"
+    one_stop_missing: "Noch zu wenige Schnellladevorgänge"
     savings_none: "Kraftstoffpreis fehlt, siehe Annahmen"
   empty:
     search: "Kein Modell passt zu „{query}“. Prüf die Schreibweise oder wähle „Alle“ bei der Fahrzeugklasse."

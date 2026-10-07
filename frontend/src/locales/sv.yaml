@@ -408,6 +408,8 @@ models_ranking:
     span: "{min} till {max}"
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
+    one_stop: "20-min stopp {value}"
+    one_stop_missing: "inga snabbladdningsdata ännu"
     bar_manufacturer: "Uppgiven"
     bar_drivers: "Förare"
     electricity: "El"
@@ -439,6 +441,9 @@ models_ranking:
     savings: "Jämfört med {fuel} ({liters} l) per 100 {unit}"
     savings_year_cheaper: "billigare, {amount} per år vid {daily} {unit} per dag"
     savings_year_dearer: "dyrare, {amount} per år vid {daily} {unit} per dag"
+    one_stop: "Med ett 20-minuters stopp"
+    one_stop_hint: "+{added} {unit} laddat vid Ø {kw} kW DC"
+    one_stop_missing: "För få snabbladdningar ännu"
     savings_none: "Bränslepris saknas, se antaganden"
   empty:
     search: "Ingen modell matchar ”{query}”. Kontrollera stavningen eller välj ”Alla” under fordonsklass."

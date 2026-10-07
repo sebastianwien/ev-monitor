@@ -408,6 +408,8 @@ models_ranking:
     span: "{min} til {max}"
     per_100: "per 100 {unit}"
     combustion_short: "{fuel} {amount}"
+    one_stop: "20-min stopp {value}"
+    one_stop_missing: "ingen hurtigladedata ennå"
     bar_manufacturer: "Oppgitt"
     bar_drivers: "Førere"
     electricity: "Strøm"
@@ -439,6 +441,9 @@ models_ranking:
     savings: "Sammenlignet med {fuel} ({liters} l) per 100 {unit}"
     savings_year_cheaper: "billigere, {amount} per år ved {daily} {unit} per dag"
     savings_year_dearer: "dyrere, {amount} per år ved {daily} {unit} per dag"
+    one_stop: "Med ett 20-minutters stopp"
+    one_stop_hint: "+{added} {unit} ladet ved Ø {kw} kW DC"
+    one_stop_missing: "For få hurtigladinger ennå"
     savings_none: "Drivstoffpris mangler, se forutsetninger"
   empty:
     search: "Ingen modell passer til «{query}». Sjekk skrivemåten eller velg «Alle» under bilklasse."

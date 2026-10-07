@@ -66,7 +66,7 @@
       <!-- Desktop range cell (from 1280 px): typical span, below it the winter span -->
       <span class="mr-c4 pointer-events-none hidden content-center gap-0.5 whitespace-nowrap text-right leading-tight xl:grid" data-testid="range-cell">
         <span class="text-[15px] tabular-nums" :class="colClass('range')">{{ rangeCell }} <span class="text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span></span>
-        <span class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ winterCaption }}</span>
+        <span class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ oneStopCaption }}</span>
       </span>
 
       <button
@@ -132,12 +132,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, DocumentTextIcon, InformationCircleIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
+import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, ClockIcon, DocumentTextIcon, InformationCircleIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
 import ConsumptionBars from './ConsumptionBars.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { officialModelImageUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
 import type { LadderAxis } from '../../utils/ladderScale'
+import { oneStopRangeKm, USABLE_BATTERY_SHARE } from '../../utils/needsCheck'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
 import type { FuelKind, MainValue } from '../../utils/costMix'
 
@@ -282,13 +283,18 @@ const rangeCell = computed(() => {
   if (span) return fmtSpan(span.lo, span.hi)
   return m.value.realRangeKm != null ? formatDistance(m.value.realRangeKm, { showUnit: false }) : '–'
 })
-const winterCaption = computed(() => {
-  const lo = m.value.winterRangeMinKm
-  const hi = m.value.winterRangeMaxKm
-  return lo != null && hi != null
-    ? t('models_ranking.row.winter_range', { value: fmtSpan(lo, hi) })
-    : t('models_ranking.row.winter_range_missing')
+// Range with one 20-minute fast-charge stop, from the model's community DC power
+const oneStop = computed(() => {
+  const span = typicalSpan.value
+  const base = span ? { lo: span.lo, hi: span.hi } : m.value.realRangeKm != null ? { lo: m.value.realRangeKm, hi: m.value.realRangeKm } : null
+  if (!base) return null
+  const lo = oneStopRangeKm(base.lo, m.value.avgConsumptionKwhPer100km, m.value.avgDcChargingPowerKw)
+  const hi = oneStopRangeKm(base.hi, m.value.avgConsumptionKwhPer100km, m.value.avgDcChargingPowerKw)
+  return lo != null && hi != null ? { lo, hi, addedKm: hi - Math.round(base.hi * USABLE_BATTERY_SHARE) } : null
 })
+const oneStopCaption = computed(() => oneStop.value
+  ? t('models_ranking.row.one_stop', { value: fmtSpan(oneStop.value.lo, oneStop.value.hi) })
+  : t('models_ranking.row.one_stop_missing'))
 
 function signedPct(v: number, decimals = 0): string {
   return `${v > 0 ? '+' : ''}${formatDecimal(v, decimals)} %`
@@ -392,6 +398,18 @@ const facts = computed(() => {
       label: t('models_ranking.detail.range'),
       value: x.realRangeKm != null ? formatDistance(x.realRangeKm) : '–',
       hint: x.realRangeKm != null ? t('models_ranking.detail.range_hint') : t('models_ranking.detail.range_missing'),
+    },
+    {
+      icon: ClockIcon,
+      label: t('models_ranking.detail.one_stop'),
+      value: oneStop.value ? formatDistance(oneStop.value.hi) : '–',
+      hint: oneStop.value && x.avgDcChargingPowerKw != null
+        ? t('models_ranking.detail.one_stop_hint', {
+            added: formatDistance(oneStop.value.addedKm, { showUnit: false }),
+            unit: distanceUnitLabel(),
+            kw: formatNumber(Math.round(x.avgDcChargingPowerKw)),
+          })
+        : t('models_ranking.detail.one_stop_missing'),
     },
     {
       icon: TagIcon,

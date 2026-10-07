@@ -128,3 +128,21 @@ export function summarizeNeeds(models: RangeFields[], input: NeedsInput): NeedsS
   }
   return { total, weeklyOk, tripOk }
 }
+
+export const ONE_STOP_MINUTES = 20
+
+/**
+ * Range with one fast-charge stop of ONE_STOP_MINUTES: the usable share of the battery, plus
+ * what the model's community DC power adds in that time (never more than FAST_CHARGE_SHARE).
+ * Null without range, consumption or DC data.
+ */
+export function oneStopRangeKm(
+  rangeKm: number | null | undefined,
+  consumptionKwhPer100km: number | null | undefined,
+  dcPowerKw: number | null | undefined,
+): number | null {
+  if (rangeKm == null || rangeKm <= 0 || consumptionKwhPer100km == null || consumptionKwhPer100km <= 0 || dcPowerKw == null || dcPowerKw <= 0) return null
+  const addedKwh = dcPowerKw * (ONE_STOP_MINUTES / 60)
+  const addedKm = Math.min(rangeKm * FAST_CHARGE_SHARE, (addedKwh * 100) / consumptionKwhPer100km)
+  return Math.round(rangeKm * USABLE_BATTERY_SHARE + addedKm)
+}

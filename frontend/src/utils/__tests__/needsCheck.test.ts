@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  oneStopRangeKm,
   NEEDS_DEFAULTS, USABLE_BATTERY_SHARE, FAST_CHARGE_SHARE,
   chargeIntervalDays, stopsPerWeek, tripStops, rangeBasis, assessModel, summarizeNeeds, formatSpan,
   type RangeFields,
@@ -140,5 +141,20 @@ describe('needsCheck', () => {
       // 20 km a day = 140 a week → both one stop
       expect(summarizeNeeds(models, { dailyKm: 20, longestTripKm: 400, homeCharging: false }).weeklyOk).toBe(2)
     })
+  })
+})
+
+describe('oneStopRangeKm', () => {
+  it('adds what 20 minutes at the community DC power recharge, capped at the fast-charge share', () => {
+    // 400 km × 0.8 = 320, 100 kW × 1/3 h = 33.3 kWh → 208 km at 16 kWh/100 km
+    expect(oneStopRangeKm(400, 16, 100)).toBe(528)
+    // 300 kW would add 625 km, the stop is capped at 70 % of the battery = 280 km
+    expect(oneStopRangeKm(400, 16, 300)).toBe(600)
+  })
+  it('is null without range, consumption or DC data', () => {
+    expect(oneStopRangeKm(null, 16, 100)).toBeNull()
+    expect(oneStopRangeKm(400, null, 100)).toBeNull()
+    expect(oneStopRangeKm(400, 16, null)).toBeNull()
+    expect(oneStopRangeKm(400, 16, 0)).toBeNull()
   })
 })

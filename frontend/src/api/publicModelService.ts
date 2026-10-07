@@ -139,6 +139,8 @@ export interface TopModelPreview {
     typicalRangeMaxKm?: number | null
     winterRangeMinKm?: number | null
     winterRangeMaxKm?: number | null
+    /** Energy-weighted community average at DC chargers, null below 5 sessions */
+    avgDcChargingPowerKw?: number | null
 }
 
 /** A model with a WLTP spec but no community logs yet (spec values only). */

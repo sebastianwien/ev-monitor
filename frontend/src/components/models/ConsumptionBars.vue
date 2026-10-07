@@ -5,7 +5,7 @@
   <span class="grid gap-[5px] text-[11.5px] leading-none" aria-hidden="true" data-testid="consumption-bars">
     <!-- The number sits inside the fill (after it when the fill is too short); the deviation
          column is fixed, so both tracks are the same length -->
-    <span v-for="bar in bars" :key="bar.key" class="grid grid-cols-[56px_minmax(0,1fr)_40px] items-center gap-x-1.5">
+    <span v-for="bar in bars" :key="bar.key" class="grid grid-cols-[56px_minmax(0,1fr)] items-center gap-x-1.5">
       <span class="truncate text-gray-500 dark:text-gray-400">{{ bar.label }}</span>
       <span class="relative h-[17px] overflow-hidden rounded bg-gray-200 dark:bg-gray-700">
         <span
@@ -16,13 +16,12 @@
         ></span>
         <span
           v-if="bar.width !== null"
-          class="absolute inset-y-0 flex items-center px-1.5 text-[11px] font-semibold tabular-nums"
+          class="absolute inset-y-0 flex items-center gap-1.5 whitespace-nowrap px-1.5 text-[11px] font-semibold tabular-nums"
           :class="bar.inside ? 'text-white dark:text-gray-950' : 'text-gray-900 dark:text-gray-100'"
           :style="bar.inside ? { right: `${100 - bar.width}%` } : { left: `${bar.width}%` }"
-        >{{ bar.text }}</span>
+        >{{ bar.text }}<span v-if="bar.deviation" :class="bar.inside ? '' : bar.deviationCls">{{ bar.deviation }}</span></span>
         <span v-else class="absolute inset-y-0 left-0 flex items-center px-1.5 text-[11px] text-gray-500 dark:text-gray-400">{{ bar.text }}</span>
       </span>
-      <span class="whitespace-nowrap font-semibold tabular-nums" :class="bar.deviationCls">{{ bar.deviation }}</span>
     </span>
   </span>
 </template>
@@ -52,8 +51,9 @@ const bars = computed(() => {
   const deviation = props.deviationPct != null
     ? `${props.deviationPct > 0 ? '+' : '−'}${formatDecimal(Math.abs(props.deviationPct), 0)} %`
     : ''
-  // Below ~40 % of the track the fill is too short for the number, it then follows the fill
-  const inside = (width: number | null) => width !== null && width >= 40
+  // A short fill cannot hold its text, the text then follows the fill (the drivers' bar carries
+  // number and deviation, so it needs more room)
+  const inside = (width: number | null, minPct: number) => width !== null && width >= minPct
   const wltpWidth = barLength(props.wltp, props.axis)
   const realWidth = barLength(props.real, props.axis)
   return [
@@ -61,7 +61,7 @@ const bars = computed(() => {
       key: 'wltp',
       label: t('models_ranking.row.bar_manufacturer'),
       width: wltpWidth,
-      inside: inside(wltpWidth),
+      inside: inside(wltpWidth, 35),
       text: props.wltp != null ? props.wltpText : '–',
       cls: 'bg-gray-400 dark:bg-gray-500',
       deviation: '',
@@ -71,7 +71,7 @@ const bars = computed(() => {
       key: 'real',
       label: t('models_ranking.row.bar_drivers'),
       width: realWidth,
-      inside: inside(realWidth),
+      inside: inside(realWidth, deviation ? 55 : 35),
       text: props.real != null ? props.realText : '–',
       cls: over ? 'bg-orange-500 dark:bg-orange-400' : 'bg-green-600 dark:bg-green-400',
       deviation,
