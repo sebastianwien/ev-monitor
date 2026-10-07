@@ -60,7 +60,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('needs-summary')).toContainText('mit höchstens 3 Stopps');
       await expect(page.getByTestId('trip-chip')).toContainText('höchstens 3 Stopps');
       if (viewport.width >= 1280) {
-        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/1 Stopp \d+ · 2 Stopps \d+|ohne DC-Daten/);
+        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/1 Stopp \d+\s*2 Stopps \d+|ohne DC-Daten/);
       }
     });
 

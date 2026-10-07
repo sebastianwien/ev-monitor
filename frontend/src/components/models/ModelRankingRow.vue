@@ -66,7 +66,7 @@
       <!-- Desktop range cell (from 1280 px): typical span, below it the winter span -->
       <span class="mr-c4 pointer-events-none hidden content-center gap-0.5 whitespace-nowrap text-right leading-tight xl:grid" data-testid="range-cell">
         <span class="text-[15px] tabular-nums" :class="colClass('range')">{{ rangeCell }} <span class="text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span></span>
-        <span class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ stopsCaption }}</span>
+        <span v-for="line in stopsCaption" :key="line" class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ line }}</span>
       </span>
 
       <button
@@ -292,9 +292,10 @@ const stopsRange = computed(() => {
   return one != null && two != null ? { one, two, addedKm: one - Math.round(base * USABLE_BATTERY_SHARE) } : null
 })
 const fmtKm = (km: number) => formatDistance(km, { showUnit: false })
+// Two short lines under the range, one per stop count
 const stopsCaption = computed(() => stopsRange.value
-  ? t('models_ranking.row.stops_range', { one: fmtKm(stopsRange.value.one), two: fmtKm(stopsRange.value.two) })
-  : t('models_ranking.row.one_stop_missing'))
+  ? [t('models_ranking.row.stops_one', { value: fmtKm(stopsRange.value.one) }), t('models_ranking.row.stops_two', { value: fmtKm(stopsRange.value.two) })]
+  : [t('models_ranking.row.one_stop_missing')])
 
 function signedPct(v: number, decimals = 0): string {
   return `${v > 0 ? '+' : ''}${formatDecimal(v, decimals)} %`
