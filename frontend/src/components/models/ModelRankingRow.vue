@@ -25,7 +25,7 @@
           <template v-else>{{ m.brandDisplayName }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ modelName }}</span></template>
         </span>
         <span class="truncate text-[12.5px] text-gray-500 dark:text-gray-400">
-          {{ categoryLabel }}<span class="lg:hidden"> · {{ costLabel }}</span>
+          {{ categoryLabel }}<span v-if="!savingsLabel" class="lg:hidden"> · {{ costLabel }}</span><span v-if="savingsLabel"> · <span :class="savingsClass" data-testid="savings">{{ savingsLabel }}</span></span>
         </span>
         <span class="flex min-w-0 items-center gap-1 text-[12.5px] text-gray-500 lg:hidden dark:text-gray-400">
           <span class="truncate">{{ dataBasis }}</span>
@@ -50,7 +50,7 @@
 
       <span class="mr-c1 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('efficient')">{{ formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: false }) }}</span>
       <span class="mr-c2 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('wltp')">{{ formatConsumption(item.wltpKwhPer100km, { showUnit: false }) }}</span>
-      <span class="mr-c3 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass(null)">{{ costNumber }}</span>
+      <span class="mr-c3 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('cost')">{{ costNumber }}</span>
       <span class="mr-c4 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('range')">{{ m.realRangeKm != null ? formatDistance(m.realRangeKm, { showUnit: false }) : '–' }}</span>
       <span class="mr-c5 pointer-events-none hidden min-w-0 items-center justify-end gap-1 text-right text-[12px] leading-tight lg:flex" :class="colClass('data')">
         <span class="truncate">{{ formatNumber(m.logCount) }}<br>{{ driversLabel }}</span>
@@ -127,6 +127,7 @@ import { officialModelImageUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
 import type { LadderAxis } from '../../utils/ladderScale'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
+import type { FuelKind, MainValue } from '../../utils/costMix'
 
 const props = defineProps<{
   item: RankedModel
@@ -139,6 +140,11 @@ const props = defineProps<{
   href: string
   /** Electricity price in EUR/kWh the costs are based on */
   price: number
+  /** Big number under "Sparsamste": consumption or cost per 100 km */
+  mainValue: MainValue
+  /** Daily distance in km the yearly savings are based on */
+  dailyKm: number
+  fuel: FuelKind
 }>()
 
 const emit = defineEmits<{ toggle: []; compare: [] }>()
@@ -146,7 +152,7 @@ const emit = defineEmits<{ toggle: []; compare: [] }>()
 const { t, te } = useI18n()
 const {
   formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, convertConsumption,
-  formatDistance, distanceUnitLabel, formatCostPerDistance, formatCostPerKwh, unitSystem,
+  formatDistance, convertDistance, distanceUnitLabel, formatCostPerDistance, formatCostPerKwh, formatCurrency, unitSystem,
 } = useLocaleFormat()
 
 const m = computed(() => props.item.model)
@@ -200,11 +206,26 @@ const needsHint = computed(() => {
   } else {
     parts.push(t('models_ranking.row.needs_trip_span', { min: formatNumber(trip.min), max: formatNumber(trip.max) }))
   }
-  return parts.join(' · ')
+  return parts.join(', ')
 })
 const costNumber = computed(() => props.item.costPer100kmEur != null
   ? formatDecimal(convertCostPerDistance(props.item.costPer100kmEur, unitSystem.value), 2)
   : '–')
+
+// Against the assumed combustion car (null without a fuel price or outside metric markets)
+const fuelLabel = computed(() => t(`models_ranking.assumptions.${props.fuel}`))
+const savingsParams = computed(() => {
+  const s = props.item.savingsPer100kmEur
+  if (s == null) return null
+  return { amount: formatCurrency(Math.abs(convertCostPerDistance(s, unitSystem.value))), fuel: fuelLabel.value, unit: distanceUnitLabel() }
+})
+// Meta line: short form; the expanded detail carries the full sentence with "per 100 km"
+const savingsLabel = computed(() => savingsParams.value
+  ? t((props.item.savingsPer100kmEur ?? 0) >= 0 ? 'models_ranking.row.cheaper_short' : 'models_ranking.row.dearer_short', savingsParams.value)
+  : null)
+const savingsClass = computed(() => (props.item.savingsPer100kmEur ?? 0) >= 0
+  ? 'text-green-700 dark:text-green-400'
+  : 'text-orange-700 dark:text-orange-400')
 
 function signedPct(v: number, decimals = 0): string {
   return `${v > 0 ? '+' : ''}${formatDecimal(v, decimals)} %`
@@ -242,12 +263,18 @@ const mainValue = computed(() => {
     case 'data':
       return { value: formatNumber(m.value.logCount), unit: t('models_list.card.charging_sessions'), cls: '' }
     default:
+      if (props.mainValue === 'cost') {
+        return props.item.costPer100kmEur != null
+          ? { value: costNumber.value, unit: `${unitSystem.value.currencySymbol} ${t('models_ranking.row.per_100', { unit: distanceUnitLabel() })}`, cls: '' }
+          : na
+      }
       return { value: formatConsumption(m.value.avgConsumptionKwhPer100km, { showUnit: false }), unit: consumptionUnitLabel(), cls: '' }
   }
 })
 
-function colClass(column: RankingSort | 'data' | null): string {
-  return column === props.sort
+function colClass(column: RankingSort | 'data' | 'cost' | null): string {
+  const active = column === props.sort || (column === 'cost' && props.sort === 'efficient' && props.mainValue === 'cost')
+  return active
     ? 'font-bold text-gray-900 dark:text-gray-100'
     : 'text-gray-500 dark:text-gray-400'
 }
@@ -282,6 +309,18 @@ const facts = computed(() => {
       value: costLabel.value,
       hint: t('models_ranking.detail.cost_hint', { price: formatCostPerKwh(props.price) }),
     },
+    ...(props.item.savingsPer100kmEur != null ? [{
+      icon: BanknotesIcon,
+      label: t('models_ranking.detail.savings', { fuel: fuelLabel.value, unit: distanceUnitLabel() }),
+      value: savingsParams.value?.amount ?? '',
+      hint: props.item.savingsPerYearEur != null
+        ? t(props.item.savingsPerYearEur >= 0 ? 'models_ranking.detail.savings_year_cheaper' : 'models_ranking.detail.savings_year_dearer', {
+            amount: formatCurrency(Math.abs(props.item.savingsPerYearEur), { decimals: 0 }),
+            daily: formatNumber(Math.round(convertDistance(props.dailyKm))),
+            unit: distanceUnitLabel(),
+          })
+        : '',
+    }] : []),
     {
       icon: MapIcon,
       label: t('models_ranking.detail.range'),

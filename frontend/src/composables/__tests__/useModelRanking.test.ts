@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { nextTick, ref } from 'vue'
-import { useModelRanking, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY } from '../useModelRanking'
+import { useModelRanking, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY, COST_STORAGE_KEY, PRIORITY_STORAGE_KEY } from '../useModelRanking'
 import type { TopModelPreview, ModelWithoutData } from '../../api/publicModelService'
 
 function model(over: Partial<TopModelPreview> & { brandDisplayName: string, modelUrlSlug: string }): TopModelPreview {
@@ -155,34 +155,88 @@ describe('useModelRanking', () => {
     })
   })
 
-  describe('electricity price', () => {
-    it('reads a valid stored price', () => {
+  describe('cost assumptions', () => {
+    it('takes the old price key as the home price and starts at the community averages otherwise', () => {
       localStorage.setItem(PRICE_STORAGE_KEY, '0.42')
-      expect(useModelRanking(ref([])).price.value).toBe(0.42)
-    })
+      const migrated = useModelRanking(ref([]))
+      expect(migrated.cost.value.homePricePerKwh).toBe(0.42)
 
-    it('ignores an invalid stored price and starts at the default', () => {
-      localStorage.setItem(PRICE_STORAGE_KEY, 'abc')
-      expect(useModelRanking(ref([])).price.value).toBe(0.3)
-    })
-
-    it('community home price replaces the default only when nothing is stored', () => {
+      localStorage.clear()
       const fresh = useModelRanking(ref([]))
-      fresh.applyDefaultPrice(0.274)
-      expect(fresh.price.value).toBe(0.27)
+      fresh.applyReferencePrices({ homePricePerKwh: 0.274, publicPricePerKwh: 0.561, petrolPricePerLiter: 1.789, dieselPricePerLiter: 1.659, combustionLitersPer100km: 7.0 }, true)
+      expect(fresh.cost.value.homePricePerKwh).toBe(0.27)
+      expect(fresh.cost.value.publicPricePerKwh).toBe(0.56)
+      expect(fresh.cost.value.fuelPricePerLiter).toBe(1.79)
 
-      localStorage.setItem(PRICE_STORAGE_KEY, '0.55')
+      localStorage.setItem(COST_STORAGE_KEY, JSON.stringify({ ...fresh.cost.value, homePricePerKwh: 0.5 }))
       const stored = useModelRanking(ref([]))
-      stored.applyDefaultPrice(0.274)
-      expect(stored.price.value).toBe(0.55)
+      stored.applyReferencePrices({ homePricePerKwh: 0.274, publicPricePerKwh: 0.561, petrolPricePerLiter: 1.789, dieselPricePerLiter: 1.659, combustionLitersPer100km: 7.0 }, true)
+      expect(stored.cost.value.homePricePerKwh).toBe(0.5)
     })
 
-    it('persists changes and prices every row', async () => {
+    it('leaves the fuel price empty outside Germany', () => {
+      const r = useModelRanking(ref([]))
+      r.applyReferencePrices({ homePricePerKwh: 0.3, publicPricePerKwh: 0.5, petrolPricePerLiter: 1.8, dieselPricePerLiter: 1.7, combustionLitersPer100km: 7.0 }, false)
+      expect(r.cost.value.fuelPricePerLiter).toBeNull()
+    })
+
+    it('prices every row with the mixed price and persists changes', async () => {
       const r = useModelRanking(ref([model({ brandDisplayName: 'A', modelUrlSlug: 'x', avgConsumptionKwhPer100km: 20 })]))
-      r.price.value = 0.5
+      r.cost.value = { ...r.cost.value, homePricePerKwh: 0.3, publicPricePerKwh: 0.6, fuelPricePerLiter: 1.8 }
+      // needs default: home charging → 80 % → 0.36 €/kWh
+      expect(r.price.value).toBeCloseTo(0.36, 6)
+      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(7.2, 5)
+      // 7.0 l × 1.8 = 12.6 → 5.4 cheaper, over 40 km × 300 days = 648
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(5.4, 5)
+      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo(648, 3)
       await nextTick()
-      expect(localStorage.getItem(PRICE_STORAGE_KEY)).toBe('0.5')
-      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(10, 5)
+      expect(JSON.parse(localStorage.getItem(COST_STORAGE_KEY) ?? '{}').homePricePerKwh).toBe(0.3)
+
+      r.needs.value = { ...r.needs.value, homeCharging: false }
+      expect(r.price.value).toBeCloseTo(0.6, 6)
+      r.cost.value = { ...r.cost.value, homeShare: 0.5 }
+      expect(r.price.value).toBeCloseTo(0.45, 6)
+    })
+
+    it('has no combustion comparison without a fuel price or outside metric markets', () => {
+      const r = useModelRanking(ref([model({ brandDisplayName: 'A', modelUrlSlug: 'x', avgConsumptionKwhPer100km: 20 })]))
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeNull()
+      r.cost.value = { ...r.cost.value, fuelPricePerLiter: 1.8 }
+      expect(r.ranked.value[0].savingsPer100kmEur).not.toBeNull()
+      r.combustionMarket.value = false
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeNull()
+    })
+
+    it('resets the assumptions to the defaults', () => {
+      const r = useModelRanking(ref([]))
+      r.cost.value = { ...r.cost.value, homeShare: 0.2, litersPer100km: 9, mainValue: 'cost' }
+      r.resetCost()
+      expect(r.cost.value.homeShare).toBeNull()
+      expect(r.cost.value.litersPer100km).toBe(7)
+      expect(r.cost.value.mainValue).toBe('consumption')
+    })
+  })
+
+  describe('priority', () => {
+    it('maps the answer to a sort and keeps it in the browser', async () => {
+      const r = useModelRanking(ref([]))
+      expect(r.priority.value).toBeNull()
+      r.priority.value = 'winter'
+      expect(r.sort.value).toBe('winter')
+      r.priority.value = 'cost'
+      expect(r.sort.value).toBe('efficient')
+      await nextTick()
+      expect(localStorage.getItem(PRIORITY_STORAGE_KEY)).toBe('cost')
+      const again = useModelRanking(ref([]))
+      expect(again.priority.value).toBe('cost')
+      expect(again.sort.value).toBe('efficient')
+    })
+
+    it('changing the sort by chip clears the priority answer', () => {
+      const r = useModelRanking(ref([]))
+      r.priority.value = 'data'
+      r.sort.value = 'range'
+      expect(r.priority.value).toBeNull()
     })
   })
 

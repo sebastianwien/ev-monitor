@@ -1,17 +1,26 @@
 import { computed, ref, watch, type Ref } from 'vue'
-import type { ModelWithoutData, TopModelPreview } from '../api/publicModelService'
+import type { ChargingReferencePrices, ModelWithoutData, TopModelPreview } from '../api/publicModelService'
 import { consumptionDeltaPercent } from '../utils/unitConversions'
 import { assessModel, summarizeNeeds, NEEDS_DEFAULTS, type NeedsAssessment, type NeedsInput, type NeedsSummary } from '../utils/needsCheck'
+import {
+  COST_DEFAULTS, PRICE_MAX, effectiveHomeShare, mixedPricePerKwh, savingsPer100km, savingsPerYear, isCostAssumptions,
+  type CostAssumptions,
+} from '../utils/costMix'
 
 export type RankingSort = 'efficient' | 'range' | 'wltp' | 'winter' | 'data'
 
 export const RANKING_SORTS: RankingSort[] = ['efficient', 'range', 'wltp', 'winter', 'data']
 export const MAX_COMPARE = 3
-/** Same key as the classic model list, so a chosen price carries over between both views. */
+/** Key of the classic model list; read once as the initial home price, never written here. */
 export const PRICE_STORAGE_KEY = 'ev-price-per-kwh'
-export const PRICE_MIN = 0.10
-export const PRICE_MAX = 0.90
-const DEFAULT_PRICE = 0.30
+/** Cost assumptions stay in the browser only, nothing is sent to the server. */
+export const COST_STORAGE_KEY = 'ev-cost-assumptions'
+export const PRIORITY_STORAGE_KEY = 'ev-ranking-priority'
+
+/** "What matters most to you?" One answer, mapped to a sort. */
+export type Priority = 'cost' | 'range' | 'winter' | 'wltp' | 'data'
+export const PRIORITIES: Priority[] = ['cost', 'range', 'winter', 'wltp', 'data']
+const PRIORITY_SORT: Record<Priority, RankingSort> = { cost: 'efficient', range: 'range', winter: 'winter', wltp: 'wltp', data: 'data' }
 /** Needs-check inputs stay in the browser only, nothing is sent to the server. */
 export const NEEDS_STORAGE_KEY = 'ev-needs-check'
 export const NEEDS_KM_MAX = 5000
@@ -28,6 +37,9 @@ export interface RankedModel {
   /** Winter vs. summer consumption in percent */
   winterSurchargePct: number | null
   costPer100kmEur: number | null
+  /** Against the assumed combustion car, positive = EV cheaper; null without a fuel price */
+  savingsPer100kmEur: number | null
+  savingsPerYearEur: number | null
   /** All values of this model come from one driver */
   singleDriver: boolean
   /** Charging interval, stops and longest trip for the current needs-check inputs */
@@ -94,24 +106,55 @@ function readStoredNeeds(): NeedsInput | null {
   }
 }
 
-function readStoredPrice(): number | null {
+function readStoredCost(): CostAssumptions | null {
   try {
-    const raw = localStorage.getItem(PRICE_STORAGE_KEY)
-    if (raw === null) return null
-    const value = Number(raw)
-    return Number.isFinite(value) && value > 0 && value <= 1 ? value : null
+    const raw = localStorage.getItem(COST_STORAGE_KEY)
+    if (raw !== null) {
+      const parsed: unknown = JSON.parse(raw)
+      return isCostAssumptions(parsed) ? parsed : null
+    }
+    // Classic list price from an earlier visit: take it as the home price
+    const legacy = Number(localStorage.getItem(PRICE_STORAGE_KEY))
+    if (Number.isFinite(legacy) && legacy > 0 && legacy <= PRICE_MAX) {
+      return { ...COST_DEFAULTS, homePricePerKwh: legacy }
+    }
+    return null
   } catch {
     return null
   }
 }
 
+function readStoredPriority(): Priority | null {
+  try {
+    const raw = localStorage.getItem(PRIORITY_STORAGE_KEY)
+    return (PRIORITIES as string[]).includes(raw ?? '') ? raw as Priority : null
+  } catch {
+    return null
+  }
+}
+
+const round2 = (v: number) => Math.round(v * 100) / 100
+
 /**
- * State of the model ranking: sort mode, class filter, search, compare picks and the
- * electricity price for cost per 100 km. Pure UI logic on top of the top-models DTO,
- * no consumption formula of its own.
+ * State of the model ranking: sort mode, class filter, search, compare picks, needs check and
+ * cost assumptions (blended electricity price, combustion comparison). Pure UI logic on top of
+ * the top-models DTO, no consumption formula of its own.
  */
 export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutData: Ref<ModelWithoutData[]> = ref([])) {
   const sort = ref<RankingSort>('efficient')
+  const priority = ref<Priority | null>(readStoredPriority())
+  if (priority.value) sort.value = PRIORITY_SORT[priority.value]
+  watch(priority, p => {
+    if (p) sort.value = PRIORITY_SORT[p]
+    try {
+      if (p) localStorage.setItem(PRIORITY_STORAGE_KEY, p)
+      else localStorage.removeItem(PRIORITY_STORAGE_KEY)
+    } catch { /* private mode */ }
+  }, { flush: 'sync' })
+  // A chip click that leaves the priority's sort is a new decision: the answer no longer applies
+  watch(sort, s => {
+    if (priority.value && PRIORITY_SORT[priority.value] !== s) priority.value = null
+  }, { flush: 'sync' })
   const category = ref<string | null>(null)
   const query = ref('')
   /** Only models whose largest battery makes the longest trip without a stop */
@@ -123,28 +166,52 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   }, { deep: true })
   const needsSummary = computed<NeedsSummary>(() => summarizeNeeds(models.value, needs.value))
 
-  const storedPrice = readStoredPrice()
-  const price = ref<number>(storedPrice ?? DEFAULT_PRICE)
-  watch(price, v => {
-    try { localStorage.setItem(PRICE_STORAGE_KEY, String(v)) } catch { /* private mode */ }
-  })
+  const storedCost = readStoredCost()
+  const cost = ref<CostAssumptions>(storedCost ?? { ...COST_DEFAULTS })
+  watch(cost, v => {
+    try { localStorage.setItem(COST_STORAGE_KEY, JSON.stringify(v)) } catch { /* private mode */ }
+  }, { deep: true })
+  /** Combustion comparison only in metric markets (set by the view from the market route). */
+  const combustionMarket = ref(true)
 
-  /** First visit: start at the community home-charging price instead of the fixed default. */
-  function applyDefaultPrice(homePricePerKwh: number | null | undefined) {
-    if (storedPrice !== null || homePricePerKwh == null || homePricePerKwh <= 0) return
-    price.value = Math.round(homePricePerKwh * 100) / 100
+  /**
+   * First visit: start at the community averages instead of the editorial defaults.
+   * The fuel price is only known for Germany; elsewhere it stays empty until typed in.
+   */
+  function applyReferencePrices(p: ChargingReferencePrices | null | undefined, germanMarket: boolean) {
+    if (storedCost !== null || !p) return
+    cost.value = {
+      ...cost.value,
+      homePricePerKwh: p.homePricePerKwh > 0 ? round2(p.homePricePerKwh) : cost.value.homePricePerKwh,
+      publicPricePerKwh: p.publicPricePerKwh > 0 ? round2(p.publicPricePerKwh) : cost.value.publicPricePerKwh,
+      litersPer100km: p.combustionLitersPer100km ?? cost.value.litersPer100km,
+      fuelPricePerLiter: germanMarket && p.petrolPricePerLiter != null && p.petrolPricePerLiter > 0 ? round2(p.petrolPricePerLiter) : null,
+    }
   }
+  function resetCost() {
+    cost.value = { ...COST_DEFAULTS }
+  }
+  const homeShare = computed(() => effectiveHomeShare(cost.value.homeShare, needs.value.homeCharging))
+  /** Blended electricity price in EUR/kWh the row costs are based on */
+  const price = computed(() => mixedPricePerKwh(cost.value, homeShare.value))
+  const combustion = computed(() => combustionMarket.value ? cost.value : { ...cost.value, fuelPricePerLiter: null })
 
-  const enriched = computed(() => models.value.map(m => ({
-    key: modelKey(m),
-    model: m,
-    wltpKwhPer100km: wltpReference(m),
-    wltpDeviationPct: wltpDeviation(m),
-    winterSurchargePct: winterSurcharge(m),
-    costPer100kmEur: m.avgConsumptionKwhPer100km != null ? m.avgConsumptionKwhPer100km * price.value : null,
-    singleDriver: m.contributorCount === 1,
-    needs: assessModel(m, needs.value),
-  })))
+  const enriched = computed(() => models.value.map(m => {
+    const costPer100kmEur = m.avgConsumptionKwhPer100km != null ? m.avgConsumptionKwhPer100km * price.value : null
+    const savingsPer100kmEur = costPer100kmEur != null ? savingsPer100km(costPer100kmEur, combustion.value) : null
+    return {
+      key: modelKey(m),
+      model: m,
+      wltpKwhPer100km: wltpReference(m),
+      wltpDeviationPct: wltpDeviation(m),
+      winterSurchargePct: winterSurcharge(m),
+      costPer100kmEur,
+      savingsPer100kmEur,
+      savingsPerYearEur: savingsPer100kmEur != null ? savingsPerYear(savingsPer100kmEur, needs.value.dailyKm) : null,
+      singleDriver: m.contributorCount === 1,
+      needs: assessModel(m, needs.value),
+    }
+  }))
 
   const ranked = computed<RankedModel[]>(() => {
     const valueOf = SORT_VALUE[sort.value]
@@ -192,7 +259,12 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     category,
     query,
     price,
-    applyDefaultPrice,
+    cost,
+    homeShare,
+    combustionMarket,
+    applyReferencePrices,
+    resetCost,
+    priority,
     needs,
     needsSummary,
     tripOnly,

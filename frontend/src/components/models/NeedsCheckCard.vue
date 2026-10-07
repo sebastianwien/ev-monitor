@@ -49,6 +49,7 @@
     </div>
 
     <p class="text-[15px] leading-snug text-gray-900 dark:text-gray-100" aria-live="polite" data-testid="needs-summary">{{ summaryText }}</p>
+    <slot />
     <p class="text-[12px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.needs.assumptions') }}</p>
   </section>
 </template>

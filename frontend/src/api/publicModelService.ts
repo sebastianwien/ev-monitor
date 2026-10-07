@@ -168,10 +168,12 @@ export interface VehicleCategoryItem {
 }
 
 export interface ChargingReferencePrices {
-    /** Community avg private-charging price, EUR/kWh */
     homePricePerKwh: number
-    /** Community avg public-charging price, EUR/kWh */
     publicPricePerKwh: number
+    /** German daily averages (fallback values without API key); optional for an older backend */
+    petrolPricePerLiter?: number | null
+    dieselPricePerLiter?: number | null
+    combustionLitersPer100km?: number | null
 }
 
 /** Normalized community reference prices (home vs public) for the model comparison slider. */

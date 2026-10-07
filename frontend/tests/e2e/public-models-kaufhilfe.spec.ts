@@ -30,7 +30,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       if (viewport.width >= 1024) {
         await expect(first.locator('.mr-c5')).toContainText(/Fahrer/);
       } else {
-        await expect(first.locator('.mr-who')).toContainText(/Ladevorg[aä]ng.* · \d+ Fahrer/);
+        await expect(first.locator('.mr-who')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
       }
     });
 
@@ -80,6 +80,54 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.getByRole('searchbox').fill(withoutData[0].modelDisplayName);
       await expect(details).toHaveAttribute('open', '');
       await expect(page.getByTestId('ranking-empty')).toContainText('noch keine Fahrerdaten');
+    });
+
+    test('Annahmen: Sheet öffnet, Escape schließt, Fokus kehrt zum Chip zurück', async ({ page }) => {
+      await openRanking(page);
+      const chip = page.getByTestId('assumptions-chip');
+      await chip.click();
+      const sheet = page.getByTestId('assumptions-sheet');
+      await expect(sheet).toBeVisible();
+      await expect(sheet.getByRole('button', { name: 'Schließen' }).first()).toBeFocused();
+      await expect(sheet).toContainText('bleiben in deinem Browser');
+
+      await page.keyboard.press('Escape');
+      await expect(sheet).toBeHidden();
+      await expect(chip).toBeFocused();
+    });
+
+    test('Kosten gegen Verbrenner stehen in der Zeile, Kostenmodus macht Euro zur großen Zahl', async ({ page }) => {
+      await openRanking(page);
+      const first = rows(page).first();
+      // DE: Kraftstoffpreis ist vorbelegt, der Vergleich steht sofort
+      await expect(first.getByTestId('savings')).toContainText(/(unter|über) Benziner/);
+
+      await page.getByTestId('assumptions-chip').click();
+      await page.getByTestId('main-value-cost').click();
+      await page.keyboard.press('Escape');
+      if (viewport.width < 1024) {
+        await expect(first.locator('.mr-val')).toContainText('€ pro 100 km');
+      }
+
+      // Ohne Kraftstoffpreis kein Vergleich
+      await page.getByTestId('assumptions-chip').click();
+      await page.getByTestId('assumption-fuel-price').fill('');
+      await page.getByTestId('assumption-fuel-price').press('Tab');
+      await page.keyboard.press('Escape');
+      await expect(first.getByTestId('savings')).toHaveCount(0);
+    });
+
+    test('Priorität "Meiste Daten" sortiert um und bleibt nach Neuladen', async ({ page }) => {
+      await openRanking(page);
+      const firstBefore = await rows(page).first().locator('.mr-who').innerText();
+      await page.getByTestId('priority-data').click();
+      await expect(page.getByRole('button', { name: 'Meiste Daten' })).toHaveAttribute('aria-pressed', 'true');
+      await expect.poll(() => rows(page).first().locator('.mr-who').innerText()).not.toBe(firstBefore);
+
+      await page.reload();
+      await expect(rows(page).first()).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByTestId('priority-data')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByRole('button', { name: 'Meiste Daten' })).toHaveAttribute('aria-pressed', 'true');
     });
   });
 }

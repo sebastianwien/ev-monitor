@@ -18,7 +18,9 @@
         {{ t('models_ranking.hero.lede', { logs: formatNumber(totalLogs), drivers: formatNumber(platformStats?.userCount ?? 0) }) }}
       </p>
     </div>
-    <NeedsCheckCard v-model="needs" :summary="needsSummary" />
+    <NeedsCheckCard v-model="needs" :summary="needsSummary">
+      <PriorityPicker v-model="priority" />
+    </NeedsCheckCard>
     <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-4 lg:col-span-2 dark:border-gray-800 dark:bg-gray-800">
       <div v-for="fact in heroFacts" :key="fact.label" class="flex flex-col-reverse bg-white px-3.5 py-3 dark:bg-gray-900">
         <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ fact.label }}</dt>
@@ -95,36 +97,6 @@
         </div>
       </div>
 
-      <div class="grid gap-2.5 rounded-2xl border border-gray-200 bg-white p-3.5 dark:border-gray-800 dark:bg-gray-900">
-        <div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-          <label for="mr-price" class="whitespace-nowrap text-[11.5px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">{{ t('models_ranking.price.label') }}</label>
-          <b class="whitespace-nowrap text-xl font-semibold leading-none tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(price) }}</b>
-        </div>
-        <input
-          id="mr-price"
-          v-model.number="price"
-          type="range"
-          :min="PRICE_MIN"
-          :max="PRICE_MAX"
-          step="0.01"
-          :aria-valuetext="formatCostPerKwh(price)"
-          class="h-7 w-full accent-green-600"
-        />
-        <div v-if="pricePresets.length" class="flex flex-wrap gap-2">
-          <button
-            v-for="p in pricePresets"
-            :key="p.key"
-            type="button"
-            :aria-pressed="Math.abs(price - p.value) < 0.005"
-            class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 text-[13px] text-gray-700 aria-pressed:border-green-600 aria-pressed:bg-green-50 aria-pressed:text-gray-900 dark:text-gray-300 dark:aria-pressed:border-green-400 dark:aria-pressed:bg-green-950 dark:aria-pressed:text-gray-100 border-gray-200 dark:border-gray-700"
-            @click="price = p.value"
-          >
-            <component :is="p.icon" class="h-4 w-4" aria-hidden="true" />{{ p.label }}
-          </button>
-        </div>
-        <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.price.hint', { unit: distanceUnitLabel() }) }}</p>
-      </div>
-
       <ul class="flex flex-wrap gap-x-4 gap-y-1.5 text-[13px] text-gray-600 dark:text-gray-400" :aria-label="t('models_ranking.legend.title')">
         <li class="inline-flex items-center gap-1.5"><i class="h-3 w-3 rounded-full bg-green-600 dark:bg-green-400"></i>{{ t('models_ranking.legend.real') }}</li>
         <li class="inline-flex items-center gap-1.5"><i class="h-2 w-[22px] rounded bg-green-200 dark:bg-green-900"></i>{{ t('models_ranking.legend.band') }}</li>
@@ -145,6 +117,16 @@
             :class="chipClass(sort === s, true)"
             @click="sort = s"
           >{{ t(`models_ranking.sort.${s}`) }}</button>
+          <button
+            ref="assumptionsChip"
+            type="button"
+            :class="chipClass(false, true)"
+            class="ml-auto border border-dashed border-gray-400 !bg-transparent dark:border-gray-600"
+            aria-haspopup="dialog"
+            :aria-expanded="assumptionsOpen"
+            data-testid="assumptions-chip"
+            @click="openAssumptions"
+          >{{ t('models_ranking.assumptions.chip') }}</button>
         </div>
         <div class="flex justify-between gap-3 whitespace-nowrap pb-2 pt-0.5 text-[13px] text-gray-500 dark:text-gray-400">
           <span aria-live="polite">{{ loading ? '' : t('models_ranking.count', { shown: ranked.length, total: models.length }) }}</span>
@@ -204,6 +186,9 @@
           :can-add-compare="canAddCompare"
           :href="modelHref(item.model)"
           :price="price"
+          :main-value="cost.mainValue"
+          :daily-km="needs.dailyKm"
+          :fuel="cost.fuel"
           @toggle="openKey = openKey === item.key ? null : item.key"
           @compare="toggleCompare(item.key)"
         />
@@ -294,6 +279,15 @@
     <a :href="registerPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.free_start') }}</a> ·
     <a :href="loginPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.login') }}</a>
   </footer>
+  <AssumptionsSheet
+    v-if="assumptionsOpen"
+    v-model="cost"
+    :home-share="homeShare"
+    :combustion="combustionMarket"
+    :fuel-price-from-api="fuelPriceFromApi"
+    @reset="resetCost"
+    @close="closeAssumptions"
+  />
   <DemoModelsModal />
 </div>
 </template>
@@ -303,8 +297,8 @@ import { computed, onMounted, ref, toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
-  ArrowPathIcon, ArrowRightIcon, ArrowsRightLeftIcon, ArrowTrendingUpIcon, BuildingStorefrontIcon,
-  ChartBarIcon, CheckIcon, ChevronRightIcon, HomeIcon, MagnifyingGlassIcon, XMarkIcon,
+  ArrowPathIcon, ArrowRightIcon, ArrowsRightLeftIcon, ArrowTrendingUpIcon,
+  ChartBarIcon, CheckIcon, ChevronRightIcon, MagnifyingGlassIcon, XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -313,7 +307,9 @@ import {
 } from '../api/publicModelService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
-import { useModelRanking, modelKey, RANKING_SORTS, PRICE_MIN, PRICE_MAX } from '../composables/useModelRanking'
+import { useModelRanking, modelKey, RANKING_SORTS } from '../composables/useModelRanking'
+import { combustionAllowed } from '../utils/costMix'
+import { analytics } from '../services/analytics'
 import { useModelsListSeo } from '../composables/useModelsListSeo'
 import { buildLadderAxis } from '../utils/ladderScale'
 import PublicNav from '../components/shared/PublicNav.vue'
@@ -321,13 +317,15 @@ import ThgBanner from '../components/shared/ThgBanner.vue'
 import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
 import ModelRankingRow from '../components/models/ModelRankingRow.vue'
 import NeedsCheckCard from '../components/models/NeedsCheckCard.vue'
+import PriorityPicker from '../components/models/PriorityPicker.vue'
+import AssumptionsSheet from '../components/models/AssumptionsSheet.vue'
 
 const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: false })
 
 const { t, te, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { formatNumber, formatDecimal, formatConsumption, formatCostPerKwh, consumptionUnitLabel, distanceUnitLabel, currencySymbol, isImperial, unitSystem } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, currencySymbol, isImperial, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS } = useMarketRoute()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
@@ -340,7 +338,6 @@ const currentYear = new Date().getFullYear()
 const asOf = computed(() => new Date().toLocaleDateString(locale.value === 'en' ? 'en-GB' : locale.value, { month: 'long', year: 'numeric' }))
 
 // ── Data ────────────────────────────────────────────────────────────────────
-const FALLBACK_HOME_PRICE = 0.27
 const models = ref<TopModelPreview[]>([])
 const modelsWithoutData = ref<ModelWithoutData[]>([])
 const platformStats = ref<PlatformStats | null>(null)
@@ -350,10 +347,11 @@ const loading = ref(true)
 const loadError = ref(false)
 
 const {
-  sort, category, query, price, applyDefaultPrice, needs, needsSummary, tripOnly,
-  ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
+  sort, category, query, price, cost, homeShare, combustionMarket, applyReferencePrices, resetCost, priority,
+  needs, needsSummary, tripOnly, ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
   compareKeys, canAddCompare, isInCompare, toggleCompare, clearCompare,
 } = useModelRanking(models, modelsWithoutData)
+watch(currentMarket, m => { combustionMarket.value = combustionAllowed(m) }, { immediate: true })
 
 useModelsListSeo(models, toRef(props, 'preview'), modelsWithoutData)
 
@@ -373,7 +371,7 @@ async function load() {
     platformStats.value = stats
     categories.value = cats
     referencePrices.value = prices
-    applyDefaultPrice(prices?.homePricePerKwh ?? FALLBACK_HOME_PRICE)
+    applyReferencePrices(prices, isDE.value)
   } catch (err) {
     console.error('Failed to load models:', err)
     loadError.value = true
@@ -420,15 +418,29 @@ function chipClass(active: boolean, compact = false) {
   ]
 }
 
-const pricePresets = computed(() => {
-  const p = referencePrices.value
-  if (!p) return []
-  const round = (v: number) => Math.round(v * 100) / 100
-  return [
-    { key: 'home', icon: HomeIcon, value: round(p.homePricePerKwh), label: t('models_ranking.price.home', { price: formatCostPerKwh(round(p.homePricePerKwh)) }) },
-    { key: 'public', icon: BuildingStorefrontIcon, value: round(p.publicPricePerKwh), label: t('models_ranking.price.public', { price: formatCostPerKwh(round(p.publicPricePerKwh)) }) },
-  ].filter(x => x.value >= PRICE_MIN && x.value <= PRICE_MAX)
+// ── Assumptions (cost) ──────────────────────────────────────────────────────
+const assumptionsOpen = ref(false)
+const assumptionsChip = ref<HTMLButtonElement | null>(null)
+function openAssumptions() {
+  assumptionsOpen.value = true
+  analytics.track('assumptions_open')
+}
+function closeAssumptions() {
+  assumptionsOpen.value = false
+  assumptionsChip.value?.focus()
+}
+const fuelPriceFromApi = computed(() => {
+  const api = referencePrices.value?.petrolPricePerLiter
+  return api != null && cost.value.fuelPricePerLiter != null && Math.abs(cost.value.fuelPricePerLiter - Math.round(api * 100) / 100) < 0.0005
 })
+
+// ── Plausible ───────────────────────────────────────────────────────────────
+watch(sort, s => analytics.track('ranking_sort', { sort: s }))
+let needsEditTimer: ReturnType<typeof setTimeout> | undefined
+watch(needs, () => {
+  clearTimeout(needsEditTimer)
+  needsEditTimer = setTimeout(() => analytics.track('needs_check_edit'), 1000)
+}, { deep: true })
 
 function resetFilters() {
   query.value = ''
@@ -487,6 +499,7 @@ const modelsAz = computed(() => [...models.value, ...modelsWithoutData.value].so
 // ── Compare ─────────────────────────────────────────────────────────────────
 const compareNames = computed(() => compareKeys.value.map(k => models.value.find(m => modelKey(m) === k)?.modelDisplayName ?? k.replace(/_/g, ' ')))
 function startCompare() {
+  analytics.track('compare_start', { models: compareKeys.value.length })
   const comparePath = isDE.value ? '/modelle/vergleich' : '/en/models/compare'
   router.push(`${comparePath}?models=${compareKeys.value.join(',')}`)
 }
