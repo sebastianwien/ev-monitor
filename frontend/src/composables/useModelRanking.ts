@@ -3,7 +3,7 @@ import type { ChargingReferencePrices, ModelWithoutData, TopModelPreview } from 
 import { consumptionDeltaPercent } from '../utils/unitConversions'
 import { assessModel, summarizeNeeds, NEEDS_DEFAULTS, type NeedsAssessment, type NeedsInput, type NeedsSummary } from '../utils/needsCheck'
 import {
-  COST_DEFAULTS, PRICE_MAX, effectiveHomeShare, mixedPricePerKwh, savingsPer100km, savingsPerYear, isCostAssumptions,
+  COST_DEFAULTS, PRICE_MAX, effectiveHomeShare, mixedPricePerKwh, combustionLiters, savingsPer100km, savingsPerYear, isCostAssumptions,
   type CostAssumptions,
 } from '../utils/costMix'
 
@@ -14,7 +14,7 @@ export const MAX_COMPARE = 3
 /** Key of the classic model list; read once as the initial home price, never written here. */
 export const PRICE_STORAGE_KEY = 'ev-price-per-kwh'
 /** Cost assumptions stay in the browser only, nothing is sent to the server. */
-export const COST_STORAGE_KEY = 'ev-cost-assumptions'
+export const COST_STORAGE_KEY = 'ev-cost-assumptions-v2'
 export const PRIORITY_STORAGE_KEY = 'ev-ranking-priority'
 
 /** "What matters most to you?" One answer, mapped to a sort. */
@@ -40,6 +40,8 @@ export interface RankedModel {
   /** Against the assumed combustion car, positive = EV cheaper; null without a fuel price */
   savingsPer100kmEur: number | null
   savingsPerYearEur: number | null
+  /** Litres per 100 km the comparison assumed for this model's class; null without a comparison */
+  combustionLitersPer100km: number | null
   /** All values of this model come from one driver */
   singleDriver: boolean
   /** Charging interval, stops and longest trip for the current needs-check inputs */
@@ -192,7 +194,6 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
       ...cost.value,
       homePricePerKwh: storedCost === null && p.homePricePerKwh > 0 ? round2(p.homePricePerKwh) : cost.value.homePricePerKwh,
       publicPricePerKwh: p.publicPricePerKwh > 0 ? round2(p.publicPricePerKwh) : cost.value.publicPricePerKwh,
-      litersPer100km: p.combustionLitersPer100km ?? cost.value.litersPer100km,
       fuelPricePerLiter: apiFuel,
     }
   }
@@ -206,7 +207,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
 
   const enriched = computed(() => models.value.map(m => {
     const costPer100kmEur = m.avgConsumptionKwhPer100km != null ? m.avgConsumptionKwhPer100km * price.value : null
-    const savingsPer100kmEur = costPer100kmEur != null ? savingsPer100km(costPer100kmEur, combustion.value) : null
+    const savingsPer100kmEur = costPer100kmEur != null ? savingsPer100km(costPer100kmEur, combustion.value, m.category) : null
     return {
       key: modelKey(m),
       model: m,
@@ -216,6 +217,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
       costPer100kmEur,
       savingsPer100kmEur,
       savingsPerYearEur: savingsPer100kmEur != null ? savingsPerYear(savingsPer100kmEur, needs.value.dailyKm) : null,
+      combustionLitersPer100km: savingsPer100kmEur != null ? combustionLiters(combustion.value, m.category) : null,
       singleDriver: m.contributorCount === 1,
       needs: assessModel(m, needs.value),
     }

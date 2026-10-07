@@ -50,16 +50,15 @@
         class="mr-ld pointer-events-none pb-3.5 lg:pb-0"
         :axis="axis"
         :real="m.avgConsumptionKwhPer100km"
-        :wltp="item.wltpKwhPer100km"
         :band-min="m.minRealConsumptionKwhPer100km"
         :band-max="m.maxRealConsumptionKwhPer100km"
       />
 
-      <span class="mr-c1 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('efficient')">{{ formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: false }) }}</span>
-      <span class="mr-c2 pointer-events-none hidden text-right text-sm tabular-nums xl:block" :class="colClass('wltp')">{{ formatConsumption(item.wltpKwhPer100km, { showUnit: false }) }}</span>
-      <span class="mr-c3 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('cost')">{{ costNumber }}</span>
-      <span class="mr-c6 pointer-events-none hidden text-right text-sm tabular-nums text-gray-500 lg:block dark:text-gray-400" data-testid="savings-column">{{ savingsNumber ?? '–' }}</span>
-      <span class="mr-c4 pointer-events-none hidden whitespace-nowrap text-right text-sm tabular-nums xl:block" :class="colClass('range')">{{ rangeCell }}</span>
+      <!-- Desktop cells: the number with its unit, below it the figure to compare against -->
+      <span v-for="cell in cells" :key="cell.cls" :class="[cell.cls, cell.cls === 'mr-c4' ? 'xl:grid' : 'lg:grid']" class="pointer-events-none hidden content-center justify-items-end gap-0.5 whitespace-nowrap text-right leading-tight" :data-testid="cell.testid">
+        <span class="text-[15px] tabular-nums" :class="colClass(cell.sort)">{{ cell.value }} <span class="text-[11px] font-normal text-gray-500 dark:text-gray-400">{{ cell.unit }}</span></span>
+        <span class="text-[11.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ cell.caption }}</span>
+      </span>
 
       <button
         type="button"
@@ -249,10 +248,15 @@ const costVsCombustion = computed(() => combustionCostEur.value != null
       combustion: formatDecimal(convertCostPerDistance(combustionCostEur.value, unitSystem.value), 2),
     })
   : costLabel.value)
-// Desktop column "Benziner": the combustion cost in the cost column's unit
-const savingsNumber = computed(() => combustionCostEur.value != null
-  ? formatDecimal(convertCostPerDistance(combustionCostEur.value, unitSystem.value), 2)
-  : null)
+// Desktop cost cell caption: "Benziner (6,8 l) 14,62 €", the litres show the class assumption
+const litersLabel = computed(() => props.item.combustionLitersPer100km != null ? formatDecimal(props.item.combustionLitersPer100km, 1) : '')
+const combustionCaption = computed(() => combustionCostEur.value != null
+  ? t('models_ranking.row.combustion_cell', {
+      fuel: fuelLabel.value,
+      liters: litersLabel.value,
+      amount: formatCurrency(convertCostPerDistance(combustionCostEur.value, unitSystem.value)),
+    })
+  : '')
 
 // Range column: typical span from the smallest to the largest battery, real range as fallback
 const typicalSpan = computed(() => {
@@ -261,12 +265,46 @@ const typicalSpan = computed(() => {
   if (lo == null || hi == null) return null
   return { lo, hi }
 })
+const fmtSpan = (lo: number, hi: number) => {
+  const fmt = (km: number) => formatDistance(km, { showUnit: false })
+  return lo === hi ? fmt(hi) : `${fmt(lo)}–${fmt(hi)}`
+}
 const rangeCell = computed(() => {
   const span = typicalSpan.value
-  const fmt = (km: number) => formatDistance(km, { showUnit: false })
-  if (span) return span.lo === span.hi ? fmt(span.hi) : `${fmt(span.lo)}–${fmt(span.hi)}`
-  return m.value.realRangeKm != null ? fmt(m.value.realRangeKm) : '–'
+  if (span) return fmtSpan(span.lo, span.hi)
+  return m.value.realRangeKm != null ? formatDistance(m.value.realRangeKm, { showUnit: false }) : '–'
 })
+const winterCaption = computed(() => {
+  const lo = m.value.winterRangeMinKm
+  const hi = m.value.winterRangeMaxKm
+  return lo != null && hi != null
+    ? t('models_ranking.row.winter_range', { value: fmtSpan(lo, hi) })
+    : t('models_ranking.row.winter_range_missing')
+})
+
+// Desktop cells, each a number with unit and a caption naming what it is compared against
+const cells = computed(() => [
+  {
+    cls: 'mr-c1', sort: 'efficient' as const, testid: 'consumption-cell',
+    value: formatConsumption(m.value.avgConsumptionKwhPer100km, { showUnit: false }),
+    unit: consumptionUnitLabel(),
+    caption: props.item.wltpKwhPer100km != null
+      ? t('models_ranking.row.manufacturer', { value: formatConsumption(props.item.wltpKwhPer100km, { showUnit: false }) })
+      : t('models_ranking.row.no_value'),
+  },
+  {
+    cls: 'mr-c3', sort: 'cost' as const, testid: 'cost-cell',
+    value: costNumber.value,
+    unit: unitSystem.value.currencySymbol,
+    caption: combustionCaption.value,
+  },
+  {
+    cls: 'mr-c4', sort: 'range' as const, testid: 'range-cell',
+    value: rangeCell.value,
+    unit: distanceUnitLabel(),
+    caption: winterCaption.value,
+  },
+])
 
 function signedPct(v: number, decimals = 0): string {
   return `${v > 0 ? '+' : ''}${formatDecimal(v, decimals)} %`
@@ -320,7 +358,7 @@ function colClass(column: RankingSort | 'cost' | null): string {
   const active = column === props.sort || (column === 'cost' && props.sort === 'efficient' && props.mainValue === 'cost')
   return active
     ? 'font-bold text-gray-900 dark:text-gray-100'
-    : 'text-gray-500 dark:text-gray-400'
+    : 'font-medium text-gray-700 dark:text-gray-300'
 }
 
 const facts = computed(() => {
@@ -355,7 +393,7 @@ const facts = computed(() => {
     },
     ...(props.item.savingsPer100kmEur != null ? [{
       icon: BanknotesIcon,
-      label: t('models_ranking.detail.savings', { fuel: fuelLabel.value, unit: distanceUnitLabel() }),
+      label: t('models_ranking.detail.savings', { fuel: fuelLabel.value, liters: litersLabel.value, unit: distanceUnitLabel() }),
       value: savingsParams.value?.amount ?? '',
       hint: props.item.savingsPerYearEur != null
         ? t(props.item.savingsPerYearEur >= 0 ? 'models_ranking.detail.savings_year_cheaper' : 'models_ranking.detail.savings_year_dearer', {
@@ -430,32 +468,33 @@ const seasonBars = computed(() => {
 .mr-hint { grid-area: hint; }
 .mr-ld { grid-area: ld; }
 .mr-c1 { grid-area: c1; }
-.mr-c2 { grid-area: c2; }
 .mr-c3 { grid-area: c3; }
 .mr-c4 { grid-area: c4; }
-.mr-c6 { grid-area: c6; }
 .mr-cb { grid-area: cb; }
 /* Desktop: name block wide enough for the meta line, the hint runs across the whole row.
-   The WLTP and range columns join at 1280 px; below that the board next to the filter
-   column is too narrow for them (the ladder's ring still carries the WLTP value). */
+   Three cells (consumption, cost, range), each a number plus the figure it is compared
+   against. The range cell joins at 1280 px; below that the board next to the filter
+   column is too narrow for it. */
 @media (min-width: 1024px) {
   .mr-grid {
-    grid-template-columns: 112px minmax(190px, 1.6fr) minmax(100px, 1fr) 64px 60px 64px 26px;
-    grid-template-areas: "th who ld c1 c3 c6 cb" "th meta ld c1 c3 c6 cb" "th hint hint c1 c3 c6 cb";
-    column-gap: 10px;
+    /* 626 px of content at 1024 px: the cost cell needs 140 px for "Benziner (5,8 l) 12,47 €" */
+    grid-template-columns: 112px minmax(140px, 1.6fr) minmax(70px, 1fr) 92px 140px 26px;
+    grid-template-areas: "th who ld c1 c3 cb" "th meta ld c1 c3 cb" "th hint hint c1 c3 cb";
+    column-gap: 8px;
     row-gap: 2px;
   }
   .mr-grid.mr-ruler {
-    grid-template-areas: ". who ld c1 c3 c6 cb";
+    grid-template-areas: ". who ld c1 c3 cb";
   }
 }
 @media (min-width: 1280px) {
   .mr-grid {
-    grid-template-columns: 112px minmax(225px, 1.6fr) minmax(110px, 1fr) 64px 64px 60px 64px 64px 26px;
-    grid-template-areas: "th who ld c1 c2 c3 c6 c4 cb" "th meta ld c1 c2 c3 c6 c4 cb" "th hint hint c1 c2 c3 c6 c4 cb";
+    grid-template-columns: 112px minmax(215px, 1.6fr) minmax(110px, 1fr) 96px 140px 104px 26px;
+    column-gap: 10px;
+    grid-template-areas: "th who ld c1 c3 c4 cb" "th meta ld c1 c3 c4 cb" "th hint hint c1 c3 c4 cb";
   }
   .mr-grid.mr-ruler {
-    grid-template-areas: ". who ld c1 c2 c3 c6 c4 cb";
+    grid-template-areas: ". who ld c1 c3 c4 cb";
   }
 }
 </style>

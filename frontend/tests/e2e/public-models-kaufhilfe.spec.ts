@@ -29,7 +29,13 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       const first = rows(page).first();
       await expect(first.locator('.mr-meta')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
       if (viewport.width >= 1024) {
-        await expect(first.getByTestId('savings-column')).toContainText(/^\d+,\d\d$/);
+        // cost cell: EV number plus the combustion car of the class with its litres
+        await expect(first.getByTestId('cost-cell')).toContainText(/Benziner \(\d+,\d l\) \d+,\d\d €/);
+        await expect(first.getByTestId('consumption-cell')).toContainText(/Hersteller \d+,\d/);
+        // litres follow the vehicle class, so the combustion figure differs between classes
+        const captions = await rows(page).getByTestId('cost-cell').allTextContents();
+        const liters = new Set(captions.map(c => c.match(/\((\d+,\d) l\)/)?.[1]).filter(Boolean));
+        expect(liters.size).toBeGreaterThan(1);
       }
     });
 
@@ -108,8 +114,25 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
         await expect(first.locator('.mr-val')).toContainText('€ pro 100 km');
       }
 
-      // Ohne Kraftstoffpreis kein Vergleich
+      // Ein eingetragener Literwert gilt für alle Klassen, leer heißt wieder je Klasse
       await page.getByTestId('assumptions-chip').click();
+      await expect(page.getByTestId('assumption-liters')).toHaveValue('');
+      await expect(page.getByTestId('assumption-liters-hint')).toContainText(/Kompakt 6,8/);
+      await page.getByTestId('assumption-liters').fill('9');
+      await page.getByTestId('assumption-liters').press('Tab');
+      await expect(page.getByTestId('assumption-liters-hint')).toContainText('alle Fahrzeugklassen');
+      await page.keyboard.press('Escape');
+      if (viewport.width >= 1024) {
+        const captions = await rows(page).getByTestId('cost-cell').allTextContents();
+        // rows without consumption data carry no comparison
+        expect(new Set(captions.map(c => c.match(/\((\d+,\d) l\)/)?.[1]).filter(Boolean))).toEqual(new Set(['9,0']));
+      }
+      await page.getByTestId('assumptions-chip').click();
+      await page.getByTestId('assumption-liters').fill('');
+      await page.getByTestId('assumption-liters').press('Tab');
+      await expect(page.getByTestId('assumption-liters-hint')).toContainText(/Kompakt 6,8/);
+
+      // Ohne Kraftstoffpreis kein Vergleich
       await page.getByTestId('assumption-fuel-price').fill('');
       await page.getByTestId('assumption-fuel-price').press('Tab');
       await page.keyboard.press('Escape');

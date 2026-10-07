@@ -66,7 +66,13 @@
           <div class="grid grid-cols-2 gap-3">
             <label class="grid gap-1.5">
               <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('models_ranking.assumptions.liters') }}</span>
-              <input :value="formatDecimal(modelValue.litersPer100km, 1)" v-bind="numeric" @change="updatePlain('litersPer100km', $event, LITERS_MAX)" />
+              <input
+                :value="modelValue.litersPer100km != null ? formatDecimal(modelValue.litersPer100km, 1) : ''"
+                :placeholder="t('models_ranking.assumptions.liters_placeholder')"
+                v-bind="numeric"
+                data-testid="assumption-liters"
+                @change="updateLiters($event)"
+              />
             </label>
             <label class="grid gap-1.5">
               <span class="text-sm text-gray-700 dark:text-gray-300">{{ t('models_ranking.assumptions.fuel_price', { unit: currencySymbol }) }}</span>
@@ -78,6 +84,10 @@
               />
             </label>
           </div>
+          <!-- Where the litres come from: the class table, or the typed value for every class -->
+          <p class="-mt-3 text-[12.5px] text-gray-500 dark:text-gray-400" data-testid="assumption-liters-hint">
+            {{ modelValue.litersPer100km == null ? t('models_ranking.assumptions.liters_by_class', { list: litersByClass }) : t('models_ranking.assumptions.liters_override') }}
+          </p>
           <p class="-mt-3 text-[12.5px] text-gray-500 dark:text-gray-400">
             {{ modelValue.fuelPricePerLiter == null ? t('models_ranking.assumptions.fuel_price_missing') : (fuelPriceFromApi ? t('models_ranking.assumptions.fuel_price_source') : '') }}
           </p>
@@ -117,13 +127,13 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref, useId } from 'vue'
+import { computed, nextTick, onMounted, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { convertCurrency } from '../../utils/unitConversions'
-import { PRICE_MAX, LITERS_MAX, FUEL_PRICE_MAX, type CostAssumptions } from '../../utils/costMix'
+import { PRICE_MAX, LITERS_MAX, FUEL_PRICE_MAX, COMBUSTION_LITERS_BY_CLASS, type CostAssumptions } from '../../utils/costMix'
 
 const props = defineProps<{
   modelValue: CostAssumptions
@@ -136,7 +146,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: CostAssumptions]; reset: []; close: [] }>()
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const { currencySymbol, currency, distanceUnitLabel, formatDecimal, locale } = useLocaleFormat()
 
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
@@ -173,11 +183,18 @@ function updateMoney(key: 'homePricePerKwh' | 'publicPricePerKwh' | 'fuelPricePe
   const eur = Math.min(Math.max(0, n / rate()), max)
   update(key, Math.round(eur * 1000) / 1000)
 }
-function updatePlain(key: 'litersPer100km', event: Event, max: number) {
+// Empty field = litres per vehicle class again
+function updateLiters(event: Event) {
   const n = parse(event)
-  if (n === null) return
-  update(key, Math.min(Math.max(0, n), max))
+  update('litersPer100km', n === null ? null : Math.min(Math.max(0, n), LITERS_MAX))
 }
+// "Kleinwagen 5,8 · Kompakt 6,8 · ..." for the chosen fuel
+const litersByClass = computed(() => Object.entries(COMBUSTION_LITERS_BY_CLASS)
+  .map(([category, liters]) => {
+    const key = `models_list.filters.categories.${category}`
+    return `${te(key) ? t(key) : category} ${formatDecimal(liters[props.modelValue.fuel], 1)}`
+  })
+  .join(' · '))
 
 // Focus stays inside the dialog; Escape closes it. The caller returns focus to the chip on close.
 function focusable(): HTMLElement[] {

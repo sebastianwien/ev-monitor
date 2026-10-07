@@ -177,6 +177,8 @@ describe('useModelRanking', () => {
       expect(fresh.cost.value.homePricePerKwh).toBe(0.27)
       expect(fresh.cost.value.publicPricePerKwh).toBe(0.56)
       expect(fresh.cost.value.fuelPricePerLiter).toBe(1.79)
+      // the API's flat 7.0 l does not replace the litres per class
+      expect(fresh.cost.value.litersPer100km).toBeNull()
 
       localStorage.setItem(COST_STORAGE_KEY, JSON.stringify({ ...fresh.cost.value, homePricePerKwh: 0.5 }))
       const stored = useModelRanking(ref([]))
@@ -217,9 +219,16 @@ describe('useModelRanking', () => {
       // needs default: home charging → 80 % → 0.36 €/kWh
       expect(r.price.value).toBeCloseTo(0.36, 6)
       expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(7.2, 5)
-      // 7.0 l × 1.8 = 12.6 → 5.4 cheaper, over 40 km × 300 days = 648
-      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(5.4, 5)
-      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo(648, 3)
+      // SEDAN petrol 7.6 l × 1.8 = 13.68 → 6.48 cheaper, over 40 km × 300 days = 777.6
+      expect(r.ranked.value[0].combustionLitersPer100km).toBe(7.6)
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(6.48, 5)
+      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo(777.6, 3)
+      // diesel and a typed litre value change every row
+      r.cost.value = { ...r.cost.value, fuel: 'diesel' }
+      expect(r.ranked.value[0].combustionLitersPer100km).toBe(6.0)
+      r.cost.value = { ...r.cost.value, litersPer100km: 9 }
+      expect(r.ranked.value[0].combustionLitersPer100km).toBe(9)
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(9 * 1.8 - 7.2, 5)
       await nextTick()
       expect(JSON.parse(localStorage.getItem(COST_STORAGE_KEY) ?? '{}').homePricePerKwh).toBe(0.3)
 
@@ -232,6 +241,7 @@ describe('useModelRanking', () => {
     it('has no combustion comparison without a fuel price or outside metric markets', () => {
       const r = useModelRanking(ref([model({ brandDisplayName: 'A', modelUrlSlug: 'x', avgConsumptionKwhPer100km: 20 })]))
       expect(r.ranked.value[0].savingsPer100kmEur).toBeNull()
+      expect(r.ranked.value[0].combustionLitersPer100km).toBeNull()
       r.cost.value = { ...r.cost.value, fuelPricePerLiter: 1.8 }
       expect(r.ranked.value[0].savingsPer100kmEur).not.toBeNull()
       r.combustionMarket.value = false
@@ -243,7 +253,7 @@ describe('useModelRanking', () => {
       r.cost.value = { ...r.cost.value, homeShare: 0.2, litersPer100km: 9, mainValue: 'cost' }
       r.resetCost()
       expect(r.cost.value.homeShare).toBeNull()
-      expect(r.cost.value.litersPer100km).toBe(7)
+      expect(r.cost.value.litersPer100km).toBeNull()
       expect(r.cost.value.mainValue).toBe('consumption')
     })
   })

@@ -149,8 +149,8 @@
               :style="{ left: `${tickPosition(tick)}%` }"
             >{{ formatDecimal(tick, tickDecimals) }}</span>
           </div>
-          <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c2' || col.cls === 'mr-c4' ? 'xl:block' : 'lg:block']" class="hidden self-center whitespace-nowrap text-right text-[11.5px] font-semibold leading-tight text-gray-700 dark:text-gray-300">
-            {{ col.label }}<br><span class="font-normal text-gray-500 dark:text-gray-400">{{ col.unit }}</span>
+          <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block']" class="hidden self-center whitespace-nowrap text-right text-[11.5px] font-semibold leading-tight text-gray-700 dark:text-gray-300">
+            {{ col.label }}
           </span>
         </div>
       </div>
@@ -332,7 +332,7 @@ const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: fals
 const { t, te, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, convertDistance, currencySymbol, isImperial, unitSystem } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, convertDistance, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS } = useMarketRoute()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
@@ -500,16 +500,12 @@ const tickDecimals = computed(() => (axis.value.ticks.every(Number.isInteger) ? 
 function tickPosition(tick: number) {
   return ((tick - axis.value.min) / (axis.value.max - axis.value.min)) * 100
 }
-const columnHeads = computed(() => {
-  const costUnit = `${currencySymbol.value}/100 ${isImperial.value ? 'mi' : 'km'}`
-  return [
-    { cls: 'mr-c1', label: t('models_ranking.columns.real'), unit: consumptionUnitLabel() },
-    { cls: 'mr-c2', label: t('models_ranking.columns.wltp'), unit: consumptionUnitLabel() },
-    { cls: 'mr-c3', label: t('models_ranking.columns.cost'), unit: costUnit },
-    { cls: 'mr-c6', label: t(`models_ranking.assumptions.${cost.value.fuel}`), unit: costUnit },
-    { cls: 'mr-c4', label: t('models_ranking.columns.range'), unit: distanceUnitLabel() },
-  ]
-})
+// Units live in the cells next to the numbers, the heads only name the column
+const columnHeads = computed(() => [
+  { cls: 'mr-c1', label: t('models_ranking.columns.consumption') },
+  { cls: 'mr-c3', label: t('models_ranking.columns.cost_per', { unit: distanceUnitLabel() }) },
+  { cls: 'mr-c4', label: t('models_ranking.columns.range') },
+])
 
 const stickyTopClass = computed(() => isAuthenticated.value
   ? 'top-[calc(env(safe-area-inset-top)+var(--top-nav-h,0px))]'
