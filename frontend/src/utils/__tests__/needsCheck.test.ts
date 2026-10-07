@@ -3,8 +3,7 @@ import {
   stopsRangeKm, stopAddedKm,
   NEEDS_DEFAULTS, USABLE_BATTERY_SHARE, FAST_CHARGE_SHARE,
   chargeIntervalDays, stopsPerWeek, tripStops, rangeBasis, assessModel, summarizeNeeds, formatSpan,
-  type RangeFields,
-} from '../needsCheck'
+  type RangeFields, meetsNeeds } from '../needsCheck'
 
 const ranges = (over: Partial<RangeFields>): RangeFields => ({
   typicalRangeMinKm: null, typicalRangeMaxKm: null, winterRangeMinKm: null, winterRangeMaxKm: null, ...over,
@@ -100,6 +99,28 @@ describe('needsCheck', () => {
     it('collapses equal values and keeps the smaller one first', () => {
       expect(formatSpan(5, 5)).toEqual({ min: 5, max: 5, single: true })
       expect(formatSpan(7, 5)).toEqual({ min: 5, max: 7, single: false })
+    })
+  })
+
+  describe('meetsNeeds', () => {
+    const base = { assessable: true as const, winter: true, interval: { min: 7, max: 9, single: false }, stopsPerWeek: null, tripStops: { min: 0, max: 1, single: false } }
+
+    it('passt, wenn jede Batterie höchstens einmal pro Woche lädt und die Fahrt mit den erlaubten Stopps schafft', () => {
+      expect(meetsNeeds(base, 1)).toBe(true)
+      expect(meetsNeeds(base, 0)).toBe(false)
+    })
+
+    it('fällt durch, sobald die kleinste Batterie öfter als wöchentlich laden muss', () => {
+      expect(meetsNeeds({ ...base, interval: { min: 6, max: 9, single: false } }, 1)).toBe(false)
+    })
+
+    it('ohne Laden zuhause zählt höchstens ein Stopp pro Woche', () => {
+      expect(meetsNeeds({ ...base, interval: null, stopsPerWeek: { min: 0, max: 1, single: false } }, 1)).toBe(true)
+      expect(meetsNeeds({ ...base, interval: null, stopsPerWeek: { min: 1, max: 2, single: false } }, 1)).toBe(false)
+    })
+
+    it('nicht bewertbar passt nie', () => {
+      expect(meetsNeeds({ assessable: false }, 4)).toBe(false)
     })
   })
 

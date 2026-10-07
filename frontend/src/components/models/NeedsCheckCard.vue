@@ -55,35 +55,27 @@
       </div>
     </div>
 
-    <!-- The answer as three figures; the middle one filters the list to the models it counts -->
+    <!-- The answer in one line; the button narrows the list to the models it counts -->
     <p v-if="summary.total === 0" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.summary_empty') }}</p>
-    <dl v-else class="grid grid-cols-3 divide-x divide-gray-200 dark:divide-gray-700" aria-live="polite" data-testid="needs-summary">
-      <div class="grid content-start gap-0.5 pr-3">
-        <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.stat_of', { n: formatNumber(summary.weeklyOk), total: formatNumber(summary.total) }) }}</dd>
-        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t(modelValue.homeCharging ? 'models_ranking.needs.stat_weekly_home' : 'models_ranking.needs.stat_weekly_public', { daily: dailyLocal, unit: distanceUnitLabel() }) }}</dt>
-      </div>
-      <div class="grid content-start gap-0.5 px-3">
-        <dd>
-          <button
-            type="button"
-            class="-mx-1 -my-0.5 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[22px] font-semibold leading-tight tracking-tight tabular-nums hover:bg-gray-100 dark:hover:bg-gray-800"
-            :class="tripOnly ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-gray-100'"
-            :aria-pressed="tripOnly"
-            :aria-label="t('models_ranking.needs.show_models', { count: formatNumber(within) }, within)"
-            data-testid="needs-show-models"
-            @click="emit('show')"
-          >
-            {{ formatNumber(within) }}
-            <FunnelIcon class="h-4 w-4 text-green-700 dark:text-green-400" aria-hidden="true" />
-          </button>
-        </dd>
-        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.stat_trip', { longest: longestLocal, unit: distanceUnitLabel(), count: formatNumber(modelValue.maxStops) }, modelValue.maxStops) }}</dt>
-      </div>
-      <div class="grid content-start gap-0.5 pl-3">
-        <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ formatNumber(summary.tripOk) }}</dd>
-        <dt class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.stat_no_stop') }}</dt>
-      </div>
-    </dl>
+    <p v-else class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px] leading-snug text-gray-700 dark:text-gray-300" aria-live="polite" data-testid="needs-summary">
+      <span>
+        <span class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.stat_of', { n: formatNumber(within), total: formatNumber(summary.total) }) }}</span>
+        {{ t('models_ranking.needs.stat_trip', { longest: longestLocal, unit: distanceUnitLabel(), count: formatNumber(modelValue.maxStops) }, modelValue.maxStops) }}
+      </span>
+      <button
+        type="button"
+        class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-semibold"
+        :class="tripOnly
+          ? 'border-green-700 bg-green-700 text-white dark:border-green-400 dark:bg-green-400 dark:text-gray-950'
+          : 'border-gray-300 bg-white text-green-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-green-400 dark:hover:bg-gray-800'"
+        :aria-pressed="tripOnly"
+        data-testid="needs-show-models"
+        @click="emit('show')"
+      >
+        <FunnelIcon class="h-4 w-4" aria-hidden="true" />
+        {{ t(tripOnly ? 'models_ranking.needs.show_all' : 'models_ranking.needs.show_only') }}
+      </button>
+    </p>
   </section>
 </template>
 
