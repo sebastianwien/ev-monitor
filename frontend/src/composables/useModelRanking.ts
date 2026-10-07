@@ -107,17 +107,17 @@ function readStoredNeeds(): NeedsInput | null {
   }
 }
 
-function readStoredCost(): CostAssumptions | null {
+/** Stored assumptions, or just the classic list's price as home price (then nothing else is seeded yet). */
+function readStoredCost(): { cost: CostAssumptions; seeded: boolean } | null {
   try {
     const raw = localStorage.getItem(COST_STORAGE_KEY)
     if (raw !== null) {
       const parsed: unknown = JSON.parse(raw)
-      return isCostAssumptions(parsed) ? parsed : null
+      return isCostAssumptions(parsed) ? { cost: parsed, seeded: true } : null
     }
-    // Classic list price from an earlier visit: take it as the home price
     const legacy = Number(localStorage.getItem(PRICE_STORAGE_KEY))
     if (Number.isFinite(legacy) && legacy > 0 && legacy <= PRICE_MAX) {
-      return { ...COST_DEFAULTS, homePricePerKwh: legacy }
+      return { cost: { ...COST_DEFAULTS, homePricePerKwh: legacy }, seeded: false }
     }
     return null
   } catch {
@@ -168,7 +168,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   const needsSummary = computed<NeedsSummary>(() => summarizeNeeds(models.value, needs.value))
 
   const storedCost = readStoredCost()
-  const cost = ref<CostAssumptions>(storedCost ?? { ...COST_DEFAULTS })
+  const cost = ref<CostAssumptions>(storedCost?.cost ?? { ...COST_DEFAULTS })
   watch(cost, v => {
     try { localStorage.setItem(COST_STORAGE_KEY, JSON.stringify(v)) } catch { /* private mode */ }
   }, { deep: true })
@@ -176,17 +176,24 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   const combustionMarket = ref(true)
 
   /**
-   * First visit: start at the community averages instead of the editorial defaults.
-   * The fuel price is only known for Germany; elsewhere it stays empty until typed in.
+   * First visit: start at the community averages instead of the editorial defaults (a home
+   * price carried over from the classic list is kept). The fuel price is only known for
+   * Germany; there it is also filled in later when it is still missing, elsewhere it stays
+   * empty until typed in.
    */
   function applyReferencePrices(p: ChargingReferencePrices | null | undefined, germanMarket: boolean) {
-    if (storedCost !== null || !p) return
+    if (!p) return
+    const apiFuel = germanMarket && p.petrolPricePerLiter != null && p.petrolPricePerLiter > 0 ? round2(p.petrolPricePerLiter) : null
+    if (storedCost?.seeded) {
+      if (cost.value.fuelPricePerLiter === null && apiFuel !== null) cost.value = { ...cost.value, fuelPricePerLiter: apiFuel }
+      return
+    }
     cost.value = {
       ...cost.value,
-      homePricePerKwh: p.homePricePerKwh > 0 ? round2(p.homePricePerKwh) : cost.value.homePricePerKwh,
+      homePricePerKwh: storedCost === null && p.homePricePerKwh > 0 ? round2(p.homePricePerKwh) : cost.value.homePricePerKwh,
       publicPricePerKwh: p.publicPricePerKwh > 0 ? round2(p.publicPricePerKwh) : cost.value.publicPricePerKwh,
       litersPer100km: p.combustionLitersPer100km ?? cost.value.litersPer100km,
-      fuelPricePerLiter: germanMarket && p.petrolPricePerLiter != null && p.petrolPricePerLiter > 0 ? round2(p.petrolPricePerLiter) : null,
+      fuelPricePerLiter: apiFuel,
     }
   }
   function resetCost() {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { nextTick, ref } from 'vue'
 import { useModelRanking, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY, COST_STORAGE_KEY, PRIORITY_STORAGE_KEY } from '../useModelRanking'
 import type { TopModelPreview, ModelWithoutData } from '../../api/publicModelService'
+import { COST_DEFAULTS } from '../../utils/costMix'
 
 function model(over: Partial<TopModelPreview> & { brandDisplayName: string, modelUrlSlug: string }): TopModelPreview {
   return {
@@ -181,6 +182,27 @@ describe('useModelRanking', () => {
       const stored = useModelRanking(ref([]))
       stored.applyReferencePrices({ homePricePerKwh: 0.274, publicPricePerKwh: 0.561, petrolPricePerLiter: 1.789, dieselPricePerLiter: 1.659, combustionLitersPer100km: 7.0 }, true)
       expect(stored.cost.value.homePricePerKwh).toBe(0.5)
+    })
+
+    it('seeds public and fuel price even when only the classic price key exists', () => {
+      localStorage.setItem(PRICE_STORAGE_KEY, '0.42')
+      const r = useModelRanking(ref([]))
+      r.applyReferencePrices({ homePricePerKwh: 0.274, publicPricePerKwh: 0.561, petrolPricePerLiter: 1.789, dieselPricePerLiter: 1.659, combustionLitersPer100km: 7.0 }, true)
+      expect(r.cost.value.homePricePerKwh).toBe(0.42)
+      expect(r.cost.value.publicPricePerKwh).toBe(0.56)
+      expect(r.cost.value.fuelPricePerLiter).toBe(1.79)
+    })
+
+    it('fills a missing fuel price from the API on a later visit in Germany', () => {
+      localStorage.setItem(COST_STORAGE_KEY, JSON.stringify({ ...COST_DEFAULTS, homePricePerKwh: 0.5, fuelPricePerLiter: null }))
+      const api = { homePricePerKwh: 0.274, publicPricePerKwh: 0.561, petrolPricePerLiter: 1.789, dieselPricePerLiter: 1.659, combustionLitersPer100km: 7.0 }
+      const de = useModelRanking(ref([]))
+      de.applyReferencePrices(api, true)
+      expect(de.cost.value.homePricePerKwh).toBe(0.5)
+      expect(de.cost.value.fuelPricePerLiter).toBe(1.79)
+      const abroad = useModelRanking(ref([]))
+      abroad.applyReferencePrices(api, false)
+      expect(abroad.cost.value.fuelPricePerLiter).toBeNull()
     })
 
     it('leaves the fuel price empty outside Germany', () => {
