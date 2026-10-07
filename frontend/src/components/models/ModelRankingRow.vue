@@ -159,6 +159,8 @@ const props = defineProps<{
   dailyKm: number
   /** Longest trip in km, named in the hint so the reader sees their own number */
   longestTripKm: number
+  /** Length of a fast-charge stop the reader typed, drives the one-stop range */
+  stopMinutes: number
   fuel: FuelKind
 }>()
 
@@ -288,12 +290,13 @@ const oneStop = computed(() => {
   const span = typicalSpan.value
   const base = span ? { lo: span.lo, hi: span.hi } : m.value.realRangeKm != null ? { lo: m.value.realRangeKm, hi: m.value.realRangeKm } : null
   if (!base) return null
-  const lo = oneStopRangeKm(base.lo, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw)
-  const hi = oneStopRangeKm(base.hi, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw)
+  const lo = oneStopRangeKm(base.lo, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, props.stopMinutes)
+  const hi = oneStopRangeKm(base.hi, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, props.stopMinutes)
   return lo != null && hi != null ? { lo, hi, addedKm: hi - Math.round(base.hi * USABLE_BATTERY_SHARE) } : null
 })
+const minutesLabel = computed(() => formatNumber(props.stopMinutes))
 const oneStopCaption = computed(() => oneStop.value
-  ? t('models_ranking.row.one_stop', { value: fmtSpan(oneStop.value.lo, oneStop.value.hi) })
+  ? t('models_ranking.row.one_stop', { minutes: minutesLabel.value, value: fmtSpan(oneStop.value.lo, oneStop.value.hi) })
   : t('models_ranking.row.one_stop_missing'))
 
 function signedPct(v: number, decimals = 0): string {
@@ -401,7 +404,7 @@ const facts = computed(() => {
     },
     {
       icon: ClockIcon,
-      label: t('models_ranking.detail.one_stop'),
+      label: t('models_ranking.detail.one_stop', { minutes: minutesLabel.value }),
       value: oneStop.value ? formatDistance(oneStop.value.hi) : '–',
       hint: oneStop.value && x.fastChargePowerKw != null
         ? t('models_ranking.detail.one_stop_hint', {

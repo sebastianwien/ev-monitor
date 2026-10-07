@@ -40,7 +40,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(first.getByTestId('consumption-bars')).toContainText(/Hersteller\s*\d+,\d.*Fahrer\s*\d+,\d\s*[+−]\d+ %/);
       if (viewport.width >= 1280) {
         // range cell: one-stop range from the community DC power, or the honest gap
-        await expect(first.getByTestId('range-cell')).toContainText(/20-min-Stopp \d+|ohne DC-Daten/);
+        await expect(first.getByTestId('range-cell')).toContainText(/mit 20 min \d+|ohne DC-Daten/);
       }
       if (viewport.width >= 1024) {
       }
@@ -51,6 +51,16 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('needs-daily')).toHaveValue('40');
       await expect(page.getByTestId('needs-longest')).toHaveValue('400');
       await expect(page.getByTestId('needs-summary')).toContainText(/Bei 40 km am Tag musst du mit \d+ von \d+ Modellen/);
+      await expect(page.getByTestId('needs-stop')).toHaveValue('20');
+      await expect(page.getByTestId('needs-summary')).toContainText(/\d+ mit höchstens einem 20-Minuten-Stopp/);
+
+      // the stop length is the reader's number: the sentence and the rows follow it
+      await page.getByTestId('needs-stop').fill('30');
+      await page.getByTestId('needs-stop').press('Tab');
+      await expect(page.getByTestId('needs-summary')).toContainText('30-Minuten-Stopp');
+      if (viewport.width >= 1280) {
+        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/mit 30 min \d+|ohne DC-Daten/);
+      }
     });
 
     test('Tagesstrecke ändern ändert Satz und Hinweis der ersten Zeile', async ({ page }) => {

@@ -13,19 +13,26 @@ export interface NeedsInput {
   dailyKm: number
   longestTripKm: number
   homeCharging: boolean
+  /** length of a fast-charge stop on the road */
+  stopMinutes: number
 }
 
-export const NEEDS_DEFAULTS: NeedsInput = { dailyKm: 40, longestTripKm: 400, homeCharging: true }
+export const ONE_STOP_MINUTES = 20
+export const STOP_MINUTES_MIN = 5
+export const STOP_MINUTES_MAX = 120
+export const NEEDS_DEFAULTS: NeedsInput = { dailyKm: 40, longestTripKm: 400, homeCharging: true, stopMinutes: ONE_STOP_MINUTES }
 export const USABLE_BATTERY_SHARE = 0.8
 export const FAST_CHARGE_SHARE = 0.7
 const DAYS_PER_WEEK = 7
 
-/** The range fields of TopModelPreview the check needs. */
+/** The fields of TopModelPreview the check needs: range spans, and consumption plus DC power for the stops. */
 export interface RangeFields {
   typicalRangeMinKm?: number | null
   typicalRangeMaxKm?: number | null
   winterRangeMinKm?: number | null
   winterRangeMaxKm?: number | null
+  avgConsumptionKwhPer100km?: number | null
+  fastChargePowerKw?: number | null
 }
 
 export interface Span {
@@ -62,12 +69,29 @@ export function stopsPerWeek(rangeKm: number, dailyKm: number): number | null {
   return Math.ceil((dailyKm * DAYS_PER_WEEK) / (rangeKm * FAST_CHARGE_SHARE))
 }
 
-/** Stops on a single trip: first leg on the usable share, then one stop per FAST_CHARGE_SHARE. */
-export function tripStops(rangeKm: number, tripKm: number): number | null {
-  if (!(rangeKm > 0)) return null
+/**
+ * Kilometres one fast-charge stop adds: what the model's community DC power puts in during
+ * the stop, never more than FAST_CHARGE_SHARE of the battery. Without DC data or consumption
+ * the flat FAST_CHARGE_SHARE applies.
+ */
+export function stopAddedKm(
+  rangeKm: number,
+  consumptionKwhPer100km: number | null | undefined,
+  dcPowerKw: number | null | undefined,
+  stopMinutes: number,
+): number {
+  const flat = rangeKm * FAST_CHARGE_SHARE
+  if (consumptionKwhPer100km == null || consumptionKwhPer100km <= 0 || dcPowerKw == null || dcPowerKw <= 0 || !(stopMinutes > 0)) return flat
+  const addedKwh = dcPowerKw * (stopMinutes / 60)
+  return Math.min(flat, (addedKwh * 100) / consumptionKwhPer100km)
+}
+
+/** Stops on a single trip: first leg on the usable share, then one stop per addedKmPerStop (default FAST_CHARGE_SHARE). */
+export function tripStops(rangeKm: number, tripKm: number, addedKmPerStop: number = rangeKm * FAST_CHARGE_SHARE): number | null {
+  if (!(rangeKm > 0) || !(addedKmPerStop > 0)) return null
   const firstLeg = rangeKm * USABLE_BATTERY_SHARE
   if (!(tripKm > 0) || tripKm <= firstLeg) return 0
-  return Math.ceil((tripKm - firstLeg) / (rangeKm * FAST_CHARGE_SHARE))
+  return Math.ceil((tripKm - firstLeg) / addedKmPerStop)
 }
 
 /** Winter span when complete, else the typical span, else null. */
@@ -95,7 +119,7 @@ export function assessModel(m: RangeFields, input: NeedsInput): NeedsAssessment 
     const b = fn(basis.max)
     return a != null && b != null ? formatSpan(a, b) : null
   }
-  const trip = span(r => tripStops(r, input.longestTripKm))
+  const trip = span(r => tripStops(r, input.longestTripKm, stopAddedKm(r, m.avgConsumptionKwhPer100km, m.fastChargePowerKw, input.stopMinutes)))
   if (!trip) return { assessable: false }
   return {
     assessable: true,
@@ -113,36 +137,37 @@ export interface NeedsSummary {
   weeklyOk: number
   /** at least one battery variant makes the longest trip without a stop */
   tripOk: number
+  /** at least one battery variant makes the longest trip with at most one stop */
+  tripOneStopOk: number
 }
 
 export function summarizeNeeds(models: RangeFields[], input: NeedsInput): NeedsSummary {
   let total = 0
   let weeklyOk = 0
   let tripOk = 0
+  let tripOneStopOk = 0
   for (const m of models) {
     const a = assessModel(m, input)
     if (!a.assessable) continue
     total++
     if (a.interval ? a.interval.min >= DAYS_PER_WEEK : (a.stopsPerWeek?.max ?? Infinity) <= 1) weeklyOk++
     if (a.tripStops.min === 0) tripOk++
+    if (a.tripStops.min <= 1) tripOneStopOk++
   }
-  return { total, weeklyOk, tripOk }
+  return { total, weeklyOk, tripOk, tripOneStopOk }
 }
 
-export const ONE_STOP_MINUTES = 20
-
 /**
- * Range with one fast-charge stop of ONE_STOP_MINUTES: the usable share of the battery, plus
- * what the model's community DC power adds in that time (never more than FAST_CHARGE_SHARE).
- * Null without range, consumption or DC data.
+ * Range with one fast-charge stop of stopMinutes: the usable share of the battery plus what
+ * the model's community DC power adds in that time. Null without range, consumption or DC data
+ * (then the flat share would say nothing about the model).
  */
 export function oneStopRangeKm(
   rangeKm: number | null | undefined,
   consumptionKwhPer100km: number | null | undefined,
   dcPowerKw: number | null | undefined,
+  stopMinutes: number = ONE_STOP_MINUTES,
 ): number | null {
   if (rangeKm == null || rangeKm <= 0 || consumptionKwhPer100km == null || consumptionKwhPer100km <= 0 || dcPowerKw == null || dcPowerKw <= 0) return null
-  const addedKwh = dcPowerKw * (ONE_STOP_MINUTES / 60)
-  const addedKm = Math.min(rangeKm * FAST_CHARGE_SHARE, (addedKwh * 100) / consumptionKwhPer100km)
-  return Math.round(rangeKm * USABLE_BATTERY_SHARE + addedKm)
+  return Math.round(rangeKm * USABLE_BATTERY_SHARE + stopAddedKm(rangeKm, consumptionKwhPer100km, dcPowerKw, stopMinutes))
 }

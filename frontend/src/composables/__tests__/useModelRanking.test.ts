@@ -333,19 +333,23 @@ describe('useModelRanking', () => {
 
     it('starts with the defaults and summarises over all models', () => {
       const r = useModelRanking(ref(models))
-      expect(r.needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true })
-      // 200 × 0.8 / 40 = 4 days (no), 420 × 0.8 / 40 = 8.4 (yes); 520 × 0.8 = 416 ≥ 400 (yes), 200 × 0.8 (no)
-      expect(r.needsSummary.value).toEqual({ total: 2, weeklyOk: 1, tripOk: 1 })
+      expect(r.needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, stopMinutes: 20 })
+      // 200 × 0.8 / 40 = 4 days (no), 420 × 0.8 / 40 = 8.4 (yes); 520 × 0.8 = 416 ≥ 400 (yes), 200 × 0.8 (no);
+      // the small one needs two flat stops (160 first leg, 140 per stop) → only the big one makes it with one
+      expect(r.needsSummary.value).toEqual({ total: 2, weeklyOk: 1, tripOk: 1, tripOneStopOk: 1 })
     })
 
     it('persists the inputs and restores them', async () => {
       const r = useModelRanking(ref(models))
-      r.needs.value = { dailyKm: 60, longestTripKm: 250, homeCharging: false }
+      r.needs.value = { dailyKm: 60, longestTripKm: 250, homeCharging: false, stopMinutes: 30 }
       await nextTick()
-      expect(JSON.parse(localStorage.getItem(NEEDS_STORAGE_KEY) ?? '{}')).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false })
-      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false })
+      expect(JSON.parse(localStorage.getItem(NEEDS_STORAGE_KEY) ?? '{}')).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false, stopMinutes: 30 })
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false, stopMinutes: 30 })
+      // stored before the stop length existed → default minutes
+      localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 60, longestTripKm: 250, homeCharging: false }))
+      expect(useModelRanking(ref(models)).needs.value.stopMinutes).toBe(20)
       localStorage.setItem(NEEDS_STORAGE_KEY, '{"dailyKm":"x"}')
-      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true })
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, stopMinutes: 20 })
     })
 
     it('attaches an assessment to every row and can filter to trips without a stop', () => {

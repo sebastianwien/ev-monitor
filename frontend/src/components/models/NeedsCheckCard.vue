@@ -40,6 +40,16 @@
           @click="emit('update:modelValue', { ...modelValue, homeCharging: opt.value })"
         >{{ opt.label }}</button>
       </span>
+      <label class="contents">
+        <span>{{ t('models_ranking.needs.sentence_stop') }}</span>
+        <input
+          :value="String(modelValue.stopMinutes)"
+          v-bind="numeric"
+          data-testid="needs-stop"
+          @change="onMinutes($event)"
+        />
+        <span>{{ t('models_ranking.needs.sentence_stop_unit') }}</span>
+      </label>
     </p>
 
     <p class="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[14px] leading-snug text-gray-700 dark:text-gray-300">
@@ -66,7 +76,7 @@ import { ArrowDownIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { odometerLocalToKm } from '../../utils/unitConversions'
 import { NEEDS_KM_MAX } from '../../composables/useModelRanking'
-import type { NeedsInput, NeedsSummary } from '../../utils/needsCheck'
+import { ONE_STOP_MINUTES, STOP_MINUTES_MIN, STOP_MINUTES_MAX, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
 
 const props = defineProps<{
   modelValue: NeedsInput
@@ -107,6 +117,15 @@ function onDistance(field: 'dailyKm' | 'longestTripKm', event: Event) {
   emit('update:modelValue', { ...props.modelValue, [field]: Math.min(km, NEEDS_KM_MAX) })
 }
 
+// Stop length: typed on change (not on every keystroke, "2" on the way to "25" would be clamped), clamped to the sensible window
+function onMinutes(event: Event) {
+  const input = event.target as HTMLInputElement
+  const raw = input.value.replace(/[^\d]/g, '')
+  const minutes = raw === '' ? ONE_STOP_MINUTES : Math.min(STOP_MINUTES_MAX, Math.max(STOP_MINUTES_MIN, Number(raw)))
+  input.value = String(minutes)
+  emit('update:modelValue', { ...props.modelValue, stopMinutes: minutes })
+}
+
 const homeOptions = computed(() => [
   { value: true, label: t('models_ranking.needs.home_yes') },
   { value: false, label: t('models_ranking.needs.home_no') },
@@ -115,13 +134,17 @@ const homeOptions = computed(() => [
 const summaryText = computed(() => {
   const s = props.summary
   if (s.total === 0) return t('models_ranking.needs.summary_empty')
-  return t(props.modelValue.homeCharging ? 'models_ranking.needs.summary_home' : 'models_ranking.needs.summary_public', {
+  const params = {
     daily: dailyLocal.value,
     longest: longestLocal.value,
     unit: distanceUnitLabel(),
     weekly: formatNumber(s.weeklyOk),
     total: formatNumber(s.total),
     trip: formatNumber(s.tripOk),
-  })
+    oneStop: formatNumber(s.tripOneStopOk),
+    minutes: formatNumber(props.modelValue.stopMinutes),
+  }
+  // Weekly charging first, then the longest trip without and with one stop of the typed length
+  return `${t(props.modelValue.homeCharging ? 'models_ranking.needs.summary_home' : 'models_ranking.needs.summary_public', params)} ${t('models_ranking.needs.summary_trip', params)}`
 })
 </script>

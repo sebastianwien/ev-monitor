@@ -180,6 +180,7 @@
           :main-value="cost.mainValue"
           :daily-km="needs.dailyKm"
           :longest-trip-km="needs.longestTripKm"
+          :stop-minutes="needs.stopMinutes"
           :fuel="cost.fuel"
           @toggle="openKey = openKey === item.key ? null : item.key"
           @compare="toggleCompare(item.key)"
