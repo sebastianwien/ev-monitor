@@ -84,6 +84,14 @@
     </div>
 
     <div v-if="expanded" :id="detailId" class="grid gap-3.5 px-4 pb-[18px] pt-3 lg:grid-cols-2 lg:items-start lg:pb-5 lg:pl-[122px] lg:pr-5">
+      <!-- The photo at full width once the row is open: edge to edge on the phone, a rounded band
+           on the desktop. The credit links to the source, as the CC licence asks. -->
+      <figure v-if="heroImageUrl" class="relative -mx-4 -mt-3 aspect-[2/1] overflow-hidden bg-gray-200 lg:mx-0 lg:mt-0 lg:col-span-2 lg:aspect-[21/9] lg:max-h-[280px] lg:rounded-xl dark:bg-gray-800" data-testid="detail-photo">
+        <img :src="heroImageUrl" :alt="m.modelDisplayName" decoding="async" class="h-full w-full object-cover" />
+        <figcaption v-if="credit" class="absolute bottom-1.5 left-1.5 max-w-[85%]">
+          <a :href="credit.sourceUrl" target="_blank" rel="noopener" class="pointer-events-auto block truncate rounded bg-black/55 px-1.5 py-0.5 text-[10px] leading-tight text-white/90 backdrop-blur-sm hover:text-white">© {{ credit.author }} · {{ credit.license }}</a>
+        </figcaption>
+      </figure>
       <p class="text-[13.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">{{ needsHint }}</p>
       <dl class="grid grid-cols-2 gap-2 lg:col-span-2 lg:grid-cols-3">
         <div v-for="kv in facts" :key="kv.label" class="grid gap-0.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900">
@@ -135,7 +143,7 @@ import { useI18n } from 'vue-i18n'
 import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, ClockIcon, DocumentTextIcon, InformationCircleIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
 import ConsumptionBars from './ConsumptionBars.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { officialModelThumbUrl } from '../../config/modelImages'
+import { officialModelImageAttribution, officialModelImageUrl, officialModelThumbUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
 import type { LadderAxis } from '../../utils/ladderScale'
 import { stopsRangeKm, ONE_STOP_MINUTES, USABLE_BATTERY_SHARE, meetsNeeds } from '../../utils/needsCheck'
@@ -175,6 +183,8 @@ const {
 const m = computed(() => props.item.model)
 const detailId = computed(() => `mr-detail-${props.item.key.replace(/[^A-Za-z0-9_-]/g, '-')}`)
 const imageUrl = computed(() => officialModelThumbUrl(m.value.model))
+const heroImageUrl = computed(() => officialModelImageUrl(m.value.model))
+const credit = computed(() => officialModelImageAttribution(m.value.model))
 const modelName = computed(() => m.value.modelUrlSlug.replace(/_/g, ' '))
 // "Renault 5", "Polestar 2": the model name already carries the brand, show it once
 const nameRepeatsBrand = computed(() => modelName.value.toLowerCase().startsWith(m.value.brandDisplayName.toLowerCase()))

@@ -2,7 +2,7 @@
   <section class="grid gap-4" :aria-labelledby="titleId">
     <!-- Single root (no comment before it, a root comment makes $el a comment node): the list
          header scrolls to $el. Four labelled fields, below them three figures the rows follow. -->
-    <h2 :id="titleId" class="text-[15px] font-semibold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
+    <h2 :id="titleId" class="text-xl font-semibold tracking-tight text-gray-900 lg:text-2xl dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
 
     <!-- Four questions; inputs line up at the bottom even when a question wraps differently -->
     <div class="grid grid-cols-2 items-end gap-x-3 gap-y-3 sm:grid-cols-4">
