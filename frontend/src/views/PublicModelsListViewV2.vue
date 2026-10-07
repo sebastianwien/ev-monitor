@@ -3,7 +3,7 @@
   <PublicNav />
 
   <!-- Hero -->
-  <header v-if="!isRedditSource" class="mx-auto grid max-w-7xl gap-[18px] px-4 pb-5 pt-7 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end lg:gap-x-12 lg:px-6 lg:pb-8 lg:pt-12">
+  <header v-if="!isRedditSource" class="mx-auto grid max-w-7xl gap-[18px] px-4 pb-5 pt-7 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center lg:gap-x-12 lg:px-6 lg:pb-8 lg:pt-12">
     <div class="grid gap-[18px]">
       <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">
         <span class="h-2 w-2 rounded-full bg-green-600 ring-4 ring-green-100 dark:bg-green-400 dark:ring-green-950" aria-hidden="true"></span>
@@ -18,7 +18,8 @@
         {{ t('models_ranking.hero.lede', { logs: formatNumber(totalLogs), drivers: formatNumber(platformStats?.userCount ?? 0) }) }}
       </p>
     </div>
-    <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-4 lg:grid-cols-2 dark:border-gray-800 dark:bg-gray-800">
+    <NeedsCheckCard v-model="needs" :summary="needsSummary" />
+    <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-4 lg:col-span-2 dark:border-gray-800 dark:bg-gray-800">
       <div v-for="fact in heroFacts" :key="fact.label" class="flex flex-col-reverse bg-white px-3.5 py-3 dark:bg-gray-900">
         <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ fact.label }}</dt>
         <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums" :class="fact.highlight ? 'text-orange-700 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'">{{ fact.value }}</dd>
@@ -81,6 +82,15 @@
             @click="category = c.key"
           >
             {{ c.label }}<span class="text-xs tabular-nums opacity-65">{{ c.count }}</span>
+          </button>
+          <button
+            type="button"
+            :aria-pressed="tripOnly"
+            :class="chipClass(tripOnly)"
+            data-testid="trip-chip"
+            @click="tripOnly = !tripOnly"
+          >
+            <CheckIcon v-if="tripOnly" class="h-4 w-4" aria-hidden="true" />{{ t('models_ranking.filters.trip_chip') }}
           </button>
         </div>
       </div>
@@ -176,8 +186,8 @@
 
       <!-- Empty search -->
       <div v-else-if="ranked.length === 0" class="grid justify-items-start gap-3 px-4 py-8 lg:px-5">
-        <p class="text-[13px] text-gray-600 dark:text-gray-400">{{ t('models_ranking.empty.search', { query: query.trim() }) }}</p>
-        <button type="button" class="inline-flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-4 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" @click="resetFilters">
+        <p class="text-[13px] text-gray-600 dark:text-gray-400" data-testid="ranking-empty">{{ emptyText }}</p>
+        <button v-if="!searchHitsOnlyWithoutData" type="button" class="inline-flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-4 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" @click="resetFilters">
           {{ t('models_ranking.empty.reset') }}
         </button>
       </div>
@@ -198,7 +208,37 @@
           @compare="toggleCompare(item.key)"
         />
       </TransitionGroup>
+      <p v-if="!loading && !loadError" class="px-4 py-2.5 text-[12.5px] text-gray-500 lg:px-5 dark:text-gray-400">{{ t('models_ranking.list_hint') }}</p>
     </section>
+
+    <!-- Models with a WLTP spec but no driver data yet, collapsed by default -->
+    <details
+      v-if="withoutData.length"
+      class="min-w-0 lg:col-start-2 lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white dark:lg:border-gray-800 dark:lg:bg-gray-900"
+      :open="withoutDataOpen"
+      data-testid="without-data"
+      @toggle="withoutDataOpen = ($event.target as HTMLDetailsElement).open"
+    >
+      <summary class="flex min-h-12 cursor-pointer list-none items-center gap-2 px-4 text-[15px] font-semibold text-gray-900 marker:hidden lg:px-5 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
+        <ChevronRightIcon class="h-4 w-4 flex-none transition-transform" :class="withoutDataOpen ? 'rotate-90' : ''" aria-hidden="true" />
+        {{ t('models_ranking.without_data.title', { count: withoutData.length }) }}
+      </summary>
+      <div class="grid gap-3 px-4 pb-4 lg:px-5">
+        <p class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-gray-600 dark:text-gray-400">
+          {{ t('models_ranking.without_data.cta') }}
+          <a :href="isAuthenticated ? '/cars' : registerPath" class="inline-flex min-h-9 items-center rounded-lg bg-green-600 px-3 text-[13px] font-semibold text-white hover:bg-green-700">
+            {{ t(isAuthenticated ? 'models_ranking.without_data.cta_add_car' : 'models_ranking.without_data.cta_register') }}
+          </a>
+        </p>
+        <ul class="divide-y divide-gray-200 dark:divide-gray-800">
+          <li v-for="m in withoutData" :key="modelKey(m)" class="flex min-h-11 items-center gap-3 py-1.5 text-[13.5px]">
+            <a :href="modelHref(m)" class="min-w-0 flex-1 truncate font-medium text-gray-900 underline-offset-2 hover:underline dark:text-gray-100">{{ m.modelDisplayName }}</a>
+            <span class="whitespace-nowrap tabular-nums text-gray-600 dark:text-gray-400">{{ t('models_ranking.without_data.wltp', { value: formatConsumption(m.avgWltpConsumptionKwhPer100km) }) }}</span>
+            <span class="hidden whitespace-nowrap text-[12.5px] text-gray-500 sm:inline dark:text-gray-400">{{ t('models_ranking.row.needs_unrated') }}</span>
+          </li>
+        </ul>
+      </div>
+    </details>
   </div>
 
   <div class="mx-auto grid max-w-7xl gap-7 px-4 pb-32 lg:px-6">
@@ -259,17 +299,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, toRef } from 'vue'
+import { computed, onMounted, ref, toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   ArrowPathIcon, ArrowRightIcon, ArrowsRightLeftIcon, ArrowTrendingUpIcon, BuildingStorefrontIcon,
-  ChartBarIcon, HomeIcon, MagnifyingGlassIcon, XMarkIcon,
+  ChartBarIcon, CheckIcon, ChevronRightIcon, HomeIcon, MagnifyingGlassIcon, XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import {
-  getTopModels, getPlatformStats, getCategories, getChargingReferencePrices,
-  type TopModelPreview, type PlatformStats, type VehicleCategoryItem, type ChargingReferencePrices,
+  getTopModels, getPlatformStats, getCategories, getChargingReferencePrices, getModelsWithoutData,
+  type TopModelPreview, type ModelWithoutData, type PlatformStats, type VehicleCategoryItem, type ChargingReferencePrices,
 } from '../api/publicModelService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
@@ -280,13 +320,14 @@ import PublicNav from '../components/shared/PublicNav.vue'
 import ThgBanner from '../components/shared/ThgBanner.vue'
 import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
 import ModelRankingRow from '../components/models/ModelRankingRow.vue'
+import NeedsCheckCard from '../components/models/NeedsCheckCard.vue'
 
 const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: false })
 
 const { t, te, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { formatNumber, formatDecimal, formatCostPerKwh, consumptionUnitLabel, distanceUnitLabel, currencySymbol, isImperial, unitSystem } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption, formatCostPerKwh, consumptionUnitLabel, distanceUnitLabel, currencySymbol, isImperial, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS } = useMarketRoute()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
@@ -301,6 +342,7 @@ const asOf = computed(() => new Date().toLocaleDateString(locale.value === 'en' 
 // ── Data ────────────────────────────────────────────────────────────────────
 const FALLBACK_HOME_PRICE = 0.27
 const models = ref<TopModelPreview[]>([])
+const modelsWithoutData = ref<ModelWithoutData[]>([])
 const platformStats = ref<PlatformStats | null>(null)
 const categories = ref<VehicleCategoryItem[]>([])
 const referencePrices = ref<ChargingReferencePrices | null>(null)
@@ -308,23 +350,26 @@ const loading = ref(true)
 const loadError = ref(false)
 
 const {
-  sort, category, query, price, applyDefaultPrice, ranked, avgWltpDeviationPct,
+  sort, category, query, price, applyDefaultPrice, needs, needsSummary, tripOnly,
+  ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
   compareKeys, canAddCompare, isInCompare, toggleCompare, clearCompare,
-} = useModelRanking(models)
+} = useModelRanking(models, modelsWithoutData)
 
-useModelsListSeo(models, toRef(props, 'preview'))
+useModelsListSeo(models, toRef(props, 'preview'), modelsWithoutData)
 
 async function load() {
   loading.value = true
   loadError.value = false
   try {
-    const [top, stats, cats, prices] = await Promise.all([
-      getTopModels(50),
+    const [top, stats, cats, prices, noData] = await Promise.all([
+      getTopModels(200),
       getPlatformStats().catch(() => null),
       getCategories().catch(() => []),
       getChargingReferencePrices().catch(() => null),
+      getModelsWithoutData().catch(() => []),
     ])
     models.value = top
+    modelsWithoutData.value = noData
     platformStats.value = stats
     categories.value = cats
     referencePrices.value = prices
@@ -388,7 +433,19 @@ const pricePresets = computed(() => {
 function resetFilters() {
   query.value = ''
   category.value = null
+  tripOnly.value = false
 }
+
+// Search that only hits models without driver data: say so and open that list
+const withoutDataOpen = ref(false)
+watch(searchHitsOnlyWithoutData, hit => { if (hit) withoutDataOpen.value = true })
+const emptyText = computed(() => {
+  if (!searchHitsOnlyWithoutData.value) return t('models_ranking.empty.search', { query: query.value.trim() })
+  const hits = withoutData.value
+  return hits.length === 1
+    ? t('models_ranking.empty.search_without_data', { model: hits[0].modelDisplayName, wltp: formatConsumption(hits[0].avgWltpConsumptionKwhPer100km) })
+    : t('models_ranking.empty.search_without_data_many', { count: hits.length })
+})
 
 // ── Ranking ─────────────────────────────────────────────────────────────────
 const openKey = ref<string | null>(null)
@@ -411,19 +468,21 @@ const columnHeads = computed(() => [
   { cls: 'mr-c2', label: t('models_ranking.columns.wltp') },
   { cls: 'mr-c3', label: `${currencySymbol.value}/100 ${isImperial.value ? 'mi' : 'km'}` },
   { cls: 'mr-c4', label: `${t('models_ranking.columns.range')} ${distanceUnitLabel()}` },
+  { cls: 'mr-c5', label: t('models_ranking.columns.data') },
 ])
 
 const stickyTopClass = computed(() => isAuthenticated.value
   ? 'top-[calc(env(safe-area-inset-top)+var(--top-nav-h,0px))]'
   : 'top-[calc(env(safe-area-inset-top)+70px)]')
 
-function modelHref(m: TopModelPreview) {
+function modelHref(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>) {
   return `${modelsBaseUrl.value}/${m.brandDisplayName}/${m.modelUrlSlug}`
 }
 
 // ── Below the list ──────────────────────────────────────────────────────────
 const brands = computed(() => [...new Set(models.value.map(m => m.brandDisplayName))].sort((a, b) => a.localeCompare(b)))
-const modelsAz = computed(() => [...models.value].sort((a, b) => a.modelDisplayName.localeCompare(b.modelDisplayName)))
+// A to Z also lists the models that only have a WLTP spec so far
+const modelsAz = computed(() => [...models.value, ...modelsWithoutData.value].sort((a, b) => a.modelDisplayName.localeCompare(b.modelDisplayName)))
 
 // ── Compare ─────────────────────────────────────────────────────────────────
 const compareNames = computed(() => compareKeys.value.map(k => models.value.find(m => modelKey(m) === k)?.modelDisplayName ?? k.replace(/_/g, ' ')))

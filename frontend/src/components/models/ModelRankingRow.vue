@@ -25,10 +25,13 @@
           <template v-else>{{ m.brandDisplayName }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ modelName }}</span></template>
         </span>
         <span class="truncate text-[12.5px] text-gray-500 dark:text-gray-400">
-          {{ categoryLabel }} ·
-          <span class="lg:hidden">{{ costLabel }}</span>
-          <span class="hidden lg:inline">{{ t('models_ranking.row.logs', { count: formatNumber(m.logCount) }) }}</span>
+          {{ categoryLabel }}<span class="lg:hidden"> · {{ costLabel }}</span>
         </span>
+        <span class="flex min-w-0 items-center gap-1 text-[12.5px] text-gray-500 lg:hidden dark:text-gray-400">
+          <span class="truncate">{{ dataBasis }}</span>
+          <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto h-4 w-4 flex-none text-orange-600 dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
+        </span>
+        <span class="truncate text-[12.5px] text-gray-700 dark:text-gray-300" data-testid="needs-hint">{{ needsHint }}</span>
       </span>
 
       <span class="mr-val pointer-events-none grid text-right lg:hidden">
@@ -49,6 +52,10 @@
       <span class="mr-c2 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('wltp')">{{ formatConsumption(item.wltpKwhPer100km, { showUnit: false }) }}</span>
       <span class="mr-c3 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass(null)">{{ costNumber }}</span>
       <span class="mr-c4 pointer-events-none hidden text-right text-sm tabular-nums lg:block" :class="colClass('range')">{{ m.realRangeKm != null ? formatDistance(m.realRangeKm, { showUnit: false }) : '–' }}</span>
+      <span class="mr-c5 pointer-events-none hidden min-w-0 items-center justify-end gap-1 text-right text-[12px] leading-tight lg:flex" :class="colClass('data')">
+        <span class="truncate">{{ formatNumber(m.logCount) }}<br>{{ driversLabel }}</span>
+        <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto relative h-4 w-4 flex-none text-orange-600 dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
+      </span>
 
       <button
         type="button"
@@ -65,6 +72,7 @@
     </div>
 
     <div v-if="expanded" :id="detailId" class="grid gap-3.5 px-4 pb-[18px] pt-1 lg:grid-cols-2 lg:items-start lg:pb-5 lg:pl-[124px] lg:pr-5">
+      <p class="text-[13.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">{{ needsHint }}</p>
       <dl class="grid grid-cols-2 gap-2 lg:col-span-2 lg:grid-cols-3">
         <div v-for="kv in facts" :key="kv.label" class="grid gap-0.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900">
           <dt class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -112,7 +120,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, DocumentTextIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
+import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, DocumentTextIcon, InformationCircleIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
 import ConsumptionLadder from './ConsumptionLadder.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { officialModelImageUrl } from '../../config/modelImages'
@@ -153,6 +161,47 @@ const categoryLabel = computed(() => {
 })
 
 const costLabel = computed(() => props.item.costPer100kmEur != null ? formatCostPerDistance(props.item.costPer100kmEur) : '–')
+
+// Data basis: "from 412 charging sessions by 9 drivers". Counts missing on an older backend → sessions only.
+const driverCount = computed(() => m.value.contributorCount ?? null)
+const driversLabel = computed(() => driverCount.value != null
+  ? t('models_ranking.row.drivers_plural', { count: formatNumber(driverCount.value) }, driverCount.value)
+  : '')
+const dataBasis = computed(() => {
+  const logs = t('models_ranking.row.logs_plural', { count: formatNumber(m.value.logCount) }, m.value.logCount)
+  return driverCount.value != null
+    ? t('models_ranking.row.data_basis', { logs, drivers: driversLabel.value })
+    : t('models_ranking.row.logs', { count: formatNumber(m.value.logCount) })
+})
+
+// Needs check per row, from the winter range (fallback: typical range, flagged as such)
+const needsHint = computed(() => {
+  const n = props.item.needs
+  if (!n.assessable) return t('models_ranking.row.needs_unrated')
+  const span = (min: number, max: number) => t('models_ranking.row.span', { min: formatNumber(min), max: formatNumber(max) })
+  const parts: string[] = []
+  if (n.interval) {
+    const daily = n.interval.single && n.interval.min === 1
+    const days = n.interval.single ? formatNumber(n.interval.min) : span(n.interval.min, n.interval.max)
+    const key = n.winter
+      ? (daily ? 'needs_interval_daily' : 'needs_interval')
+      : (daily ? 'needs_interval_typical_daily' : 'needs_interval_typical')
+    parts.push(t(`models_ranking.row.${key}`, { days }))
+  } else if (n.stopsPerWeek) {
+    parts.push(n.stopsPerWeek.single
+      ? t('models_ranking.row.needs_stops', { count: formatNumber(n.stopsPerWeek.min) }, n.stopsPerWeek.min)
+      : t('models_ranking.row.needs_stops_span', { min: formatNumber(n.stopsPerWeek.min), max: formatNumber(n.stopsPerWeek.max) }))
+  }
+  const trip = n.tripStops
+  if (trip.single) {
+    parts.push(trip.min === 0
+      ? t('models_ranking.row.needs_trip_none')
+      : t('models_ranking.row.needs_trip', { count: formatNumber(trip.min) }, trip.min))
+  } else {
+    parts.push(t('models_ranking.row.needs_trip_span', { min: formatNumber(trip.min), max: formatNumber(trip.max) }))
+  }
+  return parts.join(' · ')
+})
 const costNumber = computed(() => props.item.costPer100kmEur != null
   ? formatDecimal(convertCostPerDistance(props.item.costPer100kmEur, unitSystem.value), 2)
   : '–')
@@ -197,7 +246,7 @@ const mainValue = computed(() => {
   }
 })
 
-function colClass(column: RankingSort | null): string {
+function colClass(column: RankingSort | 'data' | null): string {
   return column === props.sort
     ? 'font-bold text-gray-900 dark:text-gray-100'
     : 'text-gray-500 dark:text-gray-400'
@@ -249,7 +298,14 @@ const facts = computed(() => {
       icon: ChartBarIcon,
       label: t('models_ranking.detail.data'),
       value: formatNumber(x.logCount),
-      hint: t('models_list.card.charging_sessions'),
+      hint: props.item.singleDriver
+        ? t('models_ranking.row.single_driver')
+        : driverCount.value != null && x.carCount != null
+          ? t('models_ranking.detail.data_hint', {
+              drivers: driversLabel.value,
+              cars: t('models_ranking.detail.cars_plural', { count: formatNumber(x.carCount) }, x.carCount),
+            })
+          : t('models_list.card.charging_sessions'),
     },
   ]
 })
@@ -293,12 +349,13 @@ const seasonBars = computed(() => {
 .mr-c2 { grid-area: c2; }
 .mr-c3 { grid-area: c3; }
 .mr-c4 { grid-area: c4; }
+.mr-c5 { grid-area: c5; }
 .mr-cb { grid-area: cb; }
 @media (min-width: 1024px) {
   .mr-grid,
   .mr-grid.mr-ruler {
-    grid-template-columns: 24px 56px minmax(170px, 1.3fr) minmax(180px, 1.7fr) 52px 52px 60px 72px 26px;
-    grid-template-areas: "rk th who ld c1 c2 c3 c4 cb";
+    grid-template-columns: 24px 56px minmax(190px, 1.4fr) minmax(150px, 1.4fr) 52px 52px 60px 64px 100px 26px;
+    grid-template-areas: "rk th who ld c1 c2 c3 c4 c5 cb";
     column-gap: 12px;
   }
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { nextTick, ref } from 'vue'
-import { useModelRanking, PRICE_STORAGE_KEY } from '../useModelRanking'
-import type { TopModelPreview } from '../../api/publicModelService'
+import { useModelRanking, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY } from '../useModelRanking'
+import type { TopModelPreview, ModelWithoutData } from '../../api/publicModelService'
 
 function model(over: Partial<TopModelPreview> & { brandDisplayName: string, modelUrlSlug: string }): TopModelPreview {
   return {
@@ -21,6 +21,22 @@ function model(over: Partial<TopModelPreview> & { brandDisplayName: string, mode
     realRangeKm: null,
     summerConsumptionKwhPer100km: null,
     winterConsumptionKwhPer100km: null,
+    ...over,
+  }
+}
+
+function withoutData(over: Partial<ModelWithoutData> & { brandDisplayName: string, modelUrlSlug: string }): ModelWithoutData {
+  return {
+    brand: over.brandDisplayName.toUpperCase(),
+    model: over.modelUrlSlug.toUpperCase(),
+    modelDisplayName: `${over.brandDisplayName} ${over.modelUrlSlug.replace(/_/g, ' ')}`,
+    category: 'SEDAN',
+    categoryDisplayName: 'Limousine',
+    minWltpConsumptionKwhPer100km: 16,
+    avgWltpConsumptionKwhPer100km: 16,
+    maxWltpConsumptionKwhPer100km: 16,
+    minNetCapacityKwh: 60,
+    maxNetCapacityKwh: 60,
     ...over,
   }
 }
@@ -179,5 +195,81 @@ describe('useModelRanking', () => {
     ]))
     r.category.value = 'SEDAN'
     expect(r.avgWltpDeviationPct.value).toBeCloseTo(11.25, 5)
+  })
+
+  describe('data basis', () => {
+    it('flags a model whose values come from a single driver', () => {
+      const r = useModelRanking(ref([
+        model({ brandDisplayName: 'A', modelUrlSlug: 'solo', contributorCount: 1 }),
+        model({ brandDisplayName: 'B', modelUrlSlug: 'many', contributorCount: 4 }),
+        model({ brandDisplayName: 'C', modelUrlSlug: 'old', contributorCount: undefined }),
+      ]))
+      const byKey = Object.fromEntries(r.ranked.value.map(x => [x.key, x.singleDriver]))
+      expect(byKey).toEqual({ 'A/solo': true, 'B/many': false, 'C/old': false })
+    })
+  })
+
+  describe('models without driver data', () => {
+    const ranked = [model({ brandDisplayName: 'Hyundai', modelUrlSlug: 'Ioniq_5' })]
+    const unranked = [
+      withoutData({ brandDisplayName: 'Lotus', modelUrlSlug: 'Emeya', category: 'SPORTS' }),
+      withoutData({ brandDisplayName: 'Audi', modelUrlSlug: 'Q8_e-tron', category: 'SUV' }),
+    ]
+
+    it('filters the list by search and class like the ranking', () => {
+      const r = useModelRanking(ref(ranked), ref(unranked))
+      expect(r.withoutData.value.map(m => m.modelUrlSlug)).toEqual(['Emeya', 'Q8_e-tron'])
+      r.category.value = 'SUV'
+      expect(r.withoutData.value.map(m => m.modelUrlSlug)).toEqual(['Q8_e-tron'])
+      r.category.value = null
+      r.query.value = 'lotus'
+      expect(r.withoutData.value.map(m => m.modelUrlSlug)).toEqual(['Emeya'])
+    })
+
+    it('knows when a search only hits models without data', () => {
+      const r = useModelRanking(ref(ranked), ref(unranked))
+      expect(r.searchHitsOnlyWithoutData.value).toBe(false)
+      r.query.value = 'emeya'
+      expect(r.ranked.value).toEqual([])
+      expect(r.searchHitsOnlyWithoutData.value).toBe(true)
+      r.query.value = 'nothing'
+      expect(r.searchHitsOnlyWithoutData.value).toBe(false)
+    })
+  })
+
+  describe('needs check', () => {
+    const models = [
+      model({ brandDisplayName: 'A', modelUrlSlug: 'small', winterRangeMinKm: 200, winterRangeMaxKm: 200, typicalRangeMinKm: 260, typicalRangeMaxKm: 260 }),
+      model({ brandDisplayName: 'B', modelUrlSlug: 'big', winterRangeMinKm: 420, winterRangeMaxKm: 520, typicalRangeMinKm: 500, typicalRangeMaxKm: 600 }),
+      model({ brandDisplayName: 'C', modelUrlSlug: 'none' }),
+    ]
+
+    it('starts with the defaults and summarises over all models', () => {
+      const r = useModelRanking(ref(models))
+      expect(r.needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true })
+      // 200 × 0.8 / 40 = 4 days (no), 420 × 0.8 / 40 = 8.4 (yes); 520 × 0.8 = 416 ≥ 400 (yes), 200 × 0.8 (no)
+      expect(r.needsSummary.value).toEqual({ total: 2, weeklyOk: 1, tripOk: 1 })
+    })
+
+    it('persists the inputs and restores them', async () => {
+      const r = useModelRanking(ref(models))
+      r.needs.value = { dailyKm: 60, longestTripKm: 250, homeCharging: false }
+      await nextTick()
+      expect(JSON.parse(localStorage.getItem(NEEDS_STORAGE_KEY) ?? '{}')).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false })
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false })
+      localStorage.setItem(NEEDS_STORAGE_KEY, '{"dailyKm":"x"}')
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true })
+    })
+
+    it('attaches an assessment to every row and can filter to trips without a stop', () => {
+      const r = useModelRanking(ref(models))
+      const big = r.ranked.value.find(x => x.key === 'B/big')!
+      expect(big.needs.assessable && big.needs.tripStops).toEqual({ min: 0, max: 1, single: false })
+      expect(r.ranked.value.find(x => x.key === 'C/none')!.needs).toEqual({ assessable: false })
+      r.tripOnly.value = true
+      expect(keys(r.ranked.value)).toEqual(['B/big'])
+      r.needs.value = { ...r.needs.value, longestTripKm: 600 }
+      expect(keys(r.ranked.value)).toEqual([])
+    })
   })
 })

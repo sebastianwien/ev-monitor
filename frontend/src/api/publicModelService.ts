@@ -128,6 +128,38 @@ export interface TopModelPreview {
     avgWltpConsumptionKwhPer100km?: number | null
     summerConsumptionKwhPer100km?: number | null
     winterConsumptionKwhPer100km?: number | null
+    /** Drivers and cars behind logCount */
+    contributorCount?: number | null
+    carCount?: number | null
+    /** Smallest and largest net battery of the WLTP specs */
+    minNetCapacityKwh?: number | null
+    maxNetCapacityKwh?: number | null
+    /** Net capacity (small/large battery) × 100 / community consumption; winter with winter consumption */
+    typicalRangeMinKm?: number | null
+    typicalRangeMaxKm?: number | null
+    winterRangeMinKm?: number | null
+    winterRangeMaxKm?: number | null
+}
+
+/** A model with a WLTP spec but no community logs yet (spec values only). */
+export interface ModelWithoutData {
+    brand: string
+    model: string
+    brandDisplayName: string
+    modelDisplayName: string
+    modelUrlSlug: string
+    category: string
+    categoryDisplayName: string
+    minWltpConsumptionKwhPer100km: number | null
+    avgWltpConsumptionKwhPer100km: number | null
+    maxWltpConsumptionKwhPer100km: number | null
+    minNetCapacityKwh: number | null
+    maxNetCapacityKwh: number | null
+}
+
+export async function getModelsWithoutData(): Promise<ModelWithoutData[]> {
+    const response = await apiClient.get<ModelWithoutData[]>('/public/models/without-data')
+    return response.data
 }
 
 export interface VehicleCategoryItem {

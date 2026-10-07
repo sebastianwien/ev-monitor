@@ -1,6 +1,7 @@
 import { computed, ref, watch, type Ref } from 'vue'
-import type { TopModelPreview } from '../api/publicModelService'
+import type { ModelWithoutData, TopModelPreview } from '../api/publicModelService'
 import { consumptionDeltaPercent } from '../utils/unitConversions'
+import { assessModel, summarizeNeeds, NEEDS_DEFAULTS, type NeedsAssessment, type NeedsInput, type NeedsSummary } from '../utils/needsCheck'
 
 export type RankingSort = 'efficient' | 'range' | 'wltp' | 'winter' | 'data'
 
@@ -11,6 +12,9 @@ export const PRICE_STORAGE_KEY = 'ev-price-per-kwh'
 export const PRICE_MIN = 0.10
 export const PRICE_MAX = 0.90
 const DEFAULT_PRICE = 0.30
+/** Needs-check inputs stay in the browser only, nothing is sent to the server. */
+export const NEEDS_STORAGE_KEY = 'ev-needs-check'
+export const NEEDS_KM_MAX = 5000
 
 export interface RankedModel {
   /** `Brand/Slug`, the format the compare page expects in `?models=` */
@@ -24,9 +28,13 @@ export interface RankedModel {
   /** Winter vs. summer consumption in percent */
   winterSurchargePct: number | null
   costPer100kmEur: number | null
+  /** All values of this model come from one driver */
+  singleDriver: boolean
+  /** Charging interval, stops and longest trip for the current needs-check inputs */
+  needs: NeedsAssessment
 }
 
-export function modelKey(m: TopModelPreview): string {
+export function modelKey(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>): string {
   return `${m.brandDisplayName}/${m.modelUrlSlug}`
 }
 
@@ -51,7 +59,7 @@ function winterSurcharge(m: TopModelPreview): number | null {
 }
 
 /** Same matching as the classic list: every search term must appear in "brand model". */
-function matchesSearch(m: TopModelPreview, query: string): boolean {
+function matchesSearch(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelDisplayName'>, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
   const haystack = `${m.brandDisplayName} ${m.modelDisplayName}`.toLowerCase().replace(/_/g, ' ')
@@ -67,6 +75,24 @@ const SORT_VALUE: Record<RankingSort, (r: Omit<RankedModel, 'rank'>) => number |
   data: r => r.model.logCount,
 }
 const DESCENDING: RankingSort[] = ['range', 'data']
+
+function isNeedsInput(v: unknown): v is NeedsInput {
+  if (!v || typeof v !== 'object') return false
+  const o = v as Record<string, unknown>
+  const km = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= NEEDS_KM_MAX
+  return km(o.dailyKm) && km(o.longestTripKm) && typeof o.homeCharging === 'boolean'
+}
+
+function readStoredNeeds(): NeedsInput | null {
+  try {
+    const raw = localStorage.getItem(NEEDS_STORAGE_KEY)
+    if (raw === null) return null
+    const parsed: unknown = JSON.parse(raw)
+    return isNeedsInput(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
 
 function readStoredPrice(): number | null {
   try {
@@ -84,10 +110,18 @@ function readStoredPrice(): number | null {
  * electricity price for cost per 100 km. Pure UI logic on top of the top-models DTO,
  * no consumption formula of its own.
  */
-export function useModelRanking(models: Ref<TopModelPreview[]>) {
+export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutData: Ref<ModelWithoutData[]> = ref([])) {
   const sort = ref<RankingSort>('efficient')
   const category = ref<string | null>(null)
   const query = ref('')
+  /** Only models whose largest battery makes the longest trip without a stop */
+  const tripOnly = ref(false)
+
+  const needs = ref<NeedsInput>(readStoredNeeds() ?? { ...NEEDS_DEFAULTS })
+  watch(needs, v => {
+    try { localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify(v)) } catch { /* private mode */ }
+  }, { deep: true })
+  const needsSummary = computed<NeedsSummary>(() => summarizeNeeds(models.value, needs.value))
 
   const storedPrice = readStoredPrice()
   const price = ref<number>(storedPrice ?? DEFAULT_PRICE)
@@ -108,6 +142,8 @@ export function useModelRanking(models: Ref<TopModelPreview[]>) {
     wltpDeviationPct: wltpDeviation(m),
     winterSurchargePct: winterSurcharge(m),
     costPer100kmEur: m.avgConsumptionKwhPer100km != null ? m.avgConsumptionKwhPer100km * price.value : null,
+    singleDriver: m.contributorCount === 1,
+    needs: assessModel(m, needs.value),
   })))
 
   const ranked = computed<RankedModel[]>(() => {
@@ -116,6 +152,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>) {
     return enriched.value
       .filter(r => category.value === null || r.model.category === category.value)
       .filter(r => matchesSearch(r.model, query.value))
+      .filter(r => !tripOnly.value || (r.needs.assessable && r.needs.tripStops.min === 0))
       .sort((a, b) => {
         const va = valueOf(a)
         const vb = valueOf(b)
@@ -127,6 +164,12 @@ export function useModelRanking(models: Ref<TopModelPreview[]>) {
       })
       .map((r, i) => ({ ...r, rank: i + 1 }))
   })
+
+  /** Models without driver data, under the same class filter and search as the ranking. */
+  const withoutData = computed(() => modelsWithoutData.value
+    .filter(m => category.value === null || m.category === category.value)
+    .filter(m => matchesSearch(m, query.value)))
+  const searchHitsOnlyWithoutData = computed(() => query.value.trim() !== '' && ranked.value.length === 0 && withoutData.value.length > 0)
 
   const avgWltpDeviationPct = computed<number | null>(() => {
     const deviations = enriched.value.map(r => r.wltpDeviationPct).filter((v): v is number => v != null)
@@ -150,7 +193,12 @@ export function useModelRanking(models: Ref<TopModelPreview[]>) {
     query,
     price,
     applyDefaultPrice,
+    needs,
+    needsSummary,
+    tripOnly,
     ranked,
+    withoutData,
+    searchHitsOnlyWithoutData,
     avgWltpDeviationPct,
     compareKeys,
     canAddCompare,

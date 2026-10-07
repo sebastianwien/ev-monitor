@@ -1,16 +1,17 @@
-import { computed, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
-import type { TopModelPreview } from '../api/publicModelService'
+import type { ModelWithoutData, TopModelPreview } from '../api/publicModelService'
 import { useMarketRoute, OG_LOCALE, MARKET_HTML_LANG } from './useMarketRoute'
 
 /**
  * Head tags for the model overview (/modelle and its market variants): title,
  * description, canonical, hreflang, ItemList and BreadcrumbList JSON-LD.
- * The ItemList names the listed models with their real URLs, followed by the brands.
+ * The ItemList names the listed models with their real URLs (models with driver data first,
+ * then those with a WLTP spec only), followed by the brands.
  * `noindex` keeps a preview variant out of the index.
  */
-export function useModelsListSeo(models: Ref<TopModelPreview[]>, noindex: Ref<boolean>) {
+export function useModelsListSeo(models: Ref<TopModelPreview[]>, noindex: Ref<boolean>, modelsWithoutData: Ref<ModelWithoutData[]> = ref([])) {
   const { t } = useI18n()
   const { currentMarket, marketUrl, hreflangLinks } = useMarketRoute()
 
@@ -18,11 +19,12 @@ export function useModelsListSeo(models: Ref<TopModelPreview[]>, noindex: Ref<bo
 
   const itemListJsonLd = computed(() => {
     const market = currentMarket.value
-    const modelItems = models.value.map(m => ({
+    const listed = [...models.value, ...modelsWithoutData.value]
+    const modelItems = listed.map(m => ({
       name: m.modelDisplayName,
       url: marketUrl(market, pathOf(m.brandDisplayName, m.modelUrlSlug)),
     }))
-    const brands = [...new Set(models.value.map(m => m.brandDisplayName))].sort()
+    const brands = [...new Set(listed.map(m => m.brandDisplayName))].sort()
     const brandItems = brands.map(brand => ({
       name: t('models_list.jsonld.brand_item', { brand }),
       url: marketUrl(market, pathOf(brand)),
