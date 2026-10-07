@@ -38,6 +38,9 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
     @Autowired
     private CacheManager cacheManager;
 
+    /** Large enough that ranking position by log count never hides the model under test. */
+    private static final int ALL_MODELS = 500;
+
     private UUID userId;
 
     @BeforeEach
@@ -123,6 +126,70 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
                 "maxReal must be null — only 1 variant qualifies (99 trips < threshold)");
     }
 
+    // --- Placeholder brand "Andere Marke" never shows up in rankings ---
+
+    @Test
+    void getTopModels_excludesSonstigeBrand() {
+        saveWltpSpec(CarBrand.CarModel.SONSTIGE_CUSTOM, new BigDecimal("60.0"), new BigDecimal("17.0"));
+        Car custom = createCarWithBattery(CarBrand.CarModel.SONSTIGE_CUSTOM, new BigDecimal("60.0"));
+        saveLogsForCar(custom.getId(), 101, new BigDecimal("17.0"));
+
+        List<TopModelResponse> results = publicModelService.getTopModels(ALL_MODELS, false);
+
+        assertTrue(results.stream().noneMatch(r -> r.brand().equals(CarBrand.SONSTIGE.name())),
+                "placeholder brand SONSTIGE must not appear in top models");
+    }
+
+    // --- Seasonal consumption (summer May-Aug, winter Nov-Feb via EvLogService) ---
+
+    @Test
+    void getTopModels_withSummerAndWinterLogs_returnsSeasonalConsumption() {
+        // GV60: 11 logs in July 2025 at 15.0 → 10 summer trips, then 10 logs in January 2026
+        // at 20.0 → 10 winter trips (fallback: own kWhCharged / distance since previous log)
+        saveWltpSpec(CarBrand.CarModel.GV60, new BigDecimal("77.4"), new BigDecimal("17.0"));
+        Car car = createCarWithBattery(CarBrand.CarModel.GV60, new BigDecimal("77.4"));
+        saveLogsForCarFrom(car.getId(), 20000, 11, new BigDecimal("15.0"), LocalDateTime.of(2025, 7, 1, 12, 0));
+        saveLogsForCarFrom(car.getId(), 21100, 10, new BigDecimal("20.0"), LocalDateTime.of(2026, 1, 5, 12, 0));
+
+        TopModelResponse gv60 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "GV60");
+
+        assertNotNull(gv60, "GV60 should appear in top models");
+        assertEquals(new BigDecimal("15.0"), gv60.summerConsumptionKwhPer100km());
+        assertEquals(new BigDecimal("20.0"), gv60.winterConsumptionKwhPer100km());
+    }
+
+    @Test
+    void getTopModels_withoutWinterLogs_returnsNullWinter() {
+        saveWltpSpec(CarBrand.CarModel.GV70_ELECTRIFIED, new BigDecimal("77.4"), new BigDecimal("19.0"));
+        Car car = createCarWithBattery(CarBrand.CarModel.GV70_ELECTRIFIED, new BigDecimal("77.4"));
+        saveLogsForCarFrom(car.getId(), 30000, 11, new BigDecimal("18.0"), LocalDateTime.of(2025, 6, 1, 12, 0));
+
+        TopModelResponse gv70 = findModel(publicModelService.getTopModels(ALL_MODELS, false), "GV70_ELECTRIFIED");
+
+        assertNotNull(gv70, "GV70_ELECTRIFIED should appear in top models");
+        assertEquals(new BigDecimal("18.0"), gv70.summerConsumptionKwhPer100km());
+        assertNull(gv70.winterConsumptionKwhPer100km(), "no winter trips → winter must be null");
+    }
+
+    // --- WLTP average across spec variants ---
+
+    @Test
+    void getTopModels_returnsAverageOfWltpVariants() {
+        // (16.00 + 17.00 + 20.50) / 3 = 17.83 → 17.8
+        saveWltpSpec(CarBrand.CarModel.ELETRE, new BigDecimal("100.0"), new BigDecimal("16.00"));
+        saveWltpSpec(CarBrand.CarModel.ELETRE, new BigDecimal("105.0"), new BigDecimal("17.00"));
+        saveWltpSpec(CarBrand.CarModel.ELETRE, new BigDecimal("112.0"), new BigDecimal("20.50"));
+        Car car = createCarWithBattery(CarBrand.CarModel.ELETRE, new BigDecimal("105.0"));
+        saveLogsForCar(car.getId(), 11, new BigDecimal("22.0"));
+
+        TopModelResponse eletre = findModel(publicModelService.getTopModels(ALL_MODELS, false), "ELETRE");
+
+        assertNotNull(eletre, "ELETRE should appear in top models");
+        assertEquals(new BigDecimal("17.8"), eletre.avgWltpConsumptionKwhPer100km());
+        assertEquals(0, new BigDecimal("16.00").compareTo(eletre.minWltpConsumptionKwhPer100km()));
+        assertEquals(0, new BigDecimal("20.50").compareTo(eletre.maxWltpConsumptionKwhPer100km()));
+    }
+
     // --- Helpers ---
 
     private void saveWltpSpec(CarBrand.CarModel carModel, BigDecimal batteryKwh, BigDecimal wltpConsumption) {
@@ -162,6 +229,30 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
                     new BigDecimal("11.0"),
                     null,                     // no SoC → fallback path
                     LocalDateTime.now().minusDays(logCount - i),
+                    ChargingType.UNKNOWN,
+                    null, null,
+                    false, null
+            ));
+        }
+    }
+
+    /**
+     * Creates N logs one day apart starting at {@code start}, 100 km between logs,
+     * so every log after the first closes a 100 km trip at exactly kwhPer100km.
+     */
+    private void saveLogsForCarFrom(UUID carId, int startOdometerKm, int logCount,
+                                    BigDecimal kwhPer100km, LocalDateTime start) {
+        for (int i = 0; i < logCount; i++) {
+            evLogRepository.save(EvLog.createNew(
+                    carId,
+                    kwhPer100km,
+                    new BigDecimal("10.00"),
+                    30,
+                    "u33d1",
+                    startOdometerKm + (i * 100),
+                    new BigDecimal("11.0"),
+                    null,
+                    start.plusDays(i),
                     ChargingType.UNKNOWN,
                     null, null,
                     false, null

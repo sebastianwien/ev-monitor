@@ -401,26 +401,28 @@ public class PublicModelService {
 
     /**
      * Returns the top N models sorted by community log count.
-     * Much cheaper than N individual getModelStats calls — no seasonal queries,
-     * no per-variant consumption, just logCount + overall avgConsumption + WLTP lookup.
+     * Much cheaper than N individual getModelStats calls: logCount, overall avgConsumption,
+     * WLTP lookup and per-variant range. Seasonal consumption is computed only for the
+     * N models that make the cut. The placeholder brand SONSTIGE is never listed.
      */
     @Cacheable("topModels")
     public List<TopModelResponse> getTopModels(int limit, boolean isSeedUser) {
         record ModelData(CarBrand.CarModel carModel, long logCount,
                          BigDecimal avgConsumption, BigDecimal minRealConsumption,
                          BigDecimal maxRealConsumption, BigDecimal minWltpConsumption,
-                         BigDecimal maxWltpConsumption, BigDecimal avgCostPerKwh,
-                         BigDecimal realRangeKm) {}
+                         BigDecimal maxWltpConsumption, BigDecimal avgWltpConsumption,
+                         BigDecimal avgCostPerKwh, BigDecimal realRangeKm, List<Car> cars) {}
         // Per-variant consumption + derived real range (km). Range only for variants
         // that clear the same >= 100 trip gate used for variant consumption.
         record VariantPoint(BigDecimal consumption, BigDecimal rangeKm) {}
 
+        long startedAt = System.currentTimeMillis();
         List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
                 .map(VehicleSpecificationEntity::getCarModel)
                 .distinct()
                 .toList();
 
-        return modelsWithWltp.stream()
+        List<TopModelResponse> topModels = modelsWithWltp.stream()
                 .map(modelName -> {
                     CarBrand.CarModel carModel;
                     try {
@@ -428,6 +430,7 @@ public class PublicModelService {
                     } catch (IllegalArgumentException e) {
                         return null;
                     }
+                    if (carModel.getBrand() == CarBrand.SONSTIGE) return null;
 
                     Object[] stats = evLogRepository.findPublicBasicStatsByModel(modelName, isSeedUser);
                     if (stats == null || stats.length == 0) return null;
@@ -454,6 +457,9 @@ public class PublicModelService {
                             .toList();
                     BigDecimal minWltp = wltpValues.stream().min(BigDecimal::compareTo).orElse(null);
                     BigDecimal maxWltp = wltpValues.stream().max(BigDecimal::compareTo).orElse(null);
+                    BigDecimal avgWltp = wltpValues.isEmpty() ? null
+                            : wltpValues.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                                    .divide(BigDecimal.valueOf(wltpValues.size()), 1, RoundingMode.HALF_UP);
 
                     // Per-variant real consumption + real range, grouped by the car's actual net
                     // capacity (spec-linked via vehicleSpecificationId, custom override as fallback -
@@ -487,7 +493,8 @@ public class PublicModelService {
                             .map(VariantPoint::rangeKm).filter(Objects::nonNull)
                             .max(BigDecimal::compareTo).orElse(null);
 
-                    return new ModelData(carModel, logCount, avgConsumption, minReal, maxReal, minWltp, maxWltp, avgCostPerKwh, realRangeKm);
+                    return new ModelData(carModel, logCount, avgConsumption, minReal, maxReal,
+                            minWltp, maxWltp, avgWltp, avgCostPerKwh, realRangeKm, cars);
                 })
                 .filter(m -> m != null)
                 .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
@@ -495,6 +502,8 @@ public class PublicModelService {
                 .map(m -> {
                     String brandDisplay = m.carModel().getBrand().getDisplayString();
                     String modelDisplay = m.carModel().getDisplayName();
+                    // Seasonal split via EvLogService, same as getModelStats - only for the listed models
+                    SeasonalConsumptionResult seasonal = evLogStatisticsService.calculateSeasonalConsumption(m.cars(), isSeedUser);
                     return new TopModelResponse(
                             m.carModel().getBrand().name(),
                             m.carModel().name(),
@@ -510,10 +519,20 @@ public class PublicModelService {
                             m.avgCostPerKwh(),
                             m.carModel().getCategory().name(),
                             m.carModel().getCategory().getDisplayName(),
-                            m.realRangeKm()
+                            m.realRangeKm(),
+                            m.avgWltpConsumption(),
+                            scale1(seasonal.summerConsumptionKwhPer100km()),
+                            scale1(seasonal.winterConsumptionKwhPer100km())
                     );
                 })
                 .toList();
+        log.info("topModels computed: limit={}, {} models, {} ms",
+                limit, topModels.size(), System.currentTimeMillis() - startedAt);
+        return topModels;
+    }
+
+    private static BigDecimal scale1(BigDecimal value) {
+        return value != null ? value.setScale(1, RoundingMode.HALF_UP) : null;
     }
 
     /**
