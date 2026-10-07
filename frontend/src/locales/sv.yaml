@@ -1912,26 +1912,26 @@ imports:
   api_car_id_copied: Kopierat
 spritmonitor:
   title: Sprit-Monitor Import
-  step1_intro: Ange din <strong>Sprit-Monitor API-token</strong> för att importera dina laddningssessioner. Token raderas omedelbart efter importen. Den <strong>sparas inte</strong>!
+  step1_intro: "Importera dina laddningssessioner från Sprit-Monitor. Allt du behöver är din API-token."
+  token_label: "API-token"
+  privacy_note: "Token används bara för den här importen och raderas efteråt. Den sparas aldrig."
   token_placeholder: t.ex. abc123xyz...
   token_hint_pre: Du hittar token på Sprit-Monitor under
   token_hint_link: Mitt konto → Ändra lösenord
   load_btn_loading: Laddar…
   load_btn: Hämta fordon
   danger_title: Ta bort tidigare importer
-  danger_desc: Om du vill radera alla tidigare importer från Sprit-Monitor klickar du här. <strong>Manuellt inmatade laddningssessioner raderas INTE.</strong>
+  danger_desc: "Tar bort alla laddningssessioner som tidigare importerats från Sprit-Monitor. Manuellt inmatade sessioner behålls."
   danger_btn: Ta bort alla Sprit-Monitor-import
   err_token_empty: Ange ditt Sprit-Monitor API-token!
   err_no_vehicles: Inga elfordon hittades! Har du några på Sprit-Monitor?
   err_token_invalid: "Ogiltig token. Kontrollera din Sprit-Monitor API-token."
   err_unreachable: "Sprit-Monitor svarar inte. Det beror på Sprit-Monitors API, inte på din token. Försök igen senare."
   err_api: "Sprit-Monitor rapporterade ett fel. Försök igen senare."
-  outage_title: "Sprit-Monitors API är inte tillgängligt"
-  outage_body: "Sprit-Monitors API har inte svarat sedan mitten av augusti. Felet ligger hos Sprit-Monitor, inte hos EV Monitor. Import misslyckas därför just nu. Laddningar du redan importerat påverkas inte. Så snart API:et är tillbaka fungerar importen som vanligt."
   step2_intro: Vi har hittat <strong>{n} elbilar</strong>! Lägg till dem i din EV Monitor-bilpark eller skapa nya.
   mapping_label: "Uppgift:"
   mapping_placeholder: -- Välj --
-  mapping_new: ➕ Skapa ny bil
+  mapping_new: "Skapa ny bil"
   new_car_label: "Skapa ny bil:"
   brand_placeholder: -- Välj märke --
   model_placeholder_brand_selected: -- Välj modell --

@@ -1912,26 +1912,26 @@ imports:
   api_car_id_copied: Kopiert
 spritmonitor:
   title: Sprit-Monitor Import
-  step1_intro: Skriv inn <strong>Sprit-Monitor API-tokenet</strong> for å importere ladesesjonene dine. Tokenet slettes umiddelbart etter importen. Det blir <strong>ikke lagret</strong>!
+  step1_intro: "Importer ladeøktene dine fra Sprit-Monitor. Alt du trenger er API-tokenet ditt."
+  token_label: "API-token"
+  privacy_note: "Tokenet brukes kun til denne importen og slettes etterpå. Det lagres aldri."
   token_placeholder: f.eks. abc123xyz...
   token_hint_pre: Du finner tokenet på Sprit-Monitor under
   token_hint_link: Min konto → Endre passord
   load_btn_loading: Laster…
   load_btn: Last inn kjøretøy
   danger_title: Slett tidligere importeringer
-  danger_desc: Hvis du vil slette alle tidligere Sprit-Monitor-import, klikk her. <strong>Ladingsøkter som er lagt inn manuelt, blir IKKE slettet.</strong>
+  danger_desc: "Fjerner alle ladeøkter som tidligere er importert fra Sprit-Monitor. Manuelt registrerte økter beholdes."
   danger_btn: Slett alle Sprit-Monitor-importene
   err_token_empty: Vennligst skriv inn Sprit-Monitor API-tokenet ditt!
   err_no_vehicles: Det ble ikke funnet noen elbiler! Har du noen på Sprit-Monitor?
   err_token_invalid: "Ugyldig token. Sjekk Sprit-Monitor API-tokenet ditt."
   err_unreachable: "Sprit-Monitor svarer ikke. Dette skyldes Sprit-Monitor-API-et, ikke tokenet ditt. Prøv igjen senere."
   err_api: "Sprit-Monitor meldte om en feil. Prøv igjen senere."
-  outage_title: "Sprit-Monitor-API-et er utilgjengelig"
-  outage_body: "Sprit-Monitor-API-et har ikke svart siden midten av august. Feilen ligger hos Sprit-Monitor, ikke hos EV Monitor. Import feiler derfor for øyeblikket. Ladinger du allerede har importert, er ikke berørt. Så snart API-et er tilbake, fungerer importen som før."
   step2_intro: Vi har funnet <strong>{n} elektriske biler</strong>! Legg dem til i EV Monitor-biler eller opprett nye.
   mapping_label: "Oppgave:"
   mapping_placeholder: -- Vennligst velg --
-  mapping_new: ➕ Opprett ny bil
+  mapping_new: "Opprett ny bil"
   new_car_label: "Opprett ny bil:"
   brand_placeholder: -- Velg merke --
   model_placeholder_brand_selected: -- Velg modell --

@@ -5,7 +5,8 @@ import { spritMonitorService, SpritMonitorVehicle, ImportResult, RefreshRawResul
 import { carService, Car, BrandInfo, ModelInfo } from '../../api/carService';
 import { useCarStore } from '../../stores/car';
 import { useCoinStore } from '../../stores/coins';
-import { TrashIcon, ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/vue/24/outline';
+import { TrashIcon, ExclamationTriangleIcon, ArrowPathIcon, XMarkIcon, LockClosedIcon, CheckCircleIcon, ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
+import BottomSheet from '../shared/BottomSheet.vue';
 
 const { t } = useI18n();
 
@@ -53,6 +54,7 @@ const showDeleteConfirm = ref(false);
 const deleteLoading = ref(false);
 const deleteError = ref('');
 const refreshResult = ref<RefreshRawResult | null>(null);
+const sheet = ref<InstanceType<typeof BottomSheet> | null>(null);
 
 const hasRefreshableVehicles = computed(() =>
   spritMonitorVehicles.value.some(v => !!vehicleMapping.value[v.id] && vehicleMapping.value[v.id] !== 'new')
@@ -252,298 +254,277 @@ const deleteAllImports = async () => {
 };
 
 const close = () => {
-  emit('close');
+  sheet.value?.requestClose();
 };
 </script>
 
+
 <template>
-  <div
-    class="fixed inset-0 flex items-center justify-center z-50 p-4"
-    style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);">
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" @click.stop>
-      <!-- Header -->
-      <div class="sticky top-0 bg-indigo-600 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
-        <h2 class="text-2xl font-bold">{{ t('spritmonitor.title') }}</h2>
-        <button @click="close" class="text-white hover:text-gray-200 text-2xl font-bold">&times;</button>
+  <BottomSheet ref="sheet" :label="t('spritmonitor.title')" testid="spritmonitor-sheet" panel-class="sm:max-w-xl" @close="emit('close')">
+    <!-- Kopf -->
+    <div class="flex items-center justify-between gap-3 px-4 sm:px-5 pt-4 pb-3 border-b-2 border-gray-200 dark:border-gray-700 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="shrink-0 w-9 h-9 rounded-sm bg-sky-700 text-white flex items-center justify-center">
+          <ArrowDownTrayIcon class="w-5 h-5" aria-hidden="true" />
+        </span>
+        <div class="min-w-0">
+          <h2 class="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight">{{ t('spritmonitor.title') }}</h2>
+        </div>
+      </div>
+      <button type="button" @click="close" :aria-label="t('common.close')"
+        class="-mr-2 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-gray-100">
+        <XMarkIcon class="w-5 h-5" />
+      </button>
+    </div>
+
+    <!-- Inhalt (scrollt) -->
+    <div class="flex-1 overflow-y-auto px-4 sm:px-5 py-4 space-y-4">
+      <div v-if="error" role="alert" class="flex gap-2.5 p-3 rounded-sm border-2 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-sm text-red-800 dark:text-red-200">
+        <ExclamationTriangleIcon class="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+        <p>{{ error }}</p>
       </div>
 
-      <div class="p-6">
-        <!-- Error Message -->
-        <div v-if="error" class="mb-4 p-4 bg-red-100 text-red-800 rounded-lg border border-red-300">
-          ⚠️ {{ error }}
-        </div>
+      <!-- Schritt 1: Token -->
+      <template v-if="importStep === 'token'">
+        <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('spritmonitor.step1_intro') }}</p>
 
-        <!-- Step 1: Token Input -->
-        <div v-if="importStep === 'token'">
-          <!-- Temporaerer Hinweis: api.spritmonitor.de antwortet seit Mitte August 2026 nicht. Entfernen, sobald die API wieder laeuft. -->
-          <div class="mb-4 flex gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-100">
-            <ExclamationTriangleIcon class="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
-            <div class="text-sm">
-              <p class="font-semibold">{{ t('spritmonitor.outage_title') }}</p>
-              <p class="mt-1">{{ t('spritmonitor.outage_body') }}</p>
-            </div>
-          </div>
-          <p class="text-gray-700 dark:text-gray-300 mb-4" v-html="t('spritmonitor.step1_intro')" />
+        <div class="space-y-1.5">
+          <label for="sm-token" class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('spritmonitor.token_label') }}</label>
           <input
+            id="sm-token"
             v-model="token"
             type="text"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            inputmode="text"
             :placeholder="t('spritmonitor.token_placeholder')"
-            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-2" />
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            @keyup.enter="fetchVehicles"
+            class="w-full min-h-[48px] px-3 py-2.5 font-mono text-sm rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:outline-none focus:border-sky-600 transition-colors" />
+          <p class="text-xs text-gray-500 dark:text-gray-400">
             {{ t('spritmonitor.token_hint_pre') }}
             <a href="https://www.spritmonitor.de/de/mein_account/passwort_aendern.html" target="_blank" rel="noopener noreferrer"
-              class="text-indigo-600 underline hover:text-indigo-800">{{ t('spritmonitor.token_hint_link') }}</a>.
+              class="inline-flex items-center gap-0.5 font-semibold text-sky-700 dark:text-sky-400 underline underline-offset-2 hover:text-sky-600">
+              {{ t('spritmonitor.token_hint_link') }}<ArrowTopRightOnSquareIcon class="w-3.5 h-3.5" aria-hidden="true" />
+            </a>
           </p>
-          <button
-            @click="fetchVehicles"
-            :disabled="loading"
-            class="btn-3d w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-            <svg v-if="loading" class="animate-spin h-5 w-5 text-white flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            {{ loading ? t('spritmonitor.load_btn_loading') : t('spritmonitor.load_btn') }}
-          </button>
-
-          <!-- Danger Zone: Delete Imports -->
-          <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div class="flex items-center gap-2 mb-2">
-              <TrashIcon class="w-5 h-5 text-red-600" />
-              <h3 class="text-lg font-semibold text-red-600">{{ t('spritmonitor.danger_title') }}</h3>
-            </div>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3" v-html="t('spritmonitor.danger_desc')" />
-            <button
-              @click="showDeleteConfirm = true"
-              class="btn-3d px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition">
-              {{ t('spritmonitor.danger_btn') }}
-            </button>
-          </div>
         </div>
 
-        <!-- Step 2: Vehicle Mapping -->
-        <div v-if="importStep === 'mapping'">
-          <p class="text-gray-700 dark:text-gray-300 mb-4" v-html="t('spritmonitor.step2_intro', { n: spritMonitorVehicles.length })" />
+        <div class="flex gap-2.5 p-3 rounded-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400">
+          <LockClosedIcon class="w-4 h-4 shrink-0 mt-0.5 text-gray-400" aria-hidden="true" />
+          <p>{{ t('spritmonitor.privacy_note') }}</p>
+        </div>
 
-          <div class="space-y-4">
-            <div v-for="vehicle in spritMonitorVehicles" :key="vehicle.id" class="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
-              <h3 class="font-bold text-lg text-gray-800 dark:text-gray-200 mb-2">
-                {{ vehicle.make }} {{ vehicle.model }}
-              </h3>
+        <button
+          type="button"
+          @click="fetchVehicles"
+          :disabled="loading"
+          data-testid="spritmonitor-load-vehicles"
+          class="flex w-full items-center justify-center gap-2 min-h-[48px] bg-sky-700 hover:bg-sky-600 text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-sky-700 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#e5e7eb] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:translate-x-0 disabled:active:translate-y-0">
+          <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
+          {{ loading ? t('spritmonitor.load_btn_loading') : t('spritmonitor.load_btn') }}
+        </button>
 
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('spritmonitor.mapping_label') }}</label>
+        <!-- Bisherige Importe löschen: bewusst leise -->
+        <div class="pt-3 mt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
+          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{{ t('spritmonitor.danger_desc') }}</p>
+          <button
+            type="button"
+            @click="showDeleteConfirm = true"
+            class="mt-1.5 inline-flex items-center gap-1.5 min-h-[44px] text-xs font-semibold text-red-700 dark:text-red-400 hover:underline underline-offset-2">
+            <TrashIcon class="w-4 h-4" aria-hidden="true" />
+            {{ t('spritmonitor.danger_title') }}
+          </button>
+        </div>
+      </template>
+
+      <!-- Schritt 2: Zuordnung -->
+      <template v-if="importStep === 'mapping'">
+        <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed" v-html="t('spritmonitor.step2_intro', { n: spritMonitorVehicles.length })" />
+
+        <div class="space-y-3">
+          <div v-for="vehicle in spritMonitorVehicles" :key="vehicle.id"
+            class="rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-3 sm:p-4 space-y-2.5">
+            <h3 class="font-bold text-sm text-gray-900 dark:text-gray-100">{{ vehicle.make }} {{ vehicle.model }}</h3>
+
+            <div class="space-y-1">
+              <label :for="`sm-map-${vehicle.id}`" class="block text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('spritmonitor.mapping_label') }}</label>
               <select
+                :id="`sm-map-${vehicle.id}`"
                 v-model="vehicleMapping[vehicle.id]"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500">
+                class="w-full min-h-[44px] border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 rounded-sm px-3 py-2 text-sm font-medium focus:outline-none focus:border-sky-600 transition-colors">
                 <option value="">{{ t('spritmonitor.mapping_placeholder') }}</option>
                 <option value="new">{{ t('spritmonitor.mapping_new') }}</option>
-                <option v-for="car in myCars" :key="car.id" :value="car.id">
-                  {{ carLabel(car) }}
-                </option>
+                <option v-for="car in myCars" :key="car.id" :value="car.id">{{ carLabel(car) }}</option>
               </select>
+            </div>
 
-              <!-- New Car Form -->
-              <div v-if="vehicleMapping[vehicle.id] === 'new'" class="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-indigo-200 space-y-2">
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{{ t('spritmonitor.new_car_label') }}</p>
-
-                <!-- Brand Selection -->
-                <select
-                  :value="newCarData[vehicle.id]?.brand || ''"
-                  @change="(e) => onBrandChange(vehicle.id, (e.target as HTMLSelectElement).value)"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500">
-                  <option value="">{{ t('spritmonitor.brand_placeholder') }}</option>
-                  <option v-for="brand in brands" :key="brand.value" :value="brand.value">
-                    {{ brand.label }}
-                  </option>
-                </select>
-
-                <!-- Model Selection (only rendered once a brand was selected and newCarData is initialized) -->
-                <select
-                  v-if="newCarData[vehicle.id]"
-                  v-model="newCarData[vehicle.id].model"
-                  :disabled="!newCarData[vehicle.id]?.brand"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 dark:disabled:bg-gray-600">
-                  <option value="">{{ newCarData[vehicle.id]?.brand ? t('spritmonitor.model_placeholder_brand_selected') : t('spritmonitor.model_placeholder_no_brand') }}</option>
-                  <option v-for="model in newCarData[vehicle.id]?.availableModels || []" :key="model.value" :value="model.value">
-                    {{ model.label }}
-                  </option>
-                </select>
-                <select v-else disabled class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-400">
-                  <option>{{ t('spritmonitor.model_placeholder_no_brand') }}</option>
-                </select>
-
-                <!-- Year Input -->
-                <input
-                  v-if="newCarData[vehicle.id]"
-                  v-model.number="newCarData[vehicle.id].year"
-                  type="number"
-                  :placeholder="t('spritmonitor.year_placeholder')"
-                  min="2000"
-                  max="2030"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-indigo-500" />
-              </div>
+            <div v-if="vehicleMapping[vehicle.id] === 'new'" class="rounded-sm border-2 border-dashed border-sky-300 dark:border-sky-800 bg-sky-50/60 dark:bg-sky-900/20 p-3 space-y-2">
+              <p class="text-xs font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300">{{ t('spritmonitor.new_car_label') }}</p>
+              <select
+                :value="newCarData[vehicle.id]?.brand || ''"
+                :aria-label="t('spritmonitor.brand_placeholder')"
+                @change="(e) => onBrandChange(vehicle.id, (e.target as HTMLSelectElement).value)"
+                class="w-full min-h-[44px] border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-sky-600">
+                <option value="">{{ t('spritmonitor.brand_placeholder') }}</option>
+                <option v-for="brand in brands" :key="brand.value" :value="brand.value">{{ brand.label }}</option>
+              </select>
+              <select
+                v-if="newCarData[vehicle.id]"
+                v-model="newCarData[vehicle.id].model"
+                :disabled="!newCarData[vehicle.id]?.brand"
+                :aria-label="t('spritmonitor.model_placeholder_brand_selected')"
+                class="w-full min-h-[44px] border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-sky-600 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-400">
+                <option value="">{{ newCarData[vehicle.id]?.brand ? t('spritmonitor.model_placeholder_brand_selected') : t('spritmonitor.model_placeholder_no_brand') }}</option>
+                <option v-for="model in newCarData[vehicle.id]?.availableModels || []" :key="model.value" :value="model.value">{{ model.label }}</option>
+              </select>
+              <input
+                v-if="newCarData[vehicle.id]"
+                v-model.number="newCarData[vehicle.id].year"
+                type="number"
+                inputmode="numeric"
+                :placeholder="t('spritmonitor.year_placeholder')"
+                :aria-label="t('spritmonitor.year_placeholder')"
+                min="2000"
+                max="2030"
+                class="w-full min-h-[44px] border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-sky-600" />
             </div>
           </div>
+        </div>
 
-          <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">{{ t('spritmonitor.skip_hint') }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('spritmonitor.skip_hint') }}</p>
+
+        <!-- Rohdaten aktualisieren: sekundär -->
+        <div class="pt-3 border-t border-dashed border-gray-200 dark:border-gray-700 space-y-2">
+          <div class="flex items-center gap-2">
+            <ArrowPathIcon class="w-4 h-4 text-gray-500" aria-hidden="true" />
+            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">{{ t('spritmonitor.refresh_raw_title') }}</h3>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed" v-html="t('spritmonitor.refresh_raw_desc')" />
           <button
-            @click="startImport"
-            class="w-full mt-3 px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition">
-            {{ t('spritmonitor.start_import_btn') }}
+            type="button"
+            @click="startRefresh"
+            :disabled="!hasRefreshableVehicles"
+            :title="!hasRefreshableVehicles ? t('spritmonitor.err_no_mapping') : undefined"
+            class="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-xs font-semibold text-sky-700 dark:text-sky-400 border-2 border-sky-200 dark:border-sky-900 rounded-sm hover:bg-sky-50 dark:hover:bg-sky-900/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+            <ArrowPathIcon class="w-4 h-4" aria-hidden="true" />
+            {{ t('spritmonitor.refresh_raw_btn') }}
           </button>
-
-          <!-- Refresh Raw Data -->
-          <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div class="flex items-center gap-2 mb-2">
-              <ArrowPathIcon class="w-5 h-5 text-indigo-500" />
-              <h3 class="text-base font-semibold text-gray-700 dark:text-gray-300">{{ t('spritmonitor.refresh_raw_title') }}</h3>
-            </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3" v-html="t('spritmonitor.refresh_raw_desc')" />
-            <button
-              @click="startRefresh"
-              :disabled="!hasRefreshableVehicles"
-              :title="!hasRefreshableVehicles ? t('spritmonitor.err_no_mapping') : undefined"
-              class="w-full px-5 py-2.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-              <ArrowPathIcon class="w-4 h-4" />
-              {{ t('spritmonitor.refresh_raw_btn') }}
-            </button>
-          </div>
         </div>
+      </template>
 
-        <!-- Step 3: Importing Progress -->
-        <div v-if="importStep === 'importing'" class="text-center">
-          <div class="mb-4">
-            <svg class="animate-spin h-16 w-16 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('spritmonitor.step3_title') }}</h3>
-          <p class="text-gray-600 dark:text-gray-400">
-            {{ t('spritmonitor.step3_progress', { current: currentVehicle, total: totalVehicles }) }}
-          </p>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4">
-            <div
-              class="bg-indigo-600 h-3 rounded-full transition-all duration-300"
-              :style="{ width: `${(currentVehicle / totalVehicles) * 100}%` }">
-            </div>
-          </div>
+      <!-- Laufender Import / Refresh -->
+      <div v-if="importStep === 'importing' || importStep === 'refreshing'" class="py-6 text-center space-y-4" aria-live="polite">
+        <span class="mx-auto block w-12 h-12 border-4 border-sky-200 dark:border-sky-900 border-t-sky-700 rounded-full animate-spin" aria-hidden="true" />
+        <div>
+          <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ importStep === 'importing' ? t('spritmonitor.step3_title') : t('spritmonitor.refresh_raw_loading') }}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('spritmonitor.step3_progress', { current: currentVehicle, total: totalVehicles }) }}</p>
         </div>
-
-        <!-- Step: Refreshing Progress -->
-        <div v-if="importStep === 'refreshing'" class="text-center">
-          <div class="mb-4">
-            <svg class="animate-spin h-16 w-16 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-          <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('spritmonitor.refresh_raw_loading') }}</h3>
-          <p class="text-gray-600 dark:text-gray-400">
-            {{ t('spritmonitor.step3_progress', { current: currentVehicle, total: totalVehicles }) }}
-          </p>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mt-4">
-            <div
-              class="bg-indigo-600 h-3 rounded-full transition-all duration-300"
-              :style="{ width: `${(currentVehicle / totalVehicles) * 100}%` }">
-            </div>
-          </div>
+        <div class="w-full h-2.5 rounded-sm border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-900 overflow-hidden"
+          role="progressbar" :aria-valuenow="currentVehicle" :aria-valuemin="0" :aria-valuemax="totalVehicles">
+          <div class="h-full bg-sky-700 transition-all duration-300" :style="{ width: `${(currentVehicle / totalVehicles) * 100}%` }" />
         </div>
+      </div>
 
-        <!-- Step: Refresh Done -->
-        <div v-if="importStep === 'refreshDone'" class="text-center">
-          <div class="mb-4">
-            <ArrowPathIcon class="h-16 w-16 text-indigo-500 mx-auto" />
-          </div>
-          <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">{{ t('spritmonitor.refresh_done_title') }}</h3>
-          <div v-if="refreshResult" class="text-left bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4">
-            <p class="text-lg mb-2 text-indigo-600 font-bold">{{ t('spritmonitor.refresh_done_refreshed', { n: refreshResult.refreshed }) }}</p>
-            <p v-if="refreshResult.skipped > 0" class="text-sm mb-2 text-yellow-600">{{ t('spritmonitor.refresh_done_skipped', { n: refreshResult.skipped }) }}</p>
-            <div v-if="refreshResult.errors.length > 0" class="mt-3">
-              <p class="text-red-600 font-semibold mb-2">{{ t('spritmonitor.refresh_done_errors_title') }}</p>
-              <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
-                <li v-for="(err, idx) in refreshResult.errors" :key="idx">{{ err }}</li>
-              </ul>
-            </div>
-          </div>
-          <div class="flex gap-3">
-            <button
-              @click="importStep = 'mapping'"
-              class="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition">
-              {{ t('spritmonitor.back_to_mapping') }}
-            </button>
-            <button
-              @click="close"
-              class="flex-1 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition">
-              {{ t('spritmonitor.refresh_done_btn') }}
-            </button>
-          </div>
+      <!-- Ergebnis Import -->
+      <div v-if="importStep === 'done'" class="space-y-4">
+        <div class="flex items-center gap-3">
+          <CheckCircleIcon class="w-10 h-10 text-green-600 shrink-0" aria-hidden="true" />
+          <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('spritmonitor.step4_title') }}</h3>
         </div>
+        <ul class="rounded-sm border-2 border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+          <li class="px-3 py-2.5 font-bold text-green-700 dark:text-green-400">{{ t('spritmonitor.step4_imported', { n: totalImported }) }}</li>
+          <li v-if="totalSkipped > 0" class="px-3 py-2.5 text-amber-700 dark:text-amber-400">{{ t('spritmonitor.step4_skipped', { n: totalSkipped }) }}</li>
+          <li v-if="totalCoinsAwarded > 0" class="px-3 py-2.5 font-bold text-sky-700 dark:text-sky-400">{{ t('spritmonitor.step4_coins', { n: totalCoinsAwarded }) }}</li>
+          <li v-if="totalWithoutLocation > 0" class="px-3 py-2.5 text-xs text-gray-600 dark:text-gray-400">{{ t('spritmonitor.step4_no_location', { n: totalWithoutLocation }) }}</li>
+        </ul>
+        <div v-if="totalErrors.length > 0" class="rounded-sm border-2 border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-3">
+          <p class="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-300 mb-1.5">{{ t('spritmonitor.step4_errors_title') }}</p>
+          <ul class="list-disc list-inside text-xs text-red-800 dark:text-red-200 space-y-0.5">
+            <li v-for="(err, idx) in totalErrors" :key="idx">{{ err }}</li>
+          </ul>
+        </div>
+      </div>
 
-        <!-- Step 4: Done -->
-        <div v-if="importStep === 'done'" class="text-center">
-          <div class="text-6xl mb-4">✅</div>
-          <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">{{ t('spritmonitor.step4_title') }}</h3>
-          <div class="text-left bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4">
-            <p class="text-lg mb-2 text-green-600 font-bold">{{ t('spritmonitor.step4_imported', { n: totalImported }) }}</p>
-            <p v-if="totalSkipped > 0" class="text-lg mb-2 text-yellow-600">{{ t('spritmonitor.step4_skipped', { n: totalSkipped }) }}</p>
-            <p v-if="totalWithoutLocation > 0" class="text-sm mb-2 text-gray-600 dark:text-gray-400">{{ t('spritmonitor.step4_no_location', { n: totalWithoutLocation }) }}</p>
-            <p v-if="totalCoinsAwarded > 0" class="text-lg mb-2 text-indigo-600 font-bold">{{ t('spritmonitor.step4_coins', { n: totalCoinsAwarded }) }}</p>
-            <div v-if="totalErrors.length > 0" class="mt-3">
-              <p class="text-red-600 font-semibold mb-2">{{ t('spritmonitor.step4_errors_title') }}</p>
-              <ul class="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
-                <li v-for="(err, idx) in totalErrors" :key="idx">{{ err }}</li>
-              </ul>
-            </div>
-          </div>
-          <button
-            @click="close"
-            class="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition">
-            {{ t('spritmonitor.done_btn') }}
-          </button>
+      <!-- Ergebnis Refresh -->
+      <div v-if="importStep === 'refreshDone' && refreshResult" class="space-y-4">
+        <div class="flex items-center gap-3">
+          <CheckCircleIcon class="w-10 h-10 text-sky-600 shrink-0" aria-hidden="true" />
+          <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('spritmonitor.refresh_done_title') }}</h3>
+        </div>
+        <ul class="rounded-sm border-2 border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+          <li class="px-3 py-2.5 font-bold text-sky-700 dark:text-sky-400">{{ t('spritmonitor.refresh_done_refreshed', { n: refreshResult.refreshed }) }}</li>
+          <li v-if="refreshResult.skipped > 0" class="px-3 py-2.5 text-amber-700 dark:text-amber-400">{{ t('spritmonitor.refresh_done_skipped', { n: refreshResult.skipped }) }}</li>
+        </ul>
+        <div v-if="refreshResult.errors.length > 0" class="rounded-sm border-2 border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 p-3">
+          <p class="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-300 mb-1.5">{{ t('spritmonitor.refresh_done_errors_title') }}</p>
+          <ul class="list-disc list-inside text-xs text-red-800 dark:text-red-200 space-y-0.5">
+            <li v-for="(err, idx) in refreshResult.errors" :key="idx">{{ err }}</li>
+          </ul>
         </div>
       </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
+    <!-- Fuß: Primäraktion je Schritt -->
+    <div v-if="importStep === 'mapping' || importStep === 'done' || importStep === 'refreshDone'"
+      class="shrink-0 px-4 sm:px-5 py-3 border-t-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex gap-2">
+      <button
+        v-if="importStep === 'refreshDone'"
+        type="button"
+        @click="importStep = 'mapping'"
+        class="flex-1 min-h-[48px] px-4 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+        {{ t('spritmonitor.back_to_mapping') }}
+      </button>
+      <button
+        type="button"
+        data-testid="spritmonitor-primary"
+        @click="importStep === 'mapping' ? startImport() : close()"
+        class="flex-1 flex items-center justify-center gap-2 min-h-[48px] px-5 text-white font-bold uppercase tracking-wider text-xs rounded-sm border-2 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#e5e7eb] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75"
+        :class="importStep === 'mapping' ? 'bg-green-600 hover:bg-green-500 border-green-600' : 'bg-sky-700 hover:bg-sky-600 border-sky-700'">
+        <ArrowDownTrayIcon v-if="importStep === 'mapping'" class="w-4 h-4" aria-hidden="true" />
+        {{ importStep === 'mapping' ? t('spritmonitor.start_import_btn') : (importStep === 'done' ? t('spritmonitor.done_btn') : t('spritmonitor.refresh_done_btn')) }}
+      </button>
+    </div>
+
+    <!-- Bestätigung: alle Importe löschen -->
     <div
       v-if="showDeleteConfirm"
-      class="fixed inset-0 flex items-center justify-center z-[60] p-4"
-      style="backdrop-filter: blur(12px); background-color: rgba(0, 0, 0, 0.5);"
-      @click.self="showDeleteConfirm = false">
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6" @click.stop>
-        <div class="flex items-center gap-2 mb-4">
-          <ExclamationTriangleIcon class="w-8 h-8 text-red-600" />
-          <h3 class="text-2xl font-bold text-red-600">{{ t('spritmonitor.delete_title') }}</h3>
+      class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 sm:p-4"
+      role="alertdialog"
+      aria-modal="true"
+      :aria-label="t('spritmonitor.delete_title')"
+      @click.self="!deleteLoading && (showDeleteConfirm = false)">
+      <div class="w-full sm:max-w-md bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-sm sm:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:sm:shadow-[5px_5px_0_rgba(255,255,255,0.35)] p-4 sm:p-5 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-4" @click.stop>
+        <div class="flex items-center gap-3">
+          <span class="shrink-0 w-9 h-9 rounded-sm bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 flex items-center justify-center">
+            <TrashIcon class="w-5 h-5" aria-hidden="true" />
+          </span>
+          <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ t('spritmonitor.delete_title') }}</h3>
         </div>
-        <p class="text-gray-700 dark:text-gray-300 mb-4" v-html="t('spritmonitor.delete_desc')" />
-
-        <!-- Error Message -->
-        <div v-if="deleteError" class="mb-4 p-3 bg-red-100 text-red-800 rounded-lg border border-red-300 text-sm">
-          <ExclamationTriangleIcon class="w-4 h-4 inline-block mr-1" />
-          {{ deleteError }}
+        <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed" v-html="t('spritmonitor.delete_desc')" />
+        <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('spritmonitor.delete_confirm') }}</p>
+        <div v-if="deleteError" role="alert" class="flex gap-2 p-3 rounded-sm border-2 border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-sm text-red-800 dark:text-red-200">
+          <ExclamationTriangleIcon class="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span>{{ deleteError }}</span>
         </div>
-
-        <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">{{ t('spritmonitor.delete_confirm') }}</p>
-
-        <div class="flex gap-3">
+        <div class="flex gap-2">
           <button
+            type="button"
             @click="showDeleteConfirm = false"
             :disabled="deleteLoading"
-            class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition disabled:opacity-50">
+            class="flex-1 min-h-[48px] px-4 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition-colors">
             {{ t('spritmonitor.delete_cancel') }}
           </button>
           <button
+            type="button"
             @click="deleteAllImports"
             :disabled="deleteLoading"
-            class="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2">
-            <svg v-if="deleteLoading" class="animate-spin h-5 w-5 text-white flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
+            class="flex-1 flex items-center justify-center gap-2 min-h-[48px] px-4 text-xs font-bold uppercase tracking-wider text-white bg-red-600 hover:bg-red-500 border-2 border-red-600 rounded-sm shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#e5e7eb] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-50 transition-[transform,box-shadow] duration-75">
+            <span v-if="deleteLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true" />
             {{ deleteLoading ? t('spritmonitor.delete_btn_loading') : t('spritmonitor.delete_btn') }}
           </button>
         </div>
       </div>
     </div>
-  </div>
+  </BottomSheet>
 </template>
