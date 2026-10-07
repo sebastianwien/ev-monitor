@@ -29,6 +29,14 @@ describe('buildLadderAxis', () => {
     expect(axis.max).toBe(35)
   })
 
+  it('clips the axis to the 5th to 95th percentile so a few outliers do not squeeze the rest', () => {
+    // 20 models between 14 and 20, one at 33: the axis ends at 20, the outlier pins to the edge
+    const values = Array.from({ length: 20 }, (_, i) => 14 + (i * 6) / 19)
+    const axis = buildLadderAxis([...values, 33], 'kWh/100km')
+    expect(axis.max).toBe(20)
+    expect(ladderPosition(33, axis)).toBe(100)
+  })
+
   it('ignores null and non-positive values', () => {
     const axis = buildLadderAxis([null, 0, 18, 22, undefined], 'kWh/100km')
     expect(axis.min).toBe(18)

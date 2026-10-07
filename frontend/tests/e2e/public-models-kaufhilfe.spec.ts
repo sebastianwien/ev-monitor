@@ -27,7 +27,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     test('Datenlage: jede Zeile nennt Ladevorgänge und Fahrer', async ({ page }) => {
       await openRanking(page);
       const first = rows(page).first();
-      await expect(first.locator(viewport.width >= 1024 ? '.mr-hint' : '.mr-who')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
+      await expect(first.locator('.mr-meta')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
       if (viewport.width >= 1024) {
         await expect(first.getByTestId('savings-column')).toContainText(/^\d+,\d\d$/);
       }
@@ -64,7 +64,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
       await setDistance(page, 'needs-longest', '100');
       await expect(rows(page).first()).toBeVisible();
-      await expect(rows(page).first().getByTestId('needs-hint')).toContainText('ohne Ladestopp');
+      await expect(rows(page).first().getByTestId('needs-hint')).toContainText('100 km: ohne Stopp');
     });
 
     test('Modelle ohne Fahrerdaten: eingeklappt, Suche klappt auf und erklärt den Leerzustand', async ({ page, request }) => {
@@ -99,7 +99,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       const first = rows(page).first();
       // DE: Kraftstoffpreis ist vorbelegt, der Vergleich steht sofort
-      await expect(first.getByTestId('savings')).toContainText(/Benziner \d+,\d\d €\/100km/);
+      await expect(first.getByTestId('savings')).toContainText(/\(Benziner \d+,\d\d\)/);
 
       await page.getByTestId('assumptions-chip').click();
       await page.getByTestId('main-value-cost').click();
@@ -113,7 +113,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.getByTestId('assumption-fuel-price').fill('');
       await page.getByTestId('assumption-fuel-price').press('Tab');
       await page.keyboard.press('Escape');
-      await expect(first.getByTestId('savings')).toHaveCount(0);
+      await expect(first.getByTestId('savings')).not.toContainText('Benziner');
     });
 
     test('Priorität "Meiste Daten" sortiert um und bleibt nach Neuladen', async ({ page }) => {

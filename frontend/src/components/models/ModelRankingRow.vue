@@ -1,6 +1,6 @@
 <template>
   <li class="border-b border-gray-200 dark:border-gray-800">
-    <div class="mr-grid relative px-4 pb-3.5 pt-3 transition-colors hover:bg-white/70 lg:px-5 lg:py-2.5 lg:hover:bg-gray-50 dark:hover:bg-gray-900/60 lg:dark:hover:bg-gray-800/60">
+    <div class="mr-grid relative pr-4 transition-colors hover:bg-white/70 lg:pr-5 lg:hover:bg-gray-50 dark:hover:bg-gray-900/60 lg:dark:hover:bg-gray-800/60">
       <!-- Whole row toggles the details; content sits below it, only the compare box is clickable on top. -->
       <button
         type="button"
@@ -12,46 +12,42 @@
         <span class="sr-only">{{ t(expanded ? 'models_ranking.row.details_close' : 'models_ranking.row.details_open', { name: m.modelDisplayName }) }}</span>
       </button>
 
-      <span class="mr-rk pointer-events-none text-right text-[13px] font-semibold tabular-nums" :class="inCompare ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{ item.rank }}</span>
-
-      <span class="mr-th pointer-events-none grid h-9 w-[52px] place-items-center overflow-hidden rounded-lg bg-gray-200 lg:h-[34px] lg:w-12 dark:bg-gray-800" :class="inCompare ? 'ring-2 ring-green-600 dark:ring-green-400' : ''">
-        <img v-if="imageUrl" :src="imageUrl" alt="" loading="lazy" class="h-full w-full object-cover" />
-        <span v-else class="text-[13px] font-bold text-gray-500 dark:text-gray-400">{{ m.brandDisplayName.slice(0, 2) }}</span>
+      <!-- Photo flush with the row's left, top and bottom edge; the rank sits on it -->
+      <span class="mr-th pointer-events-none relative self-stretch overflow-hidden bg-gray-200 dark:bg-gray-800" :class="inCompare ? 'ring-2 ring-inset ring-green-600 dark:ring-green-400' : ''">
+        <img v-if="imageUrl" :src="imageUrl" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover" />
+        <span v-else class="absolute inset-0 grid place-items-center text-base font-bold text-gray-500 dark:text-gray-400">{{ m.brandDisplayName.slice(0, 2) }}</span>
+        <span class="absolute left-1.5 top-1.5 rounded-md bg-gray-900/75 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-white">{{ item.rank }}</span>
       </span>
 
-      <span class="mr-who pointer-events-none grid min-w-0">
+      <span class="mr-who pointer-events-none grid min-w-0 pt-3 lg:pt-2.5">
         <span class="truncate font-semibold tracking-tight text-gray-900 dark:text-gray-100">
           <template v-if="nameRepeatsBrand">{{ modelName }}</template>
           <template v-else>{{ m.brandDisplayName }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ modelName }}</span></template>
         </span>
-        <span class="flex min-w-0 items-center gap-1 text-[12.5px] text-gray-500 dark:text-gray-400">
-          <span class="truncate">
-            {{ categoryLabel }}
-            <span class="lg:hidden"> · {{ costLabel }}</span>
-          </span>
-        </span>
-        <span class="flex min-w-0 items-center gap-1 text-[12.5px] text-gray-500 lg:hidden dark:text-gray-400">
-          <span class="truncate">{{ dataBasis }}</span>
-          <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto h-4 w-4 flex-none text-orange-600 dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
+      </span>
+
+      <!-- Meta: class, cost (phone) and data basis. Own grid row so it spans the value column on the phone and wraps on the desktop. -->
+      <span class="mr-meta pointer-events-none grid min-w-0 text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">
+        <span class="truncate lg:hidden">{{ categoryLabel }} · <span data-testid="savings">{{ costVsCombustion }}</span></span>
+        <span class="truncate lg:whitespace-normal">
+          <span class="hidden lg:inline">{{ categoryLabel }} · </span>{{ dataBasis }}
+          <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto inline h-4 w-4 align-text-bottom text-orange-600 dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
         </span>
       </span>
 
-      <!-- Needs hint: full width under the name block, two lines on the phone; on the desktop one line
-           across the row that also carries the data basis (the name block is too narrow for it there) -->
-      <span class="mr-hint pointer-events-none line-clamp-3 text-[12.5px] leading-snug text-gray-700 lg:line-clamp-none lg:flex lg:min-w-0 lg:flex-wrap lg:items-center lg:gap-x-1 dark:text-gray-300">
-        <span data-testid="needs-hint">{{ needsHint }}</span>
-        <span v-if="savingsLabel" class="lg:hidden"> · <span data-testid="savings">{{ savingsLabel }}</span></span>
-        <span class="hidden whitespace-nowrap text-gray-500 lg:inline dark:text-gray-400"> · {{ dataBasis }}</span>
-        <InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto hidden h-4 w-4 flex-none text-orange-600 lg:block dark:text-orange-400" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
+      <!-- The verdict for the reader's own numbers: own line, status dot, body colour -->
+      <span class="mr-hint pointer-events-none flex min-w-0 items-start gap-1.5 pb-3 text-[13.5px] leading-snug text-gray-900 lg:pb-2.5 dark:text-gray-100">
+        <i class="mt-[6px] h-2 w-2 flex-none rounded-full" :class="tripStatusClass" aria-hidden="true"></i>
+        <span class="line-clamp-3 lg:line-clamp-none" data-testid="needs-hint">{{ needsHint }}</span>
       </span>
 
-      <span class="mr-val pointer-events-none grid text-right lg:hidden">
+      <span class="mr-val pointer-events-none grid pt-3 text-right lg:hidden">
         <b class="text-[19px] font-semibold leading-tight tracking-tight tabular-nums" :class="mainValue.cls">{{ mainValue.value }}</b>
         <small class="text-[11px] text-gray-500 dark:text-gray-400">{{ mainValue.unit }}</small>
       </span>
 
       <ConsumptionLadder
-        class="mr-ld pointer-events-none"
+        class="mr-ld pointer-events-none pb-3.5 lg:pb-0"
         :axis="axis"
         :real="m.avgConsumptionKwhPer100km"
         :wltp="item.wltpKwhPer100km"
@@ -79,7 +75,7 @@
       </button>
     </div>
 
-    <div v-if="expanded" :id="detailId" class="grid gap-3.5 px-4 pb-[18px] pt-1 lg:grid-cols-2 lg:items-start lg:pb-5 lg:pl-[124px] lg:pr-5">
+    <div v-if="expanded" :id="detailId" class="grid gap-3.5 px-4 pb-[18px] pt-3 lg:grid-cols-2 lg:items-start lg:pb-5 lg:pl-[122px] lg:pr-5">
       <p class="text-[13.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">{{ needsHint }}</p>
       <dl class="grid grid-cols-2 gap-2 lg:col-span-2 lg:grid-cols-3">
         <div v-for="kv in facts" :key="kv.label" class="grid gap-0.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900">
@@ -152,6 +148,8 @@ const props = defineProps<{
   mainValue: MainValue
   /** Daily distance in km the yearly savings are based on */
   dailyKm: number
+  /** Longest trip in km, named in the hint so the reader sees their own number */
+  longestTripKm: number
   fuel: FuelKind
 }>()
 
@@ -207,14 +205,23 @@ const needsHint = computed(() => {
       : t('models_ranking.row.needs_stops_span', { min: formatNumber(n.stopsPerWeek.min), max: formatNumber(n.stopsPerWeek.max) }))
   }
   const trip = n.tripStops
+  const tripParams = { trip: formatNumber(Math.round(convertDistance(props.longestTripKm))), unit: distanceUnitLabel() }
   if (trip.single) {
     parts.push(trip.min === 0
-      ? t('models_ranking.row.needs_trip_none')
-      : t('models_ranking.row.needs_trip', { count: formatNumber(trip.min) }, trip.min))
+      ? t('models_ranking.row.needs_trip_none', tripParams)
+      : t('models_ranking.row.needs_trip', { ...tripParams, count: formatNumber(trip.min) }, trip.min))
+  } else if (trip.min === 0 && trip.max === 1) {
+    parts.push(t('models_ranking.row.needs_trip_maybe', tripParams))
   } else {
-    parts.push(t('models_ranking.row.needs_trip_span', { min: formatNumber(trip.min), max: formatNumber(trip.max) }))
+    parts.push(t('models_ranking.row.needs_trip_span', { ...tripParams, min: formatNumber(trip.min), max: formatNumber(trip.max) }))
   }
-  return parts.join(', ')
+  return parts.join(' · ')
+})
+// Dot in front of the hint: green when every battery makes the trip without a stop, orange otherwise
+const tripStatusClass = computed(() => {
+  const n = props.item.needs
+  if (!n.assessable) return 'bg-gray-300 dark:bg-gray-600'
+  return n.tripStops.max === 0 ? 'bg-green-600 dark:bg-green-400' : 'bg-orange-500 dark:bg-orange-400'
 })
 const costNumber = computed(() => props.item.costPer100kmEur != null
   ? formatDecimal(convertCostPerDistance(props.item.costPer100kmEur, unitSystem.value), 2)
@@ -234,9 +241,14 @@ const combustionCostEur = computed(() => {
   const s = props.item.savingsPer100kmEur
   return ev != null && s != null ? ev + s : null
 })
-const savingsLabel = computed(() => combustionCostEur.value != null
-  ? t('models_ranking.row.combustion_short', { fuel: fuelLabel.value, amount: formatCostPerDistance(combustionCostEur.value) })
-  : null)
+// Phone meta line: "3,22 €/100km (Benziner 15,05)"
+const costVsCombustion = computed(() => combustionCostEur.value != null
+  ? t('models_ranking.row.cost_vs_combustion', {
+      cost: costLabel.value,
+      fuel: fuelLabel.value,
+      combustion: formatDecimal(convertCostPerDistance(combustionCostEur.value, unitSystem.value), 2),
+    })
+  : costLabel.value)
 // Desktop column "Benziner": the combustion cost in the cost column's unit
 const savingsNumber = computed(() => combustionCostEur.value != null
   ? formatDecimal(convertCostPerDistance(combustionCostEur.value, unitSystem.value), 2)
@@ -404,15 +416,15 @@ const seasonBars = computed(() => {
    Desktop: one line per model with ladder and value columns. */
 .mr-grid {
   display: grid;
-  grid-template-columns: 26px 52px minmax(0, 1fr) auto;
-  grid-template-areas: "rk th who val" ". hint hint hint" ". ld ld ld";
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  grid-template-areas: "th who val" "th meta meta" "th hint hint" ". ld ld";
   column-gap: 10px;
-  row-gap: 6px;
+  row-gap: 4px;
   align-items: center;
 }
-.mr-grid.mr-ruler { grid-template-areas: "rk ld ld ld"; row-gap: 0; }
-.mr-rk { grid-area: rk; }
+.mr-grid.mr-ruler { grid-template-areas: ". ld ld"; row-gap: 0; }
 .mr-th { grid-area: th; }
+.mr-meta { grid-area: meta; }
 .mr-who { grid-area: who; }
 .mr-val { grid-area: val; }
 .mr-hint { grid-area: hint; }
@@ -428,22 +440,22 @@ const seasonBars = computed(() => {
    column is too narrow for them (the ladder's ring still carries the WLTP value). */
 @media (min-width: 1024px) {
   .mr-grid {
-    grid-template-columns: 24px 48px minmax(200px, 1.6fr) minmax(100px, 1fr) 52px 60px 70px 26px;
-    grid-template-areas: "rk th who ld c1 c3 c6 cb" ". . hint hint hint hint hint .";
+    grid-template-columns: 112px minmax(190px, 1.6fr) minmax(100px, 1fr) 64px 60px 64px 26px;
+    grid-template-areas: "th who ld c1 c3 c6 cb" "th meta ld c1 c3 c6 cb" "th hint hint c1 c3 c6 cb";
     column-gap: 10px;
-    row-gap: 4px;
+    row-gap: 2px;
   }
   .mr-grid.mr-ruler {
-    grid-template-areas: "rk th who ld c1 c3 c6 cb";
+    grid-template-areas: ". who ld c1 c3 c6 cb";
   }
 }
 @media (min-width: 1280px) {
   .mr-grid {
-    grid-template-columns: 24px 48px minmax(250px, 1.6fr) minmax(110px, 1fr) 52px 52px 60px 70px 68px 26px;
-    grid-template-areas: "rk th who ld c1 c2 c3 c6 c4 cb" ". . hint hint hint hint hint hint hint .";
+    grid-template-columns: 112px minmax(225px, 1.6fr) minmax(110px, 1fr) 64px 64px 60px 64px 64px 26px;
+    grid-template-areas: "th who ld c1 c2 c3 c6 c4 cb" "th meta ld c1 c2 c3 c6 c4 cb" "th hint hint c1 c2 c3 c6 c4 cb";
   }
   .mr-grid.mr-ruler {
-    grid-template-areas: "rk th who ld c1 c2 c3 c6 c4 cb";
+    grid-template-areas: ". who ld c1 c2 c3 c6 c4 cb";
   }
 }
 </style>

@@ -25,12 +25,12 @@ function windowIn(unit: ConsumptionUnit): [number, number] {
   return [Math.min(a, b), Math.max(a, b)]
 }
 
-/** Step from the 1-2-2.5-5-10 series that splits the span into roughly four parts. */
+/** Step from the 1-2-5-10 series that splits the span into roughly four parts (no 2.5: whole ticks read faster). */
 function niceStep(span: number): number {
   const rough = span / 4
   const magnitude = Math.pow(10, Math.floor(Math.log10(rough)))
   const norm = rough / magnitude
-  const factor = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10
+  const factor = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10
   return factor * magnitude
 }
 
@@ -44,8 +44,12 @@ export function buildLadderAxis(
     .filter((v): v is number => v != null && v > 0)
     .map(v => Math.min(windowMax, Math.max(windowMin, convertConsumption(v, unit))))
 
-  const lo = display.length ? Math.min(...display) : windowMin
-  const hi = display.length ? Math.max(...display) : windowMax
+  // Axis from the 5th to the 95th percentile: a handful of outliers would otherwise push
+  // every other row into one corner. Values beyond pin to the edge (see ladderPosition).
+  const sorted = [...display].sort((a, b) => a - b)
+  const percentile = (p: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * p)))]
+  const lo = sorted.length ? percentile(0.05) : windowMin
+  const hi = sorted.length ? percentile(0.95) : windowMax
   const step = niceStep(hi > lo ? hi - lo : (windowMax - windowMin) / 5)
 
   let min = Math.floor(round(lo / step)) * step

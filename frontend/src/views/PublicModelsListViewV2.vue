@@ -157,9 +157,8 @@
 
       <!-- Loading: skeleton rows -->
       <ol v-if="loading" class="list-none" aria-hidden="true">
-        <li v-for="n in 8" :key="n" class="mr-grid border-b border-gray-200 px-4 py-3 lg:px-5 dark:border-gray-800">
-          <span class="mr-rk h-3 w-4 justify-self-end rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
-          <span class="mr-th h-9 w-[52px] rounded-lg bg-gray-200 lg:h-[34px] lg:w-12 dark:bg-gray-800 animate-pulse"></span>
+        <li v-for="n in 8" :key="n" class="mr-grid border-b border-gray-200 pr-4 lg:pr-5 dark:border-gray-800">
+          <span class="mr-th h-16 self-stretch bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
           <span class="mr-who h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
           <span class="mr-ld h-2 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
         </li>
@@ -195,6 +194,7 @@
           :price="price"
           :main-value="cost.mainValue"
           :daily-km="needs.dailyKm"
+          :longest-trip-km="needs.longestTripKm"
           :fuel="cost.fuel"
           @toggle="openKey = openKey === item.key ? null : item.key"
           @compare="toggleCompare(item.key)"
