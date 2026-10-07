@@ -124,6 +124,10 @@ export interface TopModelPreview {
     category: string
     categoryDisplayName: string
     realRangeKm: number | null
+    // Optional: an older backend instance (Blue/Green) does not send them yet
+    avgWltpConsumptionKwhPer100km?: number | null
+    summerConsumptionKwhPer100km?: number | null
+    winterConsumptionKwhPer100km?: number | null
 }
 
 export interface VehicleCategoryItem {
