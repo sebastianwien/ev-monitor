@@ -37,9 +37,9 @@ describe('detectCountryFromLanguage', () => {
     expect(detectCountryFromLanguage()).toBe('GB')
   })
 
-  it('detects US for en-US', () => {
+  it('does not detect US for en-US (ambiguous, registration asks)', () => {
     mockLanguages(['en-US'])
-    expect(detectCountryFromLanguage()).toBe('US')
+    expect(detectCountryFromLanguage()).toBeNull()
   })
 
   it('detects AT for de-AT', () => {
@@ -149,8 +149,8 @@ describe('detectCountry', () => {
   })
 
   it('applies language heuristic for regular browsers', async () => {
-    mockLanguages(['en-US'])
+    mockLanguages(['en-GB'])
     await detectCountry()
-    expect(useCountryStore().country).toBe('US')
+    expect(useCountryStore().country).toBe('GB')
   })
 })

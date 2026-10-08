@@ -75,8 +75,6 @@ const LANGUAGE_COUNTRY_MAP: Record<string, CountryCode> = {
     'de-DE': 'DE',
     'de-de': 'DE',
     'de':    'DE',
-    'en-US': 'US',
-    'en-us': 'US',
 }
 
 // Languages where detection maps to a country but the result is unreliable
