@@ -471,6 +471,18 @@ public enum CarBrand {
             cap(52.0),
             cap(77.0),
             cap(79.0)),
+      CAPRI(CarBrand.FORD, VehicleCategory.SUV, "Capri",
+            cap(55.0),
+            cap(61.0),
+            cap(82.0),
+            cap(84.0)),
+      PUMA_GEN_E(CarBrand.FORD, VehicleCategory.COMPACT, "Puma Gen-E",
+            cap(53.0)),
+      E_TOURNEO_COURIER(CarBrand.FORD, VehicleCategory.VAN, "E-Tourneo Courier",
+            cap(54.0)),
+      E_TOURNEO_CUSTOM(CarBrand.FORD, VehicleCategory.VAN, "E-Tourneo Custom",
+            cap(68.0),
+            cap(75.0)),
 
       // --- CHEVROLET ---
       BOLT_EV(CarBrand.CHEVROLET, VehicleCategory.COMPACT, "Bolt EV",
