@@ -1,5 +1,7 @@
-import { describe, it, expect, afterEach } from 'vitest'
-import { detectCountryFromLanguage, isDetectionAmbiguous } from '../useCountryDetection'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+import { detectCountry, detectCountryFromLanguage, isDetectionAmbiguous } from '../useCountryDetection'
+import { useCountryStore } from '../../stores/country'
 
 function mockLanguages(languages: string[]) {
   Object.defineProperty(navigator, 'languages', {
@@ -74,12 +76,6 @@ describe('detectCountryFromLanguage', () => {
     mockLanguages([])
     expect(detectCountryFromLanguage()).toBeNull()
   })
-
-  it('returns null for headless prerender (en-US must not switch DE pages to miles)', () => {
-    mockLanguages(['en-US'])
-    Object.defineProperty(navigator, 'webdriver', { value: true, configurable: true })
-    expect(detectCountryFromLanguage()).toBeNull()
-  })
 })
 
 describe('isDetectionAmbiguous', () => {
@@ -136,5 +132,25 @@ describe('isDetectionAmbiguous', () => {
   it('is not ambiguous even if second language is en-US (only primary matters)', () => {
     mockLanguages(['de-DE', 'en-US'])
     expect(isDetectionAmbiguous()).toBe(false)
+  })
+})
+
+describe('detectCountry', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    setActivePinia(createPinia())
+  })
+
+  it('keeps DE for headless prerender with en-US (no miles on German pages)', async () => {
+    mockLanguages(['en-US'])
+    Object.defineProperty(navigator, 'webdriver', { value: true, configurable: true })
+    await detectCountry()
+    expect(useCountryStore().country).toBe('DE')
+  })
+
+  it('applies language heuristic for regular browsers', async () => {
+    mockLanguages(['en-US'])
+    await detectCountry()
+    expect(useCountryStore().country).toBe('US')
   })
 })

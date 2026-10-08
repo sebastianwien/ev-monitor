@@ -30,6 +30,10 @@ export async function detectCountry(): Promise<void> {
         return
     }
 
+    // Prerender/bots run headless Chrome with en-US - that would serve German
+    // pages in miles. Crawlers keep the DE default (or the route's previewCountry).
+    if (isCrawler()) return
+
     // Step 3: navigator.language heuristic
     const detected = detectCountryFromLanguage()
     if (detected) {
@@ -80,9 +84,6 @@ const LANGUAGE_COUNTRY_MAP: Record<string, CountryCode> = {
 const AMBIGUOUS_LANGUAGES = new Set(['en-US', 'en-us', 'en'])
 
 export function detectCountryFromLanguage(): CountryCode | null {
-    // Prerender/bots run headless Chrome with en-US - that would serve German
-    // pages in miles. Crawlers keep the DE default (or the route's previewCountry).
-    if (isCrawler()) return null
     const languages = navigator.languages ?? [navigator.language]
     for (const lang of languages) {
         // Try exact match first (e.g. 'en-GB' -> GB)
