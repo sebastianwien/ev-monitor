@@ -18,7 +18,6 @@ const HREFLANG_MAP: Array<{ hreflang: string; market: Market }> = [
     { hreflang: 'de', market: 'de' },
     { hreflang: 'en', market: 'en' },
     { hreflang: 'en-GB', market: 'gb' },
-    { hreflang: 'en-US', market: 'us' },
     { hreflang: 'nb', market: 'no' },
     { hreflang: 'sv', market: 'se' },
 ]

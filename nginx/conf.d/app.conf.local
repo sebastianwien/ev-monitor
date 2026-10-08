@@ -38,6 +38,11 @@ server {
     server_tokens off;
 
     # Prerender for bots on public SEO pages (all markets)
+    # US market retired: permanent redirect keeps link signals (before prerender)
+    location ~ ^/us/models(.*)$ {
+        return 301 http://$host/en/models$1$is_args$args;
+    }
+
     location ~* ^/(modelle|ladekurve|fahrzeug|en|gb|us|no|se) {
         resolver 127.0.0.11 valid=10s;
         set $prerender 0;

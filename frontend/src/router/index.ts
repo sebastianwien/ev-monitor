@@ -326,24 +326,11 @@ const router = createRouter({
             component: PublicModelView,
             meta: { locale: 'en', country: 'GB' }
         },
-        // US routes (en locale, US country → EPA ratings, miles, USD)
+        // US market retired: nginx answers /us/models* with 301 to /en/models*.
+        // Client-side fallback for in-app navigation and old bookmarks in the SPA.
         {
-            path: '/us/models',
-            name: 'public-models-list-us',
-            component: PublicModelsListEntry,
-            meta: { locale: 'en', country: 'US' }
-        },
-        {
-            path: '/us/models/:brand',
-            name: 'public-brand-us',
-            component: PublicBrandView,
-            meta: { locale: 'en', country: 'US' }
-        },
-        {
-            path: '/us/models/:brand/:model',
-            name: 'public-model-us',
-            component: PublicModelView,
-            meta: { locale: 'en', country: 'US' }
+            path: '/us/models/:rest(.*)*',
+            redirect: to => `/en/models${to.fullPath.slice('/us/models'.length)}`
         },
         // NO routes (nb locale, NO country → kWh/mil, NOK)
         {

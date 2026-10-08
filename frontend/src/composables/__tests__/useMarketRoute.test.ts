@@ -114,9 +114,9 @@ describe('buildMarketUrl', () => {
 })
 
 describe('getHreflangLinks', () => {
-    it('gibt 7 Links zurück (6 Märkte + x-default)', () => {
+    it('gibt 6 Links zurück (5 Märkte + x-default)', () => {
         const links = getHreflangLinks()
-        expect(links).toHaveLength(7)
+        expect(links).toHaveLength(6)
     })
 
     it('enthält hreflang="de"', () => {
@@ -131,10 +131,9 @@ describe('getHreflangLinks', () => {
         expect(en?.href).toBe(`${BASE}/en/models/Tesla/Model_3`)
     })
 
-    it('enthält hreflang="en-US"', () => {
+    it('enthält kein hreflang="en-US" (/us/models leitet per 301 auf /en/models)', () => {
         const links = getHreflangLinks('/Tesla/Model_3')
-        const enUs = links.find(l => l.hreflang === 'en-US')
-        expect(enUs?.href).toBe(`${BASE}/us/models/Tesla/Model_3`)
+        expect(links.find(l => l.hreflang === 'en-US')).toBeUndefined()
     })
 
     it('enthält hreflang="nb"', () => {

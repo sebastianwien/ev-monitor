@@ -94,6 +94,14 @@ class SitemapControllerTest extends AbstractIntegrationTest {
         assertTrue(response.getBody().contains("/modelle"), "Static /modelle URL should always be in sitemap");
     }
 
+    @Test
+    void sitemap_containsNoUsMarket() {
+        ResponseEntity<String> response = restTemplate.getForEntity("/sitemap.xml", String.class);
+
+        assertFalse(response.getBody().contains("/us/models"), "/us/models redirects 301 to /en/models");
+        assertFalse(response.getBody().contains("hreflang=\"en-US\""), "No en-US alternate after US market removal");
+    }
+
     /**
      * Crawlers and feed readers request the sitemap with varying Accept headers (e.g. text/xml).
      * The endpoint must not reject these with 406 - a sitemap is a fixed XML resource without

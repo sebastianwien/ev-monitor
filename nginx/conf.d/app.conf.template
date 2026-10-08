@@ -129,6 +129,11 @@ server {
         add_header Access-Control-Allow-Origin "*";
     }
 
+    # US market retired: permanent redirect keeps link signals (before prerender)
+    location ~ ^/us/models(.*)$ {
+        return 301 https://$host/en/models$1$is_args$args;
+    }
+
     # Prerender for bots on public SEO pages (all markets)
     location ~* ^/(modelle|ladekurve|fahrzeug|en|gb|us|no|se) {
         resolver 127.0.0.11 valid=10s;

@@ -40,12 +40,11 @@ public class SitemapController {
         // Landing page (DE + EN only - no market-specific landing pages for GB/US/NO/SE)
         appendBilingualUrl(sb, BASE_URL + "/", BASE_URL + "/en", "1.0", "weekly", today);
 
-        // Models list - all 6 markets
+        // Models list - all 5 markets (US retired, /us/models redirects 301 to /en/models)
         appendAllMarketsUrls(sb,
                 BASE_URL + "/modelle",
                 BASE_URL + "/en/models",
                 BASE_URL + "/gb/models",
-                BASE_URL + "/us/models",
                 BASE_URL + "/no/modeller",
                 BASE_URL + "/se/modeller",
                 "0.9", "weekly", today);
@@ -67,7 +66,6 @@ public class SitemapController {
                     BASE_URL + "/modelle/" + brandEncoded,
                     BASE_URL + "/en/models/" + brandEncoded,
                     BASE_URL + "/gb/models/" + brandEncoded,
-                    BASE_URL + "/us/models/" + brandEncoded,
                     BASE_URL + "/no/modeller/" + brandEncoded,
                     BASE_URL + "/se/modeller/" + brandEncoded,
                     "0.8", "weekly", today);
@@ -78,7 +76,6 @@ public class SitemapController {
                         BASE_URL + "/modelle/" + brandEncoded + "/" + modelSlug,
                         BASE_URL + "/en/models/" + brandEncoded + "/" + modelSlug,
                         BASE_URL + "/gb/models/" + brandEncoded + "/" + modelSlug,
-                        BASE_URL + "/us/models/" + brandEncoded + "/" + modelSlug,
                         BASE_URL + "/no/modeller/" + brandEncoded + "/" + modelSlug,
                         BASE_URL + "/se/modeller/" + brandEncoded + "/" + modelSlug,
                         "0.7", "weekly", today);
@@ -92,30 +89,30 @@ public class SitemapController {
                 .body(sb.toString());
     }
 
-    /** Generates 6 <url> entries (one per market), each with full hreflang cross-references. */
+    /** Generates 5 <url> entries (one per market), each with full hreflang cross-references. */
     private void appendAllMarketsUrls(StringBuilder sb,
                                        String deLoc, String enLoc, String gbLoc,
-                                       String usLoc, String noLoc, String seLoc,
+                                       String noLoc, String seLoc,
                                        String priority, String changefreq, String lastmod) {
-        for (String loc : List.of(deLoc, enLoc, gbLoc, usLoc, noLoc, seLoc)) {
-            appendUrl(sb, loc, deLoc, enLoc, gbLoc, usLoc, noLoc, seLoc, priority, changefreq, lastmod);
+        for (String loc : List.of(deLoc, enLoc, gbLoc, noLoc, seLoc)) {
+            appendUrl(sb, loc, deLoc, enLoc, gbLoc, noLoc, seLoc, priority, changefreq, lastmod);
         }
     }
 
     /** Generates 2 <url> entries (DE + EN) with bilingual hreflang - used for landing page only. */
     private void appendBilingualUrl(StringBuilder sb, String deLoc, String enLoc,
                                      String priority, String changefreq, String lastmod) {
-        appendUrl(sb, deLoc, deLoc, enLoc, null, null, null, null, priority, changefreq, lastmod);
-        appendUrl(sb, enLoc, deLoc, enLoc, null, null, null, null, priority, changefreq, lastmod);
+        appendUrl(sb, deLoc, deLoc, enLoc, null, null, null, priority, changefreq, lastmod);
+        appendUrl(sb, enLoc, deLoc, enLoc, null, null, null, priority, changefreq, lastmod);
     }
 
     /** Generates a single <url> entry without hreflang (e.g. /register). */
     private void appendSimpleUrl(StringBuilder sb, String loc, String priority, String changefreq, String lastmod) {
-        appendUrl(sb, loc, null, null, null, null, null, null, priority, changefreq, lastmod);
+        appendUrl(sb, loc, null, null, null, null, null, priority, changefreq, lastmod);
     }
 
     private void appendUrl(StringBuilder sb, String loc,
-                           String deLoc, String enLoc, String gbLoc, String usLoc, String noLoc, String seLoc,
+                           String deLoc, String enLoc, String gbLoc, String noLoc, String seLoc,
                            String priority, String changefreq, String lastmod) {
         sb.append("  <url>\n");
         sb.append("    <loc>").append(loc).append("</loc>\n");
@@ -127,7 +124,6 @@ public class SitemapController {
             sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"en\" href=\"").append(enLoc).append("\"/>\n");
             if (gbLoc != null) {
                 sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"en-GB\" href=\"").append(gbLoc).append("\"/>\n");
-                sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"en-US\" href=\"").append(usLoc).append("\"/>\n");
                 sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"nb\" href=\"").append(noLoc).append("\"/>\n");
                 sb.append("    <xhtml:link rel=\"alternate\" hreflang=\"sv\" href=\"").append(seLoc).append("\"/>\n");
             }
