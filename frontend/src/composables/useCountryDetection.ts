@@ -1,6 +1,7 @@
 import { useCountryStore } from '../stores/country'
 import { useAuthStore } from '../stores/auth'
 import { isValidCountryCode, type CountryCode } from '../config/unitSystems'
+import { isCrawler } from '../utils/isCrawler'
 
 /**
  * Country detection waterfall (called once on app init):
@@ -79,6 +80,9 @@ const LANGUAGE_COUNTRY_MAP: Record<string, CountryCode> = {
 const AMBIGUOUS_LANGUAGES = new Set(['en-US', 'en-us', 'en'])
 
 export function detectCountryFromLanguage(): CountryCode | null {
+    // Prerender/bots run headless Chrome with en-US - that would serve German
+    // pages in miles. Crawlers keep the DE default (or the route's previewCountry).
+    if (isCrawler()) return null
     const languages = navigator.languages ?? [navigator.language]
     for (const lang of languages) {
         // Try exact match first (e.g. 'en-GB' -> GB)

@@ -13,6 +13,10 @@ afterEach(() => {
     value: ['en-US'],
     configurable: true,
   })
+  Object.defineProperty(navigator, 'webdriver', {
+    value: false,
+    configurable: true,
+  })
 })
 
 describe('detectCountryFromLanguage', () => {
@@ -68,6 +72,12 @@ describe('detectCountryFromLanguage', () => {
 
   it('returns null for empty language list', () => {
     mockLanguages([])
+    expect(detectCountryFromLanguage()).toBeNull()
+  })
+
+  it('returns null for headless prerender (en-US must not switch DE pages to miles)', () => {
+    mockLanguages(['en-US'])
+    Object.defineProperty(navigator, 'webdriver', { value: true, configurable: true })
     expect(detectCountryFromLanguage()).toBeNull()
   })
 })
