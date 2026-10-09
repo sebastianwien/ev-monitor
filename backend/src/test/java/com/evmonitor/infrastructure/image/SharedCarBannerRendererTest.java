@@ -41,7 +41,7 @@ class SharedCarBannerRendererTest {
     @Test
     void rendersWithoutModelAndWithoutConsumption() throws Exception {
         PublicCarResponse empty = new PublicCarResponse(null, null, false, null, null, null, null, null, null,
-                null, null, null, null, null, List.of(), List.of());
+                null, null, null, null, null, List.of(), List.of(), false);
         assertNotNull(ImageIO.read(new ByteArrayInputStream(renderer.render(empty))));
     }
 
@@ -54,7 +54,7 @@ class SharedCarBannerRendererTest {
         // Der Verbrauch muss trotz langem Namen noch ins Bild: das Ergebnis darf
         // nicht mit dem eines Autos ohne Verbrauch identisch sein.
         PublicCarResponse noConsumption = new PublicCarResponse(longName, 2024, false, null, 42, null, null, null,
-                null, null, null, null, null, peers(), List.of(), List.of());
+                null, null, null, null, null, peers(), List.of(), List.of(), false);
         assertFalse(java.util.Arrays.equals(png, renderer.render(noConsumption)));
     }
 
@@ -86,6 +86,6 @@ class SharedCarBannerRendererTest {
         return new PublicCarResponse(model, 2024, false, "/modelle/Tesla/Model_3", 42,
                 new BigDecimal("1234.5"), new BigDecimal("8100"), new BigDecimal("15.2"),
                 new BigDecimal("0.35"), new BigDecimal("5.32"), new BigDecimal("40"),
-                new BigDecimal("14.1"), new BigDecimal("17.9"), peers, List.of(), List.of());
+                new BigDecimal("14.1"), new BigDecimal("17.9"), peers, List.of(), List.of(), false);
     }
 }

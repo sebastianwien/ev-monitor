@@ -39,7 +39,9 @@ public record PublicCarResponse(
         /** Letzte zwoelf Monate mit Daten, aelteste zuerst. */
         List<MonthPoint> months,
         /** Neueste Ladungen zuerst. */
-        List<Charge> recentCharges) {
+        List<Charge> recentCharges,
+        /** Der Besitzer hat das Auto bewertet - nur das Abzeichen, nie die Werte. */
+        boolean rated) {
 
     public record PeerComparison(
             BigDecimal peerAvgConsumptionKwhPer100km,

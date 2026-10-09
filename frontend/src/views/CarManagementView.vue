@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon,
-  ChartBarIcon, BoltIcon, LockClosedIcon, Battery50Icon,
+  ChartBarIcon, BoltIcon, LockClosedIcon, Battery50Icon, StarIcon, CheckBadgeIcon,
 } from '@heroicons/vue/24/outline'
 import { buildOptionLabels } from '../utils/variantOptionLabels'
 import LicensePlate from '../components/car/LicensePlate.vue'
@@ -16,6 +16,9 @@ import CarShareBox from '../components/car/CarShareBox.vue'
 import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
 import VwEudaAutoSyncPrompt from '../components/car/VwEudaAutoSyncPrompt.vue'
+import RatingDeleteSheet from '../components/rating/RatingDeleteSheet.vue'
+import { ratingService } from '../api/ratingService'
+import { useRatingStore } from '../stores/rating'
 import type { Car } from '../api/carService'
 import teslaFleetService from '../api/teslaFleetService'
 import { analytics } from '../services/analytics'
@@ -87,7 +90,61 @@ const doSubmitForm = async () => {
     else if (created && isVwEudaBrand(created.brand)) eudaPromptCar.value = created
   } finally { submitting.value = false }
 }
-const doDeleteCar = (id: string) => deleteCar(id, doFetchCars)
+// -- Fahrzeugbewertung: Zeile je Auto und Abschlussbewertung im Lösch-Flow --
+const ratingStore = useRatingStore()
+const ratingFor = (carId: string) => ratingStore.forCar(carId)
+const deleteSheet = ref<{ carId: string; model: string; mode: 'rate' | 'text'; deleteWithCar: boolean } | null>(null)
+const deleteSheetBusy = ref(false)
+
+const doDeleteCar = async (id: string) => {
+  const rating = await ratingStore.getEligibility().then(e => e.cars.find(c => c.carId === id) ?? null).catch(() => null)
+  if (rating?.eligible && !rating.rated) {
+    deleteSheet.value = { carId: id, model: rating.modelName, mode: 'rate', deleteWithCar: false }
+    return
+  }
+  if (rating?.rated) {
+    const review = (await ratingService.getMyRating(id).catch(() => null))?.review
+    if (review) {
+      deleteSheet.value = { carId: id, model: rating.modelName, mode: 'text', deleteWithCar: review.deleteWithCar }
+      return
+    }
+  }
+  await deleteCar(id, doFetchCars)
+}
+
+const rateBeforeDelete = () => {
+  if (!deleteSheet.value) return
+  router.push(`/cars/${deleteSheet.value.carId}/bewerten?src=loeschen&danach=loeschen`)
+}
+
+const deleteFromSheet = async () => {
+  if (!deleteSheet.value) return
+  const id = deleteSheet.value.carId
+  deleteSheet.value = null
+  await deleteCar(id, doFetchCars, true)
+  ratingStore.invalidate()
+}
+
+const toggleDeleteWithCar = async (value: boolean) => {
+  if (!deleteSheet.value) return
+  deleteSheetBusy.value = true
+  try {
+    const review = await ratingService.updateReviewSettings(deleteSheet.value.carId, value)
+    if (deleteSheet.value) deleteSheet.value.deleteWithCar = review.deleteWithCar
+  } catch {
+    error.value = t('rating.save_error')
+  } finally {
+    deleteSheetBusy.value = false
+  }
+}
+
+/** Rückkehr aus der Abschlussbewertung: das Löschen fortsetzen (mit der normalen Rückfrage). */
+const resumeDeleteAfterRating = async () => {
+  const id = route.query.loeschen
+  if (typeof id !== 'string') return
+  router.replace({ query: { ...route.query, loeschen: undefined } })
+  if (cars.value.some(c => c.id === id)) await deleteCar(id, doFetchCars)
+}
 
 const closeTeslaPrompt = () => {
   teslaPromptCar.value = null
@@ -138,6 +195,8 @@ onMounted(async () => {
   initVisibility(cars.value)
   await loadTelemetryStatus()
   await resumeTeslaSetupFromCallback()
+  await ratingStore.getEligibility(true).catch(() => null)
+  await resumeDeleteAfterRating()
 })
 
 const emptyStateFeatures = [
@@ -472,7 +531,7 @@ const filteredCapacities = computed(() => {
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div v-for="car in cars" :key="car.id"
+        <div v-for="car in cars" :key="car.id" :data-testid="`car-card-${car.id}`"
           class="bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden flex flex-col">
 
           <!-- Setup-Teaser: dieses Auto koennte seine Daten automatisch liefern, tut es aber nicht -->
@@ -622,6 +681,20 @@ const filteredCapacities = computed(() => {
               </span>
             </div>
 
+            <!-- Fahrzeugbewertung: ruhige Zeile, kein Banner -->
+            <div v-if="ratingFor(car.id)?.rated" class="flex flex-wrap items-center gap-2" data-testid="car-rating-row">
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-medium rounded-full">
+                <CheckBadgeIcon class="w-3.5 h-3.5" aria-hidden="true" />{{ t('rating.badge_rated') }}
+              </span>
+              <RouterLink :to="`/cars/${car.id}/bewerten?src=cars`" class="inline-flex items-center min-h-11 text-sm font-medium text-green-700 dark:text-green-400">
+                {{ t('rating.cars.rated_edit') }}
+              </RouterLink>
+            </div>
+            <RouterLink v-else-if="ratingFor(car.id)?.eligible" :to="`/cars/${car.id}/bewerten?src=cars`"
+              class="inline-flex items-center gap-1.5 min-h-11 text-sm font-medium text-green-700 dark:text-green-400" data-testid="car-rating-row">
+              <StarIcon class="w-4 h-4" aria-hidden="true" />{{ t('rating.cars.rate') }}
+            </RouterLink>
+
             <!-- Fahrzeug-ID: Technik-Detail, gehoert ans Ende - nicht zwischen Name und Specs. -->
             <div class="flex items-center gap-2 cursor-pointer group" @click.stop="copyCarId(car.id)" :title="t('cars.api_id_copy')">
               <div class="flex-1 min-w-0">
@@ -661,6 +734,18 @@ const filteredCapacities = computed(() => {
         </div>
       </div>
     </div>
+
+    <RatingDeleteSheet
+      v-if="deleteSheet"
+      :model="deleteSheet.model"
+      :mode="deleteSheet.mode"
+      :delete-with-car="deleteSheet.deleteWithCar"
+      :busy="deleteSheetBusy"
+      @rate="rateBeforeDelete"
+      @delete="deleteFromSheet"
+      @cancel="deleteSheet = null"
+      @update:delete-with-car="toggleDeleteWithCar"
+    />
 
     <!-- Edit Car Modal - Teleport nach body: die View liegt auf Mobile im SwipeTabPager,
          dessen Track ein translateX() traegt. Ein transformierter Vorfahre wird zum

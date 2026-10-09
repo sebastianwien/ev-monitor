@@ -12,6 +12,7 @@ const baseCtx: AnnouncementContext = {
     teslaLocationScopeGranted: false,
     hasVwEudaBrandCar: false,
     hasVwEudaConnection: false,
+    ratableUnratedCars: 0,
 }
 
 const reconnect = featureAnnouncements.find(a => a.key === 'tesla_location_reconnect_v1')!
@@ -97,5 +98,27 @@ describe('euda_autosync_v1 Texte', () => {
             const line = yaml.split('\n').find(l => l.includes(`  ${euda.bodyKey.split('.')[1]}: `))
             expect(line, locale).toContain('{brand}')
         }
+    })
+})
+
+describe('vehicle_rating_v1', () => {
+    const single = featureAnnouncements.find(a => a.key === 'vehicle_rating_v1')!
+    const multi = featureAnnouncements.find(a => a.key === 'vehicle_rating_v1_multi')!
+
+    it('erscheint nur mit bewertbarem, unbewertetem Auto', () => {
+        expect(single.condition!({ ...baseCtx, ratableUnratedCars: 0 })).toBe(false)
+        expect(multi.condition!({ ...baseCtx, ratableUnratedCars: 0 })).toBe(false)
+    })
+
+    it('nennt bei einem Auto das Modell, bei mehreren nicht', () => {
+        expect(single.condition!({ ...baseCtx, ratableUnratedCars: 1 })).toBe(true)
+        expect(multi.condition!({ ...baseCtx, ratableUnratedCars: 1 })).toBe(false)
+        expect(single.condition!({ ...baseCtx, ratableUnratedCars: 2 })).toBe(false)
+        expect(multi.condition!({ ...baseCtx, ratableUnratedCars: 2 })).toBe(true)
+    })
+
+    it('verlinkt auf die Bewertung des Zielautos', () => {
+        expect(single.ctaRoute).toBe('/cars/{ratingCarId}/bewerten?src=announcement')
+        expect(multi.ctaRoute).toBe(single.ctaRoute)
     })
 })

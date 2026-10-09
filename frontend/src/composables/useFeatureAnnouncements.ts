@@ -5,6 +5,8 @@ import { useAuthStore } from '../stores/auth'
 import { useCarStore } from '../stores/car'
 import teslaFleetService from '../api/teslaFleetService'
 import vwEudaSyncService, { eudaBrandOf, type VwEudaBrand } from '../api/vwEudaSyncService'
+import { useRatingStore } from '../stores/rating'
+import { pickRatingTarget, type RatingTarget } from '../utils/ratingEntry'
 
 const STORAGE_KEY = 'seen-announcements'
 
@@ -26,6 +28,10 @@ const EUDA_BRAND_LABEL: Record<VwEudaBrand, string> = {
 const eudaBrandLabel = ref<string | null>(null)
 const hasVwEudaConnection = ref<boolean>(false)
 let eudaStatusLoaded = false
+
+// Fahrzeugbewertung: Zielauto erst nach dem Laden, vorher null - sonst blitzt die Ankuendigung auf.
+const ratingTarget = ref<RatingTarget | null>(null)
+let ratingStatusLoaded = false
 
 function getSeenKeys(): string[] {
   try {
@@ -80,6 +86,17 @@ async function loadVwEudaStatus(carStore: ReturnType<typeof useCarStore>) {
   }
 }
 
+async function loadRatingStatus(carStore: ReturnType<typeof useCarStore>) {
+  if (ratingStatusLoaded) return
+  ratingStatusLoaded = true
+  try {
+    const [eligibility, cars] = await Promise.all([useRatingStore().getEligibility(), carStore.getCars()])
+    ratingTarget.value = pickRatingTarget(eligibility, cars)
+  } catch {
+    ratingTarget.value = null
+  }
+}
+
 const today = new Date().toISOString().split('T')[0]
 
 const currentIndex = ref(0)
@@ -94,6 +111,7 @@ export const useFeatureAnnouncements = () => {
   if (authStore.isAuthenticated()) {
     void loadTeslaConnectionStatus()
     void loadVwEudaStatus(carStore)
+    void loadRatingStatus(carStore)
   }
 
   const pending = computed<FeatureAnnouncement[]>(() => {
@@ -105,6 +123,7 @@ export const useFeatureAnnouncements = () => {
       teslaLocationScopeGranted: teslaLocationScopeGranted.value,
       hasVwEudaBrandCar: hasVwEudaBrandCar.value,
       hasVwEudaConnection: hasVwEudaConnection.value,
+      ratableUnratedCars: ratingTarget.value?.count ?? 0,
     }
     const registeredAt = authStore.user?.registeredAt
     return featureAnnouncements.filter(a =>
@@ -116,9 +135,11 @@ export const useFeatureAnnouncements = () => {
   })
 
   const announcement = computed(() => pending.value[currentIndex.value] ?? null)
-  /** Platzhalter fuer die i18n-Texte der aktuellen Ankuendigung, heute nur die Fahrzeugmarke. */
-  const announcementParams = computed<Record<string, string>>(() =>
-    eudaBrandLabel.value ? { brand: eudaBrandLabel.value } : ({} as Record<string, string>))
+  /** Platzhalter fuer i18n-Texte und CTA-Route: Fahrzeugmarke, Modell und Zielauto der Bewertung. */
+  const announcementParams = computed<Record<string, string>>(() => ({
+    ...(eudaBrandLabel.value ? { brand: eudaBrandLabel.value } : {}),
+    ...(ratingTarget.value ? { model: ratingTarget.value.modelName, ratingCarId: ratingTarget.value.carId } : {}),
+  }))
   const total = computed(() => pending.value.length)
   const currentNumber = computed(() => total.value > 0 ? currentIndex.value + 1 : 0)
 

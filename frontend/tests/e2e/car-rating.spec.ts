@@ -91,4 +91,31 @@ test.describe('Fahrzeug bewerten', () => {
     await expect(page.getByRole('heading', { name: /Dein Urteil zählt ab jetzt/ })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Deinen Text lesen wir in den nächsten Tagen.')).toBeVisible();
   });
+
+  test('Lösch-Flow: erst bewerten, dann das Auto löschen', async ({ page }) => {
+    await page.goto('/cars');
+    const card = page.getByTestId(`car-card-${carId}`);
+    await expect(card.getByTestId('car-rating-row')).toContainText('Bewerten', { timeout: 10_000 });
+
+    await card.getByRole('button', { name: 'Löschen', exact: true }).click();
+    const sheet = page.getByTestId('rating-delete-sheet');
+    await expect(sheet).toContainText('Magst du ihn kurz bewerten?');
+    await sheet.getByRole('button', { name: 'Bewerten' }).click();
+    await expect(page).toHaveURL(/\/bewerten\?src=loeschen&danach=loeschen/);
+
+    await page.getByRole('radio', { name: 'Nein' }).click();
+    for (const question of ['Passt er zu deinem Alltag?', 'Wie zufrieden bist du mit Software und Bedienung?', 'Wie gut sind Verarbeitung und Komfort?']) {
+      await stars(page, question, 2);
+    }
+    await page.getByRole('button', { name: 'Fahre ich selten Langstrecke' }).click();
+    await page.getByRole('button', { name: 'Noch nicht gebraucht' }).click();
+    await page.getByRole('radio', { name: 'Teurer als erwartet' }).click();
+    await page.getByRole('button', { name: 'Absenden' }).click();
+
+    // Zurück zu /cars, dort fragt das Löschen wie gewohnt nach
+    page.once('dialog', dialog => dialog.accept());
+    await page.getByRole('button', { name: 'Weiter zum Löschen' }).click();
+    await expect(page).toHaveURL(/\/cars$/);
+    await expect(page.getByTestId(`car-card-${carId}`)).toHaveCount(0, { timeout: 10_000 });
+  });
 });

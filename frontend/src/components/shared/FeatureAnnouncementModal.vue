@@ -39,7 +39,7 @@ const handleCta = async () => {
   }
 
   dismiss()
-  const route = current.ctaRoute
+  const route = current.ctaRoute?.replace(/\{(\w+)\}/g, (_, key: string) => announcementParams.value[key] ?? '')
   if (route) {
     if (route.startsWith('http')) {
       window.open(route, '_blank', 'noopener,noreferrer')

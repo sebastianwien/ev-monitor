@@ -34,7 +34,7 @@ class SharedCarImageRendererTest {
     @Test
     void rendersWithoutAnyNumbers() {
         PublicCarResponse empty = new PublicCarResponse(null, null, false, null, null, null, null, null,
-                null, null, null, null, null, null, List.of(), List.of());
+                null, null, null, null, null, null, List.of(), List.of(), false);
         assertNotNull(renderer.render(empty));
     }
 
@@ -48,6 +48,6 @@ class SharedCarImageRendererTest {
         return new PublicCarResponse("Tesla Model 3", 2024, false, "/modelle/tesla/model_3", 42,
                 new BigDecimal("2100"), new BigDecimal("12000"), new BigDecimal("15.2"), new BigDecimal("0.31"),
                 new BigDecimal("4.71"), new BigDecimal("22"), new BigDecimal("14.1"), new BigDecimal("17.9"),
-                new PublicCarResponse.PeerComparison(new BigDecimal("16.5"), 12, "MODEL"), List.of(), List.of());
+                new PublicCarResponse.PeerComparison(new BigDecimal("16.5"), 12, "MODEL"), List.of(), List.of(), false);
     }
 }

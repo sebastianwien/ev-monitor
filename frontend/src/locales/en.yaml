@@ -2597,6 +2597,11 @@ demo:
   settings_cta: "Got it"
 
 announcements:
+  vehicle_rating_v1_title: "How good is your {model} really?"
+  vehicle_rating_v1_body: "7 questions, about 90 seconds. Then you will see how other {model} drivers rate it."
+  vehicle_rating_v1_cta: "Rate now"
+  vehicle_rating_v1_multi_title: "How good are your cars really?"
+  vehicle_rating_v1_multi_body: "7 questions, about 90 seconds. Then you will see how other drivers of the same model rate it."
   cta_error: "That didn't work. Please try again."
   home_charging_savings_v1_title: "New: See how much home charging saves you"
   home_charging_savings_v1_body: "A new dashboard tile shows what charging at home has saved you compared to public charging - year by year and over your whole history. The comparison uses the price level you actually pay, or what's typical in your area. Add your wallbox and installation costs and you'll also see when it has paid for itself through those savings. This requires a price recorded on your home charges."
@@ -3958,3 +3963,21 @@ rating:
     own_cta: "You drive a {model}. Your rating is still missing."
     transparency: "Only drivers with their own car and at least 5 logged charging sessions or 300 km can rate. We read texts before publishing, praise and criticism under the same rules."
     reasons: "Reasons: {list}"
+  teaser:
+    text: "You can see what other {model} drivers measure. What's your verdict?"
+    cta: "Rate"
+    dismiss: "Close hint"
+  badge_rated: "Rated"
+  delete_sheet:
+    rate_title: "You're giving up the {model}. Would you like to rate it quickly?"
+    rate_body: "It helps everyone thinking about one. 7 questions, about 90 seconds."
+    rate_cta: "Rate"
+    delete_only: "Just delete"
+    text_title: "Your experience with the {model}"
+    text_body: "Your rating stays on the model page without your name. You can delete the text together with the car."
+    cancel: "Cancel"
+    delete: "Delete car"
+    continue_delete: "Continue to delete"
+  cars:
+    rate: "Rate"
+    rated_edit: "Your rating · edit"

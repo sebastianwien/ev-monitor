@@ -31,6 +31,9 @@ const { formatDistance } = useLocaleFormat()
 
 const carId = route.params.carId as string
 const source = typeof route.query.src === 'string' ? route.query.src.slice(0, 30) : 'direct'
+/** Aus dem Lösch-Flow gekommen: danach zurück und das Löschen fortsetzen. */
+const continueDelete = route.query.danach === 'loeschen'
+const returnPath = continueDelete ? `/cars?loeschen=${encodeURIComponent(carId)}` : '/cars'
 
 const screen = ref<Screen>('loading')
 const car = ref<CarEligibility | null>(null)
@@ -157,7 +160,7 @@ async function submitDeep() {
 
 function finish() {
     draftStorage.clear(carId)
-    router.push('/cars')
+    router.push(returnPath)
 }
 </script>
 
@@ -227,8 +230,9 @@ function finish() {
                     <p v-if="review?.status === 'PENDING'" class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.done.review_pending') }}</p>
                     <p v-if="coins > 0" class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.done.coins_total', { n: coins }) }}</p>
                     <div class="flex flex-col gap-2 pt-2">
-                        <a :href="modelPagePath" class="min-h-11 flex items-center justify-center rounded-sm bg-green-600 hover:bg-green-700 text-white font-semibold">{{ t('rating.done.model_page', { model }) }}</a>
-                        <RouterLink to="/cars" class="min-h-11 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-300">{{ t('rating.done.back_to_cars') }}</RouterLink>
+                        <RouterLink v-if="continueDelete" :to="returnPath" class="min-h-11 flex items-center justify-center rounded-sm bg-red-600 hover:bg-red-700 text-white font-semibold">{{ t('rating.delete_sheet.continue_delete') }}</RouterLink>
+                        <a v-else :href="modelPagePath" class="min-h-11 flex items-center justify-center rounded-sm bg-green-600 hover:bg-green-700 text-white font-semibold">{{ t('rating.done.model_page', { model }) }}</a>
+                        <RouterLink v-if="!continueDelete" to="/cars" class="min-h-11 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-300">{{ t('rating.done.back_to_cars') }}</RouterLink>
                     </div>
                 </section>
 
@@ -268,7 +272,7 @@ function finish() {
                 </button>
             </div>
             <div v-else-if="screen === 'result'" class="flex items-center gap-3">
-                <button type="button" class="min-h-12 px-3 text-gray-600 dark:text-gray-300 font-medium" @click="finish">{{ t('rating.result.done') }}</button>
+                <button type="button" class="min-h-12 px-3 text-gray-600 dark:text-gray-300 font-medium" @click="finish">{{ continueDelete ? t('rating.delete_sheet.continue_delete') : t('rating.result.done') }}</button>
                 <button type="button" class="flex-1 min-h-12 px-4 rounded-sm bg-green-600 hover:bg-green-700 text-white font-semibold" @click="goTo('deep')">
                     {{ t('rating.result.deepen') }}
                 </button>

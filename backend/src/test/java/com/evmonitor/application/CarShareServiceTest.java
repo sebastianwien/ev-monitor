@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -31,6 +32,7 @@ class CarShareServiceTest extends AbstractIntegrationTest {
     @Autowired private EvLogRepository evLogRepository;
     @Autowired private VehicleSpecificationRepository vehicleSpecificationRepository;
     @Autowired private com.evmonitor.application.user.AccountAnonymizationService anonymizationService;
+    @Autowired private com.evmonitor.domain.rating.CarRatingRepository ratingRepository;
 
     @Test
     void createShare_owner_returnsTokenAndMakesCarPublic() {
@@ -181,6 +183,22 @@ class CarShareServiceTest extends AbstractIntegrationTest {
         PublicCarResponse pub = shareService.getPublicCar(shareService.createShare(car.getId(), user).token()).orElseThrow();
 
         assertNull(pub.peerComparison());
+    }
+
+    @Test
+    void getPublicCar_marksRatedCar_withoutRevealingTheRating() {
+        User user = createAndSaveUser("carshare-rated-" + System.nanoTime() + "@test.com");
+        Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
+        saveLog(car.getId(), LocalDateTime.now().minusDays(1), 10_000);
+        String token = shareService.createShare(car.getId(), user).token();
+        assertFalse(shareService.getPublicCar(token).orElseThrow().rated());
+
+        ratingRepository.save(com.evmonitor.domain.rating.CarRating.create(car.getId(), user.getId(),
+                new com.evmonitor.domain.rating.RatingSnapshot(CarBrand.CarModel.MODEL_3, null, 0, 5, false, false),
+                new com.evmonitor.domain.rating.RatingAnswers(com.evmonitor.domain.rating.RebuyAnswer.YES, List.of(), 4, null, 4, 4, null,
+                        com.evmonitor.domain.rating.TotalCostVerdict.EXPECTED, List.of(), List.of())));
+
+        assertTrue(shareService.getPublicCar(token).orElseThrow().rated());
     }
 
     @Test

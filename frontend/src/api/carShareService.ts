@@ -57,6 +57,8 @@ export interface PublicCar {
   } | null;
   months: PublicCarMonth[];
   recentCharges: PublicCarCharge[];
+  /** Besitzer hat das Auto bewertet - nur das Abzeichen, keine Werte. */
+  rated?: boolean;
 }
 
 export const carShareService = {

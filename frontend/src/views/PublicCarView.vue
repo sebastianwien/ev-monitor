@@ -36,6 +36,9 @@
               <span v-if="car.totalCharges">{{ t('share_car.charges_count', { n: car.totalCharges }) }}</span>
               <span v-if="car.totalDistanceKm != null">{{ formatDistance(car.totalDistanceKm) }}</span>
               <span v-if="sinceLabel">{{ sinceLabel }}</span>
+              <span v-if="car.rated" class="inline-flex items-center gap-1" data-testid="rated-badge">
+                <CheckBadgeIcon class="w-4 h-4" aria-hidden="true" />{{ t('rating.badge_rated') }}
+              </span>
             </p>
           </div>
         </header>
@@ -153,6 +156,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useHead } from '@unhead/vue'
+import { CheckBadgeIcon } from '@heroicons/vue/24/outline'
 import BoltLogo from '../components/shared/BoltLogo.vue'
 import { carShareService, type PublicCar, type PublicCarCharge } from '../api/carShareService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'

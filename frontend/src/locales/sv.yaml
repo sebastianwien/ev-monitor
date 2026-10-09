@@ -2531,6 +2531,11 @@ demo:
   settings_notice: I demoläget kan du bläddra igenom alla inställningar, men du kan inte göra några ändringar.
   settings_cta: Okej
 announcements:
+  vehicle_rating_v1_title: "Hur bra är din {model} egentligen?"
+  vehicle_rating_v1_body: "7 frågor, cirka 90 sekunder. Sedan ser du hur andra {model}-förare betygsätter den."
+  vehicle_rating_v1_cta: "Betygsätt nu"
+  vehicle_rating_v1_multi_title: "Hur bra är dina bilar egentligen?"
+  vehicle_rating_v1_multi_body: "7 frågor, cirka 90 sekunder. Sedan ser du hur andra förare av samma modell betygsätter den."
   cta_error: "Det gick inte. Försök igen."
   home_charging_savings_v1_title: "Nytt: Se hur mycket hemmaladdning sparar dig"
   home_charging_savings_v1_body: "En ny ruta på instrumentpanelen visar vad laddning hemma har sparat dig jämfört med publik laddning - år för år och över hela din historik. Jämförelsen använder prisnivån du faktiskt betalar, eller det som är vanligt i ditt område. Lägger du in kostnaderna för wallbox och installation ser du även när den har tjänat in sig genom besparingen. Detta kräver att dina hemmaladdningar har ett registrerat pris."
@@ -3843,3 +3848,21 @@ rating:
     own_cta: "Du kör en {model}. Ditt betyg saknas fortfarande."
     transparency: "Bara förare med egen bil och minst 5 registrerade laddningar eller 300 km kan betygsätta. Vi läser texter före publicering, beröm och kritik enligt samma regler."
     reasons: "Skäl: {list}"
+  teaser:
+    text: "Du ser vad andra {model}-förare mäter. Vad säger du?"
+    cta: "Betygsätt"
+    dismiss: "Stäng tipset"
+  badge_rated: "Betygsatt"
+  delete_sheet:
+    rate_title: "Du lämnar ifrån dig {model}. Vill du betygsätta den snabbt?"
+    rate_body: "Det hjälper alla som funderar på den. 7 frågor, cirka 90 sekunder."
+    rate_cta: "Betygsätt"
+    delete_only: "Bara radera"
+    text_title: "Din erfarenhet av {model}"
+    text_body: "Ditt betyg ligger kvar utan namn på modellsidan. Texten kan du radera tillsammans med bilen."
+    cancel: "Avbryt"
+    delete: "Radera bil"
+    continue_delete: "Fortsätt till radering"
+  cars:
+    rate: "Betygsätt"
+    rated_edit: "Ditt betyg · redigera"

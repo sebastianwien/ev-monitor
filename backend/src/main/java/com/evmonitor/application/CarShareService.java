@@ -1,6 +1,8 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.Car;
+import com.evmonitor.domain.rating.CarRating;
+import com.evmonitor.domain.rating.CarRatingRepository;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.User;
 import org.slf4j.Logger;
@@ -51,18 +53,25 @@ public class CarShareService {
     private final EvLogStatisticsService statisticsService;
     private final EvLogService evLogService;
     private final ApplicationEventPublisher eventPublisher;
+    private final CarRatingRepository ratingRepository;
     private final SecureRandom random = new SecureRandom();
-    private final String baseUrl;
+    private String baseUrl;
 
     public CarShareService(CarRepository carRepository,
                            EvLogStatisticsService statisticsService,
                            EvLogService evLogService,
                            ApplicationEventPublisher eventPublisher,
-                           @Value("${app.base-url}") String baseUrl) {
+                           CarRatingRepository ratingRepository) {
         this.eventPublisher = eventPublisher;
         this.carRepository = carRepository;
         this.statisticsService = statisticsService;
         this.evLogService = evLogService;
+        this.ratingRepository = ratingRepository;
+    }
+
+    /** Als Setter statt Konstruktor-Parameter, damit der Konstruktor bei fünf Parametern bleibt. */
+    @Value("${app.base-url}")
+    void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
@@ -159,7 +168,8 @@ public class CarShareService {
                 stats.winterConsumptionKwhPer100km(),
                 peerComparison(stats.peerBenchmark()),
                 months,
-                charges);
+                charges,
+                ratingRepository.findByCarIdAndVersion(car.getId(), CarRating.FIRST_VERSION).isPresent());
     }
 
     private static PublicCarResponse.PeerComparison peerComparison(EvLogStatisticsResponse.PeerBenchmark b) {

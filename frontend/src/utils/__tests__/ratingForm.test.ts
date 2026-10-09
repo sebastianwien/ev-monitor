@@ -136,7 +136,7 @@ describe('Entwurfsspeicher', () => {
         localStorage.setItem('rating-draft:car-1', '{kaputt')
         expect(draftStorage.load('car-1')).toBeNull()
 
-        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('QuotaExceeded') })
+        vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('QuotaExceeded') })
         expect(() => draftStorage.save('car-1', complete())).not.toThrow()
     })
 })

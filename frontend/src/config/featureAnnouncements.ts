@@ -6,6 +6,8 @@ export interface AnnouncementContext {
   teslaLocationScopeGranted: boolean
   hasVwEudaBrandCar: boolean
   hasVwEudaConnection: boolean
+  /** Bewertbare, noch unbewertete eigene Autos (Fahrzeugbewertung). 0 bis geladen. */
+  ratableUnratedCars: number
 }
 
 export interface FeatureAnnouncement {
@@ -15,6 +17,7 @@ export interface FeatureAnnouncement {
   titleKey: string     // i18n key
   bodyKey: string      // i18n key
   ctaLabelKey?: string // i18n key, optional
+  /** Platzhalter wie {ratingCarId} werden aus den Ankündigungs-Parametern ersetzt. */
   ctaRoute?: string
   /** Runs instead of ctaRoute navigation when set - for a CTA that needs to do something
    *  (call an API, start a redirect) rather than just navigate to a page. Must throw on
@@ -26,6 +29,29 @@ export interface FeatureAnnouncement {
 }
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
+  // Fahrzeugbewertung: nur Bestandsnutzer mit bewertbarem Auto. releasedAt und expiresAt beim
+  // Deploy auf das echte Release-Datum (plus 30 Tage) setzen.
+  {
+    key: 'vehicle_rating_v1',
+    releasedAt: '2026-10-09',
+    expiresAt: '2026-11-08',
+    titleKey: 'announcements.vehicle_rating_v1_title',
+    bodyKey: 'announcements.vehicle_rating_v1_body',
+    ctaLabelKey: 'announcements.vehicle_rating_v1_cta',
+    ctaRoute: '/cars/{ratingCarId}/bewerten?src=announcement',
+    condition: ctx => ctx.ratableUnratedCars === 1,
+  },
+  {
+    // Mehrere bewertbare Autos: Text ohne Modellname, Link auf das Hauptfahrzeug
+    key: 'vehicle_rating_v1_multi',
+    releasedAt: '2026-10-09',
+    expiresAt: '2026-11-08',
+    titleKey: 'announcements.vehicle_rating_v1_multi_title',
+    bodyKey: 'announcements.vehicle_rating_v1_multi_body',
+    ctaLabelKey: 'announcements.vehicle_rating_v1_cta',
+    ctaRoute: '/cars/{ratingCarId}/bewerten?src=announcement',
+    condition: ctx => ctx.ratableUnratedCars > 1,
+  },
   {
     key: 'home_charging_savings_v1',
     releasedAt: '2026-09-02', // nur Bestandsuser - Neuregistrierte finden die Kachel ohnehin sofort im Dashboard

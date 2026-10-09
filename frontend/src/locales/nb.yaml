@@ -2531,6 +2531,11 @@ demo:
   settings_notice: I demomodus kan du se gjennom alle innstillingene, men du kan ikke foreta endringer.
   settings_cta: Skjønner
 announcements:
+  vehicle_rating_v1_title: "Hvor bra er {model} din egentlig?"
+  vehicle_rating_v1_body: "7 spørsmål, rundt 90 sekunder. Etterpå ser du hvordan andre {model}-sjåfører vurderer den."
+  vehicle_rating_v1_cta: "Vurder nå"
+  vehicle_rating_v1_multi_title: "Hvor bra er bilene dine egentlig?"
+  vehicle_rating_v1_multi_body: "7 spørsmål, rundt 90 sekunder. Etterpå ser du hvordan andre sjåfører av samme modell vurderer den."
   cta_error: "Det gikk ikke. Prøv igjen."
   home_charging_savings_v1_title: "Nytt: Se hvor mye hjemmelading sparer deg"
   home_charging_savings_v1_body: "En ny rute på dashbordet viser hva lading hjemme har spart deg sammenlignet med offentlig lading - år for år og over hele historikken din. Sammenligningen bruker prisnivået du faktisk betaler, eller det som er vanlig i ditt område. Legger du inn kostnadene for wallbox og installasjon, ser du også når den har tjent seg inn gjennom besparelsen. Dette krever at hjemmeladingene dine har en registrert pris."
@@ -3843,3 +3848,21 @@ rating:
     own_cta: "Du kjører en {model}. Vurderingen din mangler ennå."
     transparency: "Bare sjåfører med egen bil og minst 5 registrerte ladinger eller 300 km kan vurdere. Vi leser tekster før publisering, ros og kritikk etter samme regler."
     reasons: "Grunner: {list}"
+  teaser:
+    text: "Du ser hva andre {model}-sjåfører måler. Hva sier du?"
+    cta: "Vurder"
+    dismiss: "Lukk hinten"
+  badge_rated: "Vurdert"
+  delete_sheet:
+    rate_title: "Du gir fra deg {model}. Vil du vurdere den kjapt?"
+    rate_body: "Det hjelper alle som vurderer den. 7 spørsmål, rundt 90 sekunder."
+    rate_cta: "Vurder"
+    delete_only: "Bare slett"
+    text_title: "Din erfaring med {model}"
+    text_body: "Vurderingen din blir værende uten navn på modellsiden. Teksten kan du slette sammen med bilen."
+    cancel: "Avbryt"
+    delete: "Slett bil"
+    continue_delete: "Fortsett til sletting"
+  cars:
+    rate: "Vurder"
+    rated_edit: "Din vurdering · rediger"

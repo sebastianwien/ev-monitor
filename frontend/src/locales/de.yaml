@@ -2602,6 +2602,11 @@ demo:
   settings_cta: "Alles klar"
 
 announcements:
+  vehicle_rating_v1_title: "Wie gut ist dein {model} wirklich?"
+  vehicle_rating_v1_body: "7 Fragen, etwa 90 Sekunden. Danach siehst du, wie andere {model}-Fahrer ihn bewerten."
+  vehicle_rating_v1_cta: "Jetzt bewerten"
+  vehicle_rating_v1_multi_title: "Wie gut sind deine Autos wirklich?"
+  vehicle_rating_v1_multi_body: "7 Fragen, etwa 90 Sekunden. Danach siehst du, wie andere Fahrer desselben Modells urteilen."
   cta_error: "Das hat leider nicht geklappt. Versuch's nochmal."
   home_charging_savings_v1_title: "Neu: So viel spart dir das Laden daheim"
   home_charging_savings_v1_body: "Eine neue Dashboard-Kachel zeigt dir, was dir das Laden zu Hause gegenüber öffentlichem Laden gespart hat - Jahr für Jahr und über die gesamte Laufzeit. Verglichen wird mit dem Preisniveau, das du selbst zahlst, oder dem, was in deiner Umgebung üblich ist. Und wenn du deine Anschaffungskosten für Wallbox etc. hinterlegst, siehst du außerdem, wann sie sich über die Ersparnis eingespielt hat. Voraussetzung ist, dass bei deinen Heimladungen ein Preis erfasst ist."
@@ -3964,3 +3969,21 @@ rating:
     own_cta: "Du fährst einen {model}. Deine Bewertung fehlt noch."
     transparency: "Nur Fahrer mit eigenem Auto und mindestens 5 erfassten Ladevorgängen oder 300 km können bewerten. Texte lesen wir vor der Veröffentlichung, Lob und Kritik nach denselben Regeln."
     reasons: "Gründe: {list}"
+  teaser:
+    text: "Du siehst, was andere {model}-Fahrer messen. Was sagst du?"
+    cta: "Bewerten"
+    dismiss: "Hinweis schließen"
+  badge_rated: "Bewertet"
+  delete_sheet:
+    rate_title: "Du gibst den {model} ab. Magst du ihn kurz bewerten?"
+    rate_body: "Das hilft allen, die über ihn nachdenken. 7 Fragen, etwa 90 Sekunden."
+    rate_cta: "Bewerten"
+    delete_only: "Nur löschen"
+    text_title: "Deine Erfahrung mit dem {model}"
+    text_body: "Deine Bewertung bleibt ohne Namen auf der Modellseite. Den Text kannst du mit dem Auto löschen."
+    cancel: "Abbrechen"
+    delete: "Auto löschen"
+    continue_delete: "Weiter zum Löschen"
+  cars:
+    rate: "Bewerten"
+    rated_edit: "Deine Bewertung · bearbeiten"

@@ -325,8 +325,9 @@ export function useCarForm() {
     }
   }
 
-  const deleteCar = async (id: string, onCarsChanged: () => Promise<void>) => {
-    if (!confirm(t('cars.confirm_delete'))) return
+  /** {@code confirmed}: der Nutzer hat schon in einem eigenen Dialog bestätigt (Bewertungs-Sheet). */
+  const deleteCar = async (id: string, onCarsChanged: () => Promise<void>, confirmed = false) => {
+    if (!confirmed && !confirm(t('cars.confirm_delete'))) return
     try {
       error.value = null
       await carService.deleteCar(id)

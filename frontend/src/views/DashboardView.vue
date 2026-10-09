@@ -36,6 +36,7 @@ import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.v
 import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
 import { useCarShareSheet } from '../composables/useCarShareSheet'
 import PeerModelComparisonCard from '../components/dashboard/PeerModelComparisonCard.vue'
+import RatingTeaserCard from '../components/rating/RatingTeaserCard.vue'
 import WltpComparisonCard from '../components/dashboard/WltpComparisonCard.vue'
 import RangeCard from '../components/dashboard/RangeCard.vue'
 import CostBreakdownCard from '../components/dashboard/CostBreakdownCard.vue'
@@ -178,6 +179,9 @@ const implausibleModalDirty = ref(false)
 const { open: openShareSheet } = useCarShareSheet()
 const shareTitle = (car: { brand: string; model: string; trim?: string | null }) =>
   [carDisplayName(car.brand, car.model), car.trim].filter(Boolean).join(' ')
+
+/** Community-Vergleich vorhanden - steuert auch, wo der Bewertungs-Teaser steht. */
+const hasPeerComparison = computed(() => stats.value?.peerBenchmark?.peerAvgConsumptionKwhPer100km != null)
 
 const selectedCar = computed(() =>
   cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
@@ -952,6 +956,9 @@ onUnmounted(() => {
           :location-split="stats.locationSplit"
         />
 
+        <!-- Bewertungs-Teaser: ohne Community-Vergleich hier, sonst direkt vor dem Modellvergleich -->
+        <RatingTeaserCard v-if="selectedCarId && !hasPeerComparison" :car-id="selectedCarId" />
+
         <!-- Kompaktvergleich: Du vs. Community -->
         <PeerBenchmarkCard
           v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
@@ -1015,9 +1022,11 @@ onUnmounted(() => {
           />
         </div>
 
+        <RatingTeaserCard v-if="selectedCarId && hasPeerComparison" :car-id="selectedCarId" />
+
         <!-- Peer Model Comparison: Volle Breite -->
         <PeerModelComparisonCard
-          v-if="selectedCarId && stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
+          v-if="selectedCarId && hasPeerComparison"
           :car-id="selectedCarId"
           :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
           :car-brand-model="selectedCar ? carDisplayName(selectedCar.brand, selectedCar.model) : ''"
