@@ -119,6 +119,11 @@ public interface UserRepository {
 
     void setTickerShareCharges(UUID userId, boolean enabled);
 
+    /** Personal range calculator inputs as JSON, empty if the user never calculated. */
+    Optional<String> findRangeProfile(UUID userId);
+
+    void setRangeProfile(UUID userId, String profileJson);
+
     void updateCountry(UUID userId, String country);
 
     List<User> findAllByIds(List<UUID> ids);

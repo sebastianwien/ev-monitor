@@ -178,6 +178,17 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Optional<String> findRangeProfile(UUID userId) {
+        return Optional.ofNullable(jpaUserRepository.findRangeProfile(userId));
+    }
+
+    @Override
+    @Transactional
+    public void setRangeProfile(UUID userId, String profileJson) {
+        jpaUserRepository.setRangeProfile(userId, profileJson);
+    }
+
+    @Override
     @Transactional
     public void updateCountry(UUID userId, String country) {
         jpaUserRepository.updateCountry(userId, country);

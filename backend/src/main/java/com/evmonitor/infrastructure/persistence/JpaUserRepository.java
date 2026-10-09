@@ -186,6 +186,13 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("UPDATE UserEntity u SET u.leaderboardVisible = :visible, u.updatedAt = current_timestamp WHERE u.id = :userId")
     void setLeaderboardVisible(@Param("userId") UUID userId, @Param("visible") boolean visible);
 
+    @Query("SELECT u.rangeProfile FROM UserEntity u WHERE u.id = :userId")
+    String findRangeProfile(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.rangeProfile = :profile, u.updatedAt = current_timestamp WHERE u.id = :userId")
+    void setRangeProfile(@Param("userId") UUID userId, @Param("profile") String profile);
+
     @Query("SELECT u.tickerShareCharges FROM UserEntity u WHERE u.id = :userId")
     boolean isTickerShareCharges(@Param("userId") UUID userId);
 
