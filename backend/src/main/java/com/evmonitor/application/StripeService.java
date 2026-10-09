@@ -3,6 +3,11 @@ package com.evmonitor.application;
 import com.evmonitor.domain.SubscriptionTier;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.application.promo.PromoCheck;
+import com.evmonitor.application.promo.PromoCodeService;
+import com.evmonitor.application.promo.PromoOffer;
+import com.evmonitor.domain.exception.ValidationException;
+import com.evmonitor.application.promo.TrialSubscriptionHandler;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -142,6 +147,8 @@ public class StripeService {
     private final UserRepository userRepository;
     private final AdminAlertService adminAlertService;
     private final StripeSubscriptionLookup subscriptionLookup;
+    private final TrialSubscriptionHandler trialSubscriptionHandler;
+    private final PromoCodeService promoCodeService;
 
     private static RestTemplate buildRestTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
@@ -151,10 +158,13 @@ public class StripeService {
     }
 
     public StripeService(UserRepository userRepository, AdminAlertService adminAlertService,
-                         StripeSubscriptionLookup subscriptionLookup) {
+                         StripeSubscriptionLookup subscriptionLookup, TrialSubscriptionHandler trialSubscriptionHandler,
+                         PromoCodeService promoCodeService) {
         this.userRepository = userRepository;
         this.adminAlertService = adminAlertService;
         this.subscriptionLookup = subscriptionLookup;
+        this.trialSubscriptionHandler = trialSubscriptionHandler;
+        this.promoCodeService = promoCodeService;
     }
 
     @PostConstruct
@@ -164,34 +174,52 @@ public class StripeService {
         }
     }
 
+    /** Trial for first-time buyers without a promo code. */
+    static final long DEFAULT_TRIAL_DAYS = 7L;
+
+    /** Checkout input. {@code promoCode} is what the user typed, null or blank without code. */
+    public record CheckoutParams(String plan, SubscriptionTier tier, String successUrl, String cancelUrl, String promoCode) {}
+
     /**
      * Creates a Stripe Checkout Session for the given user and plan.
      * Lazily creates a Stripe Customer if the user doesn't have one yet.
      *
-     * @param user       the authenticated user
-     * @param plan       "monthly" or "yearly"
-     * @param successUrl URL to redirect to on success
-     * @param cancelUrl  URL to redirect to on cancel
      * @return the Stripe Checkout URL
      */
-    public String createCheckoutSession(User user, String plan, String successUrl, String cancelUrl) throws StripeException {
-        return createCheckoutSession(user, plan, SubscriptionTier.AUTOSYNC, successUrl, cancelUrl);
+    public String createCheckoutSession(User user, CheckoutParams params) throws StripeException {
+        PromoOffer promo = promoOffer(user, params.promoCode());
+        String customerId = ensureCustomer(user);
+        String priceId = resolvePriceId(params.plan(), user.getCountry(), params.tier());
+        return Session.create(buildCheckoutParams(user, customerId, priceId, params, promo)).getUrl();
     }
 
-    public String createCheckoutSession(User user, String plan, SubscriptionTier tier,
-                                        String successUrl, String cancelUrl) throws StripeException {
-        boolean eligibleForTrial = !user.isTrialUsed();
-        String customerId = ensureCustomer(user);
+    /**
+     * A typed code must hold: rejecting it clearly beats silently giving 7 instead of 28 days.
+     * @throws ValidationException PROMO_&lt;REASON&gt; when the code does not apply to this user
+     */
+    private PromoOffer promoOffer(User user, String promoCode) {
+        if (promoCode == null || promoCode.isBlank()) return null;
+        PromoCheck check = promoCodeService.check(user, promoCode);
+        if (!check.valid()) {
+            throw new ValidationException("PROMO_" + check.reason().name(), "Aktionscode gilt nicht für dieses Konto");
+        }
+        return check.offer();
+    }
 
-        String priceId = resolvePriceId(plan, user.getCountry(), tier);
+    /** Trial days for this checkout: none after a used trial, the promo length or the default. */
+    static Long trialDays(User user, PromoOffer promo) {
+        if (user.isTrialUsed()) return null;
+        return promo != null ? (long) promo.trialDays() : DEFAULT_TRIAL_DAYS;
+    }
 
+    SessionCreateParams buildCheckoutParams(User user, String customerId, String priceId, CheckoutParams params, PromoOffer promo) {
         // Append target tier to the success URL so UpgradeSuccessView can poll
         // until the webhook-driven DB-tier matches the purchased tier. Without this,
         // an AUTOSYNC -> AUTOSYNC_LIVE upgrade can race: isPremium is already true
         // when polling starts, the loop exits on the first iteration with the stale
         // old tier, and the user lands on the dashboard before the webhook applies
         // the new tier.
-        String successUrlWithTarget = appendTargetTier(successUrl, tier);
+        String successUrlWithTarget = appendTargetTier(params.successUrl(), params.tier());
 
         SessionCreateParams.Builder builder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
@@ -201,25 +229,29 @@ public class StripeService {
                         .setQuantity(1L)
                         .build())
                 .setSuccessUrl(successUrlWithTarget)
-                .setCancelUrl(cancelUrl);
+                .setCancelUrl(params.cancelUrl());
 
-        if (eligibleForTrial) {
-            builder.setSubscriptionData(SessionCreateParams.SubscriptionData.builder()
-                    .setTrialPeriodDays(7L)
-                    .build());
+        Long trialDays = trialDays(user, promo);
+        if (trialDays != null) {
+            SessionCreateParams.SubscriptionData.Builder subscription = SessionCreateParams.SubscriptionData.builder()
+                    .setTrialPeriodDays(trialDays);
+            // Booked as redeemed only when the trial starts (webhook), see TrialSubscriptionHandler
+            if (promo != null) {
+                subscription.putMetadata(TrialSubscriptionHandler.PROMO_CODE_METADATA, promo.code());
+            }
+            builder.setSubscriptionData(subscription.build());
         }
 
         // Referral discount: only for monthly plan.
         // A "100% off, once" coupon on a yearly subscription would waive the full
         // annual price (~€45) instead of one month (~€3.99) - never apply to yearly.
-        if ("monthly".equals(plan) && user.getReferredByUserId() != null && !referralCouponId.isBlank()) {
+        if ("monthly".equals(params.plan()) && user.getReferredByUserId() != null && !referralCouponId.isBlank()) {
             builder.addDiscount(SessionCreateParams.Discount.builder()
                     .setCoupon(referralCouponId)
                     .build());
         }
 
-        Session session = Session.create(builder.build());
-        return session.getUrl();
+        return builder.build();
     }
 
     static String appendTargetTier(String url, SubscriptionTier tier) {
@@ -281,6 +313,7 @@ public class StripeService {
                         ? tierFromSubscriptionItems(data)
                         : tierOfOtherActiveSubscriptions(customerId, subscriptionId(data));
                 findUserByCustomerId(customerId).ifPresent(u -> {
+                    trialSubscriptionHandler.onSubscriptionChange(u.getId(), data);
                     SubscriptionTier oldTier = u.getSubscriptionTier();
                     userRepository.setSubscriptionTier(u.getId(), newTier);
                     // Kauf: nur anheben. Zwei Käufe kurz nacheinander (eins je Auto) kommen parallel an;

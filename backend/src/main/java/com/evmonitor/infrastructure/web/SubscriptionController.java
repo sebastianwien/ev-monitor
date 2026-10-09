@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+
 import com.evmonitor.application.LiveEligibilityService;
 import com.evmonitor.application.PremiumProperties;
 import com.evmonitor.application.StripeService;
@@ -105,7 +106,8 @@ public class SubscriptionController {
         try {
             String successUrl = appBaseUrl + "/upgrade/success";
             String cancelUrl = appBaseUrl + "/upgrade/cancel";
-            String checkoutUrl = stripeService.createCheckoutSession(user, request.plan(), tier, successUrl, cancelUrl);
+            String checkoutUrl = stripeService.createCheckoutSession(user,
+                    new StripeService.CheckoutParams(request.plan(), tier, successUrl, cancelUrl, request.promoCode()));
             return ResponseEntity.ok(Map.of("checkoutUrl", checkoutUrl));
         } catch (StripeException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -220,7 +222,7 @@ public class SubscriptionController {
         }
     }
 
-    public record CheckoutRequest(String plan, String tier) {
-        public CheckoutRequest(String plan) { this(plan, null); }
+    public record CheckoutRequest(String plan, String tier, String promoCode) {
+        public CheckoutRequest(String plan) { this(plan, null, null); }
     }
 }

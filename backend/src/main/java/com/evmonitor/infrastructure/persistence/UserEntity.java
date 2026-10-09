@@ -95,6 +95,10 @@ public class UserEntity {
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String rangeProfile;
 
+    // Trial-Erinnerung: nur per eigener Update-Query (TrialReminderService), toEntity() kennt sie nicht.
+    @Column(name = "trial_reminder_due_at", insertable = false, updatable = false)
+    private LocalDateTime trialReminderDueAt;
+
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
 

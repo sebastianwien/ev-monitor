@@ -79,6 +79,22 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
+    /** Reminder 7 days before a long Stripe trial ends: when it ends and where to cancel. */
+    public void sendTrialEndingEmail(String toEmail, String username, String locale, LocalDate endsAt) {
+        String lang = resolveLocale(locale);
+        String endsAtText = endsAt.format(DateTimeFormatter.ofPattern("en".equals(lang) ? "d MMMM yyyy" : "d. MMMM yyyy",
+                "en".equals(lang) ? Locale.ENGLISH : Locale.GERMAN));
+        String html = loadTemplate("trial-ending.html", lang, Map.of(
+                "username", username,
+                "endsAt", endsAtText,
+                "settingsUrl", baseUrl + "/settings"
+        ));
+        String subject = "en".equals(lang)
+                ? "Your AutoSync trial ends on " + endsAtText
+                : "Dein AutoSync-Test endet am " + endsAtText;
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
     public void sendPasswordResetEmail(String toEmail, String token, String locale) {
         String lang = resolveLocale(locale);
         String resetUrl = baseUrl + "/reset-password?token=" + token;

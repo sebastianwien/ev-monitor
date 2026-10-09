@@ -25,6 +25,8 @@
 
       <div v-else-if="stats">
 
+        <PromoTeaserBanner v-if="isAuthenticated" class="mx-4 md:mx-0 mb-3" />
+
         <!-- Breadcrumb: als Chip geerdet, damit er nicht im Gitter-Hintergrund untergeht -->
         <nav aria-label="Breadcrumb" class="px-4 md:px-0 mb-3">
           <ol class="flex flex-nowrap items-center gap-1.5 text-sm whitespace-nowrap overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-1.5 shadow-sm">
@@ -614,6 +616,7 @@ import {
   SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
+import PromoTeaserBanner from '../components/promo/PromoTeaserBanner.vue'
 import PersonalRangeCalculator from '../components/models/PersonalRangeCalculator.vue'
 import RangeCalculatorCard from '../components/shared/RangeCalculatorCard.vue'
 import { buildMarkers } from '../utils/rangeCalculator'
