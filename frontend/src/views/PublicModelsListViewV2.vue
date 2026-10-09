@@ -131,12 +131,12 @@
         </p>
         <!-- Column heads (desktop only; on the phone the bars are labelled in the row).
              .mr-grid sets display itself, so plain `hidden` would lose the cascade. -->
-        <div class="mr-grid mr-ruler h-[30px] max-lg:!hidden" aria-hidden="true">
-          <span class="mr-who self-center text-left text-[11.5px] font-semibold" :class="headClass('mr-who')">{{ t('models_ranking.columns.model') }}</span>
-          <span class="mr-ld self-center text-left text-[11.5px] font-semibold" :class="headClass('mr-ld')">
+        <div class="mr-grid mr-ruler h-[38px] pr-4 max-lg:!hidden lg:pr-5" aria-hidden="true">
+          <span class="mr-who self-center text-left text-[14px] font-semibold" :class="headClass('mr-who')">{{ t('models_ranking.columns.model') }}</span>
+          <span class="mr-ld self-center text-left text-[14px] font-semibold" :class="headClass('mr-ld')">
             {{ t('models_ranking.columns.consumption') }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
           </span>
-          <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block', headClass(col.cls)]" class="hidden self-center whitespace-nowrap text-right text-[11.5px] font-semibold leading-tight">
+          <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block', headClass(col.cls)]" class="hidden self-center whitespace-nowrap text-right text-[14px] font-semibold leading-tight">
             {{ col.label }}
           </span>
         </div>

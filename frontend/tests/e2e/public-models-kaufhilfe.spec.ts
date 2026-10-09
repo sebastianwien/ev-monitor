@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Kaufhilfe auf der Modell-Rangliste (Vorschau ?ansicht=neu): Datenlage, Modelle ohne
+// Kaufhilfe auf der Modell-Rangliste (/modelle, seit Release 2 Default): Datenlage, Modelle ohne
 // Fahrerdaten (Phase A) und der Bedarfs-Check im Hero (Phase B).
-const URL = '/modelle?ansicht=neu';
+const URL = '/modelle';
 
 const rows = (page: Page) => page.locator('ol.mr-list > li');
 
@@ -40,7 +40,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(first.getByTestId('consumption-bars')).toContainText(/Hersteller\s*\d+,\d.*Fahrer\s*\d+,\d\s*[+−]\d+ %/);
       if (viewport.width >= 1280) {
         // range cell: one-stop range from the community DC power, or the honest gap
-        await expect(first.getByTestId('range-cell')).toContainText(/mit 1 Stopp \d+/);
+        await expect(first.getByTestId('range-cell')).toContainText(/\d+ km\s*1 Stopp (bis )?\d+\s*2 Stopps (bis )?\d+/);
       }
       if (viewport.width >= 1024) {
       }
@@ -50,18 +50,13 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       await expect(page.getByTestId('needs-daily')).toHaveValue('40');
       await expect(page.getByTestId('needs-longest')).toHaveValue('400');
-      await expect(page.getByTestId('needs-summary')).toContainText(/\d+ von \d+ Modellen schaffen 400 km mit höchstens 1 Stopp/);
-      await expect(page.getByTestId('needs-stops-1')).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByTestId('needs-summary')).toContainText(/\d+ von \d+ Modellen schaffen 400 km ohne Stopp/);
       // nothing narrows the list yet, so no count line and no repeated basis under the chips
       await expect(page.getByTestId('ranking-count')).toHaveCount(0);
       await expect(page.getByTestId('needs-change')).toHaveCount(0);
 
-      // the stop count is the reader's choice: the figure and the filter chip follow it
-      await page.getByTestId('needs-stops-3').click();
-      await expect(page.getByTestId('needs-summary')).toContainText('mit höchstens 3 Stopps');
-      await expect(page.getByTestId('trip-chip')).toContainText('höchstens 3 Stopps');
       if (viewport.width >= 1280) {
-        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/mit 3 Stopps \d+/);
+        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/\d+ km\s*1 Stopp (bis )?\d+\s*2 Stopps (bis )?\d+/);
       }
     });
 
@@ -78,7 +73,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(summary).toContainText('schaffen 150 km');
     });
 
-    test('Chip "Längste Fahrt mit höchstens 1 Stopp" filtert die Liste', async ({ page }) => {
+    test('Chip "Längste Fahrt ohne Stopp" filtert die Liste', async ({ page }) => {
       await openRanking(page);
       // 100 km schafft jedes bewertbare Modell, 5000 km keins mit einem Stopp
       await setDistance(page, 'needs-longest', '5000');
