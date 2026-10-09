@@ -230,6 +230,9 @@ public class PublicModelService {
                                 ((Number) row[1]).intValue()))
                         .toList();
 
+        PublicModelStatsResponse.RouteTypeConsumption routeTypeConsumption = toRouteTypeConsumption(
+                evLogStatisticsService.calculateRouteTypeConsumption(carsForModel, isSeedUser));
+
         String displayName = brandDisplay + " " + modelDisplay;
 
         return Optional.of(new PublicModelStatsResponse(
@@ -253,7 +256,8 @@ public class PublicModelService {
                 epaVariants,
                 seasonalDistribution,
                 yearDistribution,
-                routeTypeDistribution
+                routeTypeDistribution,
+                routeTypeConsumption
         ));
     }
 
@@ -604,6 +608,19 @@ public class PublicModelService {
                 consumptions.stream().max(BigDecimal::compareTo).orElse(null),
                 capacities.stream().min(BigDecimal::compareTo).orElse(null),
                 capacities.stream().max(BigDecimal::compareTo).orElse(null));
+    }
+
+    /** Below this many plausible trips a route type's consumption is too noisy to publish. */
+    static final int MIN_TRIPS_PER_ROUTE_TYPE = 10;
+
+    /** Null without any classified trip; per type null below MIN_TRIPS_PER_ROUTE_TYPE. */
+    private static PublicModelStatsResponse.RouteTypeConsumption toRouteTypeConsumption(RouteTypeConsumptionResult r) {
+        if (r.cityLogCount() + r.combinedLogCount() + r.highwayLogCount() == 0) return null;
+        return new PublicModelStatsResponse.RouteTypeConsumption(
+                r.cityLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.cityKwhPer100km()) : null,
+                r.combinedLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.combinedKwhPer100km()) : null,
+                r.highwayLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.highwayKwhPer100km()) : null,
+                r.cityLogCount(), r.combinedLogCount(), r.highwayLogCount());
     }
 
     /** Range in km from a net capacity and a consumption in kWh/100 km; null if either is missing. */

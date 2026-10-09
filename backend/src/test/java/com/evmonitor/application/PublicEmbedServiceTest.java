@@ -104,6 +104,6 @@ class PublicEmbedServiceTest {
                                                   BigDecimal avg, int logCount, int cars) {
         return new PublicModelStatsResponse("VW", "ID_3", "VW", "VW ID.3", "COMPACT", "Kompakt",
                 logCount, cars, cars, null, null, null, null, avg, 0, null,
-                variants, null, null, List.of(), List.of());
+                variants, null, null, List.of(), List.of(), null);
     }
 }

@@ -31,7 +31,9 @@ public record PublicModelStatsResponse(
         List<EpaVariant> epaVariants,
         SeasonalDistribution seasonalDistribution,
         List<YearEntry> yearDistribution,
-        List<RouteTypeEntry> routeTypeDistribution
+        List<RouteTypeEntry> routeTypeDistribution,
+        /** Consumption per route type, null without any classified trip. Nullable for Blue/Green. */
+        RouteTypeConsumption routeTypeConsumption
 ) {
     public record WltpVariant(
             BigDecimal batteryCapacityKwh,
@@ -71,6 +73,16 @@ public record PublicModelStatsResponse(
     public record YearEntry(int year, int carCount) {}
 
     public record RouteTypeEntry(String routeType, int count) {}
+
+    /** kWh/100km per route type, null for a type below the trip threshold. Counts are always set. */
+    public record RouteTypeConsumption(
+            BigDecimal cityKwhPer100km,
+            BigDecimal combinedKwhPer100km,
+            BigDecimal highwayKwhPer100km,
+            int cityLogCount,
+            int combinedLogCount,
+            int highwayLogCount
+    ) {}
 
     public record SeasonalDistribution(
             int summerPercentage,

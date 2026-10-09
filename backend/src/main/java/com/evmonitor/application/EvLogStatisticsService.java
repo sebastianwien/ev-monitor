@@ -676,6 +676,48 @@ public class EvLogStatisticsService {
     }
 
     /**
+     * Community consumption per route type for a list of cars. Same plausible entries
+     * (SoC first, kWh/distance fallback) as calculateSeasonalConsumption(), bucketed by the
+     * route type of the log that closes the trip. Logs without route type count nowhere.
+     */
+    public RouteTypeConsumptionResult calculateRouteTypeConsumption(List<Car> cars, boolean isSeedUser) {
+        if (cars.isEmpty()) return RouteTypeConsumptionResult.empty();
+
+        List<UUID> carIds = cars.stream().map(Car::getId).toList();
+        Map<UUID, List<EvLog>> logsByCarId = evLogRepository.findAllByCarIds(carIds).stream()
+                .sorted(Comparator.comparing(EvLog::getLoggedAt))
+                .collect(Collectors.groupingBy(EvLog::getCarId));
+
+        Map<RouteType, BigDecimal> weighted = new java.util.EnumMap<>(RouteType.class);
+        Map<RouteType, Integer> km = new java.util.EnumMap<>(RouteType.class);
+        Map<RouteType, Integer> count = new java.util.EnumMap<>(RouteType.class);
+
+        for (Car car : cars) {
+            List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
+            List<EvLog> statsLogs = allLogs.stream()
+                    .filter(l -> isSeedUser || l.isIncludeInStatistics())
+                    .toList();
+            if (statsLogs.isEmpty()) continue;
+
+            for (PlausibleEntry e : getPlausibleEntriesForCar(car, allLogs, statsLogs)) {
+                RouteType type = e.log().getRouteType();
+                if (type == null) continue;
+                weighted.merge(type, e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())), BigDecimal::add);
+                km.merge(type, e.distanceKm(), Integer::sum);
+                count.merge(type, 1, Integer::sum);
+            }
+        }
+
+        return new RouteTypeConsumptionResult(
+                ConsumptionMath.weightedAverage(weighted.getOrDefault(RouteType.CITY, BigDecimal.ZERO), km.getOrDefault(RouteType.CITY, 0)),
+                ConsumptionMath.weightedAverage(weighted.getOrDefault(RouteType.COMBINED, BigDecimal.ZERO), km.getOrDefault(RouteType.COMBINED, 0)),
+                ConsumptionMath.weightedAverage(weighted.getOrDefault(RouteType.HIGHWAY, BigDecimal.ZERO), km.getOrDefault(RouteType.HIGHWAY, 0)),
+                count.getOrDefault(RouteType.CITY, 0),
+                count.getOrDefault(RouteType.COMBINED, 0),
+                count.getOrDefault(RouteType.HIGHWAY, 0));
+    }
+
+    /**
      * Group charges by time period (DAY, WEEK, MONTH) and aggregate metrics.
      * Uses pre-computed SoC-based ConsumptionResult values for distance and consumption per period,
      * consistent with the overall statistics calculation.
