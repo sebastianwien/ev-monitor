@@ -3780,6 +3780,9 @@ voicelog:
   address_found: "Adresse gefunden: {name}"
   address_not_found: "Adresse „{q}“ nicht gefunden. Bitte den Ort wählen."
 gate:
+  google_redirect: "Mit Google fortfahren"
+  or_email: "oder per E-Mail-Code"
+  error_google: "Die Google-Anmeldung hat nicht geklappt. Nimm den E-Mail-Code."
   email_label: "E-Mail-Adresse"
   email_placeholder: "du{'@'}beispiel.de"
   send_code: "Code senden"

@@ -3659,6 +3659,9 @@ voicelog:
   address_found: "Adress hittad: {name}"
   address_not_found: "Adressen ”{q}” hittades inte. Välj platsen."
 gate:
+  google_redirect: "Fortsätt med Google"
+  or_email: "eller med e-postkod"
+  error_google: "Google-inloggningen fungerade inte. Använd e-postkoden."
   email_label: "E-postadress"
   email_placeholder: "du{'@'}exempel.se"
   send_code: "Skicka kod"

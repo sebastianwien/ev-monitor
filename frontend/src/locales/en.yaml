@@ -3774,6 +3774,9 @@ voicelog:
   address_found: "Address found: {name}"
   address_not_found: "Address “{q}” not found. Please pick the place."
 gate:
+  google_redirect: "Continue with Google"
+  or_email: "or with an email code"
+  error_google: "Google sign-in did not work. Use the email code instead."
   email_label: "Email address"
   email_placeholder: "you{'@'}example.com"
   send_code: "Send code"

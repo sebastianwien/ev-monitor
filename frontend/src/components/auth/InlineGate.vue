@@ -5,7 +5,15 @@
       <span>{{ lead }}</span>
     </p>
 
-    <slot name="alternatives" />
+    <!-- Google: One Tap und Button; ohne Script (Adblocker, ITP) der bisherige Redirect-Login -->
+    <div v-if="googleEnabled || redirectGoogleEnabled" class="mt-4">
+      <div v-show="!googleUnavailable" ref="googleButton" class="min-h-[44px]" />
+      <a v-if="googleUnavailable && redirectGoogleEnabled" href="/oauth2/authorization/google" @click="onRedirectGoogle"
+         class="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 font-semibold text-gray-800 dark:text-gray-100">
+        {{ t('gate.google_redirect') }}
+      </a>
+      <p class="mt-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('gate.or_email') }}</p>
+    </div>
 
     <!-- Schritt 1: Adresse -->
     <form v-if="step === 'email'" class="mt-4" novalidate @submit.prevent="sendCode">
@@ -55,12 +63,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import { Capacitor } from '@capacitor/core'
 import { useI18n } from 'vue-i18n'
 import { LockOpenIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../../stores/auth'
 import { analytics } from '../../services/analytics'
 import { getStoredUtmParams } from '../../utils/reddit-pixel'
+import { useGoogleIdentity } from '../../composables/useGoogleIdentity'
+import { rememberReturnPath } from '../../utils/postLoginRedirect'
 
 /**
  * Login without leaving the page: address, then a 6-digit mail code. A new address gets a
@@ -78,6 +89,31 @@ const email = ref('')
 const code = ref('')
 const busy = ref(false)
 const error = ref('')
+const googleButton = ref<HTMLElement | null>(null)
+const { enabled: googleEnabled, unavailable: googleUnavailable, mount: mountGoogle } = useGoogleIdentity()
+const redirectGoogleEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true' && !Capacitor.isNativePlatform()
+
+onMounted(() => {
+  if (googleButton.value) void mountGoogle(googleButton.value, loginWithGoogle)
+})
+
+async function loginWithGoogle(idToken: string) {
+  error.value = ''
+  busy.value = true
+  try {
+    await authStore.loginWithGoogle({ idToken, locale: locale.value, ...currentUtm() })
+    emit('authenticated')
+  } catch {
+    error.value = t('gate.error_google')
+  } finally {
+    busy.value = false
+  }
+}
+
+/** Redirect login leaves the page: come back here, the calculator inputs wait in sessionStorage. */
+function onRedirectGoogle() {
+  rememberReturnPath(window.location.pathname + window.location.search)
+}
 
 async function sendCode() {
   error.value = ''

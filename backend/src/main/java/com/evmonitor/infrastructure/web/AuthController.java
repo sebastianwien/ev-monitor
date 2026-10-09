@@ -7,6 +7,7 @@ import com.evmonitor.application.RegisterRequest;
 import com.evmonitor.application.RegisterResponse;
 import com.evmonitor.application.codelogin.CodeVerifyRequest;
 import com.evmonitor.application.codelogin.EmailCodeAuthService;
+import com.evmonitor.application.codelogin.GoogleTokenAuthService;
 import com.evmonitor.application.codelogin.SignupAttribution;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
@@ -33,6 +34,7 @@ public class AuthController {
     private final AuthService authService;
     private final RateLimitService rateLimitService;
     private final EmailCodeAuthService emailCodeAuthService;
+    private final GoogleTokenAuthService googleTokenAuthService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request,
@@ -78,6 +80,17 @@ public class AuthController {
                 new SignupAttribution(request.utmSource(), request.utmMedium(), request.utmCampaign(), request.locale()))));
     }
 
+    /** Google One Tap: verifies the ID token, logs in or creates the account. 400 INVALID_GOOGLE_TOKEN otherwise. */
+    @PostMapping("/google/token")
+    public ResponseEntity<?> loginWithGoogleToken(@Valid @RequestBody GoogleTokenBody request,
+                                                  HttpServletRequest httpRequest) {
+        if (!rateLimitService.tryConsumeLogin(clientIp(httpRequest))) {
+            return tooManyRequests(300);
+        }
+        return ResponseEntity.ok(googleTokenAuthService.login(request.idToken(),
+                new SignupAttribution(request.utmSource(), request.utmMedium(), request.utmCampaign(), request.locale())));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@AuthenticationPrincipal UserPrincipal principal) {
         return ResponseEntity.ok(authService.refreshToken(principal));
@@ -117,6 +130,13 @@ public class AuthController {
     record CodeVerifyBody(
             @NotBlank @Email @Size(max = 255) String email,
             @NotBlank @Pattern(regexp = "\\s*\\d{6}\\s*") String code,
+            @Size(max = 100) String utmSource,
+            @Size(max = 100) String utmMedium,
+            @Size(max = 100) String utmCampaign,
+            @Size(max = 10) String locale) {}
+
+    record GoogleTokenBody(
+            @NotBlank @Size(max = 4096) String idToken,
             @Size(max = 100) String utmSource,
             @Size(max = 100) String utmMedium,
             @Size(max = 100) String utmCampaign,

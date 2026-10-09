@@ -14,7 +14,7 @@ import InlineGate from '../InlineGate.vue'
 const TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiJ1MSIsInN1YiI6Im5ldUBleGFtcGxlLmNvbSJ9.x'
 
 let app: App | null = null
-afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
+afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.unstubAllEnvs(); sessionStorage.clear() })
 
 function mount() {
   setActivePinia(createPinia())
@@ -90,5 +90,16 @@ describe('InlineGate', () => {
 
     expect(host.querySelector('[role="alert"]')?.textContent).toBeTruthy()
     expect(authenticated).not.toHaveBeenCalled()
+  })
+
+  it('offers the Google redirect when One Tap is not available and comes back to this page', async () => {
+    vi.stubEnv('VITE_GOOGLE_OAUTH_ENABLED', 'true')
+    const { host } = mount()
+
+    const link = host.querySelector('a[href="/oauth2/authorization/google"]') as HTMLAnchorElement
+    expect(link).not.toBeNull()
+    link.addEventListener('click', e => e.preventDefault())
+    link.click()
+    expect(sessionStorage.getItem('postLoginRedirect')).toBe(window.location.pathname + window.location.search)
   })
 })
