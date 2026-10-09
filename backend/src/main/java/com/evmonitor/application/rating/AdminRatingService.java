@@ -7,7 +7,6 @@ import com.evmonitor.application.rating.AdminRatingResponses.Page;
 import com.evmonitor.application.rating.AdminRatingResponses.TextType;
 import com.evmonitor.application.rating.AdminRatingResponses.Version;
 import com.evmonitor.domain.CarBrand;
-import com.evmonitor.domain.UserRepository;
 import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.rating.CarRating;
 import com.evmonitor.domain.rating.CarRatingRepository;
@@ -15,8 +14,6 @@ import com.evmonitor.domain.rating.CarReview;
 import com.evmonitor.domain.rating.CarReviewRepository;
 import com.evmonitor.domain.rating.RejectionReason;
 import com.evmonitor.domain.rating.ReviewStatus;
-import com.evmonitor.infrastructure.email.EmailService;
-import com.evmonitor.infrastructure.email.ReviewRejectedMail;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
@@ -47,9 +44,8 @@ public class AdminRatingService {
 
     private final CarRatingRepository ratingRepository;
     private final CarReviewRepository reviewRepository;
-    private final UserRepository userRepository;
     private final CoinLogService coinLogService;
-    private final EmailService emailService;
+    private final ReviewRejectionNotifier rejectionNotifier;
     private final CacheManager cacheManager;
 
     /** Filter der Liste, alle optional. {@code status} bezieht sich auf die jüngste Textfassung. */
@@ -90,8 +86,14 @@ public class AdminRatingService {
                         v.getRejectionReason(), v.getRejectionNote(), v.getLlmCheck(), v.isDeleteWithCar(),
                         v.getProofKmDriven(), v.getProofLogCount(), v.getProofConsumption(), v.getReviewedAt(), v.getCreatedAt()))
                 .toList();
-        return new Detail(r.getId(), modelName(r), r.answers(), r.getKmDriven(), r.getLogCount(), r.isBusinessCar(),
+        return new Detail(r.getId(), r.modelDisplayName(), r.answers(), r.getKmDriven(), r.getLogCount(), r.isBusinessCar(),
                 r.getAnonymizedAt() != null, userShort(r.getUserId()), r.getCreatedAt(), r.getUpdatedAt(), versions);
+    }
+
+    /** Detail der Bewertung, zu der diese Textfassung gehört. */
+    @Transactional(readOnly = true)
+    public Detail detailOfReview(UUID reviewId) {
+        return detail(requireReview(reviewId).getCarRatingId());
     }
 
     /**
@@ -129,22 +131,8 @@ public class AdminRatingService {
         review.reject(reason, note, adminId);
         reviewRepository.save(review);
         log.info("[RATING] rejected review={} rating={} admin={} reason={}", reviewId, rating.getId(), adminId, reason);
-        notifyRejection(rating, review);
+        rejectionNotifier.notifyRejected(rating, review);
         return detail(rating.getId());
-    }
-
-    /** Mail-Fehler kippen die Entscheidung nicht - die Ablehnung ist im Formular ohnehin sichtbar. */
-    private void notifyRejection(CarRating rating, CarReview review) {
-        if (rating.getUserId() == null) return;
-        userRepository.findById(rating.getUserId()).ifPresent(user -> {
-            try {
-                emailService.sendReviewRejectedEmail(new ReviewRejectedMail(user.getEmail(), user.getUsername(),
-                        user.getRegistrationLocale(), modelName(rating), review.getRejectionReason(),
-                        review.getRejectionNote(), rating.getCarId()));
-            } catch (RuntimeException e) {
-                log.warn("[RATING] rejection mail failed review={}: {}", review.getId(), e.getClass().getSimpleName());
-            }
-        });
     }
 
     private void clearPublicCache() {
@@ -162,14 +150,10 @@ public class AdminRatingService {
         TextType type = latest == null ? TextType.STARS_ONLY : latest.isReport() ? TextType.LONG : TextType.SHORT;
         String preview = latest == null ? null
                 : latest.getBody().length() <= PREVIEW_CHARS ? latest.getBody() : latest.getBody().substring(0, PREVIEW_CHARS) + " …";
-        return new ListItem(r.getId(), modelName(r), r.getRebuy().name(),
+        return new ListItem(r.getId(), r.modelDisplayName(), r.getRebuy().name(),
                 BigDecimal.valueOf(r.overallScore()).setScale(1, RoundingMode.HALF_UP), r.getKmDriven(), r.getLogCount(),
                 r.getUpdatedAt(), type, latest == null ? null : latest.getId(), latest == null ? null : latest.getStatus(),
                 preview, latest == null ? null : latest.getCreatedAt(), userShort(r.getUserId()));
-    }
-
-    private static String modelName(CarRating r) {
-        return r.getCarModel().getBrand().getDisplayString() + " " + r.getCarModel().getDisplayName();
     }
 
     private static String userShort(UUID userId) {

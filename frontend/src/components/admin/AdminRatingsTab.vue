@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import {
-    adminRatingService, isRedactionOf, REDACTION,
+    adminRatingService, isRedactionOf, highlightSegments, REDACTION,
     type AdminRatingDetail, type AdminRatingPage, type AdminReviewVersion, type RejectionReason, type TextType,
 } from '../../api/adminRatingService'
 import type { ReviewStatus } from '../../api/ratingService'
@@ -79,6 +79,15 @@ async function decide(action: () => Promise<AdminRatingDetail>) {
 
 const approve = (v: AdminReviewVersion) => decide(() => adminRatingService.approve(v.reviewId, null))
 const approveRedacted = (v: AdminReviewVersion) => decide(() => adminRatingService.approve(v.reviewId, redacted.value))
+const llmCheck = (v: AdminReviewVersion) => decide(() => adminRatingService.llmCheck(v.reviewId))
+const takeRedaction = (text: string) => { redacted.value = text }
+const segments = (v: AdminReviewVersion) => highlightSegments(v.body, v.llmCheck?.findings.map(f => f.excerpt) ?? [])
+const REC_CLASS: Record<string, string> = {
+    APPROVE: 'bg-green-900/50 text-green-300',
+    APPROVE_WITH_REDACTION: 'bg-indigo-900/50 text-indigo-300',
+    REJECT: 'bg-red-900/50 text-red-300',
+    NEEDS_HUMAN: 'bg-amber-900/50 text-amber-300',
+}
 const reject = (v: AdminReviewVersion) => decide(() => adminRatingService.reject(v.reviewId, rejectReason.value, rejectNote.value))
 
 watch([status, type], () => { page.value = 0; load() })
@@ -166,7 +175,7 @@ const STATUS_CLASS: Record<string, string> = {
             <span class="px-2 py-0.5 rounded-full" :class="STATUS_CLASS[v.status]">{{ v.status }}</span>
             <span class="text-gray-500">eingereicht {{ date(v.createdAt) }}<template v-if="v.reviewedAt">, entschieden {{ date(v.reviewedAt) }}</template></span>
           </div>
-          <p class="whitespace-pre-line text-sm">{{ v.body }}</p>
+          <p class="whitespace-pre-line text-sm"><template v-for="(seg, i) in segments(v)" :key="i"><mark v-if="seg.hit" class="bg-amber-500/40 text-inherit rounded-sm">{{ seg.text }}</mark><template v-else>{{ seg.text }}</template></template></p>
           <p v-if="v.publishedBody && v.publishedBody !== v.body" class="whitespace-pre-line text-sm text-green-300">Veröffentlicht: {{ v.publishedBody }}</p>
           <div v-if="v.pros.length || v.cons.length" class="text-xs text-gray-400">
             <span v-for="p in v.pros" :key="`p${p}`" class="mr-2">+ {{ p }}</span>
@@ -178,7 +187,31 @@ const STATUS_CLASS: Record<string, string> = {
           </p>
           <p v-if="v.rejectionReason" class="text-xs text-red-300">Abgelehnt: {{ v.rejectionReason }}<template v-if="v.rejectionNote"> - {{ v.rejectionNote }}</template></p>
 
+          <!-- Mistral: nur Vorschlag, die Entscheidung bleibt beim Admin -->
+          <div v-if="v.llmCheck" class="rounded-sm bg-gray-900 p-3 space-y-2 text-sm">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2 py-0.5 rounded-full text-xs font-semibold" :class="REC_CLASS[v.llmCheck.recommendation]">{{ v.llmCheck.recommendation }}</span>
+              <span class="text-xs text-gray-400">Sicherheit {{ v.llmCheck.confidence }}</span>
+              <span v-if="v.llmCheck.meta" class="text-xs text-gray-500">{{ v.llmCheck.meta.model }}, {{ date(v.llmCheck.meta.checkedAt) }}, ${{ Number(v.llmCheck.meta.costUsd).toFixed(5) }}</span>
+            </div>
+            <p>{{ v.llmCheck.summary }}</p>
+            <ul v-if="v.llmCheck.findings.length" class="space-y-1">
+              <li v-for="(f, i) in v.llmCheck.findings" :key="i" class="text-xs">
+                <span class="font-semibold">{{ f.category }} ({{ f.severity }})</span>: „{{ f.excerpt }}“ - {{ f.explanation }}
+              </li>
+            </ul>
+            <p v-if="v.llmCheck.topics.length" class="text-xs text-gray-500">Themen: {{ v.llmCheck.topics.join(', ') }}</p>
+            <div v-if="v.llmCheck.redacted_text && v.status === 'PENDING'" class="space-y-1">
+              <p class="text-xs text-gray-400">Schwärzungsvorschlag:</p>
+              <p class="whitespace-pre-line text-xs bg-gray-800 rounded-sm p-2">{{ v.llmCheck.redacted_text }}</p>
+              <button type="button" class="px-3 py-1 rounded-sm bg-indigo-700 text-white text-xs" @click="takeRedaction(v.llmCheck.redacted_text)">Übernehmen</button>
+            </div>
+          </div>
+
           <div v-if="v.status === 'PENDING'" class="space-y-3 pt-2">
+            <button type="button" class="px-4 py-2 rounded-sm bg-gray-700 hover:bg-gray-600 text-white text-sm disabled:opacity-50" :disabled="busy" @click="llmCheck(v)">
+              {{ v.llmCheck ? 'Erneut von Mistral moderieren lassen' : 'Von Mistral moderieren lassen' }}
+            </button>
             <button type="button" class="px-4 py-2 rounded-sm bg-green-600 hover:bg-green-700 text-white text-sm font-semibold disabled:opacity-50" :disabled="busy" @click="approve(v)">
               Freigeben
             </button>

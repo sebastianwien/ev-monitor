@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.rating.AdminRatingResponses;
 import com.evmonitor.application.rating.AdminRatingService;
+import com.evmonitor.application.rating.ReviewModerationService;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.rating.RejectionReason;
 import com.evmonitor.domain.rating.ReviewStatus;
@@ -30,6 +31,7 @@ import java.util.UUID;
 public class AdminRatingController {
 
     private final AdminRatingService ratingService;
+    private final ReviewModerationService moderationService;
 
     public record ApproveRequest(@Size(max = 5_000) String publishedBody) {
     }
@@ -66,5 +68,12 @@ public class AdminRatingController {
     public AdminRatingResponses.Detail reject(@PathVariable UUID reviewId, @Valid @RequestBody RejectRequest request,
                                               @AuthenticationPrincipal UserPrincipal admin) {
         return ratingService.reject(reviewId, request.reason(), request.note(), admin.getUser().getId());
+    }
+
+    /** Mistral-Vorschlag auf Knopfdruck, erneut auslösbar. Liefert das Detail mit gespeichertem Ergebnis. */
+    @PostMapping("/reviews/{reviewId}/llm-check")
+    public AdminRatingResponses.Detail llmCheck(@PathVariable UUID reviewId) {
+        moderationService.check(reviewId);
+        return ratingService.detailOfReview(reviewId);
     }
 }

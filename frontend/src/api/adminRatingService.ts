@@ -37,7 +37,7 @@ export interface AdminReviewVersion {
     publishedBody: string | null
     rejectionReason: RejectionReason | null
     rejectionNote: string | null
-    llmCheck: unknown
+    llmCheck: LlmCheck | null
     deleteWithCar: boolean
     proofKmDriven: number | null
     proofLogCount: number | null
@@ -60,6 +60,27 @@ export interface AdminRatingDetail {
     versions: AdminReviewVersion[]
 }
 
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Ergebnis der Mistral-Prüfung, wie in car_review.llm_check gespeichert. */
+export interface LlmCheck {
+    recommendation: 'APPROVE' | 'APPROVE_WITH_REDACTION' | 'REJECT' | 'NEEDS_HUMAN'
+    confidence: 'LOW' | 'MEDIUM' | 'HIGH'
+    summary: string
+    findings: { category: string; excerpt: string; explanation: string; severity: 'INFO' | 'WARN' | 'BLOCK' }[]
+    redacted_text: string | null
+    topics: string[]
+    meta?: { model: string; checkedAt: string; costUsd: number }
+}
+
+/** Text in Abschnitte zerlegen, damit Fundstellen ohne v-html markiert werden können. */
+export function highlightSegments(text: string, excerpts: string[]): { text: string; hit: boolean }[] {
+    const marks = excerpts.filter(e => e && text.includes(e))
+    if (marks.length === 0) return [{ text, hit: false }]
+    const parts = text.split(new RegExp(`(${marks.map(escapeRegExp).join('|')})`, 'g'))
+    return parts.filter(p => p !== '').map(p => ({ text: p, hit: marks.includes(p) }))
+}
+
 export interface AdminRatingFilter {
     status?: ReviewStatus | ''
     type?: TextType | ''
@@ -69,8 +90,7 @@ export interface AdminRatingFilter {
 /** Gleiche Regel wie der Server: nur nicht leere Stellen durch [entfernt] ersetzen. */
 export const REDACTION = '[entfernt]'
 export function isRedactionOf(body: string, published: string): boolean {
-    const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const pattern = published.split(REDACTION).map(escape).join('(.+?)')
+    const pattern = published.split(REDACTION).map(escapeRegExp).join('(.+?)')
     return new RegExp(`^${pattern}$`, 's').test(body)
 }
 
@@ -87,6 +107,9 @@ export const adminRatingService = {
     },
     async approve(reviewId: string, publishedBody: string | null): Promise<AdminRatingDetail> {
         return (await api.post<AdminRatingDetail>(`/admin/ratings/reviews/${reviewId}/approve`, { publishedBody })).data
+    },
+    async llmCheck(reviewId: string): Promise<AdminRatingDetail> {
+        return (await api.post<AdminRatingDetail>(`/admin/ratings/reviews/${reviewId}/llm-check`)).data
     },
     async reject(reviewId: string, reason: RejectionReason, note: string): Promise<AdminRatingDetail> {
         return (await api.post<AdminRatingDetail>(`/admin/ratings/reviews/${reviewId}/reject`, { reason, note: note || null })).data

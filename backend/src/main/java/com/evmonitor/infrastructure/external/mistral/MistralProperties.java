@@ -27,6 +27,8 @@ public class MistralProperties {
     private String baseUrl = "https://api.mistral.ai";
     private String transcribeModel = "voxtral-mini-latest";
     private String extractModel = "voxtral-small-latest";
+    /** Prüft Erfahrungstexte der Fahrzeugbewertung, nur auf Knopfdruck im Admin-Tab. */
+    private String moderationModel = "mistral-small-latest";
     /** Wartezeit vor dem ersten Retry nach 429, verdoppelt sich je Versuch. */
     private long rateLimitBackoffMs = 500;
     /** Preise je konfiguriertem Modellnamen, fuer {@code voice_draft.cost_usd}. */

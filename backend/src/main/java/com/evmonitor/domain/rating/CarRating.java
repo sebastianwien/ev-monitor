@@ -143,6 +143,11 @@ public class CarRating {
         return answeredStars().stream().mapToInt(Integer::intValue).average().orElseThrow();
     }
 
+    /** "Volkswagen ID.3" - Anzeigename für Admin und Mails. */
+    public String modelDisplayName() {
+        return carModel.getBrand().getDisplayString() + " " + carModel.getDisplayName();
+    }
+
     public RatingAnswers answers() {
         return new RatingAnswers(rebuy, enums(rebuyReasons, RebuyReason.class), dailyFit, longDistance, software,
                 buildQuality, service, totalCost, enums(strengths, RatingChip.class), enums(weaknesses, RatingChip.class));
