@@ -435,6 +435,16 @@
           <p class="text-sm text-gray-400 dark:text-gray-400">{{ t('model.ac_footnote') }}</p>
         </div>
 
+        <!-- Fahrer sagen: Bewertungen unter den Messdaten -->
+        <ModelRatingsBlock
+          v-if="ratings"
+          :ratings="ratings"
+          :model="shortModelName"
+          :cta-car-id="ratingCtaCarId"
+          :register-path="isAuthenticated ? null : registerPath"
+          class="mb-6"
+        />
+
         <!-- CTA -->
         <div class="bg-gradient-to-br from-green-600 to-green-700 border-y-2 md:border-2 border-gray-800 dark:border-gray-200 md:rounded-xl md:shadow-[5px_5px_0_0_#1f2937] dark:md:shadow-[5px_5px_0_0_#1f2937] p-6 text-white">
           <div class="flex items-center gap-2 mb-2">
@@ -611,6 +621,10 @@ import RangeCalculatorCard from '../components/shared/RangeCalculatorCard.vue'
 import { buildMarkers } from '../utils/rangeCalculator'
 import GridRippleBackground from '../components/shared/GridRippleBackground.vue'
 import RegionChip from '../components/shared/RegionChip.vue'
+import ModelRatingsBlock from '../components/rating/ModelRatingsBlock.vue'
+import { ratingService, type PublicModelRatings } from '../api/ratingService'
+import { useRatingStore } from '../stores/rating'
+import { buildProductJsonLd } from '../utils/ratingJsonLd'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '../composables/useMarketRoute'
 import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
@@ -647,6 +661,10 @@ const notFound = ref(false)
 const apiError = ref(false)
 const showBackPill = ref(false)
 const stats = ref<PublicModelStats | null>(null)
+/** Fahrerbewertungen, null bis geladen oder bei Fehler - die Seite funktioniert auch ohne. */
+const ratings = ref<PublicModelRatings | null>(null)
+/** Eigenes, bewertbares und unbewertetes Auto dieses Modells (nur eingeloggt). */
+const ratingCtaCarId = ref<string | null>(null)
 const selectedVariantIndex = ref(0)
 const pricePerKwh = ref(countryStore.country === 'US' ? 0.13 : 0.35)
 // Füllstand des Tarif-Sliders (0.10-1.00 €/kWh) für den grünen Fortschrittsbalken
@@ -726,6 +744,25 @@ const canonicalBrand = computed(() => stats.value?.brandDisplayName ?? brand)
 const isUS = computed(() => currentMarket.value === 'us' || (countryStore.previewCountry ?? countryStore.country) === 'US')
 const loginPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/login' : '/login')
 const registerPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/register' : '/register')
+
+/** "ID.3" statt "Volkswagen ID.3" - für "ID.3-Fahrer". */
+const shortModelName = computed(() => {
+  if (!stats.value) return ''
+  const full = stats.value.modelDisplayName
+  const brandPrefix = `${stats.value.brandDisplayName} `
+  return full.startsWith(brandPrefix) ? full.slice(brandPrefix.length) : full
+})
+
+async function loadRatingCta() {
+  if (!authStore.isAuthenticated() || !stats.value) return
+  try {
+    const eligibility = await useRatingStore().getEligibility()
+    ratingCtaCarId.value = eligibility.cars.find(c => c.eligible && !c.rated
+      && c.brandName === stats.value!.brandDisplayName && c.modelName === shortModelName.value)?.carId ?? null
+  } catch {
+    // ohne Hinweis weiter
+  }
+}
 const ratingLabel = computed(() =>
   isUS.value && (stats.value?.epaVariants?.length ?? 0) > 0 ? 'EPA' : 'WLTP'
 )
@@ -1058,6 +1095,14 @@ useHead(computed(() => {
     }))
   }
 
+  const productJsonLd = buildProductJsonLd({
+    name,
+    brand: stats.value.brandDisplayName,
+    url: canonicalUrl,
+    driverLabel: t('rating.public.driver', { model: shortModelName.value }),
+    ratings: ratings.value,
+  })
+
   const htmlLang = MARKET_HTML_LANG[currentMarket.value]
 
   return {
@@ -1086,7 +1131,8 @@ useHead(computed(() => {
       { type: 'application/ld+json', innerHTML: JSON.stringify(webPageJsonLd) },
       ...(faqItems.value.length > 0
         ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(faqJsonLd) }]
-        : [])
+        : []),
+      ...(productJsonLd ? [{ type: 'application/ld+json', innerHTML: JSON.stringify(productJsonLd) }] : []),
     ]
   }
 }))
@@ -1097,8 +1143,11 @@ onMounted(async () => {
     sessionStorage.removeItem('ev_from')
   }
 
+  // Bewertungen parallel und im selben Lade-Flow, damit sie im Prerender-HTML stehen
+  const ratingsRequest = ratingService.getPublicRatings(brand, model).catch(() => null)
   try {
-    const data = await getModelStats(brand, model)
+    const [data, ratingData] = await Promise.all([getModelStats(brand, model), ratingsRequest])
+    ratings.value = ratingData
     if (!data) {
       notFound.value = true
     } else {
@@ -1119,6 +1168,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+  loadRatingCta()
 })
 
 function simpleDeltaClass(real: number, wltp: number): string {

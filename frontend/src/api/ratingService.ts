@@ -80,6 +80,46 @@ export interface RatingResult {
     coinsAwarded: number
 }
 
+export interface ChipCount {
+    value: string
+    count: number
+}
+
+/** Öffentliche Bewertungen einer Modellseite, ohne IDs und Nutzerbezug. */
+export interface PublicModelRatings {
+    count: number
+    rebuy: { yes: number; brandOtherModel: number; no: number }
+    rebuyReasons: ChipCount[]
+    categories: RatingResult['categories']
+    totalCost: { cheaper: number; expected: number; pricier: number } | null
+    strengths: ChipCount[]
+    weaknesses: ChipCount[]
+    singles: {
+        rebuy: RebuyAnswer
+        dailyFit: number
+        longDistance: number | null
+        software: number
+        buildQuality: number
+        service: number | null
+        totalCost: TotalCostVerdict
+        kmRounded: number
+        businessCar: boolean
+    }[]
+    quotes: { text: string; kmRounded: number; month: string }[]
+    reports: {
+        text: string
+        pros: string[]
+        cons: string[]
+        kmRounded: number
+        month: string
+        logCount: number | null
+        consumptionKwhPer100km: number | null
+        ratingValue: number
+        publishedOn: string
+    }[]
+    aggregate: { ratingValue: number; ratingCount: number } | null
+}
+
 export interface ReviewInput {
     body: string
     pros: string[]
@@ -104,6 +144,16 @@ export const ratingService = {
 
     async submitReview(carId: string, review: ReviewInput): Promise<ReviewState> {
         return (await api.put<ReviewState>(`/cars/${carId}/rating/review`, review)).data
+    },
+
+    /** null bei unbekanntem Modell (404). */
+    async getPublicRatings(brand: string, model: string): Promise<PublicModelRatings | null> {
+        try {
+            return (await api.get<PublicModelRatings>(`/public/models/${brand}/${model}/ratings`)).data
+        } catch (err: any) {
+            if (err.response?.status === 404) return null
+            throw err
+        }
     },
 
     async updateReviewSettings(carId: string, deleteWithCar: boolean): Promise<ReviewState> {

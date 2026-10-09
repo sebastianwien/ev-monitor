@@ -2,13 +2,17 @@ package com.evmonitor.application.rating;
 
 import com.evmonitor.domain.rating.CarRating;
 import com.evmonitor.domain.rating.RebuyAnswer;
+import com.evmonitor.domain.rating.TotalCostVerdict;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Einzige Stelle, an der Fahrerbewertungen zu Modellwerten verdichtet werden (persönliches Ergebnis
@@ -22,6 +26,9 @@ public final class RatingAggregator {
     /** Ab hier "kritischer als X Prozent", vorher wäre die Zahl Zufall. */
     public static final int MIN_FOR_PERCENTILE = 15;
 
+    /** Öffentlich nur gerundete Kilometer. */
+    private static final int PUBLIC_KM_STEP = 5_000;
+    private static final int TOP_CHIPS = 3;
     private static final double FULL_WEIGHT_KM = 50_000;
     private static final double MIN_WEIGHT = 0.1;
     private static final double UNIFORM_EXTREME_FACTOR = 0.5;
@@ -31,6 +38,13 @@ public final class RatingAggregator {
 
     /** "Du bist kritischer als X Prozent" und umgekehrt, gemessen an der Gesamtnote. */
     public record Standing(int moreCriticalThanPercent, int moreSatisfiedThanPercent) {
+    }
+
+    /** Wie oft ein Chip (Stärke, Schwäche, Wiederkauf-Grund) gewählt wurde. */
+    public record ChipCount(String value, int count) {
+    }
+
+    public record TotalCostCounts(int cheaper, int expected, int pricier) {
     }
 
     /**
@@ -69,6 +83,48 @@ public final class RatingAggregator {
         long happier = others.stream().filter(s -> s > myScore).count();
         long sadder = others.stream().filter(s -> s < myScore).count();
         return new Standing(percent(happier, others.size()), percent(sadder, others.size()));
+    }
+
+    /**
+     * Gesamtwertung des Modells: gewichteter Mittelwert der Gesamtnoten, eine Nachkommastelle.
+     *
+     * @return null unter {@link #MIN_FOR_AVERAGE} Bewertungen
+     */
+    public static BigDecimal aggregateScore(List<CarRating> ratings, Set<UUID> ratingIdsWithApprovedText) {
+        if (ratings.size() < MIN_FOR_AVERAGE) return null;
+        double weighted = 0;
+        double weights = 0;
+        for (CarRating r : ratings) {
+            double w = weight(r, ratingIdsWithApprovedText.contains(r.getId()));
+            weighted += w * r.overallScore();
+            weights += w;
+        }
+        return BigDecimal.valueOf(weighted / weights).setScale(1, RoundingMode.HALF_UP);
+    }
+
+    /** Die drei häufigsten Chips, bei Gleichstand alphabetisch. */
+    public static List<ChipCount> topChips(List<CarRating> ratings, Function<CarRating, List<String>> chips) {
+        Map<String, Long> counts = ratings.stream()
+                .flatMap(r -> chips.apply(r) == null ? java.util.stream.Stream.empty() : chips.apply(r).stream())
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        return counts.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder())
+                        .thenComparing(Map.Entry.comparingByKey()))
+                .limit(TOP_CHIPS)
+                .map(e -> new ChipCount(e.getKey(), e.getValue().intValue()))
+                .toList();
+    }
+
+    public static TotalCostCounts totalCost(List<CarRating> ratings) {
+        return new TotalCostCounts(
+                (int) ratings.stream().filter(r -> r.getTotalCost() == TotalCostVerdict.CHEAPER).count(),
+                (int) ratings.stream().filter(r -> r.getTotalCost() == TotalCostVerdict.EXPECTED).count(),
+                (int) ratings.stream().filter(r -> r.getTotalCost() == TotalCostVerdict.PRICIER).count());
+    }
+
+    /** Kilometer für die Öffentlichkeit, auf 5.000 gerundet. */
+    public static int publicKm(int km) {
+        return Math.round(km / (float) PUBLIC_KM_STEP) * PUBLIC_KM_STEP;
     }
 
     private static boolean isUniformExtreme(CarRating rating) {

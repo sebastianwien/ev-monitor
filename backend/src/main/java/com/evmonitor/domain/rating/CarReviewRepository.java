@@ -23,6 +23,15 @@ public interface CarReviewRepository extends JpaRepository<CarReview, UUID> {
             """)
     Set<UUID> findRatingIdsWithApprovedText(@Param("model") CarBrand.CarModel model);
 
+    /** Öffentliche Texte eines Modells: nur freigegeben, ohne Seed. */
+    @Query("""
+            SELECT v FROM CarReview v, CarRating r
+            WHERE v.carRatingId = r.id AND r.carModel = :model AND r.seed = false
+              AND v.status = com.evmonitor.domain.rating.ReviewStatus.APPROVED
+            ORDER BY v.reviewedAt DESC
+            """)
+    List<CarReview> findApprovedByModel(@Param("model") CarBrand.CarModel model);
+
     @Modifying
     @Query("DELETE FROM CarReview v WHERE v.carRatingId = :ratingId AND v.deleteWithCar = true")
     int deleteMarkedForCarDeletion(@Param("ratingId") UUID ratingId);

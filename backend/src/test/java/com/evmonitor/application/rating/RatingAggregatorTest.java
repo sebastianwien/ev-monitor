@@ -3,6 +3,7 @@ package com.evmonitor.application.rating;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.rating.CarRating;
 import com.evmonitor.domain.rating.RatingAnswers;
+import com.evmonitor.domain.rating.RatingChip;
 import com.evmonitor.domain.rating.RatingSnapshot;
 import com.evmonitor.domain.rating.RebuyAnswer;
 import com.evmonitor.domain.rating.TotalCostVerdict;
@@ -135,5 +136,46 @@ class RatingAggregatorTest {
         // 14 andere: 7 bewerten besser (50 %), 4 schlechter (29 %)
         assertThat(standing.moreCriticalThanPercent()).isEqualTo(50);
         assertThat(standing.moreSatisfiedThanPercent()).isEqualTo(29);
+    }
+
+    // ── Öffentliche Modellseite ───────────────────────────────────────────
+
+    @Test
+    void aggregateScore_isWeightedMeanOfOverallScores_onlyFromFive() {
+        assertThat(RatingAggregator.aggregateScore(uniform(4, 50_000, 4), Set.of())).isNull();
+
+        List<CarRating> ratings = new ArrayList<>(uniform(4, 50_000, 4));
+        ratings.add(rating(25_000, stars(2, null, 2, 2, null)));   // Gesamtnote 2, Gewicht 0,5
+
+        // (4 * 4 + 0,5 * 2) / 4,5 = 3,78 -> 3,8
+        assertThat(RatingAggregator.aggregateScore(ratings, Set.of())).isEqualByComparingTo(new BigDecimal("3.8"));
+    }
+
+    @Test
+    void topChips_countAcrossRatings_topThreeByCountThenName() {
+        List<CarRating> ratings = List.of(
+                rating(1, chips(List.of(RatingChip.SPACE, RatingChip.PRICE))),
+                rating(1, chips(List.of(RatingChip.SPACE, RatingChip.DESIGN))),
+                rating(1, chips(List.of(RatingChip.SPACE, RatingChip.PRICE, RatingChip.EFFICIENCY))),
+                rating(1, chips(List.of(RatingChip.DESIGN))));
+
+        List<RatingAggregator.ChipCount> top = RatingAggregator.topChips(ratings, CarRating::getStrengths);
+
+        assertThat(top).containsExactly(
+                new RatingAggregator.ChipCount("SPACE", 3),
+                new RatingAggregator.ChipCount("DESIGN", 2),
+                new RatingAggregator.ChipCount("PRICE", 2));
+    }
+
+    @Test
+    void publicKm_roundsToFiveThousand() {
+        assertThat(RatingAggregator.publicKm(2_400)).isZero();
+        assertThat(RatingAggregator.publicKm(2_500)).isEqualTo(5_000);
+        assertThat(RatingAggregator.publicKm(23_700)).isEqualTo(25_000);
+        assertThat(RatingAggregator.publicKm(22_400)).isEqualTo(20_000);
+    }
+
+    private static RatingAnswers chips(List<RatingChip> strengths) {
+        return new RatingAnswers(RebuyAnswer.YES, List.of(), 3, 3, 3, 3, 3, TotalCostVerdict.EXPECTED, strengths, List.of());
     }
 }
