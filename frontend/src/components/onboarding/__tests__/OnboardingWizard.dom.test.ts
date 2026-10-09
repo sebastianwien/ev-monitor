@@ -107,13 +107,17 @@ async function flush() {
   await nextTick()
 }
 
-async function mount() {
+async function mount(startPath = '/dashboard') {
   const host = document.createElement('div')
   document.body.appendChild(host)
   router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/:p*', component: { render: () => null } }],
+    routes: [
+      { path: '/modelle/:p*', component: { render: () => null } },
+      { path: '/:p*', component: { render: () => null }, meta: { requiresAuth: true } },
+    ],
   })
+  await router.push(startPath)
   app = createApp(defineComponent({ render: () => h(OnboardingWizard) }))
   app.use(createPinia()).use(i18n).use(router)
   app.mount(host)
@@ -145,6 +149,15 @@ describe('OnboardingWizard: wer ihn zu sehen bekommt', () => {
     app?.unmount()
     document.body.innerHTML = ''
     document.body.style.overflow = ''
+  })
+
+  it('wartet auf öffentlichen Seiten und öffnet erst auf der ersten App-Seite', async () => {
+    await mount('/modelle/Volkswagen/ID.3')
+    expect(dialog()).toBeNull()
+
+    await router.push('/dashboard')
+    await flush()
+    expect(dialog()).not.toBeNull()
   })
 
   it('oeffnet sich fuer einen User ohne Fahrzeug', async () => {

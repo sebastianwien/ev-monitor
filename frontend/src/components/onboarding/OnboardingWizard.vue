@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
@@ -29,6 +29,7 @@ type StepKey = 'welcome' | 'car' | 'card' | 'install'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const countryStore = useCountryStore()
 const { isOnboardingVisible } = useOnboardingState()
@@ -176,7 +177,16 @@ function open() {
   void quickAdd.loadBrands()
 }
 
-onMounted(async () => {
+// Öffentliche Seiten (z. B. die Modellseite nach dem Login über das Gate) nicht überdecken:
+// die Einführung wartet auf die erste App-Seite und prüft dann genau einmal.
+let checked = false
+watch(() => route.meta.requiresAuth, (inApp) => {
+  if (!inApp || checked) return
+  checked = true
+  void maybeOpen()
+}, { immediate: true })
+
+async function maybeOpen() {
   if (localStorage.getItem('onboarding-force') === 'true') {
     localStorage.removeItem('onboarding-force')
     open()
@@ -196,7 +206,7 @@ onMounted(async () => {
   } catch {
     // Nicht als gesehen markieren - beim naechsten Laden erneut versuchen.
   }
-})
+}
 
 watch(stepIndex, (index) => {
   analytics.trackOnboardingStepViewed(index + 1)
