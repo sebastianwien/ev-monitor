@@ -88,13 +88,16 @@ export function useLocaleFormat() {
      * @param opts.showUnit Append unit label (default true)
      * @param opts.round Round to integer (default true)
      */
-    function formatDistance(km: number, opts?: { showUnit?: boolean, round?: boolean }): string {
+    /** `step` rounds the converted value down to a multiple of it (10 for a range read as "about 230 km") */
+    function formatDistance(km: number, opts?: { showUnit?: boolean, round?: boolean, step?: number }): string {
         const showUnit = opts?.showUnit ?? true
         const round = opts?.round ?? true
         const converted = convertDistance(km)
-        const formatted = round
-            ? Math.round(converted).toLocaleString(numberLocale.value)
-            : converted.toLocaleString(numberLocale.value, { maximumFractionDigits: 1 })
+        const formatted = opts?.step
+            ? (Math.floor(converted / opts.step) * opts.step).toLocaleString(numberLocale.value)
+            : round
+                ? Math.round(converted).toLocaleString(numberLocale.value)
+                : converted.toLocaleString(numberLocale.value, { maximumFractionDigits: 1 })
         return showUnit ? `${formatted} ${unitSystem.value.distanceUnit}` : formatted
     }
 

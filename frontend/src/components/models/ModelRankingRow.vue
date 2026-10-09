@@ -314,7 +314,10 @@ const stopsRange = computed(() => {
   const dcBased = m.value.fastChargePowerKw != null && m.value.avgConsumptionKwhPer100km != null
   return { one, two, addedKm: one - Math.round(base * USABLE_BATTERY_SHARE), dcBased }
 })
-const fmtKm = (km: number) => formatDistance(km, { showUnit: false })
+// Ranges read as rough figures: whole tens, in the display unit
+const RANGE_STEP = 10
+const fmtKm = (km: number) => formatDistance(km, { showUnit: false, step: RANGE_STEP })
+const fmtKmUnit = (km: number) => formatDistance(km, { step: RANGE_STEP })
 // Desktop range cell: the span from the smallest to the largest battery as the number, below it
 // the range with one and two stops, "up to" when they refer to the largest battery only
 const hasBatterySpan = computed(() => !!typicalSpan.value && typicalSpan.value.lo !== typicalSpan.value.hi)
@@ -353,10 +356,10 @@ const mainValue = computed(() => {
   switch (props.sort) {
     case 'range':
       if (typicalSpan.value) {
-        return { value: formatDistance(typicalSpan.value.hi, { showUnit: false }), unit: `${distanceUnitLabel()}, ${t('models_ranking.row.typical_range')}`, cls: '' }
+        return { value: fmtKm(typicalSpan.value.hi), unit: `${distanceUnitLabel()}, ${t('models_ranking.row.typical_range')}`, cls: '' }
       }
       return m.value.realRangeKm != null
-        ? { value: formatDistance(m.value.realRangeKm, { showUnit: false }), unit: `${distanceUnitLabel()} ${t('models_ranking.row.real_range')}`, cls: '' }
+        ? { value: fmtKm(m.value.realRangeKm), unit: `${distanceUnitLabel()} ${t('models_ranking.row.real_range')}`, cls: '' }
         : na
     case 'wltp':
       return displayWltpDeviation.value != null
@@ -430,13 +433,13 @@ const facts = computed(() => {
     {
       icon: MapIcon,
       label: t('models_ranking.detail.range'),
-      value: x.realRangeKm != null ? formatDistance(x.realRangeKm) : '–',
+      value: x.realRangeKm != null ? fmtKmUnit(x.realRangeKm) : '–',
       hint: x.realRangeKm != null ? t('models_ranking.detail.range_hint') : t('models_ranking.detail.range_missing'),
     },
     {
       icon: ClockIcon,
       label: t('models_ranking.detail.stops'),
-      value: stopsRange.value ? `${fmtKm(stopsRange.value.one)} / ${formatDistance(stopsRange.value.two)}` : '–',
+      value: stopsRange.value ? `${fmtKm(stopsRange.value.one)} / ${fmtKmUnit(stopsRange.value.two)}` : '–',
       hint: stopsRange.value && stopsRange.value.dcBased && x.fastChargePowerKw != null
         ? t('models_ranking.detail.stops_hint', {
             minutes: formatNumber(ONE_STOP_MINUTES),
