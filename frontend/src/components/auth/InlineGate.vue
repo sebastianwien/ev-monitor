@@ -1,0 +1,146 @@
+<template>
+  <div data-testid="inline-gate" class="rounded-xl border-2 border-gray-800 dark:border-gray-200 bg-green-50 dark:bg-green-900/20 p-4 sm:p-5">
+    <p class="flex items-start gap-2 font-semibold text-gray-900 dark:text-gray-100">
+      <LockOpenIcon class="h-5 w-5 shrink-0 mt-0.5 text-green-700 dark:text-green-400" />
+      <span>{{ lead }}</span>
+    </p>
+
+    <slot name="alternatives" />
+
+    <!-- Schritt 1: Adresse -->
+    <form v-if="step === 'email'" class="mt-4" novalidate @submit.prevent="sendCode">
+      <label for="gate-email" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+        {{ t('gate.email_label') }}
+      </label>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input id="gate-email" v-model.trim="email" type="email" autocomplete="email" inputmode="email" required
+               :placeholder="t('gate.email_placeholder')"
+               class="flex-1 min-w-0 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-base text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
+        <button type="submit" :disabled="busy"
+                class="btn-3d shrink-0 rounded-lg border-2 border-gray-800 dark:border-gray-200 bg-green-600 px-4 py-2.5 font-bold text-white disabled:opacity-60">
+          {{ busy ? t('gate.sending') : t('gate.send_code') }}
+        </button>
+      </div>
+    </form>
+
+    <!-- Schritt 2: Code -->
+    <form v-else class="mt-4" novalidate @submit.prevent="verify">
+      <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+        {{ t('gate.code_sent', { email }) }}
+      </p>
+      <label for="gate-code" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+        {{ t('gate.code_label') }}
+      </label>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input id="gate-code" v-model.trim="code" type="text" autocomplete="one-time-code" inputmode="numeric"
+               pattern="[0-9]{6}" maxlength="6" required
+               class="flex-1 min-w-0 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-center text-xl font-bold tracking-[0.4em] tabular-nums text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
+        <button type="submit" :disabled="busy"
+                class="btn-3d shrink-0 rounded-lg border-2 border-gray-800 dark:border-gray-200 bg-green-600 px-4 py-2.5 font-bold text-white disabled:opacity-60">
+          {{ busy ? t('gate.verifying') : t('gate.confirm') }}
+        </button>
+      </div>
+      <button type="button" class="mt-2 text-sm font-semibold text-green-700 dark:text-green-400 underline" @click="restart">
+        {{ t('gate.change_email') }}
+      </button>
+    </form>
+
+    <p v-if="error" role="alert" class="mt-3 text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
+
+    <p class="mt-4 text-xs text-gray-600 dark:text-gray-400">
+      {{ t('gate.consent') }}
+      <a href="/datenschutz" class="underline">{{ t('gate.privacy_link') }}</a>
+    </p>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { LockOpenIcon } from '@heroicons/vue/24/outline'
+import { useAuthStore } from '../../stores/auth'
+import { analytics } from '../../services/analytics'
+import { getStoredUtmParams } from '../../utils/reddit-pixel'
+
+/**
+ * Login without leaving the page: address, then a 6-digit mail code. A new address gets a
+ * free account on the first valid code. `lead` names what the visitor gets before we ask.
+ */
+defineProps<{ lead: string }>()
+const emit = defineEmits<{ authenticated: [] }>()
+
+const { t, locale } = useI18n()
+const authStore = useAuthStore()
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+const step = ref<'email' | 'code'>('email')
+const email = ref('')
+const code = ref('')
+const busy = ref(false)
+const error = ref('')
+
+async function sendCode() {
+  error.value = ''
+  if (!EMAIL_REGEX.test(email.value)) {
+    error.value = t('gate.error_email')
+    return
+  }
+  busy.value = true
+  try {
+    await authStore.requestLoginCode(email.value, locale.value)
+    analytics.track('gate_code_requested')
+    step.value = 'code'
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    busy.value = false
+  }
+}
+
+async function verify() {
+  error.value = ''
+  if (!/^\d{6}$/.test(code.value)) {
+    error.value = t('gate.error_code_format')
+    return
+  }
+  busy.value = true
+  try {
+    const utm = currentUtm()
+    await authStore.loginWithCode({ email: email.value, code: code.value, locale: locale.value, ...utm })
+    analytics.track('gate_code_verified')
+    emit('authenticated')
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    busy.value = false
+  }
+}
+
+function restart() {
+  step.value = 'email'
+  code.value = ''
+  error.value = ''
+}
+
+/** URL wins over the UTM stored on the first page view (same rule as the register page). */
+function currentUtm(): { utmSource?: string; utmMedium?: string; utmCampaign?: string } {
+  const params = new URLSearchParams(window.location.search)
+  const stored = getStoredUtmParams()
+  const source = params.get('utm_source') ?? stored?.source
+  if (!source) return {}
+  const fromUrl = params.has('utm_source')
+  return {
+    utmSource: source,
+    utmMedium: (fromUrl ? params.get('utm_medium') : stored?.medium) || undefined,
+    utmCampaign: (fromUrl ? params.get('utm_campaign') : stored?.campaign) || undefined,
+  }
+}
+
+function errorMessage(e: unknown): string {
+  const response = (e as { response?: { status?: number; data?: { code?: string } } }).response
+  if (response?.status === 429) return t('gate.error_rate_limited')
+  if (response?.data?.code === 'INVALID_CODE') return t('gate.error_code_invalid')
+  if (response?.status === 400) return t('gate.error_email')
+  return t('gate.error_generic')
+}
+</script>

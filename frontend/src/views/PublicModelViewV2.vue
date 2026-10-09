@@ -94,6 +94,13 @@
             :min-consumption="communityConsumptionRange?.min ?? null"
             :max-consumption="communityConsumptionRange?.max ?? null" />
 
+          <!-- Persönliches Profil: Ergebnis hinter dem Gate, die Modellwerte oben bleiben frei -->
+          <PersonalRangeCalculator
+            v-if="activeVariants.length"
+            :brand="brand"
+            :model="model"
+            :model-name="stats.modelDisplayName" />
+
           <!-- No data for selected variant -->
           <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">
             <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('model.variant_no_data') }}</p>
@@ -607,6 +614,7 @@ import {
   SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
+import PersonalRangeCalculator from '../components/models/PersonalRangeCalculator.vue'
 import RangeCalculatorCard from '../components/shared/RangeCalculatorCard.vue'
 import { buildMarkers } from '../utils/rangeCalculator'
 import GridRippleBackground from '../components/shared/GridRippleBackground.vue'

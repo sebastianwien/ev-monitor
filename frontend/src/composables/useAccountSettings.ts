@@ -30,6 +30,9 @@ export function useAccountSettings(
   // Community
   const leaderboardVisible = ref(true)
   const tickerShareCharges = ref(true)
+  /** false for accounts from the mail-code gate or Google: no password form, no password for deletion */
+  const hasPassword = ref(true)
+  const setPasswordLinkSent = ref(false)
 
   // Subscription
   const subscriptionPeriodEnd = ref<string | null>(null)
@@ -91,6 +94,7 @@ export function useAccountSettings(
       referralCode.value = stats.referralCode || ''
       leaderboardVisible.value = stats.leaderboardVisible ?? true
       tickerShareCharges.value = stats.tickerShareCharges ?? true
+      hasPassword.value = stats.hasPassword ?? true
       coinBalance.value = coinsRes.data.totalCoins || 0
     } catch { /* non-critical */ }
   }
@@ -175,15 +179,28 @@ export function useAccountSettings(
   }
 
   const deleteAccount = async () => {
-    if (!deletePassword.value) { message.value = { type: 'error', text: t('settings.err_password_enter') }; return }
+    if (hasPassword.value && !deletePassword.value) { message.value = { type: 'error', text: t('settings.err_password_enter') }; return }
     loading.value = true
     message.value = null
     try {
-      await api.delete('/users/me', { data: { password: deletePassword.value } })
+      await api.delete('/users/me', { data: { password: hasPassword.value ? deletePassword.value : null } })
       authStore.logout()
       router.push('/login')
     } catch (err: any) {
       message.value = { type: 'error', text: err.response?.data?.message || t('settings.err_delete') }
+      loading.value = false
+    }
+  }
+
+  /** Passwordless accounts set a password through the regular reset mail. */
+  const sendSetPasswordLink = async () => {
+    loading.value = true
+    try {
+      await api.post('/auth/forgot-password', { email: email.value })
+      setPasswordLinkSent.value = true
+    } catch {
+      message.value = { type: 'error', text: t('settings.set_password_error') }
+    } finally {
       loading.value = false
     }
   }
@@ -263,6 +280,7 @@ export function useAccountSettings(
   return {
     email, username, registeredSince, totalLogs, totalKwh, totalCostEur,
     coinBalance, referralCode, referralCopied, leaderboardVisible, tickerShareCharges,
+    hasPassword, setPasswordLinkSent, sendSetPasswordLink,
     subscriptionPeriodEnd, subscriptionTier, portalLoading,
     tierActionLoading, tierActionError,
     showEmailForm, showUsernameForm, showPasswordForm,

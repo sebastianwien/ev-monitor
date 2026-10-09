@@ -20,6 +20,15 @@ export interface JwtClaims {
     registeredAt?: string // ISO date YYYY-MM-DD, present for tokens generated after 2026-04
 }
 
+export interface LoginCodePayload {
+    email: string
+    code: string
+    locale: string
+    utmSource?: string
+    utmMedium?: string
+    utmCampaign?: string
+}
+
 function safeLocalStorage(op: () => void): void {
     try { op() } catch { /* localStorage blocked (Private Mode, strict tracking protection) */ }
 }
@@ -77,6 +86,18 @@ export const useAuthStore = defineStore('auth', () => {
         if (response.data.token) {
             setToken(response.data.token);
         }
+        setPremium(response.data.isPremium ?? false);
+    };
+
+    /** Mails a 6-digit login code (gate on the model page). Same answer for known and new addresses. */
+    const requestLoginCode = async (email: string, locale: string) => {
+        await api.post('/auth/code/request', { email, locale });
+    };
+
+    /** Logs in with the mailed code; the backend creates the account on first use. */
+    const loginWithCode = async (payload: LoginCodePayload) => {
+        const response = await api.post('/auth/code/verify', payload);
+        setToken(response.data.token);
         setPremium(response.data.isPremium ?? false);
     };
 
@@ -184,7 +205,7 @@ export const useAuthStore = defineStore('auth', () => {
         isAutoSyncLive, isSupporter,
         canActivateTelemetry, canViewLiveAnalytics, canViewSocCurve, canViewLiveCharging,
         canViewEnergySplit, energySplitViaTrial, energySplitTrialEndsAt,
-        setToken, setPremium, logout, login, register,
+        setToken, setPremium, logout, login, register, requestLoginCode, loginWithCode,
         refreshToken, refreshPremiumStatus,
         isAuthenticated: () => !!token.value,
         isExpired,
