@@ -9,6 +9,7 @@ import com.evmonitor.application.codelogin.CodeVerifyRequest;
 import com.evmonitor.application.codelogin.EmailCodeAuthService;
 import com.evmonitor.application.codelogin.GoogleTokenAuthService;
 import com.evmonitor.application.codelogin.SignupAttribution;
+import com.evmonitor.domain.EmailAddress;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
@@ -66,7 +67,7 @@ public class AuthController {
     @PostMapping("/code/request")
     public ResponseEntity<?> requestLoginCode(@Valid @RequestBody CodeRequest request,
                                               HttpServletRequest httpRequest) {
-        if (!rateLimitService.tryConsumeCodeRequest(clientIp(httpRequest), EmailCodeAuthService.normalize(request.email()))) {
+        if (!rateLimitService.tryConsumeCodeRequest(clientIp(httpRequest), EmailAddress.normalize(request.email()))) {
             return tooManyRequests(900);
         }
         emailCodeAuthService.requestCode(request.email(), request.locale());
@@ -76,8 +77,8 @@ public class AuthController {
     /** Logs in with the mailed code; creates the account on first use. 400 INVALID_CODE otherwise. */
     @PostMapping("/code/verify")
     public ResponseEntity<AuthResponse> verifyLoginCode(@Valid @RequestBody CodeVerifyBody request) {
-        return ResponseEntity.ok(emailCodeAuthService.verifyCode(new CodeVerifyRequest(request.email(), request.code(),
-                new SignupAttribution(request.utmSource(), request.utmMedium(), request.utmCampaign(), request.locale()))));
+        return ResponseEntity.ok(emailCodeAuthService.verifyCode(
+                new CodeVerifyRequest(request.email(), request.code(), request.attribution())));
     }
 
     /** Google One Tap: verifies the ID token, logs in or creates the account. 400 INVALID_GOOGLE_TOKEN otherwise. */
@@ -87,8 +88,7 @@ public class AuthController {
         if (!rateLimitService.tryConsumeLogin(clientIp(httpRequest))) {
             return tooManyRequests(300);
         }
-        return ResponseEntity.ok(googleTokenAuthService.login(request.idToken(),
-                new SignupAttribution(request.utmSource(), request.utmMedium(), request.utmCampaign(), request.locale())));
+        return ResponseEntity.ok(googleTokenAuthService.login(request.idToken(), request.attribution()));
     }
 
     @PostMapping("/refresh")
@@ -133,14 +133,22 @@ public class AuthController {
             @Size(max = 100) String utmSource,
             @Size(max = 100) String utmMedium,
             @Size(max = 100) String utmCampaign,
-            @Size(max = 10) String locale) {}
+            @Size(max = 10) String locale) {
+        SignupAttribution attribution() {
+            return new SignupAttribution(utmSource, utmMedium, utmCampaign, locale);
+        }
+    }
 
     record GoogleTokenBody(
             @NotBlank @Size(max = 4096) String idToken,
             @Size(max = 100) String utmSource,
             @Size(max = 100) String utmMedium,
             @Size(max = 100) String utmCampaign,
-            @Size(max = 10) String locale) {}
+            @Size(max = 10) String locale) {
+        SignupAttribution attribution() {
+            return new SignupAttribution(utmSource, utmMedium, utmCampaign, locale);
+        }
+    }
 
     record ResendVerificationRequest(
             @NotBlank @Email String email) {}

@@ -2,6 +2,7 @@ package com.evmonitor.application.codelogin;
 
 import com.evmonitor.application.AuthResponse;
 import com.evmonitor.domain.AuthProvider;
+import com.evmonitor.domain.EmailAddress;
 import com.evmonitor.domain.EmailLoginCode;
 import com.evmonitor.domain.EmailLoginCodeRepository;
 import com.evmonitor.domain.User;
@@ -16,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Locale;
 
 /**
  * Login by a 6-digit mail code, without leaving the page. Works for new addresses (account is
@@ -37,7 +37,7 @@ public class EmailCodeAuthService {
 
     @Transactional
     public void requestCode(String rawEmail, String locale) {
-        String email = normalize(rawEmail);
+        String email = EmailAddress.normalize(rawEmail);
         codeRepository.deleteExpired(LocalDateTime.now());
         codeRepository.deleteByEmail(email);
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
@@ -48,7 +48,7 @@ public class EmailCodeAuthService {
     /** @throws ValidationException INVALID_CODE for unknown, wrong, expired or exhausted codes alike */
     @Transactional(noRollbackFor = ValidationException.class)
     public AuthResponse verifyCode(CodeVerifyRequest request) {
-        String email = normalize(request.email());
+        String email = EmailAddress.normalize(request.email());
         EmailLoginCode stored = codeRepository.findLatestByEmail(email)
                 .filter(c -> !c.isExpired() && !c.isExhausted())
                 .orElseThrow(EmailCodeAuthService::invalidCode);
@@ -63,10 +63,6 @@ public class EmailCodeAuthService {
         codeRepository.deleteByEmail(email);
         User user = accountService.findOrCreateVerified(email, request.attribution(), AuthProvider.LOCAL);
         return AuthResponse.forUser(jwtService.generateToken(UserPrincipal.create(user)), user);
-    }
-
-    public static String normalize(String email) {
-        return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
     }
 
     private static ValidationException invalidCode() {

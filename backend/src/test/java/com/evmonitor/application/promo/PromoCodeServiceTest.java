@@ -5,12 +5,14 @@ import com.evmonitor.infrastructure.persistence.JpaPromoCodeRepository;
 import com.evmonitor.infrastructure.persistence.JpaPromoRedemptionRepository;
 import com.evmonitor.infrastructure.persistence.PromoCodeEntity;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -100,5 +102,14 @@ class PromoCodeServiceTest {
         assertThat(service.offerFor(user("firstev", false))).map(PromoOffer::code).contains("FIRSTEV");
         assertThat(service.offerFor(user(null, false))).isEmpty();
         verify(codes, never()).findFirstByRequiredUtmSourceIgnoreCaseAndActiveTrue(null);
+    }
+
+    @Test
+    void parallelWebhookThatLostTheInsertIsNotAnError() {
+        UUID userId = UUID.randomUUID();
+        when(redemptions.existsById(userId)).thenReturn(false);
+        when(redemptions.save(any())).thenThrow(new DataIntegrityViolationException("duplicate key"));
+
+        assertThatCode(() -> service.recordRedemption(userId, "FIRSTEV")).doesNotThrowAnyException();
     }
 }

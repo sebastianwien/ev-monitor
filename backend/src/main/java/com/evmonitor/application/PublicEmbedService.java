@@ -33,7 +33,6 @@ public class PublicEmbedService {
     }
 
     public ModelTileResponse getModelTile(String brand, String model) {
-        if (brand == null || model == null || brand.isBlank() || model.isBlank()) return ModelTileResponse.unknown();
         return publicModelService.getModelStats(brand, model, false)
                 .map(this::toTile)
                 .orElseGet(ModelTileResponse::unknown);

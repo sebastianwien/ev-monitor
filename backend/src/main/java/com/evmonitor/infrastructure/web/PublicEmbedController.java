@@ -32,7 +32,7 @@ public class PublicEmbedController {
                                                           @RequestParam(required = false) String model) {
         ModelTileResponse tile = isSlug(brand) && isSlug(model)
                 ? publicEmbedService.getModelTile(brand, model)
-                : publicEmbedService.getModelTile(null, null);
+                : ModelTileResponse.unknown();
         return ResponseEntity.ok().cacheControl(PUBLIC_1H).body(tile);
     }
 

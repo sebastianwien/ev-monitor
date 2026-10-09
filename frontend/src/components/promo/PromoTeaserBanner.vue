@@ -7,7 +7,7 @@
       <span class="block text-sm text-green-800 dark:text-green-300 underline">{{ t('promo.banner_cta') }}</span>
     </router-link>
     <button type="button" data-testid="promo-banner-close" :aria-label="t('promo.banner_close')" @click="dismiss"
-            class="absolute top-2 right-2 rounded p-1 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100">
+            class="absolute top-0 right-0 flex h-11 w-11 items-center justify-center rounded text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100">
       <XMarkIcon class="h-5 w-5" />
     </button>
   </div>

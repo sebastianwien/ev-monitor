@@ -14,6 +14,9 @@ public interface UserRepository {
 
     Optional<User> findByEmail(String email);
 
+    /** Oldest account whose address matches ignoring case (older registrations kept the typed case). */
+    Optional<User> findByEmailIgnoreCase(String email);
+
     Optional<User> findByUsername(String username);
 
     boolean existsByEmail(String email);

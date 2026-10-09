@@ -6,7 +6,7 @@ import api from '../api/axios';
 import { BoltIcon } from '@heroicons/vue/24/outline';
 import GridRippleBackground from '../components/shared/GridRippleBackground.vue';
 import { analytics } from '../services/analytics';
-import { getStoredUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredReferrer, clearStoredReferrer } from '../utils/reddit-pixel';
+import { currentUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredReferrer, clearStoredReferrer } from '../utils/reddit-pixel';
 import { isDetectionAmbiguous } from '../composables/useCountryDetection';
 import { useCountryStore } from '../stores/country';
 import type { CountryCode } from '../config/unitSystems';
@@ -44,16 +44,8 @@ onMounted(() => {
     referralCode.value = String(route.query.ref);
   }
 
-  // Capture UTM parameters from URL (direct link) or localStorage (landing page navigation)
-  const urlParams = {
-    source: route.query.utm_source ? String(route.query.utm_source) : '',
-    medium: route.query.utm_medium ? String(route.query.utm_medium) : '',
-    campaign: route.query.utm_campaign ? String(route.query.utm_campaign) : ''
-  }
-
-  // Prefer URL params over stored params (URL is more recent)
-  const storedParams = getStoredUtmParams()
-  const finalParams = (urlParams.source || urlParams.medium || urlParams.campaign) ? urlParams : storedParams
+  // UTM from the URL (direct link) or localStorage (landing page navigation)
+  const finalParams = currentUtmParams()
 
   if (finalParams) {
     utmSource.value = finalParams.source

@@ -6,8 +6,8 @@ import com.evmonitor.infrastructure.persistence.JpaPromoRedemptionRepository;
 import com.evmonitor.infrastructure.persistence.PromoCodeEntity;
 import com.evmonitor.infrastructure.persistence.PromoRedemptionEntity;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Locale;
@@ -51,11 +51,17 @@ public class PromoCodeService {
                 .map(PromoCheck::offer);
     }
 
-    /** Idempotent: Stripe sends created and updated for the same trial. */
-    @Transactional
+    /**
+     * Idempotent: Stripe sends created and updated for the same trial, often at the same time.
+     * The loser of that race hits the primary key and is fine - the redemption is recorded.
+     */
     public void recordRedemption(UUID userId, String rawCode) {
         if (redemptionRepository.existsById(userId)) return;
-        redemptionRepository.save(new PromoRedemptionEntity(userId, normalize(rawCode), LocalDateTime.now()));
+        try {
+            redemptionRepository.save(new PromoRedemptionEntity(userId, normalize(rawCode), LocalDateTime.now()));
+        } catch (DataIntegrityViolationException e) {
+            // parallel webhook was faster
+        }
     }
 
     private static boolean isLive(PromoCodeEntity code) {

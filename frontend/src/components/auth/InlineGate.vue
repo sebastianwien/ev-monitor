@@ -69,7 +69,7 @@ import { useI18n } from 'vue-i18n'
 import { LockOpenIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../../stores/auth'
 import { analytics } from '../../services/analytics'
-import { getStoredUtmParams } from '../../utils/reddit-pixel'
+import { currentUtmParams } from '../../utils/reddit-pixel'
 import { useGoogleIdentity } from '../../composables/useGoogleIdentity'
 import { rememberReturnPath } from '../../utils/postLoginRedirect'
 
@@ -158,18 +158,11 @@ function restart() {
   error.value = ''
 }
 
-/** URL wins over the UTM stored on the first page view (same rule as the register page). */
+/** Attribution for a new account: URL first, then the UTM stored on the first page view. */
 function currentUtm(): { utmSource?: string; utmMedium?: string; utmCampaign?: string } {
-  const params = new URLSearchParams(window.location.search)
-  const stored = getStoredUtmParams()
-  const source = params.get('utm_source') ?? stored?.source
-  if (!source) return {}
-  const fromUrl = params.has('utm_source')
-  return {
-    utmSource: source,
-    utmMedium: (fromUrl ? params.get('utm_medium') : stored?.medium) || undefined,
-    utmCampaign: (fromUrl ? params.get('utm_campaign') : stored?.campaign) || undefined,
-  }
+  const utm = currentUtmParams()
+  if (!utm) return {}
+  return { utmSource: utm.source || undefined, utmMedium: utm.medium || undefined, utmCampaign: utm.campaign || undefined }
 }
 
 function errorMessage(e: unknown): string {

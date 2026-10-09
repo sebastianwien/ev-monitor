@@ -22,7 +22,7 @@ public class PasswordlessAccountService {
 
     @Transactional
     public User findOrCreateVerified(String email, SignupAttribution attribution, AuthProvider provider) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailIgnoreCase(email)
                 .map(this::claimIfUnverified)
                 .orElseGet(() -> create(email, attribution, provider));
     }
@@ -36,7 +36,7 @@ public class PasswordlessAccountService {
 
     private User create(String email, SignupAttribution attribution, AuthProvider provider) {
         SignupAttribution a = attribution != null ? attribution : new SignupAttribution(null, null, null, null);
-        User user = User.newLocalUserBuilder(email, UsernameGenerator.fromEmail(email, userRepository::existsByUsername), null)
+        User user = User.newAccountBuilder(email, UsernameGenerator.fromEmail(email, userRepository::existsByUsername), null)
                 .authProvider(provider)
                 .emailVerified(true)
                 .utmSource(a.utmSource()).utmMedium(a.utmMedium()).utmCampaign(a.utmCampaign())

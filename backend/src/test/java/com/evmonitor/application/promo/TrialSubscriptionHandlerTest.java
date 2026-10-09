@@ -64,4 +64,14 @@ class TrialSubscriptionHandlerTest {
 
         verify(reminders, never()).schedule(eq(USER_ID), any());
     }
+
+    @Test
+    void subscriptionWithoutTrialLeavesTheReminderOfAnotherOneAlone() {
+        // Zweites Abo (weiteres Auto) ohne Trial, während das erste noch im Trial läuft
+        JsonObject secondCar = JsonParser.parseString("{\"status\":\"active\",\"trial_start\":null,\"trial_end\":null}").getAsJsonObject();
+
+        handler.onSubscriptionChange(USER_ID, secondCar);
+
+        verify(reminders, never()).clear(any());
+    }
 }

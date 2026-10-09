@@ -68,7 +68,10 @@ public class PublicModelService {
      * Excludes all data from seed/test users.
      * Returns Optional.empty() if the model enum doesn't exist.
      */
-    @Cacheable(value = "modelStats", key = "#brandName + '-' + #modelName.replace(' ', '_') + '-' + #isSeedUser")
+    // Unbekannte Slugs nicht cachen: sonst verdrängen beliebige URLs (öffentlich, auch über die
+    // Partner-Kachel) die teuer berechneten echten Modelle aus dem auf 500 begrenzten Cache.
+    @Cacheable(value = "modelStats", key = "#brandName + '-' + #modelName.replace(' ', '_') + '-' + #isSeedUser",
+            unless = "#result == null")
     public Optional<PublicModelStatsResponse> getModelStats(String brandName, String modelName,
                                                              boolean isSeedUser) {
         // Validate that the model actually exists in our enum

@@ -2,6 +2,7 @@ package com.evmonitor.application.promo;
 
 import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.persistence.JpaUserRepository;
+import com.evmonitor.infrastructure.persistence.TrialReminderRow;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -38,11 +39,16 @@ public class TrialReminderService {
 
     @Scheduled(cron = "0 0 9 * * *", zone = "Europe/Berlin")
     public void sendDueReminders() {
-        for (TrialReminderDue due : userRepository.findTrialRemindersDue(LocalDateTime.now())) {
+        for (TrialReminderRow due : userRepository.findTrialRemindersDue(LocalDateTime.now())) {
             if (userRepository.claimTrialReminder(due.userId()) != 1) continue;
-            emailService.sendTrialEndingEmail(due.email(), due.username(), due.locale(),
-                    due.dueAt().plusDays(DAYS_BEFORE_END).toLocalDate());
-            log.info("Trial reminder sent to user {}", due.userId());
+            try {
+                emailService.sendTrialEndingEmail(due.email(), due.username(), due.locale(),
+                        due.dueAt().plusDays(DAYS_BEFORE_END).toLocalDate());
+                log.info("Trial reminder sent to user {}", due.userId());
+            } catch (RuntimeException e) {
+                // Already claimed: no second try, but the remaining users still get theirs
+                log.error("Trial reminder for user {} failed", due.userId(), e);
+            }
         }
     }
 }

@@ -23,7 +23,7 @@ class PasswordlessAccountServiceTest {
 
     @Test
     void newAddressGetsVerifiedAccountWithoutPasswordAndAttribution() {
-        when(userRepository.findByEmail("neu@example.com")).thenReturn(Optional.empty());
+        when(userRepository.findByEmailIgnoreCase("neu@example.com")).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
         User user = service.findOrCreateVerified("neu@example.com", FIRSTEV, AuthProvider.LOCAL);
@@ -40,7 +40,7 @@ class PasswordlessAccountServiceTest {
     @Test
     void verifiedAccountIsReturnedUntouched() {
         User existing = User.createVerifiedLocalUser("a@example.com", "a_user", "hash");
-        when(userRepository.findByEmail("a@example.com")).thenReturn(Optional.of(existing));
+        when(userRepository.findByEmailIgnoreCase("a@example.com")).thenReturn(Optional.of(existing));
 
         User user = service.findOrCreateVerified("a@example.com", FIRSTEV, AuthProvider.LOCAL);
 
@@ -53,7 +53,7 @@ class PasswordlessAccountServiceTest {
     void unverifiedAccountLosesForeignPasswordAndBecomesVerified() {
         User pending = User.createNewLocalUser("a@example.com", "a_user", "attacker-hash");
         User claimed = pending.toBuilder().passwordHash(null).emailVerified(true).build();
-        when(userRepository.findByEmail("a@example.com")).thenReturn(Optional.of(pending));
+        when(userRepository.findByEmailIgnoreCase("a@example.com")).thenReturn(Optional.of(pending));
         when(userRepository.findById(pending.getId())).thenReturn(Optional.of(claimed));
 
         User user = service.findOrCreateVerified("a@example.com", FIRSTEV, AuthProvider.LOCAL);
@@ -63,5 +63,16 @@ class PasswordlessAccountServiceTest {
         assertThat(hash.getValue()).isNull();
         verify(userRepository).markEmailVerified(pending.getId());
         assertThat(user.isEmailVerified()).isTrue();
+    }
+
+    @Test
+    void existingAccountIsFoundRegardlessOfCase() {
+        User existing = User.createVerifiedLocalUser("Max@Example.com", "max", "hash");
+        when(userRepository.findByEmailIgnoreCase("max@example.com")).thenReturn(Optional.of(existing));
+
+        User user = service.findOrCreateVerified("max@example.com", FIRSTEV, AuthProvider.LOCAL);
+
+        assertThat(user).isSameAs(existing);
+        verify(userRepository, never()).save(any());
     }
 }

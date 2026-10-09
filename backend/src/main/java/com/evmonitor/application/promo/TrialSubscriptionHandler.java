@@ -28,8 +28,11 @@ public class TrialSubscriptionHandler {
     private final TrialReminderService trialReminderService;
 
     public void onSubscriptionChange(UUID userId, JsonObject subscription) {
+        Instant trialEnd = epoch(subscription, "trial_end");
         if (!"trialing".equals(string(subscription, "status"))) {
-            trialReminderService.clear(userId);
+            // Only a subscription that had a trial ends one; a second subscription without trial
+            // (another car) must not wipe the reminder of the running trial.
+            if (trialEnd != null) trialReminderService.clear(userId);
             return;
         }
         JsonElement metadata = subscription.get("metadata");
@@ -37,10 +40,10 @@ public class TrialSubscriptionHandler {
             String promoCode = string(metadata.getAsJsonObject(), PROMO_CODE_METADATA);
             if (promoCode != null) promoCodeService.recordRedemption(userId, promoCode);
         }
-        Instant start = epoch(subscription, "trial_start");
-        Instant end = epoch(subscription, "trial_end");
-        if (start == null || end == null || Duration.between(start, end).compareTo(MIN_TRIAL_FOR_REMINDER) < 0) return;
-        Instant due = end.minus(Duration.ofDays(TrialReminderService.DAYS_BEFORE_END));
+        Instant trialStart = epoch(subscription, "trial_start");
+        if (trialStart == null || trialEnd == null
+                || Duration.between(trialStart, trialEnd).compareTo(MIN_TRIAL_FOR_REMINDER) < 0) return;
+        Instant due = trialEnd.minus(Duration.ofDays(TrialReminderService.DAYS_BEFORE_END));
         trialReminderService.schedule(userId, LocalDateTime.ofInstant(due, ZoneId.systemDefault()));
     }
 

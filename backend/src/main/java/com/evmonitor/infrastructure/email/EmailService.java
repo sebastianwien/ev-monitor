@@ -52,6 +52,13 @@ public class EmailService {
      * Normalizes a raw locale string (e.g. "en-US", "en", "de-DE", null) to "en" or "de".
      * Defaults to "de" for any unrecognized or null locale.
      */
+    /** "8. November 2026" or "8 November 2026". */
+    private static String longDate(LocalDate date, String lang) {
+        return "en".equals(lang)
+                ? date.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH))
+                : date.format(DateTimeFormatter.ofPattern("d. MMMM yyyy", Locale.GERMAN));
+    }
+
     private String resolveLocale(String rawLocale) {
         if (rawLocale != null && rawLocale.toLowerCase().startsWith("en")) {
             return "en";
@@ -82,8 +89,7 @@ public class EmailService {
     /** Reminder 7 days before a long Stripe trial ends: when it ends and where to cancel. */
     public void sendTrialEndingEmail(String toEmail, String username, String locale, LocalDate endsAt) {
         String lang = resolveLocale(locale);
-        String endsAtText = endsAt.format(DateTimeFormatter.ofPattern("en".equals(lang) ? "d MMMM yyyy" : "d. MMMM yyyy",
-                "en".equals(lang) ? Locale.ENGLISH : Locale.GERMAN));
+        String endsAtText = longDate(endsAt, lang);
         String html = loadTemplate("trial-ending.html", lang, Map.of(
                 "username", username,
                 "endsAt", endsAtText,
@@ -218,8 +224,7 @@ public class EmailService {
 
     public void sendVwEudaTrialEndingEmail(String toEmail, String username, String locale, LocalDate endsAt) {
         String lang = resolveLocale(locale);
-        String endsAtText = endsAt.format(DateTimeFormatter.ofPattern("en".equals(lang) ? "d MMMM yyyy" : "d. MMMM yyyy",
-                "en".equals(lang) ? Locale.ENGLISH : Locale.GERMAN));
+        String endsAtText = longDate(endsAt, lang);
         String html = loadTemplate("euda-trial-ending.html", lang, Map.of(
                 "username", username,
                 "endsAt", endsAtText,

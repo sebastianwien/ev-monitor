@@ -94,6 +94,21 @@ export function getStoredUtmParams(): { source: string; medium: string; campaign
 }
 
 /**
+ * UTM-Parameter für eine Anmeldung: die aktuelle URL gewinnt (neuester Kontakt), sonst die beim
+ * ersten Besuch gespeicherten. null ohne Kampagne.
+ */
+export function currentUtmParams(): { source: string; medium: string; campaign: string } | null {
+  const params = new URLSearchParams(window.location.search)
+  const fromUrl = {
+    source: params.get('utm_source') ?? '',
+    medium: params.get('utm_medium') ?? '',
+    campaign: params.get('utm_campaign') ?? '',
+  }
+  if (fromUrl.source || fromUrl.medium || fromUrl.campaign) return fromUrl
+  return getStoredUtmParams()
+}
+
+/**
  * Löscht gespeicherte UTM-Parameter (nach erfolgreicher Registrierung).
  */
 export function clearStoredUtmParams() {

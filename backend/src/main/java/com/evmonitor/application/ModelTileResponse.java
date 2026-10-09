@@ -20,7 +20,7 @@ public record ModelTileResponse(
         int uniqueCars,
         String modelUrl
 ) {
-    static ModelTileResponse unknown() {
+    public static ModelTileResponse unknown() {
         return new ModelTileResponse(false, null, null, null, null, null, 0, 0, null);
     }
 }

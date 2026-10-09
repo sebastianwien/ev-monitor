@@ -1,6 +1,5 @@
 package com.evmonitor.infrastructure.persistence;
 
-import com.evmonitor.application.promo.TrialReminderDue;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +17,8 @@ import java.util.UUID;
 @Repository
 public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     Optional<UserEntity> findByEmail(String email);
+
+    Optional<UserEntity> findFirstByEmailIgnoreCaseOrderByCreatedAtAsc(String email);
 
     Optional<UserEntity> findByUsername(String username);
 
@@ -193,10 +194,10 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     void setTrialReminderDueAt(@Param("userId") UUID userId, @Param("dueAt") LocalDateTime dueAt);
 
     @Query("""
-            SELECT new com.evmonitor.application.promo.TrialReminderDue(u.id, u.email, u.username, u.registrationLocale, u.trialReminderDueAt)
+            SELECT new com.evmonitor.infrastructure.persistence.TrialReminderRow(u.id, u.email, u.username, u.registrationLocale, u.trialReminderDueAt)
             FROM UserEntity u WHERE u.trialReminderDueAt <= :now
             """)
-    List<TrialReminderDue> findTrialRemindersDue(@Param("now") LocalDateTime now);
+    List<TrialReminderRow> findTrialRemindersDue(@Param("now") LocalDateTime now);
 
     /** 1 if this call took the reminder, 0 if another instance was faster. Own transaction: commits at once. */
     @Transactional

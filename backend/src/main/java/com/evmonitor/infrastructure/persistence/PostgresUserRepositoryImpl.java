@@ -39,6 +39,11 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByEmailIgnoreCase(String email) {
+        return jpaUserRepository.findFirstByEmailIgnoreCaseOrderByCreatedAtAsc(email).map(this::toDomain);
+    }
+
+    @Override
     public Optional<User> findByUsername(String username) {
         return jpaUserRepository.findByUsername(username).map(this::toDomain);
     }

@@ -2,6 +2,7 @@ package com.evmonitor.application.codelogin;
 
 import com.evmonitor.application.AuthResponse;
 import com.evmonitor.domain.AuthProvider;
+import com.evmonitor.domain.EmailAddress;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.infrastructure.security.GoogleIdTokenVerifier;
@@ -24,7 +25,7 @@ public class GoogleTokenAuthService {
 
     public AuthResponse login(String idToken, SignupAttribution attribution) {
         String email = verifier.verifiedEmail(idToken)
-                .map(EmailCodeAuthService::normalize)
+                .map(EmailAddress::normalize)
                 .orElseThrow(() -> new ValidationException("INVALID_GOOGLE_TOKEN", "Google-Anmeldung ungültig"));
         User user = accountService.findOrCreateVerified(email, attribution, AuthProvider.GOOGLE);
         return AuthResponse.forUser(jwtService.generateToken(UserPrincipal.create(user)), user);
