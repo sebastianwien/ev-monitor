@@ -623,6 +623,7 @@ model:
   cta_login: "Sign in"
   cost_disclaimer: "Costs are based on community data (mostly DACH market). Conversion: 1 EUR = {rate} {currency} (as of {date})."
   seo_section_title: "{model} - Consumption, Range & Charging Costs"
+  partner_label: "Partner"
   related_title: "Other popular electric car models"
   faq_title: "Frequently asked questions about the {model}"
   hero_title_v2: "{model} - Consumption and Range"

@@ -585,6 +585,7 @@ model:
   cta_login: Logga in
   cost_disclaimer: "Priserna baseras på uppgifter från användargemenskapen (främst DACH-marknaden). Omräkning: 1 EUR = {rate} {currency} (per {date})."
   seo_section_title: "{model} - Förbrukning, räckvidd och laddningskostnader"
+  partner_label: "Partner"
   related_title: Andra populära elbilsmodeller
   faq_title: Vanliga frågor om {model}
   hero_title_v2: "{model} - Förbrukning och räckvidd"

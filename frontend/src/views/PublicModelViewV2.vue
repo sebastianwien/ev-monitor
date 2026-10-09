@@ -570,6 +570,8 @@
       </div>
     </div>
 
+    <PartnerBanner v-for="partner in PARTNER_BANNERS" :key="partner.id" :partner="partner" />
+
     <footer class="max-w-4xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
       <div v-if="!isAuthenticated" class="flex justify-center mb-4">
         <RegionChip />
@@ -617,6 +619,8 @@ import {
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import PromoTeaserBanner from '../components/promo/PromoTeaserBanner.vue'
+import PartnerBanner from '../components/models/PartnerBanner.vue'
+import { PARTNER_BANNERS } from '../config/partners'
 import PersonalRangeCalculator from '../components/models/PersonalRangeCalculator.vue'
 import RangeCalculatorCard from '../components/shared/RangeCalculatorCard.vue'
 import { buildMarkers } from '../utils/rangeCalculator'

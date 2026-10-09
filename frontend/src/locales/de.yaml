@@ -626,6 +626,7 @@ model:
   cta_login: "Anmelden"
   cost_disclaimer: "Kosten basieren auf Community-Daten (ueberwiegend DACH-Markt). Umrechnung: 1 EUR = {rate} {currency} (Stand: {date})."
   seo_section_title: "{model} - Verbrauch, Reichweite & Ladekosten"
+  partner_label: "Partner"
   related_title: "Andere beliebte Elektroauto-Modelle"
   faq_title: "Häufige Fragen zum {model}"
   hero_title_v2: "{model} - Verbrauch und Reichweite"

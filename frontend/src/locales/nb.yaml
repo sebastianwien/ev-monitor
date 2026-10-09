@@ -585,6 +585,7 @@ model:
   cta_login: Logg inn
   cost_disclaimer: "Prisene er basert på data fra brukergruppen (hovedsakelig DACH-markedet). Omregning: 1 EUR = {rate} {currency} (per {date})."
   seo_section_title: "{model} - Forbruk, rekkevidde og ladekostnader"
+  partner_label: "Partner"
   related_title: Andre populære elbilmodeller
   faq_title: Ofte stilte spørsmål om {model}
   hero_title_v2: "{model} - Forbruk og rekkevidde"
