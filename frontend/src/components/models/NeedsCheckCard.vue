@@ -4,24 +4,24 @@
          header scrolls to $el. Four labelled fields, below them three figures the rows follow. -->
     <h2 :id="titleId" class="text-xl font-semibold tracking-tight text-gray-900 lg:text-2xl dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
 
-    <!-- Four questions; inputs line up at the bottom even when a question wraps differently -->
-    <div class="grid grid-cols-2 items-end gap-x-3 gap-y-3 sm:grid-cols-4">
-      <label class="grid gap-1.5">
-        <span class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_daily') }}</span>
+    <!-- Three questions; inputs line up at the bottom even when a question wraps differently -->
+    <div class="grid grid-cols-2 items-end gap-x-3 gap-y-3 sm:grid-cols-3">
+      <label class="grid gap-2">
+        <span class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_daily') }}</span>
         <span class="flex items-center gap-2">
           <input ref="dailyInput" :value="dailyText" v-bind="numeric" data-testid="needs-daily" @input="onDistance('dailyKm', $event)" @blur="flush" @keydown.enter="flush" />
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
         </span>
       </label>
-      <label class="grid gap-1.5">
-        <span class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_longest') }}</span>
+      <label class="grid gap-2">
+        <span class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_longest') }}</span>
         <span class="flex items-center gap-2">
           <input :value="longestText" v-bind="numeric" data-testid="needs-longest" @input="onDistance('longestTripKm', $event)" @blur="flush" @keydown.enter="flush" />
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
         </span>
       </label>
-      <div class="grid gap-1.5">
-        <span :id="homeId" class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_home') }}</span>
+      <div class="col-span-2 grid gap-2 sm:col-span-1">
+        <span :id="homeId" class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_home') }}</span>
         <div class="grid h-11 grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="homeId">
           <button
             v-for="opt in homeOptions"
@@ -34,23 +34,6 @@
             :aria-pressed="modelValue.homeCharging === opt.value"
             @click="emit('update:modelValue', { ...modelValue, homeCharging: opt.value })"
           >{{ opt.label }}</button>
-        </div>
-      </div>
-      <div class="grid gap-1.5">
-        <span :id="stopsId" class="text-[13px] leading-snug text-gray-700 dark:text-gray-300">{{ t('models_ranking.needs.q_stops') }}</span>
-        <div class="grid h-11 grid-cols-4 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="stopsId">
-          <button
-            v-for="n in stopOptions"
-            :key="n"
-            type="button"
-            class="text-sm font-semibold"
-            :class="modelValue.maxStops === n
-              ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-              : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'"
-            :aria-pressed="modelValue.maxStops === n"
-            :data-testid="`needs-stops-${n}`"
-            @click="emit('update:modelValue', { ...modelValue, maxStops: n })"
-          >{{ formatNumber(n) }}</button>
         </div>
       </div>
     </div>
@@ -87,7 +70,7 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useDebouncedCommit } from '../../composables/useDebouncedCommit'
 import { odometerLocalToKm } from '../../utils/unitConversions'
 import { NEEDS_KM_MAX } from '../../composables/useModelRanking'
-import { MIN_STOPS, MAX_STOPS, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
+import { type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
 
 const props = defineProps<{
   modelValue: NeedsInput
@@ -102,7 +85,6 @@ const { formatNumber, distanceUnitLabel, convertDistance, isImperial } = useLoca
 
 const titleId = useId()
 const homeId = useId()
-const stopsId = useId()
 const dailyInput = ref<HTMLInputElement | null>(null)
 /** "Ändern" in the sticky list header brings the reader back here */
 function focusFirst() {
@@ -148,7 +130,6 @@ function onDistance(field: 'dailyKm' | 'longestTripKm', event: Event) {
   scheduleCommit({ ...draft })
 }
 
-const stopOptions = Array.from({ length: MAX_STOPS - MIN_STOPS + 1 }, (_, i) => MIN_STOPS + i)
 /** Models that make the trip with at most the chosen number of stops */
 const within = computed(() => props.summary.tripOkWithin[props.modelValue.maxStops] ?? 0)
 

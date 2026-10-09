@@ -19,9 +19,9 @@ export interface NeedsInput {
 
 /** Every stop on the road is counted as this long */
 export const ONE_STOP_MINUTES = 20
-export const MIN_STOPS = 1
+export const MIN_STOPS = 0
 export const MAX_STOPS = 4
-export const NEEDS_DEFAULTS: NeedsInput = { dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 1 }
+export const NEEDS_DEFAULTS: NeedsInput = { dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 0 }
 export const USABLE_BATTERY_SHARE = 0.8
 export const FAST_CHARGE_SHARE = 0.7
 const DAYS_PER_WEEK = 7
@@ -55,6 +55,8 @@ export type NeedsAssessment =
       stopsPerWeek: Span | null
       /** stops on the longest trip (largest to smallest battery) */
       tripStops: Span
+      /** the same figures on the typical range, next to the winter ones; null when the main figures are typical already */
+      typical: { interval: Span | null; stopsPerWeek: Span | null; tripStops: Span } | null
     }
 
 /** Whole days the usable range covers; at least one. Null without a daily distance. */
@@ -112,23 +114,31 @@ export function formatSpan(a: number, b: number): Span {
   return { min, max, single: min === max }
 }
 
-export function assessModel(m: RangeFields, input: NeedsInput): NeedsAssessment {
-  const basis = rangeBasis(m)
-  if (!basis) return { assessable: false }
+/** Interval or weekly stops plus trip stops on one range span (smallest to largest battery) */
+function assessOn(m: RangeFields, input: NeedsInput, basis: { min: number; max: number }) {
   const span = (fn: (rangeKm: number) => number | null): Span | null => {
     const a = fn(basis.min)
     const b = fn(basis.max)
     return a != null && b != null ? formatSpan(a, b) : null
   }
   const trip = span(r => tripStops(r, input.longestTripKm, stopAddedKm(r, m.avgConsumptionKwhPer100km, m.fastChargePowerKw, ONE_STOP_MINUTES)))
-  if (!trip) return { assessable: false }
+  if (!trip) return null
   return {
-    assessable: true,
-    winter: basis.winter,
     interval: input.homeCharging ? span(r => chargeIntervalDays(r, input.dailyKm)) : null,
     stopsPerWeek: input.homeCharging ? null : span(r => stopsPerWeek(r, input.dailyKm)),
     tripStops: trip,
   }
+}
+
+export function assessModel(m: RangeFields, input: NeedsInput): NeedsAssessment {
+  const basis = rangeBasis(m)
+  if (!basis) return { assessable: false }
+  const main = assessOn(m, input, basis)
+  if (!main) return { assessable: false }
+  const typical = basis.winter && m.typicalRangeMinKm != null && m.typicalRangeMaxKm != null
+    ? assessOn(m, input, { min: m.typicalRangeMinKm, max: m.typicalRangeMaxKm })
+    : null
+  return { assessable: true, winter: basis.winter, ...main, typical }
 }
 
 /** Home charging: at most once a week even with the smallest battery; otherwise at most one stop a week */
@@ -137,9 +147,10 @@ export function weeklyOk(a: NeedsAssessment): boolean {
   return a.interval ? a.interval.min >= DAYS_PER_WEEK : (a.stopsPerWeek?.max ?? Infinity) <= 1
 }
 
-/** Everything the reader asked for holds for every battery variant: weekly rhythm and the trip within the allowed stops */
+/** The trip the reader entered works for every battery variant within the allowed stops. The charging
+ *  interval is shown as a figure only: nobody asked for a weekly rhythm, so it is not judged. */
 export function meetsNeeds(a: NeedsAssessment, maxStops: number): boolean {
-  return a.assessable && weeklyOk(a) && a.tripStops.max <= maxStops
+  return a.assessable && a.tripStops.max <= maxStops
 }
 
 export interface NeedsSummary {

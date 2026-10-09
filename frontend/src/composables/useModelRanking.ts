@@ -103,7 +103,8 @@ function readStoredNeeds(): NeedsInput | null {
     if (raw === null) return null
     const parsed: unknown = JSON.parse(raw)
     if (!isNeedsInput(parsed)) return null
-    return { dailyKm: parsed.dailyKm, longestTripKm: parsed.longestTripKm, homeCharging: parsed.homeCharging, maxStops: parsed.maxStops ?? NEEDS_DEFAULTS.maxStops }
+    // the stop selector is gone: whatever was stored, the threshold is the fixed default
+    return { dailyKm: parsed.dailyKm, longestTripKm: parsed.longestTripKm, homeCharging: parsed.homeCharging, maxStops: NEEDS_DEFAULTS.maxStops }
   } catch {
     return null
   }

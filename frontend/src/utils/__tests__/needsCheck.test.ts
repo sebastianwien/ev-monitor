@@ -10,8 +10,8 @@ const ranges = (over: Partial<RangeFields>): RangeFields => ({
 })
 
 describe('needsCheck', () => {
-  it('defaults are 40 km a day, 400 km longest trip, charging at home, one stop on the road', () => {
-    expect(NEEDS_DEFAULTS).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 1 })
+  it('defaults are 40 km a day, 400 km longest trip, charging at home, no stop on the road', () => {
+    expect(NEEDS_DEFAULTS).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 0 })
     expect(USABLE_BATTERY_SHARE).toBe(0.8)
     expect(FAST_CHARGE_SHARE).toBe(0.7)
   })
@@ -103,20 +103,17 @@ describe('needsCheck', () => {
   })
 
   describe('meetsNeeds', () => {
-    const base = { assessable: true as const, winter: true, interval: { min: 7, max: 9, single: false }, stopsPerWeek: null, tripStops: { min: 0, max: 1, single: false } }
+    const base = { assessable: true as const, winter: true, interval: { min: 7, max: 9, single: false }, stopsPerWeek: null, tripStops: { min: 0, max: 1, single: false }, typical: null }
 
-    it('passt, wenn jede Batterie höchstens einmal pro Woche lädt und die Fahrt mit den erlaubten Stopps schafft', () => {
+    it('passt, wenn jede Batterie die Fahrt mit den erlaubten Stopps schafft', () => {
       expect(meetsNeeds(base, 1)).toBe(true)
       expect(meetsNeeds(base, 0)).toBe(false)
+      expect(meetsNeeds({ ...base, tripStops: { min: 0, max: 0, single: true } }, 0)).toBe(true)
     })
 
-    it('fällt durch, sobald die kleinste Batterie öfter als wöchentlich laden muss', () => {
-      expect(meetsNeeds({ ...base, interval: { min: 6, max: 9, single: false } }, 1)).toBe(false)
-    })
-
-    it('ohne Laden zuhause zählt höchstens ein Stopp pro Woche', () => {
-      expect(meetsNeeds({ ...base, interval: null, stopsPerWeek: { min: 0, max: 1, single: false } }, 1)).toBe(true)
-      expect(meetsNeeds({ ...base, interval: null, stopsPerWeek: { min: 1, max: 2, single: false } }, 1)).toBe(false)
+    it('das Ladeintervall zählt nicht: der Leser hat keine Wochenregel eingegeben', () => {
+      expect(meetsNeeds({ ...base, interval: { min: 2, max: 4, single: false } }, 1)).toBe(true)
+      expect(meetsNeeds({ ...base, interval: null, stopsPerWeek: { min: 1, max: 2, single: false } }, 1)).toBe(true)
     })
 
     it('nicht bewertbar passt nie', () => {
@@ -136,7 +133,18 @@ describe('needsCheck', () => {
         stopsPerWeek: null,
         // 300 × 0.8 = 240 and 400 × 0.8 = 320 are both short of 400 km → one stop either way
         tripStops: { min: 1, max: 1, single: true },
+        // the typical ranges next to it: 400 × 0.8 = 320 → 8 days, 500 × 0.8 = 400 → 10 days and no stop
+        typical: {
+          interval: { min: 8, max: 10, single: false },
+          stopsPerWeek: null,
+          tripStops: { min: 0, max: 1, single: false },
+        },
       })
+    })
+
+    it('without winter data there is no typical block: the main figures are the typical ones already', () => {
+      const a = assessModel(ranges({ typicalRangeMinKm: 350, typicalRangeMaxKm: 350 }), NEEDS_DEFAULTS)
+      expect(a.assessable && a.typical).toBeNull()
     })
 
     it('gives stops per week without home charging', () => {

@@ -333,7 +333,7 @@ describe('useModelRanking', () => {
 
     it('starts with the defaults and summarises over all models', () => {
       const r = useModelRanking(ref(models))
-      expect(r.needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 1 })
+      expect(r.needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 0 })
       // 200 × 0.8 / 40 = 4 days (no), 420 × 0.8 / 40 = 8.4 (yes); 520 × 0.8 = 416 ≥ 400 (yes), 200 × 0.8 (no);
       // the small one needs two flat stops (160 first leg, 140 per stop) → only the big one makes it with one
       expect(r.needsSummary.value).toEqual({ total: 2, weeklyOk: 1, tripOk: 1, tripOkWithin: [1, 1, 2, 2, 2] })
@@ -344,12 +344,13 @@ describe('useModelRanking', () => {
       r.needs.value = { dailyKm: 60, longestTripKm: 250, homeCharging: false, maxStops: 2 }
       await nextTick()
       expect(JSON.parse(localStorage.getItem(NEEDS_STORAGE_KEY) ?? '{}')).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false, maxStops: 2 })
-      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false, maxStops: 2 })
+      // the stop selector is gone, a stored count falls back to the fixed default
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false, maxStops: 0 })
       // stored before the stop length existed → default minutes
       localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 60, longestTripKm: 250, homeCharging: false }))
-      expect(useModelRanking(ref(models)).needs.value.maxStops).toBe(1)
+      expect(useModelRanking(ref(models)).needs.value.maxStops).toBe(0)
       localStorage.setItem(NEEDS_STORAGE_KEY, '{"dailyKm":"x"}')
-      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 1 })
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 0 })
     })
 
     it('attaches an assessment to every row and can filter to trips without a stop', () => {
@@ -357,16 +358,14 @@ describe('useModelRanking', () => {
       const big = r.ranked.value.find(x => x.key === 'B/big')!
       expect(big.needs.assessable && big.needs.tripStops).toEqual({ min: 0, max: 1, single: false })
       expect(r.ranked.value.find(x => x.key === 'C/none')!.needs).toEqual({ assessable: false })
-      // default: at most one stop → the small one needs two, the big one none
+      // default: no stop → the small one needs two, the big one none with its large battery
       r.tripOnly.value = true
       expect(keys(r.ranked.value)).toEqual(['B/big'])
-      // 600 km: the big one needs one stop, which is fine with one allowed but not with none
+      // 600 km: the big one needs one stop, which is out with none allowed
       r.needs.value = { ...r.needs.value, longestTripKm: 600 }
-      expect(keys(r.ranked.value)).toEqual(['B/big'])
-      // 1600 km: 416 first leg, 364 per flat stop → 4 stops: out with one allowed, in with four
-      r.needs.value = { ...r.needs.value, longestTripKm: 1600 }
       expect(keys(r.ranked.value)).toEqual([])
-      r.needs.value = { ...r.needs.value, maxStops: 4 }
+      // 1600 km: 416 first leg, 364 per flat stop → 4 stops: in with four allowed
+      r.needs.value = { ...r.needs.value, longestTripKm: 1600, maxStops: 4 }
       expect(keys(r.ranked.value)).toEqual(['B/big'])
     })
   })
