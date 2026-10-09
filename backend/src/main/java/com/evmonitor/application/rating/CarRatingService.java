@@ -7,8 +7,6 @@ import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.domain.exception.ConflictException;
-import com.evmonitor.domain.exception.ForbiddenException;
-import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.rating.CarExperience;
 import com.evmonitor.domain.rating.CarRating;
 import com.evmonitor.domain.rating.CarRatingRepository;
@@ -166,10 +164,6 @@ public class CarRatingService {
     }
 
     private Car requireOwnedCar(UUID carId, UUID userId) {
-        Car car = carRepository.findById(carId).orElseThrow(() -> NotFoundException.forEntity("Car", carId));
-        if (!car.isOwnedBy(userId)) {
-            throw ForbiddenException.notOwner("Car", carId);
-        }
-        return car;
+        return carRepository.requireOwned(carId, userId);
     }
 }

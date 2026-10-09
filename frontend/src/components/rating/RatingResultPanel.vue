@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 import { STAR_QUESTIONS } from '../../config/ratingQuestions'
+import { MIN_FOR_AVERAGE } from '../../utils/ratingForm'
 import type { RatingResult } from '../../api/ratingService'
 
 /**
@@ -12,7 +13,6 @@ import type { RatingResult } from '../../api/ratingService'
 const props = defineProps<{ result: RatingResult; model: string; coins: number }>()
 const { t, n } = useI18n()
 
-const MIN_FOR_AVERAGE = 5
 
 const rows = computed(() => {
     const categories = props.result.categories

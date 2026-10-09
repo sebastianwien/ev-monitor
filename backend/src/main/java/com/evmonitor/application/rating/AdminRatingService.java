@@ -57,8 +57,8 @@ public class AdminRatingService {
     public Page list(Filter filter) {
         List<CarRating> ratings = filter.model() == null
                 ? ratingRepository.findAll()
-                : ratingRepository.findAll().stream().filter(r -> r.getCarModel() == filter.model()).toList();
-        Map<UUID, List<CarReview>> reviews = reviewRepository.findAll().stream()
+                : ratingRepository.findAllByCarModel(filter.model());
+        Map<UUID, List<CarReview>> reviews = reviewRepository.findAllByCarRatingIdIn(ratings.stream().map(CarRating::getId).toList()).stream()
                 .collect(Collectors.groupingBy(CarReview::getCarRatingId));
         List<ListItem> items = ratings.stream()
                 .map(r -> item(r, latest(reviews.getOrDefault(r.getId(), List.of()))))
@@ -75,7 +75,7 @@ public class AdminRatingService {
 
     @Transactional(readOnly = true)
     public long countOpenTexts() {
-        return reviewRepository.findAll().stream().filter(v -> v.getStatus() == ReviewStatus.PENDING).count();
+        return reviewRepository.countByStatus(ReviewStatus.PENDING);
     }
 
     @Transactional(readOnly = true)

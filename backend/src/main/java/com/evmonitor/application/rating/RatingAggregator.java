@@ -105,7 +105,9 @@ public final class RatingAggregator {
     /** Die drei häufigsten Chips, bei Gleichstand alphabetisch. */
     public static List<ChipCount> topChips(List<CarRating> ratings, Function<CarRating, List<String>> chips) {
         Map<String, Long> counts = ratings.stream()
-                .flatMap(r -> chips.apply(r) == null ? java.util.stream.Stream.empty() : chips.apply(r).stream())
+                .map(chips)
+                .filter(java.util.Objects::nonNull)
+                .flatMap(List::stream)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
         return counts.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue(Comparator.reverseOrder())

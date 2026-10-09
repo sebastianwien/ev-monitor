@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChatBubbleLeftRightIcon, StarIcon, CheckBadgeIcon } from '@heroicons/vue/24/outline'
 import { STAR_QUESTIONS } from '../../config/ratingQuestions'
+import { MIN_FOR_AVERAGE } from '../../utils/ratingForm'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
 import type { PublicModelRatings } from '../../api/ratingService'
@@ -22,7 +23,6 @@ const props = defineProps<{
 const { t, n, locale } = useI18n()
 const { formatDistance, formatConsumption } = useLocaleFormat()
 
-const MIN_FOR_AVERAGE = 5
 const enough = computed(() => props.ratings.count >= MIN_FOR_AVERAGE)
 const missing = computed(() => MIN_FOR_AVERAGE - props.ratings.count)
 const expanded = ref<Set<number>>(new Set())

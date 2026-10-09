@@ -24,5 +24,7 @@ public interface CarRatingRepository extends JpaRepository<CarRating, UUID> {
     Set<UUID> findRatedCarIds(@Param("carIds") Collection<UUID> carIds);
 
     /** Grundmenge jeder Modellstatistik: ohne Seed, anonymisierte Bewertungen zählen mit. */
+    List<CarRating> findAllByCarModel(CarBrand.CarModel carModel);
+
     List<CarRating> findAllByCarModelAndSeedFalse(CarBrand.CarModel carModel);
 }

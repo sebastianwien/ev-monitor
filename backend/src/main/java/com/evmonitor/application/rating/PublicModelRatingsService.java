@@ -64,16 +64,16 @@ public class PublicModelRatingsService {
                 enough ? RatingAggregator.topChips(ratings, CarRating::getStrengths) : List.of(),
                 enough ? RatingAggregator.topChips(ratings, CarRating::getWeaknesses) : List.of(),
                 enough ? List.of() : ratings.stream().map(PublicModelRatingsService::single).toList(),
-                approved.stream().filter(v -> !isReport(v)).limit(MAX_QUOTES)
+                approved.stream().filter(v -> !isPublishedAsReport(v)).limit(MAX_QUOTES)
                         .map(v -> quote(v, byId.get(v.getCarRatingId()))).toList(),
-                approved.stream().filter(PublicModelRatingsService::isReport).limit(MAX_REPORTS)
+                approved.stream().filter(PublicModelRatingsService::isPublishedAsReport).limit(MAX_REPORTS)
                         .map(v -> report(v, byId.get(v.getCarRatingId()))).toList(),
                 enough ? new PublicModelRatingsResponse.Aggregate(
                         RatingAggregator.aggregateScore(ratings, withText), ratings.size()) : null);
     }
 
     /** Zitat oder Bericht entscheidet die veröffentlichte Fassung, nicht der Rohtext. */
-    private static boolean isReport(CarReview review) {
+    private static boolean isPublishedAsReport(CarReview review) {
         return review.getPublishedBody().length() >= CarReview.REPORT_MIN_CHARS;
     }
 

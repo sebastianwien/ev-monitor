@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * Eine Fassung des Erfahrungstexts zu einer Bewertung. Jede Einreichung ist eine eigene Zeile,
@@ -161,14 +162,14 @@ public class CarReview {
     /** Wahr, wenn {@code published} aus {@code body} nur durch Ersetzen nicht leerer Stellen mit [entfernt] entsteht. */
     public static boolean isRedactionOf(String body, String published) {
         if (body == null || published == null) return false;
-        String[] parts = published.split(java.util.regex.Pattern.quote(REDACTION), -1);
+        String[] parts = published.split(Pattern.quote(REDACTION), -1);
         StringBuilder regex = new StringBuilder("^");
         for (int i = 0; i < parts.length; i++) {
             if (i > 0) regex.append("(.+?)");
-            regex.append(java.util.regex.Pattern.quote(parts[i]));
+            regex.append(Pattern.quote(parts[i]));
         }
         regex.append("$");
-        return java.util.regex.Pattern.compile(regex.toString(), java.util.regex.Pattern.DOTALL).matcher(body).matches();
+        return Pattern.compile(regex.toString(), Pattern.DOTALL).matcher(body).matches();
     }
 
     private void requirePending() {

@@ -15,6 +15,10 @@ public interface CarReviewRepository extends JpaRepository<CarReview, UUID> {
 
     List<CarReview> findAllByCarRatingIdOrderByCreatedAtAsc(UUID carRatingId);
 
+    List<CarReview> findAllByCarRatingIdIn(Collection<UUID> carRatingIds);
+
+    long countByStatus(ReviewStatus status);
+
     /** Bewertungen eines Modells, hinter denen ein freigegebener Text steht (Gewichtung). */
     @Query("""
             SELECT DISTINCT v.carRatingId FROM CarReview v, CarRating r

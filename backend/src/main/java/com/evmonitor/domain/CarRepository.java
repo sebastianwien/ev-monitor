@@ -18,6 +18,19 @@ public interface CarRepository {
 
     List<Car> findAllByUserId(UUID userId);
 
+    /**
+     * Nicht gelöschtes Auto, das dem User gehört.
+     * @throws com.evmonitor.domain.exception.NotFoundException wenn es nicht existiert
+     * @throws com.evmonitor.domain.exception.ForbiddenException wenn es einem anderen gehört
+     */
+    default Car requireOwned(UUID carId, UUID userId) {
+        Car car = findById(carId).orElseThrow(() -> com.evmonitor.domain.exception.NotFoundException.forEntity("Car", carId));
+        if (!car.isOwnedBy(userId)) {
+            throw com.evmonitor.domain.exception.ForbiddenException.notOwner("Car", carId);
+        }
+        return car;
+    }
+
     List<Car> findAllByModel(CarBrand.CarModel model);
 
     long countByUserId(UUID userId);

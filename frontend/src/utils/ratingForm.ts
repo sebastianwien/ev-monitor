@@ -14,6 +14,8 @@ export const REPORT_MIN_CHARS = 600
 export const MAX_BODY_CHARS = 5000
 export const MAX_LIST_ITEMS = 5
 export const MAX_ITEM_CHARS = 120
+/** Ab so vielen Bewertungen zeigt der Server Durchschnitte (RatingAggregator.MIN_FOR_AVERAGE). */
+export const MIN_FOR_AVERAGE = 5
 
 /** "Fahre ich selten Langstrecke" bzw. "Noch nicht gebraucht": beantwortet, aber ohne Sterne. */
 export const SKIP = 'SKIP' as const
