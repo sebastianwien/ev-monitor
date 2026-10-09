@@ -1,9 +1,7 @@
 package com.evmonitor.application.user;
 
-import jakarta.validation.constraints.NotBlank;
-
+/** password: required only for accounts that have one (checked in UserService.deleteAccount). */
 public record DeleteAccountRequest(
-        @NotBlank(message = "Passwort zur Bestätigung erforderlich")
         String password
 ) {
 }

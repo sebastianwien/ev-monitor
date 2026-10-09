@@ -66,7 +66,8 @@ public class UserService {
                 totalCostEur,
                 user.getReferralCode(),
                 userRepository.isLeaderboardVisible(userId),
-                userRepository.isTickerShareCharges(userId)
+                userRepository.isTickerShareCharges(userId),
+                user.getPasswordHash() != null
         );
     }
 
@@ -146,8 +147,9 @@ public class UserService {
     public void deleteAccount(UUID userId, DeleteAccountRequest request) {
         User user = requireUser(userId);
 
-        // Verify password
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        // Konten ohne Passwort (Google, Mail-Code) bestätigen über die Anmeldung selbst
+        if (user.getPasswordHash() != null
+                && (request.password() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash()))) {
             throw new ValidationException("WRONG_PASSWORD", "Passwort ist falsch");
         }
 
