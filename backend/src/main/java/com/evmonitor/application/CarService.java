@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.rating.CarRatingRetention;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.exception.ForbiddenException;
@@ -22,6 +23,7 @@ public class CarService {
     private final CarRepository carRepository;
     private final CoinLogService coinLogService;
     private final CarImageService carImageService;
+    private final CarRatingRetention ratingRetention;
 
     @Transactional
     public CarCreateResponse createCar(UUID userId, CarRequest request) {
@@ -108,13 +110,14 @@ public class CarService {
 
     /**
      * Endgültiges Löschen nach Ablauf des Restore-Fensters. Erst jetzt fällt das Bild weg
-     * und die FK-Kaskade räumt Ladelogs und abhängige Daten ab.
+     * und die FK-Kaskade räumt Ladelogs und abhängige Daten ab. Fahrerbewertungen bleiben anonym.
      */
     @Transactional
     public int purgeExpiredDeletedCars() {
         List<Car> expired = carRepository.findSoftDeletedBefore(
                 LocalDateTime.now().minusDays(Car.RESTORE_WINDOW_DAYS));
         for (Car car : expired) {
+            ratingRetention.beforeCarPurge(car.getId());
             carRepository.deleteById(car.getId());
             carImageService.deleteImage(car.getId());
         }

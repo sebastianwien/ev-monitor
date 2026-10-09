@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.rating.CarRatingRetention;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
@@ -42,6 +43,9 @@ class CarServiceTest {
     @Mock
     private CarImageService carImageService;
 
+    @Mock
+    private CarRatingRetention ratingRetention;
+
     private CarService carService;
 
     private UUID userId;
@@ -49,7 +53,7 @@ class CarServiceTest {
 
     @BeforeEach
     void setUp() {
-        carService = new CarService(carRepository, coinLogService, carImageService);
+        carService = new CarService(carRepository, coinLogService, carImageService, ratingRetention);
         userId = UUID.randomUUID();
         carId = UUID.randomUUID();
     }

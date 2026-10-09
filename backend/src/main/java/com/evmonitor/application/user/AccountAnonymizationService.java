@@ -1,6 +1,7 @@
 package com.evmonitor.application.user;
 
 import com.evmonitor.application.CarImageService;
+import com.evmonitor.application.rating.CarRatingRetention;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLog;
@@ -25,7 +26,8 @@ import java.util.function.Function;
 /**
  * DSGVO-Kontolöschung (Plan A): Autos samt Ladevorgängen und Trips bleiben ohne Personenbezug erhalten,
  * damit die Community-Statistik der Public-Model-Seiten nicht schrumpft. Was fällt: Besitzer, Kennzeichen,
- * Bild, Geohashes, Routen, Rohdaten, Freitexte, Tarif-Verknüpfung, exakte Zeitpunkte (auf Tag gerundet).
+ * Bild, Geohashes, Routen, Rohdaten, Freitexte (auch Erfahrungstexte der Fahrzeugbewertung), Tarif-Verknüpfung,
+ * exakte Zeitpunkte (auf Tag gerundet). Fahrzeugbewertungen bleiben ohne Nutzerbezug.
  * Was bleibt: Spec, Baujahr, Kapazität, SoH, kWh, km-Stand, Preis, AC/DC, Temperatur, SoC, Distanz, routeType.
  * Siehe docs/features/account-anonymization.md.
  */
@@ -38,10 +40,13 @@ public class AccountAnonymizationService {
     private final EvLogRepository evLogRepository;
     private final EvTripRepository evTripRepository;
     private final CarImageService carImageService;
+    private final CarRatingRetention ratingRetention;
 
     /** @return die IDs der anonymisierten Autos (für den Connector-Purge) */
     @Transactional
     public List<UUID> anonymizeCarsOf(UUID userId) {
+        // Vor allem anderen: auch Bewertungen längst gelöschter Autos hängen noch am Konto.
+        ratingRetention.anonymizeForAccount(userId);
         // Auch soft-gelöschte Autos: deren Personenbezug muss mit dem Konto verschwinden.
         List<Car> cars = carRepository.findAllByUserIdIncludingDeleted(userId);
         List<UUID> carsWithImage = cars.stream().filter(c -> c.getImagePath() != null).map(Car::getId).toList();

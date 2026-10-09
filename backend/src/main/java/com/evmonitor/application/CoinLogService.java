@@ -59,6 +59,10 @@ public class CoinLogService {
         CARD_LINKED                 ("Ladekarte zugeordnet",                           2, false),
         CPO_ADDED                   ("Ladesäulen-Betreiber nachgetragen",              3, false),
         CARD_CREATED                ("Erste Ladekarte angelegt",                       5, true),
+        // Fahrzeugbewertung - einmal je Bewertung bzw. je Textfassung via awardOncePerEntity, unabhängig vom Urteil
+        RATING_SUBMITTED            ("Fahrzeug bewertet",                             50, false),
+        REVIEW_APPROVED_SHORT       ("Erfahrung veröffentlicht",                      30, false),
+        REVIEW_APPROVED_LONG        ("Erfahrungsbericht veröffentlicht",             150, false),
         // Deductions
         LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false); // defaultAmount unused — caller passes dynamic negative amount
 
