@@ -94,6 +94,17 @@ public class RateLimitService {
             .refillIntervally(20, Duration.ofHours(1))
             .build();
 
+    // Login-Code per Mail: 5 Anforderungen je 15 Minuten und IP, 3 je 15 Minuten und Adresse.
+    // Der Adress-Topf verhindert, dass jemand fremde Postfächer mit Codes flutet.
+    private static final Bandwidth CODE_REQUEST_IP_LIMIT = Bandwidth.builder()
+            .capacity(5)
+            .refillIntervally(5, Duration.ofMinutes(15))
+            .build();
+    private static final Bandwidth CODE_REQUEST_EMAIL_LIMIT = Bandwidth.builder()
+            .capacity(3)
+            .refillIntervally(3, Duration.ofMinutes(15))
+            .build();
+
     // Caffeine caches mit TTL + Größen-Limit — verhindert unbegrenztes Wachstum der Buckets.
     // expireAfterAccess: Bucket wird nach Inaktivität entfernt. maximumSize: Hard Cap gegen DoS.
     private final Cache<String, Bucket> loginBuckets = Caffeine.newBuilder()
@@ -116,6 +127,26 @@ public class RateLimitService {
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     private final Cache<String, Bucket> voiceDraftBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+
+    private final Cache<String, Bucket> codeRequestIpBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(20, TimeUnit.MINUTES).maximumSize(10_000).build();
+    private final Cache<String, Bucket> codeRequestEmailBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(20, TimeUnit.MINUTES).maximumSize(10_000).build();
+
+    /** Both buckets must allow it; the address is normalized by the caller. */
+    public boolean tryConsumeCodeRequest(String clientIp, String email) {
+        if (!enabled) return true;
+        boolean allowed = codeRequestIpBuckets
+                .get(clientIp, ip -> Bucket.builder().addLimit(CODE_REQUEST_IP_LIMIT).build())
+                .tryConsume(1)
+                && codeRequestEmailBuckets
+                .get(email, e -> Bucket.builder().addLimit(CODE_REQUEST_EMAIL_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for login code request from IP: {}", clientIp);
+        }
+        return allowed;
+    }
 
     /**
      * @return true if the request may proceed, false if rate limit exceeded

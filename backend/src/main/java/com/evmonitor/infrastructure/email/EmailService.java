@@ -71,6 +71,14 @@ public class EmailService {
         sendHtmlEmail(toEmail, subject, html);
     }
 
+    /** Six-digit login code for the gate on the model page. The code goes into subject and body. */
+    public void sendLoginCodeEmail(String toEmail, String code, String locale) {
+        String lang = resolveLocale(locale);
+        String html = loadTemplate("login-code.html", lang, Map.of("code", code));
+        String subject = "en".equals(lang) ? "Your code: " + code : "Dein Code: " + code;
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
     public void sendPasswordResetEmail(String toEmail, String token, String locale) {
         String lang = resolveLocale(locale);
         String resetUrl = baseUrl + "/reset-password?token=" + token;

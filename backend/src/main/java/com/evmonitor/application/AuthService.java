@@ -114,7 +114,7 @@ public class AuthService {
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-        return toAuthResponse(jwtToken, user, user.isSeedData());
+        return AuthResponse.forUser(jwtToken, user);
     }
 
     @Transactional
@@ -194,7 +194,7 @@ public class AuthService {
         }
 
         String jwtToken = jwtService.generateToken(UserPrincipal.create(user));
-        return toAuthResponse(jwtToken, user, user.isSeedData());
+        return AuthResponse.forUser(jwtToken, user);
     }
 
     private String resolveUsername(String requested, String email) {
@@ -205,17 +205,7 @@ public class AuthService {
             }
             return requested;
         }
-        // Auto-generate from email prefix
-        String base = email.split("@")[0].replaceAll("[^a-zA-Z0-9_]", "_");
-        if (base.length() < 3) base = base + "___";
-        if (base.length() > 20) base = base.substring(0, 20);
-        String candidate = base;
-        int suffix = 1;
-        while (userRepository.existsByUsername(candidate)) {
-            String s = String.valueOf(suffix++);
-            candidate = base.substring(0, Math.min(base.length(), 20 - s.length())) + s;
-        }
-        return candidate;
+        return UsernameGenerator.fromEmail(email, userRepository::existsByUsername);
     }
 
     /**
@@ -226,11 +216,6 @@ public class AuthService {
         User freshUser = userRepository.findById(principal.getUser().getId())
                 .orElseThrow(() -> new IllegalStateException("User not found"));
         String jwtToken = jwtService.generateToken(UserPrincipal.create(freshUser));
-        return toAuthResponse(jwtToken, freshUser, freshUser.isSeedData());
-    }
-
-    private AuthResponse toAuthResponse(String jwtToken, User user, boolean isDemoAccount) {
-        return new AuthResponse(jwtToken, user.getId(), user.getEmail(), user.getRole(),
-                isDemoAccount, user.isPremium(), user.canActivateTelemetry());
+        return AuthResponse.forUser(jwtToken, freshUser);
     }
 }

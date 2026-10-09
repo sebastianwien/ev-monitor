@@ -381,7 +381,8 @@ public class User {
                 .build();
     }
 
-    private static UserBuilder newLocalUserBuilder(String email, String username, String passwordHash) {
+    /** Base for every new LOCAL account; callers add attribution, locale or verification. */
+    public static UserBuilder newLocalUserBuilder(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
         return User.builder()
                 .id(UUID.randomUUID())

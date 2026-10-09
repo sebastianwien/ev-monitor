@@ -61,7 +61,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/demo-login",
                                 "/api/auth/verify-email", "/api/auth/resend-verification",
-                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+                                "/api/auth/forgot-password", "/api/auth/reset-password",
+                                "/api/auth/code/request", "/api/auth/code/verify").permitAll()
                         .requestMatchers("/api/cars/brands", "/api/cars/brands/**").permitAll()
                         // Reicht Koordinaten an einen fremden Dienst weiter - nur fuer angemeldete Nutzer,
                         // zusaetzlich per RateLimitService gedrosselt. Muss vor der permitAll-Regel stehen.
