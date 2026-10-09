@@ -72,16 +72,7 @@ public class PublicModelService {
     public Optional<PublicModelStatsResponse> getModelStats(String brandName, String modelName,
                                                              boolean isSeedUser) {
         // Validate that the model actually exists in our enum
-        // Match by brand displayString + model displayName (case-insensitive)
-        CarBrand.CarModel carModel = null;
-        for (CarBrand.CarModel model : CarBrand.CarModel.values()) {
-            if (model.getBrand().getDisplayString().equalsIgnoreCase(brandName) &&
-                model.getDisplayName().replace(" ", "_").equalsIgnoreCase(modelName.replace(" ", "_"))) {
-                carModel = model;
-                break;
-            }
-        }
-
+        CarBrand.CarModel carModel = CarBrand.CarModel.findBySlug(brandName, modelName).orElse(null);
         if (carModel == null) {
             return Optional.empty();
         }

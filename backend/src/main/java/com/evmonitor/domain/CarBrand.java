@@ -773,5 +773,18 @@ public enum CarBrand {
       public String getDisplayName() {
          return displayName;
       }
+
+      /**
+       * Modell zur URL der öffentlichen Modellseite: Marke als Anzeigename, Modell mit "_" statt
+       * Leerzeichen, beides ohne Groß-/Kleinschreibung.
+       */
+      public static java.util.Optional<CarModel> findBySlug(String brandName, String modelName) {
+         if (brandName == null || modelName == null) return java.util.Optional.empty();
+         String modelSlug = modelName.replace(" ", "_");
+         return java.util.Arrays.stream(values())
+               .filter(m -> m.getBrand().getDisplayString().equalsIgnoreCase(brandName)
+                     && m.getDisplayName().replace(" ", "_").equalsIgnoreCase(modelSlug))
+               .findFirst();
+      }
    }
 }
