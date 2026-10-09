@@ -4,6 +4,7 @@ import { ref, computed } from 'vue';
 import { jwtDecode, type JwtPayload } from 'jwt-decode';
 import { isEnergySplitTrialActive, energySplitTrialEnd } from '../utils/featureTrial';
 import { useCarStore } from './car';
+import { useRatingStore } from './rating';
 
 export interface JwtClaims {
     sub: string           // email (JWT standard subject)
@@ -67,6 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
         safeLocalStorage(() => localStorage.removeItem('token'));
         safeLocalStorage(() => localStorage.removeItem('isPremium'));
         useCarStore().reset();
+        useRatingStore().invalidate();
         if (redirect) {
             window.location.href = '/login';
         }

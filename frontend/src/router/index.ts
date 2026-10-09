@@ -185,6 +185,12 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
+            path: '/cars/:carId/bewerten',
+            name: 'car-rating',
+            component: () => import('../views/CarRatingView.vue'),
+            meta: { requiresAuth: true }
+        },
+        {
             path: '/umfrage/:slug',
             name: 'survey',
             component: SurveyView,
