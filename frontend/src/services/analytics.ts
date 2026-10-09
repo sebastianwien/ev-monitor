@@ -143,7 +143,7 @@ class AnalyticsService {
    * Sprachlog: ein Event "Voice", der Schritt steht in `step` - so reicht ein Plausible-Goal.
    * Props nur Zählwerte, Buckets und Feldnamen, nie Werte, Transkript oder Orte.
    */
-  trackVoice(step: 'open' | 'consent' | 'stop' | 'cancel' | 'error' | 'draft' | 'retry' | 'saved' | 'corrected' | 'quota' | 'upsell',
+  trackVoice(step: 'shown' | 'open' | 'consent' | 'stop' | 'cancel' | 'error' | 'draft' | 'retry' | 'saved' | 'corrected' | 'quota' | 'upsell',
              props: Record<string, string | number | boolean> = {}) {
     this.track('Voice', { step, ...props })
   }

@@ -49,6 +49,8 @@ const again = computed(() => props.variant === 'inline')
 // Neu: Knopf mit Text und Beispielsatz; nach zwei Aufnahmen nur das Symbol. Beim Öffnen festgelegt, nichts springt mitten im Ablauf.
 const stage: 'new' | 'familiar' = voiceFamiliar() ? 'familiar' : 'new'
 const footer = props.variant === 'footer'
+// Nenner für den Trichter: Mikrofon gezeigt, noch nicht angetippt (nur der Einstieg im Wizard)
+if (footer) analytics.trackVoice('shown', { entry: props.entry, stage })
 const keyboardOpen = useKeyboardOpen()
 
 let uploadStartedAt = 0
