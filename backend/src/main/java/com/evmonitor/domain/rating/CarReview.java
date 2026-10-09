@@ -1,5 +1,7 @@
 package com.evmonitor.domain.rating;
 
+import com.evmonitor.domain.exception.ConflictException;
+import com.evmonitor.domain.exception.ValidationException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,6 +33,8 @@ public class CarReview {
 
     /** Ab dieser Länge erscheint der Text als Erfahrungsbericht, darunter als Zitat. */
     public static final int REPORT_MIN_CHARS = 600;
+    /** Einzige erlaubte Änderung bei der Freigabe: Stellen durch diese Markierung ersetzen. */
+    public static final String REDACTION = "[entfernt]";
 
     @Id
     private UUID id;
@@ -111,6 +115,72 @@ public class CarReview {
         if (this.deleteWithCar == deleteWithCar) return;
         this.deleteWithCar = deleteWithCar;
         updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Freigabe durch einen Admin. {@code publishedBody} null heißt: Text unverändert.
+     *
+     * @throws ConflictException wenn die Fassung nicht offen ist
+     * @throws ValidationException wenn sich die Fassung nicht nur durch Schwärzungen unterscheidet
+     */
+    public void approve(String publishedBody, UUID adminId) {
+        requirePending();
+        String published = publishedBody == null ? body : publishedBody;
+        if (!isRedactionOf(body, published)) {
+            throw new ValidationException("REVIEW_REDACTION_ONLY",
+                    "Erlaubt ist nur das Ersetzen von Stellen durch " + REDACTION + ".");
+        }
+        status = ReviewStatus.APPROVED;
+        this.publishedBody = published;
+        markReviewed(adminId);
+    }
+
+    /** @throws ValidationException bei {@link RejectionReason#OTHER} ohne Notiz */
+    public void reject(RejectionReason reason, String note, UUID adminId) {
+        requirePending();
+        String trimmedNote = note == null ? null : note.strip();
+        if (reason == null || (reason == RejectionReason.OTHER && (trimmedNote == null || trimmedNote.isEmpty()))) {
+            throw new ValidationException("REVIEW_REJECTION_NOTE", "Grund fehlt, bei Sonstiges ist eine Notiz Pflicht.");
+        }
+        status = ReviewStatus.REJECTED;
+        rejectionReason = reason.name();
+        rejectionNote = trimmedNote == null || trimmedNote.isEmpty() ? null : trimmedNote;
+        markReviewed(adminId);
+    }
+
+    /** Ältere freigegebene Fassung, die von einer neuen Freigabe abgelöst wird. */
+    public void replaceApproved() {
+        if (status == ReviewStatus.APPROVED) supersede();
+    }
+
+    public void storeLlmCheck(String json) {
+        llmCheck = json;
+        updatedAt = LocalDateTime.now();
+    }
+
+    /** Wahr, wenn {@code published} aus {@code body} nur durch Ersetzen nicht leerer Stellen mit [entfernt] entsteht. */
+    public static boolean isRedactionOf(String body, String published) {
+        if (body == null || published == null) return false;
+        String[] parts = published.split(java.util.regex.Pattern.quote(REDACTION), -1);
+        StringBuilder regex = new StringBuilder("^");
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) regex.append("(.+?)");
+            regex.append(java.util.regex.Pattern.quote(parts[i]));
+        }
+        regex.append("$");
+        return java.util.regex.Pattern.compile(regex.toString(), java.util.regex.Pattern.DOTALL).matcher(body).matches();
+    }
+
+    private void requirePending() {
+        if (status != ReviewStatus.PENDING) {
+            throw new ConflictException("REVIEW_NOT_PENDING", "Diese Fassung ist nicht mehr offen.");
+        }
+    }
+
+    private void markReviewed(UUID adminId) {
+        reviewedBy = adminId;
+        reviewedAt = LocalDateTime.now();
+        updatedAt = reviewedAt;
     }
 
     public boolean isReport() {

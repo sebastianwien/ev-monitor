@@ -29,6 +29,8 @@ import AdminWebhooksTab from '../components/admin/AdminWebhooksTab.vue'
 import AdminSurveysTab from '../components/admin/AdminSurveysTab.vue'
 import AdminImportsTab from '../components/admin/AdminImportsTab.vue'
 import AdminVoiceUsageTab from '../components/admin/AdminVoiceUsageTab.vue'
+import AdminRatingsTab from '../components/admin/AdminRatingsTab.vue'
+import { adminRatingService } from '../api/adminRatingService'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
@@ -37,8 +39,11 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'voice' | 'wartung'
-const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'stripe', 'webhooks', 'imports', 'surveys', 'voice', 'impersonate', 'wartung']
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'voice' | 'ratings' | 'wartung'
+const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'stripe', 'webhooks', 'imports', 'surveys', 'voice', 'ratings', 'impersonate', 'wartung']
+/** Offene Erfahrungstexte für das Tab-Label, beim Öffnen der Seite einmal geladen. */
+const openRatingTexts = ref<number | null>(null)
+adminRatingService.openCount().then(n => { openRatingTexts.value = n }).catch(() => { /* Label ohne Zahl */ })
 const activeTab = ref<Tab>('users')
 
 // ── Wartung: Telemetrie-Config neu pushen ────────────────────────────────────
@@ -487,6 +492,7 @@ const onResizeUp = () => {
             { key: 'imports', label: 'Importe' },
             { key: 'surveys', label: 'Umfragen' },
             { key: 'voice', label: 'Mistral' },
+            { key: 'ratings', label: openRatingTexts === null ? 'Bewertungen' : `Bewertungen (${openRatingTexts} offen)` },
             { key: 'impersonate', label: 'Impersonieren' },
             { key: 'wartung', label: 'Wartung' },
           ] as { key: Tab; label: string }[])"
@@ -763,6 +769,8 @@ const onResizeUp = () => {
       <AdminSurveysTab v-else-if="activeTab === 'surveys'" />
 
       <AdminVoiceUsageTab v-else-if="activeTab === 'voice'" />
+
+      <AdminRatingsTab v-else-if="activeTab === 'ratings'" @open-count="openRatingTexts = $event" />
 
       <!-- Tab: Impersonate -->
       <!-- Tab: Wartung -->

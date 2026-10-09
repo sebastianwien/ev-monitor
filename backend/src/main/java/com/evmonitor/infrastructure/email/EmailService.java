@@ -253,6 +253,40 @@ public class EmailService {
         }
     }
 
+    private static final Map<String, String> REJECTION_REASONS_DE = Map.of(
+            "PERSONAL_DATA", "Der Text enthält persönliche Daten (zum Beispiel Namen oder Kennzeichen).",
+            "INSULT", "Der Text greift Personen an oder ist beleidigend.",
+            "ADVERTISING", "Der Text wirbt für ein Unternehmen oder enthält Empfehlungscodes.",
+            "WRONG_MODEL", "Der Text beschreibt ein anderes Modell.",
+            "NO_EXPERIENCE", "Im Text ist keine eigene Erfahrung mit dem Auto erkennbar.",
+            "OTHER", "Der Text passt nicht zu unseren Regeln.");
+    private static final Map<String, String> REJECTION_REASONS_EN = Map.of(
+            "PERSONAL_DATA", "The text contains personal data (for example names or licence plates).",
+            "INSULT", "The text attacks people or is offensive.",
+            "ADVERTISING", "The text advertises a company or contains referral codes.",
+            "WRONG_MODEL", "The text describes a different model.",
+            "NO_EXPERIENCE", "The text shows no personal experience with the car.",
+            "OTHER", "The text does not fit our rules.");
+
+    /** Fahrzeugbewertung: Erfahrungstext abgelehnt, mit Grund und Link zum Bearbeiten. Ohne Abmeldelink (Antwort auf eigenen Inhalt). */
+    public void sendReviewRejectedEmail(ReviewRejectedMail mail) {
+        String lang = resolveLocale(mail.locale());
+        Map<String, String> reasons = "en".equals(lang) ? REJECTION_REASONS_EN : REJECTION_REASONS_DE;
+        String editPath = mail.carId() == null ? "/cars" : "/cars/" + mail.carId() + "/bewerten";
+        boolean hasNote = mail.note() != null && !mail.note().isBlank();
+        String html = EmailTemplateRenderer.render("rating-review-rejected.html", lang, Map.of(
+                "username", mail.username(),
+                "model", mail.modelName(),
+                "reason", reasons.getOrDefault(mail.reason(), reasons.get("OTHER")),
+                "note", hasNote ? mail.note() : "",
+                "editUrl", campaignUrl(editPath, "rating-review-rejected")
+        ), hasNote ? java.util.Set.of("note") : java.util.Set.of());
+        String subject = "en".equals(lang)
+                ? "Your text about the " + mail.modelName() + " was not published"
+                : "Dein Text zum " + mail.modelName() + " wurde nicht veröffentlicht";
+        sendHtmlEmail(mail.toEmail(), subject, html);
+    }
+
     private void sendHtmlEmail(String toEmail, String subject, String html) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

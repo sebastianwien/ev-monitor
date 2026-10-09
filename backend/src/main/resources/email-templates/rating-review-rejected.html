@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="de">
+<body style="font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;">
+  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <h1 style="color: #4f46e5; font-size: 26px; margin-bottom: 4px;">EV Monitor</h1>
+    <p style="color: #1f2937; line-height: 1.7; font-size: 15px;">
+      Hi {{username}},
+    </p>
+    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      danke für deinen Erfahrungstext zum {{model}}. Wir lesen jeden Text, bevor er erscheint, und diesen konnten wir so leider nicht veröffentlichen.
+    </p>
+    <p style="color: #1f2937; line-height: 1.7; font-size: 15px;">
+      <strong>Grund:</strong> {{reason}}
+    </p>
+    <!--if:note--><p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      <strong>Hinweis:</strong> {{note}}
+    </p><!--end:note-->
+    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      Deine Sterne-Bewertung zählt weiter. Den Text kannst du jederzeit überarbeiten und neu einreichen.
+    </p>
+    <div style="text-align: center; margin: 36px 0;">
+      <a href="{{editUrl}}"
+         style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 14px 36px;
+                border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+        Text bearbeiten
+      </a>
+    </div>
+    <p style="color: #1f2937; font-size: 15px; margin-top: 8px;">
+      Danke Dir!<br>
+      Sebastian
+    </p>
+  </div>
+</body>
+</html>
