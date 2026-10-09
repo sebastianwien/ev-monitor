@@ -83,7 +83,12 @@ public class EmailService {
         String lang = resolveLocale(locale);
         String html = loadTemplate("login-code.html", lang, Map.of("code", code));
         String subject = "en".equals(lang) ? "Your code: " + code : "Dein Code: " + code;
-        sendHtmlEmail(toEmail, subject, html);
+        try {
+            sendHtmlEmail(toEmail, subject, html);
+        } catch (RuntimeException e) {
+            // Default message carries the subject, and the subject carries the code: never log it
+            throw new IllegalStateException("Failed to send login code to " + toEmail, e.getCause());
+        }
     }
 
     /** Reminder 7 days before a long Stripe trial ends: when it ends and where to cancel. */

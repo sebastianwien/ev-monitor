@@ -1,6 +1,8 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.testutil.AbstractIntegrationTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +12,10 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AuthCodeControllerTest extends AbstractIntegrationTest {
+
+    // Kein Mailserver nötig: der Versand selbst ist nicht Gegenstand dieses Tests
+    @MockitoBean
+    private EmailService emailService;
 
     @Test
     void requestAnswersTheSameForUnknownAddresses() {
