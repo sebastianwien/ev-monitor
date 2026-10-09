@@ -1,17 +1,17 @@
 <template>
-  <PublicModelsListViewV2 v-if="isPreview" preview />
-  <PublicModelsListView v-else />
+  <PublicModelsListView v-if="isLegacy" />
+  <PublicModelsListViewV2 v-else />
 </template>
 
 <script setup lang="ts">
-// Preview switch for the new ranking: /modelle?ansicht=neu shows V2 (noindex), everything
-// else keeps the classic list. V2 loads as its own chunk, so V1 visitors don't download it.
+// Release 2: the ranking (V2) is the default for /modelle and indexable. The classic list
+// stays reachable under ?ansicht=alt until it is removed; it loads as its own chunk.
 import { computed, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
-import PublicModelsListView from './PublicModelsListView.vue'
+import PublicModelsListViewV2 from './PublicModelsListViewV2.vue'
 
-const PublicModelsListViewV2 = defineAsyncComponent(() => import('./PublicModelsListViewV2.vue'))
+const PublicModelsListView = defineAsyncComponent(() => import('./PublicModelsListView.vue'))
 
 const route = useRoute()
-const isPreview = computed(() => route.query.ansicht === 'neu')
+const isLegacy = computed(() => route.query.ansicht === 'alt')
 </script>

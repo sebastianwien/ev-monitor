@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Neue Modell-Rangliste, Vorschau hinter ?ansicht=neu (Release 1). V1 bleibt Default.
-const URL = '/modelle?ansicht=neu';
+// Modell-Rangliste (Release 2: Default unter /modelle). Die alte Liste liegt hinter ?ansicht=alt.
+const URL = '/modelle';
 
 const rows = (page: Page) => page.locator('ol.mr-list > li');
 const rowToggle = (page: Page, i: number) => rows(page).nth(i).locator('button[aria-expanded]');
@@ -17,10 +17,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.setViewportSize(viewport);
     });
 
-    test('zeigt Zeilen und ist in der Vorschau noindex', async ({ page }) => {
+    test('zeigt Zeilen und ist als Default indexierbar', async ({ page }) => {
       await openRanking(page);
       expect(await rows(page).count()).toBeGreaterThan(1);
-      await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /^index/);
+      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/modelle$/);
     });
 
     test('Sortierung "Größte Reichweite" ändert die erste Zeile', async ({ page }) => {

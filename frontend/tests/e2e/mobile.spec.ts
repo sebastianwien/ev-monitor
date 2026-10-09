@@ -74,8 +74,10 @@ test('Mobile: /modelle zeigt Modell-Cards ohne Layout-Bruch', async ({ browser }
   const page = await context.newPage();
   await page.goto('/modelle');
 
-  const firstCard = page.locator('a[href*="/modelle/"]').first();
-  await expect(firstCard).toBeVisible({ timeout: 10_000 });
+  const firstCard = page.locator('a[href*="/modelle/"]').filter({ visible: true }).first();
+  await expect(firstCard).toBeAttached({ timeout: 10_000 });
+  await firstCard.scrollIntoViewIfNeeded();
+  await expect(firstCard).toBeVisible();
 
   const box = await firstCard.boundingBox();
   expect(box).not.toBeNull();

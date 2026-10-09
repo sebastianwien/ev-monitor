@@ -7,8 +7,10 @@ test.describe('Öffentliche Modellseiten (SEO-kritisch)', () => {
     await expect(page.locator('h1').first()).toBeVisible();
 
     // Mindestens eine Modell-Card mit Link
-    const modelLinks = page.locator('a[href*="/modelle/"]');
-    await expect(modelLinks.first()).toBeVisible({ timeout: 10_000 });
+    const modelLinks = page.locator('a[href*="/modelle/"]').filter({ visible: true });
+    await expect(modelLinks.first()).toBeAttached({ timeout: 10_000 });
+    await modelLinks.first().scrollIntoViewIfNeeded();
+    await expect(modelLinks.first()).toBeVisible();
   });
 
   test('/modelle zeigt Marken-Filter', async ({ page }) => {
