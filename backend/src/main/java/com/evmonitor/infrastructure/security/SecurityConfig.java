@@ -139,6 +139,13 @@ public class SecurityConfig {
         configuration.setExposedHeaders(List.of(com.evmonitor.infrastructure.web.EvLogController.COINS_AWARDED_HEADER));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // Partner-Kachel: von jeder Seite lesbar, nur GET, ohne Cookies/Credentials.
+        // Muss vor "/**" registriert werden, die erste passende Regel gewinnt.
+        CorsConfiguration embed = new CorsConfiguration();
+        embed.setAllowedOrigins(List.of("*"));
+        embed.setAllowedMethods(List.of("GET", "OPTIONS"));
+        embed.setAllowCredentials(false);
+        source.registerCorsConfiguration("/api/public/embed/**", embed);
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
