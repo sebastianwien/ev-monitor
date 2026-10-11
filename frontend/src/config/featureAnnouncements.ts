@@ -39,18 +39,8 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     bodyKey: 'announcements.vehicle_rating_v1_body',
     ctaLabelKey: 'announcements.vehicle_rating_v1_cta',
     ctaRoute: '/cars/{ratingCarId}/bewerten?src=announcement',
-    condition: ctx => ctx.ratableUnratedCars === 1,
-  },
-  {
-    // Mehrere bewertbare Autos: Text ohne Modellname, Link auf das Hauptfahrzeug
-    key: 'vehicle_rating_v1_multi',
-    releasedAt: '2026-10-09',
-    expiresAt: '2026-11-08',
-    titleKey: 'announcements.vehicle_rating_v1_multi_title',
-    bodyKey: 'announcements.vehicle_rating_v1_multi_body',
-    ctaLabelKey: 'announcements.vehicle_rating_v1_cta',
-    ctaRoute: '/cars/{ratingCarId}/bewerten?src=announcement',
-    condition: ctx => ctx.ratableUnratedCars > 1,
+    // Bei mehreren Autos verlinkt {ratingCarId} das Hauptfahrzeug
+    condition: ctx => ctx.ratableUnratedCars >= 1,
   },
   {
     key: 'home_charging_savings_v1',

@@ -102,23 +102,19 @@ describe('euda_autosync_v1 Texte', () => {
 })
 
 describe('vehicle_rating_v1', () => {
-    const single = featureAnnouncements.find(a => a.key === 'vehicle_rating_v1')!
-    const multi = featureAnnouncements.find(a => a.key === 'vehicle_rating_v1_multi')!
+    const rating = featureAnnouncements.find(a => a.key === 'vehicle_rating_v1')!
 
-    it('erscheint nur mit bewertbarem, unbewertetem Auto', () => {
-        expect(single.condition!({ ...baseCtx, ratableUnratedCars: 0 })).toBe(false)
-        expect(multi.condition!({ ...baseCtx, ratableUnratedCars: 0 })).toBe(false)
+    it('erscheint ab einem bewertbaren, unbewerteten Auto, auch bei mehreren', () => {
+        expect(rating.condition!({ ...baseCtx, ratableUnratedCars: 0 })).toBe(false)
+        expect(rating.condition!({ ...baseCtx, ratableUnratedCars: 1 })).toBe(true)
+        expect(rating.condition!({ ...baseCtx, ratableUnratedCars: 3 })).toBe(true)
     })
 
-    it('nennt bei einem Auto das Modell, bei mehreren nicht', () => {
-        expect(single.condition!({ ...baseCtx, ratableUnratedCars: 1 })).toBe(true)
-        expect(multi.condition!({ ...baseCtx, ratableUnratedCars: 1 })).toBe(false)
-        expect(single.condition!({ ...baseCtx, ratableUnratedCars: 2 })).toBe(false)
-        expect(multi.condition!({ ...baseCtx, ratableUnratedCars: 2 })).toBe(true)
+    it('gibt es nur einmal, ohne eigene Variante für mehrere Autos', () => {
+        expect(featureAnnouncements.some(a => a.key === 'vehicle_rating_v1_multi')).toBe(false)
     })
 
     it('verlinkt auf die Bewertung des Zielautos', () => {
-        expect(single.ctaRoute).toBe('/cars/{ratingCarId}/bewerten?src=announcement')
-        expect(multi.ctaRoute).toBe(single.ctaRoute)
+        expect(rating.ctaRoute).toBe('/cars/{ratingCarId}/bewerten?src=announcement')
     })
 })

@@ -2614,11 +2614,9 @@ demo:
   settings_cta: "Alles klar"
 
 announcements:
-  vehicle_rating_v1_title: "Wie gut ist dein {model} wirklich?"
-  vehicle_rating_v1_body: "7 Fragen, etwa 90 Sekunden. Danach siehst du, wie andere {model}-Fahrer ihn bewerten."
+  vehicle_rating_v1_title: "Bewerte dein Auto und hilf anderen bei der Kaufentscheidung"
+  vehicle_rating_v1_body: "7 Fragen, etwa 90 Sekunden. Deine Bewertung erscheint anonym auf der Modellseite, gestützt auf deine echten Fahrdaten statt auf Bauchgefühl. Danach siehst du, wie andere Fahrer desselben Modells urteilen."
   vehicle_rating_v1_cta: "Jetzt bewerten"
-  vehicle_rating_v1_multi_title: "Wie gut sind deine Autos wirklich?"
-  vehicle_rating_v1_multi_body: "7 Fragen, etwa 90 Sekunden. Danach siehst du, wie andere Fahrer desselben Modells urteilen."
   cta_error: "Das hat leider nicht geklappt. Versuch's nochmal."
   home_charging_savings_v1_title: "Neu: So viel spart dir das Laden daheim"
   home_charging_savings_v1_body: "Eine neue Dashboard-Kachel zeigt dir, was dir das Laden zu Hause gegenüber öffentlichem Laden gespart hat - Jahr für Jahr und über die gesamte Laufzeit. Verglichen wird mit dem Preisniveau, das du selbst zahlst, oder dem, was in deiner Umgebung üblich ist. Und wenn du deine Anschaffungskosten für Wallbox etc. hinterlegst, siehst du außerdem, wann sie sich über die Ersparnis eingespielt hat. Voraussetzung ist, dass bei deinen Heimladungen ein Preis erfasst ist."

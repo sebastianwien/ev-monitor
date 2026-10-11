@@ -2609,11 +2609,9 @@ demo:
   settings_cta: "Got it"
 
 announcements:
-  vehicle_rating_v1_title: "How good is your {model} really?"
-  vehicle_rating_v1_body: "7 questions, about 90 seconds. Then you will see how other {model} drivers rate it."
+  vehicle_rating_v1_title: "Rate your car and help others decide what to buy"
+  vehicle_rating_v1_body: "7 questions, about 90 seconds. Your rating appears anonymously on the model page, backed by your real driving data instead of gut feeling. Afterwards you see how other drivers of the same model rate it."
   vehicle_rating_v1_cta: "Rate now"
-  vehicle_rating_v1_multi_title: "How good are your cars really?"
-  vehicle_rating_v1_multi_body: "7 questions, about 90 seconds. Then you will see how other drivers of the same model rate it."
   cta_error: "That didn't work. Please try again."
   home_charging_savings_v1_title: "New: See how much home charging saves you"
   home_charging_savings_v1_body: "A new dashboard tile shows what charging at home has saved you compared to public charging - year by year and over your whole history. The comparison uses the price level you actually pay, or what's typical in your area. Add your wallbox and installation costs and you'll also see when it has paid for itself through those savings. This requires a price recorded on your home charges."
