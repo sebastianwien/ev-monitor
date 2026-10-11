@@ -94,7 +94,7 @@ describe('RangeBandBar', () => {
       expect.objectContaining({ highwaySharePercent: 60, commuteKmPerDay: 80 }))
     expect(band(host)).toContain('210')
     expect(band(host)).toContain('280')
-    expect(host.textContent).toContain('Fahrer wie du kommen')
+    expect(host.textContent).toContain('Mit deinem Profil kommst du mit vollem Akku')
     expect(host.textContent).toContain('2 von 5')
     expect(host.querySelectorAll('[data-testid="range-band-bar"] i.h-1').length).toBe(5)
   })
