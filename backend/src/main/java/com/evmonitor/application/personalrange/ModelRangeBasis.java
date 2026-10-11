@@ -12,6 +12,9 @@ import java.math.BigDecimal;
  * @param netBatteryKwh        net capacity of the largest variant
  * @param netBatteryMeasured   false when derived as nominal × 0.9 (no net value in the spec)
  * @param highwayCarCount      distinct cars behind highwayKwhPer100km; decides how much of it is used
+ * @param homeChargingEfficiency   AC efficiency from PlausibilityProperties: consumption is battery side,
+ *                                  costs are paid at the plug
+ * @param publicChargingEfficiency DC efficiency, same source
  * @param baseKwhPer100km      community consumption without highway share (city, else overall)
  */
 @Builder(toBuilder = true)
@@ -28,5 +31,7 @@ public record ModelRangeBasis(
         BigDecimal homePricePerKwh,
         BigDecimal publicPricePerKwh,
         BigDecimal referenceHomePricePerKwh,
-        BigDecimal referencePublicPricePerKwh
+        BigDecimal referencePublicPricePerKwh,
+        BigDecimal homeChargingEfficiency,
+        BigDecimal publicChargingEfficiency
 ) {}

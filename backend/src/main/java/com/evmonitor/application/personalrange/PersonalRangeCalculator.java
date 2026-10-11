@@ -65,7 +65,10 @@ final class PersonalRangeCalculator {
         double kwhPerCharge = net.multiply(in.homeCharging() ? HOME_CHARGE_SHARE : STOP_SHARE).doubleValue();
         BigDecimal chargesPerWeek = BigDecimal.valueOf(Math.ceil(weeklyKwh / kwhPerCharge * 2) / 2)
                 .setScale(1, RoundingMode.HALF_UP);
-        int monthlyCost = (int) Math.round(in.commuteKmPerDay() * WORKDAYS_PER_MONTH * mixedKwhPerKm * price.doubleValue());
+        // Consumption is battery side (charging losses removed), the price is per kWh at the plug
+        BigDecimal efficiency = in.homeCharging() ? b.homeChargingEfficiency() : b.publicChargingEfficiency();
+        double plugKwhPerKm = mixedKwhPerKm / efficiency.doubleValue();
+        int monthlyCost = (int) Math.round(in.commuteKmPerDay() * WORKDAYS_PER_MONTH * plugKwhPerKm * price.doubleValue());
 
         return new PersonalRangeResponse(
                 round10(km(net, RANGE_SHARE, winter)),

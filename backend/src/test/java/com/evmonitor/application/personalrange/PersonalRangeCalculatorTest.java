@@ -22,6 +22,7 @@ class PersonalRangeCalculatorTest {
                 .dcChargingPowerKw(new BigDecimal("100")).homePricePerKwh(new BigDecimal("0.30"))
                 .publicPricePerKwh(new BigDecimal("0.60"))
                 .referenceHomePricePerKwh(REF_HOME).referencePublicPricePerKwh(REF_PUBLIC)
+                .homeChargingEfficiency(new BigDecimal("0.90")).publicChargingEfficiency(new BigDecimal("0.95"))
                 .build();
     }
 
@@ -29,6 +30,7 @@ class PersonalRangeCalculatorTest {
         return ModelRangeBasis.builder()
                 .netBatteryKwh(NET).netBatteryMeasured(true).wltpKwhPer100km(WLTP)
                 .referenceHomePricePerKwh(REF_HOME).referencePublicPricePerKwh(REF_PUBLIC)
+                .homeChargingEfficiency(new BigDecimal("0.90")).publicChargingEfficiency(new BigDecimal("0.95"))
                 .build();
     }
 
@@ -46,8 +48,8 @@ class PersonalRangeCalculatorTest {
         assertThat(r.longTripChargingMinutes()).isEqualTo(30);
         // mixed 17.5 kWh/100km × 200 km/week = 35 kWh; home charge 20→80 % = 46.2 kWh → 0.76 → 1.0
         assertThat(r.chargesPerWeek()).isEqualByComparingTo("1.0");
-        // 40 km × 22 days × 0.175 kWh/km × 0.30 EUR = 46.2 → 46
-        assertThat(r.monthlyCostEur()).isEqualTo(46);
+        // costs are paid at the plug: 40 km × 22 days × 0.175 kWh/km / 0.90 AC efficiency × 0.30 EUR = 51.3 → 51
+        assertThat(r.monthlyCostEur()).isEqualTo(51);
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.MEASURED);
         assertThat(r.assumptions()).allMatch(PersonalRangeResponse.Assumption::measured);
     }
@@ -63,8 +65,8 @@ class PersonalRangeCalculatorTest {
         // highway 16 × 1.25 = 20: first leg 308 km, legs 269.5 km → 2 stops; 50 kW assumed: 2 × 64.7 = 129 → 130
         assertThat(r.longTripStops()).isEqualTo(2);
         assertThat(r.longTripChargingMinutes()).isEqualTo(130);
-        // base 18.4, highway 20 → mixed 19.2; 880 km × 0.192 × 0.55 public reference = 92.9 → 93
-        assertThat(r.monthlyCostEur()).isEqualTo(93);
+        // base 18.4, highway 20 → mixed 19.2; 880 km × 0.192 / 0.95 DC efficiency × 0.55 public reference = 97.8 → 98
+        assertThat(r.monthlyCostEur()).isEqualTo(98);
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.WLTP_FACTOR);
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("CHARGING_POWER") && !a.measured());
     }

@@ -2,6 +2,7 @@ package com.evmonitor.application.personalrange;
 
 import com.evmonitor.application.ChargingPriceService;
 import com.evmonitor.application.ChargingReferencePrices;
+import com.evmonitor.application.PlausibilityProperties;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
 import com.evmonitor.domain.UserRepository;
@@ -39,6 +40,7 @@ public class PersonalRangeService {
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
     private final ChargingPriceService chargingPriceService;
     private final UserRepository userRepository;
+    private final PlausibilityProperties plausibility;
     private final ObjectMapper objectMapper;
 
     /** Empty if the model is unknown or has no WLTP spec to size the battery. */
@@ -107,6 +109,8 @@ public class PersonalRangeService {
                 .publicPricePerKwh(stats.dcAvgCostPerKwh())
                 .referenceHomePricePerKwh(reference.homePricePerKwh())
                 .referencePublicPricePerKwh(reference.publicPricePerKwh())
+                .homeChargingEfficiency(BigDecimal.valueOf(plausibility.getAcChargingEfficiency()))
+                .publicChargingEfficiency(BigDecimal.valueOf(plausibility.getDcChargingEfficiency()))
                 .build());
     }
 
