@@ -77,7 +77,7 @@ onBeforeUnmount(() => observer?.disconnect())
 
         <!-- Leer -->
         <div v-if="ratings.count === 0" class="space-y-3">
-            <p class="text-gray-700 dark:text-gray-300">{{ t('rating.public.empty', { model }) }}</p>
+            <p v-if="!ctaCarId" class="text-gray-700 dark:text-gray-300">{{ t('rating.public.empty', { model }) }}</p>
             <a v-if="registerPath && !ctaCarId" :href="registerPath" class="inline-flex items-center min-h-11 font-semibold text-green-700 dark:text-green-400 underline underline-offset-4">
                 {{ t('rating.public.empty_cta') }}
             </a>
