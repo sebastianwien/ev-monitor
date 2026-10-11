@@ -112,7 +112,7 @@ test('Admin spricht den Ladevorgang ein und speichert ihn von der Prüfseite', a
   expect(saved).toMatchObject({ carId: 'car-1', kwhCharged: 32, costEur: 9.6, odometerKm: 48210, socAfterChargePercent: 80,
     isPublicCharging: false, chargingType: 'AC' })
   expect(saved).not.toHaveProperty('voiceUsed')
-  await expect.poll(() => voiceSteps(page)).toEqual(['consent', 'open', 'stop', 'draft', 'saved'])
+  await expect.poll(() => voiceSteps(page)).toEqual(['shown', 'consent', 'open', 'stop', 'draft', 'saved'])
   const draftEvent = (await events(page)).find(([e, p]) => e === 'Voice' && p.step === 'draft')![1]
   expect(draftEvent).toMatchObject({ entry: 'create', filled: 6, uncertain: 1, place: 'match' })
   expect(JSON.stringify(await events(page))).not.toContain('48210')
@@ -151,7 +151,7 @@ test('Abbrechen im Vollbild verwirft die Aufnahme ohne Upload', async ({ page })
   await expect(page.getByTestId('voice-sheet')).toHaveCount(0)
   await page.waitForTimeout(300)
   expect(uploads).toBe(0)
-  expect(await voiceSteps(page)).toEqual(['open', 'cancel'])
+  expect(await voiceSteps(page)).toEqual(['shown', 'open', 'cancel'])
 })
 
 test('Fehlendes nachsprechen: zweite Aufnahme füllt die Lücke, der Rest bleibt', async ({ page }) => {
@@ -182,7 +182,7 @@ test('Fehlendes nachsprechen: zweite Aufnahme füllt die Lücke, der Rest bleibt
   await page.getByTestId('wizard-next').click()
   await expect.poll(() => saved).not.toBeNull()
   expect(saved).toMatchObject({ kwhCharged: 32, odometerKm: 48210, socAfterChargePercent: 80, costEur: 9.6 })
-  await expect.poll(() => voiceSteps(page)).toEqual(['open', 'stop', 'draft', 'open', 'retry', 'stop', 'draft', 'saved'])
+  await expect.poll(() => voiceSteps(page)).toEqual(['shown', 'open', 'stop', 'draft', 'open', 'retry', 'stop', 'draft', 'saved'])
 })
 
 test('Gesprochene Adresse ohne Säule dort: privat an dieser Adresse', async ({ page }) => {
