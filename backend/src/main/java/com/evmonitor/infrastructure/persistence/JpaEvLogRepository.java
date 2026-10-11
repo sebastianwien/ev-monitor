@@ -697,7 +697,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                         THEN PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY s.kw)
                         ELSE NULL END
             FROM (
-                SELECT COALESCE(l.kwh_at_vehicle, l.kwh_charged) / (l.charge_duration_minutes / 60.0) AS kw
+                SELECT COALESCE(l.kwh_at_vehicle, l.kwh_charged) / (NULLIF(l.charge_duration_minutes, 0) / 60.0) AS kw
                 FROM ev_log l
                 JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
                 WHERE l.deleted_at IS NULL AND c.model = :model
