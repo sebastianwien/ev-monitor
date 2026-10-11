@@ -17,6 +17,8 @@ export interface PersonalRangeAssumption {
   key: AssumptionKey
   measured: boolean
   value: number
+  /** share of community data in value; between 0 and 100 for a blend (highway while few cars report it) */
+  measuredPercent?: number
 }
 
 export interface PersonalRangeResult {

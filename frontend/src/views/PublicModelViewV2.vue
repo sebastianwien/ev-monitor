@@ -101,7 +101,9 @@
             v-if="activeVariants.length"
             :brand="brand"
             :model="model"
-            :model-name="stats.modelDisplayName" />
+            :model-name="stats.modelDisplayName"
+            :log-count="stats.logCount"
+            :car-count="stats.uniqueCars" />
 
           <!-- No data for selected variant -->
           <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">

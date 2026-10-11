@@ -23,6 +23,9 @@ final class PersonalRangeCalculator {
     private static final BigDecimal STOP_SHARE = new BigDecimal("0.7");
     /** Home charging from 20 to 80 %. */
     private static final BigDecimal HOME_CHARGE_SHARE = new BigDecimal("0.6");
+    /** Highway measurement counts from this many cars (half weight) and fully from FULL_HIGHWAY_CARS. */
+    static final int MIN_HIGHWAY_CARS = 5;
+    static final int FULL_HIGHWAY_CARS = 15;
     static final BigDecimal ASSUMED_DC_POWER_KW = new BigDecimal("50");
     private static final int WORKDAYS_PER_WEEK = 5;
     private static final int WORKDAYS_PER_MONTH = 22;
@@ -37,7 +40,7 @@ final class PersonalRangeCalculator {
 
         BigDecimal summer = pick("SUMMER_CONSUMPTION", b.summerKwhPer100km(), b.wltpKwhPer100km(), SUMMER_FACTOR, assumptions);
         BigDecimal winter = pick("WINTER_CONSUMPTION", b.winterKwhPer100km(), b.wltpKwhPer100km(), WINTER_FACTOR, assumptions);
-        BigDecimal highway = pick("HIGHWAY_CONSUMPTION", b.highwayKwhPer100km(), b.wltpKwhPer100km(), HIGHWAY_FACTOR, assumptions);
+        BigDecimal highway = highway(b, assumptions);
         BigDecimal base = pick("BASE_CONSUMPTION", b.baseKwhPer100km(), b.wltpKwhPer100km(), SUMMER_FACTOR, assumptions);
 
         BigDecimal power = b.dcChargingPowerKw() != null ? b.dcChargingPowerKw() : ASSUMED_DC_POWER_KW;
@@ -79,6 +82,27 @@ final class PersonalRangeCalculator {
                                    List<PersonalRangeResponse.Assumption> assumptions) {
         BigDecimal value = measured != null ? measured : wltp.multiply(factor).setScale(1, RoundingMode.HALF_UP);
         assumptions.add(new PersonalRangeResponse.Assumption(key, measured != null, value));
+        return value;
+    }
+
+    /**
+     * Highway consumption blended by the number of cars behind the measurement: below
+     * MIN_HIGHWAY_CARS the WLTP estimate only, from there half measured, rising linearly to fully
+     * measured at FULL_HIGHWAY_CARS. The value moves towards the community as more people log.
+     */
+    private static BigDecimal highway(ModelRangeBasis b, List<PersonalRangeResponse.Assumption> assumptions) {
+        BigDecimal estimate = b.wltpKwhPer100km().multiply(HIGHWAY_FACTOR).setScale(1, RoundingMode.HALF_UP);
+        int cars = b.highwayCarCount();
+        if (b.highwayKwhPer100km() == null || cars < MIN_HIGHWAY_CARS) {
+            assumptions.add(new PersonalRangeResponse.Assumption("HIGHWAY_CONSUMPTION", false, estimate));
+            return estimate;
+        }
+        int percent = Math.min(100, 50 + 50 * (cars - MIN_HIGHWAY_CARS) / (FULL_HIGHWAY_CARS - MIN_HIGHWAY_CARS));
+        BigDecimal share = BigDecimal.valueOf(percent, 2);
+        BigDecimal value = b.highwayKwhPer100km().multiply(share)
+                .add(estimate.multiply(BigDecimal.ONE.subtract(share)))
+                .setScale(1, RoundingMode.HALF_UP);
+        assumptions.add(new PersonalRangeResponse.Assumption("HIGHWAY_CONSUMPTION", percent == 100, value, percent));
         return value;
     }
 

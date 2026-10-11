@@ -18,7 +18,7 @@ class PersonalRangeCalculatorTest {
         return ModelRangeBasis.builder()
                 .netBatteryKwh(NET).netBatteryMeasured(true).wltpKwhPer100km(WLTP)
                 .summerKwhPer100km(new BigDecimal("15.0")).winterKwhPer100km(new BigDecimal("20.0"))
-                .highwayKwhPer100km(new BigDecimal("19.0")).baseKwhPer100km(new BigDecimal("16.0"))
+                .highwayKwhPer100km(new BigDecimal("19.0")).highwayCarCount(20).baseKwhPer100km(new BigDecimal("16.0"))
                 .dcChargingPowerKw(new BigDecimal("100")).homePricePerKwh(new BigDecimal("0.30"))
                 .publicPricePerKwh(new BigDecimal("0.60"))
                 .referenceHomePricePerKwh(REF_HOME).referencePublicPricePerKwh(REF_PUBLIC)
@@ -80,6 +80,49 @@ class PersonalRangeCalculatorTest {
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.PARTIAL);
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("WINTER_CONSUMPTION") && a.measured());
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("HIGHWAY_CONSUMPTION") && !a.measured());
+    }
+
+    /** Highway measured 19.0 next to the WLTP estimate 16 × 1.25 = 20.0, behind the given number of cars. */
+    private static PersonalRangeResponse.Assumption highwayWith(int cars) {
+        ModelRangeBasis basis = measured().toBuilder().highwayCarCount(cars).build();
+        return PersonalRangeCalculator.calculate(new PersonalRangeRequest(20, 0, true, 300), basis)
+                .assumptions().stream().filter(a -> a.key().equals("HIGHWAY_CONSUMPTION")).findFirst().orElseThrow();
+    }
+
+    @Test
+    void highwayBelowFiveCarsIsTheWltpEstimate() {
+        PersonalRangeResponse.Assumption a = highwayWith(4);
+
+        assertThat(a.value()).isEqualByComparingTo("20.0");
+        assertThat(a.measuredPercent()).isZero();
+        assertThat(a.measured()).isFalse();
+    }
+
+    @Test
+    void highwayBlendsTowardsTheMeasurementAsCarsGrow() {
+        // 5 cars: half measured → 19.5; 10 cars: three quarters → 19.25 → 19.3
+        assertThat(highwayWith(5).value()).isEqualByComparingTo("19.5");
+        assertThat(highwayWith(5).measuredPercent()).isEqualTo(50);
+        assertThat(highwayWith(10).value()).isEqualByComparingTo("19.3");
+        assertThat(highwayWith(10).measuredPercent()).isEqualTo(75);
+        assertThat(highwayWith(10).measured()).isFalse();
+    }
+
+    @Test
+    void highwayFromFifteenCarsIsFullyMeasured() {
+        PersonalRangeResponse.Assumption a = highwayWith(15);
+
+        assertThat(a.value()).isEqualByComparingTo("19.0");
+        assertThat(a.measuredPercent()).isEqualTo(100);
+        assertThat(a.measured()).isTrue();
+    }
+
+    @Test
+    void blendedHighwayMakesTheResultPartial() {
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(new PersonalRangeRequest(20, 0, true, 300),
+                measured().toBuilder().highwayCarCount(8).build());
+
+        assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.PARTIAL);
     }
 
     @Test

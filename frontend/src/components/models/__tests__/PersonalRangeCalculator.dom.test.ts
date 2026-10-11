@@ -16,14 +16,14 @@ const RESULT = {
   chargesPerWeek: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
   assumptions: [
     { key: 'WINTER_CONSUMPTION', measured: true, value: 21.4 },
-    { key: 'HIGHWAY_CONSUMPTION', measured: false, value: 20.0 },
+    { key: 'HIGHWAY_CONSUMPTION', measured: false, value: 19.5, measuredPercent: 50 },
   ],
 }
 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear() })
 
-function mount(loggedIn: boolean) {
+function mount(loggedIn: boolean, data = { logCount: 6796, carCount: 35 }) {
   setActivePinia(createPinia())
   if (loggedIn) {
     const auth = useAuthStore()
@@ -32,7 +32,7 @@ function mount(loggedIn: boolean) {
   }
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(PersonalRangeCalculator, { brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3' })
+  app = createApp(PersonalRangeCalculator, { brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3', ...data })
   app.use(i18n)
   app.mount(host)
   return host
@@ -64,6 +64,25 @@ describe('PersonalRangeCalculator', () => {
     expect(sessionStorage.getItem('personalRange:inputs')).not.toBeNull()
   })
 
+  it('gate names the real data behind the model', async () => {
+    const host = mount(false)
+    calculateButton(host).click()
+    await flush()
+
+    const gate = host.querySelector('[data-testid="inline-gate"]')!
+    expect(gate.textContent).toContain('6.796')
+    expect(gate.textContent).toContain('35')
+    expect(gate.textContent).toContain('Kein Passwort')
+  })
+
+  it('gate says so when the model has too few cars', async () => {
+    const host = mount(false, { logCount: 40, carCount: 2 })
+    calculateButton(host).click()
+    await flush()
+
+    expect(host.querySelector('[data-testid="inline-gate"]')!.textContent).toContain('noch nicht genügend Messdaten')
+  })
+
   it('logged-in user gets the result tiles and the assumptions', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
     const host = mount(true)
@@ -78,6 +97,7 @@ describe('PersonalRangeCalculator', () => {
     expect(result.textContent).toContain('320')
     expect(result.textContent).toContain('46')
     expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(2)
+    expect(result.textContent).toContain('zu 50 % gemessen')
     expect(analytics.track).toHaveBeenCalledWith('personal_range_result', expect.objectContaining({ data_level: 'PARTIAL' }))
   })
 

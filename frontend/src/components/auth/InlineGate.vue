@@ -4,6 +4,7 @@
       <LockOpenIcon class="h-5 w-5 shrink-0 mt-0.5 text-green-700 dark:text-green-400" />
       <span>{{ lead }}</span>
     </p>
+    <p v-if="detail" class="mt-2 text-sm text-gray-700 dark:text-gray-300">{{ detail }}</p>
 
     <!-- Google: One Tap und Button; ohne Script (Adblocker, ITP) der bisherige Redirect-Login -->
     <div v-if="googleEnabled || redirectGoogleEnabled" class="mt-4">
@@ -77,7 +78,7 @@ import { rememberReturnPath } from '../../utils/postLoginRedirect'
  * Login without leaving the page: address, then a 6-digit mail code. A new address gets a
  * free account on the first valid code. `lead` names what the visitor gets before we ask.
  */
-defineProps<{ lead: string }>()
+defineProps<{ lead: string; detail?: string }>()
 const emit = defineEmits<{ authenticated: [] }>()
 
 const { t, locale } = useI18n()

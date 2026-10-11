@@ -343,6 +343,7 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         assertEquals(1, result.highwayLogCount());
         assertEquals(1, result.cityLogCount());
         assertEquals(0, result.combinedLogCount());
+        assertEquals(1, result.highwayCarCount());
     }
 
     @Test

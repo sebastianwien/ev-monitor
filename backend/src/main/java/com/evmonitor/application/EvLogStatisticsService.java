@@ -691,6 +691,7 @@ public class EvLogStatisticsService {
         Map<RouteType, BigDecimal> weighted = new java.util.EnumMap<>(RouteType.class);
         Map<RouteType, Integer> km = new java.util.EnumMap<>(RouteType.class);
         Map<RouteType, Integer> count = new java.util.EnumMap<>(RouteType.class);
+        java.util.Set<UUID> highwayCars = new java.util.HashSet<>();
 
         for (Car car : cars) {
             List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
@@ -705,6 +706,7 @@ public class EvLogStatisticsService {
                 weighted.merge(type, e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())), BigDecimal::add);
                 km.merge(type, e.distanceKm(), Integer::sum);
                 count.merge(type, 1, Integer::sum);
+                if (type == RouteType.HIGHWAY) highwayCars.add(car.getId());
             }
         }
 
@@ -714,7 +716,8 @@ public class EvLogStatisticsService {
                 ConsumptionMath.weightedAverage(weighted.getOrDefault(RouteType.HIGHWAY, BigDecimal.ZERO), km.getOrDefault(RouteType.HIGHWAY, 0)),
                 count.getOrDefault(RouteType.CITY, 0),
                 count.getOrDefault(RouteType.COMBINED, 0),
-                count.getOrDefault(RouteType.HIGHWAY, 0));
+                count.getOrDefault(RouteType.HIGHWAY, 0),
+                highwayCars.size());
     }
 
     /**

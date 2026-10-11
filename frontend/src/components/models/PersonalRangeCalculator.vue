@@ -62,7 +62,7 @@
       </button>
     </form>
 
-    <InlineGate v-if="gateOpen" class="mt-4" :lead="t('personal_range.gate_lead')" @authenticated="onAuthenticated" />
+    <InlineGate v-if="gateOpen" class="mt-4" :lead="gateLead" :detail="t('personal_range.gate_why')" @authenticated="onAuthenticated" />
 
     <p v-if="error" role="alert" class="mt-3 text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
@@ -86,7 +86,7 @@
         <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
           <CheckCircleIcon v-if="a.measured" class="h-4 w-4 shrink-0 mt-0.5 text-green-600 dark:text-green-400" />
           <QuestionMarkCircleIcon v-else class="h-4 w-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-          <span>{{ assumptionText(a) }} <span class="text-gray-500 dark:text-gray-400">({{ a.measured ? t('personal_range.measured') : t('personal_range.estimated') }})</span></span>
+          <span>{{ assumptionText(a) }} <span class="text-gray-500 dark:text-gray-400">({{ sourceText(a) }})</span></span>
         </li>
       </ul>
     </div>
@@ -114,12 +114,14 @@ import {
  * Inputs survive the gate (and a Google redirect) in sessionStorage; logged-in users get
  * their stored profile pre-filled.
  */
-const props = defineProps<{ brand: string; model: string; modelName: string }>()
+const props = defineProps<{ brand: string; model: string; modelName: string; logCount: number; carCount: number }>()
 
 const { t } = useI18n()
 const authStore = useAuthStore()
-const { formatDistance, distanceUnitLabel, isImperial, formatCurrency, formatConsumption, formatCostPerKwh, formatDecimal } = useLocaleFormat()
+const { formatNumber, formatDistance, distanceUnitLabel, isImperial, formatCurrency, formatConsumption, formatCostPerKwh, formatDecimal } = useLocaleFormat()
 
+/** Below this many cars the gate does not advertise measured data (same as the backend highway threshold). */
+const MIN_MEASURED_CARS = 5
 const MAX_COMMUTE_KM = 500
 const MIN_LONG_TRIP_KM = 50
 const MAX_LONG_TRIP_KM = 2000
@@ -132,6 +134,16 @@ const longTripLocal = ref(toLocal(500))
 const highwaySharePercent = ref(30)
 const homeCharging = ref(true)
 const gateOpen = ref(false)
+const gateLead = computed(() => props.carCount >= MIN_MEASURED_CARS
+  ? t('personal_range.gate_lead_measured', { model: props.modelName, logs: formatNumber(props.logCount), cars: formatNumber(props.carCount) })
+  : t('personal_range.gate_lead_thin', { model: props.modelName }))
+
+/** gemessen, geschätzt, or the measured share of a blend */
+function sourceText(a: PersonalRangeAssumption): string {
+  if (a.measured) return t('personal_range.measured')
+  if (a.measuredPercent && a.measuredPercent > 0) return t('personal_range.partly_measured', { percent: a.measuredPercent })
+  return t('personal_range.estimated')
+}
 const busy = ref(false)
 const error = ref('')
 const result = ref<PersonalRangeResult | null>(null)

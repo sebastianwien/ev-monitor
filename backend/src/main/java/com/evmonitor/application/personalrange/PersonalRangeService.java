@@ -99,6 +99,7 @@ public class PersonalRangeService {
                 .winterKwhPer100km(seasonal != null && seasonal.winterLogCount() >= MIN_LOGS_PER_SEASON
                         ? seasonal.winterConsumptionKwhPer100km() : null)
                 .highwayKwhPer100km(route != null ? route.highwayKwhPer100km() : null)
+                .highwayCarCount(route != null ? route.highwayCarCount() : 0)
                 .baseKwhPer100km(route != null && route.cityKwhPer100km() != null
                         ? route.cityKwhPer100km() : stats.avgConsumptionKwhPer100km())
                 .dcChargingPowerKw(stats.avgChargingPowerKw())
