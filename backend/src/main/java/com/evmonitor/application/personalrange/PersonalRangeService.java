@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -47,7 +48,11 @@ public class PersonalRangeService {
     private final ObjectMapper objectMapper;
     private final EmailService emailService;
 
-    /** Mails the result the user just unlocked through the gate. A failing mail never fails the request. */
+    /**
+     * Mails the result the user just unlocked through the gate. Runs off the request thread, so the
+     * SMTP round trip never delays the response; a failing mail is only logged.
+     */
+    @Async
     public void emailResult(UUID userId, String brand, String model, EmailService.PersonalRangeMailContent content) {
         Optional<User> user = userRepository.findById(userId);
         Optional<PublicModelStatsResponse> stats = publicModelService.getModelStats(brand, model,

@@ -4,6 +4,7 @@ import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
 import com.evmonitor.application.personalrange.PersonalRangeService;
 import com.evmonitor.infrastructure.email.EmailService;
+import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +30,9 @@ import java.util.UUID;
 public class PersonalRangeController {
 
     private final PersonalRangeService personalRangeService;
+    private final RateLimitService rateLimitService;
 
-    /** @param email true also mails the result to the user (the gate promises that once) */
+    /** @param email true also mails the result to the user (the gate promises that once; 3 a day at most) */
     @PostMapping("/{brand}/{model}")
     public ResponseEntity<PersonalRangeResponse> calculate(@PathVariable String brand,
                                                            @PathVariable String model,
@@ -40,8 +42,10 @@ public class PersonalRangeController {
         UUID userId = principal.getUser().getId();
         return personalRangeService.calculate(userId, principal.getUser().isSeedData(), brand, model, request)
                 .map(result -> {
-                    if (email) personalRangeService.emailResult(userId, brand, model,
-                            new EmailService.PersonalRangeMailContent(request, result));
+                    if (email && rateLimitService.tryConsumeResultMail(userId)) {
+                        personalRangeService.emailResult(userId, brand, model,
+                                new EmailService.PersonalRangeMailContent(request, result));
+                    }
                     return ResponseEntity.ok(result);
                 })
                 .orElse(ResponseEntity.notFound().build());

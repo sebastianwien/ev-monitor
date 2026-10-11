@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -75,7 +76,7 @@ public class RateLimitService {
             .refillIntervally(600, Duration.ofHours(1))
             .build();
 
-    // 120 demo read requests per minute per IP — generous for human browsing, blocks scraping.
+    // 120 demo read requests per minute per IP - generous for human browsing, blocks scraping.
     private static final Bandwidth DEMO_REQUEST_LIMIT = Bandwidth.builder()
             .capacity(120)
             .refillIntervally(120, Duration.ofMinutes(1))
@@ -104,8 +105,13 @@ public class RateLimitService {
             .capacity(3)
             .refillIntervally(3, Duration.ofMinutes(15))
             .build();
+    // Result mails of the range calculator: the gate promises one, a few more cover retries
+    private static final Bandwidth RESULT_MAIL_LIMIT = Bandwidth.builder()
+            .capacity(3)
+            .refillIntervally(3, Duration.ofHours(24))
+            .build();
 
-    // Caffeine caches mit TTL + Größen-Limit — verhindert unbegrenztes Wachstum der Buckets.
+    // Caffeine caches mit TTL + Größen-Limit - verhindert unbegrenztes Wachstum der Buckets.
     // expireAfterAccess: Bucket wird nach Inaktivität entfernt. maximumSize: Hard Cap gegen DoS.
     private final Cache<String, Bucket> loginBuckets = Caffeine.newBuilder()
             .expireAfterAccess(10, TimeUnit.MINUTES).maximumSize(5_000).build();
@@ -132,6 +138,16 @@ public class RateLimitService {
             .expireAfterAccess(20, TimeUnit.MINUTES).maximumSize(10_000).build();
     private final Cache<String, Bucket> codeRequestEmailBuckets = Caffeine.newBuilder()
             .expireAfterAccess(20, TimeUnit.MINUTES).maximumSize(10_000).build();
+    private final Cache<String, Bucket> resultMailBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(25, TimeUnit.HOURS).maximumSize(10_000).build();
+
+    /** Result mails of the range calculator per user, 3 a day; beyond that the mail is skipped silently. */
+    public boolean tryConsumeResultMail(UUID userId) {
+        if (!enabled) return true;
+        return resultMailBuckets
+                .get(userId.toString(), k -> Bucket.builder().addLimit(RESULT_MAIL_LIMIT).build())
+                .tryConsume(1);
+    }
 
     /** Code requests per IP; exceeding it answers 429. */
     public boolean tryConsumeCodeRequestIp(String clientIp) {
