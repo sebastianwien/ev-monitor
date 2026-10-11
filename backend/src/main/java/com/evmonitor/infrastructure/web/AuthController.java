@@ -67,10 +67,14 @@ public class AuthController {
     @PostMapping("/code/request")
     public ResponseEntity<?> requestLoginCode(@Valid @RequestBody CodeRequest request,
                                               HttpServletRequest httpRequest) {
-        if (!rateLimitService.tryConsumeCodeRequest(clientIp(httpRequest), EmailAddress.normalize(request.email()))) {
+        if (!rateLimitService.tryConsumeCodeRequestIp(clientIp(httpRequest))) {
             return tooManyRequests(900);
         }
-        emailCodeAuthService.requestCode(request.email(), request.locale());
+        // Volles Adress-Limit: gleiche Antwort, aber kein neuer Code. Sonst könnte jeder, der die Adresse
+        // kennt, den gültigen Code des Inhabers immer wieder ersetzen und den Login so sperren.
+        if (rateLimitService.tryConsumeCodeMail(EmailAddress.normalize(request.email()))) {
+            emailCodeAuthService.requestCode(request.email(), request.locale());
+        }
         return ResponseEntity.ok(Map.of("status", "SENT"));
     }
 

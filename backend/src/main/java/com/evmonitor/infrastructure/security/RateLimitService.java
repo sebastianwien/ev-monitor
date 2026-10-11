@@ -133,19 +133,24 @@ public class RateLimitService {
     private final Cache<String, Bucket> codeRequestEmailBuckets = Caffeine.newBuilder()
             .expireAfterAccess(20, TimeUnit.MINUTES).maximumSize(10_000).build();
 
-    /** Both buckets must allow it; the address is normalized by the caller. */
-    public boolean tryConsumeCodeRequest(String clientIp, String email) {
+    /** Code requests per IP; exceeding it answers 429. */
+    public boolean tryConsumeCodeRequestIp(String clientIp) {
         if (!enabled) return true;
         boolean allowed = codeRequestIpBuckets
                 .get(clientIp, ip -> Bucket.builder().addLimit(CODE_REQUEST_IP_LIMIT).build())
-                .tryConsume(1)
-                && codeRequestEmailBuckets
-                .get(email, e -> Bucket.builder().addLimit(CODE_REQUEST_EMAIL_LIMIT).build())
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for login code request from IP: {}", clientIp);
         }
         return allowed;
+    }
+
+    /** Code mails per address (normalized by the caller); exceeding it sends nothing, the last code stays valid. */
+    public boolean tryConsumeCodeMail(String email) {
+        if (!enabled) return true;
+        return codeRequestEmailBuckets
+                .get(email, e -> Bucket.builder().addLimit(CODE_REQUEST_EMAIL_LIMIT).build())
+                .tryConsume(1);
     }
 
     /**

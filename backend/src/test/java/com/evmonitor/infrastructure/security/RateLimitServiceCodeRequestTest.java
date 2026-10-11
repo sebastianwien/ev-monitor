@@ -17,15 +17,15 @@ class RateLimitServiceCodeRequestTest {
 
     @Test
     void threeCodesPerAddress() {
-        for (int i = 0; i < 3; i++) assertThat(service.tryConsumeCodeRequest("10.0.0." + i, "a@example.com")).isTrue();
+        for (int i = 0; i < 3; i++) assertThat(service.tryConsumeCodeMail("a@example.com")).isTrue();
 
-        assertThat(service.tryConsumeCodeRequest("10.0.0.9", "a@example.com")).isFalse();
+        assertThat(service.tryConsumeCodeMail("a@example.com")).isFalse();
     }
 
     @Test
     void fiveCodesPerIp() {
-        for (int i = 0; i < 5; i++) assertThat(service.tryConsumeCodeRequest("10.0.0.1", "u" + i + "@example.com")).isTrue();
+        for (int i = 0; i < 5; i++) assertThat(service.tryConsumeCodeRequestIp("10.0.0.1")).isTrue();
 
-        assertThat(service.tryConsumeCodeRequest("10.0.0.1", "u9@example.com")).isFalse();
+        assertThat(service.tryConsumeCodeRequestIp("10.0.0.1")).isFalse();
     }
 }
