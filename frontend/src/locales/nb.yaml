@@ -654,6 +654,9 @@ auth:
     or: eller
     google: Logg inn med Google
     forgot_password: Glemt passordet?
+    with_code: "Uten passord: kode på e-post"
+    code_lead: "Vi sender deg en 6-sifret kode på e-post. Du trenger ikke passord."
+    with_password: "Logg inn med passord i stedet"
     no_account: Har du ikke en konto ennå?
     register_link: Registrer deg her
     free: Gratis

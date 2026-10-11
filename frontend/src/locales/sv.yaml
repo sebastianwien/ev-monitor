@@ -654,6 +654,9 @@ auth:
     or: eller
     google: Logga in med Google
     forgot_password: Har du glömt lösenordet?
+    with_code: "Utan lösenord: kod via mejl"
+    code_lead: "Vi skickar en 6-siffrig kod till din mejl. Inget lösenord behövs."
+    with_password: "Logga in med lösenord i stället"
     no_account: Har du inget konto än?
     register_link: Registrera dig här
     free: Gratis
