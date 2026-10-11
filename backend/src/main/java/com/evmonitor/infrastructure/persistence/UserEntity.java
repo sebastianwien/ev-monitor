@@ -89,6 +89,16 @@ public class UserEntity {
     @Column(name = "ticker_share_charges", nullable = false, updatable = false)
     private boolean tickerShareCharges = true;
 
+    // Rechner-Eingaben als JSON. Gleiches Muster wie die Opt-outs: toEntity() kennt das Feld nicht,
+    // geschrieben wird nur per eigener Update-Query.
+    @Column(name = "range_profile", insertable = false, updatable = false)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    private String rangeProfile;
+
+    // Trial-Erinnerung: nur per eigener Update-Query (TrialReminderService), toEntity() kennt sie nicht.
+    @Column(name = "trial_reminder_due_at", insertable = false, updatable = false)
+    private LocalDateTime trialReminderDueAt;
+
     @Column(name = "last_seen")
     private LocalDateTime lastSeen;
 

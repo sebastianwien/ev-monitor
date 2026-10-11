@@ -209,6 +209,15 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # Partner-Kachel (ev-monitor-tile.js): ungehashter Dateiname auf fremden Seiten,
+    # daher kurzer Cache, damit Korrekturen binnen einer Stunde ankommen. Kein index.html-Fallback.
+    location /embed/ {
+        root /srv/frontend/current;
+        try_files $uri =404;
+        add_header Cache-Control "public, max-age=3600";
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
     # Gehashte Assets: offene Tabs mit altem index.html laden nach einem Deploy noch
     # Chunks des vorherigen Releases nach. Fehlt die Datei auch dort: 404 statt index.html.
     location /assets/ {

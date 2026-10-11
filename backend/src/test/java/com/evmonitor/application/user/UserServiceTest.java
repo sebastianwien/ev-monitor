@@ -96,6 +96,17 @@ class UserServiceTest {
     }
 
     @Test
+    void getUserStats_reportsWhetherAPasswordIsSet() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser.toBuilder().passwordHash(null).build()));
+        when(evLogRepository.findAllByUserId(userId)).thenReturn(List.of());
+
+        assertFalse(userService.getUserStats(userId).hasPassword());
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+        assertTrue(userService.getUserStats(userId).hasPassword());
+    }
+
+    @Test
     void getUserStats_shouldNotThrowWhenKwhChargedIsNull() {
         var logWithNullKwh = EvLog.builder()
                 .id(UUID.randomUUID())
@@ -250,6 +261,26 @@ class UserServiceTest {
                 () -> userService.deleteAccount(userId, request)
         );
         assertEquals("WRONG_PASSWORD", exception.getCode());
+        verify(userRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteAccount_withoutStoredPasswordNeedsNoPassword() {
+        User passwordless = testUser.toBuilder().passwordHash(null).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(passwordless));
+
+        userService.deleteAccount(userId, new DeleteAccountRequest(null));
+
+        verify(userRepository).delete(passwordless);
+        verify(passwordEncoder, never()).matches(any(), any());
+    }
+
+    @Test
+    void deleteAccount_withStoredPasswordRejectsMissingPassword() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+
+        assertThrows(com.evmonitor.domain.exception.ValidationException.class,
+                () -> userService.deleteAccount(userId, new DeleteAccountRequest(null)));
         verify(userRepository, never()).delete(any());
     }
 

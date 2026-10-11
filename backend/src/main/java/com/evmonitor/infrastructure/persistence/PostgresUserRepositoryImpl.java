@@ -39,6 +39,11 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public Optional<User> findByEmailIgnoreCase(String email) {
+        return jpaUserRepository.findFirstByEmailIgnoreCaseOrderByCreatedAtAsc(email).map(this::toDomain);
+    }
+
+    @Override
     public Optional<User> findByUsername(String username) {
         return jpaUserRepository.findByUsername(username).map(this::toDomain);
     }
@@ -175,6 +180,17 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     @Transactional
     public void setTickerShareCharges(UUID userId, boolean enabled) {
         jpaUserRepository.setTickerShareCharges(userId, enabled);
+    }
+
+    @Override
+    public Optional<String> findRangeProfile(UUID userId) {
+        return Optional.ofNullable(jpaUserRepository.findRangeProfile(userId));
+    }
+
+    @Override
+    @Transactional
+    public void setRangeProfile(UUID userId, String profileJson) {
+        jpaUserRepository.setRangeProfile(userId, profileJson);
     }
 
     @Override

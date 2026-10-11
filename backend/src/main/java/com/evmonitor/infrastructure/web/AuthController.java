@@ -5,12 +5,19 @@ import com.evmonitor.application.AuthService;
 import com.evmonitor.application.LoginRequest;
 import com.evmonitor.application.RegisterRequest;
 import com.evmonitor.application.RegisterResponse;
+import com.evmonitor.application.codelogin.CodeVerifyRequest;
+import com.evmonitor.application.codelogin.EmailCodeAuthService;
+import com.evmonitor.application.codelogin.GoogleTokenAuthService;
+import com.evmonitor.application.codelogin.SignupAttribution;
+import com.evmonitor.domain.EmailAddress;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -27,6 +34,8 @@ public class AuthController {
 
     private final AuthService authService;
     private final RateLimitService rateLimitService;
+    private final EmailCodeAuthService emailCodeAuthService;
+    private final GoogleTokenAuthService googleTokenAuthService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request,
@@ -52,6 +61,34 @@ public class AuthController {
             return tooManyRequests(300);
         }
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    /** Mails a login code. Same answer for known and unknown addresses. */
+    @PostMapping("/code/request")
+    public ResponseEntity<?> requestLoginCode(@Valid @RequestBody CodeRequest request,
+                                              HttpServletRequest httpRequest) {
+        if (!rateLimitService.tryConsumeCodeRequest(clientIp(httpRequest), EmailAddress.normalize(request.email()))) {
+            return tooManyRequests(900);
+        }
+        emailCodeAuthService.requestCode(request.email(), request.locale());
+        return ResponseEntity.ok(Map.of("status", "SENT"));
+    }
+
+    /** Logs in with the mailed code; creates the account on first use. 400 INVALID_CODE otherwise. */
+    @PostMapping("/code/verify")
+    public ResponseEntity<AuthResponse> verifyLoginCode(@Valid @RequestBody CodeVerifyBody request) {
+        return ResponseEntity.ok(emailCodeAuthService.verifyCode(
+                new CodeVerifyRequest(request.email(), request.code(), request.attribution())));
+    }
+
+    /** Google One Tap: verifies the ID token, logs in or creates the account. 400 INVALID_GOOGLE_TOKEN otherwise. */
+    @PostMapping("/google/token")
+    public ResponseEntity<?> loginWithGoogleToken(@Valid @RequestBody GoogleTokenBody request,
+                                                  HttpServletRequest httpRequest) {
+        if (!rateLimitService.tryConsumeLogin(clientIp(httpRequest))) {
+            return tooManyRequests(300);
+        }
+        return ResponseEntity.ok(googleTokenAuthService.login(request.idToken(), request.attribution()));
     }
 
     @PostMapping("/refresh")
@@ -86,6 +123,33 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Passwort erfolgreich geändert."));
     }
 
+    record CodeRequest(
+            @NotBlank @Email @Size(max = 255) String email,
+            @Size(max = 10) String locale) {}
+
+    record CodeVerifyBody(
+            @NotBlank @Email @Size(max = 255) String email,
+            @NotBlank @Pattern(regexp = "\\s*\\d{6}\\s*") String code,
+            @Size(max = 100) String utmSource,
+            @Size(max = 100) String utmMedium,
+            @Size(max = 100) String utmCampaign,
+            @Size(max = 10) String locale) {
+        SignupAttribution attribution() {
+            return new SignupAttribution(utmSource, utmMedium, utmCampaign, locale);
+        }
+    }
+
+    record GoogleTokenBody(
+            @NotBlank @Size(max = 4096) String idToken,
+            @Size(max = 100) String utmSource,
+            @Size(max = 100) String utmMedium,
+            @Size(max = 100) String utmCampaign,
+            @Size(max = 10) String locale) {
+        SignupAttribution attribution() {
+            return new SignupAttribution(utmSource, utmMedium, utmCampaign, locale);
+        }
+    }
+
     record ResendVerificationRequest(
             @NotBlank @Email String email) {}
 
@@ -94,7 +158,7 @@ public class AuthController {
 
     record ResetPasswordRequest(
             @NotBlank String token,
-            @NotBlank @jakarta.validation.constraints.Size(min = 8) String newPassword) {}
+            @NotBlank @Size(min = 8) String newPassword) {}
 
     // -------------------------------------------------------------------------
     // Helpers

@@ -24,6 +24,7 @@ const message = ref<{ type: 'success' | 'error', text: string } | null>(null)
 const {
   email, username, registeredSince, totalLogs, totalKwh, totalCostEur,
   coinBalance, referralCode, referralCopied, leaderboardVisible, tickerShareCharges,
+  hasPassword, setPasswordLinkSent, sendSetPasswordLink,
   subscriptionPeriodEnd, subscriptionTier, portalLoading,
   tierActionLoading, tierActionError,
   showEmailForm, showUsernameForm, showPasswordForm,
@@ -225,8 +226,18 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- Password -->
-        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
+        <!-- Password: Konten aus dem Mail-Code-Gate haben noch keins -->
+        <div v-if="!hasPassword" class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.password_label') }}</p>
+          <p class="font-medium">{{ t('settings.no_password') }}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('settings.no_password_hint') }}</p>
+          <p v-if="setPasswordLinkSent" class="text-sm font-semibold text-green-700 dark:text-green-400 mt-2">{{ t('settings.set_password_sent') }}</p>
+          <button v-else @click="sendSetPasswordLink" :disabled="loading"
+                  class="btn-3d mt-2 px-3 py-1 text-sm bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition disabled:opacity-50">
+            {{ t('settings.set_password_btn') }}
+          </button>
+        </div>
+        <div v-else class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
           <div class="flex justify-between items-center">
             <div>
               <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.password_label') }}</p>
@@ -598,6 +609,7 @@ onMounted(async () => {
           <p class="text-gray-700 dark:text-gray-300 mb-4" v-html="t('settings.delete_modal_desc')" />
 
           <input
+            v-if="hasPassword"
             v-model="deletePassword"
             type="password"
             :placeholder="t('settings.delete_password_placeholder')"
@@ -606,7 +618,7 @@ onMounted(async () => {
           <div class="flex gap-3">
             <button
               @click="deleteAccount"
-              :disabled="loading || !deletePassword"
+              :disabled="loading || (hasPassword && !deletePassword)"
               class="btn-3d flex-1 px-4 py-2 bg-red-600 text-white rounded-sm hover:bg-red-700 disabled:opacity-50 transition">
               {{ t('settings.delete_confirm_btn') }}
             </button>

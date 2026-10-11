@@ -1,3 +1,6 @@
+/** Trial for first-time buyers without promo code (StripeService.DEFAULT_TRIAL_DAYS). */
+export const DEFAULT_TRIAL_DAYS = 7
+
 export interface PricingInfo {
   monthly: string
   yearly: string

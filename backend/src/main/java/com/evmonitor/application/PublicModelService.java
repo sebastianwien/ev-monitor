@@ -68,7 +68,10 @@ public class PublicModelService {
      * Excludes all data from seed/test users.
      * Returns Optional.empty() if the model enum doesn't exist.
      */
-    @Cacheable(value = "modelStats", key = "#brandName + '-' + #modelName.replace(' ', '_') + '-' + #isSeedUser")
+    // Unbekannte Slugs nicht cachen: sonst verdrängen beliebige URLs (öffentlich, auch über die
+    // Partner-Kachel) die teuer berechneten echten Modelle aus dem auf 500 begrenzten Cache.
+    @Cacheable(value = "modelStats", key = "#brandName + '-' + #modelName.replace(' ', '_') + '-' + #isSeedUser",
+            unless = "#result == null")
     public Optional<PublicModelStatsResponse> getModelStats(String brandName, String modelName,
                                                              boolean isSeedUser) {
         // Validate that the model actually exists in our enum
@@ -221,6 +224,9 @@ public class PublicModelService {
                                 ((Number) row[1]).intValue()))
                         .toList();
 
+        PublicModelStatsResponse.RouteTypeConsumption routeTypeConsumption = toRouteTypeConsumption(
+                evLogStatisticsService.calculateRouteTypeConsumption(carsForModel, isSeedUser));
+
         String displayName = brandDisplay + " " + modelDisplay;
 
         return Optional.of(new PublicModelStatsResponse(
@@ -244,7 +250,8 @@ public class PublicModelService {
                 epaVariants,
                 seasonalDistribution,
                 yearDistribution,
-                routeTypeDistribution
+                routeTypeDistribution,
+                routeTypeConsumption
         ));
     }
 
@@ -595,6 +602,19 @@ public class PublicModelService {
                 consumptions.stream().max(BigDecimal::compareTo).orElse(null),
                 capacities.stream().min(BigDecimal::compareTo).orElse(null),
                 capacities.stream().max(BigDecimal::compareTo).orElse(null));
+    }
+
+    /** Below this many plausible trips a route type's consumption is too noisy to publish. */
+    static final int MIN_TRIPS_PER_ROUTE_TYPE = 10;
+
+    /** Null without any classified trip; per type null below MIN_TRIPS_PER_ROUTE_TYPE. */
+    private static PublicModelStatsResponse.RouteTypeConsumption toRouteTypeConsumption(RouteTypeConsumptionResult r) {
+        if (r.cityLogCount() + r.combinedLogCount() + r.highwayLogCount() == 0) return null;
+        return new PublicModelStatsResponse.RouteTypeConsumption(
+                r.cityLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.cityKwhPer100km()) : null,
+                r.combinedLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.combinedKwhPer100km()) : null,
+                r.highwayLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.highwayKwhPer100km()) : null,
+                r.cityLogCount(), r.combinedLogCount(), r.highwayLogCount(), r.highwayCarCount());
     }
 
     /** Range in km from a net capacity and a consumption in kWh/100 km; null if either is missing. */

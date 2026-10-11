@@ -25,6 +25,8 @@
 
       <div v-else-if="stats">
 
+        <StartCodeTeaser v-if="isAuthenticated" class="mx-4 md:mx-0 mb-3" />
+
         <!-- Breadcrumb: als Chip geerdet, damit er nicht im Gitter-Hintergrund untergeht -->
         <nav aria-label="Breadcrumb" class="px-4 md:px-0 mb-3">
           <ol class="flex flex-nowrap items-center gap-1.5 text-sm whitespace-nowrap overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-1.5 shadow-sm">
@@ -93,6 +95,15 @@
             :markers="rangeMarkers"
             :min-consumption="communityConsumptionRange?.min ?? null"
             :max-consumption="communityConsumptionRange?.max ?? null" />
+
+          <!-- Persönliches Profil: Ergebnis hinter dem Gate, die Modellwerte oben bleiben frei -->
+          <PersonalRangeCalculator
+            v-if="activeVariants.length"
+            :brand="brand"
+            :model="model"
+            :model-name="stats.modelDisplayName"
+            :log-count="stats.logCount"
+            :car-count="stats.uniqueCars" />
 
           <!-- No data for selected variant -->
           <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">
@@ -571,6 +582,8 @@
       </div>
     </div>
 
+    <ModelCooperationNote v-for="partner in PARTNER_BANNERS" :key="partner.id" :partner="partner" />
+
     <footer class="max-w-4xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
       <div v-if="!isAuthenticated" class="flex justify-center mb-4">
         <RegionChip />
@@ -617,6 +630,10 @@ import {
   SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
+import StartCodeTeaser from '../components/codes/StartCodeTeaser.vue'
+import ModelCooperationNote from '../components/models/ModelCooperationNote.vue'
+import { PARTNER_BANNERS } from '../config/cooperations'
+import PersonalRangeCalculator from '../components/models/PersonalRangeCalculator.vue'
 import RangeCalculatorCard from '../components/shared/RangeCalculatorCard.vue'
 import { buildMarkers } from '../utils/rangeCalculator'
 import GridRippleBackground from '../components/shared/GridRippleBackground.vue'

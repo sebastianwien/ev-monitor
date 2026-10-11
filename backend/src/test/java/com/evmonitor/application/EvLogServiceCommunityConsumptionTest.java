@@ -319,6 +319,42 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
     // Helpers
     // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
+    // calculateRouteTypeConsumption
+    // -------------------------------------------------------------------------
+
+    @Test
+    void routeType_bucketsByRouteTypeOfClosingLog() {
+        Car car = carWithBattery(new BigDecimal("75.0"));
+        LocalDateTime t = LocalDateTime.of(2025, 6, 1, 10, 0);
+        // Trip 1 (HIGHWAY): 16.25 kWh/100km over 300 km (see communityAvg_singleCar_socPath)
+        saveLog(car.getId(), 10000, new BigDecimal("45.0"), 80, t, null);
+        saveLog(car.getId(), 10300, new BigDecimal("52.5"), 85, t.plusDays(1), RouteType.HIGHWAY);
+        // Trip 2 (CITY): soc 85 → socBefore = 90 - 30/75*100 = 50 → (85-50)*0.75 = 26.25 kWh / 150 km = 17.50
+        saveLog(car.getId(), 10450, new BigDecimal("30.0"), 90, t.plusDays(2), RouteType.CITY);
+        // Trip 3 without route type: counted nowhere
+        saveLog(car.getId(), 10600, new BigDecimal("30.0"), 95, t.plusDays(3), null);
+
+        RouteTypeConsumptionResult result = evLogService.calculateRouteTypeConsumption(List.of(car), false);
+
+        assertEquals(new BigDecimal("16.25"), result.highwayKwhPer100km());
+        assertEquals(new BigDecimal("17.50"), result.cityKwhPer100km());
+        assertNull(result.combinedKwhPer100km());
+        assertEquals(1, result.highwayLogCount());
+        assertEquals(1, result.cityLogCount());
+        assertEquals(0, result.combinedLogCount());
+        assertEquals(1, result.highwayCarCount());
+    }
+
+    @Test
+    void routeType_noCars_returnsEmptyResult() {
+        RouteTypeConsumptionResult result = evLogService.calculateRouteTypeConsumption(List.of(), false);
+
+        assertNull(result.cityKwhPer100km());
+        assertNull(result.highwayKwhPer100km());
+        assertEquals(0, result.cityLogCount());
+    }
+
     private Car carWithBattery(BigDecimal batteryKwh) {
         Car car = Car.createNew(
                 userId, CarBrand.CarModel.MODEL_3, 2023,
@@ -332,6 +368,14 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
         evLogRepository.save(EvLog.createNew(
                 carId, kwhCharged, new BigDecimal("10.00"), 60,
                 "u33d1", odometerKm, new BigDecimal("11.0"), new BigDecimal(socAfter), loggedAt, ChargingType.UNKNOWN, null, null,
+                false, null));
+    }
+
+    private void saveLog(UUID carId, int odometerKm, BigDecimal kwhCharged,
+                         int socAfter, LocalDateTime loggedAt, RouteType routeType) {
+        evLogRepository.save(EvLog.createNew(
+                carId, kwhCharged, new BigDecimal("10.00"), 60,
+                "u33d1", odometerKm, new BigDecimal("11.0"), new BigDecimal(socAfter), loggedAt, ChargingType.UNKNOWN, routeType, null,
                 false, null));
     }
 

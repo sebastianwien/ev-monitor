@@ -9,6 +9,8 @@ public record UserStatsResponse(
         double totalCostEur,
         String referralCode,
         boolean leaderboardVisible,
-        boolean tickerShareCharges
+        boolean tickerShareCharges,
+        /** false for accounts created via mail code: settings then offer a set-password link */
+        boolean hasPassword
 ) {
 }

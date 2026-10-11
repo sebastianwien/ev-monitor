@@ -326,18 +326,18 @@ public class User {
     }
 
     public static User createNewLocalUser(String email, String username, String passwordHash) {
-        return newLocalUserBuilder(email, username, passwordHash).build();
+        return newAccountBuilder(email, username, passwordHash).build();
     }
 
     public static User createNewLocalUserWithReferrer(String email, String username, String passwordHash, UUID referredByUserId) {
-        return newLocalUserBuilder(email, username, passwordHash)
+        return newAccountBuilder(email, username, passwordHash)
                 .referredByUserId(referredByUserId)
                 .build();
     }
 
     public static User createNewLocalUserWithCampaign(String email, String username, String passwordHash,
             UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource) {
-        return newLocalUserBuilder(email, username, passwordHash)
+        return newAccountBuilder(email, username, passwordHash)
                 .referredByUserId(referredByUserId)
                 .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
                 .build();
@@ -346,7 +346,7 @@ public class User {
     public static User createNewLocalUserWithLocale(String email, String username, String passwordHash,
             UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource,
             String registrationLocale) {
-        return newLocalUserBuilder(email, username, passwordHash)
+        return newAccountBuilder(email, username, passwordHash)
                 .referredByUserId(referredByUserId)
                 .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
                 .registrationLocale(registrationLocale)
@@ -356,7 +356,7 @@ public class User {
     public static User createNewLocalUserWithLocaleAndCountry(String email, String username, String passwordHash,
             UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource,
             String registrationLocale, String country) {
-        return newLocalUserBuilder(email, username, passwordHash)
+        return newAccountBuilder(email, username, passwordHash)
                 .referredByUserId(referredByUserId)
                 .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
                 .registrationLocale(registrationLocale).country(country)
@@ -364,7 +364,7 @@ public class User {
     }
 
     public static User createVerifiedLocalUser(String email, String username, String passwordHash) {
-        return newLocalUserBuilder(email, username, passwordHash)
+        return newAccountBuilder(email, username, passwordHash)
                 .emailVerified(true)
                 .build();
     }
@@ -381,7 +381,8 @@ public class User {
                 .build();
     }
 
-    private static UserBuilder newLocalUserBuilder(String email, String username, String passwordHash) {
+    /** Base for every new account (provider LOCAL unless overridden); callers add attribution, locale or verification. */
+    public static UserBuilder newAccountBuilder(String email, String username, String passwordHash) {
         LocalDateTime now = LocalDateTime.now();
         return User.builder()
                 .id(UUID.randomUUID())

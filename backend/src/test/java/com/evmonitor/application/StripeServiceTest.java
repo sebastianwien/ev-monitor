@@ -1,5 +1,7 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.promo.PromoCodeService;
+import com.evmonitor.application.promo.TrialSubscriptionHandler;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.SubscriptionTier;
 import com.evmonitor.domain.User;
@@ -58,6 +60,12 @@ class StripeServiceTest {
     @Mock
     private StripeSubscriptionLookup subscriptionLookup;
 
+    @Mock
+    private TrialSubscriptionHandler trialSubscriptionHandler;
+
+    @Mock
+    private PromoCodeService promoCodeService;
+
     private StripeService stripeService;
 
     private static final String CUSTOMER_ID = "cus_testABC123";
@@ -66,7 +74,7 @@ class StripeServiceTest {
 
     @BeforeEach
     void setUp() {
-        stripeService = new StripeService(userRepository, adminAlertService, subscriptionLookup);
+        stripeService = new StripeService(userRepository, adminAlertService, subscriptionLookup, trialSubscriptionHandler, promoCodeService);
     }
 
     // -------------------------------------------------------------------------

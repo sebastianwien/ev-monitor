@@ -585,6 +585,7 @@ model:
   cta_login: Logg inn
   cost_disclaimer: "Prisene er basert på data fra brukergruppen (hovedsakelig DACH-markedet). Omregning: 1 EUR = {rate} {currency} (per {date})."
   seo_section_title: "{model} - Forbruk, rekkevidde og ladekostnader"
+  partner_label: "Partner"
   related_title: Andre populære elbilmodeller
   faq_title: Ofte stilte spørsmål om {model}
   hero_title_v2: "{model} - Forbruk og rekkevidde"
@@ -653,6 +654,9 @@ auth:
     or: eller
     google: Logg inn med Google
     forgot_password: Glemt passordet?
+    with_code: "Uten passord: kode på e-post"
+    code_lead: "Vi sender deg en 6-sifret kode på e-post. Du trenger ikke passord."
+    with_password: "Logg inn med passord i stedet"
     no_account: Har du ikke en konto ennå?
     register_link: Registrer deg her
     free: Gratis
@@ -1664,6 +1668,11 @@ settings:
   username_label: Brukernavn
   username_new_placeholder: Nytt brukernavn
   password_label: Passord
+  no_password: "Ikke satt ennå"
+  no_password_hint: "Du logger inn med en kode fra e-posten. Passord trenger du bare hvis du heller vil logge inn slik."
+  set_password_btn: "Send lenke for å sette passord"
+  set_password_sent: "Lenken er på vei. Sjekk innboksen."
+  set_password_error: "Det fungerte ikke. Prøv igjen."
   password_current_placeholder: Nåværende passord
   password_new_placeholder: Nytt passord (min. 8 tegn)
   password_confirm_placeholder: Bekreft nytt passord
@@ -2669,8 +2678,8 @@ autosync_page:
   b_curve_d: "Se ladekurven til hurtigladingene dine og ved hvilken ladegrad effekten faller. Så fremt bilen din leverer dataene."
   cancel_hint: "Gjelder 1 bil · kan sies opp når som helst"
   cta: "Aktiver AutoSync"
-  cta_trial: "Prøv gratis i 7 dager"
-  trial_hint: "De første 7 dagene gratis, deretter"
+  cta_trial: "Prøv gratis i {days} dager"
+  trial_hint: "De første {days} dagene gratis, deretter"
   footer_note: "Sikker betaling via Stripe · kan sies opp når som helst"
   error: "Noe gikk galt. Prøv igjen."
 
@@ -3866,3 +3875,79 @@ rating:
   cars:
     rate: "Vurder"
     rated_edit: "Din vurdering · rediger"
+gate:
+  google_redirect: "Fortsett med Google"
+  or_email: "eller med e-postkode"
+  error_google: "Google-innloggingen fungerte ikke. Bruk e-postkoden."
+  email_label: "E-postadresse"
+  email_placeholder: "deg{'@'}eksempel.no"
+  send_code: "Send kode"
+  sending: "Sender ..."
+  code_sent: "Vi har sendt en 6-sifret kode til {email}."
+  code_label: "Kode fra e-posten"
+  confirm: "Bekreft"
+  verifying: "Sjekker ..."
+  change_email: "Bruk en annen adresse"
+  consent: "Ingen passord nødvendig. Dette oppretter en gratis konto som du kan slette når som helst i innstillingene. Sporadiske e-poster avbestiller du med ett klikk."
+  privacy_link: "Personvern"
+  error_email: "Skriv inn en gyldig e-postadresse."
+  error_code_format: "Koden har 6 sifre."
+  error_code_invalid: "Koden stemmer ikke eller er utløpt. Sjekk e-posten eller be om en ny."
+  error_rate_limited: "For mange forsøk. Vent 15 minutter."
+  error_generic: "Det fungerte ikke. Prøv igjen."
+personal_range:
+  title: "Din personlige profil"
+  hint: "Fire svar, så regner vi med måledataene for {model}."
+  commute_label: "Pendling per dag, tur-retur"
+  long_trip_label: "Lengste tur i ett strekk"
+  highway_label: "Andel motorvei"
+  home_label: "Lader du hjemme?"
+  "yes": "Ja"
+  "no": "Nei"
+  calculate: "Beregn mitt resultat"
+  calculating: "Beregner ..."
+  gate_lead_measured: "Resultatet ditt for {model} er klart. Basert på {logs} ekte ladeøkter fra {cars} sjåfører, ikke produsentens tall: rekkevidde om vinteren, ladestopp på langturen, ladinger per uke, kostnad per måned."
+  gate_lead_thin: "Resultatet ditt for {model} er klart. Vi har ennå ikke nok måledata for denne modellen, bare fra én sjåfør. Der måleverdier mangler, anslår vi ut fra WLTP og merker verdien. Kjører du en? Med dine ladeøkter blir beregningen mer presis for alle. | Resultatet ditt for {model} er klart. Vi har ennå ikke nok måledata for denne modellen, bare fra {cars} sjåfører. Der måleverdier mangler, anslår vi ut fra WLTP og merker verdien. Kjører du en? Med dine ladeøkter blir beregningen mer presis for alle."
+  gate_why: "Hvor kan vi sende resultatet ditt? Profilen din lagres, slik at du kan sammenligne alle andre modeller med ett klikk."
+  result_title: "Ditt resultat med {model}"
+  winter_range: "Rekkevidde om vinteren"
+  summer_range: "Sommer: {value}"
+  stops: "Ladestopp på {distance}"
+  stops_minutes: "ca. {minutes} min lading"
+  no_stop: "uten ladestopp"
+  charges_week: "Ladinger per uke"
+  charges_home: "hjemme, 20 til 80 %"
+  charges_public: "underveis, 10 til 80 %"
+  cost_month: "Kostnad per måned"
+  cost_basis: "pendling 22 dager"
+  data_level_MEASURED: "Alle forbruksverdier målt"
+  data_level_PARTIAL: "Målt der det finnes nok data, ellers fra WLTP"
+  data_level_WLTP_FACTOR: "Anslått fra WLTP, for lite måledata ennå"
+  assumptions_title: "Hva resultatet bygger på"
+  measured: "målt"
+  estimated: "anslått"
+  partly_measured: "{percent} % målt, resten fra WLTP"
+  source_spec: "datablad"
+  source_spec_derived: "anslått fra bruttokapasitet"
+  assumption_BATTERY: "Netto batteri {value}"
+  assumption_SUMMER_CONSUMPTION: "Forbruk om sommeren {value}"
+  assumption_WINTER_CONSUMPTION: "Forbruk om vinteren {value}"
+  assumption_HIGHWAY_CONSUMPTION: "Forbruk på motorvei {value}"
+  assumption_BASE_CONSUMPTION: "Forbruk utenom motorvei {value}"
+  assumption_CHARGING_POWER: "Gjennomsnittlig hurtigladeeffekt {value}"
+  assumption_PRICE: "Strømpris {value}"
+  error: "Det fungerte ikke. Prøv igjen."
+promo:
+  banner_FIRSTEV: "Fra firstev-forumet? Prøv AutoSync gratis i fire uker."
+  banner_generic: "Prøv AutoSync gratis i {days} dager."
+  banner_cta: "Koden er allerede fylt inn"
+  banner_close: "Lukk melding"
+  code_toggle: "Skriv inn kampanjekode"
+  code_label: "Kampanjekode"
+  code_apply: "Løs inn"
+  code_applied: "Kode {code}: {days} dager gratis"
+  reason_UNKNOWN: "Denne koden finnes ikke eller er utløpt."
+  reason_NOT_ELIGIBLE: "Denne koden gjelder bare kontoer opprettet via partneren vår."
+  reason_TRIAL_USED: "Du har allerede hatt en prøveperiode, koden forlenger den ikke."
+  reason_ALREADY_REDEEMED: "Du har allerede løst inn en kode."
+  reason_EXHAUSTED: "Alle plassene for denne koden er tatt."

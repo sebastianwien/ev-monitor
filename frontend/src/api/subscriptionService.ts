@@ -15,6 +15,16 @@ export interface SubscriptionStatus {
     autoSyncSlots?: number;
 }
 
+/** A promo code the user can redeem, e.g. FIRSTEV with 28 trial days. */
+export interface PromoOffer {
+    code: string;
+    trialDays: number;
+}
+
+export type PromoCheck =
+    | { valid: true; code: string; trialDays: number }
+    | { valid: false; reason: 'UNKNOWN' | 'NOT_ELIGIBLE' | 'TRIAL_USED' | 'ALREADY_REDEEMED' | 'EXHAUSTED' };
+
 export interface CheckoutResponse {
     checkoutUrl: string;
 }
@@ -28,11 +38,23 @@ export const subscriptionService = {
     async createCheckoutSession(
         plan: 'monthly' | 'yearly',
         tier: 'autosync' | 'autosync_live' | 'supporter' = 'autosync',
+        promoCode?: string,
     ): Promise<CheckoutResponse> {
         // Hier statt an jedem Kaufknopf: alle Wege zu Stripe laufen durch diese Methode
         analytics.trackCheckoutStarted(plan, tier, currentUpsellSource());
-        const response = await api.post('/subscription/checkout', { plan, tier });
+        const response = await api.post('/subscription/checkout', { plan, tier, promoCode });
         return response.data;
+    },
+
+    async checkPromoCode(code: string): Promise<PromoCheck> {
+        const response = await api.get(`/subscription/promo/${encodeURIComponent(code.trim())}`);
+        return response.data;
+    },
+
+    /** Offer for the user's sign-up source (teaser banner), null when there is none. */
+    async getPromoOffer(): Promise<PromoOffer | null> {
+        const response = await api.get('/subscription/promo-offer');
+        return response.status === 200 ? response.data : null;
     },
 
     async upgradeToLive(): Promise<{ status: string }> {

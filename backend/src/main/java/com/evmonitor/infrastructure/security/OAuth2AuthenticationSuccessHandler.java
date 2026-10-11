@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.security;
 
+import com.evmonitor.application.codelogin.PasswordlessAccountService;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
@@ -24,13 +25,16 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final PasswordlessAccountService accountService;
 
     @Value("${app.oauth2.authorized-redirect-uris:http://localhost:5173/auth/callback}")
     private String redirectUri;
 
-    public OAuth2AuthenticationSuccessHandler(JwtService jwtService, UserRepository userRepository) {
+    public OAuth2AuthenticationSuccessHandler(JwtService jwtService, UserRepository userRepository,
+                                              PasswordlessAccountService accountService) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.accountService = accountService;
     }
 
     @Override
@@ -59,14 +63,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                         " account to login.");
             }
         } else {
-            // Generate username from email for OAuth users
-            String username = email.split("@")[0];
-            // Ensure uniqueness by adding random suffix if username exists
-            if (userRepository.existsByUsername(username)) {
-                username = username + "_" + System.currentTimeMillis();
-            }
-            user = User.createNewSsoUser(email, username, authProvider);
-            user = userRepository.save(user);
+            user = accountService.findOrCreateVerified(email, null, authProvider);
         }
 
         UserPrincipal userPrincipal = UserPrincipal.create(user, oAuth2User.getAttributes());

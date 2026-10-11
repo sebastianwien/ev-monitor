@@ -6,6 +6,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { analytics } from '../services/analytics';
 import { BoltIcon, ShieldCheckIcon, CurrencyEuroIcon } from '@heroicons/vue/24/outline';
 import { Capacitor } from '@capacitor/core';
+import InlineGate from '../components/auth/InlineGate.vue';
 
 const { t, locale } = useI18n();
 // Drittanbieter-Login (Google) nur im Web: in der nativen App wuerde Apple sonst
@@ -26,14 +27,21 @@ const sessionExpiredMessage = computed(() => route.query.reason === 'session-exp
 const registerPath = computed(() => locale.value === 'en' ? '/en/register' : '/register')
 const forgotPath = computed(() => locale.value === 'en' ? '/en/forgot-password' : '/forgot-password')
 
+/** Password-free login: the same mail-code gate as on the model pages */
+const codeMode = ref(false)
+
+const goToTarget = () => {
+  const redirect = route.query.redirect as string | undefined;
+  router.push(redirect?.startsWith('/') ? redirect : '/dashboard');
+}
+
 const handleLogin = async () => {
   try {
     error.value = '';
     errorCode.value = '';
     await authStore.login({ email: email.value, password: password.value });
     analytics.trackLogin();
-    const redirect = route.query.redirect as string | undefined;
-    router.push(redirect?.startsWith('/') ? redirect : '/dashboard');
+    goToTarget();
   } catch (err: any) {
     const code = err.response?.data?.code;
     errorCode.value = code || '';
@@ -85,6 +93,14 @@ const handleResendFromLogin = async () => {
             {{ sessionExpiredMessage }}
           </div>
 
+          <template v-if="codeMode">
+            <InlineGate :lead="t('auth.login.code_lead')" @authenticated="goToTarget" />
+            <button type="button" @click="codeMode = false"
+              class="mt-4 w-full text-center text-sm font-semibold text-green-600 dark:text-green-400 hover:underline">
+              {{ t('auth.login.with_password') }}
+            </button>
+          </template>
+          <template v-else>
           <form @submit.prevent="handleLogin" class="space-y-5">
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('auth.login.email_or_username') }}</label>
@@ -118,6 +134,11 @@ const handleResendFromLogin = async () => {
             </button>
           </form>
 
+          <button type="button" data-testid="login-with-code" @click="codeMode = true"
+            class="mt-3 w-full px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 border-2 border-gray-300 dark:border-gray-600 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+            {{ t('auth.login.with_code') }}
+          </button>
+
           <!-- Google SSO -->
           <template v-if="googleOauthEnabled">
             <div class="relative my-5">
@@ -139,6 +160,7 @@ const handleResendFromLogin = async () => {
               </svg>
               {{ t('auth.login.google') }}
             </a>
+          </template>
           </template>
 
           <div class="mt-4 text-center">

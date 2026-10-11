@@ -61,7 +61,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/demo-login",
                                 "/api/auth/verify-email", "/api/auth/resend-verification",
-                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+                                "/api/auth/forgot-password", "/api/auth/reset-password",
+                                "/api/auth/code/request", "/api/auth/code/verify", "/api/auth/google/token").permitAll()
                         .requestMatchers("/api/cars/brands", "/api/cars/brands/**").permitAll()
                         // Reicht Koordinaten an einen fremden Dienst weiter - nur fuer angemeldete Nutzer,
                         // zusaetzlich per RateLimitService gedrosselt. Muss vor der permitAll-Regel stehen.
@@ -139,6 +140,13 @@ public class SecurityConfig {
         configuration.setExposedHeaders(List.of(com.evmonitor.infrastructure.web.EvLogController.COINS_AWARDED_HEADER));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // Partner-Kachel: von jeder Seite lesbar, nur GET, ohne Cookies/Credentials.
+        // Muss vor "/**" registriert werden, die erste passende Regel gewinnt.
+        CorsConfiguration embed = new CorsConfiguration();
+        embed.setAllowedOrigins(List.of("*"));
+        embed.setAllowedMethods(List.of("GET", "OPTIONS"));
+        embed.setAllowCredentials(false);
+        source.registerCorsConfiguration("/api/public/embed/**", embed);
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }

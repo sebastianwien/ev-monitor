@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dein AutoSync-Test endet bald - EV Monitor</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;">
+  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <h1 style="color: #16a34a; font-size: 26px; margin-bottom: 4px;">EV Monitor</h1>
+    <h2 style="color: #1f2937; font-size: 20px; margin-top: 0; font-weight: 600;">Hallo {{username}}, dein AutoSync-Test endet am {{endsAt}}</h2>
+    <p style="color: #4b5563; line-height: 1.7; font-size: 15px;">
+      Danach läuft AutoSync als normales Abo weiter und Stripe bucht den ersten Betrag ab. Du musst nichts tun, wenn du dabei bleiben willst.
+    </p>
+    <p style="color: #4b5563; line-height: 1.7; font-size: 15px;">
+      Willst du nicht weitermachen, kündige vor dem {{endsAt}} in den Einstellungen unter "Abo verwalten". Dann wird nichts berechnet.
+    </p>
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="{{settingsUrl}}"
+         style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+        Abo ansehen
+      </a>
+    </div>
+  </div>
+</body>
+</html>

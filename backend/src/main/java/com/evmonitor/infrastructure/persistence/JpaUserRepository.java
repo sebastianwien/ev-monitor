@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,6 +17,8 @@ import java.util.UUID;
 @Repository
 public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     Optional<UserEntity> findByEmail(String email);
+
+    Optional<UserEntity> findFirstByEmailIgnoreCaseOrderByCreatedAtAsc(String email);
 
     Optional<UserEntity> findByUsername(String username);
 
@@ -185,6 +188,29 @@ public interface JpaUserRepository extends JpaRepository<UserEntity, UUID> {
     @Modifying
     @Query("UPDATE UserEntity u SET u.leaderboardVisible = :visible, u.updatedAt = current_timestamp WHERE u.id = :userId")
     void setLeaderboardVisible(@Param("userId") UUID userId, @Param("visible") boolean visible);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.trialReminderDueAt = :dueAt WHERE u.id = :userId")
+    void setTrialReminderDueAt(@Param("userId") UUID userId, @Param("dueAt") LocalDateTime dueAt);
+
+    @Query("""
+            SELECT new com.evmonitor.infrastructure.persistence.TrialReminderRow(u.id, u.email, u.username, u.registrationLocale, u.trialReminderDueAt)
+            FROM UserEntity u WHERE u.trialReminderDueAt <= :now
+            """)
+    List<TrialReminderRow> findTrialRemindersDue(@Param("now") LocalDateTime now);
+
+    /** 1 if this call took the reminder, 0 if another instance was faster. Own transaction: commits at once. */
+    @Transactional
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.trialReminderDueAt = NULL WHERE u.id = :userId AND u.trialReminderDueAt IS NOT NULL")
+    int claimTrialReminder(@Param("userId") UUID userId);
+
+    @Query("SELECT u.rangeProfile FROM UserEntity u WHERE u.id = :userId")
+    String findRangeProfile(@Param("userId") UUID userId);
+
+    @Modifying
+    @Query("UPDATE UserEntity u SET u.rangeProfile = :profile, u.updatedAt = current_timestamp WHERE u.id = :userId")
+    void setRangeProfile(@Param("userId") UUID userId, @Param("profile") String profile);
 
     @Query("SELECT u.tickerShareCharges FROM UserEntity u WHERE u.id = :userId")
     boolean isTickerShareCharges(@Param("userId") UUID userId);

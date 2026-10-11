@@ -585,6 +585,7 @@ model:
   cta_login: Logga in
   cost_disclaimer: "Priserna baseras på uppgifter från användargemenskapen (främst DACH-marknaden). Omräkning: 1 EUR = {rate} {currency} (per {date})."
   seo_section_title: "{model} - Förbrukning, räckvidd och laddningskostnader"
+  partner_label: "Partner"
   related_title: Andra populära elbilsmodeller
   faq_title: Vanliga frågor om {model}
   hero_title_v2: "{model} - Förbrukning och räckvidd"
@@ -653,6 +654,9 @@ auth:
     or: eller
     google: Logga in med Google
     forgot_password: Har du glömt lösenordet?
+    with_code: "Utan lösenord: kod via mejl"
+    code_lead: "Vi skickar en 6-siffrig kod till din mejl. Inget lösenord behövs."
+    with_password: "Logga in med lösenord i stället"
     no_account: Har du inget konto än?
     register_link: Registrera dig här
     free: Gratis
@@ -1664,6 +1668,11 @@ settings:
   username_label: Användarnamn
   username_new_placeholder: Nytt användarnamn
   password_label: Lösenord
+  no_password: "Inget satt än"
+  no_password_hint: "Du loggar in med en kod från mejlet. Lösenord behöver du bara om du hellre loggar in så."
+  set_password_btn: "Skicka länk för att sätta lösenord"
+  set_password_sent: "Länken är på väg. Kolla inkorgen."
+  set_password_error: "Det fungerade inte. Försök igen."
   password_current_placeholder: Nuvarande lösenord
   password_new_placeholder: Nytt lösenord (minst 8 tecken)
   password_confirm_placeholder: Bekräfta det nya lösenordet
@@ -2669,8 +2678,8 @@ autosync_page:
   b_curve_d: "Se laddkurvan för dina snabbladdningar och vid vilken laddnivå effekten faller. Förutsatt att ditt fordon levererar datan."
   cancel_hint: "Gäller 1 fordon · kan avslutas när som helst"
   cta: "Aktivera AutoSync"
-  cta_trial: "Prova gratis i 7 dagar"
-  trial_hint: "De första 7 dagarna gratis, sedan"
+  cta_trial: "Prova gratis i {days} dagar"
+  trial_hint: "De första {days} dagarna gratis, sedan"
   footer_note: "Säker betalning via Stripe · avsluta när som helst"
   error: "Något gick fel. Försök igen."
 
@@ -3866,3 +3875,79 @@ rating:
   cars:
     rate: "Betygsätt"
     rated_edit: "Ditt betyg · redigera"
+gate:
+  google_redirect: "Fortsätt med Google"
+  or_email: "eller med e-postkod"
+  error_google: "Google-inloggningen fungerade inte. Använd e-postkoden."
+  email_label: "E-postadress"
+  email_placeholder: "du{'@'}exempel.se"
+  send_code: "Skicka kod"
+  sending: "Skickar ..."
+  code_sent: "Vi har skickat en 6-siffrig kod till {email}."
+  code_label: "Kod från mejlet"
+  confirm: "Bekräfta"
+  verifying: "Kontrollerar ..."
+  change_email: "Använd en annan adress"
+  consent: "Inget lösenord behövs. Det skapar ett gratis konto som du raderar när som helst i inställningarna. Enstaka mejl avbeställer du med ett klick."
+  privacy_link: "Integritet"
+  error_email: "Ange en giltig e-postadress."
+  error_code_format: "Koden har 6 siffror."
+  error_code_invalid: "Koden stämmer inte eller har gått ut. Kolla mejlet eller begär en ny."
+  error_rate_limited: "För många försök. Vänta 15 minuter."
+  error_generic: "Det fungerade inte. Försök igen."
+personal_range:
+  title: "Din personliga profil"
+  hint: "Fyra svar, sedan räknar vi med mätdata för {model}."
+  commute_label: "Pendling per dag, tur och retur"
+  long_trip_label: "Längsta resa i ett svep"
+  highway_label: "Andel motorväg"
+  home_label: "Laddar du hemma?"
+  "yes": "Ja"
+  "no": "Nej"
+  calculate: "Beräkna mitt resultat"
+  calculating: "Beräknar ..."
+  gate_lead_measured: "Ditt resultat för {model} är klart. Baserat på {logs} verkliga laddningar från {cars} förare, inte tillverkarens siffror: räckvidd på vintern, laddstopp på din långresa, laddningar per vecka, kostnad per månad."
+  gate_lead_thin: "Ditt resultat för {model} är klart. Vi har ännu inte tillräckligt med mätdata för den här modellen, bara från en förare. Där mätvärden saknas uppskattar vi utifrån WLTP och markerar värdet. Kör du en? Med dina laddningar blir beräkningen mer exakt för alla. | Ditt resultat för {model} är klart. Vi har ännu inte tillräckligt med mätdata för den här modellen, bara från {cars} förare. Där mätvärden saknas uppskattar vi utifrån WLTP och markerar värdet. Kör du en? Med dina laddningar blir beräkningen mer exakt för alla."
+  gate_why: "Vart får vi skicka ditt resultat? Din profil sparas så att du kan jämföra alla andra modeller med ett klick."
+  result_title: "Ditt resultat med {model}"
+  winter_range: "Räckvidd på vintern"
+  summer_range: "Sommar: {value}"
+  stops: "Laddstopp på {distance}"
+  stops_minutes: "ca. {minutes} min laddning"
+  no_stop: "utan laddstopp"
+  charges_week: "Laddningar per vecka"
+  charges_home: "hemma, 20 till 80 %"
+  charges_public: "på vägen, 10 till 80 %"
+  cost_month: "Kostnad per månad"
+  cost_basis: "pendling 22 dagar"
+  data_level_MEASURED: "Alla förbrukningsvärden uppmätta"
+  data_level_PARTIAL: "Uppmätt där det finns tillräckligt med data, annars från WLTP"
+  data_level_WLTP_FACTOR: "Uppskattat från WLTP, för lite mätdata än"
+  assumptions_title: "Vad resultatet bygger på"
+  measured: "uppmätt"
+  estimated: "uppskattat"
+  partly_measured: "{percent} % uppmätt, resten från WLTP"
+  source_spec: "datablad"
+  source_spec_derived: "uppskattat från bruttokapacitet"
+  assumption_BATTERY: "Nettobatteri {value}"
+  assumption_SUMMER_CONSUMPTION: "Förbrukning på sommaren {value}"
+  assumption_WINTER_CONSUMPTION: "Förbrukning på vintern {value}"
+  assumption_HIGHWAY_CONSUMPTION: "Förbrukning på motorväg {value}"
+  assumption_BASE_CONSUMPTION: "Förbrukning utanför motorväg {value}"
+  assumption_CHARGING_POWER: "Genomsnittlig snabbladdningseffekt {value}"
+  assumption_PRICE: "Elpris {value}"
+  error: "Det fungerade inte. Försök igen."
+promo:
+  banner_FIRSTEV: "Från firstev-forumet? Testa AutoSync gratis i fyra veckor."
+  banner_generic: "Testa AutoSync gratis i {days} dagar."
+  banner_cta: "Koden är redan ifylld"
+  banner_close: "Stäng meddelandet"
+  code_toggle: "Ange kampanjkod"
+  code_label: "Kampanjkod"
+  code_apply: "Lös in"
+  code_applied: "Kod {code}: {days} dagar gratis"
+  reason_UNKNOWN: "Den här koden finns inte eller har gått ut."
+  reason_NOT_ELIGIBLE: "Den här koden gäller bara konton som skapats via vår partner."
+  reason_TRIAL_USED: "Du har redan haft en provperiod, koden förlänger den inte."
+  reason_ALREADY_REDEEMED: "Du har redan löst in en kod."
+  reason_EXHAUSTED: "Alla platser för den här koden är tagna."

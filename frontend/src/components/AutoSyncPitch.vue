@@ -8,7 +8,9 @@ import { useCountryStore } from '../stores/country'
 import { useCarStore } from '../stores/car'
 import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
 import { getPricing } from '../config/pricingConfig'
-import { subscriptionService } from '../api/subscriptionService'
+import { useRoute } from 'vue-router'
+import { subscriptionService, type PromoOffer } from '../api/subscriptionService'
+import { DEFAULT_TRIAL_DAYS } from '../config/pricingConfig'
 import PaymentMethodLogos from './PaymentMethodLogos.vue'
 
 const { t } = useI18n()
@@ -29,6 +31,28 @@ onMounted(async () => {
   try { trialEligible.value = (await subscriptionService.getStatus()).trialEligible === true } catch { trialEligible.value = false }
 })
 
+// Aktionscode (z. B. FIRSTEV aus dem Banner, kommt als ?code=): verlängert den Trial
+const route = useRoute()
+const codeOpen = ref(typeof route.query.code === 'string')
+const codeInput = ref(typeof route.query.code === 'string' ? route.query.code : '')
+const promo = ref<PromoOffer | null>(null)
+const codeError = ref('')
+const trialDays = computed(() => promo.value?.trialDays ?? DEFAULT_TRIAL_DAYS)
+
+async function applyCode() {
+  codeError.value = ''
+  promo.value = null
+  if (!codeInput.value.trim()) return
+  try {
+    const check = await subscriptionService.checkPromoCode(codeInput.value)
+    if (check.valid) promo.value = { code: check.code, trialDays: check.trialDays }
+    else codeError.value = t(`promo.reason_${check.reason}`)
+  } catch {
+    codeError.value = t('autosync_page.error')
+  }
+}
+onMounted(() => { if (codeInput.value) void applyCode() })
+
 const plan = ref<'monthly' | 'yearly'>('yearly')
 const loading = ref(false)
 const error = ref('')
@@ -40,7 +64,7 @@ async function checkout() {
   loading.value = true
   error.value = ''
   try {
-    const result = await subscriptionService.createCheckoutSession(plan.value)
+    const result = await subscriptionService.createCheckoutSession(plan.value, 'autosync', promo.value?.code)
     window.location.href = result.checkoutUrl
   } catch {
     error.value = t('autosync_page.error')
@@ -231,7 +255,7 @@ const dummyEntries = [
 
         <div class="text-center mb-5">
           <p class="text-4xl font-bold text-gray-900 dark:text-gray-100">{{ price }}<span class="text-lg font-normal text-gray-400 dark:text-gray-500"> {{ priceUnit }}</span></p>
-          <p v-if="trialEligible" class="text-sm font-medium text-green-700 dark:text-green-400 mt-2">{{ t('autosync_page.trial_hint') }} <span class="whitespace-nowrap">{{ price }} {{ priceUnit }}</span></p>
+          <p v-if="trialEligible" class="text-sm font-medium text-green-700 dark:text-green-400 mt-2">{{ t('autosync_page.trial_hint', { days: trialDays }) }} <span class="whitespace-nowrap">{{ price }} {{ priceUnit }}</span></p>
           <p class="text-sm text-gray-400 dark:text-gray-500 mt-1.5">{{ t('autosync_page.cancel_hint') }}</p>
         </div>
 
@@ -240,9 +264,26 @@ const dummyEntries = [
           class="w-full inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white dark:text-gray-900 font-semibold py-3.5 rounded-sm text-base shadow-[0_4px_0_0_#166534] dark:shadow-[0_4px_0_0_#064e3b] active:translate-y-1 active:shadow-none transition"
         >
           <template v-if="loading">…</template>
-          <template v-else>{{ trialEligible ? t('autosync_page.cta_trial') : t('autosync_page.cta') }}</template>
+          <template v-else>{{ trialEligible ? t('autosync_page.cta_trial', { days: trialDays }) : t('autosync_page.cta') }}</template>
         </button>
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400 text-center mt-2">{{ error }}</p>
+
+        <!-- Aktionscode: eingeklappt, außer er kommt über den Link -->
+        <div v-if="trialEligible" class="mt-4 text-center">
+          <button v-if="!codeOpen" type="button" class="text-sm font-medium text-green-700 dark:text-green-400 underline" @click="codeOpen = true">
+            {{ t('promo.code_toggle') }}
+          </button>
+          <form v-else class="text-left" @submit.prevent="applyCode">
+            <label for="promo-code" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">{{ t('promo.code_label') }}</label>
+            <div class="flex gap-2">
+              <input id="promo-code" v-model.trim="codeInput" type="text" autocapitalize="characters" autocomplete="off" maxlength="40"
+                     class="flex-1 min-w-0 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-base uppercase text-gray-900 dark:text-gray-100" />
+              <button type="submit" class="shrink-0 rounded-sm bg-gray-800 dark:bg-gray-200 px-4 py-2 text-sm font-semibold text-white dark:text-gray-900">{{ t('promo.code_apply') }}</button>
+            </div>
+            <p v-if="promo" class="text-sm font-semibold text-green-700 dark:text-green-400 mt-2">{{ t('promo.code_applied', { code: promo.code, days: promo.trialDays }) }}</p>
+            <p v-if="codeError" role="alert" class="text-sm text-red-600 dark:text-red-400 mt-2">{{ codeError }}</p>
+          </form>
+        </div>
         <PaymentMethodLogos class="mt-5 pt-5 border-t border-gray-100 dark:border-gray-800" :note="t('autosync_page.footer_note')" />
       </div>
     </div>
