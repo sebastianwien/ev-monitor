@@ -3815,7 +3815,7 @@ personal_range:
   calculate: "Mein Ergebnis berechnen"
   calculating: "Rechne ..."
   gate_lead_measured: "Dein Ergebnis für den {model} ist bereit. Aus {logs} echten Ladevorgängen von {cars} Fahrern, nicht aus Herstellerangaben: Winterreichweite, Ladestopps auf deiner Langstrecke, Ladungen pro Woche, Kosten pro Monat."
-  gate_lead_thin: "Dein Ergebnis für den {model} ist bereit. Für dieses Modell haben wir noch nicht genügend Messdaten, deshalb schätzen wir aus WLTP und markieren jeden geschätzten Wert. Fährst du einen? Mit deinen Ladevorgängen wird die Rechnung für alle genauer."
+  gate_lead_thin: "Dein Ergebnis für den {model} ist bereit. Für dieses Modell haben wir noch nicht genügend Messdaten, erst von einem Fahrer. Wo Messwerte fehlen, schätzen wir aus WLTP und markieren den Wert. Fährst du einen? Mit deinen Ladevorgängen wird die Rechnung für alle genauer. | Dein Ergebnis für den {model} ist bereit. Für dieses Modell haben wir noch nicht genügend Messdaten, erst von {cars} Fahrern. Wo Messwerte fehlen, schätzen wir aus WLTP und markieren den Wert. Fährst du einen? Mit deinen Ladevorgängen wird die Rechnung für alle genauer."
   gate_why: "Wohin dürfen wir dein Ergebnis schicken? Dein Profil wird gespeichert, damit du jedes andere Modell mit einem Klick vergleichen kannst."
   result_title: "Dein Ergebnis mit dem {model}"
   winter_range: "Winterreichweite"

@@ -80,7 +80,10 @@ describe('PersonalRangeCalculator', () => {
     calculateButton(host).click()
     await flush()
 
-    expect(host.querySelector('[data-testid="inline-gate"]')!.textContent).toContain('noch nicht genügend Messdaten')
+    const text = host.querySelector('[data-testid="inline-gate"]')!.textContent
+    expect(text).toContain('noch nicht genügend Messdaten')
+    expect(text).toContain('2 Fahrern')
+    expect(text).not.toContain('deshalb schätzen wir')
   })
 
   it('logged-in user gets the result tiles and the assumptions', async () => {

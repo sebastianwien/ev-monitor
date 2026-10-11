@@ -3694,7 +3694,7 @@ personal_range:
   calculate: "Beregn mitt resultat"
   calculating: "Beregner ..."
   gate_lead_measured: "Resultatet ditt for {model} er klart. Basert på {logs} ekte ladeøkter fra {cars} sjåfører, ikke produsentens tall: rekkevidde om vinteren, ladestopp på langturen, ladinger per uke, kostnad per måned."
-  gate_lead_thin: "Resultatet ditt for {model} er klart. Vi har ennå ikke nok måledata for denne modellen, så vi anslår ut fra WLTP og merker hver anslått verdi. Kjører du en? Med dine ladeøkter blir beregningen mer presis for alle."
+  gate_lead_thin: "Resultatet ditt for {model} er klart. Vi har ennå ikke nok måledata for denne modellen, bare fra én sjåfør. Der måleverdier mangler, anslår vi ut fra WLTP og merker verdien. Kjører du en? Med dine ladeøkter blir beregningen mer presis for alle. | Resultatet ditt for {model} er klart. Vi har ennå ikke nok måledata for denne modellen, bare fra {cars} sjåfører. Der måleverdier mangler, anslår vi ut fra WLTP og merker verdien. Kjører du en? Med dine ladeøkter blir beregningen mer presis for alle."
   gate_why: "Hvor kan vi sende resultatet ditt? Profilen din lagres, slik at du kan sammenligne alle andre modeller med ett klikk."
   result_title: "Ditt resultat med {model}"
   winter_range: "Rekkevidde om vinteren"

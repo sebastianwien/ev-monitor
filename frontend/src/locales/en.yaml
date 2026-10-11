@@ -3809,7 +3809,7 @@ personal_range:
   calculate: "Calculate my result"
   calculating: "Calculating ..."
   gate_lead_measured: "Your result for the {model} is ready. Based on {logs} real charging sessions from {cars} drivers, not manufacturer figures: winter range, charging stops on your long trip, charges per week, cost per month."
-  gate_lead_thin: "Your result for the {model} is ready. We don't have enough measured data for this model yet, so we estimate from WLTP and mark every estimated value. Do you drive one? Your charging sessions make the numbers more accurate for everyone."
+  gate_lead_thin: "Your result for the {model} is ready. We don't have enough measured data for this model yet, only from one driver. Where measurements are missing, we estimate from WLTP and mark the value. Do you drive one? Your charging sessions make the numbers more accurate for everyone. | Your result for the {model} is ready. We don't have enough measured data for this model yet, only from {cars} drivers. Where measurements are missing, we estimate from WLTP and mark the value. Do you drive one? Your charging sessions make the numbers more accurate for everyone."
   gate_why: "Where can we send your result? Your profile is saved so you can compare any other model with one click."
   result_title: "Your result with the {model}"
   winter_range: "Winter range"

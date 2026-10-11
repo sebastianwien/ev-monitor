@@ -136,7 +136,7 @@ const homeCharging = ref(true)
 const gateOpen = ref(false)
 const gateLead = computed(() => props.carCount >= MIN_MEASURED_CARS
   ? t('personal_range.gate_lead_measured', { model: props.modelName, logs: formatNumber(props.logCount), cars: formatNumber(props.carCount) })
-  : t('personal_range.gate_lead_thin', { model: props.modelName }))
+  : t('personal_range.gate_lead_thin', { model: props.modelName, cars: props.carCount }, props.carCount))
 
 /** gemessen, geschätzt, or the measured share of a blend */
 function sourceText(a: PersonalRangeAssumption): string {
