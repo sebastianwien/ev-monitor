@@ -76,7 +76,11 @@ public class AuthController {
 
     /** Logs in with the mailed code; creates the account on first use. 400 INVALID_CODE otherwise. */
     @PostMapping("/code/verify")
-    public ResponseEntity<AuthResponse> verifyLoginCode(@Valid @RequestBody CodeVerifyBody request) {
+    public ResponseEntity<?> verifyLoginCode(@Valid @RequestBody CodeVerifyBody request,
+                                             HttpServletRequest httpRequest) {
+        if (!rateLimitService.tryConsumeLogin(clientIp(httpRequest))) {
+            return tooManyRequests(300);
+        }
         return ResponseEntity.ok(emailCodeAuthService.verifyCode(
                 new CodeVerifyRequest(request.email(), request.code(), request.attribution())));
     }
