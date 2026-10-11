@@ -15,6 +15,8 @@ import java.math.BigDecimal;
  * @param homeChargingEfficiency   AC efficiency from PlausibilityProperties: consumption is battery side,
  *                                  costs are paid at the plug
  * @param publicChargingEfficiency DC efficiency, same source
+ * @param fleetFactors        community-vs-WLTP medians over all models; null or single null factors
+ *                            mean the calculator's fixed fallbacks apply
  * @param baseKwhPer100km      community consumption without highway share (city, else overall)
  */
 @Builder(toBuilder = true)
@@ -33,5 +35,6 @@ public record ModelRangeBasis(
         BigDecimal referenceHomePricePerKwh,
         BigDecimal referencePublicPricePerKwh,
         BigDecimal homeChargingEfficiency,
-        BigDecimal publicChargingEfficiency
+        BigDecimal publicChargingEfficiency,
+        WltpFleetFactors fleetFactors
 ) {}

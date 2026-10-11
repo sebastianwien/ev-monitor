@@ -12,8 +12,14 @@ import java.util.List;
  */
 final class PersonalRangeCalculator {
 
+    /**
+     * Fallbacks when the fleet has too few models for a median (WltpFleetFactors). Summer, winter and
+     * overall match the fleet medians measured on 11.10.2026 (1.13, 1.49, 1.21, rounded up for summer).
+     * Highway has no fleet value (route types are too sparse), its estimate stays a fixed factor.
+     */
     static final BigDecimal SUMMER_FACTOR = new BigDecimal("1.15");
-    static final BigDecimal WINTER_FACTOR = new BigDecimal("1.35");
+    static final BigDecimal WINTER_FACTOR = new BigDecimal("1.49");
+    static final BigDecimal OVERALL_FACTOR = new BigDecimal("1.21");
     static final BigDecimal HIGHWAY_FACTOR = new BigDecimal("1.25");
     /** Same as the model page: range = 90 % of the net battery. */
     private static final BigDecimal RANGE_SHARE = new BigDecimal("0.9");
@@ -38,10 +44,14 @@ final class PersonalRangeCalculator {
         BigDecimal net = b.netBatteryKwh();
         assumptions.add(new PersonalRangeResponse.Assumption("BATTERY", b.netBatteryMeasured(), net));
 
-        BigDecimal summer = pick("SUMMER_CONSUMPTION", b.summerKwhPer100km(), b.wltpKwhPer100km(), SUMMER_FACTOR, assumptions);
-        BigDecimal winter = pick("WINTER_CONSUMPTION", b.winterKwhPer100km(), b.wltpKwhPer100km(), WINTER_FACTOR, assumptions);
+        WltpFleetFactors fleet = b.fleetFactors();
+        BigDecimal summer = pick("SUMMER_CONSUMPTION", b.summerKwhPer100km(), b.wltpKwhPer100km(),
+                factor(fleet != null ? fleet.summer() : null, SUMMER_FACTOR), assumptions);
+        BigDecimal winter = pick("WINTER_CONSUMPTION", b.winterKwhPer100km(), b.wltpKwhPer100km(),
+                factor(fleet != null ? fleet.winter() : null, WINTER_FACTOR), assumptions);
         BigDecimal highway = highway(b, assumptions);
-        BigDecimal base = pick("BASE_CONSUMPTION", b.baseKwhPer100km(), b.wltpKwhPer100km(), SUMMER_FACTOR, assumptions);
+        BigDecimal base = pick("BASE_CONSUMPTION", b.baseKwhPer100km(), b.wltpKwhPer100km(),
+                factor(fleet != null ? fleet.overall() : null, OVERALL_FACTOR), assumptions);
 
         BigDecimal power = b.dcChargingPowerKw() != null ? b.dcChargingPowerKw() : ASSUMED_DC_POWER_KW;
         assumptions.add(new PersonalRangeResponse.Assumption("CHARGING_POWER", b.dcChargingPowerKw() != null, power));
@@ -79,6 +89,10 @@ final class PersonalRangeCalculator {
                 monthlyCost,
                 dataLevel(assumptions),
                 List.copyOf(assumptions));
+    }
+
+    private static BigDecimal factor(BigDecimal fleetFactor, BigDecimal fallback) {
+        return fleetFactor != null ? fleetFactor : fallback;
     }
 
     private static BigDecimal pick(String key, BigDecimal measured, BigDecimal wltp, BigDecimal factor,

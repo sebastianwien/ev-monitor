@@ -111,7 +111,17 @@ public class PersonalRangeService {
                 .referencePublicPricePerKwh(reference.publicPricePerKwh())
                 .homeChargingEfficiency(BigDecimal.valueOf(plausibility.getAcChargingEfficiency()))
                 .publicChargingEfficiency(BigDecimal.valueOf(plausibility.getDcChargingEfficiency()))
+                .fleetFactors(fleetFactors(isSeedUser))
                 .build());
+    }
+
+    /** From the cached top-models list: per model WLTP, overall and seasonal community consumption. */
+    private WltpFleetFactors fleetFactors(boolean isSeedUser) {
+        return WltpFleetFactors.from(publicModelService.getTopModels(isSeedUser).stream()
+                .map(m -> new WltpFleetFactors.Sample(m.carCount() != null ? m.carCount() : 0,
+                        m.avgWltpConsumptionKwhPer100km(), m.avgConsumptionKwhPer100km(),
+                        m.summerConsumptionKwhPer100km(), m.winterConsumptionKwhPer100km()))
+                .toList());
     }
 
     private static BigDecimal averageWltp(List<VehicleSpecificationEntity> specs) {

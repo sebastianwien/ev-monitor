@@ -59,16 +59,30 @@ class PersonalRangeCalculatorTest {
         PersonalRangeResponse r = PersonalRangeCalculator.calculate(
                 new PersonalRangeRequest(40, 50, false, 600), wltpOnly());
 
-        // summer 16 × 1.15 = 18.4 → 376.6 → 380; winter 16 × 1.35 = 21.6 → 320.8 → 320
+        // no fleet factors: fixed fallbacks. summer 16 × 1.15 = 18.4 → 376.6 → 380; winter 16 × 1.49 = 23.8 → 291.2 → 290
         assertThat(r.summerRangeKm()).isEqualTo(380);
-        assertThat(r.winterRangeKm()).isEqualTo(320);
+        assertThat(r.winterRangeKm()).isEqualTo(290);
         // highway 16 × 1.25 = 20: first leg 308 km, legs 269.5 km → 2 stops; 50 kW assumed: 2 × 64.7 = 129 → 130
         assertThat(r.longTripStops()).isEqualTo(2);
         assertThat(r.longTripChargingMinutes()).isEqualTo(130);
-        // base 18.4, highway 20 → mixed 19.2; 880 km × 0.192 / 0.95 DC efficiency × 0.55 public reference = 97.8 → 98
-        assertThat(r.monthlyCostEur()).isEqualTo(98);
+        // base 16 × 1.21 = 19.4, highway 20 → mixed 19.7; 880 km × 0.197 / 0.95 DC × 0.55 public reference = 100.4 → 100
+        assertThat(r.monthlyCostEur()).isEqualTo(100);
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.WLTP_FACTOR);
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("CHARGING_POWER") && !a.measured());
+    }
+
+    @Test
+    void fleetFactorsReplaceTheFixedWltpFactors() {
+        ModelRangeBasis basis = wltpOnly().toBuilder()
+                .fleetFactors(new WltpFleetFactors(new BigDecimal("1.25"), 17, new BigDecimal("1.10"), 17, new BigDecimal("1.60"), 15))
+                .build();
+
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(new PersonalRangeRequest(40, 0, true, 300), basis);
+
+        // summer 16 × 1.10 = 17.6 → 393.75 → 390; winter 16 × 1.60 = 25.6 → 270.7 → 270
+        assertThat(r.summerRangeKm()).isEqualTo(390);
+        assertThat(r.winterRangeKm()).isEqualTo(270);
+        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("BASE_CONSUMPTION") && a.value().compareTo(new BigDecimal("20.0")) == 0);
     }
 
     @Test
