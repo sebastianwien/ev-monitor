@@ -614,7 +614,8 @@ public class PublicModelService {
                 r.cityLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.cityKwhPer100km()) : null,
                 r.combinedLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.combinedKwhPer100km()) : null,
                 r.highwayLogCount() >= MIN_TRIPS_PER_ROUTE_TYPE ? scale1(r.highwayKwhPer100km()) : null,
-                r.cityLogCount(), r.combinedLogCount(), r.highwayLogCount(), r.highwayCarCount());
+                r.cityLogCount(), r.combinedLogCount(), r.highwayLogCount(), r.highwayCarCount(),
+                r.typedMeanKwhPer100km());
     }
 
     /** Range in km from a net capacity and a consumption in kWh/100 km; null if either is missing. */

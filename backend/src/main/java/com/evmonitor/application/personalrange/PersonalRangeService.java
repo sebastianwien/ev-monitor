@@ -141,6 +141,7 @@ public class PersonalRangeService {
                 // Model average, the figure the page shows. The city value sits on too few logs and
                 // came out above the highway value for several models.
                 .baseKwhPer100km(stats.avgConsumptionKwhPer100km())
+                .routeMeanKwhPer100km(route != null ? route.typedMeanKwhPer100km() : null)
                 // Short-stop fast-charge power as in the model ranking, not the session mean
                 // (that one includes the taper and idle time and halves the real figure)
                 .dcChargingPowerKw(fastChargePowerKw(stats.model(), isSeedUser))

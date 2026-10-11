@@ -18,7 +18,9 @@ import java.math.BigDecimal;
  * @param fleetFactors        community-vs-WLTP medians over all models; null or single null factors
  *                            mean the calculator's fixed fallbacks apply
  * @param baseKwhPer100km      community consumption of the model overall (the figure the model page
- *                            shows); the highway share is blended on top of it
+ *                            shows)
+ * @param routeMeanKwhPer100km mean over the route-typed trips: the highway value is compared with it,
+ *                            not with the overall mean, which covers years without route types
  * @param dcChargingPowerKw   fast-charge power on a short stop from a low state of charge, the same
  *                            figure the model ranking uses; null falls back to a fixed estimate
  */
@@ -32,6 +34,7 @@ public record ModelRangeBasis(
         BigDecimal highwayKwhPer100km,
         int highwayCarCount,
         BigDecimal baseKwhPer100km,
+        BigDecimal routeMeanKwhPer100km,
         BigDecimal dcChargingPowerKw,
         BigDecimal homePricePerKwh,
         BigDecimal publicPricePerKwh,

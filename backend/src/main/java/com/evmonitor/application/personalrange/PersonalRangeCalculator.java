@@ -21,6 +21,12 @@ final class PersonalRangeCalculator {
     static final BigDecimal WINTER_FACTOR = new BigDecimal("1.49");
     static final BigDecimal OVERALL_FACTOR = new BigDecimal("1.21");
     static final BigDecimal HIGHWAY_FACTOR = new BigDecimal("1.25");
+    /**
+     * Highway against the route-typed mean where a model has too few highway cars: median over the
+     * models with enough data, measured on 11.10.2026 (ID.3 +7 %, Model 3 +2 %, Model Y +3 %, EV6 +3 %,
+     * ID.4 +9 %, Ioniq 5 -3 %).
+     */
+    static final BigDecimal HIGHWAY_RATIO_FALLBACK = new BigDecimal("1.03");
     /** Same as the model page: range = 90 % of the net battery. */
     private static final BigDecimal RANGE_SHARE = new BigDecimal("0.9");
     /** Long trip: start at 90 %, arrive at the first charger with 10 %. */
@@ -68,10 +74,10 @@ final class PersonalRangeCalculator {
         // Commute: base and highway consumption blended by the highway share
         double h = in.highwaySharePercent() / 100.0;
         double mixedKwhPerKm = (base.doubleValue() * (1 - h) + highway.doubleValue() * h) / 100;
-        // Season ranges for the profile: the highway surcharge (highway against everyday) on the share
-        // of motorway driving, applied to the season value. 0 % motorway gives the model's own season
-        // ranges, the figures the page shows; the band before the gate rests on the same two values.
-        double highwayRatio = 1 + h * (highway.doubleValue() / base.doubleValue() - 1);
+        // Season ranges for the profile: the highway effect on the share of motorway driving, applied to
+        // the season value. 0 % motorway gives the model's own season ranges, the figures the page shows;
+        // the band before the gate rests on the same two values.
+        double highwayRatio = 1 + h * (highwayRatio(b).doubleValue() - 1);
         BigDecimal summerProfile = summer.multiply(BigDecimal.valueOf(highwayRatio)).setScale(1, RoundingMode.HALF_UP);
         BigDecimal winterProfile = winter.multiply(BigDecimal.valueOf(highwayRatio)).setScale(1, RoundingMode.HALF_UP);
         // Mileage: the yearly figure when the reader gave one, else the commute on workdays
@@ -128,6 +134,19 @@ final class PersonalRangeCalculator {
                 : in.homeCharging() ? b.referenceHomePricePerKwh() : b.referencePublicPricePerKwh();
         assumptions.add(new PersonalRangeResponse.Assumption("PRICE", communityPrice != null, price));
         return price;
+    }
+
+    /**
+     * Measured highway against the mean of the route-typed trips, both from the same period. It can be
+     * below 1: a relaxed motorway against brisk city driving. Under MIN_HIGHWAY_CARS the fleet median,
+     * never a WLTP estimate against a measured value.
+     */
+    static BigDecimal highwayRatio(ModelRangeBasis b) {
+        if (b.highwayKwhPer100km() == null || b.highwayCarCount() < MIN_HIGHWAY_CARS
+                || b.routeMeanKwhPer100km() == null || b.routeMeanKwhPer100km().signum() <= 0) {
+            return HIGHWAY_RATIO_FALLBACK;
+        }
+        return b.highwayKwhPer100km().divide(b.routeMeanKwhPer100km(), 4, RoundingMode.HALF_UP);
     }
 
     /** Rounded up to half charges: 1.2 charges a week means plugging in 1.5 times */

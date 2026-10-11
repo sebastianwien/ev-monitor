@@ -83,7 +83,9 @@ public record PublicModelStatsResponse(
             int cityLogCount,
             int combinedLogCount,
             int highwayLogCount,
-            int highwayCarCount
+            int highwayCarCount,
+            /** mean over all route-typed trips, the base the highway value is compared with; nullable for Blue/Green */
+            BigDecimal typedMeanKwhPer100km
     ) {}
 
     public record SeasonalDistribution(

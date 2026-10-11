@@ -8,6 +8,9 @@
 
 import { DC_CHARGING_EFFICIENCY } from './consumptionPreview'
 
+/** Same as the backend calculator: below this many highway cars the highway effect is the fleet estimate */
+const MIN_HIGHWAY_CARS = 5
+
 export type StoryLevel = 'FULL' | 'PARTIAL' | 'NONE'
 
 export interface StoryInput {
@@ -22,7 +25,8 @@ export interface StoryInput {
   avgKwhPer100km: number | null
   minKwhPer100km: number | null
   maxKwhPer100km: number | null
-  routeType: { highway: number | null; city: number | null; combined: number | null; highwayCars: number; cityLogs: number; combinedLogs: number } | null
+  /** typedMean: mean of all route-typed trips, the base the highway value is compared with (same period) */
+  routeType: { highway: number | null; city: number | null; combined: number | null; highwayCars: number; cityLogs: number; combinedLogs: number; typedMean?: number | null } | null
   /** null when either season has too few logs */
   seasonal: { summer: number; winter: number; summerLogs: number; winterLogs: number } | null
   fastChargePowerKw: number | null
@@ -174,10 +178,15 @@ function consumption(d: StoryInput, f: StoryFormatters, p: P, level: StoryLevel)
   if (d.minKwhPer100km) tiles.push({ value: f.formatConsumption(d.minKwhPer100km), label: f.t('model.story.tile_min') })
   if (d.maxKwhPer100km) tiles.push({ value: f.formatConsumption(d.maxKwhPer100km), label: f.t('model.story.tile_max') })
   if (d.wltpKwhPer100km) tiles.push({ value: f.formatConsumption(d.wltpKwhPer100km), label: f.t('model.story.tile_wltp', p) })
-  const highway = d.routeType?.highway
-  const effect = highway
-    ? f.t('model.story.c1_effect', { highway: f.formatConsumption(highway), avg: real })
-    : f.t('model.story.c1_effect_estimated')
+  // Highway against the route-typed trips of the same period, as a share: the absolute route values sit
+  // on a younger subset and next to the overall mean they would read like a contradiction.
+  // Same rule as the calculator: from MIN_HIGHWAY_CARS measured cars, else the fleet estimate.
+  const rt = d.routeType
+  const pct = rt?.highway && rt.typedMean && rt.highwayCars >= MIN_HIGHWAY_CARS
+    ? Math.round((rt.highway / rt.typedMean - 1) * 100) : null
+  const effect = pct == null ? f.t('model.story.c1_effect_estimated')
+    : Math.abs(pct) < 2 ? f.t('model.story.c1_effect_same', { cars: f.formatNumber(rt!.highwayCars) })
+    : f.t(pct > 0 ? 'model.story.c1_effect_more' : 'model.story.c1_effect_less', { pct: Math.abs(pct), cars: f.formatNumber(rt!.highwayCars) })
   return { key: 'consumption', level: 'FULL', headline, say, tiles, effect }
 }
 

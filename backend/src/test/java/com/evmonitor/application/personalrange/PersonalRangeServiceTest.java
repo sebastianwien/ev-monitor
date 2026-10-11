@@ -64,7 +64,7 @@ class PersonalRangeServiceTest {
         when(stats.avgConsumptionKwhPer100km()).thenReturn(new BigDecimal("18.1"));
         when(stats.avgChargingPowerKw()).thenReturn(new BigDecimal("41.1"));
         when(stats.routeTypeConsumption()).thenReturn(new PublicModelStatsResponse.RouteTypeConsumption(
-                new BigDecimal("23.9"), new BigDecimal("20.0"), new BigDecimal("21.7"), 50, 300, 120, 20));
+                new BigDecimal("23.9"), new BigDecimal("20.0"), new BigDecimal("21.7"), 50, 300, 120, 20, new BigDecimal("21.1")));
         when(publicModelService.getModelStats(eq("Tesla"), eq("Model_3"), anyBoolean())).thenReturn(Optional.of(stats));
 
         TopModelResponse top = mock(TopModelResponse.class);

@@ -20,7 +20,7 @@ const full: StoryInput = {
   modelName: 'Volkswagen ID.3', brandName: 'Volkswagen', logCount: 6230, carCount: 51, driverCount: 50,
   netBatteryKwh: 58, wltpKwhPer100km: 15.3, wltpRangeKm: 434,
   avgKwhPer100km: 19.1, minKwhPer100km: 16.6, maxKwhPer100km: 19.9,
-  routeType: { highway: 18.9, city: 19.0, combined: 17.1, highwayCars: 16, cityLogs: 119, combinedLogs: 800 },
+  routeType: { highway: 18.9, city: 19.0, combined: 17.1, highwayCars: 16, cityLogs: 119, combinedLogs: 800, typedMean: 17.6 },
   seasonal: { summer: 17.6, winter: 22.6, summerLogs: 1630, winterLogs: 891 },
   fastChargePowerKw: 85, avgChargingPowerKw: 65.9,
   acPricePerKwh: 0.35, dcPricePerKwh: 0.427, avgPricePerKwh: 0.372,
@@ -59,7 +59,9 @@ describe('buildModelStory', () => {
     // 19.1 / 15.3 = +25 %
     expect(s.chapters[0].headline).toBe('19.1 kWh/100km. 25 % mehr als im Prospekt.')
     expect(s.chapters[1].headline).toBe('Im Winter fehlen 70 km.')
-    expect(s.chapters[0].effect).toContain('18.9 kWh/100km statt 19.1 kWh/100km')
+    // highway against the route-typed trips of the same period, not the overall 19.1: 18.9 / 17.6 = +7 %
+    expect(s.chapters[0].effect).toContain('rund 7 % mehr')
+    expect(s.chapters[0].effect).not.toContain('19.1')
     // 58 × 0.7 / 85 kW = 28.7 min → 30
     expect(s.chapters[2].headline).toBe('Von 10 auf 80 Prozent in rund 30 Minuten.')
     // 0.372 × 19.1 = 7.11
@@ -116,5 +118,12 @@ describe('buildModelStory', () => {
 
     expect(s.chapters[0].headline).toBe('19.1 kWh/100km, gemessen an 51 Autos.')
     expect(s.heroSentence).toBe('50 Fahrer sagen 270 km.')
+  })
+
+  it('a measured cheaper motorway says so, too few highway cars fall back to the estimate', () => {
+    const cheaper = buildModelStory({ ...full, routeType: { ...full.routeType!, highway: 17.0, typedMean: 17.6 } }, fmt)
+    expect(cheaper.chapters[0].effect).toContain('rund 3 % weniger')
+    const few = buildModelStory({ ...full, routeType: { ...full.routeType!, highwayCars: 3 } }, fmt)
+    expect(few.chapters[0].effect).toContain('geschätzt')
   })
 })

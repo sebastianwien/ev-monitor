@@ -19,6 +19,7 @@ class PersonalRangeCalculatorTest {
                 .netBatteryKwh(NET).netBatteryMeasured(true).wltpKwhPer100km(WLTP)
                 .summerKwhPer100km(new BigDecimal("15.0")).winterKwhPer100km(new BigDecimal("20.0"))
                 .highwayKwhPer100km(new BigDecimal("19.0")).highwayCarCount(20).baseKwhPer100km(new BigDecimal("16.0"))
+                .routeMeanKwhPer100km(new BigDecimal("16.0"))
                 .dcChargingPowerKw(new BigDecimal("100")).homePricePerKwh(new BigDecimal("0.30"))
                 .publicPricePerKwh(new BigDecimal("0.60"))
                 .referenceHomePricePerKwh(REF_HOME).referencePublicPricePerKwh(REF_PUBLIC)
@@ -85,6 +86,41 @@ class PersonalRangeCalculatorTest {
         assertThat(r.summerRangeKm()).isEqualTo(390);
         assertThat(r.winterRangeKm()).isEqualTo(270);
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("BASE_CONSUMPTION") && a.value().compareTo(new BigDecimal("20.0")) == 0);
+    }
+
+    @Test
+    void highwayEffectComparesWithLogsOfTheSameRouteTypedPeriodNotTheOverallMean() {
+        // overall mean 20 (all years, winters included) would make highway 19 look cheaper; the
+        // route-typed logs average 16, so the highway costs 19/16
+        ModelRangeBasis basis = measured().toBuilder().baseKwhPer100km(new BigDecimal("20.0")).build();
+
+        PersonalRangeResponse none = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 0, true, 600), basis);
+        PersonalRangeResponse all = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 100, true, 600), basis);
+
+        assertThat(none.summerRangeKm()).isEqualTo(460);
+        assertThat(all.summerRangeKm()).isEqualTo(390);
+    }
+
+    @Test
+    void measuredCheaperHighwayIsShownAsSuch() {
+        // a relaxed 100 km/h behind a van against brisk city driving: measured, so it counts
+        ModelRangeBasis basis = measured().toBuilder().highwayKwhPer100km(new BigDecimal("15.0")).build();
+
+        PersonalRangeResponse none = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 0, true, 600), basis);
+        PersonalRangeResponse all = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 100, true, 600), basis);
+
+        assertThat(all.summerRangeKm()).isGreaterThan(none.summerRangeKm());
+    }
+
+    @Test
+    void fewHighwayCarsUseTheFleetSurchargeNotWltpAgainstMeasured() {
+        // 3 cars: no own highway ratio; WLTP × 1.25 = 20 against the measured 16 would be +25 %, the fleet says +3 %
+        ModelRangeBasis basis = measured().toBuilder().highwayCarCount(3).build();
+
+        PersonalRangeResponse all = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 100, true, 600), basis);
+
+        // summer 15 × 1.03 = 15.5 → 77 × 0.9 × 100 / 15.5 = 447 → 450
+        assertThat(all.summerRangeKm()).isEqualTo(450);
     }
 
     @Test
@@ -212,9 +248,9 @@ class PersonalRangeCalculatorTest {
         PersonalRangePreviewResponse p = PersonalRangeCalculator.preview(
                 PersonalRangeRequestFixtures.answers(40, 50, true, 600), measured().toBuilder().highwayCarCount(2).build());
 
-        // 50 % motorway on the WLTP highway estimate (2 cars): 20 against 16 = +12.5 %; winter 22.5 → 308 → 310, summer 16.9 → 410
-        assertThat(p.minKm()).isEqualTo(310);
-        assertThat(p.maxKm()).isEqualTo(410);
+        // 50 % motorway with 2 highway cars: half the fleet surcharge of 3 %; winter 20.3 → 341 → 340, summer 15.2 → 456 → 460
+        assertThat(p.minKm()).isEqualTo(340);
+        assertThat(p.maxKm()).isEqualTo(460);
         // highway is estimated here, but the band only rests on summer and winter
         assertThat(p.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.MEASURED);
 

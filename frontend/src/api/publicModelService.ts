@@ -64,6 +64,8 @@ export interface RouteTypeConsumption {
     combinedLogCount: number
     highwayLogCount: number
     highwayCarCount: number
+    /** mean over all route-typed trips, the base the highway value is compared with */
+    typedMeanKwhPer100km?: number | null
 }
 
 export interface PublicModelStats {
