@@ -33,6 +33,9 @@
             @click="request">
       {{ busy ? t('personal_range.calculating') : t('model.story.band_cta') }}
     </button>
+    <p v-if="!result && !gateOpen && openCount > 0" class="-mt-2 text-[13px] text-gray-500 dark:text-gray-400" data-testid="personal-range-open">
+      {{ t('personal_range.open_questions', { n: openCount }, openCount) }}
+    </p>
 
     <InlineGate v-if="gateOpen" :lead="gateLead" :detail="t('personal_range.gate_why')" @authenticated="onAuthenticated" />
 
@@ -94,8 +97,11 @@ const props = defineProps<{
   logCount: number
   carCount: number
   inputs: PersonalRangeInputs
+  /** unanswered questions on the page; the result rests on answers only, never on start values */
+  openCount?: number
 }>()
-const emit = defineEmits<{ profile: [inputs: PersonalRangeInputs] }>()
+const emit = defineEmits<{ profile: [inputs: PersonalRangeInputs]; incomplete: [] }>()
+const openCount = computed(() => props.openCount ?? 0)
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -146,8 +152,12 @@ function takePending(): PersonalRangeInputs | null {
   }
 }
 
-/** "Genau wissen": the gate for guests, the result for signed-in visitors. */
+/** "Meine Zahlen": back to the open questions first, then the gate for guests, the result for signed-in visitors. */
 async function request() {
+  if (openCount.value > 0) {
+    emit('incomplete')
+    return
+  }
   if (!authStore.token) {
     gateOpen.value = true
     rememberPending()

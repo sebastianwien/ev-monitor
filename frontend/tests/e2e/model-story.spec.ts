@@ -18,6 +18,15 @@ async function setSlider(page: Page, key: string, value: number) {
   }, value);
 }
 
+/** All five questions answered: two sliders, three chip questions */
+async function answerAll(page: Page) {
+  await setSlider(page, 'annualKm', 20000);
+  await setSlider(page, 'highwayShare', 40);
+  await page.getByTestId('chip-commute-40').click();
+  await page.getByTestId('chip-longTrip-500').click();
+  await page.getByTestId('chip-place-true').click();
+}
+
 for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
   test.describe(`Modellseite Story (${viewport.width} px)`, () => {
     test.beforeEach(async ({ page }) => {
@@ -67,8 +76,19 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('range-band-bar')).toContainText('2 von 5');
     });
 
-    test('"Meine Zahlen" öffnet das Gate, ohne Zahlen preiszugeben', async ({ page }) => {
+    test('"Meine Zahlen" mit offenen Fragen führt zur ersten offenen Frage statt zum Gate', async ({ page }) => {
       await openStory(page);
+      await setSlider(page, 'annualKm', 20000);
+      await page.getByTestId('range-band-cta').click();
+      await expect(page.getByTestId('inline-gate')).toHaveCount(0);
+      await expect(page.locator('#story-highwayShare')).toHaveClass(/ring-2/);
+      await expect(page.getByTestId('slider-highwayShare')).toBeFocused();
+      await expect(page.getByTestId('personal-range-open')).toContainText('Noch 4 Fragen offen');
+    });
+
+    test('"Meine Zahlen" öffnet nach allen Antworten das Gate, ohne Zahlen preiszugeben', async ({ page }) => {
+      await openStory(page);
+      await answerAll(page);
       const placeholder = page.getByTestId('personal-range-placeholder');
       await expect(placeholder).toBeAttached();
       expect(await placeholder.locator('dd').allInnerTexts()).toEqual(expect.arrayContaining([expect.not.stringMatching(/\d/)]));

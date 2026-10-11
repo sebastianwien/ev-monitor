@@ -123,7 +123,9 @@
               :log-count="stats.logCount"
               :car-count="stats.uniqueCars"
               :inputs="storyInputs"
-              @profile="applyProfile" />
+              :open-count="openQuestions.length"
+              @profile="applyProfile"
+              @incomplete="showFirstOpen" />
           </div>
         </div>
 
@@ -790,7 +792,7 @@ function sliderOf(key: QuestionKey): StoryQuestion['slider'] {
 
 function question(key: QuestionKey): StoryQuestion {
   // Nothing shows as chosen before the reader chose it; the calculation still has defaults behind the scenes
-  return { key, question: t(`model.story.q_${key}`), chips: chipsOf(key), slider: sliderOf(key), value: answered.has(key) ? valueOf(key) : null }
+  return { key, question: t(`model.story.q_${key}`), chips: chipsOf(key), slider: sliderOf(key), value: answered.has(key) ? valueOf(key) : null, highlight: highlightKey.value === key }
 }
 
 function questionsFor(chapter: ChapterKey): StoryQuestion[] {
@@ -822,6 +824,7 @@ function answer(key: string, value: number | boolean) {
     case 'place': answers.homeCharging = value as boolean; break
   }
   markAnswered(key as QuestionKey)
+  if (highlightKey.value === key) highlightKey.value = null
 }
 
 /** Own price in EUR/kWh; an empty or out-of-range entry falls back to the community price. */
@@ -854,7 +857,26 @@ function applyProfile(p: PersonalRangeInputs) {
   for (const key of Object.keys(QUESTION_CHAPTER) as QuestionKey[]) answered.add(key)
 }
 
+/** Questions still open, in page order; the result waits until there are none */
+const openQuestions = computed(() => (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).filter(k => !answered.has(k)))
+/** The question the reader is sent back to; it is marked until answered */
+const highlightKey = ref<QuestionKey | null>(null)
+
+/** Scrolls to the first open question and puts the focus on its first answer */
+function showFirstOpen() {
+  const key = openQuestions.value[0]
+  if (!key) return
+  highlightKey.value = key
+  const block = document.getElementById(`story-${key}`)
+  block?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  block?.querySelector<HTMLElement>('input, button:not([disabled])')?.focus({ preventScroll: true })
+}
+
 function openResult() {
+  if (openQuestions.value.length) {
+    showFirstOpen()
+    return
+  }
   calculatorRef.value?.request()
   const el = calculatorRef.value?.$el as HTMLElement | undefined
   el?.scrollIntoView({ behavior: 'smooth', block: 'start' })

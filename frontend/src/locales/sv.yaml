@@ -3988,6 +3988,7 @@ personal_range:
   summer_label: "Sommar"
   cost_basis_charges: "pendling 22 dagar"
   charges_commute: "Pendling: ladda {charges}× per vecka"
+  open_questions: "En fråga kvar, sedan räknar vi. | {n} frågor kvar, sedan räknar vi."
   cost_basis_annual: "{annual} per år"
   result_title: "Ditt resultat med {model}"
   winter_range: "Vinter"

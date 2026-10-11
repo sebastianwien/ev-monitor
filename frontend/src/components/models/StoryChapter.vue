@@ -30,7 +30,8 @@
       </div>
     </dl>
 
-    <div v-for="q in questions" :key="q.key" class="grid gap-2.5 pt-2">
+    <!-- A question the reader was sent back to ("Meine Zahlen" with open questions) is marked until answered -->
+    <div v-for="q in questions" :key="q.key" class="grid gap-2.5 rounded-xl pt-2 motion-safe:transition-shadow" :class="q.highlight ? 'ring-2 ring-green-600 ring-offset-8 ring-offset-gray-50 dark:ring-offset-gray-950' : ''" :id="`story-${q.key}`">
       <!-- Slider answers sit on the question line, so an open question takes no extra height -->
       <div class="flex items-baseline justify-between gap-3">
         <p :id="`story-${q.key}-q`" class="min-w-0 text-[17px] font-semibold text-gray-900 md:text-[18px] dark:text-gray-100">{{ q.question }}</p>
@@ -85,6 +86,8 @@ export interface StoryQuestion {
   chips: { label: string; value: number | boolean; disabled?: boolean }[]
   /** null while unanswered: no chip shows as pressed */
   value: number | boolean | null
+  /** the reader was sent here to answer it before the result */
+  highlight?: boolean
   /** set instead of chips for an open range; start is where the thumb rests while unanswered */
   slider?: {
     min: number; max: number; step: number; start: number

@@ -4115,6 +4115,7 @@ personal_range:
   cost_month: "Strom im Monat"
   cost_basis_charges: "Pendeln an 22 Tagen"
   charges_commute: "Pendeln: {charges}× laden pro Woche"
+  open_questions: "Noch eine Frage offen, dann rechnen wir. | Noch {n} Fragen offen, dann rechnen wir."
   cost_basis_annual: "{annual} im Jahr"
   data_level_MEASURED: "Alle Verbrauchswerte gemessen"
   data_level_PARTIAL: "Gemessen, wo genug Daten da sind, sonst aus WLTP"

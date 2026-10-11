@@ -27,18 +27,19 @@ const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, highwaySharePercent: 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear() })
 
-function mount(loggedIn: boolean, data = { logCount: 6796, carCount: 35 }) {
+function mount(loggedIn: boolean, data = { logCount: 6796, carCount: 35 }, openCount = 0) {
   setActivePinia(createPinia())
   if (loggedIn) {
     const auth = useAuthStore()
     auth.token = 'token'
     auth.user = { userId: 'u1' } as never
   }
-  const state = reactive({ profile: null as PersonalRangeInputs | null })
+  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0 })
   const Host = defineComponent({
     setup: () => () => h(PersonalRangeCalculator, {
-      brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3', inputs: INPUTS, ...data,
+      brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3', inputs: INPUTS, ...data, openCount,
       onProfile: (p: PersonalRangeInputs) => { state.profile = p },
+      onIncomplete: () => { state.incomplete++ },
     }),
   })
   const host = document.createElement('div')
@@ -102,6 +103,19 @@ describe('PersonalRangeCalculator', () => {
     expect(api.post).not.toHaveBeenCalled()
     expect(analytics.track).toHaveBeenCalledWith('personal_range_gate_shown', expect.anything())
     expect(JSON.parse(sessionStorage.getItem('personalRange:inputs')!)).toEqual(INPUTS)
+  })
+
+  it('with open questions the button sends the reader back to them instead of opening the gate', async () => {
+    const { host, state } = mount(false, undefined, 2)
+    await flush()
+
+    expect(host.querySelector('[data-testid="personal-range-open"]')!.textContent).toContain('Noch 2 Fragen offen')
+    requestButton(host).click()
+    await flush()
+
+    expect(state.incomplete).toBe(1)
+    expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
+    expect(sessionStorage.getItem('personalRange:inputs')).toBeNull()
   })
 
   it('gate names the real data behind the model', async () => {
