@@ -6,14 +6,13 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
 /**
  * Builds the partner tile from the cached public model stats. No own consumption maths:
  * every consumption value comes from PublicModelService (which delegates to EvLogService),
- * this class only picks the representative variant and turns consumption into range.
+ * this class only turns the model average into range figures.
  */
 @Service
 public class PublicEmbedService {
@@ -42,24 +41,19 @@ public class PublicEmbedService {
         String modelUrl = modelUrl(stats);
         List<PublicModelStatsResponse.WltpVariant> variants = stats.wltpVariants() == null ? List.of() : stats.wltpVariants();
 
-        // Representative variant: the one with the most measured trips. Without any measured
-        // variant: model average on the largest battery.
-        PublicModelStatsResponse.WltpVariant measured = variants.stream()
-                .filter(v -> v.realConsumptionKwhPer100km() != null)
-                .max(Comparator.comparing(v -> v.realConsumptionTripCount() == null ? 0 : v.realConsumptionTripCount()))
-                .orElse(null);
-        BigDecimal consumption = measured != null ? measured.realConsumptionKwhPer100km() : stats.avgConsumptionKwhPer100km();
-        BigDecimal netKwh = measured != null ? measured.batteryCapacityKwh()
-                : variants.stream().map(PublicModelStatsResponse.WltpVariant::batteryCapacityKwh)
-                        .filter(Objects::nonNull).max(BigDecimal::compareTo).orElse(null);
+        // Model average, the same figure as the page title and meta description. The tile's
+        // subline counts the whole model, so the consumption must be the model's too. Range on
+        // the largest battery, like the hero of the model page for the default variant.
+        BigDecimal consumption = stats.avgConsumptionKwhPer100km();
+        BigDecimal netKwh = variants.stream().map(PublicModelStatsResponse.WltpVariant::batteryCapacityKwh)
+                .filter(Objects::nonNull).max(BigDecimal::compareTo).orElse(null);
 
         if (consumption == null || consumption.signum() <= 0) {
             return new ModelTileResponse(false, stats.modelDisplayName(), null, null, null, null,
                     stats.logCount(), stats.uniqueCars(), modelUrl);
         }
 
-        PublicModelStatsResponse.SeasonalDistribution seasonal = measured != null && measured.seasonalDistribution() != null
-                ? measured.seasonalDistribution() : stats.seasonalDistribution();
+        PublicModelStatsResponse.SeasonalDistribution seasonal = stats.seasonalDistribution();
         boolean seasonalReliable = seasonal != null
                 && seasonal.summerLogCount() >= MIN_LOGS_PER_SEASON
                 && seasonal.winterLogCount() >= MIN_LOGS_PER_SEASON;

@@ -16,13 +16,14 @@ class PublicEmbedServiceTest {
     private final PublicEmbedService service = new PublicEmbedService(publicModelService, "https://ev-monitor.net");
 
     @Test
-    void tileUsesVariantWithMostTripsAndRoundsRangesToTens() {
+    void tileUsesModelAverageOnLargestBatteryAndRoundsRangesToTens() {
+        // Modellmittel 17,2 wie Titel und Meta-Description, nicht die Variante mit den meisten Fahrten (16,0).
         // 77 kWh netto: 77 × 0,9 / 17,2 = 402,9 → 400; Sommer 15,5 → 447,1 → 450; Winter 21,4 → 323,8 → 320
         var seasonal = seasonal(new BigDecimal("15.5"), new BigDecimal("21.4"), 40, 25);
-        var small = variant(new BigDecimal("58"), new BigDecimal("16.0"), 20, null);
-        var large = variant(new BigDecimal("77"), new BigDecimal("17.2"), 150, seasonal);
+        var small = variant(new BigDecimal("58"), new BigDecimal("16.0"), 500, null);
+        var large = variant(new BigDecimal("77"), new BigDecimal("18.9"), 150, null);
         when(publicModelService.getModelStats("VW", "ID.3", false))
-                .thenReturn(Optional.of(stats(List.of(small, large), new BigDecimal("16.80"), 812, 34)));
+                .thenReturn(Optional.of(stats(List.of(small, large), new BigDecimal("17.2"), 812, 34, seasonal)));
 
         ModelTileResponse tile = service.getModelTile("VW", "ID.3");
 
@@ -40,9 +41,9 @@ class PublicEmbedServiceTest {
     @Test
     void seasonalRangesAreNullBelowTenLogsPerSeason() {
         var thin = seasonal(new BigDecimal("15.5"), new BigDecimal("21.4"), 40, 9);
-        var v = variant(new BigDecimal("77"), new BigDecimal("17.2"), 150, thin);
+        var v = variant(new BigDecimal("77"), new BigDecimal("17.2"), 150, null);
         when(publicModelService.getModelStats("VW", "ID.3", false))
-                .thenReturn(Optional.of(stats(List.of(v), new BigDecimal("17.2"), 300, 10)));
+                .thenReturn(Optional.of(stats(List.of(v), new BigDecimal("17.2"), 300, 10, thin)));
 
         ModelTileResponse tile = service.getModelTile("VW", "ID.3");
 
@@ -52,11 +53,11 @@ class PublicEmbedServiceTest {
     }
 
     @Test
-    void fallsBackToModelAverageAndLargestBatteryWhenNoVariantHasRealData() {
+    void roundsTheModelAverageToOneDecimalAndUsesTheLargestBattery() {
         var a = variant(new BigDecimal("58"), null, null, null);
         var b = variant(new BigDecimal("77"), null, null, null);
         when(publicModelService.getModelStats("VW", "ID.3", false))
-                .thenReturn(Optional.of(stats(List.of(a, b), new BigDecimal("17.25"), 12, 2)));
+                .thenReturn(Optional.of(stats(List.of(a, b), new BigDecimal("17.25"), 12, 2, null)));
 
         ModelTileResponse tile = service.getModelTile("VW", "ID.3");
 
@@ -80,7 +81,7 @@ class PublicEmbedServiceTest {
     void knownModelWithoutConsumptionHasNoDataButKeepsModelUrl() {
         var v = variant(new BigDecimal("77"), null, null, null);
         when(publicModelService.getModelStats("VW", "ID.3", false))
-                .thenReturn(Optional.of(stats(List.of(v), null, 0, 0)));
+                .thenReturn(Optional.of(stats(List.of(v), null, 0, 0, null)));
 
         ModelTileResponse tile = service.getModelTile("VW", "ID.3");
 
@@ -101,9 +102,10 @@ class PublicEmbedServiceTest {
     }
 
     private static PublicModelStatsResponse stats(List<PublicModelStatsResponse.WltpVariant> variants,
-                                                  BigDecimal avg, int logCount, int cars) {
+                                                  BigDecimal avg, int logCount, int cars,
+                                                  PublicModelStatsResponse.SeasonalDistribution seasonal) {
         return new PublicModelStatsResponse("VW", "ID_3", "VW", "VW ID.3", "COMPACT", "Kompakt",
                 logCount, cars, cars, null, null, null, null, avg, 0, null,
-                variants, null, null, List.of(), List.of(), null);
+                variants, null, seasonal, List.of(), List.of(), null);
     }
 }
