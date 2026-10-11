@@ -72,7 +72,8 @@ class EuDataActSyncBothDoorsCharacterizationTest extends AbstractIntegrationTest
 
         EvLog imported = evLogRepository.findById(created.id()).orElseThrow();
         assertThat(imported.getTireType()).isEqualTo(TireType.WINTER);
-        assertThat(imported.getRouteType()).isEqualTo(RouteType.HIGHWAY);
+        // tires are inherited, the route type is not: the next trip has nothing to do with the last one
+        assertThat(imported.getRouteType()).isNull();
         assertThat(coinLogRepository.findAllByUserId(user.getId())).isEmpty();
     }
 }

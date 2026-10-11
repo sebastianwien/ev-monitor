@@ -384,7 +384,7 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
         verify(temperatureEnricher, never()).enrichLog(any(), any(), any());
     }
 
-    // --- tireType / routeType inheritance ---
+    // --- tireType inheritance (route type is never inherited) ---
 
     @Test
     void createInternalLog_withoutTireType_inheritsFromMostRecentPriorLog() {
@@ -406,7 +406,8 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("WINTER", response.getBody().get("tireType"));
-        assertEquals("HIGHWAY", response.getBody().get("routeType"));
+        // the route of the next trip is unknown: no route type is inherited
+        assertNull(response.getBody().get("routeType"));
     }
 
     @Test
@@ -452,7 +453,8 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("WINTER", response.getBody().get("tireType"));
-        assertEquals("HIGHWAY", response.getBody().get("routeType"));
+        // the route of the next trip is unknown: no route type is inherited
+        assertNull(response.getBody().get("routeType"));
     }
 
     // --- energySource (provenance of kwhCharged) ---
