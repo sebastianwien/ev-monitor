@@ -25,7 +25,7 @@
 
       <div v-else-if="stats">
 
-        <PromoTeaserBanner v-if="isAuthenticated" class="mx-4 md:mx-0 mb-3" />
+        <StartCodeTeaser v-if="isAuthenticated" class="mx-4 md:mx-0 mb-3" />
 
         <!-- Breadcrumb: als Chip geerdet, damit er nicht im Gitter-Hintergrund untergeht -->
         <nav aria-label="Breadcrumb" class="px-4 md:px-0 mb-3">
@@ -572,7 +572,7 @@
       </div>
     </div>
 
-    <PartnerBanner v-for="partner in PARTNER_BANNERS" :key="partner.id" :partner="partner" />
+    <ModelCooperationNote v-for="partner in PARTNER_BANNERS" :key="partner.id" :partner="partner" />
 
     <footer class="max-w-4xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
       <div v-if="!isAuthenticated" class="flex justify-center mb-4">
@@ -620,9 +620,9 @@ import {
   SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
-import PromoTeaserBanner from '../components/promo/PromoTeaserBanner.vue'
-import PartnerBanner from '../components/models/PartnerBanner.vue'
-import { PARTNER_BANNERS } from '../config/partners'
+import StartCodeTeaser from '../components/codes/StartCodeTeaser.vue'
+import ModelCooperationNote from '../components/models/ModelCooperationNote.vue'
+import { PARTNER_BANNERS } from '../config/cooperations'
 import PersonalRangeCalculator from '../components/models/PersonalRangeCalculator.vue'
 import RangeCalculatorCard from '../components/shared/RangeCalculatorCard.vue'
 import { buildMarkers } from '../utils/rangeCalculator'

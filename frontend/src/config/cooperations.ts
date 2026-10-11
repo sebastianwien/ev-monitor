@@ -3,10 +3,10 @@
  * public/partners/ (no third-party script, no tracking on the partner side). Inactive until the
  * partner delivers the image.
  */
-export interface PartnerBannerConfig {
+export interface ModelCooperationNoteConfig {
   id: string
   active: boolean
-  /** Partner target without UTM; PartnerBanner adds utm_source=ev-monitor. */
+  /** Partner target without UTM; ModelCooperationNote adds utm_source=ev-monitor. */
   href: string
   imageUrl: string
   alt: string
@@ -14,7 +14,7 @@ export interface PartnerBannerConfig {
   height: number
 }
 
-export const PARTNER_BANNERS: PartnerBannerConfig[] = [
+export const PARTNER_BANNERS: ModelCooperationNoteConfig[] = [
   {
     id: 'firstev',
     active: false,

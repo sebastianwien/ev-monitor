@@ -12,10 +12,10 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { analytics } from '../../services/analytics'
-import type { PartnerBannerConfig } from '../../config/partners'
+import type { ModelCooperationNoteConfig } from '../../config/cooperations'
 
 /** One partner banner; followable link (no nofollow) with our UTM so the partner sees where visitors come from. */
-const props = defineProps<{ partner: PartnerBannerConfig }>()
+const props = defineProps<{ partner: ModelCooperationNoteConfig }>()
 const { t } = useI18n()
 
 const href = computed(() => {

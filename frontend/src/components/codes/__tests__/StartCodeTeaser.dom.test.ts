@@ -8,7 +8,7 @@ import { useAuthStore } from '../../../stores/auth'
 
 vi.mock('../../../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }))
 import api from '../../../api/axios'
-import PromoTeaserBanner from '../PromoTeaserBanner.vue'
+import StartCodeTeaser from '../StartCodeTeaser.vue'
 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear(); localStorage.clear() })
@@ -24,14 +24,14 @@ async function mount(opts: { loggedIn?: boolean; premium?: boolean } = {}) {
   const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/:p*', component: { render: () => null } }] })
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(PromoTeaserBanner)
+  app = createApp(StartCodeTeaser)
   app.use(i18n).use(router)
   app.mount(host)
   for (let i = 0; i < 6; i++) { await nextTick(); await Promise.resolve() }
   return host
 }
 
-describe('PromoTeaserBanner', () => {
+describe('StartCodeTeaser', () => {
   beforeEach(() => vi.mocked(api.get).mockReset())
 
   it('shows the firstev offer with a link to the prefilled upgrade page', async () => {
@@ -47,7 +47,7 @@ describe('PromoTeaserBanner', () => {
     vi.mocked(api.get).mockResolvedValue({ status: 204, data: '' } as never)
     const host = await mount()
 
-    expect(host.querySelector('[data-testid="promo-banner"]')).toBeNull()
+    expect(host.querySelector('[data-testid="code-teaser"]')).toBeNull()
   })
 
   it('never asks for premium users or guests', async () => {
@@ -60,12 +60,12 @@ describe('PromoTeaserBanner', () => {
   it('stays closed after dismissing', async () => {
     vi.mocked(api.get).mockResolvedValue({ status: 200, data: { code: 'FIRSTEV', trialDays: 28 } } as never)
     let host = await mount()
-    ;(host.querySelector('[data-testid="promo-banner-close"]') as HTMLButtonElement).click()
+    ;(host.querySelector('[data-testid="code-teaser-close"]') as HTMLButtonElement).click()
     await nextTick()
-    expect(host.querySelector('[data-testid="promo-banner"]')).toBeNull()
+    expect(host.querySelector('[data-testid="code-teaser"]')).toBeNull()
 
     app?.unmount(); app = null
     host = await mount()
-    expect(host.querySelector('[data-testid="promo-banner"]')).toBeNull()
+    expect(host.querySelector('[data-testid="code-teaser"]')).toBeNull()
   })
 })

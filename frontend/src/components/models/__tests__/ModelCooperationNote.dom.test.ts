@@ -5,10 +5,10 @@ import { i18n } from '../../../i18n'
 
 vi.mock('../../../services/analytics', () => ({ analytics: { track: vi.fn() } }))
 import { analytics } from '../../../services/analytics'
-import PartnerBanner from '../PartnerBanner.vue'
-import type { PartnerBannerConfig } from '../../../config/partners'
+import ModelCooperationNote from '../ModelCooperationNote.vue'
+import type { ModelCooperationNoteConfig } from '../../../config/cooperations'
 
-const FIRSTEV: PartnerBannerConfig = {
+const FIRSTEV: ModelCooperationNoteConfig = {
   id: 'firstev', active: true, href: 'https://www.firstev.de/', imageUrl: '/partners/firstev.webp',
   alt: 'firstev.de', width: 728, height: 90,
 }
@@ -16,16 +16,16 @@ const FIRSTEV: PartnerBannerConfig = {
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
-function mount(partner: PartnerBannerConfig) {
+function mount(partner: ModelCooperationNoteConfig) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(PartnerBanner, { partner })
+  app = createApp(ModelCooperationNote, { partner })
   app.use(i18n)
   app.mount(host)
   return host
 }
 
-describe('PartnerBanner', () => {
+describe('ModelCooperationNote', () => {
   it('renders nothing while the partner is inactive', () => {
     const host = mount({ ...FIRSTEV, active: false })
     expect(host.querySelector('a')).toBeNull()
