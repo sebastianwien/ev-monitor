@@ -171,8 +171,8 @@ const levelClass = computed(() => props.level === 'FULL'
   --thumb: rgb(22 163 74);
 }
 .story-slider.is-open { --thumb: rgb(156 163 175); }
-:global(.dark) .story-slider { --track: rgb(55 65 81); --filled: rgb(34 197 94); }
-:global(.dark) .story-slider:not(.is-open) { --thumb: rgb(34 197 94); }
+.dark .story-slider { --track: rgb(55 65 81); --filled: rgb(34 197 94); }
+.dark .story-slider:not(.is-open) { --thumb: rgb(34 197 94); }
 .story-slider::-webkit-slider-runnable-track {
   height: 8px;
   border-radius: 9999px;
