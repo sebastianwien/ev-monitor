@@ -55,6 +55,17 @@ export interface RouteTypeEntry {
     count: number
 }
 
+/** kWh/100km per route type, null for a type below the trip threshold; counts are always set */
+export interface RouteTypeConsumption {
+    cityKwhPer100km: number | null
+    combinedKwhPer100km: number | null
+    highwayKwhPer100km: number | null
+    cityLogCount: number
+    combinedLogCount: number
+    highwayLogCount: number
+    highwayCarCount: number
+}
+
 export interface PublicModelStats {
     brand: string
     model: string
@@ -75,6 +86,7 @@ export interface PublicModelStats {
     seasonalDistribution: SeasonalDistribution | null
     yearDistribution: YearEntry[]
     routeTypeDistribution: RouteTypeEntry[]
+    routeTypeConsumption: RouteTypeConsumption | null
 }
 
 export async function getModelStats(brand: string, model: string): Promise<PublicModelStats | null> {

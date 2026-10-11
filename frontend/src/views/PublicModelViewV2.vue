@@ -1,7 +1,5 @@
 <template>
-  <div :class="isAuthenticated ? '' : 'sl-grid isolate min-h-screen bg-gray-50 dark:bg-gray-950 overflow-x-clip'">
-    <!-- Maus-reaktives Gitter wie auf der Startseite (nur für öffentliche Besucher) -->
-    <GridRippleBackground v-if="!isAuthenticated" />
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
     <div class="model-page">
     <PublicNav />
     <main class="max-w-4xl mx-auto md:px-4 py-2 md:py-8">
@@ -40,216 +38,101 @@
           </ol>
         </nav>
 
-        <!-- Hero Card -->
-        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-t-2 md:border-b-2 border-gray-800 dark:border-gray-200 px-4 pt-3 pb-6 md:p-6 md:mb-6">
-          <a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="inline-flex items-center gap-1 text-sm text-green-600 hover:underline mb-2">
-            {{ t('model.back_link', { brand: stats.brandDisplayName }) }}
-          </a>
-          <h1 class="t-value-xl text-gray-900 dark:text-gray-100 mb-3 text-center">
-            <span class="md:hidden">{{ stats.modelDisplayName }}</span>
-            <span class="hidden md:inline">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</span>
-          </h1>
-          <div class="h-1 w-16 bg-green-500 rounded-full mb-4 mx-auto"></div>
-
-          <!-- Variant Switcher -->
-          <div v-if="activeVariants.length > 1" :style="{ top: stickyTop }" class="sticky z-20 flex flex-col items-center gap-2 mb-5 py-3 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-200/80 dark:border-gray-700/80">
-            <span class="t-block text-gray-800 dark:text-gray-200">{{ t('model.variant_title') }}</span>
-            <div class="flex gap-2 flex-wrap justify-center">
-              <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh"
-                      @click="selectedVariantIndex = i"
-                      class="btn-3d px-3 py-1.5 rounded-sm text-sm font-semibold border-2 border-gray-800 dark:border-gray-200 transition whitespace-nowrap"
-                      :class="i === selectedVariantIndex
-                        ? 'bg-green-600 text-white active'
-                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'">
-                {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
-              </button>
-            </div>
-            <span v-if="selectedVariant?.seasonalDistribution && (selectedVariant.seasonalDistribution.summerLogCount < 30 || selectedVariant.seasonalDistribution.winterLogCount < 30)"
-                  class="flex items-center gap-1 text-xs text-yellow-600 font-medium">
-              <ExclamationTriangleIcon class="h-3.5 w-3.5" />
-              {{ t('model.variant_low_trips') }}
-            </span>
-          </div>
-
-          <!-- Primary metric: Realer Verbrauch -->
-          <!-- 1 · Reichweite -->
-          <div v-if="displayRange" class="text-center mb-7">
-            <div class="t-block text-green-700 dark:text-green-400 mb-2">{{ t('model.metrics_range') }}</div>
-            <div class="flex items-baseline justify-center gap-1.5">
-              <span class="t-metric tabular-nums text-gray-900 dark:text-gray-100">{{ formatDistance(displayRange, { showUnit: false }) }}</span>
-              <span class="text-base sm:text-xl font-bold text-gray-800 dark:text-gray-200">{{ distanceUnitLabel() }}</span>
-            </div>
-            <div class="mt-2 flex items-center justify-center gap-2 flex-wrap">
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium">
-                <Battery0Icon class="h-3.5 w-3.5" /> 100% → 10%
-              </span>
-              <span v-if="selectedVariant?.officialRangeKm" class="text-sm text-gray-600 dark:text-gray-300">{{ t('model.compare_manufacturer') }}: <strong class="text-gray-800 dark:text-gray-100"><template v-if="selectedVariant.officialRangeMinKm">{{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}-{{ formatDistance(selectedVariant.officialRangeKm) }}</template><template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template></strong></span>
-            </div>
-          </div>
-
-          <!-- Reichweiten-Rechner: direkt unter der Reichweiten-Kennzahl, weil er sie personalisiert -->
-          <RangeCalculatorCard
-            v-if="displayConsumption && selectedVariant?.batteryCapacityKwh"
-            :net-capacity-kwh="selectedVariant.batteryCapacityKwh"
-            :default-consumption="displayConsumption"
-            :markers="rangeMarkers"
-            :min-consumption="communityConsumptionRange?.min ?? null"
-            :max-consumption="communityConsumptionRange?.max ?? null" />
-
-          <!-- Persönliches Profil: Ergebnis hinter dem Gate, die Modellwerte oben bleiben frei -->
-          <PersonalRangeCalculator
-            v-if="activeVariants.length"
-            :brand="brand"
-            :model="model"
-            :model-name="stats.modelDisplayName"
-            :log-count="stats.logCount"
-            :car-count="stats.uniqueCars" />
-
-          <!-- No data for selected variant -->
-          <div v-if="variantHasNoData" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600 text-center">
-            <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('model.variant_no_data') }}</p>
-          </div>
-
-          <!-- No data notice -->
-          <div v-if="stats.logCount === 0" class="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm border border-gray-200 dark:border-gray-600">
-            <p class="text-gray-600 dark:text-gray-300 text-sm">
-              {{ t('common.be_first') }}
-              <a :href="registerPath" class="text-green-600 font-medium hover:underline">{{ t('common.register') }}</a>
-            </p>
-          </div>
-
-          <!-- 2 · Kosten: Ladepreise + Ø-Schnitt (der Rechner darunter personalisiert) -->
-          <div v-if="displayConsumption && (stats.acAvgCostPerKwh || stats.dcAvgCostPerKwh || stats.avgCostPerKwh)">
-            <div class="t-block text-green-700 dark:text-green-400 mb-3 text-center">{{ t('model.hero_block_cost') }}</div>
-            <div class="bg-gray-50 dark:bg-gray-800/40 border-2 border-gray-800 dark:border-gray-200 rounded-xl py-4 flex items-start justify-around text-center">
-              <div v-if="stats.acAvgCostPerKwh" class="flex-1 px-2">
-                <div class="t-value text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.acAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></div>
-                <div class="text-sm font-semibold text-green-600 dark:text-green-400 flex items-center justify-center gap-0.5 mt-0.5"><BoltIcon class="h-4 w-4" />AC</div>
-                <div class="t-eyebrow text-gray-400 dark:text-gray-500">{{ t('model.charging_ac_label') }}</div>
+        <!-- Story "Prospekt gegen Realität": hero with the gauge, four chapters with one question
+             each, the visitor's range band alongside, the exact result behind the gate at the end. -->
+        <div class="px-4 md:px-0">
+          <h1 class="max-w-[22ch] text-balance pt-1 text-[clamp(26px,6.4vw,44px)] font-bold leading-[1.06] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
+          <header class="grid gap-5 pt-5 md:grid-cols-[1.1fr_1fr] md:items-center md:gap-8 md:pt-6">
+            <div class="grid gap-3">
+              <!-- Variant chips as the eyebrow: the story speaks about one battery -->
+              <div v-if="activeVariants.length > 1" class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0" role="group" :aria-label="t('model.variant_title')">
+                <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh" type="button"
+                        class="inline-flex min-h-9 flex-none items-center whitespace-nowrap rounded-full px-3.5 text-[13.5px] font-medium transition-colors"
+                        :class="i === selectedVariantIndex
+                          ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                          : 'bg-gray-200/70 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'"
+                        :aria-pressed="i === selectedVariantIndex"
+                        @click="selectedVariantIndex = i">
+                  {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
+                </button>
               </div>
-              <div v-if="stats.dcAvgCostPerKwh" class="flex-1 px-2">
-                <div class="t-value text-gray-900 dark:text-gray-100">{{ formatCostPerKwh(stats.dcAvgCostPerKwh) }}<sup class="text-xs text-gray-400">*</sup></div>
-                <div class="text-sm font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-center gap-0.5 mt-0.5"><BoltIcon class="h-4 w-4" />DC</div>
-                <div class="t-eyebrow text-gray-400 dark:text-gray-500">{{ t('model.charging_dc_label') }}</div>
-              </div>
-              <div v-if="stats.avgCostPerKwh && displayConsumption" class="flex-1 px-2">
-                <div class="t-value text-gray-900 dark:text-gray-100">{{ formatCostPerDistance(stats.avgCostPerKwh * displayConsumption) }}</div>
-                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-0.5">Ø</div>
-                <div class="t-eyebrow text-gray-400 dark:text-gray-500">Community</div>
-              </div>
+              <p v-else class="text-[13px] text-gray-500 dark:text-gray-400">{{ variantLabel }}</p>
+              <!-- One sentence per line, never wrapping: the size follows the viewport on the phone
+                   and the half-width column from md up (about 13 em per line) -->
+              <h2 class="text-[clamp(19px,6vw,40px)] font-bold leading-[1.1] tracking-tight text-gray-900 md:text-[clamp(24px,3.3vw,32px)] dark:text-gray-100" data-testid="story-hero">
+                <span v-for="(line, i) in heroLines" :key="i" class="block whitespace-nowrap">{{ line }}</span>
+              </h2>
+              <p class="max-w-[46ch] text-gray-600 dark:text-gray-400">{{ story.lede }}</p>
             </div>
-          </div>
+            <RangeGauge v-if="storyInput.wltpRangeKm" :wltp-km="storyInput.wltpRangeKm" :real-km="story.realRangeKm" :winter-km="story.winterRangeKm" :rating-label="ratingLabel" />
+          </header>
 
-          <!-- Kostenrechner: persönliche Ladekosten mit eigenem Stromtarif -->
-          <div v-if="displayConsumption" class="mt-6 pt-5 border-t border-gray-100 dark:border-gray-700">
-            <!-- Intro: macht klar, dass man hier seinen eigenen Tarif einstellt -->
-            <div class="text-center mb-4">
-              <p class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center justify-center gap-1.5">
-                <BoltIcon class="h-6 w-6 text-green-600 dark:text-green-400" /> {{ t('model.calculator_title') }}
-              </p>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('model.calculator_hint') }}</p>
-            </div>
-            <!-- Live-Ergebnis -->
-            <div class="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
-              <span class="text-base font-semibold text-gray-700 dark:text-gray-200">{{ formatCostPerKwh(pricePerKwh) }}</span>
-              <span class="text-gray-300 dark:text-gray-600">→</span>
-              <span class="t-value-lg text-green-700 dark:text-green-400">{{ formatCostPerDistance(pricePerKwh * displayConsumption) }}</span>
-            </div>
-            <!-- Slider -->
-            <div class="flex items-center gap-3">
-              <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(0.10) }}</span>
-              <input type="range" min="0.10" max="1.00" step="0.01" v-model.number="pricePerKwh"
-                     @input="onTariffInput"
-                     :aria-label="t('model.calculator_title')"
-                     :style="{ '--pct': sliderFillPct + '%' }"
-                     class="ev-slider flex-1" />
-              <span class="hidden sm:inline text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">{{ formatCostPerKwh(1.00) }}</span>
-            </div>
-          </div>
-          <!-- 3 · Verbrauch -->
-          <div v-if="displayConsumption" class="flex flex-col items-center py-5 mt-7 rounded-xl bg-green-50 dark:bg-green-900/20 border-2 border-gray-800 dark:border-gray-200">
-            <div class="t-eyebrow text-gray-400 dark:text-gray-500 mb-2">
-              {{ t('model.hero_consumption_label') }}
-            </div>
-            <!-- Range: min – max -->
-            <template v-if="communityConsumptionRange">
-              <div class="flex items-baseline gap-1.5">
-                <span class="t-metric tabular-nums text-gray-900 dark:text-gray-100">
-                  {{ formatConsumption(communityConsumptionRange.min, { showUnit: false }) }}
-                </span>
-                <span class="text-2xl sm:text-3xl text-gray-400 dark:text-gray-500">–</span>
-                <span class="t-metric tabular-nums text-gray-900 dark:text-gray-100">
-                  {{ formatConsumption(communityConsumptionRange.max, { showUnit: false }) }}
-                </span>
-                <span class="text-base sm:text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
-              </div>
-              <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-base text-gray-600 dark:text-gray-300">
-                <span>{{ ratingLabel === 'EPA'
-                  ? t('model.epa_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) })
-                  : t('model.wltp_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) }) }}</span>
-                <span class="px-2 py-0.5 rounded-full text-sm font-semibold bg-gray-100 dark:bg-gray-700">
-                  <span :class="simpleDeltaClass(communityConsumptionRange.min, heroOfficialConsumption)">{{ consumptionDeltaLabel(communityConsumptionRange.min, heroOfficialConsumption) }}</span>
-                  <span class="text-gray-400 dark:text-gray-500"> – </span>
-                  <span :class="simpleDeltaClass(communityConsumptionRange.max, heroOfficialConsumption)">{{ consumptionDeltaLabel(communityConsumptionRange.max, heroOfficialConsumption) }}</span>
-                </span>
-              </div>
+          <!-- Data basis -->
+          <p class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-gray-200 py-3 text-[13px] text-gray-500 dark:border-gray-800 dark:text-gray-400">
+            <template v-if="stats.logCount > 0">
+              <span class="inline-flex items-center gap-1.5"><i class="h-2 w-2 rounded-full bg-green-600 dark:bg-green-500" aria-hidden="true"></i><b class="font-semibold text-gray-900 dark:text-gray-100">{{ t('model.story.basis_logs', { logs: formatNumber(stats.logCount) }) }}</b></span>
+              <span>{{ t('model.story.basis_cars', { cars: formatNumber(stats.uniqueCars) }) }}</span>
+              <span>{{ t('model.story.basis_drivers', { drivers: formatNumber(stats.uniqueContributors) }) }}</span>
             </template>
-            <!-- Fallback: single average -->
-            <template v-else>
-              <div class="flex items-baseline gap-2">
-                <span class="t-metric tabular-nums text-gray-900 dark:text-gray-100">
-                  {{ formatConsumption(displayConsumption, { showUnit: false }) }}
-                </span>
-                <span class="text-base sm:text-xl text-gray-400 dark:text-gray-500">{{ consumptionUnitLabel() }}</span>
-              </div>
-              <div v-if="heroOfficialConsumption" class="mt-3 flex items-center gap-2 text-base text-gray-600 dark:text-gray-300">
-                <span>{{ ratingLabel === 'EPA'
-                  ? t('model.epa_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) })
-                  : t('model.wltp_badge', { consumption: formatConsumption(heroOfficialConsumption, { showUnit: false }) }) }}</span>
-                <span :class="deltaLabelClass(displayConsumption, heroOfficialConsumption)"
-                      class="px-2 py-0.5 rounded-full text-sm font-semibold">
-                  {{ consumptionDeltaLabel(displayConsumption, heroOfficialConsumption) }}
-                </span>
-              </div>
-            </template>
-          </div>
-
-          <!-- Trust-Strip: Icon inline im Text, damit es auf Mobile sauber umbricht -->
-          <p v-if="displayConsumption" class="text-sm text-gray-700 dark:text-gray-300 mt-4 text-center max-w-md mx-auto">
-            <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-white border-2 border-gray-800 dark:border-gray-200 align-middle mr-1.5">
-              <CheckBadgeIcon class="h-3 w-3" />
-            </span>{{ t('model.hero_trust', { sessions: ((selectedVariant?.realConsumptionTripCount ?? stats.logCount) || 0).toLocaleString() }) }}
+            <span v-else>{{ t('model.story.basis_none') }}</span>
+            <span v-if="!isEurZone && stats.avgCostPerKwh" class="basis-full italic text-gray-400 dark:text-gray-500">{{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}</span>
           </p>
 
-          <!-- Inline-CTA: Registrierung nach allen Argumenten, direkt unter dem Tarif-Slider -->
-          <a v-if="displayConsumption && !authStore.isAuthenticated()" :href="registerPath"
-             class="block rounded-xl border-2 border-gray-800 dark:border-gray-200 bg-[#14342a] text-white px-5 py-4 mt-6 hover:bg-[#16392d] transition-colors">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div class="text-center sm:text-left">
-                <p class="font-bold">{{ t('model.hero_cta_title', { model: stats.modelDisplayName }) }}</p>
-                <p class="text-sm text-green-100/80">{{ t('model.hero_cta_desc') }}</p>
-              </div>
-              <span class="btn-3d shrink-0 bg-green-500 text-gray-900 font-bold px-5 py-2.5 rounded-sm border-2 border-white whitespace-nowrap" style="--btn-shadow-color:#0a1f17">
-                {{ t('model.cta_free_start') }} →
-              </span>
-            </div>
-          </a>
-        </div><!-- end Hero -->
+          <!-- One band instance: after the chapters on the phone (sticky bottom), the side column from md up (sticky top) -->
+          <div class="grid md:grid-cols-[minmax(0,1fr)_280px] md:items-start md:gap-x-8">
+            <div class="grid md:col-start-1 md:row-start-1">
+              <StoryChapter v-for="(chapter, i) in story.chapters" :key="chapter.key"
+                            :chapter-key="chapter.key" :level="chapter.level" :title="t(`model.story.c${i + 1}_title`)"
+                            :headline="chapter.headline" :say="chapter.say" :tiles="chapter.tiles" :effect="chapter.effect"
+                            :questions="questionsFor(chapter.key)"
+                            @answer="answer">
+                <template v-if="chapter.key === 'cost'" #extra>
+                  <label class="mt-1 grid max-w-xs gap-1 text-[13px] text-gray-600 dark:text-gray-400">
+                    <span>{{ t('model.story.own_price_label') }}</span>
+                    <span class="flex items-center gap-2">
+                      <input v-model="ownPriceText" type="text" inputmode="decimal" :placeholder="communityPricePlaceholder" data-testid="own-price"
+                             class="h-11 w-32 rounded-xl border border-gray-200 bg-white px-3 text-base tabular-nums text-gray-900 placeholder:text-gray-400 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
+                             @change="onOwnPrice" />
+                      <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('model.story.own_price_unit') }}</span>
+                    </span>
+                  </label>
+                </template>
+              </StoryChapter>
 
-        <!-- Community methodology note (Desktop; auf Mobile steckt sie im Details-Akkordeon) -->
-        <div class="hidden md:block px-4 md:px-0 py-3 border-t border-gray-100 dark:border-gray-700 md:border-0 text-center">
-          <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
+              <!-- For owners: a real call to action, visually second to the green "Meine Zahlen" -->
+              <aside v-if="!isAuthenticated" class="mt-9 grid gap-3 rounded-2xl border border-gray-200 bg-white p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6 dark:border-gray-800 dark:bg-gray-900" data-testid="owner-cta">
+                <div class="grid gap-1">
+                  <p class="text-balance text-[17px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.story.owner_title', { model: stats.modelDisplayName }) }}</p>
+                  <p class="text-[15px] text-gray-600 dark:text-gray-400">{{ t('model.story.owner_text', { n: formatNumber(stats.uniqueCars + 1) }) }}</p>
+                </div>
+                <a :href="registerPath" class="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl bg-gray-900 px-5 font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">{{ t('model.story.owner_cta') }}</a>
+              </aside>
+            </div>
+
+            <div class="sticky z-30 mt-6 md:col-start-2 md:row-start-1 md:mt-0 md:pt-9 md:[position:sticky] md:top-24 md:bottom-auto"
+                 :class="isAuthenticated ? 'bottom-[calc(env(safe-area-inset-bottom)+68px)]' : 'bottom-[calc(env(safe-area-inset-bottom)+12px)]'">
+              <RangeBandBar :brand="brand" :model="model" :model-name="stats.modelDisplayName" :inputs="storyInputs" :answered="answeredCount" :total="QUESTION_COUNT" :fallback-band="story.fallbackBand" :profile="profileRows" @open="openResult" />
+            </div>
+
+            <PersonalRangeCalculator
+              ref="calculatorRef"
+              class="md:col-start-1 md:row-start-2"
+              :brand="brand"
+              :model="model"
+              :model-name="stats.modelDisplayName"
+              :log-count="stats.logCount"
+              :car-count="stats.uniqueCars"
+              :inputs="storyInputs"
+              @profile="applyProfile" />
+          </div>
         </div>
-        <!-- Cost disclaimer for non-EUR countries -->
-        <div v-if="!isEurZone && (stats.avgCostPerKwh || stats.acAvgCostPerKwh)" class="px-4 md:px-0 mt-1 mb-3 text-center">
-          <p class="text-xs text-gray-400 dark:text-gray-500 italic">
-            {{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}
-          </p>
-        </div>
+
+        <!-- Community methodology note -->
+        <p class="px-4 py-4 text-center text-[13px] text-gray-500 md:px-0 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
 
         <!-- Baujahr-Verteilung -->
         <div v-if="stats.yearDistribution && stats.yearDistribution.length > 0"
-             class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-t-2 md:border-b-2 border-gray-800 dark:border-gray-200 px-6 py-5 md:mb-6">
+             class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl px-6 py-5 md:mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
             <ChartBarIcon class="h-4 w-4 text-gray-400" />
             {{ t('model.year_distribution_title', { count: stats.uniqueCars }) }}
@@ -271,7 +154,7 @@
 
         <!-- Streckentyp-Verteilung -->
         <div v-if="showRouteTypeBar"
-             class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-t-2 md:border-b-2 border-gray-800 dark:border-gray-200 px-6 py-5 md:mb-6">
+             class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl px-6 py-5 md:mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
             <ChartBarIcon class="h-4 w-4 text-gray-400" />
             {{ t('model.route_type_title') }}
@@ -301,60 +184,13 @@
           </div>
         </div>
 
-        <!-- Variant Switcher + Seasonal + WLTP -->
-        <div v-if="activeVariants.length > 0 || showSeasonalBreakdown"
-             class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-t-2 md:border-b-2 border-gray-800 dark:border-gray-200 md:mb-6 overflow-hidden">
-
-          <!-- Saison-Karte: einziger Ort mit Sommer-vs-Winter (Hero zeigt das nicht) -->
-          <div v-if="showSeasonalBreakdown" class="px-4 md:px-6 py-5">
-            <div class="flex items-center justify-center gap-2 mb-4 flex-wrap">
-              <ChartBarIcon class="h-5 w-5 text-green-600 dark:text-green-400" />
-              <h2 class="t-title text-gray-800 dark:text-gray-200">{{ t('model.seasonal_title_range') }}</h2>
-              <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">· {{ selectedVariant!.displayLabel || selectedVariant!.variantName || (selectedVariant!.batteryCapacityKwh + ' kWh') }}</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <!-- Sommer: Reichweite primär, Verbrauch sekundär -->
-              <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-amber-50 dark:bg-amber-900/10 p-4 text-center">
-                <div class="flex items-center justify-center gap-1.5 t-eyebrow text-amber-600 dark:text-amber-400 mb-1">
-                  <SunIcon class="h-4 w-4" /> {{ t('model.seasonal_summer') }}
-                </div>
-                <div v-if="seasonalSummerRangeKm" class="t-value-lg text-gray-900 dark:text-gray-100 tabular-nums leading-none">~ {{ formatDistance(seasonalSummerRangeKm) }}</div>
-                <div v-else class="t-value-lg text-gray-400 leading-none">-</div>
-                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-2">{{ formatConsumption(selectedVariant!.seasonalDistribution!.summerConsumptionKwhPer100km) }}</div>
-                <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ selectedVariant!.seasonalDistribution!.summerLogCount }} {{ t('model.seasonal_trips') }}</div>
-              </div>
-
-              <!-- Winter: Reichweite primär, Verbrauch sekundär -->
-              <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-blue-50 dark:bg-blue-900/10 p-4 text-center">
-                <div class="flex items-center justify-center gap-1.5 t-eyebrow text-blue-600 dark:text-blue-400 mb-1">
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
-                    <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                  </svg> {{ t('model.seasonal_winter') }}
-                </div>
-                <div v-if="seasonalWinterRangeKm" class="t-value-lg text-gray-900 dark:text-gray-100 tabular-nums leading-none">~ {{ formatDistance(seasonalWinterRangeKm) }}</div>
-                <div v-else class="t-value-lg text-gray-400 leading-none">-</div>
-                <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mt-2">{{ formatConsumption(selectedVariant!.seasonalDistribution!.winterConsumptionKwhPer100km) }}</div>
-                <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ selectedVariant!.seasonalDistribution!.winterLogCount }} {{ t('model.seasonal_trips') }}</div>
-              </div>
-
-              <!-- Winter-Aufschlag: Reichweitenverlust primär (die Pointe) -->
-              <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-gray-50 dark:bg-gray-800/40 p-4 text-center flex flex-col justify-center">
-                <div class="t-eyebrow text-gray-500 dark:text-gray-400 mb-1">{{ t('model.seasonal_winter_penalty') }}</div>
-                <div v-if="seasonalRangeLossKm" class="t-value-xl text-red-600 dark:text-red-400 tabular-nums leading-none">- {{ formatDistance(seasonalRangeLossKm) }}</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.seasonal_less_range') }}</div>
-                <div v-if="winterExtraPercent != null" class="text-base font-bold text-gray-700 dark:text-gray-300 mt-2">+{{ winterExtraPercent }} % {{ t('model.seasonal_more_consumption') }}</div>
-              </div>
-            </div>
-          </div>
-
+        <!-- WLTP and methodology, collapsed: the story above carries the figures -->
+        <div v-if="activeVariants.length > 0" class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl overflow-hidden md:mb-6">
           <!-- Details & Methodik (eingeklappt) -->
-          <details v-if="activeVariants.length > 0" :open="!showSeasonalBreakdown" class="group" :class="showSeasonalBreakdown ? 'border-t-2 border-gray-800/15 dark:border-gray-200/15' : ''">
+          <details :open="story.level !== 'FULL'" class="group">
             <summary class="flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold text-green-700 dark:text-green-400 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
               <ClipboardDocumentListIcon class="h-5 w-5" />
-              {{ showSeasonalBreakdown ? t('model.details_methodology') : (ratingLabel === 'EPA' ? t('model.epa_section_title') : t('model.wltp_section_title')) }}
+              {{ story.level === 'FULL' ? t('model.details_methodology') : (ratingLabel === 'EPA' ? t('model.epa_section_title') : t('model.wltp_section_title')) }}
               <ChevronRightIcon class="h-4 w-4 transition-transform group-open:rotate-90" />
             </summary>
 
@@ -441,11 +277,6 @@
 
         </div><!-- end combined card -->
 
-        <!-- AC Fußnote -->
-        <div v-if="stats.acAvgCostPerKwh" class="px-4 md:px-0 mt-2 mb-3 text-center">
-          <p class="text-sm text-gray-400 dark:text-gray-400">{{ t('model.ac_footnote') }}</p>
-        </div>
-
         <!-- Fahrer sagen: Bewertungen unter den Messdaten -->
         <ModelRatingsBlock
           v-if="ratings"
@@ -457,24 +288,24 @@
         />
 
         <!-- CTA -->
-        <div class="bg-gradient-to-br from-green-600 to-green-700 border-y-2 md:border-2 border-gray-800 dark:border-gray-200 md:rounded-xl md:shadow-[5px_5px_0_0_#1f2937] dark:md:shadow-[5px_5px_0_0_#1f2937] p-6 text-white">
+        <div class="bg-green-700 p-6 text-white md:rounded-2xl dark:bg-green-800">
           <div class="flex items-center gap-2 mb-2">
             <ArrowTrendingUpIcon class="h-6 w-6" />
-            <h2 class="t-title">{{ t('model.cta_title') }}</h2>
+            <h2 class="t-title">{{ t('model.story.end_title', { model: stats.modelDisplayName }) }}</h2>
           </div>
-          <p class="text-green-100 mb-4">{{ t('model.cta_desc') }}</p>
+          <p class="text-green-100 mb-4">{{ t('model.story.end_desc') }}</p>
           <div class="flex flex-wrap gap-3">
-            <a :href="registerPath" class="btn-3d bg-white text-green-700 font-bold px-5 py-2.5 rounded-sm border-2 border-gray-800 hover:bg-green-50 transition-colors" style="--btn-shadow-color:#1f2937">
+            <a :href="registerPath" class="inline-flex min-h-11 items-center rounded-xl bg-white px-5 font-semibold text-green-800 transition-colors hover:bg-green-50">
               {{ t('model.cta_free_start') }}
             </a>
-            <a :href="loginPath" class="border-2 border-white text-white font-semibold px-5 py-2.5 rounded-sm hover:bg-green-600 transition-colors">
+            <a :href="loginPath" class="inline-flex min-h-11 items-center rounded-xl border border-white/60 px-5 font-semibold text-white transition-colors hover:bg-white/10">
               {{ t('model.cta_login') }}
             </a>
           </div>
         </div>
 
         <!-- SEO Text -->
-        <div class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6 md:mt-6">
+        <div class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl p-6 md:mt-6">
           <h2 class="t-title text-gray-900 dark:text-gray-100 mb-4">
             {{ t('model.seo_section_title', { model: stats.modelDisplayName }) }}
           </h2>
@@ -501,8 +332,8 @@
               <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_costs_title') }}</h3>
               <p>
                 {{ t('model.seo_costs_intro', { model: stats.modelDisplayName, price: formatCostPerKwh(stats.avgCostPerKwh) }) }}
-                <template v-if="stats.avgKwhPerSession">
-                  {{ t('model.seo_costs_session', { kwh: stats.avgKwhPerSession.toFixed(1), cost: formatCurrency(stats.avgCostPerKwh * stats.avgKwhPerSession) }) }}
+                <template v-if="stopCost">
+                  {{ t('model.seo_costs_session', { kwh: formatNumber(Math.round(stopCost.kwh)), cost: formatCurrency(stopCost.eur, { decimals: 0 }) }) }}
                 </template>
               </p>
             </div>
@@ -517,12 +348,12 @@
             </div>
             <div>
               <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_seasonal_title') }}</h3>
-              <p v-if="showSeasonalBreakdown && selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km && selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km">
+              <p v-if="storyInput.seasonal">
                 {{ t('model.seo_seasonal_data', {
                   model: stats.modelDisplayName,
-                  summer: formatConsumption(selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km),
-                  winter: formatConsumption(selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km),
-                  pct: Math.round((selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km - 1) * 100)
+                  summer: formatConsumption(storyInput.seasonal.summer),
+                  winter: formatConsumption(storyInput.seasonal.winter),
+                  pct: Math.round((storyInput.seasonal.winter / storyInput.seasonal.summer - 1) * 100)
                 }) }}
               </p>
               <p v-else>
@@ -533,7 +364,7 @@
         </div>
 
         <!-- FAQ -->
-        <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6 mt-6">
+        <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl p-6 mt-6">
           <h2 class="t-title text-gray-900 dark:text-gray-100 mb-4">
             {{ t('model.faq_title', { model: stats.modelDisplayName }) }}
           </h2>
@@ -558,7 +389,7 @@
 
     <!-- Related models -->
     <div class="max-w-4xl mx-auto md:px-4 mt-8">
-      <div class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6">
+      <div class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl p-6">
         <h2 class="t-title text-gray-900 dark:text-gray-100 mb-3">{{ t('model.related_title') }}</h2>
         <div class="flex flex-wrap gap-2 text-sm">
           <a :href="`${modelsBaseUrl}/Tesla/Model_3`" class="text-green-600 hover:underline">Tesla Model 3</a>
@@ -616,27 +447,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
-import { useTickerState } from '../composables/useTickerState'
 import { useCountryStore } from '../stores/country'
-import { useHaptic } from '../composables/useHaptic'
-import { getModelStats, type PublicModelStats, type SeasonalDistribution } from '../api/publicModelService'
+import { getModelStats, getTopModels, type PublicModelStats, type SeasonalDistribution, type TopModelPreview } from '../api/publicModelService'
 import {
-  ArrowTrendingUpIcon, ClipboardDocumentListIcon, Battery0Icon,
-  SunIcon, ChartBarIcon, ExclamationTriangleIcon, BoltIcon, CheckBadgeIcon, ChevronRightIcon, HomeIcon
+  ArrowTrendingUpIcon, ClipboardDocumentListIcon, SunIcon, ChartBarIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import StartCodeTeaser from '../components/codes/StartCodeTeaser.vue'
 import ModelCooperationNote from '../components/models/ModelCooperationNote.vue'
 import { PARTNER_BANNERS } from '../config/cooperations'
 import PersonalRangeCalculator from '../components/models/PersonalRangeCalculator.vue'
-import RangeCalculatorCard from '../components/shared/RangeCalculatorCard.vue'
-import { buildMarkers } from '../utils/rangeCalculator'
-import GridRippleBackground from '../components/shared/GridRippleBackground.vue'
+import RangeGauge from '../components/models/RangeGauge.vue'
+import StoryChapter, { type StoryQuestion } from '../components/models/StoryChapter.vue'
+import RangeBandBar from '../components/models/RangeBandBar.vue'
+import { buildModelStory, fastStop, keepUnits, type ChapterKey, type StoryInput } from '../utils/modelStory'
+import type { PersonalRangeInputs } from '../api/personalRangeService'
+import { analytics } from '../services/analytics'
 import RegionChip from '../components/shared/RegionChip.vue'
 import ModelRatingsBlock from '../components/rating/ModelRatingsBlock.vue'
 import { ratingService, type PublicModelRatings } from '../api/ratingService'
@@ -668,7 +499,7 @@ interface ActiveVariant {
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
+const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, formatDecimal, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, marketUrl, hreflangLinks } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 const authStore = useAuthStore()
@@ -683,29 +514,7 @@ const ratings = ref<PublicModelRatings | null>(null)
 /** Eigenes, bewertbares und unbewertetes Auto dieses Modells (nur eingeloggt). */
 const ratingCtaCarId = ref<string | null>(null)
 const selectedVariantIndex = ref(0)
-const pricePerKwh = ref(countryStore.country === 'US' ? 0.13 : 0.35)
-// Füllstand des Tarif-Sliders (0.10-1.00 €/kWh) für den grünen Fortschrittsbalken
-const sliderFillPct = computed(() => Math.round((pricePerKwh.value - 0.10) / 0.90 * 100))
-
-// Haptische "Ticks" beim Ziehen des Tarif-Sliders (nur nativ spürbar). Zeit-gedrosselt,
-// damit der Vibrationsmotor bei schnellem Ziehen nicht überlastet wird.
-const { haptic } = useHaptic()
-let lastSliderTick = 0
-function onTariffInput() {
-  const now = Date.now()
-  if (now - lastSliderTick >= 30) {
-    haptic(5)
-    lastSliderTick = now
-  }
-}
-
 const isAuthenticated = computed(() => authStore.isAuthenticated())
-const { tickerHasItems, tickerCollapsed } = useTickerState()
-const stickyTop = computed(() => {
-  if (!authStore.isAuthenticated()) return '0px'
-  if (tickerHasItems.value && !tickerCollapsed.value) return '90px'
-  return '64px'
-})
 
 // Höchste Fahrzeugzahl eines Baujahrs - Basis für die Säulenhöhe im Histogramm
 const maxYearCount = computed(() =>
@@ -829,35 +638,227 @@ const activeVariants = computed<ActiveVariant[]>(() => {
 
 const selectedVariant = computed(() => activeVariants.value[selectedVariantIndex.value] ?? null)
 
-const variantHasNoData = computed(() =>
-  activeVariants.value.length > 1 && !selectedVariant.value?.realConsumptionKwhPer100km
-)
+// ── Story "Prospekt gegen Realität" ─────────────────────────────────────────────────────
+// Model-level figures (the same the ranking and the backend calculator use) on the battery of
+// the variant the reader picked. That battery also goes to the server, so the band and the
+// page never disagree.
 
-const displayConsumption = computed(() => {
-  const variantConsumption = selectedVariant.value?.realConsumptionKwhPer100km
-  if (variantConsumption != null) return variantConsumption
-  // Only fall back to model average when no variant switcher is shown (single variant)
-  if (activeVariants.value.length > 1) return null
-  return stats.value?.avgConsumptionKwhPer100km ?? null
+/** The ranking list: fast-charge power of this model and the fleet winter factor. Empty on failure. */
+const topModels = ref<TopModelPreview[]>([])
+/** Same threshold as the backend: a season counts from 10 logs. */
+const MIN_LOGS_PER_SEASON = 10
+/** Open ranges instead of four chips, so 7.000 km or 45 % motorway fit as well */
+const ANNUAL_SLIDER = { min: 5_000, max: 50_000, step: 1_000, start: 15_000 }
+const HIGHWAY_SLIDER = { min: 0, max: 100, step: 5, start: 30 }
+const COMMUTE_CHIPS = [20, 40, 60, 100] as const
+const LONG_TRIP_CHIPS = [250, 500, 800, 1_200] as const
+const QUESTION_CHAPTER: Record<QuestionKey, ChapterKey> = { annualKm: 'consumption', highwayShare: 'consumption', commute: 'season', longTrip: 'longTrip', place: 'cost' }
+type QuestionKey = 'annualKm' | 'highwayShare' | 'commute' | 'longTrip' | 'place'
+const QUESTION_COUNT = Object.keys(QUESTION_CHAPTER).length
+const OWN_PRICE_MIN = 0.05
+const OWN_PRICE_MAX = 1.5
+
+const variantLabel = computed(() => {
+  const v = selectedVariant.value
+  return v ? (v.displayLabel || v.variantName || `${v.batteryCapacityKwh} kWh`) : ''
 })
 
-const displayRange = computed(() => {
-  if (!selectedVariant.value || !displayConsumption.value) return null
-  return Math.round(selectedVariant.value.batteryCapacityKwh * 0.9 / displayConsumption.value * 10) * 10
+const topEntry = computed(() => topModels.value.find(m => m.model === stats.value?.model) ?? null)
+
+/** Median winter/summer ratio over the models that have both seasons, for models without winter data. */
+const fleetWinterFactor = computed(() => {
+  const ratios = topModels.value
+    .flatMap(m => m.summerConsumptionKwhPer100km && m.winterConsumptionKwhPer100km
+      ? [m.winterConsumptionKwhPer100km / m.summerConsumptionKwhPer100km] : [])
+    .sort((a, b) => a - b)
+  if (ratios.length < 3) return null
+  const mid = Math.floor(ratios.length / 2)
+  return { factor: ratios.length % 2 ? ratios[mid] : (ratios[mid - 1] + ratios[mid]) / 2, models: ratios.length }
 })
 
-// Marken des Reichweiten-Rechners. Saison-Werte nur, wenn die Datenlage sie traegt
-// (gleiche Schwelle wie die Saison-Karte) - eine Winter-Marke aus 3 Logs waere
-// eine Praezision, die die Daten nicht haben.
-const rangeMarkers = computed(() => {
-  const seasonal = showSeasonalBreakdown.value ? selectedVariant.value?.seasonalDistribution : null
-  return buildMarkers([
-    { key: 'official', label: ratingLabel.value, value: heroOfficialConsumption.value },
-    { key: 'average', label: t('model.range_calc_marker_avg'), value: displayConsumption.value },
-    { key: 'summer', label: t('model.seasonal_summer'), value: seasonal?.summerConsumptionKwhPer100km },
-    { key: 'winter', label: t('model.seasonal_winter'), value: seasonal?.winterConsumptionKwhPer100km },
-  ])
+const storyInput = computed((): StoryInput => {
+  const st = stats.value!
+  const v = selectedVariant.value
+  const season = st.seasonalDistribution
+  const seasonOk = season?.summerConsumptionKwhPer100km && season?.winterConsumptionKwhPer100km
+    && season.summerLogCount >= MIN_LOGS_PER_SEASON && season.winterLogCount >= MIN_LOGS_PER_SEASON
+  const rt = st.routeTypeConsumption
+  return {
+    modelName: st.modelDisplayName, brandName: st.brandDisplayName,
+    logCount: st.logCount, carCount: st.uniqueCars, driverCount: st.uniqueContributors,
+    netBatteryKwh: v?.batteryCapacityKwh ?? null,
+    wltpKwhPer100km: v?.officialConsumptionKwhPer100km ?? worstOfficialConsumption.value,
+    wltpRangeKm: v?.officialRangeKm ?? bestOfficialRange.value,
+    avgKwhPer100km: st.avgConsumptionKwhPer100km,
+    minKwhPer100km: topEntry.value?.minRealConsumptionKwhPer100km ?? v?.realConsumptionMinKwhPer100km ?? null,
+    maxKwhPer100km: topEntry.value?.maxRealConsumptionKwhPer100km ?? v?.realConsumptionMaxKwhPer100km ?? null,
+    routeType: rt ? { highway: rt.highwayKwhPer100km, city: rt.cityKwhPer100km, combined: rt.combinedKwhPer100km,
+      highwayCars: rt.highwayCarCount, cityLogs: rt.cityLogCount, combinedLogs: rt.combinedLogCount } : null,
+    seasonal: seasonOk ? { summer: season.summerConsumptionKwhPer100km!, winter: season.winterConsumptionKwhPer100km!,
+      summerLogs: season.summerLogCount, winterLogs: season.winterLogCount } : null,
+    fastChargePowerKw: topEntry.value?.fastChargePowerKw ?? null,
+    avgChargingPowerKw: st.avgChargingPowerKw,
+    acPricePerKwh: st.acAvgCostPerKwh, dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
+    fleetWinterFactor: fleetWinterFactor.value,
+  }
 })
+
+/** First sentence on its own line: "Der Prospekt sagt 434 km." then "48 Fahrer sagen 280 km." */
+const heroLines = computed(() => {
+  const text = keepUnits(story.value.heroSentence)
+  const i = text.indexOf('. ')
+  return i < 0 ? [text] : [text.slice(0, i + 1), text.slice(i + 2)]
+})
+
+/** Fast-charging stop 10 to 80 % at the DC price; chapter 4, SEO text and FAQ show the same figure */
+const stopCost = computed(() => fastStop(selectedVariant.value?.batteryCapacityKwh ?? null,
+  stats.value?.dcAvgCostPerKwh ?? stats.value?.avgCostPerKwh ?? null))
+
+const story = computed(() => buildModelStory(storyInput.value, {
+  t: (key, params) => t(key, params ?? {}),
+  formatConsumption: v => formatConsumption(v),
+  formatConsumptionValue: v => formatConsumption(v, { showUnit: false }),
+  formatDistance: km => formatDistance(km),
+  formatCostPerKwh,
+  formatCostPerDistance,
+  formatCurrency: v => formatCurrency(v, { decimals: 0 }),
+  formatNumber,
+}))
+
+/** The reader's answers; the battery follows the variant switcher. Unanswered ones hold the slider start. */
+const answers = reactive({ annualKm: ANNUAL_SLIDER.start, highwayShare: HIGHWAY_SLIDER.start, commuteKmPerDay: 40, homeCharging: true, longTripKm: 500, pricePerKwh: null as number | null })
+/** Per question, so answering the yearly mileage does not mark the motorway row as answered too */
+const answered = reactive(new Set<QuestionKey>())
+const answeredCount = computed(() => answered.size)
+const storyInputs = computed((): PersonalRangeInputs => ({
+  commuteKmPerDay: answers.commuteKmPerDay,
+  highwaySharePercent: answers.highwayShare,
+  homeCharging: answers.homeCharging,
+  longTripKm: answers.longTripKm,
+  pricePerKwh: answers.pricePerKwh,
+  annualKm: answers.annualKm,
+  netBatteryKwh: selectedVariant.value?.batteryCapacityKwh ?? null,
+}))
+const ownPriceText = ref('')
+const calculatorRef = ref<InstanceType<typeof PersonalRangeCalculator> | null>(null)
+
+const communityPricePlaceholder = computed(() => stats.value?.avgCostPerKwh ? formatDecimal(stats.value.avgCostPerKwh, 2) : '')
+
+function chipsOf(key: QuestionKey): { label: string; value: number | boolean }[] {
+  switch (key) {
+    case 'annualKm':
+    case 'highwayShare': return []
+    case 'commute': return COMMUTE_CHIPS.map(km => ({ value: km, label: formatDistance(km) }))
+    case 'longTrip': return LONG_TRIP_CHIPS.map(km => ({ value: km, label: formatDistance(km) }))
+    case 'place': {
+      const st = stats.value
+      const ac = st?.acAvgCostPerKwh ? ` · ${formatCostPerKwh(st.acAvgCostPerKwh)}` : ''
+      const dc = st?.dcAvgCostPerKwh ? ` · ${formatCostPerKwh(st.dcAvgCostPerKwh)}` : ''
+      return [
+        { value: true, label: t('model.story.place_home') + ac },
+        { value: false, label: t('model.story.place_public') + dc },
+      ]
+    }
+  }
+}
+
+function valueOf(key: QuestionKey): number | boolean {
+  switch (key) {
+    case 'annualKm': return answers.annualKm
+    case 'highwayShare': return answers.highwayShare
+    case 'commute': return answers.commuteKmPerDay
+    case 'longTrip': return answers.longTripKm
+    case 'place': return answers.homeCharging
+  }
+}
+
+/** "30 % · 4.500 km": the share and what it means in kilometres at the yearly mileage */
+function formatHighway(share: number): string {
+  return `${formatNumber(share)} % · ${formatDistance(Math.round(answers.annualKm * share / 100 / 100) * 100)}`
+}
+
+function sliderOf(key: QuestionKey): StoryQuestion['slider'] {
+  if (key === 'annualKm') return { ...ANNUAL_SLIDER, format: km => formatDistance(km) }
+  if (key === 'highwayShare') return {
+    ...HIGHWAY_SLIDER,
+    format: formatHighway,
+    short: share => `${formatNumber(share)} %`,
+    detail: share => t('model.story.slider_highway_km', { km: formatDistance(Math.round(answers.annualKm * share / 100 / 100) * 100) }),
+  }
+  return undefined
+}
+
+function question(key: QuestionKey): StoryQuestion {
+  // Nothing shows as chosen before the reader chose it; the calculation still has defaults behind the scenes
+  return { key, question: t(`model.story.q_${key}`), chips: chipsOf(key), slider: sliderOf(key), value: answered.has(key) ? valueOf(key) : null }
+}
+
+function questionsFor(chapter: ChapterKey): StoryQuestion[] {
+  return (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).filter(k => QUESTION_CHAPTER[k] === chapter).map(question)
+}
+
+/** Rows for the profile card: the chosen answer per question, null while the question is open */
+const profileRows = computed(() => (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).map(key => {
+  const slider = sliderOf(key)
+  const label = slider ? slider.format(valueOf(key) as number) : chipsOf(key).find(c => c.value === valueOf(key))?.label
+  let value = answered.has(key) && label ? label : null
+  // Own price replaces the community price behind the place, no extra label
+  if (key === 'place' && value && answers.pricePerKwh != null) value = `${t(answers.homeCharging ? 'model.story.place_home' : 'model.story.place_public')} · ${formatCostPerKwh(answers.pricePerKwh)}`
+  return { key, label: t(`model.story.profile_${key}`), value }
+}))
+
+function markAnswered(key: QuestionKey) {
+  if (answered.size === 0) analytics.track('personal_range_started', { model: stats.value?.modelDisplayName ?? model })
+  answered.add(key)
+  analytics.track('story_chip_answered', { model: stats.value?.modelDisplayName ?? model, chapter: QUESTION_CHAPTER[key], question: key })
+}
+
+function answer(key: string, value: number | boolean) {
+  switch (key as QuestionKey) {
+    case 'annualKm': answers.annualKm = value as number; break
+    case 'highwayShare': answers.highwayShare = value as number; break
+    case 'commute': answers.commuteKmPerDay = value as number; break
+    case 'longTrip': answers.longTripKm = value as number; break
+    case 'place': answers.homeCharging = value as boolean; break
+  }
+  markAnswered(key as QuestionKey)
+}
+
+/** Own price in EUR/kWh; an empty or out-of-range entry falls back to the community price. */
+function onOwnPrice() {
+  const parsed = Number(ownPriceText.value.replace(',', '.'))
+  const valid = Number.isFinite(parsed) && parsed >= OWN_PRICE_MIN && parsed <= OWN_PRICE_MAX
+  answers.pricePerKwh = valid ? Math.round(parsed * 100) / 100 : null
+  if (!valid) ownPriceText.value = ''
+  markAnswered('place')
+}
+
+function nearest(values: readonly number[], target: number): number {
+  return values.reduce((best, v) => Math.abs(v - target) < Math.abs(best - target) ? v : best)
+}
+
+/** Onto the slider: within its range and on its step */
+function snap(slider: { min: number; max: number; step: number }, value: number): number {
+  return Math.min(slider.max, Math.max(slider.min, Math.round(value / slider.step) * slider.step))
+}
+
+/** A stored profile is the reader's own answers: sliders and chips move to the nearest value and count as answered. */
+function applyProfile(p: PersonalRangeInputs) {
+  answers.annualKm = snap(ANNUAL_SLIDER, p.annualKm ?? answers.annualKm)
+  answers.highwayShare = snap(HIGHWAY_SLIDER, p.highwaySharePercent)
+  answers.commuteKmPerDay = nearest(COMMUTE_CHIPS, p.commuteKmPerDay)
+  answers.longTripKm = nearest(LONG_TRIP_CHIPS, p.longTripKm)
+  answers.homeCharging = p.homeCharging
+  answers.pricePerKwh = p.pricePerKwh ?? null
+  ownPriceText.value = p.pricePerKwh != null ? String(p.pricePerKwh).replace('.', ',') : ''
+  for (const key of Object.keys(QUESTION_CHAPTER) as QuestionKey[]) answered.add(key)
+}
+
+function openResult() {
+  calculatorRef.value?.request()
+  const el = calculatorRef.value?.$el as HTMLElement | undefined
+  el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 const bestOfficialRange = computed(() => {
   if (!activeVariants.value.length) return null
@@ -882,11 +883,6 @@ const worstOfficialConsumption = computed(() => {
   const values = activeVariants.value.map(v => v.officialConsumptionKwhPer100km).filter((v): v is number => v !== null)
   return values.length ? Math.max(...values) : null
 })
-
-// Use selected variant's WLTP for the hero badge - falls back to worst-across-all when no variant selected
-const heroOfficialConsumption = computed(() =>
-  selectedVariant.value?.officialConsumptionKwhPer100km ?? worstOfficialConsumption.value
-)
 
 const consumptionDataCount = computed(() => {
   if (!stats.value) return 0
@@ -925,36 +921,6 @@ const consumptionDataQuality = computed((): 'good' | 'low' | 'scarce' => {
   return 'scarce'
 })
 
-const showSeasonalBreakdown = computed(() => {
-  const s = selectedVariant.value?.seasonalDistribution
-  if (!s) return false
-  return s.winterLogCount >= 10 && s.summerLogCount >= 10 && s.winterLogCount + s.summerLogCount > 10
-})
-
-// Saison-Reichweiten (90→10%, wie im Hero) und der Winter-Aufschlag - die einzigen
-// Werte, die die Hero-Karte NICHT zeigt, daher der Kern dieser Karte.
-const seasonalSummerRangeKm = computed(() => {
-  const s = selectedVariant.value?.seasonalDistribution
-  const b = selectedVariant.value?.batteryCapacityKwh
-  if (!s?.summerConsumptionKwhPer100km || !b) return null
-  return Math.round(b * 0.9 / s.summerConsumptionKwhPer100km * 10) * 10
-})
-const seasonalWinterRangeKm = computed(() => {
-  const s = selectedVariant.value?.seasonalDistribution
-  const b = selectedVariant.value?.batteryCapacityKwh
-  if (!s?.winterConsumptionKwhPer100km || !b) return null
-  return Math.round(b * 0.9 / s.winterConsumptionKwhPer100km * 10) * 10
-})
-const winterExtraPercent = computed(() => {
-  const s = selectedVariant.value?.seasonalDistribution
-  if (!s?.summerConsumptionKwhPer100km || !s?.winterConsumptionKwhPer100km) return null
-  return Math.round((s.winterConsumptionKwhPer100km / s.summerConsumptionKwhPer100km - 1) * 100)
-})
-const seasonalRangeLossKm = computed(() => {
-  if (seasonalSummerRangeKm.value == null || seasonalWinterRangeKm.value == null) return null
-  return seasonalSummerRangeKm.value - seasonalWinterRangeKm.value
-})
-
 const faqItems = computed(() => {
   if (!stats.value) return []
   const name = stats.value.modelDisplayName
@@ -980,29 +946,30 @@ const faqItems = computed(() => {
     })
   }
 
-  if (bestOfficialRange.value && stats.value.avgConsumptionKwhPer100km && activeVariants.value.length > 0) {
-    const largestBattery = Math.max(...activeVariants.value.map(v => v.batteryCapacityKwh))
-    const realRange = Math.round(largestBattery / stats.value.avgConsumptionKwhPer100km * 100)
+  if (storyInput.value.wltpRangeKm && story.value.realRangeKm != null && selectedVariant.value) {
     items.push({
       question: t('model.faq_q_range', { model: name }),
       answer: t('model.faq_a_range', {
         model: name,
-        wltpRange: formatDistance(bestOfficialRange.value),
-        battery: largestBattery,
+        wltpRange: formatDistance(storyInput.value.wltpRangeKm),
+        battery: selectedVariant.value.batteryCapacityKwh,
         consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
-        realRange: formatDistance(realRange),
+        realRange: formatDistance(story.value.realRangeKm),
         ratingLabel: ratingLabel.value
       })
     })
   }
 
-  if (stats.value.avgCostPerKwh && stats.value.avgKwhPerSession) {
+  // Same stop as chapter 4, plus the mean session for those who mostly top up at home
+  if (stats.value.avgCostPerKwh && stopCost.value && stats.value.avgKwhPerSession) {
     items.push({
       question: t('model.faq_q_cost', { model: name }),
       answer: t('model.faq_a_cost', {
         price: formatCostPerKwh(stats.value.avgCostPerKwh),
-        kwh: stats.value.avgKwhPerSession.toFixed(1),
-        cost: formatCurrency(stats.value.avgCostPerKwh * stats.value.avgKwhPerSession)
+        kwh: formatNumber(Math.round(stopCost.value.kwh)),
+        cost: formatCurrency(stopCost.value.eur, { decimals: 0 }),
+        sessionKwh: formatNumber(Math.round(stats.value.avgKwhPerSession)),
+        sessionCost: formatCurrency(stats.value.avgCostPerKwh * stats.value.avgKwhPerSession, { decimals: 0 }),
       })
     })
   }
@@ -1162,9 +1129,11 @@ onMounted(async () => {
 
   // Bewertungen parallel und im selben Lade-Flow, damit sie im Prerender-HTML stehen
   const ratingsRequest = ratingService.getPublicRatings(brand, model).catch(() => null)
+  const topRequest = getTopModels(200).catch((): TopModelPreview[] => [])
   try {
-    const [data, ratingData] = await Promise.all([getModelStats(brand, model), ratingsRequest])
+    const [data, ratingData, top] = await Promise.all([getModelStats(brand, model), ratingsRequest, topRequest])
     ratings.value = ratingData
+    topModels.value = top
     if (!data) {
       notFound.value = true
     } else {
@@ -1188,13 +1157,6 @@ onMounted(async () => {
   loadRatingCta()
 })
 
-function simpleDeltaClass(real: number, wltp: number): string {
-  const pct = (real - wltp) / wltp * 100
-  return pct <= 0
-    ? 'text-green-600 dark:text-green-400'
-    : 'text-red-600 dark:text-red-400'
-}
-
 function deltaLabelClass(real: number | null, wltp: number | null): string {
   if (!real || !wltp) return ''
   const pct = ((real - wltp) / wltp) * 100
@@ -1202,13 +1164,6 @@ function deltaLabelClass(real: number | null, wltp: number | null): string {
   if (pct <= 15) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
   return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
 }
-
-const communityConsumptionRange = computed(() => {
-  const min = selectedVariant.value?.realConsumptionMinKwhPer100km
-  const max = selectedVariant.value?.realConsumptionMaxKwhPer100km
-  if (!min || !max) return null
-  return { min, max, rangeSource: selectedVariant.value?.realConsumptionRangeSource ?? null }
-})
 
 function reload() { window.location.reload() }
 

@@ -69,7 +69,7 @@ onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-    <section ref="root" class="bg-white dark:bg-gray-800 md:rounded-xl md:border-x-2 md:shadow-[5px_5px_0_0_#15803d] dark:md:shadow-[5px_5px_0_0_#22c55e] border-y-2 border-gray-800 dark:border-gray-200 p-6 md:mt-6 space-y-6" data-testid="model-ratings">
+    <section ref="root" class="bg-white dark:bg-gray-900 md:rounded-2xl border-y md:border border-gray-200 dark:border-gray-800 p-6 md:mt-6 space-y-6" data-testid="model-ratings">
         <h2 class="t-title text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <ChatBubbleLeftRightIcon class="w-6 h-6 text-green-700 dark:text-green-400" aria-hidden="true" />
             {{ t('rating.public.title') }}

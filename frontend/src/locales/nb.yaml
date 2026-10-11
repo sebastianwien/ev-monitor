@@ -494,6 +494,106 @@ brand:
   meta_keywords: "{brand} elbil, {brand} forbruk, {brand} WLTP, {brand} rekkevidde, {brand} EV, {brand} kWh, elbilforbruk, WLTP mot reelt, EV-rekkevidde"
   og_title: "{brand} Elbiler – Reelt forbruk & WLTP {year}"
 model:
+  story:
+    q_annualKm: "Hvor langt kjører du i året?"
+    q_highwayShare: "Hvor mye av det på motorvei?"
+    q_commute: "Hvor langt pendler du per dag, tur-retur?"
+    q_longTrip: "Hvor lang er din lengste faste tur?"
+    q_place: "Hvor lader du mest?"
+    profile_annualKm: "I året"
+    profile_highwayShare: "Motorvei"
+    profile_commute: "Pendling"
+    profile_longTrip: "Langtur"
+    profile_place: "Lading"
+    slider_open: "Skyv for å svare"
+    slider_highway_km: "{km} i året"
+    c1_effect: "På motorvei måler fellesskapet {highway} i stedet for {avg}. Motorveiandelen din går inn i spennet."
+    c1_effect_estimated: "For motorvei regner vi med et påslag på hverdagsverdien, merket som anslått. Motorveiandelen din går inn i spennet."
+    eyebrow_variant: "{model} · {variant}"
+    hero_full: "Brosjyren sier {wltp}. {drivers} sjåfører sier {real}."
+    hero_full_no_wltp: "{drivers} sjåfører sier {real}."
+    hero_none: "{brand} lover {wltp}. Ingen sjåfør har målt det ennå."
+    hero_none_no_wltp: "Ingen sjåfør har målt {model} ennå."
+    lede_full: "{logs} ekte ladeøkter, sommer og vinter, motorvei og by. Fire spørsmål lenger ned, så vet du hvor langt du kommer."
+    lede_partial: "{logs} ekte ladeøkter. Der vi mangler data, står det. Fire spørsmål lenger ned, så vet du hvor langt du kommer."
+    lede_none: "Ingen sjåfør har denne bilen hos oss ennå. Til da regner vi med produsentens tall pluss påslaget fellesskapet måler på andre modeller. Fire spørsmål, så ser du hvor du ville landet."
+    gauge_label: "Rekkevidde: produsent {wltp}, målt {real}, vinter {winter}"
+    gauge_label_none: "Rekkevidde ifølge produsenten: {wltp}"
+    gauge_wltp_only: "ifølge produsenten"
+    legend_year: "Snitt {value}"
+    legend_winter: "Vinter {value}"
+    legend_wltp: "{label} {value}"
+    basis_logs: "{logs} ladeøkter"
+    basis_cars: "{cars} biler"
+    basis_drivers: "{drivers} sjåfører"
+    basis_none: "Ingen ladeøkter ennå. Produsentens tall."
+    level_FULL: "målt"
+    level_PARTIAL: "anslått"
+    level_NONE: "produsentens tall"
+    c1_title: "Forbruk"
+    c2_title: "Årstid"
+    c3_title: "Langtur"
+    c4_title: "Kostnad"
+    c1_headline_more: "{real}. {pct} % mer enn brosjyren."
+    c1_headline_less: "{real}. {pct} % mindre enn brosjyren."
+    c1_headline_no_wltp: "{real}, målt på {cars} biler."
+    c1_say: "{brand} oppgir {wltp}. I fellesskapet går det fra {min} til {max}. Imellom ligger strekning, fart og årstid."
+    c1_say_short: "Målt på {logs} ladeøkter, ikke på databladet."
+    c1_none_headline: "Ingen sjåfør har målt forbruket til {model} ennå."
+    c1_none_say: "{brand} oppgir {wltp} etter WLTP. Så snart den første sjåføren lader, står det ekte tallet her."
+    c1_none_say_no_wltp: "Så snart den første sjåføren lader, står det ekte tallet her."
+    c2_headline: "Om vinteren mangler {loss}."
+    c2_say: "{winterLogs} ladeøkter om vinteren, {summerLogs} om sommeren. Forbruket stiger fra {summer} til {winter}. Varme og kaldt batteri koster, uansett hvordan du kjører."
+    c2_partial_headline: "Vi mangler vinterdata for {model}."
+    c2_none_headline: "Vinteren koster rekkevidde. Hvor mye på {model}, vet ingen ennå."
+    c2_fleet_say: "Vi regner med {pct} % vinterpåslag, målt på {n} andre modeller, og merker verdien som anslått."
+    c2_wltp_say: "Vi regner med et vinterpåslag på produsentens tall og merker det som anslått."
+    c3_headline: "Fra 10 til 80 prosent på rundt {minutes} minutter."
+    c3_say: "På hurtiglader trekker bilen typisk {kw} kW. Over hele ladingen blir det i snitt {avg} kW, fordi kurven flater ut på toppen og tiden på pluggen teller med."
+    c3_say_short: "På hurtiglader trekker bilen typisk {kw} kW, målt på korte stopp med lavt batteri."
+    c3_partial_headline: "Hvor raskt {model} lader, har ingen sjåfør målt ennå."
+    c3_partial_say: "Vi regner forsiktig og merker verdien som anslått i resultatet."
+    c4_headline: "{per100}. Mindre hjemme, mer på veien."
+    c4_headline_plain: "{per100} til fellesskapsprisen."
+    c4_say_ac: "På AC, oftest hjemme, betaler sjåførene {ac}"
+    c4_say_dc: "på hurtiglader {dc}"
+    c4_say_avg: "{parts}, totalt {avg}."
+    c4_say_stop: "Et hurtigladestopp fra 10 til 80 prosent trekker {kwh} kWh fra laderen og koster rundt {eur}."
+    c4_partial_headline: "Hva {model} koster i strøm, har ingen loggført ennå."
+    c4_partial_say: "Vi regner med fellesskapsprisen over alle modeller, eller med din pris hvis du skriver den inn under."
+    tile_avg: "Snitt, {n} ladeøkter"
+    tile_min: "mest sparsomme sjåfør"
+    tile_max: "tørsteste sjåfør"
+    tile_wltp: "WLTP ifølge {brand}"
+    tile_summer: "Sommer, {consumption}"
+    tile_winter: "Vinter, {consumption}"
+    tile_fast_charge: "typisk på hurtiglader"
+    tile_session_mean: "snitt over ladingen"
+    tile_stop_minutes: "fra 10 til 80 %"
+    tile_ac: "AC, oftest hjemme"
+    tile_dc: "DC, hurtiglader"
+    tile_per_100: "fellesskapspris"
+    tile_stop_unit: "per ladestopp"
+    tile_stop_cost: "10 til 80 %, {kwh} kWh"
+    place_home: "Hjemme"
+    place_public: "På veien"
+    own_price_label: "Strømprisen din, hvis du kjenner den"
+    own_price_unit: "€/kWh"
+    band_title: "Sjåfører som deg kommer på én lading"
+    band_profile_title: "Din kjøreprofil"
+    band_open: "ikke besvart"
+    band_title_model: "Sjåførene kommer på én lading"
+    band_value: "{min} til {max}"
+    band_empty: "Svar på ett spørsmål, så ser du spennet ditt."
+    band_standard: "Spenn for en standardprofil"
+    band_detail: "Det nøyaktige tallet pluss vinter, ladestopp og strømkostnad, også på e-post."
+    band_cta: "Mine tall"
+    band_progress: "{n} av {total} spørsmål besvart"
+    owner_title: "Kjører du selv en {model}?"
+    owner_text: "Da ville du vært bil nummer {n}. Registrer ladeøktene dine eller koble til bilen. Du ser hvor forbruket ditt ligger, og tallene på denne siden blir mer presise."
+    owner_cta: "Bli med gratis"
+    end_title: "Din {model} mangler i disse tallene."
+    end_desc: "Last opp ladeøktene dine eller koble til bilen. Tallene dine telles anonymt med, og du ser hvor du står."
   breadcrumb_home: EV Monitor
   breadcrumb_models: Modeller
   breadcrumb_brand_models: Alle modeller fra {brand}
@@ -519,20 +619,8 @@ model:
   route_type_highway: Motorvei
   route_type_combined: Blandet
   route_type_city: By
-  metrics_range: Rekkevidde
   metrics_range_label: Intervall 100 %→10 %
   calculator_label: "Din strømpris: på"
-  calculator_title: "Hva koster lading deg?"
-  calculator_hint: "Still inn din strømpris og se kostnaden per 100 km"
-  range_calc_title: "Hvor langt kommer du?"
-  range_calc_hint: "Still inn forbruket ditt og ladevinduet"
-  range_calc_consumption_label: "Forbruk"
-  range_calc_window_label: "Ladevindu"
-  range_calc_window_hint: "På langtur lader nesten ingen til 100 % - de siste prosentene tar lengst tid"
-  range_calc_marker_avg: "Ø Fellesskap"
-  range_calc_community_span: "Førere av denne modellen kommer {min} til {max} - avhengig av kjøremønster og årstid"
-  charging_ac_label: "Normal"
-  charging_dc_label: "Hurtig"
   calculator_unit: ct/kWh
   calculator_result: €/100 km
   charging_20min_label: "20 minutters lading:"
@@ -540,7 +628,6 @@ model:
   charging_20min_avg: gj.snitt
   charging_20min_power: Ladehastighet i kW
   variant_title: Batterivariant
-  variant_low_trips: Få turer
   seasonal_title: "Forbruk etter årstid (100% → 10%)"
   seasonal_summer: Sommer
   seasonal_summer_months: (mai–august)
@@ -589,22 +676,12 @@ model:
   related_title: Andre populære elbilmodeller
   faq_title: Ofte stilte spørsmål om {model}
   hero_title_v2: "{model} - Forbruk og rekkevidde"
-  hero_consumption_label: Gjennomsnittlig faktisk forbruk
-  hero_cta_title: "Kjører du en {model} selv?"
-  hero_cta_desc: "Spor ditt faktiske forbruk - gratis, på 2 minutter."
-  hero_trust: "Basert på {sessions} faktiske ladinger fra fellesskapet"
-  hero_block_cost: "Kostnad"
   details_methodology: "Detaljer og metode"
-  seasonal_winter_penalty: "Vintertillegg"
-  seasonal_more_consumption: "mer forbruk"
-  seasonal_less_range: "mindre rekkevidde"
-  seasonal_title_range: "Rekkevidde etter årstid (100% → 10%)"
   compare_official: "offisiell"
   compare_manufacturer: "Produsentdata"
   compare_real: "faktiske turer"
   unit_kwh_per_100km: kWh/100 km
   unit_ct_per_kwh: Gj.snitt. ct/kWh
-  ac_footnote: "* Gjennomsnittstall fra EV Monitor-brukere."
   wltp_badge: WLTP {consumption} kWh
   avg_cost_prefix: Brukerne betaler i gjennomsnitt
   avg_cost_suffix: per 100 km
@@ -622,7 +699,7 @@ model:
   seo_no_data_cta: Bli den første til å registrere ladinger for denne {model}!
   seo_costs_title: Ladekostnader ved daglig bruk
   seo_costs_intro: Den gjennomsnittlige ladekostnaden for {model} er, ifølge brukerdata, {price}.
-  seo_costs_session: En typisk ladeøkt på {kwh} kWh koster derfor rundt {cost}.
+  seo_costs_session: "Et hurtigladestopp fra 10 til 80 prosent ({kwh} kWh fra laderen) koster rundt {cost} til DC-pris."
   seo_wltp_title: "{ratingLabel} vs. faktisk forbruk"
   seo_wltp_intro: "{ratingLabel}-verdien måles under standardiserte testforhold og avviker ofte fra virkeligheten i daglig bruk."
   seo_wltp_delta: I gjennomsnitt ligger det faktiske forbruket på {delta} sammenlignet med {ratingLabel}-verdien.
@@ -637,7 +714,7 @@ model:
   faq_q_range: Hvor langt strekker egentlig {model} seg?
   faq_a_range: "{ratingLabel}-rekkevidden til {model} er opptil {wltpRange}. I praksis oppnår førere med {battery}-kWh-batteriet rundt {realRange} ved et reelt forbruk på {consumption}. Om vinteren kan rekkevidden falle til 60–70 % av {ratingLabel}-verdien."
   faq_q_cost: Hvor mye koster en lading for en {model}?
-  faq_a_cost: I gjennomsnitt koster en lading {price}. For en typisk lading på {kwh} kWh ligger kostnaden på rundt {cost}.
+  faq_a_cost: "En kWh koster i snitt {price} i fellesskapet. Et hurtigladestopp fra 10 til 80 prosent trekker {kwh} kWh fra laderen og koster rundt {cost}. Den gjennomsnittlige ladeøkten, korte påfyll hjemme medregnet, er {sessionKwh} kWh og rundt {sessionCost}."
   faq_q_wltp_delta: Hva er forskjellen mellom {ratingLabel}-verdiene og det faktiske forbruket for {model}?
   faq_a_wltp_delta: Det offisielle {ratingLabel}-forbruket til {model} er {wltp}. Ifølge brukerdata oppnår bilistene {real} i hverdagen – det vil si {diff} mer ({pct}).
   faq_q_winter: Hvordan endrer forbruket av {model} seg om vinteren?
@@ -3897,30 +3974,26 @@ gate:
   error_rate_limited: "For mange forsøk. Vent 15 minutter."
   error_generic: "Det fungerte ikke. Prøv igjen."
 personal_range:
-  title: "Din personlige profil"
-  hint: "Fire svar, så regner vi med måledataene for {model}."
-  commute_label: "Pendling per dag, tur-retur"
-  long_trip_label: "Lengste tur i ett strekk"
-  highway_label: "Andel motorvei"
-  home_label: "Lader du hjemme?"
-  "yes": "Ja"
-  "no": "Nei"
-  calculate: "Beregn mitt resultat"
   calculating: "Beregner ..."
   gate_lead_measured: "Resultatet ditt for {model} er klart. Basert på {logs} ekte ladeøkter fra {cars} sjåfører, ikke produsentens tall: rekkevidde om vinteren, ladestopp på langturen, ladinger per uke, kostnad per måned."
   gate_lead_thin: "Resultatet ditt for {model} er klart. Vi har ennå ikke nok måledata for denne modellen, bare fra én sjåfør. Der måleverdier mangler, anslår vi ut fra WLTP og merker verdien. Kjører du en? Med dine ladeøkter blir beregningen mer presis for alle. | Resultatet ditt for {model} er klart. Vi har ennå ikke nok måledata for denne modellen, bare fra {cars} sjåfører. Der måleverdier mangler, anslår vi ut fra WLTP og merker verdien. Kjører du en? Med dine ladeøkter blir beregningen mer presis for alle."
   gate_why: "Bekreft e-postadressen din, så viser vi resultatet her og sender det til deg på e-post. Profilen din lagres, slik at du kan sammenligne alle andre modeller med ett klikk."
+  eyebrow: "Ditt resultat"
+  precise_title: "Dine tall"
+  precise_hint: "Hvor langt du faktisk kommer om vinteren, hvor ofte du må lade på din lengste tur og hva strømmen koster deg i måneden. Regnet ut fra svarene dine og {logs} ekte ladeøkter fra {cars} biler."
+  precise_hint_none: "Hvor langt du faktisk kommer om vinteren, hvor ofte du må lade på din lengste tur og hva strømmen koster deg i måneden. Regnet ut fra svarene dine, produsentens tall og påslaget fellesskapet måler på andre modeller."
+  reason_mail: "Resultatet kommer også på e-post, til å lese igjen før prøvekjøringen."
+  reason_profile: "Profilen din lagres. Da sammenligner du alle andre modeller med ett klikk."
+  reason_account: "Ingen passord. Gratis konto, kan slettes når som helst."
+  summer_label: "Sommer"
+  cost_basis_charges: "pendling 22 dager, {charges} ladinger per uke"
+  cost_basis_annual: "{annual} i året, {charges} ladinger per uke"
   result_title: "Ditt resultat med {model}"
-  winter_range: "Rekkevidde om vinteren"
-  summer_range: "Sommer: {value}"
+  winter_range: "Vinter"
   stops: "Ladestopp på {distance}"
   stops_minutes: "ca. {minutes} min lading"
   no_stop: "uten ladestopp"
-  charges_week: "Ladinger per uke"
-  charges_home: "hjemme, 20 til 80 %"
-  charges_public: "underveis, 10 til 80 %"
-  cost_month: "Kostnad per måned"
-  cost_basis: "pendling 22 dager"
+  cost_month: "Strøm per måned"
   data_level_MEASURED: "Alle forbruksverdier målt"
   data_level_PARTIAL: "Målt der det finnes nok data, ellers fra WLTP"
   data_level_WLTP_FACTOR: "Anslått fra WLTP, for lite måledata ennå"
@@ -3937,6 +4010,8 @@ personal_range:
   assumption_BASE_CONSUMPTION: "Forbruk i hverdagen {value}"
   assumption_CHARGING_POWER: "Gjennomsnittlig hurtigladeeffekt {value}"
   assumption_PRICE: "Strømpris {value}"
+  assumption_OWN_PRICE: "Din strømpris {value}"
+  source_own: "ditt tall"
   error: "Det fungerte ikke. Prøv igjen."
 promo:
   banner_FIRSTEV: "Fra firstev-forumet? Prøv AutoSync gratis i fire uker."
