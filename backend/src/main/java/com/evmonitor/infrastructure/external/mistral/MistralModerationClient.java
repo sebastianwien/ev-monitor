@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.external.mistral;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.evmonitor.application.rating.ReviewModerator;
 import com.evmonitor.application.voice.VoiceProviderException;
 import com.evmonitor.application.voice.VoiceProviderException.Reason;
@@ -57,7 +59,16 @@ public class MistralModerationClient implements ReviewModerator {
                 + "Textart: " + (input.report() ? "BERICHT" : "KURZ") + "\n"
                 + "Messdaten: " + value(input.kmDriven(), " km gefahren") + ", " + value(input.logCount(), " Ladevorgänge")
                 + ", Verbrauch " + value(input.consumptionKwhPer100km(), " kWh/100 km") + "\n\n"
-                + "<text>\n" + input.text().replace("</text>", "&lt;/text&gt;") + "\n</text>";
+                + "<text>\n" + escapeTextTags(input.text()) + "\n</text>";
+    }
+
+    // Jede Schreibweise des Tags (Groß/klein, Leerzeichen, Zeilenumbruch) wird entschärft, nicht nur "</text>"
+    private static final Pattern TEXT_TAG =
+            Pattern.compile("(?i)<\\s*/?\\s*text\\b[^>]*>?");
+
+    private static String escapeTextTags(String text) {
+        return TEXT_TAG.matcher(text).replaceAll(m ->
+                Matcher.quoteReplacement(m.group().replace("<", "&lt;").replace(">", "&gt;")));
     }
 
     private static String value(Object v, String unit) {
