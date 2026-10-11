@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -41,19 +42,25 @@ public class PublicEmbedService {
         String modelUrl = modelUrl(stats);
         List<PublicModelStatsResponse.WltpVariant> variants = stats.wltpVariants() == null ? List.of() : stats.wltpVariants();
 
-        // Model average, the same figure as the page title and meta description. The tile's
-        // subline counts the whole model, so the consumption must be the model's too. Range on
-        // the largest battery, like the hero of the model page for the default variant.
+        // Consumption: the model average, the same figure as the page title and meta description
+        // (the tile's subline counts the whole model). Battery and seasons: the variant with the
+        // most measured trips, the one the model page opens with, so the range matches its hero.
         BigDecimal consumption = stats.avgConsumptionKwhPer100km();
-        BigDecimal netKwh = variants.stream().map(PublicModelStatsResponse.WltpVariant::batteryCapacityKwh)
-                .filter(Objects::nonNull).max(BigDecimal::compareTo).orElse(null);
+        PublicModelStatsResponse.WltpVariant representative = variants.stream()
+                .filter(v -> v.realConsumptionKwhPer100km() != null)
+                .max(Comparator.comparing(v -> v.realConsumptionTripCount() == null ? 0 : v.realConsumptionTripCount()))
+                .orElse(null);
+        BigDecimal netKwh = representative != null ? representative.batteryCapacityKwh()
+                : variants.stream().map(PublicModelStatsResponse.WltpVariant::batteryCapacityKwh)
+                        .filter(Objects::nonNull).max(BigDecimal::compareTo).orElse(null);
 
         if (consumption == null || consumption.signum() <= 0) {
             return new ModelTileResponse(false, stats.modelDisplayName(), null, null, null, null,
                     stats.logCount(), stats.uniqueCars(), modelUrl);
         }
 
-        PublicModelStatsResponse.SeasonalDistribution seasonal = stats.seasonalDistribution();
+        PublicModelStatsResponse.SeasonalDistribution seasonal = representative != null && representative.seasonalDistribution() != null
+                ? representative.seasonalDistribution() : stats.seasonalDistribution();
         boolean seasonalReliable = seasonal != null
                 && seasonal.summerLogCount() >= MIN_LOGS_PER_SEASON
                 && seasonal.winterLogCount() >= MIN_LOGS_PER_SEASON;
