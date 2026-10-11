@@ -7,7 +7,7 @@
       </span>
     </p>
     <h2 :id="headingId" class="max-w-[24ch] text-[clamp(24px,6vw,36px)] font-bold leading-[1.08] tracking-tight text-gray-900 dark:text-gray-100">
-      <span v-for="(line, i) in sentences(headline)" :key="i" class="block">{{ line }}</span>
+      <span v-for="(line, i) in sentences(headline)" :key="i" class="block">{{ line }}{{ ' ' }}</span>
     </h2>
     <p class="max-w-[58ch] text-gray-600 dark:text-gray-400">{{ say }}</p>
 

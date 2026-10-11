@@ -60,7 +60,7 @@
               <!-- One sentence per line, never wrapping: the size follows the viewport on the phone
                    and the half-width column from md up (about 13 em per line) -->
               <h2 class="text-[clamp(19px,6vw,40px)] font-bold leading-[1.1] tracking-tight text-gray-900 md:text-[clamp(24px,3.3vw,32px)] dark:text-gray-100" data-testid="story-hero">
-                <span v-for="(line, i) in heroLines" :key="i" class="block whitespace-nowrap">{{ line }}</span>
+                <span v-for="(line, i) in heroLines" :key="i" class="block whitespace-nowrap">{{ line }}{{ ' ' }}</span>
               </h2>
               <p class="max-w-[46ch] text-gray-600 dark:text-gray-400">{{ story.lede }}</p>
             </div>
