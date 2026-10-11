@@ -94,27 +94,25 @@ class PersonalRangeServiceTest {
     }
 
     @Test
-    void emailResultSendsStoredInputsAndResultToTheUser() {
+    void emailResultSendsInputsAndResultToTheUserWithModelNameAndPath() {
         User user = mock(User.class);
         when(user.getEmail()).thenReturn("ihle@example.com");
         when(user.getRegistrationLocale()).thenReturn("de");
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userRepository.findRangeProfile(userId))
-                .thenReturn(Optional.of("{\"commuteKmPerDay\":40,\"highwaySharePercent\":30,\"homeCharging\":true,\"longTripKm\":500}"));
         PersonalRangeResponse result = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
+        var content = new EmailService.PersonalRangeMailContent(request, result);
 
-        service.emailResult(userId, "Tesla", "Model_3", result);
+        service.emailResult(userId, "Tesla", "Model_3", content);
 
-        verify(emailService).sendPersonalRangeResultEmail(eq("ihle@example.com"), eq("de"), eq("Tesla Model 3"),
-                eq("/modelle/Tesla/Model_3"), eq(new EmailService.PersonalRangeMailContent(request, result)));
+        verify(emailService).sendPersonalRangeResultEmail("ihle@example.com", "de", "Tesla Model 3",
+                "/modelle/Tesla/Model_3", content);
     }
 
     @Test
-    void emailResultWithoutStoredProfileSendsNothing() {
-        when(userRepository.findById(userId)).thenReturn(Optional.of(mock(User.class)));
-        when(userRepository.findRangeProfile(userId)).thenReturn(Optional.empty());
+    void emailResultForUnknownUserSendsNothing() {
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        service.emailResult(userId, "Tesla", "Model_3", mock(PersonalRangeResponse.class));
+        service.emailResult(userId, "Tesla", "Model_3", mock(EmailService.PersonalRangeMailContent.class));
 
         verify(emailService, never()).sendPersonalRangeResultEmail(any(), any(), any(), any(), any());
     }

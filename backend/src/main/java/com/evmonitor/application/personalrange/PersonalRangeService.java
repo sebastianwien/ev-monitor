@@ -47,20 +47,15 @@ public class PersonalRangeService {
     private final ObjectMapper objectMapper;
     private final EmailService emailService;
 
-    /**
-     * Mails the result the user just unlocked through the gate. Needs the stored profile (the
-     * inputs of that calculation); a failing mail never fails the request.
-     */
-    public void emailResult(UUID userId, String brand, String model, PersonalRangeResponse result) {
+    /** Mails the result the user just unlocked through the gate. A failing mail never fails the request. */
+    public void emailResult(UUID userId, String brand, String model, EmailService.PersonalRangeMailContent content) {
         Optional<User> user = userRepository.findById(userId);
-        Optional<PersonalRangeRequest> inputs = getProfile(userId);
         Optional<PublicModelStatsResponse> stats = publicModelService.getModelStats(brand, model,
                 user.map(User::isSeedData).orElse(false));
-        if (user.isEmpty() || inputs.isEmpty() || stats.isEmpty()) return;
+        if (user.isEmpty() || stats.isEmpty()) return;
         try {
             emailService.sendPersonalRangeResultEmail(user.get().getEmail(), user.get().getRegistrationLocale(),
-                    stats.get().modelDisplayName(), "/modelle/" + brand + "/" + model,
-                    new EmailService.PersonalRangeMailContent(inputs.get(), result));
+                    stats.get().modelDisplayName(), "/modelle/" + brand + "/" + model, content);
         } catch (RuntimeException e) {
             log.warn("Could not mail the range result to user {}: {}", userId, e.getMessage());
         }

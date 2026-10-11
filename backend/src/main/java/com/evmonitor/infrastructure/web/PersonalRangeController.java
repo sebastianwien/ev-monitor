@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
 import com.evmonitor.application.personalrange.PersonalRangeService;
+import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +40,8 @@ public class PersonalRangeController {
         UUID userId = principal.getUser().getId();
         return personalRangeService.calculate(userId, principal.getUser().isSeedData(), brand, model, request)
                 .map(result -> {
-                    if (email) personalRangeService.emailResult(userId, brand, model, result);
+                    if (email) personalRangeService.emailResult(userId, brand, model,
+                            new EmailService.PersonalRangeMailContent(request, result));
                     return ResponseEntity.ok(result);
                 })
                 .orElse(ResponseEntity.notFound().build());
