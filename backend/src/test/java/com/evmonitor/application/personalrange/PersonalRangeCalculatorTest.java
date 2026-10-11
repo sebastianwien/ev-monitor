@@ -39,9 +39,10 @@ class PersonalRangeCalculatorTest {
         PersonalRangeResponse r = PersonalRangeCalculator.calculate(
                 new PersonalRangeRequest(40, 50, true, 600), measured());
 
-        // 77 × 0.9 × 100 / 15 = 462 → 460; / 20 = 346.5 → 350
-        assertThat(r.summerRangeKm()).isEqualTo(460);
-        assertThat(r.winterRangeKm()).isEqualTo(350);
+        // highway 19 against base 16 = +18.75 %, half of the driving: summer 15 × 1.094 = 16.4 → 77 × 0.9 × 100 / 16.4 = 422 → 420;
+        // winter 20 × 1.094 = 21.9 → 316 → 320
+        assertThat(r.summerRangeKm()).isEqualTo(420);
+        assertThat(r.winterRangeKm()).isEqualTo(320);
         // first leg 90→10 %: 77 × 0.8 / 19 = 324 km; then 10→80 % legs of 284 km → 1 stop
         assertThat(r.longTripStops()).isEqualTo(1);
         // 53.9 kWh / 100 kW = 32 min → nearest 5 min
@@ -59,8 +60,9 @@ class PersonalRangeCalculatorTest {
         PersonalRangeResponse r = PersonalRangeCalculator.calculate(
                 new PersonalRangeRequest(40, 50, false, 600), wltpOnly());
 
-        // no fleet factors: fixed fallbacks. summer 16 × 1.15 = 18.4 → 376.6 → 380; winter 16 × 1.49 = 23.8 → 291.2 → 290
-        assertThat(r.summerRangeKm()).isEqualTo(380);
+        // no fleet factors: fixed fallbacks. summer 16 × 1.15 = 18.4, winter 16 × 1.49 = 23.8; highway 20 against base 19.4
+        // = +3.1 %, half of it: summer 18.7 → 370.6 → 370; winter 24.2 → 286.4 → 290
+        assertThat(r.summerRangeKm()).isEqualTo(370);
         assertThat(r.winterRangeKm()).isEqualTo(290);
         // highway 16 × 1.25 = 20: first leg 308 km, legs 269.5 km → 2 stops; 50 kW assumed: 2 × 64.7 = 129 → 130
         assertThat(r.longTripStops()).isEqualTo(2);
@@ -83,6 +85,39 @@ class PersonalRangeCalculatorTest {
         assertThat(r.summerRangeKm()).isEqualTo(390);
         assertThat(r.winterRangeKm()).isEqualTo(270);
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("BASE_CONSUMPTION") && a.value().compareTo(new BigDecimal("20.0")) == 0);
+    }
+
+    @Test
+    void highwayShareMovesTheSeasonRangesLikeTheBand() {
+        // 0 % motorway: the model's season values as the page shows them
+        PersonalRangeResponse none = PersonalRangeCalculator.calculate(new PersonalRangeRequest(40, 0, true, 600), measured());
+        assertThat(none.summerRangeKm()).isEqualTo(460);
+        assertThat(none.winterRangeKm()).isEqualTo(350);
+
+        // 100 % motorway: the full highway surcharge (19 against 16) on both seasons
+        PersonalRangeResponse all = PersonalRangeCalculator.calculate(new PersonalRangeRequest(40, 100, true, 600), measured());
+        // summer 15 × 1.1875 = 17.8 → 389 → 390; winter 20 × 1.1875 = 23.8 → 291 → 290
+        assertThat(all.summerRangeKm()).isEqualTo(390);
+        assertThat(all.winterRangeKm()).isEqualTo(290);
+
+        // the band before the gate shows the same two ends
+        PersonalRangePreviewResponse band = PersonalRangeCalculator.preview(new PersonalRangeRequest(40, 100, true, 600), measured());
+        assertThat(band.minKm()).isEqualTo(all.winterRangeKm());
+        assertThat(band.maxKm()).isEqualTo(all.summerRangeKm());
+    }
+
+    @Test
+    void annualMileageDrivesCostsAndChargesWhenGiven() {
+        PersonalRangeRequest in = new PersonalRangeRequest(40, 50, true, 600, null, null, 30_000);
+
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(in, measured());
+
+        // 30,000 km / 12 = 2,500 km a month × 0.175 kWh/km / 0.90 × 0.30 EUR = 145.8 → 146 (not 51 from 22 commute days)
+        assertThat(r.monthlyCostEur()).isEqualTo(146);
+        // 30,000 / 52 = 577 km a week × 0.175 = 101 kWh; home charge 46.2 kWh → 2.19 → 2.5
+        assertThat(r.chargesPerWeek()).isEqualByComparingTo("2.5");
+        // the ranges do not depend on mileage
+        assertThat(r.summerRangeKm()).isEqualTo(420);
     }
 
     @Test
@@ -139,6 +174,37 @@ class PersonalRangeCalculatorTest {
                 measured().toBuilder().highwayCarCount(8).build());
 
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.PARTIAL);
+    }
+
+    @Test
+    void monthlyCostUsesGivenPriceOverCommunityPrice() {
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(
+                new PersonalRangeRequest(40, 50, true, 600, new BigDecimal("0.45")), measured());
+
+        // 40 km × 22 days × 0.175 kWh/km / 0.90 × 0.45 EUR = 77
+        assertThat(r.monthlyCostEur()).isEqualTo(77);
+        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("OWN_PRICE") && a.measured()
+                && a.value().compareTo(new BigDecimal("0.45")) == 0);
+        assertThat(r.assumptions()).noneMatch(a -> a.key().equals("PRICE"));
+        // the user's own price does not touch the data level, which rates the consumption values only
+        assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.MEASURED);
+    }
+
+    @Test
+    void previewCarriesOnlyTheTwoSeasonRangesAndTheirLevel() {
+        PersonalRangePreviewResponse p = PersonalRangeCalculator.preview(
+                new PersonalRangeRequest(40, 50, true, 600), measured().toBuilder().highwayCarCount(2).build());
+
+        // 50 % motorway on the WLTP highway estimate (2 cars): 20 against 16 = +12.5 %; winter 22.5 → 308 → 310, summer 16.9 → 410
+        assertThat(p.minKm()).isEqualTo(310);
+        assertThat(p.maxKm()).isEqualTo(410);
+        // highway is estimated here, but the band only rests on summer and winter
+        assertThat(p.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.MEASURED);
+
+        PersonalRangePreviewResponse partial = PersonalRangeCalculator.preview(
+                new PersonalRangeRequest(40, 50, true, 600),
+                wltpOnly().toBuilder().winterKwhPer100km(new BigDecimal("20.0")).build());
+        assertThat(partial.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.PARTIAL);
     }
 
     @Test

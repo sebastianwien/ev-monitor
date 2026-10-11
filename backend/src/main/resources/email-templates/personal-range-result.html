@@ -10,7 +10,7 @@
     <h1 style="color: #16a34a; font-size: 26px; margin-bottom: 4px;">EV Monitor</h1>
     <h2 style="color: #1f2937; font-size: 20px; margin-top: 0; font-weight: 600;">Dein Ergebnis für den {{model}}</h2>
     <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
-      Gerechnet mit deinem Profil ({{commuteKm}} km Pendeln pro Tag, {{highwayPercent}} % Autobahn, Langstrecke {{longTripKm}} km) und den Messdaten der Community, nicht mit Herstellerangaben.
+      Gerechnet mit deinem Profil ({{mileage}}, {{highwayPercent}} % Autobahn, Langstrecke {{longTripKm}} km) und den Messdaten der Community, nicht mit Herstellerangaben.
     </p>
     <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
       <tr>
@@ -19,7 +19,7 @@
       </tr>
       <tr>
         <td style="padding: 12px; border: 1px solid #e5e7eb;"><span style="display:block; color:#6b7280; font-size:13px;">Ladungen pro Woche</span><strong style="font-size:22px; color:#111827;">{{chargesPerWeek}}</strong></td>
-        <td style="padding: 12px; border: 1px solid #e5e7eb;"><span style="display:block; color:#6b7280; font-size:13px;">Kosten pro Monat</span><strong style="font-size:22px; color:#111827;">{{monthlyCostEur}} €</strong><span style="display:block; color:#6b7280; font-size:13px;">Pendeln an 22 Tagen</span></td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb;"><span style="display:block; color:#6b7280; font-size:13px;">Kosten pro Monat</span><strong style="font-size:22px; color:#111827;">{{monthlyCostEur}} €</strong><span style="display:block; color:#6b7280; font-size:13px;">{{costBasis}}, {{pricePerKwh}} €/kWh</span></td>
       </tr>
     </table>
     <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">

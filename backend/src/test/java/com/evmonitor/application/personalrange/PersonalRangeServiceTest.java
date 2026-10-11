@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -106,6 +107,37 @@ class PersonalRangeServiceTest {
 
         verify(emailService).sendPersonalRangeResultEmail("ihle@example.com", "de", "Tesla Model 3",
                 "/modelle/Tesla/Model_3", content);
+    }
+
+    @Test
+    void previewReturnsWinterToSummerBandWithoutSavingOrMailing() {
+        PersonalRangeResponse full = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
+
+        PersonalRangePreviewResponse p = service.preview("Tesla", "Model_3", request, false).orElseThrow();
+
+        assertThat(p.minKm()).isEqualTo(full.winterRangeKm());
+        assertThat(p.maxKm()).isEqualTo(full.summerRangeKm());
+        // only the two season values decide the level of the band, not highway or base
+        assertThat(p.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.WLTP_FACTOR);
+        verify(userRepository, times(1)).setRangeProfile(any(), any());
+        verify(emailService, never()).sendPersonalRangeResultEmail(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void previewUsesTheBatteryVariantThePageShowsWhenGiven() {
+        PersonalRangeRequest small = new PersonalRangeRequest(40, 30, true, 500, null, new BigDecimal("58"));
+
+        PersonalRangePreviewResponse p = service.preview("Tesla", "Model_3", small, false).orElseThrow();
+        PersonalRangePreviewResponse large = service.preview("Tesla", "Model_3", request, false).orElseThrow();
+
+        // 58 instead of the spec's 75 kWh: both ends of the band shrink by the same ratio (rounded to 10)
+        assertThat(p.maxKm()).isLessThan(large.maxKm());
+        assertThat(p.minKm()).isLessThan(large.minKm());
+    }
+
+    @Test
+    void previewOfUnknownModelIsEmpty() {
+        assertThat(service.preview("Foo", "Bar", request, false)).isEmpty();
     }
 
     @Test

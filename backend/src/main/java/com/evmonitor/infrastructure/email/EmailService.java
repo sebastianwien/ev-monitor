@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -107,7 +108,10 @@ public class EmailService {
         Map<String, String> vars = new HashMap<>();
         vars.put("model", modelName);
         vars.put("modelUrl", baseUrl + modelPath);
-        vars.put("commuteKm", String.valueOf(in.commuteKmPerDay()));
+        // The yearly mileage replaces the commute in the calculation, so the profile names whichever was used
+        vars.put("mileage", in.annualKm() != null
+                ? annualKm(in.annualKm(), lang)
+                : in.commuteKmPerDay() + ("en".equals(lang) ? " km commute per day" : " km Pendeln pro Tag"));
         vars.put("highwayPercent", String.valueOf(in.highwaySharePercent()));
         vars.put("longTripKm", String.valueOf(in.longTripKm()));
         vars.put("winterRangeKm", String.valueOf(r.winterRangeKm()));
@@ -116,9 +120,27 @@ public class EmailService {
         vars.put("chargingMinutes", String.valueOf(r.longTripChargingMinutes()));
         vars.put("chargesPerWeek", r.chargesPerWeek().toPlainString().replace('.', "en".equals(lang) ? '.' : ','));
         vars.put("monthlyCostEur", String.valueOf(r.monthlyCostEur()));
+        vars.put("pricePerKwh", pricePerKwh(r, lang));
+        vars.put("costBasis", in.annualKm() != null
+                ? annualKm(in.annualKm(), lang)
+                : ("en".equals(lang) ? "commuting on 22 days" : "Pendeln an 22 Tagen"));
         String html = loadTemplate("personal-range-result.html", lang, vars);
         String subject = "en".equals(lang) ? "Your result for the " + modelName : "Dein Ergebnis für den " + modelName;
         sendHtmlEmail(toEmail, subject, html);
+    }
+
+    /** "30.000 km im Jahr" / "30,000 km a year" */
+    private static String annualKm(int km, String lang) {
+        return "en".equals(lang) ? String.format(Locale.US, "%,d km a year", km) : String.format(Locale.GERMANY, "%,d km im Jahr", km);
+    }
+
+    /** The price the cost line rests on (own or community), as "0,30" / "0.30"; empty when not listed. */
+    private static String pricePerKwh(PersonalRangeResponse r, String lang) {
+        return r.assumptions().stream()
+                .filter(a -> a.key().equals("OWN_PRICE") || a.key().equals("PRICE"))
+                .map(a -> a.value().setScale(2, RoundingMode.HALF_UP).toPlainString())
+                .map(v -> "en".equals(lang) ? v : v.replace('.', ','))
+                .findFirst().orElse("");
     }
 
     /** Inputs and result of one calculation, for the result mail. */

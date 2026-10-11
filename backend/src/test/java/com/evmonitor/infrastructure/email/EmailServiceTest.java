@@ -1,5 +1,9 @@
 package com.evmonitor.infrastructure.email;
 
+import com.evmonitor.application.personalrange.PersonalRangeRequest;
+import com.evmonitor.application.personalrange.PersonalRangeResponse;
+import java.math.BigDecimal;
+import java.util.List;
 import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.Multipart;
 import jakarta.mail.Part;
@@ -59,10 +63,12 @@ class EmailServiceTest {
     void sendPersonalRangeResultEmail_carriesNumbersSubjectAndModelLink() throws Exception {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var inputs = new com.evmonitor.application.personalrange.PersonalRangeRequest(40, 30, true, 500);
-        var result = new com.evmonitor.application.personalrange.PersonalRangeResponse(310, 360, 1, 35,
-                new java.math.BigDecimal("1.5"), 58,
-                com.evmonitor.application.personalrange.PersonalRangeResponse.DataLevel.MEASURED, java.util.List.of());
+        var inputs = new PersonalRangeRequest(40, 30, true, 500);
+        var result = new PersonalRangeResponse(310, 360, 1, 35,
+                new BigDecimal("1.5"), 58,
+                PersonalRangeResponse.DataLevel.MEASURED,
+                List.of(new PersonalRangeResponse.Assumption(
+                        "PRICE", true, new BigDecimal("0.30"), 100)));
 
         emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
                 new EmailService.PersonalRangeMailContent(inputs, result));
@@ -71,8 +77,45 @@ class EmailServiceTest {
         assertThat(mimeMessage.getSubject()).isEqualTo("Dein Ergebnis für den Tesla Model 3");
         String html = firstText(mimeMessage.getContent());
         assertThat(html).contains("310 km").contains("Sommer: 360 km").contains("500 km")
-                .contains("grob 35 min").contains("1,5").contains("58 €")
+                .contains("grob 35 min").contains("1,5").contains("58 €").contains("0,30 €/kWh")
                 .contains("http://localhost:5173/modelle/Tesla/Model_3");
+    }
+
+    @Test
+    void sendPersonalRangeResultEmail_showsTheUsersOwnPriceInTheCostLine() throws Exception {
+        MimeMessage mimeMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        var inputs = new PersonalRangeRequest(40, 30, true, 500,
+                new BigDecimal("0.45"));
+        var result = new PersonalRangeResponse(310, 360, 1, 35,
+                new BigDecimal("1.5"), 87,
+                PersonalRangeResponse.DataLevel.MEASURED,
+                List.of(new PersonalRangeResponse.Assumption(
+                        "OWN_PRICE", true, new BigDecimal("0.45"), 100)));
+
+        emailService.sendPersonalRangeResultEmail("user@example.com", "en", "Tesla Model 3", "/modelle/Tesla/Model_3",
+                new EmailService.PersonalRangeMailContent(inputs, result));
+
+        String html = firstText(mimeMessage.getContent());
+        assertThat(html).contains("87 €").contains("0.45 €/kWh").contains("commuting on 22 days");
+    }
+
+    @Test
+    void sendPersonalRangeResultEmail_namesTheAnnualMileageWhenTheCostRestsOnIt() throws Exception {
+        MimeMessage mimeMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        var inputs = new PersonalRangeRequest(40, 30, true, 500, null, null, 30_000);
+        var result = new PersonalRangeResponse(310, 360, 1, 35, new BigDecimal("2.5"), 146,
+                PersonalRangeResponse.DataLevel.MEASURED,
+                List.of(new PersonalRangeResponse.Assumption("PRICE", true, new BigDecimal("0.30"), 100)));
+
+        emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
+                new EmailService.PersonalRangeMailContent(inputs, result));
+
+        String html = firstText(mimeMessage.getContent());
+        assertThat(html).contains("146 €").contains("30.000 km im Jahr").doesNotContain("22 Tagen");
+        // the commute is not asked for the cost then, so the profile must not name its default
+        assertThat(html).contains("Profil (30.000 km im Jahr, 30 % Autobahn").doesNotContain("Pendeln pro Tag");
     }
 
     @Test
@@ -244,9 +287,9 @@ class EmailServiceTest {
 
     private com.evmonitor.application.recap.MonthlyRecap recap() {
         return new com.evmonitor.application.recap.MonthlyRecap(java.util.UUID.randomUUID(), CAR_ID, "ihle@example.com", "Ihle", "de",
-                java.time.YearMonth.of(2026, 8), "Model 3", 12, 2, 10, new java.math.BigDecimal("351.4"),
-                new java.math.BigDecimal("147.37"), new java.math.BigDecimal("1777"), null, null,
-                new java.math.BigDecimal("217.69"), new java.math.BigDecimal("1.75"), new java.math.BigDecimal("7.6"),
+                java.time.YearMonth.of(2026, 8), "Model 3", 12, 2, 10, new BigDecimal("351.4"),
+                new BigDecimal("147.37"), new BigDecimal("1777"), null, null,
+                new BigDecimal("217.69"), new BigDecimal("1.75"), new BigDecimal("7.6"),
                 com.evmonitor.domain.VehicleCategory.SEDAN, null, null);
     }
 }

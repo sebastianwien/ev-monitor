@@ -56,10 +56,7 @@ final class PersonalRangeCalculator {
         BigDecimal power = b.dcChargingPowerKw() != null ? b.dcChargingPowerKw() : ASSUMED_DC_POWER_KW;
         assumptions.add(new PersonalRangeResponse.Assumption("CHARGING_POWER", b.dcChargingPowerKw() != null, power));
 
-        BigDecimal communityPrice = in.homeCharging() ? b.homePricePerKwh() : b.publicPricePerKwh();
-        BigDecimal price = communityPrice != null ? communityPrice
-                : in.homeCharging() ? b.referenceHomePricePerKwh() : b.referencePublicPricePerKwh();
-        assumptions.add(new PersonalRangeResponse.Assumption("PRICE", communityPrice != null, price));
+        BigDecimal price = price(in, b, assumptions);
 
         // Long trip on the highway value: first leg 90 → 10 %, every further leg 10 → 80 %
         double firstLegKm = km(net, FIRST_LEG_SHARE, highway);
@@ -71,24 +68,61 @@ final class PersonalRangeCalculator {
         // Commute: base and highway consumption blended by the highway share
         double h = in.highwaySharePercent() / 100.0;
         double mixedKwhPerKm = (base.doubleValue() * (1 - h) + highway.doubleValue() * h) / 100;
-        double weeklyKwh = in.commuteKmPerDay() * WORKDAYS_PER_WEEK * mixedKwhPerKm;
+        // Season ranges for the profile: the highway surcharge (highway against everyday) on the share
+        // of motorway driving, applied to the season value. 0 % motorway gives the model's own season
+        // ranges, the figures the page shows; the band before the gate rests on the same two values.
+        double highwayRatio = 1 + h * (highway.doubleValue() / base.doubleValue() - 1);
+        BigDecimal summerProfile = summer.multiply(BigDecimal.valueOf(highwayRatio)).setScale(1, RoundingMode.HALF_UP);
+        BigDecimal winterProfile = winter.multiply(BigDecimal.valueOf(highwayRatio)).setScale(1, RoundingMode.HALF_UP);
+        // Mileage: the yearly figure when the reader gave one, else the commute on workdays
+        double weeklyKm = in.annualKm() != null ? in.annualKm() / 52.0 : in.commuteKmPerDay() * WORKDAYS_PER_WEEK;
+        double monthlyKm = in.annualKm() != null ? in.annualKm() / 12.0 : in.commuteKmPerDay() * WORKDAYS_PER_MONTH;
+        double weeklyKwh = weeklyKm * mixedKwhPerKm;
         double kwhPerCharge = net.multiply(in.homeCharging() ? HOME_CHARGE_SHARE : STOP_SHARE).doubleValue();
         BigDecimal chargesPerWeek = BigDecimal.valueOf(Math.ceil(weeklyKwh / kwhPerCharge * 2) / 2)
                 .setScale(1, RoundingMode.HALF_UP);
         // Consumption is battery side (charging losses removed), the price is per kWh at the plug
         BigDecimal efficiency = in.homeCharging() ? b.homeChargingEfficiency() : b.publicChargingEfficiency();
         double plugKwhPerKm = mixedKwhPerKm / efficiency.doubleValue();
-        int monthlyCost = (int) Math.round(in.commuteKmPerDay() * WORKDAYS_PER_MONTH * plugKwhPerKm * price.doubleValue());
+        int monthlyCost = (int) Math.round(monthlyKm * plugKwhPerKm * price.doubleValue());
 
         return new PersonalRangeResponse(
-                round10(km(net, RANGE_SHARE, winter)),
-                round10(km(net, RANGE_SHARE, summer)),
+                round10(km(net, RANGE_SHARE, winterProfile)),
+                round10(km(net, RANGE_SHARE, summerProfile)),
                 stops,
                 chargingMinutes,
                 chargesPerWeek,
                 monthlyCost,
                 dataLevel(assumptions),
                 List.copyOf(assumptions));
+    }
+
+    /**
+     * The visitor's range band before the gate: the two season ranges, rated on the season values alone.
+     * Highway and base consumption do not enter the band, so they do not lower its level either.
+     */
+    static PersonalRangePreviewResponse preview(PersonalRangeRequest in, ModelRangeBasis b) {
+        PersonalRangeResponse full = calculate(in, b);
+        List<PersonalRangeResponse.Assumption> seasons = full.assumptions().stream()
+                .filter(a -> a.key().equals("SUMMER_CONSUMPTION") || a.key().equals("WINTER_CONSUMPTION")).toList();
+        return new PersonalRangePreviewResponse(full.winterRangeKm(), full.summerRangeKm(), dataLevel(seasons));
+    }
+
+    /**
+     * The user's own price wins (OWN_PRICE, a fact of the user, not an estimate); otherwise the
+     * community price of the model (PRICE measured) or the reference price (PRICE estimated).
+     */
+    private static BigDecimal price(PersonalRangeRequest in, ModelRangeBasis b,
+                                    List<PersonalRangeResponse.Assumption> assumptions) {
+        if (in.pricePerKwh() != null) {
+            assumptions.add(new PersonalRangeResponse.Assumption("OWN_PRICE", true, in.pricePerKwh()));
+            return in.pricePerKwh();
+        }
+        BigDecimal communityPrice = in.homeCharging() ? b.homePricePerKwh() : b.publicPricePerKwh();
+        BigDecimal price = communityPrice != null ? communityPrice
+                : in.homeCharging() ? b.referenceHomePricePerKwh() : b.referencePublicPricePerKwh();
+        assumptions.add(new PersonalRangeResponse.Assumption("PRICE", communityPrice != null, price));
+        return price;
     }
 
     private static BigDecimal factor(BigDecimal fleetFactor, BigDecimal fallback) {
@@ -136,6 +170,10 @@ final class PersonalRangeCalculator {
     private static PersonalRangeResponse.DataLevel dataLevel(List<PersonalRangeResponse.Assumption> assumptions) {
         List<PersonalRangeResponse.Assumption> consumption = assumptions.stream()
                 .filter(a -> a.key().endsWith("_CONSUMPTION")).toList();
+        return levelOf(consumption);
+    }
+
+    private static PersonalRangeResponse.DataLevel levelOf(List<PersonalRangeResponse.Assumption> consumption) {
         long measured = consumption.stream().filter(PersonalRangeResponse.Assumption::measured).count();
         if (measured == consumption.size()) return PersonalRangeResponse.DataLevel.MEASURED;
         if (measured == 0) return PersonalRangeResponse.DataLevel.WLTP_FACTOR;

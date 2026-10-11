@@ -22,7 +22,8 @@ public record PersonalRangeResponse(
 
     /**
      * @param key      SUMMER_CONSUMPTION, WINTER_CONSUMPTION, HIGHWAY_CONSUMPTION, BASE_CONSUMPTION,
-     *                 BATTERY, CHARGING_POWER, PRICE
+     *                 BATTERY, CHARGING_POWER, PRICE (community or reference price) or OWN_PRICE
+     *                 (the user's own price, listed as measured: it is their fact, not an estimate)
      * @param measured true = community data, false = estimate
      * @param value    the value used (kWh/100km, kWh, kW or EUR/kWh)
      * @param measuredPercent share of community data in value: 0, 100, or in between for a blend

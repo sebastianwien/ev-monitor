@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * IP-based rate limiting for sensitive auth endpoints.
@@ -105,6 +106,14 @@ public class RateLimitService {
             .capacity(3)
             .refillIntervally(3, Duration.ofMinutes(15))
             .build();
+    // Range band before the gate on the model pages, per IP: every chip click costs one call, 30 an hour
+    // cover a visitor playing through all four chapters twice. Beyond that the page shows the model band
+    // and points to the gate. Raise to 60 if a mobile carrier NAT shows up in the 429 log after a forum post.
+    static final int PREVIEW_PER_HOUR = 30;
+    private static final Bandwidth PREVIEW_LIMIT = Bandwidth.builder()
+            .capacity(PREVIEW_PER_HOUR)
+            .refillIntervally(PREVIEW_PER_HOUR, Duration.ofHours(1))
+            .build();
     // Result mails of the range calculator: the gate promises one, a few more cover retries
     private static final Bandwidth RESULT_MAIL_LIMIT = Bandwidth.builder()
             .capacity(3)
@@ -140,6 +149,23 @@ public class RateLimitService {
             .expireAfterAccess(20, TimeUnit.MINUTES).maximumSize(10_000).build();
     private final Cache<String, Bucket> resultMailBuckets = Caffeine.newBuilder()
             .expireAfterAccess(25, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> previewBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+    /** Refused previews since start, in the log line so a NAT behind one IP stands out. */
+    private final AtomicLong previewRejections = new AtomicLong();
+
+    /** Range band previews per IP; exceeding it answers 429. */
+    public boolean tryConsumePreview(String clientIp) {
+        if (!enabled) return true;
+        boolean allowed = previewBuckets
+                .get(clientIp, ip -> Bucket.builder().addLimit(PREVIEW_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for range preview from IP: {} (refused so far: {})",
+                    clientIp, previewRejections.incrementAndGet());
+        }
+        return allowed;
+    }
 
     /** Result mails of the range calculator per user, 3 a day; beyond that the mail is skipped silently. */
     public boolean tryConsumeResultMail(UUID userId) {

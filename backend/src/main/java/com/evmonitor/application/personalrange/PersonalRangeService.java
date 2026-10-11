@@ -70,10 +70,21 @@ public class PersonalRangeService {
     public Optional<PersonalRangeResponse> calculate(UUID userId, boolean isSeedUser, String brand, String model,
                                                      PersonalRangeRequest request) {
         Optional<PersonalRangeResponse> result = publicModelService.getModelStats(brand, model, isSeedUser)
-                .flatMap(stats -> basis(stats, isSeedUser))
+                .flatMap(stats -> basis(stats, isSeedUser, request))
                 .map(basis -> PersonalRangeCalculator.calculate(request, basis));
         result.ifPresent(r -> saveProfile(userId, request));
         return result;
+    }
+
+    /**
+     * The range band for the visitor before the gate: same basis as calculate(), but nothing is stored
+     * and nothing is mailed. Empty if the model is unknown or has no WLTP spec.
+     */
+    public Optional<PersonalRangePreviewResponse> preview(String brand, String model, PersonalRangeRequest request,
+                                                          boolean isSeedUser) {
+        return publicModelService.getModelStats(brand, model, isSeedUser)
+                .flatMap(stats -> basis(stats, isSeedUser, request))
+                .map(basis -> PersonalRangeCalculator.preview(request, basis));
     }
 
     public Optional<PersonalRangeRequest> getProfile(UUID userId) {
@@ -95,7 +106,8 @@ public class PersonalRangeService {
         }
     }
 
-    private Optional<ModelRangeBasis> basis(PublicModelStatsResponse stats, boolean isSeedUser) {
+    /** The battery is the variant the page shows when the request names one, else the largest WLTP variant. */
+    private Optional<ModelRangeBasis> basis(PublicModelStatsResponse stats, boolean isSeedUser, PersonalRangeRequest request) {
         List<VehicleSpecificationEntity> specs =
                 vehicleSpecificationRepository.findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(stats.model(), "WLTP");
         VehicleSpecificationEntity largest = specs.stream()
@@ -107,8 +119,9 @@ public class PersonalRangeService {
                 : averageWltp(specs);
         if (largest == null || wltp == null) return Optional.empty();
 
-        boolean netKnown = largest.getNetBatteryCapacityKwh() != null;
-        BigDecimal net = netKnown ? largest.getNetBatteryCapacityKwh()
+        boolean netKnown = request.netBatteryKwh() != null || largest.getNetBatteryCapacityKwh() != null;
+        BigDecimal net = request.netBatteryKwh() != null ? request.netBatteryKwh()
+                : largest.getNetBatteryCapacityKwh() != null ? largest.getNetBatteryCapacityKwh()
                 : largest.getBatteryCapacityKwh().multiply(NOMINAL_TO_NET).setScale(1, RoundingMode.HALF_UP);
 
         PublicModelStatsResponse.SeasonalDistribution seasonal = stats.seasonalDistribution();
