@@ -3,6 +3,8 @@ package com.evmonitor.application.ingest;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.RouteType;
+import com.evmonitor.domain.TireType;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
@@ -134,6 +136,21 @@ class IngestGatewayTest extends AbstractIntegrationTest {
 
         assertThat(r.imported()).isEqualTo(1);
         assertThat(evLogRepository.findById(r.created().get(0).getId()).orElseThrow().getRawImportData()).contains("ENERGY_OVER_POWER");
+    }
+
+    @Test
+    void liveChargeInheritsTheTireButNotTheRouteType() {
+        // a charge with a route type the user chose, then a live charge without one
+        gateway.ingestCharging(command(user.getId(), car.getId(), ChargingEntry.builder()
+                .loggedAt(LocalDateTime.of(2026, 9, 10, 10, 0)).kwhCharged(new BigDecimal("20.0"))
+                .routeType(RouteType.HIGHWAY).tireType(TireType.WINTER).build()));
+
+        IngestResult live = gateway.ingestCharging(command(user.getId(), car.getId(), entry(14)));
+
+        var log = evLogRepository.findById(live.created().get(0).getId()).orElseThrow();
+        // tires stay on the car; the route of the next trip is unknown, not the one before
+        assertThat(log.getTireType()).isEqualTo(TireType.WINTER);
+        assertThat(log.getRouteType()).isNull();
     }
 
     private static IngestCommand command(UUID userId, UUID carId, ChargingEntry... entries) {

@@ -10,7 +10,7 @@ import java.time.Duration;
  *
  * @param dedupWindow               Toleranz um die Minute beim Duplikat-Check je Quelle; 0 = minutengenau
  * @param bumpSameTimestampInBatch  gleiche Zeitstempel im Batch je 10 Minuten versetzen (Tagesdatum-Importe)
- * @param inheritTireAndRouteType   Reifen und Strecke vom letzten Log davor übernehmen (Live-Daten ohne diese Angaben)
+ * @param inheritTireType           Reifen vom letzten Log davor übernehmen (Live-Daten ohne diese Angabe); der Streckentyp wird nie geerbt
  * @param coinEvent                 Watt je angelegter Ladung, {@code null} = keine
  * @param kwhIsVehicleSide          die Quelle meldet im kWh-Feld fahrzeugseitige Energie (Tronity)
  * @param isolateEntryErrors        ein fehlerhafter Eintrag zählt als Fehler statt den Aufruf abzubrechen
@@ -22,7 +22,7 @@ import java.time.Duration;
 public record IngestPolicy(
         Duration dedupWindow,
         boolean bumpSameTimestampInBatch,
-        boolean inheritTireAndRouteType,
+        boolean inheritTireType,
         CoinEvent coinEvent,
         boolean kwhIsVehicleSide,
         boolean isolateEntryErrors,

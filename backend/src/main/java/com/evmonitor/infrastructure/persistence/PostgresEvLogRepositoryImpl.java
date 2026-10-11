@@ -440,17 +440,6 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public Optional<RouteType> findMostRecentRouteTypeBefore(UUID carId, LocalDateTime before) {
-        var results = jpaRepository.findMostRecentRouteTypeBefore(carId, before, PageRequest.of(0, 1));
-        if (results.isEmpty()) return Optional.empty();
-        try {
-            return Optional.of(RouteType.valueOf(results.get(0)));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
-    }
-
-    @Override
     public List<EvLog> findPricelessLogsAtGeohash(UUID userId, String geohash) {
         return jpaRepository.findPricelessByUserIdAndGeohash(userId, geohash).stream()
                 .map(this::toDomain)

@@ -151,8 +151,8 @@ public class IngestGateway {
         }
 
         EvLog evLog = toEvLog(car, command.dataSource(), policy, entry, loggedAt);
-        if (policy.inheritTireAndRouteType()) {
-            evLog = inheritTireAndRouteType(evLog);
+        if (policy.inheritTireType()) {
+            evLog = inheritTireType(evLog);
         }
         evLog = locationPricing.enrich(evLog, command.userId());
 
@@ -268,30 +268,18 @@ public class IngestGateway {
     }
 
     /**
-     * Reifen und Strecke vom letzten Log vor diesem übernehmen. Live-Quellen (Tesla, Wallbox,
-     * Smartcar) tragen die Angaben nicht; ohne Erben kippt die "letzten Wert übernehmen"-UX still
-     * auf NULL/SUMMER. "Vor loggedAt", damit spät eintreffende Telemetrie den damals gültigen Wert erbt.
+     * Reifen vom letzten Log vor diesem übernehmen: Live-Quellen (Tesla, Wallbox, Smartcar) tragen
+     * die Angabe nicht, und Reifen bleiben bis zum Wechsel drauf. "Vor loggedAt", damit spät
+     * eintreffende Telemetrie den damals gültigen Wert erbt. Der Streckentyp wird nicht geerbt:
+     * die nächste Fahrt hat mit der letzten nichts zu tun, ein geerbter Wert wäre erfunden und
+     * verfälscht die Verbrauchswerte je Streckentyp.
      */
-    private EvLog inheritTireAndRouteType(EvLog log) {
-        if (log.getTireType() != null && log.getRouteType() != null) return log;
+    private EvLog inheritTireType(EvLog log) {
+        if (log.getTireType() != null) return log;
         LocalDateTime before = log.getLoggedAt() != null ? log.getLoggedAt() : LocalDateTime.now();
-        EvLog.EvLogBuilder builder = log.toBuilder();
-        boolean changed = false;
-        if (log.getTireType() == null) {
-            Optional<TireType> inherited = evLogRepository.findMostRecentTireTypeBefore(log.getCarId(), before);
-            if (inherited.isPresent()) {
-                builder.tireType(inherited.get());
-                changed = true;
-            }
-        }
-        if (log.getRouteType() == null) {
-            Optional<RouteType> inherited = evLogRepository.findMostRecentRouteTypeBefore(log.getCarId(), before);
-            if (inherited.isPresent()) {
-                builder.routeType(inherited.get());
-                changed = true;
-            }
-        }
-        return changed ? builder.build() : log;
+        return evLogRepository.findMostRecentTireTypeBefore(log.getCarId(), before)
+                .map(tire -> log.toBuilder().tireType(tire).build())
+                .orElse(log);
     }
 
     private Car requireOwnedCar(UUID carId, UUID userId) {

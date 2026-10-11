@@ -27,7 +27,7 @@ class IngestPoliciesTest {
         assertThat(p.bumpSameTimestampInBatch()).isTrue();
         assertThat(p.isolateEntryErrors()).isTrue();
         assertThat(p.coinEvent()).isEqualTo(CoinEvent.API_UPLOAD_LOG);
-        assertThat(p.inheritTireAndRouteType()).isFalse();
+        assertThat(p.inheritTireType()).isFalse();
         assertThat(p.sohEventWithoutVehicleKwh()).isFalse();
     }
 
@@ -42,7 +42,7 @@ class IngestPoliciesTest {
         assertThat(p.bumpSameTimestampInBatch()).isFalse();
         assertThat(p.coinEvent()).isEqualTo(CoinEvent.SPRITMONITOR_LOG);
         assertThat(p.isolateEntryErrors()).isTrue();
-        assertThat(p.inheritTireAndRouteType()).isFalse();
+        assertThat(p.inheritTireType()).isFalse();
         assertThat(p.sohEventWithoutVehicleKwh()).isFalse();
         assertThat(p.dedupWindow()).isEqualTo(Duration.ZERO);
     }
@@ -55,7 +55,7 @@ class IngestPoliciesTest {
         assertThat(p.coinEvent()).isNull();
         assertThat(p.bumpSameTimestampInBatch()).isTrue();
         assertThat(p.isolateEntryErrors()).isTrue();
-        assertThat(p.inheritTireAndRouteType()).isFalse();
+        assertThat(p.inheritTireType()).isFalse();
         assertThat(p.sohEventWithoutVehicleKwh()).isFalse();
         assertThat(p.dedupWindow()).isEqualTo(Duration.ZERO);
     }
@@ -93,7 +93,7 @@ class IngestPoliciesTest {
     void connectorPush_inheritsAndFiresSoh_withoutBumpRemapOrWindow(DataSource source) {
         IngestPolicy p = IngestPolicies.forSource(source, CONNECTOR_PUSH);
 
-        assertThat(p.inheritTireAndRouteType()).isTrue();
+        assertThat(p.inheritTireType()).isTrue();
         assertThat(p.sohEventWithoutVehicleKwh()).isTrue();
         assertThat(p.isolateEntryErrors()).isFalse();
         assertThat(p.bumpSameTimestampInBatch()).isFalse();
