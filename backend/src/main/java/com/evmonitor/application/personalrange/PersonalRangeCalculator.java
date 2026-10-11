@@ -79,8 +79,11 @@ final class PersonalRangeCalculator {
         double monthlyKm = in.annualKm() != null ? in.annualKm() / 12.0 : in.commuteKmPerDay() * WORKDAYS_PER_MONTH;
         double weeklyKwh = weeklyKm * mixedKwhPerKm;
         double kwhPerCharge = net.multiply(in.homeCharging() ? HOME_CHARGE_SHARE : STOP_SHARE).doubleValue();
-        BigDecimal chargesPerWeek = BigDecimal.valueOf(Math.ceil(weeklyKwh / kwhPerCharge * 2) / 2)
-                .setScale(1, RoundingMode.HALF_UP);
+        BigDecimal chargesPerWeek = halfCharges(weeklyKwh / kwhPerCharge);
+        // The commute on workdays, per season: how often the reader plugs in in summer and in winter
+        double commuteKmPerWeek = in.commuteKmPerDay() * WORKDAYS_PER_WEEK;
+        BigDecimal chargesSummer = halfCharges(commuteKmPerWeek * summerProfile.doubleValue() / 100 / kwhPerCharge);
+        BigDecimal chargesWinter = halfCharges(commuteKmPerWeek * winterProfile.doubleValue() / 100 / kwhPerCharge);
         // Consumption is battery side (charging losses removed), the price is per kWh at the plug
         BigDecimal efficiency = in.homeCharging() ? b.homeChargingEfficiency() : b.publicChargingEfficiency();
         double plugKwhPerKm = mixedKwhPerKm / efficiency.doubleValue();
@@ -92,6 +95,8 @@ final class PersonalRangeCalculator {
                 stops,
                 chargingMinutes,
                 chargesPerWeek,
+                chargesSummer,
+                chargesWinter,
                 monthlyCost,
                 dataLevel(assumptions),
                 List.copyOf(assumptions));
@@ -123,6 +128,11 @@ final class PersonalRangeCalculator {
                 : in.homeCharging() ? b.referenceHomePricePerKwh() : b.referencePublicPricePerKwh();
         assumptions.add(new PersonalRangeResponse.Assumption("PRICE", communityPrice != null, price));
         return price;
+    }
+
+    /** Rounded up to half charges: 1.2 charges a week means plugging in 1.5 times */
+    private static BigDecimal halfCharges(double charges) {
+        return BigDecimal.valueOf(Math.ceil(charges * 2) / 2).setScale(1, RoundingMode.HALF_UP);
     }
 
     private static BigDecimal factor(BigDecimal fleetFactor, BigDecimal fallback) {

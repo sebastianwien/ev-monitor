@@ -121,6 +121,23 @@ class PersonalRangeCalculatorTest {
     }
 
     @Test
+    void commuteDrivesWeeklyChargesPerSeason() {
+        PersonalRangeResponse home = PersonalRangeCalculator.calculate(
+                new PersonalRangeRequest(100, 50, true, 600, null, null, 30_000), measured());
+
+        // 100 km × 5 workdays = 500 km a week; summer 16.4 kWh/100km = 82 kWh / home charge 46.2 kWh = 1.77 → 2.0,
+        // winter 21.9 = 109.5 kWh → 2.37 → 2.5; the yearly mileage does not enter
+        assertThat(home.chargesPerWeekSummer()).isEqualByComparingTo("2.0");
+        assertThat(home.chargesPerWeekWinter()).isEqualByComparingTo("2.5");
+
+        PersonalRangeResponse fastCharging = PersonalRangeCalculator.calculate(
+                PersonalRangeRequestFixtures.answers(100, 50, false, 600), measured());
+        // public charging 10 → 80 % = 53.9 kWh: 1.52 → 2.0 and 2.03 → 2.5
+        assertThat(fastCharging.chargesPerWeekSummer()).isEqualByComparingTo("2.0");
+        assertThat(fastCharging.chargesPerWeekWinter()).isEqualByComparingTo("2.5");
+    }
+
+    @Test
     void mixedSourcesArePartial() {
         ModelRangeBasis basis = wltpOnly().toBuilder()
                 .summerKwhPer100km(new BigDecimal("15.0")).winterKwhPer100km(new BigDecimal("20.0"))

@@ -66,7 +66,7 @@ class EmailServiceTest {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var inputs = PersonalRangeRequestFixtures.answers(40, 30, true, 500);
         var result = new PersonalRangeResponse(310, 360, 1, 35,
-                new BigDecimal("1.5"), 58,
+                new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption(
                         "PRICE", true, new BigDecimal("0.30"), 100)));
@@ -78,7 +78,9 @@ class EmailServiceTest {
         assertThat(mimeMessage.getSubject()).isEqualTo("Dein Ergebnis für den Tesla Model 3");
         String html = firstText(mimeMessage.getContent());
         assertThat(html).contains("310 km").contains("Sommer: 360 km").contains("500 km")
-                .contains("grob 35 min").contains("1,5").contains("58 €").contains("0,30 €/kWh")
+                .contains("grob 35 min").contains("58 €").contains("0,30 €/kWh")
+                // weekly charging for the commute, per season: winter big, summer below
+                .contains("Laden fürs Pendeln im Winter").contains("1,5× pro Woche").contains("Sommer: 1× pro Woche")
                 .contains("http://localhost:5173/modelle/Tesla/Model_3");
     }
 
@@ -88,7 +90,7 @@ class EmailServiceTest {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var inputs = new PersonalRangeRequest(40, 30, true, 500, new BigDecimal("0.45"), null, null);
         var result = new PersonalRangeResponse(310, 360, 1, 35,
-                new BigDecimal("1.5"), 87,
+                new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 87,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption(
                         "OWN_PRICE", true, new BigDecimal("0.45"), 100)));
@@ -105,7 +107,7 @@ class EmailServiceTest {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var inputs = new PersonalRangeRequest(40, 30, true, 500, null, null, 30_000);
-        var result = new PersonalRangeResponse(310, 360, 1, 35, new BigDecimal("2.5"), 146,
+        var result = new PersonalRangeResponse(310, 360, 1, 35, new BigDecimal("2.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 146,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption("PRICE", true, new BigDecimal("0.30"), 100)));
 
@@ -114,8 +116,8 @@ class EmailServiceTest {
 
         String html = firstText(mimeMessage.getContent());
         assertThat(html).contains("146 €").contains("30.000 km im Jahr").doesNotContain("22 Tagen");
-        // the commute is not asked for the cost then, so the profile must not name its default
-        assertThat(html).contains("Profil (30.000 km im Jahr, 30 % Autobahn").doesNotContain("Pendeln pro Tag");
+        // the yearly mileage drives the cost, the commute the weekly charging: the profile names both
+        assertThat(html).contains("Profil (30.000 km im Jahr, 40 km Pendeln pro Tag, 30 % Autobahn");
     }
 
     @Test

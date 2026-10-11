@@ -197,14 +197,14 @@ const tiles = computed(() => {
   if (!r) return []
   const longTrip = formatDistance(props.inputs.longTripKm)
   return [
-    { label: t('personal_range.summer_label'), value: formatDistance(r.summerRangeKm), detail: '' },
-    { label: t('personal_range.winter_range'), value: formatDistance(r.winterRangeKm), detail: '' },
+    { label: t('personal_range.summer_label'), value: formatDistance(r.summerRangeKm), detail: t('personal_range.charges_commute', { charges: compact(r.chargesPerWeekSummer) }) },
+    { label: t('personal_range.winter_range'), value: formatDistance(r.winterRangeKm), detail: t('personal_range.charges_commute', { charges: compact(r.chargesPerWeekWinter) }) },
     { label: t('personal_range.stops', { distance: longTrip }), value: String(r.longTripStops),
       detail: r.longTripStops === 0 ? t('personal_range.no_stop') : t('personal_range.stops_minutes', { minutes: r.longTripChargingMinutes }) },
     { label: t('personal_range.cost_month'), value: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
       detail: props.inputs.annualKm
-        ? t('personal_range.cost_basis_annual', { annual: formatDistance(props.inputs.annualKm), charges: compact(r.chargesPerWeek) })
-        : t('personal_range.cost_basis_charges', { charges: compact(r.chargesPerWeek) }) },
+        ? t('personal_range.cost_basis_annual', { annual: formatDistance(props.inputs.annualKm) })
+        : t('personal_range.cost_basis_charges') },
   ]
 })
 

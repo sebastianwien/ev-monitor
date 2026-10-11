@@ -6,6 +6,10 @@ import java.util.List;
 /**
  * Personal calculator result. Every input value the result rests on is listed in assumptions,
  * flagged as measured (community data) or estimated (WLTP factor, reference value).
+ *
+ * @param chargesPerWeek       from the yearly mileage when given, else the commute (kept for older pages)
+ * @param chargesPerWeekSummer charges a week for the commute on workdays, at the summer consumption
+ * @param chargesPerWeekWinter the same at the winter consumption
  */
 public record PersonalRangeResponse(
         int winterRangeKm,
@@ -13,6 +17,8 @@ public record PersonalRangeResponse(
         int longTripStops,
         int longTripChargingMinutes,
         BigDecimal chargesPerWeek,
+        BigDecimal chargesPerWeekSummer,
+        BigDecimal chargesPerWeekWinter,
         int monthlyCostEur,
         DataLevel dataLevel,
         List<Assumption> assumptions

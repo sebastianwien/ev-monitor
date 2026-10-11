@@ -40,6 +40,9 @@ export interface PersonalRangeResult {
   longTripStops: number
   longTripChargingMinutes: number
   chargesPerWeek: number
+  /** charges a week for the commute on workdays, at the summer and the winter consumption */
+  chargesPerWeekSummer: number
+  chargesPerWeekWinter: number
   monthlyCostEur: number
   dataLevel: PersonalRangeDataLevel
   assumptions: PersonalRangeAssumption[]

@@ -10,11 +10,12 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-import java.math.RoundingMode;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Service
@@ -108,17 +109,17 @@ public class EmailService {
         Map<String, String> vars = new HashMap<>();
         vars.put("model", modelName);
         vars.put("modelUrl", baseUrl + modelPath);
-        // The yearly mileage replaces the commute in the calculation, so the profile names whichever was used
-        vars.put("mileage", in.annualKm() != null
-                ? annualKm(in.annualKm(), lang)
-                : in.commuteKmPerDay() + ("en".equals(lang) ? " km commute per day" : " km Pendeln pro Tag"));
+        // The yearly mileage drives the cost, the commute the weekly charging: the profile names both
+        String commute = in.commuteKmPerDay() + ("en".equals(lang) ? " km commute per day" : " km Pendeln pro Tag");
+        vars.put("mileage", in.annualKm() != null ? annualKm(in.annualKm(), lang) + ", " + commute : commute);
         vars.put("highwayPercent", String.valueOf(in.highwaySharePercent()));
         vars.put("longTripKm", String.valueOf(in.longTripKm()));
         vars.put("winterRangeKm", String.valueOf(r.winterRangeKm()));
         vars.put("summerRangeKm", String.valueOf(r.summerRangeKm()));
         vars.put("stops", String.valueOf(r.longTripStops()));
         vars.put("chargingMinutes", String.valueOf(r.longTripChargingMinutes()));
-        vars.put("chargesPerWeek", r.chargesPerWeek().toPlainString().replace('.', "en".equals(lang) ? '.' : ','));
+        vars.put("chargesSummer", charges(r.chargesPerWeekSummer(), lang));
+        vars.put("chargesWinter", charges(r.chargesPerWeekWinter(), lang));
         vars.put("monthlyCostEur", String.valueOf(r.monthlyCostEur()));
         vars.put("pricePerKwh", pricePerKwh(r, lang));
         vars.put("costBasis", in.annualKm() != null
@@ -127,6 +128,12 @@ public class EmailService {
         String html = loadTemplate("personal-range-result.html", lang, vars);
         String subject = "en".equals(lang) ? "Your result for the " + modelName : "Dein Ergebnis für den " + modelName;
         sendHtmlEmail(toEmail, subject, html);
+    }
+
+    /** "1,5" / "1.5", whole numbers without ",0" */
+    private static String charges(BigDecimal value, String lang) {
+        String plain = value.stripTrailingZeros().toPlainString();
+        return "en".equals(lang) ? plain : plain.replace('.', ',');
     }
 
     /** "30.000 km im Jahr" / "30,000 km a year" */

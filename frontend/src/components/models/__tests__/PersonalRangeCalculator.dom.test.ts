@@ -14,7 +14,7 @@ import type { PersonalRangeInputs } from '../../../api/personalRangeService'
 
 const RESULT = {
   winterRangeKm: 320, summerRangeKm: 450, longTripStops: 1, longTripChargingMinutes: 30,
-  chargesPerWeek: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
+  chargesPerWeek: 1.5, chargesPerWeekSummer: 1, chargesPerWeekWinter: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
   assumptions: [
     { key: 'BATTERY', measured: true, value: 77 },
     { key: 'WINTER_CONSUMPTION', measured: true, value: 21.4 },
@@ -140,6 +140,9 @@ describe('PersonalRangeCalculator', () => {
     expect(result.textContent).toContain('450')
     expect(result.textContent).toContain('320')
     expect(result.textContent).toContain('46')
+    // weekly charging for the commute under each season
+    expect(result.textContent).toContain('Pendeln: 1× laden pro Woche')
+    expect(result.textContent).toContain('Pendeln: 1,5× laden pro Woche')
     expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(4)
     expect(result.textContent).toContain('(Datenblatt)')
     expect(result.textContent).toContain('zu 50 % gemessen')
