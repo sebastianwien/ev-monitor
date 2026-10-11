@@ -115,9 +115,9 @@ describe('RangeBandBar', () => {
     expect(host.querySelector('[role="alert"]')).toBeNull()
   })
 
-  it('logged-in visitors use the calculator endpoint, not the IP-limited preview', async () => {
+  it('logged-in visitors get the preview too: the calculator would store a half-answered profile', async () => {
     vi.useFakeTimers()
-    vi.mocked(api.post).mockResolvedValue({ data: { winterRangeKm: 240, summerRangeKm: 310, dataLevel: 'PARTIAL' } } as never)
+    vi.mocked(api.post).mockResolvedValue({ data: { minKm: 240, maxKm: 310, dataLevel: 'PARTIAL' } } as never)
     const { host, state } = mount({ loggedIn: true })
     await flush()
 
@@ -126,7 +126,8 @@ describe('RangeBandBar', () => {
     await vi.advanceTimersByTimeAsync(300)
     await flush()
 
-    expect(api.post).toHaveBeenCalledWith('/personal-range/Volkswagen/ID.3', expect.anything())
+    expect(api.post).toHaveBeenCalledWith('/public/personal-range/Volkswagen/ID.3/preview', expect.anything())
+    expect(api.post).not.toHaveBeenCalledWith('/personal-range/Volkswagen/ID.3', expect.anything())
     expect(band(host)).toContain('240')
     expect(band(host)).toContain('310')
   })

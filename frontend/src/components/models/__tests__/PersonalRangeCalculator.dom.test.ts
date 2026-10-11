@@ -122,7 +122,8 @@ describe('PersonalRangeCalculator', () => {
 
     const text = host.querySelector('[data-testid="inline-gate"]')!.textContent
     expect(text).toContain('noch nicht genügend Messdaten')
-    expect(text).toContain('2 Fahrern')
+    // cars, not drivers: the hero counts drivers, and the two numbers differ
+    expect(text).toContain('2 Autos')
   })
 
   it('logged-in user gets the result tiles and the assumptions, the own price among them', async () => {

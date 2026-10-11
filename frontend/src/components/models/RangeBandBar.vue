@@ -48,7 +48,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
 import { personalRangeService, type PersonalRangeInputs } from '../../api/personalRangeService'
@@ -56,8 +55,8 @@ import { personalRangeService, type PersonalRangeInputs } from '../../api/person
 /**
  * Winter-to-summer range for the visitor's answers. Before the first answer the model's own
  * season band (from the stats response) is shown without a request. Every change afterwards
- * asks the public preview endpoint, debounced; signed-in visitors ask their calculator
- * instead, which has no IP limit. When the preview is refused or fails the band stays and is
+ * asks the public preview endpoint, debounced, signed in or not: the calculator endpoint would
+ * store the half-answered profile on every click. When the preview is refused or fails the band stays and is
  * labelled as a standard profile, nothing pops up. The exact figures stay behind the gate.
  */
 const props = defineProps<{
@@ -79,7 +78,6 @@ const DEBOUNCE_MS = 300
 
 const { t } = useI18n()
 const { formatDistance } = useLocaleFormat()
-const authStore = useAuthStore()
 
 const remote = ref<{ minKm: number; maxKm: number } | null>(null)
 const degraded = ref(false)
@@ -104,13 +102,7 @@ function trackShown(level: string) {
 async function refresh() {
   const no = ++requestNo
   try {
-    let next: { minKm: number; maxKm: number; dataLevel: string }
-    if (authStore.token) {
-      const r = await personalRangeService.calculate(props.brand, props.model, props.inputs)
-      next = { minKm: r.winterRangeKm, maxKm: r.summerRangeKm, dataLevel: r.dataLevel }
-    } else {
-      next = await personalRangeService.preview(props.brand, props.model, props.inputs)
-    }
+    const next = await personalRangeService.preview(props.brand, props.model, props.inputs)
     if (no !== requestNo) return
     remote.value = { minKm: next.minKm, maxKm: next.maxKm }
     degraded.value = false
