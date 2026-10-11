@@ -100,7 +100,7 @@ public class PersonalRangeService {
 
     private void saveProfile(UUID userId, PersonalRangeRequest request) {
         try {
-            userRepository.setRangeProfile(userId, objectMapper.writeValueAsString(request));
+            userRepository.setRangeProfile(userId, objectMapper.writeValueAsString(request.withoutBattery()));
         } catch (JsonProcessingException e) {
             log.warn("Could not store range profile for user {}", userId);
         }

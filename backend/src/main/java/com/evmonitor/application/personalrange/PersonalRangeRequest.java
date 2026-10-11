@@ -25,18 +25,8 @@ public record PersonalRangeRequest(
         @DecimalMin("10") @DecimalMax("250") BigDecimal netBatteryKwh,
         @Min(1000) @Max(100000) Integer annualKm
 ) {
-    public PersonalRangeRequest(int commuteKmPerDay, int highwaySharePercent, boolean homeCharging, int longTripKm,
-                                BigDecimal pricePerKwh, BigDecimal netBatteryKwh) {
-        this(commuteKmPerDay, highwaySharePercent, homeCharging, longTripKm, pricePerKwh, netBatteryKwh, null);
-    }
-
-    public PersonalRangeRequest(int commuteKmPerDay, int highwaySharePercent, boolean homeCharging, int longTripKm,
-                                BigDecimal pricePerKwh) {
-        this(commuteKmPerDay, highwaySharePercent, homeCharging, longTripKm, pricePerKwh, null, null);
-    }
-
-    /** Without an own price: the community price applies. */
-    public PersonalRangeRequest(int commuteKmPerDay, int highwaySharePercent, boolean homeCharging, int longTripKm) {
-        this(commuteKmPerDay, highwaySharePercent, homeCharging, longTripKm, null, null);
+    /** For the stored profile: the battery belongs to the model page it came from, not to the user. */
+    public PersonalRangeRequest withoutBattery() {
+        return new PersonalRangeRequest(commuteKmPerDay, highwaySharePercent, homeCharging, longTripKm, pricePerKwh, null, annualKm);
     }
 }

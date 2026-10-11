@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.application.personalrange.PersonalRangeRequest;
+import com.evmonitor.application.personalrange.PersonalRangeRequestFixtures;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
 import java.math.BigDecimal;
 import java.util.List;
@@ -63,7 +64,7 @@ class EmailServiceTest {
     void sendPersonalRangeResultEmail_carriesNumbersSubjectAndModelLink() throws Exception {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var inputs = new PersonalRangeRequest(40, 30, true, 500);
+        var inputs = PersonalRangeRequestFixtures.answers(40, 30, true, 500);
         var result = new PersonalRangeResponse(310, 360, 1, 35,
                 new BigDecimal("1.5"), 58,
                 PersonalRangeResponse.DataLevel.MEASURED,
@@ -85,8 +86,7 @@ class EmailServiceTest {
     void sendPersonalRangeResultEmail_showsTheUsersOwnPriceInTheCostLine() throws Exception {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var inputs = new PersonalRangeRequest(40, 30, true, 500,
-                new BigDecimal("0.45"));
+        var inputs = new PersonalRangeRequest(40, 30, true, 500, new BigDecimal("0.45"), null, null);
         var result = new PersonalRangeResponse(310, 360, 1, 35,
                 new BigDecimal("1.5"), 87,
                 PersonalRangeResponse.DataLevel.MEASURED,

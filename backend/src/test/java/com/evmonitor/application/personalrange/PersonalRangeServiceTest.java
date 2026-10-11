@@ -14,6 +14,7 @@ import com.evmonitor.infrastructure.persistence.VehicleSpecificationEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,7 +44,7 @@ class PersonalRangeServiceTest {
             userRepository, new PlausibilityProperties(), new ObjectMapper(), emailService);
 
     private final UUID userId = UUID.randomUUID();
-    private final PersonalRangeRequest request = new PersonalRangeRequest(40, 30, true, 500);
+    private final PersonalRangeRequest request = PersonalRangeRequestFixtures.answers(40, 30, true, 500);
 
     @BeforeEach
     void setUp() {
@@ -110,6 +111,18 @@ class PersonalRangeServiceTest {
     }
 
     @Test
+    void storedProfileLeavesOutTheBatteryOfThisModel() {
+        PersonalRangeRequest withBattery = new PersonalRangeRequest(40, 30, true, 500, new BigDecimal("0.28"), new BigDecimal("58.3"), 20_000);
+
+        service.calculate(userId, false, "Tesla", "Model_3", withBattery);
+
+        ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+        verify(userRepository).setRangeProfile(eq(userId), json.capture());
+        // the battery belongs to this model page; the answers and the own price follow the user to other models
+        assertThat(json.getValue()).doesNotContain("58.3").contains("0.28").contains("20000");
+    }
+
+    @Test
     void previewReturnsWinterToSummerBandWithoutSavingOrMailing() {
         PersonalRangeResponse full = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
 
@@ -125,7 +138,7 @@ class PersonalRangeServiceTest {
 
     @Test
     void previewUsesTheBatteryVariantThePageShowsWhenGiven() {
-        PersonalRangeRequest small = new PersonalRangeRequest(40, 30, true, 500, null, new BigDecimal("58"));
+        PersonalRangeRequest small = new PersonalRangeRequest(40, 30, true, 500, null, new BigDecimal("58"), null);
 
         PersonalRangePreviewResponse p = service.preview("Tesla", "Model_3", small, false).orElseThrow();
         PersonalRangePreviewResponse large = service.preview("Tesla", "Model_3", request, false).orElseThrow();
