@@ -29,57 +29,17 @@ export interface FeatureAnnouncement {
 }
 
 export const featureAnnouncements: FeatureAnnouncement[] = [
-  // Fahrzeugbewertung: nur Bestandsnutzer mit bewertbarem Auto. releasedAt und expiresAt beim
-  // Deploy auf das echte Release-Datum (plus 30 Tage) setzen.
+  // Fahrzeugbewertung: nur Bestandsnutzer mit bewertbarem, unbewertetem Auto, Release 11.10.2026
   {
     key: 'vehicle_rating_v1',
-    releasedAt: '2026-10-09',
-    expiresAt: '2026-11-08',
+    releasedAt: '2026-10-11',
+    expiresAt: '2026-11-10',
     titleKey: 'announcements.vehicle_rating_v1_title',
     bodyKey: 'announcements.vehicle_rating_v1_body',
     ctaLabelKey: 'announcements.vehicle_rating_v1_cta',
     ctaRoute: '/cars/{ratingCarId}/bewerten?src=announcement',
     // Bei mehreren Autos verlinkt {ratingCarId} das Hauptfahrzeug
     condition: ctx => ctx.ratableUnratedCars >= 1,
-  },
-  {
-    key: 'home_charging_savings_v1',
-    releasedAt: '2026-09-02', // nur Bestandsuser - Neuregistrierte finden die Kachel ohnehin sofort im Dashboard
-    // Endet mit dem Probemonat der Bestandsuser (Launch 2026-09-03 + 30 Tage) - danach zeigt
-    // das Dashboard fuer sie den Teaser, die Ankuendigung wuerde sonst auf eine Sperre fuehren.
-    expiresAt: '2026-10-03',
-    titleKey: 'announcements.home_charging_savings_v1_title',
-    bodyKey: 'announcements.home_charging_savings_v1_body',
-    ctaLabelKey: 'announcements.home_charging_savings_v1_cta',
-    ctaRoute: '/dashboard',
-  },
-  {
-    key: 'tesla_location_reconnect_v1',
-    releasedAt: '2026-07-28', // nur Bestandsuser - Neuverbindungen bringen den Scope schon mit
-    expiresAt: '2026-09-30',
-    titleKey: 'announcements.tesla_location_reconnect_v1_title',
-    bodyKey: 'announcements.tesla_location_reconnect_v1_body',
-    ctaLabelKey: 'announcements.tesla_location_reconnect_v1_cta',
-    // Startet den OAuth-Redirect direkt aus dem Modal statt nur zu /imports zu verlinken - der
-    // User muesste dort sonst den Connect-Button erst noch selbst finden. Nutzt denselben
-    // startReconnect wie TeslaFleetIntegration.vue/TeslaTelemetryPrompt.vue. Wirft bei jedem
-    // Nicht-Erfolg (kein carId, 'not_configured', Netzwerkfehler) - das Modal dismissed nur bei
-    // Erfolg, sonst bleibt die Ankuendigung offen und zeigt einen Fehlertext statt spurlos zu
-    // verschwinden.
-    ctaAction: async () => {
-      // Lazy geladen: dieser Config-Modul wird auch in reinen Node-Kontexten importiert
-      // (z. B. beim Sammeln der E2E-Specs). Ein statischer Import zoege dort die Axios-Kette
-      // mit, die auf import.meta.env baut und ausserhalb von Vite bricht.
-      const teslaFleetService = (await import('../api/teslaFleetService')).default
-      const status = await teslaFleetService.getStatus()
-      if (!status.carId) throw new Error('No Tesla car linked')
-      const result = await teslaFleetService.startReconnect(status.carId)
-      if (result === 'not_configured') throw new Error('Tesla Fleet API not configured')
-    },
-
-    // Nur Tesla-Nutzer, deren Verbindung den vehicle_location-Scope nachweislich noch nicht hat -
-    // nicht mehr jeder verbundene Tesla-User pauschal (die mit dem Scope brauchten den Hinweis nie).
-    condition: (ctx) => ctx.hasTeslaConnection && !ctx.teslaLocationScopeGranted,
   },
   {
     key: 'power_curve_share_v1',
@@ -91,14 +51,6 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     // Ladekurven brauchen Tesla-Telemetrie (nur dort entsteht eine) und das
     // Analytics-Entitlement - ohne beides laeuft der Teilen-Button ins Leere.
     condition: (ctx) => ctx.hasTeslaConnection && ctx.isAutoSyncLive,
-  },
-  {
-    key: 'survey_ev_pain_points_2026',
-    expiresAt: '2026-09-30',
-    titleKey: 'announcements.survey_ev_pain_points_2026_title',
-    bodyKey: 'announcements.survey_ev_pain_points_2026_body',
-    ctaLabelKey: 'announcements.survey_ev_pain_points_2026_cta',
-    ctaRoute: '/umfrage/ev-pain-points-2026',
   },
   {
     key: 'euda_autosync_v1',
