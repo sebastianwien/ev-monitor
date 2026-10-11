@@ -37,6 +37,24 @@ class PublicModelByEnumControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void storyContext_isSmallAndPublic() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/models/Tesla/Model_3/story-context", String.class);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue(response.getBody().contains("fleetWinterModels"));
+        assertTrue(response.getHeaders().getCacheControl().contains("public"));
+    }
+
+    @Test
+    void storyContext_returns404ForUnknownModel() {
+        ResponseEntity<String> response = restTemplate.getForEntity(
+                "/api/public/models/Tesla/Model_Q/story-context", String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
     void getModelStatsByEnum_returns404ForUnknownEnum() {
         ResponseEntity<String> response = restTemplate.getForEntity(
                 "/api/public/models/by-enum/UNKNOWN_FLYING_CAR", String.class);

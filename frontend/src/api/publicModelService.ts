@@ -201,6 +201,25 @@ export async function getCategories(): Promise<VehicleCategoryItem[]> {
     return response.data
 }
 
+/** Ranking values the model page story needs; null when the request fails or the model is unknown. */
+export interface ModelStoryContext {
+    fastChargePowerKw: number | null
+    /** median winter ÷ summer consumption over the models with both seasons */
+    fleetWinterFactor: number | null
+    fleetWinterModels: number
+    minRealKwhPer100km: number | null
+    maxRealKwhPer100km: number | null
+}
+
+export async function getStoryContext(brand: string, model: string): Promise<ModelStoryContext | null> {
+    try {
+        const response = await apiClient.get<ModelStoryContext>(`/public/models/${encodeURIComponent(brand)}/${encodeURIComponent(model)}/story-context`)
+        return response.data
+    } catch {
+        return null
+    }
+}
+
 export async function getTopModels(limit: number = 12): Promise<TopModelPreview[]> {
     const response = await apiClient.get<TopModelPreview[]>(`/public/models/top?limit=${limit}`)
     return response.data

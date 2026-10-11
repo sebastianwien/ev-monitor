@@ -2,6 +2,8 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.ChargingPriceService;
 import com.evmonitor.application.ChargingReferencePrices;
+import com.evmonitor.application.ModelStoryContext;
+import com.evmonitor.application.ModelStoryContextService;
 import com.evmonitor.application.ModelWithoutDataResponse;
 import com.evmonitor.application.PlatformStatsResponse;
 import com.evmonitor.application.PublicBrandResponse;
@@ -32,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 public class PublicModelController {
 
     private final PublicModelService publicModelService;
+    private final ModelStoryContextService modelStoryContextService;
     private final ChargingPriceService chargingPriceService;
 
     private static final CacheControl PUBLIC_1H = CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic();
@@ -97,6 +100,25 @@ public class PublicModelController {
 
         return publicModelService.getModelStats(brand, model, isSeedUser)
                 .map(body -> ResponseEntity.ok().cacheControl(cc).<PublicModelStatsResponse>body(body))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * GET /api/public/models/{brand}/{model}/story-context
+     * Fast-charge power of the model and the fleet winter factor for the model page story,
+     * so the page does not load the whole ranking. 404 for an unknown model.
+     */
+    @GetMapping("/models/{brand}/{model}/story-context")
+    public ResponseEntity<ModelStoryContext> getStoryContext(
+            @PathVariable String brand,
+            @PathVariable String model,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        boolean isSeedUser = principal != null && principal.getUser().isSeedData();
+        CacheControl cc = isSeedUser ? NO_STORE : PUBLIC_1H;
+
+        return modelStoryContextService.context(brand, model, isSeedUser)
+                .map(body -> ResponseEntity.ok().cacheControl(cc).<ModelStoryContext>body(body))
                 .orElse(ResponseEntity.notFound().build());
     }
 

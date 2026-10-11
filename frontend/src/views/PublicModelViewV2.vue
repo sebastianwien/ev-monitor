@@ -455,7 +455,7 @@ import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { useCountryStore } from '../stores/country'
-import { getModelStats, getTopModels, type PublicModelStats, type SeasonalDistribution, type TopModelPreview } from '../api/publicModelService'
+import { getModelStats, getStoryContext, type ModelStoryContext, type PublicModelStats, type SeasonalDistribution } from '../api/publicModelService'
 import {
   ArrowTrendingUpIcon, ClipboardDocumentListIcon, SunIcon, ChartBarIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
@@ -645,8 +645,8 @@ const selectedVariant = computed(() => activeVariants.value[selectedVariantIndex
 // the variant the reader picked. That battery also goes to the server, so the band and the
 // page never disagree.
 
-/** The ranking list: fast-charge power of this model and the fleet winter factor. Empty on failure. */
-const topModels = ref<TopModelPreview[]>([])
+/** Ranking values for the story (fast-charge power, driver spread, fleet winter factor); null on failure. */
+const storyContext = ref<ModelStoryContext | null>(null)
 /** Same threshold as the backend: a season counts from 10 logs. */
 const MIN_LOGS_PER_SEASON = 10
 /** Open ranges instead of four chips, so 7.000 km or 45 % motorway fit as well */
@@ -665,17 +665,10 @@ const variantLabel = computed(() => {
   return v ? (v.displayLabel || v.variantName || `${v.batteryCapacityKwh} kWh`) : ''
 })
 
-const topEntry = computed(() => topModels.value.find(m => m.model === stats.value?.model) ?? null)
-
-/** Median winter/summer ratio over the models that have both seasons, for models without winter data. */
+/** Fleet winter factor from the backend, for models without winter data */
 const fleetWinterFactor = computed(() => {
-  const ratios = topModels.value
-    .flatMap(m => m.summerConsumptionKwhPer100km && m.winterConsumptionKwhPer100km
-      ? [m.winterConsumptionKwhPer100km / m.summerConsumptionKwhPer100km] : [])
-    .sort((a, b) => a - b)
-  if (ratios.length < 3) return null
-  const mid = Math.floor(ratios.length / 2)
-  return { factor: ratios.length % 2 ? ratios[mid] : (ratios[mid - 1] + ratios[mid]) / 2, models: ratios.length }
+  const c = storyContext.value
+  return c?.fleetWinterFactor != null ? { factor: c.fleetWinterFactor, models: c.fleetWinterModels } : null
 })
 
 const storyInput = computed((): StoryInput => {
@@ -692,13 +685,13 @@ const storyInput = computed((): StoryInput => {
     wltpKwhPer100km: v?.officialConsumptionKwhPer100km ?? worstOfficialConsumption.value,
     wltpRangeKm: v?.officialRangeKm ?? bestOfficialRange.value,
     avgKwhPer100km: st.avgConsumptionKwhPer100km,
-    minKwhPer100km: topEntry.value?.minRealConsumptionKwhPer100km ?? v?.realConsumptionMinKwhPer100km ?? null,
-    maxKwhPer100km: topEntry.value?.maxRealConsumptionKwhPer100km ?? v?.realConsumptionMaxKwhPer100km ?? null,
+    minKwhPer100km: storyContext.value?.minRealKwhPer100km ?? v?.realConsumptionMinKwhPer100km ?? null,
+    maxKwhPer100km: storyContext.value?.maxRealKwhPer100km ?? v?.realConsumptionMaxKwhPer100km ?? null,
     routeType: rt ? { highway: rt.highwayKwhPer100km, city: rt.cityKwhPer100km, combined: rt.combinedKwhPer100km,
       highwayCars: rt.highwayCarCount, cityLogs: rt.cityLogCount, combinedLogs: rt.combinedLogCount } : null,
     seasonal: seasonOk ? { summer: season.summerConsumptionKwhPer100km!, winter: season.winterConsumptionKwhPer100km!,
       summerLogs: season.summerLogCount, winterLogs: season.winterLogCount } : null,
-    fastChargePowerKw: topEntry.value?.fastChargePowerKw ?? null,
+    fastChargePowerKw: storyContext.value?.fastChargePowerKw ?? null,
     avgChargingPowerKw: st.avgChargingPowerKw,
     acPricePerKwh: st.acAvgCostPerKwh, dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
     fleetWinterFactor: fleetWinterFactor.value,
@@ -1152,11 +1145,11 @@ onMounted(async () => {
 
   // Bewertungen parallel und im selben Lade-Flow, damit sie im Prerender-HTML stehen
   const ratingsRequest = ratingService.getPublicRatings(brand, model).catch(() => null)
-  const topRequest = getTopModels(200).catch((): TopModelPreview[] => [])
+  const contextRequest = getStoryContext(brand, model)
   try {
-    const [data, ratingData, top] = await Promise.all([getModelStats(brand, model), ratingsRequest, topRequest])
+    const [data, ratingData, context] = await Promise.all([getModelStats(brand, model), ratingsRequest, contextRequest])
     ratings.value = ratingData
-    topModels.value = top
+    storyContext.value = context
     if (!data) {
       notFound.value = true
     } else {
