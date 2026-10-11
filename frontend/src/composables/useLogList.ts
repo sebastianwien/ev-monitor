@@ -231,7 +231,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       tripStartedAt: fmt(start),
       tripEndedAt: fmt(end),
       distanceKm: '',
-      routeType: 'COMBINED',
+      routeType: '',
     }
     tripError.value = null
   }

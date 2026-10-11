@@ -8,7 +8,7 @@ import WheelIcon from '../icons/WheelIcon.vue'
 import SnowflakeIcon from '../icons/SnowflakeIcon.vue'
 
 /** Strecke und Reifen: Übersetzungsschlüssel und Icon je Wert, geteilt von Details-Formular und Vorschau-Pillen. */
-export const ROUTE_CHIPS: { value: LogFormData['routeType']; key: string; icon: Component }[] = [
+export const ROUTE_CHIPS: { value: NonNullable<LogFormData['routeType']>; key: string; icon: Component }[] = [
   { value: 'CITY', key: 'logwizard.d_route_city', icon: CityIcon },
   { value: 'COMBINED', key: 'logwizard.d_route_mixed', icon: RouteIcon },
   { value: 'HIGHWAY', key: 'logwizard.d_route_highway', icon: RoadIcon },

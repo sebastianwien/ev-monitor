@@ -42,7 +42,7 @@ const numField = 'w-full min-w-0 bg-transparent border-0 p-0 text-right text-xl 
       <span :class="LABEL">{{ t('logwizard.d_route') }}</span>
       <div :class="[SEG_GROUP, 'grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_route')">
         <button v-for="c in routeChips" :key="c.value" type="button" role="radio" :aria-checked="form.routeType === c.value" :class="segClass(form.routeType === c.value)"
-          @click="form.routeType = c.value"><component :is="c.icon" class="h-4 w-4 flex-shrink-0" />{{ c.label }}</button>
+          @click="form.routeType = form.routeType === c.value ? null : c.value"><component :is="c.icon" class="h-4 w-4 flex-shrink-0" />{{ c.label }}</button>
       </div>
     </div>
 

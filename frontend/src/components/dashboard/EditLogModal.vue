@@ -240,7 +240,7 @@ const formData = ref<LogFormData>({
   maxChargingPowerKw: props.log.maxChargingPowerKw ?? null,
   loggedAt: toDatetimeLocal(props.log.loggedAt),
   chargingType: (props.log.chargingType === 'DC' ? 'DC' : 'AC'),
-  routeType: props.log.routeType ?? 'COMBINED',
+  routeType: props.log.routeType ?? null,
   tireType: props.log.tireType ?? 'SUMMER',
   latitude: null,
   longitude: null,

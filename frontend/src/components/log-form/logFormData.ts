@@ -18,7 +18,8 @@ export interface LogFormData {
   maxChargingPowerKw: number | null
   loggedAt: string | null
   chargingType: 'AC' | 'DC'
-  routeType: 'CITY' | 'COMBINED' | 'HIGHWAY'
+  /** null = unknown: nothing is preselected, an unanswered route is not "combined" */
+  routeType: 'CITY' | 'COMBINED' | 'HIGHWAY' | null
   tireType: 'SUMMER' | 'ALL_YEAR' | 'WINTER'
   latitude: number | null
   longitude: number | null

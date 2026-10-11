@@ -82,7 +82,7 @@ const fetchLogs = async () => {
     const res = await api.get(`/logs?carId=${selectedCarId.value}&limit=10`)
     logs.value = res.data.sort((a: any, b: any) => new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime())
     const lastTire = logs.value.find(l => l.tireType); if (lastTire) form.value.tireType = lastTire.tireType
-    const lastRoute = logs.value.find(l => l.routeType); if (lastRoute) form.value.routeType = lastRoute.routeType
+    // tires stay on the car; the route is not carried over, each charge has its own trips
   } catch { logs.value = [] }
 }
 watch(selectedCarId, fetchLogs)

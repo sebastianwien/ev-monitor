@@ -41,7 +41,7 @@ export function emptyLogForm(): LogFormData {
     kwhCharged: null, costEur: null, costExchangeRate: null, costCurrency: null,
     odometerKm: null, socAfterChargePercent: null, socBeforeChargePercent: null,
     kwhAtVehicle: null, chargeDurationMinutes: null, maxChargingPowerKw: null,
-    loggedAt: null, chargingType: 'AC', routeType: 'COMBINED', tireType: 'SUMMER',
+    loggedAt: null, chargingType: 'AC', routeType: null, tireType: 'SUMMER',
     latitude: null, longitude: null, isPublicCharging: false, cpoName: null,
     chargingProviderId: null, chargingSite: null, applyTariffToLocation: false,
   }
@@ -92,10 +92,10 @@ export function buildLogPayload(f: LogFormData, carId: string, ocrUsed: boolean)
     odometerKm: f.odometerKm,
     socAfterChargePercent: f.socAfterChargePercent,
     chargingType: f.chargingType,
-    routeType: f.routeType,
     tireType: f.tireType,
     isPublicCharging: f.isPublicCharging,
   }
+  if (f.routeType) payload.routeType = f.routeType
   if (positive(f.kwhCharged)) payload.kwhCharged = round2(f.kwhCharged!)
   if (positive(f.kwhAtVehicle)) payload.kwhAtVehicle = round2(f.kwhAtVehicle!)
   if (f.socBeforeChargePercent != null) payload.socBeforeChargePercent = f.socBeforeChargePercent
@@ -149,13 +149,14 @@ export interface OptionalFact { kind: OptionalFactKind; value: string | number |
 /**
  * Die optionalen Angaben, die gerade einen Wert tragen, als flache Liste für die
  * Schnellkontrolle über dem zugeklappten "Mehr Details". Zeit gehört dazu, sobald sie
- * nicht als eigene Kachel steht (null = jetzt); Strecke und Reifen sind immer vorbelegt.
+ * nicht als eigene Kachel steht (null = jetzt); Reifen sind vorbelegt, die Strecke steht erst, wenn gewählt.
  */
 export function optionalFacts(f: LogFormData, opts: { withTime?: boolean } = {}): OptionalFact[] {
   const facts: OptionalFact[] = []
   if (opts.withTime !== false) facts.push({ kind: 'time', value: f.loggedAt })
   if (f.socBeforeChargePercent != null) facts.push({ kind: 'socBefore', value: f.socBeforeChargePercent })
-  facts.push({ kind: 'route', value: f.routeType }, { kind: 'tires', value: f.tireType })
+  if (f.routeType) facts.push({ kind: 'route', value: f.routeType })
+  facts.push({ kind: 'tires', value: f.tireType })
   if (positive(f.chargeDurationMinutes)) facts.push({ kind: 'duration', value: f.chargeDurationMinutes })
   if (positive(f.maxChargingPowerKw)) facts.push({ kind: 'peak', value: f.maxChargingPowerKw })
   return facts

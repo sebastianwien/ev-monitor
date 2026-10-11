@@ -91,9 +91,10 @@ describe('buildLogPayload', () => {
     expect(p).toMatchObject({
       carId: 'car-1', kwhCharged: 42.35, costEur: 29.62, odometerKm: 48211, socAfterChargePercent: 80,
       maxChargingPowerKw: 187.46, latitude: 52.52, longitude: 13.405,
-      isPublicCharging: true, cpoName: 'IONITY', chargingType: 'DC', routeType: 'COMBINED', tireType: 'SUMMER',
+      isPublicCharging: true, cpoName: 'IONITY', chargingType: 'DC', tireType: 'SUMMER',
     })
     expect(p).not.toHaveProperty('kwhAtVehicle')
+    expect(p).not.toHaveProperty('routeType')
     expect(p).not.toHaveProperty('socBeforeChargePercent')
     expect(p).not.toHaveProperty('ocrUsed')
     expect(p).not.toHaveProperty('loggedAt')
@@ -162,13 +163,19 @@ describe('missingRequired', () => {
 })
 
 describe('optionalFacts', () => {
-  it('liefert nur gesetzte Werte in fester Reihenfolge, Zeit und Vorbelegungen immer', () => {
+  it('liefert nur gesetzte Werte in fester Reihenfolge, Zeit und Reifen immer, die Strecke erst wenn gewählt', () => {
     const f = emptyLogForm()
+    // no route type preselected: an unanswered route is unknown, not "combined"
+    expect(f.routeType).toBeNull()
     expect(optionalFacts(f)).toEqual([
       { kind: 'time', value: null },
-      { kind: 'route', value: 'COMBINED' },
       { kind: 'tires', value: 'SUMMER' },
     ])
+  })
+
+  it('schickt keinen Streckentyp, solange keiner gewählt ist', () => {
+    expect(buildLogPayload(emptyLogForm(), 'car-1', false)).not.toHaveProperty('routeType')
+    expect(buildLogPayload({ ...emptyLogForm(), routeType: 'HIGHWAY' }, 'car-1', false).routeType).toBe('HIGHWAY')
   })
 
   it('nimmt Akku vorher, Dauer und Spitzenleistung auf, sobald sie eingetragen sind', () => {
@@ -178,7 +185,7 @@ describe('optionalFacts', () => {
   })
 
   it('kann die Zeit weglassen, wenn sie als eigene Kachel steht', () => {
-    expect(optionalFacts(emptyLogForm(), { withTime: false }).map(x => x.kind)).toEqual(['route', 'tires'])
+    expect(optionalFacts(emptyLogForm(), { withTime: false }).map(x => x.kind)).toEqual(['tires'])
   })
 })
 

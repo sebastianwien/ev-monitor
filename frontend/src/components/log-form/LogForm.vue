@@ -82,7 +82,7 @@ const formData = ref<LogFormData>({
   maxChargingPowerKw: null,
   loggedAt: null,
   chargingType: 'AC',
-  routeType: 'COMBINED',
+  routeType: null,
   tireType: 'SUMMER',
   latitude: null,
   longitude: null,
@@ -166,8 +166,6 @@ const fetchLogs = async () => {
     if (logs.value.length > 0) {
       const lastWithTireType = logs.value.find(l => l.tireType)
       if (lastWithTireType) formData.value.tireType = lastWithTireType.tireType
-      const lastWithRouteType = logs.value.find(l => l.routeType)
-      if (lastWithRouteType) formData.value.routeType = lastWithRouteType.routeType
     }
   } catch (err) {
     console.error('Failed to fetch logs:', err)
@@ -232,14 +230,13 @@ const submitLog = async () => {
 
     await applyTariffToLocationIfRequested(f)
 
-    // Reset form (keep car + tireType + routeType)
+    // Reset form (keep car + tireType; the route belongs to this charge only)
     const savedTireType = f.tireType
-    const savedRouteType = f.routeType
     formData.value = {
       kwhCharged: null, costEur: null, costExchangeRate: null, costCurrency: null, odometerKm: null,
       socAfterChargePercent: null, socBeforeChargePercent: null, kwhAtVehicle: null,
       chargeDurationMinutes: null, maxChargingPowerKw: null, loggedAt: null,
-      chargingType: 'AC', routeType: savedRouteType,
+      chargingType: 'AC', routeType: null,
       tireType: savedTireType,
       latitude: null, longitude: null,
       isPublicCharging: false, cpoName: null, chargingProviderId: null, chargingSite: null,

@@ -3,6 +3,7 @@ import { computed, ref, watch, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ClockIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import type { LogFormData } from '../log-form/logFormData'
+import RouteIcon from '../icons/RouteIcon.vue'
 import { ROUTE_CHIPS, TIRE_CHIPS } from './optionalChips'
 import { SEG_GROUP, segClass } from './segments'
 import { useTimePick, nowLocal } from './useTimePick'
@@ -28,16 +29,18 @@ const timeLabel = computed(() => {
 })
 interface Pill { field: Field; text: string; icon: Component; label: string }
 const pills = computed<Pill[]>(() => {
-  const route = ROUTE_CHIPS.find(c => c.value === form.value.routeType)!
+  const route = ROUTE_CHIPS.find(c => c.value === form.value.routeType)
   const tires = TIRE_CHIPS.find(c => c.value === form.value.tireType)!
   return [
     { field: 'time', text: timeLabel.value, icon: ClockIcon, label: t('logwizard.d_when') },
-    { field: 'route', text: t(route.key), icon: route.icon, label: t('logwizard.d_route') },
+    // open route: the pill reads "Strecke", nothing looks chosen
+    { field: 'route', text: route ? t(route.key) : t('logwizard.d_route'), icon: route?.icon ?? RouteIcon, label: t('logwizard.d_route') },
     { field: 'tires', text: t(tires.key), icon: tires.icon, label: t('logwizard.d_tires') },
   ]
 })
 const toggle = (f: Field) => { editing.value = editing.value === f ? null : f }
-const pickRoute = (v: LogFormData['routeType']) => { form.value.routeType = v; editing.value = null }
+/** Tapping the chosen route again clears it back to unknown */
+const pickRoute = (v: NonNullable<LogFormData['routeType']>) => { form.value.routeType = form.value.routeType === v ? null : v; editing.value = null }
 const pickTires = (v: LogFormData['tireType']) => { form.value.tireType = v; editing.value = null }
 /** Nativer Picker statt Eingabezeile: showPicker() braucht die Tap-Geste, deshalb direkt im Click-Handler */
 const timeInput = ref<HTMLInputElement | null>(null)

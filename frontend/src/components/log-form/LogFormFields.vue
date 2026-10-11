@@ -856,17 +856,18 @@ function cardPriceLabel(p: ChargingProvider): string | null {
     <div>
       <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 text-center">{{ t('logfields.route_type_label') }}</label>
       <div class="relative flex w-full rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 p-0.5">
-        <div class="absolute top-0.5 bottom-0.5 rounded-full pill-slider transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
+        <!-- No slider while the route is open: nothing is preselected, tapping the chosen one again clears it -->
+        <div v-if="form.routeType" class="absolute top-0.5 bottom-0.5 rounded-full pill-slider transition-transform duration-200 ease-in-out pointer-events-none" style="width: calc(33.333% - 2px)"
           :style="{ transform: `translateX(${['CITY','COMBINED','HIGHWAY'].indexOf(form.routeType) * 100}%)` }" />
-        <button type="button" @click="form.routeType = 'CITY'"
+        <button type="button" :aria-pressed="form.routeType === 'CITY'" @click="form.routeType = form.routeType === 'CITY' ? null : 'CITY'"
           :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'CITY' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.route_city') }}
         </button>
-        <button type="button" @click="form.routeType = 'COMBINED'"
+        <button type="button" :aria-pressed="form.routeType === 'COMBINED'" @click="form.routeType = form.routeType === 'COMBINED' ? null : 'COMBINED'"
           :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'COMBINED' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.route_mix') }}
         </button>
-        <button type="button" @click="form.routeType = 'HIGHWAY'"
+        <button type="button" :aria-pressed="form.routeType === 'HIGHWAY'" @click="form.routeType = form.routeType === 'HIGHWAY' ? null : 'HIGHWAY'"
           :class="['relative z-10 flex-1 px-1 py-1.5 rounded-full text-xs font-medium transition-colors duration-200', form.routeType === 'HIGHWAY' ? 'text-indigo-700 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300']">
           {{ t('logfields.route_highway') }}
         </button>
