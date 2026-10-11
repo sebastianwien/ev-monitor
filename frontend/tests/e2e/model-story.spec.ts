@@ -22,7 +22,7 @@ async function setSlider(page: Page, key: string, value: number) {
 async function answerAll(page: Page) {
   await setSlider(page, 'annualKm', 20000);
   await setSlider(page, 'highwayShare', 40);
-  await page.getByTestId('chip-commute-40').click();
+  await setSlider(page, 'commute', 35);
   await page.getByTestId('chip-longTrip-500').click();
   await page.getByTestId('chip-place-true').click();
 }
@@ -65,6 +65,14 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.locator('[data-testid^="chip-"][aria-pressed="true"]')).toHaveCount(0);
       await expect(page.getByTestId('slider-annualKm-value')).toHaveCount(0);
       await expect(page.getByTestId('slider-highwayShare-value')).toHaveCount(0);
+    });
+
+    test('die Pendelstrecke ist ein Regler und geht mit ihrem Wert an den Server', async ({ page }) => {
+      await openStory(page);
+      const preview = page.waitForResponse(r => r.url().includes('/api/public/personal-range/') && r.request().method() === 'POST');
+      await setSlider(page, 'commute', 35);
+      await expect(page.getByTestId('slider-commute-value')).toContainText('35 km');
+      expect((await preview).request().postDataJSON()).toEqual(expect.objectContaining({ commuteKmPerDay: 35 }));
     });
 
     test('der Jahresregler rechnet die Autobahn-Kilometer mit', async ({ page }) => {

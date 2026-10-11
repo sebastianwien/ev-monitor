@@ -652,7 +652,7 @@ const MIN_LOGS_PER_SEASON = 10
 /** Open ranges instead of four chips, so 7.000 km or 45 % motorway fit as well */
 const ANNUAL_SLIDER = { min: 5_000, max: 50_000, step: 1_000, start: 15_000 }
 const HIGHWAY_SLIDER = { min: 0, max: 100, step: 5, start: 30 }
-const COMMUTE_CHIPS = [20, 40, 60, 100] as const
+const COMMUTE_SLIDER = { min: 5, max: 150, step: 5, start: 40 }
 const LONG_TRIP_CHIPS = [250, 500, 800, 1_200] as const
 const QUESTION_CHAPTER: Record<QuestionKey, ChapterKey> = { annualKm: 'consumption', highwayShare: 'consumption', commute: 'season', longTrip: 'longTrip', place: 'cost' }
 type QuestionKey = 'annualKm' | 'highwayShare' | 'commute' | 'longTrip' | 'place'
@@ -728,7 +728,7 @@ const story = computed(() => buildModelStory(storyInput.value, {
 }))
 
 /** The reader's answers; the battery follows the variant switcher. Unanswered ones hold the slider start. */
-const answers = reactive({ annualKm: ANNUAL_SLIDER.start, highwayShare: HIGHWAY_SLIDER.start, commuteKmPerDay: 40, homeCharging: true, longTripKm: 500, pricePerKwh: null as number | null })
+const answers = reactive({ annualKm: ANNUAL_SLIDER.start, highwayShare: HIGHWAY_SLIDER.start, commuteKmPerDay: COMMUTE_SLIDER.start, homeCharging: true, longTripKm: 500, pricePerKwh: null as number | null })
 /** Per question, so answering the yearly mileage does not mark the motorway row as answered too */
 const answered = reactive(new Set<QuestionKey>())
 const answeredCount = computed(() => answered.size)
@@ -749,8 +749,8 @@ const communityPricePlaceholder = computed(() => stats.value?.avgCostPerKwh ? fo
 function chipsOf(key: QuestionKey): { label: string; value: number | boolean }[] {
   switch (key) {
     case 'annualKm':
-    case 'highwayShare': return []
-    case 'commute': return COMMUTE_CHIPS.map(km => ({ value: km, label: formatDistance(km) }))
+    case 'highwayShare':
+    case 'commute': return []
     case 'longTrip': return LONG_TRIP_CHIPS.map(km => ({ value: km, label: formatDistance(km) }))
     case 'place': {
       const st = stats.value
@@ -781,6 +781,7 @@ function formatHighway(share: number): string {
 
 function sliderOf(key: QuestionKey): StoryQuestion['slider'] {
   if (key === 'annualKm') return { ...ANNUAL_SLIDER, format: km => formatDistance(km) }
+  if (key === 'commute') return { ...COMMUTE_SLIDER, format: km => formatDistance(km) }
   if (key === 'highwayShare') return {
     ...HIGHWAY_SLIDER,
     format: formatHighway,
@@ -849,7 +850,7 @@ function snap(slider: { min: number; max: number; step: number }, value: number)
 function applyProfile(p: PersonalRangeInputs) {
   answers.annualKm = snap(ANNUAL_SLIDER, p.annualKm ?? answers.annualKm)
   answers.highwayShare = snap(HIGHWAY_SLIDER, p.highwaySharePercent)
-  answers.commuteKmPerDay = nearest(COMMUTE_CHIPS, p.commuteKmPerDay)
+  answers.commuteKmPerDay = snap(COMMUTE_SLIDER, p.commuteKmPerDay)
   answers.longTripKm = nearest(LONG_TRIP_CHIPS, p.longTripKm)
   answers.homeCharging = p.homeCharging
   answers.pricePerKwh = p.pricePerKwh ?? null
