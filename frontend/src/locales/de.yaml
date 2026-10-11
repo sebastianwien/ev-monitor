@@ -3835,6 +3835,8 @@ personal_range:
   measured: "gemessen"
   estimated: "geschätzt"
   partly_measured: "zu {percent} % gemessen, Rest aus WLTP"
+  source_spec: "Datenblatt"
+  source_spec_derived: "aus Brutto-Kapazität geschätzt"
   assumption_BATTERY: "Netto-Akku {value}"
   assumption_SUMMER_CONSUMPTION: "Verbrauch im Sommer {value}"
   assumption_WINTER_CONSUMPTION: "Verbrauch im Winter {value}"

@@ -3714,6 +3714,8 @@ personal_range:
   measured: "målt"
   estimated: "anslått"
   partly_measured: "{percent} % målt, resten fra WLTP"
+  source_spec: "datablad"
+  source_spec_derived: "anslått fra bruttokapasitet"
   assumption_BATTERY: "Netto batteri {value}"
   assumption_SUMMER_CONSUMPTION: "Forbruk om sommeren {value}"
   assumption_WINTER_CONSUMPTION: "Forbruk om vinteren {value}"

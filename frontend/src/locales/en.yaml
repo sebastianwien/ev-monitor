@@ -3829,6 +3829,8 @@ personal_range:
   measured: "measured"
   estimated: "estimated"
   partly_measured: "{percent} % measured, rest from WLTP"
+  source_spec: "spec sheet"
+  source_spec_derived: "estimated from gross capacity"
   assumption_BATTERY: "Net battery {value}"
   assumption_SUMMER_CONSUMPTION: "Consumption in summer {value}"
   assumption_WINTER_CONSUMPTION: "Consumption in winter {value}"

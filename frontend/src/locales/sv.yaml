@@ -3714,6 +3714,8 @@ personal_range:
   measured: "uppmätt"
   estimated: "uppskattat"
   partly_measured: "{percent} % uppmätt, resten från WLTP"
+  source_spec: "datablad"
+  source_spec_derived: "uppskattat från bruttokapacitet"
   assumption_BATTERY: "Nettobatteri {value}"
   assumption_SUMMER_CONSUMPTION: "Förbrukning på sommaren {value}"
   assumption_WINTER_CONSUMPTION: "Förbrukning på vintern {value}"

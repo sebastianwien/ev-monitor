@@ -15,6 +15,7 @@ const RESULT = {
   winterRangeKm: 320, summerRangeKm: 450, longTripStops: 1, longTripChargingMinutes: 30,
   chargesPerWeek: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
   assumptions: [
+    { key: 'BATTERY', measured: true, value: 77 },
     { key: 'WINTER_CONSUMPTION', measured: true, value: 21.4 },
     { key: 'HIGHWAY_CONSUMPTION', measured: false, value: 19.5, measuredPercent: 50 },
   ],
@@ -99,7 +100,8 @@ describe('PersonalRangeCalculator', () => {
     const result = host.querySelector('[data-testid="personal-range-result"]')!
     expect(result.textContent).toContain('320')
     expect(result.textContent).toContain('46')
-    expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(2)
+    expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(3)
+    expect(result.textContent).toContain('(Datenblatt)')
     expect(result.textContent).toContain('zu 50 % gemessen')
     expect(analytics.track).toHaveBeenCalledWith('personal_range_result', expect.objectContaining({ data_level: 'PARTIAL' }))
   })

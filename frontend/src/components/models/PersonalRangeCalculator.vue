@@ -138,8 +138,10 @@ const gateLead = computed(() => props.carCount >= MIN_MEASURED_CARS
   ? t('personal_range.gate_lead_measured', { model: props.modelName, logs: formatNumber(props.logCount), cars: formatNumber(props.carCount) })
   : t('personal_range.gate_lead_thin', { model: props.modelName, cars: props.carCount }, props.carCount))
 
-/** gemessen, geschätzt, or the measured share of a blend */
+/** Datenblatt for the battery; otherwise gemessen, geschätzt, or the measured share of a blend */
 function sourceText(a: PersonalRangeAssumption): string {
+  // The battery comes from the spec sheet, never from community measurements
+  if (a.key === 'BATTERY') return a.measured ? t('personal_range.source_spec') : t('personal_range.source_spec_derived')
   if (a.measured) return t('personal_range.measured')
   if (a.measuredPercent && a.measuredPercent > 0) return t('personal_range.partly_measured', { percent: a.measuredPercent })
   return t('personal_range.estimated')
