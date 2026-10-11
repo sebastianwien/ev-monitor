@@ -211,14 +211,15 @@ async function onCalculate() {
 async function onAuthenticated() {
   gateOpen.value = false
   takePending()
-  await calculate()
+  await calculate(true)
 }
 
-async function calculate() {
+/** @param email true right after the gate: the result also goes out as a mail, as the gate promised */
+async function calculate(email = false) {
   busy.value = true
   error.value = ''
   try {
-    result.value = await personalRangeService.calculate(props.brand, props.model, inputs.value)
+    result.value = await personalRangeService.calculate(props.brand, props.model, inputs.value, email)
     analytics.track('personal_range_result', { model: props.modelName, data_level: result.value.dataLevel })
   } catch {
     error.value = t('personal_range.error')
@@ -233,7 +234,7 @@ onMounted(async () => {
   if (pending) {
     // Back from a login redirect: the visitor already asked for the result
     applyInputs(pending)
-    await calculate()
+    await calculate(true)
     return
   }
   try {

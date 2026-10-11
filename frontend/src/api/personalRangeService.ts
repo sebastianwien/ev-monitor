@@ -33,9 +33,12 @@ export interface PersonalRangeResult {
 }
 
 export const personalRangeService = {
-  async calculate(brand: string, model: string, inputs: PersonalRangeInputs): Promise<PersonalRangeResult> {
-    const { data } = await api.post<PersonalRangeResult>(
-      `/personal-range/${encodeURIComponent(brand)}/${encodeURIComponent(model)}`, inputs)
+  /** @param email true sends the result to the user's address as well (once, right after the gate) */
+  async calculate(brand: string, model: string, inputs: PersonalRangeInputs, email = false): Promise<PersonalRangeResult> {
+    const url = `/personal-range/${encodeURIComponent(brand)}/${encodeURIComponent(model)}`
+    const { data } = email
+      ? await api.post<PersonalRangeResult>(url, inputs, { params: { email: true } })
+      : await api.post<PersonalRangeResult>(url, inputs)
     return data
   },
 

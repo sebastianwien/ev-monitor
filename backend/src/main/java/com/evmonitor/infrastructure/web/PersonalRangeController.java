@@ -13,7 +13,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 /**
  * Personal range calculator on the model pages. Logged-in users only (falls under the
@@ -26,14 +29,19 @@ public class PersonalRangeController {
 
     private final PersonalRangeService personalRangeService;
 
+    /** @param email true also mails the result to the user (the gate promises that once) */
     @PostMapping("/{brand}/{model}")
     public ResponseEntity<PersonalRangeResponse> calculate(@PathVariable String brand,
                                                            @PathVariable String model,
                                                            @Valid @RequestBody PersonalRangeRequest request,
+                                                           @RequestParam(defaultValue = "false") boolean email,
                                                            @AuthenticationPrincipal UserPrincipal principal) {
-        return personalRangeService.calculate(principal.getUser().getId(), principal.getUser().isSeedData(),
-                        brand, model, request)
-                .map(ResponseEntity::ok)
+        UUID userId = principal.getUser().getId();
+        return personalRangeService.calculate(userId, principal.getUser().isSeedData(), brand, model, request)
+                .map(result -> {
+                    if (email) personalRangeService.emailResult(userId, brand, model, result);
+                    return ResponseEntity.ok(result);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 

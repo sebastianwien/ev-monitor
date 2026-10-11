@@ -17,7 +17,10 @@ import java.math.BigDecimal;
  * @param publicChargingEfficiency DC efficiency, same source
  * @param fleetFactors        community-vs-WLTP medians over all models; null or single null factors
  *                            mean the calculator's fixed fallbacks apply
- * @param baseKwhPer100km      community consumption without highway share (city, else overall)
+ * @param baseKwhPer100km      community consumption of the model overall (the figure the model page
+ *                            shows); the highway share is blended on top of it
+ * @param dcChargingPowerKw   fast-charge power on a short stop from a low state of charge, the same
+ *                            figure the model ranking uses; null falls back to a fixed estimate
  */
 @Builder(toBuilder = true)
 public record ModelRangeBasis(

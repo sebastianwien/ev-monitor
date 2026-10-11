@@ -37,6 +37,13 @@ class EmailServiceTest {
         return new MimeMessage(Session.getInstance(new Properties()));
     }
 
+    /** The first text part of a (possibly nested) multipart message. */
+    private static String firstText(Object content) throws Exception {
+        if (content instanceof String s) return s;
+        var multipart = (jakarta.mail.Multipart) content;
+        return firstText(multipart.getBodyPart(0).getContent());
+    }
+
     @Test
     void sendVerificationEmail_withDeLocale_sendsDeutschSubject() throws Exception {
         MimeMessage mimeMessage = createRealMimeMessage();
@@ -46,6 +53,26 @@ class EmailServiceTest {
 
         verify(mailSender).send(mimeMessage);
         assertThat(mimeMessage.getSubject()).isEqualTo("EV Monitor - E-Mail bestätigen");
+    }
+
+    @Test
+    void sendPersonalRangeResultEmail_carriesNumbersSubjectAndModelLink() throws Exception {
+        MimeMessage mimeMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+        var inputs = new com.evmonitor.application.personalrange.PersonalRangeRequest(40, 30, true, 500);
+        var result = new com.evmonitor.application.personalrange.PersonalRangeResponse(310, 360, 1, 35,
+                new java.math.BigDecimal("1.5"), 58,
+                com.evmonitor.application.personalrange.PersonalRangeResponse.DataLevel.MEASURED, java.util.List.of());
+
+        emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
+                new EmailService.PersonalRangeMailContent(inputs, result));
+
+        verify(mailSender).send(mimeMessage);
+        assertThat(mimeMessage.getSubject()).isEqualTo("Dein Ergebnis für den Tesla Model 3");
+        String html = firstText(mimeMessage.getContent());
+        assertThat(html).contains("310 km").contains("Sommer: 360 km").contains("500 km")
+                .contains("grob 35 min").contains("1,5").contains("58 €")
+                .contains("http://localhost:5173/modelle/Tesla/Model_3");
     }
 
     @Test

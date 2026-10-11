@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dein Ergebnis für den {{model}} - EV Monitor</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;">
+  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <h1 style="color: #16a34a; font-size: 26px; margin-bottom: 4px;">EV Monitor</h1>
+    <h2 style="color: #1f2937; font-size: 20px; margin-top: 0; font-weight: 600;">Dein Ergebnis für den {{model}}</h2>
+    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      Gerechnet mit deinem Profil ({{commuteKm}} km Pendeln pro Tag, {{highwayPercent}} % Autobahn, Langstrecke {{longTripKm}} km) und den Messdaten der Community, nicht mit Herstellerangaben.
+    </p>
+    <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
+      <tr>
+        <td style="padding: 12px; border: 1px solid #e5e7eb; width: 50%;"><span style="display:block; color:#6b7280; font-size:13px;">Winterreichweite</span><strong style="font-size:22px; color:#111827;">{{winterRangeKm}} km</strong><span style="display:block; color:#6b7280; font-size:13px;">Sommer: {{summerRangeKm}} km</span></td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb; width: 50%;"><span style="display:block; color:#6b7280; font-size:13px;">Ladestopps auf {{longTripKm}} km</span><strong style="font-size:22px; color:#111827;">{{stops}}</strong><span style="display:block; color:#6b7280; font-size:13px;">grob {{chargingMinutes}} min laden</span></td>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border: 1px solid #e5e7eb;"><span style="display:block; color:#6b7280; font-size:13px;">Ladungen pro Woche</span><strong style="font-size:22px; color:#111827;">{{chargesPerWeek}}</strong></td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb;"><span style="display:block; color:#6b7280; font-size:13px;">Kosten pro Monat</span><strong style="font-size:22px; color:#111827;">{{monthlyCostEur}} €</strong><span style="display:block; color:#6b7280; font-size:13px;">Pendeln an 22 Tagen</span></td>
+      </tr>
+    </table>
+    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      Welche Werte gemessen und welche geschätzt sind, steht unter dem Ergebnis auf der Modellseite.
+    </p>
+    <p style="text-align: center; margin: 32px 0;">
+      <a href="{{modelUrl}}" style="background: #16a34a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Zur Modellseite</a>
+    </p>
+    <p style="color: #9ca3af; font-size: 13px; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      Du bekommst diese Mail, weil du den Rechner auf ev-monitor.net benutzt hast. Dein Konto löschst du jederzeit in den Einstellungen.
+    </p>
+  </div>
+</body>
+</html>

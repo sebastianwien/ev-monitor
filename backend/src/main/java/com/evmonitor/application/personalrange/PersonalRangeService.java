@@ -5,7 +5,10 @@ import com.evmonitor.application.ChargingReferencePrices;
 import com.evmonitor.application.PlausibilityProperties;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
+import com.evmonitor.application.TopModelResponse;
+import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
+import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.persistence.JpaVehicleSpecificationRepository;
 import com.evmonitor.infrastructure.persistence.VehicleSpecificationEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -42,6 +45,26 @@ public class PersonalRangeService {
     private final UserRepository userRepository;
     private final PlausibilityProperties plausibility;
     private final ObjectMapper objectMapper;
+    private final EmailService emailService;
+
+    /**
+     * Mails the result the user just unlocked through the gate. Needs the stored profile (the
+     * inputs of that calculation); a failing mail never fails the request.
+     */
+    public void emailResult(UUID userId, String brand, String model, PersonalRangeResponse result) {
+        Optional<User> user = userRepository.findById(userId);
+        Optional<PersonalRangeRequest> inputs = getProfile(userId);
+        Optional<PublicModelStatsResponse> stats = publicModelService.getModelStats(brand, model,
+                user.map(User::isSeedData).orElse(false));
+        if (user.isEmpty() || inputs.isEmpty() || stats.isEmpty()) return;
+        try {
+            emailService.sendPersonalRangeResultEmail(user.get().getEmail(), user.get().getRegistrationLocale(),
+                    stats.get().modelDisplayName(), "/modelle/" + brand + "/" + model,
+                    new EmailService.PersonalRangeMailContent(inputs.get(), result));
+        } catch (RuntimeException e) {
+            log.warn("Could not mail the range result to user {}: {}", userId, e.getMessage());
+        }
+    }
 
     /** Empty if the model is unknown or has no WLTP spec to size the battery. */
     public Optional<PersonalRangeResponse> calculate(UUID userId, boolean isSeedUser, String brand, String model,
@@ -102,9 +125,12 @@ public class PersonalRangeService {
                         ? seasonal.winterConsumptionKwhPer100km() : null)
                 .highwayKwhPer100km(route != null ? route.highwayKwhPer100km() : null)
                 .highwayCarCount(route != null ? route.highwayCarCount() : 0)
-                .baseKwhPer100km(route != null && route.cityKwhPer100km() != null
-                        ? route.cityKwhPer100km() : stats.avgConsumptionKwhPer100km())
-                .dcChargingPowerKw(stats.avgChargingPowerKw())
+                // Model average, the figure the page shows. The city value sits on too few logs and
+                // came out above the highway value for several models.
+                .baseKwhPer100km(stats.avgConsumptionKwhPer100km())
+                // Short-stop fast-charge power as in the model ranking, not the session mean
+                // (that one includes the taper and idle time and halves the real figure)
+                .dcChargingPowerKw(fastChargePowerKw(stats.model(), isSeedUser))
                 .homePricePerKwh(stats.acAvgCostPerKwh())
                 .publicPricePerKwh(stats.dcAvgCostPerKwh())
                 .referenceHomePricePerKwh(reference.homePricePerKwh())
@@ -113,6 +139,15 @@ public class PersonalRangeService {
                 .publicChargingEfficiency(BigDecimal.valueOf(plausibility.getDcChargingEfficiency()))
                 .fleetFactors(fleetFactors(isSeedUser))
                 .build());
+    }
+
+    /** From the cached top-models list, null when the model is not listed or has too few DC sessions. */
+    private BigDecimal fastChargePowerKw(String modelEnumName, boolean isSeedUser) {
+        return publicModelService.getTopModels(isSeedUser).stream()
+                .filter(m -> modelEnumName.equals(m.model()))
+                .map(TopModelResponse::fastChargePowerKw)
+                .filter(Objects::nonNull)
+                .findFirst().orElse(null);
     }
 
     /** From the cached top-models list: per model WLTP, overall and seasonal community consumption. */

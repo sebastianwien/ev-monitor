@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.email;
 
+import com.evmonitor.application.personalrange.PersonalRangeRequest;
+import com.evmonitor.application.personalrange.PersonalRangeResponse;
 import com.evmonitor.application.recap.MonthlyRecap;
 import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.internet.MimeMessage;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -90,6 +93,36 @@ public class EmailService {
             throw new IllegalStateException("Failed to send login code to " + toEmail, e.getCause());
         }
     }
+
+    /**
+     * The personal range result, sent once right after the gate on the model page. Numbers only,
+     * the measured-or-estimated list stays on the page.
+     * @param modelPath path of the model page, e.g. {@code /modelle/Volkswagen/ID.3}
+     */
+    public void sendPersonalRangeResultEmail(String toEmail, String locale, String modelName, String modelPath,
+                                             PersonalRangeMailContent content) {
+        String lang = resolveLocale(locale);
+        PersonalRangeRequest in = content.inputs();
+        PersonalRangeResponse r = content.result();
+        Map<String, String> vars = new HashMap<>();
+        vars.put("model", modelName);
+        vars.put("modelUrl", baseUrl + modelPath);
+        vars.put("commuteKm", String.valueOf(in.commuteKmPerDay()));
+        vars.put("highwayPercent", String.valueOf(in.highwaySharePercent()));
+        vars.put("longTripKm", String.valueOf(in.longTripKm()));
+        vars.put("winterRangeKm", String.valueOf(r.winterRangeKm()));
+        vars.put("summerRangeKm", String.valueOf(r.summerRangeKm()));
+        vars.put("stops", String.valueOf(r.longTripStops()));
+        vars.put("chargingMinutes", String.valueOf(r.longTripChargingMinutes()));
+        vars.put("chargesPerWeek", r.chargesPerWeek().toPlainString().replace('.', "en".equals(lang) ? '.' : ','));
+        vars.put("monthlyCostEur", String.valueOf(r.monthlyCostEur()));
+        String html = loadTemplate("personal-range-result.html", lang, vars);
+        String subject = "en".equals(lang) ? "Your result for the " + modelName : "Dein Ergebnis für den " + modelName;
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
+    /** Inputs and result of one calculation, for the result mail. */
+    public record PersonalRangeMailContent(PersonalRangeRequest inputs, PersonalRangeResponse result) {}
 
     /** Reminder 7 days before a long Stripe trial ends: when it ends and where to cancel. */
     public void sendTrialEndingEmail(String toEmail, String username, String locale, LocalDate endsAt) {

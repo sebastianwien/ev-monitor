@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your result for the {{model}} - EV Monitor</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;">
+  <div style="max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <h1 style="color: #16a34a; font-size: 26px; margin-bottom: 4px;">EV Monitor</h1>
+    <h2 style="color: #1f2937; font-size: 20px; margin-top: 0; font-weight: 600;">Your result for the {{model}}</h2>
+    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      Calculated with your profile ({{commuteKm}} km commute per day, {{highwayPercent}} % motorway, long trip {{longTripKm}} km) and the community's measured data, not manufacturer figures.
+    </p>
+    <table style="width: 100%; border-collapse: collapse; margin: 24px 0;">
+      <tr>
+        <td style="padding: 12px; border: 1px solid #e5e7eb; width: 50%;"><span style="display:block; color:#6b7280; font-size:13px;">Winter range</span><strong style="font-size:22px; color:#111827;">{{winterRangeKm}} km</strong><span style="display:block; color:#6b7280; font-size:13px;">Summer: {{summerRangeKm}} km</span></td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb; width: 50%;"><span style="display:block; color:#6b7280; font-size:13px;">Charging stops on {{longTripKm}} km</span><strong style="font-size:22px; color:#111827;">{{stops}}</strong><span style="display:block; color:#6b7280; font-size:13px;">roughly {{chargingMinutes}} min charging</span></td>
+      </tr>
+      <tr>
+        <td style="padding: 12px; border: 1px solid #e5e7eb;"><span style="display:block; color:#6b7280; font-size:13px;">Charges per week</span><strong style="font-size:22px; color:#111827;">{{chargesPerWeek}}</strong></td>
+        <td style="padding: 12px; border: 1px solid #e5e7eb;"><span style="display:block; color:#6b7280; font-size:13px;">Cost per month</span><strong style="font-size:22px; color:#111827;">{{monthlyCostEur}} €</strong><span style="display:block; color:#6b7280; font-size:13px;">commuting on 22 days</span></td>
+      </tr>
+    </table>
+    <p style="color: #6b7280; line-height: 1.7; font-size: 15px;">
+      Which values are measured and which are estimated is listed below the result on the model page.
+    </p>
+    <p style="text-align: center; margin: 32px 0;">
+      <a href="{{modelUrl}}" style="background: #16a34a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; display: inline-block;">Open the model page</a>
+    </p>
+    <p style="color: #9ca3af; font-size: 13px; margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      You receive this mail because you used the calculator on ev-monitor.net. You can delete your account any time in the settings.
+    </p>
+  </div>
+</body>
+</html>
