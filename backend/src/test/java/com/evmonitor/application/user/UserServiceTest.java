@@ -1,5 +1,11 @@
 package com.evmonitor.application.user;
 
+import com.evmonitor.domain.exception.ValidationException;
+import com.evmonitor.infrastructure.persistence.voice.VoiceDraftRepository;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository;
+import com.evmonitor.infrastructure.persistence.sample.ImportSampleRepository;
+import com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository;
+import com.evmonitor.application.codelogin.EmailCodeAuthService;
 import com.evmonitor.domain.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,16 +40,16 @@ class UserServiceTest {
     private CarRepository carRepository;
 
     @Mock
-    private com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository xpengConsentAuditRepository;
+    private XpengConsentAuditRepository xpengConsentAuditRepository;
 
     @Mock
-    private com.evmonitor.infrastructure.persistence.sample.ImportSampleRepository importSampleRepository;
+    private ImportSampleRepository importSampleRepository;
 
     @Mock
-    private com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository importEventRepository;
+    private ImportEventRepository importEventRepository;
 
     @Mock
-    private com.evmonitor.infrastructure.persistence.voice.VoiceDraftRepository voiceDraftRepository;
+    private VoiceDraftRepository voiceDraftRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -55,6 +61,8 @@ class UserServiceTest {
     private AccountAnonymizationService anonymizationService;
     @Mock
     private AccountPurgeClient purgeClient;
+    @Mock
+    private EmailCodeAuthService emailCodeAuthService;
 
     @InjectMocks
     private UserService userService;
@@ -148,8 +156,8 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
 
-        com.evmonitor.domain.exception.ValidationException exception = assertThrows(
-                com.evmonitor.domain.exception.ValidationException.class,
+        ValidationException exception = assertThrows(
+                ValidationException.class,
                 () -> userService.changeEmail(userId, request)
         );
         assertEquals("WRONG_PASSWORD", exception.getCode());
@@ -214,8 +222,8 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
 
-        com.evmonitor.domain.exception.ValidationException exception = assertThrows(
-                com.evmonitor.domain.exception.ValidationException.class,
+        ValidationException exception = assertThrows(
+                ValidationException.class,
                 () -> userService.changePassword(userId, request)
         );
         assertEquals("WRONG_PASSWORD", exception.getCode());
@@ -238,7 +246,7 @@ class UserServiceTest {
 
     @Test
     void deleteAccount_shouldDeleteUserWhenPasswordIsCorrect() {
-        DeleteAccountRequest request = new DeleteAccountRequest("correctPassword");
+        DeleteAccountRequest request = new DeleteAccountRequest("correctPassword", null);
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
 
@@ -252,12 +260,12 @@ class UserServiceTest {
 
     @Test
     void deleteAccount_shouldThrowExceptionWhenPasswordIsWrong() {
-        DeleteAccountRequest request = new DeleteAccountRequest("wrongPassword");
+        DeleteAccountRequest request = new DeleteAccountRequest("wrongPassword", null);
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrongPassword", "hashedPassword")).thenReturn(false);
 
-        com.evmonitor.domain.exception.ValidationException exception = assertThrows(
-                com.evmonitor.domain.exception.ValidationException.class,
+        ValidationException exception = assertThrows(
+                ValidationException.class,
                 () -> userService.deleteAccount(userId, request)
         );
         assertEquals("WRONG_PASSWORD", exception.getCode());
@@ -265,22 +273,36 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteAccount_withoutStoredPasswordNeedsNoPassword() {
+    void deleteAccount_withoutStoredPasswordIsConfirmedByMailCode() {
         User passwordless = testUser.toBuilder().passwordHash(null).build();
         when(userRepository.findById(userId)).thenReturn(Optional.of(passwordless));
 
-        userService.deleteAccount(userId, new DeleteAccountRequest(null));
+        userService.deleteAccount(userId, new DeleteAccountRequest(null, "123456"));
 
+        verify(emailCodeAuthService).consumeCode(passwordless.getEmail(), "123456");
         verify(userRepository).delete(passwordless);
         verify(passwordEncoder, never()).matches(any(), any());
+    }
+
+    // Ein abgegriffenes JWT allein darf ein Konto ohne Passwort nicht löschen
+    @Test
+    void deleteAccount_withoutStoredPasswordRejectsInvalidCode() {
+        User passwordless = testUser.toBuilder().passwordHash(null).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(passwordless));
+        doThrow(new ValidationException("INVALID_CODE", "x"))
+                .when(emailCodeAuthService).consumeCode(passwordless.getEmail(), null);
+
+        assertThrows(ValidationException.class,
+                () -> userService.deleteAccount(userId, new DeleteAccountRequest(null, null)));
+        verify(userRepository, never()).delete(any());
     }
 
     @Test
     void deleteAccount_withStoredPasswordRejectsMissingPassword() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
 
-        assertThrows(com.evmonitor.domain.exception.ValidationException.class,
-                () -> userService.deleteAccount(userId, new DeleteAccountRequest(null)));
+        assertThrows(ValidationException.class,
+                () -> userService.deleteAccount(userId, new DeleteAccountRequest(null, null)));
         verify(userRepository, never()).delete(any());
     }
 
@@ -291,7 +313,7 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
 
-        userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword"));
+        userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword", null));
 
         InOrder inOrder = inOrder(anonymizationService, purgeClient, userRepository);
         inOrder.verify(anonymizationService).anonymizeCarsOf(userId);
@@ -306,7 +328,7 @@ class UserServiceTest {
         when(passwordEncoder.matches("correctPassword", "hashedPassword")).thenReturn(true);
         when(anonymizationService.anonymizeCarsOf(userId)).thenThrow(new RuntimeException("db down"));
 
-        assertThrows(RuntimeException.class, () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
+        assertThrows(RuntimeException.class, () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword", null)));
 
         verify(userRepository, never()).delete(any());
         verifyNoInteractions(purgeClient);
@@ -319,7 +341,7 @@ class UserServiceTest {
         doThrow(new IllegalStateException("connectors")).when(purgeClient).purgeConnectors(eq(userId), any());
 
         assertThrows(IllegalStateException.class,
-                () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
+                () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword", null)));
 
         verify(userRepository, never()).delete(any());
         verify(purgeClient, never()).purgeWallbox(any());
@@ -332,7 +354,7 @@ class UserServiceTest {
         doThrow(new IllegalStateException("wallbox")).when(purgeClient).purgeWallbox(userId);
 
         assertThrows(IllegalStateException.class,
-                () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword")));
+                () -> userService.deleteAccount(userId, new DeleteAccountRequest("correctPassword", null)));
 
         verify(userRepository, never()).delete(any());
     }

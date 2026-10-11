@@ -30,7 +30,7 @@ const {
   showEmailForm, showUsernameForm, showPasswordForm,
   newEmail, emailCurrentPassword, newUsername,
   currentPassword, newPassword, confirmPassword,
-  showDeleteConfirm, deletePassword,
+  showDeleteConfirm, deletePassword, deleteCode, deleteCodeSent, sendDeleteCode,
   referralLink, copyReferralLink, openPortal,
   fetchUserData, changeEmail, changeUsername, changePassword,
   exportData, deleteAccount, toggleLeaderboardVisible, toggleTickerShareCharges, restartOnboarding,
@@ -615,15 +615,38 @@ onMounted(async () => {
             :placeholder="t('settings.delete_password_placeholder')"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-red-500 focus:border-red-500 mb-4">
 
+          <template v-else>
+            <button
+              v-if="!deleteCodeSent"
+              type="button"
+              data-testid="delete-send-code"
+              @click="sendDeleteCode"
+              :disabled="loading"
+              class="btn-3d w-full px-4 py-2 mb-4 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-sm disabled:opacity-50">
+              {{ t('settings.delete_code_send') }}
+            </button>
+            <template v-else>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mb-2" aria-live="polite">{{ t('settings.delete_code_sent') }}</p>
+              <input
+                v-model="deleteCode"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                :aria-label="t('settings.delete_code_placeholder')"
+                :placeholder="t('settings.delete_code_placeholder')"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-red-500 focus:border-red-500 mb-4">
+            </template>
+          </template>
+
           <div class="flex gap-3">
             <button
               @click="deleteAccount"
-              :disabled="loading || (hasPassword && !deletePassword)"
+              :disabled="loading || (hasPassword ? !deletePassword : deleteCode.trim().length !== 6)"
               class="btn-3d flex-1 px-4 py-2 bg-red-600 text-white rounded-sm hover:bg-red-700 disabled:opacity-50 transition">
               {{ t('settings.delete_confirm_btn') }}
             </button>
             <button
-              @click="showDeleteConfirm = false; deletePassword = ''"
+              @click="showDeleteConfirm = false; deletePassword = ''; deleteCode = ''; deleteCodeSent = false"
               class="btn-3d flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition">
               {{ t('settings.cancel') }}
             </button>

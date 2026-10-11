@@ -13,6 +13,7 @@ import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
@@ -49,20 +50,31 @@ public class EmailCodeAuthService {
     @Transactional(noRollbackFor = ValidationException.class)
     public AuthResponse verifyCode(CodeVerifyRequest request) {
         String email = EmailAddress.normalize(request.email());
+        consumeCode(email, request.code());
+        User user = accountService.findOrCreateVerified(email, request.attribution(), AuthProvider.LOCAL);
+        return AuthResponse.forUser(jwtService.generateToken(UserPrincipal.create(user)), user);
+    }
+
+    /**
+     * Checks and invalidates the code of an address, e.g. to confirm a destructive action of an account
+     * without password. Wrong guesses count towards MAX_ATTEMPTS; own transaction, so a caller's
+     * rollback cannot undo the counted attempt.
+     * @throws ValidationException INVALID_CODE for unknown, wrong, expired or exhausted codes alike
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = ValidationException.class)
+    public void consumeCode(String rawEmail, String code) {
+        String email = EmailAddress.normalize(rawEmail);
         EmailLoginCode stored = codeRepository.findLatestByEmail(email)
                 .filter(c -> !c.isExpired() && !c.isExhausted())
                 .orElseThrow(EmailCodeAuthService::invalidCode);
 
-        if (request.code() == null || !passwordEncoder.matches(request.code().trim(), stored.codeHash())) {
+        if (code == null || !passwordEncoder.matches(code.trim(), stored.codeHash())) {
             EmailLoginCode failed = stored.withFailedAttempt();
             if (failed.isExhausted()) codeRepository.deleteByEmail(email);
             else codeRepository.save(failed);
             throw invalidCode();
         }
-
         codeRepository.deleteByEmail(email);
-        User user = accountService.findOrCreateVerified(email, request.attribution(), AuthProvider.LOCAL);
-        return AuthResponse.forUser(jwtService.generateToken(UserPrincipal.create(user)), user);
     }
 
     private static ValidationException invalidCode() {

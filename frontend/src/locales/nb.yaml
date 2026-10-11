@@ -1696,6 +1696,9 @@ settings:
   delete_modal_title: Slette kontoen?
   delete_modal_desc: Denne handlingen <strong>kan ikke angres</strong>. Kontoen din og alle personopplysninger (innlogging, registreringsnummer, posisjoner, kjøretøybilder, watt, tilkoblinger) slettes permanent. Anonymiserte forbruksverdier for kjøretøyet ditt forblir en del av fellesskapsstatistikken uten kobling til sted, tid eller person.
   delete_password_placeholder: Bekreft passord
+  delete_code_send: "Send kode på e-post"
+  delete_code_sent: "Vi har sendt deg en 6-sifret kode."
+  delete_code_placeholder: "6-sifret kode fra e-posten"
   delete_confirm_btn: Slett permanent
   tariff_title: Mine ladekort
   tariff_moved_hint: "Legg til kort og vedlikehold tariffer"

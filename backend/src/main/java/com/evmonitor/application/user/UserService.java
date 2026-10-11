@@ -1,5 +1,10 @@
 package com.evmonitor.application.user;
 
+import com.evmonitor.infrastructure.persistence.voice.VoiceDraftRepository;
+import com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository;
+import com.evmonitor.infrastructure.persistence.sample.ImportSampleRepository;
+import com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository;
+import com.evmonitor.application.codelogin.EmailCodeAuthService;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLogRepository;
@@ -32,14 +37,15 @@ public class UserService {
     private final UserRepository userRepository;
     private final EvLogRepository evLogRepository;
     private final CarRepository carRepository;
-    private final com.evmonitor.infrastructure.persistence.xpeng.XpengConsentAuditRepository xpengConsentAuditRepository;
-    private final com.evmonitor.infrastructure.persistence.sample.ImportSampleRepository importSampleRepository;
-    private final com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository importEventRepository;
-    private final com.evmonitor.infrastructure.persistence.voice.VoiceDraftRepository voiceDraftRepository;
+    private final XpengConsentAuditRepository xpengConsentAuditRepository;
+    private final ImportSampleRepository importSampleRepository;
+    private final ImportEventRepository importEventRepository;
+    private final VoiceDraftRepository voiceDraftRepository;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final AccountAnonymizationService anonymizationService;
     private final AccountPurgeClient purgeClient;
+    private final EmailCodeAuthService emailCodeAuthService;
 
     @Transactional(readOnly = true)
     public UserStatsResponse getUserStats(UUID userId) {
@@ -147,9 +153,10 @@ public class UserService {
     public void deleteAccount(UUID userId, DeleteAccountRequest request) {
         User user = requireUser(userId);
 
-        // Konten ohne Passwort (Google, Mail-Code) bestätigen über die Anmeldung selbst
-        if (user.getPasswordHash() != null
-                && (request.password() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash()))) {
+        // Konten ohne Passwort (Google, Mail-Code) bestätigen per Mail-Code, nicht allein über das JWT
+        if (user.getPasswordHash() == null) {
+            emailCodeAuthService.consumeCode(user.getEmail(), request.code());
+        } else if (request.password() == null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new ValidationException("WRONG_PASSWORD", "Passwort ist falsch");
         }
 

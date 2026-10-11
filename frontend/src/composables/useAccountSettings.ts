@@ -10,7 +10,7 @@ export function useAccountSettings(
   loading: Ref<boolean>,
   message: Ref<{ type: 'success' | 'error'; text: string } | null>,
 ) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const router = useRouter()
   const authStore = useAuthStore()
 
@@ -55,6 +55,9 @@ export function useAccountSettings(
   // Delete Account
   const showDeleteConfirm = ref(false)
   const deletePassword = ref('')
+  // Konten ohne Passwort bestätigen das Löschen per Mail-Code
+  const deleteCode = ref('')
+  const deleteCodeSent = ref(false)
 
   const referralLink = () => `${window.location.origin}/register?ref=${referralCode.value}`
 
@@ -183,11 +186,25 @@ export function useAccountSettings(
     loading.value = true
     message.value = null
     try {
-      await api.delete('/users/me', { data: { password: hasPassword.value ? deletePassword.value : null } })
+      const data = hasPassword.value ? { password: deletePassword.value } : { code: deleteCode.value }
+      await api.delete('/users/me', { data })
       authStore.logout()
       router.push('/login')
     } catch (err: any) {
       message.value = { type: 'error', text: err.response?.data?.message || t('settings.err_delete') }
+      loading.value = false
+    }
+  }
+
+  const sendDeleteCode = async () => {
+    loading.value = true
+    message.value = null
+    try {
+      await api.post('/auth/code/request', { email: email.value, locale: locale.value })
+      deleteCodeSent.value = true
+    } catch (err: any) {
+      message.value = { type: 'error', text: err.response?.data?.message || t('settings.err_delete') }
+    } finally {
       loading.value = false
     }
   }
@@ -286,7 +303,7 @@ export function useAccountSettings(
     showEmailForm, showUsernameForm, showPasswordForm,
     newEmail, emailCurrentPassword, newUsername,
     currentPassword, newPassword, confirmPassword,
-    showDeleteConfirm, deletePassword,
+    showDeleteConfirm, deletePassword, deleteCode, deleteCodeSent, sendDeleteCode,
     referralLink, copyReferralLink, openPortal,
     fetchUserData, changeEmail, changeUsername, changePassword,
     exportData, deleteAccount, toggleLeaderboardVisible, toggleTickerShareCharges, restartOnboarding,
