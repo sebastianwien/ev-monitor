@@ -18,7 +18,20 @@
       </dl>
 
       <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 md:grid-cols-1">
-        <template v-if="band">
+        <!-- Guests: no figure at all. The band is the reader's own result and waits behind the gate,
+             the card only tracks the answers and names what the result holds. -->
+        <template v-if="locked">
+          <p class="text-[15px] font-semibold leading-snug" data-testid="range-band-locked">
+            {{ answered >= total ? t('model.story.band_locked_ready') : t('model.story.band_locked_open', { n: total - answered }, total - answered) }}
+          </p>
+          <button type="button" data-testid="range-band-cta"
+                  class="row-span-2 inline-flex min-h-11 items-center justify-center rounded-xl bg-green-500 px-4 font-semibold text-gray-950 hover:bg-green-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 md:order-last md:row-span-1 md:mt-1 dark:bg-green-600 dark:text-white dark:hover:bg-green-700"
+                  @click="emit('open')">
+            {{ t('model.story.band_cta') }}
+          </button>
+          <p class="hidden text-[13px] leading-snug opacity-75 md:block md:text-[14px]">{{ t('model.story.band_detail') }}</p>
+        </template>
+        <template v-else-if="band">
           <p class="text-[13px] leading-snug opacity-75 md:text-[15px]">{{ t(remote ? 'model.story.band_title' : 'model.story.band_title_model') }}</p>
           <button type="button" data-testid="range-band-cta"
                   class="row-span-2 inline-flex min-h-11 items-center justify-center rounded-xl bg-green-500 px-4 font-semibold text-gray-950 hover:bg-green-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 md:order-last md:row-span-1 md:mt-1 dark:bg-green-600 dark:text-white dark:hover:bg-green-700"
@@ -53,11 +66,12 @@ import { analytics } from '../../services/analytics'
 import { personalRangeService, type PersonalRangeInputs } from '../../api/personalRangeService'
 
 /**
- * Winter-to-summer range for the visitor's answers. Before the first answer the model's own
- * season band (from the stats response) is shown without a request. Every change afterwards
- * asks the public preview endpoint, debounced, signed in or not: the calculator endpoint would
- * store the half-answered profile on every click. When the preview is refused or fails the band stays and is
- * labelled as a standard profile, nothing pops up. The exact figures stay behind the gate.
+ * Winter-to-summer range for the reader's answers, signed-in readers only (`locked` for guests:
+ * the band is two of the four gated figures, so guests see the progress and the button, no km).
+ * Before the first answer the model's own season band (from the stats response) is shown without
+ * a request. Every change afterwards asks the public preview endpoint, debounced: the calculator
+ * endpoint would store the half-answered profile on every click. When the preview is refused or
+ * fails the band stays and is labelled as a standard profile, nothing pops up.
  */
 const props = defineProps<{
   brand: string
@@ -71,6 +85,8 @@ const props = defineProps<{
   fallbackBand: { minKm: number; maxKm: number } | null
   /** one row per chapter question: what the reader answered, null while open */
   profile?: { key: string; label: string; value: string | null }[]
+  /** guest: no figure, no preview request; the band is part of the gated result */
+  locked?: boolean
 }>()
 const emit = defineEmits<{ open: [] }>()
 
@@ -113,13 +129,15 @@ async function refresh() {
   }
 }
 
-watch(() => [props.answered, { ...props.inputs }] as const, () => {
-  if (props.answered === 0) return
+// immediate: answers may already be there on mount (stored profile, the ranking's needs check);
+// locked is part of the source so the gate confirming a code fetches the band at once
+watch(() => [props.answered, props.locked, { ...props.inputs }] as const, () => {
+  if (props.answered === 0 || props.locked) return
   if (timer) clearTimeout(timer)
   timer = setTimeout(refresh, DEBOUNCE_MS)
-}, { deep: true })
+}, { deep: true, immediate: true })
 
-watch(() => props.fallbackBand, b => { if (b && !remote.value) trackShown('MODEL') }, { immediate: true })
+watch(() => props.fallbackBand, b => { if (b && !remote.value && !props.locked) trackShown('MODEL') }, { immediate: true })
 
 onBeforeUnmount(() => { if (timer) clearTimeout(timer) })
 </script>

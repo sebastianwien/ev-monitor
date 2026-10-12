@@ -96,7 +96,7 @@
     <!-- Ranking -->
     <section class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm dark:lg:border-gray-800 dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
       <!-- Needs check sits where it acts: right above the rows -->
-      <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" :trip-only="tripOnly" class="border-b border-gray-200 px-4 py-4 lg:px-5 dark:border-gray-800" @show="showTripModels" />
+      <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" :trip-only="tripOnly" :locked="!isAuthenticated" class="border-b border-gray-200 px-4 py-4 lg:px-5 dark:border-gray-800" @show="showTripModels" @unlocked="onUnlocked" />
       <div class="sticky z-20 border-b border-gray-200 bg-gray-50 px-4 pt-2.5 lg:px-5 lg:pt-3 dark:border-gray-800 dark:bg-gray-950 lg:bg-white dark:lg:bg-gray-900" :class="stickyTopClass">
         <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0 lg:pb-2.5" role="group" :aria-label="t('models_ranking.sort.label')">
           <button
@@ -184,8 +184,10 @@
           :longest-trip-km="needs.longestTripKm"
           :max-stops="needs.maxStops"
           :fuel="cost.fuel"
+          :locked="!isAuthenticated"
           @toggle="openKey = openKey === item.key ? null : item.key"
           @compare="toggleCompare(item.key)"
+          @unlock="unlockFromRow"
         />
       </TransitionGroup>
       <p v-if="!loading && !loadError" class="px-4 py-2.5 text-[12.5px] text-gray-500 lg:px-5 dark:text-gray-400">{{ t('models_ranking.list_hint') }}</p>
@@ -438,6 +440,16 @@ function editNeeds() {
   const el = needsCard.value?.$el
   if (el instanceof HTMLElement) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
   needsCard.value?.focusFirst()
+}
+/** "Meine Zahlen" in an open row: the one gate sits in the needs card */
+function unlockFromRow() {
+  needsCard.value?.openGate()
+  const el = needsCard.value?.$el
+  if (el instanceof HTMLElement) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+/** The gate confirmed a code: the rows re-render with their figures through the auth store */
+function onUnlocked() {
+  analytics.track('ranking_unlocked', { models: needsSummary.value.total })
 }
 
 // ── Assumptions (cost) ──────────────────────────────────────────────────────

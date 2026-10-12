@@ -1,4 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
+import { TEST_USER } from './global-setup';
+import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 
 // Kaufhilfe auf der Modell-Rangliste (/modelle, seit Release 2 Default): Datenlage, Modelle ohne
 // Fahrerdaten (Phase A) und der Bedarfs-Check im Hero (Phase B).
@@ -9,6 +11,16 @@ const rows = (page: Page) => page.locator('ol.mr-list > li');
 async function openRanking(page: Page) {
   await page.goto(URL);
   await expect(rows(page).first()).toBeVisible({ timeout: 15_000 });
+}
+
+async function login(page: Page) {
+  // the feature announcement would cover the page after login
+  await page.addInitScript((seen: string[]) => { localStorage.setItem('seen-announcements', JSON.stringify(seen)); }, featureAnnouncements.map(a => a.key));
+  await page.goto('/login');
+  await page.locator('input[type="text"]').fill(TEST_USER.email);
+  await page.locator('input[type="password"]').fill(TEST_USER.password);
+  await page.locator('button[type="submit"]').click();
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
 }
 
 /** Ersetzt den Wert eines Eingabefelds komplett, damit der input-Handler mit dem neuen Wert läuft. */
@@ -60,17 +72,35 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       }
     });
 
-    test('Tagesstrecke ändert den Hinweis der ersten Zeile, längste Fahrt den Satz', async ({ page }) => {
+    test('ohne Login: Zähler frei, Zeilen ohne Zahlen, Gate in der Karte', async ({ page }) => {
       await openRanking(page);
       const summary = page.getByTestId('needs-summary');
       const firstHint = rows(page).first().getByTestId('needs-hint');
+      await expect(firstHint).toContainText(/Ladestopp|nicht bewertbar/);
+      await expect(firstHint).not.toContainText(/Tage laden|Stopps/);
+
+      await setDistance(page, 'needs-longest', '150');
+      await expect(summary).toContainText('schaffen 150 km');
+      await expect(page.getByTestId('needs-locked')).toContainText('150 km');
+      await expect(firstHint).toContainText('150 km');
+
+      // the open row points to the one gate in the card
+      await rows(page).first().locator('button[aria-expanded]').click();
+      await page.getByTestId('row-unlock').click();
+      await expect(page.getByTestId('needs-gate')).toBeVisible();
+      await expect(page.getByTestId('needs-locked')).toHaveCount(0);
+    });
+
+    test('eingeloggt: Tagesstrecke ändert den Hinweis der ersten Zeile, kein Gate', async ({ page }) => {
+      await login(page);
+      await openRanking(page);
+      await expect(page.getByTestId('needs-locked')).toHaveCount(0);
+      const firstHint = rows(page).first().getByTestId('needs-hint');
+      await expect(firstHint).toContainText(/laden|Ladestopp/);
       const hintBefore = await firstHint.innerText();
 
       await setDistance(page, 'needs-daily', '120');
       await expect.poll(() => firstHint.innerText()).not.toBe(hintBefore);
-
-      await setDistance(page, 'needs-longest', '150');
-      await expect(summary).toContainText('schaffen 150 km');
     });
 
     test('Chip "Längste Fahrt ohne Stopp" filtert die Liste', async ({ page }) => {
@@ -83,7 +113,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
       await setDistance(page, 'needs-longest', '100');
       await expect(rows(page).first()).toBeVisible();
-      await expect(rows(page).first().getByTestId('needs-hint')).toContainText('100 km: ohne Stopp');
+      await expect(rows(page).first().getByTestId('needs-hint')).toContainText('100 km ohne Ladestopp');
     });
 
     test('Modelle ohne Fahrerdaten: eingeklappt, Suche klappt auf und erklärt den Leerzustand', async ({ page, request }) => {

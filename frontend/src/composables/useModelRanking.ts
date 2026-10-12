@@ -97,7 +97,7 @@ function isNeedsInput(v: unknown): v is NeedsInput {
     && (o.maxStops === undefined || stops(o.maxStops))
 }
 
-function readStoredNeeds(): NeedsInput | null {
+export function readStoredNeeds(): NeedsInput | null {
   try {
     const raw = localStorage.getItem(NEEDS_STORAGE_KEY)
     if (raw === null) return null
@@ -111,6 +111,12 @@ function readStoredNeeds(): NeedsInput | null {
 }
 
 /** Stored assumptions, or just the classic list's price as home price (then nothing else is seeded yet). */
+/** The model page hands its answers (commute, longest trip, home charging) back to the ranking's needs check. */
+export function writeStoredNeeds(patch: Partial<Pick<NeedsInput, 'dailyKm' | 'longestTripKm' | 'homeCharging'>>): void {
+  const current = readStoredNeeds() ?? { ...NEEDS_DEFAULTS }
+  try { localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ ...current, ...patch })) } catch { /* private mode */ }
+}
+
 function readStoredCost(): { cost: CostAssumptions; seeded: boolean } | null {
   try {
     const raw = localStorage.getItem(COST_STORAGE_KEY)

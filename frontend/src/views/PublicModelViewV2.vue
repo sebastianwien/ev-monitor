@@ -111,7 +111,7 @@
 
             <div class="sticky z-30 mt-6 md:col-start-2 md:row-start-1 md:mt-0 md:pt-9 md:[position:sticky] md:top-24 md:bottom-auto"
                  :class="isAuthenticated ? 'bottom-[calc(env(safe-area-inset-bottom)+68px)]' : 'bottom-[calc(env(safe-area-inset-bottom)+12px)]'">
-              <RangeBandBar :brand="brand" :model="model" :model-name="stats.modelDisplayName" :inputs="storyInputs" :answered="answeredCount" :total="QUESTION_COUNT" :fallback-band="story.fallbackBand" :profile="profileRows" @open="openResult" />
+              <RangeBandBar :brand="brand" :model="model" :model-name="stats.modelDisplayName" :inputs="storyInputs" :answered="answeredCount" :total="QUESTION_COUNT" :fallback-band="story.fallbackBand" :profile="profileRows" :locked="!isAuthenticated" @open="openResult" />
             </div>
 
             <PersonalRangeCalculator
@@ -470,6 +470,7 @@ import RangeBandBar from '../components/models/RangeBandBar.vue'
 import { buildModelStory, fastStop, keepUnits, type ChapterKey, type StoryInput } from '../utils/modelStory'
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
+import { readStoredNeeds, writeStoredNeeds } from '../composables/useModelRanking'
 import RegionChip from '../components/shared/RegionChip.vue'
 import ModelRatingsBlock from '../components/rating/ModelRatingsBlock.vue'
 import { ratingService, type PublicModelRatings } from '../api/ratingService'
@@ -850,6 +851,29 @@ function applyProfile(p: PersonalRangeInputs) {
   ownPriceText.value = p.pricePerKwh != null ? String(p.pricePerKwh).replace('.', ',') : ''
   for (const key of Object.keys(QUESTION_CHAPTER) as QuestionKey[]) answered.add(key)
 }
+
+/**
+ * The ranking's needs check (same browser) already asked three of the five questions; those count
+ * as answered here. A stored profile (signed in) arrives later through applyProfile and wins.
+ */
+function applyStoredNeeds() {
+  const n = readStoredNeeds()
+  if (!n) return
+  answers.commuteKmPerDay = snap(COMMUTE_SLIDER, n.dailyKm)
+  answers.longTripKm = nearest(LONG_TRIP_CHIPS, n.longestTripKm)
+  answers.homeCharging = n.homeCharging
+  for (const key of ['commute', 'longTrip', 'place'] as QuestionKey[]) answered.add(key)
+}
+applyStoredNeeds()
+// ... and the other way round, so the ranking shows the same profile when the reader goes back
+watch(() => [answers.commuteKmPerDay, answers.longTripKm, answers.homeCharging] as const, ([daily, trip, home]) => {
+  if (!answered.has('commute') && !answered.has('longTrip') && !answered.has('place')) return
+  writeStoredNeeds({
+    ...(answered.has('commute') ? { dailyKm: daily } : {}),
+    ...(answered.has('longTrip') ? { longestTripKm: trip } : {}),
+    ...(answered.has('place') ? { homeCharging: home } : {}),
+  })
+})
 
 /** Questions still open, in page order; the result waits until there are none */
 const openQuestions = computed(() => (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).filter(k => !answered.has(k)))

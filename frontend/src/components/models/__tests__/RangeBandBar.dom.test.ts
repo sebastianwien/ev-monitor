@@ -16,18 +16,18 @@ const INPUTS = { commuteKmPerDay: 40, highwaySharePercent: 30, homeCharging: tru
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.useRealTimers() })
 
-function mount(opts: { loggedIn?: boolean; fallback?: { minKm: number; maxKm: number } | null } = {}) {
+function mount(opts: { loggedIn?: boolean; locked?: boolean; answered?: number; fallback?: { minKm: number; maxKm: number } | null } = {}) {
   setActivePinia(createPinia())
   if (opts.loggedIn) {
     const auth = useAuthStore()
     auth.token = 'token'
     auth.user = { userId: 'u1' } as never
   }
-  const state = reactive({ inputs: { ...INPUTS }, answered: 0, opened: 0 })
+  const state = reactive({ inputs: { ...INPUTS }, answered: opts.answered ?? 0, opened: 0, locked: opts.locked ?? false })
   const Host = defineComponent({
     setup: () => () => h(RangeBandBar, {
       brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3',
-      inputs: state.inputs, answered: state.answered, total: 5,
+      inputs: state.inputs, answered: state.answered, total: 5, locked: state.locked,
       fallbackBand: opts.fallback === undefined ? { minKm: 230, maxKm: 300 } : opts.fallback,
       profile: [
         { key: 'highwayShare', label: 'Autobahn', value: '5.000 km' },
@@ -130,6 +130,70 @@ describe('RangeBandBar', () => {
     expect(api.post).not.toHaveBeenCalledWith('/personal-range/Volkswagen/ID.3', expect.anything())
     expect(band(host)).toContain('240')
     expect(band(host)).toContain('310')
+  })
+
+  describe('locked (guest)', () => {
+    it('shows no figure and asks nothing from the server, however many answers there are', async () => {
+      vi.useFakeTimers()
+      const { host, state } = mount({ locked: true })
+      await flush()
+
+      expect(host.querySelector('[data-testid="range-band"]')).toBeNull()
+      expect(host.textContent).not.toContain('230')
+      expect(host.textContent).toContain('Noch 5 Fragen')
+
+      state.inputs.highwaySharePercent = 60
+      state.answered = 1
+      await vi.advanceTimersByTimeAsync(300)
+      await flush()
+
+      expect(api.post).not.toHaveBeenCalled()
+      expect(host.querySelector('[data-testid="range-band"]')).toBeNull()
+      expect(host.textContent).toContain('Noch 4 Fragen')
+      expect(host.textContent).toContain('1 von 5')
+      expect(analytics.track).not.toHaveBeenCalledWith('range_band_shown', expect.anything())
+    })
+
+    it('unlocking (the gate confirmed a code) fetches the band for the answers given so far', async () => {
+      vi.useFakeTimers()
+      vi.mocked(api.post).mockResolvedValue({ data: { minKm: 190, maxKm: 250, dataLevel: 'MEASURED' } } as never)
+      const { host, state } = mount({ locked: true, answered: 5 })
+      await flush()
+      expect(api.post).not.toHaveBeenCalled()
+
+      state.locked = false
+      await flush()
+      await vi.advanceTimersByTimeAsync(300)
+      await flush()
+
+      expect(api.post).toHaveBeenCalledTimes(1)
+      expect(band(host)).toContain('190')
+      expect(host.querySelector('[data-testid="range-band-locked"]')).toBeNull()
+    })
+
+    it('says the band is ready once every question is answered and keeps the button', async () => {
+      const { host, state } = mount({ locked: true })
+      state.answered = 5
+      await flush()
+
+      expect(host.textContent).toContain('Deine Spanne ist fertig')
+      expect(host.textContent).toContain('Ladestopps')
+      ;(host.querySelector('[data-testid="range-band-cta"]') as HTMLButtonElement).click()
+      await flush()
+      expect(state.opened).toBe(1)
+    })
+  })
+
+  it('signed in with answers already there (profile or ranking): the band is fetched without a further change', async () => {
+    vi.useFakeTimers()
+    vi.mocked(api.post).mockResolvedValue({ data: { minKm: 200, maxKm: 260, dataLevel: 'MEASURED' } } as never)
+    const { host } = mount({ loggedIn: true, answered: 3 })
+    await flush()
+    await vi.advanceTimersByTimeAsync(300)
+    await flush()
+
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(band(host)).toContain('200')
   })
 
   it('shows the profile rows with open questions marked', async () => {

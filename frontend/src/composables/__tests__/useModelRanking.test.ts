@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { nextTick, ref } from 'vue'
-import { useModelRanking, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY, COST_STORAGE_KEY, SORT_STORAGE_KEY } from '../useModelRanking'
+import { useModelRanking, readStoredNeeds, writeStoredNeeds, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY, COST_STORAGE_KEY, SORT_STORAGE_KEY } from '../useModelRanking'
 import type { TopModelPreview, ModelWithoutData } from '../../api/publicModelService'
 import { COST_DEFAULTS } from '../../utils/costMix'
 
@@ -368,5 +368,21 @@ describe('useModelRanking', () => {
       r.needs.value = { ...r.needs.value, longestTripKm: 1600, maxStops: 4 }
       expect(keys(r.ranked.value)).toEqual(['B/big'])
     })
+  })
+})
+
+describe('stored needs shared with the model page', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('reads nothing before the first answer and the defaults once a patch is written', () => {
+    expect(readStoredNeeds()).toBeNull()
+    writeStoredNeeds({ longestTripKm: 800 })
+    expect(readStoredNeeds()).toEqual({ dailyKm: 40, longestTripKm: 800, homeCharging: true, maxStops: 0 })
+  })
+
+  it('a patch keeps the other stored answers', () => {
+    localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 60, longestTripKm: 250, homeCharging: false }))
+    writeStoredNeeds({ dailyKm: 35 })
+    expect(readStoredNeeds()).toEqual({ dailyKm: 35, longestTripKm: 250, homeCharging: false, maxStops: 0 })
   })
 })

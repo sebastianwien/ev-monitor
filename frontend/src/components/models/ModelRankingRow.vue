@@ -39,7 +39,10 @@
       <span class="mr-hint pointer-events-none flex min-w-0 items-start gap-1.5 pb-4 pt-1.5 text-[15px] font-medium leading-snug text-gray-900 lg:pt-2 dark:text-gray-100">
         <i class="mt-[7px] h-2 w-2 flex-none rounded-full" :class="tripStatusClass" aria-hidden="true"></i>
         <span class="grid min-w-0" data-testid="needs-hint">
-          <span v-for="line in needsLines" :key="line" class="line-clamp-2 lg:line-clamp-none">{{ line }}</span>
+          <span v-if="locked" class="line-clamp-2 lg:line-clamp-none">{{ lockedLine }}</span>
+          <template v-else>
+            <span v-for="line in needsLines" :key="line" class="line-clamp-2 lg:line-clamp-none">{{ line }}</span>
+          </template>
         </span>
         <!-- Compare is an action, not a figure: a labelled button at the end of the verdict line
              (desktop; the phone has it in the open details). It sits above the row toggle. -->
@@ -101,7 +104,11 @@
           <a :href="credit.sourceUrl" target="_blank" rel="noopener" class="pointer-events-auto block truncate rounded bg-black/55 px-1.5 py-0.5 text-[10px] leading-tight text-white/90 backdrop-blur-sm hover:text-white">© {{ credit.author }} · {{ credit.license }}</a>
         </figcaption>
       </figure>
-      <p class="text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">{{ needsHint }}</p>
+      <p v-if="locked" class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">
+        <span>{{ t('models_ranking.detail.locked_hint', tripParams) }}</span>
+        <button type="button" class="inline-flex min-h-11 items-center font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="row-unlock" @click="emit('unlock')">{{ t('models_ranking.detail.locked_cta') }}</button>
+      </p>
+      <p v-else class="text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">{{ needsHint }}</p>
       <dl class="grid grid-cols-2 gap-2 lg:col-span-2 lg:grid-cols-3">
         <div v-for="kv in facts" :key="kv.label" class="grid gap-0.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900">
           <dt class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -179,9 +186,11 @@ const props = defineProps<{
   /** Stops the reader accepts on long trips; the range cell shows the range with that many */
   maxStops: number
   fuel: FuelKind
+  /** Guest: the verdict dot and a figure-free label stay, the numbers wait behind the mail gate */
+  locked?: boolean
 }>()
 
-const emit = defineEmits<{ toggle: []; compare: [] }>()
+const emit = defineEmits<{ toggle: []; compare: []; unlock: [] }>()
 
 const { t, te } = useI18n()
 const {
@@ -245,15 +254,24 @@ const needsLines = computed<string[]>(() => {
     else parts.push(typ ? weekly(n.stopsPerWeek) : row(n.winter ? 'needs_interval_winter' : 'needs_interval_typical', { value: weekly(n.stopsPerWeek) }))
   }
   // Line 2: the longest trip, same pattern
-  const tripParams = { trip: formatNumber(Math.round(convertDistance(props.longestTripKm))), unit: distanceUnitLabel() }
   const tripOf = (x: Span) => x.single ? (x.min === 0 ? row('stops_none') : stopsText(x)) : (x.min === 0 && x.max === 1 ? row('stops_maybe') : stopsText(x))
   parts.push(typ && !same(typ.tripStops, n.tripStops)
-    ? row('needs_trip_both', { ...tripParams, typical: tripOf(typ.tripStops), winter: tripOf(n.tripStops) })
-    : row('needs_trip_line', { ...tripParams, value: tripOf(n.tripStops) }))
+    ? row('needs_trip_both', { ...tripParams.value, typical: tripOf(typ.tripStops), winter: tripOf(n.tripStops) })
+    : row('needs_trip_line', { ...tripParams.value, value: tripOf(n.tripStops) }))
   // lines start with a capital, whatever building block comes first
   return parts.map(p => p.charAt(0).toLocaleUpperCase() + p.slice(1))
 })
 const needsHint = computed(() => needsLines.value.join(' · '))
+/** The reader's own trip in the market's unit, named in every hint */
+const tripParams = computed(() => ({ trip: formatNumber(Math.round(convertDistance(props.longestTripKm))), unit: distanceUnitLabel() }))
+/** Guest label: only whether the trip works without a stop (the dot's verdict), never the count or the interval */
+const lockedLine = computed(() => {
+  const n = props.item.needs
+  if (!n.assessable) return t('models_ranking.row.needs_unrated')
+  const ok = meetsNeeds(n, props.maxStops)
+  const key = ok ? (n.winter ? 'locked_ok_winter' : 'locked_ok') : (n.winter ? 'locked_stop_winter' : 'locked_stop')
+  return t(`models_ranking.row.${key}`, tripParams.value)
+})
 // Dot in front of the hint: green when the model meets everything the reader asked for
 // (weekly rhythm, trip within the chosen stops, every battery), orange when something falls short
 const tripStatusClass = computed(() => {

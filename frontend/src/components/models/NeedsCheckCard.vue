@@ -59,6 +59,19 @@
         {{ t(tripOnly ? 'models_ranking.needs.show_all' : 'models_ranking.needs.show_only') }}
       </button>
     </p>
+
+    <!-- Guests: the count above is free, the figures per row (interval, stops, winter) wait behind
+         the mail. One gate for the whole list, the rows point back here. -->
+    <template v-if="locked && summary.total > 0">
+      <p v-if="!gateOpen" class="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 text-[14px] leading-snug text-gray-700 dark:text-gray-300" data-testid="needs-locked">
+        <span>{{ t('models_ranking.needs.locked_text', { longest: longestLocal, unit: distanceUnitLabel() }) }}</span>
+        <button type="button" class="inline-flex min-h-11 items-center rounded-xl bg-green-600 px-4 text-[14px] font-semibold text-white hover:bg-green-700" data-testid="needs-unlock" @click="openGate">
+          {{ t('models_ranking.needs.locked_cta') }}
+        </button>
+      </p>
+      <InlineGate v-else :lead="t('models_ranking.needs.gate_lead', { n: formatNumber(summary.total), longest: longestLocal, unit: distanceUnitLabel() })"
+                  :detail="t('models_ranking.needs.gate_detail')" placement="modelle:rangliste" data-testid="needs-gate" @authenticated="onAuthenticated" />
+    </template>
   </section>
 </template>
 
@@ -66,6 +79,8 @@
 import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FunnelIcon } from '@heroicons/vue/24/outline'
+import InlineGate from '../auth/InlineGate.vue'
+import { analytics } from '../../services/analytics'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useDebouncedCommit } from '../../composables/useDebouncedCommit'
 import { odometerLocalToKm } from '../../utils/unitConversions'
@@ -77,8 +92,10 @@ const props = defineProps<{
   summary: NeedsSummary
   /** The list is filtered to the models that make the trip without a stop */
   tripOnly: boolean
+  /** Guest: the per-model figures are behind the mail gate this card hosts */
+  locked?: boolean
 }>()
-const emit = defineEmits<{ 'update:modelValue': [value: NeedsInput]; show: [] }>()
+const emit = defineEmits<{ 'update:modelValue': [value: NeedsInput]; show: []; unlocked: [] }>()
 
 const { t } = useI18n()
 const { formatNumber, distanceUnitLabel, convertDistance, isImperial } = useLocaleFormat()
@@ -91,7 +108,18 @@ function focusFirst() {
   dailyInput.value?.focus()
   dailyInput.value?.select()
 }
-defineExpose({ focusFirst })
+/** Mail gate for the figures per row; a row's "Meine Zahlen" opens it from afar via openGate() */
+const gateOpen = ref(false)
+function openGate() {
+  if (gateOpen.value) return
+  gateOpen.value = true
+  analytics.track('ranking_gate_shown')
+}
+function onAuthenticated() {
+  gateOpen.value = false
+  emit('unlocked')
+}
+defineExpose({ focusFirst, openGate })
 
 const numeric = {
   type: 'text',
