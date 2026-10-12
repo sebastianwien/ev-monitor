@@ -1,5 +1,7 @@
 package com.evmonitor.application.personalrange;
 
+import com.evmonitor.application.FastChargeStop;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -31,8 +33,7 @@ final class PersonalRangeCalculator {
     private static final BigDecimal RANGE_SHARE = new BigDecimal("0.9");
     /** Long trip: start at 90 %, arrive at the first charger with 10 %. */
     private static final BigDecimal FIRST_LEG_SHARE = new BigDecimal("0.8");
-    /** Fast-charging stop from 10 to 80 %. */
-    private static final BigDecimal STOP_SHARE = new BigDecimal("0.7");
+    private static final BigDecimal STOP_SHARE = FastChargeStop.SHARE;
     /** Home charging from 20 to 80 %. */
     private static final BigDecimal HOME_CHARGE_SHARE = new BigDecimal("0.6");
     /** Highway measurement counts from this many cars (half weight) and fully from FULL_HIGHWAY_CARS. */

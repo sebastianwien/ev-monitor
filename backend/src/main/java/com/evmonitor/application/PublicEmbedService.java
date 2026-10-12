@@ -24,11 +24,13 @@ public class PublicEmbedService {
     private static final int MIN_LOGS_PER_SEASON = 10;
 
     private final PublicModelService publicModelService;
+    private final BigDecimal dcChargingEfficiency;
     private final String baseUrl;
 
-    public PublicEmbedService(PublicModelService publicModelService,
+    public PublicEmbedService(PublicModelService publicModelService, PlausibilityProperties plausibility,
                               @Value("${app.base-url:http://localhost:5173}") String baseUrl) {
         this.publicModelService = publicModelService;
+        this.dcChargingEfficiency = BigDecimal.valueOf(plausibility.getDcChargingEfficiency());
         this.baseUrl = baseUrl;
     }
 
@@ -56,14 +58,16 @@ public class PublicEmbedService {
 
         if (consumption == null || consumption.signum() <= 0) {
             return new ModelTileResponse(false, stats.modelDisplayName(), null, null, null, null,
-                    stats.logCount(), stats.uniqueCars(), modelUrl);
+                    stats.logCount(), stats.uniqueCars(), modelUrl, null, null, null, null, null, null);
         }
 
         PublicModelStatsResponse.SeasonalDistribution seasonal = representative != null && representative.seasonalDistribution() != null
                 ? representative.seasonalDistribution() : stats.seasonalDistribution();
-        boolean seasonalReliable = seasonal != null
-                && seasonal.summerLogCount() >= MIN_LOGS_PER_SEASON
-                && seasonal.winterLogCount() >= MIN_LOGS_PER_SEASON;
+        boolean seasonalReliable = reliable(seasonal);
+        // Seasonal consumption: model-wide like the average and the log count the tile shows next to it
+        PublicModelStatsResponse.SeasonalDistribution modelSeasonal = reliable(stats.seasonalDistribution())
+                ? stats.seasonalDistribution() : null;
+        BigDecimal dcPrice = stats.dcAvgCostPerKwh() != null ? stats.dcAvgCostPerKwh() : stats.avgCostPerKwh();
 
         return new ModelTileResponse(
                 true,
@@ -74,7 +78,25 @@ public class PublicEmbedService {
                 seasonalReliable ? rangeKm(netKwh, seasonal.winterConsumptionKwhPer100km()) : null,
                 stats.logCount(),
                 stats.uniqueCars(),
-                modelUrl);
+                modelUrl,
+                modelSeasonal != null ? modelSeasonal.summerConsumptionKwhPer100km() : null,
+                modelSeasonal != null ? modelSeasonal.winterConsumptionKwhPer100km() : null,
+                modelSeasonal != null ? modelSeasonal.summerLogCount() : null,
+                modelSeasonal != null ? modelSeasonal.winterLogCount() : null,
+                typicalChargeCost(stats),
+                FastChargeStop.cost(netKwh, dcChargingEfficiency, dcPrice));
+    }
+
+    private static boolean reliable(PublicModelStatsResponse.SeasonalDistribution seasonal) {
+        return seasonal != null
+                && seasonal.summerLogCount() >= MIN_LOGS_PER_SEASON
+                && seasonal.winterLogCount() >= MIN_LOGS_PER_SEASON;
+    }
+
+    /** Average charge of the model at the plug (kWh and price both at the charger, losses included). */
+    private static BigDecimal typicalChargeCost(PublicModelStatsResponse stats) {
+        if (stats.avgKwhPerSession() == null || stats.avgCostPerKwh() == null) return null;
+        return stats.avgKwhPerSession().multiply(stats.avgCostPerKwh()).setScale(2, RoundingMode.HALF_UP);
     }
 
     private String modelUrl(PublicModelStatsResponse stats) {
