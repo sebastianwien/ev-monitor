@@ -14,7 +14,7 @@ import type { PersonalRangeInputs } from '../../../api/personalRangeService'
 
 const RESULT = {
   winterRangeKm: 320, summerRangeKm: 450, longTripStops: 1, longTripChargingMinutes: 30,
-  chargesPerWeek: 1.5, chargesPerWeekSummer: 1, chargesPerWeekWinter: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
+  chargesPerWeek: 1.5, chargesPerWeekSummer: 0.5, chargesPerWeekWinter: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
   assumptions: [
     { key: 'BATTERY', measured: true, value: 77 },
     { key: 'WINTER_CONSUMPTION', measured: true, value: 21.4 },
@@ -69,14 +69,11 @@ describe('PersonalRangeCalculator', () => {
     await flush()
 
     const placeholder = host.querySelector('[data-testid="personal-range-placeholder"]')!
-    expect(placeholder.querySelectorAll('dd').length).toBe(4)
+    expect(placeholder.querySelectorAll('dd').length).toBe(6)
     for (const dd of placeholder.querySelectorAll('dd')) expect(dd.textContent).not.toMatch(/\d/)
-    // the gate promises charges a week: the summer and winter tiles name them before the gate too
+    // six tiles, "how often you charge" among them at full size: the gate's selling point
     const labels = [...placeholder.querySelectorAll('dt')].map(dt => dt.textContent)
-    expect(labels[0]).toContain('Sommer')
-    expect(labels[0]).toContain('Ladungen pro Woche')
-    expect(labels[1]).toContain('Winter')
-    expect(labels[1]).toContain('Ladungen pro Woche')
+    expect(labels).toEqual(['Reichweite Sommer', 'Reichweite Winter', 'Wie oft laden, Sommer', 'Wie oft laden, Winter', 'Ladestopps auf 500 km', 'Strom im Monat'])
     expect(host.querySelector('[data-testid="personal-range-result"]')).toBeNull()
     expect(api.post).not.toHaveBeenCalled()
   })
@@ -161,8 +158,11 @@ describe('PersonalRangeCalculator', () => {
     expect(result.textContent).toContain('320')
     expect(result.textContent).toContain('46')
     // weekly charging for the commute under each season
-    expect(result.textContent).toContain('Pendeln: 1× laden pro Woche')
-    expect(result.textContent).toContain('Pendeln: 1,5× laden pro Woche')
+    // up to once a week as an interval in days (like the ranking), above that as times a week
+    expect(result.textContent).toContain('alle 14 Tage')
+    expect(result.textContent).toContain('1,5× pro Woche')
+    expect(result.querySelectorAll('dl dd').length).toBe(6)
+    expect(result.textContent).toContain('Pendeln, 40 km am Tag')
     expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(4)
     expect(result.textContent).toContain('(Datenblatt)')
     expect(result.textContent).toContain('zu 50 % gemessen')

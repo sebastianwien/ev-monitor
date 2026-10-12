@@ -19,11 +19,11 @@
       </ul>
     </div>
 
-    <!-- Before the gate: four tiles with placeholders only. No figure of the result exists in the
+    <!-- Before the gate: six tiles with placeholders only. No figure of the result exists in the
          page until the signed-in request returns, so there is nothing to unblur in the console. -->
-    <dl v-if="!result" class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 md:grid-cols-4 dark:border-gray-800 dark:bg-gray-800" data-testid="personal-range-placeholder">
-      <div v-for="tile in placeholderLabels" :key="tile.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 dark:bg-gray-900">
-        <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ tile.label }}<span v-if="tile.detail" class="block">{{ tile.detail }}</span></dt>
+    <dl v-if="!result" class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 md:grid-cols-3 dark:border-gray-800 dark:bg-gray-800" data-testid="personal-range-placeholder">
+      <div v-for="tile in placeholderLabels" :key="tile.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 dark:bg-gray-900" :class="tile.order">
+        <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ tile.label }}</dt>
         <dd class="select-none text-[22px] font-semibold leading-tight tracking-tight text-gray-400 blur-[6px] dark:text-gray-500" aria-hidden="true">···</dd>
       </div>
     </dl>
@@ -42,8 +42,8 @@
     <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
     <div v-if="result" data-testid="personal-range-result" class="grid gap-4" aria-live="polite">
-      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 md:grid-cols-4 dark:border-gray-800 dark:bg-gray-800">
-        <div v-for="tile in tiles" :key="tile.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 dark:bg-gray-900">
+      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 md:grid-cols-3 dark:border-gray-800 dark:bg-gray-800">
+        <div v-for="tile in tiles" :key="tile.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 dark:bg-gray-900" :class="tile.order">
           <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ tile.label }}<span class="block">{{ tile.detail }}</span></dt>
           <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ tile.value }}</dd>
         </div>
@@ -122,13 +122,27 @@ const gateLead = computed(() => props.carCount >= MIN_MEASURED_CARS
   ? t('personal_range.gate_lead_measured', { model: props.modelName, logs: formatNumber(props.logCount), cars: formatNumber(props.carCount) })
   : t('personal_range.gate_lead_thin', { model: props.modelName, cars: props.carCount }, props.carCount))
 
-/** Same labels as the result tiles; summer and winter name the charges a week, the gate's selling point */
-const placeholderLabels = computed(() => [
-  { label: t('personal_range.summer_label'), detail: t('personal_range.charges_week_label') },
-  { label: t('personal_range.winter_range'), detail: t('personal_range.charges_week_label') },
-  { label: t('personal_range.stops', { distance: formatDistance(props.inputs.longTripKm) }), detail: null },
-  { label: t('personal_range.cost_month'), detail: null },
+/**
+ * Six tiles, one figure each. Phone (two columns): range summer | winter, charging summer | winter,
+ * stops | cost. Desktop (three columns): summer and winter become columns, so range and charging
+ * read as a table; stops and cost fill the third column. The order classes do the desktop swap.
+ */
+const TILE_ORDER = ['md:order-1', 'md:order-2', 'md:order-4', 'md:order-5', 'md:order-3', 'md:order-6'] as const
+const tileLabels = computed(() => [
+  t('personal_range.range_summer'),
+  t('personal_range.range_winter'),
+  t('personal_range.charges_summer'),
+  t('personal_range.charges_winter'),
+  t('personal_range.stops', { distance: formatDistance(props.inputs.longTripKm) }),
+  t('personal_range.cost_month'),
 ])
+const placeholderLabels = computed(() => tileLabels.value.map((label, i) => ({ label, order: TILE_ORDER[i] })))
+
+/** Like the ranking: up to once a week as "every n days", above that as times a week */
+function chargesText(perWeek: number): string {
+  if (perWeek > 0 && perWeek <= 1) return t('personal_range.charges_every_days', { days: Math.round(7 / perWeek) })
+  return t('personal_range.charges_per_week', { charges: compact(perWeek) })
+}
 
 /** Datenblatt for the battery; the user's own price; otherwise gemessen, geschätzt, or the measured share of a blend */
 function sourceText(a: PersonalRangeAssumption): string {
@@ -206,17 +220,21 @@ onMounted(async () => {
 const tiles = computed(() => {
   const r = result.value
   if (!r) return []
-  const longTrip = formatDistance(props.inputs.longTripKm)
+  const basis = props.inputs.annualKm
+    ? t('personal_range.cost_basis_annual', { annual: formatDistance(props.inputs.annualKm) })
+    : t('personal_range.cost_basis_charges')
+  const commuteBasis = t('personal_range.charges_basis', { commute: formatDistance(props.inputs.commuteKmPerDay) })
+  const [rangeSummer, rangeWinter, chargesSummer, chargesWinter, stops, cost] = tileLabels.value
   return [
-    { label: t('personal_range.summer_label'), value: formatDistance(r.summerRangeKm), detail: t('personal_range.charges_commute', { charges: compact(r.chargesPerWeekSummer) }) },
-    { label: t('personal_range.winter_range'), value: formatDistance(r.winterRangeKm), detail: t('personal_range.charges_commute', { charges: compact(r.chargesPerWeekWinter) }) },
-    { label: t('personal_range.stops', { distance: longTrip }), value: String(r.longTripStops),
+    { label: rangeSummer, value: formatDistance(r.summerRangeKm), detail: t('personal_range.range_full') },
+    { label: rangeWinter, value: formatDistance(r.winterRangeKm), detail: t('personal_range.range_full') },
+    // charging per week rests on the commute on workdays, whatever the yearly mileage says
+    { label: chargesSummer, value: chargesText(r.chargesPerWeekSummer), detail: commuteBasis },
+    { label: chargesWinter, value: chargesText(r.chargesPerWeekWinter), detail: commuteBasis },
+    { label: stops, value: String(r.longTripStops),
       detail: r.longTripStops === 0 ? t('personal_range.no_stop') : t('personal_range.stops_minutes', { minutes: r.longTripChargingMinutes }) },
-    { label: t('personal_range.cost_month'), value: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
-      detail: props.inputs.annualKm
-        ? t('personal_range.cost_basis_annual', { annual: formatDistance(props.inputs.annualKm) })
-        : t('personal_range.cost_basis_charges') },
-  ]
+    { label: cost, value: formatCurrency(r.monthlyCostEur, { decimals: 0 }), detail: basis },
+  ].map((tile, i) => ({ ...tile, order: TILE_ORDER[i] }))
 })
 
 /** Locale number without a trailing ",0". */
