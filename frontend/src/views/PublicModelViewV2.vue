@@ -819,6 +819,7 @@ function answer(key: string, value: number | boolean) {
     case 'place': answers.homeCharging = value as boolean; break
   }
   markAnswered(key as QuestionKey)
+  shareAnswer(key as QuestionKey)
   if (highlightKey.value === key) highlightKey.value = null
 }
 
@@ -865,15 +866,16 @@ function applyStoredNeeds() {
   for (const key of ['commute', 'longTrip', 'place'] as QuestionKey[]) answered.add(key)
 }
 applyStoredNeeds()
-// ... and the other way round, so the ranking shows the same profile when the reader goes back
-watch(() => [answers.commuteKmPerDay, answers.longTripKm, answers.homeCharging] as const, ([daily, trip, home]) => {
-  if (!answered.has('commute') && !answered.has('longTrip') && !answered.has('place')) return
-  writeStoredNeeds({
-    ...(answered.has('commute') ? { dailyKm: daily } : {}),
-    ...(answered.has('longTrip') ? { longestTripKm: trip } : {}),
-    ...(answered.has('place') ? { homeCharging: home } : {}),
-  })
-})
+/**
+ * ... and the other way round, so the ranking shows what the reader set here. Only on the reader's
+ * own answer (see answer()), never when a profile is applied: its slider snapping (72 km becomes 70)
+ * would overwrite the exact value the ranking holds.
+ */
+function shareAnswer(key: QuestionKey) {
+  if (key === 'commute') writeStoredNeeds({ dailyKm: answers.commuteKmPerDay })
+  else if (key === 'longTrip') writeStoredNeeds({ longestTripKm: answers.longTripKm })
+  else if (key === 'place') writeStoredNeeds({ homeCharging: answers.homeCharging })
+}
 
 /** Questions still open, in page order; the result waits until there are none */
 const openQuestions = computed(() => (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).filter(k => !answered.has(k)))

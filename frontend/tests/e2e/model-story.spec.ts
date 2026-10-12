@@ -107,6 +107,15 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       expect((await preview).status()).toBe(200);
     });
 
+    test('eigene Antworten auf der Modellseite landen im Speicher der Rangliste', async ({ page }) => {
+      await openStory(page);
+      await setSlider(page, 'commute', 35);
+      await page.getByTestId('chip-longTrip-800').click();
+      await page.getByTestId('chip-place-false').click();
+      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('ev-needs-check') ?? '{}'));
+      expect(stored).toEqual(expect.objectContaining({ dailyKm: 35, longestTripKm: 800, homeCharging: false }));
+    });
+
     test('die Antworten der Rangliste zählen auf der Modellseite als beantwortet', async ({ page }) => {
       await page.goto('/modelle');
       await page.evaluate(() => localStorage.setItem('ev-needs-check', JSON.stringify({ dailyKm: 35, longestTripKm: 800, homeCharging: false, maxStops: 0 })));
