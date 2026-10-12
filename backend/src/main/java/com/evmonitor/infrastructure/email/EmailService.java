@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.email;
 
+import com.evmonitor.application.charging.LongTripPlan;
 import com.evmonitor.application.personalrange.ChargeRhythm;
 import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
@@ -120,8 +121,8 @@ public class EmailService {
         vars.put("longTripKm", String.valueOf(in.longTripKm()));
         vars.put("winterRangeKm", String.valueOf(r.winterRangeKm()));
         vars.put("summerRangeKm", String.valueOf(r.summerRangeKm()));
-        vars.put("stops", String.valueOf(r.longTripStops()));
-        vars.put("chargingMinutes", String.valueOf(r.longTripChargingMinutes()));
+        vars.put("travelTime", duration(r.longTripTotalMinutes()));
+        vars.put("tripDetail", tripDetail(r, lang));
         vars.put("chargesSummer", ChargeRhythm.text(r.chargesPerWeekSummer(), in.homeCharging(), lang));
         vars.put("chargesWinter", ChargeRhythm.text(r.chargesPerWeekWinter(), in.homeCharging(), lang));
         vars.put("monthlyCostEur", String.valueOf(r.monthlyCostEur()));
@@ -132,6 +133,31 @@ public class EmailService {
         String html = loadTemplate("personal-range-result.html", lang, vars);
         String subject = "en".equals(lang) ? "Your result for the " + modelName : "Dein Ergebnis für den " + modelName;
         sendHtmlEmail(toEmail, subject, html);
+    }
+
+    /** "8 h 5 min", "45 min", "9 h": units read the same in German and English */
+    private static String duration(int minutes) {
+        int h = minutes / 60, m = minutes % 60;
+        if (h == 0) return m + " min";
+        return m == 0 ? h + " h" : h + " h " + m + " min";
+    }
+
+    /** "inkl. 2 Ladestopps, zusammen grob 50 min · Ø 110 km/h" under the travel time */
+    private static String tripDetail(PersonalRangeResponse r, String lang) {
+        int stops = r.longTripStops(), minutes = r.longTripChargingMinutes(), speed = LongTripPlan.TRAVEL_SPEED_KMH;
+        // without the model's own fast-charge measurement the stop time rests on the fleet median: say so here
+        boolean estimated = stops > 0 && r.assumptions().stream()
+                .anyMatch(a -> a.key().equals("CHARGING_POWER") && !a.measured());
+        if ("en".equals(lang)) {
+            String charging = stops == 0 ? "no charging stop"
+                    : stops == 1 ? "incl. 1 charging stop, roughly " + minutes + " min"
+                    : "incl. " + stops + " charging stops, roughly " + minutes + " min in total";
+            return charging + (estimated ? ", charging power estimated" : "") + " · avg " + speed + " km/h";
+        }
+        String charging = stops == 0 ? "ohne Ladestopp"
+                : stops == 1 ? "inkl. 1 Ladestopp, grob " + minutes + " min"
+                : "inkl. " + stops + " Ladestopps, zusammen grob " + minutes + " min";
+        return charging + (estimated ? ", Ladeleistung geschätzt" : "") + " · Ø " + speed + " km/h";
     }
 
     /** "30.000 km im Jahr" / "30,000 km a year" */

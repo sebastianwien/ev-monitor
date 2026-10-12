@@ -5,7 +5,6 @@ import com.evmonitor.application.ChargingReferencePrices;
 import com.evmonitor.application.PlausibilityProperties;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
-import com.evmonitor.application.TopModelResponse;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.email.EmailService;
@@ -144,7 +143,7 @@ public class PersonalRangeService {
                 .routeMeanKwhPer100km(route != null ? route.typedMeanKwhPer100km() : null)
                 // Short-stop fast-charge power as in the model ranking, not the session mean
                 // (that one includes the taper and idle time and halves the real figure)
-                .dcChargingPowerKw(fastChargePowerKw(stats.model(), isSeedUser))
+                .dcChargingPower(publicModelService.getFastChargePowerTable(isSeedUser).forModel(stats.model()))
                 .homePricePerKwh(stats.acAvgCostPerKwh())
                 .publicPricePerKwh(stats.dcAvgCostPerKwh())
                 .referenceHomePricePerKwh(reference.homePricePerKwh())
@@ -153,15 +152,6 @@ public class PersonalRangeService {
                 .publicChargingEfficiency(BigDecimal.valueOf(plausibility.getDcChargingEfficiency()))
                 .fleetFactors(fleetFactors(isSeedUser))
                 .build());
-    }
-
-    /** From the cached top-models list, null when the model is not listed or has too few DC sessions. */
-    private BigDecimal fastChargePowerKw(String modelEnumName, boolean isSeedUser) {
-        return publicModelService.getTopModels(isSeedUser).stream()
-                .filter(m -> modelEnumName.equals(m.model()))
-                .map(TopModelResponse::fastChargePowerKw)
-                .filter(Objects::nonNull)
-                .findFirst().orElse(null);
     }
 
     /** From the cached top-models list: per model WLTP, overall and seasonal community consumption. */

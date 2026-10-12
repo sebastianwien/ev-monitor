@@ -685,22 +685,22 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("isSeedUser") boolean isSeedUser);
 
     /**
-     * Fast-charge power a model reaches on a short stop from a low state of charge, kW.
-     * Pool: DC sessions of 10 to 45 minutes with at least 25 kW mean power, SoC start at most
-     * 30 % (or unknown), SoC end at most 85 % (or unknown, keeps the taper out), SoC window at
-     * least 15 points when both are known. The 75th percentile of the mean power approximates
-     * "the charger did not limit". Wallbox imports are AC by definition, some arrive flagged DC
-     * with bogus durations, so they are out. Null below 8 qualifying sessions.
+     * Fast-charge power every model reaches on a short stop from a low state of charge: one row per
+     * model with [model, p75 kW, qualifying sessions]. FastChargePowerTable decides from how many
+     * sessions a row counts. Pool: DC sessions of 10 to 45 minutes with at least 25 kW mean power, SoC
+     * start at most 30 % (or unknown), SoC end at most 85 % (or unknown, keeps the taper out), SoC
+     * window at least 15 points when both are known. The 75th percentile of the mean power
+     * approximates "the charger did not limit". Wallbox imports are AC by definition, some arrive
+     * flagged DC with bogus durations, so they are out.
      */
     @Query(value = """
-            SELECT CASE WHEN COUNT(*) >= 8
-                        THEN PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY s.kw)
-                        ELSE NULL END
+            SELECT s.model, PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY s.kw) AS kw, COUNT(*) AS sessions
             FROM (
-                SELECT COALESCE(l.kwh_at_vehicle, l.kwh_charged) / (NULLIF(l.charge_duration_minutes, 0) / 60.0) AS kw
+                SELECT c.model,
+                       COALESCE(l.kwh_at_vehicle, l.kwh_charged) / (NULLIF(l.charge_duration_minutes, 0) / 60.0) AS kw
                 FROM ev_log l
                 JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-                WHERE l.deleted_at IS NULL AND c.model = :model
+                WHERE l.deleted_at IS NULL
                   AND l.charging_type = 'DC'
                   AND l.data_source NOT LIKE 'WALLBOX%'
                   AND l.charge_duration_minutes BETWEEN 10 AND 45
@@ -714,10 +714,9 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                            AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
             ) s
             WHERE s.kw >= 25
+            GROUP BY s.model
             """, nativeQuery = true)
-    BigDecimal findFastChargePowerKwByModel(
-            @Param("model") String model,
-            @Param("isSeedUser") boolean isSeedUser);
+    List<Object[]> findFastChargePowerPerModel(@Param("isSeedUser") boolean isSeedUser);
 
     /**
      * Returns AC and DC average cost per kWh for a model.

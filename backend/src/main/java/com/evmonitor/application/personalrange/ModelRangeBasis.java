@@ -1,5 +1,6 @@
 package com.evmonitor.application.personalrange;
 
+import com.evmonitor.application.charging.FastChargePower;
 import lombok.Builder;
 
 import java.math.BigDecimal;
@@ -21,8 +22,8 @@ import java.math.BigDecimal;
  *                            shows)
  * @param routeMeanKwhPer100km mean over the route-typed trips: the highway value is compared with it,
  *                            not with the overall mean, which covers years without route types
- * @param dcChargingPowerKw   fast-charge power on a short stop from a low state of charge, the same
- *                            figure the model ranking uses; null falls back to a fixed estimate
+ * @param dcChargingPower     fast-charge power with its source from FastChargePowerTable; only
+ *                            MEASURED counts as measured, null falls back to FastChargePower.fallback()
  */
 @Builder(toBuilder = true)
 public record ModelRangeBasis(
@@ -35,7 +36,7 @@ public record ModelRangeBasis(
         int highwayCarCount,
         BigDecimal baseKwhPer100km,
         BigDecimal routeMeanKwhPer100km,
-        BigDecimal dcChargingPowerKw,
+        FastChargePower dcChargingPower,
         BigDecimal homePricePerKwh,
         BigDecimal publicPricePerKwh,
         BigDecimal referenceHomePricePerKwh,

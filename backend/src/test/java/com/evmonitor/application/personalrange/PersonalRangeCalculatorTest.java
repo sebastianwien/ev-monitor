@@ -1,5 +1,7 @@
 package com.evmonitor.application.personalrange;
 
+import com.evmonitor.application.charging.FastChargePower;
+
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -20,7 +22,7 @@ class PersonalRangeCalculatorTest {
                 .summerKwhPer100km(new BigDecimal("15.0")).winterKwhPer100km(new BigDecimal("20.0"))
                 .highwayKwhPer100km(new BigDecimal("19.0")).highwayCarCount(20).baseKwhPer100km(new BigDecimal("16.0"))
                 .routeMeanKwhPer100km(new BigDecimal("16.0"))
-                .dcChargingPowerKw(new BigDecimal("100")).homePricePerKwh(new BigDecimal("0.30"))
+                .dcChargingPower(FastChargePower.measured(new BigDecimal("100"), 40)).homePricePerKwh(new BigDecimal("0.30"))
                 .publicPricePerKwh(new BigDecimal("0.60"))
                 .referenceHomePricePerKwh(REF_HOME).referencePublicPricePerKwh(REF_PUBLIC)
                 .homeChargingEfficiency(new BigDecimal("0.90")).publicChargingEfficiency(new BigDecimal("0.95"))
@@ -48,12 +50,16 @@ class PersonalRangeCalculatorTest {
         assertThat(r.longTripStops()).isEqualTo(1);
         // 53.9 kWh / 100 kW = 32 min → nearest 5 min
         assertThat(r.longTripChargingMinutes()).isEqualTo(30);
+        // 600 km at 110 km/h = 327 min + 32.3 min charging (unrounded) = 359.3 → nearest 5 min
+        assertThat(r.longTripTotalMinutes()).isEqualTo(360);
         // mixed 17.5 kWh/100km × 200 km/week = 35 kWh; home charge 20→80 % = 46.2 kWh → 0.76 → 1.0
         assertThat(r.chargesPerWeek()).isEqualByComparingTo("1.0");
         // costs are paid at the plug: 40 km × 22 days × 0.175 kWh/km / 0.90 AC efficiency × 0.30 EUR = 51.3 → 51
         assertThat(r.monthlyCostEur()).isEqualTo(51);
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.MEASURED);
-        assertThat(r.assumptions()).allMatch(PersonalRangeResponse.Assumption::measured);
+        // the travel speed is a fixed setting, not a measurement; everything else is measured
+        assertThat(r.assumptions()).filteredOn(a -> !a.key().equals("TRAVEL_SPEED")).allMatch(PersonalRangeResponse.Assumption::measured);
+        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("TRAVEL_SPEED") && a.value().intValue() == 110 && !a.measured());
     }
 
     @Test
@@ -65,9 +71,10 @@ class PersonalRangeCalculatorTest {
         // = +3.1 %, half of it: summer 18.7 → 370.6 → 370; winter 24.2 → 286.4 → 290
         assertThat(r.summerRangeKm()).isEqualTo(370);
         assertThat(r.winterRangeKm()).isEqualTo(290);
-        // highway 16 × 1.25 = 20: first leg 308 km, legs 269.5 km → 2 stops; 50 kW assumed: 2 × 64.7 = 129 → 130
+        // highway 16 × 1.25 = 20: first leg 308 km, legs 269.5 km → 2 stops; no power at all: fixed default
+        // 104 kW: 2 × 31.1 = 62 → 60
         assertThat(r.longTripStops()).isEqualTo(2);
-        assertThat(r.longTripChargingMinutes()).isEqualTo(130);
+        assertThat(r.longTripChargingMinutes()).isEqualTo(60);
         // base 16 × 1.21 = 19.4, highway 20 → mixed 19.7; 880 km × 0.197 / 0.95 DC × 0.55 public reference = 100.4 → 100
         assertThat(r.monthlyCostEur()).isEqualTo(100);
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.WLTP_FACTOR);

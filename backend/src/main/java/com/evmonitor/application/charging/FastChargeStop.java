@@ -1,4 +1,4 @@
-package com.evmonitor.application;
+package com.evmonitor.application.charging;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

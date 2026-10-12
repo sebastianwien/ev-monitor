@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.charging.FastChargePowerTable;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
@@ -398,6 +399,29 @@ public class PublicModelService {
     }
 
     /**
+     * Fast-charge power of every model (measured, fleet median or default), the one source for the
+     * personal calculator, the model page story, the ranking and the partner tile. One query over
+     * all models.
+     */
+    @Cacheable(value = "fastChargePower", key = "#isSeedUser", sync = true)
+    public FastChargePowerTable getFastChargePowerTable(boolean isSeedUser) {
+        return loadFastChargePowerTable(isSeedUser);
+    }
+
+    private FastChargePowerTable loadFastChargePowerTable(boolean isSeedUser) {
+        // The placeholder brand SONSTIGE mixes arbitrary cars: never a model value, never in the median
+        return FastChargePowerTable.from(evLogRepository.findFastChargePowerPerModel(isSeedUser).stream()
+                .filter(r -> !isPlaceholderModel((String) r[0]))
+                .map(r -> new FastChargePowerTable.Measurement((String) r[0], toBigDecimal(r[1]), ((Number) r[2]).intValue()))
+                .toList());
+    }
+
+    private static boolean isPlaceholderModel(String modelEnumName) {
+        return Arrays.stream(CarBrand.CarModel.values())
+                .anyMatch(m -> m.name().equals(modelEnumName) && m.getBrand() == CarBrand.SONSTIGE);
+    }
+
+    /**
      * Returns every model with community logs, sorted by log count.
      * Much cheaper than N individual getModelStats calls: logCount, overall avgConsumption,
      * WLTP lookup and per-variant range. One cached list per seed path; callers cut it
@@ -415,6 +439,8 @@ public class PublicModelService {
         record VariantPoint(BigDecimal consumption, BigDecimal rangeKm) {}
 
         long startedAt = System.currentTimeMillis();
+        // Same table as getFastChargePowerTable, built here once: a self-call would bypass its cache
+        FastChargePowerTable fastChargePower = loadFastChargePowerTable(isSeedUser);
         List<String> modelsWithWltp = vehicleSpecificationRepository.findAll().stream()
                 .map(VehicleSpecificationEntity::getCarModel)
                 .distinct()
@@ -522,7 +548,7 @@ public class PublicModelService {
                             rangeKm(m.wltp().maxNetCapacityKwh(), m.avgConsumption()),
                             rangeKm(m.wltp().minNetCapacityKwh(), winter),
                             rangeKm(m.wltp().maxNetCapacityKwh(), winter),
-                            scale1(evLogRepository.findFastChargePowerKwByModel(m.carModel().name(), isSeedUser))
+                            fastChargePower.measuredKw(m.carModel().name())
                     );
                 })
                 .toList();

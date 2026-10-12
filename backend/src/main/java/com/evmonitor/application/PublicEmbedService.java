@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.charging.FastChargeStop;
 import com.evmonitor.domain.CarBrand;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

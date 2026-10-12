@@ -71,7 +71,7 @@ class EmailServiceTest {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var inputs = PersonalRangeRequestFixtures.answers(40, 30, true, 500);
-        var result = new PersonalRangeResponse(310, 360, 1, 35,
+        var result = new PersonalRangeResponse(310, 360, 1, 35, 380,
                 new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption(
@@ -84,7 +84,10 @@ class EmailServiceTest {
         assertThat(mimeMessage.getSubject()).isEqualTo("Dein Ergebnis für den Tesla Model 3");
         String html = firstText(mimeMessage.getContent());
         assertThat(html).contains("310 km").contains("Sommer: 360 km").contains("500 km")
-                .contains("grob 35 min").contains("58 €").contains("0,30 €/kWh")
+                .contains("58 €").contains("0,30 €/kWh")
+                // the long trip as travel time: 380 min, one stop of 35 min, at the fixed travel speed
+                .contains("Unterwegs auf 500 km").contains("6 h 20 min").contains("inkl. 1 Ladestopp, grob 35 min · Ø 110 km/h")
+                .doesNotContain("Ladeleistung geschätzt")
                 // weekly charging for the commute, per season: winter big, summer below
                 .contains("Laden fürs Pendeln im Winter").contains("1,5× pro Woche").contains("Sommer: alle 7 Tage")
                 .contains("http://localhost:5173/modelle/Tesla/Model_3");
@@ -95,7 +98,7 @@ class EmailServiceTest {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var inputs = new PersonalRangeRequest(40, 30, true, 500, new BigDecimal("0.45"), null, null, null);
-        var result = new PersonalRangeResponse(310, 360, 1, 35,
+        var result = new PersonalRangeResponse(310, 360, 1, 35, 380,
                 new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 87,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption(
@@ -106,6 +109,37 @@ class EmailServiceTest {
 
         String html = firstText(mimeMessage.getContent());
         assertThat(html).contains("87 €").contains("0.45 €/kWh").contains("commuting on 22 days");
+        assertThat(html).contains("On the road for 500 km").contains("6 h 20 min").contains("incl. 1 charging stop, roughly 35 min · avg 110 km/h");
+    }
+
+    @Test
+    void sendPersonalRangeResultEmail_tripWithoutStopAndWithSeveralStops() throws Exception {
+        var inputs = PersonalRangeRequestFixtures.answers(40, 30, true, 250);
+        MimeMessage none = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(none);
+        emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
+                new EmailService.PersonalRangeMailContent(inputs, new PersonalRangeResponse(310, 360, 0, 0, 135,
+                        new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
+                        PersonalRangeResponse.DataLevel.MEASURED, List.of())));
+        assertThat(firstText(none.getContent())).contains("2 h 15 min").contains("ohne Ladestopp · Ø 110 km/h");
+
+        MimeMessage two = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(two);
+        emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
+                new EmailService.PersonalRangeMailContent(inputs, new PersonalRangeResponse(310, 360, 2, 50, 485,
+                        new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
+                        PersonalRangeResponse.DataLevel.MEASURED, List.of())));
+        assertThat(firstText(two.getContent())).contains("8 h 5 min").contains("inkl. 2 Ladestopps, zusammen grob 50 min");
+
+        // without the model's own fast-charge measurement the stop time is an estimate, and the mail says so
+        MimeMessage estimated = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(estimated);
+        emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Renault Zoe", "/modelle/Renault/Zoe",
+                new EmailService.PersonalRangeMailContent(inputs, new PersonalRangeResponse(310, 360, 2, 50, 485,
+                        new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
+                        PersonalRangeResponse.DataLevel.MEASURED,
+                        List.of(new PersonalRangeResponse.Assumption("CHARGING_POWER", false, new BigDecimal("104"), 0)))));
+        assertThat(firstText(estimated.getContent())).contains("zusammen grob 50 min, Ladeleistung geschätzt · Ø 110 km/h");
     }
 
     @Test
@@ -113,7 +147,7 @@ class EmailServiceTest {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         var inputs = new PersonalRangeRequest(40, 30, true, 500, null, null, 30_000, 3);
-        var result = new PersonalRangeResponse(310, 360, 1, 35, new BigDecimal("2.5"), new BigDecimal("0.67"), new BigDecimal("1.5"), 146,
+        var result = new PersonalRangeResponse(310, 360, 1, 35, 380, new BigDecimal("2.5"), new BigDecimal("0.67"), new BigDecimal("1.5"), 146,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption("PRICE", true, new BigDecimal("0.30"), 100)));
 

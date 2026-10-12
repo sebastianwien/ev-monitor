@@ -38,7 +38,9 @@ public class ModelStoryContextService {
                             .sorted()
                             .toList();
                     return new ModelStoryContext(
-                            own.map(TopModelResponse::fastChargePowerKw).orElse(null), median(ratios), ratios.size(),
+                            // measured only: the story says "lädt mit x kW", a fleet median would be a claim
+                            publicModelService.getFastChargePowerTable(isSeedUser).measuredKw(carModel.name()),
+                            median(ratios), ratios.size(),
                             own.map(TopModelResponse::minRealConsumptionKwhPer100km).orElse(null),
                             own.map(TopModelResponse::maxRealConsumptionKwhPer100km).orElse(null));
                 });

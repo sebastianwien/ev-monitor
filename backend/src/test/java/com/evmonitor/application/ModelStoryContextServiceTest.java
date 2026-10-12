@@ -1,5 +1,7 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.charging.FastChargePowerTable;
+
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -33,6 +35,7 @@ class ModelStoryContextServiceTest {
                 top("IONIQ_5", null, "17.0", "23.8"),    // 1.40
                 top("EV6", "150", "17.0", null));        // no winter: not in the median
         when(publicModelService.getTopModels(false)).thenReturn(ranking);
+        when(publicModelService.getFastChargePowerTable(false)).thenReturn(table("MODEL_3", "112", 40));
 
         ModelStoryContext c = service.context("Tesla", "Model_3", false).orElseThrow();
 
@@ -45,15 +48,29 @@ class ModelStoryContextServiceTest {
     }
 
     @Test
-    void noFleetFactorBelowThreeModelsAndNoPowerWhenTheModelIsNotListed() {
+    void aMeasuredModelOutsideTheRankingStillCarriesItsPower() {
+        when(publicModelService.getTopModels(false)).thenReturn(List.of());
+        when(publicModelService.getFastChargePowerTable(false)).thenReturn(table("MODEL_3", "112", 9));
+
+        assertThat(service.context("Tesla", "Model_3", false).orElseThrow().fastChargePowerKw()).isEqualByComparingTo("112");
+    }
+
+    @Test
+    void noFleetFactorBelowThreeModelsAndNoPowerWithoutOwnMeasurement() {
         List<TopModelResponse> ranking = List.of(top("ID_3", "95", "16.0", "20.8"), top("IONIQ_5", null, "17.0", "23.8"));
         when(publicModelService.getTopModels(false)).thenReturn(ranking);
+        // 5 Ladungen reichen nicht: die Story nennt nur gemessene kW, keinen Flottenmedian
+        when(publicModelService.getFastChargePowerTable(false)).thenReturn(table("MODEL_3", "112", 5));
 
         ModelStoryContext c = service.context("Tesla", "Model_3", false).orElseThrow();
 
         assertThat(c.fastChargePowerKw()).isNull();
         assertThat(c.fleetWinterFactor()).isNull();
         assertThat(c.fleetWinterModels()).isEqualTo(2);
+    }
+
+    private static FastChargePowerTable table(String model, String kw, int sessions) {
+        return FastChargePowerTable.from(List.of(new FastChargePowerTable.Measurement(model, new BigDecimal(kw), sessions)));
     }
 
     @Test

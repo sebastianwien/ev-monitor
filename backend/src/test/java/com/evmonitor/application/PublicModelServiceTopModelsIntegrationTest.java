@@ -1,5 +1,7 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.charging.FastChargePower;
+
 import com.evmonitor.domain.*;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -379,6 +381,11 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         TopModelResponse ioniq6 = findModel(publicModelService.getTopModels(false), "IONIQ_6");
         assertNotNull(ioniq6);
         assertEquals(new BigDecimal("80.0"), ioniq6.fastChargePowerKw());
+        // the central table answers the same for every caller, ranked or not
+        FastChargePower central = publicModelService.getFastChargePowerTable(false).forModel("IONIQ_6");
+        assertEquals(new BigDecimal("80.0"), central.kw());
+        assertEquals(FastChargePower.Source.MEASURED, central.source());
+        assertEquals(8, central.sessionCount());
 
         // EQS: seven qualifying sessions are below the noise guard → null
         cacheManager.getCache("topModels").clear();
@@ -387,6 +394,8 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         saveLogsForCar(eqs.getId(), 3, new BigDecimal("20.0"));
         for (int i = 0; i < 7; i++) saveDcSession(eqs.getId(), i, "40.0", 30, "15", "70");
         assertNull(findModel(publicModelService.getTopModels(false), "EQS").fastChargePowerKw());
+        cacheManager.getCache("fastChargePower").clear();
+        assertEquals(FastChargePower.Source.FLEET_MEDIAN, publicModelService.getFastChargePowerTable(false).forModel("EQS").source());
     }
 
     private TopModelResponse findModel(List<TopModelResponse> results, String modelEnum) {

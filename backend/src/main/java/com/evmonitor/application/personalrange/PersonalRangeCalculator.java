@@ -1,6 +1,8 @@
 package com.evmonitor.application.personalrange;
 
-import com.evmonitor.application.FastChargeStop;
+import com.evmonitor.application.charging.FastChargePower;
+import com.evmonitor.application.charging.FastChargeStop;
+import com.evmonitor.application.charging.LongTripPlan;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,15 +33,13 @@ final class PersonalRangeCalculator {
     static final BigDecimal HIGHWAY_RATIO_FALLBACK = new BigDecimal("1.03");
     /** Same as the model page: range = 90 % of the net battery. */
     private static final BigDecimal RANGE_SHARE = new BigDecimal("0.9");
-    /** Long trip: start at 90 %, arrive at the first charger with 10 %. */
-    private static final BigDecimal FIRST_LEG_SHARE = new BigDecimal("0.8");
+    /** Charging away from home without a home charger: a fast-charging stop's share. */
     private static final BigDecimal STOP_SHARE = FastChargeStop.SHARE;
     /** Home charging from 20 to 80 %. */
     private static final BigDecimal HOME_CHARGE_SHARE = new BigDecimal("0.6");
     /** Highway measurement counts from this many cars (half weight) and fully from FULL_HIGHWAY_CARS. */
     static final int MIN_HIGHWAY_CARS = 5;
     static final int FULL_HIGHWAY_CARS = 15;
-    static final BigDecimal ASSUMED_DC_POWER_KW = new BigDecimal("50");
     private static final int WORKDAYS_PER_WEEK = 5;
     private static final int WORKDAYS_PER_MONTH = 22;
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
@@ -60,17 +60,14 @@ final class PersonalRangeCalculator {
         BigDecimal base = pick("BASE_CONSUMPTION", b.baseKwhPer100km(), b.wltpKwhPer100km(),
                 factor(fleet != null ? fleet.overall() : null, OVERALL_FACTOR), assumptions);
 
-        BigDecimal power = b.dcChargingPowerKw() != null ? b.dcChargingPowerKw() : ASSUMED_DC_POWER_KW;
-        assumptions.add(new PersonalRangeResponse.Assumption("CHARGING_POWER", b.dcChargingPowerKw() != null, power));
+        FastChargePower power = b.dcChargingPower() != null ? b.dcChargingPower() : FastChargePower.fallback();
+        assumptions.add(new PersonalRangeResponse.Assumption("CHARGING_POWER", power.isMeasured(), power.kw()));
 
         BigDecimal price = price(in, b, assumptions);
 
-        // Long trip on the highway value: first leg 90 → 10 %, every further leg 10 → 80 %
-        double firstLegKm = km(net, FIRST_LEG_SHARE, highway);
-        double legKm = km(net, STOP_SHARE, highway);
-        int stops = in.longTripKm() <= firstLegKm ? 0 : (int) Math.ceil((in.longTripKm() - firstLegKm) / legKm);
-        double minutesPerStop = net.multiply(STOP_SHARE).doubleValue() / power.doubleValue() * 60;
-        int chargingMinutes = (int) (Math.round(stops * minutesPerStop / 5.0) * 5);
+        LongTripPlan trip = LongTripPlan.of(net, highway, power.kw(), in.longTripKm());
+        // A fixed setting, listed so the page and the mail can name it next to the travel time
+        assumptions.add(new PersonalRangeResponse.Assumption("TRAVEL_SPEED", false, BigDecimal.valueOf(LongTripPlan.TRAVEL_SPEED_KMH)));
 
         // Commute: base and highway consumption blended by the highway share
         double h = in.highwaySharePercent() / 100.0;
@@ -100,8 +97,9 @@ final class PersonalRangeCalculator {
         return new PersonalRangeResponse(
                 round10(km(net, RANGE_SHARE, winterProfile)),
                 round10(km(net, RANGE_SHARE, summerProfile)),
-                stops,
-                chargingMinutes,
+                trip.stops(),
+                trip.chargingMinutes(),
+                trip.totalMinutes(),
                 chargesPerWeek,
                 chargesSummer,
                 chargesWinter,

@@ -1,5 +1,7 @@
 package com.evmonitor.application.personalrange;
 
+import com.evmonitor.application.charging.FastChargePowerTable;
+
 import com.evmonitor.application.ChargingPriceService;
 import com.evmonitor.application.ChargingReferencePrices;
 import com.evmonitor.application.PlausibilityProperties;
@@ -69,8 +71,9 @@ class PersonalRangeServiceTest {
 
         TopModelResponse top = mock(TopModelResponse.class);
         when(top.model()).thenReturn("MODEL_3");
-        when(top.fastChargePowerKw()).thenReturn(new BigDecimal("130"));
         when(publicModelService.getTopModels(anyBoolean())).thenReturn(List.of(top));
+        when(publicModelService.getFastChargePowerTable(anyBoolean())).thenReturn(FastChargePowerTable.from(List.of(
+                new FastChargePowerTable.Measurement("MODEL_3", new BigDecimal("130"), 40))));
     }
 
     @Test
@@ -86,13 +89,25 @@ class PersonalRangeServiceTest {
     }
 
     @Test
-    void withoutFastChargeFigureThePowerIsTheFixedEstimate() {
+    void aMeasuredModelKeepsItsPowerEvenWhenTheRankingDoesNotListIt() {
         when(publicModelService.getTopModels(anyBoolean())).thenReturn(List.of());
 
         PersonalRangeResponse r = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
 
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("CHARGING_POWER")
-                && a.value().compareTo(PersonalRangeCalculator.ASSUMED_DC_POWER_KW) == 0 && !a.measured());
+                && a.value().compareTo(new BigDecimal("130")) == 0 && a.measured());
+    }
+
+    @Test
+    void withoutOwnMeasurementThePowerIsTheMedianOfTheMeasuredModelsMarkedAsEstimate() {
+        when(publicModelService.getFastChargePowerTable(anyBoolean())).thenReturn(FastChargePowerTable.from(List.of(
+                new FastChargePowerTable.Measurement("ID_3", new BigDecimal("90"), 50),
+                new FastChargePowerTable.Measurement("MODEL_3", new BigDecimal("130"), 5))));
+
+        PersonalRangeResponse r = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
+
+        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("CHARGING_POWER")
+                && a.value().compareTo(new BigDecimal("90")) == 0 && !a.measured());
     }
 
     @Test

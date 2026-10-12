@@ -26,6 +26,7 @@ spring:
       - modelsWithData
       - modelStats
       - topModels
+      - fastChargePower
       - modelsWithoutData
       - efficientModels
       - longestRangeModels
