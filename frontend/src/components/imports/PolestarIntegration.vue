@@ -13,6 +13,8 @@ import {
 } from '@heroicons/vue/24/outline'
 import polestarService, { POLESTAR_SHARE_ACCOUNT, POLESTAR_PORTAL_URL, type PolestarConnection, type PolestarCapacity } from '@/api/polestarService'
 import type { Car } from '@/api/carService'
+import CarSelectDropdown from '@/components/car/CarSelectDropdown.vue'
+import { carDisplayName } from '@/utils/enumLabel'
 import { analytics } from '@/services/analytics'
 
 const props = defineProps<{ cars: Car[] }>()
@@ -39,7 +41,7 @@ const activeConnection = computed(() =>
   connections.value.find(c => c.carId === selectedCarId.value && c.status === 'ACTIVE') ?? null,
 )
 const selectedCar = computed(() => props.cars.find(c => c.id === selectedCarId.value) ?? null)
-const carLabel = (c: Car) => [c.brand, c.model, c.year].filter(Boolean).join(' ')
+const carLabel = (c: Car) => `${carDisplayName(c.brand, c.model)} ${c.year ?? ''}`.trim()
 
 onMounted(async () => {
   selectedCarId.value = props.cars.find(c => c.isPrimary)?.id ?? props.cars[0]?.id ?? ''
@@ -125,12 +127,9 @@ const fmt = (iso: string | null) =>
     </div>
 
     <!-- Fahrzeugwahl nur bei mehreren Polestar -->
-    <div v-if="cars.length > 1">
-      <label for="polestar-car" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">{{ t('polestar.car_label') }}</label>
-      <select id="polestar-car" v-model="selectedCarId" data-testid="polestar-car"
-              class="w-full rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
-        <option v-for="c in cars" :key="c.id" :value="c.id">{{ carLabel(c) }}</option>
-      </select>
+    <div v-if="cars.length > 1" data-testid="polestar-car">
+      <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">{{ t('polestar.car_label') }}</label>
+      <CarSelectDropdown v-model="selectedCarId" :cars="cars" />
     </div>
 
     <p v-if="loading" class="text-sm text-gray-500 dark:text-gray-400" data-testid="polestar-loading">{{ t('common.loading') }}</p>
