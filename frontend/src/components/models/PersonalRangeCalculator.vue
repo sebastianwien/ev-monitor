@@ -59,6 +59,8 @@
         <ul class="mt-1 space-y-1">
           <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
             <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+            <!-- a fixed setting, not a missing measurement: no warning colour -->
+            <InformationCircleIcon v-else-if="a.key === 'TRAVEL_SPEED'" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
             <QuestionMarkCircleIcon v-else class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>{{ assumptionText(a) }} <span class="text-gray-500 dark:text-gray-400">({{ sourceText(a) }})</span></span>
           </li>
@@ -71,7 +73,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CheckCircleIcon, CheckIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { CheckCircleIcon, CheckIcon, InformationCircleIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -134,7 +136,7 @@ const tileLabels = computed(() => [
   t('personal_range.range_winter'),
   t('personal_range.charges_summer'),
   t('personal_range.charges_winter'),
-  t('personal_range.stops', { distance: formatDistance(props.inputs.longTripKm) }),
+  t('personal_range.travel', { distance: formatDistance(props.inputs.longTripKm) }),
   t('personal_range.cost_month'),
 ])
 const placeholderLabels = computed(() => tileLabels.value.map((label, i) => ({ label, order: TILE_ORDER[i] })))
@@ -148,6 +150,9 @@ function chargesText(perWeek: number): string {
 /** Datenblatt for the battery; the user's own price; otherwise gemessen, geschätzt, or the measured share of a blend */
 function sourceText(a: PersonalRangeAssumption): string {
   if (a.key === 'BATTERY') return a.measured ? t('personal_range.source_spec') : t('personal_range.source_spec_derived')
+  // a fixed setting, and the power of a model without own sessions is the median of the measured ones
+  if (a.key === 'TRAVEL_SPEED') return t('personal_range.source_fixed')
+  if (a.key === 'CHARGING_POWER' && !a.measured) return t('personal_range.source_fleet_median')
   if (a.key === 'OWN_PRICE') return t('personal_range.source_own')
   if (a.measured) return t('personal_range.measured')
   if (a.measuredPercent && a.measuredPercent > 0) return t('personal_range.partly_measured', { percent: a.measuredPercent })
@@ -233,11 +238,26 @@ const tiles = computed(() => {
     // charging per week rests on the commute days, whatever the yearly mileage says
     { label: chargesSummer, value: chargesText(r.chargesPerWeekSummer), detail: commuteBasis },
     { label: chargesWinter, value: chargesText(r.chargesPerWeekWinter), detail: commuteBasis },
-    { label: stops, value: String(r.longTripStops),
-      detail: r.longTripStops === 0 ? t('personal_range.no_stop') : t('personal_range.stops_minutes', { minutes: r.longTripChargingMinutes }) },
+    // the long trip as travel time: what a holiday feels like, the stops below
+    { label: stops, value: duration(r.longTripTotalMinutes), detail: tripDetail(r) },
     { label: cost, value: formatCurrency(r.monthlyCostEur, { decimals: 0 }), detail: basis },
   ].map((tile, i) => ({ ...tile, order: TILE_ORDER[i] }))
 })
+
+/** The stops below the travel time; an estimated charging power is named right there, not only in the list */
+function tripDetail(r: PersonalRangeResult): string {
+  const stops = t('personal_range.travel_stops', { n: r.longTripStops, minutes: r.longTripChargingMinutes }, r.longTripStops)
+  const estimated = r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured)
+  return estimated ? `${stops}, ${t('personal_range.power_estimated')}` : stops
+}
+
+/** "8 h 5 min", "45 min", "9 h" in the locale's unit words */
+function duration(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return t('personal_range.duration_m', { m })
+  return m === 0 ? t('personal_range.duration_h', { h }) : t('personal_range.duration_h_m', { h, m })
+}
 
 /** Locale number without a trailing ",0". */
 function compact(value: number): string {
@@ -248,6 +268,7 @@ function assumptionText(a: PersonalRangeAssumption): string {
   const value = a.key.endsWith('_CONSUMPTION') ? formatConsumption(a.value)
     : a.key === 'BATTERY' ? `${compact(a.value)} kWh`
     : a.key === 'CHARGING_POWER' ? `${compact(a.value)} kW`
+    : a.key === 'TRAVEL_SPEED' ? `${compact(a.value)} km/h`
     : formatCostPerKwh(a.value)
   return t(`personal_range.assumption_${a.key}`, { value })
 }

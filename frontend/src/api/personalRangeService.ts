@@ -20,7 +20,7 @@ export interface PersonalRangeInputs {
 export type PersonalRangeDataLevel = 'MEASURED' | 'PARTIAL' | 'WLTP_FACTOR'
 
 export type AssumptionKey = 'BATTERY' | 'SUMMER_CONSUMPTION' | 'WINTER_CONSUMPTION' | 'HIGHWAY_CONSUMPTION'
-  | 'BASE_CONSUMPTION' | 'CHARGING_POWER' | 'PRICE' | 'OWN_PRICE'
+  | 'BASE_CONSUMPTION' | 'CHARGING_POWER' | 'TRAVEL_SPEED' | 'PRICE' | 'OWN_PRICE'
 
 /** The range band before the gate: winter to summer range for the inputs, rated on the season data only. */
 export interface PersonalRangeBand {
@@ -42,6 +42,8 @@ export interface PersonalRangeResult {
   summerRangeKm: number
   longTripStops: number
   longTripChargingMinutes: number
+  /** the whole long trip at the fixed travel speed (assumption TRAVEL_SPEED) plus charging, rounded to 5 */
+  longTripTotalMinutes: number
   chargesPerWeek: number
   /** charges a week for the commute on the commute days, at the summer and the winter consumption, not rounded */
   chargesPerWeekSummer: number

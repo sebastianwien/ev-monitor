@@ -13,13 +13,15 @@ import PersonalRangeCalculator from '../PersonalRangeCalculator.vue'
 import type { PersonalRangeInputs } from '../../../api/personalRangeService'
 
 const RESULT = {
-  winterRangeKm: 320, summerRangeKm: 450, longTripStops: 1, longTripChargingMinutes: 30,
+  winterRangeKm: 320, summerRangeKm: 450, longTripStops: 1, longTripChargingMinutes: 30, longTripTotalMinutes: 305,
   chargesPerWeek: 1.5, chargesPerWeekSummer: 0.3, chargesPerWeekWinter: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
   assumptions: [
     { key: 'BATTERY', measured: true, value: 77 },
     { key: 'WINTER_CONSUMPTION', measured: true, value: 21.4 },
     { key: 'HIGHWAY_CONSUMPTION', measured: false, value: 19.5, measuredPercent: 50 },
     { key: 'OWN_PRICE', measured: true, value: 0.28 },
+    { key: 'CHARGING_POWER', measured: false, value: 104 },
+    { key: 'TRAVEL_SPEED', measured: false, value: 110 },
   ],
 }
 const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, commuteDaysPerWeek: 3, highwaySharePercent: 30, homeCharging: true, longTripKm: 500, pricePerKwh: 0.28 }
@@ -73,7 +75,7 @@ describe('PersonalRangeCalculator', () => {
     for (const dd of placeholder.querySelectorAll('dd')) expect(dd.textContent).not.toMatch(/\d/)
     // six tiles, "how often you charge" among them at full size: the gate's selling point
     const labels = [...placeholder.querySelectorAll('dt')].map(dt => dt.textContent)
-    expect(labels).toEqual(['Reichweite Sommer', 'Reichweite Winter', 'Wie oft laden, Sommer', 'Wie oft laden, Winter', 'Ladestopps auf 500 km', 'Strom im Monat'])
+    expect(labels).toEqual(['Reichweite Sommer', 'Reichweite Winter', 'Wie oft laden, Sommer', 'Wie oft laden, Winter', 'Unterwegs auf 500 km', 'Strom im Monat'])
     expect(host.querySelector('[data-testid="personal-range-result"]')).toBeNull()
     expect(api.post).not.toHaveBeenCalled()
   })
@@ -163,7 +165,14 @@ describe('PersonalRangeCalculator', () => {
     expect(result.textContent).toContain('1,5× pro Woche')
     expect(result.querySelectorAll('dl dd').length).toBe(6)
     expect(result.textContent).toContain('Pendeln, 40 km an 3 Tagen')
-    expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(4)
+    // the long trip as travel time: total big, the stops below
+    expect(result.textContent).toContain('5 h 5 min')
+    expect(result.textContent).toContain('inkl. 1 Ladestopp, ca. 30 min')
+    // the power is the fleet median here: said right at the travel time, not only in the list below
+    expect(result.textContent).toContain('Ladeleistung geschätzt')
+    expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(6)
+    expect(result.textContent).toContain('Reisetempo 110 km/h (festgelegt)')
+    expect(result.textContent).toContain('Mittlere Schnellladeleistung 104 kW (Mittel der gemessenen Modelle)')
     expect(result.textContent).toContain('(Datenblatt)')
     expect(result.textContent).toContain('zu 50 % gemessen')
     expect(result.textContent).toContain('(deine Angabe)')
