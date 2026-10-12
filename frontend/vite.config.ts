@@ -31,6 +31,10 @@ export default defineConfig(({ mode }) => ({
                 target: 'http://localhost:8081',
                 changeOrigin: true
             },
+            '/api/polestar': {
+                target: 'http://localhost:8081',
+                changeOrigin: true
+            },
             // Verbinden (Passwort-Login) liegt im Core, der Rest beim Connectors-Service
             '^/api/eu-data-act/cars/[^/]+/connect$': {
                 target: 'http://localhost:8080',

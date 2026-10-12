@@ -36,6 +36,7 @@ class DataSourceProvenanceTest {
             EU_DATA_ACT_IMPORT,  VW_GROUP,     UPLOAD
             EU_DATA_ACT_SYNC,    VW_GROUP,     SYNC
             TESLA_INFERRED,      TESLA,        LIVE
+            POLESTAR_DATA_PORTAL, POLESTAR,    SYNC
             """;
 
     @ParameterizedTest(name = "{0} → {1} / {2}")

@@ -32,7 +32,8 @@ public class ConnectionHealthService {
             "VW_EUDA", DataSource.EU_DATA_ACT_SYNC,
             "GOE", DataSource.WALLBOX_GOE,
             "SMARTCAR", DataSource.SMARTCAR_LIVE,
-            "TESLA", DataSource.TESLA_LIVE);
+            "TESLA", DataSource.TESLA_LIVE,
+            "POLESTAR", DataSource.POLESTAR_DATA_PORTAL);
 
     private final RestTemplate restTemplate;
     private final String connectorsBaseUrl;

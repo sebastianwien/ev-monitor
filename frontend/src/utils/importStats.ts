@@ -100,6 +100,7 @@ const PROVIDER_LABEL: Record<string, string> = {
   VW_GROUP: 'VW Group',
   TESSIE: 'Tessie',
   XPENG: 'XPeng',
+  POLESTAR: 'Polestar',
   UNKNOWN: 'Unbekannt',
 }
 

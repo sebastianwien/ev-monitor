@@ -15,5 +15,6 @@ public enum DataProvider {
     SMARTCAR,
     VW_GROUP,
     TESSIE,
-    XPENG
+    XPENG,
+    POLESTAR
 }

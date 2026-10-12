@@ -18,6 +18,7 @@ public enum DataSource {
     XPENG_LIVE,          // XPeng Phase 2+: automated mail-poll / future XPeng API (AutoSync Live tier)
     EU_DATA_ACT_IMPORT,  // VW Group EU Data Act portal: manual JSON/ZIP upload (VW, Audi, Skoda, SEAT, CUPRA, Porsche)
     EU_DATA_ACT_SYNC,    // VW Group EU Data Act portal: AutoSync via ev-monitor-connectors (same parser, polled every 15 min)
+    POLESTAR_DATA_PORTAL, // Polestar Data Portal via ev-monitor-connectors (Testmodus: nur Rohsnapshots, noch keine Logs)
     TESLA_INFERRED;      // nur Fahrten: aus einer Odometer-Lücke abgeleitete Tesla-Fahrt (connectors InferredTripService)
 
     public boolean includeInStatistics() {
@@ -70,6 +71,7 @@ public enum DataSource {
             case VWGROUP_LIVE, EU_DATA_ACT_IMPORT, EU_DATA_ACT_SYNC -> DataProvider.VW_GROUP;
             case TESSIE -> DataProvider.TESSIE;
             case XPENG_IMPORT, XPENG_LIVE -> DataProvider.XPENG;
+            case POLESTAR_DATA_PORTAL -> DataProvider.POLESTAR;
         };
     }
 
@@ -79,7 +81,7 @@ public enum DataSource {
             case USER_LOGGED -> DataChannel.MANUAL;
             case SPRITMONITOR_IMPORT, TESLA_MANUAL_IMPORT, API_UPLOAD, TRONITY_IMPORT, TESSIE,
                  XPENG_IMPORT, EU_DATA_ACT_IMPORT -> DataChannel.UPLOAD;
-            case TESLA_IMPORT, TESLA_FLEET_IMPORT, WALLBOX_GOE, XPENG_LIVE, EU_DATA_ACT_SYNC -> DataChannel.SYNC;
+            case TESLA_IMPORT, TESLA_FLEET_IMPORT, WALLBOX_GOE, XPENG_LIVE, EU_DATA_ACT_SYNC, POLESTAR_DATA_PORTAL -> DataChannel.SYNC;
             case TESLA_LIVE, TESLA_INFERRED, WALLBOX_OCPP, SMARTCAR_LIVE, VWGROUP_LIVE -> DataChannel.LIVE;
         };
     }
@@ -87,7 +89,7 @@ public enum DataSource {
     /** Returns the measurement point for energy reported by this data source. */
     public EnergyMeasurementType measurementType() {
         return switch (this) {
-            case TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE, TESSIE, XPENG_IMPORT, XPENG_LIVE, EU_DATA_ACT_IMPORT, EU_DATA_ACT_SYNC -> EnergyMeasurementType.AT_VEHICLE;
+            case TESLA_LIVE, SMARTCAR_LIVE, VWGROUP_LIVE, TESSIE, XPENG_IMPORT, XPENG_LIVE, EU_DATA_ACT_IMPORT, EU_DATA_ACT_SYNC, POLESTAR_DATA_PORTAL -> EnergyMeasurementType.AT_VEHICLE;
             default -> EnergyMeasurementType.AT_CHARGER;
         };
     }
