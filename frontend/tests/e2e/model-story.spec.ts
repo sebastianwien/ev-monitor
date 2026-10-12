@@ -10,6 +10,13 @@ async function openStory(page: Page) {
   await expect(page.getByTestId('story-hero')).toBeVisible({ timeout: 15_000 });
 }
 
+/** Signed in: the stored profile lands shortly after the page and moves the sliders; wait for it first */
+async function openStoryWithProfile(page: Page) {
+  const profile = page.waitForResponse(r => r.url().includes('/api/personal-range/profile'));
+  await openStory(page);
+  await profile;
+}
+
 /** Sets a range input like a release after dragging: input for the live label, change for the answer */
 async function setSlider(page: Page, key: string, value: number) {
   await page.getByTestId(`slider-${key}`).evaluate((el, v) => {
@@ -72,11 +79,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
     test('eingeloggt holt der Autobahn-Regler die Spanne für das Profil', async ({ page }) => {
       await login(page);
-      await openStory(page);
-      const preview = page.waitForResponse(r => r.url().includes('/api/public/personal-range/') && r.request().method() === 'POST');
+      await openStoryWithProfile(page);
+      // a stored profile fetches a band on load already: wait for the request that carries the new value
+      const preview = page.waitForResponse(r => r.url().includes('/api/public/personal-range/') && r.request().method() === 'POST' && r.request().postDataJSON().highwaySharePercent === 60);
       await setSlider(page, 'highwayShare', 60);
       const response = await preview;
-      expect(response.request().postDataJSON()).toEqual(expect.objectContaining({ highwaySharePercent: 60 }));
       expect(response.status()).toBe(200);
       const body = await response.json();
       // only the two ends of the band leave the server before the exact result
@@ -93,11 +100,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
     test('die Pendelstrecke ist ein Regler und geht eingeloggt mit ihrem Wert an den Server', async ({ page }) => {
       await login(page);
-      await openStory(page);
-      const preview = page.waitForResponse(r => r.url().includes('/api/public/personal-range/') && r.request().method() === 'POST');
+      await openStoryWithProfile(page);
+      const preview = page.waitForResponse(r => r.url().includes('/api/public/personal-range/') && r.request().method() === 'POST' && r.request().postDataJSON().commuteKmPerDay === 35);
       await setSlider(page, 'commute', 35);
       await expect(page.getByTestId('slider-commute-value')).toContainText('35 km');
-      expect((await preview).request().postDataJSON()).toEqual(expect.objectContaining({ commuteKmPerDay: 35 }));
+      expect((await preview).status()).toBe(200);
     });
 
     test('die Antworten der Rangliste zählen auf der Modellseite als beantwortet', async ({ page }) => {
