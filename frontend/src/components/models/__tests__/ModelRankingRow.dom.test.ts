@@ -113,6 +113,13 @@ describe('ModelRankingRow', () => {
     expect(host.querySelector('[data-testid="needs-hint"]')).toBeNull()
   })
 
+  it('0 km commute: no charging needed, without a dangling verb', async () => {
+    const { host } = mount(ANNA_CAR, { answers: { ...ANNA, dailyKm: 0 } })
+    await nextTick()
+    expect(hint(host)).toContain('Fürs Pendeln kein Laden nötig')
+    expect(hint(host)).not.toContain('nötig laden')
+  })
+
   it('yearly savings count the commute', async () => {
     const { host } = mount(ANNA_CAR, { expanded: true, fuelPrice: 1.8 })
     await nextTick()

@@ -242,8 +242,8 @@ const needsLines = computed<string[]>(() => {
   // data the typical figure carries that caveat.
   if (n.commute) {
     const rhythm = (c: CommuteAssessment) => chargeRhythmSpanText(c.perWeek.low, c.perWeek.high, c.homeCharging, rhythmFormat)
-    // "alle 14 Tage laden"; stops on the road carry their own noun
-    const charge = (text: string) => n.commute!.homeCharging ? row('charge_verb', { value: text }) : text
+    // "alle 14 Tage laden"; stops on the road carry their own noun, and "kein Laden nötig" needs no verb
+    const charge = (text: string) => n.commute!.homeCharging && n.commute!.perWeek.high > 0 ? row('charge_verb', { value: text }) : text
     const main = rhythm(n.commute)
     const typical = typ?.commute ? rhythm(typ.commute) : null
     let line: string
