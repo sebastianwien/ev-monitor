@@ -71,6 +71,12 @@ describe('PersonalRangeCalculator', () => {
     const placeholder = host.querySelector('[data-testid="personal-range-placeholder"]')!
     expect(placeholder.querySelectorAll('dd').length).toBe(4)
     for (const dd of placeholder.querySelectorAll('dd')) expect(dd.textContent).not.toMatch(/\d/)
+    // the gate promises charges a week: the summer and winter tiles name them before the gate too
+    const labels = [...placeholder.querySelectorAll('dt')].map(dt => dt.textContent)
+    expect(labels[0]).toContain('Sommer')
+    expect(labels[0]).toContain('Ladungen pro Woche')
+    expect(labels[1]).toContain('Winter')
+    expect(labels[1]).toContain('Ladungen pro Woche')
     expect(host.querySelector('[data-testid="personal-range-result"]')).toBeNull()
     expect(api.post).not.toHaveBeenCalled()
   })

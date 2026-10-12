@@ -22,8 +22,8 @@
     <!-- Before the gate: four tiles with placeholders only. No figure of the result exists in the
          page until the signed-in request returns, so there is nothing to unblur in the console. -->
     <dl v-if="!result" class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 md:grid-cols-4 dark:border-gray-800 dark:bg-gray-800" data-testid="personal-range-placeholder">
-      <div v-for="label in placeholderLabels" :key="label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 dark:bg-gray-900">
-        <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ label }}</dt>
+      <div v-for="tile in placeholderLabels" :key="tile.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 dark:bg-gray-900">
+        <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ tile.label }}<span v-if="tile.detail" class="block">{{ tile.detail }}</span></dt>
         <dd class="select-none text-[22px] font-semibold leading-tight tracking-tight text-gray-400 blur-[6px] dark:text-gray-500" aria-hidden="true">···</dd>
       </div>
     </dl>
@@ -122,11 +122,12 @@ const gateLead = computed(() => props.carCount >= MIN_MEASURED_CARS
   ? t('personal_range.gate_lead_measured', { model: props.modelName, logs: formatNumber(props.logCount), cars: formatNumber(props.carCount) })
   : t('personal_range.gate_lead_thin', { model: props.modelName, cars: props.carCount }, props.carCount))
 
+/** Same labels as the result tiles; summer and winter name the charges a week, the gate's selling point */
 const placeholderLabels = computed(() => [
-  t('personal_range.summer_label'),
-  t('personal_range.winter_range'),
-  t('personal_range.stops', { distance: formatDistance(props.inputs.longTripKm) }),
-  t('personal_range.cost_month'),
+  { label: t('personal_range.summer_label'), detail: t('personal_range.charges_week_label') },
+  { label: t('personal_range.winter_range'), detail: t('personal_range.charges_week_label') },
+  { label: t('personal_range.stops', { distance: formatDistance(props.inputs.longTripKm) }), detail: null },
+  { label: t('personal_range.cost_month'), detail: null },
 ])
 
 /** Datenblatt for the battery; the user's own price; otherwise gemessen, geschätzt, or the measured share of a blend */

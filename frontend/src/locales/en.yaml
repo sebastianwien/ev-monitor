@@ -4123,6 +4123,7 @@ personal_range:
   summer_label: "Summer"
   cost_basis_charges: "commuting on 22 days"
   charges_commute: "Commute: charge {charges}× a week"
+  charges_week_label: "charges a week"
   open_questions: "One question left, then we calculate. | {n} questions left, then we calculate."
   cost_basis_annual: "{annual} a year"
   result_title: "Your result with the {model}"
