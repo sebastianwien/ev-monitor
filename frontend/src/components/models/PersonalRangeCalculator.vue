@@ -229,15 +229,14 @@ const tiles = computed(() => {
   const basis = props.inputs.annualKm
     ? t('personal_range.cost_basis_annual', { annual: formatDistance(props.inputs.annualKm) })
     : t('personal_range.cost_basis_charges')
-  // stored profiles from before the commute-days question count 5 days, like the backend
-  const commuteBasis = t('personal_range.charges_basis', { commute: formatDistance(props.inputs.commuteKmPerDay), days: formatNumber(props.inputs.commuteDaysPerWeek ?? 5) })
   const [rangeSummer, rangeWinter, chargesSummer, chargesWinter, stops, cost] = tileLabels.value
   return [
     { label: rangeSummer, value: formatDistance(r.summerRangeKm), detail: t('personal_range.range_full') },
     { label: rangeWinter, value: formatDistance(r.winterRangeKm), detail: t('personal_range.range_full') },
-    // charging per week rests on the commute days, whatever the yearly mileage says
-    { label: chargesSummer, value: chargesText(r.chargesPerWeekSummer), detail: commuteBasis },
-    { label: chargesWinter, value: chargesText(r.chargesPerWeekWinter), detail: commuteBasis },
+    // charging per week rests on the commute days, whatever the yearly mileage says; value and label
+    // read as one sentence: "alle 4 Wochen / Im Sommer laden für deine Pendelstrecke"
+    { label: chargesSummer, value: chargesText(r.chargesPerWeekSummer), detail: '' },
+    { label: chargesWinter, value: chargesText(r.chargesPerWeekWinter), detail: '' },
     // the long trip as travel time: what a holiday feels like, the stops below
     { label: stops, value: duration(r.longTripTotalMinutes), detail: tripDetail(r) },
     { label: cost, value: formatCurrency(r.monthlyCostEur, { decimals: 0 }), detail: basis },

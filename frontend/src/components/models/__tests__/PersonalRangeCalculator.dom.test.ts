@@ -75,7 +75,7 @@ describe('PersonalRangeCalculator', () => {
     for (const dd of placeholder.querySelectorAll('dd')) expect(dd.textContent).not.toMatch(/\d/)
     // six tiles, "how often you charge" among them at full size: the gate's selling point
     const labels = [...placeholder.querySelectorAll('dt')].map(dt => dt.textContent)
-    expect(labels).toEqual(['Reichweite Sommer', 'Reichweite Winter', 'Wie oft laden, Sommer', 'Wie oft laden, Winter', 'Unterwegs auf 500 km', 'Strom im Monat'])
+    expect(labels).toEqual(['Reichweite Sommer', 'Reichweite Winter', 'Im Sommer laden für deine Pendelstrecke', 'Im Winter laden für deine Pendelstrecke', 'Unterwegs auf 500 km', 'Strom im Monat'])
     expect(host.querySelector('[data-testid="personal-range-result"]')).toBeNull()
     expect(api.post).not.toHaveBeenCalled()
   })
@@ -164,7 +164,9 @@ describe('PersonalRangeCalculator', () => {
     expect(result.textContent).toContain('alle 3 Wochen')
     expect(result.textContent).toContain('1,5× pro Woche')
     expect(result.querySelectorAll('dl dd').length).toBe(6)
-    expect(result.textContent).toContain('Pendeln, 40 km an 3 Tagen')
+    // the tile reads as a sentence: "alle 3 Wochen / Im Sommer laden für deine Pendelstrecke"
+    expect(result.textContent).toContain('Im Winter laden für deine Pendelstrecke')
+    expect(result.textContent).not.toContain('Pendeln, 40 km an 3 Tagen')
     // the long trip as travel time: total big, the stops below
     expect(result.textContent).toContain('5 h 5 min')
     expect(result.textContent).toContain('inkl. 1 Ladestopp, ca. 30 min')
