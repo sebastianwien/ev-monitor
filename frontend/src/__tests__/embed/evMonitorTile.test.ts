@@ -36,34 +36,80 @@ describe('ev-monitor-tile.js', () => {
     vi.unstubAllGlobals()
   })
 
-  it('renders consumption and seasonal ranges with UTM link', async () => {
-    const fetchMock = mockFetch({
-      hasData: true, modelDisplayName: 'Volkswagen ID.3', realConsumptionKwhPer100km: 16.8,
-      typicalRangeKm: 410, summerRangeKm: 450, winterRangeKm: 320, logCount: 1812, uniqueCars: 34,
-      modelUrl: 'https://ev-monitor.net/modelle/Volkswagen/ID.3',
-    })
-    const host = mount({ 'data-brand': 'Volkswagen', 'data-model': 'ID.3', 'data-utm-source': 'firstev' })
-    const tile = loadScript()
-    await tile.render(host)
+  const MODEL_3 = {
+    hasData: true, modelDisplayName: 'Tesla Model 3', realConsumptionKwhPer100km: 20.0,
+    typicalRangeKm: 340, summerRangeKm: 330, winterRangeKm: 300, logCount: 6666, uniqueCars: 42,
+    modelUrl: 'https://ev-monitor.net/modelle/Tesla/Model_3',
+    summerConsumptionKwhPer100km: 19.0, winterConsumptionKwhPer100km: 22.0, summerLogCount: 1861, winterLogCount: 1565,
+    typicalChargeCostEur: 8.86, fastStopCostEur: 19.29,
+  }
+  const cta = (host: HTMLElement) => host.shadowRoot!.querySelector('[data-cta]') as HTMLAnchorElement
+  const chip = (host: HTMLElement, label: string) =>
+    [...host.shadowRoot!.querySelectorAll('button')].find(b => b.textContent!.startsWith(label)) as HTMLButtonElement
+
+  it('tells the community story: cars, charges, summer against winter and what a charge costs', async () => {
+    const fetchMock = mockFetch(MODEL_3)
+    const host = mount({ 'data-brand': 'Tesla', 'data-model': 'Model_3', 'data-utm-source': 'firstev' })
+    await loadScript().render(host)
 
     const url = new URL(fetchMock.mock.calls[0][0])
     expect(url.pathname).toBe('/api/public/embed/model-tile')
-    expect(url.searchParams.get('brand')).toBe('Volkswagen')
+    expect(url.searchParams.get('model')).toBe('Model_3')
     expect(fetchMock.mock.calls[0][1]).toEqual({ credentials: 'omit' })
 
-    expect(text(host)).toContain('16,8 kWh')
-    expect(text(host)).toContain('320 km')
-    expect(text(host)).toContain('450 km')
-    expect(text(host)).toContain('1.812 Ladevorgängen von 34 Fahrzeugen')
-    const href = new URL(link(host).href)
-    expect(href.pathname).toBe('/modelle/Volkswagen/ID.3')
-    expect(href.searchParams.get('utm_source')).toBe('firstev')
-    expect(href.searchParams.get('utm_medium')).toBe('tile')
-    expect(href.searchParams.get('utm_campaign')).toBe('volkswagen_id_3')
-    expect(link(host).rel).toBe('noopener')
+    expect(text(host)).toContain('EV Monitor')
+    expect(text(host)).toContain('42 Autos')
+    expect(text(host)).toContain('6.666 Ladungen')
+    expect(text(host)).toContain('19,0')
+    expect(text(host)).toContain('22,0')
+    expect(text(host)).toContain('+16 %')
+    expect(text(host)).toContain('9 €')
+    expect(text(host)).toContain('19 €')
+    // Ranges belong to the partner's card, the tile no longer shows them
+    expect(text(host)).not.toContain('330 km')
   })
 
-  it('shows the typical range when seasonal values are missing', async () => {
+  it('links the main button to the model page with UTM, before any chip is tapped', async () => {
+    mockFetch(MODEL_3)
+    const host = mount({ 'data-brand': 'Tesla', 'data-model': 'Model_3', 'data-utm-source': 'firstev' })
+    await loadScript().render(host)
+
+    const href = new URL(cta(host).href)
+    expect(href.pathname).toBe('/modelle/Tesla/Model_3')
+    expect(href.searchParams.get('utm_source')).toBe('firstev')
+    expect(href.searchParams.get('utm_medium')).toBe('tile')
+    expect(href.searchParams.get('utm_campaign')).toBe('tesla_model_3')
+    expect(href.searchParams.get('utm_content')).toBe('cta')
+    expect(cta(host).rel).toBe('noopener')
+  })
+
+  it('a tapped commute or holiday chip carries its value to the model page without answering in the tile', async () => {
+    mockFetch(MODEL_3)
+    const host = mount({ 'data-brand': 'Tesla', 'data-model': 'Model_3', 'data-utm-source': 'firstev' })
+    await loadScript().render(host)
+
+    chip(host, '40 km').click()
+    let href = new URL(cta(host).href)
+    expect(href.searchParams.get('pendeln')).toBe('40')
+    expect(href.searchParams.get('urlaub')).toBeNull()
+    expect(href.searchParams.get('utm_content')).toBe('pendeln-40')
+    expect(cta(host).textContent).toContain('40 km')
+    expect(chip(host, '40 km').getAttribute('aria-pressed')).toBe('true')
+
+    chip(host, '800 km').click()
+    href = new URL(cta(host).href)
+    expect(href.searchParams.get('urlaub')).toBe('800')
+    expect(href.searchParams.get('pendeln')).toBeNull()
+    expect(href.searchParams.get('utm_content')).toBe('urlaub-800')
+    expect(cta(host).textContent).toContain('800 km Urlaubsfahrt')
+    // Keine Orte: Entfernungen hängen vom Wohnort ab
+    expect(text(host)).not.toMatch(/Ostsee|Alpen|Toskana/)
+    expect(chip(host, '40 km').getAttribute('aria-pressed')).toBe('false')
+    // No charging frequency or stop count in the tile, that answer is on the model page
+    expect(text(host)).not.toMatch(/pro Woche|Ladestopps? bis/)
+  })
+
+  it('leaves out seasons and costs the API does not send (older backend, thin data)', async () => {
     mockFetch({
       hasData: true, modelDisplayName: 'Volkswagen ID.3', realConsumptionKwhPer100km: 16.8,
       typicalRangeKm: 410, summerRangeKm: null, winterRangeKm: null, logCount: 40, uniqueCars: 1,
@@ -72,9 +118,11 @@ describe('ev-monitor-tile.js', () => {
     const host = mount({ 'data-brand': 'Volkswagen', 'data-model': 'ID.3' })
     await loadScript().render(host)
 
-    expect(text(host)).toContain('410 km')
-    expect(text(host)).toContain('1 Fahrzeug.')
-    expect(text(host)).not.toContain('Winter')
+    expect(text(host)).toContain('1 Auto')
+    expect(text(host)).toContain('16,8')
+    expect(text(host)).not.toContain('Sommer')
+    expect(text(host)).not.toContain('€')
+    expect(cta(host)).not.toBeNull()
   })
 
   it('renders the fallback with a registration link when there is no data', async () => {
@@ -82,7 +130,7 @@ describe('ev-monitor-tile.js', () => {
     const host = mount({ 'data-brand': 'Foo', 'data-model': 'Bar', 'data-utm-source': 'firstev' })
     await loadScript().render(host)
 
-    expect(text(host)).toContain('Noch keine Messdaten. Fährst du einen? Trag ihn ein.')
+    expect(text(host)).toContain('Noch keine Messdaten')
     const href = new URL(link(host).href)
     expect(href.pathname).toBe('/register')
     expect(href.searchParams.get('utm_source')).toBe('firstev')
