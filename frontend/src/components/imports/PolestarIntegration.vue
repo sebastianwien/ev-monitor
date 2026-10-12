@@ -11,7 +11,7 @@ import {
   ClipboardDocumentIcon, CheckIcon, ArrowTopRightOnSquareIcon, ExclamationTriangleIcon,
   ClockIcon, CheckCircleIcon, InformationCircleIcon,
 } from '@heroicons/vue/24/outline'
-import polestarService, { POLESTAR_SHARE_ACCOUNT, POLESTAR_PORTAL_URL, type PolestarConnection } from '@/api/polestarService'
+import polestarService, { POLESTAR_SHARE_ACCOUNT, POLESTAR_PORTAL_URL, type PolestarConnection, type PolestarCapacity } from '@/api/polestarService'
 import type { Car } from '@/api/carService'
 import { analytics } from '@/services/analytics'
 
@@ -19,6 +19,9 @@ const props = defineProps<{ cars: Car[] }>()
 const { t, locale } = useI18n()
 
 const connections = ref<PolestarConnection[]>([])
+// Kostendeckel: ohne freien Platz zeigen wir nur die Warteliste, damit niemand die Portal-Freigabe umsonst macht.
+const capacity = ref<PolestarCapacity | null>(null)
+const slotsFull = computed(() => capacity.value !== null && capacity.value.slotsFree <= 0)
 const loading = ref(true)
 const submitting = ref(false)
 const selectedCarId = ref('')
@@ -46,7 +49,9 @@ onMounted(async () => {
 async function reload() {
   loading.value = true
   try {
-    connections.value = await polestarService.getConnections()
+    const [conns, cap] = await Promise.all([polestarService.getConnections(), polestarService.getCapacity()])
+    connections.value = conns
+    capacity.value = cap
   } catch {
     connections.value = []
   } finally {
@@ -112,6 +117,13 @@ const fmt = (iso: string | null) =>
 
 <template>
   <div class="space-y-5" data-testid="polestar-integration">
+    <!-- Einleitung: was, warum, wozu -->
+    <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300 leading-relaxed" data-testid="polestar-intro">
+      <p>{{ t('polestar.intro_what') }}</p>
+      <p>{{ t('polestar.intro_why') }}</p>
+      <p class="font-medium text-gray-900 dark:text-gray-100">{{ t('polestar.intro_ask') }}</p>
+    </div>
+
     <!-- Fahrzeugwahl nur bei mehreren Polestar -->
     <div v-if="cars.length > 1">
       <label for="polestar-car" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">{{ t('polestar.car_label') }}</label>
@@ -146,6 +158,16 @@ const fmt = (iso: string | null) =>
               class="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-400 underline hover:no-underline">
         {{ t('polestar.disconnect') }}
       </button>
+    </div>
+
+    <!-- Alle Plätze belegt: nur Warteliste, keine Anleitung -->
+    <div v-else-if="slotsFull" data-testid="polestar-capped"
+         class="border-l-2 border-gray-400 bg-gray-50 dark:bg-gray-800 px-4 py-3 rounded-r-sm flex gap-3">
+      <ClockIcon class="h-5 w-5 text-gray-500 shrink-0" aria-hidden="true" />
+      <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
+        <p class="font-bold">{{ t('polestar.waitlist_title') }}</p>
+        <p class="text-xs mt-0.5">{{ t('polestar.capped_desc') }}</p>
+      </div>
     </div>
 
     <!-- Nicht verbunden: Anleitung + VIN -->

@@ -17,7 +17,18 @@ export interface PolestarConnection {
 export const POLESTAR_SHARE_ACCOUNT = 'polestar@ev-monitor.net'
 export const POLESTAR_PORTAL_URL = 'https://data-portal.polestar.com'
 
+export interface PolestarCapacity {
+  maxVehicles: number
+  active: number
+  slotsFree: number
+}
+
 export default {
+  async getCapacity(): Promise<PolestarCapacity> {
+    const resp = await api.get('/polestar/capacity')
+    return resp.data
+  },
+
   async getConnections(): Promise<PolestarConnection[]> {
     const resp = await api.get('/polestar/connections')
     return resp.data

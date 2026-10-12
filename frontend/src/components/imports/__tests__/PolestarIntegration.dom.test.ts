@@ -10,13 +10,14 @@ import { i18n } from '../../../i18n'
  */
 const state = {
   connections: [] as unknown[],
+  capacity: { maxVehicles: 5, active: 1, slotsFree: 4 },
   connectResult: { result: 'ACTIVE' } as Record<string, unknown>,
   connectError: null as unknown,
 }
 const post = vi.fn(() => state.connectError ? Promise.reject(state.connectError) : Promise.resolve({ data: state.connectResult }))
 vi.mock('../../../api/axios', () => ({
   default: {
-    get: vi.fn(() => Promise.resolve({ data: state.connections })),
+    get: vi.fn((url: string) => Promise.resolve({ data: url === '/polestar/capacity' ? state.capacity : state.connections })),
     post: (...args: unknown[]) => post(...(args as [])),
     delete: vi.fn(() => Promise.resolve()),
   },
@@ -36,6 +37,7 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 beforeEach(() => {
   vi.clearAllMocks()
   state.connections = []
+  state.capacity = { maxVehicles: 5, active: 1, slotsFree: 4 }
   state.connectResult = { ...connected }
   state.connectError = null
 })
@@ -62,6 +64,7 @@ async function typeVin(el: HTMLElement, vin: string) {
 describe('PolestarIntegration', () => {
   it('ohne Verbindung: Anleitung mit Account-ID, VIN-Feld, Testmodus-Satz', async () => {
     const el = await mount()
+    expect(byId(el, 'polestar-intro')!.textContent).toContain('zwei Minuten')
     expect(byId(el, 'polestar-step1')!.textContent).toContain('polestar@ev-monitor.net')
     expect(byId(el, 'polestar-step1')!.textContent).toContain('Vehicle usage and status')
     expect(byId(el, 'polestar-vin')).not.toBeNull()
@@ -120,6 +123,23 @@ describe('PolestarIntegration', () => {
     byId(el, 'polestar-connect')!.click()
     await flush()
     expect(byId(el, 'polestar-error')!.textContent).toContain('anderen Konto')
+  })
+
+  it('alle Plätze belegt: nur Warteliste, keine Anleitung und kein VIN-Feld', async () => {
+    state.capacity = { maxVehicles: 5, active: 5, slotsFree: 0 }
+    const el = await mount()
+    expect(byId(el, 'polestar-capped')!.textContent).toContain('Testplätze')
+    expect(byId(el, 'polestar-step1')).toBeNull()
+    expect(byId(el, 'polestar-vin')).toBeNull()
+    expect(byId(el, 'polestar-intro')).not.toBeNull()
+  })
+
+  it('alle Plätze belegt, aber selbst verbunden: Status-Karte bleibt', async () => {
+    state.capacity = { maxVehicles: 5, active: 5, slotsFree: 0 }
+    state.connections = [connected]
+    const el = await mount()
+    expect(byId(el, 'polestar-status')).not.toBeNull()
+    expect(byId(el, 'polestar-capped')).toBeNull()
   })
 
   it('bestehende Verbindung: direkt Status-Karte', async () => {

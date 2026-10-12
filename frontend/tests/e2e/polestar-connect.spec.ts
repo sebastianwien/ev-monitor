@@ -18,6 +18,12 @@ async function usePolestarCars(page: Page) {
   });
 }
 
+async function mockCapacity(page: Page, slotsFree: number) {
+  await page.route('**/api/polestar/capacity', route => route.fulfill({
+    status: 200, contentType: 'application/json', body: JSON.stringify({ maxVehicles: 5, active: 5 - slotsFree, slotsFree }),
+  }));
+}
+
 async function mockConnections(page: Page, body: unknown[]) {
   await page.route('**/api/polestar/connections', route => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify(body),
@@ -59,6 +65,18 @@ test.describe('Polestar Data Portal Testmodus', () => {
     }, allKeys);
     await login(page);
     await usePolestarCars(page);
+    await mockCapacity(page, 4);
+  });
+
+  test('Alle Plaetze belegt: Einleitung und Warteliste, keine Anleitung', async ({ page }) => {
+    await page.unroute('**/api/polestar/capacity');
+    await mockCapacity(page, 0);
+    await mockConnections(page, []);
+    await page.goto('/imports');
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('polestar-intro')).toBeVisible();
+    await expect(page.getByTestId('polestar-capped')).toContainText('Testplätze');
+    await expect(page.getByTestId('polestar-vin')).toHaveCount(0);
   });
 
   test('Polestar aktiv: Sektion startet aufgeklappt mit Anleitung, Account-ID und Testmodus-Satz', async ({ page }) => {
