@@ -471,6 +471,7 @@ import { buildModelStory, fastStop, keepUnits, type ChapterKey, type StoryInput 
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
 import { readStoredNeeds, writeStoredNeeds } from '../composables/useModelRanking'
+import { readTilePrefill } from '../utils/tilePrefill'
 import RegionChip from '../components/shared/RegionChip.vue'
 import ModelRatingsBlock from '../components/rating/ModelRatingsBlock.vue'
 import { ratingService, type PublicModelRatings } from '../api/ratingService'
@@ -880,6 +881,13 @@ function applyStoredNeeds() {
   if (n.homeCharging != null) { answers.homeCharging = n.homeCharging; answered.add('place') }
 }
 applyStoredNeeds()
+/** A chip tapped on the partner tile (?pendeln=, ?urlaub=) is the reader's answer and wins over the stored needs */
+function applyTilePrefill() {
+  const p = readTilePrefill(route.query)
+  if (p.commuteKmPerDay != null) { answers.commuteKmPerDay = snap(COMMUTE_SLIDER, p.commuteKmPerDay); answered.add('commute') }
+  if (p.longTripKm != null) { answers.longTripKm = nearest(LONG_TRIP_CHIPS, p.longTripKm); answered.add('longTrip') }
+}
+applyTilePrefill()
 /**
  * ... and the other way round, so the ranking shows what the reader set here. Only on the reader's
  * own answer (see answer()), never when a profile is applied: its slider snapping (72 km becomes 70)
