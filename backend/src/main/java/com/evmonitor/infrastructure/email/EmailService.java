@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.email;
 
+import com.evmonitor.application.personalrange.ChargeRhythm;
 import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
 import com.evmonitor.application.recap.MonthlyRecap;
@@ -110,7 +111,9 @@ public class EmailService {
         vars.put("model", modelName);
         vars.put("modelUrl", baseUrl + modelPath);
         // The yearly mileage drives the cost, the commute the weekly charging: the profile names both
-        String commute = in.commuteKmPerDay() + ("en".equals(lang) ? " km commute per day" : " km Pendeln pro Tag");
+        String commute = "en".equals(lang)
+                ? "commuting " + in.commuteKmPerDay() + " km on " + in.commuteDays() + " days"
+                : "Pendeln " + in.commuteKmPerDay() + " km an " + in.commuteDays() + " Tagen";
         vars.put("mileage", in.annualKm() != null ? annualKm(in.annualKm(), lang) + ", " + commute : commute);
         vars.put("highwayPercent", String.valueOf(in.highwaySharePercent()));
         vars.put("longTripKm", String.valueOf(in.longTripKm()));
@@ -118,8 +121,8 @@ public class EmailService {
         vars.put("summerRangeKm", String.valueOf(r.summerRangeKm()));
         vars.put("stops", String.valueOf(r.longTripStops()));
         vars.put("chargingMinutes", String.valueOf(r.longTripChargingMinutes()));
-        vars.put("chargesSummer", charges(r.chargesPerWeekSummer(), lang));
-        vars.put("chargesWinter", charges(r.chargesPerWeekWinter(), lang));
+        vars.put("chargesSummer", ChargeRhythm.text(r.chargesPerWeekSummer(), in.homeCharging(), lang));
+        vars.put("chargesWinter", ChargeRhythm.text(r.chargesPerWeekWinter(), in.homeCharging(), lang));
         vars.put("monthlyCostEur", String.valueOf(r.monthlyCostEur()));
         vars.put("pricePerKwh", pricePerKwh(r, lang));
         vars.put("costBasis", in.annualKm() != null
@@ -128,12 +131,6 @@ public class EmailService {
         String html = loadTemplate("personal-range-result.html", lang, vars);
         String subject = "en".equals(lang) ? "Your result for the " + modelName : "Dein Ergebnis für den " + modelName;
         sendHtmlEmail(toEmail, subject, html);
-    }
-
-    /** "1,5" / "1.5", whole numbers without ",0" */
-    private static String charges(BigDecimal value, String lang) {
-        String plain = value.stripTrailingZeros().toPlainString();
-        return "en".equals(lang) ? plain : plain.replace('.', ',');
     }
 
     /** "30.000 km im Jahr" / "30,000 km a year" */

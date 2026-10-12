@@ -80,7 +80,7 @@ class EmailServiceTest {
         assertThat(html).contains("310 km").contains("Sommer: 360 km").contains("500 km")
                 .contains("grob 35 min").contains("58 €").contains("0,30 €/kWh")
                 // weekly charging for the commute, per season: winter big, summer below
-                .contains("Laden fürs Pendeln im Winter").contains("1,5× pro Woche").contains("Sommer: 1× pro Woche")
+                .contains("Laden fürs Pendeln im Winter").contains("1,5× pro Woche").contains("Sommer: alle 7 Tage")
                 .contains("http://localhost:5173/modelle/Tesla/Model_3");
     }
 
@@ -88,7 +88,7 @@ class EmailServiceTest {
     void sendPersonalRangeResultEmail_showsTheUsersOwnPriceInTheCostLine() throws Exception {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var inputs = new PersonalRangeRequest(40, 30, true, 500, new BigDecimal("0.45"), null, null);
+        var inputs = new PersonalRangeRequest(40, 30, true, 500, new BigDecimal("0.45"), null, null, null);
         var result = new PersonalRangeResponse(310, 360, 1, 35,
                 new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 87,
                 PersonalRangeResponse.DataLevel.MEASURED,
@@ -106,8 +106,8 @@ class EmailServiceTest {
     void sendPersonalRangeResultEmail_namesTheAnnualMileageWhenTheCostRestsOnIt() throws Exception {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
-        var inputs = new PersonalRangeRequest(40, 30, true, 500, null, null, 30_000);
-        var result = new PersonalRangeResponse(310, 360, 1, 35, new BigDecimal("2.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 146,
+        var inputs = new PersonalRangeRequest(40, 30, true, 500, null, null, 30_000, 3);
+        var result = new PersonalRangeResponse(310, 360, 1, 35, new BigDecimal("2.5"), new BigDecimal("0.67"), new BigDecimal("1.5"), 146,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption("PRICE", true, new BigDecimal("0.30"), 100)));
 
@@ -117,7 +117,9 @@ class EmailServiceTest {
         String html = firstText(mimeMessage.getContent());
         assertThat(html).contains("146 €").contains("30.000 km im Jahr").doesNotContain("22 Tagen");
         // the yearly mileage drives the cost, the commute the weekly charging: the profile names both
-        assertThat(html).contains("Profil (30.000 km im Jahr, 40 km Pendeln pro Tag, 30 % Autobahn");
+        assertThat(html).contains("Profil (30.000 km im Jahr, Pendeln 40 km an 3 Tagen, 30 % Autobahn");
+        // charging for the commute in the same words as the model page
+        assertThat(html).contains("1,5× pro Woche").contains("Sommer: alle 10 Tage");
     }
 
     @Test

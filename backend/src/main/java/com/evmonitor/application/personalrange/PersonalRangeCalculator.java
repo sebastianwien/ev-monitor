@@ -86,10 +86,11 @@ final class PersonalRangeCalculator {
         double weeklyKwh = weeklyKm * mixedKwhPerKm;
         double kwhPerCharge = net.multiply(in.homeCharging() ? HOME_CHARGE_SHARE : STOP_SHARE).doubleValue();
         BigDecimal chargesPerWeek = halfCharges(weeklyKwh / kwhPerCharge);
-        // The commute on workdays, per season: how often the reader plugs in in summer and in winter
-        double commuteKmPerWeek = in.commuteKmPerDay() * WORKDAYS_PER_WEEK;
-        BigDecimal chargesSummer = halfCharges(commuteKmPerWeek * summerProfile.doubleValue() / 100 / kwhPerCharge);
-        BigDecimal chargesWinter = halfCharges(commuteKmPerWeek * winterProfile.doubleValue() / 100 / kwhPerCharge);
+        // The commute on the reader's commute days, per season: how often they plug in in summer and in
+        // winter. Not rounded, the page turns small values into "every 10 days".
+        double commuteKmPerWeek = in.commuteKmPerDay() * in.commuteDays();
+        BigDecimal chargesSummer = charges(commuteKmPerWeek * summerProfile.doubleValue() / 100 / kwhPerCharge);
+        BigDecimal chargesWinter = charges(commuteKmPerWeek * winterProfile.doubleValue() / 100 / kwhPerCharge);
         // Consumption is battery side (charging losses removed), the price is per kWh at the plug
         BigDecimal efficiency = in.homeCharging() ? b.homeChargingEfficiency() : b.publicChargingEfficiency();
         double plugKwhPerKm = mixedKwhPerKm / efficiency.doubleValue();
@@ -147,6 +148,10 @@ final class PersonalRangeCalculator {
             return HIGHWAY_RATIO_FALLBACK;
         }
         return b.highwayKwhPer100km().divide(b.routeMeanKwhPer100km(), 4, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal charges(double charges) {
+        return BigDecimal.valueOf(charges).setScale(2, RoundingMode.HALF_UP);
     }
 
     /** Rounded up to half charges: 1.2 charges a week means plugging in 1.5 times */

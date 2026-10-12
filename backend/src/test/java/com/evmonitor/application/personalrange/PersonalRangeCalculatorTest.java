@@ -144,7 +144,7 @@ class PersonalRangeCalculatorTest {
 
     @Test
     void annualMileageDrivesCostsAndChargesWhenGiven() {
-        PersonalRangeRequest in = new PersonalRangeRequest(40, 50, true, 600, null, null, 30_000);
+        PersonalRangeRequest in = new PersonalRangeRequest(40, 50, true, 600, null, null, 30_000, null);
 
         PersonalRangeResponse r = PersonalRangeCalculator.calculate(in, measured());
 
@@ -157,20 +157,30 @@ class PersonalRangeCalculatorTest {
     }
 
     @Test
-    void commuteDrivesWeeklyChargesPerSeason() {
+    void commuteOnTheGivenDaysDrivesWeeklyChargesPerSeasonWithoutRounding() {
         PersonalRangeResponse home = PersonalRangeCalculator.calculate(
-                new PersonalRangeRequest(100, 50, true, 600, null, null, 30_000), measured());
+                new PersonalRangeRequest(100, 50, true, 600, null, null, 30_000, 3), measured());
 
-        // 100 km × 5 workdays = 500 km a week; summer 16.4 kWh/100km = 82 kWh / home charge 46.2 kWh = 1.77 → 2.0,
-        // winter 21.9 = 109.5 kWh → 2.37 → 2.5; the yearly mileage does not enter
-        assertThat(home.chargesPerWeekSummer()).isEqualByComparingTo("2.0");
-        assertThat(home.chargesPerWeekWinter()).isEqualByComparingTo("2.5");
+        // 100 km × 3 days = 300 km a week; summer 16.4 kWh/100km = 49.2 kWh / home charge 20→80 % 46.2 kWh = 1.06,
+        // winter 21.9 = 65.7 kWh → 1.42; no rounding to half charges, the yearly mileage does not enter
+        assertThat(home.chargesPerWeekSummer()).isEqualByComparingTo("1.06");
+        assertThat(home.chargesPerWeekWinter()).isEqualByComparingTo("1.42");
 
         PersonalRangeResponse fastCharging = PersonalRangeCalculator.calculate(
-                PersonalRangeRequestFixtures.answers(100, 50, false, 600), measured());
-        // public charging 10 → 80 % = 53.9 kWh: 1.52 → 2.0 and 2.03 → 2.5
-        assertThat(fastCharging.chargesPerWeekSummer()).isEqualByComparingTo("2.0");
-        assertThat(fastCharging.chargesPerWeekWinter()).isEqualByComparingTo("2.5");
+                new PersonalRangeRequest(100, 50, false, 600, null, null, null, 3), measured());
+        // public charging 10 → 80 % = 53.9 kWh: 0.91 and 1.22
+        assertThat(fastCharging.chargesPerWeekSummer()).isEqualByComparingTo("0.91");
+        assertThat(fastCharging.chargesPerWeekWinter()).isEqualByComparingTo("1.22");
+    }
+
+    @Test
+    void storedProfilesWithoutCommuteDaysCountFiveDays() {
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(
+                PersonalRangeRequestFixtures.answers(100, 50, true, 600), measured());
+
+        // profiles stored before the commute-days question: 100 km × 5 days = 500 km → 82 / 46.2 = 1.77, 109.5 / 46.2 = 2.37
+        assertThat(r.chargesPerWeekSummer()).isEqualByComparingTo("1.77");
+        assertThat(r.chargesPerWeekWinter()).isEqualByComparingTo("2.37");
     }
 
     @Test
@@ -232,7 +242,7 @@ class PersonalRangeCalculatorTest {
     @Test
     void monthlyCostUsesGivenPriceOverCommunityPrice() {
         PersonalRangeResponse r = PersonalRangeCalculator.calculate(
-                new PersonalRangeRequest(40, 50, true, 600, new BigDecimal("0.45"), null, null), measured());
+                new PersonalRangeRequest(40, 50, true, 600, new BigDecimal("0.45"), null, null, null), measured());
 
         // 40 km × 22 days × 0.175 kWh/km / 0.90 × 0.45 EUR = 77
         assertThat(r.monthlyCostEur()).isEqualTo(77);

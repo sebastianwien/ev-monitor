@@ -8,7 +8,7 @@ import java.util.List;
  * flagged as measured (community data) or estimated (WLTP factor, reference value).
  *
  * @param chargesPerWeek       from the yearly mileage when given, else the commute (kept for older pages)
- * @param chargesPerWeekSummer charges a week for the commute on workdays, at the summer consumption
+ * @param chargesPerWeekSummer charges a week for the commute on the commute days, at the summer consumption, not rounded
  * @param chargesPerWeekWinter the same at the winter consumption
  */
 public record PersonalRangeResponse(

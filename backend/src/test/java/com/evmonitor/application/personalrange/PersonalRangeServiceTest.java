@@ -112,7 +112,7 @@ class PersonalRangeServiceTest {
 
     @Test
     void storedProfileLeavesOutTheBatteryOfThisModel() {
-        PersonalRangeRequest withBattery = new PersonalRangeRequest(40, 30, true, 500, new BigDecimal("0.28"), new BigDecimal("58.3"), 20_000);
+        PersonalRangeRequest withBattery = new PersonalRangeRequest(40, 30, true, 500, new BigDecimal("0.28"), new BigDecimal("58.3"), 20_000, 3);
 
         service.calculate(userId, false, "Tesla", "Model_3", withBattery);
 
@@ -138,7 +138,7 @@ class PersonalRangeServiceTest {
 
     @Test
     void previewUsesTheBatteryVariantThePageShowsWhenGiven() {
-        PersonalRangeRequest small = new PersonalRangeRequest(40, 30, true, 500, null, new BigDecimal("58"), null);
+        PersonalRangeRequest small = new PersonalRangeRequest(40, 30, true, 500, null, new BigDecimal("58"), null, null);
 
         PersonalRangePreviewResponse p = service.preview("Tesla", "Model_3", small, false).orElseThrow();
         PersonalRangePreviewResponse large = service.preview("Tesla", "Model_3", request, false).orElseThrow();
