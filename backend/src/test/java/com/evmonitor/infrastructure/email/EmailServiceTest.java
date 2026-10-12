@@ -3,12 +3,18 @@ package com.evmonitor.infrastructure.email;
 import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeRequestFixtures;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
+import com.evmonitor.application.recap.MonthlyRecap;
+import com.evmonitor.domain.VehicleCategory;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.UUID;
 import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.Multipart;
 import jakarta.mail.Part;
 import jakarta.mail.Session;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,7 +51,7 @@ class EmailServiceTest {
     /** The first text part of a (possibly nested) multipart message. */
     private static String firstText(Object content) throws Exception {
         if (content instanceof String s) return s;
-        var multipart = (jakarta.mail.Multipart) content;
+        var multipart = (Multipart) content;
         return firstText(multipart.getBodyPart(0).getContent());
     }
 
@@ -255,7 +261,7 @@ class EmailServiceTest {
         assertThat(mimeMessage.getHeader("List-Unsubscribe", null))
                 .isEqualTo("<http://localhost:5173/api/unsubscribe?token=jwt-token>");
         assertThat(mimeMessage.getHeader("List-Unsubscribe-Post", null)).isEqualTo("List-Unsubscribe=One-Click");
-        assertThat(((jakarta.mail.internet.InternetAddress) mimeMessage.getFrom()[0]).getPersonal())
+        assertThat(((InternetAddress) mimeMessage.getFrom()[0]).getPersonal())
                 .isEqualTo("Sebastian von ev-monitor");
         assertThat(mimeMessage.getReplyTo()[0].toString()).isEqualTo("sebastian@ev-monitor.net");
     }
@@ -271,17 +277,17 @@ class EmailServiceTest {
         assertThat(mimeMessage.getHeader("Reply-To", null)).isNull();
     }
 
-    private static final java.util.UUID CAR_ID = java.util.UUID.fromString("11111111-2222-3333-4444-555555555555");
+    private static final UUID CAR_ID = UUID.fromString("11111111-2222-3333-4444-555555555555");
 
     @Test
     void monthlyRecap_pricelessHintLinksToPriceBackfillForThatCar() throws Exception {
         when(jwtService.generateUnsubscribeToken(anyString())).thenReturn("jwt-token");
-        com.evmonitor.application.recap.MonthlyRecap r = recap();
-        com.evmonitor.application.recap.MonthlyRecap withHint = new com.evmonitor.application.recap.MonthlyRecap(
+        MonthlyRecap r = recap();
+        MonthlyRecap withHint = new MonthlyRecap(
                 r.userId(), r.carId(), r.email(), r.username(), r.locale(), r.month(), r.carName(), r.charges(),
                 r.acCharges(), r.dcCharges(), r.kwh(), r.costEur(), r.distanceKm(), r.consumptionKwhPer100km(),
                 r.homeSharePercent(), r.fuelCostEur(), r.fuelPricePerLiter(), r.fuelLitersPer100Km(), r.carCategory(),
-                new com.evmonitor.application.recap.MonthlyRecap.PricelessHint(2, java.time.LocalDateTime.of(2026, 8, 3, 9, 0), null),
+                new MonthlyRecap.PricelessHint(2, LocalDateTime.of(2026, 8, 3, 9, 0), null),
                 null);
 
         assertThat(sendAndGetHtml(() -> emailService.sendMonthlyRecapEmail(withHint)))
@@ -289,11 +295,11 @@ class EmailServiceTest {
                         + "&amp;car=11111111-2222-3333-4444-555555555555&amp;nachtragen=preis");
     }
 
-    private com.evmonitor.application.recap.MonthlyRecap recap() {
-        return new com.evmonitor.application.recap.MonthlyRecap(java.util.UUID.randomUUID(), CAR_ID, "ihle@example.com", "Ihle", "de",
-                java.time.YearMonth.of(2026, 8), "Model 3", 12, 2, 10, new BigDecimal("351.4"),
+    private MonthlyRecap recap() {
+        return new MonthlyRecap(UUID.randomUUID(), CAR_ID, "ihle@example.com", "Ihle", "de",
+                YearMonth.of(2026, 8), "Model 3", 12, 2, 10, new BigDecimal("351.4"),
                 new BigDecimal("147.37"), new BigDecimal("1777"), null, null,
                 new BigDecimal("217.69"), new BigDecimal("1.75"), new BigDecimal("7.6"),
-                com.evmonitor.domain.VehicleCategory.SEDAN, null, null);
+                VehicleCategory.SEDAN, null, null);
     }
 }

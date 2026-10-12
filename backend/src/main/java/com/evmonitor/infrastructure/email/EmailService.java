@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class EmailService {
@@ -373,7 +374,7 @@ public class EmailService {
                 "reason", reasons.getOrDefault(mail.reason(), reasons.get("OTHER")),
                 "note", hasNote ? mail.note() : "",
                 "editUrl", campaignUrl(editPath, "rating-review-rejected")
-        ), hasNote ? java.util.Set.of("note") : java.util.Set.of());
+        ), hasNote ? Set.of("note") : Set.of());
         String subject = "en".equals(lang)
                 ? "Your text about the " + mail.modelName() + " was not published"
                 : "Dein Text zum " + mail.modelName() + " wurde nicht veröffentlicht";
