@@ -17,8 +17,15 @@ function buildCar(overrides: Partial<Car>): Car {
 const tesla = (o: Partial<Car> = {}) => buildCar({ id: 'tesla', brand: 'TESLA', ...o })
 const xpeng = (o: Partial<Car> = {}) => buildCar({ id: 'xpeng', brand: 'XPENG', ...o })
 const vw = (o: Partial<Car> = {}) => buildCar({ id: 'vw', brand: 'VW', ...o })
+const polestar = (o: Partial<Car> = {}) => buildCar({ id: 'polestar', brand: 'Polestar', ...o })
 
 describe('useImportGating - aktives Auto', () => {
+    it('erkennt den Polestar als aktives Auto, Schreibweise egal', () => {
+        const g = useImportGating(ref([vw({ isPrimary: false }), polestar({ isPrimary: true })]))
+        expect(g.activeCarIsPolestar.value).toBe(true)
+        expect(useImportGating(ref([vw({ isPrimary: true }), polestar()])).activeCarIsPolestar.value).toBe(false)
+    })
+
     it('erkennt den Tesla als aktives Auto (isPrimary)', () => {
         const g = useImportGating(ref([vw({ isPrimary: false }), tesla({ isPrimary: true })]))
         expect(g.activeCarIsTesla.value).toBe(true)

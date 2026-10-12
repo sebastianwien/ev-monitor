@@ -30,6 +30,11 @@ describe('featuredImportSection', () => {
         expect(featuredImportSection({ ...ctx, activeCarIsXpeng: true, hasAutoSync: true })).toBe('xpeng')
     })
 
+    it('hebt den Polestar-Testmodus hervor, auch fuer AutoSync-Kunden', () => {
+        expect(featuredImportSection({ ...ctx, activeCarIsPolestar: true })).toBe('polestar')
+        expect(featuredImportSection({ ...ctx, activeCarIsPolestar: true, hasAutoSync: true })).toBe('polestar')
+    })
+
     it('hebt Smartcar fuer AutoSync-Kunden ohne Tesla oder VW hervor', () => {
         expect(featuredImportSection({ ...ctx, hasAutoSync: true })).toBe('smartcar')
     })

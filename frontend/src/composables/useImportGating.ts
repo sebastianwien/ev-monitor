@@ -27,6 +27,7 @@ export const isTeslaCar = (car: Car | null | undefined): boolean => brandIs(car,
 export function useImportGating(cars: Ref<Car[]>): {
     activeCarIsTesla: ComputedRef<boolean>
     activeCarIsXpeng: ComputedRef<boolean>
+    activeCarIsPolestar: ComputedRef<boolean>
     /** Aktives Auto ist eine VW-Group-Marke: der EU-Data-Act-Tab startet dann aufgeklappt. */
     activeCarIsVwEudaBrand: ComputedRef<boolean>
     showTeslaSection: ComputedRef<boolean>
@@ -43,6 +44,7 @@ export function useImportGating(cars: Ref<Car[]>): {
     const activeCar = computed(() => carList.value.find(c => c.isPrimary) ?? carList.value[0] ?? null)
     const activeCarIsTesla = computed(() => brandIs(activeCar.value, 'tesla'))
     const activeCarIsXpeng = computed(() => brandIs(activeCar.value, 'xpeng'))
+    const activeCarIsPolestar = computed(() => brandIs(activeCar.value, 'polestar'))
     const activeCarIsVwEudaBrand = computed(() => isVwEudaBrand(activeCar.value?.brand ?? ''))
 
     const hasAnyTesla = computed(() => carList.value.some(c => brandIs(c, 'tesla')))
@@ -58,6 +60,7 @@ export function useImportGating(cars: Ref<Car[]>): {
     return {
         activeCarIsTesla,
         activeCarIsXpeng,
+        activeCarIsPolestar,
         activeCarIsVwEudaBrand,
         smartcarCars,
         showTeslaSection: hasAnyTesla,

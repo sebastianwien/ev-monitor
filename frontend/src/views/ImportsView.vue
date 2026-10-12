@@ -6,6 +6,7 @@ import { purchasesAvailable } from '../utils/iapPolicy'
 import { ArrowDownTrayIcon, ArrowPathIcon, BoltIcon, CodeBracketIcon, TrashIcon, ClipboardDocumentIcon, CheckIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import SpritMonitorImport from '../components/imports/SpritMonitorImport.vue'
 import GoeIntegration from '../components/imports/GoeIntegration.vue'
+const PolestarIntegration = defineAsyncComponent(() => import('../components/imports/PolestarIntegration.vue'))
 import TeslaFleetIntegration from '../components/imports/TeslaFleetIntegration.vue'
 import AutoSyncCarPicker from '../components/imports/AutoSyncCarPicker.vue'
 import ManualImportModal from '../components/imports/ManualImportModal.vue'
@@ -54,6 +55,7 @@ const {
   activeCarIsTesla,
   activeCarIsVwEudaBrand,
   activeCarIsXpeng,
+  activeCarIsPolestar,
   showTeslaSection,
   showAutoSyncSection,
   showSmartcarPitch,
@@ -112,6 +114,7 @@ onMounted(async () => {
     activeCarIsTesla: activeCarIsTesla.value,
     activeCarIsVwEudaBrand: activeCarIsVwEudaBrand.value,
     activeCarIsXpeng: activeCarIsXpeng.value,
+    activeCarIsPolestar: activeCarIsPolestar.value,
     hasAutoSync: authStore.isPremium,
   })
   activeTab.value = featuredSection.value
@@ -210,6 +213,9 @@ const activeCars = computed(() =>
 
 /** AutoSync gibt es nur fuer Marken, die das VW-EU-Data-Act-Portal bedient. */
 const vwGroupCars = computed(() => activeCars.value.filter(c => isVwEudaBrand(c.brand)))
+
+/** Polestar Data Portal Testmodus: nur fuer Polestar-Fahrzeuge in der Garage. */
+const polestarCars = computed(() => activeCars.value.filter(c => (c.brand ?? '').toUpperCase() === 'POLESTAR'))
 
 const autoSyncActiveCarLabel = ref<string | null>(null)
 const teslaConnectedLabel = ref<string | null>(null)
@@ -655,6 +661,30 @@ const teslaConnectedLabel = ref<string | null>(null)
                 {{ t('imports.manuell_no_car') }}
                 <router-link to="/cars" class="font-bold underline hover:no-underline ml-1">{{ t('imports.manuell_no_car_link') }}</router-link>
               </p>
+            </div>
+          </Transition>
+        </div>
+
+        </template>
+        <template #polestar>
+        <!-- POLESTAR DATA PORTAL (Testmodus, nur sichtbar bei Polestar in der Garage) -->
+        <div v-if="polestarCars.length > 0" data-testid="polestar-section">
+          <button
+            @click="toggle('polestar'); analytics.trackImportTabClicked('polestar')"
+            class="w-full flex items-center gap-3 px-4 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          >
+            <div class="shrink-0 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 w-10 h-10 flex items-center justify-center">
+              <span class="text-gray-900 dark:text-gray-100 font-extrabold text-sm leading-none tracking-tight">PS</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-sm">{{ t('imports.tab_polestar') }}</span>
+              <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('imports.tab_polestar_desc') }}</span>
+            </div>
+            <ChevronDownIcon :class="['h-5 w-5 text-gray-400 shrink-0 transition-transform duration-200', activeTab === 'polestar' ? 'rotate-180' : '']" />
+          </button>
+          <Transition name="accordion">
+            <div v-if="activeTab === 'polestar'" class="border-t-2 border-gray-300 dark:border-gray-700 p-4 md:p-5">
+              <PolestarIntegration :cars="polestarCars" />
             </div>
           </Transition>
         </div>

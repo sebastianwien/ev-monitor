@@ -109,6 +109,11 @@ class AnalyticsService {
     this.track('import_tab_clicked', { tab })
   }
 
+  /** Polestar Data Portal Testmodus: Ergebnis eines Verbindungsversuchs (success, not_shared, waitlist, error). */
+  trackPolestarConnect(result: string) {
+    this.track('polestar_connect', { result })
+  }
+
   trackApiKeyCreated() {
     this.track('api_key_created')
   }

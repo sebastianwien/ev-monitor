@@ -1,10 +1,10 @@
 import { ref } from 'vue'
 
-export type Tab = 'smartcar' | 'spritmonitor' | 'goe' | 'wallbox' | 'tesla' | 'tronity' | 'tessie' | 'xpeng' | 'eu_data_act' | 'manuell' | 'api'
+export type Tab = 'smartcar' | 'spritmonitor' | 'goe' | 'wallbox' | 'tesla' | 'tronity' | 'tessie' | 'xpeng' | 'eu_data_act' | 'polestar' | 'manuell' | 'api'
 
 /** Grundreihenfolge der Akkordeon-Sektionen auf /imports - so steht es im Template. */
 export const IMPORT_SECTION_ORDER: readonly Tab[] = [
-  'tesla', 'smartcar', 'api', 'spritmonitor', 'tronity', 'tessie', 'xpeng', 'eu_data_act', 'manuell', 'goe', 'wallbox',
+  'tesla', 'smartcar', 'api', 'spritmonitor', 'tronity', 'tessie', 'xpeng', 'eu_data_act', 'polestar', 'manuell', 'goe', 'wallbox',
 ] as const
 
 /** Signale, aus denen sich die relevanteste Sektion ergibt - alle schon anderswo ermittelt. */
@@ -15,6 +15,8 @@ export interface FeaturedSectionContext {
   activeCarIsVwEudaBrand: boolean
   /** XPeng laeuft ueber den eigenen EU-Data-Act-Weg, Smartcar deckt die Marke nicht ab. */
   activeCarIsXpeng: boolean
+  /** Polestar Data Portal Testmodus: Polestar-Fahrer landen direkt in der Verbindungssektion. */
+  activeCarIsPolestar?: boolean
   hasAutoSync: boolean
 }
 
@@ -30,6 +32,7 @@ export function featuredImportSection(ctx: FeaturedSectionContext): Tab | null {
   if (ctx.activeCarIsTesla) return 'tesla'
   if (ctx.activeCarIsVwEudaBrand) return 'eu_data_act'
   if (ctx.activeCarIsXpeng) return 'xpeng'
+  if (ctx.activeCarIsPolestar) return 'polestar'
   if (ctx.hasAutoSync) return 'smartcar'
   return null
 }
