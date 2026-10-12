@@ -22,9 +22,8 @@ const stat = (messageKey: string, params: Record<string, string>): RawTickerItem
 const PERSONAL: RawTickerItem[] = [
   mine('my_month', { month: '10', kwh: '187', charges: '12', homePercent: '75' }),
   mine('my_consumption', { month: '10', mine: '16.8', peers: '18.2' }),
-  mine('my_rank', { category: 'MONTHLY_KWH', rank: '3', gap: '12.5' }),
-  mine('my_rank_leader', { category: 'MONTHLY_CHARGES', value: '14' }),
-  mine('my_rank_tied', { category: 'MONTHLY_KWH', rank: '3' }),
+  mine('my_standing', { category: 'MONTHLY_POWER_CHARGER', rank: '46', value: '48.3', month: '10' }),
+  mine('my_standing', { category: 'MONTHLY_CHARGES', rank: '1', value: '14', month: '10' }),
 ]
 const TODAY: RawTickerItem[] = [
   stat('today_charge', { kwh: '42', cost: '16.38', ct: '39', provider: 'Ionity' }),
@@ -55,19 +54,40 @@ describe('useTickerItems - Sätze der neuen Einträge', () => {
     expect(texts).toEqual(expect.arrayContaining([
       'Dein Oktober: 187 kWh in 12 Ladevorgängen, 75% zu Hause',
       'Dein Verbrauch im Oktober: 16,8 kWh/100 km, Fahrer deines Modells: 18,2',
-      '#3 Meiste Energie geladen: du, 12,5 kWh hinter dem Platz davor',
-      '#1 Ladevorgänge: du, 14 Ladevorgänge',
-      '#3 Meiste Energie geladen: du, gleichauf mit dem Platz davor',
+      'Dein schnellster Ladevorgang im Oktober: 48,3 kW - damit bist du #46 in der Rangliste',
+      'Deine Ladevorgänge im Oktober: 14 - damit bist du #1 in der Rangliste',
       'Heute hat jemand 42 kWh bei Ionity für 16,38 € geladen (39 ct/kWh)',
       'Heute hat jemand 26 kWh öffentlich für 12,00 € geladen (47 ct/kWh)',
     ]))
-    expect(texts).toHaveLength(7)
+    expect(texts).toHaveLength(6)
   })
 
   it.each(['de', 'en', 'nb', 'sv'] as const)('lässt in %s keinen Platzhalter und keinen Eintrag leer', async (locale) => {
     const texts = await renderAll(locale)
 
-    expect(texts).toHaveLength(7)
+    expect(texts).toHaveLength(6)
     for (const text of texts) expect(text).not.toMatch(/[{}]|undefined|NaN/)
+  })
+})
+
+describe('useTickerItems - Rang-Satz je Kategorie', () => {
+  beforeEach(() => get.mockReset())
+
+  it.each(['de', 'en', 'nb', 'sv'] as const)('hat in %s für jede Kategorie einen eigenen Satz', async (locale) => {
+    const cats = ['MONTHLY_KWH', 'MONTHLY_CHARGES', 'MONTHLY_DISTANCE', 'MONTHLY_CHEAPEST',
+      'MONTHLY_NIGHT_OWL', 'MONTHLY_ICE_CHARGER', 'MONTHLY_HEAT_CHARGER', 'MONTHLY_POWER_CHARGER']
+    get.mockImplementation((url: string) => Promise.resolve({
+      data: url === '/ticker/me' ? cats.map(category => mine('my_standing', { category, rank: '5', value: '-3.5', month: '1' })) : [],
+    }))
+    const i18n = createI18n({ legacy: false, locale, messages: { de, en, nb, sv }, missingWarn: false, fallbackWarn: false })
+    let api!: ReturnType<typeof useTickerItems>
+    createApp(defineComponent({ setup() { api = useTickerItems(); return () => null } }))
+      .use(createPinia()).use(i18n).mount(document.createElement('div'))
+    await api.fetchTicker({ withUserItems: true })
+    const texts = api.items.value.map(i => i.text)
+
+    expect(new Set(texts).size).toBe(8)
+    for (const text of texts) expect(text).toMatch(/#5/)
+    for (const text of texts) expect(text).not.toMatch(/[{}]|undefined|NaN|ticker\./)
   })
 })

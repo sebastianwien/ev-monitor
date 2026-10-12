@@ -1313,9 +1313,15 @@ ticker:
   today_charge_anon: "I dag ladet noen {kwh} kWh offentlig for {cost} € ({ct} ct/kWh)"
   my_month: "Din {month}: {kwh} kWh i {charges} ladinger, {percent}% hjemme"
   my_consumption: "Ditt forbruk i {month}: {mine} kWh/100 km, sjåfører med din modell: {peers}"
-  my_rank: "#{rank} {category}: du, {gap} {unit} bak plassen foran"
-  my_rank_leader: "#1 {category}: du, {value} {unit}"
-  my_rank_tied: "#{rank} {category}: du, likt med plassen foran"
+  my_standing:
+    kwh: "Din ladede energi i {month}: {value} kWh - det gir deg #{rank} på rankingen"
+    charges: "Dine ladeøkter i {month}: {value} - det gir deg #{rank} på rankingen"
+    distance: "Din strekning i {month}: {value} km - det gir deg #{rank} på rankingen"
+    cheapest: "Din ladepris i {month}: {value} øre/kWh i snitt - det gir deg #{rank} på rankingen"
+    night_owl: "Dine nattladinger i {month}: {value} - det gir deg #{rank} på rankingen"
+    ice_charger: "Din kaldeste lading i {month}: {value} °C - det gir deg #{rank} på rankingen"
+    heat_charger: "Din varmeste lading i {month}: {value} °C - det gir deg #{rank} på rankingen"
+    power_charger: "Din raskeste lading i {month}: {value} kW - det gir deg #{rank} på rankingen"
   open: "Vis"
   units:
     kwh: "kWh"

@@ -116,37 +116,28 @@ class PersonalTickerServiceTest {
     }
 
     @Test
-    void rank_withGap() {
+    void rank_namesOwnValueRankAndMonth() {
         when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.of(
-                new MyBestStanding(LeaderboardCategory.MONTHLY_KWH, 3, new BigDecimal("210.4"), new BigDecimal("12.5"))));
+                new MyBestStanding(LeaderboardCategory.MONTHLY_POWER_CHARGER, 46, new BigDecimal("48.3"), new BigDecimal("0.2"))));
 
-        TickerItemDTO item = byKey(service.getItems(userId), "my_rank");
+        TickerItemDTO item = byKey(service.getItems(userId), "my_standing");
 
         assertThat(item.params())
-                .containsEntry("category", "MONTHLY_KWH")
-                .containsEntry("rank", "3")
-                .containsEntry("gap", "12.5");
-    }
-
-    @Test
-    void rank_tiedWithPlaceAhead_getsOwnSentence() {
-        when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.of(
-                new MyBestStanding(LeaderboardCategory.MONTHLY_KWH, 3, new BigDecimal("250.0"), new BigDecimal("0.0"))));
-
-        TickerItemDTO item = byKey(service.getItems(userId), "my_rank_tied");
-
-        assertThat(item.params()).containsEntry("category", "MONTHLY_KWH").containsEntry("rank", "3")
+                .containsEntry("category", "MONTHLY_POWER_CHARGER")
+                .containsEntry("rank", "46")
+                .containsEntry("value", "48.3")
+                .containsEntry("month", String.valueOf(LocalDate.now().getMonthValue()))
                 .doesNotContainKey("gap");
     }
 
     @Test
-    void rank_leaderGetsOwnSentence() {
+    void rank_leaderUsesSameSentence() {
         when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.of(
                 new MyBestStanding(LeaderboardCategory.MONTHLY_CHARGES, 1, new BigDecimal("14"), null)));
 
-        TickerItemDTO item = byKey(service.getItems(userId), "my_rank_leader");
+        TickerItemDTO item = byKey(service.getItems(userId), "my_standing");
 
-        assertThat(item.params()).containsEntry("category", "MONTHLY_CHARGES").doesNotContainKey("gap");
+        assertThat(item.params()).containsEntry("rank", "1").containsEntry("value", "14");
     }
 
     @Test

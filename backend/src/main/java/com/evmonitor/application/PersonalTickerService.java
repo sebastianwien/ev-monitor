@@ -39,7 +39,7 @@ public class PersonalTickerService {
                     items.add(monthItem(summary, month));
                     consumptionItem(summary, userId, monthStart, today, month).ifPresent(items::add);
                 });
-        rankItem(userId).ifPresent(item -> items.add(Math.min(1, items.size()), item));
+        rankItem(userId, month).ifPresent(item -> items.add(Math.min(1, items.size()), item));
         return items;
     }
 
@@ -65,24 +65,13 @@ public class PersonalTickerService {
                         "peers", oneDecimal(pb.peerAvgConsumptionKwhPer100km()))));
     }
 
-    private Optional<TickerItemDTO> rankItem(UUID userId) {
+    private Optional<TickerItemDTO> rankItem(UUID userId, String month) {
         if (!userRepository.isLeaderboardVisible(userId)) return Optional.empty();
-        return leaderboardService.getMyBestStanding(userId).map(standing -> {
-            if (standing.gapToNext() == null) {
-                return TickerItemDTO.personal("my_rank_leader", Map.of(
-                        "category", standing.category().name(),
-                        "value", standing.value().toPlainString()));
-            }
-            if (standing.gapToNext().signum() == 0) {
-                return TickerItemDTO.personal("my_rank_tied", Map.of(
-                        "category", standing.category().name(),
-                        "rank", Integer.toString(standing.rank())));
-            }
-            return TickerItemDTO.personal("my_rank", Map.of(
-                    "category", standing.category().name(),
-                    "rank", Integer.toString(standing.rank()),
-                    "gap", standing.gapToNext().toPlainString()));
-        });
+        return leaderboardService.getMyBestStanding(userId).map(standing -> TickerItemDTO.personal("my_standing", Map.of(
+                "category", standing.category().name(),
+                "rank", Integer.toString(standing.rank()),
+                "value", standing.value().toPlainString(),
+                "month", month)));
     }
 
     private static String oneDecimal(BigDecimal value) {

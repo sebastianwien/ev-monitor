@@ -1354,9 +1354,15 @@ ticker:
   today_charge_anon: "Today someone charged {kwh} kWh publicly for €{cost} ({ct} ct/kWh)"
   my_month: "Your {month}: {kwh} kWh in {charges} sessions, {percent}% at home"
   my_consumption: "Your consumption in {month}: {mine} kWh/100 km, drivers of your model: {peers}"
-  my_rank: "#{rank} {category}: you, {gap} {unit} behind the place ahead"
-  my_rank_leader: "#1 {category}: you, {value} {unit}"
-  my_rank_tied: "#{rank} {category}: you, level with the place ahead"
+  my_standing:
+    kwh: "Your energy charged in {month}: {value} kWh - that puts you #{rank} in the ranking"
+    charges: "Your charging sessions in {month}: {value} - that puts you #{rank} in the ranking"
+    distance: "Your distance in {month}: {value} km - that puts you #{rank} in the ranking"
+    cheapest: "Your charging price in {month}: {value} ct/kWh on average - that puts you #{rank} in the ranking"
+    night_owl: "Your night charges in {month}: {value} - that puts you #{rank} in the ranking"
+    ice_charger: "Your coldest charge in {month}: {value} °C - that puts you #{rank} in the ranking"
+    heat_charger: "Your hottest charge in {month}: {value} °C - that puts you #{rank} in the ranking"
+    power_charger: "Your fastest charge in {month}: {value} kW - that puts you #{rank} in the ranking"
   open: "View"
   units:
     kwh: "kWh"

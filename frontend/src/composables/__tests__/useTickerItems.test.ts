@@ -75,9 +75,7 @@ describe('loadTickerRaw', () => {
 describe('tickerTarget', () => {
   it('verlinkt nur Einträge mit echter Zielseite', () => {
     expect(tickerTarget({ type: 'LEADER', messageKey: 'leader', params: {}, variant: 'leader' })).toBe('/leaderboard')
-    expect(tickerTarget(mine('my_rank'))).toBe('/leaderboard')
-    expect(tickerTarget(mine('my_rank_leader'))).toBe('/leaderboard')
-    expect(tickerTarget(mine('my_rank_tied'))).toBe('/leaderboard')
+    expect(tickerTarget(mine('my_standing'))).toBe('/leaderboard')
     expect(tickerTarget(mine('my_month'))).toBe('/dashboard')
     expect(tickerTarget(mine('my_consumption'))).toBe('/dashboard')
     expect(tickerTarget(stat('co2_saved'))).toBeUndefined()

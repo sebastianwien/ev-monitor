@@ -35,9 +35,7 @@ export interface TickerItem {
 const PERSONAL_TARGET: Record<string, string> = {
     my_month: '/dashboard',
     my_consumption: '/dashboard',
-    my_rank: '/leaderboard',
-    my_rank_leader: '/leaderboard',
-    my_rank_tied: '/leaderboard',
+    my_standing: '/leaderboard',
 }
 
 export function tickerTarget(item: RawTickerItem): string | undefined {
@@ -156,20 +154,12 @@ export function useTickerItems() {
                 return t('ticker.my_month', { month, kwh: num(p.kwh), charges: num(p.charges), percent: p.homePercent })
             case 'my_consumption':
                 return t('ticker.my_consumption', { month, mine: formatDecimal(Number(p.mine), 1), peers: formatDecimal(Number(p.peers), 1) })
-            case 'my_rank':
-                return t('ticker.my_rank', {
-                    category: t(`leaderboard.cat_${CAT_LABEL[p.category]}`),
-                    rank: p.rank,
-                    gap: num(p.gap),
-                    unit: unit(CAT_UNIT[p.category]),
-                })
-            case 'my_rank_tied':
-                return t('ticker.my_rank_tied', { category: t(`leaderboard.cat_${CAT_LABEL[p.category]}`), rank: p.rank })
-            case 'my_rank_leader':
-                return t('ticker.my_rank_leader', {
-                    category: t(`leaderboard.cat_${CAT_LABEL[p.category]}`),
+            case 'my_standing':
+                if (!CAT_LABEL[p.category]) return ''
+                return t(`ticker.my_standing.${CAT_LABEL[p.category]}`, {
+                    month,
                     value: num(p.value),
-                    unit: unit(CAT_UNIT[p.category]),
+                    rank: p.rank,
                 })
             default:
                 return ''
