@@ -352,7 +352,7 @@ models_ranking:
   list_hint: "Flere sjåfører, mer pålitelig verdi."
   needs:
     title: "Passer en elbil for deg?"
-    q_daily: "Hvor langt pendler du per dag?"
+    q_daily: "Hvor langt pendler du tur-retur?"
     q_days: "Hvor mange dager i uken pendler du?"
     q_longest: "Hvor lang er din lengste tur?"
     q_home: "Kan du lade hjemme?"
@@ -520,7 +520,7 @@ model:
   story:
     q_annualKm: "Hvor langt kjører du i året?"
     q_highwayShare: "Hvor mye av det på motorvei?"
-    q_commute: "Hvor langt pendler du per dag, tur-retur?"
+    q_commute: "Hvor langt pendler du tur-retur?"
     q_commuteDays: "Hvor mange dager i uken pendler du?"
     q_longTrip: "Hvor lang er din lengste faste tur?"
     q_place: "Hvor lader du mest?"

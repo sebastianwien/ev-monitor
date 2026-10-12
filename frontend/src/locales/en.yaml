@@ -389,7 +389,7 @@ models_ranking:
   list_hint: "More drivers, more reliable value."
   needs:
     title: "Is an EV right for you?"
-    q_daily: "How far do you commute a day?"
+    q_daily: "How far do you commute, there and back?"
     q_days: "On how many days a week do you commute?"
     q_longest: "How long is your longest trip?"
     q_home: "Can you charge at home?"
@@ -558,7 +558,7 @@ model:
   story:
     q_annualKm: "How far do you drive a year?"
     q_highwayShare: "Of that on the motorway?"
-    q_commute: "How far do you commute a day, there and back?"
+    q_commute: "How far do you commute, there and back?"
     q_commuteDays: "On how many days a week do you commute?"
     q_longTrip: "How long is your longest regular trip?"
     q_place: "Where do you charge mostly?"

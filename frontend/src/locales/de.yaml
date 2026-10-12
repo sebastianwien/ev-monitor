@@ -392,7 +392,7 @@ models_ranking:
   list_hint: "Mehr Fahrer, belastbarerer Wert."
   needs:
     title: "Passt ein E-Auto zu dir?"
-    q_daily: "Wie weit pendelst du am Tag?"
+    q_daily: "Wie weit pendelst du hin und zurück?"
     q_days: "An wie vielen Tagen pro Woche pendelst du?"
     q_longest: "Wie lang ist deine längste Fahrt?"
     q_home: "Kannst du zuhause laden?"
@@ -561,7 +561,7 @@ model:
   story:
     q_annualKm: "Wie viel fährst du im Jahr?"
     q_highwayShare: "Davon auf der Autobahn?"
-    q_commute: "Wie weit pendelst du am Tag, hin und zurück?"
+    q_commute: "Wie weit pendelst du hin und zurück?"
     q_commuteDays: "An wie vielen Tagen pro Woche pendelst du?"
     q_longTrip: "Wie lang ist deine längste regelmäßige Fahrt?"
     q_place: "Wo lädst du meistens?"
