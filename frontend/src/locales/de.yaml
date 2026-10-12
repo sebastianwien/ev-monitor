@@ -334,12 +334,10 @@ charge_rhythm:
   days: "alle {n} Tage"
   weeks: "alle {n} Wochen"
   stops: "1 Ladestopp pro Woche | {n} Ladestopps pro Woche"
+  daily: "täglich"
   none: "kein Laden nötig"
-  times_span: "{min} bis {max}× pro Woche"
   days_span: "alle {min} bis {max} Tage"
-  weeks_span: "alle {min} bis {max} Wochen"
   stops_span: "{min} bis {max} Ladestopps pro Woche"
-  mixed_span: "{min} bis {max}"
 models_ranking:
   hero:
     eyebrow: "Community-Daten, Stand {date}"

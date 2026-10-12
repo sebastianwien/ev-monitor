@@ -45,23 +45,27 @@ export function chargeRhythmText(perWeek: number, homeCharging: boolean, fmt: Rh
   return text(chargeRhythm(perWeek, homeCharging), fmt)
 }
 
+/** Whole days between charges, at least one (then "täglich") */
+function daysBetween(perWeek: number): number {
+  return Math.max(1, Math.floor(DAYS_PER_WEEK / perWeek))
+}
+
 /**
  * Span over the battery variants, `low` from the largest battery, `high` from the smallest.
- * Same kind: one unit, smaller number first ("alle 7 bis 10 Tage"); different kinds: the more
- * frequent one first ("1,2× pro Woche bis alle 8 Tage").
+ * Home charging: both ends always in days ("alle 8 bis 14 Tage"), so a span never mixes units
+ * when the two batteries fall on different sides of a threshold of the table above. Without
+ * home charging: stops per week ("1 bis 2 Ladestopps pro Woche").
  */
 export function chargeRhythmSpanText(low: number, high: number, homeCharging: boolean, fmt: RhythmFormat): string {
-  const often = chargeRhythm(Math.max(low, high), homeCharging)
-  const rare = chargeRhythm(Math.min(low, high), homeCharging)
-  const oftenText = text(often, fmt)
-  const rareText = text(rare, fmt)
-  if (oftenText === rareText) return oftenText
-  if (often.kind !== rare.kind || often.kind === 'none' || rare.kind === 'none') {
-    return fmt.t('charge_rhythm.mixed_span', { min: oftenText, max: rareText })
+  const often = Math.max(low, high)
+  const rare = Math.min(low, high)
+  const single = chargeRhythmText(often, homeCharging, fmt)
+  if (single === chargeRhythmText(rare, homeCharging, fmt)) return single
+  if (!homeCharging) {
+    return fmt.t('charge_rhythm.stops_span', { min: Math.ceil(rare), max: Math.ceil(often) })
   }
-  const [a, b] = [often.value, rare.value].sort((x, y) => x - y)
-  return fmt.t(`charge_rhythm.${often.kind}_span`, {
-    min: fmt.formatDecimal(a, Number.isInteger(a) ? 0 : 1),
-    max: fmt.formatDecimal(b, Number.isInteger(b) ? 0 : 1),
-  })
+  const min = daysBetween(often)
+  const max = daysBetween(rare)
+  if (min === max) return min === 1 ? fmt.t('charge_rhythm.daily') : fmt.t('charge_rhythm.days', { n: min }, min)
+  return fmt.t('charge_rhythm.days_span', { min, max })
 }

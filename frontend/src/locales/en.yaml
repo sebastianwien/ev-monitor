@@ -331,12 +331,10 @@ charge_rhythm:
   days: "every {n} days"
   weeks: "every {n} weeks"
   stops: "1 charging stop a week | {n} charging stops a week"
+  daily: "every day"
   none: "no charging needed"
-  times_span: "{min} to {max}× a week"
   days_span: "every {min} to {max} days"
-  weeks_span: "every {min} to {max} weeks"
   stops_span: "{min} to {max} charging stops a week"
-  mixed_span: "{min} to {max}"
 models_ranking:
   hero:
     eyebrow: "Community data, as of {date}"

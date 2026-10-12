@@ -294,12 +294,10 @@ charge_rhythm:
   days: "hver {n}. dag"
   weeks: "hver {n}. uke"
   stops: "1 ladestopp i uken | {n} ladestopp i uken"
+  daily: "hver dag"
   none: "ingen lading nødvendig"
-  times_span: "{min} til {max}× i uken"
   days_span: "hver {min}. til {max}. dag"
-  weeks_span: "hver {min}. til {max}. uke"
   stops_span: "{min} til {max} ladestopp i uken"
-  mixed_span: "{min} til {max}"
 models_ranking:
   hero:
     eyebrow: "Fellesskapsdata, per {date}"
