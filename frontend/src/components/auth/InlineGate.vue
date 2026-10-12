@@ -77,8 +77,10 @@ import { rememberReturnPath } from '../../utils/postLoginRedirect'
 /**
  * Login without leaving the page: address, then a 6-digit mail code. A new address gets a
  * free account on the first valid code. `lead` names what the visitor gets before we ask.
+ * `placement` marks the account as won through this gate (utm_medium "gate", utm_campaign =
+ * placement) so gate sign-ups can be counted; a campaign the visitor arrived with stays.
  */
-defineProps<{ lead: string; detail?: string }>()
+const props = defineProps<{ lead: string; detail?: string; placement?: string }>()
 const emit = defineEmits<{ authenticated: [] }>()
 
 const { t, locale } = useI18n()
@@ -144,7 +146,8 @@ async function verify() {
   try {
     const utm = currentUtm()
     await authStore.loginWithCode({ email: email.value, code: code.value, locale: locale.value, ...utm })
-    analytics.track('gate_code_verified')
+    if (props.placement) analytics.track('gate_code_verified', { placement: props.placement })
+    else analytics.track('gate_code_verified')
     emit('authenticated')
   } catch (e) {
     error.value = errorMessage(e)
@@ -159,11 +162,23 @@ function restart() {
   error.value = ''
 }
 
-/** Attribution for a new account: URL first, then the UTM stored on the first page view. */
+/**
+ * Attribution for a new account: URL first, then the UTM stored on the first page view. With a
+ * placement, empty medium and campaign name the gate; the source is never invented.
+ */
 function currentUtm(): { utmSource?: string; utmMedium?: string; utmCampaign?: string } {
   const utm = currentUtmParams()
-  if (!utm) return {}
-  return { utmSource: utm.source || undefined, utmMedium: utm.medium || undefined, utmCampaign: utm.campaign || undefined }
+  const fromVisit = {
+    utmSource: utm?.source || undefined,
+    utmMedium: utm?.medium || undefined,
+    utmCampaign: utm?.campaign || undefined,
+  }
+  if (!props.placement) return fromVisit
+  return {
+    utmSource: fromVisit.utmSource,
+    utmMedium: fromVisit.utmMedium ?? 'gate',
+    utmCampaign: fromVisit.utmCampaign ?? props.placement.slice(0, 100),
+  }
 }
 
 function errorMessage(e: unknown): string {

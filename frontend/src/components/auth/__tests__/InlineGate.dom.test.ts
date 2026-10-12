@@ -16,12 +16,12 @@ const TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiJ1MSIsInN1YiI6Im5ldUBleGFtcGxl
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.unstubAllEnvs(); sessionStorage.clear() })
 
-function mount() {
+function mount(props: Record<string, unknown> = {}) {
   setActivePinia(createPinia())
   const host = document.createElement('div')
   document.body.appendChild(host)
   const authenticated = vi.fn()
-  app = createApp(InlineGate, { lead: 'Dein Ergebnis ist fertig.', onAuthenticated: authenticated })
+  app = createApp(InlineGate, { lead: 'Dein Ergebnis ist fertig.', onAuthenticated: authenticated, ...props })
   app.use(i18n)
   app.mount(host)
   return { host, authenticated }
@@ -75,6 +75,56 @@ describe('InlineGate', () => {
     expect(api.post).toHaveBeenLastCalledWith('/auth/code/verify', expect.objectContaining({ email: 'neu@example.com', code: '123456' }))
     expect(analytics.track).toHaveBeenCalledWith('gate_code_verified')
     expect(authenticated).toHaveBeenCalledTimes(1)
+  })
+
+  async function verifyWith(host: HTMLElement) {
+    await fill(host, 'input[type="email"]', 'neu@example.com')
+    await submit(host)
+    await fill(host, 'input[autocomplete="one-time-code"]', '123456')
+    await submit(host)
+    const calls = vi.mocked(api.post).mock.calls
+    return calls[calls.length - 1][1] as Record<string, unknown>
+  }
+
+  it('tags a new account with the gate and its placement when the visitor has no campaign', async () => {
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { status: 'SENT' } } as never)
+      .mockResolvedValueOnce({ data: { token: TOKEN, isPremium: false } } as never)
+    const { host } = mount({ placement: 'modell:tesla/model_3' })
+
+    const body = await verifyWith(host)
+
+    expect(body.utmMedium).toBe('gate')
+    expect(body.utmCampaign).toBe('modell:tesla/model_3')
+    expect(body.utmSource).toBeUndefined()
+    expect(analytics.track).toHaveBeenCalledWith('gate_code_verified', { placement: 'modell:tesla/model_3' })
+  })
+
+  it('keeps the campaign the visitor arrived with and only adds the gate', async () => {
+    window.history.replaceState({}, '', '/modelle/tesla/model_3?utm_source=firstev')
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { status: 'SENT' } } as never)
+      .mockResolvedValueOnce({ data: { token: TOKEN, isPremium: false } } as never)
+    const { host } = mount({ placement: 'modell:tesla/model_3' })
+
+    const body = await verifyWith(host)
+
+    expect(body.utmSource).toBe('firstev')
+    expect(body.utmMedium).toBe('gate')
+    expect(body.utmCampaign).toBe('modell:tesla/model_3')
+    window.history.replaceState({}, '', '/')
+  })
+
+  it('adds no gate tag without a placement (plain login)', async () => {
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { status: 'SENT' } } as never)
+      .mockResolvedValueOnce({ data: { token: TOKEN, isPremium: false } } as never)
+    const { host } = mount()
+
+    const body = await verifyWith(host)
+
+    expect(body.utmMedium).toBeUndefined()
+    expect(body.utmCampaign).toBeUndefined()
   })
 
   it('shows a clear error for a wrong code and stays open', async () => {

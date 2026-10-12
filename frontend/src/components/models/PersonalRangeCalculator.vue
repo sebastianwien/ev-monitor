@@ -37,7 +37,7 @@
       {{ t('personal_range.open_questions', { n: openCount }, openCount) }}
     </p>
 
-    <InlineGate v-if="gateOpen" :lead="gateLead" :detail="t('personal_range.gate_why')" @authenticated="onAuthenticated" />
+    <InlineGate v-if="gateOpen" :lead="gateLead" :detail="t('personal_range.gate_why')" :placement="`modell:${brand}/${model}`" @authenticated="onAuthenticated" />
 
     <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
