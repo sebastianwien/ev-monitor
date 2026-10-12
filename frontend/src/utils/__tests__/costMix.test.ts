@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  COST_DEFAULTS, HOME_SHARE_WHEN_HOME, DAYS_PER_YEAR, COMBUSTION_MARKETS, COMBUSTION_LITERS_BY_CLASS, COMBUSTION_LITERS_FALLBACK,
+  COST_DEFAULTS, HOME_SHARE_WHEN_HOME, COMBUSTION_MARKETS, COMBUSTION_LITERS_BY_CLASS, COMBUSTION_LITERS_FALLBACK,
   effectiveHomeShare, mixedPricePerKwh, combustionLiters, combustionCostPer100km, savingsPer100km, savingsPerYear,
   combustionAllowed, isCostAssumptions, type CostAssumptions,
 } from '../costMix'
@@ -19,7 +19,6 @@ describe('costMix', () => {
       fuel: 'petrol', litersPer100km: null, fuelPricePerLiter: null, mainValue: 'consumption',
     })
     expect(HOME_SHARE_WHEN_HOME).toBe(0.8)
-    expect(DAYS_PER_YEAR).toBe(300)
   })
 
   it('litres per class: every backend class has petrol and diesel, diesel below petrol', () => {
@@ -70,9 +69,9 @@ describe('costMix', () => {
     expect(combustionCostPer100km({ ...base, litersPer100km: 0 }, 'COMPACT')).toBeNull()
   })
 
-  it('savings per year use the daily distance over 300 days', () => {
-    // 6.12 per 100 km × (40 × 300 / 100) = 734.4
-    expect(savingsPerYear(6.12, 40)).toBeCloseTo(734.4, 6)
+  it('savings per year on the yearly distance', () => {
+    // 6.12 per 100 km × 5,520 km / 100 = 337.8
+    expect(savingsPerYear(6.12, 5520)).toBeCloseTo(337.824, 6)
     expect(savingsPerYear(6.12, 0)).toBe(0)
   })
 

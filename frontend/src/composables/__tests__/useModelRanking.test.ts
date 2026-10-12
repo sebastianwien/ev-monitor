@@ -42,7 +42,6 @@ function withoutData(over: Partial<ModelWithoutData> & { brandDisplayName: strin
   }
 }
 
-const keys = (list: { key: string }[]) => list.map(r => r.key)
 
 describe('useModelRanking', () => {
   beforeEach(() => localStorage.clear())
@@ -216,13 +215,16 @@ describe('useModelRanking', () => {
     it('prices every row with the mixed price and persists changes', async () => {
       const r = useModelRanking(ref([model({ brandDisplayName: 'A', modelUrlSlug: 'x', avgConsumptionKwhPer100km: 20 })]))
       r.cost.value = { ...r.cost.value, homePricePerKwh: 0.3, publicPricePerKwh: 0.6, fuelPricePerLiter: 1.8 }
-      // needs default: home charging → 80 % → 0.36 €/kWh
+      // no answer yet on home charging counts as home → 80 % → 0.36 €/kWh
       expect(r.price.value).toBeCloseTo(0.36, 6)
       expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(7.2, 5)
-      // SEDAN petrol 7.6 l × 1.8 = 13.68 → 6.48 cheaper, over 40 km × 300 days = 777.6
+      // SEDAN petrol 7.6 l × 1.8 = 13.68 → 6.48 cheaper; no yearly figure before the commute is answered
       expect(r.ranked.value[0].combustionLitersPer100km).toBe(7.6)
       expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(6.48, 5)
-      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo(777.6, 3)
+      expect(r.ranked.value[0].savingsPerYearEur).toBeNull()
+      // the commute rule: 40 km × 3 days × 46 weeks = 5,520 km → 6.48 × 55.2 = 357.7
+      r.needs.value = { ...r.needs.value, dailyKm: 40, commuteDays: 3 }
+      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo(357.696, 3)
       // diesel and a typed litre value change every row
       r.cost.value = { ...r.cost.value, fuel: 'diesel' }
       expect(r.ranked.value[0].combustionLitersPer100km).toBe(6.0)
@@ -330,35 +332,54 @@ describe('useModelRanking', () => {
       model({ brandDisplayName: 'B', modelUrlSlug: 'big', winterRangeMinKm: 420, winterRangeMaxKm: 520, typicalRangeMinKm: 500, typicalRangeMaxKm: 600 }),
       model({ brandDisplayName: 'C', modelUrlSlug: 'none' }),
     ]
+    const ANNA = { dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0 }
 
-    it('starts with the defaults and summarises over all models', () => {
+    it('starts empty: no answer, nothing counted', () => {
       const r = useModelRanking(ref(models))
-      expect(r.needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 0 })
-      // 200 × 0.8 / 40 = 4 days (no), 420 × 0.8 / 40 = 8.4 (yes); 520 × 0.8 = 416 ≥ 400 (yes), 200 × 0.8 (no);
-      // the small one needs two flat stops (160 first leg, 140 per stop) → only the big one makes it with one
-      expect(r.needsSummary.value).toEqual({ total: 2, weeklyOk: 1, tripOk: 1, tripOkWithin: [1, 1, 2, 2, 2] })
+      expect(r.needs.value).toEqual({ dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
+      expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 0] })
+      const big = r.ranked.value.find(x => x.key === 'B/big')!
+      expect(big.needs).toMatchObject({ assessable: true, commute: null, tripStops: null })
     })
 
-    it('persists the inputs and restores them', async () => {
+    it('summarises the longest trip over all models', () => {
       const r = useModelRanking(ref(models))
-      r.needs.value = { dailyKm: 60, longestTripKm: 250, homeCharging: false, maxStops: 2 }
+      r.needs.value = ANNA
+      // 520 × 0.8 = 416 ≥ 400 (yes), 200 × 0.8 (no);
+      // the small one needs two flat stops (160 first leg, 140 per stop) → only the big one makes it with one
+      expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 1, tripOkWithin: [1, 1, 2, 2, 2] })
+    })
+
+    it('persists the inputs under the v2 key and restores them', async () => {
+      const r = useModelRanking(ref(models))
+      r.needs.value = { dailyKm: 60, commuteDays: 4, longestTripKm: 250, homeCharging: false, maxStops: 2 }
       await nextTick()
-      expect(JSON.parse(localStorage.getItem(NEEDS_STORAGE_KEY) ?? '{}')).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false, maxStops: 2 })
+      expect(NEEDS_STORAGE_KEY).toBe('ev-needs-check-v2')
+      expect(JSON.parse(localStorage.getItem(NEEDS_STORAGE_KEY) ?? '{}')).toEqual({ dailyKm: 60, commuteDays: 4, longestTripKm: 250, homeCharging: false, maxStops: 2 })
       // the stop selector is gone, a stored count falls back to the fixed default
-      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 60, longestTripKm: 250, homeCharging: false, maxStops: 0 })
-      // stored before the stop length existed → default minutes
-      localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 60, longestTripKm: 250, homeCharging: false }))
-      expect(useModelRanking(ref(models)).needs.value.maxStops).toBe(0)
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 60, commuteDays: 4, longestTripKm: 250, homeCharging: false, maxStops: 0 })
+      // partial answers stay partial
+      localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: null, commuteDays: null, longestTripKm: 800, homeCharging: null }))
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: null, commuteDays: null, longestTripKm: 800, homeCharging: null, maxStops: 0 })
       localStorage.setItem(NEEDS_STORAGE_KEY, '{"dailyKm":"x"}')
-      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 0 })
+      expect(useModelRanking(ref(models)).needs.value.dailyKm).toBeNull()
+      // a broken answer drops alone, the others stay
+      localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 40, commuteDays: 6, longestTripKm: 400, homeCharging: true }))
+      expect(useModelRanking(ref(models)).needs.value).toMatchObject({ dailyKm: 40, commuteDays: null })
+    })
+
+    it('ignores the old key: its values were defaults, not answers', () => {
+      localStorage.setItem('ev-needs-check', JSON.stringify({ dailyKm: 40, longestTripKm: 400, homeCharging: true, maxStops: 0 }))
+      expect(useModelRanking(ref(models)).needs.value).toEqual({ dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
     })
 
     it('attaches an assessment to every row and can filter to trips without a stop', () => {
       const r = useModelRanking(ref(models))
+      r.needs.value = ANNA
       const big = r.ranked.value.find(x => x.key === 'B/big')!
       expect(big.needs.assessable && big.needs.tripStops).toEqual({ min: 0, max: 1, single: false })
       expect(r.ranked.value.find(x => x.key === 'C/none')!.needs).toEqual({ assessable: false })
-      // default: no stop → the small one needs two, the big one none with its large battery
+      // no stop → the small one needs two, the big one none with its large battery
       r.tripOnly.value = true
       expect(keys(r.ranked.value)).toEqual(['B/big'])
       // 600 km: the big one needs one stop, which is out with none allowed
@@ -368,21 +389,29 @@ describe('useModelRanking', () => {
       r.needs.value = { ...r.needs.value, longestTripKm: 1600, maxStops: 4 }
       expect(keys(r.ranked.value)).toEqual(['B/big'])
     })
+
+    it('the trip filter does nothing before the longest trip is answered', () => {
+      const r = useModelRanking(ref(models))
+      r.tripOnly.value = true
+      expect(keys(r.ranked.value)).toHaveLength(3)
+    })
   })
 })
 
 describe('stored needs shared with the model page', () => {
   beforeEach(() => localStorage.clear())
 
-  it('reads nothing before the first answer and the defaults once a patch is written', () => {
+  it('reads nothing before the first answer, only the answer once a patch is written', () => {
     expect(readStoredNeeds()).toBeNull()
     writeStoredNeeds({ longestTripKm: 800 })
-    expect(readStoredNeeds()).toEqual({ dailyKm: 40, longestTripKm: 800, homeCharging: true, maxStops: 0 })
+    expect(readStoredNeeds()).toEqual({ dailyKm: null, commuteDays: null, longestTripKm: 800, homeCharging: null, maxStops: 0 })
   })
 
   it('a patch keeps the other stored answers', () => {
-    localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 60, longestTripKm: 250, homeCharging: false }))
-    writeStoredNeeds({ dailyKm: 35 })
-    expect(readStoredNeeds()).toEqual({ dailyKm: 35, longestTripKm: 250, homeCharging: false, maxStops: 0 })
+    localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 60, commuteDays: 4, longestTripKm: 250, homeCharging: false }))
+    writeStoredNeeds({ dailyKm: 35, commuteDays: 2 })
+    expect(readStoredNeeds()).toEqual({ dailyKm: 35, commuteDays: 2, longestTripKm: 250, homeCharging: false, maxStops: 0 })
   })
 })
+
+const keys = (list: { key: string }[]) => list.map(r => r.key)

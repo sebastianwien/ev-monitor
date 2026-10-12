@@ -27,7 +27,7 @@ function mount(opts: { loggedIn?: boolean; locked?: boolean; answered?: number; 
   const Host = defineComponent({
     setup: () => () => h(RangeBandBar, {
       brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3',
-      inputs: state.inputs, answered: state.answered, total: 5, locked: state.locked,
+      inputs: state.inputs, answered: state.answered, total: 6, locked: state.locked,
       fallbackBand: opts.fallback === undefined ? { minKm: 230, maxKm: 300 } : opts.fallback,
       profile: [
         { key: 'highwayShare', label: 'Autobahn', value: '5.000 km' },
@@ -95,8 +95,8 @@ describe('RangeBandBar', () => {
     expect(band(host)).toContain('210')
     expect(band(host)).toContain('280')
     expect(host.textContent).toContain('Mit deinem Profil kommst du mit vollem Akku')
-    expect(host.textContent).toContain('2 von 5')
-    expect(host.querySelectorAll('[data-testid="range-band-bar"] i.h-1').length).toBe(5)
+    expect(host.textContent).toContain('2 von 6')
+    expect(host.querySelectorAll('[data-testid="range-band-bar"] i.h-1').length).toBe(6)
   })
 
   it('keeps the band and notes the standard profile when the limit is exhausted', async () => {
@@ -140,7 +140,7 @@ describe('RangeBandBar', () => {
 
       expect(host.querySelector('[data-testid="range-band"]')).toBeNull()
       expect(host.textContent).not.toContain('230')
-      expect(host.textContent).toContain('Noch 5 Fragen')
+      expect(host.textContent).toContain('Noch 6 Fragen')
 
       state.inputs.highwaySharePercent = 60
       state.answered = 1
@@ -149,15 +149,15 @@ describe('RangeBandBar', () => {
 
       expect(api.post).not.toHaveBeenCalled()
       expect(host.querySelector('[data-testid="range-band"]')).toBeNull()
-      expect(host.textContent).toContain('Noch 4 Fragen')
-      expect(host.textContent).toContain('1 von 5')
+      expect(host.textContent).toContain('Noch 5 Fragen')
+      expect(host.textContent).toContain('1 von 6')
       expect(analytics.track).not.toHaveBeenCalledWith('range_band_shown', expect.anything())
     })
 
     it('unlocking (the gate confirmed a code) fetches the band for the answers given so far', async () => {
       vi.useFakeTimers()
       vi.mocked(api.post).mockResolvedValue({ data: { minKm: 190, maxKm: 250, dataLevel: 'MEASURED' } } as never)
-      const { host, state } = mount({ locked: true, answered: 5 })
+      const { host, state } = mount({ locked: true, answered: 6 })
       await flush()
       expect(api.post).not.toHaveBeenCalled()
 
@@ -173,7 +173,7 @@ describe('RangeBandBar', () => {
 
     it('says the band is ready once every question is answered and keeps the button', async () => {
       const { host, state } = mount({ locked: true })
-      state.answered = 5
+      state.answered = 6
       await flush()
 
       expect(host.textContent).toContain('Deine Spanne ist fertig')

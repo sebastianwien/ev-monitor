@@ -1,7 +1,10 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import type { ChargingReferencePrices, ModelWithoutData, TopModelPreview } from '../api/publicModelService'
 import { consumptionDeltaPercent } from '../utils/unitConversions'
-import { assessModel, summarizeNeeds, NEEDS_DEFAULTS, MIN_STOPS, MAX_STOPS, type NeedsAssessment, type NeedsInput, type NeedsSummary } from '../utils/needsCheck'
+import {
+  assessModel, summarizeNeeds, commuteKmPerWeek, NEEDS_EMPTY, MIN_COMMUTE_DAYS, MAX_COMMUTE_DAYS, COMMUTE_WEEKS_PER_YEAR,
+  type NeedsAssessment, type NeedsInput, type NeedsSummary,
+} from '../utils/needsCheck'
 import {
   COST_DEFAULTS, PRICE_MAX, effectiveHomeShare, mixedPricePerKwh, combustionLiters, savingsPer100km, savingsPerYear, isCostAssumptions,
   type CostAssumptions,
@@ -17,8 +20,11 @@ export const PRICE_STORAGE_KEY = 'ev-price-per-kwh'
 export const COST_STORAGE_KEY = 'ev-cost-assumptions-v2'
 /** The chosen sort stays in the browser, so a returning reader finds the list as left. */
 export const SORT_STORAGE_KEY = 'ev-ranking-sort'
-/** Needs-check inputs stay in the browser only, nothing is sent to the server. */
-export const NEEDS_STORAGE_KEY = 'ev-needs-check'
+/**
+ * Needs-check answers stay in the browser only, nothing is sent to the server. v2: every answer
+ * may be empty. The old key 'ev-needs-check' is ignored, its values were defaults, not answers.
+ */
+export const NEEDS_STORAGE_KEY = 'ev-needs-check-v2'
 export const NEEDS_KM_MAX = 5000
 
 export interface RankedModel {
@@ -35,6 +41,7 @@ export interface RankedModel {
   costPer100kmEur: number | null
   /** Against the assumed combustion car, positive = EV cheaper; null without a fuel price */
   savingsPer100kmEur: number | null
+  /** On the commute (km a day × days × COMMUTE_WEEKS_PER_YEAR); null until the commute is answered */
   savingsPerYearEur: number | null
   /** Litres per 100 km the comparison assumed for this model's class; null without a comparison */
   combustionLitersPer100km: number | null
@@ -87,36 +94,38 @@ const SORT_VALUE: Record<RankingSort, (r: Omit<RankedModel, 'rank'>) => number |
 }
 const DESCENDING: RankingSort[] = ['range', 'data']
 
-function isNeedsInput(v: unknown): v is NeedsInput {
-  if (!v || typeof v !== 'object') return false
+/** Each stored answer on its own: a broken value is dropped (unanswered), the others stay. */
+function parseNeeds(v: unknown): NeedsInput | null {
+  if (!v || typeof v !== 'object') return null
   const o = v as Record<string, unknown>
-  const km = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= NEEDS_KM_MAX
-  const stops = (x: unknown) => Number.isInteger(x) && (x as number) >= MIN_STOPS && (x as number) <= MAX_STOPS
-  // maxStops came later; an older stored value without it is still valid and gets the default
-  return km(o.dailyKm) && km(o.longestTripKm) && typeof o.homeCharging === 'boolean'
-    && (o.maxStops === undefined || stops(o.maxStops))
+  const km = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= NEEDS_KM_MAX ? x : null
+  const days = (x: unknown) => Number.isInteger(x) && (x as number) >= MIN_COMMUTE_DAYS && (x as number) <= MAX_COMMUTE_DAYS ? x as number : null
+  return {
+    dailyKm: km(o.dailyKm),
+    commuteDays: days(o.commuteDays),
+    longestTripKm: km(o.longestTripKm),
+    homeCharging: typeof o.homeCharging === 'boolean' ? o.homeCharging : null,
+    // the stop selector is gone: whatever was stored, the threshold is the fixed default
+    maxStops: NEEDS_EMPTY.maxStops,
+  }
 }
 
 export function readStoredNeeds(): NeedsInput | null {
   try {
     const raw = localStorage.getItem(NEEDS_STORAGE_KEY)
-    if (raw === null) return null
-    const parsed: unknown = JSON.parse(raw)
-    if (!isNeedsInput(parsed)) return null
-    // the stop selector is gone: whatever was stored, the threshold is the fixed default
-    return { dailyKm: parsed.dailyKm, longestTripKm: parsed.longestTripKm, homeCharging: parsed.homeCharging, maxStops: NEEDS_DEFAULTS.maxStops }
+    return raw === null ? null : parseNeeds(JSON.parse(raw))
   } catch {
     return null
   }
 }
 
-/** Stored assumptions, or just the classic list's price as home price (then nothing else is seeded yet). */
-/** The model page hands its answers (commute, longest trip, home charging) back to the ranking's needs check. */
-export function writeStoredNeeds(patch: Partial<Pick<NeedsInput, 'dailyKm' | 'longestTripKm' | 'homeCharging'>>): void {
-  const current = readStoredNeeds() ?? { ...NEEDS_DEFAULTS }
+/** The model page hands its answers (commute, days, longest trip, home charging) back to the ranking's needs check. */
+export function writeStoredNeeds(patch: Partial<Pick<NeedsInput, 'dailyKm' | 'commuteDays' | 'longestTripKm' | 'homeCharging'>>): void {
+  const current = readStoredNeeds() ?? { ...NEEDS_EMPTY }
   try { localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ ...current, ...patch })) } catch { /* private mode */ }
 }
 
+/** Stored assumptions, or just the classic list's price as home price (then nothing else is seeded yet). */
 function readStoredCost(): { cost: CostAssumptions; seeded: boolean } | null {
   try {
     const raw = localStorage.getItem(COST_STORAGE_KEY)
@@ -160,7 +169,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   /** Only models whose largest battery makes the longest trip without a stop */
   const tripOnly = ref(false)
 
-  const needs = ref<NeedsInput>(readStoredNeeds() ?? { ...NEEDS_DEFAULTS })
+  const needs = ref<NeedsInput>(readStoredNeeds() ?? { ...NEEDS_EMPTY })
   watch(needs, v => {
     try { localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify(v)) } catch { /* private mode */ }
   }, { deep: true })
@@ -197,7 +206,13 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   function resetCost() {
     cost.value = { ...COST_DEFAULTS }
   }
-  const homeShare = computed(() => effectiveHomeShare(cost.value.homeShare, needs.value.homeCharging))
+  // No answer yet on home charging prices like home charging, the common case
+  const homeShare = computed(() => effectiveHomeShare(cost.value.homeShare, needs.value.homeCharging !== false))
+  /** Commute km a year the yearly savings rest on; null until km a day and days are answered */
+  const commuteKmPerYear = computed(() => {
+    const weekly = commuteKmPerWeek(needs.value)
+    return weekly != null ? weekly * COMMUTE_WEEKS_PER_YEAR : null
+  })
   /** Blended electricity price in EUR/kWh the row costs are based on */
   const price = computed(() => mixedPricePerKwh(cost.value, homeShare.value))
   const combustion = computed(() => combustionMarket.value ? cost.value : { ...cost.value, fuelPricePerLiter: null })
@@ -213,7 +228,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
       winterSurchargePct: winterSurcharge(m),
       costPer100kmEur,
       savingsPer100kmEur,
-      savingsPerYearEur: savingsPer100kmEur != null ? savingsPerYear(savingsPer100kmEur, needs.value.dailyKm) : null,
+      savingsPerYearEur: savingsPer100kmEur != null && commuteKmPerYear.value != null ? savingsPerYear(savingsPer100kmEur, commuteKmPerYear.value) : null,
       combustionLitersPer100km: savingsPer100kmEur != null ? combustionLiters(combustion.value, m.category) : null,
       singleDriver: m.contributorCount === 1,
       needs: assessModel(m, needs.value),
@@ -226,7 +241,8 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     return enriched.value
       .filter(r => category.value === null || r.model.category === category.value)
       .filter(r => matchesSearch(r.model, query.value))
-      .filter(r => !tripOnly.value || (r.needs.assessable && r.needs.tripStops.min <= needs.value.maxStops))
+      .filter(r => !tripOnly.value || needs.value.longestTripKm == null
+        || (r.needs.assessable && r.needs.tripStops != null && r.needs.tripStops.min <= needs.value.maxStops))
       .sort((a, b) => {
         const va = valueOf(a)
         const vb = valueOf(b)

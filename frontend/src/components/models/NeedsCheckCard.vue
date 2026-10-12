@@ -4,8 +4,9 @@
          header scrolls to $el. Four labelled fields, below them three figures the rows follow. -->
     <h2 :id="titleId" class="text-xl font-semibold tracking-tight text-gray-900 lg:text-2xl dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
 
-    <!-- Three questions; inputs line up at the bottom even when a question wraps differently -->
-    <div class="grid grid-cols-2 items-end gap-x-3 gap-y-3 sm:grid-cols-3">
+    <!-- Four questions, all empty until answered; inputs line up at the bottom even when a question
+         wraps differently. Phone: commute km next to the day chips, longest trip next to home charging. -->
+    <div class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-end gap-x-3 gap-y-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
       <label class="grid gap-2">
         <span class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_daily') }}</span>
         <span class="flex items-center gap-2">
@@ -13,6 +14,20 @@
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
         </span>
       </label>
+      <div class="grid gap-2">
+        <span :id="daysId" class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_days') }}</span>
+        <div :class="segmented" class="grid-cols-5" role="group" :aria-labelledby="daysId" data-testid="needs-days">
+          <button
+            v-for="d in commuteDayOptions"
+            :key="d"
+            type="button"
+            class="text-sm font-semibold tabular-nums"
+            :class="segmentClass(modelValue.commuteDays === d)"
+            :aria-pressed="modelValue.commuteDays === d"
+            @click="emit('update:modelValue', { ...modelValue, commuteDays: d })"
+          >{{ formatNumber(d) }}</button>
+        </div>
+      </div>
       <label class="grid gap-2">
         <span class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_longest') }}</span>
         <span class="flex items-center gap-2">
@@ -20,17 +35,15 @@
           <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
         </span>
       </label>
-      <div class="col-span-2 grid gap-2 sm:col-span-1">
+      <div class="grid gap-2">
         <span :id="homeId" class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_home') }}</span>
-        <div class="grid h-11 grid-cols-2 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600" role="group" :aria-labelledby="homeId">
+        <div :class="segmented" class="grid-cols-2" role="group" :aria-labelledby="homeId">
           <button
             v-for="opt in homeOptions"
             :key="String(opt.value)"
             type="button"
             class="text-sm font-semibold"
-            :class="modelValue.homeCharging === opt.value
-              ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-              : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'"
+            :class="segmentClass(modelValue.homeCharging === opt.value)"
             :aria-pressed="modelValue.homeCharging === opt.value"
             @click="emit('update:modelValue', { ...modelValue, homeCharging: opt.value })"
           >{{ opt.label }}</button>
@@ -40,7 +53,8 @@
 
     <!-- The answer in one line; the button narrows the list to the models it counts -->
     <p v-if="summary.total === 0" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.summary_empty') }}</p>
-    <p v-else class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px] leading-snug text-gray-700 dark:text-gray-300" aria-live="polite" data-testid="needs-summary">
+    <p v-else-if="!hasAnswers" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.empty_prompt') }}</p>
+    <p v-else-if="hasTrip" class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px] leading-snug text-gray-700 dark:text-gray-300" aria-live="polite" data-testid="needs-summary">
       <span>
         <span class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.stat_of', { n: formatNumber(within), total: formatNumber(summary.total) }) }}</span>
         {{ t('models_ranking.needs.stat_trip', { longest: longestLocal, unit: distanceUnitLabel(), count: formatNumber(modelValue.maxStops) }, modelValue.maxStops) }}
@@ -62,14 +76,16 @@
 
     <!-- Guests: the count above is free, the figures per row (interval, stops, winter) wait behind
          the mail. One gate for the whole list, the rows point back here. -->
-    <template v-if="locked && summary.total > 0">
+    <template v-if="locked && summary.total > 0 && hasAnswers">
       <p v-if="!gateOpen" class="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 text-[14px] leading-snug text-gray-700 dark:text-gray-300" data-testid="needs-locked">
-        <span>{{ t('models_ranking.needs.locked_text', { longest: longestLocal, unit: distanceUnitLabel() }) }}</span>
+        <span>{{ hasTrip ? t('models_ranking.needs.locked_text', { longest: longestLocal, unit: distanceUnitLabel() }) : t('models_ranking.needs.locked_text_commute') }}</span>
         <button type="button" class="inline-flex min-h-11 items-center rounded-xl bg-green-600 px-4 text-[14px] font-semibold text-white hover:bg-green-700" data-testid="needs-unlock" @click="openGate">
           {{ t('models_ranking.needs.locked_cta') }}
         </button>
       </p>
-      <InlineGate v-else :lead="t('models_ranking.needs.gate_lead', { n: formatNumber(summary.total), longest: longestLocal, unit: distanceUnitLabel() })"
+      <InlineGate v-else :lead="hasTrip
+                    ? t('models_ranking.needs.gate_lead', { n: formatNumber(summary.total), longest: longestLocal, unit: distanceUnitLabel() })
+                    : t('models_ranking.needs.gate_lead_commute', { n: formatNumber(summary.total) })"
                   :detail="t('models_ranking.needs.gate_detail')" placement="modelle:rangliste" data-testid="needs-gate" @authenticated="onAuthenticated" />
     </template>
   </section>
@@ -85,7 +101,7 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useDebouncedCommit } from '../../composables/useDebouncedCommit'
 import { odometerLocalToKm } from '../../utils/unitConversions'
 import { NEEDS_KM_MAX } from '../../composables/useModelRanking'
-import { type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
+import { MIN_COMMUTE_DAYS, MAX_COMMUTE_DAYS, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
 
 const props = defineProps<{
   modelValue: NeedsInput
@@ -102,6 +118,7 @@ const { formatNumber, distanceUnitLabel, convertDistance, isImperial } = useLoca
 
 const titleId = useId()
 const homeId = useId()
+const daysId = useId()
 const dailyInput = ref<HTMLInputElement | null>(null)
 /** "Ändern" in the sticky list header brings the reader back here */
 function focusFirst() {
@@ -131,7 +148,8 @@ const numeric = {
 
 // Inputs show the market's distance unit; the model keeps kilometres. The committed values
 // feed the figures below; the fields keep their own text while the reader is still typing.
-const toLocal = (km: number) => String(Math.round(convertDistance(km)))
+// An empty field is an unanswered question, never zero.
+const toLocal = (km: number | null) => km == null ? '' : String(Math.round(convertDistance(km)))
 const dailyLocal = computed(() => toLocal(props.modelValue.dailyKm))
 const longestLocal = computed(() => toLocal(props.modelValue.longestTripKm))
 const dailyText = ref(dailyLocal.value)
@@ -152,11 +170,21 @@ const { set: scheduleCommit, flush } = useDebouncedCommit<Partial<NeedsInput>>(p
 function onDistance(field: 'dailyKm' | 'longestTripKm', event: Event) {
   const raw = (event.target as HTMLInputElement).value.replace(/[^\d]/g, '')
   ;(field === 'dailyKm' ? dailyText : longestText).value = raw
-  const local = raw === '' ? 0 : Math.min(Number(raw), NEEDS_KM_MAX)
-  const km = Math.round(odometerLocalToKm(local, isImperial.value))
-  draft = { ...draft, [field]: Math.min(km, NEEDS_KM_MAX) }
+  const km = raw === '' ? null : Math.min(Math.round(odometerLocalToKm(Math.min(Number(raw), NEEDS_KM_MAX), isImperial.value)), NEEDS_KM_MAX)
+  draft = { ...draft, [field]: km }
   scheduleCommit({ ...draft })
 }
+
+/** The longest trip alone gives the counter; the commute needs km, days and home charging */
+const hasTrip = computed(() => props.modelValue.longestTripKm != null)
+const hasCommute = computed(() => props.modelValue.dailyKm != null && props.modelValue.commuteDays != null && props.modelValue.homeCharging != null)
+const hasAnswers = computed(() => hasTrip.value || hasCommute.value)
+
+const commuteDayOptions = Array.from({ length: MAX_COMMUTE_DAYS - MIN_COMMUTE_DAYS + 1 }, (_, i) => MIN_COMMUTE_DAYS + i)
+const segmented = 'grid h-11 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600'
+const segmentClass = (active: boolean) => active
+  ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+  : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'
 
 /** Models that make the trip with at most the chosen number of stops */
 const within = computed(() => props.summary.tripOkWithin[props.modelValue.maxStops] ?? 0)

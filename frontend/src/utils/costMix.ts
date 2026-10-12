@@ -5,7 +5,6 @@
  *
  * Assumptions (named constants, shown in the UI under "Annahmen"):
  * - HOME_SHARE_WHEN_HOME: 80 % of the energy is charged at home when the buyer can
- * - DAYS_PER_YEAR: the daily distance counts 300 days a year
  * - COMBUSTION_MARKETS: comparison only where litres and km are the unit
  * - COMBUSTION_LITERS_BY_CLASS: real-world litres of a combustion car in the model's class
  */
@@ -29,7 +28,6 @@ export interface CostAssumptions {
 }
 
 export const HOME_SHARE_WHEN_HOME = 0.8
-export const DAYS_PER_YEAR = 300
 export const COMBUSTION_MARKETS: Market[] = ['de', 'en', 'no', 'se']
 export const PRICE_MIN = 0.05
 export const PRICE_MAX = 1.5
@@ -98,8 +96,9 @@ export function savingsPer100km(evCostPer100km: number, a: CombustionInput, cate
   return combustion == null ? null : combustion - evCostPer100km
 }
 
-export function savingsPerYear(savingsPer100: number, dailyKm: number): number {
-  return (savingsPer100 * Math.max(0, dailyKm) * DAYS_PER_YEAR) / 100
+/** Savings over the yearly distance (the ranking passes the commute, see COMMUTE_WEEKS_PER_YEAR). */
+export function savingsPerYear(savingsPer100: number, kmPerYear: number): number {
+  return (savingsPer100 * Math.max(0, kmPerYear)) / 100
 }
 
 export function combustionAllowed(market: Market): boolean {

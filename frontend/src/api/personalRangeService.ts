@@ -12,6 +12,9 @@ export interface PersonalRangeInputs {
   netBatteryKwh?: number | null
   /** yearly mileage; costs and charges per week rest on it instead of 22 commute days */
   annualKm?: number | null
+  /** commute days a week (1 to 5); weekly charging per season rests on km a day times these days.
+   *  Null in profiles stored before the question, the backend counts 5. */
+  commuteDaysPerWeek?: number | null
 }
 
 export type PersonalRangeDataLevel = 'MEASURED' | 'PARTIAL' | 'WLTP_FACTOR'
@@ -40,7 +43,7 @@ export interface PersonalRangeResult {
   longTripStops: number
   longTripChargingMinutes: number
   chargesPerWeek: number
-  /** charges a week for the commute on workdays, at the summer and the winter consumption */
+  /** charges a week for the commute on the commute days, at the summer and the winter consumption, not rounded */
   chargesPerWeekSummer: number
   chargesPerWeekWinter: number
   monthlyCostEur: number

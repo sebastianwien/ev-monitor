@@ -76,6 +76,7 @@ import InlineGate from '../auth/InlineGate.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
+import { chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
 import {
   personalRangeService,
   type PersonalRangeAssumption,
@@ -138,10 +139,10 @@ const tileLabels = computed(() => [
 ])
 const placeholderLabels = computed(() => tileLabels.value.map((label, i) => ({ label, order: TILE_ORDER[i] })))
 
-/** Like the ranking: up to once a week as "every n days", above that as times a week */
+/** Same words as the ranking (chargeRhythm): "1,5× pro Woche", "alle 10 Tage", "alle 3 Wochen", stops without home charging */
+const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
 function chargesText(perWeek: number): string {
-  if (perWeek > 0 && perWeek <= 1) return t('personal_range.charges_every_days', { days: Math.round(7 / perWeek) })
-  return t('personal_range.charges_per_week', { charges: compact(perWeek) })
+  return chargeRhythmText(perWeek, props.inputs.homeCharging, rhythmFormat)
 }
 
 /** Datenblatt for the battery; the user's own price; otherwise gemessen, geschätzt, or the measured share of a blend */
@@ -223,12 +224,13 @@ const tiles = computed(() => {
   const basis = props.inputs.annualKm
     ? t('personal_range.cost_basis_annual', { annual: formatDistance(props.inputs.annualKm) })
     : t('personal_range.cost_basis_charges')
-  const commuteBasis = t('personal_range.charges_basis', { commute: formatDistance(props.inputs.commuteKmPerDay) })
+  // stored profiles from before the commute-days question count 5 days, like the backend
+  const commuteBasis = t('personal_range.charges_basis', { commute: formatDistance(props.inputs.commuteKmPerDay), days: formatNumber(props.inputs.commuteDaysPerWeek ?? 5) })
   const [rangeSummer, rangeWinter, chargesSummer, chargesWinter, stops, cost] = tileLabels.value
   return [
     { label: rangeSummer, value: formatDistance(r.summerRangeKm), detail: t('personal_range.range_full') },
     { label: rangeWinter, value: formatDistance(r.winterRangeKm), detail: t('personal_range.range_full') },
-    // charging per week rests on the commute on workdays, whatever the yearly mileage says
+    // charging per week rests on the commute days, whatever the yearly mileage says
     { label: chargesSummer, value: chargesText(r.chargesPerWeekSummer), detail: commuteBasis },
     { label: chargesWinter, value: chargesText(r.chargesPerWeekWinter), detail: commuteBasis },
     { label: stops, value: String(r.longTripStops),

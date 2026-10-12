@@ -655,8 +655,11 @@ const ANNUAL_SLIDER = { min: 5_000, max: 50_000, step: 1_000, start: 15_000 }
 const HIGHWAY_SLIDER = { min: 0, max: 100, step: 5, start: 30 }
 const COMMUTE_SLIDER = { min: 5, max: 150, step: 5, start: 40 }
 const LONG_TRIP_CHIPS = [250, 500, 800, 1_200] as const
-const QUESTION_CHAPTER: Record<QuestionKey, ChapterKey> = { annualKm: 'consumption', highwayShare: 'consumption', commute: 'season', longTrip: 'longTrip', place: 'cost' }
-type QuestionKey = 'annualKm' | 'highwayShare' | 'commute' | 'longTrip' | 'place'
+/** Commute days 1 to 5, the same chips as the ranking's needs check */
+const COMMUTE_DAY_CHIPS = [1, 2, 3, 4, 5] as const
+/** Key order is page order: the commute days sit right under the commute slider */
+const QUESTION_CHAPTER: Record<QuestionKey, ChapterKey> = { annualKm: 'consumption', highwayShare: 'consumption', commute: 'season', commuteDays: 'season', longTrip: 'longTrip', place: 'cost' }
+type QuestionKey = 'annualKm' | 'highwayShare' | 'commute' | 'commuteDays' | 'longTrip' | 'place'
 const QUESTION_COUNT = Object.keys(QUESTION_CHAPTER).length
 const OWN_PRICE_MIN = 0.05
 const OWN_PRICE_MAX = 1.5
@@ -722,12 +725,13 @@ const story = computed(() => buildModelStory(storyInput.value, {
 }))
 
 /** The reader's answers; the battery follows the variant switcher. Unanswered ones hold the slider start. */
-const answers = reactive({ annualKm: ANNUAL_SLIDER.start, highwayShare: HIGHWAY_SLIDER.start, commuteKmPerDay: COMMUTE_SLIDER.start, homeCharging: true, longTripKm: 500, pricePerKwh: null as number | null })
+const answers = reactive({ annualKm: ANNUAL_SLIDER.start, highwayShare: HIGHWAY_SLIDER.start, commuteKmPerDay: COMMUTE_SLIDER.start, commuteDays: 5, homeCharging: true, longTripKm: 500, pricePerKwh: null as number | null })
 /** Per question, so answering the yearly mileage does not mark the motorway row as answered too */
 const answered = reactive(new Set<QuestionKey>())
 const answeredCount = computed(() => answered.size)
 const storyInputs = computed((): PersonalRangeInputs => ({
   commuteKmPerDay: answers.commuteKmPerDay,
+  commuteDaysPerWeek: answers.commuteDays,
   highwaySharePercent: answers.highwayShare,
   homeCharging: answers.homeCharging,
   longTripKm: answers.longTripKm,
@@ -745,6 +749,7 @@ function chipsOf(key: QuestionKey): { label: string; value: number | boolean }[]
     case 'annualKm':
     case 'highwayShare':
     case 'commute': return []
+    case 'commuteDays': return COMMUTE_DAY_CHIPS.map(d => ({ value: d, label: formatNumber(d) }))
     case 'longTrip': return LONG_TRIP_CHIPS.map(km => ({ value: km, label: formatDistance(km) }))
     case 'place': {
       const st = stats.value
@@ -763,6 +768,7 @@ function valueOf(key: QuestionKey): number | boolean {
     case 'annualKm': return answers.annualKm
     case 'highwayShare': return answers.highwayShare
     case 'commute': return answers.commuteKmPerDay
+    case 'commuteDays': return answers.commuteDays
     case 'longTrip': return answers.longTripKm
     case 'place': return answers.homeCharging
   }
@@ -797,7 +803,10 @@ function questionsFor(chapter: ChapterKey): StoryQuestion[] {
 /** Rows for the profile card: the chosen answer per question, null while the question is open */
 const profileRows = computed(() => (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).map(key => {
   const slider = sliderOf(key)
-  const label = slider ? slider.format(valueOf(key) as number) : chipsOf(key).find(c => c.value === valueOf(key))?.label
+  const label = slider ? slider.format(valueOf(key) as number)
+    // the chip says "3", the profile "3 Tage"
+    : key === 'commuteDays' ? t('model.story.profile_commuteDays_value', { n: formatNumber(answers.commuteDays) }, answers.commuteDays)
+    : chipsOf(key).find(c => c.value === valueOf(key))?.label
   let value = answered.has(key) && label ? label : null
   // Own price replaces the community price behind the place, no extra label
   if (key === 'place' && value && answers.pricePerKwh != null) value = `${t(answers.homeCharging ? 'model.story.place_home' : 'model.story.place_public')} · ${formatCostPerKwh(answers.pricePerKwh)}`
@@ -815,6 +824,7 @@ function answer(key: string, value: number | boolean) {
     case 'annualKm': answers.annualKm = value as number; break
     case 'highwayShare': answers.highwayShare = value as number; break
     case 'commute': answers.commuteKmPerDay = value as number; break
+    case 'commuteDays': answers.commuteDays = value as number; break
     case 'longTrip': answers.longTripKm = value as number; break
     case 'place': answers.homeCharging = value as boolean; break
   }
@@ -850,20 +860,24 @@ function applyProfile(p: PersonalRangeInputs) {
   answers.homeCharging = p.homeCharging
   answers.pricePerKwh = p.pricePerKwh ?? null
   ownPriceText.value = p.pricePerKwh != null ? String(p.pricePerKwh).replace('.', ',') : ''
-  for (const key of Object.keys(QUESTION_CHAPTER) as QuestionKey[]) answered.add(key)
+  if (p.commuteDaysPerWeek != null) answers.commuteDays = p.commuteDaysPerWeek
+  // A profile from before the commute-days question leaves that one question open: the reader answers it once
+  for (const key of Object.keys(QUESTION_CHAPTER) as QuestionKey[]) {
+    if (key !== 'commuteDays' || p.commuteDaysPerWeek != null) answered.add(key)
+  }
 }
 
 /**
- * The ranking's needs check (same browser) already asked three of the five questions; those count
- * as answered here. A stored profile (signed in) arrives later through applyProfile and wins.
+ * The ranking's needs check (same browser) asks four of the six questions; each one answered there
+ * counts as answered here. A stored profile (signed in) arrives later through applyProfile and wins.
  */
 function applyStoredNeeds() {
   const n = readStoredNeeds()
   if (!n) return
-  answers.commuteKmPerDay = snap(COMMUTE_SLIDER, n.dailyKm)
-  answers.longTripKm = nearest(LONG_TRIP_CHIPS, n.longestTripKm)
-  answers.homeCharging = n.homeCharging
-  for (const key of ['commute', 'longTrip', 'place'] as QuestionKey[]) answered.add(key)
+  if (n.dailyKm != null) { answers.commuteKmPerDay = snap(COMMUTE_SLIDER, n.dailyKm); answered.add('commute') }
+  if (n.commuteDays != null) { answers.commuteDays = n.commuteDays; answered.add('commuteDays') }
+  if (n.longestTripKm != null) { answers.longTripKm = nearest(LONG_TRIP_CHIPS, n.longestTripKm); answered.add('longTrip') }
+  if (n.homeCharging != null) { answers.homeCharging = n.homeCharging; answered.add('place') }
 }
 applyStoredNeeds()
 /**
@@ -873,6 +887,7 @@ applyStoredNeeds()
  */
 function shareAnswer(key: QuestionKey) {
   if (key === 'commute') writeStoredNeeds({ dailyKm: answers.commuteKmPerDay })
+  else if (key === 'commuteDays') writeStoredNeeds({ commuteDays: answers.commuteDays })
   else if (key === 'longTrip') writeStoredNeeds({ longestTripKm: answers.longTripKm })
   else if (key === 'place') writeStoredNeeds({ homeCharging: answers.homeCharging })
 }

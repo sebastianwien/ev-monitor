@@ -33,19 +33,26 @@ function model(over: Partial<TopModelPreview> & { brandDisplayName: string, mode
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; localStorage.clear() })
 
-/** One ranked row for the model; the needs check runs with 40 km a day and the given longest trip */
-function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: boolean; longestTripKm?: number } = {}) {
+type Answers = { dailyKm: number | null; commuteDays: number | null; longestTripKm: number | null; homeCharging: boolean | null }
+/** Anna: 40 km on 3 days, charging at home, 400 km longest trip */
+const ANNA: Answers = { dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true }
+
+/** One ranked row for the model with the given answers */
+function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: boolean; answers?: Answers; fuelPrice?: number } = {}) {
   setActivePinia(createPinia())
   const models = ref([m])
-  const { ranked, needs } = useModelRanking(models)
-  needs.value = { dailyKm: 40, longestTripKm: opts.longestTripKm ?? 400, homeCharging: true, maxStops: 0 }
+  const { ranked, needs, cost } = useModelRanking(models)
+  const answers = opts.answers ?? ANNA
+  needs.value = { ...answers, maxStops: 0 }
+  if (opts.fuelPrice) cost.value = { ...cost.value, fuelPricePerLiter: opts.fuelPrice }
   const events: string[] = []
   const host = document.createElement('div')
   document.body.appendChild(host)
   app = createApp(ModelRankingRow, {
     item: ranked.value[0], axis: buildLadderAxis([18, 16], 'kWh/100km'), sort: 'efficient',
     expanded: opts.expanded ?? false, inCompare: false, canAddCompare: true, href: '/modelle/x/y',
-    price: 0.35, mainValue: 'consumption', dailyKm: 40, longestTripKm: opts.longestTripKm ?? 400, maxStops: 0, fuel: 'petrol',
+    price: 0.35, mainValue: 'consumption', answered: answers.longestTripKm != null || answers.dailyKm != null,
+    longestTripKm: answers.longestTripKm, maxStops: 0, fuel: 'petrol',
     locked: opts.locked ?? false,
     onUnlock: () => events.push('unlock'),
   })
@@ -58,12 +65,58 @@ const hint = (host: HTMLElement) => host.querySelector('[data-testid="needs-hint
 const WINTER_OK = model({ brandDisplayName: 'Tesla', modelUrlSlug: 'Model_3', typicalRangeMinKm: 620, typicalRangeMaxKm: 700, winterRangeMinKm: 520, winterRangeMaxKm: 600 })
 const WINTER_STOP = model({ brandDisplayName: 'Fiat', modelUrlSlug: '500e', typicalRangeMinKm: 250, typicalRangeMaxKm: 300, winterRangeMinKm: 180, winterRangeMaxKm: 220 })
 
+/** Anna's example: winter 300 km, typical 400 km, one battery */
+const ANNA_CAR = model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', typicalRangeMinKm: 400, typicalRangeMaxKm: 400, winterRangeMinKm: 300, winterRangeMaxKm: 300 })
+
 describe('ModelRankingRow', () => {
   it('signed in: the hint carries the figures', async () => {
     const { host } = mount(WINTER_OK)
     await nextTick()
-    expect(hint(host)).toMatch(/Tage laden/)
+    expect(hint(host)).toContain('Fürs Pendeln')
     expect(hint(host)).toContain('400 km: ohne Stopp')
+  })
+
+  it('the commute line follows the commute rule: 120 km a week, every 14 days, every 10 in winter', async () => {
+    const { host } = mount(ANNA_CAR)
+    await nextTick()
+    // typical 0.6 × 400 = 240 km a charge → 0.5 a week → every 14 days; winter 180 km → 0.67 → every 10 days
+    expect(hint(host)).toContain('Fürs Pendeln alle 14 Tage laden, im Winter alle 10 Tage')
+  })
+
+  it('several batteries: a span, named as such', async () => {
+    const { host } = mount(model({ brandDisplayName: 'Kia', modelUrlSlug: 'EV3', typicalRangeMinKm: 300, typicalRangeMaxKm: 400, winterRangeMinKm: 300, winterRangeMaxKm: 400 }))
+    await nextTick()
+    // 120 / 180 = 0.67 → 10 days, 120 / 240 = 0.5 → 14 days
+    expect(hint(host)).toContain('Fürs Pendeln alle 10 bis 14 Tage laden, je nach Akku')
+  })
+
+  it('the longest trip alone: dot and stops, no commute line', async () => {
+    const { host } = mount(ANNA_CAR, { answers: { dailyKm: null, commuteDays: null, longestTripKm: 400, homeCharging: null } })
+    await nextTick()
+    expect(hint(host)).not.toContain('Pendeln')
+    expect(hint(host)).toContain('400 km: 1 Stopp')
+    expect(host.querySelector('.mr-hint i')).not.toBeNull()
+  })
+
+  it('the commute alone: no dot, no trip verdict', async () => {
+    const { host } = mount(ANNA_CAR, { answers: { ...ANNA, longestTripKm: null } })
+    await nextTick()
+    expect(hint(host)).toContain('Fürs Pendeln')
+    expect(hint(host)).not.toContain('Stopp')
+    expect(host.querySelector('.mr-hint i')).toBeNull()
+  })
+
+  it('without answers the row shows model values only: no dot, no hint', async () => {
+    const { host } = mount(ANNA_CAR, { answers: { dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null } })
+    await nextTick()
+    expect(host.querySelector('.mr-hint i')).toBeNull()
+    expect(host.querySelector('[data-testid="needs-hint"]')).toBeNull()
+  })
+
+  it('yearly savings count the commute', async () => {
+    const { host } = mount(ANNA_CAR, { expanded: true, fuelPrice: 1.8 })
+    await nextTick()
+    expect(host.querySelector('[id^="mr-detail-"]')!.textContent).toMatch(/pro Jahr fürs Pendeln/)
   })
 
   describe('locked (guest)', () => {

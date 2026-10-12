@@ -23,6 +23,13 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
 }
 
+/** Pendeln, Tage und Laden zuhause: die drei Antworten, die die Pendelzeile braucht */
+async function answerCommute(page: Page, km: string, days: number) {
+  await setDistance(page, 'needs-daily', km);
+  await page.getByTestId('needs-days').getByRole('button', { name: String(days), exact: true }).click();
+  await page.getByRole('group', { name: 'Kannst du zuhause laden?' }).getByRole('button', { name: 'Ja' }).click();
+}
+
 /** Ersetzt den Wert eines Eingabefelds komplett, damit der input-Handler mit dem neuen Wert läuft. */
 async function setDistance(page: Page, testId: string, value: string) {
   const input = page.getByTestId(testId);
@@ -58,11 +65,17 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       }
     });
 
-    test('Bedarfs-Check zeigt mit den Vorgaben sofort einen Satz', async ({ page }) => {
+    test('Bedarfs-Check startet leer, die längste Fahrt allein bringt den Zähler', async ({ page }) => {
       await openRanking(page);
-      await expect(page.getByTestId('needs-daily')).toHaveValue('40');
-      await expect(page.getByTestId('needs-longest')).toHaveValue('400');
+      await expect(page.getByTestId('needs-daily')).toHaveValue('');
+      await expect(page.getByTestId('needs-longest')).toHaveValue('');
+      await expect(page.getByTestId('needs-summary')).toContainText('Beantworte die Fragen');
+      await expect(rows(page).first().getByTestId('needs-hint')).toHaveCount(0);
+      await expect(page.getByTestId('trip-chip')).toBeDisabled();
+
+      await setDistance(page, 'needs-longest', '400');
       await expect(page.getByTestId('needs-summary')).toContainText(/\d+ von \d+ Modellen schaffen 400 km ohne Stopp/);
+      await expect(page.getByTestId('trip-chip')).toBeEnabled();
       // nothing narrows the list yet, so no count line and no repeated basis under the chips
       await expect(page.getByTestId('ranking-count')).toHaveCount(0);
       await expect(page.getByTestId('needs-change')).toHaveCount(0);
@@ -76,10 +89,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       const summary = page.getByTestId('needs-summary');
       const firstHint = rows(page).first().getByTestId('needs-hint');
-      await expect(firstHint).toContainText(/Ladestopp|nicht bewertbar/);
-      await expect(firstHint).not.toContainText(/Tage laden|Stopps/);
+      await expect(firstHint).toHaveCount(0);
 
       await setDistance(page, 'needs-longest', '150');
+      await expect(firstHint).toContainText(/Ladestopp|nicht bewertbar/);
+      await expect(firstHint).not.toContainText(/Tage|Wochen|Stopps/);
       await expect(summary).toContainText('schaffen 150 km');
       await expect(page.getByTestId('needs-locked')).toContainText('150 km');
       await expect(firstHint).toContainText('150 km');
@@ -96,7 +110,11 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       await expect(page.getByTestId('needs-locked')).toHaveCount(0);
       const firstHint = rows(page).first().getByTestId('needs-hint');
-      await expect(firstHint).toContainText(/laden|Ladestopp/);
+      await answerCommute(page, '40', 3);
+      await setDistance(page, 'needs-longest', '400');
+      // four answers: commute line and trip line
+      await expect(firstHint).toContainText('Fürs Pendeln');
+      await expect(firstHint).toContainText('400 km:');
       const hintBefore = await firstHint.innerText();
 
       await setDistance(page, 'needs-daily', '120');
@@ -196,6 +214,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
     test('Bedarfs-Satz und Liste zeigen aufeinander: Modelle zeigen setzt den Chip, Ändern fokussiert die Eingabe', async ({ page }) => {
       await openRanking(page);
+      await answerCommute(page, '40', 3);
       await setDistance(page, 'needs-longest', '100');
       await page.getByTestId('needs-show-models').click();
       await expect(page.getByTestId('trip-chip')).toHaveAttribute('aria-pressed', 'true');
@@ -207,7 +226,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await rows(page).nth(5).scrollIntoViewIfNeeded();
       await page.mouse.wheel(0, 600);
       await expect(page.getByTestId('needs-change')).toBeVisible();
-      await expect(page.locator('section.mr-board')).toContainText('Für 40 km am Tag, 100 km längste Fahrt, Laden zuhause');
+      await expect(page.locator('section.mr-board')).toContainText('Für Pendeln 40 km an 3 Tagen, 100 km längste Fahrt, Laden zuhause');
       await page.getByTestId('needs-change').click();
       await expect(page.getByTestId('needs-daily')).toBeFocused();
     });

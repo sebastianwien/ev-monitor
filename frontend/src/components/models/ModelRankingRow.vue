@@ -37,8 +37,9 @@
 
       <!-- The verdict for the reader's own numbers: own line, status dot, body colour -->
       <span class="mr-hint pointer-events-none flex min-w-0 items-start gap-1.5 pb-4 pt-1.5 text-[15px] font-medium leading-snug text-gray-900 lg:pt-2 dark:text-gray-100">
-        <i class="mt-[7px] h-2 w-2 flex-none rounded-full" :class="tripStatusClass" aria-hidden="true"></i>
-        <span class="grid min-w-0" data-testid="needs-hint">
+        <!-- No answers, no verdict: the dot comes with the longest trip, the lines with each answered part -->
+        <i v-if="tripStatusClass" class="mt-[7px] h-2 w-2 flex-none rounded-full" :class="tripStatusClass" aria-hidden="true"></i>
+        <span v-if="locked ? lockedLine : needsLines.length" class="grid min-w-0" data-testid="needs-hint">
           <span v-if="locked" class="line-clamp-2 lg:line-clamp-none">{{ lockedLine }}</span>
           <template v-else>
             <span v-for="line in needsLines" :key="line" class="line-clamp-2 lg:line-clamp-none">{{ line }}</span>
@@ -104,11 +105,11 @@
           <a :href="credit.sourceUrl" target="_blank" rel="noopener" class="pointer-events-auto block truncate rounded bg-black/55 px-1.5 py-0.5 text-[10px] leading-tight text-white/90 backdrop-blur-sm hover:text-white">© {{ credit.author }} · {{ credit.license }}</a>
         </figcaption>
       </figure>
-      <p v-if="locked" class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">
-        <span>{{ t('models_ranking.detail.locked_hint', tripParams) }}</span>
+      <p v-if="locked && answered" class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">
+        <span>{{ tripParams ? t('models_ranking.detail.locked_hint', tripParams) : t('models_ranking.detail.locked_hint_commute') }}</span>
         <button type="button" class="inline-flex min-h-11 items-center font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="row-unlock" @click="emit('unlock')">{{ t('models_ranking.detail.locked_cta') }}</button>
       </p>
-      <p v-else class="text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">{{ needsHint }}</p>
+      <p v-else-if="!locked && needsHint" class="text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">{{ needsHint }}</p>
       <dl class="grid grid-cols-2 gap-2 lg:col-span-2 lg:grid-cols-3">
         <div v-for="kv in facts" :key="kv.label" class="grid gap-0.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900">
           <dt class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
@@ -162,7 +163,8 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { officialModelImageAttribution, officialModelImageUrl, officialModelThumbUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
 import type { LadderAxis } from '../../utils/ladderScale'
-import { stopsRangeKm, ONE_STOP_MINUTES, USABLE_BATTERY_SHARE, meetsNeeds, type Span } from '../../utils/needsCheck'
+import { stopsRangeKm, ONE_STOP_MINUTES, USABLE_BATTERY_SHARE, meetsNeeds, type CommuteAssessment, type Span } from '../../utils/needsCheck'
+import { chargeRhythmSpanText, chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
 import type { FuelKind, MainValue } from '../../utils/costMix'
 
@@ -179,10 +181,10 @@ const props = defineProps<{
   price: number
   /** Big number under "Sparsamste": consumption or cost per 100 km */
   mainValue: MainValue
-  /** Daily distance in km the yearly savings are based on */
-  dailyKm: number
+  /** The reader answered the longest trip or the commute: unrated models say so, guests see the gate */
+  answered: boolean
   /** Longest trip in km, named in the hint so the reader sees their own number */
-  longestTripKm: number
+  longestTripKm: number | null
   /** Stops the reader accepts on long trips; the range cell shows the range with that many */
   maxStops: number
   fuel: FuelKind
@@ -225,58 +227,65 @@ const dataBasis = computed(() => {
     : t('models_ranking.row.logs', { count: formatNumber(m.value.logCount) })
 })
 
-// Needs check per row, from the winter range (fallback: typical range, flagged as such)
+// Needs check per row, from the winter range (fallback: typical range, flagged as such).
+// Each part only once answered: the commute (km, days, home charging) and the longest trip.
+const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
 const needsLines = computed<string[]>(() => {
   const n = props.item.needs
-  if (!n.assessable) return [t('models_ranking.row.needs_unrated')]
+  if (!n.assessable) return props.answered ? [t('models_ranking.row.needs_unrated')] : []
   const row = (k: string, p: Record<string, unknown> = {}, count?: number) => t(`models_ranking.row.${k}`, p, count as number)
-  const num = (x: Span) => x.single ? formatNumber(x.min) : row('span', { min: formatNumber(x.min), max: formatNumber(x.max) })
-  // "every 4 days" / "daily" / "every 2 to 5 days, depending on the battery"
-  const intervalText = (x: Span) => x.single && x.min === 1 ? row('interval_daily') : row(x.single ? 'interval_days' : 'interval_days_span', { min: formatNumber(x.min), max: formatNumber(x.max), days: formatNumber(x.min) })
   const stopsText = (x: Span) => x.single ? row('stops_word', { count: formatNumber(x.min) }, x.min) : row('stops_word_span', { min: formatNumber(x.min), max: formatNumber(x.max) })
-
-  const parts: string[] = []
-  // Line 1: charging rhythm. Typical figure first, the winter figure appended; without winter
-  // data the typical figure carries that caveat.
   const typ = n.typical
-  const same = (a: Span, b: Span) => a.min === b.min && a.max === b.max
-  if (n.interval) {
-    if (typ?.interval && !same(typ.interval, n.interval)) {
-      const winter = n.interval.single && n.interval.min === 1 ? row('winter_daily') : row('winter_interval', { value: num(n.interval) })
-      parts.push(row('needs_interval_both', { typical: intervalText(typ.interval), winter }))
-    } else {
-      // same figure in winter: plain, no "Winter:" prefix that would suggest a difference
-      parts.push(typ ? intervalText(n.interval) : row(n.winter ? 'needs_interval_winter' : 'needs_interval_typical', { value: intervalText(n.interval) }))
-    }
-  } else if (n.stopsPerWeek) {
-    const weekly = (x: Span) => x.single ? row('needs_stops', { count: formatNumber(x.min) }, x.min) : row('needs_stops_span', { min: formatNumber(x.min), max: formatNumber(x.max) })
-    if (typ?.stopsPerWeek && !same(typ.stopsPerWeek, n.stopsPerWeek)) parts.push(row('needs_interval_both', { typical: weekly(typ.stopsPerWeek), winter: row('winter_value', { value: num(n.stopsPerWeek) }) }))
-    else parts.push(typ ? weekly(n.stopsPerWeek) : row(n.winter ? 'needs_interval_winter' : 'needs_interval_typical', { value: weekly(n.stopsPerWeek) }))
+  const parts: string[] = []
+
+  // Line 1: the commute. Typical figure first, the winter figure appended; without winter
+  // data the typical figure carries that caveat.
+  if (n.commute) {
+    const rhythm = (c: CommuteAssessment) => chargeRhythmSpanText(c.perWeek.low, c.perWeek.high, c.homeCharging, rhythmFormat)
+    // "alle 14 Tage laden"; stops on the road carry their own noun
+    const charge = (text: string) => n.commute!.homeCharging ? row('charge_verb', { value: text }) : text
+    const main = rhythm(n.commute)
+    const typical = typ?.commute ? rhythm(typ.commute) : null
+    let line: string
+    if (typical != null && typical !== main) line = row('commute_both', { typical: charge(typical), winter: main })
+    else if (typical != null) line = row('commute_line', { value: charge(main) })
+    else line = row(n.winter ? 'commute_winter_only' : 'commute_typical_only', { value: charge(main) })
+    // several batteries with different figures: say where the span comes from
+    const isSpan = (c: CommuteAssessment) => chargeRhythmText(c.perWeek.low, c.homeCharging, rhythmFormat) !== chargeRhythmText(c.perWeek.high, c.homeCharging, rhythmFormat)
+    const spans = isSpan(n.commute) || (typ?.commute != null && isSpan(typ.commute))
+    parts.push(spans ? row('by_battery', { value: line }) : line)
   }
   // Line 2: the longest trip, same pattern
-  const tripOf = (x: Span) => x.single ? (x.min === 0 ? row('stops_none') : stopsText(x)) : (x.min === 0 && x.max === 1 ? row('stops_maybe') : stopsText(x))
-  parts.push(typ && !same(typ.tripStops, n.tripStops)
-    ? row('needs_trip_both', { ...tripParams.value, typical: tripOf(typ.tripStops), winter: tripOf(n.tripStops) })
-    : row('needs_trip_line', { ...tripParams.value, value: tripOf(n.tripStops) }))
+  if (n.tripStops && tripParams.value) {
+    const tripOf = (x: Span) => x.single ? (x.min === 0 ? row('stops_none') : stopsText(x)) : (x.min === 0 && x.max === 1 ? row('stops_maybe') : stopsText(x))
+    parts.push(typ?.tripStops && !same(typ.tripStops, n.tripStops)
+      ? row('needs_trip_both', { ...tripParams.value, typical: tripOf(typ.tripStops), winter: tripOf(n.tripStops) })
+      : row('needs_trip_line', { ...tripParams.value, value: tripOf(n.tripStops) }))
+  }
   // lines start with a capital, whatever building block comes first
   return parts.map(p => p.charAt(0).toLocaleUpperCase() + p.slice(1))
 })
+const same = (a: Span, b: Span) => a.min === b.min && a.max === b.max
 const needsHint = computed(() => needsLines.value.join(' · '))
-/** The reader's own trip in the market's unit, named in every hint */
-const tripParams = computed(() => ({ trip: formatNumber(Math.round(convertDistance(props.longestTripKm))), unit: distanceUnitLabel() }))
-/** Guest label: only whether the trip works without a stop (the dot's verdict), never the count or the interval */
+/** The reader's own trip in the market's unit, named in every hint; null until answered */
+const tripParams = computed(() => props.longestTripKm != null
+  ? { trip: formatNumber(Math.round(convertDistance(props.longestTripKm))), unit: distanceUnitLabel() }
+  : null)
+/** Guest label: only whether the trip works without a stop (the dot's verdict), never the count or the commute */
 const lockedLine = computed(() => {
   const n = props.item.needs
-  if (!n.assessable) return t('models_ranking.row.needs_unrated')
+  if (!n.assessable) return props.answered ? t('models_ranking.row.needs_unrated') : ''
+  if (!n.tripStops || !tripParams.value) return ''
   const ok = meetsNeeds(n, props.maxStops)
   const key = ok ? (n.winter ? 'locked_ok_winter' : 'locked_ok') : (n.winter ? 'locked_stop_winter' : 'locked_stop')
   return t(`models_ranking.row.${key}`, tripParams.value)
 })
-// Dot in front of the hint: green when the model meets everything the reader asked for
-// (weekly rhythm, trip within the chosen stops, every battery), orange when something falls short
-const tripStatusClass = computed(() => {
+// Dot in front of the hint: green when every battery makes the trip within the allowed stops,
+// orange when not, grey for a model without range data. No trip answered, no dot.
+const tripStatusClass = computed<string | null>(() => {
   const n = props.item.needs
-  if (!n.assessable) return 'bg-gray-300 dark:bg-gray-600'
+  if (!n.assessable) return props.answered ? 'bg-gray-300 dark:bg-gray-600' : null
+  if (!n.tripStops) return null
   return meetsNeeds(n, props.maxStops) ? 'bg-green-600 dark:bg-green-400' : 'bg-orange-500 dark:bg-orange-400'
 })
 const costNumber = computed(() => props.item.costPer100kmEur != null
@@ -443,8 +452,6 @@ const facts = computed(() => {
       hint: props.item.savingsPerYearEur != null
         ? t(props.item.savingsPerYearEur >= 0 ? 'models_ranking.detail.savings_year_cheaper' : 'models_ranking.detail.savings_year_dearer', {
             amount: formatCurrency(Math.abs(props.item.savingsPerYearEur), { decimals: 0 }),
-            daily: formatNumber(Math.round(convertDistance(props.dailyKm))),
-            unit: distanceUnitLabel(),
           })
         : '',
     }] : []),

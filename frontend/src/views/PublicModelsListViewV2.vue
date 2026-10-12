@@ -79,14 +79,16 @@
           >
             {{ c.label }}<span class="text-xs tabular-nums opacity-65">{{ c.count }}</span>
           </button>
+          <!-- Greyed out until the longest trip is answered: there is nothing to filter by -->
           <button
             type="button"
-            :aria-pressed="tripOnly"
-            :class="chipClass(tripOnly)"
+            :aria-pressed="tripOnly && hasTrip"
+            :class="[chipClass(tripOnly && hasTrip), 'disabled:cursor-not-allowed disabled:opacity-40']"
+            :disabled="!hasTrip"
             data-testid="trip-chip"
             @click="tripOnly = !tripOnly"
           >
-            <CheckIcon v-if="tripOnly" class="h-4 w-4" aria-hidden="true" />{{ t('models_ranking.filters.trip_chip', { count: needs.maxStops }, needs.maxStops) }}
+            <CheckIcon v-if="tripOnly && hasTrip" class="h-4 w-4" aria-hidden="true" />{{ t('models_ranking.filters.trip_chip', { count: needs.maxStops }, needs.maxStops) }}
           </button>
         </div>
       </div>
@@ -120,7 +122,7 @@
         </div>
         <!-- Where the hints per row come from, with the way back to the card. Only once the
              card has scrolled away: while it is in view the line would repeat the fields above it. -->
-        <p v-if="!needsCardInView" class="flex min-w-0 flex-wrap items-baseline gap-x-2 pb-2 text-[13px] leading-snug text-gray-700 dark:text-gray-300">
+        <p v-if="!needsCardInView && needsBasis" class="flex min-w-0 flex-wrap items-baseline gap-x-2 pb-2 text-[13px] leading-snug text-gray-700 dark:text-gray-300">
           <span>{{ needsBasis }}</span>
           <button type="button" class="pointer-events-auto flex-none font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="needs-change" @click="editNeeds">{{ t('models_ranking.needs.basis_change') }}</button>
         </p>
@@ -180,7 +182,7 @@
           :href="modelHref(item.model)"
           :price="price"
           :main-value="cost.mainValue"
-          :daily-km="needs.dailyKm"
+          :answered="hasTrip || hasCommute"
           :longest-trip-km="needs.longestTripKm"
           :max-stops="needs.maxStops"
           :fuel="cost.fuel"
@@ -416,12 +418,20 @@ function chipClass(active: boolean, compact = false) {
 
 // ── Needs check: the card and the list point at each other ──────────────────
 const needsCard = ref<InstanceType<typeof NeedsCheckCard> | null>(null)
-const needsBasis = computed(() => t('models_ranking.needs.basis', {
-  daily: formatNumber(Math.round(convertDistance(needs.value.dailyKm))),
-  longest: formatNumber(Math.round(convertDistance(needs.value.longestTripKm))),
-  unit: distanceUnitLabel(),
-  home: t(needs.value.homeCharging ? 'models_ranking.needs.basis_home' : 'models_ranking.needs.basis_no_home'),
-}))
+const hasTrip = computed(() => needs.value.longestTripKm != null)
+const hasCommute = computed(() => needs.value.dailyKm != null && needs.value.commuteDays != null && needs.value.homeCharging != null)
+/** The answers the row hints rest on, for the sticky header; empty (no line) before the first answer */
+const needsBasis = computed(() => {
+  const n = needs.value
+  const local = (km: number) => formatNumber(Math.round(convertDistance(km)))
+  const parts: string[] = []
+  if (n.dailyKm != null && n.commuteDays != null) {
+    parts.push(t('models_ranking.needs.basis_commute', { daily: local(n.dailyKm), days: formatNumber(n.commuteDays), unit: distanceUnitLabel() }))
+  }
+  if (n.longestTripKm != null) parts.push(t('models_ranking.needs.basis_trip', { longest: local(n.longestTripKm), unit: distanceUnitLabel() }))
+  if (n.homeCharging != null) parts.push(t(n.homeCharging ? 'models_ranking.needs.basis_home' : 'models_ranking.needs.basis_no_home'))
+  return parts.length ? t('models_ranking.needs.basis', { parts: parts.join(', ') }) : ''
+})
 // The middle figure is a toggle: on filters the list to the models it counts, off shows all
 function showTripModels() {
   tripOnly.value = !tripOnly.value

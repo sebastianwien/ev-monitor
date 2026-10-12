@@ -37,11 +37,12 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
 }
 
-/** All five questions answered: two sliders, three chip questions */
+/** All six questions answered: three sliders, three chip questions */
 async function answerAll(page: Page) {
   await setSlider(page, 'annualKm', 20000);
   await setSlider(page, 'highwayShare', 40);
   await setSlider(page, 'commute', 35);
+  await page.getByTestId('chip-commuteDays-3').click();
   await page.getByTestId('chip-longTrip-500').click();
   await page.getByTestId('chip-place-true').click();
 }
@@ -65,14 +66,14 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       const previews: string[] = [];
       page.on('request', r => { if (r.url().includes('/api/public/personal-range/')) previews.push(r.url()); });
       await openStory(page);
-      await expect(page.getByTestId('range-band-locked')).toContainText('Noch 5 Fragen');
+      await expect(page.getByTestId('range-band-locked')).toContainText('Noch 6 Fragen');
       await expect(page.getByTestId('range-band')).toHaveCount(0);
       await setSlider(page, 'highwayShare', 60);
       await expect(page.getByTestId('slider-highwayShare-value')).toContainText('60 %');
       // 60 % of the 15,000 km start value
       await expect(page.getByTestId('slider-highwayShare-detail')).toContainText('9.000 km');
-      await expect(page.getByTestId('range-band-bar')).toContainText('1 von 5');
-      await expect(page.getByTestId('range-band-locked')).toContainText('Noch 4 Fragen');
+      await expect(page.getByTestId('range-band-bar')).toContainText('1 von 6');
+      await expect(page.getByTestId('range-band-locked')).toContainText('Noch 5 Fragen');
       await expect(page.getByTestId('range-band')).toHaveCount(0);
       expect(previews).toEqual([]);
     });
@@ -110,18 +111,20 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     test('eigene Antworten auf der Modellseite landen im Speicher der Rangliste', async ({ page }) => {
       await openStory(page);
       await setSlider(page, 'commute', 35);
+      await page.getByTestId('chip-commuteDays-3').click();
       await page.getByTestId('chip-longTrip-800').click();
       await page.getByTestId('chip-place-false').click();
-      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('ev-needs-check') ?? '{}'));
-      expect(stored).toEqual(expect.objectContaining({ dailyKm: 35, longestTripKm: 800, homeCharging: false }));
+      const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('ev-needs-check-v2') ?? '{}'));
+      expect(stored).toEqual(expect.objectContaining({ dailyKm: 35, commuteDays: 3, longestTripKm: 800, homeCharging: false }));
     });
 
     test('die Antworten der Rangliste zählen auf der Modellseite als beantwortet', async ({ page }) => {
       await page.goto('/modelle');
-      await page.evaluate(() => localStorage.setItem('ev-needs-check', JSON.stringify({ dailyKm: 35, longestTripKm: 800, homeCharging: false, maxStops: 0 })));
+      await page.evaluate(() => localStorage.setItem('ev-needs-check-v2', JSON.stringify({ dailyKm: 35, commuteDays: 3, longestTripKm: 800, homeCharging: false, maxStops: 0 })));
       await openStory(page);
-      await expect(page.getByTestId('range-band-bar')).toContainText('3 von 5');
+      await expect(page.getByTestId('range-band-bar')).toContainText('4 von 6');
       await expect(page.getByTestId('range-band-locked')).toContainText('Noch 2 Fragen');
+      await expect(page.getByTestId('chip-commuteDays-3')).toHaveAttribute('aria-pressed', 'true');
       await expect(page.getByTestId('chip-longTrip-800')).toHaveAttribute('aria-pressed', 'true');
       await expect(page.getByTestId('chip-place-false')).toHaveAttribute('aria-pressed', 'true');
       await expect(page.getByTestId('slider-commute-value')).toContainText('35 km');
@@ -133,7 +136,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await setSlider(page, 'annualKm', 30000);
       await expect(page.getByTestId('slider-annualKm-value')).toContainText('30.000 km');
       await expect(page.getByTestId('slider-highwayShare-detail')).toContainText('15.000 km');
-      await expect(page.getByTestId('range-band-bar')).toContainText('2 von 5');
+      await expect(page.getByTestId('range-band-bar')).toContainText('2 von 6');
     });
 
     test('"Meine Zahlen" mit offenen Fragen führt zur ersten offenen Frage statt zum Gate', async ({ page }) => {
@@ -143,7 +146,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('inline-gate')).toHaveCount(0);
       await expect(page.locator('#story-highwayShare')).toHaveClass(/ring-2/);
       await expect(page.getByTestId('slider-highwayShare')).toBeFocused();
-      await expect(page.getByTestId('personal-range-open')).toContainText('Noch 4 Fragen offen');
+      await expect(page.getByTestId('personal-range-open')).toContainText('Noch 5 Fragen offen');
     });
 
     test('"Meine Zahlen" öffnet nach allen Antworten das Gate, ohne Zahlen preiszugeben', async ({ page }) => {
@@ -155,6 +158,19 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.getByTestId('range-band-cta').click();
       await expect(page.getByTestId('inline-gate')).toBeVisible();
       await expect(page.getByTestId('personal-range-result')).toHaveCount(0);
+    });
+
+    test('eingeloggt: die Ladekachel rechnet mit den Pendeltagen', async ({ page }) => {
+      await login(page);
+      await openStoryWithProfile(page);
+      await answerAll(page);
+      const result = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST');
+      await page.getByTestId('range-band-cta').click();
+      const request = (await result).request().postDataJSON();
+      expect(request).toEqual(expect.objectContaining({ commuteKmPerDay: 35, commuteDaysPerWeek: 3 }));
+      const tiles = page.getByTestId('personal-range-result');
+      await expect(tiles).toContainText('Pendeln, 35 km an 3 Tagen');
+      await expect(tiles).toContainText(/alle \d+ (Tage|Wochen)|\d+(,\d)?× pro Woche/);
     });
 
     test('Hero-Sätze und Tacho-Legende bleiben je einzeilig', async ({ page }) => {

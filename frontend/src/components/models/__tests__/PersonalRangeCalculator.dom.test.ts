@@ -14,7 +14,7 @@ import type { PersonalRangeInputs } from '../../../api/personalRangeService'
 
 const RESULT = {
   winterRangeKm: 320, summerRangeKm: 450, longTripStops: 1, longTripChargingMinutes: 30,
-  chargesPerWeek: 1.5, chargesPerWeekSummer: 0.5, chargesPerWeekWinter: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
+  chargesPerWeek: 1.5, chargesPerWeekSummer: 0.3, chargesPerWeekWinter: 1.5, monthlyCostEur: 46, dataLevel: 'PARTIAL',
   assumptions: [
     { key: 'BATTERY', measured: true, value: 77 },
     { key: 'WINTER_CONSUMPTION', measured: true, value: 21.4 },
@@ -22,7 +22,7 @@ const RESULT = {
     { key: 'OWN_PRICE', measured: true, value: 0.28 },
   ],
 }
-const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, highwaySharePercent: 30, homeCharging: true, longTripKm: 500, pricePerKwh: 0.28 }
+const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, commuteDaysPerWeek: 3, highwaySharePercent: 30, homeCharging: true, longTripKm: 500, pricePerKwh: 0.28 }
 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear() })
@@ -157,12 +157,12 @@ describe('PersonalRangeCalculator', () => {
     expect(result.textContent).toContain('450')
     expect(result.textContent).toContain('320')
     expect(result.textContent).toContain('46')
-    // weekly charging for the commute under each season
-    // up to once a week as an interval in days (like the ranking), above that as times a week
-    expect(result.textContent).toContain('alle 14 Tage')
+    // weekly charging for the commute under each season, in the ranking's words (chargeRhythm):
+    // below half a week in weeks, above once a week as times a week
+    expect(result.textContent).toContain('alle 3 Wochen')
     expect(result.textContent).toContain('1,5× pro Woche')
     expect(result.querySelectorAll('dl dd').length).toBe(6)
-    expect(result.textContent).toContain('Pendeln, 40 km am Tag')
+    expect(result.textContent).toContain('Pendeln, 40 km an 3 Tagen')
     expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(4)
     expect(result.textContent).toContain('(Datenblatt)')
     expect(result.textContent).toContain('zu 50 % gemessen')
