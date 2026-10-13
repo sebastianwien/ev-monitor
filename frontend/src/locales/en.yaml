@@ -588,7 +588,6 @@ model:
     note_charging_none: "not measured yet"
     cost_home: "home charge"
     cost_fast: "fast charge"
-    note_cost_fast: "Fast charge {fast}"
     note_cost_none: "no prices entered yet"
     level_estimated: "estimated"
     evidence_title: "What winter and motorway do to the {model}"

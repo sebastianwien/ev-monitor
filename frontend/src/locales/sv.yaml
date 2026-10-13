@@ -550,7 +550,6 @@ model:
     note_charging_none: "inte mätt ännu"
     cost_home: "hemmaladdning"
     cost_fast: "snabbladdning"
-    note_cost_fast: "Snabbladdning {fast}"
     note_cost_none: "inga priser registrerade ännu"
     level_estimated: "uppskattat"
     evidence_title: "Vad vinter och motorväg betyder för {model}"

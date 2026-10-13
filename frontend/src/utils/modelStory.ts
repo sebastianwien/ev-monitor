@@ -67,6 +67,8 @@ export interface FactTile {
   unit: string
   note: string
   level: StoryLevel
+  /** a second figure of equal weight below the first: the fast charge next to the home charge */
+  extra?: { value: string; unit: string }
 }
 
 export interface EvidenceBar {
@@ -227,8 +229,8 @@ function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile
   const home = d.netBatteryKwh && d.acPricePerKwh ? d.netBatteryKwh * NORMAL_SHARE / AC_CHARGING_EFFICIENCY * d.acPricePerKwh : null
   const fast = fastStop(d.netBatteryKwh, d.dcPricePerKwh ?? d.avgPricePerKwh)?.eur ?? null
   if (home != null) {
-    return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'),
-      note: fast != null ? f.t('model.page.note_cost_fast', { fast: f.formatCurrency(fast) }) : '' }
+    return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'), note: '',
+      ...(fast != null ? { extra: { value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast') } } : {}) }
   }
   if (fast != null) return { ...base, level: 'FULL', value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast'), note: '' }
   return { ...base, value: null, unit: '', note: f.t('model.page.note_cost_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }

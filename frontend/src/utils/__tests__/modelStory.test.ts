@@ -91,7 +91,8 @@ describe('buildModelStory', () => {
     // 0.372 × 19.1 = 7.11
     // a home charge 20 to 80 % at AC: 58 × 0.6 / 0.9 = 38.7 kWh × 0.35 = 13.53 → 14 €;
     // a fast charge 10 to 80 % at DC: 58 × 0.7 / 0.95 = 42.7 kWh × 0.427 = 18.25 → 18 €
-    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', unit: 'Heimladung', note: 'Schnellladung 18 €' })
+    // both charges side by side as equals
+    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', unit: 'Heimladung', extra: { value: '18 €', unit: 'Schnellladung' }, note: '' })
   })
 
   it('evidence: range by season against the prospectus, bars from zero on one scale', () => {
@@ -159,6 +160,7 @@ describe('buildModelStory', () => {
   it('cost without an AC price: the fast charge is the figure', () => {
     const s = buildModelStory({ ...full, acPricePerKwh: null }, fmt)
     expect(fact(s, 'cost')).toMatchObject({ value: '18 €', unit: 'Schnellladung', note: '' })
+    expect(fact(s, 'cost').extra).toBeUndefined()
   })
 
   it('a consumption below the prospectus says so', () => {

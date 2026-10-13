@@ -591,7 +591,6 @@ model:
     note_charging_none: "noch nicht gemessen"
     cost_home: "Heimladung"
     cost_fast: "Schnellladung"
-    note_cost_fast: "Schnellladung {fast}"
     note_cost_none: "noch keine Preise eingetragen"
     level_estimated: "geschätzt"
     evidence_title: "Was Winter und Autobahn beim {model} ausmachen"

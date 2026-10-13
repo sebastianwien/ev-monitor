@@ -550,7 +550,6 @@ model:
     note_charging_none: "ikke målt ennå"
     cost_home: "hjemmelading"
     cost_fast: "hurtiglading"
-    note_cost_fast: "Hurtiglading {fast}"
     note_cost_none: "ingen priser registrert ennå"
     level_estimated: "anslått"
     evidence_title: "Hva vinter og motorvei betyr for {model}"
