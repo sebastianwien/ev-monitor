@@ -155,3 +155,24 @@ test('Handy: die Freischalten-Leiste kommt erst, wenn der Leser die Box kennt, u
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect(page.getByTestId('unlock-bar')).toBeVisible();
 });
+
+test('Handy: die Leiste bleibt, bis der Freischalt-Knopf in der Box selbst im Bild ist', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStory(page);
+  await page.getByTestId('personal-range').scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByTestId('unlock-bar')).toBeVisible();
+  // only the head of the box in view, the button still below the fold: the bar stays
+  await page.evaluate(() => {
+    const box = document.querySelector('[data-testid="personal-range"]')!.getBoundingClientRect();
+    window.scrollBy(0, box.top - window.innerHeight + 120);
+  });
+  await expect(page.getByTestId('personal-range')).toBeInViewport();
+  await expect(page.getByTestId('personal-range-calculate')).not.toBeInViewport();
+  await page.waitForTimeout(200);
+  await expect(page.getByTestId('unlock-bar')).toBeVisible();
+  // the button in view: the bar gives way
+  await page.getByTestId('personal-range-calculate').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('unlock-bar')).toHaveCount(0);
+});

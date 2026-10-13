@@ -44,7 +44,7 @@
           : t('personal_range.locked_basis_thin', { logs: formatNumber(logCount), cars: formatNumber(carCount) }) }}
         {{ inputs.homeCharging ? t('personal_range.assume_home') : t('personal_range.assume_public') }}
       </p>
-      <button type="button" data-testid="personal-range-calculate" :disabled="busy"
+      <button ref="action" type="button" data-testid="personal-range-calculate" :disabled="busy"
               class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60 btn-3d cta-shadow border-2 border-gray-900 dark:border-gray-200"
               @click="request">
         <LockOpenIcon class="h-5 w-5" aria-hidden="true" />
@@ -59,7 +59,7 @@
         <h2 id="pr-title" tabindex="-1" class="text-[19px] font-bold leading-tight tracking-tight text-gray-900 focus:outline-none dark:text-gray-100">{{ t('personal_range.gate_title') }}</h2>
       </div>
       <p class="text-[14px] leading-snug text-gray-700 dark:text-gray-300">{{ t('personal_range.gate_short') }}</p>
-      <InlineGate plain :consent="t('personal_range.gate_privacy')" :placement="`modell:${brand}/${model}`" @authenticated="onAuthenticated" />
+      <div ref="action"><InlineGate plain :consent="t('personal_range.gate_privacy')" :placement="`modell:${brand}/${model}`" @authenticated="onAuthenticated" /></div>
     </template>
 
     <!-- Result: four answers, then the two assumptions to play with -->
@@ -179,7 +179,7 @@
 
     <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
-    <!-- Phone: a slim bar once the box is out of view, until the answers are open -->
+    <!-- Phone: a slim bar while the box's own button is out of view, until the answers are open -->
     <Teleport to="body">
       <div v-if="showBar" class="fixed inset-x-0 z-40 px-3 md:hidden" :class="authStore.token ? 'bottom-[calc(env(safe-area-inset-bottom)+68px)]' : 'bottom-[calc(env(safe-area-inset-bottom)+12px)]'" data-testid="unlock-bar">
         <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 text-[15px] font-bold text-white shadow-lg shadow-gray-900/25 dark:bg-gray-100 dark:text-gray-900"
@@ -428,15 +428,23 @@ watch(() => ({ ...props.inputs }), () => {
   timer = setTimeout(() => { void calculate() }, RECALC_MS)
 }, { deep: true })
 
-// The phone bar shows while the box is out of view and the answers are still locked
+// The phone bar shows while the box's own button (or sign-in) is out of view and the answers are still locked.
+// The box's head alone does not hide it: the button sits at the bottom of the box.
 const root = ref<HTMLElement | null>(null)
-const boxVisible = ref(true)
+const action = ref<HTMLElement | null>(null)
+const actionVisible = ref(true)
 /** The bar waits until the reader has seen the box or moved a slider, so it does not cover the data sheet on arrival */
 const engaged = ref(false)
 const startOpen = props.openCount
 watch(() => props.openCount, n => { if (n < startOpen) engaged.value = true })
 let observer: IntersectionObserver | null = null
-const showBar = computed(() => !result.value && !boxVisible.value && engaged.value)
+const showBar = computed(() => !result.value && !actionVisible.value && engaged.value)
+/** Locked and gate each have their own action element: follow whichever is rendered */
+watch(action, (el, old) => {
+  if (old) observer?.unobserve(old)
+  if (el) observer?.observe(el)
+  else actionVisible.value = false
+})
 
 function fromBar() {
   if (root.value) scrollToElement(root.value)
@@ -446,10 +454,13 @@ function fromBar() {
 onMounted(async () => {
   if (root.value && typeof IntersectionObserver !== 'undefined') {
     observer = new IntersectionObserver(entries => {
-      boxVisible.value = entries.some(e => e.isIntersecting)
-      if (boxVisible.value) engaged.value = true
+      for (const e of entries) {
+        if (e.target === root.value && e.isIntersecting) engaged.value = true
+        if (e.target === action.value) actionVisible.value = e.isIntersecting
+      }
     })
     observer.observe(root.value)
+    if (action.value) observer.observe(action.value)
   }
   if (!authStore.token) return
   const pending = takePending()
