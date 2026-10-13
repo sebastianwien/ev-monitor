@@ -518,7 +518,7 @@ model:
     cta_from: "EV Monitor"
     cta_reply: "Vi regner det ut for deg"
     cta_trip: "Hvor ofte lader jeg på ferieturen?"
-    variant_button: "Batteri"
+    variant_button: "Velg variant"
     variant_title: "Hvilket batteri?"
     variant_close: "Lukk"
     variant_prospect: "Brosjyre {range}"

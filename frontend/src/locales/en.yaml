@@ -556,7 +556,7 @@ model:
     cta_from: "EV Monitor"
     cta_reply: "We work it out for you"
     cta_trip: "How often will I charge on a holiday trip?"
-    variant_button: "Battery"
+    variant_button: "Choose variant"
     variant_title: "Which battery?"
     variant_close: "Close"
     variant_prospect: "Brochure {range}"

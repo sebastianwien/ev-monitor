@@ -1,16 +1,19 @@
 <template>
   <div ref="root" class="relative">
+    <!-- Two lines, so it reads as a choice: "Variante wählen" over the battery the page is calculated with -->
     <button ref="trigger" type="button" data-testid="variant-picker"
-            class="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-gray-200 bg-gray-50 pl-3.5 pr-3 text-[14px] font-semibold text-gray-900 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
+            class="btn-3d cta-shadow inline-flex max-w-full items-center gap-3 rounded-2xl border-2 border-gray-900 bg-white py-1.5 pl-3.5 pr-3 text-left text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800"
             aria-haspopup="dialog" :aria-expanded="open" @click="toggle">
-      <span class="sr-only font-medium text-gray-500 sm:not-sr-only dark:text-gray-400">{{ t('model.page.variant_button') }}</span>
-      <span class="truncate">{{ current ? `${current.label}, ${current.battery}` : '' }}</span>
-      <ChevronDownIcon class="h-4 w-4 flex-none transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true" />
+      <span class="grid min-w-0 leading-tight">
+        <span class="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ t('model.page.variant_button') }}</span>
+        <span class="truncate text-[14.5px] font-bold">{{ current ? `${current.label}, ${current.battery}` : '' }}</span>
+      </span>
+      <ChevronDownIcon class="h-5 w-5 flex-none transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true" />
     </button>
 
     <!-- Desktop: a popover under the button -->
     <div v-if="open && desktop" ref="panel" role="dialog" :aria-label="t('model.page.variant_title')"
-         class="absolute right-0 top-[calc(100%+8px)] z-40 grid w-[min(640px,calc(100vw-48px))] gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:border-gray-700 dark:bg-gray-900">
+         class="absolute right-0 top-[calc(100%+8px)] z-40 grid w-[min(640px,calc(100vw-48px))] gap-3 rounded-2xl bg-white p-4 edge-box dark:border-gray-700 dark:bg-gray-900">
       <p class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.variant_title') }}</p>
       <div class="grid grid-cols-2 gap-2">
         <VariantPickerItem v-for="(o, i) in options" :key="o.key" :option="o" :selected="i === modelValue" @choose="choose(i)" />

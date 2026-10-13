@@ -559,7 +559,7 @@ model:
     cta_from: "EV Monitor"
     cta_reply: "Rechnen wir dir aus"
     cta_trip: "Wie oft lade ich auf der Urlaubsfahrt?"
-    variant_button: "Akku"
+    variant_button: "Variante wählen"
     variant_title: "Welcher Akku?"
     variant_close: "Schließen"
     variant_prospect: "Prospekt {range}"
