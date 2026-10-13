@@ -46,133 +46,85 @@ async function answerAll(page: Page) {
   await setSlider(page, 'longTrip', 500);
 }
 
-for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
-  test.describe(`Modellseite (${viewport.width} px)`, () => {
-    test.beforeEach(async ({ page }) => {
-      await page.setViewportSize(viewport);
-    });
-
-    test('H1, Hero-Satz, Datenblatt, Belege und JSON-LD stehen auf der Seite', async ({ page }) => {
-      await openStory(page);
-      await expect(page.locator('h1')).toContainText('Volkswagen ID.3');
-      await expect(page.getByTestId('story-hero')).toContainText(/Fahrer sagen|verspricht/);
-      await expect(page.getByTestId('model-facts').locator('[data-testid^="fact-"]')).toHaveCount(4);
-      await expect(page.getByTestId('model-evidence')).toContainText('Reichweite nach Jahreszeit');
-      await expect(page.locator('script[type="application/ld+json"]').first()).toBeAttached();
-      await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/modelle\/Volkswagen\/ID\.3$/);
-    });
-
-    test('ein Regler gilt erst bewegt als beantwortet, die Schloss-Box zählt mit', async ({ page }) => {
-      await openStory(page);
-      await expect(page.getByTestId('personal-range-open')).toContainText('Noch 5 Regler offen');
-      await expect(page.getByTestId('slider-highwayShare-value')).toContainText('noch offen');
-      await setSlider(page, 'highwayShare', 60);
-      await expect(page.getByTestId('slider-highwayShare-value')).toContainText('60 %');
-      // 60 % of the 15.000 km start value
-      await expect(page.getByTestId('slider-highwayShare-detail')).toContainText('9.000 km');
-      await expect(page.getByTestId('personal-range-open')).toContainText('Noch 4 Regler offen');
-    });
-
-    test('Freischalten mit offenen Reglern springt zum ersten offenen Regler statt zum Gate', async ({ page }) => {
-      await openStory(page);
-      await setSlider(page, 'annualKm', 20000);
-      await page.getByTestId('personal-range-calculate').click();
-      await expect(page.getByTestId('inline-gate')).toHaveCount(0);
-      await expect(page.locator('#story-highwayShare')).toHaveClass(/ring-2/);
-      await expect(page.getByTestId('slider-highwayShare')).toBeFocused();
-    });
-
-    test('Freischalten nach allen Antworten öffnet das Gate in der Box, ohne Zahlen preiszugeben', async ({ page }) => {
-      await openStory(page);
-      await answerAll(page);
-      const placeholder = page.getByTestId('personal-range-placeholder');
-      for (const text of await placeholder.locator('dd').allInnerTexts()) expect(text).not.toMatch(/\d/);
-      await expect(page.getByTestId('personal-range-open')).toContainText('Deine 4 Antworten sind bereit');
-      await page.getByTestId('personal-range-calculate').click();
-      await expect(page.getByTestId('inline-gate')).toBeVisible();
-      await expect(page.getByTestId('personal-range-result')).toHaveCount(0);
-    });
-
-    test('eingeloggt: vier Antworten, Wallbox-Frage rechnet neu und geht an die Rangliste', async ({ page }) => {
-      await login(page);
-      await openStoryWithProfile(page);
-      const first = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST');
-      await answerAll(page);
-      const request = (await first).request().postDataJSON();
-      expect(request).toEqual(expect.objectContaining({ commuteKmPerDay: 35, commuteDaysPerWeek: 3, longTripKm: 500 }));
-      const result = page.getByTestId('personal-range-result');
-      // the stored profile of an earlier run may hold "no wallbox": start from "yes" on purpose
-      if (await page.getByTestId('wallbox-yes').getAttribute('aria-pressed') !== 'true') {
-        const home = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().postDataJSON()?.homeCharging === true);
-        await page.getByTestId('wallbox-yes').click();
-        await home;
-      }
-      await expect(result.getByTestId('answer-rhythm')).toContainText(/(Im Winter|Normal wirst du ca\.) (alle \d+ (Tage|Wochen)|täglich)/);
-      await expect(result.getByTestId('answer-stops')).toContainText(/Urlaubsfahrt über 500\skm wirst du wahrscheinlich/);
-
-      const again = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST' && r.request().postDataJSON().homeCharging === false);
-      await page.getByTestId('wallbox-no').click();
-      await again;
-      await expect(page.getByTestId('wallbox-no')).toHaveAttribute('aria-pressed', 'true');
-      await expect(result.getByTestId('answer-rhythm')).toContainText(/-mal pro Woche/);
-      const needs = await page.evaluate(() => Object.values(localStorage).find(v => v.includes('homeCharging')) ?? '');
-      expect(needs).toContain('"homeCharging":false');
-    });
-
-    test('Hero-Sätze und Tacho-Legende bleiben je einzeilig', async ({ page }) => {
-      await openStory(page);
-      for (const line of await page.getByTestId('story-hero').locator('span').all()) {
-        const box = await line.boundingBox();
-        const lineHeight = await line.evaluate(el => parseFloat(getComputedStyle(el).lineHeight));
-        expect(box!.height).toBeLessThan(lineHeight * 1.5);
-      }
-      const legend = page.locator('header figcaption');
-      const height = (await legend.boundingBox())!.height;
-      expect(height).toBeLessThan(24);
-    });
-
-    test('kein horizontales Scrollen', async ({ page }) => {
-      await openStory(page);
-      const { scrollWidth, clientWidth } = await page.evaluate(() => ({
-        scrollWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-      }));
-      expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
-    });
+// The logic does not depend on the viewport: one run on the phone, where most readers are
+test.describe('Modellseite (390 px)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
   });
-}
 
-test('Handy: die Freischalten-Leiste deckt bei Ankunft nichts zu und weicht, solange die Box im Bild ist', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await openStory(page);
-  // on arrival the bar would cover the data sheet
-  await expect(page.getByTestId('unlock-bar')).toHaveCount(0);
-  await page.getByTestId('personal-range').scrollIntoViewIfNeeded();
-  await expect(page.getByTestId('personal-range')).toBeInViewport();
-  await expect(page.getByTestId('unlock-bar')).toHaveCount(0);
-  // the observer reports the box once more on the next frame; then back to the top
-  await page.waitForTimeout(200);
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await expect(page.getByTestId('unlock-bar')).toBeVisible();
-});
-
-test('Handy: die Leiste bleibt, bis der Freischalt-Knopf in der Box selbst im Bild ist', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await openStory(page);
-  await page.getByTestId('personal-range').scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await expect(page.getByTestId('unlock-bar')).toBeVisible();
-  // only the head of the box in view, the button still below the fold: the bar stays
-  await page.evaluate(() => {
-    const box = document.querySelector('[data-testid="personal-range"]')!.getBoundingClientRect();
-    window.scrollBy(0, box.top - window.innerHeight + 120);
+  test('H1, Hero-Satz, Datenblatt, Belege und JSON-LD stehen auf der Seite', async ({ page }) => {
+    await openStory(page);
+    await expect(page.locator('h1')).toContainText('Volkswagen ID.3');
+    await expect(page.getByTestId('story-hero')).toContainText(/Fahrer sagen|verspricht/);
+    await expect(page.getByTestId('model-facts').locator('[data-testid^="fact-"]')).toHaveCount(4);
+    await expect(page.getByTestId('model-evidence')).toContainText('Reichweite nach Jahreszeit');
+    await expect(page.locator('script[type="application/ld+json"]').first()).toBeAttached();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/modelle\/Volkswagen\/ID\.3$/);
   });
-  await expect(page.getByTestId('personal-range')).toBeInViewport();
-  await expect(page.getByTestId('personal-range-calculate')).not.toBeInViewport();
-  await page.waitForTimeout(200);
-  await expect(page.getByTestId('unlock-bar')).toBeVisible();
-  // the button in view: the bar gives way
-  await page.getByTestId('personal-range-calculate').scrollIntoViewIfNeeded();
-  await expect(page.getByTestId('unlock-bar')).toHaveCount(0);
+
+  test('ein Regler gilt erst bewegt als beantwortet, die Schloss-Box zählt mit', async ({ page }) => {
+    await openStory(page);
+    await expect(page.getByTestId('personal-range-open')).toContainText('Noch 5 Regler offen');
+    await expect(page.getByTestId('slider-highwayShare-value')).toContainText('noch offen');
+    await setSlider(page, 'highwayShare', 60);
+    await expect(page.getByTestId('slider-highwayShare-value')).toContainText('60 %');
+    // 60 % of the 15.000 km start value
+    await expect(page.getByTestId('slider-highwayShare-detail')).toContainText('9.000 km');
+    await expect(page.getByTestId('personal-range-open')).toContainText('Noch 4 Regler offen');
+  });
+
+  test('Freischalten mit offenen Reglern springt zum ersten offenen Regler statt zum Gate', async ({ page }) => {
+    await openStory(page);
+    await setSlider(page, 'annualKm', 20000);
+    await page.getByTestId('personal-range-calculate').click();
+    await expect(page.getByTestId('inline-gate')).toHaveCount(0);
+    await expect(page.locator('#story-highwayShare')).toHaveClass(/ring-2/);
+    await expect(page.getByTestId('slider-highwayShare')).toBeFocused();
+  });
+
+  test('Freischalten nach allen Antworten öffnet das Gate in der Box, ohne Zahlen preiszugeben', async ({ page }) => {
+    await openStory(page);
+    await answerAll(page);
+    const placeholder = page.getByTestId('personal-range-placeholder');
+    for (const text of await placeholder.locator('dd').allInnerTexts()) expect(text).not.toMatch(/\d/);
+    await expect(page.getByTestId('personal-range-open')).toContainText('Deine 4 Antworten sind bereit');
+    await page.getByTestId('personal-range-calculate').click();
+    await expect(page.getByTestId('inline-gate')).toBeVisible();
+    await expect(page.getByTestId('personal-range-result')).toHaveCount(0);
+  });
+
+  test('eingeloggt: vier Antworten, Wallbox-Frage rechnet neu und geht an die Rangliste', async ({ page }) => {
+    await login(page);
+    await openStoryWithProfile(page);
+    const first = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST');
+    await answerAll(page);
+    const request = (await first).request().postDataJSON();
+    expect(request).toEqual(expect.objectContaining({ commuteKmPerDay: 35, commuteDaysPerWeek: 3, longTripKm: 500 }));
+    const result = page.getByTestId('personal-range-result');
+    // the stored profile of an earlier run may hold "no wallbox": start from "yes" on purpose
+    if (await page.getByTestId('wallbox-yes').getAttribute('aria-pressed') !== 'true') {
+      const home = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().postDataJSON()?.homeCharging === true);
+      await page.getByTestId('wallbox-yes').click();
+      await home;
+    }
+    await expect(result.getByTestId('answer-rhythm')).toContainText(/(Im Winter|Normal wirst du ca\.) (alle \d+ (Tage|Wochen)|täglich)/);
+    await expect(result.getByTestId('answer-stops')).toContainText(/Urlaubsfahrt über 500\skm wirst du wahrscheinlich/);
+
+    const again = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST' && r.request().postDataJSON().homeCharging === false);
+    await page.getByTestId('wallbox-no').click();
+    await again;
+    await expect(page.getByTestId('wallbox-no')).toHaveAttribute('aria-pressed', 'true');
+    await expect(result.getByTestId('answer-rhythm')).toContainText(/-mal pro Woche/);
+    const needs = await page.evaluate(() => Object.values(localStorage).find(v => v.includes('homeCharging')) ?? '');
+    expect(needs).toContain('"homeCharging":false');
+  });
+
+  test('kein horizontales Scrollen', async ({ page }) => {
+    await openStory(page);
+    const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+  });
 });

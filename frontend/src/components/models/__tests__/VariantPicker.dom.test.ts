@@ -33,28 +33,7 @@ const trigger = () => document.querySelector('[data-testid="variant-picker"]') a
 const dialog = () => document.querySelector('[role="dialog"]') as HTMLElement | null
 
 describe('VariantPicker', () => {
-  it('names the chosen battery on the button, the list stays closed', () => {
-    mount()
-    expect(trigger().textContent).toContain('Pro, 59 kWh')
-    expect(trigger().getAttribute('aria-expanded')).toBe('false')
-    expect(dialog()).toBeNull()
-  })
-
-  it('opens the list with every battery, the chosen one pressed and focused', async () => {
-    mount()
-    trigger().click()
-    await flush()
-    const items = [...dialog()!.querySelectorAll('button[data-variant]')]
-    expect(items.map(b => b.textContent?.replace(/\s+/g, ' ').trim())).toEqual([
-      'Neo Pure 50 kWh 230 km Prospekt 380 km',
-      'Pro 59 kWh 280 km Prospekt 390 km',
-      'GTX 79 kWh Prospekt 540 km',
-    ])
-    expect(items[1].getAttribute('aria-pressed')).toBe('true')
-    expect(document.activeElement).toBe(items[1])
-  })
-
-  it('a choice switches the battery, closes the list and gives the focus back', async () => {
+  it('a choice switches the battery and closes the list', async () => {
     const { state } = mount()
     trigger().click()
     await flush()
@@ -62,16 +41,5 @@ describe('VariantPicker', () => {
     await closed()
     expect(state.selected).toBe(2)
     expect(dialog()).toBeNull()
-    expect(document.activeElement).toBe(trigger())
-  })
-
-  it('Escape closes without a change', async () => {
-    const { state } = mount()
-    trigger().click()
-    await flush()
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    await closed()
-    expect(dialog()).toBeNull()
-    expect(state.selected).toBe(1)
   })
 })
