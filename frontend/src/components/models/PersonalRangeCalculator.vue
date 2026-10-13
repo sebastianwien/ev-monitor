@@ -179,8 +179,9 @@
 
     <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
-    <!-- Phone: a slim bar while the box's own button is out of view, until the answers are open -->
+    <!-- Phone: a slim bar while the box's own button is out of view, until the answers are open; it slides up from below and back down -->
     <Teleport to="body">
+      <Transition name="bar">
       <div v-if="showBar" class="fixed inset-x-0 z-40 px-3 md:hidden" :class="authStore.token ? 'bottom-[calc(env(safe-area-inset-bottom)+68px)]' : 'bottom-[calc(env(safe-area-inset-bottom)+12px)]'" data-testid="unlock-bar">
         <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 text-[15px] font-bold text-white shadow-lg shadow-gray-900/25 dark:bg-gray-100 dark:text-gray-900"
                 @click="fromBar">
@@ -188,6 +189,7 @@
           {{ authStore.token ? t('personal_range.show') : t('personal_range.bar_cta') }}
         </button>
       </div>
+      </Transition>
     </Teleport>
   </section>
 </template>
@@ -523,3 +525,14 @@ function assumptionText(a: PersonalRangeAssumption): string {
 
 defineExpose({ request })
 </script>
+
+<style scoped>
+/* The unlock bar: up from below the screen edge with a soft landing, down a little faster.
+   100% of its height plus the widest bottom offset (signed in it rides above the footer bar) */
+.bar-enter-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.bar-leave-active { transition: transform 0.2s cubic-bezier(0.4, 0, 1, 1); }
+.bar-enter-from, .bar-leave-to { transform: translateY(calc(100% + 80px + env(safe-area-inset-bottom))); }
+@media (prefers-reduced-motion: reduce) {
+  .bar-enter-active, .bar-leave-active { transition: none; }
+}
+</style>
