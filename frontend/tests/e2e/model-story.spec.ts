@@ -142,7 +142,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
   });
 }
 
-test('Handy: die Freischalten-Leiste kommt erst, wenn der Leser die Box kennt, und nur solange sie aus dem Bild ist', async ({ page }) => {
+test('Handy: die Freischalten-Leiste deckt bei Ankunft nichts zu und weicht, solange die Box im Bild ist', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openStory(page);
   // on arrival the bar would cover the data sheet
@@ -153,6 +153,19 @@ test('Handy: die Freischalten-Leiste kommt erst, wenn der Leser die Box kennt, u
   // the observer reports the box once more on the next frame; then back to the top
   await page.waitForTimeout(200);
   await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByTestId('unlock-bar')).toBeVisible();
+});
+
+test('Handy: beim ersten Scrollen kommt die Leiste, sobald der Hero aus dem Bild ist', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openStory(page);
+  await expect(page.getByTestId('unlock-bar')).toHaveCount(0);
+  // the hero with the chat just above the fold, the box itself still far below
+  await page.evaluate(() => {
+    const hero = document.querySelector('[data-testid="model-hero"]')!.getBoundingClientRect();
+    window.scrollBy(0, hero.bottom + 10);
+  });
+  await expect(page.getByTestId('personal-range')).not.toBeInViewport();
   await expect(page.getByTestId('unlock-bar')).toBeVisible();
 });
 

@@ -231,6 +231,8 @@ const props = defineProps<{
   petrol?: { pricePerLiter: number; litersPer100km: number; category: string | null } | null
   /** fast charging without a subscription, EUR/kWh; prices the charging stops of the holiday trip */
   fastPricePerKwh?: number | null
+  /** the page's hero with its own call to the answers; once it has scrolled out above, the bar takes over */
+  entry?: HTMLElement | null
 }>()
 const emit = defineEmits<{
   profile: [inputs: PersonalRangeInputs]
@@ -433,7 +435,7 @@ watch(() => ({ ...props.inputs }), () => {
 const root = ref<HTMLElement | null>(null)
 const action = ref<HTMLElement | null>(null)
 const actionVisible = ref(true)
-/** The bar waits until the reader has seen the box or moved a slider, so it does not cover the data sheet on arrival */
+/** The bar waits until the reader has scrolled past the hero, seen the box or moved a slider, so it does not cover the page on arrival */
 const engaged = ref(false)
 const startOpen = props.openCount
 watch(() => props.openCount, n => { if (n < startOpen) engaged.value = true })
@@ -444,6 +446,11 @@ watch(action, (el, old) => {
   if (old) observer?.unobserve(old)
   if (el) observer?.observe(el)
   else actionVisible.value = false
+})
+/** The page sets its ref to the hero only after this component mounted */
+watch(() => props.entry, (el, old) => {
+  if (old) observer?.unobserve(old)
+  if (el) observer?.observe(el)
 })
 
 function fromBar() {
@@ -457,9 +464,11 @@ onMounted(async () => {
       for (const e of entries) {
         if (e.target === root.value && e.isIntersecting) engaged.value = true
         if (e.target === action.value) actionVisible.value = e.isIntersecting
+        if (e.target === props.entry && !e.isIntersecting && e.boundingClientRect.bottom <= 0) engaged.value = true
       }
     })
     observer.observe(root.value)
+    if (props.entry) observer.observe(props.entry)
     if (action.value) observer.observe(action.value)
   }
   if (!authStore.token) return
