@@ -23,7 +23,8 @@ describe('BuyerQuestions', () => {
     const desktop = [...host.querySelectorAll('[data-testid="buyer-desktop"] [data-question]')].map(q => q.textContent?.trim())
     expect(desktop).toEqual(['Wie weit komme ich im Winter?', 'Wie oft muss ich laden?', 'Wie oft lade ich auf der Urlaubsfahrt?', 'Was kostet mich das im Monat?'])
     const phone = [...host.querySelectorAll('[data-testid="buyer-phone"] [data-question]')].map(q => q.textContent?.trim())
-    expect(phone).toEqual(desktop)
+    // the chat opens with the everyday question
+    expect(phone).toEqual([desktop[1], desktop[0], desktop[2], desktop[3]])
     expect(host.querySelector('img')?.getAttribute('src')).toBe('/illustrations/buyer.svg')
   })
 

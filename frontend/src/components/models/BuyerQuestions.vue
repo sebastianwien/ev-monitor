@@ -26,7 +26,7 @@
     <!-- Phone: a messenger thread in the look of WhatsApp, the buyer on the left, EV Monitor answering on the right -->
     <div class="chat-wall -mx-4 -my-5 grid gap-1.5 px-3 pb-6 pt-4 md:hidden" data-testid="buyer-phone">
       <p class="mb-2 justify-self-center rounded-lg bg-white/90 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-gray-600 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] dark:bg-gray-900/90 dark:text-gray-300">{{ t('model.page.cta_title') }}</p>
-      <p v-for="(q, i) in QUESTIONS" :key="q.key"
+      <p v-for="(q, i) in CHAT_QUESTIONS" :key="q.key"
          class="relative mr-10 flex items-end gap-2 justify-self-start rounded-lg bg-white py-1.5 pl-2.5 pr-2 text-[15px] leading-snug text-gray-900 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] dark:bg-gray-800 dark:text-gray-100"
          :class="i === 0 ? 'ml-2 rounded-tl-none' : 'ml-2'">
         <!-- WhatsApp's tail sits at the top of the first message of a group -->
@@ -86,6 +86,8 @@ const QUESTIONS = [
   { key: 'trip', icon: MapIcon },
   { key: 'cost', icon: BanknotesIcon },
 ] as const
+/** In the chat the rhythm comes first: the everyday question opens the thread */
+const CHAT_QUESTIONS = [QUESTIONS[1], QUESTIONS[0], QUESTIONS[2], QUESTIONS[3]]
 /** Two bubbles left, two right of the buyer, the lower ones slightly further in; the corner at the tail is flatter */
 const DESKTOP_PLACE = [
   'col-start-1 row-start-1 justify-self-end rounded-br-[6px]',
