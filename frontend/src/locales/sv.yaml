@@ -515,6 +515,7 @@ brand:
   og_title: "{brand} Elbilar – Verklig förbrukning & WLTP {year}"
 model:
   page:
+    cta_trip: "Hur ofta laddar du på semesterresan?"
     variant_button: "Batteri"
     variant_title: "Vilket batteri?"
     variant_close: "Stäng"

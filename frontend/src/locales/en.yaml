@@ -553,6 +553,7 @@ brand:
 
 model:
   page:
+    cta_trip: "How often will you charge on a holiday trip?"
     variant_button: "Battery"
     variant_title: "Which battery?"
     variant_close: "Close"

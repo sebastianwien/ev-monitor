@@ -556,6 +556,7 @@ brand:
 
 model:
   page:
+    cta_trip: "Wie oft lädst du auf der Urlaubsfahrt?"
     variant_button: "Akku"
     variant_title: "Welcher Akku?"
     variant_close: "Schließen"

@@ -515,6 +515,7 @@ brand:
   og_title: "{brand} Elbiler – Reelt forbruk & WLTP {year}"
 model:
   page:
+    cta_trip: "Hvor ofte lader du på ferieturen?"
     variant_button: "Batteri"
     variant_title: "Hvilket batteri?"
     variant_close: "Lukk"
