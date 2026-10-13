@@ -1,7 +1,7 @@
 <template>
   <!-- The four questions the page answers, asked by a buyer. From md up the buyer stands in the
-       middle with two speech bubbles on each side; on the phone it reads like a messenger thread
-       with ev-monitor answering. Only one of the two layouts is displayed at a time. -->
+       middle with two speech bubbles on each side; on the phone it reads like a messenger thread,
+       questions on the left, EV Monitor answering on the right. Only one layout is displayed at a time. -->
   <div class="grid gap-4">
     <div class="hidden gap-5 md:grid" data-testid="buyer-desktop">
       <p class="text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('model.page.cta_title') }}</p>
@@ -25,14 +25,14 @@
 
     <div class="grid gap-4 md:hidden" data-testid="buyer-phone">
       <p class="text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('model.page.cta_title') }}</p>
-      <div class="grid grid-cols-[44px_minmax(0,1fr)] items-end gap-x-2.5 gap-y-2">
-        <img :src="PERSON" alt="" width="44" height="44" class="col-start-1 row-span-4 row-start-1 h-11 w-11 self-end rounded-full bg-green-100 dark:bg-green-900/40" />
+      <!-- The buyer's side of the thread, left-aligned like the answer is right-aligned -->
+      <div class="grid justify-items-start gap-2">
         <p v-for="(q, i) in QUESTIONS" :key="q.key" data-question
-           class="bubble relative col-start-2 flex items-center gap-2 justify-self-start rounded-[22px] bg-white px-4 py-2.5 text-[15px] font-semibold leading-snug text-gray-900 dark:bg-gray-900 dark:text-gray-100"
+           class="bubble relative flex items-center gap-2 rounded-[22px] bg-white px-4 py-2.5 text-[15px] font-semibold leading-snug text-gray-900 dark:bg-gray-900 dark:text-gray-100"
            :class="i === QUESTIONS.length - 1 ? 'rounded-bl-[6px]' : ''">
           <component :is="q.icon" class="h-[18px] w-[18px] flex-none text-green-600 dark:text-green-400" aria-hidden="true" />{{ t(`model.page.cta_${q.key}`) }}
-          <!-- The last question of the thread points at the buyer, as in a messenger -->
-          <svg v-if="i === QUESTIONS.length - 1" class="absolute -left-[18px] bottom-0 h-[30px] w-[26px] -scale-x-100 text-white dark:text-gray-900" viewBox="0 0 26 30" aria-hidden="true">
+          <!-- The last question of the thread has the tail, as in a messenger -->
+          <svg v-if="i === QUESTIONS.length - 1" class="absolute -left-[14px] bottom-0 h-[30px] w-[26px] -scale-x-100 text-white dark:text-gray-900" viewBox="0 0 26 30" aria-hidden="true">
             <path d="M0 0C8 11 15 22 26 30C15 31 6 30 0 27Z" fill="currentColor" />
           </svg>
         </p>
@@ -42,7 +42,7 @@
         <a href="#profil" class="bubble relative inline-flex min-h-12 items-center justify-center gap-2 rounded-[22px] rounded-br-[6px] bg-green-600 px-5 text-[16px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
            @click="go">
           {{ t('model.page.cta_reply') }}<ArrowDownIcon class="h-5 w-5" aria-hidden="true" />
-          <svg class="absolute -right-[18px] bottom-0 h-[30px] w-[26px] text-green-600" viewBox="0 0 26 30" aria-hidden="true">
+          <svg class="absolute -right-[14px] bottom-0 h-[30px] w-[26px] text-green-600" viewBox="0 0 26 30" aria-hidden="true">
             <path d="M0 0C8 11 15 22 26 30C15 31 6 30 0 27Z" fill="currentColor" />
           </svg>
         </a>
