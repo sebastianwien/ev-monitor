@@ -31,7 +31,7 @@ const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, commuteDaysPerWeek: 3
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear(); vi.useRealTimers() })
 
-function mount(loggedIn: boolean, data: { logCount: number; carCount: number; petrol?: { pricePerLiter: number; litersPer100km: number; category: string | null } } = { logCount: 6796, carCount: 35 }, openCount = 0, inputs: Partial<PersonalRangeInputs> = {}) {
+function mount(loggedIn: boolean, data: { logCount: number; carCount: number; petrol?: { pricePerLiter: number; litersPer100km: number; category: string | null }; fastPricePerKwh?: number } = { logCount: 6796, carCount: 35 }, openCount = 0, inputs: Partial<PersonalRangeInputs> = {}) {
   setActivePinia(createPinia())
   if (loggedIn) {
     const auth = useAuthStore()
@@ -266,6 +266,15 @@ describe('PersonalRangeCalculator', () => {
     // 46 € × 12 / 12.000 km = 4,60 € per 100 km
     expect(cost).toMatch(/4,60\s€\/100km bei 12\.000\skm im Jahr/)
     expect(cost).not.toContain('Tankerkönig')
+  })
+
+  it('the holiday trip names what its charging stops cost, at the price without a subscription', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { ...RESULT, longTripStops: 2 } } as never)
+    const { host } = mount(true, { logCount: 6796, carCount: 35, fastPricePerKwh: 0.65 }, 0, { netBatteryKwh: 59 })
+    await flush()
+
+    // 2 stops × 59 × 0.7 / 0.95 = 43.5 kWh × 0.65 = 56.5 € → 57 €
+    expect(host.querySelector('[data-testid="answer-stops"]')!.textContent).toMatch(/rund 57\s€ fürs Laden/)
   })
 
   it('cost: no petrol comparison without a fuel price (outside Germany)', async () => {

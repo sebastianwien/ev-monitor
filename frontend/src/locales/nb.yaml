@@ -515,6 +515,7 @@ brand:
   og_title: "{brand} Elbiler – Reelt forbruk & WLTP {year}"
 model:
   page:
+    note_cost_adhoc: "Hurtiglading uten abonnement"
     cta_from: "EV Monitor"
     cta_reply: "Vi regner det ut for deg"
     cta_trip: "Hvor ofte lader jeg på ferieturen?"
@@ -3991,6 +3992,7 @@ gate:
   error_rate_limited: "For mange forsøk. Vent 15 minutter."
   error_generic: "Det fungerte ikke. Prøv igjen."
 personal_range:
+  trip_cost: "rundt {cost} for lading"
   petrol_compare: "En tilsvarende bensinbil koster rundt {petrol}, du sparer {saving} i måneden."
   petrol_compare_more: "En tilsvarende bensinbil koster rundt {petrol} i måneden."
   petrol_basis: "{category} {liters} l/100 km bensin til {price} per liter"

@@ -553,6 +553,7 @@ brand:
 
 model:
   page:
+    note_cost_adhoc: "Fast charging without a subscription"
     cta_from: "EV Monitor"
     cta_reply: "We work it out for you"
     cta_trip: "How often will I charge on a holiday trip?"
@@ -4108,6 +4109,7 @@ gate:
   error_rate_limited: "Too many attempts. Please wait 15 minutes."
   error_generic: "That did not work. Please try again."
 personal_range:
+  trip_cost: "about {cost} for charging"
   petrol_compare: "A comparable petrol car costs about {petrol}, you save {saving} a month."
   petrol_compare_more: "A comparable petrol car costs about {petrol} a month."
   petrol_basis: "{category} {liters} l/100 km petrol at {price} a litre"

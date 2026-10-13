@@ -35,6 +35,8 @@ export interface StoryInput {
   fastChargePowerKw: number | null
   /** AC price, mostly at home: the normal charge in the cost tile */
   acPricePerKwh?: number | null
+  /** fast charging without a subscription (big networks' contract-free price); preferred for the fast charge */
+  fastAdHocPricePerKwh?: number | null
   dcPricePerKwh: number | null
   avgPricePerKwh: number | null
   /** median winter/summer ratio over the models that have both, for the PARTIAL season chapter */
@@ -227,12 +229,15 @@ function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile
   const base = { key: 'cost' as const, label: label(f, 'cost') }
   // What a buyer pays per charge: at home 20 to 80 % at the AC price, on the road 10 to 80 % at the DC price
   const home = d.netBatteryKwh && d.acPricePerKwh ? d.netBatteryKwh * NORMAL_SHARE / AC_CHARGING_EFFICIENCY * d.acPricePerKwh : null
-  const fast = fastStop(d.netBatteryKwh, d.dcPricePerKwh ?? d.avgPricePerKwh)?.eur ?? null
+  // what a new driver pays on the motorway: the contract-free price; the drivers' own DC price only without it
+  const adHoc = d.fastAdHocPricePerKwh ?? null
+  const fast = fastStop(d.netBatteryKwh, adHoc ?? d.dcPricePerKwh ?? d.avgPricePerKwh)?.eur ?? null
+  const fastNote = fast != null && adHoc != null ? f.t('model.page.note_cost_adhoc') : ''
   if (home != null) {
-    return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'), note: '',
+    return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'), note: fastNote,
       ...(fast != null ? { extra: { value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast') } } : {}) }
   }
-  if (fast != null) return { ...base, level: 'FULL', value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast'), note: '' }
+  if (fast != null) return { ...base, level: 'FULL', value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast'), note: fastNote }
   return { ...base, value: null, unit: '', note: f.t('model.page.note_cost_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
 }
 

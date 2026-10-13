@@ -556,6 +556,7 @@ brand:
 
 model:
   page:
+    note_cost_adhoc: "Schnellladen ohne Ladeabo"
     cta_from: "EV Monitor"
     cta_reply: "Rechnen wir dir aus"
     cta_trip: "Wie oft lade ich auf der Urlaubsfahrt?"
@@ -4114,6 +4115,7 @@ gate:
   error_rate_limited: "Zu viele Versuche. Bitte warte 15 Minuten."
   error_generic: "Das hat nicht geklappt. Bitte versuch es noch einmal."
 personal_range:
+  trip_cost: "rund {cost} fürs Laden"
   petrol_compare: "Ein vergleichbarer Benziner kostet rund {petrol}, du sparst {saving} im Monat."
   petrol_compare_more: "Ein vergleichbarer Benziner kostet rund {petrol} im Monat."
   petrol_basis: "{category} {liters} l/100 km Benzin bei {price} je Liter"

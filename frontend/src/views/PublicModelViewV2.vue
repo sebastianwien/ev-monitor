@@ -100,6 +100,7 @@
                 :inputs="storyInputs"
                 :open-count="openQuestions.length"
                 :petrol="petrolComparison"
+                :fast-price-per-kwh="fastAdHocForMarket ?? stats.dcAvgCostPerKwh"
                 @profile="applyProfile"
                 @incomplete="showFirstOpen"
                 @home="answerHome"
@@ -447,6 +448,9 @@ const storyContext = ref<ModelStoryContext | null>(null)
 const MIN_LOGS_PER_SEASON = 10
 /** German daily petrol price (Tankerkönig), loaded with the page; null on failure */
 const petrolPricePerLiter = ref<number | null>(null)
+/** Fast charging without a subscription, from German tariffs: only on the German market, elsewhere the drivers' DC price */
+const fastAdHocPrice = ref<number | null>(null)
+const fastAdHocForMarket = computed(() => currentMarket.value === 'de' ? fastAdHocPrice.value : null)
 /** A comparable petrol car for the cost answer: litres by vehicle class, only where the fuel price is German */
 const petrolComparison = computed(() => currentMarket.value === 'de' && petrolPricePerLiter.value
   ? {
@@ -503,6 +507,7 @@ const storyInput = computed((): StoryInput => {
       summerLogs: season.summerLogCount, winterLogs: season.winterLogCount } : null,
     fastChargePowerKw: storyContext.value?.fastChargePowerKw ?? null,
     acPricePerKwh: st.acAvgCostPerKwh, dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
+    fastAdHocPricePerKwh: fastAdHocForMarket.value,
     fleetWinterFactor: fleetWinterFactor.value,
   }
 })
@@ -879,7 +884,10 @@ onMounted(async () => {
   const ratingsRequest = ratingService.getPublicRatings(brand, model).catch(() => null)
   const contextRequest = getStoryContext(brand, model)
   // only for the petrol comparison in the result; the page works without it
-  getChargingReferencePrices().then(p => { petrolPricePerLiter.value = p.petrolPricePerLiter ?? null }).catch(() => {})
+  getChargingReferencePrices().then(p => {
+    petrolPricePerLiter.value = p.petrolPricePerLiter ?? null
+    fastAdHocPrice.value = p.fastAdHocPricePerKwh ?? null
+  }).catch(() => {})
   try {
     const [data, ratingData, context] = await Promise.all([getModelStats(brand, model), ratingsRequest, contextRequest])
     ratings.value = ratingData

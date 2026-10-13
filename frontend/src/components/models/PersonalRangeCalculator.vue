@@ -106,6 +106,7 @@
             <p class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-400">
               <span class="inline-flex items-center gap-1.5"><ClockIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.driveTime }}</span>
               <span v-if="answer.chargeTime" class="inline-flex items-center gap-1.5"><BoltIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.chargeTime }}</span>
+              <span v-if="answer.tripCost" class="inline-flex items-center gap-1.5"><BanknotesIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.tripCost }}</span>
             </p>
             <p v-if="answer.powerEstimated" class="text-[12.5px] text-amber-700 dark:text-amber-400">{{ t('personal_range.power_estimated') }}</p>
           </div>
@@ -202,6 +203,7 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
 import { chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
 import { scrollToElement } from '../../utils/smoothScroll'
+import { fastStop } from '../../utils/modelStory'
 import {
   personalRangeService,
   type PersonalRangeAssumption,
@@ -227,6 +229,8 @@ const props = defineProps<{
   openCount: number
   /** a petrol car of the same vehicle class (its litres, the class name), German daily fuel price; null outside Germany */
   petrol?: { pricePerLiter: number; litersPer100km: number; category: string | null } | null
+  /** fast charging without a subscription, EUR/kWh; prices the charging stops of the holiday trip */
+  fastPricePerKwh?: number | null
 }>()
 const emit = defineEmits<{
   profile: [inputs: PersonalRangeInputs]
@@ -290,6 +294,7 @@ const answer = computed(() => {
     driveTime: t('personal_range.drive_time', { duration: duration(r.longTripTotalMinutes) }),
     chargeTime: r.longTripStops > 0 ? t('personal_range.charge_time', { duration: duration(r.longTripChargingMinutes) }) : null,
     powerEstimated: r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured),
+    tripCost: tripChargingCost(r.longTripStops, inputs.netBatteryKwh ?? null),
     cost: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
     // the reader's own cost per 100 km, from the month and the yearly mileage it rests on
     costBasis: inputs.annualKm
@@ -311,6 +316,12 @@ function petrolCompare(evMonthly: number, annualKm: number | null) {
     basis: t(p.category ? 'personal_range.petrol_basis' : 'personal_range.petrol_basis_plain',
       { category: p.category ?? '', liters: formatDecimal(p.litersPer100km, 1), price: formatCurrency(p.pricePerLiter, { decimals: 2 }) }),
   }
+}
+
+/** The charging stops of the holiday trip, each 10 to 80 % at the price without a subscription */
+function tripChargingCost(stops: number, netKwh: number | null): string | null {
+  const stop = stops > 0 && props.fastPricePerKwh ? fastStop(netKwh, props.fastPricePerKwh) : null
+  return stop ? t('personal_range.trip_cost', { cost: formatCurrency(stops * stop.eur, { decimals: 0 }) }) : null
 }
 
 /** The reader's own price, else the community price the backend used (follows the wallbox answer) */

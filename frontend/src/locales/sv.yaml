@@ -515,6 +515,7 @@ brand:
   og_title: "{brand} Elbilar – Verklig förbrukning & WLTP {year}"
 model:
   page:
+    note_cost_adhoc: "Snabbladdning utan abonnemang"
     cta_from: "EV Monitor"
     cta_reply: "Vi räknar ut det åt dig"
     cta_trip: "Hur ofta laddar jag på semesterresan?"
@@ -3991,6 +3992,7 @@ gate:
   error_rate_limited: "För många försök. Vänta 15 minuter."
   error_generic: "Det fungerade inte. Försök igen."
 personal_range:
+  trip_cost: "runt {cost} för laddning"
   petrol_compare: "En jämförbar bensinbil kostar runt {petrol}, du sparar {saving} i månaden."
   petrol_compare_more: "En jämförbar bensinbil kostar runt {petrol} i månaden."
   petrol_basis: "{category} {liters} l/100 km bensin för {price} per liter"
