@@ -36,8 +36,9 @@
         </nav>
 
         <div class="grid gap-2 md:gap-5">
-          <!-- 1 Hero: its own box, the questions docked below it in light grey -->
-          <header class="relative z-10 border-gray-200 bg-white md:rounded-3xl md:border md:shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-gray-900">
+          <!-- 1 Hero: its own box, the questions docked below it. On the phone the green chat closes the box and the
+               change of surface to the next box is the separation, so no gap and no line on top of it. -->
+          <header class="relative z-10 -mb-2 border-gray-200 bg-white md:mb-0 md:rounded-3xl md:border md:shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-gray-900">
             <div class="grid gap-5 px-4 py-6 md:gap-6 md:px-10 md:py-8">
               <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:gap-8">
                 <h1 class="max-w-[30ch] text-balance text-[22px] md:text-[32px] font-bold leading-[1.15] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
@@ -66,7 +67,7 @@
             </div>
 
             <!-- Docked below in light grey: a buyer asks the four questions the page answers -->
-            <div class="border-t border-gray-200 bg-gray-50 px-4 py-5 md:rounded-b-3xl md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-800/40">
+            <div class="border-gray-200 bg-gray-50 px-4 py-5 md:rounded-b-3xl md:border-t md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-800/40">
               <BuyerQuestions @jump="trackJump" />
             </div>
           </header>
