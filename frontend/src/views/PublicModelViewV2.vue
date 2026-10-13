@@ -63,17 +63,9 @@
               </div>
             </div>
 
-            <!-- Docked below: the four questions as 2×2 tiles, the button beside them from md up, under them on the phone -->
-            <div class="grid gap-4 border-t border-gray-200 bg-gray-50 px-4 py-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-x-8 md:rounded-b-3xl md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-800/40">
-              <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-green-700 md:col-span-2 dark:text-green-400">{{ t('model.page.cta_title') }}</p>
-              <ul class="grid grid-cols-2 gap-2 md:gap-3">
-                <li v-for="q in HERO_QUESTIONS" :key="q.key" class="flex items-start gap-2.5 rounded-xl border border-gray-200 bg-white px-3 py-3 text-[14.5px] font-semibold leading-snug text-gray-900 md:items-center md:px-4 md:py-3.5 md:text-[16px] dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100">
-                  <component :is="q.icon" class="mt-px h-5 w-5 flex-none text-green-600 md:mt-0 dark:text-green-400" aria-hidden="true" />{{ t(`model.page.cta_${q.key}`) }}
-                </li>
-              </ul>
-              <a href="#profil" class="group inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-600 px-6 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 md:whitespace-nowrap" data-testid="hero-jump" @click="trackJump">
-                {{ t('model.page.cta_button') }}<ArrowDownIcon class="h-5 w-5 motion-safe:transition-transform motion-safe:group-hover:translate-y-0.5" aria-hidden="true" />
-              </a>
+            <!-- Docked below in light grey: a buyer asks the four questions the page answers -->
+            <div class="border-t border-gray-200 bg-gray-50 px-4 py-5 md:rounded-b-3xl md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-800/40">
+              <BuyerQuestions @jump="trackJump" />
             </div>
           </header>
 
@@ -292,7 +284,7 @@ import { useAuthStore } from '../stores/auth'
 import { useCountryStore } from '../stores/country'
 import { getModelStats, getStoryContext, type ModelStoryContext, type PublicModelStats } from '../api/publicModelService'
 import {
-  ArrowDownIcon, BanknotesIcon, BoltIcon, ChevronDownIcon, ChevronRightIcon, CloudIcon, HomeIcon, MapIcon
+  ChevronDownIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import StartCodeTeaser from '../components/codes/StartCodeTeaser.vue'
@@ -302,6 +294,7 @@ import PersonalRangeCalculator from '../components/models/PersonalRangeCalculato
 import RangeGauge from '../components/models/RangeGauge.vue'
 import ModelBox from '../components/models/ModelBox.vue'
 import VariantPicker, { type VariantOption } from '../components/models/VariantPicker.vue'
+import BuyerQuestions from '../components/models/BuyerQuestions.vue'
 import ModelFactTiles from '../components/models/ModelFactTiles.vue'
 import ModelEvidence from '../components/models/ModelEvidence.vue'
 import ModelVariantsList, { type ActiveVariant } from '../components/models/ModelVariantsList.vue'
@@ -574,13 +567,6 @@ function showFirstOpen() {
 function trackJump() {
   analytics.track('model_profile_jump', { model: stats.value?.modelDisplayName ?? model })
 }
-/** Same icons as the answers in the result box */
-const HERO_QUESTIONS = [
-  { key: 'winter', icon: CloudIcon },
-  { key: 'rhythm', icon: BoltIcon },
-  { key: 'trip', icon: MapIcon },
-  { key: 'cost', icon: BanknotesIcon },
-] as const
 
 const factsSub = computed(() => stats.value && stats.value.logCount > 0
   ? t('model.page.facts_sub', { logs: formatNumber(stats.value.logCount), cars: formatNumber(stats.value.uniqueCars) })
