@@ -1,6 +1,6 @@
 <template>
   <section ref="root" id="ergebnis" aria-labelledby="pr-title" data-testid="personal-range"
-           class="grid min-w-0 scroll-mt-28 content-start gap-5 border-y px-4 py-6 transition-colors duration-300 md:rounded-3xl md:border md:p-7 md:shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+           class="grid min-w-0 scroll-mt-28 content-start gap-5 px-4 py-6 transition-colors duration-300 md:rounded-3xl md:border md:p-7 md:shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
            :class="state === 'locked'
              ? 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'
              : 'border-green-600/40 bg-green-50 dark:border-green-500/40 dark:bg-green-950/40'">

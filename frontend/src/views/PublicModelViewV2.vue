@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div class="min-h-screen bg-gray-100 md:bg-gray-50 dark:bg-gray-950">
     <div class="model-page">
     <PublicNav />
     <main class="mx-auto max-w-5xl py-2 md:px-6 md:py-8">
@@ -37,7 +37,7 @@
 
         <div class="grid gap-2 md:gap-5">
           <!-- 1 Hero: its own box, the questions docked below it in light grey -->
-          <header class="relative z-10 border-y border-gray-200 bg-white md:rounded-3xl md:border md:shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-gray-900">
+          <header class="relative z-10 border-gray-200 bg-white md:rounded-3xl md:border md:shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-gray-900">
             <div class="grid gap-5 px-4 py-6 md:gap-6 md:px-10 md:py-8">
               <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:gap-8">
                 <h1 class="max-w-[30ch] text-balance text-[22px] md:text-[32px] font-bold leading-[1.15] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
@@ -120,7 +120,7 @@
             />
             <ModelBox aria-labelledby="details-title" class="!gap-0" data-testid="model-details">
               <h2 id="details-title" class="mb-2 text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('model.page.details_title') }}</h2>
-              <details v-if="showYears" class="group border-t border-gray-100 dark:border-gray-800">
+              <details v-if="showYears" class="group border-t border-gray-100 first-of-type:border-t-0 dark:border-gray-800">
                 <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
                   {{ t('model.page.details_years') }}<ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true" />
                 </summary>
@@ -138,7 +138,7 @@
                   <p v-if="medianModelYear" class="mt-3 text-[13px] text-gray-600 dark:text-gray-300">{{ t('model.year_distribution_summary', { year: medianModelYear }) }}</p>
                 </div>
               </details>
-              <details v-if="activeVariants.length > 0" class="group border-t border-gray-100 dark:border-gray-800">
+              <details v-if="activeVariants.length > 0" class="group border-t border-gray-100 first-of-type:border-t-0 dark:border-gray-800">
                 <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
                   {{ t('model.page.details_variants') }}<ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true" />
                 </summary>
@@ -148,7 +148,7 @@
                   <p class="text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }} {{ t('model.community_methodology_note') }}</p>
                 </div>
               </details>
-              <details v-if="faqItems.length > 0" class="group border-t border-gray-100 dark:border-gray-800">
+              <details v-if="faqItems.length > 0" class="group border-t border-gray-100 first-of-type:border-t-0 dark:border-gray-800">
                 <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
                   {{ t('model.page.details_faq') }}<ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true" />
                 </summary>
@@ -159,7 +159,7 @@
                   </div>
                 </dl>
               </details>
-              <details class="group border-t border-gray-100 dark:border-gray-800">
+              <details class="group border-t border-gray-100 first-of-type:border-t-0 dark:border-gray-800">
                 <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
                   {{ t('model.page.details_related') }}<ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true" />
                 </summary>
