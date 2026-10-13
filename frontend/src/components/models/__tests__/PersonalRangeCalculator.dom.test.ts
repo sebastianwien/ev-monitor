@@ -131,15 +131,18 @@ describe('PersonalRangeCalculator', () => {
 
     const result = host.querySelector('[data-testid="personal-range-result"]')!
     const text = (key: string) => result.querySelector(`[data-testid="answer-${key}"]`)!.textContent?.replace(/\s+/g, ' ')
-    expect(text('winter')).toContain('320 km weit')
-    expect(text('winter')).toContain('von 100 auf 10 %, im Sommer 450 km')
+    expect(text('winter')).toMatch(/Im Winter kommst du ca\. 320\skm weit, im Sommer ca\. 450\skm\./)
+    expect(text('winter')).toContain('100 %')
+    expect(text('winter')).toContain('10 %')
     // 0.3 a week in summer: every 3 weeks; 1.5 in winter: every 4 days; 40 km on 3 days
     expect(text('rhythm')).toContain('Im Sommer alle 3 Wochen')
     expect(text('rhythm')).toContain('Im Winter alle 4 Tage')
     expect(text('rhythm')).toContain('120 km Pendelstrecke pro Woche')
-    expect(text('stops')).toContain('Auf 500 km 1 Ladestopp')
+    expect(text('stops')).toMatch(/Auf deiner Urlaubsfahrt über 500\skm wirst du wahrscheinlich einmal laden\./)
     expect(text('stops')).toContain('5 h 5 min unterwegs')
     expect(text('stops')).toContain('davon 30 min laden')
+    // the sentences carry the questions, no thin headline above them
+    expect(result.textContent).not.toContain('Was kostet mich das im Monat?')
     expect(text('cost')).toMatch(/Es kostet dich 46\s€ im Monat, dein Auto aufzuladen\./)
     expect(host.querySelectorAll('[data-testid="assumption"]').length).toBe(6)
     const own = [...host.querySelectorAll('[data-testid="assumption"]')].map(li => li.textContent).find(x => x?.includes('Dein Strompreis'))
@@ -238,6 +241,16 @@ describe('PersonalRangeCalculator', () => {
     const calcs = vi.mocked(api.post).mock.calls.filter(c => String(c[0]).startsWith('/personal-range/'))
     expect(calcs.length).toBe(1)
     expect(calcs[0][2]).toEqual({ params: { email: true } })
+  })
+
+  it('the same rhythm in summer and winter reads as one line', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { ...RESULT, chargesPerWeekSummer: 1.5, chargesPerWeekWinter: 1.6 } } as never)
+    const { host } = mount(true)
+    await flush()
+
+    const rhythm = host.querySelector('[data-testid="answer-rhythm"]')!.textContent?.replace(/\s+/g, ' ')
+    expect(rhythm).toContain('Sommer wie Winter alle 4 Tage')
+    expect(rhythm).not.toContain('Im Sommer')
   })
 
   it('hands the stored profile back to the page instead of keeping it to itself', async () => {

@@ -107,8 +107,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
         await page.getByTestId('wallbox-yes').click();
         await home;
       }
-      await expect(result.getByTestId('answer-rhythm')).toContainText(/Im Winter (alle \d+ (Tage|Wochen)|täglich)/);
-      await expect(result.getByTestId('answer-stops')).toContainText(/Auf 500 km .*Ladestopp/);
+      await expect(result.getByTestId('answer-rhythm')).toContainText(/(Im Winter|Sommer wie Winter) (alle \d+ (Tage|Wochen)|täglich)/);
+      await expect(result.getByTestId('answer-stops')).toContainText(/Urlaubsfahrt über 500\skm wirst du wahrscheinlich/);
 
       const again = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST' && r.request().postDataJSON().homeCharging === false);
       await page.getByTestId('wallbox-no').click();

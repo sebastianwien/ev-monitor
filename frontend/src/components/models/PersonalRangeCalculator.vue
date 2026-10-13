@@ -71,33 +71,36 @@
       <p class="sr-only" role="status">{{ busy ? t('personal_range.calculating') : '' }}</p>
       <!-- One answer per row, as a sentence; the figure is the loud part -->
       <ul v-if="answer" class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-opacity dark:divide-green-500/15 dark:bg-gray-900" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-3.5" data-testid="answer-winter">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-winter">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"><CloudIcon class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid gap-0.5">
-            <p class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ questions[0] }}</p>
-            <i18n-t keypath="personal_range.winter_answer" tag="p" class="text-[17px] font-semibold text-gray-900 dark:text-gray-100">
-              <template #range><b class="text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.winter }}</b></template>
+          <div class="grid gap-1">
+            <i18n-t keypath="personal_range.winter_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
+              <template #winter><b class="whitespace-nowrap text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.winter }}</b></template>
+              <template #summer><b class="font-bold">{{ answer.summer }}</b></template>
             </i18n-t>
-            <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.winterDetail }}</p>
+            <!-- The window both figures rest on, as the gauge in the hero draws it -->
+            <p class="flex items-center gap-1 text-[12.5px] font-semibold text-gray-500 dark:text-gray-400">
+              <Battery100Icon class="h-4 w-4" aria-hidden="true" /><span>100 %</span>
+              <ArrowRightIcon class="h-3 w-3" aria-hidden="true" />
+              <Battery0Icon class="h-4 w-4" aria-hidden="true" /><span>10 %</span>
+            </p>
           </div>
         </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-3.5" data-testid="answer-rhythm">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-rhythm">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300"><BoltIcon class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid gap-0.5">
-            <p class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ questions[1] }}</p>
-            <i18n-t v-for="row in answer.rhythm" :key="row.key" :keypath="row.key" tag="p" class="text-[17px] font-semibold leading-snug text-gray-900 dark:text-gray-100">
+          <div class="grid gap-1">
+            <i18n-t v-for="row in answer.rhythm" :key="row.key" :keypath="row.key" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
               <template #rhythm><b class="font-extrabold">{{ row.value }}</b></template>
             </i18n-t>
             <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.rhythmBasis }}</p>
           </div>
         </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-3.5" data-testid="answer-stops">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-stops">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"><MapIcon class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid gap-1">
-            <p class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ answer.stopsQuestion }}</p>
-            <i18n-t keypath="personal_range.stops_answer" tag="p" class="text-[17px] font-semibold text-gray-900 dark:text-gray-100">
-              <template #distance>{{ answer.distance }}</template>
-              <template #stops><b class="text-[24px] font-extrabold tracking-tight">{{ answer.stops }}</b></template>
+          <div class="grid gap-1.5">
+            <i18n-t keypath="personal_range.stops_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
+              <template #distance><span class="whitespace-nowrap">{{ answer.distance }}</span></template>
+              <template #times><b class="text-[20px] font-extrabold tracking-tight">{{ answer.times }}</b></template>
             </i18n-t>
             <p class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-400">
               <span class="inline-flex items-center gap-1.5"><ClockIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.driveTime }}</span>
@@ -106,11 +109,10 @@
             <p v-if="answer.powerEstimated" class="text-[12.5px] text-amber-700 dark:text-amber-400">{{ t('personal_range.power_estimated') }}</p>
           </div>
         </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-3.5" data-testid="answer-cost">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-cost">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"><BanknotesIcon class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid gap-0.5">
-            <p class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ questions[3] }}</p>
-            <i18n-t keypath="personal_range.cost_answer" tag="p" class="text-[17px] font-semibold leading-snug text-gray-900 dark:text-gray-100">
+          <div class="grid gap-1">
+            <i18n-t keypath="personal_range.cost_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
               <template #cost><b class="whitespace-nowrap text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.cost }}</b></template>
             </i18n-t>
             <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.costBasis }}</p>
@@ -184,7 +186,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BanknotesIcon, BoltIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, CloudIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, MapIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { ArrowRightIcon, BanknotesIcon, Battery0Icon, Battery100Icon, BoltIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, CloudIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, MapIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
 import ProfileSlider from './ProfileSlider.vue'
 import { useAuthStore } from '../../stores/auth'
@@ -262,17 +264,18 @@ const answer = computed(() => {
   if (!r) return null
   const inputs = resultInputs.value
   const days = inputs.commuteDaysPerWeek ?? 5
+  const summerText = rhythm(r.chargesPerWeekSummer)
+  const winterText = rhythm(r.chargesPerWeekWinter)
   return {
     winter: formatDistance(r.winterRangeKm),
-    winterDetail: t('personal_range.winter_detail', { summer: formatDistance(r.summerRangeKm) }),
-    rhythm: [
-      { key: 'personal_range.rhythm_summer', value: rhythm(r.chargesPerWeekSummer) },
-      { key: 'personal_range.rhythm_winter', value: rhythm(r.chargesPerWeekWinter) },
-    ],
+    summer: t('personal_range.winter_summer', { range: formatDistance(r.summerRangeKm) }),
+    // the same words for both seasons read as one line: "Sommer wie Winter alle 4 Tage"
+    rhythm: summerText === winterText
+      ? [{ key: 'personal_range.rhythm_same', value: summerText }]
+      : [{ key: 'personal_range.rhythm_summer', value: summerText }, { key: 'personal_range.rhythm_winter', value: winterText }],
     rhythmBasis: t('personal_range.rhythm_basis', { km: formatDistance(inputs.commuteKmPerDay * days) }),
-    stopsQuestion: t('personal_range.question_stops', { distance: formatDistance(inputs.longTripKm) }),
     distance: formatDistance(inputs.longTripKm),
-    stops: t('personal_range.stops_count', { n: r.longTripStops }, r.longTripStops),
+    times: t('personal_range.stops_times', { n: r.longTripStops }, r.longTripStops),
     driveTime: t('personal_range.drive_time', { duration: duration(r.longTripTotalMinutes) }),
     chargeTime: r.longTripStops > 0 ? t('personal_range.charge_time', { duration: duration(r.longTripChargingMinutes) }) : null,
     powerEstimated: r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured),
