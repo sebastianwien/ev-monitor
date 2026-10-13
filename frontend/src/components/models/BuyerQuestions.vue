@@ -24,7 +24,7 @@
     </div>
 
     <div class="grid gap-4 md:hidden" data-testid="buyer-phone">
-      <p class="text-[12px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('model.page.cta_title') }}</p>
+      <p class="text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('model.page.cta_title') }}</p>
       <div class="grid grid-cols-[44px_minmax(0,1fr)] items-end gap-x-2.5 gap-y-2">
         <img :src="PERSON" alt="" width="44" height="44" class="col-start-1 row-span-4 row-start-1 h-11 w-11 self-end rounded-full bg-green-100 dark:bg-green-900/40" />
         <p v-for="(q, i) in QUESTIONS" :key="q.key" data-question

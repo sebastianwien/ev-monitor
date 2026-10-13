@@ -553,7 +553,7 @@ brand:
 
 model:
   page:
-    cta_from: "ev-monitor"
+    cta_from: "EV Monitor"
     cta_reply: "We work it out for you"
     cta_trip: "How often will I charge on a holiday trip?"
     variant_button: "Battery"
