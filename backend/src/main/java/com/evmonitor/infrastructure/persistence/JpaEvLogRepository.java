@@ -719,28 +719,41 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     List<Object[]> findFastChargePowerPerModel(@Param("isSeedUser") boolean isSeedUser);
 
     /**
-     * Returns AC and DC average cost per kWh for a model.
-     * Only included if at least 5 sessions with cost data exist per type.
-     * Returns: [acAvgCostPerKwh, acCount, dcAvgCostPerKwh, dcCount]
+     * Home and fast-charging price per kWh of a model, each weighted by kWh (a short top-up does
+     * not count as much as a full charge), each only from 5 priced sessions on, else null.
+     * Home: AC not marked public (null counts as private). Fast: DC from 50 kW, the peak power,
+     * or without it the average power of the session (energy at the vehicle / duration); without
+     * either the session is left out. Energy at the plug as everywhere: kwh_charged, else the
+     * vehicle energy divided by the charging efficiency (AC 0,90, DC 0,95).
+     * Returns: [homeCostPerKwh, homeCount, fastCostPerKwh, fastCount]
      */
     @Query(value = """
+            WITH priced AS (
+                SELECT l.cost_eur,
+                       COALESCE(l.kwh_charged, l.kwh_at_vehicle / CASE WHEN l.charging_type = 'DC' THEN 0.95 ELSE 0.90 END) AS kwh,
+                       l.charging_type = 'AC' AND l.is_public_charging IS NOT TRUE AS home,
+                       l.charging_type = 'DC' AND COALESCE(
+                           l.max_charging_power_kw,
+                           COALESCE(l.kwh_at_vehicle, l.kwh_charged * 0.95) / NULLIF(l.charge_duration_minutes / 60.0, 0)
+                       ) >= 50 AS fast
+                FROM ev_log l
+                JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
+                WHERE l.deleted_at IS NULL AND c.model = :model AND l.cost_eur > 0
+                  AND COALESCE(l.kwh_charged, l.kwh_at_vehicle) > 0
+                  AND (l.include_in_statistics = true
+                       OR (:isSeedUser = true
+                           AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+            )
             SELECT
-                CASE WHEN COUNT(*) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.90) > 0) >= 5
-                     THEN AVG(l.cost_eur / COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.90)) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.90) > 0)
-                     ELSE NULL END AS ac_avg_cost,
-                COUNT(*) FILTER (WHERE l.charging_type = 'AC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.90) > 0) AS ac_count,
-                CASE WHEN COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95) > 0) >= 5
-                     THEN AVG(l.cost_eur / COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95)) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95) > 0)
-                     ELSE NULL END AS dc_avg_cost,
-                COUNT(*) FILTER (WHERE l.charging_type = 'DC' AND l.cost_eur > 0 AND COALESCE(l.kwh_charged, l.kwh_at_vehicle / 0.95) > 0) AS dc_count
-            FROM ev_log l
-            JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
-            WHERE l.deleted_at IS NULL AND c.model = :model
-              AND (l.include_in_statistics = true
-                   OR (:isSeedUser = true
-                       AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
+                CASE WHEN COUNT(*) FILTER (WHERE home) >= 5
+                     THEN SUM(cost_eur) FILTER (WHERE home) / SUM(kwh) FILTER (WHERE home) END AS home_cost,
+                COUNT(*) FILTER (WHERE home) AS home_count,
+                CASE WHEN COUNT(*) FILTER (WHERE fast) >= 5
+                     THEN SUM(cost_eur) FILTER (WHERE fast) / SUM(kwh) FILTER (WHERE fast) END AS fast_cost,
+                COUNT(*) FILTER (WHERE fast) AS fast_count
+            FROM priced
             """, nativeQuery = true)
-    Object[] findAcDcCostStatsByModel(
+    Object[] findHomeFastCostStatsByModel(
             @Param("model") String model,
             @Param("isSeedUser") boolean isSeedUser);
 
