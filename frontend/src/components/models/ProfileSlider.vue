@@ -5,7 +5,7 @@
     <div class="flex items-baseline justify-between gap-3">
       <label :for="`${id}-input`" class="min-w-0 text-[15px] font-semibold text-gray-900 dark:text-gray-100">{{ label }}</label>
       <output :for="`${id}-input`" class="flex-none whitespace-nowrap text-[17px] font-bold tabular-nums"
-              :class="shown == null ? 'font-medium text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'"
+              :class="shown == null ? 'font-medium text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'"
               :data-testid="`slider-${testKey}-value`">
         {{ shown == null ? t('model.page.slider_open') : format(shown) }}
       </output>
@@ -18,8 +18,10 @@
            :style="{ '--fill': `${fill}%` }"
            :aria-valuetext="shown != null ? format(shown) : t('model.story.slider_open')"
            :data-testid="`slider-${testKey}`"
-           @input="draft = Number(($event.target as HTMLInputElement).value)"
-           @change="commit(Number(($event.target as HTMLInputElement).value))" />
+           @input="onInput(Number(($event.target as HTMLInputElement).value))"
+           @change="commit(Number(($event.target as HTMLInputElement).value))"
+           @pointerup="settle($event, true)"
+           @blur="settle($event, false)" />
     <p class="-mt-1 flex justify-between gap-2 text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">
       <span aria-hidden="true">{{ format(min) }}</span>
       <span v-if="detail && shown != null" class="text-gray-700 dark:text-gray-300" :data-testid="`slider-${testKey}-detail`">{{ detail(shown) }}</span>
@@ -59,9 +61,29 @@ const draft = ref<number | null>(null)
 const shown = computed(() => draft.value ?? props.value)
 const fill = computed(() => shown.value == null ? 0 : (shown.value - props.min) / (props.max - props.min) * 100)
 
+/** The last value handed out; a release fires both change and pointerup, the answer goes out once */
+let committed: number | null = null
+
+function onInput(value: number) {
+  draft.value = value
+  committed = null
+}
+
 function commit(value: number) {
   draft.value = null
+  if (value === committed) return
+  committed = value
   emit('commit', value)
+}
+
+/**
+ * Release without a change event: a tap on the thumb of an open slider (5 commute days sit on
+ * the edge and cannot be moved there), or a drag back to where it started. Both are answers.
+ */
+function settle(event: Event, tap: boolean) {
+  const value = Number((event.target as HTMLInputElement).value)
+  // tabbing past an open slider is no answer, only a tap on it is
+  if (draft.value != null || (tap && props.value == null)) commit(value)
 }
 </script>
 

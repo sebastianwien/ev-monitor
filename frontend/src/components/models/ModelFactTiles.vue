@@ -22,7 +22,7 @@
           </span>
           <span class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ fact.note }}</span>
           <a v-if="fact.evidence" href="#belege"
-             class="-mb-1 inline-flex min-h-8 items-center gap-1 justify-self-start text-[13px] font-semibold text-green-700 hover:underline dark:text-green-400"
+             class="-my-2 inline-flex min-h-11 items-center gap-1 justify-self-start text-[13px] font-semibold text-green-700 hover:underline dark:text-green-400"
              @click="emit('evidence', fact.key)">
             {{ t('model.page.evidence_link') }}<ArrowDownIcon class="h-3.5 w-3.5" aria-hidden="true" />
           </a>

@@ -24,6 +24,8 @@ const RESULT = {
     { key: 'TRAVEL_SPEED', measured: false, value: 110 },
   ],
 }
+// Gültiges JWT-Format (Payload: {"userId":"u1","sub":"neu@example.com"}), Signatur egal
+const TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJ1c2VySWQiOiJ1MSIsInN1YiI6Im5ldUBleGFtcGxlLmNvbSJ9.x'
 const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, commuteDaysPerWeek: 3, highwaySharePercent: 30, homeCharging: true, longTripKm: 500, pricePerKwh: 0.28 }
 
 let app: App | null = null
@@ -94,7 +96,7 @@ describe('PersonalRangeCalculator', () => {
     const { host } = mount(false, { logCount: 12, carCount: 2 })
     await flush()
 
-    expect(host.textContent).toContain('Aus Herstellerangaben und dem, was die Community bei anderen Modellen misst.')
+    expect(host.textContent).toContain('Aus 12 Ladevorgängen von erst 2 Autos. Wo Messwerte fehlen, rechnen wir mit Herstellerangaben und markieren das.')
   })
 
   it('open sliders: the lock counts them and the button sends the reader back instead of opening the gate', async () => {
@@ -129,7 +131,7 @@ describe('PersonalRangeCalculator', () => {
 
     const result = host.querySelector('[data-testid="personal-range-result"]')!
     expect(result.querySelector('[data-testid="answer-winter"]')!.textContent).toContain('320 km')
-    expect(result.querySelector('[data-testid="answer-winter"]')!.textContent).toContain('im Sommer 450 km')
+    expect(result.querySelector('[data-testid="answer-winter"]')!.textContent).toContain('von 100 auf 10 %, im Sommer 450 km')
     // 0.3 a week in summer: every 3 weeks; 1.5 in winter: every 4 days
     expect(result.querySelector('[data-testid="answer-rhythm"]')!.textContent).toContain('alle 3 Wochen')
     expect(result.querySelector('[data-testid="answer-rhythm"]')!.textContent).toContain('alle 4 Tage')
@@ -173,6 +175,66 @@ describe('PersonalRangeCalculator', () => {
 
     expect(vi.mocked(api.post).mock.calls.length).toBe(calls + 1)
     expect((vi.mocked(api.post).mock.calls[vi.mocked(api.post).mock.calls.length - 1][1] as PersonalRangeInputs).highwaySharePercent).toBe(50)
+  })
+
+  it('an older answer arriving last never overwrites a newer one', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: RESULT } as never)
+    const { host, state } = mount(true)
+    await flush()
+    let slow!: (v: unknown) => void
+    vi.mocked(api.post)
+      .mockImplementationOnce(() => new Promise(r => { slow = r }) as never)
+      .mockResolvedValueOnce({ data: { ...RESULT, winterRangeKm: 280 } } as never)
+
+    vi.useFakeTimers()
+    state.inputs.homeCharging = false
+    await nextTick(); vi.advanceTimersByTime(500)
+    state.inputs.homeCharging = true
+    await nextTick(); vi.advanceTimersByTime(500)
+    vi.useRealTimers()
+    await flush()
+    slow({ data: { ...RESULT, winterRangeKm: 999 } })
+    await flush()
+
+    expect(host.querySelector('[data-testid="answer-winter"]')!.textContent).toContain('280 km')
+  })
+
+  it('the charging rhythm reads with the inputs of its own calculation and names the commute it rests on', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: RESULT } as never)
+    const { host, state } = mount(true)
+    await flush()
+    vi.mocked(api.post).mockImplementationOnce(() => new Promise(() => {}) as never)
+
+    state.inputs.homeCharging = false
+    await flush()
+
+    // still the home-charging result: days, not stops, until the new answer is there
+    const rhythm = host.querySelector('[data-testid="answer-rhythm"]')!.textContent
+    expect(rhythm).toContain('alle 4 Tage')
+    expect(rhythm).toContain('Arbeitsweg 40 km an 3 Tagen')
+  })
+
+  it('after the gate one calculation with the mail, not a second one without', async () => {
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { status: 'SENT' } } as never)
+      .mockResolvedValueOnce({ data: { token: TOKEN, isPremium: false } } as never)
+      .mockResolvedValue({ data: RESULT } as never)
+    const { host } = mount(false)
+    await flush()
+    requestButton(host).click()
+    await flush()
+    const email = host.querySelector('input[type="email"]') as HTMLInputElement
+    email.value = 'neu@example.com'; email.dispatchEvent(new Event('input'))
+    host.querySelector('form')!.dispatchEvent(new Event('submit'))
+    await flush()
+    const code = host.querySelector('input[autocomplete="one-time-code"]') as HTMLInputElement
+    code.value = '123456'; code.dispatchEvent(new Event('input'))
+    host.querySelector('form')!.dispatchEvent(new Event('submit'))
+    await flush(); await flush()
+
+    const calcs = vi.mocked(api.post).mock.calls.filter(c => String(c[0]).startsWith('/personal-range/'))
+    expect(calcs.length).toBe(1)
+    expect(calcs[0][2]).toEqual({ params: { email: true } })
   })
 
   it('hands the stored profile back to the page instead of keeping it to itself', async () => {

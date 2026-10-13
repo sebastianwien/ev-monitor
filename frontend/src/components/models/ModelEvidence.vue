@@ -2,12 +2,11 @@
   <ModelBox id="belege" aria-labelledby="evidence-title" class="scroll-mt-28" data-testid="model-evidence">
     <div class="grid gap-1">
       <h2 id="evidence-title" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ title }}</h2>
-      <p class="text-[13.5px] text-gray-500 dark:text-gray-400">{{ sub }}</p>
     </div>
     <div class="grid gap-8 md:grid-cols-2 md:gap-12">
       <!-- Range: one scale from zero for all bars, the manufacturer's figure as grey reference -->
       <figure v-if="evidence.range" class="m-0 grid content-start gap-3" data-testid="evidence-range">
-        <figcaption class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.range_title') }}</figcaption>
+        <figcaption><h3 class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.range_title') }}</h3></figcaption>
         <div class="grid gap-2.5">
           <div v-for="bar in evidence.range.bars" :key="bar.key" class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3 text-[14px]">
             <span class="text-gray-600 dark:text-gray-400">{{ bar.label }}</span>
@@ -22,7 +21,7 @@
 
       <!-- Route types as the difference to their own mean: left is thriftier, right thirstier -->
       <figure v-if="evidence.routes" class="m-0 grid content-start gap-3" data-testid="evidence-routes">
-        <figcaption class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.routes_title') }}</figcaption>
+        <figcaption><h3 class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.routes_title') }}</h3></figcaption>
         <div class="grid gap-2.5">
           <div v-for="row in evidence.routes.rows" :key="row.key" class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3 text-[14px]">
             <span class="text-gray-600 dark:text-gray-400">{{ row.label }}</span>
@@ -60,7 +59,7 @@ import ModelBox from './ModelBox.vue'
 import type { EvidenceBar, ModelEvidence } from '../../utils/modelStory'
 
 /** "So messen Fahrer": the figures behind the data sheet. Visible, not folded, for the long-tail search. */
-const props = defineProps<{ title: string; sub: string; evidence: ModelEvidence }>()
+const props = defineProps<{ title: string; evidence: ModelEvidence }>()
 const { t } = useI18n()
 
 /** Same colours as the gauge in the hero: year and summer green, winter blue, the prospectus grey */

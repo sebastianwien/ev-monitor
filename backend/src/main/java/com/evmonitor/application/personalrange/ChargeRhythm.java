@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 /**
  * How often the reader plugs in, in words. Same table as frontend utils/chargeRhythm.ts, so the
  * result mail says what the model page says:
- * 7 or more a week "täglich", 0.5 to 7 "alle 10 Tage" (7 / L rounded down), below 0.5 "alle 3 Wochen" (at least 2),
+ * 3.5 or more a week "täglich" (7 / L rounded down is 1), 0.5 to 3.5 "alle 10 Tage" (7 / L rounded down), below 0.5 "alle 3 Wochen" (at least 2),
  * without home charging the stops rounded up "2 Ladestopps pro Woche".
  */
 public final class ChargeRhythm {

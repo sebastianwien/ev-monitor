@@ -21,9 +21,9 @@
       <div class="flex flex-col sm:flex-row gap-2">
         <input id="gate-email" v-model.trim="email" type="email" autocomplete="email" inputmode="email" required
                :placeholder="t('gate.email_placeholder')"
-               class="flex-1 min-w-0 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-base text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
+               :class="inputClass" class="flex-1 min-w-0 px-3 py-2.5 text-base text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
         <button type="submit" :disabled="busy"
-                class="btn-3d shrink-0 rounded-lg border-2 border-gray-800 dark:border-gray-200 bg-green-600 px-4 py-2.5 font-bold text-white disabled:opacity-60">
+                :class="buttonClass" class="shrink-0 min-h-11 px-4 py-2.5 font-bold text-white disabled:opacity-60">
           {{ busy ? t('gate.sending') : t('gate.send_code') }}
         </button>
       </div>
@@ -40,9 +40,9 @@
       <div class="flex flex-col sm:flex-row gap-2">
         <input id="gate-code" v-model.trim="code" type="text" autocomplete="one-time-code" inputmode="numeric"
                pattern="[0-9]{6}" maxlength="6" required
-               class="flex-1 min-w-0 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-center text-xl font-bold tracking-[0.4em] tabular-nums text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
+               :class="inputClass" class="flex-1 min-w-0 px-3 py-2.5 text-center text-xl font-bold tracking-[0.4em] tabular-nums text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
         <button type="submit" :disabled="busy"
-                class="btn-3d shrink-0 rounded-lg border-2 border-gray-800 dark:border-gray-200 bg-green-600 px-4 py-2.5 font-bold text-white disabled:opacity-60">
+                :class="buttonClass" class="shrink-0 min-h-11 px-4 py-2.5 font-bold text-white disabled:opacity-60">
           {{ busy ? t('gate.verifying') : t('gate.confirm') }}
         </button>
       </div>
@@ -61,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Capacitor } from '@capacitor/core'
 import { useI18n } from 'vue-i18n'
 import { LockOpenIcon } from '@heroicons/vue/24/outline'
@@ -100,6 +100,13 @@ const busy = ref(false)
 const error = ref('')
 const googleButton = ref<HTMLElement | null>(null)
 const { enabled: googleEnabled, unavailable: googleUnavailable, mount: mountGoogle } = useGoogleIdentity()
+/** Inside a page box: flat like the page; standalone: the app's 3D style */
+const inputClass = computed(() => props.plain
+  ? 'rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900'
+  : 'rounded-lg border-2 border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800')
+const buttonClass = computed(() => props.plain
+  ? 'rounded-xl bg-green-600 hover:bg-green-700'
+  : 'btn-3d rounded-lg border-2 border-gray-800 bg-green-600 dark:border-gray-200')
 const redirectGoogleEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true' && !Capacitor.isNativePlatform()
 
 onMounted(() => {

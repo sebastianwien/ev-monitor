@@ -5,8 +5,8 @@
  *
  * | per week          | text                                           |
  * |-------------------|------------------------------------------------|
- * | 7 or more         | "täglich"                                      |
- * | 0.5 to 7          | "alle 10 Tage", 7 / L rounded down             |
+ * | 3.5 or more       | "täglich" (7 / L rounded down is 1)            |
+ * | 0.5 to 3.5        | "alle 10 Tage", 7 / L rounded down             |
  * | below 0.5         | "alle 3 Wochen", 1 / L rounded down, at least 2 |
  * | no home charging  | "2 Ladestopps pro Woche", rounded up           |
  */

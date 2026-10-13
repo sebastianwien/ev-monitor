@@ -10,6 +10,8 @@ import { DC_CHARGING_EFFICIENCY } from './consumptionPreview'
 
 /** Same as the backend calculator: below this many highway cars the highway effect is the fleet estimate */
 const MIN_HIGHWAY_CARS = 5
+/** Below this many cars the page speaks of first measurements, like the result box (same threshold) */
+const MIN_MEASURED_CARS = 5
 
 export type StoryLevel = 'FULL' | 'PARTIAL' | 'NONE'
 
@@ -23,15 +25,11 @@ export interface StoryInput {
   wltpKwhPer100km: number | null
   wltpRangeKm: number | null
   avgKwhPer100km: number | null
-  minKwhPer100km: number | null
-  maxKwhPer100km: number | null
   /** typedMean: mean of all route-typed trips, the base the highway value is compared with (same period) */
   routeType: { highway: number | null; city: number | null; combined: number | null; highwayCars: number; highwayLogs?: number; cityLogs: number; combinedLogs: number; typedMean?: number | null } | null
   /** null when either season has too few logs */
   seasonal: { summer: number; winter: number; summerLogs: number; winterLogs: number } | null
   fastChargePowerKw: number | null
-  avgChargingPowerKw: number | null
-  acPricePerKwh: number | null
   dcPricePerKwh: number | null
   avgPricePerKwh: number | null
   /** median winter/summer ratio over the models that have both, for the PARTIAL season chapter */
@@ -133,6 +131,8 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
     ? d.wltpRangeKm
       ? f.t('model.story.hero_none', { ...p, wltp: f.formatDistance(d.wltpRangeKm) })
       : f.t('model.story.hero_none_no_wltp', p)
+    : d.wltpRangeKm && d.carCount < MIN_MEASURED_CARS
+      ? f.t(d.driverCount === 1 ? 'model.story.hero_thin_one' : 'model.story.hero_thin', { ...p, wltp: f.formatDistance(d.wltpRangeKm), real: f.formatDistance(realRangeKm) })
     : d.wltpRangeKm
       ? f.t('model.story.hero_full', { ...p, wltp: f.formatDistance(d.wltpRangeKm), real: f.formatDistance(realRangeKm) })
       : f.t('model.story.hero_full_no_wltp', { ...p, real: f.formatDistance(realRangeKm) })

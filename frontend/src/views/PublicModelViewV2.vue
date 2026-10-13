@@ -44,7 +44,7 @@
               <!-- Variant chips: the page speaks about one battery -->
               <div v-if="activeVariants.length > 1" class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0" role="group" :aria-label="t('model.variant_title')">
                 <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh" type="button"
-                        class="inline-flex min-h-10 flex-none items-center whitespace-nowrap rounded-full px-4 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                        class="inline-flex min-h-11 flex-none items-center whitespace-nowrap rounded-full px-4 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                         :class="i === selectedVariantIndex
                           ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
                           : 'bg-white text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-800 dark:hover:bg-gray-800'"
@@ -66,7 +66,7 @@
           </header>
 
           <!-- 2 Data sheet -->
-          <ModelFactTiles :title="t('model.page.facts_title')" :sub="factsSub" :facts="story.facts" @evidence="trackJump('evidence')">
+          <ModelFactTiles :title="stats.logCount > 0 ? t('model.page.facts_title') : t('model.page.facts_title_spec')" :sub="factsSub" :facts="story.facts" @evidence="trackJump('evidence')">
             <p v-if="!isEurZone && stats.avgCostPerKwh" class="text-[12px] italic text-gray-500 dark:text-gray-400">{{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}</p>
           </ModelFactTiles>
 
@@ -100,7 +100,7 @@
           </div>
 
           <!-- 4 Evidence behind the data sheet -->
-          <ModelEvidence v-if="story.evidence.range || story.evidence.routes" :title="t('model.page.evidence_title', { model: shortModelName })" :sub="factsSub" :evidence="story.evidence" />
+          <ModelEvidence v-if="story.evidence.range || story.evidence.routes" :title="t('model.page.evidence_title', { model: shortModelName })" :evidence="story.evidence" />
 
           <!-- 5 Ratings and more details; side by side from md up -->
           <div class="grid gap-2 md:gap-5" :class="ratings ? 'md:grid-cols-2 md:items-start' : ''">
@@ -158,7 +158,7 @@
                 </summary>
                 <ul class="flex flex-wrap gap-2 pb-4">
                   <li v-for="r in relatedModels" :key="r.path">
-                    <a :href="`${modelsBaseUrl}/${r.path}`" class="inline-flex min-h-10 items-center rounded-full px-3.5 text-[14px] font-medium text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800">{{ r.name }}</a>
+                    <a :href="`${modelsBaseUrl}/${r.path}`" class="inline-flex min-h-11 items-center rounded-full px-3.5 text-[14px] font-medium text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800">{{ r.name }}</a>
                   </li>
                 </ul>
               </details>
@@ -185,13 +185,13 @@
               <template v-if="bestOfficialRange"> {{ t('model.seo_wltp_range', { range: formatDistance(bestOfficialRange), ratingLabel }) }}</template>.
               <template v-if="stats.avgConsumptionKwhPer100km">
                 <template v-if="consumptionDataQuality === 'good'">
-                  {{ t('model.seo_consumption_good', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), sessions: stats.logCount, count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_good', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), sessions: formatNumber(stats.logCount), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
                 <template v-else-if="consumptionDataQuality === 'low'">
-                  {{ t('model.seo_consumption_low', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_low', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
                 <template v-else>
-                  {{ t('model.seo_consumption_sparse', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_sparse', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
               </template>
               <template v-else>
@@ -245,7 +245,7 @@
         <RegionChip />
       </div>
       © {{ currentYear }} EV Monitor ·
-      <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? t('nav.dashboard') : t('common.home') }}</a>
+      <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? t('nav.dashboard') : t('model.goto_home') }}</a>
       <template v-if="!isAuthenticated">
         ·
         <a :href="registerPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.free_start') }}</a> ·
@@ -272,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
@@ -296,8 +296,7 @@ import ProfileSlider from '../components/models/ProfileSlider.vue'
 import { buildModelStory, fastStop, keepUnits, type StoryInput } from '../utils/modelStory'
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
-import { readStoredNeeds, writeStoredNeeds } from '../composables/useModelRanking'
-import { readTilePrefill } from '../utils/tilePrefill'
+import { useDrivingProfile, PROFILE_KEYS, PROFILE_SLIDERS, type ProfileKey } from '../composables/useDrivingProfile'
 import RegionChip from '../components/shared/RegionChip.vue'
 import ModelRatingsBlock from '../components/rating/ModelRatingsBlock.vue'
 import { ratingService, type PublicModelRatings } from '../api/ratingService'
@@ -434,19 +433,6 @@ const selectedVariant = computed(() => activeVariants.value[selectedVariantIndex
 const storyContext = ref<ModelStoryContext | null>(null)
 /** Same threshold as the backend: a season counts from 10 logs. */
 const MIN_LOGS_PER_SEASON = 10
-/** The five sliders before the result; key order is page order */
-type QuestionKey = 'annualKm' | 'highwayShare' | 'commute' | 'commuteDays' | 'longTrip'
-type SliderRange = { min: number; max: number; step: number; start: number }
-const SLIDERS: Record<QuestionKey, SliderRange> = {
-  annualKm: { min: 5_000, max: 50_000, step: 1_000, start: 15_000 },
-  highwayShare: { min: 0, max: 100, step: 5, start: 30 },
-  commute: { min: 5, max: 150, step: 5, start: 40 },
-  /** the same 1 to 5 days as the ranking's needs check */
-  commuteDays: { min: 1, max: 5, step: 1, start: 5 },
-  longTrip: { min: 250, max: 1_200, step: 50, start: 500 },
-}
-const QUESTION_KEYS = Object.keys(SLIDERS) as QuestionKey[]
-
 const variantLabel = computed(() => {
   const v = selectedVariant.value
   return v ? (v.displayLabel || v.variantName || `${v.batteryCapacityKwh} kWh`) : ''
@@ -472,15 +458,12 @@ const storyInput = computed((): StoryInput => {
     wltpKwhPer100km: v?.officialConsumptionKwhPer100km ?? worstOfficialConsumption.value,
     wltpRangeKm: v?.officialRangeKm ?? bestOfficialRange.value,
     avgKwhPer100km: st.avgConsumptionKwhPer100km,
-    minKwhPer100km: storyContext.value?.minRealKwhPer100km ?? v?.realConsumptionMinKwhPer100km ?? null,
-    maxKwhPer100km: storyContext.value?.maxRealKwhPer100km ?? v?.realConsumptionMaxKwhPer100km ?? null,
     routeType: rt ? { highway: rt.highwayKwhPer100km, city: rt.cityKwhPer100km, combined: rt.combinedKwhPer100km,
       highwayCars: rt.highwayCarCount, highwayLogs: rt.highwayLogCount, cityLogs: rt.cityLogCount, combinedLogs: rt.combinedLogCount, typedMean: rt.typedMeanKwhPer100km ?? null } : null,
     seasonal: seasonOk ? { summer: season.summerConsumptionKwhPer100km!, winter: season.winterConsumptionKwhPer100km!,
       summerLogs: season.summerLogCount, winterLogs: season.winterLogCount } : null,
     fastChargePowerKw: storyContext.value?.fastChargePowerKw ?? null,
-    avgChargingPowerKw: st.avgChargingPowerKw,
-    acPricePerKwh: st.acAvgCostPerKwh, dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
+    dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
     fleetWinterFactor: fleetWinterFactor.value,
   }
 })
@@ -492,7 +475,7 @@ const heroLines = computed(() => {
   return i < 0 ? [text] : [text.slice(0, i + 1), text.slice(i + 2)]
 })
 
-/** Fast-charging stop 10 to 80 % at the DC price; chapter 4, SEO text and FAQ show the same figure */
+/** Fast-charging stop 10 to 80 % at the DC price; the cost tile, SEO text and FAQ show the same figure */
 const stopCost = computed(() => fastStop(selectedVariant.value?.batteryCapacityKwh ?? null,
   stats.value?.dcAvgCostPerKwh ?? stats.value?.avgCostPerKwh ?? null))
 
@@ -510,15 +493,9 @@ const story = computed(() => buildModelStory(storyInput.value, {
   formatNumber,
 }))
 
-/** The reader's answers; the battery follows the variant switcher. Unanswered ones hold the slider start. */
-const answers = reactive({
-  annualKm: SLIDERS.annualKm.start, highwayShare: SLIDERS.highwayShare.start, commuteKmPerDay: SLIDERS.commute.start,
-  commuteDays: SLIDERS.commuteDays.start, longTripKm: SLIDERS.longTrip.start,
-  /** before the result the backend counts home charging; the wallbox question comes with the answers */
-  homeCharging: true, pricePerKwh: null as number | null,
-})
-/** Per slider: a start value is no answer, so the result never rests on a value nobody chose */
-const answered = reactive(new Set<QuestionKey>())
+/** The reader's driving profile; the battery follows the variant switcher */
+const { answers, answered, openQuestions, valueOf, answer: answerProfile, answerHome, applyProfile } =
+  useDrivingProfile(route.query, () => stats.value?.modelDisplayName ?? model)
 const storyInputs = computed((): PersonalRangeInputs => ({
   commuteKmPerDay: answers.commuteKmPerDay,
   commuteDaysPerWeek: answers.commuteDays,
@@ -530,19 +507,9 @@ const storyInputs = computed((): PersonalRangeInputs => ({
   netBatteryKwh: selectedVariant.value?.batteryCapacityKwh ?? null,
 }))
 
-function valueOf(key: QuestionKey): number {
-  switch (key) {
-    case 'annualKm': return answers.annualKm
-    case 'highwayShare': return answers.highwayShare
-    case 'commute': return answers.commuteKmPerDay
-    case 'commuteDays': return answers.commuteDays
-    case 'longTrip': return answers.longTripKm
-  }
-}
-
 /** "30 %" on the slider, "4.500 km im Jahr" below it: the share in kilometres at the yearly mileage */
 const highwayKm = (share: number) => formatDistance(Math.round(answers.annualKm * share / 100 / 100) * 100)
-const FORMAT: Record<QuestionKey, (v: number) => string> = {
+const FORMAT: Record<ProfileKey, (v: number) => string> = {
   annualKm: km => formatDistance(km),
   highwayShare: share => `${formatNumber(share)} %`,
   commute: km => formatDistance(km),
@@ -550,89 +517,22 @@ const FORMAT: Record<QuestionKey, (v: number) => string> = {
   longTrip: km => formatDistance(km),
 }
 
-const profileSliders = computed(() => QUESTION_KEYS.map(key => ({
+const profileSliders = computed(() => PROFILE_KEYS.map(key => ({
   key,
-  ...SLIDERS[key],
+  ...PROFILE_SLIDERS[key],
   label: t(`model.page.q_${key}`),
   value: answered.has(key) ? valueOf(key) : null,
   format: FORMAT[key],
   detail: key === 'highwayShare' ? (share: number) => t('model.story.slider_highway_km', { km: highwayKm(share) }) : undefined,
 })))
 
-function answer(key: QuestionKey, value: number) {
-  switch (key) {
-    case 'annualKm': answers.annualKm = value; break
-    case 'highwayShare': answers.highwayShare = value; break
-    case 'commute': answers.commuteKmPerDay = value; break
-    case 'commuteDays': answers.commuteDays = value; break
-    case 'longTrip': answers.longTripKm = value; break
-  }
-  if (answered.size === 0) analytics.track('personal_range_started', { model: stats.value?.modelDisplayName ?? model })
-  answered.add(key)
-  analytics.track('story_chip_answered', { model: stats.value?.modelDisplayName ?? model, question: key })
-  shareAnswer(key)
+function answer(key: ProfileKey, value: number) {
+  answerProfile(key, value)
   if (highlightKey.value === key) highlightKey.value = null
 }
 
-/** The wallbox answer after the result; only an active answer goes back to the ranking, never the start value */
-function answerHome(value: boolean) {
-  answers.homeCharging = value
-  writeStoredNeeds({ homeCharging: value })
-}
-
-/** Onto the slider: within its range and on its step */
-function snap(key: QuestionKey, value: number): number {
-  const s = SLIDERS[key]
-  return Math.min(s.max, Math.max(s.min, Math.round(value / s.step) * s.step))
-}
-
-/** A stored profile is the reader's own answers: sliders move to the nearest value and count as answered. */
-function applyProfile(p: PersonalRangeInputs) {
-  if (p.annualKm != null) { answers.annualKm = snap('annualKm', p.annualKm); answered.add('annualKm') }
-  answers.highwayShare = snap('highwayShare', p.highwaySharePercent); answered.add('highwayShare')
-  answers.commuteKmPerDay = snap('commute', p.commuteKmPerDay); answered.add('commute')
-  answers.longTripKm = snap('longTrip', p.longTripKm); answered.add('longTrip')
-  answers.homeCharging = p.homeCharging
-  answers.pricePerKwh = p.pricePerKwh ?? null
-  // A profile from before the commute-days question leaves that one slider open: the reader answers it once
-  if (p.commuteDaysPerWeek != null) { answers.commuteDays = p.commuteDaysPerWeek; answered.add('commuteDays') }
-}
-
-/**
- * The ranking's needs check (same browser) asks some of the questions; each one answered there
- * counts as answered here. A stored profile (signed in) arrives later through applyProfile and wins.
- */
-function applyStoredNeeds() {
-  const n = readStoredNeeds()
-  if (!n) return
-  if (n.dailyKm != null) { answers.commuteKmPerDay = snap('commute', n.dailyKm); answered.add('commute') }
-  if (n.commuteDays != null) { answers.commuteDays = n.commuteDays; answered.add('commuteDays') }
-  if (n.longestTripKm != null) { answers.longTripKm = snap('longTrip', n.longestTripKm); answered.add('longTrip') }
-  if (n.homeCharging != null) answers.homeCharging = n.homeCharging
-}
-applyStoredNeeds()
-/** A chip tapped on the partner tile (?pendeln=, ?urlaub=) is the reader's answer and wins over the stored needs */
-function applyTilePrefill() {
-  const p = readTilePrefill(route.query)
-  if (p.commuteKmPerDay != null) { answers.commuteKmPerDay = snap('commute', p.commuteKmPerDay); answered.add('commute') }
-  if (p.longTripKm != null) { answers.longTripKm = snap('longTrip', p.longTripKm); answered.add('longTrip') }
-}
-applyTilePrefill()
-/**
- * ... and the other way round, so the ranking shows what the reader set here. Only on the reader's
- * own answer, never when a profile is applied: its slider snapping (72 km becomes 70) would
- * overwrite the exact value the ranking holds.
- */
-function shareAnswer(key: QuestionKey) {
-  if (key === 'commute') writeStoredNeeds({ dailyKm: answers.commuteKmPerDay })
-  else if (key === 'commuteDays') writeStoredNeeds({ commuteDays: answers.commuteDays })
-  else if (key === 'longTrip') writeStoredNeeds({ longestTripKm: answers.longTripKm })
-}
-
-/** Sliders still open, in page order; the result waits until there are none */
-const openQuestions = computed(() => QUESTION_KEYS.filter(k => !answered.has(k)))
 /** The slider the reader is sent back to; it is marked until answered */
-const highlightKey = ref<QuestionKey | null>(null)
+const highlightKey = ref<ProfileKey | null>(null)
 
 /** Scrolls to the first open slider and puts the focus on it */
 function showFirstOpen() {
@@ -769,7 +669,7 @@ const faqItems = computed(() => {
     })
   }
 
-  // Same stop as chapter 4, plus the mean session for those who mostly top up at home
+  // Same stop as the cost tile, plus the mean session for those who mostly top up at home
   if (stats.value.avgCostPerKwh && stopCost.value && stats.value.avgKwhPerSession) {
     items.push({
       question: t('model.faq_q_cost', { model: name }),
@@ -979,14 +879,7 @@ function goBackToLpV2() {
 /* ── Typo-Skala der Modellseite ──────────────────────────────────────────
    Nur Größe/Gewicht/Tracking/Leading - Farbe bleibt per Tailwind-Utility.
    Ersetzt die zuvor 11 ad-hoc Größen durch ein konsistentes Set.        */
-.t-eyebrow  { font-size: .6875rem; line-height: 1rem;    font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.t-block    { font-size: .875rem;  line-height: 1.25rem;  font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-.t-title    { font-size: 1.125rem; line-height: 1.55rem; font-weight: 700; }
-.t-value    { font-size: 1.25rem;  line-height: 1.6rem;  font-weight: 700; }
 .t-value-lg { font-size: 1.5rem;   line-height: 1.6rem;  font-weight: 800; }
-.t-value-xl { font-size: 1.875rem; line-height: 1;       font-weight: 800; }
-.t-metric   { font-size: 2.5rem;   line-height: 1;       font-weight: 800; }
-@media (min-width: 640px) { .t-metric { font-size: 3rem; } }
 
 .model-page {
   animation: page-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;

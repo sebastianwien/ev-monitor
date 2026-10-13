@@ -86,7 +86,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openStory(page);
       await answerAll(page);
       const placeholder = page.getByTestId('personal-range-placeholder');
-      expect(await placeholder.locator('dd').allInnerTexts()).toEqual(expect.arrayContaining([expect.not.stringMatching(/\d/)]));
+      for (const text of await placeholder.locator('dd').allInnerTexts()) expect(text).not.toMatch(/\d/);
       await expect(page.getByTestId('personal-range-open')).toContainText('Deine 4 Antworten sind bereit');
       await page.getByTestId('personal-range-calculate').click();
       await expect(page.getByTestId('inline-gate')).toBeVisible();
@@ -142,10 +142,16 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
   });
 }
 
-test('Handy: die Freischalten-Leiste erscheint erst, wenn die Ergebnis-Box aus dem Bild ist', async ({ page }) => {
+test('Handy: die Freischalten-Leiste kommt erst, wenn der Leser die Box kennt, und nur solange sie aus dem Bild ist', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openStory(page);
-  await expect(page.getByTestId('unlock-bar')).toBeVisible();
-  await page.getByTestId('personal-range').scrollIntoViewIfNeeded();
+  // on arrival the bar would cover the data sheet
   await expect(page.getByTestId('unlock-bar')).toHaveCount(0);
+  await page.getByTestId('personal-range').scrollIntoViewIfNeeded();
+  await expect(page.getByTestId('personal-range')).toBeInViewport();
+  await expect(page.getByTestId('unlock-bar')).toHaveCount(0);
+  // the observer reports the box once more on the next frame; then back to the top
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.getByTestId('unlock-bar')).toBeVisible();
 });
