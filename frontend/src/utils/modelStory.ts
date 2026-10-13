@@ -90,6 +90,8 @@ export interface ModelStory {
   level: StoryLevel
   heroSentence: string
   realRangeKm: number | null
+  /** the prospectus range on the drivers' window, 100 to 10 %; null without WLTP */
+  prospectRangeKm: number | null
   summerRangeKm: number | null
   winterRangeKm: number | null
   facts: FactTile[]
@@ -121,6 +123,8 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
   const hasLogs = d.logCount > 0 && d.avgKwhPer100km != null
   const level: StoryLevel = hasLogs ? 'FULL' : 'NONE'
   const realRangeKm = rangeKm(d.netBatteryKwh, d.avgKwhPer100km)
+  // WLTP counts 100 to 0 %, the drivers 100 to 10 %: the comparison puts both on the same window
+  const prospectRangeKm = d.wltpRangeKm ? Math.round(d.wltpRangeKm * RANGE_SHARE / 10) * 10 : null
   const summerRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.summer) : null
   const winterRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.winter) : null
   const p = { model: d.modelName, brand: d.brandName, cars: f.formatNumber(d.carCount), drivers: f.formatNumber(d.driverCount) }
@@ -129,22 +133,23 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
     ? d.wltpRangeKm
       ? f.t('model.story.hero_none', { ...p, wltp: f.formatDistance(d.wltpRangeKm) })
       : f.t('model.story.hero_none_no_wltp', p)
-    : d.wltpRangeKm && d.carCount < MIN_MEASURED_CARS
-      ? f.t(d.driverCount === 1 ? 'model.story.hero_thin_one' : 'model.story.hero_thin', { ...p, wltp: f.formatDistance(d.wltpRangeKm), real: f.formatDistance(realRangeKm) })
-    : d.wltpRangeKm
-      ? f.t('model.story.hero_full', { ...p, wltp: f.formatDistance(d.wltpRangeKm), real: f.formatDistance(realRangeKm) })
+    : prospectRangeKm && d.carCount < MIN_MEASURED_CARS
+      ? f.t(d.driverCount === 1 ? 'model.story.hero_thin_one' : 'model.story.hero_thin', { ...p, wltp: f.formatDistance(prospectRangeKm), real: f.formatDistance(realRangeKm) })
+    : prospectRangeKm
+      ? f.t('model.story.hero_full', { ...p, wltp: f.formatDistance(prospectRangeKm), real: f.formatDistance(realRangeKm) })
       : f.t('model.story.hero_full_no_wltp', { ...p, real: f.formatDistance(realRangeKm) })
 
-  const range = hasLogs ? rangeEvidence(d, f, realRangeKm, summerRangeKm, winterRangeKm) : null
+  const range = hasLogs ? rangeEvidence(d, f, { real: realRangeKm, prospect: prospectRangeKm, summer: summerRangeKm, winter: winterRangeKm }) : null
   const routes = hasLogs ? routeEvidence(d, f) : null
   return {
     level,
     heroSentence,
     realRangeKm,
+    prospectRangeKm,
     summerRangeKm,
     winterRangeKm,
     facts: [
-      rangeFact(d, f, realRangeKm, winterRangeKm),
+      rangeFact(d, f, realRangeKm, winterRangeKm, prospectRangeKm),
       consumptionFact(d, f, hasLogs),
       chargingFact(d, f, hasLogs),
       costFact(d, f, hasLogs),
@@ -155,7 +160,7 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
 
 const label = (f: StoryFormatters, key: FactKey) => f.t(`model.page.fact_${key}`)
 
-function rangeFact(d: StoryInput, f: StoryFormatters, real: number | null, winter: number | null): FactTile {
+function rangeFact(d: StoryInput, f: StoryFormatters, real: number | null, winter: number | null, prospect: number | null): FactTile {
   const base = { key: 'range' as const, label: label(f, 'range'), unit: f.distanceUnit }
   if (real == null) {
     return d.wltpRangeKm
@@ -163,7 +168,7 @@ function rangeFact(d: StoryInput, f: StoryFormatters, real: number | null, winte
       : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE' }
   }
   const note = winter != null ? f.t('model.page.note_winter', { winter: f.formatDistance(winter) })
-    : d.wltpRangeKm ? f.t('model.page.note_wltp', { wltp: f.formatDistance(d.wltpRangeKm) })
+    : prospect ? f.t('model.page.note_wltp', { wltp: f.formatDistance(prospect) })
     : ''
   return { ...base, value: f.formatDistanceValue(real), note, level: 'FULL' }
 }
@@ -219,11 +224,11 @@ function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile
   }
 }
 
-function rangeEvidence(d: StoryInput, f: StoryFormatters, real: number | null,
-                       summer: number | null, winter: number | null): ModelEvidence['range'] {
+function rangeEvidence(d: StoryInput, f: StoryFormatters,
+                       { real, prospect, summer, winter }: Record<'real' | 'prospect' | 'summer' | 'winter', number | null>): ModelEvidence['range'] {
   const bar = (key: EvidenceBar['key'], value: number): EvidenceBar =>
     ({ key, label: f.t(`model.page.range_${key}`), value, text: f.formatDistance(value), reference: key === 'wltp' })
-  const wltp = d.wltpRangeKm ? [bar('wltp', d.wltpRangeKm)] : []
+  const wltp = prospect ? [bar('wltp', prospect)] : []
   if (d.seasonal && summer != null && winter != null) {
     return {
       bars: [...wltp, bar('summer', summer), bar('winter', winter)],

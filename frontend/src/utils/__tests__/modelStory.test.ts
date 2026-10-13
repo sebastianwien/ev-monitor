@@ -59,14 +59,16 @@ describe('buildModelStory', () => {
     expect(s.realRangeKm).toBe(270)
     expect(s.summerRangeKm).toBe(300)
     expect(s.winterRangeKm).toBe(230)
-    expect(s.heroSentence).toBe('Der Prospekt sagt 434 km. 50 Fahrer sagen 270 km.')
+    // the prospectus on the same window as the drivers, 100 to 10 %: 434 × 0.9 = 391 → 390
+    expect(s.prospectRangeKm).toBe(390)
+    expect(s.heroSentence).toBe('Der Prospekt sagt 390 km. 50 Fahrer sagen 270 km.')
   })
 
   it('thin data (under 5 cars): the hero calls it first measurements, not a verdict', () => {
     expect(buildModelStory({ ...full, carCount: 2, driverCount: 2 }, fmt).heroSentence)
-      .toBe('Der Prospekt sagt 434 km. Bisher messen 2 Fahrer 270 km.')
+      .toBe('Der Prospekt sagt 390 km. Bisher messen 2 Fahrer 270 km.')
     expect(buildModelStory({ ...full, carCount: 1, driverCount: 1 }, fmt).heroSentence)
-      .toBe('Der Prospekt sagt 434 km. Bisher misst ein Fahrer 270 km.')
+      .toBe('Der Prospekt sagt 390 km. Bisher misst ein Fahrer 270 km.')
   })
 
   it('data sheet: four tiles in fixed order, one figure and one comparison line each', () => {
@@ -87,7 +89,7 @@ describe('buildModelStory', () => {
     const s = buildModelStory(full, fmt)
 
     expect(s.evidence.range!.bars).toEqual([
-      { key: 'wltp', label: 'Prospekt', value: 434, text: '434 km', reference: true },
+      { key: 'wltp', label: 'Prospekt', value: 390, text: '390 km', reference: true },
       { key: 'summer', label: 'Sommer', value: 300, text: '300 km', reference: false },
       { key: 'winter', label: 'Winter', value: 230, text: '230 km', reference: false },
     ])
@@ -117,7 +119,7 @@ describe('buildModelStory', () => {
   it('a missing season: range evidence shows the year average and names the fleet surcharge', () => {
     const s = buildModelStory({ ...full, seasonal: null, fastChargePowerKw: null }, fmt)
 
-    expect(fact(s, 'range').note).toBe('Prospekt 434 km')
+    expect(fact(s, 'range').note).toBe('Prospekt 390 km')
     expect(s.evidence.range!.bars.map(b => b.key)).toEqual(['wltp', 'year'])
     expect(s.evidence.range!.note).toContain('28 % Winteraufschlag, gemessen an 29 anderen Modellen')
     expect(fact(s, 'charging')).toMatchObject({ value: null, level: 'PARTIAL' })
@@ -128,6 +130,7 @@ describe('buildModelStory', () => {
 
     expect(s.level).toBe('NONE')
     expect(s.realRangeKm).toBeNull()
+    // nothing to compare: the manufacturer's own figure as it stands
     expect(s.heroSentence).toBe('434 km verspricht Volkswagen. Noch kein Fahrer hat nachgemessen.')
     expect(fact(s, 'range')).toMatchObject({ value: '434', level: 'NONE', note: 'laut Hersteller, noch nicht gemessen' })
     expect(fact(s, 'consumption')).toMatchObject({ value: '15.3', level: 'NONE' })

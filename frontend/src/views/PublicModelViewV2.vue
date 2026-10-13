@@ -36,39 +36,51 @@
         </nav>
 
         <div class="grid gap-2 md:gap-5">
-          <!-- 1 Hero: the claim, the gauge, a jump to the profile -->
-          <!-- Phone: text, gauge, jump link; from md up the gauge sits on the right of text and link -->
-          <header class="grid gap-4 px-4 pb-2 md:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] md:items-center md:gap-x-10 md:gap-y-3 md:px-0">
-            <h1 class="md:col-span-2 max-w-[24ch] text-balance text-[clamp(28px,7vw,46px)] font-bold leading-[1.05] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
-            <div class="grid gap-4 md:col-start-1 md:row-start-2">
-              <!-- Variant chips: the page speaks about one battery -->
-              <div v-if="activeVariants.length > 1" class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0" role="group" :aria-label="t('model.variant_title')">
-                <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh" type="button"
-                        class="inline-flex min-h-11 flex-none items-center whitespace-nowrap rounded-full px-4 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                        :class="i === selectedVariantIndex
-                          ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-                          : 'bg-white text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-800 dark:hover:bg-gray-800'"
-                        :aria-pressed="i === selectedVariantIndex"
-                        @click="selectedVariantIndex = i">
-                  {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
-                </button>
-              </div>
-              <p v-else-if="variantLabel" class="text-[14px] font-medium text-gray-500 dark:text-gray-400">{{ variantLabel }}</p>
-              <!-- One sentence per line: "Der Prospekt sagt 434 km." then "48 Fahrer sagen 280 km." -->
-              <p class="text-[clamp(21px,6vw,34px)] font-bold leading-[1.15] tracking-tight text-gray-900 dark:text-gray-100" data-testid="story-hero">
-                <span v-for="(line, i) in heroLines" :key="i" class="block" :class="i === 1 ? 'text-green-700 dark:text-green-400' : ''">{{ line }}{{ ' ' }}</span>
-              </p>
+          <!-- 1 Hero: title, battery, the claim with its gauge as one pair, then the questions as a band -->
+          <header class="grid gap-4 px-4 pb-2 md:gap-6 md:px-0">
+            <h1 class="max-w-[30ch] text-balance text-[clamp(26px,6vw,36px)] font-bold leading-[1.1] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
+            <!-- Battery variants: one scrolling row, a setting, not the message; the fade says there is more -->
+            <div v-if="activeVariants.length > 1" class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] md:mx-0 md:px-0" role="group" :aria-label="t('model.variant_title')">
+              <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh" type="button"
+                      class="inline-flex min-h-11 flex-none items-center whitespace-nowrap rounded-full px-4 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-green-600"
+                      :class="i === selectedVariantIndex
+                        ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                        : 'bg-white text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:ring-gray-800 dark:hover:bg-gray-800'"
+                      :aria-pressed="i === selectedVariantIndex"
+                      @click="selectedVariantIndex = i">
+                {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
+              </button>
             </div>
-            <RangeGauge class="md:col-start-2 md:row-start-2 md:row-span-2" v-if="storyInput.wltpRangeKm" :wltp-km="storyInput.wltpRangeKm" :real-km="story.realRangeKm" :winter-km="story.winterRangeKm" :rating-label="ratingLabel" />
-            <!-- The questions the page answers, as the loudest element after the claim: a dark card with one button -->
-            <a href="#profil" class="group grid gap-3.5 rounded-2xl bg-gray-900 p-4 text-white shadow-lg shadow-gray-900/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 md:col-start-1 md:row-start-3 md:self-start md:p-5 dark:bg-gray-800 dark:shadow-black/30" data-testid="hero-jump" @click="trackJump">
-              <span class="text-[12px] font-semibold uppercase tracking-[0.08em] text-green-400">{{ t('model.page.cta_title') }}</span>
-              <span class="grid gap-2">
-                <span v-for="q in HERO_QUESTIONS" :key="q.key" class="flex items-center gap-2.5 text-[16px] font-semibold leading-snug md:text-[17px]">
-                  <component :is="q.icon" class="h-5 w-5 flex-none text-green-400" aria-hidden="true" />{{ t(`model.page.cta_${q.key}`) }}
+            <p v-else-if="variantLabel" class="text-[14px] font-medium text-gray-500 dark:text-gray-400">{{ variantLabel }}</p>
+
+            <!-- The claim and its gauge side by side from md up, the same height -->
+            <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,360px)] md:items-center md:gap-10">
+              <div class="grid gap-3">
+                <!-- One sentence per line: "Der Prospekt sagt 390 km." then "48 Fahrer sagen 280 km." -->
+                <p class="text-[clamp(22px,6vw,42px)] font-bold leading-[1.1] tracking-tight text-gray-900 dark:text-gray-100" data-testid="story-hero">
+                  <span v-for="(line, i) in heroLines" :key="i" class="block" :class="i === 1 ? 'text-green-700 dark:text-green-400' : ''">{{ line }}{{ ' ' }}</span>
+                </p>
+                <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[52ch] text-[13.5px] leading-snug text-gray-500 dark:text-gray-400" data-testid="hero-basis">
+                  {{ t('model.page.hero_basis', { label: ratingLabel, wltp: formatDistance(storyInput.wltpRangeKm) }) }}
+                </p>
+              </div>
+              <RangeGauge v-if="storyInput.wltpRangeKm"
+                          :wltp-km="story.realRangeKm != null && story.prospectRangeKm != null ? story.prospectRangeKm : storyInput.wltpRangeKm"
+                          :real-km="story.realRangeKm" :winter-km="story.winterRangeKm"
+                          :rating-label="story.realRangeKm != null ? t('model.page.range_wltp') : ratingLabel" />
+            </div>
+
+            <!-- The questions the page answers: a dark band, one button; a card on the phone -->
+            <a href="#profil" class="group grid gap-4 rounded-2xl bg-gray-900 p-4 text-white shadow-lg shadow-gray-900/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-8 md:px-7 md:py-6 dark:bg-gray-800 dark:shadow-black/30" data-testid="hero-jump" @click="trackJump">
+              <span class="grid gap-3">
+                <span class="text-[12px] font-semibold uppercase tracking-[0.08em] text-green-400">{{ t('model.page.cta_title') }}</span>
+                <span class="grid gap-2">
+                  <span v-for="q in HERO_QUESTIONS" :key="q.key" class="flex items-center gap-2.5 text-[16px] font-semibold leading-snug md:text-[17px]">
+                    <component :is="q.icon" class="h-5 w-5 flex-none text-green-400" aria-hidden="true" />{{ t(`model.page.cta_${q.key}`) }}
+                  </span>
                 </span>
               </span>
-              <span class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-500 px-4 text-[16px] font-bold text-gray-950 transition-colors group-hover:bg-green-400">
+              <span class="inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-green-500 px-6 text-[16px] font-bold text-gray-950 transition-colors group-hover:bg-green-400">
                 {{ t('model.page.cta_button') }}<ArrowDownIcon class="h-5 w-5 motion-safe:transition-transform motion-safe:group-hover:translate-y-0.5" aria-hidden="true" />
               </span>
             </a>

@@ -556,6 +556,7 @@ brand:
 
 model:
   page:
+    hero_basis: "Beide Werte von 100 auf 10 % Akku, so fährt man im Alltag. {label} nennt {wltp} bis 0 %."
     cta_button: "Für mein Fahrprofil ausrechnen"
     cta_cost: "Was kostet dich das im Monat?"
     cta_rhythm: "Wie oft musst du laden?"
