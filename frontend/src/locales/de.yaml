@@ -563,7 +563,7 @@ model:
     variant_title: "Welcher Akku?"
     variant_close: "Schließen"
     variant_prospect: "Prospekt {range}"
-    hero_basis: "Beide Werte von 100 auf 10 % Akku, so fährt man im Alltag. {label} nennt {wltp} bis 0 %."
+    hero_basis: "Beide Werte von 100 auf 10 % Akku."
     cta_button: "Für mein Fahrprofil ausrechnen"
     cta_cost: "Was kostet mich das im Monat?"
     cta_rhythm: "Wie oft muss ich laden?"

@@ -53,7 +53,7 @@
                     <span v-for="(line, i) in heroLines" :key="i" class="block" :class="i === 1 ? 'text-green-700 dark:text-green-400' : ''">{{ line }}{{ ' ' }}</span>
                   </p>
                   <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[52ch] text-[13.5px] leading-snug text-gray-500 dark:text-gray-400" data-testid="hero-basis">
-                    {{ t('model.page.hero_basis', { label: ratingLabel, wltp: formatDistance(storyInput.wltpRangeKm) }) }}
+                    {{ t('model.page.hero_basis') }}
                   </p>
                 </div>
                 <RangeGauge v-if="storyInput.wltpRangeKm"

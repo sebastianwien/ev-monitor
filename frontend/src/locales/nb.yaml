@@ -522,7 +522,7 @@ model:
     variant_title: "Hvilket batteri?"
     variant_close: "Lukk"
     variant_prospect: "Brosjyre {range}"
-    hero_basis: "Begge verdier fra 100 til 10 % batteri, slik man kjører i hverdagen. {label} oppgir {wltp} ned til 0 %."
+    hero_basis: "Begge verdier fra 100 til 10 % batteri."
     cta_button: "Regn ut for min kjøring"
     cta_cost: "Hva koster det meg i måneden?"
     cta_rhythm: "Hvor ofte må jeg lade?"
