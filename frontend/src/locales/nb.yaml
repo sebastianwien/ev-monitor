@@ -290,7 +290,6 @@ models_list:
   og_title: "Sammenligning av elbilforbruk – Reelle fellesskapsdata"
   og_description: "Reelle forbruksdata fra fellesskapet for alle elbiler. WLTP mot hverdagsvirkeligheten i direkte sammenligning."
 charge_rhythm:
-  times: "{n}× i uken"
   days: "hver {n}. dag"
   weeks: "hver {n}. uke"
   stops: "1 ladestopp i uken | {n} ladestopp i uken"

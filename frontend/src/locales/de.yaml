@@ -330,7 +330,6 @@ models_list:
   og_description: "Echte Verbrauchsdaten von der Community für alle Elektroautos. WLTP vs. Praxis im direkten Vergleich."
 
 charge_rhythm:
-  times: "{n}× pro Woche"
   days: "alle {n} Tage"
   weeks: "alle {n} Wochen"
   stops: "1 Ladestopp pro Woche | {n} Ladestopps pro Woche"

@@ -9,10 +9,17 @@ const de: RhythmFormat = {
 }
 
 describe('chargeRhythm', () => {
-  it('over once a week counts charges with one decimal', () => {
-    expect(chargeRhythm(2.34, true)).toEqual({ kind: 'times', value: 2.3 })
-    expect(chargeRhythmText(2.3, true, de)).toBe('2,3× pro Woche')
-    expect(chargeRhythmText(2.04, true, de)).toBe('2× pro Woche')
+  it('over once a week counts whole days, never "1,3× pro Woche"', () => {
+    // 7 / 1.3 = 5.4 → every 5 days
+    expect(chargeRhythm(1.3, true)).toEqual({ kind: 'days', value: 5 })
+    expect(chargeRhythmText(1.3, true, de)).toBe('alle 5 Tage')
+    expect(chargeRhythmText(2.34, true, de)).toBe('alle 2 Tage')
+  })
+
+  it('every day or more often reads "täglich"', () => {
+    expect(chargeRhythm(4, true)).toEqual({ kind: 'daily', value: 1 })
+    expect(chargeRhythmText(4, true, de)).toBe('täglich')
+    expect(chargeRhythmText(7, true, de)).toBe('täglich')
   })
 
   it('half to once a week counts days, rounded down', () => {

@@ -162,7 +162,7 @@ describe('PersonalRangeCalculator', () => {
     // weekly charging for the commute under each season, in the ranking's words (chargeRhythm):
     // below half a week in weeks, above once a week as times a week
     expect(result.textContent).toContain('alle 3 Wochen')
-    expect(result.textContent).toContain('1,5× pro Woche')
+    expect(result.textContent).toContain('alle 4 Tage')
     expect(result.querySelectorAll('dl dd').length).toBe(6)
     // the tile reads as a sentence: "alle 3 Wochen / Im Sommer laden für deine Pendelstrecke"
     expect(result.textContent).toContain('Im Winter laden für deine Pendelstrecke')

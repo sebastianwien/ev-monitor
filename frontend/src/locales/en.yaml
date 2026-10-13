@@ -327,7 +327,6 @@ models_list:
   og_description: "Real consumption data from the community for all electric cars. WLTP vs. everyday reality in direct comparison."
 
 charge_rhythm:
-  times: "{n}× a week"
   days: "every {n} days"
   weeks: "every {n} weeks"
   stops: "1 charging stop a week | {n} charging stops a week"

@@ -290,7 +290,6 @@ models_list:
   og_title: "Jämförelse av elbilars förbrukning – Verkliga communitydata"
   og_description: "Verkliga förbrukningsdata från communityn för alla elbilar. WLTP mot vardagsverkligheten i direkt jämförelse."
 charge_rhythm:
-  times: "{n}× i veckan"
   days: "var {n}:e dag"
   weeks: "var {n}:e vecka"
   stops: "1 laddstopp i veckan | {n} laddstopp i veckan"
