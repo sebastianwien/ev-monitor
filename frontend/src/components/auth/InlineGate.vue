@@ -9,10 +9,7 @@
     <!-- Google: One Tap und Button; ohne Script (Adblocker, ITP) der bisherige Redirect-Login -->
     <div v-if="googleEnabled || redirectGoogleEnabled" class="mt-4">
       <div v-show="!googleUnavailable" ref="googleButton" class="min-h-[44px]" />
-      <a v-if="googleUnavailable && redirectGoogleEnabled" href="/oauth2/authorization/google" @click="onRedirectGoogle"
-         class="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 font-semibold text-gray-800 dark:text-gray-100">
-        {{ t('gate.google_redirect') }}
-      </a>
+      <GoogleButton v-if="googleUnavailable && redirectGoogleEnabled" :label="t('gate.google_redirect')" @click="onRedirectGoogle" />
       <p class="mt-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('gate.or_email') }}</p>
     </div>
 
@@ -68,6 +65,7 @@ import { onMounted, ref } from 'vue'
 import { Capacitor } from '@capacitor/core'
 import { useI18n } from 'vue-i18n'
 import { LockOpenIcon } from '@heroicons/vue/24/outline'
+import GoogleButton from './GoogleButton.vue'
 import { useAuthStore } from '../../stores/auth'
 import { analytics } from '../../services/analytics'
 import { currentUtmParams } from '../../utils/reddit-pixel'
