@@ -126,7 +126,6 @@
       </p>
 
       <div class="grid gap-4 border-t border-green-600/25 pt-4 dark:border-green-500/25" data-testid="personal-range-tune">
-        <p class="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('personal_range.tune_title') }}</p>
         <div class="grid gap-2">
           <p id="pr-wallbox-q" class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
           <div class="flex gap-2" role="group" aria-labelledby="pr-wallbox-q">

@@ -54,6 +54,8 @@
                   </p>
                   <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[52ch] text-[13.5px] leading-snug text-gray-500 dark:text-gray-400" data-testid="hero-basis">
                     {{ t('model.page.hero_basis') }}
+                  <template v-if="story.driverRangeKm">{{ ' ' + t('model.page.hero_spread', { min: formatDistance(story.driverRangeKm.minKm, { showUnit: false }), max: formatDistance(story.driverRangeKm.maxKm) }) }}</template>
+                  {{ t('model.page.hero_depends') }}
                   </p>
                 </div>
                 <RangeGauge v-if="storyInput.wltpRangeKm"
@@ -478,6 +480,8 @@ const storyInput = computed((): StoryInput => {
     wltpKwhPer100km: v?.officialConsumptionKwhPer100km ?? worstOfficialConsumption.value,
     wltpRangeKm: v?.officialRangeKm ?? bestOfficialRange.value,
     avgKwhPer100km: st.avgConsumptionKwhPer100km,
+    minKwhPer100km: storyContext.value?.minRealKwhPer100km ?? v?.realConsumptionMinKwhPer100km ?? null,
+    maxKwhPer100km: storyContext.value?.maxRealKwhPer100km ?? v?.realConsumptionMaxKwhPer100km ?? null,
     routeType: rt ? { highway: rt.highwayKwhPer100km, city: rt.cityKwhPer100km, combined: rt.combinedKwhPer100km,
       highwayCars: rt.highwayCarCount, highwayLogs: rt.highwayLogCount, cityLogs: rt.cityLogCount, combinedLogs: rt.combinedLogCount, typedMean: rt.typedMeanKwhPer100km ?? null } : null,
     seasonal: seasonOk ? { summer: season.summerConsumptionKwhPer100km!, winter: season.winterConsumptionKwhPer100km!,

@@ -23,7 +23,7 @@ const fmt: StoryFormatters = {
 const full: StoryInput = {
   modelName: 'Volkswagen ID.3', brandName: 'Volkswagen', logCount: 6230, carCount: 51, driverCount: 50,
   netBatteryKwh: 58, wltpKwhPer100km: 15.3, wltpRangeKm: 434,
-  avgKwhPer100km: 19.1,
+  avgKwhPer100km: 19.1, minKwhPer100km: 16.6, maxKwhPer100km: 19.9,
   routeType: { highway: 18.9, city: 16.2, combined: 17.1, highwayCars: 16, highwayLogs: 121, cityLogs: 119, combinedLogs: 800, typedMean: 17.6 },
   seasonal: { summer: 17.6, winter: 22.6, summerLogs: 1630, winterLogs: 891 },
   fastChargePowerKw: 85,
@@ -32,7 +32,7 @@ const full: StoryInput = {
 }
 
 const specOnly: StoryInput = {
-  ...full, logCount: 0, carCount: 0, driverCount: 0, avgKwhPer100km: null,
+  ...full, logCount: 0, carCount: 0, driverCount: 0, avgKwhPer100km: null, minKwhPer100km: null, maxKwhPer100km: null,
   routeType: null, seasonal: null, fastChargePowerKw: null,
   dcPricePerKwh: null, avgPricePerKwh: null,
 }
@@ -62,6 +62,13 @@ describe('buildModelStory', () => {
     // the prospectus on the same window as the drivers, 100 to 10 %: 434 × 0.9 = 391 → 390
     expect(s.prospectRangeKm).toBe(390)
     expect(s.heroSentence).toBe('Der Prospekt sagt 390 km. 50 Fahrer sagen 270 km.')
+  })
+
+  it('the drivers spread from the thirstiest to the most frugal driver, on the same battery window', () => {
+    // 58 × 0.9 × 100 / 19.9 = 262 → 260; / 16.6 = 314 → 310
+    expect(buildModelStory(full, fmt).driverRangeKm).toEqual({ minKm: 260, maxKm: 310 })
+    expect(buildModelStory({ ...full, minKwhPer100km: null }, fmt).driverRangeKm).toBeNull()
+    expect(buildModelStory(specOnly, fmt).driverRangeKm).toBeNull()
   })
 
   it('thin data (under 5 cars): the hero calls it first measurements, not a verdict', () => {

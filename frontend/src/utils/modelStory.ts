@@ -25,6 +25,9 @@ export interface StoryInput {
   wltpKwhPer100km: number | null
   wltpRangeKm: number | null
   avgKwhPer100km: number | null
+  /** the most frugal and the thirstiest driver of the model (story context), for the spread in the hero */
+  minKwhPer100km?: number | null
+  maxKwhPer100km?: number | null
   /** typedMean: mean of all route-typed trips, the base the highway value is compared with (same period) */
   routeType: { highway: number | null; city: number | null; combined: number | null; highwayCars: number; highwayLogs?: number; cityLogs: number; combinedLogs: number; typedMean?: number | null } | null
   /** null when either season has too few logs */
@@ -92,6 +95,8 @@ export interface ModelStory {
   realRangeKm: number | null
   /** the prospectus range on the drivers' window, 100 to 10 %; null without WLTP */
   prospectRangeKm: number | null
+  /** thirstiest to most frugal driver on the same window; null without both or when they round alike */
+  driverRangeKm: { minKm: number; maxKm: number } | null
   summerRangeKm: number | null
   winterRangeKm: number | null
   facts: FactTile[]
@@ -129,6 +134,8 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
   const level: StoryLevel = hasLogs ? 'FULL' : 'NONE'
   const realRangeKm = rangeKm(d.netBatteryKwh, d.avgKwhPer100km)
   const prospectRangeKm = prospectKm(d.wltpRangeKm)
+  const thirstiest = hasLogs ? rangeKm(d.netBatteryKwh, d.maxKwhPer100km ?? null) : null
+  const frugal = hasLogs ? rangeKm(d.netBatteryKwh, d.minKwhPer100km ?? null) : null
   const summerRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.summer) : null
   const winterRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.winter) : null
   const p = { model: d.modelName, brand: d.brandName, cars: f.formatNumber(d.carCount), drivers: f.formatNumber(d.driverCount) }
@@ -150,6 +157,7 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
     heroSentence,
     realRangeKm,
     prospectRangeKm,
+    driverRangeKm: thirstiest != null && frugal != null && thirstiest < frugal ? { minKm: thirstiest, maxKm: frugal } : null,
     summerRangeKm,
     winterRangeKm,
     facts: [
