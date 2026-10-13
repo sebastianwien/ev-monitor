@@ -5,7 +5,7 @@
     </div>
     <div class="grid gap-8 md:grid-cols-2 md:gap-12">
       <!-- Range: one scale from zero for all bars, the manufacturer's figure as grey reference -->
-      <figure v-if="evidence.range" class="m-0 grid content-start gap-3" data-testid="evidence-range">
+      <figure v-if="evidence.range" class="m-0 grid content-start gap-3 max-md:edge-card max-md:rounded-2xl max-md:p-4" data-testid="evidence-range">
         <figcaption><h3 class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.range_title') }}</h3></figcaption>
         <div class="grid gap-2.5">
           <div v-for="bar in evidence.range.bars" :key="bar.key" class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3 text-[14px]">
@@ -20,7 +20,7 @@
       </figure>
 
       <!-- Route types as the difference to their own mean: left is thriftier, right thirstier -->
-      <figure v-if="evidence.routes" class="m-0 grid content-start gap-3" data-testid="evidence-routes">
+      <figure v-if="evidence.routes" class="m-0 grid content-start gap-3 max-md:edge-card max-md:rounded-2xl max-md:p-4" data-testid="evidence-routes">
         <figcaption><h3 class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.routes_title') }}</h3></figcaption>
         <div class="grid gap-2.5">
           <div v-for="row in evidence.routes.rows" :key="row.key" class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-3 text-[14px]">

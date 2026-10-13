@@ -1,9 +1,9 @@
 <template>
   <section ref="root" id="ergebnis" aria-labelledby="pr-title" data-testid="personal-range"
-           class="grid min-w-0 scroll-mt-28 content-start gap-5 px-4 py-6 transition-colors duration-300 md:rounded-3xl md:border md:p-7 md:shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+           class="grid min-w-0 scroll-mt-28 content-start gap-5 px-4 py-6 transition-colors duration-300 md:rounded-3xl md:p-7 md:edge-box"
            :class="state === 'locked'
-             ? 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'
-             : '-my-2 border-green-600/40 bg-green-50 md:my-0 dark:border-green-500/40 dark:bg-green-950/40'">
+             ? 'bg-white dark:bg-gray-900'
+             : '-my-2 bg-green-50 md:my-0 dark:bg-green-950/40'">
     <!-- Green (gate, result) on the phone: the surface separates it from its white neighbours, so it takes up the grey gaps -->
 
     <!-- Locked: the four questions, placeholders behind a lock. No figure of the result exists in
@@ -20,7 +20,7 @@
         </ol>
       </div>
 
-      <div class="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800" data-testid="personal-range-placeholder">
+      <div class="relative overflow-hidden rounded-2xl border border-gray-200 max-md:edge-card dark:border-gray-800" data-testid="personal-range-placeholder">
         <dl class="grid select-none grid-cols-2 gap-px bg-gray-200 blur-[5px] dark:bg-gray-800" aria-hidden="true">
           <div v-for="label in shortLabels" :key="label" class="grid h-[76px] content-start gap-1 bg-white px-3 py-3 dark:bg-gray-900">
             <dt class="text-[12px] text-gray-500 dark:text-gray-400">{{ label }}</dt>
@@ -45,7 +45,7 @@
         {{ inputs.homeCharging ? t('personal_range.assume_home') : t('personal_range.assume_public') }}
       </p>
       <button type="button" data-testid="personal-range-calculate" :disabled="busy"
-              class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60"
+              class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60 btn-3d cta-shadow border-2 border-gray-900 dark:border-gray-200"
               @click="request">
         <LockOpenIcon class="h-5 w-5" aria-hidden="true" />
         {{ busy ? t('personal_range.calculating') : ctaLabel }}
@@ -71,7 +71,7 @@
 
       <p class="sr-only" role="status">{{ busy ? t('personal_range.calculating') : '' }}</p>
       <!-- One answer per row, as a sentence; the figure is the loud part -->
-      <ul v-if="answer" class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-opacity dark:divide-green-500/15 dark:bg-gray-900" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
+      <ul v-if="answer" class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-opacity max-md:edge-card dark:divide-green-500/15 dark:bg-gray-900" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
         <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-winter">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"><CloudIcon class="h-5 w-5" aria-hidden="true" /></span>
           <div class="grid gap-1">
@@ -132,15 +132,15 @@
 
 
       <!-- The two assumptions to play with, in a card of their own: spacing instead of lines -->
-      <div class="grid gap-6 rounded-2xl bg-white px-4 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] dark:bg-gray-900" data-testid="personal-range-tune">
+      <div class="grid gap-6 rounded-2xl bg-white px-4 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900" data-testid="personal-range-tune">
         <div class="grid justify-items-center gap-3 text-center">
           <p id="pr-wallbox-q" class="text-[16px] font-bold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
           <div class="flex justify-center gap-2" role="group" aria-labelledby="pr-wallbox-q">
             <button v-for="opt in WALLBOX" :key="String(opt)" type="button" :aria-pressed="inputs.homeCharging === opt"
                     class="inline-flex min-h-11 min-w-[96px] items-center justify-center rounded-full border-2 px-5 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                     :class="inputs.homeCharging === opt
-                      ? 'border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
-                      : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'"
+                      ? 'btn-3d cta-shadow border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+                      : 'btn-3d cta-shadow border-gray-900 bg-white text-gray-800 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-200'"
                     :data-testid="`wallbox-${opt ? 'yes' : 'no'}`"
                     @click="setHome(opt)">
               {{ opt ? t('personal_range.wallbox_yes') : t('personal_range.wallbox_no') }}
@@ -165,7 +165,7 @@
           {{ t('personal_range.assumptions_title') }}
           <ChevronDownIcon class="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
         </summary>
-        <ul class="mt-1 space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] dark:bg-gray-900">
+        <ul class="mt-1 space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900">
           <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
             <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
             <!-- a fixed setting, not a missing measurement: no warning colour -->

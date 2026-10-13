@@ -27,7 +27,7 @@
 
         <!-- Breadcrumb: als Chip geerdet, damit er nicht im Gitter-Hintergrund untergeht -->
         <nav aria-label="Breadcrumb" class="mb-4 px-4 md:px-0">
-          <ol class="flex flex-nowrap items-center gap-1.5 text-sm whitespace-nowrap overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-1.5 shadow-sm">
+          <ol class="flex flex-nowrap items-center gap-1.5 text-sm whitespace-nowrap overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white dark:bg-gray-900 edge-card rounded-full px-3.5 py-1.5">
             <li class="shrink-0"><a href="/" class="flex items-center gap-1 font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors"><HomeIcon class="h-4 w-4 shrink-0" aria-hidden="true" /><span class="sr-only md:not-sr-only">{{ t('model.breadcrumb_home') }}</span></a></li>
             <li class="flex shrink-0 items-center gap-1.5"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" /><a :href="modelsBaseUrl" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_models') }}</a></li>
             <li class="flex shrink-0 items-center gap-1.5"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" /><a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ stats.brandDisplayName }}</a></li>
@@ -38,7 +38,7 @@
         <div class="grid gap-2 md:gap-5">
           <!-- 1 Hero: its own box, the questions docked below it. On the phone the green chat closes the box and the
                change of surface to the next box is the separation, so no gap and no line on top of it. -->
-          <header class="relative z-10 -mb-2 border-gray-200 bg-white md:mb-0 md:rounded-3xl md:border md:shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-gray-900">
+          <header class="relative z-10 -mb-2 border-gray-200 bg-white md:mb-0 md:rounded-3xl md:edge-box dark:bg-gray-900">
             <div class="grid gap-5 px-4 py-6 md:gap-6 md:px-10 md:py-8">
               <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:gap-8">
                 <h1 class="max-w-[30ch] text-balance text-[22px] md:text-[32px] font-bold leading-[1.15] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
@@ -67,7 +67,7 @@
             </div>
 
             <!-- Docked below in light grey: a buyer asks the four questions the page answers -->
-            <div class="border-gray-200 bg-white px-4 pb-5 pt-1 md:rounded-b-3xl md:border-t md:bg-gray-50 md:pt-5 md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-900 md:dark:bg-gray-800/40">
+            <div class="border-gray-200 bg-white px-4 pb-5 pt-1 md:rounded-b-3xl md:border-t-2 md:border-gray-900 md:bg-gray-50 md:dark:border-gray-200 md:pt-5 md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-900 md:dark:bg-gray-800/40">
               <BuyerQuestions @jump="trackJump" />
             </div>
           </header>
@@ -180,7 +180,7 @@
               <h2 class="text-balance text-[19px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.story.owner_title', { model: shortModelName }) }}</h2>
               <p class="text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('model.story.owner_text', { n: formatNumber(stats.uniqueCars + 1) }) }}</p>
             </div>
-            <a :href="registerPath" class="inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl bg-gray-900 px-6 font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">{{ t('model.story.owner_cta') }}</a>
+            <a :href="registerPath" class="inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl bg-gray-900 px-6 font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white btn-3d cta-shadow border-2 border-gray-900 dark:border-gray-100">{{ t('model.story.owner_cta') }}</a>
           </ModelBox>
 
           <!-- SEO text: the long-tail answers in prose, last on the page -->

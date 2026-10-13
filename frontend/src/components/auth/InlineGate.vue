@@ -105,7 +105,7 @@ const inputClass = computed(() => props.plain
   ? 'rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900'
   : 'rounded-lg border-2 border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800')
 const buttonClass = computed(() => props.plain
-  ? 'rounded-xl bg-green-600 hover:bg-green-700'
+  ? 'btn-3d cta-shadow rounded-xl border-2 border-gray-900 bg-green-600 hover:bg-green-700 dark:border-gray-200'
   : 'btn-3d rounded-lg border-2 border-gray-800 bg-green-600 dark:border-gray-200')
 const redirectGoogleEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true' && !Capacitor.isNativePlatform()
 

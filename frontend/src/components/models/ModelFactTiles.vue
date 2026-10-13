@@ -8,7 +8,7 @@
          its unit on one line, at most two lines of note; tiles in a row share their height. -->
     <dl class="grid auto-rows-fr grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
       <div v-for="fact in facts" :key="fact.key"
-           class="flex flex-col gap-1.5 rounded-2xl bg-gray-100/80 p-3.5 md:p-5 dark:bg-gray-800/60"
+           class="flex flex-col gap-1.5 rounded-2xl bg-white p-3.5 max-md:edge-card md:bg-gray-100/80 md:p-5 dark:bg-gray-900 md:dark:bg-gray-800/60"
            :data-testid="`fact-${fact.key}`">
         <dt class="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 md:text-[12.5px] dark:text-gray-400">
           {{ fact.label }}

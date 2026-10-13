@@ -1,7 +1,7 @@
 <template>
   <!-- One row per battery: prospectus against measurement, summer and winter range where measured -->
   <ul class="grid gap-2" data-testid="variants-list">
-    <li v-for="v in variants" :key="v.displayLabel ?? v.batteryCapacityKwh" class="grid gap-2 rounded-xl bg-gray-50 p-3 dark:bg-gray-800/60">
+    <li v-for="v in variants" :key="v.displayLabel ?? v.batteryCapacityKwh" class="grid gap-2 rounded-xl bg-white p-3 max-md:edge-card md:bg-gray-50 dark:bg-gray-900 md:dark:bg-gray-800/60">
       <p class="flex items-baseline justify-between gap-3">
         <b class="text-[14.5px] font-semibold text-gray-900 dark:text-gray-100">{{ v.displayLabel || v.variantName || `${formatNumber(v.batteryCapacityKwh)} kWh` }}</b>
         <span class="whitespace-nowrap text-[12.5px] text-gray-500 dark:text-gray-400">{{ formatNumber(v.batteryCapacityKwh) }} kWh</span>
