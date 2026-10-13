@@ -128,15 +128,11 @@
         </li>
       </ul>
 
-      <p class="inline-flex items-center gap-1.5 justify-self-start rounded-full px-2.5 py-1 text-xs font-semibold"
-         :class="result.dataLevel === 'MEASURED' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'">
-        {{ t(`personal_range.data_level_${result.dataLevel}`) }}
-      </p>
 
       <div class="grid gap-4 border-t border-green-600/25 pt-4 dark:border-green-500/25" data-testid="personal-range-tune">
-        <div class="grid gap-2">
+        <div class="grid justify-items-center gap-2 text-center">
           <p id="pr-wallbox-q" class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
-          <div class="flex gap-2" role="group" aria-labelledby="pr-wallbox-q">
+          <div class="flex justify-center gap-2" role="group" aria-labelledby="pr-wallbox-q">
             <button v-for="opt in WALLBOX" :key="String(opt)" type="button" :aria-pressed="inputs.homeCharging === opt"
                     class="inline-flex min-h-11 min-w-[84px] items-center justify-center rounded-full border-2 px-4 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                     :class="inputs.homeCharging === opt
