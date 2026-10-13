@@ -27,6 +27,8 @@ function mount() {
 }
 
 const flush = async () => { await nextTick(); await nextTick() }
+/** The sheet slides out: wait for the leave transition (a frame in jsdom) */
+const closed = async () => { await flush(); await new Promise(r => setTimeout(r, 60)); await flush() }
 const trigger = () => document.querySelector('[data-testid="variant-picker"]') as HTMLButtonElement
 const dialog = () => document.querySelector('[role="dialog"]') as HTMLElement | null
 
@@ -57,7 +59,7 @@ describe('VariantPicker', () => {
     trigger().click()
     await flush()
     ;(dialog()!.querySelector('[data-variant="gtx"]') as HTMLButtonElement).click()
-    await flush()
+    await closed()
     expect(state.selected).toBe(2)
     expect(dialog()).toBeNull()
     expect(document.activeElement).toBe(trigger())
@@ -68,7 +70,7 @@ describe('VariantPicker', () => {
     trigger().click()
     await flush()
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    await flush()
+    await closed()
     expect(dialog()).toBeNull()
     expect(state.selected).toBe(1)
   })

@@ -11,7 +11,8 @@
       <ChevronDownIcon class="h-5 w-5 flex-none transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true" />
     </button>
 
-    <!-- Desktop: a popover under the button -->
+    <!-- Desktop: a popover under the button, rising a few pixels as it fades in -->
+    <Transition name="pop">
     <div v-if="open && desktop" ref="panel" role="dialog" :aria-label="t('model.page.variant_title')"
          class="absolute right-0 top-[calc(100%+8px)] z-40 grid w-[min(640px,calc(100vw-48px))] gap-3 rounded-2xl bg-white p-4 edge-box dark:border-gray-700 dark:bg-gray-900">
       <p class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.variant_title') }}</p>
@@ -19,12 +20,16 @@
         <VariantPickerItem v-for="(o, i) in options" :key="o.key" :option="o" :selected="i === modelValue" @choose="choose(i)" />
       </div>
     </div>
+    </Transition>
 
-    <!-- Phone: a bottom sheet; teleported, the page wrapper animates with a transform -->
+    <!-- Phone: a bottom sheet that slides up from below over a fading veil; teleported, the page
+         wrapper animates with a transform -->
     <Teleport to="body">
-      <template v-if="open && !desktop">
-        <div class="fixed inset-0 z-50 bg-gray-900/45 dark:bg-black/60" aria-hidden="true" @click="close()"></div>
-        <div ref="panel" role="dialog" aria-modal="true" :aria-label="t('model.page.variant_title')"
+      <Transition name="veil">
+        <div v-if="open && !desktop" class="fixed inset-0 z-50 bg-gray-900/45 dark:bg-black/60" aria-hidden="true" @click="close()"></div>
+      </Transition>
+      <Transition name="sheet">
+        <div v-if="open && !desktop" ref="panel" role="dialog" aria-modal="true" :aria-label="t('model.page.variant_title')"
              class="fixed inset-x-0 bottom-0 z-50 grid max-h-[80vh] gap-3 overflow-y-auto rounded-t-3xl bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-2.5 shadow-[0_-10px_30px_rgba(0,0,0,0.2)] dark:bg-gray-900">
           <span class="h-1 w-10 justify-self-center rounded-full bg-gray-200 dark:bg-gray-700" aria-hidden="true"></span>
           <div class="flex items-center justify-between">
@@ -37,7 +42,7 @@
             <VariantPickerItem v-for="(o, i) in options" :key="o.key" :option="o" :selected="i === modelValue" @choose="choose(i)" />
           </div>
         </div>
-      </template>
+      </Transition>
     </Teleport>
   </div>
 </template>
@@ -141,3 +146,19 @@ const VariantPickerItem = defineComponent({
   },
 })
 </script>
+
+<style scoped>
+/* Bottom sheet: up from below with a soft landing, down a little faster; the veil fades alongside */
+.sheet-enter-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.sheet-leave-active { transition: transform 0.2s cubic-bezier(0.4, 0, 1, 1); }
+.sheet-enter-from, .sheet-leave-to { transform: translateY(100%); }
+.veil-enter-active, .veil-leave-active { transition: opacity 0.24s ease; }
+.veil-enter-from, .veil-leave-to { opacity: 0; }
+/* Popover from md up: fades in while rising a few pixels */
+.pop-enter-active { transition: opacity 0.16s ease, transform 0.16s ease-out; }
+.pop-leave-active { transition: opacity 0.12s ease; }
+.pop-enter-from, .pop-leave-to { opacity: 0; transform: translateY(6px); }
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter-active, .sheet-leave-active, .veil-enter-active, .veil-leave-active, .pop-enter-active, .pop-leave-active { transition: none; }
+}
+</style>
