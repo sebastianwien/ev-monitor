@@ -286,7 +286,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { useCountryStore } from '../stores/country'
 import { getChargingReferencePrices, getModelStats, getStoryContext, type ModelStoryContext, type PublicModelStats } from '../api/publicModelService'
-import { combustionLiters } from '../utils/costMix'
+import { COMBUSTION_LITERS_BY_CLASS, combustionLiters } from '../utils/costMix'
 import {
   ChevronDownIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
@@ -448,7 +448,12 @@ const MIN_LOGS_PER_SEASON = 10
 const petrolPricePerLiter = ref<number | null>(null)
 /** A comparable petrol car for the cost answer: litres by vehicle class, only where the fuel price is German */
 const petrolComparison = computed(() => currentMarket.value === 'de' && petrolPricePerLiter.value
-  ? { pricePerLiter: petrolPricePerLiter.value, litersPer100km: combustionLiters({ litersPer100km: null, fuel: 'petrol' }, stats.value?.category) }
+  ? {
+      pricePerLiter: petrolPricePerLiter.value,
+      // same vehicle class as the model (COMPACT, SUV, ...); unknown class: the fallback litres, no class name
+      litersPer100km: combustionLiters({ litersPer100km: null, fuel: 'petrol' }, stats.value?.category),
+      category: stats.value?.category && COMBUSTION_LITERS_BY_CLASS[stats.value.category] ? stats.value.categoryDisplayName ?? null : null,
+    }
   : null)
 
 /** One card per battery in the picker: the same range rule as the hero (net battery × 0,9 ÷ model mean) */

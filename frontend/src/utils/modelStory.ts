@@ -67,8 +67,6 @@ export interface FactTile {
   unit: string
   note: string
   level: StoryLevel
-  /** below the figure instead of one note line: "Normale Ladung, 20 → 80 %: 14 €" */
-  rows?: { label: string; detail: string; value: string }[]
 }
 
 export interface EvidenceBar {
@@ -225,27 +223,15 @@ function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): Fact
 
 function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
   const base = { key: 'cost' as const, label: label(f, 'cost') }
-  if (!d.avgPricePerKwh || !d.avgKwhPer100km) {
-    return { ...base, value: null, unit: '', note: f.t('model.page.note_cost_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
+  // What a buyer pays per charge: at home 20 to 80 % at the AC price, on the road 10 to 80 % at the DC price
+  const home = d.netBatteryKwh && d.acPricePerKwh ? d.netBatteryKwh * NORMAL_SHARE / AC_CHARGING_EFFICIENCY * d.acPricePerKwh : null
+  const fast = fastStop(d.netBatteryKwh, d.dcPricePerKwh ?? d.avgPricePerKwh)?.eur ?? null
+  if (home != null) {
+    return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'),
+      note: fast != null ? f.t('model.page.note_cost_fast', { fast: f.formatCurrency(fast) }) : '' }
   }
-  // "7,14 €/100km" → "7,14 €" big, "/100km" small; "£7.14/100mi" alike
-  const text = f.formatCostPerDistance(d.avgPricePerKwh * d.avgKwhPer100km)
-  const cut = text.lastIndexOf('/')
-  // What a buyer pays per charge: a normal one at the AC price, a fast-charging stop at the DC price
-  const rows: NonNullable<FactTile['rows']> = []
-  if (d.netBatteryKwh && d.acPricePerKwh) {
-    rows.push({ label: f.t('model.page.cost_normal'), detail: '20 → 80 %',
-      value: f.formatCurrency(d.netBatteryKwh * NORMAL_SHARE / AC_CHARGING_EFFICIENCY * d.acPricePerKwh) })
-  }
-  const stop = fastStop(d.netBatteryKwh, d.dcPricePerKwh ?? d.avgPricePerKwh)
-  if (stop) rows.push({ label: f.t('model.page.cost_stop'), detail: '10 → 80 %', value: f.formatCurrency(stop.eur) })
-  return {
-    ...base, level: 'FULL',
-    value: cut > 0 ? text.slice(0, cut) : text,
-    unit: cut > 0 ? text.slice(cut) : '',
-    note: rows.length ? '' : f.t('model.page.note_cost_short', { price: f.formatCostPerKwh(d.avgPricePerKwh) }),
-    rows,
-  }
+  if (fast != null) return { ...base, level: 'FULL', value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast'), note: '' }
+  return { ...base, value: null, unit: '', note: f.t('model.page.note_cost_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
 }
 
 function rangeEvidence(d: StoryInput, f: StoryFormatters,

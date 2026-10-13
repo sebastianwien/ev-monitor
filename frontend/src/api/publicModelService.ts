@@ -75,6 +75,7 @@ export interface PublicModelStats {
     modelDisplayName: string
     /** vehicle class (COMPACT, SUV, ...); picks the litres of the petrol comparison */
     category?: string | null
+    categoryDisplayName?: string | null
     logCount: number
     uniqueContributors: number
     uniqueCars: number

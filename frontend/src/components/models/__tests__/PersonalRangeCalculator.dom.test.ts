@@ -31,7 +31,7 @@ const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, commuteDaysPerWeek: 3
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear(); vi.useRealTimers() })
 
-function mount(loggedIn: boolean, data: { logCount: number; carCount: number; petrol?: { pricePerLiter: number; litersPer100km: number } } = { logCount: 6796, carCount: 35 }, openCount = 0, inputs: Partial<PersonalRangeInputs> = {}) {
+function mount(loggedIn: boolean, data: { logCount: number; carCount: number; petrol?: { pricePerLiter: number; litersPer100km: number; category: string | null } } = { logCount: 6796, carCount: 35 }, openCount = 0, inputs: Partial<PersonalRangeInputs> = {}) {
   setActivePinia(createPinia())
   if (loggedIn) {
     const auth = useAuthStore()
@@ -255,14 +255,17 @@ describe('PersonalRangeCalculator', () => {
 
   it('cost: what a comparable petrol car would cost a month, and the saving', async () => {
     vi.mocked(api.post).mockResolvedValueOnce({ data: RESULT } as never)
-    const { host } = mount(true, { logCount: 6796, carCount: 35, petrol: { pricePerLiter: 1.8, litersPer100km: 6.8 } }, 0, { annualKm: 12000 })
+    const { host } = mount(true, { logCount: 6796, carCount: 35, petrol: { pricePerLiter: 1.8, litersPer100km: 6.8, category: 'Kompakt' } }, 0, { annualKm: 12000 })
     await flush()
 
     // 1.000 km a month × 6.8 l × 1.80 € = 122 €; the EV 46 €
     const cost = host.querySelector('[data-testid="answer-cost"]')!.textContent?.replace(/\s+/g, ' ')
     expect(cost).toMatch(/Ein vergleichbarer Benziner kostet rund 122\s€, du sparst 76\s€ im Monat\./)
-    expect(cost).toContain('6,8 l/100 km')
-    expect(cost).toContain('Tankerkönig')
+    // the petrol car of the same vehicle class, named
+    expect(cost).toContain('Benziner der Klasse Kompakt mit 6,8 l/100 km')
+    // 46 € × 12 / 12.000 km = 4,60 € per 100 km
+    expect(cost).toMatch(/4,60\s€\/100km bei 12\.000\skm im Jahr/)
+    expect(cost).not.toContain('Tankerkönig')
   })
 
   it('cost: no petrol comparison without a fuel price (outside Germany)', async () => {

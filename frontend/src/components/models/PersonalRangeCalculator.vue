@@ -224,8 +224,8 @@ const props = defineProps<{
   inputs: PersonalRangeInputs
   /** unanswered sliders; the result rests on answers only, never on start values */
   openCount: number
-  /** a comparable petrol car (litres by vehicle class, German daily fuel price); null outside Germany */
-  petrol?: { pricePerLiter: number; litersPer100km: number } | null
+  /** a petrol car of the same vehicle class (its litres, the class name), German daily fuel price; null outside Germany */
+  petrol?: { pricePerLiter: number; litersPer100km: number; category: string | null } | null
 }>()
 const emit = defineEmits<{
   profile: [inputs: PersonalRangeInputs]
@@ -236,7 +236,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const authStore = useAuthStore()
-const { formatNumber, formatDistance, formatCurrency, formatConsumption, formatCostPerKwh, formatDecimal } = useLocaleFormat()
+const { formatNumber, formatDistance, formatCurrency, formatConsumption, formatCostPerKwh, formatCostPerDistance, formatDecimal } = useLocaleFormat()
 
 /** Below this many cars the box does not advertise measured data (same as the backend highway threshold). */
 const MIN_MEASURED_CARS = 5
@@ -290,7 +290,10 @@ const answer = computed(() => {
     chargeTime: r.longTripStops > 0 ? t('personal_range.charge_time', { duration: duration(r.longTripChargingMinutes) }) : null,
     powerEstimated: r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured),
     cost: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
-    costBasis: inputs.annualKm ? t('personal_range.cost_basis_annual', { annual: formatDistance(inputs.annualKm) }) : t('personal_range.cost_basis_charges'),
+    // the reader's own cost per 100 km, from the month and the yearly mileage it rests on
+    costBasis: inputs.annualKm
+      ? t('personal_range.cost_basis_per100', { per100: formatCostPerDistance(r.monthlyCostEur * 12 / inputs.annualKm * 100), annual: formatDistance(inputs.annualKm) })
+      : t('personal_range.cost_basis_charges'),
     petrol: petrolCompare(r.monthlyCostEur, inputs.annualKm ?? null),
   }
 })
@@ -304,7 +307,8 @@ function petrolCompare(evMonthly: number, annualKm: number | null) {
   return {
     cost: formatCurrency(monthly, { decimals: 0 }),
     saving: saving > 0 ? formatCurrency(saving, { decimals: 0 }) : null,
-    basis: t('personal_range.petrol_basis', { liters: formatDecimal(p.litersPer100km, 1), price: formatCurrency(p.pricePerLiter, { decimals: 2 }) }),
+    basis: t(p.category ? 'personal_range.petrol_basis' : 'personal_range.petrol_basis_plain',
+      { category: p.category ?? '', liters: formatDecimal(p.litersPer100km, 1), price: formatCurrency(p.pricePerLiter, { decimals: 2 }) }),
   }
 }
 

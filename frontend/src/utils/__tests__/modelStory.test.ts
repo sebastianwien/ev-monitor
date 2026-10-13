@@ -87,14 +87,11 @@ describe('buildModelStory', () => {
     // 19.1 / 15.3 = +25 %
     expect(fact(s, 'consumption')).toMatchObject({ value: '19.1', unit: 'kWh/100km', note: '25 % über Prospekt (15.3)' })
     // 58 × 0.7 / 85 kW = 28.7 min → 30
-    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '10 auf 80 %, typisch 85 kW' })
+    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '10 auf 80 %, im Schnitt 85 kW' })
     // 0.372 × 19.1 = 7.11
-    // 0.372 × 19.1 = 7.11; a normal charge 20 to 80 % at AC: 58 × 0.6 / 0.9 = 38.7 kWh × 0.35 = 13.53 → 14 €;
-    // a fast-charging stop 10 to 80 % at DC: 58 × 0.7 / 0.95 = 42.7 kWh × 0.427 = 18.25 → 18 €
-    expect(fact(s, 'cost')).toMatchObject({ value: '7.11 €', unit: '/100km', rows: [
-      { label: 'Normale Ladung', detail: '20 → 80 %', value: '14 €' },
-      { label: 'Schnellladestopp', detail: '10 → 80 %', value: '18 €' },
-    ] })
+    // a home charge 20 to 80 % at AC: 58 × 0.6 / 0.9 = 38.7 kWh × 0.35 = 13.53 → 14 €;
+    // a fast charge 10 to 80 % at DC: 58 × 0.7 / 0.95 = 42.7 kWh × 0.427 = 18.25 → 18 €
+    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', unit: 'Heimladung', note: 'Schnellladung 18 €' })
   })
 
   it('evidence: range by season against the prospectus, bars from zero on one scale', () => {
@@ -159,9 +156,9 @@ describe('buildModelStory', () => {
     expect(s.evidence.range!.bars.map(b => b.key)).toEqual(['summer', 'winter'])
   })
 
-  it('cost without an AC price: only the fast-charging stop', () => {
+  it('cost without an AC price: the fast charge is the figure', () => {
     const s = buildModelStory({ ...full, acPricePerKwh: null }, fmt)
-    expect(fact(s, 'cost').rows!.map(r => r.label)).toEqual(['Schnellladestopp'])
+    expect(fact(s, 'cost')).toMatchObject({ value: '18 €', unit: 'Schnellladung', note: '' })
   })
 
   it('a consumption below the prospectus says so', () => {
