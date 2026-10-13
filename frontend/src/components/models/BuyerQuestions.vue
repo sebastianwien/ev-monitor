@@ -12,8 +12,8 @@
            :class="DESKTOP_PLACE[i]">
           <component :is="q.icon" class="h-5 w-5 flex-none text-green-600 dark:text-green-400" aria-hidden="true" />{{ t(`model.page.cta_${q.key}`) }}
           <!-- Tail towards the buyer in the middle -->
-          <svg class="absolute bottom-0 h-[22px] w-[18px] text-white dark:text-gray-900" :class="i < 2 ? '-right-[12px]' : '-left-[12px] -scale-x-100'" viewBox="0 0 18 22" aria-hidden="true">
-            <path d="M0 0c0 11 4 18 18 22C8 22 1 20 0 16Z" fill="currentColor" />
+          <svg class="absolute bottom-0 h-[30px] w-[26px] text-white dark:text-gray-900" :class="i < 2 ? '-right-[18px]' : '-left-[18px] -scale-x-100'" viewBox="0 0 26 30" aria-hidden="true">
+            <path d="M0 0C8 11 15 22 26 30C15 31 6 30 0 27Z" fill="currentColor" />
           </svg>
         </p>
       </div>
@@ -32,8 +32,8 @@
            :class="i === QUESTIONS.length - 1 ? 'rounded-bl-[6px]' : ''">
           <component :is="q.icon" class="h-[18px] w-[18px] flex-none text-green-600 dark:text-green-400" aria-hidden="true" />{{ t(`model.page.cta_${q.key}`) }}
           <!-- The last question of the thread points at the buyer, as in a messenger -->
-          <svg v-if="i === QUESTIONS.length - 1" class="absolute -left-[12px] bottom-0 h-[22px] w-[18px] -scale-x-100 text-white dark:text-gray-900" viewBox="0 0 18 22" aria-hidden="true">
-            <path d="M0 0c0 11 4 18 18 22C8 22 1 20 0 16Z" fill="currentColor" />
+          <svg v-if="i === QUESTIONS.length - 1" class="absolute -left-[18px] bottom-0 h-[30px] w-[26px] -scale-x-100 text-white dark:text-gray-900" viewBox="0 0 26 30" aria-hidden="true">
+            <path d="M0 0C8 11 15 22 26 30C15 31 6 30 0 27Z" fill="currentColor" />
           </svg>
         </p>
       </div>
@@ -42,8 +42,8 @@
         <a href="#profil" class="bubble relative inline-flex min-h-12 items-center justify-center gap-2 rounded-[22px] rounded-br-[6px] bg-green-600 px-5 text-[16px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
            @click="go">
           {{ t('model.page.cta_reply') }}<ArrowDownIcon class="h-5 w-5" aria-hidden="true" />
-          <svg class="absolute -right-[12px] bottom-0 h-[22px] w-[18px] text-green-600" viewBox="0 0 18 22" aria-hidden="true">
-            <path d="M0 0c0 11 4 18 18 22C8 22 1 20 0 16Z" fill="currentColor" />
+          <svg class="absolute -right-[18px] bottom-0 h-[30px] w-[26px] text-green-600" viewBox="0 0 26 30" aria-hidden="true">
+            <path d="M0 0C8 11 15 22 26 30C15 31 6 30 0 27Z" fill="currentColor" />
           </svg>
         </a>
       </div>
