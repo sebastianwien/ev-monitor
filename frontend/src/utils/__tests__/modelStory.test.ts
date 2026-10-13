@@ -160,7 +160,7 @@ describe('buildModelStory', () => {
   it('cost: the fast charge at the price without a subscription, when known', () => {
     // 58 × 0.7 / 0.95 = 42.7 kWh × 0.65 = 27.8 → 28 €
     const s = buildModelStory({ ...full, fastAdHocPricePerKwh: 0.65 }, fmt)
-    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', extra: { value: '28 €', unit: 'Schnellladung' }, note: 'Schnellladen ohne Ladeabo' })
+    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', extra: { value: '28 €', unit: 'Schnellladung' }, note: '' })
   })
 
   it('cost without an AC price: the fast charge is the figure', () => {

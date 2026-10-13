@@ -515,7 +515,6 @@ brand:
   og_title: "{brand} Elbiler – Reelt forbruk & WLTP {year}"
 model:
   page:
-    note_cost_adhoc: "Hurtiglading uten abonnement"
     cta_from: "EV Monitor"
     cta_reply: "Vi regner det ut for deg"
     cta_trip: "Hvor ofte lader jeg på ferieturen?"

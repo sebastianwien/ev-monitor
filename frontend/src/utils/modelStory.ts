@@ -232,12 +232,11 @@ function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile
   // what a new driver pays on the motorway: the contract-free price; the drivers' own DC price only without it
   const adHoc = d.fastAdHocPricePerKwh ?? null
   const fast = fastStop(d.netBatteryKwh, adHoc ?? d.dcPricePerKwh ?? d.avgPricePerKwh)?.eur ?? null
-  const fastNote = fast != null && adHoc != null ? f.t('model.page.note_cost_adhoc') : ''
   if (home != null) {
-    return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'), note: fastNote,
+    return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'), note: '',
       ...(fast != null ? { extra: { value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast') } } : {}) }
   }
-  if (fast != null) return { ...base, level: 'FULL', value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast'), note: fastNote }
+  if (fast != null) return { ...base, level: 'FULL', value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast'), note: '' }
   return { ...base, value: null, unit: '', note: f.t('model.page.note_cost_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
 }
 

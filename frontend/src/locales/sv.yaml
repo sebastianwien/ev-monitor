@@ -515,7 +515,6 @@ brand:
   og_title: "{brand} Elbilar – Verklig förbrukning & WLTP {year}"
 model:
   page:
-    note_cost_adhoc: "Snabbladdning utan abonnemang"
     cta_from: "EV Monitor"
     cta_reply: "Vi räknar ut det åt dig"
     cta_trip: "Hur ofta laddar jag på semesterresan?"

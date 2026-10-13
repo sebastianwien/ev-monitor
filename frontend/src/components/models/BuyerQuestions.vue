@@ -4,7 +4,7 @@
        questions on the left, EV Monitor answering on the right. Only one layout is displayed at a time. -->
   <div class="grid gap-4">
     <div class="hidden gap-5 md:grid" data-testid="buyer-desktop">
-      <p class="text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('model.page.cta_title') }}</p>
+      <h2 class="text-center text-[22px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.page.cta_title') }}</h2>
       <div class="grid grid-cols-[minmax(0,1fr)_128px_minmax(0,1fr)] items-center gap-x-5 gap-y-3.5">
         <img :src="PERSON" alt="" width="128" height="128" class="col-start-2 row-span-2 row-start-1 h-32 w-32 justify-self-center rounded-full bg-green-100 dark:bg-green-900/40" />
         <p v-for="(q, i) in QUESTIONS" :key="q.key" data-question
@@ -25,7 +25,7 @@
 
     <!-- Phone: a messenger thread in the look of WhatsApp, the buyer on the left, EV Monitor answering on the right -->
     <div class="chat-wall -mx-4 -my-5 grid gap-1.5 px-3 pb-6 pt-4 md:hidden" data-testid="buyer-phone">
-      <p class="mb-2 justify-self-center rounded-lg bg-white/90 px-3 py-1 text-[12px] font-semibold uppercase tracking-[0.06em] text-gray-600 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] dark:bg-gray-900/90 dark:text-gray-300">{{ t('model.page.cta_title') }}</p>
+      <h2 class="mb-2 text-center text-[19px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.page.cta_title') }}</h2>
       <p v-for="(q, i) in CHAT_QUESTIONS" :key="q.key"
          class="relative mr-10 flex items-end gap-2 justify-self-start rounded-lg bg-white py-1.5 pl-2.5 pr-2 text-[15px] leading-snug text-gray-900 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] dark:bg-gray-800 dark:text-gray-100"
          :class="i === 0 ? 'ml-2 rounded-tl-none' : 'ml-2'">

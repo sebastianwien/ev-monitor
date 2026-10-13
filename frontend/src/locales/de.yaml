@@ -556,7 +556,6 @@ brand:
 
 model:
   page:
-    note_cost_adhoc: "Schnellladen ohne Ladeabo"
     cta_from: "EV Monitor"
     cta_reply: "Rechnen wir dir aus"
     cta_trip: "Wie oft lade ich auf der Urlaubsfahrt?"
