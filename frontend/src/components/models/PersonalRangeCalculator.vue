@@ -527,10 +527,10 @@ defineExpose({ request })
 </script>
 
 <style scoped>
-/* The unlock bar: up from below the screen edge with a soft landing, down a little faster.
+/* The unlock bar: up from below the screen edge with a soft landing, down at a similar, calm pace.
    100% of its height plus the widest bottom offset (signed in it rides above the footer bar) */
-.bar-enter-active { transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.bar-leave-active { transition: transform 0.2s cubic-bezier(0.4, 0, 1, 1); }
+.bar-enter-active { transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.bar-leave-active { transition: transform 0.35s cubic-bezier(0.4, 0, 0.6, 1); }
 .bar-enter-from, .bar-leave-to { transform: translateY(calc(100% + 80px + env(safe-area-inset-bottom))); }
 @media (prefers-reduced-motion: reduce) {
   .bar-enter-active, .bar-leave-active { transition: none; }
