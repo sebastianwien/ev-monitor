@@ -57,10 +57,10 @@
                             :real-km="story.realRangeKm" :winter-km="story.winterRangeKm"
                             :rating-label="story.realRangeKm != null ? t('model.page.range_wltp') : ratingLabel" />
                 <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[46ch] text-[15px] leading-relaxed text-gray-700 md:col-start-1 md:row-start-2 md:self-start md:text-[17px] dark:text-gray-300" data-testid="hero-basis">
-                  {{ t('model.page.hero_basis') }}
-                  <template v-if="story.driverRangeKm">{{ ' ' + t('model.page.hero_spread', { min: formatDistance(story.driverRangeKm.minKm, { showUnit: false }), max: formatDistance(story.driverRangeKm.maxKm) }) }}</template>
-                  <!-- the bridge to the questions only from md up; on the phone they follow right below -->
-                  <span class="hidden md:inline">{{ ' ' + t('model.page.hero_depends') }}</span>
+                  <!-- the battery window only from md up; on the phone the gauge right above says it -->
+                  <span class="hidden md:inline">{{ t('model.page.hero_basis') + ' ' }}</span>
+                  <template v-if="story.driverRangeKm">{{ t('model.page.hero_spread', { min: formatDistance(story.driverRangeKm.minKm, { showUnit: false }), max: formatDistance(story.driverRangeKm.maxKm) }) + ' ' }}</template>
+                  {{ t('model.page.hero_depends') }}
                 </p>
               </div>
             </div>
