@@ -249,7 +249,7 @@ describe('PersonalRangeCalculator', () => {
     await flush()
 
     const rhythm = host.querySelector('[data-testid="answer-rhythm"]')!.textContent?.replace(/\s+/g, ' ')
-    expect(rhythm).toContain('Normalerweise wirst du ca. alle 4 Tage laden müssen.')
+    expect(rhythm).toContain('Normal wirst du ca. alle 4 Tage laden müssen.')
     expect(rhythm).not.toContain('Im Sommer')
   })
 
