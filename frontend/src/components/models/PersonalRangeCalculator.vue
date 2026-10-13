@@ -193,6 +193,7 @@ import { useAuthStore } from '../../stores/auth'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
 import { chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
+import { scrollToElement } from '../../utils/smoothScroll'
 import {
   personalRangeService,
   type PersonalRangeAssumption,
@@ -399,7 +400,7 @@ let observer: IntersectionObserver | null = null
 const showBar = computed(() => !result.value && !boxVisible.value && engaged.value)
 
 function fromBar() {
-  root.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  if (root.value) scrollToElement(root.value)
   if (state.value === 'locked') void request()
 }
 

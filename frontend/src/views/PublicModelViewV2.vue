@@ -295,6 +295,7 @@ import RangeGauge from '../components/models/RangeGauge.vue'
 import ModelBox from '../components/models/ModelBox.vue'
 import VariantPicker, { type VariantOption } from '../components/models/VariantPicker.vue'
 import BuyerQuestions from '../components/models/BuyerQuestions.vue'
+import { scrollToElement } from '../utils/smoothScroll'
 import ModelFactTiles from '../components/models/ModelFactTiles.vue'
 import ModelEvidence from '../components/models/ModelEvidence.vue'
 import ModelVariantsList, { type ActiveVariant } from '../components/models/ModelVariantsList.vue'
@@ -559,7 +560,7 @@ function showFirstOpen() {
   if (!key) return
   highlightKey.value = key
   const block = document.getElementById(`story-${key}`)
-  block?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  if (block) scrollToElement(block, { block: 'center' })
   block?.querySelector<HTMLElement>('input')?.focus({ preventScroll: true })
 }
 

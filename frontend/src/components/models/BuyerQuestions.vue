@@ -14,7 +14,7 @@
         </p>
       </div>
       <a href="#profil" class="group inline-flex min-h-12 items-center justify-center gap-2 justify-self-center rounded-xl bg-green-600 px-6 text-[16px] font-bold text-white shadow-[0_6px_16px_rgba(22,163,74,0.25)] transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-         data-testid="hero-jump" @click="emit('jump')">
+         data-testid="hero-jump" @click="go">
         {{ t('model.page.cta_button') }}<ArrowDownIcon class="h-5 w-5 motion-safe:transition-transform motion-safe:group-hover:translate-y-0.5" aria-hidden="true" />
       </a>
     </div>
@@ -32,7 +32,7 @@
       <div class="grid justify-items-end gap-1.5">
         <span class="text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ t('model.page.cta_from') }}</span>
         <a href="#profil" class="group inline-flex min-h-12 items-center justify-center gap-2 rounded-[18px] rounded-br-md bg-green-600 px-5 text-[16px] font-bold text-white shadow-[0_6px_16px_rgba(22,163,74,0.25)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-           @click="emit('jump')">
+           @click="go">
           {{ t('model.page.cta_reply') }}<ArrowDownIcon class="h-5 w-5" aria-hidden="true" />
         </a>
       </div>
@@ -43,9 +43,20 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { ArrowDownIcon, BanknotesIcon, BoltIcon, CloudIcon, MapIcon } from '@heroicons/vue/24/outline'
+import { scrollToElement } from '../../utils/smoothScroll'
 
 const emit = defineEmits<{ jump: [] }>()
 const { t } = useI18n()
+
+/** Glides to the driving profile instead of jumping; the link still works without script */
+function go(event: MouseEvent) {
+  const profile = document.getElementById('profil')
+  if (profile) {
+    event.preventDefault()
+    scrollToElement(profile)
+  }
+  emit('jump')
+}
 
 /** Open Peeps by Pablo Stanley, CC0 1.0, see public/illustrations/LICENSE.md */
 const PERSON = '/illustrations/buyer.svg'
