@@ -27,7 +27,7 @@ const RESULT = {
 const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, commuteDaysPerWeek: 3, highwaySharePercent: 30, homeCharging: true, longTripKm: 500, pricePerKwh: 0.28 }
 
 let app: App | null = null
-afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear() })
+afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear(); vi.useRealTimers() })
 
 function mount(loggedIn: boolean, data = { logCount: 6796, carCount: 35 }, openCount = 0) {
   setActivePinia(createPinia())
@@ -36,12 +36,14 @@ function mount(loggedIn: boolean, data = { logCount: 6796, carCount: 35 }, openC
     auth.token = 'token'
     auth.user = { userId: 'u1' } as never
   }
-  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0 })
+  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0, home: null as boolean | null, price: undefined as number | null | undefined, inputs: { ...INPUTS }, openCount })
   const Host = defineComponent({
     setup: () => () => h(PersonalRangeCalculator, {
-      brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3', inputs: INPUTS, ...data, openCount,
+      brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3', inputs: state.inputs, ...data, openCount: state.openCount,
       onProfile: (p: PersonalRangeInputs) => { state.profile = p },
       onIncomplete: () => { state.incomplete++ },
+      onHome: (v: boolean) => { state.home = v },
+      onPrice: (v: number | null) => { state.price = v },
     }),
   })
   const host = document.createElement('div')
@@ -66,139 +68,130 @@ describe('PersonalRangeCalculator', () => {
     vi.mocked(analytics.track).mockReset()
   })
 
-  it('guest: placeholder tiles carry no figure, so nothing can be unblurred in the console', async () => {
+  it('guest: names the four questions, the placeholders carry no figure, so nothing can be unblurred in the console', async () => {
     const { host } = mount(false)
     await flush()
 
+    const questions = [...host.querySelectorAll('[data-testid="personal-range-questions"] li')].map(li => li.textContent?.trim())
+    expect(questions).toEqual(['1Wie weit komme ich im Winter?', '2Wie oft muss ich laden?', '3Wie viele Stopps auf 500 km?', '4Was kostet mich das im Monat?'])
     const placeholder = host.querySelector('[data-testid="personal-range-placeholder"]')!
-    expect(placeholder.querySelectorAll('dd').length).toBe(6)
+    expect(placeholder.querySelectorAll('dd').length).toBe(4)
     for (const dd of placeholder.querySelectorAll('dd')) expect(dd.textContent).not.toMatch(/\d/)
-    // six tiles, "how often you charge" among them at full size: the gate's selling point
-    const labels = [...placeholder.querySelectorAll('dt')].map(dt => dt.textContent)
-    expect(labels).toEqual(['Reichweite Sommer', 'Reichweite Winter', 'Im Sommer laden für deine Pendelstrecke', 'Im Winter laden für deine Pendelstrecke', 'Unterwegs auf 500 km', 'Strom im Monat'])
     expect(host.querySelector('[data-testid="personal-range-result"]')).toBeNull()
     expect(api.post).not.toHaveBeenCalled()
   })
 
-  it('guest: says before the gate what the result rests on and what the mail is for', async () => {
+  it('guest: says what the result rests on and that it assumes home charging', async () => {
     const { host } = mount(false)
     await flush()
 
-    const intro = host.querySelector('[data-testid="personal-range-intro"]')!.textContent
-    expect(intro).toContain('6.796')
-    expect(intro).toContain('35')
-    const reasons = host.querySelectorAll('[data-testid="personal-range-reason"]')
-    expect(reasons.length).toBe(3)
-    expect(host.textContent).toContain('Kein Passwort')
+    expect(host.textContent).toContain('Aus 6.796 echten Ladevorgängen, nicht aus Herstellerangaben.')
+    expect(host.textContent).toContain('Gerechnet mit Laden zu Hause, das kannst du danach ändern.')
+    expect(host.textContent).toContain('Deine 4 Antworten sind bereit')
   })
 
-  it('guest without data: the intro names the manufacturer figure instead of drivers', async () => {
-    const { host } = mount(false, { logCount: 0, carCount: 0 })
+  it('guest with few cars: no promise of measured data', async () => {
+    const { host } = mount(false, { logCount: 12, carCount: 2 })
     await flush()
 
-    expect(host.querySelector('[data-testid="personal-range-intro"]')!.textContent).toContain('Herstellerwert')
+    expect(host.textContent).toContain('Aus Herstellerangaben und dem, was die Community bei anderen Modellen misst.')
   })
 
-  it('guest: the button opens the gate instead of a result and keeps the inputs for after the login', async () => {
+  it('open sliders: the lock counts them and the button sends the reader back instead of opening the gate', async () => {
+    const { host, state } = mount(false, undefined, 2)
+    await flush()
+
+    expect(host.querySelector('[data-testid="personal-range-open"]')!.textContent).toContain('Noch 2 Regler offen')
+    requestButton(host).click()
+    await flush()
+    expect(state.incomplete).toBe(1)
+    expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
+    expect(analytics.track).toHaveBeenCalledWith('personal_range_unlock_click', { model: 'Volkswagen ID.3', open: 2 })
+  })
+
+  it('guest: the button turns the box into the gate and keeps the inputs for after the login', async () => {
     const { host } = mount(false)
+    await flush()
+
     requestButton(host).click()
     await flush()
 
     expect(host.querySelector('[data-testid="inline-gate"]')).not.toBeNull()
-    expect(api.post).not.toHaveBeenCalled()
-    expect(analytics.track).toHaveBeenCalledWith('personal_range_gate_shown', expect.anything())
+    expect(host.textContent).toContain('Wir nutzen deine Adresse nur für dein Ergebnis und dein Konto.')
     expect(JSON.parse(sessionStorage.getItem('personalRange:inputs')!)).toEqual(INPUTS)
+    expect(api.post).not.toHaveBeenCalled()
   })
 
-  it('with open questions the button sends the reader back to them instead of opening the gate', async () => {
-    const { host, state } = mount(false, undefined, 2)
-    await flush()
-
-    expect(host.querySelector('[data-testid="personal-range-open"]')!.textContent).toContain('Noch 2 Fragen offen')
-    requestButton(host).click()
-    await flush()
-
-    expect(state.incomplete).toBe(1)
-    expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
-    expect(sessionStorage.getItem('personalRange:inputs')).toBeNull()
-  })
-
-  it('gate names the real data behind the model', async () => {
-    const { host } = mount(false)
-    requestButton(host).click()
-    await flush()
-
-    const gate = host.querySelector('[data-testid="inline-gate"]')!
-    expect(gate.textContent).toContain('6.796')
-    expect(gate.textContent).toContain('35')
-    expect(gate.textContent).toContain('Kein Passwort')
-  })
-
-  it('gate says so when the model has too few cars', async () => {
-    const { host } = mount(false, { logCount: 40, carCount: 2 })
-    requestButton(host).click()
-    await flush()
-
-    const text = host.querySelector('[data-testid="inline-gate"]')!.textContent
-    expect(text).toContain('noch nicht genügend Messdaten')
-    // cars, not drivers: the hero counts drivers, and the two numbers differ
-    expect(text).toContain('2 Autos')
-  })
-
-  it('logged-in user gets the result tiles and the assumptions, the own price among them', async () => {
+  it('signed in with every slider answered: the four answers right away, no gate', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
     const { host } = mount(true)
     await flush()
-    requestButton(host).click()
+
+    const result = host.querySelector('[data-testid="personal-range-result"]')!
+    expect(result.querySelector('[data-testid="answer-winter"]')!.textContent).toContain('320 km')
+    expect(result.querySelector('[data-testid="answer-winter"]')!.textContent).toContain('im Sommer 450 km')
+    // 0.3 a week in summer: every 3 weeks; 1.5 in winter: every 4 days
+    expect(result.querySelector('[data-testid="answer-rhythm"]')!.textContent).toContain('alle 3 Wochen')
+    expect(result.querySelector('[data-testid="answer-rhythm"]')!.textContent).toContain('alle 4 Tage')
+    expect(result.querySelector('[data-testid="answer-stops"]')!.textContent).toContain('1 Stopp')
+    expect(result.querySelector('[data-testid="answer-stops"]')!.textContent).toContain('Fahrzeit 5 h 5 min, davon 30 min laden')
+    expect(result.querySelector('[data-testid="answer-cost"]')!.textContent).toContain('46')
+    expect(host.querySelectorAll('[data-testid="assumption"]').length).toBe(6)
+    const own = [...host.querySelectorAll('[data-testid="assumption"]')].map(li => li.textContent).find(x => x?.includes('Dein Strompreis'))
+    expect(own).toContain('28,0 ct/kWh')
+    expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
+  })
+
+  it('result: the wallbox answer and the own price go back to the page', async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
+    const { host, state } = mount(true)
     await flush()
 
-    expect(api.post).toHaveBeenCalledWith('/personal-range/Volkswagen/ID.3', INPUTS)
-    expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
-    expect(host.querySelector('[data-testid="personal-range-placeholder"]')).toBeNull()
-    const result = host.querySelector('[data-testid="personal-range-result"]')!
-    expect(result.textContent).toContain('450')
-    expect(result.textContent).toContain('320')
-    expect(result.textContent).toContain('46')
-    // weekly charging for the commute under each season, in the ranking's words (chargeRhythm):
-    // below half a week in weeks, above once a week as times a week
-    expect(result.textContent).toContain('alle 3 Wochen')
-    expect(result.textContent).toContain('alle 4 Tage')
-    expect(result.querySelectorAll('dl dd').length).toBe(6)
-    // the tile reads as a sentence: "alle 3 Wochen / Im Sommer laden für deine Pendelstrecke"
-    expect(result.textContent).toContain('Im Winter laden für deine Pendelstrecke')
-    expect(result.textContent).not.toContain('Pendeln, 40 km an 3 Tagen')
-    // the long trip as travel time: total big, the stops below
-    expect(result.textContent).toContain('5 h 5 min')
-    expect(result.textContent).toContain('inkl. 1 Ladestopp, ca. 30 min')
-    // the power is the fleet median here: said right at the travel time, not only in the list below
-    expect(result.textContent).toContain('Ladeleistung geschätzt')
-    expect(result.querySelectorAll('[data-testid="assumption"]').length).toBe(6)
-    expect(result.textContent).toContain('Reisetempo 110 km/h (festgelegt)')
-    expect(result.textContent).toContain('Mittlere Schnellladeleistung 104 kW (Mittel der gemessenen Modelle)')
-    expect(result.textContent).toContain('(Datenblatt)')
-    expect(result.textContent).toContain('zu 50 % gemessen')
-    expect(result.textContent).toContain('(deine Angabe)')
-    expect(analytics.track).toHaveBeenCalledWith('personal_range_result', expect.objectContaining({ data_level: 'PARTIAL' }))
+    ;(host.querySelector('[data-testid="wallbox-no"]') as HTMLButtonElement).click()
+    expect(state.home).toBe(false)
+    expect(analytics.track).toHaveBeenCalledWith('personal_range_wallbox', { model: 'Volkswagen ID.3', home: false })
+    // own price set: a way back to the community price
+    const reset = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Zurück zum Community-Preis'))!
+    reset.click()
+    expect(state.price).toBeNull()
+  })
+
+  it('result: a changed input is recalculated, debounced', async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
+    const { state } = mount(true)
+    await flush()
+    const calls = vi.mocked(api.post).mock.calls.length
+
+    vi.useFakeTimers()
+    state.inputs.homeCharging = false
+    state.inputs.homeCharging = true
+    state.inputs.highwaySharePercent = 50
+    await nextTick()
+    vi.advanceTimersByTime(500)
+    vi.useRealTimers()
+    await flush()
+
+    expect(vi.mocked(api.post).mock.calls.length).toBe(calls + 1)
+    expect((vi.mocked(api.post).mock.calls[vi.mocked(api.post).mock.calls.length - 1][1] as PersonalRangeInputs).highwaySharePercent).toBe(50)
   })
 
   it('hands the stored profile back to the page instead of keeping it to itself', async () => {
-    const stored = { commuteKmPerDay: 72, highwaySharePercent: 60, homeCharging: false, longTripKm: 900 }
-    vi.mocked(api.get).mockResolvedValue({ status: 200, data: stored } as never)
-    const { state } = mount(true)
+    vi.mocked(api.get).mockResolvedValue({ status: 200, data: { ...INPUTS, commuteKmPerDay: 80 } } as never)
+    const { state } = mount(true, undefined, 3)
     await flush()
 
-    expect(state.profile).toEqual(stored)
-    expect(api.post).not.toHaveBeenCalled()
+    expect(state.profile?.commuteKmPerDay).toBe(80)
   })
 
   it('back from a login redirect: calculates with the pending inputs and asks for the mail once', async () => {
     sessionStorage.setItem('personalRange:inputs', JSON.stringify({ ...INPUTS, longTripKm: 800 }))
     vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
-    const { state } = mount(true)
+    const { host, state } = mount(true)
     await flush()
 
-    expect(state.profile).toEqual({ ...INPUTS, longTripKm: 800 })
-    expect(api.post).toHaveBeenCalledWith('/personal-range/Volkswagen/ID.3', { ...INPUTS, longTripKm: 800 }, { params: { email: true } })
+    expect(state.profile?.longTripKm).toBe(800)
+    expect(vi.mocked(api.post).mock.calls[0][2]).toEqual({ params: { email: true } })
     expect(sessionStorage.getItem('personalRange:inputs')).toBeNull()
+    expect(host.querySelector('[data-testid="personal-range-result"]')).not.toBeNull()
   })
 })

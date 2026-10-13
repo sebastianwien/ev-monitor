@@ -1,13 +1,13 @@
 <template>
-  <div data-testid="inline-gate" class="rounded-xl border-2 border-gray-800 dark:border-gray-200 bg-green-50 dark:bg-green-900/20 p-4 sm:p-5">
-    <p class="flex items-start gap-2 font-semibold text-gray-900 dark:text-gray-100">
+  <div data-testid="inline-gate" :class="plain ? '' : 'rounded-xl border-2 border-gray-800 dark:border-gray-200 bg-green-50 dark:bg-green-900/20 p-4 sm:p-5'">
+    <p v-if="lead" class="flex items-start gap-2 font-semibold text-gray-900 dark:text-gray-100">
       <LockOpenIcon class="h-5 w-5 shrink-0 mt-0.5 text-green-700 dark:text-green-400" />
       <span>{{ lead }}</span>
     </p>
     <p v-if="detail" class="mt-2 text-sm text-gray-700 dark:text-gray-300">{{ detail }}</p>
 
     <!-- Google: One Tap und Button; ohne Script (Adblocker, ITP) der bisherige Redirect-Login -->
-    <div v-if="googleEnabled || redirectGoogleEnabled" class="mt-4">
+    <div v-if="googleEnabled || redirectGoogleEnabled" :class="lead ? 'mt-4' : ''">
       <div v-show="!googleUnavailable" ref="googleButton" class="min-h-[44px]" />
       <GoogleButton v-if="googleUnavailable && redirectGoogleEnabled" :label="t('gate.google_redirect')" @click="onRedirectGoogle" />
       <p class="mt-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('gate.or_email') }}</p>
@@ -54,7 +54,7 @@
     <p v-if="error" role="alert" class="mt-3 text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
     <p class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-      {{ t('gate.consent') }}
+      {{ consent ?? t('gate.consent') }}
       <a href="/datenschutz" class="underline">{{ t('gate.privacy_link') }}</a>
     </p>
   </div>
@@ -78,7 +78,15 @@ import { rememberReturnPath } from '../../utils/postLoginRedirect'
  * `placement` marks the account as won through this gate (utm_medium "gate", utm_campaign =
  * placement) so gate sign-ups can be counted; a campaign the visitor arrived with stays.
  */
-const props = defineProps<{ lead: string; detail?: string; placement?: string }>()
+const props = defineProps<{
+  lead?: string
+  detail?: string
+  placement?: string
+  /** inside a box that already draws the frame and the heading: no own border, background or padding */
+  plain?: boolean
+  /** replaces the default consent line above the privacy link */
+  consent?: string
+}>()
 const emit = defineEmits<{ authenticated: [] }>()
 
 const { t, locale } = useI18n()

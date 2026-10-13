@@ -1,51 +1,84 @@
 <template>
-  <section class="grid gap-4 pt-9" aria-labelledby="pr-title">
-    <div class="grid gap-1.5">
-      <p class="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('personal_range.eyebrow') }}</p>
-      <h2 id="pr-title" class="max-w-[22ch] text-balance text-[clamp(24px,6vw,36px)] font-bold leading-[1.08] tracking-tight text-gray-900 dark:text-gray-100">
-        {{ result ? t('personal_range.result_title', { model: modelName }) : t('personal_range.precise_title') }}
-      </h2>
-      <p v-if="!result" class="max-w-[58ch] text-gray-600 dark:text-gray-400" data-testid="personal-range-intro">
-        {{ logCount > 0
-          ? t('personal_range.precise_hint', { logs: formatNumber(logCount), cars: formatNumber(carCount) })
-          : t('personal_range.precise_hint_none') }}
-      </p>
-      <!-- Why the mail: three short reasons, before anyone is asked for anything -->
-      <ul v-if="!result" class="mt-1 grid gap-1.5">
-        <li v-for="key in REASONS" :key="key" class="flex items-start gap-2 text-[15px] text-gray-700 dark:text-gray-300" data-testid="personal-range-reason">
-          <CheckIcon class="mt-0.5 h-5 w-5 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
-          <span>{{ t(`personal_range.${key}`) }}</span>
-        </li>
-      </ul>
-    </div>
+  <section ref="root" id="ergebnis" aria-labelledby="pr-title" data-testid="personal-range"
+           class="grid min-w-0 scroll-mt-28 content-start gap-5 border-y px-4 py-6 transition-colors duration-300 md:rounded-3xl md:border md:p-7 md:shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+           :class="state === 'locked'
+             ? 'border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900'
+             : 'border-green-600/40 bg-green-50 dark:border-green-500/40 dark:bg-green-950/40'">
 
-    <!-- Before the gate: six tiles with placeholders only. No figure of the result exists in the
-         page until the signed-in request returns, so there is nothing to unblur in the console. -->
-    <dl v-if="!result" class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 md:grid-cols-3 dark:border-gray-800 dark:bg-gray-800" data-testid="personal-range-placeholder">
-      <div v-for="tile in placeholderLabels" :key="tile.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 dark:bg-gray-900" :class="tile.order">
-        <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ tile.label }}</dt>
-        <dd class="select-none text-[22px] font-semibold leading-tight tracking-tight text-gray-400 blur-[6px] dark:text-gray-500" aria-hidden="true">···</dd>
+    <!-- Locked: the four questions, placeholders behind a lock. No figure of the result exists in
+         the page until the signed-in request returns, so there is nothing to unblur in the console. -->
+    <template v-if="state === 'locked'">
+      <div class="grid gap-3">
+        <p class="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('personal_range.eyebrow') }}</p>
+        <h2 id="pr-title" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('personal_range.locked_title') }}</h2>
+        <ol class="grid gap-2" data-testid="personal-range-questions">
+          <li v-for="(q, i) in questions" :key="q" class="flex items-start gap-2.5 text-[15px] font-semibold leading-snug text-gray-900 dark:text-gray-100">
+            <span class="mt-px grid h-5 w-5 flex-none place-items-center rounded-full bg-gray-900 text-[11px] font-bold text-white dark:bg-gray-100 dark:text-gray-900" aria-hidden="true">{{ i + 1 }}</span>
+            <span>{{ q }}</span>
+          </li>
+        </ol>
       </div>
-    </dl>
 
-    <button v-if="!result && !gateOpen" type="button" data-testid="personal-range-calculate" :disabled="busy"
-            class="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-green-600 px-4 font-semibold text-white hover:bg-green-700 disabled:opacity-60 md:w-auto md:justify-self-start"
-            @click="request">
-      {{ busy ? t('personal_range.calculating') : t('model.story.band_cta') }}
-    </button>
-    <p v-if="!result && !gateOpen && openCount > 0" class="-mt-2 text-[13px] text-gray-500 dark:text-gray-400" data-testid="personal-range-open">
-      {{ t('personal_range.open_questions', { n: openCount }, openCount) }}
-    </p>
+      <div class="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800" data-testid="personal-range-placeholder">
+        <dl class="grid select-none grid-cols-2 gap-px bg-gray-200 blur-[5px] dark:bg-gray-800" aria-hidden="true">
+          <div v-for="label in shortLabels" :key="label" class="grid h-[76px] content-start gap-1 bg-white px-3 py-3 dark:bg-gray-900">
+            <dt class="text-[12px] text-gray-500 dark:text-gray-400">{{ label }}</dt>
+            <dd class="text-[22px] font-bold text-gray-300 dark:text-gray-600">···</dd>
+          </div>
+        </dl>
+        <div class="absolute inset-0 grid place-content-center justify-items-center gap-2 bg-white/75 px-4 text-center dark:bg-gray-900/75">
+          <span class="grid h-12 w-12 place-items-center rounded-full bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900">
+            <LockClosedIcon class="h-6 w-6" aria-hidden="true" />
+          </span>
+          <p class="text-[16px] font-bold text-gray-900 dark:text-gray-100" data-testid="personal-range-open" aria-live="polite">
+            {{ openCount > 0 ? t('personal_range.locked_open', { n: openCount }, openCount) : t('personal_range.locked_ready') }}
+          </p>
+          <p v-if="openCount > 0" class="text-[13px] text-gray-600 dark:text-gray-400">{{ t('personal_range.locked_open_hint') }}</p>
+        </div>
+      </div>
 
-    <InlineGate v-if="gateOpen" :lead="gateLead" :detail="t('personal_range.gate_why')" :placement="`modell:${brand}/${model}`" @authenticated="onAuthenticated" />
+      <p class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">
+        {{ carCount >= MIN_MEASURED_CARS ? t('personal_range.locked_basis', { logs: formatNumber(logCount) }) : t('personal_range.locked_basis_thin') }}
+        {{ inputs.homeCharging ? t('personal_range.assume_home') : t('personal_range.assume_public') }}
+      </p>
+      <button type="button" data-testid="personal-range-calculate" :disabled="busy"
+              class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60"
+              @click="request">
+        <LockOpenIcon class="h-5 w-5" aria-hidden="true" />
+        {{ busy ? t('personal_range.calculating') : ctaLabel }}
+      </button>
+    </template>
 
-    <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
+    <!-- Gate: the same box turns green, the lock opens, sign-in right here -->
+    <template v-else-if="state === 'gate'">
+      <div class="flex items-center gap-3">
+        <span class="grid h-12 w-12 flex-none place-items-center rounded-full bg-green-600 text-white"><LockOpenIcon class="h-6 w-6" aria-hidden="true" /></span>
+        <h2 id="pr-title" class="text-[19px] font-bold leading-tight tracking-tight text-gray-900 dark:text-gray-100">{{ t('personal_range.gate_title') }}</h2>
+      </div>
+      <p class="text-[14px] leading-snug text-gray-700 dark:text-gray-300">{{ t('personal_range.gate_short') }}</p>
+      <InlineGate plain :consent="t('personal_range.gate_privacy')" :placement="`modell:${brand}/${model}`" @authenticated="onAuthenticated" />
+    </template>
 
-    <div v-if="result" data-testid="personal-range-result" class="grid gap-4" aria-live="polite">
-      <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 md:grid-cols-3 dark:border-gray-800 dark:bg-gray-800">
-        <div v-for="tile in tiles" :key="tile.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 dark:bg-gray-900" :class="tile.order">
-          <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ tile.label }}<span class="block">{{ tile.detail }}</span></dt>
-          <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ tile.value }}</dd>
+    <!-- Result: four answers, then the two assumptions to play with -->
+    <template v-else-if="result">
+      <div class="flex items-center gap-3">
+        <span class="grid h-12 w-12 flex-none place-items-center rounded-full bg-green-600 text-white"><LockOpenIcon class="h-6 w-6" aria-hidden="true" /></span>
+        <h2 id="pr-title" class="text-[19px] font-bold leading-tight tracking-tight text-gray-900 dark:text-gray-100">{{ t('personal_range.answers_title', { model: modelName }) }}</h2>
+      </div>
+
+      <dl class="grid grid-cols-2 gap-2 transition-opacity" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" aria-live="polite" data-testid="personal-range-result">
+        <div v-for="a in answers" :key="a.key" class="grid content-start gap-1.5 rounded-xl border border-green-600/25 bg-white p-3 dark:border-green-500/25 dark:bg-gray-900" :data-testid="`answer-${a.key}`">
+          <dt class="text-[12.5px] font-semibold leading-snug text-gray-600 dark:text-gray-400">{{ a.question }}</dt>
+          <dd v-if="a.rows" class="grid gap-1">
+            <span v-for="row in a.rows" :key="row.label" class="grid">
+              <small class="text-[11.5px] font-semibold text-gray-500 dark:text-gray-400">{{ row.label }}</small>
+              <b class="text-[16px] font-bold leading-tight tabular-nums text-gray-900 dark:text-gray-100">{{ row.value }}</b>
+            </span>
+          </dd>
+          <dd v-else class="grid gap-0.5">
+            <b class="text-[22px] font-extrabold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ a.value }}</b>
+            <small v-if="a.detail" class="text-[12px] leading-snug text-gray-500 dark:text-gray-400">{{ a.detail }}</small>
+          </dd>
         </div>
       </dl>
 
@@ -54,27 +87,70 @@
         {{ t(`personal_range.data_level_${result.dataLevel}`) }}
       </p>
 
-      <div>
-        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300">{{ t('personal_range.assumptions_title') }}</h3>
+      <div class="grid gap-4 border-t border-green-600/25 pt-4 dark:border-green-500/25" data-testid="personal-range-tune">
+        <p class="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-green-700 dark:text-green-400">{{ t('personal_range.tune_title') }}</p>
+        <div class="grid gap-2">
+          <p id="pr-wallbox-q" class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
+          <div class="flex gap-2" role="group" aria-labelledby="pr-wallbox-q">
+            <button v-for="opt in WALLBOX" :key="String(opt)" type="button" :aria-pressed="inputs.homeCharging === opt"
+                    class="inline-flex min-h-11 min-w-[84px] items-center justify-center rounded-full border-2 px-4 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                    :class="inputs.homeCharging === opt
+                      ? 'border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+                      : 'border-gray-300 bg-white text-gray-800 hover:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'"
+                    :data-testid="`wallbox-${opt ? 'yes' : 'no'}`"
+                    @click="setHome(opt)">
+              {{ opt ? t('personal_range.wallbox_yes') : t('personal_range.wallbox_no') }}
+            </button>
+          </div>
+          <p class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('personal_range.wallbox_why') }}</p>
+        </div>
+        <ProfileSlider v-if="shownPrice != null" id="pr-price" test-key="price" :label="t('personal_range.price_label')"
+                       :min="PRICE.min" :max="PRICE.max" :step="PRICE.step" :start="shownPrice" :value="shownPrice"
+                       :format="v => formatCostPerKwh(v)" @commit="v => emit('price', Math.round(v * 100) / 100)" />
+        <p class="-mt-2 text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">
+          <template v-if="inputs.pricePerKwh == null">{{ t('personal_range.price_hint_community') }}</template>
+          <button v-else type="button" class="min-h-8 font-semibold text-green-700 underline dark:text-green-400" @click="emit('price', null)">{{ t('personal_range.price_reset') }}</button>
+        </p>
+      </div>
+
+      <details class="group border-t border-green-600/25 pt-3 dark:border-green-500/25">
+        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold text-gray-700 dark:text-gray-300 [&::-webkit-details-marker]:hidden">
+          {{ t('personal_range.assumptions_title') }}
+          <ChevronDownIcon class="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
         <ul class="mt-1 space-y-1">
           <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-            <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+            <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
             <!-- a fixed setting, not a missing measurement: no warning colour -->
-            <InformationCircleIcon v-else-if="a.key === 'TRAVEL_SPEED'" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" />
-            <QuestionMarkCircleIcon v-else class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <InformationCircleIcon v-else-if="a.key === 'TRAVEL_SPEED'" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+            <QuestionMarkCircleIcon v-else class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
             <span>{{ assumptionText(a) }} <span class="text-gray-500 dark:text-gray-400">({{ sourceText(a) }})</span></span>
           </li>
         </ul>
+      </details>
+    </template>
+
+    <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
+
+    <!-- Phone: a slim bar once the box is out of view, until the answers are open -->
+    <Teleport to="body">
+      <div v-if="showBar" class="fixed inset-x-0 z-40 px-3 md:hidden" :class="authStore.token ? 'bottom-[calc(env(safe-area-inset-bottom)+68px)]' : 'bottom-[calc(env(safe-area-inset-bottom)+12px)]'" data-testid="unlock-bar">
+        <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 text-[15px] font-bold text-white shadow-lg shadow-gray-900/25 dark:bg-gray-100 dark:text-gray-900"
+                @click="fromBar">
+          <LockOpenIcon class="h-5 w-5 text-green-400 dark:text-green-600" aria-hidden="true" />
+          {{ authStore.token ? t('personal_range.show') : t('personal_range.bar_cta') }}
+        </button>
       </div>
-    </div>
+    </Teleport>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CheckCircleIcon, CheckIcon, InformationCircleIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { CheckCircleIcon, ChevronDownIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
+import ProfileSlider from './ProfileSlider.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
@@ -87,11 +163,11 @@ import {
 } from '../../api/personalRangeService'
 
 /**
- * The exact result block at the end of the model story. The inputs come from the chapter chips
- * (props.inputs); this component owns the gate and the result. Guests see placeholder tiles and
- * the gate, signed-in visitors get the figures and the assumptions. Inputs survive the gate (and
- * a Google redirect) in sessionStorage; a stored profile is handed back to the page via `profile`
- * so the chips can follow it.
+ * The result box of the model page, three states in one place: locked (the four questions and a
+ * lock, no figure), gate (sign-in right in the box) and result (four answers plus wallbox and
+ * price to play with, recalculated live). The driving profile comes in as `inputs`; wallbox and
+ * price go back to the page through `home` and `price`. Inputs survive the gate (and a Google
+ * redirect) in sessionStorage; a stored profile is handed back through `profile`.
  */
 const props = defineProps<{
   brand: string
@@ -100,51 +176,76 @@ const props = defineProps<{
   logCount: number
   carCount: number
   inputs: PersonalRangeInputs
-  /** unanswered questions on the page; the result rests on answers only, never on start values */
-  openCount?: number
+  /** unanswered sliders; the result rests on answers only, never on start values */
+  openCount: number
 }>()
-const emit = defineEmits<{ profile: [inputs: PersonalRangeInputs]; incomplete: [] }>()
-const openCount = computed(() => props.openCount ?? 0)
+const emit = defineEmits<{
+  profile: [inputs: PersonalRangeInputs]
+  incomplete: []
+  home: [value: boolean]
+  price: [value: number | null]
+}>()
 
 const { t } = useI18n()
 const authStore = useAuthStore()
 const { formatNumber, formatDistance, formatCurrency, formatConsumption, formatCostPerKwh, formatDecimal } = useLocaleFormat()
 
-/** Below this many cars the gate does not advertise measured data (same as the backend highway threshold). */
+/** Below this many cars the box does not advertise measured data (same as the backend highway threshold). */
 const MIN_MEASURED_CARS = 5
-const REASONS = ['reason_mail', 'reason_profile', 'reason_account'] as const
 /** Pending inputs plus "calculate after login" flag; read once on mount. */
 const STORAGE_KEY = 'personalRange:inputs'
+const RECALC_MS = 400
+const WALLBOX = [true, false] as const
+/** Same bounds as the backend request (PersonalRangeRequest.pricePerKwh), in EUR */
+const PRICE = { min: 0.05, max: 1.5, step: 0.01 }
 
 const gateOpen = ref(false)
 const busy = ref(false)
 const error = ref('')
 const result = ref<PersonalRangeResult | null>(null)
+const state = computed(() => result.value ? 'result' : gateOpen.value ? 'gate' : 'locked')
+const ctaLabel = computed(() => authStore.token ? t('personal_range.show') : t('personal_range.unlock'))
 
-const gateLead = computed(() => props.carCount >= MIN_MEASURED_CARS
-  ? t('personal_range.gate_lead_measured', { model: props.modelName, logs: formatNumber(props.logCount), cars: formatNumber(props.carCount) })
-  : t('personal_range.gate_lead_thin', { model: props.modelName, cars: props.carCount }, props.carCount))
-
-/**
- * Six tiles, one figure each. Phone (two columns): range summer | winter, charging summer | winter,
- * stops | cost. Desktop (three columns): summer and winter become columns, so range and charging
- * read as a table; stops and cost fill the third column. The order classes do the desktop swap.
- */
-const TILE_ORDER = ['md:order-1', 'md:order-2', 'md:order-4', 'md:order-5', 'md:order-3', 'md:order-6'] as const
-const tileLabels = computed(() => [
-  t('personal_range.range_summer'),
-  t('personal_range.range_winter'),
-  t('personal_range.charges_summer'),
-  t('personal_range.charges_winter'),
-  t('personal_range.travel', { distance: formatDistance(props.inputs.longTripKm) }),
-  t('personal_range.cost_month'),
+const questions = computed(() => [
+  t('personal_range.question_winter'),
+  t('personal_range.question_rhythm'),
+  t('personal_range.question_stops', { distance: formatDistance(props.inputs.longTripKm) }),
+  t('personal_range.question_cost'),
 ])
-const placeholderLabels = computed(() => tileLabels.value.map((label, i) => ({ label, order: TILE_ORDER[i] })))
+const shortLabels = computed(() => ['winter', 'rhythm', 'stops', 'cost'].map(k => t(`personal_range.short_${k}`)))
 
-/** Same words as the ranking (chargeRhythm): "1,5× pro Woche", "alle 10 Tage", "alle 3 Wochen", stops without home charging */
+/** Same words as the ranking (chargeRhythm): "alle 10 Tage", "täglich", stops without home charging */
 const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
-function chargesText(perWeek: number): string {
-  return chargeRhythmText(perWeek, props.inputs.homeCharging, rhythmFormat)
+const rhythm = (perWeek: number) => chargeRhythmText(perWeek, props.inputs.homeCharging, rhythmFormat)
+
+const answers = computed(() => {
+  const r = result.value
+  if (!r) return []
+  const [winter, often, stops, cost] = questions.value
+  const tripDetail = r.longTripStops > 0
+    ? t('personal_range.stops_detail_charging', { duration: duration(r.longTripTotalMinutes), minutes: r.longTripChargingMinutes })
+    : t('personal_range.stops_detail', { duration: duration(r.longTripTotalMinutes) })
+  const estimatedPower = r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured)
+  return [
+    { key: 'winter', question: winter, value: formatDistance(r.winterRangeKm), detail: t('personal_range.winter_detail', { summer: formatDistance(r.summerRangeKm) }) },
+    { key: 'rhythm', question: often, rows: [
+      { label: t('personal_range.season_summer'), value: rhythm(r.chargesPerWeekSummer) },
+      { label: t('personal_range.season_winter'), value: rhythm(r.chargesPerWeekWinter) },
+    ] },
+    { key: 'stops', question: stops, value: t('personal_range.stops_value', { n: r.longTripStops }, r.longTripStops),
+      detail: estimatedPower ? `${tripDetail}, ${t('personal_range.power_estimated')}` : tripDetail },
+    { key: 'cost', question: cost, value: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
+      detail: props.inputs.annualKm ? t('personal_range.cost_basis_annual', { annual: formatDistance(props.inputs.annualKm) }) : t('personal_range.cost_basis_charges') },
+  ] as { key: string; question: string; value?: string; detail?: string; rows?: { label: string; value: string }[] }[]
+})
+
+/** The reader's own price, else the community price the backend used (follows the wallbox answer) */
+const shownPrice = computed(() => props.inputs.pricePerKwh
+  ?? result.value?.assumptions.find(a => a.key === 'PRICE')?.value ?? null)
+
+function setHome(value: boolean) {
+  analytics.track('personal_range_wallbox', { model: props.modelName, home: value })
+  emit('home', value)
 }
 
 /** Datenblatt for the battery; the user's own price; otherwise gemessen, geschätzt, or the measured share of a blend */
@@ -173,9 +274,10 @@ function takePending(): PersonalRangeInputs | null {
   }
 }
 
-/** "Meine Zahlen": back to the open questions first, then the gate for guests, the result for signed-in visitors. */
+/** "Freischalten": back to the open sliders first, then the gate for guests, the result for signed-in visitors. */
 async function request() {
-  if (openCount.value > 0) {
+  analytics.track('personal_range_unlock_click', { model: props.modelName, open: props.openCount })
+  if (props.openCount > 0) {
     emit('incomplete')
     return
   }
@@ -196,11 +298,12 @@ async function onAuthenticated() {
 
 /** @param email true right after the gate: the result also goes out as a mail, as the gate promised */
 async function calculate(email = false, inputs: PersonalRangeInputs = props.inputs) {
+  const first = result.value == null
   busy.value = true
   error.value = ''
   try {
     result.value = await personalRangeService.calculate(props.brand, props.model, inputs, email)
-    analytics.track('personal_range_result', { model: props.modelName, data_level: result.value.dataLevel })
+    if (first) analytics.track('personal_range_result', { model: props.modelName, data_level: result.value.dataLevel })
   } catch {
     error.value = t('personal_range.error')
   } finally {
@@ -208,7 +311,35 @@ async function calculate(email = false, inputs: PersonalRangeInputs = props.inpu
   }
 }
 
+// Signed in and every slider answered (a stored profile, or the last slider just now): no gate, the answers right away
+watch(() => [props.openCount, authStore.token] as const, ([open, token]) => {
+  if (open === 0 && token && !result.value && !busy.value) void calculate()
+})
+
+// Open answers follow every change of profile, wallbox and price, debounced
+let timer: ReturnType<typeof setTimeout> | null = null
+watch(() => ({ ...props.inputs }), () => {
+  if (!result.value || !authStore.token) return
+  if (timer) clearTimeout(timer)
+  timer = setTimeout(() => { void calculate() }, RECALC_MS)
+}, { deep: true })
+
+// The phone bar shows while the box is out of view and the answers are still locked
+const root = ref<HTMLElement | null>(null)
+const boxVisible = ref(true)
+let observer: IntersectionObserver | null = null
+const showBar = computed(() => !result.value && !boxVisible.value)
+
+function fromBar() {
+  root.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  if (state.value === 'locked') void request()
+}
+
 onMounted(async () => {
+  if (root.value && typeof IntersectionObserver !== 'undefined') {
+    observer = new IntersectionObserver(entries => { boxVisible.value = entries.some(e => e.isIntersecting) })
+    observer.observe(root.value)
+  }
   if (!authStore.token) return
   const pending = takePending()
   if (pending) {
@@ -221,34 +352,14 @@ onMounted(async () => {
     const profile = await personalRangeService.getProfile()
     if (profile) emit('profile', profile)
   } catch { /* defaults stay */ }
+  // every slider answered before the mount (the ranking's needs check, a prefilled tile): no click needed either
+  if (props.openCount === 0 && !result.value && !busy.value) await calculate()
 })
 
-const tiles = computed(() => {
-  const r = result.value
-  if (!r) return []
-  const basis = props.inputs.annualKm
-    ? t('personal_range.cost_basis_annual', { annual: formatDistance(props.inputs.annualKm) })
-    : t('personal_range.cost_basis_charges')
-  const [rangeSummer, rangeWinter, chargesSummer, chargesWinter, stops, cost] = tileLabels.value
-  return [
-    { label: rangeSummer, value: formatDistance(r.summerRangeKm), detail: t('personal_range.range_full') },
-    { label: rangeWinter, value: formatDistance(r.winterRangeKm), detail: t('personal_range.range_full') },
-    // charging per week rests on the commute days, whatever the yearly mileage says; value and label
-    // read as one sentence: "alle 4 Wochen / Im Sommer laden für deine Pendelstrecke"
-    { label: chargesSummer, value: chargesText(r.chargesPerWeekSummer), detail: '' },
-    { label: chargesWinter, value: chargesText(r.chargesPerWeekWinter), detail: '' },
-    // the long trip as travel time: what a holiday feels like, the stops below
-    { label: stops, value: duration(r.longTripTotalMinutes), detail: tripDetail(r) },
-    { label: cost, value: formatCurrency(r.monthlyCostEur, { decimals: 0 }), detail: basis },
-  ].map((tile, i) => ({ ...tile, order: TILE_ORDER[i] }))
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  if (timer) clearTimeout(timer)
 })
-
-/** The stops below the travel time; an estimated charging power is named right there, not only in the list */
-function tripDetail(r: PersonalRangeResult): string {
-  const stops = t('personal_range.travel_stops', { n: r.longTripStops, minutes: r.longTripChargingMinutes }, r.longTripStops)
-  const estimated = r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured)
-  return estimated ? `${stops}, ${t('personal_range.power_estimated')}` : stops
-}
 
 /** "8 h 5 min", "45 min", "9 h" in the locale's unit words */
 function duration(minutes: number): string {
