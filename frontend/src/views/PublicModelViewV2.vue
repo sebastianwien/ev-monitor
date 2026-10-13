@@ -67,7 +67,7 @@
             </div>
 
             <!-- Docked below in light grey: a buyer asks the four questions the page answers -->
-            <div class="border-gray-200 bg-gray-50 px-4 py-5 md:rounded-b-3xl md:border-t md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-800/40">
+            <div class="border-gray-200 bg-white px-4 pb-5 pt-1 md:rounded-b-3xl md:border-t md:bg-gray-50 md:pt-5 md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-900 md:dark:bg-gray-800/40">
               <BuyerQuestions @jump="trackJump" />
             </div>
           </header>

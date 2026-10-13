@@ -24,8 +24,8 @@
     </div>
 
     <!-- Phone: a messenger thread in the look of WhatsApp, the buyer on the left, EV Monitor answering on the right -->
-    <div class="chat-wall -mx-4 -my-5 grid gap-1.5 px-3 pb-6 pt-4 md:hidden" data-testid="buyer-phone">
-      <h2 class="mb-2 text-center text-[19px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.page.cta_title') }}</h2>
+    <h2 class="text-center text-[19px] font-bold tracking-tight text-gray-900 md:hidden dark:text-gray-100">{{ t('model.page.cta_title') }}</h2>
+    <div class="chat-wall -mx-4 -mb-5 grid gap-1.5 px-3 pb-6 pt-4 md:hidden" data-testid="buyer-phone">
       <p v-for="(q, i) in CHAT_QUESTIONS" :key="q.key"
          class="relative mr-10 flex items-end gap-2 justify-self-start rounded-lg bg-white py-1.5 pl-2.5 pr-2 text-[15px] leading-snug text-gray-900 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] dark:bg-gray-800 dark:text-gray-100"
          :class="i === 0 ? 'ml-2 rounded-tl-none' : 'ml-2'">
