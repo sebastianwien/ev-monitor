@@ -52,7 +52,7 @@
                   <p class="text-[clamp(22px,6vw,42px)] font-bold leading-[1.1] tracking-tight text-gray-900 dark:text-gray-100" data-testid="story-hero">
                     <span v-for="(line, i) in heroLines" :key="i" class="block" :class="i === 1 ? 'text-green-700 dark:text-green-400' : ''">{{ line }}{{ ' ' }}</span>
                   </p>
-                  <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[52ch] text-[13.5px] leading-snug text-gray-500 dark:text-gray-400" data-testid="hero-basis">
+                  <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[46ch] text-[16px] leading-relaxed text-gray-700 md:text-[17px] dark:text-gray-300" data-testid="hero-basis">
                     {{ t('model.page.hero_basis') }}
                   <template v-if="story.driverRangeKm">{{ ' ' + t('model.page.hero_spread', { min: formatDistance(story.driverRangeKm.minKm, { showUnit: false }), max: formatDistance(story.driverRangeKm.maxKm) }) }}</template>
                   {{ t('model.page.hero_depends') }}
