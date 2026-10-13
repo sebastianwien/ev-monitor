@@ -19,7 +19,7 @@
         <p class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ evidence.range.note }}</p>
       </figure>
 
-      <!-- Route types as the difference to their own mean: left is thriftier, right thirstier -->
+      <!-- Route types as the difference to their own mean: green bars to the left are thriftier, amber to the right thirstier -->
       <figure v-if="evidence.routes" class="m-0 grid content-start gap-3 max-md:edge-card max-md:rounded-2xl max-md:p-4" data-testid="evidence-routes">
         <figcaption><h3 class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.routes_title') }}</h3></figcaption>
         <div class="grid gap-2.5">
@@ -36,15 +36,6 @@
             </span>
             <b class="min-w-[64px] text-right font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ row.text }}</b>
           </div>
-          <p class="grid grid-cols-[72px_minmax(0,1fr)_auto] gap-3 text-[12px] text-gray-500 dark:text-gray-400" aria-hidden="true">
-            <span></span>
-            <span class="grid grid-cols-[1fr_auto_1fr] gap-1">
-              <span class="text-left">← {{ t('model.page.routes_less') }}</span>
-              <span>{{ t('model.page.routes_mean') }}</span>
-              <span class="text-right">{{ t('model.page.routes_more') }} →</span>
-            </span>
-            <span class="min-w-[64px]"></span>
-          </p>
         </div>
         <p class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ evidence.routes.note }}</p>
       </figure>
