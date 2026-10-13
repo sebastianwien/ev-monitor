@@ -3,7 +3,7 @@
        and the winter range are drawn on top. The numbers are repeated in the legend as text,
        so the drawing itself is decorative for screen readers. -->
   <figure class="w-full">
-    <div class="relative mx-auto w-full max-w-[320px] md:max-w-[400px]">
+    <div class="relative mx-auto w-full max-w-[250px] sm:max-w-[320px] md:max-w-[400px]">
     <svg viewBox="0 0 400 224" class="block h-auto w-full" role="img" :aria-label="ariaLabel">
       <path :d="ARC" fill="none" stroke-width="18" stroke-linecap="round" class="stroke-gray-200 dark:stroke-gray-800" />
       <path v-if="realKm != null" :d="ARC" fill="none" stroke-width="18" stroke-linecap="round" pathLength="100"
@@ -17,7 +17,7 @@
     <!-- Centre: the figure and the battery window it rests on; the SVG keeps the arcs only -->
     <div class="pointer-events-none absolute inset-x-0 bottom-[8%] grid justify-items-center gap-1" aria-hidden="true">
       <p class="flex items-baseline gap-1.5 leading-none">
-        <span class="text-[clamp(44px,13vw,64px)] font-bold tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ formatDistance(shownKm, { showUnit: false }) }}</span>
+        <span class="text-[clamp(40px,11vw,64px)] font-bold tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ formatDistance(shownKm, { showUnit: false }) }}</span>
         <span class="text-[15px] font-semibold text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
       </p>
       <p class="flex items-center gap-1 text-[12px] font-semibold text-gray-500 dark:text-gray-400">

@@ -3,7 +3,7 @@
     <button ref="trigger" type="button" data-testid="variant-picker"
             class="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-gray-200 bg-gray-50 pl-3.5 pr-3 text-[14px] font-semibold text-gray-900 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
             aria-haspopup="dialog" :aria-expanded="open" @click="toggle">
-      <span class="font-medium text-gray-500 dark:text-gray-400">{{ t('model.page.variant_button') }}</span>
+      <span class="sr-only font-medium text-gray-500 sm:not-sr-only dark:text-gray-400">{{ t('model.page.variant_button') }}</span>
       <span class="truncate">{{ current ? `${current.label}, ${current.battery}` : '' }}</span>
       <ChevronDownIcon class="h-4 w-4 flex-none transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true" />
     </button>

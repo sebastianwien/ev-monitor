@@ -39,29 +39,29 @@
           <!-- 1 Hero: its own box, the questions docked below it in light grey -->
           <header class="relative z-10 border-y border-gray-200 bg-white md:rounded-3xl md:border md:shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-gray-800 dark:bg-gray-900">
             <div class="grid gap-5 px-4 py-6 md:gap-6 md:px-10 md:py-8">
-              <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-start md:gap-8">
-                <h1 class="max-w-[30ch] text-balance text-[clamp(24px,6vw,32px)] font-bold leading-[1.15] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
-                <VariantPicker v-if="activeVariants.length > 1" v-model="selectedVariantIndex" :options="variantOptions" class="justify-self-start md:justify-self-end" />
+              <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:gap-8">
+                <h1 class="max-w-[30ch] text-balance text-[22px] md:text-[32px] font-bold leading-[1.15] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
+                <VariantPicker v-if="activeVariants.length > 1" v-model="selectedVariantIndex" :options="variantOptions" class="justify-self-end" />
                 <p v-else-if="variantLabel" class="text-[14px] font-medium text-gray-500 dark:text-gray-400">{{ variantLabel }}</p>
               </div>
 
-              <!-- The claim and its gauge side by side from md up -->
-              <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:items-center md:gap-10">
-                <div class="grid gap-3">
-                  <!-- One sentence per line: "Der Prospekt sagt 390 km." then "48 Fahrer sagen 280 km." -->
-                  <p class="text-[clamp(22px,6vw,42px)] font-bold leading-[1.1] tracking-tight text-gray-900 dark:text-gray-100" data-testid="story-hero">
-                    <span v-for="(line, i) in heroLines" :key="i" class="block" :class="i === 1 ? 'text-green-700 dark:text-green-400' : ''">{{ line }}{{ ' ' }}</span>
-                  </p>
-                  <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[46ch] text-[16px] leading-relaxed text-gray-700 md:text-[17px] dark:text-gray-300" data-testid="hero-basis">
-                    {{ t('model.page.hero_basis') }}
-                  <template v-if="story.driverRangeKm">{{ ' ' + t('model.page.hero_spread', { min: formatDistance(story.driverRangeKm.minKm, { showUnit: false }), max: formatDistance(story.driverRangeKm.maxKm) }) }}</template>
-                  {{ t('model.page.hero_depends') }}
-                  </p>
-                </div>
-                <RangeGauge v-if="storyInput.wltpRangeKm"
+              <!-- Phone: claim, compact gauge, basis, so claim and picture share the first screen.
+                   From md up: claim and basis on the left, the gauge on the right. -->
+              <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:items-center md:gap-x-10 md:gap-y-3">
+                <!-- One sentence per line: "Der Prospekt sagt 390 km." then "48 Fahrer sagen 280 km." -->
+                <p class="text-[clamp(22px,6vw,42px)] font-bold leading-[1.1] tracking-tight text-gray-900 md:col-start-1 md:row-start-1 md:self-end dark:text-gray-100" data-testid="story-hero">
+                  <span v-for="(line, i) in heroLines" :key="i" class="block" :class="i === 1 ? 'text-green-700 dark:text-green-400' : ''">{{ line }}{{ ' ' }}</span>
+                </p>
+                <RangeGauge v-if="storyInput.wltpRangeKm" class="md:col-start-2 md:row-span-2 md:row-start-1"
                             :wltp-km="story.realRangeKm != null && story.prospectRangeKm != null ? story.prospectRangeKm : storyInput.wltpRangeKm"
                             :real-km="story.realRangeKm" :winter-km="story.winterRangeKm"
                             :rating-label="story.realRangeKm != null ? t('model.page.range_wltp') : ratingLabel" />
+                <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[46ch] text-[15px] leading-relaxed text-gray-700 md:col-start-1 md:row-start-2 md:self-start md:text-[17px] dark:text-gray-300" data-testid="hero-basis">
+                  {{ t('model.page.hero_basis') }}
+                  <template v-if="story.driverRangeKm">{{ ' ' + t('model.page.hero_spread', { min: formatDistance(story.driverRangeKm.minKm, { showUnit: false }), max: formatDistance(story.driverRangeKm.maxKm) }) }}</template>
+                  <!-- the bridge to the questions only from md up; on the phone they follow right below -->
+                  <span class="hidden md:inline">{{ ' ' + t('model.page.hero_depends') }}</span>
+                </p>
               </div>
             </div>
 
