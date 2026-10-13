@@ -129,37 +129,41 @@
       </ul>
 
 
-      <div class="grid gap-4 border-t border-green-600/25 pt-4 dark:border-green-500/25" data-testid="personal-range-tune">
-        <div class="grid justify-items-center gap-2 text-center">
-          <p id="pr-wallbox-q" class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
+      <!-- The two assumptions to play with, in a card of their own: spacing instead of lines -->
+      <div class="grid gap-6 rounded-2xl bg-white px-4 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] dark:bg-gray-900" data-testid="personal-range-tune">
+        <div class="grid justify-items-center gap-3 text-center">
+          <p id="pr-wallbox-q" class="text-[16px] font-bold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
           <div class="flex justify-center gap-2" role="group" aria-labelledby="pr-wallbox-q">
             <button v-for="opt in WALLBOX" :key="String(opt)" type="button" :aria-pressed="inputs.homeCharging === opt"
-                    class="inline-flex min-h-11 min-w-[84px] items-center justify-center rounded-full border-2 px-4 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                    class="inline-flex min-h-11 min-w-[96px] items-center justify-center rounded-full border-2 px-5 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                     :class="inputs.homeCharging === opt
                       ? 'border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
-                      : 'border-gray-300 bg-white text-gray-800 hover:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'"
+                      : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'"
                     :data-testid="`wallbox-${opt ? 'yes' : 'no'}`"
                     @click="setHome(opt)">
               {{ opt ? t('personal_range.wallbox_yes') : t('personal_range.wallbox_no') }}
             </button>
           </div>
-          <p class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('personal_range.wallbox_why') }}</p>
+          <p class="max-w-[36ch] text-balance text-[13px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('personal_range.wallbox_why') }}</p>
         </div>
-        <ProfileSlider v-if="shownPrice != null" id="pr-price" test-key="price" :label="t('personal_range.price_label')"
-                       :min="PRICE.min" :max="PRICE.max" :step="PRICE.step" :start="shownPrice" :value="shownPrice"
-                       :format="v => formatCostPerKwh(v)" @commit="v => emit('price', Math.round(v * 100) / 100)" />
-        <p class="-mt-2 text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">
-          <template v-if="inputs.pricePerKwh == null">{{ t('personal_range.price_hint_community') }}</template>
-          <button v-else type="button" class="min-h-11 font-semibold text-green-700 underline dark:text-green-400" @click="emit('price', null)">{{ t('personal_range.price_reset') }}</button>
-        </p>
+        <div class="grid gap-1">
+          <ProfileSlider v-if="shownPrice != null" id="pr-price" test-key="price" :label="t('personal_range.price_label')"
+                         :min="PRICE.min" :max="PRICE.max" :step="PRICE.step" :start="shownPrice" :value="shownPrice"
+                         :format="v => formatCostPerKwh(v)" @commit="v => emit('price', Math.round(v * 100) / 100)" />
+          <p class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">
+            <template v-if="inputs.pricePerKwh == null">{{ t('personal_range.price_hint_community') }}</template>
+            <button v-else type="button" class="min-h-11 font-semibold text-green-700 underline dark:text-green-400" @click="emit('price', null)">{{ t('personal_range.price_reset') }}</button>
+          </p>
+        </div>
       </div>
 
-      <details class="group border-t border-green-600/25 pt-3 dark:border-green-500/25">
-        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between text-sm font-bold text-gray-700 dark:text-gray-300 [&::-webkit-details-marker]:hidden">
+      <!-- What the result rests on: a light, centred link that opens the list in a card -->
+      <details class="group -mt-2">
+        <summary class="mx-auto flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-[14px] font-semibold text-green-800 hover:underline dark:text-green-300 [&::-webkit-details-marker]:hidden">
           {{ t('personal_range.assumptions_title') }}
           <ChevronDownIcon class="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
         </summary>
-        <ul class="mt-1 space-y-1">
+        <ul class="mt-1 space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] dark:bg-gray-900">
           <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
             <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
             <!-- a fixed setting, not a missing measurement: no warning colour -->
