@@ -4109,6 +4109,9 @@ gate:
   error_rate_limited: "Too many attempts. Please wait 15 minutes."
   error_generic: "That did not work. Please try again."
 personal_range:
+  petrol_compare: "A comparable petrol car costs about {petrol}, you save {saving} a month."
+  petrol_compare_more: "A comparable petrol car costs about {petrol} a month."
+  petrol_basis: "Petrol car at {liters} l/100 km, petrol {price} a litre, daily average for Germany from Tankerkönig (CC BY 4.0)."
   stops_times: "not need to charge | charge once | charge {n} times"
   rhythm_same: "Usually you will need to charge about {rhythm}."
   winter_summer: "about {range} in summer"

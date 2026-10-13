@@ -98,6 +98,7 @@
                 :car-count="stats.uniqueCars"
                 :inputs="storyInputs"
                 :open-count="openQuestions.length"
+                :petrol="petrolComparison"
                 @profile="applyProfile"
                 @incomplete="showFirstOpen"
                 @home="answerHome"
@@ -284,7 +285,8 @@ import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { useCountryStore } from '../stores/country'
-import { getModelStats, getStoryContext, type ModelStoryContext, type PublicModelStats } from '../api/publicModelService'
+import { getChargingReferencePrices, getModelStats, getStoryContext, type ModelStoryContext, type PublicModelStats } from '../api/publicModelService'
+import { combustionLiters } from '../utils/costMix'
 import {
   ChevronDownIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
@@ -442,6 +444,13 @@ const selectedVariant = computed(() => activeVariants.value[selectedVariantIndex
 const storyContext = ref<ModelStoryContext | null>(null)
 /** Same threshold as the backend: a season counts from 10 logs. */
 const MIN_LOGS_PER_SEASON = 10
+/** German daily petrol price (Tankerkönig), loaded with the page; null on failure */
+const petrolPricePerLiter = ref<number | null>(null)
+/** A comparable petrol car for the cost answer: litres by vehicle class, only where the fuel price is German */
+const petrolComparison = computed(() => currentMarket.value === 'de' && petrolPricePerLiter.value
+  ? { pricePerLiter: petrolPricePerLiter.value, litersPer100km: combustionLiters({ litersPer100km: null, fuel: 'petrol' }, stats.value?.category) }
+  : null)
+
 /** One card per battery in the picker: the same range rule as the hero (net battery × 0,9 ÷ model mean) */
 const variantOptions = computed((): VariantOption[] => activeVariants.value.map((v, i) => {
   const real = rangeKm(v.batteryCapacityKwh, stats.value?.avgConsumptionKwhPer100km ?? null)
@@ -863,6 +872,8 @@ onMounted(async () => {
   // Bewertungen parallel und im selben Lade-Flow, damit sie im Prerender-HTML stehen
   const ratingsRequest = ratingService.getPublicRatings(brand, model).catch(() => null)
   const contextRequest = getStoryContext(brand, model)
+  // only for the petrol comparison in the result; the page works without it
+  getChargingReferencePrices().then(p => { petrolPricePerLiter.value = p.petrolPricePerLiter ?? null }).catch(() => {})
   try {
     const [data, ratingData, context] = await Promise.all([getModelStats(brand, model), ratingsRequest, contextRequest])
     ratings.value = ratingData

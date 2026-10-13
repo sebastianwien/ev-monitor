@@ -31,14 +31,14 @@ const INPUTS: PersonalRangeInputs = { commuteKmPerDay: 40, commuteDaysPerWeek: 3
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear(); vi.useRealTimers() })
 
-function mount(loggedIn: boolean, data = { logCount: 6796, carCount: 35 }, openCount = 0) {
+function mount(loggedIn: boolean, data: { logCount: number; carCount: number; petrol?: { pricePerLiter: number; litersPer100km: number } } = { logCount: 6796, carCount: 35 }, openCount = 0, inputs: Partial<PersonalRangeInputs> = {}) {
   setActivePinia(createPinia())
   if (loggedIn) {
     const auth = useAuthStore()
     auth.token = 'token'
     auth.user = { userId: 'u1' } as never
   }
-  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0, home: null as boolean | null, price: undefined as number | null | undefined, inputs: { ...INPUTS }, openCount })
+  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0, home: null as boolean | null, price: undefined as number | null | undefined, inputs: { ...INPUTS, ...inputs }, openCount })
   const Host = defineComponent({
     setup: () => () => h(PersonalRangeCalculator, {
       brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3', inputs: state.inputs, ...data, openCount: state.openCount,
@@ -251,6 +251,26 @@ describe('PersonalRangeCalculator', () => {
     const rhythm = host.querySelector('[data-testid="answer-rhythm"]')!.textContent?.replace(/\s+/g, ' ')
     expect(rhythm).toContain('Normal wirst du ca. alle 4 Tage laden müssen.')
     expect(rhythm).not.toContain('Im Sommer')
+  })
+
+  it('cost: what a comparable petrol car would cost a month, and the saving', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: RESULT } as never)
+    const { host } = mount(true, { logCount: 6796, carCount: 35, petrol: { pricePerLiter: 1.8, litersPer100km: 6.8 } }, 0, { annualKm: 12000 })
+    await flush()
+
+    // 1.000 km a month × 6.8 l × 1.80 € = 122 €; the EV 46 €
+    const cost = host.querySelector('[data-testid="answer-cost"]')!.textContent?.replace(/\s+/g, ' ')
+    expect(cost).toMatch(/Ein vergleichbarer Benziner kostet rund 122\s€, du sparst 76\s€ im Monat\./)
+    expect(cost).toContain('6,8 l/100 km')
+    expect(cost).toContain('Tankerkönig')
+  })
+
+  it('cost: no petrol comparison without a fuel price (outside Germany)', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: RESULT } as never)
+    const { host } = mount(true, undefined, 0, { annualKm: 12000 })
+    await flush()
+
+    expect(host.querySelector('[data-testid="answer-cost"]')!.textContent).not.toContain('Benziner')
   })
 
   it('hands the stored profile back to the page instead of keeping it to itself', async () => {

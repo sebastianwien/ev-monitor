@@ -3992,6 +3992,9 @@ gate:
   error_rate_limited: "För många försök. Vänta 15 minuter."
   error_generic: "Det fungerade inte. Försök igen."
 personal_range:
+  petrol_compare: "En jämförbar bensinbil kostar runt {petrol}, du sparar {saving} i månaden."
+  petrol_compare_more: "En jämförbar bensinbil kostar runt {petrol} i månaden."
+  petrol_basis: "Bensinbil med {liters} l/100 km, bensin {price} per liter, dagssnitt Tyskland från Tankerkönig (CC BY 4.0)."
   stops_times: "inte ladda | ladda en gång | ladda {n} gånger"
   rhythm_same: "Normalt behöver du ladda ca {rhythm}."
   winter_summer: "på sommaren ca {range}"

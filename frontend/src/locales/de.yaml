@@ -4115,6 +4115,9 @@ gate:
   error_rate_limited: "Zu viele Versuche. Bitte warte 15 Minuten."
   error_generic: "Das hat nicht geklappt. Bitte versuch es noch einmal."
 personal_range:
+  petrol_compare: "Ein vergleichbarer Benziner kostet rund {petrol}, du sparst {saving} im Monat."
+  petrol_compare_more: "Ein vergleichbarer Benziner kostet rund {petrol} im Monat."
+  petrol_basis: "Benziner mit {liters} l/100 km, Benzin {price} je Liter, Tagesschnitt Deutschland von Tankerkönig (CC BY 4.0)."
   stops_times: "nicht laden müssen | einmal laden | {n}-mal laden"
   rhythm_same: "Normal wirst du ca. {rhythm} laden müssen."
   winter_summer: "im Sommer ca. {range}"

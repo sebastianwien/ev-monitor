@@ -100,7 +100,7 @@
           <div class="grid gap-1.5">
             <i18n-t keypath="personal_range.stops_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
               <template #distance><span class="whitespace-nowrap">{{ answer.distance }}</span></template>
-              <template #times><b class="text-[20px] font-extrabold tracking-tight">{{ answer.times }}</b></template>
+              <template #times><b class="whitespace-nowrap text-[20px] font-extrabold tracking-tight">{{ answer.times }}</b></template>
             </i18n-t>
             <p class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-400">
               <span class="inline-flex items-center gap-1.5"><ClockIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.driveTime }}</span>
@@ -116,6 +116,14 @@
               <template #cost><b class="whitespace-nowrap text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.cost }}</b></template>
             </i18n-t>
             <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.costBasis }}</p>
+            <template v-if="answer.petrol">
+              <i18n-t :keypath="answer.petrol.saving ? 'personal_range.petrol_compare' : 'personal_range.petrol_compare_more'" tag="p"
+                      class="mt-1.5 text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">
+                <template #petrol><b class="whitespace-nowrap font-bold">{{ answer.petrol.cost }}</b></template>
+                <template #saving><b class="whitespace-nowrap font-extrabold text-green-700 dark:text-green-400">{{ answer.petrol.saving }}</b></template>
+              </i18n-t>
+              <p class="text-[12px] leading-snug text-gray-500 dark:text-gray-400">{{ answer.petrol.basis }}</p>
+            </template>
           </div>
         </li>
       </ul>
@@ -216,6 +224,8 @@ const props = defineProps<{
   inputs: PersonalRangeInputs
   /** unanswered sliders; the result rests on answers only, never on start values */
   openCount: number
+  /** a comparable petrol car (litres by vehicle class, German daily fuel price); null outside Germany */
+  petrol?: { pricePerLiter: number; litersPer100km: number } | null
 }>()
 const emit = defineEmits<{
   profile: [inputs: PersonalRangeInputs]
@@ -281,8 +291,22 @@ const answer = computed(() => {
     powerEstimated: r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured),
     cost: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
     costBasis: inputs.annualKm ? t('personal_range.cost_basis_annual', { annual: formatDistance(inputs.annualKm) }) : t('personal_range.cost_basis_charges'),
+    petrol: petrolCompare(r.monthlyCostEur, inputs.annualKm ?? null),
   }
 })
+
+/** The same month's driving in a comparable petrol car, and what the EV saves on it */
+function petrolCompare(evMonthly: number, annualKm: number | null) {
+  const p = props.petrol
+  if (!p || !annualKm) return null
+  const monthly = annualKm / 12 * p.litersPer100km / 100 * p.pricePerLiter
+  const saving = Math.round(monthly) - Math.round(evMonthly)
+  return {
+    cost: formatCurrency(monthly, { decimals: 0 }),
+    saving: saving > 0 ? formatCurrency(saving, { decimals: 0 }) : null,
+    basis: t('personal_range.petrol_basis', { liters: formatDecimal(p.litersPer100km, 1), price: formatCurrency(p.pricePerLiter, { decimals: 2 }) }),
+  }
+}
 
 /** The reader's own price, else the community price the backend used (follows the wallbox answer) */
 const shownPrice = computed(() => props.inputs.pricePerKwh
