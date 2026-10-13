@@ -4111,8 +4111,8 @@ gate:
 personal_range:
   petrol_compare: "A comparable petrol car costs about {petrol}, you save {saving} a month."
   petrol_compare_more: "A comparable petrol car costs about {petrol} a month."
-  petrol_basis: "Petrol car of the {category} class at {liters} l/100 km, petrol {price} a litre."
-  petrol_basis_plain: "Petrol car at {liters} l/100 km, petrol {price} a litre."
+  petrol_basis: "{category} {liters} l/100 km petrol at {price} a litre"
+  petrol_basis_plain: "{liters} l/100 km petrol at {price} a litre"
   stops_times: "not need to charge | charge once | charge {n} times"
   rhythm_same: "Usually you will need to charge about {rhythm}."
   winter_summer: "about {range} in summer"

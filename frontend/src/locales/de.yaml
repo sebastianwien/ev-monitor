@@ -4117,8 +4117,8 @@ gate:
 personal_range:
   petrol_compare: "Ein vergleichbarer Benziner kostet rund {petrol}, du sparst {saving} im Monat."
   petrol_compare_more: "Ein vergleichbarer Benziner kostet rund {petrol} im Monat."
-  petrol_basis: "Benziner der Klasse {category} mit {liters} l/100 km, Benzin {price} je Liter."
-  petrol_basis_plain: "Benziner mit {liters} l/100 km, Benzin {price} je Liter."
+  petrol_basis: "{category} {liters} l/100 km Benzin bei {price} je Liter"
+  petrol_basis_plain: "{liters} l/100 km Benzin bei {price} je Liter"
   stops_times: "nicht laden müssen | einmal laden | {n}-mal laden"
   rhythm_same: "Normal wirst du ca. {rhythm} laden müssen."
   winter_summer: "im Sommer ca. {range}"

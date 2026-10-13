@@ -3994,8 +3994,8 @@ gate:
 personal_range:
   petrol_compare: "En tilsvarende bensinbil koster rundt {petrol}, du sparer {saving} i måneden."
   petrol_compare_more: "En tilsvarende bensinbil koster rundt {petrol} i måneden."
-  petrol_basis: "Bensinbil i klassen {category} med {liters} l/100 km, bensin {price} per liter."
-  petrol_basis_plain: "Bensinbil med {liters} l/100 km, bensin {price} per liter."
+  petrol_basis: "{category} {liters} l/100 km bensin til {price} per liter"
+  petrol_basis_plain: "{liters} l/100 km bensin til {price} per liter"
   stops_times: "ikke lade | lade én gang | lade {n} ganger"
   rhythm_same: "Vanligvis må du lade ca. {rhythm}."
   winter_summer: "om sommeren ca. {range}"

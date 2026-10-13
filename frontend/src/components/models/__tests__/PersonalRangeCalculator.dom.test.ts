@@ -262,7 +262,7 @@ describe('PersonalRangeCalculator', () => {
     const cost = host.querySelector('[data-testid="answer-cost"]')!.textContent?.replace(/\s+/g, ' ')
     expect(cost).toMatch(/Ein vergleichbarer Benziner kostet rund 122\s€, du sparst 76\s€ im Monat\./)
     // the petrol car of the same vehicle class, named
-    expect(cost).toContain('Benziner der Klasse Kompakt mit 6,8 l/100 km')
+    expect(cost).toMatch(/Kompakt 6,8 l\/100 km Benzin bei 1,80\s€ je Liter/)
     // 46 € × 12 / 12.000 km = 4,60 € per 100 km
     expect(cost).toMatch(/4,60\s€\/100km bei 12\.000\skm im Jahr/)
     expect(cost).not.toContain('Tankerkönig')
