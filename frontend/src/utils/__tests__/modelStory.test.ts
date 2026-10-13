@@ -27,14 +27,14 @@ const full: StoryInput = {
   routeType: { highway: 18.9, city: 16.2, combined: 17.1, highwayCars: 16, highwayLogs: 121, cityLogs: 119, combinedLogs: 800, typedMean: 17.6 },
   seasonal: { summer: 17.6, winter: 22.6, summerLogs: 1630, winterLogs: 891 },
   fastChargePowerKw: 85,
-  dcPricePerKwh: 0.427, avgPricePerKwh: 0.372,
+  acPricePerKwh: 0.35, dcPricePerKwh: 0.427, avgPricePerKwh: 0.372,
   fleetWinterFactor: { factor: 1.28, models: 29 },
 }
 
 const specOnly: StoryInput = {
   ...full, logCount: 0, carCount: 0, driverCount: 0, avgKwhPer100km: null, minKwhPer100km: null, maxKwhPer100km: null,
   routeType: null, seasonal: null, fastChargePowerKw: null,
-  dcPricePerKwh: null, avgPricePerKwh: null,
+  acPricePerKwh: null, dcPricePerKwh: null, avgPricePerKwh: null,
 }
 
 const fact = (s: ReturnType<typeof buildModelStory>, key: string) => s.facts.find(f => f.key === key)!
@@ -89,7 +89,12 @@ describe('buildModelStory', () => {
     // 58 × 0.7 / 85 kW = 28.7 min → 30
     expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '10 auf 80 %, typisch 85 kW' })
     // 0.372 × 19.1 = 7.11
-    expect(fact(s, 'cost')).toMatchObject({ value: '7.11 €', unit: '/100km', note: 'Ø 37 ct/kWh, Schnellladestopp rund 18 €' })
+    // 0.372 × 19.1 = 7.11; a normal charge 20 to 80 % at AC: 58 × 0.6 / 0.9 = 38.7 kWh × 0.35 = 13.53 → 14 €;
+    // a fast-charging stop 10 to 80 % at DC: 58 × 0.7 / 0.95 = 42.7 kWh × 0.427 = 18.25 → 18 €
+    expect(fact(s, 'cost')).toMatchObject({ value: '7.11 €', unit: '/100km', rows: [
+      { label: 'Normale Ladung', detail: '20 → 80 %', value: '14 €' },
+      { label: 'Schnellladestopp', detail: '10 → 80 %', value: '18 €' },
+    ] })
   })
 
   it('evidence: range by season against the prospectus, bars from zero on one scale', () => {
@@ -152,6 +157,11 @@ describe('buildModelStory', () => {
     expect(s.heroSentence).toBe('50 Fahrer sagen 270 km.')
     expect(fact(s, 'consumption').note).toBe('aus 6230 Ladevorgängen')
     expect(s.evidence.range!.bars.map(b => b.key)).toEqual(['summer', 'winter'])
+  })
+
+  it('cost without an AC price: only the fast-charging stop', () => {
+    const s = buildModelStory({ ...full, acPricePerKwh: null }, fmt)
+    expect(fact(s, 'cost').rows!.map(r => r.label)).toEqual(['Schnellladestopp'])
   })
 
   it('a consumption below the prospectus says so', () => {

@@ -6,7 +6,7 @@
  * consumption formula of its own beyond range = net battery × 0.9 / consumption.
  */
 
-import { DC_CHARGING_EFFICIENCY } from './consumptionPreview'
+import { AC_CHARGING_EFFICIENCY, DC_CHARGING_EFFICIENCY } from './consumptionPreview'
 
 /** Same as the backend calculator: below this many highway cars the highway effect is the fleet estimate */
 const MIN_HIGHWAY_CARS = 5
@@ -33,6 +33,8 @@ export interface StoryInput {
   /** null when either season has too few logs */
   seasonal: { summer: number; winter: number; summerLogs: number; winterLogs: number } | null
   fastChargePowerKw: number | null
+  /** AC price, mostly at home: the normal charge in the cost tile */
+  acPricePerKwh?: number | null
   dcPricePerKwh: number | null
   avgPricePerKwh: number | null
   /** median winter/summer ratio over the models that have both, for the PARTIAL season chapter */
@@ -65,6 +67,8 @@ export interface FactTile {
   unit: string
   note: string
   level: StoryLevel
+  /** below the figure instead of one note line: "Normale Ladung, 20 → 80 %: 14 €" */
+  rows?: { label: string; detail: string; value: string }[]
 }
 
 export interface EvidenceBar {
@@ -105,6 +109,8 @@ export interface ModelStory {
 
 const RANGE_SHARE = 0.9
 const STOP_SHARE = 0.7
+/** A normal charge, overnight at the wallbox: 20 to 80 % */
+const NORMAL_SHARE = 0.6
 
 /** Non-breaking space between a number and its unit, so a headline never wraps before "km." */
 export function keepUnits(text: string): string {
@@ -225,14 +231,20 @@ function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile
   // "7,14 €/100km" → "7,14 €" big, "/100km" small; "£7.14/100mi" alike
   const text = f.formatCostPerDistance(d.avgPricePerKwh * d.avgKwhPer100km)
   const cut = text.lastIndexOf('/')
-  // A stop from 10 to 80 % at the DC price, the charge a buyer plans for; not the mean session, which includes short top-ups
+  // What a buyer pays per charge: a normal one at the AC price, a fast-charging stop at the DC price
+  const rows: NonNullable<FactTile['rows']> = []
+  if (d.netBatteryKwh && d.acPricePerKwh) {
+    rows.push({ label: f.t('model.page.cost_normal'), detail: '20 → 80 %',
+      value: f.formatCurrency(d.netBatteryKwh * NORMAL_SHARE / AC_CHARGING_EFFICIENCY * d.acPricePerKwh) })
+  }
   const stop = fastStop(d.netBatteryKwh, d.dcPricePerKwh ?? d.avgPricePerKwh)
-  const price = f.formatCostPerKwh(d.avgPricePerKwh)
+  if (stop) rows.push({ label: f.t('model.page.cost_stop'), detail: '10 → 80 %', value: f.formatCurrency(stop.eur) })
   return {
     ...base, level: 'FULL',
     value: cut > 0 ? text.slice(0, cut) : text,
     unit: cut > 0 ? text.slice(cut) : '',
-    note: stop ? f.t('model.page.note_cost', { price, stop: f.formatCurrency(stop.eur) }) : f.t('model.page.note_cost_short', { price }),
+    note: rows.length ? '' : f.t('model.page.note_cost_short', { price: f.formatCostPerKwh(d.avgPricePerKwh) }),
+    rows,
   }
 }
 

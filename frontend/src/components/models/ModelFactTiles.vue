@@ -20,7 +20,14 @@
             </span>
             <span v-if="fact.value != null && fact.unit" class="whitespace-nowrap text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ fact.unit }}</span>
           </span>
-          <span class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ fact.note }}</span>
+          <span v-if="fact.note" class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ fact.note }}</span>
+          <!-- What one charge costs: a normal one and a fast-charging stop -->
+          <span v-if="fact.rows?.length" class="mt-1 grid gap-1.5">
+            <span v-for="row in fact.rows" :key="row.label" class="flex items-baseline justify-between gap-2 text-[13px] leading-snug">
+              <span class="min-w-0 text-gray-600 dark:text-gray-400">{{ row.label }} <span class="whitespace-nowrap text-gray-500 dark:text-gray-500">{{ row.detail }}</span></span>
+              <b class="whitespace-nowrap font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ row.value }}</b>
+            </span>
+          </span>
         </dd>
       </div>
     </dl>

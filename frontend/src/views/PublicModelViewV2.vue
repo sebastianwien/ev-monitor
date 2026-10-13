@@ -487,7 +487,7 @@ const storyInput = computed((): StoryInput => {
     seasonal: seasonOk ? { summer: season.summerConsumptionKwhPer100km!, winter: season.winterConsumptionKwhPer100km!,
       summerLogs: season.summerLogCount, winterLogs: season.winterLogCount } : null,
     fastChargePowerKw: storyContext.value?.fastChargePowerKw ?? null,
-    dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
+    acPricePerKwh: st.acAvgCostPerKwh, dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
     fleetWinterFactor: fleetWinterFactor.value,
   }
 })
