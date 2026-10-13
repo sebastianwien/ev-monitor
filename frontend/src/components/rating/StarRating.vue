@@ -6,7 +6,7 @@ import { SKIP } from '../../utils/ratingForm'
 
 /**
  * Fünf Sterne als Radiogruppe, jeder Stern mit Klartext. Optional eine Ausweich-Antwort
- * ("Fahre ich selten Langstrecke"), die als beantwortet zählt, aber keine Sterne vergibt.
+ * ("Kann ich nicht beurteilen"), die als beantwortet zählt, aber keine Sterne vergibt.
  */
 const props = defineProps<{
     modelValue: number | typeof SKIP | null

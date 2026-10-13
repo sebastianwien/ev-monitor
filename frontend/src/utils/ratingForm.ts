@@ -17,7 +17,7 @@ export const MAX_ITEM_CHARS = 120
 /** Ab so vielen Bewertungen zeigt der Server Durchschnitte (RatingAggregator.MIN_FOR_AVERAGE). */
 export const MIN_FOR_AVERAGE = 5
 
-/** "Fahre ich selten Langstrecke" bzw. "Noch nicht gebraucht": beantwortet, aber ohne Sterne. */
+/** "Kann ich nicht beurteilen": beantwortet, aber ohne Sterne. */
 export const SKIP = 'SKIP' as const
 type Stars = number | null
 type OptionalStars = number | typeof SKIP | null

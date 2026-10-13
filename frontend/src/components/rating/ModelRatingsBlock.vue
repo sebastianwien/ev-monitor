@@ -9,7 +9,7 @@ import { analytics } from '../../services/analytics'
 import type { PublicModelRatings } from '../../api/ratingService'
 
 /**
- * "Fahrer sagen" auf der Modellseite. Öffentlich nur absolute Zahlen, ab 5 Bewertungen Schnitt,
+ * "Fahrerbewertungen" auf der Modellseite. Öffentlich nur absolute Zahlen, ab 5 Bewertungen Schnitt,
  * darunter Einzelkarten. Alle Texte stehen im DOM (auch zugeklappte Berichte), damit Crawler sie sehen.
  */
 const props = defineProps<{
