@@ -15,6 +15,47 @@ class PublicEmbedServiceTest {
     private final PublicModelService publicModelService = mock(PublicModelService.class);
     private final PublicEmbedService service = new PublicEmbedService(publicModelService, new PlausibilityProperties(), "https://ev-monitor.net");
 
+    {
+        when(publicModelService.getPlatformStats()).thenReturn(new PlatformStatsResponse(0, 0, 0, 0));
+    }
+
+    @Test
+    void tileCarriesPlatformWideCountsAndTheLargestGapToTheManufacturerFigure() {
+        // Ladevorgänge: Summe über alle Modelle der Rangliste. Fahrten: platformStats.
+        // Abweichung Real zu WLTP je Modell, Maximum nur über Modelle ab 100 Ladungen:
+        // 15,5 / 15,5 = 0 %; 24,4 / 16,5 = +47,9 → 48 %; 29,0 / 19,0 = +52,6 %, aber nur 57 Ladungen
+        when(publicModelService.getTopModels(false)).thenReturn(List.of(
+                top(154, "15.5", "15.5"), top(5120, "24.4", "16.5"), top(57, "29.0", "19.0"), top(300, "18.0", null)));
+        when(publicModelService.getPlatformStats()).thenReturn(new PlatformStatsResponse(188, 782, 37266, 1058813));
+        var v = variant(new BigDecimal("77"), new BigDecimal("17.2"), 150, null);
+        when(publicModelService.getModelStats("VW", "ID.3", false))
+                .thenReturn(Optional.of(stats(List.of(v), new BigDecimal("17.2"), 300, 10, Extras.NONE)));
+
+        ModelTileResponse tile = service.getModelTile("VW", "ID.3");
+
+        assertThat(tile.totalLogCount()).isEqualTo(5631);
+        assertThat(tile.totalTripCount()).isEqualTo(37266);
+        assertThat(tile.wltpGapMaxPercent()).isEqualTo(48);
+    }
+
+    @Test
+    void gapIsNullWhenNoModelHasEnoughLogsAndNegativeGapsNeverWin() {
+        when(publicModelService.getTopModels(false)).thenReturn(List.of(top(99, "24.4", "16.5"), top(500, "13.4", "16.5")));
+        var v = variant(new BigDecimal("77"), new BigDecimal("17.2"), 150, null);
+        when(publicModelService.getModelStats("VW", "ID.3", false))
+                .thenReturn(Optional.of(stats(List.of(v), new BigDecimal("17.2"), 300, 10, Extras.NONE)));
+
+        // Ein Modell unter WLTP (-19 %) ergibt keinen Claim "bis zu -19 %"
+        assertThat(service.getModelTile("VW", "ID.3").wltpGapMaxPercent()).isNull();
+        assertThat(service.getModelTile("VW", "ID.3").totalLogCount()).isEqualTo(599);
+    }
+
+    private static TopModelResponse top(int logCount, String avg, String wltp) {
+        return new TopModelResponse("VW", "ID_3", "VW", "VW ID.3", "ID.3", logCount, new BigDecimal(avg), null, null,
+                null, null, null, "COMPACT", "Kompakt", null, wltp == null ? null : new BigDecimal(wltp),
+                null, null, null, null, null, null, null, null, null, null, null);
+    }
+
     @Test
     void tileUsesModelAverageOnTheBatteryOfTheMostMeasuredVariantAndRoundsRangesToTens() {
         // Verbrauch: Modellmittel 17,2 wie Titel und Meta-Description, nicht 18,9 der Variante.
