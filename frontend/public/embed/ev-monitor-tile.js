@@ -1,7 +1,7 @@
 /*!
  * EV Monitor Realdaten-Kachel
  * Einbau:
- *   <div data-ev-monitor-tile data-brand="Volkswagen" data-model="ID.3" data-utm-source="firstev"></div>
+ *   <div data-ev-monitor-tile data-brand="Volkswagen" data-model="ID.3" data-utm-source="firstev" data-partner="FirstEV"></div>
  *   <script src="https://ev-monitor.net/embed/ev-monitor-tile.js" async></script>
  * Optional: data-theme="dark|light". Die Kachel bringt Marke, Farben und Schrift selbst mit;
  * ältere Partner-Variablen (--evm-bg, --evm-fg, --evm-muted, --evm-line, --evm-accent, --evm-card)
@@ -142,7 +142,7 @@
     return box
   }
 
-  /** Grüne Absenderleiste: Logo, Wortmarke, Partnerkennung aus data-utm-source */
+  /** Grüne Absenderleiste: Logo, Wortmarke, Partnername aus data-partner (sonst data-utm-source) */
   function header(parent, host) {
     var hd = el('div', 'hd')
     var mark = el('p', 'mark')
@@ -152,7 +152,8 @@
     mark.appendChild(document.createTextNode('EV Monitor'))
     hd.appendChild(mark)
     var source = host.getAttribute('data-utm-source')
-    if (source && source !== 'embed') hd.appendChild(rich(el('span', 'partner'), ['Partner von', [source]]))
+    var partner = host.getAttribute('data-partner') || (source && source !== 'embed' ? source : null)
+    if (partner) hd.appendChild(rich(el('span', 'partner'), ['Partner von', [partner]]))
     parent.appendChild(hd)
   }
 
