@@ -38,7 +38,7 @@
         <div class="grid gap-2 md:gap-5">
           <!-- 1 Hero: its own box, the questions docked below it. On the phone the green chat closes the box and the
                change of surface to the next box is the separation, so no gap and no line on top of it. -->
-          <header ref="hero" data-testid="model-hero" class="relative z-10 -mb-2 border-gray-200 bg-white md:mb-0 md:rounded-3xl md:edge-box dark:bg-gray-900">
+          <header class="relative z-10 -mb-2 border-gray-200 bg-white md:mb-0 md:rounded-3xl md:edge-box dark:bg-gray-900">
             <div class="grid gap-5 px-4 py-6 md:gap-6 md:px-10 md:py-8">
               <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:gap-8">
                 <h1 class="max-w-[30ch] text-balance text-[22px] md:text-[32px] font-bold leading-[1.15] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
@@ -81,7 +81,7 @@
           <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_380px] md:items-start md:gap-5">
             <ModelBox id="profil" aria-labelledby="profile-title" class="scroll-mt-28" data-testid="driving-profile">
               <div class="grid gap-1.5">
-                <h2 id="profile-title" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('model.page.profile_title') }}</h2>
+                <h2 id="profile-title" ref="profileTitle" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('model.page.profile_title') }}</h2>
                 <p class="max-w-[52ch] text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('model.page.profile_sub', { model: shortModelName }) }}</p>
               </div>
               <div class="grid gap-5">
@@ -101,7 +101,7 @@
                 :open-count="openQuestions.length"
                 :petrol="petrolComparison"
                 :fast-price-per-kwh="fastAdHocForMarket ?? stats.dcAvgCostPerKwh"
-                :entry="hero"
+                :entry="profileTitle"
                 @profile="applyProfile"
                 @incomplete="showFirstOpen"
                 @home="answerHome"
@@ -332,8 +332,8 @@ const loading = ref(true)
 const notFound = ref(false)
 const apiError = ref(false)
 const showBackPill = ref(false)
-/** The hero with the chat's call to the answers; once it is out of view the calculator's phone bar takes over */
-const hero = ref<HTMLElement | null>(null)
+/** The profile heading; once it has scrolled above the calculator's phone bar, the bar comes */
+const profileTitle = ref<HTMLElement | null>(null)
 const stats = ref<PublicModelStats | null>(null)
 /** Fahrerbewertungen, null bis geladen oder bei Fehler - die Seite funktioniert auch ohne. */
 const ratings = ref<PublicModelRatings | null>(null)

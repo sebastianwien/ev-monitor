@@ -156,19 +156,6 @@ test('Handy: die Freischalten-Leiste deckt bei Ankunft nichts zu und weicht, sol
   await expect(page.getByTestId('unlock-bar')).toBeVisible();
 });
 
-test('Handy: beim ersten Scrollen kommt die Leiste, sobald der Hero aus dem Bild ist', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await openStory(page);
-  await expect(page.getByTestId('unlock-bar')).toHaveCount(0);
-  // the hero with the chat just above the fold, the box itself still far below
-  await page.evaluate(() => {
-    const hero = document.querySelector('[data-testid="model-hero"]')!.getBoundingClientRect();
-    window.scrollBy(0, hero.bottom + 10);
-  });
-  await expect(page.getByTestId('personal-range')).not.toBeInViewport();
-  await expect(page.getByTestId('unlock-bar')).toBeVisible();
-});
-
 test('Handy: die Leiste bleibt, bis der Freischalt-Knopf in der Box selbst im Bild ist', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openStory(page);
