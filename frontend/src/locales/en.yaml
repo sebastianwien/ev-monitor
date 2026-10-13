@@ -553,6 +553,10 @@ brand:
 
 model:
   page:
+    variant_button: "Battery"
+    variant_title: "Which battery?"
+    variant_close: "Close"
+    variant_prospect: "Brochure {range}"
     hero_basis: "Both figures from 100 to 10 % battery, the way people drive. {label} states {wltp} down to 0 %."
     cta_button: "Work it out for how I drive"
     cta_cost: "What will it cost you a month?"

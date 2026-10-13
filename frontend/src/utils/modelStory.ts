@@ -113,6 +113,11 @@ export function fastStop(netKwh: number | null, pricePerKwh: number | null): { k
   return { kwh, eur: kwh * pricePerKwh }
 }
 
+/** WLTP counts 100 to 0 %, the drivers 100 to 10 %: the comparison puts the prospectus on the same window. */
+export function prospectKm(wltpKm: number | null): number | null {
+  return wltpKm ? Math.round(wltpKm * RANGE_SHARE / 10) * 10 : null
+}
+
 /** Range on 90 % of the net battery, rounded to 10 km like the hero figure. */
 export function rangeKm(netKwh: number | null, kwhPer100km: number | null): number | null {
   if (!netKwh || !kwhPer100km) return null
@@ -123,8 +128,7 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
   const hasLogs = d.logCount > 0 && d.avgKwhPer100km != null
   const level: StoryLevel = hasLogs ? 'FULL' : 'NONE'
   const realRangeKm = rangeKm(d.netBatteryKwh, d.avgKwhPer100km)
-  // WLTP counts 100 to 0 %, the drivers 100 to 10 %: the comparison puts both on the same window
-  const prospectRangeKm = d.wltpRangeKm ? Math.round(d.wltpRangeKm * RANGE_SHARE / 10) * 10 : null
+  const prospectRangeKm = prospectKm(d.wltpRangeKm)
   const summerRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.summer) : null
   const winterRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.winter) : null
   const p = { model: d.modelName, brand: d.brandName, cars: f.formatNumber(d.carCount), drivers: f.formatNumber(d.driverCount) }
