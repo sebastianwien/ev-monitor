@@ -64,9 +64,9 @@ describe('buildModelStory', () => {
 
   it('thin data (under 5 cars): the hero calls it first measurements, not a verdict', () => {
     expect(buildModelStory({ ...full, carCount: 2, driverCount: 2 }, fmt).heroSentence)
-      .toBe('Der Prospekt sagt 434 km. Erste Messungen von 2 Fahrern: 270 km.')
+      .toBe('Der Prospekt sagt 434 km. Bisher messen 2 Fahrer 270 km.')
     expect(buildModelStory({ ...full, carCount: 1, driverCount: 1 }, fmt).heroSentence)
-      .toBe('Der Prospekt sagt 434 km. Erste Messung von einem Fahrer: 270 km.')
+      .toBe('Der Prospekt sagt 434 km. Bisher misst ein Fahrer 270 km.')
   })
 
   it('data sheet: four tiles in fixed order, one figure and one comparison line each', () => {
