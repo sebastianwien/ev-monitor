@@ -130,14 +130,17 @@ describe('PersonalRangeCalculator', () => {
     await flush()
 
     const result = host.querySelector('[data-testid="personal-range-result"]')!
-    expect(result.querySelector('[data-testid="answer-winter"]')!.textContent).toContain('320 km')
-    expect(result.querySelector('[data-testid="answer-winter"]')!.textContent).toContain('von 100 auf 10 %, im Sommer 450 km')
-    // 0.3 a week in summer: every 3 weeks; 1.5 in winter: every 4 days
-    expect(result.querySelector('[data-testid="answer-rhythm"]')!.textContent).toContain('alle 3 Wochen')
-    expect(result.querySelector('[data-testid="answer-rhythm"]')!.textContent).toContain('alle 4 Tage')
-    expect(result.querySelector('[data-testid="answer-stops"]')!.textContent).toContain('1 Stopp')
-    expect(result.querySelector('[data-testid="answer-stops"]')!.textContent).toContain('Fahrzeit 5 h 5 min, davon 30 min laden')
-    expect(result.querySelector('[data-testid="answer-cost"]')!.textContent).toContain('46')
+    const text = (key: string) => result.querySelector(`[data-testid="answer-${key}"]`)!.textContent?.replace(/\s+/g, ' ')
+    expect(text('winter')).toContain('320 km weit')
+    expect(text('winter')).toContain('von 100 auf 10 %, im Sommer 450 km')
+    // 0.3 a week in summer: every 3 weeks; 1.5 in winter: every 4 days; 40 km on 3 days
+    expect(text('rhythm')).toContain('Im Sommer alle 3 Wochen')
+    expect(text('rhythm')).toContain('Im Winter alle 4 Tage')
+    expect(text('rhythm')).toContain('120 km Pendelstrecke pro Woche')
+    expect(text('stops')).toContain('Auf 500 km 1 Ladestopp')
+    expect(text('stops')).toContain('5 h 5 min unterwegs')
+    expect(text('stops')).toContain('davon 30 min laden')
+    expect(text('cost')).toMatch(/Es kostet dich 46\s€ im Monat, dein Auto aufzuladen\./)
     expect(host.querySelectorAll('[data-testid="assumption"]').length).toBe(6)
     const own = [...host.querySelectorAll('[data-testid="assumption"]')].map(li => li.textContent).find(x => x?.includes('Dein Strompreis'))
     expect(own).toContain('28,0 ct/kWh')
@@ -211,7 +214,7 @@ describe('PersonalRangeCalculator', () => {
     // still the home-charging result: days, not stops, until the new answer is there
     const rhythm = host.querySelector('[data-testid="answer-rhythm"]')!.textContent
     expect(rhythm).toContain('alle 4 Tage')
-    expect(rhythm).toContain('Arbeitsweg 40 km an 3 Tagen')
+    expect(rhythm).toContain('120 km Pendelstrecke pro Woche')
   })
 
   it('after the gate one calculation with the mail, not a second one without', async () => {

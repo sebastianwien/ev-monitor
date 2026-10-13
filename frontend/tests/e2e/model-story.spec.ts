@@ -107,14 +107,14 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
         await page.getByTestId('wallbox-yes').click();
         await home;
       }
-      await expect(result.getByTestId('answer-rhythm')).toContainText(/alle \d+ (Tage|Wochen)|täglich/);
-      await expect(result.getByTestId('answer-stops')).toContainText(/Stopp/);
+      await expect(result.getByTestId('answer-rhythm')).toContainText(/Im Winter (alle \d+ (Tage|Wochen)|täglich)/);
+      await expect(result.getByTestId('answer-stops')).toContainText(/Auf 500 km .*Ladestopp/);
 
       const again = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST' && r.request().postDataJSON().homeCharging === false);
       await page.getByTestId('wallbox-no').click();
       await again;
       await expect(page.getByTestId('wallbox-no')).toHaveAttribute('aria-pressed', 'true');
-      await expect(result.getByTestId('answer-rhythm')).toContainText(/Ladestopp/);
+      await expect(result.getByTestId('answer-rhythm')).toContainText(/-mal pro Woche/);
       const needs = await page.evaluate(() => Object.values(localStorage).find(v => v.includes('homeCharging')) ?? '');
       expect(needs).toContain('"homeCharging":false');
     });

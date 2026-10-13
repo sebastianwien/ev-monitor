@@ -60,13 +60,22 @@
               </p>
             </div>
             <RangeGauge class="md:col-start-2 md:row-start-2 md:row-span-2" v-if="storyInput.wltpRangeKm" :wltp-km="storyInput.wltpRangeKm" :real-km="story.realRangeKm" :winter-km="story.winterRangeKm" :rating-label="ratingLabel" />
-            <a href="#profil" class="group flex min-h-11 max-w-[46ch] items-center text-[15px] font-semibold leading-snug text-green-700 hover:underline md:col-start-1 md:row-start-3 md:self-start dark:text-green-400" data-testid="hero-jump" @click="trackJump('profile')">
-              <span>{{ t('model.page.hero_jump') }}&nbsp;<ArrowDownIcon class="inline h-4 w-4 align-[-3px] motion-safe:transition-transform motion-safe:group-hover:translate-y-0.5" aria-hidden="true" /></span>
+            <!-- The questions the page answers, as the loudest element after the claim: a dark card with one button -->
+            <a href="#profil" class="group grid gap-3.5 rounded-2xl bg-gray-900 p-4 text-white shadow-lg shadow-gray-900/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 md:col-start-1 md:row-start-3 md:self-start md:p-5 dark:bg-gray-800 dark:shadow-black/30" data-testid="hero-jump" @click="trackJump">
+              <span class="text-[12px] font-semibold uppercase tracking-[0.08em] text-green-400">{{ t('model.page.cta_title') }}</span>
+              <span class="grid gap-2">
+                <span v-for="q in HERO_QUESTIONS" :key="q.key" class="flex items-center gap-2.5 text-[16px] font-semibold leading-snug md:text-[17px]">
+                  <component :is="q.icon" class="h-5 w-5 flex-none text-green-400" aria-hidden="true" />{{ t(`model.page.cta_${q.key}`) }}
+                </span>
+              </span>
+              <span class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-green-500 px-4 text-[16px] font-bold text-gray-950 transition-colors group-hover:bg-green-400">
+                {{ t('model.page.cta_button') }}<ArrowDownIcon class="h-5 w-5 motion-safe:transition-transform motion-safe:group-hover:translate-y-0.5" aria-hidden="true" />
+              </span>
             </a>
           </header>
 
           <!-- 2 Data sheet -->
-          <ModelFactTiles :title="stats.logCount > 0 ? t('model.page.facts_title') : t('model.page.facts_title_spec')" :sub="factsSub" :facts="story.facts" @evidence="trackJump('evidence')">
+          <ModelFactTiles :title="stats.logCount > 0 ? t('model.page.facts_title') : t('model.page.facts_title_spec')" :sub="factsSub" :facts="story.facts">
             <p v-if="!isEurZone && stats.avgCostPerKwh" class="text-[12px] italic text-gray-500 dark:text-gray-400">{{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}</p>
           </ModelFactTiles>
 
@@ -280,7 +289,7 @@ import { useAuthStore } from '../stores/auth'
 import { useCountryStore } from '../stores/country'
 import { getModelStats, getStoryContext, type ModelStoryContext, type PublicModelStats } from '../api/publicModelService'
 import {
-  ArrowDownIcon, ChevronDownIcon, ChevronRightIcon, HomeIcon
+  ArrowDownIcon, BanknotesIcon, BoltIcon, ChevronDownIcon, ChevronRightIcon, CloudIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import StartCodeTeaser from '../components/codes/StartCodeTeaser.vue'
@@ -544,10 +553,16 @@ function showFirstOpen() {
   block?.querySelector<HTMLElement>('input')?.focus({ preventScroll: true })
 }
 
-/** Jump links in the hero and the data sheet, as Plausible goals */
-function trackJump(target: 'profile' | 'evidence') {
-  analytics.track(target === 'profile' ? 'model_profile_jump' : 'model_evidence_jump', { model: stats.value?.modelDisplayName ?? model })
+/** The question card in the hero, as a Plausible goal */
+function trackJump() {
+  analytics.track('model_profile_jump', { model: stats.value?.modelDisplayName ?? model })
 }
+/** Same icons as the answers in the result box */
+const HERO_QUESTIONS = [
+  { key: 'winter', icon: CloudIcon },
+  { key: 'rhythm', icon: BoltIcon },
+  { key: 'cost', icon: BanknotesIcon },
+] as const
 
 const factsSub = computed(() => stats.value && stats.value.logCount > 0
   ? t('model.page.facts_sub', { logs: formatNumber(stats.value.logCount), cars: formatNumber(stats.value.uniqueCars) })

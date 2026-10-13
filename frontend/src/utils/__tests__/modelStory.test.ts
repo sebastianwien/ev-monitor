@@ -74,9 +74,9 @@ describe('buildModelStory', () => {
 
     expect(s.facts.map(f => f.key)).toEqual(['range', 'consumption', 'charging', 'cost'])
     expect(s.facts.every(f => f.level === 'FULL')).toBe(true)
-    expect(fact(s, 'range')).toMatchObject({ value: '270', unit: 'km', note: 'Winter 230 km', evidence: true })
+    expect(fact(s, 'range')).toMatchObject({ value: '270', unit: 'km', note: 'Winter 230 km' })
     // 19.1 / 15.3 = +25 %
-    expect(fact(s, 'consumption')).toMatchObject({ value: '19.1', unit: 'kWh/100km', note: '25 % über Prospekt (15.3)', evidence: true })
+    expect(fact(s, 'consumption')).toMatchObject({ value: '19.1', unit: 'kWh/100km', note: '25 % über Prospekt (15.3)' })
     // 58 × 0.7 / 85 kW = 28.7 min → 30
     expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '10 auf 80 %, typisch 85 kW' })
     // 0.372 × 19.1 = 7.11
@@ -129,7 +129,7 @@ describe('buildModelStory', () => {
     expect(s.level).toBe('NONE')
     expect(s.realRangeKm).toBeNull()
     expect(s.heroSentence).toBe('434 km verspricht Volkswagen. Noch kein Fahrer hat nachgemessen.')
-    expect(fact(s, 'range')).toMatchObject({ value: '434', level: 'NONE', evidence: false, note: 'laut Hersteller, noch nicht gemessen' })
+    expect(fact(s, 'range')).toMatchObject({ value: '434', level: 'NONE', note: 'laut Hersteller, noch nicht gemessen' })
     expect(fact(s, 'consumption')).toMatchObject({ value: '15.3', level: 'NONE' })
     expect(fact(s, 'cost').value).toBeNull()
     expect(s.evidence.range).toBeNull()

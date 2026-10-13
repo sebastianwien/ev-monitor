@@ -40,10 +40,10 @@ class ChargeRhythmTest {
     }
 
     @Test
-    void withoutHomeChargingCountsStopsRoundedUp() {
-        assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "de")).isEqualTo("2 Ladestopps pro Woche");
-        assertThat(ChargeRhythm.text(new BigDecimal("0.4"), false, "de")).isEqualTo("1 Ladestopp pro Woche");
-        assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "en")).isEqualTo("2 charging stops a week");
+    void withoutHomeChargingCountsChargesRoundedUp() {
+        assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "de")).isEqualTo("2-mal pro Woche");
+        assertThat(ChargeRhythm.text(new BigDecimal("0.4"), false, "de")).isEqualTo("1-mal pro Woche");
+        assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "en")).isEqualTo("2 times a week");
     }
 
     @Test

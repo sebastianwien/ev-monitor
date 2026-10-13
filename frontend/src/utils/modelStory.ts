@@ -62,8 +62,6 @@ export interface FactTile {
   unit: string
   note: string
   level: StoryLevel
-  /** the evidence box below holds the figures behind this tile */
-  evidence: boolean
 }
 
 export interface EvidenceBar {
@@ -146,8 +144,8 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
     summerRangeKm,
     winterRangeKm,
     facts: [
-      rangeFact(d, f, realRangeKm, winterRangeKm, range != null),
-      consumptionFact(d, f, hasLogs, routes != null || range != null),
+      rangeFact(d, f, realRangeKm, winterRangeKm),
+      consumptionFact(d, f, hasLogs),
       chargingFact(d, f, hasLogs),
       costFact(d, f, hasLogs),
     ],
@@ -157,25 +155,25 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
 
 const label = (f: StoryFormatters, key: FactKey) => f.t(`model.page.fact_${key}`)
 
-function rangeFact(d: StoryInput, f: StoryFormatters, real: number | null, winter: number | null, evidence: boolean): FactTile {
+function rangeFact(d: StoryInput, f: StoryFormatters, real: number | null, winter: number | null): FactTile {
   const base = { key: 'range' as const, label: label(f, 'range'), unit: f.distanceUnit }
   if (real == null) {
     return d.wltpRangeKm
-      ? { ...base, value: f.formatDistanceValue(d.wltpRangeKm), note: f.t('model.page.note_spec'), level: 'NONE', evidence: false }
-      : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE', evidence: false }
+      ? { ...base, value: f.formatDistanceValue(d.wltpRangeKm), note: f.t('model.page.note_spec'), level: 'NONE' }
+      : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE' }
   }
   const note = winter != null ? f.t('model.page.note_winter', { winter: f.formatDistance(winter) })
     : d.wltpRangeKm ? f.t('model.page.note_wltp', { wltp: f.formatDistance(d.wltpRangeKm) })
     : ''
-  return { ...base, value: f.formatDistanceValue(real), note, level: 'FULL', evidence }
+  return { ...base, value: f.formatDistanceValue(real), note, level: 'FULL' }
 }
 
-function consumptionFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean, evidence: boolean): FactTile {
+function consumptionFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
   const base = { key: 'consumption' as const, label: label(f, 'consumption'), unit: f.consumptionUnit }
   if (!hasLogs || d.avgKwhPer100km == null) {
     return d.wltpKwhPer100km
-      ? { ...base, value: f.formatConsumptionValue(d.wltpKwhPer100km), note: f.t('model.page.note_spec'), level: 'NONE', evidence: false }
-      : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE', evidence: false }
+      ? { ...base, value: f.formatConsumptionValue(d.wltpKwhPer100km), note: f.t('model.page.note_spec'), level: 'NONE' }
+      : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE' }
   }
   let note: string
   if (d.wltpKwhPer100km) {
@@ -187,11 +185,11 @@ function consumptionFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean, ev
   } else {
     note = f.t('model.page.note_logs', { logs: f.formatNumber(d.logCount) })
   }
-  return { ...base, value: f.formatConsumptionValue(d.avgKwhPer100km), note, level: 'FULL', evidence }
+  return { ...base, value: f.formatConsumptionValue(d.avgKwhPer100km), note, level: 'FULL' }
 }
 
 function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
-  const base = { key: 'charging' as const, label: label(f, 'charging'), unit: 'min', evidence: false }
+  const base = { key: 'charging' as const, label: label(f, 'charging'), unit: 'min' }
   if (!d.fastChargePowerKw || !d.netBatteryKwh) {
     return { ...base, value: null, note: f.t('model.page.note_charging_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
   }
@@ -203,7 +201,7 @@ function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): Fact
 }
 
 function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
-  const base = { key: 'cost' as const, label: label(f, 'cost'), evidence: false }
+  const base = { key: 'cost' as const, label: label(f, 'cost') }
   if (!d.avgPricePerKwh || !d.avgKwhPer100km) {
     return { ...base, value: null, unit: '', note: f.t('model.page.note_cost_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
   }

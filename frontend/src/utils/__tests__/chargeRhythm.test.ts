@@ -35,8 +35,8 @@ describe('chargeRhythm', () => {
   })
 
   it('without home charging counts fast-charge stops, rounded up', () => {
-    expect(chargeRhythmText(1.22, false, de)).toBe('2 Ladestopps pro Woche')
-    expect(chargeRhythmText(0.4, false, de)).toBe('1 Ladestopp pro Woche')
+    expect(chargeRhythmText(1.22, false, de)).toBe('2-mal pro Woche')
+    expect(chargeRhythmText(0.4, false, de)).toBe('1-mal pro Woche')
   })
 
   it('no commute needs no charging', () => {
@@ -67,8 +67,8 @@ describe('chargeRhythm', () => {
     })
 
     it('without home charging: stops per week as before', () => {
-      expect(chargeRhythmSpanText(0.8, 1.3, false, de)).toBe('1 bis 2 Ladestopps pro Woche')
-      expect(chargeRhythmSpanText(0.2, 0.4, false, de)).toBe('1 Ladestopp pro Woche')
+      expect(chargeRhythmSpanText(0.8, 1.3, false, de)).toBe('1- bis 2-mal pro Woche')
+      expect(chargeRhythmSpanText(0.2, 0.4, false, de)).toBe('1-mal pro Woche')
     })
   })
 })

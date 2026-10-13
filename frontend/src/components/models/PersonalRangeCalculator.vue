@@ -69,22 +69,54 @@
       </div>
 
       <p class="sr-only" role="status">{{ busy ? t('personal_range.calculating') : '' }}</p>
-      <dl class="grid grid-cols-2 gap-2 transition-opacity" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
-        <div v-for="a in answers" :key="a.key" class="grid content-start gap-1.5 rounded-xl border border-green-600/25 bg-white p-3 dark:border-green-500/25 dark:bg-gray-900" :data-testid="`answer-${a.key}`">
-          <dt class="text-[12.5px] font-semibold leading-snug text-gray-600 dark:text-gray-400">{{ a.question }}</dt>
-          <dd v-if="a.rows" class="grid gap-1">
-            <span v-for="row in a.rows" :key="row.label" class="grid">
-              <small class="text-[11.5px] font-semibold text-gray-500 dark:text-gray-400">{{ row.label }}</small>
-              <b class="text-[16px] font-bold leading-tight tabular-nums text-gray-900 dark:text-gray-100">{{ row.value }}</b>
-            </span>
-            <small v-if="a.detail" class="text-[12px] leading-snug text-gray-500 dark:text-gray-400">{{ a.detail }}</small>
-          </dd>
-          <dd v-else class="grid gap-0.5">
-            <b class="text-[22px] font-extrabold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ a.value }}</b>
-            <small v-if="a.detail" class="text-[12px] leading-snug text-gray-500 dark:text-gray-400">{{ a.detail }}</small>
-          </dd>
-        </div>
-      </dl>
+      <!-- One answer per row, as a sentence; the figure is the loud part -->
+      <ul v-if="answer" class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-opacity dark:divide-green-500/15 dark:bg-gray-900" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-3.5" data-testid="answer-winter">
+          <span class="grid h-9 w-9 place-items-center rounded-full bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"><CloudIcon class="h-5 w-5" aria-hidden="true" /></span>
+          <div class="grid gap-0.5">
+            <p class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ questions[0] }}</p>
+            <i18n-t keypath="personal_range.winter_answer" tag="p" class="text-[17px] font-semibold text-gray-900 dark:text-gray-100">
+              <template #range><b class="text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.winter }}</b></template>
+            </i18n-t>
+            <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.winterDetail }}</p>
+          </div>
+        </li>
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-3.5" data-testid="answer-rhythm">
+          <span class="grid h-9 w-9 place-items-center rounded-full bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300"><BoltIcon class="h-5 w-5" aria-hidden="true" /></span>
+          <div class="grid gap-0.5">
+            <p class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ questions[1] }}</p>
+            <i18n-t v-for="row in answer.rhythm" :key="row.key" :keypath="row.key" tag="p" class="text-[17px] font-semibold leading-snug text-gray-900 dark:text-gray-100">
+              <template #rhythm><b class="font-extrabold">{{ row.value }}</b></template>
+            </i18n-t>
+            <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.rhythmBasis }}</p>
+          </div>
+        </li>
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-3.5" data-testid="answer-stops">
+          <span class="grid h-9 w-9 place-items-center rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"><MapIcon class="h-5 w-5" aria-hidden="true" /></span>
+          <div class="grid gap-1">
+            <p class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ answer.stopsQuestion }}</p>
+            <i18n-t keypath="personal_range.stops_answer" tag="p" class="text-[17px] font-semibold text-gray-900 dark:text-gray-100">
+              <template #distance>{{ answer.distance }}</template>
+              <template #stops><b class="text-[24px] font-extrabold tracking-tight">{{ answer.stops }}</b></template>
+            </i18n-t>
+            <p class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-400">
+              <span class="inline-flex items-center gap-1.5"><ClockIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.driveTime }}</span>
+              <span v-if="answer.chargeTime" class="inline-flex items-center gap-1.5"><BoltIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.chargeTime }}</span>
+            </p>
+            <p v-if="answer.powerEstimated" class="text-[12.5px] text-amber-700 dark:text-amber-400">{{ t('personal_range.power_estimated') }}</p>
+          </div>
+        </li>
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-3.5" data-testid="answer-cost">
+          <span class="grid h-9 w-9 place-items-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"><BanknotesIcon class="h-5 w-5" aria-hidden="true" /></span>
+          <div class="grid gap-0.5">
+            <p class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ questions[3] }}</p>
+            <i18n-t keypath="personal_range.cost_answer" tag="p" class="text-[17px] font-semibold leading-snug text-gray-900 dark:text-gray-100">
+              <template #cost><b class="whitespace-nowrap text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.cost }}</b></template>
+            </i18n-t>
+            <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.costBasis }}</p>
+          </div>
+        </li>
+      </ul>
 
       <p class="inline-flex items-center gap-1.5 justify-self-start rounded-full px-2.5 py-1 text-xs font-semibold"
          :class="result.dataLevel === 'MEASURED' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'">
@@ -152,7 +184,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CheckCircleIcon, ChevronDownIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { BanknotesIcon, BoltIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, CloudIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, MapIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
 import ProfileSlider from './ProfileSlider.vue'
 import { useAuthStore } from '../../stores/auth'
@@ -224,28 +256,29 @@ const shortLabels = computed(() => ['winter', 'rhythm', 'stops', 'cost'].map(k =
 const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
 const rhythm = (perWeek: number) => chargeRhythmText(perWeek, resultInputs.value.homeCharging, rhythmFormat)
 
-const answers = computed(() => {
+/** The four answers of the shown result, worded with the inputs of that same calculation */
+const answer = computed(() => {
   const r = result.value
-  if (!r) return []
+  if (!r) return null
   const inputs = resultInputs.value
-  const [winter, often, , cost] = questions.value
-  const stops = t('personal_range.question_stops', { distance: formatDistance(inputs.longTripKm) })
   const days = inputs.commuteDaysPerWeek ?? 5
-  const tripDetail = r.longTripStops > 0
-    ? t('personal_range.stops_detail_charging', { duration: duration(r.longTripTotalMinutes), minutes: r.longTripChargingMinutes })
-    : t('personal_range.stops_detail', { duration: duration(r.longTripTotalMinutes) })
-  const estimatedPower = r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured)
-  return [
-    { key: 'winter', question: winter, value: formatDistance(r.winterRangeKm), detail: t('personal_range.winter_detail', { summer: formatDistance(r.summerRangeKm) }) },
-    { key: 'rhythm', question: often, detail: t('personal_range.rhythm_basis', { km: formatDistance(inputs.commuteKmPerDay), n: days }, days), rows: [
-      { label: t('personal_range.season_summer'), value: rhythm(r.chargesPerWeekSummer) },
-      { label: t('personal_range.season_winter'), value: rhythm(r.chargesPerWeekWinter) },
-    ] },
-    { key: 'stops', question: stops, value: t('personal_range.stops_value', { n: r.longTripStops }, r.longTripStops),
-      detail: estimatedPower ? `${tripDetail}, ${t('personal_range.power_estimated')}` : tripDetail },
-    { key: 'cost', question: cost, value: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
-      detail: inputs.annualKm ? t('personal_range.cost_basis_annual', { annual: formatDistance(inputs.annualKm) }) : t('personal_range.cost_basis_charges') },
-  ] as { key: string; question: string; value?: string; detail?: string; rows?: { label: string; value: string }[] }[]
+  return {
+    winter: formatDistance(r.winterRangeKm),
+    winterDetail: t('personal_range.winter_detail', { summer: formatDistance(r.summerRangeKm) }),
+    rhythm: [
+      { key: 'personal_range.rhythm_summer', value: rhythm(r.chargesPerWeekSummer) },
+      { key: 'personal_range.rhythm_winter', value: rhythm(r.chargesPerWeekWinter) },
+    ],
+    rhythmBasis: t('personal_range.rhythm_basis', { km: formatDistance(inputs.commuteKmPerDay * days) }),
+    stopsQuestion: t('personal_range.question_stops', { distance: formatDistance(inputs.longTripKm) }),
+    distance: formatDistance(inputs.longTripKm),
+    stops: t('personal_range.stops_count', { n: r.longTripStops }, r.longTripStops),
+    driveTime: t('personal_range.drive_time', { duration: duration(r.longTripTotalMinutes) }),
+    chargeTime: r.longTripStops > 0 ? t('personal_range.charge_time', { duration: duration(r.longTripChargingMinutes) }) : null,
+    powerEstimated: r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured),
+    cost: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
+    costBasis: inputs.annualKm ? t('personal_range.cost_basis_annual', { annual: formatDistance(inputs.annualKm) }) : t('personal_range.cost_basis_charges'),
+  }
 })
 
 /** The reader's own price, else the community price the backend used (follows the wallbox answer) */
