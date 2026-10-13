@@ -3,8 +3,9 @@
  * Einbau:
  *   <div data-ev-monitor-tile data-brand="Volkswagen" data-model="ID.3" data-utm-source="firstev"></div>
  *   <script src="https://ev-monitor.net/embed/ev-monitor-tile.js" async></script>
- * Optional: data-theme="dark|light", Farben über --evm-bg, --evm-fg, --evm-muted, --evm-line,
- * --evm-accent, --evm-card am Host-Element. Schrift erbt die Kachel von der Seite.
+ * Optional: data-theme="dark|light". Die Kachel bringt Marke, Farben und Schrift selbst mit;
+ * ältere Partner-Variablen (--evm-bg, --evm-fg, --evm-muted, --evm-line, --evm-accent, --evm-card)
+ * wirken weiter, werden aber nicht mehr empfohlen.
  * Keine Cookies, kein Tracking. Es wird nur der Kachel-Endpoint abgefragt.
  * Doku: docs/features/embed-model-tile.md
  */
@@ -19,73 +20,77 @@
     if (script && script.src) origin = new URL(script.src).origin
   } catch (e) { /* Standard-Origin */ }
 
-  /** Arbeitsweg hin und zurück und Urlaubsfahrt in km, Urlaub auf den Langstrecken-Chips der Modellseite */
-  var COMMUTE = [20, 40, 60]
-  var TRIPS = [500, 800, 1200]
+  /** Ein Modell zählt für den Claim ab so vielen Ladungen, die Schwelle setzt der Endpoint (wltpGapMaxPercent) */
+  /** Die drei Fragen, die die Modellseite beantwortet; jede ist ein eigener Link mit eigenem utm_content */
+  var QUESTIONS = [
+    { icon: 'bolt', text: 'Wie oft muss ich in der Woche laden?', content: 'frage-woche' },
+    { icon: 'euro', text: 'Was kostet mich das Auto im Monat?', content: 'frage-kosten' },
+    { icon: 'pin', text: 'Wie viele Ladestopps hat meine Urlaubsfahrt?', content: 'frage-urlaub' }
+  ]
+  // Heroicons Outline (bolt, currency-euro, map-pin)
+  var ICONS = {
+    bolt: 'm3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z',
+    euro: 'M14.25 7.756a4.5 4.5 0 1 0 0 8.488M7.5 10.5h5.25m-5.25 3h5.25M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+    pin: 'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z'
+  }
 
-  // BoltLogo der Seite, helle Variante für dunkle Flächen
+  // BoltLogo der Seite im weißen Kreis der Absenderleiste
   var BOLT = 'M19.5 3 L9 18 L15.5 18 L13 29 L24 14 L17.5 14 Z'
-  var LOGO = '<svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true">' +
-    '<path d="' + BOLT + '" fill="var(--logo-fill)" stroke="var(--logo-stroke)" stroke-width="1.4" stroke-linejoin="round"/></svg>'
+  var LOGO = '<svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">' +
+    '<path d="' + BOLT + '" fill="#22c55e" stroke="#15803d" stroke-width="1.4" stroke-linejoin="round"/></svg>'
+  var GREEN = 'linear-gradient(135deg,#16a34a 0,#15803d 45%,#166534 100%)'
   var ARROW = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
     '<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>'
 
-  var DARK = '--bg:var(--evm-bg,radial-gradient(90% 120% at 0 100%,#0f3330 0,#0b1e26 70%));--fg:var(--evm-fg,#e8eef0);' +
-    '--strong:var(--evm-fg,#fff);--muted:var(--evm-muted,#9fb0b6);--line:var(--evm-line,rgba(255,255,255,.10));' +
-    '--accent:var(--evm-accent,#4ade80);--card:var(--evm-card,rgba(255,255,255,.04));--btn:#22c55e;--btnfg:#062a14;' +
-    '--track:rgba(255,255,255,.08);--logo-fill:#4ade80;--logo-stroke:#fff'
+  var DARK = '--bg:var(--evm-bg,#16181b);--fg:var(--evm-fg,#e7e9ec);--strong:var(--evm-fg,#fff);--muted:var(--evm-muted,#a3a9b1);' +
+    '--line:var(--evm-line,rgba(255,255,255,.11));--accent:var(--evm-accent,#4ade80);--card:var(--evm-card,rgba(255,255,255,.04));' +
+    '--btn:#22c55e;--btnfg:#052e16'
 
   var CSS = [
-    ':host{all:initial;display:block;font-family:inherit}',
+    ':host{all:initial;display:block}',
+    // Die Container-Query misst den Wrapper, ein Element kann nicht seine eigene Breite abfragen
+    '.w{container-type:inline-size}',
     '.t{--bg:var(--evm-bg,#fff);--fg:var(--evm-fg,#1f2937);--strong:var(--evm-fg,#111827);--muted:var(--evm-muted,#4b5563);',
     '--line:var(--evm-line,#e5e7eb);--accent:var(--evm-accent,#16a34a);--card:var(--evm-card,#f9fafb);--btn:#16a34a;--btnfg:#fff;',
-    '--track:#e5e7eb;--logo-fill:#22c55e;--logo-stroke:#16a34a;',
-    'container-type:inline-size;position:relative;overflow:hidden;box-sizing:border-box;font-family:inherit;line-height:1.45;',
-    'background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:24px;padding:24px 32px 18px}',
+    'position:relative;overflow:hidden;box-sizing:border-box;line-height:1.45;',
+    'font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;',
+    'background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:24px;padding:24px 32px}',
     '.t[data-theme=dark]{' + DARK + '}',
     '@media (prefers-color-scheme:dark){.t:not([data-theme=light]){' + DARK + '}}',
     '.t *{box-sizing:border-box}',
-    '.trace{position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,transparent,var(--accent) 25%,#16a34a 65%,transparent)}',
-    '.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:28px}',
-    '.brand{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-weight:800;font-size:16px;color:var(--strong);white-space:nowrap}',
-    '.pill{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:3px 10px;opacity:.85}',
+    '.hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-24px -32px 22px;padding:14px 32px;background:' + GREEN + ';color:#fff}',
+    '.mark{display:flex;align-items:center;gap:14px;margin:0;font-weight:800;font-size:30px;line-height:1;letter-spacing:-.02em;white-space:nowrap}',
+    '.logo{flex:0 0 auto;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}',
+    '.partner{font-size:12px;font-weight:600;opacity:.9;text-align:right}.partner b{display:block;font-size:14px;font-weight:800}',
+    '.g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;align-items:stretch}',
+    '.lf{display:flex;flex-direction:column;justify-content:center}',
     '.h{margin:0 0 4px;font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-.02em;color:var(--strong)}',
-    '.sub{margin:0 0 14px;font-size:15px;color:var(--muted)}.sub b{color:var(--strong)}',
-    '.sr{display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:center;margin:0 0 8px}',
-    '.sl{font-size:13px;font-weight:700;color:var(--muted)}',
-    '.sb{height:10px;border-radius:9px;background:var(--track);overflow:hidden}',
-    '.sb i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#22c55e,#86efac)}',
-    '.sb i.w{background:linear-gradient(90deg,#38bdf8,#bae6fd)}',
-    '.sv{font-size:16px;font-weight:800;color:var(--strong);font-variant-numeric:tabular-nums;white-space:nowrap}',
-    '.sv small{font-size:12px;font-weight:500;color:var(--muted)}',
-    '.cap{margin:2px 0 14px;font-size:13px;color:var(--muted)}.cap b{color:var(--strong)}',
-    '.avg{margin:0 0 14px;font-size:15px;color:var(--muted)}.avg b{font-size:22px;color:var(--strong)}',
-    '.c{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--line);padding-top:14px}',
-    '.c b{display:block;font-size:32px;line-height:1;font-weight:800;color:var(--strong);font-variant-numeric:tabular-nums;letter-spacing:-.02em}',
-    '.c span{display:block;margin-top:6px;font-size:13px;color:var(--muted)}',
-    '.you{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}',
-    '.you h3{margin:0 0 6px;font-size:20px;color:var(--strong)}',
-    '.st{margin:0 0 14px;font-size:15px;color:var(--muted)}.st b{color:var(--strong)}',
-    '.q{display:grid;grid-template-columns:96px 1fr;gap:10px;align-items:center;margin:0 0 10px}',
-    '.ql{font-size:13px;font-weight:700;color:var(--muted)}',
-    '.chips{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}',
-    '.chip{flex:0 0 auto;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--strong);',
-    'font:600 14px/1.1 inherit;cursor:pointer;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;white-space:nowrap}',
-    '.chip:hover{border-color:var(--accent)}',
-    '.chip[aria-pressed=true]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}',
-    '.chip:focus-visible,.cta:focus-visible,.foot a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}',
+    '.proof{margin:0 0 18px;font-size:15px;color:var(--muted)}.proof b{color:var(--strong)}',
+    '.claim{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:0 14px;padding:14px 18px;border-radius:16px;',
+    'background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}',
+    '.claim b{font-size:30px;line-height:1;font-weight:800;letter-spacing:-.03em;color:var(--accent);font-variant-numeric:tabular-nums;white-space:nowrap}',
+    '.claim span{font-size:14px;font-weight:600;color:var(--strong);line-height:1.3}',
+    '.you{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}',
+    '.lead{margin:0 0 12px;font-size:19px;font-weight:800;color:var(--strong);letter-spacing:-.01em}',
+    '.qs{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:8px}',
+    '.q{display:grid;grid-template-columns:36px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;',
+    'background:var(--bg);color:var(--strong);font-size:15px;font-weight:700;line-height:1.3;text-decoration:none;transition:border-color .15s}',
+    '.q:hover{border-color:var(--accent)}',
+    '.q::after{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin-right:4px}',
+    '.ic{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 13%,transparent);color:var(--accent)}',
+    '.q:focus-visible,.cta:focus-visible{outline:2px solid var(--accent);outline-offset:2px}',
     '.cta{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 18px;text-align:center;',
     'border-radius:14px;background:var(--btn);color:var(--btnfg);font-weight:800;font-size:16px;text-decoration:none}',
     '.cta:hover{filter:brightness(1.08)}',
-    '.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}',
-    '.foot a{color:var(--strong);font-weight:600;text-decoration:underline;text-underline-offset:3px}',
+    '.sub{margin:0 0 14px;font-size:15px;color:var(--muted)}',
     '@container (max-width:720px){',
-    '.t{padding:18px 16px 14px;border-radius:20px}.h{font-size:22px}.sub{font-size:14px}',
-    '.sr{grid-template-columns:54px 1fr auto;gap:8px}.sv{font-size:15px}.c b{font-size:26px}.g{gap:14px}',
+    '.t{padding:18px 16px 14px;border-radius:20px}.hd{margin:-18px -16px 16px;padding:12px 16px}',
+    '.mark{font-size:24px;gap:10px}.logo{width:40px;height:40px}',
+    '.g{grid-template-columns:1fr;gap:14px}.lf{justify-content:flex-start}.h{font-size:22px}.proof{font-size:14px;margin-bottom:12px}',
+    '.claim{padding:10px 14px}.claim b{font-size:24px}.claim span{font-size:13px}',
     '.you{background:transparent;border:0;border-radius:0;padding:14px 0 0;border-top:1px solid var(--line)}',
-    '.you h3{font-size:17px}.st{font-size:14px;margin-bottom:12px}',
-    '.q{grid-template-columns:70px 1fr;gap:6px;margin-bottom:8px}.ql{font-size:12px}.chips{gap:6px}.chip{padding:0 9px}',
-    '.cta{min-height:48px;font-size:15px}.foot{margin-top:14px}.foot .src,.cap .cnt{display:none}}'
+    '.lead{font-size:17px;margin-bottom:10px}.q{grid-template-columns:32px 1fr auto;gap:10px;font-size:14px}.ic{width:32px;height:32px}',
+    '.cta{min-height:48px;font-size:15px}}'
   ].join('')
 
   function el(tag, cls, text) {
@@ -128,20 +133,27 @@
     var style = el('style')
     style.textContent = CSS
     root.appendChild(style)
+    var wrap = el('div', 'w')
     var box = el('div', 't')
     var theme = host.getAttribute('data-theme')
     if (theme === 'dark' || theme === 'light') box.setAttribute('data-theme', theme)
-    root.appendChild(box)
-    box.appendChild(el('div', 'trace'))
+    wrap.appendChild(box)
+    root.appendChild(wrap)
     return box
   }
 
-  function brand(parent) {
-    var p = el('p', 'brand')
-    p.innerHTML = LOGO
-    p.appendChild(document.createTextNode('EV Monitor'))
-    p.appendChild(el('span', 'pill', 'COMMUNITY'))
-    parent.appendChild(p)
+  /** Grüne Absenderleiste: Logo, Wortmarke, Partnerkennung aus data-utm-source */
+  function header(parent, host) {
+    var hd = el('div', 'hd')
+    var mark = el('p', 'mark')
+    var logo = el('span', 'logo')
+    logo.innerHTML = LOGO
+    mark.appendChild(logo)
+    mark.appendChild(document.createTextNode('EV Monitor'))
+    hd.appendChild(mark)
+    var source = host.getAttribute('data-utm-source')
+    if (source && source !== 'embed') hd.appendChild(rich(el('span', 'partner'), ['Partner von', [source]]))
+    parent.appendChild(hd)
   }
 
   function link(cls, href, text) {
@@ -152,125 +164,64 @@
     return a
   }
 
-  function seasonRow(parent, label, value, max, winter) {
-    var row = el('div', 'sr')
-    row.appendChild(el('span', 'sl', label))
-    var track = el('div', 'sb')
-    var bar = el('i', winter ? 'w' : null)
-    bar.style.width = Math.round(value / max * 100) + '%'
-    track.appendChild(bar)
-    row.appendChild(track)
-    var v = el('span', 'sv', fmt(value, 1) + ' ')
-    v.appendChild(el('small', null, 'kWh/100 km'))
-    row.appendChild(v)
-    parent.appendChild(row)
+  /** Auf Tausender abgerundet: "über 39.000" bleibt richtig, bis die Zahl die nächste Tausend erreicht */
+  function thousands(value) {
+    return fmt(Math.floor(value / 1000) * 1000, 0)
   }
 
-  function story(parent, d) {
-    var cars = d.uniqueCars === 1 ? '1 Auto' : fmt(d.uniqueCars, 0) + ' Autos'
-    parent.appendChild(el('h2', 'h', 'Und im echten Alltag?'))
-    parent.appendChild(rich(el('p', 'sub'), [[cars], ' aus der Community, ', [fmt(d.logCount, 0) + ' Ladungen'], ' gemessen.']))
-
-    var summer = d.summerConsumptionKwhPer100km, winter = d.winterConsumptionKwhPer100km
-    if (summer != null && winter != null) {
-      var max = Math.max(summer, winter)
-      seasonRow(parent, 'Sommer', summer, max, false)
-      seasonRow(parent, 'Winter', winter, max, true)
-      var diff = Math.round((winter / summer - 1) * 100)
-      var cap = rich(el('p', 'cap'), ['Im Winter ', [(diff >= 0 ? '+' : '') + diff + ' %']])
-      cap.appendChild(el('span', 'cnt', ', gemessen aus ' + fmt(d.summerLogCount, 0) + ' Sommer- und ' +
-        fmt(d.winterLogCount, 0) + ' Winterladungen'))
-      cap.appendChild(document.createTextNode('.'))
-      parent.appendChild(cap)
-    } else {
-      parent.appendChild(rich(el('p', 'avg'), ['Ø ', [fmt(d.realConsumptionKwhPer100km, 1)], ' kWh/100 km im Alltag']))
+  /** Links: Überschrift als Anschluss an die Partnerkarte, Beleg mit Plattformzahlen, Claim zur Herstellerangabe */
+  function proof(parent, d) {
+    var left = el('div', 'lf')
+    left.appendChild(el('h2', 'h', 'Und reicht das für dich?'))
+    var parts = ['Verbrauchs- und Herstellerangaben schön und gut, aber wie sieht dein Alltag aus? Bei EV Monitor dokumentieren E-Auto-Fahrer ihren Alltag']
+    if (d.totalLogCount >= 1000 && d.totalTripCount >= 1000) {
+      parts.push(', mit ', ['über ' + thousands(d.totalLogCount) + ' Ladevorgängen'], ' und ', ['mehr als ' + thousands(d.totalTripCount) + ' Fahrten'])
     }
-
-    if (d.typicalChargeCostEur != null || d.fastStopCostEur != null) {
-      var c = el('div', 'c')
-      if (d.typicalChargeCostEur != null) cost(c, d.typicalChargeCostEur, 'pro Ladung, im Schnitt')
-      if (d.fastStopCostEur != null) cost(c, d.fastStopCostEur, 'pro Schnellladestopp, 10 auf 80 %')
-      parent.appendChild(c)
+    parts.push('.')
+    left.appendChild(rich(el('p', 'proof'), parts))
+    if (d.wltpGapMaxPercent > 0) {
+      var claim = el('div', 'claim')
+      claim.appendChild(el('b', null, 'bis zu ' + d.wltpGapMaxPercent + ' %'))
+      claim.appendChild(el('span', null, 'liegt der echte Verbrauch über der Herstellerangabe, je nach Modell.'))
+      left.appendChild(claim)
     }
+    parent.appendChild(left)
   }
 
-  function cost(parent, eur, label) {
-    var cell = el('div')
-    cell.appendChild(el('b', null, fmt(Math.round(eur), 0) + ' €'))
-    cell.appendChild(el('span', null, label))
-    parent.appendChild(cell)
-  }
-
-  /** "Und wie oft lädst du?": Chips beantworten nichts in der Kachel, sie tragen den Wert zur Modellseite */
+  /** Rechts: der Handlungsblock. Jede Frage ist ein eigener Link auf die Modellseite, der Button ebenso. */
   function ask(parent, host, d) {
     var you = el('div', 'you')
-    you.appendChild(el('h3', null, 'Und wie oft lädst du?'))
-    you.appendChild(rich(el('p', 'st'), ['Tipp deine Strecke an. Wir rechnen aus, wie oft du ', ['im Winter'],
-      ' lädst und was dich das ', ['im Monat'], ' kostet.']))
-
-    var cta = link('cta', withUtm(d.modelUrl, host, 'cta'), '')
+    you.appendChild(el('h3', 'lead', 'Nenn uns dein Fahrprofil, dann beantworten wir dir:'))
+    var list = el('ul', 'qs')
+    QUESTIONS.forEach(function (q) {
+      var li = el('li')
+      var a = link('q', withUtm(d.modelUrl, host, q.content), null)
+      var ic = el('span', 'ic')
+      ic.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
+        '<path stroke-linecap="round" stroke-linejoin="round" d="' + ICONS[q.icon] + '"/></svg>'
+      a.appendChild(ic)
+      a.appendChild(el('span', null, q.text))
+      li.appendChild(a)
+      list.appendChild(li)
+    })
+    you.appendChild(list)
+    var cta = link('cta', withUtm(d.modelUrl, host, 'cta'), 'Mein Fahrprofil durchrechnen')
     cta.setAttribute('data-cta', '')
-    function setCta(text, href) {
-      cta.textContent = text
-      cta.insertAdjacentHTML('beforeend', ARROW)
-      cta.href = href
-    }
-    setCta('Meinen Alltag ausrechnen', withUtm(d.modelUrl, host, 'cta'))
-
-    var chips = []
-    function row(label, items) {
-      var q = el('div', 'q')
-      q.appendChild(el('span', 'ql', label))
-      var list = el('div', 'chips')
-      list.setAttribute('role', 'group')
-      list.setAttribute('aria-label', label)
-      items.forEach(function (item) {
-        var b = el('button', 'chip', item.label)
-        b.type = 'button'
-        b.setAttribute('aria-pressed', 'false')
-        b.addEventListener('click', function () {
-          chips.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)) })
-          setCta(item.cta, withUtm(d.modelUrl, host, item.content, item.params))
-        })
-        chips.push(b)
-        list.appendChild(b)
-      })
-      q.appendChild(list)
-      you.appendChild(q)
-    }
-    row('Arbeitsweg', COMMUTE.map(function (km) {
-      return { label: km + ' km', cta: 'Für ' + km + ' km Arbeitsweg ausrechnen', content: 'pendeln-' + km, params: { pendeln: km } }
-    }))
-    row('Urlaub', TRIPS.map(function (km) {
-      var label = fmt(km, 0) + ' km'
-      return { label: label, cta: 'Für ' + label + ' Urlaubsfahrt ausrechnen', content: 'urlaub-' + km, params: { urlaub: km } }
-    }))
+    cta.insertAdjacentHTML('beforeend', ARROW)
     you.appendChild(cta)
     parent.appendChild(you)
   }
 
-  function foot(box, host) {
-    var f = el('div', 'foot')
-    var own = el('span', null, 'Fährst du schon einen? ')
-    own.appendChild(link(null, withUtm('/register', host, 'owner'), 'Miss mit und vergleich dich'))
-    f.appendChild(own)
-    f.appendChild(el('span', 'src', 'Echte Messwerte statt Datenblatt · ev-monitor.net'))
-    box.appendChild(f)
-  }
-
   function renderData(box, host, d) {
+    header(box, host)
     var g = el('div', 'g')
-    var left = el('div')
-    brand(left)
-    story(left, d)
-    g.appendChild(left)
+    proof(g, d)
     ask(g, host, d)
     box.appendChild(g)
-    foot(box, host)
   }
 
   function renderFallback(box, host, d) {
-    brand(box)
+    header(box, host)
     box.appendChild(el('h2', 'h', d && d.modelDisplayName ? d.modelDisplayName : 'Echte Verbrauchswerte'))
     box.appendChild(el('p', 'sub', 'Noch keine Messdaten zu diesem Modell. Fährst du einen? Miss als Erster mit.'))
     box.appendChild(link('cta', withUtm('/register', host, 'fallback'), 'Kostenlos mitmachen'))
