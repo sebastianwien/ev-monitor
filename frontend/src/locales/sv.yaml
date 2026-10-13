@@ -3992,7 +3992,7 @@ gate:
   error_generic: "Det fungerade inte. Försök igen."
 personal_range:
   stops_times: "inte ladda | ladda en gång | ladda {n} gånger"
-  rhythm_same: "Sommar som vinter {rhythm}"
+  rhythm_same: "Normalt behöver du ladda ca {rhythm}."
   winter_summer: "på sommaren ca {range}"
   cost_answer: "Det kostar dig {cost} i månaden att ladda bilen."
   charge_time: "varav {duration} laddning"

@@ -4115,7 +4115,7 @@ gate:
   error_generic: "Das hat nicht geklappt. Bitte versuch es noch einmal."
 personal_range:
   stops_times: "nicht laden müssen | einmal laden | {n}-mal laden"
-  rhythm_same: "Sommer wie Winter {rhythm}"
+  rhythm_same: "Normalerweise wirst du ca. {rhythm} laden müssen."
   winter_summer: "im Sommer ca. {range}"
   cost_answer: "Es kostet dich {cost} im Monat, dein Auto aufzuladen."
   charge_time: "davon {duration} laden"
