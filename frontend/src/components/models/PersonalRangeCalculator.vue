@@ -40,8 +40,10 @@
 
       <p class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">
         {{ logCount === 0 ? t('personal_range.locked_basis_none')
-          : carCount >= MIN_MEASURED_CARS ? t('personal_range.locked_basis', { logs: formatNumber(logCount) })
+          : carCount >= MIN_MEASURED_CARS ? t('personal_range.locked_basis', { logs: formatNumber(logCount), cars: formatNumber(carCount), model: modelName })
           : t('personal_range.locked_basis_thin', { logs: formatNumber(logCount), cars: formatNumber(carCount) }) }}
+        <!-- what the free unlock asks for, right above the button -->
+        <template v-if="!authStore.token">{{ t('personal_range.locked_free') }}</template>
       </p>
       <button ref="action" type="button" data-testid="personal-range-calculate" :disabled="busy"
               class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60 btn-3d cta-shadow border-2 border-gray-900 dark:border-gray-200"
