@@ -2,7 +2,7 @@
   <div ref="root" class="relative">
     <!-- Two lines, so it reads as a choice: "Variante wählen" over the battery the page is calculated with -->
     <button ref="trigger" type="button" data-testid="variant-picker"
-            class="btn-3d cta-shadow inline-flex max-w-full items-center gap-3 rounded-2xl border-2 border-gray-900 bg-white py-1.5 pl-3.5 pr-3 text-left text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800"
+            class="btn-3d cta-shadow-sm inline-flex max-w-full items-center gap-3 rounded-2xl border-2 border-gray-900 bg-white py-1.5 pl-3.5 pr-3 text-left text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800"
             aria-haspopup="dialog" :aria-expanded="open" @click="toggle">
       <span class="grid min-w-0 leading-tight">
         <span class="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ t('model.page.variant_button') }}</span>

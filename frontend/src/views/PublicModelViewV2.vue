@@ -183,7 +183,7 @@
               <h2 class="text-balance text-[19px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.story.owner_title', { model: shortModelName }) }}</h2>
               <p class="text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('model.story.owner_text', { n: formatNumber(stats.uniqueCars + 1) }) }}</p>
             </div>
-            <a :href="registerPath" class="inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl bg-gray-900 px-6 font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white btn-3d cta-shadow border-2 border-gray-900 dark:border-gray-100">{{ t('model.story.owner_cta') }}</a>
+            <a :href="registerPath" class="inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl bg-gray-900 px-6 font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white btn-3d cta-shadow-sm border-2 border-gray-900 dark:border-gray-100">{{ t('model.story.owner_cta') }}</a>
           </ModelBox>
 
           <!-- SEO text: the long-tail answers in prose, last on the page -->
@@ -270,7 +270,7 @@
       <div v-if="showBackPill" class="fixed bottom-6 left-4 z-50">
         <button
           @click="goBackToLpV2"
-          class="back-pill btn-3d-delay inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-4 py-2 shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]"
+          class="back-pill btn-3d-delay inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-green-600 hover:bg-green-700 rounded-full px-4 py-2 shadow-[2px_2px_0_rgba(0,0,0,0.30)] dark:shadow-[2px_2px_0_rgba(255,255,255,0.30)]"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />

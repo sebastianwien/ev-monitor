@@ -208,6 +208,10 @@ html {
 .dark .cta-shadow { box-shadow: 4px 4px 0 0 #000000 !important; }
 .cta-shadow:active { box-shadow: 1px 1px 0 0 #111827 !important; }
 .dark .cta-shadow:active { box-shadow: 1px 1px 0 0 #000000 !important; }
+/* The same in the model page's 2 px edge look (cards and boxes carry 2 px): a press sinks the full 2 px */
+.cta-shadow-sm { box-shadow: 2px 2px 0 0 #111827 !important; }
+.dark .cta-shadow-sm { box-shadow: 2px 2px 0 0 #000000 !important; }
+.cta-shadow-sm:active { box-shadow: 0 0 0 0 #111827 !important; transform: translate(2px, 2px); }
 /* Clickable 3D card (model tiles): cta shadow + hover-lift + press.
    Use together with .no-press so the legacy section-button rule doesn't fight it. */
 .cta-card {

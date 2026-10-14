@@ -46,7 +46,7 @@
         <template v-if="!authStore.token">{{ t('personal_range.locked_free') }}</template>
       </p>
       <button ref="action" type="button" data-testid="personal-range-calculate" :disabled="busy"
-              class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60 btn-3d cta-shadow border-2 border-gray-900 dark:border-gray-200"
+              class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60 btn-3d cta-shadow-sm border-2 border-gray-900 dark:border-gray-200"
               @click="request">
         <LockOpenIcon class="h-5 w-5" aria-hidden="true" />
         {{ busy ? t('personal_range.calculating') : ctaLabel }}
@@ -140,8 +140,8 @@
             <button v-for="opt in WALLBOX" :key="String(opt)" type="button" :aria-pressed="inputs.homeCharging === opt"
                     class="inline-flex min-h-11 min-w-[96px] items-center justify-center rounded-full border-2 px-5 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                     :class="inputs.homeCharging === opt
-                      ? 'btn-3d cta-shadow border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
-                      : 'btn-3d cta-shadow border-gray-900 bg-white text-gray-800 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-200'"
+                      ? 'btn-3d cta-shadow-sm border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+                      : 'btn-3d cta-shadow-sm border-gray-900 bg-white text-gray-800 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-200'"
                     :data-testid="`wallbox-${opt ? 'yes' : 'no'}`"
                     @click="setHome(opt)">
               {{ opt ? t('personal_range.wallbox_yes') : t('personal_range.wallbox_no') }}
