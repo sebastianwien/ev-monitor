@@ -233,6 +233,7 @@ const router = createRouter({
         },
         {
             path: '/modelle',
+            meta: { publicNav: true },
             name: 'public-models-list',
             component: PublicModelsListEntry,
             beforeEnter: () => redirectNonGermanVisitor('/en/models')
@@ -252,6 +253,7 @@ const router = createRouter({
         },
         {
             path: '/modelle/:brand/:model',
+            meta: { publicNav: true },
             name: 'public-model',
             component: PublicModelView,
             beforeEnter: (to) => redirectNonGermanVisitor(`/en/models/${to.params.brand}/${to.params.model}`)
@@ -293,7 +295,7 @@ const router = createRouter({
             path: '/en/models',
             name: 'public-models-list-en',
             component: PublicModelsListEntry,
-            meta: { locale: 'en' }
+            meta: { locale: 'en', publicNav: true }
         },
         {
             path: '/en/models/compare',
@@ -311,7 +313,7 @@ const router = createRouter({
             path: '/en/models/:brand/:model',
             name: 'public-model-en',
             component: PublicModelView,
-            meta: { locale: 'en' }
+            meta: { locale: 'en', publicNav: true }
         },
         // GB routes (en locale, GB country → miles, GBP)
         {

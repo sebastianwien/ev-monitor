@@ -84,8 +84,13 @@ const { pull: ptrPull, refreshing: ptrRefreshing, armed: ptrArmed } = usePullToR
 // sonst ragt sie in die erste Card (siehe LeaderboardTicker.vue).
 const LASCHE_H = '20px'
 
+/** Routes with their own public nav (router meta publicNav, the model pages): the member chrome
+    (top nav, ticker, status-bar filler, app footer) steps back; the bottom nav stays. */
+const publicNavRoute = computed(() => !!route.meta.publicNav)
+const memberChrome = computed(() => authStore.isAuthenticated() && !publicNavRoute.value)
+
 const mainPaddingTop = computed(() => {
-  if (!authStore.isAuthenticated()) return '0px'
+  if (!memberChrome.value) return '0px'
   // --top-nav-h ist 0 auf Mobile (keine Top-Nav) und 64px auf Desktop.
   // + env(safe-area-inset-top): nativ waechst der obere Bereich um die Notch-Hoehe,
   // der Content-Offset muss mitwachsen (auf Web/PWA ohne Notch ist env() = 0).
@@ -297,7 +302,7 @@ const handleBottomLogout = () => {
     </div>
 
     <!-- Navigation -->
-    <nav ref="navRef" class="hidden md:block bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)]" v-if="authStore.isAuthenticated()">
+    <nav ref="navRef" class="hidden md:block bg-indigo-600 text-white fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)]" v-if="memberChrome">
       <div class="px-4 py-3">
         <div class="flex justify-between items-center">
           <!-- Left: Logo + Nav Buttons (Desktop) -->
@@ -494,14 +499,14 @@ const handleBottomLogout = () => {
          sich lila, wenn der Ticker sichtbar ist, sodass der farbige Header nahtlos bis in
          die Notch laeuft (statusbarFillerClass). Nur Mobile; im Web ist env() = 0. -->
     <div
-      v-if="authStore.isAuthenticated()"
+      v-if="memberChrome"
       class="md:hidden fixed top-0 left-0 right-0 z-40 h-[env(safe-area-inset-top)] transition-colors"
       :class="statusbarFillerClass"
       aria-hidden="true"
     />
 
     <!-- Leaderboard Ticker (below nav, only when authenticated) -->
-    <LeaderboardTicker v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !mobileFullscreen && ['DE', 'AT', 'CH'].includes(countryStore.country)" />
+    <LeaderboardTicker v-if="memberChrome && !authStore.isDemoAccount && !mobileFullscreen && ['DE', 'AT', 'CH'].includes(countryStore.country)" />
 
     <!-- Mobile: Bottom-Navigation + "Mehr"-Sheet (ersetzt das alte Hamburger-Menue) -->
     <BottomNav
@@ -536,7 +541,7 @@ const handleBottomLogout = () => {
     <DemoBanner v-if="authStore.isDemoAccount" />
     <main
       :class="[
-        authStore.isAuthenticated() ? 'md:px-4' : '',
+        memberChrome ? 'md:px-4' : '',
         // Mobile: Platz fuer die Bottom-Nav (h-14 + Safe-Area); Desktop unveraendert.
         authStore.isAuthenticated() && !mobileFullscreen ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-10' : '',
         mobileFullscreen ? 'md:pb-10' : ''
@@ -562,7 +567,7 @@ const handleBottomLogout = () => {
     <!-- Footer nur fuer eingeloggte Nutzer auf Desktop. Mobile (und nativ) liegen die
          rechtlichen Links im Mehr-Sheet - dort sind sie mit einem Tap erreichbar, waehrend
          der Footer hier hinter der fixierten Bottom-Nav verschwaende. -->
-    <footer v-if="authStore.isAuthenticated() && !isNative" class="hidden md:block bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
+    <footer v-if="memberChrome && !isNative" class="hidden md:block bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
       <div class="container mx-auto px-4">
         <div class="text-center text-sm text-gray-600 dark:text-gray-400 space-y-3">
           <p>
