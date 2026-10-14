@@ -355,7 +355,7 @@ models_ranking:
     promise_stops_dummy: "2 stopp"
     promise_cost: "Kostnad per månad"
     promise_cost_dummy: "540 kr"
-    title: "Passar en elbil dig?"
+    title: "Vilken elbil passar dig?"
     slider_prompt: "Dra i reglagen, så bedömer vi varje modell åt dig."
     trip_title: "Så många modeller klarar dina {longest} {unit}:"
     show_all: "Visa alla"
