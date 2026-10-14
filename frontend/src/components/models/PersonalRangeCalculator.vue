@@ -70,6 +70,9 @@
         <h2 id="pr-title" tabindex="-1" class="text-[19px] font-bold leading-tight tracking-tight text-gray-900 focus:outline-none dark:text-gray-100">{{ t('personal_range.answers_title', { model: modelName }) }}</h2>
       </div>
 
+      <!-- The set profile in one line, right above the answers it produced -->
+      <p v-if="profileSummary" class="-mt-2 text-[13.5px] leading-snug text-gray-600 dark:text-gray-400" data-testid="personal-range-profile-summary">{{ profileSummary }}</p>
+
       <p class="sr-only" role="status">{{ busy ? t('personal_range.calculating') : '' }}</p>
       <!-- One answer per row, as a sentence; the figure is the loud part. From md up two by two, the gap draws the lines -->
       <ul ref="answers" v-if="answer" class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-green-600/15 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-opacity max-md:edge-card md:grid md:grid-cols-2 md:gap-px md:divide-y-0 dark:divide-green-500/15 dark:bg-green-500/15" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
@@ -156,9 +159,11 @@
             <ChevronDownIcon class="h-4 w-4 transition-transform" :class="assumptionsOpen ? 'rotate-180' : ''" aria-hidden="true" />
           </button>
         </div>
-        <div id="pr-profile" class="rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900" :class="profileOpen ? 'px-4 py-5 md:px-6 md:py-6' : 'px-4 py-3'">
-          <div v-if="profileOpen"><slot name="profile" /></div>
-          <p v-else-if="profileSummary" class="text-center text-[13.5px] leading-snug text-gray-600 dark:text-gray-400" data-testid="personal-range-profile-summary">{{ profileSummary }}</p>
+        <!-- the sliders unfold: the row grows from 0fr to 1fr, the inner box stays min-h-0 so it clips -->
+        <div id="pr-profile" class="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" :class="profileOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+          <div class="min-h-0 overflow-hidden">
+            <div v-if="profileOpen" class="rounded-2xl bg-white px-4 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card md:px-6 md:py-6 dark:bg-gray-900"><slot name="profile" /></div>
+          </div>
         </div>
         <ul v-show="assumptionsOpen" id="pr-assumptions" class="space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900">
           <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
@@ -242,9 +247,9 @@ const props = defineProps<{
   entry?: HTMLElement | null
   /** the sliders; while they are in view and the answers are not, the figures follow (md up) */
   follow?: HTMLElement | null
-  /** the profile fold under the answers: open shows the `profile` slot, closed the summary line */
+  /** the profile fold under the answers: open shows the `profile` slot */
   profileOpen?: boolean
-  /** the set profile in one line, shown while the fold is closed */
+  /** the set profile in one line, right above the answers */
   profileSummary?: string | null
 }>()
 const emit = defineEmits<{

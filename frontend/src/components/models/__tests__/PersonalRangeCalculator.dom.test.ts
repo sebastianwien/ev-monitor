@@ -131,7 +131,7 @@ describe('PersonalRangeCalculator', () => {
     expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
   })
 
-  it('open answers: the profile sits folded under the answers as a summary line, a button unfolds the sliders', async () => {
+  it('open answers: the set profile in one line above them, a button unfolds the sliders below', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
     const { host } = mount(true)
     await flush()
@@ -145,7 +145,7 @@ describe('PersonalRangeCalculator', () => {
     await flush()
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(host.querySelector('[data-testid="slot-profile"]')).not.toBeNull()
-    expect(host.querySelector('[data-testid="personal-range-profile-summary"]')).toBeNull()
+    expect(host.querySelector('[data-testid="personal-range-profile-summary"]')).not.toBeNull()
   })
 
   it('result: the wallbox answer and the own price go back to the page, open answers are reported', async () => {

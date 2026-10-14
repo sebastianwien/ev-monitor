@@ -3,8 +3,8 @@
   <div class="grid gap-5" data-testid="personal-range-tune">
     <div class="grid gap-5 md:grid-cols-2 md:gap-10">
     <div class="grid content-start gap-3">
-      <p id="pr-wallbox-q" class="text-[17px] font-bold leading-snug text-gray-900 md:text-[18px] dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
-      <div class="flex gap-2" role="group" aria-labelledby="pr-wallbox-q">
+      <p id="pr-wallbox-q" class="text-center text-[17px] font-bold leading-snug text-gray-900 md:text-[18px] dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
+      <div class="flex justify-center gap-2" role="group" aria-labelledby="pr-wallbox-q">
         <button v-for="opt in WALLBOX" :key="String(opt)" type="button" :aria-pressed="inputs.homeCharging === opt"
                 class="inline-flex min-h-11 min-w-[96px] items-center justify-center rounded-full border-2 px-5 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                 :class="inputs.homeCharging === opt
