@@ -40,7 +40,7 @@ async function login(page: Page) {
 /** All five sliders answered */
 async function answerAll(page: Page) {
   await setSlider(page, 'annualKm', 20000);
-  await setSlider(page, 'highwayShare', 40);
+  await setSlider(page, 'highwayKm', 8000);
   await setSlider(page, 'commute', 35);
   await setSlider(page, 'commuteDays', 3);
   await setSlider(page, 'longTrip', 500);
@@ -65,12 +65,13 @@ test.describe('Modellseite (390 px)', () => {
   test('ein Regler gilt erst bewegt als beantwortet, die Schloss-Box zählt mit', async ({ page }) => {
     await openStory(page);
     await expect(page.getByTestId('personal-range-open')).toContainText('Noch 5 Fragen offen');
-    await expect(page.getByTestId('slider-highwayShare-value')).toContainText('noch offen');
-    await setSlider(page, 'highwayShare', 60);
-    await expect(page.getByTestId('slider-highwayShare-value')).toContainText('60 %');
-    // 60 % of the 15.000 km start value
-    await expect(page.getByTestId('slider-highwayShare-detail')).toContainText('9.000 km');
-    await expect(page.getByTestId('personal-range-open')).toContainText('Noch 4 Fragen offen');
+    await expect(page.getByTestId('slider-highwayKm-value')).toContainText('noch offen');
+    await setSlider(page, 'highwayKm', 9000);
+    await expect(page.getByTestId('slider-highwayKm-value')).toContainText('9.000 km');
+    // the share appears once the yearly mileage is answered: 9.000 of 20.000 km
+    await setSlider(page, 'annualKm', 20000);
+    await expect(page.getByTestId('slider-highwayKm-detail')).toContainText('45 %');
+    await expect(page.getByTestId('personal-range-open')).toContainText('Noch 3 Fragen offen');
   });
 
   test('Freischalten mit offenen Reglern springt zum ersten offenen Regler statt zum Gate', async ({ page }) => {
@@ -78,8 +79,8 @@ test.describe('Modellseite (390 px)', () => {
     await setSlider(page, 'annualKm', 20000);
     await page.getByTestId('personal-range-calculate').click();
     await expect(page.getByTestId('inline-gate')).toHaveCount(0);
-    await expect(page.locator('#story-highwayShare')).toHaveClass(/ring-2/);
-    await expect(page.getByTestId('slider-highwayShare')).toBeFocused();
+    await expect(page.locator('#story-highwayKm')).toHaveClass(/ring-2/);
+    await expect(page.getByTestId('slider-highwayKm')).toBeFocused();
   });
 
   test('Freischalten nach allen Antworten öffnet das Gate in der Box, ohne Zahlen preiszugeben', async ({ page }) => {
@@ -99,7 +100,8 @@ test.describe('Modellseite (390 px)', () => {
     const first = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST');
     await answerAll(page);
     const request = (await first).request().postDataJSON();
-    expect(request).toEqual(expect.objectContaining({ commuteKmPerDay: 35, commuteDaysPerWeek: 3, longTripKm: 500 }));
+    // 8.000 motorway km of 20.000 go to the server as a share
+    expect(request).toEqual(expect.objectContaining({ commuteKmPerDay: 35, commuteDaysPerWeek: 3, longTripKm: 500, highwaySharePercent: 40 }));
     const result = page.getByTestId('personal-range-result');
     // the stored profile of an earlier run may hold "no wallbox": start from "yes" on purpose
     if (await page.getByTestId('wallbox-yes').getAttribute('aria-pressed') !== 'true') {
@@ -110,11 +112,13 @@ test.describe('Modellseite (390 px)', () => {
     await expect(result.getByTestId('answer-rhythm')).toContainText(/(im Winter|Normal wirst du ca\.) (alle \d+ (Tage|Wochen)|täglich)/);
     await expect(result.getByTestId('answer-stops')).toContainText(/Urlaubsfahrt über 500\skm wirst du wahrscheinlich/);
 
+    const rhythmAtHome = await result.getByTestId('answer-rhythm').innerText();
     const again = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST' && r.request().postDataJSON().homeCharging === false);
     await page.getByTestId('wallbox-no').click();
     await again;
     await expect(page.getByTestId('wallbox-no')).toHaveAttribute('aria-pressed', 'true');
-    await expect(result.getByTestId('answer-rhythm')).toContainText(/-mal pro Woche/);
+    // without a wallbox each charge adds less: the rhythm line changes
+    await expect.poll(() => result.getByTestId('answer-rhythm').innerText()).not.toBe(rhythmAtHome);
     const needs = await page.evaluate(() => Object.values(localStorage).find(v => v.includes('homeCharging')) ?? '');
     expect(needs).toContain('"homeCharging":false');
   });

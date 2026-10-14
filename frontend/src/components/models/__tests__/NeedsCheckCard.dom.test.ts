@@ -104,10 +104,26 @@ describe('NeedsCheckCard gate', () => {
     expect(host.querySelector('input[type="email"]')).toBeNull()
   })
 
-  it('guest with the trip only: no commute line, no unlock yet', () => {
+  it('guest with the trip only: the three answers are announced with the unlock, no wallbox question', () => {
     const { host } = mount(true, { ...EMPTY, longestTripKm: 400 })
-    expect(host.querySelector('[data-testid="needs-unlock"]')).toBeNull()
+    expect(host.querySelectorAll('[data-testid="needs-locked"] li')).toHaveLength(3)
+    expect(host.querySelector('[data-testid="needs-unlock"]')).not.toBeNull()
     expect(host.querySelector('[data-testid="needs-commute-answer"]')).toBeNull()
+  })
+
+  it('a long trip shows a window of at most five chips, from one before the first count above zero', () => {
+    setActivePinia(createPinia())
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    app = createApp(NeedsCheckCard, {
+      modelValue: { ...EMPTY, longestTripKm: 1800 },
+      summary: { total: 56, weeklyOk: 0, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 3, 6, 11, 24, 40, 52, 56] },
+      tripOnly: false, locked: false,
+    })
+    app.use(i18n)
+    app.mount(host)
+    const stops = [...host.querySelectorAll('[data-testid^="needs-stops-"]')].map(c => c.getAttribute('data-testid'))
+    expect(stops).toEqual(['needs-stops-3', 'needs-stops-4', 'needs-stops-5', 'needs-stops-6', 'needs-stops-7'])
   })
 
   it('guest: a stop chip names its count but not the models; the gate opens, after it the list filters to them', async () => {

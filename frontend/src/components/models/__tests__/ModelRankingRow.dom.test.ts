@@ -33,7 +33,7 @@ function model(over: Partial<TopModelPreview> & { brandDisplayName: string, mode
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; localStorage.clear() })
 
-type Answers = { dailyKm: number | null; commuteDays: number | null; longestTripKm: number | null; homeCharging: boolean | null }
+type Answers = { dailyKm: number | null; commuteDays: number | null; longestTripKm: number | null; homeCharging: boolean | null; annualKm?: number | null }
 /** Anna: 40 km on 3 days, charging at home, 400 km longest trip */
 const ANNA: Answers = { dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true }
 
@@ -120,6 +120,17 @@ describe('ModelRankingRow', () => {
     expect(hint(host)).not.toContain('nötig laden')
   })
 
+  it('the month\'s cost rests on the yearly mileage when answered, else on the commute over 46 weeks', async () => {
+    const commute = mount(ANNA_CAR, { expanded: true })
+    await nextTick()
+    // 40 km × 3 days × 46 weeks / 12
+    expect(commute.host.querySelector('[id^="mr-detail-"]')!.textContent).toContain('bei 460 km im Monat')
+    app?.unmount()
+    const yearly = mount(ANNA_CAR, { expanded: true, answers: { ...ANNA, annualKm: 12_000 } })
+    await nextTick()
+    expect(yearly.host.querySelector('[id^="mr-detail-"]')!.textContent).toContain('bei 1.000 km im Monat')
+  })
+
   it('yearly savings count the commute', async () => {
     const { host } = mount(ANNA_CAR, { expanded: true, fuelPrice: 1.8 })
     await nextTick()
@@ -127,6 +138,20 @@ describe('ModelRankingRow', () => {
   })
 
   describe('locked (guest)', () => {
+    it('the month\'s cost and the yearly savings are personal: a guest sees the lock, never the figure', async () => {
+      const open = mount(ANNA_CAR, { expanded: true, fuelPrice: 1.8 })
+      await nextTick()
+      const cost = [...open.host.querySelectorAll('dl > div')].find(d => d.textContent!.includes('Kosten im Monat'))!
+      const real = cost.querySelector('dd')!.textContent!.trim()
+      app?.unmount()
+      const { host } = mount(ANNA_CAR, { expanded: true, locked: true, fuelPrice: 1.8 })
+      await nextTick()
+      const detail = host.querySelector('[id^="mr-detail-"]')!
+      expect(detail.querySelector('[data-testid="fact-locked"]')).not.toBeNull()
+      expect(detail.textContent).not.toContain(real)
+      expect(detail.textContent).not.toMatch(/pro Jahr fürs Pendeln/)
+    })
+
     it('keeps the verdict but no figure: the trip is possible without a stop, winter included', async () => {
       const { host } = mount(WINTER_OK, { locked: true })
       await nextTick()

@@ -97,10 +97,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(firstHint).not.toContainText(/Tage|Wochen|Stopps/);
       await expect(page.getByTestId('needs-trip-title')).toContainText('250 km');
       await expect(firstHint).toContainText('250 km');
-      // the commute figure waits behind the unlock, in the card and in each row
-      await expect(page.getByTestId('needs-locked')).toHaveCount(0);
+      // the card names the three answers behind the unlock; the commute figure waits in each row too
+      await expect(page.getByTestId('needs-locked').locator('li')).toHaveCount(3);
       await answerCommute(page, 40, 3);
-      await expect(page.getByTestId('needs-locked')).toBeVisible();
       await expect(rows(page).first().getByTestId('needs-locked-commute')).toBeVisible();
 
       // the open row points to the one gate in the card
@@ -136,9 +135,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
       await login(page);
       await openRanking(page);
-      // 1.200 km schafft kein Modell ohne Stopp: die Kachel ist gesperrt, nichts filtert ins Leere
+      // 1.200 km schafft kein Modell ohne Stopp: das Fenster beginnt mit einem gesperrten Chip, nichts filtert ins Leere
       await setSlider(page, 'longTrip', 1200);
-      await expect(page.getByTestId('needs-stops-0')).toBeDisabled();
+      await expect(page.locator('[data-testid^="needs-stops-"]').first()).toBeDisabled();
 
       await setSlider(page, 'longTrip', 250);
       const tile = page.getByTestId('needs-stops-0');

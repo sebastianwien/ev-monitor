@@ -337,7 +337,7 @@ describe('useModelRanking', () => {
     it('starts empty: no answer, nothing counted', () => {
       const r = useModelRanking(ref(models))
       expect(r.needs.value).toEqual({ annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
-      expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 0] })
+      expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
       const big = r.ranked.value.find(x => x.key === 'B/big')!
       expect(big.needs).toMatchObject({ assessable: true, commute: null, tripStops: null })
     })
@@ -347,7 +347,7 @@ describe('useModelRanking', () => {
       r.needs.value = ANNA
       // 520 × 0.8 = 416 ≥ 400 (yes), 200 × 0.8 (no);
       // the small one needs two flat stops (160 first leg, 140 per stop) → only the big one makes it with one
-      expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 1, tripOkWithin: [1, 1, 2, 2, 2] })
+      expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 1, tripOkWithin: [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2] })
     })
 
     it('persists the inputs under the v2 key and restores them', async () => {
@@ -364,7 +364,7 @@ describe('useModelRanking', () => {
       localStorage.setItem(NEEDS_STORAGE_KEY, '{"dailyKm":"x"}')
       expect(useModelRanking(ref(models)).needs.value.dailyKm).toBeNull()
       // a broken answer drops alone, the others stay
-      localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 40, commuteDays: 6, longestTripKm: 400, homeCharging: true }))
+      localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ dailyKm: 40, commuteDays: 7, longestTripKm: 400, homeCharging: true }))
       expect(useModelRanking(ref(models)).needs.value).toMatchObject({ dailyKm: 40, commuteDays: null })
     })
 

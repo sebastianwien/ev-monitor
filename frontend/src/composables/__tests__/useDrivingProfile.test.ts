@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 vi.mock('../../services/analytics', () => ({ analytics: { track: vi.fn() } }))
 import { analytics } from '../../services/analytics'
-import { useDrivingProfile } from '../useDrivingProfile'
+import { highwayPercent, useDrivingProfile } from '../useDrivingProfile'
 import { NEEDS_STORAGE_KEY } from '../useModelRanking'
 
 const stored = () => JSON.parse(localStorage.getItem(NEEDS_STORAGE_KEY) ?? '{}')
@@ -58,9 +58,16 @@ describe('useDrivingProfile', () => {
   it('a stored profile answers every slider; one from before the commute-days question leaves that one open', () => {
     const p = useDrivingProfile({}, () => 'VW ID.3')
     p.applyProfile({ commuteKmPerDay: 42, highwaySharePercent: 33, homeCharging: false, longTripKm: 2000, annualKm: 21_400, pricePerKwh: 0.31 })
-    expect(p.answers).toMatchObject({ commuteKmPerDay: 40, highwayKm: 35, longTripKm: 1200, annualKm: 21_000, homeCharging: false, pricePerKwh: 0.31 })
+    // 33 % of 21.400 km = 7.062 motorway km, on the 500 km step
+    expect(p.answers).toMatchObject({ commuteKmPerDay: 40, highwayKm: 7_000, longTripKm: 2000, annualKm: 21_000, homeCharging: false, pricePerKwh: 0.31 })
     expect(p.openQuestions.value).toEqual(['commuteDays'])
     // a profile is no answer of the reader: nothing goes back to the ranking
     expect(localStorage.getItem(NEEDS_STORAGE_KEY)).toBeNull()
+  })
+
+  it('motorway km become the share the calculation takes, at most 100 %', () => {
+    expect(highwayPercent(12_000, 30_000)).toBe(40)
+    expect(highwayPercent(40_000, 30_000)).toBe(100)
+    expect(highwayPercent(4_000, 0)).toBe(0)
   })
 })

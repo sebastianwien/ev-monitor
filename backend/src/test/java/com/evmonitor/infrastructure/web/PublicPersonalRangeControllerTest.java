@@ -61,15 +61,20 @@ class PublicPersonalRangeControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void commuteDaysOutsideOneToFiveAreRejected() {
-        for (int days : new int[] {0, 6}) {
-            Map<String, Object> bad = Map.of("commuteKmPerDay", 40, "highwaySharePercent", 30,
-                    "homeCharging", true, "longTripKm", 600, "commuteDaysPerWeek", days);
-
-            ResponseEntity<String> response = restTemplate.postForEntity(URL, json(bad), String.class);
-
+    void commuteDaysZeroToSixAreAcceptedOutsideRejected() {
+        for (int days : new int[] {-1, 7}) {
+            ResponseEntity<String> response = restTemplate.postForEntity(URL, json(withCommuteDays(days)), String.class);
             assertThat(response.getStatusCode()).as("%d days", days).isEqualTo(HttpStatus.BAD_REQUEST);
         }
+        for (int days : new int[] {0, 6}) {
+            ResponseEntity<String> response = restTemplate.postForEntity(URL, json(withCommuteDays(days)), String.class);
+            assertThat(response.getStatusCode()).as("%d days", days).isEqualTo(HttpStatus.OK);
+        }
+    }
+
+    private static Map<String, Object> withCommuteDays(int days) {
+        return Map.of("commuteKmPerDay", 40, "highwaySharePercent", 30,
+                "homeCharging", true, "longTripKm", 600, "commuteDaysPerWeek", days);
     }
 
     @Test

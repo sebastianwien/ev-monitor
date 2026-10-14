@@ -193,12 +193,12 @@ describe('needsCheck', () => {
     ]
 
     it('counts assessable models and trips within the allowed stops', () => {
-      expect(summarizeNeeds(models, ANNA)).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 2, 2, 2, 2] })
+      expect(summarizeNeeds(models, ANNA)).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] })
       expect(summarizeNeeds(models, { ...ANNA, longestTripKm: 300 }).tripOk).toBe(2)
     })
 
     it('without the longest trip there is nothing to count', () => {
-      expect(summarizeNeeds(models, NEEDS_EMPTY)).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 0] })
+      expect(summarizeNeeds(models, NEEDS_EMPTY)).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
     })
   })
 })
