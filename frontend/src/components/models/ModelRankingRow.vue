@@ -37,22 +37,20 @@
 
       <!-- The verdict for the reader's own numbers: own line, status dot, body colour -->
       <span class="mr-hint pointer-events-none flex min-w-0 items-start gap-1.5 pb-4 pt-1.5 text-[15px] font-medium leading-snug text-gray-900 lg:pt-2 dark:text-gray-100">
-        <!-- No answers, no verdict: the dot comes with the longest trip, the lines with each answered part -->
-        <i v-if="tripStatusClass" class="mt-[7px] h-2 w-2 flex-none rounded-full" :class="tripStatusClass" aria-hidden="true"></i>
-        <span v-if="locked ? lockedLine || lockedCommute : needsLines.length" class="grid min-w-0" data-testid="needs-hint">
-          <template v-if="locked">
-            <!-- Guests see where the commute figure will stand: a fixed stand-in, blurred, never the real value -->
-            <span v-if="lockedCommute" class="flex min-w-0 items-center gap-1.5" data-testid="needs-locked-commute">
-              <span class="flex-none whitespace-nowrap">{{ t('models_ranking.row.commute_label') }}</span>
-              <span class="min-w-0 select-none truncate blur-[3px]" aria-hidden="true">{{ t('models_ranking.row.locked_dummy') }}</span>
+        <!-- No answers, no verdict. One line per answered part: commute, trip, month's cost. The dot
+             judges the trip only, so it stands on that line; the others keep its gutter to align. -->
+        <span v-if="hintLines.length" class="grid min-w-0 gap-0.5" data-testid="needs-hint">
+          <span v-for="line in hintLines" :key="line.key" class="flex min-w-0 items-start gap-1.5" :data-testid="line.testid">
+            <i v-if="tripStatusClass" class="mt-[7px] h-2 w-2 flex-none rounded-full" :class="line.key === 'trip' ? tripStatusClass : 'invisible'" aria-hidden="true"></i>
+            <!-- Guests see where the figure will stand: a fixed stand-in, blurred, never the real value -->
+            <span v-if="line.locked" class="flex min-w-0 items-center gap-1.5">
+              <span class="flex-none whitespace-nowrap">{{ line.label }}</span>
+              <span class="min-w-0 select-none truncate blur-[3px]" aria-hidden="true">{{ line.dummy }}</span>
               <LockClosedIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" aria-hidden="true" />
               <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
             </span>
-            <span v-if="lockedLine" class="line-clamp-2 lg:line-clamp-none">{{ lockedLine }}</span>
-          </template>
-          <template v-else>
-            <span v-for="line in needsLines" :key="line" class="line-clamp-2 lg:line-clamp-none">{{ line }}</span>
-          </template>
+            <span v-else class="line-clamp-2 lg:line-clamp-none">{{ line.text }}</span>
+          </span>
         </span>
         <!-- Compare is an action, not a figure: a labelled button at the end of the verdict line
              (desktop; the phone has it in the open details). It sits above the row toggle. -->
@@ -254,13 +252,14 @@ const dataBasis = computed(() => {
 // Needs check per row, from the winter range (fallback: typical range, flagged as such).
 // Each part only once answered: the commute (km, days, home charging) and the longest trip.
 const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
-const needsLines = computed<string[]>(() => {
+interface HintLine { key: 'commute' | 'trip' | 'cost'; text?: string; locked?: boolean; label?: string; dummy?: string; testid?: string }
+const needsLines = computed<HintLine[]>(() => {
   const n = props.item.needs
-  if (!n.assessable) return props.answered ? [t('models_ranking.row.needs_unrated')] : []
+  if (!n.assessable) return props.answered ? [{ key: 'trip', text: t('models_ranking.row.needs_unrated') }] : []
   const row = (k: string, p: Record<string, unknown> = {}, count?: number) => t(`models_ranking.row.${k}`, p, count as number)
   const stopsText = (x: Span) => x.single ? row('stops_word', { count: formatNumber(x.min) }, x.min) : row('stops_word_span', { min: formatNumber(x.min), max: formatNumber(x.max) })
   const typ = n.typical
-  const parts: string[] = []
+  const parts: HintLine[] = []
 
   // Line 1: the commute. Typical figure first, the winter figure appended; without winter
   // data the typical figure carries that caveat.
@@ -277,20 +276,33 @@ const needsLines = computed<string[]>(() => {
     // several batteries with different figures: say where the span comes from
     const isSpan = (c: CommuteAssessment) => chargeRhythmText(c.perWeek.low, c.homeCharging, rhythmFormat) !== chargeRhythmText(c.perWeek.high, c.homeCharging, rhythmFormat)
     const spans = isSpan(n.commute) || (typ?.commute != null && isSpan(typ.commute))
-    parts.push(spans ? row('by_battery', { value: line }) : line)
+    parts.push({ key: 'commute', text: spans ? row('by_battery', { value: line }) : line })
   }
   // Line 2: the longest trip, same pattern
   if (n.tripStops && tripParams.value) {
     const tripOf = (x: Span) => x.single ? (x.min === 0 ? row('stops_none') : stopsText(x)) : (x.min === 0 && x.max === 1 ? row('stops_maybe') : stopsText(x))
-    parts.push(typ?.tripStops && !same(typ.tripStops, n.tripStops)
+    parts.push({ key: 'trip', testid: 'needs-hint-trip', text: typ?.tripStops && !same(typ.tripStops, n.tripStops)
       ? row('needs_trip_both', { ...tripParams.value, typical: tripOf(typ.tripStops), winter: tripOf(n.tripStops) })
-      : row('needs_trip_line', { ...tripParams.value, value: tripOf(n.tripStops) }))
+      : row('needs_trip_line', { ...tripParams.value, value: tripOf(n.tripStops) }) })
   }
   // lines start with a capital, whatever building block comes first
-  return parts.map(p => p.charAt(0).toLocaleUpperCase() + p.slice(1))
+  return parts.map(p => ({ ...p, text: p.text!.charAt(0).toLocaleUpperCase() + p.text!.slice(1) }))
 })
 const same = (a: Span, b: Span) => a.min === b.min && a.max === b.max
-const needsHint = computed(() => needsLines.value.join(' · '))
+const needsHint = computed(() => needsLines.value.map(l => l.text).join(' · '))
+/** The lines under the name: commute, trip and the month's cost; for guests the personal figures as stand-ins */
+const hintLines = computed<HintLine[]>(() => {
+  const cost = props.item.monthlyCostEur
+  if (!props.locked) {
+    return cost == null ? needsLines.value
+      : [...needsLines.value, { key: 'cost', text: t('models_ranking.row.cost_line', { cost: formatCurrency(Math.round(cost), { decimals: 0 }) }) }]
+  }
+  const lines: HintLine[] = []
+  if (lockedCommute.value) lines.push({ key: 'commute', locked: true, label: t('models_ranking.row.commute_label'), dummy: t('models_ranking.row.locked_dummy'), testid: 'needs-locked-commute' })
+  if (lockedLine.value) lines.push({ key: 'trip', text: lockedLine.value, testid: 'needs-hint-trip' })
+  if (cost != null) lines.push({ key: 'cost', locked: true, label: t('models_ranking.row.cost_label'), dummy: t('models_ranking.detail.monthly_dummy'), testid: 'needs-locked-cost' })
+  return lines
+})
 /** The reader's own trip in the market's unit, named in every hint; null until answered */
 const tripParams = computed(() => props.longestTripKm != null
   ? { trip: formatNumber(Math.round(convertDistance(props.longestTripKm))), unit: distanceUnitLabel() }

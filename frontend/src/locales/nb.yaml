@@ -412,6 +412,8 @@ models_ranking:
     commute_winter_only: "Pendling om vinteren: {value}"
     commute_typical_only: "Pendling: {value}, ingen vinterdata ennå"
     by_battery: "{value}, avhengig av batteri"
+    cost_label: "Kostnad per måned"
+    cost_line: "{cost} i måneden"
     stops_none: "uten stopp"
     stops_maybe: "kanskje 1 stopp"
     stops_word: "1 stopp | {count} stopp"

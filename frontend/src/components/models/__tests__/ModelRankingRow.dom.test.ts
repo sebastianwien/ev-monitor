@@ -131,6 +131,17 @@ describe('ModelRankingRow', () => {
     expect(yearly.host.querySelector('[id^="mr-detail-"]')!.textContent).toContain('bei 1.000 km im Monat')
   })
 
+  it('the month\'s cost is the third line under the name: the figure signed in, a lock for guests', async () => {
+    const open = mount(ANNA_CAR)
+    await nextTick()
+    expect(hint(open.host)).toMatch(/\d+\s€ im Monat/)
+    app?.unmount()
+    const { host } = mount(ANNA_CAR, { locked: true })
+    await nextTick()
+    expect(host.querySelector('[data-testid="needs-locked-cost"]')).not.toBeNull()
+    expect(hint(host)).not.toMatch(/\d+\s€ im Monat/)
+  })
+
   it('yearly savings count the commute', async () => {
     const { host } = mount(ANNA_CAR, { expanded: true, fuelPrice: 1.8 })
     await nextTick()
@@ -156,8 +167,10 @@ describe('ModelRankingRow', () => {
       const { host } = mount(WINTER_OK, { locked: true })
       await nextTick()
       expect(hint(host)).toContain('400 km ohne Ladestopp, auch im Winter')
+      // the dot judges the trip: the commute line above keeps only its invisible gutter
+      expect(host.querySelector('[data-testid="needs-locked-commute"] i')!.className).toContain('invisible')
       expect(hint(host)).not.toMatch(/Stopps/)
-      expect(host.querySelector('.mr-hint i')!.className).toContain('bg-green-600')
+      expect(host.querySelector('[data-testid="needs-hint-trip"] i')!.className).toContain('bg-green-600')
     })
 
     it('shows where the commute figure stands, with a stand-in that is never the real value', async () => {
@@ -174,7 +187,7 @@ describe('ModelRankingRow', () => {
       const { host } = mount(WINTER_STOP, { locked: true })
       await nextTick()
       expect(hint(host)).toContain('400 km im Winter nicht ohne Ladestopp')
-      expect(host.querySelector('.mr-hint i')!.className).toContain('bg-orange-500')
+      expect(host.querySelector('[data-testid="needs-hint-trip"] i')!.className).toContain('bg-orange-500')
     })
 
     it('without winter data the label drops the winter claim', async () => {
