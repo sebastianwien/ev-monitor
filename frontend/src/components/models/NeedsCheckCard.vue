@@ -1,43 +1,59 @@
 <template>
   <section class="grid gap-4" :aria-labelledby="titleId">
     <!-- Single root (no comment before it, a root comment makes $el a comment node): the list
-         header scrolls to $el. Four labelled fields, below them three figures the rows follow. -->
-    <h2 :id="titleId" class="text-xl font-semibold tracking-tight text-gray-900 lg:text-2xl dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
+         header scrolls to $el. The five sliders of the model page, same wording and steps, the
+         answers shared with it; below them one line per answer. Home charging comes after the gate. -->
+    <h2 :id="titleId" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.needs.title') }}</h2>
 
-    <!-- Four questions, all empty until answered; inputs line up at the bottom even when a question
-         wraps differently. Phone: commute km next to the day chips, longest trip next to home charging. -->
-    <div class="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-end gap-x-3 gap-y-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.1fr)]">
-      <label class="grid gap-2">
-        <span class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_daily') }}</span>
-        <span class="flex items-center gap-2">
-          <input ref="dailyInput" :value="dailyText" v-bind="numeric" data-testid="needs-daily" @input="onDistance('dailyKm', $event)" @blur="flush" @keydown.enter="flush" />
-          <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
-        </span>
-      </label>
-      <div class="grid gap-2">
-        <span :id="daysId" class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_days') }}</span>
-        <div :class="segmented" class="grid-cols-5" role="group" :aria-labelledby="daysId" data-testid="needs-days">
-          <button
-            v-for="d in commuteDayOptions"
-            :key="d"
-            type="button"
-            class="text-sm font-semibold tabular-nums"
-            :class="segmentClass(modelValue.commuteDays === d)"
-            :aria-pressed="modelValue.commuteDays === d"
-            @click="emit('update:modelValue', { ...modelValue, commuteDays: d })"
-          >{{ formatNumber(d) }}</button>
-        </div>
+    <p v-if="summary.total === 0" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.summary_empty') }}</p>
+
+    <div class="grid items-end gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+      <ProfileSlider v-for="q in sliders" :key="q.key" :id="`${idBase}-${q.key}`" :test-key="`needs-${q.key}`" :label="q.label"
+                     :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail"
+                     @commit="v => answer(q.key, v)" />
+    </div>
+
+    <div class="grid gap-3 border-t border-gray-200 pt-3.5 text-[14px] leading-snug dark:border-gray-800" aria-live="polite">
+      <p v-if="!hasTrip && !hasCommute" class="text-gray-600 dark:text-gray-400" data-testid="needs-prompt">{{ t('models_ranking.needs.slider_prompt') }}</p>
+
+      <!-- The trip: how many models make it with how many stops is free, which ones is not. Signed in
+           a chip filters the list to its models (the active one shows all again); a guest's chip
+           opens the gate, and once through the list filters to that chip. -->
+      <div v-if="hasTrip && summary.total > 0" class="flex flex-wrap items-center gap-2" role="group" :aria-labelledby="tripTitleId" data-testid="needs-trip-answer">
+        <span :id="tripTitleId" class="basis-full font-semibold text-gray-900 dark:text-gray-100" data-testid="needs-trip-title">{{ t('models_ranking.needs.trip_title', { longest: longestShown, unit: distanceUnitLabel() }) }}</span>
+        <button
+          v-for="tile in stopTiles"
+          :key="tile.stops"
+          type="button"
+          class="btn-3d cta-shadow-sm inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-gray-900 px-3 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-200"
+          :class="tile.active ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-white text-gray-800 dark:bg-gray-900 dark:text-gray-200'"
+          :aria-pressed="tile.active"
+          :disabled="tile.count === 0"
+          :data-testid="`needs-stops-${tile.stops}`"
+          @click="pickStops(tile)"
+        >
+          {{ t('models_ranking.needs.trip_tile', { count: formatNumber(tile.stops) }, tile.stops) }}
+          <b class="font-extrabold tabular-nums">{{ formatNumber(tile.count) }}</b>
+        </button>
+        <button v-if="tripOnly" type="button" class="min-h-9 px-1 font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="needs-show-all" @click="emit('trip', null)">{{ t('models_ranking.needs.show_all') }}</button>
       </div>
-      <label class="grid gap-2">
-        <span class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_longest') }}</span>
-        <span class="flex items-center gap-2">
-          <input :value="longestText" v-bind="numeric" data-testid="needs-longest" @input="onDistance('longestTripKm', $event)" @blur="flush" @keydown.enter="flush" />
-          <span class="text-sm text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span>
+
+      <!-- The commute: guests see where the figure will stand, signed in the wallbox question
+           follows, as on the model page; until it is answered the figures count home charging -->
+      <div v-if="hasCommute && locked" class="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="needs-commute-answer">
+        <span class="flex min-w-0 items-center gap-1.5 text-gray-900 dark:text-gray-100" data-testid="needs-locked">
+          <span class="flex-none font-semibold">{{ t('models_ranking.row.commute_label') }}</span>
+          <span class="min-w-0 select-none truncate blur-[3px]" aria-hidden="true">{{ t('models_ranking.row.locked_dummy') }}</span>
+          <LockClosedIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
         </span>
-      </label>
-      <div class="grid gap-2">
-        <span :id="homeId" class="text-[15px] font-medium leading-snug text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.q_home') }}</span>
-        <div :class="segmented" class="grid-cols-2" role="group" :aria-labelledby="homeId">
+        <button v-if="!gateOpen" type="button" class="btn-3d cta-shadow-sm inline-flex min-h-10 items-center rounded-xl border-2 border-gray-900 bg-green-600 px-3.5 text-[14px] font-bold text-white hover:bg-green-700 dark:border-gray-200" data-testid="needs-unlock" @click="openGate">
+          <LockOpenIcon class="mr-1.5 h-5 w-5" aria-hidden="true" />{{ t('models_ranking.needs.locked_cta') }}
+        </button>
+      </div>
+      <div v-else-if="hasCommute" class="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="needs-commute-answer">
+        <span :id="homeId" class="font-semibold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</span>
+        <div :class="segmented" class="w-[150px] grid-cols-2" role="group" :aria-labelledby="homeId" data-testid="needs-home">
           <button
             v-for="opt in homeOptions"
             :key="String(opt.value)"
@@ -48,85 +64,76 @@
             @click="emit('update:modelValue', { ...modelValue, homeCharging: opt.value })"
           >{{ opt.label }}</button>
         </div>
+        <span class="text-gray-600 dark:text-gray-400">{{ t('models_ranking.needs.commute_open') }}</span>
       </div>
-    </div>
 
-    <!-- The answer in one line; the button narrows the list to the models it counts -->
-    <p v-if="summary.total === 0" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.summary_empty') }}</p>
-    <p v-else-if="!hasAnswers" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.empty_prompt') }}</p>
-    <p v-else-if="hasTrip" class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[14px] leading-snug text-gray-700 dark:text-gray-300" aria-live="polite" data-testid="needs-summary">
-      <span>
-        <span class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.stat_of', { n: formatNumber(within), total: formatNumber(summary.total) }) }}</span>
-        {{ t('models_ranking.needs.stat_trip', { longest: longestLocal, unit: distanceUnitLabel(), count: formatNumber(modelValue.maxStops) }, modelValue.maxStops) }}
-      </span>
-      <button
-        type="button"
-        class="inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-semibold"
-        :class="tripOnly
-          ? 'border-green-700 bg-green-700 text-white dark:border-green-400 dark:bg-green-400 dark:text-gray-950'
-          : 'border-gray-300 bg-white text-green-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-green-400 dark:hover:bg-gray-800'"
-        :aria-pressed="tripOnly"
-        data-testid="needs-show-models"
-        @click="emit('show')"
-      >
-        <FunnelIcon class="h-4 w-4" aria-hidden="true" />
-        {{ t(tripOnly ? 'models_ranking.needs.show_all' : 'models_ranking.needs.show_only') }}
-      </button>
-    </p>
-
-    <!-- Guests: the count above is free, the figures per row (interval, stops, winter) wait behind
-         the mail. One gate for the whole list, the rows point back here. -->
-    <template v-if="locked && summary.total > 0 && hasAnswers">
-      <p v-if="!gateOpen" class="flex flex-wrap items-baseline gap-x-3 gap-y-1.5 text-[14px] leading-snug text-gray-700 dark:text-gray-300" data-testid="needs-locked">
-        <span>{{ hasTrip ? t('models_ranking.needs.locked_text', { longest: longestLocal, unit: distanceUnitLabel() }) : t('models_ranking.needs.locked_text_commute') }}</span>
-        <button type="button" class="inline-flex min-h-11 items-center rounded-xl bg-green-600 px-4 text-[14px] font-semibold text-white hover:bg-green-700" data-testid="needs-unlock" @click="openGate">
-          {{ t('models_ranking.needs.locked_cta') }}
-        </button>
-      </p>
-      <InlineGate v-else :lead="hasTrip
-                    ? t('models_ranking.needs.gate_lead', { n: formatNumber(summary.total), longest: longestLocal, unit: distanceUnitLabel() })
-                    : t('models_ranking.needs.gate_lead_commute', { n: formatNumber(summary.total) })"
+      <!-- Guests: one gate for the whole list, the rows point back here -->
+      <InlineGate v-if="locked && gateOpen" :lead="gateLead"
                   :detail="t('models_ranking.needs.gate_detail')" placement="modelle:rangliste" data-testid="needs-gate" @authenticated="onAuthenticated" />
-    </template>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId, watch } from 'vue'
+import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { FunnelIcon } from '@heroicons/vue/24/outline'
+import { LockClosedIcon, LockOpenIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
+import ProfileSlider from './ProfileSlider.vue'
 import { analytics } from '../../services/analytics'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { useDebouncedCommit } from '../../composables/useDebouncedCommit'
-import { odometerLocalToKm } from '../../utils/unitConversions'
-import { NEEDS_KM_MAX } from '../../composables/useModelRanking'
-import { MIN_COMMUTE_DAYS, MAX_COMMUTE_DAYS, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
+import { NEEDS_FIELD, PROFILE_KEYS, PROFILE_SLIDERS, type ProfileKey } from '../../composables/useDrivingProfile'
+import { MAX_STOPS, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
 
 const props = defineProps<{
   modelValue: NeedsInput
   summary: NeedsSummary
-  /** The list is filtered to the models that make the trip without a stop */
+  /** The list is filtered to the models that make the trip within `modelValue.maxStops` */
   tripOnly: boolean
   /** Guest: the per-model figures are behind the mail gate this card hosts */
   locked?: boolean
 }>()
-const emit = defineEmits<{ 'update:modelValue': [value: NeedsInput]; show: []; unlocked: [] }>()
+/** trip: filter the list to the models that make the trip within that many stops, null shows all */
+const emit = defineEmits<{ 'update:modelValue': [value: NeedsInput]; trip: [maxStops: number | null]; unlocked: [] }>()
 
 const { t } = useI18n()
-const { formatNumber, distanceUnitLabel, convertDistance, isImperial } = useLocaleFormat()
+const { formatNumber, formatDistance, distanceUnitLabel, convertDistance } = useLocaleFormat()
 
 const titleId = useId()
+const idBase = useId()
+const tripTitleId = useId()
 const homeId = useId()
-const daysId = useId()
-const dailyInput = ref<HTMLInputElement | null>(null)
-/** "Ändern" in the sticky list header brings the reader back here */
-function focusFirst() {
-  dailyInput.value?.focus()
-  dailyInput.value?.select()
+
+/** The model page's sliders: same keys, steps, labels and formats; an unanswered one reads "noch offen" */
+const FORMAT: Record<ProfileKey, (v: number) => string> = {
+  annualKm: km => formatDistance(km),
+  highwayShare: share => `${formatNumber(share)} %`,
+  commute: km => formatDistance(km),
+  commuteDays: n => t('model.page.days_value', { n }, n),
+  longTrip: km => formatDistance(km),
 }
-/** Mail gate for the figures per row; a row's "Meine Zahlen" opens it from afar via openGate() */
+const highwayKm = (share: number) => formatDistance(Math.round((props.modelValue.annualKm ?? PROFILE_SLIDERS.annualKm.start) * share / 100 / 100) * 100)
+const sliders = computed(() => PROFILE_KEYS.map(key => ({
+  key,
+  ...PROFILE_SLIDERS[key],
+  label: t(`model.page.q_${key}`),
+  value: props.modelValue[NEEDS_FIELD[key]],
+  format: FORMAT[key],
+  detail: key === 'highwayShare' ? (share: number) => t('model.story.slider_highway_km', { km: highwayKm(share) }) : undefined,
+})))
+function answer(key: ProfileKey, value: number) {
+  emit('update:modelValue', { ...props.modelValue, [NEEDS_FIELD[key]]: value })
+}
+
+/** "Ändern" in the sticky list header brings the reader back here: the first open slider, else the first */
+function focusFirst() {
+  const key = PROFILE_KEYS.find(k => props.modelValue[NEEDS_FIELD[k]] == null) ?? PROFILE_KEYS[0]
+  document.getElementById(`${idBase}-${key}-input`)?.focus()
+}
+/** Mail gate for the figures per row; a row's unlock button opens it from afar via openGate() */
 const gateOpen = ref(false)
+/** The stop chip a guest tapped: the gate names its models, after it the list filters to them */
+const gateStops = ref<{ stops: number; count: number } | null>(null)
 function openGate() {
   if (gateOpen.value) return
   gateOpen.value = true
@@ -135,62 +142,50 @@ function openGate() {
 function onAuthenticated() {
   gateOpen.value = false
   emit('unlocked')
+  if (gateStops.value) emit('trip', gateStops.value.stops)
+  gateStops.value = null
 }
+function pickStops(tile: { stops: number; count: number; active: boolean }) {
+  if (!props.locked) return emit('trip', tile.active ? null : tile.stops)
+  gateStops.value = { stops: tile.stops, count: tile.count }
+  openGate()
+}
+const gateLead = computed(() => {
+  const n = formatNumber(props.summary.total)
+  if (gateStops.value) {
+    const count = gateStops.value.count
+    return t('models_ranking.needs.gate_lead_stops', { n: formatNumber(count), longest: longestShown.value, unit: distanceUnitLabel() }, count)
+  }
+  return hasTrip.value
+    ? t('models_ranking.needs.gate_lead', { n, longest: longestShown.value, unit: distanceUnitLabel() })
+    : t('models_ranking.needs.gate_lead_commute', { n })
+})
 defineExpose({ focusFirst, openGate })
 
-const numeric = {
-  type: 'text',
-  inputmode: 'numeric',
-  pattern: '[0-9]*',
-  autocomplete: 'off',
-  class: 'h-11 w-full min-w-0 rounded-xl border border-gray-300 bg-white px-3 text-base font-semibold tabular-nums text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-950 dark:text-gray-100',
-} as const
+/** The trip length in the copy, in the market's unit with thousands separators */
+const longestShown = computed(() => props.modelValue.longestTripKm == null ? '' : formatNumber(Math.round(convertDistance(props.modelValue.longestTripKm))))
 
-// Inputs show the market's distance unit; the model keeps kilometres. The committed values
-// feed the figures below; the fields keep their own text while the reader is still typing.
-// An empty field is an unanswered question, never zero.
-const toLocal = (km: number | null) => km == null ? '' : String(Math.round(convertDistance(km)))
-const dailyLocal = computed(() => toLocal(props.modelValue.dailyKm))
-const longestLocal = computed(() => toLocal(props.modelValue.longestTripKm))
-const dailyText = ref(dailyLocal.value)
-const longestText = ref(longestLocal.value)
-watch(dailyLocal, v => { dailyText.value = v })
-watch(longestLocal, v => { longestText.value = v })
-
-/** Typing "120" re-ranks the list once, not three times: commit after a short pause, or on blur/enter */
-const COMMIT_DELAY_MS = 300
-let draft: Partial<NeedsInput> = {}
-const { set: scheduleCommit, flush } = useDebouncedCommit<Partial<NeedsInput>>(patch => {
-  draft = {}
-  emit('update:modelValue', { ...props.modelValue, ...patch })
-  if (patch.dailyKm !== undefined) dailyText.value = toLocal(patch.dailyKm)
-  if (patch.longestTripKm !== undefined) longestText.value = toLocal(patch.longestTripKm)
-}, COMMIT_DELAY_MS)
-
-function onDistance(field: 'dailyKm' | 'longestTripKm', event: Event) {
-  const raw = (event.target as HTMLInputElement).value.replace(/[^\d]/g, '')
-  ;(field === 'dailyKm' ? dailyText : longestText).value = raw
-  const km = raw === '' ? null : Math.min(Math.round(odometerLocalToKm(Math.min(Number(raw), NEEDS_KM_MAX), isImperial.value)), NEEDS_KM_MAX)
-  draft = { ...draft, [field]: km }
-  scheduleCommit({ ...draft })
-}
-
-/** The longest trip alone gives the counter; the commute needs km, days and home charging */
+/** The longest trip alone gives the stop chips; the commute needs km and days (home charging counts until answered) */
 const hasTrip = computed(() => props.modelValue.longestTripKm != null)
-const hasCommute = computed(() => props.modelValue.dailyKm != null && props.modelValue.commuteDays != null && props.modelValue.homeCharging != null)
-const hasAnswers = computed(() => hasTrip.value || hasCommute.value)
+const hasCommute = computed(() => props.modelValue.dailyKm != null && props.modelValue.commuteDays != null)
 
-const commuteDayOptions = Array.from({ length: MAX_COMMUTE_DAYS - MIN_COMMUTE_DAYS + 1 }, (_, i) => MIN_COMMUTE_DAYS + i)
-const segmented = 'grid h-11 gap-px overflow-hidden rounded-xl border border-gray-300 bg-gray-300 dark:border-gray-600 dark:bg-gray-600'
+/** One chip per stop count, up to the first that every model reaches: more stops add nothing */
+const stopTiles = computed(() => {
+  const tiles: { stops: number; count: number; active: boolean }[] = []
+  for (let stops = 0; stops <= MAX_STOPS; stops++) {
+    const count = props.summary.tripOkWithin[stops] ?? 0
+    tiles.push({ stops, count, active: props.tripOnly && props.modelValue.maxStops === stops })
+    if (count >= props.summary.total) break
+  }
+  return tiles
+})
+
+const segmented = 'edge-card grid h-9 gap-0.5 overflow-hidden rounded-xl bg-gray-900 dark:bg-gray-200'
 const segmentClass = (active: boolean) => active
   ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
   : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'
-
-/** Models that make the trip with at most the chosen number of stops */
-const within = computed(() => props.summary.tripOkWithin[props.modelValue.maxStops] ?? 0)
-
 const homeOptions = computed(() => [
-  { value: true, label: t('models_ranking.needs.home_yes') },
-  { value: false, label: t('models_ranking.needs.home_no') },
+  { value: true, label: t('personal_range.wallbox_yes') },
+  { value: false, label: t('personal_range.wallbox_no') },
 ])
 </script>

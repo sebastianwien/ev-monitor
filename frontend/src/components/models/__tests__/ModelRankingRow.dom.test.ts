@@ -43,7 +43,7 @@ function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: boolean;
   const models = ref([m])
   const { ranked, needs, cost } = useModelRanking(models)
   const answers = opts.answers ?? ANNA
-  needs.value = { ...answers, maxStops: 0 }
+  needs.value = { annualKm: null, highwayShare: null, ...answers, maxStops: 0 }
   if (opts.fuelPrice) cost.value = { ...cost.value, fuelPricePerLiter: opts.fuelPrice }
   const events: string[] = []
   const host = document.createElement('div')
@@ -130,29 +130,39 @@ describe('ModelRankingRow', () => {
     it('keeps the verdict but no figure: the trip is possible without a stop, winter included', async () => {
       const { host } = mount(WINTER_OK, { locked: true })
       await nextTick()
-      expect(hint(host)).toBe('400 km ohne Ladestopp, auch im Winter')
-      expect(hint(host)).not.toMatch(/Tage|Stopps/)
+      expect(hint(host)).toContain('400 km ohne Ladestopp, auch im Winter')
+      expect(hint(host)).not.toMatch(/Stopps/)
       expect(host.querySelector('.mr-hint i')!.className).toContain('bg-green-600')
+    })
+
+    it('shows where the commute figure stands, with a stand-in that is never the real value', async () => {
+      const open = mount(WINTER_OK)
+      await nextTick()
+      const real = hint(open.host).match(/Fürs Pendeln (.+?)(400 km|$)/)![1].trim()
+      const { host } = mount(WINTER_OK, { locked: true })
+      await nextTick()
+      expect(host.querySelector('[data-testid="needs-locked-commute"]')).not.toBeNull()
+      expect(host.textContent).not.toContain(real)
     })
 
     it('names the winter stop without counting it', async () => {
       const { host } = mount(WINTER_STOP, { locked: true })
       await nextTick()
-      expect(hint(host)).toBe('400 km im Winter nicht ohne Ladestopp')
+      expect(hint(host)).toContain('400 km im Winter nicht ohne Ladestopp')
       expect(host.querySelector('.mr-hint i')!.className).toContain('bg-orange-500')
     })
 
     it('without winter data the label drops the winter claim', async () => {
       const { host } = mount(model({ brandDisplayName: 'MG', modelUrlSlug: 'MG4', typicalRangeMinKm: 500, typicalRangeMaxKm: 560 }), { locked: true })
       await nextTick()
-      expect(hint(host)).toBe('400 km ohne Ladestopp')
+      expect(hint(host)).toContain('400 km ohne Ladestopp')
     })
 
     it('the open row explains the gate and its button asks the page to unlock', async () => {
       const { host, events } = mount(WINTER_OK, { locked: true, expanded: true })
       await nextTick()
       const detail = host.querySelector('[id^="mr-detail-"]')!
-      expect(detail.textContent).toContain('nach Bestätigung deiner Mail')
+      expect(detail.textContent).toContain('400 km?')
       expect(detail.textContent).not.toMatch(/Tage laden/)
       ;(detail.querySelector('[data-testid="row-unlock"]') as HTMLButtonElement).click()
       await nextTick()

@@ -16,24 +16,26 @@ const SUMMARY = { total: 56, weeklyOk: 40, tripOk: 9, tripOkWithin: [9, 30, 50, 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear() })
 
-const ANSWERED = { dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0 }
-const EMPTY = { dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
+const ANSWERED = { annualKm: null, highwayShare: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: null, maxStops: 0 }
+const EMPTY = { annualKm: null, highwayShare: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
 
-function mount(locked: boolean, modelValue: Record<string, unknown> = ANSWERED) {
+function mount(locked: boolean, modelValue: Record<string, unknown> = ANSWERED, tripOnly = false) {
   setActivePinia(createPinia())
   const events: string[] = []
+  const trips: (number | null)[] = []
   const updates: Record<string, unknown>[] = []
   const host = document.createElement('div')
   document.body.appendChild(host)
   app = createApp(NeedsCheckCard, {
     modelValue,
-    summary: SUMMARY, tripOnly: false, locked,
+    summary: SUMMARY, tripOnly, locked,
     onUnlocked: () => events.push('unlocked'),
+    onTrip: (n: number | null) => trips.push(n),
     'onUpdate:modelValue': (v: Record<string, unknown>) => updates.push(v),
   })
   app.use(i18n)
   app.mount(host)
-  return { host, events, updates }
+  return { host, events, updates, trips }
 }
 
 async function flush() { for (let i = 0; i < 4; i++) { await nextTick(); await Promise.resolve() } }
@@ -45,60 +47,86 @@ async function fill(host: HTMLElement, selector: string, value: string) {
 }
 
 describe('NeedsCheckCard answers', () => {
-  it('starts empty: no values, no counter, a prompt instead', () => {
+  it('starts empty: the five sliders of the model page, all open, no chips, no unlock', () => {
     const { host } = mount(false, EMPTY)
-    expect((host.querySelector('[data-testid="needs-daily"]') as HTMLInputElement).value).toBe('')
-    expect((host.querySelector('[data-testid="needs-longest"]') as HTMLInputElement).value).toBe('')
-    expect(host.querySelectorAll('[aria-pressed="true"]')).toHaveLength(0)
-    expect(host.textContent).not.toContain('von 56 Modellen')
-    expect(host.querySelector('[data-testid="needs-summary"]')!.textContent).toContain('Beantworte die Fragen, dann bewerten wir jedes Modell für dich.')
+    const values = [...host.querySelectorAll('output')].map(o => o.textContent!.trim())
+    expect(values).toEqual(['noch offen', 'noch offen', 'noch offen', 'noch offen', 'noch offen'])
+    expect(host.querySelector('[data-testid="needs-prompt"]')).not.toBeNull()
+    expect(host.querySelector('[data-testid^="needs-stops-"]')).toBeNull()
     expect(host.querySelector('[data-testid="needs-unlock"]')).toBeNull()
   })
 
-  it('asks the commute days with chips 1 to 5', async () => {
+  it('a slider answer lands in the field the model page shares', () => {
     const { host, updates } = mount(false, EMPTY)
-    expect(host.textContent).toContain('An wie vielen Tagen pro Woche pendelst du?')
-    const chips = [...host.querySelectorAll('[data-testid="needs-days"] button')] as HTMLButtonElement[]
-    expect(chips.map(c => c.textContent!.trim())).toEqual(['1', '2', '3', '4', '5'])
-    chips[2].click()
-    await nextTick()
-    expect(updates[updates.length - 1]).toMatchObject({ commuteDays: 3 })
+    const slider = host.querySelector('[data-testid="slider-needs-commute"]') as HTMLInputElement
+    slider.value = '35'
+    slider.dispatchEvent(new Event('change'))
+    expect(updates[updates.length - 1]).toMatchObject({ dailyKm: 35 })
   })
 
-  it('an emptied field is unanswered again, not zero', async () => {
-    const { host, updates } = mount(false, ANSWERED)
-    await fill(host, '[data-testid="needs-daily"]', '')
-    ;(host.querySelector('[data-testid="needs-daily"]') as HTMLInputElement).dispatchEvent(new Event('blur'))
-    await nextTick()
-    expect(updates[updates.length - 1]).toMatchObject({ dailyKm: null })
-  })
-
-  it('the counter comes with the longest trip alone', () => {
+  it('the longest trip alone brings one tile per stop count, up to the first that every model makes', () => {
     const { host } = mount(false, { ...EMPTY, longestTripKm: 400 })
-    expect(host.textContent).toContain('9 von 56 Modellen')
+    const tiles = [...host.querySelectorAll('[data-testid^="needs-stops-"]')]
+    expect(tiles.map(t => t.querySelector('b')!.textContent)).toEqual(['9', '30', '50', '56'])
+  })
+
+  it('a tile filters the list to its models, the active tile shows all again', async () => {
+    const off = mount(false, { ...ANSWERED, maxStops: 0 })
+    ;(off.host.querySelector('[data-testid="needs-stops-2"]') as HTMLButtonElement).click()
+    expect(off.trips).toEqual([2])
+    app?.unmount()
+    const on = mount(false, { ...ANSWERED, maxStops: 2 }, true)
+    const active = on.host.querySelector('[data-testid="needs-stops-2"]') as HTMLButtonElement
+    expect(active.getAttribute('aria-pressed')).toBe('true')
+    active.click()
+    expect(on.trips).toEqual([null])
   })
 })
 
 describe('NeedsCheckCard gate', () => {
   beforeEach(() => { vi.mocked(api.post).mockReset(); vi.mocked(analytics.track).mockReset() })
 
-  it('signed in: the figures line stays, nothing about a mail', () => {
-    const { host } = mount(false)
-    expect(host.textContent).toContain('9 von 56 Modellen')
+  it('signed in: the wallbox question follows the commute, nothing about a mail', async () => {
+    const { host, updates } = mount(false)
+    expect(host.querySelector('[data-testid="needs-stops-0"]')).not.toBeNull()
+    expect(host.querySelector('[data-testid="needs-locked"]')).toBeNull()
     expect(host.querySelector('[data-testid="needs-unlock"]')).toBeNull()
+    ;[...host.querySelectorAll('[data-testid="needs-home"] button')][1].dispatchEvent(new Event('click'))
+    expect(updates[updates.length - 1]).toMatchObject({ homeCharging: false })
   })
 
-  it('guest: the count stays free, the per-model figures are announced behind the mail', () => {
+  it('guest: the chips stay free, the commute figure waits behind the unlock, no wallbox question yet', () => {
     const { host } = mount(true)
-    expect(host.textContent).toContain('9 von 56 Modellen')
-    expect(host.querySelector('[data-testid="needs-locked"]')!.textContent).toContain('400 km')
-    expect(host.querySelector('[data-testid="needs-locked"]')!.textContent).toContain('nach Bestätigung deiner Mail')
+    expect(host.querySelector('[data-testid="needs-home"]')).toBeNull()
+    expect(host.querySelector('[data-testid="needs-stops-0"]')).not.toBeNull()
+    expect(host.querySelector('[data-testid="needs-locked"]')).not.toBeNull()
+    expect(host.querySelector('[data-testid="needs-unlock"]')).not.toBeNull()
     expect(host.querySelector('input[type="email"]')).toBeNull()
   })
 
-  it('guest with the commute only: the gate offers the charging figures', () => {
-    const { host } = mount(true, { ...ANSWERED, longestTripKm: null })
-    expect(host.querySelector('[data-testid="needs-locked"]')!.textContent).toContain('fürs Pendeln')
+  it('guest with the trip only: no commute line, no unlock yet', () => {
+    const { host } = mount(true, { ...EMPTY, longestTripKm: 400 })
+    expect(host.querySelector('[data-testid="needs-unlock"]')).toBeNull()
+    expect(host.querySelector('[data-testid="needs-commute-answer"]')).toBeNull()
+  })
+
+  it('guest: a stop chip names its count but not the models; the gate opens, after it the list filters to them', async () => {
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { status: 'SENT' } } as never)
+      .mockResolvedValueOnce({ data: { token: TOKEN, isPremium: false } } as never)
+    const { host, trips } = mount(true)
+    ;(host.querySelector('[data-testid="needs-stops-1"]') as HTMLButtonElement).click()
+    await flush()
+    expect(trips).toEqual([])
+    expect(host.querySelector('[data-testid="needs-gate"]')!.textContent).toContain('Deine 30 Modelle für 400 km sind bereit.')
+
+    await fill(host, 'input[type="email"]', 'neu@example.com')
+    host.querySelector('form')!.dispatchEvent(new Event('submit'))
+    await flush()
+    await fill(host, 'input[autocomplete="one-time-code"]', '123456')
+    host.querySelector('form')!.dispatchEvent(new Event('submit'))
+    await flush()
+    expect(trips).toEqual([1])
   })
 
   it('the button opens the inline gate and a confirmed code reports the unlock', async () => {

@@ -39,8 +39,17 @@
       <span class="mr-hint pointer-events-none flex min-w-0 items-start gap-1.5 pb-4 pt-1.5 text-[15px] font-medium leading-snug text-gray-900 lg:pt-2 dark:text-gray-100">
         <!-- No answers, no verdict: the dot comes with the longest trip, the lines with each answered part -->
         <i v-if="tripStatusClass" class="mt-[7px] h-2 w-2 flex-none rounded-full" :class="tripStatusClass" aria-hidden="true"></i>
-        <span v-if="locked ? lockedLine : needsLines.length" class="grid min-w-0" data-testid="needs-hint">
-          <span v-if="locked" class="line-clamp-2 lg:line-clamp-none">{{ lockedLine }}</span>
+        <span v-if="locked ? lockedLine || lockedCommute : needsLines.length" class="grid min-w-0" data-testid="needs-hint">
+          <template v-if="locked">
+            <!-- Guests see where the commute figure will stand: a fixed stand-in, blurred, never the real value -->
+            <span v-if="lockedCommute" class="flex min-w-0 items-center gap-1.5" data-testid="needs-locked-commute">
+              <span class="flex-none whitespace-nowrap">{{ t('models_ranking.row.commute_label') }}</span>
+              <span class="min-w-0 select-none truncate blur-[3px]" aria-hidden="true">{{ t('models_ranking.row.locked_dummy') }}</span>
+              <LockClosedIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" aria-hidden="true" />
+              <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
+            </span>
+            <span v-if="lockedLine" class="line-clamp-2 lg:line-clamp-none">{{ lockedLine }}</span>
+          </template>
           <template v-else>
             <span v-for="line in needsLines" :key="line" class="line-clamp-2 lg:line-clamp-none">{{ line }}</span>
           </template>
@@ -66,7 +75,7 @@
       </span>
 
       <span class="mr-val pointer-events-none grid pt-4 text-right lg:hidden">
-        <b class="text-[19px] font-semibold leading-tight tracking-tight tabular-nums" :class="mainValue.cls">{{ mainValue.value }}</b>
+        <b class="text-[20px] font-extrabold leading-tight tracking-tight tabular-nums" :class="mainValue.cls">{{ mainValue.value }}</b>
         <small class="text-[11px] text-gray-500 dark:text-gray-400">{{ mainValue.unit }}</small>
       </span>
 
@@ -105,17 +114,20 @@
           <a :href="credit.sourceUrl" target="_blank" rel="noopener" class="pointer-events-auto block truncate rounded bg-black/55 px-1.5 py-0.5 text-[10px] leading-tight text-white/90 backdrop-blur-sm hover:text-white">© {{ credit.author }} · {{ credit.license }}</a>
         </figcaption>
       </figure>
-      <p v-if="locked && answered" class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">
+      <p v-if="locked && answered" class="flex flex-wrap items-center gap-x-3 gap-y-2 text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">
         <span>{{ tripParams ? t('models_ranking.detail.locked_hint', tripParams) : t('models_ranking.detail.locked_hint_commute') }}</span>
-        <button type="button" class="inline-flex min-h-11 items-center font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="row-unlock" @click="emit('unlock')">{{ t('models_ranking.detail.locked_cta') }}</button>
+        <button type="button" class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center rounded-xl border-2 border-gray-900 bg-green-600 px-4 text-[14px] font-bold text-white hover:bg-green-700 dark:border-gray-200" data-testid="row-unlock" @click="emit('unlock')">{{ t('models_ranking.detail.locked_cta') }}</button>
       </p>
       <p v-else-if="!locked && needsHint" class="text-[14.5px] text-gray-700 lg:col-span-2 dark:text-gray-300">{{ needsHint }}</p>
       <dl class="grid grid-cols-2 gap-2 lg:col-span-2 lg:grid-cols-3">
-        <div v-for="kv in facts" :key="kv.label" class="grid gap-0.5 rounded-xl border border-gray-200 bg-white px-3 py-2.5 dark:border-gray-700 dark:bg-gray-900">
+        <div v-for="kv in facts" :key="kv.label" class="edge-card grid content-start gap-1 rounded-2xl bg-white px-3.5 py-3 dark:bg-gray-900">
           <dt class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
             <component :is="kv.icon" class="h-4 w-4 flex-none" aria-hidden="true" />{{ kv.label }}
           </dt>
-          <dd class="text-[17px] font-semibold leading-snug tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ kv.value }}</dd>
+          <dd class="flex flex-wrap items-baseline gap-x-1 leading-tight text-gray-900 dark:text-gray-100">
+            <span class="text-[20px] font-extrabold tracking-tight tabular-nums">{{ valueParts(kv.value)[0] }}</span>
+            <span v-if="valueParts(kv.value)[1]" class="whitespace-nowrap text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ valueParts(kv.value)[1] }}</span>
+          </dd>
           <dd class="text-xs text-gray-500 dark:text-gray-400">{{ kv.hint }}</dd>
         </div>
       </dl>
@@ -134,8 +146,8 @@
       <div class="flex flex-wrap gap-2 lg:justify-end">
         <button
           type="button"
-          class="inline-flex min-h-11 flex-[1_1_160px] items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-          :class="inCompare ? 'border-green-600 text-green-700 dark:border-green-400 dark:text-green-400' : 'border-gray-300 bg-white text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100'"
+          class="btn-3d cta-shadow-sm inline-flex min-h-11 flex-[1_1_160px] items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-gray-900 px-4 font-bold disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-200"
+          :class="inCompare ? 'bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-300' : 'bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100'"
           :aria-pressed="inCompare"
           :disabled="!inCompare && !canAddCompare"
           :title="!inCompare && !canAddCompare ? t('models_ranking.row.compare_full') : undefined"
@@ -145,7 +157,7 @@
           <PlusIcon v-else class="h-5 w-5" aria-hidden="true" />
           {{ t(inCompare ? 'models_ranking.detail.compare_remove' : 'models_ranking.detail.compare_add') }}
         </button>
-        <a :href="href" class="inline-flex min-h-11 flex-[1_1_160px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-green-600 px-4 font-semibold text-white hover:bg-green-700">
+        <a :href="href" class="btn-3d cta-shadow-sm inline-flex min-h-11 flex-[1_1_160px] items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-gray-900 bg-green-600 px-4 font-bold text-white hover:bg-green-700 dark:border-gray-200">
           {{ t('models_ranking.detail.model_page', { name: m.modelDisplayName }) }}
           <ArrowRightIcon class="h-5 w-5" aria-hidden="true" />
         </a>
@@ -157,7 +169,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, ClockIcon, DocumentTextIcon, InformationCircleIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
+import { ArrowRightIcon, BanknotesIcon, BoltIcon, ChartBarIcon, CheckIcon, ClockIcon, DocumentTextIcon, InformationCircleIcon, LockClosedIcon, MapIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline'
 import ConsumptionBars from './ConsumptionBars.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { officialModelImageAttribution, officialModelImageUrl, officialModelThumbUrl } from '../../config/modelImages'
@@ -167,6 +179,12 @@ import { stopsRangeKm, ONE_STOP_MINUTES, USABLE_BATTERY_SHARE, meetsNeeds, type 
 import { chargeRhythmSpanText, chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
 import type { FuelKind, MainValue } from '../../utils/costMix'
+
+/** A figure and its unit apart, so the unit sits small beside the number as on the model page: "11,6 kWh/100km" */
+function valueParts(value: string): [string, string] {
+  const m = /^(.+?)\s+([^\d\s/][^]*)$/.exec(value)
+  return m ? [m[1], m[2]] : [value, '']
+}
 
 const props = defineProps<{
   item: RankedModel
@@ -280,6 +298,8 @@ const lockedLine = computed(() => {
   const key = ok ? (n.winter ? 'locked_ok_winter' : 'locked_ok') : (n.winter ? 'locked_stop_winter' : 'locked_stop')
   return t(`models_ranking.row.${key}`, tripParams.value)
 })
+/** A guest who answered the commute: the row shows where that figure will stand */
+const lockedCommute = computed(() => props.item.needs.assessable && props.item.needs.commute != null)
 // Dot in front of the hint: green when every battery makes the trip within the allowed stops,
 // orange when not, grey for a model without range data. No trip answered, no dot.
 const tripStatusClass = computed<string | null>(() => {

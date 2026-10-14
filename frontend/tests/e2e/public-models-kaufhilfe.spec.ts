@@ -23,18 +23,20 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
 }
 
-/** Pendeln, Tage und Laden zuhause: die drei Antworten, die die Pendelzeile braucht */
-async function answerCommute(page: Page, km: string, days: number) {
-  await setDistance(page, 'needs-daily', km);
-  await page.getByTestId('needs-days').getByRole('button', { name: String(days), exact: true }).click();
-  await page.getByRole('group', { name: 'Kannst du zuhause laden?' }).getByRole('button', { name: 'Ja' }).click();
+/** Pendelweg und Tage: die zwei Antworten, die die Pendelzeile braucht (Laden zuhause zählt bis zur Antwort) */
+async function answerCommute(page: Page, km: number, days: number) {
+  await setSlider(page, 'commute', km);
+  await setSlider(page, 'commuteDays', days);
 }
 
-/** Ersetzt den Wert eines Eingabefelds komplett, damit der input-Handler mit dem neuen Wert läuft. */
-async function setDistance(page: Page, testId: string, value: string) {
-  const input = page.getByTestId(testId);
-  await input.click();
-  await input.fill(value);
+/** Setzt einen Regler der Karte und löst input plus change aus, wie ein losgelassener Daumen */
+async function setSlider(page: Page, key: string, value: number) {
+  await page.getByTestId(`slider-needs-${key}`).evaluate((el, v) => {
+    const input = el as HTMLInputElement;
+    input.value = String(v);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
 }
 
 for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 }]) {
@@ -65,17 +67,17 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       }
     });
 
-    test('Bedarfs-Check startet leer, die längste Fahrt allein bringt den Zähler', async ({ page }) => {
+    test('Bedarfs-Check startet leer, die längste Fahrt allein bringt die Stopp-Kacheln', async ({ page }) => {
       await openRanking(page);
-      await expect(page.getByTestId('needs-daily')).toHaveValue('');
-      await expect(page.getByTestId('needs-longest')).toHaveValue('');
-      await expect(page.getByTestId('needs-summary')).toContainText('Beantworte die Fragen');
+      await expect(page.getByTestId('slider-needs-commute-value')).toHaveText('noch offen');
+      await expect(page.getByTestId('slider-needs-longTrip-value')).toHaveText('noch offen');
+      await expect(page.getByTestId('needs-prompt')).toBeVisible();
       await expect(rows(page).first().getByTestId('needs-hint')).toHaveCount(0);
-      await expect(page.getByTestId('trip-chip')).toBeDisabled();
+      await expect(page.getByTestId('needs-stops-0')).toHaveCount(0);
 
-      await setDistance(page, 'needs-longest', '400');
-      await expect(page.getByTestId('needs-summary')).toContainText(/\d+ von \d+ Modellen schaffen 400 km ohne Stopp/);
-      await expect(page.getByTestId('trip-chip')).toBeEnabled();
+      await setSlider(page, 'longTrip', 400);
+      await expect(page.getByTestId('needs-trip-title')).toContainText('So viele Modelle schaffen deine 400 km');
+      await expect(page.getByTestId('needs-stops-0')).toBeVisible();
       // nothing narrows the list yet, so no count line and no repeated basis under the chips
       await expect(page.getByTestId('ranking-count')).toHaveCount(0);
       await expect(page.getByTestId('needs-change')).toHaveCount(0);
@@ -85,24 +87,27 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       }
     });
 
-    test('ohne Login: Zähler frei, Zeilen ohne Zahlen, Gate in der Karte', async ({ page }) => {
+    test('ohne Login: Kacheln frei, Zeilen ohne Zahlen, Gate in der Karte', async ({ page }) => {
       await openRanking(page);
-      const summary = page.getByTestId('needs-summary');
       const firstHint = rows(page).first().getByTestId('needs-hint');
       await expect(firstHint).toHaveCount(0);
 
-      await setDistance(page, 'needs-longest', '150');
+      await setSlider(page, 'longTrip', 250);
       await expect(firstHint).toContainText(/Ladestopp|nicht bewertbar/);
       await expect(firstHint).not.toContainText(/Tage|Wochen|Stopps/);
-      await expect(summary).toContainText('schaffen 150 km');
-      await expect(page.getByTestId('needs-locked')).toContainText('150 km');
-      await expect(firstHint).toContainText('150 km');
+      await expect(page.getByTestId('needs-trip-title')).toContainText('250 km');
+      await expect(firstHint).toContainText('250 km');
+      // the commute figure waits behind the unlock, in the card and in each row
+      await expect(page.getByTestId('needs-locked')).toHaveCount(0);
+      await answerCommute(page, 40, 3);
+      await expect(page.getByTestId('needs-locked')).toBeVisible();
+      await expect(rows(page).first().getByTestId('needs-locked-commute')).toBeVisible();
 
       // the open row points to the one gate in the card
       await rows(page).first().locator('button[aria-expanded]').click();
       await page.getByTestId('row-unlock').click();
       await expect(page.getByTestId('needs-gate')).toBeVisible();
-      await expect(page.getByTestId('needs-locked')).toHaveCount(0);
+      await expect(page.getByTestId('needs-unlock')).toHaveCount(0);
     });
 
     test('eingeloggt: Tagesstrecke ändert den Hinweis der ersten Zeile, kein Gate', async ({ page }) => {
@@ -110,28 +115,38 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       await expect(page.getByTestId('needs-locked')).toHaveCount(0);
       const firstHint = rows(page).first().getByTestId('needs-hint');
-      await answerCommute(page, '40', 3);
-      await setDistance(page, 'needs-longest', '400');
-      // four answers: commute line and trip line
+      await answerCommute(page, 40, 3);
+      await setSlider(page, 'longTrip', 400);
+      // three answers: commute line and trip line
       await expect(firstHint).toContainText('Fürs Pendeln');
       await expect(firstHint).toContainText('400 km:');
       const hintBefore = await firstHint.innerText();
 
-      await setDistance(page, 'needs-daily', '120');
+      await setSlider(page, 'commute', 120);
       await expect.poll(() => firstHint.innerText()).not.toBe(hintBefore);
     });
 
-    test('Chip "Längste Fahrt ohne Stopp" filtert die Liste', async ({ page }) => {
+    test('Stopp-Chip: als Gast nennt er die Zahl und öffnet das Gate, eingeloggt filtert er', async ({ page }) => {
       await openRanking(page);
-      // 100 km schafft jedes bewertbare Modell, 5000 km keins mit einem Stopp
-      await setDistance(page, 'needs-longest', '5000');
-      await page.getByTestId('trip-chip').click();
-      await expect(page.getByTestId('trip-chip')).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.getByTestId('ranking-empty')).toBeVisible();
+      await setSlider(page, 'longTrip', 250);
+      await page.getByTestId('needs-stops-0').click();
+      await expect(page.getByTestId('needs-gate')).toBeVisible();
+      await expect(page.getByTestId('needs-gate')).toContainText(/Deine \d+ Modelle für 250 km sind bereit/);
+      await expect(page.getByTestId('needs-stops-0')).toHaveAttribute('aria-pressed', 'false');
 
-      await setDistance(page, 'needs-longest', '100');
-      await expect(rows(page).first()).toBeVisible();
-      await expect(rows(page).first().getByTestId('needs-hint')).toContainText('100 km ohne Ladestopp');
+      await login(page);
+      await openRanking(page);
+      // 1.200 km schafft kein Modell ohne Stopp: die Kachel ist gesperrt, nichts filtert ins Leere
+      await setSlider(page, 'longTrip', 1200);
+      await expect(page.getByTestId('needs-stops-0')).toBeDisabled();
+
+      await setSlider(page, 'longTrip', 250);
+      const tile = page.getByTestId('needs-stops-0');
+      await tile.click();
+      await expect(tile).toHaveAttribute('aria-pressed', 'true');
+      await expect(page.getByTestId('needs-show-all')).toBeVisible();
+      await tile.click();
+      await expect(tile).toHaveAttribute('aria-pressed', 'false');
     });
 
     test('Modelle ohne Fahrerdaten: eingeklappt, Suche klappt auf und erklärt den Leerzustand', async ({ page, request }) => {
@@ -212,13 +227,13 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByRole('button', { name: 'Meiste Daten' })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    test('Bedarfs-Satz und Liste zeigen aufeinander: Modelle zeigen setzt den Chip, Ändern fokussiert die Eingabe', async ({ page }) => {
+    test('Karte und Liste zeigen aufeinander: Kachel filtert, Ändern fokussiert die Eingabe', async ({ page }) => {
+      await login(page);
       await openRanking(page);
-      await answerCommute(page, '40', 3);
-      await setDistance(page, 'needs-longest', '100');
-      await page.getByTestId('needs-show-models').click();
-      await expect(page.getByTestId('trip-chip')).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.getByTestId('needs-show-models')).toContainText('Alle zeigen');
+      await answerCommute(page, 40, 3);
+      await setSlider(page, 'longTrip', 250);
+      await page.getByTestId('needs-stops-0').click();
+      await expect(page.getByTestId('needs-stops-0')).toHaveAttribute('aria-pressed', 'true');
       await expect(page.locator('section.mr-board')).toBeInViewport();
 
       // the basis line appears in the sticky header once the card has scrolled away
@@ -226,9 +241,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await rows(page).nth(5).scrollIntoViewIfNeeded();
       await page.mouse.wheel(0, 600);
       await expect(page.getByTestId('needs-change')).toBeVisible();
-      await expect(page.locator('section.mr-board')).toContainText('Für Pendeln 40 km an 3 Tagen, 100 km längste Fahrt, Laden zuhause');
+      await expect(page.locator('section.mr-board')).toContainText('Für Pendeln 40 km an 3 Tagen, 250 km längste Fahrt');
       await page.getByTestId('needs-change').click();
-      await expect(page.getByTestId('needs-daily')).toBeFocused();
+      // the first open slider: yearly km, the list never asked it
+      await expect(page.getByTestId('slider-needs-annualKm')).toBeFocused();
     });
   });
 }

@@ -15,10 +15,10 @@
         {{ t('models_ranking.hero.lede', { logs: formatNumber(totalLogs), drivers: formatNumber(platformStats?.userCount ?? 0) }) }}
       </p>
     </div>
-    <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-gray-200 bg-gray-200 sm:grid-cols-4 dark:border-gray-800 dark:bg-gray-800">
-      <div v-for="fact in heroFacts" :key="fact.label" class="flex flex-col-reverse bg-white px-3.5 py-3 dark:bg-gray-900">
+    <dl class="edge-card grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-gray-200 sm:grid-cols-4 dark:bg-gray-800">
+      <div v-for="fact in heroFacts" :key="fact.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 md:px-5 md:py-4 dark:bg-gray-900">
         <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ fact.label }}</dt>
-        <dd class="text-[22px] font-semibold leading-tight tracking-tight tabular-nums" :class="fact.highlight ? 'text-orange-700 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'">{{ fact.value }}</dd>
+        <dd class="text-[28px] font-extrabold leading-none tracking-tight tabular-nums md:text-[34px]" :class="fact.highlight ? 'text-orange-700 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'">{{ fact.value }}</dd>
       </div>
     </dl>
   </header>
@@ -62,7 +62,7 @@
           type="search"
           autocomplete="off"
           :placeholder="t('models_ranking.filters.search_placeholder')"
-          class="h-12 w-full rounded-xl border border-gray-200 bg-white pl-11 pr-3.5 text-base text-gray-900 placeholder:text-gray-500 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-400"
+          class="edge-card h-12 w-full rounded-xl bg-white pl-11 pr-3.5 text-base text-gray-900 placeholder:text-gray-500 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-400"
         />
       </label>
 
@@ -79,26 +79,15 @@
           >
             {{ c.label }}<span class="text-xs tabular-nums opacity-65">{{ c.count }}</span>
           </button>
-          <!-- Greyed out until the longest trip is answered: there is nothing to filter by -->
-          <button
-            type="button"
-            :aria-pressed="tripOnly && hasTrip"
-            :class="[chipClass(tripOnly && hasTrip), 'disabled:cursor-not-allowed disabled:opacity-40']"
-            :disabled="!hasTrip"
-            data-testid="trip-chip"
-            @click="tripOnly = !tripOnly"
-          >
-            <CheckIcon v-if="tripOnly && hasTrip" class="h-4 w-4" aria-hidden="true" />{{ t('models_ranking.filters.trip_chip', { count: needs.maxStops }, needs.maxStops) }}
-          </button>
         </div>
       </div>
 
     </aside>
 
     <!-- Ranking -->
-    <section class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white lg:shadow-sm dark:lg:border-gray-800 dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
+    <section class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:edge-box lg:bg-white dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
       <!-- Needs check sits where it acts: right above the rows -->
-      <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" :trip-only="tripOnly" :locked="!isAuthenticated" class="border-b border-gray-200 px-4 py-4 lg:px-5 dark:border-gray-800" @show="showTripModels" @unlocked="onUnlocked" />
+      <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" :trip-only="tripOnly" :locked="!isAuthenticated" class="border-b border-gray-200 px-4 py-4 lg:px-5 dark:border-gray-800" @trip="filterTrip" @unlocked="onUnlocked" />
       <div class="sticky z-20 border-b border-gray-200 bg-gray-50 px-4 pt-2.5 lg:px-5 lg:pt-3 dark:border-gray-800 dark:bg-gray-950 lg:bg-white dark:lg:bg-gray-900" :class="stickyTopClass">
         <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0 lg:pb-2.5" role="group" :aria-label="t('models_ranking.sort.label')">
           <button
@@ -198,7 +187,7 @@
     <!-- Models with a WLTP spec but no driver data yet, collapsed by default -->
     <details
       v-if="withoutData.length"
-      class="min-w-0 lg:col-start-2 lg:rounded-2xl lg:border lg:border-gray-200 lg:bg-white dark:lg:border-gray-800 dark:lg:bg-gray-900"
+      class="min-w-0 lg:col-start-2 lg:rounded-2xl lg:edge-box lg:bg-white dark:lg:bg-gray-900"
       :open="withoutDataOpen"
       data-testid="without-data"
       @toggle="withoutDataOpen = ($event.target as HTMLDetailsElement).open"
@@ -297,7 +286,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   ArrowPathIcon, ArrowRightIcon, ArrowsRightLeftIcon, ArrowTrendingUpIcon,
-  ChartBarIcon, CheckIcon, ChevronRightIcon, MagnifyingGlassIcon, XMarkIcon,
+  ChartBarIcon, ChevronRightIcon, MagnifyingGlassIcon, XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -419,7 +408,10 @@ function chipClass(active: boolean, compact = false) {
 // ── Needs check: the card and the list point at each other ──────────────────
 const needsCard = ref<InstanceType<typeof NeedsCheckCard> | null>(null)
 const hasTrip = computed(() => needs.value.longestTripKm != null)
-const hasCommute = computed(() => needs.value.dailyKm != null && needs.value.commuteDays != null && needs.value.homeCharging != null)
+// An emptied trip field ends its filter, so a new trip does not come back filtered
+watch(hasTrip, has => { if (!has) tripOnly.value = false })
+/** Home charging counts until answered (the question comes after the gate), so km and days make the commute */
+const hasCommute = computed(() => needs.value.dailyKm != null && needs.value.commuteDays != null)
 /** The answers the row hints rest on, for the sticky header; empty (no line) before the first answer */
 const needsBasis = computed(() => {
   const n = needs.value
@@ -432,9 +424,10 @@ const needsBasis = computed(() => {
   if (n.homeCharging != null) parts.push(t(n.homeCharging ? 'models_ranking.needs.basis_home' : 'models_ranking.needs.basis_no_home'))
   return parts.length ? t('models_ranking.needs.basis', { parts: parts.join(', ') }) : ''
 })
-// The middle figure is a toggle: on filters the list to the models it counts, off shows all
-function showTripModels() {
-  tripOnly.value = !tripOnly.value
+/** A stop tile in the card: the list shows the models that make the trip within that many stops; null shows all */
+function filterTrip(maxStops: number | null) {
+  if (maxStops != null) needs.value = { ...needs.value, maxStops }
+  tripOnly.value = maxStops != null
 }
 // The sticky header repeats the needs only while the card itself is out of view
 const needsCardInView = ref(true)
