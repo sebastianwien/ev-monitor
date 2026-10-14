@@ -73,6 +73,8 @@ export interface FactTile {
   extra?: { value: string; unit: string }
   /** a second, plain line under the note */
   noteLine?: string
+  /** the battery window of that line, drawn with battery icons like the gauge; the line stays for screen readers */
+  noteSoc?: { from: number; to: number }
   /** the figure inside the note, set in large type a size below the main figure; text is how it reads in the note */
   noteFigure?: { text: string; value: string; unit: string }
 }
@@ -229,6 +231,7 @@ function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): Fact
     ...base, value: f.formatNumber(minutes), level: 'FULL',
     note: f.t('model.page.note_charging', { kw }),
     noteLine: f.t('model.page.note_charging_window'),
+    noteSoc: { from: 10, to: 80 },
     noteFigure: { text: `${kw} kW`, value: kw, unit: 'kW' },
   }
 }
