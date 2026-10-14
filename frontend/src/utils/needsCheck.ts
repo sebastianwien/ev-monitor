@@ -15,6 +15,9 @@
 
 /** Every answer starts empty: an unanswered question is not rated, never filled with a default. */
 export interface NeedsInput {
+  /** km a year and the motorway share in percent: asked on both pages, used by the model page */
+  annualKm: number | null
+  highwayShare: number | null
   dailyKm: number | null
   /** commute days a week, MIN_COMMUTE_DAYS to MAX_COMMUTE_DAYS */
   commuteDays: number | null
@@ -30,7 +33,7 @@ export const MIN_STOPS = 0
 export const MAX_STOPS = 4
 export const MIN_COMMUTE_DAYS = 1
 export const MAX_COMMUTE_DAYS = 5
-export const NEEDS_EMPTY: NeedsInput = { dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
+export const NEEDS_EMPTY: NeedsInput = { annualKm: null, highwayShare: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
 export const USABLE_BATTERY_SHARE = 0.8
 export const FAST_CHARGE_SHARE = 0.7
 export const HOME_CHARGE_SHARE = 0.6
@@ -132,14 +135,16 @@ export function formatSpan(a: number, b: number): Span {
   return { min, max, single: min === max }
 }
 
-/** Commute charges and trip stops on one range span (smallest to largest battery); each part only when answered */
+/** Commute charges and trip stops on one range span (smallest to largest battery); each part only when answered.
+    Home charging counts until the reader says otherwise, as on the model page: the question comes after the gate. */
 function assessOn(m: RangeFields, input: NeedsInput, basis: { min: number; max: number }): PartsAssessment {
   const weeklyKm = commuteKmPerWeek(input)
+  const homeCharging = input.homeCharging ?? true
   let commute: CommuteAssessment | null = null
-  if (weeklyKm != null && input.homeCharging != null) {
-    const high = chargesPerWeek(basis.min, weeklyKm, input.homeCharging)
-    const low = chargesPerWeek(basis.max, weeklyKm, input.homeCharging)
-    if (high != null && low != null) commute = { homeCharging: input.homeCharging, perWeek: { low, high } }
+  if (weeklyKm != null) {
+    const high = chargesPerWeek(basis.min, weeklyKm, homeCharging)
+    const low = chargesPerWeek(basis.max, weeklyKm, homeCharging)
+    if (high != null && low != null) commute = { homeCharging, perWeek: { low, high } }
   }
   let trip: Span | null = null
   if (input.longestTripKm != null) {

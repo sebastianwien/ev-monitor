@@ -28,6 +28,15 @@ const FIELD = {
   longTrip: 'longTripKm',
 } as const satisfies Record<ProfileKey, string>
 
+/** Where each slider's answer sits in the needs the ranking shares with this page */
+export const NEEDS_FIELD = {
+  annualKm: 'annualKm',
+  highwayShare: 'highwayShare',
+  commute: 'dailyKm',
+  commuteDays: 'commuteDays',
+  longTrip: 'longestTripKm',
+} as const satisfies Record<ProfileKey, string>
+
 /** Onto the slider: within its range and on its step */
 function snap(key: ProfileKey, value: number): number {
   const s = PROFILE_SLIDERS[key]
@@ -70,9 +79,7 @@ export function useDrivingProfile(query: LocationQuery, modelName: () => string)
     if (answered.size === 0) analytics.track('personal_range_started', { model: modelName() })
     set(key, value)
     analytics.track('story_chip_answered', { model: modelName(), question: key })
-    if (key === 'commute') writeStoredNeeds({ dailyKm: answers.commuteKmPerDay })
-    else if (key === 'commuteDays') writeStoredNeeds({ commuteDays: answers.commuteDays })
-    else if (key === 'longTrip') writeStoredNeeds({ longestTripKm: answers.longTripKm })
+    writeStoredNeeds({ [NEEDS_FIELD[key]]: value })
   }
 
   /** The wallbox answer after the result; only an active answer goes back to the ranking */
@@ -95,6 +102,8 @@ export function useDrivingProfile(query: LocationQuery, modelName: () => string)
 
   const needs = readStoredNeeds()
   if (needs) {
+    if (needs.annualKm != null) set('annualKm', snap('annualKm', needs.annualKm))
+    if (needs.highwayShare != null) set('highwayShare', snap('highwayShare', needs.highwayShare))
     if (needs.dailyKm != null) set('commute', snap('commute', needs.dailyKm))
     if (needs.commuteDays != null) set('commuteDays', needs.commuteDays)
     if (needs.longestTripKm != null) set('longTrip', snap('longTrip', needs.longestTripKm))

@@ -20,13 +20,13 @@ describe('useDrivingProfile', () => {
     expect(p.answers.homeCharging).toBe(true)
   })
 
-  it('an answer closes its slider and goes back to the ranking, only for the shared questions', () => {
+  it('an answer closes its slider and goes back to the ranking, all five questions', () => {
     const p = useDrivingProfile({}, () => 'VW ID.3')
     p.answer('commute', 35)
     p.answer('annualKm', 20000)
     expect(p.openQuestions.value).toEqual(['highwayShare', 'commuteDays', 'longTrip'])
     expect(stored().dailyKm).toBe(35)
-    expect(stored().annualKm).toBeUndefined()
+    expect(stored().annualKm).toBe(20000)
     expect(analytics.track).toHaveBeenCalledWith('personal_range_started', { model: 'VW ID.3' })
   })
 

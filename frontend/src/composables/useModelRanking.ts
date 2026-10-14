@@ -26,6 +26,8 @@ export const SORT_STORAGE_KEY = 'ev-ranking-sort'
  */
 export const NEEDS_STORAGE_KEY = 'ev-needs-check-v2'
 export const NEEDS_KM_MAX = 5000
+/** Upper bound for a stored yearly mileage; the slider ends at 50.000 km */
+export const NEEDS_ANNUAL_KM_MAX = 200_000
 
 export interface RankedModel {
   /** `Brand/Slug`, the format the compare page expects in `?models=` */
@@ -100,7 +102,10 @@ function parseNeeds(v: unknown): NeedsInput | null {
   const o = v as Record<string, unknown>
   const km = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= NEEDS_KM_MAX ? x : null
   const days = (x: unknown) => Number.isInteger(x) && (x as number) >= MIN_COMMUTE_DAYS && (x as number) <= MAX_COMMUTE_DAYS ? x as number : null
+  const share = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 100 ? x : null
   return {
+    annualKm: typeof o.annualKm === 'number' && Number.isFinite(o.annualKm) && o.annualKm > 0 && o.annualKm <= NEEDS_ANNUAL_KM_MAX ? o.annualKm : null,
+    highwayShare: share(o.highwayShare),
     dailyKm: km(o.dailyKm),
     commuteDays: days(o.commuteDays),
     longestTripKm: km(o.longestTripKm),
@@ -119,8 +124,8 @@ export function readStoredNeeds(): NeedsInput | null {
   }
 }
 
-/** The model page hands its answers (commute, days, longest trip, home charging) back to the ranking's needs check. */
-export function writeStoredNeeds(patch: Partial<Pick<NeedsInput, 'dailyKm' | 'commuteDays' | 'longestTripKm' | 'homeCharging'>>): void {
+/** The model page hands its answers (yearly km, motorway, commute, days, longest trip, home charging) back to the ranking's needs check. */
+export function writeStoredNeeds(patch: Partial<Omit<NeedsInput, 'maxStops'>>): void {
   const current = readStoredNeeds() ?? { ...NEEDS_EMPTY }
   try { localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ ...current, ...patch })) } catch { /* private mode */ }
 }

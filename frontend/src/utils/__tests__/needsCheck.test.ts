@@ -9,11 +9,11 @@ const ranges = (over: Partial<RangeFields>): RangeFields => ({
   typicalRangeMinKm: null, typicalRangeMaxKm: null, winterRangeMinKm: null, winterRangeMaxKm: null, ...over,
 })
 /** Anna: 40 km on 3 days, charging at home, 400 km longest trip */
-const ANNA: NeedsInput = { dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0 }
+const ANNA: NeedsInput = { annualKm: null, highwayShare: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0 }
 
 describe('needsCheck', () => {
   it('starts empty: no answer is a default', () => {
-    expect(NEEDS_EMPTY).toEqual({ dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
+    expect(NEEDS_EMPTY).toEqual({ annualKm: null, highwayShare: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
     expect(USABLE_BATTERY_SHARE).toBe(0.8)
     expect(FAST_CHARGE_SHARE).toBe(0.7)
     expect(HOME_CHARGE_SHARE).toBe(0.6)
@@ -148,9 +148,9 @@ describe('needsCheck', () => {
       expect(a.assessable && a.tripStops).toEqual({ min: 1, max: 1, single: true })
     })
 
-    it('the commute needs km, days and the home-charging answer', () => {
-      expect(assessModel(twoBatteries, { ...ANNA, homeCharging: null }).assessable
-        && assessModel(twoBatteries, { ...ANNA, homeCharging: null })).toMatchObject({ commute: null })
+    it('the commute needs km and days; without the home-charging answer it counts charging at home, as the model page does', () => {
+      expect(assessModel(twoBatteries, { ...ANNA, homeCharging: null })).toMatchObject({ commute: { homeCharging: true } })
+      expect(assessModel(twoBatteries, { ...ANNA, homeCharging: false })).toMatchObject({ commute: { homeCharging: false } })
       expect(assessModel(twoBatteries, { ...ANNA, commuteDays: null })).toMatchObject({ commute: null })
       expect(assessModel(twoBatteries, { ...ANNA, longestTripKm: null })).toMatchObject({ tripStops: null })
     })
