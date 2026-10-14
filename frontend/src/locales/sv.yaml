@@ -4074,7 +4074,7 @@ personal_range:
   duration_h_m: "{h} h {m} min"
   duration_h: "{h} h"
   duration_m: "{m} min"
-  profile_change: "Ändra dina uppgifter"
+  profile_change: "Ändra uppgifter"
   assumptions_title: "Vad resultatet bygger på"
   measured: "uppmätt"
   estimated: "uppskattat"

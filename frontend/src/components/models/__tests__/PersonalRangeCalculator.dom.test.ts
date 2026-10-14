@@ -131,7 +131,7 @@ describe('PersonalRangeCalculator', () => {
     expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
   })
 
-  it('open answers: the set profile in one line above them, a button unfolds the sliders below', async () => {
+  it('open answers: the set profile as a strip above them, "Angaben ändern" unfolds the sliders in the strip', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
     const { host } = mount(true)
     await flush()

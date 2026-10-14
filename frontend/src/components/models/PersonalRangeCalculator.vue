@@ -70,8 +70,25 @@
         <h2 id="pr-title" tabindex="-1" class="text-[19px] font-bold leading-tight tracking-tight text-gray-900 focus:outline-none dark:text-gray-100">{{ t('personal_range.answers_title', { model: modelName }) }}</h2>
       </div>
 
-      <!-- The set profile in one line, right above the answers it produced -->
-      <p v-if="profileSummary" class="-mt-2 text-[13.5px] leading-snug text-gray-600 dark:text-gray-400" data-testid="personal-range-profile-summary">{{ profileSummary }}</p>
+      <!-- The set profile as a white strip above the answers: one line, "Angaben ändern" on the right
+           unfolds the five sliders in their compact form (the ranking's strip) inside the same strip -->
+      <div v-if="profileSummary" class="rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900" data-testid="personal-range-profile-strip">
+        <div class="flex items-start justify-between gap-3 px-4 py-3 md:items-center md:px-5">
+          <p class="min-w-0 text-[13.5px] leading-snug text-gray-700 md:text-[14px] dark:text-gray-300" data-testid="personal-range-profile-summary">{{ profileSummary }}</p>
+          <button type="button" data-testid="personal-range-profile-toggle" :aria-expanded="profileOpen" aria-controls="pr-profile"
+                  class="-my-1 inline-flex min-h-9 flex-none items-center gap-1 text-[14px] font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400"
+                  @click="emit('update:profileOpen', !profileOpen)">
+            {{ t('personal_range.profile_change') }}
+            <ChevronDownIcon class="h-4 w-4 transition-transform" :class="profileOpen ? 'rotate-180' : ''" aria-hidden="true" />
+          </button>
+        </div>
+        <!-- unfolds: the row grows from 0fr to 1fr, the inner box stays min-h-0 so it clips -->
+        <div id="pr-profile" class="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" :class="profileOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+          <div class="min-h-0 overflow-hidden">
+            <div v-if="profileOpen" class="border-t border-gray-100 px-4 pb-5 pt-4 md:px-5 dark:border-gray-800"><slot name="profile" /></div>
+          </div>
+        </div>
+      </div>
 
       <p class="sr-only" role="status">{{ busy ? t('personal_range.calculating') : '' }}</p>
       <!-- One answer per row, as a sentence; the figure is the loud part. From md up two by two, the gap draws the lines -->
@@ -141,30 +158,14 @@
       </ul>
 
 
-      <!-- Under the answers, two folds in one row: the profile the result rests on (the sliders) and the assumptions.
-           Folded, the profile shows as one line, so the reader sees what is set without 500 px of sliders. -->
+      <!-- What the result rests on: a light, centred link that opens the list in a card -->
       <div class="grid gap-1">
-        <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
-          <button type="button" data-testid="personal-range-profile-toggle" :aria-expanded="profileOpen" aria-controls="pr-profile"
-                  class="flex min-h-11 items-center gap-1.5 text-[14px] font-semibold text-green-800 hover:underline dark:text-green-300"
-                  @click="emit('update:profileOpen', !profileOpen)">
-            <AdjustmentsHorizontalIcon class="h-4 w-4" aria-hidden="true" />
-            {{ t('personal_range.profile_change') }}
-            <ChevronDownIcon class="h-4 w-4 transition-transform" :class="profileOpen ? 'rotate-180' : ''" aria-hidden="true" />
-          </button>
-          <button type="button" data-testid="personal-range-assumptions-toggle" :aria-expanded="assumptionsOpen" aria-controls="pr-assumptions"
-                  class="flex min-h-11 items-center gap-1.5 text-[14px] font-semibold text-green-800 hover:underline dark:text-green-300"
-                  @click="assumptionsOpen = !assumptionsOpen">
-            {{ t('personal_range.assumptions_title') }}
-            <ChevronDownIcon class="h-4 w-4 transition-transform" :class="assumptionsOpen ? 'rotate-180' : ''" aria-hidden="true" />
-          </button>
-        </div>
-        <!-- the sliders unfold: the row grows from 0fr to 1fr, the inner box stays min-h-0 so it clips -->
-        <div id="pr-profile" class="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" :class="profileOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
-          <div class="min-h-0 overflow-hidden">
-            <div v-if="profileOpen" class="rounded-2xl bg-white px-4 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card md:px-6 md:py-6 dark:bg-gray-900"><slot name="profile" /></div>
-          </div>
-        </div>
+        <button type="button" data-testid="personal-range-assumptions-toggle" :aria-expanded="assumptionsOpen" aria-controls="pr-assumptions"
+                class="mx-auto flex min-h-11 w-fit items-center gap-1.5 text-[14px] font-semibold text-green-800 hover:underline dark:text-green-300"
+                @click="assumptionsOpen = !assumptionsOpen">
+          {{ t('personal_range.assumptions_title') }}
+          <ChevronDownIcon class="h-4 w-4 transition-transform" :class="assumptionsOpen ? 'rotate-180' : ''" aria-hidden="true" />
+        </button>
         <ul v-show="assumptionsOpen" id="pr-assumptions" class="space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900">
           <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
             <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
@@ -204,7 +205,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { AdjustmentsHorizontalIcon, ArrowRightIcon, BanknotesIcon, Battery0Icon, Battery100Icon, BoltIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, CloudIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, MapIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { ArrowRightIcon, BanknotesIcon, Battery0Icon, Battery100Icon, BoltIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, CloudIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, MapIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
 import UnlockBar from './UnlockBar.vue'
 import ProfileTune from './ProfileTune.vue'
@@ -247,9 +248,9 @@ const props = defineProps<{
   entry?: HTMLElement | null
   /** the sliders; while they are in view and the answers are not, the figures follow (md up) */
   follow?: HTMLElement | null
-  /** the profile fold under the answers: open shows the `profile` slot */
+  /** the strip above the answers unfolded: shows the `profile` slot (the compact sliders) */
   profileOpen?: boolean
-  /** the set profile in one line, right above the answers */
+  /** the set profile in one line, the strip above the answers */
   profileSummary?: string | null
 }>()
 const emit = defineEmits<{

@@ -39,7 +39,7 @@ async function login(page: Page) {
 
 /** All five sliders answered */
 async function answerAll(page: Page) {
-  // open answers (a stored profile): the sliders are folded under them
+  // open answers: the sliders sit folded in the profile strip (guests have them in their own box)
   const fold = page.getByTestId('personal-range-profile-toggle');
   if (await fold.count() && await fold.getAttribute('aria-expanded') === 'false') await fold.click();
   await setSlider(page, 'annualKm', 20000);
@@ -99,8 +99,10 @@ test.describe('Modellseite (390 px)', () => {
 
   test('eingeloggt: vier Antworten, Wallbox-Frage rechnet neu und geht an die Rangliste', async ({ page }) => {
     await login(page);
-    await openStoryWithProfile(page);
+    // the stored profile opens the answers by itself (the first POST); the sliders then sit in the profile strip
     const first = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST');
+    await openStoryWithProfile(page);
+    await expect(page.getByTestId('personal-range-result')).toBeVisible({ timeout: 15_000 });
     await answerAll(page);
     const request = (await first).request().postDataJSON();
     // 8.000 motorway km of 20.000 go to the server as a share

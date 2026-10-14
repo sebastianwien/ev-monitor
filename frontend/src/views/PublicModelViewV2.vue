@@ -114,10 +114,10 @@
                 @price="v => answers.pricePerKwh = v"
                 @open="v => answersOpen = v">
                 <template #profile>
-                  <!-- The same five sliders, two columns from md up so they fill the width of the answers -->
-                  <div id="profil" ref="profileFold" class="grid gap-5 scroll-mt-28 md:grid-cols-2 md:gap-x-10" data-testid="driving-profile">
+                  <!-- The same five sliders in the ranking's compact form: one row from xl, three or two columns below -->
+                  <div id="profil" ref="profileFold" class="grid items-end gap-x-6 gap-y-3 scroll-mt-28 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-x-5" data-testid="driving-profile">
                     <ProfileSlider v-for="q in profileSliders" :key="q.key" :id="`story-${q.key}`" :test-key="q.key" :label="q.label"
-                                   :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail"
+                                   :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail" compact
                                    :highlight="highlightKey === q.key" @commit="v => answer(q.key, v)" />
                   </div>
                 </template>

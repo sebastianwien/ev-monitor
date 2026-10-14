@@ -4074,7 +4074,7 @@ personal_range:
   duration_h_m: "{h} t {m} min"
   duration_h: "{h} t"
   duration_m: "{m} min"
-  profile_change: "Endre opplysningene dine"
+  profile_change: "Endre opplysninger"
   assumptions_title: "Hva resultatet bygger på"
   measured: "målt"
   estimated: "anslått"

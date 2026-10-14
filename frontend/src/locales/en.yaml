@@ -4191,7 +4191,7 @@ personal_range:
   duration_h_m: "{h} h {m} min"
   duration_h: "{h} h"
   duration_m: "{m} min"
-  profile_change: "Change your inputs"
+  profile_change: "Change inputs"
   assumptions_title: "What the result is based on"
   measured: "measured"
   estimated: "estimated"
