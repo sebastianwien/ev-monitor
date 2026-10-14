@@ -967,21 +967,6 @@ function goBackToLpV2() {
    Ersetzt die zuvor 11 ad-hoc Größen durch ein konsistentes Set.        */
 .t-value-lg { font-size: 1.5rem;   line-height: 1.6rem;  font-weight: 800; }
 
-.model-page {
-  animation: page-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-}
-
-@keyframes page-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(28px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .back-pill {
   transition: transform 0.1s, box-shadow 0.1s;
 }
