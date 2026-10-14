@@ -3980,7 +3980,6 @@ rating:
     rebuy_main: "{yes} von {count}"
     rebuy_label: "würde ihn wieder kaufen | würden ihn wieder kaufen"
     rebuy_brand: "{n} bleibt der Marke treu, aber nicht dem Modell | {n} bleiben der Marke treu, aber nicht dem Modell"
-    rebuy_no: "{n} würde ihn nicht wieder kaufen | {n} würden ihn nicht wieder kaufen"
     first_drivers: "Du bist der {n}. {model}-Fahrer mit Bewertung. Ab 5 zeigen wir den Schnitt, es fehlen noch {missing}."
     more_critical: "Du bist kritischer als {p} Prozent der {model}-Fahrer."
     more_satisfied: "Du bist zufriedener als {p} Prozent der {model}-Fahrer."

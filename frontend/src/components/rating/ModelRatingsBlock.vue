@@ -96,9 +96,6 @@ onBeforeUnmount(() => observer?.disconnect())
                     {{ t('rating.result.rebuy_brand', { n: ratings.rebuy.brandOtherModel }, ratings.rebuy.brandOtherModel) }}<template v-if="ratings.rebuyReasons.length">.
                         {{ t('rating.public.reasons', { list: ratings.rebuyReasons.map(r => `${t(`rating.q.rebuy.reasons.${r.value}`)} (${r.count})`).join(', ') }) }}</template>
                 </p>
-                <p v-if="ratings.rebuy.no" class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ t('rating.result.rebuy_no', { n: ratings.rebuy.no }, ratings.rebuy.no) }}
-                </p>
             </div>
 
             <!-- Ab 5: Schnitt je Kategorie, Kosten, Top-Chips -->

@@ -3974,7 +3974,6 @@ rating:
     rebuy_main: "{yes} of {count}"
     rebuy_label: "would buy it again | would buy it again"
     rebuy_brand: "{n} would stay with the brand, but not the model | {n} would stay with the brand, but not the model"
-    rebuy_no: "{n} would not buy it again | {n} would not buy it again"
     first_drivers: "You are {model} driver no. {n} to rate. We show averages from 5 ratings, {missing} to go."
     more_critical: "You are more critical than {p} percent of {model} drivers."
     more_satisfied: "You are happier than {p} percent of {model} drivers."

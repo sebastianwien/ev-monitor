@@ -50,7 +50,6 @@ const formatAvg = (value: number) => n(value, { minimumFractionDigits: 1, maximu
                 <li v-if="result.rebuy.brandOtherModel">
                     {{ t('rating.result.rebuy_brand', { n: result.rebuy.brandOtherModel }, result.rebuy.brandOtherModel) }}
                 </li>
-                <li v-if="result.rebuy.no">{{ t('rating.result.rebuy_no', { n: result.rebuy.no }, result.rebuy.no) }}</li>
             </ul>
         </section>
 

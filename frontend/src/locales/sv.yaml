@@ -3857,7 +3857,6 @@ rating:
     rebuy_main: "{yes} av {count}"
     rebuy_label: "skulle köpa den igen | skulle köpa den igen"
     rebuy_brand: "{n} stannar hos märket, men inte modellen | {n} stannar hos märket, men inte modellen"
-    rebuy_no: "{n} skulle inte köpa den igen | {n} skulle inte köpa den igen"
     first_drivers: "Du är {model}-förare nr {n} som betygsätter. Vi visar snitt från 5 betyg, {missing} kvar."
     more_critical: "Du är mer kritisk än {p} procent av {model}-förarna."
     more_satisfied: "Du är nöjdare än {p} procent av {model}-förarna."
