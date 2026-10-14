@@ -113,7 +113,7 @@ Die `/rankings`-Seite zeigt sparsamste Modelle mit Kategorie-Tabs zum Filtern. M
 
 ## Navigation für Eingeloggte
 
-Auf `/modelle` und den Modellseiten (de und en, Router-Meta `publicNav`) sehen auch Eingeloggte die öffentliche Kopfzeile statt der lila App-Navigation, des Tickers und des App-Footers: Logo, Sprache, Theme, rechts das Watt-Guthaben und ein grüner "Dashboard"-Knopf an der Stelle von "Registrieren". Die Bottom-Nav am Handy bleibt. Alle anderen Routen behalten die App-Navigation.
+Auf `/modelle`, den Marken- und den Modellseiten (de und en, Router-Meta `publicNav`) sehen auch Eingeloggte die öffentliche Kopfzeile statt der lila App-Navigation, des Tickers und des App-Footers: Logo, Sprache, Theme, rechts das Watt-Guthaben und ein grüner "Dashboard"-Knopf an der Stelle von "Registrieren". Die Bottom-Nav am Handy bleibt. Alle anderen Routen behalten die App-Navigation.
 
 Die Modellseite zeigt in fünf Zonen mit fester Reihenfolge, was die Community misst, und führt zum persönlichen Ergebnis. Alle Modellzahlen sind frei, hinter dem Gate liegen nur die persönlichen Antworten (siehe `personal-range-calculator.md`). Jede Zone ist eine Box (`ModelBox`). Kanten-Stil wie im App-Header: am Handy tragen die Karten im Inhalt eine schwarze 2-px-Kontur mit 2 px hartem Schatten (`edge-card`), ab 768 px die großen Boxen dieselbe Kontur mit 3 px Schatten (`edge-box`); beide Utilities in `index.css`, dunkel mit heller Kontur.
 

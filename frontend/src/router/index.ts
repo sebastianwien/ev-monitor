@@ -249,6 +249,7 @@ const router = createRouter({
             path: '/modelle/:brand',
             name: 'public-brand',
             component: PublicBrandView,
+            meta: { publicNav: true },
             beforeEnter: (to) => redirectNonGermanVisitor(`/en/models/${to.params.brand}`)
         },
         {
@@ -307,7 +308,7 @@ const router = createRouter({
             path: '/en/models/:brand',
             name: 'public-brand-en',
             component: PublicBrandView,
-            meta: { locale: 'en' }
+            meta: { locale: 'en', publicNav: true }
         },
         {
             path: '/en/models/:brand/:model',
