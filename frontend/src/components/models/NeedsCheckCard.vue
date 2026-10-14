@@ -171,8 +171,11 @@ async function focusFirst() {
 }
 /** Mail gate for the figures per row; a row's unlock button opens it from afar via openGate() */
 const gateOpen = ref(false)
-/** The stop chip a guest tapped: the gate names its models, after it the list filters to them */
-const gateStops = ref<{ stops: number; count: number } | null>(null)
+/**
+ * The stops of the chip a guest tapped: the gate names its models, after it the list filters to them.
+ * The count is read live, so figures arriving after the tap (a changed trip) correct the gate.
+ */
+const gateStops = ref<number | null>(null)
 function openGate() {
   if (gateOpen.value) return
   gateOpen.value = true
@@ -181,18 +184,18 @@ function openGate() {
 function onAuthenticated() {
   gateOpen.value = false
   emit('unlocked')
-  if (gateStops.value) emit('trip', gateStops.value.stops)
+  if (gateStops.value != null) emit('trip', gateStops.value)
   gateStops.value = null
 }
 function pickStops(tile: { stops: number; count: number; active: boolean }) {
   if (!props.locked) return emit('trip', tile.active ? null : tile.stops)
-  gateStops.value = { stops: tile.stops, count: tile.count }
+  gateStops.value = tile.stops
   openGate()
 }
 const gateLead = computed(() => {
   const n = formatNumber(props.summary.total)
-  if (gateStops.value) {
-    const count = gateStops.value.count
+  if (gateStops.value != null) {
+    const count = props.summary.tripOkWithin[gateStops.value] ?? 0
     return t('models_ranking.needs.gate_lead_stops', { n: formatNumber(count), longest: longestShown.value, unit: distanceUnitLabel() }, count)
   }
   return hasTrip.value

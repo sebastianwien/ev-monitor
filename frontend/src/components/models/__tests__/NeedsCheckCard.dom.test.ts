@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { createApp, nextTick, type App } from 'vue'
+import { createApp, h, nextTick, ref, type App } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { i18n } from '../../../i18n'
 
@@ -134,6 +134,24 @@ describe('NeedsCheckCard gate', () => {
     app.mount(host)
     const stops = [...host.querySelectorAll('[data-testid^="needs-stops-"]')].map(c => c.getAttribute('data-testid'))
     expect(stops).toEqual(['needs-stops-3', 'needs-stops-4', 'needs-stops-5', 'needs-stops-6', 'needs-stops-7'])
+  })
+
+  it('guest: the gate counts the figures that arrive after the tap, not the ones on screen at the tap', async () => {
+    setActivePinia(createPinia())
+    // the previous trip's figures: one model without a stop; the new ones arrive a moment later
+    const summary = ref({ ...SUMMARY, tripOkWithin: [1, 30, 50, 56, 56] })
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    app = createApp({ render: () => h(NeedsCheckCard, { modelValue: ANSWERED, summary: summary.value, tripOnly: false, locked: true }) })
+    app.use(i18n)
+    app.mount(host)
+    ;(host.querySelector('[data-testid="needs-stops-0"]') as HTMLButtonElement).click()
+    await flush()
+    expect(host.querySelector('[data-testid="needs-gate"]')!.textContent).toContain('Dein Modell für 400 km ist bereit.')
+
+    summary.value = { ...SUMMARY }
+    await flush()
+    expect(host.querySelector('[data-testid="needs-gate"]')!.textContent).toContain('Deine 9 Modelle für 400 km sind bereit.')
   })
 
   it('guest: a stop chip names its count but not the models; the gate opens, after it the list filters to them', async () => {
