@@ -24,7 +24,10 @@
             <span v-if="fig.value != null && fig.unit" class="whitespace-nowrap text-[13px] font-semibold text-gray-500 md:text-[15px] dark:text-gray-400">{{ fig.unit }}</span>
           </span>
         </dd>
-        <dd v-if="fact.note" class="text-[14px] leading-snug text-gray-600 md:text-[16px] dark:text-gray-400">{{ keepUnits(fact.note) }}</dd>
+        <dd v-if="fact.note" class="text-[14px] leading-snug text-gray-600 md:text-[16px] dark:text-gray-400">
+          <template v-if="noteParts(fact)">{{ keepUnits(noteParts(fact)!.before) }}<span class="whitespace-nowrap"><b class="text-[20px] font-extrabold leading-none tracking-tight tabular-nums text-gray-900 md:text-[24px] dark:text-gray-100">{{ fact.noteFigure!.value }}</b>&nbsp;<span class="text-[13px] font-semibold text-gray-500 md:text-[15px] dark:text-gray-400">{{ fact.noteFigure!.unit }}</span></span>{{ keepUnits(noteParts(fact)!.after) }}</template>
+          <template v-else>{{ keepUnits(fact.note) }}</template>
+        </dd>
       </div>
     </dl>
     <slot />
@@ -39,6 +42,12 @@ import { keepUnits, type FactTile } from '../../utils/modelStory'
 /** The data sheet: four tiles, one big figure and one comparison line each. Presentational. */
 defineProps<{ title: string; sub: string; facts: FactTile[] }>()
 const { t } = useI18n()
+
+/** The note around its figure, so the figure can stand out; null when the note has none */
+function noteParts(fact: FactTile): { before: string; after: string } | null {
+  const i = fact.noteFigure ? fact.note.indexOf(fact.noteFigure.text) : -1
+  return i < 0 ? null : { before: fact.note.slice(0, i), after: fact.note.slice(i + fact.noteFigure!.text.length) }
+}
 
 /** The figure, and a second one of equal weight where the tile has it (cost: home and fast charge) */
 function figures(fact: FactTile): { value: string | null; unit: string }[] {

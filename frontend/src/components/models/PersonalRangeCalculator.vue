@@ -42,7 +42,6 @@
         {{ logCount === 0 ? t('personal_range.locked_basis_none')
           : carCount >= MIN_MEASURED_CARS ? t('personal_range.locked_basis', { logs: formatNumber(logCount) })
           : t('personal_range.locked_basis_thin', { logs: formatNumber(logCount), cars: formatNumber(carCount) }) }}
-        {{ inputs.homeCharging ? t('personal_range.assume_home') : t('personal_range.assume_public') }}
       </p>
       <button ref="action" type="button" data-testid="personal-range-calculate" :disabled="busy"
               class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60 btn-3d cta-shadow border-2 border-gray-900 dark:border-gray-200"

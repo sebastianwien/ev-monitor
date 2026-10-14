@@ -83,16 +83,16 @@ describe('buildModelStory', () => {
 
     expect(s.facts.map(f => f.key)).toEqual(['range', 'consumption', 'charging', 'cost'])
     expect(s.facts.every(f => f.level === 'FULL')).toBe(true)
-    expect(fact(s, 'range')).toMatchObject({ value: '270', unit: 'km', note: 'Winter 230 km' })
+    expect(fact(s, 'range')).toMatchObject({ value: '270', unit: 'km', note: '230 km im Winter', noteFigure: { value: '230', unit: 'km' } })
     // 19.1 / 15.3 = +25 %
-    expect(fact(s, 'consumption')).toMatchObject({ value: '19.1', unit: 'kWh/100km', note: '25 % über Prospekt (15.3)' })
+    expect(fact(s, 'consumption')).toMatchObject({ value: '19.1', unit: 'kWh/100km', note: '25 % über Prospekt (15.3)', noteFigure: { value: '25', unit: '%' } })
     // 58 × 0.7 / 85 kW = 28.7 min → 30
-    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '10 auf 80 %, im Schnitt 85 kW' })
+    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '85 kW im Schnitt, 10 auf 80 %', noteFigure: { value: '85', unit: 'kW' } })
     // 0.372 × 19.1 = 7.11
     // a home charge 20 to 80 % at AC: 58 × 0.6 / 0.9 = 38.7 kWh × 0.35 = 13.53 → 14 €;
     // a fast charge 10 to 80 % at DC: 58 × 0.7 / 0.95 = 42.7 kWh × 0.427 = 18.25 → 18 €
     // both charges side by side as equals
-    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', unit: 'Heimladung', extra: { value: '18 €', unit: 'Schnellladung' }, note: '' })
+    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', unit: 'zu Hause', extra: { value: '18 €', unit: 'Schnelllader' }, note: '' })
   })
 
   it('evidence: range by season against the prospectus, bars from zero on one scale', () => {
@@ -160,12 +160,12 @@ describe('buildModelStory', () => {
   it('cost: the fast charge at the price without a subscription, when known', () => {
     // 58 × 0.7 / 0.95 = 42.7 kWh × 0.65 = 27.8 → 28 €
     const s = buildModelStory({ ...full, fastAdHocPricePerKwh: 0.65 }, fmt)
-    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', extra: { value: '28 €', unit: 'Schnellladung' }, note: '' })
+    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', extra: { value: '28 €', unit: 'Schnelllader' }, note: '' })
   })
 
   it('cost without an AC price: the fast charge is the figure', () => {
     const s = buildModelStory({ ...full, acPricePerKwh: null }, fmt)
-    expect(fact(s, 'cost')).toMatchObject({ value: '18 €', unit: 'Schnellladung', note: '' })
+    expect(fact(s, 'cost')).toMatchObject({ value: '18 €', unit: 'Schnelllader', note: '' })
     expect(fact(s, 'cost').extra).toBeUndefined()
   })
 

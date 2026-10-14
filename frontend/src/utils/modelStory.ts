@@ -71,6 +71,8 @@ export interface FactTile {
   level: StoryLevel
   /** a second figure of equal weight below the first: the fast charge next to the home charge */
   extra?: { value: string; unit: string }
+  /** the figure inside the note, set in large type a size below the main figure; text is how it reads in the note */
+  noteFigure?: { text: string; value: string; unit: string }
 }
 
 export interface EvidenceBar {
@@ -187,9 +189,12 @@ function rangeFact(d: StoryInput, f: StoryFormatters, real: number | null, winte
       ? { ...base, value: f.formatDistanceValue(d.wltpRangeKm), note: f.t('model.page.note_spec'), level: 'NONE' }
       : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE' }
   }
-  const note = winter != null ? f.t('model.page.note_winter', { winter: f.formatDistance(winter) })
-    : prospect ? f.t('model.page.note_wltp', { wltp: f.formatDistance(prospect) })
-    : ''
+  if (winter != null) {
+    const text = f.formatDistance(winter)
+    return { ...base, value: f.formatDistanceValue(real), note: f.t('model.page.note_winter', { winter: text }), level: 'FULL',
+      noteFigure: { text, value: f.formatDistanceValue(winter), unit: f.distanceUnit } }
+  }
+  const note = prospect ? f.t('model.page.note_wltp', { wltp: f.formatDistance(prospect) }) : ''
   return { ...base, value: f.formatDistanceValue(real), note, level: 'FULL' }
 }
 
@@ -200,17 +205,15 @@ function consumptionFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): F
       ? { ...base, value: f.formatConsumptionValue(d.wltpKwhPer100km), note: f.t('model.page.note_spec'), level: 'NONE' }
       : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE' }
   }
-  let note: string
-  if (d.wltpKwhPer100km) {
-    const pct = Math.round((d.avgKwhPer100km / d.wltpKwhPer100km - 1) * 100)
-    const wltp = f.formatConsumptionValue(d.wltpKwhPer100km)
-    note = pct > 0 ? f.t('model.page.note_more', { pct, wltp })
-      : pct < 0 ? f.t('model.page.note_less', { pct: -pct, wltp })
-      : f.t('model.page.note_same', { wltp })
-  } else {
-    note = f.t('model.page.note_logs', { logs: f.formatNumber(d.logCount) })
-  }
-  return { ...base, value: f.formatConsumptionValue(d.avgKwhPer100km), note, level: 'FULL' }
+  const value = f.formatConsumptionValue(d.avgKwhPer100km)
+  if (!d.wltpKwhPer100km) return { ...base, value, note: f.t('model.page.note_logs', { logs: f.formatNumber(d.logCount) }), level: 'FULL' }
+  const pct = Math.round((d.avgKwhPer100km / d.wltpKwhPer100km - 1) * 100)
+  const wltp = f.formatConsumptionValue(d.wltpKwhPer100km)
+  if (pct === 0) return { ...base, value, note: f.t('model.page.note_same', { wltp }), level: 'FULL' }
+  const abs = Math.abs(pct)
+  return { ...base, value, level: 'FULL',
+    note: f.t(pct > 0 ? 'model.page.note_more' : 'model.page.note_less', { pct: abs, wltp }),
+    noteFigure: { text: `${abs} %`, value: String(abs), unit: '%' } }
 }
 
 function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
@@ -219,9 +222,11 @@ function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): Fact
     return { ...base, value: null, note: f.t('model.page.note_charging_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
   }
   const minutes = Math.round(d.netBatteryKwh * STOP_SHARE / d.fastChargePowerKw * 60 / 5) * 5
+  const kw = f.formatNumber(Math.round(d.fastChargePowerKw))
   return {
     ...base, value: f.formatNumber(minutes), level: 'FULL',
-    note: f.t('model.page.note_charging', { kw: f.formatNumber(Math.round(d.fastChargePowerKw)) }),
+    note: f.t('model.page.note_charging', { kw }),
+    noteFigure: { text: `${kw} kW`, value: kw, unit: 'kW' },
   }
 }
 

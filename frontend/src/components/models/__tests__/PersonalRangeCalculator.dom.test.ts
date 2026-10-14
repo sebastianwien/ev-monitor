@@ -85,7 +85,7 @@ describe('PersonalRangeCalculator', () => {
     const { host, state } = mount(false, undefined, 2)
     await flush()
 
-    expect(host.querySelector('[data-testid="personal-range-open"]')!.textContent).toContain('Noch 2 Regler offen')
+    expect(host.querySelector('[data-testid="personal-range-open"]')!.textContent).toContain('Noch 2 Fragen offen')
     requestButton(host).click()
     await flush()
     expect(state.incomplete).toBe(1)

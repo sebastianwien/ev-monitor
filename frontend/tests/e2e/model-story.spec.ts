@@ -64,13 +64,13 @@ test.describe('Modellseite (390 px)', () => {
 
   test('ein Regler gilt erst bewegt als beantwortet, die Schloss-Box zählt mit', async ({ page }) => {
     await openStory(page);
-    await expect(page.getByTestId('personal-range-open')).toContainText('Noch 5 Regler offen');
+    await expect(page.getByTestId('personal-range-open')).toContainText('Noch 5 Fragen offen');
     await expect(page.getByTestId('slider-highwayShare-value')).toContainText('noch offen');
     await setSlider(page, 'highwayShare', 60);
     await expect(page.getByTestId('slider-highwayShare-value')).toContainText('60 %');
     // 60 % of the 15.000 km start value
     await expect(page.getByTestId('slider-highwayShare-detail')).toContainText('9.000 km');
-    await expect(page.getByTestId('personal-range-open')).toContainText('Noch 4 Regler offen');
+    await expect(page.getByTestId('personal-range-open')).toContainText('Noch 4 Fragen offen');
   });
 
   test('Freischalten mit offenen Reglern springt zum ersten offenen Regler statt zum Gate', async ({ page }) => {
