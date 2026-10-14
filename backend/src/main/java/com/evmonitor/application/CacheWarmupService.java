@@ -36,7 +36,10 @@ public class CacheWarmupService {
             publicModelService.getModelsWithWltpData(false);
             // Model ranking (/modelle) lists every model with data, also on the seed path:
             // a cold miss takes 7 to 9 s, which demo users would otherwise wait for.
-            publicModelService.getTopModels(false);
+            // The ranking for a profile on /modelle runs every listed model through its model stats:
+            // cold that took 13.6 s locally (61 models), warm 11 ms. So every listed model is warmed too.
+            publicModelService.getTopModels(false).forEach(m ->
+                    publicModelService.getModelStats(m.brandDisplayName(), m.modelUrlSlug(), false));
             publicModelService.getTopModels(true);
             publicModelService.getModelsWithoutData(false);
             publicModelService.getModelsWithoutData(true);
