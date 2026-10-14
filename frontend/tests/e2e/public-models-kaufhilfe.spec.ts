@@ -61,7 +61,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(first.getByTestId('consumption-bars')).toContainText(/Hersteller\s*\d+,\d.*Fahrer\s*\d+,\d\s*[+−]\d+ %/);
       if (viewport.width >= 1280) {
         // range cell: one-stop range from the community DC power, or the honest gap
-        await expect(first.getByTestId('range-cell')).toContainText(/\d+ km\s*1 Stopp (bis )?\d+\s*2 Stopps (bis )?\d+/);
+        await expect(first.getByTestId('range-cell')).toContainText(/\d+ km\s*Autobahn (bis )?\d+\s*1 Stopp (bis )?\d+\s*2 Stopps (bis )?\d+/);
       }
       if (viewport.width >= 1024) {
       }
@@ -83,7 +83,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('needs-change')).toHaveCount(0);
 
       if (viewport.width >= 1280) {
-        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/\d+ km\s*1 Stopp (bis )?\d+\s*2 Stopps (bis )?\d+/);
+        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/\d+ km\s*Autobahn (bis )?\d+\s*1 Stopp (bis )?\d+\s*2 Stopps (bis )?\d+/);
       }
     });
 
@@ -94,7 +94,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
       await setSlider(page, 'longTrip', 250);
       await expect(firstHint).toContainText(/Ladestopp|nicht bewertbar/);
-      await expect(firstHint).not.toContainText(/Tage|Wochen|Stopps/);
+      // no figure in the guest line: the stop count and time stand blurred as a fixed stand-in
+      await expect(firstHint).not.toContainText(/Tage|Wochen/);
       await expect(page.getByTestId('needs-trip-title')).toContainText('250 km');
       await expect(firstHint).toContainText('250 km');
       // the card names the three answers behind the unlock; the commute figure waits in each row too

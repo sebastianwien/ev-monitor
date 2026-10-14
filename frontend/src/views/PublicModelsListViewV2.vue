@@ -180,6 +180,7 @@
           @toggle="openKey = openKey === item.key ? null : item.key"
           @compare="toggleCompare(item.key)"
           @unlock="unlockFromRow"
+          @assumptions="openAssumptions"
         />
       </TransitionGroup>
       <p v-if="!loading && !loadError" class="px-4 py-2.5 text-[12.5px] text-gray-500 lg:px-5 dark:text-gray-400">{{ t('models_ranking.list_hint') }}</p>

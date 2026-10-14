@@ -47,12 +47,8 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
     test('zwei Modelle wählen und vergleichen', async ({ page }) => {
       await openRanking(page);
       for (const i of [0, 1]) {
-        if (viewport.width >= 1024) {
-          await rows(page).nth(i).getByRole('button', { name: /zum Vergleich hinzufügen/ }).click();
-        } else {
-          await rowToggle(page, i).click();
-          await rows(page).nth(i).getByRole('button', { name: 'Zum Vergleich' }).click();
-        }
+        // desktop: at the end of the verdict line; phone: on the photo. Both in the row, never in the open detail
+        await rows(page).nth(i).getByRole('button', { name: /zum Vergleich hinzufügen/ }).click();
       }
       await page.getByRole('button', { name: 'Vergleichen' }).click();
       await expect(page).toHaveURL(/\/modelle\/vergleich\?models=[^,]+,[^,]+/);

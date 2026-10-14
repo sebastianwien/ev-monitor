@@ -37,7 +37,7 @@ vi.mock('../../../api/personalRangeService', () => ({ personalRangeService: { ra
 function figures(m: TopModelPreview, over: Partial<PersonalRangeRankingEntry> = {}): PersonalRangeRankingEntry {
   return {
     brand: m.brand, model: m.model, summerRangeKm: 400, winterRangeKm: 300, longTripStops: 0, longTripTotalMinutes: 220,
-    chargesPerWeekSummer: 0.5, chargesPerWeekWinter: 0.67, monthlyCostEur: 25, monthlyKm: 460, oneStopReachKm: 610, twoStopsReachKm: 890, ...over,
+    chargesPerWeekSummer: 0.5, chargesPerWeekWinter: 0.67, monthlyCostEur: 25, monthlyKm: 460, zeroStopReachKm: 330, oneStopReachKm: 610, twoStopsReachKm: 890, ...over,
   }
 }
 
@@ -67,6 +67,8 @@ async function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: bo
     needsReady: needsReady.value, longestTripKm: answers.longestTripKm, maxStops: 0, fuel: 'petrol',
     locked: opts.locked ?? false,
     onUnlock: () => events.push('unlock'),
+    onCompare: () => events.push('compare'),
+    onAssumptions: () => events.push('assumptions'),
   })
   app.use(i18n)
   app.mount(host)
@@ -77,6 +79,8 @@ async function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: bo
 const hint = (host: HTMLElement) => host.querySelector('[data-testid="needs-hint"]')!.textContent ?? ''
 const CAR = model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', typicalRangeMinKm: 400, typicalRangeMaxKm: 400 })
 const detail = (host: HTMLElement) => host.querySelector('[id^="mr-detail-"]')!.textContent ?? ''
+const forYou = (host: HTMLElement) => host.querySelector('[data-testid="for-you"]')
+const text = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ')
 
 describe('ModelRankingRow', () => {
   it('signed in: the hint carries the server figures', async () => {
@@ -122,10 +126,69 @@ describe('ModelRankingRow', () => {
     expect(hint(host)).not.toContain('nötig laden')
   })
 
-  it('the month\'s cost and its distance come from the server', async () => {
-    const { host } = await mount(CAR, { expanded: true })
-    expect(detail(host)).toContain('bei 460 km im Monat')
-    expect(detail(host)).toContain('Kosten im Monat25€')
+  describe('open row', () => {
+    it('answers the reader first: charging, the longest trip and the month\'s cost, as on the model page', async () => {
+      const { host } = await mount(CAR, { expanded: true })
+      const box = text(forYou(host))
+      expect(box).toContain('Alle 14 Tage')
+      expect(box).toContain('im Winter alle 10 Tage')
+      expect(box).toContain('Urlaubsfahrt 400 km')
+      expect(box).toContain('Ohne Stopp')
+      expect(box).toContain('3 h 40 min unterwegs')
+      expect(box).toMatch(/25\s€/)
+      expect(box).toContain('bei 460 km im Monat')
+    })
+
+    it('without answers there is nothing personal to show', async () => {
+      const { host } = await mount(CAR, { expanded: true, answers: { dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null } })
+      expect(forYou(host)).toBeNull()
+    })
+
+    it('the range is the figure of the column, the variant\'s own range only as an addition', async () => {
+      const { host } = await mount(CAR, { expanded: true })
+      const range = text(host.querySelector('[data-testid="detail-range"]'))
+      expect(range).toContain('400 km')
+      expect(range).toContain('350 km')
+      expect(range).not.toContain('noch zu wenige Fahrten')
+    })
+
+    it('the stop ladder names its start: the motorway without a stop, then one and two stops', async () => {
+      const { host } = await mount(CAR, { expanded: true })
+      const ladder = text(host.querySelector('[data-testid="detail-ladder"]'))
+      expect(ladder).toContain('Autobahn')
+      expect(ladder).toMatch(/ohne Stopp\s*330 km.*1 Stopp\s*610 km.*2 Stopps\s*890 km/)
+    })
+
+    it('both prices say what they are, the mixed price links to the assumptions', async () => {
+      const { host, events } = await mount(CAR, { expanded: true })
+      expect(detail(host)).toContain('dein Mischpreis')
+      expect(detail(host)).toContain('was Fahrer dieses Modells im Schnitt zahlen')
+      ;(host.querySelector('[data-testid="detail-assumptions"]') as HTMLButtonElement).click()
+      expect(events).toEqual(['assumptions'])
+    })
+
+    it('a single driver\'s values are flagged above the data sheet', async () => {
+      const { host } = await mount(model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', contributorCount: 1 }), { expanded: true })
+      expect(host.querySelector('[data-testid="single-driver-note"]')).not.toBeNull()
+    })
+
+    it('ends with one way on: the model page and what only it has; no photo, no compare button', async () => {
+      const { host } = await mount(CAR, { expanded: true })
+      const open = host.querySelector('[id^="mr-detail-"]')!
+      const link = open.querySelector('a[href="/modelle/x/y"]')!
+      expect(link.textContent).toContain('Modellseite VW ID.3')
+      expect(open.textContent).toContain('Bewertungen')
+      expect(open.querySelector('[data-testid="detail-photo"]')).toBeNull()
+      expect(open.querySelector('[aria-pressed]')).toBeNull()
+    })
+  })
+
+  it('the phone has the compare toggle in the row itself', async () => {
+    const { host, events } = await mount(CAR)
+    const toggle = host.querySelector('[data-testid="compare-phone"]') as HTMLButtonElement
+    expect(toggle.getAttribute('aria-pressed')).toBe('false')
+    toggle.click()
+    expect(events).toEqual(['compare'])
   })
 
   it('the month\'s cost is the third line under the name: the figure signed in, a lock for guests', async () => {
@@ -137,23 +200,20 @@ describe('ModelRankingRow', () => {
     expect(hint(host)).not.toMatch(/\d+\s€ im Monat/)
   })
 
-  it('the open row shows the reach with one and two stops from the server', async () => {
-    const { host } = await mount(CAR, { expanded: true })
-    expect(detail(host)).toContain('Mit 1 Stopp / 2 Stopps610 / 890km')
-  })
-
   it('yearly savings count the commute', async () => {
     const { host } = await mount(CAR, { expanded: true, fuelPrice: 1.8 })
-    expect(detail(host)).toMatch(/pro Jahr fürs Pendeln/)
+    expect(text(forYou(host))).toMatch(/pro Jahr günstiger als Benziner, fürs Pendeln/)
   })
 
   describe('locked (guest)', () => {
-    it('the month\'s cost and the yearly savings are personal: a guest sees the lock, never the figure', async () => {
+    it('the three answers are personal: a guest sees each behind a lock, never the figure', async () => {
       const { host } = await mount(CAR, { expanded: true, locked: true, fuelPrice: 1.8 })
-      const open = host.querySelector('[id^="mr-detail-"]')!
-      expect(open.querySelector('[data-testid="fact-locked"]')).not.toBeNull()
-      expect(open.textContent).not.toContain('25€')
-      expect(open.textContent).not.toMatch(/pro Jahr fürs Pendeln/)
+      const box = forYou(host)!
+      expect(box.querySelectorAll('[data-testid="for-you-locked"]')).toHaveLength(3)
+      expect(text(box)).not.toMatch(/25\s€/)
+      expect(text(box)).not.toContain('alle 14 Tage')
+      expect(text(box)).not.toContain('3 h 40 min')
+      expect(text(box)).not.toMatch(/pro Jahr/)
     })
 
     it('keeps the verdict but no figure: the trip is possible without a stop', async () => {
@@ -161,8 +221,9 @@ describe('ModelRankingRow', () => {
       expect(hint(host)).toContain('400 km ohne Ladestopp')
       // the dot judges the trip: the commute line above keeps only its invisible gutter
       expect(host.querySelector('[data-testid="needs-locked-commute"] i')!.className).toContain('invisible')
-      expect(hint(host)).not.toMatch(/Stopps/)
+      expect(hint(host)).not.toContain('3 h 40 min')
       expect(host.querySelector('[data-testid="needs-hint-trip"] i')!.className).toContain('bg-green-600')
+      expect(host.querySelector('[data-testid="needs-hint-trip"] svg')).not.toBeNull()
     })
 
     it('shows where the commute figure stands, with a stand-in that is never the real value', async () => {
@@ -171,18 +232,28 @@ describe('ModelRankingRow', () => {
       expect(host.textContent).not.toContain('alle 14 Tage')
     })
 
-    it('names a needed stop without counting it', async () => {
+    it('names a needed stop positively, without counting it', async () => {
       const { host } = await mount(CAR, { locked: true, figures: { longTripStops: 2 } })
-      expect(hint(host)).toContain('400 km nicht ohne Ladestopp')
+      expect(hint(host)).toContain('400 km mit Ladestopp')
+      expect(hint(host)).not.toContain('nicht ohne')
+      expect(hint(host)).not.toContain('2 Stopps')
       expect(host.querySelector('[data-testid="needs-hint-trip"] i')!.className).toContain('bg-orange-500')
     })
 
-    it('the open row explains the gate and its button asks the page to unlock', async () => {
+    it('all three lines under the name follow one pattern: label, stand-in, lock', async () => {
+      const { host } = await mount(CAR, { locked: true })
+      for (const id of ['needs-locked-commute', 'needs-hint-trip', 'needs-locked-cost']) {
+        expect(host.querySelector(`[data-testid="${id}"] svg`), id).not.toBeNull()
+      }
+    })
+
+    it('the open row has one gate: what the answers are, one button, what happens with the mail', async () => {
       const { host, events } = await mount(CAR, { locked: true, expanded: true })
-      const open = host.querySelector('[id^="mr-detail-"]')!
-      expect(open.textContent).toContain('400 km?')
-      expect(open.textContent).not.toMatch(/Tage laden/)
-      ;(open.querySelector('[data-testid="row-unlock"]') as HTMLButtonElement).click()
+      const box = text(forYou(host))
+      expect(box).toContain('Deine Antworten für den VW ID.3: wie oft du laden musst, wie viele Stopps auf 400 km und was es im Monat kostet.')
+      expect(box).toContain('Kein Passwort')
+      expect(host.querySelectorAll('[data-testid="row-unlock"]')).toHaveLength(1)
+      ;(host.querySelector('[data-testid="row-unlock"]') as HTMLButtonElement).click()
       await nextTick()
       expect(events).toEqual(['unlock'])
     })
