@@ -57,7 +57,7 @@ class PublicModelServiceRangeRankingIntegrationTest extends AbstractIntegrationT
 
     @Test
     void shouldIncludeModelWithEnoughTripsAndComputeRange() {
-        // XPENG_G9 @ 90.0 kWh, 15.0 kWh/100km, 102 logs → 101 trips → range ~600 km
+        // XPENG_G9 @ 90.0 kWh, 15.0 kWh/100km, 102 logs → 101 trips → range 90 × 0.9 × 100 / 15 = 540 km (100 → 10 %)
         saveWltpSpec(CarBrand.CarModel.XPENG_G9, new BigDecimal("90.0"), new BigDecimal("15.0"));
         Car car = createCarWithBattery(CarBrand.CarModel.XPENG_G9, new BigDecimal("90.0"));
         saveLogsForCar(car.getId(), 102, new BigDecimal("15.0"));
@@ -68,7 +68,7 @@ class PublicModelServiceRangeRankingIntegrationTest extends AbstractIntegrationT
 
         assertNotNull(g9, "XPENG_G9 with 101 trips should appear in the range ranking");
         assertNotNull(g9.realRangeKm(), "realRangeKm must be populated");
-        assertTrue(g9.realRangeKm().signum() > 0, "realRangeKm must be positive");
+        assertEquals(0, new BigDecimal("540").compareTo(g9.realRangeKm()), "range = 90 % of net capacity");
     }
 
     @Test

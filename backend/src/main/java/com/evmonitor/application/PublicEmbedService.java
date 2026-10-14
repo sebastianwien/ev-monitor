@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.range.RangeWindow;
 import com.evmonitor.application.charging.FastChargeStop;
 import com.evmonitor.domain.CarBrand;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,8 +20,8 @@ import java.util.Objects;
 @Service
 public class PublicEmbedService {
 
-    /** Usable share of the net battery for range figures (90 → 0 %), same as the model page. */
-    private static final BigDecimal USABLE_SHARE = new BigDecimal("0.9");
+    /** Usable share of the net battery for range figures, same as the model page. */
+    private static final BigDecimal USABLE_SHARE = RangeWindow.SHARE;
     /** Same threshold as the seasonal card on the model page. */
     private static final int MIN_LOGS_PER_SEASON = 10;
     /** A model counts for the "up to x % above WLTP" claim from this many logs, like the ranking's variant gate. */

@@ -3,6 +3,7 @@ package com.evmonitor.application.personalrange;
 import com.evmonitor.application.charging.FastChargePower;
 import com.evmonitor.application.charging.FastChargeStop;
 import com.evmonitor.application.charging.LongTripPlan;
+import com.evmonitor.application.range.RangeWindow;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -31,8 +32,8 @@ final class PersonalRangeCalculator {
      * ID.4 +9 %, Ioniq 5 -3 %).
      */
     static final BigDecimal HIGHWAY_RATIO_FALLBACK = new BigDecimal("1.03");
-    /** Same as the model page: range = 90 % of the net battery. */
-    private static final BigDecimal RANGE_SHARE = new BigDecimal("0.9");
+    /** Same as the model page and the model list: range = 100 to 10 % of the net battery. */
+    private static final BigDecimal RANGE_SHARE = RangeWindow.SHARE;
     /** Charging away from home without a home charger: a fast-charging stop's share. */
     private static final BigDecimal STOP_SHARE = FastChargeStop.SHARE;
     /** Home charging from 20 to 80 %. */

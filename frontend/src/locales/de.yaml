@@ -493,7 +493,7 @@ models_ranking:
     cost: "Kosten pro 100 {unit}"
     cost_hint: "bei {price}"
     range: "Reichweite real"
-    range_hint: "beste Akku-Variante"
+    range_hint: "beste Akku-Variante, 100% → 10%"
     range_missing: "noch zu wenige Fahrten"
     charge_price: "Ø Ladepreis der Fahrer"
     charge_price_hint: "über alle Ladevorgänge"

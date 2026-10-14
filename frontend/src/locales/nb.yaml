@@ -453,7 +453,7 @@ models_ranking:
     cost: "Kostnad per 100 {unit}"
     cost_hint: "ved {price}"
     range: "Reell rekkevidde"
-    range_hint: "beste batterivariant"
+    range_hint: "beste batterivariant, 100 % → 10 %"
     range_missing: "for få turer ennå"
     charge_price: "Ø ladepris hos sjåførene"
     charge_price_hint: "over alle ladinger"

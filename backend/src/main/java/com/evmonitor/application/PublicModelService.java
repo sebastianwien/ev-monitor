@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.application.charging.FastChargePowerTable;
+import com.evmonitor.application.range.RangeWindow;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
@@ -495,7 +496,7 @@ public class PublicModelService {
                                 BigDecimal cons = r.value().setScale(1, RoundingMode.HALF_UP);
                                 BigDecimal netCap = entry.getKey();
                                 BigDecimal rangeKm = cons.signum() > 0
-                                        ? netCap.multiply(BigDecimal.valueOf(100)).divide(cons, 0, RoundingMode.HALF_UP)
+                                        ? BigDecimal.valueOf(rangeKm(netCap, cons))
                                         : null;
                                 return new VariantPoint(cons, rangeKm);
                             })
@@ -645,10 +646,13 @@ public class PublicModelService {
                 r.typedMeanKwhPer100km());
     }
 
-    /** Range in km from a net capacity and a consumption in kWh/100 km; null if either is missing. */
+    /**
+     * Range in km from a net capacity and a consumption in kWh/100 km, on the range window (100 to 10 %)
+     * like the model page; null if either is missing.
+     */
     private static Integer rangeKm(BigDecimal netCapacityKwh, BigDecimal consumptionKwhPer100km) {
         if (netCapacityKwh == null || consumptionKwhPer100km == null || consumptionKwhPer100km.signum() <= 0) return null;
-        return netCapacityKwh.multiply(BigDecimal.valueOf(100))
+        return netCapacityKwh.multiply(RangeWindow.SHARE).multiply(BigDecimal.valueOf(100))
                 .divide(consumptionKwhPer100km, 0, RoundingMode.HALF_UP).intValue();
     }
 
@@ -675,7 +679,7 @@ public class PublicModelService {
 
     /**
      * Returns the top N models sorted by longest real range (km), descending.
-     * Real range = best per-variant (net capacity / real consumption × 100); only
+     * Real range = best per-variant (net capacity × range window / real consumption × 100); only
      * variants with >= 100 trips contribute, so noisy low-data models are excluded.
      */
     @Cacheable("longestRangeModels")

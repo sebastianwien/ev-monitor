@@ -227,13 +227,13 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         assertEquals(0, new BigDecimal("60.0").compareTo(megane.maxNetCapacityKwh()));
     }
 
-    // --- Range span for the needs check (Kaufhilfe Phase B): net capacity × 100 / consumption ---
+    // --- Range span for the needs check (Kaufhilfe Phase B): 90 % of net capacity × 100 / consumption (100 → 10 %) ---
 
     @Test
     void getTopModels_derivesTypicalAndWinterRangeFromSmallestAndLargestBattery() {
         // G80_ELECTRIFIED, net 60.0 and 75.0: 10 summer trips at 15.0 and 10 winter trips at 20.0
-        // → overall Ø 17.5, winter 20.0. Typical: 60 × 100 / 17.5 = 343, 75 × 100 / 17.5 = 429.
-        // Winter: 60 × 100 / 20 = 300, 75 × 100 / 20 = 375.
+        // → overall Ø 17.5, winter 20.0. Typical: 60 × 0.9 × 100 / 17.5 = 309, 75 × 0.9 × 100 / 17.5 = 386.
+        // Winter: 60 × 0.9 × 100 / 20 = 270, 75 × 0.9 × 100 / 20 = 338.
         saveWltpSpecWithNet(CarBrand.CarModel.G80_ELECTRIFIED, new BigDecimal("65.0"), new BigDecimal("60.0"), new BigDecimal("19.0"));
         saveWltpSpecWithNet(CarBrand.CarModel.G80_ELECTRIFIED, new BigDecimal("80.0"), new BigDecimal("75.0"), new BigDecimal("19.5"));
         Car car = createCarWithBattery(CarBrand.CarModel.G80_ELECTRIFIED, new BigDecimal("65.0"));
@@ -244,15 +244,15 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
 
         assertNotNull(g80, "G80_ELECTRIFIED should appear in top models");
         assertEquals(new BigDecimal("17.5"), g80.avgConsumptionKwhPer100km());
-        assertEquals(343, g80.typicalRangeMinKm());
-        assertEquals(429, g80.typicalRangeMaxKm());
-        assertEquals(300, g80.winterRangeMinKm());
-        assertEquals(375, g80.winterRangeMaxKm());
+        assertEquals(309, g80.typicalRangeMinKm());
+        assertEquals(386, g80.typicalRangeMaxKm());
+        assertEquals(270, g80.winterRangeMinKm());
+        assertEquals(338, g80.winterRangeMaxKm());
     }
 
     @Test
     void getTopModels_singleVariantWithoutWinterLogs_returnsEqualTypicalRangeAndNullWinterRange() {
-        // E_TRON_GT: one spec (net 84.0), logs outside the seasons → typical 84 × 100 / 20 = 420, no winter
+        // E_TRON_GT: one spec (net 84.0), logs outside the seasons → typical 84 × 0.9 × 100 / 20 = 378, no winter
         saveWltpSpecWithNet(CarBrand.CarModel.E_TRON_GT, new BigDecimal("93.4"), new BigDecimal("84.0"), new BigDecimal("20.5"));
         Car car = createCarWithBattery(CarBrand.CarModel.E_TRON_GT, new BigDecimal("93.4"));
         saveLogsForCarFrom(car.getId(), 50000, 6, new BigDecimal("20.0"), LocalDateTime.of(2025, 10, 1, 12, 0));
@@ -260,8 +260,8 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         TopModelResponse etron = findModel(publicModelService.getTopModels(false), "E_TRON_GT");
 
         assertNotNull(etron, "E_TRON_GT should appear in top models");
-        assertEquals(420, etron.typicalRangeMinKm());
-        assertEquals(420, etron.typicalRangeMaxKm());
+        assertEquals(378, etron.typicalRangeMinKm());
+        assertEquals(378, etron.typicalRangeMaxKm());
         assertNull(etron.winterRangeMinKm(), "no winter trips → winter range must be null");
         assertNull(etron.winterRangeMaxKm(), "no winter trips → winter range must be null");
     }

@@ -453,7 +453,7 @@ models_ranking:
     cost: "Kostnad per 100 {unit}"
     cost_hint: "vid {price}"
     range: "Verklig räckvidd"
-    range_hint: "bästa batterivariant"
+    range_hint: "bästa batterivariant, 100 % → 10 %"
     range_missing: "för få resor än"
     charge_price: "Ø laddpris hos förarna"
     charge_price_hint: "över alla laddningar"

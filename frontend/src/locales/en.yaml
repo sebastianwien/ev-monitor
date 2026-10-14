@@ -490,7 +490,7 @@ models_ranking:
     cost: "Cost per 100 {unit}"
     cost_hint: "at {price}"
     range: "Real range"
-    range_hint: "best battery variant"
+    range_hint: "best battery variant, 100% → 10%"
     range_missing: "not enough trips yet"
     charge_price: "Ø charging price of drivers"
     charge_price_hint: "across all sessions"
