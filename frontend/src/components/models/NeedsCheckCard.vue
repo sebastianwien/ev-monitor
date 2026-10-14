@@ -7,11 +7,19 @@
 
     <p v-if="summary.total === 0" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.summary_empty') }}</p>
 
-    <div class="grid items-end gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-x-5">
+    <!-- Phone: answers already given fold the sliders into one line, "Ändern" opens them again -->
+    <p v-if="collapsed" class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[15px] leading-snug text-gray-900 md:hidden dark:text-gray-100" data-testid="needs-summary-line">
+      <span class="font-semibold">{{ summaryLine }}</span>
+      <button type="button" class="min-h-9 font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="needs-expand" @click="collapsed = false">{{ t('models_ranking.needs.basis_change') }}</button>
+    </p>
+    <div class="grid items-end gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-x-5" :class="collapsed ? 'max-md:hidden' : ''">
       <ProfileSlider v-for="q in sliders" :key="q.key" :id="`${idBase}-${q.key}`" :test-key="`needs-${q.key}`" :label="q.label"
                      :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail" compact
                      @commit="v => answer(q.key, v)" />
     </div>
+    <button v-if="!collapsed && anyAnswer" type="button" class="-mt-2 inline-flex min-h-9 items-center gap-1 justify-self-start text-[14px] font-semibold text-green-700 md:hidden dark:text-green-400" data-testid="needs-collapse" @click="collapsed = true">
+      <ChevronUpIcon class="h-4 w-4" aria-hidden="true" />{{ t('models_ranking.needs.collapse') }}
+    </button>
 
     <div class="grid gap-3 border-t border-gray-200 pt-3.5 text-[14px] leading-snug dark:border-gray-800" aria-live="polite">
       <p v-if="!hasTrip && !hasCommute" class="text-gray-600 dark:text-gray-400" data-testid="needs-prompt">{{ t('models_ranking.needs.slider_prompt') }}</p>
@@ -84,9 +92,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId } from 'vue'
+import { computed, nextTick, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { LockClosedIcon, LockOpenIcon } from '@heroicons/vue/24/outline'
+import { ChevronUpIcon, LockClosedIcon, LockOpenIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
 import ProfileSlider from './ProfileSlider.vue'
 import { analytics } from '../../services/analytics'
@@ -137,8 +145,27 @@ function answer(key: ProfileKey, value: number) {
   emit('update:modelValue', { ...props.modelValue, [NEEDS_FIELD[key]]: value })
 }
 
+/** Any slider answered, here or on the model page */
+const anyAnswer = computed(() => PROFILE_KEYS.some(k => props.modelValue[NEEDS_FIELD[k]] != null))
+/** Phone only (md:hidden / max-md:hidden): a reader who arrives with answers sees them as one line */
+const collapsed = ref(anyAnswer.value)
+const summaryLine = computed(() => {
+  const v = props.modelValue
+  const km = (x: number) => formatDistance(x)
+  const parts: string[] = []
+  if (v.annualKm != null) parts.push(t('models_ranking.needs.sum_annual', { km: km(v.annualKm) }))
+  if (v.highwayKm != null) parts.push(t('models_ranking.needs.sum_highway', { km: km(v.highwayKm) }))
+  if (v.dailyKm != null) parts.push(v.commuteDays != null
+    ? t('models_ranking.needs.sum_commute', { km: km(v.dailyKm), days: t('model.page.days_value', { n: v.commuteDays }, v.commuteDays) })
+    : t('models_ranking.needs.sum_commute_km', { km: km(v.dailyKm) }))
+  if (v.longestTripKm != null) parts.push(t('models_ranking.needs.sum_trip', { km: km(v.longestTripKm) }))
+  return parts.join(' · ')
+})
+
 /** "Ändern" in the sticky list header brings the reader back here: the first open slider, else the first */
-function focusFirst() {
+async function focusFirst() {
+  collapsed.value = false
+  await nextTick()
   const key = PROFILE_KEYS.find(k => props.modelValue[NEEDS_FIELD[k]] == null) ?? PROFILE_KEYS[0]
   document.getElementById(`${idBase}-${key}-input`)?.focus()
 }

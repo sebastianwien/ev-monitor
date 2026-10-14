@@ -56,6 +56,16 @@ describe('NeedsCheckCard answers', () => {
     expect(host.querySelector('[data-testid="needs-unlock"]')).toBeNull()
   })
 
+  it('phone: answers already given fold the sliders into one line, "Ändern" opens them', async () => {
+    const { host } = mount(false, { ...EMPTY, annualKm: 17_000, dailyKm: 20, commuteDays: 2, longestTripKm: 700 })
+    expect(host.querySelector('[data-testid="needs-summary-line"]')!.textContent).toContain('17.000 km im Jahr · 20 km Arbeitsweg, 2 Tage · 700 km Urlaubsfahrt')
+    expect(host.querySelector('[data-testid="slider-needs-commute"]')!.closest('.max-md\\:hidden')).not.toBeNull()
+    ;(host.querySelector('[data-testid="needs-expand"]') as HTMLButtonElement).click()
+    await nextTick()
+    expect(host.querySelector('[data-testid="needs-summary-line"]')).toBeNull()
+    expect(host.querySelector('[data-testid="slider-needs-commute"]')!.closest('.max-md\\:hidden')).toBeNull()
+  })
+
   it('a slider answer lands in the field the model page shares', () => {
     const { host, updates } = mount(false, EMPTY)
     const slider = host.querySelector('[data-testid="slider-needs-commute"]') as HTMLInputElement
