@@ -82,7 +82,7 @@ import InlineGate from '../auth/InlineGate.vue'
 import ProfileSlider from './ProfileSlider.vue'
 import { analytics } from '../../services/analytics'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { NEEDS_FIELD, PROFILE_KEYS, PROFILE_SLIDERS, type ProfileKey } from '../../composables/useDrivingProfile'
+import { NEEDS_FIELD, PROFILE_KEYS, PROFILE_SLIDERS, highwayPercent, type ProfileKey } from '../../composables/useDrivingProfile'
 import { MAX_STOPS, type NeedsInput, type NeedsSummary } from '../../utils/needsCheck'
 
 const props = defineProps<{
@@ -107,24 +107,27 @@ const homeId = useId()
 /** The model page's sliders: same keys, steps, labels and formats; an unanswered one reads "noch offen" */
 const FORMAT: Record<ProfileKey, (v: number) => string> = {
   annualKm: km => formatDistance(km),
-  highwayShare: share => `${formatNumber(share)} %`,
+  highwayKm: km => formatDistance(km),
   commute: km => formatDistance(km),
   commuteDays: n => t('model.page.days_value', { n }, n),
   longTrip: km => formatDistance(km),
 }
-const highwayKm = (share: number) => formatDistance(Math.round((props.modelValue.annualKm ?? PROFILE_SLIDERS.annualKm.start) * share / 100 / 100) * 100)
 const sliders = computed(() => PROFILE_KEYS.map(key => ({
   key,
   ...PROFILE_SLIDERS[key],
   label: t(`model.page.q_${key}`),
   value: props.modelValue[NEEDS_FIELD[key]],
   format: FORMAT[key],
-  detail: key === 'highwayShare' ? (share: number) => t('model.story.slider_highway_km', { km: highwayKm(share) }) : undefined,
+  detail: key === 'highwayKm' && props.modelValue.annualKm != null
+    ? (km: number) => t('model.story.slider_highway_pct', { pct: formatNumber(highwayPercent(km, props.modelValue.annualKm!)) })
+    : undefined,
 })))
 function answer(key: ProfileKey, value: number) {
   emit('update:modelValue', { ...props.modelValue, [NEEDS_FIELD[key]]: value })
 }
 
+  // motorway km cannot exceed the yearly mileage once that is answered
+  ...(key === 'highwayKm' && props.modelValue.annualKm != null ? { max: props.modelValue.annualKm } : {}),
 /** "Ändern" in the sticky list header brings the reader back here: the first open slider, else the first */
 function focusFirst() {
   const key = PROFILE_KEYS.find(k => props.modelValue[NEEDS_FIELD[k]] == null) ?? PROFILE_KEYS[0]
@@ -169,11 +172,13 @@ const longestShown = computed(() => props.modelValue.longestTripKm == null ? '' 
 const hasTrip = computed(() => props.modelValue.longestTripKm != null)
 const hasCommute = computed(() => props.modelValue.dailyKm != null && props.modelValue.commuteDays != null)
 
-/** One chip per stop count, up to the first that every model reaches: more stops add nothing */
+/** At most five chips: from one before the first count above zero (the "none yet" context) up to the
+    first that every model reaches, more stops add nothing */
+const MAX_CHIPS = 5
 const stopTiles = computed(() => {
   const tiles: { stops: number; count: number; active: boolean }[] = []
-  for (let stops = 0; stops <= MAX_STOPS; stops++) {
-    const count = props.summary.tripOkWithin[stops] ?? 0
+  for (let stops = Math.max(0, first - 1); stops <= MAX_STOPS && tiles.length < MAX_CHIPS; stops++) {
+    const count = within(stops)
     tiles.push({ stops, count, active: props.tripOnly && props.modelValue.maxStops === stops })
     if (count >= props.summary.total) break
   }
@@ -189,3 +194,6 @@ const homeOptions = computed(() => [
   { value: false, label: t('personal_range.wallbox_no') },
 ])
 </script>
+  const within = (stops: number) => props.summary.tripOkWithin[stops] ?? 0
+  let first = 0
+  while (first < MAX_STOPS && within(first) === 0) first++

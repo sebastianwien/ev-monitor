@@ -15,9 +15,9 @@
 
 /** Every answer starts empty: an unanswered question is not rated, never filled with a default. */
 export interface NeedsInput {
-  /** km a year and the motorway share in percent: asked on both pages, used by the model page */
+  /** km a year and the motorway km of it: asked on both pages, used by the model page */
   annualKm: number | null
-  highwayShare: number | null
+  highwayKm: number | null
   dailyKm: number | null
   /** commute days a week, MIN_COMMUTE_DAYS to MAX_COMMUTE_DAYS */
   commuteDays: number | null
@@ -30,10 +30,11 @@ export interface NeedsInput {
 /** Every stop on the road is counted as this long */
 export const ONE_STOP_MINUTES = 20
 export const MIN_STOPS = 0
-export const MAX_STOPS = 4
-export const MIN_COMMUTE_DAYS = 1
-export const MAX_COMMUTE_DAYS = 5
-export const NEEDS_EMPTY: NeedsInput = { annualKm: null, highwayShare: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
+/** Upper bound of the stop chips; a 2.000 km trip with a small battery needs this many */
+export const MAX_STOPS = 10
+export const MIN_COMMUTE_DAYS = 0
+export const MAX_COMMUTE_DAYS = 6
+export const NEEDS_EMPTY: NeedsInput = { annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
 export const USABLE_BATTERY_SHARE = 0.8
 export const FAST_CHARGE_SHARE = 0.7
 export const HOME_CHARGE_SHARE = 0.6

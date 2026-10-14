@@ -43,7 +43,7 @@ function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: boolean;
   const models = ref([m])
   const { ranked, needs, cost } = useModelRanking(models)
   const answers = opts.answers ?? ANNA
-  needs.value = { annualKm: null, highwayShare: null, ...answers, maxStops: 0 }
+  needs.value = { annualKm: null, highwayKm: null, ...answers, maxStops: 0 }
   if (opts.fuelPrice) cost.value = { ...cost.value, fuelPricePerLiter: opts.fuelPrice }
   const events: string[] = []
   const host = document.createElement('div')

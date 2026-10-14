@@ -607,7 +607,7 @@ model:
     profile_title: "Sag uns, wie du fährst."
     profile_sub: "Dann sagen wir dir, wie weit du im Winter kommst, wie oft du laden musst und was dich der {model} im Monat kostet."
     q_annualKm: "Kilometer pro Jahr"
-    q_highwayShare: "Davon Autobahn"
+    q_highwayKm: "Davon Autobahn"
     q_commute: "Arbeitsweg pro Tag, hin und zurück"
     q_commuteDays: "Pendeltage pro Woche"
     q_longTrip: "Längste Urlaubsfahrt"
@@ -623,7 +623,7 @@ model:
     variants_trips: "{n} Fahrten"
   story:
     slider_open: "Schieben zum Antworten"
-    slider_highway_km: "{km} im Jahr"
+    slider_highway_pct: "{pct} % deiner Fahrleistung"
     hero_full: "Der Prospekt sagt {wltp}. {drivers} Fahrer sagen {real}."
     hero_full_no_wltp: "{drivers} Fahrer sagen {real}."
     hero_thin: "Der Prospekt sagt {wltp}. Bisher messen {drivers} Fahrer {real}."

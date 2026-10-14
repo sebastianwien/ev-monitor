@@ -102,10 +102,9 @@ function parseNeeds(v: unknown): NeedsInput | null {
   const o = v as Record<string, unknown>
   const km = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= NEEDS_KM_MAX ? x : null
   const days = (x: unknown) => Number.isInteger(x) && (x as number) >= MIN_COMMUTE_DAYS && (x as number) <= MAX_COMMUTE_DAYS ? x as number : null
-  const share = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 100 ? x : null
   return {
     annualKm: typeof o.annualKm === 'number' && Number.isFinite(o.annualKm) && o.annualKm > 0 && o.annualKm <= NEEDS_ANNUAL_KM_MAX ? o.annualKm : null,
-    highwayShare: share(o.highwayShare),
+    highwayKm: typeof o.highwayKm === 'number' && Number.isFinite(o.highwayKm) && o.highwayKm >= 0 && o.highwayKm <= NEEDS_ANNUAL_KM_MAX ? o.highwayKm : null,
     dailyKm: km(o.dailyKm),
     commuteDays: days(o.commuteDays),
     longestTripKm: km(o.longestTripKm),

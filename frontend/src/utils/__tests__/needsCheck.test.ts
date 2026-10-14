@@ -9,11 +9,11 @@ const ranges = (over: Partial<RangeFields>): RangeFields => ({
   typicalRangeMinKm: null, typicalRangeMaxKm: null, winterRangeMinKm: null, winterRangeMaxKm: null, ...over,
 })
 /** Anna: 40 km on 3 days, charging at home, 400 km longest trip */
-const ANNA: NeedsInput = { annualKm: null, highwayShare: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0 }
+const ANNA: NeedsInput = { annualKm: null, highwayKm: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0 }
 
 describe('needsCheck', () => {
   it('starts empty: no answer is a default', () => {
-    expect(NEEDS_EMPTY).toEqual({ annualKm: null, highwayShare: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
+    expect(NEEDS_EMPTY).toEqual({ annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
     expect(USABLE_BATTERY_SHARE).toBe(0.8)
     expect(FAST_CHARGE_SHARE).toBe(0.7)
     expect(HOME_CHARGE_SHARE).toBe(0.6)

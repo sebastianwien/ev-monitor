@@ -316,7 +316,7 @@ import ProfileSlider from '../components/models/ProfileSlider.vue'
 import { buildModelStory, fastChargePrice, fastStop, keepUnits, prospectKm, rangeKm, type StoryInput } from '../utils/modelStory'
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
-import { useDrivingProfile, PROFILE_KEYS, PROFILE_SLIDERS, type ProfileKey } from '../composables/useDrivingProfile'
+import { useDrivingProfile, highwayPercent, PROFILE_KEYS, PROFILE_SLIDERS, type ProfileKey } from '../composables/useDrivingProfile'
 import RegionChip from '../components/shared/RegionChip.vue'
 import ModelRatingsBlock from '../components/rating/ModelRatingsBlock.vue'
 import { ratingService, type PublicModelRatings } from '../api/ratingService'
@@ -556,7 +556,7 @@ const { answers, answered, openQuestions, valueOf, answer: answerProfile, answer
 const storyInputs = computed((): PersonalRangeInputs => ({
   commuteKmPerDay: answers.commuteKmPerDay,
   commuteDaysPerWeek: answers.commuteDays,
-  highwaySharePercent: answers.highwayShare,
+  highwaySharePercent: highwayPercent(answers.highwayKm, answers.annualKm),
   homeCharging: answers.homeCharging,
   longTripKm: answers.longTripKm,
   pricePerKwh: answers.pricePerKwh,
@@ -564,11 +564,9 @@ const storyInputs = computed((): PersonalRangeInputs => ({
   netBatteryKwh: selectedVariant.value?.batteryCapacityKwh ?? null,
 }))
 
-/** "30 %" on the slider, "4.500 km im Jahr" below it: the share in kilometres at the yearly mileage */
-const highwayKm = (share: number) => formatDistance(Math.round(answers.annualKm * share / 100 / 100) * 100)
 const FORMAT: Record<ProfileKey, (v: number) => string> = {
   annualKm: km => formatDistance(km),
-  highwayShare: share => `${formatNumber(share)} %`,
+  highwayKm: km => formatDistance(km),
   commute: km => formatDistance(km),
   commuteDays: n => t('model.page.days_value', { n }, n),
   longTrip: km => formatDistance(km),
@@ -577,10 +575,14 @@ const FORMAT: Record<ProfileKey, (v: number) => string> = {
 const profileSliders = computed(() => PROFILE_KEYS.map(key => ({
   key,
   ...PROFILE_SLIDERS[key],
+  // motorway km cannot exceed the yearly mileage once that is answered
+  ...(key === 'highwayKm' && answered.has('annualKm') ? { max: answers.annualKm } : {}),
   label: t(`model.page.q_${key}`),
   value: answered.has(key) ? valueOf(key) : null,
   format: FORMAT[key],
-  detail: key === 'highwayShare' ? (share: number) => t('model.story.slider_highway_km', { km: highwayKm(share) }) : undefined,
+  detail: key === 'highwayKm' && answered.has('annualKm')
+    ? (km: number) => t('model.story.slider_highway_pct', { pct: formatNumber(highwayPercent(km, answers.annualKm)) })
+    : undefined,
 })))
 
 function answer(key: ProfileKey, value: number) {

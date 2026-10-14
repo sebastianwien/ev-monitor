@@ -16,7 +16,7 @@ describe('useDrivingProfile', () => {
 
   it('starts with every slider open: a start value is no answer', () => {
     const p = useDrivingProfile({}, () => 'VW ID.3')
-    expect(p.openQuestions.value).toEqual(['annualKm', 'highwayShare', 'commute', 'commuteDays', 'longTrip'])
+    expect(p.openQuestions.value).toEqual(['annualKm', 'highwayKm', 'commute', 'commuteDays', 'longTrip'])
     expect(p.answers.homeCharging).toBe(true)
   })
 
@@ -24,7 +24,7 @@ describe('useDrivingProfile', () => {
     const p = useDrivingProfile({}, () => 'VW ID.3')
     p.answer('commute', 35)
     p.answer('annualKm', 20000)
-    expect(p.openQuestions.value).toEqual(['highwayShare', 'commuteDays', 'longTrip'])
+    expect(p.openQuestions.value).toEqual(['highwayKm', 'commuteDays', 'longTrip'])
     expect(stored().dailyKm).toBe(35)
     expect(stored().annualKm).toBe(20000)
     expect(analytics.track).toHaveBeenCalledWith('personal_range_started', { model: 'VW ID.3' })
@@ -45,7 +45,7 @@ describe('useDrivingProfile', () => {
     expect(p.answers.commuteKmPerDay).toBe(70)
     expect(p.answers.longTripKm).toBe(600)
     expect(p.answers.homeCharging).toBe(false)
-    expect(p.openQuestions.value).toEqual(['annualKm', 'highwayShare'])
+    expect(p.openQuestions.value).toEqual(['annualKm', 'highwayKm'])
   })
 
   it('a chip from the partner tile wins over the stored needs', () => {
@@ -58,7 +58,7 @@ describe('useDrivingProfile', () => {
   it('a stored profile answers every slider; one from before the commute-days question leaves that one open', () => {
     const p = useDrivingProfile({}, () => 'VW ID.3')
     p.applyProfile({ commuteKmPerDay: 42, highwaySharePercent: 33, homeCharging: false, longTripKm: 2000, annualKm: 21_400, pricePerKwh: 0.31 })
-    expect(p.answers).toMatchObject({ commuteKmPerDay: 40, highwayShare: 35, longTripKm: 1200, annualKm: 21_000, homeCharging: false, pricePerKwh: 0.31 })
+    expect(p.answers).toMatchObject({ commuteKmPerDay: 40, highwayKm: 35, longTripKm: 1200, annualKm: 21_000, homeCharging: false, pricePerKwh: 0.31 })
     expect(p.openQuestions.value).toEqual(['commuteDays'])
     // a profile is no answer of the reader: nothing goes back to the ranking
     expect(localStorage.getItem(NEEDS_STORAGE_KEY)).toBeNull()

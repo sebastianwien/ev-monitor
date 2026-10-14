@@ -566,7 +566,7 @@ model:
     profile_title: "Fortell oss hvordan du kjører."
     profile_sub: "Så forteller vi deg hvor langt du kommer om vinteren, hvor ofte du må lade og hva {model} koster deg i måneden."
     q_annualKm: "Kilometer i året"
-    q_highwayShare: "Av dette motorvei"
+    q_highwayKm: "Av dette motorvei"
     q_commute: "Arbeidsvei per dag, tur-retur"
     q_commuteDays: "Pendledager i uken"
     q_longTrip: "Lengste ferietur"
@@ -582,7 +582,7 @@ model:
     variants_trips: "{n} turer"
   story:
     slider_open: "Skyv for å svare"
-    slider_highway_km: "{km} i året"
+    slider_highway_pct: "{pct} % av kjørelengden din"
     hero_full: "Brosjyren sier {wltp}. {drivers} sjåfører sier {real}."
     hero_full_no_wltp: "{drivers} sjåfører sier {real}."
     hero_thin: "Brosjyren sier {wltp}. Så langt måler {drivers} sjåfører {real}."

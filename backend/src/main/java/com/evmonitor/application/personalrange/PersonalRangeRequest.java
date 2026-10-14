@@ -26,7 +26,7 @@ public record PersonalRangeRequest(
         @DecimalMin("0.05") @DecimalMax("1.50") BigDecimal pricePerKwh,
         @DecimalMin("10") @DecimalMax("250") BigDecimal netBatteryKwh,
         @Min(1000) @Max(100000) Integer annualKm,
-        @Min(1) @Max(5) Integer commuteDaysPerWeek
+        @Min(0) @Max(6) Integer commuteDaysPerWeek
 ) {
     private static final int DEFAULT_COMMUTE_DAYS = 5;
 

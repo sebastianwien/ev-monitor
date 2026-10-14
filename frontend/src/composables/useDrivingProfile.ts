@@ -6,23 +6,24 @@ import { readTilePrefill } from '../utils/tilePrefill'
 import { readStoredNeeds, writeStoredNeeds } from './useModelRanking'
 
 /** The five sliders of the driving profile; key order is page order */
-export type ProfileKey = 'annualKm' | 'highwayShare' | 'commute' | 'commuteDays' | 'longTrip'
+export type ProfileKey = 'annualKm' | 'highwayKm' | 'commute' | 'commuteDays' | 'longTrip'
 export interface SliderRange { min: number; max: number; step: number; start: number }
 
 export const PROFILE_SLIDERS: Record<ProfileKey, SliderRange> = {
-  annualKm: { min: 5_000, max: 50_000, step: 1_000, start: 15_000 },
-  highwayShare: { min: 0, max: 100, step: 5, start: 30 },
+  annualKm: { min: 5_000, max: 75_000, step: 1_000, start: 15_000 },
+  /** motorway km a year; the slider ends at the reader's yearly mileage once that is answered */
+  highwayKm: { min: 0, max: 75_000, step: 500, start: 4_000 },
   commute: { min: 5, max: 150, step: 5, start: 40 },
-  /** the same 1 to 5 days as the ranking's needs check */
-  commuteDays: { min: 1, max: 5, step: 1, start: 5 },
-  longTrip: { min: 250, max: 1_200, step: 50, start: 500 },
+  /** the same 0 to 6 days as the ranking's needs check */
+  commuteDays: { min: 0, max: 6, step: 1, start: 5 },
+  longTrip: { min: 250, max: 2_000, step: 50, start: 500 },
 }
 export const PROFILE_KEYS = Object.keys(PROFILE_SLIDERS) as ProfileKey[]
 
 /** The field of the answers behind each slider */
 const FIELD = {
   annualKm: 'annualKm',
-  highwayShare: 'highwayShare',
+  highwayKm: 'highwayKm',
   commute: 'commuteKmPerDay',
   commuteDays: 'commuteDays',
   longTrip: 'longTripKm',
@@ -31,11 +32,16 @@ const FIELD = {
 /** Where each slider's answer sits in the needs the ranking shares with this page */
 export const NEEDS_FIELD = {
   annualKm: 'annualKm',
-  highwayShare: 'highwayShare',
+  highwayKm: 'highwayKm',
   commute: 'dailyKm',
   commuteDays: 'commuteDays',
   longTrip: 'longestTripKm',
 } as const satisfies Record<ProfileKey, string>
+
+/** The motorway share in percent the calculation takes: motorway km over the yearly mileage, at most 100 */
+export function highwayPercent(highwayKm: number, annualKm: number): number {
+  return annualKm > 0 ? Math.min(100, Math.round(highwayKm / annualKm * 100)) : 0
+}
 
 /** Onto the slider: within its range and on its step */
 function snap(key: ProfileKey, value: number): number {
@@ -53,7 +59,7 @@ function snap(key: ProfileKey, value: number): number {
 export function useDrivingProfile(query: LocationQuery, modelName: () => string) {
   const answers = reactive({
     annualKm: PROFILE_SLIDERS.annualKm.start,
-    highwayShare: PROFILE_SLIDERS.highwayShare.start,
+    highwayKm: PROFILE_SLIDERS.highwayKm.start,
     commuteKmPerDay: PROFILE_SLIDERS.commute.start,
     commuteDays: PROFILE_SLIDERS.commuteDays.start,
     longTripKm: PROFILE_SLIDERS.longTrip.start,
@@ -91,7 +97,8 @@ export function useDrivingProfile(query: LocationQuery, modelName: () => string)
   /** A stored profile is the reader's own answers: sliders move to the nearest step and count as answered */
   function applyProfile(p: PersonalRangeInputs) {
     if (p.annualKm != null) set('annualKm', snap('annualKm', p.annualKm))
-    set('highwayShare', snap('highwayShare', p.highwaySharePercent))
+    // the profile keeps the share; back to motorway km at its yearly mileage
+    set('highwayKm', snap('highwayKm', p.highwaySharePercent * (p.annualKm ?? PROFILE_SLIDERS.annualKm.start) / 100))
     set('commute', snap('commute', p.commuteKmPerDay))
     set('longTrip', snap('longTrip', p.longTripKm))
     // A profile from before the commute-days question leaves that one slider open: the reader answers it once
@@ -103,7 +110,7 @@ export function useDrivingProfile(query: LocationQuery, modelName: () => string)
   const needs = readStoredNeeds()
   if (needs) {
     if (needs.annualKm != null) set('annualKm', snap('annualKm', needs.annualKm))
-    if (needs.highwayShare != null) set('highwayShare', snap('highwayShare', needs.highwayShare))
+    if (needs.highwayKm != null) set('highwayKm', snap('highwayKm', needs.highwayKm))
     if (needs.dailyKm != null) set('commute', snap('commute', needs.dailyKm))
     if (needs.commuteDays != null) set('commuteDays', needs.commuteDays)
     if (needs.longestTripKm != null) set('longTrip', snap('longTrip', needs.longestTripKm))

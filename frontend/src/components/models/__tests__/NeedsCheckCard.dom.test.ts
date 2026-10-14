@@ -16,8 +16,8 @@ const SUMMARY = { total: 56, weeklyOk: 40, tripOk: 9, tripOkWithin: [9, 30, 50, 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; sessionStorage.clear() })
 
-const ANSWERED = { annualKm: null, highwayShare: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: null, maxStops: 0 }
-const EMPTY = { annualKm: null, highwayShare: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
+const ANSWERED = { annualKm: null, highwayKm: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: null, maxStops: 0 }
+const EMPTY = { annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
 
 function mount(locked: boolean, modelValue: Record<string, unknown> = ANSWERED, tripOnly = false) {
   setActivePinia(createPinia())
