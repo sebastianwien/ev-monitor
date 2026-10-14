@@ -76,7 +76,7 @@
         <div class="flex items-start justify-between gap-3 px-4 py-3 md:items-center md:px-5">
           <p class="min-w-0 text-[13.5px] leading-snug text-gray-700 md:text-[14px] dark:text-gray-300" data-testid="personal-range-profile-summary">{{ profileSummary }}</p>
           <button type="button" data-testid="personal-range-profile-toggle" :aria-expanded="profileOpen" aria-controls="pr-profile"
-                  class="-my-1 inline-flex min-h-9 flex-none items-center gap-1 text-[14px] font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400"
+                  class="-my-2 inline-flex min-h-11 flex-none items-center gap-1 text-[14px] font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400"
                   @click="emit('update:profileOpen', !profileOpen)">
             {{ t('personal_range.profile_change') }}
             <ChevronDownIcon class="h-4 w-4 transition-transform" :class="profileOpen ? 'rotate-180' : ''" aria-hidden="true" />

@@ -265,9 +265,9 @@
   </Transition>
 
   <footer class="mx-auto max-w-7xl border-t border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
-    © {{ currentYear }} EV Monitor ·
+    © {{ currentYear }} EV Monitor<template v-if="!isAuthenticated"> ·
     <a :href="registerPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.free_start') }}</a> ·
-    <a :href="loginPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.login') }}</a>
+    <a :href="loginPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.login') }}</a></template>
   </footer>
   <AssumptionsSheet
     v-if="assumptionsOpen"
@@ -520,9 +520,8 @@ function headClass(cls: string) {
   return SORT_COLUMN[sort.value] === cls ? 'text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'
 }
 
-const stickyTopClass = computed(() => isAuthenticated.value
-  ? 'top-[calc(env(safe-area-inset-top)+var(--top-nav-h,0px))]'
-  : 'top-[calc(env(safe-area-inset-top)+70px)]')
+/** The page keeps the public nav (70px, sticky) for guests and members alike, the bar docks under it */
+const stickyTopClass = 'top-[calc(env(safe-area-inset-top)+70px)]'
 
 function modelHref(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>) {
   return `${modelsBaseUrl.value}/${m.brandDisplayName}/${m.modelUrlSlug}`
