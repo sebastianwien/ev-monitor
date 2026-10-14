@@ -42,7 +42,11 @@ class ChargeRhythmTest {
     @Test
     void withoutHomeChargingCountsChargesRoundedUp() {
         assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "de")).isEqualTo("2-mal pro Woche");
-        assertThat(ChargeRhythm.text(new BigDecimal("0.4"), false, "de")).isEqualTo("1-mal pro Woche");
+        assertThat(ChargeRhythm.text(new BigDecimal("1"), false, "de")).isEqualTo("1-mal pro Woche");
+        // below one a week: days and weeks like at home, not rounded up to one
+        assertThat(ChargeRhythm.text(new BigDecimal("0.7"), false, "de")).isEqualTo("alle 10 Tage");
+        assertThat(ChargeRhythm.text(new BigDecimal("0.2"), false, "de")).isEqualTo("alle 5 Wochen");
+        assertThat(ChargeRhythm.text(new BigDecimal("0.2"), false, "en")).isEqualTo("every 5 weeks");
         assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "en")).isEqualTo("2 times a week");
     }
 

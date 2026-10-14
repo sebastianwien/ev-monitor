@@ -34,9 +34,14 @@ describe('chargeRhythm', () => {
     expect(chargeRhythmText(0.49, true, de)).toBe('alle 2 Wochen')
   })
 
-  it('without home charging counts fast-charge stops, rounded up', () => {
+  it('without home charging counts fast-charge stops, rounded up, from one a week', () => {
     expect(chargeRhythmText(1.22, false, de)).toBe('2-mal pro Woche')
-    expect(chargeRhythmText(0.4, false, de)).toBe('1-mal pro Woche')
+    expect(chargeRhythmText(1, false, de)).toBe('1-mal pro Woche')
+  })
+
+  it('without home charging below one a week: days and weeks like at home, not rounded up to one', () => {
+    expect(chargeRhythmText(0.7, false, de)).toBe('alle 10 Tage')
+    expect(chargeRhythmText(0.2, false, de)).toBe('alle 5 Wochen')
   })
 
   it('no commute needs no charging', () => {
@@ -66,9 +71,9 @@ describe('chargeRhythm', () => {
       expect(chargeRhythmSpanText(8, 10, true, de)).toBe('täglich')
     })
 
-    it('without home charging: stops per week as before', () => {
+    it('without home charging: stops per week from one a week, days below', () => {
       expect(chargeRhythmSpanText(0.8, 1.3, false, de)).toBe('1- bis 2-mal pro Woche')
-      expect(chargeRhythmSpanText(0.2, 0.4, false, de)).toBe('1-mal pro Woche')
+      expect(chargeRhythmSpanText(0.4, 0.7, false, de)).toBe('alle 10 bis 17 Tage')
     })
   })
 })

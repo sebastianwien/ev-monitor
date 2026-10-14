@@ -8,7 +8,7 @@
  * | 3.5 or more       | "täglich" (7 / L rounded down is 1)            |
  * | 0.5 to 3.5        | "alle 10 Tage", 7 / L rounded down             |
  * | below 0.5         | "alle 3 Wochen", 1 / L rounded down, at least 2 |
- * | no home charging  | "2-mal pro Woche", rounded up                  |
+ * | no home charging  | from 1: "2-mal pro Woche", rounded up; below 1 the rows above |
  */
 
 export type ChargeRhythm =
@@ -25,12 +25,17 @@ const MIN_WEEKS = 2
 
 export function chargeRhythm(perWeek: number, homeCharging: boolean): ChargeRhythm {
   if (!(perWeek > 0)) return { kind: 'none' }
-  if (!homeCharging) return { kind: 'stops', value: Math.ceil(perWeek) }
+  if (!homeCharging && perWeek >= 1) return { kind: 'stops', value: Math.ceil(perWeek) }
   if (perWeek >= 0.5) {
     const days = daysBetween(perWeek)
     return days === 1 ? { kind: 'daily', value: 1 } : { kind: 'days', value: days }
   }
-  return { kind: 'weeks', value: Math.max(MIN_WEEKS, Math.floor(1 / perWeek)) }
+  return { kind: 'weeks', value: weeksBetween(perWeek) }
+}
+
+/** Whole weeks between charges, at least two (below that the table speaks in days) */
+function weeksBetween(perWeek: number): number {
+  return Math.max(MIN_WEEKS, Math.floor(1 / perWeek))
 }
 
 function number(r: ChargeRhythm, fmt: RhythmFormat): string {
@@ -56,14 +61,15 @@ function daysBetween(perWeek: number): number {
  * Span over the battery variants, `low` from the largest battery, `high` from the smallest.
  * Home charging: both ends always in days ("alle 8 bis 14 Tage"), so a span never mixes units
  * when the two batteries fall on different sides of a threshold of the table above. Without
- * home charging: charges per week ("1- bis 2-mal pro Woche").
+ * home charging: charges per week ("1- bis 2-mal pro Woche") once the often end reaches one a
+ * week, else days or weeks like at home.
  */
 export function chargeRhythmSpanText(low: number, high: number, homeCharging: boolean, fmt: RhythmFormat): string {
   const often = Math.max(low, high)
   const rare = Math.min(low, high)
   const single = chargeRhythmText(often, homeCharging, fmt)
   if (single === chargeRhythmText(rare, homeCharging, fmt)) return single
-  if (!homeCharging) {
+  if (!homeCharging && often >= 1) {
     return fmt.t('charge_rhythm.stops_span', { min: Math.ceil(rare), max: Math.ceil(often) })
   }
   const min = daysBetween(often)
