@@ -172,6 +172,7 @@
           :price="price"
           :main-value="cost.mainValue"
           :answered="hasTrip || hasCommute"
+          :needs-ready="needsReady"
           :longest-trip-km="needs.longestTripKm"
           :max-stops="needs.maxStops"
           :fuel="cost.fuel"
@@ -335,7 +336,7 @@ const loadError = ref(false)
 
 const {
   sort, category, query, price, cost, homeShare, combustionMarket, applyReferencePrices, resetCost,
-  needs, needsSummary, tripOnly, ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
+  needs, needsSummary, needsReady, tripOnly, ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
   compareKeys, canAddCompare, isInCompare, toggleCompare, clearCompare,
 } = useModelRanking(models, modelsWithoutData)
 watch(currentMarket, m => { combustionMarket.value = combustionAllowed(m) }, { immediate: true })

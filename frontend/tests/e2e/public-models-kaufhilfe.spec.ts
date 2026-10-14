@@ -116,9 +116,10 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       const firstHint = rows(page).first().getByTestId('needs-hint');
       await answerCommute(page, 40, 3);
       await setSlider(page, 'longTrip', 400);
-      // three answers: commute line and trip line
+      // three answers: commute line and trip line, the trip with the travel time from the model page calculation
       await expect(firstHint).toContainText('Fürs Pendeln');
       await expect(firstHint).toContainText('400 km:');
+      await expect(firstHint).toContainText('unterwegs');
       const hintBefore = await firstHint.innerText();
 
       await setSlider(page, 'commute', 120);

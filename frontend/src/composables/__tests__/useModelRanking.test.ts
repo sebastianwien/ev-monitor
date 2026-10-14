@@ -1,7 +1,18 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { nextTick, ref } from 'vue'
-import { useModelRanking, readStoredNeeds, writeStoredNeeds, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY, COST_STORAGE_KEY, SORT_STORAGE_KEY } from '../useModelRanking'
+import { useModelRanking, readStoredNeeds, writeStoredNeeds, PRICE_STORAGE_KEY, NEEDS_STORAGE_KEY, COST_STORAGE_KEY, SORT_STORAGE_KEY, RANKING_DEBOUNCE_MS } from '../useModelRanking'
 import type { TopModelPreview, ModelWithoutData } from '../../api/publicModelService'
+import { personalRangeService, type PersonalRangeRankingEntry } from '../../api/personalRangeService'
+
+vi.mock('../../api/personalRangeService', () => ({ personalRangeService: { ranking: vi.fn() } }))
+const rankingCall = vi.mocked(personalRangeService.ranking)
+
+function entry(brand: string, model: string, over: Partial<PersonalRangeRankingEntry> = {}): PersonalRangeRankingEntry {
+  return {
+    brand, model, summerRangeKm: 420, winterRangeKm: 320, longTripStops: 1, longTripTotalMinutes: 245,
+    chargesPerWeekSummer: 0.4, chargesPerWeekWinter: 0.55, monthlyCostEur: 31, monthlyKm: 530, oneStopReachKm: 610, twoStopsReachKm: 890, ...over,
+  }
+}
 import { COST_DEFAULTS } from '../../utils/costMix'
 
 function model(over: Partial<TopModelPreview> & { brandDisplayName: string, modelUrlSlug: string }): TopModelPreview {
@@ -44,7 +55,11 @@ function withoutData(over: Partial<ModelWithoutData> & { brandDisplayName: strin
 
 
 describe('useModelRanking', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    rankingCall.mockReset()
+    rankingCall.mockResolvedValue([])
+  })
 
   describe('sorting', () => {
     it('efficient: lowest real consumption first, missing values last', () => {
@@ -328,26 +343,97 @@ describe('useModelRanking', () => {
 
   describe('needs check', () => {
     const models = [
-      model({ brandDisplayName: 'A', modelUrlSlug: 'small', winterRangeMinKm: 200, winterRangeMaxKm: 200, typicalRangeMinKm: 260, typicalRangeMaxKm: 260 }),
-      model({ brandDisplayName: 'B', modelUrlSlug: 'big', winterRangeMinKm: 420, winterRangeMaxKm: 520, typicalRangeMinKm: 500, typicalRangeMaxKm: 600 }),
+      model({ brandDisplayName: 'A', modelUrlSlug: 'small' }),
+      model({ brandDisplayName: 'B', modelUrlSlug: 'big' }),
       model({ brandDisplayName: 'C', modelUrlSlug: 'none' }),
     ]
+    // the server rates A and B; C has no WLTP spec and is left out
+    const figures = [entry('A', 'SMALL', { longTripStops: 2 }), entry('B', 'BIG', { longTripStops: 0 })]
     const ANNA = { annualKm: null, highwayKm: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0 }
 
-    it('starts empty: no answer, nothing counted', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      rankingCall.mockResolvedValue(figures)
+    })
+    afterEach(() => vi.useRealTimers())
+
+    /** Past the pause after an answer, and the server's reply delivered */
+    async function settle() {
+      await vi.advanceTimersByTimeAsync(RANKING_DEBOUNCE_MS)
+      await nextTick()
+    }
+
+    it('asks the server once on start with the answers as calculator inputs', async () => {
+      localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify(ANNA))
+      useModelRanking(ref(models))
+      await settle()
+      expect(rankingCall).toHaveBeenCalledTimes(1)
+      expect(rankingCall).toHaveBeenCalledWith({ commuteKmPerDay: 40, commuteDaysPerWeek: 3, highwaySharePercent: 27,
+        homeCharging: true, longTripKm: 400, annualKm: null, pricePerKwh: null })
+    })
+
+    it('starts empty: no answer, no personal figure, but the stop ladder as model data', async () => {
       const r = useModelRanking(ref(models))
+      await settle()
       expect(r.needs.value).toEqual({ annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
       expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
       const big = r.ranked.value.find(x => x.key === 'B/big')!
-      expect(big.needs).toMatchObject({ assessable: true, commute: null, tripStops: null })
+      expect(big.needs).toMatchObject({ commute: null, trip: null, monthlyCostEur: null })
+      expect(big.ladder).toEqual({ oneStopKm: 610, twoStopsKm: 890 })
+      expect(big.monthlyCostEur).toBeNull()
     })
 
-    it('summarises the longest trip over all models', () => {
+    it('summarises the longest trip and takes every figure from the server', async () => {
       const r = useModelRanking(ref(models))
       r.needs.value = ANNA
-      // 520 × 0.8 = 416 ≥ 400 (yes), 200 × 0.8 (no);
-      // the small one needs two flat stops (160 first leg, 140 per stop) → only the big one makes it with one
+      await settle()
       expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 1, tripOkWithin: [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2] })
+      const small = r.ranked.value.find(x => x.key === 'A/small')!
+      expect(small.needs).toEqual({ commute: { homeCharging: true, summer: 0.4, winter: 0.55 }, trip: { stops: 2, totalMinutes: 245 },
+        summerRangeKm: 420, winterRangeKm: 320, monthlyCostEur: 31 })
+      expect(small.monthlyCostEur).toBe(31)
+      expect(small.monthlyKm).toBe(530)
+      expect(r.ranked.value.find(x => x.key === 'C/none')!.needs).toBeNull()
+    })
+
+    it('a changed answer asks again after the pause; the old figures stay until the new ones arrive', async () => {
+      const r = useModelRanking(ref(models))
+      r.needs.value = ANNA
+      await settle()
+      rankingCall.mockClear()
+      rankingCall.mockResolvedValue([entry('A', 'SMALL', { longTripStops: 3 })])
+      r.needs.value = { ...ANNA, longestTripKm: 900 }
+      await nextTick()
+      expect(r.ranked.value.find(x => x.key === 'A/small')!.needs?.trip?.stops).toBe(2)
+      await settle()
+      expect(rankingCall).toHaveBeenCalledTimes(1)
+      expect(r.ranked.value.find(x => x.key === 'A/small')!.needs?.trip?.stops).toBe(3)
+      // the accepted stops are no calculator input: no new request
+      rankingCall.mockClear()
+      r.needs.value = { ...r.needs.value, maxStops: 2 }
+      await settle()
+      expect(rankingCall).not.toHaveBeenCalled()
+    })
+
+    it('drops a late reply to an older profile', async () => {
+      let answerOld: (v: PersonalRangeRankingEntry[]) => void = () => {}
+      rankingCall.mockReturnValueOnce(new Promise(resolve => { answerOld = resolve }))
+      const r = useModelRanking(ref(models))
+      r.needs.value = ANNA
+      await settle()
+      answerOld([entry('A', 'SMALL', { longTripStops: 9 })])
+      await nextTick()
+      expect(r.ranked.value.find(x => x.key === 'A/small')!.needs?.trip?.stops).toBe(2)
+    })
+
+    it('without the server the rows show no personal figure, the model data stays', async () => {
+      rankingCall.mockRejectedValue(new Error('429'))
+      const r = useModelRanking(ref(models))
+      r.needs.value = ANNA
+      await settle()
+      expect(r.ranked.value.every(x => x.needs === null && x.ladder === null)).toBe(true)
+      expect(r.needsSummary.value.total).toBe(0)
+      expect(r.ranked.value).toHaveLength(3)
     })
 
     it('persists the inputs under the v2 key and restores them', async () => {
@@ -373,25 +459,19 @@ describe('useModelRanking', () => {
       expect(useModelRanking(ref(models)).needs.value).toEqual({ annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
     })
 
-    it('attaches an assessment to every row and can filter to trips without a stop', () => {
+    it('filters to trips within the accepted stops', async () => {
       const r = useModelRanking(ref(models))
       r.needs.value = ANNA
-      const big = r.ranked.value.find(x => x.key === 'B/big')!
-      expect(big.needs.assessable && big.needs.tripStops).toEqual({ min: 0, max: 1, single: false })
-      expect(r.ranked.value.find(x => x.key === 'C/none')!.needs).toEqual({ assessable: false })
-      // no stop → the small one needs two, the big one none with its large battery
+      await settle()
       r.tripOnly.value = true
       expect(keys(r.ranked.value)).toEqual(['B/big'])
-      // 600 km: the big one needs one stop, which is out with none allowed
-      r.needs.value = { ...r.needs.value, longestTripKm: 600 }
-      expect(keys(r.ranked.value)).toEqual([])
-      // 1600 km: 416 first leg, 364 per flat stop → 4 stops: in with four allowed
-      r.needs.value = { ...r.needs.value, longestTripKm: 1600, maxStops: 4 }
-      expect(keys(r.ranked.value)).toEqual(['B/big'])
+      r.needs.value = { ...r.needs.value, maxStops: 2 }
+      expect(keys(r.ranked.value)).toEqual(['A/small', 'B/big'])
     })
 
-    it('the trip filter does nothing before the longest trip is answered', () => {
+    it('the trip filter does nothing before the longest trip is answered', async () => {
       const r = useModelRanking(ref(models))
+      await settle()
       r.tripOnly.value = true
       expect(keys(r.ranked.value)).toHaveLength(3)
     })

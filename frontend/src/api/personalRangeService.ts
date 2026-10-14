@@ -12,7 +12,7 @@ export interface PersonalRangeInputs {
   netBatteryKwh?: number | null
   /** yearly mileage; costs and charges per week rest on it instead of 22 commute days */
   annualKm?: number | null
-  /** commute days a week (1 to 5); weekly charging per season rests on km a day times these days.
+  /** commute days a week (0 to 6); weekly charging per season rests on km a day times these days.
    *  Null in profiles stored before the question, the backend counts 5. */
   commuteDaysPerWeek?: number | null
 }
@@ -53,6 +53,27 @@ export interface PersonalRangeResult {
   assumptions: PersonalRangeAssumption[]
 }
 
+/**
+ * One model of the ranking for a profile: the model page result on the largest WLTP battery, plus the
+ * reach with one and two fast-charging stops (model data, the same highway consumption as the stops).
+ * brand and model are the enum names, as in TopModelPreview.
+ */
+export interface PersonalRangeRankingEntry {
+  brand: string
+  model: string
+  summerRangeKm: number
+  winterRangeKm: number
+  longTripStops: number
+  longTripTotalMinutes: number
+  chargesPerWeekSummer: number
+  chargesPerWeekWinter: number
+  monthlyCostEur: number
+  /** the distance a month the cost rests on: yearly km / 12, else the commute */
+  monthlyKm: number
+  oneStopReachKm: number
+  twoStopsReachKm: number
+}
+
 export const personalRangeService = {
   /** @param email true sends the result to the user's address as well (once, right after the gate) */
   async calculate(brand: string, model: string, inputs: PersonalRangeInputs, email = false): Promise<PersonalRangeResult> {
@@ -67,6 +88,12 @@ export const personalRangeService = {
   async preview(brand: string, model: string, inputs: PersonalRangeInputs): Promise<PersonalRangeBand> {
     const url = `/public/personal-range/${encodeURIComponent(brand)}/${encodeURIComponent(model)}/preview`
     const { data } = await api.post<PersonalRangeBand>(url, inputs)
+    return data
+  },
+
+  /** Public, no login: every listed model for the inputs. Limited per IP, 429 when exhausted. */
+  async ranking(inputs: PersonalRangeInputs): Promise<PersonalRangeRankingEntry[]> {
+    const { data } = await api.post<PersonalRangeRankingEntry[]>('/public/personal-range/ranking', inputs)
     return data
   },
 

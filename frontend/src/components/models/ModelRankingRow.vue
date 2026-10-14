@@ -179,8 +179,8 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { officialModelImageAttribution, officialModelImageUrl, officialModelThumbUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
 import type { LadderAxis } from '../../utils/ladderScale'
-import { stopsRangeKm, ONE_STOP_MINUTES, USABLE_BATTERY_SHARE, meetsNeeds, type CommuteAssessment, type Span } from '../../utils/needsCheck'
-import { chargeRhythmSpanText, chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
+import { meetsNeeds } from '../../utils/needsCheck'
+import { chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
 import type { FuelKind, MainValue } from '../../utils/costMix'
 
@@ -205,6 +205,8 @@ const props = defineProps<{
   mainValue: MainValue
   /** The reader answered the longest trip or the commute: unrated models say so, guests see the gate */
   answered: boolean
+  /** The server's figures for the current answers have arrived: before that a row without figures is not called unrated */
+  needsReady?: boolean
   /** Longest trip in km, named in the hint so the reader sees their own number */
   longestTripKm: number | null
   /** Stops the reader accepts on long trips; the range cell shows the range with that many */
@@ -249,46 +251,43 @@ const dataBasis = computed(() => {
     : t('models_ranking.row.logs', { count: formatNumber(m.value.logCount) })
 })
 
-// Needs check per row, from the winter range (fallback: typical range, flagged as such).
-// Each part only once answered: the commute (km, days, home charging) and the longest trip.
+// Needs check per row, the server's figures on the largest battery (same calculation as the model page).
+// Each part only once answered: the commute (km, days) and the longest trip.
 const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
 interface HintLine { key: 'commute' | 'trip' | 'cost'; text?: string; locked?: boolean; label?: string; dummy?: string; testid?: string }
+/** "8 h 5 min", "45 min", "9 h", as on the model page */
+function duration(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const min = minutes % 60
+  if (h === 0) return t('personal_range.duration_m', { m: min })
+  return min === 0 ? t('personal_range.duration_h', { h }) : t('personal_range.duration_h_m', { h, m: min })
+}
 const needsLines = computed<HintLine[]>(() => {
   const n = props.item.needs
-  if (!n.assessable) return props.answered ? [{ key: 'trip', text: t('models_ranking.row.needs_unrated') }] : []
+  if (!n) return props.answered && props.needsReady ? [{ key: 'trip', text: t('models_ranking.row.needs_unrated') }] : []
   const row = (k: string, p: Record<string, unknown> = {}, count?: number) => t(`models_ranking.row.${k}`, p, count as number)
-  const stopsText = (x: Span) => x.single ? row('stops_word', { count: formatNumber(x.min) }, x.min) : row('stops_word_span', { min: formatNumber(x.min), max: formatNumber(x.max) })
-  const typ = n.typical
   const parts: HintLine[] = []
 
-  // Line 1: the commute. Typical figure first, the winter figure appended; without winter
-  // data the typical figure carries that caveat.
+  // Line 1: the commute, the summer figure first and the winter figure appended when it differs
   if (n.commute) {
-    const rhythm = (c: CommuteAssessment) => chargeRhythmSpanText(c.perWeek.low, c.perWeek.high, c.homeCharging, rhythmFormat)
+    const c = n.commute
     // "alle 14 Tage laden"; stops on the road carry their own noun, and "kein Laden nötig" needs no verb
-    const charge = (text: string) => n.commute!.homeCharging && n.commute!.perWeek.high > 0 ? row('charge_verb', { value: text }) : text
-    const main = rhythm(n.commute)
-    const typical = typ?.commute ? rhythm(typ.commute) : null
-    let line: string
-    if (typical != null && typical !== main) line = row('commute_both', { typical: charge(typical), winter: main })
-    else if (typical != null) line = row('commute_line', { value: charge(main) })
-    else line = row(n.winter ? 'commute_winter_only' : 'commute_typical_only', { value: charge(main) })
-    // several batteries with different figures: say where the span comes from
-    const isSpan = (c: CommuteAssessment) => chargeRhythmText(c.perWeek.low, c.homeCharging, rhythmFormat) !== chargeRhythmText(c.perWeek.high, c.homeCharging, rhythmFormat)
-    const spans = isSpan(n.commute) || (typ?.commute != null && isSpan(typ.commute))
-    parts.push({ key: 'commute', text: spans ? row('by_battery', { value: line }) : line })
+    const charge = (text: string) => c.homeCharging && c.summer > 0 ? row('charge_verb', { value: text }) : text
+    const summer = chargeRhythmText(c.summer, c.homeCharging, rhythmFormat)
+    const winter = chargeRhythmText(c.winter, c.homeCharging, rhythmFormat)
+    parts.push({ key: 'commute', text: summer !== winter
+      ? row('commute_both', { typical: charge(summer), winter })
+      : row('commute_line', { value: charge(summer) }) })
   }
-  // Line 2: the longest trip, same pattern
-  if (n.tripStops && tripParams.value) {
-    const tripOf = (x: Span) => x.single ? (x.min === 0 ? row('stops_none') : stopsText(x)) : (x.min === 0 && x.max === 1 ? row('stops_maybe') : stopsText(x))
-    parts.push({ key: 'trip', testid: 'needs-hint-trip', text: typ?.tripStops && !same(typ.tripStops, n.tripStops)
-      ? row('needs_trip_both', { ...tripParams.value, typical: tripOf(typ.tripStops), winter: tripOf(n.tripStops) })
-      : row('needs_trip_line', { ...tripParams.value, value: tripOf(n.tripStops) }) })
+  // Line 2: the longest trip, stops and the whole travel time
+  if (n.trip && tripParams.value) {
+    const stops = n.trip.stops === 0 ? row('stops_none') : row('stops_word', { count: formatNumber(n.trip.stops) }, n.trip.stops)
+    parts.push({ key: 'trip', testid: 'needs-hint-trip', text: row('needs_trip_line', {
+      ...tripParams.value, value: `${stops}, ${t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })}` }) })
   }
   // lines start with a capital, whatever building block comes first
   return parts.map(p => ({ ...p, text: p.text!.charAt(0).toLocaleUpperCase() + p.text!.slice(1) }))
 })
-const same = (a: Span, b: Span) => a.min === b.min && a.max === b.max
 const needsHint = computed(() => needsLines.value.map(l => l.text).join(' · '))
 /** The lines under the name: commute, trip and the month's cost; for guests the personal figures as stand-ins */
 const hintLines = computed<HintLine[]>(() => {
@@ -310,20 +309,18 @@ const tripParams = computed(() => props.longestTripKm != null
 /** Guest label: only whether the trip works without a stop (the dot's verdict), never the count or the commute */
 const lockedLine = computed(() => {
   const n = props.item.needs
-  if (!n.assessable) return props.answered ? t('models_ranking.row.needs_unrated') : ''
-  if (!n.tripStops || !tripParams.value) return ''
-  const ok = meetsNeeds(n, props.maxStops)
-  const key = ok ? (n.winter ? 'locked_ok_winter' : 'locked_ok') : (n.winter ? 'locked_stop_winter' : 'locked_stop')
-  return t(`models_ranking.row.${key}`, tripParams.value)
+  if (!n) return props.answered && props.needsReady ? t('models_ranking.row.needs_unrated') : ''
+  if (!n.trip || !tripParams.value) return ''
+  return t(`models_ranking.row.${meetsNeeds(n, props.maxStops) ? 'locked_ok' : 'locked_stop'}`, tripParams.value)
 })
 /** A guest who answered the commute: the row shows where that figure will stand */
-const lockedCommute = computed(() => props.item.needs.assessable && props.item.needs.commute != null)
-// Dot in front of the hint: green when every battery makes the trip within the allowed stops,
-// orange when not, grey for a model without range data. No trip answered, no dot.
+const lockedCommute = computed(() => props.item.needs?.commute != null)
+// Dot in front of the hint: green when the largest battery makes the trip within the allowed stops,
+// orange when not, grey for a model without figures. No trip answered, no dot.
 const tripStatusClass = computed<string | null>(() => {
   const n = props.item.needs
-  if (!n.assessable) return props.answered ? 'bg-gray-300 dark:bg-gray-600' : null
-  if (!n.tripStops) return null
+  if (!n) return props.answered && props.needsReady ? 'bg-gray-300 dark:bg-gray-600' : null
+  if (!n.trip) return null
   return meetsNeeds(n, props.maxStops) ? 'bg-green-600 dark:bg-green-400' : 'bg-orange-500 dark:bg-orange-400'
 })
 const costNumber = computed(() => props.item.costPer100kmEur != null
@@ -368,17 +365,9 @@ const typicalSpan = computed(() => {
   if (lo == null || hi == null) return null
   return { lo, hi }
 })
-// Range with one and with two 20-minute fast-charge stops (largest battery); the stop adds
-// the model's community DC power when known, else the flat 70 % (same rule as the hint)
-const stopsRange = computed(() => {
-  const base = typicalSpan.value?.hi ?? m.value.realRangeKm ?? null
-  if (base == null) return null
-  const one = stopsRangeKm(base, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, 1)
-  const two = stopsRangeKm(base, m.value.avgConsumptionKwhPer100km, m.value.fastChargePowerKw, 2)
-  if (one == null || two == null) return null
-  const dcBased = m.value.fastChargePowerKw != null && m.value.avgConsumptionKwhPer100km != null
-  return { one, two, addedKm: one - Math.round(base * USABLE_BATTERY_SHARE), dcBased }
-})
+// Reach with one and with two fast-charge stops on the largest battery, from the server: on the
+// motorway, start at 90 %, each stop 10 to 80 %, the same rule as the stops of the longest trip
+const stopsRange = computed(() => props.item.ladder ? { one: props.item.ladder.oneStopKm, two: props.item.ladder.twoStopsKm } : null)
 // Ranges read as rough figures: whole tens, in the display unit
 const RANGE_STEP = 10
 const fmtKm = (km: number) => formatDistance(km, { showUnit: false, step: RANGE_STEP })
@@ -512,14 +501,7 @@ const facts = computed(() => {
       icon: ClockIcon,
       label: t('models_ranking.detail.stops'),
       value: stopsRange.value ? `${fmtKm(stopsRange.value.one)} / ${fmtKmUnit(stopsRange.value.two)}` : '–',
-      hint: stopsRange.value && stopsRange.value.dcBased && x.fastChargePowerKw != null
-        ? t('models_ranking.detail.stops_hint', {
-            minutes: formatNumber(ONE_STOP_MINUTES),
-            added: fmtKm(stopsRange.value.addedKm),
-            unit: distanceUnitLabel(),
-            kw: formatNumber(Math.round(x.fastChargePowerKw)),
-          })
-        : t('models_ranking.detail.stops_flat'),
+      hint: t('models_ranking.detail.stops_hint'),
     },
     {
       icon: TagIcon,

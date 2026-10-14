@@ -1,10 +1,12 @@
 import { computed, ref, watch, type Ref } from 'vue'
 import type { ChargingReferencePrices, ModelWithoutData, TopModelPreview } from '../api/publicModelService'
+import { personalRangeService, type PersonalRangeRankingEntry } from '../api/personalRangeService'
 import { consumptionDeltaPercent } from '../utils/unitConversions'
 import {
-  assessModel, summarizeNeeds, commuteKmPerWeek, NEEDS_EMPTY, MIN_COMMUTE_DAYS, MAX_COMMUTE_DAYS, COMMUTE_WEEKS_PER_YEAR,
+  assessEntry, summarizeNeeds, commuteKmPerWeek, meetsNeeds, NEEDS_EMPTY, MIN_COMMUTE_DAYS, MAX_COMMUTE_DAYS, COMMUTE_WEEKS_PER_YEAR,
   type NeedsAssessment, type NeedsInput, type NeedsSummary,
 } from '../utils/needsCheck'
+import { needsToInputs } from '../utils/drivingProfile'
 import {
   COST_DEFAULTS, PRICE_MAX, effectiveHomeShare, mixedPricePerKwh, combustionLiters, savingsPer100km, savingsPerYear, isCostAssumptions,
   type CostAssumptions,
@@ -28,6 +30,8 @@ export const NEEDS_STORAGE_KEY = 'ev-needs-check-v2'
 export const NEEDS_KM_MAX = 5000
 /** Upper bound for a stored yearly mileage; the slider ends at 50.000 km */
 export const NEEDS_ANNUAL_KM_MAX = 200_000
+/** Pause after the last answer before the list asks the server again */
+export const RANKING_DEBOUNCE_MS = 300
 
 export interface RankedModel {
   /** `Brand/Slug`, the format the compare page expects in `?models=` */
@@ -45,7 +49,7 @@ export interface RankedModel {
   savingsPer100kmEur: number | null
   /** On the commute (km a day × days × COMMUTE_WEEKS_PER_YEAR); null until the commute is answered */
   savingsPerYearEur: number | null
-  /** Charging cost a month at the reader's mileage (km a year, else the commute); null until one is answered */
+  /** Charging cost a month at the reader's mileage (km a year, else the commute), from the server; null until one is answered */
   monthlyCostEur: number | null
   /** The monthly distance that cost rests on */
   monthlyKm: number | null
@@ -53,8 +57,10 @@ export interface RankedModel {
   combustionLitersPer100km: number | null
   /** All values of this model come from one driver */
   singleDriver: boolean
-  /** Charging interval, stops and longest trip for the current needs-check inputs */
-  needs: NeedsAssessment
+  /** The reader's figures from the server (same calculation as the model page); null without a server answer */
+  needs: NeedsAssessment | null
+  /** Reach with one and two fast-charging stops on the largest battery (model data, from the server); null without */
+  ladder: { oneStopKm: number; twoStopsKm: number } | null
 }
 
 export function modelKey(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>): string {
@@ -164,8 +170,9 @@ const round2 = (v: number) => Math.round(v * 100) / 100
 
 /**
  * State of the model ranking: sort mode, class filter, search, compare picks, needs check and
- * cost assumptions (blended electricity price, combustion comparison). Pure UI logic on top of
- * the top-models DTO, no consumption formula of its own.
+ * cost assumptions (blended electricity price, combustion comparison). UI logic on top of the
+ * top-models DTO; the reader's figures per model come from the server's ranking endpoint, no
+ * consumption or range formula of its own.
  */
 export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutData: Ref<ModelWithoutData[]> = ref([])) {
   const sort = ref<RankingSort>(readStoredSort())
@@ -181,7 +188,31 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   watch(needs, v => {
     try { localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify(v)) } catch { /* private mode */ }
   }, { deep: true })
-  const needsSummary = computed<NeedsSummary>(() => summarizeNeeds(models.value, needs.value))
+
+  // The figures per model come from the server, on the same calculation as the model page. Asked once
+  // on start and again after a pause once the calculator inputs change; the figures shown stay until
+  // the new ones arrive. A reply to an older profile is dropped. Without a reply the rows show no
+  // personal figures, the model data stays.
+  const entries = ref(new Map<string, PersonalRangeRankingEntry>())
+  /** The first reply is in: from then on a row without figures has none, it is not just loading */
+  const needsReady = ref(false)
+  let requestId = 0
+  async function loadRanking() {
+    const id = ++requestId
+    try {
+      const list = await personalRangeService.ranking(needsToInputs(needs.value))
+      if (id === requestId) entries.value = new Map(list.map(e => [`${e.brand}/${e.model}`, e]))
+    } catch {
+      if (id === requestId) entries.value = new Map()
+    }
+    if (id === requestId) needsReady.value = true
+  }
+  let timer: ReturnType<typeof setTimeout> | undefined
+  watch(() => JSON.stringify(needsToInputs(needs.value)), () => {
+    clearTimeout(timer)
+    timer = setTimeout(loadRanking, RANKING_DEBOUNCE_MS)
+  })
+  void loadRanking()
 
   const storedCost = readStoredCost()
   const cost = ref<CostAssumptions>(storedCost?.cost ?? { ...COST_DEFAULTS })
@@ -221,9 +252,6 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     const weekly = commuteKmPerWeek(needs.value)
     return weekly != null ? weekly * COMMUTE_WEEKS_PER_YEAR : null
   })
-  /** The month's distance: the yearly mileage when answered, as on the model page, else the commute */
-  const monthlyKm = computed(() => needs.value.annualKm != null ? needs.value.annualKm / 12
-    : commuteKmPerYear.value != null ? commuteKmPerYear.value / 12 : null)
   /** Blended electricity price in EUR/kWh the row costs are based on */
   const price = computed(() => mixedPricePerKwh(cost.value, homeShare.value))
   const combustion = computed(() => combustionMarket.value ? cost.value : { ...cost.value, fuelPricePerLiter: null })
@@ -231,6 +259,8 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   const enriched = computed(() => models.value.map(m => {
     const costPer100kmEur = m.avgConsumptionKwhPer100km != null ? m.avgConsumptionKwhPer100km * price.value : null
     const savingsPer100kmEur = costPer100kmEur != null ? savingsPer100km(costPer100kmEur, combustion.value, m.category) : null
+    const entry = entries.value.get(`${m.brand}/${m.model}`)
+    const assessment = entry ? assessEntry(entry, needs.value) : null
     return {
       key: modelKey(m),
       model: m,
@@ -240,13 +270,15 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
       costPer100kmEur,
       savingsPer100kmEur,
       savingsPerYearEur: savingsPer100kmEur != null && commuteKmPerYear.value != null ? savingsPerYear(savingsPer100kmEur, commuteKmPerYear.value) : null,
-      monthlyCostEur: costPer100kmEur != null && monthlyKm.value != null ? costPer100kmEur * monthlyKm.value / 100 : null,
-      monthlyKm: monthlyKm.value,
+      monthlyCostEur: assessment?.monthlyCostEur ?? null,
+      monthlyKm: assessment?.monthlyCostEur != null ? entry!.monthlyKm : null,
       combustionLitersPer100km: savingsPer100kmEur != null ? combustionLiters(combustion.value, m.category) : null,
       singleDriver: m.contributorCount === 1,
-      needs: assessModel(m, needs.value),
+      needs: assessment,
+      ladder: entry ? { oneStopKm: entry.oneStopReachKm, twoStopsKm: entry.twoStopsReachKm } : null,
     }
   }))
+  const needsSummary = computed<NeedsSummary>(() => summarizeNeeds(enriched.value.map(r => r.needs)))
 
   const ranked = computed<RankedModel[]>(() => {
     const valueOf = SORT_VALUE[sort.value]
@@ -254,8 +286,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     return enriched.value
       .filter(r => category.value === null || r.model.category === category.value)
       .filter(r => matchesSearch(r.model, query.value))
-      .filter(r => !tripOnly.value || needs.value.longestTripKm == null
-        || (r.needs.assessable && r.needs.tripStops != null && r.needs.tripStops.min <= needs.value.maxStops))
+      .filter(r => !tripOnly.value || needs.value.longestTripKm == null || meetsNeeds(r.needs, needs.value.maxStops))
       .sort((a, b) => {
         const va = valueOf(a)
         const vb = valueOf(b)
@@ -302,6 +333,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     resetCost,
     needs,
     needsSummary,
+    needsReady,
     tripOnly,
     ranked,
     withoutData,
