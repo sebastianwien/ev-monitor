@@ -199,8 +199,8 @@ html {
 }
 @utility edge-box {
   border: 2px solid var(--color-gray-900);
-  box-shadow: 3px 3px 0 0 var(--color-gray-900);
-  @variant dark { border-color: var(--color-gray-200); box-shadow: 3px 3px 0 0 #000; }
+  box-shadow: 2px 2px 0 0 var(--color-gray-900);
+  @variant dark { border-color: var(--color-gray-200); box-shadow: 2px 2px 0 0 #000; }
 }
 /* Landing CTA: force the crisp bottom-right 3D shadow (overrides btn-3d default,
    keeps the :active press via higher pseudo-class specificity) */
