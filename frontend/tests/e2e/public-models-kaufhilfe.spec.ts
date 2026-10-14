@@ -94,14 +94,14 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
       await setSlider(page, 'longTrip', 250);
       await expect(firstHint).toContainText(/Ladestopp|nicht bewertbar/);
-      // no figure in the guest line: the stop count and time stand blurred as a fixed stand-in
+      // no figure in the guest line: only the verdict, the stop count and time wait behind one lock line
       await expect(firstHint).not.toContainText(/Tage|Wochen/);
       await expect(page.getByTestId('needs-trip-title')).toContainText('250 km');
       await expect(firstHint).toContainText('250 km');
-      // the card names the three answers behind the unlock; the commute figure waits in each row too
+      // the card names the three answers behind the unlock; each row has one lock line for them
       await expect(page.getByTestId('needs-locked').locator('li')).toHaveCount(3);
       await answerCommute(page, 40, 3);
-      await expect(rows(page).first().getByTestId('needs-locked-commute')).toBeVisible();
+      await expect(rows(page).first().getByTestId('needs-locked-row')).toBeVisible();
 
       // the open row points to the one gate in the card
       await rows(page).first().locator('button[aria-expanded]').click();

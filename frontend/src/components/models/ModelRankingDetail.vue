@@ -1,19 +1,19 @@
 <template>
   <div class="grid gap-5 px-4 pb-5 pt-3 lg:px-5">
-    <!-- 1. The reader's answers first, as on the model page. Guests: the same cards, values blurred, one gate. -->
+    <!-- 1. The reader's answers first, as on the model page. Guests: the same questions with a lock, no stand-in figures, one gate. -->
     <section v-if="answers.length" :aria-label="t('models_ranking.detail.for_you')" data-testid="for-you">
       <h3 class="mb-2 text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ t('models_ranking.detail.for_you') }}</h3>
       <ul class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-green-600/15 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card md:grid md:gap-px md:divide-y-0 dark:divide-green-500/15 dark:bg-green-500/15" :class="COLS[answers.length]">
         <li v-for="a in answers" :key="a.key" class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-3.5 md:grid-cols-1 md:gap-2 dark:bg-gray-900" :data-testid="a.locked ? 'for-you-locked' : 'for-you-answer'">
           <span class="grid h-9 w-9 place-items-center rounded-full" :class="a.tone"><component :is="a.icon" class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid min-w-0 content-start gap-0.5">
-            <p class="text-[13px] text-gray-600 dark:text-gray-400">{{ a.label }}</p>
-            <p v-if="a.locked" class="flex items-center gap-1.5 text-gray-900 dark:text-gray-100">
-              <span class="select-none text-[22px] font-extrabold leading-tight tracking-tight blur-[5px]" aria-hidden="true">{{ a.dummy }}</span>
+          <div class="grid min-w-0 content-start gap-0.5" :class="a.locked && 'self-center md:self-start'">
+            <p v-if="a.locked" class="flex items-center gap-1.5 text-[15px] font-medium text-gray-900 dark:text-gray-100">
+              {{ a.label }}
               <LockClosedIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" aria-hidden="true" />
               <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
             </p>
             <template v-else>
+              <p class="text-[13px] text-gray-600 dark:text-gray-400">{{ a.label }}</p>
               <p class="text-[22px] font-extrabold leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ a.value }}</p>
               <p v-for="line in a.sub" :key="line" class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ line }}</p>
             </template>
@@ -126,7 +126,7 @@ const COLS: Record<number, string> = { 1: 'md:grid-cols-1', 2: 'md:grid-cols-2',
 const cap = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1)
 
 // ── 1. The reader's answers ────────────────────────────────────────────────
-interface Answer { key: string; icon: Component; tone: string; label: string; value?: string; sub?: string[]; locked?: boolean; dummy?: string }
+interface Answer { key: string; icon: Component; tone: string; label: string; value?: string; sub?: string[]; locked?: boolean }
 const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
 const answers = computed<Answer[]>(() => {
   const n = props.item.needs
@@ -142,7 +142,7 @@ const answers = computed<Answer[]>(() => {
       label: t(c.homeCharging ? 'models_ranking.detail.charge_label' : 'models_ranking.detail.charge_label_public'),
       value: cap(summer),
       sub: [summer !== winter ? t('models_ranking.detail.charge_winter', { value: winter }) : t('models_ranking.detail.charge_same')],
-      locked: lock, dummy: t('models_ranking.detail.charge_dummy'),
+      locked: lock,
     })
   }
   if (n.trip && tripParams.value) {
@@ -151,7 +151,7 @@ const answers = computed<Answer[]>(() => {
       label: t('models_ranking.detail.trip_label', tripParams.value),
       value: cap(n.trip.stops === 0 ? t('models_ranking.row.stops_none') : t('models_ranking.row.stops_word', { count: formatNumber(n.trip.stops) }, n.trip.stops)),
       sub: [t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })],
-      locked: lock, dummy: t('models_ranking.row.locked_trip_dummy'),
+      locked: lock,
     })
   }
   const cost = props.item.monthlyCostEur
@@ -167,7 +167,7 @@ const answers = computed<Answer[]>(() => {
           amount: formatCurrency(Math.abs(year), { decimals: 0 }), fuel: fuelLabel.value,
         })] : []),
       ],
-      locked: lock, dummy: t('models_ranking.detail.monthly_dummy'),
+      locked: lock,
     })
   }
   return out

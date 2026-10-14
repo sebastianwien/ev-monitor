@@ -57,11 +57,10 @@
         <span v-if="hintLines.length" class="grid min-w-0 gap-0.5" data-testid="needs-hint">
           <span v-for="line in hintLines" :key="line.key" class="flex min-w-0 items-start gap-1.5" :data-testid="line.testid">
             <i v-if="tripStatusClass" class="mt-[7px] h-2 w-2 flex-none rounded-full" :class="line.key === 'trip' ? tripStatusClass : 'invisible'" aria-hidden="true"></i>
-            <!-- Guests see where the figure will stand: a fixed stand-in, blurred, never the real value -->
-            <span v-if="line.locked" class="flex min-w-0 items-center gap-1.5">
-              <span class="flex-none whitespace-nowrap">{{ line.label }}</span>
-              <span class="min-w-0 select-none truncate blur-[3px]" aria-hidden="true">{{ line.dummy }}</span>
-              <LockClosedIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            <!-- Guests: one quiet line for all personal figures, no stand-in; the gate is in the open row -->
+            <span v-if="line.locked" class="flex min-w-0 items-center gap-1.5 text-[13px] font-normal text-gray-500 dark:text-gray-400">
+              <LockClosedIcon class="h-4 w-4 flex-none" aria-hidden="true" />
+              <span class="truncate">{{ line.text }}</span>
               <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
             </span>
             <span v-else class="line-clamp-2 lg:line-clamp-none">{{ line.text }}</span>
@@ -205,7 +204,7 @@ const dataBasis = computed(() => {
 // Needs check per row, the server's figures on the largest battery (same calculation as the model page).
 // Each part only once answered: the commute (km, days) and the longest trip.
 const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
-interface HintLine { key: 'commute' | 'trip' | 'cost'; text?: string; locked?: boolean; label?: string; dummy?: string; testid?: string }
+interface HintLine { key: 'commute' | 'trip' | 'cost' | 'locked'; text?: string; locked?: boolean; testid?: string }
 const needsLines = computed<HintLine[]>(() => {
   const n = props.item.needs
   if (!n) return props.answered && props.needsReady ? [{ key: 'trip', text: t('models_ranking.row.needs_unrated') }] : []
@@ -232,37 +231,23 @@ const needsLines = computed<HintLine[]>(() => {
   // lines start with a capital, whatever building block comes first
   return parts.map(p => ({ ...p, text: p.text!.charAt(0).toLocaleUpperCase() + p.text!.slice(1) }))
 })
-/** The lines under the name: commute, trip and the month's cost; for guests the personal figures as stand-ins */
+/** The lines under the name: commute, trip and the month's cost; for guests the trip verdict and one lock line */
 const hintLines = computed<HintLine[]>(() => {
   const cost = props.item.monthlyCostEur
   if (!props.locked) {
     return cost == null ? needsLines.value
       : [...needsLines.value, { key: 'cost', text: t('models_ranking.row.cost_line', { cost: formatCurrency(Math.round(cost), { decimals: 0 }) }) }]
   }
+  const n = props.item.needs
   const lines: HintLine[] = []
-  if (lockedCommute.value) lines.push({ key: 'commute', locked: true, label: t('models_ranking.row.commute_label'), dummy: t('models_ranking.row.locked_dummy'), testid: 'needs-locked-commute' })
-  const trip = lockedTrip.value
-  if (trip) lines.push({ key: 'trip', testid: 'needs-hint-trip', ...trip })
-  if (cost != null) lines.push({ key: 'cost', locked: true, label: t('models_ranking.row.cost_label'), dummy: t('models_ranking.detail.monthly_dummy'), testid: 'needs-locked-cost' })
+  if (!n && props.answered && props.needsReady) lines.push({ key: 'trip', text: t('models_ranking.row.needs_unrated') })
+  // The verdict is free: whether the trip needs a stop at all. Count and time are personal.
+  if (n?.trip && tripParams.value) {
+    lines.push({ key: 'trip', testid: 'needs-hint-trip', text: t(`models_ranking.row.${n.trip.stops === 0 ? 'locked_ok' : 'locked_stop'}`, tripParams.value) })
+  }
+  if (n?.commute || n?.trip || cost != null) lines.push({ key: 'locked', locked: true, text: t('models_ranking.row.locked_answers'), testid: 'needs-locked-row' })
   return lines
 })
-/**
- * Guest trip line, the pattern of the other two: whether the trip needs a stop at all as the label,
- * the count and the time as a blurred stand-in; never the real figures. A model without figures says so.
- */
-const lockedTrip = computed<Pick<HintLine, 'text' | 'locked' | 'label' | 'dummy'> | null>(() => {
-  const n = props.item.needs
-  if (!n) return props.answered && props.needsReady ? { text: t('models_ranking.row.needs_unrated') } : null
-  if (!n.trip || !tripParams.value) return null
-  const none = n.trip.stops === 0
-  return {
-    locked: true,
-    label: t(`models_ranking.row.${none ? 'locked_ok' : 'locked_stop'}`, tripParams.value),
-    dummy: t(none ? 'models_ranking.row.locked_trip_dummy_ok' : 'models_ranking.row.locked_trip_dummy'),
-  }
-})
-/** A guest who answered the commute: the row shows where that figure will stand */
-const lockedCommute = computed(() => props.item.needs?.commute != null)
 // Dot in front of the hint: green when the largest battery makes the trip within the allowed stops,
 // orange when not, grey for a model without figures. No trip answered, no dot.
 const tripStatusClass = computed<string | null>(() => {
