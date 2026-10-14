@@ -45,6 +45,10 @@ export interface RankedModel {
   savingsPer100kmEur: number | null
   /** On the commute (km a day × days × COMMUTE_WEEKS_PER_YEAR); null until the commute is answered */
   savingsPerYearEur: number | null
+  /** Charging cost a month at the reader's mileage (km a year, else the commute); null until one is answered */
+  monthlyCostEur: number | null
+  /** The monthly distance that cost rests on */
+  monthlyKm: number | null
   /** Litres per 100 km the comparison assumed for this model's class; null without a comparison */
   combustionLitersPer100km: number | null
   /** All values of this model come from one driver */
@@ -217,6 +221,9 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     const weekly = commuteKmPerWeek(needs.value)
     return weekly != null ? weekly * COMMUTE_WEEKS_PER_YEAR : null
   })
+  /** The month's distance: the yearly mileage when answered, as on the model page, else the commute */
+  const monthlyKm = computed(() => needs.value.annualKm != null ? needs.value.annualKm / 12
+    : commuteKmPerYear.value != null ? commuteKmPerYear.value / 12 : null)
   /** Blended electricity price in EUR/kWh the row costs are based on */
   const price = computed(() => mixedPricePerKwh(cost.value, homeShare.value))
   const combustion = computed(() => combustionMarket.value ? cost.value : { ...cost.value, fuelPricePerLiter: null })
@@ -233,6 +240,8 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
       costPer100kmEur,
       savingsPer100kmEur,
       savingsPerYearEur: savingsPer100kmEur != null && commuteKmPerYear.value != null ? savingsPerYear(savingsPer100kmEur, commuteKmPerYear.value) : null,
+      monthlyCostEur: costPer100kmEur != null && monthlyKm.value != null ? costPer100kmEur * monthlyKm.value / 100 : null,
+      monthlyKm: monthlyKm.value,
       combustionLitersPer100km: savingsPer100kmEur != null ? combustionLiters(combustion.value, m.category) : null,
       singleDriver: m.contributorCount === 1,
       needs: assessModel(m, needs.value),

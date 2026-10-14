@@ -2,8 +2,9 @@
   <!-- A question the reader was sent back to ("freischalten" with open sliders) is marked until answered -->
   <div :id="id" class="grid gap-1 rounded-2xl motion-safe:transition-shadow"
        :class="highlight ? 'ring-2 ring-green-600 ring-offset-4 ring-offset-white dark:ring-green-500 dark:ring-offset-gray-900' : ''">
-    <div class="flex items-baseline justify-between gap-3">
-      <label :for="`${id}-input`" class="min-w-0 text-[15px] font-semibold text-gray-900 dark:text-gray-100">{{ label }}</label>
+    <!-- compact (the ranking's one-row strip from xl): label above the value, no min/max line -->
+    <div class="flex items-baseline justify-between gap-3" :class="compact ? 'xl:grid xl:justify-start xl:gap-0.5' : ''">
+      <label :for="`${id}-input`" class="min-w-0 text-[15px] font-semibold text-gray-900 dark:text-gray-100" :class="compact ? 'xl:text-[13px] xl:leading-snug xl:text-gray-700 xl:dark:text-gray-300' : ''">{{ label }}</label>
       <output :for="`${id}-input`" class="flex-none whitespace-nowrap text-[17px] font-bold tabular-nums"
               :class="shown == null ? 'font-medium text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'"
               :data-testid="`slider-${testKey}-value`">
@@ -22,7 +23,7 @@
            @change="commit(Number(($event.target as HTMLInputElement).value))"
            @pointerup="settle($event, true)"
            @blur="settle($event, false)" />
-    <p class="-mt-1 flex justify-between gap-2 text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">
+    <p class="-mt-1 flex justify-between gap-2 text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400" :class="compact ? 'xl:hidden' : ''">
       <span aria-hidden="true">{{ format(min) }}</span>
       <span v-if="detail && shown != null" class="text-gray-700 dark:text-gray-300" :data-testid="`slider-${testKey}-detail`">{{ detail(shown) }}</span>
       <span aria-hidden="true">{{ format(max) }}</span>
@@ -52,6 +53,8 @@ const props = defineProps<{
   /** between the scale ends once answered: "4.500 km im Jahr" */
   detail?: (value: number) => string
   highlight?: boolean
+  /** From xl the label sits above the value and the min/max line goes, so five sliders fit one row */
+  compact?: boolean
 }>()
 const emit = defineEmits<{ commit: [value: number] }>()
 const { t } = useI18n()

@@ -7,9 +7,9 @@
 
     <p v-if="summary.total === 0" class="text-[14px] text-gray-700 dark:text-gray-300" data-testid="needs-summary">{{ t('models_ranking.needs.summary_empty') }}</p>
 
-    <div class="grid items-end gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="grid items-end gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-x-5">
       <ProfileSlider v-for="q in sliders" :key="q.key" :id="`${idBase}-${q.key}`" :test-key="`needs-${q.key}`" :label="q.label"
-                     :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail"
+                     :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail" compact
                      @commit="v => answer(q.key, v)" />
     </div>
 
@@ -19,14 +19,15 @@
       <!-- The trip: how many models make it with how many stops is free, which ones is not. Signed in
            a chip filters the list to its models (the active one shows all again); a guest's chip
            opens the gate, and once through the list filters to that chip. -->
-      <div v-if="hasTrip && summary.total > 0" class="flex flex-wrap items-center gap-2" role="group" :aria-labelledby="tripTitleId" data-testid="needs-trip-answer">
-        <span :id="tripTitleId" class="basis-full font-semibold text-gray-900 dark:text-gray-100" data-testid="needs-trip-title">{{ t('models_ranking.needs.trip_title', { longest: longestShown, unit: distanceUnitLabel() }) }}</span>
+      <div v-if="hasTrip && summary.total > 0" class="grid gap-2" role="group" :aria-labelledby="tripTitleId" data-testid="needs-trip-answer">
+        <span :id="tripTitleId" class="font-semibold text-gray-900 dark:text-gray-100" data-testid="needs-trip-title">{{ t('models_ranking.needs.trip_title', { longest: longestShown, unit: distanceUnitLabel() }) }}</span>
+        <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex items-center gap-2 overflow-x-auto px-4 py-0.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
         <button
           v-for="tile in stopTiles"
           :key="tile.stops"
           type="button"
-          class="btn-3d cta-shadow-sm inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-gray-900 px-3 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-45 dark:border-gray-200"
-          :class="tile.active ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-white text-gray-800 dark:bg-gray-900 dark:text-gray-200'"
+          class="inline-flex min-h-9 flex-none items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13.5px] font-medium disabled:cursor-not-allowed disabled:opacity-40"
+          :class="tile.active ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-gray-200/70 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'"
           :aria-pressed="tile.active"
           :disabled="tile.count === 0"
           :data-testid="`needs-stops-${tile.stops}`"
@@ -35,23 +36,31 @@
           {{ t('models_ranking.needs.trip_tile', { count: formatNumber(tile.stops) }, tile.stops) }}
           <b class="font-extrabold tabular-nums">{{ formatNumber(tile.count) }}</b>
         </button>
-        <button v-if="tripOnly" type="button" class="min-h-9 px-1 font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="needs-show-all" @click="emit('trip', null)">{{ t('models_ranking.needs.show_all') }}</button>
+        <button v-if="tripOnly" type="button" class="min-h-9 flex-none whitespace-nowrap px-1 font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="needs-show-all" @click="emit('trip', null)">{{ t('models_ranking.needs.show_all') }}</button>
+        </div>
       </div>
 
-      <!-- The commute: guests see where the figure will stand, signed in the wallbox question
-           follows, as on the model page; until it is answered the figures count home charging -->
-      <div v-if="hasCommute && locked" class="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="needs-commute-answer">
-        <span class="flex min-w-0 items-center gap-1.5 text-gray-900 dark:text-gray-100" data-testid="needs-locked">
-          <span class="flex-none font-semibold">{{ t('models_ranking.row.commute_label') }}</span>
-          <span class="min-w-0 select-none truncate blur-[3px]" aria-hidden="true">{{ t('models_ranking.row.locked_dummy') }}</span>
-          <LockClosedIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" aria-hidden="true" />
-          <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
-        </span>
-        <button v-if="!gateOpen" type="button" class="btn-3d cta-shadow-sm inline-flex min-h-10 items-center rounded-xl border-2 border-gray-900 bg-green-600 px-3.5 text-[14px] font-bold text-white hover:bg-green-700 dark:border-gray-200" data-testid="needs-unlock" @click="openGate">
-          <LockOpenIcon class="mr-1.5 h-5 w-5" aria-hidden="true" />{{ t('models_ranking.needs.locked_cta') }}
-        </button>
+      <!-- Guests: the questions the gate answers for every model, each with a blurred stand-in and the
+           lock, as the model page lists its answers. Signed in, the wallbox question follows the commute. -->
+      <div v-if="locked && hasAnswers" class="grid gap-2.5" data-testid="needs-locked">
+        <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('models_ranking.needs.promise_title') }}</p>
+        <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-5">
+          <ul class="grid grid-cols-3 gap-2">
+            <li v-for="q in promises" :key="q.key" class="grid content-between gap-2 rounded-2xl bg-gray-100/80 p-3 dark:bg-gray-800/60">
+              <span class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">{{ q.text }}</span>
+              <span class="flex items-center gap-1.5">
+                <span class="select-none whitespace-nowrap text-[16px] font-extrabold leading-none tracking-tight text-gray-900 blur-[4px] md:text-[18px] dark:text-gray-100" aria-hidden="true">{{ q.dummy }}</span>
+                <LockClosedIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" aria-hidden="true" />
+                <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
+              </span>
+            </li>
+          </ul>
+          <button v-if="!gateOpen" type="button" class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center justify-self-start rounded-xl border-2 border-gray-900 bg-green-600 px-4 text-[15px] font-bold text-white hover:bg-green-700 max-md:w-full dark:border-gray-200" data-testid="needs-unlock" @click="openGate">
+            <LockOpenIcon class="mr-1.5 h-5 w-5" aria-hidden="true" />{{ t('models_ranking.needs.locked_cta') }}
+          </button>
+        </div>
       </div>
-      <div v-else-if="hasCommute" class="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="needs-commute-answer">
+      <div v-if="!locked && hasCommute" class="flex flex-wrap items-center gap-x-3 gap-y-2" data-testid="needs-commute-answer">
         <span :id="homeId" class="font-semibold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</span>
         <div :class="segmented" class="w-[150px] grid-cols-2" role="group" :aria-labelledby="homeId" data-testid="needs-home">
           <button
@@ -115,6 +124,8 @@ const FORMAT: Record<ProfileKey, (v: number) => string> = {
 const sliders = computed(() => PROFILE_KEYS.map(key => ({
   key,
   ...PROFILE_SLIDERS[key],
+  // motorway km cannot exceed the yearly mileage once that is answered
+  ...(key === 'highwayKm' && props.modelValue.annualKm != null ? { max: props.modelValue.annualKm } : {}),
   label: t(`model.page.q_${key}`),
   value: props.modelValue[NEEDS_FIELD[key]],
   format: FORMAT[key],
@@ -126,8 +137,6 @@ function answer(key: ProfileKey, value: number) {
   emit('update:modelValue', { ...props.modelValue, [NEEDS_FIELD[key]]: value })
 }
 
-  // motorway km cannot exceed the yearly mileage once that is answered
-  ...(key === 'highwayKm' && props.modelValue.annualKm != null ? { max: props.modelValue.annualKm } : {}),
 /** "Ändern" in the sticky list header brings the reader back here: the first open slider, else the first */
 function focusFirst() {
   const key = PROFILE_KEYS.find(k => props.modelValue[NEEDS_FIELD[k]] == null) ?? PROFILE_KEYS[0]
@@ -171,11 +180,29 @@ const longestShown = computed(() => props.modelValue.longestTripKm == null ? '' 
 /** The longest trip alone gives the stop chips; the commute needs km and days (home charging counts until answered) */
 const hasTrip = computed(() => props.modelValue.longestTripKm != null)
 const hasCommute = computed(() => props.modelValue.dailyKm != null && props.modelValue.commuteDays != null)
+/** Any slider the list answers with: commute, trip, or the yearly mileage the monthly cost rests on */
+const hasAnswers = computed(() => hasTrip.value || hasCommute.value || props.modelValue.annualKm != null)
+
+/** What the gate answers for every model: how often to charge, stops on the trip, the month's cost */
+const promises = computed(() => [
+  { key: 'charge', text: t('models_ranking.needs.promise_charge'), dummy: t('models_ranking.needs.promise_charge_dummy') },
+  {
+    key: 'stops',
+    text: hasTrip.value
+      ? t('models_ranking.needs.promise_stops', { longest: longestShown.value, unit: distanceUnitLabel() })
+      : t('models_ranking.needs.promise_stops_open'),
+    dummy: t('models_ranking.needs.promise_stops_dummy'),
+  },
+  { key: 'cost', text: t('models_ranking.needs.promise_cost'), dummy: t('models_ranking.needs.promise_cost_dummy') },
+])
 
 /** At most five chips: from one before the first count above zero (the "none yet" context) up to the
     first that every model reaches, more stops add nothing */
 const MAX_CHIPS = 5
 const stopTiles = computed(() => {
+  const within = (stops: number) => props.summary.tripOkWithin[stops] ?? 0
+  let first = 0
+  while (first < MAX_STOPS && within(first) === 0) first++
   const tiles: { stops: number; count: number; active: boolean }[] = []
   for (let stops = Math.max(0, first - 1); stops <= MAX_STOPS && tiles.length < MAX_CHIPS; stops++) {
     const count = within(stops)
@@ -194,6 +221,3 @@ const homeOptions = computed(() => [
   { value: false, label: t('personal_range.wallbox_no') },
 ])
 </script>
-  const within = (stops: number) => props.summary.tripOkWithin[stops] ?? 0
-  let first = 0
-  while (first < MAX_STOPS && within(first) === 0) first++

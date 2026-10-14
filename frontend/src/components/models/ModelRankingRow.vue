@@ -124,7 +124,13 @@
           <dt class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
             <component :is="kv.icon" class="h-4 w-4 flex-none" aria-hidden="true" />{{ kv.label }}
           </dt>
-          <dd class="flex flex-wrap items-baseline gap-x-1 leading-tight text-gray-900 dark:text-gray-100">
+          <!-- A guest's personal figure: a fixed stand-in, blurred, and the lock; never the real value -->
+          <dd v-if="kv.locked" class="flex items-center gap-1.5 leading-tight text-gray-900 dark:text-gray-100" data-testid="fact-locked">
+            <span class="select-none text-[20px] font-extrabold tracking-tight blur-[4px]" aria-hidden="true">{{ t('models_ranking.detail.monthly_dummy') }}</span>
+            <LockClosedIcon class="h-4 w-4 flex-none text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
+          </dd>
+          <dd v-else class="flex flex-wrap items-baseline gap-x-1 leading-tight text-gray-900 dark:text-gray-100">
             <span class="text-[20px] font-extrabold tracking-tight tabular-nums">{{ valueParts(kv.value)[0] }}</span>
             <span v-if="valueParts(kv.value)[1]" class="whitespace-nowrap text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ valueParts(kv.value)[1] }}</span>
           </dd>
@@ -465,11 +471,20 @@ const facts = computed(() => {
       value: costLabel.value,
       hint: t('models_ranking.detail.cost_hint', { price: formatCostPerKwh(props.price) }),
     },
+    // The month's cost at the reader's mileage: personal, so behind the gate like on the model page
+    ...(props.item.monthlyCostEur != null && props.item.monthlyKm != null ? [{
+      icon: BanknotesIcon,
+      label: t('models_ranking.detail.monthly'),
+      value: props.locked ? '' : formatCurrency(Math.round(props.item.monthlyCostEur), { decimals: 0 }),
+      hint: t('models_ranking.detail.monthly_hint', { km: fmtKmUnit(Math.round(props.item.monthlyKm / 10) * 10) }),
+      locked: props.locked,
+    }] : []),
     ...(props.item.savingsPer100kmEur != null ? [{
       icon: BanknotesIcon,
       label: t('models_ranking.detail.savings', { fuel: fuelLabel.value, liters: litersLabel.value, unit: distanceUnitLabel() }),
       value: savingsParams.value?.amount ?? '',
-      hint: props.item.savingsPerYearEur != null
+      // the yearly figure rests on the reader's commute: personal, so not for guests
+      hint: props.item.savingsPerYearEur != null && !props.locked
         ? t(props.item.savingsPerYearEur >= 0 ? 'models_ranking.detail.savings_year_cheaper' : 'models_ranking.detail.savings_year_dearer', {
             amount: formatCurrency(Math.abs(props.item.savingsPerYearEur), { decimals: 0 }),
           })
