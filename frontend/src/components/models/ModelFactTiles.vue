@@ -27,16 +27,15 @@
         <dd v-if="fact.note" class="text-[14px] leading-snug text-gray-600 md:text-[16px] dark:text-gray-400">
           <template v-if="noteParts(fact)">{{ keepUnits(noteParts(fact)!.before) }}<span class="whitespace-nowrap"><b class="text-[20px] font-extrabold leading-none tracking-tight tabular-nums text-gray-900 md:text-[24px] dark:text-gray-100">{{ fact.noteFigure!.value }}</b>&nbsp;<span class="text-[13px] font-semibold text-gray-500 md:text-[15px] dark:text-gray-400">{{ fact.noteFigure!.unit }}</span></span>{{ keepUnits(noteParts(fact)!.after) }}</template>
           <template v-else>{{ keepUnits(fact.note) }}</template>
-          <template v-if="fact.noteLine && fact.noteSoc">
+          <template v-if="fact.noteSoc">
             <!-- the battery window as the gauge draws it -->
             <span class="mt-1 flex items-center gap-1 font-semibold text-gray-500 dark:text-gray-400" aria-hidden="true">
               <Battery0Icon class="h-[18px] w-[18px]" /><span>{{ fact.noteSoc.from }} %</span>
               <ArrowRightIcon class="h-3.5 w-3.5" />
               <Battery100Icon class="h-[18px] w-[18px]" /><span>{{ fact.noteSoc.to }} %</span>
             </span>
-            <span class="sr-only">{{ fact.noteLine }}</span>
+            <span class="sr-only">{{ fact.noteSoc.text }}</span>
           </template>
-          <span v-else-if="fact.noteLine" class="block">{{ keepUnits(fact.noteLine) }}</span>
         </dd>
       </div>
     </dl>

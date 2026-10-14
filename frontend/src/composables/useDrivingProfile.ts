@@ -19,6 +19,15 @@ export const PROFILE_SLIDERS: Record<ProfileKey, SliderRange> = {
 }
 export const PROFILE_KEYS = Object.keys(PROFILE_SLIDERS) as ProfileKey[]
 
+/** The field of the answers behind each slider */
+const FIELD = {
+  annualKm: 'annualKm',
+  highwayShare: 'highwayShare',
+  commute: 'commuteKmPerDay',
+  commuteDays: 'commuteDays',
+  longTrip: 'longTripKm',
+} as const satisfies Record<ProfileKey, string>
+
 /** Onto the slider: within its range and on its step */
 function snap(key: ProfileKey, value: number): number {
   const s = PROFILE_SLIDERS[key]
@@ -48,23 +57,11 @@ export function useDrivingProfile(query: LocationQuery, modelName: () => string)
   const openQuestions = computed(() => PROFILE_KEYS.filter(k => !answered.has(k)))
 
   function valueOf(key: ProfileKey): number {
-    switch (key) {
-      case 'annualKm': return answers.annualKm
-      case 'highwayShare': return answers.highwayShare
-      case 'commute': return answers.commuteKmPerDay
-      case 'commuteDays': return answers.commuteDays
-      case 'longTrip': return answers.longTripKm
-    }
+    return answers[FIELD[key]]
   }
 
   function set(key: ProfileKey, value: number) {
-    switch (key) {
-      case 'annualKm': answers.annualKm = value; break
-      case 'highwayShare': answers.highwayShare = value; break
-      case 'commute': answers.commuteKmPerDay = value; break
-      case 'commuteDays': answers.commuteDays = value; break
-      case 'longTrip': answers.longTripKm = value; break
-    }
+    answers[FIELD[key]] = value
     answered.add(key)
   }
 

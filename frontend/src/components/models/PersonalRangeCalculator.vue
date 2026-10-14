@@ -180,18 +180,9 @@
 
     <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
-    <!-- Phone: a slim bar while the box's own button is out of view, until the answers are open; it slides up from below and back down -->
-    <Teleport to="body">
-      <Transition name="bar">
-      <div v-if="showBar" class="fixed inset-x-0 z-40 px-3 md:hidden" :class="authStore.token ? 'bottom-[calc(env(safe-area-inset-bottom)+68px)]' : 'bottom-[calc(env(safe-area-inset-bottom)+12px)]'" data-testid="unlock-bar">
-        <button type="button" class="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gray-900 px-4 text-[15px] font-bold text-white shadow-lg shadow-gray-900/25 dark:bg-gray-100 dark:text-gray-900"
-                @click="fromBar">
-          <LockOpenIcon class="h-5 w-5 text-green-400 dark:text-green-600" aria-hidden="true" />
-          {{ authStore.token ? t('personal_range.show') : t('personal_range.bar_cta') }}
-        </button>
-      </div>
-      </Transition>
-    </Teleport>
+    <!-- Phone: a slim bar while the box's own button is out of view, until the answers are open -->
+    <UnlockBar :label="authStore.token ? t('personal_range.show') : t('personal_range.bar_cta')" :signed-in="!!authStore.token"
+               :active="!result" :box="root" :action="action" :entry="entry" :nudged="openCount < startOpen" @press="fromBar" />
   </section>
 </template>
 
@@ -201,12 +192,13 @@ import { useI18n } from 'vue-i18n'
 import { ArrowRightIcon, BanknotesIcon, Battery0Icon, Battery100Icon, BoltIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, CloudIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, MapIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
 import ProfileSlider from './ProfileSlider.vue'
+import UnlockBar from './UnlockBar.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
 import { chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
 import { scrollToElement } from '../../utils/smoothScroll'
-import { fastStop } from '../../utils/modelStory'
+import { fastStop, MIN_MEASURED_CARS } from '../../utils/modelStory'
 import {
   personalRangeService,
   type PersonalRangeAssumption,
@@ -248,8 +240,6 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 const { formatNumber, formatDistance, formatCurrency, formatConsumption, formatCostPerKwh, formatCostPerDistance, formatDecimal } = useLocaleFormat()
 
-/** Below this many cars the box does not advertise measured data (same as the backend highway threshold). */
-const MIN_MEASURED_CARS = 5
 /** Pending inputs plus "calculate after login" flag; read once on mount. */
 const STORAGE_KEY = 'personalRange:inputs'
 const RECALC_MS = 400
@@ -387,7 +377,6 @@ async function onAuthenticated() {
   await calculate(true)
 }
 
-/** @param email true right after the gate: the result also goes out as a mail, as the gate promised */
 /** Number of the newest request; an older answer arriving later is dropped */
 let requestNo = 0
 
@@ -433,31 +422,10 @@ watch(() => ({ ...props.inputs }), () => {
   timer = setTimeout(() => { void calculate() }, RECALC_MS)
 }, { deep: true })
 
-// The phone bar shows while the box's own button (or sign-in) is out of view and the answers are still locked.
-// The box's head alone does not hide it: the button sits at the bottom of the box.
+// The phone bar: the box, its button and whether a slider moved since the page opened
 const root = ref<HTMLElement | null>(null)
 const action = ref<HTMLElement | null>(null)
-const actionVisible = ref(true)
-/** The bar waits until the entry heading stands above it, the box was seen or a slider moved, so it does not cover the page on arrival */
-const engaged = ref(false)
 const startOpen = props.openCount
-watch(() => props.openCount, n => { if (n < startOpen) engaged.value = true })
-let observer: IntersectionObserver | null = null
-let entryObserver: IntersectionObserver | null = null
-/** Where the bar's top edge sits above the bottom of the screen: 12 px margin plus the 48 px bar; signed in it rides above the footer bar */
-const barTopPx = computed(() => authStore.token ? 116 : 60)
-const showBar = computed(() => !result.value && !actionVisible.value && engaged.value)
-/** Locked and gate each have their own action element: follow whichever is rendered */
-watch(action, (el, old) => {
-  if (old) observer?.unobserve(old)
-  if (el) observer?.observe(el)
-  else actionVisible.value = false
-})
-/** The page sets its ref to the heading only after this component mounted */
-watch(() => props.entry, (el, old) => {
-  if (old) entryObserver?.unobserve(old)
-  if (el) entryObserver?.observe(el)
-})
 
 function fromBar() {
   if (root.value) scrollToElement(root.value)
@@ -465,21 +433,6 @@ function fromBar() {
 }
 
 onMounted(async () => {
-  if (root.value && typeof IntersectionObserver !== 'undefined') {
-    observer = new IntersectionObserver(entries => {
-      for (const e of entries) {
-        if (e.target === root.value && e.isIntersecting) engaged.value = true
-        if (e.target === action.value) actionVisible.value = e.isIntersecting
-      }
-    })
-    observer.observe(root.value)
-    // the entry heading counts once it stands wholly above the bar's top edge, or has already passed out above
-    entryObserver = new IntersectionObserver(entries => {
-      for (const e of entries) if (e.isIntersecting || e.boundingClientRect.bottom <= 0) engaged.value = true
-    }, { rootMargin: `0px 0px -${barTopPx.value}px 0px`, threshold: 1 })
-    if (props.entry) entryObserver.observe(props.entry)
-    if (action.value) observer.observe(action.value)
-  }
   if (!authStore.token) return
   const pending = takePending()
   if (pending) {
@@ -497,8 +450,6 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  observer?.disconnect()
-  entryObserver?.disconnect()
   if (timer) clearTimeout(timer)
 })
 
@@ -524,16 +475,5 @@ function assumptionText(a: PersonalRangeAssumption): string {
   return t(`personal_range.assumption_${a.key}`, { value })
 }
 
-defineExpose({ request })
 </script>
 
-<style scoped>
-/* The unlock bar: up from below the screen edge with a soft landing, down at a similar, calm pace.
-   100% of its height plus the widest bottom offset (signed in it rides above the footer bar) */
-.bar-enter-active { transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.bar-leave-active { transition: transform 0.35s cubic-bezier(0.4, 0, 0.6, 1); }
-.bar-enter-from, .bar-leave-to { transform: translateY(calc(100% + 80px + env(safe-area-inset-bottom))); }
-@media (prefers-reduced-motion: reduce) {
-  .bar-enter-active, .bar-leave-active { transition: none; }
-}
-</style>
