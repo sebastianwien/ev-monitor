@@ -80,6 +80,8 @@
           </ModelFactTiles>
 
           <!-- 3 Driving profile and result: one column on the phone, the result sticky on the right from md up -->
+          <!-- 3 Profile and answers. Locked or gate: sliders left, the box sticky on the right.
+               Open: the answers first over the full width, the sliders below. -->
           <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_380px] md:items-start md:gap-5">
             <ModelBox id="profil" aria-labelledby="profile-title" class="scroll-mt-28" data-testid="driving-profile">
               <div class="grid gap-1.5">
@@ -92,7 +94,7 @@
                                :highlight="highlightKey === q.key" @commit="v => answer(q.key, v)" />
               </div>
             </ModelBox>
-            <div class="md:sticky md:top-24">
+            <div :class="answersOpen ? 'md:order-first md:col-span-2' : 'md:sticky md:top-24'">
               <PersonalRangeCalculator
                 :brand="brand"
                 :model="model"
@@ -104,18 +106,20 @@
                 :petrol="petrolComparison"
                 :fast-price-per-kwh="fastAdHocForMarket ?? stats.dcAvgCostPerKwh"
                 :entry="profileTitle"
+                :follow="profileEl"
                 @profile="applyProfile"
                 @incomplete="showFirstOpen"
                 @home="answerHome"
-                @price="v => answers.pricePerKwh = v" />
+                @price="v => answers.pricePerKwh = v"
+                @open="v => answersOpen = v" />
             </div>
           </div>
 
           <!-- 4 Evidence behind the data sheet -->
           <ModelEvidence v-if="story.evidence.range || story.evidence.routes" :title="t('model.page.evidence_title', { model: shortModelName })" :evidence="story.evidence" />
 
-          <!-- 5 Ratings and more details; side by side from md up -->
-          <div class="grid gap-2 md:gap-5" :class="ratings ? 'md:grid-cols-2 md:items-start' : ''">
+          <!-- 5 Ratings and more details; side by side only while there are no ratings yet (CTA only) -->
+          <div class="grid gap-2 md:gap-5" :class="ratings && ratings.count === 0 ? 'md:grid-cols-2 md:items-start' : ''">
             <ModelRatingsBlock
               v-if="ratings"
               :ratings="ratings"
@@ -336,6 +340,10 @@ const apiError = ref(false)
 const showBackPill = ref(false)
 /** The profile heading; once it has scrolled above the calculator's phone bar, the bar comes */
 const profileTitle = ref<HTMLElement | null>(null)
+/** the sliders box (the heading's section); the figures follow the reader while it is in view */
+const profileEl = computed(() => profileTitle.value?.closest('section') ?? null)
+/** answers open: the box moves above the sliders, over the full width */
+const answersOpen = ref(false)
 const stats = ref<PublicModelStats | null>(null)
 /** Fahrerbewertungen, null bis geladen oder bei Fehler - die Seite funktioniert auch ohne. */
 const ratings = ref<PublicModelRatings | null>(null)

@@ -63,7 +63,7 @@
       <div ref="action"><InlineGate plain :consent="t('personal_range.gate_privacy')" :placement="`modell:${brand}/${model}`" @authenticated="onAuthenticated" /></div>
     </template>
 
-    <!-- Result: four answers, then the two assumptions to play with -->
+    <!-- Result: four answers; wallbox and price live in ProfileTune beside the sliders -->
     <template v-else-if="result">
       <div class="flex items-center gap-3">
         <span class="grid h-12 w-12 flex-none place-items-center rounded-full bg-green-600 text-white"><LockOpenIcon class="h-6 w-6" aria-hidden="true" /></span>
@@ -71,14 +71,14 @@
       </div>
 
       <p class="sr-only" role="status">{{ busy ? t('personal_range.calculating') : '' }}</p>
-      <!-- One answer per row, as a sentence; the figure is the loud part -->
-      <ul v-if="answer" class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-opacity max-md:edge-card dark:divide-green-500/15 dark:bg-gray-900" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-winter">
+      <!-- One answer per row, as a sentence; the figure is the loud part. From md up two by two, the gap draws the lines -->
+      <ul ref="answers" v-if="answer" class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-green-600/15 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-opacity max-md:edge-card md:grid md:grid-cols-2 md:gap-px md:divide-y-0 dark:divide-green-500/15 dark:bg-green-500/15" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-winter">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"><CloudIcon class="h-5 w-5" aria-hidden="true" /></span>
           <div class="grid gap-1">
             <i18n-t keypath="personal_range.winter_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
               <template #winter><b class="whitespace-nowrap text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.winter }}</b></template>
-              <template #summer><b class="font-bold">{{ answer.summer }}</b></template>
+              <template #summer><br><b class="font-bold">{{ answer.summer }}</b></template>
             </i18n-t>
             <!-- The window both figures rest on, as the gauge in the hero draws it -->
             <p class="flex items-center gap-1 text-[12.5px] font-semibold text-gray-500 dark:text-gray-400">
@@ -88,7 +88,7 @@
             </p>
           </div>
         </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-rhythm">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-rhythm">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300"><BoltIcon class="h-5 w-5" aria-hidden="true" /></span>
           <div class="grid gap-1">
             <i18n-t v-for="row in answer.rhythm" :key="row.key" :keypath="row.key" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
@@ -97,7 +97,7 @@
             <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.rhythmBasis }}</p>
           </div>
         </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-stops">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-stops">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"><MapIcon class="h-5 w-5" aria-hidden="true" /></span>
           <div class="grid gap-1.5">
             <i18n-t keypath="personal_range.stops_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
@@ -107,12 +107,14 @@
             <p class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-400">
               <span class="inline-flex items-center gap-1.5"><ClockIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.driveTime }}</span>
               <span v-if="answer.chargeTime" class="inline-flex items-center gap-1.5"><BoltIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.chargeTime }}</span>
-              <span v-if="answer.tripCost" class="inline-flex items-center gap-1.5"><BanknotesIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.tripCost }}</span>
             </p>
+            <i18n-t v-if="answer.tripCost" keypath="personal_range.trip_cost" tag="p" class="text-[15px] font-medium text-gray-900 dark:text-gray-100">
+              <template #cost><b class="whitespace-nowrap text-[20px] font-extrabold tracking-tight tabular-nums">{{ answer.tripCost }}</b></template>
+            </i18n-t>
             <p v-if="answer.powerEstimated" class="text-[12.5px] text-amber-700 dark:text-amber-400">{{ t('personal_range.power_estimated') }}</p>
           </div>
         </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 px-4 py-4" data-testid="answer-cost">
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-cost">
           <span class="grid h-9 w-9 place-items-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"><BanknotesIcon class="h-5 w-5" aria-hidden="true" /></span>
           <div class="grid gap-1">
             <i18n-t keypath="personal_range.cost_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
@@ -129,39 +131,16 @@
             </template>
           </div>
         </li>
+        <!-- The two assumptions to play with, a tile of their own across both columns -->
+        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:col-span-2 md:px-5 dark:bg-gray-900">
+          <span class="grid h-9 w-9 place-items-center rounded-full bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300"><AdjustmentsHorizontalIcon class="h-5 w-5" aria-hidden="true" /></span>
+          <ProfileTune :model-name="modelName" :inputs="inputs" :community-price="communityPrice" @home="v => emit('home', v)" @price="v => emit('price', v)" />
+        </li>
       </ul>
 
 
-      <!-- The two assumptions to play with, in a card of their own: spacing instead of lines -->
-      <div class="grid gap-6 rounded-2xl bg-white px-4 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900" data-testid="personal-range-tune">
-        <div class="grid justify-items-center gap-3 text-center">
-          <p id="pr-wallbox-q" class="text-[16px] font-bold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
-          <div class="flex justify-center gap-2" role="group" aria-labelledby="pr-wallbox-q">
-            <button v-for="opt in WALLBOX" :key="String(opt)" type="button" :aria-pressed="inputs.homeCharging === opt"
-                    class="inline-flex min-h-11 min-w-[96px] items-center justify-center rounded-full border-2 px-5 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                    :class="inputs.homeCharging === opt
-                      ? 'btn-3d cta-shadow-sm border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
-                      : 'btn-3d cta-shadow-sm border-gray-900 bg-white text-gray-800 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-200'"
-                    :data-testid="`wallbox-${opt ? 'yes' : 'no'}`"
-                    @click="setHome(opt)">
-              {{ opt ? t('personal_range.wallbox_yes') : t('personal_range.wallbox_no') }}
-            </button>
-          </div>
-          <p class="max-w-[36ch] text-balance text-[13px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('personal_range.wallbox_why') }}</p>
-        </div>
-        <div class="grid gap-1">
-          <ProfileSlider v-if="shownPrice != null" id="pr-price" test-key="price" :label="t('personal_range.price_label')"
-                         :min="PRICE.min" :max="PRICE.max" :step="PRICE.step" :start="shownPrice" :value="shownPrice"
-                         :format="v => formatCostPerKwh(v)" @commit="v => emit('price', Math.round(v * 100) / 100)" />
-          <p class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">
-            <template v-if="inputs.pricePerKwh == null">{{ t('personal_range.price_hint_community') }}</template>
-            <button v-else type="button" class="min-h-11 font-semibold text-green-700 underline dark:text-green-400" @click="emit('price', null)">{{ t('personal_range.price_reset') }}</button>
-          </p>
-        </div>
-      </div>
-
       <!-- What the result rests on: a light, centred link that opens the list in a card -->
-      <details class="group -mt-2">
+      <details class="group">
         <summary class="mx-auto flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-[14px] font-semibold text-green-800 hover:underline dark:text-green-300 [&::-webkit-details-marker]:hidden">
           {{ t('personal_range.assumptions_title') }}
           <ChevronDownIcon class="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
@@ -180,6 +159,22 @@
 
     <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
+    <!-- Desktop: the four figures follow the reader down to the sliders once the answers are out of view -->
+    <Teleport to="body">
+      <Transition name="bar">
+        <div v-if="answer && followBar" class="fixed inset-x-0 z-30 hidden justify-center px-4 md:flex" :style="{ top: 'var(--content-top, 0px)' }" data-testid="personal-range-follow">
+          <button type="button" :aria-label="t('personal_range.back_to_result')"
+                  class="mt-2 flex max-w-5xl items-center gap-6 rounded-2xl border border-green-600/20 bg-white/95 px-5 py-2.5 text-[15px] font-semibold text-gray-900 shadow-lg shadow-gray-900/10 backdrop-blur hover:bg-white dark:border-green-500/20 dark:bg-gray-900/95 dark:text-gray-100 dark:hover:bg-gray-900"
+                  :class="busy ? 'opacity-60' : ''" @click="scrollToElement(root!)">
+            <span class="inline-flex items-center gap-1.5"><CloudIcon class="h-5 w-5 text-sky-700 dark:text-sky-300" aria-hidden="true" /><b class="tabular-nums">{{ answer.winter }}</b></span>
+            <span class="inline-flex items-center gap-1.5"><BoltIcon class="h-5 w-5 text-green-700 dark:text-green-300" aria-hidden="true" /><b>{{ answer.rhythm[0]?.value }}</b></span>
+            <span class="inline-flex items-center gap-1.5"><MapIcon class="h-5 w-5 text-amber-700 dark:text-amber-300" aria-hidden="true" /><b>{{ answer.times }}</b></span>
+            <span class="inline-flex items-center gap-1.5"><BanknotesIcon class="h-5 w-5 text-gray-600 dark:text-gray-300" aria-hidden="true" /><b class="tabular-nums">{{ answer.cost }}</b></span>
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Phone: a slim bar while the box's own button is out of view, until the answers are open -->
     <UnlockBar :label="authStore.token ? t('personal_range.show') : t('personal_range.bar_cta')" :signed-in="!!authStore.token"
                :active="!result" :box="root" :action="action" :entry="entry" :nudged="openCount < startOpen" @press="fromBar" />
@@ -189,10 +184,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowRightIcon, BanknotesIcon, Battery0Icon, Battery100Icon, BoltIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, CloudIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, MapIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
+import { AdjustmentsHorizontalIcon, ArrowRightIcon, BanknotesIcon, Battery0Icon, Battery100Icon, BoltIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, CloudIcon, InformationCircleIcon, LockClosedIcon, LockOpenIcon, MapIcon, QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import InlineGate from '../auth/InlineGate.vue'
-import ProfileSlider from './ProfileSlider.vue'
 import UnlockBar from './UnlockBar.vue'
+import ProfileTune from './ProfileTune.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
@@ -208,10 +203,12 @@ import {
 
 /**
  * The result box of the model page, three states in one place: locked (the four questions and a
- * lock, no figure), gate (sign-in right in the box) and result (four answers plus wallbox and
- * price to play with, recalculated live). The driving profile comes in as `inputs`; wallbox and
- * price go back to the page through `home` and `price`. Inputs survive the gate (and a Google
- * redirect) in sessionStorage; a stored profile is handed back through `profile`.
+ * lock, no figure), gate (sign-in right in the box) and result (four answers, recalculated live
+ * on every change of profile, wallbox and price). The driving profile comes in as `inputs`;
+ * wallbox and price are set in ProfileTune, a tile of the answers, and go back to the page
+ * through `home` and `price`. Inputs survive the gate (and a Google redirect) in sessionStorage; a stored
+ * profile is handed back through `profile`. From md up a slim bar with the four figures follows
+ * the reader while `follow` (the sliders) is in view and the answers are not.
  */
 const props = defineProps<{
   brand: string
@@ -228,12 +225,16 @@ const props = defineProps<{
   fastPricePerKwh?: number | null
   /** the heading the reader reaches first on the way to the answers; once it stands above the bar, the bar comes */
   entry?: HTMLElement | null
+  /** the sliders; while they are in view and the answers are not, the figures follow (md up) */
+  follow?: HTMLElement | null
 }>()
 const emit = defineEmits<{
   profile: [inputs: PersonalRangeInputs]
   incomplete: []
   home: [value: boolean]
   price: [value: number | null]
+  /** answers open or closed: the page lays the box out differently */
+  open: [value: boolean]
 }>()
 
 const { t } = useI18n()
@@ -243,9 +244,6 @@ const { formatNumber, formatDistance, formatCurrency, formatConsumption, formatC
 /** Pending inputs plus "calculate after login" flag; read once on mount. */
 const STORAGE_KEY = 'personalRange:inputs'
 const RECALC_MS = 400
-const WALLBOX = [true, false] as const
-/** Within the backend bounds (0,05 to 1,50 €), narrower so 35 ct can be set with a thumb, in EUR */
-const PRICE = { min: 0.1, max: 1, step: 0.01 }
 
 const gateOpen = ref(false)
 const busy = ref(false)
@@ -316,17 +314,12 @@ function petrolCompare(evMonthly: number, annualKm: number | null) {
 /** The charging stops of the holiday trip, each 10 to 80 % at the price without a subscription */
 function tripChargingCost(stops: number, netKwh: number | null): string | null {
   const stop = stops > 0 && props.fastPricePerKwh ? fastStop(netKwh, props.fastPricePerKwh) : null
-  return stop ? t('personal_range.trip_cost', { cost: formatCurrency(stops * stop.eur, { decimals: 0 }) }) : null
+  return stop ? formatCurrency(stops * stop.eur, { decimals: 0 }) : null
 }
 
-/** The reader's own price, else the community price the backend used (follows the wallbox answer) */
-const shownPrice = computed(() => props.inputs.pricePerKwh
-  ?? result.value?.assumptions.find(a => a.key === 'PRICE')?.value ?? null)
-
-function setHome(value: boolean) {
-  analytics.track('personal_range_wallbox', { model: props.modelName, home: value })
-  emit('home', value)
-}
+/** The community price the shown result rests on; the price slider starts there */
+const communityPrice = computed(() => result.value?.assumptions.find(a => a.key === 'PRICE')?.value ?? null)
+watch(result, r => emit('open', !!r))
 
 /** Datenblatt for the battery; the user's own price; otherwise gemessen, geschätzt, or the measured share of a blend */
 function sourceText(a: PersonalRangeAssumption): string {
@@ -427,6 +420,31 @@ const root = ref<HTMLElement | null>(null)
 const action = ref<HTMLElement | null>(null)
 const startOpen = props.openCount
 
+// The desktop bar: answers scrolled out above, sliders in view. Measured on scroll, not observed:
+// an IntersectionObserver reports no change when one scroll step carries the answers from below
+// the viewport to above it.
+const answers = ref<HTMLElement | null>(null)
+const followBar = ref(false)
+let measureQueued = false
+function measureFollow() {
+  measureQueued = false
+  const a = answers.value?.getBoundingClientRect()
+  const f = props.follow?.getBoundingClientRect()
+  followBar.value = !!a && !!f && a.bottom < 80 && f.bottom > 0 && f.top < window.innerHeight
+}
+function onScroll() {
+  if (measureQueued) return
+  measureQueued = true
+  requestAnimationFrame(measureFollow)
+}
+watch([answers, () => props.follow], ([el]) => {
+  window.removeEventListener('scroll', onScroll)
+  followBar.value = false
+  if (!el || !props.follow) return
+  window.addEventListener('scroll', onScroll, { passive: true })
+  onScroll()
+}, { immediate: true })
+
 function fromBar() {
   if (root.value) scrollToElement(root.value)
   if (state.value === 'locked') void request()
@@ -451,6 +469,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   if (timer) clearTimeout(timer)
+  window.removeEventListener('scroll', onScroll)
 })
 
 /** "8 h 5 min", "45 min", "9 h" in the locale's unit words */

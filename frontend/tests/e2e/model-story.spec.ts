@@ -107,7 +107,7 @@ test.describe('Modellseite (390 px)', () => {
       await page.getByTestId('wallbox-yes').click();
       await home;
     }
-    await expect(result.getByTestId('answer-rhythm')).toContainText(/(Im Winter|Normal wirst du ca\.) (alle \d+ (Tage|Wochen)|täglich)/);
+    await expect(result.getByTestId('answer-rhythm')).toContainText(/(im Winter|Normal wirst du ca\.) (alle \d+ (Tage|Wochen)|täglich)/);
     await expect(result.getByTestId('answer-stops')).toContainText(/Urlaubsfahrt über 500\skm wirst du wahrscheinlich/);
 
     const again = page.waitForResponse(r => /\/api\/personal-range\/Volkswagen\/ID\.3$/.test(r.url()) && r.request().method() === 'POST' && r.request().postDataJSON().homeCharging === false);

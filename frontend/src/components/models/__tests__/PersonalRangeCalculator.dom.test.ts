@@ -38,7 +38,7 @@ function mount(loggedIn: boolean, data: { logCount: number; carCount: number; pe
     auth.token = 'token'
     auth.user = { userId: 'u1' } as never
   }
-  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0, home: null as boolean | null, price: undefined as number | null | undefined, inputs: { ...INPUTS, ...inputs }, openCount })
+  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0, home: null as boolean | null, price: undefined as number | null | undefined, open: undefined as boolean | undefined, inputs: { ...INPUTS, ...inputs }, openCount })
   const Host = defineComponent({
     setup: () => () => h(PersonalRangeCalculator, {
       brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3', inputs: state.inputs, ...data, openCount: state.openCount,
@@ -46,6 +46,7 @@ function mount(loggedIn: boolean, data: { logCount: number; carCount: number; pe
       onIncomplete: () => { state.incomplete++ },
       onHome: (v: boolean) => { state.home = v },
       onPrice: (v: number | null) => { state.price = v },
+      onOpen: (v: boolean) => { state.open = v },
     }),
   })
   const host = document.createElement('div')
@@ -127,11 +128,12 @@ describe('PersonalRangeCalculator', () => {
     expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
   })
 
-  it('result: the wallbox answer and the own price go back to the page', async () => {
+  it('result: the wallbox answer and the own price go back to the page, open answers are reported', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
     const { host, state } = mount(true)
     await flush()
 
+    expect(state.open).toBe(true)
     ;(host.querySelector('[data-testid="wallbox-no"]') as HTMLButtonElement).click()
     expect(state.home).toBe(false)
     expect(analytics.track).toHaveBeenCalledWith('personal_range_wallbox', { model: 'Volkswagen ID.3', home: false })
