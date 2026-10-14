@@ -47,13 +47,15 @@
               </div>
 
               <!-- Phone: claim, compact gauge, basis, so claim and picture share the first screen.
-                   From md up: claim and basis on the left, the gauge on the right. -->
-              <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:items-center md:gap-x-10 md:gap-y-3">
+                   From md up: claim and basis on the left, the gauge on the right, both ending on one line:
+                   the basis row is as tall as its text, the claim row takes what the gauge needs above it; mb-1 sets the
+                   legend (14 px) on the baseline of the last text line (17 px, relaxed leading). -->
+              <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:grid-rows-[1fr_auto] md:gap-x-10 md:gap-y-3">
                 <!-- One sentence per line: "Der Prospekt sagt 390 km." then "48 Fahrer sagen 280 km." -->
                 <p class="text-[clamp(22px,6vw,42px)] font-bold leading-[1.1] tracking-tight text-gray-900 md:col-start-1 md:row-start-1 md:self-end dark:text-gray-100" data-testid="story-hero">
                   <span v-for="(line, i) in heroLines" :key="i" class="block" :class="i === 1 ? 'text-green-700 dark:text-green-400' : ''">{{ line }}{{ ' ' }}</span>
                 </p>
-                <RangeGauge v-if="storyInput.wltpRangeKm" class="md:col-start-2 md:row-span-2 md:row-start-1"
+                <RangeGauge v-if="storyInput.wltpRangeKm" class="md:col-start-2 md:row-span-2 md:row-start-1 md:mb-1 md:self-end"
                             :wltp-km="story.realRangeKm != null && story.prospectRangeKm != null ? story.prospectRangeKm : storyInput.wltpRangeKm"
                             :real-km="story.realRangeKm" :winter-km="story.winterRangeKm"
                             :rating-label="story.realRangeKm != null ? t('model.page.range_wltp') : ratingLabel" />
