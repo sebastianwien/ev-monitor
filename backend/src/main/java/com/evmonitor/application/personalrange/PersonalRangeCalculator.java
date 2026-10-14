@@ -79,15 +79,17 @@ final class PersonalRangeCalculator {
         double highwayRatio = 1 + h * (highwayRatio(b).doubleValue() - 1);
         BigDecimal summerProfile = summer.multiply(BigDecimal.valueOf(highwayRatio)).setScale(1, RoundingMode.HALF_UP);
         BigDecimal winterProfile = winter.multiply(BigDecimal.valueOf(highwayRatio)).setScale(1, RoundingMode.HALF_UP);
-        // Mileage: the yearly figure when the reader gave one, else the commute on workdays
-        double weeklyKm = in.annualKm() != null ? in.annualKm() / 52.0 : in.commuteKmPerDay() * WORKDAYS_PER_WEEK;
-        double monthlyKm = in.annualKm() != null ? in.annualKm() / 12.0 : in.commuteKmPerDay() * WORKDAYS_PER_MONTH;
+        // Mileage: the yearly figure when the reader gave one, else the commute on the reader's commute days
+        // (22 workdays a month on 5 days, so 4.4 weeks a month)
+        double commuteKmPerWeek = in.commuteKmPerDay() * in.commuteDays();
+        double weeklyKm = in.annualKm() != null ? in.annualKm() / 52.0 : commuteKmPerWeek;
+        double monthlyKm = in.annualKm() != null ? in.annualKm() / 12.0
+                : commuteKmPerWeek * WORKDAYS_PER_MONTH / WORKDAYS_PER_WEEK;
         double weeklyKwh = weeklyKm * mixedKwhPerKm;
         double kwhPerCharge = net.multiply(in.homeCharging() ? HOME_CHARGE_SHARE : STOP_SHARE).doubleValue();
         BigDecimal chargesPerWeek = halfCharges(weeklyKwh / kwhPerCharge);
         // The commute on the reader's commute days, per season: how often they plug in in summer and in
         // winter. Not rounded, the page turns small values into "every 10 days".
-        double commuteKmPerWeek = in.commuteKmPerDay() * in.commuteDays();
         BigDecimal chargesSummer = charges(commuteKmPerWeek * summerProfile.doubleValue() / 100 / kwhPerCharge);
         BigDecimal chargesWinter = charges(commuteKmPerWeek * winterProfile.doubleValue() / 100 / kwhPerCharge);
         // Consumption is battery side (charging losses removed), the price is per kWh at the plug

@@ -181,6 +181,17 @@ class PersonalRangeCalculatorTest {
     }
 
     @Test
+    void withoutYearlyMileageMonthlyCostAndChargesFollowTheCommuteDays() {
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(
+                new PersonalRangeRequest(40, 50, true, 600, null, null, null, 3), measured());
+
+        // 40 km × 3 days × 4.4 weeks (22 workdays on 5 days) = 528 km × 0.175 kWh/km / 0.90 × 0.30 EUR = 30.8 → 31
+        assertThat(r.monthlyCostEur()).isEqualTo(31);
+        // 120 km a week × 0.175 = 21 kWh / 46.2 kWh = 0.45 → 0.5
+        assertThat(r.chargesPerWeek()).isEqualByComparingTo("0.5");
+    }
+
+    @Test
     void storedProfilesWithoutCommuteDaysCountFiveDays() {
         PersonalRangeResponse r = PersonalRangeCalculator.calculate(
                 PersonalRangeRequestFixtures.answers(100, 50, true, 600), measured());
