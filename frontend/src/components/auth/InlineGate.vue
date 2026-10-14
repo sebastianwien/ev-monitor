@@ -1,18 +1,15 @@
 <template>
-  <div data-testid="inline-gate" class="rounded-xl border-2 border-gray-800 dark:border-gray-200 bg-green-50 dark:bg-green-900/20 p-4 sm:p-5">
-    <p class="flex items-start gap-2 font-semibold text-gray-900 dark:text-gray-100">
+  <div data-testid="inline-gate" :class="plain ? '' : 'rounded-xl border-2 border-gray-800 dark:border-gray-200 bg-green-50 dark:bg-green-900/20 p-4 sm:p-5'">
+    <p v-if="lead" class="flex items-start gap-2 font-semibold text-gray-900 dark:text-gray-100">
       <LockOpenIcon class="h-5 w-5 shrink-0 mt-0.5 text-green-700 dark:text-green-400" />
       <span>{{ lead }}</span>
     </p>
     <p v-if="detail" class="mt-2 text-sm text-gray-700 dark:text-gray-300">{{ detail }}</p>
 
     <!-- Google: One Tap und Button; ohne Script (Adblocker, ITP) der bisherige Redirect-Login -->
-    <div v-if="googleEnabled || redirectGoogleEnabled" class="mt-4">
+    <div v-if="googleEnabled || redirectGoogleEnabled" :class="lead ? 'mt-4' : ''">
       <div v-show="!googleUnavailable" ref="googleButton" class="min-h-[44px]" />
-      <a v-if="googleUnavailable && redirectGoogleEnabled" href="/oauth2/authorization/google" @click="onRedirectGoogle"
-         class="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 font-semibold text-gray-800 dark:text-gray-100">
-        {{ t('gate.google_redirect') }}
-      </a>
+      <GoogleButton v-if="googleUnavailable && redirectGoogleEnabled" :label="t('gate.google_redirect')" @click="onRedirectGoogle" />
       <p class="mt-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('gate.or_email') }}</p>
     </div>
 
@@ -24,9 +21,9 @@
       <div class="flex flex-col sm:flex-row gap-2">
         <input id="gate-email" v-model.trim="email" type="email" autocomplete="email" inputmode="email" required
                :placeholder="t('gate.email_placeholder')"
-               class="flex-1 min-w-0 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-base text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
+               :class="inputClass" class="flex-1 min-w-0 px-3 py-2.5 text-base text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
         <button type="submit" :disabled="busy"
-                class="btn-3d shrink-0 rounded-lg border-2 border-gray-800 dark:border-gray-200 bg-green-600 px-4 py-2.5 font-bold text-white disabled:opacity-60">
+                :class="buttonClass" class="shrink-0 min-h-11 px-4 py-2.5 font-bold text-white disabled:opacity-60">
           {{ busy ? t('gate.sending') : t('gate.send_code') }}
         </button>
       </div>
@@ -43,9 +40,9 @@
       <div class="flex flex-col sm:flex-row gap-2">
         <input id="gate-code" v-model.trim="code" type="text" autocomplete="one-time-code" inputmode="numeric"
                pattern="[0-9]{6}" maxlength="6" required
-               class="flex-1 min-w-0 rounded-lg border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-center text-xl font-bold tracking-[0.4em] tabular-nums text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
+               :class="inputClass" class="flex-1 min-w-0 px-3 py-2.5 text-center text-xl font-bold tracking-[0.4em] tabular-nums text-gray-900 dark:text-gray-100 focus:border-green-600 focus:outline-none" />
         <button type="submit" :disabled="busy"
-                class="btn-3d shrink-0 rounded-lg border-2 border-gray-800 dark:border-gray-200 bg-green-600 px-4 py-2.5 font-bold text-white disabled:opacity-60">
+                :class="buttonClass" class="shrink-0 min-h-11 px-4 py-2.5 font-bold text-white disabled:opacity-60">
           {{ busy ? t('gate.verifying') : t('gate.confirm') }}
         </button>
       </div>
@@ -57,17 +54,18 @@
     <p v-if="error" role="alert" class="mt-3 text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
 
     <p class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-      {{ t('gate.consent') }}
+      {{ consent ?? t('gate.consent') }}
       <a href="/datenschutz" class="underline">{{ t('gate.privacy_link') }}</a>
     </p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Capacitor } from '@capacitor/core'
 import { useI18n } from 'vue-i18n'
 import { LockOpenIcon } from '@heroicons/vue/24/outline'
+import GoogleButton from './GoogleButton.vue'
 import { useAuthStore } from '../../stores/auth'
 import { analytics } from '../../services/analytics'
 import { currentUtmParams } from '../../utils/reddit-pixel'
@@ -80,7 +78,15 @@ import { rememberReturnPath } from '../../utils/postLoginRedirect'
  * `placement` marks the account as won through this gate (utm_medium "gate", utm_campaign =
  * placement) so gate sign-ups can be counted; a campaign the visitor arrived with stays.
  */
-const props = defineProps<{ lead: string; detail?: string; placement?: string }>()
+const props = defineProps<{
+  lead?: string
+  detail?: string
+  placement?: string
+  /** inside a box that already draws the frame and the heading: no own border, background or padding */
+  plain?: boolean
+  /** replaces the default consent line above the privacy link */
+  consent?: string
+}>()
 const emit = defineEmits<{ authenticated: [] }>()
 
 const { t, locale } = useI18n()
@@ -94,6 +100,13 @@ const busy = ref(false)
 const error = ref('')
 const googleButton = ref<HTMLElement | null>(null)
 const { enabled: googleEnabled, unavailable: googleUnavailable, mount: mountGoogle } = useGoogleIdentity()
+/** Inside a page box: flat like the page; standalone: the app's 3D style */
+const inputClass = computed(() => props.plain
+  ? 'rounded-xl border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900'
+  : 'rounded-lg border-2 border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800')
+const buttonClass = computed(() => props.plain
+  ? 'btn-3d cta-shadow rounded-xl border-2 border-gray-900 bg-green-600 hover:bg-green-700 dark:border-gray-200'
+  : 'btn-3d rounded-lg border-2 border-gray-800 bg-green-600 dark:border-gray-200')
 const redirectGoogleEnabled = import.meta.env.VITE_GOOGLE_OAUTH_ENABLED === 'true' && !Capacitor.isNativePlatform()
 
 onMounted(() => {

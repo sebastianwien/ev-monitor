@@ -89,7 +89,7 @@ class EmailServiceTest {
                 .contains("Unterwegs auf 500 km").contains("6 h 20 min").contains("inkl. 1 Ladestopp, grob 35 min · Ø 110 km/h")
                 .doesNotContain("Ladeleistung geschätzt")
                 // weekly charging for the commute, per season: winter big, summer below
-                .contains("Laden fürs Pendeln im Winter").contains("1,5× pro Woche").contains("Sommer: alle 7 Tage")
+                .contains("Laden fürs Pendeln im Winter").contains("alle 4 Tage").contains("Sommer: alle 7 Tage")
                 .contains("http://localhost:5173/modelle/Tesla/Model_3");
     }
 
@@ -159,7 +159,7 @@ class EmailServiceTest {
         // the yearly mileage drives the cost, the commute the weekly charging: the profile names both
         assertThat(html).contains("Profil (30.000 km im Jahr, Pendeln 40 km an 3 Tagen, 30 % Autobahn");
         // charging for the commute in the same words as the model page
-        assertThat(html).contains("1,5× pro Woche").contains("Sommer: alle 10 Tage");
+        assertThat(html).contains("alle 4 Tage").contains("Sommer: alle 10 Tage");
     }
 
     @Test

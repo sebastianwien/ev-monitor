@@ -1,15 +1,17 @@
 /**
- * Text and figures of the model page story "Prospekt gegen Realität": hero sentence, four
- * chapters (consumption, season, long trip, cost), each rated FULL (measured), PARTIAL (the
- * model has logs but not this figure) or NONE (spec only). Pure: all values come from the public
- * stats response, no consumption formula of its own beyond range = net battery × 0.9 / consumption,
- * the same rule the page used before.
+ * Text and figures of the model page "Prospekt gegen Realität": the hero sentence, the data sheet
+ * (four tiles: range, consumption, charging, cost) and the evidence behind it (range by season,
+ * consumption by route type). Each tile is rated FULL (measured), PARTIAL (the model has logs but
+ * not this figure) or NONE (spec only). Pure: all values come from the public stats response, no
+ * consumption formula of its own beyond range = net battery × 0.9 / consumption.
  */
 
-import { DC_CHARGING_EFFICIENCY } from './consumptionPreview'
+import { AC_CHARGING_EFFICIENCY, DC_CHARGING_EFFICIENCY } from './consumptionPreview'
 
 /** Same as the backend calculator: below this many highway cars the highway effect is the fleet estimate */
 const MIN_HIGHWAY_CARS = 5
+/** Below this many cars the page speaks of first measurements and the result box promises no measured data */
+export const MIN_MEASURED_CARS = 5
 
 export type StoryLevel = 'FULL' | 'PARTIAL' | 'NONE'
 
@@ -23,15 +25,18 @@ export interface StoryInput {
   wltpKwhPer100km: number | null
   wltpRangeKm: number | null
   avgKwhPer100km: number | null
-  minKwhPer100km: number | null
-  maxKwhPer100km: number | null
+  /** the most frugal and the thirstiest driver of the model (story context), for the spread in the hero */
+  minKwhPer100km?: number | null
+  maxKwhPer100km?: number | null
   /** typedMean: mean of all route-typed trips, the base the highway value is compared with (same period) */
-  routeType: { highway: number | null; city: number | null; combined: number | null; highwayCars: number; cityLogs: number; combinedLogs: number; typedMean?: number | null } | null
+  routeType: { highway: number | null; city: number | null; combined: number | null; highwayCars: number; highwayLogs?: number; cityLogs: number; combinedLogs: number; typedMean?: number | null } | null
   /** null when either season has too few logs */
   seasonal: { summer: number; winter: number; summerLogs: number; winterLogs: number } | null
   fastChargePowerKw: number | null
-  avgChargingPowerKw: number | null
-  acPricePerKwh: number | null
+  /** AC price, mostly at home: the normal charge in the cost tile */
+  acPricePerKwh?: number | null
+  /** fast charging without a subscription (big networks' contract-free price); preferred for the fast charge */
+  fastAdHocPricePerKwh?: number | null
   dcPricePerKwh: number | null
   avgPricePerKwh: number | null
   /** median winter/summer ratio over the models that have both, for the PARTIAL season chapter */
@@ -41,51 +46,77 @@ export interface StoryInput {
 export interface StoryFormatters {
   t: (key: string, params?: Record<string, string | number>) => string
   formatConsumption: (kwhPer100km: number) => string
-  /** the same without the unit, for "from 16,9 to 20,6 kWh/100km" */
-  formatConsumptionValue?: (kwhPer100km: number) => string
+  /** the same without the unit, for the big figure of a tile */
+  formatConsumptionValue: (kwhPer100km: number) => string
+  consumptionUnit: string
   formatDistance: (km: number) => string
+  formatDistanceValue: (km: number) => string
+  distanceUnit: string
   formatCostPerKwh: (eurPerKwh: number) => string
   formatCostPerDistance: (eurPer100km: number) => string
   formatCurrency: (eur: number) => string
   formatNumber: (n: number) => string
 }
 
-export interface StoryTile {
-  value: string
+export type FactKey = 'range' | 'consumption' | 'charging' | 'cost'
+
+/** One tile of the data sheet: a big figure with its unit, one comparison line below */
+export interface FactTile {
+  key: FactKey
   label: string
-  /** 0 to 100: the tile draws a bar of this width (season chapter) */
-  bar?: number
-  tone?: 'summer' | 'winter'
-  /** line under the figure; when set, the value stays whole ("19 €" with "per stop" below) */
-  unit?: string
+  /** null when nobody has measured it yet; the note says so */
+  value: string | null
+  unit: string
+  note: string
+  level: StoryLevel
+  /** a second figure of equal weight below the first: the fast charge next to the home charge */
+  extra?: { value: string; unit: string }
+  /** a battery window under the note, drawn with battery icons like the gauge; text is what screen readers hear */
+  noteSoc?: { from: number; to: number; text: string }
+  /** the figure inside the note, set in large type a size below the main figure; text is how it reads in the note */
+  noteFigure?: { text: string; value: string; unit: string }
 }
 
-export type ChapterKey = 'consumption' | 'season' | 'longTrip' | 'cost'
+export interface EvidenceBar {
+  key: 'wltp' | 'summer' | 'winter' | 'year'
+  label: string
+  value: number
+  text: string
+  /** the manufacturer's figure, drawn as the grey reference */
+  reference: boolean
+}
 
-export interface StoryChapterData {
-  key: ChapterKey
-  level: StoryLevel
-  headline: string
-  say: string
-  tiles: StoryTile[]
-  /** what the chapter's answers change, shown under the chips */
-  effect?: string
+/** Consumption of one route type against the mean of all route-typed trips, in percent */
+export interface RouteDelta {
+  key: 'city' | 'combined' | 'highway'
+  label: string
+  pct: number
+  text: string
+}
+
+export interface ModelEvidence {
+  range: { bars: EvidenceBar[]; note: string } | null
+  routes: { rows: RouteDelta[]; note: string } | null
 }
 
 export interface ModelStory {
   level: StoryLevel
   heroSentence: string
-  lede: string
   realRangeKm: number | null
+  /** the prospectus range on the drivers' window, 100 to 10 %; null without WLTP */
+  prospectRangeKm: number | null
+  /** thirstiest to most frugal driver on the same window; null without both or when they round alike */
+  driverRangeKm: { minKm: number; maxKm: number } | null
   summerRangeKm: number | null
   winterRangeKm: number | null
-  /** winter to summer range of the model itself, shown before the first answer; null without both seasons */
-  fallbackBand: { minKm: number; maxKm: number } | null
-  chapters: StoryChapterData[]
+  facts: FactTile[]
+  evidence: ModelEvidence
 }
 
 const RANGE_SHARE = 0.9
 const STOP_SHARE = 0.7
+/** A normal charge, overnight at the wallbox: 20 to 80 % */
+const NORMAL_SHARE = 0.6
 
 /** Non-breaking space between a number and its unit, so a headline never wraps before "km." */
 export function keepUnits(text: string): string {
@@ -99,6 +130,16 @@ export function fastStop(netKwh: number | null, pricePerKwh: number | null): { k
   return { kwh, eur: kwh * pricePerKwh }
 }
 
+/** The fast-charge price of the page (tile, SEO text, FAQ): without a subscription where known, else what the drivers pay at DC, else their mean */
+export function fastChargePrice(d: Pick<StoryInput, 'fastAdHocPricePerKwh' | 'dcPricePerKwh' | 'avgPricePerKwh'>): number | null {
+  return d.fastAdHocPricePerKwh ?? d.dcPricePerKwh ?? d.avgPricePerKwh ?? null
+}
+
+/** WLTP counts 100 to 0 %, the drivers 100 to 10 %: the comparison puts the prospectus on the same window. */
+export function prospectKm(wltpKm: number | null): number | null {
+  return wltpKm ? Math.round(wltpKm * RANGE_SHARE / 10) * 10 : null
+}
+
 /** Range on 90 % of the net battery, rounded to 10 km like the hero figure. */
 export function rangeKm(netKwh: number | null, kwhPer100km: number | null): number | null {
   if (!netKwh || !kwhPer100km) return null
@@ -108,8 +149,10 @@ export function rangeKm(netKwh: number | null, kwhPer100km: number | null): numb
 export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
   const hasLogs = d.logCount > 0 && d.avgKwhPer100km != null
   const level: StoryLevel = hasLogs ? 'FULL' : 'NONE'
-  const partial: StoryLevel = hasLogs ? 'PARTIAL' : 'NONE'
   const realRangeKm = rangeKm(d.netBatteryKwh, d.avgKwhPer100km)
+  const prospectRangeKm = prospectKm(d.wltpRangeKm)
+  const thirstiest = hasLogs ? rangeKm(d.netBatteryKwh, d.maxKwhPer100km ?? null) : null
+  const frugal = hasLogs ? rangeKm(d.netBatteryKwh, d.minKwhPer100km ?? null) : null
   const summerRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.summer) : null
   const winterRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.winter) : null
   const p = { model: d.modelName, brand: d.brandName, cars: f.formatNumber(d.carCount), drivers: f.formatNumber(d.driverCount) }
@@ -118,160 +161,146 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
     ? d.wltpRangeKm
       ? f.t('model.story.hero_none', { ...p, wltp: f.formatDistance(d.wltpRangeKm) })
       : f.t('model.story.hero_none_no_wltp', p)
-    : d.wltpRangeKm
-      ? f.t('model.story.hero_full', { ...p, wltp: f.formatDistance(d.wltpRangeKm), real: f.formatDistance(realRangeKm) })
+    : prospectRangeKm && d.carCount < MIN_MEASURED_CARS
+      ? f.t(d.driverCount === 1 ? 'model.story.hero_thin_one' : 'model.story.hero_thin', { ...p, wltp: f.formatDistance(prospectRangeKm), real: f.formatDistance(realRangeKm) })
+    : prospectRangeKm
+      ? f.t('model.story.hero_full', { ...p, wltp: f.formatDistance(prospectRangeKm), real: f.formatDistance(realRangeKm) })
       : f.t('model.story.hero_full_no_wltp', { ...p, real: f.formatDistance(realRangeKm) })
-  const chapters = [
-    consumption(d, f, p, level),
-    season(d, f, p, partial, summerRangeKm, winterRangeKm),
-    longTrip(d, f, p, partial),
-    cost(d, f, p, partial),
-  ]
-  // "summer and winter, motorway and city" only when every chapter is measured
-  const lede = !hasLogs
-    ? f.t('model.story.lede_none', p)
-    : chapters.every(c => c.level === 'FULL')
-      ? f.t('model.story.lede_full', { ...p, logs: f.formatNumber(d.logCount) })
-      : f.t('model.story.lede_partial', { ...p, logs: f.formatNumber(d.logCount) })
 
+  const range = hasLogs ? rangeEvidence(d, f, { real: realRangeKm, prospect: prospectRangeKm, summer: summerRangeKm, winter: winterRangeKm }) : null
+  const routes = hasLogs ? routeEvidence(d, f) : null
   return {
     level,
     heroSentence,
-    lede,
     realRangeKm,
+    prospectRangeKm,
+    driverRangeKm: thirstiest != null && frugal != null && thirstiest < frugal ? { minKm: thirstiest, maxKm: frugal } : null,
     summerRangeKm,
     winterRangeKm,
-    fallbackBand: summerRangeKm != null && winterRangeKm != null ? { minKm: winterRangeKm, maxKm: summerRangeKm } : null,
-    chapters,
-  }
-}
-
-type P = { model: string; brand: string; cars: string; drivers: string }
-
-function consumption(d: StoryInput, f: StoryFormatters, p: P, level: StoryLevel): StoryChapterData {
-  if (level === 'NONE' || d.avgKwhPer100km == null) {
-    return {
-      key: 'consumption', level: 'NONE',
-      headline: f.t('model.story.c1_none_headline', p),
-      say: d.wltpKwhPer100km
-        ? f.t('model.story.c1_none_say', { ...p, wltp: f.formatConsumption(d.wltpKwhPer100km) })
-        : f.t('model.story.c1_none_say_no_wltp', p),
-      tiles: d.wltpKwhPer100km ? [{ value: f.formatConsumption(d.wltpKwhPer100km), label: f.t('model.story.tile_wltp', p) }] : [],
-    }
-  }
-  const real = f.formatConsumption(d.avgKwhPer100km)
-  let headline: string
-  if (d.wltpKwhPer100km) {
-    const pct = Math.round((d.avgKwhPer100km / d.wltpKwhPer100km - 1) * 100)
-    headline = pct >= 0
-      ? f.t('model.story.c1_headline_more', { real, pct })
-      : f.t('model.story.c1_headline_less', { real, pct: -pct })
-  } else {
-    headline = f.t('model.story.c1_headline_no_wltp', { ...p, real })
-  }
-  const say = d.wltpKwhPer100km && d.minKwhPer100km && d.maxKwhPer100km
-    ? f.t('model.story.c1_say', { ...p, wltp: f.formatConsumption(d.wltpKwhPer100km), min: (f.formatConsumptionValue ?? f.formatConsumption)(d.minKwhPer100km), max: f.formatConsumption(d.maxKwhPer100km) })
-    : f.t('model.story.c1_say_short', { ...p, logs: f.formatNumber(d.logCount) })
-  // One population for all four figures: the model's logs. Route-type values rest on the subset
-  // with a route type and can all sit below the overall mean, which reads like a contradiction.
-  const tiles: StoryTile[] = [{ value: real, label: f.t('model.story.tile_avg', { n: f.formatNumber(d.logCount) }) }]
-  if (d.minKwhPer100km) tiles.push({ value: f.formatConsumption(d.minKwhPer100km), label: f.t('model.story.tile_min') })
-  if (d.maxKwhPer100km) tiles.push({ value: f.formatConsumption(d.maxKwhPer100km), label: f.t('model.story.tile_max') })
-  if (d.wltpKwhPer100km) tiles.push({ value: f.formatConsumption(d.wltpKwhPer100km), label: f.t('model.story.tile_wltp', p) })
-  // Highway against the route-typed trips of the same period, as a share: the absolute route values sit
-  // on a younger subset and next to the overall mean they would read like a contradiction.
-  // Same rule as the calculator: from MIN_HIGHWAY_CARS measured cars, else the fleet estimate.
-  const rt = d.routeType
-  const pct = rt?.highway && rt.typedMean && rt.highwayCars >= MIN_HIGHWAY_CARS
-    ? Math.round((rt.highway / rt.typedMean - 1) * 100) : null
-  const effect = pct == null ? f.t('model.story.c1_effect_estimated')
-    : Math.abs(pct) < 2 ? f.t('model.story.c1_effect_same', { cars: f.formatNumber(rt!.highwayCars) })
-    : f.t(pct > 0 ? 'model.story.c1_effect_more' : 'model.story.c1_effect_less', { pct: Math.abs(pct), cars: f.formatNumber(rt!.highwayCars) })
-  return { key: 'consumption', level: 'FULL', headline, say, tiles, effect }
-}
-
-function season(d: StoryInput, f: StoryFormatters, p: P, partial: StoryLevel,
-                summerRangeKm: number | null, winterRangeKm: number | null): StoryChapterData {
-  const fleet = d.fleetWinterFactor
-  const fleetSay = fleet
-    ? f.t('model.story.c2_fleet_say', { pct: Math.round((fleet.factor - 1) * 100), n: fleet.models })
-    : f.t('model.story.c2_wltp_say')
-  if (!d.seasonal || summerRangeKm == null || winterRangeKm == null) {
-    return {
-      key: 'season', level: partial, tiles: [],
-      headline: partial === 'PARTIAL' ? f.t('model.story.c2_partial_headline', p) : f.t('model.story.c2_none_headline', p),
-      say: fleetSay,
-    }
-  }
-  const s = d.seasonal
-  return {
-    key: 'season', level: 'FULL',
-    headline: f.t('model.story.c2_headline', { loss: f.formatDistance(summerRangeKm - winterRangeKm) }),
-    say: f.t('model.story.c2_say', {
-      winterLogs: f.formatNumber(s.winterLogs), summerLogs: f.formatNumber(s.summerLogs),
-      summer: f.formatConsumption(s.summer), winter: f.formatConsumption(s.winter),
-    }),
-    tiles: [
-      { value: f.formatDistance(summerRangeKm), label: f.t('model.story.tile_summer', { consumption: f.formatConsumption(s.summer) }), bar: 100, tone: 'summer' },
-      { value: f.formatDistance(winterRangeKm), label: f.t('model.story.tile_winter', { consumption: f.formatConsumption(s.winter) }), bar: Math.round(winterRangeKm / summerRangeKm * 100), tone: 'winter' },
+    facts: [
+      rangeFact(d, f, realRangeKm, winterRangeKm, prospectRangeKm),
+      consumptionFact(d, f, hasLogs),
+      chargingFact(d, f, hasLogs),
+      costFact(d, f, hasLogs),
     ],
+    evidence: { range, routes },
   }
 }
 
-function longTrip(d: StoryInput, f: StoryFormatters, p: P, partial: StoryLevel): StoryChapterData {
+const label = (f: StoryFormatters, key: FactKey) => f.t(`model.page.fact_${key}`)
+
+function rangeFact(d: StoryInput, f: StoryFormatters, real: number | null, winter: number | null, prospect: number | null): FactTile {
+  const base = { key: 'range' as const, label: label(f, 'range'), unit: f.distanceUnit }
+  if (real == null) {
+    return d.wltpRangeKm
+      ? { ...base, value: f.formatDistanceValue(d.wltpRangeKm), note: f.t('model.page.note_spec'), level: 'NONE' }
+      : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE' }
+  }
+  if (winter != null) {
+    const text = f.formatDistance(winter)
+    return { ...base, value: f.formatDistanceValue(real), note: f.t('model.page.note_winter', { winter: text }), level: 'FULL',
+      noteFigure: { text, value: f.formatDistanceValue(winter), unit: f.distanceUnit } }
+  }
+  const note = prospect ? f.t('model.page.note_wltp', { wltp: f.formatDistance(prospect) }) : ''
+  return { ...base, value: f.formatDistanceValue(real), note, level: 'FULL' }
+}
+
+function consumptionFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
+  const base = { key: 'consumption' as const, label: label(f, 'consumption'), unit: f.consumptionUnit }
+  if (!hasLogs || d.avgKwhPer100km == null) {
+    return d.wltpKwhPer100km
+      ? { ...base, value: f.formatConsumptionValue(d.wltpKwhPer100km), note: f.t('model.page.note_spec'), level: 'NONE' }
+      : { ...base, value: null, note: f.t('model.page.note_spec_none'), level: 'NONE' }
+  }
+  const value = f.formatConsumptionValue(d.avgKwhPer100km)
+  if (!d.wltpKwhPer100km) return { ...base, value, note: f.t('model.page.note_logs', { logs: f.formatNumber(d.logCount) }), level: 'FULL' }
+  const pct = Math.round((d.avgKwhPer100km / d.wltpKwhPer100km - 1) * 100)
+  const wltp = f.formatConsumptionValue(d.wltpKwhPer100km)
+  if (pct === 0) return { ...base, value, note: f.t('model.page.note_same', { wltp }), level: 'FULL' }
+  const abs = Math.abs(pct)
+  return { ...base, value, level: 'FULL',
+    note: f.t(pct > 0 ? 'model.page.note_more' : 'model.page.note_less', { pct: abs, wltp }),
+    noteFigure: { text: `${abs} %`, value: String(abs), unit: '%' } }
+}
+
+function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
+  const base = { key: 'charging' as const, label: label(f, 'charging'), unit: 'min' }
   if (!d.fastChargePowerKw || !d.netBatteryKwh) {
-    return {
-      key: 'longTrip', level: partial, tiles: [],
-      headline: f.t('model.story.c3_partial_headline', p),
-      say: f.t('model.story.c3_partial_say'),
-    }
+    return { ...base, value: null, note: f.t('model.page.note_charging_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
   }
   const minutes = Math.round(d.netBatteryKwh * STOP_SHARE / d.fastChargePowerKw * 60 / 5) * 5
   const kw = f.formatNumber(Math.round(d.fastChargePowerKw))
-  const tiles: StoryTile[] = [
-    { value: `${kw} kW`, label: f.t('model.story.tile_fast_charge') },
-    { value: `${minutes} min`, label: f.t('model.story.tile_stop_minutes') },
-  ]
-  if (d.avgChargingPowerKw) tiles.splice(1, 0, { value: `${f.formatNumber(Math.round(d.avgChargingPowerKw))} kW`, label: f.t('model.story.tile_session_mean') })
   return {
-    key: 'longTrip', level: 'FULL', tiles,
-    headline: f.t('model.story.c3_headline', { minutes }),
-    say: d.avgChargingPowerKw
-      ? f.t('model.story.c3_say', { kw, avg: f.formatNumber(Math.round(d.avgChargingPowerKw)) })
-      : f.t('model.story.c3_say_short', { kw }),
+    ...base, value: f.formatNumber(minutes), level: 'FULL',
+    note: f.t('model.page.note_charging', { kw }),
+    noteSoc: { from: 10, to: 80, text: f.t('model.page.note_charging_window') },
+    noteFigure: { text: `${kw} kW`, value: kw, unit: 'kW' },
   }
 }
 
-function cost(d: StoryInput, f: StoryFormatters, p: P, partial: StoryLevel): StoryChapterData {
-  if (!d.avgPricePerKwh || !d.avgKwhPer100km) {
+function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
+  const base = { key: 'cost' as const, label: label(f, 'cost') }
+  // What a buyer pays per charge: at home 20 to 80 % at the AC price, on the road 10 to 80 % at the DC price
+  const home = d.netBatteryKwh && d.acPricePerKwh ? d.netBatteryKwh * NORMAL_SHARE / AC_CHARGING_EFFICIENCY * d.acPricePerKwh : null
+  const fast = fastStop(d.netBatteryKwh, fastChargePrice(d))?.eur ?? null
+  if (home != null) {
+    return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'), note: '',
+      ...(fast != null ? { extra: { value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast') } } : {}) }
+  }
+  if (fast != null) return { ...base, level: 'FULL', value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast'), note: '' }
+  return { ...base, value: null, unit: '', note: f.t('model.page.note_cost_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
+}
+
+function rangeEvidence(d: StoryInput, f: StoryFormatters,
+                       { real, prospect, summer, winter }: Record<'real' | 'prospect' | 'summer' | 'winter', number | null>): ModelEvidence['range'] {
+  const bar = (key: EvidenceBar['key'], value: number): EvidenceBar =>
+    ({ key, label: f.t(`model.page.range_${key}`), value, text: f.formatDistance(value), reference: key === 'wltp' })
+  const wltp = prospect ? [bar('wltp', prospect)] : []
+  if (d.seasonal && summer != null && winter != null) {
     return {
-      key: 'cost', level: partial, tiles: [],
-      headline: f.t('model.story.c4_partial_headline', p),
-      say: f.t('model.story.c4_partial_say'),
+      bars: [...wltp, bar('summer', summer), bar('winter', winter)],
+      note: f.t('model.page.range_note', {
+        pct: Math.round((1 - winter / summer) * 100),
+        summerLogs: f.formatNumber(d.seasonal.summerLogs), winterLogs: f.formatNumber(d.seasonal.winterLogs),
+      }),
     }
   }
-  const per100 = d.avgPricePerKwh * d.avgKwhPer100km
-  const tiles: StoryTile[] = []
-  if (d.acPricePerKwh) tiles.push({ value: f.formatCostPerKwh(d.acPricePerKwh), label: f.t('model.story.tile_ac') })
-  if (d.dcPricePerKwh) tiles.push({ value: f.formatCostPerKwh(d.dcPricePerKwh), label: f.t('model.story.tile_dc') })
-  tiles.push({ value: f.formatCostPerDistance(per100), label: f.t('model.story.tile_per_100') })
-  // A stop from 10 to 80 % at the DC price, the charge a buyer plans for; not the mean session, which includes short top-ups
-  const stop = fastStop(d.netBatteryKwh, d.dcPricePerKwh ?? d.avgPricePerKwh)
-  if (stop) tiles.push({ value: f.formatCurrency(stop.eur), unit: f.t('model.story.tile_stop_unit'), label: f.t('model.story.tile_stop_cost', { kwh: f.formatNumber(Math.round(stop.kwh)) }) })
-  const parts = [
-    d.acPricePerKwh ? f.t('model.story.c4_say_ac', { ac: f.formatCostPerKwh(d.acPricePerKwh) }) : null,
-    d.dcPricePerKwh ? f.t('model.story.c4_say_dc', { dc: f.formatCostPerKwh(d.dcPricePerKwh) }) : null,
-  ].filter((x): x is string => x != null)
-  const say = [
-    f.t('model.story.c4_say_avg', { parts: parts.join(', '), avg: f.formatCostPerKwh(d.avgPricePerKwh) }),
-    stop ? f.t('model.story.c4_say_stop', { kwh: f.formatNumber(Math.round(stop.kwh)), eur: f.formatCurrency(stop.eur) }) : '',
-  ].filter(Boolean).join(' ')
+  if (real == null) return null
+  const fleet = d.fleetWinterFactor
   return {
-    key: 'cost', level: 'FULL', tiles,
-    // "cheaper at home, dearer on the road" only when the data say so
-    headline: d.acPricePerKwh && d.dcPricePerKwh && d.acPricePerKwh < d.dcPricePerKwh
-      ? f.t('model.story.c4_headline', { per100: f.formatCostPerDistance(per100) })
-      : f.t('model.story.c4_headline_plain', { per100: f.formatCostPerDistance(per100) }),
-    say,
+    bars: [...wltp, bar('year', real)],
+    note: fleet
+      ? f.t('model.page.range_note_fleet', { pct: Math.round((fleet.factor - 1) * 100), n: fleet.models })
+      : f.t('model.page.range_note_estimated'),
+  }
+}
+
+/**
+ * Route types against the mean of the route-typed trips of the same period. The absolute values sit
+ * on a younger subset of trips and can all lie below the overall mean of the data sheet, which would
+ * read like a contradiction; the difference in percent does not. Highway only from MIN_HIGHWAY_CARS
+ * cars, the same rule as the calculator. Fewer than two rows say nothing and are left out.
+ */
+function routeEvidence(d: StoryInput, f: StoryFormatters): ModelEvidence['routes'] {
+  const rt = d.routeType
+  if (!rt?.typedMean) return null
+  const mean = rt.typedMean
+  const values: [RouteDelta['key'], number | null][] = [
+    ['city', rt.city],
+    ['combined', rt.combined],
+    ['highway', rt.highwayCars >= MIN_HIGHWAY_CARS ? rt.highway : null],
+  ]
+  const rows = values.flatMap(([key, v]) => {
+    if (v == null) return []
+    const pct = Math.round((v / mean - 1) * 100)
+    return [{ key, label: f.t(`model.page.routes_${key}`), pct, text: `${pct > 0 ? '+' : ''}${f.formatNumber(pct)} %` }]
+  })
+  if (rows.length < 2) return null
+  const trips = f.formatNumber(rt.cityLogs + rt.combinedLogs + (rt.highwayLogs ?? 0))
+  return {
+    rows,
+    note: rows.some(r => r.key === 'highway')
+      ? f.t('model.page.routes_note', { trips, cars: f.formatNumber(rt.highwayCars) })
+      : f.t('model.page.routes_note_no_highway', { trips }),
   }
 }

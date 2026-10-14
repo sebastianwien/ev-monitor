@@ -7,8 +7,7 @@ import java.util.stream.Stream;
 
 /**
  * Antworten auf die sieben Kernfragen plus Stärken und Schwächen.
- * {@code longDistance} und {@code service} sind null bei "Fahre ich selten Langstrecke"
- * bzw. "Noch nicht gebraucht".
+ * {@code longDistance} und {@code service} sind null bei "Kann ich nicht beurteilen".
  */
 public record RatingAnswers(
         RebuyAnswer rebuy,

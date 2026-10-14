@@ -73,6 +73,9 @@ export interface PublicModelStats {
     model: string
     brandDisplayName: string
     modelDisplayName: string
+    /** vehicle class (COMPACT, SUV, ...); picks the litres of the petrol comparison */
+    category?: string | null
+    categoryDisplayName?: string | null
     logCount: number
     uniqueContributors: number
     uniqueCars: number
@@ -190,6 +193,8 @@ export interface ChargingReferencePrices {
     petrolPricePerLiter?: number | null
     dieselPricePerLiter?: number | null
     combustionLitersPer100km?: number | null
+    /** fast charging without a subscription in Germany: mean contract-free DC price of the big networks */
+    fastAdHocPricePerKwh?: number | null
 }
 
 /** Normalized community reference prices (home vs public) for the model comparison slider. */

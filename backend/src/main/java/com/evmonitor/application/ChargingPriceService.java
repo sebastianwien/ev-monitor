@@ -1,18 +1,26 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.ChargingProviderTariff;
+import com.evmonitor.domain.ChargingProviderTariffRepository;
+import com.evmonitor.domain.ChargingType;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Derives normalized community charging reference prices (home vs public EUR/kWh) for the model
  * comparison slider. Falls back to editorial defaults when the community sample is too thin, so
  * the slider always has sane values.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChargingPriceService {
@@ -23,9 +31,15 @@ public class ChargingPriceService {
     /** Minimum priced sessions per bucket before we trust the community average over the default. */
     static final int MIN_SESSIONS = 30;
 
+    /** The big fast-charging networks on German motorways; their contract-free price is the ad-hoc reference */
+    static final List<String> FAST_NETWORKS = List.of("EnBW", "IONITY", "Fastned");
+
     private final JpaEvLogRepository evLogRepository;
     private final FuelPriceService fuelPriceService;
+    private final ChargingProviderTariffRepository tariffRepository;
 
+    /** Cached (4 h, see application.yml): community prices, fuel prices and tariffs move slowly, the calculator asks on every recalculation */
+    @Cacheable(value = "chargingReferencePrices", key = "#isSeedUser")
     public ChargingReferencePrices getReferencePrices(boolean isSeedUser) {
         Object[] row = evLogRepository.findCommunityChargingPrices(isSeedUser);
         Object first = (row != null && row.length > 0) ? row[0] : null;
@@ -36,7 +50,34 @@ public class ChargingPriceService {
         return new ChargingReferencePrices(home, pub,
                 BigDecimal.valueOf(fuelPriceService.getBenzinPrice()).setScale(3, RoundingMode.HALF_UP),
                 BigDecimal.valueOf(fuelPriceService.getDieselPrice()).setScale(3, RoundingMode.HALF_UP),
-                FuelPriceService.COMBUSTION_LITERS_PER_100_KM);
+                FuelPriceService.COMBUSTION_LITERS_PER_100_KM,
+                fastAdHocPrice());
+    }
+
+    /**
+     * Fast charging without a subscription: per network the dearest current DC tariff without a
+     * monthly fee (the price at the column without a contract), averaged over the networks that have one.
+     * A network without such a tariff drops out of the mean; the warning says so, as a renamed
+     * provider in the tariff table would otherwise shift the price unnoticed.
+     */
+    BigDecimal fastAdHocPrice() {
+        List<BigDecimal> prices = FAST_NETWORKS.stream()
+                .map(this::adHocPrice)
+                .flatMap(Optional::stream)
+                .toList();
+        if (prices.isEmpty()) return null;
+        return prices.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(prices.size()), 4, RoundingMode.HALF_UP);
+    }
+
+    private Optional<BigDecimal> adHocPrice(String network) {
+        Optional<BigDecimal> price = tariffRepository.findCurrentTariffsByEmp(network).stream()
+                .filter(t -> t.getChargingType() == ChargingType.DC && t.getPricePerKwh() != null)
+                .filter(t -> t.getMonthlyFeeEur() == null || t.getMonthlyFeeEur().signum() == 0)
+                .map(ChargingProviderTariff::getPricePerKwh)
+                .max(BigDecimal::compareTo);
+        if (price.isEmpty()) log.warn("No contract-free DC tariff for {}, left out of the ad-hoc fast-charging price", network);
+        return price;
     }
 
     private BigDecimal resolve(Object[] stats, int valueIdx, int countIdx, BigDecimal fallback) {

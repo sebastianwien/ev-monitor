@@ -10,10 +10,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ChargeRhythmTest {
 
     @Test
-    void moreThanOnceAWeekCountsChargesWithOneDecimal() {
-        assertThat(ChargeRhythm.text(new BigDecimal("2.3"), true, "de")).isEqualTo("2,3× pro Woche");
-        assertThat(ChargeRhythm.text(new BigDecimal("2.0"), true, "de")).isEqualTo("2× pro Woche");
-        assertThat(ChargeRhythm.text(new BigDecimal("2.3"), true, "en")).isEqualTo("2.3× a week");
+    void moreThanOnceAWeekCountsWholeDays() {
+        // 7 / 1.3 = 5.4 → every 5 days, never "1,3× pro Woche"
+        assertThat(ChargeRhythm.text(new BigDecimal("1.3"), true, "de")).isEqualTo("alle 5 Tage");
+        assertThat(ChargeRhythm.text(new BigDecimal("2.34"), true, "de")).isEqualTo("alle 2 Tage");
+        assertThat(ChargeRhythm.text(new BigDecimal("1.3"), true, "en")).isEqualTo("every 5 days");
+    }
+
+    @Test
+    void everyDayOrMoreOftenReadsDaily() {
+        assertThat(ChargeRhythm.text(new BigDecimal("4"), true, "de")).isEqualTo("täglich");
+        assertThat(ChargeRhythm.text(new BigDecimal("7"), true, "en")).isEqualTo("every day");
     }
 
     @Test
@@ -33,10 +40,10 @@ class ChargeRhythmTest {
     }
 
     @Test
-    void withoutHomeChargingCountsStopsRoundedUp() {
-        assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "de")).isEqualTo("2 Ladestopps pro Woche");
-        assertThat(ChargeRhythm.text(new BigDecimal("0.4"), false, "de")).isEqualTo("1 Ladestopp pro Woche");
-        assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "en")).isEqualTo("2 charging stops a week");
+    void withoutHomeChargingCountsChargesRoundedUp() {
+        assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "de")).isEqualTo("2-mal pro Woche");
+        assertThat(ChargeRhythm.text(new BigDecimal("0.4"), false, "de")).isEqualTo("1-mal pro Woche");
+        assertThat(ChargeRhythm.text(new BigDecimal("1.22"), false, "en")).isEqualTo("2 times a week");
     }
 
     @Test

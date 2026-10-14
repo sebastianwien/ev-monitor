@@ -68,11 +68,11 @@ test.describe('Fahrzeug bewerten', () => {
 
     await page.getByRole('radio', { name: 'Ja, genau diesen' }).click();
     await stars(page, 'Passt er zu deinem Alltag?', 4);
-    await expect(page.getByText('Passt gut')).toBeVisible();
-    await page.getByRole('button', { name: 'Fahre ich selten Langstrecke' }).click();
+    await expect(page.getByText('Gut', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Kann ich nicht beurteilen' }).first().click();
     await stars(page, 'Wie zufrieden bist du mit Software und Bedienung?', 3);
     await stars(page, 'Wie gut sind Verarbeitung und Komfort?', 5);
-    await page.getByRole('button', { name: 'Noch nicht gebraucht' }).click();
+    await page.getByRole('button', { name: 'Kann ich nicht beurteilen' }).last().click();
     await expect(submit).toHaveText('Noch 1');
     await page.getByRole('radio', { name: 'Wie erwartet' }).click();
 
@@ -88,7 +88,7 @@ test.describe('Fahrzeug bewerten', () => {
     await expect(page.getByText(/Erscheint als Zitat/)).toBeVisible();
     await page.getByRole('button', { name: 'Speichern' }).click();
 
-    await expect(page.getByRole('heading', { name: /Dein Urteil zählt ab jetzt/ })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: /deine Bewertung ist gespeichert/ })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Deinen Text lesen wir in den nächsten Tagen.')).toBeVisible();
   });
 
@@ -107,8 +107,8 @@ test.describe('Fahrzeug bewerten', () => {
     for (const question of ['Passt er zu deinem Alltag?', 'Wie zufrieden bist du mit Software und Bedienung?', 'Wie gut sind Verarbeitung und Komfort?']) {
       await stars(page, question, 2);
     }
-    await page.getByRole('button', { name: 'Fahre ich selten Langstrecke' }).click();
-    await page.getByRole('button', { name: 'Noch nicht gebraucht' }).click();
+    await page.getByRole('button', { name: 'Kann ich nicht beurteilen' }).first().click();
+    await page.getByRole('button', { name: 'Kann ich nicht beurteilen' }).last().click();
     await page.getByRole('radio', { name: 'Teurer als erwartet' }).click();
     await page.getByRole('button', { name: 'Absenden' }).click();
 

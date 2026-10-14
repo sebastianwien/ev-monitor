@@ -9,7 +9,7 @@ import { analytics } from '../../services/analytics'
 import type { PublicModelRatings } from '../../api/ratingService'
 
 /**
- * "Fahrer sagen" auf der Modellseite. Öffentlich nur absolute Zahlen, ab 5 Bewertungen Schnitt,
+ * "Fahrerbewertungen" auf der Modellseite. Öffentlich nur absolute Zahlen, ab 5 Bewertungen Schnitt,
  * darunter Einzelkarten. Alle Texte stehen im DOM (auch zugeklappte Berichte), damit Crawler sie sehen.
  */
 const props = defineProps<{
@@ -69,9 +69,9 @@ onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-    <section ref="root" class="bg-white dark:bg-gray-900 md:rounded-2xl border-y md:border border-gray-200 dark:border-gray-800 p-6 md:mt-6 space-y-6" data-testid="model-ratings">
-        <h2 class="t-title text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <ChatBubbleLeftRightIcon class="w-6 h-6 text-green-700 dark:text-green-400" aria-hidden="true" />
+    <section ref="root" class="min-w-0 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 px-4 py-6 md:rounded-3xl md:p-8 md:edge-box space-y-6" data-testid="model-ratings">
+        <h2 class="flex items-center gap-2 text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">
+            <ChatBubbleLeftRightIcon class="h-6 w-6 text-green-700 dark:text-green-400" aria-hidden="true" />
             {{ t('rating.public.title') }}
         </h2>
 

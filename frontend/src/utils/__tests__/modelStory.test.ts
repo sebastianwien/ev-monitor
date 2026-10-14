@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildModelStory, keepUnits, type StoryInput, type StoryFormatters } from '../modelStory'
+import { buildModelStory, fastChargePrice, keepUnits, type StoryInput, type StoryFormatters } from '../modelStory'
 import { i18n } from '../../i18n'
 
 // Loose signature: the typed vue-i18n `t` makes the compiler walk every locale key
@@ -8,7 +8,11 @@ const translate = (i18n.global as unknown as { t: (key: string, params: Record<s
 const fmt: StoryFormatters = {
   t: (key, params) => translate(key, params ?? {}),
   formatConsumption: v => `${v.toFixed(1)} kWh/100km`,
+  formatConsumptionValue: v => v.toFixed(1),
+  consumptionUnit: 'kWh/100km',
   formatDistance: km => `${km} km`,
+  formatDistanceValue: km => String(km),
+  distanceUnit: 'km',
   formatCostPerKwh: v => `${Math.round(v * 100)} ct/kWh`,
   formatCostPerDistance: v => `${v.toFixed(2)} €/100km`,
   formatCurrency: v => `${Math.round(v)} €`,
@@ -20,23 +24,25 @@ const full: StoryInput = {
   modelName: 'Volkswagen ID.3', brandName: 'Volkswagen', logCount: 6230, carCount: 51, driverCount: 50,
   netBatteryKwh: 58, wltpKwhPer100km: 15.3, wltpRangeKm: 434,
   avgKwhPer100km: 19.1, minKwhPer100km: 16.6, maxKwhPer100km: 19.9,
-  routeType: { highway: 18.9, city: 19.0, combined: 17.1, highwayCars: 16, cityLogs: 119, combinedLogs: 800, typedMean: 17.6 },
+  routeType: { highway: 18.9, city: 16.2, combined: 17.1, highwayCars: 16, highwayLogs: 121, cityLogs: 119, combinedLogs: 800, typedMean: 17.6 },
   seasonal: { summer: 17.6, winter: 22.6, summerLogs: 1630, winterLogs: 891 },
-  fastChargePowerKw: 85, avgChargingPowerKw: 65.9,
+  fastChargePowerKw: 85,
   acPricePerKwh: 0.35, dcPricePerKwh: 0.427, avgPricePerKwh: 0.372,
   fleetWinterFactor: { factor: 1.28, models: 29 },
 }
 
 const specOnly: StoryInput = {
   ...full, logCount: 0, carCount: 0, driverCount: 0, avgKwhPer100km: null, minKwhPer100km: null, maxKwhPer100km: null,
-  routeType: null, seasonal: null, fastChargePowerKw: null, avgChargingPowerKw: null,
+  routeType: null, seasonal: null, fastChargePowerKw: null,
   acPricePerKwh: null, dcPricePerKwh: null, avgPricePerKwh: null,
 }
 
+const fact = (s: ReturnType<typeof buildModelStory>, key: string) => s.facts.find(f => f.key === key)!
+
 describe('keepUnits', () => {
   it('binds a unit to its number so a line never starts with "km."', () => {
-    expect(keepUnits('Der Prospekt sagt 434 km.')).toBe('Der Prospekt sagt 434\u00a0km.')
-    expect(keepUnits('25 % mehr, 19,2 kWh/100km, 84 kW, 30 min, 9 €')).toBe('25\u00a0% mehr, 19,2\u00a0kWh/100km, 84\u00a0kW, 30\u00a0min, 9\u00a0€')
+    expect(keepUnits('Der Prospekt sagt 434 km.')).toBe('Der Prospekt sagt 434 km.')
+    expect(keepUnits('25 % mehr, 19,2 kWh/100km, 84 kW, 30 min, 9 €')).toBe('25 % mehr, 19,2 kWh/100km, 84 kW, 30 min, 9 €')
   })
 
   it('leaves words after a number alone', () => {
@@ -45,7 +51,7 @@ describe('keepUnits', () => {
 })
 
 describe('buildModelStory', () => {
-  it('full data: the hero pits the prospectus against the drivers and every chapter is measured', () => {
+  it('hero: the prospectus against the drivers', () => {
     const s = buildModelStory(full, fmt)
 
     expect(s.level).toBe('FULL')
@@ -53,77 +59,126 @@ describe('buildModelStory', () => {
     expect(s.realRangeKm).toBe(270)
     expect(s.summerRangeKm).toBe(300)
     expect(s.winterRangeKm).toBe(230)
-    expect(s.heroSentence).toBe('Der Prospekt sagt 434 km. 50 Fahrer sagen 270 km.')
-    expect(s.lede).toContain('Sommer und Winter')
-    expect(s.chapters.map(c => c.level)).toEqual(['FULL', 'FULL', 'FULL', 'FULL'])
-    // 19.1 / 15.3 = +25 %
-    expect(s.chapters[0].headline).toBe('19.1 kWh/100km. 25 % mehr als im Prospekt.')
-    expect(s.chapters[1].headline).toBe('Im Winter fehlen 70 km.')
-    // highway against the route-typed trips of the same period, not the overall 19.1: 18.9 / 17.6 = +7 %
-    expect(s.chapters[0].effect).toContain('rund 7 % mehr')
-    expect(s.chapters[0].effect).not.toContain('19.1')
-    // 58 × 0.7 / 85 kW = 28.7 min → 30
-    expect(s.chapters[2].headline).toBe('Von 10 auf 80 Prozent in rund 30 Minuten.')
-    // 0.372 × 19.1 = 7.11
-    expect(s.chapters[3].headline).toBe('7.11 €/100km. Zuhause weniger, unterwegs mehr.')
-    expect(s.fallbackBand).toEqual({ minKm: 230, maxKm: 300 })
+    // the prospectus on the same window as the drivers, 100 to 10 %: 434 × 0.9 = 391 → 390
+    expect(s.prospectRangeKm).toBe(390)
+    expect(s.heroSentence).toBe('Der Prospekt sagt 390 km. 50 Fahrer sagen 270 km.')
   })
 
-  it('partial data: a missing season says so and names the fleet surcharge', () => {
+  it('the drivers spread from the thirstiest to the most frugal driver, on the same battery window', () => {
+    // 58 × 0.9 × 100 / 19.9 = 262 → 260; / 16.6 = 314 → 310
+    expect(buildModelStory(full, fmt).driverRangeKm).toEqual({ minKm: 260, maxKm: 310 })
+    expect(buildModelStory({ ...full, minKwhPer100km: null }, fmt).driverRangeKm).toBeNull()
+    expect(buildModelStory(specOnly, fmt).driverRangeKm).toBeNull()
+  })
+
+  it('thin data (under 5 cars): the hero calls it first measurements, not a verdict', () => {
+    expect(buildModelStory({ ...full, carCount: 2, driverCount: 2 }, fmt).heroSentence)
+      .toBe('Der Prospekt sagt 390 km. Bisher messen 2 Fahrer 270 km.')
+    expect(buildModelStory({ ...full, carCount: 1, driverCount: 1 }, fmt).heroSentence)
+      .toBe('Der Prospekt sagt 390 km. Bisher misst ein Fahrer 270 km.')
+  })
+
+  it('data sheet: four tiles in fixed order, one figure and one comparison line each', () => {
+    const s = buildModelStory(full, fmt)
+
+    expect(s.facts.map(f => f.key)).toEqual(['range', 'consumption', 'charging', 'cost'])
+    expect(s.facts.every(f => f.level === 'FULL')).toBe(true)
+    expect(fact(s, 'range')).toMatchObject({ value: '270', unit: 'km', note: '230 km im Winter', noteFigure: { value: '230', unit: 'km' } })
+    // 19.1 / 15.3 = +25 %
+    expect(fact(s, 'consumption')).toMatchObject({ value: '19.1', unit: 'kWh/100km', note: '25 % über Prospekt (15.3)', noteFigure: { value: '25', unit: '%' } })
+    // 58 × 0.7 / 85 kW = 28.7 min → 30
+    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '85 kW im Schnitt', noteSoc: { from: 10, to: 80, text: '10 auf 80 %' }, noteFigure: { value: '85', unit: 'kW' } })
+    // 0.372 × 19.1 = 7.11
+    // a home charge 20 to 80 % at AC: 58 × 0.6 / 0.9 = 38.7 kWh × 0.35 = 13.53 → 14 €;
+    // a fast charge 10 to 80 % at DC: 58 × 0.7 / 0.95 = 42.7 kWh × 0.427 = 18.25 → 18 €
+    // both charges side by side as equals
+    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', unit: 'zu Hause', extra: { value: '18 €', unit: 'Schnelllader' }, note: '' })
+  })
+
+  it('evidence: range by season against the prospectus, bars from zero on one scale', () => {
+    const s = buildModelStory(full, fmt)
+
+    expect(s.evidence.range!.bars).toEqual([
+      { key: 'wltp', label: 'Prospekt', value: 390, text: '390 km', reference: true },
+      { key: 'summer', label: 'Sommer', value: 300, text: '300 km', reference: false },
+      { key: 'winter', label: 'Winter', value: 230, text: '230 km', reference: false },
+    ])
+    // 230 / 300 = -23 %
+    expect(s.evidence.range!.note).toBe('Im Winter kommst du 23 % weniger weit als im Sommer. Sommer aus 1630, Winter aus 891 Ladevorgängen.')
+  })
+
+  it('evidence: route types as the difference to their own mean, never as absolute values next to the overall mean', () => {
+    const s = buildModelStory(full, fmt)
+
+    // 16.2 / 17.6 = -8 %, 17.1 / 17.6 = -3 %, 18.9 / 17.6 = +7 %
+    expect(s.evidence.routes!.rows).toEqual([
+      { key: 'city', label: 'Stadt', pct: -8, text: '-8 %' },
+      { key: 'combined', label: 'Gemischt', pct: -3, text: '-3 %' },
+      { key: 'highway', label: 'Autobahn', pct: 7, text: '+7 %' },
+    ])
+    expect(s.evidence.routes!.note).toContain('1040 Fahrten')
+    expect(s.evidence.routes!.note).toContain('Autobahn von 16 Autos')
+  })
+
+  it('too few highway cars: the highway row is left out, not estimated', () => {
+    const s = buildModelStory({ ...full, routeType: { ...full.routeType!, highwayCars: 3 } }, fmt)
+
+    expect(s.evidence.routes!.rows.map(r => r.key)).toEqual(['city', 'combined'])
+  })
+
+  it('a missing season: range evidence shows the year average and names the fleet surcharge', () => {
     const s = buildModelStory({ ...full, seasonal: null, fastChargePowerKw: null }, fmt)
 
-    expect(s.level).toBe('FULL')
-    expect(s.chapters[1].level).toBe('PARTIAL')
-    expect(s.chapters[1].headline).toBe('Für den Volkswagen ID.3 fehlen uns Winterdaten.')
-    expect(s.chapters[1].say).toContain('28 % Winteraufschlag, gemessen an 29 anderen Modellen')
-    expect(s.chapters[2].level).toBe('PARTIAL')
-    expect(s.chapters[2].headline).toContain('noch kein Fahrer gemessen')
-    expect(s.lede).not.toContain('Sommer und Winter')
-    expect(s.lede).toContain('Wo uns Daten fehlen')
-    // the band falls back to the year average when a season is missing
-    expect(s.fallbackBand).toBeNull()
+    expect(fact(s, 'range').note).toBe('Prospekt 390 km')
+    expect(s.evidence.range!.bars.map(b => b.key)).toEqual(['wltp', 'year'])
+    expect(s.evidence.range!.note).toContain('28 % Winteraufschlag, gemessen an 29 anderen Modellen')
+    expect(fact(s, 'charging')).toMatchObject({ value: null, level: 'PARTIAL' })
   })
 
-  it('spec only: WLTP speaks, nobody has measured yet, and the chapters still ask their questions', () => {
+  it('spec only: the tiles show the manufacturer figures as such and there is no evidence', () => {
     const s = buildModelStory(specOnly, fmt)
 
     expect(s.level).toBe('NONE')
     expect(s.realRangeKm).toBeNull()
+    // nothing to compare: the manufacturer's own figure as it stands
     expect(s.heroSentence).toBe('434 km verspricht Volkswagen. Noch kein Fahrer hat nachgemessen.')
-    expect(s.chapters.map(c => c.level)).toEqual(['NONE', 'NONE', 'NONE', 'NONE'])
-    expect(s.chapters[0].headline).toBe('Noch kein Fahrer hat den Verbrauch des Volkswagen ID.3 gemessen.')
-    expect(s.fallbackBand).toBeNull()
+    expect(fact(s, 'range')).toMatchObject({ value: '434', level: 'NONE', note: 'laut Hersteller, noch nicht gemessen' })
+    expect(fact(s, 'consumption')).toMatchObject({ value: '15.3', level: 'NONE' })
+    expect(fact(s, 'cost').value).toBeNull()
+    expect(s.evidence.range).toBeNull()
+    expect(s.evidence.routes).toBeNull()
   })
 
-  it('the charge price is a fast-charging stop from 10 to 80 percent, not the average session', () => {
-    const s = buildModelStory(full, fmt)
-
-    // 58 kWh × 0.7 = 40.6 kWh into the battery, / 0.95 DC efficiency = 42.7 kWh at the charger × 0.427 € = 18.25 €
-    const tiles = s.chapters[3].tiles
-    const stop = tiles[tiles.length - 1]
-    expect(stop.value).toBe('18 €')
-    expect(stop.unit).toBe('pro Ladestopp')
-    expect(stop.label).toBe('10 auf 80 %, 43 kWh')
-    expect(s.chapters[3].say).toContain('Ein Schnellladestopp von 10 auf 80 Prozent zieht 43 kWh aus der Säule und kostet rund 18 €.')
-  })
-
-  it('the cost claim "cheaper at home" only appears when AC is cheaper than DC', () => {
-    const s = buildModelStory({ ...full, acPricePerKwh: 0.5, dcPricePerKwh: 0.4 }, fmt)
-
-    expect(s.chapters[3].headline).toBe('7.11 €/100km beim Community-Preis.')
-  })
-
-  it('without WLTP the consumption headline drops the prospectus comparison', () => {
+  it('without WLTP the hero and the consumption tile drop the prospectus comparison', () => {
     const s = buildModelStory({ ...full, wltpKwhPer100km: null, wltpRangeKm: null }, fmt)
 
-    expect(s.chapters[0].headline).toBe('19.1 kWh/100km, gemessen an 51 Autos.')
     expect(s.heroSentence).toBe('50 Fahrer sagen 270 km.')
+    expect(fact(s, 'consumption').note).toBe('aus 6230 Ladevorgängen')
+    expect(s.evidence.range!.bars.map(b => b.key)).toEqual(['summer', 'winter'])
   })
 
-  it('a measured cheaper motorway says so, too few highway cars fall back to the estimate', () => {
-    const cheaper = buildModelStory({ ...full, routeType: { ...full.routeType!, highway: 17.0, typedMean: 17.6 } }, fmt)
-    expect(cheaper.chapters[0].effect).toContain('rund 3 % weniger')
-    const few = buildModelStory({ ...full, routeType: { ...full.routeType!, highwayCars: 3 } }, fmt)
-    expect(few.chapters[0].effect).toContain('geschätzt')
+  it('cost: the fast charge at the price without a subscription, when known', () => {
+    // 58 × 0.7 / 0.95 = 42.7 kWh × 0.65 = 27.8 → 28 €
+    const s = buildModelStory({ ...full, fastAdHocPricePerKwh: 0.65 }, fmt)
+    expect(fact(s, 'cost')).toMatchObject({ value: '14 €', extra: { value: '28 €', unit: 'Schnelllader' }, note: '' })
+  })
+
+  it('the fast-charge price the tile, the SEO text and the FAQ share: without a subscription, else the drivers\' DC price, else their mean', () => {
+    expect(fastChargePrice({ ...full, fastAdHocPricePerKwh: 0.65 })).toBe(0.65)
+    expect(fastChargePrice(full)).toBe(0.427)
+    expect(fastChargePrice({ ...full, dcPricePerKwh: null })).toBe(0.372)
+    expect(fastChargePrice(specOnly)).toBeNull()
+  })
+
+  it('cost without an AC price: the fast charge is the figure', () => {
+    const s = buildModelStory({ ...full, acPricePerKwh: null }, fmt)
+    expect(fact(s, 'cost')).toMatchObject({ value: '18 €', unit: 'Schnelllader', note: '' })
+    expect(fact(s, 'cost').extra).toBeUndefined()
+  })
+
+  it('a consumption below the prospectus says so', () => {
+    const s = buildModelStory({ ...full, avgKwhPer100km: 14.5 }, fmt)
+
+    expect(fact(s, 'consumption').note).toBe('5 % unter Prospekt (15.3)')
   })
 })

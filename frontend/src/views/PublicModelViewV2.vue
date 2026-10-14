@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div class="min-h-screen bg-gray-100 md:bg-gray-50 dark:bg-gray-950">
     <div class="model-page">
     <PublicNav />
-    <main class="max-w-4xl mx-auto md:px-4 py-2 md:py-8">
+    <main class="mx-auto max-w-5xl py-2 md:px-6 md:py-8">
 
       <div v-if="loading" class="flex items-center justify-center py-20">
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
@@ -26,304 +26,184 @@
         <StartCodeTeaser v-if="isAuthenticated" class="mx-4 md:mx-0 mb-3" />
 
         <!-- Breadcrumb: als Chip geerdet, damit er nicht im Gitter-Hintergrund untergeht -->
-        <nav aria-label="Breadcrumb" class="px-4 md:px-0 mb-3">
-          <ol class="flex flex-nowrap items-center gap-1.5 text-sm whitespace-nowrap overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-full px-3.5 py-1.5 shadow-sm">
-            <li class="shrink-0"><a href="/" class="flex items-center gap-1 font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors"><HomeIcon class="h-4 w-4 shrink-0" aria-hidden="true" />{{ t('model.breadcrumb_home') }}</a></li>
-            <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
-            <li class="shrink-0"><a :href="modelsBaseUrl" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_models') }}</a></li>
-            <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
-            <li class="shrink-0"><a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ stats.brandDisplayName }}</a></li>
-            <ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600 shrink-0" aria-hidden="true" />
-            <li aria-current="page" class="shrink-0 font-bold text-gray-900 dark:text-gray-100">{{ stats.modelDisplayName.replace(stats.brandDisplayName + ' ', '') }}</li>
+        <nav aria-label="Breadcrumb" class="mb-4 px-4 md:px-0">
+          <ol class="flex flex-nowrap items-center gap-1.5 text-sm whitespace-nowrap overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white dark:bg-gray-900 edge-card rounded-full px-3.5 py-1.5">
+            <li class="shrink-0"><a href="/" class="flex items-center gap-1 font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors"><HomeIcon class="h-4 w-4 shrink-0" aria-hidden="true" /><span class="sr-only md:not-sr-only">{{ t('model.breadcrumb_home') }}</span></a></li>
+            <li class="flex shrink-0 items-center gap-1.5"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" /><a :href="modelsBaseUrl" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_models') }}</a></li>
+            <li class="flex shrink-0 items-center gap-1.5"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" /><a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ stats.brandDisplayName }}</a></li>
+            <li aria-current="page" class="flex shrink-0 items-center gap-1.5 font-bold text-gray-900 dark:text-gray-100"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" />{{ shortModelName }}</li>
           </ol>
         </nav>
 
-        <!-- Story "Prospekt gegen Realität": hero with the gauge, four chapters with one question
-             each, the visitor's range band alongside, the exact result behind the gate at the end. -->
-        <div class="px-4 md:px-0">
-          <h1 class="max-w-[22ch] text-balance pt-1 text-[clamp(26px,6.4vw,44px)] font-bold leading-[1.06] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
-          <header class="grid gap-5 pt-5 md:grid-cols-[1.1fr_1fr] md:items-center md:gap-8 md:pt-6">
-            <div class="grid gap-3">
-              <!-- Variant chips as the eyebrow: the story speaks about one battery -->
-              <div v-if="activeVariants.length > 1" class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0" role="group" :aria-label="t('model.variant_title')">
-                <button v-for="(v, i) in activeVariants" :key="v.displayLabel ?? v.batteryCapacityKwh" type="button"
-                        class="inline-flex min-h-9 flex-none items-center whitespace-nowrap rounded-full px-3.5 text-[13.5px] font-medium transition-colors"
-                        :class="i === selectedVariantIndex
-                          ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-                          : 'bg-gray-200/70 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'"
-                        :aria-pressed="i === selectedVariantIndex"
-                        @click="selectedVariantIndex = i">
-                  {{ v.displayLabel || v.variantName || (v.batteryCapacityKwh + ' kWh') }}
-                </button>
+        <div class="grid gap-2 md:gap-5">
+          <!-- 1 Hero: its own box, the questions docked below it. On the phone the green chat closes the box and the
+               change of surface to the next box is the separation, so no gap and no line on top of it. -->
+          <header class="relative z-10 -mb-2 border-gray-200 bg-white md:mb-0 md:rounded-3xl md:edge-box dark:bg-gray-900">
+            <div class="grid gap-5 px-4 py-6 md:gap-6 md:px-10 md:py-8">
+              <div class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:gap-8">
+                <h1 class="max-w-[30ch] text-balance text-[22px] md:text-[32px] font-bold leading-[1.15] tracking-tight text-gray-900 dark:text-gray-100">{{ t('model.hero_title_v2', { model: stats.modelDisplayName }) }}</h1>
+                <VariantPicker v-if="activeVariants.length > 1" v-model="selectedVariantIndex" :options="variantOptions" class="justify-self-end" />
+                <p v-else-if="variantLabel" class="text-[14px] font-medium text-gray-500 dark:text-gray-400">{{ variantLabel }}</p>
               </div>
-              <p v-else class="text-[13px] text-gray-500 dark:text-gray-400">{{ variantLabel }}</p>
-              <!-- One sentence per line, never wrapping: the size follows the viewport on the phone
-                   and the half-width column from md up (about 13 em per line) -->
-              <h2 class="text-[clamp(19px,6vw,40px)] font-bold leading-[1.1] tracking-tight text-gray-900 md:text-[clamp(24px,3.3vw,32px)] dark:text-gray-100" data-testid="story-hero">
-                <span v-for="(line, i) in heroLines" :key="i" class="block whitespace-nowrap">{{ line }}{{ ' ' }}</span>
-              </h2>
-              <p class="max-w-[46ch] text-gray-600 dark:text-gray-400">{{ story.lede }}</p>
+
+              <!-- Phone: claim, compact gauge, basis, so claim and picture share the first screen.
+                   From md up: claim and basis on the left, the gauge on the right, both ending on one line:
+                   the basis row is as tall as its text, the claim row takes what the gauge needs above it; mb-1 sets the
+                   legend (14 px) on the baseline of the last text line (17 px, relaxed leading). -->
+              <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:grid-rows-[1fr_auto] md:gap-x-10 md:gap-y-3">
+                <!-- One sentence per line: "Der Prospekt sagt 390 km." then "48 Fahrer sagen 280 km." -->
+                <p class="text-[clamp(22px,6vw,42px)] font-bold leading-[1.1] tracking-tight text-gray-900 md:col-start-1 md:row-start-1 md:self-end dark:text-gray-100" data-testid="story-hero">
+                  <span v-for="(line, i) in heroLines" :key="i" class="block" :class="i === 1 ? 'text-green-700 dark:text-green-400' : ''">{{ line }}{{ ' ' }}</span>
+                </p>
+                <RangeGauge v-if="storyInput.wltpRangeKm" class="md:col-start-2 md:row-span-2 md:row-start-1 md:mb-1 md:self-end"
+                            :wltp-km="story.realRangeKm != null && story.prospectRangeKm != null ? story.prospectRangeKm : storyInput.wltpRangeKm"
+                            :real-km="story.realRangeKm" :winter-km="story.winterRangeKm"
+                            :rating-label="story.realRangeKm != null ? t('model.page.range_wltp') : ratingLabel" />
+                <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[46ch] text-[15px] leading-relaxed text-gray-700 md:col-start-1 md:row-start-2 md:self-start md:text-[17px] dark:text-gray-300" data-testid="hero-basis">
+                  <!-- the battery window only from md up; on the phone the gauge right above says it -->
+                  <span class="hidden md:inline">{{ t('model.page.hero_basis') + ' ' }}</span>
+                  <template v-if="story.driverRangeKm">{{ t('model.page.hero_spread', { min: formatDistance(story.driverRangeKm.minKm, { showUnit: false }), max: formatDistance(story.driverRangeKm.maxKm) }) + ' ' }}</template>
+                  {{ t('model.page.hero_depends') }}
+                </p>
+              </div>
             </div>
-            <RangeGauge v-if="storyInput.wltpRangeKm" :wltp-km="storyInput.wltpRangeKm" :real-km="story.realRangeKm" :winter-km="story.winterRangeKm" :rating-label="ratingLabel" />
+
+            <!-- Docked below in light grey: a buyer asks the four questions the page answers -->
+            <div class="border-gray-200 bg-white px-4 pb-5 pt-1 md:rounded-b-3xl md:border-t-2 md:border-gray-900 md:bg-gray-50 md:dark:border-gray-200 md:pt-5 md:px-10 md:py-7 dark:border-gray-800 dark:bg-gray-900 md:dark:bg-gray-800/40">
+              <BuyerQuestions @jump="trackJump" />
+            </div>
           </header>
 
-          <!-- Data basis -->
-          <p class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-gray-200 py-3 text-[13px] text-gray-500 dark:border-gray-800 dark:text-gray-400">
-            <template v-if="stats.logCount > 0">
-              <span class="inline-flex items-center gap-1.5"><i class="h-2 w-2 rounded-full bg-green-600 dark:bg-green-500" aria-hidden="true"></i><b class="font-semibold text-gray-900 dark:text-gray-100">{{ t('model.story.basis_logs', { logs: formatNumber(stats.logCount) }) }}</b></span>
-              <span>{{ t('model.story.basis_cars', { cars: formatNumber(stats.uniqueCars) }) }}</span>
-              <span>{{ t('model.story.basis_drivers', { drivers: formatNumber(stats.uniqueContributors) }) }}</span>
-            </template>
-            <span v-else>{{ t('model.story.basis_none') }}</span>
-            <span v-if="!isEurZone && stats.avgCostPerKwh" class="basis-full italic text-gray-400 dark:text-gray-500">{{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}</span>
-          </p>
+          <!-- 2 Data sheet -->
+          <ModelFactTiles :title="stats.logCount > 0 ? t('model.page.facts_title') : t('model.page.facts_title_spec')" :sub="factsSub" :facts="story.facts">
+            <p v-if="!isEurZone && stats.avgCostPerKwh" class="text-[12px] italic text-gray-500 dark:text-gray-400">{{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}</p>
+          </ModelFactTiles>
 
-          <!-- One band instance: after the chapters on the phone (sticky bottom), the side column from md up (sticky top) -->
-          <div class="grid md:grid-cols-[minmax(0,1fr)_280px] md:items-start md:gap-x-8">
-            <div class="grid md:col-start-1 md:row-start-1">
-              <StoryChapter v-for="(chapter, i) in story.chapters" :key="chapter.key"
-                            :chapter-key="chapter.key" :level="chapter.level" :title="t(`model.story.c${i + 1}_title`)"
-                            :headline="chapter.headline" :say="chapter.say" :tiles="chapter.tiles" :effect="chapter.effect"
-                            :questions="questionsFor(chapter.key)"
-                            @answer="answer">
-                <template v-if="chapter.key === 'cost'" #extra>
-                  <label class="mt-1 grid max-w-xs gap-1 text-[13px] text-gray-600 dark:text-gray-400">
-                    <span>{{ t('model.story.own_price_label') }}</span>
-                    <span class="flex items-center gap-2">
-                      <input v-model="ownPriceText" type="text" inputmode="decimal" :placeholder="communityPricePlaceholder" data-testid="own-price"
-                             class="h-11 w-32 rounded-xl border border-gray-200 bg-white px-3 text-base tabular-nums text-gray-900 placeholder:text-gray-400 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
-                             @change="onOwnPrice" />
-                      <span class="font-medium text-gray-700 dark:text-gray-300">{{ t('model.story.own_price_unit') }}</span>
-                    </span>
-                  </label>
-                </template>
-              </StoryChapter>
-
-              <!-- For owners: a real call to action, visually second to the green "Meine Zahlen" -->
-              <aside v-if="!isAuthenticated" class="mt-9 grid gap-3 rounded-2xl border border-gray-200 bg-white p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6 dark:border-gray-800 dark:bg-gray-900" data-testid="owner-cta">
-                <div class="grid gap-1">
-                  <p class="text-balance text-[17px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.story.owner_title', { model: stats.modelDisplayName }) }}</p>
-                  <p class="text-[15px] text-gray-600 dark:text-gray-400">{{ t('model.story.owner_text', { n: formatNumber(stats.uniqueCars + 1) }) }}</p>
-                </div>
-                <a :href="registerPath" class="inline-flex min-h-11 items-center justify-center whitespace-nowrap rounded-xl bg-gray-900 px-5 font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">{{ t('model.story.owner_cta') }}</a>
-              </aside>
-            </div>
-
-            <div class="sticky z-30 mt-6 md:col-start-2 md:row-start-1 md:mt-0 md:pt-9 md:[position:sticky] md:top-24 md:bottom-auto"
-                 :class="isAuthenticated ? 'bottom-[calc(env(safe-area-inset-bottom)+68px)]' : 'bottom-[calc(env(safe-area-inset-bottom)+12px)]'">
-              <RangeBandBar :brand="brand" :model="model" :model-name="stats.modelDisplayName" :inputs="storyInputs" :answered="answeredCount" :total="QUESTION_COUNT" :fallback-band="story.fallbackBand" :profile="profileRows" :locked="!isAuthenticated" @open="openResult" />
-            </div>
-
-            <PersonalRangeCalculator
-              ref="calculatorRef"
-              class="md:col-start-1 md:row-start-2"
-              :brand="brand"
-              :model="model"
-              :model-name="stats.modelDisplayName"
-              :log-count="stats.logCount"
-              :car-count="stats.uniqueCars"
-              :inputs="storyInputs"
-              :open-count="openQuestions.length"
-              @profile="applyProfile"
-              @incomplete="showFirstOpen" />
-          </div>
-        </div>
-
-        <!-- Community methodology note -->
-        <p class="px-4 py-4 text-center text-[13px] text-gray-500 md:px-0 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
-
-        <!-- Baujahr-Verteilung -->
-        <div v-if="stats.yearDistribution && stats.yearDistribution.length > 0"
-             class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl px-6 py-5 md:mb-6">
-          <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
-            <ChartBarIcon class="h-4 w-4 text-gray-400" />
-            {{ t('model.year_distribution_title', { count: stats.uniqueCars }) }}
-          </p>
-          <!-- Säulen-Histogramm: eine Farbe, chronologisch - sofort als Verteilung lesbar -->
-          <div class="flex items-end gap-1.5 sm:gap-2">
-            <div v-for="entry in stats.yearDistribution" :key="entry.year" class="flex-1 flex flex-col items-center">
-              <span class="text-xs font-bold text-gray-700 dark:text-gray-300 mb-1 tabular-nums">{{ entry.carCount }}</span>
-              <div class="w-full bg-green-500 rounded-t border border-b-0 border-gray-800/10 dark:border-gray-200/10" :style="{ height: yearBarHeightPx(entry.carCount) }"></div>
-            </div>
-          </div>
-          <div class="flex gap-1.5 sm:gap-2 mt-1.5">
-            <div v-for="entry in stats.yearDistribution" :key="entry.year" class="flex-1 text-center text-xs text-gray-500 dark:text-gray-400 tabular-nums">{{ entry.year }}</div>
-          </div>
-          <p v-if="medianModelYear" class="mt-4 text-sm text-gray-600 dark:text-gray-300 text-center">
-            {{ t('model.year_distribution_summary', { year: medianModelYear }) }}
-          </p>
-        </div>
-
-        <!-- Streckentyp-Verteilung -->
-        <div v-if="showRouteTypeBar"
-             class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl px-6 py-5 md:mb-6">
-          <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-1.5">
-            <ChartBarIcon class="h-4 w-4 text-gray-400" />
-            {{ t('model.route_type_title') }}
-          </p>
-          <div class="flex flex-col gap-2.5">
-            <div class="flex h-4 rounded-full overflow-hidden">
-              <div
-                v-for="entry in routeTypeClassified"
-                :key="entry.routeType"
-                :style="{
-                  width: (entry.count / routeTypeClassifiedTotal * 100) + '%',
-                  backgroundColor: ROUTE_TYPE_META[entry.routeType]?.color,
-                }"
-              />
-            </div>
-            <div class="flex flex-wrap gap-x-4 gap-y-1.5">
-              <div v-for="entry in routeTypeClassified" :key="entry.routeType"
-                   class="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                      :style="{ backgroundColor: ROUTE_TYPE_META[entry.routeType]?.color }"></span>
-                <span class="font-medium">{{ t(ROUTE_TYPE_META[entry.routeType]?.labelKey) }}</span>
-                <span class="text-gray-400 dark:text-gray-500">
-                  {{ Math.round(entry.count / routeTypeClassifiedTotal * 100) }}%
-                </span>
+          <!-- 3 Driving profile and result: one column on the phone, the result sticky on the right from md up -->
+          <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_380px] md:items-start md:gap-5">
+            <ModelBox id="profil" aria-labelledby="profile-title" class="scroll-mt-28" data-testid="driving-profile">
+              <div class="grid gap-1.5">
+                <h2 id="profile-title" ref="profileTitle" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('model.page.profile_title') }}</h2>
+                <p class="max-w-[52ch] text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('model.page.profile_sub', { model: shortModelName }) }}</p>
               </div>
+              <div class="grid gap-5">
+                <ProfileSlider v-for="q in profileSliders" :key="q.key" :id="`story-${q.key}`" :test-key="q.key" :label="q.label"
+                               :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail"
+                               :highlight="highlightKey === q.key" @commit="v => answer(q.key, v)" />
+              </div>
+            </ModelBox>
+            <div class="md:sticky md:top-24">
+              <PersonalRangeCalculator
+                :brand="brand"
+                :model="model"
+                :model-name="shortModelName"
+                :log-count="stats.logCount"
+                :car-count="stats.uniqueCars"
+                :inputs="storyInputs"
+                :open-count="openQuestions.length"
+                :petrol="petrolComparison"
+                :fast-price-per-kwh="fastAdHocForMarket ?? stats.dcAvgCostPerKwh"
+                :entry="profileTitle"
+                @profile="applyProfile"
+                @incomplete="showFirstOpen"
+                @home="answerHome"
+                @price="v => answers.pricePerKwh = v" />
             </div>
           </div>
-        </div>
 
-        <!-- WLTP and methodology, collapsed: the story above carries the figures -->
-        <div v-if="activeVariants.length > 0" class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl overflow-hidden md:mb-6">
-          <!-- Details & Methodik (eingeklappt) -->
-          <details :open="story.level !== 'FULL'" class="group">
-            <summary class="flex items-center justify-center gap-2 px-6 py-4 text-sm font-semibold text-green-700 dark:text-green-400 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-              <ClipboardDocumentListIcon class="h-5 w-5" />
-              {{ story.level === 'FULL' ? t('model.details_methodology') : (ratingLabel === 'EPA' ? t('model.epa_section_title') : t('model.wltp_section_title')) }}
-              <ChevronRightIcon class="h-4 w-4 transition-transform group-open:rotate-90" />
-            </summary>
+          <!-- 4 Evidence behind the data sheet -->
+          <ModelEvidence v-if="story.evidence.range || story.evidence.routes" :title="t('model.page.evidence_title', { model: shortModelName })" :evidence="story.evidence" />
 
-            <!-- US fallback: no EPA data yet for this model -->
-            <p v-if="isUS && ratingLabel !== 'EPA'"
-               class="mx-6 mb-3 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-sm px-3 py-2">
-              {{ t('model.epa_not_available') }}
-            </p>
-
-            <!-- WLTP vs. Community als 2 Profil-Cards, je Reichweite zuerst -->
-            <div v-if="selectedVariant" class="px-4 md:px-6 pb-2">
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <!-- WLTP-Card -->
-                <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-gray-50 dark:bg-gray-800/40 p-4 text-center">
-                  <div class="t-eyebrow text-gray-500 dark:text-gray-400 mb-3">{{ t('model.compare_manufacturer') }}</div>
-                  <div class="space-y-3">
-                    <div>
-                      <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_table_range') }}</div>
-                      <div class="t-value text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                        <template v-if="selectedVariant.officialRangeMinKm">{{ formatDistance(selectedVariant.officialRangeMinKm, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
-                        <template v-else>{{ formatDistance(selectedVariant.officialRangeKm) }}</template>
-                      </div>
-                    </div>
-                    <div>
-                      <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_table_consumption') }}</div>
-                      <div class="font-semibold text-gray-800 dark:text-gray-200">
-                        <template v-if="selectedVariant.officialConsumptionMinKwhPer100km && selectedVariant.officialConsumptionMaxKwhPer100km">
-                          {{ formatConsumption(selectedVariant.officialConsumptionMinKwhPer100km, { showUnit: false }) }}&thinsp;-&thinsp;{{ formatConsumption(selectedVariant.officialConsumptionMaxKwhPer100km) }}
-                          <span class="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.wltp_varies_by_year') }}</span>
-                        </template>
-                        <template v-else>{{ formatConsumption(selectedVariant.officialConsumptionKwhPer100km) }}</template>
-                      </div>
+          <!-- 5 Ratings and more details; side by side from md up -->
+          <div class="grid gap-2 md:gap-5" :class="ratings ? 'md:grid-cols-2 md:items-start' : ''">
+            <ModelRatingsBlock
+              v-if="ratings"
+              :ratings="ratings"
+              :model="shortModelName"
+              :cta-car-id="ratingCtaCarId"
+              :register-path="isAuthenticated ? null : registerPath"
+            />
+            <ModelBox aria-labelledby="details-title" class="!gap-0" data-testid="model-details">
+              <h2 id="details-title" class="mb-2 text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('model.page.details_title') }}</h2>
+              <details v-if="showYears" class="group border-t border-gray-100 first-of-type:border-t-0 dark:border-gray-800">
+                <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
+                  {{ t('model.page.details_years') }}<ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <div class="pb-4">
+                  <p class="mb-3 text-[13px] text-gray-500 dark:text-gray-400">{{ t('model.year_distribution_title', { count: stats.uniqueCars }) }}</p>
+                  <div class="flex items-end gap-1.5 sm:gap-2">
+                    <div v-for="entry in stats.yearDistribution" :key="entry.year" class="flex flex-1 flex-col items-center">
+                      <span class="mb-1 text-xs font-bold tabular-nums text-gray-700 dark:text-gray-300">{{ entry.carCount }}</span>
+                      <div class="w-full rounded-t bg-green-500" :style="{ height: yearBarHeightPx(entry.carCount) }"></div>
                     </div>
                   </div>
-                </div>
-
-                <!-- Community-Card (grün, der USP) -->
-                <div class="border-2 border-gray-800 dark:border-gray-200 rounded-xl bg-green-50 dark:bg-green-900/20 p-4 text-center">
-                  <div class="t-eyebrow text-green-700 dark:text-green-400 mb-3">Community · {{ t('model.compare_real') }}</div>
-                  <div class="space-y-3">
-                    <div>
-                      <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_range_label') : t('model.wltp_table_range') }}</div>
-                      <div class="t-value text-gray-900 dark:text-gray-100">
-                        <div v-if="selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km || selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km" class="flex items-center justify-center gap-1.5 flex-wrap">
-                          <span class="flex items-center gap-1 text-amber-600 dark:text-amber-400"><SunIcon class="h-4 w-4" /><span>{{ selectedVariant?.seasonalDistribution?.summerConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.summerConsumptionKwhPer100km * 10) * 10) : '-' }}</span></span>
-                          <span class="text-gray-300 dark:text-gray-600">/</span>
-                          <span class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-                            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                              <line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/>
-                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
-                              <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                            </svg><span>{{ selectedVariant?.seasonalDistribution?.winterConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.seasonalDistribution.winterConsumptionKwhPer100km * 10) * 10) : '-' }}</span>
-                          </span>
-                        </div>
-                        <template v-else>{{ selectedVariant.realConsumptionKwhPer100km ? formatDistance(Math.round(selectedVariant.batteryCapacityKwh / selectedVariant.realConsumptionKwhPer100km * 10) * 10) : '-' }}</template>
-                      </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('model.wltp_full_range') }}</div>
-                    </div>
-                    <div>
-                      <div class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-0.5">{{ ratingLabel === 'EPA' ? t('model.epa_consumption_label') : t('model.wltp_table_consumption') }}</div>
-                      <template v-if="selectedVariant.realConsumptionKwhPer100km">
-                        <div class="flex flex-wrap items-center justify-center gap-2">
-                          <span class="font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ formatConsumption(selectedVariant.realConsumptionKwhPer100km) }}</span>
-                          <span :class="deltaLabelClass(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km)" class="text-xs px-1.5 py-0.5 rounded-full">{{ consumptionDeltaLabel(selectedVariant.realConsumptionKwhPer100km, selectedVariant.officialConsumptionKwhPer100km) }}</span>
-                          <span v-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 10" class="text-xs px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 dark:bg-red-900/40 dark:border-red-700 dark:text-red-400">⚠ {{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}</span>
-                          <span v-else-if="selectedVariant.realConsumptionTripCount != null && selectedVariant.realConsumptionTripCount < 50" class="text-xs px-1.5 py-0.5 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 dark:bg-yellow-900/40 dark:border-yellow-700 dark:text-yellow-400">{{ selectedVariant.realConsumptionTripCount }} {{ t('model.seasonal_trips') }}</span>
-                        </div>
-                      </template>
-                      <span v-else class="text-gray-400">{{ t('model.wltp_no_data') }}</span>
-                    </div>
+                  <div class="mt-1.5 flex gap-1.5 sm:gap-2">
+                    <div v-for="entry in stats.yearDistribution" :key="entry.year" class="flex-1 text-center text-xs tabular-nums text-gray-500 dark:text-gray-400">{{ entry.year }}</div>
                   </div>
+                  <p v-if="medianModelYear" class="mt-3 text-[13px] text-gray-600 dark:text-gray-300">{{ t('model.year_distribution_summary', { year: medianModelYear }) }}</p>
                 </div>
-              </div>
-            </div>
-
-            <!-- Rating Notes -->
-            <div class="px-6 py-4 space-y-2 text-center">
-              <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }}</p>
-              <p class="text-sm text-gray-400 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_measurement_note') : t('model.wltp_measurement_note') }}</p>
-              <!-- Methodik-Absatz nur auf Mobile hier (Desktop steht er unter der Hero-Karte) -->
-              <p class="md:hidden text-sm text-gray-400 dark:text-gray-400">{{ t('model.community_methodology_note') }}</p>
-            </div>
-          </details><!-- end wltp -->
-
-        </div><!-- end combined card -->
-
-        <!-- Fahrer sagen: Bewertungen unter den Messdaten -->
-        <ModelRatingsBlock
-          v-if="ratings"
-          :ratings="ratings"
-          :model="shortModelName"
-          :cta-car-id="ratingCtaCarId"
-          :register-path="isAuthenticated ? null : registerPath"
-          class="mb-6"
-        />
-
-        <!-- CTA -->
-        <div class="bg-green-700 p-6 text-white md:rounded-2xl dark:bg-green-800">
-          <div class="flex items-center gap-2 mb-2">
-            <ArrowTrendingUpIcon class="h-6 w-6" />
-            <h2 class="t-title">{{ t('model.story.end_title', { model: stats.modelDisplayName }) }}</h2>
+              </details>
+              <details v-if="activeVariants.length > 0" class="group border-t border-gray-100 first-of-type:border-t-0 dark:border-gray-800">
+                <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
+                  {{ t('model.page.details_variants') }}<ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <div class="grid gap-3 pb-4">
+                  <p v-if="isUS && ratingLabel !== 'EPA'" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">{{ t('model.epa_not_available') }}</p>
+                  <ModelVariantsList :variants="activeVariants" :rating-label="ratingLabel" />
+                  <p class="text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">{{ ratingLabel === 'EPA' ? t('model.epa_note') : t('model.wltp_note') }} {{ t('model.community_methodology_note') }}</p>
+                </div>
+              </details>
+              <details v-if="faqItems.length > 0" class="group border-t border-gray-100 first-of-type:border-t-0 dark:border-gray-800">
+                <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
+                  {{ t('model.page.details_faq') }}<ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <dl class="grid gap-4 pb-4">
+                  <div v-for="(faq, i) in faqItems" :key="i" class="grid gap-1">
+                    <dt class="text-[14px] font-semibold text-gray-900 dark:text-gray-100">{{ faq.question }}</dt>
+                    <dd class="text-[14px] leading-relaxed text-gray-600 dark:text-gray-400">{{ faq.answer }}</dd>
+                  </div>
+                </dl>
+              </details>
+              <details class="group border-t border-gray-100 first-of-type:border-t-0 dark:border-gray-800">
+                <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between text-[15px] font-semibold text-gray-900 dark:text-gray-100 [&::-webkit-details-marker]:hidden">
+                  {{ t('model.page.details_related') }}<ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <ul class="flex flex-wrap gap-2 pb-4">
+                  <li v-for="r in relatedModels" :key="r.path">
+                    <a :href="`${modelsBaseUrl}/${r.path}`" class="inline-flex min-h-11 items-center rounded-full px-3.5 text-[14px] font-medium text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800">{{ r.name }}</a>
+                  </li>
+                </ul>
+              </details>
+            </ModelBox>
           </div>
-          <p class="text-green-100 mb-4">{{ t('model.story.end_desc') }}</p>
-          <div class="flex flex-wrap gap-3">
-            <a :href="registerPath" class="inline-flex min-h-11 items-center rounded-xl bg-white px-5 font-semibold text-green-800 transition-colors hover:bg-green-50">
-              {{ t('model.cta_free_start') }}
-            </a>
-            <a :href="loginPath" class="inline-flex min-h-11 items-center rounded-xl border border-white/60 px-5 font-semibold text-white transition-colors hover:bg-white/10">
-              {{ t('model.cta_login') }}
-            </a>
-          </div>
-        </div>
 
-        <!-- SEO Text -->
-        <div class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl p-6 md:mt-6">
-          <h2 class="t-title text-gray-900 dark:text-gray-100 mb-4">
+          <!-- 6 Owners: the call to join -->
+          <ModelBox v-if="!isAuthenticated" class="md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-x-8" data-testid="owner-cta">
+            <div class="grid gap-1">
+              <h2 class="text-balance text-[19px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.story.owner_title', { model: shortModelName }) }}</h2>
+              <p class="text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('model.story.owner_text', { n: formatNumber(stats.uniqueCars + 1) }) }}</p>
+            </div>
+            <a :href="registerPath" class="inline-flex min-h-12 items-center justify-center whitespace-nowrap rounded-xl bg-gray-900 px-6 font-semibold text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white btn-3d cta-shadow border-2 border-gray-900 dark:border-gray-100">{{ t('model.story.owner_cta') }}</a>
+          </ModelBox>
+
+          <!-- SEO text: the long-tail answers in prose, last on the page -->
+          <ModelBox aria-labelledby="seo-title" class="!gap-4">
+          <h2 id="seo-title" class="text-[19px] font-bold tracking-tight text-gray-900 dark:text-gray-100">
             {{ t('model.seo_section_title', { model: stats.modelDisplayName }) }}
           </h2>
-          <div class="space-y-4 text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          <div class="space-y-4 text-[14px] text-gray-600 dark:text-gray-400 leading-relaxed">
             <p>
               {{ t('model.seo_intro', { model: stats.modelDisplayName }) }}
               <template v-if="bestOfficialRange"> {{ t('model.seo_wltp_range', { range: formatDistance(bestOfficialRange), ratingLabel }) }}</template>.
               <template v-if="stats.avgConsumptionKwhPer100km">
                 <template v-if="consumptionDataQuality === 'good'">
-                  {{ t('model.seo_consumption_good', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), sessions: stats.logCount, count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_good', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), sessions: formatNumber(stats.logCount), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
                 <template v-else-if="consumptionDataQuality === 'low'">
-                  {{ t('model.seo_consumption_low', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_low', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
                 <template v-else>
-                  {{ t('model.seo_consumption_sparse', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: Math.min(consumptionDataCount, stats.logCount) }) }}
+                  {{ t('model.seo_consumption_sparse', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
               </template>
               <template v-else>
@@ -335,7 +215,7 @@
               <p>
                 {{ t('model.seo_costs_intro', { model: stats.modelDisplayName, price: formatCostPerKwh(stats.avgCostPerKwh) }) }}
                 <template v-if="stopCost">
-                  {{ t('model.seo_costs_session', { kwh: formatNumber(Math.round(stopCost.kwh)), cost: formatCurrency(stopCost.eur, { decimals: 0 }) }) }}
+                  {{ t('model.seo_costs_session', { kwh: formatNumber(Math.round(stopCost.kwh)), price: formatCostPerKwh(stopPrice!), cost: formatCurrency(stopCost.eur, { decimals: 0 }) }) }}
                 </template>
               </p>
             </div>
@@ -363,66 +243,21 @@
               </p>
             </div>
           </div>
-        </div>
-
-        <!-- FAQ -->
-        <div v-if="faqItems.length > 0" class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl p-6 mt-6">
-          <h2 class="t-title text-gray-900 dark:text-gray-100 mb-4">
-            {{ t('model.faq_title', { model: stats.modelDisplayName }) }}
-          </h2>
-          <div class="space-y-3">
-            <details v-for="(faq, i) in faqItems" :key="i"
-                     class="border border-gray-100 dark:border-gray-700 rounded-sm overflow-hidden">
-              <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700
-                              font-medium text-gray-900 dark:text-gray-100 text-sm list-none">
-                {{ faq.question }}
-                <span class="text-gray-400 ml-2 flex-shrink-0">﹀</span>
-              </summary>
-              <div class="px-4 pb-4 pt-1 text-sm text-gray-600 dark:text-gray-400 leading-relaxed border-t border-gray-100 dark:border-gray-700">
-                {{ faq.answer }}
-              </div>
-            </details>
-          </div>
+          </ModelBox>
         </div>
 
       </div><!-- end stats -->
 
     </main>
 
-    <!-- Related models -->
-    <div class="max-w-4xl mx-auto md:px-4 mt-8">
-      <div class="bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800 md:border md:rounded-2xl p-6">
-        <h2 class="t-title text-gray-900 dark:text-gray-100 mb-3">{{ t('model.related_title') }}</h2>
-        <div class="flex flex-wrap gap-2 text-sm">
-          <a :href="`${modelsBaseUrl}/Tesla/Model_3`" class="text-green-600 hover:underline">Tesla Model 3</a>
-          <span class="text-gray-300">·</span>
-          <a :href="`${modelsBaseUrl}/Tesla/Model_Y`" class="text-green-600 hover:underline">Tesla Model Y</a>
-          <span class="text-gray-300">·</span>
-          <a :href="`${modelsBaseUrl}/Volkswagen/ID.3`" class="text-green-600 hover:underline">VW ID.3</a>
-          <span class="text-gray-300">·</span>
-          <a :href="`${modelsBaseUrl}/Volkswagen/ID.4`" class="text-green-600 hover:underline">VW ID.4</a>
-          <span class="text-gray-300">·</span>
-          <a :href="`${modelsBaseUrl}/Hyundai/Ioniq_5`" class="text-green-600 hover:underline">Hyundai Ioniq 5</a>
-          <span class="text-gray-300">·</span>
-          <a :href="`${modelsBaseUrl}/Hyundai/Ioniq_6`" class="text-green-600 hover:underline">Hyundai Ioniq 6</a>
-          <span class="text-gray-300">·</span>
-          <a :href="`${modelsBaseUrl}/Kia/EV6`" class="text-green-600 hover:underline">Kia EV6</a>
-          <span class="text-gray-300">·</span>
-          <a :href="`${modelsBaseUrl}/BMW/i4`" class="text-green-600 hover:underline">BMW i4</a>
-          <span class="text-gray-300">·</span>
-          <a :href="`${modelsBaseUrl}/Audi/Q4_e-tron`" class="text-green-600 hover:underline">Audi Q4 e-tron</a>
-        </div>
-      </div>
-    </div>
-
     <ModelCooperationNote v-for="partner in PARTNER_BANNERS" :key="partner.id" :partner="partner" />
 
-    <footer class="max-w-4xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
+    <footer class="max-w-5xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400 text-center">
       <div v-if="!isAuthenticated" class="flex justify-center mb-4">
         <RegionChip />
       </div>
       © {{ currentYear }} EV Monitor ·
-      <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? t('nav.dashboard') : t('common.home') }}</a>
+      <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">{{ isAuthenticated ? t('nav.dashboard') : t('model.goto_home') }}</a>
       <template v-if="!isAuthenticated">
         ·
         <a :href="registerPath" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('common.free_start') }}</a> ·
@@ -449,15 +284,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import { useCountryStore } from '../stores/country'
-import { getModelStats, getStoryContext, type ModelStoryContext, type PublicModelStats, type SeasonalDistribution } from '../api/publicModelService'
+import { getChargingReferencePrices, getModelStats, getStoryContext, type ModelStoryContext, type PublicModelStats } from '../api/publicModelService'
+import { COMBUSTION_LITERS_BY_CLASS, combustionLiters } from '../utils/costMix'
 import {
-  ArrowTrendingUpIcon, ClipboardDocumentListIcon, SunIcon, ChartBarIcon, ChevronRightIcon, HomeIcon
+  ChevronDownIcon, ChevronRightIcon, HomeIcon
 } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import StartCodeTeaser from '../components/codes/StartCodeTeaser.vue'
@@ -465,13 +301,18 @@ import ModelCooperationNote from '../components/models/ModelCooperationNote.vue'
 import { PARTNER_BANNERS } from '../config/cooperations'
 import PersonalRangeCalculator from '../components/models/PersonalRangeCalculator.vue'
 import RangeGauge from '../components/models/RangeGauge.vue'
-import StoryChapter, { type StoryQuestion } from '../components/models/StoryChapter.vue'
-import RangeBandBar from '../components/models/RangeBandBar.vue'
-import { buildModelStory, fastStop, keepUnits, type ChapterKey, type StoryInput } from '../utils/modelStory'
+import ModelBox from '../components/models/ModelBox.vue'
+import VariantPicker, { type VariantOption } from '../components/models/VariantPicker.vue'
+import BuyerQuestions from '../components/models/BuyerQuestions.vue'
+import { scrollToElement } from '../utils/smoothScroll'
+import ModelFactTiles from '../components/models/ModelFactTiles.vue'
+import ModelEvidence from '../components/models/ModelEvidence.vue'
+import ModelVariantsList, { type ActiveVariant } from '../components/models/ModelVariantsList.vue'
+import ProfileSlider from '../components/models/ProfileSlider.vue'
+import { buildModelStory, fastChargePrice, fastStop, keepUnits, prospectKm, rangeKm, type StoryInput } from '../utils/modelStory'
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
-import { readStoredNeeds, writeStoredNeeds } from '../composables/useModelRanking'
-import { readTilePrefill } from '../utils/tilePrefill'
+import { useDrivingProfile, PROFILE_KEYS, PROFILE_SLIDERS, type ProfileKey } from '../composables/useDrivingProfile'
 import RegionChip from '../components/shared/RegionChip.vue'
 import ModelRatingsBlock from '../components/rating/ModelRatingsBlock.vue'
 import { ratingService, type PublicModelRatings } from '../api/ratingService'
@@ -481,29 +322,10 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '../composables/useMarketRoute'
 import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
 
-/** Normalized variant - same shape regardless of WLTP or EPA source */
-interface ActiveVariant {
-  batteryCapacityKwh: number
-  variantName: string | null
-  displayLabel: string | null
-  officialRangeKm: number
-  officialRangeMinKm: number | null
-  officialConsumptionKwhPer100km: number | null
-  officialConsumptionMinKwhPer100km: number | null
-  officialConsumptionMaxKwhPer100km: number | null
-  realConsumptionKwhPer100km: number | null
-  realConsumptionMinKwhPer100km: number | null
-  realConsumptionMaxKwhPer100km: number | null
-  realConsumptionTripCount: number | null
-  estimatedConsumptionCount: number | null
-  realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
-  seasonalDistribution: SeasonalDistribution | null
-}
-
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
-const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, consumptionDeltaLabel, formatDecimal, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
+const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, marketUrl, hreflangLinks } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 const authStore = useAuthStore()
@@ -512,6 +334,8 @@ const loading = ref(true)
 const notFound = ref(false)
 const apiError = ref(false)
 const showBackPill = ref(false)
+/** The profile heading; once it has scrolled above the calculator's phone bar, the bar comes */
+const profileTitle = ref<HTMLElement | null>(null)
 const stats = ref<PublicModelStats | null>(null)
 /** Fahrerbewertungen, null bis geladen oder bei Fehler - die Seite funktioniert auch ohne. */
 const ratings = ref<PublicModelRatings | null>(null)
@@ -539,30 +363,6 @@ const medianModelYear = computed(() => {
   }
   return sorted[sorted.length - 1].year
 })
-
-const ROUTE_TYPE_META: Record<string, { color: string; labelKey: string }> = {
-  HIGHWAY:  { color: '#3b82f6', labelKey: 'model.route_type_highway' },
-  COMBINED: { color: '#22c55e', labelKey: 'model.route_type_combined' },
-  CITY:     { color: '#f59e0b', labelKey: 'model.route_type_city' },
-}
-
-const routeTypeClassified = computed(() =>
-  ['HIGHWAY', 'COMBINED', 'CITY'].flatMap(type => {
-    const entry = (stats.value?.routeTypeDistribution ?? []).find(e => e.routeType === type)
-    return entry ? [entry] : []
-  })
-)
-
-const showRouteTypeBar = computed(() => {
-  const dist = stats.value?.routeTypeDistribution ?? []
-  const total = dist.reduce((s, e) => s + e.count, 0)
-  const classified = dist.filter(e => e.routeType !== 'UNKNOWN').reduce((s, e) => s + e.count, 0)
-  return total > 0 && classified / total >= 0.5
-})
-
-const routeTypeClassifiedTotal = computed(() =>
-  routeTypeClassified.value.reduce((s, e) => s + e.count, 0)
-)
 
 const brand = route.params.brand as string
 const model = route.params.model as string
@@ -651,19 +451,33 @@ const selectedVariant = computed(() => activeVariants.value[selectedVariantIndex
 const storyContext = ref<ModelStoryContext | null>(null)
 /** Same threshold as the backend: a season counts from 10 logs. */
 const MIN_LOGS_PER_SEASON = 10
-/** Open ranges instead of four chips, so 7.000 km or 45 % motorway fit as well */
-const ANNUAL_SLIDER = { min: 5_000, max: 50_000, step: 1_000, start: 15_000 }
-const HIGHWAY_SLIDER = { min: 0, max: 100, step: 5, start: 30 }
-const COMMUTE_SLIDER = { min: 5, max: 150, step: 5, start: 40 }
-const LONG_TRIP_CHIPS = [250, 500, 800, 1_200] as const
-/** Commute days 1 to 5, the same chips as the ranking's needs check */
-const COMMUTE_DAY_CHIPS = [1, 2, 3, 4, 5] as const
-/** Key order is page order: the commute days sit right under the commute slider */
-const QUESTION_CHAPTER: Record<QuestionKey, ChapterKey> = { annualKm: 'consumption', highwayShare: 'consumption', commute: 'season', commuteDays: 'season', longTrip: 'longTrip', place: 'cost' }
-type QuestionKey = 'annualKm' | 'highwayShare' | 'commute' | 'commuteDays' | 'longTrip' | 'place'
-const QUESTION_COUNT = Object.keys(QUESTION_CHAPTER).length
-const OWN_PRICE_MIN = 0.05
-const OWN_PRICE_MAX = 1.5
+/** German daily petrol price (Tankerkönig), loaded with the page; null on failure */
+const petrolPricePerLiter = ref<number | null>(null)
+/** Fast charging without a subscription, from German tariffs: only on the German market, elsewhere the drivers' DC price */
+const fastAdHocPrice = ref<number | null>(null)
+const fastAdHocForMarket = computed(() => currentMarket.value === 'de' ? fastAdHocPrice.value : null)
+/** A comparable petrol car for the cost answer: litres by vehicle class, only where the fuel price is German */
+const petrolComparison = computed(() => currentMarket.value === 'de' && petrolPricePerLiter.value
+  ? {
+      pricePerLiter: petrolPricePerLiter.value,
+      // same vehicle class as the model (COMPACT, SUV, ...); unknown class: the fallback litres, no class name
+      litersPer100km: combustionLiters({ litersPer100km: null, fuel: 'petrol' }, stats.value?.category),
+      category: stats.value?.category && COMBUSTION_LITERS_BY_CLASS[stats.value.category] ? stats.value.categoryDisplayName ?? null : null,
+    }
+  : null)
+
+/** One card per battery in the picker: the same range rule as the hero (net battery × 0,9 ÷ model mean) */
+const variantOptions = computed((): VariantOption[] => activeVariants.value.map((v, i) => {
+  const real = rangeKm(v.batteryCapacityKwh, stats.value?.avgConsumptionKwhPer100km ?? null)
+  const wltp = real != null ? prospectKm(v.officialRangeKm)! : v.officialRangeKm
+  return {
+    key: `${i}-${v.displayLabel ?? v.batteryCapacityKwh}`,
+    label: v.displayLabel || v.variantName || `${formatNumber(v.batteryCapacityKwh)} kWh`,
+    battery: `${formatNumber(v.batteryCapacityKwh)} kWh`,
+    range: real != null ? formatDistance(real) : null,
+    prospect: t('model.page.variant_prospect', { range: formatDistance(wltp) }),
+  }
+}))
 
 const variantLabel = computed(() => {
   const v = selectedVariant.value
@@ -693,12 +507,12 @@ const storyInput = computed((): StoryInput => {
     minKwhPer100km: storyContext.value?.minRealKwhPer100km ?? v?.realConsumptionMinKwhPer100km ?? null,
     maxKwhPer100km: storyContext.value?.maxRealKwhPer100km ?? v?.realConsumptionMaxKwhPer100km ?? null,
     routeType: rt ? { highway: rt.highwayKwhPer100km, city: rt.cityKwhPer100km, combined: rt.combinedKwhPer100km,
-      highwayCars: rt.highwayCarCount, cityLogs: rt.cityLogCount, combinedLogs: rt.combinedLogCount, typedMean: rt.typedMeanKwhPer100km ?? null } : null,
+      highwayCars: rt.highwayCarCount, highwayLogs: rt.highwayLogCount, cityLogs: rt.cityLogCount, combinedLogs: rt.combinedLogCount, typedMean: rt.typedMeanKwhPer100km ?? null } : null,
     seasonal: seasonOk ? { summer: season.summerConsumptionKwhPer100km!, winter: season.winterConsumptionKwhPer100km!,
       summerLogs: season.summerLogCount, winterLogs: season.winterLogCount } : null,
     fastChargePowerKw: storyContext.value?.fastChargePowerKw ?? null,
-    avgChargingPowerKw: st.avgChargingPowerKw,
     acPricePerKwh: st.acAvgCostPerKwh, dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
+    fastAdHocPricePerKwh: fastAdHocForMarket.value,
     fleetWinterFactor: fleetWinterFactor.value,
   }
 })
@@ -710,26 +524,27 @@ const heroLines = computed(() => {
   return i < 0 ? [text] : [text.slice(0, i + 1), text.slice(i + 2)]
 })
 
-/** Fast-charging stop 10 to 80 % at the DC price; chapter 4, SEO text and FAQ show the same figure */
-const stopCost = computed(() => fastStop(selectedVariant.value?.batteryCapacityKwh ?? null,
-  stats.value?.dcAvgCostPerKwh ?? stats.value?.avgCostPerKwh ?? null))
+/** Fast-charging stop 10 to 80 %; the cost tile, SEO text and FAQ show the same figure at the same price */
+const stopPrice = computed(() => stats.value ? fastChargePrice(storyInput.value) : null)
+const stopCost = computed(() => fastStop(selectedVariant.value?.batteryCapacityKwh ?? null, stopPrice.value))
 
 const story = computed(() => buildModelStory(storyInput.value, {
   t: (key, params) => t(key, params ?? {}),
   formatConsumption: v => formatConsumption(v),
   formatConsumptionValue: v => formatConsumption(v, { showUnit: false }),
+  consumptionUnit: consumptionUnitLabel(),
   formatDistance: km => formatDistance(km),
+  formatDistanceValue: km => formatDistance(km, { showUnit: false }),
+  distanceUnit: distanceUnitLabel(),
   formatCostPerKwh,
   formatCostPerDistance,
   formatCurrency: v => formatCurrency(v, { decimals: 0 }),
   formatNumber,
 }))
 
-/** The reader's answers; the battery follows the variant switcher. Unanswered ones hold the slider start. */
-const answers = reactive({ annualKm: ANNUAL_SLIDER.start, highwayShare: HIGHWAY_SLIDER.start, commuteKmPerDay: COMMUTE_SLIDER.start, commuteDays: 5, homeCharging: true, longTripKm: 500, pricePerKwh: null as number | null })
-/** Per question, so answering the yearly mileage does not mark the motorway row as answered too */
-const answered = reactive(new Set<QuestionKey>())
-const answeredCount = computed(() => answered.size)
+/** The reader's driving profile; the battery follows the variant switcher */
+const { answers, answered, openQuestions, valueOf, answer: answerProfile, answerHome, applyProfile } =
+  useDrivingProfile(route.query, () => stats.value?.modelDisplayName ?? model)
 const storyInputs = computed((): PersonalRangeInputs => ({
   commuteKmPerDay: answers.commuteKmPerDay,
   commuteDaysPerWeek: answers.commuteDays,
@@ -740,190 +555,68 @@ const storyInputs = computed((): PersonalRangeInputs => ({
   annualKm: answers.annualKm,
   netBatteryKwh: selectedVariant.value?.batteryCapacityKwh ?? null,
 }))
-const ownPriceText = ref('')
-const calculatorRef = ref<InstanceType<typeof PersonalRangeCalculator> | null>(null)
 
-const communityPricePlaceholder = computed(() => stats.value?.avgCostPerKwh ? formatDecimal(stats.value.avgCostPerKwh, 2) : '')
-
-function chipsOf(key: QuestionKey): { label: string; value: number | boolean }[] {
-  switch (key) {
-    case 'annualKm':
-    case 'highwayShare':
-    case 'commute': return []
-    case 'commuteDays': return COMMUTE_DAY_CHIPS.map(d => ({ value: d, label: formatNumber(d) }))
-    case 'longTrip': return LONG_TRIP_CHIPS.map(km => ({ value: km, label: formatDistance(km) }))
-    case 'place': {
-      const st = stats.value
-      const ac = st?.acAvgCostPerKwh ? ` · ${formatCostPerKwh(st.acAvgCostPerKwh)}` : ''
-      const dc = st?.dcAvgCostPerKwh ? ` · ${formatCostPerKwh(st.dcAvgCostPerKwh)}` : ''
-      return [
-        { value: true, label: t('model.story.place_home') + ac },
-        { value: false, label: t('model.story.place_public') + dc },
-      ]
-    }
-  }
+/** "30 %" on the slider, "4.500 km im Jahr" below it: the share in kilometres at the yearly mileage */
+const highwayKm = (share: number) => formatDistance(Math.round(answers.annualKm * share / 100 / 100) * 100)
+const FORMAT: Record<ProfileKey, (v: number) => string> = {
+  annualKm: km => formatDistance(km),
+  highwayShare: share => `${formatNumber(share)} %`,
+  commute: km => formatDistance(km),
+  commuteDays: n => t('model.page.days_value', { n }, n),
+  longTrip: km => formatDistance(km),
 }
 
-function valueOf(key: QuestionKey): number | boolean {
-  switch (key) {
-    case 'annualKm': return answers.annualKm
-    case 'highwayShare': return answers.highwayShare
-    case 'commute': return answers.commuteKmPerDay
-    case 'commuteDays': return answers.commuteDays
-    case 'longTrip': return answers.longTripKm
-    case 'place': return answers.homeCharging
-  }
-}
+const profileSliders = computed(() => PROFILE_KEYS.map(key => ({
+  key,
+  ...PROFILE_SLIDERS[key],
+  label: t(`model.page.q_${key}`),
+  value: answered.has(key) ? valueOf(key) : null,
+  format: FORMAT[key],
+  detail: key === 'highwayShare' ? (share: number) => t('model.story.slider_highway_km', { km: highwayKm(share) }) : undefined,
+})))
 
-/** "30 % · 4.500 km": the share and what it means in kilometres at the yearly mileage */
-function formatHighway(share: number): string {
-  return `${formatNumber(share)} % · ${formatDistance(Math.round(answers.annualKm * share / 100 / 100) * 100)}`
-}
-
-function sliderOf(key: QuestionKey): StoryQuestion['slider'] {
-  if (key === 'annualKm') return { ...ANNUAL_SLIDER, format: km => formatDistance(km) }
-  if (key === 'commute') return { ...COMMUTE_SLIDER, format: km => formatDistance(km) }
-  if (key === 'highwayShare') return {
-    ...HIGHWAY_SLIDER,
-    format: formatHighway,
-    short: share => `${formatNumber(share)} %`,
-    detail: share => t('model.story.slider_highway_km', { km: formatDistance(Math.round(answers.annualKm * share / 100 / 100) * 100) }),
-  }
-  return undefined
-}
-
-function question(key: QuestionKey): StoryQuestion {
-  // Nothing shows as chosen before the reader chose it; the calculation still has defaults behind the scenes
-  return { key, question: t(`model.story.q_${key}`), chips: chipsOf(key), slider: sliderOf(key), value: answered.has(key) ? valueOf(key) : null, highlight: highlightKey.value === key }
-}
-
-function questionsFor(chapter: ChapterKey): StoryQuestion[] {
-  return (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).filter(k => QUESTION_CHAPTER[k] === chapter).map(question)
-}
-
-/** Rows for the profile card: the chosen answer per question, null while the question is open */
-const profileRows = computed(() => (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).map(key => {
-  const slider = sliderOf(key)
-  const label = slider ? slider.format(valueOf(key) as number)
-    // the chip says "3", the profile "3 Tage"
-    : key === 'commuteDays' ? t('model.story.profile_commuteDays_value', { n: formatNumber(answers.commuteDays) }, answers.commuteDays)
-    : chipsOf(key).find(c => c.value === valueOf(key))?.label
-  let value = answered.has(key) && label ? label : null
-  // Own price replaces the community price behind the place, no extra label
-  if (key === 'place' && value && answers.pricePerKwh != null) value = `${t(answers.homeCharging ? 'model.story.place_home' : 'model.story.place_public')} · ${formatCostPerKwh(answers.pricePerKwh)}`
-  return { key, label: t(`model.story.profile_${key}`), value }
-}))
-
-function markAnswered(key: QuestionKey) {
-  if (answered.size === 0) analytics.track('personal_range_started', { model: stats.value?.modelDisplayName ?? model })
-  answered.add(key)
-  analytics.track('story_chip_answered', { model: stats.value?.modelDisplayName ?? model, chapter: QUESTION_CHAPTER[key], question: key })
-}
-
-function answer(key: string, value: number | boolean) {
-  switch (key as QuestionKey) {
-    case 'annualKm': answers.annualKm = value as number; break
-    case 'highwayShare': answers.highwayShare = value as number; break
-    case 'commute': answers.commuteKmPerDay = value as number; break
-    case 'commuteDays': answers.commuteDays = value as number; break
-    case 'longTrip': answers.longTripKm = value as number; break
-    case 'place': answers.homeCharging = value as boolean; break
-  }
-  markAnswered(key as QuestionKey)
-  shareAnswer(key as QuestionKey)
+function answer(key: ProfileKey, value: number) {
+  answerProfile(key, value)
   if (highlightKey.value === key) highlightKey.value = null
 }
 
-/** Own price in EUR/kWh; an empty or out-of-range entry falls back to the community price. */
-function onOwnPrice() {
-  const parsed = Number(ownPriceText.value.replace(',', '.'))
-  const valid = Number.isFinite(parsed) && parsed >= OWN_PRICE_MIN && parsed <= OWN_PRICE_MAX
-  answers.pricePerKwh = valid ? Math.round(parsed * 100) / 100 : null
-  if (!valid) ownPriceText.value = ''
-  markAnswered('place')
-}
+/** The slider the reader is sent back to; it is marked until answered */
+const highlightKey = ref<ProfileKey | null>(null)
 
-function nearest(values: readonly number[], target: number): number {
-  return values.reduce((best, v) => Math.abs(v - target) < Math.abs(best - target) ? v : best)
-}
-
-/** Onto the slider: within its range and on its step */
-function snap(slider: { min: number; max: number; step: number }, value: number): number {
-  return Math.min(slider.max, Math.max(slider.min, Math.round(value / slider.step) * slider.step))
-}
-
-/** A stored profile is the reader's own answers: sliders and chips move to the nearest value and count as answered. */
-function applyProfile(p: PersonalRangeInputs) {
-  answers.annualKm = snap(ANNUAL_SLIDER, p.annualKm ?? answers.annualKm)
-  answers.highwayShare = snap(HIGHWAY_SLIDER, p.highwaySharePercent)
-  answers.commuteKmPerDay = snap(COMMUTE_SLIDER, p.commuteKmPerDay)
-  answers.longTripKm = nearest(LONG_TRIP_CHIPS, p.longTripKm)
-  answers.homeCharging = p.homeCharging
-  answers.pricePerKwh = p.pricePerKwh ?? null
-  ownPriceText.value = p.pricePerKwh != null ? String(p.pricePerKwh).replace('.', ',') : ''
-  if (p.commuteDaysPerWeek != null) answers.commuteDays = p.commuteDaysPerWeek
-  // A profile from before the commute-days question leaves that one question open: the reader answers it once
-  for (const key of Object.keys(QUESTION_CHAPTER) as QuestionKey[]) {
-    if (key !== 'commuteDays' || p.commuteDaysPerWeek != null) answered.add(key)
-  }
-}
-
-/**
- * The ranking's needs check (same browser) asks four of the six questions; each one answered there
- * counts as answered here. A stored profile (signed in) arrives later through applyProfile and wins.
- */
-function applyStoredNeeds() {
-  const n = readStoredNeeds()
-  if (!n) return
-  if (n.dailyKm != null) { answers.commuteKmPerDay = snap(COMMUTE_SLIDER, n.dailyKm); answered.add('commute') }
-  if (n.commuteDays != null) { answers.commuteDays = n.commuteDays; answered.add('commuteDays') }
-  if (n.longestTripKm != null) { answers.longTripKm = nearest(LONG_TRIP_CHIPS, n.longestTripKm); answered.add('longTrip') }
-  if (n.homeCharging != null) { answers.homeCharging = n.homeCharging; answered.add('place') }
-}
-applyStoredNeeds()
-/** A chip tapped on the partner tile (?pendeln=, ?urlaub=) is the reader's answer and wins over the stored needs */
-function applyTilePrefill() {
-  const p = readTilePrefill(route.query)
-  if (p.commuteKmPerDay != null) { answers.commuteKmPerDay = snap(COMMUTE_SLIDER, p.commuteKmPerDay); answered.add('commute') }
-  if (p.longTripKm != null) { answers.longTripKm = nearest(LONG_TRIP_CHIPS, p.longTripKm); answered.add('longTrip') }
-}
-applyTilePrefill()
-/**
- * ... and the other way round, so the ranking shows what the reader set here. Only on the reader's
- * own answer (see answer()), never when a profile is applied: its slider snapping (72 km becomes 70)
- * would overwrite the exact value the ranking holds.
- */
-function shareAnswer(key: QuestionKey) {
-  if (key === 'commute') writeStoredNeeds({ dailyKm: answers.commuteKmPerDay })
-  else if (key === 'commuteDays') writeStoredNeeds({ commuteDays: answers.commuteDays })
-  else if (key === 'longTrip') writeStoredNeeds({ longestTripKm: answers.longTripKm })
-  else if (key === 'place') writeStoredNeeds({ homeCharging: answers.homeCharging })
-}
-
-/** Questions still open, in page order; the result waits until there are none */
-const openQuestions = computed(() => (Object.keys(QUESTION_CHAPTER) as QuestionKey[]).filter(k => !answered.has(k)))
-/** The question the reader is sent back to; it is marked until answered */
-const highlightKey = ref<QuestionKey | null>(null)
-
-/** Scrolls to the first open question and puts the focus on its first answer */
+/** Scrolls to the first open slider and puts the focus on it */
 function showFirstOpen() {
   const key = openQuestions.value[0]
   if (!key) return
   highlightKey.value = key
   const block = document.getElementById(`story-${key}`)
-  block?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  block?.querySelector<HTMLElement>('input, button:not([disabled])')?.focus({ preventScroll: true })
+  if (block) scrollToElement(block, { block: 'center' })
+  block?.querySelector<HTMLElement>('input')?.focus({ preventScroll: true })
 }
 
-function openResult() {
-  if (openQuestions.value.length) {
-    showFirstOpen()
-    return
-  }
-  calculatorRef.value?.request()
-  const el = calculatorRef.value?.$el as HTMLElement | undefined
-  el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+/** The question card in the hero, as a Plausible goal */
+function trackJump() {
+  analytics.track('model_profile_jump', { model: stats.value?.modelDisplayName ?? model })
 }
+
+const factsSub = computed(() => stats.value && stats.value.logCount > 0
+  ? t('model.page.facts_sub', { logs: formatNumber(stats.value.logCount), cars: formatNumber(stats.value.uniqueCars) })
+  : t('model.page.facts_sub_none'))
+
+/** The year histogram says something from 3 years and 10 cars on */
+const showYears = computed(() => {
+  const dist = stats.value?.yearDistribution ?? []
+  return dist.length >= 3 && dist.reduce((sum, e) => sum + e.carCount, 0) >= 10
+})
+
+/** Crawlable links to other model pages; the page itself is left out */
+const RELATED = [
+  ['Tesla/Model_3', 'Tesla Model 3'], ['Tesla/Model_Y', 'Tesla Model Y'], ['Volkswagen/ID.3', 'VW ID.3'],
+  ['Volkswagen/ID.4', 'VW ID.4'], ['Hyundai/Ioniq_5', 'Hyundai Ioniq 5'], ['Hyundai/Ioniq_6', 'Hyundai Ioniq 6'],
+  ['Kia/EV6', 'Kia EV6'], ['BMW/i4', 'BMW i4'], ['Audi/Q4_e-tron', 'Audi Q4 e-tron'],
+] as const
+const relatedModels = computed(() => RELATED
+  .filter(([path]) => path.toLowerCase() !== `${canonicalBrand.value}/${model}`.toLowerCase())
+  .map(([path, name]) => ({ path, name })))
 
 const bestOfficialRange = computed(() => {
   if (!activeVariants.value.length) return null
@@ -960,14 +653,12 @@ const consumptionDataCount = computed(() => {
 // NICHT displayConsumption: das ist variantenabhaengig und bei Multi-Varianten oft null.
 const metaConsumption = computed(() => stats.value?.avgConsumptionKwhPer100km ?? null)
 
-// Real-world-Reichweite je Variante (Akku x 0,9 / Real-Verbrauch, sonst Modell-Schnitt),
-// als Min/Max-Span ueber alle Varianten - rundet auf 10 km wie die Hero-Anzeige.
+// Real-world-Reichweite je Variante nach derselben Regel wie der Hero (Akku x 0,9 / Modell-Schnitt),
+// als Min/Max-Span ueber alle Varianten.
 const metaRealRangeLabel = computed(() => {
   const avg = metaConsumption.value
   if (!avg || !activeVariants.value.length) return null
-  const ranges = activeVariants.value.map(v =>
-    Math.round(v.batteryCapacityKwh * 0.9 / (v.realConsumptionKwhPer100km ?? avg) * 10) * 10
-  )
+  const ranges = activeVariants.value.map(v => rangeKm(v.batteryCapacityKwh, avg)!)
   const unit = distanceUnitLabel()
   const minStr = formatDistance(Math.min(...ranges), { showUnit: false })
   const maxStr = formatDistance(Math.max(...ranges), { showUnit: false })
@@ -1025,13 +716,14 @@ const faqItems = computed(() => {
     })
   }
 
-  // Same stop as chapter 4, plus the mean session for those who mostly top up at home
+  // Same stop as the cost tile, plus the mean session for those who mostly top up at home
   if (stats.value.avgCostPerKwh && stopCost.value && stats.value.avgKwhPerSession) {
     items.push({
       question: t('model.faq_q_cost', { model: name }),
       answer: t('model.faq_a_cost', {
         price: formatCostPerKwh(stats.value.avgCostPerKwh),
         kwh: formatNumber(Math.round(stopCost.value.kwh)),
+        stopPrice: formatCostPerKwh(stopPrice.value!),
         cost: formatCurrency(stopCost.value.eur, { decimals: 0 }),
         sessionKwh: formatNumber(Math.round(stats.value.avgKwhPerSession)),
         sessionCost: formatCurrency(stats.value.avgCostPerKwh * stats.value.avgKwhPerSession, { decimals: 0 }),
@@ -1195,6 +887,11 @@ onMounted(async () => {
   // Bewertungen parallel und im selben Lade-Flow, damit sie im Prerender-HTML stehen
   const ratingsRequest = ratingService.getPublicRatings(brand, model).catch(() => null)
   const contextRequest = getStoryContext(brand, model)
+  // only for the petrol comparison in the result; the page works without it
+  getChargingReferencePrices().then(p => {
+    petrolPricePerLiter.value = p.petrolPricePerLiter ?? null
+    fastAdHocPrice.value = p.fastAdHocPricePerKwh ?? null
+  }).catch(() => {})
   try {
     const [data, ratingData, context] = await Promise.all([getModelStats(brand, model), ratingsRequest, contextRequest])
     ratings.value = ratingData
@@ -1222,14 +919,6 @@ onMounted(async () => {
   loadRatingCta()
 })
 
-function deltaLabelClass(real: number | null, wltp: number | null): string {
-  if (!real || !wltp) return ''
-  const pct = ((real - wltp) / wltp) * 100
-  if (pct <= 0) return 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-  if (pct <= 15) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
-  return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-}
-
 function reload() { window.location.reload() }
 
 function goBackToLpV2() {
@@ -1243,14 +932,7 @@ function goBackToLpV2() {
 /* ── Typo-Skala der Modellseite ──────────────────────────────────────────
    Nur Größe/Gewicht/Tracking/Leading - Farbe bleibt per Tailwind-Utility.
    Ersetzt die zuvor 11 ad-hoc Größen durch ein konsistentes Set.        */
-.t-eyebrow  { font-size: .6875rem; line-height: 1rem;    font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.t-block    { font-size: .875rem;  line-height: 1.25rem;  font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-.t-title    { font-size: 1.125rem; line-height: 1.55rem; font-weight: 700; }
-.t-value    { font-size: 1.25rem;  line-height: 1.6rem;  font-weight: 700; }
 .t-value-lg { font-size: 1.5rem;   line-height: 1.6rem;  font-weight: 800; }
-.t-value-xl { font-size: 1.875rem; line-height: 1;       font-weight: 800; }
-.t-metric   { font-size: 2.5rem;   line-height: 1;       font-weight: 800; }
-@media (min-width: 640px) { .t-metric { font-size: 3rem; } }
 
 .model-page {
   animation: page-slide-in 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;

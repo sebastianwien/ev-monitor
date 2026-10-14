@@ -155,10 +155,11 @@ public class PublicModelService {
                     seasonal.summerLogCount(), seasonal.winterLogCount());
         }
 
-        // Fetch AC/DC cost split (min 5 sessions per type, else null)
+        // Home (private AC) and fast-charging (DC from 50 kW) price, weighted by kWh, min 5 sessions each, else null.
+        // The response keeps the field names acAvgCostPerKwh / dcAvgCostPerKwh for the clients.
         BigDecimal acAvgCostPerKwh = null;
         BigDecimal dcAvgCostPerKwh = null;
-        Object[] acDcStats = evLogRepository.findAcDcCostStatsByModel(modelEnumName, isSeedUser);
+        Object[] acDcStats = evLogRepository.findHomeFastCostStatsByModel(modelEnumName, isSeedUser);
         if (acDcStats != null && acDcStats.length > 0) {
             if (acDcStats[0] instanceof Object[]) acDcStats = (Object[]) acDcStats[0];
             if (acDcStats.length >= 4) {
