@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildModelStory, keepUnits, type StoryInput, type StoryFormatters } from '../modelStory'
+import { buildModelStory, fastChargePrice, keepUnits, type StoryInput, type StoryFormatters } from '../modelStory'
 import { i18n } from '../../i18n'
 
 // Loose signature: the typed vue-i18n `t` makes the compiler walk every locale key
@@ -87,7 +87,7 @@ describe('buildModelStory', () => {
     // 19.1 / 15.3 = +25 %
     expect(fact(s, 'consumption')).toMatchObject({ value: '19.1', unit: 'kWh/100km', note: '25 % über Prospekt (15.3)', noteFigure: { value: '25', unit: '%' } })
     // 58 × 0.7 / 85 kW = 28.7 min → 30
-    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '85 kW im Schnitt', noteLine: '10 auf 80 %', noteSoc: { from: 10, to: 80 }, noteFigure: { value: '85', unit: 'kW' } })
+    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '85 kW im Schnitt', noteSoc: { from: 10, to: 80, text: '10 auf 80 %' }, noteFigure: { value: '85', unit: 'kW' } })
     // 0.372 × 19.1 = 7.11
     // a home charge 20 to 80 % at AC: 58 × 0.6 / 0.9 = 38.7 kWh × 0.35 = 13.53 → 14 €;
     // a fast charge 10 to 80 % at DC: 58 × 0.7 / 0.95 = 42.7 kWh × 0.427 = 18.25 → 18 €
@@ -161,6 +161,13 @@ describe('buildModelStory', () => {
     // 58 × 0.7 / 0.95 = 42.7 kWh × 0.65 = 27.8 → 28 €
     const s = buildModelStory({ ...full, fastAdHocPricePerKwh: 0.65 }, fmt)
     expect(fact(s, 'cost')).toMatchObject({ value: '14 €', extra: { value: '28 €', unit: 'Schnelllader' }, note: '' })
+  })
+
+  it('the fast-charge price the tile, the SEO text and the FAQ share: without a subscription, else the drivers\' DC price, else their mean', () => {
+    expect(fastChargePrice({ ...full, fastAdHocPricePerKwh: 0.65 })).toBe(0.65)
+    expect(fastChargePrice(full)).toBe(0.427)
+    expect(fastChargePrice({ ...full, dcPricePerKwh: null })).toBe(0.372)
+    expect(fastChargePrice(specOnly)).toBeNull()
   })
 
   it('cost without an AC price: the fast charge is the figure', () => {

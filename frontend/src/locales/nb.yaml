@@ -708,7 +708,7 @@ model:
   seo_no_data_cta: Bli den første til å registrere ladinger for denne {model}!
   seo_costs_title: Ladekostnader ved daglig bruk
   seo_costs_intro: Den gjennomsnittlige ladekostnaden for {model} er, ifølge brukerdata, {price}.
-  seo_costs_session: "Et hurtigladestopp fra 10 til 80 prosent ({kwh} kWh fra laderen) koster rundt {cost} til DC-pris."
+  seo_costs_session: "Et hurtigladestopp fra 10 til 80 prosent ({kwh} kWh fra laderen) koster rundt {cost} til {price}."
   seo_wltp_title: "{ratingLabel} vs. faktisk forbruk"
   seo_wltp_intro: "{ratingLabel}-verdien måles under standardiserte testforhold og avviker ofte fra virkeligheten i daglig bruk."
   seo_wltp_delta: I gjennomsnitt ligger det faktiske forbruket på {delta} sammenlignet med {ratingLabel}-verdien.
@@ -723,7 +723,7 @@ model:
   faq_q_range: Hvor langt strekker egentlig {model} seg?
   faq_a_range: "{ratingLabel}-rekkevidden til {model} er opptil {wltpRange}. I praksis oppnår førere med {battery}-kWh-batteriet rundt {realRange} ved et reelt forbruk på {consumption}. Om vinteren kan rekkevidden falle til 60–70 % av {ratingLabel}-verdien."
   faq_q_cost: Hvor mye koster en lading for en {model}?
-  faq_a_cost: "En kWh koster i snitt {price} i fellesskapet. Et hurtigladestopp fra 10 til 80 prosent trekker {kwh} kWh fra laderen og koster rundt {cost}. Den gjennomsnittlige ladeøkten, korte påfyll hjemme medregnet, er {sessionKwh} kWh og rundt {sessionCost}."
+  faq_a_cost: "En kWh koster i snitt {price} i fellesskapet. Et hurtigladestopp fra 10 til 80 prosent trekker {kwh} kWh fra laderen og koster rundt {cost} til {stopPrice}. Den gjennomsnittlige ladeøkten, korte påfyll hjemme medregnet, er {sessionKwh} kWh og rundt {sessionCost}."
   faq_q_wltp_delta: Hva er forskjellen mellom {ratingLabel}-verdiene og det faktiske forbruket for {model}?
   faq_a_wltp_delta: Det offisielle {ratingLabel}-forbruket til {model} er {wltp}. Ifølge brukerdata oppnår bilistene {real} i hverdagen – det vil si {diff} mer ({pct}).
   faq_q_winter: Hvordan endrer forbruket av {model} seg om vinteren?

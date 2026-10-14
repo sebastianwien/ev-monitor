@@ -213,7 +213,7 @@
               <p>
                 {{ t('model.seo_costs_intro', { model: stats.modelDisplayName, price: formatCostPerKwh(stats.avgCostPerKwh) }) }}
                 <template v-if="stopCost">
-                  {{ t('model.seo_costs_session', { kwh: formatNumber(Math.round(stopCost.kwh)), cost: formatCurrency(stopCost.eur, { decimals: 0 }) }) }}
+                  {{ t('model.seo_costs_session', { kwh: formatNumber(Math.round(stopCost.kwh)), price: formatCostPerKwh(stopPrice!), cost: formatCurrency(stopCost.eur, { decimals: 0 }) }) }}
                 </template>
               </p>
             </div>
@@ -307,7 +307,7 @@ import ModelFactTiles from '../components/models/ModelFactTiles.vue'
 import ModelEvidence from '../components/models/ModelEvidence.vue'
 import ModelVariantsList, { type ActiveVariant } from '../components/models/ModelVariantsList.vue'
 import ProfileSlider from '../components/models/ProfileSlider.vue'
-import { buildModelStory, fastStop, keepUnits, prospectKm, rangeKm, type StoryInput } from '../utils/modelStory'
+import { buildModelStory, fastChargePrice, fastStop, keepUnits, prospectKm, rangeKm, type StoryInput } from '../utils/modelStory'
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
 import { useDrivingProfile, PROFILE_KEYS, PROFILE_SLIDERS, type ProfileKey } from '../composables/useDrivingProfile'
@@ -522,9 +522,9 @@ const heroLines = computed(() => {
   return i < 0 ? [text] : [text.slice(0, i + 1), text.slice(i + 2)]
 })
 
-/** Fast-charging stop 10 to 80 % at the DC price; the cost tile, SEO text and FAQ show the same figure */
-const stopCost = computed(() => fastStop(selectedVariant.value?.batteryCapacityKwh ?? null,
-  stats.value?.dcAvgCostPerKwh ?? stats.value?.avgCostPerKwh ?? null))
+/** Fast-charging stop 10 to 80 %; the cost tile, SEO text and FAQ show the same figure at the same price */
+const stopPrice = computed(() => stats.value ? fastChargePrice(storyInput.value) : null)
+const stopCost = computed(() => fastStop(selectedVariant.value?.batteryCapacityKwh ?? null, stopPrice.value))
 
 const story = computed(() => buildModelStory(storyInput.value, {
   t: (key, params) => t(key, params ?? {}),
@@ -651,14 +651,12 @@ const consumptionDataCount = computed(() => {
 // NICHT displayConsumption: das ist variantenabhaengig und bei Multi-Varianten oft null.
 const metaConsumption = computed(() => stats.value?.avgConsumptionKwhPer100km ?? null)
 
-// Real-world-Reichweite je Variante (Akku x 0,9 / Real-Verbrauch, sonst Modell-Schnitt),
-// als Min/Max-Span ueber alle Varianten - rundet auf 10 km wie die Hero-Anzeige.
+// Real-world-Reichweite je Variante nach derselben Regel wie der Hero (Akku x 0,9 / Modell-Schnitt),
+// als Min/Max-Span ueber alle Varianten.
 const metaRealRangeLabel = computed(() => {
   const avg = metaConsumption.value
   if (!avg || !activeVariants.value.length) return null
-  const ranges = activeVariants.value.map(v =>
-    Math.round(v.batteryCapacityKwh * 0.9 / (v.realConsumptionKwhPer100km ?? avg) * 10) * 10
-  )
+  const ranges = activeVariants.value.map(v => rangeKm(v.batteryCapacityKwh, avg)!)
   const unit = distanceUnitLabel()
   const minStr = formatDistance(Math.min(...ranges), { showUnit: false })
   const maxStr = formatDistance(Math.max(...ranges), { showUnit: false })
@@ -723,6 +721,7 @@ const faqItems = computed(() => {
       answer: t('model.faq_a_cost', {
         price: formatCostPerKwh(stats.value.avgCostPerKwh),
         kwh: formatNumber(Math.round(stopCost.value.kwh)),
+        stopPrice: formatCostPerKwh(stopPrice.value!),
         cost: formatCurrency(stopCost.value.eur, { decimals: 0 }),
         sessionKwh: formatNumber(Math.round(stats.value.avgKwhPerSession)),
         sessionCost: formatCurrency(stats.value.avgCostPerKwh * stats.value.avgKwhPerSession, { decimals: 0 }),

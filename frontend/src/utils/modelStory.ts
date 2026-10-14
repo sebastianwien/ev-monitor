@@ -10,8 +10,8 @@ import { AC_CHARGING_EFFICIENCY, DC_CHARGING_EFFICIENCY } from './consumptionPre
 
 /** Same as the backend calculator: below this many highway cars the highway effect is the fleet estimate */
 const MIN_HIGHWAY_CARS = 5
-/** Below this many cars the page speaks of first measurements, like the result box (same threshold) */
-const MIN_MEASURED_CARS = 5
+/** Below this many cars the page speaks of first measurements and the result box promises no measured data */
+export const MIN_MEASURED_CARS = 5
 
 export type StoryLevel = 'FULL' | 'PARTIAL' | 'NONE'
 
@@ -71,10 +71,8 @@ export interface FactTile {
   level: StoryLevel
   /** a second figure of equal weight below the first: the fast charge next to the home charge */
   extra?: { value: string; unit: string }
-  /** a second, plain line under the note */
-  noteLine?: string
-  /** the battery window of that line, drawn with battery icons like the gauge; the line stays for screen readers */
-  noteSoc?: { from: number; to: number }
+  /** a battery window under the note, drawn with battery icons like the gauge; text is what screen readers hear */
+  noteSoc?: { from: number; to: number; text: string }
   /** the figure inside the note, set in large type a size below the main figure; text is how it reads in the note */
   noteFigure?: { text: string; value: string; unit: string }
 }
@@ -130,6 +128,11 @@ export function fastStop(netKwh: number | null, pricePerKwh: number | null): { k
   if (!netKwh || !pricePerKwh) return null
   const kwh = netKwh * STOP_SHARE / DC_CHARGING_EFFICIENCY
   return { kwh, eur: kwh * pricePerKwh }
+}
+
+/** The fast-charge price of the page (tile, SEO text, FAQ): without a subscription where known, else what the drivers pay at DC, else their mean */
+export function fastChargePrice(d: Pick<StoryInput, 'fastAdHocPricePerKwh' | 'dcPricePerKwh' | 'avgPricePerKwh'>): number | null {
+  return d.fastAdHocPricePerKwh ?? d.dcPricePerKwh ?? d.avgPricePerKwh ?? null
 }
 
 /** WLTP counts 100 to 0 %, the drivers 100 to 10 %: the comparison puts the prospectus on the same window. */
@@ -230,8 +233,7 @@ function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): Fact
   return {
     ...base, value: f.formatNumber(minutes), level: 'FULL',
     note: f.t('model.page.note_charging', { kw }),
-    noteLine: f.t('model.page.note_charging_window'),
-    noteSoc: { from: 10, to: 80 },
+    noteSoc: { from: 10, to: 80, text: f.t('model.page.note_charging_window') },
     noteFigure: { text: `${kw} kW`, value: kw, unit: 'kW' },
   }
 }
@@ -240,9 +242,7 @@ function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile
   const base = { key: 'cost' as const, label: label(f, 'cost') }
   // What a buyer pays per charge: at home 20 to 80 % at the AC price, on the road 10 to 80 % at the DC price
   const home = d.netBatteryKwh && d.acPricePerKwh ? d.netBatteryKwh * NORMAL_SHARE / AC_CHARGING_EFFICIENCY * d.acPricePerKwh : null
-  // what a new driver pays on the motorway: the contract-free price; the drivers' own DC price only without it
-  const adHoc = d.fastAdHocPricePerKwh ?? null
-  const fast = fastStop(d.netBatteryKwh, adHoc ?? d.dcPricePerKwh ?? d.avgPricePerKwh)?.eur ?? null
+  const fast = fastStop(d.netBatteryKwh, fastChargePrice(d))?.eur ?? null
   if (home != null) {
     return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'), note: '',
       ...(fast != null ? { extra: { value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast') } } : {}) }

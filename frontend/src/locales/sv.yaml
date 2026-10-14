@@ -708,7 +708,7 @@ model:
   seo_no_data_cta: Bli den första att registrera laddningssessioner för denna {model}!
   seo_costs_title: Ladningskostnader vid daglig användning
   seo_costs_intro: Det genomsnittliga laddningspriset för en {model}, enligt användardata, är {price}.
-  seo_costs_session: "Ett snabbladdningsstopp från 10 till 80 procent ({kwh} kWh ur laddaren) kostar ungefär {cost} till DC-pris."
+  seo_costs_session: "Ett snabbladdningsstopp från 10 till 80 procent ({kwh} kWh ur laddaren) kostar ungefär {cost} till {price}."
   seo_wltp_title: "{ratingLabel} jämfört med faktisk förbrukning"
   seo_wltp_intro: "{ratingLabel}-värdet mäts under standardiserade testförhållanden och skiljer sig ofta från verkliga körförhållanden."
   seo_wltp_delta: I genomsnitt ligger den faktiska förbrukningen på {delta} jämfört med {ratingLabel}-värdet.
@@ -723,7 +723,7 @@ model:
   faq_q_range: Hur långt räcker egentligen {model}?
   faq_a_range: "{model}:s räckvidd enligt {ratingLabel} är upp till {wltpRange}. I praktiken uppnår förare med ett {battery} kWh-batteri en räckvidd på cirka {realRange} vid en faktisk förbrukning på {consumption}. På vintern kan räckvidden minska till 60–70 % av {ratingLabel}-värdet."
   faq_q_cost: Hur mycket kostar en laddning för en {model}?
-  faq_a_cost: "En kWh kostar i snitt {price} i communityn. Ett snabbladdningsstopp från 10 till 80 procent drar {kwh} kWh ur laddaren och kostar ungefär {cost}. Den genomsnittliga laddningen, korta påfyllningar hemma inräknade, är {sessionKwh} kWh och ungefär {sessionCost}."
+  faq_a_cost: "En kWh kostar i snitt {price} i communityn. Ett snabbladdningsstopp från 10 till 80 procent drar {kwh} kWh ur laddaren och kostar ungefär {cost} till {stopPrice}. Den genomsnittliga laddningen, korta påfyllningar hemma inräknade, är {sessionKwh} kWh och ungefär {sessionCost}."
   faq_q_wltp_delta: Vad är skillnaden mellan {ratingLabel}-värdet och den faktiska förbrukningen för {model}?
   faq_a_wltp_delta: Den officiella {ratingLabel}-förbrukningen för {model} är {wltp}. Enligt användardata uppnår förarna {real} i vardagen – det är {diff} mer ({pct}).
   faq_q_winter: Hur förändras förbrukningen av {model} under vintern?
