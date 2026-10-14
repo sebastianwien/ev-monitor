@@ -17,6 +17,8 @@ public record PersonalRangeRankingEntry(
         BigDecimal chargesPerWeekSummer,
         BigDecimal chargesPerWeekWinter,
         int monthlyCostEur,
+        /** the distance a month the cost rests on: yearly km / 12, else the commute */
+        int monthlyKm,
         int oneStopReachKm,
         int twoStopsReachKm
 ) {}

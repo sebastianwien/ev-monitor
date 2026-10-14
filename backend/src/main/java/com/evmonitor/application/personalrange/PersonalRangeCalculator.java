@@ -80,11 +80,9 @@ final class PersonalRangeCalculator {
         BigDecimal summerProfile = summer.multiply(BigDecimal.valueOf(highwayRatio)).setScale(1, RoundingMode.HALF_UP);
         BigDecimal winterProfile = winter.multiply(BigDecimal.valueOf(highwayRatio)).setScale(1, RoundingMode.HALF_UP);
         // Mileage: the yearly figure when the reader gave one, else the commute on the reader's commute days
-        // (22 workdays a month on 5 days, so 4.4 weeks a month)
         double commuteKmPerWeek = in.commuteKmPerDay() * in.commuteDays();
         double weeklyKm = in.annualKm() != null ? in.annualKm() / 52.0 : commuteKmPerWeek;
-        double monthlyKm = in.annualKm() != null ? in.annualKm() / 12.0
-                : commuteKmPerWeek * WORKDAYS_PER_MONTH / WORKDAYS_PER_WEEK;
+        double monthlyKm = monthlyKm(in);
         double weeklyKwh = weeklyKm * mixedKwhPerKm;
         double kwhPerCharge = net.multiply(in.homeCharging() ? HOME_CHARGE_SHARE : STOP_SHARE).doubleValue();
         BigDecimal chargesPerWeek = halfCharges(weeklyKwh / kwhPerCharge);
@@ -118,6 +116,7 @@ final class PersonalRangeCalculator {
         return new PersonalRangeRankingEntry(brand, model, r.summerRangeKm(), r.winterRangeKm(),
                 r.longTripStops(), r.longTripTotalMinutes(), r.chargesPerWeekSummer(), r.chargesPerWeekWinter(),
                 r.monthlyCostEur(),
+                (int) Math.round(monthlyKm(in)),
                 round10(LongTripPlan.reachKm(b.netBatteryKwh(), highway, 1)),
                 round10(LongTripPlan.reachKm(b.netBatteryKwh(), highway, 2)));
     }
@@ -161,6 +160,12 @@ final class PersonalRangeCalculator {
             return HIGHWAY_RATIO_FALLBACK;
         }
         return b.highwayKwhPer100km().divide(b.routeMeanKwhPer100km(), 4, RoundingMode.HALF_UP);
+    }
+
+    /** The month's distance: the yearly figure when given, else the commute (22 workdays a month on 5 days, so 4.4 weeks). */
+    private static double monthlyKm(PersonalRangeRequest in) {
+        return in.annualKm() != null ? in.annualKm() / 12.0
+                : (double) in.commuteKmPerDay() * in.commuteDays() * WORKDAYS_PER_MONTH / WORKDAYS_PER_WEEK;
     }
 
     private static BigDecimal charges(double charges) {

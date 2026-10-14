@@ -190,6 +190,8 @@ class PersonalRangeCalculatorTest {
         assertThat(e.twoStopsReachKm()).isEqualTo(890);
         assertThat(e.longTripStops()).isEqualTo(1);
         assertThat(e.winterRangeKm()).isEqualTo(320);
+        // the distance the monthly cost rests on: 40 km × 5 days × 4.4 weeks
+        assertThat(e.monthlyKm()).isEqualTo(880);
     }
 
     @Test
