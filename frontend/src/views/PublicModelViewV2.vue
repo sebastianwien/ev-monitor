@@ -79,11 +79,10 @@
             <p v-if="!isEurZone && stats.avgCostPerKwh" class="text-[12px] italic text-gray-500 dark:text-gray-400">{{ t('model.cost_disclaimer', { rate: EUR_EXCHANGE_RATES[currency], currency: currencySymbol, date: RATES_LAST_UPDATED }) }}</p>
           </ModelFactTiles>
 
-          <!-- 3 Driving profile and result: one column on the phone, the result sticky on the right from md up -->
           <!-- 3 Profile and answers. Locked or gate: sliders left, the box sticky on the right.
-               Open: the answers first over the full width, the sliders below. -->
+               Open: the answers over the full width, the sliders folded under them, behind "Deine Angaben ändern". -->
           <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_380px] md:items-start md:gap-5">
-            <ModelBox id="profil" aria-labelledby="profile-title" class="scroll-mt-28" data-testid="driving-profile">
+            <ModelBox v-if="!answersOpen" id="profil" aria-labelledby="profile-title" class="scroll-mt-28" data-testid="driving-profile">
               <div class="grid gap-1.5">
                 <h2 id="profile-title" ref="profileTitle" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('model.page.profile_title') }}</h2>
                 <p class="max-w-[52ch] text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('model.page.profile_sub', { model: shortModelName }) }}</p>
@@ -94,8 +93,9 @@
                                :highlight="highlightKey === q.key" @commit="v => answer(q.key, v)" />
               </div>
             </ModelBox>
-            <div :class="answersOpen ? 'md:order-first md:col-span-2' : 'md:sticky md:top-24'">
+            <div :class="answersOpen ? 'md:col-span-2' : 'md:sticky md:top-24'">
               <PersonalRangeCalculator
+                v-model:profile-open="profileOpen"
                 :brand="brand"
                 :model="model"
                 :model-name="shortModelName"
@@ -107,11 +107,21 @@
                 :fast-price-per-kwh="fastAdHocForMarket ?? stats.dcAvgCostPerKwh"
                 :entry="profileTitle"
                 :follow="profileEl"
+                :profile-summary="profileSummary"
                 @profile="applyProfile"
                 @incomplete="showFirstOpen"
                 @home="answerHome"
                 @price="v => answers.pricePerKwh = v"
-                @open="v => answersOpen = v" />
+                @open="v => answersOpen = v">
+                <template #profile>
+                  <!-- The same five sliders, two columns from md up so they fill the width of the answers -->
+                  <div id="profil" ref="profileFold" class="grid gap-5 scroll-mt-28 md:grid-cols-2 md:gap-x-10" data-testid="driving-profile">
+                    <ProfileSlider v-for="q in profileSliders" :key="q.key" :id="`story-${q.key}`" :test-key="q.key" :label="q.label"
+                                   :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail"
+                                   :highlight="highlightKey === q.key" @commit="v => answer(q.key, v)" />
+                  </div>
+                </template>
+              </PersonalRangeCalculator>
             </div>
           </div>
 
@@ -288,7 +298,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
@@ -340,10 +350,14 @@ const apiError = ref(false)
 const showBackPill = ref(false)
 /** The profile heading; once it has scrolled above the calculator's phone bar, the bar comes */
 const profileTitle = ref<HTMLElement | null>(null)
-/** the sliders box (the heading's section); the figures follow the reader while it is in view */
-const profileEl = computed(() => profileTitle.value?.closest('section') ?? null)
-/** answers open: the box moves above the sliders, over the full width */
+/** the sliders folded under the open answers */
+const profileFold = ref<HTMLElement | null>(null)
+/** the sliders box (the heading's section, or the fold); the figures follow the reader while it is in view */
+const profileEl = computed(() => profileFold.value ?? profileTitle.value?.closest('section') ?? null)
+/** answers open: the box takes the full width, the sliders fold under it */
 const answersOpen = ref(false)
+/** the fold under the open answers; a jump to the profile from the hero opens it */
+const profileOpen = ref(false)
 const stats = ref<PublicModelStats | null>(null)
 /** Fahrerbewertungen, null bis geladen oder bei Fehler - die Seite funktioniert auch ohne. */
 const ratings = ref<PublicModelRatings | null>(null)
@@ -585,6 +599,12 @@ const profileSliders = computed(() => PROFILE_KEYS.map(key => ({
     : undefined,
 })))
 
+/** The set profile in one line for the closed fold: "15.000 km · 4.500 km Autobahn · ..." */
+const profileSummary = computed(() => profileSliders.value
+  .filter(q => q.value != null)
+  .map(q => t(`model.page.summary_${q.key}`, { value: q.format(q.value!) }))
+  .join(' · '))
+
 function answer(key: ProfileKey, value: number) {
   answerProfile(key, value)
   if (highlightKey.value === key) highlightKey.value = null
@@ -594,10 +614,12 @@ function answer(key: ProfileKey, value: number) {
 const highlightKey = ref<ProfileKey | null>(null)
 
 /** Scrolls to the first open slider and puts the focus on it */
-function showFirstOpen() {
+async function showFirstOpen() {
   const key = openQuestions.value[0]
   if (!key) return
   highlightKey.value = key
+  profileOpen.value = true
+  await nextTick()
   const block = document.getElementById(`story-${key}`)
   if (block) scrollToElement(block, { block: 'center' })
   block?.querySelector<HTMLElement>('input')?.focus({ preventScroll: true })
@@ -605,6 +627,7 @@ function showFirstOpen() {
 
 /** The question card in the hero, as a Plausible goal */
 function trackJump() {
+  profileOpen.value = true
   analytics.track('model_profile_jump', { model: stats.value?.modelDisplayName ?? model })
 }
 

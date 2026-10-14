@@ -39,6 +39,9 @@ async function login(page: Page) {
 
 /** All five sliders answered */
 async function answerAll(page: Page) {
+  // open answers (a stored profile): the sliders are folded under them
+  const fold = page.getByTestId('personal-range-profile-toggle');
+  if (await fold.count() && await fold.getAttribute('aria-expanded') === 'false') await fold.click();
   await setSlider(page, 'annualKm', 20000);
   await setSlider(page, 'highwayKm', 8000);
   await setSlider(page, 'commute', 35);

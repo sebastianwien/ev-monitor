@@ -38,7 +38,7 @@ function mount(loggedIn: boolean, data: { logCount: number; carCount: number; pe
     auth.token = 'token'
     auth.user = { userId: 'u1' } as never
   }
-  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0, home: null as boolean | null, price: undefined as number | null | undefined, open: undefined as boolean | undefined, inputs: { ...INPUTS, ...inputs }, openCount })
+  const state = reactive({ profile: null as PersonalRangeInputs | null, incomplete: 0, home: null as boolean | null, price: undefined as number | null | undefined, open: undefined as boolean | undefined, inputs: { ...INPUTS, ...inputs }, openCount, profileOpen: false })
   const Host = defineComponent({
     setup: () => () => h(PersonalRangeCalculator, {
       brand: 'Volkswagen', model: 'ID.3', modelName: 'Volkswagen ID.3', inputs: state.inputs, ...data, openCount: state.openCount,
@@ -47,7 +47,10 @@ function mount(loggedIn: boolean, data: { logCount: number; carCount: number; pe
       onHome: (v: boolean) => { state.home = v },
       onPrice: (v: number | null) => { state.price = v },
       onOpen: (v: boolean) => { state.open = v },
-    }),
+      profileSummary: '15.000 km · 40 km · 3 Tage',
+      profileOpen: state.profileOpen,
+      'onUpdate:profileOpen': (v: boolean) => { state.profileOpen = v },
+    }, { profile: () => h('div', { 'data-testid': 'slot-profile' }, 'sliders') }),
   })
   const host = document.createElement('div')
   document.body.appendChild(host)
@@ -126,6 +129,23 @@ describe('PersonalRangeCalculator', () => {
     const own = [...host.querySelectorAll('[data-testid="assumption"]')].map(li => li.textContent).find(x => x?.includes('Dein Strompreis'))
     expect(own).toContain('28,0 ct/kWh')
     expect(host.querySelector('[data-testid="inline-gate"]')).toBeNull()
+  })
+
+  it('open answers: the profile sits folded under the answers as a summary line, a button unfolds the sliders', async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
+    const { host } = mount(true)
+    await flush()
+
+    const toggle = host.querySelector('[data-testid="personal-range-profile-toggle"]') as HTMLButtonElement
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(host.querySelector('[data-testid="personal-range-profile-summary"]')?.textContent).toContain('15.000 km · 40 km · 3 Tage')
+    expect(host.querySelector('[data-testid="slot-profile"]')).toBeNull()
+
+    toggle.click()
+    await flush()
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(host.querySelector('[data-testid="slot-profile"]')).not.toBeNull()
+    expect(host.querySelector('[data-testid="personal-range-profile-summary"]')).toBeNull()
   })
 
   it('result: the wallbox answer and the own price go back to the page, open answers are reported', async () => {

@@ -57,6 +57,7 @@
 </template>
 
 <script setup lang="ts">
+import { nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowDownIcon, BanknotesIcon, BoltIcon, CloudIcon, MapIcon } from '@heroicons/vue/24/outline'
 import { scrollToElement } from '../../utils/smoothScroll'
@@ -68,13 +69,14 @@ const { t, locale } = useI18n()
 const time = new Intl.DateTimeFormat(locale.value, { hour: '2-digit', minute: '2-digit' }).format(new Date())
 
 /** Glides to the driving profile instead of jumping; the link still works without script */
-function go(event: MouseEvent) {
-  const profile = document.getElementById('profil')
-  if (profile) {
-    event.preventDefault()
-    scrollToElement(profile)
-  }
+async function go(event: MouseEvent) {
+  event.preventDefault()
+  // the page may first have to unfold the sliders, so the target is looked up after the jump is known
   emit('jump')
+  await nextTick()
+  const profile = document.getElementById('profil')
+  if (profile) scrollToElement(profile)
+  else location.hash = '#profil'
 }
 
 /** Open Peeps by Pablo Stanley, CC0 1.0, see public/illustrations/LICENSE.md */

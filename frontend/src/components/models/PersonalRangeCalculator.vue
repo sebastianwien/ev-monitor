@@ -132,20 +132,35 @@
           </div>
         </li>
         <!-- The two assumptions to play with, a tile of their own across both columns -->
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:col-span-2 md:px-5 dark:bg-gray-900">
-          <span class="grid h-9 w-9 place-items-center rounded-full bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300"><AdjustmentsHorizontalIcon class="h-5 w-5" aria-hidden="true" /></span>
+        <li class="bg-white px-4 py-4 md:col-span-2 md:px-5 dark:bg-gray-900">
           <ProfileTune :model-name="modelName" :inputs="inputs" :community-price="communityPrice" @home="v => emit('home', v)" @price="v => emit('price', v)" />
         </li>
       </ul>
 
 
-      <!-- What the result rests on: a light, centred link that opens the list in a card -->
-      <details class="group">
-        <summary class="mx-auto flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 text-[14px] font-semibold text-green-800 hover:underline dark:text-green-300 [&::-webkit-details-marker]:hidden">
-          {{ t('personal_range.assumptions_title') }}
-          <ChevronDownIcon class="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
-        </summary>
-        <ul class="mt-1 space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900">
+      <!-- Under the answers, two folds in one row: the profile the result rests on (the sliders) and the assumptions.
+           Folded, the profile shows as one line, so the reader sees what is set without 500 px of sliders. -->
+      <div class="grid gap-1">
+        <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
+          <button type="button" data-testid="personal-range-profile-toggle" :aria-expanded="profileOpen" aria-controls="pr-profile"
+                  class="flex min-h-11 items-center gap-1.5 text-[14px] font-semibold text-green-800 hover:underline dark:text-green-300"
+                  @click="emit('update:profileOpen', !profileOpen)">
+            <AdjustmentsHorizontalIcon class="h-4 w-4" aria-hidden="true" />
+            {{ t('personal_range.profile_change') }}
+            <ChevronDownIcon class="h-4 w-4 transition-transform" :class="profileOpen ? 'rotate-180' : ''" aria-hidden="true" />
+          </button>
+          <button type="button" data-testid="personal-range-assumptions-toggle" :aria-expanded="assumptionsOpen" aria-controls="pr-assumptions"
+                  class="flex min-h-11 items-center gap-1.5 text-[14px] font-semibold text-green-800 hover:underline dark:text-green-300"
+                  @click="assumptionsOpen = !assumptionsOpen">
+            {{ t('personal_range.assumptions_title') }}
+            <ChevronDownIcon class="h-4 w-4 transition-transform" :class="assumptionsOpen ? 'rotate-180' : ''" aria-hidden="true" />
+          </button>
+        </div>
+        <div id="pr-profile" class="rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900" :class="profileOpen ? 'px-4 py-5 md:px-6 md:py-6' : 'px-4 py-3'">
+          <div v-if="profileOpen"><slot name="profile" /></div>
+          <p v-else-if="profileSummary" class="text-center text-[13.5px] leading-snug text-gray-600 dark:text-gray-400" data-testid="personal-range-profile-summary">{{ profileSummary }}</p>
+        </div>
+        <ul v-show="assumptionsOpen" id="pr-assumptions" class="space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900">
           <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
             <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
             <!-- a fixed setting, not a missing measurement: no warning colour -->
@@ -154,7 +169,7 @@
             <span>{{ assumptionText(a) }} <span class="text-gray-500 dark:text-gray-400">({{ sourceText(a) }})</span></span>
           </li>
         </ul>
-      </details>
+      </div>
     </template>
 
     <p v-if="error" role="alert" class="text-sm font-semibold text-red-700 dark:text-red-400">{{ error }}</p>
@@ -227,6 +242,10 @@ const props = defineProps<{
   entry?: HTMLElement | null
   /** the sliders; while they are in view and the answers are not, the figures follow (md up) */
   follow?: HTMLElement | null
+  /** the profile fold under the answers: open shows the `profile` slot, closed the summary line */
+  profileOpen?: boolean
+  /** the set profile in one line, shown while the fold is closed */
+  profileSummary?: string | null
 }>()
 const emit = defineEmits<{
   profile: [inputs: PersonalRangeInputs]
@@ -235,6 +254,7 @@ const emit = defineEmits<{
   price: [value: number | null]
   /** answers open or closed: the page lays the box out differently */
   open: [value: boolean]
+  'update:profileOpen': [value: boolean]
 }>()
 
 const { t } = useI18n()
@@ -425,6 +445,8 @@ const startOpen = props.openCount
 // the viewport to above it.
 const answers = ref<HTMLElement | null>(null)
 const followBar = ref(false)
+/** the assumptions list under the answers, folded by default */
+const assumptionsOpen = ref(false)
 let measureQueued = false
 function measureFollow() {
   measureQueued = false

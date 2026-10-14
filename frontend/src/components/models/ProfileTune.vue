@@ -2,9 +2,9 @@
   <!-- The two assumptions to play with once the answers are open: wallbox and price, as one tile of the answers -->
   <div class="grid gap-5" data-testid="personal-range-tune">
     <div class="grid gap-5 md:grid-cols-2 md:gap-10">
-    <div class="grid justify-items-center gap-3 text-center">
-      <p id="pr-wallbox-q" class="text-[16px] font-bold text-gray-900 dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
-      <div class="flex justify-center gap-2" role="group" aria-labelledby="pr-wallbox-q">
+    <div class="grid content-start gap-3">
+      <p id="pr-wallbox-q" class="text-[17px] font-bold leading-snug text-gray-900 md:text-[18px] dark:text-gray-100">{{ t('personal_range.wallbox_question') }}</p>
+      <div class="flex gap-2" role="group" aria-labelledby="pr-wallbox-q">
         <button v-for="opt in WALLBOX" :key="String(opt)" type="button" :aria-pressed="inputs.homeCharging === opt"
                 class="inline-flex min-h-11 min-w-[96px] items-center justify-center rounded-full border-2 px-5 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                 :class="inputs.homeCharging === opt
@@ -15,7 +15,7 @@
           {{ opt ? t('personal_range.wallbox_yes') : t('personal_range.wallbox_no') }}
         </button>
       </div>
-      <p class="max-w-[36ch] text-balance text-[13px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('personal_range.wallbox_why') }}</p>
+      <p class="max-w-[52ch] text-[13px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('personal_range.wallbox_why') }}</p>
     </div>
     <div class="grid gap-1">
       <ProfileSlider v-if="shownPrice != null" id="pr-price" test-key="price" :label="t('personal_range.price_label')"
