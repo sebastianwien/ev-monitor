@@ -139,12 +139,14 @@ describe('PersonalRangeCalculator', () => {
     const toggle = host.querySelector('[data-testid="personal-range-profile-toggle"]') as HTMLButtonElement
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(host.querySelector('[data-testid="personal-range-profile-summary"]')?.textContent).toContain('15.000 km · 40 km · 3 Tage')
-    expect(host.querySelector('[data-testid="slot-profile"]')).toBeNull()
+    // the sliders stay mounted so the fold can animate shut; closed they are inert
+    expect(host.querySelector('#pr-profile')!.hasAttribute('inert')).toBe(true)
 
     toggle.click()
     await flush()
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(host.querySelector('[data-testid="slot-profile"]')).not.toBeNull()
+    expect(host.querySelector('#pr-profile')!.hasAttribute('inert')).toBe(false)
     expect(host.querySelector('[data-testid="personal-range-profile-summary"]')).not.toBeNull()
   })
 

@@ -82,10 +82,11 @@
             <ChevronDownIcon class="h-4 w-4 transition-transform" :class="profileOpen ? 'rotate-180' : ''" aria-hidden="true" />
           </button>
         </div>
-        <!-- unfolds: the row grows from 0fr to 1fr, the inner box stays min-h-0 so it clips -->
-        <div id="pr-profile" class="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" :class="profileOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'">
+        <!-- folds both ways: the row grows from 0fr to 1fr and back, the inner box stays min-h-0 so it clips;
+             the content stays mounted (inert while closed), else there is nothing to shrink -->
+        <div id="pr-profile" class="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" :class="profileOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'" :inert="profileOpen ? undefined : true">
           <div class="min-h-0 overflow-hidden">
-            <div v-if="profileOpen" class="border-t border-gray-100 px-4 pb-5 pt-4 md:px-5 dark:border-gray-800"><slot name="profile" /></div>
+            <div class="border-t border-gray-100 px-4 pb-5 pt-4 md:px-5 dark:border-gray-800"><slot name="profile" /></div>
           </div>
         </div>
       </div>
@@ -166,15 +167,19 @@
           {{ t('personal_range.assumptions_title') }}
           <ChevronDownIcon class="h-4 w-4 transition-transform" :class="assumptionsOpen ? 'rotate-180' : ''" aria-hidden="true" />
         </button>
-        <ul v-show="assumptionsOpen" id="pr-assumptions" class="space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900">
-          <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-            <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
-            <!-- a fixed setting, not a missing measurement: no warning colour -->
-            <InformationCircleIcon v-else-if="a.key === 'TRAVEL_SPEED'" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true" />
-            <QuestionMarkCircleIcon v-else class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-            <span>{{ assumptionText(a) }} <span class="text-gray-500 dark:text-gray-400">({{ sourceText(a) }})</span></span>
-          </li>
-        </ul>
+        <div id="pr-assumptions" class="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" :class="assumptionsOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'" :inert="assumptionsOpen ? undefined : true">
+          <div class="min-h-0 overflow-hidden">
+            <ul class="space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900">
+              <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
+                <!-- a fixed setting, not a missing measurement: no warning colour -->
+                <InformationCircleIcon v-else-if="a.key === 'TRAVEL_SPEED'" class="mt-0.5 h-4 w-4 shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true" />
+                <QuestionMarkCircleIcon v-else class="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                <span>{{ assumptionText(a) }} <span class="text-gray-500 dark:text-gray-400">({{ sourceText(a) }})</span></span>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </template>
 
