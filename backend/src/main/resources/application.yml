@@ -39,6 +39,8 @@ spring:
       - chargingRegionMedian
       - chargingCountryMedian
       - chargingPublicPriceByYear
+      # Referenzpreise der Modellseite und des Rechners (Community, Kraftstoff, Schnellladen ohne Abo)
+      - chargingReferencePrices
       # nearbyCpos hat eine eigene Regel (30 Tage) in CpoRegistryConfig - der Registerbestand
       # der Bundesnetzagentur wird nur monatlich aktualisiert.
 
