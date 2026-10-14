@@ -38,6 +38,9 @@ public interface JpaVehicleSpecificationRepository extends JpaRepository<Vehicle
 
     List<VehicleSpecificationEntity> findByCarModelOrderByBatteryCapacityKwhAsc(String carModel);
 
+    /** All specs of one rating source, for lists that need every model at once (one query instead of one per model). */
+    List<VehicleSpecificationEntity> findByRatingSource(String ratingSource);
+
     List<VehicleSpecificationEntity> findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(
         String carModel,
         String ratingSource

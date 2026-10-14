@@ -69,11 +69,60 @@ class PersonalRangeServiceTest {
                 new BigDecimal("23.9"), new BigDecimal("20.0"), new BigDecimal("21.7"), 50, 300, 120, 20, new BigDecimal("21.1")));
         when(publicModelService.getModelStats(eq("Tesla"), eq("Model_3"), anyBoolean())).thenReturn(Optional.of(stats));
 
+        when(spec.getCarModel()).thenReturn("MODEL_3");
+        when(specs.findByRatingSource("WLTP")).thenReturn(List.of(spec));
+
         TopModelResponse top = mock(TopModelResponse.class);
+        when(top.brand()).thenReturn("TESLA");
         when(top.model()).thenReturn("MODEL_3");
+        when(top.brandDisplayName()).thenReturn("Tesla");
+        when(top.modelUrlSlug()).thenReturn("Model_3");
         when(publicModelService.getTopModels(anyBoolean())).thenReturn(List.of(top));
         when(publicModelService.getFastChargePowerTable(anyBoolean())).thenReturn(FastChargePowerTable.from(List.of(
                 new FastChargePowerTable.Measurement("MODEL_3", new BigDecimal("130"), 40))));
+    }
+
+    @Test
+    void rankingGivesEveryListedModelTheModelPageResult() {
+        PersonalRangeResponse page = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
+
+        List<PersonalRangeRankingEntry> ranking = service.ranking(request);
+
+        assertThat(ranking).hasSize(1);
+        PersonalRangeRankingEntry row = ranking.get(0);
+        assertThat(row.brand()).isEqualTo("TESLA");
+        assertThat(row.model()).isEqualTo("MODEL_3");
+        assertThat(row.winterRangeKm()).isEqualTo(page.winterRangeKm());
+        assertThat(row.summerRangeKm()).isEqualTo(page.summerRangeKm());
+        assertThat(row.longTripStops()).isEqualTo(page.longTripStops());
+        assertThat(row.longTripTotalMinutes()).isEqualTo(page.longTripTotalMinutes());
+        assertThat(row.chargesPerWeekSummer()).isEqualByComparingTo(page.chargesPerWeekSummer());
+        assertThat(row.chargesPerWeekWinter()).isEqualByComparingTo(page.chargesPerWeekWinter());
+        assertThat(row.monthlyCostEur()).isEqualTo(page.monthlyCostEur());
+        // stop ladder on the same highway consumption as the stops: first leg 90 → 10 %, each stop 10 → 80 %
+        assertThat(row.oneStopReachKm()).isGreaterThan(0);
+        assertThat(row.twoStopsReachKm()).isGreaterThan(row.oneStopReachKm());
+    }
+
+    @Test
+    void rankingLoadsAllSpecsInOneQueryStoresNothingAndSkipsModelsWithoutSpec() {
+        TopModelResponse noSpec = mock(TopModelResponse.class);
+        when(noSpec.brand()).thenReturn("FIAT");
+        when(noSpec.model()).thenReturn("FIAT_500E");
+        when(noSpec.brandDisplayName()).thenReturn("Fiat");
+        when(noSpec.modelUrlSlug()).thenReturn("500e");
+        PublicModelStatsResponse noSpecStats = mock(PublicModelStatsResponse.class);
+        when(noSpecStats.model()).thenReturn("FIAT_500E");
+        when(publicModelService.getModelStats(eq("Fiat"), eq("500e"), anyBoolean())).thenReturn(Optional.of(noSpecStats));
+        TopModelResponse tesla = publicModelService.getTopModels(false).get(0);
+        when(publicModelService.getTopModels(anyBoolean())).thenReturn(List.of(tesla, noSpec));
+
+        List<PersonalRangeRankingEntry> ranking = service.ranking(request);
+
+        assertThat(ranking).extracting(PersonalRangeRankingEntry::model).containsExactly("MODEL_3");
+        verify(specs, times(1)).findByRatingSource("WLTP");
+        verify(specs, never()).findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(anyString(), anyString());
+        verify(userRepository, never()).setRangeProfile(any(), anyString());
     }
 
     @Test

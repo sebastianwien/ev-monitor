@@ -25,6 +25,11 @@ public record LongTripPlan(int stops, int chargingMinutes, int drivingMinutes, i
         return new LongTripPlan(stops, chargingMinutes, drivingMinutes, roundTo5(drivingMinutes + stops * minutesPerStop));
     }
 
+    /** How far the car gets on the highway with the given number of stops: first leg plus one leg per stop. */
+    public static double reachKm(BigDecimal netKwh, BigDecimal highwayKwhPer100km, int stops) {
+        return legKm(netKwh, FIRST_LEG_SHARE, highwayKwhPer100km) + stops * legKm(netKwh, FastChargeStop.SHARE, highwayKwhPer100km);
+    }
+
     private static double legKm(BigDecimal netKwh, BigDecimal share, BigDecimal kwhPer100km) {
         return netKwh.multiply(share).multiply(HUNDRED).doubleValue() / kwhPer100km.doubleValue();
     }

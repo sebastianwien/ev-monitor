@@ -5,6 +5,7 @@ import com.evmonitor.application.ChargingReferencePrices;
 import com.evmonitor.application.PlausibilityProperties;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
+import com.evmonitor.application.charging.FastChargePowerTable;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.email.EmailService;
@@ -21,9 +22,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Personal range calculator for logged-in users. Collects the model basis from the cached public
@@ -105,10 +108,44 @@ public class PersonalRangeService {
         }
     }
 
-    /** The battery is the variant the page shows when the request names one, else the largest WLTP variant. */
+    /**
+     * The model ranking for the reader's profile: every model of the list through the same calculation as
+     * the model page, on the largest WLTP battery. Nothing is stored. All WLTP specs come in one query;
+     * the model stats and prices are cached. Models without a WLTP spec are left out.
+     */
+    public List<PersonalRangeRankingEntry> ranking(PersonalRangeRequest request) {
+        PersonalRangeRequest in = request.withoutBattery();
+        BasisContext context = context(false);
+        Map<String, List<VehicleSpecificationEntity>> specsByModel = vehicleSpecificationRepository.findByRatingSource("WLTP")
+                .stream().collect(Collectors.groupingBy(VehicleSpecificationEntity::getCarModel));
+        return publicModelService.getTopModels(false).stream()
+                .flatMap(m -> publicModelService.getModelStats(m.brandDisplayName(), m.modelUrlSlug(), false)
+                        .flatMap(stats -> basis(stats, specsByModel.getOrDefault(stats.model(), List.of()), in, context))
+                        .map(b -> PersonalRangeCalculator.rankingEntry(m.brand(), m.model(), in, b))
+                        .stream())
+                .toList();
+    }
+
+    /** What every model's basis shares: prices, fleet factors and fast-charge powers, looked up once. */
+    private record BasisContext(ChargingReferencePrices reference, WltpFleetFactors fleet, FastChargePowerTable dcPower,
+                                BigDecimal homeEfficiency, BigDecimal publicEfficiency) {}
+
+    private BasisContext context(boolean isSeedUser) {
+        return new BasisContext(chargingPriceService.getReferencePrices(isSeedUser), fleetFactors(isSeedUser),
+                publicModelService.getFastChargePowerTable(isSeedUser),
+                BigDecimal.valueOf(plausibility.getAcChargingEfficiency()),
+                BigDecimal.valueOf(plausibility.getDcChargingEfficiency()));
+    }
+
     private Optional<ModelRangeBasis> basis(PublicModelStatsResponse stats, boolean isSeedUser, PersonalRangeRequest request) {
         List<VehicleSpecificationEntity> specs =
                 vehicleSpecificationRepository.findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(stats.model(), "WLTP");
+        return basis(stats, specs, request, context(isSeedUser));
+    }
+
+    /** The battery is the variant the page shows when the request names one, else the largest WLTP variant. */
+    private static Optional<ModelRangeBasis> basis(PublicModelStatsResponse stats, List<VehicleSpecificationEntity> specs,
+                                                   PersonalRangeRequest request, BasisContext context) {
         VehicleSpecificationEntity largest = specs.stream()
                 .filter(s -> s.getBatteryCapacityKwh() != null)
                 .max(Comparator.comparing(VehicleSpecificationEntity::getBatteryCapacityKwh))
@@ -125,7 +162,7 @@ public class PersonalRangeService {
 
         PublicModelStatsResponse.SeasonalDistribution seasonal = stats.seasonalDistribution();
         PublicModelStatsResponse.RouteTypeConsumption route = stats.routeTypeConsumption();
-        ChargingReferencePrices reference = chargingPriceService.getReferencePrices(isSeedUser);
+        ChargingReferencePrices reference = context.reference();
 
         return Optional.of(ModelRangeBasis.builder()
                 .netBatteryKwh(net)
@@ -143,14 +180,14 @@ public class PersonalRangeService {
                 .routeMeanKwhPer100km(route != null ? route.typedMeanKwhPer100km() : null)
                 // Short-stop fast-charge power as in the model ranking, not the session mean
                 // (that one includes the taper and idle time and halves the real figure)
-                .dcChargingPower(publicModelService.getFastChargePowerTable(isSeedUser).forModel(stats.model()))
+                .dcChargingPower(context.dcPower().forModel(stats.model()))
                 .homePricePerKwh(stats.acAvgCostPerKwh())
                 .publicPricePerKwh(stats.dcAvgCostPerKwh())
                 .referenceHomePricePerKwh(reference.homePricePerKwh())
                 .referencePublicPricePerKwh(reference.publicPricePerKwh())
-                .homeChargingEfficiency(BigDecimal.valueOf(plausibility.getAcChargingEfficiency()))
-                .publicChargingEfficiency(BigDecimal.valueOf(plausibility.getDcChargingEfficiency()))
-                .fleetFactors(fleetFactors(isSeedUser))
+                .homeChargingEfficiency(context.homeEfficiency())
+                .publicChargingEfficiency(context.publicEfficiency())
+                .fleetFactors(context.fleet())
                 .build());
     }
 

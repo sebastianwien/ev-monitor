@@ -45,4 +45,12 @@ class LongTripPlanTest {
         assertThat(slow.chargingMinutes()).isEqualTo(125);
         assertThat(slow.totalMinutes()).isGreaterThan(LongTripPlan.of(NET, HIGHWAY, POWER, 800).totalMinutes());
     }
+
+    @Test
+    void reachWithStopsIsTheFirstLegPlusOneLegPerStop() {
+        // 300 km erste Etappe, je Stopp 262,5 km dazu
+        assertThat(LongTripPlan.reachKm(NET, HIGHWAY, 0)).isEqualTo(300.0);
+        assertThat(LongTripPlan.reachKm(NET, HIGHWAY, 1)).isEqualTo(562.5);
+        assertThat(LongTripPlan.reachKm(NET, HIGHWAY, 2)).isEqualTo(825.0);
+    }
 }

@@ -111,6 +111,17 @@ final class PersonalRangeCalculator {
                 List.copyOf(assumptions));
     }
 
+    /** The ranking row of a model: the model page result plus the stop ladder on the same highway consumption. */
+    static PersonalRangeRankingEntry rankingEntry(String brand, String model, PersonalRangeRequest in, ModelRangeBasis b) {
+        PersonalRangeResponse r = calculate(in, b);
+        BigDecimal highway = highway(b, new ArrayList<>());
+        return new PersonalRangeRankingEntry(brand, model, r.summerRangeKm(), r.winterRangeKm(),
+                r.longTripStops(), r.longTripTotalMinutes(), r.chargesPerWeekSummer(), r.chargesPerWeekWinter(),
+                r.monthlyCostEur(),
+                round10(LongTripPlan.reachKm(b.netBatteryKwh(), highway, 1)),
+                round10(LongTripPlan.reachKm(b.netBatteryKwh(), highway, 2)));
+    }
+
     /**
      * The visitor's range band before the gate: the two season ranges, rated on the season values alone.
      * Highway and base consumption do not enter the band, so they do not lower its level either.

@@ -181,6 +181,18 @@ class PersonalRangeCalculatorTest {
     }
 
     @Test
+    void rankingEntryAddsTheStopLadderOnTheHighwayConsumptionOfTheStops() {
+        PersonalRangeRankingEntry e = PersonalRangeCalculator.rankingEntry("VOLKSWAGEN", "ID_3",
+                PersonalRangeRequestFixtures.answers(40, 50, true, 600), measured());
+
+        // first leg 77 × 0.8 / 19 = 324 km, each stop 77 × 0.7 / 19 = 284 km: 608 → 610 and 892 → 890
+        assertThat(e.oneStopReachKm()).isEqualTo(610);
+        assertThat(e.twoStopsReachKm()).isEqualTo(890);
+        assertThat(e.longTripStops()).isEqualTo(1);
+        assertThat(e.winterRangeKm()).isEqualTo(320);
+    }
+
+    @Test
     void withoutYearlyMileageMonthlyCostAndChargesFollowTheCommuteDays() {
         PersonalRangeResponse r = PersonalRangeCalculator.calculate(
                 new PersonalRangeRequest(40, 50, true, 600, null, null, null, 3), measured());

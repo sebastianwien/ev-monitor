@@ -114,6 +114,13 @@ public class RateLimitService {
             .capacity(PREVIEW_PER_HOUR)
             .refillIntervally(PREVIEW_PER_HOUR, Duration.ofHours(1))
             .build();
+    // Model ranking for a profile, per IP: one call runs every listed model through the calculator (all
+    // from cache). The list asks once per settled answer, 60 an hour cover a visitor trying many profiles.
+    static final int RANKING_PER_HOUR = 60;
+    private static final Bandwidth RANKING_LIMIT = Bandwidth.builder()
+            .capacity(RANKING_PER_HOUR)
+            .refillIntervally(RANKING_PER_HOUR, Duration.ofHours(1))
+            .build();
     // Result mails of the range calculator: the gate promises one, a few more cover retries
     private static final Bandwidth RESULT_MAIL_LIMIT = Bandwidth.builder()
             .capacity(3)
@@ -151,8 +158,22 @@ public class RateLimitService {
             .expireAfterAccess(25, TimeUnit.HOURS).maximumSize(10_000).build();
     private final Cache<String, Bucket> previewBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> rankingBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     /** Refused previews since start, in the log line so a NAT behind one IP stands out. */
     private final AtomicLong previewRejections = new AtomicLong();
+
+    /** Model rankings for a profile per IP; exceeding it answers 429. */
+    public boolean tryConsumeRanking(String clientIp) {
+        if (!enabled) return true;
+        boolean allowed = rankingBuckets
+                .get(clientIp, ip -> Bucket.builder().addLimit(RANKING_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for model ranking from IP: {}", clientIp);
+        }
+        return allowed;
+    }
 
     /** Range band previews per IP; exceeding it answers 429. */
     public boolean tryConsumePreview(String clientIp) {

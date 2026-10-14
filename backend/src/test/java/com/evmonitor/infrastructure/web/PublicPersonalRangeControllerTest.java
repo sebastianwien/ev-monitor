@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 class PublicPersonalRangeControllerTest extends AbstractIntegrationTest {
 
     private static final String URL = "/api/public/personal-range/Volkswagen/ID.3/preview";
+    private static final String RANKING_URL = "/api/public/personal-range/ranking";
     private static final Map<String, Object> VALID = Map.of(
             "commuteKmPerDay", 40, "highwaySharePercent", 30, "homeCharging", true, "longTripKm", 600);
 
@@ -33,6 +34,7 @@ class PublicPersonalRangeControllerTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         when(rateLimitService.tryConsumePreview(any())).thenReturn(true);
+        when(rateLimitService.tryConsumeRanking(any())).thenReturn(true);
         if (!vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(CarBrand.CarModel.ID_3.name()).isEmpty()) return;
         vehicleSpecificationRepository.save(VehicleSpecification.createNew(
                 "VW", CarBrand.CarModel.ID_3.name(), new BigDecimal("82"), new BigDecimal("77"),
@@ -75,6 +77,34 @@ class PublicPersonalRangeControllerTest extends AbstractIntegrationTest {
     private static Map<String, Object> withCommuteDays(int days) {
         return Map.of("commuteKmPerDay", 40, "highwaySharePercent", 30,
                 "homeCharging", true, "longTripKm", 600, "commuteDaysPerWeek", days);
+    }
+
+    @Test
+    void rankingAnswersEveryoneWithoutLoginAndStoresNothing() {
+        ResponseEntity<String> response = restTemplate.postForEntity(RANKING_URL, json(VALID), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).startsWith("[");
+        assertThat(response.getHeaders().getCacheControl()).contains("no-store");
+    }
+
+    @Test
+    void rankingRejectsOutOfRangeInput() {
+        Map<String, Object> bad = Map.of("commuteKmPerDay", 40, "highwaySharePercent", 101,
+                "homeCharging", true, "longTripKm", 600);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(RANKING_URL, json(bad), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void rankingHasItsOwnIpLimit() {
+        when(rateLimitService.tryConsumeRanking(any())).thenReturn(false);
+
+        ResponseEntity<String> response = restTemplate.postForEntity(RANKING_URL, json(VALID), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
     }
 
     @Test
