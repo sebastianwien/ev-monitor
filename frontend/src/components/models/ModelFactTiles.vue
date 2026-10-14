@@ -27,6 +27,7 @@
         <dd v-if="fact.note" class="text-[14px] leading-snug text-gray-600 md:text-[16px] dark:text-gray-400">
           <template v-if="noteParts(fact)">{{ keepUnits(noteParts(fact)!.before) }}<span class="whitespace-nowrap"><b class="text-[20px] font-extrabold leading-none tracking-tight tabular-nums text-gray-900 md:text-[24px] dark:text-gray-100">{{ fact.noteFigure!.value }}</b>&nbsp;<span class="text-[13px] font-semibold text-gray-500 md:text-[15px] dark:text-gray-400">{{ fact.noteFigure!.unit }}</span></span>{{ keepUnits(noteParts(fact)!.after) }}</template>
           <template v-else>{{ keepUnits(fact.note) }}</template>
+          <span v-if="fact.noteLine" class="block">{{ keepUnits(fact.noteLine) }}</span>
         </dd>
       </div>
     </dl>

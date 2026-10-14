@@ -71,6 +71,8 @@ export interface FactTile {
   level: StoryLevel
   /** a second figure of equal weight below the first: the fast charge next to the home charge */
   extra?: { value: string; unit: string }
+  /** a second, plain line under the note */
+  noteLine?: string
   /** the figure inside the note, set in large type a size below the main figure; text is how it reads in the note */
   noteFigure?: { text: string; value: string; unit: string }
 }
@@ -226,6 +228,7 @@ function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): Fact
   return {
     ...base, value: f.formatNumber(minutes), level: 'FULL',
     note: f.t('model.page.note_charging', { kw }),
+    noteLine: f.t('model.page.note_charging_window'),
     noteFigure: { text: `${kw} kW`, value: kw, unit: 'kW' },
   }
 }

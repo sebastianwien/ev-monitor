@@ -87,7 +87,7 @@ describe('buildModelStory', () => {
     // 19.1 / 15.3 = +25 %
     expect(fact(s, 'consumption')).toMatchObject({ value: '19.1', unit: 'kWh/100km', note: '25 % über Prospekt (15.3)', noteFigure: { value: '25', unit: '%' } })
     // 58 × 0.7 / 85 kW = 28.7 min → 30
-    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '85 kW im Schnitt, 10 auf 80 %', noteFigure: { value: '85', unit: 'kW' } })
+    expect(fact(s, 'charging')).toMatchObject({ value: '30', unit: 'min', note: '85 kW im Schnitt', noteLine: '10 auf 80 %', noteFigure: { value: '85', unit: 'kW' } })
     // 0.372 × 19.1 = 7.11
     // a home charge 20 to 80 % at AC: 58 × 0.6 / 0.9 = 38.7 kWh × 0.35 = 13.53 → 14 €;
     // a fast charge 10 to 80 % at DC: 58 × 0.7 / 0.95 = 42.7 kWh × 0.427 = 18.25 → 18 €
