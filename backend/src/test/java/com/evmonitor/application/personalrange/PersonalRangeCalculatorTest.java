@@ -46,7 +46,7 @@ class PersonalRangeCalculatorTest {
         // winter 20 × 1.094 = 21.9 → 316 → 320
         assertThat(r.summerRangeKm()).isEqualTo(420);
         assertThat(r.winterRangeKm()).isEqualTo(320);
-        // first leg 90→10 %: 77 × 0.8 / 19 = 324 km; then 10→80 % legs of 284 km → 1 stop
+        // first leg 100→10 %: 77 × 0.9 / 19 = 365 km; then 10→80 % legs of 284 km → 1 stop
         assertThat(r.longTripStops()).isEqualTo(1);
         // 53.9 kWh / 100 kW = 32 min → nearest 5 min
         assertThat(r.longTripChargingMinutes()).isEqualTo(30);
@@ -71,10 +71,10 @@ class PersonalRangeCalculatorTest {
         // = +3.1 %, half of it: summer 18.7 → 370.6 → 370; winter 24.2 → 286.4 → 290
         assertThat(r.summerRangeKm()).isEqualTo(370);
         assertThat(r.winterRangeKm()).isEqualTo(290);
-        // highway 16 × 1.25 = 20: first leg 308 km, legs 269.5 km → 2 stops; no power at all: fixed default
-        // 104 kW: 2 × 31.1 = 62 → 60
-        assertThat(r.longTripStops()).isEqualTo(2);
-        assertThat(r.longTripChargingMinutes()).isEqualTo(60);
+        // highway = base 19.4 × fleet surcharge 1.03 = 20.0: first leg 346.5 km, legs 269.5 km → 1 stop;
+        // no power at all: fixed default 104 kW: 31.1 → 30
+        assertThat(r.longTripStops()).isEqualTo(1);
+        assertThat(r.longTripChargingMinutes()).isEqualTo(30);
         // base 16 × 1.21 = 19.4, highway 20 → mixed 19.7; 880 km × 0.197 / 0.95 DC × 0.55 public reference = 100.4 → 100
         assertThat(r.monthlyCostEur()).isEqualTo(100);
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.WLTP_FACTOR);
@@ -93,6 +93,21 @@ class PersonalRangeCalculatorTest {
         assertThat(r.summerRangeKm()).isEqualTo(390);
         assertThat(r.winterRangeKm()).isEqualTo(270);
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("BASE_CONSUMPTION") && a.value().compareTo(new BigDecimal("20.0")) == 0);
+        // the highway estimate rests on that base: 20 × 1.03 = 20.6
+        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("HIGHWAY_CONSUMPTION") && a.value().compareTo(new BigDecimal("20.6")) == 0);
+    }
+
+    @Test
+    void highwayWithoutMeasurementFollowsTheDriversNotWltp() {
+        // a small car driven far below its WLTP figure: drivers 11.6 against WLTP 16; the old estimate
+        // WLTP × 1.25 = 20 made the highway look 70 % dearer than the drivers' mean
+        ModelRangeBasis basis = wltpOnly().toBuilder().baseKwhPer100km(new BigDecimal("11.6")).build();
+
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 0, true, 600), basis);
+
+        // 11.6 × 1.03 = 11.9
+        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("HIGHWAY_CONSUMPTION") && !a.measured()
+                && a.value().compareTo(new BigDecimal("11.9")) == 0);
     }
 
     @Test
@@ -185,9 +200,10 @@ class PersonalRangeCalculatorTest {
         PersonalRangeRankingEntry e = PersonalRangeCalculator.rankingEntry("VOLKSWAGEN", "ID_3",
                 PersonalRangeRequestFixtures.answers(40, 50, true, 600), measured());
 
-        // first leg 77 × 0.8 / 19 = 324 km, each stop 77 × 0.7 / 19 = 284 km: 608 → 610 and 892 → 890
-        assertThat(e.oneStopReachKm()).isEqualTo(610);
-        assertThat(e.twoStopsReachKm()).isEqualTo(890);
+        // first leg 77 × 0.9 / 19 = 365 km → 360, each stop 77 × 0.7 / 19 = 284 km: 648 → 650 and 932 → 930
+        assertThat(e.zeroStopReachKm()).isEqualTo(360);
+        assertThat(e.oneStopReachKm()).isEqualTo(650);
+        assertThat(e.twoStopsReachKm()).isEqualTo(930);
         assertThat(e.longTripStops()).isEqualTo(1);
         assertThat(e.winterRangeKm()).isEqualTo(320);
         // the distance the monthly cost rests on: 40 km × 5 days × 4.4 weeks
@@ -228,28 +244,31 @@ class PersonalRangeCalculatorTest {
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("HIGHWAY_CONSUMPTION") && !a.measured());
     }
 
-    /** Highway measured 19.0 next to the WLTP estimate 16 × 1.25 = 20.0, behind the given number of cars. */
+    /**
+     * Highway measured 19.0 against the route-typed mean 16 (+18.75 %), drivers' base 18: estimate 18 × 1.1875
+     * = 21.4 from five cars, below that 18 × the fleet surcharge 1.03 = 18.5.
+     */
     private static PersonalRangeResponse.Assumption highwayWith(int cars) {
-        ModelRangeBasis basis = measured().toBuilder().highwayCarCount(cars).build();
+        ModelRangeBasis basis = measured().toBuilder().highwayCarCount(cars).baseKwhPer100km(new BigDecimal("18.0")).build();
         return PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(20, 0, true, 300), basis)
                 .assumptions().stream().filter(a -> a.key().equals("HIGHWAY_CONSUMPTION")).findFirst().orElseThrow();
     }
 
     @Test
-    void highwayBelowFiveCarsIsTheWltpEstimate() {
+    void highwayBelowFiveCarsIsTheEstimateFromTheBase() {
         PersonalRangeResponse.Assumption a = highwayWith(4);
 
-        assertThat(a.value()).isEqualByComparingTo("20.0");
+        assertThat(a.value()).isEqualByComparingTo("18.5");
         assertThat(a.measuredPercent()).isZero();
         assertThat(a.measured()).isFalse();
     }
 
     @Test
     void highwayBlendsTowardsTheMeasurementAsCarsGrow() {
-        // 5 cars: half measured → 19.5; 10 cars: three quarters → 19.25 → 19.3
-        assertThat(highwayWith(5).value()).isEqualByComparingTo("19.5");
+        // 5 cars: half measured → 20.2; 10 cars: three quarters → 19.6
+        assertThat(highwayWith(5).value()).isEqualByComparingTo("20.2");
         assertThat(highwayWith(5).measuredPercent()).isEqualTo(50);
-        assertThat(highwayWith(10).value()).isEqualByComparingTo("19.3");
+        assertThat(highwayWith(10).value()).isEqualByComparingTo("19.6");
         assertThat(highwayWith(10).measuredPercent()).isEqualTo(75);
         assertThat(highwayWith(10).measured()).isFalse();
     }
@@ -316,7 +335,7 @@ class PersonalRangeCalculatorTest {
     void extremeInputsStayFinite() {
         PersonalRangeResponse r = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(500, 100, false, 2000), measured());
 
-        // 2000 km: (2000 - 324) / 284 = 5.9 → 6 stops
+        // 2000 km: (2000 - 365) / 284 = 5.8 → 6 stops
         assertThat(r.longTripStops()).isEqualTo(6);
         // 2500 km/week × 0.19 = 475 kWh; DC charge 10→80 % = 53.9 kWh → 8.8 → 9.0
         assertThat(r.chargesPerWeek()).isEqualByComparingTo("9.0");

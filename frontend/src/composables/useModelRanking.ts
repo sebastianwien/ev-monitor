@@ -59,8 +59,8 @@ export interface RankedModel {
   singleDriver: boolean
   /** The reader's figures from the server (same calculation as the model page); null without a server answer */
   needs: NeedsAssessment | null
-  /** Reach with one and two fast-charging stops on the largest battery (model data, from the server); null without */
-  ladder: { oneStopKm: number; twoStopsKm: number } | null
+  /** Reach on the motorway without a stop, with one and with two fast-charging stops on the largest battery (model data, from the server); null without */
+  ladder: { zeroStopKm: number; oneStopKm: number; twoStopsKm: number } | null
 }
 
 export function modelKey(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>): string {
@@ -275,7 +275,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
       combustionLitersPer100km: savingsPer100kmEur != null ? combustionLiters(combustion.value, m.category) : null,
       singleDriver: m.contributorCount === 1,
       needs: assessment,
-      ladder: entry ? { oneStopKm: entry.oneStopReachKm, twoStopsKm: entry.twoStopsReachKm } : null,
+      ladder: entry ? { zeroStopKm: entry.zeroStopReachKm, oneStopKm: entry.oneStopReachKm, twoStopsKm: entry.twoStopsReachKm } : null,
     }
   }))
   const needsSummary = computed<NeedsSummary>(() => summarizeNeeds(enriched.value.map(r => r.needs)))

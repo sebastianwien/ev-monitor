@@ -70,6 +70,8 @@ export interface PersonalRangeRankingEntry {
   monthlyCostEur: number
   /** the distance a month the cost rests on: yearly km / 12, else the commute */
   monthlyKm: number
+  /** the stop ladder on the motorway, largest battery: from 100 % without a stop, then with one and two */
+  zeroStopReachKm: number
   oneStopReachKm: number
   twoStopsReachKm: number
 }

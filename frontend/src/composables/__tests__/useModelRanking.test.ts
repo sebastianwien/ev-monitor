@@ -10,7 +10,7 @@ const rankingCall = vi.mocked(personalRangeService.ranking)
 function entry(brand: string, model: string, over: Partial<PersonalRangeRankingEntry> = {}): PersonalRangeRankingEntry {
   return {
     brand, model, summerRangeKm: 420, winterRangeKm: 320, longTripStops: 1, longTripTotalMinutes: 245,
-    chargesPerWeekSummer: 0.4, chargesPerWeekWinter: 0.55, monthlyCostEur: 31, monthlyKm: 530, oneStopReachKm: 610, twoStopsReachKm: 890, ...over,
+    chargesPerWeekSummer: 0.4, chargesPerWeekWinter: 0.55, monthlyCostEur: 31, monthlyKm: 530, zeroStopReachKm: 330, oneStopReachKm: 610, twoStopsReachKm: 890, ...over,
   }
 }
 import { COST_DEFAULTS } from '../../utils/costMix'
@@ -379,7 +379,7 @@ describe('useModelRanking', () => {
       expect(r.needsSummary.value).toEqual({ total: 2, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
       const big = r.ranked.value.find(x => x.key === 'B/big')!
       expect(big.needs).toMatchObject({ commute: null, trip: null, monthlyCostEur: null })
-      expect(big.ladder).toEqual({ oneStopKm: 610, twoStopsKm: 890 })
+      expect(big.ladder).toEqual({ zeroStopKm: 330, oneStopKm: 610, twoStopsKm: 890 })
       expect(big.monthlyCostEur).toBeNull()
     })
 

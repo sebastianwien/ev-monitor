@@ -7,7 +7,7 @@ const ANNA: NeedsInput = { annualKm: null, highwayKm: null, dailyKm: 40, commute
 
 const entry = (over: Partial<PersonalRangeRankingEntry> = {}): PersonalRangeRankingEntry => ({
   brand: 'TESLA', model: 'MODEL_3', summerRangeKm: 420, winterRangeKm: 320, longTripStops: 1, longTripTotalMinutes: 245,
-  chargesPerWeekSummer: 0.4, chargesPerWeekWinter: 0.55, monthlyCostEur: 31, monthlyKm: 530, oneStopReachKm: 610, twoStopsReachKm: 890, ...over,
+  chargesPerWeekSummer: 0.4, chargesPerWeekWinter: 0.55, monthlyCostEur: 31, monthlyKm: 530, zeroStopReachKm: 330, oneStopReachKm: 610, twoStopsReachKm: 890, ...over,
 })
 
 describe('needsCheck', () => {

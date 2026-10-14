@@ -1,18 +1,20 @@
 package com.evmonitor.application.charging;
 
+import com.evmonitor.application.range.RangeWindow;
+
 import java.math.BigDecimal;
 
 /**
  * A long trip on the highway: how many fast-charging stops, how long they take and how long the
- * whole journey takes. First leg from 90 to 10 %, every further leg from 10 to 80 % (FastChargeStop),
+ * whole journey takes. First leg from 100 to 10 % (the range of the public pages, RangeWindow), every further leg from 10 to 80 % (FastChargeStop),
  * travel at a fixed average speed. Minutes of charging and of the whole journey are rounded to 5.
  */
 public record LongTripPlan(int stops, int chargingMinutes, int drivingMinutes, int totalMinutes) {
 
     /** Average travel speed of an electric car on a long trip, traffic included. */
     public static final int TRAVEL_SPEED_KMH = 110;
-    /** Start at 90 %, arrive at the first charger with 10 %. */
-    static final BigDecimal FIRST_LEG_SHARE = new BigDecimal("0.8");
+    /** Start with a full battery, arrive at the first charger with 10 %. */
+    static final BigDecimal FIRST_LEG_SHARE = RangeWindow.SHARE;
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 
     public static LongTripPlan of(BigDecimal netKwh, BigDecimal highwayKwhPer100km, BigDecimal powerKw, int km) {

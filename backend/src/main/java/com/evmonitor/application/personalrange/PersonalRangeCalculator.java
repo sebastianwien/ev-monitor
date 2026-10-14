@@ -13,19 +13,18 @@ import java.util.List;
 /**
  * Pure calculation of the personal range result. No consumption formula of its own: all
  * consumption values come from EvLogService results (via ModelRangeBasis) or, where the
- * community has too little data, from WLTP times a fixed factor.
+ * community has too little data, from WLTP times a fleet factor (highway: base times highway ratio).
  */
 final class PersonalRangeCalculator {
 
     /**
      * Fallbacks when the fleet has too few models for a median (WltpFleetFactors). Summer, winter and
      * overall match the fleet medians measured on 11.10.2026 (1.13, 1.49, 1.21, rounded up for summer).
-     * Highway has no fleet value (route types are too sparse), its estimate stays a fixed factor.
+     * Highway has no WLTP factor: its estimate is the base consumption times the highway ratio.
      */
     static final BigDecimal SUMMER_FACTOR = new BigDecimal("1.15");
     static final BigDecimal WINTER_FACTOR = new BigDecimal("1.49");
     static final BigDecimal OVERALL_FACTOR = new BigDecimal("1.21");
-    static final BigDecimal HIGHWAY_FACTOR = new BigDecimal("1.25");
     /**
      * Highway against the route-typed mean where a model has too few highway cars: median over the
      * models with enough data, measured on 11.10.2026 (ID.3 +7 %, Model 3 +2 %, Model Y +3 %, EV6 +3 %,
@@ -57,9 +56,9 @@ final class PersonalRangeCalculator {
                 factor(fleet != null ? fleet.summer() : null, SUMMER_FACTOR), assumptions);
         BigDecimal winter = pick("WINTER_CONSUMPTION", b.winterKwhPer100km(), b.wltpKwhPer100km(),
                 factor(fleet != null ? fleet.winter() : null, WINTER_FACTOR), assumptions);
-        BigDecimal highway = highway(b, assumptions);
         BigDecimal base = pick("BASE_CONSUMPTION", b.baseKwhPer100km(), b.wltpKwhPer100km(),
                 factor(fleet != null ? fleet.overall() : null, OVERALL_FACTOR), assumptions);
+        BigDecimal highway = highway(b, base, assumptions);
 
         FastChargePower power = b.dcChargingPower() != null ? b.dcChargingPower() : FastChargePower.fallback();
         assumptions.add(new PersonalRangeResponse.Assumption("CHARGING_POWER", power.isMeasured(), power.kw()));
@@ -112,11 +111,13 @@ final class PersonalRangeCalculator {
     /** The ranking row of a model: the model page result plus the stop ladder on the same highway consumption. */
     static PersonalRangeRankingEntry rankingEntry(String brand, String model, PersonalRangeRequest in, ModelRangeBasis b) {
         PersonalRangeResponse r = calculate(in, b);
-        BigDecimal highway = highway(b, new ArrayList<>());
+        BigDecimal highway = r.assumptions().stream().filter(a -> a.key().equals("HIGHWAY_CONSUMPTION"))
+                .findFirst().orElseThrow().value();
         return new PersonalRangeRankingEntry(brand, model, r.summerRangeKm(), r.winterRangeKm(),
                 r.longTripStops(), r.longTripTotalMinutes(), r.chargesPerWeekSummer(), r.chargesPerWeekWinter(),
                 r.monthlyCostEur(),
                 (int) Math.round(monthlyKm(in)),
+                round10(LongTripPlan.reachKm(b.netBatteryKwh(), highway, 0)),
                 round10(LongTripPlan.reachKm(b.netBatteryKwh(), highway, 1)),
                 round10(LongTripPlan.reachKm(b.netBatteryKwh(), highway, 2)));
     }
@@ -190,11 +191,13 @@ final class PersonalRangeCalculator {
 
     /**
      * Highway consumption blended by the number of cars behind the measurement: below
-     * MIN_HIGHWAY_CARS the WLTP estimate only, from there half measured, rising linearly to fully
+     * MIN_HIGHWAY_CARS the estimate only, from there half measured, rising linearly to fully
      * measured at FULL_HIGHWAY_CARS. The value moves towards the community as more people log.
+     * The estimate is the base consumption (drivers' mean, else WLTP times the fleet factor) times the
+     * highway ratio: a model driven far below its WLTP figure stays below it on the motorway too.
      */
-    private static BigDecimal highway(ModelRangeBasis b, List<PersonalRangeResponse.Assumption> assumptions) {
-        BigDecimal estimate = b.wltpKwhPer100km().multiply(HIGHWAY_FACTOR).setScale(1, RoundingMode.HALF_UP);
+    private static BigDecimal highway(ModelRangeBasis b, BigDecimal base, List<PersonalRangeResponse.Assumption> assumptions) {
+        BigDecimal estimate = base.multiply(highwayRatio(b)).setScale(1, RoundingMode.HALF_UP);
         int cars = b.highwayCarCount();
         if (b.highwayKwhPer100km() == null || cars < MIN_HIGHWAY_CARS) {
             assumptions.add(new PersonalRangeResponse.Assumption("HIGHWAY_CONSUMPTION", false, estimate));
