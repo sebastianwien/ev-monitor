@@ -127,6 +127,16 @@ public class RateLimitService {
             .refillIntervally(3, Duration.ofHours(24))
             .build();
 
+    // Meldeweg "Fehlt etwas?": je Nutzer 3 Meldungen am Tag, je IP 10 die Stunde. Darüber 429, keine Mail.
+    private static final Bandwidth VEHICLE_REQUEST_USER_LIMIT = Bandwidth.builder()
+            .capacity(3)
+            .refillIntervally(3, Duration.ofHours(24))
+            .build();
+    private static final Bandwidth VEHICLE_REQUEST_IP_LIMIT = Bandwidth.builder()
+            .capacity(10)
+            .refillIntervally(10, Duration.ofHours(1))
+            .build();
+
     // Caffeine caches mit TTL + Größen-Limit - verhindert unbegrenztes Wachstum der Buckets.
     // expireAfterAccess: Bucket wird nach Inaktivität entfernt. maximumSize: Hard Cap gegen DoS.
     private final Cache<String, Bucket> loginBuckets = Caffeine.newBuilder()
@@ -159,6 +169,10 @@ public class RateLimitService {
     private final Cache<String, Bucket> previewBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     private final Cache<String, Bucket> rankingBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> vehicleRequestUserBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(25, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> vehicleRequestIpBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     /** Refused previews since start, in the log line so a NAT behind one IP stands out. */
     private final AtomicLong previewRejections = new AtomicLong();
@@ -344,6 +358,28 @@ public class RateLimitService {
     }
 
     /** Sprachlog je Nutzer, Schluessel ist die User-ID. */
+    public boolean tryConsumeVehicleRequestUser(String userId) {
+        if (!enabled) return true;
+        boolean allowed = vehicleRequestUserBuckets
+                .get(userId, k -> Bucket.builder().addLimit(VEHICLE_REQUEST_USER_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for vehicle request: userId={}", userId);
+        }
+        return allowed;
+    }
+
+    public boolean tryConsumeVehicleRequestIp(String clientIp) {
+        if (!enabled) return true;
+        boolean allowed = vehicleRequestIpBuckets
+                .get(clientIp, k -> Bucket.builder().addLimit(VEHICLE_REQUEST_IP_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for vehicle request: ip={}", clientIp);
+        }
+        return allowed;
+    }
+
     public boolean tryConsumeVoiceDraft(String userId) {
         if (!enabled) return true;
         boolean allowed = voiceDraftBuckets

@@ -1,7 +1,9 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.SubscriptionTier;
+import com.evmonitor.domain.vehiclespec.MissingVehicleRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.util.HtmlUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -37,6 +39,13 @@ public class AdminAlertService {
     /** Empfaenger des Sprachlog-Kostenalarms (voice-log.alert-email). Leer = aus. */
     @Value("${voice-log.alert-email:}")
     private String voiceCostAlertEmail;
+
+    /** Empfänger der Fahrzeug-Meldungen "Fehlt etwas?" (vehicle-request.admin-email). Leer = aus. */
+    @Value("${vehicle-request.admin-email:}")
+    private String vehicleRequestAdminEmail;
+
+    @Value("${app.base-url:http://localhost:5173}")
+    private String baseUrl;
 
     /** Hand-written, rotated per send so the mail never gets stale. Pure flavor - the hard facts go below. */
     private static final String[] CELEBRATION_LINES = {
@@ -179,6 +188,41 @@ public class AdminAlertService {
         } catch (Exception e) {
             log.error("AdminAlert: Sprachlog-Kostenalarm konnte nicht gesendet werden", e);
         }
+    }
+
+    /**
+     * Neue Fahrzeug-Meldung aus dem Dialog "Fehlt etwas?". Betreff fest, Nutzerfelder escaped,
+     * Kontakt-Mail bleibt draußen (steht im Tab). Fire-and-forget, darf den Request nie brechen.
+     */
+    public void sendMissingVehicleRequest(MissingVehicleRequest request) {
+        if (vehicleRequestAdminEmail == null || vehicleRequestAdminEmail.isBlank()) {
+            log.debug("AdminAlert: kein Empfänger für Fahrzeug-Meldungen konfiguriert, überspringe");
+            return;
+        }
+        try {
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setFrom(fromAddress);
+            msg.setTo(vehicleRequestAdminEmail);
+            msg.setSubject("EV Monitor - Neue Fahrzeug-Meldung");
+            msg.setText(
+                    "Ein Nutzer vermisst ein Fahrzeug beim Anlegen.\n\n" +
+                    "Was fehlt:  " + HtmlUtils.htmlEscape(request.getFreeText()) + "\n" +
+                    "Marke:      " + HtmlUtils.htmlEscape(valueOrDash(request.getBrand())) + "\n" +
+                    "Modell:     " + HtmlUtils.htmlEscape(valueOrDash(request.getModel())) + "\n" +
+                    "Netto-kWh:  " + (request.getNetKwh() != null ? request.getNetKwh().toPlainString() : "-") + "\n" +
+                    "Baujahr:    " + (request.getBuildYear() != null ? request.getBuildYear() : "-") + "\n" +
+                    "Meldung:    " + request.getId() + "\n\n" +
+                    "Zeile anlegen und erledigen: " + baseUrl + "/admin?tab=specs"
+            );
+            mailSender.send(msg);
+            log.info("AdminAlert: Fahrzeug-Meldung gesendet, id={}", request.getId());
+        } catch (Exception e) {
+            log.error("AdminAlert: Fahrzeug-Meldung konnte nicht gesendet werden, id={}", request.getId(), e);
+        }
+    }
+
+    private static String valueOrDash(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 
     private static String[] parseRecipients(String raw) {

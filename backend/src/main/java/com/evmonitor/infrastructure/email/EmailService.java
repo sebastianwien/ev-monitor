@@ -407,6 +407,22 @@ public class EmailService {
         sendHtmlEmail(mail.toEmail(), subject, html);
     }
 
+    /**
+     * Rückmeldung zur Fahrzeug-Meldung "Fehlt etwas?": die Zeile ist angelegt, der Nutzer kann sein Auto anlegen.
+     * Löst nur ein Admin aus. vehicleLabel ist der Nutzertext der Meldung, das Template escaped ihn.
+     */
+    public void sendMissingVehicleDoneEmail(String toEmail, String locale, String vehicleLabel) {
+        String lang = resolveLocale(locale);
+        String html = EmailTemplateRenderer.render("missing-vehicle-done.html", lang, Map.of(
+                "vehicle", vehicleLabel,
+                "carsUrl", campaignUrl("/cars", "missing-vehicle-done")
+        ));
+        String subject = "en".equals(lang)
+                ? vehicleLabel + " is now available - add your car"
+                : vehicleLabel + " ist jetzt da - leg dein Auto an";
+        sendHtmlEmail(toEmail, subject, html);
+    }
+
     private void sendHtmlEmail(String toEmail, String subject, String html) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

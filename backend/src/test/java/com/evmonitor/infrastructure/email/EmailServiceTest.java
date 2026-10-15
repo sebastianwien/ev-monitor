@@ -329,6 +329,32 @@ class EmailServiceTest {
                         + "&amp;car=11111111-2222-3333-4444-555555555555&amp;nachtragen=preis");
     }
 
+    @Test
+    void sendMissingVehicleDoneEmail_de_subjectCarriesLabelAndLinksToCars() throws Exception {
+        MimeMessage mimeMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        emailService.sendMissingVehicleDoneEmail("max@example.com", "de", "Polestar 2 <Long Range>");
+
+        verify(mailSender).send(mimeMessage);
+        assertThat(mimeMessage.getSubject()).isEqualTo("Polestar 2 <Long Range> ist jetzt da - leg dein Auto an");
+        String html = firstText(mimeMessage.getContent());
+        assertThat(html).contains("Polestar 2 &lt;Long Range&gt;")
+                .contains("http://localhost:5173/cars?utm_source=email")
+                .doesNotContain("<Long Range>");
+    }
+
+    @Test
+    void sendMissingVehicleDoneEmail_en_usesEnglishTemplate() throws Exception {
+        MimeMessage mimeMessage = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
+
+        emailService.sendMissingVehicleDoneEmail("max@example.com", "en-GB", "Lucid Air");
+
+        assertThat(mimeMessage.getSubject()).isEqualTo("Lucid Air is now available - add your car");
+        assertThat(firstText(mimeMessage.getContent())).contains("Add your car");
+    }
+
     private MonthlyRecap recap() {
         return new MonthlyRecap(UUID.randomUUID(), CAR_ID, "ihle@example.com", "Ihle", "de",
                 YearMonth.of(2026, 8), "Model 3", 12, 2, 10, new BigDecimal("351.4"),
