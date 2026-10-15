@@ -140,8 +140,11 @@ onBeforeUnmount(() => observer?.disconnect())
                                 </dd>
                                 <dd v-else class="text-gray-400 dark:text-gray-500">-</dd>
                             </div>
+                            <div class="flex items-center justify-between gap-2 text-sm">
+                                <dt class="text-gray-600 dark:text-gray-400">{{ t('rating.public.cost_label') }}</dt>
+                                <dd class="text-right text-gray-900 dark:text-gray-100">{{ t(`rating.public.cost_single.${single.totalCost}`) }}</dd>
+                            </div>
                         </dl>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ t(`rating.q.total_cost.${single.totalCost}`) }}</p>
                         <p class="text-xs text-gray-500 dark:text-gray-400">
                             {{ driverLine(single.kmRounded) }}<template v-if="single.businessCar"> · {{ t('rating.public.business_car') }}</template>
                         </p>
