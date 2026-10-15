@@ -7,6 +7,8 @@ const overview = vi.fn()
 const create = vi.fn()
 const reassignCandidates = vi.fn()
 const assignCar = vi.fn()
+const listRequests = vi.fn()
+const markRequestDone = vi.fn()
 vi.mock('../../../api/adminVehicleSpecService', async () => {
     const actual = await vi.importActual<typeof import('../../../api/adminVehicleSpecService')>('../../../api/adminVehicleSpecService')
     return {
@@ -19,6 +21,8 @@ vi.mock('../../../api/adminVehicleSpecService', async () => {
             changes: vi.fn().mockResolvedValue([]),
             reassignCandidates: (m: string) => reassignCandidates(m),
             assignCar: (c: string, s: string) => assignCar(c, s),
+            listRequests: () => listRequests(),
+            markRequestDone: (id: string) => markRequestDone(id),
         },
     }
 })
@@ -59,6 +63,7 @@ afterEach(() => {
     app = null
     document.body.innerHTML = ''
     overview.mockReset(); create.mockReset(); reassignCandidates.mockReset(); assignCar.mockReset()
+    listRequests.mockReset(); markRequestDone.mockReset()
 })
 
 async function mount(): Promise<HTMLElement> {
@@ -88,6 +93,30 @@ describe('AdminSpecsTab', () => {
         expect(button(host, 'Ohne Trim').textContent).toContain('1')
         expect(button(host, 'Nutzer-Zeile').textContent).toContain('1')
         expect(button(host, 'Autos ohne Zeile').textContent).toContain('3')
+    })
+
+    it('zeigt Meldungen als Arbeitsliste, legt die Zeile vorbelegt an und erledigt mit Nutzer-Mail', async () => {
+        overview.mockResolvedValue(sample)
+        listRequests.mockResolvedValue([{
+            id: 'req-1', freeText: 'Polestar 2 Long Range Dual Motor 2022', brand: 'POLESTAR', model: 'POLESTAR_2',
+            netKwh: 78, buildYear: 2022, createdAt: '2026-10-15T16:00:00', adminNotified: true, contactAvailable: true,
+        }])
+        markRequestDone.mockResolvedValue(undefined)
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const host = await mount()
+
+        expect(button(host, 'Gemeldet').textContent).toContain('1')
+        expect(host.textContent).toContain('Polestar 2 Long Range Dual Motor 2022')
+
+        const section = host.querySelector('[data-testid="reported-requests"]')!
+        ;[...section.querySelectorAll('button')].find(b => b.textContent?.includes('Zeile anlegen'))!.click()
+        await nextTick()
+        expect(host.querySelector('form')).not.toBeNull()
+
+        ;[...section.querySelectorAll('button')].find(b => b.textContent?.includes('Erledigt'))!.click()
+        await nextTick(); await nextTick()
+        expect(markRequestDone).toHaveBeenCalledWith('req-1')
+        expect(listRequests).toHaveBeenCalledTimes(2)
     })
 
     it('filtert per Arbeitsliste auf die betroffenen Zeilen', async () => {

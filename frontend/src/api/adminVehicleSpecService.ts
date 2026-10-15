@@ -98,7 +98,21 @@ export interface ChangeEntry {
     warning: string | null
 }
 
+/** Meldung "Fehlt etwas?" eines Nutzers; die Kontakt-Mail bleibt im Backend. */
+export interface MissingVehicleRequestRow {
+    id: string
+    freeText: string
+    brand: string | null
+    model: string | null
+    netKwh: number | null
+    buildYear: number | null
+    createdAt: string
+    adminNotified: boolean
+    contactAvailable: boolean
+}
+
 const BASE = '/admin/vehicle-specifications'
+const REQUESTS = '/admin/vehicle-requests'
 
 export const adminVehicleSpecService = {
     async overview(): Promise<SpecOverview> {
@@ -121,6 +135,14 @@ export const adminVehicleSpecService = {
     },
     async assignCar(carId: string, specId: string): Promise<void> {
         await api.post(`${BASE}/cars/${carId}/assign/${specId}`)
+    },
+    /** Offene Meldungen "Fehlt etwas?", neueste zuerst. */
+    async listRequests(): Promise<MissingVehicleRequestRow[]> {
+        return (await api.get<MissingVehicleRequestRow[]>(REQUESTS)).data
+    },
+    /** Erledigt die Meldung und schickt dem Nutzer die Rückmeldung (nur per Admin-Klick). */
+    async markRequestDone(id: string): Promise<void> {
+        await api.post(`${REQUESTS}/${id}/done`)
     },
 }
 

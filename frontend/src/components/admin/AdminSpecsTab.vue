@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import {
     adminVehicleSpecService, apiErrorText,
-    type ChangeEntry, type ModelGroup, type SaveResult, type SpecOverview, type SpecRow, type WorkList,
+    type ChangeEntry, type MissingVehicleRequestRow, type ModelGroup, type SaveResult, type SpecOverview, type SpecRow, type WorkList,
 } from '../../api/adminVehicleSpecService'
 import AdminSpecRowForm from './AdminSpecRowForm.vue'
 import AdminSpecReassignSheet from './AdminSpecReassignSheet.vue'
@@ -32,12 +32,16 @@ const showModelsWithoutRow = ref(false)
 const form = ref<{ row: SpecRow | null; model: string | null; brand: string | null } | null>(null)
 const reassign = ref<ModelGroup | null>(null)
 const changesFor = ref<{ row: SpecRow; entries: ChangeEntry[] } | null>(null)
+/** Meldungen "Fehlt etwas?" der Nutzer: Zeile anlegen, dann erledigen (schickt die Rückmeldung). */
+const requests = ref<MissingVehicleRequestRow[]>([])
+const showRequests = ref(true)
 
 async function load() {
     loading.value = true
     error.value = ''
     try {
         data.value = await adminVehicleSpecService.overview()
+        requests.value = (await adminVehicleSpecService.listRequests()) ?? []
     } catch (err) {
         error.value = apiErrorText(err, 'Specs konnten nicht geladen werden.')
     } finally {
@@ -88,6 +92,19 @@ async function remove(row: SpecRow) {
     }
 }
 
+async function finishRequest(r: MissingVehicleRequestRow) {
+    const hint = r.contactAvailable ? 'Der Nutzer bekommt jetzt die Mail "ist jetzt da, leg dein Auto an".' : 'Ohne Kontakt-Mail, der Nutzer wird nicht benachrichtigt.'
+    if (!window.confirm(`Meldung "${r.freeText}" als erledigt markieren? ${hint}`)) return
+    error.value = ''
+    try {
+        await adminVehicleSpecService.markRequestDone(r.id)
+        notice.value = r.contactAvailable ? 'Erledigt, Nutzer benachrichtigt.' : 'Erledigt.'
+        await load()
+    } catch (err) {
+        error.value = apiErrorText(err, 'Erledigen fehlgeschlagen.')
+    }
+}
+
 async function showChanges(row: SpecRow) {
     form.value = null
     try {
@@ -135,6 +152,10 @@ const flagLabel = (w: WorkList) => WORK_LISTS.find(x => x.key === w)?.label ?? w
       <button type="button" class="px-3 py-1.5 rounded-sm bg-gray-800 hover:bg-gray-700" @click="filter = 'ALL'" title="Je Modell unter dem Namen ausgewiesen">
         Autos ohne Zeile ({{ data?.carsWithoutSpec ?? 0 }})
       </button>
+      <button type="button" class="px-3 py-1.5 rounded-sm" :class="showRequests && requests.length ? 'bg-indigo-600 text-white' : requests.length ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-800/50 text-gray-500'"
+              @click="showRequests = !showRequests">
+        Gemeldet ({{ requests.length }})
+      </button>
       <button type="button" class="ml-auto px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white" @click="openCreate(null)">Neue Zeile</button>
     </div>
 
@@ -159,6 +180,24 @@ const flagLabel = (w: WorkList) => WORK_LISTS.find(x => x.key === w)?.label ?? w
           {{ date(e.changedAt) }} · {{ e.action }}<template v-if="e.field"> · {{ e.field }}</template>
           <template v-if="e.oldValue != null || e.newValue != null">: <span class="text-gray-500 break-all">{{ e.oldValue ?? '-' }}</span> → <span class="break-all">{{ e.newValue ?? '-' }}</span></template>
           <span v-if="e.warning" class="text-amber-300"> · {{ e.warning }}</span>
+        </li>
+      </ul>
+    </section>
+
+    <section v-if="showRequests && requests.length" class="bg-gray-800 rounded-sm p-4 space-y-2" data-testid="reported-requests">
+      <h3 class="font-semibold">Gemeldet</h3>
+      <p class="text-xs text-gray-400">Nutzer vermissen eine Variante, ein Modell oder einen Hersteller. Zeile anlegen, dann erledigen: das schickt die Rückmeldung.</p>
+      <ul class="grid gap-2 sm:grid-cols-2 text-sm">
+        <li v-for="r in requests" :key="r.id" class="bg-gray-900 rounded-sm px-3 py-2 space-y-1.5">
+          <p class="font-medium break-words">{{ r.freeText }}</p>
+          <p class="text-xs text-gray-400">
+            {{ r.brand ?? '-' }} · {{ r.model ?? '-' }}<template v-if="r.netKwh != null"> · {{ r.netKwh }} kWh</template><template v-if="r.buildYear"> · {{ r.buildYear }}</template>
+            · {{ date(r.createdAt) }}<span v-if="!r.contactAvailable" class="text-amber-300"> · ohne Kontakt-Mail</span>
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm text-xs" @click="openCreate(null, r.brand ?? undefined, r.model ?? undefined)">Zeile anlegen</button>
+            <button type="button" class="px-2 py-1 bg-green-700 hover:bg-green-600 rounded-sm text-xs text-white" @click="finishRequest(r)">Erledigt und Nutzer benachrichtigen</button>
+          </div>
         </li>
       </ul>
     </section>
