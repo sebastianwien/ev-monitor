@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { spritMonitorService, SpritMonitorVehicle, ImportResult, RefreshRawResult, spritMonitorErrorKey } from '../../api/spritMonitorService';
-import { carService, Car, BrandInfo, ModelInfo } from '../../api/carService';
+import type { Car } from '../../api/carService';
 import { useCarStore } from '../../stores/car';
 import { useCoinStore } from '../../stores/coins';
 import { TrashIcon, ExclamationTriangleIcon, ArrowPathIcon, XMarkIcon, LockClosedIcon, CheckCircleIcon, ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
@@ -37,9 +37,7 @@ const importStep = ref<ImportStep>('token');
 const token = ref('');
 const spritMonitorVehicles = ref<SpritMonitorVehicle[]>([]);
 const myCars = ref<Car[]>([]);
-const brands = ref<BrandInfo[]>([]);
 const vehicleMapping = ref<Record<number, string>>({});
-const newCarData = ref<Record<number, { brand: string; model: string; year: number; availableModels: ModelInfo[] }>>({});
 const importResults = ref<Record<number, ImportResult>>({});
 const totalImported = ref(0);
 const totalSkipped = ref(0);
@@ -57,17 +55,12 @@ const refreshResult = ref<RefreshRawResult | null>(null);
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null);
 
 const hasRefreshableVehicles = computed(() =>
-  spritMonitorVehicles.value.some(v => !!vehicleMapping.value[v.id] && vehicleMapping.value[v.id] !== 'new')
+  spritMonitorVehicles.value.some(v => !!vehicleMapping.value[v.id])
 );
 
 onMounted(async () => {
   try {
-    const [cars, brandList] = await Promise.all([
-      carStore.getCars(),
-      carStore.getBrands(),
-    ]);
-    myCars.value = cars;
-    brands.value = brandList;
+    myCars.value = await carStore.getCars();
   } catch (e) {
     console.error('Failed to load data:', e);
   }
@@ -88,38 +81,11 @@ const fetchVehicles = async () => {
       return;
     }
     spritMonitorVehicles.value = vehicles;
-    // Initialize newCarData for all vehicles upfront to prevent template crash
-    // when user selects "Neues Auto anlegen" before a brand is chosen
-    vehicles.forEach(v => {
-      newCarData.value[v.id] = { brand: '', model: '', year: new Date().getFullYear(), availableModels: [] };
-    });
     importStep.value = 'mapping';
   } catch (e: any) {
     error.value = t(spritMonitorErrorKey(e));
   } finally {
     loading.value = false;
-  }
-};
-
-const onBrandChange = async (vehicleId: number, brandValue: string) => {
-  if (!newCarData.value[vehicleId]) {
-    newCarData.value[vehicleId] = {
-      brand: brandValue,
-      model: '',
-      year: new Date().getFullYear(),
-      availableModels: []
-    };
-  } else {
-    newCarData.value[vehicleId].brand = brandValue;
-    newCarData.value[vehicleId].model = '';
-  }
-
-  // Load models for this brand
-  try {
-    const models = await carStore.getModelsForBrand(brandValue);
-    newCarData.value[vehicleId].availableModels = models;
-  } catch (e) {
-    console.error('Failed to load models:', e);
   }
 };
 
@@ -140,17 +106,6 @@ const startImport = async () => {
     return;
   }
 
-  for (const vehicle of vehiclesToImport) {
-    const mapping = vehicleMapping.value[vehicle.id];
-    if (mapping === 'new') {
-      const newCar = newCarData.value[vehicle.id];
-      if (!newCar || !newCar.brand || !newCar.model || !newCar.year) {
-        error.value = t('spritmonitor.err_missing_data', { vehicle: `${vehicle.make} ${vehicle.model}` });
-        return;
-      }
-    }
-  }
-
   importStep.value = 'importing';
   totalVehicles.value = vehiclesToImport.length;
 
@@ -160,28 +115,7 @@ const startImport = async () => {
     const mapping = vehicleMapping.value[vehicle.id];
 
     try {
-      let carId: string;
-
-      // Create new car if needed
-      if (mapping === 'new') {
-        const newCar = newCarData.value[vehicle.id];
-        const created = await carService.createCar({
-          model: newCar.model,
-          year: newCar.year,
-          customNetCapacityKwh: 50, // Default placeholder (user can edit later)
-          powerKw: null,
-          batteryDegradationPercent: null,
-          hasHeatPump: false,
-          licensePlate: '', // Empty string (user can add later)
-          trim: null,
-          vehicleSpecificationId: null,
-        });
-        carId = created.car.id;
-        myCars.value.push(created.car);
-        carStore.invalidateCars();
-      } else {
-        carId = mapping;
-      }
+      const carId = mapping;
 
       // Import fuelings
       const result = await spritMonitorService.importFuelings(token.value, vehicle.id, vehicle.mainTank, carId);
@@ -205,7 +139,7 @@ const startRefresh = async () => {
   error.value = '';
   refreshResult.value = null;
 
-  const vehiclesToRefresh = spritMonitorVehicles.value.filter(v => !!vehicleMapping.value[v.id] && vehicleMapping.value[v.id] !== 'new');
+  const vehiclesToRefresh = spritMonitorVehicles.value.filter(v => !!vehicleMapping.value[v.id]);
 
   if (vehiclesToRefresh.length === 0) {
     error.value = t('spritmonitor.err_no_mapping');
@@ -354,44 +288,17 @@ const close = () => {
                 v-model="vehicleMapping[vehicle.id]"
                 class="w-full min-h-[44px] border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 rounded-sm px-3 py-2 text-sm font-medium focus:outline-none focus:border-sky-600 transition-colors">
                 <option value="">{{ t('spritmonitor.mapping_placeholder') }}</option>
-                <option value="new">{{ t('spritmonitor.mapping_new') }}</option>
                 <option v-for="car in myCars" :key="car.id" :value="car.id">{{ carLabel(car) }}</option>
               </select>
             </div>
 
-            <div v-if="vehicleMapping[vehicle.id] === 'new'" class="rounded-sm border-2 border-dashed border-sky-300 dark:border-sky-800 bg-sky-50/60 dark:bg-sky-900/20 p-3 space-y-2">
-              <p class="text-xs font-bold uppercase tracking-wider text-sky-800 dark:text-sky-300">{{ t('spritmonitor.new_car_label') }}</p>
-              <select
-                :value="newCarData[vehicle.id]?.brand || ''"
-                :aria-label="t('spritmonitor.brand_placeholder')"
-                @change="(e) => onBrandChange(vehicle.id, (e.target as HTMLSelectElement).value)"
-                class="w-full min-h-[44px] border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-sky-600">
-                <option value="">{{ t('spritmonitor.brand_placeholder') }}</option>
-                <option v-for="brand in brands" :key="brand.value" :value="brand.value">{{ brand.label }}</option>
-              </select>
-              <select
-                v-if="newCarData[vehicle.id]"
-                v-model="newCarData[vehicle.id].model"
-                :disabled="!newCarData[vehicle.id]?.brand"
-                :aria-label="t('spritmonitor.model_placeholder_brand_selected')"
-                class="w-full min-h-[44px] border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-sky-600 disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-400">
-                <option value="">{{ newCarData[vehicle.id]?.brand ? t('spritmonitor.model_placeholder_brand_selected') : t('spritmonitor.model_placeholder_no_brand') }}</option>
-                <option v-for="model in newCarData[vehicle.id]?.availableModels || []" :key="model.value" :value="model.value">{{ model.label }}</option>
-              </select>
-              <input
-                v-if="newCarData[vehicle.id]"
-                v-model.number="newCarData[vehicle.id].year"
-                type="number"
-                inputmode="numeric"
-                :placeholder="t('spritmonitor.year_placeholder')"
-                :aria-label="t('spritmonitor.year_placeholder')"
-                min="2000"
-                max="2030"
-                class="w-full min-h-[44px] border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 dark:text-gray-100 rounded-sm px-3 py-2 text-sm focus:outline-none focus:border-sky-600" />
-            </div>
           </div>
         </div>
 
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {{ t('spritmonitor.car_missing_hint') }}
+          <router-link to="/cars" class="font-semibold underline text-sky-700 dark:text-sky-300">{{ t('spritmonitor.car_missing_link') }}</router-link>
+        </p>
         <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('spritmonitor.skip_hint') }}</p>
 
         <!-- Rohdaten aktualisieren: sekundär -->
