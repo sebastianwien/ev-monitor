@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -17,6 +17,8 @@ import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
 import VwEudaAutoSyncPrompt from '../components/car/VwEudaAutoSyncPrompt.vue'
 import RatingDeleteSheet from '../components/rating/RatingDeleteSheet.vue'
+import RatingTeaserCard from '../components/rating/RatingTeaserCard.vue'
+import { ratingTeaserStorage } from '../utils/ratingEntry'
 import { ratingService } from '../api/ratingService'
 import { useRatingStore } from '../stores/rating'
 import type { Car } from '../api/carService'
@@ -93,6 +95,12 @@ const doSubmitForm = async () => {
 // -- Fahrzeugbewertung: Zeile je Auto und Abschlussbewertung im Lösch-Flow --
 const ratingStore = useRatingStore()
 const ratingFor = (carId: string) => ratingStore.forCar(carId)
+/** Teaser über der Karte, solange er nicht weggeklickt ist. Danach bleibt die ruhige Zeile "Bewerten". */
+const ratingTeaserDismissed = reactive<Record<string, boolean>>({})
+const showRatingRow = (carId: string) => {
+  if (!(carId in ratingTeaserDismissed)) ratingTeaserDismissed[carId] = ratingTeaserStorage.isDismissed(carId)
+  return ratingTeaserDismissed[carId]
+}
 const deleteSheet = ref<{ carId: string; model: string; mode: 'rate' | 'text'; deleteWithCar: boolean } | null>(null)
 const deleteSheetBusy = ref(false)
 
@@ -534,6 +542,9 @@ const filteredCapacities = computed(() => {
         <div v-for="car in cars" :key="car.id" :data-testid="`car-card-${car.id}`"
           class="bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden flex flex-col">
 
+          <!-- Bewertungs-Teaser: bewertbar, noch unbewertet, nicht weggeklickt -->
+          <RatingTeaserCard :car-id="car.id" source="cars" embedded @dismiss="ratingTeaserDismissed[car.id] = true" />
+
           <!-- Setup-Teaser: dieses Auto koennte seine Daten automatisch liefern, tut es aber nicht -->
           <CarSetupTeaser
             v-if="teaserFor(car)"
@@ -681,7 +692,7 @@ const filteredCapacities = computed(() => {
               </span>
             </div>
 
-            <!-- Fahrzeugbewertung: ruhige Zeile, kein Banner -->
+            <!-- Fahrzeugbewertung: Abzeichen nach Bewertung, ruhige Zeile nur nach weggeklicktem Teaser -->
             <div v-if="ratingFor(car.id)?.rated" class="flex flex-wrap items-center gap-2" data-testid="car-rating-row">
               <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-medium rounded-full">
                 <CheckBadgeIcon class="w-3.5 h-3.5" aria-hidden="true" />{{ t('rating.badge_rated') }}
@@ -690,7 +701,7 @@ const filteredCapacities = computed(() => {
                 {{ t('rating.cars.rated_edit') }}
               </RouterLink>
             </div>
-            <RouterLink v-else-if="ratingFor(car.id)?.eligible" :to="`/cars/${car.id}/bewerten?src=cars`"
+            <RouterLink v-else-if="ratingFor(car.id)?.eligible && showRatingRow(car.id)" :to="`/cars/${car.id}/bewerten?src=cars`"
               class="inline-flex items-center gap-1.5 min-h-11 text-sm font-medium text-green-700 dark:text-green-400" data-testid="car-rating-row">
               <StarIcon class="w-4 h-4" aria-hidden="true" />{{ t('rating.cars.rate') }}
             </RouterLink>

@@ -4,6 +4,7 @@ import type {
     RatingChip,
     RebuyAnswer,
     RebuyReason,
+    ReviewState,
     TotalCostVerdict,
 } from '../api/ratingService'
 
@@ -156,4 +157,14 @@ export const draftStorage = {
             // egal
         }
     },
+}
+
+/**
+ * Text und Löschschalter werden zusammen mit der Bewertung abgesendet.
+ * Ein leeres Feld löscht nie einen bestehenden Text, ändert aber den Löschschalter mit.
+ */
+export function reviewAction(d: RatingDraft, review: ReviewState | null): 'submit' | 'settings' | 'none' {
+    if (d.body.trim()) return 'submit'
+    if (review && review.deleteWithCar !== d.deleteWithCar) return 'settings'
+    return 'none'
 }

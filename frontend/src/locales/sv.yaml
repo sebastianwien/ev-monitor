@@ -3903,7 +3903,7 @@ rating:
     coins: "+{n} Watt krediterade"
     updated: "Ditt betyg är uppdaterat."
     done: "Klar"
-    deepen: "Styrkor, svagheter och din erfarenhet"
+    add_text: "Lägg till text"
     categories:
       daily_fit: "Vardag"
       long_distance: "Långresor"
@@ -3911,12 +3911,12 @@ rating:
       build_quality: "Byggkvalitet"
       service: "Verkstad"
   deep:
-    title: "Vad bör intresserade veta?"
-    lead: "Allt är valfritt. Valen visas samlat på modellsidan."
+    section_title: "Din erfarenhet av {model}"
+    section_lead: "De 7 frågorna ovan är obligatoriska, allt härifrån är frivilligt. Om du vill, beskriv med egna ord hur {model} fungerar för dig: vad som övertygar, vad som stör, vem du skulle rekommendera den till. Din text visas utan namn på modellsidan och ger upp till 150 Watt."
     strengths: "Vad övertygar dig mest?"
     weaknesses: "Vad irriterar dig mest?"
     up_to: "Välj upp till 3"
-    experience: "Din erfarenhet"
+    experience: "Din text"
     guide_toggle: "Vad hjälper andra?"
     guide_1: "Vad använder du {model} till i vardagen, och hur bra fungerar det?"
     guide_2: "Hur går en typisk långresa med den?"
@@ -3936,9 +3936,8 @@ rating:
     remove_item: "Ta bort punkt"
     delete_with_car: "Radera texten när jag raderar bilen"
     moderation: "Vi läser varje text innan den publiceras."
-    back: "Tillbaka"
-    save: "Spara"
   review_status:
+    label: "Din tidigare text från {date}:"
     PENDING: "Granskas"
     APPROVED: "Publicerad"
     REJECTED: "Avvisad"
@@ -3953,12 +3952,15 @@ rating:
       NO_EXPERIENCE: "ingen egen erfarenhet synlig"
       OTHER: "annat"
   done:
-    title: "Tack. Ditt omdöme räknas nu på {model}-sidan."
     review_pending: "Vi läser din text inom de närmaste dagarna."
-    coins_total: "+{n} Watt totalt"
     model_page: "Till {model}-sidan"
     back_to_cars: "Till mina bilar"
   public:
+    cost_label: "Totalkostnad"
+    cost_single:
+      CHEAPER: "lägre än väntat"
+      EXPECTED: "som väntat"
+      PRICIER: "högre än väntat"
     title: "Förarna säger"
     empty: "Inga förarbetyg ännu. Kör du en {model}?"
     empty_cta: "Registrera dig gratis och betygsätt"
@@ -3984,6 +3986,8 @@ rating:
     cta: "Betygsätt"
     dismiss: "Stäng tipset"
   badge_rated: "Betygsatt"
+  badge_required: "Obligatoriskt"
+  badge_optional: "Valfritt"
   delete_sheet:
     rate_title: "Du lämnar ifrån dig {model}. Vill du betygsätta den snabbt?"
     rate_body: "Det hjälper alla som funderar på den. 7 frågor, cirka 90 sekunder."

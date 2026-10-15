@@ -4020,7 +4020,7 @@ rating:
     coins: "+{n} Watt credited"
     updated: "Your rating has been updated."
     done: "Done"
-    deepen: "Strengths, weaknesses and your experience"
+    add_text: "Add text"
     categories:
       daily_fit: "Everyday"
       long_distance: "Long trips"
@@ -4028,12 +4028,12 @@ rating:
       build_quality: "Build quality"
       service: "Service"
   deep:
-    title: "What should prospective buyers know?"
-    lead: "All optional. Chips are shown in aggregate on the model page."
+    section_title: "Your experience with the {model}"
+    section_lead: "The 7 questions above are required, everything from here on is optional. If you like, describe in your own words how the {model} performs for you: what convinces you, what annoys you, who you would recommend it to. Your text appears without your name on the model page and earns up to 150 Watt."
     strengths: "What convinces you most?"
     weaknesses: "What annoys you most?"
     up_to: "Pick up to 3"
-    experience: "Your experience"
+    experience: "Your text"
     guide_toggle: "What helps others?"
     guide_1: "What do you use the {model} for day to day, and how well does that work?"
     guide_2: "What does a typical long trip with it look like?"
@@ -4053,9 +4053,8 @@ rating:
     remove_item: "Remove point"
     delete_with_car: "Delete text when I delete the car"
     moderation: "We read every text before it is published."
-    back: "Back"
-    save: "Save"
   review_status:
+    label: "Your previous text from {date}:"
     PENDING: "Under review"
     APPROVED: "Published"
     REJECTED: "Rejected"
@@ -4070,12 +4069,15 @@ rating:
       NO_EXPERIENCE: "no personal experience apparent"
       OTHER: "other"
   done:
-    title: "Thank you. Your verdict now counts on the {model} page."
     review_pending: "We'll read your text within the next few days."
-    coins_total: "+{n} Watt in total"
     model_page: "Go to the {model} page"
     back_to_cars: "Go to my vehicles"
   public:
+    cost_label: "Total costs"
+    cost_single:
+      CHEAPER: "lower than expected"
+      EXPECTED: "as expected"
+      PRICIER: "higher than expected"
     title: "What drivers say"
     empty: "No driver ratings yet. Do you drive a {model}?"
     empty_cta: "Sign up for free and rate it"
@@ -4101,6 +4103,8 @@ rating:
     cta: "Rate"
     dismiss: "Close hint"
   badge_rated: "Rated"
+  badge_required: "Required"
+  badge_optional: "Optional"
   delete_sheet:
     rate_title: "You're giving up the {model}. Would you like to rate it quickly?"
     rate_body: "It helps everyone thinking about one. 7 questions, about 90 seconds."
