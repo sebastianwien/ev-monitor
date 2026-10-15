@@ -6,7 +6,6 @@ import { useCarStore } from '../stores/car'
 import { useCoinStore } from '../stores/coins'
 import { analytics } from '../services/analytics'
 import { useTeslaStatus } from './useTeslaStatus'
-import { useWltpLookup } from './useWltpLookup'
 
 export function resolveCapacityForCar(
   car: Car,
@@ -87,9 +86,10 @@ export function useCarForm() {
   const isBusinessCar = ref(false)
   const capacityWasCorrected = ref(false)
 
-  const wltpLookup = useWltpLookup(selectedBrand, selectedModel)
-
-  const sortedBrands = computed(() => [...brands.value].sort((a, b) => a.label.localeCompare(b.label)))
+  // Sonstige nur noch beim Bearbeiten eines Altautos; neue Autos brauchen eine Spec-Zeile (Meldeweg statt freier Kapazität).
+  const sortedBrands = computed(() => brands.value
+    .filter(b => b.value !== 'SONSTIGE' || editingCar.value?.brand === 'SONSTIGE')
+    .sort((a, b) => a.label.localeCompare(b.label)))
   const isSonstige = computed(() => selectedBrand.value === 'SONSTIGE')
 
   const selectedModelCapacities = computed(() => {
@@ -125,7 +125,7 @@ export function useCarForm() {
   }
 
   const finalCapacity = computed(() => {
-    if (useCustomCapacity.value) return wltpLookup.customNetCapacityKwh.value
+    if (useCustomCapacity.value) return customCapacity.value
     return selectedCapacity.value
   })
 
@@ -182,27 +182,15 @@ export function useCarForm() {
       selectedCapacity.value = null
       selectedSpecId.value = null
       selectedTrimLevel.value = null
-      if (newBrand === 'SONSTIGE') {
-        selectedModel.value = 'SONSTIGE_CUSTOM'
-        useCustomCapacity.value = true
-      } else {
-        selectedModel.value = ''
-        useCustomCapacity.value = false
-      }
+      selectedModel.value = ''
     }
   })
 
-  watch(selectedModel, (newModel) => {
+  watch(selectedModel, () => {
     if (!editingCar.value) {
       selectedCapacity.value = null
       selectedSpecId.value = null
       selectedTrimLevel.value = null
-      if (newModel === 'SONSTIGE_CUSTOM') {
-        useCustomCapacity.value = true
-      } else {
-        useCustomCapacity.value = false
-        customCapacity.value = null
-      }
     }
   })
 
@@ -216,7 +204,6 @@ export function useCarForm() {
     selectedSpecId.value = null
     selectedTrimLevel.value = null
     customCapacity.value = null
-    wltpLookup.resetCustomFields()
     useCustomCapacity.value = false
     powerKw.value = null
     batteryDegradationPercent.value = null
@@ -247,7 +234,6 @@ export function useCarForm() {
     selectedTrimLevel.value = resolved.selectedTrimLevel
     useCustomCapacity.value = resolved.useCustom
     customCapacity.value = resolved.customCapacity
-    wltpLookup.customNetCapacityKwh.value = resolved.customCapacity
     capacityWasCorrected.value = resolved.kwhCorrected
 
     year.value = car.year
@@ -266,31 +252,14 @@ export function useCarForm() {
       error.value = null
       if (!finalCapacity.value) { error.value = t('cars.error_capacity'); return null }
 
-      // Bei Custom-Eingabe: Spec anlegen und specId direkt aus dem Result verwenden
-      // (nicht reaktiv via finalVehicleSpecificationId, um Race-Condition zu vermeiden)
-      let resolvedSpecId: string | null = finalVehicleSpecificationId.value
-      if (useCustomCapacity.value) {
-        const result = await wltpLookup.submitCustomSpec()
-        if (!result.ok) {
-          error.value = result.error ? t(result.error) : t('cars.error_wltp_save')
-          return null
-        }
-        resolvedSpecId = result.specId!
-        selectedSpecId.value = resolvedSpecId
-        useCustomCapacity.value = false
-        if (result.coinsAwarded) {
-          toastMessage.value = t('cars.toast_wltp', { n: result.coinsAwarded })
-          showToast.value = true
-          setTimeout(() => { showToast.value = false }, 5000)
-        }
-      }
-
+      // Altauto ohne Spec-Zeile: der Server behält dessen eigene Kapazität, der Request schickt keine.
+      const resolvedSpecId: string | null = finalVehicleSpecificationId.value
       const carData: CarRequest = {
         model: selectedModel.value,
         year: year.value,
         licensePlate: licensePlate.value,
         trim: trim.value || null,
-        customNetCapacityKwh: resolvedSpecId ? null : finalCapacity.value,
+        customNetCapacityKwh: null,
         powerKw: powerKw.value,
         batteryDegradationPercent: batteryDegradationPercent.value,
         hasHeatPump: hasHeatPump.value,
@@ -380,13 +349,6 @@ export function useCarForm() {
     // Form fields
     selectedBrand, selectedModel, year, licensePlate, trim,
     selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
-    wltpData: wltpLookup.wltpData,
-    customNetCapacityKwh: wltpLookup.customNetCapacityKwh,
-    customGrossCapacityKwh: wltpLookup.customGrossCapacityKwh,
-    officialRangeKm: wltpLookup.officialRangeKm,
-    officialConsumptionKwhPer100km: wltpLookup.officialConsumptionKwhPer100km,
-    ratingSource: wltpLookup.ratingSource,
-    resetCustomFields: wltpLookup.resetCustomFields,
     powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
     // Computed / flags
     sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, finalVehicleSpecificationId, powerPs,

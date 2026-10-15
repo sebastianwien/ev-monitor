@@ -1552,16 +1552,26 @@ cars:
   label_trim: Trim (valgfritt)
   hint_trim: Utførelse/utstyrsnivå
   label_capacity: "Utførelse *"
-  custom_capacity: "Utførelse ikke tilgjengelig? Angi din batterikapasitet her"
+  missing_brand_model_link: "Finner du ikke merke eller modell?"
+  missing_battery_link: "Finner du ikke batteriet ditt?"
+  missing_dialog_title: "Hva mangler?"
+  missing_dialog_what_label: "Hva mangler? *"
+  missing_dialog_what_placeholder: "f.eks. Polestar 2 Long Range Dual Motor 2022 eller merket Lucid"
+  missing_dialog_kwh_label: "Netto kWh (valgfritt)"
+  missing_dialog_year_label: "Årsmodell (valgfritt)"
+  missing_dialog_email_label: "E-posten din *"
+  missing_dialog_privacy: "Jeg legger inn dataene og gir deg beskjed så snart du kan legge til bilen din. E-postadressen din bruker jeg bare til det og sletter den etterpå."
+  missing_dialog_submit: "Send"
+  missing_dialog_cancel: "Avbryt"
+  missing_dialog_close: "Lukk"
+  missing_dialog_thanks: "Takk! Jeg gir deg beskjed så snart du kan legge til bilen din."
+  missing_dialog_rate_limited: "Du har allerede sendt tre meldinger i dag. Prøv igjen i morgen."
+  missing_dialog_error: "Det gikk ikke. Prøv igjen."
+  capacity_own_value: "Egen verdi: {kwh} kWh"
   since: "siden"
   variant_filter_placeholder: "Filtrer, f.eks. AWD, Performance, Highland ..."
   variant_filter_no_results: Ingen variant funnet.
-  preset_capacity: Velg blant tilgjengelige kapasiteter
   capacity_corrected_hint: "Din inntasting ({old} kWh) er justert til den verifiserte nettoverdien ({new} kWh)."
-  wltp_available: WLTP-verdier tilgjengelig
-  epa_available: Data fra EPA er tilgjengelige
-  wltp_range: Rekkevidde
-  wltp_consumption: Forbruk
   label_year: År *
   label_plate: Nummerplate (valgfritt)
   label_power: Strøm (valgfritt)
@@ -1617,14 +1627,9 @@ cars:
   wltp_no: Nei takk
   wltp_form_title: Angi WLTP-verdier
   wltp_form_for: For
-  wltp_range_label: Rekkevidde (WLTP kombinert) *
-  wltp_consumption_label: Forbruk (WLTP kombinert) *
   epa_question_title: EPA-data mangler!
   epa_question_desc: Det finnes ennå ingen EPA-data for denne modellen. Kjenner du den offisielle EPA-klassifiseringen? Del den og tjen poeng!
   epa_form_title: Legg inn EPA-data
-  epa_range_label: Rekkevidde (EPA kombinert) *
-  epa_consumption_label: Forbruk (EPA kombinert) *
-  wltp_save_btn: Spar og tjen Watts 🎉
   import_title: Importalternativer
   error_load: Feil ved innlasting av kjøretøy
   error_brands: Feil ved innlasting av merker
@@ -1636,7 +1641,6 @@ cars:
   error_business_car: Feil ved oppdatering av status for firmabil
   error_wltp: Vennligst fyll ut alle WLTP-feltene
   error_wltp_partial: Rekkevidde og forbruk må begge oppgis eller begge stå tomme
-  error_wltp_save: Feil ved lagring av WLTP-data
   error_visibility: Feil ved oppdatering av synlighet
   error_upload: Feil ved opplasting av bilde
   error_delete_image: Feil ved sletting av bilde
@@ -1648,20 +1652,13 @@ cars:
   confirm_delete_image: Slette bildet?
   toast_first: Din første bil! + {n}-poeng opptjent!
   toast_coins: + {n}-poeng opptjent!
-  toast_wltp: 🎉 Takk! {n} Watt opptjent! Samfunnet drar nytte av dataene dine.
   toast_image_public: Bildet er delt offentlig! + {n}-poeng opptjent!
   toast_upload: Bildet er lastet opp! + {n}-poeng opptjent!
   trim_placeholder: f.eks. GTX, Pro Performance, Long Range
   trim_placeholder_sonstige: f.eks. C10 ProMax, BX3, Elroq 50
-  capacity_custom_placeholder: f.eks. 77
-  capacity_net_label: "Netto (brukbar) *"
-  capacity_gross_label: "Brutto *"
-  capacity_gross_placeholder: f.eks. 82
   plate_placeholder: f.eks. AB-123 CD
   power_placeholder: f.eks. 150
   degradation_placeholder: f.eks. 8
-  wltp_range_placeholder: f.eks. 450
-  wltp_consumption_placeholder: f.eks. 16,5
   epa_range_placeholder: f.eks. 438
   epa_consumption_placeholder: f.eks. 15,8
   api_id_label: Kjøretøy-ID
@@ -2239,17 +2236,12 @@ spritmonitor:
   err_api: "Sprit-Monitor meldte om en feil. Prøv igjen senere."
   step2_intro: Vi har funnet <strong>{n} elektriske biler</strong>! Legg dem til i EV Monitor-biler eller opprett nye.
   mapping_label: "Oppgave:"
+  car_missing_hint: "Er ikke bilen din med ennå?"
+  car_missing_link: "Legg den til under Mine biler først"
   mapping_placeholder: -- Vennligst velg --
-  mapping_new: "Opprett ny bil"
-  new_car_label: "Opprett ny bil:"
-  brand_placeholder: -- Velg merke --
-  model_placeholder_brand_selected: -- Velg modell --
-  model_placeholder_no_brand: Velg merke først
-  year_placeholder: År (f.eks. 2023)
   skip_hint: Kjøretøy uten tildeling vil bli hoppet over under importen.
   start_import_btn: Start import
   err_no_mapping: Vennligst velg minst ett kjøretøy!
-  err_missing_data: Det mangler data for «{vehicle}» (merke/modell/år)!
   step3_title: Importerer data...
   step3_progress: Kjøretøy {current} / {total}
   step4_title: Importen er fullført!

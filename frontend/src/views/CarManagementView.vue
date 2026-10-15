@@ -17,6 +17,7 @@ import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
 import VwEudaAutoSyncPrompt from '../components/car/VwEudaAutoSyncPrompt.vue'
 import RatingDeleteSheet from '../components/rating/RatingDeleteSheet.vue'
+import MissingVehicleDialog from '../components/car/MissingVehicleDialog.vue'
 import RatingTeaserCard from '../components/rating/RatingTeaserCard.vue'
 import { ratingTeaserStorage } from '../utils/ratingEntry'
 import { ratingService } from '../api/ratingService'
@@ -24,7 +25,6 @@ import { useRatingStore } from '../stores/rating'
 import type { Car } from '../api/carService'
 import teslaFleetService from '../api/teslaFleetService'
 import { analytics } from '../services/analytics'
-import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { isTeslaCar } from '../composables/useImportGating'
 import { isVwEudaBrand } from '../api/vwEudaSyncService'
 import { useCarForm } from '../composables/useCarForm'
@@ -33,21 +33,18 @@ import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
 
 const { t } = useI18n()
 
-const { consumptionUnitLabel, distanceUnitLabel } = useLocaleFormat()
 
 // -- Car Form --
 const {
   cars, availableModels, loading, error, showForm, editingCar,
   showToast, toastMessage, teslaStatus,
   selectedBrand, selectedModel, year, licensePlate, trim,
-  selectedCapacity, selectedSpecId, selectedTrimLevel, useCustomCapacity,
+  selectedCapacity, selectedSpecId, selectedTrimLevel, useCustomCapacity, customCapacity,
   powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
   sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
   isGroupedByTrim, trimGroups, visibleOptionsForTrim,
   selectTrimGroup,
   capacityWasCorrected,
-  wltpData, customNetCapacityKwh, customGrossCapacityKwh, officialRangeKm, officialConsumptionKwhPer100km,
-  ratingSource, resetCustomFields,
   fetchCars, fetchBrands, resetForm,
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel, toastUndo,
 } = useCarForm()
@@ -65,6 +62,8 @@ const {
 
 // Fahrzeug, dessen Batteriegesundheit-Detailansicht offen ist (null = geschlossen).
 const sohModalCar = ref<Car | null>(null)
+// Meldeweg "Fehlt etwas?": Dialog aus beiden Links im Formular (Marke/Modell, Akku).
+const missingDialogOpen = ref(false)
 
 // -- Setup-Teaser ueber der Auto-Card --
 const { teaserFor, dismiss: dismissTeaser, loadTelemetryStatus } = useCarSetupTeaser(cars, teslaStatus)
@@ -274,6 +273,10 @@ const filteredCapacities = computed(() => {
                   {{ brand.label }}
                 </option>
               </select>
+              <button type="button" @click="missingDialogOpen = true"
+                class="mt-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
+                {{ t('cars.missing_brand_model_link') }}
+              </button>
             </div>
 
             <div v-if="!isSonstige">
@@ -347,79 +350,10 @@ const filteredCapacities = computed(() => {
                     </p>
                   </div>
                 </template>
-                <button type="button"
-                  @click="useCustomCapacity = true; selectedCapacity = null; selectedSpecId = null; selectedTrimLevel = null"
+                <button type="button" @click="missingDialogOpen = true"
                   class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
-                  {{ t('cars.custom_capacity') }}
+                  {{ t('cars.missing_battery_link') }}
                 </button>
-              </div>
-
-              <div v-else class="space-y-3">
-                <div class="flex gap-2">
-                  <div class="flex-1">
-                    <label for="cap-net" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_net_label') }}</label>
-                    <div class="relative">
-                      <input id="cap-net" v-model.number="customNetCapacityKwh" type="text" inputmode="decimal" required
-                        :placeholder="t('cars.capacity_custom_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
-                    </div>
-                  </div>
-                  <div class="flex-1">
-                    <label for="cap-gross" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_gross_label') }}</label>
-                    <div class="relative">
-                      <input id="cap-gross" v-model.number="customGrossCapacityKwh" type="text" inputmode="decimal" required
-                        :placeholder="t('cars.capacity_gross_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <div class="flex-1">
-                    <label for="cap-range" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_range_label') : t('cars.wltp_range_label') }}</label>
-                    <div class="relative">
-                      <input id="cap-range" v-model.number="officialRangeKm" type="text" inputmode="decimal" required
-                        :placeholder="t('cars.wltp_range_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-10" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">km</span>
-                    </div>
-                  </div>
-                  <div class="flex-1">
-                    <label for="cap-consumption" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_consumption_label') : t('cars.wltp_consumption_label') }}</label>
-                    <div class="relative">
-                      <input id="cap-consumption" v-model.number="officialConsumptionKwhPer100km" type="text" inputmode="decimal" required
-                        :placeholder="t('cars.wltp_consumption_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
-                    </div>
-                  </div>
-                </div>
-                <button type="button" @click="useCustomCapacity = false; resetCustomFields()"
-                  class="text-sm text-indigo-600 hover:text-indigo-700 underline">
-                  {{ t('cars.preset_capacity') }}
-                </button>
-              </div>
-            </div>
-
-            <!-- WLTP Info (if available) -->
-            <div v-if="wltpData && !editingCar" class="md:col-span-2">
-              <div class="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-sm">
-                <div class="flex items-start">
-                  <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                  <div>
-                    <p class="text-sm font-medium text-blue-900 dark:text-blue-300">
-                      {{ ratingSource === 'EPA' ? t('cars.epa_available') : t('cars.wltp_available') }}
-                      <span v-if="wltpData.variantName" class="font-normal text-blue-700 dark:text-blue-400"> - {{ wltpData.variantName }}</span>
-                    </p>
-                    <p class="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                      {{ t('cars.wltp_range') }}: <span class="font-semibold">{{ wltpData.officialRangeKm }} {{ distanceUnitLabel() }}</span>
-                      | {{ t('cars.wltp_consumption') }}: <span class="font-semibold">{{ wltpData.officialConsumptionKwhPer100km }} {{ consumptionUnitLabel() }}</span>
-                    </p>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -746,6 +680,7 @@ const filteredCapacities = computed(() => {
       </div>
     </div>
 
+    <MissingVehicleDialog v-if="missingDialogOpen" :brand="selectedBrand || null" :model="selectedModel || null" @close="missingDialogOpen = false" />
     <RatingDeleteSheet
       v-if="deleteSheet"
       :model="deleteSheet.model"
@@ -785,6 +720,10 @@ const filteredCapacities = computed(() => {
                   {{ brand.label }}
                 </option>
               </select>
+              <button type="button" @click="missingDialogOpen = true"
+                class="mt-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
+                {{ t('cars.missing_brand_model_link') }}
+              </button>
             </div>
 
             <div v-if="!isSonstige">
@@ -853,58 +792,12 @@ const filteredCapacities = computed(() => {
                     </p>
                   </div>
                 </template>
-                <button type="button"
-                  @click="useCustomCapacity = true; selectedCapacity = null; selectedSpecId = null; selectedTrimLevel = null"
+                <button type="button" @click="missingDialogOpen = true"
                   class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
-                  {{ t('cars.custom_capacity') }}
+                  {{ t('cars.missing_battery_link') }}
                 </button>
               </div>
-              <div v-else class="space-y-3">
-                <div class="flex gap-2">
-                  <div class="flex-1">
-                    <label for="cap-net" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_net_label') }}</label>
-                    <div class="relative">
-                      <input id="cap-net" v-model.number="customNetCapacityKwh" type="text" inputmode="decimal" required
-                        :placeholder="t('cars.capacity_custom_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
-                    </div>
-                  </div>
-                  <div class="flex-1">
-                    <label for="cap-gross" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('cars.capacity_gross_label') }}</label>
-                    <div class="relative">
-                      <input id="cap-gross" v-model.number="customGrossCapacityKwh" type="text" inputmode="decimal" required
-                        :placeholder="t('cars.capacity_gross_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="flex gap-2">
-                  <div class="flex-1">
-                    <label for="cap-range" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_range_label') : t('cars.wltp_range_label') }}</label>
-                    <div class="relative">
-                      <input id="cap-range" v-model.number="officialRangeKm" type="text" inputmode="decimal" required
-                        :placeholder="t('cars.wltp_range_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-10" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">km</span>
-                    </div>
-                  </div>
-                  <div class="flex-1">
-                    <label for="cap-consumption" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ ratingSource === 'EPA' ? t('cars.epa_consumption_label') : t('cars.wltp_consumption_label') }}</label>
-                    <div class="relative">
-                      <input id="cap-consumption" v-model.number="officialConsumptionKwhPer100km" type="text" inputmode="decimal" required
-                        :placeholder="t('cars.wltp_consumption_placeholder')"
-                        class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 pr-12" />
-                      <span class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kWh</span>
-                    </div>
-                  </div>
-                </div>
-                <button type="button" @click="useCustomCapacity = false; resetCustomFields()"
-                  class="text-sm text-indigo-600 hover:text-indigo-700 underline">
-                  {{ t('cars.preset_capacity') }}
-                </button>
-              </div>
+              <p v-else class="text-sm text-gray-700 dark:text-gray-300">{{ t('cars.capacity_own_value', { kwh: customCapacity }) }}</p>
               <p v-if="capacityWasCorrected" class="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded px-3 py-2">
                 {{ t('cars.capacity_corrected_hint', { old: editingCar?.customNetCapacityKwh, new: selectedCapacity }) }}
               </p>

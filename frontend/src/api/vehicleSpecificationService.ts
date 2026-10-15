@@ -17,22 +17,7 @@ export interface VehicleSpecification {
     updatedAt: string;
 }
 
-export interface VehicleSpecificationRequest {
-    carBrand: string;
-    carModel: string;
-    batteryCapacityKwh: number;
-    netBatteryCapacityKwh?: number | null;
-    officialRangeKm?: number | null;
-    officialConsumptionKwhPer100km?: number | null;
-    ratingSource?: 'WLTP' | 'EPA';
-    variantName?: string;
-}
-
-export interface VehicleSpecificationCreateResponse {
-    specification: VehicleSpecification;
-    coinsAwarded: number;
-}
-
+/** Nur Lesezugriff: Zeilen entstehen im Admin-Tab, Lücken meldet der Nutzer über vehicleRequestService. */
 export const vehicleSpecificationService = {
     /**
      * Lookup WLTP data for a specific vehicle configuration.
@@ -66,12 +51,4 @@ export const vehicleSpecificationService = {
             throw error;
         }
     },
-
-    /**
-     * Create new WLTP data entry and earn coins.
-     */
-    async create(data: VehicleSpecificationRequest): Promise<VehicleSpecificationCreateResponse> {
-        const response = await api.post('/vehicle-specifications', data);
-        return response.data;
-    }
 };

@@ -88,9 +88,14 @@ export default async function globalSetup() {
   const cars = await carsResp.json();
 
   if (!Array.isArray(cars) || cars.length === 0) {
+    // Seit A2 braucht jedes neue Auto eine Spec-Zeile: erste Variante des Model 3 aus der Akku-Auswahl.
+    const models = await (await api.get('/api/cars/brands/TESLA/models')).json();
+    const model3 = Array.isArray(models) ? models.find((m: any) => m.value === 'MODEL_3') : null;
+    const spec = model3?.capacities?.find((c: any) => c.vehicleSpecificationId);
+    if (!spec) throw new Error('[E2E Setup] Keine Spec-Zeile für MODEL_3 gefunden, Testauto kann nicht angelegt werden.');
     await api.post('/api/cars', {
       headers: { Authorization: `Bearer ${jwt}` },
-      data: { model: 'MODEL_3', year: 2022, batteryCapacityKwh: 75, hasHeatPump: false },
+      data: { model: 'MODEL_3', year: 2022, hasHeatPump: false, vehicleSpecificationId: spec.vehicleSpecificationId },
     });
     console.log('[E2E Setup] Test car (Model 3) created.');
   }
