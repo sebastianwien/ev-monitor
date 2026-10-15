@@ -4,9 +4,11 @@ import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.User;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AdminVehicleSpecificationControllerIntegrationTest extends AbstractIntegrationTest {
 
     private static final String PATH = "/api/admin/vehicle-specifications";
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private Map<String, Object> validBody() {
         Map<String, Object> body = new HashMap<>();
@@ -30,6 +35,26 @@ class AdminVehicleSpecificationControllerIntegrationTest extends AbstractIntegra
         body.put("availableFrom", "2024-01-01");
         body.put("sourceUrl", "https://ev-database.org/car/1991");
         return body;
+    }
+
+    /** Hibernate legt die Enum-Spalte auf H2 als ENUM-Typ an, Postgres auf Prod hat VARCHAR. */
+    private void dropEnumCheckOnCarModel() {
+        jdbcTemplate.execute("alter table car alter column model set data type varchar(255)");
+    }
+
+    /** Prod hat ein aktives Auto mit Modell UNKNOWN, das im Enum nicht mehr existiert. Die Übersicht darf daran nicht scheitern. */
+    @Test
+    void overview_withCarWhoseModelIsNotInEnum_isOk() {
+        User owner = createAndSaveUser("orphan-" + System.nanoTime() + "@example.com");
+        var car = createAndSaveCar(owner.getId(), CarBrand.CarModel.MODEL_3);
+        dropEnumCheckOnCarModel();
+        jdbcTemplate.update("update car set model = 'UNKNOWN' where id = ?", car.getId());
+        User admin = createAndSaveAdminUser("spec-admin-" + System.nanoTime() + "@example.com");
+
+        ResponseEntity<String> res = restTemplate.exchange(PATH, HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test

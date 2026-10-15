@@ -35,8 +35,11 @@ public interface JpaCarRepository extends JpaRepository<CarEntity, UUID> {
            "FROM CarEntity c WHERE c.vehicleSpecificationId IS NOT NULL GROUP BY c.vehicleSpecificationId")
     List<Object[]> countCarsPerSpecification();
 
-    @Query("SELECT c.model, COUNT(c), SUM(CASE WHEN c.vehicleSpecificationId IS NULL THEN 1 ELSE 0 END) " +
-           "FROM CarEntity c WHERE c.deletedAt IS NULL AND c.status = com.evmonitor.domain.CarStatus.ACTIVE GROUP BY c.model")
+    /** Modell als Text, nicht als Enum: Prod hat Autos mit Modellnamen, die im Enum nicht mehr existieren. */
+    @Query(value = """
+            SELECT c.model, COUNT(*), SUM(CASE WHEN c.vehicle_specification_id IS NULL THEN 1 ELSE 0 END)
+            FROM car c WHERE c.deleted_at IS NULL AND c.status = 'ACTIVE' GROUP BY c.model
+            """, nativeQuery = true)
     List<Object[]> countActiveCarsPerModel();
 
     @Query(value = """

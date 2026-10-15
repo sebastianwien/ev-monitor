@@ -55,7 +55,7 @@ public class AdminSpecOverviewAssembler {
         }
         Map<String, ModelCounts> carsPerModel = new HashMap<>();
         for (Object[] r : jpaCarRepository.countActiveCarsPerModel()) {
-            carsPerModel.put(((CarBrand.CarModel) r[0]).name(), new ModelCounts(((Number) r[1]).longValue(), ((Number) r[2]).longValue()));
+            carsPerModel.put(String.valueOf(r[0]), new ModelCounts(((Number) r[1]).longValue(), ((Number) r[2]).longValue()));
         }
         Map<String, Long> logsPerModel = new HashMap<>();
         for (Object[] r : jpaCarRepository.countLogsPerModel()) {
