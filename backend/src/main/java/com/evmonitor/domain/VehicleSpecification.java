@@ -1,6 +1,7 @@
 package com.evmonitor.domain;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 @Getter
 @AllArgsConstructor
+@Builder(toBuilder = true)
 public class VehicleSpecification {
     private final UUID id;
     private final String carBrand;
@@ -27,6 +29,10 @@ public class VehicleSpecification {
     private final LocalDate availableTo;
     private final BigDecimal chargingEfficiencyDc;
     private final BigDecimal chargingEfficiencyAc;
+    /** Trim-Linie zur Unterscheidung von Varianten (Pflicht für neue Zeilen im Admin-Tab). */
+    private final String trimLevel;
+    /** Beleg der Werte, https, Pflicht für neue Zeilen im Admin-Tab. */
+    private final String sourceUrl;
 
     public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
                                                   BigDecimal netBatteryCapacityKwh,
@@ -35,7 +41,7 @@ public class VehicleSpecification {
         LocalDateTime now = LocalDateTime.now();
         return new VehicleSpecification(UUID.randomUUID(), carBrand, carModel, batteryCapacityKwh,
                 rangeKm, consumptionKwhPer100km, cycleType, ratingSource, now, now,
-                variantName != null ? variantName : "", netBatteryCapacityKwh, null, null, null, null);
+                variantName != null ? variantName : "", netBatteryCapacityKwh, null, null, null, null, null, null);
     }
 
     /** Backward-compat factory without variantName (defaults to empty string). */

@@ -31,6 +31,21 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
     }
 
     @Override
+    public List<VehicleSpecification> findAll() {
+        return jpaRepository.findAll().stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<VehicleSpecification> findAllByCarModel(String carModel) {
+        return jpaRepository.findByCarModelOrderByBatteryCapacityKwhAsc(carModel).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
     public Optional<VehicleSpecification> findByCarBrandAndModelAndCapacityAndType(
             String carBrand,
             String carModel,
@@ -122,6 +137,8 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         entity.setAvailableTo(domain.getAvailableTo());
         entity.setChargingEfficiencyDc(domain.getChargingEfficiencyDc());
         entity.setChargingEfficiencyAc(domain.getChargingEfficiencyAc());
+        entity.setTrimLevel(domain.getTrimLevel());
+        entity.setSourceUrl(domain.getSourceUrl());
         return entity;
     }
 
@@ -145,7 +162,9 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
                 entity.getAvailableFrom(),
                 entity.getAvailableTo(),
                 entity.getChargingEfficiencyDc(),
-                entity.getChargingEfficiencyAc()
+                entity.getChargingEfficiencyAc(),
+                entity.getTrimLevel(),
+                entity.getSourceUrl()
         );
     }
 

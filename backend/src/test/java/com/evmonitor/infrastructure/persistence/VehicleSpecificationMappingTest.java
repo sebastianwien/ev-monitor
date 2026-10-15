@@ -38,6 +38,31 @@ class VehicleSpecificationMappingTest {
         assertThat(domain.getChargingEfficiencyAc()).isNull();
     }
 
+    @Test
+    void toDomain_mapsTrimLevelAndSourceUrl() {
+        VehicleSpecificationEntity entity = buildEntity();
+        entity.setTrimLevel("Long Range");
+        entity.setSourceUrl("https://ev-database.org/car/1234");
+
+        VehicleSpecification domain = invokeToDomain(entity);
+
+        assertThat(domain.getTrimLevel()).isEqualTo("Long Range");
+        assertThat(domain.getSourceUrl()).isEqualTo("https://ev-database.org/car/1234");
+    }
+
+    /** Regression: der Admin-Tab bearbeitet über die Domain, ein Roundtrip darf trim_level nicht auf NULL setzen. */
+    @Test
+    void toEntity_keepsTrimLevelAndSourceUrlThroughRoundtrip() {
+        VehicleSpecificationEntity entity = buildEntity();
+        entity.setTrimLevel("Performance");
+        entity.setSourceUrl("https://ev-database.org/car/5678");
+
+        VehicleSpecificationEntity roundtrip = invokeToEntity(invokeToDomain(entity));
+
+        assertThat(roundtrip.getTrimLevel()).isEqualTo("Performance");
+        assertThat(roundtrip.getSourceUrl()).isEqualTo("https://ev-database.org/car/5678");
+    }
+
     // --- helpers ---
 
     private VehicleSpecificationEntity buildEntity() {
@@ -60,6 +85,17 @@ class VehicleSpecificationMappingTest {
      * Reflective call to the private toDomain method so we can test mapping
      * without a real JPA repository/database.
      */
+    private VehicleSpecificationEntity invokeToEntity(VehicleSpecification domain) {
+        try {
+            var method = PostgresVehicleSpecificationRepositoryImpl.class
+                    .getDeclaredMethod("toEntity", VehicleSpecification.class);
+            method.setAccessible(true);
+            return (VehicleSpecificationEntity) method.invoke(repository, domain);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+
     private VehicleSpecification invokeToDomain(VehicleSpecificationEntity entity) {
         try {
             var method = PostgresVehicleSpecificationRepositoryImpl.class
