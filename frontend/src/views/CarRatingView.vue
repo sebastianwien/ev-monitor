@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, ChartBarIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
 import RatingCoreForm from '../components/rating/RatingCoreForm.vue'
 import RatingResultPanel from '../components/rating/RatingResultPanel.vue'
 import RatingDeepForm from '../components/rating/RatingDeepForm.vue'
@@ -17,7 +17,7 @@ import {
 } from '../utils/ratingForm'
 
 /**
- * Fahrzeug bewerten: ein Formular mit Pflichtteil (7 Fragen) und aufklappbarem optionalen Teil
+ * Fahrzeug bewerten: ein Formular mit Pflichtteil (7 Fragen) und optionalem Teil
  * (Stärken, Schwächen, Text), ein Absenden, danach das persönliche Ergebnis.
  * Eigene Route statt Modal, damit Announcement, Dashboard, /cars und Mail direkt hierher verlinken.
  */
@@ -25,10 +25,11 @@ type Screen = 'loading' | 'error' | 'not_eligible' | 'form' | 'result'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const ratingStore = useRatingStore()
 const coinStore = useCoinStore()
 const { formatDistance } = useLocaleFormat()
+const formatDate = (iso: string) => new Date(iso).toLocaleDateString(locale.value, { day: 'numeric', month: 'long', year: 'numeric' })
 
 const carId = route.params.carId as string
 const source = typeof route.query.src === 'string' ? route.query.src.slice(0, 30) : 'direct'
@@ -46,8 +47,6 @@ const coins = ref(0)
 const wasRated = ref(false)
 const saving = ref(false)
 const error = ref<string | null>(null)
-/** Optionaler Teil aufgeklappt. Offen, sobald dort schon etwas steht. */
-const deepOpen = ref(false)
 const deepSection = ref<HTMLElement | null>(null)
 
 const model = computed(() => car.value?.modelName ?? '')
@@ -63,8 +62,6 @@ const monthsWithCar = computed(() => {
 const modelPagePath = computed(() => car.value
     ? `/modelle/${encodeURIComponent(car.value.brandName)}/${encodeURIComponent(car.value.modelName.replace(/ /g, '_'))}`
     : '/modelle')
-const hasDeepContent = () =>
-    draft.strengths.length > 0 || draft.weaknesses.length > 0 || draft.body.trim().length > 0 || draft.pros.length > 0 || draft.cons.length > 0
 
 onMounted(async () => {
     try {
@@ -89,7 +86,6 @@ onMounted(async () => {
             const saved = draftStorage.load(carId)
             if (saved) Object.assign(draft, saved)
         }
-        deepOpen.value = !!review.value || hasDeepContent()
         screen.value = 'form'
         analytics.track('rating_started', { source, edit: wasRated.value })
     } catch {
@@ -109,14 +105,8 @@ function goTo(next: Screen) {
     window.scrollTo({ top: 0 })
 }
 
-function toggleDeep() {
-    deepOpen.value = !deepOpen.value
-    if (deepOpen.value) analytics.track('rating_deep_opened')
-}
-
 /** Vom Ergebnis zurück ins Formular, direkt zum optionalen Teil. */
 async function addText() {
-    deepOpen.value = true
     goTo('form')
     await nextTick()
     deepSection.value?.scrollIntoView({ block: 'start' })
@@ -149,12 +139,10 @@ async function submit() {
         } else if (action === 'settings') {
             review.value = await ratingService.updateReviewSettings(carId, draft.deleteWithCar)
         }
-        if (deepOpen.value) {
-            analytics.track('rating_completed_deep', {
-                chips: draft.strengths.length + draft.weaknesses.length,
-                text: reviewKind(body),
-            })
-        }
+        analytics.track('rating_completed_deep', {
+            chips: draft.strengths.length + draft.weaknesses.length,
+            text: reviewKind(body),
+        })
         draftStorage.clear(carId)
         goTo('result')
     } catch {
@@ -172,7 +160,7 @@ function finish() {
 
 <template>
     <div class="min-h-screen md:py-10 md:px-4">
-        <div class="md:max-w-xl md:mx-auto bg-white dark:bg-gray-800 md:shadow-sm md:border md:rounded-sm border-gray-200 dark:border-gray-700 px-4 sm:px-6 pb-32 md:pb-6">
+        <div class="md:max-w-3xl md:mx-auto bg-white dark:bg-gray-800 md:shadow-sm md:border md:rounded-sm border-gray-200 dark:border-gray-700 px-4 sm:px-6 pb-32 md:pb-6">
 
             <p v-if="screen === 'loading'" class="py-16 text-center text-gray-400 dark:text-gray-500">{{ t('rating.loading') }}</p>
 
@@ -230,41 +218,27 @@ function finish() {
                 <template v-else-if="screen === 'form'">
                     <RatingCoreForm v-model:draft="draft" :model="model" />
 
-                    <!-- Optionaler Teil: sichtbar getrennt, aufklappbar -->
-                    <section ref="deepSection" class="mt-6 -mx-4 sm:-mx-6 md:mx-0 border-t-4 border-gray-100 dark:border-gray-700/60 md:rounded-sm md:border md:border-gray-200 md:dark:border-gray-700 scroll-mt-4" data-testid="deep-section">
-                        <button
-                            type="button"
-                            class="w-full flex items-start gap-3 px-4 sm:px-6 md:px-4 py-4 text-left"
-                            :aria-expanded="deepOpen"
-                            aria-controls="deep-content"
-                            @click="toggleDeep"
-                        >
-                            <div class="flex-1 min-w-0 space-y-1">
-                                <div class="flex items-center gap-2">
-                                    <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('rating.deep.section_title') }}</h2>
-                                    <span class="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-testid="badge-optional">
-                                        {{ t('rating.badge_optional') }}
-                                    </span>
-                                </div>
-                                <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.deep.section_lead') }}</p>
-                            </div>
-                            <span class="shrink-0 flex items-center gap-1 min-h-11 text-sm font-medium text-green-700 dark:text-green-400">
-                                {{ deepOpen ? t('rating.deep.collapse') : t('rating.deep.expand') }}
-                                <ChevronDownIcon class="w-5 h-5 transition-transform" :class="{ 'rotate-180': deepOpen }" aria-hidden="true" />
+                    <!-- Optionaler Teil: sichtbar getrennt, immer offen, der Text steht im Mittelpunkt -->
+                    <section ref="deepSection" class="mt-8 -mx-4 sm:-mx-6 md:mx-0 border-t-4 border-gray-100 dark:border-gray-700/60 md:rounded-sm md:border md:border-gray-200 md:dark:border-gray-700 px-4 sm:px-6 md:px-5 pt-5 pb-2 scroll-mt-4" data-testid="deep-section">
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('rating.deep.section_title', { model }) }}</h2>
+                            <span class="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-testid="badge-optional">
+                                {{ t('rating.badge_optional') }}
                             </span>
-                        </button>
-                        <div v-show="deepOpen" id="deep-content" class="px-4 sm:px-6 md:px-4 pb-4">
-                            <!-- Status eines vorhandenen Texts (Bearbeiten) -->
-                            <p v-if="review" class="mb-2 rounded-sm bg-gray-50 dark:bg-gray-700/50 p-3 text-sm text-gray-700 dark:text-gray-300" data-testid="review-status">
-                                <span class="font-medium">{{ t(`rating.review_status.${review.status}`) }}</span>
-                                <template v-if="review.status === 'PENDING' && review.published"> - {{ t('rating.review_status.pending_published') }}</template>
-                                <template v-if="review.status === 'REJECTED' && review.rejectionReason">
-                                    - {{ t('rating.review_status.rejected_reason', { reason: t(`rating.review_status.reasons.${review.rejectionReason}`) }) }}
-                                    <span v-if="review.rejectionNote" class="block mt-1">{{ review.rejectionNote }}</span>
-                                </template>
-                            </p>
-                            <RatingDeepForm v-model:draft="draft" :model="model" :review="review" />
                         </div>
+                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ t('rating.deep.section_lead', { model }) }}</p>
+
+                        <!-- Status eines vorhandenen Texts (Bearbeiten) -->
+                        <p v-if="review" class="mt-4 rounded-sm bg-gray-50 dark:bg-gray-700/50 p-3 text-sm text-gray-700 dark:text-gray-300" data-testid="review-status">
+                            {{ t('rating.review_status.label', { date: formatDate(review.submittedAt) }) }}
+                            <span class="font-medium">{{ t(`rating.review_status.${review.status}`) }}</span>
+                            <template v-if="review.status === 'PENDING' && review.published"> - {{ t('rating.review_status.pending_published') }}</template>
+                            <template v-if="review.status === 'REJECTED' && review.rejectionReason">
+                                - {{ t('rating.review_status.rejected_reason', { reason: t(`rating.review_status.reasons.${review.rejectionReason}`) }) }}
+                                <span v-if="review.rejectionNote" class="block mt-1">{{ review.rejectionNote }}</span>
+                            </template>
+                        </p>
+                        <RatingDeepForm v-model:draft="draft" :model="model" :review="review" />
                     </section>
                 </template>
 
@@ -283,7 +257,7 @@ function finish() {
         <!-- Aktionsleiste: mobil fest über der Bottom-Navigation, ab md im Fluss -->
         <div
             v-if="screen === 'form' || screen === 'result'"
-            class="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:static md:max-w-xl md:mx-auto z-20 bg-white dark:bg-gray-800 border-t md:border md:border-t-0 border-gray-200 dark:border-gray-700 px-4 py-3"
+            class="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:static md:max-w-3xl md:mx-auto z-20 bg-white dark:bg-gray-800 border-t md:border md:border-t-0 border-gray-200 dark:border-gray-700 px-4 py-3"
         >
             <p v-if="error" class="mb-2 text-sm text-center text-red-600 dark:text-red-400" role="alert">{{ error }}</p>
             <div v-if="screen === 'form'" class="flex items-center gap-3">

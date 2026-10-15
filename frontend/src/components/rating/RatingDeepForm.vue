@@ -32,23 +32,8 @@ function removeItem(list: 'pros' | 'cons', index: number) {
 
 <template>
     <div class="divide-y divide-gray-200 dark:divide-gray-700">
-        <section class="py-5 space-y-2">
-            <h2 id="deep-strengths" class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('rating.deep.strengths') }}</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('rating.deep.up_to') }}</p>
-            <ChipGroup v-model="draft.strengths" :options="chipOptions" labelled-by="deep-strengths" />
-        </section>
-
-        <section class="py-5 space-y-2">
-            <h2 id="deep-weaknesses" class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('rating.deep.weaknesses') }}</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('rating.deep.up_to') }}</p>
-            <ChipGroup v-model="draft.weaknesses" :options="chipOptions" labelled-by="deep-weaknesses" />
-        </section>
-
         <section class="py-5 space-y-3">
-            <label for="deep-body" class="block text-base font-semibold text-gray-900 dark:text-gray-100">
-                {{ t('rating.deep.experience') }}
-                <span class="font-normal text-sm text-gray-400 dark:text-gray-500">{{ t('rating.optional') }}</span>
-            </label>
+            <label for="deep-body" class="block text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('rating.deep.experience') }}</label>
 
             <button
                 type="button"
@@ -67,7 +52,7 @@ function removeItem(list: 'pros' | 'cons', index: number) {
             <textarea
                 id="deep-body"
                 v-model="draft.body"
-                rows="6"
+                rows="8"
                 :maxlength="MAX_BODY_CHARS"
                 :placeholder="t('rating.deep.placeholder', { model })"
                 aria-describedby="deep-body-count deep-moderation"
@@ -122,5 +107,17 @@ function removeItem(list: 'pros' | 'cons', index: number) {
             </label>
             <p id="deep-moderation" class="text-xs text-gray-500 dark:text-gray-400">{{ t('rating.deep.moderation') }}</p>
         </section>
+        <section class="py-5 space-y-2">
+            <h2 id="deep-strengths" class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('rating.deep.strengths') }}</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('rating.deep.up_to') }}</p>
+            <ChipGroup v-model="draft.strengths" :options="chipOptions" labelled-by="deep-strengths" />
+        </section>
+
+        <section class="py-5 space-y-2">
+            <h2 id="deep-weaknesses" class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('rating.deep.weaknesses') }}</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('rating.deep.up_to') }}</p>
+            <ChipGroup v-model="draft.weaknesses" :options="chipOptions" labelled-by="deep-weaknesses" />
+        </section>
+
     </div>
 </template>

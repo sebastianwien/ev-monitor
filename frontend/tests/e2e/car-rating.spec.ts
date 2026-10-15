@@ -59,15 +59,14 @@ test.describe('Fahrzeug bewerten', () => {
   const stars = (page: import('@playwright/test').Page, question: string, value: number) =>
     page.getByRole('radiogroup', { name: question }).getByRole('radio').nth(value - 1).click();
 
-  test('Ein Formular: Pflichtteil, optionaler Teil aufklappbar, ein Absenden, dann Ergebnis mit Watt', async ({ page }) => {
+  test('Ein Formular: Pflichtteil, optionaler Teil mit Text im Mittelpunkt, ein Absenden, dann Ergebnis mit Watt', async ({ page }) => {
     await page.goto(`/cars/${carId}/bewerten?src=cars`);
 
     const submit = page.getByRole('button', { name: /^(Noch \d|Absenden)$/ });
     await expect(submit).toHaveText('Noch 7', { timeout: 10_000 });
     await expect(page.getByTestId('badge-required')).toHaveText('Pflicht');
     await expect(page.getByTestId('badge-optional')).toHaveText('Optional');
-    // Optionaler Teil ist zu, bis man ihn aufklappt
-    await expect(page.getByLabel(/Deine Erfahrung/)).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Deine Erfahrung mit dem ID.3' })).toBeVisible();
 
     await page.getByRole('radio', { name: 'Ja, genau diesen' }).click();
     await stars(page, 'Passt er zu deinem Alltag?', 5);
@@ -78,9 +77,8 @@ test.describe('Fahrzeug bewerten', () => {
     await page.getByRole('radio', { name: 'Wie erwartet' }).click();
     await expect(submit).toHaveText('Absenden');
 
-    await page.getByRole('button', { name: /Mehr erzählen/ }).click();
     await page.getByRole('group', { name: 'Was überzeugt dich am meisten?' }).getByRole('button', { name: 'Platz' }).click();
-    await page.getByLabel(/Deine Erfahrung/).fill('Im Alltag sehr entspannt, auf der Autobahn im Winter eher 280 km.');
+    await page.getByLabel('Dein Text').fill('Im Alltag sehr entspannt, auf der Autobahn im Winter eher 280 km.');
     await expect(page.getByText(/Erscheint als Zitat/)).toBeVisible();
     await submit.click();
 
