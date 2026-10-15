@@ -50,7 +50,7 @@ const fixedVehicle = computed(() => {
     if (!props.row) return null
     const brandLabel = brands.value.find(b => b.value === props.row?.carBrand)?.label ?? props.row.carBrand
     const modelLabel = models.value.find(m => m.value === props.row?.carModel)?.label ?? props.row.carModel
-    return `${brandLabel} ${modelLabel}`
+    return modelLabel.toLowerCase().startsWith(brandLabel.toLowerCase()) ? modelLabel : `${brandLabel} ${modelLabel}`
 })
 
 const field = 'mt-1 w-full bg-gray-900 border border-gray-700 rounded-sm px-3 py-2 text-base text-gray-100 placeholder:text-gray-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500'
@@ -75,7 +75,7 @@ async function submit() {
 </script>
 
 <template>
-  <form class="bg-gray-800 rounded-sm p-4 sm:p-6 space-y-6" @submit.prevent="submit">
+  <form class="bg-gray-800 rounded-sm p-4 sm:p-6 space-y-6 max-w-4xl" @submit.prevent="submit">
     <div class="flex items-baseline justify-between gap-3">
       <h3 class="text-lg font-semibold">{{ row ? 'Zeile bearbeiten' : 'Neue Zeile' }}</h3>
       <p v-if="!row" class="text-xs text-gray-500"><span class="text-indigo-300">*</span> Pflicht</p>
@@ -108,9 +108,10 @@ async function submit() {
       </div>
     </fieldset>
 
+    <div class="grid gap-6 lg:grid-cols-[1fr_1.15fr_1.35fr]">
     <fieldset class="space-y-3">
       <legend :class="legend">Akku</legend>
-      <div class="grid grid-cols-2 gap-3 sm:max-w-sm">
+      <div class="grid grid-cols-2 gap-3">
         <label :class="label + ' relative'">Brutto
           <input v-model.number="form.batteryCapacityKwh" type="number" inputmode="decimal" step="0.1" min="1" :class="field + ' pr-12'" />
           <span :class="unit">kWh</span>
@@ -124,8 +125,8 @@ async function submit() {
 
     <fieldset class="space-y-3">
       <legend :class="legend">Normwerte</legend>
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:max-w-xl">
-        <div class="col-span-2 sm:col-span-1">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
           <span :class="label">Norm</span>
           <div class="mt-1 inline-flex rounded-sm border border-gray-700 overflow-hidden" role="radiogroup" aria-label="Norm">
             <button v-for="n in ['WLTP', 'EPA']" :key="n" type="button" role="radio" :aria-checked="form.ratingSource === n"
@@ -147,16 +148,17 @@ async function submit() {
 
     <fieldset class="space-y-3">
       <legend :class="legend">Bauzeitraum</legend>
-      <div class="grid grid-cols-2 gap-3 sm:max-w-sm">
+      <div class="grid grid-cols-2 gap-3">
         <label :class="label">Ab <span v-if="!row" class="text-indigo-300">*</span>
-          <input v-model="form.availableFrom" type="date" :class="field" />
+          <input v-model="form.availableFrom" type="date" :class="field + ' text-sm'" />
         </label>
         <label :class="label">Bis
-          <input v-model="form.availableTo" type="date" :class="field" />
+          <input v-model="form.availableTo" type="date" :class="field + ' text-sm'" />
           <span class="mt-1 block text-xs font-normal text-gray-500">leer = läuft noch</span>
         </label>
       </div>
     </fieldset>
+    </div>
 
     <fieldset class="space-y-3">
       <legend :class="legend">Quelle</legend>
