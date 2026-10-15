@@ -24,7 +24,6 @@ const { t, n, locale } = useI18n()
 const { formatDistance, formatConsumption } = useLocaleFormat()
 
 const enough = computed(() => props.ratings.count >= MIN_FOR_AVERAGE)
-const missing = computed(() => MIN_FOR_AVERAGE - props.ratings.count)
 const expanded = ref<Set<number>>(new Set())
 
 const categoryRows = computed(() => {
@@ -148,7 +147,6 @@ onBeforeUnmount(() => observer?.disconnect())
                         </p>
                     </li>
                 </ul>
-                <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.public.unlock', { n: missing }, missing) }}</p>
             </template>
 
             <!-- Zitate -->

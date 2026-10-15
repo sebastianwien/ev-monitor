@@ -4094,7 +4094,6 @@ rating:
     km: "{distance} gefahren"
     km_below: "unter {distance} gefahren"
     business_car: "Dienstwagen"
-    unlock: "Noch {n} Bewertung, dann zeigen wir den Schnitt. | Noch {n} Bewertungen, dann zeigen wir den Schnitt."
     reports_title: "Erfahrungsberichte"
     read_more: "Weiterlesen"
     read_less: "Weniger anzeigen"

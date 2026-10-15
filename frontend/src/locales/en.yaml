@@ -4088,7 +4088,6 @@ rating:
     km: "{distance} driven"
     km_below: "under {distance} driven"
     business_car: "Company car"
-    unlock: "{n} more rating and we'll show the average. | {n} more ratings and we'll show the average."
     reports_title: "Experience reports"
     read_more: "Read more"
     read_less: "Show less"

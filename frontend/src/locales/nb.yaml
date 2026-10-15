@@ -3971,7 +3971,6 @@ rating:
     km: "{distance} kjørt"
     km_below: "under {distance} kjørt"
     business_car: "Firmabil"
-    unlock: "{n} vurdering til, så viser vi snittet. | {n} vurderinger til, så viser vi snittet."
     reports_title: "Erfaringsrapporter"
     read_more: "Les mer"
     read_less: "Vis mindre"
