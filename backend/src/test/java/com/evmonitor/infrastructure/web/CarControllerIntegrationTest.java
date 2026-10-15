@@ -42,17 +42,17 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void shouldCreateCar_Success() {
-        // Given: Car creation request
+        // Given: Car creation request with a spec row (mandatory since A2)
         CarRequest request = new CarRequest(
                 CarBrand.CarModel.MODEL_3,
                 2024,
                 "TEST-123",
                 "Long Range",
-                new BigDecimal("79.0"),
+                null,
                 new BigDecimal("350.0"),
                 null,
                 false,
-                null
+                createAndSaveSpec(CarBrand.CarModel.MODEL_3).getId()
         );
 
         HttpEntity<CarRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());

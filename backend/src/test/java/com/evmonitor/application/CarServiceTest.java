@@ -5,7 +5,10 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.exception.ForbiddenException;
+import com.evmonitor.domain.VehicleSpecification;
+import com.evmonitor.domain.VehicleSpecificationRepository;
 import com.evmonitor.domain.exception.NotFoundException;
+import com.evmonitor.domain.exception.ValidationException;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +49,9 @@ class CarServiceTest {
     @Mock
     private CarRatingRetention ratingRetention;
 
+    @Mock
+    private VehicleSpecificationRepository vehicleSpecificationRepository;
+
     private CarService carService;
 
     private UUID userId;
@@ -53,25 +59,117 @@ class CarServiceTest {
 
     @BeforeEach
     void setUp() {
-        carService = new CarService(carRepository, coinLogService, carImageService, ratingRetention);
+        carService = new CarService(carRepository, coinLogService, carImageService, ratingRetention,
+                vehicleSpecificationRepository);
         userId = UUID.randomUUID();
         carId = UUID.randomUUID();
+    }
+
+    /** Spec-Zeile zum Modell, im Repository-Mock auffindbar. */
+    private VehicleSpecification specFor(CarBrand.CarModel model) {
+        VehicleSpecification spec = TestDataBuilder.createTestVehicleSpecification(
+                model.getBrand().name(), model.name(), new BigDecimal("79.0"));
+        when(vehicleSpecificationRepository.findById(spec.getId())).thenReturn(Optional.of(spec));
+        return spec;
+    }
+
+    private static CarRequest request(CarBrand.CarModel model, UUID specId) {
+        return new CarRequest(model, 2024, "TEST-123", "Long Range", new BigDecimal("79.0"),
+                new BigDecimal("350.0"), null, false, specId);
+    }
+
+    // ── Anlegen nur mit Spec-Zeile (A2) ──────────────────────────────────────
+
+    @Test
+    void createCar_withoutSpecId_isRejected() {
+        assertThrows(ValidationException.class, () -> carService.createCar(userId, request(CarBrand.CarModel.MODEL_3, null)));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void createCar_unknownSpecId_isRejected() {
+        UUID specId = UUID.randomUUID();
+        when(vehicleSpecificationRepository.findById(specId)).thenReturn(Optional.empty());
+        assertThrows(ValidationException.class, () -> carService.createCar(userId, request(CarBrand.CarModel.MODEL_3, specId)));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void createCar_specOfOtherModel_isRejected() {
+        VehicleSpecification spec = specFor(CarBrand.CarModel.MODEL_3);
+        assertThrows(ValidationException.class, () -> carService.createCar(userId, request(CarBrand.CarModel.I4, spec.getId())));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void createCar_sonstige_isRejected() {
+        assertThrows(ValidationException.class,
+                () -> carService.createCar(userId, request(CarBrand.CarModel.SONSTIGE_CUSTOM, UUID.randomUUID())));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void createCar_ignoresCustomCapacity_andLinksSpec() {
+        VehicleSpecification spec = specFor(CarBrand.CarModel.MODEL_3);
+        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        carService.createCar(userId, request(CarBrand.CarModel.MODEL_3, spec.getId()));
+
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        assertNull(captor.getValue().getCustomNetCapacityKwh(), "freie Kapazität entfällt für neue Autos");
+        assertEquals(spec.getId(), captor.getValue().getVehicleSpecificationId());
+    }
+
+    @Test
+    void updateCar_legacyCarWithoutSpec_sameModel_keepsOwnCapacity() {
+        Car legacy = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3); // 75 kWh, keine Spec
+        when(carRepository.findById(carId)).thenReturn(Optional.of(legacy));
+        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        carService.updateCar(carId, userId, new CarRequest(CarBrand.CarModel.MODEL_3, 2025, "NEW-1", "Performance",
+                new BigDecimal("82.0"), null, null, false, null));
+
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        assertEquals(new BigDecimal("75.0"), captor.getValue().getCustomNetCapacityKwh());
+        assertNull(captor.getValue().getVehicleSpecificationId());
+    }
+
+    @Test
+    void updateCar_legacyCarWithoutSpec_modelChangeWithoutSpec_isRejected() {
+        Car legacy = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(legacy));
+
+        assertThrows(ValidationException.class, () -> carService.updateCar(carId, userId, request(CarBrand.CarModel.I4, null)));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void updateCar_carWithSpec_droppingSpec_isRejected() {
+        Car withSpec = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3)
+                .toBuilder().vehicleSpecificationId(UUID.randomUUID()).build();
+        when(carRepository.findById(carId)).thenReturn(Optional.of(withSpec));
+
+        assertThrows(ValidationException.class, () -> carService.updateCar(carId, userId, request(CarBrand.CarModel.MODEL_3, null)));
+        verify(carRepository, never()).save(any(Car.class));
+    }
+
+    @Test
+    void updateCar_specOfOtherModel_isRejected() {
+        Car legacy = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(legacy));
+        VehicleSpecification spec = specFor(CarBrand.CarModel.I4);
+
+        assertThrows(ValidationException.class, () -> carService.updateCar(carId, userId, request(CarBrand.CarModel.MODEL_3, spec.getId())));
+        verify(carRepository, never()).save(any(Car.class));
     }
 
     @Test
     void shouldCreateCar_WithOwnershipLink() {
         // Given
-        CarRequest request = new CarRequest(
-                CarBrand.CarModel.MODEL_3,
-                2024,
-                "TEST-123",
-                "Long Range",
-                new BigDecimal("79.0"),
-                new BigDecimal("350.0"),
-                null,
-                false,
-                null
-        );
+        VehicleSpecification spec = specFor(CarBrand.CarModel.MODEL_3);
+        CarRequest request = request(CarBrand.CarModel.MODEL_3, spec.getId());
 
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
         // Simulate: user has never received a car-creation coin before → first-time bonus

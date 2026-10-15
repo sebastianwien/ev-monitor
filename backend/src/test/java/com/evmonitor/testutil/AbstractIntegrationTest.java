@@ -15,6 +15,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
@@ -143,7 +144,16 @@ public abstract class AbstractIntegrationTest {
      * Create a test car for a user and save to database.
      */
     protected Car createAndSaveCar(UUID userId, CarBrand.CarModel model) {
-        Car car = TestDataBuilder.createTestCar(userId, model, java.math.BigDecimal.valueOf(75.0));
+        Car car = TestDataBuilder.createTestCar(userId, model, BigDecimal.valueOf(75.0));
         return carRepository.save(car);
+    }
+
+    /** Spec-Zeile zum Modell; seit A2 braucht jedes neue Auto eine. Variante eindeutig je Aufruf. */
+    protected VehicleSpecification createAndSaveSpec(CarBrand.CarModel model) {
+        return vehicleSpecificationRepository.save(VehicleSpecification.createNew(
+                model.getBrand().name(), model.name(), BigDecimal.valueOf(79.0),
+                BigDecimal.valueOf(75.0), BigDecimal.valueOf(500), BigDecimal.valueOf(16.0),
+                VehicleSpecification.WltpType.COMBINED,
+                VehicleSpecification.RatingSource.WLTP, "Test " + System.nanoTime()));
     }
 }

@@ -1,35 +1,25 @@
 package com.evmonitor.infrastructure.web;
 
-import com.evmonitor.application.VehicleSpecificationCreateResponse;
-import com.evmonitor.application.VehicleSpecificationRequest;
 import com.evmonitor.application.VehicleSpecificationResponse;
-import com.evmonitor.domain.CoinLog;
-import com.evmonitor.domain.CoinType;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.VehicleSpecification;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration Tests for VehicleSpecificationController.
- * Tests WLTP data crowdsourcing and coin rewards.
- *
- * BUSINESS CRITICAL: WLTP contributions must award coins correctly!
- * SECURITY CRITICAL: Input sanitization to prevent XSS!
+ * Lookup-Endpoints des Spec-Controllers. Das Nutzer-Anlegen (POST) entfiel mit A2: Zeilen entstehen nur
+ * im Admin-Tab, ein POST hierher bleibt ohne Handler.
  */
 class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationTest {
 
@@ -38,56 +28,8 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
 
     @BeforeEach
     void setUpTestData() {
-        // Create test user with unique email
         testUser = createAndSaveUser("wltp-test-" + System.nanoTime() + "@example.com");
         userId = testUser.getId();
-    }
-
-    @Test
-    void shouldCreateWltpData_AndAwardCoins() {
-        // Given: New WLTP data for a vehicle — use brand not in seed data to avoid conflicts
-        BigDecimal uniqueCapacity = new BigDecimal("75.0");
-        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESTBRAND_" + userId.toString().substring(0, 8),
-                "TESTMODEL_A",
-                uniqueCapacity, null,
-                new BigDecimal("450.0"),
-                new BigDecimal("16.5"),
-                null, null  // defaults to WLTP
-        );
-
-        HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
-
-        // When: POST /api/vehicle-specifications
-        ResponseEntity<VehicleSpecificationCreateResponse> response = restTemplate.exchange(
-                "/api/vehicle-specifications",
-                HttpMethod.POST,
-                requestWithAuth,
-                VehicleSpecificationCreateResponse.class
-        );
-
-        // Then: WLTP data created and coins awarded
-        assertTrue(response.getStatusCode() == HttpStatus.OK ||
-                response.getStatusCode() == HttpStatus.CREATED,
-                "Expected 200 or 201, got: " + response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(50, response.getBody().coinsAwarded());
-
-        // Verify response contains correct data
-        VehicleSpecificationResponse spec = response.getBody().specification();
-        assertNotNull(spec);
-        assertEquals("TESTBRAND_" + userId.toString().substring(0, 8), spec.carBrand());
-        assertEquals("TESTMODEL_A", spec.carModel());
-        assertEquals(0, new BigDecimal("450.0").compareTo(spec.officialRangeKm()));
-        assertEquals(0, new BigDecimal("16.5").compareTo(spec.officialConsumptionKwhPer100km()));
-
-        // Verify coins were awarded
-        List<CoinLog> coinLogs = coinLogRepository.findAllByUserId(userId);
-        assertTrue(coinLogs.size() >= 1, "At least one coin log should exist");
-        // Find the SOCIAL_COIN log
-        boolean hasSocialCoin = coinLogs.stream()
-                .anyMatch(log -> log.getCoinType() == CoinType.SOCIAL_COIN && log.getAmount() == 50);
-        assertTrue(hasSocialCoin, "Should have SOCIAL_COIN reward of 50");
     }
 
     @Test
@@ -126,144 +68,15 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
     }
 
     @Test
-    void shouldRejectDuplicateWltpData() {
-        // Given: WLTP data already exists (use simple integer value)
-        int uniqueSuffix = (int)(System.nanoTime() % 100);
-        BigDecimal uniqueCapacity = new BigDecimal(Integer.toString(200 + uniqueSuffix));
-        VehicleSpecification existing = TestDataBuilder.createTestVehicleSpecification(
-                "HYUNDAI", "IONIQ_5", uniqueCapacity); // Use different brand
-        vehicleSpecificationRepository.save(existing);
+    void userCreate_isGone_evenWhenLoggedIn() {
+        Map<String, Object> body = Map.of("carBrand", "LUCID", "carModel", "AIR", "batteryCapacityKwh", 112,
+                "officialRangeKm", 800, "officialConsumptionKwhPer100km", 15.0);
 
-        // When: Try to create duplicate
-        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "HYUNDAI",
-                "IONIQ_5",
-                uniqueCapacity, null,
-                new BigDecimal("450.0"),
-                new BigDecimal("16.5"),
-                null, null  // defaults to WLTP
-        );
+        ResponseEntity<String> response = restTemplate.exchange("/api/vehicle-specifications", HttpMethod.POST,
+                createAuthRequest(body, userId, testUser.getEmail()), String.class);
 
-        HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
-
-        ResponseEntity<String> response = restTemplate.exchange(
-                "/api/vehicle-specifications",
-                HttpMethod.POST,
-                requestWithAuth,
-                String.class
-        );
-
-        // Then: Should be rejected (500 or 400 with error)
-        assertTrue(
-                response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR ||
-                response.getStatusCode() == HttpStatus.BAD_REQUEST ||
-                response.getStatusCode() == HttpStatus.CONFLICT,
-                "Expected error status, got: " + response.getStatusCode()
-        );
-
-        // Verify user didn't get double coins
-        List<CoinLog> coinLogs = coinLogRepository.findAllByUserId(userId);
-        // Should have at most 1 coin log from the first save
-        assertTrue(coinLogs.size() <= 1, "Should not award coins twice for same data");
-    }
-
-    @Test
-    void shouldSanitizeInput_XssPrevention() {
-        // Given: Malicious input with HTML tags — use brand not in seed data to avoid conflicts
-        BigDecimal uniqueCapacity = new BigDecimal("78.0");
-        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESTBRAND_XSS_" + userId.toString().substring(0, 8) + "<script>alert('XSS')</script>",
-                "TESTMODEL_XSS<img src=x onerror=alert(1)>",
-                uniqueCapacity, null,
-                new BigDecimal("450.0"),
-                new BigDecimal("16.5"),
-                null, null  // defaults to WLTP
-        );
-
-        HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
-
-        // When: POST /api/vehicle-specifications
-        ResponseEntity<VehicleSpecificationCreateResponse> response = restTemplate.exchange(
-                "/api/vehicle-specifications",
-                HttpMethod.POST,
-                requestWithAuth,
-                VehicleSpecificationCreateResponse.class
-        );
-
-        // Then: Data created with sanitized input
-        assertTrue(response.getStatusCode() == HttpStatus.OK ||
-                response.getStatusCode() == HttpStatus.CREATED,
-                "Expected 200 or 201, got: " + response.getStatusCode());
-
-        // Verify HTML tags were removed from response data (script tags stripped, leaving only "TESTBRAND_XSS")
-        VehicleSpecificationResponse spec = response.getBody().specification();
-        assertNotNull(spec);
-        assertFalse(spec.carBrand().contains("<script>"));
-        assertFalse(spec.carBrand().contains("</script>"));
-        assertFalse(spec.carModel().contains("<img"));
-    }
-
-    @Test
-    @org.junit.jupiter.api.Disabled("TODO: Fix trimming test - currently returns 400")
-    void shouldTrimWhitespace() {
-        // Given: Input with extra whitespace (unique capacity)
-        BigDecimal uniqueCapacity = new BigDecimal("79." + System.nanoTime() % 1000);
-        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "  TESLA  ",
-                "  MODEL_3  ",
-                uniqueCapacity, null,
-                new BigDecimal("450.0"),
-                new BigDecimal("16.5"),
-                null, null  // defaults to WLTP
-        );
-
-        HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
-
-        // When: POST /api/vehicle-specifications
-        ResponseEntity<VehicleSpecificationCreateResponse> response = restTemplate.exchange(
-                "/api/vehicle-specifications",
-                HttpMethod.POST,
-                requestWithAuth,
-                VehicleSpecificationCreateResponse.class
-        );
-
-        // Then: Data created with trimmed input
-        assertTrue(response.getStatusCode() == HttpStatus.OK ||
-                response.getStatusCode() == HttpStatus.CREATED,
-                "Expected 200 or 201, got: " + response.getStatusCode());
-
-        // Verify whitespace was trimmed in response
-        VehicleSpecificationResponse spec = response.getBody().specification();
-        assertNotNull(spec);
-        assertEquals("TESLA", spec.carBrand());
-        assertEquals("MODEL_3", spec.carModel());
-    }
-
-    @Test
-    void shouldRejectWltpCreation_WithoutAuthentication() {
-        // Given: No JWT token
-        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "TESLA",
-                "MODEL_3",
-                new BigDecimal("75.0"), null,
-                new BigDecimal("450.0"),
-                new BigDecimal("16.5"),
-                null, null  // defaults to WLTP
-        );
-
-        // When: Try to create WLTP data without auth
-        ResponseEntity<String> response = restTemplate.postForEntity(
-                "/api/vehicle-specifications",
-                request,
-                String.class
-        );
-
-        // Then: Access denied
-        assertTrue(
-                response.getStatusCode() == HttpStatus.UNAUTHORIZED ||
-                response.getStatusCode() == HttpStatus.FORBIDDEN,
-                "Expected 401 or 403, got: " + response.getStatusCode()
-        );
+        assertTrue(response.getStatusCode().is4xxClientError(), "POST darf keine Zeile mehr anlegen");
+        assertNotEquals(HttpStatus.CREATED, response.getStatusCode());
     }
 
     @Test
@@ -288,7 +101,7 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
 
     @Test
     void shouldHandleDifferentBatteryCapacities() {
-        // Given: Same model with different battery capacities — use unique brand not in seed data
+        // Given: Same model with different battery capacities - use unique brand not in seed data
         String uniqueBrand = "TESTBRAND_CAPS_" + userId.toString().substring(0, 8);
         vehicleSpecificationRepository.save(TestDataBuilder.createTestVehicleSpecification(
                 uniqueBrand, "TESTMODEL_B", new BigDecimal("57.5")));
@@ -351,51 +164,5 @@ class VehicleSpecificationControllerIntegrationTest extends AbstractIntegrationT
                 String.class
         );
         assertEquals(HttpStatus.NOT_FOUND, wltpResponse.getStatusCode());
-    }
-
-    @Test
-    void shouldCreateEpaData_AndAwardCoins() {
-        // Given: EPA contribution request for a model not yet in DB
-        VehicleSpecificationRequest request = new VehicleSpecificationRequest(
-                "RIVIAN", "R2",
-                new BigDecimal("60.0"), null,
-                new BigDecimal("350"),
-                new BigDecimal("17.1"),
-                "EPA", null
-        );
-        HttpEntity<VehicleSpecificationRequest> requestWithAuth = createAuthRequest(request, userId, testUser.getEmail());
-
-        // When: POST EPA specification
-        ResponseEntity<VehicleSpecificationCreateResponse> response = restTemplate.exchange(
-                "/api/vehicle-specifications",
-                HttpMethod.POST,
-                requestWithAuth,
-                VehicleSpecificationCreateResponse.class
-        );
-
-        // Then: Created with coins awarded
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertNotNull(response.getBody().specification());
-        assertEquals("RIVIAN", response.getBody().specification().carBrand());
-        assertEquals("R2", response.getBody().specification().carModel());
-        assertTrue(response.getBody().coinsAwarded() > 0);
-    }
-
-    @Test
-    void lookup_capacityKwhAbove500_returns400NotServerError() {
-        ResponseEntity<String> response = restTemplate.exchange(
-                "/api/vehicle-specifications/lookup?brand=TESLA&model=MODEL_3&capacityKwh=999",
-                HttpMethod.GET,
-                createAuthRequest(userId, testUser.getEmail()),
-                String.class
-        );
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode(),
-                "capacityKwh > 500 must return 400, not 500");
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().contains("VALIDATION_ERROR"),
-                "Response body must contain VALIDATION_ERROR code");
-        assertTrue(response.getBody().contains("capacityKwh"),
-                "Response body must name the offending parameter");
     }
 }

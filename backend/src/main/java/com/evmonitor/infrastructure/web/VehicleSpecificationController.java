@@ -1,23 +1,30 @@
 package com.evmonitor.infrastructure.web;
 
-import com.evmonitor.application.VehicleSpecificationCreateResponse;
-import com.evmonitor.application.VehicleSpecificationRequest;
 import com.evmonitor.application.VehicleSpecificationResponse;
 import com.evmonitor.application.VehicleSpecificationService;
-import com.evmonitor.infrastructure.security.UserPrincipal;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Lesezugriff auf Spec-Zeilen. Das Nutzer-Anlegen (POST) entfiel mit A2; Zeilen entstehen nur im Admin-Tab,
+ * Lücken melden Nutzer über {@code /api/vehicle-requests}. {@code /lookup} bleibt bis Release B.
+ */
 @RestController
 @RequestMapping("/api/vehicle-specifications")
 @Validated
@@ -50,23 +57,5 @@ public class VehicleSpecificationController {
         return result
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-    /**
-     * Create new WLTP data entry.
-     * Requires authentication and awards coins to the user.
-     */
-    @PostMapping
-    public ResponseEntity<VehicleSpecificationCreateResponse> create(
-            @Valid @RequestBody VehicleSpecificationRequest request,
-            Authentication authentication) {
-
-        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        VehicleSpecificationCreateResponse response = vehicleSpecificationService.create(
-                principal.getUser().getId(),
-                request
-        );
-
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }

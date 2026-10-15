@@ -176,7 +176,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         Car car = createAndSaveCar(userId, CarBrand.CarModel.MODEL_3);
         createLogViaApi(car.getId(), false); // first log, no OCR → 25 coins
 
-        // When: Next log uses OCR — but it's the FIRST OCR log ever → MANUAL_LOG_FIRST_OCR
+        // When: Next log uses OCR - but it's the FIRST OCR log ever → MANUAL_LOG_FIRST_OCR
         ResponseEntity<EvLogCreateResponse> response = createLogViaApi(car.getId(), true);
 
         // Then: OCR events are independent from non-OCR: first OCR log always gets 27
@@ -252,7 +252,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // sourceEntityId — coin log is linked to the EvLog that triggered it
+    // sourceEntityId - coin log is linked to the EvLog that triggered it
     // ─────────────────────────────────────────────────────────────────────────
 
     @Test
@@ -369,7 +369,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         HttpEntity<Void> auth = createAuthRequest(userId, testUser.getEmail());
         restTemplate.exchange("/api/logs/" + saved.getId(), HttpMethod.DELETE, auth, Void.class);
 
-        // Then: No deduction entry — coin_log remains empty
+        // Then: No deduction entry - coin_log remains empty
         List<CoinLog> logs = coinLogRepository.findAllByUserId(userId);
         assertEquals(0, logs.size(),
                 "No deduction entry must be created when log had no coins awarded");
@@ -393,7 +393,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         // When: User creates a new car (trying to re-farm the 20-coin bonus)
         ResponseEntity<CarCreateResponse> second = createCarViaApi(CarBrand.CarModel.I4);
 
-        // Then: Only 5 coins — coin history is the source of truth, not current car count
+        // Then: Only 5 coins - coin history is the source of truth, not current car count
         assertNotNull(second.getBody());
         assertEquals(5, second.getBody().coinsAwarded(),
                 "Re-creating a car after deletion must NOT re-award the 20-coin first-time bonus");
@@ -414,7 +414,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         // When: User creates a new log (trying to re-farm the 25-coin bonus)
         ResponseEntity<EvLogCreateResponse> second = createLogViaApi(car.getId(), false);
 
-        // Then: Only 5 coins — coin history is the source of truth, not current log count
+        // Then: Only 5 coins - coin history is the source of truth, not current log count
         assertNotNull(second.getBody());
         assertEquals(5, second.getBody().coinsAwarded(),
                 "Re-creating a log after deletion must NOT re-award the 25-coin first-time bonus");
@@ -490,11 +490,11 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
                 2024,
                 "TEST-" + System.nanoTime(),
                 "Standard",
-                new BigDecimal("75.0"),
+                null,
                 new BigDecimal("150.0"),
                 null,
                 false,
-                null
+                createAndSaveSpec(model).getId()
         );
         HttpEntity<CarRequest> entity = createAuthRequest(request, uid, email);
         return restTemplate.exchange("/api/cars", HttpMethod.POST, entity, CarCreateResponse.class);

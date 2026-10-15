@@ -2,7 +2,10 @@ package com.evmonitor.application;
 
 import com.evmonitor.application.rating.CarRatingRetention;
 import com.evmonitor.domain.Car;
+import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.VehicleSpecification;
+import com.evmonitor.domain.VehicleSpecificationRepository;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
 import com.evmonitor.domain.exception.ValidationException;
@@ -24,15 +27,22 @@ public class CarService {
     private final CoinLogService coinLogService;
     private final CarImageService carImageService;
     private final CarRatingRetention ratingRetention;
+    private final VehicleSpecificationRepository vehicleSpecificationRepository;
 
+    /**
+     * Seit A2 braucht jedes neue Auto eine Spec-Zeile zum Modell; die freie Kapazität
+     * ({@code customNetCapacityKwh}) wird ignoriert. Fehlt etwas, meldet der Nutzer es über
+     * {@code MissingVehicleRequestService}.
+     */
     @Transactional
     public CarCreateResponse createCar(UUID userId, CarRequest request) {
+        VehicleSpecification spec = requireSpecFor(request.model(), request.vehicleSpecificationId());
         Car newCar = Car.createNew(userId, request.model(), request.year(), request.licensePlate(),
-                        request.trim(), request.customNetCapacityKwh(), request.powerKw(),
+                        request.trim(), null, request.powerKw(),
                         request.batteryDegradationPercent())
                 .toBuilder()
                 .heatPump(request.hasHeatPump())
-                .vehicleSpecificationId(request.vehicleSpecificationId())
+                .vehicleSpecificationId(spec.getId())
                 .build();
 
         Car savedCar = carRepository.save(newCar);
@@ -60,23 +70,54 @@ public class CarService {
         return CarResponse.fromDomain(requireOwnedCar(carId, userId));
     }
 
+    /**
+     * Ohne Spec-ID nur erlaubt, wenn das Auto schon keine hatte und das Modell gleich bleibt (Altauto mit
+     * eigener Kapazität bleibt editierbar, bis es im Admin-Tab umgehängt ist). Die eigene Kapazität
+     * kommt dabei immer vom bestehenden Auto, nie aus dem Request.
+     */
     public CarResponse updateCar(UUID carId, UUID userId, CarRequest request) {
         Car existingCar = requireOwnedCar(carId, userId);
+
+        UUID specId = request.vehicleSpecificationId();
+        if (specId == null) {
+            boolean legacyUnchanged = existingCar.getVehicleSpecificationId() == null
+                    && request.model() == existingCar.getModel();
+            if (!legacyUnchanged) {
+                throw new ValidationException("Bitte wähle einen Akku aus der Liste.");
+            }
+        } else {
+            requireSpecFor(request.model(), specId);
+        }
 
         Car updatedCar = existingCar.toBuilder()
                 .model(request.model())
                 .year(request.year())
                 .licensePlate(request.licensePlate())
                 .trim(request.trim())
-                .customNetCapacityKwh(request.customNetCapacityKwh())
+                .customNetCapacityKwh(existingCar.getCustomNetCapacityKwh())
                 .powerKw(request.powerKw())
                 .batteryDegradationPercent(request.batteryDegradationPercent())
                 .heatPump(request.hasHeatPump())
-                .vehicleSpecificationId(request.vehicleSpecificationId())
+                .vehicleSpecificationId(specId)
                 .updatedAt(LocalDateTime.now())
                 .build();
 
         return CarResponse.fromDomain(carRepository.save(updatedCar));
+    }
+
+    private VehicleSpecification requireSpecFor(CarBrand.CarModel model, UUID specId) {
+        if (model == CarBrand.CarModel.SONSTIGE_CUSTOM) {
+            throw new ValidationException("Für dieses Modell gibt es noch keine Daten. Melde es über \"Marke oder Modell nicht dabei?\".");
+        }
+        if (specId == null) {
+            throw new ValidationException("Bitte wähle einen Akku aus der Liste.");
+        }
+        VehicleSpecification spec = vehicleSpecificationRepository.findById(specId)
+                .orElseThrow(() -> new ValidationException("Der gewählte Akku ist nicht mehr verfügbar. Bitte wähle neu."));
+        if (!model.name().equals(spec.getCarModel())) {
+            throw new ValidationException("Der gewählte Akku gehört zu einem anderen Modell.");
+        }
+        return spec;
     }
 
     /**
