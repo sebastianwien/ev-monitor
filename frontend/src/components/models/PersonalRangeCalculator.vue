@@ -65,7 +65,7 @@
 
     <!-- Result: four answers; wallbox and price live in ProfileTune beside the sliders -->
     <template v-else-if="result">
-      <div class="flex items-center gap-3">
+      <div class="flex items-center justify-center gap-3 text-center">
         <span class="grid h-12 w-12 flex-none place-items-center rounded-full bg-green-600 text-white"><LockOpenIcon class="h-6 w-6" aria-hidden="true" /></span>
         <h2 id="pr-title" tabindex="-1" class="text-[19px] font-bold leading-tight tracking-tight text-gray-900 focus:outline-none dark:text-gray-100">{{ t('personal_range.answers_title', { model: modelName }) }}</h2>
       </div>
