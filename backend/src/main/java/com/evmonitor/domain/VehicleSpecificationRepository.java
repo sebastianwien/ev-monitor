@@ -10,6 +10,12 @@ public interface VehicleSpecificationRepository {
 
     Optional<VehicleSpecification> findById(UUID id);
 
+    List<VehicleSpecification> findAll();
+
+    List<VehicleSpecification> findAllByCarModel(String carModel);
+
+    void deleteById(UUID id);
+
     List<VehicleSpecification> findByCarModelOrderByBatteryCapacityKwhAsc(String carModel);
 
     Optional<VehicleSpecification> findByCarBrandAndModelAndCapacityAndType(

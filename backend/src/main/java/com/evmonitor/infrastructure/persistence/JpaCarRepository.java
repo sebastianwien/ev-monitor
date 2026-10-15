@@ -24,6 +24,27 @@ public interface JpaCarRepository extends JpaRepository<CarEntity, UUID> {
 
     List<CarEntity> findAllByVehicleSpecificationIdAndDeletedAtIsNull(UUID vehicleSpecificationId);
 
+    // ── Admin-Tab Fahrzeug-Specs ─────────────────────────────────────────────
+
+    /** Alle Autos an einer Zeile, auch soft-gelöschte: der FK blockt das Löschen der Zeile für alle. */
+    long countByVehicleSpecificationId(UUID vehicleSpecificationId);
+
+    List<CarEntity> findAllByModelAndVehicleSpecificationIdIsNullAndDeletedAtIsNull(CarBrand.CarModel model);
+
+    @Query("SELECT c.vehicleSpecificationId, COUNT(c), SUM(CASE WHEN c.deletedAt IS NULL THEN 1 ELSE 0 END) " +
+           "FROM CarEntity c WHERE c.vehicleSpecificationId IS NOT NULL GROUP BY c.vehicleSpecificationId")
+    List<Object[]> countCarsPerSpecification();
+
+    @Query("SELECT c.model, COUNT(c), SUM(CASE WHEN c.vehicleSpecificationId IS NULL THEN 1 ELSE 0 END) " +
+           "FROM CarEntity c WHERE c.deletedAt IS NULL AND c.status = com.evmonitor.domain.CarStatus.ACTIVE GROUP BY c.model")
+    List<Object[]> countActiveCarsPerModel();
+
+    @Query(value = """
+            SELECT c.model, COUNT(l.id) FROM car c JOIN ev_log l ON l.car_id = c.id
+            WHERE c.deleted_at IS NULL AND l.deleted_at IS NULL GROUP BY c.model
+            """, nativeQuery = true)
+    List<Object[]> countLogsPerModel();
+
     List<CarEntity> findAllByDeletedAtBefore(LocalDateTime cutoff);
 
     /** Inklusive soft-gelöschter - nur für DSGVO-Pfade. */

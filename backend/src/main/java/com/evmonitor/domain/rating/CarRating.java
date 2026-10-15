@@ -118,6 +118,12 @@ public class CarRating {
     }
 
     /** Auto endgültig gelöscht: Bewertung zählt anonym weiter. Die FK setzt car_id ebenfalls auf NULL. */
+    /** Admin-Tab: das Auto wurde auf eine Spec-Zeile umgehängt, der Snapshot zieht mit. */
+    public void relinkSpecification(UUID vehicleSpecificationId) {
+        this.vehicleSpecificationId = vehicleSpecificationId;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public void detachFromCar() {
         carId = null;
         anonymizedAt = LocalDateTime.now();

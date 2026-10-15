@@ -14,6 +14,9 @@ import java.util.UUID;
 
 @Repository
 public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
+
+    /** Aktive Ladevorgänge eines Autos (Tombstones blendet @SQLRestriction aus). */
+    long countByCarId(UUID carId);
     Optional<EvLogEntity> findByIdAndCarId(UUID id, UUID carId);
 
     @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId")

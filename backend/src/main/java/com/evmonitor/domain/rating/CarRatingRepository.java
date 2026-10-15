@@ -27,4 +27,10 @@ public interface CarRatingRepository extends JpaRepository<CarRating, UUID> {
     List<CarRating> findAllByCarModel(CarBrand.CarModel carModel);
 
     List<CarRating> findAllByCarModelAndSeedFalse(CarBrand.CarModel carModel);
+
+    /** Admin-Tab Fahrzeug-Specs: Bewertungen je Zeile (Snapshot ohne FK), blockt das Löschen der Zeile. */
+    @Query("SELECT r.vehicleSpecificationId, COUNT(r) FROM CarRating r WHERE r.vehicleSpecificationId IS NOT NULL GROUP BY r.vehicleSpecificationId")
+    List<Object[]> countPerSpecification();
+
+    long countByVehicleSpecificationId(UUID vehicleSpecificationId);
 }
