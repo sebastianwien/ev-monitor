@@ -5,7 +5,7 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 const API_URL = process.env.API_URL || 'http://localhost:8080';
 
 /**
- * Fahrzeugbewertung mobil (390 px): sieben Kernfragen, Ergebnis mit Watt, Vertiefung mit Chip und Text.
+ * Fahrzeugbewertung mobil (390 px): ein Formular mit Pflicht- und optionalem Teil, ein Absenden, Ergebnis mit Watt.
  * Jeder Lauf legt ein eigenes Auto mit fünf Ladungen an (eine Bewertung je Auto) und löscht es danach.
  */
 test.describe('Fahrzeug bewerten', () => {
@@ -59,43 +59,52 @@ test.describe('Fahrzeug bewerten', () => {
   const stars = (page: import('@playwright/test').Page, question: string, value: number) =>
     page.getByRole('radiogroup', { name: question }).getByRole('radio').nth(value - 1).click();
 
-  test('Kernfragen, Ergebnis mit Watt, Vertiefung mit Text', async ({ page }) => {
-    await page.goto(`/cars/${carId}/bewerten?src=e2e`);
+  test('Ein Formular: Pflichtteil, optionaler Teil aufklappbar, ein Absenden, dann Ergebnis mit Watt', async ({ page }) => {
+    await page.goto(`/cars/${carId}/bewerten?src=cars`);
 
     const submit = page.getByRole('button', { name: /^(Noch \d|Absenden)$/ });
     await expect(submit).toHaveText('Noch 7', { timeout: 10_000 });
-    await expect(submit).toBeDisabled();
+    await expect(page.getByTestId('badge-required')).toHaveText('Pflicht');
+    await expect(page.getByTestId('badge-optional')).toHaveText('Optional');
+    // Optionaler Teil ist zu, bis man ihn aufklappt
+    await expect(page.getByLabel(/Deine Erfahrung/)).toBeHidden();
 
     await page.getByRole('radio', { name: 'Ja, genau diesen' }).click();
-    await stars(page, 'Passt er zu deinem Alltag?', 4);
-    await expect(page.getByText('Gut', { exact: true })).toBeVisible();
+    await stars(page, 'Passt er zu deinem Alltag?', 5);
+    await stars(page, 'Wie zufrieden bist du mit Software und Bedienung?', 4);
     await page.getByRole('button', { name: 'Kann ich nicht beurteilen' }).first().click();
-    await stars(page, 'Wie zufrieden bist du mit Software und Bedienung?', 3);
-    await stars(page, 'Wie gut sind Verarbeitung und Komfort?', 5);
+    await stars(page, 'Wie gut sind Verarbeitung und Komfort?', 4);
     await page.getByRole('button', { name: 'Kann ich nicht beurteilen' }).last().click();
-    await expect(submit).toHaveText('Noch 1');
     await page.getByRole('radio', { name: 'Wie erwartet' }).click();
-
     await expect(submit).toHaveText('Absenden');
+
+    await page.getByRole('button', { name: /Mehr erzählen/ }).click();
+    await page.getByRole('group', { name: 'Was überzeugt dich am meisten?' }).getByRole('button', { name: 'Platz' }).click();
+    await page.getByLabel(/Deine Erfahrung/).fill('Im Alltag sehr entspannt, auf der Autobahn im Winter eher 280 km.');
+    await expect(page.getByText(/Erscheint als Zitat/)).toBeVisible();
     await submit.click();
 
     await expect(page.getByText('+50 Watt gutgeschrieben')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/würden? ihn wieder kaufen/)).toBeVisible();
-
-    await page.getByRole('button', { name: 'Stärken, Schwächen und deine Erfahrung' }).click();
-    await page.getByRole('group', { name: 'Was überzeugt dich am meisten?' }).getByRole('button', { name: 'Platz' }).click();
-    await page.getByLabel(/Deine Erfahrung/).fill('Im Alltag sehr entspannt, auf der Autobahn im Winter eher 280 km.');
-    await expect(page.getByText(/Erscheint als Zitat/)).toBeVisible();
-    await page.getByRole('button', { name: 'Speichern' }).click();
-
-    await expect(page.getByRole('heading', { name: /deine Bewertung ist gespeichert/ })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Deinen Text lesen wir in den nächsten Tagen.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Text ergänzen' })).toHaveCount(0);
+  });
+
+  test('/cars zeigt den Teaser über dem Auto, nach Wegklicken die Zeile', async ({ page }) => {
+    await page.goto('/cars');
+    const card = page.getByTestId(`car-card-${carId}`);
+    const teaser = card.getByTestId('rating-teaser');
+    await expect(teaser).toContainText('Bewerte deinen', { timeout: 10_000 });
+    await expect(card.getByTestId('car-rating-row')).toHaveCount(0);
+    await teaser.getByRole('button', { name: 'Hinweis schließen' }).click();
+    await expect(teaser).toHaveCount(0);
+    await expect(card.getByTestId('car-rating-row')).toContainText('Bewerten');
   });
 
   test('Lösch-Flow: erst bewerten, dann das Auto löschen', async ({ page }) => {
     await page.goto('/cars');
     const card = page.getByTestId(`car-card-${carId}`);
-    await expect(card.getByTestId('car-rating-row')).toContainText('Bewerten', { timeout: 10_000 });
+    await expect(card.getByTestId('rating-teaser')).toBeVisible({ timeout: 10_000 });
 
     await card.getByRole('button', { name: 'Löschen', exact: true }).click();
     const sheet = page.getByTestId('rating-delete-sheet');
@@ -114,7 +123,7 @@ test.describe('Fahrzeug bewerten', () => {
 
     // Zurück zu /cars, dort fragt das Löschen wie gewohnt nach
     page.once('dialog', dialog => dialog.accept());
-    await page.getByRole('button', { name: 'Weiter zum Löschen' }).click();
+    await page.getByRole('link', { name: 'Weiter zum Löschen' }).click();
     await expect(page).toHaveURL(/\/cars$/);
     await expect(page.getByTestId(`car-card-${carId}`)).toHaveCount(0, { timeout: 10_000 });
   });

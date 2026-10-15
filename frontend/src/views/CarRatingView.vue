@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, ChartBarIcon, CheckCircleIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ChartBarIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import RatingCoreForm from '../components/rating/RatingCoreForm.vue'
 import RatingResultPanel from '../components/rating/RatingResultPanel.vue'
 import RatingDeepForm from '../components/rating/RatingDeepForm.vue'
@@ -12,15 +12,16 @@ import { useCoinStore } from '../stores/coins'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { analytics } from '../services/analytics'
 import {
-    emptyDraft, answeredCount, canSubmitCore, toAnswers, fromMyRating, reviewKind, draftStorage,
+    emptyDraft, answeredCount, canSubmitCore, toAnswers, fromMyRating, reviewKind, reviewAction, draftStorage,
     CORE_QUESTION_COUNT,
 } from '../utils/ratingForm'
 
 /**
- * Fahrzeug bewerten: Kernfragen, persönliches Ergebnis, optionale Vertiefung.
+ * Fahrzeug bewerten: ein Formular mit Pflichtteil (7 Fragen) und aufklappbarem optionalen Teil
+ * (Stärken, Schwächen, Text), ein Absenden, danach das persönliche Ergebnis.
  * Eigene Route statt Modal, damit Announcement, Dashboard, /cars und Mail direkt hierher verlinken.
  */
-type Screen = 'loading' | 'error' | 'not_eligible' | 'core' | 'result' | 'deep' | 'done'
+type Screen = 'loading' | 'error' | 'not_eligible' | 'form' | 'result'
 
 const route = useRoute()
 const router = useRouter()
@@ -45,6 +46,9 @@ const coins = ref(0)
 const wasRated = ref(false)
 const saving = ref(false)
 const error = ref<string | null>(null)
+/** Optionaler Teil aufgeklappt. Offen, sobald dort schon etwas steht. */
+const deepOpen = ref(false)
+const deepSection = ref<HTMLElement | null>(null)
 
 const model = computed(() => car.value?.modelName ?? '')
 const answered = computed(() => answeredCount(draft))
@@ -59,6 +63,8 @@ const monthsWithCar = computed(() => {
 const modelPagePath = computed(() => car.value
     ? `/modelle/${encodeURIComponent(car.value.brandName)}/${encodeURIComponent(car.value.modelName.replace(/ /g, '_'))}`
     : '/modelle')
+const hasDeepContent = () =>
+    draft.strengths.length > 0 || draft.weaknesses.length > 0 || draft.body.trim().length > 0 || draft.pros.length > 0 || draft.cons.length > 0
 
 onMounted(async () => {
     try {
@@ -83,7 +89,8 @@ onMounted(async () => {
             const saved = draftStorage.load(carId)
             if (saved) Object.assign(draft, saved)
         }
-        screen.value = 'core'
+        deepOpen.value = !!review.value || hasDeepContent()
+        screen.value = 'form'
         analytics.track('rating_started', { source, edit: wasRated.value })
     } catch {
         error.value = t('rating.load_error')
@@ -93,7 +100,7 @@ onMounted(async () => {
 
 // Entwurf sichern, damit ein Abbruch nichts verliert
 watch(draft, () => {
-    if (screen.value === 'core' || screen.value === 'deep') draftStorage.save(carId, draft)
+    if (screen.value === 'form') draftStorage.save(carId, draft)
 }, { deep: true })
 
 function goTo(next: Screen) {
@@ -102,39 +109,36 @@ function goTo(next: Screen) {
     window.scrollTo({ top: 0 })
 }
 
-async function saveRating(): Promise<RatingResult> {
-    const saved = await ratingService.submitRating(carId, toAnswers(draft))
-    coins.value += saved.coinsAwarded
-    if (saved.coinsAwarded > 0) coinStore.refresh()
-    ratingStore.invalidate()
-    return saved
+function toggleDeep() {
+    deepOpen.value = !deepOpen.value
+    if (deepOpen.value) analytics.track('rating_deep_opened')
 }
 
-async function submitCore() {
+/** Vom Ergebnis zurück ins Formular, direkt zum optionalen Teil. */
+async function addText() {
+    deepOpen.value = true
+    goTo('form')
+    await nextTick()
+    deepSection.value?.scrollIntoView({ block: 'start' })
+}
+
+async function submit() {
     if (!canSubmitCore(draft) || saving.value) return
     saving.value = true
     error.value = null
     try {
-        result.value = await saveRating()
+        // Stärken und Schwächen gehören zur Bewertung selbst, der Text ist eine eigene Fassung
+        const saved = await ratingService.submitRating(carId, toAnswers(draft))
+        coins.value += saved.coinsAwarded
+        if (saved.coinsAwarded > 0) coinStore.refresh()
+        ratingStore.invalidate()
+        result.value = saved
         analytics.track('rating_completed_core', { source, edit: wasRated.value })
         wasRated.value = true
-        goTo('result')
-    } catch {
-        error.value = t('rating.save_error')
-    } finally {
-        saving.value = false
-    }
-}
 
-async function submitDeep() {
-    if (saving.value) return
-    saving.value = true
-    error.value = null
-    try {
-        // Stärken und Schwächen gehören zur Bewertung selbst
-        result.value = await saveRating()
         const body = draft.body.trim()
-        if (body) {
+        const action = reviewAction(draft, review.value)
+        if (action === 'submit') {
             review.value = await ratingService.submitReview(carId, {
                 body,
                 pros: draft.pros.map(p => p.trim()).filter(Boolean),
@@ -142,15 +146,17 @@ async function submitDeep() {
                 deleteWithCar: draft.deleteWithCar,
             })
             analytics.track('review_submitted', { kind: reviewKind(body) })
-        } else if (review.value && review.value.deleteWithCar !== draft.deleteWithCar) {
+        } else if (action === 'settings') {
             review.value = await ratingService.updateReviewSettings(carId, draft.deleteWithCar)
         }
-        analytics.track('rating_completed_deep', {
-            chips: draft.strengths.length + draft.weaknesses.length,
-            text: reviewKind(body),
-        })
+        if (deepOpen.value) {
+            analytics.track('rating_completed_deep', {
+                chips: draft.strengths.length + draft.weaknesses.length,
+                text: reviewKind(body),
+            })
+        }
         draftStorage.clear(carId)
-        goTo('done')
+        goTo('result')
     } catch {
         error.value = t('rating.save_error')
     } finally {
@@ -191,18 +197,19 @@ function finish() {
                             </p>
                         </div>
                     </div>
-                    <template v-if="screen === 'core'">
-                        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100 text-balance">{{ t('rating.head.title', { model }) }}</h1>
+                    <template v-if="screen === 'form'">
+                        <div class="flex items-start justify-between gap-3">
+                            <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100 text-balance">{{ t('rating.head.title', { model }) }}</h1>
+                            <span class="shrink-0 mt-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs font-medium" data-testid="badge-required">
+                                {{ t('rating.badge_required') }}
+                            </span>
+                        </div>
                         <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.head.lead', { model }) }}</p>
                         <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.head.anonymity', { model }) }}</p>
                         <p class="flex gap-2 rounded-sm bg-gray-50 dark:bg-gray-700/50 p-3 text-sm text-gray-600 dark:text-gray-300">
                             <ChartBarIcon class="w-5 h-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
                             {{ t('rating.head.measured') }}
                         </p>
-                    </template>
-                    <template v-else-if="screen === 'deep'">
-                        <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('rating.deep.title') }}</h1>
-                        <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.deep.lead') }}</p>
                     </template>
                 </header>
 
@@ -220,41 +227,66 @@ function finish() {
                     </RouterLink>
                 </section>
 
-                <RatingCoreForm v-else-if="screen === 'core'" v-model:draft="draft" :model="model" />
-                <RatingResultPanel v-else-if="screen === 'result' && result" :result="result" :model="model" :coins="coins" />
-                <RatingDeepForm v-else-if="screen === 'deep'" v-model:draft="draft" :model="model" :review="review" />
+                <template v-else-if="screen === 'form'">
+                    <RatingCoreForm v-model:draft="draft" :model="model" />
 
-                <section v-else-if="screen === 'done'" class="py-8 space-y-4 text-center">
-                    <CheckCircleIcon class="w-14 h-14 mx-auto text-green-600 dark:text-green-400" aria-hidden="true" />
-                    <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100 text-balance">{{ t('rating.done.title', { model }) }}</h1>
-                    <p v-if="review?.status === 'PENDING'" class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.done.review_pending') }}</p>
-                    <p v-if="coins > 0" class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.done.coins_total', { n: coins }) }}</p>
-                    <div class="flex flex-col gap-2 pt-2">
-                        <RouterLink v-if="continueDelete" :to="returnPath" class="min-h-11 flex items-center justify-center rounded-sm bg-red-600 hover:bg-red-700 text-white font-semibold">{{ t('rating.delete_sheet.continue_delete') }}</RouterLink>
-                        <a v-else :href="modelPagePath" class="min-h-11 flex items-center justify-center rounded-sm bg-green-600 hover:bg-green-700 text-white font-semibold">{{ t('rating.done.model_page', { model }) }}</a>
-                        <RouterLink v-if="!continueDelete" to="/cars" class="min-h-11 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-300">{{ t('rating.done.back_to_cars') }}</RouterLink>
+                    <!-- Optionaler Teil: sichtbar getrennt, aufklappbar -->
+                    <section ref="deepSection" class="mt-6 -mx-4 sm:-mx-6 md:mx-0 border-t-4 border-gray-100 dark:border-gray-700/60 md:rounded-sm md:border md:border-gray-200 md:dark:border-gray-700 scroll-mt-4" data-testid="deep-section">
+                        <button
+                            type="button"
+                            class="w-full flex items-start gap-3 px-4 sm:px-6 md:px-4 py-4 text-left"
+                            :aria-expanded="deepOpen"
+                            aria-controls="deep-content"
+                            @click="toggleDeep"
+                        >
+                            <div class="flex-1 min-w-0 space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('rating.deep.section_title') }}</h2>
+                                    <span class="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium" data-testid="badge-optional">
+                                        {{ t('rating.badge_optional') }}
+                                    </span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.deep.section_lead') }}</p>
+                            </div>
+                            <span class="shrink-0 flex items-center gap-1 min-h-11 text-sm font-medium text-green-700 dark:text-green-400">
+                                {{ deepOpen ? t('rating.deep.collapse') : t('rating.deep.expand') }}
+                                <ChevronDownIcon class="w-5 h-5 transition-transform" :class="{ 'rotate-180': deepOpen }" aria-hidden="true" />
+                            </span>
+                        </button>
+                        <div v-show="deepOpen" id="deep-content" class="px-4 sm:px-6 md:px-4 pb-4">
+                            <!-- Status eines vorhandenen Texts (Bearbeiten) -->
+                            <p v-if="review" class="mb-2 rounded-sm bg-gray-50 dark:bg-gray-700/50 p-3 text-sm text-gray-700 dark:text-gray-300" data-testid="review-status">
+                                <span class="font-medium">{{ t(`rating.review_status.${review.status}`) }}</span>
+                                <template v-if="review.status === 'PENDING' && review.published"> - {{ t('rating.review_status.pending_published') }}</template>
+                                <template v-if="review.status === 'REJECTED' && review.rejectionReason">
+                                    - {{ t('rating.review_status.rejected_reason', { reason: t(`rating.review_status.reasons.${review.rejectionReason}`) }) }}
+                                    <span v-if="review.rejectionNote" class="block mt-1">{{ review.rejectionNote }}</span>
+                                </template>
+                            </p>
+                            <RatingDeepForm v-model:draft="draft" :model="model" :review="review" />
+                        </div>
+                    </section>
+                </template>
+
+                <template v-else-if="screen === 'result' && result">
+                    <RatingResultPanel :result="result" :model="model" :coins="coins" />
+                    <div class="py-4 space-y-3 text-center">
+                        <p v-if="review?.status === 'PENDING'" class="text-sm text-gray-600 dark:text-gray-300">{{ t('rating.done.review_pending') }}</p>
+                        <a v-if="!continueDelete" :href="modelPagePath" class="inline-flex items-center min-h-11 text-sm font-medium text-green-700 dark:text-green-400">
+                            {{ t('rating.done.model_page', { model }) }}
+                        </a>
                     </div>
-                </section>
-
-                <!-- Status eines vorhandenen Texts (Bearbeiten) -->
-                <p v-if="screen === 'deep' && review" class="mb-4 rounded-sm bg-gray-50 dark:bg-gray-700/50 p-3 text-sm text-gray-700 dark:text-gray-300" data-testid="review-status">
-                    <span class="font-medium">{{ t(`rating.review_status.${review.status}`) }}</span>
-                    <template v-if="review.status === 'PENDING' && review.published"> - {{ t('rating.review_status.pending_published') }}</template>
-                    <template v-if="review.status === 'REJECTED' && review.rejectionReason">
-                        - {{ t('rating.review_status.rejected_reason', { reason: t(`rating.review_status.reasons.${review.rejectionReason}`) }) }}
-                        <span v-if="review.rejectionNote" class="block mt-1">{{ review.rejectionNote }}</span>
-                    </template>
-                </p>
+                </template>
             </template>
         </div>
 
         <!-- Aktionsleiste: mobil fest über der Bottom-Navigation, ab md im Fluss -->
         <div
-            v-if="screen === 'core' || screen === 'result' || screen === 'deep'"
+            v-if="screen === 'form' || screen === 'result'"
             class="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:static md:max-w-xl md:mx-auto z-20 bg-white dark:bg-gray-800 border-t md:border md:border-t-0 border-gray-200 dark:border-gray-700 px-4 py-3"
         >
             <p v-if="error" class="mb-2 text-sm text-center text-red-600 dark:text-red-400" role="alert">{{ error }}</p>
-            <div v-if="screen === 'core'" class="flex items-center gap-3">
+            <div v-if="screen === 'form'" class="flex items-center gap-3">
                 <div class="flex-1 space-y-1 text-xs text-gray-500 dark:text-gray-400 tabular-nums">
                     <span>{{ t('rating.progress', { n: answered, total: CORE_QUESTION_COUNT }) }}</span>
                     <div class="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="progressbar"
@@ -266,21 +298,18 @@ function finish() {
                     type="button"
                     :disabled="!canSubmitCore(draft) || saving"
                     class="min-h-12 px-5 rounded-sm bg-green-600 hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold"
-                    @click="submitCore"
+                    @click="submit"
                 >
                     {{ saving ? t('rating.saving') : canSubmitCore(draft) ? t('rating.submit') : t('rating.submit_missing', { n: CORE_QUESTION_COUNT - answered }) }}
                 </button>
             </div>
-            <div v-else-if="screen === 'result'" class="flex items-center gap-3">
-                <button type="button" class="min-h-12 px-3 text-gray-600 dark:text-gray-300 font-medium" @click="finish">{{ continueDelete ? t('rating.delete_sheet.continue_delete') : t('rating.result.done') }}</button>
-                <button type="button" class="flex-1 min-h-12 px-4 rounded-sm bg-green-600 hover:bg-green-700 text-white font-semibold" @click="goTo('deep')">
-                    {{ t('rating.result.deepen') }}
-                </button>
-            </div>
             <div v-else class="flex items-center gap-3">
-                <button type="button" class="min-h-12 px-3 text-gray-600 dark:text-gray-300 font-medium" :disabled="saving" @click="goTo(result ? 'result' : 'core')">{{ t('rating.deep.back') }}</button>
-                <button type="button" :disabled="saving" class="flex-1 min-h-12 px-4 rounded-sm bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white font-semibold" @click="submitDeep">
-                    {{ saving ? t('rating.saving') : t('rating.deep.save') }}
+                <button v-if="!review" type="button" class="min-h-12 px-3 text-gray-600 dark:text-gray-300 font-medium" @click="addText">{{ t('rating.result.add_text') }}</button>
+                <RouterLink v-if="continueDelete" :to="returnPath" class="flex-1 min-h-12 flex items-center justify-center rounded-sm bg-red-600 hover:bg-red-700 text-white font-semibold">
+                    {{ t('rating.delete_sheet.continue_delete') }}
+                </RouterLink>
+                <button v-else type="button" class="flex-1 min-h-12 px-4 rounded-sm bg-green-600 hover:bg-green-700 text-white font-semibold" @click="finish">
+                    {{ t('rating.result.done') }}
                 </button>
             </div>
         </div>

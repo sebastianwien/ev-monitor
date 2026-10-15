@@ -10,6 +10,7 @@ import {
     fromMyRating,
     reviewKind,
     draftStorage,
+    reviewAction,
     CORE_QUESTION_COUNT,
     type RatingDraft,
 } from '../ratingForm'
@@ -138,5 +139,31 @@ describe('Entwurfsspeicher', () => {
 
         vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('QuotaExceeded') })
         expect(() => draftStorage.save('car-1', complete())).not.toThrow()
+    })
+})
+
+describe('reviewAction: was beim gemeinsamen Absenden mit dem Text passiert', () => {
+    const review = {
+        body: 'alt', pros: [], cons: [], status: 'PENDING' as const, rejectionReason: null,
+        rejectionNote: null, published: false, deleteWithCar: false, submittedAt: '2026-10-01T00:00:00Z',
+    }
+
+    it('ohne Text und ohne bestehenden Text passiert nichts', () => {
+        expect(reviewAction(emptyDraft(), null)).toBe('none')
+    })
+
+    it('mit Text wird der Text eingereicht, auch nur aus Leerzeichen nicht', () => {
+        const d = emptyDraft()
+        d.body = '  Tolles Auto  '
+        expect(reviewAction(d, null)).toBe('submit')
+        d.body = '   '
+        expect(reviewAction(d, null)).toBe('none')
+    })
+
+    it('leeres Feld bei bestehendem Text ändert nur den Löschschalter, wenn er umgestellt wurde', () => {
+        const d = emptyDraft()
+        expect(reviewAction(d, review)).toBe('none')
+        d.deleteWithCar = true
+        expect(reviewAction(d, review)).toBe('settings')
     })
 })

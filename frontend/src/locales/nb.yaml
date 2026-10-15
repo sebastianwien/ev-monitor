@@ -3903,7 +3903,7 @@ rating:
     coins: "+{n} Watt godskrevet"
     updated: "Vurderingen din er oppdatert."
     done: "Ferdig"
-    deepen: "Styrker, svakheter og din erfaring"
+    add_text: "Legg til tekst"
     categories:
       daily_fit: "Hverdag"
       long_distance: "Langtur"
@@ -3911,8 +3911,10 @@ rating:
       build_quality: "Byggekvalitet"
       service: "Verksted"
   deep:
-    title: "Hva bør interesserte vite?"
-    lead: "Alt er valgfritt. Valgene vises samlet på modellsiden."
+    section_title: "Fortell mer"
+    section_lead: "Styrker, svakheter og din erfaring. Opptil 150 Watt for en godkjent tekst."
+    expand: "Vis"
+    collapse: "Skjul"
     strengths: "Hva overbeviser deg mest?"
     weaknesses: "Hva irriterer deg mest?"
     up_to: "Velg opptil 3"
@@ -3936,8 +3938,6 @@ rating:
     remove_item: "Fjern punkt"
     delete_with_car: "Slett teksten når jeg sletter bilen"
     moderation: "Vi leser hver tekst før den publiseres."
-    back: "Tilbake"
-    save: "Lagre"
   review_status:
     PENDING: "Til vurdering"
     APPROVED: "Publisert"
@@ -3953,12 +3953,15 @@ rating:
       NO_EXPERIENCE: "ingen egen erfaring synlig"
       OTHER: "annet"
   done:
-    title: "Takk. Din dom teller nå på {model}-siden."
     review_pending: "Vi leser teksten din i løpet av de neste dagene."
-    coins_total: "+{n} Watt totalt"
     model_page: "Til {model}-siden"
     back_to_cars: "Til mine biler"
   public:
+    cost_label: "Totalkostnader"
+    cost_single:
+      CHEAPER: "lavere enn forventet"
+      EXPECTED: "som forventet"
+      PRICIER: "høyere enn forventet"
     title: "Sjåførene sier"
     empty: "Ingen sjåførvurderinger ennå. Kjører du en {model}?"
     empty_cta: "Registrer deg gratis og vurder"
@@ -3984,6 +3987,8 @@ rating:
     cta: "Vurder"
     dismiss: "Lukk hinten"
   badge_rated: "Vurdert"
+  badge_required: "Obligatorisk"
+  badge_optional: "Valgfritt"
   delete_sheet:
     rate_title: "Du gir fra deg {model}. Vil du vurdere den kjapt?"
     rate_body: "Det hjelper alle som vurderer den. 7 spørsmål, rundt 90 sekunder."
