@@ -80,6 +80,31 @@ class CarModelsEndpointTest extends AbstractIntegrationTest {
         assertNotEquals(cap1.get("vehicleSpecificationId"), cap2.get("vehicleSpecificationId"));
     }
 
+    /** Akku-Auswahl neueste Zeile zuerst: available_from absteigend, ohne Datum zuletzt. */
+    @Test
+    void capacities_areOrderedByAvailableFromDescNullsLast() {
+        BigDecimal kwhOld = uniqueKwh();
+        BigDecimal kwhNew = uniqueKwh();
+        BigDecimal kwhUndated = uniqueKwh();
+        vehicleSpecificationRepository.save(VehicleSpecification.createNew("POLESTAR", "POLESTAR_4", kwhOld,
+                new BigDecimal("500.0"), new BigDecimal("18.0"), VehicleSpecification.WltpType.COMBINED)
+                .toBuilder().availableFrom(java.time.LocalDate.of(2021, 1, 1)).build());
+        vehicleSpecificationRepository.save(VehicleSpecification.createNew("POLESTAR", "POLESTAR_4", kwhNew,
+                new BigDecimal("500.0"), new BigDecimal("18.0"), VehicleSpecification.WltpType.COMBINED)
+                .toBuilder().availableFrom(java.time.LocalDate.of(2025, 1, 1)).build());
+        vehicleSpecificationRepository.save(VehicleSpecification.createNew("POLESTAR", "POLESTAR_4", kwhUndated,
+                new BigDecimal("500.0"), new BigDecimal("18.0"), VehicleSpecification.WltpType.COMBINED));
+
+        Map<String, Object> model = findByValue(getModels("POLESTAR"), "POLESTAR_4");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> caps = (List<Map<String, Object>>) model.get("capacities");
+        List<Double> order = caps.stream().map(c -> ((Number) c.get("kWh")).doubleValue())
+                .filter(k -> k == kwhOld.doubleValue() || k == kwhNew.doubleValue() || k == kwhUndated.doubleValue())
+                .toList();
+
+        assertEquals(List.of(kwhNew.doubleValue(), kwhOld.doubleValue(), kwhUndated.doubleValue()), order);
+    }
+
     @Test
     void carCreate_withVehicleSpecificationId_persistsIt() {
         BigDecimal kwh = uniqueKwh();

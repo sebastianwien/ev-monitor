@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -209,7 +210,12 @@ public class CarController {
 
                     List<CapacityOption> capacities;
                     if (!specs.isEmpty()) {
+                        // Neueste Zeile zuerst: available_from absteigend, ohne Datum zuletzt, dann Kapazität
                         capacities = specs.stream()
+                                .sorted(Comparator
+                                        .comparing(VehicleSpecificationEntity::getAvailableFrom,
+                                                Comparator.nullsLast(Comparator.<LocalDate>reverseOrder()))
+                                        .thenComparing(VehicleSpecificationEntity::getBatteryCapacityKwh, Comparator.reverseOrder()))
                                 .map(s -> new CapacityOption(
                                         s.getBatteryCapacityKwh().doubleValue(),
                                         // DB stores '' as NOT-NULL sentinel (V90) - expose as null
