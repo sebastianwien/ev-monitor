@@ -39,6 +39,8 @@ function toCommand(r: SpecRow): SpecCommand {
         availableTo: r.availableTo,
         sourceUrl: r.sourceUrl ?? '',
         ratingSource: r.ratingSource,
+        dcMaxPowerKw: r.dcMaxPowerKw,
+        dcAvgPower1080Kw: r.dcAvgPower1080Kw,
     }
 }
 
@@ -64,6 +66,7 @@ const active = (field: keyof SpecCommand | 'period' | 'battery' | 'norm') => {
     if (field === 'period') return props.focusField === 'availableFrom' || props.focusField === 'availableTo'
     if (field === 'battery') return props.focusField === 'batteryCapacityKwh' || props.focusField === 'netBatteryCapacityKwh'
     if (field === 'norm') return props.focusField === 'officialRangeKm' || props.focusField === 'officialConsumptionKwhPer100km'
+        || props.focusField === 'dcMaxPowerKw' || props.focusField === 'dcAvgPower1080Kw'
     return props.focusField === field
 }
 
@@ -134,7 +137,7 @@ const btn = 'px-2 py-1 rounded-sm text-xs'
       <span v-else class="text-gray-300 whitespace-nowrap">{{ row.batteryCapacityKwh }} / {{ row.netBatteryCapacityKwh ?? '?' }} kWh</span>
 
       <!-- Norm -->
-      <span v-if="active('norm')" class="flex items-center gap-1 min-w-0">
+      <span v-if="active('norm')" class="flex flex-wrap items-center gap-1 min-w-0">
         <input v-model.number="draft.officialRangeKm" data-field="officialRangeKm" type="number" inputmode="numeric" step="1" min="1" :class="input + (wrap ? ' w-20' : ' flex-1')" aria-label="Reichweite km" placeholder="km" title="Reichweite km" />
         <input v-model.number="draft.officialConsumptionKwhPer100km" data-field="officialConsumptionKwhPer100km" type="number" inputmode="decimal" step="0.1" min="1" :class="input + (wrap ? ' w-20' : ' flex-1')" aria-label="Verbrauch kWh/100 km" placeholder="kWh/100" title="Verbrauch kWh/100 km" />
         <span class="inline-flex rounded-sm border border-gray-600 overflow-hidden" role="radiogroup" aria-label="Norm">
@@ -142,8 +145,13 @@ const btn = 'px-2 py-1 rounded-sm text-xs'
                   class="px-1.5 py-1 text-xs" :class="draft.ratingSource === n ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-400'"
                   @click="draft.ratingSource = n as SpecCommand['ratingSource']">{{ n }}</button>
         </span>
+        <input v-model.number="draft.dcMaxPowerKw" data-field="dcMaxPowerKw" type="number" inputmode="decimal" step="0.1" min="1" max="1000" :class="input + (wrap ? ' w-20' : ' flex-1')" aria-label="DC max kW" placeholder="DC max" title="DC max kW" />
+        <input v-model.number="draft.dcAvgPower1080Kw" data-field="dcAvgPower1080Kw" type="number" inputmode="decimal" step="0.1" min="1" max="1000" :class="input + (wrap ? ' w-20' : ' flex-1')" aria-label="DC 10-80 % kW" placeholder="DC 10-80" title="DC 10-80 % kW" />
       </span>
-      <span v-else class="text-gray-300 whitespace-nowrap">{{ row.officialRangeKm }} km · {{ row.officialConsumptionKwhPer100km }} kWh/100 km · {{ row.ratingSource }}</span>
+      <span v-else class="text-gray-300 min-w-0">
+        <span class="block">{{ row.officialRangeKm }} km · {{ row.officialConsumptionKwhPer100km }} kWh/100 km · {{ row.ratingSource }}</span>
+        <span v-if="row.dcMaxPowerKw != null || row.dcAvgPower1080Kw != null" class="block whitespace-nowrap text-xs text-gray-500" title="DC max / Mittel 10-80 %">DC {{ row.dcMaxPowerKw ?? '?' }} / {{ row.dcAvgPower1080Kw ?? '?' }} kW</span>
+      </span>
 
       <!-- Zeitraum -->
       <span v-if="active('period')" class="flex items-center gap-1 min-w-0">

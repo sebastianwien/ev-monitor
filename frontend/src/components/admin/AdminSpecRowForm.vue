@@ -30,6 +30,8 @@ const form = ref<SpecCommand>({
     availableTo: props.row?.availableTo ?? null,
     sourceUrl: props.row?.sourceUrl ?? '',
     ratingSource: base?.ratingSource ?? 'WLTP',
+    dcMaxPowerKw: base?.dcMaxPowerKw ?? null,
+    dcAvgPower1080Kw: base?.dcAvgPower1080Kw ?? null,
 })
 
 async function loadModels() {
@@ -128,6 +130,13 @@ async function submit() {
       </label>
       <label :class="rowCls"><span :class="label">Verbrauch</span>
         <span class="relative block"><input v-model.number="form.officialConsumptionKwhPer100km" type="number" inputmode="decimal" step="0.1" min="1" :class="field + ' pr-24'" /><span :class="unit + ' text-xs'">kWh/100 km</span></span>
+      </label>
+
+      <label :class="rowCls"><span :class="label">DC max</span>
+        <span class="relative block"><input v-model.number="form.dcMaxPowerKw" type="number" inputmode="decimal" step="0.1" min="1" max="1000" :class="field + ' pr-10'" /><span :class="unit">kW</span></span>
+      </label>
+      <label :class="rowCls"><span :class="label">DC 10-80 %</span>
+        <span class="relative block"><input v-model.number="form.dcAvgPower1080Kw" type="number" inputmode="decimal" step="0.1" min="1" max="1000" :class="field + ' pr-10'" /><span :class="unit">kW</span></span>
       </label>
 
       <label :class="rowCls"><span :class="label">Ab <span v-if="!row" class="text-indigo-300">*</span></span>

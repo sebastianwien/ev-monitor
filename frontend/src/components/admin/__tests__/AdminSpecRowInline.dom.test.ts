@@ -14,7 +14,7 @@ import AdminSpecRowInline from '../AdminSpecRowInline.vue'
 const row: SpecRow = {
     id: 'spec-1', carBrand: 'TESLA', carModel: 'MODEL_3', batteryCapacityKwh: 79, netBatteryCapacityKwh: 75, officialRangeKm: 629,
     officialConsumptionKwhPer100km: 14, ratingSource: 'WLTP', variantName: 'Long Range AWD', trimLevel: 'Long Range',
-    availableFrom: '2024-01-01', availableTo: null, sourceUrl: null, activeCars: 12, allCars: 13, ratings: 1, workLists: ['NO_SOURCE'],
+    availableFrom: '2024-01-01', availableTo: null, sourceUrl: null, dcMaxPowerKw: 250, dcAvgPower1080Kw: 170, activeCars: 12, allCars: 13, ratings: 1, workLists: ['NO_SOURCE'],
 }
 
 let app: App | null = null
@@ -67,6 +67,36 @@ describe('AdminSpecRowInline', () => {
             sourceUrl: 'https://ev-database.org/car/1', ratingSource: 'WLTP',
         }))
         expect(saved).toHaveBeenCalledWith({ row, warnings: [] })
+    })
+
+    it('zeigt die DC-Ladeleistung unter dem Normwert', () => {
+        const host = mount()
+        expect(host.textContent).toContain('DC 250 / 170 kW')
+    })
+
+    it('bearbeitet und speichert die DC-Ladeleistung mit dem vollen Command', async () => {
+        update.mockResolvedValue({ row, warnings: [] })
+        const host = mount({ editing: true })
+        await nextTick()
+        expect(input(host, 'dcMaxPowerKw').value).toBe('250')
+        const avg = input(host, 'dcAvgPower1080Kw')
+        avg.value = '175'
+        avg.dispatchEvent(new Event('input'))
+        key(avg, 'Enter')
+        await nextTick(); await nextTick()
+        expect(update).toHaveBeenCalledWith('spec-1', expect.objectContaining({ dcMaxPowerKw: 250, dcAvgPower1080Kw: 175, sourceUrl: '' }))
+    })
+
+    it('Lückenmodus auf einem anderen Feld behält die DC-Ladeleistung', async () => {
+        update.mockResolvedValue({ row, warnings: [] })
+        const host = mount({ editing: true, focusField: 'sourceUrl' })
+        await nextTick()
+        const src = input(host, 'sourceUrl')
+        src.value = 'https://ev-database.org/car/1'
+        src.dispatchEvent(new Event('input'))
+        key(src, 'Enter')
+        await nextTick(); await nextTick()
+        expect(update).toHaveBeenCalledWith('spec-1', expect.objectContaining({ dcMaxPowerKw: 250, dcAvgPower1080Kw: 170 }))
     })
 
     it('verwirft mit Esc und emittiert cancel', async () => {

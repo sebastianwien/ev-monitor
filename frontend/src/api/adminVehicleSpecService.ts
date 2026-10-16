@@ -16,6 +16,10 @@ export interface SpecRow {
     availableFrom: string | null
     availableTo: string | null
     sourceUrl: string | null
+    /** Maximale DC-Ladeleistung in kW (ev-database "Charge Power (max)"). */
+    dcMaxPowerKw: number | null
+    /** Mittlere DC-Ladeleistung 10-80 % in kW (ev-database "Charge Power (10-80%)"). */
+    dcAvgPower1080Kw: number | null
     activeCars: number
     allCars: number
     ratings: number
@@ -59,6 +63,8 @@ export interface SpecCommand {
     availableTo: string | null
     sourceUrl: string
     ratingSource: 'WLTP' | 'EPA'
+    dcMaxPowerKw: number | null
+    dcAvgPower1080Kw: number | null
 }
 
 export interface SaveResult {

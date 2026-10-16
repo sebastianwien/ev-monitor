@@ -11,7 +11,7 @@ import { wordParts } from './specCompare'
  * Ohne Datei zeigt der Tab nur einen Hinweis.
  */
 interface Entry { label: string; battery: number | null; availableFrom: string | null; availableTo: string | null; sourceUrl: string }
-type Values = Pick<SpecCommand, 'batteryCapacityKwh' | 'netBatteryCapacityKwh' | 'officialRangeKm' | 'officialConsumptionKwhPer100km'>
+type Values = Pick<SpecCommand, 'batteryCapacityKwh' | 'netBatteryCapacityKwh' | 'officialRangeKm' | 'officialConsumptionKwhPer100km' | 'dcMaxPowerKw' | 'dcAvgPower1080Kw'>
 type Used = { kind: 'übernommen'; targetId: string; before: SpecRow } | { kind: 'angelegt'; createdId: string }
 
 const PAGE = 10
@@ -103,7 +103,7 @@ function toCommand(r: SpecRow): SpecCommand {
         model: r.carModel, batteryCapacityKwh: r.batteryCapacityKwh, netBatteryCapacityKwh: r.netBatteryCapacityKwh,
         officialRangeKm: r.officialRangeKm, officialConsumptionKwhPer100km: r.officialConsumptionKwhPer100km,
         variantName: r.variantName ?? '', trimLevel: r.trimLevel ?? '', availableFrom: r.availableFrom, availableTo: r.availableTo,
-        sourceUrl: r.sourceUrl ?? '', ratingSource: r.ratingSource,
+        sourceUrl: r.sourceUrl ?? '', ratingSource: r.ratingSource, dcMaxPowerKw: r.dcMaxPowerKw, dcAvgPower1080Kw: r.dcAvgPower1080Kw,
     }
 }
 

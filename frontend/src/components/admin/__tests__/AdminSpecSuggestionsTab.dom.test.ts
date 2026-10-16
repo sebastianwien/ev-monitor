@@ -20,7 +20,7 @@ import AdminSpecSuggestionsTab from '../AdminSpecSuggestionsTab.vue'
 const row = (id: string, extra: Partial<SpecRow>): SpecRow => ({
     id, carBrand: 'VW', carModel: 'ID_3', batteryCapacityKwh: 62, netBatteryCapacityKwh: 58, officialRangeKm: 426,
     officialConsumptionKwhPer100km: 15.5, ratingSource: 'WLTP', variantName: 'ID.3 Pro', trimLevel: 'Pro', availableFrom: '2020-07-01',
-    availableTo: '2022-12-31', sourceUrl: null, activeCars: 4, allCars: 5, ratings: 0, workLists: [], ...extra,
+    availableTo: '2022-12-31', sourceUrl: null, dcMaxPowerKw: null, dcAvgPower1080Kw: null, activeCars: 4, allCars: 5, ratings: 0, workLists: [], ...extra,
 })
 const sample: SpecOverview = {
     carsWithoutSpec: 0, modelsWithoutRow: [],
@@ -123,6 +123,27 @@ describe('AdminSpecSuggestionsTab', () => {
         btns(host, 'Werte laden')[0].click(); await tick(); await tick()
         btns(host, 'Übernehmen')[0].click(); await tick()
         expect(update.mock.calls[0][1]).toMatchObject({ officialRangeKm: 426, officialConsumptionKwhPer100km: 15.5, availableFrom: '2020-07-01', availableTo: null })
+    })
+
+    it('Übernehmen schreibt die DC-Ladeleistung vom Eintrag mit, ohne Werte bleibt die der Zielzeile', async () => {
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => url.startsWith('http://localhost:8766/spec')
+            ? { ok: true, json: async () => (url.includes('ID3-Pro-S') ? detail : { ...detail, dcMaxPowerKw: 120, dcAvgPower1080Kw: 95 }) }
+            : { ok: true, json: async () => file }))
+        overview.mockResolvedValue({ ...sample, models: [{ ...sample.models[0],
+            rows: [row('pro', {}), row('pros', { variantName: 'ID.3 Pro S', dcMaxPowerKw: 135, dcAvgPower1080Kw: 100 })] }] })
+        const host = await mount()
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        btns(host, 'Werte laden')[0].click(); await tick(); await tick()
+        btns(host, 'Übernehmen')[0].click(); await tick()
+        expect(update.mock.calls[0][1]).toMatchObject({ dcMaxPowerKw: 120, dcAvgPower1080Kw: 95 })
+        app?.unmount(); document.body.innerHTML = ''
+
+        const again = await mount()
+        radios(again)[1].dispatchEvent(new Event('change')); await nextTick()
+        btns(again, 'Werte laden')[0].click(); await tick(); await tick()
+        btns(again, 'Übernehmen')[1].click(); await tick()
+        expect(update.mock.calls[1][0]).toBe('pros')
+        expect(update.mock.calls[1][1]).toMatchObject({ dcMaxPowerKw: 135, dcAvgPower1080Kw: 100 })
     })
 
     it('verwendeter Eintrag wird grau, bleibt aber voll nutzbar', async () => {

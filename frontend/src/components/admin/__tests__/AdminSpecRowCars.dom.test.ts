@@ -24,7 +24,7 @@ const cars: CarForReassign[] = [
 const spec: SpecRow = {
     id: 'spec-1', carBrand: 'VOLKSWAGEN', carModel: 'ID_4', batteryCapacityKwh: 82, netBatteryCapacityKwh: 77, officialRangeKm: 520,
     officialConsumptionKwhPer100km: 17, ratingSource: 'WLTP', variantName: 'ID.4 GTX', trimLevel: 'GTX', availableFrom: '2022-06-01', availableTo: null,
-    sourceUrl: null, activeCars: 2, allCars: 2, ratings: 0, workLists: [],
+    sourceUrl: null, dcMaxPowerKw: null, dcAvgPower1080Kw: null, activeCars: 2, allCars: 2, ratings: 0, workLists: [],
 }
 
 let app: App | null = null

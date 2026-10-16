@@ -47,14 +47,14 @@ const sample: SpecOverview = {
         rows: [
             { id: 'spec-1', carBrand: 'TESLA', carModel: 'MODEL_3', batteryCapacityKwh: 79, netBatteryCapacityKwh: 75, officialRangeKm: 629,
               officialConsumptionKwhPer100km: 14, ratingSource: 'WLTP', variantName: 'Long Range AWD', trimLevel: 'Long Range',
-              availableFrom: '2024-01-01', availableTo: null, sourceUrl: 'https://ev-database.org/car/1', activeCars: 12, allCars: 13, ratings: 1, workLists: [] },
+              availableFrom: '2024-01-01', availableTo: null, sourceUrl: 'https://ev-database.org/car/1', dcMaxPowerKw: null, dcAvgPower1080Kw: null, activeCars: 12, allCars: 13, ratings: 1, workLists: [] },
             { id: 'spec-2', carBrand: 'TESLA', carModel: 'MODEL_3', batteryCapacityKwh: 60, netBatteryCapacityKwh: 57.5, officialRangeKm: 491,
               officialConsumptionKwhPer100km: 14.4, ratingSource: 'WLTP', variantName: '60/57.5 kWh', trimLevel: null,
-              availableFrom: null, availableTo: null, sourceUrl: null, activeCars: 0, allCars: 0, ratings: 0,
+              availableFrom: null, availableTo: null, sourceUrl: null, dcMaxPowerKw: null, dcAvgPower1080Kw: null, activeCars: 0, allCars: 0, ratings: 0,
               workLists: ['NO_TRIM', 'NO_PERIOD', 'NO_SOURCE', 'USER_ROW'] },
             { id: 'spec-3', carBrand: 'TESLA', carModel: 'MODEL_3', batteryCapacityKwh: 82, netBatteryCapacityKwh: 79, officialRangeKm: 702,
               officialConsumptionKwhPer100km: 13.2, ratingSource: 'WLTP', variantName: 'Long Range RWD', trimLevel: 'Long Range',
-              availableFrom: '2024-01-01', availableTo: null, sourceUrl: null, activeCars: 0, allCars: 0, ratings: 0, workLists: ['NO_SOURCE'] },
+              availableFrom: '2024-01-01', availableTo: null, sourceUrl: null, dcMaxPowerKw: null, dcAvgPower1080Kw: null, activeCars: 0, allCars: 0, ratings: 0, workLists: ['NO_SOURCE'] },
         ],
     }],
 }
