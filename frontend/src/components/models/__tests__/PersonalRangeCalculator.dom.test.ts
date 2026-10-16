@@ -160,7 +160,7 @@ describe('PersonalRangeCalculator', () => {
     expect(state.home).toBe(false)
     expect(analytics.track).toHaveBeenCalledWith('personal_range_wallbox', { model: 'Volkswagen ID.3', home: false })
     // own price set: a way back to the community price
-    const reset = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Zurück zum Community-Preis'))!
+    const reset = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Zurück zum Schnitt aller Fahrer'))!
     reset.click()
     expect(state.price).toBeNull()
   })

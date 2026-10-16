@@ -4147,7 +4147,7 @@ personal_range:
   wallbox_why: "Warum das zählt: Mit Wallbox lädst du über Nacht von 20 auf 80 % zum Haushaltstarif. Ohne lädst du unterwegs am Schnelllader, öfter und meist teurer. Das ändert, wie oft du laden musst und was du im Monat zahlst."
   price_label: "Dein Strompreis"
   price_hint_community: "Startwert ist der Schnitt aller Fahrer, je nachdem ob zu Hause oder unterwegs geladen wird."
-  price_reset: "Zurück zum Community-Preis"
+  price_reset: "Zurück zum Schnitt aller Fahrer"
   calculating: "Rechne ..."
   eyebrow: "Dein Ergebnis"
   duration_h_m: "{h} h {m} min"

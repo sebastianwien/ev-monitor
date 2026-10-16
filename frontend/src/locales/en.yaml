@@ -4141,7 +4141,7 @@ personal_range:
   wallbox_why: "Why it matters: with a wallbox you charge overnight from 20 to 80 % at your household rate. Without one you charge on the road at fast chargers, more often and usually at a higher price. That changes how often you charge and what you pay a month."
   price_label: "Your electricity price"
   price_hint_community: "The starting value is the average of all drivers, for charging at home or on the road."
-  price_reset: "Back to the community price"
+  price_reset: "Back to the average of all drivers"
   calculating: "Calculating ..."
   eyebrow: "Your result"
   cost_basis_charges: "commuting on 22 days"

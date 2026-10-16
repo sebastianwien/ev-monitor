@@ -4024,7 +4024,7 @@ personal_range:
   wallbox_why: "Derfor betyr det noe: Med ladeboks lader du over natten fra 20 til 80 % til husholdningspris. Uten lader du underveis på hurtiglader, oftere og som regel dyrere. Det endrer hvor ofte du må lade og hva du betaler i måneden."
   price_label: "Din strømpris"
   price_hint_community: "Startverdien er snittet for alle sjåfører, for lading hjemme eller underveis."
-  price_reset: "Tilbake til fellesskapets pris"
+  price_reset: "Tilbake til snittet for alle sjåfører"
   calculating: "Beregner ..."
   eyebrow: "Ditt resultat"
   cost_basis_charges: "pendling 22 dager"

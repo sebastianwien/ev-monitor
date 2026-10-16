@@ -5,7 +5,7 @@
   <section ref="root" :aria-labelledby="titleId"
            class="grid min-w-0 gap-4 bg-green-50 px-4 py-6 md:gap-5 md:rounded-3xl md:p-7 md:edge-box dark:bg-green-950/40">
     <div class="flex items-start gap-3">
-      <span v-if="answered" class="grid h-11 w-11 flex-none place-items-center rounded-full bg-green-600 text-white"><LockOpenIcon class="h-6 w-6" aria-hidden="true" /></span>
+      <span v-if="unlocked" class="grid h-11 w-11 flex-none place-items-center rounded-full bg-green-600 text-white"><LockOpenIcon class="h-6 w-6" aria-hidden="true" /></span>
       <div class="grid gap-1">
         <h2 :id="titleId" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ title }}</h2>
         <p v-if="sub" class="max-w-[70ch] text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ sub }}</p>
@@ -45,8 +45,10 @@ import { ChevronDownIcon, LockOpenIcon } from '@heroicons/vue/24/outline'
 defineProps<{
   title: string
   sub?: string
-  /** answered (signed in with a profile): the questions fold behind the profile line */
+  /** answered: the questions fold behind the profile line */
   answered: boolean
+  /** the reader's own figures are open: the open lock next to the title */
+  unlocked?: boolean
   /** the profile in one line, "15.000 km im Jahr · ..." */
   summary?: string
   /** the questions unfolded under the profile line */

@@ -4024,7 +4024,7 @@ personal_range:
   wallbox_why: "Därför spelar det roll: Med laddbox laddar du över natten från 20 till 80 % till hushållspris. Utan laddar du på vägen vid snabbladdare, oftare och oftast dyrare. Det ändrar hur ofta du måste ladda och vad du betalar i månaden."
   price_label: "Ditt elpris"
   price_hint_community: "Startvärdet är snittet för alla förare, för laddning hemma eller på vägen."
-  price_reset: "Tillbaka till gemenskapens pris"
+  price_reset: "Tillbaka till snittet för alla förare"
   calculating: "Beräknar ..."
   eyebrow: "Ditt resultat"
   cost_basis_charges: "pendling 22 dagar"

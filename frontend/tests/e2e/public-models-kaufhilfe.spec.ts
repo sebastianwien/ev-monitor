@@ -67,87 +67,55 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       }
     });
 
-    test('Bedarfs-Check startet leer, die längste Fahrt allein bringt die Stopp-Kacheln', async ({ page }) => {
+    test('Kapitel 1 startet leer: Reichweite als Spanne, sonst nichts erfunden, Zeilen ohne Zahlen', async ({ page }) => {
       await openRanking(page);
+      await expect(page.getByTestId('ranking-card')).toBeVisible();
       await expect(page.getByTestId('slider-needs-commute-value')).toHaveText('noch offen');
-      await expect(page.getByTestId('slider-needs-longTrip-value')).toHaveText('noch offen');
-      await expect(page.getByTestId('needs-prompt')).toBeVisible();
+      await expect(page.getByTestId('ranking-answer-range')).toContainText(/\d+ km bis \d+ km/);
+      await expect(page.getByTestId('ranking-answer-stops')).toHaveCount(0);
+      await expect(page.getByTestId('ranking-answer-cost')).toHaveCount(0);
       await expect(rows(page).first().getByTestId('needs-hint')).toHaveCount(0);
-      await expect(page.getByTestId('needs-stops-0')).toHaveCount(0);
-
-      await setSlider(page, 'longTrip', 400);
-      await expect(page.getByTestId('needs-trip-title')).toContainText('So viele Modelle schaffen deine 400 km');
-      await expect(page.getByTestId('needs-stops-0')).toBeVisible();
-      // nothing narrows the list yet, so no count line and no repeated basis under the chips
-      await expect(page.getByTestId('ranking-count')).toHaveCount(0);
-      await expect(page.getByTestId('needs-change')).toHaveCount(0);
-
-      if (viewport.width >= 1280) {
-        await expect(rows(page).first().getByTestId('range-cell')).toContainText(/\d+ km\s*Autobahn (bis )?\d+\s*1 Stopp (bis )?\d+\s*2 Stopps (bis )?\d+/);
-      }
     });
 
-    test('ohne Login: Kacheln frei, Zeilen ohne Zahlen, Gate in der Karte', async ({ page }) => {
+    test('Gast: Spannen über alle Modelle frei, keine Zahl je Modell, ein Gate', async ({ page }) => {
       await openRanking(page);
-      const firstHint = rows(page).first().getByTestId('needs-hint');
-      await expect(firstHint).toHaveCount(0);
-
-      await setSlider(page, 'longTrip', 250);
-      await expect(firstHint).toContainText(/Ladestopp|nicht bewertbar/);
-      // no figure in the guest line: only the verdict, the stop count and time wait behind one lock line
-      await expect(firstHint).not.toContainText(/Tage|Wochen/);
-      await expect(page.getByTestId('needs-trip-title')).toContainText('250 km');
-      await expect(firstHint).toContainText('250 km');
-      // the card names the three answers behind the unlock; each row has one lock line for them
-      await expect(page.getByTestId('needs-locked').locator('li')).toHaveCount(3);
-      await answerCommute(page, 40, 3);
-      await expect(rows(page).first().getByTestId('needs-locked-row')).toBeVisible();
+      await answerCommute(page, 40, 5);
+      await setSlider(page, 'longTrip', 600);
+      await expect(page.getByTestId('ranking-answer-stops')).toContainText('600 km');
+      await expect(page.getByTestId('ranking-answer-charge')).toContainText(/alle \d+/);
+      await expect(page.getByTestId('ranking-answer-cost')).toContainText(/zu Hause geladen für \d+,\d ct\/kWh/);
+      await expect(page.getByTestId('ranking-gate-lead')).toContainText(/Modelle schaffen deine 600 km/);
+      await expect(page.getByTestId('top-five')).toHaveCount(0);
+      await expect(page.getByTestId('personal-range-tune')).toHaveCount(0);
 
       // the open row points to the one gate in the card
       await rows(page).first().locator('button[aria-expanded]').click();
       await page.getByTestId('row-unlock').click();
-      await expect(page.getByTestId('needs-gate')).toBeVisible();
-      await expect(page.getByTestId('needs-unlock')).toHaveCount(0);
+      await expect(page.getByTestId('ranking-gate')).toBeInViewport();
+      await expect(page.getByTestId('ranking-gate-open')).toHaveCount(0);
     });
 
-    test('eingeloggt: Tagesstrecke ändert den Hinweis der ersten Zeile, kein Gate', async ({ page }) => {
+    test('eingeloggt: Top 5 als Tabelle, Wichtigkeit sortiert um, Wallbox ändert die Kosten', async ({ page }) => {
       await login(page);
       await openRanking(page);
-      await expect(page.getByTestId('needs-locked')).toHaveCount(0);
-      const firstHint = rows(page).first().getByTestId('needs-hint');
-      await answerCommute(page, 40, 3);
-      await setSlider(page, 'longTrip', 400);
-      // three answers: commute line and trip line, the trip with the travel time from the model page calculation
-      await expect(firstHint).toContainText('Fürs Pendeln');
-      await expect(firstHint).toContainText('400 km:');
-      await expect(firstHint).toContainText('unterwegs');
-      const hintBefore = await firstHint.innerText();
+      await expect(page.getByTestId('ranking-gate')).toHaveCount(0);
+      await answerCommute(page, 40, 5);
+      await setSlider(page, 'longTrip', 600);
+      await setSlider(page, 'annualKm', 15000);
+      await expect(page.getByTestId('top-five-row')).toHaveCount(5);
+      const names = () => page.getByTestId('top-five-row').locator('a').allTextContents();
+      const far = await names();
 
-      await setSlider(page, 'commute', 120);
-      await expect.poll(() => firstHint.innerText()).not.toBe(hintBefore);
-    });
+      await page.getByTestId('priority-cost').click();
+      await expect.poll(names).not.toEqual(far);
+      await expect(page.getByTestId('top-five-row').first().locator('[role="cell"]').first()).toHaveAttribute('data-testid', 'top-five-month');
 
-    test('Stopp-Chip: als Gast nennt er die Zahl und öffnet das Gate, eingeloggt filtert er', async ({ page }) => {
-      await openRanking(page);
-      await setSlider(page, 'longTrip', 250);
-      await page.getByTestId('needs-stops-0').click();
-      await expect(page.getByTestId('needs-gate')).toBeVisible();
-      await expect(page.getByTestId('needs-gate')).toContainText(/Deine \d+ Modelle für 250 km sind bereit/);
-      await expect(page.getByTestId('needs-stops-0')).toHaveAttribute('aria-pressed', 'false');
-
-      await login(page);
-      await openRanking(page);
-      // 1.200 km schafft kein Modell ohne Stopp: das Fenster beginnt mit einem gesperrten Chip, nichts filtert ins Leere
-      await setSlider(page, 'longTrip', 1200);
-      await expect(page.locator('[data-testid^="needs-stops-"]').first()).toBeDisabled();
-
-      await setSlider(page, 'longTrip', 250);
-      const tile = page.getByTestId('needs-stops-0');
-      await tile.click();
-      await expect(tile).toHaveAttribute('aria-pressed', 'true');
-      await expect(page.getByTestId('needs-show-all')).toBeVisible();
-      await tile.click();
-      await expect(tile).toHaveAttribute('aria-pressed', 'false');
+      const cost = page.getByTestId('ranking-answer-cost');
+      await expect(cost).toContainText('zu Hause geladen');
+      const before = await cost.innerText();
+      await page.getByTestId('wallbox-no').click();
+      await expect(cost).toContainText('unterwegs geladen');
+      await expect.poll(() => cost.innerText()).not.toBe(before);
     });
 
     test('Modelle ohne Fahrerdaten: eingeklappt, Suche klappt auf und erklärt den Leerzustand', async ({ page, request }) => {
@@ -228,24 +196,12 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByRole('button', { name: 'Meiste Daten' })).toHaveAttribute('aria-pressed', 'true');
     });
 
-    test('Karte und Liste zeigen aufeinander: Kachel filtert, Ändern fokussiert die Eingabe', async ({ page }) => {
-      await login(page);
+    test('Einstiegskarten springen in Kapitel 1 und in die Liste', async ({ page }) => {
       await openRanking(page);
-      await answerCommute(page, 40, 3);
-      await setSlider(page, 'longTrip', 250);
-      await page.getByTestId('needs-stops-0').click();
-      await expect(page.getByTestId('needs-stops-0')).toHaveAttribute('aria-pressed', 'true');
+      await page.getByTestId('entry-fit').click();
+      await expect(page.getByTestId('ranking-card')).toBeInViewport();
+      await page.getByTestId('entry-lean').click();
       await expect(page.locator('section.mr-board')).toBeInViewport();
-
-      // the basis line appears in the sticky header once the card has scrolled away
-      await page.getByTestId('needs-change').waitFor({ state: 'hidden' });
-      await rows(page).nth(5).scrollIntoViewIfNeeded();
-      await page.mouse.wheel(0, 600);
-      await expect(page.getByTestId('needs-change')).toBeVisible();
-      await expect(page.locator('section.mr-board')).toContainText('Für Pendeln 40 km an 3 Tagen, 250 km längste Fahrt');
-      await page.getByTestId('needs-change').click();
-      // the first open slider: yearly km, the list never asked it
-      await expect(page.getByTestId('slider-needs-annualKm')).toBeFocused();
     });
   });
 }

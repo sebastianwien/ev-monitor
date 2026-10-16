@@ -1,7 +1,7 @@
 <template>
   <DrivingProfileCard ref="card" id="passt-zu-dir" class="scroll-mt-24" :title="t('ranking_card.title')"
-                      :sub="answered ? t('ranking_card.sub_unlocked', { n: formatNumber(total) }) : t('ranking_card.sub', { n: formatNumber(total) })"
-                      :answered="answered" :summary="summaryLine" v-model:open="questionsOpen" data-testid="ranking-card">
+                      :sub="locked ? t('ranking_card.sub', { n: formatNumber(total) }) : t('ranking_card.sub_unlocked', { n: formatNumber(total) })"
+                      :answered="answered" :unlocked="!locked" :summary="summaryLine" v-model:open="questionsOpen" data-testid="ranking-card">
     <template #questions>
       <ProfileQuestions :sliders="sliders" id-prefix="needs" test-prefix="needs-" compact
                         :priorities="priorities" :priority="needs.priority" @answer="answer" @update:priority="setPriority" />
@@ -96,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BanknotesIcon, BoltIcon, ChevronDownIcon, CloudIcon, LockClosedIcon, LockOpenIcon, MapIcon } from '@heroicons/vue/24/outline'
 import DrivingProfileCard from './DrivingProfileCard.vue'
@@ -161,8 +161,15 @@ function setHome(value: boolean) {
   emit('update:modelValue', { ...needs.value, homeCharging: value })
 }
 const anyAnswer = computed(() => PROFILE_KEYS.some(k => needs.value[NEEDS_FIELD[k]] != null))
-/** Signed in with answers: the questions fold behind the profile line */
-const answered = computed(() => !props.locked && anyAnswer.value)
+/**
+ * With a profile the questions fold behind the profile line. Decided on arrival and on
+ * unlocking, never while the reader moves a slider, so the sliders do not fold away under the thumb.
+ */
+const isPhone = () => typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 767px)').matches
+/** Guests on the phone too: five open sliders would push the answers out of sight */
+const foldsOnArrival = () => anyAnswer.value && (!props.locked || isPhone())
+const answered = ref(foldsOnArrival())
+watch(() => props.locked, () => { answered.value = foldsOnArrival() })
 const questionsOpen = ref(false)
 const summaryLine = computed(() => [summary.value, t('profile.priority_summary', { value: t(`profile.priority_${needs.value.priority}`) })]
   .filter(Boolean).join(' · '))
@@ -275,7 +282,7 @@ const topFive = computed<TopFiveRow[]>(() => sortByPriority(props.entries, needs
     return {
       key: `${e.brand}/${e.model}`,
       rank: i + 1,
-      name: m.modelDisplayName,
+      name: displayName(m),
       meta: [m.categoryDisplayName, drivers].filter(Boolean).join(' · '),
       href: props.modelHref(m),
       trip: { main: stopsWord(e.longTripStops), sub: e.longTripTotalMinutes != null ? t('personal_range.drive_time', { duration: duration(e.longTripTotalMinutes) }) : null },
@@ -284,6 +291,11 @@ const topFive = computed<TopFiveRow[]>(() => sortByPriority(props.entries, needs
     }
   }))
 const topSub = computed(() => t(`ranking_card.top_sub_${needs.value.priority}`, { km: tripKm.value || km(PROFILE_SLIDERS.longTrip.start) }))
+/** "Polestar 3", "Volkswagen ID.3": the brand once, as in the list rows */
+function displayName(m: TopModelPreview): string {
+  const name = m.modelUrlSlug.replace(/_/g, ' ')
+  return name.toLowerCase().startsWith(m.brandDisplayName.toLowerCase()) ? name : `${m.brandDisplayName} ${name}`
+}
 function duration(minutes: number): string {
   const h = Math.floor(minutes / 60), m = minutes % 60
   if (h === 0) return t('personal_range.duration_m', { m })

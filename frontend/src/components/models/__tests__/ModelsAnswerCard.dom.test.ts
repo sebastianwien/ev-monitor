@@ -39,13 +39,13 @@ const ANSWERS: NeedsInput = { ...NEEDS_EMPTY, annualKm: 15_000, highwayKm: 4_000
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
-function mount(locked: boolean) {
+function mount(locked: boolean, start: NeedsInput = ANSWERS, models: TopModelPreview[] = ENTRIES.map(e => preview(e.model))) {
   setActivePinia(createPinia())
-  const state = reactive({ needs: { ...ANSWERS } as NeedsInput, price: undefined as number | null | undefined })
+  const state = reactive({ needs: { ...start } as NeedsInput, price: undefined as number | null | undefined })
   const Host = defineComponent({
     setup: () => () => h(ModelsAnswerCard, {
       modelValue: state.needs, 'onUpdate:modelValue': (v: NeedsInput) => { state.needs = v },
-      entries: ENTRIES, models: ENTRIES.map(e => preview(e.model)), price: 0.242, locked,
+      entries: ENTRIES, models, price: 0.242, locked,
       petrolPricePerLiter: 2.15, modelHref: (m: TopModelPreview) => `/modelle/Brand/${m.modelUrlSlug}`,
       onPrice: (v: number | null) => { state.price = v },
     }),
@@ -97,5 +97,34 @@ describe('ModelsAnswerCard', () => {
     await nextTick()
     expect(state.needs.homeCharging).toBe(false)
     expect(text(host.querySelector('[data-testid="ranking-answer-cost"]'))).toContain('unterwegs geladen')
+  })
+
+  it('signed in without answers: the sliders stay open while the reader answers them', async () => {
+    const { host, state } = mount(false, NEEDS_EMPTY)
+    await nextTick()
+    state.needs = { ...state.needs, dailyKm: 40 }
+    await nextTick()
+    expect(host.querySelector('[data-testid="profile-summary"]')).toBeNull()
+    expect(host.querySelector('[data-testid="slider-needs-commute"]')).not.toBeNull()
+  })
+
+  it('phone: a guest who comes back with answers sees them as one line, the sliders behind "Angaben ändern"', async () => {
+    const original = window.matchMedia
+    window.matchMedia = ((q: string) => ({ matches: q.includes('max-width'), media: q, addEventListener() {}, removeEventListener() {} })) as never
+    try {
+      const { host } = mount(true)
+      await nextTick()
+      expect(text(host.querySelector('[data-testid="profile-summary"]'))).toContain('15.000 km im Jahr')
+    } finally {
+      window.matchMedia = original
+    }
+  })
+
+  it('top 5: a model name that carries the brand names it once', async () => {
+    const models = ENTRIES.map(e => preview(e.model))
+    models[0] = { ...models[0], brandDisplayName: 'Polestar', modelDisplayName: 'Polestar Polestar 3', modelUrlSlug: 'Polestar_3' }
+    const { host } = mount(false, ANSWERS, models)
+    await nextTick()
+    expect(host.querySelector('[data-testid="top-five-row"] a')!.textContent).toBe('Polestar 3')
   })
 })

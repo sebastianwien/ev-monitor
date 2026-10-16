@@ -50,7 +50,7 @@ describe('ProfileTune', () => {
 
     const own = mount({ pricePerKwh: 0.28 })
     expect((own.host.querySelector('[data-testid="slider-price"]') as HTMLInputElement).value).toBe('0.28')
-    const reset = [...own.host.querySelectorAll('button')].find(b => b.textContent?.includes('Zurück zum Community-Preis'))!
+    const reset = [...own.host.querySelectorAll('button')].find(b => b.textContent?.includes('Zurück zum Schnitt aller Fahrer'))!
     reset.click()
     expect(own.state.price).toBeNull()
   })
