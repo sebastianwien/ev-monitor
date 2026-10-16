@@ -52,8 +52,10 @@ describe('AdminSpecRowCars', () => {
         expect(rows).toHaveLength(2)
         expect(rows[0].textContent).toContain('2022')
         const button = rows[0].querySelector('button') as HTMLButtonElement
-        expect(button.disabled).toBe(true)
         const select = rows[0].querySelector('select') as HTMLSelectElement
+        expect(select.value).toBe('spec-2')
+        select.value = ''; select.dispatchEvent(new Event('change')); await nextTick()
+        expect(button.disabled).toBe(true)
         select.value = 'spec-2'; select.dispatchEvent(new Event('change')); await nextTick()
         expect(button.disabled).toBe(false)
         button.click(); await tick()
@@ -111,9 +113,37 @@ describe('AdminSpecRowCars', () => {
         const [a, b] = [...host.querySelectorAll('[data-car] select')] as HTMLSelectElement[]
         const groups = [...a.querySelectorAll('optgroup')]
         expect(groups.map(g => g.label)).toEqual(['Trim passt', 'andere Zeilen'])
-        expect([...groups[0].querySelectorAll('option')].map(o => o.value)).toEqual(['lr', 'rwd'])
+        expect([...groups[0].querySelectorAll('option')].map(o => o.value).sort()).toEqual(['lr', 'rwd'])
         expect([...groups[1].querySelectorAll('option')].map(o => o.value)).toEqual(['perf'])
         expect(b.querySelectorAll('optgroup')).toHaveLength(0)
         expect([...b.querySelectorAll('option')].map(o => o.value)).toEqual(['', 'perf', 'rwd'])
+    })
+
+    it('Dropdown je Gruppe nach Aktualität: ohne Bis-Datum oben, dann späteres Bis zuerst', async () => {
+        const c = (specId: string, from: string, to: string | null) =>
+            ({ specId, variantName: `Model 3 RWD ${specId}`, trimLevel: null, netKwh: 60, diffKwh: null, availableFrom: from, availableTo: to })
+        carsOfSpec.mockResolvedValue([{ carId: 'a', carModel: 'MODEL_3', year: null, trim: null, currentNetKwh: null, currentSpecId: 'spec-1', logCount: 1,
+            candidates: [c('alt', '2019-01-01', '2021-12-31'), c('offen', '2025-01-01', null), c('mitte', '2022-01-01', '2024-12-31'), c('offen-alt', '2023-01-01', null)] }])
+        const host = await mount()
+        const values = [...host.querySelectorAll('[data-car] select option')].map(o => (o as HTMLOptionElement).value)
+        expect(values).toEqual(['', 'offen', 'offen-alt', 'mitte', 'alt'])
+    })
+
+    it('Baujahr-Vorschläge nur aus der Trim-Gruppe, mehrere werden alle markiert, vorausgewählt nur ein eindeutiger', async () => {
+        const c = (specId: string, variantName: string, from: string, to: string | null) =>
+            ({ specId, variantName, trimLevel: null, netKwh: 60, diffKwh: null, availableFrom: from, availableTo: to })
+        carsOfSpec.mockResolvedValue([
+            { carId: 'mehrere', carModel: 'MODEL_3', year: 2025, trim: 'RWD', currentNetKwh: null, currentSpecId: 'spec-1', logCount: 1,
+              candidates: [c('rwd-a', 'Model 3 RWD', '2024-01-01', null), c('rwd-b', 'Model 3 RWD LFP', '2023-01-01', '2025-12-31'), c('perf', 'Model 3 Performance', '2024-01-01', null)] },
+            { carId: 'eins', carModel: 'MODEL_3', year: 2025, trim: 'RWD', currentNetKwh: null, currentSpecId: 'spec-1', logCount: 1,
+              candidates: [c('rwd-a', 'Model 3 RWD', '2024-01-01', null), c('rwd-old', 'Model 3 RWD alt', '2019-01-01', '2021-12-31'), c('perf', 'Model 3 Performance', '2024-01-01', null)] },
+        ])
+        const host = await mount()
+        const [multi, one] = [...host.querySelectorAll('[data-car] select')] as HTMLSelectElement[]
+        const marked = (s: HTMLSelectElement) => [...s.querySelectorAll('option')].filter(o => o.textContent?.includes('passt zum Baujahr')).map(o => o.value)
+        expect(marked(multi)).toEqual(['rwd-a', 'rwd-b'])
+        expect(multi.value).toBe('')
+        expect(marked(one)).toEqual(['rwd-a'])
+        expect(one.value).toBe('rwd-a')
     })
 })

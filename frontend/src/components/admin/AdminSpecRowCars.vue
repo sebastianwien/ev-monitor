@@ -18,24 +18,21 @@ const loading = ref(true)
 const error = ref('')
 const busyCar = ref<string | null>(null)
 
-/** Zeile, deren Zeitraum das Baujahr enthält; bei mehreren nur die mit gleichem Netto. Nicht eindeutig = kein Vorschlag. */
-function suggestion(car: CarForReassign): string | null {
-    if (car.year == null) return null
-    const y = car.year
-    const fits = car.candidates.filter(c => c.availableFrom != null && Number(c.availableFrom.slice(0, 4)) <= y
-        && (c.availableTo == null || Number(c.availableTo.slice(0, 4)) >= y))
+/** Baujahr-Vorschläge: alle Zeilen, deren Zeitraum das Baujahr enthält, aus der oberen Dropdown-Gruppe (bei Trim-Treffern nur diese). */
+const suggested = ref<Record<string, Set<string>>>({})
+/** Vorausgewählt nur ein eindeutiger Vorschlag; bei mehreren entscheidet gleiches Netto, sonst keiner. */
+function preselect(fits: Candidate[]): string | null {
     const pick = fits.length > 1 ? fits.filter(c => c.diffKwh === 0) : fits
     return pick.length === 1 ? pick[0].specId : null
 }
-const suggested = ref<Record<string, string>>({})
 
 onMounted(async () => {
     try {
         cars.value = await adminVehicleSpecService.carsOfSpec(props.row.id)
         for (const car of cars.value) {
-            const id = suggestion(car)
-            if (id) suggested.value[car.carId] = id
-            target.value[car.carId] = id ?? ''
+            const fits = candidateGroups(car)[0].items.filter(c => yearFits(car.year, c.availableFrom, c.availableTo))
+            suggested.value[car.carId] = new Set(fits.map(c => c.specId))
+            target.value[car.carId] = preselect(fits) ?? ''
         }
     } catch (err) {
         error.value = apiErrorText(err, 'Autos konnten nicht geladen werden.')
@@ -67,11 +64,16 @@ function trimHits(car: CarForReassign, c: Candidate): number {
     const words = new Set(`${c.variantName ?? ''} ${c.trimLevel ?? ''}`.toLowerCase().split(/\s+/).filter(Boolean))
     return new Set((car.trim ?? '').toLowerCase().split(/\s+/).filter(w => words.has(w))).size
 }
-/** Dropdown-Reihenfolge: Zeilen mit Trim-Treffern zuerst (meiste Treffer oben), dann der Rest; Gruppen nur, wenn es beide gibt. */
+/** Neueste zuerst: ohne Bis-Datum ganz oben, dann späteres Bis, bei Gleichstand späteres Ab. */
+const recency = (c: Candidate) => [c.availableTo ?? '9999', c.availableFrom ?? ''] as const
+const byRecency = (x: Candidate, y: Candidate) => {
+    const [tx, fx] = recency(x), [ty, fy] = recency(y)
+    return ty.localeCompare(tx) || fy.localeCompare(fx)
+}
+/** Dropdown: Zeilen mit Trim-Treffer zuerst, dann der Rest, je Gruppe neueste oben; Gruppen nur, wenn es beide gibt. */
 function candidateGroups(car: CarForReassign): { label: string | null; items: Candidate[] }[] {
-    const hits = new Map(car.candidates.map(c => [c.specId, trimHits(car, c)]))
-    const matching = car.candidates.filter(c => hits.get(c.specId)! > 0).sort((x, y) => hits.get(y.specId)! - hits.get(x.specId)!)
-    const rest = car.candidates.filter(c => hits.get(c.specId) === 0)
+    const matching = car.candidates.filter(c => trimHits(car, c) > 0).sort(byRecency)
+    const rest = car.candidates.filter(c => trimHits(car, c) === 0).sort(byRecency)
     return matching.length && rest.length
         ? [{ label: 'Trim passt', items: matching }, { label: 'andere Zeilen', items: rest }]
         : [{ label: null, items: [...matching, ...rest] }]
@@ -92,10 +94,10 @@ const netFits = (car: CarForReassign) => car.currentNetKwh == null || props.row.
             <option value="" disabled>umhängen auf …</option>
             <template v-for="g in candidateGroups(car)" :key="g.label ?? 'alle'">
               <optgroup v-if="g.label" :label="g.label">
-                <option v-for="c in g.items" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId] === c.specId ? ' · passt zum Baujahr' : '' }}</option>
+                <option v-for="c in g.items" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId]?.has(c.specId) ? ' · passt zum Baujahr' : '' }}</option>
               </optgroup>
               <template v-else>
-                <option v-for="c in g.items" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId] === c.specId ? ' · passt zum Baujahr' : '' }}</option>
+                <option v-for="c in g.items" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId]?.has(c.specId) ? ' · passt zum Baujahr' : '' }}</option>
               </template>
             </template>
           </select>
