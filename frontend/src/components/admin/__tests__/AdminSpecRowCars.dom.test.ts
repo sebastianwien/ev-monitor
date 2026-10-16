@@ -97,4 +97,23 @@ describe('AdminSpecRowCars', () => {
         expect(b.querySelector('[data-net]')!.className).toContain('text-amber-300')
         expect(b.querySelector('[data-net]')!.textContent).toContain('76 kWh')
     })
+
+    it('Dropdown: Zeilen, deren Name oder Trim ein Wort vom Trim des Autos enthält, oben; Rest unter "andere Zeilen"', async () => {
+        const c = (specId: string, variantName: string, trimLevel: string | null) =>
+            ({ specId, variantName, trimLevel, netKwh: 77, diffKwh: 0, availableFrom: null, availableTo: null })
+        carsOfSpec.mockResolvedValue([
+            { carId: 'a', carModel: 'MODEL_3', year: null, trim: 'Long Range RWD Premium', currentNetKwh: null, currentSpecId: 'spec-1', logCount: 1,
+              candidates: [c('perf', 'Model 3 Performance', 'Performance'), c('rwd', 'Model 3 RWD Highland', 'Standard Range'), c('lr', 'Model 3 LR', 'Long Range RWD')] },
+            { carId: 'b', carModel: 'MODEL_3', year: null, trim: null, currentNetKwh: null, currentSpecId: 'spec-1', logCount: 1,
+              candidates: [c('perf', 'Model 3 Performance', 'Performance'), c('rwd', 'Model 3 RWD Highland', 'Standard Range')] },
+        ])
+        const host = await mount()
+        const [a, b] = [...host.querySelectorAll('[data-car] select')] as HTMLSelectElement[]
+        const groups = [...a.querySelectorAll('optgroup')]
+        expect(groups.map(g => g.label)).toEqual(['Trim passt', 'andere Zeilen'])
+        expect([...groups[0].querySelectorAll('option')].map(o => o.value)).toEqual(['lr', 'rwd'])
+        expect([...groups[1].querySelectorAll('option')].map(o => o.value)).toEqual(['perf'])
+        expect(b.querySelectorAll('optgroup')).toHaveLength(0)
+        expect([...b.querySelectorAll('option')].map(o => o.value)).toEqual(['', 'perf', 'rwd'])
+    })
 })
