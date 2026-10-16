@@ -256,17 +256,12 @@ function onAuthenticated() {
   gateOpen.value = false
   emit('unlocked')
 }
-/** A row's "Meine Zahlen": back here, gate open */
-function showGate() {
-  openGate()
-  gateBox.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-}
 /** The hero card and the list point here: questions open and in view */
 function focusQuestions() {
   questionsOpen.value = true
   cardEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
-defineExpose({ showGate, focusQuestions, root: cardEl })
+defineExpose({ focusQuestions, root: cardEl })
 
 // ── Top 5 ────────────────────────────────────────────────────────────────────
 const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }

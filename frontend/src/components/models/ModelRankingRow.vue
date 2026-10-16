@@ -101,14 +101,11 @@
       :id="detailId"
       :item="item"
       :href="href"
-      :price="price"
       :longest-trip-km="longestTripKm"
       :fuel="fuel"
       :locked="locked"
       :in-compare="inCompare"
       :can-add-compare="canAddCompare"
-      @unlock="emit('unlock')"
-      @assumptions="emit('assumptions')"
       @compare="emit('compare')"
     />
   </li>
@@ -137,8 +134,6 @@ const props = defineProps<{
   canAddCompare: boolean
   /** Link to the model detail page */
   href: string
-  /** Electricity price in EUR/kWh the costs are based on */
-  price: number
   /** "Sparsamste" ranks by consumption or by cost per 100 km; the column it acts on is bold */
   mainValue: MainValue
   /** Longest trip in km, for the open row's answers */
@@ -148,7 +143,7 @@ const props = defineProps<{
   locked?: boolean
 }>()
 
-const emit = defineEmits<{ toggle: []; compare: []; unlock: []; assumptions: [] }>()
+const emit = defineEmits<{ toggle: []; compare: [] }>()
 
 const { t, te } = useI18n()
 const { formatNumber, formatConsumption, consumptionUnitLabel, distanceUnitLabel, formatCurrency, formatCostPerKwh, unitSystem } = useLocaleFormat()

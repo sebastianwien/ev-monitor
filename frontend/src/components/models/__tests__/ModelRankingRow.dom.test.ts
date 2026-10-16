@@ -63,7 +63,7 @@ async function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: bo
   app = createApp(ModelRankingRow, {
     item: ranked.value[0], axis: buildLadderAxis([18, 16], 'kWh/100km'), sort: 'efficient',
     expanded: opts.expanded ?? false, inCompare: false, canAddCompare: true, href: '/modelle/x/y',
-    price: 0.35, mainValue: 'consumption', answered: answers.longestTripKm != null || answers.dailyKm != null,
+    mainValue: 'consumption', answered: answers.longestTripKm != null || answers.dailyKm != null,
     needsReady: needsReady.value, longestTripKm: answers.longestTripKm, maxStops: 0, fuel: 'petrol',
     locked: opts.locked ?? false,
     onUnlock: () => events.push('unlock'),
@@ -77,7 +77,6 @@ async function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: bo
 }
 
 const CAR = model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', typicalRangeMinKm: 400, typicalRangeMaxKm: 400 })
-const detail = (host: HTMLElement) => host.querySelector('[id^="mr-detail-"]')!.textContent ?? ''
 const forYou = (host: HTMLElement) => host.querySelector('[data-testid="for-you"]')
 const text = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ')
 
@@ -173,27 +172,31 @@ describe('ModelRankingRow', () => {
       expect(forYou(host)).toBeNull()
     })
 
-    it('the range is the figure of the column, the variant\'s own range only as an addition', async () => {
-      const { host } = await mount(CAR, { expanded: true })
-      const range = text(host.querySelector('[data-testid="detail-range"]'))
-      expect(range).toContain('400 km')
-      expect(range).toContain('350 km')
-      expect(range).not.toContain('noch zu wenige Fahrten')
+    it('what the drivers measure, as one paragraph', async () => {
+      const { host } = await mount(model({
+        brandDisplayName: 'VW', modelUrlSlug: 'ID.3', avgConsumptionKwhPer100km: 20, summerConsumptionKwhPer100km: 19, winterConsumptionKwhPer100km: 22,
+        typicalRangeMinKm: 340, typicalRangeMaxKm: 340, winterRangeMinKm: 200, winterRangeMaxKm: 310, avgCostPerKwh: 0.296, logCount: 6627, carCount: 43,
+      }), { expanded: true })
+      const p = text(host.querySelector('[data-testid="detail-measured"]'))
+      expect(p).toMatch(/Verbrauch 20,0 kWh\/100\s?km \(Sommer 19,0, Winter 22,0\), WLTP 16,0 kWh\/100\s?km/)
+      expect(p).toContain('Reichweite 340 km, im Winter 200 bis 310 km')
+      expect(p).toContain('Ø Ladepreis der Fahrer 29,6 ct/kWh')
+      expect(p).toContain('6.627 Ladevorgänge von 43 Autos')
     })
 
-    it('the stop ladder names its start: the motorway without a stop, then one and two stops', async () => {
-      const { host } = await mount(CAR, { expanded: true })
-      const ladder = text(host.querySelector('[data-testid="detail-ladder"]'))
-      expect(ladder).toContain('Autobahn')
-      expect(ladder).toMatch(/ohne Stopp\s*330 km.*1 Stopp\s*610 km.*2 Stopps\s*890 km/)
-    })
-
-    it('both prices say what they are, the mixed price links to the assumptions', async () => {
-      const { host, events } = await mount(CAR, { expanded: true })
-      expect(detail(host)).toContain('dein Mischpreis')
-      expect(detail(host)).toContain('was Fahrer dieses Modells im Schnitt zahlen')
-      ;(host.querySelector('[data-testid="detail-assumptions"]') as HTMLButtonElement).click()
-      expect(events).toEqual(['assumptions'])
+    it('the expert line holds what the closed row leaves out, each part only with a value', async () => {
+      const { host } = await mount(model({
+        brandDisplayName: 'VW', modelUrlSlug: 'ID.3', avgConsumptionKwhPer100km: 20, summerConsumptionKwhPer100km: 19, winterConsumptionKwhPer100km: 22,
+        minNetCapacityKwh: 75, maxNetCapacityKwh: 82,
+      }), { expanded: true })
+      const line = text(host.querySelector('[data-testid="detail-expert"]'))
+      expect(line).toContain('Autobahn 2 Stopps bis 890 km')
+      expect(line).toMatch(/Winter \+\d+ % Verbrauch/)
+      expect(line).toContain('25 % über WLTP')
+      expect(line).toContain('Akku 75 und 82 kWh')
+      app?.unmount(); app = null; document.body.innerHTML = ''
+      const bare = await mount(model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', avgConsumptionKwhPer100km: 16 }), { expanded: true, figures: null })
+      expect(bare.host.querySelector('[data-testid="detail-expert"]')).toBeNull()
     })
 
     it('a single driver\'s values are flagged above the data sheet', async () => {
@@ -217,28 +220,11 @@ describe('ModelRankingRow', () => {
   })
 
   describe('locked (guest)', () => {
-    it('the three answers are personal: a guest sees each behind a lock, never the figure', async () => {
+    it('a guest gets no answers and no gate in the row: the one gate sits in chapter 1', async () => {
       const { host } = await mount(CAR, { expanded: true, locked: true, fuelPrice: 1.8 })
-      const box = forYou(host)!
-      expect(box.querySelectorAll('[data-testid="for-you-locked"]')).toHaveLength(3)
-      expect(text(box)).not.toMatch(/25\s€/)
-      expect(text(box)).not.toContain('alle 14 Tage')
-      expect(text(box)).not.toContain('3 h 40 min')
-      expect(text(box)).not.toMatch(/pro Jahr/)
-      // no stand-in that reads like a figure for this model, nothing blurred
-      expect(text(box).split('400 km').join('').replace('ID.3', '')).not.toMatch(/\d/)
-      expect(box.querySelector('[class*="blur"]')).toBeNull()
-    })
-
-    it('the open row has one gate: what the answers are, one button, what happens with the mail', async () => {
-      const { host, events } = await mount(CAR, { locked: true, expanded: true })
-      const box = text(forYou(host))
-      expect(box).toContain('Deine Antworten für den VW ID.3: wie oft du laden musst, wie viele Stopps auf 400 km und was es im Monat kostet.')
-      expect(box).toContain('Kein Passwort')
-      expect(host.querySelectorAll('[data-testid="row-unlock"]')).toHaveLength(1)
-      ;(host.querySelector('[data-testid="row-unlock"]') as HTMLButtonElement).click()
-      await nextTick()
-      expect(events).toEqual(['unlock'])
+      expect(forYou(host)).toBeNull()
+      expect(host.querySelector('[data-testid="row-unlock"]')).toBeNull()
+      expect(host.querySelector('[data-testid="detail-measured"]')).not.toBeNull()
     })
   })
 })

@@ -68,7 +68,7 @@
 
   <!-- Chapter 1: the answers for the reader's driving, free as spans over all models; which 5 fit is behind the gate -->
   <div v-if="!loading && !loadError && models.length" class="mx-auto max-w-7xl pb-6 lg:px-6">
-    <ModelsAnswerCard ref="answerCard" v-model="needs" :entries="rankingEntries" :models="models" :price="price" :locked="!isAuthenticated"
+    <ModelsAnswerCard v-model="needs" :entries="rankingEntries" :models="models" :price="price" :locked="!isAuthenticated"
                       :petrol-price-per-liter="combustionMarket ? referencePrices?.petrolPricePerLiter ?? null : null" :model-href="modelHref"
                       @price="v => ownPrice = v" @unlocked="onUnlocked" />
   </div>
@@ -160,15 +160,12 @@
           :in-compare="isInCompare(item.key)"
           :can-add-compare="canAddCompare"
           :href="modelHref(item.model)"
-          :price="price"
           :main-value="cost.mainValue"
           :longest-trip-km="needs.longestTripKm"
           :fuel="cost.fuel"
           :locked="!isAuthenticated"
           @toggle="openKey = openKey === item.key ? null : item.key"
           @compare="toggleCompare(item.key)"
-          @unlock="unlockFromRow"
-          @assumptions="openAssumptions"
         />
       </TransitionGroup>
       <div v-if="!loading && !loadError" class="grid justify-items-center gap-3 px-4 pb-6 pt-4 md:px-7">
@@ -417,17 +414,12 @@ function setFit(on: boolean) {
 }
 
 // ── Chapter 1: the answer card and the list point at each other ─────────────
-const answerCard = ref<InstanceType<typeof ModelsAnswerCard> | null>(null)
 const entryCards = computed(() => [
   { key: 'fit', href: '#passt-zu-dir', icon: UserIcon, title: t('ranking_card.entry_fit_title'), sub: t('ranking_card.entry_fit_sub') },
   { key: 'lean', href: '#fahrer-messen', icon: ChartBarIcon, title: t('ranking_card.entry_lean_title'), sub: t('ranking_card.entry_lean_sub') },
 ])
 function onEntry(card: string) {
   analytics.track('ranking_entry_card', { card })
-}
-/** "Meine Zahlen" in an open row: the one gate sits in the answer card */
-function unlockFromRow() {
-  answerCard.value?.showGate()
 }
 /** The gate confirmed a code: the top 5 and the rows' figures follow through the auth store */
 function onUnlocked() {
