@@ -46,9 +46,7 @@ describe('AdminSpecSuggestionsTab', () => {
     it('zeigt nur Zeilen mit Vorschlag und übernimmt Zeitraum und Quelle über das volle Update-Command', async () => {
         const host = await mount()
         expect(host.textContent).toContain('Model 3 SR')
-        expect(host.textContent).toContain('bestehend')
         expect(host.textContent).toContain('SR Vorgänger')
-        expect(host.textContent).toContain('bei uns')
         expect(host.textContent).not.toContain('LR fremder Trim')
         const btn = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Übernehmen'))!
         btn.click(); await new Promise(r => setTimeout(r, 0)); await nextTick()
@@ -58,11 +56,24 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(cmd).toMatchObject({ model: 'MODEL_3', batteryCapacityKwh: 60, trimLevel: 'Standard', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' })
         expect(host.textContent).toContain('1 übernommen')
         // Gruppe bleibt offen, Kandidat ist markiert, erst "Fertig" schließt
-        expect(host.textContent).toContain('bestehend')
         expect(host.textContent).toContain('übernommen')
         expect([...host.querySelectorAll('button')].some(b => b.textContent?.includes('Übernehmen'))).toBe(false)
         ;[...host.querySelectorAll('button')].find(b => b.textContent?.includes('Fertig'))!.click(); await nextTick()
-        expect(host.textContent).not.toContain('bestehend')
+        expect(host.textContent).not.toContain('Model 3 SR')
+    })
+
+    it('Übernehmen schreibt in die als Ziel markierte Zeile, leeres "bis" des Kandidaten bleibt leer', async () => {
+        overview.mockResolvedValue({ ...sample, models: [{ ...sample.models[0], rows: [row('spec-1', {}), row('spec-2', { availableFrom: '2020-01-01', availableTo: '2022-12-31', sourceUrl: 'https://x', variantName: 'SR Vorgänger' })] }] })
+        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ 'spec-1': [{ label: 'Neu (60 kWh)', availableFrom: '2024-01-01', availableTo: null, sourceUrl: 'https://ev-database.org/car/9' }] }) })))
+        const host = await mount()
+        const radios = [...host.querySelectorAll('input[type=radio]')] as HTMLInputElement[]
+        expect(radios).toHaveLength(2)
+        radios[0].dispatchEvent(new Event('change')); await nextTick()
+        ;[...host.querySelectorAll('button')].find(b => b.textContent?.includes('Übernehmen'))!.click()
+        await new Promise(r => setTimeout(r, 0)); await nextTick()
+        const [id, cmd] = update.mock.calls[0] as [string, Record<string, unknown>]
+        expect(id).toBe('spec-2')
+        expect(cmd).toMatchObject({ variantName: 'SR Vorgänger', availableFrom: '2024-01-01', availableTo: null, sourceUrl: 'https://ev-database.org/car/9' })
     })
 
     it('Werte laden holt die Zahlen vom lokalen Helfer, markiert Abweichungen und schreibt sie beim Übernehmen mit', async () => {

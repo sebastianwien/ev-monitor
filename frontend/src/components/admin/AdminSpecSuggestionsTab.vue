@@ -45,9 +45,12 @@ const visible = computed(() => rows.value.filter(r => suggestions.value?.[r.id]?
     && !done.value.has(r.id)
     && (!onlyOpen.value || !r.availableFrom || !r.sourceUrl || applied.value.has(r.id))))
 const usedKey = (r: SpecRow, i: number) => `${r.id}#${i}`
+/** Welche unserer Zeilen "Übernehmen" beschreibt: je Gruppe wählbar, Standard ist die Zeile der Gruppe. */
+const targetId = ref<Record<string, string>>({})
+const target = (r: SpecRow) => rows.value.find(x => x.id === targetId.value[r.id]) ?? r
 /** Unsere anderen Zeilen desselben Modells (gleicher Trim, sonst alle), nach Zeitraum: Vorgänger und Nachfolger zum Einordnen der Kandidaten. */
-const context = (r: SpecRow) => rows.value
-    .filter(x => x.id !== r.id && x.carModel === r.carModel && (!r.trimLevel || !x.trimLevel || x.trimLevel.toLowerCase() === r.trimLevel.toLowerCase()))
+const ours = (r: SpecRow) => rows.value
+    .filter(x => x.carModel === r.carModel && (!r.trimLevel || !x.trimLevel || x.trimLevel.toLowerCase() === r.trimLevel.toLowerCase()))
     .sort((a, b) => (a.availableFrom ?? '9999').localeCompare(b.availableFrom ?? '9999'))
 
 function toCommand(r: SpecRow): SpecCommand {
@@ -79,21 +82,22 @@ async function loadValues(r: SpecRow) {
 function candidateCommand(r: SpecRow, s: Suggestion): SpecCommand {
     return {
         ...toCommand(r), ...(loaded(s) ?? {}),
-        availableFrom: s.availableFrom ?? r.availableFrom, availableTo: s.availableTo ?? r.availableTo, sourceUrl: s.sourceUrl ?? r.sourceUrl ?? '',
+        availableFrom: s.availableFrom ?? r.availableFrom, availableTo: s.availableTo, sourceUrl: s.sourceUrl ?? r.sourceUrl ?? '',
     }
 }
 
 /** Bestehende Zeile auf den Kandidaten setzen: Zeitraum und Quelle immer, Zahlen nur, wenn geladen. */
 async function apply(r: SpecRow, s: Suggestion, i: number) {
+    const t = target(r)
     busy.value = r.id
     error.value = ''
     try {
-        const result = await adminVehicleSpecService.update(r.id, candidateCommand(r, s))
-        rows.value = rows.value.map(x => x.id === r.id ? result.row : x)
-        applied.value = new Set([...applied.value, r.id])
+        const result = await adminVehicleSpecService.update(t.id, candidateCommand(t, s))
+        rows.value = rows.value.map(x => x.id === t.id ? result.row : x)
+        applied.value = new Set([...applied.value, r.id, t.id])
         used.value = new Map([...used.value, [usedKey(r, i), 'übernommen']])
     } catch (err) {
-        error.value = `${r.variantName ?? r.carModel}: ${apiErrorText(err, 'Speichern fehlgeschlagen.')}`
+        error.value = `${t.variantName ?? t.carModel}: ${apiErrorText(err, 'Speichern fehlgeschlagen.')}`
     } finally {
         busy.value = null
     }
@@ -156,41 +160,35 @@ const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^e
             </tr>
           </thead>
           <tbody>
-            <tr class="bg-indigo-950/60 text-indigo-100">
-              <td class="py-1.5 pr-3 font-medium rounded-l-sm pl-2">{{ r.variantName ?? 'ohne Name' }}</td>
-              <td class="py-1.5 pr-3 text-right">{{ fmt(r.batteryCapacityKwh) }}</td>
-              <td class="py-1.5 pr-3 text-right">{{ fmt(r.netBatteryCapacityKwh) }}</td>
-              <td class="py-1.5 pr-3 text-right">{{ fmt(r.officialRangeKm) }}</td>
-              <td class="py-1.5 pr-3 text-right">{{ fmt(r.officialConsumptionKwhPer100km) }}</td>
-              <td class="py-1.5 pr-3">{{ r.availableFrom ?? '–' }}</td>
-              <td class="py-1.5 pr-3">{{ r.availableTo ?? 'offen' }}</td>
-              <td class="py-1.5 pr-3"><a v-if="r.sourceUrl" :href="r.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">{{ shortUrl(r.sourceUrl) }}</a><span v-else>–</span></td>
-              <td class="py-1.5 pr-2 text-right text-xs text-indigo-300 rounded-r-sm">bestehend</td>
-            </tr>
-            <tr v-for="x in context(r)" :key="x.id" class="text-gray-500">
-              <td class="py-1 pr-3 pl-2">{{ x.variantName ?? 'ohne Name' }}</td>
-              <td class="py-1 pr-3 text-right">{{ fmt(x.batteryCapacityKwh) }}</td>
-              <td class="py-1 pr-3 text-right">{{ fmt(x.netBatteryCapacityKwh) }}</td>
-              <td class="py-1 pr-3 text-right">{{ fmt(x.officialRangeKm) }}</td>
-              <td class="py-1 pr-3 text-right">{{ fmt(x.officialConsumptionKwhPer100km) }}</td>
-              <td class="py-1 pr-3">{{ x.availableFrom ?? '–' }}</td>
-              <td class="py-1 pr-3">{{ x.availableTo ?? 'offen' }}</td>
-              <td class="py-1 pr-3"><a v-if="x.sourceUrl" :href="x.sourceUrl" target="_blank" rel="noopener noreferrer" class="underline">{{ shortUrl(x.sourceUrl) }}</a><span v-else>–</span></td>
-              <td class="py-1 pr-2 text-right text-xs">bei uns</td>
+            <tr v-for="x in ours(r)" :key="x.id" class="cursor-pointer" :class="x.id === target(r).id ? 'bg-indigo-950/60 text-indigo-100' : 'text-gray-500 hover:text-gray-300'"
+                :title="x.id === target(r).id ? 'Übernehmen schreibt in diese Zeile' : 'Klick: Übernehmen soll in diese Zeile schreiben'" @click="targetId = { ...targetId, [r.id]: x.id }">
+              <td class="py-1.5 pr-3 pl-2 rounded-l-sm" :class="x.id === target(r).id ? 'font-medium' : ''">{{ x.variantName ?? 'ohne Name' }}</td>
+              <td class="py-1.5 pr-3 text-right">{{ fmt(x.batteryCapacityKwh) }}</td>
+              <td class="py-1.5 pr-3 text-right">{{ fmt(x.netBatteryCapacityKwh) }}</td>
+              <td class="py-1.5 pr-3 text-right">{{ fmt(x.officialRangeKm) }}</td>
+              <td class="py-1.5 pr-3 text-right">{{ fmt(x.officialConsumptionKwhPer100km) }}</td>
+              <td class="py-1.5 pr-3">{{ x.availableFrom ?? '–' }}</td>
+              <td class="py-1.5 pr-3">{{ x.availableTo ?? 'offen' }}</td>
+              <td class="py-1.5 pr-3"><a v-if="x.sourceUrl" :href="x.sourceUrl" target="_blank" rel="noopener noreferrer" class="underline" :class="x.id === target(r).id ? 'text-indigo-300' : ''" @click.stop>{{ shortUrl(x.sourceUrl) }}</a><span v-else>–</span></td>
+              <td class="py-1.5 pr-2 text-right text-xs rounded-r-sm whitespace-nowrap">
+                <label class="inline-flex items-center gap-1 cursor-pointer" :class="x.id === target(r).id ? 'text-indigo-300' : ''">
+                  <input type="radio" :name="'ziel-' + r.id" :checked="x.id === target(r).id" @change="targetId = { ...targetId, [r.id]: x.id }" /> Ziel
+                </label>
+              </td>
             </tr>
             <tr v-for="(s, i) in suggestions[r.id]" :key="i" class="border-t border-gray-700/60">
               <td class="py-1.5 pr-3 pl-2">{{ s.label.replace(/\s*\([\d.,]+ kWh\)$/, '') }}</td>
               <template v-if="loaded(s)">
-                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.batteryCapacityKwh, r.batteryCapacityKwh)">{{ fmt(loaded(s)!.batteryCapacityKwh) }}</td>
-                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.netBatteryCapacityKwh, r.netBatteryCapacityKwh)">{{ fmt(loaded(s)!.netBatteryCapacityKwh) }}</td>
-                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.officialRangeKm, r.officialRangeKm)">{{ fmt(loaded(s)!.officialRangeKm) }}</td>
-                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.officialConsumptionKwhPer100km, r.officialConsumptionKwhPer100km)">{{ fmt(loaded(s)!.officialConsumptionKwhPer100km) }}</td>
+                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.batteryCapacityKwh, target(r).batteryCapacityKwh)">{{ fmt(loaded(s)!.batteryCapacityKwh) }}</td>
+                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.netBatteryCapacityKwh, target(r).netBatteryCapacityKwh)">{{ fmt(loaded(s)!.netBatteryCapacityKwh) }}</td>
+                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.officialRangeKm, target(r).officialRangeKm)">{{ fmt(loaded(s)!.officialRangeKm) }}</td>
+                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.officialConsumptionKwhPer100km, target(r).officialConsumptionKwhPer100km)">{{ fmt(loaded(s)!.officialConsumptionKwhPer100km) }}</td>
               </template>
               <td v-else colspan="4" class="py-1.5 pr-3 text-right text-xs text-gray-500">
                 {{ s.sourceUrl && values[s.sourceUrl] === 'loading' ? 'lädt …' : s.sourceUrl && values[s.sourceUrl] === 'error' ? 'nicht ladbar' : helper ? 'Werte laden' : '' }}
               </td>
-              <td class="py-1.5 pr-3" :class="dateDiff(s.availableFrom, r.availableFrom)">{{ s.availableFrom ?? '–' }}</td>
-              <td class="py-1.5 pr-3" :class="dateDiff(s.availableTo, r.availableTo)">{{ s.availableTo ?? 'offen' }}</td>
+              <td class="py-1.5 pr-3" :class="dateDiff(s.availableFrom, target(r).availableFrom)">{{ s.availableFrom ?? '–' }}</td>
+              <td class="py-1.5 pr-3" :class="dateDiff(s.availableTo, target(r).availableTo)">{{ s.availableTo ?? 'offen' }}</td>
               <td class="py-1.5 pr-3"><a v-if="s.sourceUrl" :href="s.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">{{ shortUrl(s.sourceUrl) }}</a></td>
               <td class="py-1.5 text-right whitespace-nowrap">
                 <span v-if="used.get(usedKey(r, i))" class="text-xs text-green-300">{{ used.get(usedKey(r, i)) }}</span>
