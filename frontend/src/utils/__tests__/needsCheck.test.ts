@@ -3,7 +3,7 @@ import type { PersonalRangeRankingEntry } from '../../api/personalRangeService'
 import { NEEDS_EMPTY, COMMUTE_WEEKS_PER_YEAR, commuteKmPerWeek, assessEntry, meetsNeeds, summarizeNeeds, type NeedsInput } from '../needsCheck'
 
 /** Anna: 40 km on 3 days, charging at home, 400 km longest trip */
-const ANNA: NeedsInput = { annualKm: null, highwayKm: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0 }
+const ANNA: NeedsInput = { annualKm: null, highwayKm: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0, priority: 'range' }
 
 const entry = (over: Partial<PersonalRangeRankingEntry> = {}): PersonalRangeRankingEntry => ({
   brand: 'TESLA', model: 'MODEL_3', summerRangeKm: 420, winterRangeKm: 320, longTripStops: 1, longTripTotalMinutes: 245,
@@ -12,7 +12,7 @@ const entry = (over: Partial<PersonalRangeRankingEntry> = {}): PersonalRangeRank
 
 describe('needsCheck', () => {
   it('starts empty: no answer is a default', () => {
-    expect(NEEDS_EMPTY).toEqual({ annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 })
+    expect(NEEDS_EMPTY).toEqual({ annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0, priority: 'range' })
     expect(COMMUTE_WEEKS_PER_YEAR).toBe(46)
   })
 

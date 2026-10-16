@@ -4,7 +4,7 @@ import { needsToInputs } from '../drivingProfile'
 
 describe('needsToInputs', () => {
   it('sends the answers like the model page, open questions on the slider start, community price', () => {
-    expect(needsToInputs({ annualKm: 20_000, highwayKm: 5_000, dailyKm: 40, commuteDays: 3, longestTripKm: 900, homeCharging: false, maxStops: 0 }))
+    expect(needsToInputs({ annualKm: 20_000, highwayKm: 5_000, dailyKm: 40, commuteDays: 3, longestTripKm: 900, homeCharging: false, maxStops: 0, priority: 'range' }))
       .toEqual({ commuteKmPerDay: 40, commuteDaysPerWeek: 3, highwaySharePercent: 25, homeCharging: false, longTripKm: 900, annualKm: 20_000, pricePerKwh: null })
   })
 

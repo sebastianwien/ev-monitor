@@ -50,22 +50,8 @@
         </span>
       </span>
 
-      <!-- The verdict for the reader's own numbers: own line, status dot, body colour -->
-      <span class="mr-hint pointer-events-none flex min-w-0 items-start gap-1.5 pb-4 pt-1.5 text-[15px] font-medium leading-snug text-gray-900 lg:pt-2 dark:text-gray-100">
-        <!-- No answers, no verdict. One line per answered part: commute, trip, month's cost. The dot
-             judges the trip only, so it stands on that line; the others keep its gutter to align. -->
-        <span v-if="hintLines.length" class="grid min-w-0 gap-0.5" data-testid="needs-hint">
-          <span v-for="line in hintLines" :key="line.key" class="flex min-w-0 items-start gap-1.5" :data-testid="line.testid">
-            <i v-if="tripStatusClass" class="mt-[7px] h-2 w-2 flex-none rounded-full" :class="line.key === 'trip' ? tripStatusClass : 'invisible'" aria-hidden="true"></i>
-            <!-- Guests: one quiet line for all personal figures, no stand-in; the gate is in the open row -->
-            <span v-if="line.locked" class="flex min-w-0 items-center gap-1.5 text-[13px] font-normal text-gray-500 dark:text-gray-400">
-              <LockClosedIcon class="h-4 w-4 flex-none" aria-hidden="true" />
-              <span class="truncate">{{ line.text }}</span>
-              <span class="sr-only">{{ t('models_ranking.row.locked_sr') }}</span>
-            </span>
-            <span v-else class="line-clamp-2 lg:line-clamp-none">{{ line.text }}</span>
-          </span>
-        </span>
+      <!-- Desktop: compare at the end of the row's second line. The reader's own figures live in the answer card and the open row. -->
+      <span class="mr-hint pointer-events-none flex min-w-0 items-start gap-1.5 pb-4 pt-1.5 lg:pt-2">
         <!-- Compare is an action, not a figure: a labelled button at the end of the verdict line
              (desktop; the phone has it in the open details). It sits above the row toggle. -->
         <button
@@ -137,7 +123,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CheckIcon, InformationCircleIcon, LockClosedIcon, PlusIcon } from '@heroicons/vue/24/outline'
+import { CheckIcon, InformationCircleIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import ConsumptionBars from './ConsumptionBars.vue'
 import ModelRankingDetail from './ModelRankingDetail.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -145,8 +131,6 @@ import { useRankedModelText } from '../../composables/useRankedModelText'
 import { officialModelThumbUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
 import type { LadderAxis } from '../../utils/ladderScale'
-import { meetsNeeds } from '../../utils/needsCheck'
-import { chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
 import type { FuelKind, MainValue } from '../../utils/costMix'
 
@@ -163,14 +147,8 @@ const props = defineProps<{
   price: number
   /** Big number under "Sparsamste": consumption or cost per 100 km */
   mainValue: MainValue
-  /** The reader answered the longest trip or the commute: unrated models say so, guests see the gate */
-  answered: boolean
-  /** The server's figures for the current answers have arrived: before that a row without figures is not called unrated */
-  needsReady?: boolean
   /** Longest trip in km, named in the hint so the reader sees their own number */
   longestTripKm: number | null
-  /** Stops the reader accepts on long trips; the range cell shows the range with that many */
-  maxStops: number
   fuel: FuelKind
   /** Guest: the verdict dot and a figure-free label stay, the numbers wait behind the mail gate */
   locked?: boolean
@@ -181,7 +159,7 @@ const emit = defineEmits<{ toggle: []; compare: []; unlock: []; assumptions: [] 
 const { t, te } = useI18n()
 const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, formatCurrency, formatCostPerKwh, unitSystem } = useLocaleFormat()
 const {
-  m, fmtKm, duration, tripParams, fuelLabel, costLabel, combustionCostEur, typicalSpan, hasBatterySpan, rangeValue,
+  m, fmtKm, fuelLabel, costLabel, combustionCostEur, typicalSpan, hasBatterySpan, rangeValue,
   driverCount, driversLabel, signedPct, displayWltpDeviation,
 } = useRankedModelText(() => props.item, () => props.longestTripKm, () => props.fuel)
 
@@ -203,62 +181,6 @@ const dataBasis = computed(() => {
     : t('models_ranking.row.logs', { count: formatNumber(m.value.logCount) })
 })
 
-// Needs check per row, the server's figures on the largest battery (same calculation as the model page).
-// Each part only once answered: the commute (km, days) and the longest trip.
-const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
-interface HintLine { key: 'commute' | 'trip' | 'cost' | 'locked'; text?: string; locked?: boolean; testid?: string }
-const needsLines = computed<HintLine[]>(() => {
-  const n = props.item.needs
-  if (!n) return props.answered && props.needsReady ? [{ key: 'trip', text: t('models_ranking.row.needs_unrated') }] : []
-  const row = (k: string, p: Record<string, unknown> = {}, count?: number) => t(`models_ranking.row.${k}`, p, count as number)
-  const parts: HintLine[] = []
-
-  // Line 1: the commute, the summer figure first and the winter figure appended when it differs
-  if (n.commute) {
-    const c = n.commute
-    // "alle 14 Tage laden"; stops on the road carry their own noun, and "kein Laden nötig" needs no verb
-    const charge = (text: string) => c.homeCharging && c.summer > 0 ? row('charge_verb', { value: text }) : text
-    const summer = chargeRhythmText(c.summer, c.homeCharging, rhythmFormat)
-    const winter = chargeRhythmText(c.winter, c.homeCharging, rhythmFormat)
-    parts.push({ key: 'commute', text: summer !== winter
-      ? row('commute_both', { typical: charge(summer), winter })
-      : row('commute_line', { value: charge(summer) }) })
-  }
-  // Line 2: the longest trip, stops and the whole travel time
-  if (n.trip && tripParams.value) {
-    const stops = n.trip.stops === 0 ? row('stops_none') : row('stops_word', { count: formatNumber(n.trip.stops) }, n.trip.stops)
-    parts.push({ key: 'trip', testid: 'needs-hint-trip', text: row('needs_trip_line', {
-      ...tripParams.value, value: n.trip.totalMinutes != null
-        ? `${stops}, ${t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })}` : stops }) })
-  }
-  // lines start with a capital, whatever building block comes first
-  return parts.map(p => ({ ...p, text: p.text!.charAt(0).toLocaleUpperCase() + p.text!.slice(1) }))
-})
-/** The lines under the name: commute, trip and the month's cost; for guests the trip verdict and one lock line */
-const hintLines = computed<HintLine[]>(() => {
-  const cost = props.item.monthlyCostEur
-  if (!props.locked) {
-    return cost == null ? needsLines.value
-      : [...needsLines.value, { key: 'cost', text: t('models_ranking.row.cost_line', { cost: formatCurrency(Math.round(cost), { decimals: 0 }) }) }]
-  }
-  const n = props.item.needs
-  const lines: HintLine[] = []
-  if (!n && props.answered && props.needsReady) lines.push({ key: 'trip', text: t('models_ranking.row.needs_unrated') })
-  // The verdict is free: whether the trip needs a stop at all. Count and time are personal.
-  if (n?.trip && tripParams.value) {
-    lines.push({ key: 'trip', testid: 'needs-hint-trip', text: t(`models_ranking.row.${n.trip.stops === 0 ? 'locked_ok' : 'locked_stop'}`, tripParams.value) })
-  }
-  if (n?.commute || n?.trip || cost != null) lines.push({ key: 'locked', locked: true, text: t('models_ranking.row.locked_answers'), testid: 'needs-locked-row' })
-  return lines
-})
-// Dot in front of the hint: green when the largest battery makes the trip within the allowed stops,
-// orange when not, grey for a model without figures. No trip answered, no dot.
-const tripStatusClass = computed<string | null>(() => {
-  const n = props.item.needs
-  if (!n) return props.answered && props.needsReady ? 'bg-gray-300 dark:bg-gray-600' : null
-  if (!n.trip) return null
-  return meetsNeeds(n, props.maxStops) ? 'bg-green-600 dark:bg-green-400' : 'bg-orange-500 dark:bg-orange-400'
-})
 const costNumber = computed(() => props.item.costPer100kmEur != null
   ? formatDecimal(convertCostPerDistance(props.item.costPer100kmEur, unitSystem.value), 2)
   : '–')

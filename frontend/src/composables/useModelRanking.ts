@@ -121,6 +121,7 @@ function parseNeeds(v: unknown): NeedsInput | null {
     homeCharging: typeof o.homeCharging === 'boolean' ? o.homeCharging : null,
     // the stop selector is gone: whatever was stored, the threshold is the fixed default
     maxStops: NEEDS_EMPTY.maxStops,
+    priority: o.priority === 'cost' || o.priority === 'breaks' ? o.priority : 'range',
   }
 }
 
@@ -134,7 +135,7 @@ export function readStoredNeeds(): NeedsInput | null {
 }
 
 /** The model page hands its answers (yearly km, motorway, commute, days, longest trip, home charging) back to the ranking's needs check. */
-export function writeStoredNeeds(patch: Partial<Omit<NeedsInput, 'maxStops'>>): void {
+export function writeStoredNeeds(patch: Partial<Omit<NeedsInput, 'maxStops' | 'priority'>>): void {
   const current = readStoredNeeds() ?? { ...NEEDS_EMPTY }
   try { localStorage.setItem(NEEDS_STORAGE_KEY, JSON.stringify({ ...current, ...patch })) } catch { /* private mode */ }
 }
@@ -285,6 +286,8 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
       ladder: entry ? { zeroStopKm: entry.zeroStopReachKm, oneStopKm: entry.oneStopReachKm, twoStopsKm: entry.twoStopsReachKm } : null,
     }
   }))
+  /** The server's figures for every model of the list, in the reply's order; the card's spans and top 5 rest on them */
+  const rankingEntries = computed(() => [...entries.value.values()])
   const needsSummary = computed<NeedsSummary>(() => summarizeNeeds(enriched.value.map(r => r.needs)))
 
   const ranked = computed<RankedModel[]>(() => {
@@ -342,6 +345,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     needs,
     needsSummary,
     needsReady,
+    rankingEntries,
     tripOnly,
     ranked,
     withoutData,

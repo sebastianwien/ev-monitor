@@ -1,4 +1,5 @@
 import type { PersonalRangeRankingEntry } from '../api/personalRangeService'
+import type { RankingPriority } from './rankingAnswers'
 
 /**
  * Needs check for the model overview: the reader's answers, shared with the model page, and the
@@ -19,6 +20,8 @@ export interface NeedsInput {
   homeCharging: boolean | null
   /** fast-charge stops the reader accepts on the longest trip, MIN_STOPS to MAX_STOPS */
   maxStops: number
+  /** what orders the top 5; only the list uses it, it is not sent to the server */
+  priority: RankingPriority
 }
 
 export const MIN_STOPS = 0
@@ -26,7 +29,7 @@ export const MIN_STOPS = 0
 export const MAX_STOPS = 10
 export const MIN_COMMUTE_DAYS = 0
 export const MAX_COMMUTE_DAYS = 6
-export const NEEDS_EMPTY: NeedsInput = { annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0 }
+export const NEEDS_EMPTY: NeedsInput = { annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0, priority: 'range' }
 /** Commute weeks a year: 52 minus holidays and public holidays */
 export const COMMUTE_WEEKS_PER_YEAR = 46
 

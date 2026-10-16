@@ -76,66 +76,25 @@ async function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: bo
   return { host, events }
 }
 
-const hint = (host: HTMLElement) => host.querySelector('[data-testid="needs-hint"]')!.textContent ?? ''
 const CAR = model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', typicalRangeMinKm: 400, typicalRangeMaxKm: 400 })
 const detail = (host: HTMLElement) => host.querySelector('[id^="mr-detail-"]')!.textContent ?? ''
 const forYou = (host: HTMLElement) => host.querySelector('[data-testid="for-you"]')
 const text = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ')
 
 describe('ModelRankingRow', () => {
-  it('signed in: the hint carries the server figures', async () => {
-    const { host } = await mount(CAR)
-    expect(hint(host)).toContain('Fürs Pendeln alle 14 Tage laden, im Winter alle 10 Tage')
-    expect(hint(host)).toContain('400 km: ohne Stopp')
-  })
-
-  it('the trip line names the stops and the whole travel time, as on the model page', async () => {
-    const { host } = await mount(CAR, { figures: { longTripStops: 1, longTripTotalMinutes: 245 } })
-    expect(hint(host)).toContain('400 km: 1 Stopp, 4 h 5 min unterwegs')
-  })
-
   it('the cost cell prices at the list price and names what the drivers pay', async () => {
     const { host } = await mount(model({ brandDisplayName: 'Tesla', modelUrlSlug: 'Model_3', avgCostPerKwh: 0.296 }))
     const cell = host.querySelector('[data-testid="cost-cell"]')!.textContent!.replace(/\s+/g, ' ')
     expect(cell).toContain('Fahrer zahlen Ø 29,6 ct/kWh')
   })
 
-  it('the trip line names the stops only when the model has no travel time', async () => {
-    const { host } = await mount(CAR, { figures: { longTripStops: 1, longTripTotalMinutes: null } })
-    expect(hint(host)).toContain('400 km: 1 Stopp')
-    expect(hint(host)).not.toContain('unterwegs')
-  })
-
-  it('the longest trip alone: dot and stops, no commute line', async () => {
-    const { host } = await mount(CAR, { answers: { dailyKm: null, commuteDays: null, longestTripKm: 400, homeCharging: null }, figures: { longTripStops: 1 } })
-    expect(hint(host)).not.toContain('Pendeln')
-    expect(hint(host)).toContain('400 km: 1 Stopp')
-    expect(host.querySelector('.mr-hint i')).not.toBeNull()
-  })
-
-  it('the commute alone: no dot, no trip verdict', async () => {
-    const { host } = await mount(CAR, { answers: { ...ANNA, longestTripKm: null } })
-    expect(hint(host)).toContain('Fürs Pendeln')
-    expect(hint(host)).not.toContain('Stopp')
-    expect(host.querySelector('.mr-hint i')).toBeNull()
-  })
-
-  it('without answers the row shows model values only: no dot, no hint', async () => {
-    const { host } = await mount(CAR, { answers: { dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null } })
-    expect(host.querySelector('.mr-hint i')).toBeNull()
-    expect(host.querySelector('[data-testid="needs-hint"]')).toBeNull()
-  })
-
-  it('a model the server left out says so, with a grey dot', async () => {
-    const { host } = await mount(CAR, { figures: null })
-    expect(hint(host)).toContain('noch nicht bewertbar')
-    expect(host.querySelector('.mr-hint i')!.className).toContain('bg-gray-300')
-  })
-
-  it('0 km commute: no charging needed, without a dangling verb', async () => {
-    const { host } = await mount(CAR, { answers: { ...ANNA, dailyKm: 0 }, figures: { chargesPerWeekSummer: 0, chargesPerWeekWinter: 0 } })
-    expect(hint(host)).toContain('Fürs Pendeln kein Laden nötig')
-    expect(hint(host)).not.toContain('nötig laden')
+  it('the closed row stays free of personal figures, with answers, signed in or not', async () => {
+    for (const locked of [false, true]) {
+      const { host } = await mount(CAR, { locked })
+      expect(host.querySelector('[data-testid="needs-hint"]')).toBeNull()
+      expect(host.querySelector('.mr-hint i')).toBeNull()
+      app?.unmount(); app = null; document.body.innerHTML = ''
+    }
   })
 
   describe('open row', () => {
@@ -203,15 +162,6 @@ describe('ModelRankingRow', () => {
     expect(events).toEqual(['compare'])
   })
 
-  it('the month\'s cost is the third line under the name: the figure signed in, a lock for guests', async () => {
-    const open = await mount(CAR)
-    expect(hint(open.host)).toMatch(/25\s€ im Monat/)
-    app?.unmount()
-    const { host } = await mount(CAR, { locked: true })
-    expect(host.querySelector('[data-testid="needs-locked-row"]')).not.toBeNull()
-    expect(hint(host)).not.toMatch(/\d+\s€/)
-  })
-
   it('yearly savings count the commute', async () => {
     const { host } = await mount(CAR, { expanded: true, fuelPrice: 1.8 })
     expect(text(forYou(host))).toMatch(/pro Jahr günstiger als Benziner, fürs Pendeln/)
@@ -229,37 +179,6 @@ describe('ModelRankingRow', () => {
       // no stand-in that reads like a figure for this model, nothing blurred
       expect(text(box).split('400 km').join('').replace('ID.3', '')).not.toMatch(/\d/)
       expect(box.querySelector('[class*="blur"]')).toBeNull()
-    })
-
-    it('keeps the verdict but no figure: the trip is possible without a stop', async () => {
-      const { host } = await mount(CAR, { locked: true })
-      expect(hint(host)).toContain('400 km ohne Ladestopp')
-      // the dot judges the trip: the lock line below keeps only its invisible gutter
-      expect(host.querySelector('[data-testid="needs-locked-row"] i')!.className).toContain('invisible')
-      expect(hint(host)).not.toContain('3 h 40 min')
-      expect(host.querySelector('[data-testid="needs-hint-trip"] i')!.className).toContain('bg-green-600')
-    })
-
-    it('a guest who answered only the commute sees one lock line, never the figure', async () => {
-      const { host } = await mount(CAR, { locked: true, answers: { ...ANNA, longestTripKm: null } })
-      expect(host.querySelector('[data-testid="needs-locked-row"]')).not.toBeNull()
-      expect(host.textContent).not.toContain('alle 14 Tage')
-    })
-
-    it('names a needed stop positively, without counting it', async () => {
-      const { host } = await mount(CAR, { locked: true, figures: { longTripStops: 2 } })
-      expect(hint(host)).toContain('400 km mit Ladestopp')
-      expect(hint(host)).not.toContain('nicht ohne')
-      expect(hint(host)).not.toContain('2 Stopps')
-      expect(host.querySelector('[data-testid="needs-hint-trip"] i')!.className).toContain('bg-orange-500')
-    })
-
-    it('one quiet lock line instead of a blurred stand-in per answer', async () => {
-      const { host } = await mount(CAR, { locked: true })
-      expect(host.querySelectorAll('[data-testid="needs-locked-row"]')).toHaveLength(1)
-      expect(host.querySelector('[data-testid="needs-locked-row"] svg')).not.toBeNull()
-      expect(hint(host)).toContain('Deine Antworten zu diesem Modell')
-      expect(host.querySelector('[class*="blur"]')).toBeNull()
     })
 
     it('the open row has one gate: what the answers are, one button, what happens with the mail', async () => {

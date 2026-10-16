@@ -6,6 +6,7 @@
 
   <!-- Hero -->
   <header v-if="!isRedditSource" class="mx-auto grid max-w-7xl gap-6 px-4 pb-5 pt-7 lg:px-6 lg:pb-8 lg:pt-12">
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
     <div class="grid gap-4">
       <p class="text-[13px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.hero.eyebrow', { date: asOf }) }}</p>
       <h1 class="max-w-[18ch] text-balance text-[clamp(30px,7.4vw,52px)] font-bold leading-[1.04] tracking-tight text-gray-900 dark:text-gray-100">
@@ -14,6 +15,20 @@
       <p v-if="totalLogs > 0" class="max-w-[60ch] text-gray-600 dark:text-gray-400">
         {{ t('models_ranking.hero.lede', { logs: formatNumber(totalLogs), drivers: formatNumber(platformStats?.userCount ?? 0) }) }}
       </p>
+    </div>
+    <!-- Two ways in, one per persona: the answers for me, or the drivers' figures -->
+    <nav class="grid gap-2.5" :aria-label="t('ranking_card.title')" data-testid="entry-cards">
+      <a v-for="c in entryCards" :key="c.key" :href="c.href" :data-testid="`entry-${c.key}`"
+         class="edge-card flex min-h-16 items-center gap-3 rounded-2xl bg-white px-4 py-3 hover:bg-green-50 dark:bg-gray-900 dark:hover:bg-green-950/40"
+         @click="onEntry(c.key)">
+        <component :is="c.icon" class="h-6 w-6 flex-none text-green-700 dark:text-green-400" aria-hidden="true" />
+        <span class="grid min-w-0 flex-1">
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ c.title }}</span>
+          <span class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ c.sub }}</span>
+        </span>
+        <ChevronRightIcon class="h-5 w-5 flex-none text-gray-400" aria-hidden="true" />
+      </a>
+    </nav>
     </div>
     <dl class="edge-card grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-gray-200 sm:grid-cols-4 dark:bg-gray-800">
       <div v-for="fact in heroFacts" :key="fact.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 md:px-5 md:py-4 dark:bg-gray-900">
@@ -51,7 +66,14 @@
     </div>
   </header>
 
-  <div class="mx-auto grid max-w-7xl grid-cols-1 gap-[18px] pb-10 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start lg:gap-7 lg:px-6">
+  <!-- Chapter 1: the answers for the reader's driving, free as spans over all models; which 5 fit is behind the gate -->
+  <div v-if="!loading && !loadError && models.length" class="mx-auto max-w-7xl pb-6 lg:px-6">
+    <ModelsAnswerCard ref="answerCard" v-model="needs" :entries="rankingEntries" :models="models" :price="price" :locked="!isAuthenticated"
+                      :petrol-price-per-liter="combustionMarket ? referencePrices?.petrolPricePerLiter ?? null : null" :model-href="modelHref"
+                      @price="v => ownPrice = v" @unlocked="onUnlocked" />
+  </div>
+
+  <div id="fahrer-messen" class="mx-auto grid max-w-7xl scroll-mt-24 grid-cols-1 gap-[18px] pb-10 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start lg:gap-7 lg:px-6">
     <!-- Filters -->
     <aside class="grid grid-cols-1 gap-3.5 px-4 lg:sticky lg:top-24 lg:px-0" :aria-label="t('models_ranking.filters.category')">
       <label class="relative block">
@@ -86,8 +108,6 @@
 
     <!-- Ranking -->
     <section class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:edge-box lg:bg-white dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
-      <!-- Needs check sits where it acts: right above the rows -->
-      <NeedsCheckCard ref="needsCard" v-model="needs" :summary="needsSummary" :trip-only="tripOnly" :locked="!isAuthenticated" class="border-b border-gray-200 px-4 py-4 lg:px-5 dark:border-gray-800" @trip="filterTrip" @unlocked="onUnlocked" />
       <div class="sticky z-20 border-b border-gray-200 bg-gray-50 px-4 pt-2.5 lg:px-5 lg:pt-3 dark:border-gray-800 dark:bg-gray-950 lg:bg-white dark:lg:bg-gray-900" :class="stickyTopClass">
         <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0 lg:pb-2.5" role="group" :aria-label="t('models_ranking.sort.label')">
           <button
@@ -109,12 +129,6 @@
             @click="openAssumptions"
           >{{ t('models_ranking.assumptions.chip') }}</button>
         </div>
-        <!-- Where the hints per row come from, with the way back to the card. Only once the
-             card has scrolled away: while it is in view the line would repeat the fields above it. -->
-        <p v-if="!needsCardInView && needsBasis" class="flex min-w-0 flex-wrap items-baseline gap-x-2 pb-2 text-[13px] leading-snug text-gray-700 dark:text-gray-300">
-          <span>{{ needsBasis }}</span>
-          <button type="button" class="pointer-events-auto flex-none font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="needs-change" @click="editNeeds">{{ t('models_ranking.needs.basis_change') }}</button>
-        </p>
         <!-- The count only matters when something narrows the list -->
         <p v-if="!loading && ranked.length !== models.length" class="flex flex-wrap items-baseline gap-x-2 pb-2 text-[13px] text-gray-500 dark:text-gray-400" aria-live="polite" data-testid="ranking-count">
           <span>{{ t('models_ranking.count', { shown: ranked.length, total: models.length }) }}</span>
@@ -171,10 +185,7 @@
           :href="modelHref(item.model)"
           :price="price"
           :main-value="cost.mainValue"
-          :answered="hasTrip || hasCommute"
-          :needs-ready="needsReady"
           :longest-trip-km="needs.longestTripKm"
-          :max-stops="needs.maxStops"
           :fuel="cost.fuel"
           :locked="!isAuthenticated"
           @toggle="openKey = openKey === item.key ? null : item.key"
@@ -283,12 +294,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
+import { computed, onMounted, ref, toRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   ArrowPathIcon, ArrowRightIcon, ArrowsRightLeftIcon, ArrowTrendingUpIcon,
-  ChartBarIcon, ChevronRightIcon, MagnifyingGlassIcon, XMarkIcon,
+  ChartBarIcon, ChevronRightIcon, MagnifyingGlassIcon, UserIcon, XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -306,7 +317,7 @@ import PublicNav from '../components/shared/PublicNav.vue'
 import ThgBanner from '../components/shared/ThgBanner.vue'
 import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
 import ModelRankingRow from '../components/models/ModelRankingRow.vue'
-import NeedsCheckCard from '../components/models/NeedsCheckCard.vue'
+import ModelsAnswerCard from '../components/models/ModelsAnswerCard.vue'
 import AssumptionsSheet from '../components/models/AssumptionsSheet.vue'
 
 const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: false })
@@ -314,7 +325,7 @@ const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: fals
 const { t, te, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, convertDistance, unitSystem } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS } = useMarketRoute()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
@@ -336,8 +347,8 @@ const loading = ref(true)
 const loadError = ref(false)
 
 const {
-  sort, category, query, price, cost, homeShare, combustionMarket, applyReferencePrices, resetCost,
-  needs, needsSummary, needsReady, tripOnly, ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
+  sort, category, query, price, ownPrice, cost, homeShare, combustionMarket, applyReferencePrices, resetCost,
+  needs, rankingEntries, tripOnly, ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
   compareKeys, canAddCompare, isInCompare, toggleCompare, clearCompare,
 } = useModelRanking(models, modelsWithoutData)
 watch(currentMarket, m => { combustionMarket.value = combustionAllowed(m) }, { immediate: true })
@@ -407,54 +418,22 @@ function chipClass(active: boolean, compact = false) {
   ]
 }
 
-// ── Needs check: the card and the list point at each other ──────────────────
-const needsCard = ref<InstanceType<typeof NeedsCheckCard> | null>(null)
-const hasTrip = computed(() => needs.value.longestTripKm != null)
-// An emptied trip field ends its filter, so a new trip does not come back filtered
-watch(hasTrip, has => { if (!has) tripOnly.value = false })
-/** Home charging counts until answered (the question comes after the gate), so km and days make the commute */
-const hasCommute = computed(() => needs.value.dailyKm != null && needs.value.commuteDays != null)
-/** The answers the row hints rest on, for the sticky header; empty (no line) before the first answer */
-const needsBasis = computed(() => {
-  const n = needs.value
-  const local = (km: number) => formatNumber(Math.round(convertDistance(km)))
-  const parts: string[] = []
-  if (n.dailyKm != null && n.commuteDays != null) {
-    parts.push(t('models_ranking.needs.basis_commute', { daily: local(n.dailyKm), days: formatNumber(n.commuteDays), unit: distanceUnitLabel() }))
-  }
-  if (n.longestTripKm != null) parts.push(t('models_ranking.needs.basis_trip', { longest: local(n.longestTripKm), unit: distanceUnitLabel() }))
-  if (n.homeCharging != null) parts.push(t(n.homeCharging ? 'models_ranking.needs.basis_home' : 'models_ranking.needs.basis_no_home'))
-  return parts.length ? t('models_ranking.needs.basis', { parts: parts.join(', ') }) : ''
-})
-/** A stop tile in the card: the list shows the models that make the trip within that many stops; null shows all */
-function filterTrip(maxStops: number | null) {
-  if (maxStops != null) needs.value = { ...needs.value, maxStops }
-  tripOnly.value = maxStops != null
+// ── Chapter 1: the answer card and the list point at each other ─────────────
+const answerCard = ref<InstanceType<typeof ModelsAnswerCard> | null>(null)
+const entryCards = computed(() => [
+  { key: 'fit', href: '#passt-zu-dir', icon: UserIcon, title: t('ranking_card.entry_fit_title'), sub: t('ranking_card.entry_fit_sub') },
+  { key: 'lean', href: '#fahrer-messen', icon: ChartBarIcon, title: t('ranking_card.entry_lean_title'), sub: t('ranking_card.entry_lean_sub') },
+])
+function onEntry(card: string) {
+  analytics.track('ranking_entry_card', { card })
 }
-// The sticky header repeats the needs only while the card itself is out of view
-const needsCardInView = ref(true)
-let needsObserver: IntersectionObserver | null = null
-onMounted(() => {
-  const el = needsCard.value?.$el
-  if (!(el instanceof HTMLElement) || typeof IntersectionObserver === 'undefined') return
-  needsObserver = new IntersectionObserver(([entry]) => { needsCardInView.value = entry.isIntersecting }, { threshold: 0 })
-  needsObserver.observe(el)
-})
-onUnmounted(() => needsObserver?.disconnect())
-function editNeeds() {
-  const el = needsCard.value?.$el
-  if (el instanceof HTMLElement) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  needsCard.value?.focusFirst()
-}
-/** "Meine Zahlen" in an open row: the one gate sits in the needs card */
+/** "Meine Zahlen" in an open row: the one gate sits in the answer card */
 function unlockFromRow() {
-  needsCard.value?.openGate()
-  const el = needsCard.value?.$el
-  if (el instanceof HTMLElement) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  answerCard.value?.showGate()
 }
-/** The gate confirmed a code: the rows re-render with their figures through the auth store */
+/** The gate confirmed a code: the top 5 and the rows' figures follow through the auth store */
 function onUnlocked() {
-  analytics.track('ranking_unlocked', { models: needsSummary.value.total })
+  analytics.track('ranking_unlocked', { models: rankingEntries.value.length })
 }
 
 // ── Assumptions (cost) ──────────────────────────────────────────────────────
