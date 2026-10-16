@@ -293,9 +293,9 @@ describe('AdminSpecsTab', () => {
         expect(button(host, 'Autos (0)')).toBeUndefined()
         expect(carsOfSpec.mock.calls).toEqual([['spec-1']])
         expect(button(host, 'Autos (12)').getAttribute('aria-expanded')).toBe('true')
-        expect(button(host, 'Autos (12)').closest('li')!.querySelectorAll('tr[data-car]')).toHaveLength(1)
+        expect(button(host, 'Autos (12)').closest('li')!.querySelectorAll('[data-car]')).toHaveLength(1)
         button(host, 'Autos (12)').click(); await new Promise(r => setTimeout(r, 50)); await nextTick()
-        expect(host.querySelectorAll('tr[data-car]')).toHaveLength(0)
+        expect(host.querySelectorAll('[data-car]')).toHaveLength(0)
     })
 
     it('nach dem Umhängen laden Quell- und Zielzeile ihre Autos neu', async () => {

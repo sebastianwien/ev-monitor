@@ -1,12 +1,9 @@
-<script lang="ts">
-/** Feste Spalten ab lg, in Tab-Kopfzeile und Zeile identisch: minmax(0, …) und feste Aktionsspalte, damit Inhalt die Spuren nicht verschiebt. */
-export const SPEC_GRID = 'lg:grid lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.8fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_14rem] lg:items-center lg:gap-x-3'
-</script>
 
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { adminVehicleSpecService, apiErrorText, type ChangeEntry, type SaveResult, type SpecCommand, type SpecRow, type WorkList } from '../../api/adminVehicleSpecService'
 import AdminSpecRowCars from './AdminSpecRowCars.vue'
+import { SPEC_GRID } from './specCompare'
 
 /**
  * Eine Spec-Zeile an Ort und Stelle: Anzeige und Bearbeitung in derselben Spaltengeometrie, die Nachbarzeilen bleiben sichtbar.
@@ -191,7 +188,7 @@ const btn = 'px-2 py-1 rounded-sm text-xs'
       <div v-if="showCars && row.activeCars > 0" class="spec-expand-outer">
         <div class="min-h-0 overflow-hidden">
           <!-- Key mit Anzahl: nach dem Umhängen laden Quell- und Zielzeile neu -->
-          <AdminSpecRowCars :key="`${row.id}-${row.activeCars}`" :spec-id="row.id" @changed="emit('carsChanged')" />
+          <AdminSpecRowCars :key="`${row.id}-${row.activeCars}`" :row="row" @changed="emit('carsChanged')" />
         </div>
       </div>
     </Transition>

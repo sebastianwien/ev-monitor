@@ -6,7 +6,8 @@ import {
     type ChangeEntry, type MissingVehicleRequestRow, type ModelGroup, type SaveResult, type SpecCommand, type SpecOverview, type SpecRow, type WorkList,
 } from '../../api/adminVehicleSpecService'
 import AdminSpecRowForm from './AdminSpecRowForm.vue'
-import AdminSpecRowInline, { SPEC_GRID } from './AdminSpecRowInline.vue'
+import AdminSpecRowInline from './AdminSpecRowInline.vue'
+import { SPEC_GRID } from './specCompare'
 import AdminSpecReassignSheet from './AdminSpecReassignSheet.vue'
 
 /**

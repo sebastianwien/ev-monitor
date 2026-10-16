@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ArrowDownTrayIcon, ArrowUturnLeftIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import { adminVehicleSpecService, apiErrorText, type ModelGroup, type SpecCommand, type SpecRow } from '../../api/adminVehicleSpecService'
+import { wordParts } from './specCompare'
 
 /**
  * Abgleich je Modell gegen eine lokale Datei `public/spec-vorschlaege.json` (gitignored, nur auf dem Entwicklungsrechner).
@@ -211,11 +212,6 @@ function dateParts(a: string | null, b: string | null | undefined): { text: stri
         ]
     })
 }
-/** Name in Wörter zerlegt, jedes Wort gegen die Wörter im Namen des Ziels gefärbt (Groß/klein egal): drin grün, nicht drin gelb, ohne Ziel neutral. */
-function nameParts(a: string, b: string | null | undefined): { text: string; cls: string }[] {
-    const words = b == null ? null : new Set(b.toLowerCase().split(/\s+/))
-    return a.split(/\s+/).filter(Boolean).map(w => ({ text: w, cls: !words ? '' : words.has(w.toLowerCase()) ? 'text-green-300' : 'text-amber-300' }))
-}
 const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^ev-database\.org\/car\//, '')
 const cell = 'py-1.5 pr-3 whitespace-nowrap'
 const date = 'py-1.5 pr-3 whitespace-nowrap'
@@ -283,7 +279,7 @@ const num = 'py-1.5 pr-3 text-right'
             <tr><td colspan="11" class="pt-3 pb-1 pl-2 text-xs text-gray-500">ev-database</td></tr>
             <tr v-for="e in entries" :key="e.sourceUrl" data-entry class="border-t border-gray-700/60"
                 :class="used.get(usedKey(m, e)) || linked.get(e.sourceUrl) ? 'opacity-50 hover:opacity-100' : ''">
-              <td :class="cell" class="pl-2" data-name><template v-for="(p, pi) in nameParts(e.label, target ? target.variantName ?? '' : undefined)" :key="pi">{{ pi > 0 ? ' ' : '' }}<span :class="p.cls">{{ p.text }}</span></template></td>
+              <td :class="cell" class="pl-2" data-name><template v-for="(p, pi) in wordParts(e.label, target ? target.variantName ?? '' : undefined)" :key="pi">{{ pi > 0 ? ' ' : '' }}<span :class="p.cls">{{ p.text }}</span></template></td>
               <td :class="cell"></td>
               <template v-if="loaded(e)">
                 <td :class="[num, diff(loaded(e)!.batteryCapacityKwh, target?.batteryCapacityKwh)]">{{ fmt(loaded(e)!.batteryCapacityKwh) }}</td>

@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { adminVehicleSpecService, apiErrorText, type Candidate, type CarForReassign } from '../../api/adminVehicleSpecService'
+import { adminVehicleSpecService, apiErrorText, type Candidate, type CarForReassign, type SpecRow } from '../../api/adminVehicleSpecService'
+import { SPEC_GRID, fitClass, wordParts, yearFits } from './specCompare'
 
 /**
  * Autos einer Spec-Zeile, aufgeklappt unter der Zeile. Umhängen je Auto auf eine andere Zeile desselben Modells,
  * nie als Bulk: das Netto der neuen Zeile ändert Verbrauch, Phantom Drain und SoH des Autos.
  * Passt das Baujahr eindeutig zu einer Zeile, ist sie vorausgewählt; umgehängt wird trotzdem erst per Klick.
+ * Die Autos stehen in den Spalten der Spec-Zeile, jede Zelle grün oder gelb gegen die Spec: so fällt ein falsch hängendes Auto ins Auge.
  */
-const props = defineProps<{ specId: string }>()
+const props = defineProps<{ row: SpecRow }>()
 const emit = defineEmits<{ changed: [] }>()
 
 const cars = ref<CarForReassign[]>([])
@@ -29,7 +31,7 @@ const suggested = ref<Record<string, string>>({})
 
 onMounted(async () => {
     try {
-        cars.value = await adminVehicleSpecService.carsOfSpec(props.specId)
+        cars.value = await adminVehicleSpecService.carsOfSpec(props.row.id)
         for (const car of cars.value) {
             const id = suggestion(car)
             if (id) suggested.value[car.carId] = id
@@ -58,42 +60,36 @@ async function assign(car: CarForReassign) {
     }
 }
 
-const period = (c: Candidate) => `${c.availableFrom?.slice(0, 7) ?? '?'} bis ${c.availableTo?.slice(0, 7) ?? 'offen'}`
+const period = (c: Candidate) => `${c.availableFrom?.slice(0, 4) ?? '?'}-${c.availableTo?.slice(0, 4) ?? ''}`
 const label = (c: Candidate) => `${c.variantName ?? 'ohne Name'} · ${c.netKwh ?? '?'} kWh · ${period(c)}`
-const cell = 'py-1 pr-3 whitespace-nowrap'
+const netFits = (car: CarForReassign) => car.currentNetKwh == null || props.row.netBatteryCapacityKwh == null ? null
+    : Number(car.currentNetKwh) === Number(props.row.netBatteryCapacityKwh)
 </script>
 
 <template>
-  <div class="mt-2 pt-2 border-t border-gray-800 text-xs space-y-1">
-    <p v-if="error" class="text-red-400" role="alert">{{ error }}</p>
-    <p v-if="loading" class="text-gray-500">Lädt …</p>
-    <p v-else-if="cars.length === 0" class="text-gray-500">Keine aktiven Autos an dieser Zeile.</p>
-    <table v-else class="text-left">
-      <thead class="text-gray-500">
-        <tr><th :class="cell" class="font-normal">Baujahr</th><th :class="cell" class="font-normal">Trim</th><th :class="cell" class="font-normal">eigenes Netto</th>
-          <th :class="cell" class="font-normal">Ladevorgänge</th><th :class="cell" class="font-normal">umhängen auf</th><th></th></tr>
-      </thead>
-      <tbody>
-        <tr v-for="car in cars" :key="car.carId" data-car class="border-t border-gray-800 text-gray-300">
-          <td :class="cell">{{ car.year ?? '?' }}</td>
-          <td :class="cell">{{ car.trim ?? '–' }}</td>
-          <td :class="cell">{{ car.currentNetKwh == null ? '–' : `${car.currentNetKwh} kWh` }}</td>
-          <td :class="cell">{{ car.logCount }}</td>
-          <template v-if="car.candidates.length">
-            <td :class="cell">
-              <select v-model="target[car.carId]" aria-label="Ziel-Zeile" class="bg-gray-800 border border-gray-600 rounded-sm px-2 py-1 text-xs text-gray-100">
-                <option value="" disabled>Zeile wählen</option>
-                <option v-for="c in car.candidates" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId] === c.specId ? ' · passt zum Baujahr' : '' }}</option>
-              </select>
-            </td>
-            <td class="py-1">
-              <button type="button" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white disabled:opacity-40"
-                      :disabled="!target[car.carId] || busyCar === car.carId" @click="assign(car)">Umhängen</button>
-            </td>
-          </template>
-          <td v-else colspan="2" :class="cell" class="text-gray-500">keine andere Zeile dieses Modells</td>
-        </tr>
-      </tbody>
-    </table>
+  <div class="mt-2 pt-1 border-t border-gray-800 text-xs">
+    <p v-if="error" class="text-red-400 py-1" role="alert">{{ error }}</p>
+    <p v-if="loading" class="text-gray-500 py-1">Lädt …</p>
+    <p v-else-if="cars.length === 0" class="text-gray-500 py-1">Keine aktiven Autos an dieser Zeile.</p>
+    <ul v-else>
+      <li v-for="car in cars" :key="car.carId" data-car class="flex flex-wrap gap-x-3 gap-y-1 py-1 border-t border-gray-800/60 first:border-t-0 text-gray-300" :class="SPEC_GRID">
+        <span class="min-w-0">
+          <select v-if="car.candidates.length" v-model="target[car.carId]" aria-label="umhängen auf" class="w-full bg-gray-800 border border-gray-700 rounded-sm px-2 py-1 text-xs text-gray-100">
+            <option value="" disabled>umhängen auf …</option>
+            <option v-for="c in car.candidates" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId] === c.specId ? ' · passt zum Baujahr' : '' }}</option>
+          </select>
+          <span v-else class="text-gray-500">keine andere Zeile dieses Modells</span>
+        </span>
+        <span data-trim class="truncate"><template v-if="car.trim"><template v-for="(p, pi) in wordParts(car.trim, row.trimLevel ?? '')" :key="pi">{{ pi > 0 ? ' ' : '' }}<span :class="p.cls">{{ p.text }}</span></template></template><template v-else>–</template></span>
+        <span data-net :class="fitClass(netFits(car))">{{ car.currentNetKwh == null ? '–' : `${car.currentNetKwh} kWh` }}</span>
+        <span></span>
+        <span data-year :class="fitClass(yearFits(car.year, row.availableFrom, row.availableTo))">{{ car.year ?? '?' }}</span>
+        <span class="text-gray-500">{{ car.logCount }} Ladevorgänge</span>
+        <span class="lg:text-right">
+          <button v-if="car.candidates.length" type="button" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white disabled:opacity-40"
+                  :disabled="!target[car.carId] || busyCar === car.carId" @click="assign(car)">Umhängen</button>
+        </span>
+      </li>
+    </ul>
   </div>
 </template>
