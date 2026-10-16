@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CheckCircleIcon, MagnifyingGlassIcon, MinusIcon, PlusIcon } from '@heroicons/vue/24/outline'
+import { CheckCircleIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
+import { monthNames } from '../../../utils/monthNames'
 import type { useCarQuickAdd } from '../../../composables/useCarQuickAdd'
 
 const props = defineProps<{ flow: ReturnType<typeof useCarQuickAdd> }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const title = computed(() => {
   switch (props.flow.phase.value) {
@@ -18,6 +19,12 @@ const title = computed(() => {
     default: return t('onboarding.car_title')
   }
 })
+
+const monthOptions = computed(() => monthNames(locale.value))
+
+const SELECT_CLASS = 'w-full min-h-[44px] rounded-sm border border-gray-300 dark:border-gray-600 '
+  + 'bg-white dark:bg-gray-700 p-2 text-sm text-gray-800 dark:text-gray-100 '
+  + 'focus:border-indigo-500 focus:ring-indigo-500'
 
 const RETRY_CLASS = 'mt-2 min-h-[44px] rounded-sm border border-gray-300 dark:border-gray-600 px-4 '
   + 'text-sm font-medium text-gray-700 dark:text-gray-200 transition '
@@ -111,22 +118,21 @@ const OPTION_CLASS = 'w-full min-h-[44px] rounded-sm border border-gray-200 dark
 
     <!-- Baujahr -->
     <template v-else-if="flow.phase.value === 'year-input'">
-      <div class="mt-6 flex items-center justify-center gap-5">
-        <button type="button" :aria-label="t('onboarding.car_year_decrease')" :disabled="!flow.canDecreaseYear.value"
-          @click="flow.decreaseYear()"
-          class="w-11 h-11 flex items-center justify-center rounded-full border border-gray-300 dark:border-gray-600
-                 text-gray-600 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30">
-          <MinusIcon class="h-5 w-5" />
-        </button>
-        <output class="text-3xl font-bold text-gray-800 dark:text-gray-100 tabular-nums w-20 text-center">
-          {{ flow.year.value }}
-        </output>
-        <button type="button" :aria-label="t('onboarding.car_year_increase')" :disabled="!flow.canIncreaseYear.value"
-          @click="flow.increaseYear()"
-          class="w-11 h-11 flex items-center justify-center rounded-full border border-gray-300 dark:border-gray-600
-                 text-gray-600 dark:text-gray-300 transition hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30">
-          <PlusIcon class="h-5 w-5" />
-        </button>
+      <div class="mt-6 grid grid-cols-2 gap-3">
+        <div>
+          <label for="car-month" class="sr-only">{{ t('onboarding.car_month_label') }}</label>
+          <select id="car-month" v-model="flow.month.value" :class="SELECT_CLASS">
+            <option :value="null" disabled>{{ t('onboarding.car_month_placeholder') }}</option>
+            <option v-for="(name, i) in monthOptions" :key="i" :value="i + 1">{{ name }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="car-year" class="sr-only">{{ t('onboarding.car_year_label') }}</label>
+          <select id="car-year" v-model="flow.year.value" :class="SELECT_CLASS">
+            <option :value="null" disabled>{{ t('onboarding.car_year_placeholder') }}</option>
+            <option v-for="y in flow.years" :key="y" :value="y">{{ y }}</option>
+          </select>
+        </div>
       </div>
       <p v-if="flow.failed.value" role="alert" class="mt-4 text-sm text-red-600 dark:text-red-400 text-center">
         {{ flow.errorMessage.value ?? t('onboarding.car_create_error') }}

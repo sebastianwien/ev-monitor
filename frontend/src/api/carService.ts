@@ -28,6 +28,7 @@ export interface Car {
 export interface CarRequest {
     model: string; // CarModel enum name
     year: number;
+    registrationMonth: number; // 1-12
     licensePlate: string;
     trim: string | null; // Trim level (optional)
     customNetCapacityKwh: number | null; // Null if a spec is linked (spec is authoritative)

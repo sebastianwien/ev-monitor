@@ -7,6 +7,7 @@ import {
   ChartBarIcon, BoltIcon, LockClosedIcon, Battery50Icon, StarIcon, CheckBadgeIcon,
 } from '@heroicons/vue/24/outline'
 import { buildOptionLabels } from '../utils/variantOptionLabels'
+import { monthNames } from '../utils/monthNames'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import BatterySohModal from '../components/car/BatterySohModal.vue'
 import SohPill from '../components/car/SohPill.vue'
@@ -31,14 +32,15 @@ import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
+const monthOptions = computed(() => monthNames(locale.value))
 
 
 // -- Car Form --
 const {
   cars, availableModels, loading, error, showForm, editingCar,
   showToast, toastMessage, teslaStatus,
-  selectedBrand, selectedModel, year, licensePlate, trim,
+  selectedBrand, selectedModel, year, month, licensePlate, trim,
   selectedCapacity, selectedSpecId, selectedTrimLevel, useCustomCapacity, customCapacity,
   powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
   sortedBrands, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
@@ -357,10 +359,20 @@ const filteredCapacities = computed(() => {
               </div>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_year') }}</label>
-              <input v-model="year" type="number" required min="2000" :max="new Date().getFullYear() + 1"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_month') }}</label>
+                <select v-model="month" required
+                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
+                  <option :value="null" disabled>{{ t('cars.month_placeholder') }}</option>
+                  <option v-for="(name, i) in monthOptions" :key="i" :value="i + 1">{{ name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_year') }}</label>
+                <input v-model="year" type="number" inputmode="numeric" required min="2000" :max="new Date().getFullYear() + 1"
+                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+              </div>
             </div>
 
             <div>
@@ -803,10 +815,20 @@ const filteredCapacities = computed(() => {
               </p>
             </div>
 
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_year') }}</label>
-              <input v-model="year" type="number" required min="2000" :max="new Date().getFullYear() + 1"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_month') }}</label>
+                <select v-model="month" required
+                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
+                  <option :value="null" disabled>{{ t('cars.month_placeholder') }}</option>
+                  <option v-for="(name, i) in monthOptions" :key="i" :value="i + 1">{{ name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_year') }}</label>
+                <input v-model="year" type="number" inputmode="numeric" required min="2000" :max="new Date().getFullYear() + 1"
+                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
+              </div>
             </div>
 
             <div>

@@ -1573,6 +1573,8 @@ cars:
   variant_filter_no_results: Ingen variant funnet.
   capacity_corrected_hint: "Din inntasting ({old} kWh) er justert til den verifiserte nettoverdien ({new} kWh)."
   label_year: År *
+  label_month: "Måned *"
+  month_placeholder: "Velg måned"
   label_plate: Nummerplate (valgfritt)
   label_power: Strøm (valgfritt)
   hint_power: Skriv inn kW for å se omregningen til hk
@@ -1945,8 +1947,10 @@ onboarding:
   car_which_model: "Hvilken modell?"
   car_which_trim: "Hvilken variant?"
   car_which_year: "Hvilken årsmodell?"
-  car_year_decrease: "Ett år tilbake"
-  car_year_increase: "Ett år fram"
+  car_month_label: "Måned"
+  car_month_placeholder: "Velg måned"
+  car_year_label: "År"
+  car_year_placeholder: "Velg år"
   car_create_btn: "Legg til bil"
   car_create_error: "Det gikk ikke. Prøv igjen senere."
   car_skip: "Legg til senere"

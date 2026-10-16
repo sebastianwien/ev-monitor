@@ -286,6 +286,13 @@ describe('OnboardingWizard: Ablauf', () => {
     expect(title()).toContain('Willkommen')
   })
 
+  async function select(id: string, value: number) {
+    const el = document.getElementById(id) as HTMLSelectElement
+    el.value = String(value)
+    el.dispatchEvent(new Event('change'))
+    await flush()
+  }
+
   it('legt das Fahrzeug an und schaltet den Knopf auf Weiter', async () => {
     carApi.createCar.mockResolvedValue({ id: 'car-1' })
     await mount()
@@ -297,7 +304,18 @@ describe('OnboardingWizard: Ablauf', () => {
     await flush()
     expect(title()).toContain('Baujahr')
 
+    // Ohne Vorbelegung: erst mit Monat und Jahr lässt sich anlegen.
+    expect(byId('onboarding-primary')!.hasAttribute('disabled')).toBe(true)
+    await select('car-month', 3)
+    expect(byId('onboarding-primary')!.hasAttribute('disabled')).toBe(true)
+    await select('car-year', new Date().getFullYear() - 1)
+    expect(byId('onboarding-primary')!.hasAttribute('disabled')).toBe(false)
+
     await click('onboarding-primary')
+    expect(carApi.createCar).toHaveBeenCalledWith(expect.objectContaining({
+      year: new Date().getFullYear() - 1,
+      registrationMonth: 3,
+    }))
 
     expect(carApi.createCar).toHaveBeenCalledOnce()
     expect(title()).toContain('Model 3')

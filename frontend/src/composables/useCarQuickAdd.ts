@@ -39,7 +39,10 @@ export function useCarQuickAdd() {
   const selectedModel = ref<ModelInfo | null>(null)
   const selectedTrimLevel = ref<string | null>(null)
   const selectedSpec = ref<CapacityOption | null>(null)
-  const year = ref(new Date().getFullYear())
+  /** Bewusst leer: Baujahr und Monat muss der Nutzer selbst wählen. */
+  const year = ref<number | null>(null)
+  const month = ref<number | null>(null)
+  const years = Array.from({ length: new Date().getFullYear() - MIN_CAR_YEAR + 1 }, (_, i) => new Date().getFullYear() - i)
 
   const creating = ref(false)
   const failed = ref(false)
@@ -67,9 +70,8 @@ export function useCarQuickAdd() {
   const visibleSpecs = computed(() =>
     selectedTrimLevel.value ? specsForTrim.value : selectedModel.value?.capacities ?? [])
 
-  const canCreate = computed(() => phase.value === 'year-input' && selectedSpec.value != null)
-  const canDecreaseYear = computed(() => year.value > MIN_CAR_YEAR)
-  const canIncreaseYear = computed(() => year.value < new Date().getFullYear())
+  const canCreate = computed(() => phase.value === 'year-input' && selectedSpec.value != null
+    && year.value != null && month.value != null)
 
   const loadBrands = async () => {
     if (brands.value.length > 0 || brandsLoading.value) return
@@ -158,9 +160,6 @@ export function useCarQuickAdd() {
     }
   }
 
-  const decreaseYear = () => { if (canDecreaseYear.value) year.value-- }
-  const increaseYear = () => { if (canIncreaseYear.value) year.value++ }
-
   const createCar = async () => {
     if (!canCreate.value || creating.value) return
     creating.value = true
@@ -169,7 +168,8 @@ export function useCarQuickAdd() {
     try {
       await carService.createCar({
         model: selectedModel.value!.value,
-        year: year.value,
+        year: year.value!,
+        registrationMonth: month.value!,
         licensePlate: '',
         trim: null,
         customNetCapacityKwh: selectedSpec.value!.kWh,
@@ -193,11 +193,11 @@ export function useCarQuickAdd() {
   return {
     phase, searchQuery, brands, brandsLoading, models, modelsLoading,
     brandsFailed, modelsFailed,
-    selectedBrand, selectedModel, selectedTrimLevel, selectedSpec, year,
+    selectedBrand, selectedModel, selectedTrimLevel, selectedSpec, year, month, years,
     creating, failed, errorMessage, created,
     filteredBrands, trimGroups, isGrouped, specsForTrim, visibleSpecs,
-    canCreate, canDecreaseYear, canIncreaseYear,
+    canCreate,
     loadBrands, retryModels, selectBrand, selectModel, selectTrim, selectSpec, back,
-    decreaseYear, increaseYear, createCar,
+    createCar,
   }
 }

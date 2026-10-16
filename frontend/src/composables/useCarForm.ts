@@ -72,7 +72,9 @@ export function useCarForm() {
   // Form fields
   const selectedBrand = ref('')
   const selectedModel = ref('')
-  const year = ref<number>(new Date().getFullYear())
+  /** Bewusst leer: Baujahr und Monat muss der Nutzer selbst wählen. */
+  const year = ref<number | null>(null)
+  const month = ref<number | null>(null)
   const licensePlate = ref('')
   const trim = ref('')
   const selectedCapacity = ref<number | null>(null)
@@ -197,7 +199,8 @@ export function useCarForm() {
   const resetForm = () => {
     selectedBrand.value = ''
     selectedModel.value = ''
-    year.value = new Date().getFullYear()
+    year.value = null
+    month.value = null
     licensePlate.value = ''
     trim.value = ''
     selectedCapacity.value = null
@@ -237,6 +240,9 @@ export function useCarForm() {
     capacityWasCorrected.value = resolved.kwhCorrected
 
     year.value = car.year
+    // Bestand: der 1. Januar ist der frühere Platzhalter, dort muss der Monat neu gewählt werden.
+    const registration = car.registrationDate
+    month.value = registration && !registration.endsWith('-01-01') ? Number(registration.slice(5, 7)) : null
     licensePlate.value = car.licensePlate
     trim.value = car.trim || ''
     powerKw.value = car.powerKw
@@ -251,12 +257,14 @@ export function useCarForm() {
     try {
       error.value = null
       if (!finalCapacity.value) { error.value = t('cars.error_capacity'); return null }
+      if (year.value == null || month.value == null) return null
 
       // Altauto ohne Spec-Zeile: der Server behält dessen eigene Kapazität, der Request schickt keine.
       const resolvedSpecId: string | null = finalVehicleSpecificationId.value
       const carData: CarRequest = {
         model: selectedModel.value,
         year: year.value,
+        registrationMonth: month.value,
         licensePlate: licensePlate.value,
         trim: trim.value || null,
         customNetCapacityKwh: null,
@@ -347,7 +355,7 @@ export function useCarForm() {
     cars, brands, availableModels, loading, error, showForm, editingCar,
     showToast, toastMessage, teslaStatus,
     // Form fields
-    selectedBrand, selectedModel, year, licensePlate, trim,
+    selectedBrand, selectedModel, year, month, licensePlate, trim,
     selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
     powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar,
     // Computed / flags

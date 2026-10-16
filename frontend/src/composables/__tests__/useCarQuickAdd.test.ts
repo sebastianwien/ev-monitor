@@ -254,23 +254,27 @@ describe('useCarQuickAdd: Zurueck', () => {
   })
 })
 
-describe('useCarQuickAdd: Baujahr', () => {
+describe('useCarQuickAdd: Baujahr und Monat', () => {
   const thisYear = new Date().getFullYear()
 
-  it('startet im aktuellen Jahr und laesst sich nicht darueber hinaus erhoehen', () => {
+  it('startet ohne Vorbelegung, Anlegen ist erst mit Jahr und Monat moeglich', () => {
     const q = useCarQuickAdd()
-    expect(q.year.value).toBe(thisYear)
+    q.selectModel(model('MODEL_3', [spec(60)]))
+    expect(q.year.value).toBeNull()
+    expect(q.month.value).toBeNull()
+    expect(q.canCreate.value).toBe(false)
 
-    q.increaseYear()
+    q.year.value = thisYear - 1
+    expect(q.canCreate.value).toBe(false)
 
-    expect(q.year.value).toBe(thisYear)
+    q.month.value = 3
+    expect(q.canCreate.value).toBe(true)
   })
 
-  it('laesst sich nicht unter das Mindestjahr senken', () => {
+  it('bietet die Jahre vom aktuellen bis zum Mindestjahr an, neueste zuerst', () => {
     const q = useCarQuickAdd()
-    for (let i = 0; i <= thisYear - MIN_CAR_YEAR + 5; i++) q.decreaseYear()
-
-    expect(q.year.value).toBe(MIN_CAR_YEAR)
+    expect(q.years[0]).toBe(thisYear)
+    expect(q.years[q.years.length - 1]).toBe(MIN_CAR_YEAR)
   })
 })
 
@@ -280,19 +284,21 @@ describe('useCarQuickAdd: Anlegen', () => {
   async function atYearInput() {
     const q = useCarQuickAdd()
     q.selectModel(model('MODEL_3', [spec(60)]))
+    q.year.value = new Date().getFullYear() - 1
+    q.month.value = 3
     return q
   }
 
   it('legt das Auto mit der gewaehlten Spezifikation an', async () => {
     carService.createCar.mockResolvedValue({ id: 'car-1' })
     const q = await atYearInput()
-    q.decreaseYear()
 
     await q.createCar()
 
     expect(carService.createCar).toHaveBeenCalledWith(expect.objectContaining({
       model: 'MODEL_3',
       year: new Date().getFullYear() - 1,
+      registrationMonth: 3,
       customNetCapacityKwh: 60,
       vehicleSpecificationId: 'spec-60',
     }))

@@ -1573,6 +1573,8 @@ cars:
   variant_filter_no_results: Ingen variant hittades.
   capacity_corrected_hint: "Din inmatning ({old} kWh) har justerats till det verifierade nettovärdet ({new} kWh)."
   label_year: År *
+  label_month: "Månad *"
+  month_placeholder: "Välj månad"
   label_plate: Registreringsskylt (valfritt)
   label_power: Effekt (valfritt)
   hint_power: Ange kW för att se omräkningen till hk
@@ -1945,8 +1947,10 @@ onboarding:
   car_which_model: "Vilken modell?"
   car_which_trim: "Vilken variant?"
   car_which_year: "Vilken årsmodell?"
-  car_year_decrease: "Ett år bakåt"
-  car_year_increase: "Ett år framåt"
+  car_month_label: "Månad"
+  car_month_placeholder: "Välj månad"
+  car_year_label: "År"
+  car_year_placeholder: "Välj år"
   car_create_btn: "Lägg till bil"
   car_create_error: "Det gick inte. Försök igen senare."
   car_skip: "Lägg till senare"
