@@ -52,8 +52,8 @@ beforeEach(() => {
     update.mockImplementation(async (id: string, c: Record<string, unknown>) => ({ row: { ...row(id, {}), ...c }, warnings: [] }))
     create.mockImplementation(async (c: Record<string, unknown>) => ({ row: { ...row('neu', {}), ...c, activeCars: 0, allCars: 0 }, warnings: [] }))
     remove.mockResolvedValue(undefined)
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => url.startsWith('http://localhost:8766/spec')
-        ? { ok: true, json: async () => detail } : { ok: true, json: async () => file }))
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => url.startsWith('http://localhost:8766/spec') ? { ok: true, json: async () => detail }
+        : url.startsWith('http://localhost:8766/cached') ? { ok: true, json: async () => ({}) } : { ok: true, json: async () => file }))
 })
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.unstubAllGlobals() })
 
@@ -94,6 +94,24 @@ describe('AdminSpecSuggestionsTab', () => {
             officialRangeKm: 424, officialConsumptionKwhPer100km: 15.6, availableFrom: '2020-11-01', sourceUrl: 'https://ev-database.org/car/1/ID3-Pro' })
         btns(host, 'Angelegte Zeile löschen')[0].click(); await tick()
         expect(remove).toHaveBeenCalledWith('neu', 'Vorschlag zurückgenommen')
+    })
+
+    it('schon geladene Werte kommen nach einem Reload ohne Klick vom Helfer zurück', async () => {
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => url.startsWith('http://localhost:8766/cached')
+            ? { ok: true, json: async () => ({ 1: detail }) } : { ok: true, json: async () => file }))
+        const host = await mount(); await tick()
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        expect(btns(host, 'Neue Zeile').map(b => b.disabled)).toEqual([false, true])
+    })
+
+    it('Werte holen je Zeile lädt nur diesen Eintrag', async () => {
+        const host = await mount()
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        btns(host, 'Werte holen')[1].click(); await tick(); await tick()
+        const specCalls = (fetch as unknown as { mock: { calls: string[][] } }).mock.calls.map(c => c[0]).filter(u => u.includes('/spec?'))
+        expect(specCalls).toEqual([`http://localhost:8766/spec?url=${encodeURIComponent(entries[1].sourceUrl)}`])
+        expect(btns(host, 'Neue Zeile').map(b => b.disabled)).toEqual([true, false])
+        expect(btns(host, 'Werte holen')).toHaveLength(1)
     })
 
     it('leere Werte vom Eintrag überschreiben die Zielzeile nicht, nur ein leeres Bis heißt offen', async () => {

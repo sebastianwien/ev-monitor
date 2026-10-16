@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ArrowUturnLeftIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
+import { ArrowDownTrayIcon, ArrowUturnLeftIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import { adminVehicleSpecService, apiErrorText, type ModelGroup, type SpecCommand, type SpecRow } from '../../api/adminVehicleSpecService'
 
 /**
@@ -37,6 +37,7 @@ onMounted(async () => {
         helper.value = typeof file._helper === 'string' ? file._helper : ''
         entriesByModel.value = file._models ?? {}
         models.value = (await adminVehicleSpecService.overview()).models
+        await loadCached()
     } catch (err) {
         error.value = apiErrorText(err, 'Laden fehlgeschlagen.')
     } finally {
@@ -107,19 +108,37 @@ function toCommand(r: SpecRow): SpecCommand {
 
 const usedKey = (m: ModelGroup, e: Entry) => `${m.carModel}|${e.sourceUrl}`
 
-/** Zahlen aller Einträge eines Modells vom lokalen Helfer holen, nacheinander, nur auf Klick. */
-async function loadValues(m: ModelGroup) {
-    for (const e of entriesByModel.value?.[m.carModel] ?? []) {
-        if (loaded(e)) continue
-        values.value = { ...values.value, [e.sourceUrl]: 'loading' }
-        try {
-            const res = await fetch(`${helper.value}/spec?url=${encodeURIComponent(e.sourceUrl)}`)
-            if (!res.ok) throw new Error(String(res.status))
-            values.value = { ...values.value, [e.sourceUrl]: await res.json() as Values }
-        } catch {
-            values.value = { ...values.value, [e.sourceUrl]: 'error' }
+/** Werte, die der Helfer schon kennt (je ev-database-ID), übernehmen, damit ein Reload nichts verwirft. Ohne Helfer still nichts. */
+async function loadCached() {
+    if (!helper.value) return
+    try {
+        const res = await fetch(`${helper.value}/cached`)
+        if (!res.ok) return
+        const byId = await res.json() as Record<string, Values>
+        const next = { ...values.value }
+        for (const e of Object.values(entriesByModel.value ?? {}).flat()) {
+            const id = e.sourceUrl.match(/\/car\/(\d+)\//)?.[1]
+            if (id && byId[id]) next[e.sourceUrl] = byId[id]
         }
+        values.value = next
+    } catch { /* Helfer läuft nicht */ }
+}
+
+/** Zahlen eines Eintrags vom lokalen Helfer holen, nur auf Klick. */
+async function loadOne(e: Entry) {
+    values.value = { ...values.value, [e.sourceUrl]: 'loading' }
+    try {
+        const res = await fetch(`${helper.value}/spec?url=${encodeURIComponent(e.sourceUrl)}`)
+        if (!res.ok) throw new Error(String(res.status))
+        values.value = { ...values.value, [e.sourceUrl]: await res.json() as Values }
+    } catch {
+        values.value = { ...values.value, [e.sourceUrl]: 'error' }
     }
+}
+
+/** Zahlen aller noch fehlenden Einträge eines Modells holen, nacheinander. */
+async function loadValues(m: ModelGroup) {
+    for (const e of entriesByModel.value?.[m.carModel] ?? []) if (!loaded(e)) await loadOne(e)
 }
 
 function replaceRow(m: ModelGroup, row: SpecRow) {
@@ -265,7 +284,12 @@ const num = 'py-1.5 pr-3 text-right'
                 <td :class="[num, diff(loaded(e)!.officialConsumptionKwhPer100km, target?.officialConsumptionKwhPer100km)]">{{ fmt(loaded(e)!.officialConsumptionKwhPer100km) }}</td>
               </template>
               <td v-else colspan="4" :class="num" class="text-xs text-gray-500">
-                {{ values[e.sourceUrl] === 'loading' ? 'lädt …' : values[e.sourceUrl] === 'error' ? 'nicht ladbar' : `${fmt(e.battery)} kWh` }}
+                <span class="inline-flex items-center gap-2">
+                  {{ values[e.sourceUrl] === 'loading' ? 'lädt …' : values[e.sourceUrl] === 'error' ? 'nicht ladbar' : `${fmt(e.battery)} kWh` }}
+                  <button v-if="helper" type="button" class="p-1 bg-gray-700 hover:bg-gray-600 rounded-sm text-gray-200 disabled:opacity-40"
+                          :disabled="values[e.sourceUrl] === 'loading'" aria-label="Werte holen" title="Werte holen"
+                          @click="loadOne(e)"><ArrowDownTrayIcon class="w-4 h-4" aria-hidden="true" /></button>
+                </span>
               </td>
               <td :class="date" data-from>
                 <template v-if="e.availableFrom"><span v-for="(p, pi) in dateParts(e.availableFrom, target ? target.availableFrom : undefined)" :key="pi" :class="p.cls">{{ p.text }}</span></template>
