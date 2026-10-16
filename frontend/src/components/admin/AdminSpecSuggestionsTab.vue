@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { adminVehicleSpecService, apiErrorText, type SpecCommand, type SpecRow } from '../../api/adminVehicleSpecService'
 
 /**
@@ -18,7 +19,9 @@ const applied = ref(new Set<string>())
 const created = ref(0)
 /** Gruppen, die Sebastian mit "Fertig" geschlossen hat, und Kandidaten, die schon benutzt wurden (Zeilen-ID plus Index). */
 const done = ref(new Set<string>())
-const used = ref(new Map<string, 'übernommen' | 'angelegt'>())
+/** Was ein Kandidat ausgelöst hat, mit allem, was zum Zurücknehmen nötig ist. */
+type Used = { kind: 'übernommen'; targetId: string; before: SpecRow } | { kind: 'angelegt'; createdId: string }
+const used = ref(new Map<string, Used>())
 const onlyOpen = ref(true)
 const busy = ref<string | null>(null)
 const error = ref('')
@@ -104,9 +107,34 @@ async function apply(r: SpecRow, s: Suggestion, i: number) {
         const result = await adminVehicleSpecService.update(t.id, candidateCommand(t, s))
         rows.value = rows.value.map(x => x.id === t.id ? result.row : x)
         applied.value = new Set([...applied.value, r.id, t.id])
-        used.value = new Map([...used.value, [usedKey(r, i), 'übernommen']])
+        used.value = new Map([...used.value, [usedKey(r, i), { kind: 'übernommen', targetId: t.id, before: t }]])
     } catch (err) {
         error.value = `${t.variantName ?? t.carModel}: ${apiErrorText(err, 'Speichern fehlgeschlagen.')}`
+    } finally {
+        busy.value = null
+    }
+}
+
+/** Nimmt Übernehmen (alter Stand der Zielzeile zurück) oder Anlegen (neue Zeile löschen) zurück. */
+async function revert(r: SpecRow, i: number) {
+    const u = used.value.get(usedKey(r, i))
+    if (!u) return
+    busy.value = r.id
+    error.value = ''
+    try {
+        if (u.kind === 'übernommen') {
+            const result = await adminVehicleSpecService.update(u.targetId, toCommand(u.before))
+            rows.value = rows.value.map(x => x.id === u.targetId ? result.row : x)
+        } else {
+            await adminVehicleSpecService.remove(u.createdId, 'Vorschlag zurückgenommen')
+            rows.value = rows.value.filter(x => x.id !== u.createdId)
+            created.value--
+        }
+        const next = new Map(used.value)
+        next.delete(usedKey(r, i))
+        used.value = next
+    } catch (err) {
+        error.value = apiErrorText(err, 'Zurücknehmen fehlgeschlagen.')
     } finally {
         busy.value = null
     }
@@ -120,7 +148,7 @@ async function createFrom(r: SpecRow, s: Suggestion, i: number) {
         const result = await adminVehicleSpecService.create({ ...candidateCommand(r, s), variantName: s.label.replace(/\s*\([\d.,]+ kWh\)$/, '') })
         rows.value = [...rows.value, result.row]
         created.value++
-        used.value = new Map([...used.value, [usedKey(r, i), 'angelegt']])
+        used.value = new Map([...used.value, [usedKey(r, i), { kind: 'angelegt', createdId: result.row.id }]])
     } catch (err) {
         error.value = `${s.label}: ${apiErrorText(err, 'Anlegen fehlgeschlagen.')}`
     } finally {
@@ -200,7 +228,13 @@ const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^e
               <td class="py-1.5 pr-3" :class="dateDiff(s.availableTo, t.availableTo)">{{ s.availableTo ?? 'offen' }}</td>
               <td class="py-1.5 pr-3"><a v-if="s.sourceUrl" :href="s.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">{{ shortUrl(s.sourceUrl) }}</a></td>
               <td class="py-1.5 text-right whitespace-nowrap">
-                <span v-if="used.get(usedKey(r, i))" class="text-xs text-green-300">{{ used.get(usedKey(r, i)) }}</span>
+                <span v-if="used.get(usedKey(r, i))" class="inline-flex items-center gap-2">
+                  <span class="text-xs text-green-300">{{ used.get(usedKey(r, i))!.kind }}</span>
+                  <button type="button" class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-sm disabled:opacity-40" :disabled="busy === r.id"
+                          :aria-label="used.get(usedKey(r, i))!.kind === 'übernommen' ? 'Übernehmen zurücknehmen' : 'Angelegte Zeile löschen'"
+                          :title="used.get(usedKey(r, i))!.kind === 'übernommen' ? 'Übernehmen zurücknehmen' : 'Angelegte Zeile löschen'"
+                          @click="revert(r, i)"><ArrowUturnLeftIcon class="w-4 h-4" aria-hidden="true" /></button>
+                </span>
                 <template v-else>
                   <button type="button" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white text-xs disabled:opacity-40"
                           :disabled="busy === r.id" @click="apply(r, s, i)">Übernehmen</button>

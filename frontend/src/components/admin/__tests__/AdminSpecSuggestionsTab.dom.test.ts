@@ -6,9 +6,10 @@ import type { SpecOverview } from '../../../api/adminVehicleSpecService'
 const overview = vi.fn()
 const update = vi.fn()
 const create = vi.fn()
+const remove = vi.fn()
 vi.mock('../../../api/adminVehicleSpecService', async () => {
     const actual = await vi.importActual<typeof import('../../../api/adminVehicleSpecService')>('../../../api/adminVehicleSpecService')
-    return { ...actual, adminVehicleSpecService: { overview: () => overview(), update: (id: string, c: unknown) => update(id, c), create: (c: unknown) => create(c) } }
+    return { ...actual, adminVehicleSpecService: { overview: () => overview(), update: (id: string, c: unknown) => update(id, c), create: (c: unknown) => create(c), remove: (id: string, reason: string) => remove(id, reason) } }
 })
 
 import AdminSpecSuggestionsTab from '../AdminSpecSuggestionsTab.vue'
@@ -34,7 +35,7 @@ const mount = async () => {
     return host
 }
 beforeEach(() => {
-    overview.mockReset(); update.mockReset(); create.mockReset()
+    overview.mockReset(); update.mockReset(); create.mockReset(); remove.mockReset(); remove.mockResolvedValue(undefined)
     create.mockImplementation(async (c: Record<string, unknown>) => ({ row: { ...row('spec-neu', {}), ...c }, warnings: [] }))
     overview.mockResolvedValue(sample)
     update.mockImplementation(async (id: string, c: Record<string, unknown>) => ({ row: { ...row(id, {}), ...c }, warnings: [] }))
@@ -98,6 +99,21 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(create.mock.calls[0][0]).toMatchObject({ model: 'MODEL_3', batteryCapacityKwh: 60, netBatteryCapacityKwh: 57.5, officialRangeKm: 491,
             trimLevel: 'Standard', variantName: 'Model 3 SR', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' })
         expect(host.textContent).toContain('1 angelegt')
+    })
+
+    it('Rückgängig nach Übernehmen schreibt den alten Stand zurück, nach Anlegen löscht es die neue Zeile', async () => {
+        const host = await mount()
+        const click = async (label: string) => { [...host.querySelectorAll('button')].find(b => b.textContent?.includes(label) || b.getAttribute('aria-label')?.includes(label))!.click(); await new Promise(r => setTimeout(r, 0)); await nextTick() }
+        await click('Übernehmen')
+        await click('Übernehmen zurücknehmen')
+        expect(update).toHaveBeenCalledTimes(2)
+        expect(update.mock.calls[1]).toEqual(['spec-1', expect.objectContaining({ availableFrom: null, availableTo: null, sourceUrl: '' })])
+        expect([...host.querySelectorAll('button')].some(b => b.textContent?.includes('Übernehmen'))).toBe(true)
+        await click('Neue Zeile')
+        expect(host.textContent).toContain('1 angelegt')
+        await click('Angelegte Zeile löschen')
+        expect(remove).toHaveBeenCalledWith('spec-neu', 'Vorschlag zurückgenommen')
+        expect(host.textContent).toContain('0 angelegt')
     })
 
     it('ohne Vorschlagsdatei nur ein Hinweis, kein Fehler', async () => {
