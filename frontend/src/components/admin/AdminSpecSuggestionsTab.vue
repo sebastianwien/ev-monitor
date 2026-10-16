@@ -49,9 +49,18 @@ const usedKey = (r: SpecRow, i: number) => `${r.id}#${i}`
 const targetId = ref<Record<string, string>>({})
 const target = (r: SpecRow) => rows.value.find(x => x.id === targetId.value[r.id]) ?? r
 /** Unsere anderen Zeilen desselben Modells (gleicher Trim, sonst alle), nach Zeitraum: Vorgänger und Nachfolger zum Einordnen der Kandidaten. */
-const ours = (r: SpecRow) => rows.value
-    .filter(x => x.carModel === r.carModel && (!r.trimLevel || !x.trimLevel || x.trimLevel.toLowerCase() === r.trimLevel.toLowerCase()))
-    .sort((a, b) => (a.availableFrom ?? '9999').localeCompare(b.availableFrom ?? '9999'))
+/** Einmal je Datenstand berechnet, nicht je Klick: Gruppen mit unseren Zeilen (gleiches Modell und Trim, nach Zeitraum). */
+const PAGE = 25
+const shown = ref(PAGE)
+const byModel = computed(() => {
+    const m = new Map<string, SpecRow[]>()
+    for (const x of rows.value) m.set(x.carModel, [...(m.get(x.carModel) ?? []), x])
+    for (const list of m.values()) list.sort((a, b) => (a.availableFrom ?? '9999').localeCompare(b.availableFrom ?? '9999'))
+    return m
+})
+const ours = (r: SpecRow) => (byModel.value.get(r.carModel) ?? [])
+    .filter(x => !r.trimLevel || !x.trimLevel || x.trimLevel.toLowerCase() === r.trimLevel.toLowerCase())
+const groups = computed(() => visible.value.slice(0, shown.value).map(r => ({ r, ours: ours(r), target: target(r) })))
 
 function toCommand(r: SpecRow): SpecCommand {
     return {
@@ -136,7 +145,7 @@ const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^e
       </div>
       <p v-if="error" class="text-sm text-red-400" role="alert">{{ error }}</p>
 
-      <section v-for="r in visible" :key="r.id" class="bg-gray-800 rounded-sm p-3">
+      <section v-for="{ r, ours: own, target: t } in groups" :key="r.id" class="bg-gray-800 rounded-sm p-3">
         <div class="flex items-center gap-3 mb-2 text-sm">
           <span class="font-medium">{{ r.carBrand }} {{ r.carModel }}</span>
           <span class="text-gray-400">Trim {{ r.trimLevel ?? '–' }} · {{ r.ratingSource }}</span>
@@ -160,35 +169,35 @@ const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^e
             </tr>
           </thead>
           <tbody>
-            <tr v-for="x in ours(r)" :key="x.id" class="cursor-pointer" :class="x.id === target(r).id ? 'bg-indigo-950/60 text-indigo-100' : 'text-gray-500 hover:text-gray-300'"
-                :title="x.id === target(r).id ? 'Übernehmen schreibt in diese Zeile' : 'Klick: Übernehmen soll in diese Zeile schreiben'" @click="targetId = { ...targetId, [r.id]: x.id }">
-              <td class="py-1.5 pr-3 pl-2 rounded-l-sm" :class="x.id === target(r).id ? 'font-medium' : ''">{{ x.variantName ?? 'ohne Name' }}</td>
+            <tr v-for="x in own" :key="x.id" class="cursor-pointer" :class="x.id === t.id ? 'bg-indigo-950/60 text-indigo-100' : 'text-gray-500 hover:text-gray-300'"
+                :title="x.id === t.id ? 'Übernehmen schreibt in diese Zeile' : 'Klick: Übernehmen soll in diese Zeile schreiben'" @click="targetId = { ...targetId, [r.id]: x.id }">
+              <td class="py-1.5 pr-3 pl-2 rounded-l-sm" :class="x.id === t.id ? 'font-medium' : ''">{{ x.variantName ?? 'ohne Name' }}</td>
               <td class="py-1.5 pr-3 text-right">{{ fmt(x.batteryCapacityKwh) }}</td>
               <td class="py-1.5 pr-3 text-right">{{ fmt(x.netBatteryCapacityKwh) }}</td>
               <td class="py-1.5 pr-3 text-right">{{ fmt(x.officialRangeKm) }}</td>
               <td class="py-1.5 pr-3 text-right">{{ fmt(x.officialConsumptionKwhPer100km) }}</td>
               <td class="py-1.5 pr-3">{{ x.availableFrom ?? '–' }}</td>
               <td class="py-1.5 pr-3">{{ x.availableTo ?? 'offen' }}</td>
-              <td class="py-1.5 pr-3"><a v-if="x.sourceUrl" :href="x.sourceUrl" target="_blank" rel="noopener noreferrer" class="underline" :class="x.id === target(r).id ? 'text-indigo-300' : ''" @click.stop>{{ shortUrl(x.sourceUrl) }}</a><span v-else>–</span></td>
+              <td class="py-1.5 pr-3"><a v-if="x.sourceUrl" :href="x.sourceUrl" target="_blank" rel="noopener noreferrer" class="underline" :class="x.id === t.id ? 'text-indigo-300' : ''" @click.stop>{{ shortUrl(x.sourceUrl) }}</a><span v-else>–</span></td>
               <td class="py-1.5 pr-2 text-right text-xs rounded-r-sm whitespace-nowrap">
-                <label class="inline-flex items-center gap-1 cursor-pointer" :class="x.id === target(r).id ? 'text-indigo-300' : ''">
-                  <input type="radio" :name="'ziel-' + r.id" :checked="x.id === target(r).id" @change="targetId = { ...targetId, [r.id]: x.id }" /> Ziel
+                <label class="inline-flex items-center gap-1 cursor-pointer" :class="x.id === t.id ? 'text-indigo-300' : ''">
+                  <input type="radio" :name="'ziel-' + r.id" :checked="x.id === t.id" @change="targetId = { ...targetId, [r.id]: x.id }" /> Ziel
                 </label>
               </td>
             </tr>
             <tr v-for="(s, i) in suggestions[r.id]" :key="i" class="border-t border-gray-700/60">
               <td class="py-1.5 pr-3 pl-2">{{ s.label.replace(/\s*\([\d.,]+ kWh\)$/, '') }}</td>
               <template v-if="loaded(s)">
-                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.batteryCapacityKwh, target(r).batteryCapacityKwh)">{{ fmt(loaded(s)!.batteryCapacityKwh) }}</td>
-                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.netBatteryCapacityKwh, target(r).netBatteryCapacityKwh)">{{ fmt(loaded(s)!.netBatteryCapacityKwh) }}</td>
-                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.officialRangeKm, target(r).officialRangeKm)">{{ fmt(loaded(s)!.officialRangeKm) }}</td>
-                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.officialConsumptionKwhPer100km, target(r).officialConsumptionKwhPer100km)">{{ fmt(loaded(s)!.officialConsumptionKwhPer100km) }}</td>
+                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.batteryCapacityKwh, t.batteryCapacityKwh)">{{ fmt(loaded(s)!.batteryCapacityKwh) }}</td>
+                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.netBatteryCapacityKwh, t.netBatteryCapacityKwh)">{{ fmt(loaded(s)!.netBatteryCapacityKwh) }}</td>
+                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.officialRangeKm, t.officialRangeKm)">{{ fmt(loaded(s)!.officialRangeKm) }}</td>
+                <td class="py-1.5 pr-3 text-right" :class="diff(loaded(s)!.officialConsumptionKwhPer100km, t.officialConsumptionKwhPer100km)">{{ fmt(loaded(s)!.officialConsumptionKwhPer100km) }}</td>
               </template>
               <td v-else colspan="4" class="py-1.5 pr-3 text-right text-xs text-gray-500">
                 {{ s.sourceUrl && values[s.sourceUrl] === 'loading' ? 'lädt …' : s.sourceUrl && values[s.sourceUrl] === 'error' ? 'nicht ladbar' : helper ? 'Werte laden' : '' }}
               </td>
-              <td class="py-1.5 pr-3" :class="dateDiff(s.availableFrom, target(r).availableFrom)">{{ s.availableFrom ?? '–' }}</td>
-              <td class="py-1.5 pr-3" :class="dateDiff(s.availableTo, target(r).availableTo)">{{ s.availableTo ?? 'offen' }}</td>
+              <td class="py-1.5 pr-3" :class="dateDiff(s.availableFrom, t.availableFrom)">{{ s.availableFrom ?? '–' }}</td>
+              <td class="py-1.5 pr-3" :class="dateDiff(s.availableTo, t.availableTo)">{{ s.availableTo ?? 'offen' }}</td>
               <td class="py-1.5 pr-3"><a v-if="s.sourceUrl" :href="s.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">{{ shortUrl(s.sourceUrl) }}</a></td>
               <td class="py-1.5 text-right whitespace-nowrap">
                 <span v-if="used.get(usedKey(r, i))" class="text-xs text-green-300">{{ used.get(usedKey(r, i)) }}</span>
@@ -203,6 +212,9 @@ const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^e
           </tbody>
         </table>
       </section>
+      <button v-if="visible.length > shown" type="button" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-sm text-sm" @click="shown += PAGE">
+        Weitere {{ Math.min(PAGE, visible.length - shown) }} von {{ visible.length - shown }} anzeigen
+      </button>
       <p v-if="visible.length === 0" class="text-sm text-gray-500">Nichts mehr offen.</p>
     </template>
   </div>
