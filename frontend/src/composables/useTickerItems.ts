@@ -6,15 +6,13 @@ import { useLocaleFormat } from './useLocaleFormat'
 /**
  * Raw ticker item as delivered by the backend. LEADER/STAT/PERSONAL items carry an i18n
  * messageKey plus raw params; the sentence is rendered here so all four locales
- * live in the frontend. NEWS items carry a passed-through external title.
+ * live in the frontend.
  */
 export interface RawTickerItem {
-    type: 'LEADER' | 'STAT' | 'NEWS' | 'PERSONAL'
+    type: 'LEADER' | 'STAT' | 'PERSONAL'
     messageKey?: string
     params?: Record<string, string>
-    variant: 'leader' | 'eco' | 'money' | 'energy' | 'news' | 'personal'
-    text?: string
-    url?: string
+    variant: 'leader' | 'eco' | 'money' | 'energy' | 'personal'
 }
 
 export interface TickerItem {
@@ -23,7 +21,6 @@ export interface TickerItem {
     key?: string
     text: string
     variant: RawTickerItem['variant']
-    url?: string
     /** Interne Zielseite; nur Einträge mit echter Seite bekommen einen Link */
     target?: string
 }
@@ -115,7 +112,6 @@ export function useTickerItems() {
     const num = (v: string) => formatNumber(Number(v))
 
     function render(item: RawTickerItem): string {
-        if (item.type === 'NEWS') return item.text ?? ''
         const p = item.params ?? {}
         const month = p.month ? monthName(Number(p.month)) : ''
         const unit = (u?: string) => (u ? t(`ticker.units.${u}`) : '')
@@ -171,7 +167,7 @@ export function useTickerItems() {
     // backend never produces bare-icon items with no text.
     const items = computed<TickerItem[]>(() =>
         raw.value
-            .map(r => ({ type: r.type, key: r.messageKey, text: render(r), variant: r.variant, url: r.url, target: tickerTarget(r) }))
+            .map(r => ({ type: r.type, key: r.messageKey, text: render(r), variant: r.variant, target: tickerTarget(r) }))
             .filter(i => i.text.trim().length > 0)
     )
 

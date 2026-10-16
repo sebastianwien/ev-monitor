@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TrophyIcon, BoltIcon, SparklesIcon, BanknotesIcon, NewspaperIcon, ArrowTopRightOnSquareIcon, ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon, ChevronRightIcon, UserIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
+import { TrophyIcon, BoltIcon, SparklesIcon, BanknotesIcon, ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon, ChevronRightIcon, UserIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
 import { useTickerState, setTickerHasItems } from '../../composables/useTickerState'
 import { analytics } from '../../services/analytics'
 import { useTickerItems } from '../../composables/useTickerItems'
@@ -27,9 +27,6 @@ function onTogglePause() {
 function onTextClick() {
   if (current.value) analytics.track('ticker_tap', { type: current.value.type })
   next()
-}
-function onNewsClick() {
-  analytics.track('ticker_tap', { type: 'NEWS' })
 }
 function onTargetClick() {
   if (current.value?.target) analytics.track('ticker_tap', { type: current.value.type, target: current.value.target })
@@ -91,11 +88,10 @@ const onTouchEnd = (e: TouchEvent) => {
 const direction = ref<'fwd' | 'back'>('fwd')
 watch(index, (n, o) => { direction.value = (n === 0 && o === count.value - 1) || n > o ? 'fwd' : 'back' })
 
-const VARIANT_ICON = { leader: TrophyIcon, eco: SparklesIcon, money: BanknotesIcon, news: NewspaperIcon, energy: BoltIcon, personal: UserIcon } as const
+const VARIANT_ICON = { leader: TrophyIcon, eco: SparklesIcon, money: BanknotesIcon, energy: BoltIcon, personal: UserIcon } as const
 const TYPE_STYLE = {
   LEADER: { chip: 'bg-yellow-400/15 text-yellow-300 ring-yellow-300/30', text: 'text-yellow-100' },
   STAT: { chip: 'bg-emerald-400/15 text-emerald-300 ring-emerald-300/30', text: 'text-emerald-50' },
-  NEWS: { chip: 'bg-lime-400/15 text-lime-300 ring-lime-300/30', text: 'text-lime-50' },
   PERSONAL: { chip: 'bg-sky-400/15 text-sky-300 ring-sky-300/30', text: 'text-sky-50' },
 } as const
 
@@ -143,16 +139,7 @@ onUnmounted(() => {
           @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
           <Transition :name="reducedMotion ? 'ticker-fade' : `ticker-${direction}`">
             <div v-if="current" :key="index" class="absolute inset-0 flex items-center">
-              <a v-if="current.type === 'NEWS' && current.url"
-                data-ticker-text
-                :href="current.url" target="_blank" rel="noopener noreferrer"
-                :class="['ticker-text flex items-center gap-1 text-xs font-medium whitespace-nowrap underline decoration-lime-400/40 underline-offset-2 hover:decoration-lime-300', TYPE_STYLE.NEWS.text]"
-                :style="scrolling ? { transform: `translateX(-${overflowPx}px)`, transitionDuration: `${overflowPx / OVERFLOW_PX_PER_S}s` } : undefined"
-                @click.stop="onNewsClick">
-                {{ current.text }}
-                <ArrowTopRightOnSquareIcon class="h-3 w-3 flex-shrink-0 opacity-60" />
-              </a>
-              <span v-else
+              <span
                 data-ticker-text
                 :class="['ticker-text text-xs font-medium whitespace-nowrap', TYPE_STYLE[current.type].text]"
                 :style="scrolling ? { transform: `translateX(-${overflowPx}px)`, transitionDuration: `${overflowPx / OVERFLOW_PX_PER_S}s` } : undefined"

@@ -3,7 +3,6 @@ package com.evmonitor.application;
 import com.evmonitor.application.ChargeCountStats;
 import com.evmonitor.application.TopProviderResult;
 import com.evmonitor.domain.LeaderboardCategory;
-import com.evmonitor.infrastructure.external.ExternalNewsService;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,9 +39,6 @@ class LeaderboardServiceIntegrationTest {
     private CoinLogService coinLogService;
 
     @Mock
-    private ExternalNewsService externalNewsService;
-
-    @Mock
     private FuelPriceService fuelPriceService;
 
     private LeaderboardService leaderboardService;
@@ -54,8 +50,7 @@ class LeaderboardServiceIntegrationTest {
     void setUp() {
         // Echter RankingProvider ohne Spring-Proxy (kein Cache) über dem gemockten Repository.
         leaderboardService = new LeaderboardService(queryRepository, new LeaderboardRankingProvider(queryRepository),
-                coinLogService, externalNewsService, fuelPriceService);
-        when(externalNewsService.getNewsItems()).thenReturn(List.of());
+                coinLogService, fuelPriceService);
     }
 
     // ---- Ranking and delta ----

@@ -80,6 +80,5 @@ describe('tickerTarget', () => {
     expect(tickerTarget(mine('my_consumption'))).toBe('/dashboard')
     expect(tickerTarget(stat('co2_saved'))).toBeUndefined()
     expect(tickerTarget(stat('today_charge'))).toBeUndefined()
-    expect(tickerTarget({ type: 'NEWS', variant: 'news', text: 'x', url: 'https://x' })).toBeUndefined()
   })
 })

@@ -78,7 +78,6 @@ Ein Band unterhalb der Navigationsleiste (`LeaderboardTicker.vue`), nur für ein
 |---|---|---|---|
 | LEADER | Führende jeder Kategorie im laufenden Monat | Gelb | `/leaderboard` |
 | STAT | Community-Summen des Monats (kWh, CO2, Haushalte, Solar, Wind, Ersparnis, Ladezeit, Heimquote, Top-Anbieter) und "Heute"-Ladungen | Smaragd | keiner |
-| NEWS | Bis zu zwei positive E-Mobilitäts-Schlagzeilen aus RSS-Feeds | Limette | externer Artikel |
 | PERSONAL | Eigene Daten des Nutzers | Himmelblau | `/dashboard` bzw. `/leaderboard` |
 
 Einträge mit echter Zielseite bekommen rechts neben dem Text einen eigenen Pfeil-Link. Community-Statistiken haben keine Seite und bleiben ohne Link.

@@ -35,7 +35,7 @@ class LeaderboardBestStandingTest {
     void setUp() {
         // Echter RankingProvider ohne Spring-Proxy (kein Cache) über dem gemockten Repository.
         leaderboardService = new LeaderboardService(queryRepository, new LeaderboardRankingProvider(queryRepository),
-                null, null, null);
+                null, null);
     }
 
     @Test
