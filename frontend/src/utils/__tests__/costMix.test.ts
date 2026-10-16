@@ -18,7 +18,8 @@ describe('costMix', () => {
       homeShare: null, homePricePerKwh: 0.30, publicPricePerKwh: 0.55,
       fuel: 'petrol', litersPer100km: null, fuelPricePerLiter: null, mainValue: 'consumption',
     })
-    expect(HOME_SHARE_WHEN_HOME).toBe(0.8)
+    // with a wallbox the table prices like the answers: the home price alone
+    expect(HOME_SHARE_WHEN_HOME).toBe(1)
   })
 
   it('litres per class: every backend class has petrol and diesel, diesel below petrol', () => {
@@ -42,8 +43,8 @@ describe('costMix', () => {
     expect(combustionLiters({ litersPer100km: 9, fuel: 'petrol' }, 'COMPACT')).toBe(9)
   })
 
-  it('home share: 80 % with home charging, 0 % without, an explicit value wins', () => {
-    expect(effectiveHomeShare(null, true)).toBe(0.8)
+  it('home share: 100 % with home charging, 0 % without, an explicit value wins', () => {
+    expect(effectiveHomeShare(null, true)).toBe(1)
     expect(effectiveHomeShare(null, false)).toBe(0)
     expect(effectiveHomeShare(0.5, false)).toBe(0.5)
   })

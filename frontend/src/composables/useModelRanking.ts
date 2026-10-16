@@ -167,6 +167,8 @@ function readStoredSort(): RankingSort {
 }
 
 const round2 = (v: number) => Math.round(v * 100) / 100
+/** Electricity prices to a tenth of a cent, as the answers name them ("24,2 ct/kWh") */
+const round3 = (v: number) => Math.round(v * 1000) / 1000
 
 /**
  * State of the model ranking: sort mode, class filter, search, compare picks, needs check and
@@ -194,13 +196,15 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   // the new ones arrive. A reply to an older profile is dropped. Without a reply the rows show no
   // personal figures, the model data stays.
   const entries = ref(new Map<string, PersonalRangeRankingEntry>())
+  /** The calculator inputs: the answers at the price the list shows (assigned once the price exists below) */
+  let inputs = () => needsToInputs(needs.value)
   /** The first reply is in: from then on a row without figures has none, it is not just loading */
   const needsReady = ref(false)
   let requestId = 0
   async function loadRanking() {
     const id = ++requestId
     try {
-      const list = await personalRangeService.ranking(needsToInputs(needs.value))
+      const list = await personalRangeService.ranking(inputs())
       if (id === requestId) entries.value = new Map(list.map(e => [`${e.brand}/${e.model}`, e]))
     } catch {
       if (id === requestId) entries.value = new Map()
@@ -208,11 +212,6 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     if (id === requestId) needsReady.value = true
   }
   let timer: ReturnType<typeof setTimeout> | undefined
-  watch(() => JSON.stringify(needsToInputs(needs.value)), () => {
-    clearTimeout(timer)
-    timer = setTimeout(loadRanking, RANKING_DEBOUNCE_MS)
-  })
-  void loadRanking()
 
   const storedCost = readStoredCost()
   const cost = ref<CostAssumptions>(storedCost?.cost ?? { ...COST_DEFAULTS })
@@ -237,8 +236,8 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     }
     cost.value = {
       ...cost.value,
-      homePricePerKwh: storedCost === null && p.homePricePerKwh > 0 ? round2(p.homePricePerKwh) : cost.value.homePricePerKwh,
-      publicPricePerKwh: p.publicPricePerKwh > 0 ? round2(p.publicPricePerKwh) : cost.value.publicPricePerKwh,
+      homePricePerKwh: storedCost === null && p.homePricePerKwh > 0 ? round3(p.homePricePerKwh) : cost.value.homePricePerKwh,
+      publicPricePerKwh: p.publicPricePerKwh > 0 ? round3(p.publicPricePerKwh) : cost.value.publicPricePerKwh,
       fuelPricePerLiter: apiFuel,
     }
   }
@@ -252,8 +251,16 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     const weekly = commuteKmPerWeek(needs.value)
     return weekly != null ? weekly * COMMUTE_WEEKS_PER_YEAR : null
   })
-  /** Blended electricity price in EUR/kWh the row costs are based on */
-  const price = computed(() => mixedPricePerKwh(cost.value, homeShare.value))
+  /** The reader's own price from the price slider after the gate; null = the assumptions below */
+  const ownPrice = ref<number | null>(null)
+  /** One electricity price in EUR/kWh for the answers, the top 5 and the row costs */
+  const price = computed(() => ownPrice.value ?? mixedPricePerKwh(cost.value, homeShare.value))
+  inputs = () => needsToInputs(needs.value, round3(price.value))
+  watch(() => JSON.stringify(inputs()), () => {
+    clearTimeout(timer)
+    timer = setTimeout(loadRanking, RANKING_DEBOUNCE_MS)
+  })
+  void loadRanking()
   const combustion = computed(() => combustionMarket.value ? cost.value : { ...cost.value, fuelPricePerLiter: null })
 
   const enriched = computed(() => models.value.map(m => {
@@ -326,6 +333,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     category,
     query,
     price,
+    ownPrice,
     cost,
     homeShare,
     combustionMarket,

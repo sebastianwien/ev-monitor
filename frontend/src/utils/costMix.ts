@@ -4,7 +4,7 @@
  * the consumption itself comes from the API.
  *
  * Assumptions (named constants, shown in the UI under "Annahmen"):
- * - HOME_SHARE_WHEN_HOME: 80 % of the energy is charged at home when the buyer can
+ * - HOME_SHARE_WHEN_HOME: with a wallbox everything counts as charged at home, the same price as the personal answers
  * - COMBUSTION_MARKETS: comparison only where litres and km are the unit
  * - COMBUSTION_LITERS_BY_CLASS: real-world litres of a combustion car in the model's class
  */
@@ -27,7 +27,7 @@ export interface CostAssumptions {
   mainValue: MainValue
 }
 
-export const HOME_SHARE_WHEN_HOME = 0.8
+export const HOME_SHARE_WHEN_HOME = 1
 export const COMBUSTION_MARKETS: Market[] = ['de', 'en', 'no', 'se']
 export const PRICE_MIN = 0.05
 export const PRICE_MAX = 1.5

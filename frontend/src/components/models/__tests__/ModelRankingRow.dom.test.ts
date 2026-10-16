@@ -94,6 +94,12 @@ describe('ModelRankingRow', () => {
     expect(hint(host)).toContain('400 km: 1 Stopp, 4 h 5 min unterwegs')
   })
 
+  it('the cost cell prices at the list price and names what the drivers pay', async () => {
+    const { host } = await mount(model({ brandDisplayName: 'Tesla', modelUrlSlug: 'Model_3', avgCostPerKwh: 0.296 }))
+    const cell = host.querySelector('[data-testid="cost-cell"]')!.textContent!.replace(/\s+/g, ' ')
+    expect(cell).toContain('Fahrer zahlen Ø 29,6 ct/kWh')
+  })
+
   it('the trip line names the stops only when the model has no travel time', async () => {
     const { host } = await mount(CAR, { figures: { longTripStops: 1, longTripTotalMinutes: null } })
     expect(hint(host)).toContain('400 km: 1 Stopp')

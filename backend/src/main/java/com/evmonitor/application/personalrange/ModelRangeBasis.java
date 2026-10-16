@@ -6,9 +6,9 @@ import lombok.Builder;
 import java.math.BigDecimal;
 
 /**
- * Model data the personal calculator works with. Community values (consumption, charging power,
- * prices) are null when the community has too little data; the calculator then falls back to
- * WLTP factors or reference prices and marks the value as estimated.
+ * Model data the personal calculator works with. Community values (consumption, charging power) are
+ * null when the community has too little data; the calculator then falls back to WLTP factors and marks
+ * the value as estimated. Prices are the reference prices of all drivers, the same for every model.
  *
  * @param netBatteryKwh        net capacity of the largest variant
  * @param netBatteryMeasured   false when derived as nominal × 0.9 (no net value in the spec)
@@ -37,8 +37,6 @@ public record ModelRangeBasis(
         BigDecimal baseKwhPer100km,
         BigDecimal routeMeanKwhPer100km,
         FastChargePower dcChargingPower,
-        BigDecimal homePricePerKwh,
-        BigDecimal publicPricePerKwh,
         BigDecimal referenceHomePricePerKwh,
         BigDecimal referencePublicPricePerKwh,
         BigDecimal homeChargingEfficiency,

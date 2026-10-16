@@ -181,8 +181,6 @@ public class PersonalRangeService {
                 // Short-stop fast-charge power as in the model ranking, not the session mean
                 // (that one includes the taper and idle time and halves the real figure)
                 .dcChargingPower(context.dcPower().forModel(stats.model(), datasheetKw(specs, largest)))
-                .homePricePerKwh(stats.acAvgCostPerKwh())
-                .publicPricePerKwh(stats.dcAvgCostPerKwh())
                 .referenceHomePricePerKwh(reference.homePricePerKwh())
                 .referencePublicPricePerKwh(reference.publicPricePerKwh())
                 .homeChargingEfficiency(context.homeEfficiency())

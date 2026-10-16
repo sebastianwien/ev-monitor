@@ -187,9 +187,10 @@ describe('useModelRanking', () => {
 
       localStorage.clear()
       const fresh = useModelRanking(ref([]))
-      fresh.applyReferencePrices({ homePricePerKwh: 0.274, publicPricePerKwh: 0.561, petrolPricePerLiter: 1.789, dieselPricePerLiter: 1.659, combustionLitersPer100km: 7.0 }, true)
-      expect(fresh.cost.value.homePricePerKwh).toBe(0.27)
-      expect(fresh.cost.value.publicPricePerKwh).toBe(0.56)
+      fresh.applyReferencePrices({ homePricePerKwh: 0.2742, publicPricePerKwh: 0.5614, petrolPricePerLiter: 1.789, dieselPricePerLiter: 1.659, combustionLitersPer100km: 7.0 }, true)
+      // to a tenth of a cent, as the answers name it ("24,2 ct/kWh")
+      expect(fresh.cost.value.homePricePerKwh).toBe(0.274)
+      expect(fresh.cost.value.publicPricePerKwh).toBe(0.561)
       expect(fresh.cost.value.fuelPricePerLiter).toBe(1.79)
       // the API's flat 7.0 l does not replace the litres per class
       expect(fresh.cost.value.litersPer100km).toBeNull()
@@ -205,7 +206,7 @@ describe('useModelRanking', () => {
       const r = useModelRanking(ref([]))
       r.applyReferencePrices({ homePricePerKwh: 0.274, publicPricePerKwh: 0.561, petrolPricePerLiter: 1.789, dieselPricePerLiter: 1.659, combustionLitersPer100km: 7.0 }, true)
       expect(r.cost.value.homePricePerKwh).toBe(0.42)
-      expect(r.cost.value.publicPricePerKwh).toBe(0.56)
+      expect(r.cost.value.publicPricePerKwh).toBe(0.561)
       expect(r.cost.value.fuelPricePerLiter).toBe(1.79)
     })
 
@@ -230,22 +231,22 @@ describe('useModelRanking', () => {
     it('prices every row with the mixed price and persists changes', async () => {
       const r = useModelRanking(ref([model({ brandDisplayName: 'A', modelUrlSlug: 'x', avgConsumptionKwhPer100km: 20 })]))
       r.cost.value = { ...r.cost.value, homePricePerKwh: 0.3, publicPricePerKwh: 0.6, fuelPricePerLiter: 1.8 }
-      // no answer yet on home charging counts as home → 80 % → 0.36 €/kWh
-      expect(r.price.value).toBeCloseTo(0.36, 6)
-      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(7.2, 5)
-      // SEDAN petrol 7.6 l × 1.8 = 13.68 → 6.48 cheaper; no yearly figure before the commute is answered
+      // no answer yet on home charging counts as home → the home price alone, like the answers
+      expect(r.price.value).toBeCloseTo(0.3, 6)
+      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(6.0, 5)
+      // SEDAN petrol 7.6 l × 1.8 = 13.68 → 7.68 cheaper; no yearly figure before the commute is answered
       expect(r.ranked.value[0].combustionLitersPer100km).toBe(7.6)
-      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(6.48, 5)
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(7.68, 5)
       expect(r.ranked.value[0].savingsPerYearEur).toBeNull()
-      // the commute rule: 40 km × 3 days × 46 weeks = 5,520 km → 6.48 × 55.2 = 357.7
+      // the commute rule: 40 km × 3 days × 46 weeks = 5,520 km → 7.68 × 55.2 = 423.9
       r.needs.value = { ...r.needs.value, dailyKm: 40, commuteDays: 3 }
-      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo(357.696, 3)
+      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo(423.936, 3)
       // diesel and a typed litre value change every row
       r.cost.value = { ...r.cost.value, fuel: 'diesel' }
       expect(r.ranked.value[0].combustionLitersPer100km).toBe(6.0)
       r.cost.value = { ...r.cost.value, litersPer100km: 9 }
       expect(r.ranked.value[0].combustionLitersPer100km).toBe(9)
-      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(9 * 1.8 - 7.2, 5)
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(9 * 1.8 - 6.0, 5)
       await nextTick()
       expect(JSON.parse(localStorage.getItem(COST_STORAGE_KEY) ?? '{}').homePricePerKwh).toBe(0.3)
 
@@ -369,7 +370,24 @@ describe('useModelRanking', () => {
       await settle()
       expect(rankingCall).toHaveBeenCalledTimes(1)
       expect(rankingCall).toHaveBeenCalledWith({ commuteKmPerDay: 40, commuteDaysPerWeek: 3, highwaySharePercent: 27,
-        homeCharging: true, longTripKm: 400, annualKm: null, pricePerKwh: null })
+        homeCharging: true, longTripKm: 400, annualKm: null, pricePerKwh: COST_DEFAULTS.homePricePerKwh })
+    })
+
+    it('one price for answers and table: the list price goes to the server, an own price wins', async () => {
+      const r = useModelRanking(ref(models))
+      r.applyReferencePrices({ homePricePerKwh: 0.242, publicPricePerKwh: 0.429, petrolPricePerLiter: 2.15, dieselPricePerLiter: 1.9, combustionLitersPer100km: 7.0 }, true)
+      await settle()
+      expect(rankingCall).toHaveBeenLastCalledWith(expect.objectContaining({ homeCharging: true, pricePerKwh: 0.242 }))
+
+      r.needs.value = { ...r.needs.value, homeCharging: false }
+      await settle()
+      expect(rankingCall).toHaveBeenLastCalledWith(expect.objectContaining({ homeCharging: false, pricePerKwh: 0.429 }))
+      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(18 * 0.429, 5)
+
+      r.ownPrice.value = 0.35
+      await settle()
+      expect(rankingCall).toHaveBeenLastCalledWith(expect.objectContaining({ pricePerKwh: 0.35 }))
+      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(18 * 0.35, 5)
     })
 
     it('starts empty: no answer, no personal figure, but the stop ladder as model data', async () => {

@@ -12,18 +12,17 @@ class PersonalRangeCalculatorTest {
 
     private static final BigDecimal NET = new BigDecimal("77");
     private static final BigDecimal WLTP = new BigDecimal("16.0");
-    private static final BigDecimal REF_HOME = new BigDecimal("0.32");
+    private static final BigDecimal REF_HOME = new BigDecimal("0.30");
     private static final BigDecimal REF_PUBLIC = new BigDecimal("0.55");
 
-    /** All community values measured: summer 15, winter 20, highway 19, city 16, DC 100 kW, 0.30/0.60 EUR. */
+    /** All community values measured: summer 15, winter 20, highway 19, city 16, DC 100 kW; reference prices 0.30/0.55 EUR. */
     private static ModelRangeBasis measured() {
         return ModelRangeBasis.builder()
                 .netBatteryKwh(NET).netBatteryMeasured(true).wltpKwhPer100km(WLTP)
                 .summerKwhPer100km(new BigDecimal("15.0")).winterKwhPer100km(new BigDecimal("20.0"))
                 .highwayKwhPer100km(new BigDecimal("19.0")).highwayCarCount(20).baseKwhPer100km(new BigDecimal("16.0"))
                 .routeMeanKwhPer100km(new BigDecimal("16.0"))
-                .dcChargingPower(FastChargePower.measured(new BigDecimal("100"), 40)).homePricePerKwh(new BigDecimal("0.30"))
-                .publicPricePerKwh(new BigDecimal("0.60"))
+                .dcChargingPower(FastChargePower.measured(new BigDecimal("100"), 40))
                 .referenceHomePricePerKwh(REF_HOME).referencePublicPricePerKwh(REF_PUBLIC)
                 .homeChargingEfficiency(new BigDecimal("0.90")).publicChargingEfficiency(new BigDecimal("0.95"))
                 .build();

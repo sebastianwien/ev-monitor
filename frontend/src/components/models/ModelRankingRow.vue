@@ -107,6 +107,8 @@
           <span class="mr-1 text-[12px] font-normal text-gray-500 dark:text-gray-400">{{ t('models_ranking.row.electricity') }}</span>{{ costNumber }} <span class="text-[12px] font-normal text-gray-500 dark:text-gray-400">{{ unitSystem.currencySymbol }}</span>
         </span>
         <span class="text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ combustionCaption }}</span>
+        <!-- what the drivers of this model paid on average: the table itself prices every model alike -->
+        <span v-if="driversPrice" class="text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ driversPrice }}</span>
       </span>
       <!-- Desktop range cell (from 1280 px): the range, then the motorway ladder from a full battery,
            without a stop and with one and two fast-charge stops; "up to" when it refers to the largest battery only -->
@@ -177,7 +179,7 @@ const props = defineProps<{
 const emit = defineEmits<{ toggle: []; compare: []; unlock: []; assumptions: [] }>()
 
 const { t, te } = useI18n()
-const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, formatCurrency, unitSystem } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, formatCurrency, formatCostPerKwh, unitSystem } = useLocaleFormat()
 const {
   m, fmtKm, duration, tripParams, fuelLabel, costLabel, combustionCostEur, typicalSpan, hasBatterySpan, rangeValue,
   driverCount, driversLabel, signedPct, displayWltpDeviation,
@@ -269,6 +271,10 @@ const costVsCombustion = computed(() => combustionCostEur.value != null
       combustion: formatDecimal(convertCostPerDistance(combustionCostEur.value, unitSystem.value), 2),
     })
   : costLabel.value)
+// Desktop cost cell: "Fahrer zahlen Ø 29,6 ct/kWh", the drivers' own average next to the list price
+const driversPrice = computed(() => m.value.avgCostPerKwh != null
+  ? t('models_ranking.row.drivers_price', { price: formatCostPerKwh(m.value.avgCostPerKwh) })
+  : null)
 // Desktop cost cell caption: "Benziner 14,62 €" (the litres per class sit in the detail and the sheet)
 const combustionCaption = computed(() => combustionCostEur.value != null
   ? t('models_ranking.row.combustion_short', {

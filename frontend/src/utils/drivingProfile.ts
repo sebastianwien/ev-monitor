@@ -29,9 +29,10 @@ const clamp = (v: number, [lo, hi]: readonly [number, number]) => Math.min(hi, M
  * The ranking's answers as calculator inputs, so the list rests on the model page's calculation.
  * An open question takes the slider's start value as on the model page; the list shows a figure
  * only for answered parts. Yearly km only when answered: until then the month's cost rests on the
- * commute. Home charging counts until the reader says otherwise; the community price applies.
+ * commute. Home charging counts until the reader says otherwise. The price is the one the list shows,
+ * so the answers, the top 5 and the table rest on the same price; null leaves it to the server's reference.
  */
-export function needsToInputs(n: NeedsInput): PersonalRangeInputs {
+export function needsToInputs(n: NeedsInput, pricePerKwh: number | null = null): PersonalRangeInputs {
   const s = PROFILE_SLIDERS
   return {
     commuteKmPerDay: clamp(n.dailyKm ?? s.commute.start, LIMITS.commuteKmPerDay),
@@ -40,6 +41,6 @@ export function needsToInputs(n: NeedsInput): PersonalRangeInputs {
     homeCharging: n.homeCharging ?? true,
     longTripKm: clamp(n.longestTripKm ?? s.longTrip.start, LIMITS.longTripKm),
     annualKm: n.annualKm != null ? clamp(n.annualKm, LIMITS.annualKm) : null,
-    pricePerKwh: null,
+    pricePerKwh,
   }
 }

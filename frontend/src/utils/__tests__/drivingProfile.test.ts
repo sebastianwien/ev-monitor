@@ -13,6 +13,10 @@ describe('needsToInputs', () => {
       .toEqual({ commuteKmPerDay: 40, commuteDaysPerWeek: 5, highwaySharePercent: 27, homeCharging: true, longTripKm: 500, annualKm: null, pricePerKwh: null })
   })
 
+  it('sends the price the list shows, so answers, top 5 and table rest on one price', () => {
+    expect(needsToInputs(NEEDS_EMPTY, 0.242).pricePerKwh).toBe(0.242)
+  })
+
   it('keeps values within the server bounds', () => {
     const i = needsToInputs({ ...NEEDS_EMPTY, dailyKm: 900, longestTripKm: 4_000, annualKm: 300_000 })
     expect(i.commuteKmPerDay).toBe(500)

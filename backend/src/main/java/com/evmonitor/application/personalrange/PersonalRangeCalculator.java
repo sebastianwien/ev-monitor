@@ -141,8 +141,9 @@ final class PersonalRangeCalculator {
     }
 
     /**
-     * The user's own price wins (OWN_PRICE, a fact of the user, not an estimate); otherwise the
-     * community price of the model (PRICE measured) or the reference price (PRICE estimated).
+     * The user's own price wins (OWN_PRICE, a fact of the user, not an estimate); otherwise the reference
+     * price of all drivers, at home or on the road (PRICE, measured). One price for every model: the
+     * cost compares the cars, not what their drivers happen to pay.
      */
     private static BigDecimal price(PersonalRangeRequest in, ModelRangeBasis b,
                                     List<PersonalRangeResponse.Assumption> assumptions) {
@@ -150,10 +151,8 @@ final class PersonalRangeCalculator {
             assumptions.add(new PersonalRangeResponse.Assumption("OWN_PRICE", true, in.pricePerKwh()));
             return in.pricePerKwh();
         }
-        BigDecimal communityPrice = in.homeCharging() ? b.homePricePerKwh() : b.publicPricePerKwh();
-        BigDecimal price = communityPrice != null ? communityPrice
-                : in.homeCharging() ? b.referenceHomePricePerKwh() : b.referencePublicPricePerKwh();
-        assumptions.add(new PersonalRangeResponse.Assumption("PRICE", communityPrice != null, price));
+        BigDecimal price = in.homeCharging() ? b.referenceHomePricePerKwh() : b.referencePublicPricePerKwh();
+        assumptions.add(new PersonalRangeResponse.Assumption("PRICE", true, price));
         return price;
     }
 

@@ -182,6 +182,20 @@ class PersonalRangeServiceTest {
     }
 
     @Test
+    void everyModelIsPricedAtTheReferenceNotItsOwnDriversPrice() {
+        PublicModelStatsResponse stats = publicModelService.getModelStats("Tesla", "Model_3", false).orElseThrow();
+        when(stats.acAvgCostPerKwh()).thenReturn(new BigDecimal("0.12"));
+        when(stats.dcAvgCostPerKwh()).thenReturn(new BigDecimal("0.29"));
+
+        PersonalRangeResponse home = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
+        PersonalRangeResponse road = service.calculate(userId, false, "Tesla", "Model_3",
+                PersonalRangeRequestFixtures.answers(40, 30, false, 500)).orElseThrow();
+
+        assertThat(home.assumptions()).anyMatch(a -> a.key().equals("PRICE") && a.value().compareTo(new BigDecimal("0.30")) == 0);
+        assertThat(road.assumptions()).anyMatch(a -> a.key().equals("PRICE") && a.value().compareTo(new BigDecimal("0.50")) == 0);
+    }
+
+    @Test
     void emailResultSendsInputsAndResultToTheUserWithModelNameAndPath() {
         User user = mock(User.class);
         when(user.getEmail()).thenReturn("ihle@example.com");

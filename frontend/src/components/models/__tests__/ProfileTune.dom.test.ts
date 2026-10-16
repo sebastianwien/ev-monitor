@@ -45,7 +45,7 @@ describe('ProfileTune', () => {
   it('without an own price the slider starts at the community price, with one there is a way back', () => {
     const community = mount()
     expect((community.host.querySelector('[data-testid="slider-price"]') as HTMLInputElement).value).toBe('0.31')
-    expect(community.host.textContent).toContain('Startwert ist der Schnitt der Community')
+    expect(community.host.textContent).toContain('Startwert ist der Schnitt aller Fahrer')
     app?.unmount(); document.body.innerHTML = ''
 
     const own = mount({ pricePerKwh: 0.28 })
