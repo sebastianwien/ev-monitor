@@ -74,7 +74,7 @@ class CarServiceTest {
     }
 
     private static CarRequest request(CarBrand.CarModel model, UUID specId) {
-        return new CarRequest(model, 2024, "TEST-123", "Long Range", new BigDecimal("79.0"),
+        return new CarRequest(model, 2024, 3, "TEST-123", "Long Range", new BigDecimal("79.0"),
                 new BigDecimal("350.0"), null, false, specId);
     }
 
@@ -122,12 +122,39 @@ class CarServiceTest {
     }
 
     @Test
+    void createCar_setsRegistrationDateFromYearAndMonth() {
+        VehicleSpecification spec = specFor(CarBrand.CarModel.MODEL_3);
+        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        carService.createCar(userId, request(CarBrand.CarModel.MODEL_3, spec.getId()));
+
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        assertEquals(2024, captor.getValue().getYear());
+        assertEquals(java.time.LocalDate.of(2024, 3, 1), captor.getValue().getRegistrationDate());
+    }
+
+    @Test
+    void updateCar_setsRegistrationDateFromYearAndMonth() {
+        Car legacy = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3);
+        when(carRepository.findById(carId)).thenReturn(Optional.of(legacy));
+        when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        carService.updateCar(carId, userId, new CarRequest(CarBrand.CarModel.MODEL_3, 2025, 11, "NEW-1", "Performance",
+                new BigDecimal("82.0"), null, null, false, null));
+
+        ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
+        verify(carRepository).save(captor.capture());
+        assertEquals(java.time.LocalDate.of(2025, 11, 1), captor.getValue().getRegistrationDate());
+    }
+
+    @Test
     void updateCar_legacyCarWithoutSpec_sameModel_keepsOwnCapacity() {
         Car legacy = TestDataBuilder.createTestCarWithId(carId, userId, CarBrand.CarModel.MODEL_3); // 75 kWh, keine Spec
         when(carRepository.findById(carId)).thenReturn(Optional.of(legacy));
         when(carRepository.save(any(Car.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        carService.updateCar(carId, userId, new CarRequest(CarBrand.CarModel.MODEL_3, 2025, "NEW-1", "Performance",
+        carService.updateCar(carId, userId, new CarRequest(CarBrand.CarModel.MODEL_3, 2025, 3, "NEW-1", "Performance",
                 new BigDecimal("82.0"), null, null, false, null));
 
         ArgumentCaptor<Car> captor = ArgumentCaptor.forClass(Car.class);
@@ -255,6 +282,7 @@ class CarServiceTest {
         CarRequest updateRequest = new CarRequest(
                 CarBrand.CarModel.MODEL_3,
                 2025,
+                3,
                 "NEW-456",
                 "Performance",
                 new BigDecimal("82.0"),
@@ -291,6 +319,7 @@ class CarServiceTest {
         CarRequest updateRequest = new CarRequest(
                 CarBrand.CarModel.I4,
                 2025,
+                3,
                 "HACKED-123",
                 "Stolen",
                 new BigDecimal("80.0"),
@@ -406,6 +435,7 @@ class CarServiceTest {
         CarRequest updateRequest = new CarRequest(
                 CarBrand.CarModel.MODEL_3,
                 2024,
+                3,
                 "TEST-456",
                 "Performance",
                 new BigDecimal("75.0"),

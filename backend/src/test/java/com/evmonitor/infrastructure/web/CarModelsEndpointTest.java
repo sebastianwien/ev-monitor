@@ -117,7 +117,7 @@ class CarModelsEndpointTest extends AbstractIntegrationTest {
 
         CarRequest request = new CarRequest(
                 CarBrand.CarModel.ENYAQ,
-                2024, "SB-EV-1", "85 Sportline",
+                2024, 3, "SB-EV-1", "85 Sportline",
                 kwh, new BigDecimal("210"),
                 null, false,
                 spec.getId());

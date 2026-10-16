@@ -488,6 +488,7 @@ class CoinRewardIntegrationTest extends AbstractIntegrationTest {
         CarRequest request = new CarRequest(
                 model,
                 2024,
+                3,
                 "TEST-" + System.nanoTime(),
                 "Standard",
                 null,

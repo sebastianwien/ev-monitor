@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -41,6 +42,7 @@ public class CarService {
                         request.trim(), null, request.powerKw(),
                         request.batteryDegradationPercent())
                 .toBuilder()
+                .registrationDate(registrationDate(request))
                 .heatPump(request.hasHeatPump())
                 .vehicleSpecificationId(spec.getId())
                 .build();
@@ -92,6 +94,7 @@ public class CarService {
         Car updatedCar = existingCar.toBuilder()
                 .model(request.model())
                 .year(request.year())
+                .registrationDate(registrationDate(request))
                 .licensePlate(request.licensePlate())
                 .trim(request.trim())
                 .customNetCapacityKwh(existingCar.getCustomNetCapacityKwh())
@@ -103,6 +106,11 @@ public class CarService {
                 .build();
 
         return CarResponse.fromDomain(carRepository.save(updatedCar));
+    }
+
+    /** Baujahr plus Monat, der Tag ist immer der 1. */
+    private static LocalDate registrationDate(CarRequest request) {
+        return LocalDate.of(request.year(), request.registrationMonth(), 1);
     }
 
     private VehicleSpecification requireSpecFor(CarBrand.CarModel model, UUID specId) {

@@ -4,6 +4,8 @@ import com.evmonitor.domain.CarBrand;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
@@ -17,6 +19,11 @@ public record CarRequest(
         @NotNull(message = "Year is required")
         @Positive(message = "Year must be positive")
         Integer year,
+
+        @NotNull(message = "Month is required")
+        @Min(value = 1, message = "Month must be between 1 and 12")
+        @Max(value = 12, message = "Month must be between 1 and 12")
+        Integer registrationMonth,
 
         String licensePlate,
 

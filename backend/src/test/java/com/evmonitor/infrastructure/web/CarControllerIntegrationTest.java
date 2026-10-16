@@ -46,6 +46,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         CarRequest request = new CarRequest(
                 CarBrand.CarModel.MODEL_3,
                 2024,
+                3,
                 "TEST-123",
                 "Long Range",
                 null,
@@ -70,6 +71,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         assertNotNull(response.getBody());
         assertEquals(CarBrand.CarModel.MODEL_3, response.getBody().car().model());
         assertEquals(2024, response.getBody().car().year());
+        assertEquals(java.time.LocalDate.of(2024, 3, 1), response.getBody().car().registrationDate());
         assertEquals("TEST-123", response.getBody().car().licensePlate());
         assertEquals(20, response.getBody().coinsAwarded(), "First car must award 20 coins");
 
@@ -131,6 +133,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         CarRequest updateRequest = new CarRequest(
                 CarBrand.CarModel.MODEL_3,
                 2025,
+                3,
                 "NEW-456",
                 "Performance",
                 new BigDecimal("82.0"),
@@ -166,6 +169,7 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
         CarRequest updateRequest = new CarRequest(
                 CarBrand.CarModel.I4,
                 2025,
+                3,
                 "HACKED-123",
                 "Stolen",
                 new BigDecimal("80.0"),
@@ -236,11 +240,26 @@ class CarControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void shouldRejectCreateCar_WhenMonthMissingOrOutOfRange() {
+        UUID specId = createAndSaveSpec(CarBrand.CarModel.MODEL_3).getId();
+        for (Integer month : new Integer[] {null, 0, 13}) {
+            CarRequest request = new CarRequest(CarBrand.CarModel.MODEL_3, 2024, month, "TEST-123", "Long Range",
+                    null, new BigDecimal("350.0"), null, false, specId);
+
+            ResponseEntity<String> response = restTemplate.exchange("/api/cars", HttpMethod.POST,
+                    createAuthRequest(request, userId, testUser.getEmail()), String.class);
+
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode(), "month=" + month);
+        }
+    }
+
+    @Test
     void shouldRejectCarOperations_WithoutAuthentication() {
         // Given: No JWT token
         CarRequest request = new CarRequest(
                 CarBrand.CarModel.MODEL_3,
                 2024,
+                3,
                 "TEST-123",
                 "Standard",
                 new BigDecimal("75.0"),
