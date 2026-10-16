@@ -135,13 +135,13 @@ const answers = computed<Answer[]>(() => {
   const lock = props.locked
   if (n.commute) {
     const c = n.commute
-    const summer = chargeRhythmText(c.summer, c.homeCharging, rhythmFormat)
-    const winter = chargeRhythmText(c.winter, c.homeCharging, rhythmFormat)
+    // one statement at the winter figure: it holds the whole year
+    const charge = chargeRhythmText(c.winter, c.homeCharging, rhythmFormat)
     out.push({
       key: 'charge', icon: BoltIcon, tone: 'bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300',
       label: t(c.homeCharging ? 'models_ranking.detail.charge_label' : 'models_ranking.detail.charge_label_public'),
-      value: cap(summer),
-      sub: [summer !== winter ? t('models_ranking.detail.charge_winter', { value: winter }) : t('models_ranking.detail.charge_same')],
+      value: cap(charge),
+      sub: [],
       locked: lock,
     })
   }

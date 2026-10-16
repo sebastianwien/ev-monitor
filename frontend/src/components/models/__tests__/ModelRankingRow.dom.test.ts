@@ -101,8 +101,9 @@ describe('ModelRankingRow', () => {
     it('answers the reader first: charging, the longest trip and the month\'s cost, as on the model page', async () => {
       const { host } = await mount(CAR, { expanded: true })
       const box = text(forYou(host))
-      expect(box).toContain('Alle 14 Tage')
-      expect(box).toContain('im Winter alle 10 Tage')
+      // one statement, at the winter figure: holds the whole year
+      expect(box).toContain('Alle 10 Tage')
+      expect(box).not.toMatch(/Winter|14 Tage/)
       expect(box).toContain('Urlaubsfahrt 400 km')
       expect(box).toContain('Ohne Stopp')
       expect(box).toContain('3 h 40 min unterwegs')

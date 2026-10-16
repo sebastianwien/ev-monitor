@@ -81,6 +81,9 @@ describe('ModelsAnswerCard', () => {
     // far: fewest stops, then the larger winter range
     expect(names()).toEqual(['Brand M1', 'Brand M2', 'Brand M3', 'Brand M4', 'Brand M5'])
     expect(host.querySelector('[data-testid="top-five-row"] a')!.getAttribute('href')).toBe('/modelle/Brand/M1')
+    // marked is what the order rests on: far = stops and winter range, so trip and charging, first
+    const marked = () => [...host.querySelector('[data-testid="top-five-row"]')!.querySelectorAll('[role="cell"][data-marked]')].map(c => c.getAttribute('data-testid'))
+    expect(marked()).toEqual(['top-five-trip', 'top-five-charge'])
 
     ;(host.querySelector('[data-testid="priority-cost"]') as HTMLButtonElement).click()
     await nextTick()
@@ -88,6 +91,7 @@ describe('ModelsAnswerCard', () => {
     expect(names()).toEqual(['Brand M6', 'Brand M5', 'Brand M4', 'Brand M3', 'Brand M2'])
     // the month column comes first and is marked
     expect(host.querySelector('[data-testid="top-five-row"] [role="cell"]')!.getAttribute('data-testid')).toBe('top-five-month')
+    expect(marked()).toEqual(['top-five-month'])
   })
 
   it('signed in: no wallbox moves the answers to charging on the road', async () => {
@@ -118,6 +122,22 @@ describe('ModelsAnswerCard', () => {
     } finally {
       window.matchMedia = original
     }
+  })
+
+  it('charging: one statement, no season, in the answer and in the top 5', async () => {
+    const { host } = mount(false)
+    await nextTick()
+    const answer = text(host.querySelector('[data-testid="ranking-answer-charge"]'))
+    expect(answer).not.toMatch(/Winter|Sommer/)
+    const cell = host.querySelector('[data-testid="top-five-charge"]')!
+    expect(cell.querySelector('small')).toBeNull()
+    expect(text(cell)).not.toMatch(/Winter|Sommer/)
+  })
+
+  it('price: no hint under the slider while the reader keeps the drivers\' average', async () => {
+    const { host } = mount(false)
+    await nextTick()
+    expect(text(host.querySelector('[data-testid="personal-range-tune"]'))).not.toContain('Startwert')
   })
 
   it('top 5: a model name that carries the brand names it once', async () => {

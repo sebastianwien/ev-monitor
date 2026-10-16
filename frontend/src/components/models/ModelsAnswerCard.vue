@@ -276,8 +276,8 @@ const topFive = computed<TopFiveRow[]>(() => sortByPriority(props.entries, needs
   .slice(0, 5)
   .map((e, i) => {
     const m = byKey.value.get(`${e.brand}/${e.model}`)!
-    const summer = chargeRhythmText(e.chargesPerWeekSummer, home.value, rhythmFormat)
-    const winter = chargeRhythmText(e.chargesPerWeekWinter, home.value, rhythmFormat)
+    // one statement at the winter figure, as in the answer above: it holds the whole year
+    const charge = chargeRhythmText(e.chargesPerWeekWinter, home.value, rhythmFormat)
     const drivers = m.contributorCount != null ? t('ranking_card.drivers', { n: formatNumber(m.contributorCount) }, m.contributorCount) : null
     return {
       key: `${e.brand}/${e.model}`,
@@ -286,7 +286,7 @@ const topFive = computed<TopFiveRow[]>(() => sortByPriority(props.entries, needs
       meta: [m.categoryDisplayName, drivers].filter(Boolean).join(' · '),
       href: props.modelHref(m),
       trip: { main: stopsWord(e.longTripStops), sub: e.longTripTotalMinutes != null ? t('personal_range.drive_time', { duration: duration(e.longTripTotalMinutes) }) : null },
-      charge: { main: summer, sub: winter !== summer ? t('ranking_card.charge_winter', { value: winter }) : null },
+      charge: { main: charge, sub: null },
       month: { main: euro(e.monthlyCostEur), sub: null },
     }
   }))

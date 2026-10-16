@@ -117,9 +117,9 @@ describe('PersonalRangeCalculator', () => {
     const result = host.querySelector('[data-testid="personal-range-result"]')!
     const text = (key: string) => result.querySelector(`[data-testid="answer-${key}"]`)!.textContent?.replace(/\s+/g, ' ')
     expect(text('winter')).toMatch(/320\skm.*450\skm/)
-    // 0.3 a week in summer: every 3 weeks; 1.5 in winter: every 4 days; 40 km on 3 days
-    expect(text('rhythm')).toContain('alle 3 Wochen')
+    // one statement at the winter figure (1.5 a week: every 4 days), no season named; 40 km on 3 days
     expect(text('rhythm')).toContain('alle 4 Tage')
+    expect(text('rhythm')).not.toMatch(/Winter|Sommer|3 Wochen/)
     expect(text('rhythm')).toContain('120 km')
     expect(text('stops')).toMatch(/500\skm/)
     expect(text('stops')).toContain('5 h 5 min')

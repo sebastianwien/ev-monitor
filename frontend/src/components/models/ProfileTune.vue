@@ -15,15 +15,14 @@
           {{ opt ? t('personal_range.wallbox_yes') : t('personal_range.wallbox_no') }}
         </button>
       </div>
-      <p class="max-w-[52ch] text-[13px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('personal_range.wallbox_why') }}</p>
+      <p class="mx-auto max-w-[62ch] text-center text-[13px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('personal_range.wallbox_why') }}</p>
     </div>
-    <div class="grid gap-1">
+    <div class="grid w-full gap-1 md:max-w-[360px] md:justify-self-center">
       <ProfileSlider v-if="shownPrice != null" id="pr-price" test-key="price" :label="t('personal_range.price_label')"
                      :min="PRICE.min" :max="PRICE.max" :step="PRICE.step" :start="shownPrice" :value="shownPrice"
                      :format="v => formatCostPerKwh(v)" @commit="v => emit('price', Math.round(v * 100) / 100)" />
       <p class="text-[12.5px] leading-snug text-gray-600 dark:text-gray-400">
-        <template v-if="inputs.pricePerKwh == null">{{ t('personal_range.price_hint_community') }}</template>
-        <button v-else type="button" class="min-h-11 font-semibold text-green-700 underline dark:text-green-400" @click="emit('price', null)">{{ t('personal_range.price_reset') }}</button>
+        <button v-if="inputs.pricePerKwh != null" type="button" class="min-h-11 font-semibold text-green-700 underline dark:text-green-400" @click="emit('price', null)">{{ t('personal_range.price_reset') }}</button>
       </p>
     </div>
     </div>

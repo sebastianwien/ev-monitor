@@ -292,15 +292,11 @@ const answer = computed(() => {
   if (!r) return null
   const inputs = resultInputs.value
   const days = inputs.commuteDaysPerWeek ?? 5
-  const summerText = rhythm(r.chargesPerWeekSummer)
-  const winterText = rhythm(r.chargesPerWeekWinter)
   return {
     winter: formatDistance(r.winterRangeKm),
     summer: t('personal_range.winter_summer', { range: formatDistance(r.summerRangeKm) }),
-    // the same words for both seasons read as one line: "Sommer wie Winter alle 4 Tage"
-    rhythm: summerText === winterText
-      ? [{ key: 'personal_range.rhythm_same', value: summerText }]
-      : [{ key: 'personal_range.rhythm_summer', value: summerText }, { key: 'personal_range.rhythm_winter', value: winterText }],
+    // one statement at the winter figure: it holds the whole year
+    rhythm: [{ key: 'personal_range.rhythm_one', value: rhythm(r.chargesPerWeekWinter) }],
     rhythmBasis: t('personal_range.rhythm_basis', { km: formatDistance(inputs.commuteKmPerDay * days) }),
     distance: formatDistance(inputs.longTripKm),
     times: t('personal_range.stops_times', { n: r.longTripStops }, r.longTripStops),
