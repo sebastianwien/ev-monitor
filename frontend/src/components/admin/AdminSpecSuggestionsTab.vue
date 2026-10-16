@@ -175,14 +175,18 @@ const revert = (m: ModelGroup, e: Entry) => run(m, 'Zurücknehmen fehlgeschlagen
 
 const fmt = (v: number | null | undefined) => v == null ? '–' : v.toLocaleString('de-DE')
 const diff = (a: number | null | undefined, b: number | null | undefined) => a != null && b != null && Math.abs(a - b) > 0.05 ? 'text-amber-300' : ''
-/** Datum in Jahr, Monat, Tag zerlegt und je Stück gegen das Ziel gefärbt: gleich grün, anders gelb, ohne Ziel neutral. */
+/** Datum in Jahr, Monat, Tag zerlegt und von vorn gegen das Ziel gefärbt: grün bis zur ersten Abweichung, ab dort gelb, ohne Ziel neutral. */
 function dateParts(a: string | null, b: string | null | undefined): { text: string; cls: string }[] {
     if (!a) return []
     const pa = a.split('-'), pb = b ? b.split('-') : null
-    return pa.flatMap((p, i) => [
-        ...(i > 0 ? [{ text: '-', cls: '' }] : []),
-        { text: p, cls: !pb ? '' : pb[i] === p ? 'text-green-300' : 'text-amber-300' },
-    ])
+    let matching = true
+    return pa.flatMap((p, i) => {
+        matching = matching && pb?.[i] === p
+        return [
+            ...(i > 0 ? [{ text: '-', cls: '' }] : []),
+            { text: p, cls: !pb ? '' : matching ? 'text-green-300' : 'text-amber-300' },
+        ]
+    })
 }
 const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^ev-database\.org\/car\//, '')
 const cell = 'py-1.5 pr-3 whitespace-nowrap'

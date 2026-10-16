@@ -125,12 +125,12 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(labels).toEqual(['ID.3 Pro S', 'ID.3 Pro'])
     })
 
-    it('Ab und Bis färben Jahr, Monat und Tag einzeln gegen das Ziel', async () => {
+    it('Ab und Bis färben von vorn: ab der ersten Abweichung ist der Rest gelb', async () => {
         const host = await mount()
         radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
         const from = host.querySelector('tr[data-entry] td[data-from]')!
         const parts = [...from.querySelectorAll('span')].map(sp => [sp.textContent, sp.className.includes('green') ? 'gleich' : sp.className.includes('amber') ? 'anders' : 'neutral'])
-        expect(parts).toEqual([['2020', 'gleich'], ['-', 'neutral'], ['11', 'anders'], ['-', 'neutral'], ['01', 'gleich']])
+        expect(parts).toEqual([['2020', 'gleich'], ['-', 'neutral'], ['11', 'anders'], ['-', 'neutral'], ['01', 'anders']])
     })
 
     it('ohne Vorschlagsdatei nur ein Hinweis, kein Fehler', async () => {
