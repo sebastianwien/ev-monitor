@@ -474,8 +474,7 @@ const onResizeUp = () => {
 
 <template>
   <div class="p-4 sm:p-8 text-gray-100">
-    <div class="mx-auto bg-gray-900 rounded-sm p-4 sm:p-6 border border-white/10"
-         :class="activeTab === 'vorschlaege' ? 'max-w-[1920px]' : 'max-w-7xl'">
+    <div class="mx-auto max-w-[1920px] bg-gray-900 rounded-sm p-4 sm:p-6 border border-white/10">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
