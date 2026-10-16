@@ -56,6 +56,23 @@ describe('AdminSpecRowCars', () => {
         expect(changed).toHaveBeenCalledTimes(1)
     })
 
+    it('Vorauswahl nach Baujahr nur, wenn genau eine Zeile passt (bei mehreren entscheidet gleiches Netto)', async () => {
+        const c = (specId: string, from: string | null, to: string | null, diffKwh: number | null) =>
+            ({ specId, variantName: specId, trimLevel: null, netKwh: 77, diffKwh, availableFrom: from, availableTo: to })
+        const car = (carId: string, year: number, candidates: ReturnType<typeof c>[]) =>
+            ({ carId, carModel: 'ID_4', year, trim: null, currentNetKwh: null, currentSpecId: 'spec-1', logCount: 1, candidates })
+        carsOfSpec.mockResolvedValue([
+            car('eindeutig', 2021, [c('alt', '2021-01-01', '2022-05-31', 0), c('neu', '2022-06-01', '2023-12-31', 0)]),
+            car('wechseljahr', 2022, [c('alt', '2021-01-01', '2022-05-31', 0), c('neu', '2022-06-01', '2023-12-31', 0)]),
+            car('netto', 2022, [c('alt', '2021-01-01', '2022-05-31', 0), c('neu', '2022-06-01', null, 2)]),
+            car('keine', 2019, [c('alt', '2021-01-01', '2022-05-31', 0)]),
+        ])
+        const host = await mount()
+        const picked = [...host.querySelectorAll('tr[data-car] select')].map(s => (s as HTMLSelectElement).value)
+        expect(picked).toEqual(['alt', '', 'alt', ''])
+        expect(host.querySelectorAll('tr[data-car]')[0].textContent).toContain('passt zum Baujahr')
+    })
+
     it('Auto ohne andere Zeile des Modells: kein Umhängen möglich', async () => {
         const host = await mount()
         const row = host.querySelectorAll('tr[data-car]')[1]

@@ -5,6 +5,7 @@ import { adminVehicleSpecService, apiErrorText, type Candidate, type CarForReass
 /**
  * Autos einer Spec-Zeile, aufgeklappt unter der Zeile. Umhängen je Auto auf eine andere Zeile desselben Modells,
  * nie als Bulk: das Netto der neuen Zeile ändert Verbrauch, Phantom Drain und SoH des Autos.
+ * Passt das Baujahr eindeutig zu einer Zeile, ist sie vorausgewählt; umgehängt wird trotzdem erst per Klick.
  */
 const props = defineProps<{ specId: string }>()
 const emit = defineEmits<{ changed: [] }>()
@@ -15,9 +16,25 @@ const loading = ref(true)
 const error = ref('')
 const busyCar = ref<string | null>(null)
 
+/** Zeile, deren Zeitraum das Baujahr enthält; bei mehreren nur die mit gleichem Netto. Nicht eindeutig = kein Vorschlag. */
+function suggestion(car: CarForReassign): string | null {
+    if (car.year == null) return null
+    const y = car.year
+    const fits = car.candidates.filter(c => c.availableFrom != null && Number(c.availableFrom.slice(0, 4)) <= y
+        && (c.availableTo == null || Number(c.availableTo.slice(0, 4)) >= y))
+    const pick = fits.length > 1 ? fits.filter(c => c.diffKwh === 0) : fits
+    return pick.length === 1 ? pick[0].specId : null
+}
+const suggested = ref<Record<string, string>>({})
+
 onMounted(async () => {
     try {
         cars.value = await adminVehicleSpecService.carsOfSpec(props.specId)
+        for (const car of cars.value) {
+            const id = suggestion(car)
+            if (id) suggested.value[car.carId] = id
+            target.value[car.carId] = id ?? ''
+        }
     } catch (err) {
         error.value = apiErrorText(err, 'Autos konnten nicht geladen werden.')
     } finally {
@@ -65,8 +82,8 @@ const cell = 'py-1 pr-3 whitespace-nowrap'
           <template v-if="car.candidates.length">
             <td :class="cell">
               <select v-model="target[car.carId]" aria-label="Ziel-Zeile" class="bg-gray-800 border border-gray-600 rounded-sm px-2 py-1 text-xs text-gray-100">
-                <option :value="undefined" disabled>Zeile wählen</option>
-                <option v-for="c in car.candidates" :key="c.specId" :value="c.specId">{{ label(c) }}</option>
+                <option value="" disabled>Zeile wählen</option>
+                <option v-for="c in car.candidates" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId] === c.specId ? ' · passt zum Baujahr' : '' }}</option>
               </select>
             </td>
             <td class="py-1">
