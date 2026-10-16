@@ -114,4 +114,19 @@ class AdminVehicleSpecificationControllerIntegrationTest extends AbstractIntegra
 
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    void carsOfSpec_admin_isOkForExistingRow_nonAdminForbidden() {
+        User user = createAndSaveUser("spec-user-" + System.nanoTime() + "@example.com");
+        User admin = createAndSaveAdminUser("spec-admin-" + System.nanoTime() + "@example.com");
+        String created = restTemplate.exchange(PATH, HttpMethod.POST, createAuthRequest(validBody(), admin.getId(), admin.getEmail()), String.class).getBody();
+        String id = created.replaceAll("(?s).*?\"id\":\"([0-9a-f-]{36})\".*", "$1");
+        String path = PATH + "/" + id + "/cars";
+
+        ResponseEntity<String> res = restTemplate.exchange(path, HttpMethod.GET, createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).isEqualTo("[]");
+        assertThat(restTemplate.exchange(path, HttpMethod.GET, createAuthRequest(user.getId(), user.getEmail()), String.class)
+                .getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
 }

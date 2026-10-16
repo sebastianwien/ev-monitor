@@ -102,27 +102,47 @@ public class AdminSpecOverviewAssembler {
     }
 
     public List<CarForReassign> carsForReassign(CarBrand.CarModel model) {
-        List<VehicleSpecification> rows = specRepository.findAllByCarModel(model.name()).stream()
-                .filter(s -> s.getRatingSource() == VehicleSpecification.RatingSource.WLTP)
-                .sorted(ROW_ORDER)
+        List<VehicleSpecification> rows = wltpRows(model.name());
+        return byLogCount(jpaCarRepository.findAllByModelAndVehicleSpecificationIdIsNullAndDeletedAtIsNull(model).stream()
+                .map(car -> forReassign(car, car.getCustomNetCapacityKwh(), null, rows))
+                .toList());
+    }
+
+    /** Aktive Autos einer Zeile; Kandidaten sind die übrigen WLTP-Zeilen des Modells, Diff gegen das Netto dieser Zeile. */
+    public List<CarForReassign> carsOfSpec(VehicleSpecification spec) {
+        List<VehicleSpecification> others = wltpRows(spec.getCarModel()).stream()
+                .filter(s -> !s.getId().equals(spec.getId()))
                 .toList();
-        List<CarForReassign> result = new ArrayList<>();
-        for (CarEntity car : jpaCarRepository.findAllByModelAndVehicleSpecificationIdIsNullAndDeletedAtIsNull(model)) {
-            BigDecimal net = car.getCustomNetCapacityKwh();
-            List<Candidate> candidates = rows.stream()
-                    .map(s -> new Candidate(s.getId(), s.getVariantName(), s.getTrimLevel(), s.getNetBatteryCapacityKwh(),
-                            net == null || s.getNetBatteryCapacityKwh() == null ? null : s.getNetBatteryCapacityKwh().subtract(net).abs(),
-                            s.getAvailableFrom(), s.getAvailableTo()))
-                    .sorted(Comparator.comparing(Candidate::diffKwh, Comparator.nullsLast(Comparator.naturalOrder())))
-                    .toList();
-            result.add(new CarForReassign(car.getId(), model.name(), car.getYear(), car.getTrim(), net, null,
-                    jpaEvLogRepository.countByCarId(car.getId()), candidates));
-        }
-        result.sort(Comparator.comparingLong(CarForReassign::logCount).reversed());
-        return result;
+        return byLogCount(jpaCarRepository.findAllByVehicleSpecificationIdAndDeletedAtIsNull(spec.getId()).stream()
+                .map(car -> forReassign(car, spec.getNetBatteryCapacityKwh(), spec.getId(), others))
+                .toList());
     }
 
     // ── intern ───────────────────────────────────────────────────────────────
+
+    private List<VehicleSpecification> wltpRows(String carModel) {
+        return specRepository.findAllByCarModel(carModel).stream()
+                .filter(s -> s.getRatingSource() == VehicleSpecification.RatingSource.WLTP)
+                .sorted(ROW_ORDER)
+                .toList();
+    }
+
+    private CarForReassign forReassign(CarEntity car, BigDecimal net, UUID currentSpecId, List<VehicleSpecification> rows) {
+        List<Candidate> candidates = rows.stream()
+                .map(s -> new Candidate(s.getId(), s.getVariantName(), s.getTrimLevel(), s.getNetBatteryCapacityKwh(),
+                        net == null || s.getNetBatteryCapacityKwh() == null ? null : s.getNetBatteryCapacityKwh().subtract(net).abs(),
+                        s.getAvailableFrom(), s.getAvailableTo()))
+                .sorted(Comparator.comparing(Candidate::diffKwh, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+        return new CarForReassign(car.getId(), car.getModel() == null ? null : car.getModel().name(), car.getYear(), car.getTrim(),
+                car.getCustomNetCapacityKwh(), currentSpecId, jpaEvLogRepository.countByCarId(car.getId()), candidates);
+    }
+
+    private static List<CarForReassign> byLogCount(List<CarForReassign> cars) {
+        List<CarForReassign> result = new ArrayList<>(cars);
+        result.sort(Comparator.comparingLong(CarForReassign::logCount).reversed());
+        return result;
+    }
 
     /** Neueste zuerst: available_from absteigend, ohne Datum zuletzt, dann Kapazität. */
     static final Comparator<VehicleSpecification> ROW_ORDER = Comparator

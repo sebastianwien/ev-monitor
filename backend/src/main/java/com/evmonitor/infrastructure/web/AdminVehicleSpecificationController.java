@@ -61,6 +61,11 @@ public class AdminVehicleSpecificationController {
         return service.changes(id);
     }
 
+    @GetMapping("/{id}/cars")
+    public List<AdminSpecResponses.CarForReassign> carsOfSpec(@PathVariable UUID id) {
+        return service.carsOfSpec(id);
+    }
+
     @GetMapping("/reassign-candidates")
     public List<AdminSpecResponses.CarForReassign> reassignCandidates(@RequestParam CarBrand.CarModel model) {
         return service.carsForReassign(model);

@@ -309,4 +309,28 @@ class AdminVehicleSpecificationServiceTest extends AbstractServiceTest {
             assertThat(c.diffKwh()).isEqualByComparingTo("1.0");
         });
     }
+
+    @Test
+    void carsOfSpec_listsActiveCarsOfRowWithOtherRowsOfModelAsCandidates() {
+        UUID specId = service.create(adminId, validCommand()).row().id();
+        UUID otherId = service.create(adminId, new SpecCommand(CarBrand.CarModel.MODEL_3, new BigDecimal("82.0"), new BigDecimal("78.0"),
+                new BigDecimal("650"), new BigDecimal("14.5"), "Long Range AWD", "Long Range",
+                LocalDate.of(2025, 6, 1), null, SOURCE, VehicleSpecification.RatingSource.WLTP)).row().id();
+        User owner = createAndSaveUser("owner-" + UUID.randomUUID() + "@test.de");
+        Car linked = carRepository.save(TestDataBuilder.createTestCar(owner.getId(), CarBrand.CarModel.MODEL_3, null)
+                .toBuilder().vehicleSpecificationId(specId).build());
+        Car trashed = carRepository.save(TestDataBuilder.createTestCar(owner.getId(), CarBrand.CarModel.MODEL_3, null)
+                .toBuilder().vehicleSpecificationId(specId).build());
+        carRepository.save(trashed.softDelete());
+        carRepository.save(TestDataBuilder.createTestCar(owner.getId(), CarBrand.CarModel.MODEL_3, null)
+                .toBuilder().vehicleSpecificationId(otherId).build());
+
+        List<AdminSpecResponses.CarForReassign> cars = service.carsOfSpec(specId);
+
+        assertThat(cars).extracting(AdminSpecResponses.CarForReassign::carId).containsExactly(linked.getId());
+        AdminSpecResponses.CarForReassign entry = cars.get(0);
+        assertThat(entry.currentSpecId()).isEqualTo(specId);
+        assertThat(entry.candidates()).extracting(AdminSpecResponses.Candidate::specId).containsExactly(otherId);
+        assertThat(entry.candidates().get(0).diffKwh()).isEqualByComparingTo("3.0");
+    }
 }

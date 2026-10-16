@@ -143,6 +143,11 @@ public class AdminVehicleSpecificationService {
         return overviewAssembler.carsForReassign(model);
     }
 
+    @Transactional(readOnly = true)
+    public List<CarForReassign> carsOfSpec(UUID specId) {
+        return overviewAssembler.carsOfSpec(require(specId));
+    }
+
     // ── intern ───────────────────────────────────────────────────────────────
 
     private VehicleSpecification require(UUID id) {
