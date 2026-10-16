@@ -21,7 +21,7 @@ const row = (id: string, extra: Partial<SpecOverview['models'][0]['rows'][0]>) =
 const sample: SpecOverview = {
     carsWithoutSpec: 0, modelsWithoutRow: [],
     models: [{ carBrand: 'TESLA', carModel: 'MODEL_3', displayName: 'Model 3', inEnum: true, logCount: 1, activeCars: 1, carsWithoutSpec: 0,
-        rows: [row('spec-1', {}), row('spec-2', { availableFrom: '2020-01-01', sourceUrl: 'https://x' })] }],
+        rows: [row('spec-1', {}), row('spec-2', { availableFrom: '2020-01-01', sourceUrl: 'https://x', variantName: 'SR Vorgänger' }), row('spec-3', { trimLevel: 'Long Range', variantName: 'LR fremder Trim' })] }],
 }
 const suggestions = { _helper: 'http://localhost:8766', 'spec-1': [{ label: 'Model 3 SR (60 kWh)', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' }] }
 const detail = { batteryCapacityKwh: 64, netBatteryCapacityKwh: 60, officialRangeKm: 572, officialConsumptionKwhPer100km: 12.2 }
@@ -47,7 +47,9 @@ describe('AdminSpecSuggestionsTab', () => {
         const host = await mount()
         expect(host.textContent).toContain('Model 3 SR')
         expect(host.textContent).toContain('bestehend')
-        expect(host.textContent).not.toContain('spec-2')
+        expect(host.textContent).toContain('SR Vorgänger')
+        expect(host.textContent).toContain('bei uns')
+        expect(host.textContent).not.toContain('LR fremder Trim')
         const btn = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Übernehmen'))!
         btn.click(); await new Promise(r => setTimeout(r, 0)); await nextTick()
         expect(update).toHaveBeenCalledTimes(1)

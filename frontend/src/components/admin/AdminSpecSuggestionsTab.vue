@@ -45,6 +45,10 @@ const visible = computed(() => rows.value.filter(r => suggestions.value?.[r.id]?
     && !done.value.has(r.id)
     && (!onlyOpen.value || !r.availableFrom || !r.sourceUrl || applied.value.has(r.id))))
 const usedKey = (r: SpecRow, i: number) => `${r.id}#${i}`
+/** Unsere anderen Zeilen desselben Modells (gleicher Trim, sonst alle), nach Zeitraum: Vorgänger und Nachfolger zum Einordnen der Kandidaten. */
+const context = (r: SpecRow) => rows.value
+    .filter(x => x.id !== r.id && x.carModel === r.carModel && (!r.trimLevel || !x.trimLevel || x.trimLevel.toLowerCase() === r.trimLevel.toLowerCase()))
+    .sort((a, b) => (a.availableFrom ?? '9999').localeCompare(b.availableFrom ?? '9999'))
 
 function toCommand(r: SpecRow): SpecCommand {
     return {
@@ -162,6 +166,17 @@ const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^e
               <td class="py-1.5 pr-3">{{ r.availableTo ?? 'offen' }}</td>
               <td class="py-1.5 pr-3"><a v-if="r.sourceUrl" :href="r.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">{{ shortUrl(r.sourceUrl) }}</a><span v-else>–</span></td>
               <td class="py-1.5 pr-2 text-right text-xs text-indigo-300 rounded-r-sm">bestehend</td>
+            </tr>
+            <tr v-for="x in context(r)" :key="x.id" class="text-gray-500">
+              <td class="py-1 pr-3 pl-2">{{ x.variantName ?? 'ohne Name' }}</td>
+              <td class="py-1 pr-3 text-right">{{ fmt(x.batteryCapacityKwh) }}</td>
+              <td class="py-1 pr-3 text-right">{{ fmt(x.netBatteryCapacityKwh) }}</td>
+              <td class="py-1 pr-3 text-right">{{ fmt(x.officialRangeKm) }}</td>
+              <td class="py-1 pr-3 text-right">{{ fmt(x.officialConsumptionKwhPer100km) }}</td>
+              <td class="py-1 pr-3">{{ x.availableFrom ?? '–' }}</td>
+              <td class="py-1 pr-3">{{ x.availableTo ?? 'offen' }}</td>
+              <td class="py-1 pr-3"><a v-if="x.sourceUrl" :href="x.sourceUrl" target="_blank" rel="noopener noreferrer" class="underline">{{ shortUrl(x.sourceUrl) }}</a><span v-else>–</span></td>
+              <td class="py-1 pr-2 text-right text-xs">bei uns</td>
             </tr>
             <tr v-for="(s, i) in suggestions[r.id]" :key="i" class="border-t border-gray-700/60">
               <td class="py-1.5 pr-3 pl-2">{{ s.label.replace(/\s*\([\d.,]+ kWh\)$/, '') }}</td>
