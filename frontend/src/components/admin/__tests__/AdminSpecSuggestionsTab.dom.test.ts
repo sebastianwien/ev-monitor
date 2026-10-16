@@ -58,16 +58,19 @@ beforeEach(() => {
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.unstubAllGlobals() })
 
 describe('AdminSpecSuggestionsTab', () => {
-    it('zeigt je Modell unsere Zeilen mit Autos und alle ev-database-Einträge genau einmal, Filter wirkt auf beide', async () => {
+    it('zeigt je Modell unsere Zeilen mit Autos und alle ev-database-Einträge genau einmal, Filter wirkt nur auf den Modellnamen', async () => {
         const host = await mount()
         expect(host.querySelectorAll('section')).toHaveLength(1)
         expect(radios(host)).toHaveLength(2)
         expect(btns(host, 'Übernehmen')).toHaveLength(2)
         expect([...host.querySelectorAll('td[data-cars]')].map(td => td.textContent?.trim())).toEqual(['4', '3'])
         const input = host.querySelector('input[type=search]') as HTMLInputElement
-        input.value = 'pro s'; input.dispatchEvent(new Event('input')); await nextTick()
-        expect(radios(host)).toHaveLength(1)
-        expect(btns(host, 'Übernehmen')).toHaveLength(1)
+        const type = async (v: string) => { input.value = v; input.dispatchEvent(new Event('input')); await nextTick() }
+        await type('pro s')
+        expect(host.querySelectorAll('section')).toHaveLength(0)
+        await type('id.3')
+        expect(radios(host)).toHaveLength(2)
+        expect(btns(host, 'Übernehmen')).toHaveLength(2)
     })
 
     it('Übernehmen erst mit Ziel, schreibt dann Zeitraum und Quelle in die Zielzeile', async () => {

@@ -79,21 +79,21 @@ const byOurs = (a: SpecRow, b: SpecRow) => compare(ourValue(a, sort.value.key), 
 const byEntries = (a: Entry, b: Entry) => compare(entryValue(a, sort.value.key), entryValue(b, sort.value.key)) || compare(a.availableFrom, b.availableFrom)
 const matches = (text: string | null | undefined) => !filter.value.trim() || (text ?? '').toLowerCase().includes(filter.value.trim().toLowerCase())
 
-/** Einmal je Datenstand berechnet: je Modell unsere Zeilen und die Einträge, gefiltert und nach Start sortiert. */
+/** Einmal je Datenstand berechnet: je Modell unsere Zeilen und die Einträge, sortiert; der Filter wirkt nur auf den Modellnamen. */
 const sections = computed(() => models.value
     .filter(m => (entriesByModel.value?.[m.carModel]?.length ?? 0) > 0 && !done.value.has(m.carModel))
     .filter(m => !onlyOpen.value || touched.value.has(m.carModel) || m.rows.some(r => !r.availableFrom || !r.sourceUrl))
+    .filter(m => matches(m.displayName) || matches(m.carModel))
     .map(m => {
         const linked = new Map(m.rows.filter(r => r.sourceUrl).map(r => [r.sourceUrl as string, r]))
         return {
             m,
-            ours: m.rows.filter(r => matches(r.variantName) || matches(r.trimLevel)).sort(byOurs),
-            entries: (entriesByModel.value?.[m.carModel] ?? []).filter(e => matches(e.label)).sort(byEntries),
+            ours: m.rows.sort(byOurs),
+            entries: [...(entriesByModel.value?.[m.carModel] ?? [])].sort(byEntries),
             linked,
             target: m.rows.find(r => r.id === targetId.value[m.carModel]) ?? null,
         }
-    })
-    .filter(s => s.ours.length + s.entries.length > 0))
+    }))
 const page = computed(() => sections.value.slice(0, shown.value))
 
 function toCommand(r: SpecRow): SpecCommand {
@@ -188,7 +188,7 @@ const num = 'py-1.5 pr-3 text-right'
     <p v-else-if="!entriesByModel" class="text-sm text-gray-400">Keine Vorschlagsdatei gefunden. Dieser Tab arbeitet nur mit einer lokalen Datei.</p>
     <template v-else>
       <div class="flex flex-wrap items-center gap-3 text-sm">
-        <input v-model="filter" type="search" placeholder="Filter, z. B. Pro S" aria-label="Filter für Varianten und Einträge"
+        <input v-model="filter" type="search" placeholder="Modell, z. B. ID.3" aria-label="Modell filtern"
                class="w-56 bg-gray-900 border border-gray-700 rounded-sm px-3 py-1.5 focus:outline-none focus:border-indigo-500" />
         <label class="flex items-center gap-2"><input v-model="onlyOpen" type="checkbox" /> nur Modelle mit Zeilen ohne Zeitraum oder Quelle</label>
         <span class="text-gray-400">{{ sections.length }} Modelle</span>
