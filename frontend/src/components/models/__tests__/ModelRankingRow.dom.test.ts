@@ -94,6 +94,12 @@ describe('ModelRankingRow', () => {
     expect(hint(host)).toContain('400 km: 1 Stopp, 4 h 5 min unterwegs')
   })
 
+  it('the trip line names the stops only when the model has no travel time', async () => {
+    const { host } = await mount(CAR, { figures: { longTripStops: 1, longTripTotalMinutes: null } })
+    expect(hint(host)).toContain('400 km: 1 Stopp')
+    expect(hint(host)).not.toContain('unterwegs')
+  })
+
   it('the longest trip alone: dot and stops, no commute line', async () => {
     const { host } = await mount(CAR, { answers: { dailyKm: null, commuteDays: null, longestTripKm: 400, homeCharging: null }, figures: { longTripStops: 1 } })
     expect(hint(host)).not.toContain('Pendeln')

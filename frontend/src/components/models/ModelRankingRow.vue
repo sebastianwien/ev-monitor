@@ -226,7 +226,8 @@ const needsLines = computed<HintLine[]>(() => {
   if (n.trip && tripParams.value) {
     const stops = n.trip.stops === 0 ? row('stops_none') : row('stops_word', { count: formatNumber(n.trip.stops) }, n.trip.stops)
     parts.push({ key: 'trip', testid: 'needs-hint-trip', text: row('needs_trip_line', {
-      ...tripParams.value, value: `${stops}, ${t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })}` }) })
+      ...tripParams.value, value: n.trip.totalMinutes != null
+        ? `${stops}, ${t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })}` : stops }) })
   }
   // lines start with a capital, whatever building block comes first
   return parts.map(p => ({ ...p, text: p.text!.charAt(0).toLocaleUpperCase() + p.text!.slice(1) }))

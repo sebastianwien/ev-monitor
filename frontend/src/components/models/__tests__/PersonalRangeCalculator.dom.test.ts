@@ -244,6 +244,27 @@ describe('PersonalRangeCalculator', () => {
     expect(calcs[0][2]).toEqual({ params: { email: true } })
   })
 
+  it('trip without a reliable charging power: the stops only, no time and no estimate note', async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: { ...RESULT, longTripChargingMinutes: null, longTripTotalMinutes: null,
+      assumptions: RESULT.assumptions.filter(a => a.key !== 'CHARGING_POWER' && a.key !== 'TRAVEL_SPEED') } } as never)
+    const { host } = mount(true)
+    await flush()
+
+    const stops = host.querySelector('[data-testid="answer-stops"]')!.textContent!.replace(/\s+/g, ' ')
+    expect(stops).toMatch(/500\skm/)
+    expect(stops).not.toMatch(/\d+\s(h|min)\b/)
+    expect(stops).not.toContain('geschätzt')
+  })
+
+  it('a charging power from the datasheet is named as such', async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: RESULT } as never)
+    const { host } = mount(true)
+    await flush()
+
+    const power = [...host.querySelectorAll('[data-testid="assumption"]')].map(li => li.textContent).find(x => x?.includes('Schnellladeleistung'))
+    expect(power).toContain('Datenblatt')
+  })
+
   it('cost: what a comparable petrol car would cost a month, and the saving', async () => {
     vi.mocked(api.post).mockResolvedValueOnce({ data: RESULT } as never)
     const { host } = mount(true, { logCount: 6796, carCount: 35, petrol: { pricePerLiter: 1.8, litersPer100km: 6.8, category: 'Kompakt' } }, 0, { annualKm: 12000 })

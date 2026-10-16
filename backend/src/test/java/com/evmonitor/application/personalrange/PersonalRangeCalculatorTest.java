@@ -72,13 +72,54 @@ class PersonalRangeCalculatorTest {
         assertThat(r.summerRangeKm()).isEqualTo(370);
         assertThat(r.winterRangeKm()).isEqualTo(290);
         // highway = base 19.4 × fleet surcharge 1.03 = 20.0: first leg 346.5 km, legs 269.5 km → 1 stop;
-        // no power at all: fixed default 104 kW: 31.1 → 30
+        // no reliable charging power: no charging or travel time
         assertThat(r.longTripStops()).isEqualTo(1);
-        assertThat(r.longTripChargingMinutes()).isEqualTo(30);
+        assertThat(r.longTripChargingMinutes()).isNull();
+        assertThat(r.longTripTotalMinutes()).isNull();
         // base 16 × 1.21 = 19.4, highway 20 → mixed 19.7; 880 km × 0.197 / 0.95 DC × 0.55 public reference = 100.4 → 100
         assertThat(r.monthlyCostEur()).isEqualTo(100);
         assertThat(r.dataLevel()).isEqualTo(PersonalRangeResponse.DataLevel.WLTP_FACTOR);
-        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("CHARGING_POWER") && !a.measured());
+        assertThat(r.assumptions()).noneMatch(a -> a.key().equals("CHARGING_POWER") || a.key().equals("TRAVEL_SPEED"));
+    }
+
+    @Test
+    void theFleetMedianGivesNoTravelTimeEitherOnlyTheStops() {
+        ModelRangeBasis median = wltpOnly().toBuilder()
+                .dcChargingPower(new FastChargePower(new BigDecimal("104"), FastChargePower.Source.FLEET_MEDIAN, 3)).build();
+
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 50, false, 600), median);
+        PersonalRangeRankingEntry e = PersonalRangeCalculator.rankingEntry("RENAULT", "ZOE",
+                PersonalRangeRequestFixtures.answers(40, 50, false, 600), median);
+
+        assertThat(r.longTripStops()).isEqualTo(1);
+        assertThat(r.longTripChargingMinutes()).isNull();
+        assertThat(r.longTripTotalMinutes()).isNull();
+        assertThat(e.longTripStops()).isEqualTo(1);
+        assertThat(e.longTripTotalMinutes()).isNull();
+    }
+
+    @Test
+    void aDatasheetPowerGivesTheTravelTimeListedAsNotMeasured() {
+        ModelRangeBasis spec = wltpOnly().toBuilder().dcChargingPower(FastChargePower.spec(new BigDecimal("50"))).build();
+
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 50, false, 600), spec);
+
+        // 77 × 0.7 / 50 kW = 64.7 min → 65; 600 km at 110 km/h = 327.3 min, together 392 → 390
+        assertThat(r.longTripChargingMinutes()).isEqualTo(65);
+        assertThat(r.longTripTotalMinutes()).isEqualTo(390);
+        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("CHARGING_POWER")
+                && a.value().compareTo(new BigDecimal("50")) == 0 && !a.measured());
+        assertThat(r.assumptions()).anyMatch(a -> a.key().equals("TRAVEL_SPEED"));
+    }
+
+    @Test
+    void aTripWithoutStopKeepsItsDrivingTimeWithoutReliablePower() {
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(0, 0, true, 50), wltpOnly());
+
+        // no stop, so the charging power does not matter: 50 km at 110 km/h = 27 min → 25
+        assertThat(r.longTripStops()).isZero();
+        assertThat(r.longTripChargingMinutes()).isZero();
+        assertThat(r.longTripTotalMinutes()).isEqualTo(25);
     }
 
     @Test

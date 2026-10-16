@@ -150,7 +150,7 @@ const answers = computed<Answer[]>(() => {
       key: 'trip', icon: MapIcon, tone: 'bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
       label: t('models_ranking.detail.trip_label', tripParams.value),
       value: cap(n.trip.stops === 0 ? t('models_ranking.row.stops_none') : t('models_ranking.row.stops_word', { count: formatNumber(n.trip.stops) }, n.trip.stops)),
-      sub: [t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })],
+      sub: n.trip.totalMinutes != null ? [t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })] : [],
       locked: lock,
     })
   }

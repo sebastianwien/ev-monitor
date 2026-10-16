@@ -131,15 +131,15 @@ class EmailServiceTest {
                         PersonalRangeResponse.DataLevel.MEASURED, List.of())));
         assertThat(firstText(two.getContent())).contains("8 h 5 min").contains("inkl. 2 Ladestopps, zusammen grob 50 min");
 
-        // without the model's own fast-charge measurement the stop time is an estimate, and the mail says so
-        MimeMessage estimated = createRealMimeMessage();
-        when(mailSender.createMimeMessage()).thenReturn(estimated);
+        // without a reliable charging power there is no travel time: the mail names the stops instead
+        MimeMessage stopsOnly = createRealMimeMessage();
+        when(mailSender.createMimeMessage()).thenReturn(stopsOnly);
         emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Renault Zoe", "/modelle/Renault/Zoe",
-                new EmailService.PersonalRangeMailContent(inputs, new PersonalRangeResponse(310, 360, 2, 50, 485,
+                new EmailService.PersonalRangeMailContent(inputs, new PersonalRangeResponse(310, 360, 2, null, null,
                         new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
-                        PersonalRangeResponse.DataLevel.MEASURED,
-                        List.of(new PersonalRangeResponse.Assumption("CHARGING_POWER", false, new BigDecimal("104"), 0)))));
-        assertThat(firstText(estimated.getContent())).contains("zusammen grob 50 min, Ladeleistung geschätzt · Ø 110 km/h");
+                        PersonalRangeResponse.DataLevel.MEASURED, List.of())));
+        assertThat(firstText(stopsOnly.getContent())).contains("Unterwegs auf 250 km").contains("2 Ladestopps")
+                .doesNotContain("grob").doesNotContain("Ladeleistung geschätzt").doesNotContain("null");
     }
 
     @Test

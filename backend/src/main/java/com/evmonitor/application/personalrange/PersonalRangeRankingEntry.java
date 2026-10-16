@@ -13,7 +13,8 @@ public record PersonalRangeRankingEntry(
         int summerRangeKm,
         int winterRangeKm,
         int longTripStops,
-        int longTripTotalMinutes,
+        /** null without a reliable charging power, like on the model page */
+        Integer longTripTotalMinutes,
         BigDecimal chargesPerWeekSummer,
         BigDecimal chargesPerWeekWinter,
         int monthlyCostEur,

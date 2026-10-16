@@ -51,4 +51,26 @@ class FastChargePowerTableTest {
         assertThat(p.source()).isEqualTo(FastChargePower.Source.DEFAULT);
         assertThat(FastChargePowerTable.from(List.of()).forModel("ID_3").source()).isEqualTo(FastChargePower.Source.DEFAULT);
     }
+
+    @Test
+    void aDatasheetValueComesBeforeTheFleetMedianButNeverBeforeAMeasurement() {
+        var table = FastChargePowerTable.from(List.of(m("ID_3", "85", 300), m("MODEL_3", "112", 120), m("EQA", "76", 6)));
+
+        FastChargePower zoe = table.forModel("ZOE", new BigDecimal("46"));
+        assertThat(zoe.kw()).isEqualByComparingTo("46.0");
+        assertThat(zoe.source()).isEqualTo(FastChargePower.Source.SPEC);
+        assertThat(zoe.isReliable()).isTrue();
+        assertThat(zoe.isMeasured()).isFalse();
+        // a model's own measurement wins over its datasheet
+        assertThat(table.forModel("MODEL_3", new BigDecimal("170")).source()).isEqualTo(FastChargePower.Source.MEASURED);
+        // too few sessions and a datasheet value: the datasheet, with the session count kept
+        FastChargePower eqa = table.forModel("EQA", new BigDecimal("100"));
+        assertThat(eqa.source()).isEqualTo(FastChargePower.Source.SPEC);
+        assertThat(eqa.sessionCount()).isEqualTo(6);
+        // no datasheet value: the fleet median, which is not reliable
+        assertThat(table.forModel("EQA", null).source()).isEqualTo(FastChargePower.Source.FLEET_MEDIAN);
+        assertThat(table.forModel("EQA", null).isReliable()).isFalse();
+        // "gemessen" stays the model's own measurement only
+        assertThat(table.measuredKw("ZOE")).isNull();
+    }
 }

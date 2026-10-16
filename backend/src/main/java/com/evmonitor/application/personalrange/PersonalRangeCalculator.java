@@ -61,13 +61,20 @@ final class PersonalRangeCalculator {
         BigDecimal highway = highway(b, base, assumptions);
 
         FastChargePower power = b.dcChargingPower() != null ? b.dcChargingPower() : FastChargePower.fallback();
-        assumptions.add(new PersonalRangeResponse.Assumption("CHARGING_POWER", power.isMeasured(), power.kw()));
+        if (power.isReliable()) {
+            assumptions.add(new PersonalRangeResponse.Assumption("CHARGING_POWER", power.isMeasured(), power.kw()));
+        }
 
         BigDecimal price = price(in, b, assumptions);
 
         LongTripPlan trip = LongTripPlan.of(net, highway, power.kw(), in.longTripKm());
-        // A fixed setting, listed so the page and the mail can name it next to the travel time
-        assumptions.add(new PersonalRangeResponse.Assumption("TRAVEL_SPEED", false, BigDecimal.valueOf(LongTripPlan.TRAVEL_SPEED_KMH)));
+        // Charging and travel time only on a measured or datasheet power: the fleet median made slow chargers
+        // look fast. The stops rest on battery and consumption alone; without a stop the time is the drive.
+        boolean timed = power.isReliable() || trip.stops() == 0;
+        if (timed) {
+            // A fixed setting, listed so the page and the mail can name it next to the travel time
+            assumptions.add(new PersonalRangeResponse.Assumption("TRAVEL_SPEED", false, BigDecimal.valueOf(LongTripPlan.TRAVEL_SPEED_KMH)));
+        }
 
         // Commute: base and highway consumption blended by the highway share
         double h = in.highwaySharePercent() / 100.0;
@@ -98,8 +105,8 @@ final class PersonalRangeCalculator {
                 round10(km(net, RANGE_SHARE, winterProfile)),
                 round10(km(net, RANGE_SHARE, summerProfile)),
                 trip.stops(),
-                trip.chargingMinutes(),
-                trip.totalMinutes(),
+                timed ? trip.chargingMinutes() : null,
+                timed ? trip.totalMinutes() : null,
                 chargesPerWeek,
                 chargesSummer,
                 chargesWinter,

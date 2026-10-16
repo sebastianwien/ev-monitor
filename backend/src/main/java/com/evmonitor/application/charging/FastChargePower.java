@@ -14,6 +14,8 @@ public record FastChargePower(BigDecimal kw, Source source, int sessionCount) {
     public enum Source {
         /** p75 of the model's own short DC sessions, from FastChargePowerTable.MIN_SESSIONS on */
         MEASURED,
+        /** the datasheet's mean DC power 10 to 80 % (vehicle_specification), for a model without own measurement */
+        SPEC,
         /** median of the measured models, for a model with too few own sessions */
         FLEET_MEDIAN,
         /** no model measured at all (empty database) */
@@ -27,11 +29,20 @@ public record FastChargePower(BigDecimal kw, Source source, int sessionCount) {
         return new FastChargePower(kw, Source.MEASURED, sessionCount);
     }
 
+    public static FastChargePower spec(BigDecimal kw) {
+        return new FastChargePower(kw, Source.SPEC, 0);
+    }
+
     public static FastChargePower fallback() {
         return new FastChargePower(DEFAULT_KW, Source.DEFAULT, 0);
     }
 
     public boolean isMeasured() {
         return source == Source.MEASURED;
+    }
+
+    /** Good enough for a charging or travel time: the model's own measurement or its datasheet, never the fleet median. */
+    public boolean isReliable() {
+        return source == Source.MEASURED || source == Source.SPEC;
     }
 }

@@ -121,7 +121,7 @@ public class EmailService {
         vars.put("longTripKm", String.valueOf(in.longTripKm()));
         vars.put("winterRangeKm", String.valueOf(r.winterRangeKm()));
         vars.put("summerRangeKm", String.valueOf(r.summerRangeKm()));
-        vars.put("travelTime", duration(r.longTripTotalMinutes()));
+        vars.put("travelTime", r.longTripTotalMinutes() != null ? duration(r.longTripTotalMinutes()) : stops(r.longTripStops(), lang));
         vars.put("tripDetail", tripDetail(r, lang));
         vars.put("chargesSummer", ChargeRhythm.text(r.chargesPerWeekSummer(), in.homeCharging(), lang));
         vars.put("chargesWinter", ChargeRhythm.text(r.chargesPerWeekWinter(), in.homeCharging(), lang));
@@ -142,22 +142,26 @@ public class EmailService {
         return m == 0 ? h + " h" : h + " h " + m + " min";
     }
 
-    /** "inkl. 2 Ladestopps, zusammen grob 50 min · Ø 110 km/h" under the travel time */
+    /** "2 Ladestopps" in place of the travel time when the model has no reliable charging power */
+    private static String stops(int stops, String lang) {
+        if ("en".equals(lang)) return stops == 1 ? "1 charging stop" : stops + " charging stops";
+        return stops == 1 ? "1 Ladestopp" : stops + " Ladestopps";
+    }
+
+    /** "inkl. 2 Ladestopps, zusammen grob 50 min · Ø 110 km/h" under the travel time, empty without one */
     private static String tripDetail(PersonalRangeResponse r, String lang) {
+        if (r.longTripChargingMinutes() == null) return "";
         int stops = r.longTripStops(), minutes = r.longTripChargingMinutes(), speed = LongTripPlan.TRAVEL_SPEED_KMH;
-        // without the model's own fast-charge measurement the stop time rests on the fleet median: say so here
-        boolean estimated = stops > 0 && r.assumptions().stream()
-                .anyMatch(a -> a.key().equals("CHARGING_POWER") && !a.measured());
         if ("en".equals(lang)) {
             String charging = stops == 0 ? "no charging stop"
                     : stops == 1 ? "incl. 1 charging stop, roughly " + minutes + " min"
                     : "incl. " + stops + " charging stops, roughly " + minutes + " min in total";
-            return charging + (estimated ? ", charging power estimated" : "") + " · avg " + speed + " km/h";
+            return charging + " · avg " + speed + " km/h";
         }
         String charging = stops == 0 ? "ohne Ladestopp"
                 : stops == 1 ? "inkl. 1 Ladestopp, grob " + minutes + " min"
                 : "inkl. " + stops + " Ladestopps, zusammen grob " + minutes + " min";
-        return charging + (estimated ? ", Ladeleistung geschätzt" : "") + " · Ø " + speed + " km/h";
+        return charging + " · Ø " + speed + " km/h";
     }
 
     /** "30.000 km im Jahr" / "30,000 km a year" */

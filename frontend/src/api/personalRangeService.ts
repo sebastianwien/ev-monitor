@@ -41,9 +41,10 @@ export interface PersonalRangeResult {
   winterRangeKm: number
   summerRangeKm: number
   longTripStops: number
-  longTripChargingMinutes: number
-  /** the whole long trip at the fixed travel speed (assumption TRAVEL_SPEED) plus charging, rounded to 5 */
-  longTripTotalMinutes: number
+  /** null when the model has no reliable charging power (own measurement or datasheet) */
+  longTripChargingMinutes: number | null
+  /** the whole long trip at the fixed travel speed (assumption TRAVEL_SPEED) plus charging, rounded to 5; null like the charging minutes */
+  longTripTotalMinutes: number | null
   chargesPerWeek: number
   /** charges a week for the commute on the commute days, at the summer and the winter consumption, not rounded */
   chargesPerWeekSummer: number
@@ -64,7 +65,8 @@ export interface PersonalRangeRankingEntry {
   summerRangeKm: number
   winterRangeKm: number
   longTripStops: number
-  longTripTotalMinutes: number
+  /** null when the model has no reliable charging power, like on the model page */
+  longTripTotalMinutes: number | null
   chargesPerWeekSummer: number
   chargesPerWeekWinter: number
   monthlyCostEur: number

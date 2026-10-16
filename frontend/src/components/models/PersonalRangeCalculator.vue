@@ -125,14 +125,13 @@
               <template #distance><span class="whitespace-nowrap">{{ answer.distance }}</span></template>
               <template #times><b class="whitespace-nowrap text-[20px] font-extrabold tracking-tight">{{ answer.times }}</b></template>
             </i18n-t>
-            <p class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-400">
+            <p v-if="answer.driveTime" class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-400">
               <span class="inline-flex items-center gap-1.5"><ClockIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.driveTime }}</span>
               <span v-if="answer.chargeTime" class="inline-flex items-center gap-1.5"><BoltIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />{{ answer.chargeTime }}</span>
             </p>
             <i18n-t v-if="answer.tripCost" keypath="personal_range.trip_cost" tag="p" class="text-[15px] font-medium text-gray-900 dark:text-gray-100">
               <template #cost><b class="whitespace-nowrap text-[20px] font-extrabold tracking-tight tabular-nums">{{ answer.tripCost }}</b></template>
             </i18n-t>
-            <p v-if="answer.powerEstimated" class="text-[12.5px] text-amber-700 dark:text-amber-400">{{ t('personal_range.power_estimated') }}</p>
           </div>
         </li>
         <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-cost">
@@ -315,9 +314,10 @@ const answer = computed(() => {
     rhythmBasis: t('personal_range.rhythm_basis', { km: formatDistance(inputs.commuteKmPerDay * days) }),
     distance: formatDistance(inputs.longTripKm),
     times: t('personal_range.stops_times', { n: r.longTripStops }, r.longTripStops),
-    driveTime: t('personal_range.drive_time', { duration: duration(r.longTripTotalMinutes) }),
-    chargeTime: r.longTripStops > 0 ? t('personal_range.charge_time', { duration: duration(r.longTripChargingMinutes) }) : null,
-    powerEstimated: r.longTripStops > 0 && r.assumptions.some(a => a.key === 'CHARGING_POWER' && !a.measured),
+    // no time without a reliable charging power (own measurement or datasheet): the stops stand alone
+    driveTime: r.longTripTotalMinutes != null ? t('personal_range.drive_time', { duration: duration(r.longTripTotalMinutes) }) : null,
+    chargeTime: r.longTripStops > 0 && r.longTripChargingMinutes != null
+      ? t('personal_range.charge_time', { duration: duration(r.longTripChargingMinutes) }) : null,
     tripCost: tripChargingCost(r.longTripStops, inputs.netBatteryKwh ?? null),
     cost: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
     // the reader's own cost per 100 km, from the month and the yearly mileage it rests on
@@ -355,9 +355,9 @@ watch(result, r => emit('open', !!r))
 /** Datenblatt for the battery; the user's own price; otherwise gemessen, geschätzt, or the measured share of a blend */
 function sourceText(a: PersonalRangeAssumption): string {
   if (a.key === 'BATTERY') return a.measured ? t('personal_range.source_spec') : t('personal_range.source_spec_derived')
-  // a fixed setting, and the power of a model without own sessions is the median of the measured ones
+  // a fixed setting, and the power of a model without own sessions comes from its datasheet
   if (a.key === 'TRAVEL_SPEED') return t('personal_range.source_fixed')
-  if (a.key === 'CHARGING_POWER' && !a.measured) return t('personal_range.source_fleet_median')
+  if (a.key === 'CHARGING_POWER' && !a.measured) return t('personal_range.source_spec')
   if (a.key === 'OWN_PRICE') return t('personal_range.source_own')
   if (a.measured) return t('personal_range.measured')
   if (a.measuredPercent && a.measuredPercent > 0) return t('personal_range.partly_measured', { percent: a.measuredPercent })

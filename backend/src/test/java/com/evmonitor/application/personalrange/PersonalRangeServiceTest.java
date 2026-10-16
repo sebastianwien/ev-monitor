@@ -148,15 +148,37 @@ class PersonalRangeServiceTest {
     }
 
     @Test
-    void withoutOwnMeasurementThePowerIsTheMedianOfTheMeasuredModelsMarkedAsEstimate() {
+    void withoutOwnMeasurementAndDatasheetThereIsNoTravelTime() {
         when(publicModelService.getFastChargePowerTable(anyBoolean())).thenReturn(FastChargePowerTable.from(List.of(
                 new FastChargePowerTable.Measurement("ID_3", new BigDecimal("90"), 50),
                 new FastChargePowerTable.Measurement("MODEL_3", new BigDecimal("130"), 5))));
 
         PersonalRangeResponse r = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
 
+        assertThat(r.longTripStops()).isEqualTo(1);
+        assertThat(r.longTripTotalMinutes()).isNull();
+        assertThat(r.assumptions()).noneMatch(a -> a.key().equals("CHARGING_POWER"));
+    }
+
+    @Test
+    void withoutOwnMeasurementTheDatasheetOfTheLargestVariantGivesThePower() {
+        when(publicModelService.getFastChargePowerTable(anyBoolean())).thenReturn(FastChargePowerTable.from(List.of(
+                new FastChargePowerTable.Measurement("ID_3", new BigDecimal("90"), 50),
+                new FastChargePowerTable.Measurement("MODEL_3", new BigDecimal("130"), 5))));
+        VehicleSpecificationEntity small = mock(VehicleSpecificationEntity.class);
+        when(small.getBatteryCapacityKwh()).thenReturn(new BigDecimal("60"));
+        when(small.getOfficialConsumptionKwhPer100km()).thenReturn(new BigDecimal("13.9"));
+        when(small.getDcAvgPower1080Kw()).thenReturn(new BigDecimal("95"));
+        VehicleSpecificationEntity large = specs.findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc("MODEL_3", "WLTP").get(0);
+        when(large.getDcAvgPower1080Kw()).thenReturn(new BigDecimal("150"));
+        when(specs.findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(anyString(), eq("WLTP"))).thenReturn(List.of(small, large));
+
+        PersonalRangeResponse r = service.calculate(userId, false, "Tesla", "Model_3", request).orElseThrow();
+
         assertThat(r.assumptions()).anyMatch(a -> a.key().equals("CHARGING_POWER")
-                && a.value().compareTo(new BigDecimal("90")) == 0 && !a.measured());
+                && a.value().compareTo(new BigDecimal("150")) == 0 && !a.measured());
+        // 75 kWh × 0.7 / 150 kW = 21 min → 20
+        assertThat(r.longTripChargingMinutes()).isEqualTo(20);
     }
 
     @Test

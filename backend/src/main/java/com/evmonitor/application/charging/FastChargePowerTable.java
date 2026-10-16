@@ -9,7 +9,8 @@ import java.util.stream.Collectors;
 
 /**
  * Fast-charge power of every model in one place: the model's own measurement from MIN_SESSIONS
- * qualifying DC sessions on, otherwise the median of the measured models, otherwise DEFAULT_KW.
+ * qualifying DC sessions on, otherwise the datasheet value the caller passes, otherwise the median of
+ * the measured models, otherwise DEFAULT_KW.
  * Built from one query over all models (PublicModelService.getFastChargePowerTable, cached).
  */
 public final class FastChargePowerTable {
@@ -47,10 +48,16 @@ public final class FastChargePowerTable {
 
     /** Never null: the model's measurement, else the fleet median, else the fixed default. */
     public FastChargePower forModel(String modelEnumName) {
+        return forModel(modelEnumName, null);
+    }
+
+    /** Never null: the model's measurement, else its datasheet value, else the fleet median, else the fixed default. */
+    public FastChargePower forModel(String modelEnumName, BigDecimal datasheetKw) {
         Measurement m = byModel.get(modelEnumName);
-        if (m == null) return fleet;
-        if (m.sessions() >= MIN_SESSIONS) return FastChargePower.measured(scale1(m.kw()), m.sessions());
-        return new FastChargePower(fleet.kw(), fleet.source(), m.sessions());
+        int sessions = m != null ? m.sessions() : 0;
+        if (sessions >= MIN_SESSIONS) return FastChargePower.measured(scale1(m.kw()), sessions);
+        if (datasheetKw != null) return new FastChargePower(scale1(datasheetKw), FastChargePower.Source.SPEC, sessions);
+        return new FastChargePower(fleet.kw(), fleet.source(), sessions);
     }
 
     /** The model's own measurement only, null when it has too few sessions: for places that show "gemessen". */

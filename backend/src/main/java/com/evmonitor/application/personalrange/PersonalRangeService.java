@@ -180,7 +180,7 @@ public class PersonalRangeService {
                 .routeMeanKwhPer100km(route != null ? route.typedMeanKwhPer100km() : null)
                 // Short-stop fast-charge power as in the model ranking, not the session mean
                 // (that one includes the taper and idle time and halves the real figure)
-                .dcChargingPower(context.dcPower().forModel(stats.model()))
+                .dcChargingPower(context.dcPower().forModel(stats.model(), datasheetKw(specs, largest)))
                 .homePricePerKwh(stats.acAvgCostPerKwh())
                 .publicPricePerKwh(stats.dcAvgCostPerKwh())
                 .referenceHomePricePerKwh(reference.homePricePerKwh())
@@ -198,6 +198,16 @@ public class PersonalRangeService {
                         m.avgWltpConsumptionKwhPer100km(), m.avgConsumptionKwhPer100km(),
                         m.summerConsumptionKwhPer100km(), m.winterConsumptionKwhPer100km()))
                 .toList());
+    }
+
+    /** Datasheet DC power 10 to 80 % of the battery the calculation uses: the newest row of the largest battery with a value. */
+    private static BigDecimal datasheetKw(List<VehicleSpecificationEntity> specs, VehicleSpecificationEntity largest) {
+        return specs.stream()
+                .filter(s -> s.getDcAvgPower1080Kw() != null && s.getBatteryCapacityKwh() != null
+                        && s.getBatteryCapacityKwh().compareTo(largest.getBatteryCapacityKwh()) == 0)
+                .max(Comparator.comparing(VehicleSpecificationEntity::getAvailableFrom, Comparator.nullsFirst(Comparator.naturalOrder())))
+                .map(VehicleSpecificationEntity::getDcAvgPower1080Kw)
+                .orElse(null);
     }
 
     private static BigDecimal averageWltp(List<VehicleSpecificationEntity> specs) {

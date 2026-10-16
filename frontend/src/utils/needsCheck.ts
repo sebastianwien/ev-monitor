@@ -34,8 +34,8 @@ export const COMMUTE_WEEKS_PER_YEAR = 46
 export interface NeedsAssessment {
   /** charges a week for the commute (home) or fast-charge stops a week (on the road), not rounded */
   commute: { homeCharging: boolean; summer: number; winter: number } | null
-  /** stops and the whole travel time on the longest trip */
-  trip: { stops: number; totalMinutes: number } | null
+  /** stops and the whole travel time on the longest trip; no time without a reliable charging power */
+  trip: { stops: number; totalMinutes: number | null } | null
   summerRangeKm: number
   winterRangeKm: number
   /** charging cost a month at the yearly km, else at the commute; null until one of them is answered */
