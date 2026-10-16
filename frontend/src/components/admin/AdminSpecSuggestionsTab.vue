@@ -89,7 +89,7 @@ const sections = computed(() => models.value
         const linked = new Map(m.rows.filter(r => r.sourceUrl).map(r => [r.sourceUrl as string, r]))
         return {
             m,
-            ours: m.rows.sort(byOurs),
+            ours: [...m.rows].sort(byOurs),
             entries: [...(entriesByModel.value?.[m.carModel] ?? [])].sort(byEntries),
             linked,
             target: m.rows.find(r => r.id === targetId.value[m.carModel]) ?? null,
@@ -209,6 +209,11 @@ function dateParts(a: string | null, b: string | null | undefined): { text: stri
         ]
     })
 }
+/** Name in Wörter zerlegt, jedes Wort gegen die Wörter im Namen des Ziels gefärbt (Groß/klein egal): drin grün, nicht drin gelb, ohne Ziel neutral. */
+function nameParts(a: string, b: string | null | undefined): { text: string; cls: string }[] {
+    const words = b == null ? null : new Set(b.toLowerCase().split(/\s+/))
+    return a.split(/\s+/).filter(Boolean).map(w => ({ text: w, cls: !words ? '' : words.has(w.toLowerCase()) ? 'text-green-300' : 'text-amber-300' }))
+}
 const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^ev-database\.org\/car\//, '')
 const cell = 'py-1.5 pr-3 whitespace-nowrap'
 const date = 'py-1.5 pr-3 whitespace-nowrap'
@@ -275,7 +280,7 @@ const num = 'py-1.5 pr-3 text-right'
             </tr>
             <tr><td colspan="11" class="pt-3 pb-1 pl-2 text-xs text-gray-500">ev-database</td></tr>
             <tr v-for="e in entries" :key="e.sourceUrl" data-entry class="border-t border-gray-700/60">
-              <td :class="cell" class="pl-2">{{ e.label }}</td>
+              <td :class="cell" class="pl-2" data-name><template v-for="(p, pi) in nameParts(e.label, target ? target.variantName ?? '' : undefined)" :key="pi">{{ pi > 0 ? ' ' : '' }}<span :class="p.cls">{{ p.text }}</span></template></td>
               <td :class="cell"></td>
               <template v-if="loaded(e)">
                 <td :class="[num, diff(loaded(e)!.batteryCapacityKwh, target?.batteryCapacityKwh)]">{{ fmt(loaded(e)!.batteryCapacityKwh) }}</td>

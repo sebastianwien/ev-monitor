@@ -162,6 +162,14 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(parts).toEqual([['2020', 'gleich'], ['-', 'neutral'], ['11', 'anders'], ['-', 'neutral'], ['01', 'anders']])
     })
 
+    it('Name färbt jedes Wort danach, ob es im Namen des Ziels vorkommt', async () => {
+        const host = await mount()
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        const name = host.querySelectorAll('tr[data-entry] td[data-name]')[1]
+        const parts = [...name.querySelectorAll('span')].map(sp => [sp.textContent, sp.className.includes('green') ? 'gleich' : sp.className.includes('amber') ? 'anders' : 'neutral'])
+        expect(parts).toEqual([['ID.3', 'gleich'], ['Pro', 'gleich'], ['S', 'anders']])
+    })
+
     it('ohne Vorschlagsdatei nur ein Hinweis, kein Fehler', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
         const host = await mount()
