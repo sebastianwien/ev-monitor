@@ -73,68 +73,63 @@
                       @price="v => ownPrice = v" @unlocked="onUnlocked" />
   </div>
 
-  <div id="fahrer-messen" class="mx-auto grid max-w-7xl scroll-mt-24 grid-cols-1 gap-[18px] pb-10 lg:grid-cols-[300px_minmax(0,1fr)] lg:items-start lg:gap-7 lg:px-6">
-    <!-- Filters -->
-    <aside class="grid grid-cols-1 gap-3.5 px-4 lg:sticky lg:top-24 lg:px-0" :aria-label="t('models_ranking.filters.category')">
-      <label class="relative block">
-        <span class="sr-only">{{ t('models_ranking.filters.search_label') }}</span>
-        <MagnifyingGlassIcon class="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-        <input
-          v-model="query"
-          type="search"
-          autocomplete="off"
-          :placeholder="t('models_ranking.filters.search_placeholder')"
-          class="edge-card h-12 w-full rounded-xl bg-white pl-11 pr-3.5 text-base text-gray-900 placeholder:text-gray-500 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-400"
-        />
-      </label>
-
-      <div>
-        <p class="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">{{ t('models_ranking.filters.category') }}</p>
-        <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0" role="group" :aria-label="t('models_ranking.filters.category')">
-          <ChoiceChip v-for="c in categoryChips" :key="c.key ?? 'all'" :active="category === c.key" @click="category = c.key">
+  <div id="fahrer-messen" class="mx-auto grid max-w-7xl scroll-mt-24 grid-cols-1 gap-[18px] pb-10 lg:px-6">
+    <!-- Chapter 2: the drivers' figures, free for everyone. One box: title, search and chips, then the list. -->
+    <section class="mr-board grid min-w-0 bg-white pt-6 md:rounded-3xl md:edge-box md:pt-7 dark:bg-gray-900" aria-labelledby="fahrer-messen-t">
+      <div class="grid min-w-0 gap-3.5 px-4 md:px-7">
+        <div class="grid gap-1">
+          <h2 id="fahrer-messen-t" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.box_title') }}</h2>
+          <p class="max-w-[70ch] text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.box_sub') }}</p>
+        </div>
+        <div class="grid min-w-0 gap-3 lg:flex lg:items-center">
+          <label class="relative block lg:w-[320px] lg:flex-none">
+            <span class="sr-only">{{ t('models_ranking.filters.search_label') }}</span>
+            <MagnifyingGlassIcon class="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            <input
+              v-model="query"
+              type="search"
+              autocomplete="off"
+              :placeholder="t('models_ranking.filters.search_placeholder')"
+              class="h-12 w-full rounded-xl border border-gray-300 bg-white pl-11 pr-3.5 text-base text-gray-900 placeholder:text-gray-500 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder:text-gray-400"
+            />
+          </label>
+          <div :class="CHIP_ROW" role="group" :aria-label="t('models_ranking.sort.label')">
+            <ChoiceChip v-for="s in RANKING_SORTS" :key="s" :active="sort === s" @click="sort = s">{{ t(`models_ranking.sort.${s}`) }}</ChoiceChip>
+          </div>
+        </div>
+        <div :class="CHIP_ROW" role="group" :aria-label="t('models_ranking.filters.category')">
+          <ChoiceChip v-for="c in categoryChips" :key="c.key ?? 'all'" size="sm" :active="category === c.key" @click="category = c.key">
             {{ c.label }}<span class="text-xs tabular-nums opacity-65">{{ c.count }}</span>
           </ChoiceChip>
         </div>
+        <!-- Signed in with a trip: only the models that make it with the fewest stops any model needs -->
+        <div v-if="fitLabel" :class="CHIP_ROW" role="group" :aria-label="fitLabel">
+          <ChoiceChip :active="tripOnly" data-testid="fit-filter" @click="setFit(true)">
+            <CheckIcon v-if="tripOnly" class="h-4 w-4" stroke-width="2.5" aria-hidden="true" />{{ fitLabel }}
+          </ChoiceChip>
+          <ChoiceChip :active="!tripOnly" data-testid="fit-all" @click="setFit(false)">{{ t('models_ranking.fit_all') }}</ChoiceChip>
+        </div>
+        <p v-if="!loading && !loadError" class="flex flex-wrap items-baseline gap-x-2 text-[13px] text-gray-500 dark:text-gray-400" aria-live="polite" data-testid="ranking-count">
+          <span>{{ t('models_ranking.count', { shown: shownCount, total: models.length }) }}</span>
+          <button v-if="narrowed" type="button" class="font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" @click="resetFilters">{{ t('models_ranking.count_reset') }}</button>
+        </p>
       </div>
 
-    </aside>
-
-    <!-- Ranking -->
-    <section class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:edge-box lg:bg-white dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
-      <div class="sticky z-20 border-b border-gray-200 bg-gray-50 px-4 pt-2.5 lg:px-5 lg:pt-3 dark:border-gray-800 dark:bg-gray-950 lg:bg-white dark:lg:bg-gray-900" :class="stickyTopClass">
-        <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0 lg:pb-2.5" role="group" :aria-label="t('models_ranking.sort.label')">
-          <ChoiceChip v-for="s in RANKING_SORTS" :key="s" size="sm" :active="sort === s" @click="sort = s">{{ t(`models_ranking.sort.${s}`) }}</ChoiceChip>
-          <button
-            ref="assumptionsChip"
-            type="button"
-            class="ml-auto inline-flex min-h-9 flex-none items-center whitespace-nowrap rounded-full border border-dashed border-gray-400 px-3.5 text-[13.5px] font-medium text-gray-800 dark:border-gray-600 dark:text-gray-200"
-            aria-haspopup="dialog"
-            :aria-expanded="assumptionsOpen"
-            data-testid="assumptions-chip"
-            @click="openAssumptions"
-          >{{ t('models_ranking.assumptions.chip') }}</button>
-        </div>
-        <!-- The count only matters when something narrows the list -->
-        <p v-if="!loading && ranked.length !== models.length" class="flex flex-wrap items-baseline gap-x-2 pb-2 text-[13px] text-gray-500 dark:text-gray-400" aria-live="polite" data-testid="ranking-count">
-          <span>{{ t('models_ranking.count', { shown: ranked.length, total: models.length }) }}</span>
-          <button type="button" class="pointer-events-auto font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" @click="resetFilters">{{ t('models_ranking.count_reset') }}</button>
-        </p>
-        <!-- Column heads (desktop only; on the phone the bars are labelled in the row).
-             .mr-grid sets display itself, so plain `hidden` would lose the cascade. -->
-        <div class="mr-grid mr-ruler h-[38px] pr-4 max-lg:!hidden lg:pr-5" aria-hidden="true">
-          <span class="mr-who self-center text-left text-[14px] font-semibold" :class="headClass('mr-who')">{{ t('models_ranking.columns.model') }}</span>
-          <span class="mr-ld self-center text-left text-[14px] font-semibold" :class="headClass('mr-ld')">
-            {{ t('models_ranking.columns.consumption') }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
-          </span>
-          <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block', headClass(col.cls)]" class="hidden self-center whitespace-nowrap text-right text-[14px] font-semibold leading-tight">
-            {{ col.label }}
-          </span>
-        </div>
+      <!-- Column heads (desktop only; on the phone the bars are labelled in the row).
+           .mr-grid sets display itself, so plain `hidden` would lose the cascade. -->
+      <div class="mr-grid mr-ruler mt-3 h-[38px] border-b border-gray-200 pr-4 max-lg:!hidden lg:pr-5 dark:border-gray-800" aria-hidden="true">
+        <span class="mr-who self-center text-left text-[14px] font-semibold" :class="headClass('mr-who')">{{ t('models_ranking.columns.model') }}</span>
+        <span class="mr-ld self-center text-left text-[14px] font-semibold" :class="headClass('mr-ld')">
+          {{ t('models_ranking.columns.consumption') }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
+        </span>
+        <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block', headClass(col.cls)]" class="hidden self-center whitespace-nowrap text-right text-[14px] font-semibold leading-tight">
+          {{ col.label }}
+        </span>
       </div>
 
       <!-- Loading: skeleton rows -->
-      <ol v-if="loading" class="list-none" aria-hidden="true">
-        <li v-for="n in 8" :key="n" class="mr-grid border-b border-gray-200 pr-4 lg:pr-5 dark:border-gray-800">
+      <ol v-if="loading" class="mt-3 list-none border-t border-gray-200 lg:mt-0 lg:border-t-0 dark:border-gray-800" aria-hidden="true">
+        <li v-for="n in LIST_PREVIEW" :key="n" class="mr-grid border-b border-gray-200 pr-4 lg:pr-5 dark:border-gray-800">
           <span class="mr-th h-16 self-stretch bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
           <span class="mr-who h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
           <span class="mr-ld h-2 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
@@ -142,7 +137,7 @@
       </ol>
 
       <!-- Error -->
-      <div v-else-if="loadError" class="grid justify-items-start gap-3 px-4 py-8 lg:px-5">
+      <div v-else-if="loadError" class="grid justify-items-start gap-3 px-4 py-8 md:px-7">
         <p class="text-gray-700 dark:text-gray-300">{{ t('models_ranking.error.text') }}</p>
         <button type="button" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" @click="load">
           <ArrowPathIcon class="h-5 w-5" aria-hidden="true" />{{ t('models_ranking.error.retry') }}
@@ -150,17 +145,20 @@
       </div>
 
       <!-- Empty search -->
-      <div v-else-if="ranked.length === 0" class="grid justify-items-start gap-3 px-4 py-8 lg:px-5">
+      <div v-else-if="ranked.length === 0" class="grid justify-items-start gap-3 px-4 py-8 md:px-7">
         <p class="text-[13px] text-gray-600 dark:text-gray-400" data-testid="ranking-empty">{{ emptyText }}</p>
         <button v-if="!searchHitsOnlyWithoutData" type="button" class="inline-flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-4 font-semibold text-gray-900 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" @click="resetFilters">
           {{ t('models_ranking.empty.reset') }}
         </button>
       </div>
 
-      <TransitionGroup v-else tag="ol" class="mr-list list-none" move-class="transition-transform duration-300 ease-out motion-reduce:transition-none">
+      <!-- All rows stay in the DOM (links for search engines); collapsed, rows after the first 8 are only hidden -->
+      <TransitionGroup v-else tag="ol" class="mr-list mt-3 list-none border-t border-gray-200 lg:mt-0 lg:border-t-0 dark:border-gray-800" move-class="transition-transform duration-300 ease-out motion-reduce:transition-none">
         <ModelRankingRow
-          v-for="item in ranked"
+          v-for="(item, i) in ranked"
           :key="item.key"
+          :class="{ hidden: collapsed && i >= LIST_PREVIEW }"
+          data-testid="ranking-row"
           :item="item"
           :axis="axis"
           :sort="sort"
@@ -179,13 +177,23 @@
           @assumptions="openAssumptions"
         />
       </TransitionGroup>
-      <p v-if="!loading && !loadError" class="px-4 py-2.5 text-[12.5px] text-gray-500 lg:px-5 dark:text-gray-400">{{ t('models_ranking.list_hint') }}</p>
+      <div v-if="!loading && !loadError" class="grid justify-items-center gap-3 px-4 pb-6 pt-4 md:px-7">
+        <button v-if="collapsed" type="button" class="inline-flex min-h-11 items-center gap-1.5 font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="show-all" @click="showAll = true">
+          {{ t('models_ranking.show_all', { count: formatNumber(ranked.length) }) }}
+          <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
+        </button>
+        <p class="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 text-[12.5px] text-gray-500 dark:text-gray-400">
+          <button ref="assumptionsChip" type="button" class="min-h-9 font-semibold text-green-700 underline underline-offset-2 hover:text-green-800 dark:text-green-400"
+                  aria-haspopup="dialog" :aria-expanded="assumptionsOpen" data-testid="assumptions-chip" @click="openAssumptions">{{ t('models_ranking.assumptions_link') }}</button>
+          <span>{{ t('models_ranking.list_hint') }}</span>
+        </p>
+      </div>
     </section>
 
     <!-- Models with a WLTP spec but no driver data yet, collapsed by default -->
     <details
       v-if="withoutData.length"
-      class="min-w-0 lg:col-start-2 lg:rounded-2xl lg:edge-box lg:bg-white dark:lg:bg-gray-900"
+      class="min-w-0 lg:rounded-2xl lg:edge-box lg:bg-white dark:lg:bg-gray-900"
       :open="withoutDataOpen"
       data-testid="without-data"
       @toggle="withoutDataOpen = ($event.target as HTMLDetailsElement).open"
@@ -284,7 +292,7 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   ArrowPathIcon, ArrowRightIcon, ArrowsRightLeftIcon, ArrowTrendingUpIcon,
-  ChartBarIcon, ChevronRightIcon, MagnifyingGlassIcon, UserIcon, XMarkIcon,
+  ChartBarIcon, CheckIcon, ChevronDownIcon, ChevronRightIcon, MagnifyingGlassIcon, UserIcon, XMarkIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth'
 import {
@@ -311,7 +319,7 @@ const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: fals
 const { t, te, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, unitSystem } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption, formatDistance, consumptionUnitLabel, distanceUnitLabel, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS } = useMarketRoute()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
@@ -334,7 +342,7 @@ const loadError = ref(false)
 
 const {
   sort, category, query, price, ownPrice, cost, homeShare, combustionMarket, applyReferencePrices, resetCost,
-  needs, rankingEntries, tripOnly, ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
+  needs, rankingEntries, tripOnly, fitStops, ranked, withoutData, searchHitsOnlyWithoutData, avgWltpDeviationPct,
   compareKeys, canAddCompare, isInCompare, toggleCompare, clearCompare,
 } = useModelRanking(models, modelsWithoutData)
 watch(currentMarket, m => { combustionMarket.value = combustionAllowed(m) }, { immediate: true })
@@ -394,6 +402,24 @@ const categoryChips = computed(() => {
   ]
 })
 
+/** A row of chips: scrolls sideways on the phone, wraps from lg */
+const CHIP_ROW = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 pt-0.5 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0'
+
+/** "Schafft meine 600 km mit 1 Stopp": signed in with a trip only; guests see the gate in chapter 1 */
+const fitLabel = computed(() => {
+  const stops = fitStops.value
+  const km = needs.value.longestTripKm
+  if (!isAuthenticated.value || stops == null || km == null) return null
+  return stops === 0
+    ? t('models_ranking.fit_filter_none', { km: formatDistance(km) })
+    : t('models_ranking.fit_filter', { km: formatDistance(km), stops: t('models_ranking.row.stops_word', { count: formatNumber(stops) }, stops) })
+})
+function setFit(on: boolean) {
+  if (tripOnly.value === on) return
+  tripOnly.value = on
+  if (on && fitStops.value != null) analytics.track('ranking_fit_filter', { stops: fitStops.value })
+}
+
 // ── Chapter 1: the answer card and the list point at each other ─────────────
 const answerCard = ref<InstanceType<typeof ModelsAnswerCard> | null>(null)
 const entryCards = computed(() => [
@@ -429,7 +455,11 @@ const fuelPriceFromApi = computed(() => {
 })
 
 // ── Plausible ───────────────────────────────────────────────────────────────
-watch(sort, s => analytics.track('ranking_sort', { sort: s }))
+watch(sort, s => {
+  analytics.track('ranking_sort', { sort: s })
+  // a new order shows every model
+  showAll.value = true
+})
 let needsEditTimer: ReturnType<typeof setTimeout> | undefined
 watch(needs, () => {
   clearTimeout(needsEditTimer)
@@ -456,6 +486,13 @@ const emptyText = computed(() => {
 // ── Ranking ─────────────────────────────────────────────────────────────────
 const openKey = ref<string | null>(null)
 
+// First 8 rows, then "Alle 61 Modelle". Search, filters and a sort change show every hit.
+const LIST_PREVIEW = 8
+const showAll = ref(false)
+const narrowed = computed(() => query.value.trim() !== '' || category.value !== null || tripOnly.value)
+const collapsed = computed(() => !showAll.value && !narrowed.value && ranked.value.length > LIST_PREVIEW)
+const shownCount = computed(() => collapsed.value ? LIST_PREVIEW : ranked.value.length)
+
 // Axis from all models (not the filtered list), so it stays put while filtering.
 const axis = computed(() => buildLadderAxis(
   models.value.flatMap(m => [
@@ -474,9 +511,6 @@ const SORT_COLUMN: Record<RankingSort, string> = { efficient: 'mr-ld', wltp: 'mr
 function headClass(cls: string) {
   return SORT_COLUMN[sort.value] === cls ? 'text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'
 }
-
-/** The page keeps the public nav (70px, sticky) for guests and members alike, the bar docks under it */
-const stickyTopClass = 'top-[calc(env(safe-area-inset-top)+70px)]'
 
 function modelHref(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>) {
   return `${modelsBaseUrl.value}/${m.brandDisplayName}/${m.modelUrlSlug}`

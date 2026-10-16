@@ -477,14 +477,13 @@ describe('useModelRanking', () => {
       expect(useModelRanking(ref(models)).needs.value).toEqual({ annualKm: null, highwayKm: null, dailyKm: null, commuteDays: null, longestTripKm: null, homeCharging: null, maxStops: 0, priority: 'range' })
     })
 
-    it('filters to trips within the accepted stops', async () => {
+    it('filters to the models that make the trip with the fewest stops any model needs', async () => {
       const r = useModelRanking(ref(models))
       r.needs.value = ANNA
       await settle()
+      expect(r.fitStops.value).toBe(0)
       r.tripOnly.value = true
       expect(keys(r.ranked.value)).toEqual(['B/big'])
-      r.needs.value = { ...r.needs.value, maxStops: 2 }
-      expect(keys(r.ranked.value)).toEqual(['A/small', 'B/big'])
     })
 
     it('the trip filter does nothing before the longest trip is answered', async () => {

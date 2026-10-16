@@ -69,6 +69,12 @@ export function meetsNeeds(a: NeedsAssessment | null, maxStops: number): boolean
   return a != null && a.trip != null && a.trip.stops <= maxStops
 }
 
+/** The fewest stops any model needs on the longest trip; null until the trip is answered and figures exist */
+export function fewestTripStops(assessments: (NeedsAssessment | null)[]): number | null {
+  const stops = assessments.flatMap(a => a?.trip ? [a.trip.stops] : [])
+  return stops.length ? Math.min(...stops) : null
+}
+
 export interface NeedsSummary {
   /** models with figures */
   total: number

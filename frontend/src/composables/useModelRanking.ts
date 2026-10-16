@@ -3,7 +3,7 @@ import type { ChargingReferencePrices, ModelWithoutData, TopModelPreview } from 
 import { personalRangeService, type PersonalRangeRankingEntry } from '../api/personalRangeService'
 import { consumptionDeltaPercent } from '../utils/unitConversions'
 import {
-  assessEntry, summarizeNeeds, commuteKmPerWeek, meetsNeeds, NEEDS_EMPTY, MIN_COMMUTE_DAYS, MAX_COMMUTE_DAYS, COMMUTE_WEEKS_PER_YEAR,
+  assessEntry, summarizeNeeds, commuteKmPerWeek, meetsNeeds, fewestTripStops, NEEDS_EMPTY, MIN_COMMUTE_DAYS, MAX_COMMUTE_DAYS, COMMUTE_WEEKS_PER_YEAR,
   type NeedsAssessment, type NeedsInput, type NeedsSummary,
 } from '../utils/needsCheck'
 import { needsToInputs } from '../utils/drivingProfile'
@@ -184,7 +184,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   }, { flush: 'sync' })
   const category = ref<string | null>(null)
   const query = ref('')
-  /** Only models whose largest battery makes the longest trip without a stop */
+  /** Only models that make the longest trip with the fewest stops any model needs (fitStops) */
   const tripOnly = ref(false)
 
   const needs = ref<NeedsInput>(readStoredNeeds() ?? { ...NEEDS_EMPTY })
@@ -290,13 +290,16 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   const rankingEntries = computed(() => [...entries.value.values()])
   const needsSummary = computed<NeedsSummary>(() => summarizeNeeds(enriched.value.map(r => r.needs)))
 
+  /** "Schafft meine 600 km mit 1 Stopp": the fewest stops over all models, null without a trip */
+  const fitStops = computed(() => fewestTripStops(enriched.value.map(r => r.needs)))
+
   const ranked = computed<RankedModel[]>(() => {
     const valueOf = SORT_VALUE[sort.value]
     const direction = DESCENDING.includes(sort.value) ? -1 : 1
     return enriched.value
       .filter(r => category.value === null || r.model.category === category.value)
       .filter(r => matchesSearch(r.model, query.value))
-      .filter(r => !tripOnly.value || needs.value.longestTripKm == null || meetsNeeds(r.needs, needs.value.maxStops))
+      .filter(r => !tripOnly.value || fitStops.value == null || meetsNeeds(r.needs, fitStops.value))
       .sort((a, b) => {
         const va = valueOf(a)
         const vb = valueOf(b)
@@ -347,6 +350,7 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
     needsReady,
     rankingEntries,
     tripOnly,
+    fitStops,
     ranked,
     withoutData,
     searchHitsOnlyWithoutData,

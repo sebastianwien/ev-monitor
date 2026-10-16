@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { PersonalRangeRankingEntry } from '../../api/personalRangeService'
-import { NEEDS_EMPTY, COMMUTE_WEEKS_PER_YEAR, commuteKmPerWeek, assessEntry, meetsNeeds, summarizeNeeds, type NeedsInput } from '../needsCheck'
+import { NEEDS_EMPTY, COMMUTE_WEEKS_PER_YEAR, commuteKmPerWeek, assessEntry, meetsNeeds, summarizeNeeds, fewestTripStops, type NeedsInput } from '../needsCheck'
 
 /** Anna: 40 km on 3 days, charging at home, 400 km longest trip */
 const ANNA: NeedsInput = { annualKm: null, highwayKm: null, dailyKm: 40, commuteDays: 3, longestTripKm: 400, homeCharging: true, maxStops: 0, priority: 'range' }
@@ -68,6 +68,31 @@ describe('needsCheck', () => {
     it('without the longest trip there is nothing to count', () => {
       const list = [assessEntry(entry(), { ...ANNA, longestTripKm: null })]
       expect(summarizeNeeds(list)).toEqual({ total: 1, tripOk: 0, tripOkWithin: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] })
+    })
+  })
+
+  describe('fewestTripStops', () => {
+    const withStops = (stops: number) => assessEntry(entry({ longTripStops: stops }), ANNA)
+
+    it('is null without a profile: no trip, no figures', () => {
+      expect(fewestTripStops([])).toBeNull()
+      expect(fewestTripStops([null, null])).toBeNull()
+      expect(fewestTripStops([assessEntry(entry(), { ...ANNA, longestTripKm: null })])).toBeNull()
+    })
+
+    it('is the fewest stops any model needs', () => {
+      expect(fewestTripStops([withStops(2), null, withStops(1), withStops(3)])).toBe(1)
+    })
+
+    it('all models alike: every model meets it', () => {
+      const all = [withStops(2), withStops(2)]
+      const fewest = fewestTripStops(all)!
+      expect(fewest).toBe(2)
+      expect(all.every(a => meetsNeeds(a, fewest))).toBe(true)
+    })
+
+    it('0 stops counts as an answer', () => {
+      expect(fewestTripStops([withStops(0), withStops(1)])).toBe(0)
     })
   })
 })
