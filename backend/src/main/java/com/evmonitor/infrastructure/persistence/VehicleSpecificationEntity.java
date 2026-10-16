@@ -14,7 +14,7 @@ import java.util.UUID;
 @Table(
     name = "vehicle_specification",
     uniqueConstraints = @UniqueConstraint(
-        columnNames = {"car_brand", "car_model", "battery_capacity_kwh", "variant_name", "wltp_type", "rating_source"}
+        columnNames = {"car_brand", "car_model", "battery_capacity_kwh", "variant_name", "wltp_type", "rating_source", "available_from"}
     )
 )
 @Getter

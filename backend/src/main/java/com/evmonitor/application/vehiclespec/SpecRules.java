@@ -10,6 +10,7 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
@@ -102,12 +103,14 @@ final class SpecRules {
         return !aFrom.isAfter(bTo) && !bFrom.isAfter(aTo);
     }
 
+    /** Spiegelt uq_vehicle_spec (V206): die Generation unterscheidet allein der Start des Zeitraums, nicht der Name. */
     static boolean sameUniqueKey(VehicleSpecification a, VehicleSpecification b) {
         return a.getCarBrand().equals(b.getCarBrand())
                 && a.getCarModel().equals(b.getCarModel())
                 && a.getBatteryCapacityKwh().compareTo(b.getBatteryCapacityKwh()) == 0
                 && sanitize(a.getVariantName()).equals(sanitize(b.getVariantName()))
                 && a.getWltpType() == b.getWltpType()
-                && a.getRatingSource() == b.getRatingSource();
+                && a.getRatingSource() == b.getRatingSource()
+                && Objects.equals(a.getAvailableFrom(), b.getAvailableFrom());
     }
 }

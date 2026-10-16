@@ -120,6 +120,19 @@ class AdminVehicleSpecificationServiceTest extends AbstractServiceTest {
                 .isInstanceOf(ValidationException.class);
     }
 
+    /** Name ist Modell plus Trim, die Generation steckt nur im Zeitraum: gleicher Name und gleiche kWh mit anderem Start sind zwei Zeilen. */
+    @Test
+    void create_sameNameAndKwhWithLaterStart_isAnotherGeneration() {
+        service.create(adminId, validCommand().toBuilder().availableTo(LocalDate.of(2026, 8, 28)).build());
+
+        AdminSpecResponses.SaveResult second = service.create(adminId, validCommand().toBuilder()
+                .availableFrom(LocalDate.of(2026, 8, 29)).sourceUrl("https://ev-database.org/car/3740/Tesla-Model-3").build());
+
+        assertThat(second.row().variantName()).isEqualTo("Long Range AWD");
+        assertThat(vehicleSpecificationRepository.findAllByCarModel("MODEL_3").stream()
+                .filter(v -> "Long Range AWD".equals(v.getVariantName()))).hasSize(2);
+    }
+
     @Test
     void create_duplicateUniqueKey_conflictInsteadOf500() {
         service.create(adminId, validCommand());
