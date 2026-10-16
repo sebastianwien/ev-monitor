@@ -55,6 +55,12 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(id).toBe('spec-1')
         expect(cmd).toMatchObject({ model: 'MODEL_3', batteryCapacityKwh: 60, trimLevel: 'Standard', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' })
         expect(host.textContent).toContain('1 übernommen')
+        // Gruppe bleibt offen, Kandidat ist markiert, erst "Fertig" schließt
+        expect(host.textContent).toContain('bestehend')
+        expect(host.textContent).toContain('übernommen')
+        expect([...host.querySelectorAll('button')].some(b => b.textContent?.includes('Übernehmen'))).toBe(false)
+        ;[...host.querySelectorAll('button')].find(b => b.textContent?.includes('Fertig'))!.click(); await nextTick()
+        expect(host.textContent).not.toContain('bestehend')
     })
 
     it('Werte laden holt die Zahlen vom lokalen Helfer, markiert Abweichungen und schreibt sie beim Übernehmen mit', async () => {

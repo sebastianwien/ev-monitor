@@ -16,6 +16,9 @@ const rows = ref<SpecRow[]>([])
 const values = ref<Record<string, Values | 'loading' | 'error'>>({})
 const applied = ref(new Set<string>())
 const created = ref(0)
+/** Gruppen, die Sebastian mit "Fertig" geschlossen hat, und Kandidaten, die schon benutzt wurden (Zeilen-ID plus Index). */
+const done = ref(new Set<string>())
+const used = ref(new Map<string, 'übernommen' | 'angelegt'>())
 const onlyOpen = ref(true)
 const busy = ref<string | null>(null)
 const error = ref('')
@@ -37,9 +40,11 @@ onMounted(async () => {
     }
 })
 
+/** Eine Gruppe bleibt offen, bis "Fertig" geklickt wird, auch nach Übernehmen, damit weitere Kandidaten noch als neue Zeile angelegt werden können. */
 const visible = computed(() => rows.value.filter(r => suggestions.value?.[r.id]?.length
-    && !applied.value.has(r.id)
-    && (!onlyOpen.value || !r.availableFrom || !r.sourceUrl)))
+    && !done.value.has(r.id)
+    && (!onlyOpen.value || !r.availableFrom || !r.sourceUrl || applied.value.has(r.id))))
+const usedKey = (r: SpecRow, i: number) => `${r.id}#${i}`
 
 function toCommand(r: SpecRow): SpecCommand {
     return {
@@ -75,13 +80,14 @@ function candidateCommand(r: SpecRow, s: Suggestion): SpecCommand {
 }
 
 /** Bestehende Zeile auf den Kandidaten setzen: Zeitraum und Quelle immer, Zahlen nur, wenn geladen. */
-async function apply(r: SpecRow, s: Suggestion) {
+async function apply(r: SpecRow, s: Suggestion, i: number) {
     busy.value = r.id
     error.value = ''
     try {
         const result = await adminVehicleSpecService.update(r.id, candidateCommand(r, s))
         rows.value = rows.value.map(x => x.id === r.id ? result.row : x)
         applied.value = new Set([...applied.value, r.id])
+        used.value = new Map([...used.value, [usedKey(r, i), 'übernommen']])
     } catch (err) {
         error.value = `${r.variantName ?? r.carModel}: ${apiErrorText(err, 'Speichern fehlgeschlagen.')}`
     } finally {
@@ -90,13 +96,14 @@ async function apply(r: SpecRow, s: Suggestion) {
 }
 
 /** Neue Variante: Zahlen vom Kandidaten (geladen) oder von der Ausgangszeile, Trim von der Ausgangszeile. */
-async function createFrom(r: SpecRow, s: Suggestion) {
+async function createFrom(r: SpecRow, s: Suggestion, i: number) {
     busy.value = r.id
     error.value = ''
     try {
         const result = await adminVehicleSpecService.create({ ...candidateCommand(r, s), variantName: s.label.replace(/\s*\([\d.,]+ kWh\)$/, '') })
         rows.value = [...rows.value, result.row]
         created.value++
+        used.value = new Map([...used.value, [usedKey(r, i), 'angelegt']])
     } catch (err) {
         error.value = `${s.label}: ${apiErrorText(err, 'Anlegen fehlgeschlagen.')}`
     } finally {
@@ -127,6 +134,8 @@ const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^e
           <span class="text-gray-400">Trim {{ r.trimLevel ?? '–' }} · {{ r.ratingSource }}</span>
           <button v-if="helper" type="button" class="ml-auto px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-sm text-xs"
                   :disabled="suggestions[r.id].every(s => loaded(s))" @click="loadValues(r)">Werte laden</button>
+          <button type="button" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-sm text-xs" :class="helper ? '' : 'ml-auto'"
+                  title="Gruppe schließen, nichts wird geändert" @click="done = new Set([...done, r.id])">Fertig</button>
         </div>
         <table class="w-full text-sm tabular-nums">
           <thead class="text-xs text-gray-400">
@@ -169,10 +178,13 @@ const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^e
               <td class="py-1.5 pr-3" :class="dateDiff(s.availableTo, r.availableTo)">{{ s.availableTo ?? 'offen' }}</td>
               <td class="py-1.5 pr-3"><a v-if="s.sourceUrl" :href="s.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">{{ shortUrl(s.sourceUrl) }}</a></td>
               <td class="py-1.5 text-right whitespace-nowrap">
-                <button type="button" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white text-xs disabled:opacity-40"
-                        :disabled="busy === r.id" @click="apply(r, s)">Übernehmen</button>
-                <button type="button" class="ml-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-sm text-xs disabled:opacity-40" title="Neue Variante aus diesem Kandidaten, Trim von der bestehenden Zeile"
-                        :disabled="busy === r.id" @click="createFrom(r, s)">Neue Zeile</button>
+                <span v-if="used.get(usedKey(r, i))" class="text-xs text-green-300">{{ used.get(usedKey(r, i)) }}</span>
+                <template v-else>
+                  <button type="button" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white text-xs disabled:opacity-40"
+                          :disabled="busy === r.id" @click="apply(r, s, i)">Übernehmen</button>
+                  <button type="button" class="ml-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-sm text-xs disabled:opacity-40" title="Neue Variante aus diesem Kandidaten, Trim von der bestehenden Zeile"
+                          :disabled="busy === r.id" @click="createFrom(r, s, i)">Neue Zeile</button>
+                </template>
               </td>
             </tr>
           </tbody>
