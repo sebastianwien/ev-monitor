@@ -175,7 +175,15 @@ const revert = (m: ModelGroup, e: Entry) => run(m, 'Zurücknehmen fehlgeschlagen
 
 const fmt = (v: number | null | undefined) => v == null ? '–' : v.toLocaleString('de-DE')
 const diff = (a: number | null | undefined, b: number | null | undefined) => a != null && b != null && Math.abs(a - b) > 0.05 ? 'text-amber-300' : ''
-const dateDiff = (a: string | null, b: string | null | undefined) => a && b && a !== b ? 'text-amber-300' : ''
+/** Datum in Jahr, Monat, Tag zerlegt und je Stück gegen das Ziel gefärbt: gleich grün, anders gelb, ohne Ziel neutral. */
+function dateParts(a: string | null, b: string | null | undefined): { text: string; cls: string }[] {
+    if (!a) return []
+    const pa = a.split('-'), pb = b ? b.split('-') : null
+    return pa.flatMap((p, i) => [
+        ...(i > 0 ? [{ text: '-', cls: '' }] : []),
+        { text: p, cls: !pb ? '' : pb[i] === p ? 'text-green-300' : 'text-amber-300' },
+    ])
+}
 const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^ev-database\.org\/car\//, '')
 const cell = 'py-1.5 pr-3 whitespace-nowrap'
 const date = 'py-1.5 pr-3 whitespace-nowrap'
@@ -253,8 +261,14 @@ const num = 'py-1.5 pr-3 text-right'
               <td v-else colspan="4" :class="num" class="text-xs text-gray-500">
                 {{ values[e.sourceUrl] === 'loading' ? 'lädt …' : values[e.sourceUrl] === 'error' ? 'nicht ladbar' : `${fmt(e.battery)} kWh` }}
               </td>
-              <td :class="[date, dateDiff(e.availableFrom, target?.availableFrom)]">{{ e.availableFrom ?? '–' }}</td>
-              <td :class="[date, dateDiff(e.availableTo, target?.availableTo)]">{{ e.availableTo ?? 'offen' }}</td>
+              <td :class="date" data-from>
+                <template v-if="e.availableFrom"><span v-for="(p, pi) in dateParts(e.availableFrom, target ? target.availableFrom : undefined)" :key="pi" :class="p.cls">{{ p.text }}</span></template>
+                <template v-else>–</template>
+              </td>
+              <td :class="date" data-to>
+                <template v-if="e.availableTo"><span v-for="(p, pi) in dateParts(e.availableTo, target ? target.availableTo : undefined)" :key="pi" :class="p.cls">{{ p.text }}</span></template>
+                <span v-else :class="target ? (target.availableTo ? 'text-amber-300' : 'text-green-300') : ''">offen</span>
+              </td>
               <td :class="num"></td>
               <td :class="cell"><a :href="e.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">{{ shortUrl(e.sourceUrl) }}</a></td>
               <td class="py-1.5 text-right whitespace-nowrap">
