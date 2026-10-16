@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { createApp, nextTick, type App } from 'vue'
 import type { SpecOverview, CarForReassign } from '../../../api/adminVehicleSpecService'
 
 const overview = vi.fn()
 const create = vi.fn()
+const update = vi.fn()
+const changes = vi.fn()
 const reassignCandidates = vi.fn()
 const assignCar = vi.fn()
 const listRequests = vi.fn()
@@ -16,9 +18,9 @@ vi.mock('../../../api/adminVehicleSpecService', async () => {
         adminVehicleSpecService: {
             overview: () => overview(),
             create: (c: unknown) => create(c),
-            update: vi.fn(),
+            update: (id: string, c: unknown) => update(id, c),
             remove: vi.fn(),
-            changes: vi.fn().mockResolvedValue([]),
+            changes: (id: string) => changes(id),
             reassignCandidates: (m: string) => reassignCandidates(m),
             assignCar: (c: string, s: string) => assignCar(c, s),
             listRequests: () => listRequests(),
@@ -48,6 +50,9 @@ const sample: SpecOverview = {
               officialConsumptionKwhPer100km: 14.4, ratingSource: 'WLTP', variantName: '60/57.5 kWh', trimLevel: null,
               availableFrom: null, availableTo: null, sourceUrl: null, activeCars: 0, allCars: 0, ratings: 0,
               workLists: ['NO_TRIM', 'NO_PERIOD', 'NO_SOURCE', 'USER_ROW'] },
+            { id: 'spec-3', carBrand: 'TESLA', carModel: 'MODEL_3', batteryCapacityKwh: 82, netBatteryCapacityKwh: 79, officialRangeKm: 702,
+              officialConsumptionKwhPer100km: 13.2, ratingSource: 'WLTP', variantName: 'Long Range RWD', trimLevel: 'Long Range',
+              availableFrom: '2024-01-01', availableTo: null, sourceUrl: null, activeCars: 0, allCars: 0, ratings: 0, workLists: ['NO_SOURCE'] },
         ],
     }],
 }
@@ -58,11 +63,17 @@ const candidates: CarForReassign[] = [{
 }]
 
 let app: App | null = null
+let desktop = true
+beforeEach(() => {
+    desktop = true
+    window.matchMedia = ((q: string) => ({ matches: desktop && q.includes('1024'), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia
+    Element.prototype.scrollIntoView = vi.fn()
+})
 afterEach(() => {
     app?.unmount()
     app = null
     document.body.innerHTML = ''
-    overview.mockReset(); create.mockReset(); reassignCandidates.mockReset(); assignCar.mockReset()
+    overview.mockReset(); create.mockReset(); update.mockReset(); changes.mockReset(); reassignCandidates.mockReset(); assignCar.mockReset()
     listRequests.mockReset(); markRequestDone.mockReset()
 })
 
@@ -91,6 +102,7 @@ describe('AdminSpecsTab', () => {
         expect(text).toContain('Atto 3')
         expect(button(host, 'Modelle ohne Zeile').textContent).toContain('1')
         expect(button(host, 'Ohne Trim').textContent).toContain('1')
+        expect(button(host, 'Ohne Quelle').textContent).toContain('2')
         expect(button(host, 'Nutzer-Zeile').textContent).toContain('1')
         expect(button(host, 'Autos ohne Zeile').textContent).toContain('3')
     })
@@ -162,5 +174,120 @@ describe('AdminSpecsTab', () => {
         button(host, 'Umhängen auf Long Range AWD').click()
         await nextTick(); await nextTick()
         expect(assignCar).toHaveBeenCalledWith('car-1', 'spec-1')
+    })
+
+    it('öffnet Bearbeiten auf dem Desktop inline statt als Formular', async () => {
+        overview.mockResolvedValue(sample)
+        const host = await mount()
+
+        button(host, 'Bearbeiten').click()
+        await nextTick()
+
+        expect(host.querySelector('form')).toBeNull()
+        expect(host.querySelector<HTMLInputElement>('[data-field="variantName"]')?.value).toBe('Long Range AWD')
+    })
+
+    it('öffnet Bearbeiten unter lg weiter im Formular', async () => {
+        desktop = false
+        overview.mockResolvedValue(sample)
+        const host = await mount()
+
+        button(host, 'Bearbeiten').click()
+        await nextTick()
+
+        expect(host.querySelector('form')).not.toBeNull()
+        expect(host.querySelector('[data-field="variantName"]')).toBeNull()
+    })
+
+    it('Lückenmodus: Chip öffnet die erste Zeile mit Fokus auf dem Feld, saved springt weiter, Esc beendet', async () => {
+        overview.mockResolvedValue(sample)
+        update.mockImplementation(async (id: string) => ({ row: sample.models[0].rows.find(r => r.id === id), warnings: [] }))
+        const host = await mount()
+
+        button(host, 'Ohne Quelle').click()
+        await nextTick(); await nextTick()
+
+        expect(host.textContent).toContain('Ohne Quelle: 0 von 2 erledigt')
+        let inputs = host.querySelectorAll<HTMLInputElement>('input')
+        expect(inputs.length).toBe(1)
+        expect(inputs[0].dataset.field).toBe('sourceUrl')
+        expect(inputs[0].closest('li')?.textContent).toContain('60/57.5 kWh')
+        expect(document.activeElement).toBe(inputs[0])
+
+        inputs[0].value = 'https://ev-database.org/car/2'
+        inputs[0].dispatchEvent(new Event('input'))
+        inputs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+        await nextTick(); await nextTick(); await nextTick(); await nextTick()
+
+        expect(update).toHaveBeenCalledWith('spec-2', expect.objectContaining({ sourceUrl: 'https://ev-database.org/car/2' }))
+        expect(host.textContent).toContain('Ohne Quelle: 1 von 2 erledigt')
+        inputs = host.querySelectorAll<HTMLInputElement>('input')
+        expect(inputs.length).toBe(1)
+        expect(inputs[0].closest('li')?.textContent).toContain('Long Range RWD')
+
+        inputs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+        await nextTick()
+        expect(host.querySelector('input')).toBeNull()
+        expect(host.textContent).not.toContain('erledigt')
+    })
+
+    it('Lückenmodus: leeres Enter überspringt die Zeile ohne Request', async () => {
+        overview.mockResolvedValue(sample)
+        const host = await mount()
+
+        button(host, 'Ohne Quelle').click()
+        await nextTick(); await nextTick()
+        const first = host.querySelector<HTMLInputElement>('input')!
+        first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+        await nextTick(); await nextTick()
+
+        expect(update).not.toHaveBeenCalled()
+        expect(host.querySelector('input')?.closest('li')?.textContent).toContain('Long Range RWD')
+    })
+
+    it('"Neue Zeile" aus der Modellgruppe ist mit Trim und Akku der neuesten Zeile vorbelegt', async () => {
+        overview.mockResolvedValue(sample)
+        create.mockResolvedValue({ row: sample.models[0].rows[0], warnings: [] })
+        const host = await mount()
+
+        const section = [...host.querySelectorAll('section')].find(sec => sec.textContent?.includes('Model 3'))!
+        ;[...section.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Neue Zeile')!.click()
+        await nextTick(); await nextTick()
+
+        const form = host.querySelector('form')!
+        const values = [...form.querySelectorAll<HTMLInputElement>('input')].map(i => i.value)
+        expect(values).toContain('Long Range')
+        expect(values).toContain('79')
+        expect(values).toContain('75')
+        expect(values).toContain('629')
+        expect(values).not.toContain('Long Range AWD')
+        expect(values).not.toContain('2024-01-01')
+        expect(values).not.toContain('https://ev-database.org/car/1')
+    })
+
+    it('Protokoll klappt unter der Zeile auf und scrollt nicht', async () => {
+        overview.mockResolvedValue(sample)
+        changes.mockResolvedValue([{ id: 'c1', adminUserId: 'a', changedAt: '2026-10-15T10:00:00', action: 'UPDATE', field: 'sourceUrl', oldValue: null, newValue: 'https://x', warning: null }])
+        const host = await mount()
+
+        button(host, 'Protokoll').click()
+        await nextTick(); await nextTick(); await nextTick()
+
+        expect(changes).toHaveBeenCalledWith('spec-1')
+        const li = button(host, 'Protokoll').closest('li')!
+        expect(li.textContent).toContain('UPDATE')
+        expect(li.textContent).toContain('https://x')
+        expect(host.querySelector('section > header h3')?.textContent ?? '').not.toContain('Protokoll:')
+        expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled()
+    })
+
+    it('Bearbeiten und Lückenmodus scrollen nicht', async () => {
+        overview.mockResolvedValue(sample)
+        const host = await mount()
+        button(host, 'Bearbeiten').click()
+        await nextTick(); await nextTick()
+        button(host, 'Ohne Quelle').click()
+        await nextTick(); await nextTick()
+        expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled()
     })
 })

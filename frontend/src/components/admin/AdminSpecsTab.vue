@@ -2,16 +2,24 @@
 import { computed, onMounted, ref } from 'vue'
 import {
     adminVehicleSpecService, apiErrorText,
-    type ChangeEntry, type MissingVehicleRequestRow, type ModelGroup, type SaveResult, type SpecOverview, type SpecRow, type WorkList,
+    type ChangeEntry, type MissingVehicleRequestRow, type ModelGroup, type SaveResult, type SpecCommand, type SpecOverview, type SpecRow, type WorkList,
 } from '../../api/adminVehicleSpecService'
 import AdminSpecRowForm from './AdminSpecRowForm.vue'
+import AdminSpecRowInline, { SPEC_GRID } from './AdminSpecRowInline.vue'
 import AdminSpecReassignSheet from './AdminSpecReassignSheet.vue'
 
 /**
  * Admin-Tab "Fahrzeug-Specs": die Tabelle vehicle_specification ist Daten, dieser Tab ist der einzige Schreibweg.
  * Arbeitslisten sind serverseitig je Zeile berechnete Flags; sie sollen bis null abgearbeitet werden können.
+ * Ab lg wird eine Zeile an Ort und Stelle bearbeitet, ein Chip mit Zielfeld startet den Lückenmodus (Feld für Feld durch die Liste).
+ * Unter lg bleibt das Formular; "Neue Zeile" öffnet immer das Formular.
  */
 type Filter = WorkList | 'ALL'
+
+/** Chip -> Feld, das der Lückenmodus Zeile für Zeile füllt. Ohne Zielfeld filtert der Chip nur. */
+const GAP_FIELDS: Partial<Record<WorkList, keyof SpecCommand>> = {
+    NO_NAME: 'variantName', NO_TRIM: 'trimLevel', NO_PERIOD: 'availableFrom', NO_SOURCE: 'sourceUrl', NO_NET: 'netBatteryCapacityKwh',
+}
 
 const WORK_LISTS: { key: WorkList; label: string }[] = [
     { key: 'NO_NAME', label: 'Ohne Name' },
@@ -29,7 +37,10 @@ const error = ref('')
 const notice = ref('')
 const filter = ref<Filter>('ALL')
 const showModelsWithoutRow = ref(false)
-const form = ref<{ row: SpecRow | null; model: string | null; brand: string | null } | null>(null)
+const form = ref<{ row: SpecRow | null; model: string | null; brand: string | null; template: SpecRow | null } | null>(null)
+/** Zeile, die gerade inline offen ist; `field` gesetzt = Lückenmodus, nur dieses Feld aktiv. */
+const inline = ref<{ id: string; field: keyof SpecCommand | null } | null>(null)
+const gapMode = ref<{ label: string; field: keyof SpecCommand; ids: string[]; index: number; done: number } | null>(null)
 const reassign = ref<ModelGroup | null>(null)
 const changesFor = ref<{ row: SpecRow; entries: ChangeEntry[] } | null>(null)
 /** Meldungen "Fehlt etwas?" der Nutzer: Zeile anlegen, dann erledigen (schickt die Rückmeldung). */
@@ -63,14 +74,66 @@ const visibleModels = computed<ModelGroup[]>(() => {
         .filter(m => m.rows.length > 0)
 })
 
+const isDesktop = () => typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches
+
 function openCreate(model: ModelGroup | null, brand?: string, modelName?: string) {
-    form.value = { row: null, model: model?.carModel ?? modelName ?? null, brand: model?.carBrand ?? brand ?? null }
+    form.value = { row: null, model: model?.carModel ?? modelName ?? null, brand: model?.carBrand ?? brand ?? null, template: model?.rows[0] ?? null }
     changesFor.value = null
+    closeInline()
 }
 
 function openEdit(row: SpecRow) {
-    form.value = { row, model: row.carModel, brand: row.carBrand }
     changesFor.value = null
+    if (isDesktop()) {
+        form.value = null
+        gapMode.value = null
+        inline.value = { id: row.id, field: null }
+        return
+    }
+    form.value = { row, model: row.carModel, brand: row.carBrand, template: null }
+}
+
+function closeInline() {
+    inline.value = null
+    gapMode.value = null
+}
+
+function selectFilter(f: Filter) {
+    filter.value = f
+    closeInline()
+    const field = f === 'ALL' ? undefined : GAP_FIELDS[f]
+    if (!field || !isDesktop()) return
+    const ids = visibleModels.value.flatMap(m => m.inEnum ? m.rows.map(r => r.id) : [])
+    if (!ids.length) return
+    gapMode.value = { label: WORK_LISTS.find(w => w.key === f)?.label ?? f, field, ids, index: -1, done: 0 }
+    gapOpen(0)
+}
+
+function gapOpen(index: number) {
+    const gap = gapMode.value
+    if (!gap) return
+    if (index >= gap.ids.length) {
+        notice.value = `${gap.label}: ${gap.done} von ${gap.ids.length} erledigt, Liste durch.`
+        closeInline()
+        return
+    }
+    gap.index = index
+    inline.value = { id: gap.ids[index], field: gap.field }
+}
+
+function gapNext() {
+    if (gapMode.value) gapOpen(gapMode.value.index + 1)
+}
+
+async function onInlineSaved(result: SaveResult) {
+    if (gapMode.value) {
+        gapMode.value.done++
+        gapNext()
+    } else {
+        inline.value = null
+        notice.value = result.warnings.length ? 'Gespeichert mit Hinweis: ' + result.warnings.join(' | ') : 'Gespeichert.'
+    }
+    await load()
 }
 
 async function onSaved(result: SaveResult) {
@@ -105,8 +168,10 @@ async function finishRequest(r: MissingVehicleRequestRow) {
     }
 }
 
+/** Protokoll klappt unter der Zeile auf; zweiter Klick schließt es. */
 async function showChanges(row: SpecRow) {
     form.value = null
+    if (changesFor.value?.row.id === row.id) { changesFor.value = null; return }
     try {
         changesFor.value = { row, entries: await adminVehicleSpecService.changes(row.id) }
     } catch (err) {
@@ -114,14 +179,7 @@ async function showChanges(row: SpecRow) {
     }
 }
 
-const ratio = (r: SpecRow) => r.netBatteryCapacityKwh
-    ? (r.officialRangeKm * r.officialConsumptionKwhPer100km / 100 / r.netBatteryCapacityKwh)
-    : null
-const fmtRatio = (r: SpecRow) => { const v = ratio(r); return v == null ? '-' : v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-const ratioClass = (r: SpecRow) => { const v = ratio(r); return v != null && v < 1.1 ? 'text-amber-300' : 'text-gray-300' }
-const period = (r: SpecRow) => r.availableFrom ? `${r.availableFrom.slice(0, 4)}-${r.availableTo?.slice(0, 4) ?? ''}` : 'ohne Zeitraum'
 const date = (iso: string) => new Date(iso).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })
-const flagLabel = (w: WorkList) => WORK_LISTS.find(x => x.key === w)?.label ?? w
 </script>
 
 <template>
@@ -137,19 +195,19 @@ const flagLabel = (w: WorkList) => WORK_LISTS.find(x => x.key === w)?.label ?? w
     </details>
 
     <div class="flex flex-wrap gap-2 items-center text-sm">
-      <button type="button" class="px-3 py-1.5 rounded-sm" :class="filter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-gray-800 hover:bg-gray-700'" @click="filter = 'ALL'">
+      <button type="button" class="px-3 py-1.5 rounded-sm" :class="filter === 'ALL' ? 'bg-indigo-600 text-white' : 'bg-gray-800 hover:bg-gray-700'" @click="selectFilter('ALL')">
         Alle ({{ allRows.length }})
       </button>
       <button v-for="w in WORK_LISTS" :key="w.key" type="button" class="px-3 py-1.5 rounded-sm"
               :class="filter === w.key ? 'bg-indigo-600 text-white' : counts[w.key] ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-800/50 text-gray-500'"
-              @click="filter = w.key">
+              @click="selectFilter(w.key)">
         {{ w.label }} ({{ counts[w.key] }})
       </button>
       <button type="button" class="px-3 py-1.5 rounded-sm" :class="showModelsWithoutRow ? 'bg-indigo-600 text-white' : 'bg-gray-800 hover:bg-gray-700'"
               @click="showModelsWithoutRow = !showModelsWithoutRow">
         Modelle ohne Zeile ({{ data?.modelsWithoutRow.length ?? 0 }})
       </button>
-      <button type="button" class="px-3 py-1.5 rounded-sm bg-gray-800 hover:bg-gray-700" @click="filter = 'ALL'" title="Je Modell unter dem Namen ausgewiesen">
+      <button type="button" class="px-3 py-1.5 rounded-sm bg-gray-800 hover:bg-gray-700" @click="selectFilter('ALL')" title="Je Modell unter dem Namen ausgewiesen">
         Autos ohne Zeile ({{ data?.carsWithoutSpec ?? 0 }})
       </button>
       <button type="button" class="px-3 py-1.5 rounded-sm" :class="showRequests && requests.length ? 'bg-indigo-600 text-white' : requests.length ? 'bg-gray-800 hover:bg-gray-700' : 'bg-gray-800/50 text-gray-500'"
@@ -163,26 +221,15 @@ const flagLabel = (w: WorkList) => WORK_LISTS.find(x => x.key === w)?.label ?? w
     <p v-if="notice" class="text-sm text-green-400" role="status">{{ notice }} <button type="button" class="underline" @click="notice = ''">ok</button></p>
     <p v-if="loading" class="text-sm text-gray-500">Lädt …</p>
 
-    <AdminSpecRowForm v-if="form" :key="form.row?.id ?? 'new'" :row="form.row" :preset-model="form.model" :preset-brand="form.brand"
+    <p v-if="gapMode" class="sticky top-0 z-10 bg-indigo-950/95 border border-indigo-800 rounded-sm px-3 py-2 text-sm text-indigo-100" role="status">
+      {{ gapMode.label }}: {{ gapMode.done }} von {{ gapMode.ids.length }} erledigt · Enter speichert, leer überspringt · Esc beendet
+    </p>
+
+    <AdminSpecRowForm v-if="form" :key="form.row?.id ?? 'new'" :row="form.row" :preset-model="form.model" :preset-brand="form.brand" :template="form.template"
                       @saved="onSaved" @cancel="form = null" />
 
     <AdminSpecReassignSheet v-if="reassign" :key="reassign.carModel" :model="reassign.carModel" :display-name="reassign.displayName"
                             @close="reassign = null" @changed="load" />
-
-    <section v-if="changesFor" class="bg-gray-800 rounded-sm p-4 space-y-2">
-      <header class="flex items-center justify-between gap-2">
-        <h3 class="font-semibold">Protokoll: {{ changesFor.row.variantName ?? changesFor.row.carModel }}</h3>
-        <button type="button" class="px-3 py-1 bg-gray-700 rounded-sm text-sm" @click="changesFor = null">Schließen</button>
-      </header>
-      <p v-if="changesFor.entries.length === 0" class="text-sm text-gray-500">Noch keine Änderungen über den Tab.</p>
-      <ul class="text-xs space-y-1">
-        <li v-for="e in changesFor.entries" :key="e.id" class="text-gray-300">
-          {{ date(e.changedAt) }} · {{ e.action }}<template v-if="e.field"> · {{ e.field }}</template>
-          <template v-if="e.oldValue != null || e.newValue != null">: <span class="text-gray-500 break-all">{{ e.oldValue ?? '-' }}</span> → <span class="break-all">{{ e.newValue ?? '-' }}</span></template>
-          <span v-if="e.warning" class="text-amber-300"> · {{ e.warning }}</span>
-        </li>
-      </ul>
-    </section>
 
     <section v-if="showRequests && requests.length" class="bg-gray-800 rounded-sm p-4 space-y-2" data-testid="reported-requests">
       <h3 class="font-semibold">Gemeldet</h3>
@@ -224,28 +271,13 @@ const flagLabel = (w: WorkList) => WORK_LISTS.find(x => x.key === w)?.label ?? w
         </span>
       </header>
 
+      <div class="hidden px-3 text-xs text-gray-500" :class="SPEC_GRID">
+        <span>Variante</span><span>Trim</span><span>Akku brutto / netto</span><span>Normwert</span><span>Zeitraum</span><span>Quelle</span><span></span>
+      </div>
       <ul class="space-y-2">
-        <li v-for="r in m.rows" :key="r.id" class="bg-gray-900 rounded-sm p-3 text-sm space-y-1">
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span class="font-medium">{{ r.variantName ?? 'ohne Name' }}</span>
-            <span class="text-gray-400">{{ r.trimLevel ?? 'ohne Trim' }} · {{ period(r) }} · {{ r.ratingSource }}</span>
-            <span v-for="w in r.workLists" :key="w" class="px-2 py-0.5 rounded-full text-xs bg-amber-900/50 text-amber-200">{{ flagLabel(w) }}</span>
-          </div>
-          <div class="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-300">
-            <span>{{ r.batteryCapacityKwh }} / {{ r.netBatteryCapacityKwh ?? '?' }} kWh</span>
-            <span>{{ r.officialRangeKm }} km</span>
-            <span>{{ r.officialConsumptionKwhPer100km }} kWh/100 km</span>
-            <span :class="ratioClass(r)" title="WLTP-km × Verbrauch / 100 / Netto">Verhältnis {{ fmtRatio(r) }}</span>
-            <span>{{ r.activeCars }} Autos<template v-if="r.allCars > r.activeCars"> (+{{ r.allCars - r.activeCars }} im Papierkorb)</template><template v-if="r.ratings"> · {{ r.ratings }} Bewertungen</template></span>
-            <a v-if="r.sourceUrl" :href="r.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline truncate max-w-[16rem]">{{ r.sourceUrl.replace(/^https:\/\//, '') }}</a>
-          </div>
-          <div class="flex flex-wrap gap-2 pt-1">
-            <button v-if="m.inEnum" type="button" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm text-xs" @click="openEdit(r)">Bearbeiten</button>
-            <button type="button" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm text-xs" @click="showChanges(r)">Protokoll</button>
-            <button type="button" class="px-2 py-1 bg-gray-800 hover:bg-red-900 rounded-sm text-xs disabled:opacity-40"
-                    :disabled="r.allCars > 0 || r.ratings > 0" :title="r.allCars > 0 || r.ratings > 0 ? 'Erst Autos umhängen' : ''" @click="remove(r)">Löschen</button>
-          </div>
-        </li>
+        <AdminSpecRowInline v-for="r in m.rows" :key="r.id" :row="r" :can-edit="m.inEnum" :changes="changesFor?.row.id === r.id ? changesFor.entries : null"
+                            :editing="inline?.id === r.id" :focus-field="inline?.id === r.id ? inline.field : null"
+                            @edit="openEdit(r)" @saved="onInlineSaved" @cancel="closeInline" @next="gapNext" @changes="showChanges(r)" @remove="remove(r)" />
       </ul>
     </section>
 
