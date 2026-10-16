@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import {
     adminVehicleSpecService, apiErrorText,
     type ChangeEntry, type MissingVehicleRequestRow, type ModelGroup, type SaveResult, type SpecCommand, type SpecOverview, type SpecRow, type WorkList,
@@ -65,13 +66,37 @@ const allRows = computed(() => data.value?.models.flatMap(m => m.rows) ?? [])
 const counts = computed(() => Object.fromEntries(
     WORK_LISTS.map(w => [w.key, allRows.value.filter(r => r.workLists.includes(w.key)).length])) as Record<WorkList, number>)
 
+/** Sortierung per Spaltenkopf, je Modell; ohne Klick die Reihenfolge vom Server. Leere Werte immer unten. */
+type SortKey = 'name' | 'trim' | 'brutto' | 'range' | 'from' | 'source'
+const COLUMNS: { key: SortKey; label: string }[] = [
+    { key: 'name', label: 'Variante' }, { key: 'trim', label: 'Trim' }, { key: 'brutto', label: 'Akku brutto / netto' },
+    { key: 'range', label: 'Normwert' }, { key: 'from', label: 'Zeitraum' }, { key: 'source', label: 'Quelle' },
+]
+const sort = ref<{ key: SortKey; dir: 1 | -1 } | null>(null)
+function sortBy(key: SortKey) {
+    sort.value = sort.value?.key === key ? { key, dir: sort.value.dir === 1 ? -1 : 1 } : { key, dir: 1 }
+}
+const ariaSort = (key: SortKey) => sort.value?.key !== key ? 'none' : sort.value.dir === 1 ? 'ascending' : 'descending'
+const sortValue = (r: SpecRow, k: SortKey) => ({
+    name: r.variantName, trim: r.trimLevel, brutto: r.batteryCapacityKwh, range: r.officialRangeKm, from: r.availableFrom, source: r.sourceUrl,
+})[k]
+function sorted(rows: SpecRow[]): SpecRow[] {
+    const s = sort.value
+    if (!s) return rows
+    return [...rows].sort((x, y) => {
+        const a = sortValue(x, s.key), b = sortValue(y, s.key)
+        const ea = a == null || a === '', eb = b == null || b === ''
+        if (ea || eb) return ea === eb ? 0 : ea ? 1 : -1
+        return (typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b), 'de', { numeric: true })) * s.dir
+    })
+}
+
 const visibleModels = computed<ModelGroup[]>(() => {
     if (!data.value) return []
-    if (filter.value === 'ALL') return data.value.models
     const f = filter.value
     return data.value.models
-        .map(m => ({ ...m, rows: m.rows.filter(r => r.workLists.includes(f)) }))
-        .filter(m => m.rows.length > 0)
+        .map(m => ({ ...m, rows: sorted(f === 'ALL' ? m.rows : m.rows.filter(r => r.workLists.includes(f))) }))
+        .filter(m => f === 'ALL' || m.rows.length > 0)
 })
 
 const isDesktop = () => typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches
@@ -272,7 +297,13 @@ const date = (iso: string) => new Date(iso).toLocaleString('de-DE', { dateStyle:
       </header>
 
       <div class="hidden px-3 text-xs text-gray-500" :class="SPEC_GRID">
-        <span>Variante</span><span>Trim</span><span>Akku brutto / netto</span><span>Normwert</span><span>Zeitraum</span><span>Quelle</span><span></span>
+        <span v-for="c in COLUMNS" :key="c.key" :aria-sort="ariaSort(c.key)">
+          <button type="button" :data-sort="c.key" class="inline-flex items-center gap-1 hover:text-gray-200" :class="sort?.key === c.key ? 'text-gray-200' : ''" @click="sortBy(c.key)">
+            {{ c.label }}
+            <ChevronUpIcon v-if="sort?.key === c.key && sort.dir === 1" class="w-3 h-3" aria-hidden="true" />
+            <ChevronDownIcon v-else-if="sort?.key === c.key" class="w-3 h-3" aria-hidden="true" />
+          </button>
+        </span><span></span>
       </div>
       <ul class="space-y-2">
         <AdminSpecRowInline v-for="r in m.rows" :key="r.id" :row="r" :can-edit="m.inEnum" :changes="changesFor?.row.id === r.id ? changesFor.entries : null"

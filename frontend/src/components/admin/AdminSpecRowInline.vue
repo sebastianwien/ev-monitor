@@ -1,6 +1,6 @@
 <script lang="ts">
-/** Feste Spalten ab lg, in Tab-Kopfzeile und Zeile identisch. */
-export const SPEC_GRID = 'lg:grid lg:grid-cols-[1.8fr_1fr_1.1fr_1.8fr_1.4fr_1.2fr_auto] lg:items-center lg:gap-x-3'
+/** Feste Spalten ab lg, in Tab-Kopfzeile und Zeile identisch: minmax(0, …) und feste Aktionsspalte, damit Inhalt die Spuren nicht verschiebt. */
+export const SPEC_GRID = 'lg:grid lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)_minmax(0,1.1fr)_minmax(0,1.8fr)_minmax(0,1.4fr)_minmax(0,1.2fr)_14rem] lg:items-center lg:gap-x-3'
 </script>
 
 <script setup lang="ts">

@@ -298,6 +298,21 @@ describe('AdminSpecsTab', () => {
         expect(host.querySelectorAll('tr[data-car]')).toHaveLength(0)
     })
 
+    it('Spaltenkopf sortiert die Zeilen je Modell, zweiter Klick dreht die Richtung', async () => {
+        overview.mockResolvedValue(sample)
+        const host = await mount()
+        const names = () => [...host.querySelectorAll('section li span.font-medium')].map(e => e.textContent?.trim())
+        expect(names()).toEqual(['Long Range AWD', '60/57.5 kWh', 'Long Range RWD'])
+        const head = host.querySelector('[data-sort="name"]') as HTMLButtonElement
+        head.click(); await nextTick()
+        expect(names()).toEqual(['60/57.5 kWh', 'Long Range AWD', 'Long Range RWD'])
+        head.click(); await nextTick()
+        expect(names()).toEqual(['Long Range RWD', 'Long Range AWD', '60/57.5 kWh'])
+        expect(head.closest('[aria-sort]')?.getAttribute('aria-sort')).toBe('descending')
+        ;(host.querySelector('[data-sort="from"]') as HTMLButtonElement).click(); await nextTick()
+        expect(names()[2]).toBe('60/57.5 kWh')
+    })
+
     it('Bearbeiten und Lückenmodus scrollen nicht', async () => {
         overview.mockResolvedValue(sample)
         const host = await mount()
