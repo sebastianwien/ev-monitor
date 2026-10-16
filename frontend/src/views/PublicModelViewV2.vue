@@ -87,11 +87,7 @@
                 <h2 id="profile-title" ref="profileTitle" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('model.page.profile_title') }}</h2>
                 <p class="max-w-[52ch] text-[14.5px] leading-snug text-gray-600 dark:text-gray-400">{{ t('model.page.profile_sub', { model: shortModelName }) }}</p>
               </div>
-              <div class="grid gap-5">
-                <ProfileSlider v-for="q in profileSliders" :key="q.key" :id="`story-${q.key}`" :test-key="q.key" :label="q.label"
-                               :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail"
-                               :highlight="highlightKey === q.key" @commit="v => answer(q.key, v)" />
-              </div>
+              <ProfileQuestions :sliders="profileSliders" id-prefix="story" :highlight-key="highlightKey" @answer="answer" />
             </ModelBox>
             <div :class="answersOpen ? 'md:col-span-2' : 'md:sticky md:top-24'">
               <PersonalRangeCalculator
@@ -115,10 +111,8 @@
                 @open="v => answersOpen = v">
                 <template #profile>
                   <!-- The same five sliders in the ranking's compact form: one row from xl, three or two columns below -->
-                  <div id="profil" ref="profileFold" class="grid items-end gap-x-6 gap-y-3 scroll-mt-28 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-x-5" data-testid="driving-profile">
-                    <ProfileSlider v-for="q in profileSliders" :key="q.key" :id="`story-${q.key}`" :test-key="q.key" :label="q.label"
-                                   :min="q.min" :max="q.max" :step="q.step" :start="q.start" :value="q.value" :format="q.format" :detail="q.detail" compact
-                                   :highlight="highlightKey === q.key" @commit="v => answer(q.key, v)" />
+                  <div id="profil" ref="profileFold" class="scroll-mt-28" data-testid="driving-profile">
+                    <ProfileQuestions :sliders="profileSliders" id-prefix="story" compact :highlight-key="highlightKey" @answer="answer" />
                   </div>
                 </template>
               </PersonalRangeCalculator>
@@ -322,11 +316,12 @@ import { scrollToElement } from '../utils/smoothScroll'
 import ModelFactTiles from '../components/models/ModelFactTiles.vue'
 import ModelEvidence from '../components/models/ModelEvidence.vue'
 import ModelVariantsList, { type ActiveVariant } from '../components/models/ModelVariantsList.vue'
-import ProfileSlider from '../components/models/ProfileSlider.vue'
+import ProfileQuestions from '../components/models/ProfileQuestions.vue'
+import { useProfileSliders, type ProfileValues } from '../composables/useProfileSliders'
 import { buildModelStory, fastChargePrice, fastStop, keepUnits, prospectKm, rangeKm, type StoryInput } from '../utils/modelStory'
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
-import { useDrivingProfile, highwayPercent, PROFILE_KEYS, PROFILE_SLIDERS, type ProfileKey } from '../composables/useDrivingProfile'
+import { useDrivingProfile, highwayPercent, PROFILE_KEYS, type ProfileKey } from '../composables/useDrivingProfile'
 import RegionChip from '../components/shared/RegionChip.vue'
 import ModelRatingsBlock from '../components/rating/ModelRatingsBlock.vue'
 import { ratingService, type PublicModelRatings } from '../api/ratingService'
@@ -578,32 +573,9 @@ const storyInputs = computed((): PersonalRangeInputs => ({
   netBatteryKwh: selectedVariant.value?.batteryCapacityKwh ?? null,
 }))
 
-const FORMAT: Record<ProfileKey, (v: number) => string> = {
-  annualKm: km => formatDistance(km),
-  highwayKm: km => formatDistance(km),
-  commute: km => formatDistance(km),
-  commuteDays: n => t('model.page.days_value', { n }, n),
-  longTrip: km => formatDistance(km),
-}
-
-const profileSliders = computed(() => PROFILE_KEYS.map(key => ({
-  key,
-  ...PROFILE_SLIDERS[key],
-  // motorway km cannot exceed the yearly mileage once that is answered
-  ...(key === 'highwayKm' && answered.has('annualKm') ? { max: answers.annualKm } : {}),
-  label: t(`model.page.q_${key}`),
-  value: answered.has(key) ? valueOf(key) : null,
-  format: FORMAT[key],
-  detail: key === 'highwayKm' && answered.has('annualKm')
-    ? (km: number) => t('model.story.slider_highway_pct', { pct: formatNumber(highwayPercent(km, answers.annualKm)) })
-    : undefined,
-})))
-
-/** The set profile in one line for the closed fold: "15.000 km · 4.500 km Autobahn · ..." */
-const profileSummary = computed(() => profileSliders.value
-  .filter(q => q.value != null)
-  .map(q => t(`model.page.summary_${q.key}`, { value: q.format(q.value!) }))
-  .join(' · '))
+/** The five sliders and the set profile in one line for the closed fold, shared with the model list */
+const { sliders: profileSliders, summary: profileSummary } = useProfileSliders(() =>
+  Object.fromEntries(PROFILE_KEYS.map(k => [k, answered.has(k) ? valueOf(k) : null])) as ProfileValues)
 
 function answer(key: ProfileKey, value: number) {
   answerProfile(key, value)

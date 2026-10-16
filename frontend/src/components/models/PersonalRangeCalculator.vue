@@ -92,11 +92,9 @@
       </div>
 
       <p class="sr-only" role="status">{{ busy ? t('personal_range.calculating') : '' }}</p>
-      <!-- One answer per row, as a sentence; the figure is the loud part. From md up two by two, the gap draws the lines -->
-      <ul ref="answers" v-if="answer" class="divide-y divide-green-600/15 overflow-hidden rounded-2xl bg-green-600/15 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-opacity max-md:edge-card md:grid md:grid-cols-2 md:gap-px md:divide-y-0 dark:divide-green-500/15 dark:bg-green-500/15" :class="busy ? 'opacity-60' : ''" :aria-busy="busy" data-testid="personal-range-result">
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-winter">
-          <span class="grid h-9 w-9 place-items-center rounded-full bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"><CloudIcon class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid gap-1">
+      <!-- One answer per row, as a sentence; the figure is the loud part (AnswerGrid, shared with the model list) -->
+      <AnswerGrid ref="answers" v-if="answer" :busy="busy" data-testid="personal-range-result">
+        <AnswerCell :icon="CloudIcon" tone="sky" data-testid="answer-winter">
             <i18n-t keypath="personal_range.winter_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
               <template #winter><b class="whitespace-nowrap text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.winter }}</b></template>
               <template #summer><br><b class="font-bold">{{ answer.summer }}</b></template>
@@ -107,20 +105,14 @@
               <ArrowRightIcon class="h-3 w-3" aria-hidden="true" />
               <Battery0Icon class="h-4 w-4" aria-hidden="true" /><span>10 %</span>
             </p>
-          </div>
-        </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-rhythm">
-          <span class="grid h-9 w-9 place-items-center rounded-full bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300"><BoltIcon class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid gap-1">
+        </AnswerCell>
+        <AnswerCell :icon="BoltIcon" tone="green" data-testid="answer-rhythm">
             <i18n-t v-for="row in answer.rhythm" :key="row.key" :keypath="row.key" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
               <template #rhythm><b class="font-extrabold">{{ row.value }}</b></template>
             </i18n-t>
             <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ answer.rhythmBasis }}</p>
-          </div>
-        </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-stops">
-          <span class="grid h-9 w-9 place-items-center rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"><MapIcon class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid gap-1.5">
+        </AnswerCell>
+        <AnswerCell :icon="MapIcon" tone="amber" dense data-testid="answer-stops">
             <i18n-t keypath="personal_range.stops_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
               <template #distance><span class="whitespace-nowrap">{{ answer.distance }}</span></template>
               <template #times><b class="whitespace-nowrap text-[20px] font-extrabold tracking-tight">{{ answer.times }}</b></template>
@@ -132,11 +124,8 @@
             <i18n-t v-if="answer.tripCost" keypath="personal_range.trip_cost" tag="p" class="text-[15px] font-medium text-gray-900 dark:text-gray-100">
               <template #cost><b class="whitespace-nowrap text-[20px] font-extrabold tracking-tight tabular-nums">{{ answer.tripCost }}</b></template>
             </i18n-t>
-          </div>
-        </li>
-        <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900" data-testid="answer-cost">
-          <span class="grid h-9 w-9 place-items-center rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"><BanknotesIcon class="h-5 w-5" aria-hidden="true" /></span>
-          <div class="grid gap-1">
+        </AnswerCell>
+        <AnswerCell :icon="BanknotesIcon" tone="gray" data-testid="answer-cost">
             <i18n-t keypath="personal_range.cost_answer" tag="p" class="text-[17px] font-medium leading-snug text-gray-900 dark:text-gray-100">
               <template #cost><b class="whitespace-nowrap text-[24px] font-extrabold tracking-tight tabular-nums">{{ answer.cost }}</b></template>
             </i18n-t>
@@ -149,13 +138,12 @@
               </i18n-t>
               <p class="text-[12px] leading-snug text-gray-500 dark:text-gray-400">{{ answer.petrol.basis }}</p>
             </template>
-          </div>
-        </li>
+        </AnswerCell>
         <!-- The two assumptions to play with, a tile of their own across both columns -->
-        <li class="bg-white px-4 py-4 md:col-span-2 md:px-5 dark:bg-gray-900">
+        <template #tune>
           <ProfileTune :model-name="modelName" :inputs="inputs" :community-price="communityPrice" @home="v => emit('home', v)" @price="v => emit('price', v)" />
-        </li>
-      </ul>
+        </template>
+      </AnswerGrid>
 
 
       <!-- What the result rests on: a light, centred link that opens the list in a card -->
@@ -213,6 +201,8 @@ import { ArrowRightIcon, BanknotesIcon, Battery0Icon, Battery100Icon, BoltIcon, 
 import InlineGate from '../auth/InlineGate.vue'
 import UnlockBar from './UnlockBar.vue'
 import ProfileTune from './ProfileTune.vue'
+import AnswerGrid from './AnswerGrid.vue'
+import AnswerCell from './AnswerCell.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
@@ -454,14 +444,14 @@ const startOpen = props.openCount
 // The desktop bar: answers scrolled out above, sliders in view. Measured on scroll, not observed:
 // an IntersectionObserver reports no change when one scroll step carries the answers from below
 // the viewport to above it.
-const answers = ref<HTMLElement | null>(null)
+const answers = ref<InstanceType<typeof AnswerGrid> | null>(null)
 const followBar = ref(false)
 /** the assumptions list under the answers, folded by default */
 const assumptionsOpen = ref(false)
 let measureQueued = false
 function measureFollow() {
   measureQueued = false
-  const a = answers.value?.getBoundingClientRect()
+  const a = answers.value?.el?.getBoundingClientRect()
   const f = props.follow?.getBoundingClientRect()
   followBar.value = !!a && !!f && a.bottom < 80 && f.bottom > 0 && f.top < window.innerHeight
 }
