@@ -68,7 +68,7 @@
 
   <!-- Chapter 1: the answers for the reader's driving, free as spans over all models; which 5 fit is behind the gate -->
   <div v-if="!loading && !loadError && models.length" class="mx-auto max-w-7xl pb-6 lg:px-6">
-    <ModelsAnswerCard v-model="needs" :entries="rankingEntries" :models="models" :price="price" :locked="!isAuthenticated"
+    <ModelsAnswerCard v-model="needs" :entries="rankingEntries" :models="models" :price="price" :locked="!isAuthenticated" :bar-yields="compareKeys.length > 0"
                       :petrol-price-per-liter="combustionMarket ? referencePrices?.petrolPricePerLiter ?? null : null" :model-href="modelHref"
                       @price="v => ownPrice = v" @unlocked="onUnlocked" />
   </div>

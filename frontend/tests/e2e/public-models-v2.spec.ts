@@ -26,13 +26,13 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
 
     test('Sortierung "Größte Reichweite" ändert die erste Zeile', async ({ page }) => {
       await openRanking(page);
-      const firstBefore = await rows(page).first().locator('.mr-who').innerText();
+      const firstBefore = await rows(page).first().getByTestId('row-name').innerText();
       await page.getByRole('button', { name: 'Größte Reichweite' }).click();
       await expect(page.getByRole('button', { name: 'Größte Reichweite' })).toHaveAttribute('aria-pressed', 'true');
-      await expect.poll(() => rows(page).first().locator('.mr-who').innerText()).not.toBe(firstBefore);
+      await expect.poll(() => rows(page).first().getByTestId('row-name').innerText()).not.toBe(firstBefore);
     });
 
-    test('Zeile aufklappen zeigt Jahreszeiten und Link zur Modellseite', async ({ page }) => {
+    test('Zeile aufklappen zeigt die Fahrerwerte und den Link zur Modellseite', async ({ page }) => {
       await openRanking(page);
       const toggle = rowToggle(page, 0);
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
@@ -40,15 +40,21 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
       const detail = page.locator(`#${await toggle.getAttribute('aria-controls')}`);
-      await expect(detail.getByRole('group', { name: /Verbrauch nach Jahreszeit/ })).toBeVisible();
-      await expect(detail.locator('a[href*="/modelle/"]')).toBeVisible();
+      await expect(detail.getByTestId('detail-measured')).toContainText(/Verbrauch \d+,\d.*Ladevorg/);
+      await expect(detail.getByRole('link', { name: /^Modellseite / })).toBeVisible();
     });
 
     test('zwei Modelle wählen und vergleichen', async ({ page }) => {
       await openRanking(page);
       for (const i of [0, 1]) {
-        // desktop: at the end of the verdict line; phone: on the photo. Both in the row, never in the open detail
-        await rows(page).nth(i).getByRole('button', { name: /zum Vergleich hinzufügen/ }).click();
+        if (viewport.width >= 1024) {
+          // desktop: at the end of the row
+          await rows(page).nth(i).getByTestId('compare-row').click();
+        } else {
+          // phone: in the open row
+          await rowToggle(page, i).click();
+          await rows(page).nth(i).getByTestId('compare-open').click();
+        }
       }
       await page.getByRole('button', { name: 'Vergleichen' }).click();
       await expect(page).toHaveURL(/\/modelle\/vergleich\?models=[^,]+,[^,]+/);

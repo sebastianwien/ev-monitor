@@ -17,7 +17,7 @@ test.describe('Öffentliche Modellseiten (SEO-kritisch)', () => {
     await page.goto('/modelle');
 
     // Marken-Abschnitt muss sichtbar sein
-    const teslaLink = page.locator('a[href*="/modelle/Tesla"]').first();
+    const teslaLink = page.locator('a[href$="/modelle/Tesla"]').first();
     await expect(teslaLink).toBeVisible({ timeout: 10_000 });
   });
 

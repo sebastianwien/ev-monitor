@@ -89,7 +89,7 @@
       </div>
 
       <!-- Phone: a slim bar with the gate's button while the gate is out of view -->
-      <UnlockBar v-if="locked" :label="t('ranking_card.gate_cta')" :signed-in="false" :active="!gateOpen" :box="cardEl" :action="gateBox"
+      <UnlockBar v-if="locked" :label="t('ranking_card.gate_cta')" :signed-in="false" :active="!gateOpen && !barYields" :box="cardEl" :action="gateBox"
                  :nudged="anyAnswer" @press="fromBar" />
     </template>
   </DrivingProfileCard>
@@ -132,6 +132,8 @@ const props = defineProps<{
   locked: boolean
   petrolPricePerLiter: number | null
   modelHref: (m: TopModelPreview) => string
+  /** the page shows its own bar at the bottom (the compare tray): the unlock bar gives way */
+  barYields?: boolean
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: NeedsInput]; price: [value: number | null]; unlocked: [] }>()
 

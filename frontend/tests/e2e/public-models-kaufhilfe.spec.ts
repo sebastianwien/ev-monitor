@@ -45,25 +45,21 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.setViewportSize(viewport);
     });
 
-    test('Datenlage: jede Zeile nennt Ladevorgänge und Fahrer', async ({ page }) => {
+    test('Datenlage: jede Zeile nennt Fahrer und Ladevorgänge', async ({ page }) => {
       await openRanking(page);
       const first = rows(page).first();
-      await expect(first.locator('.mr-meta')).toContainText(/Ladevorg[aä]ng.*, \d+ Fahrer/);
+      await expect(first.getByTestId('row-sub')).toContainText(/\d+ Fahrer · [\d.]+ Ladevorg[aä]ng/);
+      // cost cell: electricity, the combustion car of the class, what the drivers paid
+      await expect(first.getByTestId('cost-cell')).toContainText(/Strom\s*\d+,\d\d\s€\s*Benziner \d+,\d\d\s€/);
+      // litres follow the vehicle class, so the combustion figure differs between classes
+      const captions = await rows(page).getByTestId('cost-cell').allTextContents();
+      const amounts = new Set(captions.map(c => c.match(/Benziner (\d+,\d\d)\s€/)?.[1]).filter(Boolean));
+      expect(amounts.size).toBeGreaterThan(1);
+      // one bar, the drivers against WLTP below it
+      await expect(first.getByTestId('consumption-cell')).toContainText(/Fahrer\s*\d+,\d\s*·\s*WLTP\s*\d+,\d/);
       if (viewport.width >= 1024) {
-        // cost cell: electricity plus the combustion car of the class
-        await expect(first.getByTestId('cost-cell')).toContainText(/Strom\s*\d+,\d\d €\s*Benziner \d+,\d\d €/);
-        // litres follow the vehicle class, so the combustion figure differs between classes
-        const captions = await rows(page).getByTestId('cost-cell').allTextContents();
-        const amounts = new Set(captions.map(c => c.match(/Benziner (\d+,\d\d) €/)?.[1]).filter(Boolean));
-        expect(amounts.size).toBeGreaterThan(1);
-      }
-      // bar pair: manufacturer figure against the drivers' figure, with the deviation
-      await expect(first.getByTestId('consumption-bars')).toContainText(/Hersteller\s*\d+,\d.*Fahrer\s*\d+,\d\s*[+−]\d+ %/);
-      if (viewport.width >= 1280) {
-        // range cell: one-stop range from the community DC power, or the honest gap
-        await expect(first.getByTestId('range-cell')).toContainText(/\d+ km\s*Autobahn (bis )?\d+\s*1 Stopp (bis )?\d+\s*2 Stopps (bis )?\d+/);
-      }
-      if (viewport.width >= 1024) {
+        // range cell: the range, then the motorway ladder of the largest battery
+        await expect(first.getByTestId('range-cell')).toContainText(/\d+ km\s*Autobahn ohne Stopp bis [\d.]+, 1 Stopp bis [\d.]+/);
       }
     });
 
@@ -88,11 +84,13 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page.getByTestId('top-five')).toHaveCount(0);
       await expect(page.getByTestId('personal-range-tune')).toHaveCount(0);
 
-      // the open row points to the one gate in the card
+      // the open row has no second gate and no personal figures: the one gate sits in the card
       await rows(page).first().locator('button[aria-expanded]').click();
-      await page.getByTestId('row-unlock').click();
-      await expect(page.getByTestId('ranking-gate')).toBeInViewport();
-      await expect(page.getByTestId('ranking-gate-open')).toHaveCount(0);
+      await expect(rows(page).first().getByTestId('detail-measured')).toBeVisible();
+      await expect(rows(page).first().getByTestId('for-you')).toHaveCount(0);
+      await expect(page.getByTestId('row-unlock')).toHaveCount(0);
+      // and no fit filter for guests
+      await expect(page.getByTestId('fit-filter')).toHaveCount(0);
     });
 
     test('eingeloggt: Top 5 als Tabelle, Wichtigkeit sortiert um, Wallbox ändert die Kosten', async ({ page }) => {
@@ -150,14 +148,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await openRanking(page);
       const first = rows(page).first();
       // DE: Kraftstoffpreis ist vorbelegt, der Vergleich steht sofort
-      await expect(first.getByTestId('savings')).toContainText(/\(Benziner \d+,\d\d\)/);
-
-      await page.getByTestId('assumptions-chip').click();
-      await page.getByTestId('main-value-cost').click();
-      await page.keyboard.press('Escape');
-      if (viewport.width < 1024) {
-        await expect(first.locator('.mr-val')).toContainText('€ pro 100 km');
-      }
+      await expect(first.getByTestId('cost-cell')).toContainText(/Benziner \d+,\d\d\s€/);
 
       // Ein eingetragener Literwert gilt für alle Klassen, leer heißt wieder je Klasse
       await page.getByTestId('assumptions-chip').click();
@@ -167,11 +158,9 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.getByTestId('assumption-liters').press('Tab');
       await expect(page.getByTestId('assumption-liters-hint')).toContainText('alle Fahrzeugklassen');
       await page.keyboard.press('Escape');
-      if (viewport.width >= 1024) {
-        const captions = await rows(page).getByTestId('cost-cell').allTextContents();
-        // 9 l for every class: one combustion figure in every row that has one
-        expect(new Set(captions.map(c => c.match(/Benziner (\d+,\d\d) €/)?.[1]).filter(Boolean)).size).toBe(1);
-      }
+      const captions = await rows(page).getByTestId('cost-cell').allTextContents();
+      // 9 l for every class: one combustion figure in every row that has one
+      expect(new Set(captions.map(c => c.match(/Benziner (\d+,\d\d)\s€/)?.[1]).filter(Boolean)).size).toBe(1);
       await page.getByTestId('assumptions-chip').click();
       await page.getByTestId('assumption-liters').fill('');
       await page.getByTestId('assumption-liters').press('Tab');
@@ -181,15 +170,15 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.getByTestId('assumption-fuel-price').fill('');
       await page.getByTestId('assumption-fuel-price').press('Tab');
       await page.keyboard.press('Escape');
-      await expect(first.getByTestId('savings')).not.toContainText('Benziner');
+      await expect(first.getByTestId('cost-cell')).not.toContainText('Benziner');
     });
 
     test('Sortierung "Meiste Daten" sortiert um und bleibt nach Neuladen', async ({ page }) => {
       await openRanking(page);
-      const firstBefore = await rows(page).first().locator('.mr-who').innerText();
+      const firstBefore = await rows(page).first().getByTestId('row-name').innerText();
       await page.getByRole('button', { name: 'Meiste Daten' }).click();
       await expect(page.getByRole('button', { name: 'Meiste Daten' })).toHaveAttribute('aria-pressed', 'true');
-      await expect.poll(() => rows(page).first().locator('.mr-who').innerText()).not.toBe(firstBefore);
+      await expect.poll(() => rows(page).first().getByTestId('row-name').innerText()).not.toBe(firstBefore);
 
       await page.reload();
       await expect(rows(page).first()).toBeVisible({ timeout: 15_000 });
@@ -201,7 +190,50 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await page.getByTestId('entry-fit').click();
       await expect(page.getByTestId('ranking-card')).toBeInViewport();
       await page.getByTestId('entry-lean').click();
-      await expect(page.locator('section.mr-board')).toBeInViewport();
+      await expect(page.locator('#fahrer-messen-t')).toBeInViewport();
+    });
+
+    test('Kapitel 2: ein Kasten, erst 8 Zeilen, alle Links im HTML', async ({ page }) => {
+      await openRanking(page);
+      await expect(page.getByRole('heading', { name: 'Was die Fahrer messen', level: 2 })).toBeVisible();
+      const total = await rows(page).count();
+      test.skip(total <= 8, 'lokal zu wenige Modelle mit Fahrerdaten');
+      await expect(rows(page).filter({ visible: true })).toHaveCount(8);
+      await expect(rows(page).getByTestId('row-name')).toHaveCount(total);
+      await expect(page.getByTestId('ranking-count')).toContainText(`8 von ${total} Modellen mit Fahrerdaten`);
+      await page.getByTestId('show-all').click();
+      await expect(rows(page).filter({ visible: true })).toHaveCount(total);
+    });
+
+    test('Lupe öffnet das Foto mit Bildnachweis, Escape schließt', async ({ page }) => {
+      await openRanking(page);
+      const zoom = page.getByTestId('row-zoom').filter({ visible: true }).first();
+      await zoom.click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.locator('img')).toBeVisible();
+      await expect(dialog.locator('figcaption')).toContainText('Foto: ©');
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      await expect(zoom).toBeFocused();
+    });
+
+    test('eingeloggt: Filter "Schafft meine 600 km" und "Für dich" in der offenen Zeile', async ({ page }) => {
+      await login(page);
+      await openRanking(page);
+      await answerCommute(page, 40, 5);
+      await setSlider(page, 'longTrip', 600);
+      const fit = page.getByTestId('fit-filter');
+      await expect(fit).toContainText(/Schafft meine 600 km (mit \d+ Stopps?|ohne Stopp)/);
+      await fit.click();
+      await expect(fit).toHaveAttribute('aria-pressed', 'true');
+      const narrowed = await rows(page).filter({ visible: true }).count();
+      expect(narrowed).toBeGreaterThan(0);
+      await expect(page.getByTestId('ranking-count')).toContainText(`${narrowed} von`);
+      await page.getByTestId('fit-all').click();
+      await expect(fit).toHaveAttribute('aria-pressed', 'false');
+
+      await rows(page).first().locator('button[aria-expanded]').click();
+      await expect(rows(page).first().getByTestId('for-you-answer')).toHaveCount(3);
     });
   });
 }
