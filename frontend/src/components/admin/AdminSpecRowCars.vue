@@ -94,10 +94,10 @@ const netFits = (car: CarForReassign) => car.currentNetKwh == null || props.row.
             <option value="" disabled>umhängen auf …</option>
             <template v-for="g in candidateGroups(car)" :key="g.label ?? 'alle'">
               <optgroup v-if="g.label" :label="g.label">
-                <option v-for="c in g.items" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId]?.has(c.specId) ? ' · passt zum Baujahr' : '' }}</option>
+                <option v-for="c in g.items" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId]?.has(c.specId) ? ' --- passt zum Baujahr' : '' }}</option>
               </optgroup>
               <template v-else>
-                <option v-for="c in g.items" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId]?.has(c.specId) ? ' · passt zum Baujahr' : '' }}</option>
+                <option v-for="c in g.items" :key="c.specId" :value="c.specId">{{ label(c) }}{{ suggested[car.carId]?.has(c.specId) ? ' --- passt zum Baujahr' : '' }}</option>
               </template>
             </template>
           </select>
