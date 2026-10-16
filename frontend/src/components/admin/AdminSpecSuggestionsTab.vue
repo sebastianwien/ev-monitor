@@ -11,6 +11,7 @@ interface Suggestion { label: string; availableFrom: string | null; availableTo:
 const suggestions = ref<Record<string, Suggestion[]> | null>(null)
 const rows = ref<SpecRow[]>([])
 const applied = ref(new Set<string>())
+const created = ref(0)
 const onlyOpen = ref(true)
 const busy = ref<string | null>(null)
 const error = ref('')
@@ -62,6 +63,25 @@ async function apply(r: SpecRow, s: Suggestion) {
     }
 }
 
+/** Neue Variante aus dem Kandidaten: Zahlen und Trim der Ausgangszeile, Name und Zeitraum vom Kandidaten. Die Zahlen prüft man danach im Specs-Tab. */
+async function createFrom(r: SpecRow, s: Suggestion) {
+    busy.value = r.id
+    error.value = ''
+    try {
+        const result = await adminVehicleSpecService.create({
+            ...toCommand(r),
+            variantName: s.label.replace(/\s*\([\d.,]+ kWh\)$/, ''),
+            availableFrom: s.availableFrom, availableTo: s.availableTo, sourceUrl: s.sourceUrl ?? '',
+        })
+        rows.value = [...rows.value, result.row]
+        created.value++
+    } catch (err) {
+        error.value = `${s.label}: ${apiErrorText(err, 'Anlegen fehlgeschlagen.')}`
+    } finally {
+        busy.value = null
+    }
+}
+
 const period = (from: string | null, to: string | null) => from ? `${from} bis ${to ?? 'offen'}` : 'kein Zeitraum'
 </script>
 
@@ -72,7 +92,7 @@ const period = (from: string | null, to: string | null) => from ? `${from} bis $
     <template v-else>
       <div class="flex flex-wrap items-center gap-3 text-sm">
         <label class="flex items-center gap-2"><input v-model="onlyOpen" type="checkbox" /> nur Zeilen ohne Zeitraum oder Quelle</label>
-        <span class="text-gray-400">{{ visible.length }} offen · {{ applied.size }} übernommen</span>
+        <span class="text-gray-400">{{ visible.length }} offen · {{ applied.size }} übernommen · {{ created }} angelegt</span>
       </div>
       <p v-if="error" class="text-sm text-red-400" role="alert">{{ error }}</p>
       <ul class="space-y-2">
@@ -89,6 +109,8 @@ const period = (from: string | null, to: string | null) => from ? `${from} bis $
               <a v-if="s.sourceUrl" :href="s.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">ev-database</a>
               <button type="button" class="ml-auto px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white disabled:opacity-40"
                       :disabled="busy === r.id" @click="apply(r, s)">Übernehmen</button>
+              <button type="button" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-sm disabled:opacity-40" title="Neue Variante mit den Zahlen dieser Zeile, Name und Zeitraum vom Kandidaten"
+                      :disabled="busy === r.id" @click="createFrom(r, s)">Neue Zeile</button>
             </li>
           </ul>
         </li>

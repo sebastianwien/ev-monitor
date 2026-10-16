@@ -5,9 +5,10 @@ import type { SpecOverview } from '../../../api/adminVehicleSpecService'
 
 const overview = vi.fn()
 const update = vi.fn()
+const create = vi.fn()
 vi.mock('../../../api/adminVehicleSpecService', async () => {
     const actual = await vi.importActual<typeof import('../../../api/adminVehicleSpecService')>('../../../api/adminVehicleSpecService')
-    return { ...actual, adminVehicleSpecService: { overview: () => overview(), update: (id: string, c: unknown) => update(id, c) } }
+    return { ...actual, adminVehicleSpecService: { overview: () => overview(), update: (id: string, c: unknown) => update(id, c), create: (c: unknown) => create(c) } }
 })
 
 import AdminSpecSuggestionsTab from '../AdminSpecSuggestionsTab.vue'
@@ -32,7 +33,8 @@ const mount = async () => {
     return host
 }
 beforeEach(() => {
-    overview.mockReset(); update.mockReset()
+    overview.mockReset(); update.mockReset(); create.mockReset()
+    create.mockImplementation(async (c: Record<string, unknown>) => ({ row: { ...row('spec-neu', {}), ...c }, warnings: [] }))
     overview.mockResolvedValue(sample)
     update.mockImplementation(async (id: string, c: Record<string, unknown>) => ({ row: { ...row(id, {}), ...c }, warnings: [] }))
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => suggestions }))
@@ -51,6 +53,18 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(id).toBe('spec-1')
         expect(cmd).toMatchObject({ model: 'MODEL_3', batteryCapacityKwh: 60, trimLevel: 'Standard', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' })
         expect(host.textContent).toContain('1 übernommen')
+    })
+
+    it('legt aus einem Kandidaten eine neue Zeile an: Zahlen und Trim der Ausgangszeile, Name ohne kWh-Klammer, Zeitraum und Quelle vom Kandidaten', async () => {
+        const host = await mount()
+        const btn = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Neue Zeile'))!
+        btn.click(); await new Promise(r => setTimeout(r, 0)); await nextTick()
+        expect(update).not.toHaveBeenCalled()
+        expect(create).toHaveBeenCalledTimes(1)
+        expect(create.mock.calls[0][0]).toMatchObject({ model: 'MODEL_3', batteryCapacityKwh: 60, netBatteryCapacityKwh: 57.5, officialRangeKm: 491,
+            trimLevel: 'Standard', variantName: 'Model 3 SR', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' })
+        expect(host.textContent).toContain('1 angelegt')
+        expect(host.textContent).toContain('Model 3 SR (60 kWh)')
     })
 
     it('ohne Vorschlagsdatei nur ein Hinweis, kein Fehler', async () => {
