@@ -23,6 +23,7 @@ final class SpecRules {
     static final Pattern USER_ROW_NAME = Pattern.compile("^[0-9.,]+/[0-9.,]+ kWh$");
     /** Unter diesem Verhältnis (WLTP-km × Verbrauch / 100 / Netto) sieht die Reichweite nach Realwert statt WLTP aus. */
     static final BigDecimal MIN_RATIO = new BigDecimal("1.10");
+    static final BigDecimal MAX_DC_KW = new BigDecimal("1000");
 
     private SpecRules() {
     }
@@ -49,6 +50,22 @@ final class SpecRules {
             throw new ValidationException("Verfügbar bis muss nach Verfügbar ab liegen.");
         }
         requireHttps(cmd.sourceUrl());
+        requireDcPower(cmd.dcMaxPowerKw(), cmd.dcAvgPower1080Kw());
+    }
+
+    /** Beide Werte optional, je 1-1000 kW; der Mittelwert 10-80 % kann nicht über dem Maximum liegen. */
+    static void requireDcPower(BigDecimal max, BigDecimal avg) {
+        requireKwRange(max, "DC max");
+        requireKwRange(avg, "DC 10-80 %");
+        if (max != null && avg != null && avg.compareTo(max) > 0) {
+            throw new ValidationException("DC 10-80 % darf nicht über DC max liegen.");
+        }
+    }
+
+    private static void requireKwRange(BigDecimal value, String label) {
+        if (value != null && (value.compareTo(BigDecimal.ONE) < 0 || value.compareTo(MAX_DC_KW) > 0)) {
+            throw new ValidationException(label + " muss zwischen 1 und 1000 kW liegen.");
+        }
     }
 
     static void requireHttps(String url) {

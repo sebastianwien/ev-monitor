@@ -19,7 +19,7 @@ public final class AdminSpecResponses {
                           BigDecimal netBatteryCapacityKwh, BigDecimal officialRangeKm,
                           BigDecimal officialConsumptionKwhPer100km, String ratingSource, String variantName,
                           String trimLevel, LocalDate availableFrom, LocalDate availableTo, String sourceUrl,
-                          long activeCars, long allCars, long ratings, List<WorkList> workLists) {
+                          BigDecimal dcMaxPowerKw, BigDecimal dcAvgPower1080Kw, long activeCars, long allCars, long ratings, List<WorkList> workLists) {
     }
 
     public record ModelGroup(String carBrand, String carModel, String displayName, boolean inEnum,

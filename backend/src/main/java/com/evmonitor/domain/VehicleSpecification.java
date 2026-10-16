@@ -33,15 +33,23 @@ public class VehicleSpecification {
     private final String trimLevel;
     /** Beleg der Werte, https, Pflicht für neue Zeilen im Admin-Tab. */
     private final String sourceUrl;
+    /** Maximale DC-Ladeleistung in kW (EVDB "Charge Power (max)"), nur Datenblatt. */
+    private final BigDecimal dcMaxPowerKw;
+    /** Mittlere DC-Ladeleistung 10-80 % in kW (EVDB "Charge Power (10-80%)"), Basis der Reisezeit. */
+    private final BigDecimal dcAvgPower1080Kw;
 
     public static VehicleSpecification createNew(String carBrand, String carModel, BigDecimal batteryCapacityKwh,
                                                   BigDecimal netBatteryCapacityKwh,
                                                   BigDecimal rangeKm, BigDecimal consumptionKwhPer100km,
                                                   WltpType cycleType, RatingSource ratingSource, String variantName) {
         LocalDateTime now = LocalDateTime.now();
-        return new VehicleSpecification(UUID.randomUUID(), carBrand, carModel, batteryCapacityKwh,
-                rangeKm, consumptionKwhPer100km, cycleType, ratingSource, now, now,
-                variantName != null ? variantName : "", netBatteryCapacityKwh, null, null, null, null, null, null);
+        return VehicleSpecification.builder()
+                .id(UUID.randomUUID()).carBrand(carBrand).carModel(carModel)
+                .batteryCapacityKwh(batteryCapacityKwh).netBatteryCapacityKwh(netBatteryCapacityKwh)
+                .officialRangeKm(rangeKm).officialConsumptionKwhPer100km(consumptionKwhPer100km)
+                .wltpType(cycleType).ratingSource(ratingSource).createdAt(now).updatedAt(now)
+                .variantName(variantName != null ? variantName : "")
+                .build();
     }
 
     /** Backward-compat factory without variantName (defaults to empty string). */

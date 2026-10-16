@@ -170,6 +170,7 @@ public class AdminSpecOverviewAssembler {
         return new SpecRow(s.getId(), s.getCarBrand(), s.getCarModel(), s.getBatteryCapacityKwh(), s.getNetBatteryCapacityKwh(),
                 s.getOfficialRangeKm(), s.getOfficialConsumptionKwhPer100km(), s.getRatingSource().name(),
                 name.isEmpty() ? null : name, SpecRules.sanitize(s.getTrimLevel()).isEmpty() ? null : s.getTrimLevel(),
-                s.getAvailableFrom(), s.getAvailableTo(), s.getSourceUrl(), cars.active(), cars.all(), ratings, List.copyOf(lists));
+                s.getAvailableFrom(), s.getAvailableTo(), s.getSourceUrl(),
+                s.getDcMaxPowerKw(), s.getDcAvgPower1080Kw(), cars.active(), cars.all(), ratings, List.copyOf(lists));
     }
 }

@@ -33,7 +33,7 @@ class AdminVehicleSpecificationServiceCacheEvictTest extends AbstractServiceTest
 
         service.create(adminId, new SpecCommand(CarBrand.CarModel.ID_3, new BigDecimal("62.0"), new BigDecimal("58.0"),
                 new BigDecimal("426"), new BigDecimal("15.4"), "Pro", "Pro", LocalDate.of(2021, 1, 1), null,
-                "https://ev-database.org/car/1531", VehicleSpecification.RatingSource.WLTP));
+                "https://ev-database.org/car/1531", VehicleSpecification.RatingSource.WLTP, null, null));
 
         for (String name : AdminVehicleSpecificationService.MODEL_CACHES) {
             assertThat(cacheManager.getCache(name).get("k")).as("Cache %s nach Write", name).isNull();

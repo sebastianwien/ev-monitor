@@ -27,5 +27,7 @@ public record SpecCommand(
         LocalDate availableFrom,
         LocalDate availableTo,
         @Size(max = 500) String sourceUrl,
-        VehicleSpecification.RatingSource ratingSource) {
+        VehicleSpecification.RatingSource ratingSource,
+        BigDecimal dcMaxPowerKw,
+        BigDecimal dcAvgPower1080Kw) {
 }

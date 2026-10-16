@@ -169,6 +169,8 @@ public class AdminVehicleSpecificationService {
                 .availableFrom(cmd.availableFrom())
                 .availableTo(cmd.availableTo())
                 .sourceUrl(cmd.sourceUrl().trim())
+                .dcMaxPowerKw(cmd.dcMaxPowerKw())
+                .dcAvgPower1080Kw(cmd.dcAvgPower1080Kw())
                 .updatedAt(LocalDateTime.now())
                 .build();
     }
@@ -212,6 +214,8 @@ public class AdminVehicleSpecificationService {
         add(diffs, "availableFrom", str(a.getAvailableFrom()), str(b.getAvailableFrom()));
         add(diffs, "availableTo", str(a.getAvailableTo()), str(b.getAvailableTo()));
         add(diffs, "sourceUrl", a.getSourceUrl(), b.getSourceUrl());
+        add(diffs, "dcMaxPowerKw", plain(a.getDcMaxPowerKw()), plain(b.getDcMaxPowerKw()));
+        add(diffs, "dcAvgPower1080Kw", plain(a.getDcAvgPower1080Kw()), plain(b.getDcAvgPower1080Kw()));
         return diffs;
     }
 

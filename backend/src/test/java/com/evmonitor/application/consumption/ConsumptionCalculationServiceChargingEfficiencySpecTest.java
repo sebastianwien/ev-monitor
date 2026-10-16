@@ -229,7 +229,7 @@ class ConsumptionCalculationServiceChargingEfficiencySpecTest {
                 VehicleSpecification.RatingSource.WLTP,
                 LocalDateTime.now(), LocalDateTime.now(),
                 "", null, null, null,
-                dc, ac, null, null);
+                dc, ac, null, null, null, null);
     }
 
     private EvLog dcLog(BigDecimal kwhCharged) {

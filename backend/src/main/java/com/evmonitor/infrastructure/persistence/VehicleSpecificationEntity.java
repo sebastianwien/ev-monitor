@@ -76,6 +76,12 @@ public class VehicleSpecificationEntity {
     @Column(name = "source_url", length = 500)
     private String sourceUrl;
 
+    @Column(name = "dc_max_power_kw", precision = 5, scale = 1)
+    private BigDecimal dcMaxPowerKw;
+
+    @Column(name = "dc_avg_power_10_80_kw", precision = 5, scale = 1)
+    private BigDecimal dcAvgPower1080Kw;
+
     /**
      * Nominal-Netto-Kapazitaet der Spec: net_battery_capacity_kwh bevorzugt,
      * sonst Fallback auf battery_capacity_kwh (Brutto-Lookup-Key, fuer Specs

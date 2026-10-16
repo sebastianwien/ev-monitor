@@ -139,6 +139,8 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         entity.setChargingEfficiencyAc(domain.getChargingEfficiencyAc());
         entity.setTrimLevel(domain.getTrimLevel());
         entity.setSourceUrl(domain.getSourceUrl());
+        entity.setDcMaxPowerKw(domain.getDcMaxPowerKw());
+        entity.setDcAvgPower1080Kw(domain.getDcAvgPower1080Kw());
         return entity;
     }
 
@@ -146,26 +148,28 @@ public class PostgresVehicleSpecificationRepositoryImpl implements VehicleSpecif
         VehicleSpecification.RatingSource ratingSource = entity.getRatingSource() != null
                 ? VehicleSpecification.RatingSource.valueOf(entity.getRatingSource())
                 : VehicleSpecification.RatingSource.WLTP;
-        return new VehicleSpecification(
-                entity.getId(),
-                entity.getCarBrand(),
-                entity.getCarModel(),
-                entity.getBatteryCapacityKwh(),
-                entity.getOfficialRangeKm(),
-                entity.getOfficialConsumptionKwhPer100km(),
-                VehicleSpecification.WltpType.valueOf(entity.getWltpType()),
-                ratingSource,
-                entity.getCreatedAt(),
-                entity.getUpdatedAt(),
-                entity.getVariantName(),
-                entity.getNetBatteryCapacityKwh(),
-                entity.getAvailableFrom(),
-                entity.getAvailableTo(),
-                entity.getChargingEfficiencyDc(),
-                entity.getChargingEfficiencyAc(),
-                entity.getTrimLevel(),
-                entity.getSourceUrl()
-        );
+        return VehicleSpecification.builder()
+                .id(entity.getId())
+                .carBrand(entity.getCarBrand())
+                .carModel(entity.getCarModel())
+                .batteryCapacityKwh(entity.getBatteryCapacityKwh())
+                .officialRangeKm(entity.getOfficialRangeKm())
+                .officialConsumptionKwhPer100km(entity.getOfficialConsumptionKwhPer100km())
+                .wltpType(VehicleSpecification.WltpType.valueOf(entity.getWltpType()))
+                .ratingSource(ratingSource)
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .variantName(entity.getVariantName())
+                .netBatteryCapacityKwh(entity.getNetBatteryCapacityKwh())
+                .availableFrom(entity.getAvailableFrom())
+                .availableTo(entity.getAvailableTo())
+                .chargingEfficiencyDc(entity.getChargingEfficiencyDc())
+                .chargingEfficiencyAc(entity.getChargingEfficiencyAc())
+                .trimLevel(entity.getTrimLevel())
+                .sourceUrl(entity.getSourceUrl())
+                .dcMaxPowerKw(entity.getDcMaxPowerKw())
+                .dcAvgPower1080Kw(entity.getDcAvgPower1080Kw())
+                .build();
     }
 
     @Override

@@ -49,7 +49,7 @@ class AdminVehicleSpecificationServiceTest extends AbstractServiceTest {
     private SpecCommand validCommand() {
         return new SpecCommand(CarBrand.CarModel.MODEL_3, new BigDecimal("79.0"), new BigDecimal("75.0"),
                 new BigDecimal("629"), new BigDecimal("14.0"), "Long Range AWD", "Long Range",
-                LocalDate.of(2024, 1, 1), null, SOURCE, VehicleSpecification.RatingSource.WLTP);
+                LocalDate.of(2024, 1, 1), null, SOURCE, VehicleSpecification.RatingSource.WLTP, null, null);
     }
 
     // ── Anlegen ──────────────────────────────────────────────────────────────
@@ -131,6 +131,58 @@ class AdminVehicleSpecificationServiceTest extends AbstractServiceTest {
         assertThat(second.row().variantName()).isEqualTo("Long Range AWD");
         assertThat(vehicleSpecificationRepository.findAllByCarModel("MODEL_3").stream()
                 .filter(v -> "Long Range AWD".equals(v.getVariantName()))).hasSize(2);
+    }
+
+    // ── DC-Ladeleistung ──────────────────────────────────────────────────────
+
+    @Test
+    void create_withDcPower_persistsAndReturnsBoth() {
+        AdminSpecResponses.SaveResult result = service.create(adminId, validCommand().toBuilder()
+                .dcMaxPowerKw(new BigDecimal("250.0")).dcAvgPower1080Kw(new BigDecimal("170.5")).build());
+
+        VehicleSpecification saved = vehicleSpecificationRepository.findById(result.row().id()).orElseThrow();
+        assertThat(saved.getDcMaxPowerKw()).isEqualByComparingTo("250.0");
+        assertThat(saved.getDcAvgPower1080Kw()).isEqualByComparingTo("170.5");
+        assertThat(result.row().dcMaxPowerKw()).isEqualByComparingTo("250.0");
+        assertThat(result.row().dcAvgPower1080Kw()).isEqualByComparingTo("170.5");
+    }
+
+    @Test
+    void create_withoutDcPower_allowed() {
+        AdminSpecResponses.SaveResult result = service.create(adminId, validCommand());
+        assertThat(result.row().dcMaxPowerKw()).isNull();
+        assertThat(result.row().dcAvgPower1080Kw()).isNull();
+    }
+
+    @Test
+    void create_dcAvgAboveMax_rejected() {
+        SpecCommand cmd = validCommand().toBuilder()
+                .dcMaxPowerKw(new BigDecimal("100")).dcAvgPower1080Kw(new BigDecimal("120")).build();
+        assertThatThrownBy(() -> service.create(adminId, cmd))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("DC 10-80");
+    }
+
+    @Test
+    void create_dcPowerOutOfRange_rejected() {
+        assertThatThrownBy(() -> service.create(adminId, validCommand().toBuilder().dcMaxPowerKw(new BigDecimal("0.5")).build()))
+                .isInstanceOf(ValidationException.class).hasMessageContaining("DC max");
+        assertThatThrownBy(() -> service.create(adminId, validCommand().toBuilder().dcAvgPower1080Kw(new BigDecimal("1000.1")).build()))
+                .isInstanceOf(ValidationException.class).hasMessageContaining("DC 10-80");
+    }
+
+    @Test
+    void update_dcPower_savedAndLoggedPerField() {
+        UUID id = service.create(adminId, validCommand()).row().id();
+
+        service.update(adminId, id, validCommand().toBuilder()
+                .dcMaxPowerKw(new BigDecimal("250")).dcAvgPower1080Kw(new BigDecimal("170")).build());
+
+        VehicleSpecification saved = vehicleSpecificationRepository.findById(id).orElseThrow();
+        assertThat(saved.getDcMaxPowerKw()).isEqualByComparingTo("250");
+        assertThat(changeRepository.findAllBySpecIdOrderByChangedAtDesc(id).stream()
+                .map(VehicleSpecificationChange::getField))
+                .contains("dcMaxPowerKw", "dcAvgPower1080Kw");
     }
 
     @Test
@@ -315,7 +367,7 @@ class AdminVehicleSpecificationServiceTest extends AbstractServiceTest {
         UUID specId = service.create(adminId, validCommand()).row().id();
         UUID otherId = service.create(adminId, new SpecCommand(CarBrand.CarModel.MODEL_3, new BigDecimal("82.0"), new BigDecimal("78.0"),
                 new BigDecimal("650"), new BigDecimal("14.5"), "Long Range AWD", "Long Range",
-                LocalDate.of(2025, 6, 1), null, SOURCE, VehicleSpecification.RatingSource.WLTP)).row().id();
+                LocalDate.of(2025, 6, 1), null, SOURCE, VehicleSpecification.RatingSource.WLTP, null, null)).row().id();
         User owner = createAndSaveUser("owner-" + UUID.randomUUID() + "@test.de");
         Car linked = carRepository.save(TestDataBuilder.createTestCar(owner.getId(), CarBrand.CarModel.MODEL_3, null)
                 .toBuilder().vehicleSpecificationId(specId).build());
