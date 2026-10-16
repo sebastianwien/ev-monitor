@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
+import { computed, onMounted, ref, watch } from 'vue'
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import {
     adminVehicleSpecService, apiErrorText,
     type ChangeEntry, type MissingVehicleRequestRow, type ModelGroup, type SaveResult, type SpecCommand, type SpecOverview, type SpecRow, type WorkList,
@@ -74,6 +74,7 @@ const COLUMNS: { key: SortKey; label: string }[] = [
 ]
 const sort = ref<{ key: SortKey; dir: 1 | -1 } | null>(null)
 function sortBy(key: SortKey) {
+    page.value = 0
     sort.value = sort.value?.key === key ? { key, dir: sort.value.dir === 1 ? -1 : 1 } : { key, dir: 1 }
 }
 const ariaSort = (key: SortKey) => sort.value?.key !== key ? 'none' : sort.value.dir === 1 ? 'ascending' : 'descending'
@@ -91,13 +92,34 @@ function sorted(rows: SpecRow[]): SpecRow[] {
     })
 }
 
-const visibleModels = computed<ModelGroup[]>(() => {
+const filteredModels = computed<ModelGroup[]>(() => {
     if (!data.value) return []
     const f = filter.value
     return data.value.models
         .map(m => ({ ...m, rows: sorted(f === 'ALL' ? m.rows : m.rows.filter(r => r.workLists.includes(f))) }))
         .filter(m => f === 'ALL' || m.rows.length > 0)
 })
+
+/** Seiten zu PAGE_SIZE Spec-Zeilen; ein Modell kann über zwei Seiten laufen und steht dann auf beiden. */
+const PAGE_SIZE = 25
+const page = ref(0)
+const filteredIds = computed(() => filteredModels.value.flatMap(m => m.rows.map(r => r.id)))
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredIds.value.length / PAGE_SIZE)))
+const pageInfo = computed(() => {
+    const total = filteredIds.value.length
+    return total ? `Zeilen ${page.value * PAGE_SIZE + 1}-${Math.min(total, (page.value + 1) * PAGE_SIZE)} von ${total}` : ''
+})
+watch(pageCount, n => { if (page.value >= n) page.value = n - 1 })
+const visibleModels = computed<ModelGroup[]>(() => {
+    const onPage = new Set(filteredIds.value.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE))
+    return filteredModels.value
+        .map(m => ({ ...m, rows: m.rows.filter(r => onPage.has(r.id)) }))
+        .filter(m => m.rows.length > 0)
+})
+function goToPage(p: number) {
+    page.value = Math.min(Math.max(0, p), pageCount.value - 1)
+    closeInline()
+}
 
 const isDesktop = () => typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches
 
@@ -125,10 +147,11 @@ function closeInline() {
 
 function selectFilter(f: Filter) {
     filter.value = f
+    page.value = 0
     closeInline()
     const field = f === 'ALL' ? undefined : GAP_FIELDS[f]
     if (!field || !isDesktop()) return
-    const ids = visibleModels.value.flatMap(m => m.inEnum ? m.rows.map(r => r.id) : [])
+    const ids = filteredModels.value.flatMap(m => m.inEnum ? m.rows.map(r => r.id) : [])
     if (!ids.length) return
     gapMode.value = { label: WORK_LISTS.find(w => w.key === f)?.label ?? f, field, ids, index: -1, done: 0 }
     gapOpen(0)
@@ -143,6 +166,7 @@ function gapOpen(index: number) {
         return
     }
     gap.index = index
+    page.value = Math.floor(filteredIds.value.indexOf(gap.ids[index]) / PAGE_SIZE)
     inline.value = { id: gap.ids[index], field: gap.field }
 }
 
@@ -285,6 +309,16 @@ const date = (iso: string) => new Date(iso).toLocaleString('de-DE', { dateStyle:
       </ul>
     </section>
 
+    <nav v-if="pageCount > 1" class="flex items-center gap-2 text-sm" aria-label="Seiten">
+      <button type="button" class="inline-flex items-center gap-1 px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm disabled:opacity-40" :disabled="page === 0" @click="goToPage(page - 1)">
+        <ChevronLeftIcon class="w-4 h-4" aria-hidden="true" />Zurück
+      </button>
+      <span class="text-gray-400">{{ pageInfo }} · Seite {{ page + 1 }} von {{ pageCount }}</span>
+      <button type="button" class="inline-flex items-center gap-1 px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm disabled:opacity-40" :disabled="page >= pageCount - 1" @click="goToPage(page + 1)">
+        Weiter<ChevronRightIcon class="w-4 h-4" aria-hidden="true" />
+      </button>
+    </nav>
+
     <section v-for="m in visibleModels" :key="m.carModel" class="bg-gray-800 rounded-sm p-3 sm:p-4 space-y-3">
       <header class="flex flex-wrap items-center gap-2">
         <h3 class="font-semibold">{{ m.displayName }} <span class="text-gray-500 font-normal text-sm">{{ m.carBrand }}</span></h3>
@@ -311,6 +345,16 @@ const date = (iso: string) => new Date(iso).toLocaleString('de-DE', { dateStyle:
                             @edit="openEdit(r)" @saved="onInlineSaved" @cancel="closeInline" @next="gapNext" @changes="showChanges(r)" @remove="remove(r)" @cars-changed="load" />
       </ul>
     </section>
+
+    <nav v-if="pageCount > 1" data-pager-bottom class="flex items-center gap-2 text-sm" aria-label="Seiten">
+      <button type="button" class="inline-flex items-center gap-1 px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm disabled:opacity-40" :disabled="page === 0" @click="goToPage(page - 1)">
+        <ChevronLeftIcon class="w-4 h-4" aria-hidden="true" />Zurück
+      </button>
+      <span class="text-gray-400">{{ pageInfo }} · Seite {{ page + 1 }} von {{ pageCount }}</span>
+      <button type="button" class="inline-flex items-center gap-1 px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm disabled:opacity-40" :disabled="page >= pageCount - 1" @click="goToPage(page + 1)">
+        Weiter<ChevronRightIcon class="w-4 h-4" aria-hidden="true" />
+      </button>
+    </nav>
 
     <p v-if="data && visibleModels.length === 0 && !loading" class="text-sm text-gray-500">Diese Arbeitsliste ist leer.</p>
   </div>

@@ -70,6 +70,7 @@ beforeEach(() => {
     desktop = true
     window.matchMedia = ((q: string) => ({ matches: desktop && q.includes('1024'), media: q, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia
     Element.prototype.scrollIntoView = vi.fn()
+    carsOfSpec.mockResolvedValue([])
 })
 afterEach(() => {
     app?.unmount()
@@ -283,19 +284,56 @@ describe('AdminSpecsTab', () => {
         expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled()
     })
 
-    it('Autos klappen unter der Zeile auf, zweiter Klick schließt', async () => {
+    it('Autos sind beim Öffnen aufgeklappt, Klick schließt; Zeilen ohne Autos laden nichts', async () => {
         overview.mockResolvedValue(sample)
         carsOfSpec.mockResolvedValue([{ carId: 'car-1', carModel: 'MODEL_3', year: 2023, trim: null, currentNetKwh: null, currentSpecId: 'spec-1', logCount: 7, candidates: [] }])
         const host = await mount()
+        await nextTick(); await nextTick()
 
         expect(button(host, 'Autos (0)')).toBeUndefined()
-        button(host, 'Autos (12)').click()
-        await nextTick(); await nextTick(); await nextTick()
-
-        expect(carsOfSpec).toHaveBeenCalledWith('spec-1')
+        expect(carsOfSpec.mock.calls).toEqual([['spec-1']])
+        expect(button(host, 'Autos (12)').getAttribute('aria-expanded')).toBe('true')
         expect(button(host, 'Autos (12)').closest('li')!.querySelectorAll('tr[data-car]')).toHaveLength(1)
         button(host, 'Autos (12)').click(); await new Promise(r => setTimeout(r, 50)); await nextTick()
         expect(host.querySelectorAll('tr[data-car]')).toHaveLength(0)
+    })
+
+    it('nach dem Umhängen laden Quell- und Zielzeile ihre Autos neu', async () => {
+        const moved = structuredClone(sample)
+        moved.models[0].rows[0].activeCars = 11
+        moved.models[0].rows[2].activeCars = 1
+        overview.mockResolvedValueOnce(sample).mockResolvedValue(moved)
+        carsOfSpec.mockResolvedValue([{ carId: 'car-1', carModel: 'MODEL_3', year: 2025, trim: null, currentNetKwh: null, currentSpecId: 'spec-1', logCount: 7,
+            candidates: [{ specId: 'spec-3', variantName: 'Long Range RWD', trimLevel: 'Long Range', netKwh: 79, diffKwh: 4, availableFrom: '2024-01-01', availableTo: null }] }])
+        assignCar.mockResolvedValue(undefined)
+        const host = await mount()
+        await nextTick(); await nextTick()
+
+        button(host, 'Umhängen').click()
+        for (let i = 0; i < 6; i++) await nextTick()
+
+        expect(assignCar).toHaveBeenCalledWith('car-1', 'spec-3')
+        expect(carsOfSpec.mock.calls.map(c => c[0])).toEqual(['spec-1', 'spec-1', 'spec-3'])
+    })
+
+    it('blättert in Seiten zu 25 Spec-Zeilen, Filterwechsel springt auf Seite 1', async () => {
+        const many = structuredClone(sample)
+        const base = many.models[0].rows[1]
+        many.models[0].rows = Array.from({ length: 30 }, (_, i) => ({ ...base, id: `r-${i}`, variantName: `V${i}`, workLists: i < 27 ? ['USER_ROW'] : [] }))
+        overview.mockResolvedValue(many)
+        const host = await mount()
+        const ids = () => [...host.querySelectorAll('[data-spec-row]')].map(e => e.getAttribute('data-spec-row'))
+
+        expect(ids()).toHaveLength(25)
+        expect(host.textContent).toContain('Zeilen 1-25 von 30')
+        expect(button(host, 'Zurück').disabled).toBe(true)
+        button(host, 'Weiter').click(); await nextTick()
+        expect(ids()).toEqual(['r-25', 'r-26', 'r-27', 'r-28', 'r-29'])
+        expect(button(host, 'Weiter').disabled).toBe(true)
+
+        button(host, 'Nutzer-Zeile').click(); await nextTick()
+        expect(ids()[0]).toBe('r-0')
+        expect(host.textContent).toContain('Zeilen 1-25 von 27')
     })
 
     it('Spaltenkopf sortiert die Zeilen je Modell, zweiter Klick dreht die Richtung', async () => {

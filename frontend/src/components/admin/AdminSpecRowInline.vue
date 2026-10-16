@@ -26,8 +26,8 @@ const busy = ref(false)
 const error = ref('')
 const warning = ref('')
 const rootEl = ref<HTMLElement | null>(null)
-/** Autos der Zeile aufgeklappt (lädt beim Aufklappen frisch). */
-const showCars = ref(false)
+/** Autos der Zeile sind von Anfang an aufgeklappt; Zeilen ohne Autos zeigen und laden nichts. */
+const showCars = ref(true)
 
 function toCommand(r: SpecRow): SpecCommand {
     return {
@@ -118,7 +118,7 @@ const btn = 'px-2 py-1 rounded-sm text-xs'
 </script>
 
 <template>
-  <li ref="rootEl" class="bg-gray-900 rounded-sm p-3 text-sm space-y-1 transition-shadow duration-300" :class="editing ? 'ring-1 ring-indigo-500' : ''" @keydown="onKeydown">
+  <li ref="rootEl" :data-spec-row="row.id" class="bg-gray-900 rounded-sm p-3 text-sm space-y-1 transition-shadow duration-300" :class="editing ? 'ring-1 ring-indigo-500' : ''" @keydown="onKeydown">
     <div :key="editing ? (focusField ?? 'all') : 'view'" class="flex flex-wrap gap-x-3 gap-y-2 spec-in" :class="wrap ? '' : SPEC_GRID">
       <!-- Variante -->
       <input v-if="active('variantName')" v-model="draft.variantName" data-field="variantName" maxlength="100" :class="input + (wrap ? ' flex-1 min-w-[14rem]' : ' w-full')" placeholder="Name der Variante" aria-label="Name der Variante" />
@@ -188,9 +188,10 @@ const btn = 'px-2 py-1 rounded-sm text-xs'
     <p v-else-if="warning" class="text-xs text-amber-300" role="status">{{ warning }}</p>
 
     <Transition name="spec-expand">
-      <div v-if="showCars" class="spec-expand-outer">
+      <div v-if="showCars && row.activeCars > 0" class="spec-expand-outer">
         <div class="min-h-0 overflow-hidden">
-          <AdminSpecRowCars :spec-id="row.id" @changed="emit('carsChanged')" />
+          <!-- Key mit Anzahl: nach dem Umhängen laden Quell- und Zielzeile neu -->
+          <AdminSpecRowCars :key="`${row.id}-${row.activeCars}`" :spec-id="row.id" @changed="emit('carsChanged')" />
         </div>
       </div>
     </Transition>
