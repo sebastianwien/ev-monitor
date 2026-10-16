@@ -77,6 +77,8 @@ describe('PublicModelsListViewV2, chapter "Was die Fahrer messen"', () => {
     const host = await mount()
     expect(rows(host)).toHaveLength(61)
     expect(visible(host)).toHaveLength(8)
+    // every model stays linked in the HTML, for search engines
+    expect(host.querySelectorAll('[data-testid="ranking-row"] a[href^="/modelle/Brand/M"]')).toHaveLength(61)
     expect(host.querySelector('[data-testid="ranking-count"]')!.textContent).toContain('8 von 61 Modellen mit Fahrerdaten')
     button(host, 'Alle 61 Modelle')!.click()
     await nextTick()

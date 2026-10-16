@@ -401,6 +401,8 @@ models_ranking:
     compare_short_add: "Jämför"
     compare_short_remove: "I jämförelsen"
     ladder_motorway: "Motorväg"
+    ladder_line: "Motorväg utan stopp upp till {zero}, 1 stopp upp till {one}"
+    zoom: "Förstora bilden: {name}"
   detail:
     monthly: "Kostnad per månad"
     monthly_hint: "vid {km} i månaden"

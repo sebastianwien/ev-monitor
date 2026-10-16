@@ -441,6 +441,8 @@ models_ranking:
     compare_short_add: "Vergleich"
     compare_short_remove: "Im Vergleich"
     ladder_motorway: "Autobahn"
+    ladder_line: "Autobahn ohne Stopp bis {zero}, 1 Stopp bis {one}"
+    zoom: "Foto vergrößern: {name}"
   detail:
     monthly: "Kosten im Monat"
     monthly_hint: "bei {km} im Monat"

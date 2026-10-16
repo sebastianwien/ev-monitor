@@ -75,7 +75,7 @@
 
   <div id="fahrer-messen" class="mx-auto grid max-w-7xl scroll-mt-24 grid-cols-1 gap-[18px] pb-10 lg:px-6">
     <!-- Chapter 2: the drivers' figures, free for everyone. One box: title, search and chips, then the list. -->
-    <section class="mr-board grid min-w-0 bg-white pt-6 md:rounded-3xl md:edge-box md:pt-7 dark:bg-gray-900" aria-labelledby="fahrer-messen-t">
+    <section class="grid min-w-0 bg-white pt-6 md:rounded-3xl md:edge-box md:pt-7 dark:bg-gray-900" aria-labelledby="fahrer-messen-t">
       <div class="grid min-w-0 gap-3.5 px-4 md:px-7">
         <div class="grid gap-1">
           <h2 id="fahrer-messen-t" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.box_title') }}</h2>
@@ -115,24 +115,18 @@
         </p>
       </div>
 
-      <!-- Column heads (desktop only; on the phone the bars are labelled in the row).
-           .mr-grid sets display itself, so plain `hidden` would lose the cascade. -->
-      <div class="mr-grid mr-ruler mt-3 h-[38px] border-b border-gray-200 pr-4 max-lg:!hidden lg:pr-5 dark:border-gray-800" aria-hidden="true">
-        <span class="mr-who self-center text-left text-[14px] font-semibold" :class="headClass('mr-who')">{{ t('models_ranking.columns.model') }}</span>
-        <span class="mr-ld self-center text-left text-[14px] font-semibold" :class="headClass('mr-ld')">
-          {{ t('models_ranking.columns.consumption') }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ consumptionUnitLabel() }}</span>
-        </span>
-        <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, col.cls === 'mr-c4' ? 'xl:block' : 'lg:block', headClass(col.cls)]" class="hidden self-center whitespace-nowrap text-right text-[14px] font-semibold leading-tight">
-          {{ col.label }}
-        </span>
+      <!-- Column heads (desktop only; on the phone each cell names itself). Same grid as the rows;
+           .mr-row sets display itself, so plain `hidden` would lose the cascade. -->
+      <div class="mr-row mt-3 border-b border-gray-200 px-7 pb-2 max-lg:!hidden dark:border-gray-800" aria-hidden="true">
+        <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, headClass(col.cls)]" class="text-[12px] font-semibold uppercase tracking-[0.08em]">{{ col.label }}</span>
       </div>
 
       <!-- Loading: skeleton rows -->
       <ol v-if="loading" class="mt-3 list-none border-t border-gray-200 lg:mt-0 lg:border-t-0 dark:border-gray-800" aria-hidden="true">
-        <li v-for="n in LIST_PREVIEW" :key="n" class="mr-grid border-b border-gray-200 pr-4 lg:pr-5 dark:border-gray-800">
-          <span class="mr-th h-16 self-stretch bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
-          <span class="mr-who h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
-          <span class="mr-ld h-2 rounded bg-gray-200 dark:bg-gray-800 animate-pulse"></span>
+        <li v-for="n in LIST_PREVIEW" :key="n" class="mr-row border-b border-gray-200 px-4 py-3.5 md:px-7 dark:border-gray-800">
+          <span class="mr-thumb h-12 w-12 animate-pulse rounded-[10px] bg-gray-200 dark:bg-gray-800"></span>
+          <span class="mr-name h-4 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-800"></span>
+          <span class="mr-cons h-2 animate-pulse rounded bg-gray-200 dark:bg-gray-800"></span>
         </li>
       </ol>
 
@@ -283,6 +277,7 @@
     @close="closeAssumptions"
   />
   <DemoModelsModal />
+  <ImageLightbox />
 </div>
 </template>
 
@@ -313,13 +308,14 @@ import ModelRankingRow from '../components/models/ModelRankingRow.vue'
 import ModelsAnswerCard from '../components/models/ModelsAnswerCard.vue'
 import AssumptionsSheet from '../components/models/AssumptionsSheet.vue'
 import ChoiceChip from '../components/shared/ChoiceChip.vue'
+import ImageLightbox from '../components/shared/ImageLightbox.vue'
 
 const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: false })
 
 const { t, te, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const { formatNumber, formatDecimal, formatConsumption, formatDistance, consumptionUnitLabel, distanceUnitLabel, unitSystem } = useLocaleFormat()
+const { formatNumber, formatDecimal, formatConsumption, formatDistance, distanceUnitLabel, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS } = useMarketRoute()
 
 const isAuthenticated = computed(() => authStore.isAuthenticated())
@@ -503,13 +499,16 @@ const axis = computed(() => buildLadderAxis(
 ))
 // Units live in the cells next to the numbers, the heads only name the column
 const columnHeads = computed(() => [
-  { cls: 'mr-c3', label: t('models_ranking.columns.cost_per', { unit: distanceUnitLabel() }) },
-  { cls: 'mr-c4', label: t('models_ranking.columns.range') },
+  { cls: 'mr-head-model', label: t('models_ranking.columns.model') },
+  { cls: 'mr-cons', label: t('models_ranking.columns.consumption') },
+  { cls: 'mr-cost', label: t('models_ranking.columns.cost_per', { unit: distanceUnitLabel() }) },
+  { cls: 'mr-range', label: t('models_ranking.columns.range') },
 ])
 // The sorted column carries the accent; the chip names the sort, the head shows where it acts
-const SORT_COLUMN: Record<RankingSort, string> = { efficient: 'mr-ld', wltp: 'mr-ld', winter: 'mr-ld', range: 'mr-c4', data: 'mr-who' }
+const SORT_COLUMN: Record<RankingSort, string> = { efficient: 'mr-cons', wltp: 'mr-cons', winter: 'mr-cons', range: 'mr-range', data: 'mr-head-model' }
 function headClass(cls: string) {
-  return SORT_COLUMN[sort.value] === cls ? 'text-green-700 dark:text-green-400' : 'text-gray-700 dark:text-gray-300'
+  const active = sort.value === 'efficient' && cost.value.mainValue === 'cost' ? 'mr-cost' : SORT_COLUMN[sort.value]
+  return active === cls ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
 }
 
 function modelHref(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>) {
@@ -531,11 +530,6 @@ function startCompare() {
 </script>
 
 <style>
-/* Row background for the ladder halos (ring and dot), see ConsumptionLadder */
-.mr-board { --mr-surface: var(--color-gray-50); }
-.dark .mr-board { --mr-surface: var(--color-gray-950); }
-@media (min-width: 1024px) {
-  .mr-board { --mr-surface: var(--color-white); }
-  .dark .mr-board { --mr-surface: var(--color-gray-900); }
-}
+/* Column head "Modell" spans rank, photo and name */
+.mr-head-model { grid-column: rank-start / name-end; }
 </style>

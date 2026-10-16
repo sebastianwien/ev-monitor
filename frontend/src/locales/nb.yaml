@@ -401,6 +401,8 @@ models_ranking:
     compare_short_add: "Sammenlign"
     compare_short_remove: "I sammenligning"
     ladder_motorway: "Motorvei"
+    ladder_line: "Motorvei uten stopp opptil {zero}, 1 stopp opptil {one}"
+    zoom: "Forstørr bildet: {name}"
   detail:
     monthly: "Kostnad per måned"
     monthly_hint: "ved {km} i måneden"

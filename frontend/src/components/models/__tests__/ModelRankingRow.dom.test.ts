@@ -82,10 +82,67 @@ const forYou = (host: HTMLElement) => host.querySelector('[data-testid="for-you"
 const text = (el: Element | null) => (el?.textContent ?? '').replace(/\s+/g, ' ')
 
 describe('ModelRankingRow', () => {
-  it('the cost cell prices at the list price and names what the drivers pay', async () => {
-    const { host } = await mount(model({ brandDisplayName: 'Tesla', modelUrlSlug: 'Model_3', avgCostPerKwh: 0.296 }))
-    const cell = host.querySelector('[data-testid="cost-cell"]')!.textContent!.replace(/\s+/g, ' ')
-    expect(cell).toContain('Fahrer zahlen Ø 29,6 ct/kWh')
+  describe('closed row', () => {
+    it('names the model once, the brand not repeated, as a link to the model page', async () => {
+      const { host } = await mount(model({ brandDisplayName: 'Renault', modelUrlSlug: 'Renault_5' }))
+      const link = host.querySelector<HTMLAnchorElement>('[data-testid="row-name"]')!
+      expect(link.getAttribute('href')).toBe('/modelle/x/y')
+      expect(text(link).trim()).toBe('Renault 5')
+      app?.unmount(); app = null; document.body.innerHTML = ''
+      const tesla = await mount(model({ brandDisplayName: 'Tesla', modelUrlSlug: 'Model_3', contributorCount: 42, logCount: 6627 }))
+      expect(text(tesla.host.querySelector('[data-testid="row-name"]')).trim()).toBe('Tesla Model 3')
+      expect(text(tesla.host.querySelector('[data-testid="row-sub"]'))).toContain('Mittelklasse · 42 Fahrer · 6.627 Ladevorgänge')
+    })
+
+    it('the range with the motorway ladder: without a stop and with one', async () => {
+      const { host } = await mount(model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', typicalRangeMinKm: 340, typicalRangeMaxKm: 340 }))
+      const cell = text(host.querySelector('[data-testid="range-cell"]'))
+      expect(cell).toContain('340 km')
+      expect(cell).toContain('Autobahn ohne Stopp bis 330, 1 Stopp bis 610')
+    })
+
+    it('one consumption bar, drivers against WLTP below it', async () => {
+      const { host } = await mount(model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', avgConsumptionKwhPer100km: 20 }))
+      const cell = host.querySelector('[data-testid="consumption-cell"]')!
+      expect(cell.querySelectorAll('[role="img"]')).toHaveLength(1)
+      expect(text(cell)).toMatch(/Fahrer 20,0 · WLTP 16,0 kWh\/100\s?km/)
+    })
+
+    it('the cost cell: electricity at the list price, the petrol car, what the drivers pay', async () => {
+      const { host } = await mount(model({ brandDisplayName: 'Tesla', modelUrlSlug: 'Model_3', avgCostPerKwh: 0.296 }), { fuelPrice: 1.8 })
+      const lines = [...host.querySelector('[data-testid="cost-cell"]')!.children].map(c => text(c).trim())
+      expect(lines).toHaveLength(3)
+      expect(lines[0]).toMatch(/^Strom \d+,\d\d\s€$/)
+      expect(lines[1]).toMatch(/^Benziner \d+,\d\d\s€$/)
+      expect(lines[2]).toBe('Fahrer zahlen Ø 29,6 ct/kWh')
+    })
+
+    it('a photo comes with a magnifier that opens it large with its credit; without a photo, initials and no magnifier', async () => {
+      const { host } = await mount(model({ brandDisplayName: 'Opel', modelUrlSlug: 'Corsa-e', model: 'CORSA_E' }))
+      const zoom = host.querySelector<HTMLButtonElement>('[data-testid="row-zoom"]')!
+      expect(zoom.getAttribute('aria-label')).toContain('Opel Corsa-e')
+      zoom.click()
+      await nextTick()
+      const { useLightbox } = await import('../../../composables/useLightbox')
+      const { current, close } = useLightbox()
+      expect(current.value?.src).toBe('/model-images/CORSA_E.jpg')
+      expect(current.value?.credit?.text).toContain('Alexander Migl')
+      close()
+      app?.unmount(); app = null; document.body.innerHTML = ''
+      const plain = await mount(CAR)
+      expect(plain.host.querySelector('[data-testid="row-zoom"]')).toBeNull()
+      expect(text(plain.host.querySelector('[data-testid="row-initials"]')).trim()).toBe('VW')
+    })
+
+    it('compare sits at the row end on the desktop and in the open row on the phone', async () => {
+      const { host, events } = await mount(CAR, { expanded: true })
+      const desk = host.querySelector<HTMLButtonElement>('[data-testid="compare-row"]')!
+      const phone = host.querySelector<HTMLButtonElement>('[data-testid="compare-open"]')!
+      expect(desk.getAttribute('aria-pressed')).toBe('false')
+      desk.click()
+      phone.click()
+      expect(events).toEqual(['compare', 'compare'])
+    })
   })
 
   it('the closed row stays free of personal figures, with answers, signed in or not', async () => {
@@ -144,23 +201,14 @@ describe('ModelRankingRow', () => {
       expect(host.querySelector('[data-testid="single-driver-note"]')).not.toBeNull()
     })
 
-    it('ends with one way on: the model page and what only it has; no photo, no compare button', async () => {
+    it('ends with one way on: the model page and what only it has; no photo', async () => {
       const { host } = await mount(CAR, { expanded: true })
       const open = host.querySelector('[id^="mr-detail-"]')!
       const link = open.querySelector('a[href="/modelle/x/y"]')!
       expect(link.textContent).toContain('Modellseite VW ID.3')
       expect(open.textContent).toContain('Bewertungen')
       expect(open.querySelector('[data-testid="detail-photo"]')).toBeNull()
-      expect(open.querySelector('[aria-pressed]')).toBeNull()
     })
-  })
-
-  it('the phone has the compare toggle in the row itself', async () => {
-    const { host, events } = await mount(CAR)
-    const toggle = host.querySelector('[data-testid="compare-phone"]') as HTMLButtonElement
-    expect(toggle.getAttribute('aria-pressed')).toBe('false')
-    toggle.click()
-    expect(events).toEqual(['compare'])
   })
 
   it('yearly savings count the commute', async () => {

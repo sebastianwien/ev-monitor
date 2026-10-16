@@ -1,7 +1,7 @@
 <template>
-  <li class="border-b border-gray-200 dark:border-gray-800">
-    <div class="mr-grid group relative pr-4 transition-colors hover:bg-white/70 lg:pr-5 lg:hover:bg-gray-50 dark:hover:bg-gray-900/60 lg:dark:hover:bg-gray-800/60">
-      <!-- Whole row toggles the details; content sits below it, only the compare box is clickable on top. -->
+  <li class="border-b border-gray-200 dark:border-gray-800" :class="expanded ? 'bg-gray-50 dark:bg-gray-800/40' : ''">
+    <div class="mr-row group relative px-4 py-3.5 transition-colors md:px-7" :class="expanded ? '' : 'hover:bg-gray-50 dark:hover:bg-gray-800/40'">
+      <!-- Whole row toggles the details; content sits below it, only link, photo and compare are clickable on top. -->
       <button
         type="button"
         class="absolute inset-0 h-full w-full cursor-pointer focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green-600"
@@ -9,100 +9,91 @@
         :aria-controls="detailId"
         @click="emit('toggle')"
       >
-        <span class="sr-only">{{ t(expanded ? 'models_ranking.row.details_close' : 'models_ranking.row.details_open', { name: m.modelDisplayName }) }}</span>
+        <span class="sr-only">{{ t(expanded ? 'models_ranking.row.details_close' : 'models_ranking.row.details_open', { name: displayName }) }}</span>
       </button>
 
-      <!-- Photo flush with the row's left, top and bottom edge; the rank sits on it -->
-      <span class="mr-th pointer-events-none relative self-stretch overflow-hidden bg-gray-200 dark:bg-gray-800" :class="inCompare ? 'ring-2 ring-inset ring-green-600 dark:ring-green-400' : ''">
-        <img v-if="imageUrl" :src="imageUrl" alt="" loading="lazy" class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 ease-out motion-safe:group-hover:scale-105" />
-        <span v-else class="absolute inset-0 grid place-items-center text-base font-bold text-gray-500 dark:text-gray-400">{{ m.brandDisplayName.slice(0, 2) }}</span>
-        <span class="absolute left-1.5 top-1.5 rounded-md bg-gray-900/75 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-white">{{ item.rank }}</span>
-        <!-- Phone: compare sits on the photo, above the row toggle; the desktop has it at the end of the verdict line -->
+      <span class="mr-rank pointer-events-none text-[13px] font-semibold tabular-nums text-gray-500 dark:text-gray-400">{{ item.rank }}</span>
+
+      <!-- Small photo; the magnifier opens it large with its credit. Without a photo: the brand's initials. -->
+      <button
+        v-if="thumbUrl"
+        type="button"
+        class="mr-thumb relative h-12 w-12 overflow-hidden rounded-[10px] bg-gray-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-800"
+        :class="inCompare ? 'ring-2 ring-green-600 dark:ring-green-400' : ''"
+        :aria-label="t('models_ranking.row.zoom', { name: displayName })"
+        data-testid="row-zoom"
+        @click.stop="zoom"
+      >
+        <img :src="thumbUrl" alt="" loading="lazy" class="h-full w-full object-cover" />
+        <span class="absolute bottom-0.5 right-0.5 grid h-5 w-5 place-items-center rounded-full bg-gray-900/75 text-white">
+          <MagnifyingGlassPlusIcon class="h-3.5 w-3.5" stroke-width="2.25" aria-hidden="true" />
+        </span>
+      </button>
+      <span
+        v-else
+        class="mr-thumb pointer-events-none grid h-12 w-12 place-items-center rounded-[10px] bg-gray-100 text-[13px] font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+        :class="inCompare ? 'ring-2 ring-green-600 dark:ring-green-400' : ''"
+        aria-hidden="true"
+        data-testid="row-initials"
+      >{{ initials }}</span>
+
+      <!-- Name as a link for search engines and the desktop; on the phone a tap opens the row -->
+      <span class="mr-name pointer-events-none grid min-w-0 gap-0.5">
+        <a :href="href" class="line-clamp-2 text-[16px] font-semibold leading-snug lg:truncate tracking-tight text-gray-900 underline-offset-2 hover:underline lg:pointer-events-auto lg:relative dark:text-gray-100"
+           data-testid="row-name" @click.stop>{{ displayName }}</a>
+        <span class="truncate text-[12.5px] leading-snug text-gray-500 dark:text-gray-400" data-testid="row-sub">
+          {{ subLine }}<template v-if="item.singleDriver">&nbsp;</template><InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto inline h-4 w-4 align-text-bottom text-gray-400 dark:text-gray-500" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
+        </span>
+      </span>
+
+      <!-- Consumption: one bar on the scale all rows share, WLTP as a tick; the figures below it -->
+      <span class="mr-cons pointer-events-none grid min-w-0 content-start gap-1.5" data-testid="consumption-cell">
+        <span class="relative block h-2 rounded bg-gray-200 dark:bg-gray-700" role="img" :aria-label="barLabel">
+          <span v-if="realWidth != null" class="absolute inset-y-0 left-0 rounded transition-[width] duration-500 ease-out motion-reduce:transition-none" :class="barTone" :style="{ width: `${realWidth}%` }"></span>
+          <span v-if="wltpWidth != null" class="absolute -inset-y-1 w-0.5 rounded bg-gray-900 dark:bg-gray-100" :style="{ left: `calc(${wltpWidth}% - 1px)` }"></span>
+        </span>
+        <span class="text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">
+          {{ t('models_ranking.row.bar_drivers') }} <b class="text-[15px] tabular-nums" :class="colClass('consumption')">{{ realText }}</b>
+          · {{ t('models_ranking.columns.wltp') }} <span class="tabular-nums">{{ wltpText }}</span> {{ consumptionUnitLabel() }}<template v-if="winterNote"> · <span class="text-orange-700 dark:text-orange-400">{{ winterNote }}</span></template>
+        </span>
+      </span>
+
+      <!-- Cost per 100 km: electricity at the list price, the class's combustion car, what the drivers paid -->
+      <span class="mr-cost pointer-events-none grid content-start gap-0.5 text-right leading-tight lg:text-left" data-testid="cost-cell">
+        <span class="tabular-nums"><span class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('models_ranking.row.electricity') }}</span> <b class="text-[16px]" :class="colClass('cost')">{{ electricityCost }}</b></span>
+        <span v-if="combustionCaption" class="text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ combustionCaption }}</span>
+        <span v-if="driversPrice" class="text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ driversPrice }}</span>
+      </span>
+
+      <!-- Range, then the motorway ladder of the largest battery (desktop) -->
+      <span class="mr-range pointer-events-none grid content-start gap-0.5 text-right leading-tight lg:text-left" data-testid="range-cell">
+        <b class="text-[16px] tabular-nums" :class="colClass('range')">{{ rangeValue }} <span class="text-[12.5px] font-normal text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span></b>
+        <span v-if="ladderLine" class="hidden text-[12.5px] leading-snug text-gray-500 lg:block dark:text-gray-400">{{ ladderLine }}</span>
+      </span>
+
+      <!-- Desktop: compare and the open state at the end; the phone has compare in the open row -->
+      <span class="mr-act pointer-events-none hidden items-center gap-2 lg:flex">
         <button
           type="button"
-          class="pointer-events-auto absolute inset-x-0 bottom-0 flex h-9 items-center justify-center gap-1 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 lg:hidden"
-          :class="inCompare ? 'bg-green-700/90' : 'bg-gray-900/70'"
+          class="pointer-events-auto relative inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-lg border px-2.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+          :class="inCompare
+            ? 'border-green-600 bg-green-600 text-white dark:border-green-400 dark:bg-green-400 dark:text-gray-950'
+            : 'border-gray-300 bg-white text-gray-800 hover:border-green-600 hover:text-green-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200'"
           :aria-pressed="inCompare"
-          :aria-label="t(inCompare ? 'models_ranking.row.compare_remove' : 'models_ranking.row.compare_add', { name: m.modelDisplayName })"
+          :aria-label="t(inCompare ? 'models_ranking.row.compare_remove' : 'models_ranking.row.compare_add', { name: displayName })"
+          :title="!inCompare && !canAddCompare ? t('models_ranking.row.compare_full') : undefined"
           :disabled="!inCompare && !canAddCompare"
-          data-testid="compare-phone"
+          data-testid="compare-row"
           @click.stop="emit('compare')"
         >
           <CheckIcon v-if="inCompare" class="h-3.5 w-3.5" stroke-width="2.5" aria-hidden="true" />
           <PlusIcon v-else class="h-3.5 w-3.5" stroke-width="2.5" aria-hidden="true" />
           {{ t(inCompare ? 'models_ranking.row.compare_short_remove' : 'models_ranking.row.compare_short_add') }}
         </button>
-      </span>
-
-      <span class="mr-who pointer-events-none grid min-w-0 pt-4">
-        <span class="truncate font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-          <template v-if="nameRepeatsBrand">{{ modelName }}</template>
-          <template v-else>{{ m.brandDisplayName }} <span class="font-normal text-gray-500 dark:text-gray-400">{{ modelName }}</span></template>
+        <span class="grid h-9 w-9 place-items-center rounded-lg border border-gray-300 text-gray-600 dark:border-gray-700 dark:text-gray-300" aria-hidden="true">
+          <ChevronDownIcon class="h-4 w-4 transition-transform" :class="expanded ? 'rotate-180' : ''" />
         </span>
       </span>
-
-      <!-- Meta: class, cost (phone) and data basis. Own grid row so it spans the value column on the phone and wraps on the desktop. -->
-      <span class="mr-meta pointer-events-none grid min-w-0 pt-0.5 text-[13px] leading-snug text-gray-500 dark:text-gray-400">
-        <span class="truncate lg:hidden">{{ categoryLabel }} · <span data-testid="savings">{{ costVsCombustion }}</span></span>
-        <span class="hidden truncate lg:block">{{ categoryLabel }}</span>
-        <span class="truncate">
-          {{ dataBasis }}<template v-if="item.singleDriver">&nbsp;</template><InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto inline h-4 w-4 align-text-bottom text-gray-400 dark:text-gray-500" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
-        </span>
-      </span>
-
-      <!-- Desktop: compare at the end of the row's second line. The reader's own figures live in the answer card and the open row. -->
-      <span class="mr-hint pointer-events-none flex min-w-0 items-start gap-1.5 pb-4 pt-1.5 lg:pt-2">
-        <!-- Compare is an action, not a figure: a labelled button at the end of the verdict line
-             (desktop; the phone has it in the open details). It sits above the row toggle. -->
-        <button
-          type="button"
-          class="pointer-events-auto relative ml-auto hidden h-8 flex-none items-center gap-1 self-start whitespace-nowrap rounded-lg px-2.5 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 lg:inline-flex"
-          :class="inCompare
-            ? 'bg-green-600 text-white dark:bg-green-400 dark:text-gray-950'
-            : 'text-gray-500 hover:bg-green-50 hover:text-green-700 dark:text-gray-400 dark:hover:bg-green-950/40 dark:hover:text-green-400'"
-          :aria-pressed="inCompare"
-          :aria-label="t(inCompare ? 'models_ranking.row.compare_remove' : 'models_ranking.row.compare_add', { name: m.modelDisplayName })"
-          :title="!inCompare && !canAddCompare ? t('models_ranking.row.compare_full') : undefined"
-          :disabled="!inCompare && !canAddCompare"
-          @click.stop="emit('compare')"
-        >
-          <CheckIcon v-if="inCompare" class="h-3.5 w-3.5" stroke-width="2.5" aria-hidden="true" />
-          <PlusIcon v-else class="h-3.5 w-3.5" stroke-width="2.5" aria-hidden="true" />
-          {{ t(inCompare ? 'models_ranking.detail.compare_remove' : 'models_ranking.detail.compare_add') }}
-        </button>
-      </span>
-
-      <span class="mr-val pointer-events-none grid pt-4 text-right lg:hidden">
-        <b class="text-[20px] font-extrabold leading-tight tracking-tight tabular-nums" :class="mainValue.cls">{{ mainValue.value }}</b>
-        <small class="text-[11px] text-gray-500 dark:text-gray-400">{{ mainValue.unit }}</small>
-      </span>
-
-      <ConsumptionBars
-        class="mr-ld pointer-events-none pb-3.5 lg:pb-0 lg:pt-4"
-        :axis="axis"
-        :real="m.avgConsumptionKwhPer100km"
-        :wltp="item.wltpKwhPer100km"
-        :real-text="formatConsumption(m.avgConsumptionKwhPer100km, { showUnit: false })"
-        :wltp-text="formatConsumption(item.wltpKwhPer100km, { showUnit: false })"
-        :deviation-pct="item.wltpDeviationPct"
-      />
-
-      <!-- Desktop cost cell: electricity and the class's combustion car, both per 100 km -->
-      <span class="mr-c3 pointer-events-none hidden content-center gap-0.5 self-stretch lg:pt-4 whitespace-nowrap text-right leading-tight lg:grid" data-testid="cost-cell">
-        <span class="text-[17px] tabular-nums" :class="colClass('cost')">
-          <span class="mr-1 text-[12px] font-normal text-gray-500 dark:text-gray-400">{{ t('models_ranking.row.electricity') }}</span>{{ costNumber }} <span class="text-[12px] font-normal text-gray-500 dark:text-gray-400">{{ unitSystem.currencySymbol }}</span>
-        </span>
-        <span class="text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ combustionCaption }}</span>
-        <!-- what the drivers of this model paid on average: the table itself prices every model alike -->
-        <span v-if="driversPrice" class="text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">{{ driversPrice }}</span>
-      </span>
-      <!-- Desktop range cell (from 1280 px): the range, then the motorway ladder from a full battery,
-           without a stop and with one and two fast-charge stops; "up to" when it refers to the largest battery only -->
-      <span class="mr-c4 pointer-events-none hidden content-center gap-y-0.5 self-stretch xl:pt-4 whitespace-nowrap text-right leading-tight xl:grid" data-testid="range-cell">
-        <span class="tabular-nums" :class="[colClass('range'), hasBatterySpan ? 'text-[14px]' : 'text-[17px]']">{{ rangeValue }} <span class="text-[12px] font-normal text-gray-500 dark:text-gray-400">{{ distanceUnitLabel() }}</span></span>
-        <span v-for="step in rangeLadder" :key="step.label" class="text-[12.5px] tabular-nums text-gray-600 dark:text-gray-300"><span class="text-gray-500 dark:text-gray-400">{{ step.label }}</span> {{ step.value }}</span>
-      </span>
-
     </div>
 
     <ModelRankingDetail
@@ -114,8 +105,11 @@
       :longest-trip-km="longestTripKm"
       :fuel="fuel"
       :locked="locked"
+      :in-compare="inCompare"
+      :can-add-compare="canAddCompare"
       @unlock="emit('unlock')"
       @assumptions="emit('assumptions')"
+      @compare="emit('compare')"
     />
   </li>
 </template>
@@ -123,14 +117,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CheckIcon, InformationCircleIcon, PlusIcon } from '@heroicons/vue/24/outline'
-import ConsumptionBars from './ConsumptionBars.vue'
+import { CheckIcon, ChevronDownIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import ModelRankingDetail from './ModelRankingDetail.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useRankedModelText } from '../../composables/useRankedModelText'
-import { officialModelThumbUrl } from '../../config/modelImages'
+import { useLightbox } from '../../composables/useLightbox'
+import { officialModelImageAttribution, officialModelImageUrl, officialModelThumbUrl } from '../../config/modelImages'
 import { convertCostPerDistance } from '../../utils/unitConversions'
-import type { LadderAxis } from '../../utils/ladderScale'
+import { barLength, type LadderAxis } from '../../utils/ladderScale'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
 import type { FuelKind, MainValue } from '../../utils/costMix'
 
@@ -145,168 +139,126 @@ const props = defineProps<{
   href: string
   /** Electricity price in EUR/kWh the costs are based on */
   price: number
-  /** Big number under "Sparsamste": consumption or cost per 100 km */
+  /** "Sparsamste" ranks by consumption or by cost per 100 km; the column it acts on is bold */
   mainValue: MainValue
-  /** Longest trip in km, named in the hint so the reader sees their own number */
+  /** Longest trip in km, for the open row's answers */
   longestTripKm: number | null
   fuel: FuelKind
-  /** Guest: the verdict dot and a figure-free label stay, the numbers wait behind the mail gate */
+  /** Guest: the open row's answers wait behind the gate in chapter 1 */
   locked?: boolean
 }>()
 
 const emit = defineEmits<{ toggle: []; compare: []; unlock: []; assumptions: [] }>()
 
 const { t, te } = useI18n()
-const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, distanceUnitLabel, formatCurrency, formatCostPerKwh, unitSystem } = useLocaleFormat()
-const {
-  m, fmtKm, fuelLabel, costLabel, combustionCostEur, typicalSpan, hasBatterySpan, rangeValue,
-  driverCount, driversLabel, signedPct, displayWltpDeviation,
-} = useRankedModelText(() => props.item, () => props.longestTripKm, () => props.fuel)
+const { formatNumber, formatConsumption, consumptionUnitLabel, distanceUnitLabel, formatCurrency, formatCostPerKwh, unitSystem } = useLocaleFormat()
+const { m, fmtKm, fuelLabel, combustionCostEur, rangeValue, driversLabel, signedPct } =
+  useRankedModelText(() => props.item, () => props.longestTripKm, () => props.fuel)
+const lightbox = useLightbox()
 
 const detailId = computed(() => `mr-detail-${props.item.key.replace(/[^A-Za-z0-9_-]/g, '-')}`)
-const imageUrl = computed(() => officialModelThumbUrl(m.value.model))
 const modelName = computed(() => m.value.modelUrlSlug.replace(/_/g, ' '))
 // "Renault 5", "Polestar 2": the model name already carries the brand, show it once
-const nameRepeatsBrand = computed(() => modelName.value.toLowerCase().startsWith(m.value.brandDisplayName.toLowerCase()))
+const displayName = computed(() => modelName.value.toLowerCase().startsWith(m.value.brandDisplayName.toLowerCase())
+  ? modelName.value
+  : `${m.value.brandDisplayName} ${modelName.value}`)
+const initials = computed(() => m.value.brandDisplayName.slice(0, 2).toLocaleUpperCase())
 const categoryLabel = computed(() => {
   const key = `models_list.filters.categories.${m.value.category}`
   return te(key) ? t(key) : m.value.categoryDisplayName
 })
+/** "Mittelklasse · 42 Fahrer · 6.627 Ladevorgänge"; drivers missing on an older backend */
+const subLine = computed(() => [
+  categoryLabel.value,
+  driversLabel.value,
+  t('models_ranking.row.logs_plural', { count: formatNumber(m.value.logCount) }, m.value.logCount),
+].filter(Boolean).join(' · '))
 
-// Data basis: "from 412 charging sessions by 9 drivers". Counts missing on an older backend → sessions only.
-const dataBasis = computed(() => {
-  const logs = t('models_ranking.row.logs_plural', { count: formatNumber(m.value.logCount) }, m.value.logCount)
-  return driverCount.value != null
-    ? t('models_ranking.row.data_basis', { logs, drivers: driversLabel.value })
-    : t('models_ranking.row.logs', { count: formatNumber(m.value.logCount) })
-})
+// ── Photo ──────────────────────────────────────────────────────────────────
+const thumbUrl = computed(() => officialModelThumbUrl(m.value.model))
+function zoom() {
+  const src = officialModelImageUrl(m.value.model)
+  if (!src) return
+  const credit = officialModelImageAttribution(m.value.model)
+  lightbox.open([{
+    src, alt: displayName.value,
+    credit: credit ? { text: t('models_ranking.detail.photo_credit', { author: credit.author, license: credit.license }), href: credit.sourceUrl } : undefined,
+  }])
+}
 
-const costNumber = computed(() => props.item.costPer100kmEur != null
-  ? formatDecimal(convertCostPerDistance(props.item.costPer100kmEur, unitSystem.value), 2)
+// ── Consumption ────────────────────────────────────────────────────────────
+const realWidth = computed(() => barLength(m.value.avgConsumptionKwhPer100km, props.axis))
+const wltpWidth = computed(() => barLength(props.item.wltpKwhPer100km, props.axis))
+const realText = computed(() => formatConsumption(m.value.avgConsumptionKwhPer100km, { showUnit: false }))
+const wltpText = computed(() => formatConsumption(props.item.wltpKwhPer100km, { showUnit: false }))
+// Colour in kWh space: above WLTP is worse (orange), below is better (green)
+const barTone = computed(() => (props.item.wltpDeviationPct ?? 0) > 0 ? 'bg-orange-500 dark:bg-orange-400' : 'bg-green-600 dark:bg-green-500')
+const barLabel = computed(() => `${t('models_ranking.row.bar_drivers')} ${realText.value}, ${t('models_ranking.columns.wltp')} ${wltpText.value} ${consumptionUnitLabel()}`)
+/** Sorted by "Winterfest": the row names its winter surcharge */
+const winterNote = computed(() => props.sort === 'winter' && props.item.winterSurchargePct != null
+  ? `${signedPct(props.item.winterSurchargePct)} ${t('models_ranking.row.in_winter')}`
+  : '')
+
+// ── Cost ───────────────────────────────────────────────────────────────────
+/** "5,93 €": per 100 km of the market's unit, the column head names the distance */
+const electricityCost = computed(() => props.item.costPer100kmEur != null
+  ? formatCurrency(convertCostPerDistance(props.item.costPer100kmEur, unitSystem.value))
   : '–')
-
-// Phone meta line: "3,22 €/100km (Benziner 15,05)"
-const costVsCombustion = computed(() => combustionCostEur.value != null
-  ? t('models_ranking.row.cost_vs_combustion', {
-      cost: costLabel.value,
-      fuel: fuelLabel.value,
-      combustion: formatDecimal(convertCostPerDistance(combustionCostEur.value, unitSystem.value), 2),
-    })
-  : costLabel.value)
-// Desktop cost cell: "Fahrer zahlen Ø 29,6 ct/kWh", the drivers' own average next to the list price
-const driversPrice = computed(() => m.value.avgCostPerKwh != null
-  ? t('models_ranking.row.drivers_price', { price: formatCostPerKwh(m.value.avgCostPerKwh) })
-  : null)
-// Desktop cost cell caption: "Benziner 14,62 €" (the litres per class sit in the detail and the sheet)
+/** "Benziner 14,62 €": the class's combustion car per 100 km */
 const combustionCaption = computed(() => combustionCostEur.value != null
   ? t('models_ranking.row.combustion_short', {
       fuel: fuelLabel.value,
       amount: formatCurrency(convertCostPerDistance(combustionCostEur.value, unitSystem.value)),
     })
   : '')
+/** "Fahrer zahlen Ø 29,6 ct/kWh": the drivers' own average next to the list price */
+const driversPrice = computed(() => m.value.avgCostPerKwh != null
+  ? t('models_ranking.row.drivers_price', { price: formatCostPerKwh(m.value.avgCostPerKwh) })
+  : null)
 
-// Motorway ladder of the largest battery, from the server: from 100 % without a stop, then each stop
-// 10 to 80 %, the same rule as the stops of the longest trip
-const rangeLadder = computed(() => {
+// ── Range ──────────────────────────────────────────────────────────────────
+/** Motorway from a full battery, largest battery: "Autobahn ohne Stopp bis 310, 1 Stopp bis 550" */
+const ladderLine = computed(() => {
   const l = props.item.ladder
-  if (!l) return []
-  const upto = (km: number) => hasBatterySpan.value ? t('models_ranking.row.ladder_upto', { value: fmtKm(km) }) : fmtKm(km)
-  return [
-    { label: t('models_ranking.row.ladder_motorway'), value: upto(l.zeroStopKm) },
-    ...[1, 2].map(n => ({ label: t('models_ranking.row.ladder_stops', { count: formatNumber(n) }, n), value: upto(n === 1 ? l.oneStopKm : l.twoStopsKm) })),
-  ]
-})
-// Colour always in kWh space: above WLTP is worse (orange), below is better (green)
-const deviationClass = computed(() => {
-  const d = props.item.wltpDeviationPct
-  if (d == null) return ''
-  return d > 0 ? 'text-orange-700 dark:text-orange-400' : 'text-green-700 dark:text-green-400'
+  return l ? t('models_ranking.row.ladder_line', { zero: fmtKm(l.zeroStopKm), one: fmtKm(l.oneStopKm) }) : ''
 })
 
-const mainValue = computed(() => {
-  const na = { value: '–', unit: t('models_ranking.row.no_value'), cls: '' }
-  switch (props.sort) {
-    case 'range':
-      if (typicalSpan.value) {
-        return { value: fmtKm(typicalSpan.value.hi), unit: `${distanceUnitLabel()}, ${t('models_ranking.row.typical_range')}`, cls: '' }
-      }
-      return m.value.realRangeKm != null
-        ? { value: fmtKm(m.value.realRangeKm), unit: `${distanceUnitLabel()} ${t('models_ranking.row.real_range')}`, cls: '' }
-        : na
-    case 'wltp':
-      return displayWltpDeviation.value != null
-        ? { value: signedPct(displayWltpDeviation.value), unit: t('models_ranking.row.to_wltp'), cls: deviationClass.value }
-        : na
-    case 'winter':
-      return props.item.winterSurchargePct != null
-        ? { value: signedPct(props.item.winterSurchargePct), unit: t('models_ranking.row.in_winter'), cls: 'text-orange-700 dark:text-orange-400' }
-        : { ...na, unit: t('models_ranking.row.no_season') }
-    case 'data':
-      return { value: formatNumber(m.value.logCount), unit: t('models_list.card.charging_sessions'), cls: '' }
-    default:
-      if (props.mainValue === 'cost') {
-        return props.item.costPer100kmEur != null
-          ? { value: costNumber.value, unit: `${unitSystem.value.currencySymbol} ${t('models_ranking.row.per_100', { unit: distanceUnitLabel() })}`, cls: '' }
-          : na
-      }
-      return { value: formatConsumption(m.value.avgConsumptionKwhPer100km, { showUnit: false }), unit: consumptionUnitLabel(), cls: '' }
-  }
-})
-
-function colClass(column: RankingSort | 'cost' | null): string {
-  const active = column === props.sort || (column === 'cost' && props.sort === 'efficient' && props.mainValue === 'cost')
-  return active
-    ? 'font-bold text-gray-900 dark:text-gray-100'
-    : 'font-medium text-gray-700 dark:text-gray-300'
+function colClass(column: 'consumption' | 'cost' | 'range'): string {
+  const s = props.sort
+  const active = column === 'range' ? s === 'range'
+    : column === 'cost' ? s === 'efficient' && props.mainValue === 'cost'
+      : (s === 'efficient' && props.mainValue !== 'cost') || s === 'wltp' || s === 'winter'
+  return active ? 'font-extrabold text-gray-900 dark:text-gray-100' : 'font-semibold text-gray-800 dark:text-gray-200'
 }
-
 </script>
 
 <style>
-/* Shared row grid, also used by the axis ruler in PublicModelsListViewV2 (not scoped on purpose).
-   Mobile: rank, thumb, name, value on top, the ladder below across the full width.
-   Desktop: one line per model with ladder and value columns. */
-.mr-grid {
+/* Shared row grid, also used by the column heads in PublicModelsListViewV2 (not scoped on purpose).
+   Phone: rank, photo, name and range on top; the bar and the cost below.
+   Desktop (lg): one line per model, compare and the open state at the end. */
+.mr-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) auto;
-  grid-template-areas: "th who val" "th meta meta" "th hint hint" ". ld ld";
+  grid-template-columns: 16px 48px minmax(0, 1fr) auto;
+  grid-template-areas: "rank thumb name range" "cons cons cons cost";
   column-gap: 10px;
-  row-gap: 4px;
+  row-gap: 12px;
   align-items: center;
 }
-.mr-grid.mr-ruler { grid-template-areas: ". ld ld"; row-gap: 0; }
-.mr-th { grid-area: th; }
-.mr-meta { grid-area: meta; }
-.mr-who { grid-area: who; }
-.mr-val { grid-area: val; }
-.mr-hint { grid-area: hint; }
-.mr-ld { grid-area: ld; }
-.mr-c3 { grid-area: c3; }
-.mr-c4 { grid-area: c4; }
-/* Desktop: name block wide enough for the meta line, the hint runs across the whole row.
-   The bar pair (manufacturer vs. drivers) carries the consumption, then the cost cell and
-   from 1280 px the range cell; below that the board next to the filter column is too
-   narrow for it. 626 px of content at 1024 px. */
+.mr-rank { grid-area: rank; }
+.mr-thumb { grid-area: thumb; }
+.mr-name { grid-area: name; }
+.mr-cons { grid-area: cons; align-self: start; }
+.mr-cost { grid-area: cost; align-self: start; }
+.mr-range { grid-area: range; }
+.mr-act { grid-area: act; }
 @media (min-width: 1024px) {
-  .mr-grid {
-    grid-template-columns: 112px minmax(160px, 1fr) minmax(210px, 1fr) 120px;
-    grid-template-areas: "th who ld c3" "th meta ld c3" "th hint hint hint";
-    column-gap: 8px;
-    row-gap: 2px;
+  .mr-row {
+    grid-template-columns: 20px 48px minmax(0, 1.25fr) minmax(0, 1.1fr) 172px minmax(0, 1fr) auto;
+    grid-template-areas: "rank thumb name cons cost range act";
+    column-gap: 16px;
     align-items: start;
   }
-  .mr-grid.mr-ruler {
-    grid-template-areas: ". who ld c3";
-  }
-}
-@media (min-width: 1280px) {
-  .mr-grid {
-    grid-template-columns: 128px minmax(226px, 1fr) minmax(236px, 1fr) 124px 124px;
-    column-gap: 10px;
-    grid-template-areas: "th who ld c3 c4" "th meta ld c3 c4" "th hint hint hint hint";
-  }
-  .mr-grid.mr-ruler {
-    grid-template-areas: ". who ld c3 c4";
-  }
+  .mr-rank, .mr-thumb, .mr-name, .mr-act { align-self: center; }
+  .mr-range { align-self: start; }
 }
 </style>

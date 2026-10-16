@@ -3,6 +3,8 @@ import { ref, computed, readonly } from 'vue'
 export interface LightboxImage {
     src: string
     alt: string
+    /** Bildnachweis unter dem Bild, Pflicht bei CC-Fotos */
+    credit?: { text: string; href: string }
 }
 
 // Modul-weiter Singleton-State: es gibt genau ein Lightbox-Overlay auf der Seite,

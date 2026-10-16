@@ -33,14 +33,18 @@
           <ChevronLeftIcon class="h-7 w-7 sm:h-8 sm:w-8" />
         </button>
 
-        <!-- Image -->
-        <img
-          :src="current.src"
-          :alt="current.alt"
-          class="max-h-[88vh] max-w-[92vw] object-contain rounded-lg shadow-2xl select-none"
-          draggable="false"
-          @click.stop
-        />
+        <!-- Image, with its credit when the licence asks for one -->
+        <figure class="grid justify-items-center gap-2" @click.stop>
+          <img
+            :src="current.src"
+            :alt="current.alt"
+            class="max-h-[82vh] max-w-[92vw] object-contain rounded-lg shadow-2xl select-none"
+            draggable="false"
+          />
+          <figcaption v-if="current.credit" class="text-[12px] text-white/80">
+            <a :href="current.credit.href" target="_blank" rel="noopener" class="underline-offset-2 hover:underline">{{ current.credit.text }}</a>
+          </figcaption>
+        </figure>
 
         <!-- Next -->
         <button
@@ -76,6 +80,8 @@ const { isOpen, images, index, current, hasMultiple, close, next, prev } = useLi
 
 const closeBtn = ref<HTMLButtonElement | null>(null)
 let prevOverflow = ''
+/** The control that opened the lightbox gets the focus back on close */
+let opener: HTMLElement | null = null
 let touchStartX = 0
 
 function onKeydown(e: KeyboardEvent) {
@@ -96,6 +102,7 @@ function onTouchEnd(e: TouchEvent) {
 // Zustand keine Listener/Locks haengen bleiben (kein Leak).
 watch(isOpen, (open) => {
   if (open) {
+    opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     window.addEventListener('keydown', onKeydown)
@@ -103,6 +110,8 @@ watch(isOpen, (open) => {
   } else {
     document.body.style.overflow = prevOverflow
     window.removeEventListener('keydown', onKeydown)
+    opener?.focus()
+    opener = null
   }
 })
 

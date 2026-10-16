@@ -438,6 +438,8 @@ models_ranking:
     compare_short_add: "Compare"
     compare_short_remove: "Comparing"
     ladder_motorway: "Motorway"
+    ladder_line: "Motorway without a stop up to {zero}, 1 stop up to {one}"
+    zoom: "Enlarge photo: {name}"
   detail:
     monthly: "Cost a month"
     monthly_hint: "at {km} a month"

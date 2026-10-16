@@ -72,7 +72,20 @@
       </div>
     </section>
 
-    <!-- 3. One way on: the model page, and what only it has -->
+    <!-- 3. One way on: the model page, and what only it has. The phone compares from here. -->
+    <button
+      type="button"
+      class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-2 px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-40 lg:hidden"
+      :class="inCompare ? 'border-green-600 bg-green-600 text-white dark:border-green-400 dark:bg-green-400 dark:text-gray-950' : 'border-gray-900 bg-white text-gray-900 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-100'"
+      :aria-pressed="inCompare"
+      :disabled="!inCompare && !canAddCompare"
+      data-testid="compare-open"
+      @click="emit('compare')"
+    >
+      <CheckIcon v-if="inCompare" class="h-4 w-4" stroke-width="2.5" aria-hidden="true" />
+      <PlusIcon v-else class="h-4 w-4" stroke-width="2.5" aria-hidden="true" />
+      {{ t(inCompare ? 'models_ranking.detail.compare_remove' : 'models_ranking.detail.compare_add') }}
+    </button>
     <div class="grid gap-2 md:flex md:items-center md:justify-between md:gap-4">
       <p class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ t('models_ranking.detail.model_page_more') }}</p>
       <a :href="href" class="btn-3d cta-shadow-sm inline-flex min-h-11 flex-none items-center justify-center gap-2 whitespace-nowrap rounded-xl border-2 border-gray-900 bg-green-600 px-4 font-bold text-white hover:bg-green-700 dark:border-gray-200" @click="analytics.track('ranking_model_page')">
@@ -90,7 +103,7 @@
 <script setup lang="ts">
 import { computed, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowRightIcon, BanknotesIcon, BoltIcon, InformationCircleIcon, LockClosedIcon, MapIcon } from '@heroicons/vue/24/outline'
+import { ArrowRightIcon, BanknotesIcon, BoltIcon, CheckIcon, InformationCircleIcon, LockClosedIcon, MapIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useRankedModelText } from '../../composables/useRankedModelText'
 import { officialModelImageAttribution } from '../../config/modelImages'
@@ -110,9 +123,11 @@ const props = defineProps<{
   fuel: FuelKind
   /** Guest: the answers wait behind the mail gate */
   locked?: boolean
+  inCompare?: boolean
+  canAddCompare?: boolean
 }>()
 
-const emit = defineEmits<{ unlock: []; assumptions: [] }>()
+const emit = defineEmits<{ unlock: []; assumptions: []; compare: [] }>()
 
 const { t } = useI18n()
 const { formatNumber, formatDecimal, formatConsumption, consumptionUnitLabel, convertConsumption, distanceUnitLabel, formatCostPerKwh, formatCurrency, unitSystem } = useLocaleFormat()
