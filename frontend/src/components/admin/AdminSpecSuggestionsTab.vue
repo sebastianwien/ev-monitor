@@ -127,8 +127,10 @@ function replaceRow(m: ModelGroup, row: SpecRow) {
         : { ...x, rows: x.rows.some(r => r.id === row.id) ? x.rows.map(r => r.id === row.id ? row : r) : [...x.rows, row] })
 }
 
+/** Werte vom Eintrag über die Basis legen; leere Werte lassen die Basis stehen, nur ein leeres Bis heißt offen. */
 function entryCommand(base: SpecRow, e: Entry): SpecCommand {
-    return { ...toCommand(base), ...(loaded(e) ?? {}), availableFrom: e.availableFrom ?? base.availableFrom, availableTo: e.availableTo, sourceUrl: e.sourceUrl }
+    const filled = Object.fromEntries(Object.entries(loaded(e) ?? {}).filter(([, v]) => v != null))
+    return { ...toCommand(base), ...filled, availableFrom: e.availableFrom ?? base.availableFrom, availableTo: e.availableTo, sourceUrl: e.sourceUrl }
 }
 
 async function run(m: ModelGroup, failText: string, fn: () => Promise<void>) {
@@ -144,7 +146,7 @@ async function run(m: ModelGroup, failText: string, fn: () => Promise<void>) {
     }
 }
 
-/** Zielzeile auf den Eintrag setzen: Zeitraum und Quelle immer, Zahlen nur, wenn geladen. */
+/** Zielzeile auf den Eintrag setzen: Zeitraum und Quelle immer, Zahlen nur, wenn geladen und nicht leer. */
 const apply = (m: ModelGroup, t: SpecRow, e: Entry) => run(m, 'Speichern fehlgeschlagen.', async () => {
     const result = await adminVehicleSpecService.update(t.id, entryCommand(t, e))
     replaceRow(m, result.row)

@@ -96,6 +96,17 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(remove).toHaveBeenCalledWith('neu', 'Vorschlag zurückgenommen')
     })
 
+    it('leere Werte vom Eintrag überschreiben die Zielzeile nicht, nur ein leeres Bis heißt offen', async () => {
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => url.startsWith('http://localhost:8766/spec')
+            ? { ok: true, json: async () => ({ ...detail, officialRangeKm: null, officialConsumptionKwhPer100km: null }) }
+            : { ok: true, json: async () => ({ ...file, _models: { ID_3: [{ ...entries[0], availableFrom: null, availableTo: null }] } }) }))
+        const host = await mount()
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        btns(host, 'Werte laden')[0].click(); await tick(); await tick()
+        btns(host, 'Übernehmen')[0].click(); await tick()
+        expect(update.mock.calls[0][1]).toMatchObject({ officialRangeKm: 426, officialConsumptionKwhPer100km: 15.5, availableFrom: '2020-07-01', availableTo: null })
+    })
+
     it('Rückgängig nach Übernehmen schreibt den alten Stand der Zielzeile zurück', async () => {
         const host = await mount()
         radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
