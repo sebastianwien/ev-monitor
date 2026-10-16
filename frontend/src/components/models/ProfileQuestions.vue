@@ -9,13 +9,11 @@
     </div>
     <div v-if="priorities?.length" class="grid gap-2 md:flex md:items-center md:gap-4" data-testid="profile-priority">
       <span :id="priorityId" class="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{{ t('profile.priority_question') }}</span>
-      <div class="grid grid-flow-col gap-1 rounded-xl bg-gray-100 p-1 md:w-max dark:bg-gray-800" role="group" :aria-labelledby="priorityId">
-        <button v-for="p in priorities" :key="p" type="button" :aria-pressed="priority === p" :data-testid="`priority-${p}`"
-                class="min-h-11 rounded-lg px-4 text-[14px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                :class="priority === p ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-950 dark:text-gray-100' : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'"
-                @click="emit('update:priority', p)">
+      <div class="flex flex-wrap gap-2" role="group" :aria-labelledby="priorityId">
+        <ChoiceChip v-for="p in priorities" :key="p" :active="priority === p" :data-testid="`priority-${p}`" size="lg"
+                    @click="emit('update:priority', p)">
           {{ t(`profile.priority_${p}`) }}
-        </button>
+        </ChoiceChip>
       </div>
     </div>
   </div>
@@ -25,6 +23,7 @@
 import { useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ProfileSlider from './ProfileSlider.vue'
+import ChoiceChip from '../shared/ChoiceChip.vue'
 import type { ProfileSliderItem } from '../../composables/useProfileSliders'
 import type { ProfileKey } from '../../utils/drivingProfile'
 import type { RankingPriority } from '../../utils/rankingAnswers'

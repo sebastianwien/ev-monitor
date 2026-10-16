@@ -212,6 +212,8 @@ html {
 .cta-shadow-sm { box-shadow: 2px 2px 0 0 #111827 !important; }
 .dark .cta-shadow-sm { box-shadow: 2px 2px 0 0 #000000 !important; }
 .cta-shadow-sm:active { box-shadow: 0 0 0 0 #111827 !important; transform: translate(2px, 2px); }
+/* A chosen chip stays pressed in (ChoiceChip) */
+.cta-shadow-sm.active { box-shadow: 0 0 0 0 #111827 !important; transform: translate(2px, 2px); }
 /* Clickable 3D card (model tiles): cta shadow + hover-lift + press.
    Use together with .no-press so the legacy section-button rule doesn't fight it. */
 .cta-card {

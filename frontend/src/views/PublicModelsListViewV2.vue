@@ -91,16 +91,9 @@
       <div>
         <p class="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400">{{ t('models_ranking.filters.category') }}</p>
         <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 py-0.5 lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0" role="group" :aria-label="t('models_ranking.filters.category')">
-          <button
-            v-for="c in categoryChips"
-            :key="c.key ?? 'all'"
-            type="button"
-            :aria-pressed="category === c.key"
-            :class="chipClass(category === c.key)"
-            @click="category = c.key"
-          >
+          <ChoiceChip v-for="c in categoryChips" :key="c.key ?? 'all'" :active="category === c.key" @click="category = c.key">
             {{ c.label }}<span class="text-xs tabular-nums opacity-65">{{ c.count }}</span>
-          </button>
+          </ChoiceChip>
         </div>
       </div>
 
@@ -110,19 +103,11 @@
     <section class="mr-board min-w-0 scroll-mt-24 lg:overflow-clip lg:rounded-2xl lg:edge-box lg:bg-white dark:lg:bg-gray-900" :aria-label="t('models_ranking.sort.label')">
       <div class="sticky z-20 border-b border-gray-200 bg-gray-50 px-4 pt-2.5 lg:px-5 lg:pt-3 dark:border-gray-800 dark:bg-gray-950 lg:bg-white dark:lg:bg-gray-900" :class="stickyTopClass">
         <div class="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 lg:mx-0 lg:px-0 lg:pb-2.5" role="group" :aria-label="t('models_ranking.sort.label')">
-          <button
-            v-for="s in RANKING_SORTS"
-            :key="s"
-            type="button"
-            :aria-pressed="sort === s"
-            :class="chipClass(sort === s, true)"
-            @click="sort = s"
-          >{{ t(`models_ranking.sort.${s}`) }}</button>
+          <ChoiceChip v-for="s in RANKING_SORTS" :key="s" size="sm" :active="sort === s" @click="sort = s">{{ t(`models_ranking.sort.${s}`) }}</ChoiceChip>
           <button
             ref="assumptionsChip"
             type="button"
-            :class="chipClass(false, true)"
-            class="ml-auto border border-dashed border-gray-400 !bg-transparent dark:border-gray-600"
+            class="ml-auto inline-flex min-h-9 flex-none items-center whitespace-nowrap rounded-full border border-dashed border-gray-400 px-3.5 text-[13.5px] font-medium text-gray-800 dark:border-gray-600 dark:text-gray-200"
             aria-haspopup="dialog"
             :aria-expanded="assumptionsOpen"
             data-testid="assumptions-chip"
@@ -233,7 +218,7 @@
     <section v-if="brands.length" :aria-label="t('models_ranking.brands_title')">
       <h2 class="mb-3 text-[22px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.brands_title') }}</h2>
       <nav class="flex flex-wrap gap-2">
-        <a v-for="b in brands" :key="b" :href="`${modelsBaseUrl}/${b}`" class="inline-flex min-h-10 items-center rounded-lg border border-gray-200 bg-white px-3.5 text-sm font-medium text-gray-900 hover:border-green-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100">{{ b }}</a>
+        <ChoiceChip v-for="b in brands" :key="b" :href="`${modelsBaseUrl}/${b}`">{{ b }}</ChoiceChip>
       </nav>
     </section>
 
@@ -319,6 +304,7 @@ import DemoModelsModal from '../components/demo/DemoModelsModal.vue'
 import ModelRankingRow from '../components/models/ModelRankingRow.vue'
 import ModelsAnswerCard from '../components/models/ModelsAnswerCard.vue'
 import AssumptionsSheet from '../components/models/AssumptionsSheet.vue'
+import ChoiceChip from '../components/shared/ChoiceChip.vue'
 
 const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: false })
 
@@ -407,16 +393,6 @@ const categoryChips = computed(() => {
       .filter(c => c.count > 0),
   ]
 })
-
-function chipClass(active: boolean, compact = false) {
-  return [
-    'inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 font-medium',
-    compact ? 'min-h-9 text-[13.5px]' : 'min-h-10 text-sm',
-    active
-      ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-      : 'bg-gray-200/70 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
-  ]
-}
 
 // ── Chapter 1: the answer card and the list point at each other ─────────────
 const answerCard = ref<InstanceType<typeof ModelsAnswerCard> | null>(null)
