@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
+import { ArrowUturnLeftIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
 import { adminVehicleSpecService, apiErrorText, type ModelGroup, type SpecCommand, type SpecRow } from '../../api/adminVehicleSpecService'
 
 /**
@@ -44,7 +44,39 @@ onMounted(async () => {
     }
 })
 
-const byStart = <T extends { availableFrom: string | null }>(a: T, b: T) => (a.availableFrom ?? '0000').localeCompare(b.availableFrom ?? '0000')
+const loaded = (e: Entry): Values | null => { const v = values.value[e.sourceUrl]; return v && typeof v === 'object' ? v : null }
+
+/** Sortierung per Spaltenkopf, gilt für alle Modelle und für beide Hälften; leere Werte immer unten. */
+type SortKey = 'name' | 'trim' | 'brutto' | 'netto' | 'range' | 'cons' | 'from' | 'to' | 'cars'
+const sort = ref<{ key: SortKey; dir: 1 | -1 }>({ key: 'from', dir: 1 })
+function sortBy(key: SortKey) {
+    sort.value = sort.value.key === key ? { key, dir: sort.value.dir === 1 ? -1 : 1 } : { key, dir: 1 }
+}
+const ariaSort = (key: SortKey) => sort.value.key !== key ? 'none' : sort.value.dir === 1 ? 'ascending' : 'descending'
+const COLUMNS: { key: SortKey; label: string; right?: boolean }[] = [
+    { key: 'name', label: 'Variante' }, { key: 'trim', label: 'Trim' }, { key: 'brutto', label: 'Brutto', right: true },
+    { key: 'netto', label: 'Netto', right: true }, { key: 'range', label: 'Reichweite', right: true }, { key: 'cons', label: 'Verbrauch', right: true },
+    { key: 'from', label: 'Ab' }, { key: 'to', label: 'Bis' }, { key: 'cars', label: 'Autos', right: true },
+]
+function compare(a: string | number | null | undefined, b: string | number | null | undefined): number {
+    const ea = a == null || a === '', eb = b == null || b === ''
+    if (ea || eb) return ea === eb ? 0 : ea ? 1 : -1
+    const c = typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b), 'de', { numeric: true })
+    return c * sort.value.dir
+}
+const ourValue = (r: SpecRow, k: SortKey) => ({
+    name: r.variantName, trim: r.trimLevel, brutto: r.batteryCapacityKwh, netto: r.netBatteryCapacityKwh, range: r.officialRangeKm,
+    cons: r.officialConsumptionKwhPer100km, from: r.availableFrom, to: r.availableTo ?? '9999-12-31', cars: r.activeCars,
+})[k]
+const entryValue = (e: Entry, k: SortKey) => {
+    const v = loaded(e)
+    return ({
+        name: e.label, trim: null, brutto: v?.batteryCapacityKwh ?? e.battery, netto: v?.netBatteryCapacityKwh ?? e.battery, range: v?.officialRangeKm,
+        cons: v?.officialConsumptionKwhPer100km, from: e.availableFrom, to: e.availableTo ?? '9999-12-31', cars: null,
+    } as Record<SortKey, string | number | null | undefined>)[k]
+}
+const byOurs = (a: SpecRow, b: SpecRow) => compare(ourValue(a, sort.value.key), ourValue(b, sort.value.key)) || compare(a.availableFrom, b.availableFrom)
+const byEntries = (a: Entry, b: Entry) => compare(entryValue(a, sort.value.key), entryValue(b, sort.value.key)) || compare(a.availableFrom, b.availableFrom)
 const matches = (text: string | null | undefined) => !filter.value.trim() || (text ?? '').toLowerCase().includes(filter.value.trim().toLowerCase())
 
 /** Einmal je Datenstand berechnet: je Modell unsere Zeilen und die Einträge, gefiltert und nach Start sortiert. */
@@ -55,8 +87,8 @@ const sections = computed(() => models.value
         const linked = new Map(m.rows.filter(r => r.sourceUrl).map(r => [r.sourceUrl as string, r]))
         return {
             m,
-            ours: m.rows.filter(r => matches(r.variantName) || matches(r.trimLevel)).sort(byStart),
-            entries: (entriesByModel.value?.[m.carModel] ?? []).filter(e => matches(e.label)).sort(byStart),
+            ours: m.rows.filter(r => matches(r.variantName) || matches(r.trimLevel)).sort(byOurs),
+            entries: (entriesByModel.value?.[m.carModel] ?? []).filter(e => matches(e.label)).sort(byEntries),
             linked,
             target: m.rows.find(r => r.id === targetId.value[m.carModel]) ?? null,
         }
@@ -73,7 +105,6 @@ function toCommand(r: SpecRow): SpecCommand {
     }
 }
 
-const loaded = (e: Entry): Values | null => { const v = values.value[e.sourceUrl]; return v && typeof v === 'object' ? v : null }
 const usedKey = (m: ModelGroup, e: Entry) => `${m.carModel}|${e.sourceUrl}`
 
 /** Zahlen aller Einträge eines Modells vom lokalen Helfer holen, nacheinander, nur auf Klick. */
@@ -177,15 +208,13 @@ const num = 'py-1.5 pr-3 text-right'
         <table class="w-full text-sm tabular-nums">
           <thead class="text-xs text-gray-400">
             <tr class="text-left">
-              <th class="py-1 pr-3 pl-2 font-normal">Variante</th>
-              <th class="py-1 pr-3 font-normal">Trim</th>
-              <th class="py-1 pr-3 font-normal text-right">Brutto</th>
-              <th class="py-1 pr-3 font-normal text-right">Netto</th>
-              <th class="py-1 pr-3 font-normal text-right">Reichweite</th>
-              <th class="py-1 pr-3 font-normal text-right">Verbrauch</th>
-              <th class="py-1 pr-3 font-normal">Ab</th>
-              <th class="py-1 pr-3 font-normal">Bis</th>
-              <th class="py-1 pr-3 font-normal text-right">Autos</th>
+              <th v-for="(c, ci) in COLUMNS" :key="c.key" class="py-1 pr-3 font-normal" :class="[ci === 0 ? 'pl-2' : '', c.right ? 'text-right' : '']" :aria-sort="ariaSort(c.key)">
+                <button type="button" class="inline-flex items-center gap-1 hover:text-gray-200" :class="sort.key === c.key ? 'text-gray-200' : ''" @click="sortBy(c.key)">
+                  {{ c.label }}
+                  <ChevronUpIcon v-if="sort.key === c.key && sort.dir === 1" class="w-3 h-3" aria-hidden="true" />
+                  <ChevronDownIcon v-else-if="sort.key === c.key" class="w-3 h-3" aria-hidden="true" />
+                </button>
+              </th>
               <th class="py-1 pr-3 font-normal">Quelle</th>
               <th class="py-1 font-normal"></th>
             </tr>
@@ -212,7 +241,7 @@ const num = 'py-1.5 pr-3 text-right'
               </td>
             </tr>
             <tr><td colspan="11" class="pt-3 pb-1 pl-2 text-xs text-gray-500">ev-database</td></tr>
-            <tr v-for="e in entries" :key="e.sourceUrl" class="border-t border-gray-700/60">
+            <tr v-for="e in entries" :key="e.sourceUrl" data-entry class="border-t border-gray-700/60">
               <td :class="cell" class="pl-2">{{ e.label }}</td>
               <td :class="cell"></td>
               <template v-if="loaded(e)">

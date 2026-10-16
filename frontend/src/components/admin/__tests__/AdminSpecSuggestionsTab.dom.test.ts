@@ -107,6 +107,21 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(host.textContent).toContain('verknüpft')
     })
 
+    it('Spaltenkopf sortiert beide Hälften, zweiter Klick dreht die Richtung', async () => {
+        const host = await mount()
+        const cars = () => [...host.querySelectorAll('td[data-cars]')].map(td => td.textContent?.trim())
+        const head = (label: string) => [...host.querySelectorAll('th button')].find(b => b.textContent?.includes(label)) as HTMLButtonElement
+        head('Autos').click(); await nextTick()
+        expect(cars()).toEqual(['3', '4'])
+        expect(head('Autos').closest('th')?.getAttribute('aria-sort')).toBe('ascending')
+        head('Autos').click(); await nextTick()
+        expect(cars()).toEqual(['4', '3'])
+        expect(head('Autos').closest('th')?.getAttribute('aria-sort')).toBe('descending')
+        head('Variante').click(); head('Variante').click(); await nextTick()
+        const labels = [...host.querySelectorAll('tr[data-entry] td:first-child')].map(td => td.textContent?.trim())
+        expect(labels).toEqual(['ID.3 Pro S', 'ID.3 Pro'])
+    })
+
     it('ohne Vorschlagsdatei nur ein Hinweis, kein Fehler', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404 }))
         const host = await mount()
