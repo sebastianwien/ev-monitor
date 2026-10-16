@@ -9,6 +9,7 @@ const update = vi.fn()
 const changes = vi.fn()
 const reassignCandidates = vi.fn()
 const assignCar = vi.fn()
+const carsOfSpec = vi.fn()
 const listRequests = vi.fn()
 const markRequestDone = vi.fn()
 vi.mock('../../../api/adminVehicleSpecService', async () => {
@@ -23,6 +24,7 @@ vi.mock('../../../api/adminVehicleSpecService', async () => {
             changes: (id: string) => changes(id),
             reassignCandidates: (m: string) => reassignCandidates(m),
             assignCar: (c: string, s: string) => assignCar(c, s),
+            carsOfSpec: (id: string) => carsOfSpec(id),
             listRequests: () => listRequests(),
             markRequestDone: (id: string) => markRequestDone(id),
         },
@@ -73,7 +75,7 @@ afterEach(() => {
     app?.unmount()
     app = null
     document.body.innerHTML = ''
-    overview.mockReset(); create.mockReset(); update.mockReset(); changes.mockReset(); reassignCandidates.mockReset(); assignCar.mockReset()
+    overview.mockReset(); create.mockReset(); update.mockReset(); changes.mockReset(); reassignCandidates.mockReset(); assignCar.mockReset(); carsOfSpec.mockReset()
     listRequests.mockReset(); markRequestDone.mockReset()
 })
 
@@ -279,6 +281,21 @@ describe('AdminSpecsTab', () => {
         expect(li.textContent).toContain('https://x')
         expect(host.querySelector('section > header h3')?.textContent ?? '').not.toContain('Protokoll:')
         expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled()
+    })
+
+    it('Autos klappen unter der Zeile auf, zweiter Klick schließt', async () => {
+        overview.mockResolvedValue(sample)
+        carsOfSpec.mockResolvedValue([{ carId: 'car-1', carModel: 'MODEL_3', year: 2023, trim: null, currentNetKwh: null, currentSpecId: 'spec-1', logCount: 7, candidates: [] }])
+        const host = await mount()
+
+        expect(button(host, 'Autos (0)')).toBeUndefined()
+        button(host, 'Autos (12)').click()
+        await nextTick(); await nextTick(); await nextTick()
+
+        expect(carsOfSpec).toHaveBeenCalledWith('spec-1')
+        expect(button(host, 'Autos (12)').closest('li')!.querySelectorAll('tr[data-car]')).toHaveLength(1)
+        button(host, 'Autos (12)').click(); await new Promise(r => setTimeout(r, 50)); await nextTick()
+        expect(host.querySelectorAll('tr[data-car]')).toHaveLength(0)
     })
 
     it('Bearbeiten und Lückenmodus scrollen nicht', async () => {

@@ -133,6 +133,10 @@ export const adminVehicleSpecService = {
     async reassignCandidates(model: string): Promise<CarForReassign[]> {
         return (await api.get<CarForReassign[]>(`${BASE}/reassign-candidates`, { params: { model } })).data
     },
+    /** Aktive Autos einer Zeile, Kandidaten sind die übrigen WLTP-Zeilen des Modells. */
+    async carsOfSpec(specId: string): Promise<CarForReassign[]> {
+        return (await api.get<CarForReassign[]>(`${BASE}/${specId}/cars`)).data
+    },
     async assignCar(carId: string, specId: string): Promise<void> {
         await api.post(`${BASE}/cars/${carId}/assign/${specId}`)
     },

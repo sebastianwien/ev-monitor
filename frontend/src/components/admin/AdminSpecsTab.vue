@@ -277,7 +277,7 @@ const date = (iso: string) => new Date(iso).toLocaleString('de-DE', { dateStyle:
       <ul class="space-y-2">
         <AdminSpecRowInline v-for="r in m.rows" :key="r.id" :row="r" :can-edit="m.inEnum" :changes="changesFor?.row.id === r.id ? changesFor.entries : null"
                             :editing="inline?.id === r.id" :focus-field="inline?.id === r.id ? inline.field : null"
-                            @edit="openEdit(r)" @saved="onInlineSaved" @cancel="closeInline" @next="gapNext" @changes="showChanges(r)" @remove="remove(r)" />
+                            @edit="openEdit(r)" @saved="onInlineSaved" @cancel="closeInline" @next="gapNext" @changes="showChanges(r)" @remove="remove(r)" @cars-changed="load" />
       </ul>
     </section>
 

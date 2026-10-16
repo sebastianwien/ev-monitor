@@ -6,6 +6,7 @@ export const SPEC_GRID = 'lg:grid lg:grid-cols-[1.8fr_1fr_1.1fr_1.8fr_1.4fr_1.2f
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { adminVehicleSpecService, apiErrorText, type ChangeEntry, type SaveResult, type SpecCommand, type SpecRow, type WorkList } from '../../api/adminVehicleSpecService'
+import AdminSpecRowCars from './AdminSpecRowCars.vue'
 
 /**
  * Eine Spec-Zeile an Ort und Stelle: Anzeige und Bearbeitung in derselben Spaltengeometrie, die Nachbarzeilen bleiben sichtbar.
@@ -13,7 +14,7 @@ import { adminVehicleSpecService, apiErrorText, type ChangeEntry, type SaveResul
  * Der Server prüft die Regeln, sein Fehlertext steht unter der Zeile, die Zeile bleibt offen.
  */
 const props = defineProps<{ row: SpecRow; editing: boolean; focusField: keyof SpecCommand | null; canEdit: boolean; changes: ChangeEntry[] | null }>()
-const emit = defineEmits<{ edit: []; saved: [result: SaveResult]; cancel: []; next: []; changes: []; remove: [] }>()
+const emit = defineEmits<{ edit: []; saved: [result: SaveResult]; cancel: []; next: []; changes: []; remove: []; carsChanged: [] }>()
 
 const FLAG_LABELS: Record<WorkList, string> = {
     NO_NAME: 'Ohne Name', NO_TRIM: 'Ohne Trim', NO_PERIOD: 'Ohne Zeitraum', NO_SOURCE: 'Ohne Quelle', NO_NET: 'Ohne Netto',
@@ -25,6 +26,8 @@ const busy = ref(false)
 const error = ref('')
 const warning = ref('')
 const rootEl = ref<HTMLElement | null>(null)
+/** Autos der Zeile aufgeklappt (lädt beim Aufklappen frisch). */
+const showCars = ref(false)
 
 function toCommand(r: SpecRow): SpecCommand {
     return {
@@ -173,12 +176,24 @@ const btn = 'px-2 py-1 rounded-sm text-xs'
 
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400">
       <span :class="ratioClass" title="WLTP-km × Verbrauch / 100 / Netto">Verhältnis {{ fmtRatio }}</span>
-      <span>{{ row.activeCars }} Autos<template v-if="row.allCars > row.activeCars"> (+{{ row.allCars - row.activeCars }} im Papierkorb)</template><template v-if="row.ratings"> · {{ row.ratings }} Bewertungen</template></span>
+      <span>
+        <button v-if="row.activeCars" type="button" class="underline decoration-dotted hover:text-gray-200" :aria-expanded="showCars" @click="showCars = !showCars">Autos ({{ row.activeCars }})</button>
+        <template v-else>0 Autos</template>
+        <template v-if="row.allCars > row.activeCars"> (+{{ row.allCars - row.activeCars }} im Papierkorb)</template><template v-if="row.ratings"> · {{ row.ratings }} Bewertungen</template>
+      </span>
       <span v-for="w in row.workLists" :key="w" class="px-2 py-0.5 rounded-full bg-amber-900/50 text-amber-200">{{ FLAG_LABELS[w] }}</span>
     </div>
 
     <p v-if="error" class="text-xs text-red-400" role="alert">{{ error }}</p>
     <p v-else-if="warning" class="text-xs text-amber-300" role="status">{{ warning }}</p>
+
+    <Transition name="spec-expand">
+      <div v-if="showCars" class="spec-expand-outer">
+        <div class="min-h-0 overflow-hidden">
+          <AdminSpecRowCars :spec-id="row.id" @changed="emit('carsChanged')" />
+        </div>
+      </div>
+    </Transition>
 
     <Transition name="spec-expand">
       <div v-if="changes" class="spec-expand-outer">
