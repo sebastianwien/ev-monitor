@@ -146,7 +146,7 @@ const fmt = (v: number | null | undefined) => v == null ? '–' : v.toLocaleStri
 const diff = (a: number | null | undefined, b: number | null | undefined) => a != null && b != null && Math.abs(a - b) > 0.05 ? 'text-amber-300' : ''
 const dateDiff = (a: string | null, b: string | null | undefined) => a && b && a !== b ? 'text-amber-300' : ''
 const shortUrl = (u: string) => u.replace(/^https:\/\/(www\.)?/, '').replace(/^ev-database\.org\/car\//, '')
-const cell = 'py-1.5 pr-3'
+const cell = 'py-1.5 pr-3 whitespace-nowrap'
 const date = 'py-1.5 pr-3 whitespace-nowrap'
 const num = 'py-1.5 pr-3 text-right'
 </script>
