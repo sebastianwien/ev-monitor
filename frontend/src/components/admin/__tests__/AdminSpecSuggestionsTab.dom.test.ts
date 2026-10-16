@@ -125,6 +125,19 @@ describe('AdminSpecSuggestionsTab', () => {
         expect(update.mock.calls[0][1]).toMatchObject({ officialRangeKm: 426, officialConsumptionKwhPer100km: 15.5, availableFrom: '2020-07-01', availableTo: null })
     })
 
+    it('verwendeter Eintrag wird grau, bleibt aber voll nutzbar', async () => {
+        const host = await mount()
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        const rowOf = () => host.querySelectorAll('tr[data-entry]')[0]
+        expect(rowOf().className).not.toContain('opacity-50')
+        btns(host, 'Übernehmen')[0].click(); await tick()
+        expect(rowOf().className).toContain('opacity-50')
+        expect(btns(host, 'Übernehmen').map(b => b.disabled)).toEqual([false, false])
+        expect(btns(host, 'Übernehmen zurücknehmen')).toHaveLength(1)
+        btns(host, 'Übernehmen')[0].click(); await tick()
+        expect(update).toHaveBeenCalledTimes(2)
+    })
+
     it('Rückgängig nach Übernehmen schreibt den alten Stand der Zielzeile zurück', async () => {
         const host = await mount()
         radios(host)[0].dispatchEvent(new Event('change')); await nextTick()

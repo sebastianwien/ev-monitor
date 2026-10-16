@@ -165,11 +165,13 @@ async function run(m: ModelGroup, failText: string, fn: () => Promise<void>) {
     }
 }
 
-/** Zielzeile auf den Eintrag setzen: Zeitraum und Quelle immer, Zahlen nur, wenn geladen und nicht leer. */
+/** Zielzeile auf den Eintrag setzen: Zeitraum und Quelle immer, Zahlen nur, wenn geladen und nicht leer. Erneut auf dasselbe Ziel: Rückgängig führt zum ersten Stand. */
 const apply = (m: ModelGroup, t: SpecRow, e: Entry) => run(m, 'Speichern fehlgeschlagen.', async () => {
     const result = await adminVehicleSpecService.update(t.id, entryCommand(t, e))
     replaceRow(m, result.row)
-    used.value = new Map([...used.value, [usedKey(m, e), { kind: 'übernommen', targetId: t.id, before: t }]])
+    const prev = used.value.get(usedKey(m, e))
+    const before = prev?.kind === 'übernommen' && prev.targetId === t.id ? prev.before : t
+    used.value = new Map([...used.value, [usedKey(m, e), { kind: 'übernommen', targetId: t.id, before }]])
 })
 
 /** Neue Zeile aus einem Eintrag mit geladenen Zahlen; Trim und Norm kommen vom Ziel. */
@@ -279,7 +281,8 @@ const num = 'py-1.5 pr-3 text-right'
               </td>
             </tr>
             <tr><td colspan="11" class="pt-3 pb-1 pl-2 text-xs text-gray-500">ev-database</td></tr>
-            <tr v-for="e in entries" :key="e.sourceUrl" data-entry class="border-t border-gray-700/60">
+            <tr v-for="e in entries" :key="e.sourceUrl" data-entry class="border-t border-gray-700/60"
+                :class="used.get(usedKey(m, e)) || linked.get(e.sourceUrl) ? 'opacity-50 hover:opacity-100' : ''">
               <td :class="cell" class="pl-2" data-name><template v-for="(p, pi) in nameParts(e.label, target ? target.variantName ?? '' : undefined)" :key="pi">{{ pi > 0 ? ' ' : '' }}<span :class="p.cls">{{ p.text }}</span></template></td>
               <td :class="cell"></td>
               <template v-if="loaded(e)">
@@ -307,15 +310,14 @@ const num = 'py-1.5 pr-3 text-right'
               <td :class="num"></td>
               <td :class="cell"><a :href="e.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-300 underline">{{ shortUrl(e.sourceUrl) }}</a></td>
               <td class="py-1.5 text-right whitespace-nowrap">
-                <span v-if="used.get(usedKey(m, e))" class="inline-flex items-center gap-2">
+                <span v-if="used.get(usedKey(m, e))" class="mr-2 inline-flex items-center gap-2">
                   <span class="text-xs text-green-300">{{ used.get(usedKey(m, e))!.kind }}</span>
                   <button type="button" class="p-1.5 bg-gray-700 hover:bg-gray-600 rounded-sm disabled:opacity-40" :disabled="busy === m.carModel"
                           :aria-label="used.get(usedKey(m, e))!.kind === 'übernommen' ? 'Übernehmen zurücknehmen' : 'Angelegte Zeile löschen'"
                           :title="used.get(usedKey(m, e))!.kind === 'übernommen' ? 'Übernehmen zurücknehmen' : 'Angelegte Zeile löschen'"
                           @click="revert(m, e)"><ArrowUturnLeftIcon class="w-4 h-4" aria-hidden="true" /></button>
                 </span>
-                <template v-else>
-                  <span v-if="linked.get(e.sourceUrl)" class="mr-2 text-xs text-green-300" :title="`Link steht bei: ${linked.get(e.sourceUrl)!.variantName}`">verknüpft</span>
+                  <span v-if="linked.get(e.sourceUrl) && !used.get(usedKey(m, e))" class="mr-2 text-xs text-green-300" :title="`Link steht bei: ${linked.get(e.sourceUrl)!.variantName}`">verknüpft</span>
                   <button type="button" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white text-xs disabled:opacity-40"
                           :disabled="!target || busy === m.carModel" :title="target ? `In „${target.variantName ?? 'ohne Name'}“ schreiben` : 'Erst oben ein Ziel wählen'"
                           @click="target && apply(m, target, e)">Übernehmen</button>
@@ -323,7 +325,6 @@ const num = 'py-1.5 pr-3 text-right'
                           :disabled="!target || !loaded(e) || busy === m.carModel"
                           :title="!target ? 'Erst oben ein Ziel wählen (Vorlage für Trim und Norm)' : !loaded(e) ? 'Erst Werte laden' : 'Neue Zeile mit den Zahlen dieses Eintrags, Trim vom Ziel'"
                           @click="target && createFrom(m, target, e)">Neue Zeile</button>
-                </template>
               </td>
             </tr>
           </tbody>
