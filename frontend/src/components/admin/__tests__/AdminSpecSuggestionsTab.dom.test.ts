@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { createApp, nextTick, type App } from 'vue'
-import type { SpecOverview } from '../../../api/adminVehicleSpecService'
+import type { SpecOverview, SpecRow } from '../../../api/adminVehicleSpecService'
 
 const overview = vi.fn()
 const update = vi.fn()
@@ -9,111 +9,102 @@ const create = vi.fn()
 const remove = vi.fn()
 vi.mock('../../../api/adminVehicleSpecService', async () => {
     const actual = await vi.importActual<typeof import('../../../api/adminVehicleSpecService')>('../../../api/adminVehicleSpecService')
-    return { ...actual, adminVehicleSpecService: { overview: () => overview(), update: (id: string, c: unknown) => update(id, c), create: (c: unknown) => create(c), remove: (id: string, reason: string) => remove(id, reason) } }
+    return { ...actual, adminVehicleSpecService: {
+        overview: () => overview(), update: (id: string, c: unknown) => update(id, c),
+        create: (c: unknown) => create(c), remove: (id: string, reason: string) => remove(id, reason),
+    } }
 })
 
 import AdminSpecSuggestionsTab from '../AdminSpecSuggestionsTab.vue'
 
-const row = (id: string, extra: Partial<SpecOverview['models'][0]['rows'][0]>) => ({
-    id, carBrand: 'TESLA', carModel: 'MODEL_3', batteryCapacityKwh: 60, netBatteryCapacityKwh: 57.5, officialRangeKm: 491,
-    officialConsumptionKwhPer100km: 14.4, ratingSource: 'WLTP' as const, variantName: 'SR', trimLevel: 'Standard', availableFrom: null,
-    availableTo: null, sourceUrl: null, activeCars: 0, allCars: 0, ratings: 0, workLists: [], ...extra,
+const row = (id: string, extra: Partial<SpecRow>): SpecRow => ({
+    id, carBrand: 'VW', carModel: 'ID_3', batteryCapacityKwh: 62, netBatteryCapacityKwh: 58, officialRangeKm: 426,
+    officialConsumptionKwhPer100km: 15.5, ratingSource: 'WLTP', variantName: 'ID.3 Pro', trimLevel: 'Pro', availableFrom: '2020-07-01',
+    availableTo: '2022-12-31', sourceUrl: null, activeCars: 4, allCars: 5, ratings: 0, workLists: [], ...extra,
 })
 const sample: SpecOverview = {
     carsWithoutSpec: 0, modelsWithoutRow: [],
-    models: [{ carBrand: 'TESLA', carModel: 'MODEL_3', displayName: 'Model 3', inEnum: true, logCount: 1, activeCars: 1, carsWithoutSpec: 0,
-        rows: [row('spec-1', {}), row('spec-2', { availableFrom: '2020-01-01', sourceUrl: 'https://x', variantName: 'SR Vorgänger' }), row('spec-3', { trimLevel: 'Long Range', variantName: 'LR fremder Trim' })] }],
+    models: [{ carBrand: 'VW', carModel: 'ID_3', displayName: 'ID.3', inEnum: true, logCount: 1, activeCars: 7, carsWithoutSpec: 0,
+        rows: [row('pro', {}), row('pros', { variantName: 'ID.3 Pro S', trimLevel: 'Pro S', batteryCapacityKwh: 82, netBatteryCapacityKwh: 77, activeCars: 3, allCars: 3 })] }],
 }
-const suggestions = { _helper: 'http://localhost:8766', 'spec-1': [{ label: 'Model 3 SR (60 kWh)', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' }] }
-const detail = { batteryCapacityKwh: 64, netBatteryCapacityKwh: 60, officialRangeKm: 572, officialConsumptionKwhPer100km: 12.2 }
+const entries = [
+    { label: 'ID.3 Pro', battery: 58, availableFrom: '2020-11-01', availableTo: '2021-08-01', sourceUrl: 'https://ev-database.org/car/1/ID3-Pro' },
+    { label: 'ID.3 Pro S', battery: 77, availableFrom: '2020-11-01', availableTo: '2021-08-01', sourceUrl: 'https://ev-database.org/car/2/ID3-Pro-S' },
+]
+const file = { _helper: 'http://localhost:8766', _models: { ID_3: entries } }
+const detail = { batteryCapacityKwh: 62, netBatteryCapacityKwh: 58, officialRangeKm: 424, officialConsumptionKwhPer100km: 15.6 }
 
 let app: App | null = null
+const tick = async () => { await new Promise(r => setTimeout(r, 0)); await nextTick(); await nextTick() }
 const mount = async () => {
     const host = document.createElement('div'); document.body.appendChild(host)
     app = createApp(AdminSpecSuggestionsTab); app.mount(host)
-    await new Promise(r => setTimeout(r, 0)); await nextTick(); await nextTick()
+    await tick()
     return host
 }
+const btns = (host: HTMLElement, label: string) => [...host.querySelectorAll('button')]
+    .filter(b => b.textContent?.trim() === label || b.getAttribute('aria-label') === label) as HTMLButtonElement[]
+const radios = (host: HTMLElement) => [...host.querySelectorAll('input[type=radio]')] as HTMLInputElement[]
+
 beforeEach(() => {
-    overview.mockReset(); update.mockReset(); create.mockReset(); remove.mockReset(); remove.mockResolvedValue(undefined)
-    create.mockImplementation(async (c: Record<string, unknown>) => ({ row: { ...row('spec-neu', {}), ...c }, warnings: [] }))
+    overview.mockReset(); update.mockReset(); create.mockReset(); remove.mockReset()
     overview.mockResolvedValue(sample)
     update.mockImplementation(async (id: string, c: Record<string, unknown>) => ({ row: { ...row(id, {}), ...c }, warnings: [] }))
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => url.startsWith('http://localhost:8766/spec') ? { ok: true, json: async () => detail } : { ok: true, json: async () => suggestions }))
+    create.mockImplementation(async (c: Record<string, unknown>) => ({ row: { ...row('neu', {}), ...c, activeCars: 0, allCars: 0 }, warnings: [] }))
+    remove.mockResolvedValue(undefined)
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => url.startsWith('http://localhost:8766/spec')
+        ? { ok: true, json: async () => detail } : { ok: true, json: async () => file }))
 })
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.unstubAllGlobals() })
 
 describe('AdminSpecSuggestionsTab', () => {
-    it('zeigt nur Zeilen mit Vorschlag und übernimmt Zeitraum und Quelle über das volle Update-Command', async () => {
+    it('zeigt je Modell unsere Zeilen mit Autos und alle ev-database-Einträge genau einmal, Filter wirkt auf beide', async () => {
         const host = await mount()
-        expect(host.textContent).toContain('Model 3 SR')
-        expect(host.textContent).toContain('SR Vorgänger')
-        expect(host.textContent).not.toContain('LR fremder Trim')
-        const btn = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Übernehmen'))!
-        btn.click(); await new Promise(r => setTimeout(r, 0)); await nextTick()
+        expect(host.querySelectorAll('section')).toHaveLength(1)
+        expect(radios(host)).toHaveLength(2)
+        expect(btns(host, 'Übernehmen')).toHaveLength(2)
+        expect([...host.querySelectorAll('td[data-cars]')].map(td => td.textContent?.trim())).toEqual(['4', '3'])
+        const input = host.querySelector('input[type=search]') as HTMLInputElement
+        input.value = 'pro s'; input.dispatchEvent(new Event('input')); await nextTick()
+        expect(radios(host)).toHaveLength(1)
+        expect(btns(host, 'Übernehmen')).toHaveLength(1)
+    })
+
+    it('Übernehmen erst mit Ziel, schreibt dann Zeitraum und Quelle in die Zielzeile', async () => {
+        const host = await mount()
+        expect(btns(host, 'Übernehmen')[0].disabled).toBe(true)
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        btns(host, 'Übernehmen')[0].click(); await tick()
         expect(update).toHaveBeenCalledTimes(1)
-        const [id, cmd] = update.mock.calls[0] as [string, Record<string, unknown>]
-        expect(id).toBe('spec-1')
-        expect(cmd).toMatchObject({ model: 'MODEL_3', batteryCapacityKwh: 60, trimLevel: 'Standard', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' })
-        expect(host.textContent).toContain('1 übernommen')
-        // Gruppe bleibt offen, Kandidat ist markiert, erst "Fertig" schließt
+        expect(update.mock.calls[0]).toEqual(['pro', expect.objectContaining({ trimLevel: 'Pro', availableFrom: '2020-11-01', availableTo: '2021-08-01', sourceUrl: 'https://ev-database.org/car/1/ID3-Pro' })])
         expect(host.textContent).toContain('übernommen')
-        expect([...host.querySelectorAll('button')].some(b => b.textContent?.includes('Übernehmen'))).toBe(false)
-        ;[...host.querySelectorAll('button')].find(b => b.textContent?.includes('Fertig'))!.click(); await nextTick()
-        expect(host.textContent).not.toContain('Model 3 SR')
     })
 
-    it('Übernehmen schreibt in die als Ziel markierte Zeile, leeres "bis" des Kandidaten bleibt leer', async () => {
-        overview.mockResolvedValue({ ...sample, models: [{ ...sample.models[0], rows: [row('spec-1', {}), row('spec-2', { availableFrom: '2020-01-01', availableTo: '2022-12-31', sourceUrl: 'https://x', variantName: 'SR Vorgänger' })] }] })
-        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ 'spec-1': [{ label: 'Neu (60 kWh)', availableFrom: '2024-01-01', availableTo: null, sourceUrl: 'https://ev-database.org/car/9' }] }) })))
+    it('Neue Zeile erst nach Werte laden, Zahlen vom Eintrag, Trim vom Ziel; Rückgängig löscht sie wieder', async () => {
         const host = await mount()
-        const radios = [...host.querySelectorAll('input[type=radio]')] as HTMLInputElement[]
-        expect(radios).toHaveLength(2)
-        radios[0].dispatchEvent(new Event('change')); await nextTick()
-        ;[...host.querySelectorAll('button')].find(b => b.textContent?.includes('Übernehmen'))!.click()
-        await new Promise(r => setTimeout(r, 0)); await nextTick()
-        const [id, cmd] = update.mock.calls[0] as [string, Record<string, unknown>]
-        expect(id).toBe('spec-2')
-        expect(cmd).toMatchObject({ variantName: 'SR Vorgänger', availableFrom: '2024-01-01', availableTo: null, sourceUrl: 'https://ev-database.org/car/9' })
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        expect(btns(host, 'Neue Zeile')[0].disabled).toBe(true)
+        btns(host, 'Werte laden')[0].click(); await tick(); await tick()
+        expect(btns(host, 'Neue Zeile')[0].disabled).toBe(false)
+        btns(host, 'Neue Zeile')[0].click(); await tick()
+        expect(create.mock.calls[0][0]).toMatchObject({ model: 'ID_3', variantName: 'ID.3 Pro', trimLevel: 'Pro', batteryCapacityKwh: 62,
+            officialRangeKm: 424, officialConsumptionKwhPer100km: 15.6, availableFrom: '2020-11-01', sourceUrl: 'https://ev-database.org/car/1/ID3-Pro' })
+        btns(host, 'Angelegte Zeile löschen')[0].click(); await tick()
+        expect(remove).toHaveBeenCalledWith('neu', 'Vorschlag zurückgenommen')
     })
 
-    it('Werte laden holt die Zahlen vom lokalen Helfer, markiert Abweichungen und schreibt sie beim Übernehmen mit', async () => {
+    it('Rückgängig nach Übernehmen schreibt den alten Stand der Zielzeile zurück', async () => {
         const host = await mount()
-        ;[...host.querySelectorAll('button')].find(b => b.textContent?.includes('Werte laden'))!.click()
-        await new Promise(r => setTimeout(r, 0)); await nextTick(); await nextTick()
-        expect(host.textContent).toContain('572')
-        const amber = [...host.querySelectorAll('td.text-amber-300')].map(td => td.textContent?.trim())
-        expect(amber).toContain('64')
-        expect(amber).toContain('572')
-        ;[...host.querySelectorAll('button')].find(b => b.textContent?.includes('Übernehmen'))!.click()
-        await new Promise(r => setTimeout(r, 0)); await nextTick()
-        expect(update.mock.calls[0][1]).toMatchObject({ batteryCapacityKwh: 64, netBatteryCapacityKwh: 60, officialRangeKm: 572, officialConsumptionKwhPer100km: 12.2, availableFrom: '2023-01-01' })
+        radios(host)[0].dispatchEvent(new Event('change')); await nextTick()
+        btns(host, 'Übernehmen')[0].click(); await tick()
+        btns(host, 'Übernehmen zurücknehmen')[0].click(); await tick()
+        expect(update.mock.calls[1]).toEqual(['pro', expect.objectContaining({ availableFrom: '2020-07-01', availableTo: '2022-12-31', sourceUrl: '' })])
     })
 
-    it('legt aus einem Kandidaten eine neue Zeile an: Zahlen und Trim der Ausgangszeile, Name ohne kWh-Klammer, Zeitraum und Quelle vom Kandidaten', async () => {
+    it('Eintrag mit Link einer unserer Zeilen ist als verknüpft markiert', async () => {
+        overview.mockResolvedValue({ ...sample, models: [{ ...sample.models[0], rows: [row('pro', { sourceUrl: 'https://ev-database.org/car/1/ID3-Pro' }), row('offen', { variantName: 'ID.3 offen' })] }] })
         const host = await mount()
-        const btn = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Neue Zeile'))!
-        btn.click(); await new Promise(r => setTimeout(r, 0)); await nextTick()
-        expect(update).not.toHaveBeenCalled()
-        expect(create).toHaveBeenCalledTimes(1)
-        expect(create.mock.calls[0][0]).toMatchObject({ model: 'MODEL_3', batteryCapacityKwh: 60, netBatteryCapacityKwh: 57.5, officialRangeKm: 491,
-            trimLevel: 'Standard', variantName: 'Model 3 SR', availableFrom: '2023-01-01', availableTo: '2024-09-01', sourceUrl: 'https://ev-database.org/car/1' })
-        expect(host.textContent).toContain('1 angelegt')
-    })
-
-    it('Rückgängig nach Übernehmen schreibt den alten Stand zurück, nach Anlegen löscht es die neue Zeile', async () => {
-        const host = await mount()
-        const click = async (label: string) => { [...host.querySelectorAll('button')].find(b => b.textContent?.includes(label) || b.getAttribute('aria-label')?.includes(label))!.click(); await new Promise(r => setTimeout(r, 0)); await nextTick() }
-        await click('Übernehmen')
-        await click('Übernehmen zurücknehmen')
-        expect(update).toHaveBeenCalledTimes(2)
-        expect(update.mock.calls[1]).toEqual(['spec-1', expect.objectContaining({ availableFrom: null, availableTo: null, sourceUrl: '' })])
-        expect([...host.querySelectorAll('button')].some(b => b.textContent?.includes('Übernehmen'))).toBe(true)
-        await click('Neue Zeile')
-        expect(host.textContent).toContain('1 angelegt')
-        await click('Angelegte Zeile löschen')
-        expect(remove).toHaveBeenCalledWith('spec-neu', 'Vorschlag zurückgenommen')
-        expect(host.textContent).toContain('0 angelegt')
+        expect(host.textContent).toContain('verknüpft')
     })
 
     it('ohne Vorschlagsdatei nur ein Hinweis, kein Fehler', async () => {
