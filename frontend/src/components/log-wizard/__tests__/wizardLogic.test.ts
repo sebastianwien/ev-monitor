@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  emptyLogForm, canProceed, applyPlace, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
+  emptyLogForm, canProceed, applyPlace, readSuggestion, hasOpenChargingType, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
 } from '../wizardLogic'
 import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
@@ -59,8 +59,21 @@ describe('applyPlace', () => {
     applyPlace(f, { kind: 'site', site })
     expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'AC', cpoName: 'Stadtwerke Musterstadt',
       chargingSite: { name: 'Stadtwerke Musterstadt', geohash: 'u33dc0c' } })
-    applyPlace(f, { kind: 'site', site: { ...site, cpoName: 'Kaufland', fastCharging: true } })
+    applyPlace(f, { kind: 'site', site: { ...site, cpoName: 'Kaufland', maxAcKw: null, maxDcKw: 150, fastCharging: true } })
     expect(f).toMatchObject({ chargingType: 'DC', cpoName: 'Kaufland' })
+  })
+
+  it('Gemischter Standort (AC und DC) rät kein DC - die Ladeart kommt aus der eigenen Historie', () => {
+    const f = emptyLogForm()
+    f.chargingType = 'DC'
+    const kaufland = { ...ionity, name: 'Kaufland', maxAcKw: 43, maxDcKw: 50, fastCharging: true }
+    applyPlace(f, { kind: 'station', station: kaufland })
+    expect(f).toMatchObject({ isPublicCharging: true, chargingType: 'AC', cpoName: 'Kaufland' })
+    const site = { id: 's1', name: 'Kaufland', cpoName: 'Kaufland', geohash: 'u33df5w', maxAcKw: 43, maxDcKw: 50,
+      chargePoints: 2, fastCharging: true, address: null, plugTypes: ['Typ 2', 'CCS'], lastUsedAt: '2026-09-20T14:39:00', usageCount: 1 }
+    f.chargingType = 'DC'
+    applyPlace(f, { kind: 'site', site })
+    expect(f.chargingType).toBe('AC')
   })
 
   it('Zuhause und anderer Anbieter löschen den Standortverweis', () => {
@@ -213,6 +226,14 @@ describe('applyVoiceDraft', () => {
     expect(f.tireType).toBe('WINTER'); expect(f.routeType).toBe('CITY')
   })
 
+  it('Ungesagte Ladekarte bleibt auch bei einem neuen Ort stehen (Bearbeiten)', () => {
+    const f = emptyLogForm(); f.chargingProviderId = 'kaufland-card'
+    applyVoiceDraft(f, draft({ place: { kind: 'station', station: ionity, site: null, cpoName: null } }))
+    expect(f.chargingProviderId).toBe('kaufland-card')
+    applyVoiceDraft(f, draft({ chargingProviderId: 'p2' }))
+    expect(f.chargingProviderId).toBe('p2')
+  })
+
   it('Kosten setzt es nicht direkt - die laufen über die Kosteneingabe', () => {
     const f = emptyLogForm()
     applyVoiceDraft(f, draft({ fields: fields({ costEur: 18.4 }) }))
@@ -285,5 +306,33 @@ describe('voiceFlags', () => {
   it('Details ohne eigene Kachel landen gesammelt unter "details"', () => {
     expect(voiceFlags(['socBefore', 'maxChargingPowerKw', 'tireType'])).toEqual(['details'])
     expect(voiceFlags([])).toEqual([])
+  })
+})
+
+describe('readSuggestion', () => {
+  it('Preis, Karte und Ladeart des letzten Ladevorgangs am Ort', () => {
+    expect(readSuggestion({ costPerKwh: 0.29, chargingProviderId: 'c1', chargingType: 'AC' }))
+      .toEqual({ chargingType: 'AC', community: { eurPerKwh: 0.29, providerId: 'c1' }, cardId: 'c1' })
+  })
+
+  it('Nur die Karte, wenn für diese Ladeart nie ein Preis bezahlt wurde', () => {
+    expect(readSuggestion({ costPerKwh: null, chargingProviderId: 'c1' }))
+      .toEqual({ chargingType: null, community: null, cardId: 'c1' })
+  })
+
+  it('Ohne Vorschlag oder mit unbekannter Ladeart bleibt alles leer', () => {
+    expect(readSuggestion(null)).toEqual({ chargingType: null, community: null, cardId: null })
+    expect(readSuggestion({ costPerKwh: 0.5, chargingType: 'UNKNOWN' }).chargingType).toBeNull()
+  })
+})
+
+describe('hasOpenChargingType', () => {
+  const mixed = { kind: 'station' as const, station: { ...ionity, maxAcKw: 43, maxDcKw: 50 } }
+
+  it('nur an öffentlichen gemischten Standorten entscheidet die Historie', () => {
+    expect(hasOpenChargingType(mixed)).toBe(true)
+    expect(hasOpenChargingType({ kind: 'station', station: ionity })).toBe(false)
+    expect(hasOpenChargingType({ kind: 'home' })).toBe(false)
+    expect(hasOpenChargingType({ kind: 'other', cpoName: 'EnBW' })).toBe(false)
   })
 })

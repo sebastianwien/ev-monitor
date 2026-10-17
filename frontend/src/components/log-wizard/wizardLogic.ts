@@ -58,6 +58,38 @@ export function canProceed(step: WizardStep, f: LogFormData, state: WizardState)
   }
 }
 
+/**
+ * Das Register kennt nur die Stecker, nicht die Ladeart dieser Ladung: DC nur an reinen DC-Standorten.
+ * Gemischte Standorte (AC und DC) bleiben bei AC; die Ladeart der letzten eigenen Ladung dort
+ * kommt danach aus dem Preisvorschlag.
+ */
+const registerChargingType = (s: { fastCharging: boolean; maxAcKw: number | null }): 'AC' | 'DC' =>
+  s.fastCharging && !s.maxAcKw ? 'DC' : 'AC'
+
+/** Gemischter Standort: das Register sagt nicht, was geladen wird - die eigene Historie entscheidet. */
+export function hasOpenChargingType(choice: PlaceChoice): boolean {
+  if (choice.kind !== 'station' && choice.kind !== 'site') return false
+  const s = choice.kind === 'station' ? choice.station : choice.site
+  return !!s.maxAcKw && !!s.maxDcKw
+}
+
+/** Antwort von /logs/price-suggestion: letzter Ladevorgang am Ort. Die Karte kommt auch ohne Preis. */
+export interface PriceSuggestionData {
+  costPerKwh?: number | string | null
+  chargingProviderId?: string | null
+  chargingType?: 'AC' | 'DC' | 'UNKNOWN' | null
+}
+export function readSuggestion(data: PriceSuggestionData | null | undefined): {
+  chargingType: 'AC' | 'DC' | null
+  community: { eurPerKwh: number; providerId: string | null } | null
+  cardId: string | null
+} {
+  const type = data?.chargingType === 'AC' || data?.chargingType === 'DC' ? data.chargingType : null
+  const cardId = data?.chargingProviderId ?? null
+  const community = data?.costPerKwh != null ? { eurPerKwh: Number(data.costPerKwh), providerId: cardId } : null
+  return { chargingType: type, community, cardId }
+}
+
 /** Die Ortswahl setzt öffentlich/privat, Anbieter und Ladeart in einem Schritt. */
 export function applyPlace(f: LogFormData, choice: PlaceChoice): void {
   switch (choice.kind) {
@@ -66,13 +98,13 @@ export function applyPlace(f: LogFormData, choice: PlaceChoice): void {
       break
     case 'station':
       f.isPublicCharging = true
-      f.chargingType = choice.station.fastCharging ? 'DC' : 'AC'
+      f.chargingType = registerChargingType(choice.station)
       f.cpoName = choice.station.name
       f.chargingSite = { name: choice.station.name, geohash: choice.station.geohash }
       break
     case 'site':
       f.isPublicCharging = true
-      f.chargingType = choice.site.fastCharging ? 'DC' : 'AC'
+      f.chargingType = registerChargingType(choice.site)
       f.cpoName = choice.site.cpoName ?? choice.site.name
       f.chargingSite = { name: choice.site.name, geohash: choice.site.geohash }
       break
@@ -220,7 +252,7 @@ const toPlaceChoice = (p: VoicePlace): PlaceChoice | null => {
 export function applyVoiceDraft(f: LogFormData, draft: VoiceDraft): PlaceChoice | null {
   const choice = draft.place ? toPlaceChoice(draft.place) : null
   if (choice) applyPlace(f, choice)
-  if (choice || draft.chargingProviderId) f.chargingProviderId = draft.chargingProviderId
+  if (draft.chargingProviderId) f.chargingProviderId = draft.chargingProviderId
   const v = draft.fields
   const set = <K extends keyof LogFormData>(key: K, value: LogFormData[K] | null) => { if (value != null) f[key] = value }
   set('kwhCharged', v.kwhCharged)

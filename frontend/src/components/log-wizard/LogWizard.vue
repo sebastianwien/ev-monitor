@@ -22,7 +22,7 @@ import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { analytics } from '../../services/analytics'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
 import { emptyLogForm, canProceed, missingRequired, applyPlace, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice,
-  applyVoiceDraft, voiceCost, voiceFlags, mergeUncertain, canJumpToReview, type VoiceDraft, type VoiceCost, type VoiceFlag, type VoiceUsage } from './wizardLogic'
+  applyVoiceDraft, voiceCost, voiceFlags, readSuggestion, hasOpenChargingType, mergeUncertain, canJumpToReview, type VoiceDraft, type VoiceCost, type VoiceFlag, type VoiceUsage } from './wizardLogic'
 import { spokenSnapshot, correctedFields, type SpokenSnapshot } from './voiceAnalytics'
 import { resolveSpokenAddress, placeFromAddress } from './voiceAddress'
 import WizardShell from './WizardShell.vue'
@@ -148,7 +148,7 @@ const choosePlace = (choice: PlaceChoice, opts: { advance?: boolean } = {}) => {
   applyPlace(form.value, choice)
   resetCard()
   if (autoAdvances(choice) && opts.advance !== false) advance.schedule(); else advance.cancel()
-  preselectCard()
+  preselectCard(hasOpenChargingType(choice))
 }
 
 // ── Ladekarte (Schritt 1, unter der gewählten Säule) ──────────────────────────
@@ -198,20 +198,29 @@ const cardMatchingCpo = () => {
  * es eine gab - öffentlich wie privat. Öffentlich gilt der Tarif einer noch vorhandenen Karte,
  * ohne Treffer die Karte, deren Name zum Betreiber passt. Der Preisvorschlag kommt vom Backend und
  * braucht die Position; kommt er nach einer Nutzerwahl oder einem getippten Betrag an, bleibt die Nutzerwahl.
+ *
+ * An gemischten Standorten (AC und DC) fragt der Vorschlag ohne Ladeart und bringt die Ladeart der
+ * letzten eigenen Ladung dort mit; eine inzwischen gesagte oder gewählte Ladeart bleibt. Die Karte
+ * kommt auch, wenn es für diese Ladeart noch keinen bezahlten Preis gibt.
  */
 let communitySeq = 0
-const preselectCard = async () => {
+const preselectCard = async (typeFromHistory = false) => {
   const mine = ++communitySeq
   community.value = null
   const isPublic = !!form.value.isPublicCharging
   const costBefore = form.value.costEur
+  const typeBefore = form.value.chargingType
+  let cardId: string | null = null
   if (form.value.latitude != null && form.value.longitude != null) {
     try {
       const res = await api.get('/logs/price-suggestion', {
-        params: { lat: form.value.latitude, lon: form.value.longitude, isPublic, chargingType: form.value.chargingType },
+        params: { lat: form.value.latitude, lon: form.value.longitude, isPublic, ...(typeFromHistory ? {} : { chargingType: typeBefore }) },
       })
       if (mine !== communitySeq) return
-      if (res.data?.costPerKwh != null) community.value = { eurPerKwh: Number(res.data.costPerKwh), providerId: res.data.chargingProviderId ?? null }
+      const suggestion = readSuggestion(res.data)
+      if (typeFromHistory && suggestion.chargingType && form.value.chargingType === typeBefore) form.value.chargingType = suggestion.chargingType
+      community.value = suggestion.community
+      cardId = suggestion.cardId
     } catch { /* kein Vorschlag - kein Problem */ }
   }
   if (cardKey.value != null || form.value.costEur !== costBefore) return
@@ -221,6 +230,8 @@ const preselectCard = async () => {
     else applyCard({ kind: 'community', price: community.value })
     return
   }
+  const lastCard = isPublic && cardId ? providers.value.find(p => p.id === cardId && !p.isPrivate) : null
+  if (lastCard) { applyCard({ kind: 'provider', provider: lastCard, eurPerKwh: providerPriceForType(lastCard, form.value.chargingType) }); return }
   const match = cardMatchingCpo()
   if (match) applyCard({ kind: 'provider', provider: match, eurPerKwh: providerPriceForType(match, form.value.chargingType) })
 }
@@ -414,7 +425,7 @@ const onVoiceDraft = async (draft: VoiceDraft) => {
   const id = form.value.chargingProviderId
   const card = id ? providers.value.find(x => x.id === id) : null
   if (card) applyCard({ kind: 'provider', provider: card, eurPerKwh: providerPriceForType(card, form.value.chargingType) })
-  else if (choice) preselectCard()
+  else if (choice) preselectCard(hasOpenChargingType(choice) && !draft.fields.chargingType)
   else if (!viaAddress) applySpokenCost()
   transcripts.value.push(draft.transcript)
   const flags = voiceFlags(uncertainFields.value)
