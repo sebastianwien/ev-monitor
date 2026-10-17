@@ -4,7 +4,10 @@ import { useLocaleFormat } from './useLocaleFormat'
 import { convertCostPerDistance } from '../utils/unitConversions'
 import type { RankedModel } from './useModelRanking'
 import type { FuelKind } from '../utils/costMix'
+import { chargeRhythmText, type RhythmFormat } from '../utils/chargeRhythm'
 
+/** One tile of "Für dich": the answer and its fine print */
+export interface RankedModelAnswer { key: string; label: string; value: string; sub: string[] }
 /** One line of "Was die Fahrer messen": label and value */
 export interface RankedModelFact { key: string; label: string; value: string }
 
@@ -108,6 +111,51 @@ export function useRankedModelText(item: () => RankedModel, longestTripKm: () =>
     return l ? t('models_ranking.row.ladder_line', { zero: fmtKm(l.zeroStopKm), one: fmtKm(l.oneStopKm) }) : ''
   })
 
+  // ── The reader's answers (server figures on the largest battery) ─────────
+  const cap = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1)
+  const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
+  /** Laden fürs Pendeln, Urlaubsfahrt, Kosten im Monat: each only once its questions are answered */
+  const answers = computed<RankedModelAnswer[]>(() => {
+    const n = item().needs
+    if (!n) return []
+    const out: RankedModelAnswer[] = []
+    if (n.commute) {
+      const c = n.commute
+      // one statement at the winter figure: it holds the whole year
+      out.push({
+        key: 'charge',
+        label: t(c.homeCharging ? 'models_ranking.detail.charge_label' : 'models_ranking.detail.charge_label_public'),
+        value: cap(chargeRhythmText(c.winter, c.homeCharging, rhythmFormat)),
+        sub: [],
+      })
+    }
+    if (n.trip && tripParams.value) {
+      out.push({
+        key: 'trip',
+        label: t('models_ranking.detail.trip_label', tripParams.value),
+        value: cap(n.trip.stops === 0 ? t('models_ranking.row.stops_none') : t('models_ranking.row.stops_word', { count: formatNumber(n.trip.stops) }, n.trip.stops)),
+        sub: n.trip.totalMinutes != null ? [t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })] : [],
+      })
+    }
+    const cost = item().monthlyCostEur
+    const monthlyKm = item().monthlyKm
+    if (cost != null && monthlyKm != null) {
+      const year = item().savingsPerYearEur
+      out.push({
+        key: 'cost',
+        label: t('models_ranking.detail.monthly'),
+        value: formatCurrency(Math.round(cost), { decimals: 0 }),
+        sub: [
+          t('models_ranking.detail.monthly_hint', { km: fmtKmUnit(Math.round(monthlyKm / 10) * 10) }),
+          ...(year != null ? [t(year >= 0 ? 'models_ranking.detail.year_cheaper' : 'models_ranking.detail.year_dearer', {
+            amount: formatCurrency(Math.abs(year), { decimals: 0 }), fuel: fuelLabel.value,
+          })] : []),
+        ],
+      })
+    }
+    return out
+  })
+
   // ── What the drivers measure beyond the row ──────────────────────────────
   /** Only what the closed row leaves out (it shows average consumption, WLTP, range and charging price);
    *  each fact only with a value, the data basis always. */
@@ -155,6 +203,6 @@ export function useRankedModelText(item: () => RankedModel, longestTripKm: () =>
   return {
     m, fmtKm, fmtKmUnit, duration, tripParams, fuelLabel, costLabel, combustionCostEur, combustionCost,
     typicalSpan, hasBatterySpan, rangeValue, driverCount, driversLabel, signedPct, displayWltpDeviation,
-    realText, wltpText, electricityCost, combustionCaption, driversPrice, ladderLine, facts, consumptionUnitLabel,
+    realText, wltpText, electricityCost, combustionCaption, driversPrice, ladderLine, answers, facts, consumptionUnitLabel,
   }
 }

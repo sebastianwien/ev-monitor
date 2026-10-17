@@ -282,7 +282,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, toRef, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   ArrowPathIcon, ArrowRightIcon, ArrowsRightLeftIcon, ArrowTrendingUpIcon,
@@ -295,7 +295,7 @@ import {
 } from '../api/publicModelService'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
-import { useModelRanking, modelKey, RANKING_SORTS, type RankingSort } from '../composables/useModelRanking'
+import { useModelRanking, modelKey, MAX_COMPARE, RANKING_SORTS, type RankingSort } from '../composables/useModelRanking'
 import { combustionAllowed } from '../utils/costMix'
 import { compareSetKey } from '../utils/compareModels'
 import { analytics } from '../services/analytics'
@@ -314,6 +314,7 @@ const props = withDefaults(defineProps<{ preview?: boolean }>(), { preview: fals
 
 const { t, te, locale } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const { formatNumber, formatDecimal, formatConsumption, formatDistance, distanceUnitLabel, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, isUS } = useMarketRoute()
@@ -362,6 +363,7 @@ async function load() {
     categories.value = cats
     referencePrices.value = prices
     applyReferencePrices(prices, isDE.value)
+    presetCompare()
   } catch (err) {
     console.error('Failed to load models:', err)
     loadError.value = true
@@ -517,6 +519,12 @@ const modelsAz = computed(() => [...models.value, ...modelsWithoutData.value].so
 
 // ── Compare ─────────────────────────────────────────────────────────────────
 const compareNames = computed(() => compareKeys.value.map(k => models.value.find(m => modelKey(m) === k)?.modelDisplayName ?? k.replace(/_/g, ' ')))
+/** "?vergleich=A,B" (from the compare page's "+ Modell" and "×"): those models start picked */
+function presetCompare() {
+  const wanted = String(route.query.vergleich ?? '').split(',').map(k => k.trim().toLowerCase()).filter(Boolean)
+  if (!wanted.length) return
+  compareKeys.value = models.value.map(m => modelKey(m)).filter(k => wanted.includes(k.toLowerCase())).slice(0, MAX_COMPARE)
+}
 function startCompare() {
   // set: which models are compared, sorted keys without personal data (Custom Property in Plausible)
   analytics.track('compare_start', { models: compareKeys.value.length, set: compareSetKey(compareKeys.value) })

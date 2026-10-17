@@ -60,6 +60,41 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(page).toHaveURL(/\/modelle\/vergleich\?models=[^,]+,[^,]+/);
     });
 
+    test('Vergleichsseite: Frage, Werte der Liste, nur "besser", zurück mit Auswahl', async ({ page }) => {
+      await openRanking(page);
+      for (const i of [0, 1]) {
+        if (viewport.width >= 1024) {
+          await rows(page).nth(i).getByTestId('compare-row').click();
+        } else {
+          await rowToggle(page, i).click();
+          await rows(page).nth(i).getByTestId('compare-open').click();
+        }
+      }
+      await page.getByRole('button', { name: 'Vergleichen' }).click();
+
+      await expect(page.getByTestId('compare-title')).toContainText(' oder ');
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /^index/);
+      await expect(page.getByTestId('compare-head')).toHaveCount(2);
+      await expect(page.getByTestId('compare-measured').getByTestId('compare-line').first()).toContainText('Verbrauch');
+      // Gast: ein Weg zum Fahrprofil statt eines zweiten Gates, unten der Aufruf zum Registrieren
+      await expect(page.getByTestId('compare-profile-link')).toBeVisible();
+      await expect(page.getByRole('link', { name: 'Kostenlos starten' }).last()).toBeVisible();
+      // höchstens ein Modell je Zeile ist markiert, nie beide
+      for (const line of await page.getByTestId('compare-measured').getByTestId('compare-line').all()) {
+        expect(await line.getByTestId('compare-better').count()).toBeLessThan(2);
+      }
+      const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      }));
+      expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+
+      // × am ersten Modell: zurück zur Liste, das andere bleibt gewählt
+      await page.getByTestId('compare-chip').first().click();
+      await expect(page).toHaveURL(/\/modelle\?vergleich=[^,]+#fahrer-messen/);
+      await expect(page.getByText('noch ein Modell wählen')).toBeVisible();
+    });
+
     test('kein horizontales Scrollen', async ({ page }) => {
       await openRanking(page);
       // Gegen clientWidth statt Viewport-Breite: die App reserviert einen Scrollbar-Gutter.

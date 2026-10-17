@@ -1,223 +1,166 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
-    <PublicNav />
+<div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <PublicNav />
 
-    <main class="max-w-6xl mx-auto px-4 py-8">
-      <!-- Breadcrumb -->
-      <nav class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        <a href="/modelle" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('compare.breadcrumb_models') }}</a>
-        <span class="mx-2">›</span>
-        <span class="text-gray-900 dark:text-gray-100">{{ t('compare.breadcrumb_current') }}</span>
-      </nav>
+  <main class="mx-auto grid max-w-7xl gap-[18px] pb-10 lg:px-6">
+    <nav class="px-4 pt-6 text-[13px] text-gray-500 lg:px-0 dark:text-gray-400">
+      <a :href="modelsBaseUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('compare.breadcrumb_models') }}</a>
+      <span class="mx-2" aria-hidden="true">›</span>
+      <span class="text-gray-900 dark:text-gray-100">{{ t('compare.breadcrumb_current') }}</span>
+    </nav>
 
-      <!-- Loading -->
-      <div v-if="loading" class="flex items-center justify-center py-20">
-        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
-      </div>
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="h-10 w-10 animate-spin rounded-full border-b-2 border-green-600"></div>
+    </div>
 
-      <!-- Error / invalid params -->
-      <div v-else-if="error || items.length < 2" class="text-center py-20">
-        <TruckIcon class="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-        <h1 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('compare.error_title') }}</h1>
-        <p class="text-gray-500 dark:text-gray-400 mb-6">{{ error || t('compare.error_min_models') }}</p>
-        <a href="/modelle" class="bg-green-600 text-white px-6 py-3 rounded-sm hover:bg-green-700">
-          {{ t('compare.breadcrumb_models') }}
-        </a>
-      </div>
+    <div v-else-if="error || items.length < 2" class="grid justify-items-center gap-4 px-4 py-20 text-center">
+      <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('compare.error_title') }}</h1>
+      <p class="text-gray-600 dark:text-gray-400">{{ error || t('compare.error_min_models') }}</p>
+      <a :href="modelsBaseUrl" class="inline-flex min-h-11 items-center rounded-xl bg-green-600 px-4 font-semibold text-white hover:bg-green-700">{{ t('compare.breadcrumb_models') }}</a>
+    </div>
 
-      <template v-else>
-        <!-- Header -->
-        <div class="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-            {{ items.map(i => i.model.modelDisplayName).join(' vs. ') }}
-          </h1>
-          <p class="text-gray-500 dark:text-gray-400 text-sm">
-            {{ t('compare.subtitle') }}
-          </p>
-          <a :href="modelsBaseUrl" class="inline-flex items-center gap-1.5 text-sm text-green-600 hover:underline mt-3">
-            <ArrowLeftIcon class="h-4 w-4" />
-            {{ t('compare.change_models') }}
-          </a>
+    <template v-else>
+      <!-- 1. Head: the question, one result sentence, the models as chips -->
+      <header class="grid gap-4 px-4 lg:px-0">
+        <h1 class="text-balance text-[clamp(30px,7.4vw,52px)] font-bold leading-[1.04] tracking-tight text-gray-900 dark:text-gray-100" data-testid="compare-title">{{ heading }}</h1>
+        <p v-if="summaryText" class="max-w-[60ch] text-[16px] leading-relaxed text-gray-700 md:text-[17px] dark:text-gray-300" data-testid="compare-summary">{{ summaryText }}</p>
+        <div class="flex flex-wrap gap-2">
+          <ChoiceChip v-for="item in items" :key="item.key" size="sm" :aria-label="t('compare.remove', { name: shortName(item) })" data-testid="compare-chip" @click="remove(item)">
+            {{ shortName(item) }}<XMarkIcon class="h-4 w-4" stroke-width="2.25" aria-hidden="true" />
+          </ChoiceChip>
+          <ChoiceChip v-if="items.length < MAX_COMPARE" size="sm" :href="listHref(items.map(i => i.key))" data-testid="compare-add">
+            <PlusIcon class="h-4 w-4" stroke-width="2.25" aria-hidden="true" />{{ t('compare.add') }}
+          </ChoiceChip>
         </div>
+      </header>
 
-        <!-- Sentinel for IntersectionObserver (mobile sticky header trigger) -->
-        <div ref="stickysentinel" class="block md:hidden h-0"></div>
-
-        <!-- Fixed floating header (shown when sentinel scrolls out of view) -->
-        <Transition name="slide-down">
-          <div v-if="floatingHeaderVisible"
-               class="block md:hidden fixed left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b-2 border-gray-100 dark:border-gray-800 px-4 py-2 shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]"
-               :style="{ top: floatingHeaderTop }">
-            <div class="grid gap-3" :class="gridCols">
-              <div v-for="item in items" :key="item.key" class="text-center text-xs font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">{{ item.model.modelDisplayName }}</div>
-            </div>
-          </div>
-        </Transition>
-
-        <!-- Comparison: Mobile Card Layout (label above the values) -->
-        <div class="block md:hidden bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 mb-6">
-          <div class="border-b-2 border-gray-100 dark:border-gray-800 px-4 py-3">
-            <div class="grid gap-2" :class="gridCols">
-              <a v-for="item in items" :key="item.key" :href="modelHref(item)"
-                 class="text-center text-xs font-bold text-gray-900 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-400 leading-tight block">
-                {{ item.model.modelDisplayName }}
-              </a>
-            </div>
-          </div>
-          <div v-for="row in rows" :key="row.key" class="border-t border-gray-100 dark:border-gray-800 px-4 py-3" data-testid="compare-row">
-            <div class="text-xs mb-2 text-center text-gray-500 dark:text-gray-400">{{ row.label }}</div>
-            <div class="grid gap-2" :class="gridCols">
-              <div v-for="(cell, i) in row.cells" :key="i" class="text-center text-sm" data-testid="compare-cell">
-                <span class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                  <span v-if="cell.better" class="mr-1 inline-block h-2 w-2 rounded-full bg-green-600 align-middle dark:bg-green-400" data-testid="compare-better"></span><span v-if="cell.better" class="sr-only">{{ t('compare.legend_better') }}: </span>{{ cell.value }}
-                </span>
-                <span v-for="line in cell.sub" :key="line" class="block text-xs text-gray-500 dark:text-gray-400">{{ line }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
-            <span class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-green-600 dark:bg-green-400 inline-block"></span>
-              {{ t('compare.legend_better') }}
-            </span>
+      <!-- Phone: the names stay in view once the column heads scroll away -->
+      <div ref="stickysentinel" class="h-0 md:hidden"></div>
+      <Transition name="slide-down">
+        <div v-if="floatingHeaderVisible" class="fixed inset-x-0 z-40 border-b border-gray-200 bg-white px-4 py-2 md:hidden dark:border-gray-800 dark:bg-gray-900" :style="{ top: floatingHeaderTop }">
+          <div class="grid gap-3" :class="COLS[items.length]">
+            <div v-for="item in items" :key="item.key" class="truncate text-center text-[13px] font-bold text-gray-900 dark:text-gray-100">{{ shortName(item) }}</div>
           </div>
         </div>
+      </Transition>
 
-        <!-- Comparison: Desktop Table -->
-        <div class="hidden md:block bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b-2 border-gray-100 dark:border-gray-800">
-                <th class="w-44 py-4 px-4"></th>
-                <th v-for="item in items" :key="item.key" class="py-4 px-3 text-center">
-                  <a :href="modelHref(item)" class="font-bold text-gray-900 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-400 transition-colors block">
-                    {{ item.model.modelDisplayName }}
-                  </a>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in rows" :key="row.key" class="border-t border-gray-100 dark:border-gray-800">
-                <td class="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{{ row.label }}</td>
-                <td v-for="(cell, i) in row.cells" :key="i" class="px-3 py-3 text-center">
-                  <span class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
-                    <span v-if="cell.better" class="mr-1.5 inline-block h-2 w-2 rounded-full bg-green-600 align-middle dark:bg-green-400"></span><span v-if="cell.better" class="sr-only">{{ t('compare.legend_better') }}: </span>{{ cell.value }}
-                  </span>
-                  <span v-for="line in cell.sub" :key="line" class="block text-xs text-gray-500 dark:text-gray-400">{{ line }}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
-            <span class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-green-600 dark:bg-green-400 inline-block"></span>
-              {{ t('compare.legend_better') }}
-            </span>
-          </div>
-        </div>
+      <!-- 2. For you: the open row's answers side by side; guests and an empty profile get one way to /modelle -->
+      <section v-if="forYouRows.length" class="grid gap-3 bg-white px-4 py-6 md:rounded-3xl md:px-7 md:edge-box dark:bg-gray-900" data-testid="compare-for-you">
+        <h2 class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.detail.for_you') }}</h2>
+        <CompareRows :rows="forYouRows" :names="items.map(shortName)" />
+      </section>
+      <a v-else :href="`${modelsBaseUrl}#passt-zu-dir`" class="edge-card mx-4 flex min-h-16 items-center gap-3 rounded-2xl bg-white px-4 py-3 hover:bg-green-50 lg:mx-0 dark:bg-gray-900 dark:hover:bg-green-950/40" data-testid="compare-profile-link">
+        <UserIcon class="h-6 w-6 flex-none text-green-700 dark:text-green-400" aria-hidden="true" />
+        <span class="grid min-w-0 flex-1">
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ t('compare.profile_title') }}</span>
+          <span class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ t('compare.profile_sub') }}</span>
+        </span>
+        <ChevronRightIcon class="h-5 w-5 flex-none text-gray-400" aria-hidden="true" />
+      </a>
 
-        <!-- Links to individual pages -->
-        <div class="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 p-5 mb-6">
-          <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{ t('compare.detail_pages') }}</p>
-          <div class="flex flex-wrap gap-3">
-            <a v-for="item in items" :key="item.key"
-               :href="modelHref(item)"
-               class="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 hover:underline">
-              <TruckIcon class="h-4 w-4" />
-              {{ item.model.modelDisplayName }} →
+      <!-- 3. What the drivers measure: column heads with photo, variant and model page, then the ranking row's cells and the fact list -->
+      <section class="grid gap-5 bg-white px-4 py-6 md:rounded-3xl md:px-7 md:edge-box dark:bg-gray-900" data-testid="compare-measured">
+        <h2 class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.detail.measured') }}</h2>
+        <div class="grid gap-x-4 gap-y-3" :class="GRID[items.length]">
+          <span class="hidden md:block" aria-hidden="true"></span>
+          <div v-for="(item, i) in items" :key="item.key" class="grid min-w-0 content-start justify-items-center gap-2 text-center" data-testid="compare-head">
+            <img v-if="thumb(item)" :src="thumb(item)!" alt="" loading="lazy" class="h-16 w-16 rounded-xl bg-gray-200 object-cover md:h-20 md:w-20 dark:bg-gray-800" />
+            <span v-else class="grid h-16 w-16 place-items-center rounded-xl bg-gray-100 text-[15px] font-bold text-gray-600 md:h-20 md:w-20 dark:bg-gray-800 dark:text-gray-300" aria-hidden="true">{{ item.model.brandDisplayName.slice(0, 2).toLocaleUpperCase() }}</span>
+            <span class="text-[15px] font-semibold leading-snug text-gray-900 dark:text-gray-100">{{ fullName(item) }}</span>
+            <select v-if="variantChoices[i].length >= 2" :value="variantIndex[item.key] ?? -1" :aria-label="t('compare.variant_label', { name: shortName(item) })"
+                    class="w-full min-w-0 max-w-[220px] rounded-xl border border-gray-300 bg-white px-1.5 py-1.5 text-[12.5px] md:px-2 md:text-[13px] text-gray-800 focus:border-green-600 focus:outline-none dark:border-transparent dark:bg-white/10 dark:text-gray-200"
+                    data-testid="compare-variant" @change="variantIndex[item.key] = +($event.target as HTMLSelectElement).value">
+              <option :value="-1">{{ t('compare.all_variants') }}</option>
+              <option v-for="(v, vi) in variantChoices[i]" :key="vi" :value="vi">{{ variantLabel(v) }}</option>
+            </select>
+            <a :href="modelHref(item)" :aria-label="t('models_ranking.detail.model_page', { name: fullName(item) })"
+               class="btn-3d cta-shadow-sm inline-flex min-h-10 w-full min-w-0 max-w-[220px] items-center justify-center gap-1 rounded-xl border-2 border-gray-900 bg-white px-1.5 text-[12.5px] font-semibold md:gap-1.5 md:px-3 md:text-[13.5px] text-gray-900 hover:bg-gray-50 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:shadow-none! dark:hover:bg-white/15">
+              <span class="truncate">{{ t('compare.model_page') }}</span><ArrowRightIcon class="hidden h-4 w-4 flex-none md:block" aria-hidden="true" />
             </a>
           </div>
         </div>
+        <CompareRows :rows="measuredRows" :names="items.map(shortName)" />
+        <p class="flex items-center gap-1.5 text-[12.5px] text-gray-500 dark:text-gray-400">
+          <span class="inline-block h-2 w-2 rounded-full bg-green-600 dark:bg-green-400" aria-hidden="true"></span>{{ t('compare.legend_better') }}
+        </p>
+      </section>
 
-        <!-- CTA, guests only -->
-        <div v-if="!isAuthenticated" class="bg-gradient-to-br from-green-600 to-green-700 rounded-sm p-6 text-white">
-          <h2 class="text-xl font-bold mb-2">{{ t('compare.cta_title') }}</h2>
-          <p class="text-green-100 text-sm mb-4">
-            {{ t('compare.cta_desc') }}
-          </p>
-          <div class="flex flex-wrap gap-3">
-            <a :href="registerPath" class="bg-white text-green-700 font-semibold px-4 py-2 rounded-sm hover:bg-green-50 transition-colors text-sm">
-              {{ t('compare.cta_register') }}
-            </a>
-            <a :href="loginPath" class="border border-white text-white px-4 py-2 rounded-sm hover:bg-green-600 transition-colors text-sm">
-              {{ t('compare.cta_login') }}
-            </a>
-          </div>
-        </div>
-      </template>
-    </main>
+      <!-- 6. Guests only, as on /modelle -->
+      <section v-if="!isAuthenticated" class="mx-4 grid gap-3 rounded-2xl bg-gray-900 p-6 text-white lg:mx-0 dark:bg-gray-800">
+        <h2 class="text-[22px] font-bold tracking-tight">{{ t('compare.cta_title') }}</h2>
+        <p class="max-w-[52ch] text-gray-300">{{ t('compare.cta_desc') }}</p>
+        <a :href="registerPath" class="inline-flex min-h-11 items-center justify-self-start rounded-xl bg-green-600 px-4 font-semibold text-white hover:bg-green-500">{{ t('compare.cta_register') }}</a>
+      </section>
+    </template>
+  </main>
 
-    <footer class="max-w-6xl mx-auto px-4 py-8 mt-6 border-t border-gray-200 dark:border-gray-800 text-sm text-gray-500 dark:text-gray-400 text-center">
-      © {{ currentYear }} EV Monitor ·
-      <a href="/modelle" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('compare.all_models') }}</a>
-    </footer>
-  </div>
+  <footer class="mx-auto max-w-7xl border-t border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
+    © {{ currentYear }} EV Monitor ·
+    <a :href="modelsBaseUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('compare.all_models') }}</a>
+  </footer>
+</div>
 </template>
 
 <script setup lang="ts">
 import { ref, onUnmounted, computed, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
-import { getTopModels, getChargingReferencePrices, type TopModelPreview } from '../api/publicModelService'
-import { TruckIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
+import { ArrowRightIcon, ChevronRightIcon, PlusIcon, UserIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { getTopModels, getChargingReferencePrices, getModelStats, type TopModelPreview, type WltpVariant } from '../api/publicModelService'
 import PublicNav from '../components/shared/PublicNav.vue'
+import ChoiceChip from '../components/shared/ChoiceChip.vue'
+import CompareRows, { GRID, COLS, type CompareRow } from '../components/models/CompareRows.vue'
 import { useAuthStore } from '../stores/auth'
 import { useTickerState } from '../composables/useTickerState'
 import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
 import { useModelRanking, MAX_COMPARE, type RankedModel } from '../composables/useModelRanking'
 import { useRankedModelText } from '../composables/useRankedModelText'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { officialModelThumbUrl } from '../config/modelImages'
 import { combustionAllowed } from '../utils/costMix'
-import { betterMarks } from '../utils/compareModels'
+import { buildLadderAxis, barLength } from '../utils/ladderScale'
+import { applyVariant, betterMarks, compareSummary, variantsWithTrips } from '../utils/compareModels'
 
 const { t, locale } = useI18n()
-const { distanceUnitLabel } = useLocaleFormat()
+const { distanceUnitLabel, formatDistance, formatNumber, unitSystem } = useLocaleFormat()
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 const { currentMarket, isDE } = useMarketRoute()
+const route = useRoute()
+const router = useRouter()
+const registerPath = computed(() => locale.value === 'en' ? '/en/register' : '/register')
+const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
+const currentYear = new Date().getFullYear()
+
+// ── Floating names on the phone (IntersectionObserver) ────────────────────────
 const floatingHeaderTop = computed(() => {
   if (!isAuthenticated.value) return '0px'
-  if (tickerHasItems.value && !tickerCollapsed.value) return '90px'
-  return '58px'
+  return tickerHasItems.value && !tickerCollapsed.value ? '90px' : '58px'
 })
-const registerPath = computed(() => locale.value === 'en' ? '/en/register' : '/register')
-const loginPath = computed(() => locale.value === 'en' ? '/en/login' : '/login')
-const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
-
-const route = useRoute()
-const loading = ref(true)
-
-// ── Floating sticky header (IntersectionObserver) ─────────────────────────────
 const stickysentinel = ref<HTMLElement | null>(null)
 const floatingHeaderVisible = ref(false)
 let observer: IntersectionObserver | null = null
-
-watch(stickysentinel, (el) => {
+watch(stickysentinel, el => {
   observer?.disconnect()
   if (!el) return
-  observer = new IntersectionObserver(
-    ([entry]) => { floatingHeaderVisible.value = !entry.isIntersecting },
-    { threshold: 0, rootMargin: '0px' }
-  )
+  observer = new IntersectionObserver(([entry]) => { floatingHeaderVisible.value = !entry.isIntersecting && entry.boundingClientRect.top < 0 })
   observer.observe(el)
 })
-
 onUnmounted(() => observer?.disconnect())
-const error = ref<string | null>(null)
-const currentYear = new Date().getFullYear()
-
-const modelKeys = computed((): string[] => {
-  const raw = route.query.models as string | undefined
-  if (!raw) return []
-  return raw.split(',').slice(0, MAX_COMPARE).map(s => s.trim()).filter(Boolean)
-})
 
 // ── Data: the same ranking as /modelle, so every figure matches the list ──────
+const loading = ref(true)
+const error = ref<string | null>(null)
 const models = ref<TopModelPreview[]>([])
 const { ranked, cost, needs, combustionMarket, applyReferencePrices } = useModelRanking(models)
 watch(currentMarket, m => { combustionMarket.value = combustionAllowed(m) }, { immediate: true })
+
+const modelKeys = computed((): string[] => {
+  const raw = route.query.models as string | undefined
+  return raw ? raw.split(',').slice(0, MAX_COMPARE).map(s => s.trim()).filter(Boolean) : []
+})
 
 onMounted(async () => {
   if (modelKeys.value.length < 2) {
@@ -226,10 +169,7 @@ onMounted(async () => {
     return
   }
   try {
-    const [top, prices] = await Promise.all([
-      getTopModels(200),
-      getChargingReferencePrices().catch(() => null),
-    ])
+    const [top, prices] = await Promise.all([getTopModels(200), getChargingReferencePrices().catch(() => null)])
     models.value = top
     applyReferencePrices(prices, isDE.value)
   } catch {
@@ -240,25 +180,105 @@ onMounted(async () => {
 })
 
 /** The compared models in the link's order; keys match regardless of case (older shared links) */
-const items = computed<RankedModel[]>(() => modelKeys.value
+const rankedItems = computed<RankedModel[]>(() => modelKeys.value
   .map(k => ranked.value.find(r => r.key.toLowerCase() === k.toLowerCase()))
   .filter((r): r is RankedModel => r != null))
 
-function modelHref(item: RankedModel) {
-  return `${modelsBaseUrl.value}/${item.model.brandDisplayName}/${item.model.modelUrlSlug}`
+// ── Variants: only those with trips; "Alle Varianten" shows the list's figures ─
+const variantsByKey = ref<Record<string, WltpVariant[]>>({})
+const variantIndex = ref<Record<string, number>>({})
+watch(() => rankedItems.value.map(r => r.key), keys => {
+  for (const key of keys) {
+    if (variantsByKey.value[key]) continue
+    variantsByKey.value[key] = []
+    const [brand, model] = key.split('/')
+    getModelStats(brand, model)
+      .then(s => { variantsByKey.value[key] = variantsWithTrips(s?.wltpVariants ?? []) })
+      .catch(() => { /* no picker without the variants */ })
+  }
+}, { immediate: true })
+const variantChoices = computed(() => rankedItems.value.map(r => variantsByKey.value[r.key] ?? []))
+/** What the page shows: each model on its chosen battery */
+const items = computed<RankedModel[]>(() => rankedItems.value.map((r, i) => {
+  const v = variantChoices.value[i][variantIndex.value[r.key] ?? -1]
+  return v ? applyVariant(r, v) : r
+}))
+function variantLabel(v: WltpVariant) {
+  const battery = `${formatNumber(v.batteryCapacityKwh)} kWh`
+  const name = v.displayLabel || v.variantName
+  return name ? `${name}, ${battery}` : battery
 }
-const gridCols = computed(() => items.value.length === 3 ? 'grid-cols-3' : 'grid-cols-2')
 
-// ── Rows: the ranking row's cells, then what the drivers measure ──────────────
+// ── Names and links ───────────────────────────────────────────────────────────
+/** "Model 3", "ID.3": the head's question and the chips */
+const shortName = (item: RankedModel) => item.model.modelUrlSlug.replace(/_/g, ' ')
+/** "Tesla Model 3"; a model name that carries the brand ("Renault 5") shows it once */
+function fullName(item: RankedModel) {
+  const name = shortName(item)
+  return name.toLowerCase().startsWith(item.model.brandDisplayName.toLowerCase()) ? name : `${item.model.brandDisplayName} ${name}`
+}
+const modelHref = (item: RankedModel) => `${modelsBaseUrl.value}/${item.model.brandDisplayName}/${item.model.modelUrlSlug}`
+const thumb = (item: RankedModel) => officialModelThumbUrl(item.model.model)
+/** Back to the list with these models picked */
+const listHref = (keys: string[]) => `${modelsBaseUrl.value}?vergleich=${keys.join(',')}#fahrer-messen`
+function remove(item: RankedModel) {
+  const rest = items.value.filter(i => i.key !== item.key).map(i => i.key)
+  if (rest.length >= 2) router.replace({ query: { ...route.query, models: rest.join(',') } })
+  else router.push(listHref(rest))
+}
+
+// ── Head: the question and one result sentence ────────────────────────────────
+const heading = computed(() => {
+  const n = items.value.map(shortName)
+  return n.length === 3 ? t('compare.title_three', { a: n[0], b: n[1], c: n[2] }) : t('compare.title_two', { a: n[0], b: n[1] })
+})
+const summaryText = computed(() => {
+  const s = compareSummary(items.value.map(i => ({
+    name: shortName(i), consumption: i.model.avgConsumptionKwhPer100km, winterKm: i.model.winterRangeMaxKm ?? null,
+  })))
+  // with two models the other one is obvious, with three it is named
+  const than = items.value.length > 2
+  const lean = s.lean ? { a: s.lean.winner, b: s.lean.other, pct: formatNumber(s.lean.pct) } : null
+  const winter = s.winter ? { a: s.winter.winner, b: s.winter.other, km: formatDistance(s.winter.km, { step: 10 }) } : null
+  if (lean && winter && lean.a === winter.a && (!than || lean.b === winter.b)) {
+    return t(than ? 'compare.summary_both_than' : 'compare.summary_both', { ...lean, km: winter.km }) + '.'
+  }
+  const parts = [
+    lean ? t(than ? 'compare.summary_lean_than' : 'compare.summary_lean', lean) : null,
+    winter ? t(than ? 'compare.summary_winter_than' : 'compare.summary_winter', winter) : null,
+  ].filter(Boolean)
+  return parts.length ? parts.join(', ') + '.' : ''
+})
+
+// ── Rows ──────────────────────────────────────────────────────────────────────
 // One text set per compare slot (at most MAX_COMPARE); a slot is only read while it holds a model.
 const texts = Array.from({ length: MAX_COMPARE }, (_, i) =>
   useRankedModelText(() => items.value[i], () => needs.value.longestTripKm, () => cost.value.fuel))
+const slots = computed(() => items.value.map((_, i) => texts[i]))
 
-interface Cell { value: string; sub: string[]; better: boolean }
-interface Row { key: string; label: string; cells: Cell[] }
+/** For you: signed in only (guests have the one gate on /modelle), each answer once any model has it */
+const ANSWER_ORDER = ['charge', 'trip', 'cost']
+const forYouRows = computed<CompareRow[]>(() => {
+  if (!isAuthenticated.value) return []
+  return ANSWER_ORDER.flatMap(key => {
+    const answers = slots.value.map(x => x.answers.value.find(a => a.key === key) ?? null)
+    const first = answers.find(a => a != null)
+    if (!first) return []
+    return [{ key, label: first.label, cells: answers.map(a => ({ value: a?.value ?? '–', sub: a?.sub ?? [], better: false })) }]
+  })
+})
+
+// The list's bar scale over all models, so a bar here is as long as in the list
+const axis = computed(() => buildLadderAxis(
+  models.value.flatMap(m => [
+    m.avgConsumptionKwhPer100km, m.avgWltpConsumptionKwhPer100km, m.minWltpConsumptionKwhPer100km,
+    m.maxWltpConsumptionKwhPer100km, m.minRealConsumptionKwhPer100km, m.maxRealConsumptionKwhPer100km,
+  ]),
+  unitSystem.value.consumptionUnit,
+))
 
 const round = (v: number | null | undefined, step: number) => v != null ? Math.round(v / step) * step : null
-/** The marked figures, rounded as shown: lower consumption and cost, more range */
+/** Marked figures, compared as shown (rounded): lower consumption and cost, more range */
 const marks = computed(() => ({
   consumption: betterMarks(items.value.map(r => round(r.model.avgConsumptionKwhPer100km, 0.1)), true),
   cost: betterMarks(items.value.map(r => round(r.costPer100kmEur, 0.01)), true),
@@ -266,54 +286,60 @@ const marks = computed(() => ({
 }))
 
 const FACT_ORDER = ['consumption', 'winter', 'highway', 'wltp', 'battery', 'data']
-
-const rows = computed<Row[]>(() => {
-  const slots = items.value.map((_, i) => texts[i])
-  const out: Row[] = [
+const measuredRows = computed<CompareRow[]>(() => {
+  const x = slots.value
+  const rows: CompareRow[] = [
     {
       key: 'consumption',
       label: t('models_ranking.columns.consumption'),
-      cells: slots.map((x, i) => ({
-        value: `${x.realText.value} ${x.consumptionUnitLabel()}`,
-        sub: [`${t('models_ranking.columns.wltp')} ${x.wltpText.value}`],
+      cells: items.value.map((item, i) => ({
+        value: `${x[i].realText.value} ${x[i].consumptionUnitLabel()}`,
+        sub: [`${t('models_ranking.columns.wltp')} ${x[i].wltpText.value}`],
         better: marks.value.consumption[i],
+        bar: {
+          real: barLength(item.model.avgConsumptionKwhPer100km, axis.value),
+          wltp: barLength(item.wltpKwhPer100km, axis.value),
+          // in kWh space: above WLTP orange, below green, as in the list
+          tone: (item.wltpDeviationPct ?? 0) > 0 ? 'bg-orange-500 dark:bg-orange-400' : 'bg-green-600 dark:bg-green-500',
+          label: `${t('models_ranking.row.bar_drivers')} ${x[i].realText.value}, ${t('models_ranking.columns.wltp')} ${x[i].wltpText.value} ${x[i].consumptionUnitLabel()}`,
+        },
       })),
     },
     {
       key: 'cost',
       label: t('models_ranking.columns.cost_per', { unit: distanceUnitLabel() }),
-      cells: slots.map((x, i) => ({
-        value: `${t('models_ranking.row.electricity')} ${x.electricityCost.value}`,
-        sub: [x.combustionCaption.value, x.driversPrice.value ?? ''].filter(Boolean),
+      cells: x.map((s, i) => ({
+        value: `${t('models_ranking.row.electricity')} ${s.electricityCost.value}`,
+        sub: [s.combustionCaption.value, s.driversPrice.value ?? ''].filter(Boolean),
         better: marks.value.cost[i],
       })),
     },
     {
       key: 'range',
       label: t('models_ranking.columns.range'),
-      cells: slots.map((x, i) => ({
-        value: `${x.rangeValue.value} ${distanceUnitLabel()}`,
-        sub: x.ladderLine.value ? [x.ladderLine.value] : [],
+      cells: x.map((s, i) => ({
+        value: `${s.rangeValue.value} ${distanceUnitLabel()}`,
+        sub: s.ladderLine.value ? [s.ladderLine.value] : [],
         better: marks.value.range[i],
       })),
     },
   ]
   for (const key of FACT_ORDER) {
-    const values = slots.map(x => x.facts.value.find(f => f.key === key)?.value ?? null)
+    const values = x.map(s => s.facts.value.find(f => f.key === key)?.value ?? null)
     if (values.every(v => v == null)) continue
-    out.push({
+    rows.push({
       key,
       label: key === 'consumption' ? t('compare.row_seasons') : t(`models_ranking.detail.fact_${key}`),
       cells: values.map(v => ({ value: v ?? '–', sub: [], better: false })),
     })
   }
-  return out
+  return rows
 })
 
+// ── SEO: index, follow; the title keeps "A vs. B" for search ──────────────────
 const BASE_URL = 'https://ev-monitor.net'
-
 useHead(computed(() => {
-  const names = items.value.map(i => i.model.modelDisplayName).join(' vs. ')
+  const names = items.value.map(fullName).join(' vs. ')
   const title = names ? `${names} – ${t('compare.breadcrumb_current')} | EV Monitor` : t('compare.head_title_fallback')
   const description = t('compare.head_desc', { names })
   const canonical = `${BASE_URL}${route.fullPath}`

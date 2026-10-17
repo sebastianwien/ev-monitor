@@ -63,10 +63,8 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowRightIcon, CheckIcon, InformationCircleIcon, PlusIcon } from '@heroicons/vue/24/outline'
-import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { useRankedModelText } from '../../composables/useRankedModelText'
+import { useRankedModelText, type RankedModelAnswer } from '../../composables/useRankedModelText'
 import { officialModelImageAttribution } from '../../config/modelImages'
-import { chargeRhythmText, type RhythmFormat } from '../../utils/chargeRhythm'
 import { analytics } from '../../services/analytics'
 import type { RankedModel } from '../../composables/useModelRanking'
 import type { FuelKind } from '../../utils/costMix'
@@ -88,53 +86,10 @@ const emit = defineEmits<{ compare: [] }>()
 const HEAD = 'text-[12px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400'
 
 const { t } = useI18n()
-const { formatNumber, formatDecimal, formatCurrency } = useLocaleFormat()
-const { m, fmtKmUnit, duration, tripParams, fuelLabel, facts } =
+const { m, answers: allAnswers, facts } =
   useRankedModelText(() => props.item, () => props.longestTripKm, () => props.fuel)
 
 const credit = computed(() => officialModelImageAttribution(m.value.model))
-const cap = (s: string) => s.charAt(0).toLocaleUpperCase() + s.slice(1)
-
-// ── 1. The reader's answers ────────────────────────────────────────────────
-interface Answer { key: string; label: string; value: string; sub: string[] }
-const rhythmFormat: RhythmFormat = { t: (k, p, c) => t(k, p ?? {}, c as number), formatDecimal }
-const answers = computed<Answer[]>(() => {
-  const n = props.item.needs
-  if (!n || props.locked) return []
-  const out: Answer[] = []
-  if (n.commute) {
-    const c = n.commute
-    // one statement at the winter figure: it holds the whole year
-    out.push({
-      key: 'charge',
-      label: t(c.homeCharging ? 'models_ranking.detail.charge_label' : 'models_ranking.detail.charge_label_public'),
-      value: cap(chargeRhythmText(c.winter, c.homeCharging, rhythmFormat)),
-      sub: [],
-    })
-  }
-  if (n.trip && tripParams.value) {
-    out.push({
-      key: 'trip',
-      label: t('models_ranking.detail.trip_label', tripParams.value),
-      value: cap(n.trip.stops === 0 ? t('models_ranking.row.stops_none') : t('models_ranking.row.stops_word', { count: formatNumber(n.trip.stops) }, n.trip.stops)),
-      sub: n.trip.totalMinutes != null ? [t('personal_range.drive_time', { duration: duration(n.trip.totalMinutes) })] : [],
-    })
-  }
-  const cost = props.item.monthlyCostEur
-  if (cost != null && props.item.monthlyKm != null) {
-    const year = props.item.savingsPerYearEur
-    out.push({
-      key: 'cost',
-      label: t('models_ranking.detail.monthly'),
-      value: formatCurrency(Math.round(cost), { decimals: 0 }),
-      sub: [
-        t('models_ranking.detail.monthly_hint', { km: fmtKmUnit(Math.round(props.item.monthlyKm / 10) * 10) }),
-        ...(year != null ? [t(year >= 0 ? 'models_ranking.detail.year_cheaper' : 'models_ranking.detail.year_dearer', {
-          amount: formatCurrency(Math.abs(year), { decimals: 0 }), fuel: fuelLabel.value,
-        })] : []),
-      ],
-    })
-  }
-  return out
-})
+// guests see no answers here, the one gate sits in chapter 1
+const answers = computed<RankedModelAnswer[]>(() => props.locked ? [] : allAnswers.value)
 </script>

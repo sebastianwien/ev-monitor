@@ -1932,21 +1932,32 @@ rankings:
   log_count: "{n} laddningar"
   coming_soon: Fler rankningar kommer snart
 compare:
+  title_two: "{a} eller {b}?"
+  title_three: "{a}, {b} eller {c}?"
+  summary_lean: "{a} drar {pct} % mindre el"
+  summary_lean_than: "{a} drar {pct} % mindre el än {b}"
+  summary_winter: "{a} kommer {km} längre på vintern"
+  summary_winter_than: "{a} kommer {km} längre på vintern än {b}"
+  summary_both: "{a} drar {pct} % mindre el och kommer {km} längre på vintern"
+  summary_both_than: "{a} drar {pct} % mindre el än {b} och kommer {km} längre på vintern"
+  remove: "Ta bort {name} från jämförelsen"
+  add: "Modell"
+  profile_title: "Räkna ut för din körning"
+  profile_sub: "Hur ofta du laddar, stopp på långresan, kostnad per månad"
+  variant_label: "Variant {name}"
+  all_variants: "Alla varianter"
+  model_page: "Modellsida"
+  cta_title: "Kör du någon av de här modellerna?"
+  cta_desc: "Lägg in dina laddningar. Ju fler förare som är med, desto mer exakt blir jämförelsen."
   breadcrumb_models: Modeller
   breadcrumb_current: Jämför
   error_title: Jämförelse är inte möjlig
   error_min_models: Välj minst två modeller.
   error_loading: Det uppstod ett fel vid inläsning av modelldata.
   error_need_two: Välj minst två modeller att jämföra.
-  subtitle: Verkliga kördata i direkt jämförelse – WLTP kontra verkligheten
-  change_models: Välj mellan olika modeller
   legend_better: "Bättre"
   row_seasons: "Sommar och vinter"
-  detail_pages: Detaljsidor
-  cta_title: Saknas data eller är de ofullständiga?
-  cta_desc: Lägg till dina laddningar – ju fler förare som bidrar, desto mer tillförlitlig blir jämförelsen.
   cta_register: Kom igång gratis
-  cta_login: Logga in
   all_models: Alla modeller
   head_title_fallback: Modelljämförelse | EV Monitor
   head_desc: "Direkt jämförelse: {names}. Faktisk förbrukning, räckvidd, kostnader och WLTP-avvikelse jämfört med faktiska användardata."
