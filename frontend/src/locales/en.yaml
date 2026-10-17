@@ -1998,6 +1998,7 @@ compare:
   profile_sub: "How often to charge, stops on a long trip, cost per month"
   variant_label: "Variant {name}"
   all_variants: "All variants"
+  all_variants_short: "All"
   model_page: "Model page"
   cta_title: "Do you drive one of these models?"
   cta_desc: "Log your charging sessions. The more drivers join in, the more precise the comparison gets."

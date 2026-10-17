@@ -2,11 +2,15 @@
   <div ref="root" class="relative">
     <!-- Two lines, so it reads as a choice: "Variante wählen" over the battery the page is calculated with -->
     <button ref="trigger" type="button" data-testid="variant-picker"
-            class="btn-3d cta-shadow-sm inline-flex max-w-full items-center gap-3 rounded-2xl border-2 border-gray-900 bg-white py-1.5 pl-3.5 pr-3 text-left text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15"
+            class="btn-3d cta-shadow-sm inline-flex max-w-full items-center rounded-2xl border-2 border-gray-900 bg-white py-1.5 text-left text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15"
+            :class="compact ? 'min-h-11 justify-between gap-1.5 pl-3 pr-2 md:gap-3 md:pl-3.5 md:pr-3' : 'gap-3 pl-3.5 pr-3'"
             aria-haspopup="dialog" :aria-expanded="open" @click="toggle">
+      <!-- compact (narrow compare columns on the phone): just the variant's name, the battery stands in the table below -->
       <span class="grid min-w-0 leading-tight">
-        <span class="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ t('model.page.variant_button') }}</span>
-        <span class="truncate text-[14.5px] font-bold">{{ current ? `${current.label}, ${current.battery}` : '' }}</span>
+        <span class="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400" :class="compact ? 'hidden md:block' : ''">{{ t('model.page.variant_button') }}</span>
+        <span class="truncate font-bold" :class="compact ? 'text-[13.5px] md:text-[14.5px]' : 'text-[14.5px]'">
+          <template v-if="current"><span :class="compact ? 'md:hidden' : 'hidden'">{{ current.short ?? current.label }}</span><span :class="compact ? 'hidden md:inline' : ''">{{ current.label }}</span><span :class="compact ? 'hidden md:inline' : ''">, {{ current.battery }}</span></template>
+        </span>
       </span>
       <ChevronDownIcon class="h-5 w-5 flex-none transition-transform" :class="open ? 'rotate-180' : ''" aria-hidden="true" />
     </button>
@@ -14,7 +18,7 @@
     <!-- Desktop: a popover under the button, rising a few pixels as it fades in -->
     <Transition name="pop">
     <div v-if="open && desktop" ref="panel" role="dialog" :aria-label="t('model.page.variant_title')"
-         class="absolute right-0 top-[calc(100%+8px)] z-40 grid w-[min(640px,calc(100vw-48px))] gap-3 rounded-2xl bg-white p-4 edge-box dark:border-gray-700 dark:bg-gray-900">
+         :class="ALIGN[align]" :style="panelLeft != null ? { left: `${panelLeft}px`, right: 'auto', translate: 'none' } : undefined" class="absolute top-[calc(100%+8px)] z-40 grid w-[min(640px,calc(100vw-48px))] gap-3 rounded-2xl bg-white p-4 edge-box dark:border-gray-700 dark:bg-gray-900">
       <p class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.variant_title') }}</p>
       <div class="grid grid-cols-2 gap-2">
         <VariantPickerItem v-for="(o, i) in options" :key="o.key" :option="o" :selected="i === modelValue" @choose="choose(i)" />
@@ -55,6 +59,8 @@ export interface VariantOption {
   battery: string
   range: string | null
   prospect: string
+  /** compact trigger below md: a shorter name ("Alle"); falls back to label */
+  short?: string
 }
 </script>
 
@@ -68,7 +74,15 @@ import { ChevronDownIcon, XMarkIcon } from '@heroicons/vue/24/outline'
  * phone and a popover from md up, each battery a card with its range and the prospectus figure.
  * Escape, a click outside and a choice close it; the focus goes back to the button.
  */
-const props = defineProps<{ options: VariantOption[]; modelValue: number }>()
+const props = withDefaults(defineProps<{
+  options: VariantOption[]
+  modelValue: number
+  /** Which edge of the button the desktop popover lines up with; the compare page aligns by column */
+  align?: 'left' | 'center' | 'right'
+  /** Narrow columns below md: no "Variante wählen" line, only the name; from md as on the model page */
+  compact?: boolean
+}>(), { align: 'right', compact: false })
+const ALIGN = { left: 'left-0', center: 'left-1/2 -translate-x-1/2', right: 'right-0' }
 const emit = defineEmits<{ 'update:modelValue': [index: number] }>()
 const { t } = useI18n()
 
@@ -83,10 +97,25 @@ const desktopQuery = typeof window !== 'undefined' && window.matchMedia ? window
 const desktop = ref(desktopQuery?.matches ?? false)
 const onQuery = (e: MediaQueryListEvent) => { desktop.value = e.matches }
 
+/** Desktop popover position inside the button's box once measured; null = the align class alone */
+const panelLeft = ref<number | null>(null)
+const EDGE = 24
+/** Keeps the popover inside the window: in a narrow column (compare page) the align edge alone can push it out */
+function fitPanel() {
+  if (!desktop.value || !panel.value || !root.value) return
+  const box = root.value.getBoundingClientRect()
+  const width = panel.value.offsetWidth
+  const wanted = props.align === 'left' ? 0 : props.align === 'center' ? (box.width - width) / 2 : box.width - width
+  const left = Math.min(Math.max(box.left + wanted, EDGE), window.innerWidth - EDGE - width)
+  panelLeft.value = left - box.left
+}
+
 async function toggle() {
   if (open.value) return close()
+  panelLeft.value = null
   open.value = true
   await nextTick()
+  fitPanel()
   panel.value?.querySelector<HTMLElement>('[aria-pressed="true"]')?.focus()
 }
 

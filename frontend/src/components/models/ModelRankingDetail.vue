@@ -32,10 +32,7 @@
     <!-- 3. One way on, centred under both columns: the model page. The phone compares from here. -->
     <div class="grid justify-items-center gap-2.5 text-center">
       <div class="grid w-full gap-2.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-3">
-      <a :href="href" class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-gray-900 px-4 font-bold text-white hover:bg-gray-800 dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900" @click="analytics.track('ranking_model_page')">
-        {{ t('models_ranking.detail.model_page', { name: m.modelDisplayName }) }}
-        <ArrowRightIcon class="h-5 w-5" aria-hidden="true" />
-      </a>
+      <ModelPageButton :href="href" :label="t('models_ranking.detail.model_page', { name: m.modelDisplayName })" @click="analytics.track('ranking_model_page')" />
       <button
         type="button"
         class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-2 px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-40 lg:hidden"
@@ -62,7 +59,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowRightIcon, CheckIcon, InformationCircleIcon, PlusIcon } from '@heroicons/vue/24/outline'
+import { CheckIcon, InformationCircleIcon, PlusIcon } from '@heroicons/vue/24/outline'
+import ModelPageButton from './ModelPageButton.vue'
 import { useRankedModelText, type RankedModelAnswer } from '../../composables/useRankedModelText'
 import { officialModelImageAttribution } from '../../config/modelImages'
 import { analytics } from '../../services/analytics'

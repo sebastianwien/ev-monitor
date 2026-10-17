@@ -1946,6 +1946,7 @@ compare:
   profile_sub: "Hvor ofte du lader, stopp på langturen, kostnad per måned"
   variant_label: "Variant {name}"
   all_variants: "Alle varianter"
+  all_variants_short: "Alle"
   model_page: "Modellside"
   cta_title: "Kjører du en av disse modellene?"
   cta_desc: "Legg inn ladingene dine. Jo flere sjåfører som bidrar, desto mer presis blir sammenligningen."

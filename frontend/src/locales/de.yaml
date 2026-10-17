@@ -2001,6 +2001,7 @@ compare:
   profile_sub: "Wie oft laden, Stopps auf der Urlaubsfahrt, Kosten im Monat"
   variant_label: "Variante {name}"
   all_variants: "Alle Varianten"
+  all_variants_short: "Alle"
   model_page: "Modellseite"
   cta_title: "Du fährst eines dieser Modelle?"
   cta_desc: "Trag deine Ladevorgänge ein. Je mehr Fahrer mitmachen, desto genauer wird der Vergleich."

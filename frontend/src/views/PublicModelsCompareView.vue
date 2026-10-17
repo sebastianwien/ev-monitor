@@ -46,7 +46,7 @@
 
       <!-- 2. For you: the open row's answers side by side; guests and an empty profile get one way to /modelle -->
       <section v-if="forYouRows.length" class="grid gap-3 bg-white px-4 py-6 md:rounded-3xl md:px-7 md:edge-box dark:bg-gray-900" data-testid="compare-for-you">
-        <h2 class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.detail.for_you') }}</h2>
+        <h2 class="text-center text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.detail.for_you') }}</h2>
         <CompareRows :rows="forYouRows" :names="items.map(shortName)" />
       </section>
       <a v-else :href="`${modelsBaseUrl}#passt-zu-dir`" class="edge-card mx-4 flex min-h-16 items-center gap-3 rounded-2xl bg-white px-4 py-3 hover:bg-green-50 lg:mx-0 dark:bg-gray-900 dark:hover:bg-green-950/40" data-testid="compare-profile-link">
@@ -60,23 +60,19 @@
 
       <!-- 3. What the drivers measure: column heads with photo, variant and model page, then the ranking row's cells and the fact list -->
       <section class="grid gap-5 bg-white px-4 py-6 md:rounded-3xl md:px-7 md:edge-box dark:bg-gray-900" data-testid="compare-measured">
-        <h2 class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.detail.measured') }}</h2>
+        <h2 class="text-center text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.detail.measured') }}</h2>
         <div class="grid gap-x-4 gap-y-3" :class="GRID[items.length]">
           <span class="hidden md:block" aria-hidden="true"></span>
           <div v-for="(item, i) in items" :key="item.key" class="grid min-w-0 content-start justify-items-center gap-2 text-center" data-testid="compare-head">
             <img v-if="thumb(item)" :src="thumb(item)!" alt="" loading="lazy" class="h-16 w-16 rounded-xl bg-gray-200 object-cover md:h-20 md:w-20 dark:bg-gray-800" />
             <span v-else class="grid h-16 w-16 place-items-center rounded-xl bg-gray-100 text-[15px] font-bold text-gray-600 md:h-20 md:w-20 dark:bg-gray-800 dark:text-gray-300" aria-hidden="true">{{ item.model.brandDisplayName.slice(0, 2).toLocaleUpperCase() }}</span>
-            <span class="text-[15px] font-semibold leading-snug text-gray-900 dark:text-gray-100">{{ fullName(item) }}</span>
-            <select v-if="variantChoices[i].length >= 2" :value="variantIndex[item.key] ?? -1" :aria-label="t('compare.variant_label', { name: shortName(item) })"
-                    class="w-full min-w-0 max-w-[220px] rounded-xl border border-gray-300 bg-white px-1.5 py-1.5 text-[12.5px] md:px-2 md:text-[13px] text-gray-800 focus:border-green-600 focus:outline-none dark:border-transparent dark:bg-white/10 dark:text-gray-200"
-                    data-testid="compare-variant" @change="variantIndex[item.key] = +($event.target as HTMLSelectElement).value">
-              <option :value="-1">{{ t('compare.all_variants') }}</option>
-              <option v-for="(v, vi) in variantChoices[i]" :key="vi" :value="vi">{{ variantLabel(v) }}</option>
-            </select>
-            <a :href="modelHref(item)" :aria-label="t('models_ranking.detail.model_page', { name: fullName(item) })"
-               class="btn-3d cta-shadow-sm inline-flex min-h-10 w-full min-w-0 max-w-[220px] items-center justify-center gap-1 rounded-xl border-2 border-gray-900 bg-white px-1.5 text-[12.5px] font-semibold md:gap-1.5 md:px-3 md:text-[13.5px] text-gray-900 hover:bg-gray-50 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:shadow-none! dark:hover:bg-white/15">
-              <span class="truncate">{{ t('compare.model_page') }}</span><ArrowRightIcon class="hidden h-4 w-4 flex-none md:block" aria-hidden="true" />
-            </a>
+            <span class="text-[15px] font-semibold leading-snug text-gray-900 dark:text-gray-100"><span class="md:hidden">{{ shortName(item) }}</span><span class="hidden md:inline">{{ fullName(item) }}</span></span>
+            <VariantPicker v-if="variantChoices[i].length >= 2" compact class="w-full max-w-[260px] [&>button]:w-full" :options="variantOptions[i]"
+                           :align="i === 0 ? 'left' : i === items.length - 1 ? 'right' : 'center'"
+                           :model-value="variantIndex[item.key] ?? 0" data-testid="compare-variant"
+                           @update:model-value="v => variantIndex[item.key] = v" />
+            <ModelPageButton :href="modelHref(item)" :label="t('compare.model_page')" :aria-label="t('models_ranking.detail.model_page', { name: fullName(item) })"
+                             compact class="w-full max-w-[260px]" />
           </div>
         </div>
         <CompareRows :rows="measuredRows" :names="items.map(shortName)" />
@@ -106,10 +102,12 @@ import { ref, onUnmounted, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowRightIcon, ChevronRightIcon, PlusIcon, UserIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { ChevronRightIcon, PlusIcon, UserIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { getTopModels, getChargingReferencePrices, getModelStats, type TopModelPreview, type WltpVariant } from '../api/publicModelService'
 import PublicNav from '../components/shared/PublicNav.vue'
 import ChoiceChip from '../components/shared/ChoiceChip.vue'
+import VariantPicker, { type VariantOption } from '../components/models/VariantPicker.vue'
+import ModelPageButton from '../components/models/ModelPageButton.vue'
 import CompareRows, { GRID, COLS, type CompareRow } from '../components/models/CompareRows.vue'
 import { useAuthStore } from '../stores/auth'
 import { useTickerState } from '../composables/useTickerState'
@@ -120,6 +118,7 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { officialModelThumbUrl } from '../config/modelImages'
 import { combustionAllowed } from '../utils/costMix'
 import { buildLadderAxis, barLength } from '../utils/ladderScale'
+import { rangeKm, prospectKm } from '../utils/modelStory'
 import { applyVariant, betterMarks, compareSummary, variantsWithTrips } from '../utils/compareModels'
 
 const { t, locale } = useI18n()
@@ -200,14 +199,35 @@ watch(() => rankedItems.value.map(r => r.key), keys => {
 const variantChoices = computed(() => rankedItems.value.map(r => variantsByKey.value[r.key] ?? []))
 /** What the page shows: each model on its chosen battery */
 const items = computed<RankedModel[]>(() => rankedItems.value.map((r, i) => {
-  const v = variantChoices.value[i][variantIndex.value[r.key] ?? -1]
+  const v = variantChoices.value[i][(variantIndex.value[r.key] ?? 0) - 1]
   return v ? applyVariant(r, v) : r
 }))
-function variantLabel(v: WltpVariant) {
-  const battery = `${formatNumber(v.batteryCapacityKwh)} kWh`
-  const name = v.displayLabel || v.variantName
-  return name ? `${name}, ${battery}` : battery
-}
+/** The model page's picker: "Alle Varianten" first (the list's figures), then each battery by the model page's rule */
+const variantOptions = computed<VariantOption[][]>(() => rankedItems.value.map((r, i) => {
+  const lo = r.model.minNetCapacityKwh
+  const hi = r.model.maxNetCapacityKwh
+  const all: VariantOption = {
+    key: 'all',
+    label: t('compare.all_variants'),
+    short: t('compare.all_variants_short'),
+    battery: lo != null && hi != null
+      ? (Math.round(lo) === Math.round(hi) ? `${formatNumber(Math.round(hi))} kWh` : `${t('models_ranking.row.span', { min: formatNumber(Math.round(lo)), max: formatNumber(Math.round(hi)) })} kWh`)
+      : '',
+    range: `${listTexts[i].rangeValue.value} ${distanceUnitLabel()}`,
+    prospect: '',
+  }
+  return [all, ...variantChoices.value[i].map((v, vi) => {
+    const real = rangeKm(v.batteryCapacityKwh, r.model.avgConsumptionKwhPer100km)
+    const wltp = real != null ? prospectKm(v.wltpRangeKm)! : v.wltpRangeKm
+    return {
+      key: `${vi}-${v.displayLabel ?? v.batteryCapacityKwh}`,
+      label: v.displayLabel || v.variantName || `${formatNumber(v.batteryCapacityKwh)} kWh`,
+      battery: `${formatNumber(v.batteryCapacityKwh)} kWh`,
+      range: real != null ? formatDistance(real) : null,
+      prospect: t('model.page.variant_prospect', { range: formatDistance(wltp) }),
+    }
+  })]
+}))
 
 // ── Names and links ───────────────────────────────────────────────────────────
 /** "Model 3", "ID.3": the head's question and the chips */
@@ -255,6 +275,9 @@ const summaryText = computed(() => {
 const texts = Array.from({ length: MAX_COMPARE }, (_, i) =>
   useRankedModelText(() => items.value[i], () => needs.value.longestTripKm, () => cost.value.fuel))
 const slots = computed(() => items.value.map((_, i) => texts[i]))
+/** The same models without a chosen variant: "Alle Varianten" in the picker names the list's range */
+const listTexts = Array.from({ length: MAX_COMPARE }, (_, i) =>
+  useRankedModelText(() => rankedItems.value[i], () => needs.value.longestTripKm, () => cost.value.fuel))
 
 /** For you: signed in only (guests have the one gate on /modelle), each answer once any model has it */
 const ANSWER_ORDER = ['charge', 'trip', 'cost']
