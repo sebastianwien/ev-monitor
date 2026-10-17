@@ -10,6 +10,12 @@ describe('formChanges', () => {
     expect(formChanges(before, after)[1]).toEqual({ key: 'odometerKm', from: 31207, to: 31270 })
   })
 
+  it('lists a changed charging card', () => {
+    const before = { ...emptyLogForm(), chargingProviderId: null }
+    const after = { ...before, chargingProviderId: 'kaufland-card' }
+    expect(formChanges(before, after)).toEqual([{ key: 'chargingProviderId', from: null, to: 'kaufland-card' }])
+  })
+
   it('ignores float noise and null versus undefined', () => {
     const before = { ...emptyLogForm(), costEur: 16.52 }
     const after = { ...before, costEur: 16.520000001, loggedAt: undefined as unknown as null }

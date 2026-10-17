@@ -2,7 +2,7 @@ import type { LogFormData } from '../log-form/logFormData'
 
 /** Felder, die eine Sprachaufnahme beim Bearbeiten ändern kann, in Anzeige-Reihenfolge. */
 export const EDIT_DIFF_KEYS = ['kwhCharged', 'kwhAtVehicle', 'socBeforeChargePercent', 'socAfterChargePercent', 'odometerKm',
-  'costEur', 'loggedAt', 'chargeDurationMinutes', 'maxChargingPowerKw', 'chargingType', 'routeType', 'tireType'] as const
+  'costEur', 'loggedAt', 'chargeDurationMinutes', 'maxChargingPowerKw', 'chargingType', 'chargingProviderId', 'routeType', 'tireType'] as const
 export type EditDiffKey = typeof EDIT_DIFF_KEYS[number] | 'place'
 export interface FieldChange { key: EditDiffKey; from: unknown; to: unknown }
 
@@ -26,7 +26,6 @@ export function formChanges(before: LogFormData, after: LogFormData): FieldChang
 
 /** Was zusammen den Ort ausmacht - wird nur als Ganzes zurückgenommen */
 const PLACE_KEYS = ['isPublicCharging', 'cpoName', 'chargingSite', 'latitude', 'longitude'] as const satisfies readonly (keyof LogFormData)[]
-const UNDO_KEYS = [...EDIT_DIFF_KEYS, 'chargingProviderId'] as const
 
 /**
  * Rückgängig nur für das, was die Sprache gesetzt hat: ein Feld (bzw. der Ort als Ganzes) geht
@@ -34,7 +33,7 @@ const UNDO_KEYS = [...EDIT_DIFF_KEYS, 'chargingProviderId'] as const
  */
 export function undoVoiceChanges(before: LogFormData, afterVoice: LogFormData, current: LogFormData): LogFormData {
   const out: LogFormData = { ...current }
-  for (const key of UNDO_KEYS) {
+  for (const key of EDIT_DIFF_KEYS) {
     if (same(current[key], afterVoice[key])) (out as unknown as Record<string, unknown>)[key] = before[key]
   }
   const group = (f: LogFormData) => JSON.stringify(PLACE_KEYS.map(k => f[k] ?? null))

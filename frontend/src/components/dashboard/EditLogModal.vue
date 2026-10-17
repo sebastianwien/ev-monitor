@@ -156,7 +156,7 @@ import { isVoiceSupported } from '../../composables/useVoiceRecorder'
 import { useIsMobile } from '../../composables/useIsMobile'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
-import { applyVoiceDraft, voiceCost, type VoiceDraft } from '../log-wizard/wizardLogic'
+import { applyVoiceDraft, voiceCost, readSuggestion, type VoiceDraft } from '../log-wizard/wizardLogic'
 import { spokenSnapshot, correctedFields, type SpokenSnapshot } from '../log-wizard/voiceAnalytics'
 import { resolveSpokenAddress, placeFromAddress } from '../log-wizard/voiceAddress'
 import geohashLib from 'ngeohash'
@@ -291,9 +291,31 @@ const pickedAddress = ref<string | null>(null)
 const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCharging
   ? (formData.value.cpoName ?? t('logwizard.place_public'))
   : t('logwizard.place_private')))
-const choosePlace = (choice: PlaceChoice) => {
+/**
+ * Ortswechsel beim Bearbeiten: die Ladeart der Ladung bleibt (das Register kennt nur die Stecker, nicht
+ * diese Ladung; gemessene Werte stehen schon im Log). Karte und Preis kommen aus der Historie am neuen Ort.
+ */
+const applyChoice = (choice: PlaceChoice) => {
   if (choice.kind === 'station' || choice.kind === 'site') pickedName.value = null
+  const chargingType = formData.value.chargingType
   applyPlace(formData.value, choice)
+  formData.value.chargingType = chargingType
+}
+const choosePlace = (choice: PlaceChoice) => { applyChoice(choice); void fillFromHistory() }
+
+/** Füllt nur Leeres: eine vorhandene Karte oder ein vorhandener Preis wird nie überschrieben. */
+async function fillFromHistory() {
+  const f = formData.value
+  const geohash = f.chargingSite?.geohash ?? (f.latitude == null ? props.log.geohash : null)
+  const where = geohash ? { geohash } : f.latitude != null && f.longitude != null ? { lat: f.latitude, lon: f.longitude } : null
+  if (!where) return
+  try {
+    const res = await api.get('/logs/price-suggestion', { params: { ...where, isPublic: !!f.isPublicCharging, chargingType: f.chargingType } })
+    const s = readSuggestion(res.data)
+    const card = s.cardId ? providers.value.find(p => p.id === s.cardId && (!f.isPublicCharging || !p.isPrivate)) : null
+    if (!f.chargingProviderId && card) f.chargingProviderId = card.id
+    if (f.costEur == null && s.community) cost.setPerKwhEur(s.community.eurPerKwh)
+  } catch { /* kein Vorschlag - kein Problem */ }
 }
 
 const onOcr = (r: any) => {
@@ -340,7 +362,9 @@ async function onVoiceDraft(draft: VoiceDraft) {
   const before = cloneForm()
   if (!beforeVoice) beforeVoice = { form: before, pickedName: pickedName.value, pickedAddress: pickedAddress.value }
   const viaAddress = placeFromAddress(draft)
+  const keptType = formData.value.chargingType
   const choice = applyVoiceDraft(formData.value, viaAddress ? { ...draft, place: null } : draft)
+  if (!draft.fields.chargingType) formData.value.chargingType = keptType
   if (choice && (choice.kind === 'station' || choice.kind === 'site')) pickedName.value = null
   if (viaAddress) {
     // Bekannte Zelle des Logs als Umgebung für die Suche (es gibt keine Live-Position)
@@ -352,12 +376,13 @@ async function onVoiceDraft(draft: VoiceDraft) {
     if (r) {
       pickedName.value = r.hit.name
       pickedAddress.value = r.hit.name
-      choosePlace(r.choice)
+      applyChoice(r.choice)
       if (draft.fields.chargingType) formData.value.chargingType = draft.fields.chargingType
     } else {
       errorMsg.value = t('voicelog.address_not_found', { q: draft.fields.spokenAddress })
     }
   }
+  if (choice || viaAddress) await fillFromHistory()
   const said = voiceCost(draft.fields)
   if (said?.mode === 'per_kwh') cost.setPerKwhEur(said.eur)
   else if (said) { cost.costMode.value = 'total'; cost.costLocalPerKwh.value = null; cost.costLocalTotal.value = Math.round(cost.eurToLocal(said.eur) * 100) / 100 }
@@ -389,6 +414,7 @@ const CHANGE_LABEL: Record<EditDiffKey, string> = {
   place: 'logwizard.place', kwhCharged: 'logfields.energy', kwhAtVehicle: 'logfields.kwh_at_vehicle', socBeforeChargePercent: 'logfields.soc_before',
   socAfterChargePercent: 'logfields.soc_after', odometerKm: 'logfields.odometer', costEur: 'logfields.cost_eur', loggedAt: 'logfields.timestamp',
   chargeDurationMinutes: 'logfields.duration', maxChargingPowerKw: 'logfields.max_power', chargingType: 'voicelog.chip_type',
+  chargingProviderId: 'voicelog.edit_card',
   routeType: 'logfields.route_type_label', tireType: 'logfields.tire_type_label',
 }
 const ENUM_LABEL: Record<string, string> = {
@@ -410,6 +436,7 @@ function changeValue(k: EditDiffKey, v: unknown): string {
     case 'chargeDurationMinutes': return `${v} min`
     case 'maxChargingPowerKw': return `${formatNumber(v as number)} kW`
     case 'loggedAt': return new Date(v as string).toLocaleString(undefined, { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+    case 'chargingProviderId': { const p = providers.value.find(x => x.id === v); return p ? (p.label || p.providerName) : '–' }
     case 'routeType': case 'tireType': return t(ENUM_LABEL[v as string] ?? String(v))
     default: return String(v)
   }

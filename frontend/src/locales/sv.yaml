@@ -3703,6 +3703,7 @@ voicelog:
   missing_say: "Saknas fortfarande: {fields}. Säg det bara."
   edit_title: "Ändra med rösten"
   edit_changed: "Ändrat med rösten"
+  edit_card: "Laddkort"
   edit_undo: "Ångra"
   edit_nothing: "Inget ändrat: inget nytt värde hittades."
   address_found: "Adress hittad: {name}"

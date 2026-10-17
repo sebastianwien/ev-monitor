@@ -3703,6 +3703,7 @@ voicelog:
   missing_say: "Mangler fortsatt: {fields}. Bare si det."
   edit_title: "Endre med stemmen"
   edit_changed: "Endret med stemmen"
+  edit_card: "Ladekort"
   edit_undo: "Angre"
   edit_nothing: "Ingenting endret: ingen ny verdi gjenkjent."
   address_found: "Adresse funnet: {name}"

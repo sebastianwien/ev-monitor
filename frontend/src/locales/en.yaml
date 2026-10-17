@@ -3820,6 +3820,7 @@ voicelog:
   missing_say: "Still missing: {fields}. Just say it."
   edit_title: "Change by voice"
   edit_changed: "Changed by voice"
+  edit_card: "Charging card"
   edit_undo: "Undo"
   edit_nothing: "Nothing changed: no new value recognised."
   address_found: "Address found: {name}"
