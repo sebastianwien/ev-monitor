@@ -103,6 +103,9 @@ public class EvLogController {
                 .map(suggestion -> {
                     Map<String, Object> body = new java.util.HashMap<>();
                     body.put("costPerKwh", suggestion.costPerKwh());
+                    if (suggestion.chargingType() != null) {
+                        body.put("chargingType", suggestion.chargingType().name());
+                    }
                     if (suggestion.chargingProviderId() != null) {
                         body.put("chargingProviderId", suggestion.chargingProviderId());
                     }

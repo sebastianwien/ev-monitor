@@ -44,9 +44,11 @@ public class LocationPricing {
     /**
      * The tariff that last applied at a location. {@code anchorLoggedAt} names the charge it was
      * derived from (null for a card's list price) so the UI can say where a suggestion comes from.
+     * {@code chargingType} is the anchor's own type - with no type asked for, this is how a mixed
+     * AC/DC location learns what the user usually charges there.
      */
     public record Tariff(BigDecimal pricePerKwh, BigDecimal sessionFeeEur, UUID chargingProviderId,
-                         LocalDateTime anchorLoggedAt) {
+                         LocalDateTime anchorLoggedAt, ChargingType chargingType) {
 
         public Optional<BigDecimal> costFor(BigDecimal kwh) {
             if (kwh == null || kwh.signum() <= 0 || pricePerKwh == null) return Optional.empty();
@@ -83,7 +85,18 @@ public class LocationPricing {
                                 : anchor.getCostEur().divide(anchor.costBasisKwh(), 4, RoundingMode.HALF_UP),
                         BigDecimal.ZERO,
                         anchor.getChargingProviderId(),
-                        anchor.getLoggedAt()));
+                        anchor.getLoggedAt(),
+                        anchor.getChargingType()));
+    }
+
+    /**
+     * The card last used at this location, whatever the charging type. A card belongs to the
+     * place, only its price depends on AC/DC - so a location that has so far seen just AC still
+     * knows the card for a DC charge.
+     */
+    public Optional<UUID> cardAt(UUID userId, String geohash, boolean isPublic) {
+        if (geohash == null || geohash.length() < MIN_GEOHASH_LENGTH) return Optional.empty();
+        return evLogRepository.findMostRecentChargingProviderAtGeohash(userId, geohash, isPublic);
     }
 
     /**
@@ -108,7 +121,7 @@ public class LocationPricing {
         // Ladeart bezahlt, gehoert die Ladung trotzdem zu dieser Karte - nur ihr Preis
         // laesst sich daraus nicht ableiten.
         UUID card = tariff.map(Tariff::chargingProviderId)
-                .or(() -> evLogRepository.findMostRecentChargingProviderAtGeohash(userId, log.getGeohash(), isPublic))
+                .or(() -> cardAt(userId, log.getGeohash(), isPublic))
                 .orElse(null);
         if (log.getChargingProviderId() == null && card != null) {
             builder.chargingProviderId(card);
@@ -183,7 +196,7 @@ public class LocationPricing {
     public Optional<BigDecimal> costUnder(UserChargingProviderEntity card, EvLog log) {
         BigDecimal price = priceOf(card, log.getChargingType());
         if (price == null) return Optional.empty();
-        return new Tariff(price, card.getSessionFeeEur(), card.getId(), null).costFor(log.costBasisKwh());
+        return new Tariff(price, card.getSessionFeeEur(), card.getId(), null, log.getChargingType()).costFor(log.costBasisKwh());
     }
 
     /** The card's own AC/DC rate for this charging type - the exact figure {@link #costUnder}

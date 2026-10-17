@@ -825,7 +825,11 @@ public class EvLogStatisticsService {
     public Optional<PriceSuggestion> getPriceSuggestionAtGeohash(UUID userId, String geohash,
                                                                  boolean isPublicCharging, ChargingType chargingType) {
         return locationPricing.tariffAt(userId, geohash, chargingType, isPublicCharging)
-                .map(tariff -> new PriceSuggestion(tariff.pricePerKwh(), tariff.chargingProviderId(), tariff.anchorLoggedAt()));
+                .map(tariff -> new PriceSuggestion(tariff.pricePerKwh(), tariff.chargingProviderId(), tariff.anchorLoggedAt(),
+                        tariff.chargingType()))
+                // Die Karte haengt am Ort, nur ihr Preis an der Ladeart: ohne Preis fuer diese Ladeart bleibt die Karte.
+                .or(() -> locationPricing.cardAt(userId, geohash, isPublicCharging)
+                        .map(card -> new PriceSuggestion(null, card, null, null)));
     }
 
     private EvLogStatisticsResponse.ChargingTypeSplit buildChargingTypeSplit(List<EvLog> logs) {

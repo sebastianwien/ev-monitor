@@ -409,6 +409,28 @@ class LocationPricingTest extends AbstractIntegrationTest {
         assertEquals(home, priced.getChargingProviderId());
     }
 
+    @Test
+    void withoutAChargingTypeTheSuggestionReportsTheTypeOfTheLastChargeHere() {
+        // Gemischter Standort: die Ladeart kommt aus der eigenen Historie, nicht aus dem Register.
+        UUID card = saveCard("Kaufland", new BigDecimal("0.2900"), new BigDecimal("0.4400"), BigDecimal.ZERO);
+        chargedHere(new BigDecimal("61.0"), new BigDecimal("17.69"), card, ChargingType.AC, 3);
+
+        LocationPricing.Tariff tariff = locationPricing.tariffAt(userId, HERE, null, true).orElseThrow();
+
+        assertEquals(ChargingType.AC, tariff.chargingType());
+        assertEquals(card, tariff.chargingProviderId());
+    }
+
+    @Test
+    void theCardHereDoesNotDependOnTheChargingType() {
+        // Hier wurde bisher nur AC bezahlt: fuer DC gibt es keinen Preis, aber dieselbe Karte.
+        UUID card = saveCard("Kaufland", new BigDecimal("0.2900"), new BigDecimal("0.4400"), BigDecimal.ZERO);
+        chargedHere(new BigDecimal("61.0"), new BigDecimal("17.69"), card, ChargingType.AC, 3);
+
+        assertTrue(locationPricing.tariffAt(userId, HERE, ChargingType.DC, true).isEmpty());
+        assertEquals(card, locationPricing.cardAt(userId, HERE, true).orElseThrow());
+    }
+
     // ---- Helpers ----
 
     private UUID saveCard(String name, BigDecimal ac, BigDecimal dc, BigDecimal sessionFee) {
