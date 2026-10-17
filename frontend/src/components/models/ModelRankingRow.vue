@@ -229,6 +229,7 @@ function colClass(column: 'consumption' | 'cost' | 'range'): string {
 
 <style>
 /* Shared row grid, also used by the column heads in PublicModelsListViewV2 (not scoped on purpose).
+   The act column is fixed: the heads have no content there, an auto width would shift every column against them.
    Phone: rank, photo, name and range on top; the bar and the cost below.
    Desktop (lg): one line per model, compare and the open state at the end. */
 .mr-row {
@@ -245,10 +246,10 @@ function colClass(column: 'consumption' | 'cost' | 'range'): string {
 .mr-cons { grid-area: cons; align-self: start; }
 .mr-cost { grid-area: cost; align-self: start; }
 .mr-range { grid-area: range; }
-.mr-act { grid-area: act; }
+.mr-act { grid-area: act; justify-content: flex-end; }
 @media (min-width: 1024px) {
   .mr-row {
-    grid-template-columns: 20px 48px minmax(0, 1.25fr) minmax(0, 1.1fr) 172px minmax(0, 1fr) auto;
+    grid-template-columns: 20px 48px minmax(0, 1.25fr) minmax(0, 1.1fr) 172px minmax(0, 1fr) 168px;
     grid-template-areas: "rank thumb name cons cost range act";
     column-gap: 16px;
     align-items: start;

@@ -120,7 +120,7 @@
       <!-- Column heads (desktop only; on the phone each cell names itself). Same grid as the rows;
            .mr-row sets display itself, so plain `hidden` would lose the cascade. -->
       <div class="mr-row mt-3 border-b border-gray-200 px-7 pb-2 max-lg:!hidden dark:border-gray-800" aria-hidden="true">
-        <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, headClass(col.cls)]" class="text-[12px] font-semibold uppercase tracking-[0.08em]">{{ col.label }}</span>
+        <span v-for="col in columnHeads" :key="col.cls" :class="[col.cls, headClass(col.cls)]" class="text-[14px] font-semibold uppercase tracking-[0.08em]">{{ col.label }}</span>
       </div>
 
       <!-- Loading: skeleton rows -->
@@ -525,5 +525,5 @@ function startCompare() {
 
 <style>
 /* Column head "Modell" spans rank, photo and name */
-.mr-head-model { grid-column: rank-start / name-end; }
+.mr-head-model { grid-column: rank-start / name-end; text-align: center; }
 </style>
