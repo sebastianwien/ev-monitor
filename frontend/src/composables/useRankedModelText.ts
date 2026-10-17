@@ -5,6 +5,9 @@ import { convertCostPerDistance } from '../utils/unitConversions'
 import type { RankedModel } from './useModelRanking'
 import type { FuelKind } from '../utils/costMix'
 
+/** One line of "Was die Fahrer messen": label and value */
+export interface RankedModelFact { key: string; label: string; value: string }
+
 /** Ranges read as rough figures: whole tens, in the display unit */
 const RANGE_STEP = 10
 
@@ -14,7 +17,10 @@ const RANGE_STEP = 10
  */
 export function useRankedModelText(item: () => RankedModel, longestTripKm: () => number | null, fuel: () => FuelKind) {
   const { t } = useI18n()
-  const { formatNumber, formatDecimal, formatDistance, convertDistance, distanceUnitLabel, formatCostPerDistance, unitSystem } = useLocaleFormat()
+  const {
+    formatNumber, formatDecimal, formatDistance, convertDistance, distanceUnitLabel, formatCostPerDistance, unitSystem,
+    formatConsumption, consumptionUnitLabel, formatCurrency, formatCostPerKwh,
+  } = useLocaleFormat()
 
   const m = computed(() => item().model)
 
@@ -78,8 +84,77 @@ export function useRankedModelText(item: () => RankedModel, longestTripKm: () =>
     return unitSystem.value.consumptionInverse ? ((wltp - real) / real) * 100 : item().wltpDeviationPct
   })
 
+  // ── The row's cells: consumption, cost per 100 km, range ─────────────────
+  const realText = computed(() => formatConsumption(m.value.avgConsumptionKwhPer100km, { showUnit: false }))
+  const wltpText = computed(() => formatConsumption(item().wltpKwhPer100km, { showUnit: false }))
+  /** "5,93 €": per 100 km of the market's unit, the column head names the distance */
+  const electricityCost = computed(() => item().costPer100kmEur != null
+    ? formatCurrency(convertCostPerDistance(item().costPer100kmEur!, unitSystem.value))
+    : '–')
+  /** "Benziner 14,62 €": the class's combustion car per 100 km */
+  const combustionCaption = computed(() => combustionCostEur.value != null
+    ? t('models_ranking.row.combustion_short', {
+        fuel: fuelLabel.value,
+        amount: formatCurrency(convertCostPerDistance(combustionCostEur.value, unitSystem.value)),
+      })
+    : '')
+  /** "Fahrer zahlen Ø 29,6 ct/kWh": the drivers' own average next to the list price */
+  const driversPrice = computed(() => m.value.avgCostPerKwh != null
+    ? t('models_ranking.row.drivers_price', { price: formatCostPerKwh(m.value.avgCostPerKwh) })
+    : null)
+  /** Motorway from a full battery, largest battery: "Autobahn ohne Stopp bis 310, 1 Stopp bis 550" */
+  const ladderLine = computed(() => {
+    const l = item().ladder
+    return l ? t('models_ranking.row.ladder_line', { zero: fmtKm(l.zeroStopKm), one: fmtKm(l.oneStopKm) }) : ''
+  })
+
+  // ── What the drivers measure beyond the row ──────────────────────────────
+  /** Only what the closed row leaves out (it shows average consumption, WLTP, range and charging price);
+   *  each fact only with a value, the data basis always. */
+  const facts = computed<RankedModelFact[]>(() => {
+    const x = m.value
+    const out: RankedModelFact[] = []
+    const add = (key: string, value: string | null) => { if (value) out.push({ key, label: t(`models_ranking.detail.fact_${key}`), value }) }
+
+    const summer = x.summerConsumptionKwhPer100km
+    const winter = x.winterConsumptionKwhPer100km
+    add('consumption', summer != null && winter != null
+      ? t('models_ranking.detail.fact_seasons', { summer: formatConsumption(summer, { showUnit: false }), winter: formatConsumption(winter) })
+      : null)
+
+    const lo = x.winterRangeMinKm
+    const hi = x.winterRangeMaxKm
+    add('winter', [
+      ...(item().winterSurchargePct != null ? [t('models_ranking.detail.fact_winter_surcharge', { pct: signedPct(item().winterSurchargePct!) })] : []),
+      ...(lo != null && hi != null ? [`${fmtKm(lo) === fmtKm(hi) ? fmtKm(hi) : t('models_ranking.row.span', { min: fmtKm(lo), max: fmtKm(hi) })} ${distanceUnitLabel()}`] : []),
+    ].join(' · ') || null)
+
+    add('highway', item().ladder ? t('models_ranking.detail.fact_ladder', { value: fmtKmUnit(item().ladder!.twoStopsKm) }) : null)
+
+    // consumption against WLTP, in kWh space: "mehr" means more energy than the rating
+    const gap = item().wltpDeviationPct
+    add('wltp', gap != null && Math.round(gap) !== 0
+      ? t(gap > 0 ? 'models_ranking.detail.fact_wltp_above' : 'models_ranking.detail.fact_wltp_below', { pct: `${formatDecimal(Math.abs(gap), 0)} %` })
+      : null)
+
+    const capLo = x.minNetCapacityKwh
+    const capHi = x.maxNetCapacityKwh
+    add('battery', capLo != null && capHi != null
+      ? (Math.round(capLo) === Math.round(capHi)
+          ? t('models_ranking.detail.fact_battery_value', { value: formatDecimal(capHi, 0) })
+          : t('models_ranking.detail.fact_battery_span', { min: formatDecimal(capLo, 0), max: formatDecimal(capHi, 0) }))
+      : null)
+
+    const logs = t('models_ranking.row.logs_plural', { count: formatNumber(x.logCount) }, x.logCount)
+    add('data', x.carCount != null
+      ? t('models_ranking.detail.measured_data', { logs, cars: t('models_ranking.detail.cars_plural', { count: formatNumber(x.carCount) }, x.carCount) })
+      : logs)
+    return out
+  })
+
   return {
     m, fmtKm, fmtKmUnit, duration, tripParams, fuelLabel, costLabel, combustionCostEur, combustionCost,
     typicalSpan, hasBatterySpan, rangeValue, driverCount, driversLabel, signedPct, displayWltpDeviation,
+    realText, wltpText, electricityCost, combustionCaption, driversPrice, ladderLine, facts, consumptionUnitLabel,
   }
 }

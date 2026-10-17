@@ -120,7 +120,6 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useRankedModelText } from '../../composables/useRankedModelText'
 import { useLightbox } from '../../composables/useLightbox'
 import { officialModelImageAttribution, officialModelImageUrl, officialModelThumbUrl } from '../../config/modelImages'
-import { convertCostPerDistance } from '../../utils/unitConversions'
 import { barLength, type LadderAxis } from '../../utils/ladderScale'
 import type { RankedModel, RankingSort } from '../../composables/useModelRanking'
 import type { FuelKind, MainValue } from '../../utils/costMix'
@@ -146,8 +145,8 @@ const props = defineProps<{
 const emit = defineEmits<{ toggle: []; compare: [] }>()
 
 const { t, te } = useI18n()
-const { formatNumber, formatConsumption, consumptionUnitLabel, distanceUnitLabel, formatCurrency, formatCostPerKwh, unitSystem } = useLocaleFormat()
-const { m, fmtKm, fuelLabel, combustionCostEur, rangeValue, driversLabel, signedPct } =
+const { formatNumber, consumptionUnitLabel, distanceUnitLabel } = useLocaleFormat()
+const { m, rangeValue, driversLabel, signedPct, realText, wltpText, electricityCost, combustionCaption, driversPrice, ladderLine } =
   useRankedModelText(() => props.item, () => props.longestTripKm, () => props.fuel)
 const lightbox = useLightbox()
 
@@ -184,8 +183,6 @@ function zoom() {
 // ── Consumption ────────────────────────────────────────────────────────────
 const realWidth = computed(() => barLength(m.value.avgConsumptionKwhPer100km, props.axis))
 const wltpWidth = computed(() => barLength(props.item.wltpKwhPer100km, props.axis))
-const realText = computed(() => formatConsumption(m.value.avgConsumptionKwhPer100km, { showUnit: false }))
-const wltpText = computed(() => formatConsumption(props.item.wltpKwhPer100km, { showUnit: false }))
 // Colour in kWh space: above WLTP is worse (orange), below is better (green)
 const barTone = computed(() => (props.item.wltpDeviationPct ?? 0) > 0 ? 'bg-orange-500 dark:bg-orange-400' : 'bg-green-600 dark:bg-green-500')
 const barLabel = computed(() => `${t('models_ranking.row.bar_drivers')} ${realText.value}, ${t('models_ranking.columns.wltp')} ${wltpText.value} ${consumptionUnitLabel()}`)
@@ -193,30 +190,6 @@ const barLabel = computed(() => `${t('models_ranking.row.bar_drivers')} ${realTe
 const winterNote = computed(() => props.sort === 'winter' && props.item.winterSurchargePct != null
   ? `${signedPct(props.item.winterSurchargePct)} ${t('models_ranking.row.in_winter')}`
   : '')
-
-// ── Cost ───────────────────────────────────────────────────────────────────
-/** "5,93 €": per 100 km of the market's unit, the column head names the distance */
-const electricityCost = computed(() => props.item.costPer100kmEur != null
-  ? formatCurrency(convertCostPerDistance(props.item.costPer100kmEur, unitSystem.value))
-  : '–')
-/** "Benziner 14,62 €": the class's combustion car per 100 km */
-const combustionCaption = computed(() => combustionCostEur.value != null
-  ? t('models_ranking.row.combustion_short', {
-      fuel: fuelLabel.value,
-      amount: formatCurrency(convertCostPerDistance(combustionCostEur.value, unitSystem.value)),
-    })
-  : '')
-/** "Fahrer zahlen Ø 29,6 ct/kWh": the drivers' own average next to the list price */
-const driversPrice = computed(() => m.value.avgCostPerKwh != null
-  ? t('models_ranking.row.drivers_price', { price: formatCostPerKwh(m.value.avgCostPerKwh) })
-  : null)
-
-// ── Range ──────────────────────────────────────────────────────────────────
-/** Motorway from a full battery, largest battery: "Autobahn ohne Stopp bis 310, 1 Stopp bis 550" */
-const ladderLine = computed(() => {
-  const l = props.item.ladder
-  return l ? t('models_ranking.row.ladder_line', { zero: fmtKm(l.zeroStopKm), one: fmtKm(l.oneStopKm) }) : ''
-})
 
 function colClass(column: 'consumption' | 'cost' | 'range'): string {
   const s = props.sort

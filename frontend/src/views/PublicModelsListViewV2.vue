@@ -297,6 +297,7 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
 import { useModelRanking, modelKey, RANKING_SORTS, type RankingSort } from '../composables/useModelRanking'
 import { combustionAllowed } from '../utils/costMix'
+import { compareSetKey } from '../utils/compareModels'
 import { analytics } from '../services/analytics'
 import { useModelsListSeo } from '../composables/useModelsListSeo'
 import { buildLadderAxis } from '../utils/ladderScale'
@@ -517,7 +518,8 @@ const modelsAz = computed(() => [...models.value, ...modelsWithoutData.value].so
 // ── Compare ─────────────────────────────────────────────────────────────────
 const compareNames = computed(() => compareKeys.value.map(k => models.value.find(m => modelKey(m) === k)?.modelDisplayName ?? k.replace(/_/g, ' ')))
 function startCompare() {
-  analytics.track('compare_start', { models: compareKeys.value.length })
+  // set: which models are compared, sorted keys without personal data (Custom Property in Plausible)
+  analytics.track('compare_start', { models: compareKeys.value.length, set: compareSetKey(compareKeys.value) })
   const comparePath = isDE.value ? '/modelle/vergleich' : '/en/models/compare'
   router.push(`${comparePath}?models=${compareKeys.value.join(',')}`)
 }

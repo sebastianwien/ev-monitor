@@ -1940,28 +1940,8 @@ compare:
   error_need_two: Välj minst två modeller att jämföra.
   subtitle: Verkliga kördata i direkt jämförelse – WLTP kontra verkligheten
   change_models: Välj mellan olika modeller
-  badge_community: Gemenskapsdata
-  badge_wltp_only: Endast WLTP
-  section_consumption: Förbrukning och effektivitet
-  row_real_consumption: Ø Faktisk (kWh/100 km)
-  row_wltp_consumption: WLTP (kWh/100 km)
-  row_wltp_delta: WLTP-avvikelse
-  section_range: Räckvidd
-  row_real_range: Real (90→10 %)
-  row_real_range_sub: till faktisk förbrukning
-  row_wltp_range: Räckvidd enligt WLTP
-  section_costs: Kostnader
-  row_costs_per_100: Ø Kostnad per 100 km
-  row_costs_per_kwh: Ø Pris per kWh
-  section_seasonal: Säsongsbetonad
-  row_summer: Sommar (kWh/100 km)
-  row_winter: Vinter (kWh/100 km)
-  section_data: Gemenskapsdatabas
-  row_log_count: Laddningar
-  row_contributors: Medverkande
-  legend_best: Bästa pris
-  legend_worst: Sämsta prisvärde
-  legend_no_data: – = inga uppgifter tillgängliga
+  legend_better: "Bättre"
+  row_seasons: "Sommar och vinter"
   detail_pages: Detaljsidor
   cta_title: Saknas data eller är de ofullständiga?
   cta_desc: Lägg till dina laddningar – ju fler förare som bidrar, desto mer tillförlitlig blir jämförelsen.

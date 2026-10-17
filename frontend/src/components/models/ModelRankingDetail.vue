@@ -88,8 +88,8 @@ const emit = defineEmits<{ compare: [] }>()
 const HEAD = 'text-[12px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400'
 
 const { t } = useI18n()
-const { formatNumber, formatDecimal, formatConsumption, formatCurrency, distanceUnitLabel } = useLocaleFormat()
-const { m, fmtKm, fmtKmUnit, duration, tripParams, fuelLabel, signedPct } =
+const { formatNumber, formatDecimal, formatCurrency } = useLocaleFormat()
+const { m, fmtKmUnit, duration, tripParams, fuelLabel, facts } =
   useRankedModelText(() => props.item, () => props.longestTripKm, () => props.fuel)
 
 const credit = computed(() => officialModelImageAttribution(m.value.model))
@@ -135,51 +135,6 @@ const answers = computed<Answer[]>(() => {
       ],
     })
   }
-  return out
-})
-
-// ── 2. What the drivers measure ────────────────────────────────────────────
-/** Only what the closed row leaves out (it shows average consumption, WLTP, range and charging price);
- *  each fact only with a value, the data basis always. */
-interface Fact { key: string; label: string; value: string }
-const facts = computed<Fact[]>(() => {
-  const x = m.value
-  const out: Fact[] = []
-  const add = (key: string, value: string | null) => { if (value) out.push({ key, label: t(`models_ranking.detail.fact_${key}`), value }) }
-
-  const summer = x.summerConsumptionKwhPer100km
-  const winter = x.winterConsumptionKwhPer100km
-  add('consumption', summer != null && winter != null
-    ? t('models_ranking.detail.fact_seasons', { summer: formatConsumption(summer, { showUnit: false }), winter: formatConsumption(winter) })
-    : null)
-
-  const lo = x.winterRangeMinKm
-  const hi = x.winterRangeMaxKm
-  add('winter', [
-    ...(props.item.winterSurchargePct != null ? [t('models_ranking.detail.fact_winter_surcharge', { pct: signedPct(props.item.winterSurchargePct) })] : []),
-    ...(lo != null && hi != null ? [`${fmtKm(lo) === fmtKm(hi) ? fmtKm(hi) : t('models_ranking.row.span', { min: fmtKm(lo), max: fmtKm(hi) })} ${distanceUnitLabel()}`] : []),
-  ].join(' · ') || null)
-
-  add('highway', props.item.ladder ? t('models_ranking.detail.fact_ladder', { value: fmtKmUnit(props.item.ladder.twoStopsKm) }) : null)
-
-  // consumption against WLTP, in kWh space: "mehr" means more energy than the rating
-  const gap = props.item.wltpDeviationPct
-  add('wltp', gap != null && Math.round(gap) !== 0
-    ? t(gap > 0 ? 'models_ranking.detail.fact_wltp_above' : 'models_ranking.detail.fact_wltp_below', { pct: `${formatDecimal(Math.abs(gap), 0)} %` })
-    : null)
-
-  const capLo = x.minNetCapacityKwh
-  const capHi = x.maxNetCapacityKwh
-  add('battery', capLo != null && capHi != null
-    ? (Math.round(capLo) === Math.round(capHi)
-        ? t('models_ranking.detail.fact_battery_value', { value: formatDecimal(capHi, 0) })
-        : t('models_ranking.detail.fact_battery_span', { min: formatDecimal(capLo, 0), max: formatDecimal(capHi, 0) }))
-    : null)
-
-  const logs = t('models_ranking.row.logs_plural', { count: formatNumber(x.logCount) }, x.logCount)
-  add('data', x.carCount != null
-    ? t('models_ranking.detail.measured_data', { logs, cars: t('models_ranking.detail.cars_plural', { count: formatNumber(x.carCount) }, x.carCount) })
-    : logs)
   return out
 })
 </script>

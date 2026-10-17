@@ -16,7 +16,7 @@
       </div>
 
       <!-- Error / invalid params -->
-      <div v-else-if="error || validModels.length < 2" class="text-center py-20">
+      <div v-else-if="error || items.length < 2" class="text-center py-20">
         <TruckIcon class="h-16 w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
         <h1 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('compare.error_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ error || t('compare.error_min_models') }}</p>
@@ -29,12 +29,12 @@
         <!-- Header -->
         <div class="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
           <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-            {{ validModels.map(m => m.modelDisplayName).join(' vs. ') }}
+            {{ items.map(i => i.model.modelDisplayName).join(' vs. ') }}
           </h1>
           <p class="text-gray-500 dark:text-gray-400 text-sm">
             {{ t('compare.subtitle') }}
           </p>
-          <a href="/modelle" class="inline-flex items-center gap-1.5 text-sm text-green-600 hover:underline mt-3">
+          <a :href="modelsBaseUrl" class="inline-flex items-center gap-1.5 text-sm text-green-600 hover:underline mt-3">
             <ArrowLeftIcon class="h-4 w-4" />
             {{ t('compare.change_models') }}
           </a>
@@ -48,281 +48,71 @@
           <div v-if="floatingHeaderVisible"
                class="block md:hidden fixed left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b-2 border-gray-100 dark:border-gray-800 px-4 py-2 shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]"
                :style="{ top: floatingHeaderTop }">
-            <div :class="validModels.length === 3 ? 'grid grid-cols-3 gap-3' : 'grid grid-cols-2 gap-3'">
-              <div v-for="(m, mi) in validModels" :key="m.brand + m.model" class="text-center">
-                <div class="text-xs font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">{{ m.modelDisplayName }}</div>
-                <select
-                  v-if="m.wltpVariants.length > 1"
-                  :value="selectedVariantIdx[mi]"
-                  @change="selectedVariantIdx[mi] = +($event.target as HTMLSelectElement).value"
-                  class="mt-1 w-full text-[11px] rounded border px-1 py-0.5 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-green-500">
-                  <option v-for="(v, vi) in m.wltpVariants" :key="vi" :value="vi">{{ v.displayLabel ?? (v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh`) }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}</option>
-                </select>
-              </div>
+            <div class="grid gap-3" :class="gridCols">
+              <div v-for="item in items" :key="item.key" class="text-center text-xs font-bold text-gray-900 dark:text-gray-100 leading-tight truncate">{{ item.model.modelDisplayName }}</div>
             </div>
           </div>
         </Transition>
 
-        <!-- Comparison: Mobile Card Layout -->
+        <!-- Comparison: Mobile Card Layout (label above the values) -->
         <div class="block md:hidden bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 mb-6">
-          <!-- Static model header (inside card, always present) -->
-          <div class="bg-white dark:bg-gray-900 border-b-2 border-gray-100 dark:border-gray-800 px-4 py-3 rounded-t-2xl">
-            <div :class="validModels.length === 3 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2'">
-              <div v-for="(m, mi) in validModels" :key="m.brand + m.model" class="text-center">
-                <a :href="`/modelle/${m.brand}/${m.model}`"
-                   class="text-xs font-bold text-gray-900 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-400 leading-tight block">
-                  {{ m.modelDisplayName }}
-                </a>
-                <span v-if="m.logCount > 0" class="text-[10px] text-green-600 dark:text-green-400 flex items-center justify-center gap-0.5 mt-0.5">
-                  <ChartBarIcon class="h-2.5 w-2.5" />Community
+          <div class="border-b-2 border-gray-100 dark:border-gray-800 px-4 py-3">
+            <div class="grid gap-2" :class="gridCols">
+              <a v-for="item in items" :key="item.key" :href="modelHref(item)"
+                 class="text-center text-xs font-bold text-gray-900 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-400 leading-tight block">
+                {{ item.model.modelDisplayName }}
+              </a>
+            </div>
+          </div>
+          <div v-for="row in rows" :key="row.key" class="border-t border-gray-100 dark:border-gray-800 px-4 py-3" data-testid="compare-row">
+            <div class="text-xs mb-2 text-center text-gray-500 dark:text-gray-400">{{ row.label }}</div>
+            <div class="grid gap-2" :class="gridCols">
+              <div v-for="(cell, i) in row.cells" :key="i" class="text-center text-sm" data-testid="compare-cell">
+                <span class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                  <span v-if="cell.better" class="mr-1 inline-block h-2 w-2 rounded-full bg-green-600 align-middle dark:bg-green-400" data-testid="compare-better"></span><span v-if="cell.better" class="sr-only">{{ t('compare.legend_better') }}: </span>{{ cell.value }}
                 </span>
-                <span v-else class="text-[10px] text-gray-400 dark:text-gray-500 block mt-0.5">WLTP</span>
-                <!-- Variant picker -->
-                <div v-if="m.wltpVariants.length > 1" class="mt-1.5">
-                  <select
-                    :value="selectedVariantIdx[mi]"
-                    @change="selectedVariantIdx[mi] = +($event.target as HTMLSelectElement).value"
-                    class="w-full text-[11px] rounded border px-1.5 py-0.5 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-green-500">
-                    <option v-for="(v, vi) in m.wltpVariants" :key="vi" :value="vi">{{ v.displayLabel ?? (v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh`) }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}</option>
-                  </select>
-                </div>
+                <span v-for="line in cell.sub" :key="line" class="block text-xs text-gray-500 dark:text-gray-400">{{ line }}</span>
               </div>
             </div>
           </div>
-
-          <!-- Section helper -->
-          <template v-for="section in mobileSections" :key="section.label">
-            <div class="bg-gray-50 dark:bg-gray-800 px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide text-center">
-              {{ section.label }}
-            </div>
-            <div v-for="row in section.rows" :key="row.label" class="border-t border-gray-100 dark:border-gray-800 px-4 py-3">
-              <div class="text-xs mb-2 text-center" :class="row.labelClass ?? 'text-gray-500 dark:text-gray-400'">
-                {{ row.label }}
-                <span v-if="row.sublabel" class="block text-gray-400 dark:text-gray-500 font-normal">{{ row.sublabel }}</span>
-              </div>
-              <div :class="validModels.length === 3 ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-2 gap-2'">
-                <div v-for="(cell, i) in row.cells" :key="i"
-                     class="text-center text-sm font-medium py-1 rounded-sm"
-                     :class="[cell.highlight, cell.isBest ? 'bg-green-50 dark:bg-green-900/20' : cell.isWorst ? 'bg-red-50 dark:bg-red-900/20' : '']">
-                  <template v-if="cell.chip">
-                    <span :class="cell.chipClass" class="text-xs px-2 py-0.5 rounded-full font-medium">
-                      {{ cell.value }}
-                    </span>
-                  </template>
-                  <template v-else>{{ cell.value }}</template>
-                </div>
-              </div>
-            </div>
-          </template>
-
-          <!-- Legend -->
-          <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-4 text-xs text-gray-400 dark:text-gray-500 rounded-b-2xl">
+          <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
             <span class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
-              {{ t('compare.legend_best') }}
+              <span class="w-2 h-2 rounded-full bg-green-600 dark:bg-green-400 inline-block"></span>
+              {{ t('compare.legend_better') }}
             </span>
-            <span class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>
-              {{ t('compare.legend_worst') }}
-            </span>
-            <span>{{ t('compare.legend_no_data') }}</span>
           </div>
         </div>
 
         <!-- Comparison: Desktop Table -->
         <div class="hidden md:block bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
-          <div class="overflow-x-auto">
-            <table class="w-full min-w-[480px] text-sm">
-              <!-- Model header row -->
-              <thead>
-                <tr class="border-b-2 border-gray-100 dark:border-gray-800">
-                  <th class="sticky left-0 bg-white dark:bg-gray-900 z-10 w-36 py-4 px-4 text-left font-normal text-gray-400"></th>
-                  <th v-for="(m, mi) in validModels" :key="m.brand + m.model"
-                      class="py-4 px-3 text-center"
-                      :class="m.logCount === 0 ? 'opacity-60' : ''">
-                    <a :href="`/modelle/${m.brand}/${m.model}`"
-                       class="font-bold text-gray-900 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-400 transition-colors block">
-                      {{ m.modelDisplayName }}
-                    </a>
-                    <!-- Real data badge -->
-                    <span v-if="m.logCount > 0"
-                          class="inline-flex items-center gap-1 mt-1 text-xs px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 font-normal">
-                      <ChartBarIcon class="h-3 w-3" />
-                      {{ t('compare.badge_community') }}
-                    </span>
-                    <!-- WLTP-only badge -->
-                    <span v-else
-                          class="inline-flex items-center gap-1 mt-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500 font-normal">
-                      {{ t('compare.badge_wltp_only') }}
-                    </span>
-                    <!-- Variant picker -->
-                    <div v-if="m.wltpVariants.length > 1" class="mt-2">
-                      <select
-                        :value="selectedVariantIdx[mi]"
-                        @change="selectedVariantIdx[mi] = +($event.target as HTMLSelectElement).value"
-                        class="text-xs rounded border px-2 py-0.5 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-green-500">
-                        <option v-for="(v, vi) in m.wltpVariants" :key="vi" :value="vi">
-                          {{ v.displayLabel ?? (v.variantName ? `${v.variantName} (${v.batteryCapacityKwh} kWh)` : `${v.batteryCapacityKwh} kWh`) }}{{ v.realConsumptionTripCount ? ` · ${v.realConsumptionTripCount} Fahrten` : '' }}
-                        </option>
-                      </select>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                <!-- ── Block 1: Verbrauch & Effizienz ───────────────────── -->
-                <tr class="bg-gray-50 dark:bg-gray-800">
-                  <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    {{ t('compare.section_consumption') }}
-                  </td>
-                </tr>
-                <!-- Real consumption -->
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    {{ t('compare.row_real_consumption') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center" :class="cellClass(i, realConsumptions)">
-                    {{ validModels[i].avgConsumptionKwhPer100km ? formatConsumption(validModels[i].avgConsumptionKwhPer100km) : '–' }}
-                  </td>
-                </tr>
-                <!-- WLTP consumption -->
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    {{ t('compare.row_wltp_consumption') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center text-gray-700 dark:text-gray-300">
-                    {{ wltpConsumptions[i] ? formatConsumption(wltpConsumptions[i]!) : '–' }}
-                  </td>
-                </tr>
-                <!-- Delta WLTP -->
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    {{ t('compare.row_wltp_delta') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center" :class="cellClass(i, wltpDeltas)">
-                    {{ wltpDeltas[i] != null ? (wltpDeltas[i]! > 0 ? '+' : '') + wltpDeltas[i]!.toFixed(1) + '%' : '–' }}
-                  </td>
-                </tr>
-
-                <!-- ── Block 2: Reichweite ──────────────────────────────── -->
-                <tr class="bg-gray-50 dark:bg-gray-800">
-                  <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    {{ t('compare.section_range') }}
-                  </td>
-                </tr>
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    <div>{{ t('compare.row_real_range') }}</div>
-                    <div class="text-xs text-gray-400 dark:text-gray-500 font-normal">{{ t('compare.row_real_range_sub') }}</div>
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center" :class="cellClass(i, realRanges, false)">
-                    {{ realRanges[i] ? formatDistance(realRanges[i]!) : '–' }}
-                  </td>
-                </tr>
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    {{ t('compare.row_wltp_range') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center text-gray-700 dark:text-gray-300">
-                    {{ wltpRanges[i] ? formatDistance(wltpRanges[i]!) : '–' }}
-                  </td>
-                </tr>
-
-                <!-- ── Block 3: Kosten ──────────────────────────────────── -->
-                <tr class="bg-gray-50 dark:bg-gray-800">
-                  <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    {{ t('compare.section_costs') }}
-                  </td>
-                </tr>
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    {{ t('compare.row_costs_per_100') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center" :class="cellClass(i, costsPerHundred)">
-                    {{ costsPerHundred[i] ? formatCostPerDistance(costsPerHundred[i]!) : '–' }}
-                  </td>
-                </tr>
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    {{ t('compare.row_costs_per_kwh') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center" :class="cellClass(i, costsPerKwh)">
-                    {{ costsPerKwh[i] != null ? formatCostPerKwh(costsPerKwh[i]!) : '–' }}
-                  </td>
-                </tr>
-
-                <!-- ── Block 4: Saisonal ────────────────────────────────── -->
-                <tr class="bg-gray-50 dark:bg-gray-800">
-                  <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    {{ t('compare.section_seasonal') }}
-                  </td>
-                </tr>
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    🌞 {{ t('compare.row_summer') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center" :class="cellClass(i, summerConsumptions)">
-                    {{ summerConsumptions[i] ? formatConsumption(summerConsumptions[i]!) : '–' }}
-                  </td>
-                </tr>
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    ❄️ {{ t('compare.row_winter') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center" :class="cellClass(i, winterConsumptions)">
-                    {{ winterConsumptions[i] ? formatConsumption(winterConsumptions[i]!) : '–' }}
-                  </td>
-                </tr>
-
-                <!-- ── Block 5: Datenbasis ──────────────────────────────── -->
-                <tr class="bg-gray-50 dark:bg-gray-800">
-                  <td :colspan="validModels.length + 1" class="sticky left-0 px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    {{ t('compare.section_data') }}
-                  </td>
-                </tr>
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    {{ t('compare.row_log_count') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center" :class="cellClass(i, logCounts, false)">
-                    {{ validModels[i].logCount > 0 ? validModels[i].logCount.toLocaleString() : '–' }}
-                  </td>
-                </tr>
-                <tr class="border-t border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td class="sticky left-0 bg-white dark:bg-gray-900 z-10 px-4 py-3 text-gray-600 dark:text-gray-400 font-medium whitespace-nowrap">
-                    {{ t('compare.row_contributors') }}
-                  </td>
-                  <td v-for="(_, i) in validModels" :key="i"
-                      class="px-3 py-3 text-center text-gray-700 dark:text-gray-300">
-                    {{ validModels[i].uniqueContributors > 0 ? validModels[i].uniqueContributors : '–' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Legend -->
-          <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-4 text-xs text-gray-400 dark:text-gray-500">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b-2 border-gray-100 dark:border-gray-800">
+                <th class="w-44 py-4 px-4"></th>
+                <th v-for="item in items" :key="item.key" class="py-4 px-3 text-center">
+                  <a :href="modelHref(item)" class="font-bold text-gray-900 dark:text-gray-100 hover:text-green-600 dark:hover:text-green-400 transition-colors block">
+                    {{ item.model.modelDisplayName }}
+                  </a>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in rows" :key="row.key" class="border-t border-gray-100 dark:border-gray-800">
+                <td class="px-4 py-3 text-gray-600 dark:text-gray-400 font-medium">{{ row.label }}</td>
+                <td v-for="(cell, i) in row.cells" :key="i" class="px-3 py-3 text-center">
+                  <span class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+                    <span v-if="cell.better" class="mr-1.5 inline-block h-2 w-2 rounded-full bg-green-600 align-middle dark:bg-green-400"></span><span v-if="cell.better" class="sr-only">{{ t('compare.legend_better') }}: </span>{{ cell.value }}
+                  </span>
+                  <span v-for="line in cell.sub" :key="line" class="block text-xs text-gray-500 dark:text-gray-400">{{ line }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-400">
             <span class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block"></span>
-              {{ t('compare.legend_best') }}
+              <span class="w-2 h-2 rounded-full bg-green-600 dark:bg-green-400 inline-block"></span>
+              {{ t('compare.legend_better') }}
             </span>
-            <span class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-red-400 inline-block"></span>
-              {{ t('compare.legend_worst') }}
-            </span>
-            <span>{{ t('compare.legend_no_data') }}</span>
           </div>
         </div>
 
@@ -330,17 +120,17 @@
         <div class="bg-white dark:bg-gray-900 rounded-sm border border-gray-200 dark:border-gray-700 p-5 mb-6">
           <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{ t('compare.detail_pages') }}</p>
           <div class="flex flex-wrap gap-3">
-            <a v-for="m in validModels" :key="m.brand + m.model"
-               :href="`/modelle/${m.brand}/${m.model}`"
+            <a v-for="item in items" :key="item.key"
+               :href="modelHref(item)"
                class="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 hover:underline">
               <TruckIcon class="h-4 w-4" />
-              {{ m.modelDisplayName }} →
+              {{ item.model.modelDisplayName }} →
             </a>
           </div>
         </div>
 
-        <!-- CTA -->
-        <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-sm p-6 text-white">
+        <!-- CTA, guests only -->
+        <div v-if="!isAuthenticated" class="bg-gradient-to-br from-green-600 to-green-700 rounded-sm p-6 text-white">
           <h2 class="text-xl font-bold mb-2">{{ t('compare.cta_title') }}</h2>
           <p class="text-green-100 text-sm mb-4">
             {{ t('compare.cta_desc') }}
@@ -365,28 +155,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onUnmounted, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useHead } from '@unhead/vue'
 import { useI18n } from 'vue-i18n'
-import { getModelStats, type PublicModelStats } from '../api/publicModelService'
-import { TruckIcon, ArrowLeftIcon, ChartBarIcon } from '@heroicons/vue/24/outline'
+import { getTopModels, getChargingReferencePrices, type TopModelPreview } from '../api/publicModelService'
+import { TruckIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import { useAuthStore } from '../stores/auth'
 import { useTickerState } from '../composables/useTickerState'
+import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
+import { useModelRanking, MAX_COMPARE, type RankedModel } from '../composables/useModelRanking'
+import { useRankedModelText } from '../composables/useRankedModelText'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { combustionAllowed } from '../utils/costMix'
+import { betterMarks } from '../utils/compareModels'
 
 const { t, locale } = useI18n()
-const { formatConsumption, formatDistance, formatCostPerKwh, formatCostPerDistance } = useLocaleFormat()
+const { distanceUnitLabel } = useLocaleFormat()
 const authStore = useAuthStore()
+const isAuthenticated = computed(() => authStore.isAuthenticated())
 const { tickerHasItems, tickerCollapsed } = useTickerState()
+const { currentMarket, isDE } = useMarketRoute()
 const floatingHeaderTop = computed(() => {
-  if (!authStore.isAuthenticated()) return '0px'
+  if (!isAuthenticated.value) return '0px'
   if (tickerHasItems.value && !tickerCollapsed.value) return '90px'
   return '58px'
 })
 const registerPath = computed(() => locale.value === 'en' ? '/en/register' : '/register')
 const loginPath = computed(() => locale.value === 'en' ? '/en/login' : '/login')
+const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 
 const route = useRoute()
 const loading = ref(true)
@@ -408,14 +206,18 @@ watch(stickysentinel, (el) => {
 
 onUnmounted(() => observer?.disconnect())
 const error = ref<string | null>(null)
-const models = ref<(PublicModelStats | null)[]>([])
 const currentYear = new Date().getFullYear()
 
 const modelKeys = computed((): string[] => {
   const raw = route.query.models as string | undefined
   if (!raw) return []
-  return raw.split(',').slice(0, 3).map(s => s.trim()).filter(Boolean)
+  return raw.split(',').slice(0, MAX_COMPARE).map(s => s.trim()).filter(Boolean)
 })
+
+// ── Data: the same ranking as /modelle, so every figure matches the list ──────
+const models = ref<TopModelPreview[]>([])
+const { ranked, cost, needs, combustionMarket, applyReferencePrices } = useModelRanking(models)
+watch(currentMarket, m => { combustionMarket.value = combustionAllowed(m) }, { immediate: true })
 
 onMounted(async () => {
   if (modelKeys.value.length < 2) {
@@ -424,12 +226,12 @@ onMounted(async () => {
     return
   }
   try {
-    models.value = await Promise.all(
-      modelKeys.value.map(key => {
-        const [brand, model] = key.split('/')
-        return getModelStats(brand, model)
-      })
-    )
+    const [top, prices] = await Promise.all([
+      getTopModels(200),
+      getChargingReferencePrices().catch(() => null),
+    ])
+    models.value = top
+    applyReferencePrices(prices, isDE.value)
   } catch {
     error.value = t('compare.error_loading')
   } finally {
@@ -437,220 +239,81 @@ onMounted(async () => {
   }
 })
 
-const validModels = computed(() => models.value.filter((m): m is PublicModelStats => m !== null))
+/** The compared models in the link's order; keys match regardless of case (older shared links) */
+const items = computed<RankedModel[]>(() => modelKeys.value
+  .map(k => ranked.value.find(r => r.key.toLowerCase() === k.toLowerCase()))
+  .filter((r): r is RankedModel => r != null))
 
-// ── Variant selection (one index per model) ────────────────────────────────────
-const selectedVariantIdx = ref<number[]>([])
-
-// Reset variant selection when models load
-watch(validModels, (newModels) => {
-  selectedVariantIdx.value = newModels.map(() => 0)
-}, { immediate: true })
-
-function selectedVariant(modelIdx: number) {
-  const m = validModels.value[modelIdx]
-  if (!m || !m.wltpVariants.length) return null
-  const idx = selectedVariantIdx.value[modelIdx] ?? 0
-  return m.wltpVariants[idx] ?? m.wltpVariants[0]
+function modelHref(item: RankedModel) {
+  return `${modelsBaseUrl.value}/${item.model.brandDisplayName}/${item.model.modelUrlSlug}`
 }
+const gridCols = computed(() => items.value.length === 3 ? 'grid-cols-3' : 'grid-cols-2')
 
-// ── Metric arrays (index = model index) ───────────────────────────────────────
-const realConsumptions = computed(() =>
-  validModels.value.map((m, i) => {
-    const variant = selectedVariant(i)
-    // prefer variant-specific real consumption if available and has enough data
-    if (variant?.realConsumptionKwhPer100km != null && (variant.realConsumptionTripCount ?? 0) >= 5) {
-      return variant.realConsumptionKwhPer100km
-    }
-    return m.avgConsumptionKwhPer100km
-  })
-)
+// ── Rows: the ranking row's cells, then what the drivers measure ──────────────
+// One text set per compare slot (at most MAX_COMPARE); a slot is only read while it holds a model.
+const texts = Array.from({ length: MAX_COMPARE }, (_, i) =>
+  useRankedModelText(() => items.value[i], () => needs.value.longestTripKm, () => cost.value.fuel))
 
-const wltpConsumptions = computed(() =>
-  validModels.value.map((_, i) => selectedVariant(i)?.wltpConsumptionKwhPer100km ?? null)
-)
+interface Cell { value: string; sub: string[]; better: boolean }
+interface Row { key: string; label: string; cells: Cell[] }
 
-const wltpDeltas = computed(() =>
-  validModels.value.map((_, i) => {
-    const real = realConsumptions.value[i]
-    const wltp = wltpConsumptions.value[i]
-    if (!real || !wltp) return null
-    return ((real - wltp) / wltp) * 100
-  })
-)
+const round = (v: number | null | undefined, step: number) => v != null ? Math.round(v / step) * step : null
+/** The marked figures, rounded as shown: lower consumption and cost, more range */
+const marks = computed(() => ({
+  consumption: betterMarks(items.value.map(r => round(r.model.avgConsumptionKwhPer100km, 0.1)), true),
+  cost: betterMarks(items.value.map(r => round(r.costPer100kmEur, 0.01)), true),
+  range: betterMarks(items.value.map(r => round(r.model.typicalRangeMaxKm ?? r.model.realRangeKm, 10)), false),
+}))
 
-const realRanges = computed(() =>
-  validModels.value.map((_, i) => {
-    const real = realConsumptions.value[i]
-    const variant = selectedVariant(i)
-    if (!real || !variant) return null
-    return Math.round(variant.batteryCapacityKwh * 0.8 / real * 100)
-  })
-)
+const FACT_ORDER = ['consumption', 'winter', 'highway', 'wltp', 'battery', 'data']
 
-const wltpRanges = computed(() =>
-  validModels.value.map((_, i) => selectedVariant(i)?.wltpRangeKm ?? null)
-)
-
-const costsPerHundred = computed(() =>
-  validModels.value.map((m, i) => {
-    const real = realConsumptions.value[i]
-    if (!m.avgCostPerKwh || !real) return null
-    return m.avgCostPerKwh * real
-  })
-)
-
-const costsPerKwh = computed(() =>
-  validModels.value.map(m => m.avgCostPerKwh ?? null)
-)
-
-const summerConsumptions = computed(() =>
-  validModels.value.map((m, i) => {
-    const variant = selectedVariant(i)
-    return variant?.seasonalDistribution?.summerConsumptionKwhPer100km
-      ?? m.seasonalDistribution?.summerConsumptionKwhPer100km
-      ?? null
-  })
-)
-
-const winterConsumptions = computed(() =>
-  validModels.value.map((m, i) => {
-    const variant = selectedVariant(i)
-    return variant?.seasonalDistribution?.winterConsumptionKwhPer100km
-      ?? m.seasonalDistribution?.winterConsumptionKwhPer100km
-      ?? null
-  })
-)
-
-const logCounts = computed(() => validModels.value.map(m => m.logCount))
-
-// ── Mobile sections data ───────────────────────────────────────────────────────
-interface MobileCell { value: string; highlight: string; isBest: boolean; isWorst: boolean; chip: boolean; chipClass: string }
-interface MobileRow { label: string; sublabel?: string; labelClass?: string; cells: MobileCell[] }
-interface MobileSection { label: string; rows: MobileRow[] }
-
-function buildCells(values: (number | null)[], format: (v: number) => string, lowerIsBetter = true, chip = false): MobileCell[] {
-  const best = bestIdx(values, lowerIsBetter)
-  const worst = worstIdx(values, lowerIsBetter)
-  return values.map((v, i) => {
-    const isBest = i === best
-    const isWorst = i === worst
-    const highlight = isBest ? 'text-green-600 dark:text-green-400 font-bold' : isWorst ? 'text-red-500 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'
-    const rawValue = v != null ? format(v) : '–'
-    let chipClass = ''
-    if (chip && v != null) {
-      chipClass = v <= 5 ? 'chip-green' : v <= 15 ? 'chip-yellow' : 'chip-red'
-    }
-    return { value: rawValue, highlight, isBest, isWorst, chip, chipClass }
-  })
-}
-
-const mobileSections = computed((): MobileSection[] => {
-  const t2 = t
-  return [
+const rows = computed<Row[]>(() => {
+  const slots = items.value.map((_, i) => texts[i])
+  const out: Row[] = [
     {
-      label: t2('compare.section_consumption'),
-      rows: [
-        {
-          label: t2('compare.row_real_consumption'),
-          cells: buildCells(realConsumptions.value, v => formatConsumption(v))
-        },
-        {
-          label: t2('compare.row_wltp_consumption'),
-          cells: wltpConsumptions.value.map(v => ({ value: v != null ? formatConsumption(v) : '–', highlight: 'text-gray-700 dark:text-gray-300', isBest: false, isWorst: false, chip: false, chipClass: '' }))
-        },
-        {
-          label: t2('compare.row_wltp_delta'),
-          cells: buildCells(wltpDeltas.value, v => (v > 0 ? '+' : '') + v.toFixed(1) + '%')
-        }
-      ]
+      key: 'consumption',
+      label: t('models_ranking.columns.consumption'),
+      cells: slots.map((x, i) => ({
+        value: `${x.realText.value} ${x.consumptionUnitLabel()}`,
+        sub: [`${t('models_ranking.columns.wltp')} ${x.wltpText.value}`],
+        better: marks.value.consumption[i],
+      })),
     },
     {
-      label: t2('compare.section_range'),
-      rows: [
-        {
-          label: t2('compare.row_real_range'),
-          sublabel: t2('compare.row_real_range_sub'),
-          cells: buildCells(realRanges.value, v => formatDistance(v), false)
-        },
-        {
-          label: t2('compare.row_wltp_range'),
-          cells: wltpRanges.value.map(v => ({ value: v != null ? formatDistance(v) : '–', highlight: 'text-gray-700 dark:text-gray-300', isBest: false, isWorst: false, chip: false, chipClass: '' }))
-        }
-      ]
+      key: 'cost',
+      label: t('models_ranking.columns.cost_per', { unit: distanceUnitLabel() }),
+      cells: slots.map((x, i) => ({
+        value: `${t('models_ranking.row.electricity')} ${x.electricityCost.value}`,
+        sub: [x.combustionCaption.value, x.driversPrice.value ?? ''].filter(Boolean),
+        better: marks.value.cost[i],
+      })),
     },
     {
-      label: t2('compare.section_costs'),
-      rows: [
-        {
-          label: t2('compare.row_costs_per_100'),
-          cells: buildCells(costsPerHundred.value, v => formatCostPerDistance(v))
-        },
-        {
-          label: t2('compare.row_costs_per_kwh'),
-          cells: buildCells(costsPerKwh.value, v => formatCostPerKwh(v))
-        }
-      ]
+      key: 'range',
+      label: t('models_ranking.columns.range'),
+      cells: slots.map((x, i) => ({
+        value: `${x.rangeValue.value} ${distanceUnitLabel()}`,
+        sub: x.ladderLine.value ? [x.ladderLine.value] : [],
+        better: marks.value.range[i],
+      })),
     },
-    {
-      label: t2('compare.section_seasonal'),
-      rows: [
-        {
-          label: '🌞 ' + t2('compare.row_summer'),
-          labelClass: 'text-orange-600 dark:text-orange-400 font-medium',
-          cells: buildCells(summerConsumptions.value, v => formatConsumption(v))
-        },
-        {
-          label: '❄️ ' + t2('compare.row_winter'),
-          labelClass: 'text-blue-700 dark:text-blue-400 font-medium',
-          cells: buildCells(winterConsumptions.value, v => formatConsumption(v))
-        }
-      ]
-    },
-    {
-      label: t2('compare.section_data'),
-      rows: [
-        {
-          label: t2('compare.row_log_count'),
-          cells: buildCells(logCounts.value, v => v.toLocaleString(), false)
-        },
-        {
-          label: t2('compare.row_contributors'),
-          cells: validModels.value.map(m => ({ value: m.uniqueContributors > 0 ? String(m.uniqueContributors) : '–', highlight: 'text-gray-700 dark:text-gray-300', isBest: false, isWorst: false, chip: false, chipClass: '' }))
-        }
-      ]
-    }
   ]
+  for (const key of FACT_ORDER) {
+    const values = slots.map(x => x.facts.value.find(f => f.key === key)?.value ?? null)
+    if (values.every(v => v == null)) continue
+    out.push({
+      key,
+      label: key === 'consumption' ? t('compare.row_seasons') : t(`models_ranking.detail.fact_${key}`),
+      cells: values.map(v => ({ value: v ?? '–', sub: [], better: false })),
+    })
+  }
+  return out
 })
-
-// ── Highlighting helpers ───────────────────────────────────────────────────────
-function bestIdx(values: (number | null)[], lowerIsBetter: boolean): number {
-  const valid = values.map((v, i) => ({ v, i })).filter(x => x.v !== null)
-  if (valid.length < 2) return -1
-  return lowerIsBetter
-    ? valid.reduce((a, b) => a.v! < b.v! ? a : b).i
-    : valid.reduce((a, b) => a.v! > b.v! ? a : b).i
-}
-
-function worstIdx(values: (number | null)[], lowerIsBetter: boolean): number {
-  const valid = values.map((v, i) => ({ v, i })).filter(x => x.v !== null)
-  if (valid.length < 2) return -1
-  return lowerIsBetter
-    ? valid.reduce((a, b) => a.v! > b.v! ? a : b).i
-    : valid.reduce((a, b) => a.v! < b.v! ? a : b).i
-}
-
-function cellClass(i: number, vals: (number | null)[], lowerIsBetter = true): string {
-  if (bestIdx(vals, lowerIsBetter) === i) return 'text-green-600 dark:text-green-400 font-bold'
-  if (worstIdx(vals, lowerIsBetter) === i) return 'text-red-500 dark:text-red-400'
-  return 'text-gray-800 dark:text-gray-200'
-}
-
 
 const BASE_URL = 'https://ev-monitor.net'
 
 useHead(computed(() => {
-  const names = validModels.value.map(m => m.modelDisplayName).join(' vs. ')
+  const names = items.value.map(i => i.model.modelDisplayName).join(' vs. ')
   const title = names ? `${names} – ${t('compare.breadcrumb_current')} | EV Monitor` : t('compare.head_title_fallback')
   const description = t('compare.head_desc', { names })
   const canonical = `${BASE_URL}${route.fullPath}`
