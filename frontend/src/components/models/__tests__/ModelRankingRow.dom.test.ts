@@ -172,31 +172,32 @@ describe('ModelRankingRow', () => {
       expect(forYou(host)).toBeNull()
     })
 
-    it('what the drivers measure, as one paragraph', async () => {
+    const facts = (host: HTMLElement) => Object.fromEntries([...host.querySelectorAll('[data-testid="detail-fact"]')]
+      .map(f => [text(f.querySelector('dt')), text(f.querySelector('dd'))]))
+
+    it('what the drivers measure, as a short list of what the closed row leaves out', async () => {
       const { host } = await mount(model({
         brandDisplayName: 'VW', modelUrlSlug: 'ID.3', avgConsumptionKwhPer100km: 20, summerConsumptionKwhPer100km: 19, winterConsumptionKwhPer100km: 22,
         typicalRangeMinKm: 340, typicalRangeMaxKm: 340, winterRangeMinKm: 200, winterRangeMaxKm: 310, avgCostPerKwh: 0.296, logCount: 6627, carCount: 43,
-      }), { expanded: true })
-      const p = text(host.querySelector('[data-testid="detail-measured"]'))
-      expect(p).toMatch(/Verbrauch 20,0 kWh\/100\s?km \(Sommer 19,0, Winter 22,0\), WLTP 16,0 kWh\/100\s?km/)
-      expect(p).toContain('Reichweite 340 km, im Winter 200 bis 310 km')
-      expect(p).toContain('Ø Ladepreis der Fahrer 29,6 ct/kWh')
-      expect(p).toContain('6.627 Ladevorgänge von 43 Autos')
-    })
-
-    it('the expert line holds what the closed row leaves out, each part only with a value', async () => {
-      const { host } = await mount(model({
-        brandDisplayName: 'VW', modelUrlSlug: 'ID.3', avgConsumptionKwhPer100km: 20, summerConsumptionKwhPer100km: 19, winterConsumptionKwhPer100km: 22,
         minNetCapacityKwh: 75, maxNetCapacityKwh: 82,
       }), { expanded: true })
-      const line = text(host.querySelector('[data-testid="detail-expert"]'))
-      expect(line).toContain('Autobahn 2 Stopps bis 890 km')
-      expect(line).toMatch(/Winter \+\d+ % Verbrauch/)
-      expect(line).toContain('25 % über WLTP')
-      expect(line).toContain('Akku 75 und 82 kWh')
-      app?.unmount(); app = null; document.body.innerHTML = ''
-      const bare = await mount(model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', avgConsumptionKwhPer100km: 16 }), { expanded: true, figures: null })
-      expect(bare.host.querySelector('[data-testid="detail-expert"]')).toBeNull()
+      const f = facts(host)
+      expect(f['Verbrauch']).toMatch(/^Sommer 19,0 · Winter 22,0 kWh\/100\s?km$/)
+      expect(f['Winter']).toMatch(/^\+\d+ % Verbrauch · 200 bis 310 km$/)
+      expect(f['Autobahn']).toBe('2 Stopps bis 890 km')
+      expect(f['WLTP']).toBe('25 % mehr als angegeben')
+      expect(f['Akku']).toBe('75 und 82 kWh')
+      expect(f['Datenbasis']).toBe('6.627 Ladevorgänge von 43 Autos')
+      // already in the row above: average consumption, range, charging price
+      const all = text(host.querySelector('[data-testid="detail-measured"]'))
+      expect(all).not.toContain('29,6')
+      expect(all).not.toContain('340 km')
+    })
+
+    it('each fact only with a value', async () => {
+      const { host } = await mount(model({ brandDisplayName: 'VW', modelUrlSlug: 'ID.3', avgConsumptionKwhPer100km: 16 }), { expanded: true, figures: null })
+      expect(Object.keys(facts(host))).toEqual(['Datenbasis'])
+      expect(host.querySelector('[data-testid="detail-expert"]')).toBeNull()
     })
 
     it('a single driver\'s values are flagged above the data sheet', async () => {

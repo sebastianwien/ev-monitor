@@ -11,24 +11,27 @@
             <dd v-for="line in a.sub" :key="line" class="text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">{{ line }}</dd>
           </div>
         </dl>
-        <!-- For the expert: what the closed row leaves out, one quiet line under the tiles -->
-        <p v-if="expertLine" :class="EXPERT" data-testid="detail-expert">{{ expertLine }}</p>
       </section>
 
-      <!-- 2. What the drivers measure, free for everyone, as one paragraph -->
-      <section class="grid content-start gap-2.5" :aria-label="t('models_ranking.detail.measured')">
+      <!-- 2. What the drivers measure, free for everyone: a short list of what the closed row leaves out;
+           alone (guest) centred above the button -->
+      <section class="grid content-start gap-2.5" :class="answers.length ? '' : 'w-full max-w-xl justify-self-center'" :aria-label="t('models_ranking.detail.measured')">
         <h3 :class="HEAD">{{ t('models_ranking.detail.measured') }}</h3>
         <p v-if="item.singleDriver" class="flex items-start gap-1.5 rounded-xl bg-amber-50 px-3 py-2 text-[13px] text-amber-900 dark:bg-amber-900/30 dark:text-amber-200" data-testid="single-driver-note">
           <InformationCircleIcon class="mt-px h-4 w-4 flex-none" aria-hidden="true" />{{ t('models_ranking.row.single_driver') }}
         </p>
-        <p class="text-[13.5px] leading-relaxed text-gray-700 dark:text-gray-300" data-testid="detail-measured">{{ measured }}</p>
-        <!-- Without tiles the expert line follows the paragraph -->
-        <p v-if="expertLine && !answers.length" :class="EXPERT" data-testid="detail-expert">{{ expertLine }}</p>
+        <dl class="grid text-[13.5px] leading-snug" data-testid="detail-measured">
+          <div v-for="f in facts" :key="f.key" class="grid grid-cols-[7rem_minmax(0,1fr)] gap-3 border-b border-gray-100 py-2 first:pt-0 last:border-0 last:pb-0 dark:border-gray-800" data-testid="detail-fact">
+            <dt class="text-gray-500 dark:text-gray-400">{{ f.label }}</dt>
+            <dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ f.value }}</dd>
+          </div>
+        </dl>
       </section>
     </div>
 
-    <!-- 3. One way on: the model page. The phone compares from here. -->
-    <div class="grid gap-2.5 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
+    <!-- 3. One way on, centred under both columns: the model page. The phone compares from here. -->
+    <div class="grid justify-items-center gap-2.5 text-center">
+      <div class="grid w-full gap-2.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-3">
       <a :href="href" class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-gray-900 px-4 font-bold text-white hover:bg-gray-800 dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900" @click="analytics.track('ranking_model_page')">
         {{ t('models_ranking.detail.model_page', { name: m.modelDisplayName }) }}
         <ArrowRightIcon class="h-5 w-5" aria-hidden="true" />
@@ -46,10 +49,11 @@
         <PlusIcon v-else class="h-4 w-4" stroke-width="2.5" aria-hidden="true" />
         {{ t(inCompare ? 'models_ranking.detail.compare_remove' : 'models_ranking.detail.compare_add') }}
       </button>
-      <p class="text-[12.5px] leading-snug text-gray-500 sm:flex-1 dark:text-gray-400">{{ t('models_ranking.detail.model_page_more') }}</p>
+      </div>
+      <p class="text-[12.5px] leading-snug text-gray-500 dark:text-gray-400">{{ t('models_ranking.detail.model_page_more') }}</p>
     </div>
     <!-- The row's photo is CC licensed: the credit links to the source -->
-    <p v-if="credit" class="-mt-3 text-[11px] text-gray-500 dark:text-gray-400">
+    <p v-if="credit" class="-mt-3 text-center text-[11px] text-gray-500 dark:text-gray-400">
       <a :href="credit.sourceUrl" target="_blank" rel="noopener" class="hover:underline">{{ t('models_ranking.detail.photo_credit', { author: credit.author, license: credit.license }) }}</a>
     </p>
   </div>
@@ -82,11 +86,10 @@ const props = defineProps<{
 const emit = defineEmits<{ compare: [] }>()
 
 const HEAD = 'text-[12px] font-semibold uppercase tracking-[0.08em] text-gray-500 dark:text-gray-400'
-const EXPERT = 'text-[12.5px] leading-snug text-gray-500 dark:text-gray-400'
 
 const { t } = useI18n()
-const { formatNumber, formatDecimal, formatConsumption, formatCostPerKwh, formatCurrency, distanceUnitLabel } = useLocaleFormat()
-const { m, fmtKm, fmtKmUnit, duration, tripParams, fuelLabel, rangeValue, signedPct } =
+const { formatNumber, formatDecimal, formatConsumption, formatCurrency, distanceUnitLabel } = useLocaleFormat()
+const { m, fmtKm, fmtKmUnit, duration, tripParams, fuelLabel, signedPct } =
   useRankedModelText(() => props.item, () => props.longestTripKm, () => props.fuel)
 
 const credit = computed(() => officialModelImageAttribution(m.value.model))
@@ -136,56 +139,47 @@ const answers = computed<Answer[]>(() => {
 })
 
 // ── 2. What the drivers measure ────────────────────────────────────────────
-/** "Verbrauch 20,0 kWh/100km (Sommer 19,0, Winter 22,0), WLTP 14,6 kWh/100km · Reichweite 343 km, im Winter 200 bis 307 km · Ø Ladepreis ... · 6.627 Ladevorgänge von 43 Autos" */
-const measured = computed(() => {
+/** Only what the closed row leaves out (it shows average consumption, WLTP, range and charging price);
+ *  each fact only with a value, the data basis always. */
+interface Fact { key: string; label: string; value: string }
+const facts = computed<Fact[]>(() => {
   const x = m.value
+  const out: Fact[] = []
+  const add = (key: string, value: string | null) => { if (value) out.push({ key, label: t(`models_ranking.detail.fact_${key}`), value }) }
+
   const summer = x.summerConsumptionKwhPer100km
   const winter = x.winterConsumptionKwhPer100km
-  const seasons = summer != null && winter != null
-    ? ` ${t('models_ranking.detail.measured_seasons', { summer: formatConsumption(summer, { showUnit: false }), winter: formatConsumption(winter, { showUnit: false }) })}`
-    : ''
-  const consumption = [
-    t('models_ranking.detail.measured_consumption', { value: formatConsumption(x.avgConsumptionKwhPer100km) }) + seasons,
-    ...(props.item.wltpKwhPer100km != null ? [t('models_ranking.detail.measured_wltp', { value: formatConsumption(props.item.wltpKwhPer100km) })] : []),
-  ].join(', ')
-  const parts = [consumption]
-  const unit = distanceUnitLabel()
-  if (rangeValue.value !== '–') {
-    const lo = x.winterRangeMinKm
-    const hi = x.winterRangeMaxKm
-    const winterRange = lo != null && hi != null
-      ? `, ${t('models_ranking.detail.measured_winter_range', {
-          value: `${fmtKm(lo) === fmtKm(hi) ? fmtKm(hi) : t('models_ranking.row.span', { min: fmtKm(lo), max: fmtKm(hi) })} ${unit}`,
-        })}`
-      : ''
-    parts.push(t('models_ranking.detail.measured_range', { value: `${rangeValue.value} ${unit}` }) + winterRange)
-  }
-  if (x.avgCostPerKwh != null) parts.push(t('models_ranking.detail.measured_price', { price: formatCostPerKwh(x.avgCostPerKwh) }))
+  add('consumption', summer != null && winter != null
+    ? t('models_ranking.detail.fact_seasons', { summer: formatConsumption(summer, { showUnit: false }), winter: formatConsumption(winter) })
+    : null)
+
+  const lo = x.winterRangeMinKm
+  const hi = x.winterRangeMaxKm
+  add('winter', [
+    ...(props.item.winterSurchargePct != null ? [t('models_ranking.detail.fact_winter_surcharge', { pct: signedPct(props.item.winterSurchargePct) })] : []),
+    ...(lo != null && hi != null ? [`${fmtKm(lo) === fmtKm(hi) ? fmtKm(hi) : t('models_ranking.row.span', { min: fmtKm(lo), max: fmtKm(hi) })} ${distanceUnitLabel()}`] : []),
+  ].join(' · ') || null)
+
+  add('highway', props.item.ladder ? t('models_ranking.detail.fact_ladder', { value: fmtKmUnit(props.item.ladder.twoStopsKm) }) : null)
+
+  // consumption against WLTP, in kWh space: "mehr" means more energy than the rating
+  const gap = props.item.wltpDeviationPct
+  add('wltp', gap != null && Math.round(gap) !== 0
+    ? t(gap > 0 ? 'models_ranking.detail.fact_wltp_above' : 'models_ranking.detail.fact_wltp_below', { pct: `${formatDecimal(Math.abs(gap), 0)} %` })
+    : null)
+
+  const capLo = x.minNetCapacityKwh
+  const capHi = x.maxNetCapacityKwh
+  add('battery', capLo != null && capHi != null
+    ? (Math.round(capLo) === Math.round(capHi)
+        ? t('models_ranking.detail.fact_battery_value', { value: formatDecimal(capHi, 0) })
+        : t('models_ranking.detail.fact_battery_span', { min: formatDecimal(capLo, 0), max: formatDecimal(capHi, 0) }))
+    : null)
+
   const logs = t('models_ranking.row.logs_plural', { count: formatNumber(x.logCount) }, x.logCount)
-  parts.push(x.carCount != null
+  add('data', x.carCount != null
     ? t('models_ranking.detail.measured_data', { logs, cars: t('models_ranking.detail.cars_plural', { count: formatNumber(x.carCount) }, x.carCount) })
     : logs)
-  return parts.join(' · ')
-})
-
-/** "Autobahn 2 Stopps bis 790 km · Winter +10 % Verbrauch · 23 % über WLTP · Akku 75 und 82 kWh"; null without any of them */
-const expertLine = computed(() => {
-  const x = m.value
-  const parts: string[] = []
-  if (props.item.ladder) parts.push(t('models_ranking.detail.kenner_ladder', { value: fmtKmUnit(props.item.ladder.twoStopsKm) }))
-  if (props.item.winterSurchargePct != null) parts.push(t('models_ranking.detail.kenner_winter', { pct: signedPct(props.item.winterSurchargePct) }))
-  // consumption against WLTP, in kWh space: "über" means more energy than the rating
-  const gap = props.item.wltpDeviationPct
-  if (gap != null && Math.round(gap) !== 0) {
-    parts.push(t(gap > 0 ? 'models_ranking.detail.kenner_wltp_above' : 'models_ranking.detail.kenner_wltp_below', { pct: `${formatDecimal(Math.abs(gap), 0)} %` }))
-  }
-  const lo = x.minNetCapacityKwh
-  const hi = x.maxNetCapacityKwh
-  if (lo != null && hi != null) {
-    parts.push(Math.round(lo) === Math.round(hi)
-      ? t('models_ranking.detail.kenner_battery', { value: formatDecimal(hi, 0) })
-      : t('models_ranking.detail.kenner_battery_span', { min: formatDecimal(lo, 0), max: formatDecimal(hi, 0) }))
-  }
-  return parts.length ? parts.join(' · ') : null
+  return out
 })
 </script>

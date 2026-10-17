@@ -40,7 +40,7 @@ for (const viewport of [{ width: 390, height: 844 }, { width: 1440, height: 900 
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
       const detail = page.locator(`#${await toggle.getAttribute('aria-controls')}`);
-      await expect(detail.getByTestId('detail-measured')).toContainText(/Verbrauch \d+,\d.*Ladevorg/);
+      await expect(detail.getByTestId('detail-measured')).toContainText(/Datenbasis.*Ladevorg/);
       await expect(detail.getByRole('link', { name: /^Modellseite / })).toBeVisible();
     });
 
