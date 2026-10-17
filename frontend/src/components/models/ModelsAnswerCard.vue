@@ -52,7 +52,7 @@
 
     <template #footer>
       <!-- Guests: one gate across the full width, it names how many models fit and promises which -->
-      <div v-if="locked" ref="gateBox" class="grid gap-3 rounded-2xl border-2 border-green-600 bg-white px-4 py-4 max-md:edge-card md:px-5 dark:border-green-500 dark:bg-gray-900" data-testid="ranking-gate">
+      <div v-if="locked" ref="gateBox" class="grid gap-3 rounded-2xl border-2 border-green-600 bg-white px-4 py-4 max-md:edge-card md:px-5 dark:border-green-500 dark:bg-gray-800" data-testid="ranking-gate">
         <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6">
           <div class="flex items-start gap-3">
             <span class="grid h-10 w-10 flex-none place-items-center rounded-full bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"><LockClosedIcon class="h-5 w-5" aria-hidden="true" /></span>
@@ -62,7 +62,7 @@
             </div>
           </div>
           <button v-if="!gateOpen" ref="gateButton" type="button" data-testid="ranking-gate-open"
-                  class="btn-3d cta-shadow-sm inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-green-600 px-5 text-[16px] font-bold text-white hover:bg-green-700 max-md:w-full dark:border-gray-200"
+                  class="btn-3d cta-shadow-sm inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-green-600 px-5 text-[16px] font-bold text-white hover:bg-green-700 max-md:w-full dark:border-transparent"
                   @click="openGate">
             <LockOpenIcon class="h-5 w-5" aria-hidden="true" />{{ t('ranking_card.gate_cta') }}
           </button>

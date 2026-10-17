@@ -30,7 +30,7 @@
       </a>
     </nav>
     </div>
-    <dl class="edge-card grid grid-cols-2 gap-[2px] overflow-hidden rounded-2xl bg-gray-900 sm:grid-cols-4 dark:bg-gray-200">
+    <dl class="edge-card grid grid-cols-2 gap-[2px] overflow-hidden rounded-2xl bg-gray-900 sm:grid-cols-4 dark:bg-gray-800">
       <div v-for="fact in heroFacts" :key="fact.label" class="flex flex-col-reverse gap-1 bg-white px-3.5 py-3 md:px-5 md:py-4 dark:bg-gray-900">
         <dt class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ fact.label }}</dt>
         <dd class="text-[28px] font-extrabold leading-none tracking-tight tabular-nums md:text-[34px]" :class="fact.highlight ? 'text-orange-700 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'">{{ fact.value }}</dd>

@@ -1,6 +1,6 @@
 <template>
   <!-- One answer of the grid: a toned icon, then the sentence with its loud figure and the lines under it (slot) -->
-  <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-900">
+  <li class="grid grid-cols-[36px_minmax(0,1fr)] gap-3 bg-white px-4 py-4 md:px-5 dark:bg-gray-800">
     <span class="grid h-9 w-9 place-items-center rounded-full" :class="TONE[tone]"><component :is="icon" class="h-5 w-5" aria-hidden="true" /></span>
     <div class="grid content-start" :class="dense ? 'gap-1.5' : 'gap-1'"><slot /></div>
   </li>

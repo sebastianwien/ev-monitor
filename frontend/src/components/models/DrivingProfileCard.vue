@@ -1,9 +1,9 @@
 <template>
-  <!-- The question-answer card: green frame with title and subtitle, then white surfaces. Open: the
+  <!-- The question-answer card: green frame with title and subtitle (neutral in dark mode, where a green tint turns muddy), then white surfaces. Open: the
        questions. Answered: the profile in one line, "Angaben ändern" folds the questions out. Then the
        answers and the footer (gate or top 5). Knows neither model nor list. -->
   <section ref="root" :aria-labelledby="titleId"
-           class="grid min-w-0 gap-4 bg-green-50 px-4 py-6 md:gap-5 md:rounded-3xl md:p-7 md:edge-box dark:bg-green-950/40">
+           class="grid min-w-0 gap-4 bg-green-50 px-4 py-6 md:gap-5 md:rounded-3xl md:p-7 md:edge-box dark:bg-gray-900">
     <div class="flex items-start gap-3">
       <span v-if="unlocked" class="grid h-11 w-11 flex-none place-items-center rounded-full bg-green-600 text-white"><LockOpenIcon class="h-6 w-6" aria-hidden="true" /></span>
       <div class="grid gap-1">
@@ -12,7 +12,7 @@
       </div>
     </div>
 
-    <div class="rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900" data-testid="profile-questions">
+    <div class="rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-800" data-testid="profile-questions">
       <template v-if="answered && summary">
         <div class="flex items-start justify-between gap-3 px-4 py-3 md:items-center md:px-5">
           <p class="min-w-0 text-[13.5px] leading-snug text-gray-700 md:text-[14px] dark:text-gray-300" data-testid="profile-summary">{{ summary }}</p>

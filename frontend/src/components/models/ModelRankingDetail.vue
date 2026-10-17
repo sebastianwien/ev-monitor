@@ -29,14 +29,14 @@
 
     <!-- 3. One way on: the model page. The phone compares from here. -->
     <div class="grid gap-2.5 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
-      <a :href="href" class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-gray-900 px-4 font-bold text-white hover:bg-gray-800 dark:border-gray-200 dark:bg-gray-100 dark:text-gray-900" @click="analytics.track('ranking_model_page')">
+      <a :href="href" class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-gray-900 px-4 font-bold text-white hover:bg-gray-800 dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900" @click="analytics.track('ranking_model_page')">
         {{ t('models_ranking.detail.model_page', { name: m.modelDisplayName }) }}
         <ArrowRightIcon class="h-5 w-5" aria-hidden="true" />
       </a>
       <button
         type="button"
         class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-2 px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-40 lg:hidden"
-        :class="inCompare ? 'border-green-600 bg-green-600 text-white dark:border-green-400 dark:bg-green-400 dark:text-gray-950' : 'border-gray-900 bg-white text-gray-900 dark:border-gray-200 dark:bg-gray-900 dark:text-gray-100'"
+        :class="inCompare ? 'border-green-600 bg-green-600 text-white dark:border-green-400 dark:bg-green-400 dark:text-gray-950' : 'border-gray-900 bg-white text-gray-900 dark:border-transparent dark:bg-white/10 dark:text-gray-100'"
         :aria-pressed="inCompare"
         :disabled="!inCompare && !canAddCompare"
         data-testid="compare-open"

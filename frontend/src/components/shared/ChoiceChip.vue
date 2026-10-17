@@ -1,6 +1,6 @@
 <template>
   <!-- The page's chips look like its buttons: dark outline, a small hard shadow, pressed in when chosen.
-       Dark mode drops outline and shadow: grey surfaces, the chosen one light.
+       Dark mode drops outline and shadow: translucent surfaces (they lift off box and card alike), the chosen one light.
        A toggle reports aria-pressed; as a link (href) it keeps the look without a state. -->
   <component
     :is="href ? 'a' : 'button'"
@@ -12,7 +12,7 @@
       SIZES[size],
       active
         ? 'active bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-        : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
+        : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15',
     ]"
   ><slot /></component>
 </template>

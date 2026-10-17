@@ -3,7 +3,7 @@
            class="grid min-w-0 scroll-mt-28 content-start gap-5 px-4 py-6 transition-colors duration-300 md:rounded-3xl md:p-7 md:edge-box"
            :class="state === 'locked'
              ? 'bg-white dark:bg-gray-900'
-             : '-my-2 bg-green-50 md:my-0 dark:bg-green-950/40'">
+             : '-my-2 bg-green-50 md:my-0 dark:bg-gray-900'">
     <!-- Green (gate, result) on the phone: the surface separates it from its white neighbours, so it takes up the grey gaps -->
 
     <!-- Locked: the four questions, placeholders behind a lock. No figure of the result exists in
@@ -46,7 +46,7 @@
         <template v-if="!authStore.token">{{ t('personal_range.locked_free') }}</template>
       </p>
       <button ref="action" type="button" data-testid="personal-range-calculate" :disabled="busy"
-              class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60 btn-3d cta-shadow-sm border-2 border-gray-900 dark:border-gray-200"
+              class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-60 btn-3d cta-shadow-sm border-2 border-gray-900 dark:border-transparent"
               @click="request">
         <LockOpenIcon class="h-5 w-5" aria-hidden="true" />
         {{ busy ? t('personal_range.calculating') : ctaLabel }}
@@ -72,7 +72,7 @@
 
       <!-- The set profile as a white strip above the answers: one line, "Angaben ändern" on the right
            unfolds the five sliders in their compact form (the ranking's strip) inside the same strip -->
-      <div v-if="profileSummary" class="rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900" data-testid="personal-range-profile-strip">
+      <div v-if="profileSummary" class="rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-800" data-testid="personal-range-profile-strip">
         <div class="flex items-start justify-between gap-3 px-4 py-3 md:items-center md:px-5">
           <p class="min-w-0 text-[13.5px] leading-snug text-gray-700 md:text-[14px] dark:text-gray-300" data-testid="personal-range-profile-summary">{{ profileSummary }}</p>
           <button type="button" data-testid="personal-range-profile-toggle" :aria-expanded="profileOpen" aria-controls="pr-profile"
@@ -156,7 +156,7 @@
         </button>
         <div id="pr-assumptions" class="grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none" :class="assumptionsOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'" :inert="assumptionsOpen ? undefined : true">
           <div class="min-h-0 overflow-hidden">
-            <ul class="space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-900">
+            <ul class="space-y-1.5 rounded-2xl bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] max-md:edge-card dark:bg-gray-800">
               <li v-for="a in result.assumptions" :key="a.key" data-testid="assumption" class="flex items-start gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                 <CheckCircleIcon v-if="a.measured" class="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
                 <!-- a fixed setting, not a missing measurement: no warning colour -->

@@ -3,7 +3,7 @@
     <p class="px-4 md:px-0 mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('model.partner_label') }}</p>
     <a :href="href" target="_blank" rel="noopener" class="block" @click="onClick">
       <img :src="partner.imageUrl" :alt="partner.alt" :width="partner.width" :height="partner.height" loading="lazy"
-           class="w-full h-auto md:rounded-xl border-y-2 md:border-2 border-gray-800 dark:border-gray-200" />
+           class="w-full h-auto md:rounded-xl border-y-2 md:border-2 border-gray-800 dark:border-transparent" />
     </a>
   </div>
 </template>
