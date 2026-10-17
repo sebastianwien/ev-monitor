@@ -124,7 +124,7 @@
       </div>
 
       <!-- Loading: skeleton rows -->
-      <ol v-if="loading" class="mt-3 list-none border-t border-gray-200 lg:mt-0 lg:border-t-0 dark:border-gray-800" aria-hidden="true">
+      <ol v-if="loading" data-page-loading class="mt-3 list-none border-t border-gray-200 lg:mt-0 lg:border-t-0 dark:border-gray-800" aria-hidden="true">
         <li v-for="n in LIST_PREVIEW" :key="n" class="mr-row border-b border-gray-200 px-4 py-3.5 md:px-7 dark:border-gray-800">
           <span class="mr-thumb h-12 w-12 animate-pulse rounded-[10px] bg-gray-200 dark:bg-gray-800"></span>
           <span class="mr-name h-4 w-3/4 animate-pulse rounded bg-gray-200 dark:bg-gray-800"></span>
@@ -204,7 +204,7 @@
         </p>
         <ul class="divide-y divide-gray-200 dark:divide-gray-800">
           <li v-for="m in withoutData" :key="modelKey(m)" class="flex min-h-11 items-center gap-3 py-1.5 text-[13.5px]">
-            <a :href="modelHref(m)" class="min-w-0 flex-1 truncate font-medium text-gray-900 underline-offset-2 hover:underline dark:text-gray-100">{{ m.modelDisplayName }}</a>
+            <RouterLink :to="modelHref(m)" class="min-w-0 flex-1 truncate font-medium text-gray-900 underline-offset-2 hover:underline dark:text-gray-100">{{ m.modelDisplayName }}</RouterLink>
             <span class="whitespace-nowrap tabular-nums text-gray-600 dark:text-gray-400">{{ t('models_ranking.without_data.wltp', { value: formatConsumption(m.avgWltpConsumptionKwhPer100km) }) }}</span>
             <span class="hidden whitespace-nowrap text-[12.5px] text-gray-500 sm:inline dark:text-gray-400">{{ t('models_ranking.row.needs_unrated') }}</span>
           </li>
@@ -227,7 +227,7 @@
       <h2 class="mb-3 text-[22px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.az_title') }}</h2>
       <ul class="columns-2 gap-6 text-sm sm:columns-3 lg:columns-4">
         <li v-for="m in modelsAz" :key="modelKey(m)" class="break-inside-avoid py-1">
-          <a :href="modelHref(m)" class="text-gray-700 underline-offset-2 hover:text-green-700 hover:underline dark:text-gray-300 dark:hover:text-green-400">{{ m.modelDisplayName }}</a>
+          <RouterLink :to="modelHref(m)" class="text-gray-700 underline-offset-2 hover:text-green-700 hover:underline dark:text-gray-300 dark:hover:text-green-400">{{ m.modelDisplayName }}</RouterLink>
         </li>
       </ul>
     </section>

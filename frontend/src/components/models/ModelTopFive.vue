@@ -17,7 +17,7 @@
         <span role="rowheader" class="col-span-3 flex min-w-0 items-center gap-2.5 md:col-span-1">
           <span class="grid h-6 w-6 flex-none place-items-center rounded-full bg-gray-900 text-[12px] font-bold text-white dark:bg-gray-100 dark:text-gray-900">{{ r.rank }}</span>
           <span class="grid min-w-0">
-            <a :href="r.href" class="truncate font-semibold text-gray-900 underline-offset-2 hover:underline dark:text-gray-100" @click="emit('open', r.rank)">{{ r.name }}</a>
+            <RouterLink :to="r.href" class="truncate font-semibold text-gray-900 underline-offset-2 hover:underline dark:text-gray-100" @click="emit('open', r.rank)">{{ r.name }}</RouterLink>
             <span class="truncate text-[12px] text-gray-500 dark:text-gray-400">{{ r.meta }}</span>
           </span>
         </span>

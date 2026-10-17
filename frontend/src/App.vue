@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter, useRoute, type RouteLocationNormalizedLoaded } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useImportsTab } from './composables/useImportsTab'
 import { useOnboardingState } from './composables/useOnboardingState'
@@ -43,6 +43,7 @@ import { subscriptionService } from './api/subscriptionService'
 import BottomNav from './components/shared/BottomNav.vue'
 import MoreSheet from './components/shared/MoreSheet.vue'
 import { Capacitor } from '@capacitor/core'
+import { isModelsRoute, modelsPageSwap } from './router/pageTransitions'
 
 // Native App (iOS/Android). Platform-Konstante (aendert sich zur Laufzeit nicht).
 const isNative = Capacitor.isNativePlatform()
@@ -87,6 +88,10 @@ const LASCHE_H = '20px'
 /** Routes with their own public nav (router meta publicNav, the model pages): the member chrome
     (top nav, ticker, status-bar filler, app footer) steps back; the bottom nav stays. */
 const publicNavRoute = computed(() => !!route.meta.publicNav)
+/** Workspace-Tabs mit Anstupser, Modellseiten als View Transition, sonst harter Wechsel */
+function routeTransition(r: RouteLocationNormalizedLoaded) {
+  return isModelsRoute(r.name) ? modelsPageSwap : { name: (r.meta.transition as string) || '', mode: 'out-in' as const }
+}
 const memberChrome = computed(() => authStore.isAuthenticated() && !publicNavRoute.value)
 
 const mainPaddingTop = computed(() => {
@@ -555,9 +560,11 @@ const handleBottomLogout = () => {
       </div>
       <div class="relative">
         <router-view v-slot="{ Component, route: r }">
-          <Transition :name="(r.meta.transition as string) || ''" mode="out-in">
+          <!-- Modellseiten: eigene Instanz je Pfad (Modell -> Modell lädt neu), Wechsel ohne CSS als
+               View Transition (router/pageTransitions.ts) -->
+          <Transition v-bind="routeTransition(r)">
             <KeepAlive :include="['CarContextLayout']">
-              <component :is="Component" />
+              <component :is="Component" :key="isModelsRoute(r.name) ? r.path : undefined" />
             </KeepAlive>
           </Transition>
         </router-view>
@@ -689,6 +696,21 @@ const handleBottomLogout = () => {
 .nudge-right-enter-from { transform: translateX(-14px); opacity: 0; }
 .nudge-left-leave-to,
 .nudge-right-leave-to { opacity: 0; }
+
+/*
+  Seitenwechsel zwischen den Modellseiten (View Transition, router/pageTransitions.ts): dieselbe
+  Bewegung wie bei den Tabs. Die alte Seite bleibt deckend liegen, die neue blendet darüber ein,
+  so scheint nie der Hintergrund durch (kein heller Blitz im Dark Mode). Die Nav steht still.
+*/
+::view-transition-old(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(root) { animation: page-in 0.22s cubic-bezier(0.22, 0.68, 0.24, 1) both; mix-blend-mode: normal; }
+html[data-nav-direction="forward"]::view-transition-new(root) { animation-name: page-in-forward; }
+html[data-nav-direction="back"]::view-transition-new(root) { animation-name: page-in-back; }
+::view-transition-group(public-nav) { animation: none; }
+
+@keyframes page-in { from { opacity: 0; } }
+@keyframes page-in-forward { from { opacity: 0; transform: translateX(14px); } }
+@keyframes page-in-back { from { opacity: 0; transform: translateX(-14px); } }
 
 @media (prefers-reduced-motion: reduce) {
   .nudge-left-enter-active,

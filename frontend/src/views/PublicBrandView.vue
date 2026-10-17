@@ -4,7 +4,7 @@
 
     <main class="max-w-4xl mx-auto md:px-4 py-6 md:py-8">
       <!-- Loading state -->
-      <div v-if="loading" class="flex items-center justify-center py-20">
+      <div v-if="loading" class="flex items-center justify-center py-20" data-page-loading>
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
       </div>
 
@@ -12,18 +12,18 @@
       <div v-else-if="notFound" class="text-center py-20">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('brand.not_found_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ t('brand.not_found_text') }}</p>
-        <a :href="modelsUrl" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">
+        <RouterLink :to="modelsUrl" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">
           {{ t('common.all_models') }}
-        </a>
+        </RouterLink>
       </div>
 
       <!-- API error state (transient) — no noindex -->
       <div v-else-if="apiError" class="text-center py-20">
         <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{{ t('brand.error_title') }}</h1>
         <p class="text-gray-500 dark:text-gray-400 mb-6">{{ t('brand.error_text') }}</p>
-        <a :href="modelsUrl" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">
+        <RouterLink :to="modelsUrl" class="bg-green-600 text-white px-4 py-2 rounded-sm hover:bg-green-700">
           {{ t('common.all_models') }}
-        </a>
+        </RouterLink>
       </div>
 
       <!-- Brand page -->
@@ -32,7 +32,7 @@
         <nav class="px-4 md:px-0 text-sm text-gray-500 dark:text-gray-400 mb-4">
           <a href="/" class="hover:text-gray-700 dark:hover:text-gray-200">EV Monitor</a>
           <span class="mx-2">›</span>
-          <a :href="modelsUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('brand.breadcrumb_models') }}</a>
+          <RouterLink :to="modelsUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('brand.breadcrumb_models') }}</RouterLink>
           <span class="mx-2">›</span>
           <span class="text-gray-900 dark:text-gray-100">{{ brand.brandDisplayName }}</span>
         </nav>
@@ -56,10 +56,10 @@
 
         <!-- Model Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:gap-4 px-0 sm:px-0">
-          <a
+          <RouterLink
             v-for="model in brand.models"
             :key="model.modelEnum"
-            :href="`${modelsUrl}/${brand.brandDisplayName}/${model.modelUrlSlug}`"
+            :to="`${modelsUrl}/${brand.brandDisplayName}/${model.modelUrlSlug}`"
             class="bg-white dark:bg-gray-800 sm:rounded-sm border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 dark:border-gray-700 p-6 hover:border-green-400 hover:shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:hover:shadow-[3px_3px_0_rgba(255,255,255,0.25)] transition-all group"
           >
             <!-- Model name & log badge -->
@@ -129,7 +129,7 @@
             <div class="flex justify-end mt-4">
               <span class="text-sm text-green-600 font-medium group-hover:underline">{{ t('common.details') }}</span>
             </div>
-          </a>
+          </RouterLink>
         </div>
 
         <!-- SEO text section -->

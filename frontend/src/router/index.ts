@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth';
 import { useCountryStore } from '../stores/country';
 import { setLocale, isValidLocale } from '../i18n';
 import { slideDirection } from '../composables/useWorkspaceTransition';
+import { installPageTransitions, isModelsRoute, modelsScrollPosition } from './pageTransitions';
 import type { CountryCode } from '../config/unitSystems';
 import { isValidCountryCode } from '../config/unitSystems';
 import { purchasesAvailable } from '../utils/iapPolicy';
@@ -65,7 +66,7 @@ function redirectNonGermanVisitor(enPath: string): string | undefined {
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
-    scrollBehavior: () => ({ top: 0 }),
+    scrollBehavior: (to, from, savedPosition) => isModelsRoute(to.name) ? modelsScrollPosition(to, from, savedPosition) : { top: 0 },
     routes: [
         {
             path: '/landing',
@@ -496,6 +497,9 @@ const router = createRouter({
 router.beforeEach((to, from) => {
     to.meta.transition = slideDirection(from.path, to.path);
 });
+
+// Seitenwechsel zwischen den Modellseiten als View Transition
+installPageTransitions(router);
 
 // Aufrufe der Bezahlseiten mit Herkunft messen (Plausible upsell_viewed)
 router.afterEach((to, from) => onUpsellNavigation(to, from));

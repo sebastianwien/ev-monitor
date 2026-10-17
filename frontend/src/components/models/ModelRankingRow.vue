@@ -39,8 +39,8 @@
 
       <!-- Name as a link for search engines and the desktop; on the phone a tap opens the row -->
       <span class="mr-name pointer-events-none grid min-w-0 gap-0.5">
-        <a :href="href" class="line-clamp-2 text-[16px] font-semibold leading-snug lg:truncate tracking-tight text-gray-900 underline-offset-2 hover:underline lg:pointer-events-auto lg:relative dark:text-gray-100"
-           data-testid="row-name" @click.stop>{{ displayName }}</a>
+        <RouterLink :to="href" class="line-clamp-2 text-[16px] font-semibold leading-snug lg:truncate tracking-tight text-gray-900 underline-offset-2 hover:underline lg:pointer-events-auto lg:relative dark:text-gray-100"
+           data-testid="row-name" @click.stop>{{ displayName }}</RouterLink>
         <span class="truncate text-[12.5px] leading-snug text-gray-500 dark:text-gray-400" data-testid="row-sub">
           {{ subLine }}<template v-if="item.singleDriver">&nbsp;</template><InformationCircleIcon v-if="item.singleDriver" class="pointer-events-auto inline h-4 w-4 align-text-bottom text-gray-400 dark:text-gray-500" role="img" :aria-label="t('models_ranking.row.single_driver')" :title="t('models_ranking.row.single_driver')" />
         </span>

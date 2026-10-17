@@ -2,6 +2,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, nextTick, ref, type App } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import { i18n } from '../../../i18n'
 import ModelRankingRow from '../ModelRankingRow.vue'
 import { useModelRanking, NEEDS_STORAGE_KEY } from '../../../composables/useModelRanking'
@@ -70,7 +71,7 @@ async function mount(m: TopModelPreview, opts: { locked?: boolean; expanded?: bo
     onCompare: () => events.push('compare'),
     onAssumptions: () => events.push('assumptions'),
   })
-  app.use(i18n)
+  app.use(i18n).use(createRouter({ history: createMemoryHistory(), routes: [{ path: '/:p(.*)*', component: { render: () => null } }] }))
   app.mount(host)
   await nextTick()
   return { host, events }

@@ -4,19 +4,19 @@
 
   <main class="mx-auto grid max-w-7xl gap-[18px] pb-10 lg:px-6">
     <nav class="px-4 pt-6 text-[13px] text-gray-500 lg:px-0 dark:text-gray-400">
-      <a :href="modelsBaseUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('compare.breadcrumb_models') }}</a>
+      <RouterLink :to="modelsBaseUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('compare.breadcrumb_models') }}</RouterLink>
       <span class="mx-2" aria-hidden="true">›</span>
       <span class="text-gray-900 dark:text-gray-100">{{ t('compare.breadcrumb_current') }}</span>
     </nav>
 
-    <div v-if="loading" class="flex items-center justify-center py-20">
+    <div v-if="loading" class="flex items-center justify-center py-20" data-page-loading>
       <div class="h-10 w-10 animate-spin rounded-full border-b-2 border-green-600"></div>
     </div>
 
     <div v-else-if="error || items.length < 2" class="grid justify-items-center gap-4 px-4 py-20 text-center">
       <h1 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('compare.error_title') }}</h1>
       <p class="text-gray-600 dark:text-gray-400">{{ error || t('compare.error_min_models') }}</p>
-      <a :href="modelsBaseUrl" class="inline-flex min-h-11 items-center rounded-xl bg-green-600 px-4 font-semibold text-white hover:bg-green-700">{{ t('compare.breadcrumb_models') }}</a>
+      <RouterLink :to="modelsBaseUrl" class="inline-flex min-h-11 items-center rounded-xl bg-green-600 px-4 font-semibold text-white hover:bg-green-700">{{ t('compare.breadcrumb_models') }}</RouterLink>
     </div>
 
     <template v-else>
@@ -49,14 +49,14 @@
         <h2 class="text-center text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('models_ranking.detail.for_you') }}</h2>
         <CompareRows :rows="forYouRows" :names="items.map(shortName)" />
       </section>
-      <a v-else :href="`${modelsBaseUrl}#passt-zu-dir`" class="edge-card mx-4 flex min-h-16 items-center gap-3 rounded-2xl bg-white px-4 py-3 hover:bg-green-50 lg:mx-0 dark:bg-gray-900 dark:hover:bg-green-950/40" data-testid="compare-profile-link">
+      <RouterLink v-else :to="`${modelsBaseUrl}#passt-zu-dir`" class="edge-card mx-4 flex min-h-16 items-center gap-3 rounded-2xl bg-white px-4 py-3 hover:bg-green-50 lg:mx-0 dark:bg-gray-900 dark:hover:bg-green-950/40" data-testid="compare-profile-link">
         <UserIcon class="h-6 w-6 flex-none text-green-700 dark:text-green-400" aria-hidden="true" />
         <span class="grid min-w-0 flex-1">
           <span class="font-semibold text-gray-900 dark:text-gray-100">{{ t('compare.profile_title') }}</span>
           <span class="text-[13px] leading-snug text-gray-600 dark:text-gray-400">{{ t('compare.profile_sub') }}</span>
         </span>
         <ChevronRightIcon class="h-5 w-5 flex-none text-gray-400" aria-hidden="true" />
-      </a>
+      </RouterLink>
 
       <!-- 3. What the drivers measure: column heads with photo, variant and model page, then the ranking row's cells and the fact list -->
       <section class="grid gap-5 bg-white px-4 py-6 md:rounded-3xl md:px-7 md:edge-box dark:bg-gray-900" data-testid="compare-measured">
@@ -92,7 +92,7 @@
 
   <footer class="mx-auto max-w-7xl border-t border-gray-200 px-4 py-8 text-center text-sm text-gray-500 dark:border-gray-800 dark:text-gray-400">
     © {{ currentYear }} EV Monitor ·
-    <a :href="modelsBaseUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('compare.all_models') }}</a>
+    <RouterLink :to="modelsBaseUrl" class="hover:text-gray-700 dark:hover:text-gray-200">{{ t('compare.all_models') }}</RouterLink>
   </footer>
 </div>
 </template>

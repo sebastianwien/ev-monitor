@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { createApp, defineComponent, h, nextTick, reactive, type App } from 'vue'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import { i18n } from '../../../i18n'
 import ModelsAnswerCard from '../ModelsAnswerCard.vue'
@@ -53,7 +54,7 @@ function mount(locked: boolean, start: NeedsInput = ANSWERS, models: TopModelPre
   const host = document.createElement('div')
   document.body.appendChild(host)
   app = createApp(Host)
-  app.use(i18n)
+  app.use(i18n).use(createRouter({ history: createMemoryHistory(), routes: [{ path: '/:p(.*)*', component: { render: () => null } }] }))
   app.mount(host)
   return { host, state }
 }

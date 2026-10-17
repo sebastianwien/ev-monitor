@@ -4,7 +4,7 @@
     <PublicNav />
     <main class="mx-auto max-w-5xl py-2 md:px-6 md:py-8">
 
-      <div v-if="loading" class="flex items-center justify-center py-20">
+      <div v-if="loading" class="flex items-center justify-center py-20" data-page-loading>
         <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
       </div>
 
@@ -29,8 +29,8 @@
         <nav aria-label="Breadcrumb" class="mb-4 px-4 md:px-0">
           <ol class="flex flex-nowrap items-center gap-1.5 text-sm whitespace-nowrap overflow-x-auto max-w-full [scrollbar-width:none] [&::-webkit-scrollbar]:hidden bg-white dark:bg-gray-900 edge-card rounded-full px-3.5 py-1.5">
             <li class="shrink-0"><a href="/" class="flex items-center gap-1 font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors"><HomeIcon class="h-4 w-4 shrink-0" aria-hidden="true" /><span class="sr-only md:not-sr-only">{{ t('model.breadcrumb_home') }}</span></a></li>
-            <li class="flex shrink-0 items-center gap-1.5"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" /><a :href="modelsBaseUrl" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_models') }}</a></li>
-            <li class="flex shrink-0 items-center gap-1.5"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" /><a :href="`${modelsBaseUrl}/${canonicalBrand}`" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ stats.brandDisplayName }}</a></li>
+            <li class="flex shrink-0 items-center gap-1.5"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" /><RouterLink :to="modelsBaseUrl" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ t('model.breadcrumb_models') }}</RouterLink></li>
+            <li class="flex shrink-0 items-center gap-1.5"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" /><RouterLink :to="`${modelsBaseUrl}/${canonicalBrand}`" class="font-medium text-gray-600 dark:text-gray-300 hover:text-green-700 dark:hover:text-green-400 transition-colors">{{ stats.brandDisplayName }}</RouterLink></li>
             <li aria-current="page" class="flex shrink-0 items-center gap-1.5 font-bold text-gray-900 dark:text-gray-100"><ChevronRightIcon class="h-3.5 w-3.5 text-gray-300 dark:text-gray-600" aria-hidden="true" />{{ shortModelName }}</li>
           </ol>
         </nav>
@@ -178,7 +178,7 @@
                 </summary>
                 <ul class="flex flex-wrap gap-2 pb-4">
                   <li v-for="r in relatedModels" :key="r.path">
-                    <a :href="`${modelsBaseUrl}/${r.path}`" class="inline-flex min-h-11 items-center rounded-full px-3.5 text-[14px] font-medium text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800">{{ r.name }}</a>
+                    <RouterLink :to="`${modelsBaseUrl}/${r.path}`" class="inline-flex min-h-11 items-center rounded-full px-3.5 text-[14px] font-medium text-gray-800 ring-1 ring-inset ring-gray-200 hover:bg-gray-100 dark:text-gray-200 dark:ring-gray-700 dark:hover:bg-gray-800">{{ r.name }}</RouterLink>
                   </li>
                 </ul>
               </details>

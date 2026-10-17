@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest'
 import { createApp, h, type App } from 'vue'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import ChoiceChip from '../ChoiceChip.vue'
 
 let app: App | null = null
@@ -10,6 +11,7 @@ function mount(props: Record<string, unknown>) {
   const host = document.createElement('div')
   document.body.appendChild(host)
   app = createApp({ render: () => h(ChoiceChip, props, () => 'Sparsamste') })
+  app.use(createRouter({ history: createMemoryHistory(), routes: [{ path: '/:p(.*)*', component: { render: () => null } }] }))
   app.mount(host)
   return host.firstElementChild as HTMLElement
 }

@@ -1,7 +1,7 @@
 <template>
   <!-- Guests everywhere it is placed; members only on routes marked publicNav (the model pages),
        where the app chrome steps back and this nav carries the way home instead of register and login -->
-  <div v-if="!authStore.isAuthenticated() || member" class="sticky top-0 z-50">
+  <div v-if="!authStore.isAuthenticated() || member" class="sticky top-0 z-50 [view-transition-name:public-nav]">
     <div class="public-nav-accent h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
     <nav class="pt-[env(safe-area-inset-top)] bg-green-50 dark:bg-green-950 border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
     <div class="max-w-7xl mx-auto px-4 sm:px-8">
