@@ -36,7 +36,7 @@ Eine Persona, eine Frage: **"Ich will ein E-Auto kaufen und suche das passende f
 
 ### Seitenwechsel
 
-Liste, Markenseite, Vergleich und Modellseite (alle Märkte) verlinken untereinander per `RouterLink`: echtes `<a href>` im HTML, ein Klick lädt die App aber nicht neu. Der Wechsel läuft als View Transition: die alte Seite bleibt stehen, bis die neue gerendert ist und keinen Spinner mehr zeigt (höchstens 400 ms), dann blendet die neue in 220 ms ein. Tiefer (Liste zur Modellseite) kommt sie 14 px von rechts, zurück von links, auf gleicher Ebene nur Überblenden. Die Nav steht still. Ohne View-Transition-API oder mit `prefers-reduced-motion` wechselt die Seite sofort.
+Liste, Markenseite, Vergleich und Modellseite (alle Märkte) verlinken untereinander per `RouterLink`: echtes `<a href>` im HTML, ein Klick lädt die App aber nicht neu. Der Wechsel läuft als View Transition: die alte Seite bleibt stehen, bis die neue gerendert ist und keinen Spinner mehr zeigt (höchstens 400 ms), dann blendet die neue in 220 ms ein. Tiefer (Liste zur Modellseite) kommt sie 14 px von rechts, nach oben von links; auf gleicher Ebene (Modell zu Modell) entscheidet der Verlauf, Klick von rechts, Zurück-Taste von links. Der Vergleich trägt wie Liste und Modellseite die öffentliche Nav, auch eingeloggt. Die Nav steht still. Ohne View-Transition-API oder mit `prefers-reduced-motion` wechselt die Seite sofort.
 
 Zurück landet an der alten Scrollposition, Anker (`#fahrer-messen`, `#passt-zu-dir`) unter dem sticky Kopf. Die öffentlichen Zahlen (Rangliste, Modell-, Marken- und Referenzwerte) bleiben fünf Minuten im Speicher, deshalb steht die Seite beim Zurückgehen sofort. Logik: `router/pageTransitions.ts`.
 

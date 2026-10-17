@@ -243,7 +243,8 @@ const router = createRouter({
         {
             path: '/modelle/vergleich',
             name: 'public-models-compare',
-            component: PublicModelsCompareView
+            component: PublicModelsCompareView,
+            meta: { publicNav: true }
             // must be before :brand to avoid "vergleich" matching as a brand name
         },
         {
@@ -303,7 +304,7 @@ const router = createRouter({
             path: '/en/models/compare',
             name: 'public-models-compare-en',
             component: PublicModelsCompareView,
-            meta: { locale: 'en' }
+            meta: { locale: 'en', publicNav: true }
         },
         {
             path: '/en/models/:brand',

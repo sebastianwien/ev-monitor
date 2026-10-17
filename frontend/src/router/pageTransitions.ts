@@ -24,9 +24,17 @@ function depth(name: string): number {
 
 export type NavDirection = 'forward' | 'back'
 
-export function navDirection(from: string, to: string): NavDirection | undefined {
+/** Die Ebene entscheidet (tiefer = vor), auf gleicher Ebene der Verlauf: Klick vor, Zurück-Taste zurück */
+export function navDirection(from: string, to: string, historyBack = false): NavDirection {
   const d = depth(to) - depth(from)
-  return d > 0 ? 'forward' : d < 0 ? 'back' : undefined
+  if (d !== 0) return d > 0 ? 'forward' : 'back'
+  return historyBack ? 'back' : 'forward'
+}
+
+/** vue-router zählt die Einträge in history.state.position; kleiner als zuletzt = Zurück-Taste */
+function historyPosition(): number | null {
+  const position = window.history.state?.position
+  return typeof position === 'number' ? position : null
 }
 
 /** Spinner und Skelette der Modellseiten tragen data-page-loading */
@@ -86,12 +94,15 @@ export const modelsPageSwap = {
 
 export function installPageTransitions(router: Router): void {
   let finish: (() => void) | null = null
+  let lastPosition = historyPosition()
 
   router.beforeResolve((to, from) => {
     if (!isModelsRoute(to.name) || !isModelsRoute(from.name) || to.path === from.path || !canAnimate()) return
     const root = document.documentElement
-    const direction = navDirection(from.name as string, to.name as string)
-    if (direction) root.dataset.navDirection = direction
+    // beim Zurück steht history.state schon auf dem Ziel, beim Klick noch auf der alten Seite
+    const position = historyPosition()
+    const historyBack = position != null && lastPosition != null && position < lastPosition
+    root.dataset.navDirection = navDirection(from.name as string, to.name as string, historyBack)
     return new Promise<void>(proceed => {
       const transition = document.startViewTransition(() => new Promise<void>(done => {
         finish = done
@@ -104,6 +115,7 @@ export function installPageTransitions(router: Router): void {
   })
 
   router.afterEach(async (to, from, failure) => {
+    lastPosition = historyPosition()
     const done = finish
     if (!done) return
     finish = null

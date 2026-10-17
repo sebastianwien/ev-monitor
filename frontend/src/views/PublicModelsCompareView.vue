@@ -34,10 +34,10 @@
         </div>
       </header>
 
-      <!-- Phone: the names stay in view once the column heads scroll away -->
+      <!-- Phone: the names stay in view once the column heads scroll away, right under the public nav (70 px) -->
       <div ref="stickysentinel" class="h-0 md:hidden"></div>
       <Transition name="slide-down">
-        <div v-if="floatingHeaderVisible" class="fixed inset-x-0 z-40 border-b border-gray-200 bg-white px-4 py-2 md:hidden dark:border-gray-800 dark:bg-gray-900" :style="{ top: floatingHeaderTop }">
+        <div v-if="floatingHeaderVisible" class="fixed inset-x-0 top-[calc(70px+env(safe-area-inset-top))] z-40 border-b border-gray-200 bg-white px-4 py-2 md:hidden dark:border-gray-800 dark:bg-gray-900">
           <div class="grid gap-3" :class="COLS[items.length]">
             <div v-for="item in items" :key="item.key" class="truncate text-center text-[13px] font-bold text-gray-900 dark:text-gray-100">{{ shortName(item) }}</div>
           </div>
@@ -110,7 +110,6 @@ import VariantPicker, { type VariantOption } from '../components/models/VariantP
 import ModelPageButton from '../components/models/ModelPageButton.vue'
 import CompareRows, { GRID, COLS, type CompareRow } from '../components/models/CompareRows.vue'
 import { useAuthStore } from '../stores/auth'
-import { useTickerState } from '../composables/useTickerState'
 import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
 import { useModelRanking, MAX_COMPARE, type RankedModel } from '../composables/useModelRanking'
 import { useRankedModelText } from '../composables/useRankedModelText'
@@ -125,7 +124,6 @@ const { t, locale } = useI18n()
 const { distanceUnitLabel, formatDistance, formatNumber, unitSystem } = useLocaleFormat()
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated())
-const { tickerHasItems, tickerCollapsed } = useTickerState()
 const { currentMarket, isDE } = useMarketRoute()
 const route = useRoute()
 const router = useRouter()
@@ -134,10 +132,6 @@ const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 const currentYear = new Date().getFullYear()
 
 // ── Floating names on the phone (IntersectionObserver) ────────────────────────
-const floatingHeaderTop = computed(() => {
-  if (!isAuthenticated.value) return '0px'
-  return tickerHasItems.value && !tickerCollapsed.value ? '90px' : '58px'
-})
 const stickysentinel = ref<HTMLElement | null>(null)
 const floatingHeaderVisible = ref(false)
 let observer: IntersectionObserver | null = null

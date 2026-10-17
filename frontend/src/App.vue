@@ -703,12 +703,10 @@ const handleBottomLogout = () => {
   so scheint nie der Hintergrund durch (kein heller Blitz im Dark Mode). Die Nav steht still.
 */
 ::view-transition-old(root) { animation: none; mix-blend-mode: normal; }
-::view-transition-new(root) { animation: page-in 0.22s cubic-bezier(0.22, 0.68, 0.24, 1) both; mix-blend-mode: normal; }
-html[data-nav-direction="forward"]::view-transition-new(root) { animation-name: page-in-forward; }
+::view-transition-new(root) { animation: page-in-forward 0.22s cubic-bezier(0.22, 0.68, 0.24, 1) both; mix-blend-mode: normal; }
 html[data-nav-direction="back"]::view-transition-new(root) { animation-name: page-in-back; }
 ::view-transition-group(public-nav) { animation: none; }
 
-@keyframes page-in { from { opacity: 0; } }
 @keyframes page-in-forward { from { opacity: 0; transform: translateX(14px); } }
 @keyframes page-in-back { from { opacity: 0; transform: translateX(-14px); } }
 

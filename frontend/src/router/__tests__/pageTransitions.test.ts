@@ -29,8 +29,13 @@ describe('navDirection', () => {
     expect(navDirection('public-models-compare', 'public-models-list')).toBe('back')
   })
 
-  it('same level has no direction: model to model, compare to brand', () => {
-    expect(navDirection('public-model', 'public-model')).toBeUndefined()
-    expect(navDirection('public-models-compare', 'public-brand')).toBeUndefined()
+  it('same level follows the history: a click goes forward, the back button back', () => {
+    expect(navDirection('public-model', 'public-model')).toBe('forward')
+    expect(navDirection('public-models-compare', 'public-brand')).toBe('forward')
+    expect(navDirection('public-model', 'public-model', true)).toBe('back')
+  })
+
+  it('the level wins over the history: back button from list to model page still goes forward', () => {
+    expect(navDirection('public-models-list', 'public-model', true)).toBe('forward')
   })
 })
