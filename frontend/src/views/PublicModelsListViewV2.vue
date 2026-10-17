@@ -1,7 +1,9 @@
 <template>
-<!-- Own background also when signed in: the ranking is a flat page, the app wallpaper
-     would show through between hero, filter column and board. -->
 <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+<!-- Own background also when signed in: the ranking is a flat page, the app wallpaper
+     would show through between hero, filter column and board. The comment sits inside the
+     root: before it, dev builds keep it as a second root node and the route transition
+     (mode out-in) never mounts the next page. -->
   <PublicNav />
 
   <!-- Hero -->
