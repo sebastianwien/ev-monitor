@@ -1,5 +1,27 @@
 import apiClient from './axios'
 
+/**
+ * Die öffentlichen Zahlen der Modellseiten bleiben fünf Minuten im Speicher: zurück zur Liste
+ * oder vom Vergleich auf die Modellseite steht die Seite dann sofort, ohne Spinner.
+ * Fehler werden nicht gemerkt, der nächste Aufruf fragt neu.
+ */
+const CACHE_TTL_MS = 5 * 60_000
+const cache = new Map<string, { at: number, value: Promise<unknown> }>()
+
+function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+    const hit = cache.get(key)
+    if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value as Promise<T>
+    const value = load()
+    cache.set(key, { at: Date.now(), value })
+    value.catch(() => { if (cache.get(key)?.value === value) cache.delete(key) })
+    return value
+}
+
+/** nur für Tests */
+export function clearPublicModelCache(): void {
+    cache.clear()
+}
+
 export interface WltpVariant {
     batteryCapacityKwh: number
     variantName: string | null
@@ -94,7 +116,11 @@ export interface PublicModelStats {
     routeTypeConsumption: RouteTypeConsumption | null
 }
 
-export async function getModelStats(brand: string, model: string): Promise<PublicModelStats | null> {
+export function getModelStats(brand: string, model: string): Promise<PublicModelStats | null> {
+    return cached(`stats:${brand}/${model}`, () => loadModelStats(brand, model))
+}
+
+async function loadModelStats(brand: string, model: string): Promise<PublicModelStats | null> {
     try {
         const response = await apiClient.get<PublicModelStats>(
             `/public/models/${brand}/${model}`
@@ -176,9 +202,8 @@ export interface ModelWithoutData {
     maxNetCapacityKwh: number | null
 }
 
-export async function getModelsWithoutData(): Promise<ModelWithoutData[]> {
-    const response = await apiClient.get<ModelWithoutData[]>('/public/models/without-data')
-    return response.data
+export function getModelsWithoutData(): Promise<ModelWithoutData[]> {
+    return cached('without-data', async () => (await apiClient.get<ModelWithoutData[]>('/public/models/without-data')).data)
 }
 
 export interface VehicleCategoryItem {
@@ -198,14 +223,12 @@ export interface ChargingReferencePrices {
 }
 
 /** Normalized community reference prices (home vs public) for the model comparison slider. */
-export async function getChargingReferencePrices(): Promise<ChargingReferencePrices> {
-    const response = await apiClient.get<ChargingReferencePrices>('/public/charging-prices')
-    return response.data
+export function getChargingReferencePrices(): Promise<ChargingReferencePrices> {
+    return cached('charging-prices', async () => (await apiClient.get<ChargingReferencePrices>('/public/charging-prices')).data)
 }
 
-export async function getCategories(): Promise<VehicleCategoryItem[]> {
-    const response = await apiClient.get<VehicleCategoryItem[]>('/public/rankings/categories')
-    return response.data
+export function getCategories(): Promise<VehicleCategoryItem[]> {
+    return cached('categories', async () => (await apiClient.get<VehicleCategoryItem[]>('/public/rankings/categories')).data)
 }
 
 /** Ranking values the model page story needs; null when the request fails or the model is unknown. */
@@ -218,7 +241,11 @@ export interface ModelStoryContext {
     maxRealKwhPer100km: number | null
 }
 
-export async function getStoryContext(brand: string, model: string): Promise<ModelStoryContext | null> {
+export function getStoryContext(brand: string, model: string): Promise<ModelStoryContext | null> {
+    return cached(`story:${brand}/${model}`, () => loadStoryContext(brand, model))
+}
+
+async function loadStoryContext(brand: string, model: string): Promise<ModelStoryContext | null> {
     try {
         const response = await apiClient.get<ModelStoryContext>(`/public/models/${encodeURIComponent(brand)}/${encodeURIComponent(model)}/story-context`)
         return response.data
@@ -227,9 +254,8 @@ export async function getStoryContext(brand: string, model: string): Promise<Mod
     }
 }
 
-export async function getTopModels(limit: number = 12): Promise<TopModelPreview[]> {
-    const response = await apiClient.get<TopModelPreview[]>(`/public/models/top?limit=${limit}`)
-    return response.data
+export function getTopModels(limit: number = 12): Promise<TopModelPreview[]> {
+    return cached(`top:${limit}`, async () => (await apiClient.get<TopModelPreview[]>(`/public/models/top?limit=${limit}`)).data)
 }
 
 export interface PlatformStats {
@@ -263,7 +289,11 @@ export interface PublicBrandResponse {
     models: BrandModelSummary[]
 }
 
-export async function getBrandModels(brand: string): Promise<PublicBrandResponse | null> {
+export function getBrandModels(brand: string): Promise<PublicBrandResponse | null> {
+    return cached(`brand:${brand}`, () => loadBrandModels(brand))
+}
+
+async function loadBrandModels(brand: string): Promise<PublicBrandResponse | null> {
     try {
         const response = await apiClient.get<PublicBrandResponse>(`/public/brands/${brand}`)
         return response.data
@@ -287,7 +317,6 @@ export async function getLongestRangeModels(limit: number = 5): Promise<TopModel
     return response.data
 }
 
-export async function getPlatformStats(): Promise<PlatformStats> {
-    const response = await apiClient.get<PlatformStats>('/public/stats')
-    return response.data
+export function getPlatformStats(): Promise<PlatformStats> {
+    return cached('platform-stats', async () => (await apiClient.get<PlatformStats>('/public/stats')).data)
 }
