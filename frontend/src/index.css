@@ -191,16 +191,18 @@ html {
   transform: translate(3px, 3px);
 }
 /* The app's edge look (header, ranking tiles): black outline and a hard shadow. As utilities, so a
-   breakpoint picks the level: on the model page cards carry it on the phone, the boxes from md up. */
+   breakpoint picks the level: on the model page cards carry it on the phone, the boxes from md up.
+   Dark mode drops the line (a light outline glares on dark) and lets the surface carry the edge;
+   the border stays transparent so nothing shifts. */
 @utility edge-card {
   border: 2px solid var(--color-gray-900);
   box-shadow: 2px 2px 0 0 var(--color-gray-900);
-  @variant dark { border-color: var(--color-gray-200); box-shadow: 2px 2px 0 0 #000; }
+  @variant dark { border-color: transparent; box-shadow: none; }
 }
 @utility edge-box {
   border: 2px solid var(--color-gray-900);
   box-shadow: 2px 2px 0 0 var(--color-gray-900);
-  @variant dark { border-color: var(--color-gray-200); box-shadow: 2px 2px 0 0 #000; }
+  @variant dark { border-color: transparent; box-shadow: none; }
 }
 /* Landing CTA: force the crisp bottom-right 3D shadow (overrides btn-3d default,
    keeps the :active press via higher pseudo-class specificity) */

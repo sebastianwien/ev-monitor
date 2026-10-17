@@ -1,17 +1,18 @@
 <template>
   <!-- The page's chips look like its buttons: dark outline, a small hard shadow, pressed in when chosen.
+       Dark mode drops outline and shadow: grey surfaces, the chosen one light.
        A toggle reports aria-pressed; as a link (href) it keeps the look without a state. -->
   <component
     :is="href ? 'a' : 'button'"
     :href="href"
     :type="href ? undefined : 'button'"
     :aria-pressed="href ? undefined : active"
-    class="btn-3d cta-shadow-sm inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-gray-900 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-gray-200"
+    class="btn-3d cta-shadow-sm inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-gray-900 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:shadow-none!"
     :class="[
       SIZES[size],
       active
         ? 'active bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-        : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800',
+        : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700',
     ]"
   ><slot /></component>
 </template>
