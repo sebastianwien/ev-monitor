@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { autoSyncProviderFor, providerLabel, hasFreeDataSource } from '../useCarAutoSyncProvider'
+import {
+    autoSyncProviderFor, providerLabel, hasFreeDataSource, isAutoSyncUnsupported, hasOnlyUnsupportedBrands,
+} from '../useCarAutoSyncProvider'
 
 describe('autoSyncProviderFor', () => {
     it.each([
@@ -64,5 +66,59 @@ describe('hasFreeDataSource', () => {
     it('Unknown/empty brand -> false', () => {
         expect(hasFreeDataSource({ brand: 'Lucid' })).toBe(false)
         expect(hasFreeDataSource({ brand: '' })).toBe(false)
+    })
+})
+
+describe('autoSyncProviderFor - Enum-Namen mit Unterstrich', () => {
+    /** car.brand ist der CarBrand-Enum-Name (LAND_ROVER), die Smartcar-Liste führt "Land Rover". */
+    it('LAND_ROVER ist eine Smartcar-Marke', () => {
+        expect(autoSyncProviderFor({ brand: 'LAND_ROVER' })).toBe('SMARTCAR')
+        expect(autoSyncProviderFor({ brand: 'Land Rover' })).toBe('SMARTCAR')
+    })
+})
+
+describe('isAutoSyncUnsupported', () => {
+    it.each(['ZEEKR', 'Zeekr', 'LEAPMOTOR', 'Leapmotor', 'LUCID', 'RIVIAN'])('%s hat keinen AutoSync-Weg', (brand) => {
+        expect(isAutoSyncUnsupported({ brand })).toBe(true)
+    })
+
+    it('XPeng hat den EU-Data-Act-Weg und zählt nicht dazu', () => {
+        expect(isAutoSyncUnsupported({ brand: 'XPENG' })).toBe(false)
+        expect(isAutoSyncUnsupported({ brand: 'XPeng' })).toBe(false)
+    })
+
+    it('Tesla und Smartcar-Marken zählen nicht dazu', () => {
+        expect(isAutoSyncUnsupported({ brand: 'TESLA' })).toBe(false)
+        expect(isAutoSyncUnsupported({ brand: 'VW' })).toBe(false)
+        expect(isAutoSyncUnsupported({ brand: 'LAND_ROVER' })).toBe(false)
+    })
+
+    it('eine fehlende Marke gilt nicht als nicht unterstützt', () => {
+        expect(isAutoSyncUnsupported({ brand: '' })).toBe(false)
+        expect(isAutoSyncUnsupported({ brand: undefined as unknown as string })).toBe(false)
+    })
+})
+
+describe('hasOnlyUnsupportedBrands', () => {
+    const zeekr = { brand: 'ZEEKR' }
+    const leapmotor = { brand: 'LEAPMOTOR' }
+
+    it('trifft eine Garage nur aus Marken ohne AutoSync', () => {
+        expect(hasOnlyUnsupportedBrands([zeekr])).toBe(true)
+        expect(hasOnlyUnsupportedBrands([zeekr, leapmotor])).toBe(true)
+    })
+
+    it('trifft eine leere Garage nicht - der Onboarding-Pitch bleibt', () => {
+        expect(hasOnlyUnsupportedBrands([])).toBe(false)
+    })
+
+    it('trifft nicht, sobald ein Auto AutoSync nutzen kann', () => {
+        expect(hasOnlyUnsupportedBrands([zeekr, { brand: 'VW' }])).toBe(false)
+        expect(hasOnlyUnsupportedBrands([zeekr, { brand: 'TESLA' }])).toBe(false)
+    })
+
+    it('lässt XPeng-Garagen unberührt - dafür gibt es die eigene Seite', () => {
+        expect(hasOnlyUnsupportedBrands([{ brand: 'XPENG' }])).toBe(false)
+        expect(hasOnlyUnsupportedBrands([zeekr, { brand: 'XPENG' }])).toBe(false)
     })
 })

@@ -38,8 +38,24 @@ const SMARTCAR_BRAND_LOOKUP = new Set<string>(
 export function autoSyncProviderFor(car: Pick<Car, 'brand'>): AutoSyncProvider {
     const brand = normalizeBrand(car)
     if (brand === 'TESLA') return 'TESLA'
-    if (SMARTCAR_BRAND_LOOKUP.has(brand)) return 'SMARTCAR'
+    // car.brand ist der CarBrand-Enum-Name (LAND_ROVER), die Anzeigeliste führt "Land Rover".
+    if (SMARTCAR_BRAND_LOOKUP.has(brand.replace(/_/g, ' '))) return 'SMARTCAR'
     return 'NONE'
+}
+
+/**
+ * Marke ohne jeden AutoSync-Weg (z. B. Zeekr, Leapmotor, Lucid, Rivian): weder Smartcar noch
+ * Tesla-Telemetry. XPeng zählt nicht dazu, dafür gibt es den EU-Data-Act-Import und eine eigene
+ * /upgrade-Seite. Eine fehlende Marke gilt als unbekannt, nicht als nicht unterstützt.
+ */
+export function isAutoSyncUnsupported(car: Pick<Car, 'brand'>): boolean {
+    const brand = normalizeBrand(car)
+    return brand !== '' && brand !== 'XPENG' && autoSyncProviderFor(car) === 'NONE'
+}
+
+/** Garage nur aus Marken ohne AutoSync-Weg. Eine leere Garage zählt nicht, dort bleibt der Onboarding-Pitch. */
+export function hasOnlyUnsupportedBrands(cars: readonly Pick<Car, 'brand'>[]): boolean {
+    return cars.length > 0 && cars.every(isAutoSyncUnsupported)
 }
 
 /**

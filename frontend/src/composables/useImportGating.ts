@@ -1,6 +1,7 @@
 import { computed, type ComputedRef, type Ref } from 'vue'
 import type { Car } from '../api/carService'
 import { isVwEudaBrand } from '../api/vwEudaSyncService'
+import { autoSyncProviderFor, hasOnlyUnsupportedBrands, isAutoSyncUnsupported } from './useCarAutoSyncProvider'
 
 const brandIs = (car: Car | null | undefined, brand: string) => car?.brand?.toLowerCase() === brand
 
@@ -36,6 +37,12 @@ export function useImportGating(cars: Ref<Car[]>): {
     showXpengAutoSync: ComputedRef<boolean>
     allowLivePromo: ComputedRef<boolean>
     smartcarCars: ComputedRef<Car[]>
+    /** Aktives Auto hat keinen AutoSync-Weg (z. B. Zeekr, Leapmotor): AutoSync-Werbung wäre ein Fehlverkauf. */
+    activeCarIsAutoSyncUnsupported: ComputedRef<boolean>
+    /** Das aktive Auto (isPrimary, sonst das erste), null bei leerer Garage. */
+    activeCar: ComputedRef<Car | null>
+    /** Garage nur aus Marken ohne AutoSync-Weg - für Stellen ohne Begriff des aktiven Autos (Einstellungen). */
+    onlyUnsupportedBrands: ComputedRef<boolean>
 } {
     const carList = computed(() => (Array.isArray(cars.value) ? cars.value : []))
     const registeredCars = computed(() => carList.value.filter(c => c.status === 'ACTIVE'))
@@ -46,14 +53,17 @@ export function useImportGating(cars: Ref<Car[]>): {
     const activeCarIsXpeng = computed(() => brandIs(activeCar.value, 'xpeng'))
     const activeCarIsPolestar = computed(() => brandIs(activeCar.value, 'polestar'))
     const activeCarIsVwEudaBrand = computed(() => isVwEudaBrand(activeCar.value?.brand ?? ''))
+    const activeCarIsAutoSyncUnsupported = computed(() => activeCar.value != null && isAutoSyncUnsupported(activeCar.value))
 
     const hasAnyTesla = computed(() => carList.value.some(c => brandIs(c, 'tesla')))
     const hasAnyXpeng = computed(() => carList.value.some(c => brandIs(c, 'xpeng')))
 
-    // Smartcar deckt weder Tesla (eigene Fleet-API) noch XPeng (EU-Data-Act-Mail) ab.
+    // Nur Marken, die Smartcar wirklich bedient. Tesla (eigene Fleet-API), XPeng (EU-Data-Act-Mail)
+    // und Marken ohne Connector (Zeekr, Leapmotor, Lucid, Rivian) fallen heraus.
     const smartcarCars = computed(() =>
-        registeredCars.value.filter(c => !brandIs(c, 'tesla') && !brandIs(c, 'xpeng')),
+        registeredCars.value.filter(c => autoSyncProviderFor(c) === 'SMARTCAR'),
     )
+    const onlyUnsupportedBrands = computed(() => hasOnlyUnsupportedBrands(registeredCars.value))
 
     const showAutoSyncSection = computed(() => !activeCarIsTesla.value)
 
@@ -63,6 +73,9 @@ export function useImportGating(cars: Ref<Car[]>): {
         activeCarIsPolestar,
         activeCarIsVwEudaBrand,
         smartcarCars,
+        activeCar,
+        activeCarIsAutoSyncUnsupported,
+        onlyUnsupportedBrands,
         showTeslaSection: hasAnyTesla,
         showAutoSyncSection,
         // Leere Garage: Pitch bleibt, sonst saehe ein frisch registrierter User eine leere Sektion.

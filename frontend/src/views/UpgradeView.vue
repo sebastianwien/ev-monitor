@@ -3,6 +3,9 @@
          XPeng hat keine Live-Schnittstelle - statt des AutoSync-Verkaufs ein eigener, ehrlicher
          Hinweis (kostenloser EU-Data-Act-Import + Supporter fuer die Auswertungen). -->
     <XpengUpgradeNotice v-if="showPitch && activeCarIsXpeng" />
+    <!-- Aktives Auto ohne AutoSync-Weg (Zeekr, Leapmotor, Lucid, Rivian): ehrlicher Hinweis statt
+         Verkauf - das Abo wuerde seine Daten nicht anfassen. Wie bei XPeng entscheidet das aktive Auto. -->
+    <AutoSyncUnsupportedNotice v-else-if="showPitch && activeCarIsAutoSyncUnsupported" :car-name="activeCarName" />
     <AutoSyncPitch v-else-if="showPitch" />
 
     <div v-else class="py-6 md:py-12 px-4">
@@ -49,6 +52,8 @@ import { useCarStore } from '../stores/car';
 import { useImportGating } from '../composables/useImportGating';
 import AutoSyncPitch from '../components/AutoSyncPitch.vue';
 import XpengUpgradeNotice from '../components/XpengUpgradeNotice.vue';
+import AutoSyncUnsupportedNotice from '../components/AutoSyncUnsupportedNotice.vue';
+import { carDisplayName } from '../utils/enumLabel';
 
 const { t } = useI18n();
 
@@ -61,7 +66,8 @@ const portalError = ref('');
 // laeuft ueber das aktive Auto, dieselbe Quelle wie /imports.
 const carStore = useCarStore();
 const { cars } = storeToRefs(carStore);
-const { activeCarIsXpeng } = useImportGating(cars);
+const { activeCar, activeCarIsXpeng, activeCarIsAutoSyncUnsupported } = useImportGating(cars);
+const activeCarName = computed(() => activeCar.value ? carDisplayName(activeCar.value.brand, activeCar.value.model) : '');
 const carsReady = ref(false);
 
 // Solange Abo-Status oder (fuer Nicht-Abonnenten) die Garage laedt, keinen Pitch zeigen -

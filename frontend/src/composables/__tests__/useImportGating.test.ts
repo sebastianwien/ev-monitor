@@ -18,6 +18,9 @@ const tesla = (o: Partial<Car> = {}) => buildCar({ id: 'tesla', brand: 'TESLA', 
 const xpeng = (o: Partial<Car> = {}) => buildCar({ id: 'xpeng', brand: 'XPENG', ...o })
 const vw = (o: Partial<Car> = {}) => buildCar({ id: 'vw', brand: 'VW', ...o })
 const polestar = (o: Partial<Car> = {}) => buildCar({ id: 'polestar', brand: 'Polestar', ...o })
+const zeekr = (o: Partial<Car> = {}) => buildCar({ id: 'zeekr', brand: 'ZEEKR', ...o })
+const leapmotor = (o: Partial<Car> = {}) => buildCar({ id: 'leapmotor', brand: 'LEAPMOTOR', ...o })
+const landRover = (o: Partial<Car> = {}) => buildCar({ id: 'lr', brand: 'LAND_ROVER', ...o })
 
 describe('useImportGating - aktives Auto', () => {
     it('erkennt den Polestar als aktives Auto, Schreibweise egal', () => {
@@ -110,6 +113,45 @@ describe('useImportGating - Smartcar-Pitch (Kauf-Teaser + Picker)', () => {
     it('ignoriert abgemeldete Smartcar-Fahrzeuge', () => {
         const g = useImportGating(ref([xpeng({ isPrimary: true }), vw({ status: 'INACTIVE' as Car['status'] })]))
         expect(g.showSmartcarPitch.value).toBe(false)
+    })
+})
+
+describe('useImportGating - Marken ohne AutoSync (Zeekr, Leapmotor, ...)', () => {
+    it('Smartcar-Pitch erscheint nicht für einen reinen Zeekr-Fahrer', () => {
+        expect(useImportGating(ref([zeekr({ isPrimary: true })])).showSmartcarPitch.value).toBe(false)
+    })
+
+    it('Smartcar-Pitch erscheint nicht für Zeekr plus Leapmotor', () => {
+        expect(useImportGating(ref([zeekr({ isPrimary: true }), leapmotor()])).showSmartcarPitch.value).toBe(false)
+    })
+
+    it('Smartcar-Pitch bleibt, wenn neben dem Zeekr ein Smartcar-Auto steht', () => {
+        expect(useImportGating(ref([zeekr({ isPrimary: true }), vw()])).showSmartcarPitch.value).toBe(true)
+    })
+
+    it('smartcarCars enthält nur Marken, die Smartcar bedient - auch Land Rover (Enum-Name mit Unterstrich)', () => {
+        const g = useImportGating(ref([zeekr({ isPrimary: true }), vw(), landRover(), tesla(), xpeng()]))
+        expect(g.smartcarCars.value.map(c => c.id)).toEqual(['vw', 'lr'])
+    })
+
+    it('activeCarIsAutoSyncUnsupported folgt dem aktiven Auto, nicht der Garage', () => {
+        expect(useImportGating(ref([zeekr({ isPrimary: true }), tesla()])).activeCarIsAutoSyncUnsupported.value).toBe(true)
+        expect(useImportGating(ref([zeekr({ isPrimary: true }), vw()])).activeCarIsAutoSyncUnsupported.value).toBe(true)
+        expect(useImportGating(ref([vw({ isPrimary: true }), zeekr()])).activeCarIsAutoSyncUnsupported.value).toBe(false)
+        expect(useImportGating(ref([xpeng({ isPrimary: true })])).activeCarIsAutoSyncUnsupported.value).toBe(false)
+        expect(useImportGating(ref([])).activeCarIsAutoSyncUnsupported.value).toBe(false)
+    })
+
+    it('onlyUnsupportedBrands trifft nur Garagen ohne ein Auto mit AutoSync-Weg', () => {
+        expect(useImportGating(ref([zeekr(), leapmotor()])).onlyUnsupportedBrands.value).toBe(true)
+        expect(useImportGating(ref([])).onlyUnsupportedBrands.value).toBe(false)
+        expect(useImportGating(ref([zeekr(), vw()])).onlyUnsupportedBrands.value).toBe(false)
+        expect(useImportGating(ref([zeekr(), xpeng()])).onlyUnsupportedBrands.value).toBe(false)
+    })
+
+    it('onlyUnsupportedBrands ignoriert abgemeldete Autos', () => {
+        const g = useImportGating(ref([zeekr(), vw({ status: 'INACTIVE' as Car['status'] })]))
+        expect(g.onlyUnsupportedBrands.value).toBe(true)
     })
 })
 

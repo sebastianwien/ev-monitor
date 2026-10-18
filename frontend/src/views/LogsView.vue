@@ -93,7 +93,7 @@ import { useCarContext } from '../composables/useCarContext'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
-import { hasFreeDataSource } from '../composables/useCarAutoSyncProvider'
+import { hasFreeDataSource, isAutoSyncUnsupported } from '../composables/useCarAutoSyncProvider'
 import { useCountryStore } from '../stores/country'
 import { getPricing } from '../config/pricingConfig'
 import { carDisplayName } from '../utils/enumLabel'
@@ -1053,6 +1053,12 @@ const selectedCarHasFreeSource = computed(() =>
   selectedCar.value != null && hasFreeDataSource(selectedCar.value)
 )
 
+// Marke ohne AutoSync-Weg (Zeekr, Leapmotor, Lucid, Rivian): ein Abo wuerde ihre Daten nicht
+// anfassen, also auch keine AutoSync-Banner. Kein Auto ausgewaehlt zaehlt als "unbekannt".
+const selectedCarAutoSyncUnsupported = computed(() =>
+  selectedCar.value != null && isAutoSyncUnsupported(selectedCar.value)
+)
+
 // AutoSync Live discoverability banner: temporarily disabled (flip flag to re-enable).
 // Shown to users without a free data source and without Live, dismissible. Position:
 // below ConsumptionInfoBox.
@@ -1065,6 +1071,7 @@ const showLiveBanner = computed(() =>
   && subscriptionTier.value != null
   && subscriptionTier.value !== 'AUTOSYNC_LIVE'
   && !selectedCarHasFreeSource.value
+  && !selectedCarAutoSyncUnsupported.value
   && !liveBannerDismissed.value
 )
 function dismissLiveBanner() {
@@ -1082,6 +1089,7 @@ const showAutoSyncBanner = computed(() =>
   purchasesAvailable()
   && subscriptionTier.value === 'NONE'
   && !selectedCarHasFreeSource.value
+  && !selectedCarAutoSyncUnsupported.value
   && !autoSyncBannerDismissed.value
 )
 function dismissAutoSyncBanner() {

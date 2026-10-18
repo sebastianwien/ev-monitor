@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useCountryStore } from '../stores/country'
 import { useCarStore } from '../stores/car'
 import { purchasesAvailable, donationsAvailable } from '../utils/iapPolicy'
+import { hasOnlyUnsupportedBrands } from '../composables/useCarAutoSyncProvider'
 import { COUNTRY_OPTIONS } from '../config/countries'
 import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, ChevronRightIcon, EyeIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/settings/SupportPopover.vue'
@@ -75,6 +76,8 @@ async function toggleSavingsCard() {
 const carStore = useCarStore()
 const userCarBrands = ref<string[]>([])
 const hasTesla = computed(() => userCarBrands.value.some(b => b === 'TESLA'))
+// Garage nur aus Marken ohne AutoSync-Weg (Zeekr, Leapmotor, ...): kein AutoSync-Upgrade-Hinweis.
+const onlyUnsupportedBrands = computed(() => hasOnlyUnsupportedBrands(userCarBrands.value.map(brand => ({ brand }))))
 // Live tier without a Tesla in the garage = stuck state. User pays for a
 // feature with nothing to stream from. Surface a repair-CTA toward /imports.
 const liveButNoTesla = computed(() => subscriptionTier.value === 'AUTOSYNC_LIVE' && !hasTesla.value)
@@ -353,7 +356,7 @@ onMounted(async () => {
           </div>
           <p v-if="tierActionError" class="text-xs text-red-600 dark:text-red-400 text-center">{{ tierActionError }}</p>
         </div>
-        <div v-else-if="purchasesAvailable()" class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-sm">
+        <div v-else-if="purchasesAvailable() && !onlyUnsupportedBrands" class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-sm">
           <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
           <router-link to="/upgrade" class="shrink-0 ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors whitespace-nowrap">
             {{ t('upgrade.pro_upgrade_btn') }}
