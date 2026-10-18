@@ -63,6 +63,7 @@ public enum CarBrand {
    XPENG("Xpeng"),
    ZEEKR("Zeekr"),
    ORA("ORA"),
+   LEAPMOTOR("Leapmotor"),
 
    // Sonstige
    SONSTIGE("Andere Marke");
@@ -79,7 +80,7 @@ public enum CarBrand {
 
    public enum CarModel {
       // --- TESLA ---
-      // TODO: 75.0/79.0 kWh NMC-Varianten — wahrscheinlich Brutto (Netto ~73.8/~75.0 kWh) — verifizieren!
+      // TODO: 75.0/79.0 kWh NMC-Varianten - wahrscheinlich Brutto (Netto ~73.8/~75.0 kWh) - verifizieren!
       // LFP-Varianten (57.5/60.0) sind korrekt netto (LFP = 100% nutzbar)
       MODEL_3(CarBrand.TESLA, VehicleCategory.SEDAN, "Model 3",
             cap(57.5, "Standard Range+"),
@@ -132,7 +133,7 @@ public enum CarBrand {
             cap(58.0, "Standard Range"),
             cap(77.4, "Long Range"),
             cap(84.0, "Extended Range")),
-      // TODO: 63.0 kWh — evtl. Brutto (Netto ~61.1 kWh) — verifizieren!
+      // TODO: 63.0 kWh - evtl. Brutto (Netto ~61.1 kWh) - verifizieren!
       IONIQ_6(CarBrand.HYUNDAI, VehicleCategory.SEDAN, "Ioniq 6",
             cap(53.0, "Standard Range"),
             cap(63.0),
@@ -178,8 +179,8 @@ public enum CarBrand {
             cap(64.0)),
 
       // --- MINI ---
-      // Cooper SE F56: 28.9 kWh netto (32.6 kWh brutto) — verifiziert
-      // TODO: J01-Modelle (Cooper E/SE, Aceman E/SE) — Netto-Werte ca. 90% von Brutto, bitte gegen ev-database.org prüfen
+      // Cooper SE F56: 28.9 kWh netto (32.6 kWh brutto) - verifiziert
+      // TODO: J01-Modelle (Cooper E/SE, Aceman E/SE) - Netto-Werte ca. 90% von Brutto, bitte gegen ev-database.org prüfen
       MINI_COOPER_SE_F56(CarBrand.MINI, VehicleCategory.CITY_CAR, "Cooper SE (2020-2023)",
             cap(28.9)),
       MINI_COOPER_E(CarBrand.MINI, VehicleCategory.CITY_CAR, "Cooper E",
@@ -226,7 +227,7 @@ public enum CarBrand {
             cap(75.0),
             cap(78.0, "Long Range"),
             cap(82.0, "Long Range (2024)")),
-      // TODO: 107.0 kWh — wahrscheinlich Brutto (Netto ~104 kWh) — verifizieren!
+      // TODO: 107.0 kWh - wahrscheinlich Brutto (Netto ~104 kWh) - verifizieren!
       POLESTAR_3(CarBrand.POLESTAR, VehicleCategory.LARGE_SUV, "Polestar 3",
             cap(107.0)),
       POLESTAR_4(CarBrand.POLESTAR, VehicleCategory.SUV, "Polestar 4",
@@ -346,8 +347,8 @@ public enum CarBrand {
       Q6_E_TRON(CarBrand.AUDI, VehicleCategory.SUV, "Q6 e-tron",
             cap(83.0),
             cap(100.0)),
-      // TODO: A6/Q6 e-tron 100.0 kWh — wahrscheinlich Brutto, Netto ~94.9 kWh — verifizieren!
-      // TODO: Q8 e-tron 106.0 kWh — war 114.0 kWh (Brutto), korrigiert auf Netto — verifizieren!
+      // TODO: A6/Q6 e-tron 100.0 kWh - wahrscheinlich Brutto, Netto ~94.9 kWh - verifizieren!
+      // TODO: Q8 e-tron 106.0 kWh - war 114.0 kWh (Brutto), korrigiert auf Netto - verifizieren!
       Q8_E_TRON(CarBrand.AUDI, VehicleCategory.LARGE_SUV, "Q8 e-tron",
             cap(95.0),
             cap(106.0)),
@@ -409,11 +410,15 @@ public enum CarBrand {
             cap(54.0)),
       E_308(CarBrand.PEUGEOT, VehicleCategory.COMPACT, "e-308",
             cap(54.0)),
+      E_408(CarBrand.PEUGEOT, VehicleCategory.COMPACT, "e-408"),
+      E_3008(CarBrand.PEUGEOT, VehicleCategory.SUV, "e-3008"),
       E_5008(CarBrand.PEUGEOT, VehicleCategory.SUV, "e-5008",
             cap(73.0),
             cap(96.0)),
       E_RIFTER(CarBrand.PEUGEOT, VehicleCategory.VAN, "e-Rifter",
             cap(50.0)),
+      E_EXPERT(CarBrand.PEUGEOT, VehicleCategory.VAN, "e-Expert"),
+      E_TRAVELLER(CarBrand.PEUGEOT, VehicleCategory.VAN, "e-Traveller"),
 
       // --- CITROEN ---
       E_C4(CarBrand.CITROEN, VehicleCategory.COMPACT, "ë-C4",
@@ -712,9 +717,18 @@ public enum CarBrand {
             cap(100.0)),
       ZEEKR_X(CarBrand.ZEEKR, VehicleCategory.COMPACT, "X",
             cap(64.0)),
+      ZEEKR_7X(CarBrand.ZEEKR, VehicleCategory.LARGE_SUV, "7X"),
+      ZEEKR_7GT(CarBrand.ZEEKR, VehicleCategory.SEDAN, "7GT"),
       ORA_FUNKY_CAT(CarBrand.ORA, VehicleCategory.CITY_CAR, "Funky Cat",
             cap(48.0),
             cap(63.0)),
+
+      // --- LEAPMOTOR ---
+      LEAPMOTOR_T03(CarBrand.LEAPMOTOR, VehicleCategory.CITY_CAR, "T03"),
+      LEAPMOTOR_B03X(CarBrand.LEAPMOTOR, VehicleCategory.COMPACT, "B03X"),
+      LEAPMOTOR_B05(CarBrand.LEAPMOTOR, VehicleCategory.COMPACT, "B05"),
+      LEAPMOTOR_B10(CarBrand.LEAPMOTOR, VehicleCategory.SUV, "B10"),
+      LEAPMOTOR_C10(CarBrand.LEAPMOTOR, VehicleCategory.SUV, "C10"),
 
       // --- SONSTIGE ---
       SONSTIGE_CUSTOM(CarBrand.SONSTIGE, VehicleCategory.COMPACT, "Sonstiges Modell");
