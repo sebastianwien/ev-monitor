@@ -69,7 +69,7 @@ export interface CarImageResponse {
 }
 
 /** Where a SoH value came from. Drives the confidence badge - see sohPresentation.ts. */
-export type BatterySohSource = 'VEHICLE_BMS' | 'CHARGE_LOG' | 'MANUAL' | 'UNKNOWN';
+export type BatterySohSource = 'VEHICLE_BMS' | 'VEHICLE_COUNTER' | 'CHARGE_LOG' | 'MANUAL' | 'UNKNOWN';
 
 export interface BatterySohEntry {
     id: string;

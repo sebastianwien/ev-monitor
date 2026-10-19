@@ -31,15 +31,16 @@ public class BatterySohEntry {
         }
         // Mirrors chk_car_battery_soh_log_sample_size - fail here with a readable message
         // rather than as a constraint violation on flush.
-        boolean expectsSampleSize = source == BatterySohSource.CHARGE_LOG;
+        boolean expectsSampleSize = source == BatterySohSource.CHARGE_LOG
+                || source == BatterySohSource.VEHICLE_COUNTER;
         if (expectsSampleSize && (sampleSize == null || sampleSize < 1)) {
-            throw new IllegalArgumentException("CHARGE_LOG entries need a sample size of at least 1");
+            throw new IllegalArgumentException(source + " entries need a sample size of at least 1");
         }
         if (!expectsSampleSize && sampleSize != null) {
-            throw new IllegalArgumentException("sampleSize is only defined for CHARGE_LOG entries");
+            throw new IllegalArgumentException("sampleSize is only defined for CHARGE_LOG and VEHICLE_COUNTER entries");
         }
         if (!expectsSampleSize && socHubPercent != null) {
-            throw new IllegalArgumentException("socHubPercent is only defined for CHARGE_LOG entries");
+            throw new IllegalArgumentException("socHubPercent is only defined for CHARGE_LOG and VEHICLE_COUNTER entries");
         }
         this.id = id;
         this.carId = carId;
@@ -67,5 +68,12 @@ public class BatterySohEntry {
             LocalDate recordedAt, LocalDateTime createdAt) {
         return new BatterySohEntry(id, carId, sohPercent, recordedAt, createdAt,
                 BatterySohSource.VEHICLE_BMS, null, null);
+    }
+
+    /** @param tripCount trips summed, @param totalHubPercent sum of their SoC deltas (several hundred percent). */
+    public static BatterySohEntry fromVehicleCounter(UUID id, UUID carId, BigDecimal sohPercent,
+            LocalDate recordedAt, LocalDateTime createdAt, int tripCount, BigDecimal totalHubPercent) {
+        return new BatterySohEntry(id, carId, sohPercent, recordedAt, createdAt,
+                BatterySohSource.VEHICLE_COUNTER, tripCount, totalHubPercent);
     }
 }

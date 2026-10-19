@@ -15,6 +15,12 @@ public enum BatterySohSource {
     /** Reported by the vehicle itself (currently Tesla EnergyRemaining). */
     VEHICLE_BMS,
 
+    /**
+     * Summed over the vehicle's own trip energy counters: kWh drawn from the pack per SoC
+     * percent, across many trips (see VehicleCounterSohDetector). Currently Polestar 3.
+     */
+    VEHICLE_COUNTER,
+
     /** Recorded before V147, when provenance was not stored. Not reconstructible. */
     UNKNOWN
 }

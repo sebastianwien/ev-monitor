@@ -82,6 +82,7 @@ describe('nominalCapacityKwh', () => {
 describe('sohTrustKey', () => {
   it('maps every source to its own wording', () => {
     expect(sohTrustKey('VEHICLE_BMS')).toBe('trust_bms')
+    expect(sohTrustKey('VEHICLE_COUNTER')).toBe('trust_counter')
     expect(sohTrustKey('CHARGE_LOG')).toBe('trust_estimate')
     expect(sohTrustKey('MANUAL')).toBe('trust_manual')
     expect(sohTrustKey('UNKNOWN')).toBe('trust_unknown')

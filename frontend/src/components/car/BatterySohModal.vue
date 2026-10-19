@@ -143,6 +143,7 @@ const chronological = computed(() => [...history.value].reverse())
 /** Point shape encodes the source, so it stays distinguishable without relying on colour. */
 const POINT_STYLES: Record<BatterySohEntry['source'], string> = {
   VEHICLE_BMS: 'circle',
+  VEHICLE_COUNTER: 'rectRot',
   CHARGE_LOG: 'triangle',
   MANUAL: 'rect',
   UNKNOWN: 'crossRot',

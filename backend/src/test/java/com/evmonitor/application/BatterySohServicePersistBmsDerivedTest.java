@@ -7,6 +7,7 @@ import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.CarStatus;
 import com.evmonitor.domain.EvLogRepository;
+import com.evmonitor.domain.EvTripRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,12 +40,13 @@ class BatterySohServicePersistBmsDerivedTest {
     @Mock private CarRepository carRepository;
     @Mock private BatterySohRepository sohRepository;
     @Mock private EvLogRepository evLogRepository;
+    @Mock private EvTripRepository tripRepository;
 
     private BatterySohService service;
 
     @BeforeEach
     void setUp() {
-        service = new BatterySohService(sohRepository, carRepository, evLogRepository);
+        service = new BatterySohService(sohRepository, carRepository, evLogRepository, tripRepository);
     }
 
     private Car car(UUID id, BigDecimal customNet, BigDecimal specNet) {

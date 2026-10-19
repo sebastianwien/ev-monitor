@@ -5,7 +5,10 @@ import com.evmonitor.application.EvLogWriter;
 import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.application.LocationPricing;
 import com.evmonitor.application.MissedStartSocEstimator;
+import com.evmonitor.application.BatterySohService;
+import com.evmonitor.domain.DataSource;
 import com.evmonitor.application.SohAutoDetectEvent;
+import com.evmonitor.application.SohCounterDetectEvent;
 import com.evmonitor.application.ingest.event.ImportEventErrors;
 import com.evmonitor.application.ingest.event.ImportEventOutcome;
 import com.evmonitor.application.ingest.event.ImportEventRecorder;
@@ -384,6 +387,12 @@ public class IngestGateway {
         EvTrip saved = tripRepository.save(trip);
         log.info("Trip saved: id={} externalId={} car={} distance={} km",
                 saved.getId(), req.externalId(), req.carId(), req.distanceKm());
+
+        // Fahrten mit Fahrzeug-Energiezähler speisen die SoH-Quelle VEHICLE_COUNTER (nach Commit).
+        if (DataSource.POLESTAR_DATA_PORTAL.name().equals(saved.getDataSource())
+                && BatterySohService.hasCounterPath(saved)) {
+            eventPublisher.publishEvent(new SohCounterDetectEvent(saved.getCarId()));
+        }
 
         if (req.outsideTempCelsius() == null
                 && req.tripStartedAt() != null

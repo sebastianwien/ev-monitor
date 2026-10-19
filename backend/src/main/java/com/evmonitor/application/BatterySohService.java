@@ -5,8 +5,16 @@ import com.evmonitor.domain.BatterySohRepository;
 import com.evmonitor.domain.BatterySohSource;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
+import com.evmonitor.domain.ChargingType;
+import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
+import com.evmonitor.domain.EvTrip;
+import com.evmonitor.domain.EvTripRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +24,8 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,9 +36,14 @@ public class BatterySohService {
 
     private static final BigDecimal SOH_CHANGE_THRESHOLD = new BigDecimal("2.0");
 
+    private static final Logger log = LoggerFactory.getLogger(BatterySohService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String COUNTER_ENERGY_PATH = "COUNTER";
+
     private final BatterySohRepository sohRepository;
     private final CarRepository carRepository;
     private final EvLogRepository evLogRepository;
+    private final EvTripRepository tripRepository;
 
     public List<BatterySohResponse> getHistory(UUID carId, UUID userId) {
         verifyOwnership(carId, userId);
@@ -233,6 +248,82 @@ public class BatterySohService {
         sohRepository.save(BatterySohEntry.fromVehicleBms(UUID.randomUUID(), carId, sohPercent,
                 LocalDate.now(), LocalDateTime.now()));
         syncDegradationToCarField(carId);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void onSohCounterDetectEvent(SohCounterDetectEvent event) {
+        persistVehicleCounter(event.carId());
+    }
+
+    /**
+     * SoH aus den Fahrt-Energiezählern des Fahrzeugs (Quelle VEHICLE_COUNTER, derzeit Polestar 3 über das
+     * Data Portal): Summe Zähler-kWh / Summe SoC-Delta über alle Fahrten mit Zählerpfad, siehe
+     * {@link VehicleCounterSohDetector}. Dieselben Tore wie {@link #persistBmsDerived}: nominale
+     * Netto-Kapazität vorhanden, 60 bis 105 %, ein Eintrag je Kalendermonat, höchstens 5 Prozentpunkte
+     * Abstand zum letzten sichtbaren Eintrag. Läuft nach jeder gespeicherten Fahrt dieser Quelle.
+     */
+    @Transactional
+    public void persistVehicleCounter(UUID carId) {
+        Car car = carRepository.findById(carId).orElse(null);
+        if (car == null) return;
+        BigDecimal nominalNet = car.getNominalNetCapacityKwh();
+        if (nominalNet == null || nominalNet.compareTo(BigDecimal.ZERO) <= 0) return;
+
+        List<VehicleCounterSohDetector.CounterTrip> counterTrips = new ArrayList<>();
+        for (EvTrip t : tripRepository.findAllByCarIdAndDeletedAtIsNull(carId)) {
+            if (!DataSource.POLESTAR_DATA_PORTAL.name().equals(t.getDataSource()) || !hasCounterPath(t)) continue;
+            counterTrips.add(new VehicleCounterSohDetector.CounterTrip(
+                    t.getTripStartedAt() == null ? null : t.getTripStartedAt().toInstant(),
+                    t.getSocStart(), t.getSocEnd(), t.getEstimatedConsumedKwh()));
+        }
+        List<java.time.Instant> dcEnds = evLogRepository.findAllByCarId(carId).stream()
+                .filter(l -> l.getDeletedAt() == null && l.getChargingType() == ChargingType.DC && l.getLoggedAt() != null)
+                .map(BatterySohService::chargeEnd)
+                .toList();
+
+        Optional<VehicleCounterSohDetector.Detection> detected = VehicleCounterSohDetector.detect(counterTrips, dcEnds);
+        if (detected.isEmpty()) return;
+
+        BigDecimal sohPercent = detected.get().capacityKwh()
+                .multiply(new BigDecimal("100"))
+                .divide(nominalNet, 2, java.math.RoundingMode.HALF_UP);
+        if (sohPercent.compareTo(BMS_SOH_MIN) < 0 || sohPercent.compareTo(BMS_SOH_MAX) > 0) return;
+        if (sohPercent.compareTo(BMS_SOH_CAP) > 0) sohPercent = BMS_SOH_CAP;
+
+        LocalDate today = LocalDate.now();
+        boolean alreadyThisMonth = sohRepository.findByCarId(carId).stream().anyMatch(e ->
+                e.getRecordedAt().getYear() == today.getYear()
+                && e.getRecordedAt().getMonthValue() == today.getMonthValue());
+        if (alreadyThisMonth) return;
+
+        List<BatterySohEntry> history = presentableHistory(carId);
+        if (!history.isEmpty()) {
+            BigDecimal lastSoh = history.get(0).getSohPercent();
+            if (sohPercent.subtract(lastSoh).abs().compareTo(BMS_MAX_DEVIATION) > 0) return;
+        }
+
+        sohRepository.save(BatterySohEntry.fromVehicleCounter(UUID.randomUUID(), carId, sohPercent,
+                today, LocalDateTime.now(), detected.get().tripCount(), detected.get().totalHubPercent()));
+        syncDegradationToCarField(carId);
+        log.info("SoH VEHICLE_COUNTER für Auto {}: {} % aus {} Fahrten, Hub {} %", carId, sohPercent,
+                detected.get().tripCount(), detected.get().totalHubPercent());
+    }
+
+    /** {@code telemetry_extras.polestar.energyPath == COUNTER}: der Verbrauch stammt vom Bordzähler der Fahrt. */
+    public static boolean hasCounterPath(EvTrip trip) {
+        if (trip.getTelemetryExtras() == null) return false;
+        try {
+            return COUNTER_ENERGY_PATH.equals(MAPPER.readTree(trip.getTelemetryExtras()).path("polestar").path("energyPath").asText());
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Ladeende aus Start und Dauer; loggedAt ist lokale Zeit des Servers, wie die Connectors sie liefern. */
+    private static java.time.Instant chargeEnd(EvLog log) {
+        int minutes = log.getChargeDurationMinutes() == null ? 0 : log.getChargeDurationMinutes();
+        return log.getLoggedAt().plusMinutes(minutes).atZone(ZoneId.systemDefault()).toInstant();
     }
 
     /**

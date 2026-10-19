@@ -61,6 +61,7 @@ export function nominalCapacityKwh(
 
 const TRUST_KEYS: Record<BatterySohSource, string> = {
   VEHICLE_BMS: 'trust_bms',
+  VEHICLE_COUNTER: 'trust_counter',
   CHARGE_LOG: 'trust_estimate',
   MANUAL: 'trust_manual',
   UNKNOWN: 'trust_unknown',
