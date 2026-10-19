@@ -12,7 +12,8 @@ import java.util.concurrent.Executors;
 
 /**
  * Nächtlicher On-Page-Check um 05:00, nach dem Prerender-Neustart (04:12) und dem Cache-Warmer (04:17),
- * damit der Crawl den gewärmten Cache trifft. Eigener Lock, unabhängig vom GSC-/Plausible-Sync.
+ * damit der Crawl den gewärmten Cache trifft. Danach wöchentlich Core Web Vitals. Eigener Lock, unabhängig vom
+ * GSC-/Plausible-Sync.
  */
 @Component
 @Slf4j
@@ -22,20 +23,22 @@ public class SeoAuditScheduler {
     static final Duration LOCK_TTL = Duration.ofHours(2);
 
     private final SeoAuditService service;
+    private final SeoVitalsService vitals;
     private final JobLockService locks;
     private final Executor executor;
 
     @Autowired
-    public SeoAuditScheduler(SeoAuditService service, JobLockService locks) {
-        this(service, locks, Executors.newSingleThreadExecutor(r -> {
+    public SeoAuditScheduler(SeoAuditService service, SeoVitalsService vitals, JobLockService locks) {
+        this(service, vitals, locks, Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "seo-audit-manual");
             t.setDaemon(true);
             return t;
         }));
     }
 
-    SeoAuditScheduler(SeoAuditService service, JobLockService locks, Executor executor) {
+    SeoAuditScheduler(SeoAuditService service, SeoVitalsService vitals, JobLockService locks, Executor executor) {
         this.service = service;
+        this.vitals = vitals;
         this.locks = locks;
         this.executor = executor;
     }
@@ -58,11 +61,19 @@ public class SeoAuditScheduler {
         return true;
     }
 
+    /** Erst der Crawl, dann (einmal je Woche) Core Web Vitals für die Seiten, die er erreicht hat. */
     private void runReleasing() {
         try {
-            service.run();
-        } catch (Exception e) {
-            log.error("SEO-Audit abgebrochen", e);
+            try {
+                service.run();
+            } catch (Exception e) {
+                log.error("SEO-Audit abgebrochen", e);
+            }
+            try {
+                vitals.refreshIfDue();
+            } catch (Exception e) {
+                log.error("Core Web Vitals abgebrochen", e);
+            }
         } finally {
             locks.release(LOCK_NAME);
         }

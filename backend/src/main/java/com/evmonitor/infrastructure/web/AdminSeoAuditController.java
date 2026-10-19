@@ -3,6 +3,7 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.seo.SeoAudit;
 import com.evmonitor.application.seo.SeoAuditScheduler;
 import com.evmonitor.application.seo.SeoAuditService;
+import com.evmonitor.application.seo.SeoVitalsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +23,12 @@ public class AdminSeoAuditController {
 
     private final SeoAuditService auditService;
     private final SeoAuditScheduler scheduler;
+    private final SeoVitalsService vitals;
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public SeoAudit.View audit() {
-        return auditService.view();
+        return auditService.view(vitals.latest());
     }
 
     /** Startet einen Crawl im Hintergrund. 409, wenn keine Basis-URL konfiguriert ist oder ein Lauf aktiv ist. */

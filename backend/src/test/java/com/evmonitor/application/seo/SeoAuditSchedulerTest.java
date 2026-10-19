@@ -17,12 +17,13 @@ import static org.mockito.Mockito.when;
 class SeoAuditSchedulerTest {
 
     private final SeoAuditService service = mock(SeoAuditService.class);
+    private final SeoVitalsService vitals = mock(SeoVitalsService.class);
     private final JobLockService locks = mock(JobLockService.class);
     private SeoAuditScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new SeoAuditScheduler(service, locks, new SyncTaskExecutor());
+        scheduler = new SeoAuditScheduler(service, vitals, locks, new SyncTaskExecutor());
         when(service.isEnabled()).thenReturn(true);
         when(locks.tryAcquire(eq(SeoAuditScheduler.LOCK_NAME), any())).thenReturn(true);
     }
@@ -32,6 +33,7 @@ class SeoAuditSchedulerTest {
         scheduler.runNightly();
 
         verify(service).run();
+        verify(vitals).refreshIfDue();
         verify(locks).release(SeoAuditScheduler.LOCK_NAME);
     }
 
@@ -52,6 +54,7 @@ class SeoAuditSchedulerTest {
         doThrow(new IllegalStateException("kaputt")).when(service).run();
 
         assertThat(scheduler.tryStartManual()).isTrue();
+        verify(vitals).refreshIfDue();
         verify(locks).release(SeoAuditScheduler.LOCK_NAME);
 
         when(locks.tryAcquire(eq(SeoAuditScheduler.LOCK_NAME), any())).thenReturn(false);

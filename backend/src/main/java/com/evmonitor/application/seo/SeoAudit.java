@@ -3,6 +3,7 @@ package com.evmonitor.application.seo;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /** Typen des Unter-Tabs "Technik": Befunde je URL aus dem nächtlichen Crawl, Lese-Sicht für den Tab. */
@@ -25,6 +26,11 @@ public final class SeoAudit {
 
     /** Core Web Vitals einer Seite; source FIELD (echte Nutzer) oder LAB (Lighthouse, ohne INP). */
     public record Vitals(Integer lcpMs, Double cls, Integer inpMs, String source) {
+    }
+
+    /** Letzte gemessene Woche (Montag) mit Vitals je Pfad; EMPTY ohne Messung. */
+    public record VitalsSnapshot(LocalDate week, Map<String, Vitals> byPath) {
+        public static final VitalsSnapshot EMPTY = new VitalsSnapshot(null, Map.of());
     }
 
     public record AuditRow(String path, int httpStatus, int score, int errors, int warnings, List<Finding> findings,

@@ -7,6 +7,8 @@ import com.evmonitor.application.seo.SeoAudit.PageReport;
 import com.evmonitor.application.seo.SeoAudit.Severity;
 import com.evmonitor.application.seo.SeoAudit.Summary;
 import com.evmonitor.application.seo.SeoAudit.View;
+import com.evmonitor.application.seo.SeoAudit.Vitals;
+import com.evmonitor.application.seo.SeoAudit.VitalsSnapshot;
 import com.evmonitor.infrastructure.external.audit.SiteCrawler;
 import com.evmonitor.infrastructure.external.audit.SiteCrawler.Fetched;
 import com.evmonitor.infrastructure.persistence.seo.SeoAuditRepository;
@@ -23,6 +25,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -189,20 +192,59 @@ public class SeoAuditService {
         return result;
     }
 
-    /** Letzter Prüftag für den Unter-Tab, Zeilen schlechteste zuerst. */
+    /** Letzter Prüftag ohne Core Web Vitals. */
     public View view() {
+        return view(VitalsSnapshot.EMPTY);
+    }
+
+    /**
+     * Letzter Prüftag für den Unter-Tab, schlechteste zuerst. Vitals kommen wöchentlich und werden hier an jeden
+     * Prüftag gehängt; Werte über dem Grenzwert zählen als Hinweis in Score und Hinweiszahl.
+     */
+    public View view(VitalsSnapshot vitals) {
         Optional<LocalDate> day = repository.latestDay();
         LocalDateTime lastRunAt = runs.findTop10ByOrderByStartedAtDesc().stream()
                 .filter(r -> SOURCE_AUDIT.equals(r.getSource()))
                 .map(SeoSyncRunEntity::getStartedAt)
                 .findFirst().orElse(null);
         if (day.isEmpty()) {
-            return new View(isEnabled(), null, lastRunAt, null, new Summary(0, 0, 0, 0, 0), List.of());
+            return new View(isEnabled(), null, lastRunAt, vitals.week(), new Summary(0, 0, 0, 0, 0), List.of());
         }
         List<AuditRow> rows = repository.rows(day.get()).stream()
-                .map(r -> new AuditRow(r.path(), r.httpStatus(), r.score(), r.errorCount(), r.warningCount(), findings(r.findings()), null))
+                .map(r -> withVitals(r, vitals.byPath().get(r.path())))
+                .sorted(Comparator.comparingInt(AuditRow::score).thenComparing(AuditRow::path))
                 .toList();
-        return new View(isEnabled(), day.get(), lastRunAt, null, summary(rows), rows);
+        return new View(isEnabled(), day.get(), lastRunAt, vitals.week(), summary(rows), rows);
+    }
+
+    private AuditRow withVitals(SeoAuditRepository.AuditRow r, Vitals v) {
+        List<Finding> findings = new ArrayList<>(findings(r.findings()));
+        if (v == null) return new AuditRow(r.path(), r.httpStatus(), r.score(), r.errorCount(), r.warningCount(), findings, null);
+        List<Finding> cwv = cwvFindings(v);
+        findings.addAll(cwv);
+        return new AuditRow(r.path(), r.httpStatus(), SeoAudit.score(findings), r.errorCount(), r.warningCount() + cwv.size(), findings, v);
+    }
+
+    private List<Finding> cwvFindings(Vitals v) {
+        SeoAuditProperties p = deps.properties();
+        String label = "FIELD".equals(v.source()) ? "echte Nutzer" : "Labormessung";
+        List<Finding> out = new ArrayList<>();
+        if (v.lcpMs() != null && v.lcpMs() > p.getVitalsLcpMaxMs()) {
+            out.add(new Finding(Check.CWV, Severity.WARNING, "LCP " + decimal(v.lcpMs() / 1000.0, 1) + " s über "
+                    + decimal(p.getVitalsLcpMaxMs() / 1000.0, 1) + " s (mobil, " + label + ")"));
+        }
+        if (v.cls() != null && v.cls() > p.getVitalsClsMax()) {
+            out.add(new Finding(Check.CWV, Severity.WARNING, "CLS " + decimal(v.cls(), 2) + " über " + decimal(p.getVitalsClsMax(), 2)
+                    + " (mobil, " + label + ")"));
+        }
+        if (v.inpMs() != null && v.inpMs() > p.getVitalsInpMaxMs()) {
+            out.add(new Finding(Check.CWV, Severity.WARNING, "INP " + v.inpMs() + " ms über " + p.getVitalsInpMaxMs() + " ms (mobil, " + label + ")"));
+        }
+        return out;
+    }
+
+    private static String decimal(double value, int digits) {
+        return String.format(java.util.Locale.GERMANY, "%." + digits + "f", value);
     }
 
     private static Summary summary(List<AuditRow> rows) {
