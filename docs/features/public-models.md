@@ -192,7 +192,7 @@ Alle drei Routen haben vollständiges SEO-Setup:
 - **Title** - dynamisch mit echten Zahlen: z.B. `"Tesla Model 3: 15.2 kWh/100km real vs. 14.9 kWh WLTP"`; die Reichweitenspanne im Title rechnet je Variante nach derselben Regel wie der Hero (90 % Netto-Akku ÷ Modell-Schnitt)
 - **Meta Description** - dynamisch mit Community-Daten, Log-Anzahl und WLTP-Delta
 - **Canonical URL** - korrekt gesetzt pro Route
-- **hreflang** - DE/EN Alternates auf allen drei Routen
+- **Nur DE im Index** - die deutschen Routen tragen `index, follow`, alle fremdsprachigen Varianten (`/en`, `/gb`, `/no`, `/se`, auch `/en/login` und Co.) `noindex, follow`. Sie bleiben über den Sprachumschalter erreichbar, kannibalisieren aber keine DE-Seite. Kein hreflang mehr, die Sitemap enthält ausschließlich DE-URLs. Keine automatische Weiterleitung nicht-deutscher Browser, DE ist immer der Einstieg.
 - **JSON-LD Structured Data:**
   - `/modelle` - `ItemList` + `BreadcrumbList`
   - `/modelle/:brand` - `ItemList` + `BreadcrumbList`
