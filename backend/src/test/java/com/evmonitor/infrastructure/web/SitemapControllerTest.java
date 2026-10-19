@@ -94,12 +94,22 @@ class SitemapControllerTest extends AbstractIntegrationTest {
         assertTrue(response.getBody().contains("/modelle"), "Static /modelle URL should always be in sitemap");
     }
 
+    /**
+     * Nur DE wird indexiert: die Sitemap darf keine fremdsprachige Variante und kein hreflang
+     * mehr nennen, sonst kannibalisieren EN/GB/NO/SE-Seiten die deutschen im Index.
+     */
     @Test
-    void sitemap_containsNoUsMarket() {
+    void sitemap_containsOnlyGermanUrls() {
         ResponseEntity<String> response = restTemplate.getForEntity("/sitemap.xml", String.class);
+        String body = response.getBody();
 
-        assertFalse(response.getBody().contains("/us/models"), "/us/models redirects 301 to /en/models");
-        assertFalse(response.getBody().contains("hreflang=\"en-US\""), "No en-US alternate after US market removal");
+        assertTrue(body.contains("<loc>https://ev-monitor.net/</loc>"), "DE landing page");
+        assertTrue(body.contains("<loc>https://ev-monitor.net/modelle</loc>"), "DE models list");
+        for (String foreign : List.of("/en", "/gb/", "/us/", "/no/", "/se/")) {
+            assertFalse(body.contains("<loc>https://ev-monitor.net" + foreign), "no " + foreign + " URLs in sitemap");
+        }
+        assertFalse(body.contains("hreflang"), "no hreflang alternates");
+        assertFalse(body.contains("xmlns:xhtml"), "no xhtml namespace needed");
     }
 
     /**
