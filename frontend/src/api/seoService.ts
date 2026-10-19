@@ -1,15 +1,17 @@
 import apiClient from './axios'
 
 export type SeoPeriod = 7 | 28 | 90
-export type SeoPageFilter = 'ALL' | 'UNDERRATED' | 'DEAD'
+export type SeoPageFilter = 'ALL' | 'UNDERRATED' | 'DEAD' | 'LEAK' | 'MONEY'
 export type SeoBrandFilter = 'ALL' | 'BRAND' | 'NON_BRAND'
-export type SeoQueryFilter = 'ALL' | 'STRIKING_DISTANCE' | 'CANNIBALIZED'
+export type SeoQueryFilter = 'ALL' | 'STRIKING_DISTANCE' | 'CANNIBALIZED' | 'ADWORDS'
 
 export interface SeoTotals {
     impressions: number
     clicks: number
     ctr: number
     avgPosition: number
+    visitors: number
+    googleEntries: number
     registrations: number
     organicRegistrations: number
 }
@@ -18,6 +20,8 @@ export interface SeoDayPoint {
     day: string
     impressions: number
     clicks: number
+    visitors: number
+    googleEntries: number
 }
 
 export interface SeoOverview {
@@ -35,8 +39,11 @@ export interface SeoPageRow {
     clicks: number
     ctr: number
     avgPosition: number
+    entries: number
+    bounceRate: number
+    ctaRate: number
     registrations: number
-    finding: 'UNDERRATED' | 'DEAD' | null
+    finding: 'UNDERRATED' | 'DEAD' | 'LEAK' | 'MONEY' | null
 }
 
 export interface SeoQueryRow {
@@ -48,7 +55,22 @@ export interface SeoQueryRow {
     avgPosition: number
     topPath: string | null
     pageCount: number
+    adwordsCandidate: boolean
     finding: 'STRIKING_DISTANCE' | 'CANNIBALIZED' | null
+}
+
+/** Quelle x Medium x Kampagne aus Plausible; registrations/trials nur bei attributed (UTM oder Google organisch). */
+export interface SeoCampaignRow {
+    source: string
+    utmMedium: string
+    utmCampaign: string
+    visitors: number
+    visits: number
+    ctaVisitors: number
+    ctaRate: number
+    registrations: number
+    trials: number
+    attributed: boolean
 }
 
 export interface SeoSyncRun {
@@ -66,6 +88,8 @@ export interface SeoSyncRun {
 export interface SeoStatus {
     enabled: boolean
     dataUntil: string
+    plausibleEnabled: boolean
+    plausibleDataUntil: string | null
     runs: SeoSyncRun[]
 }
 
@@ -90,6 +114,11 @@ export async function getSeoQueries(days: SeoPeriod, brand: SeoBrandFilter, filt
 }
 
 /** true, wenn ein Sync gestartet wurde; false bei fehlendem Zugang oder laufendem Sync (HTTP 409). */
+export async function getSeoCampaigns(days: SeoPeriod): Promise<SeoCampaignRow[]> {
+    const { data } = await apiClient.get<SeoCampaignRow[]>('/admin/seo/campaigns', { params: { days } })
+    return data
+}
+
 export async function triggerSeoSync(days: number): Promise<boolean> {
     const res = await apiClient.post('/admin/seo/sync', null, {
         params: { days },
