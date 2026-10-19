@@ -374,4 +374,93 @@ export const surveys: Record<string, SurveyConfig> = {
             },
         ],
     },
+
+    // Für Nutzer, deren Ladevorgänge über den EU Data Act (VW-Konzern) automatisch kommen.
+    // Frage 1 ist wortgleich zu autosync-satisfaction, damit EUDA und Smartcar vergleichbar sind.
+    'euda-data-quality': {
+        slug: 'euda-data-quality',
+        title: { de: 'Wie gut passen deine automatisch erfassten Ladevorgänge?', en: 'How well do your automatically recorded charges match?' },
+        description: {
+            de: 'Deine Ladevorgänge kommen automatisch über die Daten deines Autos. Sag uns, wie gut das klappt - dauert 60 Sekunden.',
+            en: 'Your charging sessions arrive automatically from your car\'s data. Tell us how well that works - takes 60 seconds.',
+        },
+        pages: [
+            {
+                title: { de: 'Deine Ladevorgänge', en: 'Your charging sessions' },
+                questions: [
+                    {
+                        key: 'satisfaction',
+                        label: { de: 'Wie zufrieden bist du mit den automatisch erfassten Ladevorgängen insgesamt?', en: 'How satisfied are you with the automatically recorded charging sessions overall?' },
+                        options: [
+                            { value: '1', label: { de: 'Sehr unzufrieden', en: 'Very dissatisfied' } },
+                            { value: '2', label: { de: 'Eher unzufrieden', en: 'Somewhat dissatisfied' } },
+                            { value: '3', label: { de: 'Neutral', en: 'Neutral' } },
+                            { value: '4', label: { de: 'Eher zufrieden', en: 'Somewhat satisfied' } },
+                            { value: '5', label: { de: 'Sehr zufrieden', en: 'Very satisfied' } },
+                        ],
+                    },
+                    {
+                        key: 'accuracy',
+                        label: { de: 'Wie gut passen sie zu dem, was du wirklich geladen hast?', en: 'How well do they match what you actually charged?' },
+                        options: [
+                            { value: 'almost_always', label: { de: 'Passt fast immer', en: 'Almost always right' } },
+                            { value: 'mostly', label: { de: 'Passt meistens', en: 'Mostly right' } },
+                            { value: 'mixed', label: { de: 'Gemischt', en: 'Mixed' } },
+                            { value: 'often_wrong', label: { de: 'Oft daneben', en: 'Often wrong' } },
+                            { value: 'cannot_tell', label: { de: 'Kann ich nicht beurteilen', en: 'I can\'t tell' } },
+                        ],
+                    },
+                ],
+            },
+            {
+                title: { de: 'Was nicht passte', en: 'What didn\'t match' },
+                questions: [
+                    {
+                        key: 'issues',
+                        label: { de: 'Was passte nicht? (Mehrfachauswahl)', en: 'What didn\'t match? (Multiple choice)' },
+                        multiple: true,
+                        options: [
+                            { value: 'missing_charges', label: { de: 'Ladevorgänge fehlten', en: 'Charging sessions were missing' } },
+                            { value: 'kwh_wrong', label: { de: 'Geladene kWh falsch', en: 'Charged kWh wrong' } },
+                            { value: 'time_wrong', label: { de: 'Datum oder Uhrzeit falsch', en: 'Date or time wrong' } },
+                            { value: 'duplicate', label: { de: 'Ladevorgang doppelt', en: 'Charging session recorded twice' } },
+                            { value: 'soc_wrong', label: { de: 'Akkustand (%) falsch', en: 'Battery level (%) wrong' } },
+                            { value: 'nothing', label: { de: 'Alles passte', en: 'Everything matched' } },
+                            {
+                                value: 'other',
+                                label: { de: 'Sonstiges', en: 'Other' },
+                                freeText: true,
+                                freeTextPlaceholder: { de: 'Was genau?', en: 'What exactly?' },
+                            },
+                        ],
+                    },
+                    {
+                        key: 'manual_fixes',
+                        label: { de: 'Wie oft hast du von Hand nachgebessert?', en: 'How often did you fix things by hand?' },
+                        options: [
+                            { value: 'never', label: { de: 'Nie', en: 'Never' } },
+                            { value: 'once_twice', label: { de: 'Ein- bis zweimal', en: 'Once or twice' } },
+                            { value: 'often', label: { de: 'Öfter', en: 'More often' } },
+                            { value: 'gave_up', label: { de: 'Ich habe aufgehört nachzubessern', en: 'I stopped fixing them' } },
+                        ],
+                    },
+                    {
+                        key: 'keep_using',
+                        label: { de: 'Möchtest du die automatische Erfassung weiter nutzen?', en: 'Do you want to keep using automatic recording?' },
+                        options: [
+                            { value: 'yes_as_is', label: { de: 'Ja, so wie sie jetzt ist', en: 'Yes, as it is now' } },
+                            { value: 'yes_if_reliable', label: { de: 'Ja, wenn die Daten zuverlässiger werden', en: 'Yes, if the data becomes more reliable' } },
+                            { value: 'no_manual', label: { de: 'Nein, ich trage lieber selbst ein', en: 'No, I prefer entering charges myself' } },
+                            {
+                                value: 'no_other',
+                                label: { de: 'Nein, aus einem anderen Grund', en: 'No, for another reason' },
+                                freeText: true,
+                                freeTextPlaceholder: { de: 'Warum?', en: 'Why?' },
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    },
 }
