@@ -3039,7 +3039,15 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       <InformationCircleIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                     </button>
                   </template>
+                  <!-- "Korrekt erkannt?" auch eingeklappt sichtbar, nur bei automatisch erfassten Ladungen.
+                       Steht schon ein Realkosten-Hinweis rechts, schließt der Daumen direkt an. -->
+                  <div v-if="isRateableLogSource(item.entry.dataSource)"
+                    :class="['flex items-center -my-1', logEditState[item.entry.id] === undefined && !(item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null) && realCostHintFor(item.entry.id) ? '' : 'ml-auto']">
+                    <DataFeedbackButtons subject-type="LOG" :subject-id="item.entry.id" />
+                  </div>
                 </div>
+                <DataFeedbackPanel v-if="!item.entry._isLadegruppe && isRateableLogSource(item.entry.dataSource)"
+                  subject-type="LOG" :subject-id="item.entry.id" class="mt-1" />
                 <!-- Expanded content (normal log only) -->
                 <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                 <div v-if="!item.entry._isLadegruppe && expandedLogs.has(item.entry.id)" class="space-y-2">
@@ -3134,11 +3142,8 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
                       <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
                     </span>
-                    <!-- "Korrekt erkannt?" nur bei automatisch erfassten Ladungen, dann Aktions-Menü -->
-                    <div v-if="isRateableLogSource(item.entry.dataSource)" class="ml-auto flex items-center" @click.stop>
-                      <DataFeedbackButtons subject-type="LOG" :subject-id="item.entry.id" />
-                    </div>
-                    <div :class="['relative', isRateableLogSource(item.entry.dataSource) ? '' : 'ml-auto']">
+                    <!-- Aktions-Menü -->
+                    <div class="relative ml-auto">
                       <button type="button"
                         :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
                         :aria-expanded="openMenuLogId === item.entry.id"
@@ -3173,7 +3178,6 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       </div>
                     </div>
                   </div>
-                  <DataFeedbackPanel v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id" />
                 </div>
                 </Transition>
                 <!-- Implausibility tooltip panel (normal log only) -->
