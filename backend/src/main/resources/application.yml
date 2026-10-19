@@ -242,6 +242,13 @@ gsc:
   site-url: ${GSC_SITE_URL:sc-domain:ev-monitor.net}
   retention-days: 490
 
+# Admin-Tab "SEO & Traffic": Plausible-Sync nutzt plausible.api-key (oben). Leer = Sync aus.
+seo:
+  plausible:
+    backfill-from: 2026-03-01
+    retention-days: 490
+    window-days: 30
+
 # Stripe Payment Integration
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:}

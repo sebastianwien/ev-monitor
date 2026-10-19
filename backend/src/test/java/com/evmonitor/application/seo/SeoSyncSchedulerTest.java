@@ -32,14 +32,18 @@ class SeoSyncSchedulerTest {
     private final GscDailyRepository repository = mock(GscDailyRepository.class);
     private final JobLockService locks = mock(JobLockService.class);
     private final GscProperties properties = new GscProperties();
+    private final PlausibleSyncService plausibleSync = mock(PlausibleSyncService.class);
     private SeoSyncScheduler scheduler;
 
     @BeforeEach
     void setUp() {
         properties.setRetentionDays(490);
         scheduler = new SeoSyncScheduler(new SeoSyncScheduler.Deps(syncService, repository, locks, properties,
-                new SyncTaskExecutor()), CLOCK);
+                new SyncTaskExecutor()), plausibleSync, CLOCK);
         when(syncService.isEnabled()).thenReturn(true);
+        when(plausibleSync.isEnabled()).thenReturn(true);
+        when(plausibleSync.hasAnyData()).thenReturn(true);
+        when(plausibleSync.backfillFrom()).thenReturn(LocalDate.of(2026, 3, 1));
         when(locks.tryAcquire(eq(SeoSyncScheduler.LOCK_NAME), any())).thenReturn(true);
     }
 
@@ -50,6 +54,30 @@ class SeoSyncSchedulerTest {
         scheduler.runNightly();
 
         verify(syncService).sync(TODAY.minusDays(8), TODAY.minusDays(2));
+        verify(plausibleSync).sync(TODAY.minusDays(7), TODAY.minusDays(1));
+        verify(locks).release(SeoSyncScheduler.LOCK_NAME);
+    }
+
+    @Test
+    void plausibleBackfillsFromConfiguredStartAndRunsWithoutGsc() {
+        when(syncService.isEnabled()).thenReturn(false);
+        when(plausibleSync.hasAnyData()).thenReturn(false);
+
+        scheduler.runNightly();
+
+        verify(syncService, never()).sync(any(), any());
+        verify(plausibleSync).sync(LocalDate.of(2026, 3, 1), TODAY.minusDays(1));
+        verify(locks).release(SeoSyncScheduler.LOCK_NAME);
+    }
+
+    @Test
+    void gscFailureDoesNotStopPlausible() {
+        when(repository.hasAnyData()).thenReturn(true);
+        doThrow(new IllegalStateException("boom")).when(syncService).sync(any(), any());
+
+        scheduler.runNightly();
+
+        verify(plausibleSync).sync(TODAY.minusDays(7), TODAY.minusDays(1));
         verify(locks).release(SeoSyncScheduler.LOCK_NAME);
     }
 
@@ -65,13 +93,16 @@ class SeoSyncSchedulerTest {
     @Test
     void nightlySkipsWithoutKeyOrWhenLockIsHeld() {
         when(syncService.isEnabled()).thenReturn(false);
+        when(plausibleSync.isEnabled()).thenReturn(false);
         scheduler.runNightly();
         verify(locks, never()).tryAcquire(any(), any());
 
         when(syncService.isEnabled()).thenReturn(true);
+        when(plausibleSync.isEnabled()).thenReturn(true);
         when(locks.tryAcquire(eq(SeoSyncScheduler.LOCK_NAME), any())).thenReturn(false);
         scheduler.runNightly();
         verify(syncService, never()).sync(any(), any());
+        verify(plausibleSync, never()).sync(any(), any());
         verify(locks, never()).release(any());
     }
 
@@ -92,6 +123,7 @@ class SeoSyncSchedulerTest {
     void manualStartRunsRequestedWindowAndRefusesWhenBusy() {
         assertThat(scheduler.tryStartManual(30)).isTrue();
         verify(syncService).sync(TODAY.minusDays(31), TODAY.minusDays(2));
+        verify(plausibleSync).sync(TODAY.minusDays(30), TODAY.minusDays(1));
         verify(locks).release(SeoSyncScheduler.LOCK_NAME);
 
         when(locks.tryAcquire(eq(SeoSyncScheduler.LOCK_NAME), any())).thenReturn(false);

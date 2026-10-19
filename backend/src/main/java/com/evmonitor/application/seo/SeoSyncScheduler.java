@@ -26,6 +26,8 @@ public class SeoSyncScheduler {
     static final Duration LOCK_TTL = Duration.ofHours(3);
     static final int NIGHTLY_WINDOW_DAYS = 6;
     static final int LAG_DAYS = 2;
+    /** Plausible ist am Folgetag vollständig. */
+    static final int PLAUSIBLE_LAG_DAYS = 1;
     static final int MAX_MANUAL_DAYS = 500;
 
     private final SeoSyncService syncService;
@@ -33,12 +35,13 @@ public class SeoSyncScheduler {
     private final JobLockService locks;
     private final GscProperties properties;
     private final Executor executor;
+    private final PlausibleSyncService plausibleSync;
     private final Clock clock;
 
     @Autowired
     public SeoSyncScheduler(SeoSyncService syncService, GscDailyRepository repository, JobLockService locks,
-                            GscProperties properties) {
-        this(new Deps(syncService, repository, locks, properties, manualSyncExecutor()), Clock.systemDefaultZone());
+                            GscProperties properties, PlausibleSyncService plausibleSync) {
+        this(new Deps(syncService, repository, locks, properties, manualSyncExecutor()), plausibleSync, Clock.systemDefaultZone());
     }
 
     /** Ein eigener Thread für den manuellen Start, wie beim XpengImportJobWorker; der Lock serialisiert ohnehin. */
@@ -50,12 +53,13 @@ public class SeoSyncScheduler {
         });
     }
 
-    SeoSyncScheduler(Deps deps, Clock clock) {
+    SeoSyncScheduler(Deps deps, PlausibleSyncService plausibleSync, Clock clock) {
         this.syncService = deps.syncService();
         this.repository = deps.repository();
         this.locks = deps.locks();
         this.properties = deps.properties();
         this.executor = deps.executor();
+        this.plausibleSync = plausibleSync;
         this.clock = clock;
     }
 
@@ -64,14 +68,27 @@ public class SeoSyncScheduler {
                 GscProperties properties, Executor executor) {
     }
 
+    /** Welche Quellen laufen: beide, wenn konfiguriert. */
+    private boolean anyEnabled() {
+        return syncService.isEnabled() || plausibleSync.isEnabled();
+    }
+
     @Scheduled(cron = "0 30 4 * * *", zone = "Europe/Berlin")
     public void runNightly() {
-        if (!syncService.isEnabled()) return;
-        LocalDate to = LocalDate.now(clock).minusDays(LAG_DAYS);
-        LocalDate from = repository.hasAnyData()
-                ? to.minusDays(NIGHTLY_WINDOW_DAYS)
-                : LocalDate.now(clock).minusDays(properties.getRetentionDays());
-        runLocked(from, to);
+        if (!anyEnabled()) return;
+        LocalDate today = LocalDate.now(clock);
+        LocalDate gscTo = today.minusDays(LAG_DAYS);
+        LocalDate gscFrom = repository.hasAnyData()
+                ? gscTo.minusDays(NIGHTLY_WINDOW_DAYS)
+                : today.minusDays(properties.getRetentionDays());
+        LocalDate plausibleTo = today.minusDays(PLAUSIBLE_LAG_DAYS);
+        LocalDate plausibleFrom = plausibleSync.hasAnyData()
+                ? plausibleTo.minusDays(NIGHTLY_WINDOW_DAYS)
+                : plausibleSync.backfillFrom();
+        runLocked(new Windows(gscFrom, gscTo, plausibleFrom, plausibleTo));
+    }
+
+    record Windows(LocalDate gscFrom, LocalDate gscTo, LocalDate plausibleFrom, LocalDate plausibleTo) {
     }
 
     /**
@@ -79,29 +96,43 @@ public class SeoSyncScheduler {
      * ein Lauf aktiv ist.
      */
     public boolean tryStartManual(int days) {
-        if (!syncService.isEnabled()) return false;
+        if (!anyEnabled()) return false;
         if (!locks.tryAcquire(LOCK_NAME, LOCK_TTL)) return false;
         int window = Math.max(1, Math.min(MAX_MANUAL_DAYS, days));
-        LocalDate to = LocalDate.now(clock).minusDays(LAG_DAYS);
-        LocalDate from = to.minusDays(window - 1L);
-        executor.execute(() -> syncReleasing(from, to));
+        LocalDate today = LocalDate.now(clock);
+        LocalDate gscTo = today.minusDays(LAG_DAYS);
+        LocalDate plausibleTo = today.minusDays(PLAUSIBLE_LAG_DAYS);
+        Windows w = new Windows(gscTo.minusDays(window - 1L), gscTo, plausibleTo.minusDays(window - 1L), plausibleTo);
+        executor.execute(() -> syncReleasing(w));
         return true;
     }
 
-    boolean runLocked(LocalDate from, LocalDate to) {
+    boolean runLocked(Windows w) {
         if (!locks.tryAcquire(LOCK_NAME, LOCK_TTL)) {
-            log.info("GSC-Sync übersprungen, Lock {} ist belegt", LOCK_NAME);
+            log.info("SEO-Sync übersprungen, Lock {} ist belegt", LOCK_NAME);
             return false;
         }
-        syncReleasing(from, to);
+        syncReleasing(w);
         return true;
     }
 
-    private void syncReleasing(LocalDate from, LocalDate to) {
+    /** Jede Quelle für sich fehlertolerant; der Lock wird immer freigegeben. */
+    private void syncReleasing(Windows w) {
         try {
-            syncService.sync(from, to);
-        } catch (Exception e) {
-            log.error("GSC-Sync {} bis {} abgebrochen", from, to, e);
+            if (syncService.isEnabled()) {
+                try {
+                    syncService.sync(w.gscFrom(), w.gscTo());
+                } catch (Exception e) {
+                    log.error("GSC-Sync {} bis {} abgebrochen", w.gscFrom(), w.gscTo(), e);
+                }
+            }
+            if (plausibleSync.isEnabled()) {
+                try {
+                    plausibleSync.sync(w.plausibleFrom(), w.plausibleTo());
+                } catch (Exception e) {
+                    log.error("Plausible-Sync {} bis {} abgebrochen", w.plausibleFrom(), w.plausibleTo(), e);
+                }
+            }
         } finally {
             locks.release(LOCK_NAME);
         }
