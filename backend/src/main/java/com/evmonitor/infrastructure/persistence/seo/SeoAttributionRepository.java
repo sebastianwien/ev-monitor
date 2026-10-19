@@ -79,10 +79,11 @@ public class SeoAttributionRepository {
 
     public Map<String, DataBasis> dataBasisByModel() {
         Map<String, DataBasis> result = new HashMap<>();
-        jdbc.query("SELECT c.model, count(DISTINCT c.id) AS cars, count(l.id) AS logs FROM car c "
-                        + "JOIN app_user u ON u.id = c.user_id AND u.is_seed_data = FALSE "
-                        + "LEFT JOIN ev_log l ON l.car_id = c.id AND l.deleted_at IS NULL AND l.include_in_statistics = TRUE "
-                        + "WHERE c.deleted_at IS NULL AND c.model IS NOT NULL GROUP BY c.model",
+        jdbc.query("""
+                        SELECT c.model, count(DISTINCT c.id) AS cars, count(l.id) AS logs FROM car c
+                        JOIN app_user u ON u.id = c.user_id AND u.is_seed_data = FALSE
+                        LEFT JOIN ev_log l ON l.car_id = c.id AND l.deleted_at IS NULL AND l.include_in_statistics = TRUE
+                        WHERE c.deleted_at IS NULL AND c.model IS NOT NULL GROUP BY c.model""",
                 rs -> { result.put(rs.getString("model"), new DataBasis(rs.getLong("cars"), rs.getLong("logs"))); });
         return result;
     }
