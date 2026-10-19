@@ -166,14 +166,26 @@ describe('AdminSeoTab', () => {
     })
 
     it('zeigt den Leerzustand ohne Zugang und meldet einen abgelehnten Sync', async () => {
-        getSeoStatus.mockResolvedValue({ enabled: false, dataUntil: '2026-10-17', runs: [] })
-        getSeoOverview.mockResolvedValue({ ...overview, current: { impressions: 0, clicks: 0, ctr: 0, avgPosition: 0 } })
+        getSeoStatus.mockResolvedValue({ enabled: false, dataUntil: '2026-10-17', plausibleEnabled: false, plausibleDataUntil: null, runs: [] })
+        getSeoOverview.mockResolvedValue(null)
         triggerSeoSync.mockResolvedValue(false)
         const host = await mount()
 
         expect(host.textContent).toContain('GSC_SERVICE_ACCOUNT_JSON')
+        expect(host.textContent).toContain('Keine Quelle konfiguriert')
         const sync = [...host.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Jetzt synchronisieren')!
         expect(sync.disabled).toBe(true)
+    })
+
+    it('zeigt gespeicherte Daten auch ohne GSC-Key, wenn Plausible läuft', async () => {
+        getSeoStatus.mockResolvedValue({ ...status, enabled: false })
+        getSeoOverview.mockResolvedValue(overview)
+        const host = await mount()
+
+        expect(host.textContent).toContain('Search Console aus')
+        expect(host.textContent).toContain('184.200')
+        const sync = [...host.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Jetzt synchronisieren')!
+        expect(sync.disabled).toBe(false)
     })
 
     it('startet einen Sync und zeigt die Rückmeldung', async () => {

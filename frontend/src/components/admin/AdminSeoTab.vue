@@ -184,10 +184,13 @@ const btn = (active: boolean) => [
       <div>
         <h2 class="text-lg font-semibold text-white">SEO &amp; Traffic</h2>
         <p v-if="status" class="text-xs text-gray-400 mt-1">
-          Search Console bis {{ date(status.dataUntil) }}
-          <template v-if="lastRun">
-            (Sync {{ dateTime(lastRun.startedAt) }}, {{ RUN_LABELS[lastRun.status] ?? lastRun.status }}, {{ num(lastRun.rowCount) }} Zeilen)
+          <template v-if="status.enabled">
+            Search Console bis {{ date(status.dataUntil) }}
+            <template v-if="lastRun">
+              (Sync {{ dateTime(lastRun.startedAt) }}, {{ RUN_LABELS[lastRun.status] ?? lastRun.status }}, {{ num(lastRun.rowCount) }} Zeilen)
+            </template>
           </template>
+          <template v-else>Search Console aus (GSC_SERVICE_ACCOUNT_JSON fehlt), gezeigt werden die gespeicherten Daten bis {{ date(status.dataUntil) }}</template>
           <template v-if="status.plausibleEnabled">
             · Plausible bis {{ date(status.plausibleDataUntil) }}
             <template v-if="lastPlausibleRun">
@@ -214,8 +217,9 @@ const btn = (active: boolean) => [
     </div>
 
     <p v-if="error" class="text-red-400 text-sm mb-4">{{ error }}</p>
-    <p v-else-if="status && !status.enabled" class="text-gray-500 text-sm py-8 text-center">
-      Keine Daten - GSC_SERVICE_ACCOUNT_JSON gesetzt?
+    <p v-else-if="status && !status.enabled && !status.plausibleEnabled && !overview && !pages.length && !queries.length && !campaigns.length"
+       class="text-gray-500 text-sm py-8 text-center">
+      Keine Quelle konfiguriert: GSC_SERVICE_ACCOUNT_JSON und PLAUSIBLE_API_KEY fehlen.
     </p>
     <p v-else-if="loading && !overview && !pages.length && !queries.length && !campaigns.length" class="text-gray-400 text-sm">Lädt...</p>
 
