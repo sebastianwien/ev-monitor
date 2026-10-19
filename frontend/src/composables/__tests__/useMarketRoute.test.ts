@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { detectMarket, getMarketBasePath, buildMarketUrl, getHreflangLinks } from '../useMarketRoute'
+import { detectMarket, getMarketBasePath, buildMarketUrl, robotsFor, robotsForPath } from '../useMarketRoute'
 
 const BASE = 'https://ev-monitor.net'
 
@@ -113,56 +113,22 @@ describe('buildMarketUrl', () => {
     })
 })
 
-describe('getHreflangLinks', () => {
-    it('gibt 6 Links zurück (5 Märkte + x-default)', () => {
-        const links = getHreflangLinks()
-        expect(links).toHaveLength(6)
+describe('robotsFor', () => {
+    it('DE ist die einzige indexierte Sprache', () => {
+        expect(robotsFor('de')).toBe('index, follow')
     })
 
-    it('enthält hreflang="de"', () => {
-        const links = getHreflangLinks('/Tesla/Model_3')
-        const de = links.find(l => l.hreflang === 'de')
-        expect(de?.href).toBe(`${BASE}/modelle/Tesla/Model_3`)
+    it.each(['en', 'gb', 'us', 'no', 'se'] as const)('%s bekommt noindex, follow', market => {
+        expect(robotsFor(market)).toBe('noindex, follow')
+    })
+})
+
+describe('robotsForPath (globales Sicherheitsnetz in App.vue)', () => {
+    it.each(['/en', '/en/login', '/en/register', '/gb/models', '/no/modeller/Tesla', '/se/modeller'])('%s ist noindex', path => {
+        expect(robotsForPath(path)).toBe('noindex, follow')
     })
 
-    it('enthält hreflang="en"', () => {
-        const links = getHreflangLinks('/Tesla/Model_3')
-        const en = links.find(l => l.hreflang === 'en')
-        expect(en?.href).toBe(`${BASE}/en/models/Tesla/Model_3`)
-    })
-
-    it('enthält kein hreflang="en-US" (/us/models leitet per 301 auf /en/models)', () => {
-        const links = getHreflangLinks('/Tesla/Model_3')
-        expect(links.find(l => l.hreflang === 'en-US')).toBeUndefined()
-    })
-
-    it('enthält hreflang="nb"', () => {
-        const links = getHreflangLinks('/Tesla/Model_3')
-        const nb = links.find(l => l.hreflang === 'nb')
-        expect(nb?.href).toBe(`${BASE}/no/modeller/Tesla/Model_3`)
-    })
-
-    it('enthält hreflang="sv"', () => {
-        const links = getHreflangLinks('/Tesla/Model_3')
-        const sv = links.find(l => l.hreflang === 'sv')
-        expect(sv?.href).toBe(`${BASE}/se/modeller/Tesla/Model_3`)
-    })
-
-    it('enthält hreflang="en-GB"', () => {
-        const links = getHreflangLinks('/Tesla/Model_3')
-        const enGb = links.find(l => l.hreflang === 'en-GB')
-        expect(enGb?.href).toBe(`${BASE}/gb/models/Tesla/Model_3`)
-    })
-
-    it('x-default zeigt auf /en/models', () => {
-        const links = getHreflangLinks('/Tesla/Model_3')
-        const xDefault = links.find(l => l.hreflang === 'x-default')
-        expect(xDefault?.href).toBe(`${BASE}/en/models/Tesla/Model_3`)
-    })
-
-    it('funktioniert ohne suffix (List-Seiten)', () => {
-        const links = getHreflangLinks()
-        const de = links.find(l => l.hreflang === 'de')
-        expect(de?.href).toBe(`${BASE}/modelle`)
+    it.each(['/', '/modelle', '/modelle/Tesla/Model_3', '/login', '/english-cars', '/settings'])('%s bleibt index', path => {
+        expect(robotsForPath(path)).toBe('index, follow')
     })
 })

@@ -124,7 +124,7 @@ const { t, locale } = useI18n()
 const { distanceUnitLabel, formatDistance, formatNumber, unitSystem } = useLocaleFormat()
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated())
-const { currentMarket, isDE } = useMarketRoute()
+const { currentMarket, isDE, robots } = useMarketRoute()
 const route = useRoute()
 const router = useRouter()
 const registerPath = computed(() => locale.value === 'en' ? '/en/register' : '/register')
@@ -364,7 +364,7 @@ useHead(computed(() => {
     title,
     meta: [
       { name: 'description', content: description },
-      { name: 'robots', content: 'index, follow' },
+      { name: 'robots', content: robots.value },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },

@@ -14,6 +14,8 @@ import SpritMonitorImport from './components/imports/SpritMonitorImport.vue'
 import SupportPopover from './components/settings/SupportPopover.vue'
 import LeaderboardTicker from './components/shared/LeaderboardTicker.vue'
 import { useIsMobile } from './composables/useIsMobile'
+import { useHead } from '@unhead/vue'
+import { robotsForPath } from './composables/useMarketRoute'
 import LogFormModal from './components/log-form/LogFormModal.vue'
 import FloatingActionButton from './components/shared/FloatingActionButton.vue'
 import OnboardingWizard from './components/onboarding/OnboardingWizard.vue'
@@ -57,6 +59,9 @@ const { isDark } = storeToRefs(themeStore)
 useStatusBarTheme(isDark)
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 const route = useRoute()
+// Sicherheitsnetz gegen Kannibalisierung: nur DE-Seiten dürfen in den Google-Index. Views mit
+// eigenem useHead (Modellseiten, Landing) setzen robots selbst und überschreiben diesen Eintrag.
+useHead({ meta: [{ name: 'robots', content: () => robotsForPath(route.path) }] })
 const isMobileViewport = useIsMobile()
 // Routen mit meta.mobileFullscreen (Wizard) laufen auf Mobile ohne Bottom-Nav, Ticker und Abstaende
 const mobileFullscreen = computed(() => !!route.meta.mobileFullscreen && isMobileViewport.value)

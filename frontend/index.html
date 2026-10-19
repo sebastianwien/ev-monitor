@@ -5,15 +5,12 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <!--
-      canonical/hreflang below are default placeholders so unhead's client-side
-      dedupe (key "canonical" / "alternate:<hreflang>") patches these tags in
-      place instead of appending new ones at the end of <head>. Values are
-      overridden per-page via useHead in each view component.
+      canonical below is a default placeholder so unhead's client-side dedupe
+      (key "canonical") patches this tag in place instead of appending a new one
+      at the end of <head>. Value is overridden per-page via useHead in each view.
+      No hreflang: only DE is indexed, other languages carry noindex.
     -->
     <link rel="canonical" href="https://ev-monitor.net/" />
-    <link rel="alternate" hreflang="de" href="https://ev-monitor.net/" />
-    <link rel="alternate" hreflang="en" href="https://ev-monitor.net/en" />
-    <link rel="alternate" hreflang="x-default" href="https://ev-monitor.net/" />
     <link rel="preconnect" href="https://plausible.io" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#16a34a" />

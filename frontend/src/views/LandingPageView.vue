@@ -227,7 +227,7 @@ useHead(computed(() => ({
         ? 'Track real EV charging costs and consumption. Compare WLTP vs. real-world data for Tesla, VW ID, Hyundai Ioniq, BMW i4 and more. Community-driven, free and private.'
         : 'Echte Ladekosten und Verbrauch von Elektroautos tracken. WLTP vs. Realität für Tesla, VW ID, Hyundai Ioniq, BMW i4 und viele mehr. Kostenlos, anonym, Open Source.'
     },
-    { name: 'robots', content: 'index, follow' },
+    { name: 'robots', content: isEn.value ? 'noindex, follow' : 'index, follow' },
     { property: 'og:type', content: 'website' },
     { property: 'og:url', content: isEn.value ? 'https://ev-monitor.net/en' : 'https://ev-monitor.net/' },
     {
@@ -259,9 +259,6 @@ useHead(computed(() => ({
   ],
   link: [
     { rel: 'canonical', href: isEn.value ? 'https://ev-monitor.net/en' : 'https://ev-monitor.net/' },
-    { rel: 'alternate', hreflang: 'de', href: 'https://ev-monitor.net/' },
-    { rel: 'alternate', hreflang: 'en', href: 'https://ev-monitor.net/en' },
-    { rel: 'alternate', hreflang: 'x-default', href: 'https://ev-monitor.net/' },
   ]
 })))
 

@@ -335,7 +335,7 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
-const { currentMarket, isDE, isEN, isGB, marketUrl, hreflangLinks } = useMarketRoute()
+const { currentMarket, isDE, isEN, isGB, marketUrl, robots } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 const authStore = useAuthStore()
 const countryStore = useCountryStore()
@@ -781,7 +781,8 @@ const currentYear = new Date().getFullYear()
 
 useHead(computed(() => {
   if (notFound.value) return { title: 'Modell nicht gefunden - EV Monitor', meta: [{ name: 'robots', content: 'noindex, nofollow' }] }
-  if (!stats.value) return { title: 'EV Monitor', meta: [{ name: 'robots', content: 'noindex, follow' }] }
+  // Ladezustand ohne noindex: Crawler ohne Prerender lesen sonst den Zwischenstand als "nicht indexieren"
+  if (!stats.value) return { title: 'EV Monitor' }
 
   const name = stats.value.modelDisplayName
   // Meta-Tags sind modell-level (nicht variantenabhaengig): sonst widerspricht die Description
@@ -857,8 +858,7 @@ useHead(computed(() => {
     meta: [
       { name: 'description', content: description },
       { name: 'keywords', content: t('model.meta_keywords', { model: name }) },
-      // threshold in sync with PublicModelService.SITEMAP_MIN_LOG_COUNT = 25
-      { name: 'robots', content: consumptionDataCount.value >= 25 ? 'index, follow' : 'noindex, follow' },
+      { name: 'robots', content: robots.value },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'article' },
@@ -870,7 +870,6 @@ useHead(computed(() => {
     ],
     link: [
       { rel: 'canonical', href: canonicalUrl },
-      ...hreflangLinks(suffix),
     ],
     script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },

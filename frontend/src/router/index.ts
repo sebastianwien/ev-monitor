@@ -7,7 +7,6 @@ import { installPageTransitions, isModelsRoute, modelsScrollPosition } from './p
 import type { CountryCode } from '../config/unitSystems';
 import { isValidCountryCode } from '../config/unitSystems';
 import { purchasesAvailable } from '../utils/iapPolicy';
-import { isCrawler } from '../utils/isCrawler';
 
 declare module 'vue-router' {
     interface RouteMeta {
@@ -52,18 +51,6 @@ import UpgradeSuccessView from '../views/UpgradeSuccessView.vue';
 import UpgradeCancelView from '../views/UpgradeCancelView.vue';
 import { onUpsellNavigation } from '../services/upsellSource'
 
-// First-time visitors without a saved locale preference whose browser is not
-// German are sent to the English variant for UX. Crawlers/prerender are NEVER
-// redirected - they must receive the German URL's German content so canonical
-// and hreflang stay correct (see isCrawler). Returns the English path to
-// redirect to, or undefined to stay on the German route.
-function redirectNonGermanVisitor(enPath: string): string | undefined {
-    if (isCrawler()) return undefined;
-    if (localStorage.getItem('ev-locale')) return undefined;
-    const browserLang = (navigator.language ?? '').toLowerCase();
-    return browserLang.startsWith('de') ? undefined : enPath;
-}
-
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     scrollBehavior: (to, from, savedPosition) => isModelsRoute(to.name) ? modelsScrollPosition(to, from, savedPosition) : { top: 0 },
@@ -87,7 +74,6 @@ const router = createRouter({
                 if (authStore.isAuthenticated()) {
                     return '/dashboard';
                 }
-                return redirectNonGermanVisitor('/en');
             }
             // public landing page, but redirects to /dashboard if authenticated
         },
@@ -237,7 +223,6 @@ const router = createRouter({
             meta: { publicNav: true },
             name: 'public-models-list',
             component: PublicModelsListEntry,
-            beforeEnter: () => redirectNonGermanVisitor('/en/models')
             // no auth guard - public page for SEO
         },
         {
@@ -252,14 +237,12 @@ const router = createRouter({
             name: 'public-brand',
             component: PublicBrandView,
             meta: { publicNav: true },
-            beforeEnter: (to) => redirectNonGermanVisitor(`/en/models/${to.params.brand}`)
         },
         {
             path: '/modelle/:brand/:model',
             meta: { publicNav: true },
             name: 'public-model',
             component: PublicModelView,
-            beforeEnter: (to) => redirectNonGermanVisitor(`/en/models/${to.params.brand}/${to.params.model}`)
             // no auth guard - public page for SEO
         },
         // EN auth routes

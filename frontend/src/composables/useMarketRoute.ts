@@ -14,14 +14,6 @@ const MARKET_BASE_PATHS: Record<Market, string> = {
     se: '/se/modeller',
 }
 
-const HREFLANG_MAP: Array<{ hreflang: string; market: Market }> = [
-    { hreflang: 'de', market: 'de' },
-    { hreflang: 'en', market: 'en' },
-    { hreflang: 'en-GB', market: 'gb' },
-    { hreflang: 'nb', market: 'no' },
-    { hreflang: 'sv', market: 'se' },
-]
-
 export function detectMarket(path: string): Market {
     if (path.startsWith('/us/')) return 'us'
     if (path.startsWith('/gb/')) return 'gb'
@@ -58,18 +50,19 @@ export const OG_LOCALE: Record<Market, string> = {
     se: 'sv_SE',
 }
 
-export function getHreflangLinks(suffix = ''): Array<{ rel: string; hreflang: string; href: string }> {
-    const links = HREFLANG_MAP.map(({ hreflang, market }) => ({
-        rel: 'alternate',
-        hreflang,
-        href: buildMarketUrl(market, suffix),
-    }))
-    links.push({
-        rel: 'alternate',
-        hreflang: 'x-default',
-        href: buildMarketUrl('en', suffix),
-    })
-    return links
+// DE ist die einzige Sprache, die Google indexieren soll. Alle anderen Märkte bleiben
+// für Nutzer erreichbar (Sprachumschalter), tragen aber noindex, damit Google keine
+// fremdsprachigen Duplikate der deutschen Seiten bewertet.
+export function robotsFor(market: Market): string {
+    return market === 'de' ? 'index, follow' : 'noindex, follow'
+}
+
+// Pfadbasierte Variante für Seiten ohne eigenes useHead (z. B. /en/login): App.vue setzt
+// damit ein Sicherheitsnetz, die Views überschreiben es mit robotsFor(market).
+const NON_DE_PATH = /^\/(en|gb|us|no|se)(\/|$)/
+
+export function robotsForPath(path: string): string {
+    return NON_DE_PATH.test(path) ? 'noindex, follow' : 'index, follow'
 }
 
 /** Composable für Vue-Komponenten - baut auf den reinen Funktionen auf */
@@ -87,9 +80,7 @@ export function useMarketRoute() {
         return buildMarketUrl(market, suffix)
     }
 
-    function hreflangLinks(suffix = '') {
-        return getHreflangLinks(suffix)
-    }
+    const robots = computed(() => robotsFor(currentMarket.value))
 
     return {
         currentMarket,
@@ -98,6 +89,6 @@ export function useMarketRoute() {
         isGB,
         isUS,
         marketUrl,
-        hreflangLinks,
+        robots,
     }
 }

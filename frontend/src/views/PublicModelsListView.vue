@@ -426,7 +426,7 @@ import { useMarketRoute, getMarketBasePath, OG_LOCALE, MARKET_HTML_LANG } from '
 const { t } = useI18n()
 const { formatCostPerKwh } = useLocaleFormat()
 const router = useRouter()
-const { currentMarket, isDE, isEN, isGB, isUS, marketUrl, hreflangLinks } = useMarketRoute()
+const { currentMarket, isDE, isEN, isGB, isUS, marketUrl, robots } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
 const loginPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/login' : '/login')
 const registerPath = computed(() => (isEN.value || isGB.value || isUS.value) ? '/en/register' : '/register')
@@ -697,7 +697,7 @@ useHead(computed(() => {
     meta: [
       { name: 'description', content: t('models_list.meta_description') },
       { name: 'keywords', content: t('models_list.meta_keywords') },
-      { name: 'robots', content: 'index, follow' },
+      { name: 'robots', content: robots.value },
       { property: 'og:title', content: t('models_list.og_title') },
       { property: 'og:description', content: t('models_list.og_description') },
       { property: 'og:type', content: 'website' },
@@ -709,7 +709,6 @@ useHead(computed(() => {
     ],
     link: [
       { rel: 'canonical', href: canonical },
-      ...hreflangLinks(),
     ],
     script: [
       { type: 'application/ld+json', innerHTML: () => JSON.stringify(itemListJsonLd.value) },

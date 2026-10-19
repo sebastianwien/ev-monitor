@@ -188,7 +188,7 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated())
 const { formatNumber } = useLocaleFormat()
-const { currentMarket, isDE, isEN, isGB, isUS, marketUrl, hreflangLinks } = useMarketRoute()
+const { currentMarket, isDE, isEN, isGB, isUS, marketUrl, robots } = useMarketRoute()
 
 const route = useRoute()
 const router = useRouter()
@@ -235,7 +235,7 @@ useHead(computed(() => {
     const brandParam = route.params.brand as string
     return {
       title: 'EV Monitor',
-      meta: [{ name: 'robots', content: 'index, follow' }],
+      meta: [{ name: 'robots', content: robots.value }],
       link: [{ rel: 'canonical', href: marketUrl(currentMarket.value, `/${brandParam}`) }]
     }
   }
@@ -283,7 +283,7 @@ useHead(computed(() => {
     meta: [
       { name: 'description', content: description },
       { name: 'keywords', content: keywords },
-      { name: 'robots', content: 'index, follow' },
+      { name: 'robots', content: robots.value },
       { property: 'og:title', content: t('brand.og_title', { brand: name, year: currentYear }) },
       { property: 'og:description', content: description },
       { property: 'og:type', content: 'website' },
@@ -295,7 +295,6 @@ useHead(computed(() => {
     ],
     link: [
       { rel: 'canonical', href: canonicalUrl },
-      ...hreflangLinks(suffix),
     ],
     script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify(breadcrumbJsonLd) },
