@@ -150,6 +150,26 @@ class XpengChargeMatcherTest {
         assertNull(captor.getValue().getKwhAtVehicle());
     }
 
+    // -- Regression Meigor 09.10.2026: Telemetrie deckte nur ~7 min eines 64-kWh-DC-Ladevorgangs ab.
+    // Das 1,4-kWh-Fragment darf nicht als Netto-Wert in den manuellen 64,3-kWh-Log (2 % "Effizienz").
+    @Test
+    void leavesKwhAtVehicleEmptyWhenTelemetryCoversOnlyFragmentOfLoggedCharge() {
+        LocalDateTime base = LocalDateTime.of(2026, 10, 9, 15, 37);
+        DetectedChargingSession fragment = session(new BigDecimal("21979"),
+                new BigDecimal("1.45"), new BigDecimal("1.395"), base.plusMinutes(10), base.plusMinutes(17));
+        EvLog manual = logBuilder(21979, base).kwhCharged(new BigDecimal("64.3")).build();
+        when(evLogRepository.findChargeMatchCandidates(eq(CAR), anyInt(), anyInt(),
+                any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(List.of(manual));
+
+        XpengChargeMatcher.MatchResult result = matcher.matchAndEnrich(CAR, List.of(fragment));
+
+        ArgumentCaptor<EvLog> captor = ArgumentCaptor.forClass(EvLog.class);
+        verify(evLogService).save(captor.capture());
+        assertNull(captor.getValue().getKwhAtVehicle());
+        assertTrue(result.unmatched().isEmpty(), "Fragment gehoert zum Log, kein eigener Import-Log");
+    }
+
     // -- Szenario B: AC morgens (odo 14000) + DC nachmittags (odo 14150) am gleichen Tag
     @Test
     void differentOdometersGoToDifferentLogs() {

@@ -49,6 +49,8 @@ public class XpengChargeMatcher {
 
     /** Wie weit logged_at von der Session-Range abweichen darf - faengt Nachtladungen + TZ-Drift ab. */
     private static final Duration TIME_SLACK = Duration.ofDays(1);
+    // Gleiche Untergrenze wie XpengChargeDetector.MIN_NET_GROSS_RATIO: darunter ist die Datenbasis unbrauchbar.
+    private static final BigDecimal MIN_GROSS_COVERAGE = new BigDecimal("0.70");
 
     private static final ObjectMapper EXTRAS_MAPPER = new ObjectMapper();
 
@@ -97,6 +99,23 @@ public class XpengChargeMatcher {
 
     private enum GroupOutcome { ENRICHED, SKIPPED, NO_MATCH }
 
+    /**
+     * Die Telemetrie bricht bei DC-Ladungen gelegentlich ab (Fahrzeug schläft); der Detector
+     * liefert dann nur ein Fragment der Ladung. Dessen Netto-Wert als kwh_at_vehicle eines
+     * vollständig erfassten Logs ergäbe eine absurde "Effizienz" (Meigor 09.10.2026: 1,4 von 64,3 kWh).
+     * Deckt die Brutto-Summe der Sessions weniger als MIN_GROSS_COVERAGE des Log-Bruttos ab,
+     * gilt die Telemetrie als unvollständig.
+     */
+    private static boolean telemetryCoversLoggedCharge(EvLog log, List<DetectedChargingSession> group) {
+        if (log.getKwhCharged() == null || log.getKwhCharged().signum() <= 0) return true;
+        BigDecimal ratio = groupGrossKwh(group).divide(log.getKwhCharged(), 4, RoundingMode.HALF_UP);
+        return ratio.compareTo(MIN_GROSS_COVERAGE) >= 0;
+    }
+
+    private static BigDecimal groupGrossKwh(List<DetectedChargingSession> group) {
+        return group.stream().map(DetectedChargingSession::kwhCharged).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     private GroupOutcome tryEnrichGroup(UUID carId, int odoKm, List<DetectedChargingSession> group) {
         // Zeitbereich der Gruppe
         Instant earliestStart = group.stream()
@@ -143,6 +162,11 @@ public class XpengChargeMatcher {
             kwhSum = kwhSum.add(s.kwhAtVehicle());
         }
         if (kwhSum != null) kwhSum = kwhSum.setScale(4, RoundingMode.HALF_UP);
+        if (kwhSum != null && !telemetryCoversLoggedCharge(best, group)) {
+            log.info("XpengChargeMatcher: log {} Brutto {} kWh, Telemetrie nur {} kWh - kwh_at_vehicle bleibt leer",
+                    best.getId(), best.getKwhCharged(), groupGrossKwh(group));
+            kwhSum = null;
+        }
 
         // Max-Power: groesster maxPower-Wert der Gruppe (z.B. erste Session 3.9 kW, zweite 10.1 kW -> 10.1)
         BigDecimal groupMaxPower = group.stream()
