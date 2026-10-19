@@ -32,6 +32,7 @@ import AdminVoiceUsageTab from '../components/admin/AdminVoiceUsageTab.vue'
 import AdminRatingsTab from '../components/admin/AdminRatingsTab.vue'
 import AdminSpecsTab from '../components/admin/AdminSpecsTab.vue'
 import AdminSpecSuggestionsTab from '../components/admin/AdminSpecSuggestionsTab.vue'
+import AdminSeoTab from '../components/admin/AdminSeoTab.vue'
 import { adminRatingService } from '../api/adminRatingService'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
@@ -41,8 +42,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'voice' | 'ratings' | 'specs' | 'vorschlaege' | 'wartung'
-const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'stripe', 'webhooks', 'imports', 'surveys', 'voice', 'ratings', 'specs', 'vorschlaege', 'impersonate', 'wartung']
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'traffic' | 'seo' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'voice' | 'ratings' | 'specs' | 'vorschlaege' | 'wartung'
+const TABS: Tab[] = ['users', 'growth', 'activity', 'traffic', 'seo', 'stripe', 'webhooks', 'imports', 'surveys', 'voice', 'ratings', 'specs', 'vorschlaege', 'impersonate', 'wartung']
 /** Offene Erfahrungstexte für das Tab-Label, beim Öffnen der Seite einmal geladen. */
 const openRatingTexts = ref<number | null>(null)
 adminRatingService.openCount().then(n => { openRatingTexts.value = n }).catch(() => { /* Label ohne Zahl */ })
@@ -489,6 +490,7 @@ const onResizeUp = () => {
             { key: 'growth', label: 'User-Wachstum' },
             { key: 'activity', label: 'Ladeaktivitat' },
             { key: 'traffic', label: 'Traffic' },
+            { key: 'seo', label: 'SEO & Traffic' },
             { key: 'stripe', label: 'Stripe' },
             { key: 'webhooks', label: 'Smartcar-Ladungen' },
             { key: 'imports', label: 'Importe' },
@@ -762,6 +764,9 @@ const onResizeUp = () => {
           </template>
         </div>
       </div>
+
+      <!-- Tab: SEO & Traffic -->
+      <AdminSeoTab v-else-if="activeTab === 'seo'" />
 
       <!-- Tab: Stripe -->
       <AdminStripeTab v-else-if="activeTab === 'stripe'" />
