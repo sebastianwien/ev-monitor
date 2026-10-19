@@ -9,6 +9,8 @@ import com.evmonitor.application.seo.SeoInsights.QueryRow;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository.DayTotals;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository.PageTotals;
+import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository;
+import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.RegistrationTotals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,11 +35,14 @@ class SeoInsightsServiceTest {
     private static final LocalDate LATEST = LocalDate.of(2026, 10, 16);
 
     private final GscDailyRepository repository = mock(GscDailyRepository.class);
-    private final SeoInsightsService service = new SeoInsightsService(repository, new SeoScoringProperties(), CLOCK);
+    private final SeoAttributionRepository attribution = mock(SeoAttributionRepository.class);
+    private final SeoInsightsService service = new SeoInsightsService(repository, attribution, new SeoScoringProperties(), CLOCK);
 
     @BeforeEach
     void setUp() {
         when(repository.latestDay()).thenReturn(Optional.of(LATEST));
+        when(attribution.registrationTotals(any(), any())).thenReturn(RegistrationTotals.EMPTY);
+        when(attribution.registrationsByLandingPath(any(), any())).thenReturn(Map.of());
     }
 
     @Test
@@ -47,6 +53,8 @@ class SeoInsightsServiceTest {
                 new DayTotals(from.plusDays(1), 20, 300, 6.0)));
         when(repository.dayTotals(from.minusDays(7), from.minusDays(1))).thenReturn(List.of(
                 new DayTotals(from.minusDays(3), 10, 200, 10.0)));
+        when(attribution.registrationTotals(from, LATEST)).thenReturn(new RegistrationTotals(12, 5));
+        when(attribution.registrationTotals(from.minusDays(7), from.minusDays(1))).thenReturn(new RegistrationTotals(4, 1));
 
         Overview o = service.overview(7);
 
@@ -59,6 +67,9 @@ class SeoInsightsServiceTest {
         assertThat(o.current().avgPosition()).isEqualTo(6.5);
         assertThat(o.previous().impressions()).isEqualTo(200);
         assertThat(o.previous().avgPosition()).isEqualTo(10.0);
+        assertThat(o.current().registrations()).isEqualTo(12);
+        assertThat(o.current().organicRegistrations()).isEqualTo(5);
+        assertThat(o.previous().registrations()).isEqualTo(4);
         // Tagesreihe lückenlos über das Fenster, fehlende Tage mit 0
         assertThat(o.days()).hasSize(7);
         assertThat(o.days().get(0).impressions()).isEqualTo(100);
@@ -91,16 +102,25 @@ class SeoInsightsServiceTest {
                 new PageTotals("/impressum", 5, 100, 30.0)));
         when(repository.pathsWithImpressions(from.minusDays(90), from.minusDays(1)))
                 .thenReturn(List.of("/modelle/Alpha/One", "/modelle/Delta/Four"));
+        when(attribution.registrationsByLandingPath(from, LATEST))
+                .thenReturn(Map.of("/modelle/Alpha/One", 7L, "/forum-landing", 2L));
 
         List<PageRow> all = service.pages(28, PageFilter.ALL);
 
         assertThat(all).extracting(PageRow::path)
-                .containsExactly("/modelle/Alpha/One", "/modelle/Beta/Two", "/modelle/Gamma/Three", "/impressum", "/modelle/Delta/Four");
+                .containsExactly("/modelle/Alpha/One", "/modelle/Beta/Two", "/modelle/Gamma/Three", "/impressum",
+                        "/forum-landing", "/modelle/Delta/Four");
+        assertThat(all.get(0).registrations()).isEqualTo(7);
+        assertThat(all.get(1).registrations()).isZero();
+        // Landing-Seite ohne Google-Sichtbarkeit bleibt sichtbar, Registrierungen vor toten Seiten
+        assertThat(all.get(4).registrations()).isEqualTo(2);
+        assertThat(all.get(4).impressions()).isZero();
+        assertThat(all.get(4).finding()).isNull();
         assertThat(all.get(1).finding()).isEqualTo("UNDERRATED");
         assertThat(all.get(1).ctr()).isEqualTo(0.01);
         assertThat(all.get(0).finding()).isNull();
-        assertThat(all.get(4).finding()).isEqualTo("DEAD");
-        assertThat(all.get(4).impressions()).isZero();
+        assertThat(all.get(5).finding()).isEqualTo("DEAD");
+        assertThat(all.get(5).impressions()).isZero();
 
         assertThat(service.pages(28, PageFilter.UNDERRATED)).extracting(PageRow::path).containsExactly("/modelle/Beta/Two");
         assertThat(service.pages(28, PageFilter.DEAD)).extracting(PageRow::path).containsExactly("/modelle/Delta/Four");

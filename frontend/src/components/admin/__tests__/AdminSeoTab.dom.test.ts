@@ -28,13 +28,13 @@ const status: SeoStatus = {
 }
 const overview: SeoOverview = {
     periodDays: 28, from: '2026-09-19', to: '2026-10-16',
-    current: { impressions: 184200, clicks: 6410, ctr: 0.0348, avgPosition: 14.2 },
-    previous: { impressions: 164500, clicks: 5930, ctr: 0.036, avgPosition: 15.3 },
+    current: { impressions: 184200, clicks: 6410, ctr: 0.0348, avgPosition: 14.2, registrations: 37, organicRegistrations: 21 },
+    previous: { impressions: 164500, clicks: 5930, ctr: 0.036, avgPosition: 15.3, registrations: 30, organicRegistrations: 18 },
     days: [{ day: '2026-10-15', impressions: 100, clicks: 3 }, { day: '2026-10-16', impressions: 120, clicks: 4 }],
 }
 const pages: SeoPageRow[] = [
-    { path: '/modelle/Alpha/One', impressions: 41300, clicks: 1820, ctr: 0.044, avgPosition: 6.1, finding: null },
-    { path: '/modelle/Beta/Two', impressions: 28900, clicks: 610, ctr: 0.021, avgPosition: 9.8, finding: 'UNDERRATED' },
+    { path: '/modelle/Alpha/One', impressions: 41300, clicks: 1820, ctr: 0.044, avgPosition: 6.1, registrations: 9, finding: null },
+    { path: '/modelle/Beta/Two', impressions: 28900, clicks: 610, ctr: 0.021, avgPosition: 9.8, registrations: 0, finding: 'UNDERRATED' },
 ]
 const queries: SeoQueryRow[] = [
     { query: 'alpha one verbrauch <b>x</b>', brand: false, impressions: 12400, clicks: 980, ctr: 0.079, avgPosition: 3.2,
@@ -78,6 +78,10 @@ describe('AdminSeoTab', () => {
         expect(text).toContain('14,2')
         expect(text).toContain('+12 % zum Vorzeitraum')
         expect(text).toContain('besser um 1,1')
+        expect(text).toContain('Registrierungen')
+        expect(text).toContain('37')
+        expect(text).toContain('+23 % zum Vorzeitraum')
+        expect(text).toContain('0,2')
         expect(text).toContain('1.234 Zeilen')
         expect(host.querySelectorAll('.chart').length).toBe(1)
     })
@@ -99,6 +103,8 @@ describe('AdminSeoTab', () => {
         expect(getSeoPages).toHaveBeenLastCalledWith(90, 'ALL')
         expect(host.textContent).toContain('/modelle/Beta/Two')
         expect(host.textContent).toContain('Unterschätzt')
+        expect(host.textContent).toContain('Reg.')
+        expect(host.querySelector('td.text-emerald-300')?.textContent?.trim()).toBe('9')
 
         click(host, 'Tot')
         await nextTick()

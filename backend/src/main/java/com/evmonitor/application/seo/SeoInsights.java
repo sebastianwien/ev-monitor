@@ -15,8 +15,10 @@ public final class SeoInsights {
 
     public enum BrandFilter { ALL, BRAND, NON_BRAND }
 
-    public record Totals(long impressions, long clicks, double ctr, double avgPosition) {
-        public static final Totals EMPTY = new Totals(0, 0, 0, 0);
+    /** registrations: angelegte Konten im Zeitraum (DB), organicRegistrations: davon mit Google-Verweis ohne bezahltes Medium. */
+    public record Totals(long impressions, long clicks, double ctr, double avgPosition,
+                         long registrations, long organicRegistrations) {
+        public static final Totals EMPTY = new Totals(0, 0, 0, 0, 0, 0);
     }
 
     public record DayPoint(LocalDate day, long impressions, long clicks) {
@@ -26,8 +28,9 @@ public final class SeoInsights {
                            List<DayPoint> days) {
     }
 
-    /** finding: UNDERRATED, DEAD oder null. */
-    public record PageRow(String path, long impressions, long clicks, double ctr, double avgPosition, String finding) {
+    /** finding: UNDERRATED, DEAD oder null; registrations: Konten, deren erste Seite dieser Pfad war. */
+    public record PageRow(String path, long impressions, long clicks, double ctr, double avgPosition,
+                          long registrations, String finding) {
     }
 
     /** finding: STRIKING_DISTANCE, CANNIBALIZED oder null; topPath = Seite mit den meisten Klicks. */

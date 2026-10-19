@@ -11,6 +11,8 @@ import com.evmonitor.application.seo.SeoInsights.Totals;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository.DayTotals;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository.PageTotals;
+import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository;
+import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.RegistrationTotals;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -40,16 +42,19 @@ public class SeoInsightsService {
     private static final int FALLBACK_LAG_DAYS = 2;
 
     private final GscDailyRepository repository;
+    private final SeoAttributionRepository attribution;
     private final SeoScoringProperties scoring;
     private final Clock clock;
 
     @Autowired
-    public SeoInsightsService(GscDailyRepository repository, SeoScoringProperties scoring) {
-        this(repository, scoring, Clock.systemDefaultZone());
+    public SeoInsightsService(GscDailyRepository repository, SeoAttributionRepository attribution, SeoScoringProperties scoring) {
+        this(repository, attribution, scoring, Clock.systemDefaultZone());
     }
 
-    SeoInsightsService(GscDailyRepository repository, SeoScoringProperties scoring, Clock clock) {
+    SeoInsightsService(GscDailyRepository repository, SeoAttributionRepository attribution, SeoScoringProperties scoring,
+                       Clock clock) {
         this.repository = repository;
+        this.attribution = attribution;
         this.scoring = scoring;
         this.clock = clock;
     }
@@ -66,7 +71,10 @@ public class SeoInsightsService {
             DayTotals t = byDay.get(d);
             series.add(new DayPoint(d, t == null ? 0 : t.impressions(), t == null ? 0 : t.clicks()));
         }
-        return new Overview(days, w.from, w.to, totals(current), totals(previous), series);
+        Window prev = new Window(w.from.minusDays(days), w.from.minusDays(1));
+        return new Overview(days, w.from, w.to,
+                totals(current, attribution.registrationTotals(w.from, w.to)),
+                totals(previous, attribution.registrationTotals(prev.from, prev.to)), series);
     }
 
     public List<PageRow> pages(int days, PageFilter filter) {
@@ -76,14 +84,19 @@ public class SeoInsightsService {
         double medianImpressions = median(visible, p -> p.impressions());
         double medianCtr = median(visible, p -> ctr(p.clicks(), p.impressions()));
 
+        Map<String, Long> registrations = attribution.registrationsByLandingPath(w.from, w.to);
         List<PageRow> rows = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (PageTotals p : totals) {
             seen.add(p.path());
             String finding = isUnderrated(p, medianImpressions, medianCtr) ? FINDING_UNDERRATED : null;
             rows.add(new PageRow(p.path(), p.impressions(), p.clicks(), ctr(p.clicks(), p.impressions()),
-                    round2(p.avgPosition()), finding));
+                    round2(p.avgPosition()), registrations.getOrDefault(p.path(), 0L), finding));
         }
+        // Landing-Seiten mit Registrierungen, aber ohne Google-Sichtbarkeit (Forum, Kampagne, direkt)
+        registrations.forEach((path, n) -> {
+            if (seen.add(path)) rows.add(new PageRow(path, 0, 0, 0, 0, n, null));
+        });
         Set<String> alive = new HashSet<>();
         visible.forEach(p -> alive.add(p.path()));
         List<String> previously = repository.pathsWithImpressions(w.from.minusDays(scoring.getDeadLookbackDays()), w.from.minusDays(1));
@@ -92,7 +105,7 @@ public class SeoInsightsService {
             if (seen.contains(path)) {
                 rows.replaceAll(r -> r.path().equals(path) ? withFinding(r, FINDING_DEAD) : r);
             } else {
-                rows.add(new PageRow(path, 0, 0, 0, 0, FINDING_DEAD));
+                rows.add(new PageRow(path, 0, 0, 0, 0, 0, FINDING_DEAD));
             }
         }
 
@@ -102,7 +115,9 @@ public class SeoInsightsService {
                     case UNDERRATED -> FINDING_UNDERRATED.equals(r.finding());
                     case DEAD -> FINDING_DEAD.equals(r.finding());
                 })
-                .sorted(Comparator.comparingLong(PageRow::impressions).reversed().thenComparing(PageRow::path))
+                .sorted(Comparator.comparingLong(PageRow::impressions).reversed()
+                        .thenComparing(Comparator.comparingLong(PageRow::registrations).reversed())
+                        .thenComparing(PageRow::path))
                 .limit(scoring.getMaxRows())
                 .toList();
     }
@@ -170,10 +185,10 @@ public class SeoInsightsService {
     }
 
     private static PageRow withFinding(PageRow r, String finding) {
-        return new PageRow(r.path(), r.impressions(), r.clicks(), r.ctr(), r.avgPosition(), finding);
+        return new PageRow(r.path(), r.impressions(), r.clicks(), r.ctr(), r.avgPosition(), r.registrations(), finding);
     }
 
-    private static Totals totals(List<DayTotals> days) {
+    private static Totals totals(List<DayTotals> days, RegistrationTotals reg) {
         long impressions = 0;
         long clicks = 0;
         double weighted = 0;
@@ -182,8 +197,9 @@ public class SeoInsightsService {
             clicks += d.clicks();
             weighted += d.avgPosition() * d.impressions();
         }
-        if (impressions == 0 && clicks == 0) return Totals.EMPTY;
-        return new Totals(impressions, clicks, ctr(clicks, impressions), impressions > 0 ? round2(weighted / impressions) : 0);
+        if (impressions == 0 && clicks == 0 && reg.registrations() == 0) return Totals.EMPTY;
+        return new Totals(impressions, clicks, ctr(clicks, impressions), impressions > 0 ? round2(weighted / impressions) : 0,
+                reg.registrations(), reg.organic());
     }
 
     private static <T> double median(List<T> items, ToDoubleFunction<T> value) {

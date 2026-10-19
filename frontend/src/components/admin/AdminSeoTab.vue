@@ -4,7 +4,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Line } from 'vue-chartjs'
 import {
   getSeoOverview, getSeoPages, getSeoQueries, getSeoStatus, triggerSeoSync,
-  type SeoBrandFilter, type SeoOverview, type SeoPageFilter, type SeoPageRow, type SeoPeriod,
+  type SeoBrandFilter, type SeoOverview, type SeoPageFilter, type SeoPageRow, type SeoPeriod, type SeoTotals,
   type SeoQueryFilter, type SeoQueryRow, type SeoStatus,
 } from '../../api/seoService'
 
@@ -121,6 +121,10 @@ const tiles = computed<Tile[]>(() => {
   const p = o.previous
   const imp = relDelta(c.impressions, p.impressions)
   const clk = relDelta(c.clicks, p.clicks)
+  const reg = relDelta(c.registrations, p.registrations)
+  const org = relDelta(c.organicRegistrations, p.organicRegistrations)
+  const perThousand = (t: SeoTotals) => (t.impressions ? (t.registrations / t.impressions) * 1000 : 0)
+  const ptDiff = perThousand(c) - perThousand(p)
   const ctrDiff = (c.ctr - p.ctr) * 100
   const posDiff = p.avgPosition && c.avgPosition ? p.avgPosition - c.avgPosition : 0
   return [
@@ -128,6 +132,9 @@ const tiles = computed<Tile[]>(() => {
     { label: 'Klicks', value: num(c.clicks), delta: clk.text, up: clk.up },
     { label: 'CTR', value: pct(c.ctr), delta: p.impressions ? `${ctrDiff > 0 ? '+' : ''}${ctrDiff.toFixed(1).replace('.', ',')} Pkt.` : 'kein Vorzeitraum', up: ctrDiff === 0 ? null : ctrDiff > 0 },
     { label: 'Ø Position', value: pos(c.avgPosition), delta: posDiff === 0 ? 'unverändert' : posDiff > 0 ? `besser um ${posDiff.toFixed(1).replace('.', ',')}` : `schlechter um ${(-posDiff).toFixed(1).replace('.', ',')}`, up: posDiff === 0 ? null : posDiff > 0 },
+    { label: 'Registrierungen', value: num(c.registrations), delta: reg.text, up: reg.up },
+    { label: 'davon Google organisch', value: num(c.organicRegistrations), delta: org.text, up: org.up },
+    { label: 'Registrierungen je 1 000 Impr.', value: perThousand(c).toFixed(1).replace('.', ','), delta: p.impressions ? `${ptDiff > 0 ? '+' : ''}${ptDiff.toFixed(1).replace('.', ',')} zum Vorzeitraum` : 'kein Vorzeitraum', up: ptDiff === 0 ? null : ptDiff > 0 },
   ]
 })
 
@@ -220,6 +227,7 @@ const btn = (active: boolean) => [
                 <th class="text-right px-3 py-2 font-medium">Klicks</th>
                 <th class="text-right px-3 py-2 font-medium">CTR</th>
                 <th class="text-right px-3 py-2 font-medium">Pos.</th>
+                <th class="text-right px-3 py-2 font-medium" title="Konten, deren erste besuchte Seite dieser Pfad war">Reg.</th>
                 <th class="text-left px-3 py-2 font-medium">Befund</th>
               </tr>
             </thead>
@@ -230,6 +238,7 @@ const btn = (active: boolean) => [
                 <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.clicks) }}</td>
                 <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.impressions ? pct(r.ctr) : '-' }}</td>
                 <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ pos(r.avgPosition) }}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums" :class="r.registrations ? 'text-emerald-300' : 'text-gray-500'">{{ r.registrations || '-' }}</td>
                 <td class="px-3 py-1.5">
                   <span v-if="r.finding" :class="['inline-block text-xs px-2 py-0.5 rounded-full', FINDING_LABELS[r.finding].cls]" :title="FINDING_LABELS[r.finding].hint">
                     {{ FINDING_LABELS[r.finding].label }}

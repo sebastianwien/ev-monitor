@@ -10,6 +10,8 @@ export interface SeoTotals {
     clicks: number
     ctr: number
     avgPosition: number
+    registrations: number
+    organicRegistrations: number
 }
 
 export interface SeoDayPoint {
@@ -33,6 +35,7 @@ export interface SeoPageRow {
     clicks: number
     ctr: number
     avgPosition: number
+    registrations: number
     finding: 'UNDERRATED' | 'DEAD' | null
 }
 
