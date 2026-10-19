@@ -4,7 +4,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,7 +18,6 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class SeoSyncRunEntity {
 
     public static final String STATUS_RUNNING = "RUNNING";
@@ -45,4 +43,19 @@ public class SeoSyncRunEntity {
     private LocalDate toDay;
     @Column(name = "error", columnDefinition = "TEXT")
     private String error;
+    /** Kosten bezahlter Abrufe (DataForSEO) in US-Dollar; null bei kostenlosen Quellen. */
+    @Column(name = "cost_usd", precision = 10, scale = 4)
+    private java.math.BigDecimal costUsd;
+
+    /** Neuer Lauf im Status RUNNING ohne Zeilen. */
+    public static SeoSyncRunEntity start(String source, LocalDateTime startedAt, LocalDate fromDay, LocalDate toDay) {
+        SeoSyncRunEntity run = new SeoSyncRunEntity();
+        run.id = UUID.randomUUID();
+        run.source = source;
+        run.startedAt = startedAt;
+        run.status = STATUS_RUNNING;
+        run.fromDay = fromDay;
+        run.toDay = toDay;
+        return run;
+    }
 }

@@ -252,6 +252,11 @@ seo:
   audit:
     base-url: ${SEO_AUDIT_BASE_URL:}
     pagespeed-api-key: ${PAGESPEED_API_KEY:}
+  # Unter-Tab "Wettbewerb" (DataForSEO): Login und API-Passwort aus app.dataforseo.com/api-access; leer = aus.
+  competition:
+    login: ${DATAFORSEO_LOGIN:}
+    password: ${DATAFORSEO_PASSWORD:}
+    monthly-budget-usd: ${DATAFORSEO_MONTHLY_BUDGET_USD:5}
 
 # Stripe Payment Integration
 stripe:

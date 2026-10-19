@@ -75,8 +75,7 @@ public class PlausibleSyncService {
     }
 
     public SyncResult sync(LocalDate from, LocalDate to) {
-        SeoSyncRunEntity run = new SeoSyncRunEntity(UUID.randomUUID(), SOURCE_PLAUSIBLE, LocalDateTime.now(clock), null,
-                SeoSyncRunEntity.STATUS_RUNNING, 0, from, to, null);
+        SeoSyncRunEntity run = SeoSyncRunEntity.start(SOURCE_PLAUSIBLE, LocalDateTime.now(clock), from, to);
         runs.save(run);
 
         int windows = 0;

@@ -113,4 +113,25 @@ class AdminSeoControllerIntegrationTest extends AbstractIntegrationTest {
                 createAuthRequest(admin.getId(), admin.getEmail()), String.class);
         assertThat(run.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
+
+    @Test
+    void competitionIsAdminOnlyShowsEmptyStateAndRunWithoutAccessIsConflict() {
+        User user = createAndSaveUser("seo-user-" + System.nanoTime() + "@example.com");
+        User admin = createAndSaveAdminUser("seo-admin-" + System.nanoTime() + "@example.com");
+
+        assertThat(restTemplate.exchange("/api/admin/seo/competition", HttpMethod.GET,
+                createAuthRequest(user.getId(), user.getEmail()), String.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        ResponseEntity<String> view = restTemplate.exchange("/api/admin/seo/competition?days=28", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(view.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(view.getBody()).contains("\"enabled\":false").contains("\"competitors\":[]");
+        assertThat(restTemplate.exchange("/api/admin/seo/competition/keywords", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class).getBody()).isEqualTo("[]");
+        assertThat(restTemplate.exchange("/api/admin/seo/competition?days=10", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(restTemplate.exchange("/api/admin/seo/competition/run", HttpMethod.POST,
+                createAuthRequest(user.getId(), user.getEmail()), String.class).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(restTemplate.exchange("/api/admin/seo/competition/run", HttpMethod.POST,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
 }

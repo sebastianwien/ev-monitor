@@ -65,8 +65,7 @@ public class SeoSyncService {
     }
 
     public SyncResult sync(LocalDate from, LocalDate to) {
-        SeoSyncRunEntity run = new SeoSyncRunEntity(UUID.randomUUID(), SOURCE_GSC, LocalDateTime.now(clock), null,
-                SeoSyncRunEntity.STATUS_RUNNING, 0, from, to, null);
+        SeoSyncRunEntity run = SeoSyncRunEntity.start(SOURCE_GSC, LocalDateTime.now(clock), from, to);
         runs.save(run);
 
         int days = 0;

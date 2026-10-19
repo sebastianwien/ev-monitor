@@ -81,8 +81,7 @@ public class SeoAuditService {
 
     public AuditResult run() {
         LocalDate today = LocalDate.now(deps.clock());
-        SeoSyncRunEntity run = new SeoSyncRunEntity(UUID.randomUUID(), SOURCE_AUDIT, LocalDateTime.now(deps.clock()), null,
-                SeoSyncRunEntity.STATUS_RUNNING, 0, today, today, null);
+        SeoSyncRunEntity run = SeoSyncRunEntity.start(SOURCE_AUDIT, LocalDateTime.now(deps.clock()), today, today);
         runs.save(run);
 
         List<String> sitemap;
