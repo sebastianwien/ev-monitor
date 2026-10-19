@@ -42,6 +42,8 @@ import java.util.UUID;
 public class SeoAuditService {
 
     public static final String SOURCE_AUDIT = "AUDIT";
+    /** Linkziel antwortet, soll aber nicht in den Index: kein kaputter Link, nur ein Hinweis. */
+    private static final String NOINDEX = "noindex";
     private static final TypeReference<List<Finding>> FINDINGS = new TypeReference<>() {
     };
 
@@ -108,7 +110,12 @@ public class SeoAuditService {
             List<Finding> findings = new ArrayList<>(r.findings());
             for (String link : r.links()) {
                 String problem = problems.get(link);
-                if (problem != null) findings.add(new Finding(Check.BROKEN_LINK, Severity.ERROR, "Link auf " + link + ": " + problem));
+                if (problem == null) continue;
+                if (NOINDEX.equals(problem)) {
+                    findings.add(new Finding(Check.NOINDEX_LINK, Severity.WARNING, "Link auf " + link + ", die Seite trägt noindex"));
+                } else {
+                    findings.add(new Finding(Check.BROKEN_LINK, Severity.ERROR, "Link auf " + link + ": " + problem));
+                }
             }
             if (!"/".equals(r.path()) && inbound.getOrDefault(r.path(), 0) == 0) {
                 findings.add(new Finding(Check.ORPHAN, Severity.WARNING, "Keine andere Seite der Sitemap verlinkt hierher"));
@@ -153,11 +160,11 @@ public class SeoAuditService {
                 .anyMatch(prefix -> path.equals(prefix) || path.startsWith(prefix + "/"));
     }
 
-    /** Warum ein Linkziel kaputt ist; leer, wenn es mit 200 und ohne noindex antwortet. */
+    /** Warum ein Linkziel auffällt: Fehlerstatus (kaputt) oder {@link #NOINDEX}; leer bei 200 ohne noindex. */
     private static Optional<String> problemOf(PageReport r) {
         if (r.status() == 0) return Optional.of("nicht erreichbar");
         if (r.status() != 200) return Optional.of("HTTP " + r.status());
-        if (r.noindex()) return Optional.of("noindex");
+        if (r.noindex()) return Optional.of(NOINDEX);
         return Optional.empty();
     }
 

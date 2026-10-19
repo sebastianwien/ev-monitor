@@ -12,7 +12,7 @@ public final class SeoAudit {
     private SeoAudit() {
     }
 
-    public enum Check { STATUS, NOINDEX, CANONICAL, TITLE, DESCRIPTION, H1, JSONLD, PRERENDER, BROKEN_LINK, ORPHAN, CWV }
+    public enum Check { STATUS, NOINDEX, CANONICAL, TITLE, DESCRIPTION, H1, JSONLD, PRERENDER, BROKEN_LINK, NOINDEX_LINK, ORPHAN, CWV }
 
     public enum Severity { ERROR, WARNING }
 

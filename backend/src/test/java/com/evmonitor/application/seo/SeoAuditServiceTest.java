@@ -80,11 +80,12 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
         when(crawler.sitemapPaths()).thenReturn(List.of("/", "/modelle", "/blog", "/verwaist"));
         when(crawler.fetch("/")).thenReturn(new Fetched(200, html("/", "<a href=\"/modelle\">m</a><a href=\"/blog\">b</a>")));
         when(crawler.fetch("/modelle")).thenReturn(new Fetched(200, html("/modelle",
-                "<a href=\"/blog\">b</a><a href=\"/kaputt\">k</a><a href=\"/en/models\">en</a><a href=\"/login\">l</a>")));
+                "<a href=\"/blog\">b</a><a href=\"/kaputt\">k</a><a href=\"/en/models\">en</a><a href=\"/login\">l</a><a href=\"/duenn\">d</a>")));
         when(crawler.fetch("/blog")).thenReturn(new Fetched(200, html("/blog", "<a href=\"/\">start</a>")));
         when(crawler.fetch("/verwaist")).thenReturn(new Fetched(200, html("/verwaist", "")));
         when(crawler.fetch("/kaputt")).thenReturn(new Fetched(404, ""));
         when(crawler.fetch("/login")).thenReturn(new Fetched(200, html("/login", "")));
+        when(crawler.fetch("/duenn")).thenReturn(new Fetched(200, html("/duenn", "").replace("<h1>", "<meta name=\"robots\" content=\"noindex\"><h1>")));
     }
 
     private Map<String, AuditRow> rows() {
@@ -100,17 +101,19 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
 
         assertThat(result.status()).isEqualTo(SeoSyncRunEntity.STATUS_SUCCESS);
         assertThat(result.pages()).isEqualTo(4);
-        assertThat(result.extraUrls()).isEqualTo(2);
+        assertThat(result.extraUrls()).isEqualTo(3);
         verify(crawler, never()).fetch("/en/models");
 
         Map<String, AuditRow> rows = rows();
         assertThat(rows).containsOnlyKeys("/", "/modelle", "/blog", "/verwaist");
-        assertThat(rows.get("/modelle").findings()).extracting(Finding::check).containsExactly(Check.BROKEN_LINK);
+        assertThat(rows.get("/modelle").findings()).extracting(Finding::check).containsExactly(Check.BROKEN_LINK, Check.NOINDEX_LINK);
         assertThat(rows.get("/modelle").findings().get(0).message()).contains("/kaputt").contains("404");
+        assertThat(rows.get("/modelle").findings().get(1).message()).contains("/duenn");
         assertThat(rows.get("/verwaist").findings()).extracting(Finding::check).containsExactly(Check.ORPHAN);
         assertThat(rows.get("/").findings()).isEmpty();
         assertThat(rows.get("/modelle").errors()).isEqualTo(1);
-        assertThat(rows.get("/modelle").score()).isEqualTo(80);
+        assertThat(rows.get("/modelle").warnings()).isEqualTo(1);
+        assertThat(rows.get("/modelle").score()).isEqualTo(75);
 
         View view = service.view();
         assertThat(view.summary().checked()).isEqualTo(4);
@@ -136,6 +139,7 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
 
         assertThat(service.run().extraUrls()).isEqualTo(1);
         verify(crawler, never()).fetch("/login");
+        verify(crawler, never()).fetch("/duenn");
     }
 
     @Test

@@ -4,7 +4,7 @@ export type SeoAuditFilter = 'ALL' | 'ERRORS' | SeoAuditCheck
 
 /** Reihenfolge der Filter-Chips: schwerste Prüfungen zuerst. */
 export const CHECK_ORDER: SeoAuditCheck[] = ['STATUS', 'NOINDEX', 'PRERENDER', 'CANONICAL', 'JSONLD', 'BROKEN_LINK',
-    'DESCRIPTION', 'TITLE', 'H1', 'ORPHAN', 'CWV']
+    'DESCRIPTION', 'TITLE', 'H1', 'NOINDEX_LINK', 'ORPHAN', 'CWV']
 
 export const CHECK_LABELS: Record<SeoAuditCheck, { label: string; hint: string }> = {
     STATUS: { label: 'Status', hint: 'Seite antwortet Googlebot nicht mit 200' },
@@ -12,7 +12,8 @@ export const CHECK_LABELS: Record<SeoAuditCheck, { label: string; hint: string }
     PRERENDER: { label: 'Prerender', hint: 'Modellseite ohne JS: Modellname im H1, Verbrauch in kWh/100 km, keine Meilen oder Dollar' },
     CANONICAL: { label: 'Canonical', hint: 'Genau ein Canonical, das auf die Seite selbst zeigt' },
     JSONLD: { label: 'JSON-LD', hint: 'Strukturierte Daten lesbar und Pflicht-Typen je Seitentyp vorhanden' },
-    BROKEN_LINK: { label: 'Kaputter Link', hint: 'Interner Link auf eine Seite mit Fehler oder noindex' },
+    BROKEN_LINK: { label: 'Kaputter Link', hint: 'Interner Link auf eine Seite mit Fehlerstatus oder ohne Antwort' },
+    NOINDEX_LINK: { label: 'Link auf noindex', hint: 'Interner Link auf eine Seite, die nicht in den Index soll' },
     DESCRIPTION: { label: 'Description', hint: 'Meta Description vorhanden, 70-155 Zeichen' },
     TITLE: { label: 'Title', hint: 'Title vorhanden, 30-60 Zeichen' },
     H1: { label: 'H1', hint: 'Genau ein H1' },

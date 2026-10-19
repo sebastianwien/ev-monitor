@@ -150,7 +150,7 @@ export async function triggerSeoSync(days: number): Promise<boolean> {
 }
 
 export type SeoAuditCheck = 'STATUS' | 'NOINDEX' | 'CANONICAL' | 'TITLE' | 'DESCRIPTION' | 'H1' | 'JSONLD' | 'PRERENDER'
-    | 'BROKEN_LINK' | 'ORPHAN' | 'CWV'
+    | 'BROKEN_LINK' | 'NOINDEX_LINK' | 'ORPHAN' | 'CWV'
 export type SeoAuditSeverity = 'ERROR' | 'WARNING'
 
 /** message enthält Seiteninhalte (Title, Linkziel): nur als Text rendern. */
