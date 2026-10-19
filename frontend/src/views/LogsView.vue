@@ -2382,8 +2382,6 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                         class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                         <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
                       </button>
-                      <DataFeedbackMenuItems v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id"
-                        @done="openMenuLogId = null" />
                       <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
                         <button role="menuitem" type="button" @click.stop="deleteLog(item.entry.id); openMenuLogId = null"
                           class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition focus:outline-none focus-visible:bg-red-50 dark:focus-visible:bg-red-900/30">
@@ -2468,6 +2466,11 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       {{ sourceInfo(item.entry.dataSource)!.label }}
                     </span>
                   </template>
+                  <!-- "Korrekt erkannt?" rechts in der zweiten Zeile, nur bei automatisch erfassten Ladungen -->
+                  <div v-if="isRateableLogSource(item.entry.dataSource)" class="ml-auto flex items-center gap-0.5" @click.stop>
+                    <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
+                    <DataFeedbackButtons subject-type="LOG" :subject-id="item.entry.id" compact />
+                  </div>
                 </div>
                 <DataFeedbackPanel v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id" class="mx-3 mb-2.5" />
               </div>
