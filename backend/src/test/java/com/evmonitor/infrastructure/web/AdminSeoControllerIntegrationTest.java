@@ -51,6 +51,23 @@ class AdminSeoControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void admin_getsMarketScopedDataDrilldownsBrandTrendAndOpportunities() {
+        User admin = createAndSaveAdminUser("seo-admin-" + System.nanoTime() + "@example.com");
+        for (String url : new String[] {"/api/admin/seo/overview?days=28&market=DE", "/api/admin/seo/pages?market=INTL",
+                "/api/admin/seo/queries?market=DE", "/api/admin/seo/pages/queries?path=/modelle", "/api/admin/seo/queries/pages?query=test",
+                "/api/admin/seo/brand-trend?weeks=12", "/api/admin/seo/opportunities?days=7&market=DE"}) {
+            ResponseEntity<String> res = restTemplate.exchange(url, HttpMethod.GET, createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+            assertThat(res.getStatusCode()).as(url).isEqualTo(HttpStatus.OK);
+        }
+        ResponseEntity<String> blank = restTemplate.exchange("/api/admin/seo/queries/pages?query=", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(blank.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        ResponseEntity<String> weeks = restTemplate.exchange("/api/admin/seo/brand-trend?weeks=500", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(weeks.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void admin_invalidPeriodOrFilterIsBadRequest() {
         User admin = createAndSaveAdminUser("seo-admin-" + System.nanoTime() + "@example.com");
 

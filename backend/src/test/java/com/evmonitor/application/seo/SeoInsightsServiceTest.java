@@ -7,7 +7,6 @@ import com.evmonitor.application.seo.SeoInsights.PageRow;
 import com.evmonitor.application.seo.SeoInsights.QueryFilter;
 import com.evmonitor.application.seo.SeoInsights.QueryRow;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository;
-import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository.DayTotals;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository.PageTotals;
 import com.evmonitor.application.seo.SeoInsights.CampaignRow;
 import com.evmonitor.application.seo.SeoInsights.ModelFilter;
@@ -68,18 +67,19 @@ class SeoInsightsServiceTest {
     @Test
     void overviewEndsAtLatestSyncedDayAndComparesWithPreviousWindow() {
         LocalDate from = LATEST.minusDays(6);
-        when(repository.dayTotals(from, LATEST)).thenReturn(List.of(
-                new DayTotals(from, 10, 100, 8.0),
-                new DayTotals(from.plusDays(1), 20, 300, 6.0)));
-        when(repository.dayTotals(from.minusDays(7), from.minusDays(1))).thenReturn(List.of(
-                new DayTotals(from.minusDays(3), 10, 200, 10.0)));
+        when(repository.pageDays(from, LATEST)).thenReturn(List.of(
+                new GscDailyRepository.PageRow(from, "/modelle/A", 10, 100, 8.0),
+                new GscDailyRepository.PageRow(from.plusDays(1), "/modelle/A", 15, 200, 6.0),
+                new GscDailyRepository.PageRow(from.plusDays(1), "/", 5, 100, 6.0)));
+        when(repository.pageDays(from.minusDays(7), from.minusDays(1))).thenReturn(List.of(
+                new GscDailyRepository.PageRow(from.minusDays(3), "/modelle/A", 10, 200, 10.0)));
         when(attribution.registrationTotals(from, LATEST)).thenReturn(new RegistrationTotals(12, 5));
         when(attribution.registrationTotals(from.minusDays(7), from.minusDays(1))).thenReturn(new RegistrationTotals(4, 1));
         when(plausible.dayTotals(from, LATEST)).thenReturn(List.of(
                 new DayRow(from, 50, 60, 200, 40, 120), new DayRow(from.plusDays(1), 70, 80, 300, 30, 100)));
         when(plausible.googleVisitsByDay(from, LATEST)).thenReturn(Map.of(from, 12L, from.plusDays(1), 18L));
 
-        Overview o = service.overview(7);
+        Overview o = service.overview(7, SeoMarket.ALL);
 
         assertThat(o.from()).isEqualTo(from);
         assertThat(o.to()).isEqualTo(LATEST);
@@ -107,9 +107,9 @@ class SeoInsightsServiceTest {
     @Test
     void overviewWithoutDataFallsBackToTwoDaysAgo() {
         when(repository.latestDay()).thenReturn(Optional.empty());
-        when(repository.dayTotals(any(), any())).thenReturn(List.of());
+        when(repository.pageDays(any(), any())).thenReturn(List.of());
 
-        Overview o = service.overview(28);
+        Overview o = service.overview(28, SeoMarket.ALL);
 
         assertThat(o.to()).isEqualTo(LocalDate.of(2026, 10, 17));
         assertThat(o.current()).isEqualTo(SeoInsights.Totals.EMPTY);
@@ -117,7 +117,7 @@ class SeoInsightsServiceTest {
 
     @Test
     void rejectsUnknownPeriod() {
-        assertThatThrownBy(() -> service.overview(10)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.overview(10, SeoMarket.ALL)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -142,7 +142,7 @@ class SeoInsightsServiceTest {
                 new PageGoalTotals("/modelle/Alpha/One", "dashboard_viewed", 999),       // kein CTA-Goal
                 new PageGoalTotals("/only-plausible", "registration_completed", 3)));
 
-        List<PageRow> all = service.pages(28, PageFilter.ALL);
+        List<PageRow> all = service.pages(28, PageFilter.ALL, SeoMarket.ALL);
 
         assertThat(all).extracting(PageRow::path)
                 .containsExactly("/modelle/Alpha/One", "/modelle/Beta/Two", "/modelle/Gamma/Three", "/impressum",
@@ -168,10 +168,10 @@ class SeoInsightsServiceTest {
         assertThat(all.get(5).finding()).isEqualTo("DEAD");
         assertThat(all.get(5).impressions()).isZero();
 
-        assertThat(service.pages(28, PageFilter.UNDERRATED)).extracting(PageRow::path).containsExactly("/modelle/Beta/Two");
-        assertThat(service.pages(28, PageFilter.DEAD)).extracting(PageRow::path).containsExactly("/modelle/Delta/Four");
-        assertThat(service.pages(28, PageFilter.LEAK)).extracting(PageRow::path).containsExactly("/modelle/Gamma/Three");
-        assertThat(service.pages(28, PageFilter.MONEY)).extracting(PageRow::path).containsExactly("/modelle/Alpha/One");
+        assertThat(service.pages(28, PageFilter.UNDERRATED, SeoMarket.ALL)).extracting(PageRow::path).containsExactly("/modelle/Beta/Two");
+        assertThat(service.pages(28, PageFilter.DEAD, SeoMarket.ALL)).extracting(PageRow::path).containsExactly("/modelle/Delta/Four");
+        assertThat(service.pages(28, PageFilter.LEAK, SeoMarket.ALL)).extracting(PageRow::path).containsExactly("/modelle/Gamma/Three");
+        assertThat(service.pages(28, PageFilter.MONEY, SeoMarket.ALL)).extracting(PageRow::path).containsExactly("/modelle/Alpha/One");
     }
 
     @Test
@@ -225,7 +225,7 @@ class SeoInsightsServiceTest {
                 new PageGoalTotals("/modelle/Beta/Two", "gate_code_verified", 2),
                 new PageGoalTotals("/modelle/Alpha/One", "gate_code_verified", 19)));
 
-        List<QueryRow> nonBrand = service.queries(28, BrandFilter.NON_BRAND, QueryFilter.ALL);
+        List<QueryRow> nonBrand = service.queries(28, BrandFilter.NON_BRAND, QueryFilter.ALL, SeoMarket.ALL);
 
         assertThat(nonBrand).extracting(QueryRow::query)
                 .containsExactly("alpha one verbrauch", "beta two reichweite", "gamma three", "longtail rauschen");
@@ -244,13 +244,13 @@ class SeoInsightsServiceTest {
         assertThat(nonBrand.get(0).adwordsCandidate()).isFalse();   // Position 7.83 unter 10
         assertThat(nonBrand.get(2).finding()).isNull();
 
-        assertThat(service.queries(28, BrandFilter.BRAND, QueryFilter.ALL)).extracting(QueryRow::query)
+        assertThat(service.queries(28, BrandFilter.BRAND, QueryFilter.ALL, SeoMarket.ALL)).extracting(QueryRow::query)
                 .containsExactly("example monitor login");
-        assertThat(service.queries(28, BrandFilter.ALL, QueryFilter.STRIKING_DISTANCE)).extracting(QueryRow::query)
+        assertThat(service.queries(28, BrandFilter.ALL, QueryFilter.STRIKING_DISTANCE, SeoMarket.ALL)).extracting(QueryRow::query)
                 .containsExactly("beta two reichweite");
-        assertThat(service.queries(28, BrandFilter.ALL, QueryFilter.CANNIBALIZED)).extracting(QueryRow::query)
+        assertThat(service.queries(28, BrandFilter.ALL, QueryFilter.CANNIBALIZED, SeoMarket.ALL)).extracting(QueryRow::query)
                 .containsExactly("alpha one verbrauch");
-        assertThat(service.queries(28, BrandFilter.ALL, QueryFilter.ADWORDS)).extracting(QueryRow::query)
+        assertThat(service.queries(28, BrandFilter.ALL, QueryFilter.ADWORDS, SeoMarket.ALL)).extracting(QueryRow::query)
                 .containsExactly("beta two reichweite");
     }
 
@@ -360,5 +360,121 @@ class SeoInsightsServiceTest {
         assertThat(tesla.logs()).isEqualTo(920);
         assertThat(tesla.finding()).isNull();
         assertThat(rows.get(2).logs()).isEqualTo(300);
+    }
+
+    // --- Markt, Vorzeitraum, Aufklappen, Markenverlauf, Handlungsliste ---
+
+    @Test
+    void overviewForGermanyCountsOnlyGermanPathsAndLandingPathRegistrations() {
+        LocalDate from = LATEST.minusDays(6);
+        when(repository.pageDays(from, LATEST)).thenReturn(List.of(
+                new GscDailyRepository.PageRow(from, "/modelle/A", 4, 100, 5.0),
+                new GscDailyRepository.PageRow(from, "/en/models/A", 40, 900, 9.0),
+                new GscDailyRepository.PageRow(from, "/", 6, 100, 3.0)));
+        when(repository.pageDays(from.minusDays(7), from.minusDays(1))).thenReturn(List.of());
+        when(attribution.registrationTotals(from, LATEST)).thenReturn(new RegistrationTotals(20, 8));
+        when(attribution.landingPathTotals(from, LATEST)).thenReturn(Map.of(
+                "/modelle/A", new RegistrationTotals(3, 2), "/en/models/A", new RegistrationTotals(5, 4)));
+
+        Overview de = service.overview(7, SeoMarket.DE);
+        assertThat(de.market()).isEqualTo(SeoMarket.DE);
+        assertThat(de.current().impressions()).isEqualTo(200);
+        assertThat(de.current().clicks()).isEqualTo(10);
+        assertThat(de.current().avgPosition()).isEqualTo(4.0);
+        assertThat(de.current().registrations()).isEqualTo(3);
+        assertThat(de.current().organicRegistrations()).isEqualTo(2);
+        assertThat(de.days().get(0).impressions()).isEqualTo(200);
+
+        Overview intl = service.overview(7, SeoMarket.INTL);
+        assertThat(intl.current().impressions()).isEqualTo(900);
+        assertThat(intl.current().registrations()).isEqualTo(5);
+
+        // Alle Märkte: Registrierungen ohne bekannte erste Seite zählen mit
+        assertThat(service.overview(7, SeoMarket.ALL).current().registrations()).isEqualTo(20);
+    }
+
+    @Test
+    void previousWindowIsOnlyComparableWhenDataReachesBackFarEnough() {
+        when(repository.pageDays(any(), any())).thenReturn(List.of());
+        LocalDate from = LATEST.minusDays(6);
+
+        when(repository.earliestDay()).thenReturn(Optional.of(from.minusDays(7)));
+        assertThat(service.overview(7, SeoMarket.ALL).previousComplete()).isTrue();
+
+        when(repository.earliestDay()).thenReturn(Optional.of(from.minusDays(3)));
+        assertThat(service.overview(7, SeoMarket.ALL).previousComplete()).isFalse();
+
+        when(repository.earliestDay()).thenReturn(Optional.empty());
+        assertThat(service.overview(7, SeoMarket.ALL).previousComplete()).isFalse();
+    }
+
+    @Test
+    void marketFilterAppliesToPagesAndQueries() {
+        when(repository.pageTotals(any(), any())).thenReturn(List.of(
+                new PageTotals("/modelle/A", 10, 1000, 5.0), new PageTotals("/se/modeller/A", 50, 5000, 6.0)));
+        when(repository.pathsWithImpressions(any(), any())).thenReturn(List.of());
+        when(repository.queryPathTotals(any(), any())).thenReturn(List.of(
+                new GscDailyRepository.QueryRow(null, "testauto reichweite", "/modelle/A", 3, 300, 7.0, false),
+                new GscDailyRepository.QueryRow(null, "testauto reichweite", "/se/modeller/A", 9, 900, 4.0, false),
+                new GscDailyRepository.QueryRow(null, "testauto räckvidd", "/se/modeller/A", 20, 2000, 3.0, false)));
+
+        assertThat(service.pages(28, PageFilter.ALL, SeoMarket.DE)).extracting(PageRow::path).containsExactly("/modelle/A");
+        assertThat(service.pages(28, PageFilter.ALL, SeoMarket.INTL)).extracting(PageRow::path).containsExactly("/se/modeller/A");
+
+        List<QueryRow> de = service.queries(28, BrandFilter.ALL, QueryFilter.ALL, SeoMarket.DE);
+        assertThat(de).extracting(QueryRow::query).containsExactly("testauto reichweite");
+        assertThat(de.get(0).impressions()).isEqualTo(300);
+        assertThat(de.get(0).pageCount()).isEqualTo(1);
+        assertThat(service.queries(28, BrandFilter.ALL, QueryFilter.ALL, SeoMarket.ALL)).hasSize(2);
+    }
+
+    @Test
+    void pageQueriesAndQueryPagesBreakDownOneRowOfTheOtherTable() {
+        when(repository.queryPathTotals(any(), any())).thenReturn(List.of(
+                new GscDailyRepository.QueryRow(null, "testauto reichweite", "/modelle/A", 3, 300, 7.0, false),
+                new GscDailyRepository.QueryRow(null, "testauto verbrauch", "/modelle/A", 8, 500, 4.0, false),
+                new GscDailyRepository.QueryRow(null, "testauto reichweite", "/modelle/B", 1, 50, 12.0, false),
+                new GscDailyRepository.QueryRow(null, "ev monitor", "/", 9, 90, 1.0, true)));
+
+        List<SeoInsights.Breakdown> queries = service.pageQueries(28, "/modelle/A");
+        assertThat(queries).extracting(SeoInsights.Breakdown::key).containsExactly("testauto verbrauch", "testauto reichweite");
+        assertThat(queries.get(0).ctr()).isEqualTo(0.016);
+
+        List<SeoInsights.Breakdown> pages = service.queryPages(28, "testauto reichweite");
+        assertThat(pages).extracting(SeoInsights.Breakdown::key).containsExactly("/modelle/A", "/modelle/B");
+        assertThat(pages.get(1).avgPosition()).isEqualTo(12.0);
+    }
+
+    @Test
+    void brandTrendSumsBrandAndNonBrandPerIsoWeek() {
+        // 16.10.2026 ist ein Freitag, die Woche beginnt am Montag 12.10.
+        when(repository.brandDayTotals(any(), any())).thenReturn(List.of(
+                new GscDailyRepository.BrandDay(LocalDate.of(2026, 10, 12), true, 10, 2),
+                new GscDailyRepository.BrandDay(LocalDate.of(2026, 10, 16), true, 5, 1),
+                new GscDailyRepository.BrandDay(LocalDate.of(2026, 10, 16), false, 100, 4),
+                new GscDailyRepository.BrandDay(LocalDate.of(2026, 10, 9), true, 7, 0)));
+
+        List<SeoInsights.BrandWeek> weeks = service.brandTrend(2);
+
+        assertThat(weeks).hasSize(2);
+        assertThat(weeks.get(0).weekStart()).isEqualTo(LocalDate.of(2026, 10, 5));
+        assertThat(weeks.get(0).brandImpressions()).isEqualTo(7);
+        assertThat(weeks.get(1).weekStart()).isEqualTo(LocalDate.of(2026, 10, 12));
+        assertThat(weeks.get(1).brandImpressions()).isEqualTo(15);
+        assertThat(weeks.get(1).brandClicks()).isEqualTo(3);
+        assertThat(weeks.get(1).nonBrandImpressions()).isEqualTo(100);
+    }
+
+    @Test
+    void opportunitiesCountFindingsOfPagesQueriesAndModels() {
+        when(repository.pageTotals(any(), any())).thenReturn(List.of());
+        when(repository.pathsWithImpressions(any(), any())).thenReturn(List.of("/modelle/Weg"));
+        when(repository.queryPathTotals(any(), any())).thenReturn(List.of());
+
+        SeoInsights.Opportunities o = service.opportunities(28, SeoMarket.DE);
+
+        assertThat(o.dead()).isEqualTo(1);
+        assertThat(o.underrated()).isZero();
+        assertThat(o.adwords()).isZero();
     }
 }

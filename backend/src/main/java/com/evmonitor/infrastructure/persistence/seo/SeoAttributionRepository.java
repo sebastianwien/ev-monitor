@@ -47,6 +47,17 @@ public class SeoAttributionRepository {
         return result;
     }
 
+    /** Registrierungen und davon organische je erster Seite; Konten ohne bekannte erste Seite fehlen. */
+    public Map<String, RegistrationTotals> landingPathTotals(LocalDate from, LocalDate to) {
+        Map<String, RegistrationTotals> result = new HashMap<>();
+        jdbc.query("SELECT landing_path, count(*) AS n, SUM(CASE WHEN " + ORGANIC + " THEN 1 ELSE 0 END) AS organic "
+                        + "FROM app_user WHERE landing_path IS NOT NULL AND is_seed_data = FALSE "
+                        + "AND created_at >= ? AND created_at < ? GROUP BY landing_path",
+                rs -> { result.put(rs.getString("landing_path"), new RegistrationTotals(rs.getLong("n"), rs.getLong("organic"))); },
+                start(from), end(to));
+        return result;
+    }
+
     public RegistrationTotals registrationTotals(LocalDate from, LocalDate to) {
         return jdbc.queryForObject("SELECT count(*) AS n, SUM(CASE WHEN " + ORGANIC + " THEN 1 ELSE 0 END) AS organic "
                         + "FROM app_user WHERE is_seed_data = FALSE AND created_at >= ? AND created_at < ?",

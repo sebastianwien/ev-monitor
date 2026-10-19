@@ -31,8 +31,26 @@ public final class SeoInsights {
     public record DayPoint(LocalDate day, long impressions, long clicks, long visitors, long googleEntries) {
     }
 
-    public record Overview(int periodDays, LocalDate from, LocalDate to, Totals current, Totals previous,
-                           List<DayPoint> days) {
+    /**
+     * market: wirkt auf Google-Zahlen und Registrierungen; Besucher und Google-Einstiege (Plausible) gelten immer für
+     * die ganze Website. previousComplete: der Vorzeitraum liegt vollständig im Datenbestand, Deltas sind vergleichbar.
+     */
+    public record Overview(int periodDays, LocalDate from, LocalDate to, SeoMarket market, boolean previousComplete,
+                           Totals current, Totals previous, List<DayPoint> days) {
+    }
+
+    /** Eine Zeile beim Aufklappen: Suchbegriffe einer Seite (key = Begriff) oder Seiten eines Begriffs (key = Pfad). */
+    public record Breakdown(String key, boolean brand, long impressions, long clicks, double ctr, double avgPosition) {
+    }
+
+    /** Markenbekanntheit: Impressionen und Klicks je Woche (Montag), Brand gegen Non-Brand. */
+    public record BrandWeek(LocalDate weekStart, long brandImpressions, long brandClicks, long nonBrandImpressions,
+                            long nonBrandClicks) {
+    }
+
+    /** Anzahl Zeilen je Befund im Zeitraum, für "Was du jetzt tun kannst" im Überblick. */
+    public record Opportunities(int underrated, int leak, int dead, int money, int striking, int cannibalized, int adwords,
+                                int contentGap, int invisible) {
     }
 
     /**

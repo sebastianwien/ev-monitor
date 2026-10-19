@@ -1,6 +1,9 @@
 package com.evmonitor.application.seo;
 
 import com.evmonitor.application.seo.SeoInsights.BrandFilter;
+import com.evmonitor.application.seo.SeoInsights.BrandWeek;
+import com.evmonitor.application.seo.SeoInsights.Breakdown;
+import com.evmonitor.application.seo.SeoInsights.Opportunities;
 import com.evmonitor.application.seo.SeoInsights.CampaignRow;
 import com.evmonitor.application.seo.SeoInsights.DayPoint;
 import com.evmonitor.application.seo.SeoInsights.ModelFilter;
@@ -87,11 +90,11 @@ public class SeoInsightsService {
         this.clock = clock;
     }
 
-    public Overview overview(int days) {
+    public Overview overview(int days, SeoMarket market) {
         Window w = window(days);
         Window prev = new Window(w.from.minusDays(days), w.from.minusDays(1));
-        List<DayTotals> current = repository.dayTotals(w.from, w.to);
-        List<DayTotals> previous = repository.dayTotals(prev.from, prev.to);
+        List<DayTotals> current = dayTotals(w, market);
+        List<DayTotals> previous = dayTotals(prev, market);
 
         Map<LocalDate, DayTotals> byDay = new LinkedHashMap<>();
         current.forEach(d -> byDay.put(d.day(), d));
@@ -106,19 +109,115 @@ public class SeoInsightsService {
             series.add(new DayPoint(d, t == null ? 0 : t.impressions(), t == null ? 0 : t.clicks(),
                     v == null ? 0 : v.visitors(), googleByDay.getOrDefault(d, 0L)));
         }
-        return new Overview(days, w.from, w.to, totals(current, w), totals(previous, prev), series);
+        boolean previousComplete = repository.earliestDay().map(first -> !first.isAfter(prev.from)).orElse(false);
+        return new Overview(days, w.from, w.to, market, previousComplete, totals(current, w, market),
+                totals(previous, prev, market), series);
     }
 
-    public List<PageRow> pages(int days, PageFilter filter) {
+    /** Google-Tagessummen über die Pfade des Markts, Position nach Impressionen gewichtet. */
+    private List<DayTotals> dayTotals(Window w, SeoMarket market) {
+        Map<LocalDate, double[]> acc = new java.util.TreeMap<>();
+        for (GscDailyRepository.PageRow r : repository.pageDays(w.from, w.to)) {
+            if (!market.includes(r.path())) continue;
+            double[] a = acc.computeIfAbsent(r.day(), k -> new double[3]);
+            a[0] += r.clicks();
+            a[1] += r.impressions();
+            a[2] += r.avgPosition() * r.impressions();
+        }
+        List<DayTotals> result = new ArrayList<>(acc.size());
+        acc.forEach((day, a) -> result.add(new DayTotals(day, (long) a[0], (long) a[1], a[1] > 0 ? a[2] / a[1] : 0)));
+        return result;
+    }
+
+    /** Suchbegriffe, für die eine Seite erschienen ist, meiste Impressionen zuerst. */
+    public List<Breakdown> pageQueries(int days, String path) {
         Window w = window(days);
-        List<PageTotals> totals = repository.pageTotals(w.from, w.to);
+        String normalized = SeoPath.normalize(path);
+        return repository.queryPathTotals(w.from, w.to).stream()
+                .filter(r -> r.path().equals(normalized))
+                .map(r -> new Breakdown(r.query(), r.brand(), r.impressions(), r.clicks(), ctr(r.clicks(), r.impressions()),
+                        round2(r.avgPosition())))
+                .sorted(Comparator.comparingLong(Breakdown::impressions).reversed().thenComparing(Breakdown::key))
+                .limit(scoring.getMaxRows())
+                .toList();
+    }
+
+    /** Eigene Seiten, die für einen Suchbegriff erschienen sind, meiste Impressionen zuerst. */
+    public List<Breakdown> queryPages(int days, String query) {
+        Window w = window(days);
+        return repository.queryPathTotals(w.from, w.to).stream()
+                .filter(r -> r.query().equals(query))
+                .map(r -> new Breakdown(r.path(), r.brand(), r.impressions(), r.clicks(), ctr(r.clicks(), r.impressions()),
+                        round2(r.avgPosition())))
+                .sorted(Comparator.comparingLong(Breakdown::impressions).reversed().thenComparing(Breakdown::key))
+                .toList();
+    }
+
+    /** Brand- und Non-Brand-Suchen je Kalenderwoche (Montag) über die letzten {@code weeks} Wochen bis zum Datenstand. */
+    public List<BrandWeek> brandTrend(int weeks) {
+        if (weeks < 1 || weeks > 70) throw new IllegalArgumentException("Wochen müssen zwischen 1 und 70 liegen");
+        LocalDate to = dataUntil();
+        LocalDate firstWeek = to.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                .minusWeeks(weeks - 1L);
+        Map<LocalDate, long[]> acc = new java.util.TreeMap<>();
+        for (int i = 0; i < weeks; i++) acc.put(firstWeek.plusWeeks(i), new long[4]);
+        for (GscDailyRepository.BrandDay d : repository.brandDayTotals(firstWeek, to)) {
+            long[] a = acc.get(d.day().with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)));
+            if (a == null) continue;
+            int offset = d.brand() ? 0 : 2;
+            a[offset] += d.impressions();
+            a[offset + 1] += d.clicks();
+        }
+        List<BrandWeek> result = new ArrayList<>(weeks);
+        acc.forEach((week, a) -> result.add(new BrandWeek(week, a[0], a[1], a[2], a[3])));
+        return result;
+    }
+
+    /** Wie viele Zeilen je Befund im Zeitraum, ohne Zeilenobergrenze. */
+    public Opportunities opportunities(int days, SeoMarket market) {
+        Window w = window(days);
+        Map<String, Integer> pages = new HashMap<>();
+        pageRows(w, market).forEach(r -> { if (r.finding() != null) pages.merge(r.finding(), 1, Integer::sum); });
+        List<QueryRow> queries = queryRows(w, BrandFilter.ALL, market);
+        Map<String, Integer> models = new HashMap<>();
+        modelRowsAll(w, ModelLevel.MODEL).forEach(r -> { if (r.finding() != null) models.merge(r.finding(), 1, Integer::sum); });
+        return new Opportunities(
+                pages.getOrDefault(FINDING_UNDERRATED, 0), pages.getOrDefault(FINDING_LEAK, 0),
+                pages.getOrDefault(FINDING_DEAD, 0), pages.getOrDefault(FINDING_MONEY, 0),
+                (int) queries.stream().filter(q -> FINDING_STRIKING.equals(q.finding())).count(),
+                (int) queries.stream().filter(q -> FINDING_CANNIBALIZED.equals(q.finding())).count(),
+                (int) queries.stream().filter(QueryRow::adwordsCandidate).count(),
+                models.getOrDefault(FINDING_CONTENT_GAP, 0), models.getOrDefault(FINDING_INVISIBLE, 0));
+    }
+
+    public List<PageRow> pages(int days, PageFilter filter, SeoMarket market) {
+        return pageRows(window(days), market).stream()
+                .filter(r -> switch (filter) {
+                    case ALL -> true;
+                    case UNDERRATED -> FINDING_UNDERRATED.equals(r.finding());
+                    case DEAD -> FINDING_DEAD.equals(r.finding());
+                    case LEAK -> FINDING_LEAK.equals(r.finding());
+                    case MONEY -> FINDING_MONEY.equals(r.finding());
+                })
+                .sorted(Comparator.comparingLong(PageRow::impressions).reversed()
+                        .thenComparing(Comparator.comparingLong(PageRow::registrations).reversed())
+                        .thenComparing(PageRow::path))
+                .limit(scoring.getMaxRows())
+                .toList();
+    }
+
+    /** Alle Seiten des Markts mit Befund, ungefiltert und ohne Obergrenze; Mediane innerhalb des Markts. */
+    private java.util.Collection<PageRow> pageRows(Window w, SeoMarket market) {
+        List<PageTotals> totals = repository.pageTotals(w.from, w.to).stream().filter(p -> market.includes(p.path())).toList();
         List<PageTotals> visible = totals.stream().filter(p -> p.impressions() > 0).toList();
         double medianImpressions = median(visible, p -> p.impressions());
         double medianCtr = median(visible, p -> ctr(p.clicks(), p.impressions()));
         double medianClicks = median(visible, p -> p.clicks());
-        Map<String, Behaviour> behaviour = behaviourByPath(w);
+        Map<String, Behaviour> behaviour = new HashMap<>();
+        behaviourByPath(w).forEach((path, b) -> { if (market.includes(path)) behaviour.put(path, b); });
         double medianCtaRate = median(behaviour.values().stream().filter(b -> b.entries > 0).toList(), b -> b.ctaRate());
-        Map<String, Long> registrations = attribution.registrationsByLandingPath(w.from, w.to);
+        Map<String, Long> registrations = new HashMap<>();
+        attribution.registrationsByLandingPath(w.from, w.to).forEach((path, n) -> { if (market.includes(path)) registrations.put(path, n); });
 
         Map<String, PageRow> rows = new LinkedHashMap<>();
         for (PageTotals p : totals) {
@@ -142,30 +241,31 @@ public class SeoInsightsService {
         Set<String> alive = new HashSet<>();
         visible.forEach(p -> alive.add(p.path()));
         for (String path : repository.pathsWithImpressions(w.from.minusDays(scoring.getDeadLookbackDays()), w.from.minusDays(1))) {
-            if (alive.contains(path)) continue;
+            if (alive.contains(path) || !market.includes(path)) continue;
             PageRow r = rows.get(path);
             rows.put(path, r == null ? new PageRow(path, 0, 0, 0, 0, 0, 0, 0, 0, FINDING_DEAD) : withFinding(r, FINDING_DEAD));
         }
+        return rows.values();
+    }
 
-        return rows.values().stream()
+    public List<QueryRow> queries(int days, BrandFilter brand, QueryFilter filter, SeoMarket market) {
+        return queryRows(window(days), brand, market).stream()
                 .filter(r -> switch (filter) {
                     case ALL -> true;
-                    case UNDERRATED -> FINDING_UNDERRATED.equals(r.finding());
-                    case DEAD -> FINDING_DEAD.equals(r.finding());
-                    case LEAK -> FINDING_LEAK.equals(r.finding());
-                    case MONEY -> FINDING_MONEY.equals(r.finding());
+                    case STRIKING_DISTANCE -> FINDING_STRIKING.equals(r.finding());
+                    case CANNIBALIZED -> FINDING_CANNIBALIZED.equals(r.finding());
+                    case ADWORDS -> r.adwordsCandidate();
                 })
-                .sorted(Comparator.comparingLong(PageRow::impressions).reversed()
-                        .thenComparing(Comparator.comparingLong(PageRow::registrations).reversed())
-                        .thenComparing(PageRow::path))
+                .sorted(Comparator.comparingLong(QueryRow::impressions).reversed().thenComparing(QueryRow::query))
                 .limit(scoring.getMaxRows())
                 .toList();
     }
 
-    public List<QueryRow> queries(int days, BrandFilter brand, QueryFilter filter) {
-        Window w = window(days);
+    /** Alle Suchbegriffe mit Impressionen auf Seiten des Markts, ungefiltert und ohne Obergrenze. */
+    private List<QueryRow> queryRows(Window w, BrandFilter brand, SeoMarket market) {
         Map<String, QueryAccumulator> byQuery = new LinkedHashMap<>();
         for (GscDailyRepository.QueryRow r : repository.queryPathTotals(w.from, w.to)) {
+            if (!market.includes(r.path())) continue;
             if (brand == BrandFilter.BRAND && !r.brand()) continue;
             if (brand == BrandFilter.NON_BRAND && r.brand()) continue;
             byQuery.computeIfAbsent(r.query(), k -> new QueryAccumulator(r.brand())).add(r);
@@ -189,16 +289,7 @@ public class SeoInsightsService {
             rows.add(new QueryRow(query, a.brand, a.impressions, a.clicks, ctr(a.clicks, a.impressions), position,
                     a.topPath, a.pageCount, adwords, finding));
         });
-        return rows.stream()
-                .filter(r -> switch (filter) {
-                    case ALL -> true;
-                    case STRIKING_DISTANCE -> FINDING_STRIKING.equals(r.finding());
-                    case CANNIBALIZED -> FINDING_CANNIBALIZED.equals(r.finding());
-                    case ADWORDS -> r.adwordsCandidate();
-                })
-                .sorted(Comparator.comparingLong(QueryRow::impressions).reversed().thenComparing(QueryRow::query))
-                .limit(scoring.getMaxRows())
-                .toList();
+        return rows;
     }
 
     /** Quelle x Medium x Kampagne aus Plausible, DB-Registrierungen über das UTM-Tripel, Google organisch aus dem Verweis. */
@@ -237,7 +328,20 @@ public class SeoInsightsService {
      * Modellseiten der Marke plus die Markenseite {@code /modelle/:brand}.
      */
     public List<ModelRow> models(int days, ModelLevel level, ModelFilter filter) {
-        Window w = window(days);
+        return modelRowsAll(window(days), level).stream()
+                .filter(r -> switch (filter) {
+                    case ALL -> true;
+                    case CONTENT_GAP -> FINDING_CONTENT_GAP.equals(r.finding());
+                    case INVISIBLE -> FINDING_INVISIBLE.equals(r.finding());
+                })
+                .sorted(Comparator.comparingLong(ModelRow::impressions).reversed()
+                        .thenComparing(Comparator.comparingLong(ModelRow::logs).reversed())
+                        .thenComparing(ModelRow::path))
+                .limit(scoring.getMaxRows())
+                .toList();
+    }
+
+    private List<ModelRow> modelRowsAll(Window w, ModelLevel level) {
         Map<String, DataBasis> basis = attribution.dataBasisByModel();
         // Pfadvarianten eines Modells (alte Schreibweise, Groß/klein) laufen auf einen Eintrag zusammen
         Map<CarModel, Gsc> byModel = new HashMap<>();
@@ -257,20 +361,9 @@ public class SeoInsightsService {
         });
         byModel.keySet().removeIf(m -> m.getBrand() == CarBrand.SONSTIGE);
 
-        List<ModelRow> rows = level == ModelLevel.BRAND
+        return level == ModelLevel.BRAND
                 ? brandRows(byModel, byBrandPage, basis)
                 : modelRows(byModel, basis);
-        return rows.stream()
-                .filter(r -> switch (filter) {
-                    case ALL -> true;
-                    case CONTENT_GAP -> FINDING_CONTENT_GAP.equals(r.finding());
-                    case INVISIBLE -> FINDING_INVISIBLE.equals(r.finding());
-                })
-                .sorted(Comparator.comparingLong(ModelRow::impressions).reversed()
-                        .thenComparing(Comparator.comparingLong(ModelRow::logs).reversed())
-                        .thenComparing(ModelRow::path))
-                .limit(scoring.getMaxRows())
-                .toList();
     }
 
     /** GSC-Summen und Registrierungen über alle Pfadvarianten einer Modell- oder Markenseite. */
@@ -450,7 +543,7 @@ public class SeoInsightsService {
                 r.ctaRate(), r.registrations(), finding);
     }
 
-    private Totals totals(List<DayTotals> days, Window w) {
+    private Totals totals(List<DayTotals> days, Window w, SeoMarket market) {
         long impressions = 0;
         long clicks = 0;
         double weighted = 0;
@@ -461,10 +554,23 @@ public class SeoInsightsService {
         }
         long visitors = plausible.dayTotals(w.from, w.to).stream().mapToLong(DayRow::visitors).sum();
         long google = plausible.googleVisitsByDay(w.from, w.to).values().stream().mapToLong(Long::longValue).sum();
-        RegistrationTotals reg = attribution.registrationTotals(w.from, w.to);
+        RegistrationTotals reg = registrations(w, market);
         if (impressions == 0 && clicks == 0 && visitors == 0 && reg.registrations() == 0) return Totals.EMPTY;
         return new Totals(impressions, clicks, ctr(clicks, impressions), impressions > 0 ? round2(weighted / impressions) : 0,
                 visitors, google, reg.registrations(), reg.organic());
+    }
+
+    /** Alle Märkte: jedes Konto; ein Markt: nur Konten mit bekannter erster Seite in diesem Markt. */
+    private RegistrationTotals registrations(Window w, SeoMarket market) {
+        if (market == SeoMarket.ALL) return attribution.registrationTotals(w.from, w.to);
+        long n = 0;
+        long organic = 0;
+        for (Map.Entry<String, RegistrationTotals> e : attribution.landingPathTotals(w.from, w.to).entrySet()) {
+            if (!market.includes(e.getKey())) continue;
+            n += e.getValue().registrations();
+            organic += e.getValue().organic();
+        }
+        return new RegistrationTotals(n, organic);
     }
 
     private static <T> double median(List<T> items, ToDoubleFunction<T> value) {

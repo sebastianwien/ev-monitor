@@ -3,6 +3,8 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.seo.PlausibleSyncService;
 import com.evmonitor.application.seo.SeoInsights;
 import com.evmonitor.application.seo.SeoInsightsService;
+import com.evmonitor.application.seo.SeoMarket;
+import com.evmonitor.application.seo.SeoPath;
 import com.evmonitor.application.seo.SeoSyncScheduler;
 import com.evmonitor.application.seo.SeoSyncService;
 import com.evmonitor.infrastructure.persistence.seo.SeoSyncRunEntity;
@@ -59,23 +61,53 @@ public class AdminSeoController {
 
     @GetMapping("/overview")
     @PreAuthorize("hasRole('ADMIN')")
-    public SeoInsights.Overview overview(@RequestParam(defaultValue = "28") int days) {
-        return insights.overview(days);
+    public SeoInsights.Overview overview(@RequestParam(defaultValue = "28") int days,
+                                         @RequestParam(defaultValue = "ALL") SeoMarket market) {
+        return insights.overview(days, market);
+    }
+
+    @GetMapping("/opportunities")
+    @PreAuthorize("hasRole('ADMIN')")
+    public SeoInsights.Opportunities opportunities(@RequestParam(defaultValue = "28") int days,
+                                                   @RequestParam(defaultValue = "ALL") SeoMarket market) {
+        return insights.opportunities(days, market);
     }
 
     @GetMapping("/pages")
     @PreAuthorize("hasRole('ADMIN')")
     public List<SeoInsights.PageRow> pages(@RequestParam(defaultValue = "28") int days,
-                                           @RequestParam(defaultValue = "ALL") SeoInsights.PageFilter filter) {
-        return insights.pages(days, filter);
+                                           @RequestParam(defaultValue = "ALL") SeoInsights.PageFilter filter,
+                                           @RequestParam(defaultValue = "ALL") SeoMarket market) {
+        return insights.pages(days, filter, market);
+    }
+
+    /** Suchbegriffe einer Seite. */
+    @GetMapping("/pages/queries")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<SeoInsights.Breakdown> pageQueries(@RequestParam(defaultValue = "28") int days, @RequestParam String path) {
+        return insights.pageQueries(days, requireText(path, "path"));
     }
 
     @GetMapping("/queries")
     @PreAuthorize("hasRole('ADMIN')")
     public List<SeoInsights.QueryRow> queries(@RequestParam(defaultValue = "28") int days,
                                               @RequestParam(defaultValue = "ALL") SeoInsights.BrandFilter brand,
-                                              @RequestParam(defaultValue = "ALL") SeoInsights.QueryFilter filter) {
-        return insights.queries(days, brand, filter);
+                                              @RequestParam(defaultValue = "ALL") SeoInsights.QueryFilter filter,
+                                              @RequestParam(defaultValue = "ALL") SeoMarket market) {
+        return insights.queries(days, brand, filter, market);
+    }
+
+    /** Eigene Seiten zu einem Suchbegriff. */
+    @GetMapping("/queries/pages")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<SeoInsights.Breakdown> queryPages(@RequestParam(defaultValue = "28") int days, @RequestParam String query) {
+        return insights.queryPages(days, requireText(query, "query"));
+    }
+
+    @GetMapping("/brand-trend")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<SeoInsights.BrandWeek> brandTrend(@RequestParam(defaultValue = "26") int weeks) {
+        return insights.brandTrend(weeks);
     }
 
     @GetMapping("/campaigns")
@@ -98,6 +130,13 @@ public class AdminSeoController {
     public ResponseEntity<Map<String, Boolean>> sync(@RequestParam(defaultValue = "30") int days) {
         boolean started = scheduler.tryStartManual(days);
         return ResponseEntity.status(started ? HttpStatus.ACCEPTED : HttpStatus.CONFLICT).body(Map.of("started", started));
+    }
+
+    private static String requireText(String value, String name) {
+        if (value == null || value.isBlank() || value.length() > SeoPath.MAX_LENGTH) {
+            throw new IllegalArgumentException(name + " fehlt oder ist länger als " + SeoPath.MAX_LENGTH + " Zeichen");
+        }
+        return value;
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

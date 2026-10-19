@@ -28,6 +28,10 @@ public class GscDailyRepository {
     }
 
     /** Aggregat je Pfad über ein Fenster; Position impressionsgewichtet. */
+    /** Impressionen und Klicks je Tag, getrennt nach Brand (is_brand) und Non-Brand. */
+    public record BrandDay(LocalDate day, boolean brand, long impressions, long clicks) {
+    }
+
     public record PageTotals(String path, long clicks, long impressions, double avgPosition) {
     }
 
@@ -115,6 +119,29 @@ public class GscDailyRepository {
                         + WEIGHTED_POSITION + " AS avg_position FROM gsc_page_daily WHERE stat_date BETWEEN ? AND ? GROUP BY stat_date ORDER BY stat_date",
                 (rs, i) -> new DayTotals(rs.getDate("stat_date").toLocalDate(), rs.getLong("clicks"), rs.getLong("impressions"),
                         rs.getDouble("avg_position")),
+                Date.valueOf(from), Date.valueOf(to));
+    }
+
+    /** Erster Tag mit GSC-Daten; ohne Daten leer. */
+    public Optional<LocalDate> earliestDay() {
+        Date d = jdbc.queryForObject("SELECT min(stat_date) FROM gsc_page_daily", Date.class);
+        return Optional.ofNullable(d).map(Date::toLocalDate);
+    }
+
+    /** Rohzeilen je (Tag, Pfad), damit der Service nach Markt filtern kann. */
+    public List<PageRow> pageDays(LocalDate from, LocalDate to) {
+        return jdbc.query("SELECT stat_date, path, clicks, impressions, avg_position FROM gsc_page_daily WHERE stat_date BETWEEN ? AND ?",
+                (rs, i) -> new PageRow(rs.getDate("stat_date").toLocalDate(), rs.getString("path"), rs.getInt("clicks"),
+                        rs.getInt("impressions"), rs.getDouble("avg_position")),
+                Date.valueOf(from), Date.valueOf(to));
+    }
+
+    /** Suchbegriff-Ebene je Tag und Brand/Non-Brand; anonymisierte Begriffe liefert GSC nicht, sie fehlen hier. */
+    public List<BrandDay> brandDayTotals(LocalDate from, LocalDate to) {
+        return jdbc.query("SELECT stat_date, is_brand, SUM(impressions) AS impressions, SUM(clicks) AS clicks FROM gsc_query_daily "
+                        + "WHERE stat_date BETWEEN ? AND ? GROUP BY stat_date, is_brand",
+                (rs, i) -> new BrandDay(rs.getDate("stat_date").toLocalDate(), rs.getBoolean("is_brand"),
+                        rs.getLong("impressions"), rs.getLong("clicks")),
                 Date.valueOf(from), Date.valueOf(to));
     }
 
