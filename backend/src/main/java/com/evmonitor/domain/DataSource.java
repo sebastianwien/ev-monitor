@@ -18,7 +18,7 @@ public enum DataSource {
     XPENG_LIVE,          // XPeng Phase 2+: automated mail-poll / future XPeng API (AutoSync Live tier)
     EU_DATA_ACT_IMPORT,  // VW Group EU Data Act portal: manual JSON/ZIP upload (VW, Audi, Skoda, SEAT, CUPRA, Porsche)
     EU_DATA_ACT_SYNC,    // VW Group EU Data Act portal: AutoSync via ev-monitor-connectors (same parser, polled every 15 min)
-    POLESTAR_DATA_PORTAL, // Polestar Data Portal via ev-monitor-connectors (Testmodus: nur Rohsnapshots, noch keine Logs)
+    POLESTAR_DATA_PORTAL, // Polestar Data Portal via ev-monitor-connectors: Fahrten und Ladungen aus battery/odometer-Snapshots
     TESLA_INFERRED;      // nur Fahrten: aus einer Odometer-Lücke abgeleitete Tesla-Fahrt (connectors InferredTripService)
 
     public boolean includeInStatistics() {
