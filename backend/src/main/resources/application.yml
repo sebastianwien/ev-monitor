@@ -236,6 +236,12 @@ plausible:
   api-key: ${PLAUSIBLE_API_KEY:}
   site-id: ${PLAUSIBLE_SITE_ID:ev-monitor.net}
 
+# Google Search Console (Admin-Tab "SEO & Traffic"). Service-Account-JSON als Base64, leer = Feature aus.
+gsc:
+  service-account-json: ${GSC_SERVICE_ACCOUNT_JSON:}
+  site-url: ${GSC_SITE_URL:sc-domain:ev-monitor.net}
+  retention-days: 490
+
 # Stripe Payment Integration
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:}
