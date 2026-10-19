@@ -24,4 +24,10 @@ describe('formatSocRange', () => {
   it('behandelt 0 % als echten Wert, nicht als fehlend', () => {
     expect(formatSocRange(0, 45)).toBe('0→45%')
   })
+
+  it('rundet Nachkommastellen aus Live-Quellen auf ganze Prozent', () => {
+    expect(formatSocRange(64, 64.91)).toBe('64→65%')
+    expect(formatSocRange(63.6, 64.4)).toBe('64%')
+    expect(formatSocRange(null, 79.5)).toBe('80%')
+  })
 })

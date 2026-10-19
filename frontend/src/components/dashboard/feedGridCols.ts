@@ -7,4 +7,4 @@
  * Temperatur | Preis | Menue. Eine Aenderung hier wirkt auf alle Zeilentypen zugleich.
  */
 export const FEED_GRID_COLS =
-  'grid grid-cols-[52px_90px_minmax(110px,1fr)_125px_80px_130px_88px_76px_132px_40px] gap-1.5'
+  'grid grid-cols-[52px_90px_minmax(90px,1fr)_116px_80px_130px_88px_76px_150px_40px] gap-1'

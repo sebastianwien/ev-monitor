@@ -13,6 +13,9 @@ export function formatSocRange(
     after: number | null | undefined,
 ): string | null {
     if (after == null) return null
-    if (before == null || before === after) return `${after}%`
-    return `${before}→${after}%`
+    // Live-Quellen (Tesla) liefern Nachkommastellen; ganze Prozent reichen und halten die Zeile schmal.
+    const end = Math.round(after)
+    const start = before == null ? null : Math.round(before)
+    if (start == null || start === end) return `${end}%`
+    return `${start}→${end}%`
 }
