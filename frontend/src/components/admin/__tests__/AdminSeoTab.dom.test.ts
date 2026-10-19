@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, nextTick, type App } from 'vue'
-import type { SeoCampaignRow, SeoModelRow, SeoOverview, SeoPageRow, SeoQueryRow, SeoStatus } from '../../../api/seoService'
+import type { SeoAuditView, SeoCampaignRow, SeoModelRow, SeoOverview, SeoPageRow, SeoQueryRow, SeoStatus } from '../../../api/seoService'
 
 const getSeoStatus = vi.fn()
 const getSeoOverview = vi.fn()
@@ -10,7 +10,11 @@ const getSeoQueries = vi.fn()
 const getSeoCampaigns = vi.fn()
 const getSeoModels = vi.fn()
 const triggerSeoSync = vi.fn()
+const getSeoAudit = vi.fn()
+const triggerSeoAudit = vi.fn()
 vi.mock('../../../api/seoService', () => ({
+    getSeoAudit: () => getSeoAudit(),
+    triggerSeoAudit: () => triggerSeoAudit(),
     getSeoStatus: () => getSeoStatus(),
     getSeoOverview: (d: number) => getSeoOverview(d),
     getSeoPages: (d: number, f: string) => getSeoPages(d, f),
@@ -232,5 +236,52 @@ describe('AdminSeoTab', () => {
         getSeoOverview.mockRejectedValue(new Error('500'))
         const host = await mount()
         expect(host.textContent).toContain('konnten nicht geladen werden')
+    })
+
+    it('zeigt Technik-Spalte in Seiten und den Unter-Tab Technik mit Befunden als Text', async () => {
+        const audit: SeoAuditView = {
+            enabled: true, day: '2026-10-19', lastRunAt: '2026-10-19T05:00:00', vitalsWeek: null,
+            summary: { checked: 2, withErrors: 1, prerenderFailed: 1, brokenLinkPages: 0, orphans: 0 },
+            rows: [
+                { path: '/modelle/Alpha/One', httpStatus: 200, score: 55, errors: 2, warnings: 1, vitals: null, findings: [
+                    { check: 'PRERENDER', severity: 'ERROR', message: 'US-Einheit oder Dollar im HTML: "mi/kWh"' },
+                    { check: 'JSONLD', severity: 'ERROR', message: 'JSON-LD Product fehlt' },
+                    { check: 'TITLE', severity: 'WARNING', message: 'Title hat 76 Zeichen: <b>fett</b>' }] },
+                { path: '/modelle/Beta/Two', httpStatus: 200, score: 100, errors: 0, warnings: 0, vitals: null, findings: [] },
+            ],
+        }
+        getSeoStatus.mockResolvedValue(status)
+        getSeoOverview.mockResolvedValue(overview)
+        getSeoPages.mockResolvedValue(pages)
+        getSeoAudit.mockResolvedValue(audit)
+        triggerSeoAudit.mockResolvedValue(false)
+        const host = await mount()
+
+        click(host, 'Seiten')
+        for (let i = 0; i < 4; i++) await nextTick()
+        expect(host.textContent).toContain('2 Fehler')
+        expect(host.textContent).toContain('1 Hinweise')
+
+        click(host, 'Technik')
+        for (let i = 0; i < 4; i++) await nextTick()
+        expect(host.textContent).toContain('URLs geprüft')
+        expect(host.textContent).toContain('Prerender-Fehler')
+        expect(host.textContent).toContain('JSON-LD')
+
+        click(host, 'Prerender')
+        await nextTick()
+        expect(host.textContent).not.toContain('/modelle/Beta/Two')
+
+        const row = [...host.querySelectorAll('tr')].find(tr => tr.textContent?.includes('/modelle/Alpha/One'))!
+        row.click()
+        await nextTick()
+        expect(host.textContent).toContain('JSON-LD Product fehlt')
+        expect(host.textContent).toContain('<b>fett</b>')
+        expect(host.querySelector('b')).toBeNull()
+
+        click(host, 'Jetzt prüfen')
+        for (let i = 0; i < 3; i++) await nextTick()
+        expect(triggerSeoAudit).toHaveBeenCalled()
+        expect(host.textContent).toContain('Keine Prüfung gestartet')
     })
 })

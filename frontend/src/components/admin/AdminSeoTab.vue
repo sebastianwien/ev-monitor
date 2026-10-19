@@ -2,15 +2,17 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
 import { Line } from 'vue-chartjs'
+import AdminSeoTechTab from './AdminSeoTechTab.vue'
+import { auditCountsByPath } from './seoAudit'
 import {
-  getSeoCampaigns, getSeoModels, getSeoOverview, getSeoPages, getSeoQueries, getSeoStatus, triggerSeoSync,
+  getSeoAudit, getSeoCampaigns, getSeoModels, getSeoOverview, getSeoPages, getSeoQueries, getSeoStatus, triggerSeoSync,
   type SeoBrandFilter, type SeoCampaignRow, type SeoModelFilter, type SeoModelLevel, type SeoModelRow, type SeoOverview,
   type SeoPageFilter, type SeoPageRow, type SeoPeriod, type SeoTotals, type SeoQueryFilter, type SeoQueryRow, type SeoStatus,
 } from '../../api/seoService'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
-type Sub = 'overview' | 'pages' | 'queries' | 'campaigns' | 'models'
+type Sub = 'overview' | 'pages' | 'queries' | 'campaigns' | 'models' | 'tech'
 
 const PERIODS: SeoPeriod[] = [7, 28, 90]
 const SUBS: { key: Sub; label: string }[] = [
@@ -19,6 +21,7 @@ const SUBS: { key: Sub; label: string }[] = [
   { key: 'queries', label: 'Suchbegriffe' },
   { key: 'campaigns', label: 'Kampagnen' },
   { key: 'models', label: 'Modellseiten' },
+  { key: 'tech', label: 'Technik' },
 ]
 const MODEL_LEVELS: { key: SeoModelLevel; label: string }[] = [
   { key: 'MODEL', label: 'Modelle' },
@@ -72,6 +75,8 @@ const pages = ref<SeoPageRow[]>([])
 const queries = ref<SeoQueryRow[]>([])
 const campaigns = ref<SeoCampaignRow[]>([])
 const models = ref<SeoModelRow[]>([])
+/** Fehler/Hinweise je Pfad aus dem letzten On-Page-Check; einmal je Besuch geladen, null = noch nicht geladen. */
+const auditCounts = ref<Map<string, { errors: number; warnings: number }> | null>(null)
 const loading = ref(false)
 const error = ref('')
 const syncMessage = ref('')
@@ -84,12 +89,25 @@ async function loadStatus() {
   }
 }
 
+async function loadAuditCounts() {
+  if (auditCounts.value) return
+  try {
+    auditCounts.value = auditCountsByPath((await getSeoAudit()).rows)
+  } catch {
+    // Spalte "Technik" bleibt leer, die Seiten-Tabelle funktioniert ohne
+  }
+}
+
 async function loadSub() {
+  if (sub.value === 'tech') return
   loading.value = true
   error.value = ''
   try {
     if (sub.value === 'overview') overview.value = await getSeoOverview(days.value)
-    else if (sub.value === 'pages') pages.value = await getSeoPages(days.value, pageFilter.value)
+    else if (sub.value === 'pages') {
+      pages.value = await getSeoPages(days.value, pageFilter.value)
+      await loadAuditCounts()
+    }
     else if (sub.value === 'campaigns') campaigns.value = await getSeoCampaigns(days.value)
     else if (sub.value === 'models') models.value = await getSeoModels(days.value, modelLevel.value, modelFilter.value)
     else queries.value = await getSeoQueries(days.value, brandFilter.value, queryFilter.value)
@@ -232,6 +250,8 @@ const btn = (active: boolean) => [
       <button v-for="s in SUBS" :key="s.key" type="button" :class="btn(sub === s.key)" @click="sub = s.key">{{ s.label }}</button>
     </div>
 
+    <AdminSeoTechTab v-if="sub === 'tech'" />
+    <template v-else>
     <p v-if="error" class="text-red-400 text-sm mb-4">{{ error }}</p>
     <p v-else-if="status && !status.enabled && !status.plausibleEnabled && !overview && !pages.length && !queries.length && !campaigns.length && !models.length"
        class="text-gray-500 text-sm py-8 text-center">
@@ -274,6 +294,7 @@ const btn = (active: boolean) => [
                 <th class="text-right px-3 py-2 font-medium" title="Einstiege mit Registrierungs-Klick, Code-Login oder Registrierung">CTA</th>
                 <th class="text-right px-3 py-2 font-medium" title="Konten, deren erste besuchte Seite dieser Pfad war">Reg.</th>
                 <th class="text-left px-3 py-2 font-medium">Befund</th>
+                <th class="text-left px-3 py-2 font-medium" title="Fehler und Hinweise aus dem letzten On-Page-Check (Unter-Tab Technik)">Technik</th>
               </tr>
             </thead>
             <tbody>
@@ -291,6 +312,15 @@ const btn = (active: boolean) => [
                   <span v-if="r.finding" :class="['inline-block text-xs px-2 py-0.5 rounded-full', FINDING_LABELS[r.finding].cls]" :title="FINDING_LABELS[r.finding].hint">
                     {{ FINDING_LABELS[r.finding].label }}
                   </span>
+                </td>
+                <td class="px-3 py-1.5 whitespace-nowrap text-xs">
+                  <button v-if="auditCounts?.get(r.path)" type="button" class="hover:underline" @click="sub = 'tech'">
+                    <span v-if="auditCounts.get(r.path)!.errors" class="text-red-300">{{ auditCounts.get(r.path)!.errors }} Fehler</span>
+                    <span v-if="auditCounts.get(r.path)!.errors && auditCounts.get(r.path)!.warnings" class="text-gray-500">, </span>
+                    <span v-if="auditCounts.get(r.path)!.warnings" class="text-amber-300">{{ auditCounts.get(r.path)!.warnings }} Hinweise</span>
+                    <span v-if="!auditCounts.get(r.path)!.errors && !auditCounts.get(r.path)!.warnings" class="text-emerald-400">ok</span>
+                  </button>
+                  <span v-else class="text-gray-600">-</span>
                 </td>
               </tr>
             </tbody>
@@ -421,5 +451,6 @@ const btn = (active: boolean) => [
         </div>
       </template>
     </div>
+    </template>
   </div>
 </template>

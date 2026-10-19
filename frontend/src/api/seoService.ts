@@ -148,3 +148,52 @@ export async function triggerSeoSync(days: number): Promise<boolean> {
     })
     return res.status === 202
 }
+
+export type SeoAuditCheck = 'STATUS' | 'NOINDEX' | 'CANONICAL' | 'TITLE' | 'DESCRIPTION' | 'H1' | 'JSONLD' | 'PRERENDER'
+    | 'BROKEN_LINK' | 'ORPHAN' | 'CWV'
+export type SeoAuditSeverity = 'ERROR' | 'WARNING'
+
+/** message enthält Seiteninhalte (Title, Linkziel): nur als Text rendern. */
+export interface SeoAuditFinding {
+    check: SeoAuditCheck
+    severity: SeoAuditSeverity
+    message: string
+}
+
+/** source FIELD = echte Chrome-Nutzer, LAB = Lighthouse-Messung ohne INP. */
+export interface SeoVitals {
+    lcpMs: number | null
+    cls: number | null
+    inpMs: number | null
+    source: 'FIELD' | 'LAB'
+}
+
+export interface SeoAuditRow {
+    path: string
+    httpStatus: number
+    score: number
+    errors: number
+    warnings: number
+    findings: SeoAuditFinding[]
+    vitals: SeoVitals | null
+}
+
+export interface SeoAuditView {
+    enabled: boolean
+    day: string | null
+    lastRunAt: string | null
+    vitalsWeek: string | null
+    summary: { checked: number; withErrors: number; prerenderFailed: number; brokenLinkPages: number; orphans: number }
+    rows: SeoAuditRow[]
+}
+
+export async function getSeoAudit(): Promise<SeoAuditView> {
+    const { data } = await apiClient.get<SeoAuditView>('/admin/seo/audit')
+    return data
+}
+
+/** true, wenn ein Crawl gestartet wurde; false ohne Basis-URL oder bei laufendem Crawl (HTTP 409). */
+export async function triggerSeoAudit(): Promise<boolean> {
+    const res = await apiClient.post('/admin/seo/audit/run', null, { validateStatus: s => s === 202 || s === 409 })
+    return res.status === 202
+}
