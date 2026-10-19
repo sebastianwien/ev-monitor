@@ -3,8 +3,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import {
-  getSeoBrandTrend, getSeoQueries, getSeoQueryPages,
-  type SeoBrandFilter, type SeoBrandWeek, type SeoBreakdown, type SeoMarket, type SeoPeriod, type SeoQueryFilter, type SeoQueryRow,
+  getSeoBrandTrend, getSeoKeywordMetrics, getSeoQueries, getSeoQueryPages,
+  type SeoKeywordMetric, type SeoBrandFilter, type SeoBrandWeek, type SeoBreakdown, type SeoMarket, type SeoPeriod, type SeoQueryFilter, type SeoQueryRow,
 } from '../../../api/seoService'
 import SeoDataTable from './SeoDataTable.vue'
 import SeoFindingBadge from './SeoFindingBadge.vue'
@@ -14,6 +14,7 @@ import { FINDINGS } from './seoHelp'
 import { GLOSSARY } from './seoGlossary'
 import { num, pct, pos } from './seoFormat'
 import type { SeoColumn } from './seoTable'
+import { usd, visibilityShare } from './seoCompetition'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
@@ -31,6 +32,8 @@ const trend = ref<SeoBrandWeek[]>([])
 const loading = ref(false)
 const error = ref('')
 const pages = ref<Record<string, SeoBreakdown[]>>({})
+/** Suchvolumen und CPC aus dem Unter-Tab Wettbewerb; leer, solange es dort keine Daten gibt. */
+const metrics = ref<Map<string, SeoKeywordMetric>>(new Map())
 
 async function load() {
   loading.value = true
@@ -42,6 +45,14 @@ async function load() {
     error.value = 'Die Suchbegriffe konnten nicht geladen werden.'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadMetrics() {
+  try {
+    metrics.value = new Map((await getSeoKeywordMetrics()).map(m => [m.query, m]))
+  } catch {
+    metrics.value = new Map()
   }
 }
 
@@ -66,6 +77,7 @@ watch(() => [props.days, props.market, filter.value, brand.value], load)
 onMounted(() => {
   load()
   loadTrend()
+  loadMetrics()
 })
 
 const g = (k: string) => `${GLOSSARY[k].term}: ${GLOSSARY[k].text}`
@@ -75,10 +87,21 @@ const columns = computed<SeoColumn<SeoQueryRow>[]>(() => [
   { key: 'clicks', label: 'Klicks', hint: g('clicks'), numeric: true, value: r => r.clicks, format: r => num(r.clicks) },
   { key: 'ctr', label: 'Klickrate', hint: g('ctr'), numeric: true, value: r => r.ctr, format: r => pct(r.ctr), csv: r => r.ctr * 100 },
   { key: 'position', label: 'Position', hint: g('position'), numeric: true, value: r => r.avgPosition || null, format: r => pos(r.avgPosition) },
+  ...(metrics.value.size ? volumeColumns() : []),
   { key: 'topPath', label: 'Beste Seite', hint: 'Unsere Seite mit den meisten Klicks für den Begriff', value: r => r.topPath },
   { key: 'pages', label: 'Seiten', hint: 'Wie viele unserer Seiten für den Begriff erschienen sind', numeric: true, value: r => r.pageCount },
   { key: 'finding', label: 'Befund', value: r => [r.finding ? FINDINGS[r.finding]?.label : '', r.adwordsCandidate ? FINDINGS.ADWORDS.label : ''].filter(Boolean).join(', ') || null },
 ])
+
+function volumeColumns(): SeoColumn<SeoQueryRow>[] {
+  const vol = (r: SeoQueryRow) => metrics.value.get(r.query)?.volume ?? null
+  const share = (r: SeoQueryRow) => visibilityShare(r.impressions, props.days, vol(r))
+  return [
+    { key: 'volume', label: 'Suchvolumen', hint: g('volume'), numeric: true, value: vol, format: r => (vol(r) == null ? '-' : num(vol(r) as number)) },
+    { key: 'share', label: 'Sichtbarkeit', hint: g('share'), numeric: true, value: share, format: r => (share(r) == null ? '-' : pct(share(r) as number, 0)), csv: r => (share(r) == null ? null : (share(r) as number) * 100) },
+    { key: 'cpc', label: 'CPC', hint: g('cpc'), numeric: true, value: r => metrics.value.get(r.query)?.cpc ?? null, format: r => usd(metrics.value.get(r.query)?.cpc) },
+  ]
+}
 
 const filterLabel = (f: SeoQueryFilter) => (f === 'ALL' ? 'Alle' : f === 'ADWORDS' ? FINDINGS.ADWORDS.label : FINDINGS[f].label)
 const btn = (active: boolean) => [

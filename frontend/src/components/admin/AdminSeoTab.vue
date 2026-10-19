@@ -8,6 +8,7 @@ import SeoQueriesPanel from './seo/SeoQueriesPanel.vue'
 import SeoCampaignsPanel from './seo/SeoCampaignsPanel.vue'
 import SeoModelsPanel from './seo/SeoModelsPanel.vue'
 import SeoTechPanel from './seo/SeoTechPanel.vue'
+import SeoCompetitionPanel from './seo/SeoCompetitionPanel.vue'
 import { date, dateTime, num } from './seo/seoFormat'
 import type { SeoNavigation, SeoSub } from './seo/seoNavigation'
 
@@ -22,6 +23,7 @@ const SUBS: { key: SeoSub; label: string }[] = [
   { key: 'campaigns', label: 'Kampagnen' },
   { key: 'models', label: 'Modellseiten' },
   { key: 'tech', label: 'Technik' },
+  { key: 'competition', label: 'Wettbewerb' },
 ]
 const PERIODS: SeoPeriod[] = [7, 28, 90]
 const MARKETS: { key: SeoMarket; label: string }[] = [
@@ -30,7 +32,7 @@ const MARKETS: { key: SeoMarket; label: string }[] = [
   { key: 'ALL', label: 'Alle Märkte' },
 ]
 const MARKET_SUBS: SeoSub[] = ['overview', 'pages', 'queries']
-const PERIOD_SUBS: SeoSub[] = ['overview', 'pages', 'queries', 'campaigns', 'models']
+const PERIOD_SUBS: SeoSub[] = ['overview', 'pages', 'queries', 'campaigns', 'models', 'competition']
 
 const sub = ref<SeoSub>('overview')
 const days = ref<SeoPeriod>(28)
@@ -143,5 +145,6 @@ const btn = (active: boolean) => [
     <SeoCampaignsPanel v-else-if="sub === 'campaigns'" :days="days" />
     <SeoModelsPanel v-else-if="sub === 'models'" v-model:filter="modelFilter" v-model:level="modelLevel" :days="days" />
     <SeoTechPanel v-else-if="sub === 'tech'" />
+    <SeoCompetitionPanel v-else-if="sub === 'competition'" :days="days" />
   </div>
 </template>

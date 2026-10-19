@@ -16,7 +16,13 @@ const getSeoOpportunities = vi.fn()
 const getSeoPageQueries = vi.fn()
 const getSeoQueryPages = vi.fn()
 const getSeoBrandTrend = vi.fn()
+const getSeoCompetition = vi.fn()
+const getSeoKeywordMetrics = vi.fn()
+const triggerSeoCompetition = vi.fn()
 vi.mock('../../../api/seoService', () => ({
+    getSeoCompetition: (d: number) => getSeoCompetition(d),
+    getSeoKeywordMetrics: () => getSeoKeywordMetrics(),
+    triggerSeoCompetition: () => triggerSeoCompetition(),
     getSeoAudit: () => getSeoAudit(),
     triggerSeoAudit: () => triggerSeoAudit(),
     getSeoOpportunities: (d: number, m: string) => getSeoOpportunities(d, m),
@@ -92,6 +98,9 @@ function defaults() {
     getSeoBrandTrend.mockResolvedValue([])
     getSeoPageQueries.mockResolvedValue([])
     getSeoQueryPages.mockResolvedValue([])
+    getSeoKeywordMetrics.mockResolvedValue([])
+    getSeoCompetition.mockResolvedValue({ enabled: false, serpWeek: null, metricsMonth: null, costThisMonthUsd: 0, monthlyBudgetUsd: 5,
+        competitors: [], queries: [], ideas: [] })
 }
 
 async function flush(n = 6) {
@@ -317,5 +326,69 @@ describe('AdminSeoTab', () => {
         await flush()
         expect(triggerSeoAudit).toHaveBeenCalled()
         expect(host.textContent).toContain('läuft gerade schon eine Prüfung')
+    })
+
+    it('Suchbegriffe: Suchvolumen, Sichtbarkeit und CPC, sobald Wettbewerbsdaten da sind', async () => {
+        defaults()
+        getSeoQueries.mockResolvedValue(queries)
+        getSeoKeywordMetrics.mockResolvedValue([{ query: 'alpha one verbrauch <b>x</b>', volume: 20000, cpc: 0.84, competition: 'LOW' }])
+        const host = await mount()
+
+        click(host, 'Suchbegriffe')
+        await flush()
+        const header = [...host.querySelectorAll('thead th')].map(th => th.textContent?.trim())
+        expect(header).toContain('Suchvolumen')
+        expect(header).toContain('Sichtbarkeit')
+        // 12 400 Impressionen in 28 Tagen = 13 286 im Monat, bei 20 000 Suchen 66 %
+        expect(cells(host)[0]).toContain('66 %')
+        expect(cells(host)[0]).toContain('0,84 US$')
+    })
+
+    it('Wettbewerb: Einrichtungshinweis ohne Zugang', async () => {
+        defaults()
+        const host = await mount()
+
+        click(host, 'Wettbewerb')
+        await flush()
+        expect(getSeoCompetition).toHaveBeenCalledWith(28)
+        expect(host.textContent).toContain('noch nicht eingerichtet')
+        expect(host.textContent).toContain('DATAFORSEO_LOGIN')
+    })
+
+    it('Wettbewerb: Wettbewerber, unsere Plätze mit Top 10, Ideen nur neue, fremde Links nur http(s)', async () => {
+        defaults()
+        getSeoCompetition.mockResolvedValue({
+            enabled: true, serpWeek: '2026-10-19', metricsMonth: '2026-10-01', costThisMonthUsd: 0.12, monthlyBudgetUsd: 5,
+            competitors: [{ domain: 'wettbewerb.test', queries: 2, aheadOfUs: 2, avgRank: 1, bestRank: 1 }],
+            queries: [{ query: 'testauto reichweite', impressions: 900, ourRank: 2, ourUrl: 'https://ev-monitor.net/modelle/A', volume: 1300, cpc: 0.84,
+                top: [{ rank: 1, domain: 'wettbewerb.test', url: 'javascript:alert(1)', title: '<i>Fremd</i>', own: false },
+                    { rank: 2, domain: 'ev-monitor.net', url: 'https://ev-monitor.net/modelle/A', title: 'Wir', own: true }] }],
+            ideas: [{ keyword: 'testauto ladezeit', seed: 'testauto reichweite', volume: 400, cpc: 0.5, covered: false },
+                { keyword: 'testauto reichweite', seed: 'testauto reichweite', volume: 1300, cpc: 0.84, covered: true }],
+        })
+        triggerSeoCompetition.mockResolvedValue(true)
+        const host = await mount()
+
+        click(host, 'Wettbewerb')
+        await flush()
+        expect(host.textContent).toContain('Kosten diesen Monat: 0,12 US$ von 5,00 US$ Budget')
+        expect(host.textContent).toContain('wettbewerb.test')
+        expect(host.textContent).toContain('testauto ladezeit')
+
+        const ideaRows = cells(host).filter(r => r.includes('testauto ladezeit') || r.includes('nein') || r.includes('ja'))
+        expect(ideaRows.some(r => r.includes('ja'))).toBe(false)
+
+        const expand = [...host.querySelectorAll('button')].filter(b => b.getAttribute('aria-label') === 'Aufklappen')
+        expand[0].click()
+        await flush()
+        expect(host.textContent).toContain('<i>Fremd</i>')
+        expect(host.querySelector('tbody i')).toBeNull()
+        const foreign = [...host.querySelectorAll('ol a')].find(a => a.textContent?.includes('Fremd'))!
+        expect(foreign.getAttribute('href')).toBeNull()
+
+        click(host, 'Fällige Daten jetzt abrufen')
+        await flush()
+        expect(triggerSeoCompetition).toHaveBeenCalled()
+        expect(host.textContent).toContain('Abruf läuft')
     })
 })

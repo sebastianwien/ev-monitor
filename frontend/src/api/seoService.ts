@@ -252,3 +252,73 @@ export async function getSeoOpportunities(days: SeoPeriod, market: SeoMarket): P
     const { data } = await apiClient.get<SeoOpportunities>('/admin/seo/opportunities', { params: { days, market } })
     return data
 }
+
+export interface SeoCompetitorRow {
+    domain: string
+    queries: number
+    aheadOfUs: number
+    avgRank: number
+    bestRank: number
+}
+
+export interface SeoSerpEntry {
+    rank: number
+    domain: string
+    url: string
+    /** Fremder Text aus den Suchergebnissen, nur als Text rendern. */
+    title: string | null
+    own: boolean
+}
+
+export interface SeoSerpQueryRow {
+    query: string
+    impressions: number
+    ourRank: number | null
+    ourUrl: string | null
+    volume: number | null
+    cpc: number | null
+    top: SeoSerpEntry[]
+}
+
+export interface SeoIdeaRow {
+    keyword: string
+    seed: string
+    volume: number | null
+    cpc: number | null
+    covered: boolean
+}
+
+export interface SeoCompetitionView {
+    enabled: boolean
+    serpWeek: string | null
+    metricsMonth: string | null
+    costThisMonthUsd: number
+    monthlyBudgetUsd: number
+    competitors: SeoCompetitorRow[]
+    queries: SeoSerpQueryRow[]
+    ideas: SeoIdeaRow[]
+}
+
+/** cpc in US-Dollar (Google Ads). */
+export interface SeoKeywordMetric {
+    query: string
+    volume: number | null
+    cpc: number | null
+    competition: string | null
+}
+
+export async function getSeoCompetition(days: SeoPeriod): Promise<SeoCompetitionView> {
+    const { data } = await apiClient.get<SeoCompetitionView>('/admin/seo/competition', { params: { days } })
+    return data
+}
+
+export async function getSeoKeywordMetrics(): Promise<SeoKeywordMetric[]> {
+    const { data } = await apiClient.get<SeoKeywordMetric[]>('/admin/seo/competition/keywords')
+    return data
+}
+
+/** true, wenn ein Abruf gestartet wurde; false ohne Zugang oder bei laufendem Abruf (HTTP 409). */
+export async function triggerSeoCompetition(): Promise<boolean> {
+    const res = await apiClient.post('/admin/seo/competition/run', null, { validateStatus: s => s === 202 || s === 409 })
+    return res.status === 202
+}
