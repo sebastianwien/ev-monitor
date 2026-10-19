@@ -1169,6 +1169,7 @@ dashboard:
   trip_cancel: Avbryt
   trip_delete_confirm: Vill du verkligen ta bort denna resa?
   data_feedback_label: Korrekt igenkänd?
+  data_feedback_menu_positive: Ja, stämmer
   data_feedback_negative: Rapportera ett problem
   data_feedback_comment: Ytterligare detaljer (valfritt)
   data_feedback_send: Skicka feedback

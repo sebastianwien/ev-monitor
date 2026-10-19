@@ -106,6 +106,7 @@ import {
 import { useDataFeedback, isRateableLogSource } from '../composables/useDataFeedback'
 import DataFeedbackButtons from '../components/shared/DataFeedbackButtons.vue'
 import DataFeedbackPanel from '../components/shared/DataFeedbackPanel.vue'
+import DataFeedbackMenuItems from '../components/shared/DataFeedbackMenuItems.vue'
 
 const { t, locale } = useI18n()
 const coinStore = useCoinStore()
@@ -2057,6 +2058,8 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                               class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                               <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
                             </button>
+                            <DataFeedbackMenuItems v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id"
+                              @done="openMenuTripId = null" />
                             <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
                               <button role="menuitem" type="button" @click.stop="handleDeleteTrip(trip.id); openMenuTripId = null"
                                 class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition focus:outline-none focus-visible:bg-red-50 dark:focus-visible:bg-red-900/30">
@@ -2067,6 +2070,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                         </div>
                       </div>
                       <TripClimateMarkers :climate="trip.climate" class="px-3 pb-2.5" />
+                      <DataFeedbackPanel v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id" class="mx-3 mb-2.5" />
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                         <TripMapPanel v-if="expandedTripMaps.has(trip.id + '__d')" :trip="trip"
                                       :panel-id="'trip-map-' + trip.id + '__d'" class="px-3 pb-2.5" />
@@ -2378,6 +2382,8 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                         class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
                         <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
                       </button>
+                      <DataFeedbackMenuItems v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id"
+                        @done="openMenuLogId = null" />
                       <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
                         <button role="menuitem" type="button" @click.stop="deleteLog(item.entry.id); openMenuLogId = null"
                           class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition focus:outline-none focus-visible:bg-red-50 dark:focus-visible:bg-red-900/30">
@@ -2463,6 +2469,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                     </span>
                   </template>
                 </div>
+                <DataFeedbackPanel v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id" class="mx-3 mb-2.5" />
               </div>
 
               <!-- CHARGE ENTRY (DESKTOP GRID, Ladegruppe) -->

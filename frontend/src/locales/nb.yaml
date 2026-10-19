@@ -1169,6 +1169,7 @@ dashboard:
   trip_cancel: Avbryt
   trip_delete_confirm: Vil du virkelig slette denne turen?
   data_feedback_label: Korrekt gjenkjent?
+  data_feedback_menu_positive: Ja, stemmer
   data_feedback_negative: Rapporter et problem
   data_feedback_comment: Flere detaljer (valgfritt)
   data_feedback_send: Send tilbakemelding

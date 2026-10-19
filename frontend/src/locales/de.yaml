@@ -1212,6 +1212,7 @@ dashboard:
   trip_cancel: "Abbrechen"
   trip_delete_confirm: "Fahrt wirklich löschen?"
   data_feedback_label: "Korrekt erkannt?"
+  data_feedback_menu_positive: "Ja, stimmt"
   data_feedback_negative: "Problem melden"
   data_feedback_comment: "Weitere Details (optional)"
   data_feedback_send: "Feedback senden"
