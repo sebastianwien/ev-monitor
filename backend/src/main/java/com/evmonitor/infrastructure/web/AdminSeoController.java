@@ -84,6 +84,14 @@ public class AdminSeoController {
         return insights.campaigns(days);
     }
 
+    @GetMapping("/models")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<SeoInsights.ModelRow> models(@RequestParam(defaultValue = "28") int days,
+                                             @RequestParam(defaultValue = "MODEL") SeoInsights.ModelLevel level,
+                                             @RequestParam(defaultValue = "ALL") SeoInsights.ModelFilter filter) {
+        return insights.models(days, level, filter);
+    }
+
     /** Startet einen Sync im Hintergrund. 409, wenn kein Zugang konfiguriert ist oder ein Lauf aktiv ist. */
     @PostMapping("/sync")
     @PreAuthorize("hasRole('ADMIN')")

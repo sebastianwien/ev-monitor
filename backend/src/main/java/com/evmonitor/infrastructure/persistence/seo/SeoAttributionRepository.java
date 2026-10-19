@@ -9,8 +9,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Registrierungen je Landing-Seite aus app_user (First-Touch-Attribution). Zählt angelegte Konten ohne
- * Seed-Daten; "organisch" heißt: Verweis von einer Google-Domain ohne bezahltes Medium.
+ * DB-Seite des SEO-Tabs: Registrierungen je Landing-Seite aus app_user (First-Touch-Attribution) und die
+ * Datenbasis je Modell. Zählt nur Konten ohne Seed-Daten; "organisch" heißt: Verweis von einer Google-Domain
+ * ohne bezahltes Medium.
  */
 @Repository
 public class SeoAttributionRepository {
@@ -21,6 +22,11 @@ public class SeoAttributionRepository {
 
     /** Konten und davon Trials/Abos je UTM-Tripel (klein geschrieben, Schlüssel {@code source|medium|campaign}). */
     public record UtmTotals(long registrations, long trials) {
+    }
+
+    /** Aktive Autos und Ladevorgänge in der Statistik je Modell (Enum-Name), ohne Seed-Nutzer und Gelöschtes. */
+    public record DataBasis(long cars, long logs) {
+        public static final DataBasis EMPTY = new DataBasis(0, 0);
     }
 
     private static final String ORGANIC =
@@ -57,6 +63,16 @@ public class SeoAttributionRepository {
                 rs -> { result.put(utmKey(rs.getString("s"), rs.getString("m"), rs.getString("c")),
                         new UtmTotals(rs.getLong("n"), rs.getLong("trials"))); },
                 start(from), end(to));
+        return result;
+    }
+
+    public Map<String, DataBasis> dataBasisByModel() {
+        Map<String, DataBasis> result = new HashMap<>();
+        jdbc.query("SELECT c.model, count(DISTINCT c.id) AS cars, count(l.id) AS logs FROM car c "
+                        + "JOIN app_user u ON u.id = c.user_id AND u.is_seed_data = FALSE "
+                        + "LEFT JOIN ev_log l ON l.car_id = c.id AND l.deleted_at IS NULL AND l.include_in_statistics = TRUE "
+                        + "WHERE c.deleted_at IS NULL AND c.model IS NOT NULL GROUP BY c.model",
+                rs -> { result.put(rs.getString("model"), new DataBasis(rs.getLong("cars"), rs.getLong("logs"))); });
         return result;
     }
 

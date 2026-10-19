@@ -15,6 +15,10 @@ public final class SeoInsights {
 
     public enum BrandFilter { ALL, BRAND, NON_BRAND }
 
+    public enum ModelLevel { MODEL, BRAND }
+
+    public enum ModelFilter { ALL, CONTENT_GAP, INVISIBLE }
+
     /**
      * visitors: Plausible-Besucher (Tagessumme), googleEntries: Visits mit Quelle Google; registrations: angelegte
      * Konten (DB), organicRegistrations: davon mit Google-Verweis ohne bezahltes Medium.
@@ -53,5 +57,14 @@ public final class SeoInsights {
      */
     public record CampaignRow(String source, String utmMedium, String utmCampaign, long visitors, long visits,
                               long ctaVisitors, double ctaRate, long registrations, long trials, boolean attributed) {
+    }
+
+    /**
+     * Modellseite {@code /modelle/:brand/:model} (oder auf Markenebene die Marke samt Markenseite, model = null).
+     * cars/logs: Datenbasis aus der DB ohne Seed-Daten, nicht auf den Zeitraum begrenzt. finding: CONTENT_GAP
+     * (Nachfrage ohne Daten), INVISIBLE (Daten, aber keine Sichtbarkeit) oder null; auf Markenebene immer null.
+     */
+    public record ModelRow(String brand, String model, String path, long impressions, long clicks, double ctr,
+                           double avgPosition, long registrations, long cars, long logs, String finding) {
     }
 }

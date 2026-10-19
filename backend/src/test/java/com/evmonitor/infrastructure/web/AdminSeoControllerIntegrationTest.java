@@ -43,6 +43,11 @@ class AdminSeoControllerIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<String> queries = restTemplate.exchange("/api/admin/seo/queries?days=90&brand=NON_BRAND", HttpMethod.GET,
                 createAuthRequest(admin.getId(), admin.getEmail()), String.class);
         assertThat(queries.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        ResponseEntity<String> models = restTemplate.exchange("/api/admin/seo/models?days=28&level=BRAND&filter=CONTENT_GAP", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(models.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(models.getBody()).startsWith("[");
     }
 
     @Test

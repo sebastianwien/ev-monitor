@@ -3,6 +3,9 @@ package com.evmonitor.application.seo;
 import com.evmonitor.application.seo.SeoInsights.BrandFilter;
 import com.evmonitor.application.seo.SeoInsights.CampaignRow;
 import com.evmonitor.application.seo.SeoInsights.DayPoint;
+import com.evmonitor.application.seo.SeoInsights.ModelFilter;
+import com.evmonitor.application.seo.SeoInsights.ModelLevel;
+import com.evmonitor.application.seo.SeoInsights.ModelRow;
 import com.evmonitor.application.seo.SeoInsights.Overview;
 import com.evmonitor.application.seo.SeoInsights.PageFilter;
 import com.evmonitor.application.seo.SeoInsights.PageRow;
@@ -17,8 +20,11 @@ import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.Day
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.SourceGoalTotals;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.SourceTotals;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository;
+import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.DataBasis;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.RegistrationTotals;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.UtmTotals;
+import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.CarBrand.CarModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +41,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.ToDoubleFunction;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Lese-Seite des SEO-Tabs. GSC (vor dem Klick), Plausible (nach dem Klick) und Registrierungen (DB) werden
@@ -51,6 +59,10 @@ public class SeoInsightsService {
     static final String FINDING_MONEY = "MONEY";
     static final String FINDING_STRIKING = "STRIKING_DISTANCE";
     static final String FINDING_CANNIBALIZED = "CANNIBALIZED";
+    static final String FINDING_CONTENT_GAP = "CONTENT_GAP";
+    static final String FINDING_INVISIBLE = "INVISIBLE";
+    private static final Pattern MODEL_PATH = Pattern.compile("^/modelle/([^/]+)/([^/]+)$");
+    private static final Pattern BRAND_PATH = Pattern.compile("^/modelle/([^/]+)$");
     static final String GOOGLE_SOURCE = "Google";
     private static final int FALLBACK_LAG_DAYS = 2;
 
@@ -217,6 +229,146 @@ public class SeoInsightsService {
                 .sorted(Comparator.comparingLong(CampaignRow::visitors).reversed().thenComparing(CampaignRow::source))
                 .limit(scoring.getMaxRows())
                 .toList();
+    }
+
+    /**
+     * Modellseiten: GSC je {@code /modelle/:brand/:model}, Registrierungen (erste Seite) und Datenbasis (Autos, Logs)
+     * aus der DB. Modelle mit Daten, aber ohne Impressionen stehen mit 0 drin. Auf Markenebene zählen die
+     * Modellseiten der Marke plus die Markenseite {@code /modelle/:brand}.
+     */
+    public List<ModelRow> models(int days, ModelLevel level, ModelFilter filter) {
+        Window w = window(days);
+        Map<String, DataBasis> basis = attribution.dataBasisByModel();
+        // Pfadvarianten eines Modells (alte Schreibweise, Groß/klein) laufen auf einen Eintrag zusammen
+        Map<CarModel, Gsc> byModel = new HashMap<>();
+        Map<CarBrand, Gsc> byBrandPage = new HashMap<>();
+        for (PageTotals p : repository.pageTotals(w.from, w.to)) {
+            Optional<CarModel> model = modelOf(p.path());
+            if (model.isPresent()) byModel.computeIfAbsent(model.get(), k -> new Gsc()).add(p);
+            else brandOf(p.path()).ifPresent(b -> byBrandPage.computeIfAbsent(b, k -> new Gsc()).add(p));
+        }
+        attribution.registrationsByLandingPath(w.from, w.to).forEach((path, n) -> {
+            Optional<CarModel> model = modelOf(path);
+            if (model.isPresent()) byModel.computeIfAbsent(model.get(), k -> new Gsc()).registrations += n;
+            else brandOf(path).ifPresent(b -> byBrandPage.computeIfAbsent(b, k -> new Gsc()).registrations += n);
+        });
+        basis.forEach((name, d) -> {
+            if (d.logs() > 0) carModel(name).ifPresent(m -> byModel.computeIfAbsent(m, k -> new Gsc()));
+        });
+        byModel.keySet().removeIf(m -> m.getBrand() == CarBrand.SONSTIGE);
+
+        List<ModelRow> rows = level == ModelLevel.BRAND
+                ? brandRows(byModel, byBrandPage, basis)
+                : modelRows(byModel, basis);
+        return rows.stream()
+                .filter(r -> switch (filter) {
+                    case ALL -> true;
+                    case CONTENT_GAP -> FINDING_CONTENT_GAP.equals(r.finding());
+                    case INVISIBLE -> FINDING_INVISIBLE.equals(r.finding());
+                })
+                .sorted(Comparator.comparingLong(ModelRow::impressions).reversed()
+                        .thenComparing(Comparator.comparingLong(ModelRow::logs).reversed())
+                        .thenComparing(ModelRow::path))
+                .limit(scoring.getMaxRows())
+                .toList();
+    }
+
+    /** GSC-Summen und Registrierungen über alle Pfadvarianten einer Modell- oder Markenseite. */
+    private static final class Gsc {
+        long impressions;
+        long clicks;
+        double weighted;
+        long registrations;
+
+        void add(PageTotals p) {
+            impressions += p.impressions();
+            clicks += p.clicks();
+            weighted += p.avgPosition() * p.impressions();
+        }
+
+        void add(Gsc o) {
+            impressions += o.impressions;
+            clicks += o.clicks;
+            weighted += o.weighted;
+            registrations += o.registrations;
+        }
+
+        double position() {
+            return impressions == 0 ? 0 : round2(weighted / impressions);
+        }
+    }
+
+    private List<ModelRow> modelRows(Map<CarModel, Gsc> byModel, Map<String, DataBasis> basis) {
+        double medianImpressions = median(byModel.values().stream().filter(g -> g.impressions > 0).toList(), g -> g.impressions);
+        List<ModelRow> rows = new ArrayList<>(byModel.size());
+        byModel.forEach((model, g) -> {
+            DataBasis d = basis.getOrDefault(model.name(), DataBasis.EMPTY);
+            String finding = null;
+            if (d.logs() == 0 && g.impressions >= scoring.getMinImpressions() && g.impressions >= medianImpressions) {
+                finding = FINDING_CONTENT_GAP;
+            } else if (d.logs() >= scoring.getModelMinLogs()
+                    && (g.impressions < scoring.getMinImpressions() || g.position() > scoring.getStrikingMaxPosition())) {
+                finding = FINDING_INVISIBLE;
+            }
+            rows.add(new ModelRow(model.getBrand().getDisplayString(), model.getDisplayName(), modelPath(model),
+                    g.impressions, g.clicks, ctr(g.clicks, g.impressions), g.position(), g.registrations,
+                    d.cars(), d.logs(), finding));
+        });
+        return rows;
+    }
+
+    /** Markenebene: alle Modellseiten der Marke plus die Markenseite, Datenbasis über die Modelle der Marke. */
+    private List<ModelRow> brandRows(Map<CarModel, Gsc> byModel, Map<CarBrand, Gsc> byBrandPage, Map<String, DataBasis> basis) {
+        Map<CarBrand, Gsc> gsc = new HashMap<>();
+        Map<CarBrand, long[]> data = new HashMap<>();
+        byModel.forEach((model, g) -> {
+            gsc.computeIfAbsent(model.getBrand(), k -> new Gsc()).add(g);
+            DataBasis d = basis.getOrDefault(model.name(), DataBasis.EMPTY);
+            long[] cl = data.computeIfAbsent(model.getBrand(), k -> new long[2]);
+            cl[0] += d.cars();
+            cl[1] += d.logs();
+        });
+        byBrandPage.forEach((brand, g) -> gsc.computeIfAbsent(brand, k -> new Gsc()).add(g));
+        List<ModelRow> rows = new ArrayList<>(gsc.size());
+        gsc.forEach((brand, g) -> {
+            long[] cl = data.getOrDefault(brand, new long[2]);
+            rows.add(new ModelRow(brand.getDisplayString(), null, brandPath(brand), g.impressions, g.clicks,
+                    ctr(g.clicks, g.impressions), g.position(), g.registrations, cl[0], cl[1], null));
+        });
+        return rows;
+    }
+
+    private static Optional<CarModel> modelOf(String path) {
+        Matcher m = MODEL_PATH.matcher(path);
+        if (!m.matches()) return Optional.empty();
+        return CarModel.findBySlug(m.group(1).replace('_', ' '), m.group(2));
+    }
+
+    private static Optional<CarBrand> brandOf(String path) {
+        Matcher b = BRAND_PATH.matcher(path);
+        if (!b.matches()) return Optional.empty();
+        String name = b.group(1).replace('_', ' ');
+        for (CarBrand brand : CarBrand.values()) {
+            if (brand != CarBrand.SONSTIGE && brand.getDisplayString().equalsIgnoreCase(name)) return Optional.of(brand);
+        }
+        return Optional.empty();
+    }
+
+    /** Kanonischer Pfad wie im Frontend: Leerzeichen in Marke und Modell als "_". */
+    private static String modelPath(CarModel model) {
+        return brandPath(model.getBrand()) + "/" + model.getDisplayName().replace(' ', '_');
+    }
+
+    private static String brandPath(CarBrand brand) {
+        return "/modelle/" + brand.getDisplayString().replace(' ', '_');
+    }
+
+    private static Optional<CarModel> carModel(String enumName) {
+        try {
+            return Optional.of(CarModel.valueOf(enumName));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     /** Letzter synchronisierter GSC-Tag; ohne Daten der Tag, bis zu dem GSC üblicherweise liefert. */

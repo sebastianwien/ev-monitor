@@ -10,12 +10,16 @@ import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository.DayTotals;
 import com.evmonitor.infrastructure.persistence.seo.GscDailyRepository.PageTotals;
 import com.evmonitor.application.seo.SeoInsights.CampaignRow;
+import com.evmonitor.application.seo.SeoInsights.ModelFilter;
+import com.evmonitor.application.seo.SeoInsights.ModelLevel;
+import com.evmonitor.application.seo.SeoInsights.ModelRow;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.DayRow;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.PageGoalTotals;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.SourceGoalTotals;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.SourceTotals;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository;
+import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.DataBasis;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.RegistrationTotals;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.UtmTotals;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +56,7 @@ class SeoInsightsServiceTest {
         when(attribution.registrationTotals(any(), any())).thenReturn(RegistrationTotals.EMPTY);
         when(attribution.registrationsByLandingPath(any(), any())).thenReturn(Map.of());
         when(attribution.registrationsByUtm(any(), any())).thenReturn(Map.of());
+        when(attribution.dataBasisByModel()).thenReturn(Map.of());
         when(plausible.dayTotals(any(), any())).thenReturn(List.of());
         when(plausible.googleVisitsByDay(any(), any())).thenReturn(Map.of());
         when(plausible.pageTotals(any(), any())).thenReturn(List.of());
@@ -252,5 +257,108 @@ class SeoInsightsServiceTest {
     private static GscDailyRepository.QueryRow row(String query, String path, int clicks, int impressions,
                                                    double position, boolean brand) {
         return new GscDailyRepository.QueryRow(null, query, path, clicks, impressions, position, brand);
+    }
+
+    @Test
+    void modelsJoinGscRegistrationsAndDataBasisAndFlagGaps() {
+        LocalDate from = LATEST.minusDays(27);
+        when(repository.pageTotals(from, LATEST)).thenReturn(List.of(
+                new PageTotals("/modelle/Tesla/Model_3", 500, 10_000, 6.0),
+                new PageTotals("/modelle/Hyundai/Ioniq_5", 10, 6_000, 25.0),   // Nachfrage, aber keine Daten
+                new PageTotals("/modelle/Tesla/Model_Y", 100, 5_000, 12.0),
+                new PageTotals("/modelle/Tesla", 50, 2_000, 8.0),              // Markenseite, nur auf Markenebene
+                new PageTotals("/modelle/Nirgendwo/Phantom", 1, 50, 40.0),     // unbekanntes Modell: ignoriert
+                new PageTotals("/impressum", 5, 100, 30.0)));
+        when(attribution.registrationsByLandingPath(from, LATEST))
+                .thenReturn(Map.of("/modelle/Tesla/Model_3", 7L, "/modelle/Tesla", 2L));
+        when(attribution.dataBasisByModel()).thenReturn(Map.of(
+                "MODEL_3", new DataBasis(40, 900),
+                "MODEL_Y", new DataBasis(3, 20),
+                "ENYAQ", new DataBasis(12, 300)));                               // Daten, aber keine Impressionen
+
+        List<ModelRow> rows = service.models(28, ModelLevel.MODEL, ModelFilter.ALL);
+
+        assertThat(rows).extracting(ModelRow::model).containsExactly("Model 3", "Ioniq 5", "Model Y", "Enyaq");
+        ModelRow model3 = rows.get(0);
+        assertThat(model3.brand()).isEqualTo("Tesla");
+        assertThat(model3.path()).isEqualTo("/modelle/Tesla/Model_3");
+        assertThat(model3.impressions()).isEqualTo(10_000);
+        assertThat(model3.clicks()).isEqualTo(500);
+        assertThat(model3.ctr()).isEqualTo(0.05);
+        assertThat(model3.avgPosition()).isEqualTo(6.0);
+        assertThat(model3.registrations()).isEqualTo(7);
+        assertThat(model3.cars()).isEqualTo(40);
+        assertThat(model3.logs()).isEqualTo(900);
+        assertThat(model3.finding()).isNull();
+        assertThat(rows.get(1).finding()).isEqualTo("CONTENT_GAP");
+        assertThat(rows.get(1).cars()).isZero();
+        assertThat(rows.get(2).finding()).isNull();
+        ModelRow enyaq = rows.get(3);
+        assertThat(enyaq.brand()).isEqualTo("Škoda");
+        assertThat(enyaq.path()).isEqualTo("/modelle/Škoda/Enyaq");
+        assertThat(enyaq.impressions()).isZero();
+        assertThat(enyaq.logs()).isEqualTo(300);
+        assertThat(enyaq.finding()).isEqualTo("INVISIBLE");
+
+        assertThat(service.models(28, ModelLevel.MODEL, ModelFilter.CONTENT_GAP))
+                .extracting(ModelRow::model).containsExactly("Ioniq 5");
+        assertThat(service.models(28, ModelLevel.MODEL, ModelFilter.INVISIBLE))
+                .extracting(ModelRow::model).containsExactly("Enyaq");
+    }
+
+    @Test
+    void modelsResolveUnderscoreBrandsAndSumPathVariantsOfOneModel() {
+        LocalDate from = LATEST.minusDays(27);
+        when(repository.pageTotals(from, LATEST)).thenReturn(List.of(
+                new PageTotals("/modelle/Land_Rover/Range_Rover_Electric", 4, 400, 10.0),
+                new PageTotals("/modelle/Tesla/Model_Y", 100, 5_000, 12.0),
+                new PageTotals("/modelle/Tesla/MODEL_Y", 10, 1_000, 6.0)));   // alte Schreibweise, gleiches Modell
+        when(attribution.registrationsByLandingPath(from, LATEST))
+                .thenReturn(Map.of("/modelle/Tesla/Model_Y", 3L, "/modelle/Tesla/MODEL_Y", 1L));
+
+        List<ModelRow> rows = service.models(28, ModelLevel.MODEL, ModelFilter.ALL);
+
+        assertThat(rows).extracting(ModelRow::path)
+                .containsExactly("/modelle/Tesla/Model_Y", "/modelle/Land_Rover/Range_Rover_Electric");
+        ModelRow modelY = rows.get(0);
+        assertThat(modelY.impressions()).isEqualTo(6_000);
+        assertThat(modelY.clicks()).isEqualTo(110);
+        // gewichtet: (12*5000 + 6*1000) / 6000
+        assertThat(modelY.avgPosition()).isEqualTo(11.0);
+        assertThat(modelY.registrations()).isEqualTo(4);
+        assertThat(rows.get(1).brand()).isEqualTo("Land Rover");
+
+        assertThat(service.models(28, ModelLevel.BRAND, ModelFilter.ALL)).extracting(ModelRow::path)
+                .containsExactly("/modelle/Tesla", "/modelle/Land_Rover");
+    }
+
+    @Test
+    void modelsOnBrandLevelSumModelsAndBrandPage() {
+        LocalDate from = LATEST.minusDays(27);
+        when(repository.pageTotals(from, LATEST)).thenReturn(List.of(
+                new PageTotals("/modelle/Tesla/Model_3", 500, 10_000, 6.0),
+                new PageTotals("/modelle/Tesla/Model_Y", 100, 5_000, 12.0),
+                new PageTotals("/modelle/Tesla", 50, 2_000, 8.0),
+                new PageTotals("/modelle/Hyundai/Ioniq_5", 10, 6_000, 25.0)));
+        when(attribution.registrationsByLandingPath(from, LATEST))
+                .thenReturn(Map.of("/modelle/Tesla/Model_3", 7L, "/modelle/Tesla", 2L));
+        when(attribution.dataBasisByModel()).thenReturn(Map.of(
+                "MODEL_3", new DataBasis(40, 900), "MODEL_Y", new DataBasis(3, 20), "ENYAQ", new DataBasis(12, 300)));
+
+        List<ModelRow> rows = service.models(28, ModelLevel.BRAND, ModelFilter.ALL);
+
+        assertThat(rows).extracting(ModelRow::brand).containsExactly("Tesla", "Hyundai", "Škoda");
+        ModelRow tesla = rows.get(0);
+        assertThat(tesla.model()).isNull();
+        assertThat(tesla.path()).isEqualTo("/modelle/Tesla");
+        assertThat(tesla.impressions()).isEqualTo(17_000);
+        assertThat(tesla.clicks()).isEqualTo(650);
+        // gewichtet: (6*10000 + 12*5000 + 8*2000) / 17000
+        assertThat(tesla.avgPosition()).isEqualTo(8.0);
+        assertThat(tesla.registrations()).isEqualTo(9);
+        assertThat(tesla.cars()).isEqualTo(43);
+        assertThat(tesla.logs()).isEqualTo(920);
+        assertThat(tesla.finding()).isNull();
+        assertThat(rows.get(2).logs()).isEqualTo(300);
     }
 }

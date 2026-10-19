@@ -41,6 +41,9 @@ public class SeoScoringProperties {
     /** "Geldseite": Anteil der Seiten mit den meisten Registrierungen je Klick. */
     private double moneyTopShare = 0.1;
 
+    /** Modellseite "unsichtbar": ab so vielen Ladevorgängen in der DB, aber unter minImpressions oder Position über strikingMaxPosition. */
+    private long modelMinLogs = 10;
+
     /** AdWords-Kandidat: Non-Brand-Begriff schlechter als diese Position, Zielseite konvertiert gut. */
     private double adwordsMinPosition = 10.0;
 }
