@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.seo.SeoPath;
 import com.evmonitor.domain.EmailVerificationToken;
 import com.evmonitor.domain.EmailVerificationTokenRepository;
 import com.evmonitor.domain.PasswordResetToken;
@@ -60,17 +61,14 @@ public class AuthService {
             }
         }
 
-        User user = User.createNewLocalUserWithLocaleAndCountry(
-                request.email(),
-                username,
-                encodedPassword,
-                referrerId,
-                request.utmSource(),
-                request.utmMedium(),
-                request.utmCampaign(),
-                request.referrerSource(),
-                request.registrationLocale(),
-                request.country());
+        User user = User.newAccountBuilder(request.email(), username, encodedPassword)
+                .referredByUserId(referrerId)
+                .utmSource(request.utmSource()).utmMedium(request.utmMedium()).utmCampaign(request.utmCampaign())
+                .referrerSource(request.referrerSource())
+                .landingPath(SeoPath.landingPath(request.landingPath()))
+                .registrationLocale(request.registrationLocale())
+                .country(request.country())
+                .build();
 
         // Race condition safety: two concurrent requests can both pass existsByEmail but one
         // loses the unique constraint INSERT → catch and surface as 409 instead of 500.

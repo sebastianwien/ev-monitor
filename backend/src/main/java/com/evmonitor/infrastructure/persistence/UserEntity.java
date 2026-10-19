@@ -75,6 +75,9 @@ public class UserEntity {
     @Column(name = "referrer_source", length = 255)
     private String referrerSource;
 
+    @Column(name = "landing_path", length = 200)
+    private String landingPath;
+
     @Column(name = "registration_locale", length = 10)
     private String registrationLocale;
 

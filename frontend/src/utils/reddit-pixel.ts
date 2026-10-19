@@ -20,6 +20,9 @@ const REDDIT_PIXEL_ID = import.meta.env.VITE_REDDIT_PIXEL_ID || ''
 const CONSENT_KEY = 'reddit-pixel-consent'
 const UTM_PARAMS_KEY = 'utm-params'
 const REFERRER_KEY = 'referrer-source'
+const LANDING_PATH_KEY = 'landing-path'
+/** Spaltenlänge app_user.landing_path. */
+const LANDING_PATH_MAX = 200
 
 function lsGet(key: string): string | null {
   try { return localStorage.getItem(key) } catch { return null }
@@ -58,6 +61,36 @@ export function getStoredReferrer(): string | null {
 
 export function clearStoredReferrer() {
   lsRemove(REFERRER_KEY)
+}
+
+/**
+ * Merkt die erste besuchte Seite (nur Pfad, ohne Query und Hash) für die Attribution der
+ * Registrierung. Nur beim ersten Seitenaufruf gesetzt (first touch), wie der Referrer.
+ */
+export function captureLandingPath() {
+  if (lsGet(LANDING_PATH_KEY)) return
+  const path = window.location.pathname
+  if (!path) return
+  lsSet(LANDING_PATH_KEY, path.slice(0, LANDING_PATH_MAX))
+}
+
+export function getStoredLandingPath(): string | null {
+  return lsGet(LANDING_PATH_KEY)
+}
+
+export function clearStoredLandingPath() {
+  lsRemove(LANDING_PATH_KEY)
+}
+
+/**
+ * Herkunft für eine neue Registrierung: Referrer-Host und erste Seite aus dem ersten Besuch.
+ * Leere Werte fehlen im Objekt, damit der Request sie nicht als "" sendet.
+ */
+export function firstTouchAttribution(): { referrerSource?: string; landingPath?: string } {
+  return {
+    referrerSource: getStoredReferrer() || undefined,
+    landingPath: getStoredLandingPath() || undefined,
+  }
 }
 
 /**

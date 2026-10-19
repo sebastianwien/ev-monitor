@@ -1,5 +1,6 @@
 package com.evmonitor.application.codelogin;
 
+import com.evmonitor.application.seo.SeoPath;
 import com.evmonitor.application.UsernameGenerator;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.User;
@@ -35,11 +36,12 @@ public class PasswordlessAccountService {
     }
 
     private User create(String email, SignupAttribution attribution, AuthProvider provider) {
-        SignupAttribution a = attribution != null ? attribution : new SignupAttribution(null, null, null, null);
+        SignupAttribution a = attribution != null ? attribution : SignupAttribution.NONE;
         User user = User.newAccountBuilder(email, UsernameGenerator.fromEmail(email, userRepository::existsByUsername), null)
                 .authProvider(provider)
                 .emailVerified(true)
                 .utmSource(a.utmSource()).utmMedium(a.utmMedium()).utmCampaign(a.utmCampaign())
+                .referrerSource(a.referrerSource()).landingPath(SeoPath.landingPath(a.landingPath()))
                 .registrationLocale(a.locale())
                 .build();
         return userRepository.save(user);

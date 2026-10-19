@@ -14,6 +14,8 @@ import java.util.regex.Pattern;
 public final class SeoPath {
 
     public static final int MAX_LENGTH = 500;
+    /** Spaltenlänge app_user.landing_path. */
+    public static final int LANDING_MAX_LENGTH = 200;
 
     private static final Pattern BRAND = Pattern.compile("ev.?monitor", Pattern.CASE_INSENSITIVE);
 
@@ -30,6 +32,16 @@ public final class SeoPath {
         while (path.length() > 1 && path.endsWith("/")) path = path.substring(0, path.length() - 1);
         if (path.isEmpty() || !path.startsWith("/")) path = "/" + path;
         return path.length() > MAX_LENGTH ? path.substring(0, MAX_LENGTH) : path;
+    }
+
+    /**
+     * Landing-Pfad aus dem Browser für app_user: wie {@link #normalize}, aber null statt "/" bei leerer
+     * Eingabe und auf die Spaltenlänge gekürzt. Ein fremder Host wird verworfen, nur der Pfad bleibt.
+     */
+    public static String landingPath(String urlOrPath) {
+        if (urlOrPath == null || urlOrPath.isBlank()) return null;
+        String path = normalize(urlOrPath);
+        return path.length() > LANDING_MAX_LENGTH ? path.substring(0, LANDING_MAX_LENGTH) : path;
     }
 
     private static String rawPath(String value) {

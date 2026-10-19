@@ -19,7 +19,8 @@ class PasswordlessAccountServiceTest {
 
     private final UserRepository userRepository = mock(UserRepository.class);
     private final PasswordlessAccountService service = new PasswordlessAccountService(userRepository);
-    private static final SignupAttribution FIRSTEV = new SignupAttribution("firstev", "tile", "volkswagen_id_3", "de");
+    private static final SignupAttribution FIRSTEV = new SignupAttribution("firstev", "tile", "volkswagen_id_3", "de",
+            "www.google.com", "/modelle/Volkswagen/ID.3?utm_source=firstev");
 
     @Test
     void newAddressGetsVerifiedAccountWithoutPasswordAndAttribution() {
@@ -34,6 +35,8 @@ class PasswordlessAccountServiceTest {
         assertThat(user.getUtmSource()).isEqualTo("firstev");
         assertThat(user.getUtmCampaign()).isEqualTo("volkswagen_id_3");
         assertThat(user.getRegistrationLocale()).isEqualTo("de");
+        assertThat(user.getReferrerSource()).isEqualTo("www.google.com");
+        assertThat(user.getLandingPath()).isEqualTo("/modelle/Volkswagen/ID.3");
         assertThat(user.getAuthProvider()).isEqualTo(AuthProvider.LOCAL);
     }
 

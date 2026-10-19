@@ -68,7 +68,7 @@ class AuthServiceTest {
         String password = "SecurePassword123";
         String hashedPassword = "$2a$10$hashedPasswordExample";
 
-        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password, null, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), password, null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(email)).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -96,7 +96,7 @@ class AuthServiceTest {
     void shouldRejectRegistrationWithDuplicateEmail() {
         // Given
         String email = "existing@example.com";
-        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest(email, "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(email)).thenReturn(true);
 
@@ -115,7 +115,7 @@ class AuthServiceTest {
         // Race condition: existsByEmail returns false (check passed), but another request
         // wins the INSERT between the check and the save → DataIntegrityViolationException
         String email = "race@example.com";
-        RegisterRequest request = new RegisterRequest(email, "raceuser", "Password123!", null, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest(email, "raceuser", "Password123!", null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(email)).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -261,7 +261,7 @@ class AuthServiceTest {
         String plainPassword = "PlainTextPassword123";
         String expectedHash = "$2a$10$hashedPasswordExample";
         RegisterRequest request = new RegisterRequest("user@example.com",
-                "testuser_" + System.currentTimeMillis(), plainPassword, null, null, null, null, null, null, null);
+                "testuser_" + System.currentTimeMillis(), plainPassword, null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -284,7 +284,7 @@ class AuthServiceTest {
     void shouldCreateUnverifiedLocalUserOnRegistration() {
         // Given
         RegisterRequest request = new RegisterRequest("user@example.com",
-                "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null, null, null, null);
+                "testuser_" + System.currentTimeMillis(), "Password123", null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -324,7 +324,8 @@ class AuthServiceTest {
                 utmCampaign,
                 null, // no referrerSource
                 null, // no registrationLocale
-                null  // no country
+                null, // no country
+                "https://ev-monitor.net/modelle/Tesla/Model%203/?utm_source=reddit"
         );
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
@@ -344,6 +345,7 @@ class AuthServiceTest {
         assertEquals(utmSource, savedUser.getUtmSource());
         assertEquals(utmMedium, savedUser.getUtmMedium());
         assertEquals(utmCampaign, savedUser.getUtmCampaign());
+        assertEquals("/modelle/Tesla/Model_3", savedUser.getLandingPath());
     }
 
     @Test
@@ -360,7 +362,7 @@ class AuthServiceTest {
                 null, // no referrerSource
                 null, // no registrationLocale
                 null  // no country
-        );
+        , null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -385,7 +387,7 @@ class AuthServiceTest {
 
     @Test
     void shouldAutoGenerateUsername_fromEmailPrefix_whenNotProvided() {
-        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("max")).thenReturn(false);
@@ -402,7 +404,7 @@ class AuthServiceTest {
 
     @Test
     void shouldAutoGenerateUsername_withNumericSuffix_whenPrefixAlreadyTaken() {
-        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("max@example.com", null, "Password123", null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("max")).thenReturn(true);
@@ -421,7 +423,7 @@ class AuthServiceTest {
 
     @Test
     void shouldSanitizeEmailPrefix_replacingSpecialCharsWithUnderscore() {
-        RegisterRequest request = new RegisterRequest("test.user+extra@example.com", null, "Password123", null, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("test.user+extra@example.com", null, "Password123", null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername(any())).thenReturn(false);
@@ -440,7 +442,7 @@ class AuthServiceTest {
 
     @Test
     void shouldUseExplicitUsername_whenProvidedAndAvailable() {
-        RegisterRequest request = new RegisterRequest("user@example.com", "mywantedname", "Password123", null, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("user@example.com", "mywantedname", "Password123", null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("mywantedname")).thenReturn(false);
@@ -457,7 +459,7 @@ class AuthServiceTest {
 
     @Test
     void shouldRejectExplicitUsername_whenAlreadyTaken() {
-        RegisterRequest request = new RegisterRequest("user@example.com", "takenname", "Password123", null, null, null, null, null, null, null);
+        RegisterRequest request = new RegisterRequest("user@example.com", "takenname", "Password123", null, null, null, null, null, null, null, null);
 
         when(userRepository.existsByEmail(any())).thenReturn(false);
         when(userRepository.existsByUsername("takenname")).thenReturn(true);
@@ -487,7 +489,7 @@ class AuthServiceTest {
                 null, // no referrerSource
                 null, // no registrationLocale
                 null  // no country
-        );
+        , null);
 
         User referrer = verifiedUser(referrerId, "referrer@example.com", "referrer", "$2a$10$hash", referralCode);
 

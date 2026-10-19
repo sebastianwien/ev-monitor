@@ -141,9 +141,11 @@ public class AuthController {
             @Size(max = 100) String utmSource,
             @Size(max = 100) String utmMedium,
             @Size(max = 100) String utmCampaign,
-            @Size(max = 10) String locale) {
+            @Size(max = 10) String locale,
+            @Size(max = 255) String referrerSource,
+            @Size(max = 2048) String landingPath) {
         SignupAttribution attribution() {
-            return new SignupAttribution(utmSource, utmMedium, utmCampaign, locale);
+            return new SignupAttribution(utmSource, utmMedium, utmCampaign, locale, referrerSource, landingPath);
         }
     }
 
@@ -152,9 +154,11 @@ public class AuthController {
             @Size(max = 100) String utmSource,
             @Size(max = 100) String utmMedium,
             @Size(max = 100) String utmCampaign,
-            @Size(max = 10) String locale) {
+            @Size(max = 10) String locale,
+            @Size(max = 255) String referrerSource,
+            @Size(max = 2048) String landingPath) {
         SignupAttribution attribution() {
-            return new SignupAttribution(utmSource, utmMedium, utmCampaign, locale);
+            return new SignupAttribution(utmSource, utmMedium, utmCampaign, locale, referrerSource, landingPath);
         }
     }
 

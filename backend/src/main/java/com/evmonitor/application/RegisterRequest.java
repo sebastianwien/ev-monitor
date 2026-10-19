@@ -37,5 +37,9 @@ public record RegisterRequest(
         String registrationLocale,
 
         @Size(max = 2, message = "Country code must be max 2 characters")
-        String country) {
+        String country,
+
+        /** Erste besuchte Seite (Pfad oder URL); wird serverseitig normalisiert und auf 200 Zeichen gekürzt. */
+        @Size(max = 2048, message = "Landing path must be max 2048 characters")
+        String landingPath) {
 }

@@ -28,6 +28,16 @@ class SeoPathTest {
     }
 
     @Test
+    void landingPathKeepsOnlyAnOwnPathAndCapsAtColumnLength() {
+        assertThat(SeoPath.landingPath("/modelle/Tesla/Model%203?utm_source=x")).isEqualTo("/modelle/Tesla/Model_3");
+        assertThat(SeoPath.landingPath("https://ev-monitor.net/modelle/")).isEqualTo("/modelle");
+        assertThat(SeoPath.landingPath("https://evil.example/phish")).isEqualTo("/phish");
+        assertThat(SeoPath.landingPath("/" + "a".repeat(300))).hasSize(SeoPath.LANDING_MAX_LENGTH);
+        assertThat(SeoPath.landingPath("   ")).isNull();
+        assertThat(SeoPath.landingPath(null)).isNull();
+    }
+
+    @Test
     void brandRegexMatchesVariants() {
         assertThat(SeoPath.isBrand("ev monitor")).isTrue();
         assertThat(SeoPath.isBrand("EV-Monitor Login")).isTrue();

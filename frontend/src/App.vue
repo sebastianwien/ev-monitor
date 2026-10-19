@@ -30,7 +30,7 @@ import WorkspaceNav from './components/shared/WorkspaceNav.vue'
 import { WORKSPACE_TABS } from './config/tabs'
 import { HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
-import { captureUtmParams, captureReferrer } from './utils/reddit-pixel'
+import { captureUtmParams, captureReferrer, captureLandingPath } from './utils/reddit-pixel'
 import { detectCountry } from './composables/useCountryDetection'
 import { useHaptic } from './composables/useHaptic'
 import { useThemeStore } from './stores/theme'
@@ -197,6 +197,7 @@ onMounted(() => {
   themeStore.init()
   captureUtmParams()
   captureReferrer()
+  captureLandingPath()
   detectCountry()
 
   if (authStore.isAuthenticated() && !authStore.isDemoAccount) {
