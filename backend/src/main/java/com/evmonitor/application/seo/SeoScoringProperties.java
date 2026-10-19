@@ -31,4 +31,16 @@ public class SeoScoringProperties {
 
     /** Zeilenobergrenze je Tabelle im Tab. */
     private int maxRows = 500;
+
+    /** Goals, die als "CTA" zählen: Besucher mit einem davon / Einstiege = CTA-Rate. Namen stehen in analytics.ts. */
+    private java.util.List<String> ctaGoals = java.util.List.of("cta_register_clicked", "gate_code_verified", "registration_completed");
+
+    /** "Leck": Klicks über Median, Absprung ab dieser Quote (0-1), CTA-Rate unter Median. */
+    private double leakBounceRate = 0.7;
+
+    /** "Geldseite": Anteil der Seiten mit den meisten Registrierungen je Klick. */
+    private double moneyTopShare = 0.1;
+
+    /** AdWords-Kandidat: Non-Brand-Begriff schlechter als diese Position, Zielseite konvertiert gut. */
+    private double adwordsMinPosition = 10.0;
 }

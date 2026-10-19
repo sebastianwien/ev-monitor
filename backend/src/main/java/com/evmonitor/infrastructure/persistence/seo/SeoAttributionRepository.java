@@ -19,6 +19,10 @@ public class SeoAttributionRepository {
         public static final RegistrationTotals EMPTY = new RegistrationTotals(0, 0);
     }
 
+    /** Konten und davon Trials/Abos je UTM-Tripel (klein geschrieben, Schlüssel {@code source|medium|campaign}). */
+    public record UtmTotals(long registrations, long trials) {
+    }
+
     private static final String ORGANIC =
             "referrer_source LIKE '%google.%' AND (utm_medium IS NULL OR utm_medium NOT IN ('cpc', 'paid'))";
 
@@ -42,6 +46,26 @@ public class SeoAttributionRepository {
                         + "FROM app_user WHERE is_seed_data = FALSE AND created_at >= ? AND created_at < ?",
                 (rs, i) -> new RegistrationTotals(rs.getLong("n"), rs.getLong("organic")),
                 start(from), end(to));
+    }
+
+    public Map<String, UtmTotals> registrationsByUtm(LocalDate from, LocalDate to) {
+        Map<String, UtmTotals> result = new HashMap<>();
+        jdbc.query("SELECT lower(utm_source) AS s, lower(coalesce(utm_medium, '')) AS m, lower(coalesce(utm_campaign, '')) AS c, "
+                        + "count(*) AS n, SUM(CASE WHEN trial_used = TRUE OR subscription_tier <> 'NONE' THEN 1 ELSE 0 END) AS trials "
+                        + "FROM app_user WHERE utm_source IS NOT NULL AND is_seed_data = FALSE AND created_at >= ? AND created_at < ? "
+                        + "GROUP BY lower(utm_source), lower(coalesce(utm_medium, '')), lower(coalesce(utm_campaign, ''))",
+                rs -> { result.put(utmKey(rs.getString("s"), rs.getString("m"), rs.getString("c")),
+                        new UtmTotals(rs.getLong("n"), rs.getLong("trials"))); },
+                start(from), end(to));
+        return result;
+    }
+
+    public static String utmKey(String source, String medium, String campaign) {
+        return lower(source) + "|" + lower(medium) + "|" + lower(campaign);
+    }
+
+    private static String lower(String v) {
+        return v == null ? "" : v.trim().toLowerCase();
     }
 
     private static Timestamp start(LocalDate day) {

@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.seo.PlausibleSyncService;
 import com.evmonitor.application.seo.SeoInsights;
 import com.evmonitor.application.seo.SeoInsightsService;
 import com.evmonitor.application.seo.SeoSyncScheduler;
@@ -23,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Admin-Tab "SEO & Traffic": Aggregate aus der Search Console. Suchbegriffe sind fremder Text, nie HTML. */
+/** Admin-Tab "SEO & Traffic": Aggregate aus Search Console, Plausible und DB. Suchbegriffe sind fremder Text, nie HTML. */
 @RestController
 @RequestMapping("/api/admin/seo")
 @RequiredArgsConstructor
@@ -33,6 +34,7 @@ public class AdminSeoController {
     private final SeoSyncService syncService;
     private final SeoSyncScheduler scheduler;
     private final SeoSyncRunRepository runs;
+    private final PlausibleSyncService plausibleSync;
 
     public record SyncRunDto(UUID id, String source, LocalDateTime startedAt, LocalDateTime finishedAt, String status,
                              int rowCount, LocalDate fromDay, LocalDate toDay, String error) {
@@ -42,14 +44,17 @@ public class AdminSeoController {
         }
     }
 
-    public record StatusDto(boolean enabled, LocalDate dataUntil, List<SyncRunDto> runs) {
+    /** enabled/dataUntil: GSC; plausibleEnabled/plausibleDataUntil: Plausible (null ohne Daten). */
+    public record StatusDto(boolean enabled, LocalDate dataUntil, boolean plausibleEnabled, LocalDate plausibleDataUntil,
+                            List<SyncRunDto> runs) {
     }
 
     @GetMapping("/status")
     @PreAuthorize("hasRole('ADMIN')")
     public StatusDto status() {
         List<SyncRunDto> latest = runs.findTop10ByOrderByStartedAtDesc().stream().map(SyncRunDto::from).toList();
-        return new StatusDto(syncService.isEnabled(), insights.dataUntil(), latest);
+        return new StatusDto(syncService.isEnabled(), insights.dataUntil(), plausibleSync.isEnabled(),
+                insights.plausibleDataUntil().orElse(null), latest);
     }
 
     @GetMapping("/overview")
@@ -71,6 +76,12 @@ public class AdminSeoController {
                                               @RequestParam(defaultValue = "ALL") SeoInsights.BrandFilter brand,
                                               @RequestParam(defaultValue = "ALL") SeoInsights.QueryFilter filter) {
         return insights.queries(days, brand, filter);
+    }
+
+    @GetMapping("/campaigns")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<SeoInsights.CampaignRow> campaigns(@RequestParam(defaultValue = "28") int days) {
+        return insights.campaigns(days);
     }
 
     /** Startet einen Sync im Hintergrund. 409, wenn kein Zugang konfiguriert ist oder ein Lauf aktiv ist. */
