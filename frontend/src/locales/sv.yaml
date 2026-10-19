@@ -1168,16 +1168,18 @@ dashboard:
   trip_save: Spara
   trip_cancel: Avbryt
   trip_delete_confirm: Vill du verkligen ta bort denna resa?
-  trip_feedback_positive: Resan var korrekt
-  trip_feedback_negative: Rapportera ett problem
-  trip_feedback_tag_distance_wrong: Fel avstånd
-  trip_feedback_tag_time_wrong: Fel tidsperiod
-  trip_feedback_tag_duplicate: Dubblettresa
-  trip_feedback_tag_other: Annat
-  trip_feedback_comment: Ytterligare detaljer (valfritt)
-  trip_feedback_send: Skicka feedback
-  trip_feedback_label: Korrekt igenkänd?
-  trip_feedback_given: Feedback lämnat
+  data_feedback_label: Korrekt igenkänd?
+  data_feedback_negative: Rapportera ett problem
+  data_feedback_comment: Ytterligare detaljer (valfritt)
+  data_feedback_send: Skicka feedback
+  data_feedback_positive_log: Laddningen var korrekt
+  data_feedback_positive_trip: Resan var korrekt
+  data_feedback_tag_kwh_wrong: Fel kWh
+  data_feedback_tag_soc_wrong: Fel batterinivå
+  data_feedback_tag_distance_wrong: Fel avstånd
+  data_feedback_tag_time_wrong: Fel tidpunkt
+  data_feedback_tag_duplicate: Registrerad två gånger
+  data_feedback_tag_other: Annat
   trip_distance: "Avstand ({unit})"
   trip_route_type: Vägtyp
   trip_soc_start: "SoC start (%)"

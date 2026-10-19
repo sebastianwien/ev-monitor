@@ -21,8 +21,6 @@ import {
   ArrowPathIcon,
   ArrowsRightLeftIcon,
   PlusIcon,
-  HandThumbUpIcon,
-  HandThumbDownIcon,
   EllipsisVerticalIcon,
   ChartBarSquareIcon,
   LockClosedIcon,
@@ -105,6 +103,9 @@ import {
   type RealCostHint,
   type CostHintLog,
 } from '../composables/useChargingEfficiency'
+import { useDataFeedback, isRateableLogSource } from '../composables/useDataFeedback'
+import DataFeedbackButtons from '../components/shared/DataFeedbackButtons.vue'
+import DataFeedbackPanel from '../components/shared/DataFeedbackPanel.vue'
 
 const { t, locale } = useI18n()
 const coinStore = useCoinStore()
@@ -135,7 +136,6 @@ const {
   editingTripId, addingTripAfterId, tripForm, tripSaving, tripError,
   startEditTrip, cancelTripEdit, saveTripEdit, startAddTrip, saveNewTrip, deleteTripEntry,
   mergeTripEntry,
-  submitTripFeedback,
 } = useCarContext()
 const wattForAllPriceless = computed(() => wattPossiblePerLogMax(coinStore.catalog) * pricelessCount.value)
 
@@ -482,9 +482,7 @@ const doSaveReassign = () => saveReassign(fetchStatistics)
 const doSaveMerge = ({ sourceLogId, preferSource }: { sourceLogId: string; preferSource: boolean }) =>
   saveMerge(sourceLogId, preferSource, fetchStatistics)
 
-// -- Trip feedback --
-const FEEDBACK_TAGS = ['distance_wrong', 'time_wrong', 'duplicate', 'other'] as const
-const openMenuLogId     = ref<string | null>(null)
+const openMenuLogId    = ref<string | null>(null)
 const openMenuTripId    = ref<string | null>(null)
 const openMenuTopUpId   = ref<string | null>(null)
 const openMenuGroupId   = ref<string | null>(null)
@@ -666,71 +664,9 @@ function toggleRealCostTooltip(logId: string) {
   openRealCostTooltipId.value = openRealCostTooltipId.value === logId ? null : logId
 }
 
-const feedbackOpenId    = ref<string | null>(null)
-const feedbackTags      = ref<string[]>([])
-const feedbackComment   = ref('')
-const feedbackPending   = reactive<Record<string, string | null>>({})
-const feedbackTimers    = new Map<string, ReturnType<typeof setTimeout>>()
-
-// Returns the effective rating for a trip, taking optimistic pending state into account
-const effectiveRating = (tripId: string, serverFeedback: string | null | undefined): string | null => {
-  if (tripId in feedbackPending) return feedbackPending[tripId]
-  if (!serverFeedback) return null
-  if (serverFeedback.startsWith('positive')) return 'positive'
-  if (serverFeedback.startsWith('negative')) return 'negative'
-  return null
-}
-
-const toggleFeedbackTag = (tag: string) => {
-  const idx = feedbackTags.value.indexOf(tag)
-  if (idx === -1) feedbackTags.value.push(tag)
-  else feedbackTags.value.splice(idx, 1)
-}
-
-const openFeedbackPanel = (tripId: string) => {
-  if (feedbackOpenId.value === tripId) {
-    feedbackOpenId.value = null
-    return
-  }
-  feedbackOpenId.value = tripId
-  feedbackTags.value   = []
-  feedbackComment.value = ''
-}
-
-// Debounced toggle for 👍/👎 direct buttons (600ms)
-const toggleRating = (tripId: string, rating: 'positive' | 'negative', serverFeedback: string | null | undefined) => {
-  const current = effectiveRating(tripId, serverFeedback)
-  const next = current === rating ? null : rating
-
-  // Optimistic update
-  feedbackPending[tripId] = next
-
-  // Close negative panel if switching away
-  if (next !== 'negative' && feedbackOpenId.value === tripId) feedbackOpenId.value = null
-  // Open panel for negative
-  if (next === 'negative') openFeedbackPanel(tripId)
-
-  // Debounce: reset timer on each click
-  if (feedbackTimers.has(tripId)) clearTimeout(feedbackTimers.get(tripId)!)
-  const timer = setTimeout(async () => {
-    await submitTripFeedback(tripId, next ?? '')
-    delete feedbackPending[tripId]
-    feedbackTimers.delete(tripId)
-  }, 600)
-  feedbackTimers.set(tripId, timer)
-}
-
-// Panel submit (no debounce - deliberate action)
-const sendNegativeFeedback = async (tripId: string) => {
-  const parts: string[] = ['negative']
-  const tags = feedbackTags.value.join(',')
-  if (tags) parts.push(tags)
-  if (feedbackComment.value.trim()) parts.push(feedbackComment.value.trim())
-  await submitTripFeedback(tripId, parts.join(' | '))
-  feedbackOpenId.value = null
-  feedbackTags.value   = []
-  feedbackComment.value = ''
-}
+// -- "Korrekt erkannt?" für Fahrten und Ladevorgänge: Zustand und Speichern in useDataFeedback --
+const dataFeedback = useDataFeedback()
+onMounted(() => { dataFeedback.load() })
 
 // -- Implausible logs modal --
 const showImplausibleModal = ref(false)
@@ -1831,20 +1767,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                         <!-- Aktionsleiste: ersetzt das Kebab-Menue aus dem Kopf. @click.stop,
                              damit ein Tipp auf eine Aktion die Karte nicht wieder zuklappt. -->
                         <div class="flex items-center gap-1 pt-2" @click.stop>
-                          <template v-if="trip.dataSource !== 'USER_CREATED'">
-                            <button type="button" @click="toggleRating(trip.id, 'positive', trip.feedback)"
-                              :aria-label="t('dashboard.trip_feedback_positive')" :title="t('dashboard.trip_feedback_positive')"
-                              :class="['p-2 rounded transition hover:bg-gray-100 dark:hover:bg-gray-600',
-                                effectiveRating(trip.id, trip.feedback) === 'positive' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200']">
-                              <HandThumbUpIcon class="w-4 h-4" />
-                            </button>
-                            <button type="button" @click="toggleRating(trip.id, 'negative', trip.feedback)"
-                              :aria-label="t('dashboard.trip_feedback_negative')" :title="t('dashboard.trip_feedback_negative')"
-                              :class="['p-2 rounded transition hover:bg-gray-100 dark:hover:bg-gray-600',
-                                effectiveRating(trip.id, trip.feedback) === 'negative' ? 'text-red-600 dark:text-red-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200']">
-                              <HandThumbDownIcon class="w-4 h-4" />
-                            </button>
-                          </template>
+                          <DataFeedbackButtons v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id" />
                           <span class="flex-1" />
                           <button type="button" @click="startAddTrip(trip.id, trip.tripStartedAt)"
                             :aria-label="t('dashboard.action_add_trip')" :title="t('dashboard.action_add_trip')"
@@ -1864,27 +1787,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                         </div>
                       </div>
                     </Transition>
-                    <!-- Feedback panel - @click.stop, sonst klappt jeder Tipp ins Formular die Karte um. -->
-                    <div v-if="feedbackOpenId === trip.id" @click.stop
-                         class="pt-1 space-y-2 border-t border-gray-100 dark:border-gray-600">
-                      <div class="flex flex-wrap gap-1">
-                        <button v-for="tag in FEEDBACK_TAGS" :key="tag" @click="toggleFeedbackTag(tag)"
-                          :class="['px-2 py-0.5 text-xs rounded-full border transition',
-                            feedbackTags.includes(tag)
-                              ? 'bg-red-100 border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-700 dark:text-red-400'
-                              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-red-300']">
-                          {{ t('dashboard.trip_feedback_tag_' + tag) }}
-                        </button>
-                      </div>
-                      <textarea v-model="feedbackComment" rows="2" :placeholder="t('dashboard.trip_feedback_comment')"
-                        class="w-full px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400 resize-none" />
-                      <div class="flex justify-end">
-                        <button @click="sendNegativeFeedback(trip.id)"
-                          class="px-3 py-1 text-xs font-medium bg-red-500 hover:bg-red-600 text-white rounded-sm transition">
-                          {{ t('dashboard.trip_feedback_send') }}
-                        </button>
-                      </div>
-                    </div>
+                    <DataFeedbackPanel subject-type="TRIP" :subject-id="trip.id" />
                   </div>
                   </Transition>
 
@@ -1899,19 +1802,9 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                   <!-- Feedback + merge trigger -->
                   <div v-if="trip.dataSource !== 'USER_CREATED' || (previousTripMap[trip.id] && mergePreviewForTripId !== trip.id)"
                        class="flex flex-col sm:flex-row items-center sm:justify-between gap-1 pt-1 border-t border-emerald-100 dark:border-emerald-800">
-                    <div v-if="trip.dataSource !== 'USER_CREATED'" class="flex items-center gap-2">
-                      <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('dashboard.trip_feedback_label') }}</span>
-                      <button @click="tripForm.feedback = 'positive'"
-                        :class="['p-1 rounded transition', tripForm.feedback?.startsWith('positive') ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-900/30' : 'text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30']">
-                        <HandThumbUpIcon class="w-4 h-4" />
-                      </button>
-                      <button @click="tripForm.feedback = 'negative'"
-                        :class="['p-1 rounded transition', tripForm.feedback?.startsWith('negative') ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-gray-400 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20']">
-                        <HandThumbDownIcon class="w-4 h-4" />
-                      </button>
-                      <input v-if="tripForm.feedback?.startsWith('negative')" v-model="tripForm.feedback"
-                        type="text" maxlength="200" :placeholder="t('dashboard.trip_feedback_comment')"
-                        class="flex-1 px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-red-400" />
+                    <div v-if="trip.dataSource !== 'USER_CREATED'" class="flex items-center gap-1">
+                      <span class="text-xs text-gray-400 dark:text-gray-500">{{ t('dashboard.data_feedback_label') }}</span>
+                      <DataFeedbackButtons subject-type="TRIP" :subject-id="trip.id" />
                     </div>
                     <button v-if="previousTripMap[trip.id] && mergePreviewForTripId !== trip.id"
                       @click="mergePreviewForTripId = trip.id"
@@ -1920,6 +1813,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       {{ t('dashboard.trip_merge_button') }}
                     </button>
                   </div>
+                  <DataFeedbackPanel v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id" />
                   <!-- Merge preview -->
                   <template v-if="previousTripMap[trip.id]">
                     <div v-if="mergePreviewForTripId === trip.id" class="pt-2 border-t border-orange-200 dark:border-orange-800 space-y-2">
@@ -3230,8 +3124,11 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
                       <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
                     </span>
-                    <!-- Aktions-Menü -->
-                    <div class="relative ml-auto">
+                    <!-- "Korrekt erkannt?" nur bei automatisch erfassten Ladungen, dann Aktions-Menü -->
+                    <div v-if="isRateableLogSource(item.entry.dataSource)" class="ml-auto flex items-center" @click.stop>
+                      <DataFeedbackButtons subject-type="LOG" :subject-id="item.entry.id" />
+                    </div>
+                    <div :class="['relative', isRateableLogSource(item.entry.dataSource) ? '' : 'ml-auto']">
                       <button type="button"
                         :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
                         :aria-expanded="openMenuLogId === item.entry.id"
@@ -3266,6 +3163,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       </div>
                     </div>
                   </div>
+                  <DataFeedbackPanel v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id" />
                 </div>
                 </Transition>
                 <!-- Implausibility tooltip panel (normal log only) -->

@@ -175,7 +175,6 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       routeType: trip.routeType ?? '',
       socStart: trip.socStart ?? '',
       socEnd: trip.socEnd ?? '',
-      feedback: trip.feedback ?? null,
     }
     tripError.value = null
   }
@@ -207,7 +206,6 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
       if (tripForm.value.routeType)          payload.routeType  = tripForm.value.routeType
       if (tripForm.value.socStart !== '')    payload.socStart   = Number(tripForm.value.socStart)
       if (tripForm.value.socEnd !== '')      payload.socEnd     = Number(tripForm.value.socEnd)
-      if (tripForm.value.feedback != null)   payload.feedback   = tripForm.value.feedback
       const res = await api.patch(`/trips/${tripId}`, payload)
       const idx = trips.value.findIndex((t: any) => t.id === tripId)
       if (idx !== -1) trips.value[idx] = res.data
@@ -276,12 +274,6 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     const idx = trips.value.findIndex((t: any) => t.id === survivingTripId)
     if (idx !== -1) trips.value[idx] = res.data
     trips.value = trips.value.filter((t: any) => t.id !== mergeWithTripId)
-  }
-
-  const submitTripFeedback = async (tripId: string, feedback: string) => {
-    const res = await api.patch(`/trips/${tripId}`, { feedback })
-    const idx = trips.value.findIndex((t: any) => t.id === tripId)
-    if (idx !== -1) trips.value[idx] = res.data
   }
 
   // --- Fetch functions ---
@@ -679,7 +671,6 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     saveNewTrip,
     deleteTripEntry,
     mergeTripEntry,
-    submitTripFeedback,
     // Formatting
     formatLogDate,
     formatTripDate,

@@ -5,6 +5,7 @@ import { jwtDecode, type JwtPayload } from 'jwt-decode';
 import { isEnergySplitTrialActive, energySplitTrialEnd } from '../utils/featureTrial';
 import { useCarStore } from './car';
 import { useRatingStore } from './rating';
+import { resetDataFeedback } from '../composables/useDataFeedback';
 
 export interface JwtClaims {
     sub: string           // email (JWT standard subject)
@@ -84,6 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
         safeLocalStorage(() => localStorage.removeItem('isPremium'));
         useCarStore().reset();
         useRatingStore().invalidate();
+        resetDataFeedback();
         if (redirect) {
             window.location.href = '/login';
         }

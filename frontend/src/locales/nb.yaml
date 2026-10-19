@@ -1168,16 +1168,18 @@ dashboard:
   trip_save: Lagre
   trip_cancel: Avbryt
   trip_delete_confirm: Vil du virkelig slette denne turen?
-  trip_feedback_positive: Turen var korrekt
-  trip_feedback_negative: Rapporter et problem
-  trip_feedback_tag_distance_wrong: Feil avstand
-  trip_feedback_tag_time_wrong: Feil tidsrom
-  trip_feedback_tag_duplicate: Dobbel tur
-  trip_feedback_tag_other: Annet
-  trip_feedback_comment: Flere detaljer (valgfritt)
-  trip_feedback_send: Send tilbakemelding
-  trip_feedback_label: Korrekt gjenkjent?
-  trip_feedback_given: Tilbakemelding gitt
+  data_feedback_label: Korrekt gjenkjent?
+  data_feedback_negative: Rapporter et problem
+  data_feedback_comment: Flere detaljer (valgfritt)
+  data_feedback_send: Send tilbakemelding
+  data_feedback_positive_log: Ladingen var korrekt
+  data_feedback_positive_trip: Turen var korrekt
+  data_feedback_tag_kwh_wrong: Feil kWh
+  data_feedback_tag_soc_wrong: Feil batterinivå
+  data_feedback_tag_distance_wrong: Feil avstand
+  data_feedback_tag_time_wrong: Feil tidspunkt
+  data_feedback_tag_duplicate: Registrert to ganger
+  data_feedback_tag_other: Annet
   trip_distance: "Avstand ({unit})"
   trip_route_type: Ruteype
   trip_soc_start: "SoC start (%)"
