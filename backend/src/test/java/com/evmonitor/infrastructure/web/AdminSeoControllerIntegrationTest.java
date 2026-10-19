@@ -73,4 +73,27 @@ class AdminSeoControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(res.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(res.getBody()).contains("\"started\":false");
     }
+
+    @Test
+    void auditIsAdminOnlyAndRunWithoutBaseUrlIsConflict() {
+        User user = createAndSaveUser("seo-user-" + System.nanoTime() + "@example.com");
+        User admin = createAndSaveAdminUser("seo-admin-" + System.nanoTime() + "@example.com");
+
+        ResponseEntity<String> forbidden = restTemplate.exchange("/api/admin/seo/audit", HttpMethod.GET,
+                createAuthRequest(user.getId(), user.getEmail()), String.class);
+        assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        ResponseEntity<String> view = restTemplate.exchange("/api/admin/seo/audit", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(view.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(view.getBody()).contains("\"enabled\":false").contains("\"rows\":[");
+
+        ResponseEntity<String> runForbidden = restTemplate.exchange("/api/admin/seo/audit/run", HttpMethod.POST,
+                createAuthRequest(user.getId(), user.getEmail()), String.class);
+        assertThat(runForbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        ResponseEntity<String> run = restTemplate.exchange("/api/admin/seo/audit/run", HttpMethod.POST,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(run.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
 }

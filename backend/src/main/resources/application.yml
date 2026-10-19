@@ -248,6 +248,10 @@ seo:
     backfill-from: 2026-03-01
     retention-days: 490
     window-days: 30
+  # On-Page-Check (Unter-Tab "Technik"): leere Basis-URL = aus. PageSpeed-Key optional, ohne Key keine Core Web Vitals.
+  audit:
+    base-url: ${SEO_AUDIT_BASE_URL:}
+    pagespeed-api-key: ${PAGESPEED_API_KEY:}
 
 # Stripe Payment Integration
 stripe:
