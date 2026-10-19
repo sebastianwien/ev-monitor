@@ -477,4 +477,18 @@ class SeoInsightsServiceTest {
         assertThat(o.underrated()).isZero();
         assertThat(o.adwords()).isZero();
     }
+
+    @Test
+    void brandQueryOnSeveralPagesIsNotCannibalized() {
+        // Bei Markensuchen zeigt Google mehrere eigene Seiten (Sitelinks), das ist keine Konkurrenz im eigenen Haus
+        when(repository.queryPathTotals(any(), any())).thenReturn(List.of(
+                new GscDailyRepository.QueryRow(null, "ev monitor", "/", 30, 300, 1.0, true),
+                new GscDailyRepository.QueryRow(null, "ev monitor", "/modelle", 5, 200, 2.0, true),
+                new GscDailyRepository.QueryRow(null, "testauto reichweite", "/modelle/A", 3, 300, 7.0, false),
+                new GscDailyRepository.QueryRow(null, "testauto reichweite", "/modelle/B", 1, 200, 9.0, false)));
+
+        List<QueryRow> rows = service.queries(28, BrandFilter.ALL, QueryFilter.CANNIBALIZED, SeoMarket.ALL);
+
+        assertThat(rows).extracting(QueryRow::query).containsExactly("testauto reichweite");
+    }
 }

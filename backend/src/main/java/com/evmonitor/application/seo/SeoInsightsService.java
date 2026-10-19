@@ -280,7 +280,7 @@ public class SeoInsightsService {
             double position = a.position();
             boolean enough = a.impressions >= scoring.getMinImpressions();
             String finding = !enough ? null
-                    : a.pageCount > 1 ? FINDING_CANNIBALIZED
+                    : a.pageCount > 1 && !a.brand ? FINDING_CANNIBALIZED
                     : isStriking(position, a.impressions, medianImpressions) ? FINDING_STRIKING
                     : null;
             Behaviour target = a.topPath == null ? Behaviour.NONE : behaviour.getOrDefault(a.topPath, Behaviour.NONE);
