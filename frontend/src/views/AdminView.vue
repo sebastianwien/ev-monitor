@@ -369,8 +369,8 @@ const onResizeUp = () => {
 </script>
 
 <template>
-  <div class="p-4 sm:p-8 text-gray-100">
-    <div class="mx-auto max-w-[1920px] bg-gray-900 rounded-sm p-4 sm:p-6 border border-white/10">
+  <div class="text-gray-100 min-h-screen bg-gray-900">
+    <div class="px-3 py-3 sm:px-4">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
