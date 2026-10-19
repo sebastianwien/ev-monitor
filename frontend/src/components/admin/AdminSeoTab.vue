@@ -3,14 +3,14 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
 import { Line } from 'vue-chartjs'
 import {
-  getSeoCampaigns, getSeoOverview, getSeoPages, getSeoQueries, getSeoStatus, triggerSeoSync,
-  type SeoBrandFilter, type SeoCampaignRow, type SeoOverview, type SeoPageFilter, type SeoPageRow, type SeoPeriod,
-  type SeoTotals, type SeoQueryFilter, type SeoQueryRow, type SeoStatus,
+  getSeoCampaigns, getSeoModels, getSeoOverview, getSeoPages, getSeoQueries, getSeoStatus, triggerSeoSync,
+  type SeoBrandFilter, type SeoCampaignRow, type SeoModelFilter, type SeoModelLevel, type SeoModelRow, type SeoOverview,
+  type SeoPageFilter, type SeoPageRow, type SeoPeriod, type SeoTotals, type SeoQueryFilter, type SeoQueryRow, type SeoStatus,
 } from '../../api/seoService'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
-type Sub = 'overview' | 'pages' | 'queries' | 'campaigns'
+type Sub = 'overview' | 'pages' | 'queries' | 'campaigns' | 'models'
 
 const PERIODS: SeoPeriod[] = [7, 28, 90]
 const SUBS: { key: Sub; label: string }[] = [
@@ -18,6 +18,16 @@ const SUBS: { key: Sub; label: string }[] = [
   { key: 'pages', label: 'Seiten' },
   { key: 'queries', label: 'Suchbegriffe' },
   { key: 'campaigns', label: 'Kampagnen' },
+  { key: 'models', label: 'Modellseiten' },
+]
+const MODEL_LEVELS: { key: SeoModelLevel; label: string }[] = [
+  { key: 'MODEL', label: 'Modelle' },
+  { key: 'BRAND', label: 'Marken' },
+]
+const MODEL_FILTERS: { key: SeoModelFilter; label: string }[] = [
+  { key: 'ALL', label: 'Alle' },
+  { key: 'CONTENT_GAP', label: 'Nachfrage ohne Daten' },
+  { key: 'INVISIBLE', label: 'Daten ohne Sichtbarkeit' },
 ]
 const PAGE_FILTERS: { key: SeoPageFilter; label: string }[] = [
   { key: 'ALL', label: 'Alle' },
@@ -44,6 +54,8 @@ const FINDING_LABELS: Record<string, { label: string; cls: string; hint: string 
   MONEY: { label: 'Geldseite', cls: 'bg-emerald-900/60 text-emerald-200', hint: 'Meiste Registrierungen je Klick: Vorbild und schützen' },
   STRIKING_DISTANCE: { label: 'Striking Distance', cls: 'bg-amber-900/60 text-amber-200', hint: 'Position 5-20 mit vielen Impressionen: Inhalt ausbauen' },
   CANNIBALIZED: { label: 'Kannibalisierung', cls: 'bg-red-900/60 text-red-200', hint: 'Mehrere eigene Seiten für denselben Begriff: Canonical und interne Links prüfen' },
+  CONTENT_GAP: { label: 'Nachfrage ohne Daten', cls: 'bg-amber-900/60 text-amber-200', hint: 'Impressionen über Median, aber kein Ladevorgang in der DB: Content-Lücke, Nutzer mit diesem Modell gewinnen' },
+  INVISIBLE: { label: 'Daten ohne Sichtbarkeit', cls: 'bg-red-900/60 text-red-200', hint: 'Mindestens 10 Ladevorgänge, aber kaum Impressionen oder Position über 20: Prerender, Canonical und interne Links prüfen' },
 }
 
 const days = ref<SeoPeriod>(28)
@@ -51,12 +63,15 @@ const sub = ref<Sub>('overview')
 const pageFilter = ref<SeoPageFilter>('ALL')
 const brandFilter = ref<SeoBrandFilter>('ALL')
 const queryFilter = ref<SeoQueryFilter>('ALL')
+const modelLevel = ref<SeoModelLevel>('MODEL')
+const modelFilter = ref<SeoModelFilter>('ALL')
 
 const status = ref<SeoStatus | null>(null)
 const overview = ref<SeoOverview | null>(null)
 const pages = ref<SeoPageRow[]>([])
 const queries = ref<SeoQueryRow[]>([])
 const campaigns = ref<SeoCampaignRow[]>([])
+const models = ref<SeoModelRow[]>([])
 const loading = ref(false)
 const error = ref('')
 const syncMessage = ref('')
@@ -76,6 +91,7 @@ async function loadSub() {
     if (sub.value === 'overview') overview.value = await getSeoOverview(days.value)
     else if (sub.value === 'pages') pages.value = await getSeoPages(days.value, pageFilter.value)
     else if (sub.value === 'campaigns') campaigns.value = await getSeoCampaigns(days.value)
+    else if (sub.value === 'models') models.value = await getSeoModels(days.value, modelLevel.value, modelFilter.value)
     else queries.value = await getSeoQueries(days.value, brandFilter.value, queryFilter.value)
   } catch {
     error.value = 'SEO-Daten konnten nicht geladen werden.'
@@ -97,7 +113,7 @@ async function startSync() {
   }
 }
 
-watch([days, sub, pageFilter, brandFilter, queryFilter], loadSub)
+watch([days, sub, pageFilter, brandFilter, queryFilter, modelLevel, modelFilter], loadSub)
 onMounted(async () => {
   await loadStatus()
   await loadSub()
@@ -217,11 +233,11 @@ const btn = (active: boolean) => [
     </div>
 
     <p v-if="error" class="text-red-400 text-sm mb-4">{{ error }}</p>
-    <p v-else-if="status && !status.enabled && !status.plausibleEnabled && !overview && !pages.length && !queries.length && !campaigns.length"
+    <p v-else-if="status && !status.enabled && !status.plausibleEnabled && !overview && !pages.length && !queries.length && !campaigns.length && !models.length"
        class="text-gray-500 text-sm py-8 text-center">
       Keine Quelle konfiguriert: GSC_SERVICE_ACCOUNT_JSON und PLAUSIBLE_API_KEY fehlen.
     </p>
-    <p v-else-if="loading && !overview && !pages.length && !queries.length && !campaigns.length" class="text-gray-400 text-sm">Lädt...</p>
+    <p v-else-if="loading && !overview && !pages.length && !queries.length && !campaigns.length && !models.length" class="text-gray-400 text-sm">Lädt...</p>
 
     <div v-else class="space-y-6" :class="{ 'opacity-60': loading }">
       <template v-if="sub === 'overview' && overview">
@@ -351,6 +367,54 @@ const btn = (active: boolean) => [
                 <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.visitors ? pct(r.ctaRate) : '-' }}</td>
                 <td class="px-3 py-1.5 text-right tabular-nums" :class="r.attributed && r.registrations ? 'text-emerald-300' : 'text-gray-500'">{{ r.attributed ? r.registrations : '-' }}</td>
                 <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.attributed ? r.trials : '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+      <template v-else-if="sub === 'models'">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap gap-1">
+            <button v-for="l in MODEL_LEVELS" :key="l.key" type="button" :class="btn(modelLevel === l.key)" @click="modelLevel = l.key">{{ l.label }}</button>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <button v-for="f in MODEL_FILTERS" :key="f.key" type="button" :class="btn(modelFilter === f.key)" @click="modelFilter = f.key">{{ f.label }}</button>
+          </div>
+        </div>
+        <p class="text-xs text-gray-500">Search Console je Modellseite, Registrierungen mit dieser ersten Seite, daneben die Datenbasis aus der Datenbank (aktive Autos, Ladevorgänge in der Statistik, ohne Seed-Nutzer, gesamt statt Zeitraum). Auf Markenebene zählt die Markenseite mit.</p>
+        <p v-if="!models.length" class="text-sm text-gray-500">Keine Modellseiten im Zeitraum.</p>
+        <div v-else class="overflow-x-auto bg-gray-900 rounded-sm border border-gray-800">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-400 border-b border-gray-800">
+                <th class="text-left px-3 py-2 font-medium">Marke</th>
+                <th v-if="modelLevel === 'MODEL'" class="text-left px-3 py-2 font-medium">Modell</th>
+                <th class="text-right px-3 py-2 font-medium">Impr.</th>
+                <th class="text-right px-3 py-2 font-medium">Klicks</th>
+                <th class="text-right px-3 py-2 font-medium">CTR</th>
+                <th class="text-right px-3 py-2 font-medium">Pos.</th>
+                <th class="text-right px-3 py-2 font-medium" title="Konten, deren erste Seite diese Modellseite war">Reg.</th>
+                <th class="text-right px-3 py-2 font-medium" title="Aktive Autos dieses Modells in der Datenbank">Autos</th>
+                <th class="text-right px-3 py-2 font-medium" title="Ladevorgänge in der Statistik, gesamt">Logs</th>
+                <th class="text-left px-3 py-2 font-medium">Befund</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in models" :key="r.path" class="border-b border-gray-800/60">
+                <td class="px-3 py-1.5 text-gray-200">{{ r.brand }}</td>
+                <td v-if="modelLevel === 'MODEL'" class="px-3 py-1.5 text-gray-200"><a :href="r.path" target="_blank" rel="noopener" class="hover:underline">{{ r.model }}</a></td>
+                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.impressions) }}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.clicks) }}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.impressions ? pct(r.ctr) : '-' }}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ pos(r.avgPosition) }}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums" :class="r.registrations ? 'text-emerald-300' : 'text-gray-500'">{{ r.registrations }}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.cars) }}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums" :class="r.logs ? 'text-gray-300' : 'text-gray-500'">{{ num(r.logs) }}</td>
+                <td class="px-3 py-1.5">
+                  <span v-if="r.finding" :class="['inline-block text-xs px-2 py-0.5 rounded-full', FINDING_LABELS[r.finding].cls]" :title="FINDING_LABELS[r.finding].hint">
+                    {{ FINDING_LABELS[r.finding].label }}
+                  </span>
+                </td>
               </tr>
             </tbody>
           </table>

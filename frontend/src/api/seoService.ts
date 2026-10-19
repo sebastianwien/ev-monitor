@@ -4,6 +4,8 @@ export type SeoPeriod = 7 | 28 | 90
 export type SeoPageFilter = 'ALL' | 'UNDERRATED' | 'DEAD' | 'LEAK' | 'MONEY'
 export type SeoBrandFilter = 'ALL' | 'BRAND' | 'NON_BRAND'
 export type SeoQueryFilter = 'ALL' | 'STRIKING_DISTANCE' | 'CANNIBALIZED' | 'ADWORDS'
+export type SeoModelLevel = 'MODEL' | 'BRAND'
+export type SeoModelFilter = 'ALL' | 'CONTENT_GAP' | 'INVISIBLE'
 
 export interface SeoTotals {
     impressions: number
@@ -73,6 +75,21 @@ export interface SeoCampaignRow {
     attributed: boolean
 }
 
+/** Modellseite je Modell (level MODEL) oder Marke samt Markenseite (level BRAND, model null); cars/logs aus der DB, nicht zeitraumbezogen. */
+export interface SeoModelRow {
+    brand: string
+    model: string | null
+    path: string
+    impressions: number
+    clicks: number
+    ctr: number
+    avgPosition: number
+    registrations: number
+    cars: number
+    logs: number
+    finding: 'CONTENT_GAP' | 'INVISIBLE' | null
+}
+
 export interface SeoSyncRun {
     id: string
     source: string
@@ -113,12 +130,17 @@ export async function getSeoQueries(days: SeoPeriod, brand: SeoBrandFilter, filt
     return res.data
 }
 
-/** true, wenn ein Sync gestartet wurde; false bei fehlendem Zugang oder laufendem Sync (HTTP 409). */
 export async function getSeoCampaigns(days: SeoPeriod): Promise<SeoCampaignRow[]> {
     const { data } = await apiClient.get<SeoCampaignRow[]>('/admin/seo/campaigns', { params: { days } })
     return data
 }
 
+export async function getSeoModels(days: SeoPeriod, level: SeoModelLevel, filter: SeoModelFilter): Promise<SeoModelRow[]> {
+    const { data } = await apiClient.get<SeoModelRow[]>('/admin/seo/models', { params: { days, level, filter } })
+    return data
+}
+
+/** true, wenn ein Sync gestartet wurde; false bei fehlendem Zugang oder laufendem Sync (HTTP 409). */
 export async function triggerSeoSync(days: number): Promise<boolean> {
     const res = await apiClient.post('/admin/seo/sync', null, {
         params: { days },

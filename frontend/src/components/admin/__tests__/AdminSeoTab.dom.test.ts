@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, nextTick, type App } from 'vue'
-import type { SeoCampaignRow, SeoOverview, SeoPageRow, SeoQueryRow, SeoStatus } from '../../../api/seoService'
+import type { SeoCampaignRow, SeoModelRow, SeoOverview, SeoPageRow, SeoQueryRow, SeoStatus } from '../../../api/seoService'
 
 const getSeoStatus = vi.fn()
 const getSeoOverview = vi.fn()
 const getSeoPages = vi.fn()
 const getSeoQueries = vi.fn()
 const getSeoCampaigns = vi.fn()
+const getSeoModels = vi.fn()
 const triggerSeoSync = vi.fn()
 vi.mock('../../../api/seoService', () => ({
     getSeoStatus: () => getSeoStatus(),
@@ -15,6 +16,7 @@ vi.mock('../../../api/seoService', () => ({
     getSeoPages: (d: number, f: string) => getSeoPages(d, f),
     getSeoQueries: (d: number, b: string, f: string) => getSeoQueries(d, b, f),
     getSeoCampaigns: (d: number) => getSeoCampaigns(d),
+    getSeoModels: (d: number, l: string, f: string) => getSeoModels(d, l, f),
     triggerSeoSync: (d: number) => triggerSeoSync(d),
 }))
 // Chart.js braucht Canvas; in jsdom reicht ein Platzhalter
@@ -50,6 +52,11 @@ const campaigns: SeoCampaignRow[] = [
     { source: 'Google', utmMedium: '', utmCampaign: '', visitors: 1800, visits: 1900, ctaVisitors: 90, ctaRate: 0.05, registrations: 21, trials: 2, attributed: true },
     { source: 'Direct / None', utmMedium: '', utmCampaign: '', visitors: 900, visits: 950, ctaVisitors: 40, ctaRate: 0.044, registrations: 0, trials: 0, attributed: false },
     { source: 'vw-forum', utmMedium: 'forum', utmCampaign: 'vorstellung', visitors: 40, visits: 44, ctaVisitors: 4, ctaRate: 0.1, registrations: 3, trials: 1, attributed: true },
+]
+const models: SeoModelRow[] = [
+    { brand: 'Alpha', model: 'One', path: '/modelle/Alpha/One', impressions: 41300, clicks: 1820, ctr: 0.044, avgPosition: 6.1, registrations: 9, cars: 40, logs: 900, finding: null },
+    { brand: 'Beta', model: 'Two', path: '/modelle/Beta/Two', impressions: 6000, clicks: 10, ctr: 0.0017, avgPosition: 25, registrations: 0, cars: 0, logs: 0, finding: 'CONTENT_GAP' },
+    { brand: 'Gamma', model: 'Three', path: '/modelle/Gamma/Three', impressions: 0, clicks: 0, ctr: 0, avgPosition: 0, registrations: 0, cars: 12, logs: 300, finding: 'INVISIBLE' },
 ]
 
 let app: App | null = null
@@ -163,6 +170,25 @@ describe('AdminSeoTab', () => {
         // ohne UTM und nicht Google: keine DB-Zuordnung
         expect(rows[1]).toEqual(['Direct / None', '-', '-', '900', '4,4 %', '-', '-'])
         expect(rows[2]).toEqual(['vw-forum', 'forum', 'vorstellung', '40', '10,0 %', '3', '1'])
+
+        getSeoModels.mockResolvedValue(models)
+        click(host, 'Modellseiten')
+        await nextTick()
+        await nextTick()
+        expect(getSeoModels).toHaveBeenLastCalledWith(90, 'MODEL', 'ALL')
+        const modelRows = [...host.querySelectorAll('tbody tr')].map(r => [...r.querySelectorAll('td')].map(td => td.textContent?.trim()))
+        expect(modelRows[0]).toEqual(['Alpha', 'One', '41.300', '1.820', '4,4 %', '6,1', '9', '40', '900', ''])
+        expect(modelRows[1]).toEqual(['Beta', 'Two', '6.000', '10', '0,2 %', '25,0', '0', '0', '0', 'Nachfrage ohne Daten'])
+        expect(modelRows[2]).toEqual(['Gamma', 'Three', '0', '0', '-', '-', '0', '12', '300', 'Daten ohne Sichtbarkeit'])
+        expect(host.querySelector('tbody a')?.getAttribute('href')).toBe('/modelle/Alpha/One')
+
+        click(host, 'Nachfrage ohne Daten')
+        await nextTick()
+        expect(getSeoModels).toHaveBeenLastCalledWith(90, 'MODEL', 'CONTENT_GAP')
+
+        click(host, 'Marken')
+        await nextTick()
+        expect(getSeoModels).toHaveBeenLastCalledWith(90, 'BRAND', 'CONTENT_GAP')
     })
 
     it('zeigt den Leerzustand ohne Zugang und meldet einen abgelehnten Sync', async () => {
