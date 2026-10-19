@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from 'chart.js'
-import { Line } from 'vue-chartjs'
-import AdminSeoTechTab from './AdminSeoTechTab.vue'
-import { auditCountsByPath } from './seoAudit'
-import {
-  getSeoAudit, getSeoCampaigns, getSeoModels, getSeoOverview, getSeoPages, getSeoQueries, getSeoStatus, triggerSeoSync,
-  type SeoBrandFilter, type SeoCampaignRow, type SeoModelFilter, type SeoModelLevel, type SeoModelRow, type SeoOverview,
-  type SeoPageFilter, type SeoPageRow, type SeoPeriod, type SeoTotals, type SeoQueryFilter, type SeoQueryRow, type SeoStatus,
-} from '../../api/seoService'
+import { computed, onMounted, ref } from 'vue'
+import { getSeoStatus, triggerSeoSync, type SeoBrandFilter, type SeoMarket, type SeoModelFilter, type SeoModelLevel, type SeoPageFilter, type SeoPeriod, type SeoQueryFilter, type SeoStatus } from '../../api/seoService'
+import SeoHelpPanel from './seo/SeoHelpPanel.vue'
+import SeoOverviewPanel from './seo/SeoOverviewPanel.vue'
+import SeoPagesPanel from './seo/SeoPagesPanel.vue'
+import SeoQueriesPanel from './seo/SeoQueriesPanel.vue'
+import SeoCampaignsPanel from './seo/SeoCampaignsPanel.vue'
+import SeoModelsPanel from './seo/SeoModelsPanel.vue'
+import SeoTechPanel from './seo/SeoTechPanel.vue'
+import { date, dateTime, num } from './seo/seoFormat'
+import type { SeoNavigation, SeoSub } from './seo/seoNavigation'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
-
-type Sub = 'overview' | 'pages' | 'queries' | 'campaigns' | 'models' | 'tech'
-
-const PERIODS: SeoPeriod[] = [7, 28, 90]
-const SUBS: { key: Sub; label: string }[] = [
+/**
+ * Admin-Tab "SEO & Traffic": Hülle mit Datenstand, Zeitraum, Markt und Unter-Tabs. Jede Ansicht lädt ihre Daten
+ * selbst; Befundfilter liegen hier, damit der Überblick direkt in eine gefilterte Liste springen kann.
+ */
+const SUBS: { key: SeoSub; label: string }[] = [
   { key: 'overview', label: 'Überblick' },
   { key: 'pages', label: 'Seiten' },
   { key: 'queries', label: 'Suchbegriffe' },
@@ -23,98 +23,33 @@ const SUBS: { key: Sub; label: string }[] = [
   { key: 'models', label: 'Modellseiten' },
   { key: 'tech', label: 'Technik' },
 ]
-const MODEL_LEVELS: { key: SeoModelLevel; label: string }[] = [
-  { key: 'MODEL', label: 'Modelle' },
-  { key: 'BRAND', label: 'Marken' },
+const PERIODS: SeoPeriod[] = [7, 28, 90]
+const MARKETS: { key: SeoMarket; label: string }[] = [
+  { key: 'DE', label: 'Deutschland' },
+  { key: 'INTL', label: 'International' },
+  { key: 'ALL', label: 'Alle Märkte' },
 ]
-const MODEL_FILTERS: { key: SeoModelFilter; label: string }[] = [
-  { key: 'ALL', label: 'Alle' },
-  { key: 'CONTENT_GAP', label: 'Nachfrage ohne Daten' },
-  { key: 'INVISIBLE', label: 'Daten ohne Sichtbarkeit' },
-]
-const PAGE_FILTERS: { key: SeoPageFilter; label: string }[] = [
-  { key: 'ALL', label: 'Alle' },
-  { key: 'UNDERRATED', label: 'Unterschätzt' },
-  { key: 'LEAK', label: 'Leck' },
-  { key: 'MONEY', label: 'Geldseiten' },
-  { key: 'DEAD', label: 'Tot' },
-]
-const BRAND_FILTERS: { key: SeoBrandFilter; label: string }[] = [
-  { key: 'ALL', label: 'Alle' },
-  { key: 'NON_BRAND', label: 'Non-Brand' },
-  { key: 'BRAND', label: 'Brand' },
-]
-const QUERY_FILTERS: { key: SeoQueryFilter; label: string }[] = [
-  { key: 'ALL', label: 'Alle' },
-  { key: 'STRIKING_DISTANCE', label: 'Striking Distance' },
-  { key: 'CANNIBALIZED', label: 'Kannibalisierung' },
-  { key: 'ADWORDS', label: 'AdWords-Kandidaten' },
-]
-const FINDING_LABELS: Record<string, { label: string; cls: string; hint: string }> = {
-  UNDERRATED: { label: 'Unterschätzt', cls: 'bg-amber-900/60 text-amber-200', hint: 'Position 4-15, viele Impressionen, CTR unter Median: Title und Description prüfen' },
-  DEAD: { label: 'Tot', cls: 'bg-red-900/60 text-red-200', hint: 'Vorher Impressionen, im Zeitraum keine: Prerender und Canonical prüfen' },
-  LEAK: { label: 'Leck', cls: 'bg-orange-900/60 text-orange-200', hint: 'Viele Klicks, hoher Absprung, CTA-Rate unter Median: Inhalt und UX der Seite prüfen' },
-  MONEY: { label: 'Geldseite', cls: 'bg-emerald-900/60 text-emerald-200', hint: 'Meiste Registrierungen je Klick: Vorbild und schützen' },
-  STRIKING_DISTANCE: { label: 'Striking Distance', cls: 'bg-amber-900/60 text-amber-200', hint: 'Position 5-20 mit vielen Impressionen: Inhalt ausbauen' },
-  CANNIBALIZED: { label: 'Kannibalisierung', cls: 'bg-red-900/60 text-red-200', hint: 'Mehrere eigene Seiten für denselben Begriff: Canonical und interne Links prüfen' },
-  CONTENT_GAP: { label: 'Nachfrage ohne Daten', cls: 'bg-amber-900/60 text-amber-200', hint: 'Impressionen über Median, aber kein Ladevorgang in der DB: Content-Lücke, Nutzer mit diesem Modell gewinnen' },
-  INVISIBLE: { label: 'Daten ohne Sichtbarkeit', cls: 'bg-red-900/60 text-red-200', hint: 'Mindestens 10 Ladevorgänge, aber kaum Impressionen oder Position über 20: Prerender, Canonical und interne Links prüfen' },
-}
+const MARKET_SUBS: SeoSub[] = ['overview', 'pages', 'queries']
+const PERIOD_SUBS: SeoSub[] = ['overview', 'pages', 'queries', 'campaigns', 'models']
 
+const sub = ref<SeoSub>('overview')
 const days = ref<SeoPeriod>(28)
-const sub = ref<Sub>('overview')
+const market = ref<SeoMarket>('DE')
 const pageFilter = ref<SeoPageFilter>('ALL')
-const brandFilter = ref<SeoBrandFilter>('ALL')
 const queryFilter = ref<SeoQueryFilter>('ALL')
-const modelLevel = ref<SeoModelLevel>('MODEL')
+const brandFilter = ref<SeoBrandFilter>('ALL')
 const modelFilter = ref<SeoModelFilter>('ALL')
+const modelLevel = ref<SeoModelLevel>('MODEL')
 
 const status = ref<SeoStatus | null>(null)
-const overview = ref<SeoOverview | null>(null)
-const pages = ref<SeoPageRow[]>([])
-const queries = ref<SeoQueryRow[]>([])
-const campaigns = ref<SeoCampaignRow[]>([])
-const models = ref<SeoModelRow[]>([])
-/** Fehler/Hinweise je Pfad aus dem letzten On-Page-Check; einmal je Besuch geladen, null = noch nicht geladen. */
-const auditCounts = ref<Map<string, { errors: number; warnings: number }> | null>(null)
-const loading = ref(false)
-const error = ref('')
+const statusError = ref('')
 const syncMessage = ref('')
 
 async function loadStatus() {
   try {
     status.value = await getSeoStatus()
   } catch {
-    error.value = 'SEO-Daten konnten nicht geladen werden.'
-  }
-}
-
-async function loadAuditCounts() {
-  if (auditCounts.value) return
-  try {
-    auditCounts.value = auditCountsByPath((await getSeoAudit()).rows)
-  } catch {
-    // Spalte "Technik" bleibt leer, die Seiten-Tabelle funktioniert ohne
-  }
-}
-
-async function loadSub() {
-  if (sub.value === 'tech') return
-  loading.value = true
-  error.value = ''
-  try {
-    if (sub.value === 'overview') overview.value = await getSeoOverview(days.value)
-    else if (sub.value === 'pages') {
-      pages.value = await getSeoPages(days.value, pageFilter.value)
-      await loadAuditCounts()
-    }
-    else if (sub.value === 'campaigns') campaigns.value = await getSeoCampaigns(days.value)
-    else if (sub.value === 'models') models.value = await getSeoModels(days.value, modelLevel.value, modelFilter.value)
-    else queries.value = await getSeoQueries(days.value, brandFilter.value, queryFilter.value)
-  } catch {
-    error.value = 'SEO-Daten konnten nicht geladen werden.'
-  } finally {
-    loading.value = false
+    statusError.value = 'Der Datenstand konnte nicht geladen werden.'
   }
 }
 
@@ -123,334 +58,90 @@ async function startSync() {
   try {
     const started = await triggerSeoSync(30)
     syncMessage.value = started
-      ? 'Sync gestartet, die letzten 30 Tage werden im Hintergrund geholt.'
-      : 'Kein Sync gestartet: Zugang fehlt oder ein Lauf ist noch aktiv.'
+      ? 'Die letzten 30 Tage werden im Hintergrund neu abgeholt. Das dauert ein bis zwei Minuten.'
+      : 'Es läuft gerade schon ein Abruf, oder keine Datenquelle ist verbunden.'
     await loadStatus()
   } catch {
-    syncMessage.value = 'Sync konnte nicht gestartet werden.'
+    syncMessage.value = 'Der Abruf konnte nicht gestartet werden.'
   }
 }
 
-watch([days, sub, pageFilter, brandFilter, queryFilter, modelLevel, modelFilter], loadSub)
-onMounted(async () => {
-  await loadStatus()
-  await loadSub()
-})
-
-const num = (v: number) => Number(v ?? 0).toLocaleString('de-DE')
-const pct = (v: number, digits = 1) => `${(Number(v ?? 0) * 100).toFixed(digits).replace('.', ',')} %`
-const pos = (v: number) => (v ? Number(v).toFixed(1).replace('.', ',') : '-')
-const date = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString('de-DE') : '-')
-const dateTime = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'
-
-const lastRun = computed(() => status.value?.runs.find(r => r.source === 'GSC') ?? null)
-const lastPlausibleRun = computed(() => status.value?.runs.find(r => r.source === 'PLAUSIBLE') ?? null)
-const RUN_LABELS: Record<string, string> = { RUNNING: 'läuft', SUCCESS: 'ok', PARTIAL: 'teilweise', FAILED: 'fehlgeschlagen' }
-
-interface Tile { label: string; value: string; delta: string; up: boolean | null }
-
-function relDelta(cur: number, prev: number): { text: string; up: boolean | null } {
-  if (!prev) return { text: 'kein Vorzeitraum', up: null }
-  const d = ((cur - prev) / prev) * 100
-  const sign = d > 0 ? '+' : ''
-  return { text: `${sign}${d.toFixed(0)} % zum Vorzeitraum`, up: d === 0 ? null : d > 0 }
+function go(target: SeoNavigation) {
+  if (target.pageFilter) pageFilter.value = target.pageFilter
+  if (target.queryFilter) {
+    queryFilter.value = target.queryFilter
+    brandFilter.value = 'ALL'
+  }
+  if (target.modelFilter) {
+    modelFilter.value = target.modelFilter
+    modelLevel.value = 'MODEL'
+  }
+  sub.value = target.sub
 }
 
-const tiles = computed<Tile[]>(() => {
-  const o = overview.value
-  if (!o) return []
-  const c = o.current
-  const p = o.previous
-  const imp = relDelta(c.impressions, p.impressions)
-  const clk = relDelta(c.clicks, p.clicks)
-  const vis = relDelta(c.visitors, p.visitors)
-  const goo = relDelta(c.googleEntries, p.googleEntries)
-  const reg = relDelta(c.registrations, p.registrations)
-  const org = relDelta(c.organicRegistrations, p.organicRegistrations)
-  const perThousand = (t: SeoTotals) => (t.impressions ? (t.registrations / t.impressions) * 1000 : 0)
-  const ptDiff = perThousand(c) - perThousand(p)
-  const ctrDiff = (c.ctr - p.ctr) * 100
-  const posDiff = p.avgPosition && c.avgPosition ? p.avgPosition - c.avgPosition : 0
-  return [
-    { label: 'Impressionen', value: num(c.impressions), delta: imp.text, up: imp.up },
-    { label: 'Klicks', value: num(c.clicks), delta: clk.text, up: clk.up },
-    { label: 'CTR', value: pct(c.ctr), delta: p.impressions ? `${ctrDiff > 0 ? '+' : ''}${ctrDiff.toFixed(1).replace('.', ',')} Pkt.` : 'kein Vorzeitraum', up: ctrDiff === 0 ? null : ctrDiff > 0 },
-    { label: 'Ø Position', value: pos(c.avgPosition), delta: posDiff === 0 ? 'unverändert' : posDiff > 0 ? `besser um ${posDiff.toFixed(1).replace('.', ',')}` : `schlechter um ${(-posDiff).toFixed(1).replace('.', ',')}`, up: posDiff === 0 ? null : posDiff > 0 },
-    { label: 'Besucher', value: num(c.visitors), delta: vis.text, up: vis.up },
-    { label: 'Google-Einstiege', value: num(c.googleEntries), delta: goo.text, up: goo.up },
-    { label: 'Registrierungen', value: num(c.registrations), delta: reg.text, up: reg.up },
-    { label: 'davon Google organisch', value: num(c.organicRegistrations), delta: org.text, up: org.up },
-    { label: 'Registrierungen je 1 000 Impr.', value: perThousand(c).toFixed(1).replace('.', ','), delta: p.impressions ? `${ptDiff > 0 ? '+' : ''}${ptDiff.toFixed(1).replace('.', ',')} zum Vorzeitraum` : 'kein Vorzeitraum', up: ptDiff === 0 ? null : ptDiff > 0 },
-  ]
+onMounted(loadStatus)
+
+const gscRun = computed(() => status.value?.runs.find(r => r.source === 'GSC') ?? null)
+const plausibleRun = computed(() => status.value?.runs.find(r => r.source === 'PLAUSIBLE') ?? null)
+const RUN_LABELS: Record<string, string> = { RUNNING: 'läuft', SUCCESS: 'erfolgreich', PARTIAL: 'teilweise', FAILED: 'fehlgeschlagen' }
+const syncDetails = computed(() => {
+  const parts: string[] = ['Daten werden jede Nacht um 4:30 Uhr abgeholt.']
+  if (gscRun.value) parts.push(`Google: zuletzt ${dateTime(gscRun.value.startedAt)}, ${RUN_LABELS[gscRun.value.status] ?? gscRun.value.status}, ${num(gscRun.value.rowCount)} Zeilen.`)
+  if (plausibleRun.value) parts.push(`Plausible: zuletzt ${dateTime(plausibleRun.value.startedAt)}, ${RUN_LABELS[plausibleRun.value.status] ?? plausibleRun.value.status}, ${num(plausibleRun.value.rowCount)} Zeilen.`)
+  return parts.join(' ')
 })
-
-const chartData = computed(() => ({
-  labels: overview.value?.days.map(d => d.day.slice(5)) ?? [],
-  datasets: [
-    { label: 'Impressionen', yAxisID: 'y', data: overview.value?.days.map(d => d.impressions) ?? [], borderColor: 'rgb(129, 140, 248)', backgroundColor: 'rgba(129, 140, 248, 0.15)', fill: true, tension: 0.3, pointRadius: 2 },
-    { label: 'Klicks', yAxisID: 'y1', data: overview.value?.days.map(d => d.clicks) ?? [], borderColor: 'rgb(52, 211, 153)', backgroundColor: 'rgba(52, 211, 153, 0.1)', fill: false, tension: 0.3, pointRadius: 2 },
-    { label: 'Google-Einstiege', yAxisID: 'y1', data: overview.value?.days.map(d => d.googleEntries) ?? [], borderColor: 'rgb(251, 191, 36)', backgroundColor: 'rgba(251, 191, 36, 0.1)', fill: false, tension: 0.3, pointRadius: 2 },
-    { label: 'Besucher', yAxisID: 'y1', data: overview.value?.days.map(d => d.visitors) ?? [], borderColor: 'rgb(192, 132, 252)', backgroundColor: 'rgba(192, 132, 252, 0.1)', fill: false, tension: 0.3, pointRadius: 2, borderDash: [4, 3] },
-  ],
-}))
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { labels: { color: '#9ca3af', boxWidth: 12 } } },
-  scales: {
-    x: { ticks: { color: '#9ca3af', maxTicksLimit: 12 }, grid: { color: 'rgba(55, 65, 81, 0.5)' } },
-    y: { beginAtZero: true, position: 'left' as const, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(55, 65, 81, 0.5)' } },
-    y1: { beginAtZero: true, position: 'right' as const, ticks: { color: '#9ca3af' }, grid: { drawOnChartArea: false } },
-  },
-}
+const failedRun = computed(() => [gscRun.value, plausibleRun.value].find(r => r?.status === 'FAILED') ?? null)
 
 const btn = (active: boolean) => [
-  'px-3 py-1.5 rounded-sm text-xs font-medium transition',
+  'px-3 py-1.5 rounded-sm text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-indigo-500',
   active ? 'bg-indigo-600 text-white' : 'bg-gray-800 text-gray-300 hover:bg-gray-700',
 ]
 </script>
 
 <template>
-  <div>
-    <div class="flex items-start justify-between mb-4 gap-3 flex-wrap">
+  <div class="space-y-4">
+    <div class="flex items-start justify-between gap-3 flex-wrap">
       <div>
         <h2 class="text-lg font-semibold text-white">SEO &amp; Traffic</h2>
-        <p v-if="status" class="text-xs text-gray-400 mt-1">
-          <template v-if="status.enabled">
-            Search Console bis {{ date(status.dataUntil) }}
-            <template v-if="lastRun">
-              (Sync {{ dateTime(lastRun.startedAt) }}, {{ RUN_LABELS[lastRun.status] ?? lastRun.status }}, {{ num(lastRun.rowCount) }} Zeilen)
-            </template>
-          </template>
-          <template v-else>Search Console aus (GSC_SERVICE_ACCOUNT_JSON fehlt), gezeigt werden die gespeicherten Daten bis {{ date(status.dataUntil) }}</template>
-          <template v-if="status.plausibleEnabled">
-            · Plausible bis {{ date(status.plausibleDataUntil) }}
-            <template v-if="lastPlausibleRun">
-              (Sync {{ dateTime(lastPlausibleRun.startedAt) }}, {{ RUN_LABELS[lastPlausibleRun.status] ?? lastPlausibleRun.status }}, {{ num(lastPlausibleRun.rowCount) }} Zeilen)
-            </template>
-          </template>
-          <template v-else>· Plausible aus (PLAUSIBLE_API_KEY fehlt)</template>
+        <p v-if="status" class="text-xs text-gray-400 mt-1" :title="syncDetails">
+          Datenstand:
+          <template v-if="status.enabled || status.dataUntil">Google bis {{ date(status.dataUntil) }}</template>
+          <template v-if="status.plausibleDataUntil">, Besucher bis {{ date(status.plausibleDataUntil) }}</template>.
+          <span class="text-gray-500">Google liefert mit 2 bis 3 Tagen Verzug.</span>
         </p>
+        <p v-if="status && !status.enabled" class="text-xs text-amber-300 mt-1">Google Search Console ist nicht verbunden, neue Google-Daten kommen nicht an (Admin: GSC_SERVICE_ACCOUNT_JSON).</p>
+        <p v-if="status && !status.plausibleEnabled" class="text-xs text-amber-300 mt-1">Plausible ist nicht verbunden, neue Besucherzahlen kommen nicht an (Admin: PLAUSIBLE_API_KEY).</p>
+        <p v-if="failedRun" class="text-xs text-red-300 mt-1">Der letzte Abruf ist fehlgeschlagen: {{ failedRun.error ?? 'ohne Fehlermeldung' }}</p>
+        <p v-if="statusError" class="text-xs text-red-300 mt-1">{{ statusError }}</p>
       </div>
       <div class="flex gap-3 items-center flex-wrap">
-        <div class="flex gap-1">
-          <button v-for="p in PERIODS" :key="p" type="button" :class="btn(days === p)" @click="days = p">{{ p }} Tage</button>
+        <div v-if="MARKET_SUBS.includes(sub)" class="flex gap-1" role="group" aria-label="Markt">
+          <button v-for="m in MARKETS" :key="m.key" type="button" :class="btn(market === m.key)" :aria-pressed="market === m.key"
+                  :title="m.key === 'DE' ? 'Deutsche Website: alle Seiten ohne /en, /gb, /no, /se, /us' : m.key === 'INTL' ? 'Sprachvarianten, seit Oktober 2026 nicht mehr im Google-Index' : 'Alle Seiten'"
+                  @click="market = m.key">{{ m.label }}</button>
         </div>
-        <button type="button" class="px-3 py-1.5 rounded-sm text-xs font-medium bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700"
-                :disabled="status !== null && !status.enabled && !status.plausibleEnabled" @click="startSync">
-          Jetzt synchronisieren
+        <div v-if="PERIOD_SUBS.includes(sub)" class="flex gap-1" role="group" aria-label="Zeitraum">
+          <button v-for="p in PERIODS" :key="p" type="button" :class="btn(days === p)" :aria-pressed="days === p" @click="days = p">{{ p }} Tage</button>
+        </div>
+        <button type="button" class="px-3 py-1.5 rounded-sm text-xs font-medium bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                :title="syncDetails" :disabled="status !== null && !status.enabled && !status.plausibleEnabled" @click="startSync">
+          Daten jetzt abholen
         </button>
       </div>
     </div>
-    <p v-if="syncMessage" class="text-xs text-gray-300 mb-3">{{ syncMessage }}</p>
+    <p v-if="syncMessage" class="text-xs text-gray-300" role="status">{{ syncMessage }}</p>
 
-    <div class="flex gap-1 mb-4">
-      <button v-for="s in SUBS" :key="s.key" type="button" :class="btn(sub === s.key)" @click="sub = s.key">{{ s.label }}</button>
-    </div>
+    <nav class="flex gap-1 flex-wrap" aria-label="Ansichten">
+      <button v-for="s in SUBS" :key="s.key" type="button" :class="btn(sub === s.key)" :aria-current="sub === s.key ? 'page' : undefined" @click="sub = s.key">{{ s.label }}</button>
+    </nav>
 
-    <AdminSeoTechTab v-if="sub === 'tech'" />
-    <template v-else>
-    <p v-if="error" class="text-red-400 text-sm mb-4">{{ error }}</p>
-    <p v-else-if="status && !status.enabled && !status.plausibleEnabled && !overview && !pages.length && !queries.length && !campaigns.length && !models.length"
-       class="text-gray-500 text-sm py-8 text-center">
-      Keine Quelle konfiguriert: GSC_SERVICE_ACCOUNT_JSON und PLAUSIBLE_API_KEY fehlen.
-    </p>
-    <p v-else-if="loading && !overview && !pages.length && !queries.length && !campaigns.length && !models.length" class="text-gray-400 text-sm">Lädt...</p>
+    <SeoHelpPanel :topic="sub" />
 
-    <div v-else class="space-y-6" :class="{ 'opacity-60': loading }">
-      <template v-if="sub === 'overview' && overview">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div v-for="t in tiles" :key="t.label" class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
-            <div class="text-xl font-bold tabular-nums text-indigo-300">{{ t.value }}</div>
-            <div class="text-xs text-gray-300 mt-1">{{ t.label }}</div>
-            <div :class="['text-xs', t.up === null ? 'text-gray-500' : t.up ? 'text-emerald-400' : 'text-red-400']">{{ t.delta }}</div>
-          </div>
-        </div>
-        <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
-          <h3 class="text-sm font-semibold text-gray-200 mb-1">Impressionen, Klicks, Google-Einstiege und Besucher je Tag</h3>
-          <p class="text-xs text-gray-500 mb-2">{{ date(overview.from) }} bis {{ date(overview.to) }}. Klaffen Klicks (Search Console) und Google-Einstiege (Plausible) auseinander, stimmt Tracking oder Prerender nicht.</p>
-          <div class="h-64"><Line :data="chartData" :options="chartOptions" /></div>
-        </section>
-      </template>
-
-      <template v-else-if="sub === 'pages'">
-        <div class="flex gap-1">
-          <button v-for="f in PAGE_FILTERS" :key="f.key" type="button" :class="btn(pageFilter === f.key)" @click="pageFilter = f.key">{{ f.label }}</button>
-        </div>
-        <p v-if="!pages.length" class="text-sm text-gray-500">Keine Seiten im Zeitraum.</p>
-        <div v-else class="overflow-x-auto bg-gray-900 rounded-sm border border-gray-800">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-xs text-gray-400 border-b border-gray-800">
-                <th class="text-left px-3 py-2 font-medium">Pfad</th>
-                <th class="text-right px-3 py-2 font-medium">Impr.</th>
-                <th class="text-right px-3 py-2 font-medium">Klicks</th>
-                <th class="text-right px-3 py-2 font-medium">CTR</th>
-                <th class="text-right px-3 py-2 font-medium">Pos.</th>
-                <th class="text-right px-3 py-2 font-medium" title="Besuche, die auf dieser Seite begonnen haben (Plausible)">Einstiege</th>
-                <th class="text-right px-3 py-2 font-medium" title="Anteil der Einstiege ohne weitere Seite">Absprung</th>
-                <th class="text-right px-3 py-2 font-medium" title="Einstiege mit Registrierungs-Klick, Code-Login oder Registrierung">CTA</th>
-                <th class="text-right px-3 py-2 font-medium" title="Konten, deren erste besuchte Seite dieser Pfad war">Reg.</th>
-                <th class="text-left px-3 py-2 font-medium">Befund</th>
-                <th class="text-left px-3 py-2 font-medium" title="Fehler und Hinweise aus dem letzten On-Page-Check (Unter-Tab Technik)">Technik</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in pages" :key="r.path" class="border-b border-gray-800/60">
-                <td class="px-3 py-1.5 font-mono text-gray-200 whitespace-nowrap">{{ r.path }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.impressions) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.clicks) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.impressions ? pct(r.ctr) : '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ pos(r.avgPosition) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.entries ? num(r.entries) : '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.entries ? pct(r.bounceRate, 0) : '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.entries ? pct(r.ctaRate) : '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums" :class="r.registrations ? 'text-emerald-300' : 'text-gray-500'">{{ r.registrations || '-' }}</td>
-                <td class="px-3 py-1.5">
-                  <span v-if="r.finding" :class="['inline-block text-xs px-2 py-0.5 rounded-full', FINDING_LABELS[r.finding].cls]" :title="FINDING_LABELS[r.finding].hint">
-                    {{ FINDING_LABELS[r.finding].label }}
-                  </span>
-                </td>
-                <td class="px-3 py-1.5 whitespace-nowrap text-xs">
-                  <button v-if="auditCounts?.get(r.path)" type="button" class="hover:underline" @click="sub = 'tech'">
-                    <span v-if="auditCounts.get(r.path)!.errors" class="text-red-300">{{ auditCounts.get(r.path)!.errors }} Fehler</span>
-                    <span v-if="auditCounts.get(r.path)!.errors && auditCounts.get(r.path)!.warnings" class="text-gray-500">, </span>
-                    <span v-if="auditCounts.get(r.path)!.warnings" class="text-amber-300">{{ auditCounts.get(r.path)!.warnings }} Hinweise</span>
-                    <span v-if="!auditCounts.get(r.path)!.errors && !auditCounts.get(r.path)!.warnings" class="text-emerald-400">ok</span>
-                  </button>
-                  <span v-else class="text-gray-600">-</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-
-      <template v-else-if="sub === 'queries'">
-        <div class="flex gap-3 flex-wrap">
-          <div class="flex gap-1">
-            <button v-for="f in BRAND_FILTERS" :key="f.key" type="button" :class="btn(brandFilter === f.key)" @click="brandFilter = f.key">{{ f.label }}</button>
-          </div>
-          <div class="flex gap-1">
-            <button v-for="f in QUERY_FILTERS" :key="f.key" type="button" :class="btn(queryFilter === f.key)" @click="queryFilter = f.key">{{ f.label }}</button>
-          </div>
-        </div>
-        <p v-if="!queries.length" class="text-sm text-gray-500">Keine Suchbegriffe im Zeitraum.</p>
-        <div v-else class="overflow-x-auto bg-gray-900 rounded-sm border border-gray-800">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-xs text-gray-400 border-b border-gray-800">
-                <th class="text-left px-3 py-2 font-medium">Suchbegriff</th>
-                <th class="text-right px-3 py-2 font-medium">Impr.</th>
-                <th class="text-right px-3 py-2 font-medium">Klicks</th>
-                <th class="text-right px-3 py-2 font-medium">CTR</th>
-                <th class="text-right px-3 py-2 font-medium">Pos.</th>
-                <th class="text-left px-3 py-2 font-medium">Beste Seite</th>
-                <th class="text-right px-3 py-2 font-medium">Seiten</th>
-                <th class="text-left px-3 py-2 font-medium">Befund</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in queries" :key="r.query" class="border-b border-gray-800/60">
-                <td class="px-3 py-1.5 text-gray-200">{{ r.query }}<span v-if="r.brand" class="ml-2 text-xs text-gray-500">Brand</span><span v-if="r.adwordsCandidate" class="ml-2 text-xs text-sky-300" title="Non-Brand, Position über 10, Zielseite konvertiert organisch gut: bezahlter Klick lohnt">AdWords</span></td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.impressions) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.clicks) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.impressions ? pct(r.ctr) : '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ pos(r.avgPosition) }}</td>
-                <td class="px-3 py-1.5 font-mono text-gray-400 whitespace-nowrap">{{ r.topPath ?? '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.pageCount }}</td>
-                <td class="px-3 py-1.5">
-                  <span v-if="r.finding" :class="['inline-block text-xs px-2 py-0.5 rounded-full', FINDING_LABELS[r.finding].cls]" :title="FINDING_LABELS[r.finding].hint">
-                    {{ FINDING_LABELS[r.finding].label }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-
-      <template v-else-if="sub === 'campaigns'">
-        <p class="text-xs text-gray-500">Quelle, Medium und Kampagne aus Plausible. Registrierungen und Trials aus der Datenbank nur, wenn der Link UTM-Parameter trug oder die Quelle Google organisch ist; sonst "-".</p>
-        <p v-if="!campaigns.length" class="text-sm text-gray-500">Keine Quellen im Zeitraum.</p>
-        <div v-else class="overflow-x-auto bg-gray-900 rounded-sm border border-gray-800">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-xs text-gray-400 border-b border-gray-800">
-                <th class="text-left px-3 py-2 font-medium">Quelle</th>
-                <th class="text-left px-3 py-2 font-medium">Medium</th>
-                <th class="text-left px-3 py-2 font-medium">Kampagne</th>
-                <th class="text-right px-3 py-2 font-medium">Besucher</th>
-                <th class="text-right px-3 py-2 font-medium" title="Besucher mit Registrierungs-Klick, Code-Login oder Registrierung">CTA</th>
-                <th class="text-right px-3 py-2 font-medium" title="Konten aus der Datenbank">Reg.</th>
-                <th class="text-right px-3 py-2 font-medium" title="davon Trial oder Abo">Trials</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in campaigns" :key="`${r.source}|${r.utmMedium}|${r.utmCampaign}`" class="border-b border-gray-800/60">
-                <td class="px-3 py-1.5 text-gray-200">{{ r.source }}</td>
-                <td class="px-3 py-1.5 text-gray-400">{{ r.utmMedium || '-' }}</td>
-                <td class="px-3 py-1.5 text-gray-400">{{ r.utmCampaign || '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.visitors) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.visitors ? pct(r.ctaRate) : '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums" :class="r.attributed && r.registrations ? 'text-emerald-300' : 'text-gray-500'">{{ r.attributed ? r.registrations : '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.attributed ? r.trials : '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-      <template v-else-if="sub === 'models'">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="flex flex-wrap gap-1">
-            <button v-for="l in MODEL_LEVELS" :key="l.key" type="button" :class="btn(modelLevel === l.key)" @click="modelLevel = l.key">{{ l.label }}</button>
-          </div>
-          <div class="flex flex-wrap gap-1">
-            <button v-for="f in MODEL_FILTERS" :key="f.key" type="button" :class="btn(modelFilter === f.key)" @click="modelFilter = f.key">{{ f.label }}</button>
-          </div>
-        </div>
-        <p class="text-xs text-gray-500">Search Console je Modellseite, Registrierungen mit dieser ersten Seite, daneben die Datenbasis aus der Datenbank (aktive Autos, Ladevorgänge in der Statistik, ohne Seed-Nutzer, gesamt statt Zeitraum). Auf Markenebene zählt die Markenseite mit.</p>
-        <p v-if="!models.length" class="text-sm text-gray-500">Keine Modellseiten im Zeitraum.</p>
-        <div v-else class="overflow-x-auto bg-gray-900 rounded-sm border border-gray-800">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="text-xs text-gray-400 border-b border-gray-800">
-                <th class="text-left px-3 py-2 font-medium">Marke</th>
-                <th v-if="modelLevel === 'MODEL'" class="text-left px-3 py-2 font-medium">Modell</th>
-                <th class="text-right px-3 py-2 font-medium">Impr.</th>
-                <th class="text-right px-3 py-2 font-medium">Klicks</th>
-                <th class="text-right px-3 py-2 font-medium">CTR</th>
-                <th class="text-right px-3 py-2 font-medium">Pos.</th>
-                <th class="text-right px-3 py-2 font-medium" title="Konten, deren erste Seite diese Modellseite war">Reg.</th>
-                <th class="text-right px-3 py-2 font-medium" title="Aktive Autos dieses Modells in der Datenbank">Autos</th>
-                <th class="text-right px-3 py-2 font-medium" title="Ladevorgänge in der Statistik, gesamt">Logs</th>
-                <th class="text-left px-3 py-2 font-medium">Befund</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="r in models" :key="r.path" class="border-b border-gray-800/60">
-                <td class="px-3 py-1.5 text-gray-200">{{ r.brand }}</td>
-                <td v-if="modelLevel === 'MODEL'" class="px-3 py-1.5 text-gray-200"><a :href="r.path" target="_blank" rel="noopener" class="hover:underline">{{ r.model }}</a></td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.impressions) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.clicks) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ r.impressions ? pct(r.ctr) : '-' }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ pos(r.avgPosition) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums" :class="r.registrations ? 'text-emerald-300' : 'text-gray-500'">{{ r.registrations }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums text-gray-300">{{ num(r.cars) }}</td>
-                <td class="px-3 py-1.5 text-right tabular-nums" :class="r.logs ? 'text-gray-300' : 'text-gray-500'">{{ num(r.logs) }}</td>
-                <td class="px-3 py-1.5">
-                  <span v-if="r.finding" :class="['inline-block text-xs px-2 py-0.5 rounded-full', FINDING_LABELS[r.finding].cls]" :title="FINDING_LABELS[r.finding].hint">
-                    {{ FINDING_LABELS[r.finding].label }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </template>
-    </div>
-    </template>
+    <SeoOverviewPanel v-if="sub === 'overview'" :days="days" :market="market" @go="go" />
+    <SeoPagesPanel v-else-if="sub === 'pages'" v-model:filter="pageFilter" :days="days" :market="market" @tech="sub = 'tech'" />
+    <SeoQueriesPanel v-else-if="sub === 'queries'" v-model:filter="queryFilter" v-model:brand="brandFilter" :days="days" :market="market" />
+    <SeoCampaignsPanel v-else-if="sub === 'campaigns'" :days="days" />
+    <SeoModelsPanel v-else-if="sub === 'models'" v-model:filter="modelFilter" v-model:level="modelLevel" :days="days" />
+    <SeoTechPanel v-else-if="sub === 'tech'" />
   </div>
 </template>

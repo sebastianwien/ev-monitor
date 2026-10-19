@@ -6,6 +6,8 @@ export type SeoBrandFilter = 'ALL' | 'BRAND' | 'NON_BRAND'
 export type SeoQueryFilter = 'ALL' | 'STRIKING_DISTANCE' | 'CANNIBALIZED' | 'ADWORDS'
 export type SeoModelLevel = 'MODEL' | 'BRAND'
 export type SeoModelFilter = 'ALL' | 'CONTENT_GAP' | 'INVISIBLE'
+/** DE = deutsche Website (ohne /en, /gb, /no, /se, /us), INTL = Sprachvarianten. */
+export type SeoMarket = 'ALL' | 'DE' | 'INTL'
 
 export interface SeoTotals {
     impressions: number
@@ -30,6 +32,9 @@ export interface SeoOverview {
     periodDays: number
     from: string
     to: string
+    market: SeoMarket
+    /** Vorzeitraum liegt vollständig im Datenbestand: Deltas sind aussagekräftig. */
+    previousComplete: boolean
     current: SeoTotals
     previous: SeoTotals
     days: SeoDayPoint[]
@@ -115,18 +120,18 @@ export async function getSeoStatus(): Promise<SeoStatus> {
     return res.data
 }
 
-export async function getSeoOverview(days: SeoPeriod): Promise<SeoOverview> {
-    const res = await apiClient.get('/admin/seo/overview', { params: { days } })
+export async function getSeoOverview(days: SeoPeriod, market: SeoMarket): Promise<SeoOverview> {
+    const res = await apiClient.get('/admin/seo/overview', { params: { days, market } })
     return res.data
 }
 
-export async function getSeoPages(days: SeoPeriod, filter: SeoPageFilter): Promise<SeoPageRow[]> {
-    const res = await apiClient.get('/admin/seo/pages', { params: { days, filter } })
+export async function getSeoPages(days: SeoPeriod, filter: SeoPageFilter, market: SeoMarket): Promise<SeoPageRow[]> {
+    const res = await apiClient.get('/admin/seo/pages', { params: { days, filter, market } })
     return res.data
 }
 
-export async function getSeoQueries(days: SeoPeriod, brand: SeoBrandFilter, filter: SeoQueryFilter): Promise<SeoQueryRow[]> {
-    const res = await apiClient.get('/admin/seo/queries', { params: { days, brand, filter } })
+export async function getSeoQueries(days: SeoPeriod, brand: SeoBrandFilter, filter: SeoQueryFilter, market: SeoMarket): Promise<SeoQueryRow[]> {
+    const res = await apiClient.get('/admin/seo/queries', { params: { days, brand, filter, market } })
     return res.data
 }
 
@@ -196,4 +201,54 @@ export async function getSeoAudit(): Promise<SeoAuditView> {
 export async function triggerSeoAudit(): Promise<boolean> {
     const res = await apiClient.post('/admin/seo/audit/run', null, { validateStatus: s => s === 202 || s === 409 })
     return res.status === 202
+}
+
+/** Aufgeklappte Zeile: Suchbegriffe einer Seite (key = Begriff) oder Seiten eines Begriffs (key = Pfad). */
+export interface SeoBreakdown {
+    key: string
+    brand: boolean
+    impressions: number
+    clicks: number
+    ctr: number
+    avgPosition: number
+}
+
+export interface SeoBrandWeek {
+    weekStart: string
+    brandImpressions: number
+    brandClicks: number
+    nonBrandImpressions: number
+    nonBrandClicks: number
+}
+
+export interface SeoOpportunities {
+    underrated: number
+    leak: number
+    dead: number
+    money: number
+    striking: number
+    cannibalized: number
+    adwords: number
+    contentGap: number
+    invisible: number
+}
+
+export async function getSeoPageQueries(days: SeoPeriod, path: string): Promise<SeoBreakdown[]> {
+    const { data } = await apiClient.get<SeoBreakdown[]>('/admin/seo/pages/queries', { params: { days, path } })
+    return data
+}
+
+export async function getSeoQueryPages(days: SeoPeriod, query: string): Promise<SeoBreakdown[]> {
+    const { data } = await apiClient.get<SeoBreakdown[]>('/admin/seo/queries/pages', { params: { days, query } })
+    return data
+}
+
+export async function getSeoBrandTrend(weeks: number): Promise<SeoBrandWeek[]> {
+    const { data } = await apiClient.get<SeoBrandWeek[]>('/admin/seo/brand-trend', { params: { weeks } })
+    return data
+}
+
+export async function getSeoOpportunities(days: SeoPeriod, market: SeoMarket): Promise<SeoOpportunities> {
+    const { data } = await apiClient.get<SeoOpportunities>('/admin/seo/opportunities', { params: { days, market } })
+    return data
 }

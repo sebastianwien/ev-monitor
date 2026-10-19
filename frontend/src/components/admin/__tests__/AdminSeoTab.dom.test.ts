@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, nextTick, type App } from 'vue'
-import type { SeoAuditView, SeoCampaignRow, SeoModelRow, SeoOverview, SeoPageRow, SeoQueryRow, SeoStatus } from '../../../api/seoService'
+import type { SeoAuditView, SeoOpportunities, SeoCampaignRow, SeoModelRow, SeoOverview, SeoPageRow, SeoQueryRow, SeoStatus } from '../../../api/seoService'
 
 const getSeoStatus = vi.fn()
 const getSeoOverview = vi.fn()
@@ -12,13 +12,21 @@ const getSeoModels = vi.fn()
 const triggerSeoSync = vi.fn()
 const getSeoAudit = vi.fn()
 const triggerSeoAudit = vi.fn()
+const getSeoOpportunities = vi.fn()
+const getSeoPageQueries = vi.fn()
+const getSeoQueryPages = vi.fn()
+const getSeoBrandTrend = vi.fn()
 vi.mock('../../../api/seoService', () => ({
     getSeoAudit: () => getSeoAudit(),
     triggerSeoAudit: () => triggerSeoAudit(),
+    getSeoOpportunities: (d: number, m: string) => getSeoOpportunities(d, m),
+    getSeoPageQueries: (d: number, p: string) => getSeoPageQueries(d, p),
+    getSeoQueryPages: (d: number, q: string) => getSeoQueryPages(d, q),
+    getSeoBrandTrend: (w: number) => getSeoBrandTrend(w),
     getSeoStatus: () => getSeoStatus(),
-    getSeoOverview: (d: number) => getSeoOverview(d),
-    getSeoPages: (d: number, f: string) => getSeoPages(d, f),
-    getSeoQueries: (d: number, b: string, f: string) => getSeoQueries(d, b, f),
+    getSeoOverview: (d: number, m: string) => getSeoOverview(d, m),
+    getSeoPages: (d: number, f: string, m: string) => getSeoPages(d, f, m),
+    getSeoQueries: (d: number, b: string, f: string, m: string) => getSeoQueries(d, b, f, m),
     getSeoCampaigns: (d: number) => getSeoCampaigns(d),
     getSeoModels: (d: number, l: string, f: string) => getSeoModels(d, l, f),
     triggerSeoSync: (d: number) => triggerSeoSync(d),
@@ -39,7 +47,7 @@ const status: SeoStatus = {
         rowCount: 567, fromDay: '2026-10-11', toDay: '2026-10-17', error: null }],
 }
 const overview: SeoOverview = {
-    periodDays: 28, from: '2026-09-19', to: '2026-10-16',
+    periodDays: 28, from: '2026-09-19', to: '2026-10-16', market: 'DE', previousComplete: true,
     current: { impressions: 184200, clicks: 6410, ctr: 0.0348, avgPosition: 14.2, visitors: 3100, googleEntries: 1800, registrations: 37, organicRegistrations: 21 },
     previous: { impressions: 164500, clicks: 5930, ctr: 0.036, avgPosition: 15.3, visitors: 2900, googleEntries: 1700, registrations: 30, organicRegistrations: 18 },
     days: [{ day: '2026-10-15', impressions: 100, clicks: 3, visitors: 110, googleEntries: 60 }, { day: '2026-10-16', impressions: 120, clicks: 4, visitors: 130, googleEntries: 70 }],
@@ -63,182 +71,217 @@ const models: SeoModelRow[] = [
     { brand: 'Gamma', model: 'Three', path: '/modelle/Gamma/Three', impressions: 0, clicks: 0, ctr: 0, avgPosition: 0, registrations: 0, cars: 12, logs: 300, finding: 'INVISIBLE' },
 ]
 
+const noOpportunities: SeoOpportunities = { underrated: 0, leak: 0, dead: 0, money: 0, striking: 0, cannibalized: 0, adwords: 0, contentGap: 0, invisible: 0 }
+const emptyAudit: SeoAuditView = { enabled: false, day: null, lastRunAt: null, vitalsWeek: null,
+    summary: { checked: 0, withErrors: 0, prerenderFailed: 0, brokenLinkPages: 0, orphans: 0 }, rows: [] }
+
 let app: App | null = null
 afterEach(() => {
     app?.unmount()
     app = null
     document.body.innerHTML = ''
     vi.resetAllMocks()
+    localStorage.clear()
 })
+
+function defaults() {
+    getSeoStatus.mockResolvedValue(status)
+    getSeoOverview.mockResolvedValue(overview)
+    getSeoOpportunities.mockResolvedValue(noOpportunities)
+    getSeoAudit.mockResolvedValue(emptyAudit)
+    getSeoBrandTrend.mockResolvedValue([])
+    getSeoPageQueries.mockResolvedValue([])
+    getSeoQueryPages.mockResolvedValue([])
+}
+
+async function flush(n = 6) {
+    for (let i = 0; i < n; i++) await nextTick()
+    await new Promise(r => setTimeout(r, 0))
+    for (let i = 0; i < 2; i++) await nextTick()
+}
 
 async function mount(): Promise<HTMLElement> {
     const host = document.createElement('div')
     document.body.appendChild(host)
     app = createApp(AdminSeoTab)
     app.mount(host)
-    for (let i = 0; i < 4; i++) await nextTick()
+    await flush()
     return host
 }
 
 function click(host: HTMLElement, label: string) {
-    const btn = [...host.querySelectorAll('button')].find(b => b.textContent?.trim() === label)
+    const btn = [...host.querySelectorAll('button')].find(b => b.textContent?.trim() === label || b.getAttribute('aria-label') === label)
     if (!btn) throw new Error(`Button ${label} fehlt`)
     btn.click()
 }
 
+const cells = (host: HTMLElement) => [...host.querySelectorAll('tbody > tr')]
+    .map(r => [...r.querySelectorAll(':scope > td')].map(td => td.textContent?.trim()))
+
 describe('AdminSeoTab', () => {
-    it('lädt Status und Überblick für 28 Tage, zeigt Kacheln mit Vorzeitraum und Sync-Kopf', async () => {
-        getSeoStatus.mockResolvedValue(status)
-        getSeoOverview.mockResolvedValue(overview)
+    it('lädt den Überblick für Deutschland und 28 Tage, gruppiert Kacheln und zeigt den Datenstand', async () => {
+        defaults()
         const host = await mount()
         const text = host.textContent ?? ''
 
-        expect(getSeoOverview).toHaveBeenCalledWith(28)
+        expect(getSeoOverview).toHaveBeenCalledWith(28, 'DE')
+        expect(text).toContain('Datenstand: Google bis 16.10.2026, Besucher bis 17.10.2026')
+        expect(text).toContain('Bei Google')
+        expect(text).toContain('Auf der Website')
+        expect(text).toContain('Ergebnis')
         expect(text).toContain('184.200')
-        expect(text).toContain('6.410')
-        expect(text).toContain('3,5 %')
-        expect(text).toContain('14,2')
         expect(text).toContain('+12 % zum Vorzeitraum')
-        expect(text).toContain('besser um 1,1')
-        expect(text).toContain('Registrierungen')
-        expect(text).toContain('37')
-        expect(text).toContain('+23 % zum Vorzeitraum')
-        expect(text).toContain('0,2')
-        expect(text).toContain('1.234 Zeilen')
-        expect(text).toContain('Plausible bis 17.10.2026')
-        expect(text).toContain('567 Zeilen')
-        expect(text).toContain('Besucher')
-        expect(text).toContain('3.100')
-        expect(text).toContain('1.800')
+        expect(text).toContain('1,1 Plätze besser')
+        expect(text).toContain('ganze Website, alle Märkte')
+        // Anleitung beim ersten Besuch offen
+        expect(text).toContain('Geht es bei Google und auf der Website aufwärts oder abwärts?')
         expect(host.querySelectorAll('.chart').length).toBe(1)
     })
 
-    it('wechselt Zeitraum und Unter-Tabs und lädt Seiten und Suchbegriffe mit Filtern', async () => {
-        getSeoStatus.mockResolvedValue(status)
-        getSeoOverview.mockResolvedValue(overview)
+    it('zeigt keine Prozent-Deltas, wenn der Vorzeitraum nicht vollständig ist', async () => {
+        defaults()
+        getSeoOverview.mockResolvedValue({ ...overview, previousComplete: false })
+        const host = await mount()
+
+        expect(host.textContent).toContain('kein vollständiger Vorzeitraum')
+        expect(host.textContent).not.toContain('% zum Vorzeitraum')
+    })
+
+    it('springt aus der Handlungsliste in die gefilterte Seitenliste mit Erklärung', async () => {
+        defaults()
+        getSeoOpportunities.mockResolvedValue({ ...noOpportunities, underrated: 3, adwords: 2 })
         getSeoPages.mockResolvedValue(pages)
+        const host = await mount()
+
+        expect(host.textContent).toContain('Was du jetzt tun kannst')
+        const item = [...host.querySelectorAll('button')].find(b => b.textContent?.includes('Unterschätzt'))!
+        item.click()
+        await flush()
+
+        expect(getSeoPages).toHaveBeenLastCalledWith(28, 'UNDERRATED', 'DE')
+        expect(host.textContent).toContain('Was tun:')
+    })
+
+    it('Seiten: Markt, Filter, aufklappbare Suchbegriffe und Technik-Spalte', async () => {
+        defaults()
+        getSeoPages.mockResolvedValue(pages)
+        getSeoPageQueries.mockResolvedValue([{ key: 'alpha one test', brand: false, impressions: 900, clicks: 40, ctr: 0.044, avgPosition: 5.2 }])
+        getSeoAudit.mockResolvedValue({ ...emptyAudit, enabled: true, day: '2026-10-19',
+            rows: [{ path: '/modelle/Alpha/One', httpStatus: 200, score: 75, errors: 1, warnings: 1, vitals: null, findings: [] }] })
+        const host = await mount()
+
+        click(host, 'Seiten')
+        await flush()
+        expect(getSeoPages).toHaveBeenLastCalledWith(28, 'ALL', 'DE')
+        expect(host.textContent).toContain('1 Fehler, 1 Hinweis')
+        expect(host.textContent).toContain('Geldseite')
+
+        click(host, 'International')
+        await flush()
+        expect(getSeoPages).toHaveBeenLastCalledWith(28, 'ALL', 'INTL')
+
+        click(host, 'Leck')
+        await flush()
+        expect(getSeoPages).toHaveBeenLastCalledWith(28, 'LEAK', 'INTL')
+
+        click(host, 'Aufklappen')
+        await flush()
+        expect(getSeoPageQueries).toHaveBeenCalledWith(28, '/modelle/Alpha/One')
+        expect(host.textContent).toContain('alpha one test')
+    })
+
+    it('Suchbegriffe: fremder Text bleibt Text, Filter und Markenschalter', async () => {
+        defaults()
         getSeoQueries.mockResolvedValue(queries)
         const host = await mount()
 
-        click(host, '90 Tage')
-        await nextTick()
-        expect(getSeoOverview).toHaveBeenLastCalledWith(90)
-
-        click(host, 'Seiten')
-        await nextTick()
-        await nextTick()
-        expect(getSeoPages).toHaveBeenLastCalledWith(90, 'ALL')
-        expect(host.textContent).toContain('/modelle/Beta/Two')
-        expect(host.textContent).toContain('Unterschätzt')
-        expect(host.textContent).toContain('Reg.')
-        expect(host.querySelector('td.text-emerald-300')?.textContent?.trim()).toBe('9')
-        expect(host.textContent).toContain('Einstiege')
-        expect(host.textContent).toContain('1.700')
-        expect(host.textContent).toContain('21 %')
-        expect(host.textContent).toContain('8,3 %')
-        expect(host.textContent).toContain('Geldseite')
-
-        click(host, 'Leck')
-        await nextTick()
-        expect(getSeoPages).toHaveBeenLastCalledWith(90, 'LEAK')
-
-        click(host, 'Tot')
-        await nextTick()
-        expect(getSeoPages).toHaveBeenLastCalledWith(90, 'DEAD')
-
         click(host, 'Suchbegriffe')
-        await nextTick()
-        await nextTick()
-        expect(getSeoQueries).toHaveBeenLastCalledWith(90, 'ALL', 'ALL')
-        // fremder Suchbegriff wird als Text gerendert, nie als HTML
+        await flush()
+        expect(getSeoQueries).toHaveBeenLastCalledWith(28, 'ALL', 'ALL', 'DE')
+        expect(getSeoBrandTrend).toHaveBeenCalledWith(26)
         expect(host.querySelector('td b')).toBeNull()
         expect(host.textContent).toContain('alpha one verbrauch <b>x</b>')
-        expect(host.textContent).toContain('Kannibalisierung')
-        expect(host.textContent).toContain('AdWords')
+        expect(host.textContent).toContain('Konkurrenz im eigenen Haus')
 
-        click(host, 'AdWords-Kandidaten')
-        await nextTick()
-        expect(getSeoQueries).toHaveBeenLastCalledWith(90, 'ALL', 'ADWORDS')
+        click(host, 'AdWords-Kandidat')
+        await flush()
+        expect(getSeoQueries).toHaveBeenLastCalledWith(28, 'ALL', 'ADWORDS', 'DE')
 
-        click(host, 'Non-Brand')
-        await nextTick()
-        expect(getSeoQueries).toHaveBeenLastCalledWith(90, 'NON_BRAND', 'ADWORDS')
+        click(host, 'Ohne Markennamen')
+        await flush()
+        expect(getSeoQueries).toHaveBeenLastCalledWith(28, 'NON_BRAND', 'ADWORDS', 'DE')
+    })
 
+    it('Kampagnen: Zuordnung nur mit UTM oder Google, Registrierungen je 1 000 Besucher', async () => {
+        defaults()
         getSeoCampaigns.mockResolvedValue(campaigns)
-        click(host, 'Kampagnen')
-        await nextTick()
-        await nextTick()
-        expect(getSeoCampaigns).toHaveBeenLastCalledWith(90)
-        const rows = [...host.querySelectorAll('tbody tr')].map(r => [...r.querySelectorAll('td')].map(td => td.textContent?.trim()))
-        expect(rows[0]).toEqual(['Google', '-', '-', '1.800', '5,0 %', '21', '2'])
-        // ohne UTM und nicht Google: keine DB-Zuordnung
-        expect(rows[1]).toEqual(['Direct / None', '-', '-', '900', '4,4 %', '-', '-'])
-        expect(rows[2]).toEqual(['vw-forum', 'forum', 'vorstellung', '40', '10,0 %', '3', '1'])
+        const host = await mount()
 
+        click(host, '90 Tage')
+        await flush()
+        click(host, 'Kampagnen')
+        await flush()
+        expect(getSeoCampaigns).toHaveBeenLastCalledWith(90)
+        const rows = cells(host)
+        expect(rows[0]).toEqual(['Google', '-', '-', '1.800', '5,0 %', '21', '11,7', '2'])
+        expect(rows[1]).toEqual(['Direkt (ohne Verweis)', '-', '-', '900', '4,4 %', '-', '-', '-'])
+        expect(rows[2]).toEqual(['vw-forum', 'forum', 'vorstellung', '40', '10,0 %', '3', '75,0', '1'])
+        expect(host.textContent).toContain('Kampagnen-Link bauen')
+    })
+
+    it('Modellseiten: Befunde und Ebene Marke', async () => {
+        defaults()
         getSeoModels.mockResolvedValue(models)
+        const host = await mount()
+
         click(host, 'Modellseiten')
-        await nextTick()
-        await nextTick()
-        expect(getSeoModels).toHaveBeenLastCalledWith(90, 'MODEL', 'ALL')
-        const modelRows = [...host.querySelectorAll('tbody tr')].map(r => [...r.querySelectorAll('td')].map(td => td.textContent?.trim()))
-        expect(modelRows[0]).toEqual(['Alpha', 'One', '41.300', '1.820', '4,4 %', '6,1', '9', '40', '900', ''])
-        expect(modelRows[1]).toEqual(['Beta', 'Two', '6.000', '10', '0,2 %', '25,0', '0', '0', '0', 'Nachfrage ohne Daten'])
-        expect(modelRows[2]).toEqual(['Gamma', 'Three', '0', '0', '-', '-', '0', '12', '300', 'Daten ohne Sichtbarkeit'])
+        await flush()
+        expect(getSeoModels).toHaveBeenLastCalledWith(28, 'MODEL', 'ALL')
+        const rows = cells(host)
+        expect(rows[0]).toEqual(['Alpha', 'One', '41.300', '1.820', '4,4 %', '6,1', '9', '40', '900', '-'])
+        expect(rows[1]).toEqual(['Beta', 'Two', '6.000', '10', '0,2 %', '25,0', '-', '0', '0', 'Nachfrage ohne Daten'])
         expect(host.querySelector('tbody a')?.getAttribute('href')).toBe('/modelle/Alpha/One')
 
         click(host, 'Nachfrage ohne Daten')
-        await nextTick()
-        expect(getSeoModels).toHaveBeenLastCalledWith(90, 'MODEL', 'CONTENT_GAP')
+        await flush()
+        expect(getSeoModels).toHaveBeenLastCalledWith(28, 'MODEL', 'CONTENT_GAP')
 
-        click(host, 'Marken')
-        await nextTick()
-        expect(getSeoModels).toHaveBeenLastCalledWith(90, 'BRAND', 'CONTENT_GAP')
+        click(host, 'Je Marke')
+        await flush()
+        expect(getSeoModels).toHaveBeenLastCalledWith(28, 'BRAND', 'ALL')
     })
 
-    it('zeigt den Leerzustand ohne Zugang und meldet einen abgelehnten Sync', async () => {
+    it('meldet fehlende Verbindungen und einen abgelehnten Abruf verständlich', async () => {
+        defaults()
         getSeoStatus.mockResolvedValue({ enabled: false, dataUntil: '2026-10-17', plausibleEnabled: false, plausibleDataUntil: null, runs: [] })
-        getSeoOverview.mockResolvedValue(null)
         triggerSeoSync.mockResolvedValue(false)
         const host = await mount()
 
-        expect(host.textContent).toContain('GSC_SERVICE_ACCOUNT_JSON')
-        expect(host.textContent).toContain('Keine Quelle konfiguriert')
-        const sync = [...host.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Jetzt synchronisieren')!
+        expect(host.textContent).toContain('Google Search Console ist nicht verbunden')
+        expect(host.textContent).toContain('Plausible ist nicht verbunden')
+        const sync = [...host.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Daten jetzt abholen')!
         expect(sync.disabled).toBe(true)
     })
 
-    it('zeigt gespeicherte Daten auch ohne GSC-Key, wenn Plausible läuft', async () => {
-        getSeoStatus.mockResolvedValue({ ...status, enabled: false })
-        getSeoOverview.mockResolvedValue(overview)
-        const host = await mount()
-
-        expect(host.textContent).toContain('Search Console aus')
-        expect(host.textContent).toContain('184.200')
-        const sync = [...host.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Jetzt synchronisieren')!
-        expect(sync.disabled).toBe(false)
-    })
-
-    it('startet einen Sync und zeigt die Rückmeldung', async () => {
-        getSeoStatus.mockResolvedValue(status)
-        getSeoOverview.mockResolvedValue(overview)
+    it('startet einen Abruf und zeigt die Rückmeldung', async () => {
+        defaults()
         triggerSeoSync.mockResolvedValue(true)
         const host = await mount()
 
-        click(host, 'Jetzt synchronisieren')
-        await nextTick()
-        await nextTick()
+        click(host, 'Daten jetzt abholen')
+        await flush()
         expect(triggerSeoSync).toHaveBeenCalledWith(30)
-        expect(host.textContent).toContain('Sync gestartet')
+        expect(host.textContent).toContain('im Hintergrund neu abgeholt')
     })
 
     it('zeigt eine Fehlermeldung, wenn die API scheitert', async () => {
-        getSeoStatus.mockResolvedValue(status)
+        defaults()
         getSeoOverview.mockRejectedValue(new Error('500'))
         const host = await mount()
-        expect(host.textContent).toContain('konnten nicht geladen werden')
+        expect(host.textContent).toContain('konnte nicht geladen werden')
     })
 
-    it('zeigt Technik-Spalte in Seiten und den Unter-Tab Technik mit Befunden als Text', async () => {
+    it('Technik: Kacheln, Filter, Befund-Texte als Text, Prüfung starten', async () => {
         const audit: SeoAuditView = {
             enabled: true, day: '2026-10-19', lastRunAt: '2026-10-19T05:00:00', vitalsWeek: null,
             summary: { checked: 2, withErrors: 1, prerenderFailed: 1, brokenLinkPages: 0, orphans: 0 },
@@ -250,38 +293,29 @@ describe('AdminSeoTab', () => {
                 { path: '/modelle/Beta/Two', httpStatus: 200, score: 100, errors: 0, warnings: 0, vitals: null, findings: [] },
             ],
         }
-        getSeoStatus.mockResolvedValue(status)
-        getSeoOverview.mockResolvedValue(overview)
-        getSeoPages.mockResolvedValue(pages)
+        defaults()
         getSeoAudit.mockResolvedValue(audit)
         triggerSeoAudit.mockResolvedValue(false)
         const host = await mount()
 
-        click(host, 'Seiten')
-        for (let i = 0; i < 4; i++) await nextTick()
-        expect(host.textContent).toContain('2 Fehler')
-        expect(host.textContent).toContain('1 Hinweise')
-
         click(host, 'Technik')
-        for (let i = 0; i < 4; i++) await nextTick()
-        expect(host.textContent).toContain('URLs geprüft')
-        expect(host.textContent).toContain('Prerender-Fehler')
-        expect(host.textContent).toContain('JSON-LD')
+        await flush()
+        expect(host.textContent).toContain('Seiten geprüft')
+        expect(host.textContent).toContain('Fehler in der Google-Fassung')
 
-        click(host, 'Prerender')
-        await nextTick()
+        click(host, 'Google-Fassung')
+        await flush()
         expect(host.textContent).not.toContain('/modelle/Beta/Two')
 
-        const row = [...host.querySelectorAll('tr')].find(tr => tr.textContent?.includes('/modelle/Alpha/One'))!
-        row.click()
-        await nextTick()
+        click(host, 'Aufklappen')
+        await flush()
         expect(host.textContent).toContain('JSON-LD Product fehlt')
         expect(host.textContent).toContain('<b>fett</b>')
-        expect(host.querySelector('b')).toBeNull()
+        expect(host.querySelector('tbody b')).toBeNull()
 
         click(host, 'Jetzt prüfen')
-        for (let i = 0; i < 3; i++) await nextTick()
+        await flush()
         expect(triggerSeoAudit).toHaveBeenCalled()
-        expect(host.textContent).toContain('Keine Prüfung gestartet')
+        expect(host.textContent).toContain('läuft gerade schon eine Prüfung')
     })
 })

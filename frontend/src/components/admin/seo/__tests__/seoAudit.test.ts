@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { SeoAuditRow } from '../../../api/seoService'
+import type { SeoAuditRow } from '../../../../api/seoService'
 import { auditCountsByPath, checksPresent, filterAuditRows } from '../seoAudit'
 
 const row = (path: string, findings: SeoAuditRow['findings']): SeoAuditRow => ({
