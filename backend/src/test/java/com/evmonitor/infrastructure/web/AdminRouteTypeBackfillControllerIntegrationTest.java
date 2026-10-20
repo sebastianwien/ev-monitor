@@ -1,6 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
-import com.evmonitor.application.routetype.RouteTypeBackfillSummary;
+import com.evmonitor.application.routetype.RouteTypeBackfillJob;
 import com.evmonitor.domain.User;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
@@ -23,15 +23,20 @@ class AdminRouteTypeBackfillControllerIntegrationTest extends AbstractIntegratio
     }
 
     @Test
-    void admin_getsDryRunSummaryByDefault() {
+    void admin_startsDryRunByDefault_andReadsTheResult() {
         User admin = createAndSaveAdminUser("rt-admin-" + System.nanoTime() + "@example.com");
 
-        ResponseEntity<RouteTypeBackfillSummary> res = restTemplate.exchange("/api/admin/route-type/backfill", HttpMethod.POST,
-                createAuthRequest(admin.getId(), admin.getEmail()), RouteTypeBackfillSummary.class);
+        ResponseEntity<RouteTypeBackfillJob.Status> started = restTemplate.exchange("/api/admin/route-type/backfill", HttpMethod.POST,
+                createAuthRequest(admin.getId(), admin.getEmail()), RouteTypeBackfillJob.Status.class);
+        assertEquals(HttpStatus.ACCEPTED, started.getStatusCode());
 
-        assertEquals(HttpStatus.OK, res.getStatusCode());
-        assertNotNull(res.getBody());
-        assertTrue(res.getBody().dryRun());
-        assertTrue(res.getBody().candidates() >= 0);
+        // Test-Executor ist synchron: der Lauf ist beim Statusabruf schon fertig
+        ResponseEntity<RouteTypeBackfillJob.Status> status = restTemplate.exchange("/api/admin/route-type/backfill", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), RouteTypeBackfillJob.Status.class);
+        assertEquals(HttpStatus.OK, status.getStatusCode());
+        assertNotNull(status.getBody());
+        assertFalse(status.getBody().running());
+        assertNotNull(status.getBody().last());
+        assertTrue(status.getBody().last().dryRun());
     }
 }

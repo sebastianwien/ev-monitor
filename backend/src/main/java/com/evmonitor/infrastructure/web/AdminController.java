@@ -9,11 +9,11 @@ import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.application.StripeReportService;
 import com.evmonitor.application.WeeklyReportService;
 import com.evmonitor.application.routetype.RouteTypeBackfillJob;
-import com.evmonitor.application.routetype.RouteTypeBackfillSummary;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
 import com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.evmonitor.application.ingest.event.ConnectionHealthResponse;
 import com.evmonitor.application.ingest.event.ConnectionHealthService;
@@ -75,14 +75,25 @@ public class AdminController {
     }
 
     /**
-     * Einmal-Backfill des Streckentyps für den Bestand. Default ist ein Dry-run, der nur zählt;
-     * erst {@code dryRun=false} schreibt. Antwort enthält nur Zähler je Quelle und Ergebnis.
+     * Einmal-Backfill des Streckentyps für den Bestand, asynchron. Default ist ein Dry-run, der nur zählt;
+     * erst {@code dryRun=false} schreibt. 202 beim Start, 409 wenn schon ein Lauf läuft;
+     * Ergebnis über GET {@code /route-type/backfill} (nur Zähler je Quelle und Ergebnis).
      */
     @PostMapping("/route-type/backfill")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<RouteTypeBackfillSummary> backfillRouteType(
+    public ResponseEntity<RouteTypeBackfillJob.Status> backfillRouteType(
             @RequestParam(defaultValue = "true") boolean dryRun) {
-        return ResponseEntity.ok(routeTypeBackfillJob.run(dryRun));
+        if (!routeTypeBackfillJob.tryStart()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(routeTypeBackfillJob.status());
+        }
+        routeTypeBackfillJob.runAsync(dryRun);
+        return ResponseEntity.accepted().body(routeTypeBackfillJob.status());
+    }
+
+    @GetMapping("/route-type/backfill")
+    @PreAuthorize("hasRole('ADMIN')")
+    public RouteTypeBackfillJob.Status routeTypeBackfillStatus() {
+        return routeTypeBackfillJob.status();
     }
 
     @PostMapping("/spec-efficiency/recalculate")
