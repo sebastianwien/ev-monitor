@@ -35,57 +35,81 @@ class RouteTypeRulesTest {
                 .loggedAt(LocalDateTime.of(2026, 3, 1, 20, 0)).odometerKm(odometerKm).build();
     }
 
-    // ---- classifyTrip: Tempo = km / h, >= 80 Autobahn, < 50 Stadt ----
+    // ---- classifyTrip v2 (20.10.2026): Schnitt ab 90 Autobahn, Spitze ab 140 bei Schnitt ab 70 auch; Stadt unter 50 und Spitze unter 80 ----
 
     @Test
-    void classifyTrip_thresholds() {
-        assertEquals(RouteType.HIGHWAY, RouteTypeRules.classifyTrip(new BigDecimal("80"), T0, T0.plusHours(1)));
-        assertEquals(RouteType.COMBINED, RouteTypeRules.classifyTrip(new BigDecimal("79.9"), T0, T0.plusHours(1)));
-        assertEquals(RouteType.COMBINED, RouteTypeRules.classifyTrip(new BigDecimal("50"), T0, T0.plusHours(1)));
-        assertEquals(RouteType.CITY, RouteTypeRules.classifyTrip(new BigDecimal("49.9"), T0, T0.plusHours(1)));
+    void classifyTrip_byAvgSpeedOnly() {
+        assertEquals(RouteType.HIGHWAY, RouteTypeRules.classifyTrip(new BigDecimal("90"), null));
+        assertEquals(RouteType.COMBINED, RouteTypeRules.classifyTrip(new BigDecimal("89.9"), null), "Landstraße oder 80er-Schnitt ist gemischt");
+        assertEquals(RouteType.COMBINED, RouteTypeRules.classifyTrip(new BigDecimal("50"), null));
+        assertEquals(RouteType.CITY, RouteTypeRules.classifyTrip(new BigDecimal("49.9"), null));
+        assertNull(RouteTypeRules.classifyTrip(null, new BigDecimal("150")));
+    }
+
+    @Test
+    void classifyTrip_maxSpeedRefines() {
+        assertEquals(RouteType.HIGHWAY, RouteTypeRules.classifyTrip(new BigDecimal("70"), new BigDecimal("140")), "Autobahn mit Stau");
+        assertEquals(RouteType.COMBINED, RouteTypeRules.classifyTrip(new BigDecimal("69.9"), new BigDecimal("180")), "zu langsam im Schnitt");
+        assertEquals(RouteType.COMBINED, RouteTypeRules.classifyTrip(new BigDecimal("75"), new BigDecimal("139.9")));
+        assertEquals(RouteType.COMBINED, RouteTypeRules.classifyTrip(new BigDecimal("40"), new BigDecimal("80")), "langsam, aber Landstraßen-Spitze");
+        assertEquals(RouteType.CITY, RouteTypeRules.classifyTrip(new BigDecimal("40"), new BigDecimal("79.9")));
+    }
+
+    @Test
+    void classifyTrip_fromDistanceAndDuration() {
+        assertEquals(RouteType.HIGHWAY, RouteTypeRules.classifyTrip(new BigDecimal("90"), T0, T0.plusHours(1), null));
+        assertEquals(RouteType.HIGHWAY, RouteTypeRules.classifyTrip(new BigDecimal("70"), T0, T0.plusHours(1), new BigDecimal("150")));
+        assertEquals(RouteType.CITY, RouteTypeRules.classifyTrip(new BigDecimal("40"), T0, T0.plusHours(1), null));
     }
 
     @Test
     void classifyTrip_noDurationOrTinyTrip_isNull() {
-        assertNull(RouteTypeRules.classifyTrip(new BigDecimal("10"), T0, T0));
-        assertNull(RouteTypeRules.classifyTrip(new BigDecimal("10"), T0, null));
-        assertNull(RouteTypeRules.classifyTrip(new BigDecimal("0.4"), T0, T0.plusMinutes(1)));
-        assertNull(RouteTypeRules.classifyTrip(null, T0, T0.plusMinutes(10)));
+        assertNull(RouteTypeRules.classifyTrip(new BigDecimal("10"), T0, T0, null));
+        assertNull(RouteTypeRules.classifyTrip(new BigDecimal("10"), T0, null, null));
+        assertNull(RouteTypeRules.classifyTrip(new BigDecimal("0.4"), T0, T0.plusMinutes(1), null));
+        assertNull(RouteTypeRules.classifyTrip(null, T0, T0.plusMinutes(10), null));
     }
 
-    // ---- dominantByKm: strikte Mehrheit, sonst COMBINED ----
+    // ---- byKmShare: ein Typ braucht 75 % der klassifizierten km, sonst COMBINED ----
 
     @Test
-    void dominantByKm_usesStoredTypeFirst_thenSpeed() {
-        // 100 km gespeichert HIGHWAY, 30 km ohne Typ aber 30 km in 30 min = 60 km/h -> COMBINED
-        Optional<RouteType> r = RouteTypeRules.dominantByKm(List.of(trip(100, 60, "HIGHWAY"), trip(30, 30, null)));
-        assertEquals(Optional.of(RouteType.HIGHWAY), r);
-    }
-
-    @Test
-    void dominantByKm_tie_isCombined() {
-        assertEquals(Optional.of(RouteType.COMBINED),
-                RouteTypeRules.dominantByKm(List.of(trip(50, 30, "HIGHWAY"), trip(50, 120, "CITY"))));
+    void byKmShare_speedRuleBeatsStoredType() {
+        // 100 km gespeichert HIGHWAY, aber 100 km in 90 min = 67 km/h ohne Spitze -> COMBINED nach Regel
+        assertEquals(Optional.of(RouteType.COMBINED), RouteTypeRules.byKmShare(List.of(trip(100, 90, "HIGHWAY"))));
     }
 
     @Test
-    void dominantByKm_noClassifiableKm_isEmpty() {
-        assertTrue(RouteTypeRules.dominantByKm(List.of()).isEmpty());
-        assertTrue(RouteTypeRules.dominantByKm(List.of(trip(0.3, 1, null))).isEmpty());
+    void byKmShare_storedTypeIsFallbackWithoutSpeed() {
+        EvTrip noDuration = EvTrip.builder().id(UUID.randomUUID()).distanceKm(new BigDecimal("50")).routeType("CITY").build();
+        assertEquals(Optional.of(RouteType.CITY), RouteTypeRules.byKmShare(List.of(noDuration)));
+    }
+
+    @Test
+    void byKmShare_needsThreeQuarters() {
+        // 75 von 100 km Autobahn -> HIGHWAY; 74 -> COMBINED
+        assertEquals(Optional.of(RouteType.HIGHWAY), RouteTypeRules.byKmShare(List.of(trip(75, 45, null), trip(25, 60, null))));
+        assertEquals(Optional.of(RouteType.COMBINED), RouteTypeRules.byKmShare(List.of(trip(74, 45, null), trip(26, 60, null))));
+        assertEquals(Optional.of(RouteType.CITY), RouteTypeRules.byKmShare(List.of(trip(30, 60, null), trip(10, 6, null))));
+    }
+
+    @Test
+    void byKmShare_noClassifiableKm_isEmpty() {
+        assertTrue(RouteTypeRules.byKmShare(List.of()).isEmpty());
+        assertTrue(RouteTypeRules.byKmShare(List.of(trip(0.3, 1, null))).isEmpty());
     }
 
     // ---- fromTrips: Mindestabdeckung 50 % der Odometer-Differenz, beide Odometer nötig ----
 
     @Test
     void fromTrips_coverageBelowHalf_isEmpty() {
-        List<EvTrip> trips = List.of(trip(49, 30, "HIGHWAY"));
+        List<EvTrip> trips = List.of(trip(49, 30, null));
         assertTrue(RouteTypeRules.fromTrips(log(1000), log(1100), trips).isEmpty());
         assertEquals(Optional.of(RouteType.HIGHWAY), RouteTypeRules.fromTrips(log(1000), log(1098), trips));
     }
 
     @Test
     void fromTrips_missingOdometer_isEmpty() {
-        List<EvTrip> trips = List.of(trip(90, 60, "HIGHWAY"));
+        List<EvTrip> trips = List.of(trip(90, 60, null));
         assertTrue(RouteTypeRules.fromTrips(log(null), log(1100), trips).isEmpty());
         assertTrue(RouteTypeRules.fromTrips(log(1000), log(null), trips).isEmpty());
         assertTrue(RouteTypeRules.fromTrips(log(1100), log(1000), trips).isEmpty(), "Odometer rückwärts");

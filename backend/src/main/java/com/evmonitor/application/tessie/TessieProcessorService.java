@@ -5,6 +5,7 @@ import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.application.ingest.ChargingEntry;
 import com.evmonitor.application.ingest.IngestCommand;
 import com.evmonitor.application.routetype.RouteTypeDerivationService;
+import com.evmonitor.application.routetype.RouteTypeRules;
 import com.evmonitor.application.ingest.IngestResult;
 import com.evmonitor.application.ingest.IngestDoor;
 import com.evmonitor.application.ingest.IngestGateway;
@@ -12,6 +13,7 @@ import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EnergyMeasurementType;
 import com.evmonitor.domain.EvTrip;
+import com.evmonitor.domain.RouteType;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -195,7 +197,7 @@ public class TessieProcessorService {
                     .status("COMPLETED")
                     .build();
             // Ohne externalId keine Dedup, wie bisher: erneute Läufe verhindert das processed-Flag.
-            if (ingestGateway.ingestTrip(trip, classifyRouteType(d.weightedAvgSpeed())).created()) inserted++;
+            if (ingestGateway.ingestTrip(trip, classifyRouteType(d.weightedAvgSpeed(), d.maxSpeed())).created()) inserted++;
         }
         return inserted;
     }
@@ -247,12 +249,10 @@ public class TessieProcessorService {
         };
     }
 
-    static String classifyRouteType(BigDecimal weightedAvgSpeedKmh) {
-        if (weightedAvgSpeedKmh == null) return null;
-        double s = weightedAvgSpeedKmh.doubleValue();
-        if (s >= 90) return "HIGHWAY";
-        if (s < 60) return "CITY";
-        return "COMBINED";
+    /** Eine Regel für alle Quellen: {@link RouteTypeRules#classifyTrip(BigDecimal, BigDecimal)}. */
+    static String classifyRouteType(BigDecimal weightedAvgSpeedKmh, BigDecimal maxSpeedKmh) {
+        RouteType type = RouteTypeRules.classifyTrip(weightedAvgSpeedKmh, maxSpeedKmh);
+        return type != null ? type.name() : null;
     }
 
     private static String geohash(BigDecimal lat, BigDecimal lon, int precision) {

@@ -19,18 +19,31 @@ import java.util.Optional;
  * Reine Regeln zur Ableitung des Streckentyps einer Ladung. Einziger Ort für die Fahrt-Klassifikation
  * nach Tempo (ersetzt die alte SQL-Variante); ohne Spring, damit jede Schwelle einzeln testbar ist.
  *
- * Messbasis (lokale DB, Referenz Tessie-Klassifikation, 11.10.2026): Tempo = Strecke / Dauer mit
- * Schwellen 80 / 50 km/h klassifiziert 86 % der km gleich, erkennt Autobahn zu 92 % bei 12 % Fehlalarm.
- * Faustregel ohne Fahrten (20.10.2026, 7.096 Ladungen): mittlere Leistung aus SoC-Hub zwischen zwei
- * Ladungen ab 25 kW trifft Autobahn zu 97 %, Stadt 0 %, gemischt 3 % (Recall 19 %). Stadt lässt sich
- * aus dem Lademuster nicht sicher erkennen, darum nur HIGHWAY per Faustregel.
+ * Messbasis v2 (lokale DB, 20.10.2026, 18.864 Fahrten ab 10 km, Verbrauch je Fahrt normiert auf den
+ * Median des Autos): Schnitt unter 60 km/h 0,97, 60-90 0,99, 90-100 1,04, ab 100 1,13; Spitze unter 100
+ * 0,91, 120-140 1,00, 140-160 1,04, ab 160 1,08-1,17. Mehrverbrauch beginnt erst ab 90 km/h Schnitt bzw.
+ * 140 km/h Spitze; Landstraße und 80er-Schnitt verbrauchen wie "gemischt". Darum HIGHWAY = Schnitt ab 90
+ * oder Spitze ab 140 bei Schnitt ab 70 (Stau), CITY = Schnitt unter 50 und Spitze unter 80, Rest COMBINED.
+ * Eine Ladung bekommt den Typ nur, wenn 75 % der km dazu passen: ein Viertel Fremd-km verwässert den
+ * Effekt bereits von 13 auf 10 %, mehr macht die Statistik wertlos.
+ * Faustregel ohne Fahrten (7.096 Ladungen): mittlere Leistung aus SoC-Hub zwischen zwei Ladungen ab 25 kW
+ * trifft Autobahn zu 97 %, Stadt 0 %, gemischt 3 % (Recall 19 %). Stadt lässt sich aus dem Lademuster
+ * nicht sicher erkennen, darum nur HIGHWAY per Faustregel.
  */
 public final class RouteTypeRules {
 
     /** Ab diesem Durchschnittstempo gilt eine Fahrt als Autobahn. */
-    static final double HIGHWAY_MIN_SPEED_KMH = 80.0;
-    /** Unter diesem Durchschnittstempo gilt eine Fahrt als Stadt. */
-    static final double CITY_MAX_SPEED_KMH = 50.0;
+    static final double HIGHWAY_MIN_AVG_KMH = 90.0;
+    /** Ab dieser Spitze gilt eine Fahrt auch bei langsamerem Schnitt (Stau, Pausen) als Autobahn ... */
+    static final double HIGHWAY_MIN_MAX_KMH = 140.0;
+    /** ... sofern der Schnitt mindestens so hoch ist. */
+    static final double HIGHWAY_STAU_MIN_AVG_KMH = 70.0;
+    /** Unter diesem Durchschnittstempo gilt eine Fahrt als Stadt ... */
+    static final double CITY_MAX_AVG_KMH = 50.0;
+    /** ... sofern die Spitze, falls bekannt, darunter bleibt. */
+    static final double CITY_MAX_MAX_KMH = 80.0;
+    /** Anteil der klassifizierten km, den ein Typ braucht, damit die Ladung ihn bekommt. */
+    static final double MIN_TYPE_SHARE = 0.75;
     /** Kürzere Fahrten tragen kein Tempo-Signal (Rangieren, GPS-Rauschen). */
     static final double MIN_TRIP_KM = 0.5;
     /** Die Fahrten müssen mindestens diesen Anteil der Odometer-Differenz zwischen zwei Ladungen abdecken. */
@@ -49,20 +62,33 @@ public final class RouteTypeRules {
         return log.getLoggedAt().plusMinutes(minutes).atOffset(java.time.ZoneOffset.UTC);
     }
 
-    /** Fahrt nach Durchschnittstempo klassifizieren; null, wenn Dauer oder Strecke kein Urteil zulassen. */
-    public static RouteType classifyTrip(BigDecimal distanceKm, OffsetDateTime startedAt, OffsetDateTime endedAt) {
+    /** Fahrt nach Durchschnitts- und Höchsttempo klassifizieren; null ohne Durchschnitt. */
+    public static RouteType classifyTrip(BigDecimal avgKmh, BigDecimal maxKmh) {
+        if (avgKmh == null) return null;
+        double avg = avgKmh.doubleValue();
+        Double max = maxKmh != null ? maxKmh.doubleValue() : null;
+        if (avg >= HIGHWAY_MIN_AVG_KMH) return RouteType.HIGHWAY;
+        if (max != null && max >= HIGHWAY_MIN_MAX_KMH && avg >= HIGHWAY_STAU_MIN_AVG_KMH) return RouteType.HIGHWAY;
+        if (avg < CITY_MAX_AVG_KMH && (max == null || max < CITY_MAX_MAX_KMH)) return RouteType.CITY;
+        return RouteType.COMBINED;
+    }
+
+    /** Durchschnitt aus Strecke und Dauer; null, wenn Dauer oder Strecke kein Urteil zulassen. */
+    public static RouteType classifyTrip(BigDecimal distanceKm, OffsetDateTime startedAt, OffsetDateTime endedAt, BigDecimal maxKmh) {
         if (distanceKm == null || startedAt == null || endedAt == null) return null;
         if (distanceKm.doubleValue() < MIN_TRIP_KM) return null;
         long seconds = Duration.between(startedAt, endedAt).getSeconds();
         if (seconds <= 0) return null;
-        double kmh = distanceKm.doubleValue() / (seconds / 3600.0);
-        if (kmh >= HIGHWAY_MIN_SPEED_KMH) return RouteType.HIGHWAY;
-        if (kmh < CITY_MAX_SPEED_KMH) return RouteType.CITY;
-        return RouteType.COMBINED;
+        return classifyTrip(BigDecimal.valueOf(distanceKm.doubleValue() / (seconds / 3600.0)), maxKmh);
     }
 
-    /** Gespeicherter Typ der Fahrt, sonst Tempo-Klassifikation. */
+    /** Tempo-Regel zuerst (eine Regel für alle Quellen), gespeicherter Typ nur ohne berechenbares Tempo. */
     static RouteType routeTypeOf(EvTrip trip) {
+        RouteType bySpeed = trip.getAvgSpeedKmh() != null && trip.getDistanceKm() != null
+                && trip.getDistanceKm().doubleValue() >= MIN_TRIP_KM
+                ? classifyTrip(trip.getAvgSpeedKmh(), trip.getMaxSpeedKmh())
+                : classifyTrip(trip.getDistanceKm(), trip.getTripStartedAt(), trip.getTripEndedAt(), trip.getMaxSpeedKmh());
+        if (bySpeed != null) return bySpeed;
         if (trip.getRouteType() != null) {
             try {
                 return RouteType.valueOf(trip.getRouteType());
@@ -70,11 +96,11 @@ public final class RouteTypeRules {
                 // unbekannter Wert: wie ohne Typ behandeln
             }
         }
-        return classifyTrip(trip.getDistanceKm(), trip.getTripStartedAt(), trip.getTripEndedAt());
+        return null;
     }
 
-    /** Typ mit den meisten km; nur bei strikter Mehrheit, sonst COMBINED. Leer ohne klassifizierbare km. */
-    public static Optional<RouteType> dominantByKm(List<EvTrip> trips) {
+    /** Typ mit mindestens {@link #MIN_TYPE_SHARE} der klassifizierten km, sonst COMBINED. Leer ohne klassifizierbare km. */
+    public static Optional<RouteType> byKmShare(List<EvTrip> trips) {
         Map<RouteType, BigDecimal> km = new EnumMap<>(RouteType.class);
         for (EvTrip t : trips) {
             RouteType type = routeTypeOf(t);
@@ -82,11 +108,10 @@ public final class RouteTypeRules {
             km.merge(type, t.getDistanceKm(), BigDecimal::add);
         }
         if (km.isEmpty()) return Optional.empty();
-        BigDecimal highway = km.getOrDefault(RouteType.HIGHWAY, BigDecimal.ZERO);
-        BigDecimal city = km.getOrDefault(RouteType.CITY, BigDecimal.ZERO);
-        BigDecimal combined = km.getOrDefault(RouteType.COMBINED, BigDecimal.ZERO);
-        if (highway.compareTo(combined) > 0 && highway.compareTo(city) > 0) return Optional.of(RouteType.HIGHWAY);
-        if (city.compareTo(combined) > 0 && city.compareTo(highway) > 0) return Optional.of(RouteType.CITY);
+        BigDecimal total = km.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal required = total.multiply(BigDecimal.valueOf(MIN_TYPE_SHARE));
+        if (km.getOrDefault(RouteType.HIGHWAY, BigDecimal.ZERO).compareTo(required) >= 0) return Optional.of(RouteType.HIGHWAY);
+        if (km.getOrDefault(RouteType.CITY, BigDecimal.ZERO).compareTo(required) >= 0) return Optional.of(RouteType.CITY);
         return Optional.of(RouteType.COMBINED);
     }
 
@@ -105,7 +130,7 @@ public final class RouteTypeRules {
         BigDecimal required = BigDecimal.valueOf(drivenKm).multiply(BigDecimal.valueOf(MIN_TRIP_COVERAGE))
                 .setScale(2, RoundingMode.HALF_UP);
         if (tripKm.compareTo(required) < 0) return Optional.empty();
-        return dominantByKm(trips);
+        return byKmShare(trips);
     }
 
     /**

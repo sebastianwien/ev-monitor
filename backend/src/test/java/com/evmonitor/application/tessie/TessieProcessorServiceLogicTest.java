@@ -50,25 +50,26 @@ class TessieProcessorServiceLogicTest {
 
     @Test
     void classifyRouteType_returnsHighwayForFastDrives() {
-        assertEquals("HIGHWAY", TessieProcessorService.classifyRouteType(new BigDecimal("90")));
-        assertEquals("HIGHWAY", TessieProcessorService.classifyRouteType(new BigDecimal("120")));
+        assertEquals("HIGHWAY", TessieProcessorService.classifyRouteType(new BigDecimal("90"), null));
+        assertEquals("HIGHWAY", TessieProcessorService.classifyRouteType(new BigDecimal("120"), null));
     }
 
     @Test
     void classifyRouteType_returnsCityForSlowDrives() {
-        assertEquals("CITY", TessieProcessorService.classifyRouteType(new BigDecimal("30")));
-        assertEquals("CITY", TessieProcessorService.classifyRouteType(new BigDecimal("59.9")));
+        assertEquals("CITY", TessieProcessorService.classifyRouteType(new BigDecimal("30"), null));
+        assertEquals("CITY", TessieProcessorService.classifyRouteType(new BigDecimal("49.9"), null));
     }
 
     @Test
     void classifyRouteType_returnsCombinedForMidRange() {
-        assertEquals("COMBINED", TessieProcessorService.classifyRouteType(new BigDecimal("60")));
-        assertEquals("COMBINED", TessieProcessorService.classifyRouteType(new BigDecimal("80")));
+        assertEquals("COMBINED", TessieProcessorService.classifyRouteType(new BigDecimal("50"), null));
+        assertEquals("HIGHWAY", TessieProcessorService.classifyRouteType(new BigDecimal("75"), new BigDecimal("145")));
+        assertEquals("COMBINED", TessieProcessorService.classifyRouteType(new BigDecimal("80"), null));
     }
 
     @Test
     void classifyRouteType_returnsNullForMissingSpeed() {
-        assertNull(TessieProcessorService.classifyRouteType(null));
+        assertNull(TessieProcessorService.classifyRouteType(null, null));
     }
 
     @Test
