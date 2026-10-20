@@ -7,7 +7,7 @@ import { BoltIcon } from '@heroicons/vue/24/outline';
 import GridRippleBackground from '../components/shared/GridRippleBackground.vue';
 import GoogleButton from '../components/auth/GoogleButton.vue';
 import { analytics } from '../services/analytics';
-import { currentUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredReferrer, clearStoredReferrer } from '../utils/reddit-pixel';
+import { currentUtmParams, clearStoredUtmParams, trackRedditSignup, getStoredReferrer, clearStoredReferrer, getStoredLandingPath, clearStoredLandingPath } from '../utils/reddit-pixel';
 import { isDetectionAmbiguous } from '../composables/useCountryDetection';
 import { useCountryStore } from '../stores/country';
 import type { CountryCode } from '../config/unitSystems';
@@ -84,6 +84,7 @@ const handleRegister = async () => {
       utmMedium: utmMedium.value || undefined,
       utmCampaign: utmCampaign.value || undefined,
       referrerSource: referrerSource.value || undefined,
+      landingPath: getStoredLandingPath() || undefined,
       registrationLocale: locale.value || undefined,
       // Immer senden: bei sichtbarem Picker die Auswahl, sonst das Ergebnis der
       // Country-Detection (localStorage -> Browsersprache -> Default DE).
@@ -109,6 +110,7 @@ const handleRegister = async () => {
       // Clear stored UTM params and referrer after successful registration
       clearStoredUtmParams();
       clearStoredReferrer();
+      clearStoredLandingPath();
     }
   } catch (err: any) {
     error.value = err.response?.data?.message || t('auth.register.error_generic');

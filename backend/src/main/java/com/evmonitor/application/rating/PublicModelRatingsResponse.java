@@ -24,7 +24,11 @@ public record PublicModelRatingsResponse(
         List<Report> reports,
         Aggregate aggregate) {
 
-    /** Eine einzelne Bewertung, solange es weniger als 5 gibt. */
+    /**
+     * Eine einzelne Bewertung, solange es weniger als 5 gibt. ratingValue: Gesamtnote (Mittel der Sternefragen, eine
+     * Nachkommastelle), sichtbar auf der Karte und als Review im JSON-LD. withReport: dieselbe Bewertung steht auch als
+     * Erfahrungsbericht da, zählt im JSON-LD also nur einmal.
+     */
     public record SingleRating(
             RebuyAnswer rebuy,
             int dailyFit,
@@ -34,7 +38,9 @@ public record PublicModelRatingsResponse(
             Integer service,
             TotalCostVerdict totalCost,
             int kmRounded,
-            boolean businessCar) {
+            boolean businessCar,
+            BigDecimal ratingValue,
+            boolean withReport) {
     }
 
     /** Freigegebener Text unter 600 Zeichen. {@code month} als "2026-10". */

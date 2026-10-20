@@ -3,8 +3,10 @@ import type { PublicModelRatings } from '../api/ratingService'
 const MAX_REVIEWS = 5
 
 /**
- * Product-Objekt als Träger für Fahrerbewertungen. Nur mit aggregateRating (ab 5 Bewertungen) oder
- * mindestens einem Erfahrungsbericht - ein Product ohne beides löst in der Search Console eine Warnung aus.
+ * Product-Objekt als Träger für Fahrerbewertungen. Ab 5 Bewertungen mit aggregateRating, darunter jede Einzelbewertung
+ * als Review mit ihrer Gesamtnote. Erfahrungsberichte stehen immer als Review mit Text drin. Alles, was hier steht, ist
+ * auf der Seite sichtbar (Googles Regel für strukturierte Daten). Ohne Bewertung kein Product: Google verwirft eins
+ * ohne review, aggregateRating oder offers.
  */
 export function buildProductJsonLd(input: {
     name: string
@@ -15,7 +17,22 @@ export function buildProductJsonLd(input: {
 }): Record<string, unknown> | null {
     const { ratings } = input
     if (!ratings) return null
-    const reviews = ratings.reports.slice(0, MAX_REVIEWS)
+    const reviews: Record<string, unknown>[] = ratings.reports.map(r => ({
+        '@type': 'Review',
+        reviewRating: { '@type': 'Rating', ratingValue: r.ratingValue, bestRating: 5, worstRating: 1 },
+        author: { '@type': 'Person', name: input.driverLabel },
+        reviewBody: r.text,
+        datePublished: r.publishedOn,
+    }))
+    // Einzelkarten gibt es nur unter 5 Bewertungen; eine Karte mit Bericht steht oben schon mit Text
+    for (const s of ratings.singles) {
+        if (s.withReport) continue
+        reviews.push({
+            '@type': 'Review',
+            reviewRating: { '@type': 'Rating', ratingValue: s.ratingValue, bestRating: 5, worstRating: 1 },
+            author: { '@type': 'Person', name: input.driverLabel },
+        })
+    }
     if (!ratings.aggregate && reviews.length === 0) return null
 
     const product: Record<string, unknown> = {
@@ -34,14 +51,6 @@ export function buildProductJsonLd(input: {
             ratingCount: ratings.aggregate.ratingCount,
         }
     }
-    if (reviews.length > 0) {
-        product.review = reviews.map(r => ({
-            '@type': 'Review',
-            reviewRating: { '@type': 'Rating', ratingValue: r.ratingValue, bestRating: 5, worstRating: 1 },
-            author: { '@type': 'Person', name: input.driverLabel },
-            reviewBody: r.text,
-            datePublished: r.publishedOn,
-        }))
-    }
+    if (reviews.length > 0) product.review = reviews.slice(0, MAX_REVIEWS)
     return product
 }

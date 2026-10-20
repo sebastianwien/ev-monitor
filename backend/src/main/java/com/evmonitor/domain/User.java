@@ -29,6 +29,8 @@ public class User {
     private final String utmMedium;
     private final String utmCampaign;
     private final String referrerSource;
+    /** Erste besuchte Seite vor der Registrierung (Pfad ohne Query), null bei Alt-Konten. */
+    private final String landingPath;
     private final String registrationLocale;
     private final String country;
     private final Instant subscriptionPeriodEnd;
@@ -44,7 +46,7 @@ public class User {
             boolean emailVerified, boolean seedData, boolean emailNotificationsEnabled, boolean premium,
             SubscriptionTier subscriptionTier,
             boolean referralRewardGiven, String referralCode, UUID referredByUserId, String stripeCustomerId,
-            String utmSource, String utmMedium, String utmCampaign, String referrerSource,
+            String utmSource, String utmMedium, String utmCampaign, String referrerSource, String landingPath,
             String registrationLocale, String country, Instant subscriptionPeriodEnd, Instant autosyncStartedAt,
             Integer autosyncSlots, boolean trialUsed, LocalDateTime createdAt, LocalDateTime updatedAt) {
         if (id == null)
@@ -89,6 +91,7 @@ public class User {
         this.utmMedium = utmMedium;
         this.utmCampaign = utmCampaign;
         this.referrerSource = referrerSource;
+        this.landingPath = landingPath;
         this.registrationLocale = registrationLocale;
         this.country = country;
         this.subscriptionPeriodEnd = subscriptionPeriodEnd;
@@ -332,34 +335,6 @@ public class User {
     public static User createNewLocalUserWithReferrer(String email, String username, String passwordHash, UUID referredByUserId) {
         return newAccountBuilder(email, username, passwordHash)
                 .referredByUserId(referredByUserId)
-                .build();
-    }
-
-    public static User createNewLocalUserWithCampaign(String email, String username, String passwordHash,
-            UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource) {
-        return newAccountBuilder(email, username, passwordHash)
-                .referredByUserId(referredByUserId)
-                .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
-                .build();
-    }
-
-    public static User createNewLocalUserWithLocale(String email, String username, String passwordHash,
-            UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource,
-            String registrationLocale) {
-        return newAccountBuilder(email, username, passwordHash)
-                .referredByUserId(referredByUserId)
-                .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
-                .registrationLocale(registrationLocale)
-                .build();
-    }
-
-    public static User createNewLocalUserWithLocaleAndCountry(String email, String username, String passwordHash,
-            UUID referredByUserId, String utmSource, String utmMedium, String utmCampaign, String referrerSource,
-            String registrationLocale, String country) {
-        return newAccountBuilder(email, username, passwordHash)
-                .referredByUserId(referredByUserId)
-                .utmSource(utmSource).utmMedium(utmMedium).utmCampaign(utmCampaign).referrerSource(referrerSource)
-                .registrationLocale(registrationLocale).country(country)
                 .build();
     }
 

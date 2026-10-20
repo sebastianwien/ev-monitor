@@ -115,6 +115,21 @@ describe('InlineGate', () => {
     window.history.replaceState({}, '', '/')
   })
 
+  it('sends the first page and referrer host stored on the first visit', async () => {
+    localStorage.setItem('landing-path', '/modelle/Tesla/Model_3')
+    localStorage.setItem('referrer-source', 'www.google.com')
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ data: { status: 'SENT' } } as never)
+      .mockResolvedValueOnce({ data: { token: TOKEN, isPremium: false } } as never)
+    const { host } = mount()
+
+    const body = await verifyWith(host)
+
+    expect(body.landingPath).toBe('/modelle/Tesla/Model_3')
+    expect(body.referrerSource).toBe('www.google.com')
+    localStorage.clear()
+  })
+
   it('adds no gate tag without a placement (plain login)', async () => {
     vi.mocked(api.post)
       .mockResolvedValueOnce({ data: { status: 'SENT' } } as never)

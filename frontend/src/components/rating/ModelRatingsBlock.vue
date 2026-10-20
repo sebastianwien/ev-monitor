@@ -7,6 +7,7 @@ import { MIN_FOR_AVERAGE } from '../../utils/ratingForm'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { analytics } from '../../services/analytics'
 import type { PublicModelRatings } from '../../api/ratingService'
+import RatingOverall from './RatingOverall.vue'
 
 /**
  * "Fahrerbewertungen" auf der Modellseite. Öffentlich nur absolute Zahlen, ab 5 Bewertungen Schnitt,
@@ -99,6 +100,7 @@ onBeforeUnmount(() => observer?.disconnect())
 
             <!-- Ab 5: Schnitt je Kategorie, Kosten, Top-Chips -->
             <template v-if="enough">
+                <RatingOverall v-if="ratings.aggregate" :value="ratings.aggregate.ratingValue" :count="ratings.aggregate.ratingCount" size="lg" />
                 <div class="space-y-3">
                     <div v-for="row in categoryRows" :key="row.key" class="space-y-1">
                         <div class="flex justify-between text-sm">
@@ -132,6 +134,7 @@ onBeforeUnmount(() => observer?.disconnect())
                 <ul class="grid gap-3 sm:grid-cols-2">
                     <li v-for="(single, i) in ratings.singles" :key="i" class="rounded-sm border border-gray-200 dark:border-gray-700 p-4 space-y-2">
                         <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ t(`rating.q.rebuy.${single.rebuy}`) }}</p>
+                        <RatingOverall :value="single.ratingValue" :with-hint="false" />
                         <dl class="space-y-1">
                             <div v-for="q in STAR_QUESTIONS" :key="q.key" class="flex items-center justify-between gap-2 text-sm">
                                 <dt class="text-gray-600 dark:text-gray-400">{{ t(`rating.result.categories.${q.key}`) }}</dt>
@@ -164,6 +167,7 @@ onBeforeUnmount(() => observer?.disconnect())
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ t('rating.public.reports_title') }}</h3>
             <article v-for="(report, i) in ratings.reports" :key="`r${i}`" class="rounded-sm border border-gray-200 dark:border-gray-700 p-4 space-y-3">
                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ driverLine(report.kmRounded, report.month) }}</p>
+                <RatingOverall :value="report.ratingValue" :with-hint="false" />
                 <p :id="`report-${i}`" class="text-gray-800 dark:text-gray-200 whitespace-pre-line" :class="{ 'line-clamp-6': !expanded.has(i) }">{{ report.text }}</p>
                 <button type="button" class="min-h-11 text-sm font-medium text-green-700 dark:text-green-400" :aria-expanded="expanded.has(i)" :aria-controls="`report-${i}`" @click="toggle(i)">
                     {{ expanded.has(i) ? t('rating.public.read_less') : t('rating.public.read_more') }}

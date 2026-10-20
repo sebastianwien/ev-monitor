@@ -196,10 +196,10 @@ Alle drei Routen haben vollständiges SEO-Setup:
 - **JSON-LD Structured Data:**
   - `/modelle` - `ItemList` + `BreadcrumbList`
   - `/modelle/:brand` - `ItemList` + `BreadcrumbList`
-  - `/modelle/:brand/:model` - `WebPage` + `BreadcrumbList` + `FAQPage` (wenn FAQ-Daten vorhanden)
+  - `/modelle/:brand/:model` - `WebPage` + `BreadcrumbList` + `FAQPage` (wenn FAQ-Daten vorhanden), dazu `Product` mit Fahrerbewertungen, sobald es mindestens eine Bewertung gibt (siehe [Fahrzeugbewertung](vehicle-ratings.md))
 - **Interne Verlinkung** - crawlbar via `<a href>` (kein reines JS-Routing)
 
-**Hinweis:** Das Schema auf der Modell-Detailseite ist `WebPage`, nicht `Article` oder `Product`. `Article` hat GSC-Fehler produziert ("offers/review/aggregateRating fehlt"), `Product` wäre semantisch passend, erfordert aber `aggregateRating` mit Sternebewertungen - die wir nicht haben.
+**Hinweis:** Die Modell-Detailseite ist eine Datenseite über ein Modell, kein Artikel und kein Shop. Grundschema ist `WebPage`. `Product` kommt nur mit Fahrerbewertungen dazu, weil Google es ohne `review`, `aggregateRating` oder `offers` verwirft. `Article` passt nicht (kein Autor, kein Veröffentlichungsdatum). `FAQPage` zeigt Google seit September 2023 nur noch für Behörden- und Gesundheitsseiten, das Markup bleibt unschädlich.
 
 ## Partner-Banner
 

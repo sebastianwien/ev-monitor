@@ -29,9 +29,11 @@ export interface LoginCodePayload {
     utmSource?: string
     utmMedium?: string
     utmCampaign?: string
+    referrerSource?: string
+    landingPath?: string
 }
 
-export type SignupAttribution = Pick<LoginCodePayload, 'locale' | 'utmSource' | 'utmMedium' | 'utmCampaign'>
+export type SignupAttribution = Pick<LoginCodePayload, 'locale' | 'utmSource' | 'utmMedium' | 'utmCampaign' | 'referrerSource' | 'landingPath'>
 
 export interface GoogleLoginPayload extends SignupAttribution {
     idToken: string

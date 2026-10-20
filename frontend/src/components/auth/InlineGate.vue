@@ -66,9 +66,9 @@ import { Capacitor } from '@capacitor/core'
 import { useI18n } from 'vue-i18n'
 import { LockOpenIcon } from '@heroicons/vue/24/outline'
 import GoogleButton from './GoogleButton.vue'
-import { useAuthStore } from '../../stores/auth'
+import { useAuthStore, type SignupAttribution } from '../../stores/auth'
 import { analytics } from '../../services/analytics'
-import { currentUtmParams } from '../../utils/reddit-pixel'
+import { currentUtmParams, firstTouchAttribution } from '../../utils/reddit-pixel'
 import { useGoogleIdentity } from '../../composables/useGoogleIdentity'
 import { rememberReturnPath } from '../../utils/postLoginRedirect'
 
@@ -179,20 +179,23 @@ function restart() {
  * Attribution for a new account: URL first, then the UTM stored on the first page view. With a
  * placement, empty medium and campaign name the gate; the source is never invented.
  */
-function currentUtm(): { utmSource?: string; utmMedium?: string; utmCampaign?: string } {
+function currentUtm(): SignupAttributionFields {
   const utm = currentUtmParams()
   const fromVisit = {
+    ...firstTouchAttribution(),
     utmSource: utm?.source || undefined,
     utmMedium: utm?.medium || undefined,
     utmCampaign: utm?.campaign || undefined,
   }
   if (!props.placement) return fromVisit
   return {
-    utmSource: fromVisit.utmSource,
+    ...fromVisit,
     utmMedium: fromVisit.utmMedium ?? 'gate',
     utmCampaign: fromVisit.utmCampaign ?? props.placement.slice(0, 100),
   }
 }
+
+type SignupAttributionFields = Omit<SignupAttribution, 'locale'>
 
 function errorMessage(e: unknown): string {
   const response = (e as { response?: { status?: number; data?: { code?: string } } }).response

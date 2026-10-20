@@ -261,6 +261,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
         entity.setUtmMedium(domain.getUtmMedium());
         entity.setUtmCampaign(domain.getUtmCampaign());
         entity.setReferrerSource(domain.getReferrerSource());
+        entity.setLandingPath(domain.getLandingPath());
         entity.setRegistrationLocale(domain.getRegistrationLocale());
         entity.setCountry(domain.getCountry());
         entity.setSubscriptionPeriodEnd(domain.getSubscriptionPeriodEnd());
@@ -298,6 +299,7 @@ public class PostgresUserRepositoryImpl implements UserRepository {
                 .utmMedium(entity.getUtmMedium())
                 .utmCampaign(entity.getUtmCampaign())
                 .referrerSource(entity.getReferrerSource())
+                .landingPath(entity.getLandingPath())
                 .registrationLocale(entity.getRegistrationLocale())
                 .country(entity.getCountry())
                 .subscriptionPeriodEnd(entity.getSubscriptionPeriodEnd())

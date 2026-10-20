@@ -236,6 +236,28 @@ plausible:
   api-key: ${PLAUSIBLE_API_KEY:}
   site-id: ${PLAUSIBLE_SITE_ID:ev-monitor.net}
 
+# Google Search Console (Admin-Tab "SEO & Traffic"). Service-Account-JSON als Base64, leer = Feature aus.
+gsc:
+  service-account-json: ${GSC_SERVICE_ACCOUNT_JSON:}
+  site-url: ${GSC_SITE_URL:sc-domain:ev-monitor.net}
+  retention-days: 490
+
+# Admin-Tab "SEO & Traffic": Plausible-Sync nutzt plausible.api-key (oben). Leer = Sync aus.
+seo:
+  plausible:
+    backfill-from: 2026-03-01
+    retention-days: 490
+    window-days: 30
+  # On-Page-Check (Unter-Tab "Technik"): leere Basis-URL = aus. PageSpeed-Key optional, ohne Key keine Core Web Vitals.
+  audit:
+    base-url: ${SEO_AUDIT_BASE_URL:}
+    pagespeed-api-key: ${PAGESPEED_API_KEY:}
+  # Unter-Tab "Wettbewerb" (DataForSEO): Login und API-Passwort aus app.dataforseo.com/api-access; leer = aus.
+  competition:
+    login: ${DATAFORSEO_LOGIN:}
+    password: ${DATAFORSEO_PASSWORD:}
+    monthly-budget-usd: ${DATAFORSEO_MONTHLY_BUDGET_USD:5}
+
 # Stripe Payment Integration
 stripe:
   secret-key: ${STRIPE_SECRET_KEY:}

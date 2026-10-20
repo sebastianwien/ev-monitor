@@ -4023,6 +4023,12 @@ rating:
     proof_consumption: "{consumption} measured"
     own_cta: "You drive a {model}. Your rating is still missing."
     transparency: "Only drivers with their own car and at least 5 logged charging sessions or 300 km can rate. We read texts before publishing, praise and criticism under the same rules."
+    overall: "Overall rating"
+    overall_value: "{v} out of 5"
+    overall_count: "from {count} rating | from {count} ratings"
+    overall_hint_single: "Average of all star questions"
+    overall_hint_aggregate: "Average of all star questions, drivers with more kilometres count more"
+    overall_aria: "Overall rating {v} out of 5"
     reasons: "Reasons: {list}"
   teaser:
     text: "You can see what other {model} drivers measure. What's your verdict?"

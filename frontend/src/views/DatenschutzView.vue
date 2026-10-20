@@ -95,6 +95,14 @@ onMounted(async () => {
             Übermittlung in die USA siehe Abschnitt 19.
           </p>
           <p class="mt-4">
+            <strong>Herkunft der Registrierung:</strong> Wir speichern, über welche Seite und Quelle Sie uns
+            gefunden haben: die erste bei uns aufgerufene Seite (nur der Pfad, ohne Suchparameter), die
+            verweisende Domain und, falls vorhanden, Kampagnenparameter (utm_source, utm_medium, utm_campaign).
+            So lernen wir, welche Inhalte helfen. Keine IP-Adresse, kein Fingerprinting, keine Cookies; die
+            Werte liegen bis zur Registrierung nur in Ihrem Browser. Sie werden mit dem Konto gelöscht.
+            Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Reichweitenmessung).
+          </p>
+          <p class="mt-4">
             <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Erfüllung des Nutzungsvertrags). Die
             Bereitstellung der E-Mail-Adresse ist für den Vertragsschluss erforderlich; ohne sie kann kein Konto
             angelegt werden.

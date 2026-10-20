@@ -5,11 +5,9 @@ import com.evmonitor.application.AdminStripeReport;
 import com.evmonitor.application.AdminUserGrowthRow;
 import com.evmonitor.application.AdminUserRow;
 import com.evmonitor.application.BatterySohService;
-import com.evmonitor.application.PlausibleTrafficRow;
 import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.application.StripeReportService;
 import com.evmonitor.application.WeeklyReportService;
-import com.evmonitor.infrastructure.external.PlausibleService;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
 import com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob;
@@ -37,7 +35,6 @@ public class AdminController {
     private final TemperatureBackfillJob temperatureBackfillJob;
     private final TripTemperatureBackfillJob tripTemperatureBackfillJob;
     private final AdminQueryRepository adminQueryRepository;
-    private final PlausibleService plausibleService;
     private final BatterySohService batterySohService;
     private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
     private final StripeReportService stripeReportService;
@@ -114,13 +111,6 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ConnectionHealthResponse> getImportConnections() {
         return ResponseEntity.ok(connectionHealthService.health());
-    }
-
-    @GetMapping("/stats/traffic")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<PlausibleTrafficRow>> getTraffic(
-            @RequestParam(defaultValue = "30d") String period) {
-        return ResponseEntity.ok(plausibleService.getTimeseries(period));
     }
 
     /**
