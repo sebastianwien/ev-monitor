@@ -140,7 +140,7 @@ public class DataForSeoClient {
             throw new DataForSeoException(path + " unterbrochen", e);
         }
         if (response.statusCode() != 200) {
-            throw new DataForSeoException(path + ": HTTP " + response.statusCode());
+            throw new DataForSeoException(path + ": HTTP " + response.statusCode() + reason(response.body()));
         }
         JsonNode root;
         try {
@@ -155,6 +155,19 @@ public class DataForSeoClient {
             throw new DataForSeoException(path + ": " + status + " " + message);
         }
         return t;
+    }
+
+    /** Code und Meldung von DataForSEO aus einem Fehler-Body, z. B. " (40104 Please verify your account ...)"; leer, wenn keiner lesbar ist. */
+    private String reason(String body) {
+        try {
+            JsonNode root = objectMapper.readTree(body);
+            if (root != null && root.path("status_code").isNumber()) {
+                return " (" + root.path("status_code").asInt() + " " + root.path("status_message").asText("").trim() + ")";
+            }
+        } catch (IOException e) {
+            // kein JSON, etwa eine Proxy-Fehlerseite
+        }
+        return "";
     }
 
     private static String domain(String host) {

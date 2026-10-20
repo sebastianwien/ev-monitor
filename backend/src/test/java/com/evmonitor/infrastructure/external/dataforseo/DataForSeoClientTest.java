@@ -128,6 +128,14 @@ class DataForSeoClientTest {
 
         respond(401, "{\"status_code\":40100,\"status_message\":\"Unauthorized.\"}");
         assertThatThrownBy(() -> client.serp("x")).isInstanceOf(DataForSeoException.class).hasMessageContaining("401");
+
+        // Der Grund steht bei HTTP-Fehlern im Body und gehört in die Meldung im Tab
+        respond(403, "{\"status_code\":40104,\"status_message\":\"Please verify your account before using the API.\"}");
+        assertThatThrownBy(() -> client.serp("x")).isInstanceOf(DataForSeoException.class)
+                .hasMessageContaining("403").hasMessageContaining("40104").hasMessageContaining("verify your account");
+
+        respond(502, "<html>Bad Gateway</html>");
+        assertThatThrownBy(() -> client.serp("x")).isInstanceOf(DataForSeoException.class).hasMessage("/serp/google/organic/live/regular: HTTP 502");
     }
 
     private static String body(HttpRequest request) {
