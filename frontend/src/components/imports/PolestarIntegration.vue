@@ -9,13 +9,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   ClipboardDocumentIcon, CheckIcon, ArrowTopRightOnSquareIcon, ExclamationTriangleIcon,
-  ClockIcon, CheckCircleIcon, InformationCircleIcon,
+  ClockIcon, CheckCircleIcon, InformationCircleIcon, BellAlertIcon,
 } from '@heroicons/vue/24/outline'
 import polestarService, { POLESTAR_SHARE_ACCOUNT, POLESTAR_PORTAL_URL, type PolestarConnection, type PolestarCapacity } from '@/api/polestarService'
 import type { Car } from '@/api/carService'
 import CarSelectDropdown from '@/components/car/CarSelectDropdown.vue'
 import { carDisplayName } from '@/utils/enumLabel'
 import { analytics } from '@/services/analytics'
+import { useWaitlist } from '@/composables/useWaitlist'
 
 const props = defineProps<{ cars: Car[] }>()
 const { t, locale } = useI18n()
@@ -24,6 +25,8 @@ const connections = ref<PolestarConnection[]>([])
 // Kostendeckel: ohne freien Platz zeigen wir nur die Warteliste, damit niemand die Portal-Freigabe umsonst macht.
 const capacity = ref<PolestarCapacity | null>(null)
 const slotsFull = computed(() => capacity.value !== null && capacity.value.slotsFree <= 0)
+// Echte Warteliste: Opt-in je Nutzer, der Admin schaltet am Monatswechsel von Hand frei.
+const waitlist = useWaitlist('POLESTAR_DATA_PORTAL')
 const loading = ref(true)
 const submitting = ref(false)
 const selectedCarId = ref('')
@@ -51,7 +54,7 @@ onMounted(async () => {
 async function reload() {
   loading.value = true
   try {
-    const [conns, cap] = await Promise.all([polestarService.getConnections(), polestarService.getCapacity()])
+    const [conns, cap] = await Promise.all([polestarService.getConnections(), polestarService.getCapacity(), waitlist.load()])
     connections.value = conns
     capacity.value = cap
   } catch {
@@ -165,7 +168,22 @@ const fmt = (iso: string | null) =>
       <ClockIcon class="h-5 w-5 text-gray-500 shrink-0" aria-hidden="true" />
       <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
         <p class="font-bold">{{ t('polestar.waitlist_title') }}</p>
-        <p class="text-xs mt-0.5">{{ t('polestar.capped_desc') }}</p>
+        <template v-if="waitlist.onWaitlist.value">
+          <p class="text-xs mt-0.5">{{ t('polestar.waitlist_joined') }}</p>
+          <button type="button" :disabled="waitlist.busy.value" data-testid="polestar-waitlist-leave"
+              class="mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline disabled:opacity-50"
+              @click="waitlist.leave">{{ t('polestar.waitlist_leave') }}</button>
+        </template>
+        <template v-else>
+          <p class="text-xs mt-0.5">{{ t('polestar.capped_desc') }}</p>
+          <button type="button" :disabled="waitlist.busy.value" data-testid="polestar-waitlist-join"
+              class="mt-2 inline-flex items-center gap-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-sm disabled:opacity-50"
+              @click="waitlist.join">
+          <BellAlertIcon class="h-4 w-4" aria-hidden="true" />
+          <span>{{ waitlist.busy.value ? t('polestar.waitlist_joining') : t('polestar.waitlist_cta') }}</span>
+          </button>
+          <p v-if="waitlist.error.value" class="mt-2 text-xs text-red-700 dark:text-red-400" role="alert">{{ waitlist.error.value }}</p>
+        </template>
       </div>
     </div>
 
@@ -239,7 +257,22 @@ const fmt = (iso: string | null) =>
           <ClockIcon class="h-5 w-5 text-gray-500 shrink-0" aria-hidden="true" />
           <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
             <p class="font-bold">{{ t('polestar.waitlist_title') }}</p>
-            <p class="text-xs mt-0.5">{{ t('polestar.waitlist_desc') }}</p>
+            <template v-if="waitlist.onWaitlist.value">
+              <p class="text-xs mt-0.5">{{ t('polestar.waitlist_joined') }}</p>
+              <button type="button" :disabled="waitlist.busy.value" data-testid="polestar-waitlist-leave"
+                        class="mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline disabled:opacity-50"
+                        @click="waitlist.leave">{{ t('polestar.waitlist_leave') }}</button>
+            </template>
+            <template v-else>
+              <p class="text-xs mt-0.5">{{ t('polestar.waitlist_desc') }}</p>
+              <button type="button" :disabled="waitlist.busy.value" data-testid="polestar-waitlist-join"
+                        class="mt-2 inline-flex items-center gap-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-sm disabled:opacity-50"
+                        @click="waitlist.join">
+                <BellAlertIcon class="h-4 w-4" aria-hidden="true" />
+                <span>{{ waitlist.busy.value ? t('polestar.waitlist_joining') : t('polestar.waitlist_cta') }}</span>
+              </button>
+              <p v-if="waitlist.error.value" class="mt-2 text-xs text-red-700 dark:text-red-400" role="alert">{{ waitlist.error.value }}</p>
+            </template>
           </div>
         </div>
 

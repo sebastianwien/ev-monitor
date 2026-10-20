@@ -7,5 +7,7 @@ package com.evmonitor.domain;
  */
 public enum WaitlistFeature {
     /** Automatischer XPeng-Import (EU Data Act) - loest den manuellen ZIP-Upload ab. */
-    XPENG_AUTOSYNC
+    XPENG_AUTOSYNC,
+    /** Polestar Data Portal: Testplätze sind auf wenige Fahrzeuge je Kalendermonat begrenzt (Kostendeckel). */
+    POLESTAR_DATA_PORTAL
 }

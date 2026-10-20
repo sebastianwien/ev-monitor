@@ -4,6 +4,7 @@ import com.evmonitor.domain.WaitlistFeature;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -12,6 +13,8 @@ public interface FeatureWaitlistRepository extends JpaRepository<FeatureWaitlist
     Optional<FeatureWaitlistEntry> findByUserIdAndFeature(UUID userId, WaitlistFeature feature);
 
     long countByFeature(WaitlistFeature feature);
+
+    List<FeatureWaitlistEntry> findAllByFeatureOrderByCreatedAtAsc(WaitlistFeature feature);
 
     @Transactional
     void deleteByUserIdAndFeature(UUID userId, WaitlistFeature feature);

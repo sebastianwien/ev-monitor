@@ -10,15 +10,22 @@ import { i18n } from '../../../i18n'
  */
 const state = {
   connections: [] as unknown[],
-  capacity: { maxVehicles: 5, active: 1, slotsFree: 4 },
+  capacity: { maxVehicles: 5, usedThisMonth: 1, slotsFree: 4 },
   connectResult: { result: 'ACTIVE' } as Record<string, unknown>,
   connectError: null as unknown,
+  waitlist: { onWaitlist: false, since: null as string | null },
 }
-const post = vi.fn(() => state.connectError ? Promise.reject(state.connectError) : Promise.resolve({ data: state.connectResult }))
+const post = vi.fn((url: string) => {
+  if (url.startsWith('/waitlist/')) return Promise.resolve({ data: { onWaitlist: true, since: '2026-10-20T09:00:00' } })
+  return state.connectError ? Promise.reject(state.connectError) : Promise.resolve({ data: state.connectResult })
+})
 vi.mock('../../../api/axios', () => ({
   default: {
-    get: vi.fn((url: string) => Promise.resolve({ data: url === '/polestar/capacity' ? state.capacity : state.connections })),
-    post: (...args: unknown[]) => post(...(args as [])),
+    get: vi.fn((url: string) => Promise.resolve({ data:
+      url === '/polestar/capacity' ? state.capacity
+      : url.startsWith('/waitlist/') ? state.waitlist
+      : state.connections })),
+    post: (...args: unknown[]) => post(...(args as [string])),
     delete: vi.fn(() => Promise.resolve()),
   },
 }))
@@ -37,9 +44,10 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 beforeEach(() => {
   vi.clearAllMocks()
   state.connections = []
-  state.capacity = { maxVehicles: 5, active: 1, slotsFree: 4 }
+  state.capacity = { maxVehicles: 5, usedThisMonth: 1, slotsFree: 4 }
   state.connectResult = { ...connected }
   state.connectError = null
+  state.waitlist = { onWaitlist: false, since: null }
 })
 
 async function mount() {
@@ -126,7 +134,7 @@ describe('PolestarIntegration', () => {
   })
 
   it('alle Plätze belegt: nur Warteliste, keine Anleitung und kein VIN-Feld', async () => {
-    state.capacity = { maxVehicles: 5, active: 5, slotsFree: 0 }
+    state.capacity = { maxVehicles: 5, usedThisMonth: 5, slotsFree: 0 }
     const el = await mount()
     expect(byId(el, 'polestar-capped')!.textContent).toContain('Testplätze')
     expect(byId(el, 'polestar-step1')).toBeNull()
@@ -134,8 +142,37 @@ describe('PolestarIntegration', () => {
     expect(byId(el, 'polestar-intro')).not.toBeNull()
   })
 
+  it('alle Plätze belegt: Eintragen setzt auf die Warteliste, danach Austragen möglich', async () => {
+    state.capacity = { maxVehicles: 5, usedThisMonth: 5, slotsFree: 0 }
+    const el = await mount()
+    expect(byId(el, 'polestar-waitlist-join')).not.toBeNull()
+    byId(el, 'polestar-waitlist-join')!.click()
+    await flush()
+    expect(post).toHaveBeenCalledWith('/waitlist/POLESTAR_DATA_PORTAL')
+    expect(byId(el, 'polestar-waitlist-join')).toBeNull()
+    expect(byId(el, 'polestar-capped')!.textContent).toContain('auf der Warteliste')
+    expect(byId(el, 'polestar-waitlist-leave')).not.toBeNull()
+  })
+
+  it('schon auf der Warteliste: kein Eintragen-Knopf, Hinweis bleibt', async () => {
+    state.capacity = { maxVehicles: 5, usedThisMonth: 5, slotsFree: 0 }
+    state.waitlist = { onWaitlist: true, since: '2026-10-19T09:00:00' }
+    const el = await mount()
+    expect(byId(el, 'polestar-waitlist-join')).toBeNull()
+    expect(byId(el, 'polestar-capped')!.textContent).toContain('auf der Warteliste')
+  })
+
+  it('WAITLIST nach Verbindungsversuch: Eintragen möglich', async () => {
+    state.connectResult = { carId: 'car-1', result: 'WAITLIST' }
+    const el = await mount()
+    await typeVin(el, 'LPSED3KAXNL123456')
+    byId(el, 'polestar-connect')!.click()
+    await flush()
+    expect(byId(el, 'polestar-waitlist-join')).not.toBeNull()
+  })
+
   it('alle Plätze belegt, aber selbst verbunden: Status-Karte bleibt', async () => {
-    state.capacity = { maxVehicles: 5, active: 5, slotsFree: 0 }
+    state.capacity = { maxVehicles: 5, usedThisMonth: 5, slotsFree: 0 }
     state.connections = [connected]
     const el = await mount()
     expect(byId(el, 'polestar-status')).not.toBeNull()

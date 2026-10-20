@@ -19,7 +19,8 @@ export const POLESTAR_PORTAL_URL = 'https://data-portal.polestar.com'
 
 export interface PolestarCapacity {
   maxVehicles: number
-  active: number
+  /** Fahrzeuge mit Datenzugriff im laufenden Kalendermonat, die Abrechnungsgröße des Portals */
+  usedThisMonth: number
   slotsFree: number
 }
 
