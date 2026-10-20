@@ -32,8 +32,10 @@ class PageAuditorTest {
         StringBuilder ld = new StringBuilder();
         for (String type : jsonLdTypes.split(",")) {
             if (type.isBlank()) continue;
+            // Product nur mit Bewertungsschnitt, so wie die Modellseite es ausliefert
+            String extra = type.equals("Product") ? ",\"aggregateRating\":{\"@type\":\"AggregateRating\",\"ratingValue\":4.1,\"ratingCount\":7}" : "";
             ld.append("<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"")
-                    .append(type).append("\"}</script>");
+                    .append(type).append("\"").append(extra).append("}</script>");
         }
         return "<title>Testmarke Blitz 5: echter Verbrauch und Reichweite</title>"
                 + "<meta name=\"description\" content=\"Testmarke Blitz 5 im Alltag: echter Verbrauch aus vielen Ladevorgängen, Reichweite im Winter und Ladekosten.\">"
@@ -134,14 +136,21 @@ class PageAuditorTest {
         PageReport parse = auditor.audit(MODEL, 200, page(MODEL, broken, GOOD_MODEL_BODY));
         assertThat(checks(parse)).containsExactly(Check.JSONLD);
 
+        // Product setzt die Modellseite nur mit Fahrerbewertungen; ohne Product ist alles in Ordnung
         PageReport noProduct = auditor.audit(MODEL, 200, page(MODEL, goodHead(MODEL, "BreadcrumbList,WebPage"), GOOD_MODEL_BODY));
-        assertThat(checks(noProduct)).containsExactly(Check.JSONLD);
-        assertThat(noProduct.findings().get(0).message()).contains("Product");
+        assertThat(noProduct.findings()).isEmpty();
+
+        // fehlende Pflicht-Typen sind Hinweise, keine Fehler
+        PageReport noBreadcrumb = auditor.audit(MODEL, 200, page(MODEL, goodHead(MODEL, "WebPage"), GOOD_MODEL_BODY));
+        assertThat(noBreadcrumb.findings()).extracting(Finding::check, Finding::severity)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(Check.JSONLD, Severity.WARNING));
+        assertThat(noBreadcrumb.findings().get(0).message()).contains("BreadcrumbList");
 
         String brand = "/modelle/Testmarke";
         String brandBody = "<h1>Testmarke</h1>";
         assertThat(auditor.audit(brand, 200, page(brand, goodHead(brand, "BreadcrumbList,ItemList"), brandBody)).findings()).isEmpty();
-        assertThat(checks(auditor.audit(brand, 200, page(brand, goodHead(brand, "BreadcrumbList"), brandBody)))).containsExactly(Check.JSONLD);
+        assertThat(auditor.audit(brand, 200, page(brand, goodHead(brand, "BreadcrumbList"), brandBody)).findings())
+                .extracting(Finding::check, Finding::severity).containsExactly(org.assertj.core.groups.Tuple.tuple(Check.JSONLD, Severity.WARNING));
 
         String list = "/modelle";
         assertThat(auditor.audit(list, 200, page(list, goodHead(list, "ItemList"), "<h1>Alle</h1>")).findings()).isEmpty();
@@ -152,7 +161,7 @@ class PageAuditorTest {
     @Test
     void jsonLdTypesInArrayAndGraphCount() {
         String head = goodHead(MODEL, "")
-                + "<script type=\"application/ld+json\">{\"@graph\":[{\"@type\":\"BreadcrumbList\"},{\"@type\":[\"Product\",\"Car\"]}]}</script>";
+                + "<script type=\"application/ld+json\">{\"@graph\":[{\"@type\":\"BreadcrumbList\"},{\"@type\":[\"Product\",\"Car\"],\"review\":[{\"@type\":\"Review\"}]}]}</script>";
         assertThat(auditor.audit(MODEL, 200, page(MODEL, head, GOOD_MODEL_BODY)).findings()).isEmpty();
     }
 
@@ -188,5 +197,20 @@ class PageAuditorTest {
         List<Finding> f = List.of(new Finding(Check.STATUS, Severity.ERROR, "a"), new Finding(Check.H1, Severity.WARNING, "b"));
         assertThat(SeoAudit.score(f)).isEqualTo(75);
         assertThat(SeoAudit.score(List.of(f.get(0), f.get(0), f.get(0), f.get(0), f.get(0), f.get(0)))).isZero();
+    }
+
+    /** Google verwirft ein Product ohne review, aggregateRating oder offers; das ist ein echter Fehler. */
+    @Test
+    void productWithoutReviewRatingOrOfferIsError() {
+        String bare = goodHead(MODEL, "BreadcrumbList")
+                + "<script type=\"application/ld+json\">{\"@type\":\"Product\",\"name\":\"Blitz 5\"}</script>";
+        PageReport r = auditor.audit(MODEL, 200, page(MODEL, bare, GOOD_MODEL_BODY));
+        assertThat(r.findings()).extracting(Finding::check, Finding::severity)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(Check.JSONLD, Severity.ERROR));
+        assertThat(r.findings().get(0).message()).contains("Bewertung");
+
+        String withReview = goodHead(MODEL, "BreadcrumbList")
+                + "<script type=\"application/ld+json\">{\"@type\":\"Product\",\"review\":{\"@type\":\"Review\"}}</script>";
+        assertThat(auditor.audit(MODEL, 200, page(MODEL, withReview, GOOD_MODEL_BODY)).findings()).isEmpty();
     }
 }

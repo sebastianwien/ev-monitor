@@ -103,40 +103,59 @@ public class PageAuditor {
         }
     }
 
+    /**
+     * Unlesbares JSON-LD und ein Product, das Google verwirft, sind Fehler. Fehlende Typen sind Hinweise: Sie kosten
+     * höchstens ein erweitertes Suchergebnis. Product ist keine Pflicht, die Modellseite setzt es nur mit
+     * Fahrerbewertungen.
+     */
     private void checkJsonLd(Document doc, PageType type, List<Finding> findings) {
         Set<String> types = new LinkedHashSet<>();
+        List<JsonNode> products = new ArrayList<>();
         int block = 0;
         for (Element script : doc.select("script[type=application/ld+json]")) {
             block++;
             try {
-                collectTypes(objectMapper.readTree(script.data()), types);
+                collectTypes(objectMapper.readTree(script.data()), types, products);
             } catch (Exception e) {
                 findings.add(error(Check.JSONLD, "JSON-LD-Block " + block + " ist kein gültiges JSON"));
             }
         }
         for (String required : requiredTypes(type)) {
-            if (!types.contains(required)) findings.add(error(Check.JSONLD, "JSON-LD " + required + " fehlt"));
+            if (!types.contains(required)) findings.add(warning(Check.JSONLD, "JSON-LD " + required + " fehlt"));
+        }
+        for (JsonNode product : products) {
+            if (!hasContent(product, "review") && !hasContent(product, "aggregateRating") && !hasContent(product, "offers")) {
+                findings.add(error(Check.JSONLD, "JSON-LD Product ohne Bewertung, Bewertungsschnitt oder Preis: Google verwirft es"));
+            }
         }
     }
 
+    private static boolean hasContent(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return v != null && !v.isNull() && !(v.isArray() && v.isEmpty());
+    }
+
     /** Oberste Ebene, Arrays und @graph; verschachtelte Typen (ListItem, Answer) zählen nicht. */
-    private static void collectTypes(JsonNode node, Set<String> types) {
+    private static void collectTypes(JsonNode node, Set<String> types, List<JsonNode> products) {
         if (node == null) return;
         if (node.isArray()) {
-            node.forEach(n -> collectTypes(n, types));
+            node.forEach(n -> collectTypes(n, types, products));
             return;
         }
         JsonNode type = node.get("@type");
-        if (type != null && type.isTextual()) types.add(type.asText());
-        if (type != null && type.isArray()) type.forEach(t -> types.add(t.asText()));
-        collectTypes(node.get("@graph"), types);
+        Set<String> own = new LinkedHashSet<>();
+        if (type != null && type.isTextual()) own.add(type.asText());
+        if (type != null && type.isArray()) type.forEach(t -> own.add(t.asText()));
+        types.addAll(own);
+        if (own.contains("Product")) products.add(node);
+        collectTypes(node.get("@graph"), types, products);
     }
 
     private static List<String> requiredTypes(PageType type) {
         return switch (type) {
             case LIST -> List.of("ItemList");
             case BRAND -> List.of("BreadcrumbList", "ItemList");
-            case MODEL -> List.of("BreadcrumbList", "Product");
+            case MODEL -> List.of("BreadcrumbList");
             case OTHER -> List.of();
         };
     }
