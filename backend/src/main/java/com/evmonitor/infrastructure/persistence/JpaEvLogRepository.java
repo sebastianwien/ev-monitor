@@ -492,6 +492,22 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = "UPDATE ev_log SET route_type = :routeType, route_type_source = :source WHERE deleted_at IS NULL AND id = :id", nativeQuery = true)
     void updateRouteType(@Param("id") UUID id, @Param("routeType") String routeType, @Param("source") String source);
 
+    @Query(value = """
+        SELECT id FROM ev_log
+        WHERE deleted_at IS NULL AND logged_at >= :since
+          AND (route_type_source IS NULL OR route_type_source = 'TRIPS')
+        ORDER BY logged_at
+        """, nativeQuery = true)
+    List<UUID> findRouteTypeRecalcCandidateIds(@Param("since") LocalDateTime since);
+
+    @Query(value = """
+        SELECT id FROM ev_log
+        WHERE deleted_at IS NULL
+          AND (route_type_source IS NULL OR route_type_source IN ('TRIPS', 'HEURISTIC'))
+        ORDER BY logged_at
+        """, nativeQuery = true)
+    List<UUID> findRouteTypeBackfillCandidateIds();
+
     /** Tesla-eigene Quellen - nur diese Logs darf die Billing-Anreicherung anfassen. */
     List<String> TESLA_DATA_SOURCES = List.of("TESLA_LIVE", "TESLA_FLEET_IMPORT");
 

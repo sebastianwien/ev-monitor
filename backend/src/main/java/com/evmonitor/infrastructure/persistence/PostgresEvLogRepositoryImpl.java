@@ -497,6 +497,16 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<UUID> findRouteTypeRecalcCandidateIds(LocalDateTime since) {
+        return jpaRepository.findRouteTypeRecalcCandidateIds(since);
+    }
+
+    @Override
+    public List<UUID> findRouteTypeBackfillCandidateIds() {
+        return jpaRepository.findRouteTypeBackfillCandidateIds();
+    }
+
+    @Override
     public List<EvLog> findEnrichableTeslaLogs(UUID userId, LocalDateTime cutoff) {
         return jpaRepository.findEnrichableTeslaLogs(userId, cutoff, JpaEvLogRepository.TESLA_DATA_SOURCES)
                 .stream().map(this::toDomain).toList();

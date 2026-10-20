@@ -252,6 +252,12 @@ public interface EvLogRepository {
     /** Die zeitlich letzte nicht gelöschte Ladung desselben Autos vor {@code before}. */
     Optional<EvLog> findPreviousByCarId(UUID carId, LocalDateTime before);
 
+    /** Ladungen ab {@code since}, deren Streckentyp fehlt oder aus Fahrten stammt (Nachlauf, weil Fahrten später ankommen). */
+    List<UUID> findRouteTypeRecalcCandidateIds(LocalDateTime since);
+
+    /** Alle Ladungen, deren Streckentyp eine Ableitung noch ersetzen darf (Herkunft leer, TRIPS oder HEURISTIC). */
+    List<UUID> findRouteTypeBackfillCandidateIds();
+
     /**
      * Tesla-Ladungen ohne {@code cost_eur}, die aus Teslas Billing-API stammen koennten:
      * oeffentlich oder per DC geladen, innerhalb des Cutoffs. Ob es wirklich ein Supercharger war,
