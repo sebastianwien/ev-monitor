@@ -492,20 +492,21 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query(value = "UPDATE ev_log SET route_type = :routeType, route_type_source = :source WHERE deleted_at IS NULL AND id = :id", nativeQuery = true)
     void updateRouteType(@Param("id") UUID id, @Param("routeType") String routeType, @Param("source") String source);
 
-    @Query(value = """
-        SELECT id FROM ev_log
-        WHERE deleted_at IS NULL AND logged_at >= :since
-          AND (route_type_source IS NULL OR route_type_source = 'TRIPS')
-        ORDER BY logged_at
-        """, nativeQuery = true)
+    // JPQL statt native SQL: H2 (Tests) liefert UUID-Spalten nativ nicht als java.util.UUID.
+    @Query("""
+        SELECT e.id FROM EvLogEntity e
+        WHERE e.deletedAt IS NULL AND e.loggedAt >= :since
+          AND (e.routeTypeSource IS NULL OR e.routeTypeSource = 'TRIPS')
+        ORDER BY e.loggedAt
+        """)
     List<UUID> findRouteTypeRecalcCandidateIds(@Param("since") LocalDateTime since);
 
-    @Query(value = """
-        SELECT id FROM ev_log
-        WHERE deleted_at IS NULL
-          AND (route_type_source IS NULL OR route_type_source IN ('TRIPS', 'HEURISTIC'))
-        ORDER BY logged_at
-        """, nativeQuery = true)
+    @Query("""
+        SELECT e.id FROM EvLogEntity e
+        WHERE e.deletedAt IS NULL
+          AND (e.routeTypeSource IS NULL OR e.routeTypeSource IN ('TRIPS', 'HEURISTIC'))
+        ORDER BY e.loggedAt
+        """)
     List<UUID> findRouteTypeBackfillCandidateIds();
 
     /** Tesla-eigene Quellen - nur diese Logs darf die Billing-Anreicherung anfassen. */
