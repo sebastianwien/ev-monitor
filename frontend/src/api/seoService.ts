@@ -294,6 +294,8 @@ export interface SeoCompetitionView {
     metricsMonth: string | null
     costThisMonthUsd: number
     monthlyBudgetUsd: number
+    /** Letzter Abruf; null, solange nie abgerufen wurde. */
+    lastRun: { startedAt: string; status: 'RUNNING' | 'SUCCESS' | 'PARTIAL' | 'FAILED'; message: string | null } | null
     competitors: SeoCompetitorRow[]
     queries: SeoSerpQueryRow[]
     ideas: SeoIdeaRow[]

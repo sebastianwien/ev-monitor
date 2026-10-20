@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { safeHref, usd, visibilityShare } from '../seoCompetition'
+import { competitionErrorHint, safeHref, usd, visibilityShare } from '../seoCompetition'
 
 describe('seoCompetition', () => {
     it('rechnet Impressionen des Zeitraums auf einen Monat hoch und teilt durch das Suchvolumen', () => {
@@ -19,5 +19,14 @@ describe('seoCompetition', () => {
         expect(safeHref('https://a.test/x')).toBe('https://a.test/x')
         expect(safeHref('javascript:alert(1)')).toBeUndefined()
         expect(safeHref(null)).toBeUndefined()
+    })
+
+    it('übersetzt häufige DataForSEO-Fehler in eine Handlung', () => {
+        expect(competitionErrorHint('/serp: HTTP 403 (40104 Please verify your account before using the API.)')).toContain('nicht verifiziert')
+        expect(competitionErrorHint('/serp: HTTP 401 (40100 Unauthorized.)')).toContain('API-Passwort')
+        expect(competitionErrorHint('/serp: 40200 Payment Required.')).toContain('Guthaben')
+        expect(competitionErrorHint('Monatsbudget von 5.0 US-Dollar erreicht')).toContain('Monatsbudget')
+        expect(competitionErrorHint('/serp: HTTP 502')).toBeNull()
+        expect(competitionErrorHint(null)).toBeNull()
     })
 })

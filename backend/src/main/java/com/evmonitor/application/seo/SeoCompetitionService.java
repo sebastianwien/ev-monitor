@@ -292,7 +292,13 @@ public class SeoCompetitionService {
             }
             ideas.sort(Comparator.comparingInt((IdeaRow i) -> volume(i.volume())).reversed().thenComparing(IdeaRow::keyword));
         }
-        return new View(isEnabled(), week, metricsMonth, round4(cost), deps.properties().getMonthlyBudgetUsd(), competitors, queries, ideas);
+        SeoCompetition.LastRun lastRun = runs.findTop10ByOrderByStartedAtDesc().stream()
+                .filter(r -> SOURCE_SERP.equals(r.getSource()))
+                .findFirst()
+                .map(r -> new SeoCompetition.LastRun(r.getStartedAt(), r.getStatus(), r.getError()))
+                .orElse(null);
+        return new View(isEnabled(), week, metricsMonth, round4(cost), deps.properties().getMonthlyBudgetUsd(), lastRun,
+                competitors, queries, ideas);
     }
 
     /** Suchvolumen und CPC des letzten Monats für die Suchbegriff-Tabelle. */

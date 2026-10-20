@@ -184,7 +184,16 @@ class SeoCompetitionServiceTest {
         when(insights.queries(28, BrandFilter.ALL, QueryFilter.ALL, SeoMarket.DE)).thenReturn(List.of(q("testauto reichweite", 900, false)));
         when(insights.queries(90, BrandFilter.ALL, QueryFilter.ALL, SeoMarket.DE)).thenReturn(List.of(q("testauto reichweite", 2000, false)));
 
+        SeoSyncRunEntity failed = SeoSyncRunEntity.start(SeoCompetitionService.SOURCE_SERP, java.time.LocalDateTime.of(2026, 10, 20, 7, 16), MONTH, MONTH);
+        failed.setStatus(SeoSyncRunEntity.STATUS_FAILED);
+        failed.setError("/serp: HTTP 403 (40104 Please verify your account)");
+        SeoSyncRunEntity gsc = SeoSyncRunEntity.start("GSC", java.time.LocalDateTime.of(2026, 10, 20, 7, 30), MONTH, MONTH);
+        when(runs.findTop10ByOrderByStartedAtDesc()).thenReturn(List.of(gsc, failed));
+
         View view = service.view(28);
+
+        assertThat(view.lastRun().status()).isEqualTo(SeoSyncRunEntity.STATUS_FAILED);
+        assertThat(view.lastRun().message()).contains("40104");
 
         Map<String, CompetitorRow> competitors = view.competitors().stream().collect(Collectors.toMap(CompetitorRow::domain, c -> c));
         assertThat(competitors).doesNotContainKey("example.test");

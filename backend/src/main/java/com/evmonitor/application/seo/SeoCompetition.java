@@ -29,8 +29,13 @@ public final class SeoCompetition {
     public record KeywordRow(String query, Integer volume, Double cpc, String competition) {
     }
 
+    /** Letzter Abruf: Status SUCCESS, PARTIAL, FAILED oder RUNNING, Meldung bei Fehler oder Budgetende. */
+    public record LastRun(java.time.LocalDateTime startedAt, String status, String message) {
+    }
+
+    /** lastRun null, solange nie abgerufen wurde. */
     public record View(boolean enabled, LocalDate serpWeek, LocalDate metricsMonth, double costThisMonthUsd,
-                       double monthlyBudgetUsd, List<CompetitorRow> competitors, List<SerpQueryRow> queries,
+                       double monthlyBudgetUsd, LastRun lastRun, List<CompetitorRow> competitors, List<SerpQueryRow> queries,
                        List<IdeaRow> ideas) {
     }
 }

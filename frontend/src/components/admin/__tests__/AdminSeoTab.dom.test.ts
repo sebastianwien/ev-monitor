@@ -99,7 +99,7 @@ function defaults() {
     getSeoPageQueries.mockResolvedValue([])
     getSeoQueryPages.mockResolvedValue([])
     getSeoKeywordMetrics.mockResolvedValue([])
-    getSeoCompetition.mockResolvedValue({ enabled: false, serpWeek: null, metricsMonth: null, costThisMonthUsd: 0, monthlyBudgetUsd: 5,
+    getSeoCompetition.mockResolvedValue({ enabled: false, serpWeek: null, metricsMonth: null, costThisMonthUsd: 0, monthlyBudgetUsd: 5, lastRun: null,
         competitors: [], queries: [], ideas: [] })
 }
 
@@ -358,7 +358,7 @@ describe('AdminSeoTab', () => {
     it('Wettbewerb: Wettbewerber, unsere Plätze mit Top 10, Ideen nur neue, fremde Links nur http(s)', async () => {
         defaults()
         getSeoCompetition.mockResolvedValue({
-            enabled: true, serpWeek: '2026-10-19', metricsMonth: '2026-10-01', costThisMonthUsd: 0.12, monthlyBudgetUsd: 5,
+            enabled: true, serpWeek: '2026-10-19', metricsMonth: '2026-10-01', costThisMonthUsd: 0.12, monthlyBudgetUsd: 5, lastRun: null,
             competitors: [{ domain: 'wettbewerb.test', queries: 2, aheadOfUs: 2, avgRank: 1, bestRank: 1 }],
             queries: [{ query: 'testauto reichweite', impressions: 900, ourRank: 2, ourUrl: 'https://ev-monitor.net/modelle/A', volume: 1300, cpc: 0.84,
                 top: [{ rank: 1, domain: 'wettbewerb.test', url: 'javascript:alert(1)', title: '<i>Fremd</i>', own: false },
@@ -390,5 +390,19 @@ describe('AdminSeoTab', () => {
         await flush()
         expect(triggerSeoCompetition).toHaveBeenCalled()
         expect(host.textContent).toContain('Abruf läuft')
+    })
+
+    it('Wettbewerb: fehlgeschlagener Abruf erklärt, was zu tun ist', async () => {
+        defaults()
+        getSeoCompetition.mockResolvedValue({ enabled: true, serpWeek: null, metricsMonth: null, costThisMonthUsd: 0, monthlyBudgetUsd: 5,
+            lastRun: { startedAt: '2026-10-20T07:16:22', status: 'FAILED', message: '/serp: HTTP 403 (40104 Please verify your account before using the API.)' },
+            competitors: [], queries: [], ideas: [] })
+        const host = await mount()
+
+        click(host, 'Wettbewerb')
+        await flush()
+        expect(host.textContent).toContain('ist fehlgeschlagen')
+        expect(host.textContent).toContain('noch nicht verifiziert')
+        expect(host.textContent).toContain('40104')
     })
 })

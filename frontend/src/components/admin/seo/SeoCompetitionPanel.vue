@@ -6,8 +6,8 @@ import {
 } from '../../../api/seoService'
 import SeoDataTable from './SeoDataTable.vue'
 import { GLOSSARY } from './seoGlossary'
-import { date, num, pct } from './seoFormat'
-import { safeHref, usd, visibilityShare } from './seoCompetition'
+import { date, dateTime, num, pct } from './seoFormat'
+import { competitionErrorHint, safeHref, usd, visibilityShare } from './seoCompetition'
 import type { SeoColumn } from './seoTable'
 
 const props = defineProps<{ days: SeoPeriod }>()
@@ -94,6 +94,14 @@ const ideaColumns: SeoColumn<SeoIdeaRow>[] = [
       </button>
     </div>
     <p v-if="runMessage" class="text-xs text-gray-300" role="status">{{ runMessage }}</p>
+    <div v-if="view?.lastRun && (view.lastRun.status === 'FAILED' || view.lastRun.status === 'PARTIAL')"
+         class="border-l-2 px-4 py-3 text-sm bg-gray-900" :class="view.lastRun.status === 'FAILED' ? 'border-red-500' : 'border-amber-500'">
+      <p class="text-gray-200">
+        Letzter Abruf am {{ dateTime(view.lastRun.startedAt) }} {{ view.lastRun.status === 'FAILED' ? 'ist fehlgeschlagen' : 'war unvollständig' }}.
+        <template v-if="competitionErrorHint(view.lastRun.message)">{{ competitionErrorHint(view.lastRun.message) }}</template>
+      </p>
+      <p v-if="view.lastRun.message" class="text-xs text-gray-500 mt-1 break-all">Meldung: {{ view.lastRun.message }}</p>
+    </div>
     <p v-if="error" class="text-red-400 text-sm">{{ error }}</p>
     <p v-else-if="loading && !view" class="text-gray-400 text-sm">Lädt...</p>
 
