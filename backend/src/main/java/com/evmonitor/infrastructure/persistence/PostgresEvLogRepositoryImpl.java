@@ -8,6 +8,7 @@ import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.weather.TemperatureSource;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.RouteType;
+import com.evmonitor.domain.RouteTypeSource;
 import com.evmonitor.domain.TireType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -486,8 +487,8 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Transactional
-    public void updateRouteType(UUID id, RouteType routeType) {
-        jpaRepository.updateRouteType(id, routeType.name());
+    public void updateRouteType(UUID id, RouteType routeType, RouteTypeSource source) {
+        jpaRepository.updateRouteType(id, routeType.name(), source != null ? source.name() : null);
     }
 
     @Override
@@ -528,6 +529,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setChargingType(domain.getChargingType() != null ? domain.getChargingType().name() : null);
         entity.setRawImportData(domain.getRawImportData());
         entity.setRouteType(domain.getRouteType() != null ? domain.getRouteType().name() : null);
+        entity.setRouteTypeSource(domain.getRouteTypeSource() != null ? domain.getRouteTypeSource().name() : null);
         entity.setTireType(domain.getTireType() != null ? domain.getTireType().name() : null);
         entity.setSessionGroupId(domain.getSessionGroupId());
         entity.setPublicCharging(domain.getPublicCharging());
@@ -565,6 +567,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .chargingType(entity.getChargingType() != null ? ChargingType.valueOf(entity.getChargingType()) : ChargingType.UNKNOWN)
                 .rawImportData(entity.getRawImportData())
                 .routeType(entity.getRouteType() != null ? RouteType.valueOf(entity.getRouteType()) : null)
+                .routeTypeSource(entity.getRouteTypeSource() != null ? RouteTypeSource.valueOf(entity.getRouteTypeSource()) : null)
                 .tireType(entity.getTireType() != null ? TireType.valueOf(entity.getTireType()) : null)
                 .sessionGroupId(entity.getSessionGroupId())
                 .publicCharging(entity.getPublicCharging())

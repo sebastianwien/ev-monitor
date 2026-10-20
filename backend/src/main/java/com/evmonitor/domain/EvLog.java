@@ -40,6 +40,7 @@ public class EvLog {
     private final ChargingType chargingType; // Optional: AC or DC charging
     private final String rawImportData;      // Optional: raw JSON data from import source (e.g. SpritMonitor fueling)
     private final RouteType routeType;       // Optional: CITY, COMBINED, or HIGHWAY
+    private final RouteTypeSource routeTypeSource; // Herkunft des Streckentyps, null bei Altbestand ohne Angabe
     private final TireType tireType;         // Optional: SUMMER, ALL_YEAR, or WINTER
     private final UUID sessionGroupId;       // Optional: ID of the charging_session_group (sub-sessions only)
     /** TRUE = oeffentlich, FALSE = daheim, NULL = unbekannt.
@@ -79,7 +80,7 @@ public class EvLog {
             boolean includeInStatistics, Integer odometerSuggestionMinKm, Integer odometerSuggestionMaxKm,
             Double temperatureCelsius, ChargingType chargingType, String rawImportData,
             LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime deletedAt,
-            RouteType routeType, TireType tireType, UUID sessionGroupId,
+            RouteType routeType, RouteTypeSource routeTypeSource, TireType tireType, UUID sessionGroupId,
             Boolean publicCharging, String cpoName, EnergyMeasurementType measurementType,
             EnergySource energySource,
             BigDecimal costExchangeRate, String costCurrency, UUID chargingProviderId, UUID chargingSiteId,
@@ -118,6 +119,7 @@ public class EvLog {
         this.chargingType = inferChargingType(chargingType, maxChargingPowerKw, energyForInference, chargeDurationMinutes);
         this.rawImportData = rawImportData;
         this.routeType = routeType;
+        this.routeTypeSource = routeType != null ? routeTypeSource : null;
         this.tireType = tireType;
         this.sessionGroupId = sessionGroupId;
         this.publicCharging = publicCharging;
@@ -337,6 +339,15 @@ public class EvLog {
         return ChargingType.UNKNOWN;
     }
 
+    /**
+     * Darf eine Ableitung mit dieser Herkunft den Streckentyp setzen? Ohne Streckentyp oder ohne bekannte
+     * Herkunft (Altbestand) immer; sonst nur, wenn die Herkunft mindestens gleichrangig ist.
+     */
+    public boolean mayOverrideRouteType(RouteTypeSource candidate) {
+        if (routeType == null || routeTypeSource == null) return true;
+        return candidate.rank() >= routeTypeSource.rank();
+    }
+
     public EvLog withPatch(BigDecimal kwh, BigDecimal costEur, Integer durationMin,
             String geohash, Integer odometerKm, BigDecimal socBefore, BigDecimal socAfter,
             BigDecimal kwhAtVehicle, BigDecimal maxChargingPowerKw, ChargingType chargingType,
@@ -358,6 +369,7 @@ public class EvLog {
                 .socBeforeChargePercent(socBefore != null ? socBefore : this.socBeforeChargePercent)
                 .chargingType(chargingType != null ? chargingType : this.chargingType)
                 .routeType(routeType != null ? routeType : this.routeType)
+                .routeTypeSource(routeType != null ? RouteTypeSource.SOURCE : this.routeTypeSource)
                 .tireType(tireType != null ? tireType : this.tireType)
                 .publicCharging(publicCharging != null ? publicCharging : this.publicCharging)
                 .cpoName(cpoName != null ? cpoName : this.cpoName)

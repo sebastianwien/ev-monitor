@@ -347,6 +347,23 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void routeType_heuristicSourceIsNotCounted() {
+        Car car = carWithBattery(new BigDecimal("75.0"));
+        LocalDateTime t = LocalDateTime.of(2025, 6, 1, 10, 0);
+        saveLog(car.getId(), 10000, new BigDecimal("45.0"), 80, t, null);
+        saveLog(car.getId(), 10300, new BigDecimal("52.5"), 85, t.plusDays(1), RouteType.HIGHWAY, RouteTypeSource.HEURISTIC);
+        saveLog(car.getId(), 10450, new BigDecimal("30.0"), 90, t.plusDays(2), RouteType.CITY, RouteTypeSource.TRIPS);
+
+        RouteTypeConsumptionResult result = evLogService.calculateRouteTypeConsumption(List.of(car), false);
+
+        assertNull(result.highwayKwhPer100km());
+        assertEquals(0, result.highwayLogCount());
+        assertEquals(0, result.highwayCarCount());
+        assertEquals(new BigDecimal("17.50"), result.cityKwhPer100km());
+        assertEquals(1, result.cityLogCount());
+    }
+
+    @Test
     void routeType_noCars_returnsEmptyResult() {
         RouteTypeConsumptionResult result = evLogService.calculateRouteTypeConsumption(List.of(), false);
 
@@ -377,6 +394,14 @@ class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
                 carId, kwhCharged, new BigDecimal("10.00"), 60,
                 "u33d1", odometerKm, new BigDecimal("11.0"), new BigDecimal(socAfter), loggedAt, ChargingType.UNKNOWN, routeType, null,
                 false, null));
+    }
+
+    private void saveLog(UUID carId, int odometerKm, BigDecimal kwhCharged,
+                         int socAfter, LocalDateTime loggedAt, RouteType routeType, RouteTypeSource source) {
+        evLogRepository.save(EvLog.createNew(
+                carId, kwhCharged, new BigDecimal("10.00"), 60,
+                "u33d1", odometerKm, new BigDecimal("11.0"), new BigDecimal(socAfter), loggedAt, ChargingType.UNKNOWN, routeType, null,
+                false, null).toBuilder().routeTypeSource(source).build());
     }
 
     private void saveLogNoSoc(UUID carId, int odometerKm, BigDecimal kwhCharged,

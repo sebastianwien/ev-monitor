@@ -115,6 +115,9 @@ public class EvLogEntity {
     @Column(name = "route_type", length = 20)
     private String routeType;
 
+    @Column(name = "route_type_source", length = 20)
+    private String routeTypeSource;
+
     @Column(name = "tire_type", length = 20)
     private String tireType;
 

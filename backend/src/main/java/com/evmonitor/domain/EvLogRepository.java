@@ -247,7 +247,7 @@ public interface EvLogRepository {
 
     void updateRawImportData(UUID id, String rawJson);
 
-    void updateRouteType(UUID id, RouteType routeType);
+    void updateRouteType(UUID id, RouteType routeType, RouteTypeSource source);
 
     /**
      * Tesla-Ladungen ohne {@code cost_eur}, die aus Teslas Billing-API stammen koennten:

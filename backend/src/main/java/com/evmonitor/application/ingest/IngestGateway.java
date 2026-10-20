@@ -248,6 +248,7 @@ public class IngestGateway {
                 .includeInStatistics(dataSource.includeInStatistics())
                 .chargingType(entry.chargingType())
                 .routeType(entry.routeType())
+                .routeTypeSource(entry.routeType() != null ? RouteTypeSource.SOURCE : null)
                 .tireType(entry.tireType())
                 .temperatureCelsius(entry.temperatureCelsius())
                 .rawImportData(entry.rawImportData())

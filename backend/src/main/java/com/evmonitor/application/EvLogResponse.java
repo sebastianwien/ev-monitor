@@ -4,6 +4,7 @@ import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.RouteType;
+import com.evmonitor.domain.RouteTypeSource;
 import com.evmonitor.domain.TireType;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -36,6 +37,7 @@ public record EvLogResponse(
         Boolean kwhCountedInNextConsumption, // true when this log has no odometer and its kWh went into the next window value
         ChargingType chargingType,           // AC, DC, or UNKNOWN
         RouteType routeType,                 // Optional: CITY, COMBINED, or HIGHWAY
+        RouteTypeSource routeTypeSource,     // Optional: USER, SOURCE, TRIPS, HEURISTIC
         TireType tireType,                   // Optional: SUMMER, ALL_YEAR, or WINTER
         DataSource dataSource,
         boolean includeInStatistics,
@@ -89,6 +91,7 @@ public record EvLogResponse(
                 kwhCountedInNextConsumption,
                 evLog.getChargingType(),
                 evLog.getRouteType(),
+                evLog.getRouteTypeSource(),
                 evLog.getTireType(),
                 evLog.getDataSource(),
                 evLog.isIncludeInStatistics(),

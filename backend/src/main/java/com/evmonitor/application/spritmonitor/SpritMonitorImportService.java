@@ -11,6 +11,7 @@ import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.RouteType;
+import com.evmonitor.domain.RouteTypeSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.exception.ForbiddenException;
@@ -215,7 +216,7 @@ public class SpritMonitorImportService {
                     evLogRepository.updateRawImportData(existing.getId(), rawFueling.rawJson());
                     RouteType routeType = fueling.parseRouteType();
                     if (routeType != null && existing.getRouteType() == null) {
-                        evLogRepository.updateRouteType(existing.getId(), routeType);
+                        evLogRepository.updateRouteType(existing.getId(), routeType, RouteTypeSource.SOURCE);
                     }
                     result.incrementRefreshed();
                 } catch (Exception e) {

@@ -703,6 +703,8 @@ public class EvLogStatisticsService {
             for (PlausibleEntry e : getPlausibleEntriesForCar(car, allLogs, statsLogs)) {
                 RouteType type = e.log().getRouteType();
                 if (type == null) continue;
+                RouteTypeSource source = e.log().getRouteTypeSource();
+                if (source != null && !source.countsInStatistics()) continue; // Faustregel verzerrt den Autobahnwert
                 weighted.merge(type, e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())), BigDecimal::add);
                 km.merge(type, e.distanceKm(), Integer::sum);
                 count.merge(type, 1, Integer::sum);

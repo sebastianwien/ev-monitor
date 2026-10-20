@@ -107,6 +107,7 @@ public class EvLogService {
         var builder = newLog.toBuilder()
                 .socBeforeChargePercent(request.socBeforeChargePercent())
                 .kwhAtVehicle(request.kwhAtVehicle())
+                .routeTypeSource(request.routeType() != null ? RouteTypeSource.USER : null)
                 .chargingSiteId(site.map(ChargingSite::id).orElse(null));
         if (site.isPresent() && isBlank(request.cpoName())) {
             builder.cpoName(site.get().cpoName() != null ? site.get().cpoName() : site.get().name());
@@ -578,6 +579,7 @@ public class EvLogService {
                 .loggedAt(request.loggedAt()                 != null ? request.loggedAt()               : existing.getLoggedAt())
                 .chargingType(request.chargingType()         != null ? request.chargingType()            : existing.getChargingType())
                 .routeType(request.routeType()               != null ? request.routeType()               : existing.getRouteType())
+                .routeTypeSource(request.routeType()         != null ? RouteTypeSource.USER                : existing.getRouteTypeSource())
                 .tireType(request.tireType()                 != null ? request.tireType()                : existing.getTireType())
                 .publicCharging(updatedIsPublicCharging)
                 .cpoName(request.cpoName()                   != null ? request.cpoName()                 : existing.getCpoName())

@@ -479,8 +479,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     void updateRawImportData(@Param("id") UUID id, @Param("rawJson") String rawJson);
 
     @Modifying(clearAutomatically = true)
-    @Query(value = "UPDATE ev_log SET route_type = :routeType WHERE deleted_at IS NULL AND id = :id", nativeQuery = true)
-    void updateRouteType(@Param("id") UUID id, @Param("routeType") String routeType);
+    @Query(value = "UPDATE ev_log SET route_type = :routeType, route_type_source = :source WHERE deleted_at IS NULL AND id = :id", nativeQuery = true)
+    void updateRouteType(@Param("id") UUID id, @Param("routeType") String routeType, @Param("source") String source);
 
     /** Tesla-eigene Quellen - nur diese Logs darf die Billing-Anreicherung anfassen. */
     List<String> TESLA_DATA_SOURCES = List.of("TESLA_LIVE", "TESLA_FLEET_IMPORT");
@@ -649,12 +649,12 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("isSeedUser") boolean isSeedUser);
 
     @Query(value = """
-            SELECT COALESCE(l.route_type, 'UNKNOWN') AS route_type, COUNT(*) AS cnt
+            SELECT CASE WHEN l.route_type_source = 'HEURISTIC' THEN 'UNKNOWN' ELSE COALESCE(l.route_type, 'UNKNOWN') END AS route_type, COUNT(*) AS cnt
             FROM ev_log l JOIN car c ON c.id = l.car_id AND c.deleted_at IS NULL
             WHERE l.deleted_at IS NULL AND c.model = :model
               AND (l.include_in_statistics = true OR (:isSeedUser = true
                    AND c.user_id IN (SELECT id FROM app_user WHERE is_seed_data = true)))
-            GROUP BY l.route_type
+            GROUP BY 1
             ORDER BY cnt DESC
             """, nativeQuery = true)
     List<Object[]> findRouteTypeDistributionByModel(

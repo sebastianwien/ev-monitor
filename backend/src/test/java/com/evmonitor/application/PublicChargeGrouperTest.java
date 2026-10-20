@@ -131,6 +131,6 @@ class PublicChargeGrouperTest {
                 minutes, null, odo, peakKw == null ? null : new BigDecimal(peakKw), null, null,
                 at, at, at, null, null, null,
                 consumption == null ? null : new BigDecimal(consumption), null, null, null, null, null,
-                ChargingType.AC, null, null, source, true, false, null, null, null, null, null, false, false);
+                ChargingType.AC, null, null, null, source, true, false, null, null, null, null, null, false, false);
     }
 }
