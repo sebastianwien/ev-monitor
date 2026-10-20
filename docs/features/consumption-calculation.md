@@ -164,6 +164,10 @@ Gilt pro Auto, egal aus welcher Quelle Ladung oder Fahrten stammen: eine Wallbox
 - Ergebnis ist der Typ mit den meisten km, nur bei strikter Mehrheit, sonst gemischt.
 - Mindestabdeckung: beide Ladungen brauchen einen Kilometerstand, und die Fahrten müssen mindestens die Hälfte der Odometer-Differenz abdecken. Sonst bleibt der Streckentyp leer.
 
+### Faustregel ohne Fahrten (Herkunft `HEURISTIC`)
+
+Greift nur, wenn die Fahrten kein Urteil liefern und die Ladung noch keinen Streckentyp hat (ein vorhandenes gemischt bleibt stehen). Signal ist die mittlere Entladeleistung zwischen zwei Ladungen: SoC-Hub (SoC-Ende der Vorladung minus SoC-Start der aktuellen) mal effektive, SoH-adjustierte Kapazität, geteilt durch die Stunden zwischen Ende der Vorladung und Beginn der aktuellen. Nur Lücken von 0,5 bis 12 Stunden zählen. Ab 25 kW gilt die Strecke als Autobahn. Stadt oder gemischt werden nie per Faustregel gesetzt, weil wenig verbrauchte Energie auch Stillstand sein kann. Dieser Wert zählt in keiner Verbrauchsstatistik je Streckentyp, er dient der Anzeige am Ladevorgang und später der gezielten Nachfrage im Wizard.
+
 Auf der öffentlichen Modellseite (`routeTypeConsumption` in `PublicModelStatsResponse`) wird ein Typ erst ab 10 plausiblen Fahrten veröffentlicht, darunter ist der Wert `null`, die Anzahl bleibt sichtbar. Ohne eine einzige klassifizierte Fahrt ist das ganze Feld `null`. Der persönliche Reichweitenrechner nutzt den Autobahn-Wert für die Langstrecke.
 
 ## Verwendung in der App

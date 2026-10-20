@@ -15,7 +15,8 @@ import java.util.UUID;
 /**
  * Leitet den Streckentyp einer Ladung ab und schreibt ihn, wenn die Rangfolge es erlaubt
  * (USER > SOURCE > TRIPS > HEURISTIC). Quelle 1: Fahrten desselben Autos zwischen Vorladung und
- * dieser Ladung, egal aus welcher Quelle die Ladung oder die Fahrten stammen.
+ * dieser Ladung, egal aus welcher Quelle die Ladung oder die Fahrten stammen. Quelle 2, nur ohne
+ * Fahrten und nur auf leeren Streckentyp: Faustregel aus der mittleren Entladeleistung (ab 25 kW Autobahn).
  */
 @Service
 @Slf4j
@@ -54,6 +55,11 @@ public class RouteTypeDerivationService {
         if (current.mayOverrideRouteType(RouteTypeSource.TRIPS)) {
             Optional<RouteType> fromTrips = RouteTypeRules.fromTrips(previous.get(), current, tripsBetween(previous.get(), current));
             if (fromTrips.isPresent()) return Optional.of(new Derivation(fromTrips.get(), RouteTypeSource.TRIPS));
+        }
+        // Faustregel nur, wenn gar kein Streckentyp da ist: ein geerbtes COMBINED bleibt stehen.
+        if (current.getRouteType() == null) {
+            return RouteTypeRules.fromMeanPower(previous.get(), current, car.get())
+                    .map(type -> new Derivation(type, RouteTypeSource.HEURISTIC));
         }
         return Optional.empty();
     }

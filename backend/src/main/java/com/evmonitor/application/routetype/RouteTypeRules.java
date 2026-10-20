@@ -1,5 +1,6 @@
 package com.evmonitor.application.routetype;
 
+import com.evmonitor.domain.Car;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvTrip;
 import com.evmonitor.domain.RouteType;
@@ -7,6 +8,7 @@ import com.evmonitor.domain.RouteType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.EnumMap;
 import java.util.List;
@@ -19,6 +21,9 @@ import java.util.Optional;
  *
  * Messbasis (lokale DB, Referenz Tessie-Klassifikation, 11.10.2026): Tempo = Strecke / Dauer mit
  * Schwellen 80 / 50 km/h klassifiziert 86 % der km gleich, erkennt Autobahn zu 92 % bei 12 % Fehlalarm.
+ * Faustregel ohne Fahrten (20.10.2026, 7.096 Ladungen): mittlere Leistung aus SoC-Hub zwischen zwei
+ * Ladungen ab 25 kW trifft Autobahn zu 97 %, Stadt 0 %, gemischt 3 % (Recall 19 %). Stadt lässt sich
+ * aus dem Lademuster nicht sicher erkennen, darum nur HIGHWAY per Faustregel.
  */
 public final class RouteTypeRules {
 
@@ -30,6 +35,11 @@ public final class RouteTypeRules {
     static final double MIN_TRIP_KM = 0.5;
     /** Die Fahrten müssen mindestens diesen Anteil der Odometer-Differenz zwischen zwei Ladungen abdecken. */
     static final double MIN_TRIP_COVERAGE = 0.5;
+    /** Ab dieser mittleren Entladeleistung zwischen zwei Ladungen gilt die Strecke als Autobahn. */
+    static final BigDecimal HIGHWAY_MEAN_POWER_KW = new BigDecimal("25");
+    /** Nur Lücken in diesem Bereich tragen ein Signal: kürzer ist Nachladen, länger verwischt Stillstand. */
+    static final Duration MEAN_POWER_GAP_MIN = Duration.ofMinutes(30);
+    static final Duration MEAN_POWER_GAP_MAX = Duration.ofHours(12);
 
     private RouteTypeRules() {}
 
@@ -96,5 +106,31 @@ public final class RouteTypeRules {
                 .setScale(2, RoundingMode.HALF_UP);
         if (tripKm.compareTo(required) < 0) return Optional.empty();
         return dominantByKm(trips);
+    }
+
+    /**
+     * Mittlere Entladeleistung zwischen Ende der Vorladung und Beginn der aktuellen Ladung:
+     * (SoC-Ende Vorladung minus SoC-Start aktuell) / 100 x effektive Kapazität (SoH-adjustiert) / Stunden.
+     * Leer ohne beide SoC-Werte, ohne Kapazität, bei gestiegenem SoC oder Lücke außerhalb 0,5 bis 12 h.
+     */
+    public static Optional<BigDecimal> meanPowerKw(EvLog previous, EvLog current, Car car) {
+        if (previous.getSocAfterChargePercent() == null || current.getSocBeforeChargePercent() == null) return Optional.empty();
+        BigDecimal capacity = car.getEffectiveBatteryCapacityKwh();
+        if (capacity == null || capacity.signum() <= 0) return Optional.empty();
+        LocalDateTime gapStart = chargeEndUtc(previous).toLocalDateTime();
+        Duration gap = Duration.between(gapStart, current.getLoggedAt());
+        if (gap.compareTo(MEAN_POWER_GAP_MIN) < 0 || gap.compareTo(MEAN_POWER_GAP_MAX) > 0) return Optional.empty();
+        BigDecimal socHub = previous.getSocAfterChargePercent().subtract(current.getSocBeforeChargePercent());
+        if (socHub.signum() <= 0) return Optional.empty();
+        BigDecimal kwh = socHub.multiply(capacity).divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP);
+        BigDecimal hours = BigDecimal.valueOf(gap.getSeconds()).divide(new BigDecimal("3600"), 6, RoundingMode.HALF_UP);
+        return Optional.of(kwh.divide(hours, 2, RoundingMode.HALF_UP));
+    }
+
+    /** Faustregel: ab {@link #HIGHWAY_MEAN_POWER_KW} Autobahn, sonst kein Urteil. */
+    public static Optional<RouteType> fromMeanPower(EvLog previous, EvLog current, Car car) {
+        return meanPowerKw(previous, current, car)
+                .filter(kw -> kw.compareTo(HIGHWAY_MEAN_POWER_KW) >= 0)
+                .map(kw -> RouteType.HIGHWAY);
     }
 }

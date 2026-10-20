@@ -139,4 +139,47 @@ class RouteTypeDerivationServiceTest {
         when(evLogRepository.findById(id)).thenReturn(Optional.empty());
         assertTrue(service.derive(id).isEmpty());
     }
+
+    // ---- Faustregel greift nur ohne Fahrten und nur auf leeren Streckentyp ----
+
+    private EvLog socLog(LocalDateTime at, RouteType type, RouteTypeSource source) {
+        return log(at, null, type, source).toBuilder()
+                .socBeforeChargePercent(new BigDecimal("10")).socAfterChargePercent(new BigDecimal("90")).build();
+    }
+
+    @Test
+    void noTrips_highMeanPower_yieldsHeuristicHighway() {
+        // Ende Vorladung 09:00, Start 11:00: 80 % von 70 kWh in 2 h = 28 kW
+        EvLog prev = socLog(prevAt, null, null);
+        EvLog curr = socLog(prevAt.plusHours(3), null, null);
+        stub(curr, prev, List.of());
+
+        var d = service.derive(curr.getId()).orElseThrow();
+
+        assertEquals(RouteType.HIGHWAY, d.routeType());
+        assertEquals(RouteTypeSource.HEURISTIC, d.source());
+        verify(evLogRepository).updateRouteType(curr.getId(), RouteType.HIGHWAY, RouteTypeSource.HEURISTIC);
+    }
+
+    @Test
+    void heuristicNeverOverridesExistingRouteType_evenWithoutSource() {
+        EvLog prev = socLog(prevAt, null, null);
+        EvLog curr = socLog(prevAt.plusHours(3), RouteType.COMBINED, null);
+        stub(curr, prev, List.of());
+
+        assertTrue(service.derive(curr.getId()).isEmpty());
+        verify(evLogRepository, never()).updateRouteType(any(), any(), any());
+    }
+
+    @Test
+    void tripsWinOverHeuristic() {
+        EvLog prev = socLog(prevAt, null, null).toBuilder().odometerKm(1000).build();
+        EvLog curr = socLog(prevAt.plusHours(3), null, null).toBuilder().odometerKm(1100).build();
+        stub(curr, prev, List.of(trip("TESLA_LIVE", 90, 9, 120, "CITY")));
+
+        var d = service.derive(curr.getId()).orElseThrow();
+
+        assertEquals(RouteType.CITY, d.routeType());
+        assertEquals(RouteTypeSource.TRIPS, d.source());
+    }
 }
