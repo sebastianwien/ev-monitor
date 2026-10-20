@@ -492,6 +492,11 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public Optional<EvLog> findPreviousByCarId(UUID carId, LocalDateTime before) {
+        return jpaRepository.findPreviousByCarId(carId, before, PageRequest.of(0, 1)).stream().findFirst().map(this::toDomain);
+    }
+
+    @Override
     public List<EvLog> findEnrichableTeslaLogs(UUID userId, LocalDateTime cutoff) {
         return jpaRepository.findEnrichableTeslaLogs(userId, cutoff, JpaEvLogRepository.TESLA_DATA_SOURCES)
                 .stream().map(this::toDomain).toList();

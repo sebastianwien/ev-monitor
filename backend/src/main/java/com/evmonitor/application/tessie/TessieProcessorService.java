@@ -4,6 +4,8 @@ import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.InternalTripRequest;
 import com.evmonitor.application.ingest.ChargingEntry;
 import com.evmonitor.application.ingest.IngestCommand;
+import com.evmonitor.application.routetype.RouteTypeDerivationService;
+import com.evmonitor.application.ingest.IngestResult;
 import com.evmonitor.application.ingest.IngestDoor;
 import com.evmonitor.application.ingest.IngestGateway;
 import com.evmonitor.domain.ChargingType;
@@ -55,30 +57,30 @@ public class TessieProcessorService {
     private final IngestGateway ingestGateway;
     private final String chargesMergeSql;
     private final String drivesMergeSql;
-    private final String routeTypeBackfillSql;
+    private final RouteTypeDerivationService routeTypeDerivation;
 
     public TessieProcessorService(
             NamedParameterJdbcTemplate jdbc,
             IngestGateway ingestGateway,
             @Value("classpath:sql/tessie/process_charges_merge.sql") Resource chargesMergeResource,
             @Value("classpath:sql/tessie/process_drives_merge.sql") Resource drivesMergeResource,
-            @Value("classpath:sql/tessie/route_type_backfill.sql") Resource routeTypeBackfillResource
+            RouteTypeDerivationService routeTypeDerivation
     ) {
         this.jdbc = jdbc;
         this.ingestGateway = ingestGateway;
         this.chargesMergeSql = readResource(chargesMergeResource);
         this.drivesMergeSql = readResource(drivesMergeResource);
-        this.routeTypeBackfillSql = readResource(routeTypeBackfillResource);
+        this.routeTypeDerivation = routeTypeDerivation;
     }
 
     /** Eine Transaktion für Ladungen, Fahrten, Streckenart-Nachtrag und processed-Flag. */
     @Transactional
     public TessieProcessorResult processForCar(UUID userId, String vin, UUID carId) {
-        int evLogsCreated;
+        IngestResult charges;
         int evTripsCreated;
         try {
             // Das Gateway prüft den Besitz auch bei leerer Liste, also vor den Fahrten.
-            evLogsCreated = processCharges(userId, vin, carId);
+            charges = processCharges(userId, vin, carId);
             evTripsCreated = processDrives(userId, vin, carId);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException("Car not found: " + carId);
@@ -86,8 +88,10 @@ public class TessieProcessorService {
             throw new IllegalArgumentException("Car does not belong to user");
         }
 
+        int evLogsCreated = charges.imported();
         if (evLogsCreated > 0 && evTripsCreated > 0) {
-            jdbc.update(routeTypeBackfillSql, new MapSqlParameterSource("carId", carId));
+            // Streckentyp aus den gerade importierten Fahrten, zentral über die Rangfolge.
+            charges.created().forEach(l -> routeTypeDerivation.derive(l.getId()));
         }
 
         markProcessed(userId, vin);
@@ -99,7 +103,7 @@ public class TessieProcessorService {
 
     // ---------- charges -----------------------------------------------------
 
-    private int processCharges(UUID userId, String vin, UUID carId) {
+    private IngestResult processCharges(UUID userId, String vin, UUID carId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("userId", userId)
                 .addValue("vin", vin);
@@ -140,7 +144,7 @@ public class TessieProcessorService {
 
         // Auch leer: das Gateway prüft den Besitz und protokolliert den Import.
         return ingestGateway.ingestCharging(
-                new IngestCommand(userId, carId, DataSource.TESSIE, IngestDoor.IMPORT_BATCH, entries)).imported();
+                new IngestCommand(userId, carId, DataSource.TESSIE, IngestDoor.IMPORT_BATCH, entries));
     }
 
     // ---------- drives ------------------------------------------------------

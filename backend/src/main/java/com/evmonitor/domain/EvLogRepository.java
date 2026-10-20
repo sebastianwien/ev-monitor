@@ -249,6 +249,9 @@ public interface EvLogRepository {
 
     void updateRouteType(UUID id, RouteType routeType, RouteTypeSource source);
 
+    /** Die zeitlich letzte nicht gelöschte Ladung desselben Autos vor {@code before}. */
+    Optional<EvLog> findPreviousByCarId(UUID carId, LocalDateTime before);
+
     /**
      * Tesla-Ladungen ohne {@code cost_eur}, die aus Teslas Billing-API stammen koennten:
      * oeffentlich oder per DC geladen, innerhalb des Cutoffs. Ob es wirklich ein Supercharger war,

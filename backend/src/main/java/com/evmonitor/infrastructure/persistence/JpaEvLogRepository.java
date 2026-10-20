@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -131,6 +132,15 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
             @Param("carIds") List<UUID> carIds,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to);
+
+    @Query("""
+        SELECT e FROM EvLogEntity e
+        WHERE e.carId = :carId
+          AND e.deletedAt IS NULL
+          AND e.loggedAt < :before
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findPreviousByCarId(@Param("carId") UUID carId, @Param("before") LocalDateTime before, Pageable pageable);
 
     @Query("""
         SELECT e.tireType FROM EvLogEntity e
