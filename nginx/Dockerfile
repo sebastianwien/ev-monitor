@@ -15,7 +15,7 @@ ENV VITE_GOOGLE_OAUTH_ENABLED=${VITE_GOOGLE_OAUTH_ENABLED}
 RUN npm run build
 
 # Stage 2: nginx mit Konfiguration, ohne Frontend
-FROM nginx:1.31.6-alpine AS runtime
+FROM nginx:1.31.7-alpine AS runtime
 # Copy basic nginx config
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 # Copy site configuration template
