@@ -12,6 +12,7 @@ import com.evmonitor.application.SohCounterDetectEvent;
 import com.evmonitor.application.ingest.event.ImportEventErrors;
 import com.evmonitor.application.ingest.event.ImportEventOutcome;
 import com.evmonitor.application.ingest.event.ImportEventRecorder;
+import com.evmonitor.application.routetype.RouteTypeDerivationService;
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
@@ -23,7 +24,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -63,6 +67,8 @@ public class IngestGateway {
     private final TemperatureEnricher temperatureEnricher;
     private final RouteSketcher routeSketcher;
     private final ImportEventRecorder importEvents;
+    private final RouteTypeDerivationService routeTypeDerivation;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * Legt die Ladungen eines Autos an. Ein Aufruf ist eine Transaktion: scheitert der Commit (z. B.
@@ -178,7 +184,23 @@ public class IngestGateway {
             eventPublisher.publishEvent(new SohAutoDetectEvent(car));
         }
 
+        // Streckentyp aus Fahrten oder Faustregel, erst nach dem Commit: derive() ist selbst transaktional,
+        // ein Fehler darin darf den Ingest nicht rollback-only markieren.
+        UUID savedId = saved.getId();
+        afterCommit(() -> deriveRouteTypeQuietly(savedId));
+
         return new IngestOutcome(saved, false);
+    }
+
+    private void deriveRouteTypeQuietly(UUID logId) {
+        try {
+            // In afterCommit hängt die abgeschlossene Transaktion noch am Thread; derive() braucht eine neue.
+            TransactionTemplate tx = new TransactionTemplate(transactionManager);
+            tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            tx.executeWithoutResult(status -> routeTypeDerivation.derive(logId));
+        } catch (RuntimeException e) {
+            log.warn("Streckentyp für Ladung {} nicht abgeleitet: {}", logId, e.getMessage());
+        }
     }
 
     /** Ein Auto lädt nicht zweimal gleichzeitig: Zeitraum der neuen Ladung gegen alle Ladungen des Autos, Tombstones inklusive. */

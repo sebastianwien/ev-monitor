@@ -3,7 +3,10 @@ package com.evmonitor.application.ingest;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.DataSource;
+import com.evmonitor.domain.EvTrip;
+import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.domain.RouteType;
+import com.evmonitor.domain.RouteTypeSource;
 import com.evmonitor.domain.TireType;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.exception.ForbiddenException;
@@ -15,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,6 +34,9 @@ class IngestGatewayTest extends AbstractIntegrationTest {
 
     @Autowired
     private IngestGateway gateway;
+
+    @Autowired
+    private EvTripRepository evTripRepository;
 
     private User user;
     private Car car;
@@ -151,6 +159,43 @@ class IngestGatewayTest extends AbstractIntegrationTest {
         // tires stay on the car; the route of the next trip is unknown, not the one before
         assertThat(log.getTireType()).isEqualTo(TireType.WINTER);
         assertThat(log.getRouteType()).isNull();
+    }
+
+    // ── Streckentyp wird beim Eingang abgeleitet (Schritt 4a) ──
+
+    @Test
+    void wallboxCharge_getsRouteTypeFromTripsOfTheSameCar_afterIngest() {
+        gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.WALLBOX_GOE,
+                ChargingEntry.builder().loggedAt(LocalDateTime.of(2026, 3, 1, 7, 0)).kwhCharged(new BigDecimal("30.0"))
+                        .chargeDurationMinutes(60).odometerKm(10_000).build()));
+        // 150 km in 90 min (Autobahn) und 40 km in 60 min (Stadt): 190 von 200 km abgedeckt
+        teslaLiveTrip(OffsetDateTime.of(2026, 3, 1, 9, 0, 0, 0, ZoneOffset.UTC), 90, 150);
+        teslaLiveTrip(OffsetDateTime.of(2026, 3, 1, 14, 0, 0, 0, ZoneOffset.UTC), 60, 40);
+
+        IngestResult r = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.WALLBOX_GOE,
+                ChargingEntry.builder().loggedAt(LocalDateTime.of(2026, 3, 1, 20, 0)).kwhCharged(new BigDecimal("30.0"))
+                        .chargeDurationMinutes(60).odometerKm(10_200).build()));
+
+        assertThat(r.imported()).isEqualTo(1);
+        var log = evLogRepository.findById(r.created().get(0).getId()).orElseThrow();
+        assertThat(log.getRouteType()).isEqualTo(RouteType.HIGHWAY);
+        assertThat(log.getRouteTypeSource()).isEqualTo(RouteTypeSource.TRIPS);
+    }
+
+    @Test
+    void firstChargeOfACar_isIngested_withoutRouteType() {
+        IngestResult r = gateway.ingestCharging(command(user.getId(), car.getId(), DataSource.WALLBOX_GOE,
+                ChargingEntry.builder().loggedAt(LocalDateTime.of(2026, 3, 1, 20, 0)).kwhCharged(new BigDecimal("30.0"))
+                        .odometerKm(10_200).build()));
+
+        assertThat(r.imported()).isEqualTo(1);
+        assertThat(evLogRepository.findById(r.created().get(0).getId()).orElseThrow().getRouteType()).isNull();
+    }
+
+    private void teslaLiveTrip(OffsetDateTime start, int minutes, double km) {
+        evTripRepository.save(EvTrip.builder().userId(user.getId()).carId(car.getId()).dataSource(EvTrip.DATA_SOURCE_TESLA_LIVE)
+                .tripStartedAt(start).tripEndedAt(start.plusMinutes(minutes)).distanceKm(BigDecimal.valueOf(km))
+                .status("COMPLETED").createdAt(OffsetDateTime.now()).build());
     }
 
     private static IngestCommand command(UUID userId, UUID carId, ChargingEntry... entries) {
