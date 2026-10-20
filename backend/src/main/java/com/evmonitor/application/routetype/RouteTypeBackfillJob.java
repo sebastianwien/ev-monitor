@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -49,6 +50,10 @@ public class RouteTypeBackfillJob {
     public void runAsync(boolean dryRun) {
         try {
             last.set(run(dryRun));
+        } catch (RuntimeException e) {
+            // Sonst verschwindet der Fehler im Async-Handler und der Status bleibt leer.
+            log.error("Streckentyp-Backfill abgebrochen", e);
+            last.set(new RouteTypeBackfillSummary(dryRun, 0, 0, 1, Map.of("ABBRUCH -> " + e.getClass().getSimpleName(), 1)));
         } finally {
             running.set(false);
         }

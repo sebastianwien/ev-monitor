@@ -23,20 +23,27 @@ class AdminRouteTypeBackfillControllerIntegrationTest extends AbstractIntegratio
     }
 
     @Test
-    void admin_startsDryRunByDefault_andReadsTheResult() {
+    void admin_startsDryRunByDefault_andReadsTheResult() throws InterruptedException {
         User admin = createAndSaveAdminUser("rt-admin-" + System.nanoTime() + "@example.com");
 
         ResponseEntity<RouteTypeBackfillJob.Status> started = restTemplate.exchange("/api/admin/route-type/backfill", HttpMethod.POST,
                 createAuthRequest(admin.getId(), admin.getEmail()), RouteTypeBackfillJob.Status.class);
         assertEquals(HttpStatus.ACCEPTED, started.getStatusCode());
 
-        // Test-Executor ist synchron: der Lauf ist beim Statusabruf schon fertig
-        ResponseEntity<RouteTypeBackfillJob.Status> status = restTemplate.exchange("/api/admin/route-type/backfill", HttpMethod.GET,
-                createAuthRequest(admin.getId(), admin.getEmail()), RouteTypeBackfillJob.Status.class);
-        assertEquals(HttpStatus.OK, status.getStatusCode());
-        assertNotNull(status.getBody());
-        assertFalse(status.getBody().running());
-        assertNotNull(status.getBody().last());
-        assertTrue(status.getBody().last().dryRun());
+        // Lauf ist asynchron; bis zu 10 s auf das Ergebnis warten
+        RouteTypeBackfillJob.Status body = null;
+        for (int i = 0; i < 100; i++) {
+            ResponseEntity<RouteTypeBackfillJob.Status> status = restTemplate.exchange("/api/admin/route-type/backfill", HttpMethod.GET,
+                    createAuthRequest(admin.getId(), admin.getEmail()), RouteTypeBackfillJob.Status.class);
+            assertEquals(HttpStatus.OK, status.getStatusCode());
+            body = status.getBody();
+            if (body != null && !body.running() && body.last() != null) break;
+            Thread.sleep(100);
+        }
+        assertNotNull(body);
+        assertFalse(body.running(), "Status: " + body);
+        assertNotNull(body.last(), "Status: " + body);
+        assertTrue(body.last().dryRun());
+        assertEquals(0, body.last().errors(), "Status: " + body);
     }
 }
