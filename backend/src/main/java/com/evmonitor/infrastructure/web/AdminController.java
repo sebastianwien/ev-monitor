@@ -8,6 +8,8 @@ import com.evmonitor.application.BatterySohService;
 import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.application.StripeReportService;
 import com.evmonitor.application.WeeklyReportService;
+import com.evmonitor.application.routetype.RouteTypeBackfillJob;
+import com.evmonitor.application.routetype.RouteTypeBackfillSummary;
 import com.evmonitor.infrastructure.persistence.AdminQueryRepository;
 import com.evmonitor.infrastructure.weather.TemperatureBackfillJob;
 import com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob;
@@ -41,6 +43,7 @@ public class AdminController {
     private final WeeklyReportService weeklyReportService;
     private final ImportStatsService importStatsService;
     private final ConnectionHealthService connectionHealthService;
+    private final RouteTypeBackfillJob routeTypeBackfillJob;
 
     /**
      * Triggers one-time temperature backfill for all logs with geohash but no temperature.
@@ -69,6 +72,17 @@ public class AdminController {
     public ResponseEntity<String> backfillTripTemperature() {
         String summary = tripTemperatureBackfillJob.run();
         return ResponseEntity.ok(summary);
+    }
+
+    /**
+     * Einmal-Backfill des Streckentyps für den Bestand. Default ist ein Dry-run, der nur zählt;
+     * erst {@code dryRun=false} schreibt. Antwort enthält nur Zähler je Quelle und Ergebnis.
+     */
+    @PostMapping("/route-type/backfill")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<RouteTypeBackfillSummary> backfillRouteType(
+            @RequestParam(defaultValue = "true") boolean dryRun) {
+        return ResponseEntity.ok(routeTypeBackfillJob.run(dryRun));
     }
 
     @PostMapping("/spec-efficiency/recalculate")
