@@ -29,6 +29,7 @@ import WizardShell from './WizardShell.vue'
 import StepPlace from './StepPlace.vue'
 import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
 import { consumptionPreview, type PreviousLogRef } from '../../utils/consumptionPreview'
+import { shouldAskHighway } from './routeTypeHint'
 import { costMetrics } from './costMetrics'
 import geohashLib from 'ngeohash'
 import type { CardChoice, CommunityPrice } from './CardStrip.vue'
@@ -287,6 +288,9 @@ const previousLog = computed<PreviousLogRef | null>(() => {
   const l = logs.value.find(x => x.odometerKm != null)
   return l ? { odometerKm: l.odometerKm, socAfter: l.socAfterChargePercent ?? null } : null
 })
+/** Schritt 3 fragt nach Autobahn, wenn die Entladeleistung seit der Vorladung hoch war (Streckentyp bleibt optional) */
+const askHighway = computed(() => form.value.routeType == null && shouldAskHighway(logs.value,
+  { loggedAt: form.value.loggedAt, socBeforeChargePercent: form.value.socBeforeChargePercent }, selectedCar.value?.effectiveBatteryCapacityKwh))
 /** Richtwert kWh und Euro je 100 km seit der letzten Ladung - Schritt 2 zeigt ihn in der Kostenbox, Schritt 3 in der Kachel */
 const preview = computed(() => consumptionPreview({
   kwhCharged: form.value.kwhCharged, kwhAtVehicle: form.value.kwhAtVehicle, chargingType: form.value.chargingType,
@@ -543,7 +547,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
         @expand-radius="nearby.expand()" />
       <StepNumbers v-else-if="step === 2" v-model="form" v-model:providers="providers" :cost="cost" :community-price="community"
         :last-odometer-km="lastOdometerKm" :effective-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh" :open-card="openCard" :context="numbersContext" :preview="preview" @ocr="onOcr" />
-      <StepReview v-else v-model="form" :voice="voice" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" @goto="goto">
+      <StepReview v-else v-model="form" :voice="voice" :place-label="placeLabel" :context="numbersContext" :cost-metrics="summaryMetrics" :error="error" :ask-highway="askHighway" @goto="goto">
         <template v-if="showVoice && voice" #voice-action>
           <VoiceCapture variant="inline" :car-id="selectedCarId!" :latitude="form.latitude" :longitude="form.longitude" @draft="onVoiceDraft" />
         </template>

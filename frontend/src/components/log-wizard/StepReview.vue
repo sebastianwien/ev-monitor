@@ -6,6 +6,7 @@ import type { LogFormData } from '../log-form/logFormData'
 import type { RequiredField, VoiceFlag, VoiceUsage, WizardStep } from './wizardLogic'
 import VoiceTranscript from './VoiceTranscript.vue'
 import LogSummary, { type SummarySection } from './LogSummary.vue'
+import HighwayQuestion from './HighwayQuestion.vue'
 import PlaceHeader, { type NumbersContext } from './PlaceHeader.vue'
 import { useFillHeight } from '../../composables/useFillHeight'
 import { MINIMAP_MAX_PX } from './minimapTiles'
@@ -13,6 +14,8 @@ import type { CostMetric } from './costMetrics'
 
 const props = defineProps<{
   placeLabel: string; error: string | null; context: NumbersContext; costMetrics: CostMetric[]
+  /** Nachfrage nach Autobahn, wenn seit der letzten Ladung viel Energie in kurzer Zeit verbraucht wurde */
+  askHighway?: boolean
   /** Nach einer Sprachaufnahme: das Gehörte und die unsicheren Felder */
   voice?: { transcript: string; flags: VoiceFlag[]; usage: VoiceUsage } | null
 }>()
@@ -36,6 +39,7 @@ const stepFor: Record<SummarySection, WizardStep> = { place: 1, energy: 2, vehic
       <VoiceTranscript v-if="voice" :transcript="voice.transcript" :flags="voice.flags" :usage="voice.usage">
         <slot name="voice-action" />
       </VoiceTranscript>
+      <HighwayQuestion v-if="askHighway" v-model="form" />
       <LogSummary :flagged="flagged" v-model="form" :place-label="placeLabel" hide-place details-numbers-only reveal :cost-metrics="costMetrics" @edit="s => emit('goto', stepFor[s])" />
       <p v-if="error" class="text-sm text-red-500 dark:text-red-400 text-center">{{ error }}</p>
       <p class="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400"><BoltIcon class="h-4 w-4" />{{ t('logwizard.watt_hint') }}</p>
