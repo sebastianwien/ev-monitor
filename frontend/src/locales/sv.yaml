@@ -3906,6 +3906,12 @@ rating:
     proof_consumption: "{consumption} uppmätt"
     own_cta: "Du kör en {model}. Ditt betyg saknas fortfarande."
     transparency: "Bara förare med egen bil och minst 5 registrerade laddningar eller 300 km kan betygsätta. Vi läser texter före publicering, beröm och kritik enligt samma regler."
+    overall: "Helhetsbetyg"
+    overall_value: "{v} av 5"
+    overall_count: "från {count} betyg | från {count} betyg"
+    overall_hint_single: "Snitt av alla stjärnfrågor"
+    overall_hint_aggregate: "Snitt av alla stjärnfrågor, förare med fler kilometer väger tyngre"
+    overall_aria: "Helhetsbetyg {v} av 5"
     reasons: "Skäl: {list}"
   teaser:
     text: "Du ser vad andra {model}-förare mäter. Vad säger du?"

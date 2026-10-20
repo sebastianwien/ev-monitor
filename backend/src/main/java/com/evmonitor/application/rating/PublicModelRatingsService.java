@@ -55,6 +55,8 @@ public class PublicModelRatingsService {
 
         ModelRatingSummary summary = RatingAggregator.summarize(ratings, withText);
         boolean enough = ratings.size() >= RatingAggregator.MIN_FOR_AVERAGE;
+        List<CarReview> reports = approved.stream().filter(PublicModelRatingsService::isPublishedAsReport).limit(MAX_REPORTS).toList();
+        Set<UUID> withReport = reports.stream().map(CarReview::getCarRatingId).collect(Collectors.toSet());
         return new PublicModelRatingsResponse(
                 summary.count(),
                 summary.rebuy(),
@@ -63,11 +65,10 @@ public class PublicModelRatingsService {
                 enough ? RatingAggregator.totalCost(ratings) : null,
                 enough ? RatingAggregator.topChips(ratings, CarRating::getStrengths) : List.of(),
                 enough ? RatingAggregator.topChips(ratings, CarRating::getWeaknesses) : List.of(),
-                enough ? List.of() : ratings.stream().map(PublicModelRatingsService::single).toList(),
+                enough ? List.of() : ratings.stream().map(r -> single(r, withReport.contains(r.getId()))).toList(),
                 approved.stream().filter(v -> !isPublishedAsReport(v)).limit(MAX_QUOTES)
                         .map(v -> quote(v, byId.get(v.getCarRatingId()))).toList(),
-                approved.stream().filter(PublicModelRatingsService::isPublishedAsReport).limit(MAX_REPORTS)
-                        .map(v -> report(v, byId.get(v.getCarRatingId()))).toList(),
+                reports.stream().map(v -> report(v, byId.get(v.getCarRatingId()))).toList(),
                 enough ? new PublicModelRatingsResponse.Aggregate(
                         RatingAggregator.aggregateScore(ratings, withText), ratings.size()) : null);
     }
@@ -77,10 +78,11 @@ public class PublicModelRatingsService {
         return review.getPublishedBody().length() >= CarReview.REPORT_MIN_CHARS;
     }
 
-    private static PublicModelRatingsResponse.SingleRating single(CarRating r) {
+    private static PublicModelRatingsResponse.SingleRating single(CarRating r, boolean withReport) {
         return new PublicModelRatingsResponse.SingleRating(r.getRebuy(), r.getDailyFit(), r.getLongDistance(),
                 r.getSoftware(), r.getBuildQuality(), r.getService(), r.getTotalCost(),
-                RatingAggregator.publicKm(r.getKmDriven()), r.isBusinessCar());
+                RatingAggregator.publicKm(r.getKmDriven()), r.isBusinessCar(),
+                BigDecimal.valueOf(r.overallScore()).setScale(1, RoundingMode.HALF_UP), withReport);
     }
 
     private static PublicModelRatingsResponse.Quote quote(CarReview v, CarRating r) {

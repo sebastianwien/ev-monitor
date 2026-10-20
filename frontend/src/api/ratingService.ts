@@ -104,6 +104,10 @@ export interface PublicModelRatings {
         totalCost: TotalCostVerdict
         kmRounded: number
         businessCar: boolean
+        /** Gesamtnote 1-5, eine Nachkommastelle, sichtbar auf der Karte. */
+        ratingValue: number
+        /** Dieselbe Bewertung steht auch als Erfahrungsbericht da. */
+        withReport: boolean
     }[]
     quotes: { text: string; kmRounded: number; month: string }[]
     reports: {

@@ -3906,6 +3906,12 @@ rating:
     proof_consumption: "{consumption} målt"
     own_cta: "Du kjører en {model}. Vurderingen din mangler ennå."
     transparency: "Bare sjåfører med egen bil og minst 5 registrerte ladinger eller 300 km kan vurdere. Vi leser tekster før publisering, ros og kritikk etter samme regler."
+    overall: "Totalvurdering"
+    overall_value: "{v} av 5"
+    overall_count: "fra {count} vurdering | fra {count} vurderinger"
+    overall_hint_single: "Snitt av alle stjernespørsmål"
+    overall_hint_aggregate: "Snitt av alle stjernespørsmål, sjåfører med flere kilometer teller mer"
+    overall_aria: "Totalvurdering {v} av 5"
     reasons: "Grunner: {list}"
   teaser:
     text: "Du ser hva andre {model}-sjåfører måler. Hva sier du?"

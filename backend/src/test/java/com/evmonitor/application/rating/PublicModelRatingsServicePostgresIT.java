@@ -51,6 +51,12 @@ class PublicModelRatingsServicePostgresIT extends AbstractPostgresIT {
         assertThat(response.singles()).extracting(PublicModelRatingsResponse.SingleRating::kmRounded)
                 .containsExactlyInAnyOrder(25_000, 0);
         assertThat(response.singles()).anyMatch(PublicModelRatingsResponse.SingleRating::businessCar);
+        // Gesamtnote je Karte, damit sie sichtbar ist und als Review ins JSON-LD darf
+        assertThat(response.singles()).allSatisfy(s -> {
+            assertThat(s.ratingValue()).isNotNull();
+            assertThat(s.ratingValue().scale()).isEqualTo(1);
+            assertThat(s.withReport()).isFalse();
+        });
     }
 
     @Test
@@ -107,6 +113,10 @@ class PublicModelRatingsServicePostgresIT extends AbstractPostgresIT {
             assertThat(r.logCount()).isEqualTo(12);
             assertThat(r.ratingValue()).isNotNull();
         });
+        // Die Karte zum Bericht ist markiert, damit dieselbe Bewertung nicht zweimal als Review zählt
+        assertThat(response.singles()).filteredOn(PublicModelRatingsResponse.SingleRating::withReport).singleElement()
+                .satisfies(s -> assertThat(s.ratingValue()).isEqualByComparingTo(response.reports().get(0).ratingValue()));
+        assertThat(response.singles()).filteredOn(s -> !s.withReport()).hasSize(1);
     }
 
     @Test

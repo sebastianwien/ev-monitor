@@ -4029,6 +4029,12 @@ rating:
     proof_consumption: "{consumption} gemessen"
     own_cta: "Du fährst einen {model}. Deine Bewertung fehlt noch."
     transparency: "Nur Fahrer mit eigenem Auto und mindestens 5 erfassten Ladevorgängen oder 300 km können bewerten. Texte lesen wir vor der Veröffentlichung."
+    overall: "Gesamtnote"
+    overall_value: "{v} von 5"
+    overall_count: "aus {count} Bewertung | aus {count} Bewertungen"
+    overall_hint_single: "Mittel aller Sternefragen"
+    overall_hint_aggregate: "Mittel aller Sternefragen, Fahrer mit vielen Kilometern zählen mehr"
+    overall_aria: "Gesamtnote {v} von 5"
     reasons: "Gründe: {list}"
   teaser:
     text: "Bewerte deinen {model} in 7 Fragen."
