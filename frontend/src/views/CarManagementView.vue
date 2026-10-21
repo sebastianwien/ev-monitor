@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   TruckIcon, ArrowDownTrayIcon, ClipboardDocumentIcon, CheckIcon,
   ChartBarIcon, BoltIcon, LockClosedIcon, Battery50Icon, StarIcon, CheckBadgeIcon,
 } from '@heroicons/vue/24/outline'
-import { buildOptionLabels } from '../utils/variantOptionLabels'
-import { monthNames } from '../utils/monthNames'
 import LicensePlate from '../components/car/LicensePlate.vue'
+import CarFormFields, { type CarFormState } from '../components/car/CarFormFields.vue'
+import CarFormSheet from '../components/car/CarFormSheet.vue'
 import BatterySohModal from '../components/car/BatterySohModal.vue'
 import SohPill from '../components/car/SohPill.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
@@ -32,8 +32,7 @@ import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
 
-const { t, locale } = useI18n()
-const monthOptions = computed(() => monthNames(locale.value))
+const { t } = useI18n()
 
 
 // -- Car Form --
@@ -51,9 +50,15 @@ const {
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel, toastUndo,
 } = useCarForm()
 
-// Zeitraum als Label; bei gleichem Zeitraum zusaetzlich die Variante (sonst ununterscheidbar)
-const trimOptionLabels = computed(() =>
-  buildOptionLabels(visibleOptionsForTrim.value, getModelLabel(selectedModel.value), t('cars.since')))
+// Formularzustand fuer CarFormFields: reactive() packt die Refs aus, v-model dort schreibt
+// auf dieselben Refs - ein Formular fuer Anlegen und Bearbeiten, ein Zustand.
+const formState: CarFormState = reactive({
+  editingCar, selectedBrand, selectedModel, year, month, licensePlate, trim,
+  selectedCapacity, selectedSpecId, selectedTrimLevel, customCapacity, useCustomCapacity,
+  powerKw, batteryDegradationPercent, hasHeatPump, isBusinessCar, capacityWasCorrected,
+  sortedBrands, availableModels, isSonstige, selectedModelCapacities, finalCapacity, powerPs,
+  isGroupedByTrim, trimGroups, visibleOptionsForTrim, selectTrimGroup, getModelLabel,
+})
 
 // -- Car Images --
 const {
@@ -223,19 +228,6 @@ const copyCarId = async (id: string) => {
   } catch { /* ignore */ }
 }
 
-const VARIANT_FILTER_THRESHOLD = 8
-const variantFilter = ref('')
-watch(selectedModel, () => { variantFilter.value = '' })
-
-const filteredCapacities = computed(() => {
-  if (selectedModelCapacities.value.length <= VARIANT_FILTER_THRESHOLD) return selectedModelCapacities.value
-  const q = variantFilter.value.trim().toLowerCase()
-  if (!q) return selectedModelCapacities.value
-  return selectedModelCapacities.value.filter(c =>
-    (c.variantName?.toLowerCase().includes(q) ?? false) ||
-    String(c.kWh).includes(q)
-  )
-})
 </script>
 
 <template>
@@ -260,205 +252,10 @@ const filteredCapacities = computed(() => {
         {{ error }}
       </div>
 
-      <!-- Add form (inline) -->
+      <!-- Anlegen ohne Autos: inline, damit der Leerzustand und das Formular zusammen stehen -->
       <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
         <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">{{ t('cars.add_title') }}</h2>
-
-        <form @submit.prevent="doSubmitForm" class="space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_brand') }}</label>
-              <select v-model="selectedBrand" required
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
-                <option value="">{{ t('cars.select_brand') }}</option>
-                <option v-for="brand in sortedBrands" :key="brand.value" :value="brand.value">
-                  {{ brand.label }}
-                </option>
-              </select>
-              <button type="button" @click="missingDialogOpen = true"
-                class="mt-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
-                {{ t('cars.missing_brand_model_link') }}
-              </button>
-            </div>
-
-            <div v-if="!isSonstige">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_model') }}</label>
-              <select v-model="selectedModel" required :disabled="!selectedBrand"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
-                <option value="">{{ selectedBrand ? t('cars.select_model') : t('cars.select_brand_first') }}</option>
-                <option v-for="m in availableModels" :key="m.value" :value="m.value">
-                  {{ m.label }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ isSonstige ? t('cars.label_model') : t('cars.label_trim') }}</label>
-              <input
-                v-model="trim"
-                type="text"
-                :placeholder="isSonstige ? t('cars.trim_placeholder_sonstige') : t('cars.trim_placeholder')"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-              <p v-if="!isSonstige" class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('cars.hint_trim') }}</p>
-            </div>
-
-            <!-- Capacity Selection -->
-            <div v-if="selectedModel" class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('cars.label_capacity') }}</label>
-
-              <div v-if="!useCustomCapacity" class="space-y-2">
-                <template v-if="isGroupedByTrim">
-                  <div class="flex gap-2 flex-wrap">
-                    <button v-for="group in trimGroups" :key="group.trimLevel" type="button"
-                      @click="selectTrimGroup(group.trimLevel)"
-                      :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
-                        selectedTrimLevel === group.trimLevel
-                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
-                          : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
-                      {{ group.trimLevel }}
-                    </button>
-                  </div>
-                  <div v-if="visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
-                    <button v-for="(option, index) in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
-                      @click="selectedCapacity = option.kWh; selectedSpecId = option.vehicleSpecificationId"
-                      :class="['px-3 py-1.5 rounded-sm text-sm font-medium transition',
-                        selectedSpecId === option.vehicleSpecificationId
-                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
-                          : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
-                      <span class="block text-left">{{ trimOptionLabels[index].primary }}</span>
-                      <span v-if="trimOptionLabels[index].secondary"
-                        :class="['block text-left text-xs font-normal',
-                          selectedSpecId === option.vehicleSpecificationId ? 'text-indigo-100' : 'text-indigo-400 dark:text-indigo-400']">
-                        {{ trimOptionLabels[index].secondary }}
-                      </span>
-                    </button>
-                  </div>
-                </template>
-                <template v-else>
-                  <input v-if="selectedModelCapacities.length > VARIANT_FILTER_THRESHOLD" v-model="variantFilter" type="text"
-                    :placeholder="t('cars.variant_filter_placeholder')"
-                    class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
-                  <div class="flex gap-2 flex-wrap">
-                    <button v-for="capacity in filteredCapacities" :key="capacity.vehicleSpecificationId ?? capacity.kWh" type="button"
-                      @click="selectedCapacity = capacity.kWh; selectedSpecId = capacity.vehicleSpecificationId"
-                      :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
-                        (capacity.vehicleSpecificationId ? selectedSpecId === capacity.vehicleSpecificationId : selectedCapacity === capacity.kWh)
-                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
-                          : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
-                      {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
-                    </button>
-                    <p v-if="filteredCapacities.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
-                      {{ t('cars.variant_filter_no_results') }}
-                    </p>
-                  </div>
-                </template>
-                <button type="button" @click="missingDialogOpen = true"
-                  class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
-                  {{ t('cars.missing_battery_link') }}
-                </button>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_month') }}</label>
-                <select v-model="month" required
-                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
-                  <option :value="null" disabled>{{ t('cars.month_placeholder') }}</option>
-                  <option v-for="(name, i) in monthOptions" :key="i" :value="i + 1">{{ name }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_year') }}</label>
-                <input v-model="year" type="number" inputmode="numeric" required min="2000" :max="new Date().getFullYear() + 1"
-                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_plate') }}</label>
-              <input v-model="licensePlate" type="text" :placeholder="t('cars.plate_placeholder')"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_power') }}</label>
-              <input
-                v-model.number="powerKw"
-                type="number"
-                step="0.1"
-                min="0"
-                :placeholder="t('cars.power_placeholder')"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-              <p v-if="powerPs" class="text-xs text-gray-500 dark:text-gray-400 mt-1">≈ {{ powerPs }} PS</p>
-              <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('cars.hint_power') }}</p>
-            </div>
-          </div>
-
-          <!-- Zusätzliche Einstellungen -->
-          <div class="mt-4 border-t dark:border-gray-600 pt-4">
-            <div class="space-y-4">
-              <!-- Wärmepumpe -->
-              <label class="flex items-start gap-3 cursor-pointer">
-                <div class="relative mt-0.5">
-                  <input type="checkbox" v-model="hasHeatPump" class="sr-only peer" />
-                  <div class="w-10 h-5 bg-gray-200 dark:bg-gray-600 rounded-full peer-checked:bg-blue-500 transition-colors"></div>
-                  <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
-                </div>
-                <div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.label_heat_pump') }}</span>
-                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.hint_heat_pump') }}</p>
-                </div>
-              </label>
-
-              <!-- Dienstwagen -->
-              <label class="flex items-start gap-3 cursor-pointer">
-                <div class="relative mt-0.5">
-                  <input type="checkbox" v-model="isBusinessCar" class="sr-only peer" />
-                  <div class="w-10 h-5 bg-gray-200 dark:bg-gray-600 rounded-full peer-checked:bg-violet-500 transition-colors"></div>
-                  <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
-                </div>
-                <div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.business_car_label') }}</span>
-                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.business_car_hint') }}</p>
-                </div>
-              </label>
-
-              <!-- Batteriedegradation (Legacy-Feld, nur sichtbar wenn noch kein SoH-Verlauf) -->
-              <div v-if="!editingCar">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_degradation') }}</label>
-                <div class="flex items-center gap-2">
-                  <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
-                    :placeholder="t('cars.degradation_placeholder')"
-                    class="w-32 rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-                  <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
-                  <button v-if="batteryDegradationPercent != null" type="button"
-                    @click="batteryDegradationPercent = null"
-                    class="text-xs text-red-500 hover:text-red-700 ml-2">{{ t('cars.reset') }}</button>
-                </div>
-                <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600 mt-1">
-                  {{ t('cars.effective_capacity', { eff: (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2), nom: finalCapacity }) }}
-                </p>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('cars.hint_degradation') }}</p>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="flex gap-3 pt-2">
-            <button type="submit"
-              v-haptic
-              :disabled="submitting"
-              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-sm hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
-              {{ submitting ? t('cars.saving') : (editingCar ? t('cars.update_btn') : t('cars.add_submit_btn')) }}
-            </button>
-            <button type="button" @click="resetForm"
-              v-haptic
-              class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition">
-              {{ t('cars.cancel') }}
-            </button>
-          </div>
-        </form>
+        <CarFormFields :form="formState" :submitting="submitting" @submit="doSubmitForm" @cancel="resetForm" @missing="missingDialogOpen = true" />
       </div>
 
       <!-- Empty State: No Cars -->
@@ -705,213 +502,9 @@ const filteredCapacities = computed(() => {
       @update:delete-with-car="toggleDeleteWithCar"
     />
 
-    <!-- Edit Car Modal - Teleport nach body: die View liegt auf Mobile im SwipeTabPager,
-         dessen Track ein translateX() traegt. Ein transformierter Vorfahre wird zum
-         Containing Block fuer position:fixed, das Overlay wuerde sonst am 200% breiten
-         Track statt am Viewport haengen. -->
-    <Teleport to="body">
-    <div v-if="editingCar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="resetForm">
-      <div data-testid="edit-car-modal" class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">{{ t('cars.edit_title') }}</h2>
-          <button @click="resetForm" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <form @submit.prevent="doSubmitForm" class="p-6 space-y-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_brand') }}</label>
-              <select v-model="selectedBrand" required
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
-                <option value="">{{ t('cars.select_brand') }}</option>
-                <option v-for="brand in sortedBrands" :key="brand.value" :value="brand.value">
-                  {{ brand.label }}
-                </option>
-              </select>
-              <button type="button" @click="missingDialogOpen = true"
-                class="mt-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
-                {{ t('cars.missing_brand_model_link') }}
-              </button>
-            </div>
-
-            <div v-if="!isSonstige">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_model') }}</label>
-              <select v-model="selectedModel" required :disabled="!selectedBrand"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border disabled:bg-gray-100 dark:disabled:bg-gray-600 dark:bg-gray-700 dark:text-gray-100">
-                <option value="">{{ selectedBrand ? t('cars.select_model') : t('cars.select_brand_first') }}</option>
-                <option v-for="m in availableModels" :key="m.value" :value="m.value">
-                  {{ m.label }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ isSonstige ? t('cars.label_model') : t('cars.label_trim') }}</label>
-              <input v-model="trim" type="text"
-                :placeholder="isSonstige ? t('cars.trim_placeholder_sonstige') : t('cars.trim_placeholder')"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-            </div>
-
-            <div v-if="selectedModel" class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ t('cars.label_capacity') }}</label>
-              <div v-if="!useCustomCapacity" class="space-y-2">
-                <template v-if="isGroupedByTrim">
-                  <div class="flex gap-2 flex-wrap">
-                    <button v-for="group in trimGroups" :key="group.trimLevel" type="button"
-                      @click="selectTrimGroup(group.trimLevel)"
-                      :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
-                        selectedTrimLevel === group.trimLevel
-                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
-                          : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
-                      {{ group.trimLevel }}
-                    </button>
-                  </div>
-                  <div v-if="visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
-                    <button v-for="(option, index) in visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
-                      @click="selectedCapacity = option.kWh; selectedSpecId = option.vehicleSpecificationId"
-                      :class="['px-3 py-1.5 rounded-sm text-sm font-medium transition',
-                        selectedSpecId === option.vehicleSpecificationId
-                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
-                          : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
-                      <span class="block text-left">{{ trimOptionLabels[index].primary }}</span>
-                      <span v-if="trimOptionLabels[index].secondary"
-                        :class="['block text-left text-xs font-normal',
-                          selectedSpecId === option.vehicleSpecificationId ? 'text-indigo-100' : 'text-indigo-400 dark:text-indigo-400']">
-                        {{ trimOptionLabels[index].secondary }}
-                      </span>
-                    </button>
-                  </div>
-                </template>
-                <template v-else>
-                  <input v-if="selectedModelCapacities.length > VARIANT_FILTER_THRESHOLD" v-model="variantFilter" type="text"
-                    :placeholder="t('cars.variant_filter_placeholder')"
-                    class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100 text-sm" />
-                  <div class="flex gap-2 flex-wrap">
-                    <button v-for="capacity in filteredCapacities" :key="capacity.vehicleSpecificationId ?? capacity.kWh" type="button"
-                      @click="selectedCapacity = capacity.kWh; selectedSpecId = capacity.vehicleSpecificationId"
-                      :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
-                        (capacity.vehicleSpecificationId ? selectedSpecId === capacity.vehicleSpecificationId : selectedCapacity === capacity.kWh)
-                          ? 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
-                          : 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500']">
-                      {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
-                    </button>
-                    <p v-if="filteredCapacities.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
-                      {{ t('cars.variant_filter_no_results') }}
-                    </p>
-                  </div>
-                </template>
-                <button type="button" @click="missingDialogOpen = true"
-                  class="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
-                  {{ t('cars.missing_battery_link') }}
-                </button>
-              </div>
-              <p v-else class="text-sm text-gray-700 dark:text-gray-300">{{ t('cars.capacity_own_value', { kwh: customCapacity }) }}</p>
-              <p v-if="capacityWasCorrected" class="mt-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded px-3 py-2">
-                {{ t('cars.capacity_corrected_hint', { old: editingCar?.customNetCapacityKwh, new: selectedCapacity }) }}
-              </p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_month') }}</label>
-                <select v-model="month" required
-                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100">
-                  <option :value="null" disabled>{{ t('cars.month_placeholder') }}</option>
-                  <option v-for="(name, i) in monthOptions" :key="i" :value="i + 1">{{ name }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_year') }}</label>
-                <input v-model="year" type="number" inputmode="numeric" required min="2000" :max="new Date().getFullYear() + 1"
-                  class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_plate') }}</label>
-              <input v-model="licensePlate" type="text" :placeholder="t('cars.plate_placeholder')"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_power') }}</label>
-              <input v-model.number="powerKw" type="number" step="0.1" min="0" :placeholder="t('cars.power_placeholder')"
-                class="w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-              <p v-if="powerPs" class="text-xs text-gray-500 dark:text-gray-400 mt-1">≈ {{ powerPs }} PS</p>
-              <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('cars.hint_power') }}</p>
-            </div>
-          </div>
-
-          <!-- Zusätzliche Einstellungen -->
-          <div class="mt-4 border-t dark:border-gray-600 pt-4">
-            <div class="space-y-4">
-              <!-- Wärmepumpe -->
-              <label class="flex items-start gap-3 cursor-pointer">
-                <div class="relative mt-0.5">
-                  <input type="checkbox" v-model="hasHeatPump" class="sr-only peer" />
-                  <div class="w-10 h-5 bg-gray-200 dark:bg-gray-600 rounded-full peer-checked:bg-blue-500 transition-colors"></div>
-                  <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
-                </div>
-                <div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.label_heat_pump') }}</span>
-                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.hint_heat_pump') }}</p>
-                </div>
-              </label>
-
-              <!-- Dienstwagen -->
-              <label class="flex items-start gap-3 cursor-pointer">
-                <div class="relative mt-0.5">
-                  <input type="checkbox" v-model="isBusinessCar" class="sr-only peer" />
-                  <div class="w-10 h-5 bg-gray-200 dark:bg-gray-600 rounded-full peer-checked:bg-violet-500 transition-colors"></div>
-                  <div class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
-                </div>
-                <div>
-                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('cars.business_car_label') }}</span>
-                  <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('cars.business_car_hint') }}</p>
-                </div>
-              </label>
-
-              <!-- Batteriedegradation (Legacy-Feld, nur sichtbar wenn noch kein SoH-Verlauf) -->
-              <div v-if="!editingCar">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('cars.label_degradation') }}</label>
-                <div class="flex items-center gap-2">
-                  <input v-model.number="batteryDegradationPercent" type="number" step="0.1" min="0" max="50"
-                    :placeholder="t('cars.degradation_placeholder')"
-                    class="w-32 rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100" />
-                  <span class="text-sm text-gray-500 dark:text-gray-400">%</span>
-                  <button v-if="batteryDegradationPercent != null" type="button"
-                    @click="batteryDegradationPercent = null"
-                    class="text-xs text-red-500 hover:text-red-700 ml-2">{{ t('cars.reset') }}</button>
-                </div>
-                <p v-if="batteryDegradationPercent && finalCapacity" class="text-xs text-amber-600 mt-1">
-                  {{ t('cars.effective_capacity', { eff: (finalCapacity * (1 - batteryDegradationPercent / 100)).toFixed(2), nom: finalCapacity }) }}
-                </p>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('cars.hint_degradation') }}</p>
-              </div>
-
-            </div>
-          </div>
-
-          <div class="flex gap-3 pt-2">
-            <button type="submit"
-              v-haptic
-              class="btn-3d bg-indigo-600 text-white px-6 py-2 rounded-sm hover:bg-indigo-700 transition">
-              {{ t('cars.update_btn') }}
-            </button>
-            <button type="button" @click="resetForm"
-              v-haptic
-              class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 rounded-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition">
-              {{ t('cars.cancel') }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-    </Teleport>
+    <!-- Bearbeiten als Sheet (Teleport nach body liegt im BottomSheet, wegen des SwipeTabPagers) -->
+    <CarFormSheet v-if="editingCar" :form="formState" :submitting="submitting" :title="t('cars.edit_title')"
+      @submit="doSubmitForm" @cancel="resetForm" @missing="missingDialogOpen = true" />
 
 
     <!-- Tesla Fleet Integration (only shown when user has a Tesla) -->
