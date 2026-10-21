@@ -111,11 +111,11 @@ async function removeCurrent() {
 }
 
 const money = (v: number) => formatCurrency(v, { decimals: 0 })
-/** Zahl ueber dem Monatsbalken: ganze Euro, ab 1.000 als "1,2k", leer bei 0 (12 Spalten auf 390 px). */
+/** Geldbetrag ueber dem Monatsbalken: "304 €", ab 1.000 "1,2k €", leer bei 0 (12 Spalten auf 390 px). */
 const shortMoney = (v: number) => {
   if (Math.round(v) === 0) return ''
-  if (Math.abs(v) >= 1000) return `${n(v / 1000, { maximumFractionDigits: 1 })}k`
-  return n(Math.round(v), { maximumFractionDigits: 0 })
+  if (Math.abs(v) >= 1000) return money(v).replace(/[\d.,]+/, n(v / 1000, { maximumFractionDigits: 1 }) + 'k')
+  return money(Math.round(v))
 }
 </script>
 
@@ -160,8 +160,8 @@ const shortMoney = (v: number) => {
 
         <!-- 12 Monate -->
         <div class="mt-4 flex items-end gap-1" role="img" :aria-label="t('cars.costs.chart_aria')">
-          <div v-for="p in series" :key="`${p.year}-${p.month}`" class="flex flex-1 min-w-0 flex-col justify-end" :title="`${monthLabel(p)}: ${money(p.energyEur + p.fixedEur)}`">
-            <span class="mb-0.5 block text-center text-[10px] leading-none tabular-nums text-gray-500 dark:text-gray-400 truncate">{{ shortMoney(p.energyEur + p.fixedEur) }}</span>
+          <div v-for="p in series" :key="`${p.year}-${p.month}`" class="flex flex-1 min-w-0 flex-col justify-end overflow-visible" :title="`${monthLabel(p)}: ${money(p.energyEur + p.fixedEur)}`">
+            <span class="mb-0.5 -mx-1 block text-center text-[9px] md:text-[10px] tracking-tight leading-none tabular-nums whitespace-nowrap text-gray-500 dark:text-gray-400">{{ shortMoney(p.energyEur + p.fixedEur) }}</span>
             <div class="flex h-14 flex-col justify-end gap-px">
               <div class="w-full rounded-t-sm bg-amber-400/90 transition-[height] duration-500 ease-out motion-reduce:transition-none" :style="{ height: `${(Math.max(0, p.fixedEur) / maxMonth) * 100}%` }" />
               <div class="w-full bg-indigo-500 transition-[height] duration-500 ease-out motion-reduce:transition-none" :style="{ height: `${(p.energyEur / maxMonth) * 100}%` }" />
