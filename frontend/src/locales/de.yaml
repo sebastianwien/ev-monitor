@@ -1660,6 +1660,7 @@ cars:
     fixed: "Fixkosten"
     sentence: "{total} im Monat: {energy} Strom plus {fixed} Fixkosten."
     sentence_energy_only: "{total} im Monat für Strom."
+    sentence_fixed_only: "{total} im Monat an Fixkosten, noch keine Ladung mit Preis."
     empty_all: "Sobald Ladungen mit Preis erfasst sind, steht hier, was dein Auto kostet."
     empty_fixed: "Trag deine Versicherung ein, dann rechnen wir deine Vollkosten."
     fixed_year: "Fixkosten {year}"
@@ -3342,6 +3343,8 @@ share_curve:
 share_car:
   label: "Per Link teilbar"
   hint: "Wer den Link hat, sieht Verbrauch, Ladekosten und Ladungen dieses Fahrzeugs. Kennzeichen, Standorte und dein Name sind nie enthalten. Deaktivierst du den Link, ist er sofort ungültig."
+  hint_short: "Wer den Link hat, sieht Verbrauch und Ladekosten, nie Kennzeichen, Orte oder deinen Namen."
+  hint_more: "Was genau sichtbar ist"
   share_link: "Link teilen"
   link_copied: "Link kopiert"
   error_failed: "Hat nicht geklappt. Bitte nochmal versuchen."

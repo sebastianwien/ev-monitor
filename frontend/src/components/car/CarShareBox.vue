@@ -3,7 +3,11 @@
     <div class="flex items-start gap-3">
       <div class="min-w-0 flex-1">
         <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ t('share_car.label') }}</p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('share_car.hint') }}</p>
+        <p v-if="!compact || hintOpen" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('share_car.hint') }}</p>
+        <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          {{ t('share_car.hint_short') }}
+          <button type="button" class="font-medium text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline" @click="hintOpen = true">{{ t('share_car.hint_more') }}</button>
+        </p>
       </div>
       <button
         ref="toggleEl"
@@ -78,7 +82,10 @@ const props = withDefaults(defineProps<{
   source?: CarShareSource
   /** Schalter beim Einblenden fokussieren (im Sheet: der naechste Schritt ist klar). */
   autofocusToggle?: boolean
-}>(), { source: 'car_management', autofocusToggle: false })
+  /** Fahrzeugseite: ein Satz statt drei, der Rest hinter "Was genau sichtbar ist". */
+  compact?: boolean
+}>(), { source: 'car_management', autofocusToggle: false, compact: false })
+const emit = defineEmits<{ changed: [shared: boolean] }>()
 const { t, locale } = useI18n()
 const { share, busy, error, load, enable, revoke, shareLink, copySignature } = useCarShare()
 const outcome = ref<CarShareOutcome | null>(null)
@@ -87,6 +94,7 @@ const signatureOpen = ref(false)
 const copiedKind = ref<SignatureKind | null>(null)
 const copyFailed = ref(false)
 const toggleEl = ref<HTMLButtonElement | null>(null)
+const hintOpen = ref(false)
 
 onMounted(async () => {
   await load(props.carId)
@@ -97,6 +105,7 @@ async function toggle() {
   if (share.value) await revoke(props.carId)
   else await enable(props.carId, props.source)
   signatureOpen.value = false
+  emit('changed', !!share.value)
 }
 
 async function onShare() {

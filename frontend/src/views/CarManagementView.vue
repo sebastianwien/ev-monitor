@@ -92,6 +92,9 @@ watch(() => selectedCar.value?.id, id => {
   heroShare.share.value = null
   if (id) heroShare.load(id)
 }, { immediate: true })
+function onShareChanged() {
+  if (selectedCar.value) heroShare.load(selectedCar.value.id)
+}
 // Meldeweg "Fehlt etwas?": Dialog aus beiden Links im Formular (Marke/Modell, Akku).
 const missingDialogOpen = ref(false)
 
@@ -328,7 +331,7 @@ const copyCarId = async (id: string) => {
             </div>
             <div class="space-y-4">
               <CarRatingsCard v-if="ratingFor(selectedCar.id)" :key="`rating-${selectedCar.id}`" :car-id="selectedCar.id" :eligibility="ratingFor(selectedCar.id)!" />
-              <CarShareBox :key="selectedCar.id" :car-id="selectedCar.id" :title="getModelLabel(selectedCar.model)" />
+              <CarShareBox :key="selectedCar.id" :car-id="selectedCar.id" :title="getModelLabel(selectedCar.model)" compact @changed="onShareChanged" />
             </div>
           </div>
 

@@ -1614,6 +1614,7 @@ cars:
     fixed: "Fasta kostnader"
     sentence: "{total} per månad: {energy} el plus {fixed} fasta kostnader."
     sentence_energy_only: "{total} per månad för el."
+    sentence_fixed_only: "{total} per månad i fasta kostnader, ingen laddning med pris ännu."
     empty_all: "När laddningar med pris är registrerade visas här vad bilen kostar."
     empty_fixed: "Lägg in din försäkring så räknar vi ut totalkostnaden."
     fixed_year: "Fasta kostnader {year}"
@@ -3219,6 +3220,8 @@ share_curve:
 share_car:
   label: "Delbar via länk"
   hint: "Alla med länken ser förbrukning, laddkostnader och laddningar för den här bilen. Registreringsnummer, platser och ditt namn ingår aldrig. Stänger du av slutar länken fungera direkt."
+  hint_short: "Alla med länken ser förbrukning och laddkostnader, aldrig registreringsskylt, platser eller ditt namn."
+  hint_more: "Vad som visas"
   share_link: "Dela länk"
   link_copied: "Länk kopierad"
   error_failed: "Det gick inte. Försök igen."

@@ -1657,6 +1657,7 @@ cars:
     fixed: "Fixed costs"
     sentence: "{total} per month: {energy} energy plus {fixed} fixed costs."
     sentence_energy_only: "{total} per month for energy."
+    sentence_fixed_only: "{total} per month in fixed costs, no priced charge yet."
     empty_all: "Once charges with a price are logged, this shows what your car costs."
     empty_fixed: "Add your insurance and we calculate your total cost."
     fixed_year: "Fixed costs {year}"
@@ -3336,6 +3337,8 @@ share_curve:
 share_car:
   label: "Shareable via link"
   hint: "Anyone with the link sees consumption, charging costs and charges of this car. Licence plate, locations and your name are never included. Turn it off and the link stops working immediately."
+  hint_short: "Anyone with the link sees consumption and charging costs, never plate, places or your name."
+  hint_more: "What exactly is visible"
   share_link: "Share link"
   link_copied: "Link copied"
   error_failed: "That didn't work. Please try again."

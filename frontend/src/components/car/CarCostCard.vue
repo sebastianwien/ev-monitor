@@ -125,9 +125,10 @@ const money = (v: number) => formatCurrency(v, { decimals: 0 })
           <span class="text-base font-semibold text-gray-500 dark:text-gray-400">{{ perKmLabel !== null ? t('cars.costs.per_km') : t('cars.costs.per_month') }}</span>
         </p>
         <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
-          <template v-if="summary.fixedPerMonthEur !== 0">
+          <template v-if="summary.fixedPerMonthEur !== 0 && summary.energyPerMonthEur !== 0">
             {{ t('cars.costs.sentence', { total: money(summary.perMonthEur), energy: money(summary.energyPerMonthEur), fixed: money(summary.fixedPerMonthEur) }) }}
           </template>
+          <template v-else-if="summary.fixedPerMonthEur !== 0">{{ t('cars.costs.sentence_fixed_only', { total: money(summary.perMonthEur) }) }}</template>
           <template v-else>{{ t('cars.costs.sentence_energy_only', { total: money(summary.perMonthEur) }) }}</template>
         </p>
 
