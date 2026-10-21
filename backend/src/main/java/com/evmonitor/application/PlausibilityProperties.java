@@ -34,10 +34,23 @@ public class PlausibilityProperties {
     private int minTripDistanceKm = 10;
 
     /**
-     * Charging efficiency for AC (Level 2 Wallbox): ratio of energy entering battery vs. drawn from grid.
-     * Source: ADAC 2022 + IEEE Sears et al. consensus (~10% loss for 11kW Wallbox).
+     * Ladewirkungsgrad AC ab {@link #acSlowChargingThresholdKw} (Wallbox): Anteil der Energie, der im Akku
+     * ankommt. Gemessen an den Brutto/Netto-Paaren der Plattform (Median 0,95 ab 4 kW, 21.10.2026),
+     * ADAC 2026 bei 11 kW 0,93 bis 0,95.
      */
-    private double acChargingEfficiency = 0.90;
+    private double acChargingEfficiency = 0.95;
+
+    /**
+     * Ladewirkungsgrad AC unter {@link #acSlowChargingThresholdKw}: Steckdose, PV-Überschuss, lange Steckzeit
+     * mit Standby-Bezug. Paare: Median 0,87 unter 4 kW.
+     */
+    private double acChargingEfficiencySlow = 0.87;
+
+    /** Ladewirkungsgrad AC, wenn weder Leistung noch Dauer bekannt sind. Bisheriger globaler Wert. */
+    private double acChargingEfficiencyUnknownPower = 0.90;
+
+    /** Grenze zwischen langsamer und normaler AC-Klasse in kW. Die Grenze selbst zählt zur normalen Klasse. */
+    private double acSlowChargingThresholdKw = 4.0;
 
     /**
      * Charging efficiency for DC fast charging: ratio of energy entering battery vs. drawn from charger.
@@ -68,6 +81,24 @@ public class PlausibilityProperties {
 
     public double getAcChargingEfficiency() { return acChargingEfficiency; }
     public void setAcChargingEfficiency(double v) { this.acChargingEfficiency = v; }
+
+    public double getAcChargingEfficiencySlow() { return acChargingEfficiencySlow; }
+    public void setAcChargingEfficiencySlow(double v) { this.acChargingEfficiencySlow = v; }
+
+    public double getAcChargingEfficiencyUnknownPower() { return acChargingEfficiencyUnknownPower; }
+    public void setAcChargingEfficiencyUnknownPower(double v) { this.acChargingEfficiencyUnknownPower = v; }
+
+    public double getAcSlowChargingThresholdKw() { return acSlowChargingThresholdKw; }
+    public void setAcSlowChargingThresholdKw(double v) { this.acSlowChargingThresholdKw = v; }
+
+    /**
+     * AC-Ladewirkungsgrad nach geschätzter Ladeleistung: null ergibt den Wert ohne Leistung,
+     * unter der Schwelle die langsame Klasse, sonst den Standardwert.
+     */
+    public double acChargingEfficiencyForPowerKw(java.math.BigDecimal powerKw) {
+        if (powerKw == null) return acChargingEfficiencyUnknownPower;
+        return powerKw.doubleValue() < acSlowChargingThresholdKw ? acChargingEfficiencySlow : acChargingEfficiency;
+    }
 
     public double getDcChargingEfficiency() { return dcChargingEfficiency; }
     public void setDcChargingEfficiency(double v) { this.dcChargingEfficiency = v; }

@@ -30,17 +30,17 @@ class EvLogServiceChargingEfficiencyTest {
 
     @BeforeEach
     void setUp() {
-        // Use real efficiency values (AC=0.90, DC=0.95)
+        // Produktionswerte: AC ab 4 kW 0,95 (Logs hier mit 11 kW), DC 0,95
         service = new ConsumptionCalculationService(vehicleSpecificationRepository, new PlausibilityProperties(), mock(BatterySohRepository.class));
     }
 
     /**
-     * AT_CHARGER log with AC charging (UNKNOWN type + private = AC default):
-     * effectiveKwh = 50 * 0.90 = 45 kWh
+     * AT_CHARGER log with AC charging at 11 kW (UNKNOWN type + private = AC default):
+     * effectiveKwh = 50 * 0.95 = 47.5 kWh
      *
-     * socBefore(logY) = 85 - (45/75*100) = 85 - 60 = 25%
-     * energyConsumed  = (80 - 25) * 75/100 = 55 * 0.75 = 41.25 kWh
-     * consumption     = 41.25 * 100 / 300 = 13.75 kWh/100km
+     * socBefore(logY) = 85 - (47.5/75*100) = 85 - 63.33 = 21.67%
+     * energyConsumed  = (80 - 21.67) * 75/100 = 58.33 * 0.75 = 43.75 kWh
+     * consumption     = 43.75 * 100 / 300 = 14.58 kWh/100km
      */
     @Test
     void atCharger_acDefault_appliesAcEfficiency() {
@@ -50,7 +50,7 @@ class EvLogServiceChargingEfficiencyTest {
         var result = service.calculateConsumption(logX, logY, BATTERY_75);
 
         assertTrue(result.isPresent());
-        assertEquals(new BigDecimal("13.75"), result.get());
+        assertEquals(new BigDecimal("14.58"), result.get());
     }
 
     /**
@@ -110,8 +110,8 @@ class EvLogServiceChargingEfficiencyTest {
 
     /**
      * Fallback calculation applies AC efficiency for AT_CHARGER logs:
-     * effectiveKwh = 20 * 0.90 = 18 kWh
-     * consumption = 18 * 100 / 100 = 18.00 kWh/100km
+     * effectiveKwh = 20 * 0.95 = 19 kWh
+     * consumption = 19 * 100 / 100 = 19.00 kWh/100km
      */
     @Test
     void fallback_atCharger_appliesAcEfficiency() {
@@ -119,7 +119,7 @@ class EvLogServiceChargingEfficiencyTest {
 
         BigDecimal result = service.calculateConsumptionFallback(List.of(log), new BigDecimal("100"));
 
-        assertEquals(new BigDecimal("18.00"), result);
+        assertEquals(new BigDecimal("19.00"), result);
     }
 
     /**
@@ -154,7 +154,7 @@ class EvLogServiceChargingEfficiencyTest {
      * SMARTCAR_LIVE log: kwhCharged=30 normalized to kwhAtVehicle=30.
      * gridSideKwhEstimate divides kwhAtVehicle by AC efficiency to get AT_CHARGER equivalent.
      *
-     *   gridSideKwhEstimate = 30 / 0.90 = 33.3333 kWh
+     *   gridSideKwhEstimate = 30 / 0.95 = 31.5789 kWh
      *
      * Without this: avgCostPerKwh = cost / 30 kWh → appears 11% too expensive.
      * With this:    avgCostPerKwh = cost / 33.33 kWh → reflects true grid price.
@@ -165,9 +165,9 @@ class EvLogServiceChargingEfficiencyTest {
 
         BigDecimal result = service.gridSideKwhEstimate(log);
 
-        // 30 / 0.90 = 33.3333...
-        assertEquals(0, new BigDecimal("33.3333").compareTo(result),
-                "kwhAtVehicle should be upscaled to AT_CHARGER equivalent: 30 / 0.90 = 33.3333");
+        // 30 / 0.95 = 31.5789...
+        assertEquals(0, new BigDecimal("31.5789").compareTo(result),
+                "kwhAtVehicle should be upscaled to AT_CHARGER equivalent: 30 / 0.95 = 31.5789");
     }
 
     /**
@@ -285,7 +285,7 @@ class EvLogServiceChargingEfficiencyTest {
     /**
      * AT_VEHICLE log at public DC charger: kwhAtVehicle divided by DC efficiency (0.95).
      * kwhAtVehicle=36.0 / 0.95 = 37.8947
-     * Distinct from the AC test (36/0.90=40.0000) and from the SMARTCAR_LIVE DC test above.
+     * Distinct from the AC test (36/0.95=37.8947) and from the SMARTCAR_LIVE DC test above.
      */
     @Test
     void gridSideKwhEstimate_kwhAtVehicle_dc_dividedByDcEfficiency() {
@@ -327,7 +327,7 @@ class EvLogServiceChargingEfficiencyTest {
     /**
      * Both fields set: kwhCharged takes priority for cost (it IS the precise AT_CHARGER value).
      * kwhCharged=50.0 → returned as-is (no efficiency conversion needed).
-     * kwhAtVehicle=36.0 is ignored for cost — using 36/0.90=40 would be an approximation of
+     * kwhAtVehicle=36.0 is ignored for cost — using 36/0.95=37.89 would be an approximation of
      * a value we already have precisely.
      */
     @Test

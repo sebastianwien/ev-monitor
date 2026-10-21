@@ -56,4 +56,6 @@ evmonitor:
   consumption:
     plausibility:
       ac-charging-efficiency: 1.0
+      ac-charging-efficiency-slow: 1.0
+      ac-charging-efficiency-unknown-power: 1.0
       dc-charging-efficiency: 1.0

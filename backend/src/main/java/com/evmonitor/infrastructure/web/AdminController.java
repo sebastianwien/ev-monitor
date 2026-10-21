@@ -5,7 +5,6 @@ import com.evmonitor.application.AdminStripeReport;
 import com.evmonitor.application.AdminUserGrowthRow;
 import com.evmonitor.application.AdminUserRow;
 import com.evmonitor.application.BatterySohService;
-import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.application.StripeReportService;
 import com.evmonitor.application.WeeklyReportService;
 import com.evmonitor.application.routetype.RouteTypeBackfillJob;
@@ -38,7 +37,6 @@ public class AdminController {
     private final TripTemperatureBackfillJob tripTemperatureBackfillJob;
     private final AdminQueryRepository adminQueryRepository;
     private final BatterySohService batterySohService;
-    private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
     private final StripeReportService stripeReportService;
     private final WeeklyReportService weeklyReportService;
     private final ImportStatsService importStatsService;
@@ -94,13 +92,6 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public RouteTypeBackfillJob.Status routeTypeBackfillStatus() {
         return routeTypeBackfillJob.status();
-    }
-
-    @PostMapping("/spec-efficiency/recalculate")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> recalculateSpecChargingEfficiency() {
-        String summary = specChargingEfficiencyJob.run();
-        return ResponseEntity.ok(summary);
     }
 
     @GetMapping("/stats/users")

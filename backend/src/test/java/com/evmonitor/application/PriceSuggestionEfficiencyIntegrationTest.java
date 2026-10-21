@@ -23,15 +23,17 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * The base test profile sets ac/dc efficiency to 1.0 so formula-math tests stay readable.
  * That hides whether cost auto-fill and the GET /api/logs/price-suggestion endpoint
- * inflate prices by the AC-loss factor. This class overrides the property to 0.90 / 0.95
- * (production defaults) and pins the netto contract:
+ * inflate prices by the AC-loss factor. This class overrides the properties to the
+ * production defaults (AC 0.95 / 0.87 / 0.90, DC 0.95) and pins the netto contract:
  *
  *   When a log has only kwhAtVehicle (no kwhCharged), cost_eur is netto x tariff and the
  *   price-suggestion endpoint returns cost_eur / netto - the tariff price the user set,
  *   not the grid-equivalent inflated by ~10%.
  */
 @TestPropertySource(properties = {
-        "evmonitor.consumption.plausibility.ac-charging-efficiency=0.90",
+        "evmonitor.consumption.plausibility.ac-charging-efficiency=0.95",
+        "evmonitor.consumption.plausibility.ac-charging-efficiency-slow=0.87",
+        "evmonitor.consumption.plausibility.ac-charging-efficiency-unknown-power=0.90",
         "evmonitor.consumption.plausibility.dc-charging-efficiency=0.95"
 })
 class PriceSuggestionEfficiencyIntegrationTest extends AbstractIntegrationTest {
@@ -56,7 +58,7 @@ class PriceSuggestionEfficiencyIntegrationTest extends AbstractIntegrationTest {
     @Test
     void sanityCheck_propertyOverrideTakesEffect() {
         // Guard against silently grouping back into the default test profile (efficiency=1.0).
-        assertEquals(0.90, plausibility.getAcChargingEfficiency(), 1e-9,
+        assertEquals(0.95, plausibility.getAcChargingEfficiency(), 1e-9,
                 "TestPropertySource override must apply - else the netto vs brutto assertions are meaningless");
     }
 

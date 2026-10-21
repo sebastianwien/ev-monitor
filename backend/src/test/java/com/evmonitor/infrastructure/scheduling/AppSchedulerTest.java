@@ -1,7 +1,6 @@
 package com.evmonitor.infrastructure.scheduling;
 
 import com.evmonitor.application.LeaderboardService;
-import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.application.SurveyService;
 import com.evmonitor.domain.AuthProvider;
 import com.evmonitor.domain.CarRepository;
@@ -46,7 +45,6 @@ class AppSchedulerTest {
     @Mock private TemperatureBackfillJob temperatureBackfillJob;
     @Mock private com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob tripTemperatureBackfillJob;
     @Mock private LeaderboardService leaderboardService;
-    @Mock private SpecChargingEfficiencyJob specChargingEfficiencyJob;
     @Mock private SurveyService surveyService;
 
     private AppScheduler scheduler;
@@ -54,7 +52,7 @@ class AppSchedulerTest {
     @BeforeEach
     void setUp() {
         scheduler = new AppScheduler(userRepository, carRepository, evLogRepository, emailService,
-                gitHubIssueService, temperatureBackfillJob, tripTemperatureBackfillJob, leaderboardService, specChargingEfficiencyJob,
+                gitHubIssueService, temperatureBackfillJob, tripTemperatureBackfillJob, leaderboardService,
                 surveyService);
     }
 

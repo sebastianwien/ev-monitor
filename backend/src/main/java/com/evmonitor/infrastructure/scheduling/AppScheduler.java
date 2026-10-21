@@ -1,7 +1,6 @@
 package com.evmonitor.infrastructure.scheduling;
 
 import com.evmonitor.application.LeaderboardService;
-import com.evmonitor.application.SpecChargingEfficiencyJob;
 import com.evmonitor.application.SurveyService;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvLogRepository;
@@ -38,7 +37,6 @@ public class AppScheduler {
     private final TemperatureBackfillJob temperatureBackfillJob;
     private final com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob tripTemperatureBackfillJob;
     private final LeaderboardService leaderboardService;
-    private final SpecChargingEfficiencyJob specChargingEfficiencyJob;
     private final SurveyService surveyService;
 
     public AppScheduler(UserRepository userRepository, CarRepository carRepository,
@@ -47,7 +45,6 @@ public class AppScheduler {
                         TemperatureBackfillJob temperatureBackfillJob,
                         com.evmonitor.infrastructure.weather.TripTemperatureBackfillJob tripTemperatureBackfillJob,
                         LeaderboardService leaderboardService,
-                        SpecChargingEfficiencyJob specChargingEfficiencyJob,
                         SurveyService surveyService) {
         this.userRepository = userRepository;
         this.carRepository = carRepository;
@@ -57,7 +54,6 @@ public class AppScheduler {
         this.temperatureBackfillJob = temperatureBackfillJob;
         this.tripTemperatureBackfillJob = tripTemperatureBackfillJob;
         this.leaderboardService = leaderboardService;
-        this.specChargingEfficiencyJob = specChargingEfficiencyJob;
         this.surveyService = surveyService;
     }
 
@@ -263,17 +259,6 @@ public class AppScheduler {
             log.info("Daily temperature backfill finished: {}", summary);
         } catch (Exception e) {
             log.error("Daily temperature backfill failed", e);
-        }
-    }
-
-    @Scheduled(cron = "0 0 3 * * MON")
-    public void updateSpecChargingEfficiencies() {
-        log.info("SpecChargingEfficiencyJob started");
-        try {
-            String summary = specChargingEfficiencyJob.run();
-            log.info("SpecChargingEfficiencyJob finished: {}", summary);
-        } catch (Exception e) {
-            log.error("SpecChargingEfficiencyJob failed", e);
         }
     }
 }

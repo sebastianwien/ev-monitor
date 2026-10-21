@@ -65,7 +65,7 @@ class ConsumptionCalculationServiceSpritmonitorWindowTest {
 
         ConsumptionCalculationService.PerLogConsumptionResult result =
                 service.calculateConsumptionPerLogDetailed(
-                        List.of(anchorA, sm1, sm2, anchorB), date -> CAPACITY, null, null);
+                        List.of(anchorA, sm1, sm2, anchorB), date -> CAPACITY, null);
 
         ConsumptionResult b = result.byLogId().get(anchorB.getId());
         assertNotNull(b, "Anker B muss einen Fensterwert bekommen");
@@ -85,7 +85,7 @@ class ConsumptionCalculationServiceSpritmonitorWindowTest {
 
         ConsumptionCalculationService.PerLogConsumptionResult result =
                 service.calculateConsumptionPerLogDetailed(
-                        List.of(anchorA, smNoKwh, anchorB), date -> CAPACITY, null, null);
+                        List.of(anchorA, smNoKwh, anchorB), date -> CAPACITY, null);
 
         assertFalse(result.byLogId().containsKey(anchorB.getId()),
                 "Zwischenladung mit unbekannter Energie muss die Kette brechen");
@@ -103,7 +103,7 @@ class ConsumptionCalculationServiceSpritmonitorWindowTest {
 
         ConsumptionCalculationService.PerLogConsumptionResult result =
                 service.calculateConsumptionPerLogDetailed(
-                        List.of(anchorA, smMid, anchorB), date -> CAPACITY, null, null);
+                        List.of(anchorA, smMid, anchorB), date -> CAPACITY, null);
 
         // B paart mit smMid (nächster Anker), nicht mit A:
         // effektiv(B) = 49.875, SoC-Delta = (70-80) × 75/100 = -7.5 → 42.375 / 150 × 100 = 28.25
@@ -127,7 +127,7 @@ class ConsumptionCalculationServiceSpritmonitorWindowTest {
 
         ConsumptionCalculationService.PerLogConsumptionResult result =
                 service.calculateConsumptionPerLogDetailed(
-                        List.of(anchorA, tesla, anchorB), date -> CAPACITY, null, null);
+                        List.of(anchorA, tesla, anchorB), date -> CAPACITY, null);
 
         assertFalse(result.byLogId().containsKey(anchorB.getId()));
         assertTrue(result.absorbedLogIds().isEmpty());
@@ -144,7 +144,7 @@ class ConsumptionCalculationServiceSpritmonitorWindowTest {
 
         ConsumptionCalculationService.PerLogConsumptionResult result =
                 service.calculateConsumptionPerLogDetailed(
-                        List.of(anchorA, manual, anchorB), date -> CAPACITY, null, null);
+                        List.of(anchorA, manual, anchorB), date -> CAPACITY, null);
 
         assertFalse(result.byLogId().containsKey(anchorB.getId()));
         assertTrue(result.absorbedLogIds().isEmpty());
@@ -159,7 +159,7 @@ class ConsumptionCalculationServiceSpritmonitorWindowTest {
                 DataSource.SPRITMONITOR_IMPORT, BASE.plusDays(2));
 
         Map<UUID, ConsumptionResult> map = service.calculateConsumptionPerLog(
-                List.of(anchorA, sm1, anchorB), CAPACITY, null, null);
+                List.of(anchorA, sm1, anchorB), CAPACITY, null);
 
         // effektiv(B) = 49.875 + 12 × 0.90 = 60.675 → / 300 × 100 = 20.23
         assertEquals(new BigDecimal("20.23"), map.get(anchorB.getId()).value());

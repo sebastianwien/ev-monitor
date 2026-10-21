@@ -128,7 +128,10 @@ evmonitor:
       sigma-multiplier: 2.5
       min-trips-for-statistical: 5
       min-trip-distance-km: 10
-      ac-charging-efficiency: 0.90
+      ac-charging-efficiency: 0.95            # AC ab 4 kW (Wallbox), gemessen an Brutto/Netto-Paaren 21.10.2026
+      ac-charging-efficiency-slow: 0.87       # AC unter 4 kW (Steckdose, PV-Überschuss, lange Steckzeit)
+      ac-charging-efficiency-unknown-power: 0.90   # AC ohne Leistung und ohne Dauer
+      ac-slow-charging-threshold-kw: 4
       dc-charging-efficiency: 0.95
 
 # VW EU-Data-Act-AutoSync: launch-verankertes Gratis-Fenster fuer alle. Launch = Deploy-Tag
