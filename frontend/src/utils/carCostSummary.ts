@@ -1,6 +1,7 @@
 import type { FixedCost, FixedCostCategory } from '../api/fixedCostService'
-import type { ChargeDataPoint, StatisticsData } from '../composables/useDashboardStats'
-import { fixedCostAmountForMonth, type FixedCostMode } from '../composables/useFixedCostCalc'
+import type { ChargeDataPoint } from '../composables/useDashboardStats'
+import { fixedCostAmountForMonth, parseLocalDate, type FixedCostMode } from '../composables/useFixedCostCalc'
+import { calcCostPer100km, calcFullCostPer100km } from '../composables/useDashboardStats'
 
 /**
  * Reine Rechenlogik der Kostenkarte in der Fahrzeugverwaltung. Energiekosten kommen vom
@@ -55,30 +56,68 @@ export function buildMonthlyCostSeries(
 }
 
 export interface CostSummary {
-  /** Gesamtkosten je Kilometer in Cent, null ohne Kilometerstand. */
+  /** Vollkosten je Kilometer in Cent, null ohne Kilometerstand oder ohne Verbrauch. */
   ctPerKm: number | null
   perMonthEur: number
   energyPerMonthEur: number
   /** Fixkosten netto (Einnahmen abgezogen). */
   fixedPerMonthEur: number
-  /** Anteil der Energiekosten an den Gesamtkosten, null ohne Kosten. */
+  /** Anteil der Energiekosten an den Gesamtkosten, null ohne positive Kosten. */
   energyShare: number | null
 }
 
-type CostStats = Pick<StatisticsData, 'energyCostEur' | 'fixedCostEur' | 'fixedIncomeEur' | 'totalDistanceKm'> & { totalCostEur?: number | null }
+export interface CostInput {
+  avgCostPerKwh: number | null
+  avgConsumptionKwhPer100km: number | null
+  energyCostEur: number
+  totalDistanceKm: number | null
+}
 
-export function summarizeCosts(stats: CostStats, months = 12): CostSummary {
+/**
+ * Dieselbe Vollkosten-Rechnung wie das Dashboard (`calcFullCostPer100km`): Energiekosten als
+ * Preis je kWh mal Verbrauch, Fixkosten auf die gefahrene Strecke. Euro je 100 km entspricht
+ * Cent je km. `fixedNetEur` kommt aus der Monatsreihe, damit Kopfzahl und Balken denselben
+ * Umlagemodus nutzen.
+ */
+export function summarizeCosts(stats: CostInput, fixedNetEur: number, months: number): CostSummary {
   const energy = stats.energyCostEur ?? 0
-  const fixedNet = (stats.fixedCostEur ?? 0) - (stats.fixedIncomeEur ?? 0)
-  const total = energy + fixedNet
-  const km = stats.totalDistanceKm
+  const total = energy + fixedNetEur
+  const m = Math.max(1, months)
+  const per100km = calcFullCostPer100km(
+    calcCostPer100km(stats.avgCostPerKwh ?? null, stats.avgConsumptionKwhPer100km ?? null),
+    fixedNetEur, 0, stats.totalDistanceKm,
+  )
   return {
-    ctPerKm: km && km > 0 ? round2((total / km) * 100) : null,
-    perMonthEur: Math.round(total / months),
-    energyPerMonthEur: Math.round(energy / months),
-    fixedPerMonthEur: Math.round(fixedNet / months),
-    energyShare: total > 0 ? energy / total : null,
+    ctPerKm: per100km === null ? null : round2(per100km),
+    perMonthEur: Math.round(total / m),
+    energyPerMonthEur: Math.round(energy / m),
+    fixedPerMonthEur: Math.round(fixedNetEur / m),
+    energyShare: total > 0 && energy > 0 ? energy / total : null,
   }
+}
+
+/** Summe der Fixkosten (netto) über die Monatsreihe, im gewählten Umlagemodus. */
+export function fixedNetFromSeries(series: MonthlyCostPoint[]): number {
+  return round2(series.reduce((s, p) => s + p.fixedEur, 0))
+}
+
+/**
+ * Wie viele der 12 Monate das Auto wirklich abdeckt: ab dem ersten Monat mit Stromkosten,
+ * sonst ab Erstzulassung. Damit zeigt ein Auto, das erst drei Monate dabei ist, keinen
+ * Zwölftel-Monatswert.
+ */
+export function monthsCovered(series: MonthlyCostPoint[], registrationDate: string | null, now: Date = new Date()): number {
+  const first = series.findIndex(p => p.energyEur > 0)
+  if (first >= 0) return series.length - first
+  if (!registrationDate) return series.length
+  const reg = parseLocalDate(registrationDate)
+  const diff = (now.getFullYear() - reg.getFullYear()) * 12 + (now.getMonth() - reg.getMonth()) + 1
+  return Math.min(series.length, Math.max(1, diff))
+}
+
+/** Cent-Anzeige der Kopfzahl: unter 10 ct eine Nachkommastelle, darüber ganze Cent. */
+export function centLabel(ct: number, n: (v: number, o?: { maximumFractionDigits?: number }) => string): string {
+  return `${n(ct, { maximumFractionDigits: Math.abs(ct) < 10 ? 1 : 0 })} ct`
 }
 
 /** Reihenfolge der Kategorien in der Kostenkarte: Pflichtkosten zuerst, Einnahmen zuletzt. */

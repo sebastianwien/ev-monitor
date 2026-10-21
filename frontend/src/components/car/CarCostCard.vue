@@ -7,7 +7,8 @@ import { fixedCostService, type FixedCost } from '../../api/fixedCostService'
 import type { StatisticsData } from '../../composables/useDashboardStats'
 import type { FixedCostMode } from '../../composables/useFixedCostCalc'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { buildMonthlyCostSeries, groupFixedCostsByCategory, summarizeCosts } from '../../utils/carCostSummary'
+import { buildMonthlyCostSeries, centLabel, fixedNetFromSeries, groupFixedCostsByCategory, monthsCovered, summarizeCosts } from '../../utils/carCostSummary'
+import { readLocal, writeLocal } from '../../utils/safeStorage'
 import { isIncomeCategory } from '../../utils/fixedCostAmount'
 import BottomSheet from '../shared/BottomSheet.vue'
 import FixedCostForm from './FixedCostForm.vue'
@@ -19,7 +20,7 @@ import FixedCostForm from './FixedCostForm.vue'
  * Fixkosten werden hier gepflegt: Zeile tippen oeffnet Bearbeiten im Sheet, "Kosten
  * erfassen" legt an. Keine Stift- und Muelleimer-Icons je Zeile.
  */
-const props = defineProps<{ carId: string }>()
+const props = defineProps<{ carId: string; registrationDate: string | null }>()
 const { t, n } = useI18n()
 const { formatCurrency, currency } = useLocaleFormat()
 
@@ -27,7 +28,14 @@ const stats = ref<StatisticsData | null>(null)
 const items = ref<FixedCost[]>([])
 const loading = ref(true)
 const error = ref(false)
-const mode = ref<FixedCostMode>((localStorage.getItem('cost_history_mode') as FixedCostMode) ?? 'pro_rata')
+// Umlagemodus, derselbe Schalter wie im Kostenverlauf des Dashboards (gemeinsamer Schluessel).
+const LS_MODE = 'cost_history_mode'
+const stored = readLocal(LS_MODE)
+const mode = ref<FixedCostMode>(stored === 'due_month' ? 'due_month' : 'pro_rata')
+function setMode(m: FixedCostMode) {
+  mode.value = m
+  writeLocal(LS_MODE, m)
+}
 const year = ref(new Date().getFullYear())
 const openGroups = ref<Set<string>>(new Set())
 const sheet = ref<{ edit: FixedCost | null } | null>(null)
@@ -52,8 +60,9 @@ async function load() {
 onMounted(load)
 watch(() => props.carId, load)
 
-const summary = computed(() => stats.value ? summarizeCosts(stats.value) : null)
 const series = computed(() => buildMonthlyCostSeries(stats.value?.chargesOverTime ?? [], items.value, mode.value))
+const months = computed(() => monthsCovered(series.value, props.registrationDate))
+const summary = computed(() => stats.value ? summarizeCosts(stats.value, fixedNetFromSeries(series.value), months.value) : null)
 const maxMonth = computed(() => Math.max(1, ...series.value.map(p => p.energyEur + Math.max(0, p.fixedEur))))
 const groups = computed(() => groupFixedCostsByCategory(items.value, year.value))
 const previousYearHasCosts = computed(() => groupFixedCostsByCategory(items.value, year.value - 1).length > 0)
@@ -64,8 +73,7 @@ const hasAnyCost = computed(() => (summary.value?.perMonthEur ?? 0) !== 0 || ite
 const perKmLabel = computed(() => {
   const ct = summary.value?.ctPerKm
   if (ct == null) return null
-  if (currency.value === 'EUR') return `${n(ct, { maximumFractionDigits: ct < 10 ? 1 : 0 })} ct`
-  return formatCurrency(ct / 100)
+  return currency.value === 'EUR' ? centLabel(ct, n) : formatCurrency(ct / 100)
 })
 const monthLabel = (p: { year: number; month: number }) =>
   new Intl.DateTimeFormat(undefined, { month: 'short', year: '2-digit' }).format(new Date(p.year, p.month - 1, 1))
@@ -115,7 +123,17 @@ const shortMoney = (v: number) => {
   <section class="rounded-sm bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5" data-testid="car-cost-card">
     <div class="flex items-baseline justify-between gap-3">
       <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('cars.costs.title') }}</h2>
-      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('cars.costs.range') }}</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">{{ months < 12 ? t('cars.costs.range_months', { n: months }, months) : t('cars.costs.range') }}</span>
+    </div>
+    <!-- Umlage der Fixkosten: anteilig je Monat oder im Faelligkeitsmonat, gilt fuer Kopfzahl, Satz und Balken -->
+    <div v-if="items.length" class="mt-2 flex items-center justify-end gap-2">
+      <span class="text-[11px] leading-none text-gray-400 dark:text-gray-500 select-none">{{ t('cost_history.mode_spread_label') }}</span>
+      <button type="button" role="switch" :aria-checked="mode === 'pro_rata'" :aria-label="t('cost_history.mode_spread_label')"
+        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-700"
+        :class="mode === 'pro_rata' ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'"
+        @click="setMode(mode === 'pro_rata' ? 'due_month' : 'pro_rata')">
+        <span aria-hidden="true" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition" :class="mode === 'pro_rata' ? 'translate-x-4' : 'translate-x-0'" />
+      </button>
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ t('common.error_load') }}</p>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildMonthlyCostSeries, summarizeCosts, groupFixedCostsByCategory } from '../carCostSummary'
+import { buildMonthlyCostSeries, summarizeCosts, groupFixedCostsByCategory, monthsCovered, fixedNetFromSeries, centLabel } from '../carCostSummary'
 import type { FixedCost, FixedCostCategory, FixedCostRecurrence } from '../../api/fixedCostService'
 import type { ChargeDataPoint } from '../../composables/useDashboardStats'
 
@@ -65,32 +65,68 @@ describe('buildMonthlyCostSeries', () => {
   })
 })
 
-describe('summarizeCosts', () => {
-  it('rechnet ct/km aus Gesamtkosten und Kilometern', () => {
-    const s = summarizeCosts({ energyCostEur: 936, fixedCostEur: 3900, fixedIncomeEur: 0, totalCostEur: 4836, totalDistanceKm: 14950 })
-    expect(s.ctPerKm).toBeCloseTo(32.35, 1)
+describe('summarizeCosts (dieselbe Rechnung wie das Dashboard: Preis je kWh mal Verbrauch plus Fixkosten je km)', () => {
+  const stats = { avgCostPerKwh: 0.3, avgConsumptionKwhPer100km: 20, energyCostEur: 936, totalDistanceKm: 14950 }
+
+  it('rechnet ct/km aus Energiekosten je 100 km plus Fixkosten je km', () => {
+    const s = summarizeCosts(stats, 3900, 12)
+    expect(s.ctPerKm).toBeCloseTo(6 + 26.09, 1)
     expect(s.perMonthEur).toBe(403)
     expect(s.energyPerMonthEur).toBe(78)
     expect(s.fixedPerMonthEur).toBe(325)
     expect(s.energyShare).toBeCloseTo(0.1935, 3)
   })
 
-  it('hat ohne Kilometer kein ct/km, aber Monatswerte', () => {
-    const s = summarizeCosts({ energyCostEur: 120, fixedCostEur: 0, fixedIncomeEur: 0, totalCostEur: 120, totalDistanceKm: null })
-    expect(s.ctPerKm).toBeNull()
-    expect(s.perMonthEur).toBe(10)
+  it('hat ohne Kilometer oder ohne Verbrauch kein ct/km, aber Monatswerte', () => {
+    expect(summarizeCosts({ ...stats, totalDistanceKm: null }, 0, 12).ctPerKm).toBeNull()
+    expect(summarizeCosts({ ...stats, avgConsumptionKwhPer100km: null }, 0, 12).ctPerKm).toBeNull()
+    expect(summarizeCosts({ ...stats, totalDistanceKm: null }, 0, 12).perMonthEur).toBe(78)
   })
 
-  it('zieht Einnahmen von den Fixkosten ab', () => {
-    const s = summarizeCosts({ energyCostEur: 0, fixedCostEur: 1200, fixedIncomeEur: 300, totalCostEur: 900, totalDistanceKm: 1000 })
-    expect(s.fixedPerMonthEur).toBe(75)
-    expect(s.ctPerKm).toBe(90)
+  it('teilt durch die tatsächlich abgedeckten Monate', () => {
+    expect(summarizeCosts({ ...stats, energyCostEur: 300 }, 0, 3).energyPerMonthEur).toBe(100)
+  })
+
+  it('lässt Einnahmen über den Kosten als negative Werte stehen, ohne Energieanteil', () => {
+    const s = summarizeCosts({ ...stats, energyCostEur: 100 }, -400, 12)
+    expect(s.perMonthEur).toBe(-25)
+    expect(s.fixedPerMonthEur).toBe(-33)
+    expect(s.energyShare).toBeNull()
   })
 
   it('hat ohne jede Kosten keinen Energieanteil', () => {
-    const s = summarizeCosts({ energyCostEur: 0, fixedCostEur: 0, fixedIncomeEur: 0, totalCostEur: 0, totalDistanceKm: null })
+    const s = summarizeCosts({ avgCostPerKwh: null, avgConsumptionKwhPer100km: null, energyCostEur: 0, totalDistanceKm: null }, 0, 12)
     expect(s.energyShare).toBeNull()
     expect(s.perMonthEur).toBe(0)
+  })
+})
+
+describe('monthsCovered', () => {
+  const blank = buildMonthlyCostSeries([], [], 'pro_rata', NOW)
+  it('zählt ab dem ersten Monat mit Stromkosten', () => {
+    const series = blank.map((p, i) => ({ ...p, energyEur: i >= 9 ? 30 : 0 }))
+    expect(monthsCovered(series, '2019-05-01', NOW)).toBe(3)
+  })
+  it('nimmt ohne Stromkosten die Monate seit Erstzulassung, mindestens 1, höchstens 12', () => {
+    expect(monthsCovered(blank, '2026-08-01', NOW)).toBe(3)
+    expect(monthsCovered(blank, '2026-10-15', NOW)).toBe(1)
+    expect(monthsCovered(blank, '2019-05-01', NOW)).toBe(12)
+    expect(monthsCovered(blank, null, NOW)).toBe(12)
+  })
+})
+
+describe('fixedNetFromSeries und centLabel', () => {
+  it('summiert die Fixkosten der Monatsreihe, Einnahmen negativ', () => {
+    const series = buildMonthlyCostSeries([], [
+      fc({ amount: 1200, recurrence: 'ONE_TIME', date: '2026-03-15' }),
+      fc({ amount: -250, category: 'INCOME', recurrence: 'YEARLY', startDate: '2025-05-01' }),
+    ], 'due_month', NOW)
+    expect(fixedNetFromSeries(series)).toBe(950)
+  })
+  it('zeigt unter 10 ct eine Nachkommastelle, darüber ganze Cent', () => {
+    const n = (v: number, o?: { maximumFractionDigits?: number }) => v.toLocaleString('de-DE', o)
+    expect(centLabel(7.84, n)).toBe('7,8 ct')
+    expect(centLabel(32.09, n)).toBe('32 ct')
   })
 })
 

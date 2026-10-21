@@ -77,7 +77,7 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
 
       <!-- Aktionen oben -->
       <div class="absolute left-3 right-3 top-3 flex items-center justify-between gap-2">
-        <label :class="[overlayBtn, 'cursor-pointer', uploading ? 'opacity-60 cursor-not-allowed' : '']">
+        <label :class="[overlayBtn, 'cursor-pointer focus-within:ring-2 focus-within:ring-white/80', uploading ? 'opacity-60 cursor-not-allowed' : '']">
           <CameraIcon class="h-5 w-5" aria-hidden="true" />
           <span>{{ uploading ? t('cars.uploading') : (imageUrl ? t('cars.hero_photo') : t('cars.upload_photo')) }}</span>
           <input type="file" accept="image/jpeg,image/png" class="sr-only" :disabled="uploading" @change="emit('upload', $event)" />

@@ -58,7 +58,7 @@ const hint = 'ml-auto shrink-0 text-xs text-gray-500 dark:text-gray-400'
         </button>
 
         <!-- Foto: Upload-Label plus Schalter oeffentlich -->
-        <label :class="[row, 'cursor-pointer', uploading ? 'opacity-60 cursor-not-allowed' : '']">
+        <label :class="[row, 'cursor-pointer focus-within:ring-2 focus-within:ring-indigo-500', uploading ? 'opacity-60 cursor-not-allowed' : '']">
           <CameraIcon class="h-5 w-5 text-gray-500" aria-hidden="true" />
           <span>{{ uploading ? t('cars.uploading') : (imageUrl ? t('cars.change_photo') : t('cars.upload_photo')) }}</span>
           <input type="file" accept="image/jpeg,image/png" class="sr-only" :disabled="uploading" @change="emit('upload', $event)" />

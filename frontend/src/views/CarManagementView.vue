@@ -15,6 +15,7 @@ import CarHero from '../components/car/CarHero.vue'
 import CarSwitcher from '../components/car/CarSwitcher.vue'
 import CarManageSheet from '../components/car/CarManageSheet.vue'
 import { useCarShare } from '../composables/useCarShare'
+import { readLocal, writeLocal } from '../utils/safeStorage'
 import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
 import VwEudaAutoSyncPrompt from '../components/car/VwEudaAutoSyncPrompt.vue'
@@ -72,7 +73,7 @@ const sohModalCar = ref<Car | null>(null)
 
 // -- Gewaehltes Fahrzeug: die Seite zeigt eines, der Switcher wechselt --
 const LS_SELECTED_CAR = 'cars.selected'
-const selectedCarId = ref<string | null>(localStorage.getItem(LS_SELECTED_CAR))
+const selectedCarId = ref<string | null>(readLocal(LS_SELECTED_CAR))
 const selectedCar = computed<Car | null>(() => {
   if (cars.value.length === 0) return null
   return cars.value.find(c => c.id === selectedCarId.value)
@@ -81,7 +82,7 @@ const selectedCar = computed<Car | null>(() => {
 })
 function selectCar(id: string) {
   selectedCarId.value = id
-  localStorage.setItem(LS_SELECTED_CAR, id)
+  writeLocal(LS_SELECTED_CAR, id)
 }
 const menuOpen = ref(false)
 
@@ -327,7 +328,7 @@ const copyCarId = async (id: string) => {
 
           <div class="md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:gap-5 space-y-4 md:space-y-0">
             <div class="space-y-4">
-              <CarCostCard :key="selectedCar.id" :car-id="selectedCar.id" />
+              <CarCostCard :key="selectedCar.id" :car-id="selectedCar.id" :registration-date="selectedCar.registrationDate ?? null" />
             </div>
             <div class="space-y-4">
               <CarRatingsCard v-if="ratingFor(selectedCar.id)" :key="`rating-${selectedCar.id}`" :car-id="selectedCar.id" :eligibility="ratingFor(selectedCar.id)!" />
