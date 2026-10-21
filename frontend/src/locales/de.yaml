@@ -1661,6 +1661,7 @@ cars:
     sentence: "{total} im Monat: {energy} Strom plus {fixed} Fixkosten."
     sentence_energy_only: "{total} im Monat für Strom."
     range_months: "Letzter Monat | Letzte {n} Monate"
+    spread_short: "Auf Monate umlegen"
     sentence_fixed_only: "{total} im Monat an Fixkosten."
     empty_all: "Hier steht, was dein Auto kostet: Strom aus deinen Ladungen plus Fixkosten."
     empty_fixed: "Trag deine Versicherung ein, dann zeigt die Karte deine Vollkosten."

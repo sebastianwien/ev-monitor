@@ -125,16 +125,6 @@ const shortMoney = (v: number) => {
       <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('cars.costs.title') }}</h2>
       <span class="text-xs text-gray-500 dark:text-gray-400">{{ months < 12 ? t('cars.costs.range_months', { n: months }, months) : t('cars.costs.range') }}</span>
     </div>
-    <!-- Umlage der Fixkosten: anteilig je Monat oder im Faelligkeitsmonat, gilt fuer Kopfzahl, Satz und Balken -->
-    <div v-if="items.length" class="mt-2 flex items-center justify-end gap-2">
-      <span class="text-[11px] leading-none text-gray-400 dark:text-gray-500 select-none">{{ t('cost_history.mode_spread_label') }}</span>
-      <button type="button" role="switch" :aria-checked="mode === 'pro_rata'" :aria-label="t('cost_history.mode_spread_label')"
-        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-700"
-        :class="mode === 'pro_rata' ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'"
-        @click="setMode(mode === 'pro_rata' ? 'due_month' : 'pro_rata')">
-        <span aria-hidden="true" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition" :class="mode === 'pro_rata' ? 'translate-x-4' : 'translate-x-0'" />
-      </button>
-    </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ t('common.error_load') }}</p>
     <div v-else-if="loading" class="mt-4 h-24 animate-pulse rounded-sm bg-gray-100 dark:bg-gray-600" aria-hidden="true" />
@@ -187,8 +177,19 @@ const shortMoney = (v: number) => {
       <!-- Fixkosten nach Kategorie -->
       <div class="mt-5 border-t border-gray-200 dark:border-gray-600 pt-4">
         <div class="flex items-center justify-between gap-3">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('cars.costs.fixed_year', { year }) }}</h3>
-          <span v-if="groups.length" class="text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ money(yearTotal) }}</span>
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+            {{ t('cars.costs.fixed_year', { year }) }}<span v-if="groups.length" class="ml-2 tabular-nums">{{ money(yearTotal) }}</span>
+          </h3>
+          <!-- Umlage: anteilig je Monat oder im Faelligkeitsmonat, gilt fuer Kopfzahl, Satz und Balken -->
+          <label v-if="items.length" class="flex shrink-0 items-center gap-2 cursor-pointer" :title="t('cost_history.mode_spread_label')">
+            <span class="text-[11px] leading-none text-gray-500 dark:text-gray-400 select-none whitespace-nowrap">{{ t('cars.costs.spread_short') }}</span>
+            <button type="button" role="switch" :aria-checked="mode === 'pro_rata'" :aria-label="t('cost_history.mode_spread_label')"
+              class="relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-700"
+              :class="mode === 'pro_rata' ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'"
+              @click="setMode(mode === 'pro_rata' ? 'due_month' : 'pro_rata')">
+              <span aria-hidden="true" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition" :class="mode === 'pro_rata' ? 'translate-x-4' : 'translate-x-0'" />
+            </button>
+          </label>
         </div>
 
         <ul v-if="groups.length" class="mt-2 divide-y divide-gray-100 dark:divide-gray-600">

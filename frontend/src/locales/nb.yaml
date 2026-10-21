@@ -1615,6 +1615,7 @@ cars:
     sentence: "{total} per måned: {energy} strøm pluss {fixed} faste kostnader."
     sentence_energy_only: "{total} per måned for strøm."
     range_months: "Siste måned | Siste {n} måneder"
+    spread_short: "Fordel per måned"
     sentence_fixed_only: "{total} per måned i faste kostnader."
     empty_all: "Her ser du hva bilen koster: strøm fra ladingene dine pluss faste kostnader."
     empty_fixed: "Legg inn forsikringen din, så viser kortet totalkostnaden."

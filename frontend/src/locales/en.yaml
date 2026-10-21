@@ -1658,6 +1658,7 @@ cars:
     sentence: "{total} per month: {energy} energy plus {fixed} fixed costs."
     sentence_energy_only: "{total} per month for energy."
     range_months: "Last month | Last {n} months"
+    spread_short: "Spread over months"
     sentence_fixed_only: "{total} per month in fixed costs."
     empty_all: "This shows what your car costs: energy from your charges plus fixed costs."
     empty_fixed: "Add your insurance and this card shows your total cost."
