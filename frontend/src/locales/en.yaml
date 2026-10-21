@@ -663,7 +663,7 @@ model:
   variant_no_data: "No data for this variant yet"
   wltp_note: "WLTP = official manufacturer value (COMBINED). Real consumption is based on user data from EV Monitor."
   wltp_varies_by_year: "varies by model year"
-  wltp_measurement_note: "Community consumption values show normalised driving consumption - charging losses have been removed (AC: 10%, DC: 5%). WLTP only measures driving consumption without standby and preconditioning - a difference of 5-15% is therefore normal."
+  wltp_measurement_note: "Community consumption values show normalised driving consumption - charging losses have been removed (AC 5 to 13% depending on charging power, DC 5%). WLTP only measures driving consumption without standby and preconditioning - a difference of 5-15% is therefore normal."
   community_methodology_note: "Consumption is influenced by many factors: speed, outside temperature, heating, air conditioning, seat heating and battery conditioning. Since statistics are weighted by kilometres driven, a single 200 km motorway trip in summer at 100 km/h has more influence on the average than ten short city trips."
   epa_section_title: "EPA Data & Real Consumption"
   epa_range_label: "EPA Range"
@@ -1469,8 +1469,8 @@ logfields:
   timestamp_chip_yesterday_evening: "Yesterday evening"
   optional: "optional"
   kwh_placeholder: "e.g. 42.5"
-  kwh_hint: "Wallbox or charging station value (gross). Charging losses are automatically removed for consumption calculation (AC: 10%, DC: 5%)."
-  kwh_hint_mobile: "Wallbox or charging station value (gross!). Charging losses are automatically removed (AC: 10%, DC: 5%)."
+  kwh_hint: "Wallbox or charging station value (gross). Charging losses are automatically removed for consumption calculation (AC 5 to 13% depending on charging power, DC 5%)."
+  kwh_hint_mobile: "Wallbox or charging station value (gross!). Charging losses are automatically removed (AC 5 to 13% depending on charging power, DC 5%)."
   cost_eur_placeholder: "e.g. 12.50"
   cost_per_kwh_placeholder: "e.g. 0.20"
   public_charging: "Public charging station"
@@ -1682,7 +1682,7 @@ consumption_info:
   p2_post: "flagged - usually a sign that a charging session is missing between two entries."
   p4: "<strong>Battery health (SoH):</strong> This indicates how much your battery has aged over the years and consequently lost capacity. With AutoSync, EV Monitor reads the actual charged kWh directly from the vehicle and compares them to the expected capacity based on the state of charge (SoC). Once 5 evaluable sessions with at least 30% delta in the charging session are available, the median is calculated - filtering out outliers. You can also enter the net amount yourself on any charging session using the optional <strong>\"kWh (vehicle)\"</strong> field - this triggers the same calculation."
   methodology_link: "Why is EV Monitor higher than my trip computer?"
-  p3: "<strong>Charging losses - context-dependent:</strong> Wallboxes and charging stations measure what flows at the socket - including charging losses (heat generated during charging, approx. 5-10%). For <strong>consumption (kWh/100km)</strong>, these losses are removed (AC: 10%, DC: 5%) so the value reflects your actual driving efficiency and is comparable to WLTP. For <strong>costs (€/kWh)</strong>, they stay in - you paid for them after all."
+  p3: "<strong>Charging losses - context-dependent:</strong> Wallboxes and charging stations measure what flows at the socket - including charging losses (heat generated during charging, approx. 5-10%). For <strong>consumption (kWh/100km)</strong>, these losses are removed (AC 5 to 13% depending on charging power, DC 5%) so the value reflects your actual driving efficiency and is comparable to WLTP. For <strong>costs (€/kWh)</strong>, they stay in - you paid for them after all."
   p5_distance_estimate: "<strong>Distance without trips (estimate):</strong> If you don't record trips (e.g. charge-only import or upload via API), we derive the distance driven from your charges' odometer readings. Only what clearly falls within the period is counted - the distance between two charges in the same period. Whatever was driven between the previous charge and the first one in the period can't be attributed cleanly without trips and is left out. Such values are marked with <strong>~</strong>."
 
 editlog:
