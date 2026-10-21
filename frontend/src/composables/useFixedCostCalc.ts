@@ -10,10 +10,20 @@ export type FixedCostMode = 'pro_rata' | 'due_month'
  *   Beträge auf ihr Intervall verteilt
  * - due_month: voller Betrag nur im Fälligkeitsmonat
  */
+/**
+ * ISO-Datum (YYYY-MM-DD) als lokales Datum. `new Date('2026-03-31')` waere UTC-Mitternacht und
+ * laege in Europe/Berlin um 02:00, also hinter der lokalen Monatsgrenze `new Date(y, m, 0)`:
+ * Eintraege am Monatsletzten fielen so aus dem Monat.
+ */
+export function parseLocalDate(iso: string): Date {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
 export function fixedCostAmountForMonth(fc: FixedCost, from: Date, to: Date, mode: FixedCostMode): number {
   if (fc.recurrence === 'ONE_TIME') {
     if (!fc.date) return 0
-    const d = new Date(fc.date)
+    const d = parseLocalDate(fc.date)
     if (mode === 'pro_rata') {
       if (from.getFullYear() !== d.getFullYear()) return 0
       return Math.round((fc.amount / 12) * 100) / 100
@@ -21,8 +31,8 @@ export function fixedCostAmountForMonth(fc: FixedCost, from: Date, to: Date, mod
     return d >= from && d <= to ? fc.amount : 0
   }
 
-  const startDate = fc.startDate ? new Date(fc.startDate) : null
-  const endDate = fc.endDate ? new Date(fc.endDate) : null
+  const startDate = fc.startDate ? parseLocalDate(fc.startDate) : null
+  const endDate = fc.endDate ? parseLocalDate(fc.endDate) : null
   if (!startDate) return 0
   if (startDate > to) return 0
   if (endDate && endDate < from) return 0

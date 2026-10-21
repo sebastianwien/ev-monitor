@@ -124,3 +124,25 @@ describe('groupFixedCostsByCategory', () => {
     expect(groups[0].yearTotalEur).toBe(1200)
   })
 })
+
+describe('Monatsletzter (Regression: ISO-Datum wurde als UTC geparst und fiel aus dem lokalen Monat)', () => {
+  it('zählt eine Einmalzahlung am 31.03. im März', () => {
+    const series = buildMonthlyCostSeries([], [fc({ amount: 500, recurrence: 'ONE_TIME', date: '2026-03-31' })], 'due_month', NOW)
+    expect(series.find(p => p.month === 3)!.fixedEur).toBe(500)
+  })
+
+  it('listet Einträge am Monatsletzten in den Kategoriegruppen mit voller Jahressumme', () => {
+    const groups = groupFixedCostsByCategory([
+      fc({ amount: 500, category: 'MAINTENANCE', recurrence: 'ONE_TIME', date: '2026-03-31' }),
+      fc({ amount: 100, category: 'LEASING', recurrence: 'MONTHLY', startDate: '2026-01-31' }),
+      fc({ amount: 1600, category: 'INSURANCE', recurrence: 'YEARLY', startDate: '2026-02-28' }),
+    ], 2026)
+    expect(groups.map(g => [g.category, g.yearTotalEur])).toEqual([['INSURANCE', 1600], ['LEASING', 1200], ['MAINTENANCE', 500]])
+  })
+
+  it('endet eine Laufzeit am Monatsletzten einschließlich', () => {
+    const series = buildMonthlyCostSeries([], [fc({ amount: 100, recurrence: 'MONTHLY', startDate: '2025-01-01', endDate: '2026-01-31' })], 'due_month', NOW)
+    expect(series.find(p => p.year === 2026 && p.month === 1)!.fixedEur).toBe(100)
+    expect(series.find(p => p.year === 2026 && p.month === 2)!.fixedEur).toBe(0)
+  })
+})
