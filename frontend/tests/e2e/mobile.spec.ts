@@ -179,7 +179,7 @@ test('Mobile: Kachel "Letzter Ladevorgang" oeffnet den Editor auf dem Dashboard'
   await context.close();
 });
 
-test('Mobile: Auto-Edit-Modal auf /cars liegt im Viewport (nicht im Pager-Track)', async ({ browser }) => {
+test('Mobile: Auto-Bearbeiten-Sheet auf /cars liegt im Viewport (nicht im Pager-Track)', async ({ browser }) => {
   const context = await browser.newContext({ ...iphone12 });
   const page = await context.newPage();
 
@@ -197,11 +197,13 @@ test('Mobile: Auto-Edit-Modal auf /cars liegt im Viewport (nicht im Pager-Track)
   await page.waitForLoadState('networkidle');
 
   // Fahrzeuge liegen im CarsLayout-Pager - derselbe transformierte Track wie beim Log-Feed.
-  const editButton = page.locator('button:has-text("Bearbeiten"):visible').first();
-  await expect(editButton).toBeVisible({ timeout: 10_000 });
-  await editButton.click();
+  // Bearbeiten steckt mobil im Mehr-Menue des Heros.
+  const menuButton = page.getByTestId('car-menu-btn').first();
+  await expect(menuButton).toBeVisible({ timeout: 10_000 });
+  await menuButton.click();
+  await page.getByTestId('car-menu-edit').click();
 
-  const panel = page.locator('[data-testid="edit-car-modal"]');
+  const panel = page.locator('[data-testid="car-form-sheet"]');
   await expect(panel).toBeVisible({ timeout: 5_000 });
   const box = await panel.boundingBox();
   expect(box).not.toBeNull();

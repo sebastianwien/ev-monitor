@@ -20,10 +20,14 @@ test.describe('Fahrzeug bewerten', () => {
       data: { email: TEST_USER.email, password: TEST_USER.password },
     })).json()).token;
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+    // Seit A2 braucht jedes Auto eine Spec-Zeile: erste Akku-Zeile des ID.3.
+    const models = await (await api.get('/api/cars/brands/VW/models')).json();
+    const spec = models.find((m: any) => m.value === 'ID_3')?.capacities?.find((c: any) => c.vehicleSpecificationId);
+    expect(spec, 'Spec-Zeile für ID_3').toBeTruthy();
     const car = await api.post('/api/cars', {
       headers,
-      data: { model: 'ID_3', year: 2023, licensePlate: '', trim: null, customNetCapacityKwh: 58, powerKw: 150,
-        batteryDegradationPercent: null, hasHeatPump: false, vehicleSpecificationId: null },
+      data: { model: 'ID_3', year: 2023, registrationMonth: 3, licensePlate: '', trim: null, customNetCapacityKwh: null, powerKw: 150,
+        batteryDegradationPercent: null, hasHeatPump: false, vehicleSpecificationId: spec.vehicleSpecificationId },
     });
     expect(car.ok()).toBeTruthy();
     carId = (await car.json()).car.id;
@@ -88,23 +92,22 @@ test.describe('Fahrzeug bewerten', () => {
     await expect(page.getByRole('button', { name: 'Text ergänzen' })).toHaveCount(0);
   });
 
-  test('/cars zeigt den Teaser über dem Auto, nach Wegklicken die Zeile', async ({ page }) => {
+  test('/cars: Karte "Fahrer sagen" fordert zur eigenen Bewertung auf', async ({ page }) => {
     await page.goto('/cars');
-    const card = page.getByTestId(`car-card-${carId}`);
-    const teaser = card.getByTestId('rating-teaser');
-    await expect(teaser).toContainText('Bewerte deinen', { timeout: 10_000 });
+    await page.getByTestId(`car-switch-${carId}`).click();
+    const card = page.getByTestId('car-ratings-card');
+    await expect(card).toBeVisible({ timeout: 10_000 });
+    await expect(card.getByTestId('car-rate-cta')).toContainText('Bewerte deinen ID.3');
     await expect(card.getByTestId('car-rating-row')).toHaveCount(0);
-    await teaser.getByRole('button', { name: 'Hinweis schließen' }).click();
-    await expect(teaser).toHaveCount(0);
-    await expect(card.getByTestId('car-rating-row')).toContainText('Bewerten');
   });
 
   test('Lösch-Flow: erst bewerten, dann das Auto löschen', async ({ page }) => {
     await page.goto('/cars');
-    const card = page.getByTestId(`car-card-${carId}`);
-    await expect(card.getByTestId('rating-teaser')).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId(`car-switch-${carId}`).click();
+    await expect(page.getByTestId(`car-hero-${carId}`)).toBeVisible({ timeout: 10_000 });
 
-    await card.getByRole('button', { name: 'Löschen', exact: true }).click();
+    await page.getByTestId('car-menu-btn').click();
+    await page.getByTestId('car-menu-delete').click();
     const sheet = page.getByTestId('rating-delete-sheet');
     await expect(sheet).toContainText('Magst du ihn kurz bewerten?');
     await sheet.getByRole('button', { name: 'Bewerten' }).click();
@@ -123,6 +126,7 @@ test.describe('Fahrzeug bewerten', () => {
     page.once('dialog', dialog => dialog.accept());
     await page.getByRole('link', { name: 'Weiter zum Löschen' }).click();
     await expect(page).toHaveURL(/\/cars$/);
-    await expect(page.getByTestId(`car-card-${carId}`)).toHaveCount(0, { timeout: 10_000 });
+    await expect(page.getByTestId(`car-hero-${carId}`)).toHaveCount(0, { timeout: 10_000 });
+    await expect(page.getByTestId(`car-switch-${carId}`)).toHaveCount(0);
   });
 });

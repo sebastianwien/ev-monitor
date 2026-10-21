@@ -184,6 +184,9 @@ test.describe('EU Data Act AutoSync', () => {
     await model.selectOption({ index: 1 });
     const capacity = page.locator('form button[type="button"]').filter({ hasText: /kWh/ }).first();
     if (await capacity.isVisible().catch(() => false)) await capacity.click();
+    // Monat und Baujahr sind Pflichtfelder
+    await page.locator('form select').nth(2).selectOption({ index: 1 });
+    await page.locator('form input[type="number"]').first().fill('2024');
     await page.locator('form button[type="submit"]').first().click();
 
     const modal = page.getByTestId('euda-prompt');
