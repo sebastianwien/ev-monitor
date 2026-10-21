@@ -329,14 +329,27 @@ public class EvLog {
     private static ChargingType inferChargingType(ChargingType given, BigDecimal maxPowerKw,
                                                    BigDecimal kwhCharged, Integer durationMinutes) {
         if (given != null && given != ChargingType.UNKNOWN) return given;
-        if (maxPowerKw != null) {
-            return maxPowerKw.compareTo(BigDecimal.valueOf(22)) > 0 ? ChargingType.DC : ChargingType.AC;
+        BigDecimal powerKw = estimatedChargingPowerKw(maxPowerKw, kwhCharged, durationMinutes);
+        if (powerKw == null) return ChargingType.UNKNOWN;
+        return powerKw.compareTo(BigDecimal.valueOf(22)) > 0 ? ChargingType.DC : ChargingType.AC;
+    }
+
+    /**
+     * Geschätzte Ladeleistung in kW: gemeldete Maximalleistung, sonst Energie je Stunde Ladedauer,
+     * sonst null. Grundlage für AC/DC-Ableitung und Ladeverlust-Klasse (unter oder ab 4 kW).
+     * Bei Netto-only-Logs liegt der Wert rund 5 Prozent unter der Netzseite, für die Klassen unerheblich.
+     */
+    public BigDecimal estimatedChargingPowerKw() {
+        BigDecimal energy = kwhCharged != null ? kwhCharged : kwhAtVehicle;
+        return estimatedChargingPowerKw(maxChargingPowerKw, energy, chargeDurationMinutes);
+    }
+
+    private static BigDecimal estimatedChargingPowerKw(BigDecimal maxPowerKw, BigDecimal kwh, Integer durationMinutes) {
+        if (maxPowerKw != null) return maxPowerKw;
+        if (kwh != null && durationMinutes != null && durationMinutes >= 1) {
+            return kwh.multiply(BigDecimal.valueOf(60)).divide(BigDecimal.valueOf(durationMinutes), 4, java.math.RoundingMode.HALF_UP);
         }
-        if (kwhCharged != null && durationMinutes != null && durationMinutes >= 1) {
-            double avgKw = kwhCharged.doubleValue() / (durationMinutes / 60.0);
-            return avgKw > 22 ? ChargingType.DC : ChargingType.AC;
-        }
-        return ChargingType.UNKNOWN;
+        return null;
     }
 
     /**
