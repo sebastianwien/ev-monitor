@@ -3963,6 +3963,10 @@ rating:
   cars:
     rate: "Vurder"
     rated_edit: "Din vurdering · rediger"
+    title: "Førere sier"
+    model_page: "Modellside"
+    rate_cta: "Vurder din {model}"
+    you_cost: "Du: {verdict}."
 gate:
   google_redirect: "Fortsett med Google"
   or_email: "eller med e-postkode"

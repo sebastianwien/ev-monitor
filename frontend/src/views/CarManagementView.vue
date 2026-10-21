@@ -3,7 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
-  TruckIcon, ArrowDownTrayIcon, ChartBarIcon, BoltIcon, LockClosedIcon, StarIcon, CheckBadgeIcon,
+  TruckIcon, ArrowDownTrayIcon, ChartBarIcon, BoltIcon, LockClosedIcon,
 } from '@heroicons/vue/24/outline'
 import CarFormFields, { type CarFormState } from '../components/car/CarFormFields.vue'
 import CarFormSheet from '../components/car/CarFormSheet.vue'
@@ -20,8 +20,7 @@ import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
 import VwEudaAutoSyncPrompt from '../components/car/VwEudaAutoSyncPrompt.vue'
 import RatingDeleteSheet from '../components/rating/RatingDeleteSheet.vue'
 import MissingVehicleDialog from '../components/car/MissingVehicleDialog.vue'
-import RatingTeaserCard from '../components/rating/RatingTeaserCard.vue'
-import { ratingTeaserStorage } from '../utils/ratingEntry'
+import CarRatingsCard from '../components/rating/CarRatingsCard.vue'
 import { ratingService } from '../api/ratingService'
 import { useRatingStore } from '../stores/rating'
 import type { Car } from '../api/carService'
@@ -126,12 +125,6 @@ const doSubmitForm = async () => {
 // -- Fahrzeugbewertung: Zeile je Auto und Abschlussbewertung im Lösch-Flow --
 const ratingStore = useRatingStore()
 const ratingFor = (carId: string) => ratingStore.forCar(carId)
-/** Teaser über der Karte, solange er nicht weggeklickt ist. Danach bleibt die ruhige Zeile "Bewerten". */
-const ratingTeaserDismissed = reactive<Record<string, boolean>>({})
-const showRatingRow = (carId: string) => {
-  if (!(carId in ratingTeaserDismissed)) ratingTeaserDismissed[carId] = ratingTeaserStorage.isDismissed(carId)
-  return ratingTeaserDismissed[carId]
-}
 const deleteSheet = ref<{ carId: string; model: string; mode: 'rate' | 'text'; deleteWithCar: boolean } | null>(null)
 const deleteSheetBusy = ref(false)
 
@@ -329,26 +322,12 @@ const copyCarId = async (id: string) => {
             @dismiss="dismissTeaser(selectedCar, teaserFor(selectedCar)!)"
           />
 
-          <!-- Bewertung (Zwischenstand bis zur Bewertungskarte) -->
-          <RatingTeaserCard :car-id="selectedCar.id" source="cars" @dismiss="ratingTeaserDismissed[selectedCar.id] = true" />
-          <div v-if="ratingFor(selectedCar.id)?.rated" class="flex flex-wrap items-center gap-2" data-testid="car-rating-row">
-            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-xs font-medium rounded-full">
-              <CheckBadgeIcon class="w-3.5 h-3.5" aria-hidden="true" />{{ t('rating.badge_rated') }}
-            </span>
-            <RouterLink :to="`/cars/${selectedCar.id}/bewerten?src=cars`" class="inline-flex items-center min-h-11 text-sm font-medium text-green-700 dark:text-green-400">
-              {{ t('rating.cars.rated_edit') }}
-            </RouterLink>
-          </div>
-          <RouterLink v-else-if="ratingFor(selectedCar.id)?.eligible && showRatingRow(selectedCar.id)" :to="`/cars/${selectedCar.id}/bewerten?src=cars`"
-            class="inline-flex items-center gap-1.5 min-h-11 text-sm font-medium text-green-700 dark:text-green-400" data-testid="car-rating-row">
-            <StarIcon class="w-4 h-4" aria-hidden="true" />{{ t('rating.cars.rate') }}
-          </RouterLink>
-
           <div class="md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:gap-5 space-y-4 md:space-y-0">
             <div class="space-y-4">
               <CarCostCard :key="selectedCar.id" :car-id="selectedCar.id" />
             </div>
             <div class="space-y-4">
+              <CarRatingsCard v-if="ratingFor(selectedCar.id)" :key="`rating-${selectedCar.id}`" :car-id="selectedCar.id" :eligibility="ratingFor(selectedCar.id)!" />
               <CarShareBox :key="selectedCar.id" :car-id="selectedCar.id" :title="getModelLabel(selectedCar.model)" />
             </div>
           </div>

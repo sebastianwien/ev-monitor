@@ -4080,6 +4080,10 @@ rating:
   cars:
     rate: "Rate"
     rated_edit: "Your rating · edit"
+    title: "Drivers say"
+    model_page: "Model page"
+    rate_cta: "Rate your {model}"
+    you_cost: "You: {verdict}."
 gate:
   google_redirect: "Continue with Google"
   or_email: "or with an email code"

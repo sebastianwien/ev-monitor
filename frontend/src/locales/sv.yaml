@@ -3963,6 +3963,10 @@ rating:
   cars:
     rate: "Betygsätt"
     rated_edit: "Ditt betyg · redigera"
+    title: "Förare säger"
+    model_page: "Modellsida"
+    rate_cta: "Betygsätt din {model}"
+    you_cost: "Du: {verdict}."
 gate:
   google_redirect: "Fortsätt med Google"
   or_email: "eller med e-postkod"

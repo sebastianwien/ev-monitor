@@ -4086,6 +4086,10 @@ rating:
   cars:
     rate: "Bewerten"
     rated_edit: "Deine Bewertung · bearbeiten"
+    title: "Fahrer sagen"
+    model_page: "Modellseite"
+    rate_cta: "Bewerte deinen {model}"
+    you_cost: "Du: {verdict}."
 gate:
   google_redirect: "Mit Google fortfahren"
   or_email: "oder per E-Mail-Code"

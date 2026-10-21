@@ -2,11 +2,13 @@ import type {
     MyRating,
     RatingAnswers,
     RatingChip,
+    RatingResult,
     RebuyAnswer,
     RebuyReason,
     ReviewState,
     TotalCostVerdict,
 } from '../api/ratingService'
+import { STAR_QUESTIONS } from '../config/ratingQuestions'
 
 /** Regeln des Bewertungsformulars. Die Grenzen spiegeln die Serverprüfung, der Server bleibt maßgeblich. */
 export const CORE_QUESTION_COUNT = 7
@@ -167,4 +169,25 @@ export function reviewAction(d: RatingDraft, review: ReviewState | null): 'submi
     if (d.body.trim()) return 'submit'
     if (review && review.deleteWithCar !== d.deleteWithCar) return 'settings'
     return 'none'
+}
+
+export interface RatingRow {
+  key: (typeof STAR_QUESTIONS)[number]['key']
+  average: number
+  count: number
+  /** Eigene Sterne zu dieser Frage, null ohne eigene Bewertung oder übersprungen. */
+  mine: number | null
+}
+
+/**
+ * Zeilen der kompakten Modellbewertung: Sternefragen in Anzeigereihenfolge, nur mit Schnitt,
+ * dazu die eigene Wertung zur Markierung.
+ */
+export function buildRatingRows(categories: RatingResult['categories'] | null, mine: RatingAnswers | null): RatingRow[] {
+  if (!categories) return []
+  return STAR_QUESTIONS.flatMap(q => {
+    const c = categories[q.field]
+    if (!c || c.average === null) return []
+    return [{ key: q.key, average: c.average, count: c.count, mine: mine ? mine[q.field] : null }]
+  })
 }
