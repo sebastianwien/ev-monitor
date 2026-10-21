@@ -25,12 +25,13 @@ const props = defineProps<{
   shared: boolean
 }>()
 const emit = defineEmits<{ menu: []; edit: []; soh: []; upload: [event: Event] }>()
-const { t } = useI18n()
+const { t, n } = useI18n()
 
 const sohPercent = computed(() =>
   props.car.batteryDegradationPercent ? Math.round(100 - Number(props.car.batteryDegradationPercent)) : null)
 
-const capacity = computed(() => props.car.effectiveBatteryCapacityKwh ?? props.car.customNetCapacityKwh ?? null)
+const capacityRaw = computed(() => props.car.effectiveBatteryCapacityKwh ?? props.car.customNetCapacityKwh ?? null)
+const capacity = computed(() => capacityRaw.value === null ? null : n(capacityRaw.value, { maximumFractionDigits: 1 }))
 
 const teslaState = computed(() => {
   const s = props.teslaStatus
