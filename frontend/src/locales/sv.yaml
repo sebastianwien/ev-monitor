@@ -1605,6 +1605,24 @@ cars:
   menu_activate_hint: Förvald vid registrering
   menu_add: Lägg till ett fordon till
   menu_delete_hint: Kan återställas i 7 dagar
+  costs:
+    title: "Vad det kostar"
+    range: "Senaste 12 månaderna"
+    per_km: "per km"
+    per_month: "per månad"
+    energy: "El"
+    fixed: "Fasta kostnader"
+    sentence: "{total} per månad: {energy} el plus {fixed} fasta kostnader."
+    sentence_energy_only: "{total} per månad för el."
+    empty_all: "När laddningar med pris är registrerade visas här vad bilen kostar."
+    empty_fixed: "Lägg in din försäkring så räknar vi ut totalkostnaden."
+    fixed_year: "Fasta kostnader {year}"
+    add: "Registrera kostnader"
+    edit_title: "Redigera kostnader"
+    entries: "{n} post | {n} poster"
+    since: "sedan {date}"
+    show_year: "Visa {year}"
+    chart_aria: "Kostnader per månad de senaste 12 månaderna"
 carselector:
   label: Fordon
   loading: Laddar fordon...

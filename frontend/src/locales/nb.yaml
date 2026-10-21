@@ -1605,6 +1605,24 @@ cars:
   menu_activate_hint: Forhåndsvalgt ved registrering
   menu_add: Legg til et kjøretøy til
   menu_delete_hint: Kan gjenopprettes i 7 dager
+  costs:
+    title: "Hva det koster"
+    range: "Siste 12 måneder"
+    per_km: "per km"
+    per_month: "per måned"
+    energy: "Strøm"
+    fixed: "Faste kostnader"
+    sentence: "{total} per måned: {energy} strøm pluss {fixed} faste kostnader."
+    sentence_energy_only: "{total} per måned for strøm."
+    empty_all: "Når ladinger med pris er registrert, ser du her hva bilen koster."
+    empty_fixed: "Legg inn forsikringen din, så regner vi ut totalkostnaden."
+    fixed_year: "Faste kostnader {year}"
+    add: "Registrer kostnader"
+    edit_title: "Rediger kostnader"
+    entries: "{n} oppføring | {n} oppføringer"
+    since: "siden {date}"
+    show_year: "Vis {year}"
+    chart_aria: "Kostnader per måned de siste 12 månedene"
 carselector:
   label: Kjøretøy
   loading: Laster inn kjøretøy...

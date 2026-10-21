@@ -9,7 +9,7 @@ import CarFormFields, { type CarFormState } from '../components/car/CarFormField
 import CarFormSheet from '../components/car/CarFormSheet.vue'
 import BatterySohModal from '../components/car/BatterySohModal.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
-import FixedCostManager from '../components/car/FixedCostManager.vue'
+import CarCostCard from '../components/car/CarCostCard.vue'
 import CarShareBox from '../components/car/CarShareBox.vue'
 import CarHero from '../components/car/CarHero.vue'
 import CarSwitcher from '../components/car/CarSwitcher.vue'
@@ -346,7 +346,7 @@ const copyCarId = async (id: string) => {
 
           <div class="md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:gap-5 space-y-4 md:space-y-0">
             <div class="space-y-4">
-              <FixedCostManager :key="selectedCar.id" :car-id="selectedCar.id" />
+              <CarCostCard :key="selectedCar.id" :car-id="selectedCar.id" />
             </div>
             <div class="space-y-4">
               <CarShareBox :key="selectedCar.id" :car-id="selectedCar.id" :title="getModelLabel(selectedCar.model)" />
