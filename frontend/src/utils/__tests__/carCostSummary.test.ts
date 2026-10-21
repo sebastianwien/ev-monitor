@@ -1,0 +1,126 @@
+import { describe, it, expect } from 'vitest'
+import { buildMonthlyCostSeries, summarizeCosts, groupFixedCostsByCategory } from '../carCostSummary'
+import type { FixedCost, FixedCostCategory, FixedCostRecurrence } from '../../api/fixedCostService'
+import type { ChargeDataPoint } from '../../composables/useDashboardStats'
+
+let seq = 0
+
+function fc(partial: {
+  amount: number
+  category?: FixedCostCategory
+  recurrence: FixedCostRecurrence
+  date?: string | null
+  startDate?: string | null
+  endDate?: string | null
+}): FixedCost {
+  return {
+    id: `id-${seq++}`,
+    carId: 'car-1',
+    description: 'test',
+    category: partial.category ?? 'OTHER',
+    amount: partial.amount,
+    recurrence: partial.recurrence,
+    date: partial.date ?? null,
+    startDate: partial.startDate ?? null,
+    endDate: partial.endDate ?? null,
+    createdAt: '2024-01-01T00:00:00Z',
+  }
+}
+
+function point(timestamp: string, costEur: number): ChargeDataPoint {
+  return { timestamp, costEur, kwhCharged: 10, distanceKm: null, consumptionKwhPer100km: null }
+}
+
+const NOW = new Date(2026, 9, 21) // 21.10.2026
+
+describe('buildMonthlyCostSeries', () => {
+  it('liefert immer 12 Monate bis zum aktuellen, auch ohne Daten', () => {
+    const series = buildMonthlyCostSeries([], [], 'pro_rata', NOW)
+    expect(series).toHaveLength(12)
+    expect(series[0]).toMatchObject({ year: 2025, month: 11, energyEur: 0, fixedEur: 0 })
+    expect(series[11]).toMatchObject({ year: 2026, month: 10 })
+  })
+
+  it('summiert Energiekosten je Monat und ignoriert Punkte vor dem Fenster', () => {
+    const series = buildMonthlyCostSeries(
+      [point('2026-10-03T10:00:00', 20), point('2026-10-19T10:00:00', 15.5), point('2025-10-01T10:00:00', 99)],
+      [], 'pro_rata', NOW,
+    )
+    expect(series[11].energyEur).toBe(35.5)
+    expect(series.reduce((s, p) => s + p.energyEur, 0)).toBe(35.5)
+  })
+
+  it('verteilt eine Einmalzahlung im pro_rata-Modus auf das Kaufjahr, nicht auf das Vorjahr', () => {
+    const series = buildMonthlyCostSeries([], [fc({ amount: 1200, recurrence: 'ONE_TIME', date: '2026-03-15' })], 'pro_rata', NOW)
+    const dec2025 = series.find(p => p.year === 2025 && p.month === 12)!
+    const jan2026 = series.find(p => p.year === 2026 && p.month === 1)!
+    expect(dec2025.fixedEur).toBe(0)
+    expect(jan2026.fixedEur).toBe(100)
+  })
+
+  it('zeigt eine Einmalzahlung im due_month-Modus nur im Fälligkeitsmonat', () => {
+    const series = buildMonthlyCostSeries([], [fc({ amount: 1200, recurrence: 'ONE_TIME', date: '2026-03-15' })], 'due_month', NOW)
+    expect(series.filter(p => p.fixedEur > 0)).toHaveLength(1)
+    expect(series.find(p => p.month === 3)!.fixedEur).toBe(1200)
+  })
+})
+
+describe('summarizeCosts', () => {
+  it('rechnet ct/km aus Gesamtkosten und Kilometern', () => {
+    const s = summarizeCosts({ energyCostEur: 936, fixedCostEur: 3900, fixedIncomeEur: 0, totalCostEur: 4836, totalDistanceKm: 14950 })
+    expect(s.ctPerKm).toBeCloseTo(32.35, 1)
+    expect(s.perMonthEur).toBe(403)
+    expect(s.energyPerMonthEur).toBe(78)
+    expect(s.fixedPerMonthEur).toBe(325)
+    expect(s.energyShare).toBeCloseTo(0.1935, 3)
+  })
+
+  it('hat ohne Kilometer kein ct/km, aber Monatswerte', () => {
+    const s = summarizeCosts({ energyCostEur: 120, fixedCostEur: 0, fixedIncomeEur: 0, totalCostEur: 120, totalDistanceKm: null })
+    expect(s.ctPerKm).toBeNull()
+    expect(s.perMonthEur).toBe(10)
+  })
+
+  it('zieht Einnahmen von den Fixkosten ab', () => {
+    const s = summarizeCosts({ energyCostEur: 0, fixedCostEur: 1200, fixedIncomeEur: 300, totalCostEur: 900, totalDistanceKm: 1000 })
+    expect(s.fixedPerMonthEur).toBe(75)
+    expect(s.ctPerKm).toBe(90)
+  })
+
+  it('hat ohne jede Kosten keinen Energieanteil', () => {
+    const s = summarizeCosts({ energyCostEur: 0, fixedCostEur: 0, fixedIncomeEur: 0, totalCostEur: 0, totalDistanceKm: null })
+    expect(s.energyShare).toBeNull()
+    expect(s.perMonthEur).toBe(0)
+  })
+})
+
+describe('groupFixedCostsByCategory', () => {
+  it('gruppiert in fester Reihenfolge, Einnahmen zuletzt, leere Kategorien fehlen', () => {
+    const groups = groupFixedCostsByCategory([
+      fc({ amount: 300, category: 'MAINTENANCE', recurrence: 'ONE_TIME', date: '2026-03-14' }),
+      fc({ amount: -250, category: 'INCOME', recurrence: 'YEARLY', startDate: '2025-05-01' }),
+      fc({ amount: 1600, category: 'INSURANCE', recurrence: 'YEARLY', startDate: '2026-01-02' }),
+      fc({ amount: 2000, category: 'MAINTENANCE', recurrence: 'ONE_TIME', date: '2026-08-07' }),
+    ], 2026)
+    expect(groups.map(g => g.category)).toEqual(['INSURANCE', 'MAINTENANCE', 'INCOME'])
+    expect(groups[1].items).toHaveLength(2)
+    expect(groups[1].yearTotalEur).toBe(2300)
+    expect(groups[0].yearTotalEur).toBe(1600)
+    expect(groups[2].yearTotalEur).toBe(-250)
+  })
+
+  it('listet Einträge eines anderen Jahres nicht', () => {
+    const groups = groupFixedCostsByCategory([
+      fc({ amount: 900, category: 'TIRES', recurrence: 'ONE_TIME', date: '2025-10-02' }),
+    ], 2026)
+    expect(groups).toHaveLength(0)
+  })
+
+  it('listet laufende wiederkehrende Kosten auch dann, wenn sie vor dem Jahr begannen', () => {
+    const groups = groupFixedCostsByCategory([
+      fc({ amount: 100, category: 'LEASING', recurrence: 'MONTHLY', startDate: '2024-01-01' }),
+    ], 2026)
+    expect(groups).toHaveLength(1)
+    expect(groups[0].yearTotalEur).toBe(1200)
+  })
+})

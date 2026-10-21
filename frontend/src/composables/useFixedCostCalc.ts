@@ -3,6 +3,56 @@ import { fixedCostService, type FixedCost } from '../api/fixedCostService'
 
 export type FixedCostMode = 'pro_rata' | 'due_month'
 
+/**
+ * Anteil eines Fixkosten-Eintrags im Monat [from, to]. Reine Funktion, damit Kostenkarte und
+ * Kostenverlauf dieselbe Rechnung nutzen.
+ * - pro_rata: Einmalzahlung gleichmäßig über die 12 Monate des Kaufjahres, wiederkehrende
+ *   Beträge auf ihr Intervall verteilt
+ * - due_month: voller Betrag nur im Fälligkeitsmonat
+ */
+export function fixedCostAmountForMonth(fc: FixedCost, from: Date, to: Date, mode: FixedCostMode): number {
+  if (fc.recurrence === 'ONE_TIME') {
+    if (!fc.date) return 0
+    const d = new Date(fc.date)
+    if (mode === 'pro_rata') {
+      if (from.getFullYear() !== d.getFullYear()) return 0
+      return Math.round((fc.amount / 12) * 100) / 100
+    }
+    return d >= from && d <= to ? fc.amount : 0
+  }
+
+  const startDate = fc.startDate ? new Date(fc.startDate) : null
+  const endDate = fc.endDate ? new Date(fc.endDate) : null
+  if (!startDate) return 0
+  if (startDate > to) return 0
+  if (endDate && endDate < from) return 0
+
+  if (mode === 'pro_rata') {
+    const intervalMonths = fc.recurrence === 'MONTHLY' ? 1 : fc.recurrence === 'QUARTERLY' ? 3 : 12
+    return Math.round((fc.amount / intervalMonths) * 100) / 100
+  }
+
+  if (fc.recurrence === 'MONTHLY') return fc.amount
+
+  const intervalMonths = fc.recurrence === 'QUARTERLY' ? 3 : 12
+  return hasRecurrenceHit(startDate, from, to, intervalMonths) ? fc.amount : 0
+}
+
+function hasRecurrenceHit(anchor: Date, from: Date, to: Date, intervalMonths: number): boolean {
+  let cursor = new Date(anchor)
+  while (cursor <= to) {
+    if (cursor >= from) return true
+    cursor = addMonths(cursor, intervalMonths)
+  }
+  return false
+}
+
+function addMonths(d: Date, months: number): Date {
+  const result = new Date(d)
+  result.setMonth(result.getMonth() + months)
+  return result
+}
+
 export function useFixedCostCalc(carId: () => string | null, mode: () => FixedCostMode = () => 'pro_rata') {
   const items = ref<FixedCost[]>([])
 
@@ -15,53 +65,8 @@ export function useFixedCostCalc(carId: () => string | null, mode: () => FixedCo
   function calcForMonth(year: number, month: number): number {
     const from = new Date(year, month - 1, 1)
     const to = new Date(year, month, 0)
-    const raw = items.value.reduce((sum, fc) => sum + amountForMonth(fc, from, to), 0)
+    const raw = items.value.reduce((sum, fc) => sum + fixedCostAmountForMonth(fc, from, to, mode()), 0)
     return Math.round(raw * 100) / 100
-  }
-
-  function amountForMonth(fc: FixedCost, from: Date, to: Date): number {
-    if (fc.recurrence === 'ONE_TIME') {
-      if (!fc.date) return 0
-      const d = new Date(fc.date)
-      if (mode() === 'pro_rata') {
-        // spread evenly over the 12 months of the purchase year
-        if (from.getFullYear() !== d.getFullYear()) return 0
-        return Math.round((fc.amount / 12) * 100) / 100
-      }
-      return d >= from && d <= to ? fc.amount : 0
-    }
-
-    const startDate = fc.startDate ? new Date(fc.startDate) : null
-    const endDate = fc.endDate ? new Date(fc.endDate) : null
-    if (!startDate) return 0
-    if (startDate > to) return 0
-    if (endDate && endDate < from) return 0
-
-    if (mode() === 'pro_rata') {
-      const intervalMonths = fc.recurrence === 'MONTHLY' ? 1 : fc.recurrence === 'QUARTERLY' ? 3 : 12
-      return Math.round((fc.amount / intervalMonths) * 100) / 100
-    }
-
-    if (fc.recurrence === 'MONTHLY') return fc.amount
-
-    // due_month: full amount only in the month it's due
-    const intervalMonths = fc.recurrence === 'QUARTERLY' ? 3 : 12
-    return hasRecurrenceHit(startDate, from, to, intervalMonths) ? fc.amount : 0
-  }
-
-  function hasRecurrenceHit(anchor: Date, from: Date, to: Date, intervalMonths: number): boolean {
-    let cursor = new Date(anchor)
-    while (cursor <= to) {
-      if (cursor >= from) return true
-      cursor = addMonths(cursor, intervalMonths)
-    }
-    return false
-  }
-
-  function addMonths(d: Date, months: number): Date {
-    const result = new Date(d)
-    result.setMonth(result.getMonth() + months)
-    return result
   }
 
   const last12Months = computed(() => {
@@ -91,7 +96,7 @@ export function useFixedCostCalc(carId: () => string | null, mode: () => FixedCo
         const to = new Date(year, month, 0)
         const raw = items.value
           .filter(fc => fc.category === category)
-          .reduce((sum, fc) => sum + amountForMonth(fc, from, to), 0)
+          .reduce((sum, fc) => sum + fixedCostAmountForMonth(fc, from, to, mode()), 0)
         return Math.round(raw * 100) / 100
       }),
     }))
