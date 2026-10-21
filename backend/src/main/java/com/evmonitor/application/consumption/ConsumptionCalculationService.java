@@ -41,7 +41,7 @@ public class ConsumptionCalculationService {
      *
      * Priority:
      *   1. kwhAtVehicle when present — exact battery measurement, no correction needed.
-     *   2. kwhCharged — AT_CHARGER measurement, losses are removed here (factor by charging type and power class).
+     *   2. kwhCharged - AT_CHARGER measurement, losses are removed here (factor by charging type and power class).
      */
     public BigDecimal effectiveKwhForConsumption(EvLog log) {
         if (log.getKwhAtVehicle() != null && log.getKwhAtVehicle().compareTo(BigDecimal.ZERO) > 0) {
