@@ -1597,6 +1597,14 @@ cars:
   api_id_label: Fordons-ID
   api_id_copy: Kopiera fordonets ID
   api_id_copied: Kopierat
+  hero_photo: Foto
+  hero_menu_aria: Mer om det här fordonet
+  shared_badge: Delad
+  switcher_label: Välj fordon
+  switcher_add: Lägg till
+  menu_activate_hint: Förvald vid registrering
+  menu_add: Lägg till ett fordon till
+  menu_delete_hint: Kan återställas i 7 dagar
 carselector:
   label: Fordon
   loading: Laddar fordon...

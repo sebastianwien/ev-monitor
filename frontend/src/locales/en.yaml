@@ -1640,6 +1640,14 @@ cars:
   api_id_label: "Vehicle ID"
   api_id_copy: "Copy vehicle ID"
   api_id_copied: "Copied"
+  hero_photo: "Photo"
+  hero_menu_aria: "More for this vehicle"
+  shared_badge: "Shared"
+  switcher_label: "Choose vehicle"
+  switcher_add: "Add"
+  menu_activate_hint: "Preselected when logging"
+  menu_add: "Add another vehicle"
+  menu_delete_hint: "Restorable for 7 days"
 
 carselector:
   label: "Vehicle"

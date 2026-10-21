@@ -1643,6 +1643,14 @@ cars:
   api_id_label: "Fahrzeug-ID"
   api_id_copy: "Fahrzeug-ID kopieren"
   api_id_copied: "Kopiert"
+  hero_photo: "Foto"
+  hero_menu_aria: "Mehr zu diesem Fahrzeug"
+  shared_badge: "Geteilt"
+  switcher_label: "Fahrzeug wählen"
+  switcher_add: "Hinzufügen"
+  menu_activate_hint: "Wird beim Erfassen vorausgewählt"
+  menu_add: "Weiteres Fahrzeug anlegen"
+  menu_delete_hint: "7 Tage wiederherstellbar"
 
 carselector:
   label: "Fahrzeug"

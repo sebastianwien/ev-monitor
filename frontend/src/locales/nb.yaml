@@ -1597,6 +1597,14 @@ cars:
   api_id_label: Kjøretøy-ID
   api_id_copy: Kopier kjøretøy-ID
   api_id_copied: Kopiert
+  hero_photo: Bilde
+  hero_menu_aria: Mer om dette kjøretøyet
+  shared_badge: Delt
+  switcher_label: Velg kjøretøy
+  switcher_add: Legg til
+  menu_activate_hint: Forhåndsvalgt ved registrering
+  menu_add: Legg til et kjøretøy til
+  menu_delete_hint: Kan gjenopprettes i 7 dager
 carselector:
   label: Kjøretøy
   loading: Laster inn kjøretøy...
