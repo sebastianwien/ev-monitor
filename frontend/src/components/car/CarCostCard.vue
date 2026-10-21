@@ -149,7 +149,7 @@ const shortMoney = (v: number) => {
         <!-- Anteil Strom / Fixkosten -->
         <div v-if="summary.energyShare !== null && summary.fixedPerMonthEur > 0" class="mt-3">
           <div class="flex h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600" aria-hidden="true">
-            <div class="bg-indigo-500" :style="{ width: `${summary.energyShare * 100}%` }" />
+            <div class="bg-indigo-500 transition-[width] duration-500 ease-out motion-reduce:transition-none" :style="{ width: `${summary.energyShare * 100}%` }" />
             <div class="bg-amber-400 flex-1" />
           </div>
           <div class="mt-1.5 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
@@ -163,8 +163,8 @@ const shortMoney = (v: number) => {
           <div v-for="p in series" :key="`${p.year}-${p.month}`" class="flex flex-1 min-w-0 flex-col justify-end" :title="`${monthLabel(p)}: ${money(p.energyEur + p.fixedEur)}`">
             <span class="mb-0.5 block text-center text-[10px] leading-none tabular-nums text-gray-500 dark:text-gray-400 truncate">{{ shortMoney(p.energyEur + p.fixedEur) }}</span>
             <div class="flex h-14 flex-col justify-end gap-px">
-              <div class="w-full rounded-t-sm bg-amber-400/90" :style="{ height: `${(Math.max(0, p.fixedEur) / maxMonth) * 100}%` }" />
-              <div class="w-full bg-indigo-500" :style="{ height: `${(p.energyEur / maxMonth) * 100}%` }" />
+              <div class="w-full rounded-t-sm bg-amber-400/90 transition-[height] duration-500 ease-out motion-reduce:transition-none" :style="{ height: `${(Math.max(0, p.fixedEur) / maxMonth) * 100}%` }" />
+              <div class="w-full bg-indigo-500 transition-[height] duration-500 ease-out motion-reduce:transition-none" :style="{ height: `${(p.energyEur / maxMonth) * 100}%` }" />
             </div>
           </div>
         </div>
