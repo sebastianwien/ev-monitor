@@ -18,7 +18,7 @@ import { useCarShare } from '../composables/useCarShare'
 import { readLocal, writeLocal } from '../utils/safeStorage'
 import TeslaTelemetryPrompt from '../components/car/TeslaTelemetryPrompt.vue'
 import CarSetupTeaser from '../components/car/CarSetupTeaser.vue'
-import VwEudaAutoSyncPrompt from '../components/car/VwEudaAutoSyncPrompt.vue'
+import AutoSyncPrompt from '../components/car/AutoSyncPrompt.vue'
 import RatingDeleteSheet from '../components/rating/RatingDeleteSheet.vue'
 import MissingVehicleDialog from '../components/car/MissingVehicleDialog.vue'
 import CarRatingsCard from '../components/rating/CarRatingsCard.vue'
@@ -28,7 +28,6 @@ import type { Car } from '../api/carService'
 import teslaFleetService from '../api/teslaFleetService'
 import { analytics } from '../services/analytics'
 import { isTeslaCar } from '../composables/useImportGating'
-import { isVwEudaBrand } from '../api/vwEudaSyncService'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
@@ -115,15 +114,16 @@ const submitting = ref(false)
 const teslaPromptCar = ref<Car | null>(null)
 const teslaJustConnected = ref(false)
 const teslaCallbackError = ref<string | null>(null)
-// Frisch angelegtes VW-Group-Fahrzeug: EU-Data-Act-AutoSync erklaeren und direkt anbieten.
-const eudaPromptCar = ref<Car | null>(null)
+// Frisch angelegte Smartcar-Marke ohne Abo: AutoSync direkt anbieten (dieselbe Regel wie der
+// Teaser in der Card). Der EU-Data-Act-Weg bleibt unter /imports, wird hier aber nicht mehr beworben.
+const autoSyncPromptCar = ref<Car | null>(null)
 const doSubmitForm = async () => {
   submitting.value = true
   try {
     const created = await submitForm(doFetchCars)
     if (created) selectCar(created.id)
     if (isTeslaCar(created)) teslaPromptCar.value = created
-    else if (created && isVwEudaBrand(created.brand)) eudaPromptCar.value = created
+    else if (created && teaserFor(created) === 'AUTOSYNC') autoSyncPromptCar.value = created
   } finally { submitting.value = false }
 }
 // -- Fahrzeugbewertung: Zeile je Auto und Abschlussbewertung im Lösch-Flow --
@@ -413,8 +413,8 @@ const copyCarId = async (id: string) => {
       @close="closeTeslaPrompt"
     />
 
-    <!-- VW-Group-Fahrzeug angelegt: EU-Data-Act-AutoSync erklaeren und verbinden lassen -->
-    <VwEudaAutoSyncPrompt v-if="eudaPromptCar" :car="eudaPromptCar" @close="eudaPromptCar = null" />
+    <!-- Smartcar-Marke angelegt: AutoSync anbieten, Kauf auf /upgrade -->
+    <AutoSyncPrompt v-if="autoSyncPromptCar" :car="autoSyncPromptCar" @close="autoSyncPromptCar = null" />
 
     <!-- Toast Notification (outside Transition) - Teleport wie das Modal, sonst richtet
          sich der Toast am Pager-Track aus und liegt auf Mobile ausserhalb des Bildes. -->

@@ -67,6 +67,13 @@ describe('carTeaserKind - AutoSync', () => {
         expect(carTeaserKind(car({ brand: 'Polestar' }), ctx())).toBe('AUTOSYNC')
     })
 
+    it('VW Group laeuft ueber AutoSync, nicht ueber den EU-Data-Act-Weg (Entscheidung 23.10.2026)', () => {
+        // CarBrand-Enum-Namen, wie car.brand sie liefert
+        for (const brand of ['VW', 'SKODA', 'AUDI', 'SEAT', 'CUPRA']) {
+            expect(carTeaserKind(car({ brand }), ctx()), brand).toBe('AUTOSYNC')
+        }
+    })
+
     it('schweigt, wenn AutoSync bereits gekauft ist', () => {
         expect(carTeaserKind(car({ brand: 'BMW' }), ctx({ isPremium: true }))).toBeNull()
     })

@@ -1546,6 +1546,15 @@ cars:
   teaser_autosync_desc: Med AutoSync henter EV Monitor hver lading rett fra bilen og fører den inn for deg.
   teaser_autosync_cta: Se AutoSync
   teaser_dismiss: Skjul tips
+  autosync_prompt_eyebrow: "AutoSync"
+  autosync_prompt_title: "Din {car} kan registrere ladingene sine selv"
+  autosync_prompt_lead: "Med AutoSync kobler EV Monitor seg til bilen din. Hver lading havner automatisk i loggen, uten at du skriver noe."
+  autosync_prompt_b1: "Hver lading automatisk, hjemme og på veien"
+  autosync_prompt_b2: "Ladenivå før og etter, kilometerstand og forbruk rett fra bilen"
+  autosync_prompt_b3: "Kostnader og besparelse mot fossilbil, alltid oppdatert"
+  autosync_prompt_cta: "Se AutoSync"
+  autosync_prompt_later: "Senere"
+  autosync_prompt_later_hint: "Du finner AutoSync når som helst under Import."
   empty_title: Ingen kjøretøy ennå
   empty_desc: Legg til din første elbil for å registrere ladinger og se statistikk!
   feat_models_title: Over 140 modeller
