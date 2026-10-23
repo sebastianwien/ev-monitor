@@ -3,8 +3,8 @@ import type { PublicModelRatings } from '../api/ratingService'
 const MAX_REVIEWS = 5
 
 /**
- * Product-Objekt als Träger für Fahrerbewertungen. Ab 5 Bewertungen mit aggregateRating, darunter jede Einzelbewertung
- * als Review mit ihrer Gesamtnote. Erfahrungsberichte stehen immer als Review mit Text drin. Alles, was hier steht, ist
+ * Product-Objekt als Träger für Fahrerbewertungen. Ab 5 Bewertungen mit aggregateRating und bis zu 5 Reviews, darunter
+ * genau eine Review (Bericht vor Einzelbewertung). Erfahrungsberichte stehen immer als Review mit Text drin. Alles, was hier steht, ist
  * auf der Seite sichtbar (Googles Regel für strukturierte Daten). Ohne Bewertung kein Product: Google verwirft eins
  * ohne review, aggregateRating oder offers.
  */
@@ -51,6 +51,7 @@ export function buildProductJsonLd(input: {
             ratingCount: ratings.aggregate.ratingCount,
         }
     }
-    if (reviews.length > 0) product.review = reviews.slice(0, MAX_REVIEWS)
+    // Google verlangt aggregateRating, sobald mehr als eine Review drinsteht
+    if (reviews.length > 0) product.review = reviews.slice(0, ratings.aggregate ? MAX_REVIEWS : 1)
     return product
 }

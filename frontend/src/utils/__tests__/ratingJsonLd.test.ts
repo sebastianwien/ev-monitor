@@ -39,12 +39,12 @@ describe('Product-JSON-LD der Modellseite', () => {
         expect(ld.review).toBeUndefined()
     })
 
-    it('trägt unter 5 Bewertungen nur Erfahrungsberichte als Review, höchstens 5', () => {
+    it('trägt ohne aggregateRating höchstens eine Review, sonst verwirft Google das Product', () => {
         const ld = buildProductJsonLd({ ...base, ratings: ratings({ count: 4, reports: [1, 2, 3, 4, 5, 6].map(report) }) })!
 
         expect(ld.aggregateRating).toBeUndefined()
         const reviews = ld.review as Record<string, unknown>[]
-        expect(reviews).toHaveLength(5)
+        expect(reviews).toHaveLength(1)
         expect(reviews[0]).toEqual({
             '@type': 'Review',
             reviewRating: { '@type': 'Rating', ratingValue: 4.2, bestRating: 5, worstRating: 1 },
@@ -54,18 +54,25 @@ describe('Product-JSON-LD der Modellseite', () => {
         })
     })
 
-    it('trägt unter 5 Bewertungen jede Einzelbewertung als Review, ab der ersten, ohne Bericht doppelt zu zählen', () => {
-        const ld = buildProductJsonLd({ ...base, ratings: ratings({ count: 2, singles: [single(4.3), single(3.8, true)], reports: [report(1)] }) })!
+    it('nimmt ohne aggregateRating zuerst den Bericht, ohne Bericht die erste Einzelbewertung', () => {
+        const withReport = buildProductJsonLd({ ...base, ratings: ratings({ count: 2, singles: [single(4.3), single(3.8, true)], reports: [report(1)] }) })!
+        expect(withReport.aggregateRating).toBeUndefined()
+        expect(withReport.review as unknown[]).toHaveLength(1)
+        expect((withReport.review as Record<string, unknown>[])[0].reviewBody).toBe('Bericht 1')
 
-        expect(ld.aggregateRating).toBeUndefined()
+        const ld = buildProductJsonLd({ ...base, ratings: ratings({ count: 2, singles: [single(4.3), single(3.8)] }) })!
         const reviews = ld.review as Record<string, unknown>[]
-        expect(reviews).toHaveLength(2)
-        expect(reviews[0].reviewBody).toBe('Bericht 1')
-        expect(reviews[1]).toEqual({
+        expect(reviews).toHaveLength(1)
+        expect(reviews[0]).toEqual({
             '@type': 'Review',
             reviewRating: { '@type': 'Rating', ratingValue: 4.3, bestRating: 5, worstRating: 1 },
             author: { '@type': 'Person', name: 'ID.3-Fahrer' },
         })
+    })
+
+    it('trägt mit aggregateRating bis zu 5 Reviews', () => {
+        const ld = buildProductJsonLd({ ...base, ratings: ratings({ count: 8, aggregate: { ratingValue: 4, ratingCount: 8 }, reports: [1, 2, 3, 4, 5, 6].map(report) }) })!
+        expect(ld.review as unknown[]).toHaveLength(5)
     })
 
     it('setzt Product schon bei einer einzigen Bewertung ohne Text', () => {
