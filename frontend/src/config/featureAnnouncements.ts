@@ -4,8 +4,6 @@ export interface AnnouncementContext {
   isAutoSyncLive: boolean
   hasTeslaConnection: boolean
   teslaLocationScopeGranted: boolean
-  hasVwEudaBrandCar: boolean
-  hasVwEudaConnection: boolean
   /** Bewertbare, noch unbewertete eigene Autos (Fahrzeugbewertung). 0 bis geladen. */
   ratableUnratedCars: number
 }
@@ -51,19 +49,6 @@ export const featureAnnouncements: FeatureAnnouncement[] = [
     // Ladekurven brauchen Tesla-Telemetrie (nur dort entsteht eine) und das
     // Analytics-Entitlement - ohne beides laeuft der Teilen-Button ins Leere.
     condition: (ctx) => ctx.hasTeslaConnection && ctx.isAutoSyncLive,
-  },
-  {
-    key: 'euda_autosync_v1',
-    releasedAt: '2026-09-19', // nur Bestandsuser - wer danach ein VW-Group-Auto anlegt, bekommt das Modal ohnehin direkt
-    expiresAt: '2026-11-30',
-    titleKey: 'announcements.euda_autosync_v1_title',
-    bodyKey: 'announcements.euda_autosync_v1_body',
-    ctaLabelKey: 'announcements.euda_autosync_v1_cta',
-    ctaRoute: '/imports',
-    // Nur Halter eines VW, Skoda, Audi, Seat oder Cupra, die das Portal noch nicht verbunden
-    // haben. Bewusst ohne Entitlement-Pruefung: der Probemonat ist der Aufhaenger, den Rest
-    // klaert der Wizard unter /imports.
-    condition: (ctx) => ctx.hasVwEudaBrandCar && !ctx.hasVwEudaConnection,
   },
   {
     key: 'log_wizard_voice_v1',

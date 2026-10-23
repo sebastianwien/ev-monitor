@@ -4,7 +4,6 @@ import { useWallboxStore } from '../stores/wallbox'
 import { useAuthStore } from '../stores/auth'
 import { useCarStore } from '../stores/car'
 import teslaFleetService from '../api/teslaFleetService'
-import vwEudaSyncService, { eudaBrandOf, type VwEudaBrand } from '../api/vwEudaSyncService'
 import { useRatingStore } from '../stores/rating'
 import { pickRatingTarget, type RatingTarget } from '../utils/ratingEntry'
 
@@ -16,19 +15,6 @@ const hasTeslaConnection = ref<boolean>(false)
 // token - false (not just "not yet loaded"/null) is what gates the reconnect announcement.
 const teslaLocationScopeGranted = ref<boolean>(false)
 let teslaStatusLoaded = false
-// Halter eines VW, Skoda, Audi, Seat oder Cupra - und ob dieser Halter das Portal schon
-// verbunden hat. Beides false, solange nichts geladen ist: die Ankuendigung soll erst
-// erscheinen, wenn wir es wirklich wissen, nicht schon beim ersten Render.
-const hasVwEudaBrandCar = ref<boolean>(false)
-// Anzeigename der Marke fuer den Titel der Ankuendigung - "Dein Skoda" trifft den Leser, "Dein
-// Auto" nicht. Volkswagen kuerzen wir auf VW ab, so nennen die Halter ihr Auto selbst.
-const EUDA_BRAND_LABEL: Record<VwEudaBrand, string> = {
-  volkswagen: 'VW', skoda: 'Skoda', audi: 'Audi', seat: 'Seat', cupra: 'Cupra',
-}
-const eudaBrandLabel = ref<string | null>(null)
-const hasVwEudaConnection = ref<boolean>(false)
-let eudaStatusLoaded = false
-
 // Fahrzeugbewertung: Zielauto erst nach dem Laden, vorher null - sonst blitzt die Ankuendigung auf.
 const ratingTarget = ref<RatingTarget | null>(null)
 let ratingStatusLoaded = false
@@ -61,31 +47,6 @@ async function loadTeslaConnectionStatus() {
   }
 }
 
-/**
- * Der Portal-Status wird nur fuer Halter einer VW-Group-Marke abgefragt. Alle anderen sehen die
- * Ankuendigung ohnehin nie, fuer die waere der Request reine Last.
- */
-async function loadVwEudaStatus(carStore: ReturnType<typeof useCarStore>) {
-  if (eudaStatusLoaded) return
-  eudaStatusLoaded = true
-  try {
-    const cars = await carStore.getCars()
-    const brand = cars.map(car => eudaBrandOf(car.brand ?? '')).find(b => b !== null) ?? null
-    if (!brand) return
-    // Erst schreiben, wenn auch der Verbindungsstatus vorliegt: waere hasVwEudaBrandCar schon
-    // vor dem Request true, wuerde die Ankuendigung einem laengst verbundenen Nutzer kurz
-    // aufblitzen - und ein Klick darauf verbraucht sie dauerhaft.
-    const connections = await vwEudaSyncService.getStatus()
-    hasVwEudaConnection.value = connections.length > 0
-    eudaBrandLabel.value = EUDA_BRAND_LABEL[brand]
-    hasVwEudaBrandCar.value = true
-  } catch {
-    hasVwEudaBrandCar.value = false
-    hasVwEudaConnection.value = false
-    eudaBrandLabel.value = null
-  }
-}
-
 async function loadRatingStatus(carStore: ReturnType<typeof useCarStore>) {
   if (ratingStatusLoaded) return
   ratingStatusLoaded = true
@@ -110,7 +71,6 @@ export const useFeatureAnnouncements = () => {
   // are gated by an actual connection rather than shown to every user.
   if (authStore.isAuthenticated()) {
     void loadTeslaConnectionStatus()
-    void loadVwEudaStatus(carStore)
     void loadRatingStatus(carStore)
   }
 
@@ -121,8 +81,6 @@ export const useFeatureAnnouncements = () => {
       isAutoSyncLive: authStore.isAutoSyncLive,
       hasTeslaConnection: hasTeslaConnection.value,
       teslaLocationScopeGranted: teslaLocationScopeGranted.value,
-      hasVwEudaBrandCar: hasVwEudaBrandCar.value,
-      hasVwEudaConnection: hasVwEudaConnection.value,
       ratableUnratedCars: ratingTarget.value?.count ?? 0,
     }
     const registeredAt = authStore.user?.registeredAt
@@ -135,9 +93,8 @@ export const useFeatureAnnouncements = () => {
   })
 
   const announcement = computed(() => pending.value[currentIndex.value] ?? null)
-  /** Platzhalter fuer i18n-Texte und CTA-Route: Fahrzeugmarke, Modell und Zielauto der Bewertung. */
+  /** Platzhalter fuer i18n-Texte und CTA-Route: Modell und Zielauto der Bewertung. */
   const announcementParams = computed<Record<string, string>>(() => ({
-    ...(eudaBrandLabel.value ? { brand: eudaBrandLabel.value } : {}),
     ...(ratingTarget.value ? { model: ratingTarget.value.modelName, ratingCarId: ratingTarget.value.carId } : {}),
   }))
   const total = computed(() => pending.value.length)
