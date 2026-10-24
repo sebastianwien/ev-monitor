@@ -508,8 +508,8 @@ function headClass(cls: string) {
   return active === cls ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'
 }
 
-function modelHref(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>) {
-  return `${modelsBaseUrl.value}/${m.brandDisplayName}/${m.modelUrlSlug}`
+function modelHref(m: Pick<TopModelPreview, 'brandSlug' | 'modelUrlSlug'>) {
+  return `${modelsBaseUrl.value}/${m.brandSlug}/${m.modelUrlSlug}`
 }
 
 // ── Below the list ──────────────────────────────────────────────────────────

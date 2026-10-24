@@ -241,30 +241,30 @@
       <!-- Models Grid -->
       <div v-if="filteredModels.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Real community models; THG banner injected under the first row (below) -->
-        <template v-for="(model, i) in filteredModels" :key="`${model.brandDisplayName}/${model.modelUrlSlug}`">
+        <template v-for="(model, i) in filteredModels" :key="`${model.brandSlug}/${model.modelUrlSlug}`">
         <PublicModelCard
           :model="model"
-          :to="`${modelsBaseUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`"
+          :to="`${modelsBaseUrl}/${model.brandSlug}/${model.modelUrlSlug}`"
           :hero-photo-url="heroPhotoFor(model.model)"
           :hero-attribution="heroAttributionFor(model.model)"
           :effective-cost-per-kwh="effectiveCostPerKwh"
           :price-tooltip="priceTooltip"
           :highlight-query="searchQuery"
-          :selected="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
+          :selected="isSelectedForCompare(`${model.brandSlug}/${model.modelUrlSlug}`)"
         >
           <template #overlay>
             <button
-              @click.prevent.stop="toggleCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)"
-              :disabled="!isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
-              :title="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`) ? t('models_list.card.remove_compare') : t('models_list.card.add_compare')"
+              @click.prevent.stop="toggleCompare(`${model.brandSlug}/${model.modelUrlSlug}`)"
+              :disabled="!isSelectedForCompare(`${model.brandSlug}/${model.modelUrlSlug}`) && selectedForCompare.length >= MAX_COMPARE"
+              :title="isSelectedForCompare(`${model.brandSlug}/${model.modelUrlSlug}`) ? t('models_list.card.remove_compare') : t('models_list.card.add_compare')"
               class="p-1.5 rounded-full transition-all flex-shrink-0 shadow-[0_3px_0_0] active:translate-y-[2px] active:shadow-[0_1px_0_0]"
-              :class="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)
+              :class="isSelectedForCompare(`${model.brandSlug}/${model.modelUrlSlug}`)
                 ? 'bg-green-500 text-white shadow-green-700 hover:bg-green-400'
                 : selectedForCompare.length >= MAX_COMPARE
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-300 cursor-not-allowed shadow-gray-300 dark:shadow-gray-900'
                   : 'bg-white/90 dark:bg-gray-800/90 text-gray-400 hover:bg-green-100 hover:text-green-600 shadow-gray-300 dark:shadow-gray-900 hover:shadow-green-300'"
             >
-              <CheckIcon v-if="isSelectedForCompare(`${model.brandDisplayName}/${model.modelUrlSlug}`)" class="h-4 w-4" />
+              <CheckIcon v-if="isSelectedForCompare(`${model.brandSlug}/${model.modelUrlSlug}`)" class="h-4 w-4" />
               <ArrowsRightLeftIcon v-else class="h-4 w-4" />
             </button>
           </template>
@@ -632,7 +632,7 @@ const mobileFillModels = computed((): FallbackModel[] => {
   const needed = 12 - filteredModels.value.length
   if (needed <= 0) return []
   const normalize = (s: string) => s.replace(/ /g, '_').toLowerCase()
-  const existingSlugs = new Set(filteredModels.value.map(m => normalize(`${m.brandDisplayName}/${m.modelUrlSlug}`)))
+  const existingSlugs = new Set(filteredModels.value.map(m => normalize(`${m.brandSlug}/${m.modelUrlSlug}`)))
   return POPULAR_DE_FALLBACK
     .filter(f => !existingSlugs.has(normalize(`${f.brand}/${f.model}`)))
     .slice(0, needed)

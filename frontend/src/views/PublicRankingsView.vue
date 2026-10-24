@@ -72,7 +72,7 @@
             class="border-b last:border-b-0 border-gray-100 dark:border-gray-700"
           >
             <a
-              :href="`/modelle/${model.brandDisplayName}/${model.modelUrlSlug}`"
+              :href="`/modelle/${model.brandSlug}/${model.modelUrlSlug}`"
               class="flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
               <!-- Rank badge -->

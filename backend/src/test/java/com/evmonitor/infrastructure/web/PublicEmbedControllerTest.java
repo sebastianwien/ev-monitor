@@ -19,7 +19,7 @@ class PublicEmbedControllerTest extends AbstractIntegrationTest {
         ResponseEntity<String> response = restTemplate.getForEntity(URL, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains("\"modelDisplayName\":\"Volkswagen ID.3\"");
+        assertThat(response.getBody()).contains("\"modelDisplayName\":\"VW ID.3\"");
         assertThat(response.getBody()).contains("/modelle/Volkswagen/ID.3");
         assertThat(response.getHeaders().getCacheControl()).contains("max-age=3600").contains("public");
     }

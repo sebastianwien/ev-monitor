@@ -59,7 +59,7 @@
           <RouterLink
             v-for="model in brand.models"
             :key="model.modelEnum"
-            :to="`${modelsUrl}/${brand.brandDisplayName}/${model.modelUrlSlug}`"
+            :to="`${modelsUrl}/${brand.brandSlug}/${model.modelUrlSlug}`"
             class="bg-white dark:bg-gray-800 sm:rounded-sm border-t sm:border border-l-4 border-r-4 border-l-green-500 border-r-green-500 border-gray-200 dark:border-gray-700 p-6 hover:border-green-400 hover:shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:hover:shadow-[3px_3px_0_rgba(255,255,255,0.25)] transition-all group"
           >
             <!-- Model name & log badge -->
@@ -212,7 +212,7 @@ onMounted(async () => {
       notFound.value = true
     } else {
       brand.value = result
-      const canonicalPath = `${getMarketBasePath(currentMarket.value)}/${result.brandDisplayName}`
+      const canonicalPath = `${getMarketBasePath(currentMarket.value)}/${result.brandSlug}`
       if (route.path !== canonicalPath) {
         router.replace(canonicalPath)
       }

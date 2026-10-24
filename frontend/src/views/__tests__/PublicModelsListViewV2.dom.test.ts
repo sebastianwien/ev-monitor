@@ -12,7 +12,7 @@ import PublicModelsListViewV2 from '../PublicModelsListViewV2.vue'
 
 const { stub, MODELS } = vi.hoisted(() => {
   const models: import('../../api/publicModelService').TopModelPreview[] = Array.from({ length: 61 }, (_, i) => ({
-    brand: 'BRAND', model: `M${i}`, brandDisplayName: 'Brand', modelUrlSlug: `M${i}`, modelDisplayName: `Brand M${i}`,
+    brand: 'BRAND', model: `M${i}`, brandDisplayName: 'Brand', brandSlug: 'Brand', modelUrlSlug: `M${i}`, modelDisplayName: `Brand M${i}`,
     logCount: 1000 - i, avgConsumptionKwhPer100km: 15 + i / 10,
     minRealConsumptionKwhPer100km: null, maxRealConsumptionKwhPer100km: null,
     minWltpConsumptionKwhPer100km: 15, maxWltpConsumptionKwhPer100km: 15, avgWltpConsumptionKwhPer100km: 15,

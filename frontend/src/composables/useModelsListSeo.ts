@@ -22,7 +22,7 @@ export function useModelsListSeo(models: Ref<TopModelPreview[]>, noindex: Ref<bo
     const listed = [...models.value, ...modelsWithoutData.value]
     const modelItems = listed.map(m => ({
       name: m.modelDisplayName,
-      url: marketUrl(market, pathOf(m.brandDisplayName, m.modelUrlSlug)),
+      url: marketUrl(market, pathOf(m.brandSlug, m.modelUrlSlug)),
     }))
     const brands = [...new Set(listed.map(m => m.brandDisplayName))].sort()
     const brandItems = brands.map(brand => ({

@@ -9,6 +9,8 @@ import java.util.List;
 public record PublicBrandResponse(
         String brandEnum,
         String brandDisplayName,
+        /** Marke im URL-Slug der Modellseiten ("Volkswagen"), bleibt stabil; brandDisplayName ist das Label ("VW"). */
+        String brandSlug,
         List<ModelSummary> models
 ) {
     public record ModelSummary(

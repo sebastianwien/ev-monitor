@@ -104,10 +104,10 @@ const goToRegister = () => {
   router.push(registerPath.value)
 }
 
-function navigateToModel(brandDisplayName: string, modelUrlSlug: string) {
-  analytics.track('lp_v2_model_clicked', { brand: brandDisplayName, model: modelUrlSlug, path: selectedPath.value ?? 'unknown' })
+function navigateToModel(brandSlug: string, modelUrlSlug: string) {
+  analytics.track('lp_v2_model_clicked', { brand: brandSlug, model: modelUrlSlug, path: selectedPath.value ?? 'unknown' })
   sessionStorage.setItem('ev_from', 'lp_v2')
-  router.push(`${modelsUrl.value}/${brandDisplayName}/${modelUrlSlug}`)
+  router.push(`${modelsUrl.value}/${brandSlug}/${modelUrlSlug}`)
 }
 
 const demoLogin = async (source: 'lp_v2_weiche' | 'lp_v2_owner') => {
@@ -295,8 +295,8 @@ onMounted(async () => {
             <a
               v-for="model in filteredModels"
               :key="`${selectedPath}-${model.brand}-${model.model}`"
-              :href="`${modelsUrl}/${model.brandDisplayName}/${model.modelUrlSlug}`"
-              @click.prevent="navigateToModel(model.brandDisplayName, model.modelUrlSlug)"
+              :href="`${modelsUrl}/${model.brandSlug}/${model.modelUrlSlug}`"
+              @click.prevent="navigateToModel(model.brandSlug, model.modelUrlSlug)"
               class="btn-3d btn-3d-delay [--btn-shadow-color:#d1d5db] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-sm p-3 block"
             >
               <p class="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate mb-2">{{ model.modelDisplayName }}</p>

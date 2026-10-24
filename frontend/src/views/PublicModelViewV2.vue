@@ -384,7 +384,8 @@ const medianModelYear = computed(() => {
 const brand = route.params.brand as string
 const model = route.params.model as string
 
-const canonicalBrand = computed(() => stats.value?.brandDisplayName ?? brand)
+// Slug fuer URLs und Canonical ("Volkswagen"), das Label ("VW") steht in brandDisplayName
+const canonicalBrand = computed(() => stats.value?.brandSlug ?? brand)
 // canonicalModelSlug unused in V2 (no redirect logic)
 
 // US wenn: /us/models Route (previewCountry) ODER User hat dauerhaft US gesetzt
@@ -405,7 +406,7 @@ async function loadRatingCta() {
   try {
     const eligibility = await useRatingStore().getEligibility()
     ratingCtaCarId.value = eligibility.cars.find(c => c.eligible && !c.rated
-      && c.brandName === stats.value!.brandDisplayName && c.modelName === shortModelName.value)?.carId ?? null
+      && c.brandName === stats.value!.brandSlug && c.modelName === shortModelName.value)?.carId ?? null
   } catch {
     // ohne Hinweis weiter
   }

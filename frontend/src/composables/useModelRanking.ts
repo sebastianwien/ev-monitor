@@ -63,8 +63,8 @@ export interface RankedModel {
   ladder: { zeroStopKm: number; oneStopKm: number; twoStopsKm: number } | null
 }
 
-export function modelKey(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelUrlSlug'>): string {
-  return `${m.brandDisplayName}/${m.modelUrlSlug}`
+export function modelKey(m: Pick<TopModelPreview, 'brandSlug' | 'modelUrlSlug'>): string {
+  return `${m.brandSlug}/${m.modelUrlSlug}`
 }
 
 function wltpReference(m: TopModelPreview): number | null {

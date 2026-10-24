@@ -18,6 +18,7 @@ import { COST_DEFAULTS } from '../../utils/costMix'
 function model(over: Partial<TopModelPreview> & { brandDisplayName: string, modelUrlSlug: string }): TopModelPreview {
   return {
     brand: over.brandDisplayName.toUpperCase(),
+    brandSlug: over.brandSlug ?? over.brandDisplayName,
     model: over.modelUrlSlug.toUpperCase(),
     modelDisplayName: `${over.brandDisplayName} ${over.modelUrlSlug.replace(/_/g, ' ')}`,
     logCount: 100,
@@ -40,6 +41,7 @@ function model(over: Partial<TopModelPreview> & { brandDisplayName: string, mode
 function withoutData(over: Partial<ModelWithoutData> & { brandDisplayName: string, modelUrlSlug: string }): ModelWithoutData {
   return {
     brand: over.brandDisplayName.toUpperCase(),
+    brandSlug: over.brandSlug ?? over.brandDisplayName,
     model: over.modelUrlSlug.toUpperCase(),
     modelDisplayName: `${over.brandDisplayName} ${over.modelUrlSlug.replace(/_/g, ' ')}`,
     category: 'SEDAN',

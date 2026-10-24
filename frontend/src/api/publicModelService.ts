@@ -94,6 +94,7 @@ export interface PublicModelStats {
     brand: string
     model: string
     brandDisplayName: string
+    brandSlug: string // Marke in der URL der Modellseite, z. B. 'Volkswagen'; brandDisplayName ist das Label ('VW')
     modelDisplayName: string
     /** vehicle class (COMPACT, SUV, ...); picks the litres of the petrol comparison */
     category?: string | null
@@ -155,6 +156,7 @@ export interface TopModelPreview {
     brand: string
     model: string
     brandDisplayName: string
+    brandSlug: string // Marke in der URL der Modellseite, z. B. 'Volkswagen'; brandDisplayName ist das Label ('VW')
     modelDisplayName: string
     modelUrlSlug: string
     logCount: number
@@ -191,6 +193,7 @@ export interface ModelWithoutData {
     brand: string
     model: string
     brandDisplayName: string
+    brandSlug: string // Marke in der URL der Modellseite, z. B. 'Volkswagen'; brandDisplayName ist das Label ('VW')
     modelDisplayName: string
     modelUrlSlug: string
     category: string
@@ -286,6 +289,7 @@ export interface BrandModelSummary {
 export interface PublicBrandResponse {
     brandEnum: string
     brandDisplayName: string
+    brandSlug: string // Marke in der URL der Modellseite, z. B. 'Volkswagen'; brandDisplayName ist das Label ('VW')
     models: BrandModelSummary[]
 }
 

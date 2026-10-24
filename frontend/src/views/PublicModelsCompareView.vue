@@ -231,7 +231,7 @@ function fullName(item: RankedModel) {
   const name = shortName(item)
   return name.toLowerCase().startsWith(item.model.brandDisplayName.toLowerCase()) ? name : `${item.model.brandDisplayName} ${name}`
 }
-const modelHref = (item: RankedModel) => `${modelsBaseUrl.value}/${item.model.brandDisplayName}/${item.model.modelUrlSlug}`
+const modelHref = (item: RankedModel) => `${modelsBaseUrl.value}/${item.model.brandSlug}/${item.model.modelUrlSlug}`
 const thumb = (item: RankedModel) => officialModelThumbUrl(item.model.model)
 /** Back to the list with these models picked */
 const listHref = (keys: string[]) => `${modelsBaseUrl.value}?vergleich=${keys.join(',')}#fahrer-messen`

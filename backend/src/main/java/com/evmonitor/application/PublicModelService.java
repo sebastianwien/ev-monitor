@@ -85,8 +85,9 @@ public class PublicModelService {
         String modelEnumName = carModel.name();
         String brandEnumName = carModel.getBrand().name();
 
-        // Get proper display names from enum (preserves BMW, VW, MG etc.)
-        String brandDisplay = carModel.getBrand().getDisplayString();
+        // Label fuer die Anzeige ("VW"), Slug fuer die URL ("Volkswagen")
+        String brandDisplay = carModel.getBrand().getLabel();
+        String brandSlug = carModel.getBrand().getDisplayString();
         String modelDisplay = carModel.getDisplayName();
 
         // Fetch basic aggregated stats (count, cost, kwh)
@@ -230,13 +231,12 @@ public class PublicModelService {
         PublicModelStatsResponse.RouteTypeConsumption routeTypeConsumption = toRouteTypeConsumption(
                 evLogStatisticsService.calculateRouteTypeConsumption(carsForModel, isSeedUser));
 
-        String displayName = brandDisplay + " " + modelDisplay;
-
         return Optional.of(new PublicModelStatsResponse(
                 brandEnumName,
                 modelEnumName,
                 brandDisplay,
-                displayName,
+                brandSlug,
+                carModel.getFullDisplayName(),
                 carModel.getCategory().name(),
                 carModel.getCategory().getDisplayName(),
                 (int) logCount,
@@ -395,6 +395,7 @@ public class PublicModelService {
 
         return Optional.of(new PublicBrandResponse(
                 finalBrand.name(),
+                finalBrand.getLabel(),
                 finalBrand.getDisplayString(),
                 summaries
         ));
@@ -518,7 +519,6 @@ public class PublicModelService {
                 .filter(m -> m != null)
                 .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
                 .map(m -> {
-                    String brandDisplay = m.carModel().getBrand().getDisplayString();
                     String modelDisplay = m.carModel().getDisplayName();
                     // Seasonal split via EvLogService, same as getModelStats - only for the listed models
                     SeasonalConsumptionResult seasonal = evLogStatisticsService.calculateSeasonalConsumption(m.cars(), isSeedUser);
@@ -526,8 +526,9 @@ public class PublicModelService {
                     return new TopModelResponse(
                             m.carModel().getBrand().name(),
                             m.carModel().name(),
-                            brandDisplay,
-                            brandDisplay + " " + modelDisplay,
+                            m.carModel().getBrand().getLabel(),
+                            m.carModel().getBrand().getDisplayString(),
+                            m.carModel().getFullDisplayName(),
                             modelDisplay.replace(" ", "_"),
                             (int) m.logCount(),
                             m.avgConsumption(),
@@ -578,13 +579,13 @@ public class PublicModelService {
                     if (logCountFor(modelName, isSeedUser) > 0) return null;
                     WltpSummary wltp = summarizeWltpSpecs(modelName);
                     if (wltp.avgConsumption() == null) return null;
-                    String brandDisplay = carModel.getBrand().getDisplayString();
                     String modelDisplay = carModel.getDisplayName();
                     return new ModelWithoutDataResponse(
                             carModel.getBrand().name(),
                             carModel.name(),
-                            brandDisplay,
-                            brandDisplay + " " + modelDisplay,
+                            carModel.getBrand().getLabel(),
+                            carModel.getBrand().getDisplayString(),
+                            carModel.getFullDisplayName(),
                             modelDisplay.replace(" ", "_"),
                             carModel.getCategory().name(),
                             carModel.getCategory().getDisplayName(),

@@ -57,7 +57,7 @@ test.describe('Modellseite (390 px)', () => {
 
   test('H1, Hero-Satz, Datenblatt, Belege und JSON-LD stehen auf der Seite', async ({ page }) => {
     await openStory(page);
-    await expect(page.locator('h1')).toContainText('Volkswagen ID.3');
+    await expect(page.locator('h1')).toContainText('VW ID.3');
     await expect(page.getByTestId('story-hero')).toContainText(/Fahrer sagen|verspricht/);
     await expect(page.getByTestId('model-facts').locator('[data-testid^="fact-"]')).toHaveCount(4);
     await expect(page.getByTestId('model-evidence')).toContainText('Reichweite nach Jahreszeit');

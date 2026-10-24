@@ -10,6 +10,8 @@ public record ModelWithoutDataResponse(
         String brand,
         String model,
         String brandDisplayName,
+        /** Marke im URL-Slug der Modellseiten ("Volkswagen"), bleibt stabil; brandDisplayName ist das Label ("VW"). */
+        String brandSlug,
         String modelDisplayName,
         String modelUrlSlug,
         String category,

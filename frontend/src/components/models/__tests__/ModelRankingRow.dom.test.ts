@@ -13,6 +13,7 @@ import type { TopModelPreview } from '../../../api/publicModelService'
 function model(over: Partial<TopModelPreview> & { brandDisplayName: string, modelUrlSlug: string }): TopModelPreview {
   return {
     brand: over.brandDisplayName.toUpperCase(),
+    brandSlug: over.brandSlug ?? over.brandDisplayName,
     model: over.modelUrlSlug.toUpperCase(),
     modelDisplayName: `${over.brandDisplayName} ${over.modelUrlSlug.replace(/_/g, ' ')}`,
     logCount: 100,

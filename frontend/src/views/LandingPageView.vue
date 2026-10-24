@@ -136,7 +136,7 @@ function realConsumptionRange(min: number, max: number): string {
 // range, most tracked. Formatting/units done here so the template stays declarative.
 const superlativeCategories = computed<SuperlativeCategory[]>(() => {
   const board = selectSuperlatives(efficientModels.value, rangeModels.value, topModels.value)
-  const href = (m: TopModelPreview) => `${modelsUrl.value}/${m.brandDisplayName}/${m.modelUrlSlug}`
+  const href = (m: TopModelPreview) => `${modelsUrl.value}/${m.brandSlug}/${m.modelUrlSlug}`
   const dataMeta = (m: TopModelPreview) => t('landing.superlatives.meta_datapoints', { n: formatNumber(m.logCount) })
 
   return [
@@ -645,7 +645,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
               v-for="preview in allModels"
               :key="`${preview.brand}-${preview.model}`"
               :model="preview"
-              :to="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
+              :to="`${modelsUrl}/${preview.brandSlug}/${preview.modelUrlSlug}`"
             />
           </div>
 
@@ -656,14 +656,14 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
                 v-for="preview in topModels"
                 :key="`${preview.brand}-${preview.model}`"
                 :model="preview"
-                :to="`${modelsUrl}/${preview.brandDisplayName}/${preview.modelUrlSlug}`"
+                :to="`${modelsUrl}/${preview.brandSlug}/${preview.modelUrlSlug}`"
               />
             </div>
             <div v-if="nextModels.length > 0" class="flex flex-wrap gap-2 justify-center">
               <a
                 v-for="m in nextModels"
                 :key="`${m.brand}-${m.model}`"
-                :href="`${modelsUrl}/${m.brandDisplayName}/${m.modelUrlSlug}`"
+                :href="`${modelsUrl}/${m.brandSlug}/${m.modelUrlSlug}`"
                 class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full transition"
               >
                 {{ m.modelDisplayName }}

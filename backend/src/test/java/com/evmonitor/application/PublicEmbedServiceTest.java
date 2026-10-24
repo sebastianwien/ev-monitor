@@ -51,7 +51,7 @@ class PublicEmbedServiceTest {
     }
 
     private static TopModelResponse top(int logCount, String avg, String wltp) {
-        return new TopModelResponse("VW", "ID_3", "VW", "VW ID.3", "ID.3", logCount, new BigDecimal(avg), null, null,
+        return new TopModelResponse("VW", "ID_3", "VW", "Volkswagen", "VW ID.3", "ID.3", logCount, new BigDecimal(avg), null, null,
                 null, null, null, "COMPACT", "Kompakt", null, wltp == null ? null : new BigDecimal(wltp),
                 null, null, null, null, null, null, null, null, null, null, null);
     }
@@ -210,7 +210,7 @@ class PublicEmbedServiceTest {
 
     private static PublicModelStatsResponse stats(List<PublicModelStatsResponse.WltpVariant> variants,
                                                   BigDecimal avg, int logCount, int cars, Extras extras) {
-        return new PublicModelStatsResponse("VW", "ID_3", "VW", "VW ID.3", "COMPACT", "Kompakt",
+        return new PublicModelStatsResponse("VW", "ID_3", "VW", "Volkswagen", "VW ID.3", "COMPACT", "Kompakt",
                 logCount, cars, cars, extras.avgPrice(), null, extras.dcPrice(), extras.kwhPerSession(), avg, 0, null,
                 variants, null, extras.seasonal(), List.of(), List.of(), null);
     }

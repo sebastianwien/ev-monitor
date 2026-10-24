@@ -4,7 +4,7 @@ import type { TopModelPreview } from '../../api/publicModelService'
 
 function model(partial: Partial<TopModelPreview>): TopModelPreview {
   return {
-    brand: 'X', model: 'X', brandDisplayName: 'X', modelDisplayName: 'X',
+    brand: 'X', model: 'X', brandDisplayName: 'X', brandSlug: 'X', modelDisplayName: 'X',
     modelUrlSlug: 'X', logCount: 0, avgConsumptionKwhPer100km: null,
     minRealConsumptionKwhPer100km: null, maxRealConsumptionKwhPer100km: null,
     minWltpConsumptionKwhPer100km: null, maxWltpConsumptionKwhPer100km: null,
