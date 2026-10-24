@@ -25,7 +25,7 @@ const showTotal = computed(() => hasFixedCost.value || hasIncome.value)
 const isStacked = computed(() => props.layout === 'stacked')
 const rowClass = computed(() => isStacked.value ? '' : 'flex items-center justify-between')
 const labelClass = computed(() => isStacked.value
-  ? 'text-[10px] text-gray-500 dark:text-gray-400'
+  ? 'block text-[10px] text-gray-500 dark:text-gray-400'
   : 'text-xs text-gray-500 dark:text-gray-400 min-w-0 truncate')
 const valueBase = computed(() => isStacked.value
   ? 'text-sm font-semibold tabular-nums whitespace-nowrap'
@@ -58,7 +58,7 @@ const incomeValueClass = computed(() => `${valueBase.value} text-green-600 dark:
       <div v-if="showTotal" :class="[rowClass, 'border-t border-gray-100 dark:border-gray-600 pt-1 mt-1']">
         <span
           class="font-medium text-gray-600 dark:text-gray-300"
-          :class="isStacked ? 'text-[10px]' : 'text-xs'"
+          :class="isStacked ? 'block text-[10px]' : 'text-xs'"
         >{{ t('fixed_costs.dashboard_total') }}</span>
         <span
           class="text-base font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap"
