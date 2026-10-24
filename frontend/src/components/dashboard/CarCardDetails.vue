@@ -124,7 +124,7 @@ const sohDisplay = computed<number | null>(() => {
       <SohPill
         v-if="sohPercent != null && interactiveSoh"
         :soh-percent="sohDisplay"
-        compact
+        size="sm"
         @click="emit('open-soh')"
       />
       <span
