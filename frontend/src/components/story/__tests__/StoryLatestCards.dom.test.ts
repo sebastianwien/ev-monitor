@@ -11,10 +11,10 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
 const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 
-function mount(latest: StoryLatest, now: number) {
+function mount(latest: StoryLatest, now: number, extra: Record<string, unknown> = {}) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(StoryLatestCards, { latest, carId: 'c1', now })
+  app = createApp(StoryLatestCards, { latest, carId: 'c1', now, ...extra })
   app.use(createPinia()).use(i18n)
   app.component('router-link', RouterLink)
   app.mount(host)
@@ -49,5 +49,10 @@ describe('StoryLatestCards', () => {
     expect(text(charge)).toContain('Preis nachtragen')
     expect(charge?.getAttribute('href')).toBe('/logs?car=c1&nachtragen=preis')
     expect(host.querySelector('[data-testid="story-latest-trip"]')).toBeNull()
+  })
+
+  it('ohne doppelten Knopf, wenn der Hero schon zum Nachtragen dieser Ladung führt', () => {
+    const host = mount({ charge: { id: 'l', at: '2026-10-02T11:59:30Z', kwh: 10, costEur: null }, trip: null }, now, { priceInHero: true })
+    expect(text(host.querySelector('[data-testid="story-latest-charge"]'))).not.toContain('Preis nachtragen')
   })
 })

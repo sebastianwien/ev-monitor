@@ -10,6 +10,7 @@ import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, Share
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import DemoSettingsModal from '../components/demo/DemoSettingsModal.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { useStoryOptIn } from '../composables/useStoryOptIn'
 import { useAccountSettings } from '../composables/useAccountSettings'
 import dashboardPreferencesService from '../api/dashboardPreferencesService'
 
@@ -50,6 +51,9 @@ function toggleImplausibleBanner() {
     localStorage.setItem(LS_IMPLAUSIBLE_BANNER_DISMISSED, 'true')
   }
 }
+
+// Neues Dashboard: Widerruf des Moment-Heros, nur auf diesem Geraet (wie der Opt-in selbst).
+const { enabled: storyEnabled, alwaysMonth, setAlwaysMonth } = useStoryOptIn()
 
 // Ersparnis-Kachel: serverseitig gehalten, damit das Ausblenden auf allen Geraeten gilt.
 // Der Toggle bildet die Sicht ab (an = sichtbar), die Persistenz das Gegenteil (dismissed).
@@ -426,6 +430,28 @@ onMounted(async () => {
                 :class="[
                   'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
                   savingsCardVisible ? 'translate-x-5' : 'translate-x-0'
+                ]" />
+            </button>
+          </div>
+          <div v-if="storyEnabled" class="flex items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+            <div>
+              <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.story_always_month_label') }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.story_always_month_hint') }}</p>
+            </div>
+            <button
+              data-testid="settings-story-always-month"
+              @click="setAlwaysMonth(!alwaysMonth)"
+              role="switch"
+              :aria-checked="alwaysMonth"
+              :aria-label="t('settings.story_always_month_label')"
+              :class="[
+                'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
+                alwaysMonth ? 'bg-green-500' : 'bg-gray-300'
+              ]">
+              <span
+                :class="[
+                  'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
+                  alwaysMonth ? 'translate-x-5' : 'translate-x-0'
                 ]" />
             </button>
           </div>

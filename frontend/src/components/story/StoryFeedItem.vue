@@ -8,6 +8,9 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { CAT_LABEL } from '../../composables/useTickerItems'
 import type { StoryFeedItem } from '../../composables/storyModel'
 import type { WhatIfModel } from '../../composables/storyInsights'
+import { useMomentView } from '../../composables/useMomentView'
+import type { Moment } from '../../composables/storyMoments'
+import { keepUnits } from '../../utils/modelStory'
 
 /** Ein Satz aus Zahlen, der Fahrerfrage zugeordnet, mit Mini-Grafik. Gesperrt: verwischt plus CTA. */
 const props = withDefaults(defineProps<{
@@ -15,14 +18,29 @@ const props = withDefaults(defineProps<{
   upsellTo: string
   /** Fuer den Was-waere-wenn-Satz: Modellnamen in der Reihenfolge der Liste. */
   whatIf?: WhatIfModel[]
-}>(), { whatIf: () => [] })
+  /** Fuer Moment-Eintraege: Ziel von "Preis nachtragen" und Name im AutoSync-Satz. */
+  carId?: string | null
+  carName?: string
+}>(), { whatIf: () => [], carId: null, carName: '' })
 
 const { t } = useI18n()
 const { formatCurrency, formatConsumption, formatDecimal, convertConsumption, consumptionUnitLabel } = useLocaleFormat()
 
+// Nur fuer id 'moment' gelesen; der computed wertet sonst nie aus.
+const momentView = useMomentView({
+  get moment() { return props.item.moment as Moment },
+  get carId() { return props.carId },
+  get carName() { return props.carName },
+})
+const momentLink = computed(() => props.item.id === 'moment' && momentView.value.action?.to ? momentView.value.action : null)
+
 const sentence = computed(() => {
   const p = props.item.params
   switch (props.item.id) {
+    case 'moment': {
+      const v = momentView.value
+      return keepUnits([`${v.eyebrow}${/[.?!]$/.test(v.eyebrow) ? '' : '.'}`, v.sentence, v.sub].filter(Boolean).join(' '))
+    }
     case 'consumption_trend':
       // Das Delta in Anzeige-Einheiten bilden: mi/kWh ist nicht linear in kWh/100 km.
       return t(p.diff <= 0 ? 'story.feed_consumption_better' : 'story.feed_consumption_worse', {
@@ -75,6 +93,7 @@ const spark = computed<{ values: number[]; variant: 'line' | 'bars' | 'range' } 
     case 'data_quality': return { values: [p.total - p.estimated, p.estimated], variant: 'bars' }
     case 'temperature_effect': return { values: [p.mild, p.cold], variant: 'bars' }
     case 'community_rank': return null
+    case 'moment': return null
     default: return { values: [4, 3, 5, 2, 6, 3], variant: 'line' }
   }
 })
@@ -87,6 +106,7 @@ const spark = computed<{ values: number[]; variant: 'line' | 'bars' | 'range' } 
     <div :class="item.locked ? 'blur-[5px] select-none pointer-events-none' : ''">
       <p class="text-[15px] text-pretty text-gray-900 dark:text-gray-100">{{ sentence }}</p>
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t(`story.feed_q${item.question}`) }}</p>
+      <router-link v-if="momentLink" :to="momentLink.to!" class="mt-1 inline-flex min-h-[44px] items-center text-sm font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100">{{ momentLink.label }}</router-link>
     </div>
     <div class="w-[92px] flex justify-end" :class="item.locked ? 'blur-[5px]' : ''">
       <RankBadge v-if="item.id === 'community_rank'" :rank="item.params.rank" />

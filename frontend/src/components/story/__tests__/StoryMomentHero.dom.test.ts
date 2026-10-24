@@ -1,0 +1,68 @@
+// @vitest-environment jsdom
+import { describe, it, expect, afterEach, vi } from 'vitest'
+import { createApp, type App } from 'vue'
+import { createPinia } from 'pinia'
+import { i18n } from '../../../i18n'
+import StoryMomentHero from '../StoryMomentHero.vue'
+import { HOUR, DAY, type Moment } from '../../../composables/storyMoments'
+
+let app: App | null = null
+afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
+
+const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
+const NOW = new Date(2026, 9, 24, 12).getTime()
+const b = { at: NOW, lifetimeMs: DAY, actionable: false, dismissible: false }
+const text = (host: HTMLElement) => host.textContent!.replace(/ /g, ' ').replace(/\s+/g, ' ')
+
+function mount(moment: Moment, on: Record<string, (...a: unknown[]) => void> = {}) {
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  app = createApp(StoryMomentHero, { moment, carId: 'c1', carName: 'Tesla Model 3', now: NOW, ...on })
+  app.component('router-link', RouterLink)
+  app.use(createPinia()).use(i18n)
+  app.mount(host)
+  return host
+}
+
+describe('StoryMomentHero', () => {
+  it('gerade geladen: Energie, SoC, Reichweite und Preis nachtragen', () => {
+    const host = mount({ ...b, kind: 'just_charged', key: 'k', actionable: true, logId: 'l1', kwh: 28.5, socFrom: 35, socTo: 80, rangeKm: 210, costEur: null })
+    expect(text(host)).toContain('Gerade geladen')
+    expect(text(host)).toContain('28,5 kWh, 35 → 80 %. Reicht für etwa 210 km.')
+    expect(host.querySelector('a')!.getAttribute('href')).toBe('/logs?car=c1&nachtragen=preis')
+  })
+
+  it('lange Fahrt mit Stopp und Kosten, Tag relativ', () => {
+    const host = mount({ ...b, kind: 'long_trip', key: 'k', at: NOW - 20 * HOUR, km: 340, stops: 1, costEur: 18 })
+    expect(text(host)).toContain('Gestern: 340 km, 1 Ladestopp für 18 €.')
+  })
+
+  it('Akku: Schätzung mit Tilde und Hinweis, eigene Angabe ohne', () => {
+    const est = mount({ ...b, kind: 'battery', key: 'k', sohPercent: 92, estimated: true, previousSohPercent: 93.4, previousAt: NOW - 186 * DAY })
+    expect(text(est)).toContain('Dein Akku: ~92 %.')
+    expect(text(est)).toContain('Vor 6 Monaten: ~93 %.')
+    expect(text(est)).toContain('geschätzt')
+    app!.unmount(); app = null
+    const manual = mount({ ...b, kind: 'battery', key: 'k', sohPercent: 92, estimated: false, previousSohPercent: null, previousAt: null })
+    expect(text(manual)).toContain('Dein Akku: 92 %.')
+    expect(text(manual)).not.toContain('geschätzt')
+  })
+
+  it('Stille: AutoSync-Satz und Wegklicken', () => {
+    const onDismiss = vi.fn()
+    const host = mount({ ...b, kind: 'silence', key: 'k', lifetimeMs: Infinity, actionable: true, dismissible: true, days: 16, kwh: 28.5, autoSync: true }, { onDismiss })
+    expect(text(host)).toContain('Letzte Ladung vor 16 Tagen: 28,5 kWh.')
+    expect(text(host)).toContain('Dein Tesla Model 3 kann Ladungen und Fahrten selbst eintragen.')
+    ;[...host.querySelectorAll('button')].find(x => x.textContent!.includes('Alles erfasst'))!.click()
+    expect(onDismiss).toHaveBeenCalled()
+  })
+
+  it('Monatswechsel: Satz des Vormonats, Benzin, Teilen meldet die Handlung', () => {
+    const onAct = vi.fn()
+    const host = mount({ ...b, kind: 'month_change', key: 'k', year: 2026, month: 9, km: 279, eur: 33, charges: 6, petrolEur: 42 }, { onAct })
+    expect(text(host)).toContain('September: 279 km für 33 €.')
+    expect(text(host)).toContain('Mit Benzin wären es 42 €.')
+    host.querySelector('button')!.click()
+    expect(onAct).toHaveBeenCalledWith('share')
+  })
+})

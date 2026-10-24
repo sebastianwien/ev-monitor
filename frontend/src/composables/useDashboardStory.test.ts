@@ -18,7 +18,7 @@ const stats = (totalCostEur: number) => ({
   chargingTypeSplit: null, locationSplit: null, peerBenchmark: null, chargingEfficiencySplit: null,
 })
 
-const ctx = () => ({ wltpConsumption: null, sohPercent: null, odometerKm: null, effectiveBatteryCapacityKwh: null, energySplitLocked: false, canViewLiveAnalytics: false })
+const ctx = () => ({ wltpConsumption: null, sohPercent: null, odometerKm: null, effectiveBatteryCapacityKwh: null, energySplitLocked: false, canViewLiveAnalytics: false, liveActive: false, autoSync: false, alwaysMonth: false })
 
 const flush = async () => { for (let i = 0; i < 6; i++) await nextTick(); await new Promise(r => setTimeout(r, 0)) }
 
@@ -120,5 +120,50 @@ describe('useDashboardStory - Zuletzt-Zeile', () => {
     const story = useDashboardStory(ref<string | null>('car-1'), ctx)
     await flush()
     expect(story.latest.value).toEqual({ charge: { id: 'l9', at: '2026-10-01T18:00:00Z', kwh: 28.5, costEur: 9.9 }, trip: null })
+  })
+})
+
+describe('useDashboardStory - Moment-Hero', () => {
+  const fresh = { id: 'l1', loggedAt: new Date(Date.now() - 30 * 60_000).toISOString(), kwhAtVehicle: 20, costEur: null, dataSource: 'SMARTCAR_LIVE' }
+  const momentCtx = (over: Record<string, unknown> = {}) => () => ({ ...ctx(), liveActive: false, autoSync: false, alwaysMonth: false, ...over })
+
+  beforeEach(async () => {
+    clearStoryCache()
+    getMock.mockReset()
+    getMock.mockImplementation((url: string) => {
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      if (url.includes('/leaderboard')) return Promise.resolve({ data: { ownEntry: null } })
+      if (url.startsWith('/logs?')) return Promise.resolve({ data: [fresh] })
+      return Promise.resolve({ data: [] })
+    })
+    const { carService } = await import('../api/carService')
+    vi.mocked(carService.getSohHistory).mockResolvedValue([
+      { id: 's1', carId: 'car-1', sohPercent: 92, recordedAt: new Date().toISOString().slice(0, 10), createdAt: '', source: 'CHARGE_LOG', sampleSize: 3, socHubPercent: 50 },
+    ])
+  })
+
+  it('eine frische Ladung ohne Preis wird Hero, der zweite Moment landet im Feed', async () => {
+    const story = useDashboardStory(ref<string | null>('car-1'), momentCtx())
+    await flush()
+    expect(story.moment.value.kind).toBe('just_charged')
+    const inFeed = story.feed.value.filter(f => f.id === 'moment').map(f => f.moment!.kind)
+    expect(inFeed).toEqual(['battery'])
+  })
+
+  it('Vormonat, Live und "Immer den Monat" steuern den Hero', async () => {
+    const story = useDashboardStory(ref<string | null>('car-1'), momentCtx({ alwaysMonth: true }))
+    await flush()
+    expect(story.moment.value.kind).toBe('month')
+    expect(story.feed.value.some(f => f.id === 'moment')).toBe(false)
+
+    const live = useDashboardStory(ref<string | null>('car-1'), momentCtx({ liveActive: true, alwaysMonth: true }))
+    await flush()
+    expect(live.moment.value.kind).toBe('live')
+
+    const past = useDashboardStory(ref<string | null>('car-1'), momentCtx())
+    await flush()
+    past.setOffset(-1)
+    await flush()
+    expect(past.moment.value.kind).toBe('month')
   })
 })

@@ -14,12 +14,19 @@ import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
 import { analytics } from '../services/analytics'
 import { petrolCostEur, type TileId } from '../composables/storyModel'
+import { DAY } from '../composables/storyMoments'
+import { useMomentSeen } from '../composables/useMomentSeen'
+import { useMomentView } from '../composables/useMomentView'
+import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
+import { connectionsOf } from '../api/smartcarService'
+import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
 import { WORKSPACE_TABS } from '../config/tabs'
 import PublicNav from '../components/shared/PublicNav.vue'
 import ChoiceChip from '../components/shared/ChoiceChip.vue'
 import ModelBox from '../components/models/ModelBox.vue'
 import StoryHero from '../components/story/StoryHero.vue'
+import StoryMomentHero from '../components/story/StoryMomentHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
 import StoryLiveHero from '../components/story/StoryLiveHero.vue'
 import StoryTileRow from '../components/story/StoryTileRow.vue'
@@ -36,7 +43,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const { haptic } = useHaptic()
 const upsellTo = useAnalyticsUpsellTarget()
-const { set: setOptIn } = useStoryOptIn()
+const { set: setOptIn, alwaysMonth } = useStoryOptIn()
 
 // Das Template hat genau ein Wurzelelement, ohne Kommentar davor: die Routen-Transition in App.vue
 // (mode out-in) kann ein Fragment nicht ausblenden, der Leave endet nie und die router-view bleibt leer.
@@ -49,6 +56,18 @@ const selectedCar = computed(() => cars.value.find((c: any) => c.id === selected
 const sohPercent = computed(() => selectedCar.value?.batteryDegradationPercent != null ? 100 - selectedCar.value.batteryDegradationPercent : null)
 const effectiveCapacity = computed<number | null>(() => selectedCar.value?.effectiveBatteryCapacityKwh ?? null)
 
+// Live-Laden: Polling nur, wenn das Gate offen ist (gleiche Regel wie die LiveChargingCard).
+const liveGate = computed(() => authStore.canViewLiveCharging(selectedCar.value?.brand ?? null))
+const liveCarId = computed(() => liveGate.value ? selectedCarId.value : null)
+const { data: live } = useChargingLive(liveCarId)
+const liveActive = computed(() => !!live.value?.isActive && live.value?.chargingType === 'DC')
+watch(liveActive, (v) => { if (v) analytics.track('story_live_shown') })
+
+// AutoSync-Satz im Stille-Moment: Marke hat einen Weg, dieses Auto ist nicht verbunden.
+const autoSyncOffer = computed(() => !!selectedCar.value
+  && autoSyncProviderFor(selectedCar.value) !== 'NONE'
+  && !connectionsOf(smartcarStatus.value).some(c => c.carId === selectedCar.value.id))
+
 const storyCtx = (): StoryCarContext => ({
   wltpConsumption: wltp.value?.officialConsumptionKwhPer100km ?? null,
   sohPercent: sohPercent.value,
@@ -56,16 +75,13 @@ const storyCtx = (): StoryCarContext => ({
   effectiveBatteryCapacityKwh: effectiveCapacity.value,
   energySplitLocked: !authStore.canViewEnergySplit,
   canViewLiveAnalytics: authStore.canViewLiveAnalytics,
+  liveActive: liveActive.value,
+  autoSync: autoSyncOffer.value,
+  alwaysMonth: alwaysMonth.value,
 })
 const story = useDashboardStory(selectedCarId, storyCtx)
 const { month, months, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, quality } = story
 
-// Live-Laden: Polling nur, wenn das Gate offen ist (gleiche Regel wie die LiveChargingCard).
-const liveGate = computed(() => authStore.canViewLiveCharging(selectedCar.value?.brand ?? null))
-const liveCarId = computed(() => liveGate.value ? selectedCarId.value : null)
-const { data: live } = useChargingLive(liveCarId)
-const liveActive = computed(() => !!live.value?.isActive && live.value?.chargingType === 'DC')
-watch(liveActive, (v) => { if (v) analytics.track('story_live_shown') })
 
 const { isVehicleCharging } = useVehicleCharging(cars, smartcarStatus)
 const charging = computed(() => selectedCar.value ? isVehicleCharging(selectedCar.value) : false)
@@ -74,6 +90,57 @@ const monthLabel = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLocaleD
 const monthLabelShort = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLocaleDateString(locale.value, { month: 'short' })
 const sixMonthLabels = computed(() => Array.from({ length: 6 }, (_, i) =>
   new Date(month.value.year, month.value.month - 1 - (5 - i), 1).toLocaleDateString(locale.value, { month: 'short' })))
+
+// Hero: Live vor Moment vor Monat. "Zum Monat" zeigt fuer diesen Besuch den Monat statt des Moments.
+const moment = story.moment
+const showMonth = ref(false)
+watch(selectedCarId, () => { showMonth.value = false })
+const heroMode = computed<'live' | 'moment' | 'month'>(() => {
+  if (moment.value.kind === 'live') return live.value ? 'live' : 'month'
+  return moment.value.kind === 'month' || showMonth.value ? 'month' : 'moment'
+})
+const priceInHero = computed(() => heroMode.value === 'moment' && moment.value.kind === 'just_charged'
+  && moment.value.costEur == null && moment.value.logId === story.latest.value?.charge?.id)
+const carName = computed(() => selectedCar.value ? carDisplayName(selectedCar.value) : '')
+const heroView = useMomentView({
+  get moment() { return moment.value },
+  get carId() { return selectedCarId.value },
+  get carName() { return carName.value },
+})
+
+const { markShown, dismiss } = useMomentSeen()
+watch(() => heroMode.value === 'moment' ? moment.value.key : null, (key) => {
+  if (!key) return
+  markShown(key)
+  analytics.track('story_moment_shown', { moment: moment.value.kind })
+}, { immediate: true })
+
+const shareStatus = ref<ShareOutcome | null>(null)
+async function shareMoment() {
+  const v = heroView.value
+  shareStatus.value = await shareOrCopy({
+    title: v.eyebrow,
+    text: [v.sentence, v.sub].filter(Boolean).join(' '),
+    url: window.location.origin,
+  })
+  if (shareStatus.value !== 'shared') setTimeout(() => { shareStatus.value = null }, 3000)
+}
+
+function onMomentAct(id: string) {
+  haptic()
+  analytics.track('story_moment_tapped', { moment: moment.value.kind, action: id })
+  if (id === 'share') shareMoment()
+  else if (id === 'winter') openSheet('range')
+  else if (id === 'battery') {
+    // Ohne Akku-Kachel (kein SoH am Auto) fuehrt der Verlauf zur Fahrzeugseite.
+    if (tiles.value.some(x => x.id === 'battery')) openSheet('battery')
+    else router.push('/cars')
+  }
+}
+function onMomentDismiss() {
+  analytics.track('story_moment_dismissed', { moment: moment.value.kind })
+  dismiss(moment.value.key, Date.now(), 30 * DAY)
+}
 
 const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm ?? null, story.petrol.value.eurPerLitre))
 
@@ -178,7 +245,7 @@ onMounted(() => analytics.track('story_viewed'))
           <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="story.reload()">{{ t('story.retry') }}</button>
         </div>
 
-        <div v-else-if="!hasCharges && !liveActive" class="py-4 text-center">
+        <div v-else-if="!hasCharges && heroMode === 'month'" class="py-4 text-center">
           <p class="text-lg font-bold text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
           <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ t('story.empty_body') }}</p>
         </div>
@@ -186,7 +253,21 @@ onMounted(() => analytics.track('story_viewed'))
         <template v-else>
           <div @pointerdown="onPointerDown" @pointerup="onPointerUp">
             <Transition name="story-hero" mode="out-in">
-              <StoryLiveHero v-if="liveActive && live" key="live" :live="live" />
+              <StoryLiveHero v-if="heroMode === 'live' && live" key="live" :live="live" />
+              <div v-else-if="heroMode === 'moment'" :key="moment.key" class="grid gap-3">
+                <StoryMomentHero :moment="moment" :car-id="selectedCarId" :car-name="carName" @act="onMomentAct" @dismiss="onMomentDismiss" />
+                <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
+                  {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
+                </p>
+                <button
+                  v-if="hasCharges"
+                  type="button"
+                  data-testid="story-moment-show-month"
+                  class="inline-flex min-h-[44px] items-center gap-1 justify-self-start text-sm font-semibold text-gray-600 underline underline-offset-2 dark:text-gray-300"
+                  @click="showMonth = true">
+                  {{ t('story.moment_show_month', { month: monthLabel(month) }) }}<ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
               <StoryHero
                 v-else
                 key="month"
@@ -203,13 +284,13 @@ onMounted(() => analytics.track('story_viewed'))
                 @layers="(open) => open && analytics.track('story_layers_opened')" />
             </Transition>
           </div>
-          <StoryTileRow :tiles="tiles" @open="openSheet" />
+          <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
         </template>
       </ModelBox>
 
       <ModelBox v-if="story.latest.value" aria-labelledby="story-latest-title">
         <h2 id="story-latest-title" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('story.latest_title') }}</h2>
-        <StoryLatestCards :latest="story.latest.value" :car-id="selectedCarId" />
+        <StoryLatestCards :latest="story.latest.value" :car-id="selectedCarId" :price-in-hero="priceInHero" />
       </ModelBox>
 
       <ModelBox v-if="!loading && !error && (hasCharges || liveActive)" aria-labelledby="story-feed-title">
@@ -218,7 +299,14 @@ onMounted(() => analytics.track('story_viewed'))
           <p class="text-[13.5px] text-gray-500 dark:text-gray-400">{{ t('story.feed_sub') }}</p>
         </div>
         <div>
-          <StoryFeedItem v-for="item in feed" :key="item.id" :item="item" :upsell-to="upsellTo" :what-if="story.whatIf.value" />
+          <StoryFeedItem
+            v-for="item in feed"
+            :key="item.moment?.key ?? item.id"
+            :item="item"
+            :upsell-to="upsellTo"
+            :what-if="story.whatIf.value"
+            :car-id="selectedCarId"
+            :car-name="carName" />
         </div>
         <button
           type="button"

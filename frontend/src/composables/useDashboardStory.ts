@@ -14,6 +14,11 @@ import { buildEnergyFlow, buildRange, costLayers } from './storyEnergy'
 import {
   temperatureEffect, whatIfModels, dataQuality, countPricelessInMonth, bestRank,
   type TripForTemperature, type RankEntry, buildLatest, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+import {
+  detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
+  detectSilence, pickMoment, momentFeedItems, DAY, type Moment, type MomentLog, type MomentTrip,
+} from './storyMoments'
+import { useMomentSeen } from './useMomentSeen'
 
 /**
  * Laedt die Monatsdaten fuer das Story-Dashboard und leitet Kacheln und Feed ab.
@@ -39,6 +44,12 @@ export interface StoryCarContext {
   effectiveBatteryCapacityKwh: number | null
   energySplitLocked: boolean
   canViewLiveAnalytics: boolean
+  /** DC-Ladung laeuft und das Live-Gate ist offen. */
+  liveActive: boolean
+  /** Marke hat einen AutoSync-Weg und das Auto ist nicht verbunden. */
+  autoSync: boolean
+  /** Widerruf des Moment-Heros. */
+  alwaysMonth: boolean
 }
 
 export const STORY_MONTH_OFFSETS = [-2, -1, 0] as const
@@ -53,6 +64,11 @@ function monthAt(offset: number, now = new Date()): StoryMonth {
   const d = new Date(now.getFullYear(), now.getMonth() + offset, 1)
   return { year: d.getFullYear(), month: d.getMonth() + 1, offset }
 }
+
+/** Letzte Ladungen fuer "gerade geladen", Stille und die Stopps einer langen Fahrt. */
+const RECENT_LOGS = 10
+/** Fahrten fuer lange Fahrt (24 h) und Frost (3 Tage). */
+const MOMENT_TRIP_DAYS = 3
 
 /** Fenster der Reichweiten-Kachel: 4 Wochen bis heute. */
 export const RECENT_DAYS = 28
@@ -142,6 +158,9 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const recentStats = ref<StatisticsData | null>(null)
   const petrol = ref<PetrolPrice>({ eurPerLitre: PETROL_EUR_PER_L_DE, live: false })
   const latest = ref<StoryLatest | null>(null)
+  const recentLogs = ref<Array<LatestLogSource & MomentLog>>([])
+  const recentTrips = ref<MomentTrip[]>([])
+  const { seen } = useMomentSeen()
   const loading = ref(true)
   const error = ref(false)
 
@@ -194,15 +213,17 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   }
 
   async function loadPerCar(carId: string) {
-    const [savings, models, priceless, soh, fuel, lastLog, lastTrip, recent] = await Promise.allSettled([
+    const tripsFrom = new Date(Date.now() - MOMENT_TRIP_DAYS * DAY).toISOString()
+    const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips] = await Promise.allSettled([
       chargingSavingsService.get(),
       peerModelComparisonService.getPeerModelComparison(carId),
       api.get<Array<{ loggedAt: string }>>(`/logs/priceless?carId=${carId}`),
       carService.getSohHistory(carId),
       fetchFuelPrices(),
-      api.get<LatestLogSource[]>(`/logs?carId=${carId}&limit=1`),
+      api.get<Array<LatestLogSource & MomentLog>>(`/logs?carId=${carId}&limit=${RECENT_LOGS}`),
       api.get<LatestTripSource[]>(`/trips?carId=${carId}&limit=1`),
       fetchStats(carId, isoDate(daysAgo(RECENT_DAYS - 1)), isoDate(daysAgo(0)), 'MONTH'),
+      api.get<MomentTrip[]>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
     ])
     if (carId !== selectedCarId.value) return
     const prices = fuel.status === 'fulfilled' ? fuel.value : null
@@ -215,9 +236,11 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     pricelessLogs.value = priceless.status === 'fulfilled' && Array.isArray(priceless.value.data) ? priceless.value.data : []
     sohHistory.value = soh.status === 'fulfilled' ? soh.value : []
     recentStats.value = recent.status === 'fulfilled' ? recent.value : null
+    recentLogs.value = lastLogs.status === 'fulfilled' && Array.isArray(lastLogs.value.data) ? lastLogs.value.data : []
+    recentTrips.value = momentTrips.status === 'fulfilled' && Array.isArray(momentTrips.value.data) ? momentTrips.value.data : []
     // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
     latest.value = buildLatest(
-      lastLog.status === 'fulfilled' && Array.isArray(lastLog.value.data) ? lastLog.value.data[0] : null,
+      recentLogs.value[0] ?? null,
       lastTrip.status === 'fulfilled' && Array.isArray(lastTrip.value.data) ? lastTrip.value.data[0] : null,
     )
   }
@@ -284,8 +307,48 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     pricelessPrevious: pricelessInPreviousMonth.value,
   } : null)
 
+  /**
+   * Moment-Hero: nur im laufenden Monat, sonst steht der gewaehlte Monat oben. Live gewinnt immer,
+   * auch mit "Immer den Monat zeigen" (wie vor dem Moment-Hero).
+   */
+  const moments = computed(() => {
+    const c = ctx()
+    const now = Date.now()
+    const live = detectLive(c.liveActive)
+    if (month.value.offset !== 0 || c.alwaysMonth) return pickMoment(live ? [live] : [], now, seen.value)
+    const lastLog = recentLogs.value[0] ?? null
+    const prev = previousStats.value
+    const prevMonth = new Date(month.value.year, month.value.month - 2, 1)
+    const candidates = [
+      live,
+      detectJustCharged({ log: lastLog, now, consumptionKwh100: range.value?.consumption ?? null }),
+      detectLongTrip({ trips: recentTrips.value, logs: recentLogs.value, now }),
+      detectFirstFrost({ trips: recentTrips.value, now, range: range.value }),
+      detectMonthChange({
+        now,
+        previous: prev ? {
+          year: prevMonth.getFullYear(), month: prevMonth.getMonth() + 1,
+          distanceKm: prev.totalDistanceKm, energyCostEur: prev.energyCostEur, charges: prev.totalCharges,
+          priceless: pricelessInPreviousMonth.value,
+        } : null,
+        petrolEurPerLitre: petrol.value.eurPerLitre,
+      }),
+      detectBattery({ history: sohHistory.value, now }),
+      detectRank({ rank: bestRank(ranks.value), now }),
+      detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
+    ].filter((m): m is Moment => m != null)
+    return pickMoment(candidates, now, seen.value)
+  })
+  const moment = computed<Moment>(() => moments.value.hero)
+
   const tiles = computed<StoryTile[]>(() => input.value ? buildStoryTiles(input.value) : [])
-  const feed = computed<StoryFeedItem[]>(() => input.value ? buildStoryFeed(input.value) : [])
+  const feed = computed<StoryFeedItem[]>(() => input.value
+    ? buildStoryFeed(input.value, {
+      extra: momentFeedItems(moments.value.rest),
+      // Was der Hero sagt, steht nicht noch einmal im Feed.
+      omit: moment.value.kind === 'rank' ? ['community_rank'] : [],
+    })
+    : [])
   const days = computed<DayCoverage[]>(() =>
     buildDayCoverage(monthStats.value?.chargesOverTime ?? [], month.value.year, month.value.month))
   const hasCharges = computed(() => (monthStats.value?.totalCharges ?? 0) > 0)
@@ -297,7 +360,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   return {
     offset, month, months, setOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
-    layers, quality, temperature, whatIf, sohHistory, petrol, latest,
+    layers, quality, temperature, whatIf, sohHistory, petrol, latest, moment,
     reload: load,
   }
 }
