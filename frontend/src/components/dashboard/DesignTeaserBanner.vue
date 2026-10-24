@@ -19,7 +19,7 @@ function tryIt() {
   <div
     v-if="!teaserDismissed"
     data-testid="story-teaser"
-    class="flex items-center gap-3 px-4 py-2.5 -mx-4 md:mx-0 md:rounded-sm bg-emerald-50 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100 text-sm">
+    class="flex items-center gap-3 px-4 py-2.5 md:rounded-sm bg-emerald-50 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100 text-sm">
     <SparklesIcon class="w-5 h-5 shrink-0" />
     <span class="flex-1 min-w-0">{{ t('story.teaser_text') }}</span>
     <button type="button" class="font-semibold underline underline-offset-2 min-h-[44px] px-1" @click="tryIt">{{ t('story.teaser_cta') }}</button>

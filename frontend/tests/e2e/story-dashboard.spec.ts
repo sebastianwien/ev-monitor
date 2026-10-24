@@ -28,6 +28,12 @@ test.describe('Story-Dashboard', () => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
 
+    // Mobil liegt das Dashboard ohne Seitenrand: der Teaser darf nicht über den Viewport ragen.
+    const box = await page.getByTestId('story-teaser').boundingBox();
+    const viewport = page.viewportSize();
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport!.width);
+
     await page.getByTestId('story-teaser').getByRole('button', { name: /Ansehen|Show me/ }).click();
     await expect(page).toHaveURL(/\/story/);
     await expect(page.getByTestId('story-view')).toBeVisible();
