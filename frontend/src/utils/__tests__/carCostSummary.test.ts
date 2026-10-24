@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildMonthlyCostSeries, summarizeCosts, groupFixedCostsByCategory, monthsCovered, fixedNetFromSeries, centLabel } from '../carCostSummary'
+import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments } from '../carCostSummary'
 import type { FixedCost, FixedCostCategory, FixedCostRecurrence } from '../../api/fixedCostService'
 import type { ChargeDataPoint } from '../../composables/useDashboardStats'
 
@@ -33,100 +33,72 @@ function point(timestamp: string, costEur: number): ChargeDataPoint {
 
 const NOW = new Date(2026, 9, 21) // 21.10.2026
 
-describe('buildMonthlyCostSeries', () => {
-  it('liefert immer 12 Monate bis zum aktuellen, auch ohne Daten', () => {
-    const series = buildMonthlyCostSeries([], [], 'pro_rata', NOW)
-    expect(series).toHaveLength(12)
-    expect(series[0]).toMatchObject({ year: 2025, month: 11, energyEur: 0, fixedEur: 0 })
-    expect(series[11]).toMatchObject({ year: 2026, month: 10 })
+describe('buildYearCostSeries', () => {
+  it('liefert im laufenden Jahr Januar bis heute, in Vorjahren alle 12 Monate, in der Zukunft nichts', () => {
+    expect(buildYearCostSeries([], [], 'pro_rata', 2026, NOW).map(p => p.month)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(buildYearCostSeries([], [], 'pro_rata', 2025, NOW)).toHaveLength(12)
+    expect(buildYearCostSeries([], [], 'pro_rata', 2027, NOW)).toEqual([])
   })
 
-  it('summiert Energiekosten je Monat und ignoriert Punkte vor dem Fenster', () => {
-    const series = buildMonthlyCostSeries(
+  it('summiert Energiekosten je Monat und ignoriert Punkte anderer Jahre', () => {
+    const series = buildYearCostSeries(
       [point('2026-10-03T10:00:00', 20), point('2026-10-19T10:00:00', 15.5), point('2025-10-01T10:00:00', 99)],
-      [], 'pro_rata', NOW,
+      [], 'pro_rata', 2026, NOW,
     )
-    expect(series[11].energyEur).toBe(35.5)
+    expect(series[9].energyEur).toBe(35.5)
     expect(series.reduce((s, p) => s + p.energyEur, 0)).toBe(35.5)
   })
 
-  it('verteilt eine Einmalzahlung im pro_rata-Modus auf das Kaufjahr, nicht auf das Vorjahr', () => {
-    const series = buildMonthlyCostSeries([], [fc({ amount: 1200, recurrence: 'ONE_TIME', date: '2026-03-15' })], 'pro_rata', NOW)
-    const dec2025 = series.find(p => p.year === 2025 && p.month === 12)!
-    const jan2026 = series.find(p => p.year === 2026 && p.month === 1)!
-    expect(dec2025.fixedEur).toBe(0)
-    expect(jan2026.fixedEur).toBe(100)
+  it('verteilt eine Einmalzahlung im pro_rata-Modus auf das Kaufjahr', () => {
+    const series = buildYearCostSeries([], [fc({ amount: 1200, recurrence: 'ONE_TIME', date: '2026-03-15' })], 'pro_rata', 2026, NOW)
+    expect(series[0].fixedEur).toBe(100)
+  })
+
+  it('schlüsselt Fixkosten je Monat nach Kategorie auf, Summe gleich fixedEur', () => {
+    const series = buildYearCostSeries([], [
+      fc({ amount: 300, category: 'TAX', recurrence: 'ONE_TIME', date: '2026-04-02' }),
+      fc({ amount: 100, category: 'INSURANCE', recurrence: 'MONTHLY', startDate: '2026-01-01' }),
+      fc({ amount: -40, category: 'INCOME', recurrence: 'ONE_TIME', date: '2026-04-20' }),
+    ], 'due_month', 2026, NOW)
+    expect(series[3].fixedByCategory).toEqual({ TAX: 300, INSURANCE: 100, INCOME: -40 })
+    expect(series[3].fixedEur).toBe(360)
+    expect(series[0].fixedByCategory).toEqual({ INSURANCE: 100 })
   })
 
   it('zeigt eine Einmalzahlung im due_month-Modus nur im Fälligkeitsmonat', () => {
-    const series = buildMonthlyCostSeries([], [fc({ amount: 1200, recurrence: 'ONE_TIME', date: '2026-03-15' })], 'due_month', NOW)
+    const series = buildYearCostSeries([], [fc({ amount: 1200, recurrence: 'ONE_TIME', date: '2026-03-15' })], 'due_month', 2026, NOW)
     expect(series.filter(p => p.fixedEur > 0)).toHaveLength(1)
     expect(series.find(p => p.month === 3)!.fixedEur).toBe(1200)
   })
 })
 
-describe('summarizeCosts (dieselbe Rechnung wie das Dashboard: Preis je kWh mal Verbrauch plus Fixkosten je km)', () => {
-  const stats = { avgCostPerKwh: 0.3, avgConsumptionKwhPer100km: 20, energyCostEur: 936, totalDistanceKm: 14950 }
-
-  it('rechnet ct/km aus Energiekosten je 100 km plus Fixkosten je km', () => {
-    const s = summarizeCosts(stats, 3900, 12)
-    expect(s.ctPerKm).toBeCloseTo(6 + 26.09, 1)
-    expect(s.perMonthEur).toBe(403)
-    expect(s.energyPerMonthEur).toBe(78)
-    expect(s.fixedPerMonthEur).toBe(325)
-    expect(s.energyShare).toBeCloseTo(0.1935, 3)
-  })
-
-  it('hat ohne Kilometer oder ohne Verbrauch kein ct/km, aber Monatswerte', () => {
-    expect(summarizeCosts({ ...stats, totalDistanceKm: null }, 0, 12).ctPerKm).toBeNull()
-    expect(summarizeCosts({ ...stats, avgConsumptionKwhPer100km: null }, 0, 12).ctPerKm).toBeNull()
-    expect(summarizeCosts({ ...stats, totalDistanceKm: null }, 0, 12).perMonthEur).toBe(78)
-  })
-
-  it('teilt durch die tatsächlich abgedeckten Monate', () => {
-    expect(summarizeCosts({ ...stats, energyCostEur: 300 }, 0, 3).energyPerMonthEur).toBe(100)
-  })
-
-  it('lässt Einnahmen über den Kosten als negative Werte stehen, ohne Energieanteil', () => {
-    const s = summarizeCosts({ ...stats, energyCostEur: 100 }, -400, 12)
-    expect(s.perMonthEur).toBe(-25)
-    expect(s.fixedPerMonthEur).toBe(-33)
-    expect(s.energyShare).toBeNull()
-  })
-
-  it('hat ohne jede Kosten keinen Energieanteil', () => {
-    const s = summarizeCosts({ avgCostPerKwh: null, avgConsumptionKwhPer100km: null, energyCostEur: 0, totalDistanceKm: null }, 0, 12)
-    expect(s.energyShare).toBeNull()
-    expect(s.perMonthEur).toBe(0)
+describe('firstCostIndex', () => {
+  it('findet den ersten Monat mit Strom oder Fixkosten, sonst -1', () => {
+    const blank = buildYearCostSeries([], [], 'pro_rata', 2026, NOW)
+    expect(firstCostIndex(blank)).toBe(-1)
+    expect(firstCostIndex(blank.map((p, i) => ({ ...p, fixedEur: i >= 2 ? 50 : 0 })))).toBe(2)
+    expect(firstCostIndex(blank.map((p, i) => ({ ...p, energyEur: i >= 4 ? 30 : 0 })))).toBe(4)
   })
 })
 
-describe('monthsCovered', () => {
-  const blank = buildMonthlyCostSeries([], [], 'pro_rata', NOW)
-  it('zählt ab dem ersten Monat mit Stromkosten', () => {
-    const series = blank.map((p, i) => ({ ...p, energyEur: i >= 9 ? 30 : 0 }))
-    expect(monthsCovered(series, '2019-05-01', NOW)).toBe(3)
-  })
-  it('nimmt ohne Stromkosten die Monate seit Erstzulassung, mindestens 1, höchstens 12', () => {
-    expect(monthsCovered(blank, '2026-08-01', NOW)).toBe(3)
-    expect(monthsCovered(blank, '2026-10-15', NOW)).toBe(1)
-    expect(monthsCovered(blank, '2019-05-01', NOW)).toBe(12)
-    expect(monthsCovered(blank, null, NOW)).toBe(12)
-  })
-})
+describe('summarizeCosts', () => {
+  const month = (energyEur: number, fixedEur: number) => ({ year: 2026, month: 1, energyEur, fixedEur, fixedByCategory: {} })
 
-describe('fixedNetFromSeries und centLabel', () => {
-  it('summiert die Fixkosten der Monatsreihe, Einnahmen negativ', () => {
-    const series = buildMonthlyCostSeries([], [
-      fc({ amount: 1200, recurrence: 'ONE_TIME', date: '2026-03-15' }),
-      fc({ amount: -250, category: 'INCOME', recurrence: 'YEARLY', startDate: '2025-05-01' }),
-    ], 'due_month', NOW)
-    expect(fixedNetFromSeries(series)).toBe(950)
+  it('teilt Strom und Fixkosten durch die Monate der Reihe', () => {
+    const s = summarizeCosts([month(30, 300), month(50, 300), month(10, 300)])
+    expect(s.perMonthEur).toBe(330)
+    expect(s.energyPerMonthEur).toBe(30)
+    expect(s.fixedPerMonthEur).toBe(300)
   })
-  it('zeigt unter 10 ct eine Nachkommastelle, darüber ganze Cent', () => {
-    const n = (v: number, o?: { maximumFractionDigits?: number }) => v.toLocaleString('de-DE', o)
-    expect(centLabel(7.84, n)).toBe('7,8 ct')
-    expect(centLabel(32.09, n)).toBe('32 ct')
+
+  it('lässt Einnahmen über den Kosten als negative Werte stehen', () => {
+    const s = summarizeCosts([month(10, -50), month(10, -50)])
+    expect(s.perMonthEur).toBe(-40)
+    expect(s.fixedPerMonthEur).toBe(-50)
+  })
+
+  it('liefert ohne Monate 0', () => {
+    expect(summarizeCosts([]).perMonthEur).toBe(0)
   })
 })
 
@@ -163,7 +135,7 @@ describe('groupFixedCostsByCategory', () => {
 
 describe('Monatsletzter (Regression: ISO-Datum wurde als UTC geparst und fiel aus dem lokalen Monat)', () => {
   it('zählt eine Einmalzahlung am 31.03. im März', () => {
-    const series = buildMonthlyCostSeries([], [fc({ amount: 500, recurrence: 'ONE_TIME', date: '2026-03-31' })], 'due_month', NOW)
+    const series = buildYearCostSeries([], [fc({ amount: 500, recurrence: 'ONE_TIME', date: '2026-03-31' })], 'due_month', 2026, NOW)
     expect(series.find(p => p.month === 3)!.fixedEur).toBe(500)
   })
 
@@ -177,8 +149,63 @@ describe('Monatsletzter (Regression: ISO-Datum wurde als UTC geparst und fiel au
   })
 
   it('endet eine Laufzeit am Monatsletzten einschließlich', () => {
-    const series = buildMonthlyCostSeries([], [fc({ amount: 100, recurrence: 'MONTHLY', startDate: '2025-01-01', endDate: '2026-01-31' })], 'due_month', NOW)
+    const series = buildYearCostSeries([], [fc({ amount: 100, recurrence: 'MONTHLY', startDate: '2025-01-01', endDate: '2026-01-31' })], 'due_month', 2026, NOW)
     expect(series.find(p => p.year === 2026 && p.month === 1)!.fixedEur).toBe(100)
     expect(series.find(p => p.year === 2026 && p.month === 2)!.fixedEur).toBe(0)
+  })
+})
+
+describe('chartCap (Achsenbruch: einzelne Jahreszahlungen drücken die Stromkosten nicht auf 1 px)', () => {
+  it('kappt Ausreißer auf das Dreifache des Medians der Monate mit Kosten', () => {
+    // Fälligkeitsmonat: Versicherung 1.600 und 2.100, sonst Strom zwischen 18 und 50 Euro
+    const cap = chartCap([0, 1600, 0, 26, 339, 27, 19, 50, 2100, 18])
+    expect(cap).toBeGreaterThanOrEqual(50)
+    expect(cap).toBeLessThan(339)
+  })
+
+  it('kappt nicht, wenn die Monate ähnlich hoch sind (umgelegte Fixkosten)', () => {
+    expect(chartCap([480, 510, 530, 495, 620])).toBe(620)
+  })
+
+  it('kappt nicht bei weniger als drei Monaten mit Kosten', () => {
+    expect(chartCap([0, 2100, 0, 40])).toBe(2100)
+  })
+
+  it('bleibt mindestens bei der Untergrenze, damit Strom nie gekappt wird', () => {
+    // Regression: Strom 147 im August lag über dem dreifachen Median (81) und füllte den ganzen Balken
+    expect(chartCap([26, 339, 27, 19, 50, 2147, 18], 196)).toBe(196)
+    expect(chartCap([26, 339, 27, 19, 50, 2147, 18], 10)).toBeCloseTo(81)
+  })
+
+  it('liefert mindestens 1, damit leere Reihen nicht durch 0 teilen', () => {
+    expect(chartCap([0, 0, 0])).toBe(1)
+  })
+})
+
+describe('rankCategories (Farbstufe: größte Kostenkategorie am dunkelsten)', () => {
+  it('sortiert Kostenkategorien nach Jahressumme absteigend, Einnahmen fallen weg', () => {
+    const series = [
+      { year: 2026, month: 1, energyEur: 0, fixedEur: 0, fixedByCategory: { TAX: 25, INSURANCE: 100, INCOME: -50 } },
+      { year: 2026, month: 2, energyEur: 0, fixedEur: 0, fixedByCategory: { TAX: 25, MAINTENANCE: 2054 } },
+    ]
+    expect(rankCategories(series)).toEqual(['MAINTENANCE', 'INSURANCE', 'TAX'])
+  })
+})
+
+describe('fitSegments (Achsenbruch im größten Teilstück)', () => {
+  it('lässt Teilstücke unverändert, wenn die Summe passt', () => {
+    expect(fitSegments([30, 50], 100)).toEqual({ widths: [30, 50], cut: null })
+  })
+
+  it('kürzt nur das größte Teilstück und lässt Strom in echter Länge (Regression August)', () => {
+    expect(fitSegments([147, 2000], 196)).toEqual({ widths: [147, 49], cut: 1 })
+  })
+
+  it('verkleinert die übrigen Teilstücke anteilig, wenn das gekürzte größte allein nicht reicht', () => {
+    const { widths, cut } = fitSegments([50, 300, 2000], 200)
+    expect(cut).toBe(2)
+    expect(widths[2]).toBe(50)
+    expect(widths[0] + widths[1]).toBeCloseTo(150)
+    expect(widths[1] / widths[0]).toBeCloseTo(6)
   })
 })

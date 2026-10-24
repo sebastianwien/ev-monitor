@@ -1659,25 +1659,26 @@ cars:
   menu_delete_hint: "Restorable for 7 days"
   costs:
     title: "What it costs"
-    range: "Last 12 months"
-    per_km: "per km"
     per_month: "per month"
     energy: "Energy"
     fixed: "Fixed costs"
     sentence: "{total} per month: {energy} energy plus {fixed} fixed costs."
     sentence_energy_only: "{total} per month for energy."
-    range_months: "Last month | Last {n} months"
     spread_short: "Spread over months"
     sentence_fixed_only: "{total} per month in fixed costs."
     empty_all: "This shows what your car costs: energy from your charges plus fixed costs."
     empty_fixed: "Add your insurance and this card shows your total cost."
-    fixed_year: "Fixed costs {year}"
     add: "Add costs"
     edit_title: "Edit costs"
     entries: "{n} entry | {n} entries"
     since: "since {date}"
-    show_year: "Show {year}"
-    chart_aria: "Costs per month over the last 12 months"
+    chart_aria: "Costs per month in {year}"
+    year_prev: "Previous year"
+    year_next: "Next year"
+    include: "Include {category}"
+    by_category: "Costs {year}"
+    empty_year: "No charging sessions or fixed costs recorded for {year}."
+    history_link: "Monthly breakdown on the dashboard"
 
 carselector:
   label: "Vehicle"
@@ -3287,17 +3288,8 @@ insights:
 
 cost_history:
   title: "Cost history"
-  subtitle: "Last 12 months"
-  energy: "Energy costs"
-  fixed: "Fixed costs"
-  total: "Total"
   empty: "No costs recorded yet."
-  mode_pro_rata: "Pro-rated (monthly)"
-  mode_due_month: "On due month"
   mode_spread_label: "Spread fixed costs across months"
-  fixed_base: "Fixed base"
-  trend: "Trend"
-  month: "month"
 
 
 eu_data_act:

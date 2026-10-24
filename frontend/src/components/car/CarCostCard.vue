@@ -1,82 +1,55 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import { ChevronDownIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
-import api from '../../api/axios'
+import { ArrowRightIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { fixedCostService, type FixedCost } from '../../api/fixedCostService'
-import type { StatisticsData } from '../../composables/useDashboardStats'
-import type { FixedCostMode } from '../../composables/useFixedCostCalc'
+import { ENERGY, useYearCosts } from '../../composables/useYearCosts'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { buildMonthlyCostSeries, centLabel, fixedNetFromSeries, groupFixedCostsByCategory, monthsCovered, summarizeCosts } from '../../utils/carCostSummary'
-import { readLocal, writeLocal } from '../../utils/safeStorage'
+import { groupFixedCostsByCategory, summarizeCosts } from '../../utils/carCostSummary'
 import { isIncomeCategory } from '../../utils/fixedCostAmount'
+import { costColor } from '../../utils/costColors'
+import { useThemeStore } from '../../stores/theme'
 import BottomSheet from '../shared/BottomSheet.vue'
+import ToggleSwitch from '../shared/ToggleSwitch.vue'
 import FixedCostForm from './FixedCostForm.vue'
 
 /**
- * "Was es kostet": Vollkosten des Autos der letzten 12 Monate. Energiekosten liefert
- * `/logs/statistics`, Fixkosten kommen aus der Fixkostenliste und werden mit derselben
- * Monatsregel wie im Dashboard-Kostenverlauf verteilt (Schalter `cost_history_mode`).
- * Fixkosten werden hier gepflegt: Zeile tippen oeffnet Bearbeiten im Sheet, "Kosten
- * erfassen" legt an. Keine Stift- und Muelleimer-Icons je Zeile.
+ * "Was es kostet": was das Auto im Kalenderjahr kostet, mit Pfeilen durch die Jahre. Kopfzahl
+ * und Satz rechnen Fixkosten immer umgelegt. Jede Kategorie (auch Strom) laesst sich aus- und
+ * einrechnen, gemeinsam mit dem Kostenverlauf im Dashboard, der den Monatsverlauf zeigt.
+ * Fixkosten werden hier gepflegt: Zeile tippen oeffnet Bearbeiten im Sheet, "Kosten erfassen"
+ * legt an.
  */
-const props = defineProps<{ carId: string; registrationDate: string | null }>()
-const { t, n } = useI18n()
-const { formatCurrency, currency } = useLocaleFormat()
+const props = defineProps<{ carId: string; registrationDate: string | null; showHistoryLink: boolean }>()
+const { t } = useI18n()
+const { formatCurrency } = useLocaleFormat()
 
-const stats = ref<StatisticsData | null>(null)
-const items = ref<FixedCost[]>([])
-const loading = ref(true)
-const error = ref(false)
-// Umlagemodus, derselbe Schalter wie im Kostenverlauf des Dashboards (gemeinsamer Schluessel).
-const LS_MODE = 'cost_history_mode'
-const stored = readLocal(LS_MODE)
-const mode = ref<FixedCostMode>(stored === 'due_month' ? 'due_month' : 'pro_rata')
-function setMode(m: FixedCostMode) {
-  mode.value = m
-  writeLocal(LS_MODE, m)
-}
-const year = ref(new Date().getFullYear())
+const { ranked, thisYear, year, minYear, points, items, loading, error, load, hidden, setShown, proRataSeries } =
+  useYearCosts(() => props.carId, () => props.registrationDate)
 const openGroups = ref<Set<string>>(new Set())
 const sheet = ref<{ edit: FixedCost | null } | null>(null)
 const deleting = ref(false)
 
-async function load() {
-  loading.value = true
-  error.value = false
-  try {
-    const [statsRes, list] = await Promise.all([
-      api.get<StatisticsData>('/logs/statistics', { params: { carId: props.carId, timeRange: 'LAST_12_MONTHS', groupBy: 'MONTH' } }),
-      fixedCostService.list(props.carId),
-    ])
-    stats.value = statsRes.data
-    items.value = list
-  } catch {
-    error.value = true
-  } finally {
-    loading.value = false
+const { isDark } = storeToRefs(useThemeStore())
+const colorOf = (key: string) => costColor(key, ranked.value, isDark.value, ENERGY)
+const summary = computed(() => summarizeCosts(proRataSeries.value))
+// Anteilsbalken: Strom und jede eingerechnete Kostenkategorie, Farben wie im Dashboard-Kostenverlauf.
+const shares = computed(() => {
+  const sums = new Map<string, number>([[ENERGY, 0]])
+  for (const p of proRataSeries.value) {
+    sums.set(ENERGY, sums.get(ENERGY)! + p.energyEur)
+    for (const [c, v] of Object.entries(p.fixedByCategory)) sums.set(c, (sums.get(c) ?? 0) + v)
   }
-}
-onMounted(load)
-watch(() => props.carId, load)
-
-const series = computed(() => buildMonthlyCostSeries(stats.value?.chargesOverTime ?? [], items.value, mode.value))
-const months = computed(() => monthsCovered(series.value, props.registrationDate))
-const summary = computed(() => stats.value ? summarizeCosts(stats.value, fixedNetFromSeries(series.value), months.value) : null)
-const maxMonth = computed(() => Math.max(1, ...series.value.map(p => p.energyEur + Math.max(0, p.fixedEur))))
-const groups = computed(() => groupFixedCostsByCategory(items.value, year.value))
-const previousYearHasCosts = computed(() => groupFixedCostsByCategory(items.value, year.value - 1).length > 0)
-const yearTotal = computed(() => groups.value.reduce((s, g) => s + g.yearTotalEur, 0))
-const hasAnyCost = computed(() => (summary.value?.perMonthEur ?? 0) !== 0 || items.value.length > 0)
-
-// Kopfzahl je km: in Euro-Laendern als Cent ("8 ct"), sonst in der Nutzerwaehrung.
-const perKmLabel = computed(() => {
-  const ct = summary.value?.ctPerKm
-  if (ct == null) return null
-  return currency.value === 'EUR' ? centLabel(ct, n) : formatCurrency(ct / 100)
+  const order = [ENERGY, ...ranked.value]
+  const parts = order.map(key => ({ key, eur: sums.get(key) ?? 0 })).filter(x => x.eur > 0)
+  const total = parts.reduce((s, x) => s + x.eur, 0)
+  return parts.map(x => ({ key: x.key, pct: (x.eur / total) * 100 }))
 })
-const monthLabel = (p: { year: number; month: number }) =>
-  new Intl.DateTimeFormat(undefined, { month: 'short', year: '2-digit' }).format(new Date(p.year, p.month - 1, 1))
+const groups = computed(() => groupFixedCostsByCategory(items.value, year.value))
+const energyYear = computed(() => points.value.reduce((s, p) => s + (p.costEur ?? 0), 0))
+const yearTotal = computed(() => (hidden.value.has(ENERGY) ? 0 : energyYear.value)
+  + groups.value.filter(g => !hidden.value.has(g.category)).reduce((s, g) => s + g.yearTotalEur, 0))
 
 function toggleGroup(category: string) {
   const next = new Set(openGroups.value)
@@ -111,32 +84,34 @@ async function removeCurrent() {
 }
 
 const money = (v: number) => formatCurrency(v, { decimals: 0 })
-/** Geldbetrag ueber dem Monatsbalken: "304 €", ab 1.000 "1,2k €", leer bei 0 (12 Spalten auf 390 px). */
-const shortMoney = (v: number) => {
-  if (Math.round(v) === 0) return ''
-  if (Math.abs(v) >= 1000) return money(v).replace(/[\d.,]+/, n(v / 1000, { maximumFractionDigits: 1 }) + 'k')
-  return money(Math.round(v))
-}
+const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-30 disabled:hover:bg-transparent'
 </script>
 
 <template>
   <section class="rounded-sm bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5" data-testid="car-cost-card">
-    <div class="flex items-baseline justify-between gap-3">
+    <div class="flex items-center justify-between gap-3">
       <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('cars.costs.title') }}</h2>
-      <span class="text-xs text-gray-500 dark:text-gray-400">{{ months < 12 ? t('cars.costs.range_months', { n: months }, months) : t('cars.costs.range') }}</span>
+      <!-- Kalenderjahr waehlen -->
+      <div class="-mr-2 flex items-center">
+        <button type="button" :class="navBtn" :disabled="year <= minYear" :aria-label="t('cars.costs.year_prev')" data-testid="car-cost-year-prev" @click="year--">
+          <ChevronLeftIcon class="h-5 w-5" aria-hidden="true" />
+        </button>
+        <span class="min-w-[3rem] text-center text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100" aria-live="polite" data-testid="car-cost-year">{{ year }}</span>
+        <button type="button" :class="navBtn" :disabled="year >= thisYear" :aria-label="t('cars.costs.year_next')" data-testid="car-cost-year-next" @click="year++">
+          <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
+        </button>
+      </div>
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ t('common.error_load') }}</p>
     <div v-else-if="loading" class="mt-4 h-24 animate-pulse rounded-sm bg-gray-100 dark:bg-gray-600" aria-hidden="true" />
 
-    <template v-else-if="summary">
+    <template v-else>
       <!-- Kopfzahl -->
-      <div v-if="hasAnyCost" class="mt-3">
+      <div v-if="proRataSeries.length" class="mt-2">
         <p class="flex items-baseline gap-2">
-          <span class="text-[40px] md:text-[48px] font-extrabold leading-none tracking-tight tabular-nums text-gray-900 dark:text-gray-100" data-testid="car-cost-headline">
-            {{ perKmLabel ?? money(summary.perMonthEur) }}
-          </span>
-          <span class="text-base font-semibold text-gray-500 dark:text-gray-400">{{ perKmLabel !== null ? t('cars.costs.per_km') : t('cars.costs.per_month') }}</span>
+          <span class="text-[40px] md:text-[48px] font-extrabold leading-none tracking-tight tabular-nums text-gray-900 dark:text-gray-100" data-testid="car-cost-headline">{{ money(summary.perMonthEur) }}</span>
+          <span class="text-base font-semibold text-gray-500 dark:text-gray-400">{{ t('cars.costs.per_month') }}</span>
         </p>
         <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
           <template v-if="summary.fixedPerMonthEur !== 0 && summary.energyPerMonthEur !== 0">
@@ -146,61 +121,44 @@ const shortMoney = (v: number) => {
           <template v-else>{{ t('cars.costs.sentence_energy_only', { total: money(summary.perMonthEur) }) }}</template>
         </p>
 
-        <!-- Anteil Strom / Fixkosten -->
-        <div v-if="summary.energyShare !== null && summary.fixedPerMonthEur > 0" class="mt-3">
-          <div class="flex h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600" aria-hidden="true">
-            <div class="bg-indigo-500 transition-[width] duration-500 ease-out motion-reduce:transition-none" :style="{ width: `${summary.energyShare * 100}%` }" />
-            <div class="bg-amber-400 flex-1" />
-          </div>
-          <div class="mt-1.5 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
-            <span><span class="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-indigo-500 align-middle" />{{ t('cars.costs.energy') }}</span>
-            <span><span class="mr-1.5 inline-block h-2.5 w-2.5 rounded-sm bg-amber-400 align-middle" />{{ t('cars.costs.fixed') }}</span>
-          </div>
+        <!-- Anteile je Kategorie, Legende sind die Farbpunkte in der Liste darunter -->
+        <div v-if="shares.length > 1" class="mt-3 flex h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600" aria-hidden="true">
+          <div v-for="x in shares" :key="x.key" class="h-full border-r border-white last:border-r-0 dark:border-gray-700" :style="{ width: `${x.pct}%`, background: colorOf(x.key) }" />
         </div>
 
-        <!-- 12 Monate -->
-        <div class="mt-4 flex items-end gap-1" role="img" :aria-label="t('cars.costs.chart_aria')">
-          <div v-for="p in series" :key="`${p.year}-${p.month}`" class="flex flex-1 min-w-0 flex-col justify-end overflow-visible" :title="`${monthLabel(p)}: ${money(p.energyEur + p.fixedEur)}`">
-            <span class="mb-0.5 -mx-1 block text-center text-[9px] md:text-[10px] tracking-tight leading-none tabular-nums whitespace-nowrap text-gray-500 dark:text-gray-400">{{ shortMoney(p.energyEur + p.fixedEur) }}</span>
-            <div class="flex h-14 flex-col justify-end gap-px">
-              <div class="w-full rounded-t-sm bg-amber-400/90 transition-[height] duration-500 ease-out motion-reduce:transition-none" :style="{ height: `${(Math.max(0, p.fixedEur) / maxMonth) * 100}%` }" />
-              <div class="w-full bg-indigo-500 transition-[height] duration-500 ease-out motion-reduce:transition-none" :style="{ height: `${(p.energyEur / maxMonth) * 100}%` }" />
-            </div>
-          </div>
-        </div>
-        <div class="mt-1 flex justify-between text-[11px] text-gray-500 dark:text-gray-400">
-          <span>{{ monthLabel(series[0]) }}</span><span>{{ monthLabel(series[11]) }}</span>
-        </div>
+        <RouterLink v-if="showHistoryLink" to="/dashboard" class="mt-3 inline-flex items-center gap-1.5 min-h-11 text-sm font-medium text-indigo-600 dark:text-indigo-400" data-testid="car-cost-history-link">
+          {{ t('cars.costs.history_link') }}<ArrowRightIcon class="h-4 w-4" aria-hidden="true" />
+        </RouterLink>
       </div>
-      <p v-else class="mt-3 text-sm text-gray-600 dark:text-gray-300">{{ t('cars.costs.empty_all') }}</p>
+      <p v-else class="mt-3 text-sm text-gray-600 dark:text-gray-300">{{ year === thisYear ? t('cars.costs.empty_all') : t('cars.costs.empty_year', { year }) }}</p>
 
-      <!-- Fixkosten nach Kategorie -->
+      <!-- Kosten nach Kategorie, jede ein- und ausrechenbar -->
       <div class="mt-5 border-t border-gray-200 dark:border-gray-600 pt-4">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-            {{ t('cars.costs.fixed_year', { year }) }}<span v-if="groups.length" class="ml-2 tabular-nums">{{ money(yearTotal) }}</span>
-          </h3>
-          <!-- Umlage: anteilig je Monat oder im Faelligkeitsmonat, gilt fuer Kopfzahl, Satz und Balken -->
-          <label v-if="items.length" class="flex shrink-0 items-center gap-2 cursor-pointer" :title="t('cost_history.mode_spread_label')">
-            <span class="text-[11px] leading-none text-gray-500 dark:text-gray-400 select-none whitespace-nowrap">{{ t('cars.costs.spread_short') }}</span>
-            <button type="button" role="switch" :aria-checked="mode === 'pro_rata'" :aria-label="t('cost_history.mode_spread_label')"
-              class="relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-700"
-              :class="mode === 'pro_rata' ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'"
-              @click="setMode(mode === 'pro_rata' ? 'due_month' : 'pro_rata')">
-              <span aria-hidden="true" class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition" :class="mode === 'pro_rata' ? 'translate-x-4' : 'translate-x-0'" />
-            </button>
-          </label>
-        </div>
+        <h3 class="flex items-baseline justify-between gap-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+          {{ t('cars.costs.by_category', { year }) }}<span class="tabular-nums">{{ money(yearTotal) }}</span>
+        </h3>
 
-        <ul v-if="groups.length" class="mt-2 divide-y divide-gray-100 dark:divide-gray-600">
+        <ul class="mt-2 divide-y divide-gray-100 dark:divide-gray-600">
+          <li v-if="energyYear !== 0" class="flex items-center gap-3 min-h-11 py-2">
+            <span class="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span class="h-2.5 w-2.5 shrink-0 rounded-sm" :style="{ background: hidden.has(ENERGY) ? 'transparent' : colorOf(ENERGY), boxShadow: `inset 0 0 0 1.5px ${colorOf(ENERGY)}` }" aria-hidden="true" />
+            <span class="font-medium" :class="hidden.has(ENERGY) ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'">{{ t('cars.costs.energy') }}</span>
+            <span class="ml-auto tabular-nums font-semibold" :class="hidden.has(ENERGY) ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'">{{ money(energyYear) }}</span>
+            <ToggleSwitch :model-value="!hidden.has(ENERGY)" :label="t('cars.costs.include', { category: t('cars.costs.energy') })" @update:model-value="setShown(ENERGY, $event)" />
+          </li>
           <li v-for="g in groups" :key="g.category">
-            <button type="button" class="flex w-full items-center gap-2 min-h-11 py-2 text-left" :aria-expanded="openGroups.has(g.category)" @click="toggleGroup(g.category)">
-              <ChevronDownIcon class="h-4 w-4 shrink-0 text-gray-400 transition-transform" :class="openGroups.has(g.category) ? 'rotate-180' : ''" aria-hidden="true" />
-              <span class="font-medium text-gray-900 dark:text-gray-100">{{ t(`fixed_costs.category_${g.category}`) }}</span>
-              <span v-if="g.items.length > 1" class="text-xs text-gray-500 dark:text-gray-400">{{ t('cars.costs.entries', { n: g.items.length }, g.items.length) }}</span>
-              <span class="ml-auto tabular-nums font-semibold" :class="isIncomeCategory(g.category) ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-gray-100'">{{ money(g.yearTotalEur) }}</span>
-            </button>
-            <ul v-if="openGroups.has(g.category)" class="pb-2 pl-6">
+            <div class="flex items-center gap-3">
+              <button type="button" class="flex min-w-0 flex-1 items-center gap-3 min-h-11 py-2 text-left" :aria-expanded="openGroups.has(g.category)" @click="toggleGroup(g.category)">
+                <ChevronDownIcon class="h-4 w-4 shrink-0 text-gray-400 transition-transform" :class="openGroups.has(g.category) ? 'rotate-180' : ''" aria-hidden="true" />
+                <span class="h-2.5 w-2.5 shrink-0 rounded-sm" :style="isIncomeCategory(g.category) ? {} : { background: hidden.has(g.category) ? 'transparent' : colorOf(g.category), boxShadow: `inset 0 0 0 1.5px ${colorOf(g.category)}` }" aria-hidden="true" />
+                <span class="truncate font-medium" :class="hidden.has(g.category) ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'">{{ t(`fixed_costs.category_${g.category}`) }}</span>
+                <span v-if="g.items.length > 1" class="shrink-0 text-xs text-gray-500 dark:text-gray-400">{{ t('cars.costs.entries', { n: g.items.length }, g.items.length) }}</span>
+                <span class="ml-auto tabular-nums font-semibold"
+                  :class="hidden.has(g.category) ? 'text-gray-400 dark:text-gray-500 line-through' : isIncomeCategory(g.category) ? 'text-green-700 dark:text-green-400' : 'text-gray-900 dark:text-gray-100'">{{ money(g.yearTotalEur) }}</span>
+              </button>
+              <ToggleSwitch :model-value="!hidden.has(g.category)" :label="t('cars.costs.include', { category: t(`fixed_costs.category_${g.category}`) })" @update:model-value="setShown(g.category, $event)" />
+            </div>
+            <ul v-if="openGroups.has(g.category)" class="pb-2 pl-7">
               <li v-for="fc in g.items" :key="fc.id">
                 <button type="button" class="flex w-full items-center gap-2 min-h-11 py-1.5 text-left text-sm rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600/40" @click="sheet = { edit: fc }">
                   <span class="min-w-0 flex-1">
@@ -213,17 +171,11 @@ const shortMoney = (v: number) => {
             </ul>
           </li>
         </ul>
-        <p v-else class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ t('cars.costs.empty_fixed') }}</p>
+        <p v-if="!groups.length" class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ t('cars.costs.empty_fixed') }}</p>
 
-        <div class="mt-3 flex flex-wrap items-center gap-3">
-          <button type="button" v-haptic class="btn-3d inline-flex items-center gap-1.5 min-h-11 rounded-sm bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 transition" data-testid="car-cost-add" @click="sheet = { edit: null }">
-            <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('cars.costs.add') }}
-          </button>
-          <button v-if="previousYearHasCosts || year !== new Date().getFullYear()" type="button" class="min-h-11 text-sm font-medium text-indigo-600 dark:text-indigo-400"
-            @click="year = year === new Date().getFullYear() ? year - 1 : new Date().getFullYear()">
-            {{ t('cars.costs.show_year', { year: year === new Date().getFullYear() ? year - 1 : new Date().getFullYear() }) }}
-          </button>
-        </div>
+        <button type="button" v-haptic class="btn-3d mt-3 inline-flex items-center gap-1.5 min-h-11 rounded-sm bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 transition" data-testid="car-cost-add" @click="sheet = { edit: null }">
+          <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('cars.costs.add') }}
+        </button>
       </div>
     </template>
 

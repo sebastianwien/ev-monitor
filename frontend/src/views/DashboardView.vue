@@ -880,7 +880,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Kostenverlauf -->
-        <CostHistoryCard :car-id="selectedCarId" class="mb-6" />
+        <CostHistoryCard :car-id="selectedCarId" :registration-date="selectedCar?.registrationDate ?? null" class="mb-6" />
 
         <!-- Insights: Energie-Split · Standverluste · Fahrten-Kalender (AutoSync Live only) -->
         <DashboardInsights

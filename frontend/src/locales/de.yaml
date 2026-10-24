@@ -1662,25 +1662,26 @@ cars:
   menu_delete_hint: "7 Tage wiederherstellbar"
   costs:
     title: "Was es kostet"
-    range: "Letzte 12 Monate"
-    per_km: "pro km"
     per_month: "pro Monat"
     energy: "Strom"
     fixed: "Fixkosten"
     sentence: "{total} im Monat: {energy} Strom plus {fixed} Fixkosten."
     sentence_energy_only: "{total} im Monat für Strom."
-    range_months: "Letzter Monat | Letzte {n} Monate"
     spread_short: "Auf Monate umlegen"
     sentence_fixed_only: "{total} im Monat an Fixkosten."
     empty_all: "Hier steht, was dein Auto kostet: Strom aus deinen Ladungen plus Fixkosten."
     empty_fixed: "Trag deine Versicherung ein, dann zeigt die Karte deine Vollkosten."
-    fixed_year: "Fixkosten {year}"
     add: "Kosten erfassen"
     edit_title: "Kosten bearbeiten"
     entries: "{n} Eintrag | {n} Einträge"
     since: "seit {date}"
-    show_year: "{year} anzeigen"
-    chart_aria: "Kosten je Monat der letzten 12 Monate"
+    chart_aria: "Kosten je Monat {year}"
+    year_prev: "Vorjahr"
+    year_next: "Folgejahr"
+    include: "{category} einrechnen"
+    by_category: "Kosten {year}"
+    empty_year: "Für {year} sind keine Kosten erfasst."
+    history_link: "Monatsverlauf im Dashboard"
 
 carselector:
   label: "Fahrzeug"
@@ -3293,17 +3294,8 @@ insights:
 
 cost_history:
   title: "Kostenverlauf"
-  subtitle: "Letzte 12 Monate"
-  energy: "Energiekosten"
-  fixed: "Fixkosten"
-  total: "Gesamt"
   empty: "Noch keine Kosten erfasst."
-  mode_pro_rata: "Anteilig (monatlich)"
-  mode_due_month: "Im Fälligkeitsmonat"
   mode_spread_label: "Fixkosten auf Monate umlegen"
-  fixed_base: "Fixkosten-Basis"
-  trend: "Trend"
-  month: "Monat"
 
 
 eu_data_act:

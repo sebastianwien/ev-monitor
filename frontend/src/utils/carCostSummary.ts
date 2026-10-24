@@ -1,11 +1,10 @@
 import type { FixedCost, FixedCostCategory } from '../api/fixedCostService'
 import type { ChargeDataPoint } from '../composables/useDashboardStats'
-import { fixedCostAmountForMonth, parseLocalDate, type FixedCostMode } from '../composables/useFixedCostCalc'
-import { calcCostPer100km, calcFullCostPer100km } from '../composables/useDashboardStats'
+import { fixedCostAmountForMonth, type FixedCostMode } from '../composables/useFixedCostCalc'
 
 /**
- * Reine Rechenlogik der Kostenkarte in der Fahrzeugverwaltung. Energiekosten kommen vom
- * Backend (`/logs/statistics`), Fixkosten werden mit derselben Monatsregel wie im
+ * Reine Rechenlogik der Kostenkarte in der Fahrzeugverwaltung, je Kalenderjahr. Energiekosten
+ * kommen vom Backend (`/logs/statistics`), Fixkosten werden mit derselben Monatsregel wie im
  * Kostenverlauf des Dashboards verteilt (`fixedCostAmountForMonth`).
  */
 
@@ -14,110 +13,74 @@ export interface MonthlyCostPoint {
   month: number
   energyEur: number
   fixedEur: number
+  /** Fixkosten je Kategorie, nur Kategorien mit Betrag im Monat; Einnahmen negativ. */
+  fixedByCategory: Partial<Record<FixedCostCategory, number>>
 }
 
 function round2(v: number): number {
   return Math.round(v * 100) / 100
 }
 
-function lastTwelveMonths(now: Date): { year: number; month: number }[] {
-  const months: { year: number; month: number }[] = []
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    months.push({ year: d.getFullYear(), month: d.getMonth() + 1 })
-  }
-  return months
-}
-
-/** 12 Monatspunkte bis einschließlich des aktuellen Monats, jeder Monat vorhanden. */
-export function buildMonthlyCostSeries(
+/**
+ * Monatspunkte eines Kalenderjahres: Vorjahre mit allen 12 Monaten, das laufende Jahr bis
+ * einschließlich des aktuellen Monats, Folgejahre leer.
+ */
+export function buildYearCostSeries(
   points: ChargeDataPoint[],
   fixedCosts: FixedCost[],
   mode: FixedCostMode,
+  year: number,
   now: Date = new Date(),
 ): MonthlyCostPoint[] {
-  const energyByMonth = new Map<string, number>()
+  const lastMonth = year < now.getFullYear() ? 12 : year === now.getFullYear() ? now.getMonth() + 1 : 0
+  const energyByMonth = new Map<number, number>()
   for (const p of points) {
     const d = new Date(p.timestamp)
-    const key = `${d.getFullYear()}-${d.getMonth() + 1}`
-    energyByMonth.set(key, (energyByMonth.get(key) ?? 0) + (p.costEur ?? 0))
+    if (d.getFullYear() !== year) continue
+    energyByMonth.set(d.getMonth() + 1, (energyByMonth.get(d.getMonth() + 1) ?? 0) + (p.costEur ?? 0))
   }
-  return lastTwelveMonths(now).map(({ year, month }) => {
+  const series: MonthlyCostPoint[] = []
+  for (let month = 1; month <= lastMonth; month++) {
     const from = new Date(year, month - 1, 1)
     const to = new Date(year, month, 0)
-    const fixed = fixedCosts.reduce((sum, fc) => sum + fixedCostAmountForMonth(fc, from, to, mode), 0)
-    return {
-      year,
-      month,
-      energyEur: round2(energyByMonth.get(`${year}-${month}`) ?? 0),
-      fixedEur: round2(fixed),
+    const fixedByCategory: Partial<Record<FixedCostCategory, number>> = {}
+    for (const fc of fixedCosts) {
+      const amount = fixedCostAmountForMonth(fc, from, to, mode)
+      if (amount !== 0) fixedByCategory[fc.category] = (fixedByCategory[fc.category] ?? 0) + amount
     }
-  })
+    let fixed = 0
+    for (const c of Object.keys(fixedByCategory) as FixedCostCategory[]) {
+      fixedByCategory[c] = round2(fixedByCategory[c]!)
+      fixed += fixedByCategory[c]!
+    }
+    series.push({ year, month, energyEur: round2(energyByMonth.get(month) ?? 0), fixedEur: round2(fixed), fixedByCategory })
+  }
+  return series
+}
+
+/** Erster Monat mit Strom- oder Fixkosten, -1 ohne Kosten. Davor gab es das Auto noch nicht. */
+export function firstCostIndex(series: MonthlyCostPoint[]): number {
+  return series.findIndex(p => p.energyEur !== 0 || p.fixedEur !== 0)
 }
 
 export interface CostSummary {
-  /** Vollkosten je Kilometer in Cent, null ohne Kilometerstand oder ohne Verbrauch. */
-  ctPerKm: number | null
   perMonthEur: number
   energyPerMonthEur: number
   /** Fixkosten netto (Einnahmen abgezogen). */
   fixedPerMonthEur: number
-  /** Anteil der Energiekosten an den Gesamtkosten, null ohne positive Kosten. */
-  energyShare: number | null
 }
 
-export interface CostInput {
-  avgCostPerKwh: number | null
-  avgConsumptionKwhPer100km: number | null
-  energyCostEur: number
-  totalDistanceKm: number | null
-}
-
-/**
- * Dieselbe Vollkosten-Rechnung wie das Dashboard (`calcFullCostPer100km`): Energiekosten als
- * Preis je kWh mal Verbrauch, Fixkosten auf die gefahrene Strecke. Euro je 100 km entspricht
- * Cent je km. `fixedNetEur` kommt aus der Monatsreihe, damit Kopfzahl und Balken denselben
- * Umlagemodus nutzen.
- */
-export function summarizeCosts(stats: CostInput, fixedNetEur: number, months: number): CostSummary {
-  const energy = stats.energyCostEur ?? 0
-  const total = energy + fixedNetEur
-  const m = Math.max(1, months)
-  const per100km = calcFullCostPer100km(
-    calcCostPer100km(stats.avgCostPerKwh ?? null, stats.avgConsumptionKwhPer100km ?? null),
-    fixedNetEur, 0, stats.totalDistanceKm,
-  )
+/** Monatsdurchschnitt über die Reihe. Die Karte übergibt sie mit umgelegten Fixkosten. */
+export function summarizeCosts(series: MonthlyCostPoint[]): CostSummary {
+  const energy = series.reduce((s, p) => s + p.energyEur, 0)
+  const fixed = series.reduce((s, p) => s + p.fixedEur, 0)
+  const total = energy + fixed
+  const m = Math.max(1, series.length)
   return {
-    ctPerKm: per100km === null ? null : round2(per100km),
     perMonthEur: Math.round(total / m),
     energyPerMonthEur: Math.round(energy / m),
-    fixedPerMonthEur: Math.round(fixedNetEur / m),
-    energyShare: total > 0 && energy > 0 ? energy / total : null,
+    fixedPerMonthEur: Math.round(fixed / m),
   }
-}
-
-/** Summe der Fixkosten (netto) über die Monatsreihe, im gewählten Umlagemodus. */
-export function fixedNetFromSeries(series: MonthlyCostPoint[]): number {
-  return round2(series.reduce((s, p) => s + p.fixedEur, 0))
-}
-
-/**
- * Wie viele der 12 Monate das Auto wirklich abdeckt: ab dem ersten Monat mit Stromkosten,
- * sonst ab Erstzulassung. Damit zeigt ein Auto, das erst drei Monate dabei ist, keinen
- * Zwölftel-Monatswert.
- */
-export function monthsCovered(series: MonthlyCostPoint[], registrationDate: string | null, now: Date = new Date()): number {
-  const first = series.findIndex(p => p.energyEur > 0)
-  if (first >= 0) return series.length - first
-  if (!registrationDate) return series.length
-  const reg = parseLocalDate(registrationDate)
-  const diff = (now.getFullYear() - reg.getFullYear()) * 12 + (now.getMonth() - reg.getMonth()) + 1
-  return Math.min(series.length, Math.max(1, diff))
-}
-
-/** Cent-Anzeige der Kopfzahl: unter 10 ct eine Nachkommastelle, darüber ganze Cent. */
-export function centLabel(ct: number, n: (v: number, o?: { maximumFractionDigits?: number }) => string): string {
-  return `${n(ct, { maximumFractionDigits: Math.abs(ct) < 10 ? 1 : 0 })} ct`
 }
 
 /** Reihenfolge der Kategorien in der Kostenkarte: Pflichtkosten zuerst, Einnahmen zuletzt. */
@@ -166,4 +129,46 @@ export function groupFixedCostsByCategory(items: FixedCost[], year: number): Fix
     })
   }
   return groups
+}
+
+/**
+ * Obergrenze der Balkenskala. Einzelne Jahreszahlungen im Fälligkeitsmonat würden die Skala
+ * sonst so strecken, dass die Stromkosten der übrigen Monate unsichtbar werden. Monate über
+ * der Grenze zeichnet die Karte mit Achsenbruch, der Betrag darüber bleibt der echte.
+ * Grenze: dreifacher Median der Monate mit Kosten, ab drei solchen Monaten, mindestens `minCap`.
+ */
+export function chartCap(totals: number[], minCap = 1): number {
+  const positive = totals.filter(v => v > 0).sort((a, b) => a - b)
+  const max = Math.max(1, ...positive)
+  if (positive.length < 3) return max
+  const mid = Math.floor(positive.length / 2)
+  const median = positive.length % 2 ? positive[mid] : (positive[mid - 1] + positive[mid]) / 2
+  return Math.min(max, Math.max(minCap, 3 * median))
+}
+
+/** Mindestanteil des gekürzten Teilstücks an der Skala, damit es als Teil erkennbar bleibt. */
+const MIN_CUT_SHARE = 0.25
+
+/**
+ * Teilstücke eines Balkens auf die Skala bringen. Passt die Summe nicht, wird nur das größte
+ * Teilstück gekürzt (dort sitzt der Achsenbruch), die übrigen behalten ihre echte Länge.
+ * Reicht das nicht, schrumpfen die übrigen anteilig.
+ */
+export function fitSegments(values: number[], cap: number): { widths: number[]; cut: number | null } {
+  const total = values.reduce((s, v) => s + v, 0)
+  if (total <= cap) return { widths: [...values], cut: null }
+  const cut = values.indexOf(Math.max(...values))
+  const cutWidth = Math.max(cap * MIN_CUT_SHARE, values[cut] - (total - cap))
+  const others = total - values[cut]
+  const scale = others > cap - cutWidth ? (cap - cutWidth) / others : 1
+  return { widths: values.map((v, i) => (i === cut ? cutWidth : v * scale)), cut }
+}
+
+/** Kostenkategorien der Reihe nach Summe absteigend, ohne Einnahmen. Reihenfolge der Farbstufen. */
+export function rankCategories(series: MonthlyCostPoint[]): FixedCostCategory[] {
+  const sums = new Map<FixedCostCategory, number>()
+  for (const p of series) {
+    for (const [c, v] of Object.entries(p.fixedByCategory) as [FixedCostCategory, number][]) sums.set(c, (sums.get(c) ?? 0) + v)
+  }
+  return [...sums.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([c]) => c)
 }

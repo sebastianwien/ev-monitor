@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { useFixedCostCalc, type FixedCostMode } from '../useFixedCostCalc'
+import { fixedCostAmountForMonth, type FixedCostMode } from '../useFixedCostCalc'
 import type { FixedCost, FixedCostCategory, FixedCostRecurrence } from '../../api/fixedCostService'
 
-vi.mock('../../api/fixedCostService', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  fixedCostService: { list: vi.fn() },
-}))
 
 let seq = 0
 
@@ -31,10 +27,13 @@ function fc(partial: {
   }
 }
 
+/** Summe aller Eintraege im Monat, wie Kostenkarte und Kostenverlauf sie bilden. */
 function setup(entries: FixedCost[], mode: FixedCostMode = 'pro_rata') {
-  const calc = useFixedCostCalc(() => 'car-1', () => mode)
-  calc.items.value = entries
-  return calc
+  const calcForMonth = (year: number, month: number) => {
+    const raw = entries.reduce((sum, e) => sum + fixedCostAmountForMonth(e, new Date(year, month - 1, 1), new Date(year, month, 0), mode), 0)
+    return Math.round(raw * 100) / 100
+  }
+  return { calcForMonth }
 }
 
 afterEach(() => {
@@ -109,23 +108,5 @@ describe('income entries (negative amounts)', () => {
     ])
 
     expect(calcForMonth(2024, 6)).toBe(69)
-  })
-
-  it('keeps income in its own category series so the chart can stack it downwards', () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date(2024, 5, 15))
-    const { last12MonthsPerCategory } = setup(
-      [
-        fc({ amount: 89, category: 'INSURANCE', recurrence: 'MONTHLY', startDate: '2024-01-01' }),
-        fc({ amount: -25, category: 'INCOME', recurrence: 'MONTHLY', startDate: '2024-01-01' }),
-      ],
-      'due_month',
-    )
-
-    const income = last12MonthsPerCategory.value.find(s => s.category === 'INCOME')
-    const insurance = last12MonthsPerCategory.value.find(s => s.category === 'INSURANCE')
-
-    expect(income?.data[income.data.length - 1]).toBe(-25)
-    expect(insurance?.data[insurance.data.length - 1]).toBe(89)
   })
 })

@@ -338,7 +338,7 @@ const copyCarId = async (id: string) => {
 
           <div class="md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:gap-5 space-y-4 md:space-y-0">
             <div class="space-y-4">
-              <CarCostCard :key="selectedCar.id" :car-id="selectedCar.id" :registration-date="selectedCar.registrationDate ?? null" />
+              <CarCostCard :key="selectedCar.id" :car-id="selectedCar.id" :registration-date="selectedCar.registrationDate ?? null" :show-history-link="selectedCar.isPrimary || cars.length === 1" />
             </div>
             <div class="space-y-4">
               <CarRatingsCard v-if="ratingFor(selectedCar.id)" :key="`rating-${selectedCar.id}`" :car-id="selectedCar.id" :eligibility="ratingFor(selectedCar.id)!" />
