@@ -7,7 +7,7 @@ import type { FixedCostCategory } from '../../api/fixedCostService'
 import { ENERGY, useYearCosts } from '../../composables/useYearCosts'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useThemeStore } from '../../stores/theme'
-import { chartCap, fitSegments, type MonthlyCostPoint } from '../../utils/carCostSummary'
+import { barScale, fitSegments, type MonthlyCostPoint } from '../../utils/carCostSummary'
 import { costColor } from '../../utils/costColors'
 import ToggleSwitch from '../shared/ToggleSwitch.vue'
 
@@ -46,11 +46,10 @@ watch([year, () => props.carId], () => { open.value = null })
 const slideNext = ref(true)
 watch(year, (y, prev) => { slideNext.value = y > prev })
 
-// Balken: positive Teile gestapelt. Die Skala laesst Strom immer in echter Laenge (hoechstens
-// drei Viertel der Breite), Ausreisser werden im groessten Teilstueck mit Achsenbruch gekuerzt.
+// Balken: positive Teile gestapelt. Ausreisser werden im groessten Teilstueck mit Achsenbruch
+// gekuerzt, der gekuerzte Teil belegt dabei mindestens 60 Prozent des Balkens.
 const rows = computed(() => {
-  const totals = series.value.map(p => p.energyEur + Object.values(p.fixedByCategory).reduce((s, v) => s + Math.max(0, v), 0))
-  const cap = chartCap(totals, Math.max(0, ...series.value.map(p => p.energyEur)) / 0.75)
+  const cap = barScale(series.value.map(p => parts(p).filter(x => x.eur > 0).map(x => x.eur)))
   return series.value.map(p => {
     const positive = parts(p).filter(x => x.eur > 0)
     const { widths, cut } = fitSegments(positive.map(x => x.eur), cap)

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments } from '../carCostSummary'
+import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments, barScale } from '../carCostSummary'
 import type { FixedCost, FixedCostCategory, FixedCostRecurrence } from '../../api/fixedCostService'
 import type { ChargeDataPoint } from '../../composables/useDashboardStats'
 
@@ -171,12 +171,6 @@ describe('chartCap (Achsenbruch: einzelne Jahreszahlungen drücken die Stromkost
     expect(chartCap([0, 2100, 0, 40])).toBe(2100)
   })
 
-  it('bleibt mindestens bei der Untergrenze, damit Strom nie gekappt wird', () => {
-    // Regression: Strom 147 im August lag über dem dreifachen Median (81) und füllte den ganzen Balken
-    expect(chartCap([26, 339, 27, 19, 50, 2147, 18], 196)).toBe(196)
-    expect(chartCap([26, 339, 27, 19, 50, 2147, 18], 10)).toBeCloseTo(81)
-  })
-
   it('liefert mindestens 1, damit leere Reihen nicht durch 0 teilen', () => {
     expect(chartCap([0, 0, 0])).toBe(1)
   })
@@ -192,20 +186,39 @@ describe('rankCategories (Farbstufe: größte Kostenkategorie am dunkelsten)', (
   })
 })
 
+describe('barScale (gekürzter Teil bleibt sichtbar der größte)', () => {
+  it('weitet die Skala, bis die ungekürzten Teile eines gebrochenen Balkens höchstens 40 Prozent belegen (Regression August)', () => {
+    // Strom 147 neben Wartung 2.000: vorher belegte Strom drei Viertel, Wartung wirkte kleiner
+    const cap = barScale([[26], [39, 300], [27], [19], [50], [147, 2000], [18]])
+    expect(cap).toBeCloseTo(367.5)
+  })
+
+  it('bleibt beim dreifachen Median, wenn kein gebrochener Balken mehr als 40 Prozent Nebenteile hat', () => {
+    expect(barScale([[20], [30], [25], [10, 2000]])).toBeCloseTo(82.5)
+  })
+
+  it('braucht ohne Ausreißer keinen Bruch', () => {
+    expect(barScale([[100, 380], [120, 390], [90, 400]])).toBe(510)
+  })
+})
+
 describe('fitSegments (Achsenbruch im größten Teilstück)', () => {
   it('lässt Teilstücke unverändert, wenn die Summe passt', () => {
     expect(fitSegments([30, 50], 100)).toEqual({ widths: [30, 50], cut: null })
   })
 
-  it('kürzt nur das größte Teilstück und lässt Strom in echter Länge (Regression August)', () => {
-    expect(fitSegments([147, 2000], 196)).toEqual({ widths: [147, 49], cut: 1 })
+  it('kürzt nur das größte Teilstück und lässt die übrigen in echter Länge (Regression August)', () => {
+    const { widths, cut } = fitSegments([147, 2000], 367.5)
+    expect(cut).toBe(1)
+    expect(widths[0]).toBe(147)
+    expect(widths[1]).toBeCloseTo(220.5)
   })
 
   it('verkleinert die übrigen Teilstücke anteilig, wenn das gekürzte größte allein nicht reicht', () => {
     const { widths, cut } = fitSegments([50, 300, 2000], 200)
     expect(cut).toBe(2)
-    expect(widths[2]).toBe(50)
-    expect(widths[0] + widths[1]).toBeCloseTo(150)
+    expect(widths[2]).toBeCloseTo(120)
+    expect(widths[0] + widths[1]).toBeCloseTo(80)
     expect(widths[1] / widths[0]).toBeCloseTo(6)
   })
 })

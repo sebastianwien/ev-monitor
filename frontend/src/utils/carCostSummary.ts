@@ -135,19 +135,36 @@ export function groupFixedCostsByCategory(items: FixedCost[], year: number): Fix
  * Obergrenze der Balkenskala. Einzelne Jahreszahlungen im Fälligkeitsmonat würden die Skala
  * sonst so strecken, dass die Stromkosten der übrigen Monate unsichtbar werden. Monate über
  * der Grenze zeichnet die Karte mit Achsenbruch, der Betrag darüber bleibt der echte.
- * Grenze: dreifacher Median der Monate mit Kosten, ab drei solchen Monaten, mindestens `minCap`.
+ * Grenze: dreifacher Median der Monate mit Kosten, ab drei solchen Monaten.
  */
-export function chartCap(totals: number[], minCap = 1): number {
+export function chartCap(totals: number[]): number {
   const positive = totals.filter(v => v > 0).sort((a, b) => a - b)
   const max = Math.max(1, ...positive)
   if (positive.length < 3) return max
   const mid = Math.floor(positive.length / 2)
   const median = positive.length % 2 ? positive[mid] : (positive[mid - 1] + positive[mid]) / 2
-  return Math.min(max, Math.max(minCap, 3 * median))
+  return Math.min(max, 3 * median)
 }
 
-/** Mindestanteil des gekürzten Teilstücks an der Skala, damit es als Teil erkennbar bleibt. */
-const MIN_CUT_SHARE = 0.25
+/** Mindestanteil des gekürzten Teilstücks an der Skala: es bleibt sichtbar der größte Teil. */
+const MIN_CUT_SHARE = 0.6
+
+/**
+ * Skala für gestapelte Monatsbalken (`months`: positive Teilbeträge je Monat). Ausgangspunkt
+ * ist `chartCap`. Wird ein Balken gebrochen, weitet sich die Skala so weit, dass seine
+ * ungekürzten Teile höchstens 40 Prozent belegen, sonst wirkte der gekürzte große Posten
+ * kleiner als ein kleiner daneben.
+ */
+export function barScale(months: number[][]): number {
+  const totals = months.map(m => m.reduce((s, v) => s + v, 0))
+  const max = Math.max(1, ...totals)
+  let cap = chartCap(totals)
+  months.forEach((m, i) => {
+    if (totals[i] <= cap) return
+    cap = Math.max(cap, (totals[i] - Math.max(...m)) / (1 - MIN_CUT_SHARE))
+  })
+  return Math.min(max, cap)
+}
 
 /**
  * Teilstücke eines Balkens auf die Skala bringen. Passt die Summe nicht, wird nur das größte
