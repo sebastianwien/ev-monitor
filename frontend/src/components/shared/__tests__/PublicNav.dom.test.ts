@@ -10,7 +10,7 @@ import PublicNav from '../PublicNav.vue'
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
-async function mount(loggedIn: boolean, publicNav: boolean) {
+async function mount(loggedIn: boolean, publicNav: boolean, props: Record<string, unknown> = {}) {
   setActivePinia(createPinia())
   if (loggedIn) {
     const auth = useAuthStore()
@@ -24,7 +24,7 @@ async function mount(loggedIn: boolean, publicNav: boolean) {
   await router.isReady()
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(PublicNav)
+  app = createApp(PublicNav, props)
   app.use(i18n).use(router)
   app.mount(host)
   return host
@@ -42,6 +42,13 @@ describe('PublicNav', () => {
     expect(host.textContent).not.toContain('Registrieren')
     expect(host.textContent).not.toContain('Anmelden')
     expect(host.querySelector('[data-testid="public-nav-dashboard"]')?.getAttribute('href')).toBe('/dashboard')
+    expect(host.querySelector('[data-testid="public-nav-watt"]')).not.toBeNull()
+  })
+
+  it('member on the home page (home): no link to itself, the profile instead', async () => {
+    const host = await mount(true, true, { home: true })
+    expect(host.querySelector('[data-testid="public-nav-dashboard"]')).toBeNull()
+    expect(host.querySelector('[data-testid="public-nav-settings"]')?.getAttribute('href')).toBe('/settings')
     expect(host.querySelector('[data-testid="public-nav-watt"]')).not.toBeNull()
   })
 

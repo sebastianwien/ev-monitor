@@ -1,6 +1,6 @@
 <template>
-  <!-- Guests everywhere it is placed; members only on routes marked publicNav (the model pages),
-       where the app chrome steps back and this nav carries the way home instead of register and login -->
+  <!-- Guests everywhere it is placed; members only on routes marked publicNav (the model pages, the story
+       dashboard), where the app chrome steps back and this nav carries the way home instead of register and login -->
   <div v-if="!authStore.isAuthenticated() || member" class="sticky top-0 z-50 [view-transition-name:public-nav]">
     <div class="public-nav-accent h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
     <nav class="pt-[env(safe-area-inset-top)] bg-green-50 dark:bg-green-950 border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
@@ -18,7 +18,11 @@
                          class="hidden sm:inline-flex items-center gap-1 px-2 py-2 text-sm font-semibold tabular-nums text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
               <BoltIcon class="h-4 w-4" aria-hidden="true" />{{ coinStore.balance }}
             </router-link>
-            <router-link to="/dashboard" data-testid="public-nav-dashboard"
+            <router-link v-if="home" to="/settings" data-testid="public-nav-settings" :aria-label="t('nav.bottom.settings')"
+                         class="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-gray-900 text-gray-900 hover:bg-white dark:border-gray-100 dark:text-gray-100 dark:hover:bg-gray-900">
+              <UserIcon class="h-5 w-5" aria-hidden="true" />
+            </router-link>
+            <router-link v-else to="/dashboard" data-testid="public-nav-dashboard"
                          class="btn-3d [--btn-shadow-color:#111827] dark:[--btn-shadow-color:#000000] inline-flex items-center gap-1.5 text-sm font-medium bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-3 sm:px-4 py-2 rounded-sm hover:bg-green-700 transition whitespace-nowrap">
               <HomeIcon class="h-4 w-4" aria-hidden="true" />{{ t('nav.dashboard') }}
             </router-link>
@@ -51,12 +55,15 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { HomeIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { HomeIcon, BoltIcon, UserIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../../stores/auth'
 import { useCoinStore } from '../../stores/coins'
 import BoltLogo from './BoltLogo.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import LocaleSwitcher from './LocaleSwitcher.vue'
+
+/** home: the members' home page itself (story dashboard) - no link to itself, the profile instead */
+defineProps<{ home?: boolean }>()
 
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
