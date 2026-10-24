@@ -321,6 +321,7 @@ const copyCarId = async (id: string) => {
           :tesla-status="teslaStatus"
           :show-active="selectedCar.isPrimary && cars.length > 1"
           :shared="isShared"
+          :rated="!!ratingFor(selectedCar.id)?.rated"
           @menu="menuOpen = true"
           @edit="openEditForm(selectedCar)"
           @soh="sohModalCar = selectedCar"

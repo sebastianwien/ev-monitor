@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CameraIcon, EllipsisHorizontalIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, CheckBadgeIcon, EllipsisHorizontalIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from './LicensePlate.vue'
 import SohPill from './SohPill.vue'
 import type { Car } from '../../api/carService'
@@ -23,6 +23,8 @@ const props = defineProps<{
   /** Primaerauto, nur relevant bei mehreren Autos. */
   showActive: boolean
   shared: boolean
+  /** Nutzer hat dieses Auto bewertet. */
+  rated: boolean
 }>()
 const emit = defineEmits<{ menu: []; edit: []; soh: []; upload: [event: Event] }>()
 const { t, n } = useI18n()
@@ -41,7 +43,7 @@ const teslaState = computed(() => {
 })
 
 type Tone = 'neutral' | 'green' | 'blue' | 'violet' | 'amber'
-interface Chip { key: string; label: string; tone: Tone; pulse?: boolean }
+interface Chip { key: string; label: string; tone: Tone; pulse?: boolean; icon?: Component }
 
 const chips = computed<Chip[]>(() => {
   const list: Chip[] = []
@@ -53,6 +55,7 @@ const chips = computed<Chip[]>(() => {
   if (props.car.hasHeatPump) list.push({ key: 'heat', label: t('cars.heat_pump_badge'), tone: 'blue' })
   if (props.car.isBusinessCar) list.push({ key: 'business', label: t('cars.business_car_label'), tone: 'violet' })
   if (props.shared) list.push({ key: 'shared', label: t('cars.shared_badge'), tone: 'neutral' })
+  if (props.rated) list.push({ key: 'rated', label: t('rating.badge_rated'), tone: 'amber', icon: CheckBadgeIcon })
   return list
 })
 
@@ -110,7 +113,7 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
             <SohPill :soh-percent="sohPercent" @click="emit('soh')" />
           </span>
           <span v-for="chip in chips" :key="chip.key" :class="[chipBase, toneClass[chip.tone]]">
-            <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />{{ chip.label }}
+            <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true" /><component :is="chip.icon" v-if="chip.icon" class="h-4 w-4" aria-hidden="true" />{{ chip.label }}
           </span>
         </div>
       </div>
@@ -123,7 +126,7 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
         <SohPill :soh-percent="sohPercent" @click="emit('soh')" />
       </span>
       <span v-for="chip in chips" :key="chip.key" :class="[chipBase, toneClass[chip.tone]]">
-        <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />{{ chip.label }}
+        <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true" /><component :is="chip.icon" v-if="chip.icon" class="h-4 w-4" aria-hidden="true" />{{ chip.label }}
       </span>
     </div>
   </section>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { StarIcon, CheckBadgeIcon } from '@heroicons/vue/24/outline'
+import { StarIcon } from '@heroicons/vue/24/outline'
 import { ratingService, type CarEligibility, type MyRating, type PublicModelRatings } from '../../api/ratingService'
 import { STAR_QUESTIONS } from '../../config/ratingQuestions'
 import { buildRatingRows, MIN_FOR_AVERAGE } from '../../utils/ratingForm'
@@ -112,10 +112,7 @@ const avg = (v: number) => n(v, { minimumFractionDigits: 1, maximumFractionDigit
         <!-- Eigene Bewertung -->
         <div class="mt-4 flex flex-wrap items-center gap-3">
           <template v-if="eligibility.rated">
-            <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" data-testid="car-rating-row">
-              <CheckBadgeIcon class="h-3.5 w-3.5" aria-hidden="true" />{{ t('rating.badge_rated') }}
-            </span>
-            <RouterLink :to="ratePath" class="inline-flex items-center min-h-11 text-sm font-medium text-green-700 dark:text-green-400">{{ t('rating.cars.rated_edit') }}</RouterLink>
+            <RouterLink :to="ratePath" class="inline-flex items-center min-h-11 text-sm font-medium text-green-700 dark:text-green-400" data-testid="car-rating-row">{{ t('rating.cars.rated_edit') }}</RouterLink>
           </template>
           <RouterLink v-else-if="showCta" :to="ratePath" class="btn-3d inline-flex w-full items-center justify-center min-h-11 rounded-sm bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700 transition" data-testid="car-rate-cta">
             {{ t('rating.cars.rate_cta', { model }) }}
