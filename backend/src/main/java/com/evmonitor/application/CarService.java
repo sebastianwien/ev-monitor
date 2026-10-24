@@ -245,7 +245,8 @@ public class CarService {
      * wenn ein anderer User Besitzer ist. Zentralisiert den Ownership-Check aller
      * Service-Methoden.
      */
-    private Car requireOwnedCar(UUID carId, UUID userId) {
+    /** Paketweit, damit kleine Car-Services denselben Ownership-Check nutzen. */
+    Car requireOwnedCar(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
         if (!car.isOwnedBy(userId)) {

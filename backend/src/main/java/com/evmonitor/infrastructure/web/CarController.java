@@ -3,6 +3,8 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.CarCreateResponse;
 import com.evmonitor.application.CarImageResponse;
 import com.evmonitor.application.CarImageService;
+import com.evmonitor.application.CarOdometerResponse;
+import com.evmonitor.application.CarOdometerService;
 import com.evmonitor.application.CarRequest;
 import com.evmonitor.application.CarResponse;
 import com.evmonitor.application.CarService;
@@ -40,6 +42,7 @@ public class CarController {
     private final CarImageService carImageService;
     private final com.evmonitor.application.CarShareService carShareService;
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
+    private final CarOdometerService carOdometerService;
 
     @PostMapping
     public ResponseEntity<CarCreateResponse> createCar(@Valid @RequestBody CarRequest request, Authentication authentication) {
@@ -60,6 +63,12 @@ public class CarController {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         CarResponse car = carService.getCarByIdForUser(id, principal.getUser().getId());
         return ResponseEntity.ok(car);
+    }
+
+    @GetMapping("/{id}/odometer")
+    public ResponseEntity<CarOdometerResponse> getCurrentOdometer(@PathVariable UUID id, Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(carOdometerService.getCurrentOdometer(id, principal.getUser().getId()));
     }
 
     @PutMapping("/{id}")
