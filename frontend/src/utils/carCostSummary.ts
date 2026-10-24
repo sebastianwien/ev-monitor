@@ -189,3 +189,14 @@ export function rankCategories(series: MonthlyCostPoint[]): FixedCostCategory[] 
   }
   return [...sums.entries()].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]).map(([c]) => c)
 }
+
+/**
+ * Chips im Kostenverlauf: Strom (falls geladen), die Kategorien mit Kosten in Rangfolge, dazu
+ * ausgeblendete Kategorien dieses Autos ohne Betrag im Zeitraum, damit sie einschaltbar bleiben.
+ * Ausgeblendete Kategorien, die das Auto gar nicht hat (Schalter gilt für alle Autos), fehlen.
+ */
+export function legendKeys(o: { hasEnergy: boolean; ranked: readonly string[]; hidden: ReadonlySet<string>; carCategories: readonly string[] }): string[] {
+  const keys = [...(o.hasEnergy ? ['ENERGY'] : []), ...o.ranked]
+  for (const c of new Set(o.carCategories)) if (o.hidden.has(c) && !keys.includes(c)) keys.push(c)
+  return keys
+}

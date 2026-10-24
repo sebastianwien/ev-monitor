@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments, barScale } from '../carCostSummary'
+import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments, barScale, legendKeys } from '../carCostSummary'
 import type { FixedCost, FixedCostCategory, FixedCostRecurrence } from '../../api/fixedCostService'
 import type { ChargeDataPoint } from '../../composables/useDashboardStats'
 
@@ -220,5 +220,18 @@ describe('fitSegments (Achsenbruch im größten Teilstück)', () => {
     expect(widths[2]).toBeCloseTo(120)
     expect(widths[0] + widths[1]).toBeCloseTo(80)
     expect(widths[1] / widths[0]).toBeCloseTo(6)
+  })
+})
+
+describe('legendKeys (Chips im Kostenverlauf)', () => {
+  it('zeigt Strom und die Kategorien mit Kosten in Rangfolge', () => {
+    expect(legendKeys({ hasEnergy: true, ranked: ['MAINTENANCE', 'TAX'], hidden: new Set(), carCategories: ['TAX', 'MAINTENANCE'] }))
+      .toEqual(['ENERGY', 'MAINTENANCE', 'TAX'])
+  })
+
+  it('behält ausgeblendete Kategorien des Autos ohne Betrag im Jahr, damit sie wieder einschaltbar sind', () => {
+    // Regression: Versicherung ausgeblendet, im Fälligkeitsmodus 2026 ohne Zahlung, Chip verschwand
+    expect(legendKeys({ hasEnergy: true, ranked: ['MAINTENANCE'], hidden: new Set(['INSURANCE', 'TOLL']), carCategories: ['INSURANCE', 'MAINTENANCE'] }))
+      .toEqual(['ENERGY', 'MAINTENANCE', 'INSURANCE'])
   })
 })

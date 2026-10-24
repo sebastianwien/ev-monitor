@@ -7,7 +7,7 @@ import type { FixedCostCategory } from '../../api/fixedCostService'
 import { ENERGY, useYearCosts } from '../../composables/useYearCosts'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useThemeStore } from '../../stores/theme'
-import { barScale, fitSegments, type MonthlyCostPoint } from '../../utils/carCostSummary'
+import { barScale, fitSegments, legendKeys, type MonthlyCostPoint } from '../../utils/carCostSummary'
 import { costColor } from '../../utils/costColors'
 import ToggleSwitch from '../shared/ToggleSwitch.vue'
 
@@ -24,13 +24,13 @@ const { t, locale } = useI18n()
 const { formatCurrency } = useLocaleFormat()
 const { isDark } = storeToRefs(useThemeStore())
 
-const { ranked, thisYear, year, dataYear, minYear, loading, error, spread, hidden, setShown, series, allSeries } =
+const { ranked, thisYear, year, dataYear, minYear, items, loading, error, spread, hidden, setShown, series, allSeries } =
   useYearCosts(() => props.carId, () => props.registrationDate)
 
 const colorOf = (key: string) => costColor(key, ranked.value, isDark.value, ENERGY)
 const labelOf = (key: string) => (key === ENERGY ? t('cars.costs.energy') : t(`fixed_costs.category_${key}`))
 const hasEnergy = computed(() => allSeries.value.some(p => p.energyEur !== 0))
-const legend = computed(() => [...(hasEnergy.value ? [ENERGY] : []), ...ranked.value])
+const legend = computed(() => legendKeys({ hasEnergy: hasEnergy.value, ranked: ranked.value, hidden: hidden.value, carCategories: items.value.map(fc => fc.category) }))
 
 /** Betraege eines Monats je Kategorie in Stapelreihenfolge (Strom zuerst), Einnahmen am Ende. */
 function parts(p: MonthlyCostPoint): { key: string; eur: number }[] {
