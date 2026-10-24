@@ -50,6 +50,16 @@ describe('StoryHero', () => {
     expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).not.toContain('/100km')
   })
 
+  it('ohne Preise: km und Ladungen, keine 0,00 € je 100 km', () => {
+    const host = mount({ distanceKm: 6.8, energyCostEur: 0, charges: 2, costPer100km: 0 })
+    expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 7 km, 2 Ladungen.')
+    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).not.toContain('/100km')
+    // Der große Satz bricht nie zwischen Zahl und Einheit oder Zahl und Wort um
+    const raw = host.querySelector('[data-testid="story-hero-value"]')!.textContent!
+    expect(raw).toContain('7 km')
+    expect(raw).toContain('2 Ladungen')
+  })
+
   it('kein Benzin-Satz, wenn Benzin nicht teurer gewesen wäre', () => {
     const host = mount({ petrolEur: 30 })
     expect(host.querySelector('[data-testid="story-hero-petrol"]')).toBeNull()

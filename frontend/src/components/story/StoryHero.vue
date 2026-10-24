@@ -7,6 +7,7 @@ import DataQualityLine from './DataQualityLine.vue'
 
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { heroLine, type DayCoverage } from '../../composables/storyModel'
+import { keepUnits } from '../../utils/modelStory'
 import type { CostLayer } from '../../composables/storyEnergy'
 import type { DataQuality } from '../../composables/storyInsights'
 
@@ -44,14 +45,15 @@ const sentence = computed(() => {
   const month = props.monthLabel.charAt(0).toUpperCase() + props.monthLabel.slice(1)
   const km = l.km != null ? formatDistance(l.km, { round: true }) : ''
   const eur = l.eur != null ? formatCurrency(l.eur, { decimals: 0 }) : ''
-  return t(`story.hero_${l.kind}`, { month, km, eur, n: l.charges }, l.charges)
+  return keepUnits(t(`story.hero_${l.kind}`, { month, km, eur, n: l.charges }, l.charges))
 })
 // Der Benzin-Satz nur, wenn er etwas zeigt: Strecke und Stromkosten bekannt, Benzin teurer.
 const petrol = computed(() => line.value.kind === 'km_cost' && props.petrolEur != null && props.petrolEur > line.value.eur!
   ? formatCurrency(props.petrolEur, { decimals: 0 })
   : null)
 const meta = computed(() => [
-  props.costPer100km != null && line.value.km != null ? formatCostPerDistance(props.costPer100km) : null,
+  // Je 100 km nur, wenn der Satz km und Euro nennt: ohne Preise wäre es 0,00.
+  props.costPer100km != null && line.value.kind === 'km_cost' ? formatCostPerDistance(props.costPer100km) : null,
   petrol.value ? t(props.petrolPriceLive ? 'story.hero_petrol_assumption_live' : 'story.hero_petrol_assumption', { price: formatCurrency(props.petrolPricePerLitre) }) : null,
 ].filter(Boolean).join(' · '))
 
@@ -90,7 +92,7 @@ const gap = computed(() => {
     <p v-if="petrol" data-testid="story-hero-petrol" class="text-pretty text-[30px] font-extrabold leading-[1.1] tracking-tight text-story-accent tabular-nums md:text-[44px] dark:text-story-accent-dark">
       {{ t('story.hero_petrol_total', { eur: petrol }) }}
     </p>
-    <p data-testid="story-hero-meta" class="text-[13px] text-pretty text-gray-500 dark:text-gray-400">
+    <p v-if="meta || layers" data-testid="story-hero-meta" class="text-[13px] text-pretty text-gray-500 dark:text-gray-400">
       {{ meta }}<template v-if="layers && !layersOpen">{{ meta ? ' · ' : '' }}{{ t('story.layers_hint') }}</template>
     </p>
     <CostLayers v-if="layers && layersOpen" :layers="layers" :distance-km="distanceKm" />
