@@ -139,7 +139,7 @@ onMounted(() => analytics.track('story_viewed'))
     <header class="sticky top-[env(safe-area-inset-top,0px)] z-10 bg-gray-50 dark:bg-gray-900 -mx-4 px-4 md:mx-0 md:px-0 pt-3 md:pt-5 pb-1 flex items-center justify-between gap-3">
       <div class="min-w-0 flex items-center gap-2">
         <span class="font-extrabold text-[15px] truncate">
-          {{ selectedCar ? carDisplayName(selectedCar.brand, selectedCar.model) : t('story.title') }}
+          {{ selectedCar ? carDisplayName(selectedCar) : t('story.title') }}
         </span>
         <LicensePlate v-if="selectedCar?.licensePlate" :plate="selectedCar.licensePlate" size="sm" class="hidden sm:inline-flex" />
         <!-- Kompakte Hero-Zahl: blendet per Scroll-Timeline ein, sobald der Hero aus dem Bild ist. Ohne Browser-Support bleibt sie unsichtbar. -->
