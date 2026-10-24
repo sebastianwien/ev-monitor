@@ -2,8 +2,9 @@ import { ref } from 'vue'
 import { carShareService, type CarShare } from '../api/carShareService'
 import { analytics } from '../services/analytics'
 import type { CarShareSource } from './useCarShareSheet'
+import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 
-export type CarShareOutcome = 'shared' | 'copied' | 'failed'
+export type CarShareOutcome = ShareOutcome
 export type SignatureKind = 'bbcode' | 'html'
 
 export const BANNER_WIDTH = 468
@@ -85,26 +86,9 @@ export function useCarShare() {
      * meisten Desktops - landet er in der Zwischenablage.
      */
     async function shareLink(url: string, title: string, source: CarShareSource = 'car_management'): Promise<CarShareOutcome> {
-        const outcome = await shareOrCopy(url, title)
+        const outcome = await shareOrCopy({ title, url })
         if (outcome !== 'failed') analytics.track('car_share_link_shared', { method: outcome === 'shared' ? 'share_sheet' : 'clipboard', source })
         return outcome
-    }
-
-    async function shareOrCopy(url: string, title: string): Promise<CarShareOutcome> {
-        if (typeof navigator !== 'undefined' && navigator.share) {
-            try {
-                await navigator.share({ title, url })
-                return 'shared'
-            } catch (e: unknown) {
-                if (e instanceof Error && e.name === 'AbortError') return 'shared'
-            }
-        }
-        try {
-            await navigator.clipboard.writeText(url)
-            return 'copied'
-        } catch {
-            return 'failed'
-        }
     }
 
     /**
