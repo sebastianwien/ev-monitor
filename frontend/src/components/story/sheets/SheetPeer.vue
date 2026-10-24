@@ -49,7 +49,7 @@ const shown = computed(() => props.whatIf.slice(0, 8))
             </span>
             <span class="tabular-nums shrink-0" :class="m.isUser ? 'font-extrabold text-gray-900 dark:text-gray-50' : 'text-gray-700 dark:text-gray-300'">
               {{ formatCostPerDistance(m.costPer100km) }}
-              <span v-if="!m.isUser" class="text-xs ml-1" :class="m.deltaPercent < 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-400'">
+              <span v-if="!m.isUser" class="text-xs ml-1" :class="m.deltaPercent < 0 ? 'text-green-700 dark:text-green-300' : 'text-gray-400'">
                 {{ m.deltaPercent > 0 ? '+' : '' }}{{ formatDecimal(m.deltaPercent, 0) }} %
               </span>
             </span>

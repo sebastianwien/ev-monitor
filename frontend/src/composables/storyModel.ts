@@ -109,6 +109,21 @@ export function petrolCostEur(distanceKm: number | null, eurPerLitre: number): n
   return (distanceKm / 100) * PETROL_L_PER_100KM * eurPerLitre
 }
 
+/** Der Hero-Satz des Monats: km für Euro, sonst Euro für Ladungen, sonst was da ist. Kosten 0 heißt ohne Preise. */
+export interface HeroLine {
+  kind: 'km_cost' | 'cost_charges' | 'km_charges' | 'charges'
+  km: number | null
+  eur: number | null
+  charges: number
+}
+
+export function heroLine(input: { distanceKm: number | null; energyCostEur: number | null; charges: number }): HeroLine {
+  const km = input.distanceKm != null && input.distanceKm > 0 ? input.distanceKm : null
+  const eur = input.energyCostEur != null && input.energyCostEur > 0 ? input.energyCostEur : null
+  const kind = km != null ? (eur != null ? 'km_cost' : 'km_charges') : (eur != null ? 'cost_charges' : 'charges')
+  return { kind, km, eur, charges: input.charges }
+}
+
 export function co2Comparison(distanceKm: number, consumptionKwhPer100km: number) {
   const kwh = (distanceKm / 100) * consumptionKwhPer100km
   return {

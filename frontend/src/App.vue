@@ -98,6 +98,8 @@ function routeTransition(r: RouteLocationNormalizedLoaded) {
   return isModelsRoute(r.name) ? modelsPageSwap : { name: (r.meta.transition as string) || '', mode: 'out-in' as const }
 }
 const memberChrome = computed(() => authStore.isAuthenticated() && !publicNavRoute.value)
+/** The app footer (legal links on desktop) also stays on member pages with the public nav (story dashboard) */
+const appFooter = computed(() => memberChrome.value || (authStore.isAuthenticated() && !!route.meta.requiresAuth))
 
 const mainPaddingTop = computed(() => {
   if (!memberChrome.value) return '0px'
@@ -580,7 +582,7 @@ const handleBottomLogout = () => {
     <!-- Footer nur fuer eingeloggte Nutzer auf Desktop. Mobile (und nativ) liegen die
          rechtlichen Links im Mehr-Sheet - dort sind sie mit einem Tap erreichbar, waehrend
          der Footer hier hinter der fixierten Bottom-Nav verschwaende. -->
-    <footer v-if="memberChrome && !isNative" class="hidden md:block bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
+    <footer v-if="appFooter && !isNative" class="hidden md:block bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-6 mt-auto">
       <div class="container mx-auto px-4">
         <div class="text-center text-sm text-gray-600 dark:text-gray-400 space-y-3">
           <p>

@@ -95,7 +95,8 @@ const router = createRouter({
             path: '/story',
             name: 'story',
             component: () => import('../views/StoryDashboardView.vue'),
-            meta: { requiresAuth: true }
+            // Gruene Nav der Modellseiten statt App-Chrome (Kopf, Ticker); die View legt sie selbst an
+            meta: { requiresAuth: true, publicNav: true }
         },
         {
             path: '/logs',

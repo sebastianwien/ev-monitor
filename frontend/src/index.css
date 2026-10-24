@@ -6,9 +6,9 @@
  * get the dense grid view instead of the mobile card layout. */
 @theme {
   --breakpoint-gridfeed: 920px;
-  /* Story-Dashboard: Gruen als Akzent, hell und dunkel getrennt */
-  --color-story-accent: #0f6e56;
-  --color-story-accent-dark: #5fc9a6;
+  /* Story-Dashboard: das Gruen der Modellseiten, hell green-700, dunkel green-400 (Werte aus Tailwind) */
+  --color-story-accent: oklch(52.7% 0.154 150.069);
+  --color-story-accent-dark: oklch(79.2% 0.209 151.711);
 }
 
 /* Tailwind 4 setzt Buttons auf cursor: default - bei uns sind sie klickbar. */

@@ -62,7 +62,7 @@ const chip = computed(() => {
 })
 
 const chipClass = computed(() => ({
-  good: 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-900/40',
+  good: 'text-green-700 bg-green-50 dark:text-green-300 dark:bg-green-900/40',
   warn: 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-900/40',
   bad: 'text-rose-700 bg-rose-50 dark:text-rose-300 dark:bg-rose-900/40',
   neutral: 'text-gray-600 bg-gray-100 dark:text-gray-300 dark:bg-gray-700',
@@ -82,14 +82,14 @@ const flowLabels = computed(() => ({
   <button
     type="button"
     :data-testid="`story-tile-${tile.id}`"
-    class="story-tile @container shrink-0 w-[78%] md:w-auto snap-start text-left rounded-xl bg-white dark:bg-gray-800 px-4 py-3.5 @[420px]:px-6 @[420px]:py-5 min-w-0
-           shadow-sm hover:shadow-md transition-shadow focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
+    class="story-tile @container shrink-0 w-[78%] md:w-auto snap-start text-left rounded-2xl bg-white p-3.5 max-md:edge-card md:bg-gray-100/80 md:p-5 @[420px]:px-6 @[420px]:py-5 min-w-0
+           dark:bg-gray-800 md:dark:bg-gray-800/60 md:hover:bg-gray-200/70 md:dark:hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
     :style="{ viewTransitionName: `story-tile-${tile.id}` }"
     @click="emit('open', tile.id)">
     <!-- Container Queries: die Kachel richtet sich nach ihrer eigenen Breite (Wischreihe, Raster, volle Breite), nicht nach dem Viewport. -->
-    <div class="text-[13px] @[420px]:text-sm text-gray-500 dark:text-gray-400">{{ question }}</div>
-    <div class="font-extrabold text-[30px] @[420px]:text-[40px] leading-tight tabular-nums text-gray-900 dark:text-gray-50 mt-1">
-      {{ value.n }}<span v-if="value.unit" class="text-sm @[420px]:text-base font-medium text-gray-500 dark:text-gray-400 ml-1">{{ value.unit }}</span>
+    <div class="text-[13px] @[420px]:text-sm font-semibold text-gray-500 dark:text-gray-400">{{ question }}</div>
+    <div class="font-extrabold text-[28px] @[420px]:text-[34px] leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-50 mt-1">
+      {{ value.n }}<span v-if="value.unit" class="text-[13px] @[420px]:text-[15px] font-semibold text-gray-500 dark:text-gray-400 ml-1">{{ value.unit }}</span>
     </div>
     <span class="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full" :class="chipClass">{{ chip }}</span>
     <span v-if="tile.thinCharges != null" class="inline-block mt-1 ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" data-testid="story-thin">{{ t('story.thin_charges', { n: tile.thinCharges }, tile.thinCharges) }}</span>

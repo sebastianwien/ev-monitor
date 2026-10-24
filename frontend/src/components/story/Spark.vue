@@ -23,7 +23,7 @@ const H = 44
 const PAD = 4
 
 const toneClass = computed(() => ({
-  good: 'text-emerald-600 dark:text-emerald-400',
+  good: 'text-green-600 dark:text-green-400',
   warn: 'text-amber-600 dark:text-amber-400',
   bad: 'text-rose-600 dark:text-rose-400',
   neutral: 'text-indigo-600 dark:text-indigo-400',

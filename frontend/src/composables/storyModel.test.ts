@@ -4,6 +4,7 @@ import {
   buildStoryFeed,
   buildDayCoverage,
   petrolCostEur,
+  heroLine,
   co2Comparison,
   monthWindow,
   type StoryInput, MIN_SOLID_CHARGES } from './storyModel'
@@ -220,6 +221,20 @@ describe('petrolCostEur', () => {
   })
   it('null ohne Strecke', () => {
     expect(petrolCostEur(null, 1.75)).toBeNull()
+  })
+})
+
+describe('heroLine', () => {
+  it('Strecke und Stromkosten: km für Euro', () => {
+    expect(heroLine({ distanceKm: 274, energyCostEur: 33.4, charges: 6 })).toEqual({ kind: 'km_cost', km: 274, eur: 33.4, charges: 6 })
+  })
+  it('ohne Strecke: Euro für Ladungen', () => {
+    expect(heroLine({ distanceKm: null, energyCostEur: 33.4, charges: 6 })).toEqual({ kind: 'cost_charges', km: null, eur: 33.4, charges: 6 })
+    expect(heroLine({ distanceKm: 0, energyCostEur: 33.4, charges: 6 }).kind).toBe('cost_charges')
+  })
+  it('ohne Kosten: km und Ladungen, ohne beides nur Ladungen', () => {
+    expect(heroLine({ distanceKm: 274, energyCostEur: 0, charges: 6 })).toEqual({ kind: 'km_charges', km: 274, eur: null, charges: 6 })
+    expect(heroLine({ distanceKm: 0, energyCostEur: null, charges: 2 })).toEqual({ kind: 'charges', km: null, eur: null, charges: 2 })
   })
 })
 

@@ -46,7 +46,7 @@ const showDots = computed(() => props.tiles.length > 1)
   <div>
     <div
       ref="scroller"
-      class="flex gap-2.5 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pt-4 pb-2 scrollbar-hide md:grid md:grid-cols-2 md:overflow-visible md:mx-0 md:px-0 md:pb-4 md:[&>:last-child:nth-child(odd)]:col-span-2"
+      class="flex gap-2.5 overflow-x-auto snap-x snap-mandatory scroll-px-4 -mx-4 px-4 pt-1 pb-2 scrollbar-hide md:grid md:grid-cols-2 md:gap-3 md:overflow-visible md:mx-0 md:px-0 md:pt-0 md:pb-0 md:[&>:last-child:nth-child(odd)]:col-span-2"
       data-testid="story-tiles"
       @scroll.passive="onScroll"
       @scrollsnapchange="onSnapChange">
