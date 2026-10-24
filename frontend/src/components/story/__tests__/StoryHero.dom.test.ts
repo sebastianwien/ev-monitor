@@ -13,7 +13,6 @@ const base = {
   distanceKm: 274,
   energyCostEur: 33.4,
   charges: 6,
-  costPer100km: 12.19,
   petrolEur: 51.2,
   petrolPricePerLitre: 1.74,
   petrolPriceLive: true,
@@ -43,15 +42,21 @@ describe('StoryHero', () => {
     expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toContain('12,19 €/100km')
   })
 
+  it('Euro je 100 km aus dem Satz gerechnet: 17,73 € für 274,1 km sind 6,47 €', () => {
+    const host = mount({ distanceKm: 274.1, energyCostEur: 17.73, petrolEur: 43.8 })
+    expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 274 km für 18 €.')
+    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toContain('6,47 €/100km')
+  })
+
   it('ohne km: Euro für Ladungen, ohne Benzin-Satz und ohne Euro je 100 km', () => {
-    const host = mount({ distanceKm: 0, costPer100km: null as never, petrolEur: null as never })
+    const host = mount({ distanceKm: 0, petrolEur: null as never })
     expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 33 € für 6 Ladungen.')
     expect(host.querySelector('[data-testid="story-hero-petrol"]')).toBeNull()
     expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).not.toContain('/100km')
   })
 
   it('ohne Preise: km und Ladungen, keine 0,00 € je 100 km', () => {
-    const host = mount({ distanceKm: 6.8, energyCostEur: 0, charges: 2, costPer100km: 0 })
+    const host = mount({ distanceKm: 6.8, energyCostEur: 0, charges: 2 })
     expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 7 km, 2 Ladungen.')
     expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).not.toContain('/100km')
     // Der große Satz bricht nie zwischen Zahl und Einheit oder Zahl und Wort um

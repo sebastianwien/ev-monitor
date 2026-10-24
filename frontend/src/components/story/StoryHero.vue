@@ -23,7 +23,6 @@ const props = defineProps<{
   /** Stromkosten des Monats, ohne Fixkosten (wie die Kosten-Kachel). */
   energyCostEur: number | null
   charges: number
-  costPer100km: number | null
   /** Was ein Benziner für dieselbe Strecke gekostet hätte. */
   petrolEur: number | null
   petrolPricePerLitre: number
@@ -52,8 +51,8 @@ const petrol = computed(() => line.value.kind === 'km_cost' && props.petrolEur !
   ? formatCurrency(props.petrolEur, { decimals: 0 })
   : null)
 const meta = computed(() => [
-  // Je 100 km nur, wenn der Satz km und Euro nennt: ohne Preise wäre es 0,00.
-  props.costPer100km != null && line.value.kind === 'km_cost' ? formatCostPerDistance(props.costPer100km) : null,
+  // Je 100 km aus dem Satz selbst, damit Nachrechnen aufgeht; nur wenn er km und Euro nennt.
+  line.value.kind === 'km_cost' ? formatCostPerDistance(line.value.eur! / line.value.km! * 100) : null,
   petrol.value ? t(props.petrolPriceLive ? 'story.hero_petrol_assumption_live' : 'story.hero_petrol_assumption', { price: formatCurrency(props.petrolPricePerLitre) }) : null,
 ].filter(Boolean).join(' · '))
 

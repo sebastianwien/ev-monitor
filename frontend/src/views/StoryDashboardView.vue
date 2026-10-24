@@ -14,7 +14,6 @@ import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
 import { analytics } from '../services/analytics'
 import { petrolCostEur, type TileId } from '../composables/storyModel'
-import { calcCostPer100km } from '../composables/useDashboardStats'
 import { carDisplayName } from '../utils/enumLabel'
 import { WORKSPACE_TABS } from '../config/tabs'
 import PublicNav from '../components/shared/PublicNav.vue'
@@ -76,7 +75,6 @@ const monthLabelShort = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLo
 const sixMonthLabels = computed(() => Array.from({ length: 6 }, (_, i) =>
   new Date(month.value.year, month.value.month - 1 - (5 - i), 1).toLocaleDateString(locale.value, { month: 'short' })))
 
-const costPer100km = computed(() => calcCostPer100km(monthStats.value?.avgCostPerKwh ?? null, monthStats.value?.avgConsumptionKwhPer100km ?? null))
 const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm ?? null, story.petrol.value.eurPerLitre))
 
 // Desktop: die Ziele des eingeloggten Bereichs als Chips (mobil traegt die Bottom-Nav). Die Story ist das Dashboard.
@@ -196,7 +194,6 @@ onMounted(() => analytics.track('story_viewed'))
                 :distance-km="monthStats?.totalDistanceKm ?? null"
                 :energy-cost-eur="monthStats?.energyCostEur ?? null"
                 :charges="monthStats?.totalCharges ?? 0"
-                :cost-per100km="costPer100km"
                 :petrol-eur="petrolEur"
                 :petrol-price-per-litre="story.petrol.value.eurPerLitre"
                 :petrol-price-live="story.petrol.value.live"
