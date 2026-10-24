@@ -8,6 +8,7 @@ import type { StatisticsData, ChargeDataPoint } from './useDashboardStats'
 import { VERBRENNER_G_PER_KM, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
 import type { EnergyFlow, RangeEstimate } from './storyEnergy'
 import type { WhatIfModel, RankResult, DataQuality, TemperatureEffect } from './storyInsights'
+import type { Moment } from './storyMoments'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
 /** Feste Reihenfolge der Kacheln, siehe TILE_ORDER. */
@@ -44,7 +45,7 @@ export interface StoryTile {
 
 export type FeedId =
   | 'consumption_trend' | 'home_savings' | 'most_expensive' | 'peer_position' | 'phantom_locked' | 'cost_trend'
-  | 'what_if_model' | 'community_rank' | 'data_quality' | 'temperature_effect' | 'temperature_locked'
+  | 'what_if_model' | 'community_rank' | 'data_quality' | 'temperature_effect' | 'temperature_locked' | 'moment'
 
 export interface StoryFeedItem {
   id: FeedId
@@ -57,6 +58,8 @@ export interface StoryFeedItem {
   params: Record<string, number>
   /** Textschluessel ohne Zahl, z. B. die Leaderboard-Kategorie. */
   label?: string
+  /** Nur 'moment': ein Moment, der nicht Hero wurde, als Feed-Satz. */
+  moment?: Moment
 }
 
 export interface StoryInput {
@@ -268,7 +271,11 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
   return tiles
 }
 
-export function buildStoryFeed(input: StoryInput): StoryFeedItem[] {
+/**
+ * extra: weitere Eintraege (Momente), die um die fuenf Plaetze mitkonkurrieren.
+ * omit: Eintraege, die schon der Hero sagt.
+ */
+export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[]; omit?: FeedId[] } = {}): StoryFeedItem[] {
   const m = input.month
   const items: StoryFeedItem[] = []
 
@@ -389,7 +396,9 @@ export function buildStoryFeed(input: StoryInput): StoryFeedItem[] {
     })
   }
 
-  const ranked = items.sort((a, b) => b.relevance - a.relevance)
+  items.push(...(opts.extra ?? []))
+  const omit = new Set(opts.omit ?? [])
+  const ranked = items.filter(i => !omit.has(i.id)).sort((a, b) => b.relevance - a.relevance)
   // Hoechstens ein gesperrter Eintrag, immer zuletzt: ein Upsell verdraengt nie echte Erkenntnisse.
   const locked: StoryFeedItem | null = input.energySplitLocked
     ? { id: 'phantom_locked', question: 4, relevance: 0, sentiment: 'neutral', locked: true, params: {} }

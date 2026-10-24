@@ -7,7 +7,7 @@ import {
   heroLine,
   co2Comparison,
   monthWindow,
-  type StoryInput, MIN_SOLID_CHARGES } from './storyModel'
+  type StoryInput, type StoryFeedItem, MIN_SOLID_CHARGES } from './storyModel'
 import type { StatisticsData } from './useDashboardStats'
 
 function stats(over: Partial<StatisticsData> = {}): StatisticsData {
@@ -369,5 +369,17 @@ describe('buildStoryFeed v2: neue Quellen konkurrieren um fuenf Plaetze', () => 
     }))
     expect(all).toHaveLength(5)
     expect(all.every(i => !i.locked)).toBe(true)
+  })
+})
+
+describe('buildStoryFeed mit Momenten', () => {
+  it('nimmt Momente nach Relevanz auf und lässt ausgelassene Einträge weg', () => {
+    const extra: StoryFeedItem = {
+      id: 'moment', question: 4, relevance: 99, sentiment: 'neutral', params: {},
+      moment: { kind: 'battery', key: 'battery:s', at: 0, lifetimeMs: 1, actionable: false, dismissible: false, sohPercent: 92, estimated: true, previousSohPercent: null, previousAt: null },
+    }
+    const feed = buildStoryFeed(input({ rank: { category: 'MONTHLY_KWH', rank: 2, value: 1, unit: 'kWh' } }), { extra: [extra], omit: ['community_rank'] })
+    expect(feed[0].id).toBe('moment')
+    expect(feed.some(f => f.id === 'community_rank')).toBe(false)
   })
 })
