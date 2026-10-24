@@ -48,6 +48,7 @@ const {
   capacityWasCorrected,
   fetchCars, fetchBrands, resetForm,
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel, toastUndo,
+  brands,
 } = useCarForm()
 
 // Formularzustand fuer CarFormFields: reactive() packt die Refs aus, v-model dort schreibt
@@ -117,6 +118,14 @@ const teslaCallbackError = ref<string | null>(null)
 // Frisch angelegte Smartcar-Marke ohne Abo: AutoSync direkt anbieten (dieselbe Regel wie der
 // Teaser in der Card). Der EU-Data-Act-Weg bleibt unter /imports, wird hier aber nicht mehr beworben.
 const autoSyncPromptCar = ref<Car | null>(null)
+// Anzeigename aus den Backend-Labels (Marke aus der Markenliste, Modell wie im Kartenkopf),
+// nie aus den Enum-Namen: daraus wuerde "Vw Id 5".
+const autoSyncPromptCarName = computed(() => {
+  const car = autoSyncPromptCar.value
+  if (!car) return ''
+  const brand = brands.value.find(b => b.value === car.brand)?.label ?? car.brand
+  return `${brand} ${getModelLabel(car.model)}`.trim()
+})
 const doSubmitForm = async () => {
   submitting.value = true
   try {
@@ -414,7 +423,7 @@ const copyCarId = async (id: string) => {
     />
 
     <!-- Smartcar-Marke angelegt: AutoSync anbieten, Kauf auf /upgrade -->
-    <AutoSyncPrompt v-if="autoSyncPromptCar" :car="autoSyncPromptCar" @close="autoSyncPromptCar = null" />
+    <AutoSyncPrompt v-if="autoSyncPromptCar" :car="autoSyncPromptCar" :car-name="autoSyncPromptCarName" @close="autoSyncPromptCar = null" />
 
     <!-- Toast Notification (outside Transition) - Teleport wie das Modal, sonst richtet
          sich der Toast am Pager-Track aus und liegt auf Mobile ausserhalb des Bildes. -->

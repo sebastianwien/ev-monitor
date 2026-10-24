@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, BanknotesIcon, Battery50Icon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { analytics } from '../../services/analytics'
 import type { Car } from '../../api/carService'
-import { carDisplayName } from '../../utils/enumLabel'
 
 /**
  * AutoSync-Angebot direkt nach dem Anlegen eines Smartcar-faehigen Fahrzeugs in /cars -
@@ -12,10 +10,10 @@ import { carDisplayName } from '../../utils/enumLabel'
  * abnimmt, und fuehrt auf /upgrade, wo Preis, Probezeit und Kauf stehen. Welche Autos das
  * Fenster bekommen, entscheidet `carTeaserKind` (Smartcar-Marke, kein Abo, Kauf moeglich).
  */
-const props = defineProps<{ car: Car }>()
+/** `carName` kommt vom Aufrufer aus den Backend-Labels (z. B. "Volkswagen ID.5"). */
+const props = defineProps<{ car: Car; carName: string }>()
 const emit = defineEmits<{ (e: 'close'): void }>()
 const { t } = useI18n()
-const carName = computed(() => carDisplayName(props.car.brand, props.car.model))
 
 const onCta = () => analytics.track('autosync_prompt_clicked', { brand: props.car.brand })
 const onLater = () => {
@@ -32,7 +30,7 @@ const onLater = () => {
     class="fixed inset-0 bg-black bg-opacity-50 flex items-end md:items-center justify-center z-50 md:p-4"
     role="dialog"
     aria-modal="true"
-    :aria-label="t('cars.autosync_prompt_title', { car: carName })"
+    :aria-label="t('cars.autosync_prompt_title', { car: props.carName })"
     data-testid="autosync-prompt"
     @click.self="onLater"
   >
@@ -40,7 +38,7 @@ const onLater = () => {
       <div class="flex items-start justify-between gap-4 px-5 md:px-6 pt-5 md:pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
         <div class="min-w-0">
           <p class="text-green-600 dark:text-green-400 text-[10px] font-bold uppercase tracking-[0.14em] mb-0.5">{{ t('cars.autosync_prompt_eyebrow') }}</p>
-          <h2 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight">{{ t('cars.autosync_prompt_title', { car: carName }) }}</h2>
+          <h2 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight">{{ t('cars.autosync_prompt_title', { car: props.carName }) }}</h2>
         </div>
         <button type="button" :aria-label="t('common.close')"
                 class="shrink-0 h-11 w-11 -mr-2 -mt-2 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
