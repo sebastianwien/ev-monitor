@@ -4162,6 +4162,7 @@ story:
   thin_charges: "bare {n} lading | bare {n} ladinger"
   cost_same: "som forrige måned"
   cost_no_prev: "ingen forrige måned"
+  cost_priceless: "{n} uten pris"
   wltp_delta_over: "+{pct} % mot WLTP {wltp}"
   wltp_delta_under: "{pct} % under WLTP {wltp}"
   peer_better: "{pct} % bedre enn {count} sjåfører"

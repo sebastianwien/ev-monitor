@@ -64,6 +64,7 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
     quality: null,
     temperature: null,
     temperatureLocked: false,
+    pricelessPrevious: 0,
     ...over,
   }
 }
@@ -80,6 +81,21 @@ describe('buildStoryTiles', () => {
     expect(cost.delta).toBeCloseTo(-19.8)
     expect(cost.sentiment).toBe('good')
     expect(cost.spark).toEqual([176, 139, 121, 164, 148, 128.4])
+  })
+
+  it('Kosten-Kachel: Ladungen ohne Preis im Monat - kein Delta, stattdessen ihre Zahl', () => {
+    const quality = { estimated: 0, total: 14, estimatedShare: 0, priceless: 2, severity: 'warn' as const }
+    const cost = buildStoryTiles(input({ quality })).find(t => t.id === 'cost')!
+    expect(cost.delta).toBeNull()
+    expect(cost.pricelessCharges).toBe(2)
+    expect(cost.sentiment).toBe('warn')
+  })
+
+  it('Kosten-Kachel: Vormonat mit Ladungen ohne Preis - kein Delta, kein Vergleich', () => {
+    const cost = buildStoryTiles(input({ pricelessPrevious: 1 })).find(t => t.id === 'cost')!
+    expect(cost.delta).toBeNull()
+    expect(cost.previousIncomplete).toBe(true)
+    expect(cost.sentiment).toBe('neutral')
   })
 
   it('WLTP-Kachel: Abweichung in Prozent, Warnung über 5 Prozent', () => {
@@ -148,6 +164,15 @@ describe('buildStoryTiles', () => {
 })
 
 describe('buildStoryFeed', () => {
+  it('kein Kostentrend, wenn einem der beiden Monate Preise fehlen: 0 € heißt dort ohne Preis', () => {
+    const month = stats({ energyCostEur: 55, totalCostEur: 55 })
+    const previousMonth = stats({ energyCostEur: 126, totalCostEur: 126 })
+    const quality = { estimated: 0, total: 14, estimatedShare: 0, priceless: 2, severity: 'warn' as const }
+    expect(buildStoryFeed(input({ month, previousMonth })).map(f => f.id)).toContain('cost_trend')
+    expect(buildStoryFeed(input({ month, previousMonth, quality })).map(f => f.id)).not.toContain('cost_trend')
+    expect(buildStoryFeed(input({ month, previousMonth, pricelessPrevious: 1 })).map(f => f.id)).not.toContain('cost_trend')
+  })
+
   it('sortiert nach Relevanz und begrenzt auf fünf', () => {
     const feed = buildStoryFeed(input())
     expect(feed.length).toBeLessThanOrEqual(5)

@@ -36,6 +36,10 @@ export interface StoryTile {
   range?: RangeEstimate
   /** Gesetzt, wenn der Monatswert auf weniger als MIN_SOLID_CHARGES Ladungen beruht: die Kachel nennt die Zahl. */
   thinCharges?: number
+  /** Nur 'cost': Ladungen des Monats ohne Preis. Die Kosten sind dann zu niedrig, die Kachel nennt die Zahl statt eines Deltas. */
+  pricelessCharges?: number
+  /** Nur 'cost': dem Vormonat fehlen Preise, ein Vergleich wäre schief. */
+  previousIncomplete?: boolean
 }
 
 export type FeedId =
@@ -76,6 +80,8 @@ export interface StoryInput {
   temperature: TemperatureEffect | null
   /** True, wenn Fahrten-Analytik gesperrt ist und kein Temperatur-Effekt vorliegt. */
   temperatureLocked: boolean
+  /** Ladungen ohne Preis im Vormonat (die des Monats stehen in quality). */
+  pricelessPrevious: number
 }
 
 export interface DayCoverage {
@@ -137,6 +143,15 @@ function pct(user: number, ref: number): number {
   return ((user - ref) / ref) * 100
 }
 
+function pricelessInMonth(input: StoryInput): number {
+  return input.quality?.priceless ?? 0
+}
+
+/** Stromkosten zweier Monate sind nur vergleichbar, wenn keinem Ladungen ohne Preis fehlen. */
+function costsComparable(input: StoryInput): boolean {
+  return pricelessInMonth(input) === 0 && input.pricelessPrevious === 0
+}
+
 export function buildStoryTiles(input: StoryInput): StoryTile[] {
   const m = input.month
   const tiles: StoryTile[] = []
@@ -144,16 +159,22 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
   // Stromkosten, nicht Gesamtkosten: Fixkosten fallen zeitanteilig oder einmalig an und wuerden
   // den Monatsvergleich dominieren (eine Reifenrechnung ist kein Fahrverhalten). Fixkosten stehen
   // in den Hero-Schichten und im Kosten-Sheet.
+  // Ladungen ohne Preis zaehlen in den Stromkosten als 0 €: ein Monat mit solchen Ladungen ist zu billig,
+  // ein Vergleich mit ihm waere schief. Dann kein Delta, die Kachel nennt die preislosen Ladungen.
+  const priceless = pricelessInMonth(input)
   const prevCost = input.previousMonth?.energyCostEur ?? null
-  const costDelta = prevCost == null ? null : m.energyCostEur - prevCost
+  const costDelta = prevCost == null || !costsComparable(input) ? null : m.energyCostEur - prevCost
   tiles.push({
     id: 'cost',
     value: m.energyCostEur,
     delta: costDelta,
     deltaPercent: null,
-    sentiment: costDelta == null || Math.abs(costDelta) < MIN_COST_DIFF_EUR ? 'neutral' : costDelta <= 0 ? 'good' : 'warn',
+    sentiment: priceless > 0 ? 'warn'
+      : costDelta == null || Math.abs(costDelta) < MIN_COST_DIFF_EUR ? 'neutral' : costDelta <= 0 ? 'good' : 'warn',
     spark: input.monthlyCosts,
     sparkVariant: 'line',
+    ...(priceless > 0 ? { pricelessCharges: priceless } : {}),
+    ...(input.previousMonth && input.pricelessPrevious > 0 ? { previousIncomplete: true } : {}),
   })
 
   if (input.flow) {
@@ -264,7 +285,7 @@ export function buildStoryFeed(input: StoryInput): StoryFeedItem[] {
     })
   }
 
-  if (prev && prev.energyCostEur > 0 && Math.abs(m.energyCostEur - prev.energyCostEur) >= MIN_COST_DIFF_EUR) {
+  if (prev && prev.energyCostEur > 0 && costsComparable(input) && Math.abs(m.energyCostEur - prev.energyCostEur) >= MIN_COST_DIFF_EUR) {
     const diff = m.energyCostEur - prev.energyCostEur
     items.push({
       id: 'cost_trend',

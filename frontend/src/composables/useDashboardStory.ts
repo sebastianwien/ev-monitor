@@ -259,6 +259,10 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     ? dataQuality(monthStats.value, countPricelessInMonth(pricelessLogs.value, month.value.year, month.value.month))
     : null)
 
+  const pricelessInPreviousMonth = computed(() => {
+    const prev = new Date(month.value.year, month.value.month - 2, 1)
+    return countPricelessInMonth(pricelessLogs.value, prev.getFullYear(), prev.getMonth() + 1)
+  })
   const input = computed(() => monthStats.value ? {
     month: monthStats.value,
     previousMonth: previousStats.value,
@@ -277,6 +281,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     quality: quality.value,
     temperature: temperature.value,
     temperatureLocked: !ctx().canViewLiveAnalytics && temperature.value == null,
+    pricelessPrevious: pricelessInPreviousMonth.value,
   } : null)
 
   const tiles = computed<StoryTile[]>(() => input.value ? buildStoryTiles(input.value) : [])

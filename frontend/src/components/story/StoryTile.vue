@@ -33,7 +33,9 @@ const chip = computed(() => {
   const x = props.tile
   switch (x.id) {
     case 'cost':
-      if (x.delta == null) return t('story.cost_no_prev')
+      // Ohne Preise sind die Kosten zu niedrig: Zahl der Ladungen statt eines schiefen Vergleichs.
+      if (x.pricelessCharges) return t('story.cost_priceless', { n: x.pricelessCharges })
+      if (x.delta == null) return x.previousIncomplete ? null : t('story.cost_no_prev')
       if (x.sentiment === 'neutral') return t('story.cost_same')
       return t('story.cost_delta', { delta: (x.delta > 0 ? '+' : '') + formatCurrency(x.delta, { decimals: 0 }) })
     case 'flow':
@@ -91,7 +93,7 @@ const flowLabels = computed(() => ({
     <div class="font-extrabold text-[28px] @[420px]:text-[34px] leading-tight tracking-tight tabular-nums text-gray-900 dark:text-gray-50 mt-1">
       {{ value.n }}<span v-if="value.unit" class="text-[13px] @[420px]:text-[15px] font-semibold text-gray-500 dark:text-gray-400 ml-1">{{ value.unit }}</span>
     </div>
-    <span class="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full" :class="chipClass">{{ chip }}</span>
+    <span v-if="chip" class="inline-block mt-1 text-xs font-semibold px-2 py-0.5 rounded-full" :class="chipClass">{{ chip }}</span>
     <span v-if="tile.thinCharges != null" class="inline-block mt-1 ml-1 text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" data-testid="story-thin">{{ t('story.thin_charges', { n: tile.thinCharges }, tile.thinCharges) }}</span>
     <div class="mt-2 @[420px]:mt-4 @[420px]:max-w-[520px]">
       <EnergyFlow v-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" :labels="flowLabels" />

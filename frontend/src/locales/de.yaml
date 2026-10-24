@@ -4326,6 +4326,7 @@ story:
   thin_charges: "nur {n} Ladung | nur {n} Ladungen"
   cost_same: "wie im Vormonat"
   cost_no_prev: "kein Vormonat"
+  cost_priceless: "{n} ohne Preis"
   wltp_delta_over: "+{pct} % zu WLTP {wltp}"
   wltp_delta_under: "{pct} % unter WLTP {wltp}"
   peer_better: "{pct} % besser als {count} Fahrer"
