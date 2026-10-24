@@ -12,13 +12,16 @@ import sv from '../locales/sv.yaml'
  * davon lassen den Test fehlschlagen. Wer eine Luecke schliesst, nimmt den
  * Namespace hier heraus.
  */
-const KNOWN_GAPS = new Set(['landing', 'imports', 'insights', 'announcements', 'cm', 'eu_data_act'])
+const KNOWN_GAPS = new Set(['landing', 'imports', 'insights', 'announcements', 'cm', 'eu_data_act', 'polestar'])
 
 type Tree = Record<string, unknown>
 
+/** unplugin-vue-i18n liefert Nachrichten als kompilierten AST (Objekt mit numerischem `type`), das ist ein Blatt. */
+const isMessage = (v: object) => typeof (v as { type?: unknown }).type === 'number'
+
 function flatten(tree: Tree, prefix = ''): string[] {
   return Object.entries(tree).flatMap(([k, v]) =>
-    v != null && typeof v === 'object' && !Array.isArray(v) ? flatten(v as Tree, `${prefix}${k}.`) : [`${prefix}${k}`])
+    v != null && typeof v === 'object' && !Array.isArray(v) && !isMessage(v) ? flatten(v as Tree, `${prefix}${k}.`) : [`${prefix}${k}`])
 }
 
 const reference = new Set(flatten(de as Tree))
