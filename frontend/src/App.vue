@@ -569,7 +569,7 @@ const handleBottomLogout = () => {
           <!-- Modellseiten: eigene Instanz je Pfad (Modell -> Modell lädt neu), Wechsel ohne CSS als
                View Transition (router/pageTransitions.ts) -->
           <Transition v-bind="routeTransition(r)">
-            <KeepAlive :include="['CarContextLayout']">
+            <KeepAlive :include="['CarContextLayout', 'CarsLayout']">
               <component :is="Component" :key="isModelsRoute(r.name) ? r.path : undefined" />
             </KeepAlive>
           </Transition>

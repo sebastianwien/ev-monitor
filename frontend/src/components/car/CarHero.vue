@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CameraIcon, CheckBadgeIcon, EllipsisHorizontalIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from './LicensePlate.vue'
@@ -36,6 +36,10 @@ const props = defineProps<{
 const emit = defineEmits<{ menu: []; edit: []; soh: []; rating: []; share: []; upload: [event: Event] }>()
 const { t, n } = useI18n()
 const { formatDistance, formatConsumption } = useLocaleFormat()
+
+// Das Foto kommt nach dem Inhalt (Blob-Abruf): weich einblenden statt aufploppen.
+const photoReady = ref(false)
+watch(() => props.imageUrl, () => { photoReady.value = false })
 
 const sohPercent = computed(() =>
   props.car.batteryDegradationPercent ? Math.round(100 - Number(props.car.batteryDegradationPercent)) : null)
@@ -81,7 +85,9 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
     <div
       class="relative overflow-hidden bg-gray-800 aspect-[4/3] md:aspect-auto md:h-64"
       :class="imageUrl ? '' : 'bg-gradient-to-br from-indigo-950 via-indigo-800 to-gray-900'">
-      <img v-if="imageUrl" :src="imageUrl" :alt="modelLabel" class="absolute inset-0 h-full w-full object-cover" />
+      <img v-if="imageUrl" :key="imageUrl" :src="imageUrl" :alt="modelLabel"
+        class="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
+        :class="photoReady ? 'opacity-100' : 'opacity-0'" @load="photoReady = true" />
       <div class="absolute inset-0 bg-gradient-to-t from-gray-900/95 via-gray-900/30 to-transparent" aria-hidden="true" />
 
       <!-- Aktionen oben -->

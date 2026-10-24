@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, onActivated, onDeactivated } from 'vue'
 import teslaFleetService, { type TeslaConnectionStatus } from '../api/teslaFleetService'
 import { useAuthStore } from '../stores/auth'
 
@@ -25,18 +25,24 @@ export function useTeslaStatus() {
   const authStore = useAuthStore()
   const teslaStatus = ref<TeslaConnectionStatus | null>(null)
   let timer: ReturnType<typeof setTimeout> | null = null
+  let started = false
+  let polling = false
+  let inFlight = false
 
   const isActive = () =>
     teslaStatus.value?.vehicleState === 'charging' ||
     teslaStatus.value?.vehicleState === 'online'
 
   const poll = async () => {
+    inFlight = true
     try {
       teslaStatus.value = await teslaFleetService.getStatus()
     } catch {
       // not connected or no Tesla — leave as null
+    } finally {
+      inFlight = false
     }
-    schedule()
+    if (polling) schedule()
   }
 
   const schedule = () => {
@@ -50,14 +56,26 @@ export function useTeslaStatus() {
       teslaStatus.value = DEMO_STATUS
       return  // no polling, no backend call
     }
+    started = true
+    polling = true
     await poll()   // immediate first fetch, then schedule
   }
 
   const stop = () => {
     if (timer) { clearTimeout(timer); timer = null }
   }
+  const pause = () => { polling = false; stop() }
+  const resume = () => {
+    if (!started || polling) return
+    polling = true
+    if (!inFlight) poll()
+  }
 
-  onUnmounted(stop)
+  onUnmounted(pause)
+  // Unter KeepAlive (Dashboard, Fahrzeuge) pausiert eine verlassene Seite, beim Zurueckkommen
+  // gibt es sofort einen frischen Stand.
+  onDeactivated(pause)
+  onActivated(resume)
 
   return { teslaStatus, start, stop }
 }

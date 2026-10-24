@@ -54,10 +54,11 @@ export function useCarForm() {
   const coinStore = useCoinStore()
   const { teslaStatus, start: startTeslaPolling } = useTeslaStatus()
 
-  const cars = ref<Car[]>([])
+  // Was der Store schon kennt, steht ab dem ersten Frame da (kein leerer Frame plus Einblenden)
+  const cars = ref<Car[]>(carStore.carsLoaded ? carStore.cars : [])
   const brands = ref<BrandInfo[]>([])
   const availableModels = ref<ModelInfo[]>([])
-  const loading = ref(true)
+  const loading = ref(!carStore.carsLoaded)
   const error = ref<string | null>(null)
   const showForm = ref(false)
   const editingCar = ref<Car | null>(null)
@@ -142,20 +143,42 @@ export function useCarForm() {
     return Math.round(powerKw.value * 1.35962)
   })
 
+  /**
+   * Zeigt sofort, was der Store schon kennt, und gleicht im Hintergrund ab. Den Ladezustand gibt es
+   * nur, solange nichts bekannt ist (erster Besuch, nach Logout oder einer Aenderung am Auto). Fotos
+   * und Tesla-Status laufen danach und blockieren die Seite nicht.
+   */
   const fetchCars = async (loadImages: (carList: Car[]) => Promise<void>, revokeAll: () => void) => {
-    try {
+    error.value = null
+    revokeAll()
+    if (carStore.carsLoaded) {
+      cars.value = carStore.cars
+      loading.value = false
+    } else {
       loading.value = true
-      error.value = null
-      revokeAll()
+    }
+    try {
       cars.value = await carStore.getCars(true) ?? []
-      await loadImages(cars.value)
-      await startTeslaPolling(cars.value.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
-      await new Promise(resolve => setTimeout(resolve, 150))
     } catch (err: any) {
       error.value = err.response?.data?.message || t('cars.error_load')
     } finally {
       loading.value = false
     }
+    void loadImages(cars.value)
+    void startTeslaPolling(cars.value.some((c: any) => c.brand?.toLowerCase() === 'tesla'))
+  }
+
+  /**
+   * Stiller Abgleich beim Zurueckkommen auf die (per KeepAlive gehaltene) Seite: kein Ladezustand,
+   * keine Ueberblendung. Fotos laedt der Aufrufer nur fuer Autos nach, die noch keins haben.
+   */
+  const refreshCars = async (): Promise<Car[]> => {
+    try {
+      cars.value = await carStore.getCars(true) ?? []
+    } catch {
+      // Netzfehler: der bisherige Stand bleibt sichtbar
+    }
+    return cars.value
   }
 
   const fetchBrands = async () => {
@@ -364,7 +387,7 @@ export function useCarForm() {
     selectTrimGroup,
     capacityWasCorrected,
     // Actions
-    fetchCars, fetchBrands, loadModelsForBrand, resetForm,
+    fetchCars, refreshCars, fetchBrands, loadModelsForBrand, resetForm,
     openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel, toastUndo,
   }
 }

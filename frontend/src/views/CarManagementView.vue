@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -34,6 +34,7 @@ import { useCarImages } from '../composables/useCarImages'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
 import { useCarOdometer, useCarAvgConsumption } from '../composables/useCarFacts'
 import { useLogsRefreshStore } from '../stores/logsRefresh'
+import { useCarStore } from '../stores/car'
 
 const { t } = useI18n()
 
@@ -49,7 +50,7 @@ const {
   isGroupedByTrim, trimGroups, visibleOptionsForTrim,
   selectTrimGroup,
   capacityWasCorrected,
-  fetchCars, fetchBrands, resetForm,
+  fetchCars, refreshCars, fetchBrands, resetForm,
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel, toastUndo,
   brands,
 } = useCarForm()
@@ -254,13 +255,33 @@ const resumeTeslaSetupFromCallback = async () => {
 }
 
 onMounted(async () => {
-  await fetchBrands()
+  // Marken braucht nur das Formular - parallel laden, nicht vor den Autos
+  void fetchBrands()
   await fetchCars(loadCarImages, revokeAllBlobUrls)
   initVisibility(cars.value)
   await loadTelemetryStatus()
   await resumeTeslaSetupFromCallback()
   await ratingStore.getEligibility(true).catch(() => null)
   await resumeDeleteAfterRating()
+})
+
+// Die Seite lebt in KeepAlive (wie Dashboard und Logs): beim Zurueckkommen steht der Inhalt sofort
+// da, der frische Stand kommt still nach. onActivated feuert auch direkt nach dem ersten Mount -
+// dort laedt onMounted.
+const carStore = useCarStore()
+let firstActivation = true
+onActivated(async () => {
+  if (firstActivation) { firstActivation = false; return }
+  // Store zurueckgesetzt (Logout, Auto geaendert): voll neu laden, damit nie ein alter Stand
+  // - etwa die Autos eines vorherigen Nutzers auf demselben Geraet - kurz sichtbar ist.
+  if (!carStore.carsLoaded) {
+    await fetchCars(loadCarImages, revokeAllBlobUrls)
+    initVisibility(cars.value)
+    return
+  }
+  const fresh = await refreshCars()
+  initVisibility(fresh)
+  await loadCarImages(fresh.filter(c => !imageBlobUrls.value[c.id]))
 })
 
 const emptyStateFeatures = [
