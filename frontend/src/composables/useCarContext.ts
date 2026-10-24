@@ -1,7 +1,8 @@
-import { provide, inject, ref, computed, watch, onMounted, onActivated, type InjectionKey, type Ref, type ComputedRef } from 'vue'
+import { provide, inject, ref, watch, onMounted, onActivated, type InjectionKey, type Ref } from 'vue'
 import { useDashboardStats } from './useDashboardStats'
 import { useLogList } from './useLogList'
 import { useCarStore } from '../stores/car'
+import { useCarOdometer } from './useCarFacts'
 
 /**
  * Geteilter Zustand fuer Dashboard und Log-Feed. Beide Views teilen sich auf
@@ -21,8 +22,8 @@ export type CarContext =
     logsSection: Ref<HTMLElement | null>
     /** Template-Ref-Setter fuer das Scroll-Ziel (Template entpackt Refs -> Setter noetig). */
     setLogsSection: (el: unknown) => void
-    /** Hoechster Kilometerstand aus den geladenen Logs (fuer Card-Details). */
-    currentOdometerKm: ComputedRef<number | null>
+    /** Aktueller Kilometerstand aus dem Backend (fuer Card-Details). */
+    currentOdometerKm: Ref<number | null>
   }
 
 const CAR_CONTEXT: InjectionKey<CarContext> = Symbol('car-context')
@@ -59,14 +60,8 @@ export function provideCarContext(): CarContext {
     if (!carStore.carsLoaded) dash.initCars()
   })
 
-  const currentOdometerKm = computed<number | null>(() => {
-    let max: number | null = null
-    for (const l of logs.logs.value) {
-      const o = l.odometerKm
-      if (typeof o === 'number' && (max == null || o > max)) max = o
-    }
-    return max
-  })
+  // Neu laden, sobald Logs oder Fahrten neu geladen wurden (Speichern, Loeschen, Import, Zeitraum).
+  const currentOdometerKm = useCarOdometer(dash.selectedCarId, [logs.logs, logs.trips])
 
   const setLogsSection = (el: unknown) => { logsSection.value = (el as HTMLElement | null) }
 

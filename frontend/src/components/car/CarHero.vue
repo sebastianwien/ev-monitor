@@ -7,9 +7,10 @@ import SohPill from './SohPill.vue'
 import ActionChip from '../shared/ActionChip.vue'
 import type { Car } from '../../api/carService'
 import type { TeslaConnectionStatus } from '../../api/teslaFleetService'
+import { useLocaleFormat } from '../../composables/useLocaleFormat'
 
 /**
- * Kopf der Fahrzeugseite: Foto edge-to-edge (mobil 4:3, ab md 21:9), darin Name, Variante,
+ * Kopf der Fahrzeugseite: Foto edge-to-edge (mobil 4:3, ab md 256 px hoch), darin Name, Variante,
  * Baujahr und Kennzeichen. Oben "Foto" und das Mehr-Menue, ab md zusaetzlich "Bearbeiten".
  * Die Chips stehen mobil als wischbare Zeile unter dem Foto, weil sie auf 390 px nicht ins
  * Bild passen und ueber einem Nutzerfoto keinen sicheren Kontrast haetten; ab md liegen sie
@@ -27,9 +28,14 @@ const props = defineProps<{
   shared: boolean
   /** Nutzer hat dieses Auto bewertet. */
   rated: boolean
+  /** Aktueller Kilometerstand aus dem Backend; ohne Wert kein Chip. */
+  odometerKm?: number | null
+  /** Ø Verbrauch über die ganze Zeit aus /logs/statistics; ohne Wert kein Chip. */
+  avgConsumptionKwhPer100km?: number | null
 }>()
 const emit = defineEmits<{ menu: []; edit: []; soh: []; rating: []; share: []; upload: [event: Event] }>()
 const { t, n } = useI18n()
+const { formatDistance, formatConsumption } = useLocaleFormat()
 
 const sohPercent = computed(() =>
   props.car.batteryDegradationPercent ? Math.round(100 - Number(props.car.batteryDegradationPercent)) : null)
@@ -44,10 +50,15 @@ const teslaState = computed(() => {
   return s.vehicleState
 })
 
-interface Chip { key: string; label: string; pulse?: boolean }
+interface Chip { key: string; label: string; title?: string; pulse?: boolean }
 
 const infoChips = computed<Chip[]>(() => {
-  const list: Chip[] = [{ key: 'capacity', label: `${capacity.value ?? '?'} kWh` }]
+  const list: Chip[] = []
+  if (props.odometerKm != null) list.push({ key: 'odometer', label: formatDistance(props.odometerKm), title: t('dashboard.car_card_odometer') })
+  if (props.avgConsumptionKwhPer100km != null) {
+    list.push({ key: 'consumption', label: `Ø ${formatConsumption(props.avgConsumptionKwhPer100km)}`, title: t('dashboard.metric_avg_consumption') })
+  }
+  list.push({ key: 'capacity', label: `${capacity.value ?? '?'} kWh` })
   if (props.car.powerKw) list.push({ key: 'power', label: `${props.car.powerKw} kW · ${Math.round(props.car.powerKw * 1.35962)} PS` })
   if (props.showActive) list.push({ key: 'active', label: t('cars.active') })
   if (teslaState.value === 'charging') list.push({ key: 'tesla', label: t('cars.tesla_charging'), pulse: true })
@@ -61,14 +72,14 @@ const infoChips = computed<Chip[]>(() => {
 // Info-Chips: solid, flach, dunkleres Indigo als die Aktions-Chips. Ueber dem Foto immer dunkel.
 const infoOnPhoto = 'bg-indigo-900 text-indigo-100'
 const infoOnPage = 'bg-indigo-50 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100'
-const chipBase = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 min-h-11 md:min-h-9 text-sm font-medium'
+const chipBase = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 min-h-11 md:min-h-8 text-sm md:text-xs font-medium'
 const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px] rounded-full bg-black/45 text-white backdrop-blur px-3 text-sm font-medium hover:bg-black/60 transition'
 </script>
 
 <template>
   <section :data-testid="`car-hero-${car.id}`">
     <div
-      class="relative overflow-hidden bg-gray-800 aspect-[4/3] md:aspect-[21/9]"
+      class="relative overflow-hidden bg-gray-800 aspect-[4/3] md:aspect-auto md:h-64"
       :class="imageUrl ? '' : 'bg-gradient-to-br from-indigo-950 via-indigo-800 to-gray-900'">
       <img v-if="imageUrl" :src="imageUrl" :alt="modelLabel" class="absolute inset-0 h-full w-full object-cover" />
       <div class="absolute inset-0 bg-gradient-to-t from-gray-900/95 via-gray-900/30 to-transparent" aria-hidden="true" />
@@ -110,7 +121,7 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
           <ActionChip v-if="shared" size="lg" data-chip="shared" :aria-label="t('cars.hero_shared_aria')" @click="emit('share')">
             {{ t('cars.shared_badge') }}
           </ActionChip>
-          <span v-for="chip in infoChips" :key="chip.key" :data-chip="chip.key" :class="[chipBase, infoOnPhoto]">
+          <span v-for="chip in infoChips" :key="chip.key" :data-chip="chip.key" :title="chip.title" :class="[chipBase, infoOnPhoto]">
             <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />{{ chip.label }}
           </span>
         </div>
@@ -126,7 +137,7 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
       <ActionChip v-if="shared" size="lg" data-chip="shared" :aria-label="t('cars.hero_shared_aria')" @click="emit('share')">
         {{ t('cars.shared_badge') }}
       </ActionChip>
-      <span v-for="chip in infoChips" :key="chip.key" :data-chip="chip.key" :class="[chipBase, infoOnPage]">
+      <span v-for="chip in infoChips" :key="chip.key" :data-chip="chip.key" :title="chip.title" :class="[chipBase, infoOnPage]">
         <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />{{ chip.label }}
       </span>
     </div>

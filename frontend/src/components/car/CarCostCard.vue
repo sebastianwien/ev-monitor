@@ -118,7 +118,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
       <!-- Kopfzahl -->
       <div v-if="proRataSeries.length" class="mt-2">
         <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span class="text-[40px] md:text-[48px] font-extrabold leading-none tracking-tight tabular-nums text-gray-900 dark:text-gray-100" data-testid="car-cost-headline">{{ money(summary.perMonthEur) }}</span>
+          <span class="text-[36px] font-extrabold leading-none tracking-tight tabular-nums text-gray-900 dark:text-gray-100" data-testid="car-cost-headline">{{ money(summary.perMonthEur) }}</span>
           <span class="text-base font-semibold text-gray-500 dark:text-gray-400">{{ t('cars.costs.per_month') }}</span>
           <span v-if="per100Label" class="inline-flex items-baseline gap-1.5 whitespace-nowrap text-base font-semibold text-gray-500 dark:text-gray-400" data-testid="car-cost-per-distance">
             {{ t('cars.costs.or') }}

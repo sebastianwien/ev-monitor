@@ -32,6 +32,8 @@ import { isTeslaCar } from '../composables/useImportGating'
 import { useCarForm } from '../composables/useCarForm'
 import { useCarImages } from '../composables/useCarImages'
 import { useCarSetupTeaser } from '../composables/useCarSetupTeaser'
+import { useCarOdometer, useCarAvgConsumption } from '../composables/useCarFacts'
+import { useLogsRefreshStore } from '../stores/logsRefresh'
 
 const { t } = useI18n()
 
@@ -86,6 +88,13 @@ function selectCar(id: string) {
   writeLocal(LS_SELECTED_CAR, id)
 }
 const menuOpen = ref(false)
+
+// Hero-Chips Kilometerstand und Ø Verbrauch gesamt; neu laden, wenn hier ein Log gespeichert wurde.
+const selectedCarIdResolved = computed(() => selectedCar.value?.id ?? null)
+const logsRefresh = useLogsRefreshStore()
+const logsVersion = () => logsRefresh.version
+const heroOdometerKm = useCarOdometer(selectedCarIdResolved, [logsVersion])
+const heroAvgConsumption = useCarAvgConsumption(selectedCarIdResolved, [logsVersion])
 
 // Teilen-Status fuer den Hero-Chip; die Teilen-Box haelt ihren eigenen Zustand.
 const heroShare = useCarShare()
@@ -332,6 +341,8 @@ const copyCarId = async (id: string) => {
           :show-active="selectedCar.isPrimary && cars.length > 1"
           :shared="isShared"
           :rated="!!ratingFor(selectedCar.id)?.rated"
+          :odometer-km="heroOdometerKm"
+          :avg-consumption-kwh-per100km="heroAvgConsumption"
           @menu="menuOpen = true"
           @edit="openEditForm(selectedCar)"
           @soh="sohModalCar = selectedCar"

@@ -108,6 +108,12 @@ export const carService = {
         return Array.isArray(response.data) ? response.data : [];
     },
 
+    /** Neuester Tachostand aus Ladevorgängen und Fahrten, null ohne Tachostand. */
+    async getOdometer(id: string): Promise<{ currentOdometerKm: number | null }> {
+        const response = await api.get(`/cars/${id}/odometer`);
+        return response.data;
+    },
+
     async getCarById(id: string): Promise<Car> {
         const response = await api.get(`/cars/${id}`);
         return response.data;

@@ -12,7 +12,7 @@ vi.mock('../useDashboardStats', () => ({
   }),
 }))
 vi.mock('../useLogList', () => ({
-  useLogList: () => ({ logs: ref([]) }),
+  useLogList: () => ({ logs: ref([]), trips: ref([]) }),
 }))
 vi.mock('../../api/carService', () => ({
   carService: { getCars: vi.fn().mockResolvedValue([]) },
