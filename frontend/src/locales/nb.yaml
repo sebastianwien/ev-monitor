@@ -1609,6 +1609,8 @@ cars:
   hero_photo: Bilde
   hero_menu_aria: Mer om dette kjøretøyet
   shared_badge: Delt
+  hero_rated_aria: "Vurdert, rediger din vurdering"
+  hero_shared_aria: "Delt, åpne delingsinnstillinger"
   switcher_label: Velg kjøretøy
   switcher_add: Legg til
   menu_activate_hint: Forhåndsvalgt ved registrering

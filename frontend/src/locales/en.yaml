@@ -1652,6 +1652,8 @@ cars:
   hero_photo: "Photo"
   hero_menu_aria: "More for this vehicle"
   shared_badge: "Shared"
+  hero_rated_aria: "Rated, edit your rating"
+  hero_shared_aria: "Shared, open sharing settings"
   switcher_label: "Choose vehicle"
   switcher_add: "Add"
   menu_activate_hint: "Preselected when logging"

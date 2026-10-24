@@ -11,6 +11,7 @@ import BatterySohModal from '../components/car/BatterySohModal.vue'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import CarCostCard from '../components/car/CarCostCard.vue'
 import CarShareBox from '../components/car/CarShareBox.vue'
+import CarShareSheet from '../components/car/CarShareSheet.vue'
 import CarHero from '../components/car/CarHero.vue'
 import CarSwitcher from '../components/car/CarSwitcher.vue'
 import CarManageSheet from '../components/car/CarManageSheet.vue'
@@ -95,6 +96,15 @@ watch(() => selectedCar.value?.id, id => {
 }, { immediate: true })
 function onShareChanged() {
   if (selectedCar.value) heroShare.load(selectedCar.value.id)
+}
+// Teilen-Sheet aus dem Hero-Chip. Nach dem Schliessen Chip und Teilen-Box neu laden,
+// beide halten ihren eigenen Zustand.
+const shareSheetOpen = ref(false)
+const shareBoxRev = ref(0)
+function closeShareSheet() {
+  shareSheetOpen.value = false
+  shareBoxRev.value++
+  onShareChanged()
 }
 // Meldeweg "Fehlt etwas?": Dialog aus beiden Links im Formular (Marke/Modell, Akku).
 const missingDialogOpen = ref(false)
@@ -325,6 +335,8 @@ const copyCarId = async (id: string) => {
           @menu="menuOpen = true"
           @edit="openEditForm(selectedCar)"
           @soh="sohModalCar = selectedCar"
+          @rating="router.push(`/cars/${selectedCar.id}/bewerten?src=cars_hero`)"
+          @share="shareSheetOpen = true"
           @upload="handleImageUpload(selectedCar.id, $event)" />
 
         <div class="px-4 md:px-6 pt-4 space-y-4">
@@ -342,7 +354,7 @@ const copyCarId = async (id: string) => {
             </div>
             <div class="space-y-4">
               <CarRatingsCard v-if="ratingFor(selectedCar.id)" :key="`rating-${selectedCar.id}`" :car-id="selectedCar.id" :eligibility="ratingFor(selectedCar.id)!" />
-              <CarShareBox :key="selectedCar.id" :car-id="selectedCar.id" :title="getModelLabel(selectedCar.model)" compact @changed="onShareChanged" />
+              <CarShareBox :key="`${selectedCar.id}-${shareBoxRev}`" :car-id="selectedCar.id" :title="getModelLabel(selectedCar.model)" compact @changed="onShareChanged" />
             </div>
           </div>
 
@@ -457,6 +469,14 @@ const copyCarId = async (id: string) => {
       :car="sohModalCar"
       @changed="doFetchCars()"
       @close="sohModalCar = null"
+    />
+
+    <CarShareSheet
+      v-if="shareSheetOpen && selectedCar"
+      :car-id="selectedCar.id"
+      :title="getModelLabel(selectedCar.model)"
+      source="car_management"
+      @close="closeShareSheet"
     />
   </div>
 </template>

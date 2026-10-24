@@ -1655,6 +1655,8 @@ cars:
   hero_photo: "Foto"
   hero_menu_aria: "Mehr zu diesem Fahrzeug"
   shared_badge: "Geteilt"
+  hero_rated_aria: "Bewertet, eigene Bewertung bearbeiten"
+  hero_shared_aria: "Geteilt, Teilen-Einstellungen öffnen"
   switcher_label: "Fahrzeug wählen"
   switcher_add: "Hinzufügen"
   menu_activate_hint: "Wird beim Erfassen vorausgewählt"

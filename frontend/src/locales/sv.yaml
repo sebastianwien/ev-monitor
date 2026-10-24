@@ -1609,6 +1609,8 @@ cars:
   hero_photo: Foto
   hero_menu_aria: Mer om det här fordonet
   shared_badge: Delad
+  hero_rated_aria: "Betygsatt, redigera ditt betyg"
+  hero_shared_aria: "Delad, öppna delningsinställningar"
   switcher_label: Välj fordon
   switcher_add: Lägg till
   menu_activate_hint: Förvald vid registrering

@@ -1,18 +1,20 @@
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CameraIcon, CheckBadgeIcon, EllipsisHorizontalIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import LicensePlate from './LicensePlate.vue'
 import SohPill from './SohPill.vue'
+import ActionChip from '../shared/ActionChip.vue'
 import type { Car } from '../../api/carService'
 import type { TeslaConnectionStatus } from '../../api/teslaFleetService'
 
 /**
  * Kopf der Fahrzeugseite: Foto edge-to-edge (mobil 4:3, ab md 21:9), darin Name, Variante,
  * Baujahr und Kennzeichen. Oben "Foto" und das Mehr-Menue, ab md zusaetzlich "Bearbeiten".
- * Die Chips (Akku, Leistung, Status) stehen mobil als wischbare Zeile unter dem Foto,
- * weil sechs Chips auf 390 px nicht ins Bild passen und ueber einem Nutzerfoto keinen
- * sicheren Kontrast haetten; ab md liegen sie im Hero ueber dem dunklen Verlauf.
+ * Die Chips stehen mobil als wischbare Zeile unter dem Foto, weil sie auf 390 px nicht ins
+ * Bild passen und ueber einem Nutzerfoto keinen sicheren Kontrast haetten; ab md liegen sie
+ * im Hero ueber dem dunklen Verlauf. Zuerst die Aktions-Chips (SoH, Bewertet, Geteilt),
+ * danach die flachen Info-Chips: so sind die Aktionen mobil ohne Wischen sichtbar.
  */
 const props = defineProps<{
   car: Car
@@ -26,7 +28,7 @@ const props = defineProps<{
   /** Nutzer hat dieses Auto bewertet. */
   rated: boolean
 }>()
-const emit = defineEmits<{ menu: []; edit: []; soh: []; upload: [event: Event] }>()
+const emit = defineEmits<{ menu: []; edit: []; soh: []; rating: []; share: []; upload: [event: Event] }>()
 const { t, n } = useI18n()
 
 const sohPercent = computed(() =>
@@ -42,31 +44,24 @@ const teslaState = computed(() => {
   return s.vehicleState
 })
 
-type Tone = 'neutral' | 'green' | 'blue' | 'violet' | 'amber'
-interface Chip { key: string; label: string; tone: Tone; pulse?: boolean; icon?: Component }
+interface Chip { key: string; label: string; pulse?: boolean }
 
-const chips = computed<Chip[]>(() => {
-  const list: Chip[] = []
-  if (props.car.powerKw) list.push({ key: 'power', label: `${props.car.powerKw} kW · ${Math.round(props.car.powerKw * 1.35962)} PS`, tone: 'neutral' })
-  if (props.showActive) list.push({ key: 'active', label: t('cars.active'), tone: 'green' })
-  if (teslaState.value === 'charging') list.push({ key: 'tesla', label: t('cars.tesla_charging'), tone: 'green', pulse: true })
-  else if (teslaState.value === 'online') list.push({ key: 'tesla', label: t('cars.tesla_online'), tone: 'blue' })
-  else if (teslaState.value === 'asleep') list.push({ key: 'tesla', label: t('cars.tesla_sleeping'), tone: 'neutral' })
-  if (props.car.hasHeatPump) list.push({ key: 'heat', label: t('cars.heat_pump_badge'), tone: 'blue' })
-  if (props.car.isBusinessCar) list.push({ key: 'business', label: t('cars.business_car_label'), tone: 'violet' })
-  if (props.shared) list.push({ key: 'shared', label: t('cars.shared_badge'), tone: 'neutral' })
-  if (props.rated) list.push({ key: 'rated', label: t('rating.badge_rated'), tone: 'amber', icon: CheckBadgeIcon })
+const infoChips = computed<Chip[]>(() => {
+  const list: Chip[] = [{ key: 'capacity', label: `${capacity.value ?? '?'} kWh` }]
+  if (props.car.powerKw) list.push({ key: 'power', label: `${props.car.powerKw} kW · ${Math.round(props.car.powerKw * 1.35962)} PS` })
+  if (props.showActive) list.push({ key: 'active', label: t('cars.active') })
+  if (teslaState.value === 'charging') list.push({ key: 'tesla', label: t('cars.tesla_charging'), pulse: true })
+  else if (teslaState.value === 'online') list.push({ key: 'tesla', label: t('cars.tesla_online') })
+  else if (teslaState.value === 'asleep') list.push({ key: 'tesla', label: t('cars.tesla_sleeping') })
+  if (props.car.hasHeatPump) list.push({ key: 'heat', label: t('cars.heat_pump_badge') })
+  if (props.car.isBusinessCar) list.push({ key: 'business', label: t('cars.business_car_label') })
   return list
 })
 
-const toneClass: Record<Tone, string> = {
-  neutral: 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200',
-  green: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-300',
-  blue: 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300',
-  violet: 'bg-violet-100 text-violet-800 dark:bg-violet-500/20 dark:text-violet-300',
-  amber: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
-}
-const chipBase = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium'
+// Info-Chips: solid, flach, dunkleres Indigo als die Aktions-Chips. Ueber dem Foto immer dunkel.
+const infoOnPhoto = 'bg-indigo-900 text-indigo-100'
+const infoOnPage = 'bg-indigo-50 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100'
+const chipBase = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 min-h-11 md:min-h-9 text-sm font-medium'
 const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px] rounded-full bg-black/45 text-white backdrop-blur px-3 text-sm font-medium hover:bg-black/60 transition'
 </script>
 
@@ -108,25 +103,31 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
         </div>
         <!-- Chips ab md im Bild -->
         <div class="mt-3 hidden md:flex flex-wrap gap-2">
-          <span class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium bg-white/10 text-gray-100">
-            {{ capacity ?? '?' }} kWh
-            <SohPill :soh-percent="sohPercent" @click="emit('soh')" />
-          </span>
-          <span v-for="chip in chips" :key="chip.key" :class="[chipBase, toneClass[chip.tone]]">
-            <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true" /><component :is="chip.icon" v-if="chip.icon" class="h-4 w-4" aria-hidden="true" />{{ chip.label }}
+          <SohPill :soh-percent="sohPercent" size="lg" data-chip="soh" @click="emit('soh')" />
+          <ActionChip v-if="rated" size="lg" data-chip="rated" :aria-label="t('cars.hero_rated_aria')" @click="emit('rating')">
+            <CheckBadgeIcon class="h-4 w-4" aria-hidden="true" />{{ t('rating.badge_rated') }}
+          </ActionChip>
+          <ActionChip v-if="shared" size="lg" data-chip="shared" :aria-label="t('cars.hero_shared_aria')" @click="emit('share')">
+            {{ t('cars.shared_badge') }}
+          </ActionChip>
+          <span v-for="chip in infoChips" :key="chip.key" :data-chip="chip.key" :class="[chipBase, infoOnPhoto]">
+            <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />{{ chip.label }}
           </span>
         </div>
       </div>
     </div>
 
     <!-- Chips mobil: eine wischbare Zeile unter dem Foto -->
-    <div class="md:hidden flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <span :class="[chipBase, toneClass.neutral]">
-        {{ capacity ?? '?' }} kWh
-        <SohPill :soh-percent="sohPercent" @click="emit('soh')" />
-      </span>
-      <span v-for="chip in chips" :key="chip.key" :class="[chipBase, toneClass[chip.tone]]">
-        <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true" /><component :is="chip.icon" v-if="chip.icon" class="h-4 w-4" aria-hidden="true" />{{ chip.label }}
+    <div class="md:hidden flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-testid="car-hero-chips-mobile">
+      <SohPill :soh-percent="sohPercent" size="lg" data-chip="soh" @click="emit('soh')" />
+      <ActionChip v-if="rated" size="lg" data-chip="rated" :aria-label="t('cars.hero_rated_aria')" @click="emit('rating')">
+        <CheckBadgeIcon class="h-4 w-4" aria-hidden="true" />{{ t('rating.badge_rated') }}
+      </ActionChip>
+      <ActionChip v-if="shared" size="lg" data-chip="shared" :aria-label="t('cars.hero_shared_aria')" @click="emit('share')">
+        {{ t('cars.shared_badge') }}
+      </ActionChip>
+      <span v-for="chip in infoChips" :key="chip.key" :data-chip="chip.key" :class="[chipBase, infoOnPage]">
+        <span v-if="chip.pulse" class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" aria-hidden="true" />{{ chip.label }}
       </span>
     </div>
   </section>
