@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments, barScale, legendKeys } from '../carCostSummary'
+import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments, barScale, legendKeys, costPer100km } from '../carCostSummary'
 import type { FixedCost, FixedCostCategory, FixedCostRecurrence } from '../../api/fixedCostService'
 import type { ChargeDataPoint } from '../../composables/useDashboardStats'
 
@@ -233,5 +233,24 @@ describe('legendKeys (Chips im Kostenverlauf)', () => {
     // Regression: Versicherung ausgeblendet, im Fälligkeitsmodus 2026 ohne Zahlung, Chip verschwand
     expect(legendKeys({ hasEnergy: true, ranked: ['MAINTENANCE'], hidden: new Set(['INSURANCE', 'TOLL']), carCategories: ['INSURANCE', 'MAINTENANCE'] }))
       .toEqual(['ENERGY', 'MAINTENANCE', 'INSURANCE'])
+  })
+})
+
+describe('costPer100km (dieselbe Vollkosten-Rechnung wie das Dashboard)', () => {
+  const stats = { avgCostPerKwh: 0.3, avgConsumptionKwhPer100km: 20, totalDistanceKm: 10000 }
+  const month = (fixedEur: number) => ({ year: 2026, month: 1, energyEur: 0, fixedEur, fixedByCategory: {} })
+
+  it('rechnet Strom als Preis je kWh mal Verbrauch plus Fixkosten je km', () => {
+    // 6 € Strom je 100 km plus 3.000 € Fixkosten auf 10.000 km = 30 € je 100 km
+    expect(costPer100km(stats, [month(1500), month(1500)], true)).toBeCloseTo(36)
+  })
+
+  it('lässt ausgeblendeten Strom weg', () => {
+    expect(costPer100km(stats, [month(1000)], false)).toBeCloseTo(10)
+  })
+
+  it('liefert null ohne Strecke oder ohne Verbrauch', () => {
+    expect(costPer100km({ ...stats, totalDistanceKm: null }, [month(100)], true)).toBeNull()
+    expect(costPer100km({ ...stats, avgConsumptionKwhPer100km: null }, [month(100)], true)).toBeNull()
   })
 })

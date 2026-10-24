@@ -1682,6 +1682,8 @@ cars:
     by_category: "Kosten {year}"
     empty_year: "Für {year} sind keine Kosten erfasst."
     history_link: "Monatsverlauf im Dashboard"
+    or: "oder"
+    per_100: "auf 100 {unit}"
 
 carselector:
   label: "Fahrzeug"

@@ -1679,6 +1679,8 @@ cars:
     by_category: "Costs {year}"
     empty_year: "No charging sessions or fixed costs recorded for {year}."
     history_link: "Monthly breakdown on the dashboard"
+    or: "or"
+    per_100: "per 100 {unit}"
 
 carselector:
   label: "Vehicle"

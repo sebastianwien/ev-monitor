@@ -3,7 +3,7 @@ import api from '../api/axios'
 import { fixedCostService, type FixedCost } from '../api/fixedCostService'
 import type { StatisticsData } from './useDashboardStats'
 import type { FixedCostMode } from './useFixedCostCalc'
-import { buildYearCostSeries, firstCostIndex, rankCategories } from '../utils/carCostSummary'
+import { buildYearCostSeries, firstCostIndex, rankCategories, type DistanceStats } from '../utils/carCostSummary'
 import { readLocal, writeLocal } from '../utils/safeStorage'
 
 // Gemeinsame Schluessel fuer Dashboard-Kostenverlauf und Fahrzeugseite.
@@ -32,6 +32,8 @@ export function useYearCosts(carId: () => string | null, registrationDate: () =>
   /** Jahr der geladenen Daten. Folgt `year` erst nach dem Laden, damit nie alte Monate unter neuer Jahreszahl stehen. */
   const dataYear = ref(thisYear)
   const points = ref<StatisticsData['chargesOverTime']>([])
+  /** Preis, Verbrauch und Strecke des geladenen Jahres, fuer Kosten je 100 km. */
+  const distance = ref<DistanceStats | null>(null)
   const items = ref<FixedCost[]>([])
   const loading = ref(true)
   const error = ref(false)
@@ -63,6 +65,8 @@ export function useYearCosts(carId: () => string | null, registrationDate: () =>
     // Schnelles Weiterklicken: nur die Antwort zum zuletzt gewaehlten Jahr uebernehmen.
     if (y !== year.value || id !== carId()) return
     points.value = res.data.chargesOverTime ?? []
+    const { avgCostPerKwh, avgConsumptionKwhPer100km, totalDistanceKm } = res.data
+    distance.value = { avgCostPerKwh, avgConsumptionKwhPer100km, totalDistanceKm }
     dataYear.value = y
   }
   async function load() {
@@ -117,5 +121,5 @@ export function useYearCosts(carId: () => string | null, registrationDate: () =>
   /** Kostenkategorien nach Jahressumme (umgelegt, ungefiltert): Farbstufen bleiben bei Schaltern stabil. */
   const ranked = computed(() => rankCategories(inRange(buildYearCostSeries(points.value, items.value, 'pro_rata', dataYear.value))))
 
-  return { ranked, thisYear, year, dataYear, minYear, points, items, loading, error, load, spread, hidden, setShown, series, allSeries, proRataSeries }
+  return { ranked, thisYear, year, dataYear, minYear, points, distance, items, loading, error, load, spread, hidden, setShown, series, allSeries, proRataSeries }
 }

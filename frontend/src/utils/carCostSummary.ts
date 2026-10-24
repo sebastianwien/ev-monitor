@@ -1,6 +1,7 @@
 import type { FixedCost, FixedCostCategory } from '../api/fixedCostService'
 import type { ChargeDataPoint } from '../composables/useDashboardStats'
 import { fixedCostAmountForMonth, type FixedCostMode } from '../composables/useFixedCostCalc'
+import { calcCostPer100km, calcFullCostPer100km } from '../composables/useDashboardStats'
 
 /**
  * Reine Rechenlogik der Kostenkarte in der Fahrzeugverwaltung, je Kalenderjahr. Energiekosten
@@ -199,4 +200,21 @@ export function legendKeys(o: { hasEnergy: boolean; ranked: readonly string[]; h
   const keys = [...(o.hasEnergy ? ['ENERGY'] : []), ...o.ranked]
   for (const c of new Set(o.carCategories)) if (o.hidden.has(c) && !keys.includes(c)) keys.push(c)
   return keys
+}
+
+export interface DistanceStats {
+  avgCostPerKwh: number | null
+  avgConsumptionKwhPer100km: number | null
+  totalDistanceKm: number | null
+}
+
+/**
+ * Kosten je 100 km wie die Vollkosten-Kachel im Dashboard (`calcFullCostPer100km`): Strom als
+ * Preis je kWh mal Verbrauch, Fixkosten der Reihe auf die gefahrene Strecke. Null ohne Strecke
+ * oder, bei eingerechnetem Strom, ohne Verbrauch.
+ */
+export function costPer100km(stats: DistanceStats, series: MonthlyCostPoint[], energyShown: boolean): number | null {
+  const energy = energyShown ? calcCostPer100km(stats.avgCostPerKwh, stats.avgConsumptionKwhPer100km) : 0
+  const fixed = series.reduce((s, p) => s + p.fixedEur, 0)
+  return calcFullCostPer100km(energy, fixed, 0, stats.totalDistanceKm)
 }

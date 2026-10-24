@@ -1636,6 +1636,8 @@ cars:
     by_category: "Kostnader {year}"
     empty_year: "Ingen ladinger eller faste kostnader registrert for {year}."
     history_link: "Månedsoversikt på dashbordet"
+    or: "eller"
+    per_100: "per 100 {unit}"
 carselector:
   label: Kjøretøy
   loading: Laster inn kjøretøy...

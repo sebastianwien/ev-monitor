@@ -6,10 +6,11 @@ import { ArrowRightIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, Plu
 import { fixedCostService, type FixedCost } from '../../api/fixedCostService'
 import { ENERGY, useYearCosts } from '../../composables/useYearCosts'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { groupFixedCostsByCategory, summarizeCosts } from '../../utils/carCostSummary'
+import { costPer100km, groupFixedCostsByCategory, summarizeCosts } from '../../utils/carCostSummary'
 import { isIncomeCategory } from '../../utils/fixedCostAmount'
 import { costColor } from '../../utils/costColors'
 import { useThemeStore } from '../../stores/theme'
+import { KM_PER_MILE } from '../../utils/unitConversions'
 import BottomSheet from '../shared/BottomSheet.vue'
 import ToggleSwitch from '../shared/ToggleSwitch.vue'
 import FixedCostForm from './FixedCostForm.vue'
@@ -23,9 +24,9 @@ import FixedCostForm from './FixedCostForm.vue'
  */
 const props = defineProps<{ carId: string; registrationDate: string | null; showHistoryLink: boolean }>()
 const { t } = useI18n()
-const { formatCurrency } = useLocaleFormat()
+const { formatCurrency, isImperial } = useLocaleFormat()
 
-const { ranked, thisYear, year, minYear, points, items, loading, error, load, hidden, setShown, proRataSeries } =
+const { ranked, thisYear, year, minYear, points, distance, items, loading, error, load, hidden, setShown, proRataSeries } =
   useYearCosts(() => props.carId, () => props.registrationDate)
 const openGroups = ref<Set<string>>(new Set())
 const sheet = ref<{ edit: FixedCost | null } | null>(null)
@@ -34,6 +35,13 @@ const deleting = ref(false)
 const { isDark } = storeToRefs(useThemeStore())
 const colorOf = (key: string) => costColor(key, ranked.value, isDark.value, ENERGY)
 const summary = computed(() => summarizeCosts(proRataSeries.value))
+const per100km = computed(() => (distance.value ? costPer100km(distance.value, proRataSeries.value, !hidden.value.has(ENERGY)) : null))
+// Je 100 km (oder 100 mi), ab 10 in ganzen Waehrungseinheiten, darunter eine Nachkommastelle.
+const per100Label = computed(() => {
+  if (per100km.value === null) return null
+  const v = isImperial.value ? per100km.value * KM_PER_MILE : per100km.value
+  return formatCurrency(v, { decimals: Math.abs(v) < 10 ? 1 : 0 })
+})
 // Anteilsbalken: Strom und jede eingerechnete Kostenkategorie, Farben wie im Dashboard-Kostenverlauf.
 const shares = computed(() => {
   const sums = new Map<string, number>([[ENERGY, 0]])
@@ -109,9 +117,14 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
     <template v-else>
       <!-- Kopfzahl -->
       <div v-if="proRataSeries.length" class="mt-2">
-        <p class="flex items-baseline gap-2">
+        <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <span class="text-[40px] md:text-[48px] font-extrabold leading-none tracking-tight tabular-nums text-gray-900 dark:text-gray-100" data-testid="car-cost-headline">{{ money(summary.perMonthEur) }}</span>
           <span class="text-base font-semibold text-gray-500 dark:text-gray-400">{{ t('cars.costs.per_month') }}</span>
+          <span v-if="per100Label" class="inline-flex items-baseline gap-1.5 whitespace-nowrap text-base font-semibold text-gray-500 dark:text-gray-400" data-testid="car-cost-per-distance">
+            {{ t('cars.costs.or') }}
+            <span class="text-2xl md:text-[28px] font-extrabold tracking-tight tabular-nums text-gray-900 dark:text-gray-100">{{ per100Label }}</span>
+            {{ t('cars.costs.per_100', { unit: isImperial ? 'mi' : 'km' }) }}
+          </span>
         </p>
         <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">
           <template v-if="summary.fixedPerMonthEur !== 0 && summary.energyPerMonthEur !== 0">
