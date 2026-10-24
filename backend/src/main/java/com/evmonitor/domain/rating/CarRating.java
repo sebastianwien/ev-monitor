@@ -151,7 +151,7 @@ public class CarRating {
 
     /** "Volkswagen ID.3" - Anzeigename für Admin und Mails. */
     public String modelDisplayName() {
-        return carModel.getBrand().getDisplayString() + " " + carModel.getDisplayName();
+        return carModel.getFullDisplayName();
     }
 
     public RatingAnswers answers() {

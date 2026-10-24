@@ -14,7 +14,7 @@ public enum CarBrand {
    MINI("Mini"),
    MERCEDES("Mercedes-Benz"),
    PORSCHE("Porsche"),
-   VW("Volkswagen"),
+   VW("Volkswagen", "VW"),
    SMART("Smart"),
    OPEL("Opel"),
 
@@ -68,14 +68,26 @@ public enum CarBrand {
    // Sonstige
    SONSTIGE("Andere Marke");
 
+   /** Name in URL-Slugs der Modellseiten, Sitemap und Share-Links (bei Google indexiert, bleibt stabil). */
    private final String displayString;
+   /** Name in der Anzeige: Fahrzeugname, Mails, Exporte. Weicht nur ab, wo die Halter ihr Auto anders nennen (VW). */
+   private final String label;
 
    CarBrand(String displayString) {
+      this(displayString, displayString);
+   }
+
+   CarBrand(String displayString, String label) {
       this.displayString = displayString;
+      this.label = label;
    }
 
    public String getDisplayString() {
       return displayString;
+   }
+
+   public String getLabel() {
+      return label;
    }
 
    public enum CarModel {
@@ -786,6 +798,16 @@ public enum CarBrand {
 
       public String getDisplayName() {
          return displayName;
+      }
+
+      /**
+       * Fertiger Fahrzeugname für jede Anzeige ("VW ID.5", "Polestar 2"): die einzige Stelle, die Marke und
+       * Modell zusammensetzt. Frontend und DTOs formatieren nie aus Enum-Namen.
+       */
+      public String getFullDisplayName() {
+         String brandLabel = brand.getLabel();
+         if (displayName.toLowerCase().startsWith(brandLabel.toLowerCase())) return displayName;
+         return brandLabel + " " + displayName;
       }
 
       /**

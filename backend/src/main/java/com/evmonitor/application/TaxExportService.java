@@ -116,8 +116,7 @@ public class TaxExportService {
             PdfPTable meta = new PdfPTable(2);
             meta.setWidthPercentage(100);
             meta.setWidths(new float[]{1, 2});
-            addMetaRow(meta, "Fahrzeug", data.car().getModel().getBrand().getDisplayString()
-                    + " " + data.car().getModel().getDisplayName(), headerFont, bodyFont);
+            addMetaRow(meta, "Fahrzeug", data.car().getModel().getFullDisplayName(), headerFont, bodyFont);
             addMetaRow(meta, "Kennzeichen", nullSafe(data.car().getLicensePlate()), headerFont, bodyFont);
             addMetaRow(meta, "Zeitraum",
                     data.from().format(DATE_FMT) + " - " + data.to().minusDays(1).format(DATE_FMT),

@@ -152,7 +152,7 @@ public class CarShareService {
 
         return new PublicCarResponse(
                 car.getModel() != null
-                        ? car.getModel().getBrand().getDisplayString() + " " + car.getModel().getDisplayName()
+                        ? car.getModel().getFullDisplayName()
                         : null,
                 car.getYear(),
                 car.isImagePublic() && car.getImagePath() != null,

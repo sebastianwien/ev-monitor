@@ -124,7 +124,7 @@ public class EvLogShareService {
             return Optional.of(new PublicCurveResponse(
                     points,
                     row.carModel() != null
-                            ? row.carModel().getBrand().getDisplayString() + " " + row.carModel().getDisplayName()
+                            ? row.carModel().getFullDisplayName()
                             : null,
                     row.kwhAtVehicle() != null ? row.kwhAtVehicle() : row.kwhCharged(),
                     row.chargeDurationMinutes(),

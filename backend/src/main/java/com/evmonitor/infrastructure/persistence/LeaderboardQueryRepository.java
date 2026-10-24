@@ -521,7 +521,7 @@ public class LeaderboardQueryRepository {
     private String carLabelFromModel(String modelName) {
         try {
             CarBrand.CarModel m = CarBrand.CarModel.valueOf(modelName);
-            return m.getBrand().getDisplayString() + " " + m.getDisplayName();
+            return m.getFullDisplayName();
         } catch (IllegalArgumentException e) {
             return modelName;
         }

@@ -14,6 +14,10 @@ public record CarResponse(
         UUID userId,
         CarBrand brand,
         CarBrand.CarModel model,
+        /** Fertiger Anzeigename aus dem Backend, z. B. "VW ID.5"; das Frontend formatiert nie selbst. */
+        String displayName,
+        /** Nur das Modell, z. B. "ID.5", für Stellen, die die Marke schon zeigen. */
+        String modelDisplayName,
         Integer year,
         String licensePlate,
         String trim,
@@ -40,6 +44,8 @@ public record CarResponse(
                 car.getUserId(),
                 car.getModel().getBrand(),
                 car.getModel(),
+                car.getModel().getFullDisplayName(),
+                car.getModel().getDisplayName(),
                 car.getYear(),
                 car.getLicensePlate(),
                 car.getTrim(),
