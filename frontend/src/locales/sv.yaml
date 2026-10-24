@@ -3175,17 +3175,8 @@ insights:
 
 cost_history:
   title: Kostnadshistorik
-  subtitle: Senaste 12 månaderna
-  energy: Energikostnader
-  fixed: Fasta kostnader
-  total: Totalt
   empty: Inga kostnader registrerade ännu.
-  mode_pro_rata: Proportionellt (månadsvis)
-  mode_due_month: På förfallomånaden
   mode_spread_label: Fördela fasta kostnader per månad
-  fixed_base: Fast bas
-  trend: Trend
-  month: månad
 
 
 eu_data_act:
