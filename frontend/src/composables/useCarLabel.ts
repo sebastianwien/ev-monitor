@@ -1,23 +1,9 @@
-import type { Car } from '@/api/carService'
+import type { Car } from '../api/carService'
+import { carDisplayName } from '../utils/enumLabel'
 
-function enumToLabel(value: string | null | undefined): string {
-  if (!value) return ''
-  return value
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .split(' ')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
-
-export function carDisplayName(brand: string, model: string): string {
-  const b = enumToLabel(brand)
-  const m = enumToLabel(model)
-  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
-}
-
-export function carLabel(car: Pick<Car, 'brand' | 'model' | 'trim' | 'licensePlate'>): string {
-  const base = carDisplayName(car.brand, car.model)
+/** Fahrzeugname plus Ausstattung und Kennzeichen, z. B. "VW ID.5 GTX · B-EV 1". */
+export function carLabel(car: Pick<Car, 'displayName' | 'trim' | 'licensePlate'>): string {
+  const base = carDisplayName(car)
   const name = car.trim ? `${base} ${car.trim}` : base
   return car.licensePlate ? `${name} · ${car.licensePlate}` : name
 }

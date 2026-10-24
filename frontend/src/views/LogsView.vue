@@ -1344,7 +1344,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                        unterhalb von lg auf das blosse Bild zusammen. -->
                   <div class="hidden md:block">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car.brand, car.model) }}</span>
+                      <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car) }}</span>
                       <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                       <span v-if="car.isPrimary && cars.length > 1"
                         class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full border border-green-200 dark:border-green-700 font-medium">
@@ -3423,7 +3423,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                          ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500']">
               <TruckIcon class="w-5 h-5 flex-shrink-0" :class="reassignSelectedCarId === car.id ? 'text-indigo-600' : 'text-gray-400'" />
-              <span class="font-medium text-gray-800 dark:text-gray-200">{{ carDisplayName(car.brand, car.model) }}</span>
+              <span class="font-medium text-gray-800 dark:text-gray-200">{{ carDisplayName(car) }}</span>
               <div v-if="reassignSelectedCarId === car.id" class="ml-auto w-4 h-4 rounded-full bg-indigo-500 flex-shrink-0" />
             </button>
           </div>

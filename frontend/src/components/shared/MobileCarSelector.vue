@@ -60,7 +60,7 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
         v-if="car.id === modelValue"
         type="button"
         @click.stop="emit('share', car)"
-        :aria-label="t('share_car.share_named', { name: [carDisplayName(car.brand, car.model), car.trim].filter(Boolean).join(' ') })"
+        :aria-label="t('share_car.share_named', { name: [carDisplayName(car), car.trim].filter(Boolean).join(' ') })"
         class="absolute top-0 right-0 z-[1] min-h-[44px] min-w-[44px] flex items-center justify-center text-indigo-700 dark:text-indigo-300">
         <ShareIcon class="w-5 h-5" />
       </button>
@@ -98,7 +98,7 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
         <div :class="['min-w-0 flex-1 px-3 py-1.5 flex flex-col justify-center', car.id === modelValue ? 'pr-11' : '']">
           <!-- Kompakt-Zeile: Name, Trim, Kennzeichen (single), Charging-Badges -->
           <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="font-semibold text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ carDisplayName(car.brand, car.model) }}</span>
+            <span class="font-semibold text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">{{ carDisplayName(car) }}</span>
             <span v-if="car.trim" class="text-xs text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
             <LicensePlate v-if="cars.length === 1 && car.licensePlate" :plate="car.licensePlate" size="sm" class="flex-shrink-0" />
             <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">

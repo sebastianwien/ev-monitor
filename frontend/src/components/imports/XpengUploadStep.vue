@@ -5,16 +5,8 @@ import { useI18n } from 'vue-i18n'
 import { ArrowUpTrayIcon, ExclamationCircleIcon, ChevronDownIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
 import xpengService, { type XpengJobDto } from '../../api/xpengService'
 import type { Car } from '../../api/carService'
+import { carLabel } from '../../composables/useCarLabel'
 
-function carLabel(car: Car): string {
-  const enumToLabel = (v: string | null | undefined) => !v ? '' :
-    v.replace(/_/g, ' ').toLowerCase()
-     .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-  const b = enumToLabel(car.brand)
-  const m = enumToLabel(car.model)
-  const name = m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
-  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
-}
 
 const { t } = useI18n()
 

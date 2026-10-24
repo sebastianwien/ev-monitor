@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
 import type { Car } from '../api/carService'
+import { carLabel as sharedCarLabel } from '../composables/useCarLabel'
 import { useCarStore } from '../stores/car'
 import { wallboxService, type WallboxConnection } from '../api/wallboxService'
 import {
@@ -249,25 +250,10 @@ const remove = async (id: string) => {
   }
 }
 
-const enumToLabel = (value: string | null | undefined): string => {
-  if (!value) return ''
-  return value.replace(/_/g, ' ').toLowerCase()
-    .split(' ')
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
-}
-
-const carDisplayName = (brand: string | null | undefined, model: string | null | undefined): string => {
-  const b = enumToLabel(brand); const m = enumToLabel(model)
-  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
-}
-
 const carLabel = (carId: string | null) => {
   if (!carId) return null
   const car = cars.value.find(c => c.id === carId)
-  if (!car) return carId
-  const name = carDisplayName(car.brand, car.model)
-  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
+  return car ? sharedCarLabel(car) : carId
 }
 
 const copyUrl = (url: string) => {

@@ -33,7 +33,7 @@ vi.mock('../../api/carService', () => ({
 }))
 
 function buildCar(overrides: Partial<Car>): Car {
-    return { id: 'c', brand: 'VW', model: 'ID.4', year: 2022, status: 'ACTIVE', ...overrides } as Car
+    return { id: 'c', brand: 'VW', model: 'ID.4', displayName: 'VW ID.4', year: 2022, status: 'ACTIVE', ...overrides } as Car
 }
 
 let app: App | null = null
@@ -80,7 +80,7 @@ describe('UpgradeView - Pitch-Auswahl ohne Abo', () => {
     it('der Hinweis nennt das aktive Fahrzeug beim Namen', async () => {
         const host = await mountUpgrade([
             buildCar({ id: 'vw', brand: 'VW', model: 'ID_4' }),
-            buildCar({ id: 'z', brand: 'ZEEKR', model: 'ZEEKR_001', isPrimary: true }),
+            buildCar({ id: 'z', brand: 'ZEEKR', model: 'ZEEKR_001', displayName: 'Zeekr 001', isPrimary: true }),
         ])
 
         expect(host.querySelector('[data-testid="unsupported-notice"]')?.textContent).toBe('Zeekr 001')

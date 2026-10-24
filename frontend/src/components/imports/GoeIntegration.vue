@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon, MapPinIcon, CheckIcon } from '@heroicons/vue/24/outline'
 import goeService from '@/api/goeService'
 import type { Car } from '@/api/carService'
+import { carLabel } from '@/composables/useCarLabel'
 import { useCarStore } from '@/stores/car'
 import GoeStatusCard from './GoeStatusCard.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -122,23 +123,6 @@ async function handleDisconnect(id: string) {
   } catch { error.value = t('goe.err_disconnect') }
 }
 
-function enumToLabel(value: string | null | undefined): string {
-  if (!value) return ''
-  return value.replace(/_/g, ' ').toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
-}
-
-function carDisplayName(brand: string | null | undefined, model: string | null | undefined): string {
-  const b = enumToLabel(brand); const m = enumToLabel(model)
-  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
-}
-
-function carLabel(car: Car): string {
-  const name = carDisplayName(car.brand, car.model)
-  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
-}
 </script>
 
 <template>

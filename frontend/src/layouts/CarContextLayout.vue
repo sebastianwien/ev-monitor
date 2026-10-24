@@ -43,7 +43,7 @@ const { t } = useI18n()
 
 const { sheet: shareSheet, open: openShareSheet, close: closeShareSheet } = useCarShareSheet()
 function shareFromHeader(car: Car) {
-  openShareSheet(car.id, [carDisplayName(car.brand, car.model), car.trim].filter(Boolean).join(' '), 'car_header')
+  openShareSheet(car.id, [carDisplayName(car), car.trim].filter(Boolean).join(' '), 'car_header')
 }
 </script>
 

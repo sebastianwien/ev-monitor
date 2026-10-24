@@ -99,7 +99,7 @@
                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('stories.select_car') }}</label>
                 <select v-model="block.carId" class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
                         @change="loadTrips(block.carId)">
-                  <option v-for="car in cars" :key="car.id" :value="car.id">{{ carLabel(car) }}</option>
+                  <option v-for="car in cars" :key="car.id" :value="car.id">{{ carDisplayName(car) }}</option>
                 </select>
               </div>
               <div>
@@ -182,6 +182,7 @@ import {
 import api from '../api/axios'
 import { storyService, type TripStory, type TripStatsSnapshot } from '../api/storyService'
 import { carService, type Car } from '../api/carService'
+import { carDisplayName } from '../utils/enumLabel'
 import TripStatsWidget from '../components/stories/TripStatsWidget.vue'
 
 interface TripOption {
@@ -254,9 +255,6 @@ function tripsFor(carId?: string): TripOption[] {
   return carId ? tripsByCar[carId] ?? [] : []
 }
 
-function carLabel(car: Car): string {
-  return `${car.brand} ${car.model}`.replace(/_/g, ' ')
-}
 
 function tripLabel(trip: TripOption): string {
   const date = trip.tripStartedAt

@@ -71,7 +71,7 @@ import TripActivitySummaryCard from '../components/dashboard/TripActivitySummary
 import { summarizeTripMonth, resolveTripWindow, tripsInWindow } from '../utils/tripMonthSummary'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
-import { carDisplayName, enumToLabel } from '../utils/enumLabel'
+import { carDisplayName } from '../utils/enumLabel'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Title, Tooltip, Legend, Filler, ChartDataLabels)
 
@@ -178,8 +178,8 @@ const implausibleModalDirty = ref(false)
 // -- Range calculator --
 
 const { open: openShareSheet } = useCarShareSheet()
-const shareTitle = (car: { brand: string; model: string; trim?: string | null }) =>
-  [carDisplayName(car.brand, car.model), car.trim].filter(Boolean).join(' ')
+const shareTitle = (car: { displayName: string; trim?: string | null }) =>
+  [carDisplayName(car), car.trim].filter(Boolean).join(' ')
 
 /** Community-Vergleich vorhanden - steuert auch, wo der Bewertungs-Teaser steht. */
 const hasPeerComparison = computed(() => stats.value?.peerBenchmark?.peerAvgConsumptionKwhPer100km != null)
@@ -454,7 +454,7 @@ onUnmounted(() => {
                        unterhalb von lg auf das blosse Bild zusammen. -->
                   <div class="hidden md:block">
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car.brand, car.model) }}</span>
+                      <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car) }}</span>
                       <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                       <span v-if="car.isPrimary && cars.length > 1"
                         class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full border border-green-200 dark:border-green-700 font-medium">
@@ -553,7 +553,7 @@ onUnmounted(() => {
           <LiveChargingCard
             v-if="selectedCarId && authStore.canViewLiveCharging(selectedCar?.brand ?? null)"
             :car-id="selectedCarId"
-            :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+            :car-display-name="selectedCar ? [carDisplayName(selectedCar), selectedCar.trim].filter(Boolean).join(' ') : ''"
             :license-plate="selectedCar?.licensePlate ?? null"
             :brand="selectedCar?.brand ?? null"
             :avg-consumption-kwh-per100km="stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null"
@@ -622,7 +622,7 @@ onUnmounted(() => {
         <SmartInsightsCard
           :stats="insightStats"
           :last-month-stats="lastMonthStats"
-          :car-model="enumToLabel(selectedCar?.model)"
+          :car-model="selectedCar?.modelDisplayName ?? ''"
           class="mb-5"
         />
 
@@ -966,7 +966,7 @@ onUnmounted(() => {
           v-if="stats?.peerBenchmark && stats.peerBenchmark.peerAvgConsumptionKwhPer100km != null"
           :benchmark="stats.peerBenchmark"
           :effective-battery-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
-          :car-model="enumToLabel(selectedCar?.model)"
+          :car-model="selectedCar?.modelDisplayName ?? ''"
           @share="selectedCar && openShareSheet(selectedCar.id, shareTitle(selectedCar), 'peer_card')"
         />
 
@@ -977,7 +977,7 @@ onUnmounted(() => {
           :official-consumption-kwh-per100km="wltp.officialConsumptionKwhPer100km"
           :user-avg-consumption-kwh-per100km="stats.avgConsumptionKwhPer100km"
           :effective-battery-kwh="selectedCar.effectiveBatteryCapacityKwh"
-          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          :car-display-name="selectedCar ? [carDisplayName(selectedCar), selectedCar.trim].filter(Boolean).join(' ') : ''"
           :rating-source="wltp.ratingSource"
         />
 
@@ -1030,8 +1030,8 @@ onUnmounted(() => {
         <PeerModelComparisonCard
           v-if="selectedCarId && hasPeerComparison"
           :car-id="selectedCarId"
-          :car-display-name="selectedCar ? [carDisplayName(selectedCar.brand, selectedCar.model), selectedCar.trim].filter(Boolean).join(' ') : ''"
-          :car-brand-model="selectedCar ? carDisplayName(selectedCar.brand, selectedCar.model) : ''"
+          :car-display-name="selectedCar ? [carDisplayName(selectedCar), selectedCar.trim].filter(Boolean).join(' ') : ''"
+          :car-brand-model="selectedCar ? carDisplayName(selectedCar) : ''"
           class="mb-4"
         />
 

@@ -18,7 +18,7 @@ import smartcarService, { connectionsOf, type SmartcarConnectionStatus } from '.
 import { subscriptionService } from '../../api/subscriptionService'
 import { autoSyncTileState, type AutoSyncTileState } from '../../composables/useAutoSyncTiles'
 import { autoSyncProviderFor } from '../../composables/useCarAutoSyncProvider'
-import { enumToLabel, carDisplayName } from '../../utils/enumLabel'
+import { carDisplayName } from '../../utils/enumLabel'
 
 const SmartcarIntegration = defineAsyncComponent(() => import('./SmartcarIntegration.vue'))
 
@@ -114,7 +114,7 @@ async function refreshStatus() {
 }
 
 function carLabel(car: Car): string {
-    return carDisplayName(car.brand, car.model)
+    return carDisplayName(car)
 }
 
 function carDetails(car: Car): string {
@@ -151,7 +151,7 @@ function brandTagClasses(car: Car): string {
 }
 
 watch(activeCar, (car) => {
-    emit('active-car-label', car ? enumToLabel(car.model) : null)
+    emit('active-car-label', car ? car.modelDisplayName : null)
 }, { immediate: true })
 
 function toggleExpand(carId: string) {

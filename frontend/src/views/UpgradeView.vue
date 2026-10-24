@@ -67,7 +67,7 @@ const portalError = ref('');
 const carStore = useCarStore();
 const { cars } = storeToRefs(carStore);
 const { activeCar, activeCarIsXpeng, activeCarIsAutoSyncUnsupported } = useImportGating(cars);
-const activeCarName = computed(() => activeCar.value ? carDisplayName(activeCar.value.brand, activeCar.value.model) : '');
+const activeCarName = computed(() => activeCar.value ? carDisplayName(activeCar.value) : '');
 const carsReady = ref(false);
 
 // Solange Abo-Status oder (fuer Nicht-Abonnenten) die Garage laedt, keinen Pitch zeigen -

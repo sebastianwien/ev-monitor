@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { spritMonitorService, SpritMonitorVehicle, ImportResult, RefreshRawResult, spritMonitorErrorKey } from '../../api/spritMonitorService';
 import type { Car } from '../../api/carService';
+import { carLabel } from '../../composables/useCarLabel';
 import { useCarStore } from '../../stores/car';
 import { useCoinStore } from '../../stores/coins';
 import { TrashIcon, ExclamationTriangleIcon, ArrowPathIcon, XMarkIcon, LockClosedIcon, CheckCircleIcon, ArrowTopRightOnSquareIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
@@ -17,19 +18,6 @@ const emit = defineEmits<{
 const coinStore = useCoinStore()
 const carStore = useCarStore()
 
-const enumToLabel = (v: string | null | undefined): string => {
-  if (!v) return ''
-  return v.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
-}
-const carDisplayName = (brand: string | null | undefined, model: string | null | undefined): string => {
-  const b = enumToLabel(brand); const m = enumToLabel(model)
-  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
-}
-const carLabel = (car: Car) => {
-  const base = carDisplayName(car.brand, car.model)
-  const name = car.trim ? `${base} ${car.trim}` : base
-  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
-}
 
 type ImportStep = 'token' | 'mapping' | 'importing' | 'done' | 'refreshing' | 'refreshDone';
 

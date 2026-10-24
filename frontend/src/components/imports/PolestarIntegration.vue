@@ -44,7 +44,7 @@ const activeConnection = computed(() =>
   connections.value.find(c => c.carId === selectedCarId.value && c.status === 'ACTIVE') ?? null,
 )
 const selectedCar = computed(() => props.cars.find(c => c.id === selectedCarId.value) ?? null)
-const carLabel = (c: Car) => `${carDisplayName(c.brand, c.model)} ${c.year ?? ''}`.trim()
+const carLabel = (c: Car) => `${carDisplayName(c)} ${c.year ?? ''}`.trim()
 
 onMounted(async () => {
   selectedCarId.value = props.cars.find(c => c.isPrimary)?.id ?? props.cars[0]?.id ?? ''

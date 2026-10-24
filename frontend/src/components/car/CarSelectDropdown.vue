@@ -20,6 +20,7 @@
 import { useI18n } from 'vue-i18n'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import type { Car } from '../../api/carService'
+import { carLabel } from '../../composables/useCarLabel'
 
 const { t } = useI18n()
 
@@ -30,19 +31,4 @@ defineProps<{
 
 defineEmits<{ 'update:modelValue': [value: string] }>()
 
-function enumToLabel(value: string | null | undefined): string {
-  if (!value) return ''
-  return value.replace(/_/g, ' ').toLowerCase()
-    .split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-}
-
-function carDisplayName(brand: string | null | undefined, model: string | null | undefined): string {
-  const b = enumToLabel(brand); const m = enumToLabel(model)
-  return m.toLowerCase().startsWith(b.toLowerCase()) ? m : `${b} ${m}`.trim()
-}
-
-function carLabel(car: Car): string {
-  const name = carDisplayName(car.brand, car.model)
-  return car.licensePlate ? `${name} · ${car.licensePlate}` : name
-}
 </script>

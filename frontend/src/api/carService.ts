@@ -5,6 +5,8 @@ export interface Car {
     userId: string;
     brand: string; // CarBrand enum name (e.g., "TESLA")
     model: string; // CarModel enum name (e.g., "MODEL_3")
+    displayName: string; // fertiger Name aus dem Backend, z. B. "VW ID.5" - nie aus brand/model formatieren
+    modelDisplayName: string; // nur das Modell, z. B. "ID.5"
     year: number;
     licensePlate: string;
     trim: string | null; // Trim level (e.g., "GTX", "Pro Performance")

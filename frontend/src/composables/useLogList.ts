@@ -110,7 +110,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
         await api.patch(`/logs/${entry.id}/car`, { targetCarId: reassignSelectedCarId.value })
         logs.value = logs.value.filter((l: any) => l.id !== entry.id)
       }
-      const carLabel = targetCar ? carDisplayName(targetCar.brand, targetCar.model) : ''
+      const carLabel = targetCar ? carDisplayName(targetCar) : ''
       reassignSuccessMessage.value = t('dashboard.reassign_success', { car: carLabel })
       setTimeout(() => { reassignSuccessMessage.value = null }, 3000)
       reassignModalEntry.value = null
