@@ -5,8 +5,10 @@ import { MapPinIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import type { ChargingTypeSplit, LocationSplit } from '../../composables/useDashboardStats'
 import { useSlideTransition } from '../../composables/useSlideTransition'
 import { locationSegments as buildLocationSegments } from './chargingSplitSegments'
+import { useLocaleFormat } from '../../composables/useLocaleFormat'
 
 const { onEnter, onAfterEnter, onLeave, onAfterLeave } = useSlideTransition()
+const { formatDecimal } = useLocaleFormat()
 const LS_KEY = 'charging_type_split_collapsed'
 const collapsed = ref(localStorage.getItem(LS_KEY) === 'true')
 function toggleCollapsed() {
@@ -67,7 +69,7 @@ const locationSegments = computed<Segment[]>(() => buildLocationSegments(props.l
 }))
 
 function fmtKwh(kwh: number): string {
-  return kwh.toFixed(1)
+  return formatDecimal(kwh)
 }
 </script>
 

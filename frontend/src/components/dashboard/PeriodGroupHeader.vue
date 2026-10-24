@@ -45,7 +45,7 @@ const paddingClass = computed(() =>
   props.part === 'title' ? 'pt-2.5 pb-1.5' : props.part === 'body' ? 'pb-2.5' : 'py-2.5')
 
 const { t, locale } = useI18n()
-const { formatDistance, formatConsumption, formatCurrency } = useLocaleFormat()
+const { formatDistance, formatConsumption, formatCurrency, formatDecimal } = useLocaleFormat()
 const { comparisonLevel, comparisonDeltaPercent, comparisonTooltip } = useCommunityComparison()
 
 const consumptionLevel = computed(() =>
@@ -118,7 +118,7 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
           <span v-if="group.totals.consumedKwh != null"
                 class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
                        bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-rose-500 dark:text-rose-300">
-            &minus;{{ group.totals.consumedKwh.toFixed(1) }} kWh
+            &minus;{{ formatDecimal(group.totals.consumedKwh) }} kWh
           </span>
           <ComparisonChip v-if="group.totals.kwhPer100km != null" :level="consumptionLevel"
                           :tooltip="consumptionTooltip" :delta-percent="consumptionDelta">
@@ -135,14 +135,14 @@ const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
                        bg-indigo-100/80 dark:bg-indigo-900/40 border-indigo-300/70 dark:border-indigo-700/50 text-indigo-700 dark:text-indigo-300"
                 :title="t('logs.period.charges', { count: group.totals.chargeCount }, group.totals.chargeCount)">
             <BoltIcon class="w-3 h-3" />
-            <template v-if="group.totals.chargedKwh > 0">+{{ group.totals.chargedKwh.toFixed(1) }} kWh</template>
+            <template v-if="group.totals.chargedKwh > 0">+{{ formatDecimal(group.totals.chargedKwh) }} kWh</template>
             <template v-else>{{ group.totals.chargeCount }}&times;</template>
           </span>
           <span v-if="phantomKwh"
                 class="inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
                        bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-amber-500 dark:text-amber-500"
                 :title="t('dashboard.phantom_drain_word')">
-            <BoltIcon class="w-3 h-3" />{{ phantomKwh.toFixed(1) }} kWh
+            <BoltIcon class="w-3 h-3" />{{ formatDecimal(phantomKwh) }} kWh
           </span>
           <span v-if="group.totals.unmeasuredTrips" class="text-gray-400 dark:text-gray-500 cursor-help text-[13px]"
                 :title="t('logs.period.unmeasured', { count: group.totals.unmeasuredTrips }, group.totals.unmeasuredTrips)">

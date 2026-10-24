@@ -78,7 +78,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineEleme
 const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
-const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol } = useLocaleFormat()
+const { formatConsumption, consumptionUnitLabel, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, currencySymbol, formatDecimal } = useLocaleFormat()
 
 // -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
@@ -678,7 +678,7 @@ onUnmounted(() => {
             <div class="bg-white dark:bg-gray-800 px-4 py-3">
               <div class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{{ t('dashboard.metric_total_energy') }}</div>
               <div class="flex items-baseline gap-1 leading-tight">
-                <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }}</span>
+                <span class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged != null ? formatDecimal(stats.totalKwhCharged) : '–' }}</span>
                 <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium">kWh</span>
               </div>
               <div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</div>
@@ -747,7 +747,7 @@ onUnmounted(() => {
           <div class="bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] overflow-hidden">
             <div class="p-3">
               <p class="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">{{ t('dashboard.metric_total_energy') }}</p>
-              <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged?.toFixed(1) ?? '–' }} kWh</p>
+              <p class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ stats.totalKwhCharged != null ? formatDecimal(stats.totalKwhCharged) : '–' }} kWh</p>
               <p class="text-sm font-medium text-gray-400 dark:text-gray-500 mt-0.5">{{ stats.totalCharges }} {{ t('dashboard.metric_charges') }}</p>
             </div>
           </div>

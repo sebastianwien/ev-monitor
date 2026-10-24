@@ -59,3 +59,22 @@ describe('PeriodGroupHeader - Teile fuer den klebenden Kopf', () => {
     expect(document.body.textContent).not.toContain('September 2026')
   })
 })
+
+describe('PeriodGroupHeader - kWh im Zahlenformat der Sprache', () => {
+  afterEach(() => { i18n.global.locale.value = 'de' })
+
+  it('zeigt kWh auf Deutsch mit Komma', async () => {
+    i18n.global.locale.value = 'de'
+    await mount('body')
+    const text = document.body.textContent ?? ''
+    expect(text).toContain('61,1 kWh')
+    expect(text).toContain('43,4 kWh')
+    expect(text).not.toContain('61.1')
+  })
+
+  it('zeigt kWh auf Englisch mit Punkt', async () => {
+    i18n.global.locale.value = 'en'
+    await mount('body')
+    expect(document.body.textContent).toContain('61.1 kWh')
+  })
+})

@@ -38,7 +38,7 @@ const props = withDefaults(
 const emit = defineEmits<{ (e: 'edit', entry: any): void; (e: 'power-curve', entry: any): void }>()
 
 const { t, locale } = useI18n()
-const { formatCurrency, formatCostPerKwh } = useLocaleFormat()
+const { formatCurrency, formatCostPerKwh, formatDecimal } = useLocaleFormat()
 const authStore = useAuthStore()
 
 // Dieselbe Kurven-Sichtbarkeit wie in der Ladung-Ansicht: freigeschaltet nach Analytics-
@@ -137,7 +137,7 @@ const place = computed(() => {
       </div>
       <div class="text-[13px] text-gray-900 dark:text-gray-100 whitespace-nowrap truncate">{{ time }}</div>
       <div class="flex items-center gap-1.5 whitespace-nowrap">
-        <span v-if="kwh != null" class="text-sm font-medium text-indigo-700 dark:text-indigo-300">+{{ Number(kwh).toFixed(1) }} kWh</span>
+        <span v-if="kwh != null" class="text-sm font-medium text-indigo-700 dark:text-indigo-300">+{{ formatDecimal(Number(kwh)) }} kWh</span>
         <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
         <ChargeTypeBadge :type="entry.chargingType" />
       </div>
@@ -196,7 +196,7 @@ const place = computed(() => {
           <ClockIcon class="w-3 h-3 flex-shrink-0" aria-hidden="true" />{{ topUpTime(topUp) }}
         </div>
         <div class="text-sm font-medium text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
-          +{{ Number(topUp.kwhAtVehicle ?? topUp.kwhCharged ?? 0).toFixed(1) }} kWh
+          +{{ formatDecimal(Number(topUp.kwhAtVehicle ?? topUp.kwhCharged ?? 0)) }} kWh
         </div>
         <div class="text-xs whitespace-nowrap">
           <span v-if="topUp.costEur != null" class="text-slate-600 dark:text-gray-300">{{ formatCurrency(topUp.costEur) }}</span>
@@ -257,7 +257,7 @@ const place = computed(() => {
           <span class="text-[15px] text-gray-900 dark:text-gray-100 whitespace-nowrap">{{ time }}</span>
         </span>
         <span v-if="kwh != null" class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
-          +{{ Number(kwh).toFixed(1) }} kWh
+          +{{ formatDecimal(Number(kwh)) }} kWh
         </span>
         <ChargeTypeBadge :type="entry.chargingType" />
       </span>
@@ -312,7 +312,7 @@ const place = computed(() => {
         class="flex items-center justify-between gap-2 text-[13px] pl-1">
         <span class="inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300 whitespace-nowrap">
           <ClockIcon class="w-3.5 h-3.5 flex-shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true" />{{ topUpTime(topUp) }}
-          <span class="font-medium text-indigo-700 dark:text-indigo-300">+{{ Number(topUp.kwhAtVehicle ?? topUp.kwhCharged ?? 0).toFixed(1) }} kWh</span>
+          <span class="font-medium text-indigo-700 dark:text-indigo-300">+{{ formatDecimal(Number(topUp.kwhAtVehicle ?? topUp.kwhCharged ?? 0)) }} kWh</span>
         </span>
         <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">
           <span>
