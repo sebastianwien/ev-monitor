@@ -5,15 +5,8 @@ import { HomeIcon, ChevronRightIcon, ChevronDownIcon } from '@heroicons/vue/24/o
 import Collapse from '../../shared/Collapse.vue'
 import StoryPriceDetail from '../StoryPriceDetail.vue'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
-import { placeName, needsOperator, type ChargingPlace, type PlaceClass } from '../../../composables/storyPlaces'
-import type { ChargingBenchmark } from '../../../api/chargingBenchmarkService'
+import { placeName, needsOperator, type ChargingPlace, type PlaceRow } from '../../../composables/storyPlaces'
 import { PLACE_FILL, PIN_EDGE } from './placeStyle'
-
-export interface PlaceRow {
-  place: ChargingPlace
-  cls: PlaceClass
-  benchmark: ChargingBenchmark | null
-}
 
 /**
  * Die Liste der Ladeorte ist die vollständige Fassung der Karte (die Karte ist aria-hidden).

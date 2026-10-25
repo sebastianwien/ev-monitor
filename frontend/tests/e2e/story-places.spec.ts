@@ -51,6 +51,9 @@ async function openPlaces(page: Page, data: StoryData = { ...calmMonth(), places
   await page.route(/\/api\/charging-provider-tariffs\/cpos\/nearby-stations/, route => route.fulfill({ json: [] }));
   await page.getByTestId('story-map-open').click();
   await expect(page.getByTestId('places-sheet')).toBeVisible();
+  // Der Teaser öffnet im Story-Monat; die folgenden Tests prüfen die zwölf Monate.
+  await page.getByTestId('places-period-12m').click();
+  await expect(page.getByTestId('places-lead')).toContainText('in 12 Monaten');
 }
 
 /** Zoomstufe der vorderen Kachelebene, aus der Kachel-URL (/{z}/{x}/{y}.png). */
@@ -94,15 +97,32 @@ test.describe('Story-Ladekarte', () => {
     await expect.poll(() => tileZoom(page), { timeout: 5000 }).toBe(before);
   });
 
-  test('Zeitraum Monat ändert den Kopfsatz, unter 3 Orten keine Karte', async ({ page }) => {
+  test('Zeitraum Monat ändert den Kopfsatz, die Karte bleibt auch mit 2 Orten', async ({ page }) => {
     await openPlaces(page);
-    await expect(page.getByTestId('places-map')).toBeVisible();
 
     await page.getByTestId('places-period-month').click();
 
     await expect(page.getByTestId('places-lead')).toHaveText('2 Orte im Oktober.');
-    await expect(page.getByTestId('places-map')).toHaveCount(0);
+    await expect(page.locator('.places-map .places-pin')).toHaveCount(2);
     expect((await names(page)).map(n => n.trim())).toEqual(['Zuhause', 'IONITY']);
+  });
+
+  test('Teaser nennt Orte und Geld des Monats, Kartenbild nur auf Desktop, Tipp öffnet den Monat', async ({ page }, info) => {
+    await openStory(page, { ...calmMonth(), places: PLACES });
+
+    const teaser = page.getByTestId('story-map-open');
+    await expect(teaser.getByTestId('places-teaser-sentence')).toHaveText('5 Ladeorte im Oktober, 105 € für Strom.');
+    if (info.project.name === 'Mobile Chrome') {
+      await expect(teaser.getByTestId('places-teaser-map')).toHaveCount(0);
+    } else {
+      await expect(teaser.getByTestId('places-teaser-map')).toBeVisible();
+      await expect(teaser.getByTestId('places-teaser-pin')).toHaveCount(5);
+    }
+
+    await page.route(/\/api\/logs\/places\?/, route => route.fulfill({ json: OCTOBER }));
+    await teaser.click();
+    await expect(page.getByTestId('places-lead')).toHaveText('2 Orte im Oktober.');
+    await expect(page.getByTestId('places-period-month')).toHaveAttribute('aria-pressed', 'true');
   });
 
   test('Fahrten-Schalter zählt Fahrten mit Linie, zeichnet sie und passt die Karte an', async ({ page }) => {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   placeClass, benchmarkPairs, benchmarkKey, sortPlaces, placeName, needsOperator, pinSize, legendClasses,
-  leadParts, periodWindow, tripWindowParams, drawableTripLines, focusZoom, tapPlace,
+  leadParts, periodWindow, tripWindowParams, drawableTripLines, focusZoom, tapPlace, teaserParts,
   type ChargingPlace, type PlaceClass, type PlaceSelection,
 } from './storyPlaces'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
@@ -216,5 +216,42 @@ describe('tapPlace', () => {
 
     expect(second).toEqual({ state: { active: 'b', saved: start }, focus: 'b', restore: null })
     expect(tapPlace(second.state, 'b', elsewhere).restore).toEqual(start)
+  })
+})
+
+describe('teaserParts', () => {
+  const row = (over: Partial<ChargingPlace>, cls: PlaceClass, b: ChargingBenchmark | null = bench(0.39)) =>
+    ({ place: place(over), cls, benchmark: b })
+
+  it('ohne Orte kein Teaser', () => {
+    expect(teaserParts([])).toBeNull()
+  })
+
+  it('teure Orte zuerst, Beispiel ist der teure Ort mit dem meisten Geld', () => {
+    const t = teaserParts([
+      row({ geohash: 'home', kind: 'HOME' }, 'home', null),
+      row({ geohash: 'a', costEur: 10 }, 'high'),
+      row({ geohash: 'b', costEur: 30 }, 'high'),
+      row({ geohash: 'c', costEur: 50 }, 'low'),
+    ])!
+
+    expect(t.key).toBe('high')
+    expect(t.count).toBe(2)
+    expect(t.places).toBe(4)
+    expect(t.focus?.place.geohash).toBe('b')
+  })
+
+  it('ohne teure, mit günstigen Orten: der günstige Ort', () => {
+    const t = teaserParts([row({ geohash: 'a', costEur: 5 }, 'usual'), row({ geohash: 'b', costEur: 9 }, 'low')])!
+
+    expect(t.key).toBe('low')
+    expect(t.count).toBe(1)
+    expect(t.focus?.place.geohash).toBe('b')
+  })
+
+  it('ohne Vergleich: Orte und Euro', () => {
+    const t = teaserParts([row({ costEur: 12.5 }, 'none', null), row({ geohash: 'h', kind: 'HOME', costEur: 2.5 }, 'home', null)])!
+
+    expect(t).toMatchObject({ key: 'plain', places: 2, eur: 15, focus: null })
   })
 })

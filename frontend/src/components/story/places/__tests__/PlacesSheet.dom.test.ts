@@ -89,12 +89,16 @@ describe('PlacesSheet', () => {
     expect(norm($('places-lead')?.textContent)).toBe('2 Orte im August.')
   })
 
-  it('unter 3 Orten keine Karte, nur die Liste', async () => {
-    places = PLACES.slice(0, 2)
+  it('Karte ab einem Ort (der Teaser zeigt auch dann eine), ohne Orte keine', async () => {
+    places = PLACES.slice(0, 1)
     await mount()
+    expect($('places-map')?.dataset.pins).toBe('1')
 
+    places = []
+    $('places-period-all')!.click()
+    await flush()
     expect($('places-map')).toBeNull()
-    expect(names()).toHaveLength(2)
+    expect(norm($('places-lead')?.textContent)).toBe('Keine Ladung mit Ort.')
   })
 
   it('Fahrten-Schalter zählt Fahrten mit Linie und blendet sie ein', async () => {

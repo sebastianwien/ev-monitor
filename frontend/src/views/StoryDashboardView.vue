@@ -37,7 +37,8 @@ import DataQualityLine from '../components/story/DataQualityLine.vue'
 import StoryMonthSwitch from '../components/story/StoryMonthSwitch.vue'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import api from '../api/axios'
-import type { PlacePeriod } from '../composables/storyPlaces'
+import { periodWindow, teaserParts, type PlacePeriod } from '../composables/storyPlaces'
+import { useChargingPlaces } from '../composables/useChargingPlaces'
 import type { EvLogResponse } from '../components/dashboard/EditLogModal.vue'
 import { dayKeyOf } from '../composables/storyDay'
 import { useLogsRefreshStore } from '../stores/logsRefresh'
@@ -211,7 +212,28 @@ function closeOperator(changed: boolean) {
   operatorLog.value = null
   if (!changed) return
   placesSheet.value?.reload()
+  loadTeaser(true)
   story.reload()
+}
+
+// Teaser der Ladekarte unter dem Feed: Orte des Story-Monats. Erst nach den Story-Daten laden,
+// damit er nicht mit Hero und Kacheln um den ersten Paint konkurriert.
+const teaserPlaces = useChargingPlaces(() => selectedCarId.value)
+const teaserRows = teaserPlaces.rows
+const placesTeaser = computed(() => teaserParts(teaserRows.value))
+let teaserKey = ''
+function loadTeaser(force = false) {
+  if (!selectedCarId.value || loading.value) return
+  const key = `${selectedCarId.value}|${month.value.year}-${month.value.month}`
+  if (key === teaserKey && !force) return
+  teaserKey = key
+  teaserPlaces.load(periodWindow('month', month.value, new Date()))
+}
+watch([selectedCarId, month, loading], () => loadTeaser(), { immediate: true })
+/** Der Teaser spricht vom Story-Monat, also öffnet die Karte dort. Ohne Orte im Monat die zwölf Monate. */
+function openPlaces() {
+  placesPeriod.value = placesTeaser.value ? 'month' : '12m'
+  openMap.value = true
 }
 /** Was der Nutzer bei der Ladung gezahlt hat, die den Moment "zu teuer geladen" ausloest. */
 const expensivePrice = computed(() => moment.value.kind === 'expensive' ? moment.value.pricePerKwh : null)
@@ -360,14 +382,16 @@ onMounted(() => analytics.track('story_viewed'))
             <StoryFeed
               v-if="narrow && showFeed"
               :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
-              @open="openSheet" @map="openMap = true" />
+              :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)"
+              @open="openSheet" @map="openPlaces" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
           </template>
         </div>
         <div v-if="!narrow && showFeed" class="min-w-0 lg:col-span-5 lg:pt-9">
           <StoryFeed
             :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
-            @open="openSheet" @map="openMap = true" />
+            :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" map-preview
+            @open="openSheet" @map="openPlaces" />
         </div>
       </section>
 

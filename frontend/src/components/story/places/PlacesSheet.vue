@@ -3,24 +3,24 @@ import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
 import api from '../../../api/axios'
-import { chargingBenchmarkService, type ChargingBenchmark } from '../../../api/chargingBenchmarkService'
+import { useChargingPlaces } from '../../../composables/useChargingPlaces'
 import BottomSheet from '../../shared/BottomSheet.vue'
 import ChoiceChip from '../../shared/ChoiceChip.vue'
 import ToggleSwitch from '../../shared/ToggleSwitch.vue'
-import PlacesList, { type PlaceRow } from './PlacesList.vue'
+import PlacesList from './PlacesList.vue'
 import type { MapPin, MapView } from './PlacesMap.vue'
 import { PLACE_FILL, PIN_EDGE } from './placeStyle'
 import {
-  placeClass, benchmarkKey, benchmarkPairs, sortPlaces, legendClasses, leadParts, periodWindow, tripWindowParams,
-  drawableTripLines, tapPlace, type ChargingPlace, type PlacePeriod, type PlacesTrip, type PlaceSelection,
+  legendClasses, leadParts, periodWindow, tripWindowParams, drawableTripLines, tapPlace,
+  type PlacePeriod, type PlacesTrip, type PlaceSelection,
 } from '../../../composables/storyPlaces'
 
-// Leaflet nur laden, wenn die Karte steht (ab 3 Orten).
+// Leaflet nur laden, wenn die Karte steht (ab einem Ort).
 const PlacesMap = defineAsyncComponent(() => import('./PlacesMap.vue'))
 
 /**
  * Sheet "Wo du lädst": wo ich lade, was ich dort zahle und wo ich mehr zahle als andere.
- * Handy: Karte oben (40 %), Liste darunter. Ab lg Karte links, Liste rechts. Unter 3 Orten nur die Liste.
+ * Handy: Karte oben (40 %), Liste darunter. Ab lg Karte links, Liste rechts. Ohne Orte keine Karte.
  * Der Preisvergleich eines Orts klappt in seiner Zeile auf. "Betreiber eintragen" lässt das Sheet offen,
  * der Bearbeiten-Dialog legt sich darüber (View).
  */
@@ -37,28 +37,18 @@ const period = defineModel<PlacePeriod>('period', { default: '12m' })
 
 const { t } = useI18n()
 
-const places = ref<ChargingPlace[]>([])
+const { rows, loading, error, load: loadPlaces } = useChargingPlaces(() => props.carId)
 const trips = ref<PlacesTrip[]>([])
-const benchmarks = ref<Record<string, ChargingBenchmark | null>>({})
-const loading = ref(true)
-const error = ref(false)
 const showTrips = ref(false)
 const selection = ref<PlaceSelection<MapView | null>>({ active: null, saved: null })
 
-const benchmarkOf = (p: ChargingPlace) => {
-  const key = benchmarkKey(p)
-  return key ? benchmarks.value[key] ?? null : null
-}
-const rows = computed<PlaceRow[]>(() => sortPlaces(places.value).map(p => {
-  const benchmark = benchmarkOf(p)
-  return { place: p, cls: placeClass(p, benchmark), benchmark }
-}))
 const classes = computed(() => rows.value.map(r => r.cls))
-const showMap = computed(() => rows.value.length >= 3)
+// Ab einem Ort: der Teaser auf der Seite zeigt schon bei einem Ort eine Karte, das Sheet darf dann keine verlieren.
+const showMap = computed(() => rows.value.length >= 1)
 const pins = computed<MapPin[]>(() => rows.value.map(r => ({ geohash: r.place.geohash, cls: r.cls, kwh: r.place.kwh })))
 const allLines = computed(() => drawableTripLines(trips.value))
 const lines = computed(() => showTrips.value ? allLines.value : [])
-/** Fahrten gibt es nur auf der Karte, ohne Karte (unter 3 Orten) kein Schalter. */
+/** Fahrten gibt es nur auf der Karte, ohne Karte kein Schalter. */
 const showTripsToggle = computed(() => showMap.value && allLines.value.length > 0)
 const tripsLabel = computed(() => t('story.places_trips', { n: allLines.value.length }, allLines.value.length))
 /** Ohne Analytics trägt nur die neueste Fahrt ihre Linie, die übrigen kommen ohne. */
@@ -72,7 +62,7 @@ const periods = computed<Array<{ id: PlacePeriod; label: string }>>(() => [
 ])
 
 const lead = computed(() => {
-  if (loading.value) return ''
+  if (loading.value || !loaded.value) return ''
   const parts = leadParts(classes.value)
   if (parts.key === 'empty') return t(`story.places_empty_${period.value}`, { month: props.monthName })
   const when = t(`story.places_when_${period.value}`, { month: props.monthName })
@@ -82,38 +72,19 @@ const lead = computed(() => {
     : t('story.places_lead_plain', { places: count, when })
 })
 
-let token = 0
+/** Erst nach dem ersten Laden gibt es einen Kopfsatz, sonst stünde kurz "keine Ladung mit Ort" da. */
+const loaded = ref(false)
+let tripToken = 0
 async function load() {
-  const mine = ++token
-  loading.value = true
-  error.value = false
   selection.value = { active: null, saved: null }
   const range = periodWindow(period.value, props.month, new Date())
-  const placeParams = { carId: props.carId, ...(range.from ? { from: range.from } : {}), ...(range.to ? { to: range.to } : {}) }
-  const [placesRes, tripsRes] = await Promise.allSettled([
-    api.get<ChargingPlace[]>('/logs/places', { params: placeParams }),
-    api.get<PlacesTrip[]>('/trips', { params: { carId: props.carId, ...tripWindowParams(range) } }),
-  ])
-  if (mine !== token) return
-  if (placesRes.status === 'rejected') {
-    error.value = true
-    loading.value = false
-    return
-  }
-  places.value = Array.isArray(placesRes.value.data) ? placesRes.value.data : []
-  trips.value = tripsRes.status === 'fulfilled' && Array.isArray(tripsRes.value.data) ? tripsRes.value.data : []
-  loading.value = false
-  await loadBenchmarks()
-}
-
-/** Ein Aufruf je Betreiber und Ladeart, parallel, über Zeiträume hinweg gemerkt. 204 (unter 5 Fahrern) = null. */
-async function loadBenchmarks() {
-  const missing = benchmarkPairs(places.value).filter(p => !(`${p.cpo}|${p.type}` in benchmarks.value))
-  if (!missing.length) return
-  const results = await Promise.allSettled(missing.map(p => chargingBenchmarkService.get(p.cpo, p.type)))
-  const next = { ...benchmarks.value }
-  results.forEach((r, i) => { next[`${missing[i].cpo}|${missing[i].type}`] = r.status === 'fulfilled' ? r.value : null })
-  benchmarks.value = next
+  const mine = ++tripToken
+  const tripsReq = api.get<PlacesTrip[]>('/trips', { params: { carId: props.carId, ...tripWindowParams(range) } })
+    .then(res => Array.isArray(res.data) ? res.data : [], () => [])
+  const placesReq = loadPlaces(range).then(() => { loaded.value = true })
+  const nextTrips = await tripsReq
+  if (mine === tripToken) trips.value = nextTrips
+  await placesReq
 }
 
 watch(period, load)
@@ -195,7 +166,7 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
             </div>
             <div ref="listEl" class="min-h-0 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
               :class="showMap ? 'lg:border-t-2 lg:border-gray-900 dark:lg:border-gray-800' : 'border-t-2 border-gray-900 dark:border-gray-800'">
-              <div v-if="loading" class="grid gap-3 p-4 lg:px-6" aria-busy="true">
+              <div v-if="loading || !loaded" class="grid gap-3 p-4 lg:px-6" aria-busy="true">
                 <div v-for="i in 3" :key="i" class="h-12 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-800" />
               </div>
               <p v-else-if="error" class="p-4 text-sm text-gray-700 lg:px-6 dark:text-gray-200">

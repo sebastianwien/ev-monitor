@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { MapIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import StoryFeedItem from './StoryFeedItem.vue'
+import PlacesTeaser from './places/PlacesTeaser.vue'
 import type { StoryFeedItem as Item, TileId } from '../../composables/storyModel'
+import type { PlaceRow, PlacesTeaser as Teaser } from '../../composables/storyPlaces'
 
-/** "Diesen Monat": die Feed-Zeilen und darunter die Zeile zur Karte. Steht auf dem Handy unter "Zuletzt", ab lg rechts neben dem Hero. */
-defineProps<{
+/** "Diesen Monat": die Feed-Zeilen und darunter der Teaser zur Karte. Steht auf dem Handy unter "Zuletzt", ab lg rechts neben dem Hero. */
+withDefaults(defineProps<{
   feed: Item[]
   upsellTo: string
   /** Modell ohne Variante für den Modellvergleich. */
@@ -13,7 +14,13 @@ defineProps<{
   carId: string | null
   carName: string
   sheets: TileId[]
-}>()
+  /** Ladeorte des Story-Monats für den Karten-Teaser, ohne Orte die schlichte Zeile. */
+  placesTeaser?: Teaser | null
+  placesRows?: PlaceRow[]
+  monthName?: string
+  /** Kartenbild im Teaser, nur in der rechten Spalte (ab lg). */
+  mapPreview?: boolean
+}>(), { placesTeaser: null, placesRows: () => [], monthName: '', mapPreview: false })
 const emit = defineEmits<{ open: [id: TileId]; map: [] }>()
 const { t } = useI18n()
 </script>
@@ -31,15 +38,6 @@ const { t } = useI18n()
       :car-name="carName"
       :sheets="sheets"
       @open="emit('open', $event)" />
-    <button
-      type="button"
-      data-testid="story-map-open"
-      class="mt-3 flex h-12 w-full items-center gap-2.5 rounded-xl bg-white px-3 text-left edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:bg-gray-800"
-      @click="emit('map')">
-      <MapIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
-      <span class="flex-1 text-[14px] font-semibold text-gray-900 dark:text-gray-50">{{ t('story.map_title') }}</span>
-      <span class="text-[12px] text-gray-500 dark:text-gray-400">{{ t('story.map_label') }}</span>
-      <ChevronRightIcon class="h-4 w-4 text-gray-400" aria-hidden="true" />
-    </button>
+    <PlacesTeaser :teaser="placesTeaser" :rows="placesRows" :month-name="monthName" :preview="mapPreview" @open="emit('map')" />
   </section>
 </template>

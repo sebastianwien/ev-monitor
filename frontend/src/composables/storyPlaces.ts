@@ -167,3 +167,37 @@ export function tapPlace<V>(state: PlaceSelection<V>, geohash: string, currentVi
   if (state.active === geohash) return { state: { active: null, saved: null }, focus: null, restore: state.saved }
   return { state: { active: geohash, saved: state.saved ?? currentView }, focus: geohash, restore: null }
 }
+
+export interface PlacesTeaser {
+  /** high = an n Orten teurer, low = an n Orten günstiger, plain = Orte und Euro */
+  key: 'high' | 'low' | 'plain'
+  places: number
+  /** Zahl der teuren bzw. günstigen Orte */
+  count: number
+  eur: number
+  /** Beispiel für die Zahl im Teaser: der Ort der Klasse mit dem meisten Geld */
+  focus: { place: ChargingPlace; benchmark: ChargingBenchmark } | null
+}
+
+/**
+ * Satzteile des Teasers zur Ladekarte. Er sagt nur, was der Vergleich belegt: teurer vor günstiger,
+ * ohne Vergleich nur Orte und Geld. Kein "nicht mehr als andere", Orte ohne Vergleich wären darin mitgemeint.
+ */
+export function teaserParts(rows: PlaceRow[]): PlacesTeaser | null {
+  if (!rows.length) return null
+  const eur = rows.reduce((sum, r) => sum + r.place.costEur, 0)
+  for (const key of ['high', 'low'] as const) {
+    const hits = rows.filter(r => r.cls === key && r.benchmark)
+    if (!hits.length) continue
+    const top = hits.reduce((a, b) => (b.place.costEur > a.place.costEur ? b : a))
+    return { key, places: rows.length, count: hits.length, eur, focus: { place: top.place, benchmark: top.benchmark! } }
+  }
+  return { key: 'plain', places: rows.length, count: 0, eur, focus: null }
+}
+
+/** Ein Ort mit seiner Preisklasse und dem Vergleich dahinter, so wie Liste, Karte und Teaser ihn zeigen. */
+export interface PlaceRow {
+  place: ChargingPlace
+  cls: PlaceClass
+  benchmark: ChargingBenchmark | null
+}
