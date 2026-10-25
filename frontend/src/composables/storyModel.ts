@@ -46,7 +46,7 @@ export interface StoryTile {
 }
 
 export type FeedId =
-  | 'consumption_trend' | 'home_savings' | 'most_expensive' | 'peer_position' | 'phantom_locked' | 'cost_trend'
+  | 'consumption_trend' | 'home_savings' | 'most_expensive' | 'peer_position' | 'phantom_locked' | 'cost_trend' | 'distance_trend'
   | 'what_if_model' | 'community_rank' | 'data_quality' | 'temperature_effect' | 'temperature_locked' | 'moment'
 
 export interface StoryFeedItem {
@@ -111,6 +111,8 @@ const EXPENSIVE_FACTOR = 1.6
 /** Unter drei Ladungen im Monat zeigt die Kachel, worauf der Wert beruht. Reichweite ist davon frei, sie rechnet mit 4 Wochen. */
 export const MIN_SOLID_CHARGES = 3
 const MIN_COST_DIFF_EUR = 1
+/** Ab 10 % mehr oder weniger Strecke als im Vormonat ist das eine Nachricht. */
+const MIN_DISTANCE_DIFF_SHARE = 0.1
 const MIN_CONSUMPTION_DIFF = 0.2
 /** Ladeverlust: bis 12 Prozent ueblich (AC-Pauschale 10), bis 20 auffaellig, darueber Problem. */
 const FLOW_LOSS_GOOD_PERCENT = 12
@@ -311,6 +313,24 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
       sentiment: diff <= 0 ? 'good' : 'warn',
       params: { diff, current: m.avgConsumptionKwhPer100km, previous: prev.avgConsumptionKwhPer100km },
     })
+  }
+
+  // Strecke ohne Hochrechnung: km kommen bei Hand-Erfassern in Spruengen (km-Stand nur beim Laden).
+  // "Mehr" steht fest, sobald es erreicht ist; "weniger" erst nach Monatsende, vorher waeren es nur weniger Tage.
+  const km = m.totalDistanceKm
+  const prevKm = prev?.totalDistanceKm
+  if (km != null && km > 0 && prevKm != null && prevKm > 0) {
+    const diff = km - prevKm
+    const share = diff / prevKm
+    if (Math.abs(share) >= MIN_DISTANCE_DIFF_SHARE && (diff > 0 || !input.runningMonth)) {
+      items.push({
+        id: 'distance_trend',
+        question: 1,
+        relevance: Math.min(60, 25 + Math.abs(share) * 50),
+        sentiment: 'neutral',
+        params: { diff, current: km, previous: prevKm },
+      })
+    }
   }
 
   const comparison = costComparison(input)

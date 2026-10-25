@@ -4193,6 +4193,8 @@ story:
   feed_consumption_worse: "Forbruket ditt er {diff} høyere enn forrige måned: {current} i stedet for {previous}."
   feed_cost_lower: "Du brukte {diff} mindre enn forrige måned."
   feed_cost_higher: "Du brukte {diff} mer enn forrige måned."
+  feed_distance_more: "Mer på veien enn forrige måned: {km} i stedet for {previous}."
+  feed_distance_less: "Mindre på veien enn forrige måned: {km} i stedet for {previous}."
   feed_most_expensive: "Din dyreste lading kostet {eur}. En gjennomsnittlig lading ligger på {avg}."
   feed_home_savings: "Hjemmelading har spart deg {eur}."
   feed_home_amortised_in: "Ladeboksen er nedbetalt om {months} måneder."

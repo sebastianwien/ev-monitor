@@ -24,7 +24,7 @@ const props = withDefaults(defineProps<{
 }>(), { whatIf: () => [], carId: null, carName: '' })
 
 const { t } = useI18n()
-const { formatCurrency, formatConsumption, formatDecimal, convertConsumption, consumptionUnitLabel } = useLocaleFormat()
+const { formatCurrency, formatConsumption, formatDecimal, formatDistance, convertConsumption, consumptionUnitLabel } = useLocaleFormat()
 
 // Nur fuer id 'moment' gelesen; der computed wertet sonst nie aus.
 const momentView = useMomentView({
@@ -50,6 +50,10 @@ const sentence = computed(() => {
       })
     case 'cost_trend':
       return t(p.diff <= 0 ? 'story.feed_cost_lower' : 'story.feed_cost_higher', { diff: formatCurrency(Math.abs(p.diff), { decimals: 0 }) })
+    case 'distance_trend':
+      return t(p.diff > 0 ? 'story.feed_distance_more' : 'story.feed_distance_less', {
+        km: formatDistance(p.current, { round: true }), previous: formatDistance(p.previous, { round: true }),
+      })
     case 'most_expensive':
       return t('story.feed_most_expensive', { eur: formatCurrency(p.eur), avg: formatCurrency(p.avgEur) })
     case 'home_savings': {
@@ -86,6 +90,7 @@ const spark = computed<{ values: number[]; variant: 'line' | 'bars' | 'range' } 
   switch (props.item.id) {
     case 'consumption_trend': return { values: [p.previous, p.current], variant: 'bars' }
     case 'cost_trend': return { values: [p.previous, p.current], variant: 'bars' }
+    case 'distance_trend': return { values: [p.previous, p.current], variant: 'bars' }
     case 'most_expensive': return { values: [p.avgEur, p.eur], variant: 'bars' }
     case 'home_savings': return { values: [p.monthsRemaining > 0 ? p.monthsRemaining : 0, 12], variant: 'range' }
     case 'peer_position': return { values: [0, p.diffCt], variant: 'range' }

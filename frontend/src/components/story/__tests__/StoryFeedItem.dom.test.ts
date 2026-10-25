@@ -32,3 +32,15 @@ describe('StoryFeedItem mit Moment', () => {
     expect(host.querySelector('a')!.getAttribute('href')).toBe('/logs?car=c1&nachtragen=preis')
   })
 })
+
+describe('StoryFeedItem Strecke', () => {
+  it('mehr unterwegs als im Vormonat, mit beiden Strecken', () => {
+    const host = mount({ id: 'distance_trend', question: 1, relevance: 40, sentiment: 'neutral', params: { diff: 88, current: 600, previous: 512 } })
+    expect(host.textContent!.replace(/\s+/g, ' ')).toMatch(/Mehr unterwegs als im Vormonat: 600\skm statt 512\skm\./)
+  })
+
+  it('weniger unterwegs, wenn der Monat vorbei ist', () => {
+    const host = mount({ id: 'distance_trend', question: 1, relevance: 40, sentiment: 'neutral', params: { diff: -82, current: 430, previous: 512 } })
+    expect(host.textContent!.replace(/\s+/g, ' ')).toMatch(/Weniger unterwegs als im Vormonat: 430\skm statt 512\skm\./)
+  })
+})

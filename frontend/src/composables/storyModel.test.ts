@@ -197,6 +197,30 @@ describe('Kosten im laufenden Monat', () => {
   })
 })
 
+describe('Strecke gegen den Vormonat', () => {
+  const previousMonth = stats({ totalDistanceKm: 512 })
+  const distance = (km: number | null, over: Partial<StoryInput> = {}) =>
+    buildStoryFeed(input({ month: stats({ totalDistanceKm: km }), previousMonth, ...over })).find(f => f.id === 'distance_trend')
+
+  it('mehr gefahren: sofort, auch im laufenden Monat', () => {
+    const item = distance(600, { runningMonth: true })!
+    expect(item.params).toEqual({ diff: 88, current: 600, previous: 512 })
+    expect(item.sentiment).toBe('neutral')
+    expect(item.question).toBe(1)
+  })
+
+  it('weniger gefahren: erst wenn der Monat vorbei ist, vorher hiesse das nur weniger Tage', () => {
+    expect(distance(274, { runningMonth: true })).toBeUndefined()
+    expect(distance(430)!.params.diff).toBe(-82)
+  })
+
+  it('unter 10 % Unterschied oder ohne Strecke kein Satz', () => {
+    expect(distance(540)).toBeUndefined()
+    expect(distance(null)).toBeUndefined()
+    expect(buildStoryFeed(input({ month: stats({ totalDistanceKm: 600 }), previousMonth: stats({ totalDistanceKm: null }) })).map(f => f.id)).not.toContain('distance_trend')
+  })
+})
+
 describe('buildStoryFeed', () => {
   it('kein Kostentrend, wenn einem der beiden Monate Preise fehlen: 0 € heißt dort ohne Preis', () => {
     const month = stats({ energyCostEur: 55, totalCostEur: 55 })

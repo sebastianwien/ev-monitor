@@ -4351,6 +4351,8 @@ story:
   feed_consumption_worse: "Your consumption is {diff} higher than last month: {current} instead of {previous}."
   feed_cost_lower: "You spent {diff} less than last month."
   feed_cost_higher: "You spent {diff} more than last month."
+  feed_distance_more: "More on the road than last month: {km} instead of {previous}."
+  feed_distance_less: "Less on the road than last month: {km} instead of {previous}."
   feed_most_expensive: "Your priciest charge cost {eur}. An average charge is {avg}."
   feed_home_savings: "Charging at home saved you {eur}."
   feed_home_amortised_in: "The wallbox pays for itself in {months} months."
