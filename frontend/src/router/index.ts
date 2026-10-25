@@ -104,7 +104,8 @@ const router = createRouter({
             path: '/logs',
             name: 'logs',
             component: CarContextLayout,
-            meta: { requiresAuth: true }
+            // App-CI: auf dem Handy ruhige Flaeche statt Wallpaper, wie /settings
+            meta: { requiresAuth: true, plainBackground: true }
         },
         {
             path: '/statistics',

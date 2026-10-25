@@ -61,31 +61,24 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
         type="button"
         @click.stop="emit('share', car)"
         :aria-label="t('share_car.share_named', { name: [carDisplayName(car), car.trim].filter(Boolean).join(' ') })"
-        class="absolute top-0 right-0 z-[1] min-h-[44px] min-w-[44px] flex items-center justify-center text-indigo-700 dark:text-indigo-300">
+        class="absolute top-0 right-0 z-[1] min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-700 dark:text-gray-200">
         <ShareIcon class="w-5 h-5" />
       </button>
       <button
         @click="emit('update:modelValue', car.id)"
         :class="[
           cars.length === 1
-            ? 'flex items-start rounded-sm border-2 text-left transition w-full overflow-hidden'
-            : 'flex items-center rounded-sm border-2 text-left transition w-full min-w-[180px] max-w-[240px] overflow-hidden',
-          // Farbgebung identisch zum Desktop-Selektor in DashboardView: das aktive Auto
-          // traegt indigo (bzw. gruen waehrend des Ladens), auch wenn es das einzige ist.
-          // Im Dark Mode deckende Flaechen statt der Desktop-Alpha-Toene - die Karte liegt
-          // hier direkt auf dem Seitenhintergrund und wirkte sonst durchscheinend.
+            ? 'flex items-start rounded-2xl text-left transition w-full overflow-hidden'
+            : 'flex items-center rounded-2xl text-left transition w-full min-w-[180px] max-w-[240px] overflow-hidden',
+          // App-CI: das aktive Auto traegt die Kante, die anderen nur eine graue Linie.
+          // Ob es gerade laedt, sagt das gruene Abzeichen in der Zeile, nicht der Rahmen.
           modelValue === car.id
-            ? isVehicleCharging(car)
-              ? 'border-2 border-green-500 bg-green-50 dark:bg-green-950 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#14532d]'
-              : 'border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-950 shadow-[2px_2px_0_0_#4338ca] dark:shadow-[2px_2px_0_0_#312e81]'
-            : isVehicleCharging(car)
-              ? 'border-2 border-green-300 dark:border-green-700 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'
-              : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300',
-          cars.length > 1 && isVehicleCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
+            ? 'edge-card bg-white dark:bg-gray-800'
+            : 'border-2 border-gray-200 bg-white hover:border-gray-400 dark:border-gray-700 dark:bg-gray-800/60 dark:hover:border-gray-500',
         ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
         <div
           :class="[
-            'flex-shrink-0 bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden',
+            'flex-shrink-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden',
             cars.length === 1 ? 'w-16 self-stretch' : 'h-12 aspect-[4/3]'
           ]">
           <img
@@ -103,31 +96,31 @@ const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleC
             <LicensePlate v-if="cars.length === 1 && car.licensePlate" :plate="car.licensePlate" size="sm" class="flex-shrink-0" />
             <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
               <span v-if="teslaStatus.vehicleState === 'charging'"
-                class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium border border-green-200">
+                class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
                 <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
               </span>
               <span v-else-if="teslaStatus.vehicleState === 'online'"
-                class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{{ t('dashboard.tesla_online') }}
+                class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs rounded-full font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-gray-100"></span>{{ t('dashboard.tesla_online') }}
               </span>
               <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full font-medium border border-gray-300">
+                class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-xs rounded-full font-medium">
                 <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>{{ t('dashboard.tesla_sleeping') }}
               </span>
             </template>
             <span v-if="isSmartcarCharging(car)"
-              class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+              class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
               <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
             </span>
             <span v-if="isWallboxCharging()"
-              class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+              class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
               <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
             </span>
           </div>
           <!-- Zusaetzliche Auto-Daten + Kennzeichen (single-car, ausgewaehlt) -->
           <div
             v-if="showInlineDetails && cars.length === 1 && car.id === modelValue"
-            class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600">
+            class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
             <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="compact" />
           </div>
         </div>

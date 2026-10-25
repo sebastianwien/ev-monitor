@@ -50,7 +50,7 @@ function shareFromHeader(car: Car) {
 <template>
   <div>
     <!-- Geteilter Mobile-Header: Auto-Card (persistent ueber beide Tabs) -->
-    <div class="md:hidden px-2">
+    <div class="md:hidden px-3">
       <MobileCarSelector
         v-if="cars.length > 0"
         v-model="selectedCarId"

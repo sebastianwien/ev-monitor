@@ -1269,7 +1269,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
     <RewardSystemUpdateBanner class="mb-4" />
     <Transition name="fade" mode="out-in">
       <div v-if="loading && isInitialLoad" key="skeleton-view">
-        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6 animate-pulse">
+        <div class="bg-white dark:bg-gray-900 md:rounded-3xl md:edge-box px-3 pt-1 pb-6 md:p-6 animate-pulse">
           <div class="h-16 rounded-sm bg-gray-200 dark:bg-gray-700 mb-6" />
           <div class="space-y-2">
             <div v-for="n in 6" :key="n" class="relative p-3 border-2 rounded-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
@@ -1291,7 +1291,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
         </div>
       </div>
       <div v-else key="content-view">
-        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-2 md:p-6 pb-6">
+        <div class="bg-white dark:bg-gray-900 md:rounded-3xl md:edge-box px-3 pt-1 pb-6 md:p-6">
           <!-- Mobile Auto-Card + Tab-Switch liegen im CarContextLayout (geteilter Header).
                Auf Desktop benennt der aktive Tab die Seite - eine sichtbare Ueberschrift
                wuerde ihn nur wiederholen. Fuer Screenreader bleibt sie. -->
@@ -1302,7 +1302,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
             v-if="cars.length > 0"
             class="hidden md:block"
             :class="cars.length > 1
-              ? 'sticky top-16 z-10 bg-white dark:bg-gray-800 md:-mx-6 md:px-6 md:py-3 mb-3 border-b border-gray-100 dark:border-gray-700 shadow-sm'
+              ? 'sticky top-16 z-10 bg-white dark:bg-gray-900 md:-mx-6 md:px-6 md:py-3 mb-3 border-b border-gray-200 dark:border-gray-800'
               : 'mb-6 md:w-fit md:mx-auto'"
           >
             <!-- Car cards -->
@@ -1313,20 +1313,16 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                 @click="selectedCarId = car.id"
                 :class="[
                   cars.length === 1
-                    ? 'flex items-start md:items-stretch rounded-sm border-2 text-left transition w-full md:w-auto overflow-hidden'
-                    : 'flex items-center md:items-stretch rounded-sm border-2 text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
+                    ? 'flex items-start md:items-stretch rounded-2xl text-left transition w-full md:w-auto overflow-hidden'
+                    : 'flex items-center md:items-stretch rounded-2xl text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
+                  // App-CI: das gewaehlte Auto traegt die Kante; ob es laedt, sagt das gruene Abzeichen.
                   selectedCarId === car.id
-                    ? isVehicleCharging(car)
-                      ? 'border-2 border-green-500 bg-green-50 dark:bg-green-900/20 shadow-[2px_2px_0_0_#16a34a] dark:shadow-[2px_2px_0_0_#14532d]'
-                      : 'border-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 shadow-[2px_2px_0_0_#4338ca] dark:shadow-[2px_2px_0_0_#312e81]'
-                    : isVehicleCharging(car)
-                      ? 'border-2 border-green-300 dark:border-green-700 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'
-                      : 'border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:border-indigo-300',
-                  cars.length > 1 && isVehicleCharging(car) ? 'ring-2 ring-green-400 dark:ring-green-500' : '',
+                    ? 'edge-card bg-white dark:bg-gray-800'
+                    : 'border-2 border-gray-200 bg-white hover:border-gray-400 dark:border-gray-700 dark:bg-gray-800/60 dark:hover:border-gray-500',
                 ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
                 <div
                   :class="[
-                    'flex-shrink-0 bg-gray-100 dark:bg-gray-600 flex items-center justify-center overflow-hidden',
+                    'flex-shrink-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden',
                     cars.length === 1
                       ? 'w-24 self-stretch'
                       : 'md:w-24 md:h-auto md:self-stretch'
@@ -1347,29 +1343,29 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car) }}</span>
                       <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
                       <span v-if="car.isPrimary && cars.length > 1"
-                        class="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full border border-green-200 dark:border-green-700 font-medium">
+                        class="px-1.5 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs rounded-full font-medium">
                         {{ t('dashboard.active') }}
                       </span>
                       <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
                         <span v-if="teslaStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
                           <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
                         </span>
                         <span v-else-if="teslaStatus.vehicleState === 'online'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs rounded-full font-medium border border-blue-200 dark:border-blue-700">
-                          <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{{ t('dashboard.tesla_online') }}
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs rounded-full font-medium">
+                          <span class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-gray-100"></span>{{ t('dashboard.tesla_online') }}
                         </span>
                         <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs rounded-full font-medium border border-gray-200 dark:border-gray-600">
+                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-xs rounded-full font-medium">
                           <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>{{ t('dashboard.tesla_sleeping') }}
                         </span>
                       </template>
                       <span v-if="isSmartcarCharging(car)"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
                       </span>
                       <span v-if="isWallboxCharging()"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 text-xs rounded-full font-medium border border-green-200 dark:border-green-700">
+                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
                         <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
                       </span>
                     </div>
@@ -1381,7 +1377,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                 <!-- Desktop horizontal extension (single-car only, ab md) -->
                 <div
                   v-if="cars.length === 1 && car.id === selectedCarId"
-                  class="hidden md:flex flex-shrink-0 self-stretch items-center border-l border-gray-200 dark:border-gray-600 pl-3 pr-3 py-2"
+                  class="hidden md:flex flex-shrink-0 self-stretch items-center border-l border-gray-200 dark:border-gray-700 pl-3 pr-3 py-2"
                 >
                   <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="horizontal" />
                 </div>

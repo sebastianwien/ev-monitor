@@ -119,7 +119,7 @@ const sohDisplay = computed<number | null>(() => {
       class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200"
       :title="batteryTooltip ?? undefined"
     >
-      <BoltIcon :class="iconClass" class="text-amber-500 flex-shrink-0" />
+      <BoltIcon :class="iconClass" class="text-gray-500 dark:text-gray-400 flex-shrink-0" />
       <span class="font-medium">{{ batteryLabel }}</span>
       <SohPill
         v-if="sohPercent != null && interactiveSoh"
