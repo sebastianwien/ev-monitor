@@ -2383,7 +2383,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
               <!-- CHARGE ENTRY (Handy): Zeile wie im Story-Tagesblatt; Antippen klappt Details und Aktionen auf. -->
               <div>
               <div v-if="!item.entry._isLadegruppe" class="gridfeed:hidden rounded-2xl bg-white edge-card dark:bg-gray-800">
-                <FeedEventRow kind="charge" v-bind="logTimeColumn(item.entry)" interactive
+                <FeedEventRow kind="charge" v-bind="logTimeColumn(item.entry)" interactive data-testid="charge-row"
                   :expanded="expandedLogs.has(item.entry.id)" @activate="toggleLogExpanded(item.entry.id)">
                   <template #title><span class="min-w-0 line-clamp-2 break-words">{{ chargePlace(item.entry) }}</span></template>
                   <span class="block">
@@ -2493,7 +2493,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                     </div>
                     <!-- Aktionen: Bearbeiten direkt, der Rest im Menue. -->
                     <div class="flex items-center justify-end gap-2 pt-1">
-                      <button type="button" :class="FEED_TEXT_BTN" @click.stop="editingLog = item.entry">
+                      <button type="button" data-testid="charge-edit" :class="FEED_TEXT_BTN" @click.stop="editingLog = item.entry">
                         <PencilSquareIcon class="h-4 w-4" aria-hidden="true" />{{ t('dashboard.action_edit') }}
                       </button>
                       <FeedActionMenu placement="up" v-slot="{ close }">

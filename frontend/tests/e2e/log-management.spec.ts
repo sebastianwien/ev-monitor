@@ -521,9 +521,9 @@ test.describe('Ladegruppe im Zeitraum-Feed', () => {
 
     // Teilladungen aufklappen -> die drei einzelnen Ladungen (5/6/7) erscheinen.
     await page.getByRole('button', { name: 'Teilladungen anzeigen' }).and(visible).first().click();
-    await expect(page.getByText('+5.0 kWh').and(visible).first()).toBeVisible();
-    await expect(page.getByText('+6.0 kWh').and(visible).first()).toBeVisible();
-    await expect(page.getByText('+7.0 kWh').and(visible).first()).toBeVisible();
+    await expect(page.getByText('+5,0 kWh').and(visible).first()).toBeVisible();
+    await expect(page.getByText('+6,0 kWh').and(visible).first()).toBeVisible();
+    await expect(page.getByText('+7,0 kWh').and(visible).first()).toBeVisible();
 
     // Edit auf die mittlere Teilladung (Reihenfolge neueste-zuerst: 7/6/5 -> Index 1 = 6 kWh)
     // oeffnet genau diesen Log, nicht die Basis-Ladung.

@@ -123,15 +123,12 @@ test('Mobile: Edit-Modal auf /logs liegt im Viewport (nicht im Pager-Track)', as
   // Ladezyklus-Karten der Ladung-Ansicht.
   await page.getByRole('group', { name: 'Ansicht' }).getByRole('button', { name: 'Einzeln' }).click();
 
-  // Mobile Karten sind eingeklappt - das Aktionsmenue liegt in der aufgeklappten Karte.
-  await page.locator('button[aria-expanded]:has-text("kWh"):visible').first().click();
-
-  // :visible grenzt auf die aktive Pane ein - der Pager haelt die Dashboard-Pane
-  // (mit denselben Aktionsmenues) zusammengeklappt im DOM.
-  const menuButton = page.locator('[aria-label="Aktionen"]:visible').first();
-  await expect(menuButton).toBeVisible({ timeout: 10_000 });
-  await menuButton.click();
-  await page.locator('button[role="menuitem"]:has-text("Bearbeiten"):visible').first().click();
+  // Mobile Ladezeilen sind eingeklappt - "Bearbeiten" liegt im aufgeklappten Bereich.
+  // :visible grenzt auf die aktive Pane ein - der Pager haelt die Dashboard-Pane im DOM.
+  await page.locator('[data-testid="charge-row"]:visible').first().click();
+  const editButton = page.locator('[data-testid="charge-edit"]:visible').first();
+  await expect(editButton).toBeVisible({ timeout: 10_000 });
+  await editButton.click();
 
   // Der Log-Feed liegt auf Mobile im SwipeTabPager - dessen Track traegt dauerhaft ein
   // translateX() und wird damit zum Containing Block fuer position:fixed. Ein nicht
