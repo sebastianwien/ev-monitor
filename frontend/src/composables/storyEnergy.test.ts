@@ -153,6 +153,13 @@ describe('energyUse: wo der Strom des Monats bleibt', () => {
     expect(u.homePct).toBe(0)
   })
 
+  it('Anteile ergeben immer 100, auch wenn zwei Stücke aufgerundet werden müssen', () => {
+    const lossOf = (kwh: number) => month({ chargingEfficiencySplit: { gridKwh: 20, vehicleKwh: 17, coveredLogCount: 1, totalLogCount: 2, lossKwh: kwh, estimatedLossLogCount: 1 } })
+    const u = energyUse(lossOf(32.6), trips({ driveKwh: 33.7, standbyKwh: 33.7 }))!
+    expect(u.shares.reduce((a, s) => a + (s.pct ?? 0), 0)).toBe(100)
+    expect(u.shares.map(s => s.pct)).toEqual([34, 34, 32])
+  })
+
   it('ohne Fahrten mit Energiedaten kein Ergebnis (Kachel bleibt wie bisher)', () => {
     expect(energyUse(month(), null)).toBeNull()
     expect(energyUse(month(), trips({ driveKwh: null }))).toBeNull()

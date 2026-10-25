@@ -94,7 +94,8 @@ function percents(values: number[]): number[] {
   const raw = values.map(v => (v / total) * 100)
   const out = raw.map(Math.floor)
   const order = raw.map((r, i) => ({ i, rest: r - out[i] })).sort((a, b) => b.rest - a.rest)
-  for (let k = 0; k < 100 - out.reduce((a, b) => a + b, 0); k++) out[order[k].i]++
+  const missing = 100 - out.reduce((a, b) => a + b, 0)
+  for (let k = 0; k < missing; k++) out[order[k].i]++
   return out
 }
 
