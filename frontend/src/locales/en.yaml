@@ -879,6 +879,8 @@ logs:
 
 dashboard:
   log_deleted: "Charging session deleted"
+  trip_deleted: "Trip deleted"
+  trip_restore_failed: "Restore not possible: the trip is now part of another one."
   log_undo: "Undo"
   log_restore_failed: "Restore not possible: another charging session exists at the same time."
   title: "Dashboard"

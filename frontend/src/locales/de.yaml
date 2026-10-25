@@ -882,6 +882,8 @@ logs:
 
 dashboard:
   log_deleted: "Ladevorgang gelöscht"
+  trip_deleted: "Fahrt gelöscht"
+  trip_restore_failed: "Wiederherstellen nicht möglich: die Fahrt steckt inzwischen in einer anderen."
   log_undo: "Rückgängig"
   log_restore_failed: "Wiederherstellen nicht möglich: zur selben Zeit gibt es schon einen Ladevorgang."
   title: "Dashboard"

@@ -839,6 +839,8 @@ logs:
 
 dashboard:
   log_deleted: "Laddningssession raderad"
+  trip_deleted: "Resa raderad"
+  trip_restore_failed: "Kan inte återställas: resan ingår nu i en annan."
   log_undo: "Ångra"
   log_restore_failed: "Kan inte återställas: det finns redan en laddningssession vid samma tidpunkt."
   title: Dashboard

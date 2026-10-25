@@ -39,6 +39,19 @@ describe('useLogUndo', () => {
     expect(pending.value).toBeNull()
   })
 
+  it('Fahrt: löscht und stellt über die Fahrt-Endpunkte wieder her', async () => {
+    const onChanged = vi.fn()
+    const { deleteTripWithUndo, undo, pending } = useLogUndo()
+    await deleteTripWithUndo('trip-1', onChanged)
+    expect(api.delete).toHaveBeenCalledWith('/trips/trip-1')
+    expect(pending.value).toMatchObject({ id: 'trip-1', kind: 'trip' })
+
+    await undo()
+    expect(api.post).toHaveBeenCalledWith('/trips/trip-1/restore')
+    expect(onChanged).toHaveBeenCalled()
+    expect(pending.value).toBeNull()
+  })
+
   it('Angebot verschwindet nach 10 Sekunden', async () => {
     const { deleteWithUndo, pending } = useLogUndo()
     await deleteWithUndo('log-1', vi.fn())

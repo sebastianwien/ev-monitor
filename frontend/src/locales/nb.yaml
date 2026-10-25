@@ -839,6 +839,8 @@ logs:
 
 dashboard:
   log_deleted: "Ladesesjon slettet"
+  trip_deleted: "Tur slettet"
+  trip_restore_failed: "Kan ikke gjenopprette: turen er nå en del av en annen."
   log_undo: "Angre"
   log_restore_failed: "Kan ikke gjenopprette: det finnes allerede en ladesesjon på samme tidspunkt."
   title: Dashbord

@@ -18,7 +18,8 @@ const { pending, restoreFailed, undo, dismiss } = useLogUndo()
     <div class="flex items-center gap-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 pl-4 pr-1 py-1 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)]">
       <TrashIcon class="w-5 h-5 flex-shrink-0" aria-hidden="true" />
       <p class="flex-1 min-w-0 text-sm py-2">
-        {{ restoreFailed ? t('dashboard.log_restore_failed') : t('dashboard.log_deleted') }}
+        <template v-if="pending.kind === 'trip'">{{ restoreFailed ? t('dashboard.trip_restore_failed') : t('dashboard.trip_deleted') }}</template>
+        <template v-else>{{ restoreFailed ? t('dashboard.log_restore_failed') : t('dashboard.log_deleted') }}</template>
       </p>
       <button
         v-if="!restoreFailed"
