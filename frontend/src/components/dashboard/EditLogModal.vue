@@ -187,7 +187,11 @@ export interface EvLogResponse {
   dataSource?: string | null
 }
 
-const props = defineProps<{ log: EvLogResponse }>()
+const props = defineProps<{
+  log: EvLogResponse
+  /** Direkt in einer Unteransicht öffnen, z. B. "place" für "Betreiber eintragen" auf der Ladekarte. */
+  startSection?: SummarySection
+}>()
 const emit = defineEmits<{ close: []; saved: [log: EvLogResponse]; deleted: [logId: string] }>()
 const { t } = useI18n()
 const countryStore = useCountryStore()
@@ -255,7 +259,7 @@ const formData = ref<LogFormData>({
 })
 
 // Bearbeiten heisst meist "eins aendern": Uebersicht zuerst, Editor je Abschnitt darunter.
-const section = ref<SummarySection | null>(null)
+const section = ref<SummarySection | null>(props.startSection ?? null)
 const sectionTitles: Record<SummarySection, string> = {
   place: 'logwizard.q_place', energy: 'logwizard.q_energy', vehicle: 'logwizard.q_vehicle', cost: 'logwizard.q_cost', time: 'logfields.timestamp',
 }
@@ -281,6 +285,12 @@ const locationStatus = ref<'idle' | 'success'>('idle')
 const providers = ref<ChargingProvider[]>([])
 onMounted(() => {
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
+  // Direkt im Ort ("Betreiber eintragen" auf der Ladekarte): Säulen rund um den gespeicherten Ort zeigen,
+  // sonst müsste der Nutzer den Ort erst suchen. Es gibt nur den Geohash, also seine Zellmitte.
+  if (props.startSection === 'place' && props.log.geohash && formData.value.latitude == null) {
+    const { latitude, longitude } = geohashLib.decode(props.log.geohash)
+    void nearby.load(latitude, longitude)
+  }
 })
 
 const place = computed<PlaceKind | null>(() => !formData.value.isPublicCharging ? 'home' : formData.value.chargingSite ? 'site' : 'other')

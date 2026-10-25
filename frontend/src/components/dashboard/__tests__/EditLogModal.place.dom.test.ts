@@ -21,6 +21,22 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 beforeEach(() => vi.clearAllMocks())
 const q = (sel: string) => document.body.querySelector<HTMLElement>(sel)
 
+describe('EditLogModal - direkt im Ort (Betreiber eintragen)', () => {
+  it('öffnet die Ort-Ansicht und zeigt die Säulen um den gespeicherten Ort', async () => {
+    ;(api.get as any).mockImplementation((url: string) => Promise.resolve({ data: url.includes('nearby-stations')
+      ? [{ name: 'Tesla Supercharger', known: true, distanceMeters: 40, geohash: 'u1x3k7q', address: 'Stillhorn',
+          fastCharging: true, chargePoints: 8, maxAcKw: null, maxDcKw: 250, plugTypes: [], registerId: null }] : [] }))
+    app = createApp(defineComponent({ render: () => h(EditLogModal, { log: { ...log, geohash: 'u1x3k7q' }, startSection: 'place' }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain('Tesla Supercharger'))
+    const call = (api.get as any).mock.calls.find((c: unknown[]) => String(c[0]).includes('nearby-stations'))
+    expect(call[1].params.lat).toBeCloseTo(53.68, 1)
+    expect(q('[data-testid="edit-done"]')).not.toBeNull()
+  })
+})
+
 describe('EditLogModal - Ort per Adresse', () => {
   it('übernimmt die gewählte Adresse als Koordinaten ins PATCH', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ json: () => Promise.resolve([
