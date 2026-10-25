@@ -74,7 +74,7 @@ export function calmMonth(now: number = NOW_MID): StoryData {
     trips: [],
     ranks: {},
     monthStats: stats({ chargesOverTime: [1, 3, 6, 9, 12].map(d => point(first.getTime() + (d - 1) * DAY)) }),
-    previousStats: stats({ totalDistanceKm: 512, energyCostEur: 61, totalCostEur: 61, totalCharges: 11 }),
+    previousStats: stats({ totalDistanceKm: 512, energyCostEur: 61, totalCostEur: 61, totalCharges: 11, totalKwhCharged: 95 }),
     recentStats: stats(),
     seriesStats: stats({ chargesOverTime: [5, 4, 3, 2, 1, 0].map(m => point(new Date(first.getFullYear(), first.getMonth() - m, 1).getTime(), { costEur: 40 + m * 3 })) }),
     // 50 Ladungen seit März 2025: kein Meilenstein, kein Jahrestag in der Nähe.

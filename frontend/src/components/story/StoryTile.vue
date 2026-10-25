@@ -35,6 +35,13 @@ const chip = computed(() => {
     case 'cost':
       // Ohne Preise sind die Kosten zu niedrig: Zahl der Ladungen statt eines schiefen Vergleichs.
       if (x.pricelessCharges) return t('story.cost_priceless', { n: x.pricelessCharges })
+      // Laufender Monat mit weniger Strom als der Vormonat: "weniger Euro" hiesse nur "weniger Tage".
+      if (x.projection) {
+        return t('story.cost_projection', {
+          eur: formatCurrency(x.projection.eur, { decimals: 0 }),
+          previous: formatCurrency(x.projection.previousEur, { decimals: 0 }),
+        })
+      }
       if (x.delta == null) return x.previousIncomplete ? null : t('story.cost_no_prev')
       if (x.sentiment === 'neutral') return t('story.cost_same')
       return t('story.cost_delta', { delta: (x.delta > 0 ? '+' : '') + formatCurrency(x.delta, { decimals: 0 }) })

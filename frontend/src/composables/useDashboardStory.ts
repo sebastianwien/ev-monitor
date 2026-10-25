@@ -333,6 +333,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     temperature: temperature.value,
     temperatureLocked: !ctx().canViewLiveAnalytics && temperature.value == null,
     pricelessPrevious: pricelessInPreviousMonth.value,
+    runningMonth: month.value.offset === 0,
   } : null)
 
   /**

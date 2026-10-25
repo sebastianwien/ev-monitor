@@ -41,6 +41,8 @@ export interface StoryTile {
   pricelessCharges?: number
   /** Nur 'cost': dem Vormonat fehlen Preise, ein Vergleich wäre schief. */
   previousIncomplete?: boolean
+  /** Nur 'cost', laufender Monat unter der Strommenge des Vormonats: was diese Menge jetzt kostet. */
+  projection?: { eur: number; previousEur: number }
 }
 
 export type FeedId =
@@ -85,6 +87,8 @@ export interface StoryInput {
   temperatureLocked: boolean
   /** Ladungen ohne Preis im Vormonat (die des Monats stehen in quality). */
   pricelessPrevious: number
+  /** Der gewählte Monat läuft noch: mit dem Vormonat erst ab dessen Strommenge vergleichen. */
+  runningMonth?: boolean
 }
 
 export interface DayCoverage {
@@ -157,6 +161,20 @@ function costsComparable(input: StoryInput): boolean {
   return pricelessInMonth(input) === 0 && input.pricelessPrevious === 0
 }
 
+/**
+ * Stromkosten gegen den Vormonat. Ein laufender Monat ist erst ab der Strommenge des Vormonats
+ * vergleichbar, vorher hiesse "weniger Euro" nur "weniger Tage". Bis dahin die Prognose: die
+ * Menge des Vormonats zum Preis je kWh dieses Monats. Abgeschlossene Monate vergleichen immer.
+ */
+function costComparison(input: StoryInput): { delta: number } | { projection: { eur: number; previousEur: number } } | null {
+  const m = input.month
+  const prev = input.previousMonth
+  if (!prev || !costsComparable(input)) return null
+  if (!input.runningMonth || m.totalKwhCharged >= prev.totalKwhCharged) return { delta: m.energyCostEur - prev.energyCostEur }
+  if (!(m.totalKwhCharged > 0) || !(prev.totalKwhCharged > 0)) return null
+  return { projection: { eur: (m.energyCostEur / m.totalKwhCharged) * prev.totalKwhCharged, previousEur: prev.energyCostEur } }
+}
+
 export function buildStoryTiles(input: StoryInput): StoryTile[] {
   const m = input.month
   const tiles: StoryTile[] = []
@@ -167,8 +185,8 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
   // Ladungen ohne Preis zaehlen in den Stromkosten als 0 €: ein Monat mit solchen Ladungen ist zu billig,
   // ein Vergleich mit ihm waere schief. Dann kein Delta, die Kachel nennt die preislosen Ladungen.
   const priceless = pricelessInMonth(input)
-  const prevCost = input.previousMonth?.energyCostEur ?? null
-  const costDelta = prevCost == null || !costsComparable(input) ? null : m.energyCostEur - prevCost
+  const comparison = costComparison(input)
+  const costDelta = comparison && 'delta' in comparison ? comparison.delta : null
   tiles.push({
     id: 'cost',
     value: m.energyCostEur,
@@ -180,6 +198,7 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
     sparkVariant: 'line',
     ...(priceless > 0 ? { pricelessCharges: priceless } : {}),
     ...(input.previousMonth && input.pricelessPrevious > 0 ? { previousIncomplete: true } : {}),
+    ...(comparison && 'projection' in comparison ? { projection: comparison.projection } : {}),
   })
 
   if (input.flow) {
@@ -294,8 +313,9 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
     })
   }
 
-  if (prev && prev.energyCostEur > 0 && costsComparable(input) && Math.abs(m.energyCostEur - prev.energyCostEur) >= MIN_COST_DIFF_EUR) {
-    const diff = m.energyCostEur - prev.energyCostEur
+  const comparison = costComparison(input)
+  if (prev && prev.energyCostEur > 0 && comparison && 'delta' in comparison && Math.abs(comparison.delta) >= MIN_COST_DIFF_EUR) {
+    const diff = comparison.delta
     items.push({
       id: 'cost_trend',
       question: 1,

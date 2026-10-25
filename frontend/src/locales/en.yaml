@@ -4323,6 +4323,7 @@ story:
   thin_charges: "only {n} charge | only {n} charges"
   cost_same: "same as last month"
   cost_no_prev: "no previous month"
+  cost_projection: "Forecast ~{eur}, last month {previous}"
   cost_priceless: "{n} without price"
   wltp_delta_over: "+{pct} % vs WLTP {wltp}"
   wltp_delta_under: "{pct} % under WLTP {wltp}"

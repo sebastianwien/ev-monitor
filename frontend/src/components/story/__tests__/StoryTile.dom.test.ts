@@ -34,6 +34,12 @@ describe('StoryTile Kosten', () => {
     expect(text).not.toContain('Vormonat')
   })
 
+  it('laufender Monat unter der Strommenge des Vormonats: dezente Prognose statt Ersparnis', () => {
+    const text = mount(cost({ value: 60, projection: { eur: 120.4, previousEur: 100 } }))
+    expect(text).toMatch(/Prognose ~120\s€, Vormonat 100\s€/)
+    expect(text).not.toContain('zum Vormonat')
+  })
+
   it('ohne Vormonat bleibt "kein Vormonat"', () => {
     expect(mount(cost({ value: 21 }))).toContain('kein Vormonat')
   })

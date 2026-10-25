@@ -26,6 +26,8 @@ const CASES: Case[] = [
     check: async (page) => {
       await expect(page.locator('[data-testid^="story-moment-"]:not([data-testid="story-moment-show-month"])')).toHaveCount(0);
       await expect(page.getByTestId('story-hero-value')).toContainText(/Oktober: 274\skm für 33\s€\./);
+      // 52 kWh bisher, September 95 kWh: Prognose statt "weniger als im Vormonat"
+      await expect(page.getByTestId('story-hero-box')).toContainText(/Prognose ~60\s€, Vormonat 61\s€/);
     },
   },
   {
@@ -96,8 +98,8 @@ const CASES: Case[] = [
     name: 'monatsrueckblick',
     data: () => ({
       ...calmMonth(NOW_MONTH_START),
-      monthStats: stats({ totalCharges: 1, totalDistanceKm: 40, energyCostEur: 5, totalCostEur: 5, chargesOverTime: [point(new Date(2026, 9, 1, 12).getTime())] }),
-      previousStats: stats({ totalDistanceKm: 512, energyCostEur: 61, totalCostEur: 61, totalCharges: 11 }),
+      monthStats: stats({ totalCharges: 1, totalDistanceKm: 40, energyCostEur: 5, totalCostEur: 5, totalKwhCharged: 9, chargesOverTime: [point(new Date(2026, 9, 1, 12).getTime())] }),
+      previousStats: stats({ totalDistanceKm: 512, energyCostEur: 61, totalCostEur: 61, totalCharges: 11, totalKwhCharged: 95 }),
     }),
     check: async (page) => {
       const hero = page.getByTestId('story-moment-month_change');

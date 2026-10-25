@@ -4165,6 +4165,7 @@ story:
   thin_charges: "bara {n} laddning | bara {n} laddningar"
   cost_same: "som förra månaden"
   cost_no_prev: "ingen förra månad"
+  cost_projection: "Prognos ~{eur}, förra månaden {previous}"
   cost_priceless: "{n} utan pris"
   wltp_delta_over: "+{pct} % mot WLTP {wltp}"
   wltp_delta_under: "{pct} % under WLTP {wltp}"

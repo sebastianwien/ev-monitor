@@ -163,6 +163,40 @@ describe('buildStoryTiles', () => {
   })
 })
 
+describe('Kosten im laufenden Monat', () => {
+  // Oktober bis heute: 200 kWh für 60 € (30 ct/kWh). September: 400 kWh für 100 €.
+  const month = stats({ totalKwhCharged: 200, energyCostEur: 60, totalCostEur: 60 })
+  const previousMonth = stats({ totalKwhCharged: 400, energyCostEur: 100, totalCostEur: 100 })
+  const cost = (over: Partial<StoryInput>) => buildStoryTiles(input({ month, previousMonth, ...over })).find(t => t.id === 'cost')!
+
+  it('weniger Strom als im Vormonat: Prognose bei gleicher Menge statt Delta, kein Kostentrend', () => {
+    const c = cost({ runningMonth: true })
+    expect(c.delta).toBeNull()
+    expect(c.projection).toEqual({ eur: 120, previousEur: 100 })
+    expect(c.sentiment).toBe('neutral')
+    expect(buildStoryFeed(input({ month, previousMonth, runningMonth: true })).map(f => f.id)).not.toContain('cost_trend')
+  })
+
+  it('Strommenge des Vormonats erreicht: echtes Delta und Kostentrend', () => {
+    const full = stats({ totalKwhCharged: 400, energyCostEur: 92, totalCostEur: 92 })
+    const c = cost({ month: full, runningMonth: true })
+    expect(c.delta).toBe(-8)
+    expect(c.projection).toBeUndefined()
+    expect(buildStoryFeed(input({ month: full, previousMonth, runningMonth: true })).map(f => f.id)).toContain('cost_trend')
+  })
+
+  it('abgeschlossener Monat vergleicht immer, auch mit weniger Strom', () => {
+    expect(cost({}).delta).toBe(-40)
+  })
+
+  it('ohne Preise im Monat keine Prognose, nur ihre Zahl', () => {
+    const quality = { estimated: 0, total: 6, estimatedShare: 0, priceless: 1, pricelessOpen: 1, severity: 'warn' as const }
+    const c = cost({ runningMonth: true, quality })
+    expect(c.projection).toBeUndefined()
+    expect(c.pricelessCharges).toBe(1)
+  })
+})
+
 describe('buildStoryFeed', () => {
   it('kein Kostentrend, wenn einem der beiden Monate Preise fehlen: 0 € heißt dort ohne Preis', () => {
     const month = stats({ energyCostEur: 55, totalCostEur: 55 })
