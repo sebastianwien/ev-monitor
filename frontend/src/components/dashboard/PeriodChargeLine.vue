@@ -276,7 +276,7 @@ const place = computed(() => {
 
     <!-- Teilladungen der Gruppe: Uhrzeit, kWh, Kosten und Akku je Ladung, jede editierbar. -->
     <Collapse v-if="isGroup" :open="expanded">
-      <ul class="pb-2 pl-[104px] pr-4">
+      <ul class="pb-2 pl-[108px] pr-3 sm:pl-[120px] sm:pr-4">
         <li v-for="topUp in topUps" :key="topUp.id + '__pcm'"
           class="flex items-center justify-between gap-2 border-t border-gray-100 py-1.5 text-[13px] tabular-nums dark:border-gray-700/70">
           <span class="min-w-0 truncate text-gray-600 dark:text-gray-300">

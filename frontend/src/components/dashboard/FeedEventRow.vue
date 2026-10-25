@@ -27,7 +27,7 @@ const emit = defineEmits<{ activate: [] }>()
     :tabindex="interactive ? 0 : undefined"
     :aria-expanded="interactive && expanded !== undefined ? expanded : undefined"
     :aria-controls="controls"
-    class="flex items-start gap-3 px-4 py-3 tabular-nums"
+    class="flex items-start gap-2.5 px-3 py-3 tabular-nums sm:gap-3 sm:px-4"
     :class="interactive ? 'cursor-pointer transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-story-accent dark:hover:bg-white/5' : ''"
     @click="interactive && emit('activate')"
     @keydown.enter.self.prevent="interactive && emit('activate')"
@@ -36,13 +36,13 @@ const emit = defineEmits<{ activate: [] }>()
       {{ from }}<span v-if="to" class="block font-normal text-gray-400 dark:text-gray-500">{{ to }}</span>
     </span>
     <span v-if="kind === 'trip'"
-      class="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-white dark:border-gray-200 dark:bg-gray-900"
+      class="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-white sm:h-9 sm:w-9 dark:border-gray-200 dark:bg-gray-900"
       :class="iconTone">
-      <MapIcon class="h-[18px] w-[18px]" aria-hidden="true" />
+      <MapIcon class="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden="true" />
     </span>
     <span v-else
-      class="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
-      <BoltIcon class="h-[18px] w-[18px]" aria-hidden="true" />
+      class="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-green-600 text-white sm:h-9 sm:w-9 dark:border-transparent dark:bg-green-500 dark:text-gray-950">
+      <BoltIcon class="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden="true" />
     </span>
     <span class="min-w-0 flex-1">
       <span class="flex flex-wrap items-baseline gap-x-2 text-[15px] font-semibold leading-snug text-gray-900 dark:text-gray-100"><slot name="title" /></span>

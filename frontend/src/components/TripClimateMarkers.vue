@@ -53,7 +53,7 @@ function durationText(seconds: number): string {
     class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
     :class="align === 'start' ? 'justify-start' : 'justify-center'"
   >
-    <li v-for="(load, i) in loads" :key="load.key" class="flex items-center gap-1">
+    <li v-for="(load, i) in loads" :key="load.key" class="flex items-center gap-1 whitespace-nowrap">
       <span v-if="i > 0" class="mr-2 text-gray-300 dark:text-gray-600" aria-hidden="true">&middot;</span>
       <component :is="load.icon" class="w-3 h-3 flex-shrink-0 text-gray-400 dark:text-gray-500" aria-hidden="true" />
       <span class="text-gray-700 dark:text-gray-300">{{ load.label }}</span>

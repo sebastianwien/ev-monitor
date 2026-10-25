@@ -16,6 +16,7 @@ export function formatSocRange(
     // Live-Quellen (Tesla) liefern Nachkommastellen; ganze Prozent reichen und halten die Zeile schmal.
     const end = Math.round(after)
     const start = before == null ? null : Math.round(before)
-    if (start == null || start === end) return `${end} %`
-    return `${start} → ${end} %`
+    // Geschuetzte Leerzeichen: Zahl und Prozentzeichen brechen in schmalen Spalten nicht auseinander.
+    if (start == null || start === end) return `${end}\u00a0%`
+    return `${start} →\u00a0${end}\u00a0%`
 }

@@ -805,7 +805,7 @@ function drainPauseMinutes(trip: any): number | null {
 
 /** Standverlust als "0,06 kWh" im Zahlenformat der Sprache. */
 function drainText(drain: any): string {
-  return `${formatDecimal(Number(drain?.kwh ?? 0), 2)} kWh`
+  return `${formatDecimal(Number(drain?.kwh ?? 0), 2)}\u00a0kWh`
 }
 /** Anteil des Standverlusts am Akku, " (0,1 %)" - gegen die SoH-adjustierte Kapazitaet. */
 function drainShare(drain: any): string {
@@ -821,8 +821,9 @@ function tripTitle(trip: any): string {
 /** Unterzeile einer Fahrt: Akku vorher und nachher, Aussentemperatur - nur was gemessen ist. */
 function tripSubline(trip: any): string {
   const parts: string[] = []
-  if (trip.socStart != null && trip.socEnd != null) parts.push(`${Math.round(Number(trip.socStart))} → ${Math.round(Number(trip.socEnd))} %`)
-  if (trip.outsideTempCelsius != null) parts.push(`${formatDecimal(Number(trip.outsideTempCelsius), 0)} °C`)
+  // Geschuetzte Leerzeichen: Zahl und Einheit brechen in der schmalen Spalte nicht auseinander.
+  if (trip.socStart != null && trip.socEnd != null) parts.push(`${Math.round(Number(trip.socStart))} →\u00a0${Math.round(Number(trip.socEnd))}\u00a0%`)
+  if (trip.outsideTempCelsius != null) parts.push(`${formatDecimal(Number(trip.outsideTempCelsius), 0)}\u00a0°C`)
   return parts.join(' · ')
 }
 
@@ -1724,8 +1725,8 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                           </template>
                         </FeedEventRow>
                         <Collapse :open="expandedTripMaps.has(trip.id)">
-                          <div :id="'trip-details-' + trip.id" class="px-4 pb-3">
-                            <p v-if="tripFacts(trip)" class="pl-[104px] text-[13px] text-gray-600 tabular-nums dark:text-gray-300">{{ tripFacts(trip) }}</p>
+                          <div :id="'trip-details-' + trip.id" class="px-3 pb-3 sm:px-4">
+                            <p v-if="tripFacts(trip)" class="pl-[96px] sm:pl-[104px] text-[13px] text-gray-600 tabular-nums dark:text-gray-300">{{ tripFacts(trip) }}</p>
                             <TripMapPanel v-if="hasTripMap(trip)" :trip="trip" :panel-id="'trip-map-' + trip.id" />
                             <!-- Aktionen der Fahrt: Bewerten links, Nachtragen, Bearbeiten, Loeschen rechts. -->
                             <div class="flex items-center gap-2 pt-3">
@@ -1815,13 +1816,13 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                            Erst die Ruhe, dann was sie gekostet hat; ohne ausgewiesenen
                            Standverlust bleibt die Dauer allein stehen. -->
                       <div v-if="isRestBreak(day.trips, tripIdx as number) && !showsDrain(trip)"
-                           class="pb-2 pl-[72px] pr-4 text-[12px] text-gray-400 tabular-nums dark:text-gray-500">
+                           class="pb-2 pl-[66px] pr-3 text-[12px] text-gray-400 tabular-nums sm:pl-[72px] sm:pr-4 dark:text-gray-500">
                         {{ t('dashboard.trip_pause', { duration: formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }) }}
                       </div>
 
                       <!-- Standzeit mit Verlust zwischen zwei Fahrten: Amber wie der Standverlust im Kopf. -->
                       <div v-if="showsDrain(trip)"
-                           class="pb-2 pl-[72px] pr-4 text-[12px] tabular-nums text-gray-500 dark:text-gray-400">
+                           class="pb-2 pl-[66px] pr-3 text-[12px] tabular-nums text-gray-500 sm:pl-[72px] sm:pr-4 dark:text-gray-400">
                         <span>
                           <i class="mr-1.5 inline-block h-2 w-2 rounded-[2px] bg-amber-400 align-middle" aria-hidden="true" />
                           <template v-if="drainPauseMinutes(trip)">{{ formatPauseDuration(drainPauseMinutes(trip)) }} &middot; </template>
@@ -2407,7 +2408,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                 </FeedEventRow>
                 <!-- Brutto/Netto, Ladekurve und "Korrekt erkannt?": auch zugeklappt sichtbar, volle Breite unter der Zeile -->
                     <!-- Brutto/Netto und "Korrekt erkannt?", auch zugeklappt sichtbar -->
-                <div class="-mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 pb-2 pl-[120px] pr-4 text-[12.5px] text-gray-500 dark:text-gray-400" @click.stop @mousedown.stop>
+                <div class="-mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 pb-2 pl-[108px] pr-3 sm:pl-[120px] sm:pr-4 text-[12.5px] text-gray-500 dark:text-gray-400" @click.stop @mousedown.stop>
                       <template v-if="logEditState[item.entry.id] !== undefined">
                         <input type="number" step="0.01" min="0" inputmode="decimal"
                           v-model="logEditState[item.entry.id]"
@@ -2447,9 +2448,9 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                     </div>
                 <DataFeedbackPanel v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id" class="mx-4 mb-3" />
                 <Collapse :open="expandedLogs.has(item.entry.id)">
-                  <div class="grid gap-2 px-4 pb-3">
+                  <div class="grid gap-2 px-3 pb-3 sm:px-4">
                     <!-- Was zur Ladung gemessen ist; Hinweise oeffnen ihre Erklaerung darunter. -->
-                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pl-[104px] text-[13px] text-gray-600 tabular-nums dark:text-gray-300">
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 pl-[96px] sm:pl-[104px] text-[13px] text-gray-600 tabular-nums dark:text-gray-300">
                       <button v-if="item.entry.consumptionKwhPer100km == null && item.entry.kwhCountedInNextConsumption" type="button"
                         class="inline-flex items-center gap-1 underline decoration-gray-300 underline-offset-4 dark:decoration-gray-600"
                         :aria-expanded="openTooltipLogId === item.entry.id"
@@ -2565,7 +2566,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                   </template>
                 </FeedEventRow>
                     <!-- Fehlender Brutto- oder Nettowert der ganzen Gruppe -->
-                <div v-if="item.entry._canEditMissing" class="-mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 pb-2 pl-[120px] pr-4 text-[12.5px] text-gray-500 dark:text-gray-400" @click.stop @mousedown.stop>
+                <div v-if="item.entry._canEditMissing" class="-mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 pb-2 pl-[108px] pr-3 sm:pl-[120px] sm:pr-4 text-[12.5px] text-gray-500 dark:text-gray-400" @click.stop @mousedown.stop>
                       <template v-if="grossEditState[item.entry.id] !== undefined">
                         <input type="number" step="0.01" min="0" inputmode="decimal"
                           v-model="grossEditState[item.entry.id]"
@@ -2599,9 +2600,9 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       </button>
                     </div>
                 <Collapse :open="expandedGroups.has(item.entry.id)">
-                  <div class="px-4 pb-3">
+                  <div class="px-3 pb-3 sm:px-4">
                     <p v-if="item.entry._totalConsumption != null || item.entry._maxSoc != null || item.entry._maxPower || sourceInfo(item.entry._commonDataSource) || item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
-                      class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 pl-[104px] text-[13px] text-gray-600 tabular-nums dark:text-gray-300">
+                      class="flex flex-wrap items-center gap-x-3 gap-y-1 pb-2 pl-[96px] sm:pl-[104px] text-[13px] text-gray-600 tabular-nums dark:text-gray-300">
                       <b v-if="item.entry._totalConsumption != null" class="font-semibold"
                         :class="consumptionValueTone(item.entry._totalConsumption)">{{ formatConsumption(item.entry._totalConsumption) }}</b>
                       <span v-if="item.entry._maxSoc != null" class="whitespace-nowrap">{{ t('logs.group_max_soc', { soc: item.entry._maxSoc }) }}</span>
@@ -2616,7 +2617,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                     </p>
                     <!-- Teilladungen: Uhrzeit, kWh, Akku, Preis, jede mit eigenem Menue -->
                     <ul class="divide-y divide-gray-100 border-t border-gray-100 dark:divide-gray-700/70 dark:border-gray-700/70">
-                      <li v-for="topUp in item.entry._topUps" :key="topUp.id" class="flex items-center gap-2 py-1.5 pl-[104px] text-[13px] tabular-nums">
+                      <li v-for="topUp in item.entry._topUps" :key="topUp.id" class="flex items-center gap-2 py-1.5 pl-[96px] sm:pl-[104px] text-[13px] tabular-nums">
                         <span class="min-w-0 flex-1 text-gray-600 dark:text-gray-300">
                           <span class="block">
                             <template v-if="item.entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
@@ -2652,7 +2653,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                     </ul>
                     <!-- Ein Hinweis pro Gruppe statt eines Schlosses je Teilladung -->
                     <button v-if="!authStore.canViewLiveAnalytics && purchasesAvailable() && curveTopUpCount(item.entry) > 0" type="button" aria-haspopup="dialog"
-                      class="mt-1 flex min-h-10 w-full items-center gap-1.5 pl-[104px] text-left text-[13px] font-semibold text-gray-700 dark:text-gray-200"
+                      class="mt-1 flex min-h-10 w-full items-center gap-1.5 pl-[96px] sm:pl-[104px] text-left text-[13px] font-semibold text-gray-700 dark:text-gray-200"
                       @click.stop="openPowerCurve(firstCurveTopUp(item.entry))">
                       <ChartBarSquareIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
                       <span class="underline decoration-gray-300 underline-offset-4">{{ curveTopUpCount(item.entry) === 1 ? t('dashboard.power_curve_group_locked_one') : t('dashboard.power_curve_group_locked', { count: curveTopUpCount(item.entry) }) }}</span>
