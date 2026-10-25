@@ -1688,8 +1688,8 @@ coins:
   unit: Watt
   to_leaderboard: Gå til resultatlisten
   ranking_title: Din rangering denne måneden
-  collapse: skjul ▲
-  expand: vis mer ▼
+  collapse: skjul
+  expand: vis mer
   standings_loading: Laster...
   delta_new: NYTT
   type_achievement: Prestasjon

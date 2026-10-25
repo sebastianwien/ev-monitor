@@ -3,7 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import api from '../api/axios'
 import { useCoinStore } from '../stores/coins'
-import { BoltIcon, TrophyIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon, SparklesIcon } from '@heroicons/vue/24/outline'
+import { TrophyIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon, SparklesIcon, ExclamationCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import ModelBox from '../components/models/ModelBox.vue'
 
 const { t } = useI18n()
 const coinStore = useCoinStore()
@@ -38,14 +39,6 @@ async function fetchStandings() {
 function toggleStandings() {
   standingsOpen.value = !standingsOpen.value
   localStorage.setItem('standings-open', String(standingsOpen.value))
-}
-
-function deltaClass(delta: number | null, isNew: boolean): string {
-  if (isNew) return 'text-blue-500'
-  if (delta === null) return 'text-gray-400'
-  if (delta > 0) return 'text-green-600'
-  if (delta < 0) return 'text-red-500'
-  return 'text-gray-400'
 }
 
 function deltaLabel(delta: number | null, isNew: boolean): string {
@@ -85,6 +78,9 @@ const formatDate = (iso: string): string => {
   })
 }
 
+// Abzüge (gelöschter Ladevorgang) kommen negativ: echtes Minus statt "+-5".
+const signedAmount = (amount: number): string => amount < 0 ? `−${Math.abs(amount)}` : `+${amount}`
+
 const fetchLogs = async () => {
   loading.value = true
   error.value = null
@@ -105,150 +101,117 @@ onMounted(() => {
   fetchLogs()
   fetchStandings()
 })
+
+// Legende der Watt-Regeln: Betrag pro Aktion, gruppiert wie im Belohnungssystem.
+const LEGEND = [
+  { title: 'coins.legend_logs', items: [['coins.legend_log_first', '+25'], ['coins.legend_log_more', '+5'], ['coins.legend_log_ocr_first', '+27'], ['coins.legend_log_ocr', '+7'], ['coins.legend_log_delete', '−']] },
+  { title: 'coins.legend_imports', items: [['coins.legend_sprit_connect', '+50'], ['coins.legend_sprit_log', '+2'], ['coins.legend_tesla_connect', '+50'], ['coins.legend_tesla_logger', '+20'], ['coins.legend_tesla_logger_log', '+2'], ['coins.legend_tesla_sync_log', '+5']] },
+  { title: 'coins.legend_cars', items: [['coins.legend_car_first', '+20'], ['coins.legend_car_more', '+5'], ['coins.legend_car_image_first', '+15'], ['coins.legend_car_image_public', '+10']] },
+  { title: 'coins.legend_community', items: [['coins.legend_referral', '+100'], ['coins.legend_referral_bonus', '+25']] },
+] as const
+
+const BTN_SECONDARY = 'btn-3d cta-shadow-sm inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-white px-4 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:shadow-none! dark:hover:bg-white/15'
+const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'
 </script>
 
 <template>
-  <div class="md:max-w-2xl md:mx-auto p-4 md:p-6 md:mt-8">
-    <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6">
-      <!-- Header -->
-      <div class="mb-6">
-        <div class="flex items-center justify-between">
-          <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">{{ t('coins.title') }}</h1>
-          <div class="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700 rounded-sm">
-            <BoltIcon class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <span class="text-xl font-bold text-indigo-700 dark:text-indigo-300">{{ coinStore.balance }}</span>
-            <span class="text-sm text-indigo-500 dark:text-indigo-400">{{ t('coins.unit') }}</span>
-          </div>
-        </div>
-        <router-link to="/leaderboard" class="mt-3 flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-yellow-400 hover:bg-yellow-300 active:translate-y-0.5 active:shadow-none text-yellow-900 font-semibold text-sm rounded-sm shadow-[0_4px_0_0_#b45309] hover:shadow-[0_4px_0_0_#92400e] active:shadow-[0_2px_0_0_#92400e] transition-all">
-          <TrophyIcon class="h-4 w-4" />
-          {{ t('coins.to_leaderboard') }}
-        </router-link>
-      </div>
+  <div class="grid min-h-full gap-2 bg-gray-100 pb-6 md:mx-auto md:max-w-2xl md:gap-4 md:bg-transparent md:p-6 dark:bg-gray-950 md:dark:bg-transparent">
+    <!-- Kopf: Kontostand und Weg zur Rangliste -->
+    <ModelBox>
+      <header class="flex items-end justify-between gap-3">
+        <h1 class="text-[28px] font-bold leading-[1.1] text-gray-900 md:text-[36px] dark:text-gray-50">{{ t('coins.title') }}</h1>
+        <p class="flex shrink-0 items-baseline gap-1 leading-none">
+          <b class="text-[26px] font-extrabold tracking-tight text-gray-900 tabular-nums dark:text-gray-50">{{ coinStore.balance }}</b>
+          <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ t('coins.unit') }}</span>
+        </p>
+      </header>
+      <router-link to="/leaderboard" :class="BTN_SECONDARY">
+        <TrophyIcon class="h-4 w-4" aria-hidden="true" />
+        {{ t('coins.to_leaderboard') }}
+      </router-link>
+    </ModelBox>
 
-      <!-- Leaderboard Standings -->
-      <div class="mb-6">
-        <button @click="toggleStandings" class="w-full flex items-center justify-between mb-2 group">
-          <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('coins.ranking_title') }}</h2>
-          <span class="text-xs text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition">{{ standingsOpen ? t('coins.collapse') : t('coins.expand') }}</span>
-        </button>
-        <div v-if="standingsOpen">
-        <div v-if="standingsLoading" class="text-center py-4 text-gray-400 text-sm">{{ t('coins.standings_loading') }}</div>
-        <div v-else class="rounded-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <table class="w-full text-sm">
-            <tbody>
-              <tr
-                v-for="s in standings"
-                :key="s.category"
-                class="border-b border-gray-50 dark:border-gray-700 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                <!-- Category name -->
-                <td class="px-3 py-2.5 text-gray-700 dark:text-gray-300 font-medium">{{ s.displayName }}</td>
-                <!-- Rank -->
-                <td class="px-3 py-2.5 text-right">
-                  <span v-if="s.rank !== null" class="font-bold text-gray-900 dark:text-gray-100">#{{ s.rank }}</span>
-                  <span v-else class="text-gray-300 dark:text-gray-600">-</span>
-                </td>
-                <!-- Value -->
-                <td class="px-3 py-2.5 text-right text-gray-500 dark:text-gray-400 tabular-nums">
-                  <span v-if="s.value !== null">{{ s.value }} {{ s.unit }}</span>
-                </td>
-                <!-- Delta -->
-                <td class="px-3 py-2.5 w-10">
-                  <div :class="['flex flex-col items-center text-xs font-semibold', deltaClass(s.rankDelta, s.isNew)]">
-                    <ArrowUpIcon v-if="s.rankDelta && s.rankDelta > 0" class="h-3 w-3" />
-                    <ArrowDownIcon v-else-if="s.rankDelta && s.rankDelta < 0" class="h-3 w-3" />
-                    <SparklesIcon v-else-if="s.isNew" class="h-3 w-3" />
-                    <MinusIcon v-else-if="s.rank !== null" class="h-3 w-3" />
-                    <span v-if="s.rank !== null">{{ deltaLabel(s.rankDelta, s.isNew) }}</span>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+    <!-- Eigene Plätze im laufenden Monat -->
+    <ModelBox>
+      <button type="button" class="-my-2 flex min-h-11 w-full items-center justify-between gap-3 text-left" :aria-expanded="standingsOpen" @click="toggleStandings">
+        <h2 class="text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ t('coins.ranking_title') }}</h2>
+        <span class="flex items-center gap-1 text-[13px] font-semibold text-gray-500 dark:text-gray-400">
+          {{ standingsOpen ? t('coins.collapse') : t('coins.expand') }}
+          <ChevronDownIcon class="h-4 w-4 transition-transform" :class="standingsOpen ? 'rotate-180' : ''" aria-hidden="true" />
+        </span>
+      </button>
+      <template v-if="standingsOpen">
+        <div v-if="standingsLoading" class="grid animate-pulse gap-2" aria-busy="true">
+          <div v-for="i in 4" :key="i" class="h-6 rounded bg-gray-200 dark:bg-gray-700" />
         </div>
-        </div>
-      </div>
+        <ul v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+          <li v-for="s in standings" :key="s.category" class="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+            <span class="min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ s.displayName }}</span>
+            <span v-if="s.value !== null" class="text-[13px] text-gray-500 tabular-nums dark:text-gray-400">{{ s.value }} {{ s.unit }}</span>
+            <b v-if="s.rank !== null" class="w-10 text-right text-gray-900 tabular-nums dark:text-gray-100">#{{ s.rank }}</b>
+            <span v-else class="w-10 text-right text-gray-400 dark:text-gray-500">-</span>
+            <span class="flex w-9 flex-col items-center text-[11px] font-semibold text-gray-500 tabular-nums dark:text-gray-400">
+              <template v-if="s.rank !== null">
+                <ArrowUpIcon v-if="s.rankDelta && s.rankDelta > 0" class="h-3.5 w-3.5" aria-hidden="true" />
+                <ArrowDownIcon v-else-if="s.rankDelta && s.rankDelta < 0" class="h-3.5 w-3.5" aria-hidden="true" />
+                <SparklesIcon v-else-if="s.isNew" class="h-3.5 w-3.5" aria-hidden="true" />
+                <MinusIcon v-else class="h-3.5 w-3.5" aria-hidden="true" />
+                <span v-if="deltaLabel(s.rankDelta, s.isNew) !== '-'">{{ deltaLabel(s.rankDelta, s.isNew) }}</span>
+              </template>
+            </span>
+          </li>
+        </ul>
+      </template>
+    </ModelBox>
 
-      <!-- Legende -->
-      <details class="mb-6 rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-sm">
-        <summary class="cursor-pointer px-4 py-3 font-medium text-gray-700 dark:text-gray-300 select-none">{{ t('coins.legend_title') }}</summary>
-        <div class="px-4 pb-4 pt-2 space-y-3">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_logs') }}</p>
-            <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_first') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+25 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_more') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+5 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_ocr_first') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+27 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_ocr') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+7 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_log_delete') }}</span><span class="font-semibold text-red-500 dark:text-red-400">− ⚡</span></li>
-            </ul>
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_imports') }}</p>
-            <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>{{ t('coins.legend_sprit_connect') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+50 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_sprit_log') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+2 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_connect') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+50 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_logger') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+20 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_logger_log') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+2 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_tesla_sync_log') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+5 ⚡</span></li>
-            </ul>
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_cars') }}</p>
-            <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>{{ t('coins.legend_car_first') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+20 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_car_more') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+5 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_car_image_first') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+15 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_car_image_public') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+10 ⚡</span></li>
-            </ul>
-          </div>
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ t('coins.legend_community') }}</p>
-            <ul class="space-y-1 text-gray-600 dark:text-gray-400">
-              <li class="flex justify-between"><span>{{ t('coins.legend_referral') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+100 ⚡</span></li>
-              <li class="flex justify-between"><span>{{ t('coins.legend_referral_bonus') }}</span><span class="font-semibold text-indigo-600 dark:text-indigo-400">+25 ⚡</span></li>
+    <!-- Legende: wofür es Watt gibt -->
+    <ModelBox>
+      <details class="group">
+        <summary class="-my-2 flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 select-none [&::-webkit-details-marker]:hidden">
+          <h2 class="text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ t('coins.legend_title') }}</h2>
+          <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div class="grid gap-5 pt-4">
+          <div v-for="group in LEGEND" :key="group.title" class="grid gap-1.5">
+            <p :class="LABEL">{{ t(group.title) }}</p>
+            <ul class="grid gap-1 text-sm text-gray-700 dark:text-gray-300">
+              <li v-for="[key, amount] in group.items" :key="key" class="flex justify-between gap-3">
+                <span>{{ t(key) }}</span>
+                <b class="shrink-0 text-gray-900 tabular-nums dark:text-gray-100">{{ amount }} {{ t('coins.unit') }}</b>
+              </li>
             </ul>
           </div>
         </div>
       </details>
+    </ModelBox>
 
-      <!-- Error -->
-      <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm text-sm">
-        {{ error }}
+    <!-- Verlauf -->
+    <ModelBox>
+      <div v-if="error" role="alert" class="flex items-start gap-2 rounded-xl bg-gray-100 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:bg-gray-800/60 dark:text-gray-100">
+        <ExclamationCircleIcon class="mt-0.5 h-5 w-5 shrink-0 text-gray-700 dark:text-gray-300" aria-hidden="true" />
+        <span>{{ error }}</span>
       </div>
 
-      <!-- Loading -->
-      <div v-if="loading" class="text-center py-12 text-gray-500 dark:text-gray-400">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-3"></div>
-        <p class="text-sm">{{ t('coins.loading') }}</p>
+      <div v-if="loading" class="grid animate-pulse gap-3" aria-busy="true" :aria-label="t('coins.loading')">
+        <div v-for="i in 5" :key="i" class="h-10 rounded bg-gray-200 dark:bg-gray-700" />
       </div>
 
-      <!-- Empty state -->
-      <div v-else-if="logs.length === 0" class="text-center py-12">
-        <BoltIcon class="h-16 w-16 mx-auto mb-4 text-gray-300" />
-        <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ t('coins.empty_title') }}</h3>
-        <p class="text-gray-500 dark:text-gray-400 text-sm">{{ t('coins.empty_desc') }}</p>
+      <div v-else-if="logs.length === 0 && !error" class="py-4 text-center">
+        <p class="text-lg font-bold text-gray-900 dark:text-gray-50">{{ t('coins.empty_title') }}</p>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ t('coins.empty_desc') }}</p>
       </div>
 
-      <!-- Coin log list -->
-      <ul v-else class="space-y-3">
-        <li
-          v-for="log in logs"
-          :key="log.id"
-          class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-sm">
-          <div class="flex items-center gap-3">
-            <BoltIcon class="h-6 w-6 text-indigo-400 flex-shrink-0" />
-            <div>
-              <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ log.actionDescription }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {{ coinTypeLabel[log.coinType] || log.coinType }} · {{ formatDate(log.createdAt) }}
-              </p>
-            </div>
+      <ul v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+        <li v-for="log in logs" :key="log.id" class="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ log.actionDescription }}</p>
+            <p class="mt-0.5 text-[13px] text-gray-500 tabular-nums dark:text-gray-400">
+              {{ coinTypeLabel[log.coinType] || log.coinType }} · {{ formatDate(log.createdAt) }}
+            </p>
           </div>
-          <span class="font-bold text-green-600 dark:text-green-400 text-base">+{{ log.amount }}</span>
+          <b class="shrink-0 text-base text-gray-900 tabular-nums dark:text-gray-100">{{ signedAmount(log.amount) }}</b>
         </li>
       </ul>
-    </div>
+    </ModelBox>
   </div>
 </template>
