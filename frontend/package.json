@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:story": "BASE_URL=${BASE_URL:-https://localhost:5173} playwright test tests/e2e/story- --project=chromium --project='Mobile Chrome' --workers=4",
     "build:app": "vue-tsc && vite build --mode app",
     "cap:sync": "npm run build:app && cap sync",
     "cap:ios": "npm run cap:sync && cap open ios"

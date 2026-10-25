@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.BASE_URL || 'http://localhost:5173';
+// dev-full.sh startet Vite mit selbst signiertem HTTPS: dann gegen den laufenden Server, ohne eigenen.
+const https = baseURL.startsWith('https');
+
 export default defineConfig({
   testDir: './tests/e2e',
   globalSetup: './tests/e2e/global-setup.ts',
@@ -10,7 +14,8 @@ export default defineConfig({
   reporter: process.env.CI ? 'github' : 'html',
 
   use: {
-    baseURL: process.env.BASE_URL || 'http://localhost:5173',
+    baseURL,
+    ignoreHTTPSErrors: https,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     locale: 'de-DE',
@@ -31,7 +36,7 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
+  webServer: https ? undefined : {
     command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
