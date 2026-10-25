@@ -4158,6 +4158,7 @@ story:
   days_legend_charged: "laddat"
   days_legend_drove: "kört"
   days_legend_gap: "inget registrerat"
+  days_tap_hint: "Tryck på en dag för detaljer"
   day_tip_charges: "{n} laddning, {kwh} | {n} laddningar, {kwh}"
   day_tip_empty: "inget registrerat"
   day_tip_future: "kommer"

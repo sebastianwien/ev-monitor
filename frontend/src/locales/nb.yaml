@@ -4158,6 +4158,7 @@ story:
   days_legend_charged: "ladet"
   days_legend_drove: "kjørt"
   days_legend_gap: "ingenting registrert"
+  days_tap_hint: "Trykk på en dag for detaljer"
   day_tip_charges: "{n} lading, {kwh} | {n} ladinger, {kwh}"
   day_tip_empty: "ingenting registrert"
   day_tip_future: "kommer"

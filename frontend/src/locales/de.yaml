@@ -4322,6 +4322,7 @@ story:
   days_legend_charged: "geladen"
   days_legend_drove: "gefahren"
   days_legend_gap: "nichts erfasst"
+  days_tap_hint: "Tag antippen für Details"
   day_tip_charges: "{n} Ladung, {kwh} | {n} Ladungen, {kwh}"
   day_tip_empty: "nichts erfasst"
   day_tip_future: "kommt noch"
