@@ -1,0 +1,128 @@
+name: Deploy Prerender
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'prerender/**'
+      - '.github/workflows/prerender.yml'
+  workflow_dispatch:  # Manual trigger, z. B. um Alpine-Pakete neu zu ziehen
+
+# Prerender-Image: Tag = Git-Tree-Hash von prerender/, auf main zusätzlich latest-main.
+# Vor dem Push rendert das Image einmal /modelle, ein kaputtes Chromium kommt nicht nach Prod.
+# Auf dem Server laufen Pull und Neustart unter demselben Lock wie deploy-release.sh.
+env:
+  PRERENDER_IMAGE: ghcr.io/sebastianwien/ev-monitor-prerender
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        id: image
+        run: |
+          TAG=$(git rev-parse HEAD:prerender)
+          docker build --pull -t "$PRERENDER_IMAGE:$TAG" prerender
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Render smoke test
+        env:
+          TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          docker run -d --name prerender-test -p 3000:3000 "$PRERENDER_IMAGE:$TAG"
+          # Chromium braucht nach dem Start einige Sekunden, bis dahin antwortet Prerender mit 503
+          for _ in $(seq 1 12); do
+            size=$(curl -s -m 60 -o page.html -w "%{size_download}" \
+                   "http://localhost:3000/https://ev-monitor.net/modelle" || echo 0)
+            if [ "$size" -gt 10000 ] && grep -q "<title>" page.html; then
+              echo "✅ /modelle gerendert, $size bytes"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "❌ Prerender liefert kein gerendertes /modelle"
+          docker logs --tail 50 prerender-test
+          exit 1
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image
+        env:
+          TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          docker push -q "$PRERENDER_IMAGE:$TAG"
+          docker tag "$PRERENDER_IMAGE:$TAG" "$PRERENDER_IMAGE:latest-main"
+          docker push -q "$PRERENDER_IMAGE:latest-main"
+
+      # Neuer Tag landet erst nach erfolgreichem Start in release.env, Rollback:
+      # release.sh rollback PRERENDER_TAG, danach dc.sh up -d --no-deps --no-build prerender
+      - name: Deploy to Hetzner Server
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.image.outputs.tag }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          command_timeout: 20m
+          envs: GHCR_USER,GHCR_TOKEN,TAG
+          script: |
+            set -euo pipefail
+            INFRA=/opt/ev-monitor/ev-monitor-infra/scripts
+            exec 9>/tmp/ev-monitor-deploy.lock
+            flock -w 600 9
+            DOCKER_CONFIG=$(mktemp -d); export DOCKER_CONFIG
+            trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin > /dev/null
+            PRERENDER_TAG=$TAG bash $INFRA/dc.sh pull --quiet prerender
+            PRERENDER_TAG=$TAG bash $INFRA/dc.sh up -d --no-deps --no-build prerender
+            ready=false
+            for _ in $(seq 1 12); do
+              curl -s -o /dev/null -m 60 -w "%{http_code}" "http://127.0.0.1:3000/https://ev-monitor.net/" | grep -q 200 \
+                && { ready=true; break; }
+              sleep 5
+            done
+            [ "$ready" = true ] || { echo "❌ prerender ${TAG:0:8} rendert nicht, release.env unverändert"; exit 1; }
+            bash $INFRA/release.sh set "PRERENDER_TAG=$TAG"
+            echo "✅ prerender läuft auf ${TAG:0:8}"
+
+      - name: Prerender smoke test on production
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          script: |
+            cd /opt/ev-monitor/ev-monitor
+            ./scripts/test-prerender.sh https://ev-monitor.net
+
+      # Der Neustart leert den Memory-Cache
+      - name: Warm prerender cache
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          script: |
+            cd /opt/ev-monitor/ev-monitor
+            mkdir -p logs
+            nohup ./scripts/warm-prerender-cache.sh > /opt/ev-monitor/ev-monitor/logs/prerender-warm.log 2>&1 &
+            echo "✅ Cache warmer started (PID $!)"
