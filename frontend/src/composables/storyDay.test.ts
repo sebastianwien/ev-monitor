@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
-  gapMinutes, canMerge, showStanding, ribbonSegments,
+  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow,
   type DayLog, type DayTrip, type DayEvent,
 } from './storyDay'
 
@@ -129,5 +129,24 @@ describe('ribbonSegments', () => {
   it('ohne SoC keine Bildunterschrift', () => {
     const r = ribbonSegments(eventsOfDay('2026-08-16', [trip({ socStart: null, socEnd: null })], []))
     expect(r.caption).toBeNull()
+  })
+})
+
+describe('routeThumb', () => {
+  it('passt die Strecke ins Feld, Norden oben, Seitenverhältnis bleibt', () => {
+    // [lat, lng]: 1 Grad nach Osten, dann 1 Grad nach Norden
+    const r = routeThumb([[0, 0], [0, 1], [1, 1]], 60, 44, 4)!
+    expect(r.d).toBe('M12,40L48,40L48,4')
+    expect(r.end).toEqual([48, 4])
+  })
+  it('weniger als zwei Punkte: nichts', () => {
+    expect(routeThumb([[0, 0]], 60, 44)).toBeNull()
+  })
+})
+
+describe('dayAtNow', () => {
+  it('Datum des Tages, Uhrzeit von jetzt', () => {
+    const d = dayAtNow('2026-08-16', new Date(2026, 9, 25, 19, 42, 31))
+    expect(d.getTime()).toBe(new Date(2026, 7, 16, 19, 42).getTime())
   })
 })

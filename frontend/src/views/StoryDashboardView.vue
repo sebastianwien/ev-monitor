@@ -39,11 +39,15 @@ import LicensePlate from '../components/car/LicensePlate.vue'
 import api from '../api/axios'
 import type { PlacePeriod } from '../composables/storyPlaces'
 import type { EvLogResponse } from '../components/dashboard/EditLogModal.vue'
+import { dayKeyOf } from '../composables/storyDay'
+import { useLogsRefreshStore } from '../stores/logsRefresh'
 
 const StorySheet = defineAsyncComponent(() => import('../components/story/StorySheet.vue'))
 const StoryPriceSheet = defineAsyncComponent(() => import('../components/story/StoryPriceSheet.vue'))
 const PlacesSheet = defineAsyncComponent(() => import('../components/story/places/PlacesSheet.vue'))
 const EditLogModal = defineAsyncComponent(() => import('../components/dashboard/EditLogModal.vue'))
+const StoryDaySheet = defineAsyncComponent(() => import('../components/story/day/StoryDaySheet.vue'))
+const LogFormModal = defineAsyncComponent(() => import('../components/log-form/LogFormModal.vue'))
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -239,6 +243,26 @@ function backToClassic() {
   router.push('/dashboard')
 }
 
+// Tagesblatt: Tag im Zeitstrahl antippen. "Ladung nachtragen" schliesst das Blatt, oeffnet den
+// Erfassen-Wizard mit dem Datum und kehrt danach zum selben Tag zurueck.
+const openDay = ref<string | null>(null)
+const todayKey = () => dayKeyOf(new Date())
+function onOpenDay(d: number) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  openDay.value = `${month.value.year}-${pad(month.value.month)}-${pad(d)}`
+}
+const addCharge = ref<{ day: string; loggedAt: string } | null>(null)
+function onAddCharge(loggedAt: string) {
+  addCharge.value = { day: openDay.value!, loggedAt }
+  openDay.value = null
+}
+function onAddChargeClosed() {
+  openDay.value = addCharge.value?.day ?? null
+  addCharge.value = null
+}
+// Rueckgaengig im Loesch-Toast (Ladung oder Fahrt) aendert die Zahlen des Monats
+watch(() => useLogsRefreshStore().version, () => story.reload())
+
 // Pull-to-refresh (native App) laedt hier die Daten neu statt der ganzen Seite.
 const unregisterReload = registerSoftReload(() => story.reload())
 onUnmounted(unregisterReload)
@@ -327,7 +351,7 @@ onMounted(() => analytics.track('story_viewed'))
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
             </p>
-            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :days="days" :quality="quality" />
+            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :days="days" :quality="quality" @open-day="onOpenDay" />
             <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" :car-id="selectedCarId" :price-in-hero="priceInHero" />
             <StoryFeed
               v-if="narrow && showFeed"
@@ -371,6 +395,20 @@ onMounted(() => analytics.track('story_viewed'))
       @close="closeOperator(false)"
       @saved="closeOperator(true)"
       @deleted="closeOperator(true)" />
+    <StoryDaySheet
+      v-if="openDay && selectedCarId"
+      v-model:day="openDay"
+      :car-id="selectedCarId"
+      :today="todayKey()"
+      @close="openDay = null"
+      @changed="story.reload()"
+      @add-charge="onAddCharge" />
+    <LogFormModal
+      v-if="addCharge"
+      :car-id="selectedCarId"
+      :initial-logged-at="addCharge.loggedAt"
+      @saved="story.reload()"
+      @close="onAddChargeClosed" />
   </div>
 </template>
 

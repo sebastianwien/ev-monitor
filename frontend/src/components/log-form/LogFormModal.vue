@@ -2,8 +2,10 @@
 import { onMounted, onUnmounted } from 'vue'
 import LogWizard from '../log-wizard/LogWizard.vue'
 
+defineProps<{ carId?: string | null; initialLoggedAt?: string | null }>()
 const emit = defineEmits<{
   close: []
+  saved: []
 }>()
 
 const handleEscape = (e: KeyboardEvent) => {
@@ -29,7 +31,7 @@ onUnmounted(() => {
     @click.self="emit('close')"
   >
     <div class="relative bg-white dark:bg-gray-800 w-full h-full sm:h-auto sm:rounded-sm sm:shadow-2xl sm:max-w-xl sm:max-h-[90vh] overflow-y-auto">
-      <LogWizard @success="emit('close')" @cancel="emit('close')" />
+      <LogWizard :car-id="carId" :initial-logged-at="initialLoggedAt" @success="emit('saved'); emit('close')" @cancel="emit('close')" />
     </div>
   </div>
 </template>

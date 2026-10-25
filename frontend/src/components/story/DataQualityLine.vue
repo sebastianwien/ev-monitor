@@ -12,6 +12,8 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
  * Pfeiltasten zeigen den einzelnen Tag (Ladungen, kWh); die Achse nennt jeden siebten Tag.
  */
 const props = defineProps<{ days: DayCoverage[]; quality: DataQuality | null }>()
+/** Klick, Tap oder Enter auf einen Tag bis heute: Tagesblatt öffnen */
+const emit = defineEmits<{ 'open-day': [day: number] }>()
 const { t } = useI18n()
 const { formatDecimal, formatDistance } = useLocaleFormat()
 
@@ -45,12 +47,17 @@ const bar = ref<HTMLElement | null>(null)
 let touchTimer: ReturnType<typeof setTimeout> | undefined
 onUnmounted(() => clearTimeout(touchTimer))
 
-function onPointer(e: PointerEvent) {
+function indexAt(clientX: number): number | null {
   const el = bar.value
-  if (!el || !props.days.length) return
+  if (!el || !props.days.length) return null
   const r = el.getBoundingClientRect()
-  if (r.width <= 0) return
-  active.value = Math.min(props.days.length - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * props.days.length)))
+  if (r.width <= 0) return null
+  return Math.min(props.days.length - 1, Math.max(0, Math.floor(((clientX - r.left) / r.width) * props.days.length)))
+}
+function onPointer(e: PointerEvent) {
+  const i = indexAt(e.clientX)
+  if (i == null) return
+  active.value = i
   clearTimeout(touchTimer)
   // Auf dem Handy gibt es kein Verlassen mit der Maus: die Anzeige verschwindet nach kurzer Zeit.
   if (e.pointerType === 'touch') touchTimer = setTimeout(() => { active.value = null }, 2500)
@@ -58,7 +65,13 @@ function onPointer(e: PointerEvent) {
 function onLeave(e: PointerEvent) {
   if (e.pointerType !== 'touch') active.value = null
 }
+function open(i: number | null) {
+  const d = i != null ? props.days[i] : null
+  if (d && !d.future) emit('open-day', d.day)
+}
+const onClick = (e: MouseEvent) => open(indexAt(e.clientX))
 function onKey(e: KeyboardEvent) {
+  if (e.key === 'Enter') { open(active.value); return }
   const n = props.days.length
   if (!n) return
   const cur = active.value ?? -1
@@ -100,9 +113,9 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
         role="group"
         data-testid="story-days"
         :aria-label="t('story.days_aria')"
-        class="-my-1.5 flex cursor-default gap-[3px] rounded py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
+        class="-my-1.5 flex cursor-pointer gap-[3px] rounded py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
         @pointerdown="onPointer" @pointermove="onPointer" @pointerleave="onLeave"
-        @keydown="onKey" @blur="active = null">
+        @click="onClick" @keydown="onKey" @blur="active = null">
         <span v-for="(d, i) in days" :key="d.day" class="flex flex-1 flex-col justify-end gap-[2px]" :class="hasTrips ? 'h-7' : ''">
           <span v-if="hasTrips" class="relative block flex-1">
             <i v-if="d.trips > 0" data-role="km" class="absolute inset-x-0 bottom-0 rounded-[2px] bg-gray-400 dark:bg-gray-500"

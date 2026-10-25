@@ -13,6 +13,8 @@ export interface DayTrip {
   socEnd: number | null
   routePolyline?: string | null
   tracePolyline?: string | null
+  routeKind?: string | null
+  routeType?: string | null
 }
 
 /** Was das Tagesblatt von einer Ladung braucht (Auszug aus EvLogResponse). */
@@ -146,4 +148,26 @@ export function ribbonSegments(ev: DayEvent[]) {
   const last = [...ev].reverse().find(e => e.socTo != null)?.socTo ?? socs[socs.length - 1]
   const caption = socs.length ? { first, last, min: Math.min(...socs) } : null
   return { lines, dots, bands, caption }
+}
+
+/**
+ * Mini-Strecke einer Fahrt als SVG-Pfad im Feld w×h, Norden oben, Seitenverhältnis wie auf der Karte
+ * (für die kurze Distanz einer Fahrt reicht das ohne Projektion). Punkte als [lat, lng].
+ */
+export function routeThumb(points: [number, number][], w: number, h: number, pad = 4): { d: string; end: [number, number] } | null {
+  if (points.length < 2) return null
+  const lats = points.map(p => p[0]), lngs = points.map(p => p[1])
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
+  const spanX = Math.max(maxLng - minLng, 1e-9), spanY = Math.max(maxLat - minLat, 1e-9)
+  const s = Math.min((w - 2 * pad) / spanX, (h - 2 * pad) / spanY)
+  const ox = (w - (maxLng - minLng) * s) / 2, oy = (h - (maxLat - minLat) * s) / 2
+  const xy = points.map(([lat, lng]) => [Math.round((ox + (lng - minLng) * s) * 10) / 10, Math.round((oy + (maxLat - lat) * s) * 10) / 10] as [number, number])
+  return { d: xy.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(''), end: xy[xy.length - 1] }
+}
+
+/** Nachtragen: Datum des gewählten Tages, Uhrzeit von jetzt (auf die Minute). */
+export function dayAtNow(key: string, now: Date = new Date()): Date {
+  const d = dateOf(key)
+  d.setHours(now.getHours(), now.getMinutes(), 0, 0)
+  return d
 }

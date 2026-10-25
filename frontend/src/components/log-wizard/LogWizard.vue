@@ -41,6 +41,11 @@ import { nextField } from './keyboardNav'
 import { useIsMobile } from '../../composables/useIsMobile'
 const VoiceCapture = defineAsyncComponent(() => import('./VoiceCapture.vue'))
 
+const props = defineProps<{
+  /** Nachtragen aus dem Tagesblatt: Auto vorwählen und Zeitpunkt (datetime-local) vorbelegen, beides änderbar. */
+  carId?: string | null
+  initialLoggedAt?: string | null
+}>()
 const emit = defineEmits<{ success: []; cancel: [] }>()
 const { t } = useI18n()
 const { haptic } = useHaptic()
@@ -57,7 +62,7 @@ const selectedCarId = ref<string | null>(null)
 const selectedCar = computed(() => cars.value.find(c => c.id === selectedCarId.value) ?? null)
 
 // ── Formular ──────────────────────────────────────────────────────────────────
-const form = ref<LogFormData>(emptyLogForm())
+const form = ref<LogFormData>({ ...emptyLogForm(), loggedAt: props.initialLoggedAt ?? null })
 const state = ref<WizardState>({ place: null })
 const step = ref<WizardStep>(1)
 const ocrUsed = ref(false)
@@ -497,7 +502,8 @@ onMounted(async () => {
   try {
     cars.value = await carStore.getCars()
     hasCars.value = cars.value.length > 0
-    if (cars.value.length === 1) selectedCarId.value = cars.value[0].id
+    if (props.carId && cars.value.some(c => c.id === props.carId)) selectedCarId.value = props.carId
+    else if (cars.value.length === 1) selectedCarId.value = cars.value[0].id
   } catch { hasCars.value = false }
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
   permission.value = await queryLocationPermission()

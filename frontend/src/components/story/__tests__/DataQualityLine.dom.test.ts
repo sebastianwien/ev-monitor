@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, type App } from 'vue'
 import { createPinia } from 'pinia'
 import { i18n } from '../../../i18n'
@@ -25,10 +25,10 @@ function days(withData: number[], gap: [number, number] | null, today = 31, trip
 const quality = (over: Partial<DataQuality> = {}): DataQuality =>
   ({ estimated: 0, total: 12, estimatedShare: 0, priceless: 0, pricelessOpen: 0, severity: 'ok', ...over })
 
-function mount(d: DayCoverage[], q: DataQuality | null) {
+function mount(d: DayCoverage[], q: DataQuality | null, onOpenDay?: (day: number) => void) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(DataQualityLine, { days: d, quality: q })
+  app = createApp(DataQualityLine, { days: d, quality: q, onOpenDay })
   app.component('router-link', RouterLink)
   app.use(createPinia()).use(i18n)
   app.mount(host)
@@ -120,5 +120,39 @@ describe('DataQualityLine', () => {
     for (let i = 0; i < 16; i++) bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
     await Promise.resolve()
     expect(host.querySelector('[data-testid="story-day-tip"]')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('16.: 1 Ladung, 20,0 kWh · 2 Fahrten, 42 km')
+  })
+})
+
+describe('DataQualityLine - Tag öffnen', () => {
+  // 31 Felder auf 310 px: Feld i liegt bei 10*i bis 10*i+10
+  const bar = (host: Element) => {
+    const el = host.querySelector<HTMLElement>('[data-testid="story-days"]')!
+    el.getBoundingClientRect = () => ({ left: 0, width: 310, top: 0, height: 20, right: 310, bottom: 20, x: 0, y: 0, toJSON: () => ({}) })
+    return el
+  }
+  const click = (el: HTMLElement, x: number) => el.dispatchEvent(new MouseEvent('click', { clientX: x, bubbles: true }))
+
+  it('Klick auf einen vergangenen Tag öffnet ihn', () => {
+    const open = vi.fn()
+    const host = mount(days([2], null, 20), quality(), open)
+    click(bar(host), 15)
+    expect(open).toHaveBeenCalledWith(2)
+  })
+
+  it('Tage nach heute öffnen nichts', () => {
+    const open = vi.fn()
+    const host = mount(days([2], null, 20), quality(), open)
+    click(bar(host), 255)
+    expect(open).not.toHaveBeenCalled()
+  })
+
+  it('Enter öffnet den mit Pfeilen gewählten Tag', () => {
+    const open = vi.fn()
+    const host = mount(days([2], null, 20), quality(), open)
+    const el = bar(host)
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    expect(open).toHaveBeenCalledWith(2)
   })
 })
