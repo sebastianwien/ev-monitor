@@ -35,7 +35,10 @@ const value = computed(() => {
     case 'peer': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'battery': return { n: `${x.estimated ? '~' : ''}${formatDecimal(x.value, 0)}`, unit: t('story.battery_unit') }
     case 'co2': return { n: formatDecimal(x.value, 0), unit: t('story.co2_unit') }
-    case 'charging': return { n: formatDecimal(x.value, 0), unit: t('story.charging_unit') }
+    // Ein Monat nur mit AC hiesse sonst "0 % schnell": dann der Anteil normal
+    case 'charging': return x.charging && x.charging.dcKwh === 0
+      ? { n: '100', unit: t('story.charging_unit_normal') }
+      : { n: formatDecimal(x.value, 0), unit: t('story.charging_unit') }
     case 'standby': return { n: formatDecimal(x.value, 1), unit: 'kWh' }
   }
   return { n: '', unit: '' }
@@ -88,6 +91,8 @@ const note = computed(() => {
     case 'co2': return t('story.co2_note')
     case 'charging': {
       const c = x.charging
+      if (c && c.dcKwh === 0) return c.acEurPerKwh != null ? t('story.charging_only_ac', { eur: formatCurrency(c.acEurPerKwh) }) : t('story.charging_only_ac_plain')
+      if (c && c.acKwh === 0) return c.dcEurPerKwh != null ? t('story.charging_only_dc', { eur: formatCurrency(c.dcEurPerKwh) }) : t('story.charging_only_dc_plain')
       if (c?.acEurPerKwh != null && c.dcEurPerKwh != null) return t('story.charging_prices', { ac: formatCurrency(c.acEurPerKwh), dc: formatCurrency(c.dcEurPerKwh) })
       return t('story.charging_kwh', { kwh: formatDecimal(c?.dcKwh ?? 0, 0) })
     }

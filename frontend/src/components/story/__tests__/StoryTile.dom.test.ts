@@ -154,6 +154,17 @@ describe('StoryTile CO₂, Laden, Stand', () => {
     const text = mount({ ...base, id: 'charging', value: 25, charging: { acKwh: 300, dcKwh: 100, unknownKwh: 0, acEurPerKwh: null, dcEurPerKwh: null } })
     expect(text).toContain('100 kWh schnell geladen')
   })
+  it('Laden nur normal: kein "0 % schnell", sondern "Nur normal geladen" mit Preis', () => {
+    const text = mount({ ...base, id: 'charging', value: 0, charging: { acKwh: 300, dcKwh: 0, unknownKwh: 0, acEurPerKwh: 0.3, dcEurPerKwh: null } })
+    expect(text).toMatch(/100\s?% normal/)
+    expect(text).toMatch(/Nur normal geladen, 0,30\s€ je kWh/)
+    expect(text).not.toContain('0 kWh schnell')
+  })
+  it('Laden nur schnell: "Nur schnell geladen" mit Preis', () => {
+    const text = mount({ ...base, id: 'charging', value: 100, charging: { acKwh: 0, dcKwh: 80, unknownKwh: 0, acEurPerKwh: null, dcEurPerKwh: 0.61 } })
+    expect(text).toMatch(/100\s?% schnell/)
+    expect(text).toMatch(/Nur schnell geladen, 0,61\s€ je kWh/)
+  })
   it('Stand: Verlust im Monat und der größte Stand', () => {
     const tripMonth = { trips: 4, km: 40, avgKm: 10, lengthShares: [], driveKwhPer100km: 17, routeShares: [], mainRoute: null, longestKm: 10, tempMin: null, tempMax: null,
       standbyKwh: 3.3, standbyLocked: false, standbyGaps: [{ kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z' }, { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z' }] }
