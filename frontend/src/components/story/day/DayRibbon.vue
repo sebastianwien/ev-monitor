@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ribbonSegments, batteryBars, barExtremes, type BatteryBar, type DayEvent } from '../../../composables/storyDay'
+import { ribbonSegments, batteryBars, type BatteryBar, type DayEvent } from '../../../composables/storyDay'
 
 /**
  * Akku des Tages wie im Akku-Diagramm des Handys: ein Balken je halbe Stunde, Höhe = Akkustand,
@@ -17,10 +17,11 @@ const caption = computed(() => ribbonSegments(props.events).caption)
 const barClass = (b: BatteryBar) => b.kind === 'charge'
   ? 'bg-green-600 dark:bg-green-400'
   : b.kind === 'trip' ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-300 dark:bg-gray-600'
-/** Höchster und tiefster Stand als Bezugslinien, beschriftet am rechten Rand */
+/** Höchster und tiefster gemessener Stand als Bezugslinien, beschriftet am rechten Rand; an einem flachen Tag nur der höchste */
 const marks = computed(() => {
-  const { max, min } = barExtremes(bars.value)
-  return [max && { key: 'max', ...max }, min && { key: 'min', ...min }].filter(Boolean) as { key: 'max' | 'min'; index: number; soc: number }[]
+  const c = caption.value
+  if (!c) return []
+  return c.max - c.min < 1 ? [{ key: 'max' as const, soc: c.max }] : [{ key: 'max' as const, soc: c.max }, { key: 'min' as const, soc: c.min }]
 })
 const pct = (v: number) => `${Math.round(v)} %`
 function pick(b: BatteryBar) {

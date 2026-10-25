@@ -151,7 +151,7 @@ export function ribbonSegments(ev: DayEvent[]) {
   const socs = ev.flatMap(e => [e.socFrom, e.socTo]).filter((v): v is number => v != null)
   const first = ev.find(e => e.socFrom != null)?.socFrom ?? socs[0]
   const last = [...ev].reverse().find(e => e.socTo != null)?.socTo ?? socs[socs.length - 1]
-  const caption = socs.length ? { first, last, min: Math.min(...socs) } : null
+  const caption = socs.length ? { first, last, min: Math.min(...socs), max: Math.max(...socs) } : null
   return { lines, dots, bands, caption }
 }
 
@@ -213,13 +213,4 @@ export function thumbLine(t: DayTrip): { points: [number, number][]; dashed: boo
   if (!t.locationStartGeohash || !t.locationEndGeohash || t.locationStartGeohash === t.locationEndGeohash) return null
   const a = geohash.decode(t.locationStartGeohash), b = geohash.decode(t.locationEndGeohash)
   return { points: [[a.latitude, a.longitude], [b.latitude, b.longitude]], dashed: true }
-}
-
-/** Höchster und tiefster Balken für die Beschriftung; an einem flachen Tag nur der höchste. */
-export function barExtremes(bars: BatteryBar[]) {
-  const known = bars.map((b, index) => ({ index, soc: b.soc })).filter((x): x is { index: number; soc: number } => x.soc != null)
-  if (!known.length) return { max: null, min: null }
-  const max = known.reduce((a, x) => (x.soc > a.soc ? x : a))
-  const min = known.reduce((a, x) => (x.soc < a.soc ? x : a))
-  return { max, min: max.soc - min.soc < 1 ? null : min }
 }
