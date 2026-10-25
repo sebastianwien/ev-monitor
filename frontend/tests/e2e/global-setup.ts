@@ -1,4 +1,4 @@
-import { request } from '@playwright/test';
+import { request, type APIRequestContext } from '@playwright/test';
 
 const API_URL = process.env.API_URL || 'http://localhost:8080';
 const MAILPIT_URL = process.env.MAILPIT_URL || 'http://localhost:8025';
@@ -33,20 +33,24 @@ async function pollMailpit(email: string, timeoutMs = 10_000): Promise<string | 
   return null;
 }
 
-export default async function globalSetup() {
-  const api = await request.newContext({ baseURL: API_URL });
+export interface E2eUser { email: string; username: string; password: string }
 
+/**
+ * Meldet den Nutzer an; gibt es ihn noch nicht (oder ist er unbestätigt), wird er registriert
+ * und über die Mail in Mailpit bestätigt. Liefert das JWT.
+ */
+export async function ensureVerifiedUser(api: APIRequestContext, user: E2eUser): Promise<string> {
   const loginCheck = await api.post('/api/auth/login', {
-    data: { email: TEST_USER.email, password: TEST_USER.password },
+    data: { email: user.email, password: user.password },
   });
 
   if (!loginCheck.ok()) {
     // Registrieren - 409 = User existiert aber ist evtl. nicht verifiziert, weitermachen
     const registerResp = await api.post('/api/auth/register', {
       data: {
-        email: TEST_USER.email,
-        username: TEST_USER.username,
-        password: TEST_USER.password,
+        email: user.email,
+        username: user.username,
+        password: user.password,
       },
     });
 
@@ -57,11 +61,11 @@ export default async function globalSetup() {
 
     if (registerResp.status() === 409) {
       await api.post('/api/auth/resend-verification', {
-        data: { email: TEST_USER.email },
+        data: { email: user.email },
       });
     }
 
-    const token = await pollMailpit(TEST_USER.email);
+    const token = await pollMailpit(user.email);
     if (!token) {
       throw new Error('[E2E Setup] No verification email received within 10s. Is Mailpit running?');
     }
@@ -71,17 +75,18 @@ export default async function globalSetup() {
       throw new Error(`[E2E Setup] Email verification failed: ${verifyResp.status()}`);
     }
 
-    console.log('[E2E Setup] Test user created and verified.');
-  } else {
-    console.log('[E2E Setup] Test user already exists and is verified.');
+    console.log(`[E2E Setup] ${user.email} created and verified.`);
   }
 
-  // Sicherstellen dass ein Testfahrzeug existiert (wird für Log-E2E-Tests benötigt)
   const authResp = await api.post('/api/auth/login', {
-    data: { email: TEST_USER.email, password: TEST_USER.password },
+    data: { email: user.email, password: user.password },
   });
-  const { token: jwt } = await authResp.json();
+  if (!authResp.ok()) throw new Error(`[E2E Setup] Login ${user.email} failed: ${authResp.status()}`);
+  return (await authResp.json()).token;
+}
 
+/** Legt ein Model 3 an, falls der Nutzer noch kein Auto hat, und liefert die Id des ersten Autos. */
+export async function ensureTestCar(api: APIRequestContext, jwt: string): Promise<string> {
   const carsResp = await api.get('/api/cars', {
     headers: { Authorization: `Bearer ${jwt}` },
   });
@@ -93,12 +98,22 @@ export default async function globalSetup() {
     const model3 = Array.isArray(models) ? models.find((m: any) => m.value === 'MODEL_3') : null;
     const spec = model3?.capacities?.find((c: any) => c.vehicleSpecificationId);
     if (!spec) throw new Error('[E2E Setup] Keine Spec-Zeile für MODEL_3 gefunden, Testauto kann nicht angelegt werden.');
-    await api.post('/api/cars', {
+    const carResp = await api.post('/api/cars', {
       headers: { Authorization: `Bearer ${jwt}` },
-      data: { model: 'MODEL_3', year: 2022, hasHeatPump: false, vehicleSpecificationId: spec.vehicleSpecificationId },
+      data: { model: 'MODEL_3', year: 2022, registrationMonth: 3, hasHeatPump: false, vehicleSpecificationId: spec.vehicleSpecificationId },
     });
+    if (!carResp.ok()) throw new Error(`[E2E Setup] Car creation failed: ${carResp.status()} ${await carResp.text()}`);
     console.log('[E2E Setup] Test car (Model 3) created.');
   }
+  const carsAfter = await (await api.get('/api/cars', { headers: { Authorization: `Bearer ${jwt}` } })).json();
+  return carsAfter[0].id;
+}
+
+export default async function globalSetup() {
+  const api = await request.newContext({ baseURL: API_URL });
+  const jwt = await ensureVerifiedUser(api, TEST_USER);
+  // Sicherstellen dass ein Testfahrzeug existiert (wird für Log-E2E-Tests benötigt)
+  const carId = await ensureTestCar(api, jwt);
 
   // Mindestens ein Ladevorgang muss existieren: Dashboard-Filterleiste und
   // Landing-Page-Model-Preview brauchen Logs (CI startet mit leerer DB)
@@ -108,13 +123,10 @@ export default async function globalSetup() {
   const logs = await logsResp.json();
 
   if (!Array.isArray(logs) || logs.length === 0) {
-    const carsAfter = await (await api.get('/api/cars', {
-      headers: { Authorization: `Bearer ${jwt}` },
-    })).json();
     const logResp = await api.post('/api/logs', {
       headers: { Authorization: `Bearer ${jwt}` },
       data: {
-        carId: carsAfter[0].id,
+        carId,
         kwhCharged: 45.5,
         costEur: 18.2,
         odometerKm: 12000,
