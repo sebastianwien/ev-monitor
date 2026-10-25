@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import Collapse from './Collapse.vue'
+import Collapse from '../shared/Collapse.vue'
 import { activeRuler } from './rulerState'
 import { useIsMobile } from '../../composables/useIsMobile'
 

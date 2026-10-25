@@ -12,7 +12,7 @@ import CardStrip, { type CardChoice, type CommunityPrice } from './CardStrip.vue
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import PlaceSearch from './PlaceSearch.vue'
-import Collapse from './Collapse.vue'
+import Collapse from '../shared/Collapse.vue'
 import { stationSub as stationSubBase } from './stationSub'
 
 const props = defineProps<{

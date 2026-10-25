@@ -8,7 +8,7 @@ import AcDcSwitch from './AcDcSwitch.vue'
 import ChargingPileIcon from '../icons/ChargingPileIcon.vue'
 import CarIcon from '../icons/CarIcon.vue'
 const OcrPhotoCapture = defineAsyncComponent(() => import('../log-form/OcrPhotoCapture.vue'))
-import Collapse from './Collapse.vue'
+import Collapse from '../shared/Collapse.vue'
 
 const props = defineProps<{ compact?: boolean }>()
 const form = defineModel<LogFormData>({ required: true })

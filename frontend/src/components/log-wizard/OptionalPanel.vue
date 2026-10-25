@@ -8,7 +8,7 @@ import type { LogFormData } from '../log-form/logFormData'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { optionalFacts } from './wizardLogic'
 import OptionalDetails from './OptionalDetails.vue'
-import Collapse from './Collapse.vue'
+import Collapse from '../shared/Collapse.vue'
 
 /**
  * "Mehr Details" zum Aufklappen. Zugeklappt zeigt eine Zeile kleiner Pillen nur die Werte,
