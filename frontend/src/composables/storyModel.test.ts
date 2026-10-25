@@ -95,14 +95,13 @@ describe('buildStoryTiles', () => {
     expect(buildStoryTiles(input({ month: stats({ chargingTypeSplit: { acKwh: 0, dcKwh: 0, unknownKwh: 40 } }) })).map(t => t.id)).not.toContain('charging')
   })
 
-  it('Stand-Kachel: Verlust im Stand, nur freigeschaltet und mit Standzeiten', () => {
+  it('Verlust im Stand: keine eigene Kachel, die Standzeiten hängen an der Strom-Kachel', () => {
     const tripMonth: TripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, driveKwh: 27.5, routeShares: [], mainRoute: null, longestKm: 42, tempMin: 6, tempMax: 14,
       standbyKwh: 3.3, standbyLocked: false, standbyGaps: [{ kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z', eur: 0.75 }, { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z', eur: 0.24 }], standbyEur: 0.99 }
-    const ids = (tm: typeof tripMonth) => buildStoryTiles(input({ tripMonth: tm })).map(t => t.id)
-    expect(ids(tripMonth)).toEqual(['cost', 'wltp', 'trips', 'standby', 'flow', 'peer', 'battery', 'co2'])
-    expect(buildStoryTiles(input({ tripMonth })).find(t => t.id === 'standby')!.value).toBe(3.3)
-    expect(ids({ ...tripMonth, standbyLocked: true, standbyKwh: null, standbyGaps: [], standbyEur: null })).not.toContain('standby')
-    expect(ids({ ...tripMonth, standbyGaps: [], standbyEur: null })).not.toContain('standby')
+    const tiles = buildStoryTiles(input({ tripMonth }))
+    // Keine eigene Kachel: der Stand steht in "Wo bleibt mein Strom?", die Standzeiten fürs Sheet hängen an ihr
+    expect(tiles.map(t => t.id)).not.toContain('standby')
+    expect(tiles.find(t => t.id === 'flow')!.tripMonth!.standbyGaps).toHaveLength(2)
   })
 
   it('Kosten-Kachel: Wert, Delta zum Vormonat, Sparkline', () => {

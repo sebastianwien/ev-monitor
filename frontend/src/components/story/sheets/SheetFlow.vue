@@ -3,21 +3,24 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { LockClosedIcon } from '@heroicons/vue/24/outline'
 import FlowBar from '../FlowBar.vue'
+import SheetStandby from './SheetStandby.vue'
 import UseBar from '../UseBar.vue'
 import { USE_STYLE, LOCKED_CLS } from '../energyUseStyle'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import type { EnergyFlow as Flow, EnergyUse, UseKey } from '../../../composables/storyEnergy'
+import type { StandbyGap } from '../../../composables/storyInsights'
 
 /**
- * Oben, sobald die Fahrten Energiedaten haben: Fahren, Stand und Laden mit Herkunft und Euro.
+ * Oben, sobald die Fahrten Energiedaten haben: Fahren, Stand und Laden mit Herkunft und Euro, dazu die größten Standzeiten.
  * Darunter, mit gemessenen Ladungen, der Netzstrom: Balken gross, Netz, Akku, Verlust, AC/DC und Abdeckung.
  */
-const props = defineProps<{ flow?: Flow; use?: EnergyUse }>()
+const props = withDefaults(defineProps<{ flow?: Flow; use?: EnergyUse; standbyGaps?: StandbyGap[] }>(), { standbyGaps: () => [] })
 
 const { t } = useI18n()
 const { formatDecimal, formatCurrency } = useLocaleFormat()
 const kwh = (v: number) => `${formatDecimal(v, 0)} kWh`
-const eur = (v: number) => formatCurrency(v, { decimals: 0 })
+// Im Sheet mit Cent, auf der Kachel ganze Euro
+const eur = (v: number) => formatCurrency(v)
 
 const eurLine = computed(() => {
   const u = props.use
@@ -69,6 +72,10 @@ const rows = computed(() => {
           <LockClosedIcon v-else class="mt-0.5 h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
         </li>
       </ul>
+      <template v-if="standbyGaps.length">
+        <h4 class="mt-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('story.sheet_use_standby_gaps') }}</h4>
+        <SheetStandby :gaps="standbyGaps" />
+      </template>
     </template>
 
     <template v-if="flow">

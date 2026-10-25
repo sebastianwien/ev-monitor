@@ -12,7 +12,7 @@ import type { Moment } from './storyMoments'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
 /** Feste Reihenfolge der Kacheln, siehe TILE_ORDER. */
-export type TileId = 'cost' | 'trips' | 'standby' | 'flow' | 'charging' | 'range' | 'wltp' | 'peer' | 'battery' | 'co2'
+export type TileId = 'cost' | 'trips' | 'flow' | 'charging' | 'range' | 'wltp' | 'peer' | 'battery' | 'co2'
 export type SparkVariant = 'line' | 'bars' | 'range'
 
 export interface StoryTile {
@@ -45,7 +45,7 @@ export interface StoryTile {
   projection?: { eur: number; previousEur: number }
   /** Nur 'battery': berechneter Wert, keine eigene Messung. */
   estimated?: boolean
-  /** Nur 'trips' und 'standby': Fahrten des Monats. */
+  /** Nur 'trips' und 'flow' (Standzeiten fürs Sheet): Fahrten des Monats. */
   tripMonth?: TripMonth
   /** Nur 'co2': Ausstoß je km im Vergleich, Wert der Kachel sind die gesparten kg. */
   co2?: { petrolGPerKm: number; gridGPerKm: number; greenGPerKm: number }
@@ -261,20 +261,6 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
     })
   }
 
-  // Verlust im Stand: Analytics, nur freigeschaltet und wenn es Standzeiten mit Verlust gab
-  if (tm && !tm.standbyLocked && tm.standbyKwh != null && tm.standbyGaps.length > 0) {
-    tiles.push({
-      id: 'standby',
-      value: tm.standbyKwh,
-      delta: null,
-      deltaPercent: null,
-      sentiment: 'neutral',
-      spark: tm.standbyGaps.map(g => g.kwh),
-      sparkVariant: 'bars',
-      tripMonth: tm,
-    })
-  }
-
   // Mit Energiedaten der Fahrten: Verwendung Fahren/Stand/Laden, Zahl ist der Verlust (Euro, ohne Preis kWh)
   const use = energyUse(m, tm ?? null)
   if (use) {
@@ -288,6 +274,8 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
       sparkVariant: 'range',
       flow: input.flow ?? undefined,
       use,
+      // Größte Standzeiten für den Abschnitt "Stand" im Sheet
+      ...(tm && tm.standbyGaps.length ? { tripMonth: tm } : {}),
     })
   } else if (input.flow) {
     const p = input.flow.lossPercent

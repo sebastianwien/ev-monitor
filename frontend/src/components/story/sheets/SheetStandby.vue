@@ -5,10 +5,10 @@ import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import type { StandbyGap } from '../../../composables/storyInsights'
 
 /**
- * Die größten Verluste im Stand: wann, wie lange, wie viele kWh und Euro, als liegende Balken in Amber wie der Verlust
+ * Die größten Verluste im Stand (Abschnitt im Strom-Sheet): wann, wie lange, wie viele kWh und Euro, als liegende Balken in Amber wie der Verlust
  * im Strom-Balken. Euro zum Preis der letzten Ladung davor (sonst Monatsschnitt), deshalb mit Tilde.
  */
-const props = defineProps<{ gaps: StandbyGap[]; totalKwh: number; totalEur: number | null }>()
+const props = defineProps<{ gaps: StandbyGap[] }>()
 const { t, locale } = useI18n()
 const { formatDecimal, formatCurrency } = useLocaleFormat()
 
@@ -23,10 +23,7 @@ const duration = (g: StandbyGap) => hours(g) >= 24 ? t('story.dur_days_n', { n: 
 
 <template>
   <div data-testid="sheet-standby">
-    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
-      {{ totalEur != null ? t('story.sheet_standby_text_eur', { kwh: formatDecimal(totalKwh, 1), eur: `~${formatCurrency(totalEur)}` }) : t('story.sheet_standby_text', { kwh: formatDecimal(totalKwh, 1) }) }}
-    </p>
-    <ul class="mt-4 grid gap-3">
+    <ul class="mt-3 grid gap-3">
       <li v-for="(g, i) in gaps" :key="i" class="grid gap-1">
         <div class="flex justify-between gap-3 text-sm tabular-nums">
           <span class="min-w-0 text-gray-600 dark:text-gray-300">{{ when(g) }} · {{ duration(g) }}</span>

@@ -35,7 +35,8 @@ const text = (el: Element) => el.textContent!.replace(/\s+/g, ' ')
 describe('Strom-Kachel mit Fahren, Stand, Laden', () => {
   it('Verlust in Euro, Satz mit Stand und Laden, Balken mit drei Flächen, Ladeort als Zeile', () => {
     const t = text(mount(StoryTile, { tile: tile(use()) }))
-    expect(t).toMatch(/11\s*€ Verlust/)
+    // Gerechnet aus Ladepreisen: mit Tilde, ganze Euro auf der Kachel
+    expect(t).toMatch(/~11\s*€ Verlust/)
     expect(t).toContain('34 kWh im Stand, ~3 kWh beim Laden')
     expect(t).toContain('Fahren 48 %')
     expect(t).toContain('Stand 48 %')
@@ -74,7 +75,8 @@ describe('Sheet "Wo bleibt mein Strom?" mit Fahren, Stand, Laden', () => {
     expect(t).toContain('zwischen den Fahrten, Auto stand')
     expect(t).toContain('aus 2 Ladungen, 1 davon geschätzt')
     expect(t).toMatch(/33,5\s*kWh/)
-    expect(t).toMatch(/Stand ~10\s*€, Laden ~1\s*€/)
+    // Im Sheet mit Cent
+    expect(t).toMatch(/Stand ~9,86\s*€, Laden ~0,87\s*€/)
   })
 
   it('Stand gesperrt: Hinweis auf Analytics statt Zahl', () => {

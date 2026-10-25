@@ -29,8 +29,9 @@ const value = computed(() => {
     case 'flow': {
       if (!x.use) return { n: formatDecimal(x.value, 0), unit: t('story.flow_unit') }
       if (x.use.lossEur == null) return { n: formatDecimal(x.value, 0), unit: t('story.use_loss_kwh_unit') }
+      // Gerechnet aus Ladepreisen und Ladeverlust: mit Tilde, wie alle gerechneten Beträge
       const e = euroParts(x.value)
-      return { n: e.n, unit: `${e.unit} ${t('story.use_loss_unit')}`.trim() }
+      return { n: `~${e.n}`, unit: `${e.unit} ${t('story.use_loss_unit')}`.trim() }
     }
     case 'range': return { n: formatDecimal(x.value, 0), unit: distanceUnitLabel() }
     case 'wltp': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
@@ -42,16 +43,6 @@ const value = computed(() => {
     case 'charging': return x.charging && x.charging.dcKwh === 0
       ? { n: '100', unit: t('story.charging_unit_normal') }
       : { n: formatDecimal(x.value, 0), unit: t('story.charging_unit') }
-    // Euro ist die wichtigere Zahl: groß, die kWh klein daneben. Gerechnet aus den Ladepreisen, deshalb mit Tilde.
-    case 'standby': {
-      const eur = x.tripMonth?.standbyEur
-      if (eur == null) return { n: formatDecimal(x.value, 1), unit: 'kWh' }
-      const kwh = `${formatDecimal(x.value, 1)} kWh`
-      const f = formatCurrency(eur)
-      return f.startsWith(currencySymbol.value)
-        ? { n: `~${f}`, unit: `· ${kwh}` }
-        : { n: `~${f.replace(currencySymbol.value, '').trim()}`, unit: `${currencySymbol.value} · ${kwh}` }
-    }
   }
   return { n: '', unit: '' }
 })
@@ -132,19 +123,10 @@ const note = computed(() => {
       if (c?.acEurPerKwh != null && c.dcEurPerKwh != null) return t('story.charging_prices', { ac: formatCurrency(c.acEurPerKwh), dc: formatCurrency(c.dcEurPerKwh) })
       return t('story.charging_kwh', { kwh: formatDecimal(c?.dcKwh ?? 0, 0) })
     }
-    case 'standby': {
-      const g = x.tripMonth?.standbyGaps[0]
-      return g ? t('story.standby_note', { kwh: formatDecimal(g.kwh, 1), d: standDuration(g.from, g.to) }) : ''
-    }
   }
   return ''
 })
 
-/** Dauer eines Stands, grob: Tage ab einem Tag, sonst Stunden */
-function standDuration(from: string, to: string) {
-  const h = Math.max(0, (new Date(to).getTime() - new Date(from).getTime()) / 3_600_000)
-  return h >= 24 ? t('story.dur_days', { n: Math.round(h / 24) }, Math.round(h / 24)) : t('story.dur_hours', { n: Math.max(1, Math.round(h)) }, Math.max(1, Math.round(h)))
-}
 // Kachel CO₂: Benziner gegen dein Auto in g/km, Benziner ist die volle Breite
 const co2Rows = computed(() => {
   const c = props.tile.co2
@@ -165,7 +147,6 @@ const chargingSegments = computed(() => {
     { key: 'DC', label: t('story.charging_dc'), pct: dc, cls: 'bg-sky-500', text: 'text-sky-700 dark:text-sky-400' },
   ].filter(s => s.pct > 0)
 })
-const standbyMax = computed(() => Math.max(0, ...(props.tile.tripMonth?.standbyGaps ?? []).map(g => g.kwh)))
 
 function routeLabel(key: string) { return t(`model.route_type_${key.toLowerCase()}`) }
 // Kachel: Fahrtlängen, die gibt es immer und sie erklären den Verbrauch (kurze Fahrten kosten mehr).
@@ -233,14 +214,6 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
         </span>
       </span>
       <ShareBar v-else-if="tile.id === 'charging'" :segments="chargingSegments" />
-      <span v-else-if="tile.id === 'standby'" class="flex h-10 items-end gap-1" data-testid="story-standby-bars">
-        <!-- je Stand eine Säule, kWh darüber; Höhe relativ zum größten Verlust -->
-        <span v-for="(g, i) in tile.tripMonth?.standbyGaps ?? []" :key="i" class="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-0.5">
-          <span class="text-[10.5px] font-semibold leading-none tabular-nums" :class="i === 0 ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'">{{ formatDecimal(g.kwh, 1) }}</span>
-          <i class="block w-full rounded-t-[2px]" :class="i === 0 ? 'bg-amber-500 dark:bg-amber-400' : 'bg-amber-200 dark:bg-amber-400/40'"
-            :style="{ height: `${Math.max(3, (g.kwh / standbyMax) * 24)}px` }" />
-        </span>
-      </span>
       <Spark v-else :values="tile.spark" :variant="tile.sparkVariant" :reference="tile.reference" tone="good" :end-label="endLabel" />
     </span>
   </button>
