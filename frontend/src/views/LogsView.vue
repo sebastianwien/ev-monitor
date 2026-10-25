@@ -58,8 +58,12 @@ import { buildPeriodGroups } from '../utils/tripPeriods'
 import { collapseAnchorScrollY, isGroupScrolledPast } from '../utils/stickyGroup'
 import { normalizeCharge } from '../utils/recentActivity'
 import { pricelessDeepLink } from '../utils/pricelessDeepLink'
+import { feedHints } from '../utils/feedHints'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
 import FeedLegend from '../components/dashboard/FeedLegend.vue'
+import FeedHintRow from '../components/dashboard/FeedHintRow.vue'
+import ChoiceChip from '../components/shared/ChoiceChip.vue'
+import Collapse from '../components/shared/Collapse.vue'
 import PeriodChargeLine from '../components/dashboard/PeriodChargeLine.vue'
 import ChargeTypeBadge from '../components/dashboard/ChargeTypeBadge.vue'
 import ComparisonChip from '../components/dashboard/ComparisonChip.vue'
@@ -68,6 +72,7 @@ import { FEED_GRID_COLS } from '../components/dashboard/feedGridCols'
 import type { CommunityBenchmark } from '../components/dashboard/PeriodGroupHeader.vue'
 import { getModelStatsByEnum, type PublicModelStats } from '../api/publicModelService'
 import { useCommunityComparison } from '../composables/useCommunityComparison'
+import { communityStatsUsable } from '../utils/communityComparison'
 import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import TripForm from '../components/dashboard/TripForm.vue'
 import TripClimateMarkers from '../components/TripClimateMarkers.vue'
@@ -700,8 +705,8 @@ watch(() => selectedCar.value?.model, async (model) => {
   if (!model) return
   try {
     const stats = await getModelStatsByEnum(model)
-    // Unter 5 Logs ist der Schnitt Rauschen - dann lieber keine Einordnung.
-    if ((stats?.logCount ?? 0) >= 5) communityModelStats.value = stats
+    // Unter 5 Fahrern ist der Schnitt ein Einzelwert - dann lieber keine Einordnung (App-CI).
+    if (communityStatsUsable(stats)) communityModelStats.value = stats
   } catch { /* Ohne Community-Daten bleiben die Chips neutral. */ }
 }, { immediate: true })
 
@@ -752,7 +757,7 @@ function chargeCardName(entry: any): string | null {
   return chargingProviderNames.value.get(entry.chargingProviderId) ?? null
 }
 
-const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } =
+const { isSmartcarCharging, isWallboxCharging } =
   useVehicleCharging(cars, smartcarStatus)
 
 // Daten-Reload bei Auto-Wechsel liegt zentral im CarContextLayout.
@@ -1059,6 +1064,16 @@ function dismissCostTip() {
   costTipDismissed.value = true
   localStorage.setItem(LS_COST_TIP_DISMISSED, 'true')
 }
+
+// Eine Hinweis-Karte statt vier Bannern, Reihenfolge und Deckel in utils/feedHints.
+const visibleHints = computed(() => feedHints({
+  implausible: implausibleCount.value > 0 && !implausibleBannerDismissed.value,
+  priceless: pricelessCount.value > 0 && !pricelessBannerDismissed.value,
+  live: showLiveBanner.value,
+  autosync: showAutoSyncBanner.value,
+  supporter: showSupporterBanner.value,
+  costTip: showCostTip.value,
+}))
 
 onMounted(async () => {
   try {
@@ -1387,142 +1402,49 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
 
         <!-- Log List -->
         <div :ref="setLogsSection" class="pt-3 pb-6 scroll-mt-4">
-          <!-- AutoSync Live discoverability hint (users without a free data source, without Live, dismissible) -->
-          <div v-if="showLiveBanner"
-            class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-sm border-l-2 border-indigo-400 bg-indigo-500/15">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.live_banner_new_chip') }}</span>
-              <svg class="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-300 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-              </svg>
-              <p class="text-xs text-gray-700 dark:text-gray-200 leading-snug">
-                {{ t('dashboard.live_banner_text_prefix') }}
-                <span class="font-medium text-indigo-700 dark:text-indigo-300">AutoSync Live</span>
-                {{ t('dashboard.live_banner_text_suffix') }}
-                <span class="text-gray-500 dark:text-gray-400">{{ t('dashboard.live_banner_price') }}</span>
-                <router-link to="/upgrade" class="ml-1 underline text-indigo-700 dark:text-indigo-300 hover:text-indigo-500">
-                  {{ t('dashboard.live_banner_cta') }}
-                </router-link>
-              </p>
-            </div>
-            <button type="button" @click="dismissLiveBanner"
-              class="flex-shrink-0 p-0.5 rounded hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              :aria-label="t('dashboard.live_banner_dismiss')">
-              <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-            </button>
-          </div>
-
-          <!-- AutoSync discoverability hint (users without subscription and without a free data source, dismissible) -->
-          <div v-if="showAutoSyncBanner"
-            class="w-full flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-2.5 sm:gap-x-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-900/20 shadow-[2px_2px_0_0_#c7d2fe] dark:shadow-[2px_2px_0_0_#312e81]">
-            <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-600 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.autosync_banner_new_chip') }}</span>
-            <ArrowPathIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-300 flex-shrink-0" aria-hidden="true" />
-            <p class="order-1 sm:order-none basis-full sm:basis-auto sm:flex-1 min-w-0 text-xs text-gray-700 dark:text-gray-200 leading-snug">
-              {{ t('dashboard.autosync_banner_text_prefix') }}
-              <span class="font-semibold text-indigo-700 dark:text-indigo-300">AutoSync</span>
-              {{ t('dashboard.autosync_banner_text_suffix') }}
-              <span class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">{{ t('dashboard.autosync_banner_price', { price: autoSyncPrice }) }}</span>
-            </p>
-            <router-link to="/upgrade"
-              class="order-2 sm:order-none basis-full sm:basis-auto inline-flex items-center justify-center gap-1 px-3 py-2 sm:py-1.5 rounded-sm bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
-              {{ t('dashboard.autosync_banner_cta') }}
-            </router-link>
-            <button type="button" @click="dismissAutoSyncBanner"
-              class="ml-auto sm:ml-0 flex-shrink-0 p-1 sm:p-0.5 rounded hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              :aria-label="t('dashboard.autosync_banner_dismiss')">
-              <XMarkIcon class="w-4 h-4 sm:w-3.5 sm:h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-            </button>
-          </div>
-
-          <!-- Supporter hint (Tesla/XPeng drivers - their data already flows for free, only the analysis is missing) -->
-          <div v-if="showSupporterBanner"
-            class="w-full flex flex-wrap sm:flex-nowrap items-center gap-x-2 gap-y-2.5 sm:gap-x-3 px-3 py-2.5 mb-4 rounded-sm border-2 border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 shadow-[2px_2px_0_0_#fde68a] dark:shadow-[2px_2px_0_0_#78350f]">
-            <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white font-semibold tracking-wide uppercase flex-shrink-0">{{ t('dashboard.supporter_banner_new_chip') }}</span>
-            <HeartIcon class="w-4 h-4 text-amber-600 dark:text-amber-300 flex-shrink-0" aria-hidden="true" />
-            <p class="order-1 sm:order-none basis-full sm:basis-auto sm:flex-1 min-w-0 text-xs text-gray-700 dark:text-gray-200 leading-snug">
-              {{ t('dashboard.supporter_banner_text_prefix') }}
-              <span class="font-semibold text-amber-700 dark:text-amber-300">{{ t('dashboard.supporter_banner_pack') }}</span>
-              {{ t('dashboard.supporter_banner_text_suffix') }}
-              <span class="font-semibold text-amber-700 dark:text-amber-300 whitespace-nowrap">{{ t('dashboard.supporter_banner_price', { price: supporterPrice }) }}</span>
-            </p>
-            <router-link to="/supporter"
-              class="order-2 sm:order-none basis-full sm:basis-auto inline-flex items-center justify-center gap-1 px-3 py-2 sm:py-1.5 rounded-sm bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-              {{ t('dashboard.supporter_banner_cta') }}
-            </router-link>
-            <button type="button" @click="dismissSupporterBanner"
-              class="ml-auto sm:ml-0 flex-shrink-0 p-1 sm:p-0.5 rounded hover:bg-amber-500/20 dark:hover:bg-amber-500/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-              :aria-label="t('dashboard.supporter_banner_dismiss')">
-              <XMarkIcon class="w-4 h-4 sm:w-3.5 sm:h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-            </button>
-          </div>
-
-          <!-- Cost-reuse tip (shown once, dismissible via localStorage) -->
-          <div v-if="showCostTip"
-            class="w-full flex items-center justify-between gap-2 px-3 py-2 mb-4 rounded-sm border-l-2 border-blue-400 bg-blue-500/10">
-            <div class="flex items-start gap-2 min-w-0">
-              <InformationCircleIcon class="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <p class="text-xs text-gray-700 dark:text-gray-300 leading-snug">
-                <i18n-t keypath="dashboard.cost_reuse_tip_text" tag="span">
-                  <template #settings>
-                    <router-link to="/settings" class="underline text-blue-700 dark:text-blue-300 hover:text-blue-500">
-                      {{ t('dashboard.cost_reuse_tip_settings') }}
-                    </router-link>
-                  </template>
-                </i18n-t>
-              </p>
-            </div>
-            <button type="button" @click="dismissCostTip"
-              class="flex-shrink-0 p-0.5 rounded hover:bg-blue-500/20 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-              :aria-label="t('dashboard.cost_reuse_tip_dismiss')">
-              <XMarkIcon class="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-            </button>
-          </div>
-
-          <!-- Implausible logs banner (position 2: under ConsumptionInfoBox) -->
-          <div v-if="implausibleCount > 0 && !implausibleBannerDismissed"
-            class="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-sm bg-amber-200 dark:bg-amber-500/20 border border-amber-300 dark:border-amber-600/50">
-            <button
-              @click="showImplausibleModal = true"
-              class="flex-1 flex items-center justify-between gap-3 text-left">
-              <div class="flex items-center gap-2">
-                <ExclamationTriangleIcon class="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span class="text-sm font-medium text-amber-800 dark:text-amber-300">
-                  {{ t('dashboard.implausible_banner', { n: implausibleCount, noun: implausibleCount === 1 ? t('dashboard.implausible_entry') : t('dashboard.implausible_entries') }) }}
+          <!-- Hinweise als eine Karte statt eines Bannerstapels: erst Aufgaben, dann hoechstens
+               ein Angebot, zuletzt der Tipp (utils/feedHints). So beginnt der Feed auf dem Handy
+               im ersten Bildschirm. -->
+          <ul v-if="visibleHints.length" data-testid="feed-hints"
+            class="mb-4 divide-y divide-gray-200 rounded-2xl bg-white edge-card dark:divide-gray-700/70 dark:bg-gray-800">
+            <template v-for="hint in visibleHints" :key="hint">
+              <FeedHintRow v-if="hint === 'implausible'" data-testid="implausible-banner" task :icon="ExclamationTriangleIcon"
+                :dismiss-label="t('dashboard.implausible_dismiss')" @open="showImplausibleModal = true" @dismiss="dismissImplausibleBanner">
+                {{ t('dashboard.implausible_banner', { n: implausibleCount, noun: implausibleCount === 1 ? t('dashboard.implausible_entry') : t('dashboard.implausible_entries') }) }}
+                <template #sub>{{ t('logs.hints.check') }}</template>
+              </FeedHintRow>
+              <FeedHintRow v-else-if="hint === 'priceless'" data-testid="priceless-banner" task :icon="CurrencyEuroIcon"
+                :dismiss-label="t('priceless.dismiss')" @open="showPricelessModal = true" @dismiss="dismissPricelessBanner">
+                {{ t('priceless.banner', pricelessCount) }}
+                <template #sub>{{ t('priceless.banner_cta') }} <WattBadge :amount="wattForAllPriceless" up-to /></template>
+              </FeedHintRow>
+              <FeedHintRow v-else-if="hint === 'live'" :icon="BoltIcon" to="/upgrade"
+                :dismiss-label="t('dashboard.live_banner_dismiss')" @dismiss="dismissLiveBanner">
+                <i18n-t keypath="logs.hints.live" tag="span"><template #product><b class="font-semibold">AutoSync Live</b></template></i18n-t>
+                <template #sub>{{ t('logs.hints.more') }}</template>
+              </FeedHintRow>
+              <FeedHintRow v-else-if="hint === 'autosync'" data-testid="autosync-banner" :icon="ArrowPathIcon" to="/upgrade"
+                :dismiss-label="t('dashboard.autosync_banner_dismiss')" @dismiss="dismissAutoSyncBanner">
+                <i18n-t keypath="logs.hints.autosync" tag="span"><template #product><b class="font-semibold">AutoSync</b></template></i18n-t>
+                <template #sub>{{ t('logs.hints.per_month', { price: autoSyncPrice }) }} &middot; {{ t('logs.hints.more') }}</template>
+              </FeedHintRow>
+              <FeedHintRow v-else-if="hint === 'supporter'" data-testid="supporter-banner" :icon="HeartIcon" to="/supporter"
+                :dismiss-label="t('dashboard.supporter_banner_dismiss')" @dismiss="dismissSupporterBanner">
+                <i18n-t keypath="logs.hints.supporter" tag="span"><template #pack><b class="font-semibold">{{ t('dashboard.supporter_banner_pack') }}</b></template></i18n-t>
+                <template #sub>{{ t('logs.hints.per_month', { price: supporterPrice }) }} &middot; {{ t('logs.hints.more') }}</template>
+              </FeedHintRow>
+              <FeedHintRow v-else-if="hint === 'cost_tip'" plain :icon="InformationCircleIcon"
+                :dismiss-label="t('dashboard.cost_reuse_tip_dismiss')" @dismiss="dismissCostTip">
+                <span class="text-[13.5px] text-gray-600 dark:text-gray-300">
+                  <i18n-t keypath="dashboard.cost_reuse_tip_text" tag="span">
+                    <template #settings>
+                      <router-link to="/settings" class="font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100">{{ t('dashboard.cost_reuse_tip_settings') }}</router-link>
+                    </template>
+                  </i18n-t>
                 </span>
-              </div>
-              <span class="text-xs text-amber-700 dark:text-amber-400 font-medium shrink-0">{{ t('dashboard.implausible_check') }}</span>
-            </button>
-            <button
-              @click="dismissImplausibleBanner"
-              class="shrink-0 p-1 rounded hover:bg-amber-300/50 dark:hover:bg-amber-600/30 transition-colors"
-              :title="t('dashboard.implausible_dismiss')">
-              <XMarkIcon class="h-4 w-4 text-amber-700 dark:text-amber-400" />
-            </button>
-          </div>
-
-          <!-- Preislose Ladungen: macht auch alte, im Feed versteckte Logs ohne Preis auffindbar -->
-          <div v-if="pricelessCount > 0 && !pricelessBannerDismissed" data-testid="priceless-banner"
-            class="w-full mb-4 flex flex-wrap sm:flex-nowrap items-center gap-x-3 gap-y-2.5 px-3 sm:pr-2 py-2.5 rounded-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-400 text-amber-950" aria-hidden="true">
-              <CurrencyEuroIcon class="h-5 w-5" />
-            </span>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('priceless.banner', pricelessCount) }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 sm:truncate">{{ t('priceless.info') }}</div>
-            </div>
-            <!-- Mobil: Schliessen oben rechts, CTA volle Breite darunter. Ab sm alles in einer Zeile. -->
-            <button type="button" @click="dismissPricelessBanner"
-              class="order-2 sm:order-3 shrink-0 p-2 sm:p-1.5 rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              :title="t('priceless.dismiss')" :aria-label="t('priceless.dismiss')">
-              <XMarkIcon class="h-4 w-4" aria-hidden="true" />
-            </button>
-            <button type="button" @click="showPricelessModal = true" v-haptic
-              class="btn-3d order-3 sm:order-2 basis-full sm:basis-auto shrink-0 inline-flex items-center justify-center gap-2 px-3 py-2 sm:py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-sm">
-              {{ t('priceless.banner_cta') }}
-              <WattBadge :amount="wattForAllPriceless" up-to on-dark />
-            </button>
-          </div>
-
+              </FeedHintRow>
+            </template>
+          </ul>
 
           <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
             <div v-if="reassignSuccessMessage" class="mb-2 px-3 py-2 rounded-sm bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
@@ -1538,42 +1460,29 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
           <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum.
                Voll ausgeschriebene Segmente statt eines Menues - die vier Optionen passen
                nebeneinander und eine Auswahl, die man sieht, muss man nicht suchen. -->
-          <div v-if="hasAnyLogs" class="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-            <div class="order-1 flex items-stretch gap-2 w-full sm:w-auto">
-              <div role="group" :aria-label="t('logs.resolution.label')"
-                   class="inline-flex flex-1 sm:flex-none p-0.5 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600">
-                <button v-for="option in RESOLUTIONS" :key="option" type="button"
-                        @click="feedResolution = option" :aria-pressed="feedResolution === option"
-                        :class="['flex-1 sm:flex-none min-h-11 sm:min-h-0 px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
-                          feedResolution === option
-                            ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
-                  {{ t('logs.resolution.' + option) }}
-                </button>
-              </div>
-              <!-- Alles auf- oder zuklappen. Steht hier, wo man vor dem Lesen ohnehin hinschaut;
-                   die Doppel-Chevrons wiederholen die Einzel-Chevrons der Gruppenkoepfe. -->
-              <button v-if="totalTripCount > 0 || chargeCount > 0" type="button" data-testid="logfeed-toggle-all"
-                      @click="toggleAllFeed"
-                      :aria-label="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
-                      :title="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
-                      class="shrink-0 inline-flex items-center justify-center w-11 rounded-full bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
-                <ChevronDoubleUpIcon v-if="allFeedExpanded" class="w-4 h-4" />
-                <ChevronDoubleDownIcon v-else class="w-4 h-4" />
-              </button>
+          <div v-if="hasAnyLogs" class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2.5">
+            <div role="group" :aria-label="t('logs.resolution.label')" class="flex w-full flex-wrap gap-1.5 sm:w-auto">
+              <ChoiceChip v-for="option in RESOLUTIONS" :key="option" :active="feedResolution === option"
+                @click="feedResolution = option">
+                {{ t('logs.resolution.' + option) }}
+              </ChoiceChip>
             </div>
-            <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, ein Wert fuer alle Darstellungen.
-                 Unter xl: Darstellung (Mobile volle Breite) + Legende rechts, darunter der Picker
-                 mittig zwischen Trennlinien. Ab xl: alles in einer Zeile, Picker mittig. -->
-            <div class="order-3 xl:order-2 w-full xl:flex-1 xl:w-auto flex items-center gap-4">
-              <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
-              <PeriodFilterDropdown
-                test-id="logfeed-filter"
-                :options="feedRangeOptions"
-                v-model="feedTimeRange" v-model:custom-start="feedCustomStartDate" v-model:custom-end="feedCustomEndDate" />
-              <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
-            </div>
-            <FeedLegend mode="trigger" class="order-2 xl:order-3 ml-auto" :has-trips="totalTripCount > 0"
+            <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, ein Wert fuer alle Darstellungen. -->
+            <PeriodFilterDropdown
+              class="sm:ml-2"
+              test-id="logfeed-filter"
+              :options="feedRangeOptions"
+              v-model="feedTimeRange" v-model:custom-start="feedCustomStartDate" v-model:custom-end="feedCustomEndDate" />
+            <!-- Alles auf- oder zuklappen; die Doppel-Chevrons wiederholen die Chevrons der Koepfe. -->
+            <button v-if="totalTripCount > 0 || chargeCount > 0" type="button" data-testid="logfeed-toggle-all"
+                    @click="toggleAllFeed"
+                    :aria-label="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
+                    :title="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
+                    class="btn-3d cta-shadow-sm grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15">
+              <ChevronDoubleUpIcon v-if="allFeedExpanded" class="h-4 w-4" aria-hidden="true" />
+              <ChevronDoubleDownIcon v-else class="h-4 w-4" aria-hidden="true" />
+            </button>
+            <FeedLegend mode="trigger" class="ml-auto" :has-trips="totalTripCount > 0"
                         :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
                         :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
@@ -1610,14 +1519,16 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
               <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
               <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
 
-              <FeedLegend v-if="feedLegendOpen" mode="panel" :has-trips="totalTripCount > 0"
-                          :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom" />
+              <Collapse :open="feedLegendOpen">
+                <FeedLegend mode="panel" :has-trips="totalTripCount > 0"
+                            :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom" />
+              </Collapse>
 
               <template v-for="item in groupedFeed" :key="item.id">
 
               <!-- ===== TRIP GROUP CONTAINER ===== -->
               <template v-if="item.kind === 'tripGroup'">
-                <div class="gridfeed:hidden rounded-sm border-2 border-emerald-300 dark:border-emerald-800/60 border-l-4 border-r-4 border-l-emerald-400 dark:border-l-emerald-500 border-r-emerald-400 dark:border-r-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+                <div class="gridfeed:hidden rounded-2xl bg-white edge-card dark:bg-gray-800">
 
                   <!-- Kopf des Zeitraums - Tag, Woche oder Monat. Nur die Titelzeile klebt; Chips
                        und Tagesraster scrollen mit, sonst belegte der Kopf ein Drittel des Bildschirms. -->
@@ -1625,12 +1536,12 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                     <button type="button" @click="toggleTripGroup(item.groupId)"
                             :aria-expanded="!isGroupCollapsed(item.groupId)"
                             :ref="(el) => setPeriodHeaderRef(item.groupId, 'm', el)" :style="stickyHeaderStyle"
-                            :class="['w-full text-left sticky z-[3] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors',
+                            :class="['w-full text-left sticky z-[3] rounded-t-2xl bg-white dark:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-story-accent',
                                      { 'period-head-stuck': stuckPeriodGroupId === item.groupId }]">
                       <PeriodGroupHeader part="title" :group="item.period" :expanded="!isGroupCollapsed(item.groupId)" compact />
                     </button>
                     <div @click="toggleTripGroup(item.groupId)"
-                         class="cursor-pointer bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 transition-colors border-b border-gray-100 dark:border-gray-600">
+                         :class="['cursor-pointer', isGroupCollapsed(item.groupId) ? '' : 'border-b border-gray-200 dark:border-gray-700']">
                       <PeriodGroupHeader part="body" :group="item.period" :expanded="!isGroupCollapsed(item.groupId)" compact
                                          :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
                     </div>
@@ -1882,14 +1793,15 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                 </div><!-- end trip group container (mobile) -->
 
                 <!-- DESKTOP TRIP GROUP -->
-                <div class="hidden gridfeed:block rounded-sm border-2 border-emerald-300 dark:border-emerald-800/50 border-l-4 border-l-emerald-400 dark:border-l-emerald-500 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+                <div class="hidden gridfeed:block rounded-2xl bg-white edge-card dark:bg-gray-800">
                   <!-- Kopf des Zeitraums - Tag, Woche oder Monat. Neutraler Hintergrund wie
                        auf Mobile; deckend, weil unter dem sticky Kopf Zeilen durchscrollen. -->
                   <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!isGroupCollapsed(item.groupId)"
                     :ref="(el) => setPeriodHeaderRef(item.groupId, 'd', el)" :style="stickyHeaderStyle"
-                    :class="{ 'period-head-stuck': stuckPeriodGroupId === item.groupId }"
-                    class="w-full text-left sticky z-[3] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600/60 border-b border-gray-100 dark:border-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset">
+                    :class="[{ 'period-head-stuck': stuckPeriodGroupId === item.groupId },
+                             isGroupCollapsed(item.groupId) ? 'rounded-2xl' : 'rounded-t-2xl border-b border-gray-200 dark:border-gray-700']"
+                    class="w-full text-left sticky z-[3] bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent focus-visible:ring-inset">
                     <PeriodGroupHeader :group="item.period" :expanded="!isGroupCollapsed(item.groupId)"
                                        :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
                   </button>
@@ -3477,10 +3389,11 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
 /* Klebender Zeitraum-Kopf: der Schatten deckt die Luecke unter der Ticker-Lasche ab und zieht
    unten eine Haarlinie gegen die durchscrollenden Fahrten. Nur Farbe, kein Layout. */
 .period-head-stuck {
+  border-radius: 0;
   box-shadow: 0 calc(-1 * var(--ticker-lasche-h, 0px)) 0 0 #fff, 0 1px 0 0 #e5e7eb;
 }
 .dark .period-head-stuck {
-  box-shadow: 0 calc(-1 * var(--ticker-lasche-h, 0px)) 0 0 #374151, 0 1px 0 0 #4b5563;
+  box-shadow: 0 calc(-1 * var(--ticker-lasche-h, 0px)) 0 0 #1f2937, 0 1px 0 0 #374151;
 }
 
 .fade-enter-active {

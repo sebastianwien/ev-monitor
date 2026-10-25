@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CalendarIcon, ChevronDownIcon, ListBulletIcon } from '@heroicons/vue/24/outline'
 import type { TimeRangeOption } from '../../composables/useTimeRangeOptions'
+import ChoiceChip from '../shared/ChoiceChip.vue'
 
 /**
  * Zeitraum-Picker fuer Dashboard und Log-Feed: Trigger mit aktueller Auswahl, darunter die
@@ -56,11 +57,7 @@ function onClickOutside(e: MouseEvent) {
 onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))
 
-const chipClass = (active: boolean) => [
-  'px-2.5 py-1 text-xs font-medium rounded-sm transition',
-  active ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600',
-]
-const dateInputClass = 'block w-full px-2 pr-7 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer'
+const dateInputClass = 'block w-full min-h-10 px-2.5 pr-7 py-1.5 text-sm border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:border-gray-900 dark:focus:border-gray-300 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-8 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer'
 </script>
 
 <template>
@@ -70,27 +67,26 @@ const dateInputClass = 'block w-full px-2 pr-7 py-1.5 text-xs border border-gray
       :data-testid="testId ? `${testId}-toggle` : undefined"
       :aria-expanded="open"
       @click.stop="open = !open"
-      class="flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1 md:py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] hover:shadow-[3px_3px_0_0_#9ca3af] dark:hover:shadow-[3px_3px_0_0_#4b5563] bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 md:text-gray-700 dark:text-gray-300 text-xs md:text-sm font-medium cursor-pointer transition">
-      <CalendarIcon class="w-3 h-3 md:w-4 md:h-4 opacity-60" />
+      class="btn-3d cta-shadow-sm inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-edge bg-white px-3.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15">
+      <CalendarIcon class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
       <span>{{ currentLabel }}</span>
       <template v-if="currentGroupLabel">
         <span class="text-gray-300 dark:text-gray-500">·</span>
         <span>{{ currentGroupLabel }}</span>
       </template>
-      <ChevronDownIcon class="w-3 h-3 md:w-3.5 md:h-3.5 opacity-50 transition-transform" :class="{ 'rotate-180': open }" />
+      <ChevronDownIcon class="h-3.5 w-3.5 text-gray-500 transition-transform duration-300 ease-out dark:text-gray-400" :class="{ 'rotate-180': open }" aria-hidden="true" />
     </button>
     <Transition name="dropdown">
       <div v-if="open"
         :data-testid="testId ? `${testId}-dropdown` : undefined"
-        class="absolute left-1/2 -translate-x-1/2 top-full mt-1.5 z-40 w-72 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-3"
+        class="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-2xl bg-white edge-card p-3 dark:bg-gray-800"
         @click.stop>
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ t('dashboard.time_range_label') }}</p>
+        <p class="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('dashboard.time_range_label') }}</p>
         <div class="flex flex-wrap gap-1.5" :class="timeRange === 'CUSTOM' || groupByOptions ? 'mb-3' : ''">
-          <button v-for="option in options" :key="option.value" type="button" @click="select(option.value)"
-            :class="['inline-flex items-center gap-1', ...chipClass(timeRange === option.value)]">
-            <CalendarIcon v-if="option.value === 'CUSTOM'" class="w-3 h-3" />
+          <ChoiceChip v-for="option in options" :key="option.value" size="sm" :active="timeRange === option.value" @click="select(option.value)">
+            <CalendarIcon v-if="option.value === 'CUSTOM'" class="h-3.5 w-3.5" aria-hidden="true" />
             {{ option.shortLabel }}
-          </button>
+          </ChoiceChip>
         </div>
         <div v-if="timeRange === 'CUSTOM'" class="flex items-center gap-2" :class="groupByOptions ? 'mb-3' : ''">
           <div class="flex-1 relative">
@@ -103,16 +99,15 @@ const dateInputClass = 'block w-full px-2 pr-7 py-1.5 text-xs border border-gray
             <CalendarIcon class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
           </div>
         </div>
-        <div v-if="groupByOptions" class="pt-2 border-t border-gray-100 dark:border-gray-700">
-          <div class="flex items-center gap-1.5 mb-1.5">
-            <ListBulletIcon class="h-3.5 w-3.5 text-gray-400 shrink-0" />
-            <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('dashboard.group_by_label') }}</span>
+        <div v-if="groupByOptions" class="pt-3 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-1.5 mb-2">
+            <ListBulletIcon class="h-3.5 w-3.5 text-gray-400 shrink-0" aria-hidden="true" />
+            <span class="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('dashboard.group_by_label') }}</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
-            <button v-for="opt in groupByOptions" :key="opt.value" type="button" @click="selectGroupBy(opt.value)"
-              :class="chipClass(groupBy === opt.value)">
+            <ChoiceChip v-for="opt in groupByOptions" :key="opt.value" size="sm" :active="groupBy === opt.value" @click="selectGroupBy(opt.value)">
               {{ opt.label }}
-            </button>
+            </ChoiceChip>
           </div>
         </div>
       </div>

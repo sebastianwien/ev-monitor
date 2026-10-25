@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/vue/24/outline'
-import ComparisonChip from './ComparisonChip.vue'
+import { ChevronDownIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 import PeriodDayBars from './PeriodDayBars.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useCommunityComparison } from '../../composables/useCommunityComparison'
@@ -42,7 +41,7 @@ const props = defineProps<{
 const showTitle = computed(() => props.part !== 'body')
 const showBody = computed(() => props.part !== 'title')
 const paddingClass = computed(() =>
-  props.part === 'title' ? 'pt-2.5 pb-1.5' : props.part === 'body' ? 'pb-2.5' : 'py-2.5')
+  props.part === 'title' ? 'pt-3 pb-1' : props.part === 'body' ? 'pb-3' : 'py-3')
 
 const { t, locale } = useI18n()
 const { formatDistance, formatConsumption, formatCurrency, formatDecimal } = useLocaleFormat()
@@ -80,86 +79,110 @@ const weekNumber = computed(() =>
 const isMonth = computed(() => props.group.level === 'month')
 
 const hasBars = computed(() => (props.group.bars?.length ?? 0) > 0)
+
+/** Zahl und Einheit getrennt setzen ("21,2" fett, "kWh/100km" klein) - am ersten Leerzeichen. */
+function splitUnit(text: string): { n: string; unit: string } {
+  const at = text.indexOf(' ')
+  return at > 0 ? { n: text.slice(0, at), unit: text.slice(at + 1) } : { n: text, unit: '' }
+}
+
+/** Abweichung vom Schnitt als kleiner Text neben der Zahl, nur ausserhalb des ±5-%-Bands. */
+function deltaText(delta: number | null, level: string | null): string | null {
+  if (delta == null || !level || level === 'similar') return null
+  return `${delta > 0 ? '+' : '−'}${Math.abs(delta)} %`
+}
+/** Besser als der Schnitt gruen (Ergebnis), schlechter amber - nie rot (App-CI). */
+function deltaClass(level: string | null): string {
+  return level === 'better' ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400'
+}
+
+const distance = computed(() => {
+  const t = props.group.totals
+  if (t.kmIsOdometerEstimate && !(t.km > 0)) return null
+  const parts = splitUnit(formatDistance(t.km))
+  return { ...parts, n: (t.kmIsOdometerEstimate ? '~' : '') + parts.n }
+})
+const consumption = computed(() =>
+  props.group.totals.kwhPer100km == null ? null : splitUnit(formatConsumption(props.group.totals.kwhPer100km)))
+const cost = computed(() => {
+  if (props.group.totals.costPer100km == null) return null
+  const parts = splitUnit(formatCurrency(props.group.totals.costPer100km))
+  return { n: parts.n, unit: `${parts.unit}/100km` }
+})
+const consumptionDeltaText = computed(() => deltaText(consumptionDelta.value, consumptionLevel.value))
+const costDeltaText = computed(() => deltaText(costDelta.value, costLevel.value))
+const hasEnergyLine = computed(() =>
+  props.group.totals.chargeCount > 0 || props.group.totals.chargedKwh > 0
+  || props.group.totals.consumedKwh != null || !!props.phantomKwh)
 </script>
 
 <template>
-  <div class="flex flex-col gap-1.5 px-3 select-none" :class="paddingClass">
-    <!-- Ab 1024px stehen Name, Kennzahlen und Chevron in einer Zeile; darunter bricht die
-         Bilanz um, weil sie sonst die Namen abschneiden wuerde. -->
-    <div class="flex items-start gap-2">
-      <div class="min-w-0 flex-1 flex flex-col gap-1" :class="compact ? '' : 'lg:flex-row lg:items-baseline lg:gap-4'">
-        <div v-if="showTitle" data-testid="period-title" class="flex items-baseline gap-2 min-w-0">
-          <span class="text-base sm:text-lg font-bold tracking-tight text-gray-900 dark:text-gray-100 whitespace-nowrap">
-            {{ label }}
-          </span>
-          <span class="text-xs text-gray-500 dark:text-gray-400 truncate">
-            <template v-if="weekNumber">{{ t('logs.period.week_number', { week: weekNumber }) }} &middot; </template>
-            {{ t('dashboard.trip_group_count', { count: group.totals.tripCount }, group.totals.tripCount) }}
-            <template v-if="group.totals.chargeCount">
-              &middot; {{ t('logs.period.charges', { count: group.totals.chargeCount }, group.totals.chargeCount) }}
-            </template>
-          </span>
-        </div>
-
-        <!-- Bilanz als Chips: nur Summen und was direkt daraus folgt, nichts Geschaetztes.
-             Verbrauch und Kosten tragen die Community-Einordnung als Farbe, der Rest bleibt neutral. -->
-        <div v-if="showBody" data-testid="period-chips" class="flex items-center gap-x-1.5 gap-y-1 flex-wrap tabular-nums"
-             :class="compact ? '' : 'lg:flex-1 lg:gap-x-2'">
-          <!-- Ohne Fahrten stammt die Strecke aus dem Odometer-Delta der Ladungen - eine
-               Schaetzung (nur der Kern zwischen In-Period-Ladungen). "~" statt "+" plus
-               Tooltip machen das ehrlich; bei 0 km (nichts Messbares) faellt der Chip weg. -->
-          <span v-if="!group.totals.kmIsOdometerEstimate || group.totals.km > 0"
-                class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
-                       bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-emerald-700 dark:text-emerald-400"
-                :class="group.totals.kmIsOdometerEstimate ? 'cursor-help' : ''"
-                :title="group.totals.kmIsOdometerEstimate ? t('logs.period.km_estimate_hint') : undefined">
-            {{ group.totals.kmIsOdometerEstimate ? '~' : '+' }}{{ formatDistance(group.totals.km) }}
-          </span>
-          <span v-if="group.totals.consumedKwh != null"
-                class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
-                       bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-rose-500 dark:text-rose-300">
-            &minus;{{ formatDecimal(group.totals.consumedKwh) }} kWh
-          </span>
-          <ComparisonChip v-if="group.totals.kwhPer100km != null" :level="consumptionLevel"
-                          :tooltip="consumptionTooltip" :delta-percent="consumptionDelta">
-            {{ formatConsumption(group.totals.kwhPer100km) }}
-          </ComparisonChip>
-          <ComparisonChip v-if="group.totals.costPer100km != null" :level="costLevel"
-                          :tooltip="costTooltip" :delta-percent="costDelta">
-            {{ formatCurrency(group.totals.costPer100km) }}/100km
-          </ComparisonChip>
-          <!-- Ladungen tragen die Indigo-Identitaet der Ladezeilen: so verraet auch der
-               eingeklappte Kopf auf einen Blick, dass der Zeitraum Ladevorgaenge enthaelt. -->
-          <span v-if="group.totals.chargeCount > 0 || group.totals.chargedKwh > 0"
-                class="inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
-                       bg-indigo-100/80 dark:bg-indigo-900/40 border-indigo-300/70 dark:border-indigo-700/50 text-indigo-700 dark:text-indigo-300"
-                :title="t('logs.period.charges', { count: group.totals.chargeCount }, group.totals.chargeCount)">
-            <BoltIcon class="w-3 h-3" />
-            <template v-if="group.totals.chargedKwh > 0">+{{ formatDecimal(group.totals.chargedKwh) }} kWh</template>
-            <template v-else>{{ group.totals.chargeCount }}&times;</template>
-          </span>
-          <span v-if="phantomKwh"
-                class="inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap
-                       bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-amber-500 dark:text-amber-500"
-                :title="t('dashboard.phantom_drain_word')">
-            <BoltIcon class="w-3 h-3" />{{ formatDecimal(phantomKwh) }} kWh
-          </span>
-          <span v-if="group.totals.unmeasuredTrips" class="text-gray-400 dark:text-gray-500 cursor-help text-[13px]"
-                :title="t('logs.period.unmeasured', { count: group.totals.unmeasuredTrips }, group.totals.unmeasuredTrips)">
-            &#9432;
-          </span>
-        </div>
+  <div class="flex flex-col gap-2 px-4 select-none" :class="paddingClass">
+    <div v-if="showTitle" class="flex items-center gap-2">
+      <div data-testid="period-title" class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2">
+        <span class="whitespace-nowrap text-[17px] font-bold tracking-tight text-gray-900 md:text-lg dark:text-gray-50">
+          {{ label }}
+        </span>
+        <span class="truncate text-[12.5px] text-gray-500 tabular-nums dark:text-gray-400">
+          <template v-if="weekNumber">{{ t('logs.period.week_number', { week: weekNumber }) }} &middot; </template>
+          {{ t('dashboard.trip_group_count', { count: group.totals.tripCount }, group.totals.tripCount) }}
+          <template v-if="group.totals.chargeCount">
+            &middot; {{ t('logs.period.charges', { count: group.totals.chargeCount }, group.totals.chargeCount) }}
+          </template>
+        </span>
       </div>
-
-      <template v-if="showTitle">
-        <ChevronUpIcon v-if="expanded" class="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
-        <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 shrink-0 mt-1" />
-      </template>
+      <ChevronDownIcon class="h-4 w-4 shrink-0 text-gray-400 transition-transform duration-300 ease-out"
+        :class="expanded ? 'rotate-180' : ''" aria-hidden="true" />
     </div>
 
-    <!-- Tagesraster mittig unter der Bilanz - siehe Kopfkommentar. -->
-    <div v-if="showBody && hasBars" data-testid="period-bars" class="mt-0.5 flex justify-center overflow-x-auto overflow-y-hidden">
-      <PeriodDayBars :bars="group.bars" :month="isMonth" class="shrink-0" />
+    <!-- Bilanz als Kennzahlen statt Pillen: Zahl fett, Einheit klein, Vergleich als kleiner Text.
+         Nur Summen und was direkt daraus folgt, nichts Geschaetztes ausser der ~Strecke ohne Fahrten. -->
+    <div v-if="showBody" data-testid="period-chips" class="grid gap-1 tabular-nums">
+      <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span v-if="distance" class="inline-flex items-baseline gap-1 whitespace-nowrap"
+          :class="group.totals.kmIsOdometerEstimate ? 'cursor-help' : ''"
+          :title="group.totals.kmIsOdometerEstimate ? t('logs.period.km_estimate_hint') : undefined">
+          <b class="text-base font-bold text-gray-900 dark:text-gray-50">{{ distance.n }}</b>
+          <span class="text-[12.5px] font-semibold text-gray-500 dark:text-gray-400">{{ distance.unit }}</span>
+        </span>
+        <span v-if="consumption" class="inline-flex items-baseline gap-1 whitespace-nowrap" :title="consumptionTooltip ?? undefined">
+          <b class="text-base font-bold text-gray-900 dark:text-gray-50">{{ consumption.n }}</b>
+          <span class="text-[12.5px] font-semibold text-gray-500 dark:text-gray-400">{{ consumption.unit }}</span>
+          <span v-if="consumptionDeltaText" class="text-[12px] font-semibold" :class="deltaClass(consumptionLevel)">{{ consumptionDeltaText }}</span>
+        </span>
+        <span v-if="cost" class="inline-flex items-baseline gap-1 whitespace-nowrap" :title="costTooltip ?? undefined">
+          <b class="text-base font-bold text-gray-900 dark:text-gray-50">{{ cost.n }}</b>
+          <span class="text-[12.5px] font-semibold text-gray-500 dark:text-gray-400">{{ cost.unit }}</span>
+          <span v-if="costDeltaText" class="text-[12px] font-semibold" :class="deltaClass(costLevel)">{{ costDeltaText }}</span>
+        </span>
+        <span v-if="group.totals.unmeasuredTrips" class="inline-flex cursor-help self-center text-gray-400 dark:text-gray-500"
+          :title="t('logs.period.unmeasured', { count: group.totals.unmeasuredTrips }, group.totals.unmeasuredTrips)"
+          :aria-label="t('logs.period.unmeasured', { count: group.totals.unmeasuredTrips }, group.totals.unmeasuredTrips)">
+          <InformationCircleIcon class="h-4 w-4" />
+        </span>
+      </div>
+      <!-- Energie des Zeitraums: Farbpunkte wie im Tagesraster (geladen gruen, gefahren blau), Stand amber. -->
+      <div v-if="hasEnergyLine" class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12.5px] text-gray-600 dark:text-gray-300">
+        <span v-if="group.totals.chargeCount > 0 || group.totals.chargedKwh > 0" class="inline-flex items-center gap-1.5 whitespace-nowrap"
+          :title="t('logs.period.charges', { count: group.totals.chargeCount }, group.totals.chargeCount)">
+          <i class="h-2 w-2 rounded-[2px] bg-green-700 dark:bg-green-400" aria-hidden="true" />
+          <template v-if="group.totals.chargedKwh > 0">{{ formatDecimal(group.totals.chargedKwh) }} kWh</template>
+          <template v-else>{{ group.totals.chargeCount }}&times;</template>
+          {{ t('logs.legend.slim_charged') }}
+        </span>
+        <span v-if="group.totals.consumedKwh != null" class="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <i class="h-2 w-2 rounded-[2px] bg-sky-500 dark:bg-sky-400" aria-hidden="true" />
+          {{ formatDecimal(group.totals.consumedKwh) }} kWh {{ t('logs.legend.slim_driven') }}
+        </span>
+        <span v-if="phantomKwh" class="inline-flex items-center gap-1.5 whitespace-nowrap" :title="t('dashboard.phantom_drain_word')">
+          <i class="h-2 w-2 rounded-[2px] bg-amber-400" aria-hidden="true" />
+          {{ formatDecimal(phantomKwh) }} kWh {{ t('logs.legend.slim_phantom') }}
+        </span>
+      </div>
+    </div>
+
+    <div v-if="showBody && hasBars" data-testid="period-bars" class="pt-1 md:max-w-xl">
+      <PeriodDayBars :bars="group.bars" :month="isMonth" />
     </div>
   </div>
 </template>

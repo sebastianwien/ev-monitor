@@ -10,6 +10,17 @@
  */
 export type ComparisonLevel = 'better' | 'similar' | 'worse' | 'much_worse'
 
+/** Mindestzahl an Fahrern (App-CI) und Ladungen, ab der ein Community-Schnitt etwas sagt. */
+const MIN_COMMUNITY_DRIVERS = 5
+const MIN_COMMUNITY_LOGS = 5
+
+/** Taugt der Modell-Schnitt als Vergleich? Erst ab 5 Fahrern, darunter ist es ein Einzelwert. */
+export function communityStatsUsable(
+  stats: { logCount?: number | null; uniqueContributors?: number | null } | null | undefined,
+): boolean {
+  return (stats?.logCount ?? 0) >= MIN_COMMUNITY_LOGS && (stats?.uniqueContributors ?? 0) >= MIN_COMMUNITY_DRIVERS
+}
+
 const SIMILAR_BAND = 0.05
 const MUCH_WORSE_THRESHOLD = 0.30
 

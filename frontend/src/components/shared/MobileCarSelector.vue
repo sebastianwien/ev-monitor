@@ -37,7 +37,7 @@ const emit = defineEmits<{ 'update:modelValue': [carId: string]; share: [car: Ca
 
 const { t } = useI18n()
 
-const { isVehicleCharging, isSmartcarCharging, isWallboxCharging } = useVehicleCharging(
+const { isSmartcarCharging, isWallboxCharging } = useVehicleCharging(
   computed(() => props.cars),
   computed(() => props.smartcarStatus),
 )

@@ -800,6 +800,13 @@ logs:
     empty: "Ingen slettede ladesesjoner."
   title: Ladinger og turer
   load_older: "Last eldre ({month})"
+  hints:
+    check: "Sjekk nå"
+    more: "Les mer"
+    per_month: "{price}/måned"
+    supporter: "{pack}: ladekurver, tap i ro og turer i detalj"
+    autosync: "{product} registrerer ladingene dine automatisk, uten inntasting"
+    live: "{product}: turer, ladekurver og tap i ro automatisk"
   empty_window: "Ingen ladinger eller turer i valgt periode."
   expand_all: "Vis alle"
   collapse_all: "Skjul alle"
@@ -831,7 +838,7 @@ logs:
     desc_driving: "Kjøreforbruket - så mye brukte selve kjøringen, uten det som går med mens bilen står."
     desc_phantom: "Hviletapet - energi bilen taper mens den står, holdt bevisst utenfor kjøreforbruket."
     desc_charged: "Den ladede energien som faktisk kommer inn i bilen (netto)."
-    bars: "Søylene viser kilometer per dag; den blå sokkelen markerer en dag med lading."
+    bars: "De blå søylene viser kilometer per dag, et grønt felt under markerer en ladedag."
     term_avg: "Snittforbruk"
     desc_avg: "Teller all energi mellom to ladinger, også mens bilen står - derfor høyere."
     term_total: "Total energi"

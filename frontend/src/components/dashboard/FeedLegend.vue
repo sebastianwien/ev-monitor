@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, ChevronDownIcon, ChevronUpIcon, HomeIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon, HomeIcon, InformationCircleIcon } from '@heroicons/vue/24/outline'
 
 /**
  * Erklaerkasten fuer den Log-Feed. Loest die wiederkehrende Nutzerfrage, warum der Feed
@@ -9,7 +9,7 @@ import { BoltIcon, ChevronDownIcon, ChevronUpIcon, HomeIcon } from '@heroicons/v
  *
  * Zwei Modi, damit der rechtsbuendige Trigger in der Aufloesungs-Zeile stehen kann,
  * das Panel aber volle Breite darunter bekommt:
- * - `trigger`: die farbige Slim-Legende (Chip-Farben) plus Aufklapp-Button.
+ * - `trigger`: der Aufklapp-Link; die Farben erklaeren die Koepfe selbst (Punkt + Wort).
  * - `panel`: das aufgeklappte Detail mit zwei Bloecken - "In dieser Uebersicht" und
  *   "Auf der Startseite" - als Begriff/Chip + Beschreibung, im Grid ausgerichtet.
  *
@@ -35,92 +35,72 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <!-- Trigger: rechtsbuendige Slim-Legende + Aufklapp-Button. -->
+  <!-- Trigger: Textlink mit Chevron, 40 px hoch wie die Chips daneben. Auf dem Handy nur das
+       Info-Symbol, sonst bekaeme der Link eine eigene Zeile. -->
   <button v-if="mode === 'trigger'" type="button" @click="$emit('toggle')" :aria-expanded="open"
-          class="inline-flex items-center gap-x-3 gap-y-1 flex-wrap justify-end text-xs
-                 text-gray-600 dark:text-gray-300 group">
-    <span class="inline-flex items-center gap-1.5">
-      <span class="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 shrink-0" aria-hidden="true" />
-      {{ t('logs.legend.slim_driven') }}
-    </span>
-    <span v-if="hasCharges" class="inline-flex items-center gap-1.5">
-      <span class="w-2 h-2 rounded-full bg-indigo-500 dark:bg-indigo-400 shrink-0" aria-hidden="true" />
-      {{ t('logs.legend.slim_charged') }}
-    </span>
-    <span v-if="showPhantom" class="inline-flex items-center gap-1.5">
-      <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
-      {{ t('logs.legend.slim_phantom') }}
-    </span>
-    <span class="inline-flex items-center gap-0.5 text-gray-400 dark:text-gray-500
-                 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
-      {{ t('logs.legend.toggle') }}
-      <ChevronUpIcon v-if="open" class="w-3.5 h-3.5" />
-      <ChevronDownIcon v-else class="w-3.5 h-3.5" />
-    </span>
+          :aria-label="t('logs.legend.toggle')" :title="t('logs.legend.toggle')"
+          class="inline-flex min-h-10 min-w-10 items-center justify-center gap-1 rounded-full px-1 text-[13px] font-semibold text-gray-600 transition-colors hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-green-600 sm:underline sm:decoration-gray-300 sm:underline-offset-4 sm:hover:decoration-gray-900 dark:text-gray-300 dark:decoration-gray-600 dark:hover:text-gray-100"
+          :class="open ? 'text-gray-900 dark:text-gray-100' : ''">
+    <InformationCircleIcon class="h-5 w-5 sm:hidden" aria-hidden="true" />
+    <span class="hidden sm:inline">{{ t('logs.legend.toggle') }}</span>
+    <ChevronDownIcon class="hidden h-3.5 w-3.5 transition-transform duration-300 ease-out sm:block" :class="open ? 'rotate-180' : ''" aria-hidden="true" />
   </button>
 
-  <!-- Panel: zwei Bloecke, Begriff/Chip + Beschreibung im Grid ausgerichtet. -->
-  <div v-else
-       class="rounded-lg border border-gray-200 dark:border-gray-700/60 bg-gray-50 dark:bg-gray-800/40
-              divide-y divide-gray-200 dark:divide-gray-700/60 text-xs overflow-hidden">
-    <!-- Block 1: was in diesem Feed steht. -->
-    <div class="p-3 space-y-2">
-      <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+  <!-- Panel: zwei Bloecke, Begriff + Beschreibung im Grid ausgerichtet. -->
+  <div v-else class="rounded-2xl bg-gray-50 text-[13px] leading-snug dark:bg-white/5">
+    <!-- Block 1: was in diesem Feed steht - dieselben Zeichen wie in den Koepfen. -->
+    <div class="space-y-2.5 p-4">
+      <p class="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">
         {{ t('logs.legend.section_feed') }}
       </p>
-      <div class="grid grid-cols-[max-content_1fr] gap-x-2.5 gap-y-2 items-baseline leading-snug">
+      <div class="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-2.5">
         <template v-if="hasTrips">
-          <span class="justify-self-start inline-flex items-baseline gap-1 px-2 py-0.5 border rounded-full font-medium whitespace-nowrap
-                       bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300/60 dark:border-emerald-700/50 text-emerald-700 dark:text-emerald-300">
-            12&nbsp;kWh/100km<span class="text-[10px] font-normal opacity-75">&minus;36%</span>
+          <span class="inline-flex items-baseline gap-1 whitespace-nowrap tabular-nums">
+            <b class="font-bold text-gray-900 dark:text-gray-50">12</b><span class="text-[12px] font-semibold text-gray-500 dark:text-gray-400">kWh/100km</span>
+            <span class="text-[12px] font-semibold text-green-700 dark:text-green-400">&minus;36 %</span>
           </span>
-          <span class="text-gray-500 dark:text-gray-400">{{ t('logs.legend.desc_driving') }}</span>
+          <span class="text-gray-600 dark:text-gray-300">{{ t('logs.legend.desc_driving') }}</span>
         </template>
         <template v-if="showPhantom">
-          <span class="justify-self-start inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full font-medium whitespace-nowrap
-                       bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-amber-500">
-            <BoltIcon class="w-3 h-3" />2&nbsp;kWh
+          <span class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200">
+            <i class="h-2 w-2 rounded-[2px] bg-amber-400" aria-hidden="true" />{{ t('logs.legend.slim_phantom') }}
           </span>
-          <span class="text-gray-500 dark:text-gray-400">{{ t('logs.legend.desc_phantom') }}</span>
+          <span class="text-gray-600 dark:text-gray-300">{{ t('logs.legend.desc_phantom') }}</span>
         </template>
         <template v-if="hasCharges">
-          <span class="justify-self-start inline-flex items-center gap-0.5 px-2 py-0.5 border rounded-full font-medium whitespace-nowrap
-                       bg-indigo-100/80 dark:bg-indigo-900/40 border-indigo-300/70 dark:border-indigo-700/50 text-indigo-700 dark:text-indigo-300">
-            <BoltIcon class="w-3 h-3" />+48&nbsp;kWh
+          <span class="inline-flex items-center gap-1.5 whitespace-nowrap text-gray-700 dark:text-gray-200">
+            <i class="h-2 w-2 rounded-[2px] bg-green-700 dark:bg-green-400" aria-hidden="true" />{{ t('logs.legend.slim_charged') }}
           </span>
-          <span class="text-gray-500 dark:text-gray-400">{{ t('logs.legend.desc_charged') }}</span>
+          <span class="text-gray-600 dark:text-gray-300">{{ t('logs.legend.desc_charged') }}</span>
         </template>
         <template v-if="hasTrips">
-          <span class="justify-self-start flex items-end gap-[3px] h-4 self-center" aria-hidden="true">
-            <span class="w-1.5 rounded-t-sm bg-emerald-300 dark:bg-emerald-600" style="height: 7px" />
-            <span class="w-1.5 rounded-t-sm bg-emerald-300 dark:bg-emerald-600" style="height: 13px" />
-            <span class="flex flex-col items-stretch justify-end w-1.5 h-full">
-              <span class="rounded-t-sm bg-emerald-300 dark:bg-emerald-600" style="height: 9px" />
-              <span class="bg-indigo-500 dark:bg-indigo-400" style="height: 3px" />
-            </span>
+          <span class="flex h-5 items-end gap-[3px] self-center" aria-hidden="true">
+            <span class="flex w-2 flex-col gap-[2px]"><i class="block h-[7px] rounded-[2px] bg-sky-500 dark:bg-sky-400" /><i class="block h-1 rounded-[2px] bg-gray-200 dark:bg-gray-700" /></span>
+            <span class="flex w-2 flex-col gap-[2px]"><i class="block h-[13px] rounded-[2px] bg-sky-500 dark:bg-sky-400" /><i class="block h-1 rounded-[2px] bg-gray-200 dark:bg-gray-700" /></span>
+            <span class="flex w-2 flex-col gap-[2px]"><i class="block h-[9px] rounded-[2px] bg-sky-500 dark:bg-sky-400" /><i class="block h-1 rounded-[2px] bg-green-700 dark:bg-green-400" /></span>
           </span>
-          <span class="text-gray-500 dark:text-gray-400">{{ t('logs.legend.bars') }}</span>
+          <span class="text-gray-600 dark:text-gray-300">{{ t('logs.legend.bars') }}</span>
         </template>
       </div>
-      <p class="pt-2 mt-1 border-t border-gray-200 dark:border-gray-700/60 text-gray-500 dark:text-gray-400 leading-snug">
+      <p class="border-t border-gray-200 pt-2.5 text-gray-600 dark:border-gray-700 dark:text-gray-300">
         {{ t('logs.legend.percent_note') }}
       </p>
     </div>
 
-    <!-- Block 2: warum die Startseite andere Werte zeigt - neutraler, weil anderer Screen. -->
-    <div class="p-3 space-y-2 bg-white/50 dark:bg-gray-900/20">
-      <div class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-        <HomeIcon class="w-3 h-3" aria-hidden="true" />
+    <!-- Block 2: warum die Startseite andere Werte zeigt. -->
+    <div class="space-y-2.5 border-t border-gray-200 p-4 dark:border-gray-700">
+      <div class="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">
+        <HomeIcon class="h-3.5 w-3.5" aria-hidden="true" />
         {{ t('logs.legend.section_home') }}
       </div>
-      <p class="text-gray-500 dark:text-gray-400 leading-snug">{{ t('logs.legend.section_home_hint') }}</p>
-      <div class="grid grid-cols-[max-content_1fr] gap-x-2.5 gap-y-2 items-baseline leading-snug">
+      <p class="text-gray-600 dark:text-gray-300">{{ t('logs.legend.section_home_hint') }}</p>
+      <div class="grid grid-cols-[max-content_1fr] items-baseline gap-x-3 gap-y-2.5">
         <template v-if="hasTrips">
-          <span class="justify-self-start font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ t('logs.legend.term_avg') }}</span>
-          <span class="text-gray-500 dark:text-gray-400">{{ t('logs.legend.desc_avg') }}</span>
+          <span class="whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">{{ t('logs.legend.term_avg') }}</span>
+          <span class="text-gray-600 dark:text-gray-300">{{ t('logs.legend.desc_avg') }}</span>
         </template>
-        <span class="justify-self-start font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ t('logs.legend.term_total') }}</span>
-        <span class="text-gray-500 dark:text-gray-400">{{ t('logs.legend.desc_total') }}</span>
+        <span class="whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">{{ t('logs.legend.term_total') }}</span>
+        <span class="text-gray-600 dark:text-gray-300">{{ t('logs.legend.desc_total') }}</span>
       </div>
     </div>
   </div>

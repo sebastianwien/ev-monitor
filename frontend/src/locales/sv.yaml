@@ -800,6 +800,13 @@ logs:
     empty: "Inga raderade laddningssessioner."
   title: Laddningar & resor
   load_older: "Ladda äldre ({month})"
+  hints:
+    check: "Kontrollera nu"
+    more: "Läs mer"
+    per_month: "{price}/månad"
+    supporter: "{pack}: laddkurvor, viloförluster och resor i detalj"
+    autosync: "{product} registrerar dina laddningar automatiskt, utan inmatning"
+    live: "{product}: resor, laddkurvor och viloförluster automatiskt"
   empty_window: "Inga laddningar eller resor under vald period."
   expand_all: "Visa alla"
   collapse_all: "Dölj alla"
@@ -831,7 +838,7 @@ logs:
     desc_driving: "Körförbrukningen - så mycket drog själva körningen, utan det som går åt när bilen står stilla."
     desc_phantom: "Stilleståndsförlusten - energi som bilen förlorar när den står stilla, hålls separat från körförbrukningen."
     desc_charged: "Den laddade energin som faktiskt kommer in i bilen (netto)."
-    bars: "Staplarna visar kilometer per dag; den blå sockeln markerar en dag med laddning."
+    bars: "De blå staplarna visar kilometer per dag, ett grönt fält under markerar en laddningsdag."
     term_avg: "Snittförbrukning"
     desc_avg: "Räknar all energi mellan två laddningar, även stillestånd - därför högre."
     term_total: "Total energi"

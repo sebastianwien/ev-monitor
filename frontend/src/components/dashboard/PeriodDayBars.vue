@@ -5,11 +5,10 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { PeriodGroup } from '../../utils/tripPeriods'
 
 /**
- * Tagesraster eines Zeitraums: eine Saeule je Kalendertag, hoch wie die gefahrenen
- * Kilometer. Ob an einem Tag geladen wurde, sagt ein indigofarbener Sockel am Fuss der
- * Saeule - zwei Aussagen brauchen zwei Formen, sonst liest sich ein eingefaerbter Balken
- * wie ein groesserer Wert. Der Sockel funktioniert in jeder Saeulenbreite und -hoehe,
- * wo ein Icon in der Saeule es nicht taete.
+ * Tagesraster eines Zeitraums in der Sprache der Story-Tagesleiste (DataQualityLine): eine
+ * blaue Saeule je Fahrtag, hoch wie die gefahrenen Kilometer, darunter ein Feld je Tag -
+ * gruen, wenn geladen wurde, sonst grau. Zwei Aussagen, zwei Formen: ein eingefaerbter
+ * Balken laese sich wie ein groesserer Wert. Die Tage teilen sich die volle Breite.
  *
  * In der Wochenansicht steht die Tagesleistung als Zahl direkt unter dem Tag - die Saeule
  * zeigt das Verhaeltnis, die Zahl den Wert. Im Monat fehlt dafuer der Platz.
@@ -26,10 +25,7 @@ const LOCALE_MAP: Record<string, string> = { en: 'en-GB', nb: 'nb-NO', sv: 'sv-S
 const dateLocale = computed(() => LOCALE_MAP[locale.value] ?? 'de-DE')
 
 /** Hoehe der hoechsten Saeule in Pixeln - praesent, ohne den Kopf zu dominieren. */
-const BAR_HEIGHT_PX = 52
-
-/** Hoehe des Lade-Sockels am Fuss einer Saeule. */
-const CHARGE_BASE_PX = 4
+const BAR_HEIGHT_PX = 40
 
 /**
  * Die Saeulen des Rasters.
@@ -67,28 +63,19 @@ const dayBars = computed(() => {
 </script>
 
 <template>
-  <!-- Feste Saeulenbreite statt flex-1: ueber die volle Zeile gestreckt liest sich eine
-       Saeule wie ein Fortschrittsbalken, nicht wie ein Messwert. w-min: die Saeulenreihe
-       bestimmt die Breite, die Legende bricht darunter um - sonst zieht ihre einzeilige
-       Max-Content-Breite das shrink-0-Flex-Item breiter als die Karte (Scrollbalken). -->
-  <div v-if="dayBars.length" class="w-min">
-    <!-- Ab md: breitere Monats-Saeulen - das Raster darf auf grossen Screens praesenter
-         sein, aber nicht auf volle Kartenbreite gestreckt (siehe Kopfkommentar). -->
-    <div class="flex items-end" :class="month ? 'gap-px md:gap-[3px]' : 'gap-1'">
+  <div v-if="dayBars.length" class="w-full">
+    <div class="flex items-end" :class="month ? 'gap-[2px] md:gap-[3px]' : 'gap-1.5'">
       <template v-for="bar in dayBars" :key="bar.dateKey">
-        <span v-if="bar.separator" class="w-px self-stretch bg-gray-200 dark:bg-gray-600 mx-0.5" aria-hidden="true" />
-        <span class="flex flex-col items-center gap-0.5" :class="month ? 'w-[7px] md:w-3' : 'w-[30px]'" :title="bar.title">
-          <span class="flex flex-col justify-end items-stretch w-full" :style="{ height: (BAR_HEIGHT_PX + CHARGE_BASE_PX) + 'px' }">
-            <span class="w-full rounded-t-sm"
-                  :class="bar.height ? 'bg-emerald-300 dark:bg-emerald-600' : (bar.charged ? '' : 'bg-gray-200 dark:bg-gray-600')"
-                  :style="{ height: bar.height ? bar.height + 'px' : (bar.charged ? '0' : '2px') }" />
-            <span v-if="bar.charged" class="w-full bg-indigo-500 dark:bg-indigo-400"
-                  :class="bar.height ? '' : 'rounded-t-sm'"
-                  :style="{ height: CHARGE_BASE_PX + 'px' }" />
+        <span v-if="bar.separator" class="w-px self-stretch bg-gray-200 dark:bg-gray-700" />
+        <span class="flex min-w-0 flex-1 flex-col items-stretch gap-[2px]" :title="bar.title">
+          <span class="flex flex-col justify-end" :style="{ height: BAR_HEIGHT_PX + 'px' }">
+            <i v-if="bar.height" class="block rounded-[2px] bg-sky-500 dark:bg-sky-400" :style="{ height: bar.height + 'px' }" />
           </span>
-          <span class="text-[10px] md:text-[11px] leading-none text-gray-400 dark:text-gray-500 tabular-nums h-3 whitespace-nowrap">{{ bar.label }}</span>
-          <span v-if="!month" class="text-[10px] md:text-[11px] leading-none tabular-nums h-3"
-                :class="bar.km > 0 ? 'text-gray-600 dark:text-gray-300 font-medium' : 'text-gray-300 dark:text-gray-600'">
+          <i class="block h-1.5 rounded-[2px]" :class="bar.charged ? 'bg-green-700 dark:bg-green-400' : 'bg-gray-200 dark:bg-gray-700'" />
+          <span class="h-3 text-center text-[10.5px] leading-3 text-gray-400 tabular-nums whitespace-nowrap dark:text-gray-500"
+            :class="month ? 'text-left' : ''">{{ bar.label }}</span>
+          <span v-if="!month" class="h-3 text-center text-[10.5px] leading-3 tabular-nums"
+                :class="bar.km > 0 ? 'font-semibold text-gray-700 dark:text-gray-300' : 'text-gray-300 dark:text-gray-600'">
             {{ bar.km > 0 ? formatDistance(bar.km, { showUnit: false }) : '·' }}
           </span>
         </span>
