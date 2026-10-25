@@ -15,6 +15,8 @@ export interface ChargeDataPoint {
   kwhCharged: number
   distanceKm: number | null
   consumptionKwhPer100km: number | null
+  /** Ladungen in der Periode. */
+  charges?: number
 }
 
 export interface PeerBenchmark {

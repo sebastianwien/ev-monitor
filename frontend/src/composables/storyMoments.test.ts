@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
-  detectRank, detectSilence, detectLive, detectGap, monthMoment, momentScore, pickMoment,
+  detectRank, detectSilence, detectLive, detectGap, detectMilestone, monthMoment, momentScore, pickMoment,
   momentFeedItems, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
 
@@ -161,6 +161,44 @@ describe('detectGap', () => {
 
   it('ignoriert Lücken älter als 31 Tage', () => {
     expect(detectGap({ logs: [gap('a', 32 * 24)], now: NOW })).toBeNull()
+  })
+})
+
+describe('detectMilestone', () => {
+  const pt = (daysAgo: number, charges: number, distanceKm = 0, consumption: number | null = null) =>
+    ({ timestamp: iso(NOW - daysAgo * DAY), charges, distanceKm, consumptionKwhPer100km: consumption })
+
+  it('feiert die 100. Ladung am Tag, an dem sie dazukam', () => {
+    const m = detectMilestone({ series: [pt(40, 99), pt(1, 1)], now: NOW })
+    expect(m).toMatchObject({ kind: 'milestone', key: 'milestone:charges:100', metric: 'charges', value: 100, at: NOW - DAY, charges: 100 })
+  })
+
+  it('vergisst Meilensteine nach 3 Tagen und zählt keinen unter der ersten Schwelle', () => {
+    expect(detectMilestone({ series: [pt(40, 99), pt(4, 1)], now: NOW })).toBeNull()
+    expect(detectMilestone({ series: [pt(1, 99)], now: NOW })).toBeNull()
+  })
+
+  it('10.000 km, mit CO₂ aus Strecke und Verbrauch', () => {
+    const m = detectMilestone({ series: [pt(30, 1, 9_900, 18), pt(1, 1, 300, 18)], now: NOW })
+    // 178 g/km Benzin gegen 18 kWh/100 km x 380 g/kWh = 109,6 g/km weniger
+    expect(m).toMatchObject({ metric: 'km', value: 10_000, km: 10_200 })
+    expect(m!.kind === 'milestone' && m!.co2Kg).toBeCloseTo(1117.9, 1)
+  })
+
+  it('eine Tonne CO₂ weniger', () => {
+    expect(detectMilestone({ series: [pt(10, 1, 9_000, 18), pt(1, 1, 200, 18)], now: NOW }))
+      .toMatchObject({ metric: 'co2', value: 1000 })
+  })
+
+  it('Jahrestag der ersten Ladung', () => {
+    const first = { timestamp: new Date(2025, 9, 23, 8).toISOString(), charges: 1, distanceKm: 0, consumptionKwhPer100km: null }
+    expect(detectMilestone({ series: [first, pt(5, 3)], now: NOW }))
+      .toMatchObject({ metric: 'years', value: 1, at: new Date(2026, 9, 23, 8).getTime(), charges: 4 })
+  })
+
+  it('mehrere zugleich: der jüngste gewinnt', () => {
+    const m = detectMilestone({ series: [pt(30, 98, 9_900), pt(2, 2), pt(1, 1, 200)], now: NOW })
+    expect(m).toMatchObject({ metric: 'km', value: 10_000 })
   })
 })
 

@@ -48,6 +48,19 @@ describe('StoryMomentHero', () => {
     expect(text(host)).not.toContain('Weiß ich nicht mehr')
   })
 
+  it('Meilenstein: Ladungen mit CO₂, Jahrestag in der Mehrzahl, Teilen', () => {
+    const onAct = vi.fn()
+    const host = mount({ ...b, kind: 'milestone', key: 'k', metric: 'charges', value: 100, charges: 100, km: 21_900, co2Kg: 2400 }, { onAct })
+    expect(text(host)).toContain('Meilenstein')
+    expect(text(host)).toContain('100 Ladungen.')
+    expect(text(host)).toContain('2,4 t CO₂ weniger als mit Benzin.')
+    host.querySelector('button')!.click()
+    expect(onAct).toHaveBeenCalledWith('share')
+    app!.unmount(); app = null
+    const years = mount({ ...b, kind: 'milestone', key: 'k', metric: 'years', value: 2, charges: 1250, km: 31_000, co2Kg: null })
+    expect(text(years)).toContain('2 Jahre: 31.000 km und 1.250 Ladungen.')
+  })
+
   it('lange Fahrt mit Stopp und Kosten, Tag relativ', () => {
     const host = mount({ ...b, kind: 'long_trip', key: 'k', at: NOW - 20 * HOUR, km: 340, stops: 1, costEur: 18 })
     expect(text(host)).toContain('Gestern: 340 km, 1 Ladestopp für 18 €.')

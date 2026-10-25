@@ -114,6 +114,22 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
           secondary: m.autoSync ? { id: 'autosync', label: t('story.moment_action_autosync'), to: '/imports' } : undefined,
           dismiss: true,
         }
+      case 'milestone': {
+        const n = (v: number) => formatDecimal(v, 0)
+        const tonnes = (kg: number, d: number) => `${formatDecimal(kg / 1000, d)} t`
+        const co2Sub = m.co2Kg != null && m.co2Kg >= 100 ? t('story.moment_milestone_co2', { t: tonnes(m.co2Kg, 1) }) : undefined
+        const byMetric: Record<typeof m.metric, () => Pick<MomentView, 'sentence' | 'sub'>> = {
+          charges: () => ({ sentence: t('story.moment_milestone_charges', { n: n(m.value) }), sub: co2Sub }),
+          km: () => ({ sentence: t('story.moment_milestone_km', { km: km(m.value) }), sub: co2Sub }),
+          co2: () => ({ sentence: t('story.moment_milestone_co2', { t: tonnes(m.value, 0) }), sub: t('story.moment_milestone_co2_after', { km: km(m.km) }) }),
+          years: () => ({
+            sentence: m.km > 0
+              ? t('story.moment_milestone_years', { years: m.value, km: km(m.km), n: n(m.charges) }, m.value)
+              : t('story.moment_milestone_years_plain', { years: m.value, n: n(m.charges) }, m.value),
+          }),
+        }
+        return { eyebrow: t('story.moment_milestone_eyebrow'), ...byMetric[m.metric](), action: { id: 'share', label: t('story.moment_action_share') } }
+      }
       case 'gap': {
         const date = shortDate(m.at)
         return {

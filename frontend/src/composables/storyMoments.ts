@@ -1,5 +1,5 @@
 import { tripTimestamp } from '../utils/recentActivity'
-import { heroLine, petrolCostEur, type StoryFeedItem } from './storyModel'
+import { co2Comparison, heroLine, petrolCostEur, type StoryFeedItem } from './storyModel'
 import { COLD_MAX_C, type RankResult } from './storyInsights'
 
 /**
@@ -12,7 +12,7 @@ export const HOUR = 3_600_000
 export const DAY = 24 * HOUR
 
 export type MomentKind =
-  | 'live' | 'just_charged' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'rank' | 'silence' | 'gap' | 'month'
+  | 'live' | 'just_charged' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'rank' | 'silence' | 'gap' | 'milestone' | 'month'
 
 interface MomentBase {
   /** Zustand plus Ereignis-ID: Schluessel fuer "gesehen" und "weggeklickt". */
@@ -38,6 +38,7 @@ export type MomentData =
   | { kind: 'rank'; category: string; rank: number }
   | { kind: 'silence'; days: number; kwh: number | null; autoSync: boolean }
   | { kind: 'gap'; logId: string; count: number; kwh: number | null; since: number }
+  | { kind: 'milestone'; metric: MilestoneMetric; value: number; charges: number; km: number; co2Kg: number | null }
 
 export type Moment = MomentBase & MomentData
 
@@ -60,6 +61,16 @@ export interface MomentLog {
   dataSource?: string | null
   /** "Weiß ich nicht mehr": nicht mehr nach dem Preis fragen. */
   priceUnknown?: boolean
+}
+
+export type MilestoneMetric = 'charges' | 'km' | 'co2' | 'years'
+
+/** Ein Punkt der Statistik-Zeitreihe (chargesOverTime) ueber die ganze Lebenszeit. */
+export interface MomentPoint {
+  timestamp: string
+  charges?: number
+  distanceKm: number | null
+  consumptionKwhPer100km: number | null
 }
 
 export interface MomentTrip {
@@ -271,8 +282,67 @@ export function detectGap(input: { logs: MomentLog[]; now: number; skipLogId?: s
   }
 }
 
+const MILESTONE_MS = 3 * DAY
+const MILESTONE_STEP: Record<Exclude<MilestoneMetric, 'years'>, number> = { charges: 100, km: 10_000, co2: 1000 }
+
+/** Die Schwelle, die zwischen vorher und nachher ueberschritten wurde, sonst null. */
+function crossedStep(before: number, after: number, step: number): number | null {
+  const reached = Math.floor(after / step)
+  return reached >= 1 && reached > Math.floor(before / step) ? reached * step : null
+}
+
+/**
+ * Meilensteine aus der Lebenszeit-Reihe: 100 Ladungen, 10.000 km, 1 t CO₂ weniger als mit Benzin
+ * (wie die CO₂-Kachel aus Strecke und Verbrauch), Jahrestag der ersten Ladung. Zaehlt der Tag,
+ * an dem die Schwelle fiel; mehrere in 3 Tagen: der juengste.
+ */
+export function detectMilestone(input: { series: MomentPoint[]; now: number }): Moment | null {
+  const { now } = input
+  const points = input.series
+    .map(p => ({ p, t: ms(p.timestamp) }))
+    .filter((x): x is { p: MomentPoint; t: number } => x.t != null && x.t <= now)
+    .sort((a, b) => a.t - b.t)
+  if (points.length === 0) return null
+
+  const total = { charges: 0, km: 0, co2: 0 }
+  const hits: Array<{ metric: MilestoneMetric; value: number; at: number }> = []
+  for (const { p, t } of points) {
+    const before = { ...total }
+    const km = p.distanceKm ?? 0
+    total.charges += p.charges ?? 0
+    total.km += km
+    if (km > 0 && p.consumptionKwhPer100km != null) {
+      const c = co2Comparison(km, p.consumptionKwhPer100km)
+      total.co2 += Math.max(0, c.petrolKg - c.gridKg)
+    }
+    if (now - t > MILESTONE_MS) continue
+    for (const metric of ['charges', 'km', 'co2'] as const) {
+      const value = crossedStep(before[metric], total[metric], MILESTONE_STEP[metric])
+      if (value != null) hits.push({ metric, value, at: t })
+    }
+  }
+
+  const first = new Date(points[0].t)
+  let years = new Date(now).getFullYear() - first.getFullYear()
+  const anniversary = (n: number) => { const d = new Date(first); d.setFullYear(first.getFullYear() + n); return d.getTime() }
+  if (anniversary(years) > now) years--
+  if (years >= 1 && now - anniversary(years) <= MILESTONE_MS) hits.push({ metric: 'years', value: years, at: anniversary(years) })
+
+  if (hits.length === 0) return null
+  const hit = hits.reduce((a, b) => (b.at >= a.at ? b : a))
+  return {
+    ...base(`milestone:${hit.metric}:${hit.value}`, hit.at, MILESTONE_MS),
+    kind: 'milestone',
+    metric: hit.metric,
+    value: hit.value,
+    charges: total.charges,
+    km: Math.round(total.km),
+    co2Kg: total.co2 > 0 ? total.co2 : null,
+  }
+}
+
 const BASE: Record<MomentKind, number> = {
-  live: 1000, just_charged: 90, long_trip: 80, first_frost: 75, month_change: 70, battery: 60, rank: 55, silence: 50, gap: 40, month: 10,
+  live: 1000, just_charged: 90, long_trip: 80, first_frost: 75, month_change: 70, milestone: 65, battery: 60, rank: 55, silence: 50, gap: 40, month: 10,
 }
 const ACTION_BONUS = 20
 /** Gross genug, dass ein gesehener Moment unter den Monat faellt. */
@@ -315,7 +385,7 @@ export function pickMoment(candidates: Moment[], now: number, seen: MomentSeen):
 
 /** Fahrerfrage je Moment im Feed (1 Kosten, 2 Realitaet, 3 Community, 4 Gesundheit). */
 const QUESTION: Partial<Record<MomentKind, StoryFeedItem['question']>> = {
-  just_charged: 1, long_trip: 2, first_frost: 2, month_change: 1, battery: 4, silence: 1, gap: 1,
+  just_charged: 1, long_trip: 2, first_frost: 2, month_change: 1, battery: 4, silence: 1, gap: 1, milestone: 2,
 }
 
 /** Rang fehlt bewusst: den nennt der Feed schon als community_rank. */

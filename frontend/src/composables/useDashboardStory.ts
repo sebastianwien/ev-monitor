@@ -16,7 +16,7 @@ import {
   type TripForTemperature, type RankEntry, buildLatest, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
-  detectSilence, detectGap, pickMoment, momentFeedItems, DAY, type Moment, type MomentLog, type MomentTrip,
+  detectSilence, detectGap, detectMilestone, pickMoment, momentFeedItems, DAY, type Moment, type MomentLog, type MomentTrip, type MomentPoint,
 } from './storyMoments'
 import { useMomentSeen } from './useMomentSeen'
 
@@ -161,6 +161,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const latest = ref<StoryLatest | null>(null)
   const recentLogs = ref<Array<LatestLogSource & MomentLog>>([])
   const recentTrips = ref<MomentTrip[]>([])
+  /** Tagesreihe ueber die ganze Lebenszeit, Basis der Meilensteine. */
+  const lifetimeSeries = ref<MomentPoint[]>([])
   const { seen } = useMomentSeen()
   const loading = ref(true)
   const error = ref(false)
@@ -215,7 +217,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
 
   async function loadPerCar(carId: string) {
     const tripsFrom = new Date(Date.now() - MOMENT_TRIP_DAYS * DAY).toISOString()
-    const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips] = await Promise.allSettled([
+    const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime] = await Promise.allSettled([
       chargingSavingsService.get(),
       peerModelComparisonService.getPeerModelComparison(carId),
       api.get<MomentLog[]>(`/logs/priceless?carId=${carId}&includeUnknown=true`),
@@ -225,6 +227,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       api.get<LatestTripSource[]>(`/trips?carId=${carId}&limit=1`),
       fetchStats(carId, isoDate(daysAgo(RECENT_DAYS - 1)), isoDate(daysAgo(0)), 'MONTH'),
       api.get<MomentTrip[]>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
+      api.get<StatisticsData>(`/logs/statistics?carId=${carId}&groupBy=DAY`),
     ])
     if (carId !== selectedCarId.value) return
     const prices = fuel.status === 'fulfilled' ? fuel.value : null
@@ -239,6 +242,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     recentStats.value = recent.status === 'fulfilled' ? recent.value : null
     recentLogs.value = lastLogs.status === 'fulfilled' && Array.isArray(lastLogs.value.data) ? lastLogs.value.data : []
     recentTrips.value = momentTrips.status === 'fulfilled' && Array.isArray(momentTrips.value.data) ? momentTrips.value.data : []
+    lifetimeSeries.value = lifetime.status === 'fulfilled' ? lifetime.value.data?.chargesOverTime ?? [] : []
     // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
     latest.value = buildLatest(
       recentLogs.value[0] ?? null,
@@ -341,6 +345,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       detectRank({ rank: bestRank(ranks.value), now }),
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
       // Die gerade geladene fragt schon selbst nach ihrem Preis.
+      detectMilestone({ series: lifetimeSeries.value, now }),
       detectGap({ logs: pricelessLogs.value, now, skipLogId: justCharged?.kind === 'just_charged' ? justCharged.logId : null }),
     ].filter((m): m is Moment => m != null)
     return pickMoment(candidates, now, seen.value)
