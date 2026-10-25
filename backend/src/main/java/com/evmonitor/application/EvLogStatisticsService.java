@@ -83,8 +83,9 @@ public class EvLogStatisticsService {
      * Server-side over ALL logs (not just the loaded feed page), so old cost-less charges - which
      * would otherwise sit invisible far down the paginated feed - stay findable for the "add price"
      * banner. Genuinely free charges (cost 0) are excluded; only truly missing prices show up.
+     * Charges the user declared "price unknown" only come with includeUnknown (data quality, not the banner).
      */
-    public List<EvLogResponse> getPricelessLogs(UUID carId, UUID userId) {
+    public List<EvLogResponse> getPricelessLogs(UUID carId, UUID userId, boolean includeUnknown) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
         if (!car.isOwnedBy(userId)) {
@@ -93,7 +94,7 @@ public class EvLogStatisticsService {
 
         // Targeted query (cost_eur IS NULL, newest first) instead of loading every log into memory:
         // unlike getImplausibleLogs this needs no consumption context, so the DB does the filtering.
-        return evLogRepository.findPricelessByCarId(carId).stream()
+        return evLogRepository.findPricelessByCarId(carId, includeUnknown).stream()
                 .map(EvLogResponse::fromDomain)
                 .toList();
     }

@@ -744,6 +744,29 @@ public class EvLogService {
     }
 
     /**
+     * "Weiß ich nicht mehr": der Nutzer erklärt den fehlenden Preis einer eigenen Ladung für
+     * unbekannt, danach fragt keine Stelle mehr danach. Ein späterer Preis hebt das wieder auf.
+     * Idempotent; 409, wenn die Ladung einen Preis hat.
+     */
+    @Transactional
+    public EvLogResponse markPriceUnknown(UUID id, UUID userId) {
+        EvLog log = evLogRepository.findById(id)
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
+        Car car = carRepository.findById(log.getCarId())
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
+        if (!car.isOwnedBy(userId)) {
+            throw NotFoundException.forEntity("EvLog", id);
+        }
+        if (log.getCostEur() != null) {
+            throw new ConflictException("NO_PRICE_GAP", "Diese Ladung hat schon einen Preis.");
+        }
+        if (log.isPriceUnknown()) {
+            return EvLogResponse.fromDomain(log);
+        }
+        return EvLogResponse.fromDomain(evLogRepository.save(log.withPriceUnknown()));
+    }
+
+    /**
      * Toggles include_in_statistics for a single log. Ownership is verified.
      */
     @Transactional
