@@ -269,6 +269,17 @@ describe('buildStoryFeed', () => {
 })
 
 describe('buildDayCoverage', () => {
+  it('trägt je Tag Ladungen und kWh für die Tagesanzeige', () => {
+    const points = [
+      { timestamp: '2026-09-02T10:00:00', costEur: 5, kwhCharged: 31.9, distanceKm: 100, consumptionKwhPer100km: 18, charges: 2 },
+      { timestamp: '2026-09-05T10:00:00', costEur: 5, kwhCharged: 12, distanceKm: 100, consumptionKwhPer100km: 18 },
+    ]
+    const days = buildDayCoverage(points, 2026, 9)
+    expect(days[1]).toMatchObject({ day: 2, charges: 2, kwh: 31.9 })
+    expect(days[4]).toMatchObject({ day: 5, charges: 1, kwh: 12 })
+    expect(days[0]).toMatchObject({ day: 1, charges: 0, kwh: 0 })
+  })
+
   it('markiert Tage ohne Daten als Lücke', () => {
     const points = [
       { timestamp: '2026-09-01T10:00:00', costEur: 5, kwhCharged: 20, distanceKm: 100, consumptionKwhPer100km: 18 },
@@ -495,7 +506,7 @@ describe('buildStoryFeed mit Momenten', () => {
 describe('visibleGap: welche Lücke der Satz nennt', () => {
   const days = (withData: number[], gap: [number, number] | null, today = 31) => Array.from({ length: 31 }, (_, i) => {
     const day = i + 1
-    return { day, hasData: withData.includes(day), inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today }
+    return { day, hasData: withData.includes(day), inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today, charges: 0, kwh: 0 }
   })
 
   it('abgeschlossener Monat: jede Lücke ab 3 Tagen', () => {

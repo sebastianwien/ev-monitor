@@ -99,6 +99,9 @@ export interface DayCoverage {
   inLongestGap: boolean
   /** Nach heute: noch nicht gewesen, also weder Lücke noch fehlend. */
   future: boolean
+  /** Ladungen und geladene kWh an diesem Tag, für die Tagesanzeige. */
+  charges: number
+  kwh: number
 }
 
 /** Angenommener Benziner: 7,5 l/100 km, passend zu VERBRENNER_G_PER_KM. */
@@ -480,9 +483,15 @@ export function buildDayCoverage(points: ChargeDataPoint[], year: number, month:
   const today = new Date(now)
   const lastPast = today.getFullYear() === year && today.getMonth() + 1 === month ? today.getDate() : daysInMonth
   const withData = new Set<number>()
+  const perDay = new Map<number, { charges: number; kwh: number }>()
   for (const p of points) {
     const d = new Date(p.timestamp)
-    if (d.getFullYear() === year && d.getMonth() + 1 === month) withData.add(d.getDate())
+    if (d.getFullYear() !== year || d.getMonth() + 1 !== month) continue
+    withData.add(d.getDate())
+    const acc = perDay.get(d.getDate()) ?? { charges: 0, kwh: 0 }
+    acc.charges += p.charges ?? 1
+    acc.kwh += p.kwhCharged ?? 0
+    perDay.set(d.getDate(), acc)
   }
   let bestStart = 0, bestLen = 0, runStart = 0, runLen = 0
   for (let day = 1; day <= lastPast; day++) {
@@ -498,6 +507,8 @@ export function buildDayCoverage(points: ChargeDataPoint[], year: number, month:
       hasData: withData.has(day),
       inLongestGap: bestLen >= 2 && day >= bestStart && day < bestStart + bestLen,
       future: day > lastPast,
+      charges: perDay.get(day)?.charges ?? 0,
+      kwh: perDay.get(day)?.kwh ?? 0,
     }
   })
 }

@@ -82,7 +82,7 @@ watch(() => props.monthLabel, () => { layersOpen.value = false })
           <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap">{{ sentenceParts.rest }}</span>
         </component>
       </h1>
-      <p v-if="meta || layers" data-testid="story-hero-meta" class="text-pretty text-[14px] text-gray-500 tabular-nums dark:text-gray-400">
+      <p v-if="meta || layers" data-testid="story-hero-meta" class="text-pretty text-[15px] font-semibold text-gray-600 tabular-nums md:text-[17px] dark:text-gray-300">
         {{ meta }}<template v-if="layers && !layersOpen">{{ meta ? ' · ' : '' }}{{ t('story.layers_hint') }}</template>
       </p>
       <CostLayers v-if="layers && layersOpen" :layers="layers" :distance-km="distanceKm" />

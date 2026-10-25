@@ -79,6 +79,10 @@ describe('StoryTile Vergleich mit anderen', () => {
 })
 
 describe('StoryTile Akku und Reichweite', () => {
+  it('das Label ist die Frage, mit Fragezeichen', () => {
+    expect(mount(cost({ value: 21 }))).toContain('Was kostet mich das Fahren?')
+  })
+
   it('geschätzter Akkuwert mit Tilde und Hinweis, eigene Angabe ohne', () => {
     const battery = (estimated: boolean): Tile => ({ id: 'battery', value: 92, delta: null, deltaPercent: null, sentiment: 'good', spark: [100, 92], sparkVariant: 'range', odometerKm: 66265, estimated })
     const est = mount(battery(true))

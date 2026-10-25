@@ -35,12 +35,13 @@ function mount(props: Partial<typeof base> & Record<string, unknown> = {}, count
 const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 
 describe('StoryHero', () => {
-  it('Monat in km und Euro als Satz, darunter Euro je 100 km und Benzin in einer grauen Zeile', () => {
+  it('Monat in km und Euro als Satz, darunter Euro je 100 km und Benzin in einer grauen, halbfetten Zeile', () => {
     const host = mount()
     expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 274 km für 33 €.')
     const meta = host.querySelector('[data-testid="story-hero-meta"]')
     expect(text(meta)).toBe('12,19 € je 100 km · Ein Benziner hätte 51 € gekostet.')
-    expect(meta?.className).toContain('text-gray-500')
+    expect(meta?.className).toContain('text-gray-600')
+    expect(meta?.className).toContain('font-semibold')
     expect(host.querySelector('[data-testid="story-hero-petrol"]')).toBeNull()
   })
 

@@ -21,8 +21,19 @@ const { t } = useI18n()
 const { tickerHasItems, tickerCollapsed: collapsed, toggle } = useTickerState()
 
 const look = computed(() => props.docked
-  ? { band: 'bg-gray-900 dark:bg-black', muted: 'text-gray-400', tab: 'bg-gray-900 border-gray-800 text-gray-400 dark:bg-black dark:border-gray-900' }
-  : { band: 'bg-indigo-800', muted: 'text-indigo-300', tab: 'bg-indigo-800 border-indigo-700 text-indigo-300' })
+  // In der grünen Kopfzeile: eine Stufe kräftigeres Grün als die Nav, dunkler Text, Kante unten wie die Nav.
+  ? {
+    band: 'bg-green-100 border-b-2 border-gray-900 dark:bg-green-900/40 dark:border-gray-800',
+    muted: 'text-green-800/70 hover:text-gray-900 dark:text-green-200/70 dark:hover:text-white',
+    tab: 'bg-green-100 border-gray-900 border-2 text-green-800/80 hover:text-gray-900 dark:bg-green-950 dark:border-gray-800 dark:text-green-200/80 dark:hover:text-white',
+    focus: 'focus-visible:outline-gray-900/60 dark:focus-visible:outline-white/70',
+  }
+  : {
+    band: 'bg-indigo-800',
+    muted: 'text-indigo-300 hover:text-white',
+    tab: 'bg-indigo-800 border border-indigo-700 text-indigo-300 hover:text-white',
+    focus: 'focus-visible:outline-white/70',
+  })
 
 /* Plausible: misst, ob der Ticker überhaupt beachtet wird. Nur Typ, kein Inhalt. */
 function onToggle() {
@@ -98,11 +109,18 @@ const direction = ref<'fwd' | 'back'>('fwd')
 watch(index, (n, o) => { direction.value = (n === 0 && o === count.value - 1) || n > o ? 'fwd' : 'back' })
 
 const VARIANT_ICON = { leader: TrophyIcon, eco: SparklesIcon, money: BanknotesIcon, energy: BoltIcon, personal: UserIcon } as const
+const TYPE_STYLE_DOCKED = {
+  LEADER: { chip: 'bg-amber-100 text-amber-700 ring-amber-300 dark:bg-amber-400/15 dark:text-amber-300 dark:ring-amber-300/30', text: 'text-gray-900 dark:text-gray-100' },
+  STAT: { chip: 'bg-white text-green-700 ring-green-300 dark:bg-green-400/15 dark:text-green-300 dark:ring-green-300/30', text: 'text-gray-900 dark:text-gray-100' },
+  PERSONAL: { chip: 'bg-sky-100 text-sky-700 ring-sky-300 dark:bg-sky-400/15 dark:text-sky-300 dark:ring-sky-300/30', text: 'text-gray-900 dark:text-gray-100' },
+} as const
 const TYPE_STYLE = {
   LEADER: { chip: 'bg-yellow-400/15 text-yellow-300 ring-yellow-300/30', text: 'text-yellow-100' },
   STAT: { chip: 'bg-emerald-400/15 text-emerald-300 ring-emerald-300/30', text: 'text-emerald-50' },
   PERSONAL: { chip: 'bg-sky-400/15 text-sky-300 ring-sky-300/30', text: 'text-sky-50' },
 } as const
+
+const typeStyle = computed(() => props.docked ? TYPE_STYLE_DOCKED : TYPE_STYLE)
 
 onMounted(async () => {
   await fetchTicker({ withUserItems: true })
@@ -133,7 +151,7 @@ onUnmounted(() => {
         <!-- Typ-Chip: Farbe und Icon tragen die Kategorie, damit der Text kurz bleiben kann -->
         <Transition name="ticker-chip" mode="out-in">
           <span v-if="current" :key="index"
-            :class="['flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ring-1', TYPE_STYLE[current.type].chip]"
+            :class="['flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ring-1', typeStyle[current.type].chip]"
             aria-hidden="true">
             <component :is="VARIANT_ICON[current.variant] ?? BoltIcon" class="h-3 w-3" />
           </span>
@@ -150,7 +168,7 @@ onUnmounted(() => {
             <div v-if="current" :key="index" class="absolute inset-0 flex items-center">
               <span
                 data-ticker-text
-                :class="['ticker-text text-xs font-medium whitespace-nowrap', TYPE_STYLE[current.type].text]"
+                :class="['ticker-text text-xs font-medium whitespace-nowrap', typeStyle[current.type].text]"
                 :style="scrolling ? { transform: `translateX(-${overflowPx}px)`, transitionDuration: `${overflowPx / OVERFLOW_PX_PER_S}s` } : undefined"
                 :title="current.text">
                 {{ current.text }}
@@ -162,24 +180,25 @@ onUnmounted(() => {
         <!-- Ziel-Link: nur bei Einträgen mit echter Seite; Antippen des Texts bleibt "nächster Eintrag" -->
         <RouterLink v-if="current?.target"
           :to="current.target"
-          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4"
+          :class="look.focus"
+          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4"
           :aria-label="t('ticker.open')"
           :title="t('ticker.open')"
           @click="onTargetClick">
-          <span :class="['flex h-5 w-5 items-center justify-center rounded-full ring-1', TYPE_STYLE[current.type].chip]">
+          <span :class="['flex h-5 w-5 items-center justify-center rounded-full ring-1', typeStyle[current.type].chip]">
             <ArrowRightIcon class="h-3 w-3" />
           </span>
         </RouterLink>
 
         <!-- Position, nur Desktop -->
-        <span class="hidden sm:inline ml-3 text-[10px] tabular-nums opacity-80" :class="look.muted" aria-hidden="true">
+        <span class="hidden sm:inline ml-3 text-[10px] tabular-nums" :class="look.muted" aria-hidden="true">
           {{ index + 1 }}/{{ count }}
         </span>
 
         <!-- Steuerung: Pause (WCAG 2.2.2) und Weiter; volle Bandhöhe als Trefferfläche -->
         <button type="button"
-          :class="look.muted"
-          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4 rounded"
+          :class="[look.muted, look.focus]"
+          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 rounded"
           :aria-label="userPaused ? t('ticker.play') : t('ticker.pause')"
           :aria-pressed="userPaused"
           @click="onTogglePause">
@@ -187,8 +206,8 @@ onUnmounted(() => {
           <PauseIcon v-else class="h-3.5 w-3.5" />
         </button>
         <button type="button"
-          :class="look.muted"
-          class="hidden sm:flex h-8 w-9 flex-shrink-0 items-center justify-center hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4 rounded"
+          :class="[look.muted, look.focus]"
+          class="hidden sm:flex h-8 w-9 flex-shrink-0 items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 rounded"
           :aria-label="t('ticker.next')"
           @click="next">
           <ChevronRightIcon class="h-3.5 w-3.5" />
@@ -200,7 +219,7 @@ onUnmounted(() => {
     <button type="button"
       @click="onToggle"
       :class="look.tab"
-      class="before:absolute before:-inset-x-2 before:-top-1 before:-bottom-3 absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full border border-t-0 rounded-b-lg px-7 py-0.5 flex items-center gap-1 hover:text-white transition-colors"
+      class="before:absolute before:-inset-x-2 before:-top-1 before:-bottom-3 absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full border-t-0 rounded-b-lg px-7 py-0.5 flex items-center gap-1 transition-colors"
       :aria-expanded="!collapsed"
       :aria-label="collapsed ? t('ticker.show') : t('ticker.hide')"
       :title="collapsed ? t('ticker.show') : t('ticker.hide')">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { LockClosedIcon } from '@heroicons/vue/24/outline'
+import { LockClosedIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { CAT_LABEL } from '../../composables/useTickerItems'
 import type { StoryFeedItem, TileId } from '../../composables/storyModel'
@@ -136,22 +136,30 @@ const sheet = computed<TileId | null>(() => {
   return id && props.sheets.includes(id) && !props.item.locked ? id : null
 })
 
+/** Wohin die Zeile führt: Sheet einer Kachel, eine Seite oder nirgends. Nur dann Pfeil und Knopf. */
+const LINK_OF: Partial<Record<StoryFeedItem['id'], string>> = { community_rank: '/leaderboard' }
+const link = computed(() => props.item.locked ? null : LINK_OF[props.item.id] ?? null)
+const tag = computed(() => sheet.value ? 'button' : link.value ? 'router-link' : 'div')
+const interactive = computed(() => !!sheet.value || !!link.value)
+
 const lockedCta = computed(() => props.item.id === 'temperature_locked' ? t('story.feed_temp_cta') : t('story.feed_phantom_cta'))
 </script>
 
 <template>
   <component
-    :is="sheet ? 'button' : 'div'"
+    :is="tag"
     :type="sheet ? 'button' : undefined"
+    :to="link ?? undefined"
     :data-testid="`story-feed-${item.id}`"
-    class="story-feed-item relative flex min-h-14 w-full items-center justify-between gap-4 border-b border-gray-200 py-2.5 text-left last:border-0 dark:border-gray-800"
-    :class="sheet ? 'focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent' : ''"
+    class="story-feed-item relative flex min-h-14 w-full items-center justify-between gap-3 border-b border-gray-200 py-2.5 text-left last:border-0 dark:border-gray-800"
+    :class="interactive ? 'group -mx-2 w-[calc(100%+1rem)] rounded-lg px-2 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:hover:bg-gray-800/60' : ''"
     @click="sheet && emit('open', sheet)">
     <span class="min-w-0 flex-1" :class="item.locked ? 'blur-[5px] select-none pointer-events-none' : ''">
       <span class="block text-[15px] leading-snug text-pretty text-gray-900 dark:text-gray-100"><template v-for="(x, i) in parts" :key="i"><b v-if="x.bold" class="font-bold">{{ x.text }}</b><template v-else>{{ x.text }}</template></template></span>
       <router-link v-if="momentLink" :to="momentLink.to!" class="mt-1 inline-flex min-h-[44px] items-center text-sm font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100">{{ momentLink.label }}</router-link>
     </span>
     <span v-if="number && !item.locked" data-testid="story-feed-number" class="shrink-0 text-[15px] font-bold tabular-nums" :class="numberClass">{{ number }}</span>
+    <span v-if="interactive" data-testid="story-feed-chevron" class="-ml-1 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true"><ChevronRightIcon class="h-4 w-4" /></span>
     <span v-if="item.locked" class="absolute inset-0 flex items-center justify-between gap-3 px-0.5">
       <span class="flex items-center gap-1.5 text-sm text-gray-800 dark:text-gray-200">
         <LockClosedIcon class="h-4 w-4 shrink-0" />{{ plain }}

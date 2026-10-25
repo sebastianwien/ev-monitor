@@ -25,7 +25,7 @@
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" aria-hidden="true" />
             </button>
             <router-link v-if="home" to="/settings" data-testid="public-nav-settings" :aria-label="t('nav.bottom.settings')"
-                         class="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-gray-900 text-gray-900 hover:bg-white dark:border-gray-100 dark:text-gray-100 dark:hover:bg-gray-900">
+                         class="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-gray-900 bg-green-600 text-white transition-colors hover:bg-green-700 dark:border-transparent">
               <UserIcon class="h-5 w-5" aria-hidden="true" />
             </router-link>
             <router-link v-else to="/dashboard" data-testid="public-nav-dashboard"

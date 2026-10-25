@@ -73,14 +73,23 @@ describe('StoryFeedItem Zahl rechts', () => {
     expect(host.querySelector('b')!.textContent!.replace(/\s/g, ' ')).toBe('3 €')
   })
 
-  it('Rang: #Platz rechts', () => {
+  it('Rang: #Platz rechts, die Zeile führt zur Rangliste und trägt einen Pfeil', () => {
     const host = mount({ id: 'community_rank', question: 3, relevance: 40, sentiment: 'neutral', params: { rank: 16, value: 1 }, label: 'kwh' } as Item)
     expect(host.querySelector('[data-testid="story-feed-number"]')!.textContent).toBe('#16')
+    expect(host.querySelector('a')!.getAttribute('href')).toBe('/leaderboard')
+    expect(host.querySelector('[data-testid="story-feed-chevron"]')).not.toBeNull()
+  })
+
+  it('Zeile ohne Ziel: kein Pfeil, kein Knopf', () => {
+    const host = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'neutral', params: { eur: 27.39, avgEur: 12.3 } }, { sheets: [] })
+    expect(host.querySelector('[data-testid="story-feed-chevron"]')).toBeNull()
+    expect(host.querySelector('button')).toBeNull()
   })
 
   it('Zeile mit Sheet dahinter ist ein Knopf und meldet die Kachel', () => {
     const opened: string[] = []
     const host = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'neutral', params: { eur: 27.39, avgEur: 12.3 } }, { sheets: ['cost'], onOpen: (id: string) => opened.push(id) })
+    expect(host.querySelector('[data-testid="story-feed-chevron"]')).not.toBeNull()
     host.querySelector('button')!.click()
     expect(opened).toEqual(['cost'])
     app!.unmount(); app = null

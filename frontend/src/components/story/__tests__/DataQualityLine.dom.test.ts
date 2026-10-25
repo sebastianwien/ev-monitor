@@ -16,7 +16,8 @@ const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 function days(withData: number[], gap: [number, number] | null, today = 31): DayCoverage[] {
   return Array.from({ length: 31 }, (_, i) => {
     const day = i + 1
-    return { day, hasData: withData.includes(day), inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today }
+    const hasData = withData.includes(day)
+    return { day, hasData, inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today, charges: hasData ? 1 : 0, kwh: hasData ? 20 : 0 }
   })
 }
 const quality = (over: Partial<DataQuality> = {}): DataQuality =>
@@ -31,7 +32,8 @@ function mount(d: DayCoverage[], q: DataQuality | null) {
   app.mount(host)
   return host
 }
-const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+/** Nur der Satz unter der Leiste, ohne Achse. */
+const text = (el: Element | null) => el?.querySelector('p')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 
 describe('DataQualityLine', () => {
   it('Tagesleiste: ein Feld je Tag, Daten grün, Amber nur für die genannte Lücke, sonst grau', () => {
@@ -75,5 +77,25 @@ describe('DataQualityLine', () => {
     const host = mount(days([1], null), quality({ total: 5, estimated: 1, priceless: 2, pricelessOpen: 1, severity: 'warn' }))
     expect(text(host)).toContain('4 von 5 Ladungen gemessen, 1 geschätzt, 2 ohne Preis nachtragen')
     expect(host.querySelector('a')?.getAttribute('href')).toBe('/logs')
+  })
+
+  it('Achse: Tage 1, 8, 15, 22 und 29 unter der Leiste', () => {
+    const host = mount(days([1], null), quality())
+    expect([...host.querySelectorAll('[data-role="tick"]')].map(x => x.textContent)).toEqual(['1.', '8.', '15.', '22.', '29.'])
+  })
+
+  it('Tagesanzeige per Tastatur: Pfeile wandern, Satz nennt Ladungen und kWh', async () => {
+    const host = mount(days([1, 15], [2, 14], 25), quality())
+    const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
+    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }))
+    await Promise.resolve()
+    const tip = () => host.querySelector('[data-testid="story-day-tip"]')?.textContent?.replace(/\s+/g, ' ').trim()
+    expect(tip()).toBe('1.: 1 Ladung, 20,0 kWh')
+    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
+    await Promise.resolve()
+    expect(tip()).toBe('2.: nichts erfasst')
+    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }))
+    await Promise.resolve()
+    expect(tip()).toBe('25.: nichts erfasst')
   })
 })
