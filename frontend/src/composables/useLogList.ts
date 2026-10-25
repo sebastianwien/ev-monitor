@@ -9,6 +9,7 @@ import { annotatePhantomDrains } from '../utils/phantomDrain'
 import { aggregateGroupCost, costBasisKwh } from './useChargingEfficiency'
 import { useFeedWindow } from './useFeedWindow'
 import { useLogUndo } from './useLogUndo'
+import { tripFormFrom, newTripFormAt, tripFormError, tripPayload, type TripFormValues } from '../utils/tripForm'
 
 /** Maximaler zeitlicher Abstand zweier Logs, damit sie zusammengeführt werden dürfen.
  *  24h, damit auch sehr langsame AC-Ladevorgänge (z. B. 14h an 4 kW) noch abgedeckt sind. */
@@ -26,22 +27,6 @@ function toEpochMs(isoString: string | null | undefined): number {
   return new Date(s).getTime()
 }
 
-// Converts a UTC/offset ISO string to a datetime-local input value in browser-local time
-function toLocalDatetimeInput(isoString: string): string {
-  const d = new Date(isoString)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-// Converts a datetime-local string ("2026-04-24T14:30") to OffsetDateTime by appending the browser's UTC offset
-function toOffsetDateTime(localDt: string): string {
-  const off = -new Date().getTimezoneOffset()
-  const sign = off >= 0 ? '+' : '-'
-  const abs = Math.abs(off)
-  const h = String(Math.floor(abs / 60)).padStart(2, '0')
-  const m = String(abs % 60).padStart(2, '0')
-  return `${localDt}:00${sign}${h}:${m}`
-}
 
 export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, logsSection: Ref<HTMLElement | null>) {
   const { t, locale } = useI18n()
@@ -168,14 +153,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   const startEditTrip = (trip: any) => {
     editingTripId.value = trip.id
     addingTripAfterId.value = null
-    tripForm.value = {
-      tripStartedAt: trip.tripStartedAt ? toLocalDatetimeInput(trip.tripStartedAt) : '',
-      tripEndedAt: trip.tripEndedAt ? toLocalDatetimeInput(trip.tripEndedAt) : '',
-      distanceKm: trip.distanceKm ?? '',
-      routeType: trip.routeType ?? '',
-      socStart: trip.socStart ?? '',
-      socEnd: trip.socEnd ?? '',
-    }
+    tripForm.value = tripFormFrom(trip)
     tripError.value = null
   }
 
@@ -187,26 +165,12 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   }
 
   const saveTripEdit = async (tripId: string) => {
-    if (!tripForm.value.tripStartedAt || !tripForm.value.tripEndedAt) {
-      tripError.value = t('dashboard.trip_err_times_required')
-      return
-    }
-    if (new Date(tripForm.value.tripEndedAt) <= new Date(tripForm.value.tripStartedAt)) {
-      tripError.value = t('dashboard.trip_err_end_before_start')
-      return
-    }
+    const invalid = tripFormError(tripForm.value as TripFormValues)
+    if (invalid) { tripError.value = t(invalid); return }
     tripSaving.value = true
     tripError.value = null
     try {
-      const payload: any = {
-        tripStartedAt: toOffsetDateTime(tripForm.value.tripStartedAt),
-        tripEndedAt:   toOffsetDateTime(tripForm.value.tripEndedAt),
-      }
-      if (tripForm.value.distanceKm !== '')  payload.distanceKm = Number(tripForm.value.distanceKm)
-      if (tripForm.value.routeType)          payload.routeType  = tripForm.value.routeType
-      if (tripForm.value.socStart !== '')    payload.socStart   = Number(tripForm.value.socStart)
-      if (tripForm.value.socEnd !== '')      payload.socEnd     = Number(tripForm.value.socEnd)
-      const res = await api.patch(`/trips/${tripId}`, payload)
+      const res = await api.patch(`/trips/${tripId}`, tripPayload(tripForm.value as TripFormValues))
       const idx = trips.value.findIndex((t: any) => t.id === tripId)
       if (idx !== -1) trips.value[idx] = res.data
       editingTripId.value = null
@@ -220,41 +184,18 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   const startAddTrip = (afterId: string | null, defaultEndAt?: string) => {
     addingTripAfterId.value = afterId
     editingTripId.value = null
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const fmt = (d: Date) =>
-      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-    const end = defaultEndAt ? new Date(defaultEndAt) : new Date()
-    const start = new Date(end.getTime() - 60 * 60 * 1000)
-    tripForm.value = {
-      tripStartedAt: fmt(start),
-      tripEndedAt: fmt(end),
-      distanceKm: '',
-      routeType: '',
-    }
+    tripForm.value = newTripFormAt(defaultEndAt ? new Date(defaultEndAt) : new Date())
     tripError.value = null
   }
 
   const saveNewTrip = async () => {
     if (!selectedCarId.value) return
-    if (!tripForm.value.tripStartedAt || !tripForm.value.tripEndedAt) {
-      tripError.value = t('dashboard.trip_err_times_required')
-      return
-    }
-    if (new Date(tripForm.value.tripEndedAt) <= new Date(tripForm.value.tripStartedAt)) {
-      tripError.value = t('dashboard.trip_err_end_before_start')
-      return
-    }
+    const invalid = tripFormError(tripForm.value as TripFormValues)
+    if (invalid) { tripError.value = t(invalid); return }
     tripSaving.value = true
     tripError.value = null
     try {
-      const payload: any = {
-        carId: selectedCarId.value,
-        tripStartedAt: toOffsetDateTime(tripForm.value.tripStartedAt),
-        tripEndedAt: toOffsetDateTime(tripForm.value.tripEndedAt),
-      }
-      if (tripForm.value.distanceKm !== '') payload.distanceKm = Number(tripForm.value.distanceKm)
-      if (tripForm.value.routeType)         payload.routeType = tripForm.value.routeType
-      await api.post('/trips', payload)
+      await api.post('/trips', { carId: selectedCarId.value, ...tripPayload(tripForm.value as TripFormValues) })
       await fetchTrips()
       addingTripAfterId.value = null
     } catch {
