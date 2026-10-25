@@ -1824,6 +1824,7 @@ settings:
   password_confirm_placeholder: "Confirm new password"
   privacy_title: "Data & Privacy"
   registered_since: "Registered since"
+  stats_charges: "charging sessions"
   export_btn: "Export my data (JSON)"
   delete_btn: "Permanently delete account"
   leaderboard_title: "Leaderboard"

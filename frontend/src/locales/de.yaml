@@ -1827,6 +1827,7 @@ settings:
   password_confirm_placeholder: "Neues Passwort bestätigen"
   privacy_title: "Daten & Privacy"
   registered_since: "Registriert seit"
+  stats_charges: "Ladevorgänge"
   export_btn: "Meine Daten exportieren (JSON)"
   delete_btn: "Account unwiderruflich löschen"
   leaderboard_title: "Bestenliste"

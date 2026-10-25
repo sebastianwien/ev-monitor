@@ -1775,6 +1775,7 @@ settings:
   password_confirm_placeholder: Bekräfta det nya lösenordet
   privacy_title: Data och integritet
   registered_since: Registrerad sedan
+  stats_charges: laddningar
   export_btn: Exportera mina data (JSON)
   delete_btn: Ta bort kontot permanent
   leaderboard_title: Resultatlista
