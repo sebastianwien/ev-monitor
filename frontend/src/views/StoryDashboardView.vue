@@ -218,7 +218,7 @@ onMounted(() => analytics.track('story_viewed'))
         </ChoiceChip>
       </nav>
 
-      <ModelBox>
+      <ModelBox data-testid="story-hero-box">
         <header class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex min-w-0 items-center gap-2">
             <h1 class="truncate text-[15px] font-extrabold text-gray-900 dark:text-gray-50">

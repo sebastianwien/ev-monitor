@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { TEST_USER } from './global-setup';
 import { featureAnnouncements } from '../../src/config/featureAnnouncements';
+import { waitForStory } from './fixtures/story';
 
 /**
  * Moment-Hero auf /story: die letzten Ladungen kommen gemockt, alles andere vom echten Backend.
@@ -27,7 +28,7 @@ async function setup(page: Page, opts: { logs: unknown[]; alwaysMonth?: boolean 
   await page.locator('button[type="submit"]').click();
   await expect(page).toHaveURL(/\/(dashboard|story)/, { timeout: 10_000 });
   await page.goto('/story');
-  await page.waitForLoadState('networkidle');
+  await waitForStory(page);
 }
 
 test.describe('Story Moment-Hero', () => {
@@ -57,8 +58,7 @@ test.describe('Story Moment-Hero', () => {
     await expect(page.getByTestId('story-moment-silence')).toBeHidden();
 
     await page.reload();
-    await page.waitForLoadState('networkidle');
-    await expect(page.getByTestId('story-view')).toBeVisible();
+    await waitForStory(page);
     await expect(page.getByTestId('story-moment-silence')).toBeHidden();
   });
 
