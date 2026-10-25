@@ -605,9 +605,10 @@ const handleBottomLogout = () => {
     <SpritMonitorImport v-if="showImportOverlay" @close="showImportOverlay = false" />
 
     <!-- Floating Action Button (only when authenticated) -->
-    <!-- Floating-Action-Button nur Desktop (>=768px); auf Mobile uebernimmt der Bottom-Nav-FAB. -->
+    <!-- Floating-Action-Button nur Desktop (>=768px); auf Mobile uebernimmt der Bottom-Nav-FAB.
+         Auf Seiten in der CI der Modellseiten (publicNav) als Pille "+ Erfassen". -->
     <div class="hidden md:block">
-      <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && !showLogFormModal && $route.path !== '/erfassen'" @click="handleNewLog" />
+      <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && !showLogFormModal && $route.path !== '/erfassen'" :key="publicNavRoute ? 'pill' : 'round'" :extended="publicNavRoute" @click="handleNewLog" />
     </div>
 
     <!-- Log Form Modal (Desktop only) -->

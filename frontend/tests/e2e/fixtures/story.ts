@@ -118,6 +118,8 @@ export async function mockStory(page: Page, data: StoryData) {
     return json(route, { ownEntry: data.ranks[category] ?? null, entries: [] });
   });
   await page.route(/\/api\/charging-benchmarks\?/, route => json(route, data.benchmark));
+  // Ticker leer: sein Text wechselt im Takt und läge in Bildern langer Boxen über dem Inhalt.
+  await page.route(/\/api\/(public\/leaderboard\/ticker|ticker\/(today|me))$/, route => json(route, []));
   await page.route(/\/api\/stats\/charging-savings/, route => json(route, null));
   await page.route(/\/api\/public\/fuel-prices/, route => json(route, { petrolEurPerLitre: 1.75, dieselEurPerLitre: 1.65, updatedAt: iso(data.now - 6 * HOUR) }));
 }

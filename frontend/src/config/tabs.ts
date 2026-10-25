@@ -27,3 +27,12 @@ export const WORKSPACE_TABS = [
   CAR_TABS[1],
   CAR_TABS[0],
 ] as const
+
+/**
+ * Weitere Ziele der Übersicht (Story) auf dem Desktop: nach den vier Bereichen, aber nicht Teil
+ * der Wisch-Tabs und ihrer Übergänge. Mobile erreicht sie über das Mehr-Menü.
+ */
+export const WORKSPACE_LINKS = [
+  { to: '/imports', labelKey: 'nav.bottom.import' },
+  { to: '/modelle', labelKey: 'nav.models_compare' },
+] as const

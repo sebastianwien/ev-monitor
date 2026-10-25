@@ -12,8 +12,17 @@ import { useTickerRotation, dwellMs } from '../../composables/useTickerRotation'
  * Überlange Texte laufen genau einmal durch. Zwischen zwei Wechseln rechnet der Browser nichts,
  * im Gegensatz zum früheren Endlos-Laufband (rund 20 Prozent CPU im Leerlauf).
  */
+/**
+ * docked: im sticky Kopf der CI-Seiten (Übersicht) statt fest unter der App-Nav; dunkles Band
+ * wie im CI-Entwurf statt Indigo.
+ */
+const props = withDefaults(defineProps<{ docked?: boolean }>(), { docked: false })
 const { t } = useI18n()
 const { tickerHasItems, tickerCollapsed: collapsed, toggle } = useTickerState()
+
+const look = computed(() => props.docked
+  ? { band: 'bg-gray-900 dark:bg-black', muted: 'text-gray-400', tab: 'bg-gray-900 border-gray-800 text-gray-400 dark:bg-black dark:border-gray-900' }
+  : { band: 'bg-indigo-800', muted: 'text-indigo-300', tab: 'bg-indigo-800 border-indigo-700 text-indigo-300' })
 
 /* Plausible: misst, ob der Ticker überhaupt beachtet wird. Nur Typ, kein Inhalt. */
 function onToggle() {
@@ -112,13 +121,13 @@ onUnmounted(() => {
        direkt unter der Top-Nav an; auf Mobile (keine Nav) sitzt er unter der Statusbar. -->
   <section
     v-if="tickerHasItems"
-    class="fixed left-0 right-0 z-39"
-    style="top: calc(var(--top-nav-h) + env(safe-area-inset-top))"
+    :class="docked ? 'relative z-10' : 'fixed left-0 right-0 z-39'"
+    :style="docked ? undefined : 'top: calc(var(--top-nav-h) + env(safe-area-inset-top))'"
     :aria-label="t('ticker.region')"
     @mouseenter="hovered = true" @mouseleave="hovered = false"
     @focusin="focused = true" @focusout="focused = false">
 
-    <div class="bg-indigo-800 overflow-hidden transition-[height] duration-300" :class="collapsed ? 'h-1' : 'h-8'">
+    <div class="overflow-hidden transition-[height] duration-300" :class="[look.band, collapsed ? 'h-1' : 'h-8']">
       <div v-show="!collapsed" class="flex items-center h-full max-w-5xl mx-auto pl-2 sm:pl-4">
 
         <!-- Typ-Chip: Farbe und Icon tragen die Kategorie, damit der Text kurz bleiben kann -->
@@ -163,13 +172,14 @@ onUnmounted(() => {
         </RouterLink>
 
         <!-- Position, nur Desktop -->
-        <span class="hidden sm:inline ml-3 text-[10px] tabular-nums text-indigo-300/80" aria-hidden="true">
+        <span class="hidden sm:inline ml-3 text-[10px] tabular-nums opacity-80" :class="look.muted" aria-hidden="true">
           {{ index + 1 }}/{{ count }}
         </span>
 
         <!-- Steuerung: Pause (WCAG 2.2.2) und Weiter; volle Bandhöhe als Trefferfläche -->
         <button type="button"
-          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center text-indigo-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4 rounded"
+          :class="look.muted"
+          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4 rounded"
           :aria-label="userPaused ? t('ticker.play') : t('ticker.pause')"
           :aria-pressed="userPaused"
           @click="onTogglePause">
@@ -177,7 +187,8 @@ onUnmounted(() => {
           <PauseIcon v-else class="h-3.5 w-3.5" />
         </button>
         <button type="button"
-          class="hidden sm:flex h-8 w-9 flex-shrink-0 items-center justify-center text-indigo-300 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4 rounded"
+          :class="look.muted"
+          class="hidden sm:flex h-8 w-9 flex-shrink-0 items-center justify-center hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white/70 focus-visible:-outline-offset-4 rounded"
           :aria-label="t('ticker.next')"
           @click="next">
           <ChevronRightIcon class="h-3.5 w-3.5" />
@@ -188,7 +199,8 @@ onUnmounted(() => {
     <!-- Lasche: hängt mittig unter dem Band -->
     <button type="button"
       @click="onToggle"
-      class="before:absolute before:-inset-x-2 before:-top-1 before:-bottom-3 absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full bg-indigo-800 border border-t-0 border-indigo-700 rounded-b-lg px-7 py-0.5 flex items-center gap-1 text-indigo-300 hover:text-white transition-colors"
+      :class="look.tab"
+      class="before:absolute before:-inset-x-2 before:-top-1 before:-bottom-3 absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full border border-t-0 rounded-b-lg px-7 py-0.5 flex items-center gap-1 hover:text-white transition-colors"
       :aria-expanded="!collapsed"
       :aria-label="collapsed ? t('ticker.show') : t('ticker.hide')"
       :title="collapsed ? t('ticker.show') : t('ticker.hide')">

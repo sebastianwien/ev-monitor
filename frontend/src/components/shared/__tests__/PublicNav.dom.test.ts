@@ -24,7 +24,11 @@ async function mount(loggedIn: boolean, publicNav: boolean, props: Record<string
   await router.isReady()
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(PublicNav, props)
+  app = createApp({
+    components: { PublicNav },
+    setup: () => ({ props }),
+    template: '<PublicNav v-bind="props"><template #below><div data-testid="below-slot" /></template></PublicNav>',
+  })
   app.use(i18n).use(router)
   app.mount(host)
   return host
@@ -50,6 +54,22 @@ describe('PublicNav', () => {
     expect(host.querySelector('[data-testid="public-nav-dashboard"]')).toBeNull()
     expect(host.querySelector('[data-testid="public-nav-settings"]')?.getAttribute('href')).toBe('/settings')
     expect(host.querySelector('[data-testid="public-nav-watt"]')).not.toBeNull()
+  })
+
+  it('member: feedback button opens the same Tally form as the app header', async () => {
+    const host = await mount(true, true)
+    expect(host.querySelector('[data-testid="public-nav-feedback"]')?.getAttribute('data-tally-open')).toBe('vGB8XA')
+  })
+
+  it('guest: no feedback button', async () => {
+    const host = await mount(false, true)
+    expect(host.querySelector('[data-testid="public-nav-feedback"]')).toBeNull()
+  })
+
+  it('the band below the nav (ticker) sits inside the sticky header', async () => {
+    const host = await mount(true, true, { home: true })
+    const sticky = host.querySelector('.sticky')!
+    expect(sticky.querySelector('[data-testid="below-slot"]')).not.toBeNull()
   })
 
   it('member on any other route: the nav stays away, the app chrome takes over', async () => {

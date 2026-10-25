@@ -9,6 +9,7 @@ import { useStoryOptIn } from '../composables/useStoryOptIn'
 import { useChargingLive } from '../composables/useChargingLive'
 import { registerSoftReload } from '../composables/usePullToRefresh'
 import { useAuthStore } from '../stores/auth'
+import { useCountryStore } from '../stores/country'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
@@ -22,8 +23,9 @@ import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
 import { connectionsOf } from '../api/smartcarService'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
-import { WORKSPACE_TABS } from '../config/tabs'
+import { WORKSPACE_TABS, WORKSPACE_LINKS } from '../config/tabs'
 import PublicNav from '../components/shared/PublicNav.vue'
+import LeaderboardTicker from '../components/shared/LeaderboardTicker.vue'
 import ChoiceChip from '../components/shared/ChoiceChip.vue'
 import StoryHero from '../components/story/StoryHero.vue'
 import StoryMomentHero from '../components/story/StoryMomentHero.vue'
@@ -44,6 +46,7 @@ const BottomSheet = defineAsyncComponent(() => import('../components/shared/Bott
 const { t, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
+const countryStore = useCountryStore()
 const { haptic } = useHaptic()
 const upsellTo = useAnalyticsUpsellTarget()
 const { set: setOptIn, alwaysMonth } = useStoryOptIn()
@@ -159,7 +162,9 @@ const sheetIds = computed(() => tiles.value.map(x => x.id))
 const showFeed = computed(() => !loading.value && !error.value && (hasCharges.value || liveActive.value))
 
 // Desktop: die Ziele des eingeloggten Bereichs als Chips (mobil traegt die Bottom-Nav). Die Story ist das Dashboard.
-const workspaceTabs = computed(() => WORKSPACE_TABS.map(tab => ({ to: tab.to, label: t(tab.labelKey), active: tab.to === '/dashboard' })))
+const workspaceTabs = computed(() => [...WORKSPACE_TABS, ...WORKSPACE_LINKS].map(tab => ({ to: tab.to, label: t(tab.labelKey), active: tab.to === '/dashboard' })))
+// Community-Ticker wie im App-Kopf: nicht im Demo-Konto, nur DACH.
+const showTicker = computed(() => !authStore.isDemoAccount && ['DE', 'AT', 'CH'].includes(countryStore.country))
 
 // Monatswechsel: Chips oder horizontaler Wisch auf dem Hero. View Transition, wo verfuegbar.
 function selectMonth(o: number) {
@@ -195,6 +200,8 @@ const sheetTile = computed(() => tiles.value.find(x => x.id === openTile.value) 
 const sheetContext = computed(() => ({
   stats: monthStats.value,
   monthLabels: sixMonthLabels.value,
+  monthName: monthLabel(month.value),
+  runningMonth: month.value.offset === 0,
   whatIf: story.whatIf.value,
   temperature: story.temperature.value,
   sohHistory: story.sohHistory.value,
@@ -221,7 +228,9 @@ onMounted(() => analytics.track('story_viewed'))
 
 <template>
   <div class="min-h-screen bg-gray-100 md:bg-gray-50 dark:bg-gray-950" data-testid="story-view">
-    <PublicNav home />
+    <PublicNav home>
+      <template #below><LeaderboardTicker v-if="showTicker" docked /></template>
+    </PublicNav>
     <nav class="mx-auto hidden max-w-6xl flex-wrap gap-2 px-6 pt-4 md:flex" :aria-label="t('story.workspace_aria')">
       <ChoiceChip v-for="tab in workspaceTabs" :key="tab.to" :href="tab.to" :active="tab.active" :aria-current="tab.active ? 'page' : undefined">
         {{ tab.label }}

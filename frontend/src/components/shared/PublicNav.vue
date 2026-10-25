@@ -18,6 +18,12 @@
                          class="hidden sm:inline-flex items-center gap-1 px-2 py-2 text-sm font-semibold tabular-nums text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
               <BoltIcon class="h-4 w-4" aria-hidden="true" />{{ coinStore.balance }}
             </router-link>
+            <button type="button" data-testid="public-nav-feedback"
+                    data-tally-open="vGB8XA" data-tally-emoji-text="👋" data-tally-emoji-animation="wave"
+                    :aria-label="t('nav.bottom.feedback')" :title="t('nav.bottom.feedback')"
+                    class="hidden md:inline-flex h-10 w-10 items-center justify-center text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+              <ChatBubbleLeftEllipsisIcon class="h-5 w-5" aria-hidden="true" />
+            </button>
             <router-link v-if="home" to="/settings" data-testid="public-nav-settings" :aria-label="t('nav.bottom.settings')"
                          class="inline-flex h-10 w-10 items-center justify-center rounded-full border-2 border-gray-900 text-gray-900 hover:bg-white dark:border-gray-100 dark:text-gray-100 dark:hover:bg-gray-900">
               <UserIcon class="h-5 w-5" aria-hidden="true" />
@@ -48,6 +54,8 @@
       </div>
     </div>
     </nav>
+    <!-- Band unter der Nav (Ticker der Übersicht): sitzt im selben sticky Kopf, scrollt also nicht weg -->
+    <slot name="below" />
   </div>
 </template>
 
@@ -55,7 +63,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { HomeIcon, BoltIcon, UserIcon } from '@heroicons/vue/24/outline'
+import { HomeIcon, BoltIcon, UserIcon, ChatBubbleLeftEllipsisIcon } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../../stores/auth'
 import { useCoinStore } from '../../stores/coins'
 import BoltLogo from './BoltLogo.vue'

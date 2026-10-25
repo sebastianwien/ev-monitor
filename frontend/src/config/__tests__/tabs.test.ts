@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CONTEXT_TABS, CAR_TABS, WORKSPACE_TABS } from '../tabs'
+import { CONTEXT_TABS, CAR_TABS, WORKSPACE_TABS, WORKSPACE_LINKS } from '../tabs'
 
 describe('Tab-Konfiguration', () => {
   it('die Desktop-Leiste zeigt alle vier Ziele in der geplanten Reihenfolge', () => {
@@ -18,5 +18,10 @@ describe('Tab-Konfiguration', () => {
 
   it('jeder Tab hat einen i18n-Key', () => {
     for (const tab of WORKSPACE_TABS) expect(tab.labelKey).toBeTruthy()
+  })
+
+  it('die Übersicht verlinkt zusätzlich Import und Autos vergleichen, außerhalb der Wisch-Tabs', () => {
+    expect(WORKSPACE_LINKS.map(l => l.to)).toEqual(['/imports', '/modelle'])
+    for (const l of WORKSPACE_LINKS) expect(WORKSPACE_TABS.map(tab => tab.to)).not.toContain(l.to)
   })
 })
