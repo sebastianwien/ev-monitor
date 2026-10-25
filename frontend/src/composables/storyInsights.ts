@@ -359,11 +359,13 @@ export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: numb
     : []
   const main = routeShares.find(r => r.pct >= MAIN_ROUTE_SHARE)
   const lengthOf = (km: number): LengthKey => km < SHORT_KM ? 'SHORT' : km < LONG_KM ? 'MEDIUM' : 'LONG'
-  const byLength = new Map<LengthKey, number>()
-  for (const t of trips) byLength.set(lengthOf(t.distanceKm ?? 0), (byLength.get(lengthOf(t.distanceKm ?? 0)) ?? 0) + 1)
+  // Anteil der km, nicht der Fahrten: zwei Fahrten nach Bremen tragen mehr Strecke als fünfzig ums Eck
+  const kmByLength = new Map<LengthKey, number>()
+  for (const t of trips) kmByLength.set(lengthOf(t.distanceKm ?? 0), (kmByLength.get(lengthOf(t.distanceKm ?? 0)) ?? 0) + (t.distanceKm ?? 0))
+  const lengthKm = [...kmByLength.values()].reduce((a, b) => a + b, 0)
   const lengthShares = (['SHORT', 'MEDIUM', 'LONG'] as LengthKey[])
-    .filter(k => (byLength.get(k) ?? 0) > 0)
-    .map(k => ({ key: k, pct: Math.round(((byLength.get(k) ?? 0) / trips.length) * 100) }))
+    .filter(k => (kmByLength.get(k) ?? 0) > 0)
+    .map(k => ({ key: k, pct: Math.round(((kmByLength.get(k) ?? 0) / lengthKm) * 100) }))
   return {
     trips: sum.tripCount,
     km: sum.totalDistanceKm,
