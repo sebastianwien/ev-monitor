@@ -13,8 +13,10 @@ const L1 = '00000000-0000-0000-0000-0000000d0101';
 function data() {
   const d = calmMonth(NOW_MID);
   d.trips = [
-    trip(NOW_MID, { id: T1, tripStartedAt: iso(day(9)), tripEndedAt: iso(day(9, 20)), distanceKm: 12, socStart: 80, socEnd: 76 }),
-    trip(NOW_MID, { id: T2, tripStartedAt: iso(day(9, 30)), tripEndedAt: iso(day(9, 50)), distanceKm: 14, socStart: 76, socEnd: 71 }),
+    trip(NOW_MID, { id: T1, tripStartedAt: iso(day(9)), tripEndedAt: iso(day(9, 20)), distanceKm: 12, socStart: 80, socEnd: 76,
+      tracePolyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@', locationStartGeohash: 'u33df5', locationEndGeohash: 'u33dc0' }),
+    trip(NOW_MID, { id: T2, tripStartedAt: iso(day(9, 30)), tripEndedAt: iso(day(9, 50)), distanceKm: 14, socStart: 76, socEnd: 71,
+      locationStartGeohash: 'u33dc0', locationEndGeohash: 'u33d9z' }),
   ];
   d.logs = [log(NOW_MID, {
     id: L1, loggedAt: iso(day(13)), chargeDurationMinutes: 35, isPublicCharging: true, cpoName: 'Kaufland',
@@ -60,6 +62,9 @@ for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440
       await expect(page.getByTestId('day-row-trip')).toHaveCount(2);
       await expect(page.getByTestId('day-row-charge')).toContainText('Kaufland');
       await expect(page.getByTestId('day-missing')).toBeVisible();
+      // Akku-Balken wie am Handy, Minimap je Fahrt (mit Spur durchgezogen, ohne Spur Luftlinie)
+      await expect(page.locator('[data-testid="day-bar"][data-kind="charge"]').first()).toBeVisible();
+      await expect(page.getByTestId('day-row-trip').locator('svg[viewBox="0 0 60 44"]')).toHaveCount(2);
 
       // Ladung öffnen: Spracheingabe nur unter 1024 px
       await page.getByTestId('day-row-charge').click();
@@ -74,8 +79,12 @@ for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440
       await page.getByTestId('day-merge-confirm').click();
       await expect.poll(() => calls).toContain(`POST /api/trips/${T1}/merge`);
 
-      // Fahrt löschen, dann Rückgängig im Toast
+      // Fahrt öffnen: große Karte oben, Formular in der neuen CI
       await page.getByTestId('day-row-trip').first().click();
+      await expect(page.getByTestId('day-trip-map')).toBeVisible();
+      await expect(page.getByTestId('day-trip-form')).toBeVisible();
+
+      // Fahrt löschen, dann Rückgängig im Toast
       await page.getByTestId('day-trip-delete').click();
       await page.getByTestId('day-trip-delete-confirm').click();
       await expect.poll(() => calls).toContain(`DELETE /api/trips/${T1}`);

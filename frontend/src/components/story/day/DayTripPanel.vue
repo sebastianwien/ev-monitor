@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import api from '../../../api/axios'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import { useLogUndo } from '../../../composables/useLogUndo'
 import { tripFormFrom, newTripFormAt, tripFormError, tripPayload, type TripFormValues } from '../../../utils/tripForm'
-import TripForm from '../../dashboard/TripForm.vue'
+import DayTripForm from './DayTripForm.vue'
+import { hasTripMap } from '../../../utils/tripMap'
+// Leaflet erst laden, wenn eine Fahrt mit Ort offen ist
+const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/ActivityLocationMap.vue'))
 import type { DayTrip } from '../../../composables/storyDay'
 
 /**
@@ -68,7 +71,14 @@ async function remove() {
       <h2 class="flex-1 text-[18px] font-bold tracking-tight">{{ trip ? t('storyday.trip') : t('storyday.add_trip') }}</h2>
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
-      <TripForm v-model="form" :mode="trip ? 'edit' : 'add'" :error="error" :saving="saving" :distance-unit="distanceUnitLabel()"
+      <!-- Karte oben: auf dem Handy randlos über dem Formular, ab 1024 px oben in der rechten Spalte -->
+      <div v-if="trip && hasTripMap(trip)" class="-mx-4 -mt-4 mb-4 h-52 overflow-hidden border-b-2 border-gray-100 lg:mx-0 lg:mt-0 lg:h-72 lg:rounded-2xl lg:border-2 lg:border-gray-900 dark:border-gray-800"
+        data-testid="day-trip-map">
+        <ActivityLocationMap variant="panel" :label="t('dashboard.trip_map_alt')"
+          :start-geohash="trip.locationStartGeohash" :end-geohash="trip.locationEndGeohash"
+          :route-polyline="trip.routePolyline" :route-kind="trip.routeKind" :trace-polyline="trip.tracePolyline" />
+      </div>
+      <DayTripForm v-model="form" :mode="trip ? 'edit' : 'add'" :error="error" :saving="saving" :distance-unit="distanceUnitLabel()"
         @save="save" @cancel="emit('back')" />
       <div v-if="trip" class="mt-6 border-t-2 border-gray-100 pt-4 dark:border-gray-800">
         <div v-if="confirmingDelete" class="flex items-center gap-2">

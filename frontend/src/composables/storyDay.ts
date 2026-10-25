@@ -1,3 +1,6 @@
+import geohash from 'ngeohash'
+import { tripLine } from '../utils/tripMap'
+
 /**
  * Tagesblatt der Story: was an einem Tag war (Fahrten und Ladungen), als Ablauf und Tagesband.
  * Tagesgrenzen in Ortszeit des Browsers, wie die Tagesleiste (buildDayCoverage).
@@ -15,6 +18,8 @@ export interface DayTrip {
   tracePolyline?: string | null
   routeKind?: string | null
   routeType?: string | null
+  locationStartGeohash?: string | null
+  locationEndGeohash?: string | null
 }
 
 /** Was das Tagesblatt von einer Ladung braucht (Auszug aus EvLogResponse). */
@@ -172,21 +177,40 @@ export function dayAtNow(key: string, now: Date = new Date()): Date {
   return d
 }
 
+export interface BatteryBar { from: number; soc: number | null; kind: 'charge' | 'trip' | 'idle' }
+
 /**
- * Sichtfenster der Akku-Kurve: aktive Zeit des Tages plus 30 min Rand, auf volle Stunden,
- * mindestens drei Stunden. Beschriftung je 1, 2, 3, 4 oder 6 h, höchstens fünf.
+ * Akku-Balken wie im Akku-Diagramm des Handys: ein Balken je halbe Stunde, Höhe = Akku am Ende
+ * des Abschnitts (linear zwischen gemessenen Werten). Vor dem ersten und nach dem letzten
+ * Messwert kein Balken, dort ist der Stand unbekannt. Farbe: laden vor fahren vor stehen.
  */
-export function ribbonWindow(ev: DayEvent[]): { from: number; to: number; ticks: number[] } {
-  const first = Math.min(...ev.map(e => e.from)), last = Math.max(...ev.map(e => e.to))
-  let from = Math.max(0, Math.floor((first - 30) / 60) * 60)
-  let to = Math.min(DAY_MIN, Math.ceil((last + 30) / 60) * 60)
-  if (to - from < 180) {
-    const mid = Math.round((from + to) / 120) * 60
-    from = Math.max(0, Math.min(DAY_MIN - 180, mid - 90 - ((mid - 90) % 60)))
-    to = from + 180
+export function batteryBars(ev: DayEvent[], slot = 30): BatteryBar[] {
+  const pts: [number, number][] = []
+  for (const l of ribbonSegments(ev).lines) pts.push([l.x1, l.soc1], [l.x2, l.soc2])
+  for (const d of ribbonSegments(ev).dots) pts.push([d.x, d.soc])
+  pts.sort((a, b) => a[0] - b[0])
+  const first = pts[0]?.[0], last = pts[pts.length - 1]?.[0]
+  const socAt = (m: number) => {
+    let prev = pts[0]
+    for (const p of pts) {
+      if (p[0] >= m) return p[0] === prev[0] ? p[1] : prev[1] + ((p[1] - prev[1]) * (m - prev[0])) / (p[0] - prev[0])
+      prev = p
+    }
+    return prev[1]
   }
-  const step = [60, 120, 180, 240, 360].find(s => Math.floor((to - from) / s) + 1 <= 5) ?? 360
-  const ticks: number[] = []
-  for (let t = from; t <= to; t += step) ticks.push(t)
-  return { from, to, ticks }
+  return Array.from({ length: DAY_MIN / slot }, (_, i) => {
+    const from = i * slot, to = from + slot
+    const known = pts.length > 0 && from < last! && to > first!
+    const over = (k: DayEvent['kind']) => ev.some(e => e.kind === k && e.from < to && e.to > from)
+    return { from, soc: known ? Math.round(socAt(Math.min(to, last!)) * 10) / 10 : null, kind: over('charge') ? 'charge' : over('trip') ? 'trip' : 'idle' }
+  })
+}
+
+/** Linie der Mini-Strecke: aufgezeichnete oder berechnete Spur, sonst die Luftlinie zwischen Start und Ziel (gestrichelt). */
+export function thumbLine(t: DayTrip): { points: [number, number][]; dashed: boolean } | null {
+  const line = tripLine(t.tracePolyline, t.routePolyline, t.routeKind)
+  if (line) return { points: line.points, dashed: false }
+  if (!t.locationStartGeohash || !t.locationEndGeohash || t.locationStartGeohash === t.locationEndGeohash) return null
+  const a = geohash.decode(t.locationStartGeohash), b = geohash.decode(t.locationEndGeohash)
+  return { points: [[a.latitude, a.longitude], [b.latitude, b.longitude]], dashed: true }
 }

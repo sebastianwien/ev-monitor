@@ -3,9 +3,8 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapIcon, ChevronRightIcon, LinkIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
-import { tripLine } from '../../../utils/tripMap'
 import {
-  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, routeThumb, type DayEvent,
+  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, routeThumb, thumbLine, type DayEvent,
 } from '../../../composables/storyDay'
 
 /**
@@ -36,8 +35,9 @@ function chargeSub(e: DayEvent & { kind: 'charge' }) {
 }
 const tripSub = (e: DayEvent) => dur(e.to - e.from)
 function thumb(e: DayEvent & { kind: 'trip' }) {
-  const line = tripLine(e.trip.tracePolyline, e.trip.routePolyline, e.trip.routeKind)
-  return line ? routeThumb(line.points, 60, 44) : null
+  const line = thumbLine(e.trip)
+  const r = line ? routeThumb(line.points, 60, 44, 8) : null
+  return r && line ? { ...r, dashed: line.dashed } : null
 }
 /** Änderung des Akkus als "+72 %" oder "−2 %" */
 const delta = (from: number, to: number) => { const d = Math.round(to - from); return d > 0 ? `+${d} %` : `−${-d} %` }
@@ -88,15 +88,16 @@ const confirming = ref<string | null>(null)
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[15px] font-semibold">{{ t('storyday.trip') }} <span class="tabular-nums">{{ e.trip.distanceKm != null ? formatDistance(e.trip.distanceKm) : '' }}</span></span>
               <span class="line-clamp-2 block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ tripSub(e) }}</span>
-              <span v-if="e.socFrom != null && e.socTo != null" class="mt-1 flex items-center gap-2 text-[13px] tabular-nums" data-testid="day-soc">
-                <span class="text-gray-600 dark:text-gray-300">{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
-                <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="rounded-full px-1.5 py-px text-[12px] font-semibold"
+              <span v-if="e.socFrom != null && e.socTo != null" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] tabular-nums" data-testid="day-soc">
+                <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
+                <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="whitespace-nowrap rounded-full px-1.5 py-px text-[12px] font-semibold"
                   :class="e.socTo > e.socFrom ? 'bg-green-50 text-green-800 dark:bg-green-400/10 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300'">{{ delta(e.socFrom, e.socTo) }}</span>
               </span>
               <span v-else-if="e.socTo != null" class="mt-1 block text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ soc(e) }}</span>
             </span>
             <svg v-if="thumb(e)" viewBox="0 0 60 44" class="h-11 w-[60px] shrink-0 rounded-lg bg-gray-100 dark:bg-white/5" aria-hidden="true">
-              <path :d="thumb(e)!.d" class="fill-none stroke-gray-900 dark:stroke-gray-100" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" />
+              <path :d="thumb(e)!.d" class="fill-none stroke-gray-900 dark:stroke-gray-100" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"
+                :stroke-dasharray="thumb(e)!.dashed ? '3 3' : undefined" />
               <circle :cx="thumb(e)!.end[0]" :cy="thumb(e)!.end[1]" r="2.6" class="fill-green-600 dark:fill-green-400" />
             </svg>
           </template>
@@ -107,9 +108,9 @@ const confirming = ref<string | null>(null)
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[15px] font-semibold">{{ placeName(e) }}</span>
               <span class="line-clamp-2 block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ chargeSub(e) }}</span>
-              <span v-if="e.socFrom != null && e.socTo != null" class="mt-1 flex items-center gap-2 text-[13px] tabular-nums" data-testid="day-soc">
-                <span class="text-gray-600 dark:text-gray-300">{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
-                <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="rounded-full px-1.5 py-px text-[12px] font-semibold"
+              <span v-if="e.socFrom != null && e.socTo != null" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] tabular-nums" data-testid="day-soc">
+                <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
+                <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="whitespace-nowrap rounded-full px-1.5 py-px text-[12px] font-semibold"
                   :class="e.socTo > e.socFrom ? 'bg-green-50 text-green-800 dark:bg-green-400/10 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300'">{{ delta(e.socFrom, e.socTo) }}</span>
               </span>
               <span v-else-if="e.socTo != null" class="mt-1 block text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ soc(e) }}</span>

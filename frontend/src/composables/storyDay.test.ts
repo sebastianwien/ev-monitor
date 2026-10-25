@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
-  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow, ribbonWindow,
+  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow, batteryBars, thumbLine,
   type DayLog, type DayTrip, type DayEvent,
 } from './storyDay'
 
@@ -151,25 +151,42 @@ describe('dayAtNow', () => {
   })
 })
 
-describe('ribbonWindow', () => {
-  const ev = (from: number, to: number) => ({ kind: 'trip', id: String(from), from, to, socFrom: null, socTo: null } as DayEvent)
-  it('zoomt auf die aktive Zeit plus Rand, auf volle Stunden', () => {
-    // 07:53 bis 14:10 -> 07:00 bis 15:00
-    const w = ribbonWindow([ev(473, 600), ev(820, 850)])
-    expect(w).toMatchObject({ from: 420, to: 900 })
-    expect(w.ticks).toEqual([420, 540, 660, 780, 900])
+describe('batteryBars', () => {
+  // 08:00-09:00 laden 20 -> 80, 12:00-12:30 fahren 80 -> 70
+  const ev = eventsOfDay('2026-08-16', [trip({ tripStartedAt: at(16, 12), tripEndedAt: at(16, 12, 30), socStart: 80, socEnd: 70 })],
+    [log({ loggedAt: at(16, 8), chargeDurationMinutes: 60, socBeforeChargePercent: 20, socAfterChargePercent: 80 })])
+  const bars = batteryBars(ev)
+  it('48 halbe Stunden', () => expect(bars).toHaveLength(48))
+  it('vor dem ersten und nach dem letzten Messwert: kein Balken', () => {
+    expect(bars[15].soc).toBeNull()      // 07:30-08:00
+    expect(bars[25].soc).toBeNull()      // 12:30-13:00, endet nach dem letzten Messwert
   })
-  it('mindestens drei Stunden, um die Mitte', () => {
-    const w = ribbonWindow([ev(600, 620)])
-    expect(w.to - w.from).toBe(180)
-    expect(w.from).toBeLessThanOrEqual(600)
-    expect(w.to).toBeGreaterThanOrEqual(620)
+  it('Höhe = Akku am Ende des Abschnitts, linear zwischen Messwerten', () => {
+    expect(bars[16].soc).toBeCloseTo(50) // 08:30: halb geladen
+    expect(bars[17].soc).toBe(80)        // 09:00
+    expect(bars[20].soc).toBe(80)        // 10:30: steht
+    expect(bars[24].soc).toBe(70)        // 12:30: Fahrt zu Ende
   })
-  it('bleibt im Tag', () => {
-    expect(ribbonWindow([ev(5, 40)]).from).toBe(0)
-    expect(ribbonWindow([ev(1400, 1440)]).to).toBe(1440)
+  it('Farbe: laden vor fahren vor stehen', () => {
+    expect(bars[16].kind).toBe('charge')
+    expect(bars[20].kind).toBe('idle')
+    expect(bars[24].kind).toBe('trip')
   })
-  it('höchstens fünf Beschriftungen', () => {
-    expect(ribbonWindow([ev(0, 30), ev(1380, 1440)]).ticks.length).toBeLessThanOrEqual(5)
+})
+
+describe('thumbLine', () => {
+  it('Spur vor Luftlinie', () => {
+    const l = thumbLine(trip({ tracePolyline: '_p~iF~ps|U_ulLnnqC', locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33dc0' }))
+    expect(l).toMatchObject({ dashed: false })
+    expect(l!.points).toHaveLength(2)
+  })
+  it('ohne Spur: Luftlinie zwischen Start und Ziel, gestrichelt', () => {
+    const l = thumbLine(trip({ locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33dc0bc' }))
+    expect(l).toMatchObject({ dashed: true })
+    expect(l!.points).toHaveLength(2)
+  })
+  it('gleicher Ort oder kein Ort: nichts', () => {
+    expect(thumbLine(trip({ locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33df5ze' }))).toBeNull()
+    expect(thumbLine(trip())).toBeNull()
   })
 })
