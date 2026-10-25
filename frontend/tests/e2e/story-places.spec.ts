@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { calmMonth, openStory, type StoryData } from './fixtures/story';
+import { calmMonth, openStory, log, type StoryData } from './fixtures/story';
 
 /**
  * Ladekarte "Wo du lädst" im Story-Sheet: Orte nach Geld, Preisklassen gegen andere Fahrer,
@@ -18,11 +18,12 @@ const PLACES = [
   place({ geohash: 'u1x0yz', kind: 'HOME', cpoName: null, chargingType: 'AC', costEur: 12, pricePerKwh: 0.3 }),
   place({ geohash: 'u1qmb9q', cpoName: 'IONITY', costEur: 55, pricePerKwh: 0.52 }),
   place({ geohash: 'u33df5w', kind: 'UNKNOWN', cpoName: null, chargingType: 'AC', costEur: 0, pricePerKwh: null }),
+  place({ geohash: 'u1x0hpe', cpoName: null, costEur: 8, pricePerKwh: 0.44, lastLogId: '00000000-0000-0000-0000-0000000c0009' }),
 ];
 /** Oktober (Monat der Story am 14.10.): nur Zuhause und IONITY. */
 const OCTOBER = [PLACES[1], PLACES[2]];
-// Google-Beispiel-Polyline, drei Stützpunkte
-const LINE = '_p~iF~ps|U_ulLnnqC_mqNvxq`@';
+// Drei Stützpunkte in Hamburg (53,55/10,00 bis 53,57/10,05)
+const LINE = 'o~yeI_c`|@o}@ozDo}@_|B';
 
 async function openPlaces(page: Page, data: StoryData = { ...calmMonth(), places: PLACES }) {
   await openStory(page, data);
@@ -44,6 +45,10 @@ async function openPlaces(page: Page, data: StoryData = { ...calmMonth(), places
     { id: 't2', tripStartedAt: '2026-10-03T08:00:00Z', distanceKm: 30, routePolyline: LINE, routeKind: 'MATCHED' },
     { id: 't3', tripStartedAt: '2026-10-04T08:00:00Z', distanceKm: 8, routePolyline: LINE, routeKind: 'SKETCH' },
   ] }));
+  await page.route(/\/api\/logs\/00000000-0000-0000-0000-0000000c0009$/, route => route.fulfill({ json: {
+    ...log(data.now, { id: '00000000-0000-0000-0000-0000000c0009', isPublicCharging: true, chargingType: 'DC' }), geohash: 'u1x3k7q',
+  } }));
+  await page.route(/\/api\/charging-provider-tariffs\/cpos\/nearby-stations/, route => route.fulfill({ json: [] }));
   await page.getByTestId('story-map-open').click();
   await expect(page.getByTestId('places-sheet')).toBeVisible();
 }
@@ -63,9 +68,9 @@ test.describe('Story-Ladekarte', () => {
   test('Liste mit Zuhause oben, dann nach Euro, Kopfsatz nennt den teuren Ort', async ({ page }) => {
     await openPlaces(page);
 
-    await expect(page.getByTestId('places-lead')).toHaveText('4 Orte in 12 Monaten, an einem zahlst du mehr als andere.');
-    expect((await names(page)).map(n => n.trim())).toEqual(['Zuhause', 'IONITY', 'Tesla Supercharger Hamburg', 'Ladeort']);
-    await expect(page.locator('.places-map .places-pin')).toHaveCount(4);
+    await expect(page.getByTestId('places-lead')).toHaveText('5 Orte in 12 Monaten, an einem zahlst du mehr als andere.');
+    expect((await names(page)).map(n => n.trim())).toEqual(['Zuhause', 'IONITY', 'Tesla Supercharger Hamburg', 'Öffentlich', 'Ladeort']);
+    await expect(page.locator('.places-map .places-pin')).toHaveCount(5);
     await expect(page.getByTestId('places-chip-high')).toHaveText(/andere zahlen 39 ct\/kWh, 15 Fahrer/);
   });
 
@@ -100,25 +105,45 @@ test.describe('Story-Ladekarte', () => {
     expect((await names(page)).map(n => n.trim())).toEqual(['Zuhause', 'IONITY']);
   });
 
-  test('Fahrten-Chip zählt Fahrten mit Linie und zeichnet sie', async ({ page }) => {
+  test('Fahrten-Schalter zählt Fahrten mit Linie, zeichnet sie und passt die Karte an', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await openPlaces(page);
+    await expect.poll(() => tileZoom(page)).not.toBeNull();
+    const before = await tileZoom(page);
 
-    const chip = page.getByTestId('places-trips');
-    await expect(chip).toHaveText(/Fahrten 2/);
+    await expect(page.getByTestId('places-trips')).toHaveText(/2 Fahrten zeigen/);
+    const toggle = page.getByRole('switch', { name: '2 Fahrten zeigen' });
     await expect(page.locator('.places-map path.places-trip')).toHaveCount(0);
-    await chip.click();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-checked', 'true');
     await expect(page.locator('.places-map path.places-trip')).toHaveCount(2);
     // Gematchte Linie: der Router wird genannt
     await expect(page.locator('.places-map .leaflet-control-attribution')).toContainText('openrouteservice');
+    // Die Fahrten liegen in Hamburg: die Karte rückt näher heran, beim Ausschalten zurück
+    await expect.poll(() => tileZoom(page), { timeout: 5000 }).toBeGreaterThan(before!);
+    await toggle.click();
+    await expect.poll(() => tileZoom(page), { timeout: 5000 }).toBe(before);
   });
 
-  test('Amber-Chip öffnet den Preisvergleich im selben Sheet', async ({ page }) => {
+  test('Amber-Chip klappt den Preisvergleich in der Zeile auf', async ({ page }) => {
     await openPlaces(page);
 
-    await page.getByTestId('places-chip-high').click();
-    await expect(page.getByRole('heading', { name: 'Preise bei Tesla Supercharger' })).toBeVisible();
-    await expect(page.getByRole('dialog')).toHaveCount(1);
-    await page.getByTestId('places-back').click();
-    await expect(page.getByTestId('places-lead')).toBeVisible();
+    const chip = page.getByTestId('places-chip-high');
+    await chip.click();
+    await expect(chip).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByTestId('places-prices')).toContainText('Andere Fahrer zahlen dort im Schnitt 39,0 ct/kWh');
+    await chip.click();
+    await expect(chip).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('places-prices')).toBeHidden();
+  });
+
+  test('Betreiber eintragen öffnet die Ladung über der Karte, die Karte bleibt offen', async ({ page }) => {
+    await openPlaces(page);
+
+    await page.getByTestId('places-chip-operator').click();
+
+    await expect(page.getByTestId('edit-log-modal')).toBeVisible();
+    await expect(page.getByTestId('places-sheet')).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(2);
   });
 });

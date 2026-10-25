@@ -69,14 +69,21 @@ describe('PlacesList', () => {
     expect(norm(c.querySelector('[data-testid="places-eur"]')?.textContent)).toBe('')
   })
 
-  it('teurer Ort: Amber-Chip mit dem Preis der anderen, öffnet den Vergleich', async () => {
-    const onPrices = vi.fn()
-    await mount({ rows: [{ place: place({ pricePerKwh: 0.49 }), cls: 'high', benchmark: BENCH }], active: null, onPrices })
+  it('teurer Ort: Amber-Chip mit dem Preis der anderen klappt den Vergleich in der Zeile auf und wieder zu', async () => {
+    await mount({ rows: [{ place: place({ pricePerKwh: 0.49 }), cls: 'high', benchmark: BENCH }], active: null })
 
     const chip = document.querySelector('[data-testid="places-chip-high"]') as HTMLButtonElement
     expect(norm(chip.textContent)).toBe('andere zahlen 39 ct/kWh, 15 Fahrer')
+    expect(chip.getAttribute('aria-expanded')).toBe('false')
     chip.click()
-    expect(onPrices).toHaveBeenCalledWith('u1x3k7q')
+    await nextTick()
+    expect(chip.getAttribute('aria-expanded')).toBe('true')
+    const detail = document.querySelector('[data-testid="places-row"] [data-testid="places-prices"]')
+    expect(norm(detail?.textContent)).toContain('Du hast 49,0 ct/kWh gezahlt.')
+    expect(norm(detail?.textContent)).toContain('Andere Fahrer zahlen dort im Schnitt 39,0 ct/kWh')
+    chip.click()
+    await nextTick()
+    expect(chip.getAttribute('aria-expanded')).toBe('false')
   })
 
   it('günstiger Ort: grüner Chip ohne Handlung', async () => {

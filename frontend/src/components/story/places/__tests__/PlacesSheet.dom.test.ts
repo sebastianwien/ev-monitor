@@ -97,7 +97,7 @@ describe('PlacesSheet', () => {
     expect(names()).toHaveLength(2)
   })
 
-  it('Fahrten-Chip zählt Fahrten mit Linie und blendet sie ein', async () => {
+  it('Fahrten-Schalter zählt Fahrten mit Linie und blendet sie ein', async () => {
     trips = [
       { id: 't1', tracePolyline: LINE },
       { id: 't2', routePolyline: LINE, routeKind: 'MATCHED' },
@@ -105,14 +105,17 @@ describe('PlacesSheet', () => {
     ]
     await mount()
 
-    expect(norm($('places-trips')?.textContent)).toBe('Fahrten 2')
+    const toggle = document.querySelector('[data-testid="places-trips"] [role="switch"]') as HTMLButtonElement
+    expect(norm($('places-trips')?.textContent)).toBe('2 Fahrten zeigen')
+    expect(toggle.getAttribute('aria-checked')).toBe('false')
     expect($('places-map')?.dataset.lines).toBe('0')
-    $('places-trips')!.click()
+    toggle.click()
     await flush()
+    expect(toggle.getAttribute('aria-checked')).toBe('true')
     expect($('places-map')?.dataset.lines).toBe('2')
   })
 
-  it('ohne Fahrt mit Linie kein Fahrten-Chip', async () => {
+  it('ohne Fahrt mit Linie kein Fahrten-Schalter', async () => {
     trips = [{ id: 't1' }]
     await mount()
 
@@ -123,25 +126,23 @@ describe('PlacesSheet', () => {
     trips = [{ id: 'newest', tracePolyline: LINE }, { id: 'old' }, { id: 'older' }]
     await mount({ canViewLiveAnalytics: false })
 
-    expect(norm($('places-trips')?.textContent)).toBe('Fahrten 1')
+    expect(norm($('places-trips')?.textContent)).toBe('1 Fahrt zeigen')
     expect($('places-trips-locked')).toBeNull()
-    $('places-trips')!.click()
+    ;(document.querySelector('[data-testid="places-trips"] [role="switch"]') as HTMLButtonElement).click()
     await flush()
     expect(norm($('places-trips-locked')?.textContent)).toContain('Alle Fahrten auf der Karte')
     expect($('places-trips-locked')?.querySelector('a')?.getAttribute('href')).toBe('/upgrade')
   })
 
-  it('Amber-Chip öffnet den Vergleich im selben Sheet, der Pfeil führt zurück', async () => {
-    await mount()
+  it('Betreiber eintragen meldet die neueste Ladung, das Sheet bleibt offen', async () => {
+    places = [...PLACES, place({ geohash: 'nocpo', cpoName: null, lastLogId: 'log-9', costEur: 5 })]
+    const onOperator = vi.fn()
+    await mount({ onOperator })
 
-    $('places-chip-high')!.click()
+    $('places-chip-operator')!.click()
     await flush()
-    expect(norm(document.body.textContent)).toContain('Preise bei Tesla Supercharger')
-    expect(norm(document.body.textContent)).toContain('Du hast 49,0 ct/kWh gezahlt.')
-    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
 
-    $('places-back')!.click()
-    await flush()
-    expect(names()).toHaveLength(4)
+    expect(onOperator).toHaveBeenCalledWith('log-9')
+    expect($('places-sheet')).not.toBeNull()
   })
 })
