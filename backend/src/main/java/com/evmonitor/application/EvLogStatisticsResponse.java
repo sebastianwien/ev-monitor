@@ -33,10 +33,10 @@ public record EvLogStatisticsResponse(
         // Location split (public/private kWh)
         LocationSplit locationSplit,
 
-        // Peer benchmark — null if no vehicle spec linked or zero peer cars
+        // Peer benchmark - null if no vehicle spec linked or zero peer cars
         PeerBenchmark peerBenchmark,
 
-        // Charging efficiency — only for logs with both kwhCharged and kwhAtVehicle
+        // Charging efficiency - only for logs with both kwhCharged and kwhAtVehicle
         ChargingEfficiencySplit chargingEfficiencySplit
 ) {
     public record ChargeDataPoint(
@@ -82,7 +82,11 @@ public record EvLogStatisticsResponse(
             BigDecimal gridKwh,
             BigDecimal vehicleKwh,
             int coveredLogCount,
-            int totalLogCount
+            int totalLogCount,
+            /** Ladeverlust aller Ladungen: gemessen (Netz minus Akku) oder mit dem Wirkungsgrad hochgerechnet. */
+            BigDecimal lossKwh,
+            /** Ladungen, deren Verlust hochgerechnet statt gemessen ist. */
+            int estimatedLossLogCount
     ) {}
 
     public record PeerBenchmark(
