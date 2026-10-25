@@ -6,14 +6,14 @@ import type { DataQuality } from '../../composables/storyInsights'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 
 /**
- * Die Qualitätszeile unter dem Hero: ein Feld je Tag des Monats (Daten grün, die genannte
- * Lücke amber, sonst grau) und ein Satz dazu. Eine Lücke nennt der Satz nur, wenn der Monat vorbei
+ * Die Qualitätszeile unter dem Hero: ein Feld je Tag des Monats (Ladung grün, die genannte
+ * Lücke amber, sonst grau), darüber eine Säule je Fahrtag nach km, eine Legende und ein Satz. Eine Lücke nennt der Satz nur, wenn der Monat vorbei
  * ist oder sie 7 Tage überschreitet. Tage nach heute sind keine Lücke. Überfahren, Antippen oder
  * Pfeiltasten zeigen den einzelnen Tag (Ladungen, kWh); die Achse nennt jeden siebten Tag.
  */
 const props = defineProps<{ days: DayCoverage[]; quality: DataQuality | null }>()
 const { t } = useI18n()
-const { formatDecimal } = useLocaleFormat()
+const { formatDecimal, formatDistance } = useLocaleFormat()
 
 const withData = computed(() => props.days.filter(d => d.hasData).length)
 /** Im laufenden Monat nur die Tage bis heute. */
@@ -33,7 +33,7 @@ const caption = computed(() => {
 })
 /** Amber nur für die Tage der Lücke, die der Satz nennt; andere leere Tage grau, Tage nach heute heller. */
 const cellClass = (d: DayCoverage) => {
-  if (d.hasData) return 'bg-green-700 dark:bg-green-400'
+  if (d.charges > 0) return 'bg-green-700 dark:bg-green-400'
   if (d.future) return 'bg-gray-100 dark:bg-gray-800'
   if (gap.value && d.day >= gap.value.from && d.day <= gap.value.to) return 'bg-amber-400'
   return 'bg-gray-200 dark:bg-gray-700'
@@ -71,10 +71,17 @@ function onKey(e: KeyboardEvent) {
 const tip = computed(() => {
   const d = active.value != null ? props.days[active.value] : null
   if (!d) return ''
-  if (d.future) return t('story.day_tip_future', { day: d.day })
-  if (d.charges > 0) return t('story.day_tip_charges', { day: d.day, n: d.charges, kwh: `${formatDecimal(d.kwh, 1)} kWh` }, d.charges)
-  return t('story.day_tip_empty', { day: d.day })
+  if (d.future) return t('story.day_tip', { day: d.day, text: t('story.day_tip_future') })
+  const parts = []
+  if (d.charges > 0) parts.push(t('story.day_tip_charges', { n: d.charges, kwh: `${formatDecimal(d.kwh, 1)} kWh` }, d.charges))
+  if (d.trips > 0) parts.push(t('story.day_tip_trips', { n: d.trips, km: formatDistance(d.tripKm, { round: true }) }, d.trips))
+  return t('story.day_tip', { day: d.day, text: parts.length ? parts.join(' · ') : t('story.day_tip_empty') })
 })
+/** Höchste km eines Tages: Maßstab der Fahrt-Säulen. */
+const maxKm = computed(() => Math.max(0, ...props.days.map(d => d.tripKm)))
+const hasTrips = computed(() => props.days.some(d => d.trips > 0))
+/** Säulenhöhe in Prozent; eine Fahrt ohne km bleibt als Strich sichtbar. */
+const kmHeight = (d: DayCoverage) => maxKm.value > 0 ? `${Math.max(12, Math.round((d.tripKm / maxKm.value) * 100))}%` : '12%'
 /** Mitte des Felds in Prozent; die Anzeige am Rand bündig, damit sie nicht aus der Box ragt. */
 const pos = (index: number) => `${((index + 0.5) / props.days.length) * 100}%`
 const tipAlign = computed(() => {
@@ -96,14 +103,26 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
         class="-my-1.5 flex cursor-default gap-[3px] rounded py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
         @pointerdown="onPointer" @pointermove="onPointer" @pointerleave="onLeave"
         @keydown="onKey" @blur="active = null">
-        <i v-for="(d, i) in days" :key="d.day" data-role="day" class="h-2.5 flex-1 rounded-[2px] transition-transform"
-           :class="[cellClass(d), active === i ? 'scale-y-[1.6]' : '']" />
+        <span v-for="(d, i) in days" :key="d.day" class="flex flex-1 flex-col justify-end gap-[2px]" :class="hasTrips ? 'h-7' : ''">
+          <span v-if="hasTrips" class="relative block flex-1">
+            <i v-if="d.trips > 0" data-role="km" class="absolute inset-x-0 bottom-0 rounded-[2px] bg-gray-400 dark:bg-gray-500"
+               :class="active === i ? 'bg-gray-700 dark:bg-gray-300' : ''" :style="{ height: kmHeight(d) }" />
+          </span>
+          <i data-role="day" class="block h-2.5 rounded-[2px] transition-transform"
+             :class="[cellClass(d), active === i ? 'scale-y-[1.4]' : '']" />
+        </span>
       </div>
       <span v-if="tip" data-testid="story-day-tip" role="status"
             class="pointer-events-none absolute bottom-full mb-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[12px] font-semibold text-white tabular-nums shadow-sm dark:bg-gray-100 dark:text-gray-900"
             :class="tipAlign" :style="{ left: pos(active ?? 0) }">{{ tip }}</span>
       <div class="relative mt-1 h-3.5 text-[10.5px] text-gray-400 tabular-nums dark:text-gray-500" aria-hidden="true">
         <span v-for="d in ticks" :key="d" data-role="tick" class="absolute -translate-x-1/2" :style="{ left: pos(d - 1) }">{{ d }}.</span>
+      </div>
+      <!-- Legende: nur, was im Monat vorkommt; Amber nur, wenn der Satz eine Lücke nennt -->
+      <div data-testid="story-days-legend" class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+        <span class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-green-700 dark:bg-green-400" />{{ t('story.days_legend_charged') }}</span>
+        <span v-if="hasTrips" class="inline-flex items-center gap-1"><i class="h-2.5 w-1.5 rounded-[2px] bg-gray-400 dark:bg-gray-500" />{{ t('story.days_legend_drove') }}</span>
+        <span v-if="gap" class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-amber-400" />{{ t('story.days_legend_gap') }}</span>
       </div>
     </div>
     <p class="text-[12.5px] text-gray-500 tabular-nums dark:text-gray-400">{{ caption }}<template v-if="quality && quality.total > 0"><template v-if="quality.priceless > 0">, <span class="text-amber-700 dark:text-amber-400">{{ t('story.quality_priceless', { n: quality.priceless }) }}<template v-if="quality.pricelessOpen > 0">{{ ' ' }}<router-link to="/logs" class="font-semibold underline underline-offset-2">{{ t('story.quality_fix') }}</router-link></template></span></template>.</template><span v-if="gap" class="text-amber-700 dark:text-amber-400">{{ ' ' + t('story.days_gap', gap) }}</span></p>

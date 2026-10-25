@@ -59,7 +59,9 @@ const focused = ref(false)
 const userPaused = ref(false)
 const reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
-const paused = computed(() => collapsed.value || !tabVisible.value || hovered.value || focused.value || userPaused.value)
+/** Im Kopf der CI-Seiten gibt es kein Einklappen: das Band gehört zum Kopf, eine Lasche läge über dem Inhalt. */
+const isCollapsed = computed(() => !props.docked && collapsed.value)
+const paused = computed(() => isCollapsed.value || !tabVisible.value || hovered.value || focused.value || userPaused.value)
 
 /** Gemessene Durchlaufzeit überlanger Einträge, je Index. */
 const OVERFLOW_PX_PER_S = 40
@@ -145,8 +147,8 @@ onUnmounted(() => {
     @mouseenter="hovered = true" @mouseleave="hovered = false"
     @focusin="focused = true" @focusout="focused = false">
 
-    <div class="overflow-hidden transition-[height] duration-300" :class="[look.band, collapsed ? 'h-1' : 'h-8']">
-      <div v-show="!collapsed" class="flex items-center h-full max-w-5xl mx-auto pl-2 sm:pl-4">
+    <div class="overflow-hidden transition-[height] duration-300" :class="[look.band, isCollapsed ? 'h-1' : 'h-8']">
+      <div v-show="!isCollapsed" class="flex items-center h-full max-w-5xl mx-auto pl-2 sm:pl-4">
 
         <!-- Typ-Chip: Farbe und Icon tragen die Kategorie, damit der Text kurz bleiben kann -->
         <Transition name="ticker-chip" mode="out-in">
@@ -215,8 +217,8 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Lasche: hängt mittig unter dem Band -->
-    <button type="button"
+    <!-- Lasche: hängt mittig unter dem Band (nicht im Kopf der CI-Seiten) -->
+    <button v-if="!docked" type="button"
       @click="onToggle"
       :class="look.tab"
       class="before:absolute before:-inset-x-2 before:-top-1 before:-bottom-3 absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full border-t-0 rounded-b-lg px-7 py-0.5 flex items-center gap-1 transition-colors"

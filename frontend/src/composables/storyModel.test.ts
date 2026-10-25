@@ -280,6 +280,19 @@ describe('buildDayCoverage', () => {
     expect(days[0]).toMatchObject({ day: 1, charges: 0, kwh: 0 })
   })
 
+  it('Fahrten zählen als erfasst: km und Zahl je Tag, keine Lücke an Fahrtagen', () => {
+    const points = [{ timestamp: '2026-09-01T10:00:00', costEur: 5, kwhCharged: 20, distanceKm: 100, consumptionKwhPer100km: 18 }]
+    const trips = [
+      { tripStartedAt: '2026-09-03T07:00:00', distanceKm: 12.4 },
+      { tripStartedAt: '2026-09-03T17:00:00', distanceKm: 30 },
+      { tripStartedAt: '2026-09-04T07:00:00', distanceKm: null },
+    ]
+    const days = buildDayCoverage(points, 2026, 9, new Date(2026, 9, 1).getTime(), trips)
+    expect(days[2]).toMatchObject({ day: 3, hasData: true, trips: 2, tripKm: 42.4, charges: 0 })
+    expect(days[3]).toMatchObject({ day: 4, hasData: true, trips: 1, tripKm: 0 })
+    expect(days[1]).toMatchObject({ day: 2, hasData: false, trips: 0, tripKm: 0 })
+  })
+
   it('markiert Tage ohne Daten als Lücke', () => {
     const points = [
       { timestamp: '2026-09-01T10:00:00', costEur: 5, kwhCharged: 20, distanceKm: 100, consumptionKwhPer100km: 18 },
@@ -506,7 +519,7 @@ describe('buildStoryFeed mit Momenten', () => {
 describe('visibleGap: welche Lücke der Satz nennt', () => {
   const days = (withData: number[], gap: [number, number] | null, today = 31) => Array.from({ length: 31 }, (_, i) => {
     const day = i + 1
-    return { day, hasData: withData.includes(day), inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today, charges: 0, kwh: 0 }
+    return { day, hasData: withData.includes(day), inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today, charges: 0, kwh: 0, trips: 0, tripKm: 0 }
   })
 
   it('abgeschlossener Monat: jede Lücke ab 3 Tagen', () => {

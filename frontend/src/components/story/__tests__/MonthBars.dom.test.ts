@@ -32,12 +32,14 @@ describe('MonthBars', () => {
     app.unmount()
   })
 
-  it('laufender Monat: letzter Balken heller, Legende nennt ihn', () => {
+  it('laufender Monat: letzter Balken heller, ohne Legende, Titel beim Überfahren', () => {
     const { el, app } = mount({ ...base, partialLabel: 'Okt bis heute' })
     const bars = el.querySelectorAll('[data-role="bar"]')
     expect(bars[2].getAttribute('data-partial')).toBe('true')
     expect(bars[0].getAttribute('data-partial')).toBeNull()
-    expect(el.textContent).toContain('Okt bis heute')
+    // Kein Legenden-Eintrag: der blasse Balken erklärt sich per Titel beim Überfahren
+    expect(el.textContent).not.toContain('bis heute')
+    expect(bars[2].getAttribute('title')).toBe('Okt bis heute')
     app.unmount()
   })
 })

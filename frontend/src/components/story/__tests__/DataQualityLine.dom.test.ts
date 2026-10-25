@@ -13,11 +13,13 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 
 /** Monat mit 31 Tagen: Daten an `withData`, Lücke `gap` (inklusive), Zukunft ab `today + 1`. */
-function days(withData: number[], gap: [number, number] | null, today = 31): DayCoverage[] {
+function days(withData: number[], gap: [number, number] | null, today = 31, tripDays: number[] = []): DayCoverage[] {
   return Array.from({ length: 31 }, (_, i) => {
     const day = i + 1
-    const hasData = withData.includes(day)
-    return { day, hasData, inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today, charges: hasData ? 1 : 0, kwh: hasData ? 20 : 0 }
+    const hasData = withData.includes(day) || tripDays.includes(day)
+    const charge = withData.includes(day)
+    const trip = tripDays.includes(day)
+    return { day, hasData, inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today, charges: charge ? 1 : 0, kwh: charge ? 20 : 0, trips: trip ? 2 : 0, tripKm: trip ? 42 : 0 }
   })
 }
 const quality = (over: Partial<DataQuality> = {}): DataQuality =>
@@ -97,5 +99,26 @@ describe('DataQualityLine', () => {
     bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }))
     await Promise.resolve()
     expect(tip()).toBe('25.: nichts erfasst')
+  })
+
+  it('Fahrtage als Säule nach km, Ladetage grün, Legende nennt nur, was vorkommt', () => {
+    const plain = mount(days([1, 15], null, 25), quality())
+    expect(plain.querySelectorAll('[data-role="km"]')).toHaveLength(0)
+    const legend = (h: HTMLElement) => [...h.querySelectorAll('[data-testid="story-days-legend"] > span')].map(x => x.textContent!.trim())
+    expect(legend(plain)).toEqual(['geladen'])
+    app!.unmount(); app = null
+    const host = mount(days([1, 15], [2, 14], 25, [16, 17]), quality())
+    const km = host.querySelectorAll('[data-role="km"]')
+    expect(km).toHaveLength(2)
+    expect((km[0] as HTMLElement).style.height).toBe('100%')
+    expect(legend(host)).toEqual(['geladen', 'gefahren', 'nichts erfasst'])
+  })
+
+  it('Tagesanzeige nennt Fahrten mit km', async () => {
+    const host = mount(days([16], null, 25, [16]), quality())
+    const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
+    for (let i = 0; i < 16; i++) bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
+    await Promise.resolve()
+    expect(host.querySelector('[data-testid="story-day-tip"]')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('16.: 1 Ladung, 20,0 kWh · 2 Fahrten, 42 km')
   })
 })

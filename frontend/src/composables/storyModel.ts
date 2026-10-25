@@ -102,6 +102,15 @@ export interface DayCoverage {
   /** Ladungen und geladene kWh an diesem Tag, für die Tagesanzeige. */
   charges: number
   kwh: number
+  /** Fahrten, die an diesem Tag begannen, und ihre km. */
+  trips: number
+  tripKm: number
+}
+
+/** Was die Tagesleiste von einer Fahrt braucht. */
+export interface DayTrip {
+  tripStartedAt?: string | Date | null
+  distanceKm?: number | null
 }
 
 /** Angenommener Benziner: 7,5 l/100 km, passend zu VERBRENNER_G_PER_KM. */
@@ -478,7 +487,8 @@ export function visibleGap(days: DayCoverage[]): { from: number; to: number } | 
   return { from: g[0].day, to: g[g.length - 1].day }
 }
 
-export function buildDayCoverage(points: ChargeDataPoint[], year: number, month: number, now: number = Date.now()): DayCoverage[] {
+/** Tage des Monats: Ladungen und Fahrten je Tag, Tage nach heute, längste Strecke ohne beides. */
+export function buildDayCoverage(points: ChargeDataPoint[], year: number, month: number, now: number = Date.now(), trips: DayTrip[] = []): DayCoverage[] {
   const daysInMonth = new Date(year, month, 0).getDate()
   const today = new Date(now)
   const lastPast = today.getFullYear() === year && today.getMonth() + 1 === month ? today.getDate() : daysInMonth
@@ -492,6 +502,17 @@ export function buildDayCoverage(points: ChargeDataPoint[], year: number, month:
     acc.charges += p.charges ?? 1
     acc.kwh += p.kwhCharged ?? 0
     perDay.set(d.getDate(), acc)
+  }
+  const tripDay = new Map<number, { trips: number; km: number }>()
+  for (const tr of trips) {
+    if (!tr.tripStartedAt) continue
+    const d = new Date(tr.tripStartedAt)
+    if (d.getFullYear() !== year || d.getMonth() + 1 !== month) continue
+    withData.add(d.getDate())
+    const acc = tripDay.get(d.getDate()) ?? { trips: 0, km: 0 }
+    acc.trips += 1
+    acc.km += tr.distanceKm ?? 0
+    tripDay.set(d.getDate(), acc)
   }
   let bestStart = 0, bestLen = 0, runStart = 0, runLen = 0
   for (let day = 1; day <= lastPast; day++) {
@@ -509,6 +530,8 @@ export function buildDayCoverage(points: ChargeDataPoint[], year: number, month:
       future: day > lastPast,
       charges: perDay.get(day)?.charges ?? 0,
       kwh: perDay.get(day)?.kwh ?? 0,
+      trips: tripDay.get(day)?.trips ?? 0,
+      tripKm: tripDay.get(day)?.km ?? 0,
     }
   })
 }

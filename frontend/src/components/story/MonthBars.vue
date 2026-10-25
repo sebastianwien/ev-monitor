@@ -42,6 +42,7 @@ const partial = (i: number) => !!props.partialLabel && i === props.values.length
             <div
               data-role="bar"
               :data-partial="partial(i) ? 'true' : null"
+              :title="partial(i) ? partialLabel : undefined"
               class="absolute inset-x-0 bottom-0 min-h-0.5 rounded-t-md"
               :class="[TONE[tone], partial(i) ? 'opacity-35' : '']"
               :style="{ height: pct(v) }" />
@@ -56,9 +57,8 @@ const partial = (i: number) => !!props.partialLabel && i === props.values.length
     <div class="mt-1.5 grid gap-2 border-t border-gray-300 pt-1.5 dark:border-gray-600" :style="cols">
       <span v-for="(l, i) in labels" :key="i" data-role="label" class="text-center text-[13px] text-gray-600 dark:text-gray-300">{{ l }}</span>
     </div>
-    <div v-if="reference || partialLabel" class="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-300">
+    <div v-if="reference" class="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-300">
       <span v-if="reference" class="inline-flex items-center gap-1.5"><i class="w-4 border-t-2 border-dashed border-gray-900/70 dark:border-gray-100/70" />{{ reference.label }}</span>
-      <span v-if="partialLabel" class="inline-flex items-center gap-1.5"><i class="h-2.5 w-2.5 rounded-sm opacity-35" :class="TONE[tone]" />{{ partialLabel }}</span>
     </div>
   </div>
 </template>

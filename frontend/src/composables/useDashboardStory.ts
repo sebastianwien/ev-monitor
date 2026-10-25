@@ -385,7 +385,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     })
     : [])
   const days = computed<DayCoverage[]>(() =>
-    buildDayCoverage(monthStats.value?.chargesOverTime ?? [], month.value.year, month.value.month))
+    buildDayCoverage(monthStats.value?.chargesOverTime ?? [], month.value.year, month.value.month, Date.now(), trips.value))
   const hasCharges = computed(() => (monthStats.value?.totalCharges ?? 0) > 0)
 
   /** "Weiß ich nicht mehr" aus dem Hero: die Frage verschwindet sofort, die Ladung bleibt ohne Preis. */

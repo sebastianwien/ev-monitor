@@ -87,7 +87,7 @@ describe('StoryTile Akku und Reichweite', () => {
     const battery = (estimated: boolean): Tile => ({ id: 'battery', value: 92, delta: null, deltaPercent: null, sentiment: 'good', spark: [100, 92], sparkVariant: 'range', odometerKm: 66265, estimated })
     const est = mount(battery(true))
     expect(est).toContain('~92')
-    expect(est).toContain('geschätzt')
+    expect(est).toMatch(/~92\s*% SoH\s*geschätzt/)
     app!.unmount(); app = null
     const manual = mount(battery(false))
     expect(manual).not.toContain('~')

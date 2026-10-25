@@ -93,11 +93,12 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
            dark:bg-gray-800/60 md:hover:bg-gray-50 md:dark:hover:bg-gray-800 transition-[transform,box-shadow,background-color] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
     :style="{ viewTransitionName: `story-tile-${tile.id}` }"
     @click="emit('open', tile.id)">
-    <!-- "geschätzt" wie in den Fakt-Kacheln der Modellseiten: als Zusatz am Label, nicht als Plakette an der Zahl -->
-    <span class="line-clamp-2 text-[11.5px] font-semibold uppercase leading-tight tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ label }}<span v-if="tile.id === 'battery' && tile.estimated" class="ml-1.5 normal-case tracking-normal text-amber-700 dark:text-amber-400">{{ t('story.estimated_badge') }}</span></span>
+    <span class="line-clamp-2 text-[11.5px] font-semibold uppercase leading-tight tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ label }}</span>
     <span class="flex items-baseline gap-1 leading-none">
       <b class="text-[26px] font-extrabold tracking-tight text-gray-900 tabular-nums dark:text-gray-50">{{ value.n }}</b>
       <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ value.unit }}</span>
+      <!-- Schätzwert: in der Zeile der Zahl, in der Schrift der Einheit -->
+      <span v-if="tile.id === 'battery' && tile.estimated" class="ml-1 text-[13px] font-semibold text-amber-700 dark:text-amber-400">{{ t('story.estimated_badge') }}</span>
     </span>
     <span v-if="note" class="truncate text-[13.5px] text-gray-600 dark:text-gray-400">{{ note }}</span>
     <span data-role="graphic" class="mt-auto block">
