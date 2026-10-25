@@ -146,7 +146,7 @@ onMounted(async () => {
 </script>
 
 <template>
-<div class="grid min-h-full gap-2 bg-gray-100 pb-6 md:mx-auto md:max-w-2xl md:gap-4 md:bg-transparent md:p-6 dark:bg-gray-950 md:dark:bg-transparent">
+<div class="grid gap-2 pb-6 md:mx-auto md:max-w-2xl md:gap-4 md:p-6">
   <!-- Konto -->
   <ModelBox>
     <header class="flex items-center justify-between gap-3">

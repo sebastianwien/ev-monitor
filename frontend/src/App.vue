@@ -65,6 +65,8 @@ useHead({ meta: [{ name: 'robots', content: () => robotsForPath(route.path) }] }
 const isMobileViewport = useIsMobile()
 // Routen mit meta.mobileFullscreen (Wizard) laufen auf Mobile ohne Bottom-Nav, Ticker und Abstaende
 const mobileFullscreen = computed(() => !!route.meta.mobileFullscreen && isMobileViewport.value)
+// CI-Seiten (meta.plainBackground) zeigen auf dem Handy die ruhige Fläche bis unter Ticker-Lasche und Bottom-Nav
+const plainBackground = computed(() => !!route.meta.plainBackground && isMobileViewport.value)
 // Android Chrome (ab 108) verschiebt bei offener Tastatur nur den sichtbaren Ausschnitt - der
 // Wizard-Kopf waechst dann nach oben raus. resizes-content laesst stattdessen das Layout
 // schrumpfen: Kopf bleibt oben, Footer ueber der Tastatur. Nur im Wizard, sonst Standard.
@@ -300,7 +302,7 @@ const handleBottomLogout = () => {
 <template>
   <!-- Vollbild-Wizard: Huelle exakt auf den aktuellen Viewport gekappt (h-dvh statt min-h-screen),
        sonst hat Android Chrome um die Adressleistenhoehe Spielraum und "scrollt" ins Leere -->
-  <div :class="[mobileFullscreen ? 'h-dvh overflow-hidden' : 'min-h-screen', 'flex flex-col', !authStore.isAuthenticated() ? 'bg-gray-100 dark:bg-gray-950' : mobileFullscreen ? 'bg-white dark:bg-gray-800' : 'app-wallpaper']">
+  <div :class="[mobileFullscreen ? 'h-dvh overflow-hidden' : 'min-h-screen', 'flex flex-col', !authStore.isAuthenticated() || plainBackground ? 'bg-gray-100 dark:bg-gray-950' : mobileFullscreen ? 'bg-white dark:bg-gray-800' : 'app-wallpaper']">
     <!-- Pull-to-Refresh-Indikator (nur nativ, erscheint beim Ziehen am Seitenanfang) -->
     <div
       v-if="ptrPull > 0 || ptrRefreshing"

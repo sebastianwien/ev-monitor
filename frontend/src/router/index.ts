@@ -17,6 +17,8 @@ declare module 'vue-router' {
         hideOnNative?: boolean
         locale?: string
         country?: CountryCode
+        /** Handy: ruhige CI-Fläche statt Wallpaper (Seiten im App-CI mit Boxen, docs/design/ci.md). */
+        plainBackground?: boolean
     }
 }
 import LandingPageView from '../views/LandingPageView.vue';
@@ -125,13 +127,13 @@ const router = createRouter({
             path: '/settings',
             name: 'settings',
             component: SettingsView,
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, plainBackground: true }
         },
         {
             path: '/coins/history',
             name: 'coin-history',
             component: CoinHistoryView,
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, plainBackground: true }
         },
         {
             path: '/wallbox',
@@ -455,7 +457,7 @@ const router = createRouter({
             path: '/leaderboard',
             name: 'leaderboard',
             component: LeaderboardView,
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, plainBackground: true }
         },
         {
             path: '/rankings',
