@@ -53,7 +53,6 @@ const pins = computed(() => {
 </template>
 
 <style>
-/* Wie die große Karte: entsättigt, dunkel invertiert. */
-.places-teaser-tile { filter: grayscale(1) contrast(0.92) brightness(1.06); }
-.dark .places-teaser-tile { filter: grayscale(1) invert(1) brightness(0.82) contrast(0.9); }
+/* Wie die große Karte: in Farbe, dunkel etwas gedimmt. */
+.dark .places-teaser-tile { filter: brightness(0.82); }
 </style>

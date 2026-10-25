@@ -193,8 +193,8 @@ onUnmounted(() => {
 /* Ungescoped: Leaflet baut Kacheln und Punkte selbst. .places-map grenzt auf diese Karte ein. */
 .places-map .leaflet-container { background: #f3f4f6; font: inherit; }
 .dark .places-map .leaflet-container { background: #111827; }
-.places-map .places-tiles { filter: grayscale(1) contrast(0.92) brightness(1.06); }
-.dark .places-map .places-tiles { filter: grayscale(1) invert(1) brightness(0.82) contrast(0.9); }
+/* Kacheln in Farbe wie die alte Karte; dunkel nur etwas gedimmt, damit sie im dunklen Sheet nicht blendet. */
+.dark .places-map .places-tiles { filter: brightness(0.82); }
 .places-map .places-pin-wrap { background: none; border: 0; }
 .places-map .places-pin { display: grid; place-items: center; box-shadow: 2px 2px 0 0 #111827; transition: transform 0.15s ease; }
 .dark .places-map .places-pin { box-shadow: none; }
