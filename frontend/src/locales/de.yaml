@@ -843,6 +843,9 @@ logs:
     empty: "Keine gelöschten Ladevorgänge."
   title: "Ladevorgänge & Trips"
   load_older: "Ältere laden ({month})"
+  consumption_estimated_title: "Schätzwert: aus geladener Energie und Strecke, weil der Akkustand fehlt."
+  consumption_soc_delta_title: "Näherungswert: aus der Änderung des Akkustands, ohne direkt gemessene kWh."
+  group_max_soc: "bis {soc} %"
   hints:
     check: "Jetzt prüfen"
     more: "Mehr erfahren"

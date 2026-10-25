@@ -17,18 +17,18 @@ const choose = (rating: FeedbackRating) => {
 </script>
 
 <template>
-  <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
-    <p class="px-3 pt-1 pb-0.5 text-xs text-gray-400 dark:text-gray-500">{{ t('dashboard.data_feedback_label') }}</p>
+  <div class="mt-1 border-t border-gray-200 pt-1 dark:border-gray-700">
+    <p class="px-3.5 pt-1.5 pb-0.5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('dashboard.data_feedback_label') }}</p>
     <button role="menuitemcheckbox" type="button" @click.stop="choose('POSITIVE')"
       :aria-checked="ratingOf(props.subjectType, props.subjectId) === 'POSITIVE'"
-      :class="['w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600',
-        ratingOf(props.subjectType, props.subjectId) === 'POSITIVE' ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-gray-700 dark:text-gray-200']">
+      :class="['flex min-h-11 w-full items-center gap-3 px-3.5 text-left text-[14px] transition hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/10',
+        ratingOf(props.subjectType, props.subjectId) === 'POSITIVE' ? 'font-semibold text-green-700 dark:text-green-400' : 'font-medium text-gray-800 dark:text-gray-200']">
       <HandThumbUpIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.data_feedback_menu_positive') }}
     </button>
     <button role="menuitemcheckbox" type="button" @click.stop="choose('NEGATIVE')"
       :aria-checked="ratingOf(props.subjectType, props.subjectId) === 'NEGATIVE'"
-      :class="['w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600',
-        ratingOf(props.subjectType, props.subjectId) === 'NEGATIVE' ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-700 dark:text-gray-200']">
+      :class="['flex min-h-11 w-full items-center gap-3 px-3.5 text-left text-[14px] transition hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 dark:hover:bg-white/5 dark:focus-visible:bg-white/10',
+        ratingOf(props.subjectType, props.subjectId) === 'NEGATIVE' ? 'font-semibold text-amber-700 dark:text-amber-400' : 'font-medium text-gray-800 dark:text-gray-200']">
       <HandThumbDownIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.data_feedback_negative') }}
     </button>
   </div>

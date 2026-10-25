@@ -37,7 +37,7 @@ const { t } = useI18n()
     <!-- @click.stop: Zoomen und Ziehen in der Karte darf die Zeile nicht wieder zuklappen. -->
     <div
       :id="panelId"
-      class="relative mt-2 h-40 md:h-48 overflow-hidden rounded-sm border border-gray-200 dark:border-gray-600"
+      class="relative mt-2 h-44 md:h-48 overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700"
       @click.stop
     >
       <ActivityLocationMap

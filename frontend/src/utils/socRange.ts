@@ -1,5 +1,5 @@
 /**
- * Ladestand als Spanne "62→80%".
+ * Ladestand als Spanne "62 → 80 %", gesetzt wie im Story-Tagesblatt.
  *
  * Einheitliche Darstellung fuer Einzel-Ladungen und Ladegruppen-Teilladungen -
  * vorher hatte jede Fundstelle im Logfeed ihre eigene Template-Kaskade und die
@@ -16,6 +16,6 @@ export function formatSocRange(
     // Live-Quellen (Tesla) liefern Nachkommastellen; ganze Prozent reichen und halten die Zeile schmal.
     const end = Math.round(after)
     const start = before == null ? null : Math.round(before)
-    if (start == null || start === end) return `${end}%`
-    return `${start}→${end}%`
+    if (start == null || start === end) return `${end} %`
+    return `${start} → ${end} %`
 }

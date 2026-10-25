@@ -18,15 +18,15 @@ const icon = props.compact ? 'w-3.5 h-3.5' : 'w-4 h-4'
     :aria-label="t(`dashboard.data_feedback_positive_${props.subjectType.toLowerCase()}`)"
     :title="t(`dashboard.data_feedback_positive_${props.subjectType.toLowerCase()}`)"
     :aria-pressed="ratingOf(props.subjectType, props.subjectId) === 'POSITIVE'"
-    :class="[pad, 'rounded transition hover:bg-gray-100 dark:hover:bg-gray-600',
-      ratingOf(props.subjectType, props.subjectId) === 'POSITIVE' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200']">
-    <HandThumbUpIcon :class="icon" />
+    :class="[pad, 'rounded-full transition hover:bg-gray-100 dark:hover:bg-white/10',
+      ratingOf(props.subjectType, props.subjectId) === 'POSITIVE' ? 'text-green-700 dark:text-green-400' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
+    <HandThumbUpIcon :class="icon" aria-hidden="true" />
   </button>
   <button type="button" @click="toggle(props.subjectType, props.subjectId, 'NEGATIVE')"
     :aria-label="t('dashboard.data_feedback_negative')" :title="t('dashboard.data_feedback_negative')"
     :aria-pressed="ratingOf(props.subjectType, props.subjectId) === 'NEGATIVE'"
-    :class="[pad, 'rounded transition hover:bg-gray-100 dark:hover:bg-gray-600',
-      ratingOf(props.subjectType, props.subjectId) === 'NEGATIVE' ? 'text-red-600 dark:text-red-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200']">
-    <HandThumbDownIcon :class="icon" />
+    :class="[pad, 'rounded-full transition hover:bg-gray-100 dark:hover:bg-white/10',
+      ratingOf(props.subjectType, props.subjectId) === 'NEGATIVE' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200']">
+    <HandThumbDownIcon :class="icon" aria-hidden="true" />
   </button>
 </template>

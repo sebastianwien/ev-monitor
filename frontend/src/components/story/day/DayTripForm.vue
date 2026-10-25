@@ -3,10 +3,12 @@ import { useI18n } from 'vue-i18n'
 import ChoiceChip from '../../shared/ChoiceChip.vue'
 
 /**
- * Fahrt-Formular in der App-CI (Tagesblatt). Gleiches Modell wie TripForm, das im alten Log-Feed
- * und Dashboard weiterläuft: Zeiten als datetime-local, leere Felder als ''.
+ * Fahrt-Formular in der App-CI (Tagesblatt und Log-Feed). Gleiches Modell wie TripForm, das im
+ * alten Dashboard weiterläuft: Zeiten als datetime-local, leere Felder als ''.
+ * `title` setzt eine Überschrift, wenn das Formular nicht in einem Sheet mit eigenem Titel steht;
+ * der Slot `extra` nimmt Zusätze vor den Knöpfen auf (Bewerten, Zusammenführen im Feed).
  */
-defineProps<{ mode: 'add' | 'edit'; error?: string | null; saving?: boolean; distanceUnit: string }>()
+defineProps<{ mode: 'add' | 'edit'; error?: string | null; saving?: boolean; distanceUnit: string; title?: string }>()
 const emit = defineEmits<{ save: []; cancel: [] }>()
 const form = defineModel<Record<string, any>>({ required: true })
 const { t } = useI18n()
@@ -18,6 +20,7 @@ const input = 'min-h-12 w-full min-w-0 rounded-xl border-2 border-gray-900 bg-wh
 
 <template>
   <form class="grid gap-4" data-testid="day-trip-form" @submit.prevent="emit('save')">
+    <p v-if="title" class="text-[15px] font-bold text-gray-900 dark:text-gray-50">{{ title }}</p>
     <p v-if="error" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">{{ error }}</p>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <label class="grid gap-1"><span :class="label">{{ t('storyday.form_start') }}</span>
@@ -41,6 +44,7 @@ const input = 'min-h-12 w-full min-w-0 rounded-xl border-2 border-gray-900 bg-wh
       <label class="grid gap-1"><span :class="label">{{ t('storyday.form_soc_end') }}</span>
         <span class="relative"><input v-model="form.socEnd" type="number" inputmode="numeric" min="0" max="100" :class="[input, 'pr-9']" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[15px] text-gray-500">%</span></span></label>
     </div>
+    <slot name="extra" />
     <div class="flex gap-2 pt-1">
       <button type="button" class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[15px] font-semibold dark:bg-white/10" @click="emit('cancel')">
         {{ t('common.cancel') }}

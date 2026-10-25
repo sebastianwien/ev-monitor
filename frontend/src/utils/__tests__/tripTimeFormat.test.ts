@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatTripDateTimeRange, tripDateTimeParts, formatPauseDuration, tripDayLabel, chargeTimeRange, chargeGroupTimeRange } from '../tripTimeFormat'
+import { formatTripDateTimeRange, tripDateTimeParts, formatPauseDuration, tripDayLabel, chargeTimeRange, chargeGroupTimeRange, timeColumn, chargeTimeColumn } from '../tripTimeFormat'
 
 /**
  * Die Fahrtzeit ist die Ueberschrift einer Fahrt im Log-Feed: zuerst der Tag, dann die
@@ -155,5 +155,33 @@ describe('formatTripDateTimeRange', () => {
       expect(tripDayLabel('unknown', 'de', heute)).toBe('')
       expect(tripDayLabel('', 'de', heute)).toBe('')
     })
+  })
+})
+
+describe('timeColumn - Zeitspalte der Feed-Zeile (Beginn oben, Ende darunter)', () => {
+  it('splits a trip into start and end time', () => {
+    expect(timeColumn('2026-10-24T17:37:00', '2026-10-24T17:43:00', 'de')).toEqual({ from: '17:37', to: '17:43' })
+  })
+
+  it('keeps only the end when the start is unknown', () => {
+    expect(timeColumn(null, '2026-10-24T17:43:00', 'de')).toEqual({ from: '17:43', to: '' })
+  })
+
+  it('marks an end after midnight with its date', () => {
+    expect(timeColumn('2026-10-24T23:50:00', '2026-10-25T00:20:00', 'de')).toEqual({ from: '23:50', to: '25.10., 00:20' })
+  })
+})
+
+describe('chargeTimeColumn - Ladebeginn oben, Ende aus der Dauer', () => {
+  it('derives the end from the duration', () => {
+    expect(chargeTimeColumn('2026-10-24T14:02:00', 68, 'de')).toEqual({ from: '14:02', to: '15:10' })
+  })
+
+  it('shows only the start without a duration', () => {
+    expect(chargeTimeColumn('2026-10-24T14:02:00', null, 'de')).toEqual({ from: '14:02', to: '' })
+  })
+
+  it('is empty without a timestamp', () => {
+    expect(chargeTimeColumn(null, 30, 'de')).toEqual({ from: '', to: '' })
   })
 })

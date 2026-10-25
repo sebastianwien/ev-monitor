@@ -800,6 +800,9 @@ logs:
     empty: "Ingen slettede ladesesjoner."
   title: Ladinger og turer
   load_older: "Last eldre ({month})"
+  consumption_estimated_title: "Anslag: fra ladet energi og strekning, fordi batterinivået mangler."
+  consumption_soc_delta_title: "Tilnærming: fra endringen i batterinivå, uten direkte målte kWh."
+  group_max_soc: "til {soc} %"
   hints:
     check: "Sjekk nå"
     more: "Les mer"

@@ -2,17 +2,18 @@ import { describe, it, expect } from 'vitest'
 import { formatSocRange } from '../socRange'
 
 describe('formatSocRange', () => {
+  // Wie im Story-Tagesblatt: Leerzeichen um den Pfeil und vor dem Prozentzeichen.
   it('zeigt Start und Ende als Spanne', () => {
-    expect(formatSocRange(62, 80)).toBe('62→80%')
+    expect(formatSocRange(62, 80)).toBe('62 → 80 %')
   })
 
   it('faellt auf den Endwert zurueck wenn der Startwert fehlt', () => {
-    expect(formatSocRange(null, 80)).toBe('80%')
-    expect(formatSocRange(undefined, 80)).toBe('80%')
+    expect(formatSocRange(null, 80)).toBe('80 %')
+    expect(formatSocRange(undefined, 80)).toBe('80 %')
   })
 
   it('zeigt keine Spanne wenn sich der SoC nicht geaendert hat', () => {
-    expect(formatSocRange(80, 80)).toBe('80%')
+    expect(formatSocRange(80, 80)).toBe('80 %')
   })
 
   it('gibt null zurueck wenn der Endwert fehlt - ohne ihn ist die Spanne wertlos', () => {
@@ -22,12 +23,12 @@ describe('formatSocRange', () => {
   })
 
   it('behandelt 0 % als echten Wert, nicht als fehlend', () => {
-    expect(formatSocRange(0, 45)).toBe('0→45%')
+    expect(formatSocRange(0, 45)).toBe('0 → 45 %')
   })
 
   it('rundet Nachkommastellen aus Live-Quellen auf ganze Prozent', () => {
-    expect(formatSocRange(64, 64.91)).toBe('64→65%')
-    expect(formatSocRange(63.6, 64.4)).toBe('64%')
-    expect(formatSocRange(null, 79.5)).toBe('80%')
+    expect(formatSocRange(64, 64.91)).toBe('64 → 65 %')
+    expect(formatSocRange(63.6, 64.4)).toBe('64 %')
+    expect(formatSocRange(null, 79.5)).toBe('80 %')
   })
 })

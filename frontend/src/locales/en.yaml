@@ -840,6 +840,9 @@ logs:
     empty: "No deleted charging sessions."
   title: "Charges & Trips"
   load_older: "Load older ({month})"
+  consumption_estimated_title: "Estimate: from charged energy and distance, because the battery level is missing."
+  consumption_soc_delta_title: "Approximation: from the change in battery level, without directly measured kWh."
+  group_max_soc: "up to {soc} %"
   hints:
     check: "Check now"
     more: "Learn more"

@@ -193,3 +193,40 @@ export function periodLabel(
   const sunday = new Date(monday.getTime() + 6 * 86_400_000)
   return `${monday.toLocaleDateString(loc, DATE_OPTS)} - ${sunday.toLocaleDateString(loc, DATE_OPTS)}`
 }
+
+/**
+ * Zeitspalte einer Feed-Zeile wie im Tagesblatt der Story: Beginn oben, Ende klein darunter.
+ * Endet die Fahrt nach Mitternacht, traegt das Ende sein Datum.
+ */
+export function timeColumn(
+  startIso: string | null | undefined,
+  endIso: string | null | undefined,
+  locale: string,
+): { from: string; to: string } {
+  const loc = LOCALE_MAP[locale] ?? 'de-DE'
+  const end = endIso ? new Date(endIso) : null
+  const start = startIso ? new Date(startIso) : null
+  const valid = (d: Date | null): d is Date => d != null && !Number.isNaN(d.getTime())
+  if (!valid(start)) return { from: valid(end) ? end.toLocaleTimeString(loc, TIME_OPTS) : '', to: '' }
+  const from = start.toLocaleTimeString(loc, TIME_OPTS)
+  if (!valid(end)) return { from, to: '' }
+  const endTime = end.toLocaleTimeString(loc, TIME_OPTS)
+  const to = start.toDateString() === end.toDateString()
+    ? endTime
+    : `${end.toLocaleDateString(loc, DATE_OPTS)}, ${endTime}`
+  return { from, to }
+}
+
+/** Zeitspalte einer Ladung: loggedAt ist der Ladebeginn, das Ende folgt aus der Dauer. */
+export function chargeTimeColumn(
+  loggedAtIso: string | null | undefined,
+  durationMinutes: number | null | undefined,
+  locale: string,
+): { from: string; to: string } {
+  if (!loggedAtIso) return { from: '', to: '' }
+  const start = new Date(loggedAtIso)
+  if (Number.isNaN(start.getTime())) return { from: '', to: '' }
+  if (durationMinutes == null || durationMinutes <= 0) return timeColumn(loggedAtIso, null, locale)
+  const end = new Date(start.getTime() + Math.round(durationMinutes) * 60_000)
+  return timeColumn(loggedAtIso, end.toISOString(), locale)
+}

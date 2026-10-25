@@ -800,6 +800,9 @@ logs:
     empty: "Inga raderade laddningssessioner."
   title: Laddningar & resor
   load_older: "Ladda äldre ({month})"
+  consumption_estimated_title: "Uppskattning: från laddad energi och sträcka, eftersom batterinivån saknas."
+  consumption_soc_delta_title: "Närmevärde: från ändringen i batterinivå, utan direkt uppmätta kWh."
+  group_max_soc: "till {soc} %"
   hints:
     check: "Kontrollera nu"
     more: "Läs mer"
