@@ -129,25 +129,35 @@ class CpoPriceBenchmarkServiceTest {
     }
 
     @Test
-    void cardPaidThereByThreeOtherDrivers_isOffered() {
+    void catalogCardPaidThereByThreeOtherDrivers_isOffered_underItsCatalogName() {
         drivers("EnBW", ChargingType.DC, "0.59", "0.69");
-        rows.add(card(UUID.randomUUID(), "EnBW mobility+", null, "0.39"));
-        rows.add(card(UUID.randomUUID(), "enbw mobility+ ", null, "0.39"));
-        rows.add(card(UUID.randomUUID(), "EnBW mobility+", null, "0.41"));
+        // spelled differently, same catalog provider
+        rows.add(card(UUID.randomUUID(), "Maingau Energie", "Maingau", "0.39"));
+        rows.add(card(UUID.randomUUID(), "maingau ", "Maingau", "0.39"));
+        rows.add(card(UUID.randomUUID(), "Maingau EinStrom", "Maingau", "0.41"));
         // two drivers are not enough for a card, and my own card does not count
-        rows.add(card(UUID.randomUUID(), "Plugsurfing", null, "0.45"));
-        rows.add(card(UUID.randomUUID(), "Plugsurfing", null, "0.45"));
-        rows.add(card(ME, "Plugsurfing", null, "0.45"));
+        rows.add(card(UUID.randomUUID(), "Plugsurfing", "Plugsurfing", "0.45"));
+        rows.add(card(UUID.randomUUID(), "Plugsurfing", "Plugsurfing", "0.45"));
+        rows.add(card(ME, "Plugsurfing", "Plugsurfing", "0.45"));
 
         List<CardOffer> cards = service.benchmark("EnBW", ChargingType.DC, ME).orElseThrow().cards();
 
         assertThat(cards).singleElement().satisfies(c -> {
-            assertThat(c.name()).isEqualTo("EnBW mobility+");
+            assertThat(c.name()).isEqualTo("Maingau");
             assertThat(c.pricePerKwh()).isEqualByComparingTo("0.39");
             assertThat(c.source()).isEqualTo(CardOffer.Source.DRIVERS);
             assertThat(c.drivers()).isEqualTo(3);
             assertThat(c.monthlyFeeEur()).isNull();
         });
+    }
+
+    @Test
+    void freeTextCardWithoutCatalogProvider_isNeverOffered() {
+        // three made-up accounts naming a card of their choosing must not advertise it to everyone
+        drivers("EnBW", ChargingType.DC, "0.59", "0.69");
+        IntStream.range(0, 3).forEach(i -> rows.add(card(UUID.randomUUID(), "MeineKarte", null, "0.15")));
+
+        assertThat(service.benchmark("EnBW", ChargingType.DC, ME).orElseThrow().cards()).isEmpty();
     }
 
     @Test

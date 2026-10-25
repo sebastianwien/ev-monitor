@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -84,8 +83,7 @@ public class CpoPriceBenchmarkService {
         List<CardOffer> curated = curatedOffers(operator, type);
         Set<String> curatedEmps = curated.stream().map(CardOffer::name).collect(Collectors.toSet());
         Stream<CardOffer> byDrivers = driverCards(others).stream()
-                .filter(c -> c.emp() == null || !curatedEmps.contains(c.emp()))
-                .map(DriverCard::offer);
+                .filter(c -> !curatedEmps.contains(c.name()));
         return Stream.concat(curated.stream(), byDrivers)
                 .sorted(Comparator.comparing(CardOffer::pricePerKwh)
                         .thenComparing(CardOffer::source, Comparator.reverseOrder())
@@ -94,18 +92,21 @@ public class CpoPriceBenchmarkService {
                 .toList();
     }
 
-    private List<DriverCard> driverCards(List<PublicChargePrice> others) {
-        Map<String, List<PublicChargePrice>> byCard = others.stream()
-                .filter(r -> r.cardName() != null && !r.cardName().isBlank())
-                .collect(Collectors.groupingBy(r -> r.cardName().trim().toLowerCase()));
-        return byCard.values().stream()
-                .map(rows -> {
-                    List<BigDecimal> perDriver = driverMedians(rows);
-                    if (perDriver.size() < MIN_CARD_DRIVERS) return null;
-                    CardOffer offer = new CardOffer(mostCommonSpelling(rows), null, round(percentile(perDriver, 0.5)),
-                            null, CardOffer.Source.DRIVERS, perDriver.size(), null);
-                    String emp = rows.stream().map(PublicChargePrice::cardEmp).filter(Objects::nonNull).findFirst().orElse(null);
-                    return new DriverCard(emp, offer);
+    /**
+     * Nur Karten, die einem Anbieter im Katalog zugeordnet sind, unter dessen Namen. Freitext
+     * ("MeineKarte") bleibt draussen: sonst setzen drei Konten eine beliebige Karte mit
+     * beliebigem Preis an die Spitze, sichtbar fuer alle.
+     */
+    private List<CardOffer> driverCards(List<PublicChargePrice> others) {
+        Map<String, List<PublicChargePrice>> byEmp = others.stream()
+                .filter(r -> r.cardEmp() != null)
+                .collect(Collectors.groupingBy(PublicChargePrice::cardEmp));
+        return byEmp.entrySet().stream()
+                .map(e -> {
+                    List<BigDecimal> perDriver = driverMedians(e.getValue());
+                    return perDriver.size() < MIN_CARD_DRIVERS ? null
+                            : new CardOffer(e.getKey(), null, round(percentile(perDriver, 0.5)),
+                                    null, CardOffer.Source.DRIVERS, perDriver.size(), null);
                 })
                 .filter(Objects::nonNull)
                 .toList();
@@ -156,17 +157,6 @@ public class CpoPriceBenchmarkService {
         return low.add(sorted.get(lower + 1).subtract(low).multiply(fraction));
     }
 
-    /** Die haeufigste Schreibweise, bei Gleichstand die alphabetisch erste. */
-    private static String mostCommonSpelling(List<PublicChargePrice> rows) {
-        return rows.stream()
-                .map(r -> r.cardName().trim())
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
-                .entrySet().stream()
-                .max(Map.Entry.<String, Long>comparingByValue().thenComparing(Map.Entry.comparingByKey(Comparator.reverseOrder())))
-                .map(Map.Entry::getKey)
-                .orElseThrow();
-    }
-
     private static boolean plausible(BigDecimal price) {
         return price != null && price.compareTo(MIN_PLAUSIBLE) >= 0 && price.compareTo(MAX_PLAUSIBLE) <= 0;
     }
@@ -174,6 +164,4 @@ public class CpoPriceBenchmarkService {
     private static BigDecimal round(BigDecimal price) {
         return price.setScale(3, RoundingMode.HALF_UP);
     }
-
-    private record DriverCard(String emp, CardOffer offer) {}
 }
