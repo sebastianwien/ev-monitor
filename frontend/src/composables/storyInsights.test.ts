@@ -266,6 +266,25 @@ describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
     expect(locked.standbyLocked).toBe(true)
   })
 
+  it('Standverluste: je Standzeit kWh, Beginn und Ende, größte zuerst, höchstens sechs, nur wenn freigeschaltet', () => {
+    const e = (id: string, start: string, end: string, eStart: number, eEnd: number) => ({
+      id, tripStartedAt: start, tripEndedAt: end, distanceKm: 10, socStart: null, socEnd: null, estimatedConsumedKwh: 2,
+      energyRemainingStartKwh: eStart, energyRemainingEndKwh: eEnd, routeType: null,
+    })
+    const trips = [
+      e('a', '2026-10-02T08:00:00Z', '2026-10-02T08:30:00Z', 60, 58),
+      e('b', '2026-10-03T08:00:00Z', '2026-10-03T08:30:00Z', 57.2, 55), // 0,8 kWh über Nacht
+      e('c', '2026-10-06T08:00:00Z', '2026-10-06T08:30:00Z', 52.5, 50), // 2,5 kWh übers Wochenende
+      e('d', '2026-10-06T18:00:00Z', '2026-10-06T18:30:00Z', 70, 68),   // dazwischen geladen: kein Verlust
+    ]
+    const m = buildTripMonth(trips, 57, true)!
+    expect(m.standbyGaps).toEqual([
+      { kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z' },
+      { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z' },
+    ])
+    expect(buildTripMonth(trips, 57, false)!.standbyGaps).toEqual([])
+  })
+
   it('Fahrtlängen: Anteil der km auf Fahrten unter 5 km, 5 bis 30 km, ab 30 km, dazu Ø km je Fahrt', () => {
     const m = buildTripMonth([
       tr('a', '2026-10-02T08:00:00Z', 2, null), tr('b', '2026-10-02T09:00:00Z', 3, null), tr('c', '2026-10-02T10:00:00Z', 4.9, null),

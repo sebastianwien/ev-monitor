@@ -37,6 +37,9 @@ export interface ChargingTypeSplit {
   acKwh: number
   dcKwh: number
   unknownKwh: number
+  /** Euro je kWh aus den bepreisten AC- bzw. DC-Ladungen; null ohne Preis. */
+  acEurPerKwh?: number | null
+  dcEurPerKwh?: number | null
 }
 
 export interface LocationSplit {

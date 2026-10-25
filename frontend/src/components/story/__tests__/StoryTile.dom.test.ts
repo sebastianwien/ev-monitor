@@ -120,7 +120,7 @@ describe('StoryTile Währung', () => {
 describe('StoryTile Fahrten', () => {
   const trips = (over: Partial<Tile> = {}): Tile => ({
     id: 'trips', value: 18.2, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [], sparkVariant: 'bars',
-    tripMonth: { trips: 14, km: 151, avgKm: 10.8, driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY', pct: 70 }, { key: 'HIGHWAY', pct: 30 }], mainRoute: 'CITY', lengthShares: [{ key: 'SHORT', pct: 64 }, { key: 'MEDIUM', pct: 36 }], longestKm: 42, tempMin: null, tempMax: null, standbyKwh: null, standbyLocked: true },
+    tripMonth: { trips: 14, km: 151, avgKm: 10.8, driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY', pct: 70 }, { key: 'HIGHWAY', pct: 30 }], mainRoute: 'CITY', lengthShares: [{ key: 'SHORT', pct: 64 }, { key: 'MEDIUM', pct: 36 }], longestKm: 42, tempMin: null, tempMax: null, standbyKwh: null, standbyLocked: true, standbyGaps: [] },
     ...over,
   })
 
@@ -131,5 +131,34 @@ describe('StoryTile Fahrten', () => {
     expect(text).toMatch(/14 Fahrten, Ø 11\skm, meist Stadt/)
     expect(text).toContain('<5 km 64 %')
     expect(text).toContain('5-30 km 36 %')
+  })
+})
+
+describe('StoryTile CO₂, Laden, Stand', () => {
+  const base = { delta: null, deltaPercent: null, sentiment: 'neutral' as const, spark: [], sparkVariant: 'bars' as const }
+  it('CO₂: gesparte kg und Benziner gegen dein Auto in g/km', () => {
+    const text = mount({ ...base, id: 'co2', value: 322.4, co2: { petrolGPerKm: 178, gridGPerKm: 68, greenGPerKm: 5.4 } })
+    expect(text).toContain('Was spart die Umwelt?')
+    expect(text).toMatch(/322\s?kg CO₂ weniger/)
+    expect(text).toContain('178 g/km')
+    expect(text).toContain('68 g/km')
+  })
+  it('Laden: Anteil schnell, Preis je kWh je Art, Beschriftung im Balken', () => {
+    const text = mount({ ...base, id: 'charging', value: 25, charging: { acKwh: 300, dcKwh: 100, unknownKwh: 0, acEurPerKwh: 0.3, dcEurPerKwh: 0.61 } })
+    expect(text).toMatch(/25\s?% schnell/)
+    expect(text).toMatch(/Normal 0,30\s€, schnell 0,61\s€ je kWh/)
+    expect(text).toContain('Normal (AC) 75 %')
+    expect(text).toContain('Schnell (DC) 25 %')
+  })
+  it('Laden ohne Preise: kWh schnell geladen', () => {
+    const text = mount({ ...base, id: 'charging', value: 25, charging: { acKwh: 300, dcKwh: 100, unknownKwh: 0, acEurPerKwh: null, dcEurPerKwh: null } })
+    expect(text).toContain('100 kWh schnell geladen')
+  })
+  it('Stand: Verlust im Monat und der größte Stand', () => {
+    const tripMonth = { trips: 4, km: 40, avgKm: 10, lengthShares: [], driveKwhPer100km: 17, routeShares: [], mainRoute: null, longestKm: 10, tempMin: null, tempMax: null,
+      standbyKwh: 3.3, standbyLocked: false, standbyGaps: [{ kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z' }, { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z' }] }
+    const text = mount({ ...base, id: 'standby', value: 3.3, tripMonth })
+    expect(text).toMatch(/3,3\s?kWh/)
+    expect(text).toContain('am meisten 2,5 kWh in 3 Tagen')
   })
 })

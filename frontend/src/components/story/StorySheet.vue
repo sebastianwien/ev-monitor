@@ -11,6 +11,9 @@ import SheetPeer from './sheets/SheetPeer.vue'
 import SheetBattery from './sheets/SheetBattery.vue'
 import SheetWltp from './sheets/SheetWltp.vue'
 import SheetTrips from './sheets/SheetTrips.vue'
+import SheetCo2 from './sheets/SheetCo2.vue'
+import SheetCharging from './sheets/SheetCharging.vue'
+import SheetStandby from './sheets/SheetStandby.vue'
 import type { StoryTile } from '../../composables/storyModel'
 import type { StatisticsData } from '../../composables/useDashboardStats'
 import type { ModelPeers, TemperatureEffect } from '../../composables/storyInsights'
@@ -60,6 +63,9 @@ const title = computed(() => props.tile.id === 'peer'
 
         <SheetTrips v-if="tile.id === 'trips' && tile.tripMonth" :trips="tile.tripMonth" :charged-kwh-per100km="context.stats?.avgConsumptionKwhPer100km ?? null" />
         <SheetFlow v-else-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
+        <SheetCo2 v-else-if="tile.id === 'co2' && tile.co2" :tile="tile" />
+        <SheetCharging v-else-if="tile.id === 'charging' && tile.charging" :split="tile.charging" />
+        <SheetStandby v-else-if="tile.id === 'standby' && tile.tripMonth" :gaps="tile.tripMonth.standbyGaps" :total-kwh="tile.value" />
         <SheetRange v-else-if="tile.id === 'range' && tile.range" :range="tile.range" :capacity-kwh="context.effectiveCapacityKwh" />
         <SheetPeer v-else-if="tile.id === 'peer'" :tile="tile" :stats="context.stats" :model-peers="context.modelPeers" :model-name="context.modelName" />
         <SheetBattery v-else-if="tile.id === 'battery'" :tile="tile" :history="context.sohHistory" />

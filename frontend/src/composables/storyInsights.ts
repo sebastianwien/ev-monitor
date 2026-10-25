@@ -323,7 +323,7 @@ export interface TripMonth {
   km: number
   /** Durchschnittliche Länge einer Fahrt in km. */
   avgKm: number
-  /** Anteil der Fahrten je Länge in ganzen Prozent, ohne leere Klassen. */
+  /** Anteil der km je Fahrtlänge in ganzen Prozent, ohne leere Klassen. */
   lengthShares: { key: LengthKey; pct: number }[]
   /** Antriebsverbrauch laut Fahrzeug, kWh/100 km. Null ohne Energiedaten der Fahrten. */
   driveKwhPer100km: number | null
@@ -336,6 +336,27 @@ export interface TripMonth {
   /** Verlust zwischen den Fahrten (kWh). Null, wenn nicht freigeschaltet oder ohne Energiezähler. */
   standbyKwh: number | null
   standbyLocked: boolean
+  /** Größte Verluste im Stand (höchstens sechs, größter zuerst); leer, wenn nicht freigeschaltet. */
+  standbyGaps: StandbyGap[]
+}
+
+/** Ein Stand zwischen zwei Fahrten, in dem der Akku Energie verloren hat. */
+export interface StandbyGap { kwh: number; from: string; to: string }
+
+const STANDBY_GAPS_MAX = 6
+const iso = (d: string | Date | null) => (d instanceof Date ? d.toISOString() : d ?? '')
+const kwhOf = (v: number | string | null | undefined) => (v == null ? null : typeof v === 'string' ? parseFloat(v) : v)
+
+/** Abfall des Energiezählers zwischen Ende einer Fahrt und Beginn der nächsten; ein Anstieg heißt geladen und zählt nicht. */
+function standbyGapsOf(trips: TripForMonth[]): StandbyGap[] {
+  const sorted = [...trips].sort((a, b) => new Date(a.tripStartedAt ?? 0).getTime() - new Date(b.tripStartedAt ?? 0).getTime())
+  const gaps: StandbyGap[] = []
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const end = kwhOf(sorted[i].energyRemainingEndKwh), next = kwhOf(sorted[i + 1].energyRemainingStartKwh)
+    if (end == null || next == null || !(end - next > 0)) continue
+    gaps.push({ kwh: Math.round((end - next) * 100) / 100, from: iso(sorted[i].tripEndedAt), to: iso(sorted[i + 1].tripStartedAt) })
+  }
+  return gaps.sort((a, b) => b.kwh - a.kwh).slice(0, STANDBY_GAPS_MAX)
 }
 
 export type TripForMonth = TripForSummary & { routeType?: string | null }
@@ -379,5 +400,6 @@ export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: numb
     tempMax: sum.tempMax,
     standbyKwh: standbyVisible ? sum.standbyKwh : null,
     standbyLocked: !standbyVisible,
+    standbyGaps: standbyVisible ? standbyGapsOf(trips) : [],
   }
 }

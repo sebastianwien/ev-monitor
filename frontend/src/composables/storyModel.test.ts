@@ -10,6 +10,7 @@ import {
   monthWindow,
   type StoryInput, type StoryFeedItem, MIN_SOLID_CHARGES } from './storyModel'
 import type { StatisticsData } from './useDashboardStats'
+import type { TripMonth } from './storyInsights'
 
 function stats(over: Partial<StatisticsData> = {}): StatisticsData {
   return {
@@ -71,9 +72,37 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
 }
 
 describe('buildStoryTiles', () => {
-  it('liefert vier Kacheln, wenn alle Daten da sind, keine CO₂-Kachel', () => {
+  it('liefert die Kacheln, wenn alle Daten da sind, CO₂ zuletzt', () => {
     const tiles = buildStoryTiles(input())
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'peer', 'battery'])
+    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'peer', 'battery', 'co2'])
+  })
+
+  it('CO₂-Kachel: gesparte kg gegen Benziner, dazu g/km für Benziner, Strommix und Ökostrom', () => {
+    // 2.931 km, 17,9 kWh/100 km: Benzin 521,7 kg, Strommix 524,6 kWh x 380 g = 199,4 kg
+    const co2 = buildStoryTiles(input()).find(t => t.id === 'co2')!
+    expect(co2.value).toBeCloseTo(322.4, 0)
+    expect(co2.sentiment).toBe('good')
+    expect(co2.co2!.petrolGPerKm).toBe(178)
+    expect(co2.co2!.gridGPerKm).toBeCloseTo(68.0, 1)
+    expect(co2.co2!.greenGPerKm).toBeCloseTo(5.4, 1)
+  })
+
+  it('Lade-Kachel: Anteil Schnellladen an den kWh, Preis je kWh je Art', () => {
+    const split = { acKwh: 300, dcKwh: 100, unknownKwh: 0, acEurPerKwh: 0.3, dcEurPerKwh: 0.61 }
+    const c = buildStoryTiles(input({ month: stats({ chargingTypeSplit: split }) })).find(t => t.id === 'charging')!
+    expect(c.value).toBe(25)
+    expect(c.charging).toEqual(split)
+    expect(buildStoryTiles(input({ month: stats({ chargingTypeSplit: { acKwh: 0, dcKwh: 0, unknownKwh: 40 } }) })).map(t => t.id)).not.toContain('charging')
+  })
+
+  it('Stand-Kachel: Verlust im Stand, nur freigeschaltet und mit Standzeiten', () => {
+    const tripMonth: TripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, routeShares: [], mainRoute: null, longestKm: 42, tempMin: 6, tempMax: 14,
+      standbyKwh: 3.3, standbyLocked: false, standbyGaps: [{ kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z' }, { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z' }] }
+    const ids = (tm: typeof tripMonth) => buildStoryTiles(input({ tripMonth: tm })).map(t => t.id)
+    expect(ids(tripMonth)).toEqual(['cost', 'wltp', 'trips', 'standby', 'peer', 'battery', 'co2'])
+    expect(buildStoryTiles(input({ tripMonth })).find(t => t.id === 'standby')!.value).toBe(3.3)
+    expect(ids({ ...tripMonth, standbyLocked: true, standbyKwh: null, standbyGaps: [] })).not.toContain('standby')
+    expect(ids({ ...tripMonth, standbyGaps: [] })).not.toContain('standby')
   })
 
   it('Kosten-Kachel: Wert, Delta zum Vormonat, Sparkline', () => {
@@ -130,7 +159,8 @@ describe('buildStoryTiles', () => {
       sohPercent: null,
       month: stats({ peerBenchmark: null }),
     }))
-    expect(tiles.map(t => t.id)).toEqual(['cost'])
+    // CO₂ braucht nur Strecke und Verbrauch
+    expect(tiles.map(t => t.id)).toEqual(['cost', 'co2'])
   })
 
   it('ohne Strecke gibt es weder WLTP noch CO2', () => {
@@ -380,7 +410,7 @@ const range = { consumption: 21, km: 229, windows: [{ socMax: 90, socMin: 10, re
 describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
   it('ordnet sechs Kacheln fest wie der Dummy: Kosten, Hersteller, Strom, Reichweite, andere, Akku', () => {
     const tiles = buildStoryTiles(input({ flow, range }))
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'flow', 'range', 'peer', 'battery'])
+    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'flow', 'range', 'peer', 'battery', 'co2'])
   })
 
   it('Vergleich mit anderen erst ab 5 Fahrern: Kachel und Preis-Satz entfallen darunter', () => {
@@ -542,11 +572,11 @@ describe('visibleGap: welche Lücke der Satz nennt', () => {
 })
 
 describe('Fahrten-Kachel und Abgleich mit den Ladungen', () => {
-  const tripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY' as const, pct: 70 }, { key: 'HIGHWAY' as const, pct: 30 }], mainRoute: 'CITY' as const, longestKm: 42, tempMin: 6, tempMax: 14, standbyKwh: null, standbyLocked: true }
+  const tripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY' as const, pct: 70 }, { key: 'HIGHWAY' as const, pct: 30 }], mainRoute: 'CITY' as const, longestKm: 42, tempMin: 6, tempMax: 14, standbyKwh: null, standbyLocked: true, standbyGaps: [] }
 
   it('steht nach "Stimmt, was der Hersteller verspricht?", Zahl ist der Antriebsverbrauch', () => {
     const tiles = buildStoryTiles(input({ flow, range, tripMonth }))
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'trips', 'flow', 'range', 'peer', 'battery'])
+    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'trips', 'flow', 'range', 'peer', 'battery', 'co2'])
     const t = tiles.find(x => x.id === 'trips')!
     expect(t.value).toBe(18.2)
     expect(t.tripMonth).toBe(tripMonth)

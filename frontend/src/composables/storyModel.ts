@@ -4,7 +4,7 @@
  * Keine Vue-Abhaengigkeit, keine Formatierung, keine i18n: hier entstehen nur Zahlen,
  * Vorzeichen und Reihenfolge. Saetze und Einheiten baut die Komponente aus i18n-Keys.
  */
-import type { StatisticsData, ChargeDataPoint } from './useDashboardStats'
+import type { StatisticsData, ChargeDataPoint, ChargingTypeSplit } from './useDashboardStats'
 import { VERBRENNER_G_PER_KM, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
 import type { EnergyFlow, RangeEstimate } from './storyEnergy'
 import type { ModelPeers, RankResult, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
@@ -12,7 +12,7 @@ import type { Moment } from './storyMoments'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
 /** Feste Reihenfolge der Kacheln, siehe TILE_ORDER. */
-export type TileId = 'cost' | 'trips' | 'flow' | 'range' | 'wltp' | 'peer' | 'battery'
+export type TileId = 'cost' | 'trips' | 'standby' | 'flow' | 'charging' | 'range' | 'wltp' | 'peer' | 'battery' | 'co2'
 export type SparkVariant = 'line' | 'bars' | 'range'
 
 export interface StoryTile {
@@ -43,8 +43,12 @@ export interface StoryTile {
   projection?: { eur: number; previousEur: number }
   /** Nur 'battery': berechneter Wert, keine eigene Messung. */
   estimated?: boolean
-  /** Nur 'trips': Fahrten des Monats. */
+  /** Nur 'trips' und 'standby': Fahrten des Monats. */
   tripMonth?: TripMonth
+  /** Nur 'co2': Ausstoß je km im Vergleich, Wert der Kachel sind die gesparten kg. */
+  co2?: { petrolGPerKm: number; gridGPerKm: number; greenGPerKm: number }
+  /** Nur 'charging': kWh und Preis je kWh nach Ladeart, Wert der Kachel ist der Anteil Schnellladen. */
+  charging?: ChargingTypeSplit
 }
 
 export type FeedId =
@@ -255,6 +259,20 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
     })
   }
 
+  // Verlust im Stand: Analytics, nur freigeschaltet und wenn es Standzeiten mit Verlust gab
+  if (tm && !tm.standbyLocked && tm.standbyKwh != null && tm.standbyGaps.length > 0) {
+    tiles.push({
+      id: 'standby',
+      value: tm.standbyKwh,
+      delta: null,
+      deltaPercent: null,
+      sentiment: 'neutral',
+      spark: tm.standbyGaps.map(g => g.kwh),
+      sparkVariant: 'bars',
+      tripMonth: tm,
+    })
+  }
+
   if (input.flow) {
     const p = input.flow.lossPercent
     tiles.push({
@@ -266,6 +284,20 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
       spark: [input.flow.gridKwh, input.flow.vehicleKwh],
       sparkVariant: 'range',
       flow: input.flow,
+    })
+  }
+
+  const cs = m.chargingTypeSplit
+  if (cs && cs.acKwh + cs.dcKwh > 0) {
+    tiles.push({
+      id: 'charging',
+      value: Math.round((cs.dcKwh / (cs.acKwh + cs.dcKwh)) * 100),
+      delta: null,
+      deltaPercent: null,
+      sentiment: 'neutral',
+      spark: [cs.acKwh, cs.dcKwh],
+      sparkVariant: 'range',
+      charging: cs,
     })
   }
 
@@ -308,6 +340,25 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
       sparkVariant: 'range',
       odometerKm: input.odometerKm,
       estimated: input.sohEstimated ?? false,
+    })
+  }
+
+  // CO₂ gegen einen Benziner auf derselben Strecke, mit deutschem Strommix gerechnet
+  if (hasDistance) {
+    const c = co2Comparison(m.totalDistanceKm!, m.avgConsumptionKwhPer100km!)
+    tiles.push({
+      id: 'co2',
+      value: c.petrolKg - c.gridKg,
+      delta: null,
+      deltaPercent: null,
+      sentiment: c.petrolKg > c.gridKg ? 'good' : 'neutral',
+      spark: [],
+      sparkVariant: 'bars',
+      co2: {
+        petrolGPerKm: VERBRENNER_G_PER_KM,
+        gridGPerKm: (m.avgConsumptionKwhPer100km! / 100) * STROMMIX_G_PER_KWH,
+        greenGPerKm: (m.avgConsumptionKwhPer100km! / 100) * OEKO_G_PER_KWH,
+      },
     })
   }
 
