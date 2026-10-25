@@ -843,6 +843,9 @@ logs:
     empty: "Keine gelöschten Ladevorgänge."
   title: "Ladevorgänge & Trips"
   load_older: "Ältere laden ({month})"
+  empty_title: "Hier stehen deine Ladungen und Fahrten, sobald du die erste erfasst."
+  empty_cta: "Ladung erfassen"
+  toggle_odometer: "Zwischen Strecke seit der letzten Ladung und km-Stand wechseln"
   consumption_estimated_title: "Schätzwert: aus geladener Energie und Strecke, weil der Akkustand fehlt."
   consumption_soc_delta_title: "Näherungswert: aus der Änderung des Akkustands, ohne direkt gemessene kWh."
   group_max_soc: "bis {soc} %"
@@ -853,7 +856,7 @@ logs:
     supporter: "{pack}: Ladekurven, Standverluste und Fahrten im Detail"
     autosync: "{product} erfasst deine Ladungen automatisch, ohne Eintippen"
     live: "{product}: Fahrten, Ladekurven und Standverluste automatisch"
-  empty_window: "Keine Ladungen oder Fahrten im gewählten Zeitraum."
+  empty_window: "Wähle oben einen längeren Zeitraum oder lade ältere Einträge."
   expand_all: "Alle aufklappen"
   collapse_all: "Alle zuklappen"
   resolution:

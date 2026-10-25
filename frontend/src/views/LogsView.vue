@@ -7,10 +7,8 @@ import {
   BoltIcon,
   HeartIcon,
   PencilSquareIcon,
-  ClockIcon,
-  SunIcon,
   ChevronDownIcon,
-  ChevronUpIcon,
+  ChevronRightIcon,
   ChevronDoubleDownIcon,
   ChevronDoubleUpIcon,
   TrashIcon,
@@ -20,15 +18,12 @@ import {
   ArrowPathIcon,
   ArrowsRightLeftIcon,
   PlusIcon,
-  EllipsisVerticalIcon,
   ChartBarSquareIcon,
   LockClosedIcon,
   CheckIcon,
   LinkIcon,
   CurrencyEuroIcon,
 } from '@heroicons/vue/24/outline'
-import { tempBadgeClass } from '../utils/temperatureColor'
-import { consumptionTextClass } from '../utils/consumptionColor'
 import WattBadge from '../components/shared/WattBadge.vue'
 import { useCoinStore } from '../stores/coins'
 import { wattPossibleForLog, wattPossiblePerLogMax } from '../utils/wattPreview'
@@ -66,8 +61,8 @@ import FeedActionMenu from '../components/dashboard/FeedActionMenu.vue'
 import FeedMenuItem from '../components/dashboard/FeedMenuItem.vue'
 import ChoiceChip from '../components/shared/ChoiceChip.vue'
 import Collapse from '../components/shared/Collapse.vue'
+import BottomSheet from '../components/shared/BottomSheet.vue'
 import PeriodChargeLine from '../components/dashboard/PeriodChargeLine.vue'
-import ChargeTypeBadge from '../components/dashboard/ChargeTypeBadge.vue'
 import ComparisonChip from '../components/dashboard/ComparisonChip.vue'
 import { FEED_GRID_COLS } from '../components/dashboard/feedGridCols'
 import type { CommunityBenchmark } from '../components/dashboard/PeriodGroupHeader.vue'
@@ -78,7 +73,6 @@ import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import DayTripForm from '../components/story/day/DayTripForm.vue'
 import TripClimateMarkers from '../components/TripClimateMarkers.vue'
 import TripMapPanel from '../components/dashboard/TripMapPanel.vue'
-import { costBadgeClass } from '../utils/costColor'
 import LicensePlate from '../components/car/LicensePlate.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
 import { useAuthStore } from '../stores/auth'
@@ -134,7 +128,7 @@ const {
   logs, logsLoading, editingLog, priceAmendingLog,
   feedResolution, feedTimeRange, feedCustomStartDate, feedCustomEndDate, feedNextOlderMonth, loadOlderFeed,
   widenFeedAutomatically,
-  expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer, showCostAbsolute,
+  expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, deleteError, otherCars, openReassignModal, saveReassign,
   mergeModalEntry, mergeSaving, mergeError, openMergeModal, mergeCandidates, saveMerge,
@@ -486,13 +480,10 @@ async function doMergeTrip(survivingId: string, previousId: string) {
 
 // saveReassign needs fetchStatistics, so wrap it
 const doSaveReassign = () => saveReassign(fetchStatistics)
+const reassignSheet = ref<InstanceType<typeof BottomSheet> | null>(null)
 const doSaveMerge = ({ sourceLogId, preferSource }: { sourceLogId: string; preferSource: boolean }) =>
   saveMerge(sourceLogId, preferSource, fetchStatistics)
 
-const openMenuLogId    = ref<string | null>(null)
-const openMenuTripId    = ref<string | null>(null)
-const openMenuTopUpId   = ref<string | null>(null)
-const openMenuGroupId   = ref<string | null>(null)
 const expandedLogs      = ref(new Set<string>())
 
 // -- Aufklappbare Fahrtzeile: die Zeile selbst ist der Schalter fuer die Karte.
@@ -506,18 +497,7 @@ function toggleTripMap(key: string) {
   expandedTripMaps.value = next
 }
 
-// ESC closes any open action menu - keeps keyboard parity with the click-outside dimmer.
-function onMenuKeyEsc(event: KeyboardEvent) {
-  if (event.key !== 'Escape') return
-  if (openMenuLogId.value || openMenuTripId.value || openMenuTopUpId.value || openMenuGroupId.value) {
-    openMenuLogId.value = null
-    openMenuTripId.value = null
-    openMenuTopUpId.value = null
-    openMenuGroupId.value = null
-  }
-}
-onMounted(() => window.addEventListener('keydown', onMenuKeyEsc))
-onUnmounted(() => window.removeEventListener('keydown', onMenuKeyEsc))
+// ESC und Tippen daneben schliessen ein offenes Aktionsmenue - das regelt FeedActionMenu selbst.
 
 function toggleLogExpanded(id: string) {
   haptic()
@@ -924,6 +904,12 @@ const FEED_TEXT_BTN = 'btn-3d cta-shadow-sm inline-flex min-h-10 items-center ga
 /** Erklaerkaesten unter einer Zeile: Amber fuer "pruefen", sonst grau. */
 const NOTE_WARN = 'grid gap-1 rounded-xl bg-amber-50 p-3 text-[13px] leading-snug text-amber-900 dark:bg-amber-400/10 dark:text-amber-200'
 const NOTE_INFO = 'grid gap-1 rounded-xl bg-gray-50 p-3 text-[13px] leading-snug text-gray-700 dark:bg-white/5 dark:text-gray-300'
+
+/** Symbolkreise der Desktop-Zeilen, kleiner Bruder des Kreises in FeedEventRow. */
+const ROW_ICON_TRIP = 'grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-white dark:border-gray-200 dark:bg-gray-900'
+const ROW_ICON_CHARGE = 'grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950'
+/** Leere Rasterzelle: leiser Bindestrich, damit die Spalten lesbar bleiben. */
+const EMPTY_CELL = 'text-gray-300 dark:text-gray-600'
 
 /** Runder Symbol-Knopf der Feed-Aktionen, in der Kante der Chips (App-CI). */
 const FEED_ICON_BTN = 'btn-3d cta-shadow-sm grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15'
@@ -1391,9 +1377,9 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
     <Transition name="fade" mode="out-in">
       <div v-if="loading && isInitialLoad" key="skeleton-view">
         <div class="bg-white dark:bg-gray-900 md:rounded-3xl md:edge-box px-3 pt-1 pb-6 md:p-6 animate-pulse">
-          <div class="h-16 rounded-sm bg-gray-200 dark:bg-gray-700 mb-6" />
+          <div class="mb-6 h-16 rounded-2xl bg-gray-200 dark:bg-gray-700" />
           <div class="space-y-2">
-            <div v-for="n in 6" :key="n" class="relative p-3 border-2 rounded-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
+            <div v-for="n in 6" :key="n" class="relative rounded-2xl border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
                   <div class="w-4 h-4 rounded bg-gray-200 dark:bg-gray-600" />
@@ -1553,14 +1539,14 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
           </ul>
 
           <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="reassignSuccessMessage" class="mb-2 px-3 py-2 rounded-sm bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-              <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" />
+            <div v-if="reassignSuccessMessage" role="status" class="mb-3 flex items-center gap-2 rounded-xl bg-green-50 px-3 py-2.5 text-[14px] font-semibold text-green-800 dark:bg-green-400/10 dark:text-green-300">
+              <ArrowsRightLeftIcon class="h-4 w-4 flex-shrink-0" aria-hidden="true" />
               {{ reassignSuccessMessage }}
             </div>
           </Transition>
-          <div v-if="deleteError" role="alert" class="mb-2 px-3 py-2 rounded-sm bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-sm text-red-700 dark:text-red-300 flex items-center justify-between gap-2">
+          <div v-if="deleteError" role="alert" class="mb-3 flex items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
             {{ deleteError }}
-            <button type="button" :aria-label="t('common.close')" @click="deleteError = null" class="text-red-400 hover:text-red-600"><XMarkIcon class="w-4 h-4" /></button>
+            <button type="button" :aria-label="t('common.close')" @click="deleteError = null" class="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-amber-100 dark:hover:bg-amber-400/20"><XMarkIcon class="h-4 w-4" aria-hidden="true" /></button>
           </div>
 
           <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum.
@@ -1595,7 +1581,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
 
           <div ref="feedListEl" :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
             <template v-if="logsLoading && !hasAnyLogs">
-              <div v-for="n in 5" :key="n" class="relative p-3 border-2 rounded-sm bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] animate-pulse">
+              <div v-for="n in 5" :key="n" class="relative rounded-2xl border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 animate-pulse">
                 <div class="flex items-center justify-between gap-2">
                   <div class="flex items-center gap-2">
                     <div class="w-4 h-4 rounded bg-gray-200 dark:bg-gray-600" />
@@ -1611,19 +1597,19 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                 </div>
               </div>
             </template>
+            <!-- Leer: sagen, was hier steht, und die Handlung anbieten (App-CI) -->
             <template v-else-if="!hasAnyLogs">
-              <p class="py-8 text-center text-gray-400 text-sm">{{ t('dashboard.no_logs_empty') }}</p>
+              <div class="grid justify-items-center gap-3 rounded-2xl bg-gray-50 px-6 py-10 text-center dark:bg-white/5" data-testid="logfeed-empty">
+                <p class="max-w-xs text-[15px] font-semibold text-gray-900 dark:text-gray-100">{{ t('logs.empty_title') }}</p>
+                <router-link to="/erfassen" class="btn-3d inline-flex min-h-11 items-center gap-1.5 rounded-full border-2 border-edge bg-green-600 px-5 text-[15px] font-semibold text-white hover:bg-green-700">
+                  <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('logs.empty_cta') }}
+                </router-link>
+              </div>
             </template>
             <template v-else-if="!logsLoading && mergedLogFeed.length === 0">
-              <p class="py-8 text-center text-gray-400 text-sm">{{ t('logs.empty_window') }}</p>
+              <p class="rounded-2xl bg-gray-50 px-6 py-8 text-center text-[14px] text-gray-600 dark:bg-white/5 dark:text-gray-300">{{ t('logs.empty_window') }}</p>
             </template>
             <template v-else>
-              <div v-if="openMenuLogId" class="fixed inset-0 z-40" @click="openMenuLogId = null" />
-              <div v-if="openMenuTripId" class="fixed inset-0 z-40" @click="openMenuTripId = null" />
-              <div v-if="openMenuTopUpId" class="fixed inset-0 z-40" @click="openMenuTopUpId = null" />
-              <div v-if="openMenuGroupId" class="fixed inset-0 z-40" @click="openMenuGroupId = null" />
-              <!-- Backdrop nur fuer Desktop-Popover (mobile Tooltip ist Teil der Expanded-Card). -->
-              <div v-if="openRealCostTooltipId?.endsWith('__d')" class="fixed inset-0 z-40" @click="openRealCostTooltipId = null" />
 
               <Collapse :open="feedLegendOpen">
                 <FeedLegend mode="panel" :has-trips="totalTripCount > 0"
@@ -1854,10 +1840,9 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                   </Transition>
                 </div><!-- end trip group container (mobile) -->
 
-                <!-- DESKTOP TRIP GROUP -->
+                <!-- DESKTOP TRIP GROUP: dasselbe Spaltenraster fuer alle Zeilen, neutral wie die Story (App-CI). -->
                 <div class="hidden gridfeed:block rounded-2xl bg-white edge-card dark:bg-gray-800">
-                  <!-- Kopf des Zeitraums - Tag, Woche oder Monat. Neutraler Hintergrund wie
-                       auf Mobile; deckend, weil unter dem sticky Kopf Zeilen durchscrollen. -->
+                  <!-- Kopf des Zeitraums - Tag, Woche oder Monat. Deckend, weil unter dem sticky Kopf Zeilen durchscrollen. -->
                   <button v-if="item.period" type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!isGroupCollapsed(item.groupId)"
                     :ref="(el) => setPeriodHeaderRef(item.groupId, 'd', el)" :style="stickyHeaderStyle"
@@ -1868,62 +1853,58 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                                        :community="communityBenchmark" :phantom-kwh="visiblePhantomTotal(item)" />
                   </button>
 
-                  <!-- Header as grid row -->
+                  <!-- Kopf eines Ladezyklus (Einzeln) als Rasterzeile -->
                   <button v-else type="button" @click="toggleTripGroup(item.groupId)"
                     :aria-expanded="!isGroupCollapsed(item.groupId)"
                     :aria-label="t('dashboard.trip_group_count', { count: item.groupSize }, item.groupSize)"
-                    :class="[FEED_GRID_COLS, 'w-full items-center px-3 py-2 bg-emerald-50/60 dark:bg-emerald-900/15 hover:bg-emerald-50 dark:hover:bg-emerald-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-inset']">
-                    <div class="flex items-center gap-1.5">
-                      <MapIcon class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-medium">{{ item.groupSize }}×</span>
+                    :class="[FEED_GRID_COLS, 'w-full items-center px-4 py-2.5 text-left text-[13px] tabular-nums transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-story-accent dark:hover:bg-white/5',
+                             isGroupCollapsed(item.groupId) ? 'rounded-2xl' : 'rounded-t-2xl border-b border-gray-200 dark:border-gray-700']">
+                    <div class="flex items-center">
+                      <span :class="ROW_ICON_TRIP"><MapIcon class="h-3.5 w-3.5" aria-hidden="true" /></span>
                     </div>
-                    <div class="font-semibold text-rose-500 dark:text-rose-300 whitespace-nowrap text-sm">
-                      <template v-if="tripGroupConsumedKwh(item) != null">−{{ tripGroupConsumedKwh(item)!.toFixed(2) }} kWh</template>
-                      <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                    <div class="whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">
+                      <template v-if="tripGroupConsumedKwh(item) != null">&minus;{{ formatDecimal(tripGroupConsumedKwh(item)!, 2) }} kWh</template>
+                      <span v-else :class="EMPTY_CELL">-</span>
                     </div>
-                    <div class="text-sm text-slate-600 dark:text-gray-300 whitespace-nowrap truncate flex items-center gap-2">
-                      <span v-if="item.dateRange">{{ item.dateRange }}</span>
-                      <span v-if="item.totalPhantomKwh && authStore.canViewLiveAnalytics"
-                        class="inline-flex items-center gap-0.5 text-amber-600 dark:text-amber-500 text-xs whitespace-nowrap"
+                    <div class="truncate whitespace-nowrap text-gray-700 dark:text-gray-300">
+                      {{ t('dashboard.trip_group_count', { count: item.groupSize }, item.groupSize) }}<template v-if="item.dateRange"> &middot; {{ item.dateRange }}</template>
+                    </div>
+                    <div class="whitespace-nowrap">
+                      <span v-if="item.totalPhantomKwh && authStore.canViewLiveAnalytics" class="inline-flex items-center gap-1 text-gray-600 dark:text-gray-300"
                         :title="t('dashboard.phantom_drain_word')">
-                        <BoltIcon class="w-3 h-3" />{{ item.totalPhantomKwh.toFixed(1) }} kWh
+                        <i class="h-2 w-2 rounded-[2px] bg-amber-400" aria-hidden="true" />{{ formatDecimal(item.totalPhantomKwh, 1) }} kWh
                       </span>
+                      <span v-else :class="EMPTY_CELL">-</span>
                     </div>
-                    <div class="text-gray-400 dark:text-gray-600 text-sm">-</div>
-                    <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                      <template v-if="tripGroupSocBoundaries(item)">{{ tripGroupSocBoundaries(item)!.start }}→{{ tripGroupSocBoundaries(item)!.end }}%</template>
-                      <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                    <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                      <template v-if="tripGroupSocBoundaries(item)">{{ Math.round(tripGroupSocBoundaries(item)!.start) }} → {{ Math.round(tripGroupSocBoundaries(item)!.end) }} %</template>
+                      <span v-else :class="EMPTY_CELL">-</span>
                     </div>
-                    <div class="text-[10px] uppercase tracking-wider text-gray-400 dark:text-gray-500 text-center">{{ t('dashboard.trip_speed_header') }}</div>
-                    <div>
-                      <span v-if="item.totalKm" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap">
-                        +{{ formatDistance(item.totalKm) }}
-                      </span>
-                      <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
+                    <div class="text-center text-[11px] font-semibold uppercase tracking-[0.06em] text-gray-400 dark:text-gray-500">{{ t('dashboard.trip_speed_header') }}</div>
+                    <div class="whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">
+                      <template v-if="item.totalKm">+{{ formatDistance(item.totalKm) }}</template>
+                      <span v-else :class="EMPTY_CELL">-</span>
                     </div>
-                    <div class="text-gray-400 dark:text-gray-600 text-sm text-center">-</div>
-                    <div class="flex justify-end">
-                      <span v-if="tripGroupCostPer100km(item) != null"
-                        class="inline-flex items-center px-2 py-0.5 border rounded-full text-xs font-medium whitespace-nowrap bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700/50 text-emerald-700 dark:text-emerald-300">
-                        {{ formatCurrency(tripGroupCostPer100km(item)!) }}/100km
-                      </span>
-                      <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
+                    <div :class="EMPTY_CELL" class="text-center">-</div>
+                    <div class="flex justify-end whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">
+                      <template v-if="tripGroupCostPer100km(item) != null">{{ formatCurrency(tripGroupCostPer100km(item)!) }}/100km</template>
+                      <span v-else :class="EMPTY_CELL">-</span>
                     </div>
                     <div class="flex justify-end">
-                      <ChevronUpIcon v-if="!isGroupCollapsed(item.groupId)" class="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                      <ChevronDownIcon v-else class="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <ChevronDownIcon class="h-4 w-4 text-gray-400 transition-transform duration-300 ease-out"
+                        :class="isGroupCollapsed(item.groupId) ? '' : 'rotate-180'" aria-hidden="true" />
                     </div>
                   </button>
 
-                  <!-- Sub-trip rows in grid -->
+                  <!-- Fahrten und Ladungen im Raster -->
                   <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                  <div v-if="!isGroupCollapsed(item.groupId)" class="bg-emerald-50/60 dark:bg-emerald-950/20">
+                  <div v-if="!isGroupCollapsed(item.groupId)">
                     <template v-for="day in item.days" :key="day.dateKey + '__d'">
                     <!-- Datumsband, siehe Mobile-Ansicht. -->
-                    <div v-if="item.days.length > 1" :style="dayBandStyle(item.groupId)" class="sticky z-[2] flex items-center justify-between gap-3 px-3 py-2
-                                bg-emerald-100 dark:bg-emerald-950 border-y border-emerald-300/70 dark:border-emerald-800/50">
+                    <div v-if="item.days.length > 1" :style="dayBandStyle(item.groupId)" class="sticky z-[2] flex items-center justify-between gap-3 px-4 pb-1.5 pt-3
+                                bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
                       <span class="text-[13px] font-bold text-gray-900 dark:text-gray-100">{{ dayLabel(day.dateKey) }}</span>
-                      <span class="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                      <span class="text-[12px] text-gray-500 dark:text-gray-400 tabular-nums">
                         {{ t('dashboard.trip_group_count', { count: day.tripCount }, day.tripCount) }}<template v-if="day.km"> &middot; {{ formatDistance(day.km) }}</template>
                       </span>
                     </div>
@@ -1935,19 +1916,17 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                                       @power-curve="openPowerCurve" />
                     <template v-else>
                     <template v-for="{ trip, tripIdx } in [ev]" :key="trip.id + '__d'">
-                      <!-- Add-trip form (full width inside container) -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                      <div v-if="addingTripAfterId === trip.id"
-                           class="px-3 py-3 border-t border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50/40 dark:bg-emerald-950/30">
+                      <div v-if="addingTripAfterId === trip.id" class="border-t border-gray-100 bg-gray-50 px-4 py-4 dark:border-gray-700/70 dark:bg-gray-900/40">
                         <DayTripForm v-model="tripForm" mode="add" :title="t('dashboard.trip_add')"
                           :error="tripError" :saving="tripSaving" :distance-unit="distanceUnitLabel()"
                           @save="saveNewTrip()" @cancel="cancelTripEdit()" />
                       </div>
                       </Transition>
-                      <!-- Display row - Klick auf die Zeile klappt die Karte darunter auf. -->
+                      <!-- Zeile der Fahrt - Klick klappt die Karte darunter auf. -->
                       <div v-if="editingTripId !== trip.id && deletingTripId !== trip.id"
-                        :class="[FEED_GRID_COLS, 'items-center px-3 py-1.5 bg-emerald-50/60 dark:bg-transparent border-t border-emerald-300/50 dark:border-emerald-800/30 hover:bg-emerald-100/70 dark:hover:bg-emerald-900/20 transition',
-                                 hasTripMap(trip) ? 'cursor-pointer' : '']"
+                        :class="[FEED_GRID_COLS, 'items-center border-t border-gray-100 px-4 py-2 text-[13px] tabular-nums transition dark:border-gray-700/70',
+                                 hasTripMap(trip) ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5' : '']"
                         :role="hasTripMap(trip) ? 'button' : undefined"
                         :tabindex="hasTripMap(trip) ? 0 : undefined"
                         :aria-expanded="hasTripMap(trip) ? expandedTripMaps.has(trip.id + '__d') : undefined"
@@ -1955,44 +1934,35 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                         @click="hasTripMap(trip) && toggleTripMap(trip.id + '__d')"
                         @keydown.enter.self.prevent="hasTripMap(trip) && toggleTripMap(trip.id + '__d')"
                         @keydown.space.self.prevent="hasTripMap(trip) && toggleTripMap(trip.id + '__d')">
-                        <div class="flex items-center gap-1.5 pl-4">
-                          <MapIcon class="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" aria-hidden="true" />
+                        <div class="flex items-center">
+                          <span :class="[ROW_ICON_TRIP, adminTripTone(trip)]"><MapIcon class="h-3.5 w-3.5" aria-hidden="true" /></span>
                         </div>
-                        <div class="text-[13px] text-gray-900 dark:text-gray-100 whitespace-nowrap truncate">
+                        <div class="truncate whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">
                           {{ tripTimeParts(trip.tripStartedAt, trip.tripEndedAt).time }}
                         </div>
-                        <div class="text-sm font-medium text-rose-600 dark:text-rose-300 whitespace-nowrap">
-                          <template v-if="tripConsumption(trip) && trip.distanceKm">−{{ (tripConsumption(trip)!.kwhPer100km * trip.distanceKm / 100).toFixed(2) }} kWh</template>
-                          <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                        <div class="whitespace-nowrap text-gray-700 dark:text-gray-300">
+                          <template v-if="tripConsumption(trip) && trip.distanceKm">&minus;{{ formatDecimal(tripConsumption(trip)!.kwhPer100km * trip.distanceKm / 100, 2) }} kWh</template>
+                          <span v-else :class="EMPTY_CELL">-</span>
                         </div>
-                        <div class="text-xs whitespace-nowrap">
-                          <span v-if="tripConsumption(trip)" class="text-slate-700 dark:text-gray-200">
-                            {{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}
-                          </span>
-                          <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                        <div class="whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">
+                          <template v-if="tripConsumption(trip)">{{ tripConsumption(trip)!.estimated ? '~' : '' }}{{ formatConsumption(tripConsumption(trip)!.kwhPer100km) }}</template>
+                          <span v-else :class="EMPTY_CELL">-</span>
                         </div>
-                        <div class="text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap">
-                          <template v-if="trip.socStart != null && trip.socEnd != null">{{ trip.socStart }}→{{ trip.socEnd }}%</template>
-                          <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                        <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                          <template v-if="trip.socStart != null && trip.socEnd != null">{{ Math.round(Number(trip.socStart)) }} → {{ Math.round(Number(trip.socEnd)) }} %</template>
+                          <span v-else :class="EMPTY_CELL">-</span>
                         </div>
-                        <div class="text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap text-center">
-                          <template v-if="trip.maxSpeedKmh != null">
-                            {{ t('dashboard.trip_speed_compact', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}
-                          </template>
-                          <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                        <div class="whitespace-nowrap text-center text-gray-600 dark:text-gray-300">
+                          <template v-if="trip.maxSpeedKmh != null">{{ t('dashboard.trip_speed_compact', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }) }}</template>
+                          <span v-else :class="EMPTY_CELL">-</span>
                         </div>
-                        <div>
-                          <span v-if="trip.distanceKm != null" class="inline-flex items-center gap-1 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-full text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap">
-                            +{{ formatDistance(trip.distanceKm, { round: false }) }}
-                          </span>
-                          <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
+                        <div class="whitespace-nowrap text-gray-700 dark:text-gray-300">
+                          <template v-if="trip.distanceKm != null">+{{ formatDistance(trip.distanceKm, { round: false }) }}</template>
+                          <span v-else :class="EMPTY_CELL">-</span>
                         </div>
-                        <div>
-                          <span v-if="trip.outsideTempCelsius != null"
-                            :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(trip.outsideTempCelsius)]">
-                            <SunIcon class="w-3 h-3" />{{ trip.outsideTempCelsius }}°C
-                          </span>
-                          <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
+                        <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                          <template v-if="trip.outsideTempCelsius != null">{{ formatDecimal(Number(trip.outsideTempCelsius), 0) }} °C</template>
+                          <span v-else :class="EMPTY_CELL">-</span>
                         </div>
                         <div class="flex justify-end whitespace-nowrap">
                           <ComparisonChip v-if="tripCostPer100kmDisplay(trip) != null"
@@ -2001,54 +1971,28 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                             :tooltip="costPer100kmTooltip(tripCostPer100kmDisplay(trip))">
                             {{ formatCurrency(tripCostPer100kmDisplay(trip)!) }}/100km
                           </ComparisonChip>
-                          <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
+                          <span v-else :class="EMPTY_CELL">-</span>
                         </div>
-                        <div class="flex items-center justify-end gap-0.5 relative">
-                          <!-- Affordance fuer die aufklappbare Karte - der Klick liegt auf der Zeile. -->
+                        <div class="flex items-center justify-end">
                           <ChevronDownIcon v-if="hasTripMap(trip)"
-                            :class="['w-3.5 h-3.5 text-gray-400 transition-transform duration-200', expandedTripMaps.has(trip.id + '__d') ? 'rotate-180' : '']"
-                            aria-hidden="true" />
-                          <button type="button"
-                            @click.stop="openMenuTripId = openMenuTripId === trip.id + '__d' ? null : trip.id + '__d'"
-                            class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                            :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
-                            aria-haspopup="menu"
-                            :aria-expanded="openMenuTripId === trip.id + '__d'">
-                            <EllipsisVerticalIcon class="w-4 h-4" aria-hidden="true" />
-                          </button>
-                          <div v-if="openMenuTripId === trip.id + '__d'"
-                            role="menu"
-                            :class="['absolute right-0 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1',
-                                     tripIdx === 0 ? 'top-full mt-1' : 'bottom-full mb-1']">
-                            <button role="menuitem" type="button" @click.stop="startAddTrip(trip.id, trip.tripStartedAt); openMenuTripId = null"
-                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                              <PlusIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.trip_add') }}
-                            </button>
-                            <button role="menuitem" type="button" @click.stop="startEditTrip(trip); openMenuTripId = null"
-                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                              <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
-                            </button>
-                            <DataFeedbackMenuItems v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id"
-                              @done="openMenuTripId = null" />
-                            <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
-                              <button role="menuitem" type="button" @click.stop="handleDeleteTrip(trip.id); openMenuTripId = null"
-                                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition focus:outline-none focus-visible:bg-red-50 dark:focus-visible:bg-red-900/30">
-                                <TrashIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_delete') }}
-                              </button>
-                            </div>
-                          </div>
+                            class="h-4 w-4 text-gray-400 transition-transform duration-300 ease-out"
+                            :class="expandedTripMaps.has(trip.id + '__d') ? 'rotate-180' : ''" aria-hidden="true" />
+                          <FeedActionMenu :placement="tripIdx === 0 ? 'down' : 'up'" v-slot="{ close }">
+                            <FeedMenuItem :icon="PlusIcon" @click="startAddTrip(trip.id, trip.tripStartedAt); close()">{{ t('dashboard.trip_add') }}</FeedMenuItem>
+                            <FeedMenuItem :icon="PencilSquareIcon" @click="startEditTrip(trip); close()">{{ t('dashboard.action_edit') }}</FeedMenuItem>
+                            <DataFeedbackMenuItems v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id" @done="close()" />
+                            <FeedMenuItem :icon="TrashIcon" separated @click="handleDeleteTrip(trip.id); close()">{{ t('dashboard.action_delete') }}</FeedMenuItem>
+                          </FeedActionMenu>
                         </div>
                       </div>
-                      <TripClimateMarkers :climate="trip.climate" class="px-3 pb-2.5" />
-                      <DataFeedbackPanel v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id" class="mx-3 mb-2.5" />
+                      <TripClimateMarkers :climate="trip.climate" align="start" class="pb-2 pl-[72px] pr-4" />
+                      <DataFeedbackPanel v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id" class="mx-4 mb-3" />
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
                         <TripMapPanel v-if="expandedTripMaps.has(trip.id + '__d')" :trip="trip"
-                                      :panel-id="'trip-map-' + trip.id + '__d'" class="px-3 pb-2.5" />
+                                      :panel-id="'trip-map-' + trip.id + '__d'" class="px-4 pb-3" />
                       </Transition>
-                      <!-- Inline edit form -->
                       <Transition :css="false" @enter="onTripFormEnter" @after-enter="onTripFormAfterEnter" @leave="onTripFormLeave">
-                      <div v-if="editingTripId === trip.id"
-                           class="px-3 py-3 border-t border-emerald-200/60 dark:border-emerald-800/40 bg-emerald-50/40 dark:bg-emerald-950/30">
+                      <div v-if="editingTripId === trip.id" class="border-t border-gray-100 bg-gray-50 px-4 py-4 dark:border-gray-700/70 dark:bg-gray-900/40">
                         <DayTripForm v-model="tripForm" mode="edit" :title="t('dashboard.trip_edit')"
                           :error="tripError" :saving="tripSaving" :distance-unit="distanceUnitLabel()"
                           @save="saveTripEdit(trip.id)" @cancel="cancelTripEditFull()" />
@@ -2056,24 +2000,17 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       </Transition>
                       <!-- Luecke zur naechstfrueheren Fahrt - siehe Mobile-Ansicht. -->
                       <div v-if="isRestBreak(day.trips, tripIdx as number) && !showsDrain(trip)"
-                           class="flex items-center justify-center py-2">
-                        <span class="text-[11px] text-gray-400 dark:text-gray-500">
-                          {{ t('dashboard.trip_pause', { duration: formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }) }}
-                        </span>
+                           class="pb-2 pl-[72px] pr-4 text-[12px] text-gray-400 tabular-nums dark:text-gray-500">
+                        {{ t('dashboard.trip_pause', { duration: formatPauseDuration(pauseBeforeTripMinutes(day.trips, tripIdx as number)) }) }}
                       </div>
-
-                      <!-- Phantom drain separator between trips (AutoSync Live feature) -->
-                      <div v-if="showsDrain(trip)"
-                        class="flex items-center justify-center gap-1 py-1.5 border-t border-emerald-300/50 dark:border-emerald-800/30">
-                        <BoltIcon class="w-3 h-3 text-amber-700 dark:text-amber-500" />
-                        <span class="text-[11px] font-medium text-amber-800 dark:text-amber-400">
-                          <span v-if="drainPauseMinutes(trip)" class="font-normal text-amber-700/70 dark:text-amber-500/70">{{ formatPauseDuration(drainPauseMinutes(trip)) }} &middot; </span>
-                          {{ trip._phantomDrain.kwh.toFixed(2) }} kWh
-                          <template v-if="selectedCar?.effectiveBatteryCapacityKwh">({{ (trip._phantomDrain.kwh / selectedCar.effectiveBatteryCapacityKwh * 100).toFixed(1) }}%)</template>
-                          {{ t('dashboard.phantom_drain_word') }}
-                          <span v-if="phantomDrainEur(trip._phantomDrain) != null" class="opacity-80">· ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</span>
-                        </span>
-                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="text-[11px] font-semibold text-amber-700 dark:text-amber-400 underline decoration-dotted hover:decoration-solid">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
+                      <!-- Standverlust zwischen zwei Fahrten - siehe Mobile-Ansicht. -->
+                      <div v-if="showsDrain(trip)" class="pb-2 pl-[72px] pr-4 text-[12px] tabular-nums text-gray-500 dark:text-gray-400">
+                        <i class="mr-1.5 inline-block h-2 w-2 rounded-[2px] bg-amber-400 align-middle" aria-hidden="true" />
+                        <template v-if="drainPauseMinutes(trip)">{{ formatPauseDuration(drainPauseMinutes(trip)) }} &middot; </template>
+                        <b class="font-semibold text-gray-700 dark:text-gray-200">{{ drainText(trip._phantomDrain) }}</b>{{ drainShare(trip._phantomDrain) }}
+                        {{ t('dashboard.phantom_drain_word') }}
+                        <template v-if="phantomDrainEur(trip._phantomDrain) != null"> &middot; ≈ {{ formatCurrency(phantomDrainEur(trip._phantomDrain)!) }}</template>
+                        <router-link v-if="!authStore.canViewLiveAnalytics && purchasesAvailable()" :to="upsellTarget" class="ml-1.5 font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
                       </div>
                     </template>
                     </template><!-- end v-else trip (desktop) -->
@@ -2104,572 +2041,343 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
               </div>
               </Transition>
 
-              <!-- CHARGE ENTRY (DESKTOP GRID, normal logs only) -->
-              <div v-if="!item.entry._isLadegruppe"
-                class="hidden gridfeed:block relative bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
-                <div :class="[FEED_GRID_COLS, 'items-center px-3 py-2.5']">
-                  <!-- 1. Type cell: Bolt + AC/DC badge -->
+              <!-- CHARGE ENTRY (DESKTOP GRID, normal logs only): Rasterzeile im Spaltenraster der Fahrten -->
+              <div v-if="!item.entry._isLadegruppe" class="hidden gridfeed:block rounded-2xl bg-white edge-card dark:bg-gray-800">
+                <div :class="[FEED_GRID_COLS, 'items-center px-4 py-2.5 text-[13px] tabular-nums']">
                   <div class="flex items-center gap-1.5">
-                    <BoltIcon class="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
-                    <ChargeTypeBadge :type="item.entry.chargingType" />
+                    <span :class="ROW_ICON_CHARGE"><BoltIcon class="h-3.5 w-3.5" aria-hidden="true" /></span>
+                    <span v-if="item.entry.chargingType === 'AC' || item.entry.chargingType === 'DC'" class="text-[11.5px] font-semibold text-gray-500 dark:text-gray-400">{{ item.entry.chargingType }}</span>
                   </div>
-                  <!-- 2. Energy -->
-                  <div class="font-semibold text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
-                    +{{ item.entry.kwhAtVehicle ?? item.entry.kwhCharged ?? '-' }} kWh
+                  <div class="whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">
+                    <template v-if="logKwh(item.entry) != null">+{{ formatDecimal(logKwh(item.entry)!, 1) }} kWh</template>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <!-- 3. Date + optionaler Ladekurve-Toggle -->
-                  <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap truncate flex items-center gap-1.5">
-                    <span class="truncate">{{ formatLogDate(item.entry.loggedAt) }}</span>
-                    <button
-                      v-if="((item.entry.hasPowerCurve && authStore.canViewLiveAnalytics) || (item.entry.hasSocCurve && authStore.canViewSocCurve))"
-                      type="button"
-                      @click.stop="openPowerCurve(item.entry)"
-                      :aria-label="t('dashboard.show_power_curve')"
-                      aria-haspopup="dialog"
-                      class="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0 rounded text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                    >
-                      <ChartBarSquareIcon class="w-3.5 h-3.5 flex-shrink-0" />{{ t('dashboard.power_curve_label') }}
-                    </button>
-                    <!-- Gesperrt: Kurven-Symbol mit Schloss und ausformuliertem Label - ein blankes
-                         Schloss sagt nicht, was dahinter liegt. -->
-                    <button
-                      v-else-if="(item.entry.hasPowerCurve || item.entry.hasSocCurve) && purchasesAvailable()"
-                      type="button"
-                      @click.stop="openPowerCurve(item.entry)"
-                      :aria-label="t('dashboard.power_curve_locked')"
-                      :title="t('dashboard.power_curve_locked')"
-                      aria-haspopup="dialog"
-                      class="inline-flex items-center gap-1 whitespace-nowrap flex-shrink-0 rounded text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                    >
-                      <ChartBarSquareIcon class="w-3.5 h-3.5 flex-shrink-0" />{{ t('dashboard.power_curve_label') }}<LockClosedIcon class="w-3 h-3 flex-shrink-0" />
-                    </button>
+                  <!-- Wann und wo -->
+                  <div class="flex min-w-0 items-center gap-2 whitespace-nowrap">
+                    <span class="text-gray-700 dark:text-gray-300">{{ formatLogDate(item.entry.loggedAt) }}</span>
+                    <span class="min-w-0 truncate text-gray-500 dark:text-gray-400">{{ chargePlace(item.entry) }}</span>
                   </div>
-                  <!-- 4. Consumption (or short-trip / kwh-in-next hint) -->
-                  <div class="text-sm whitespace-nowrap">
-                    <button
-                      v-if="item.entry.consumptionKwhPer100km == null && item.entry.kwhCountedInNextConsumption"
-                      type="button"
-                      class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-700 rounded"
+                  <!-- Verbrauch, oder warum keiner steht -->
+                  <div class="whitespace-nowrap">
+                    <button v-if="item.entry.consumptionKwhPer100km == null && item.entry.kwhCountedInNextConsumption" type="button"
+                      class="inline-flex items-center gap-1 text-[12px] text-gray-500 underline decoration-gray-300 underline-offset-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-400 dark:decoration-gray-600"
                       :aria-expanded="openTooltipLogId === item.entry.id"
                       @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
-                      <InformationCircleIcon class="w-3 h-3 flex-shrink-0" aria-hidden="true" />
-                      {{ t('dashboard.kwh_in_next_hint') }}
+                      <InformationCircleIcon class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />{{ t('dashboard.kwh_in_next_hint') }}
                     </button>
-                    <button
-                      v-else-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry)"
-                      type="button"
-                      class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-700 rounded"
+                    <button v-else-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry)" type="button"
+                      class="inline-flex items-center gap-1 text-[12px] text-gray-500 underline decoration-gray-300 underline-offset-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-400 dark:decoration-gray-600"
                       :aria-expanded="openTooltipLogId === item.entry.id"
                       @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
-                      <InformationCircleIcon class="w-3 h-3 flex-shrink-0" aria-hidden="true" />
-                      {{ t('dashboard.short_trip_hint') }}
+                      <InformationCircleIcon class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />{{ t('dashboard.short_trip_hint') }}
                     </button>
-                    <span v-else-if="item.entry.consumptionKwhPer100km != null"
-                      :class="['inline-flex items-center gap-1 text-xs font-medium',
-                               item.entry.consumptionImplausible
-                                 ? 'text-red-600 dark:text-red-400'
-                                 : item.entry.consumptionIsEstimated
-                                   ? 'text-gray-500 dark:text-gray-400'
-                                   : consumptionTextClass(item.entry.consumptionKwhPer100km, stats?.avgConsumptionKwhPer100km ?? null)]"
-                      :title="item.entry.consumptionIsEstimated
-                        ? 'Schätzwert: berechnet aus geladener Energie ÷ Distanz, da kein SoC-Wert vorhanden.'
-                        : item.entry.consumptionQuality === 'SOC_DELTA'
-                          ? 'Näherungswert: berechnet aus SoC-Differenz ohne direkte kWh-Messung.'
-                          : undefined">
-                      <button
-                        v-if="item.entry.consumptionImplausible"
-                        type="button"
-                        class="flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-gray-700 rounded"
-                        :aria-label="t('dashboard.implausible_tooltip_title')"
-                        :aria-expanded="openTooltipLogId === item.entry.id"
+                    <span v-else-if="item.entry.consumptionKwhPer100km != null" class="inline-flex items-center gap-1 font-semibold"
+                      :class="consumptionToneClass(item.entry)"
+                      :title="item.entry.consumptionIsEstimated ? t('logs.consumption_estimated_title') : item.entry.consumptionQuality === 'SOC_DELTA' ? t('logs.consumption_soc_delta_title') : undefined">
+                      <button v-if="item.entry.consumptionImplausible" type="button"
+                        class="shrink-0 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                        :aria-label="t('dashboard.implausible_tooltip_title')" :aria-expanded="openTooltipLogId === item.entry.id"
                         @click.stop="openTooltipLogId = openTooltipLogId === item.entry.id ? null : item.entry.id">
-                        <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                        <ExclamationTriangleIcon class="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
-                      <InformationCircleIcon
-                        v-if="item.entry.consumptionQuality === 'SOC_DELTA'"
-                        class="w-3 h-3 flex-shrink-0 text-gray-400 dark:text-gray-500"
-                        aria-hidden="true" />
                       {{ item.entry.consumptionIsEstimated ? '~' : '' }}{{ formatConsumption(item.entry.consumptionKwhPer100km) }}
                     </span>
-                    <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <!-- 5. SoC X→Y% -->
-                  <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                    <template v-if="formatSocRange(item.entry.socBeforeChargePercent, item.entry.socAfterChargePercent)">
-                      {{ formatSocRange(item.entry.socBeforeChargePercent, item.entry.socAfterChargePercent) }}
-                    </template>
-                    <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                  <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                    <template v-if="formatSocRange(item.entry.socBeforeChargePercent, item.entry.socAfterChargePercent)">{{ formatSocRange(item.entry.socBeforeChargePercent, item.entry.socAfterChargePercent) }}</template>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <!-- 6. Power -->
-                  <div class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                    <template v-if="item.entry.maxChargingPowerKw">{{ item.entry.maxChargingPowerKw }} kW</template>
-                    <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                  <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                    <template v-if="item.entry.maxChargingPowerKw">max {{ formatDecimal(Number(item.entry.maxChargingPowerKw), 0) }} kW</template>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <!-- 7. Distance chip -->
-                  <div>
-                    <component :is="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'button' : 'span'"
-                      v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
-                      type="button"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                      :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75' : ''"
-                      @click.stop="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)"
-                      @mousedown.stop>
+                  <div class="whitespace-nowrap">
+                    <button v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm" type="button"
+                      class="text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-300"
+                      :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'underline decoration-dotted decoration-gray-400 underline-offset-4' : 'cursor-default'"
+                      :title="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? t('logs.toggle_odometer') : undefined"
+                      @click.stop="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)" @mousedown.stop>
                       <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
                       <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
-                    </component>
-                    <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
+                    </button>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <!-- 8. Temperature chip -->
-                  <div>
-                    <span v-if="item.entry.temperatureCelsius != null"
-                      :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(item.entry.temperatureCelsius)]">
-                      <SunIcon class="w-3 h-3" />{{ item.entry.temperatureCelsius.toFixed(1) }}°C
+                  <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                    <template v-if="item.entry.temperatureCelsius != null">{{ formatDecimal(Number(item.entry.temperatureCelsius), 0) }} °C</template>
+                    <span v-else :class="EMPTY_CELL">-</span>
+                  </div>
+                  <!-- Preis: Betrag fett, ct/kWh grau; ohne Preis die Handlung in Amber -->
+                  <div class="flex items-center justify-end gap-1.5 whitespace-nowrap">
+                    <button v-if="realCostHintFor(item.entry.id)" type="button"
+                      class="grid h-7 w-7 place-items-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-400 dark:hover:bg-white/10"
+                      :aria-expanded="openRealCostTooltipId === item.entry.id" :aria-label="t('dashboard.real_cost_tooltip_title')"
+                      @click.stop="toggleRealCostTooltip(item.entry.id)">
+                      <InformationCircleIcon class="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <span v-if="item.entry.costEur != null && logKwhBasis(item.entry)" class="text-right"
+                      :title="isNettoOnlyCostLog(item.entry) ? t('dashboard.cost_pill_netto_title') : undefined">
+                      <b class="font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(item.entry.costEur) }}</b>
+                      <span class="ml-1 text-[12px] text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(item.entry.costEur / logKwhBasis(item.entry)!) }}</span>
                     </span>
-                    <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
-                  </div>
-                  <!-- 9. Price chip + Real-Cost-Info (Info-Icon LINKS des Preises, Popover-Overlay, Click-Außerhalb schließt) -->
-                  <div class="flex justify-end items-center gap-1 relative">
-                    <button v-if="realCostHintFor(item.entry.id)"
-                      type="button"
-                      class="p-0.5 rounded-full text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                      :aria-expanded="openRealCostTooltipId === item.entry.id + '__d'"
-                      :aria-label="t('dashboard.real_cost_tooltip_title')"
-                      @click.stop="openRealCostTooltipId = openRealCostTooltipId === item.entry.id + '__d' ? null : item.entry.id + '__d'">
-                      <InformationCircleIcon class="w-4 h-4" aria-hidden="true" />
-                    </button>
-                    <button v-if="item.entry.costEur != null && (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)"
-                      type="button"
-                      :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
-                               isNettoOnlyCostLog(item.entry) ? 'border border-dashed' : 'border',
-                               showCostAbsolute
-                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'
-                                 : [(costBadgeClass(item.entry.costEur, item.entry.kwhCharged ?? item.entry.kwhAtVehicle) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] hover:shadow-[0_2px_0_0_#d1d5db] dark:hover:shadow-[0_2px_0_0_#111827] hover:translate-y-0.5 active:shadow-none active:translate-y-1'].join(' ')]"
-                      @click.stop="showCostAbsolute = !showCostAbsolute">
-                      <template v-if="showCostAbsolute">{{ formatCurrency(item.entry.costEur) }}</template>
-                      <template v-else>{{ formatCostPerKwh(item.entry.costEur / (item.entry.kwhCharged ?? item.entry.kwhAtVehicle)) }}</template>
-                    </button>
-                    <button v-else-if="sourceInfo(item.entry.dataSource) && !item.entry._isLadegruppe && item.entry.id"
-                      type="button" data-testid="charge-price-chip"
-                      :aria-label="t('priceamend.chip_aria')"
-                      @click.stop="priceAmendingLog = item.entry"
-                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
-                      <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                    <button v-else-if="sourceInfo(item.entry.dataSource) && item.entry.id" type="button" data-testid="charge-price-chip"
+                      :aria-label="t('priceamend.chip_aria')" :class="PRICE_CHIP" @click.stop="priceAmendingLog = item.entry">
                       {{ t('priceamend.chip') }}
                       <WattBadge :amount="wattPossibleForLog(coinStore.catalog, item.entry)" up-to />
                     </button>
-                    <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
-                    <div v-if="openRealCostTooltipId === item.entry.id + '__d' && realCostHintFor(item.entry.id)"
-                      class="absolute right-0 top-full mt-1.5 w-72 p-3 rounded-sm bg-amber-50 dark:bg-gray-800 border border-amber-300 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 space-y-1.5 leading-relaxed shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.10)] z-[60]"
-                      @click.stop>
-                      <p class="font-semibold">{{ t('dashboard.real_cost_tooltip_title') }}</p>
-                      <p>{{ t('dashboard.real_cost_label') }} ≈
-                        <template v-if="showCostAbsolute">{{ formatCurrency(realCostHintFor(item.entry.id)!.bruttoCostEur) }}</template>
-                        <template v-else>{{ formatCostPerKwh(realCostHintFor(item.entry.id)!.bruttoRatePerNettoKwhEur) }}</template>
-                      </p>
-                      <p>{{ realCostHintFor(item.entry.id)!.source === 'measured-median'
-                            ? t('dashboard.real_cost_tooltip_measured', { count: realCostHintFor(item.entry.id)!.sampleSize, pct: realCostHintFor(item.entry.id)!.efficiencyPercent }, realCostHintFor(item.entry.id)!.sampleSize)
-                            : t('dashboard.real_cost_tooltip_pauschale', { pct: realCostHintFor(item.entry.id)!.efficiencyPercent }) }}</p>
-                    </div>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <!-- 9. Actions menu -->
-                  <div class="flex justify-end relative">
-                    <button type="button"
-                      @click.stop="openMenuLogId = openMenuLogId === item.entry.id + '__d' ? null : item.entry.id + '__d'"
-                      class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                      :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
-                      aria-haspopup="menu"
-                      :aria-expanded="openMenuLogId === item.entry.id + '__d'">
-                      <EllipsisVerticalIcon class="w-5 h-5" aria-hidden="true" />
-                    </button>
-                    <div v-if="openMenuLogId === item.entry.id + '__d'"
-                      role="menu"
-                      class="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
-                      <button role="menuitem" type="button" @click.stop="editingLog = item.entry; openMenuLogId = null"
-                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                        <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
-                      </button>
-                      <button role="menuitem" type="button" @click.stop="startAddTrip(item.entry.id); openMenuLogId = null"
-                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                        <MapIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_add_trip') }}
-                      </button>
-                      <button role="menuitem" type="button" @click.stop="openMergeModal(item.entry); openMenuLogId = null"
-                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                        <LinkIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_merge') }}
-                      </button>
-                      <button v-if="otherCars.length > 0" role="menuitem" type="button" @click.stop="openReassignModal(item.entry); openMenuLogId = null"
-                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                        <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
-                      </button>
-                      <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
-                        <button role="menuitem" type="button" @click.stop="deleteLog(item.entry.id); openMenuLogId = null"
-                          class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition focus:outline-none focus-visible:bg-red-50 dark:focus-visible:bg-red-900/30">
-                          <TrashIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_delete') }}
-                        </button>
-                      </div>
-                    </div>
+                  <div class="flex justify-end">
+                    <FeedActionMenu v-slot="{ close }">
+                      <FeedMenuItem :icon="PencilSquareIcon" @click="editingLog = item.entry; close()">{{ t('dashboard.action_edit') }}</FeedMenuItem>
+                      <FeedMenuItem :icon="MapIcon" @click="startAddTrip(item.entry.id); close()">{{ t('dashboard.action_add_trip') }}</FeedMenuItem>
+                      <FeedMenuItem :icon="LinkIcon" @click="openMergeModal(item.entry); close()">{{ t('dashboard.action_merge') }}</FeedMenuItem>
+                      <FeedMenuItem v-if="otherCars.length > 0" :icon="ArrowsRightLeftIcon" @click="openReassignModal(item.entry); close()">{{ t('dashboard.action_reassign') }}</FeedMenuItem>
+                      <FeedMenuItem :icon="TrashIcon" separated @click="deleteLog(item.entry.id); close()">{{ t('dashboard.action_delete') }}</FeedMenuItem>
+                    </FeedActionMenu>
                   </div>
                 </div>
-                <!-- Tooltip panels (span full width below the row) -->
-                <div
-                  v-if="item.entry.consumptionImplausible && openTooltipLogId === item.entry.id"
-                  class="px-3 pb-2.5">
-                  <div class="p-2.5 rounded-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-                    <p class="font-medium">{{ t('dashboard.implausible_tooltip_title') }}</p>
-                    <p>{{ t('dashboard.implausible_tooltip_desc', { value: formatConsumption(item.entry.consumptionKwhPer100km) }) }}</p>
-                    <ul class="list-disc list-inside space-y-0.5 mt-1">
-                      <li>{{ t('dashboard.implausible_tooltip_cause1') }}</li>
-                      <li>{{ t('dashboard.implausible_tooltip_cause2') }}</li>
-                    </ul>
-                  </div>
-                </div>
-                <div
-                  v-if="item.entry.consumptionKwhPer100km == null && isShortTrip(item.entry) && openTooltipLogId === item.entry.id"
-                  class="px-3 pb-2.5">
-                  <div class="p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
-                    <p class="font-medium">{{ t('dashboard.short_trip_tooltip_title') }}</p>
-                    <p>{{ t('dashboard.short_trip_tooltip_desc') }}</p>
-                  </div>
-                </div>
-                <div
-                  v-if="item.entry.consumptionKwhPer100km == null && item.entry.kwhCountedInNextConsumption && openTooltipLogId === item.entry.id"
-                  class="px-3 pb-2.5">
-                  <div class="p-2.5 rounded-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 space-y-1">
-                    <p class="font-medium">{{ t('dashboard.kwh_in_next_tooltip_title') }}</p>
-                    <p>{{ t('dashboard.kwh_in_next_tooltip_desc') }}</p>
-                  </div>
-                </div>
-                <!-- Brutto/Netto sub-line (quick-edit shortcut) -->
-                <div v-if="item.entry.kwhCharged != null || item.entry.kwhAtVehicle != null"
-                  class="px-3 pb-2 -mt-1 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
+                <!-- Zweite Zeile: Brutto/Netto-Nachtrag, Quelle und "Korrekt erkannt?" -->
+                <div v-if="item.entry.kwhCharged != null || item.entry.kwhAtVehicle != null || logHasCurve(item.entry)"
+                  class="-mt-1 flex items-center gap-3 pb-2 pl-[72px] pr-4 text-[12px] text-gray-500 tabular-nums dark:text-gray-400">
                   <template v-if="logEditState[item.entry.id] !== undefined">
                     <input type="number" step="0.01" min="0"
                       v-model="logEditState[item.entry.id]"
                       :aria-label="t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_label_brutto' : 'dashboard.ac_gross_label_netto')"
-                      class="w-20 text-xs border border-blue-300 dark:border-blue-700 rounded px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      :class="QUICK_INPUT"
                       @keydown.enter.prevent="applyLogValue(item.entry)"
-                      @keydown.escape.prevent="cancelLogEdit(item.entry.id)"
-                    />
+                      @keydown.escape.prevent="cancelLogEdit(item.entry.id)" />
                     <span>kWh {{ t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_label_brutto' : 'dashboard.ac_gross_label_netto') }}</span>
-                    <button type="button" class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-40 transition" :disabled="logSaving.has(item.entry.id)" @click="applyLogValue(item.entry, $event)">
-                      <svg v-if="logSaving.has(item.entry.id)" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                      </svg>
-                      <CheckIcon v-else class="w-3.5 h-3.5" />
+                    <button type="button" :class="QUICK_BTN" :disabled="logSaving.has(item.entry.id)" :aria-label="t('common.save')" @click="applyLogValue(item.entry, $event)">
+                      <ArrowPathIcon v-if="logSaving.has(item.entry.id)" class="h-4 w-4 animate-spin" aria-hidden="true" />
+                      <CheckIcon v-else class="h-4 w-4" aria-hidden="true" />
                     </button>
-                    <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition" @click="cancelLogEdit(item.entry.id)">
-                      <XMarkIcon class="w-3.5 h-3.5" />
+                    <button type="button" :class="QUICK_BTN" :aria-label="t('common.cancel')" @click="cancelLogEdit(item.entry.id)">
+                      <XMarkIcon class="h-4 w-4" aria-hidden="true" />
                     </button>
-                    <span v-if="logError[item.entry.id]" class="text-red-500 dark:text-red-400">{{ logError[item.entry.id] }}</span>
+                    <span v-if="logError[item.entry.id]" role="alert" class="text-amber-700 dark:text-amber-400">{{ logError[item.entry.id] }}</span>
                   </template>
-                  <template v-else-if="item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null">
-                    <button type="button" class="flex items-center gap-3 hover:text-blue-500 transition" @click="startLogEdit(item.entry, $event)">
-                      <span>{{ item.entry.kwhCharged }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
-                      <span :class="['font-medium', chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle)! >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">
-                        {{ chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle) }}% {{ t('dashboard.ac_gross_efficiency') }}
-                      </span>
-                    </button>
-                    <span v-if="sourceInfo(item.entry.dataSource)"
-                      :class="['inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium', sourceInfo(item.entry.dataSource)!.classes]">
-                      {{ sourceInfo(item.entry.dataSource)!.label }}
-                    </span>
-                  </template>
-                  <template v-else>
-                    <button type="button" class="flex items-center gap-1 hover:text-blue-500 transition" @click="startLogEdit(item.entry, $event)">
-                      <PlusIcon class="w-3.5 h-3.5" />
-                      {{ t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_add_brutto' : 'dashboard.ac_gross_add_netto') }}
-                    </button>
-                    <span v-if="sourceInfo(item.entry.dataSource)"
-                      :class="['inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium', sourceInfo(item.entry.dataSource)!.classes]">
-                      {{ sourceInfo(item.entry.dataSource)!.label }}
-                    </span>
-                  </template>
-                  <!-- "Korrekt erkannt?" rechts in der zweiten Zeile, nur bei automatisch erfassten Ladungen -->
+                  <button v-else-if="item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null" type="button"
+                    class="inline-flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-gray-100" @click="startLogEdit(item.entry, $event)">
+                    <span>{{ formatDecimal(Number(item.entry.kwhCharged), 1) }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
+                    <span>&middot; {{ chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle) }} % {{ t('dashboard.ac_gross_efficiency') }}</span>
+                  </button>
+                  <button v-else type="button" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-gray-100" @click="startLogEdit(item.entry, $event)">
+                    <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
+                    {{ t(logFieldToSet(item.entry) === 'kwhCharged' ? 'dashboard.ac_gross_add_brutto' : 'dashboard.ac_gross_add_netto') }}
+                  </button>
+                  <span v-if="sourceInfo(item.entry.dataSource)">&middot; {{ sourceInfo(item.entry.dataSource)!.label }}</span>
+                  <button v-if="logHasCurve(item.entry)" type="button" @click.stop="openPowerCurve(item.entry)" aria-haspopup="dialog"
+                    :aria-label="logCurveOpen(item.entry) ? t('dashboard.show_power_curve') : t('dashboard.power_curve_locked')"
+                    :title="logCurveOpen(item.entry) ? undefined : t('dashboard.power_curve_locked')"
+                    class="inline-flex shrink-0 items-center gap-1 rounded font-semibold text-gray-700 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-200 dark:hover:text-gray-50">
+                    <ChartBarSquareIcon class="h-4 w-4" aria-hidden="true" />{{ t('dashboard.power_curve_label') }}
+                    <LockClosedIcon v-if="!logCurveOpen(item.entry)" class="h-3 w-3" aria-hidden="true" />
+                  </button>
                   <div v-if="isRateableLogSource(item.entry.dataSource)" class="ml-auto flex items-center gap-0.5" @click.stop>
                     <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
                     <DataFeedbackButtons subject-type="LOG" :subject-id="item.entry.id" compact />
                   </div>
                 </div>
-                <DataFeedbackPanel v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id" class="mx-3 mb-2.5" />
+                <!-- Erklaerungen zu Hinweisen der Zeile -->
+                <div v-if="openTooltipLogId === item.entry.id && (item.entry.consumptionImplausible || (item.entry.consumptionKwhPer100km == null && (isShortTrip(item.entry) || item.entry.kwhCountedInNextConsumption)))"
+                  class="px-4 pb-3">
+                  <div v-if="item.entry.consumptionImplausible" :class="NOTE_WARN">
+                    <p class="font-semibold">{{ t('dashboard.implausible_tooltip_title') }}</p>
+                    <p>{{ t('dashboard.implausible_tooltip_desc', { value: formatConsumption(item.entry.consumptionKwhPer100km) }) }}</p>
+                    <ul class="mt-1 list-inside list-disc space-y-0.5">
+                      <li>{{ t('dashboard.implausible_tooltip_cause1') }}</li>
+                      <li>{{ t('dashboard.implausible_tooltip_cause2') }}</li>
+                    </ul>
+                  </div>
+                  <div v-else-if="isShortTrip(item.entry)" :class="NOTE_INFO">
+                    <p class="font-semibold">{{ t('dashboard.short_trip_tooltip_title') }}</p>
+                    <p>{{ t('dashboard.short_trip_tooltip_desc') }}</p>
+                  </div>
+                  <div v-else :class="NOTE_INFO">
+                    <p class="font-semibold">{{ t('dashboard.kwh_in_next_tooltip_title') }}</p>
+                    <p>{{ t('dashboard.kwh_in_next_tooltip_desc') }}</p>
+                  </div>
+                </div>
+                <div v-if="openRealCostTooltipId === item.entry.id && realCostHintFor(item.entry.id)" class="px-4 pb-3">
+                  <div :class="NOTE_INFO">
+                    <p class="font-semibold">{{ t('dashboard.real_cost_tooltip_title') }}</p>
+                    <p>{{ t('dashboard.real_cost_label') }} ≈ {{ formatCurrency(realCostHintFor(item.entry.id)!.bruttoCostEur) }} &middot; {{ formatCostPerKwh(realCostHintFor(item.entry.id)!.bruttoRatePerNettoKwhEur) }}</p>
+                    <p>{{ realCostHintFor(item.entry.id)!.source === 'measured-median'
+                          ? t('dashboard.real_cost_tooltip_measured', { count: realCostHintFor(item.entry.id)!.sampleSize, pct: realCostHintFor(item.entry.id)!.efficiencyPercent }, realCostHintFor(item.entry.id)!.sampleSize)
+                          : t('dashboard.real_cost_tooltip_pauschale', { pct: realCostHintFor(item.entry.id)!.efficiencyPercent }) }}</p>
+                  </div>
+                </div>
+                <DataFeedbackPanel v-if="isRateableLogSource(item.entry.dataSource)" subject-type="LOG" :subject-id="item.entry.id" class="mx-4 mb-3" />
               </div>
 
               <!-- CHARGE ENTRY (DESKTOP GRID, Ladegruppe) -->
-              <div v-if="item.entry._isLadegruppe"
-                class="hidden gridfeed:block rounded-sm border-2 border-blue-200 dark:border-blue-800/60 border-l-4 border-l-blue-400 dark:border-l-blue-500 shadow-[2px_2px_0_0_#bfdbfe] dark:shadow-[2px_2px_0_0_#1e3a8a]">
-                <button type="button" @click="toggleLadegruppe(item.entry.id)"
+              <div v-if="item.entry._isLadegruppe" class="hidden gridfeed:block rounded-2xl bg-white edge-card dark:bg-gray-800">
+                <div role="button" tabindex="0" @click="toggleLadegruppe(item.entry.id)"
+                  @keydown.enter.self.prevent="toggleLadegruppe(item.entry.id)" @keydown.space.self.prevent="toggleLadegruppe(item.entry.id)"
                   :aria-expanded="expandedGroups.has(item.entry.id)"
-                  :class="[FEED_GRID_COLS, 'w-full items-center px-3 py-2 bg-blue-50/40 dark:bg-blue-900/15 hover:bg-blue-50 dark:hover:bg-blue-900/25 transition text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-inset']">
+                  :class="[FEED_GRID_COLS, 'w-full cursor-pointer items-center px-4 py-2.5 text-left text-[13px] tabular-nums transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-story-accent dark:hover:bg-white/5',
+                           expandedGroups.has(item.entry.id) ? 'rounded-t-2xl' : 'rounded-2xl']">
                   <div class="flex items-center gap-1.5">
-                    <BoltIcon class="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">{{ item.entry._topUps?.length ?? 0 }}×</span>
+                    <span :class="ROW_ICON_CHARGE"><BoltIcon class="h-3.5 w-3.5" aria-hidden="true" /></span>
+                    <span class="text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ item.entry._topUps?.length ?? 0 }}&times;</span>
                   </div>
-                  <div class="font-semibold text-blue-700 dark:text-blue-300 whitespace-nowrap text-sm">
-                    +{{ item.entry._totalKwh }} kWh
+                  <div class="whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">+{{ formatDecimal(Number(item.entry._totalKwh), 1) }} kWh</div>
+                  <div class="flex min-w-0 items-center gap-2 whitespace-nowrap">
+                    <span class="text-gray-700 dark:text-gray-300">{{ item.entry._dateRangeLabel }}</span>
+                    <span class="min-w-0 truncate text-gray-500 dark:text-gray-400">{{ chargePlace(item.entry) }}</span>
                   </div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap truncate">
-                    {{ item.entry._dateRangeLabel }}
+                  <div class="whitespace-nowrap">
+                    <span v-if="item.entry._totalConsumption != null" class="font-semibold" :class="consumptionValueTone(item.entry._totalConsumption)">{{ formatConsumption(item.entry._totalConsumption) }}</span>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <div class="text-xs whitespace-nowrap">
-                    <span v-if="item.entry._totalConsumption != null"
-                      :class="['font-medium', consumptionTextClass(item.entry._totalConsumption, stats?.avgConsumptionKwhPer100km ?? null)]">
-                      {{ formatConsumption(item.entry._totalConsumption) }}
-                    </span>
-                    <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                  <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                    <template v-if="item.entry._maxSoc != null">{{ t('logs.group_max_soc', { soc: item.entry._maxSoc }) }}</template>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                    <template v-if="item.entry._maxSoc != null">{{ item.entry._maxSoc }}%</template>
-                    <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                  <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                    <template v-if="item.entry._maxPower">max {{ formatDecimal(Number(item.entry._maxPower), 0) }} kW</template>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                    <template v-if="item.entry._maxPower">{{ item.entry._maxPower }} kW</template>
-                    <span v-else class="text-gray-400 dark:text-gray-600">-</span>
-                  </div>
-                  <div>
-                    <component :is="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'button' : 'span'"
-                      v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm"
-                      type="button"
-                      class="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                      :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'cursor-pointer shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827] active:shadow-none active:translate-y-1 transition-all duration-75' : ''"
-                      @click.stop="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)"
-                      @mousedown.stop>
+                  <div class="whitespace-nowrap">
+                    <button v-if="item.entry.distanceSinceLastChargeKm != null || item.entry.odometerKm" type="button"
+                      class="text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-300"
+                      :class="item.entry.distanceSinceLastChargeKm != null && item.entry.odometerKm ? 'underline decoration-dotted decoration-gray-400 underline-offset-4' : 'cursor-default'"
+                      @click.stop="toggleOdometerDisplay(item.entry.distanceSinceLastChargeKm, item.entry.odometerKm)" @mousedown.stop>
                       <template v-if="item.entry.distanceSinceLastChargeKm != null && !showOdometer">+{{ formatDistance(item.entry.distanceSinceLastChargeKm) }}</template>
                       <template v-else>{{ item.entry.odometerKm != null ? formatDistance(item.entry.odometerKm) : '' }}</template>
-                    </component>
-                    <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
-                  </div>
-                  <div class="text-gray-400 dark:text-gray-600 text-xs text-center">-</div>
-                  <div class="flex justify-end">
-                    <button v-if="item.entry._totalCostEur != null && item.entry._costBasisKwh && item.entry._isFullyPriced"
-                      type="button"
-                      :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer transition-all duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
-                               item.entry._costIsNettoOnly ? 'border border-dashed' : 'border',
-                               showCostAbsolute
-                                 ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827]'
-                                 : [(costBadgeClass(item.entry._totalCostEur, item.entry._costBasisKwh) ?? 'bg-green-50 border-green-200 text-green-700'), 'shadow-[0_4px_0_0_#d1d5db] dark:shadow-[0_4px_0_0_#111827]'].join(' ')]"
-                      @click.stop="showCostAbsolute = !showCostAbsolute">
-                      <template v-if="showCostAbsolute">{{ formatCurrency(item.entry._totalCostEur) }}</template>
-                      <template v-else>{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costBasisKwh) }}</template>
                     </button>
-                    <!-- Teilweise bepreist: eine Rate aus einem Bruchteil der Energie waere
-                         irrefuehrend - stattdessen der Einstieg in den Sammel-Nachtrag. -->
-                    <button v-else-if="item.entry._pricelessSubs?.length"
-                      type="button" data-testid="group-price-chip"
-                      :aria-label="t('priceamend.chip_group_aria')"
-                      @click.stop="openGroupPriceAmend(item.entry)"
-                      class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
-                      <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                    <span v-else :class="EMPTY_CELL">-</span>
+                  </div>
+                  <div :class="EMPTY_CELL">-</div>
+                  <div class="flex justify-end whitespace-nowrap">
+                    <span v-if="item.entry._totalCostEur != null && item.entry._costBasisKwh && item.entry._isFullyPriced"
+                      :title="item.entry._costIsNettoOnly ? t('dashboard.cost_pill_netto_title') : undefined">
+                      <b class="font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(item.entry._totalCostEur) }}</b>
+                      <span class="ml-1 text-[12px] text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costBasisKwh) }}</span>
+                    </span>
+                    <!-- Teilweise bepreist: eine Rate aus einem Bruchteil der Energie waere irrefuehrend. -->
+                    <button v-else-if="item.entry._pricelessSubs?.length" type="button" data-testid="group-price-chip"
+                      :aria-label="t('priceamend.chip_group_aria')" :class="PRICE_CHIP" @click.stop="openGroupPriceAmend(item.entry)">
                       {{ t('priceamend.chip_group') }}
                       <WattBadge :amount="groupPricelessWatt(item.entry)" up-to />
                     </button>
-                    <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
+                    <span v-else :class="EMPTY_CELL">-</span>
                   </div>
-                  <div class="flex items-center justify-end gap-0.5 relative">
-                    <button v-if="otherCars.length > 0" type="button"
-                      @click.stop="openMenuGroupId = openMenuGroupId === item.entry.id + '__d' ? null : item.entry.id + '__d'"
-                      @mousedown.stop
-                      class="p-0.5 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                      :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
-                      aria-haspopup="menu"
-                      :aria-expanded="openMenuGroupId === item.entry.id + '__d'">
-                      <EllipsisVerticalIcon class="w-4 h-4" aria-hidden="true" />
-                    </button>
-                    <ChevronUpIcon v-if="expandedGroups.has(item.entry.id)" class="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0" />
-                    <ChevronDownIcon v-else class="w-4 h-4 text-blue-400 dark:text-blue-500 flex-shrink-0" />
-                    <div v-if="openMenuGroupId === item.entry.id + '__d'"
-                      role="menu"
-                      class="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
-                      <button role="menuitem" type="button"
-                        @click.stop="openReassignModal(item.entry); openMenuGroupId = null"
-                        @mousedown.stop
-                        class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                        <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
-                      </button>
-                    </div>
+                  <div class="flex items-center justify-end">
+                    <ChevronDownIcon class="h-4 w-4 text-gray-400 transition-transform duration-300 ease-out"
+                      :class="expandedGroups.has(item.entry.id) ? 'rotate-180' : ''" aria-hidden="true" />
+                    <FeedActionMenu v-if="otherCars.length > 0" v-slot="{ close }">
+                      <FeedMenuItem :icon="ArrowsRightLeftIcon" @click="openReassignModal(item.entry); close()">{{ t('dashboard.action_reassign') }}</FeedMenuItem>
+                    </FeedActionMenu>
                   </div>
-                </button>
-
-                <!-- Missing value sub-line (desktop) -->
+                </div>
+                <!-- Fehlender Brutto- oder Nettowert der Gruppe -->
                 <div v-if="item.entry._canEditMissing"
-                  class="px-3 py-1 border-t border-blue-100 dark:border-blue-800/30 bg-blue-50/20 dark:bg-blue-950/10 flex items-center gap-2"
+                  class="-mt-1 flex items-center gap-2 pb-2 pl-[72px] pr-4 text-[12px] text-gray-500 tabular-nums dark:text-gray-400"
                   @click.stop @mousedown.stop>
                   <template v-if="grossEditState[item.entry.id] !== undefined">
-                    <input
-                      type="number" step="0.01" min="0"
-                      v-model="grossEditState[item.entry.id]"
-                      :aria-label="t(item.entry._missingLabel)"
-                      class="w-24 text-xs border border-blue-300 dark:border-blue-700 rounded px-2 py-0.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    <input type="number" step="0.01" min="0"
+                      v-model="grossEditState[item.entry.id]" :aria-label="t(item.entry._missingLabel)" :class="QUICK_INPUT"
                       @click.stop @mousedown.stop @keydown.stop
                       @keydown.enter.stop.prevent="applyGrossTotal(item.entry)"
-                      @keydown.escape.stop.prevent="cancelGrossEdit(item.entry.id)"
-                    />
-                    <span class="text-xs text-gray-500 dark:text-gray-400">kWh {{ t(item.entry._missingLabel) }}</span>
-                    <button type="button"
-                      class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 disabled:opacity-40 transition"
-                      :disabled="grossSaving.has(item.entry.id)"
-                      @click.stop="applyGrossTotal(item.entry, $event)">
-                      <svg v-if="grossSaving.has(item.entry.id)" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                      </svg>
-                      <CheckIcon v-else class="w-3.5 h-3.5" />
+                      @keydown.escape.stop.prevent="cancelGrossEdit(item.entry.id)" />
+                    <span>kWh {{ t(item.entry._missingLabel) }}</span>
+                    <button type="button" :class="QUICK_BTN" :disabled="grossSaving.has(item.entry.id)" :aria-label="t('common.save')" @click.stop="applyGrossTotal(item.entry, $event)">
+                      <ArrowPathIcon v-if="grossSaving.has(item.entry.id)" class="h-4 w-4 animate-spin" aria-hidden="true" />
+                      <CheckIcon v-else class="h-4 w-4" aria-hidden="true" />
                     </button>
-                    <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
-                      @click.stop="cancelGrossEdit(item.entry.id)">
-                      <XMarkIcon class="w-3.5 h-3.5" />
+                    <button type="button" :class="QUICK_BTN" :aria-label="t('common.cancel')" @click.stop="cancelGrossEdit(item.entry.id)">
+                      <XMarkIcon class="h-4 w-4" aria-hidden="true" />
                     </button>
-                    <span v-if="grossError[item.entry.id]" class="text-xs text-red-500 dark:text-red-400">
-                      {{ grossError[item.entry.id] }}
-                    </span>
+                    <span v-if="grossError[item.entry.id]" role="alert" class="text-amber-700 dark:text-amber-400">{{ grossError[item.entry.id] }}</span>
                   </template>
-                  <template v-else-if="item.entry._efficiency != null">
-                    <button type="button"
-                      class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 transition"
-                      @click.stop="startGrossEdit(item.entry, $event)">
-                      <span class="tabular-nums font-medium">{{ item.entry._bruttoSum }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
-                      <span :class="['font-medium', item.entry._efficiency >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400']">· {{ item.entry._efficiency }}% {{ t('dashboard.ac_gross_efficiency') }}</span>
-                      <PencilSquareIcon class="w-3 h-3 text-gray-400" />
-                    </button>
-                  </template>
-                  <template v-else-if="item.entry._totalMissingKwh != null">
-                    <button type="button"
-                      class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 transition"
-                      @click.stop="startGrossEdit(item.entry, $event)">
-                      <span class="tabular-nums font-medium">{{ item.entry._totalMissingKwh }} kWh {{ t(item.entry._missingLabel) }}</span>
-                      <PencilSquareIcon class="w-3 h-3 text-gray-400" />
-                    </button>
-                  </template>
-                  <template v-else>
-                    <button type="button"
-                      class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-blue-500 transition"
-                      @click.stop="startGrossEdit(item.entry, $event)">
-                      <PlusIcon class="w-3.5 h-3.5" />
-                      {{ t(item.entry._addMissingLabel) }}
-                    </button>
-                  </template>
+                  <button v-else-if="item.entry._efficiency != null" type="button" class="inline-flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-gray-100" @click.stop="startGrossEdit(item.entry, $event)">
+                    <span>{{ formatDecimal(Number(item.entry._bruttoSum), 1) }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
+                    <span>&middot; {{ item.entry._efficiency }} % {{ t('dashboard.ac_gross_efficiency') }}</span>
+                    <PencilSquareIcon class="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                  <button v-else-if="item.entry._totalMissingKwh != null" type="button" class="inline-flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-gray-100" @click.stop="startGrossEdit(item.entry, $event)">
+                    <span>{{ formatDecimal(Number(item.entry._totalMissingKwh), 1) }} kWh {{ t(item.entry._missingLabel) }}</span>
+                    <PencilSquareIcon class="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                  <button v-else type="button" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-gray-100" @click.stop="startGrossEdit(item.entry, $event)">
+                    <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />{{ t(item.entry._addMissingLabel) }}
+                  </button>
                 </div>
 
-                <!-- Top-Up rows -->
-                <Transition name="slide-down">
-                  <div v-if="expandedGroups.has(item.entry.id)" class="bg-blue-50/30 dark:bg-blue-950/20">
-                    <template v-for="topUp in item.entry._topUps" :key="topUp.id + '__d'">
-                    <div
-                      :class="[FEED_GRID_COLS, 'items-start px-3 py-1.5 border-t border-blue-200/40 dark:border-blue-800/30 hover:bg-blue-50/60 dark:hover:bg-blue-900/20 transition']">
-                      <div class="flex items-center gap-1.5 pl-4 text-gray-500 text-xs pt-0.5">└</div>
+                <!-- Teilladungen im Raster -->
+                <Collapse :open="expandedGroups.has(item.entry.id)">
+                  <div class="border-t border-gray-100 dark:border-gray-700/70">
+                    <div v-for="topUp in item.entry._topUps" :key="topUp.id + '__d'"
+                      :class="[FEED_GRID_COLS, 'items-center border-t border-gray-100 px-4 py-1.5 text-[13px] tabular-nums first:border-t-0 dark:border-gray-700/70']">
+                      <div class="pl-9 text-[12px] text-gray-400 dark:text-gray-500" aria-hidden="true">&#9492;</div>
                       <div class="whitespace-nowrap">
-                        <div class="text-sm font-medium text-blue-700 dark:text-blue-300">+{{ topUp.kwhAtVehicle ?? topUp.kwhCharged ?? '-' }} kWh</div>
-                        <div v-if="topUp.kwhCharged != null && topUp.kwhAtVehicle != null"
-                          class="text-xs text-gray-400 dark:text-gray-500">
-                          {{ topUp.kwhCharged }} kWh {{ t('dashboard.ac_gross_label_brutto') }} · <span :class="chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle)! >= 90 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'">{{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }}%</span>
+                        <div class="font-semibold text-gray-800 dark:text-gray-100">+{{ formatDecimal(Number(topUp.kwhAtVehicle ?? topUp.kwhCharged ?? 0), 1) }} kWh</div>
+                        <div v-if="topUp.kwhCharged != null && topUp.kwhAtVehicle != null" class="text-[11.5px] text-gray-500 dark:text-gray-400">
+                          {{ formatDecimal(Number(topUp.kwhCharged), 1) }} kWh {{ t('dashboard.ac_gross_label_brutto') }} &middot; {{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }} %
                         </div>
                       </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap truncate pt-0.5 flex items-center gap-1.5">
+                      <div class="flex min-w-0 items-center gap-2 whitespace-nowrap text-gray-600 dark:text-gray-300">
                         <span class="truncate">
                           <template v-if="item.entry._spansMultipleDays">{{ formatLogDate(topUp.loggedAt) }}</template>
-                          <template v-else><ClockIcon class="w-3 h-3 inline-block mr-0.5 -mt-0.5" />{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
+                          <template v-else>{{ new Date(topUp.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}</template>
                         </span>
-                        <button
-                          v-if="((topUp.hasPowerCurve && authStore.canViewLiveAnalytics) || (topUp.hasSocCurve && authStore.canViewSocCurve))"
-                          type="button"
-                          @click.stop="openPowerCurve(topUp)"
-                          :aria-label="t('dashboard.show_power_curve')"
-                          aria-haspopup="dialog"
-                          class="p-0.5 rounded text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100/40 dark:hover:bg-emerald-900/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
-                        >
-                          <ChartBarSquareIcon class="w-4 h-4" />
+                        <button v-if="(topUp.hasPowerCurve && authStore.canViewLiveAnalytics) || (topUp.hasSocCurve && authStore.canViewSocCurve)" type="button"
+                          @click.stop="openPowerCurve(topUp)" :aria-label="t('dashboard.show_power_curve')" aria-haspopup="dialog"
+                          class="inline-flex items-center gap-1 rounded font-semibold text-gray-700 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-200">
+                          <ChartBarSquareIcon class="h-4 w-4" aria-hidden="true" />{{ t('dashboard.power_curve_label') }}
                         </button>
                       </div>
-                      <div class="text-gray-400 dark:text-gray-600 text-xs pt-0.5">-</div>
-                      <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap pt-0.5">
+                      <div :class="EMPTY_CELL">-</div>
+                      <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
                         <template v-if="topUp.socAfterChargePercent != null">{{ formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent) }}</template>
-                        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                        <span v-else :class="EMPTY_CELL">-</span>
                       </div>
-                      <div class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap pt-0.5">
-                        <template v-if="topUp.maxChargingPowerKw">{{ topUp.maxChargingPowerKw }} kW</template>
-                        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                      <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                        <template v-if="topUp.maxChargingPowerKw">max {{ formatDecimal(Number(topUp.maxChargingPowerKw), 0) }} kW</template>
+                        <span v-else :class="EMPTY_CELL">-</span>
                       </div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400 pt-0.5">
-                        <template v-if="topUp.chargeDurationMinutes">{{ topUp.chargeDurationMinutes }}min</template>
-                        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+                      <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                        <template v-if="topUp.chargeDurationMinutes">{{ formatPauseDuration(topUp.chargeDurationMinutes) }}</template>
+                        <span v-else :class="EMPTY_CELL">-</span>
                       </div>
-                      <div class="pt-0.5">
-                        <span v-if="topUp.temperatureCelsius != null"
-                          :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(topUp.temperatureCelsius)]">
-                          <SunIcon class="w-3 h-3" />{{ topUp.temperatureCelsius.toFixed(1) }}°C
+                      <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+                        <template v-if="topUp.temperatureCelsius != null">{{ formatDecimal(Number(topUp.temperatureCelsius), 0) }} °C</template>
+                        <span v-else :class="EMPTY_CELL">-</span>
+                      </div>
+                      <!-- Jede Teilladung zeigt ihren eigenen Preis-Status. -->
+                      <div class="flex justify-end whitespace-nowrap">
+                        <span v-if="topUp.costEur != null && costBasisKwh(topUp)">
+                          <b class="font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(topUp.costEur) }}</b>
+                          <span class="ml-1 text-[12px] text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(topUp.costEur / costBasisKwh(topUp)!) }}</span>
                         </span>
-                        <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
-                      </div>
-                      <!-- Jede Teilladung zeigt ihren eigenen Preis-Status - sonst bleibt
-                           unsichtbar, welche Teilladung im Gruppenpreis ueberhaupt steckt. -->
-                      <div class="flex justify-end pt-0.5">
-                        <span v-if="topUp.costEur != null && costBasisKwh(topUp)"
-                          :class="['inline-flex items-center px-2 py-0.5 text-xs rounded-full font-medium whitespace-nowrap cursor-pointer',
-                                   isNettoOnlyCostLog(topUp) ? 'border border-dashed' : 'border',
-                                   showCostAbsolute
-                                     ? 'bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'
-                                     : (costBadgeClass(topUp.costEur, costBasisKwh(topUp)) ?? 'bg-green-50 border-green-200 text-green-700')]"
-                          @click.stop="showCostAbsolute = !showCostAbsolute">
-                          <template v-if="showCostAbsolute">{{ formatCurrency(topUp.costEur) }}</template>
-                          <template v-else>{{ formatCostPerKwh(topUp.costEur / costBasisKwh(topUp)!) }}</template>
-                        </span>
-                        <button v-else-if="costBasisKwh(topUp)"
-                          type="button" data-testid="topup-price-chip"
-                          :aria-label="t('priceamend.chip_aria')"
-                          @click.stop="priceAmendingLog = topUp"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/60 cursor-pointer transition-colors whitespace-nowrap">
-                          <ExclamationTriangleIcon class="w-3 h-3" aria-hidden="true" />
+                        <button v-else-if="costBasisKwh(topUp)" type="button" data-testid="topup-price-chip"
+                          :aria-label="t('priceamend.chip_aria')" :class="PRICE_CHIP" @click.stop="priceAmendingLog = topUp">
                           {{ t('priceamend.chip') }}
                           <WattBadge :amount="wattPossibleForLog(coinStore.catalog, topUp)" up-to />
                         </button>
-                        <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
+                        <span v-else :class="EMPTY_CELL">-</span>
                       </div>
-                      <div class="flex justify-end relative">
-                        <button type="button"
-                          @click.stop="openMenuTopUpId = openMenuTopUpId === topUp.id + '__d' ? null : topUp.id + '__d'"
-                          class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                          :aria-label="t('dashboard.action_menu_label') || 'Aktionen'"
-                          aria-haspopup="menu"
-                          :aria-expanded="openMenuTopUpId === topUp.id + '__d'">
-                          <EllipsisVerticalIcon class="w-4 h-4" aria-hidden="true" />
-                        </button>
-                        <div v-if="openMenuTopUpId === topUp.id + '__d'"
-                          role="menu"
-                          class="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-700 rounded-sm shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] border border-gray-200 dark:border-gray-600 z-50 py-1 overflow-hidden">
-                          <button role="menuitem" type="button" @click.stop="editingLog = topUp; openMenuTopUpId = null"
-                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                            <PencilSquareIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_edit') }}
-                          </button>
-                          <button role="menuitem" type="button" @click.stop="openMergeModal(topUp); openMenuTopUpId = null"
-                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                            <LinkIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_merge') }}
-                          </button>
-                          <button v-if="otherCars.length > 0" role="menuitem" type="button" @click.stop="openReassignModal(topUp); openMenuTopUpId = null"
-                            class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-gray-600">
-                            <ArrowsRightLeftIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
-                          </button>
-                          <div class="border-t border-gray-100 dark:border-gray-600 mt-1 pt-1">
-                            <button role="menuitem" type="button" @click.stop="deleteLog(topUp.id); openMenuTopUpId = null"
-                              class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition focus:outline-none focus-visible:bg-red-50 dark:focus-visible:bg-red-900/30">
-                              <TrashIcon class="w-4 h-4 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.action_delete') }}
-                            </button>
-                          </div>
-                        </div>
+                      <div class="flex justify-end">
+                        <FeedActionMenu placement="up" v-slot="{ close }">
+                          <FeedMenuItem :icon="PencilSquareIcon" @click="editingLog = topUp; close()">{{ t('dashboard.action_edit') }}</FeedMenuItem>
+                          <FeedMenuItem :icon="LinkIcon" @click="openMergeModal(topUp); close()">{{ t('dashboard.action_merge') }}</FeedMenuItem>
+                          <FeedMenuItem v-if="otherCars.length > 0" :icon="ArrowsRightLeftIcon" @click="openReassignModal(topUp); close()">{{ t('dashboard.action_reassign') }}</FeedMenuItem>
+                          <FeedMenuItem :icon="TrashIcon" separated @click="deleteLog(topUp.id); close()">{{ t('dashboard.action_delete') }}</FeedMenuItem>
+                        </FeedActionMenu>
                       </div>
                     </div>
-                    </template>
                     <!-- Ein Hinweis pro Gruppe statt eines Schlosses je Teilladung -->
-                    <button
-                      v-if="!authStore.canViewLiveAnalytics && purchasesAvailable() && curveTopUpCount(item.entry) > 0"
-                      type="button"
-                      aria-haspopup="dialog"
-                      class="w-full flex items-center gap-1.5 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-inset"
-                      @click.stop="openPowerCurve(firstCurveTopUp(item.entry))"
-                    >
-                      <ChartBarSquareIcon class="w-4 h-4 flex-shrink-0" />
-                      <span>{{ curveTopUpCount(item.entry) === 1 ? t('dashboard.power_curve_group_locked_one') : t('dashboard.power_curve_group_locked', { count: curveTopUpCount(item.entry) }) }}</span>
-                      <LockClosedIcon class="w-3 h-3 flex-shrink-0 opacity-70" />
+                    <button v-if="!authStore.canViewLiveAnalytics && purchasesAvailable() && curveTopUpCount(item.entry) > 0" type="button" aria-haspopup="dialog"
+                      class="flex w-full items-center gap-1.5 border-t border-gray-100 px-4 py-2 pl-[72px] text-left text-[13px] font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-story-accent dark:border-gray-700/70 dark:text-gray-200 dark:hover:bg-white/5"
+                      @click.stop="openPowerCurve(firstCurveTopUp(item.entry))">
+                      <ChartBarSquareIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
+                      <span class="underline decoration-gray-300 underline-offset-4">{{ curveTopUpCount(item.entry) === 1 ? t('dashboard.power_curve_group_locked_one') : t('dashboard.power_curve_group_locked', { count: curveTopUpCount(item.entry) }) }}</span>
+                      <LockClosedIcon class="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                     </button>
                   </div>
-                </Transition>
+                </Collapse>
               </div>
 
               <!-- CHARGE ENTRY (Handy): Zeile wie im Story-Tagesblatt; Antippen klappt Details und Aktionen auf. -->
@@ -2960,29 +2668,29 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
             </template>
           </div>
           <!-- Monatsweise weiter zurueck, statt eines festen Seitenendes - in jeder Darstellung. -->
-          <div v-if="hasAnyLogs" class="mt-4 flex items-center gap-4">
-            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
-            <button type="button" data-testid="logfeed-load-older" :disabled="logsLoading" @click="loadOlderFeed()"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs md:text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 transition">
-              <ChevronDownIcon class="w-4 h-4 opacity-60" />
+          <div v-if="hasAnyLogs" class="mt-5 flex justify-center">
+            <button type="button" data-testid="logfeed-load-older" :disabled="logsLoading" @click="loadOlderFeed()" :class="[FEED_TEXT_BTN, 'disabled:opacity-50']">
+              <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
               {{ t('logs.load_older', { month: nextOlderMonthLabel }) }}
             </button>
-            <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
           </div>
 
-          <!-- Papierkorb: unaufdringlicher Einstieg, die Liste lädt erst beim Öffnen -->
+          <!-- Papierkorb: unaufdringlicher Einstieg, die Liste laedt erst beim Oeffnen -->
           <button type="button" data-testid="deleted-logs-row"
             @click="openDeletedSheet"
-            class="mt-4 w-full min-h-11 flex items-center gap-3 px-3 py-2 rounded-sm text-left text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-400">
-            <TrashIcon class="w-5 h-5 flex-shrink-0 opacity-70" aria-hidden="true" />
-            <span class="min-w-0">
-              <span class="block text-sm font-medium">{{ t('logs.trash.row') }}</span>
-              <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('logs.trash.hint') }}</span>
+            class="group mt-6 flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:hover:bg-white/5">
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300">
+              <TrashIcon class="h-[18px] w-[18px]" aria-hidden="true" />
             </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[14px] font-semibold text-gray-900 dark:text-gray-100">{{ t('logs.trash.row') }}</span>
+              <span class="block text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('logs.trash.hint') }}</span>
+            </span>
+            <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
           </button>
 
-          <!-- Consumption info accordion (positioned below the list as user reference material) -->
-          <ConsumptionInfoBox :min-trips="5" class="mt-6" />
+          <!-- Erklaerung der Verbrauchsberechnung als Nachschlagestoff unter der Liste -->
+          <ConsumptionInfoBox :min-trips="5" class="mt-2" />
         </div>
 
         </div>
@@ -3019,53 +2727,39 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
     @updated="() => { fetchPricelessCount(); refreshLogsAndGroups() }"
   />
 
-  <!-- Fahrzeug-Zuordnung Modal -->
-  <Teleport to="body">
-    <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-      <div v-if="reassignModalEntry" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" @click.self="reassignModalEntry = null">
-        <div class="absolute inset-0 bg-black/40" @click="reassignModalEntry = null" />
-        <div class="relative w-full sm:max-w-sm bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] p-6 space-y-5">
-          <div>
-            <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.reassign_car') }}</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              <template v-if="reassignModalEntry?._isLadegruppe">{{ t('dashboard.reassign_car_hint_group', { count: reassignModalEntry._topUps?.length ?? 0 }) }}</template>
-              <template v-else>{{ t('dashboard.reassign_car_hint') }}</template>
-            </p>
-          </div>
-
-          <div class="space-y-2">
-            <button
-              v-for="car in otherCars"
-              :key="car.id"
-              @click="reassignSelectedCarId = car.id; reassignError = null"
-              :class="['w-full flex items-center gap-3 p-3 rounded-sm border-2 transition text-left',
-                       reassignSelectedCarId === car.id
-                         ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
-                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500']">
-              <TruckIcon class="w-5 h-5 flex-shrink-0" :class="reassignSelectedCarId === car.id ? 'text-indigo-600' : 'text-gray-400'" />
-              <span class="font-medium text-gray-800 dark:text-gray-200">{{ carDisplayName(car) }}</span>
-              <div v-if="reassignSelectedCarId === car.id" class="ml-auto w-4 h-4 rounded-full bg-indigo-500 flex-shrink-0" />
-            </button>
-          </div>
-
-          <p v-if="reassignError" class="text-sm text-red-600 dark:text-red-400">{{ reassignError }}</p>
-
-          <div class="flex gap-3 pt-1">
-            <button @click="reassignModalEntry = null"
-              class="flex-1 px-4 py-2.5 rounded-sm border border-gray-200 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-              {{ t('common.cancel') }}
-            </button>
-            <button @click="doSaveReassign"
-              :disabled="!reassignSelectedCarId || reassignSaving"
-              class="flex-1 px-4 py-2.5 rounded-sm text-sm font-medium text-white transition disabled:opacity-40"
-              :class="reassignSelectedCarId ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-300 dark:bg-gray-600'">
-              {{ reassignSaving ? t('common.saving') : t('common.save') }}
-            </button>
-          </div>
-        </div>
+  <!-- Fahrzeug-Zuordnung: Sheet mit Kante wie die Story-Sheets (App-CI) -->
+  <BottomSheet v-if="reassignModalEntry" ref="reassignSheet" edge :label="t('dashboard.reassign_car')" panel-class="sm:max-w-sm"
+    testid="reassign-sheet" @close="reassignModalEntry = null">
+    <div class="grid gap-5 p-5">
+      <div>
+        <h3 class="text-[17px] font-bold text-gray-900 dark:text-gray-50">{{ t('dashboard.reassign_car') }}</h3>
+        <p class="mt-1 text-[14px] text-gray-600 dark:text-gray-300">
+          <template v-if="reassignModalEntry?._isLadegruppe">{{ t('dashboard.reassign_car_hint_group', { count: reassignModalEntry._topUps?.length ?? 0 }) }}</template>
+          <template v-else>{{ t('dashboard.reassign_car_hint') }}</template>
+        </p>
       </div>
-    </Transition>
-  </Teleport>
+      <div role="radiogroup" :aria-label="t('dashboard.reassign_car')" class="grid gap-2">
+        <button v-for="car in otherCars" :key="car.id" type="button" role="radio" :aria-checked="reassignSelectedCarId === car.id"
+          @click="reassignSelectedCarId = car.id; reassignError = null"
+          class="flex min-h-12 w-full items-center gap-3 rounded-xl border-2 px-3 text-left transition-colors"
+          :class="reassignSelectedCarId === car.id ? 'border-gray-900 bg-gray-50 dark:border-gray-100 dark:bg-white/10' : 'border-gray-200 hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500'">
+          <TruckIcon class="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ carDisplayName(car) }}</span>
+          <CheckIcon v-if="reassignSelectedCarId === car.id" class="ml-auto h-5 w-5 shrink-0 text-gray-900 dark:text-gray-100" aria-hidden="true" />
+        </button>
+      </div>
+      <p v-if="reassignError" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">{{ reassignError }}</p>
+      <div class="flex gap-2">
+        <button type="button" class="min-h-12 flex-1 rounded-xl px-3 text-[15px] font-semibold text-gray-600 dark:text-gray-300" @click="reassignSheet?.requestClose()">
+          {{ t('common.cancel') }}
+        </button>
+        <button type="button" :disabled="!reassignSelectedCarId || reassignSaving" @click="doSaveReassign"
+          class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white disabled:opacity-40">
+          {{ reassignSaving ? t('common.saving') : t('common.save') }}
+        </button>
+      </div>
+    </div>
+  </BottomSheet>
 
   <MergeLogModal
     v-if="mergeModalEntry"

@@ -840,6 +840,9 @@ logs:
     empty: "No deleted charging sessions."
   title: "Charges & Trips"
   load_older: "Load older ({month})"
+  empty_title: "Your charges and trips appear here once you record the first one."
+  empty_cta: "Record a charge"
+  toggle_odometer: "Switch between distance since the last charge and odometer"
   consumption_estimated_title: "Estimate: from charged energy and distance, because the battery level is missing."
   consumption_soc_delta_title: "Approximation: from the change in battery level, without directly measured kWh."
   group_max_soc: "up to {soc} %"
@@ -850,7 +853,7 @@ logs:
     supporter: "{pack}: charging curves, standby losses and trips in detail"
     autosync: "{product} records your charges automatically, no typing"
     live: "{product}: trips, charging curves and standby losses automatically"
-  empty_window: "No charges or trips in the selected period."
+  empty_window: "Choose a longer period above or load older entries."
   expand_all: "Expand all"
   collapse_all: "Collapse all"
   resolution:

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { EllipsisVerticalIcon } from '@heroicons/vue/24/outline'
 
@@ -13,10 +13,17 @@ withDefaults(defineProps<{ placement?: 'up' | 'down' }>(), { placement: 'down' }
 const open = ref(false)
 const { t } = useI18n()
 function close() { open.value = false }
+// Escape schliesst auch, wenn der Fokus nicht im Menue liegt (Paritaet zum Tippen daneben).
+function onKey(e: KeyboardEvent) { if (e.key === 'Escape') close() }
+watch(open, (isOpen) => {
+  if (isOpen) window.addEventListener('keydown', onKey)
+  else window.removeEventListener('keydown', onKey)
+})
+onUnmounted(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <template>
-  <div class="relative" @click.stop @mousedown.stop @keydown.esc="close">
+  <div class="relative" @click.stop @mousedown.stop>
     <button type="button" :aria-label="t('dashboard.action_menu_label') || 'Aktionen'" aria-haspopup="menu" :aria-expanded="open"
       class="grid h-10 w-10 place-items-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-gray-100"
       @click="open = !open">

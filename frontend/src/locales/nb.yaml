@@ -800,6 +800,9 @@ logs:
     empty: "Ingen slettede ladesesjoner."
   title: Ladinger og turer
   load_older: "Last eldre ({month})"
+  empty_title: "Her vises ladingene og turene dine når du registrerer den første."
+  empty_cta: "Registrer lading"
+  toggle_odometer: "Bytt mellom strekning siden forrige lading og kilometerstand"
   consumption_estimated_title: "Anslag: fra ladet energi og strekning, fordi batterinivået mangler."
   consumption_soc_delta_title: "Tilnærming: fra endringen i batterinivå, uten direkte målte kWh."
   group_max_soc: "til {soc} %"
@@ -810,7 +813,7 @@ logs:
     supporter: "{pack}: ladekurver, tap i ro og turer i detalj"
     autosync: "{product} registrerer ladingene dine automatisk, uten inntasting"
     live: "{product}: turer, ladekurver og tap i ro automatisk"
-  empty_window: "Ingen ladinger eller turer i valgt periode."
+  empty_window: "Velg en lengre periode over eller last eldre oppføringer."
   expand_all: "Vis alle"
   collapse_all: "Skjul alle"
   resolution:

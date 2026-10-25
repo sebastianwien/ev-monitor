@@ -800,6 +800,9 @@ logs:
     empty: "Inga raderade laddningssessioner."
   title: Laddningar & resor
   load_older: "Ladda äldre ({month})"
+  empty_title: "Här visas dina laddningar och resor när du registrerar den första."
+  empty_cta: "Registrera laddning"
+  toggle_odometer: "Växla mellan sträcka sedan senaste laddningen och mätarställning"
   consumption_estimated_title: "Uppskattning: från laddad energi och sträcka, eftersom batterinivån saknas."
   consumption_soc_delta_title: "Närmevärde: från ändringen i batterinivå, utan direkt uppmätta kWh."
   group_max_soc: "till {soc} %"
@@ -810,7 +813,7 @@ logs:
     supporter: "{pack}: laddkurvor, viloförluster och resor i detalj"
     autosync: "{product} registrerar dina laddningar automatiskt, utan inmatning"
     live: "{product}: resor, laddkurvor och viloförluster automatiskt"
-  empty_window: "Inga laddningar eller resor under vald period."
+  empty_window: "Välj en längre period ovan eller ladda äldre poster."
   expand_all: "Visa alla"
   collapse_all: "Dölj alla"
   resolution:

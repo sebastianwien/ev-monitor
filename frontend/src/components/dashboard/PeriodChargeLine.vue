@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, ChartBarSquareIcon, ChevronDownIcon, ChevronUpIcon, ClockIcon, CreditCardIcon, LockClosedIcon, PencilSquareIcon, SunIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ChartBarSquareIcon, ChevronDownIcon, CreditCardIcon, LockClosedIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import { normalizeCharge } from '../../utils/recentActivity'
-import ChargeTypeBadge from './ChargeTypeBadge.vue'
 import ComparisonChip from './ComparisonChip.vue'
 import { FEED_GRID_COLS } from './feedGridCols'
 import { useAuthStore } from '../../stores/auth'
@@ -13,7 +12,6 @@ import { formatSocRange } from '../../utils/socRange'
 import FeedEventRow from './FeedEventRow.vue'
 import Collapse from '../shared/Collapse.vue'
 import { chargeGroupTimeRange, chargeTimeColumn, chargeTimeRange, formatPauseDuration } from '../../utils/tripTimeFormat'
-import { tempBadgeClass } from '../../utils/temperatureColor'
 import { purchasesAvailable } from '../../utils/iapPolicy'
 
 /**
@@ -134,125 +132,110 @@ const place = computed(() => {
 </script>
 
 <template>
-  <!-- Desktop: einzeilige Row im geteilten Spaltenraster, Spalte fuer Spalte wie die Fahrt.
-       Indigo ist die Ladungs-Identitaet des Feeds (+kWh, DC) - der Akzentbalken traegt die
-       Unterscheidung, damit die Flaeche auch im Dark Mode dezent bleiben darf. -->
-  <!-- -ml-1 zieht die Zeile ueber den 4px-Emerald-Rand des Gruppencontainers, sodass der
-       indigo Balken ihn unterbricht statt daneben zu stehen. -->
-  <div v-if="layout === 'row'"
-    class="tabular-nums -ml-1 bg-indigo-100/80 dark:bg-indigo-900/40 border-t border-indigo-300/70 dark:border-indigo-700/50
-           border-l-4 border-l-indigo-500 dark:border-l-indigo-400
-           hover:bg-indigo-200/70 dark:hover:bg-indigo-900/60 transition">
-    <div :class="[FEED_GRID_COLS, 'items-center px-3 py-1.5']">
-      <div class="flex items-center gap-1.5 pl-4">
-        <BoltIcon class="w-4 h-4 text-indigo-500 dark:text-indigo-400 flex-shrink-0" aria-hidden="true" />
-        <span v-if="isGroup" class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-medium whitespace-nowrap">{{ count }}×</span>
-      </div>
-      <div class="text-[13px] text-gray-900 dark:text-gray-100 whitespace-nowrap truncate">{{ time }}</div>
-      <div class="flex items-center gap-1.5 whitespace-nowrap">
-        <span v-if="kwh != null" class="text-sm font-medium text-indigo-700 dark:text-indigo-300">+{{ formatDecimal(Number(kwh)) }} kWh</span>
-        <span v-else class="text-gray-400 dark:text-gray-600 text-sm">-</span>
-        <ChargeTypeBadge :type="entry.chargingType" />
-      </div>
-      <div class="text-xs whitespace-nowrap">
-        <span v-if="costEur != null" class="text-slate-700 dark:text-gray-200">{{ formatCurrency(costEur) }}</span>
-        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
-      </div>
-      <div class="text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap">
-        <template v-if="socRange">{{ socRange }}</template>
-        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
-      </div>
-      <div class="text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap text-center">
-        <template v-if="maxPower">max {{ maxPower }} kW</template>
-        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
-      </div>
-      <div class="text-xs text-slate-700 dark:text-gray-200 whitespace-nowrap">
-        <template v-if="duration">{{ duration }}</template>
-        <span v-else class="text-gray-400 dark:text-gray-600">-</span>
-      </div>
-      <div>
-        <span v-if="entry.temperatureCelsius != null"
-          :class="['inline-flex items-center gap-0.5 px-2 py-0.5 border rounded text-xs whitespace-nowrap', tempBadgeClass(entry.temperatureCelsius)]">
-          <SunIcon class="w-3 h-3" />{{ entry.temperatureCelsius }}°C
+  <!-- Desktop: einzeilige Rasterzeile im geteilten Spaltenraster, Spalte fuer Spalte wie die Fahrt.
+       App-CI: neutral auf Weiss, der gruene Kreis traegt die Unterscheidung zur Fahrt. -->
+  <div v-if="layout === 'row'" class="border-t border-gray-100 tabular-nums dark:border-gray-700/70">
+    <div :class="[FEED_GRID_COLS, 'items-center px-4 py-2 text-[13px]']">
+      <div class="flex items-center gap-1.5">
+        <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
+          <BoltIcon class="h-3.5 w-3.5" aria-hidden="true" />
         </span>
-        <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
+        <span v-if="isGroup" class="text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ count }}&times;</span>
+      </div>
+      <div class="truncate whitespace-nowrap font-semibold text-gray-900 dark:text-gray-100">{{ time }}</div>
+      <div class="flex items-center gap-1.5 whitespace-nowrap">
+        <span v-if="kwh != null" class="font-semibold text-gray-900 dark:text-gray-100">+{{ formatDecimal(Number(kwh)) }} kWh</span>
+        <span v-else class="text-gray-300 dark:text-gray-600">-</span>
+        <span v-if="entry.chargingType === 'AC' || entry.chargingType === 'DC'" class="text-[11.5px] font-semibold text-gray-500 dark:text-gray-400">{{ entry.chargingType }}</span>
+      </div>
+      <div class="whitespace-nowrap">
+        <span v-if="costEur != null" class="font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(costEur) }}</span>
+        <span v-else class="text-gray-300 dark:text-gray-600">-</span>
+      </div>
+      <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+        <template v-if="socRange">{{ socRange }}</template>
+        <span v-else class="text-gray-300 dark:text-gray-600">-</span>
+      </div>
+      <div class="whitespace-nowrap text-center text-gray-600 dark:text-gray-300">
+        <template v-if="maxPower">max {{ formatDecimal(Number(maxPower), 0) }} kW</template>
+        <span v-else class="text-gray-300 dark:text-gray-600">-</span>
+      </div>
+      <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+        <template v-if="duration">{{ duration }}</template>
+        <span v-else class="text-gray-300 dark:text-gray-600">-</span>
+      </div>
+      <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
+        <template v-if="entry.temperatureCelsius != null">{{ formatDecimal(Number(entry.temperatureCelsius), 0) }} °C</template>
+        <span v-else class="text-gray-300 dark:text-gray-600">-</span>
       </div>
       <div class="flex justify-end whitespace-nowrap">
         <ComparisonChip v-if="costPerKwh != null" :level="costLevel" :tooltip="costTooltip" :delta-percent="costDelta">
           {{ formatCostPerKwh(costPerKwh) }}
         </ComparisonChip>
-        <span v-else class="text-gray-400 dark:text-gray-600 text-xs">-</span>
+        <span v-else class="text-gray-300 dark:text-gray-600">-</span>
       </div>
-      <div class="flex justify-end items-center gap-0.5">
+      <div class="flex items-center justify-end">
         <button v-if="isGroup" type="button" @click.stop="expanded = !expanded"
-          class="p-1 rounded text-indigo-400 dark:text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          class="grid h-8 w-8 place-items-center rounded-full text-gray-500 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-400 dark:hover:bg-white/10"
           :aria-expanded="expanded" :aria-label="t('logs.period.charge_toggle_topups')">
-          <ChevronUpIcon v-if="expanded" class="w-4 h-4" aria-hidden="true" />
-          <ChevronDownIcon v-else class="w-4 h-4" aria-hidden="true" />
+          <ChevronDownIcon class="h-4 w-4 transition-transform duration-300 ease-out" :class="expanded ? 'rotate-180' : ''" aria-hidden="true" />
         </button>
-        <!-- Einzelladung: direkt editierbar. Gruppe: nur je Teilladung im Aufklapp, denn eine
-             Gruppe ist kein einzelner Log. -->
-        <button v-if="!isGroup" type="button" @click.stop="emit('edit', entry)"
-          class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+        <!-- Einzelladung: direkt editierbar. Gruppe: nur je Teilladung im Aufklapp. -->
+        <button v-else type="button" @click.stop="emit('edit', entry)"
+          class="grid h-8 w-8 place-items-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-400 dark:hover:bg-white/10"
           :aria-label="t('dashboard.action_edit')">
-          <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
+          <PencilSquareIcon class="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
     </div>
 
     <!-- Teilladungen der Gruppe, aufgeklappt: eine Unterzeile je Ladung mit Uhrzeit und kWh. -->
-    <div v-if="isGroup && expanded" class="bg-indigo-50/40 dark:bg-indigo-950/20">
+    <Collapse v-if="isGroup" :open="expanded">
       <div v-for="topUp in topUps" :key="topUp.id + '__pc'"
-        :class="[FEED_GRID_COLS, 'items-center px-3 py-1 border-t border-indigo-200/40 dark:border-indigo-800/30']">
-        <div class="flex items-center gap-1.5 pl-4 text-gray-400 dark:text-gray-500 text-xs">└</div>
-        <div class="text-[13px] text-gray-600 dark:text-gray-300 whitespace-nowrap truncate flex items-center gap-1">
-          <ClockIcon class="w-3 h-3 flex-shrink-0" aria-hidden="true" />{{ topUpTime(topUp) }}
-        </div>
-        <div class="text-sm font-medium text-indigo-700 dark:text-indigo-300 whitespace-nowrap">
+        :class="[FEED_GRID_COLS, 'items-center border-t border-gray-100 px-4 py-1 text-[13px] dark:border-gray-700/70']">
+        <div class="pl-9 text-[12px] text-gray-400 dark:text-gray-500" aria-hidden="true">&#9492;</div>
+        <div class="truncate whitespace-nowrap text-gray-600 dark:text-gray-300">{{ topUpTime(topUp) }}</div>
+        <div class="whitespace-nowrap font-semibold text-gray-800 dark:text-gray-100">
           +{{ formatDecimal(Number(topUp.kwhAtVehicle ?? topUp.kwhCharged ?? 0)) }} kWh
         </div>
-        <div class="text-xs whitespace-nowrap">
-          <span v-if="topUp.costEur != null" class="text-slate-600 dark:text-gray-300">{{ formatCurrency(topUp.costEur) }}</span>
-          <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+        <div class="whitespace-nowrap">
+          <span v-if="topUp.costEur != null" class="text-gray-700 dark:text-gray-300">{{ formatCurrency(topUp.costEur) }}</span>
+          <span v-else class="text-gray-300 dark:text-gray-600">-</span>
         </div>
-        <div class="text-xs text-slate-600 dark:text-gray-300 whitespace-nowrap">
+        <div class="whitespace-nowrap text-gray-600 dark:text-gray-300">
           {{ formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent) || '-' }}
         </div>
-        <div class="text-xs text-slate-600 dark:text-gray-300 whitespace-nowrap text-center">
-          <template v-if="topUp.maxChargingPowerKw">max {{ topUp.maxChargingPowerKw }} kW</template>
-          <span v-else class="text-gray-400 dark:text-gray-600">-</span>
+        <div class="whitespace-nowrap text-center text-gray-600 dark:text-gray-300">
+          <template v-if="topUp.maxChargingPowerKw">max {{ formatDecimal(Number(topUp.maxChargingPowerKw), 0) }} kW</template>
+          <span v-else class="text-gray-300 dark:text-gray-600">-</span>
         </div>
-        <div class="text-gray-400 dark:text-gray-600 text-xs">-</div>
+        <div class="text-gray-300 dark:text-gray-600">-</div>
         <div></div>
         <div></div>
         <div class="flex justify-end">
           <button type="button" data-testid="period-topup-edit" @click.stop="emit('edit', topUp)"
-            class="p-1 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            class="grid h-8 w-8 place-items-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-400 dark:hover:bg-white/10"
             :aria-label="t('dashboard.action_edit')">
-            <PencilSquareIcon class="w-4 h-4" aria-hidden="true" />
+            <PencilSquareIcon class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>
-    </div>
-    <!-- Ort, Ladekarte und Ladekurve mittig unter der Zeile - das Pendant zur Klimazeile der Fahrten. -->
+    </Collapse>
+    <!-- Ort, Ladekarte und Ladekurve unter der Zeile, ab der Zeitspalte - wie die Klimazeile der Fahrten. -->
     <div v-if="entry.cpoName || cardName || hasCurve"
-      class="px-3 pb-1.5 flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+      class="flex items-center gap-1.5 pb-2 pl-[72px] pr-4 text-[12px] text-gray-500 dark:text-gray-400">
       <span v-if="entry.cpoName" class="truncate">{{ entry.cpoName }}</span>
       <span v-if="entry.cpoName && cardName" aria-hidden="true">&middot;</span>
       <span v-if="cardName" class="inline-flex items-center gap-1 whitespace-nowrap">
-        <CreditCardIcon class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />{{ cardName }}
+        <CreditCardIcon class="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />{{ cardName }}
       </span>
       <span v-if="(entry.cpoName || cardName) && hasCurve" aria-hidden="true">&middot;</span>
-      <!-- Freigeschaltet: oeffnet die Kurve; gesperrt: derselbe Button als Teaser mit Schloss. -->
-      <button v-if="canOpenCurve" type="button" @click.stop="emit('power-curve', entry)"
-        :aria-label="t('dashboard.show_power_curve')" aria-haspopup="dialog"
-        class="inline-flex items-center gap-1 whitespace-nowrap rounded text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400">
-        <ChartBarSquareIcon class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.power_curve_label') }}
-      </button>
-      <button v-else-if="curveLocked" type="button" @click.stop="emit('power-curve', entry)"
-        :aria-label="t('dashboard.power_curve_locked')" :title="t('dashboard.power_curve_locked')" aria-haspopup="dialog"
-        class="inline-flex items-center gap-1 whitespace-nowrap rounded text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
-        <ChartBarSquareIcon class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.power_curve_label') }}<LockClosedIcon class="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+      <button v-if="hasCurve" type="button" @click.stop="emit('power-curve', entry)"
+        :aria-label="canOpenCurve ? t('dashboard.show_power_curve') : t('dashboard.power_curve_locked')"
+        :title="canOpenCurve ? undefined : t('dashboard.power_curve_locked')" aria-haspopup="dialog"
+        class="inline-flex items-center gap-1 whitespace-nowrap rounded font-semibold text-gray-700 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-200 dark:hover:text-gray-50">
+        <ChartBarSquareIcon class="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />{{ t('dashboard.power_curve_label') }}
+        <LockClosedIcon v-if="!canOpenCurve" class="h-3 w-3 flex-shrink-0" aria-hidden="true" />
       </button>
     </div>
   </div>
