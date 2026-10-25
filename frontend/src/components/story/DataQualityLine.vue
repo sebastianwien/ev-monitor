@@ -118,8 +118,8 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
         @click="onClick" @keydown="onKey" @blur="active = null">
         <span v-for="(d, i) in days" :key="d.day" class="flex flex-1 flex-col justify-end gap-[2px]" :class="hasTrips ? 'h-7' : ''">
           <span v-if="hasTrips" class="relative block flex-1">
-            <i v-if="d.trips > 0" data-role="km" class="absolute inset-x-0 bottom-0 rounded-[2px] bg-gray-400 dark:bg-gray-500"
-               :class="active === i ? 'bg-gray-700 dark:bg-gray-300' : ''" :style="{ height: kmHeight(d) }" />
+            <i v-if="d.trips > 0" data-role="km" class="absolute inset-x-0 bottom-0 rounded-[2px]"
+               :class="active === i ? 'bg-sky-700 dark:bg-sky-300' : 'bg-sky-500 dark:bg-sky-400'" :style="{ height: kmHeight(d) }" />
           </span>
           <i data-role="day" class="block h-2.5 rounded-[2px] transition-transform"
              :class="[cellClass(d), active === i ? 'scale-y-[1.4]' : '']" />
@@ -134,7 +134,7 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
       <!-- Legende: nur, was im Monat vorkommt; Amber nur, wenn der Satz eine Lücke nennt -->
       <div data-testid="story-days-legend" class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
         <span class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-green-700 dark:bg-green-400" />{{ t('story.days_legend_charged') }}</span>
-        <span v-if="hasTrips" class="inline-flex items-center gap-1"><i class="h-2.5 w-1.5 rounded-[2px] bg-gray-400 dark:bg-gray-500" />{{ t('story.days_legend_drove') }}</span>
+        <span v-if="hasTrips" class="inline-flex items-center gap-1"><i class="h-2.5 w-1.5 rounded-[2px] bg-sky-500 dark:bg-sky-400" />{{ t('story.days_legend_drove') }}</span>
         <span v-if="gap" class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-amber-400" />{{ t('story.days_legend_gap') }}</span>
       </div>
     </div>
