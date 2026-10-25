@@ -23,6 +23,22 @@ export interface EnergyFlow {
 }
 
 /** Null, wenn der Monat keine Ladung mit Netz- und Fahrzeugwert hat. */
+export interface FlowShare { key: 'home' | 'public' | 'vehicle' | 'loss'; pct: number }
+
+/**
+ * Anteile für den Strom-Balken in ganzen Prozent, Summe 100. Der Rest nach dem Verlust teilt sich
+ * nach Ladeort: die Ortsmengen zählen alle Ladungen, Netz und Verlust nur die gemessenen, deshalb
+ * nur ihr Verhältnis. Ein Ort ohne Strom ist kein Stück; ohne Aufteilung ein Stück "im Akku".
+ */
+export function flowShares(f: EnergyFlow): FlowShare[] {
+  const loss = Math.min(100, Math.max(0, f.lossPercent))
+  const split = f.privateKwh + f.publicKwh
+  if (split <= 0) return [{ key: 'vehicle', pct: 100 - loss }, { key: 'loss', pct: loss }]
+  const home = Math.round((100 - loss) * (f.privateKwh / split))
+  const list: FlowShare[] = [{ key: 'home', pct: home }, { key: 'public', pct: 100 - loss - home }]
+  return [...list.filter(x => x.pct > 0), { key: 'loss', pct: loss }]
+}
+
 export function buildEnergyFlow(stats: StatisticsData): EnergyFlow | null {
   const e = stats.chargingEfficiencySplit
   if (!e || e.coveredLogCount <= 0 || e.gridKwh <= 0) return null

@@ -22,7 +22,11 @@ const label = computed(() => t(`story.q_${props.tile.id}`).replace(/\?$/, ''))
 const value = computed(() => {
   const x = props.tile
   switch (x.id) {
-    case 'cost': return { n: formatCurrency(x.value, { decimals: 0 }).replace(currencySymbol.value, '').trim(), unit: currencySymbol.value }
+    case 'cost': {
+      // Symbol als kleine Einheit hinter der Zahl, ausser die Waehrung schreibt es davor (GBP).
+      const f = formatCurrency(x.value, { decimals: 0 })
+      return f.startsWith(currencySymbol.value) ? { n: f, unit: '' } : { n: f.replace(currencySymbol.value, '').trim(), unit: currencySymbol.value }
+    }
     case 'flow': return { n: formatDecimal(x.value, 0), unit: t('story.flow_unit') }
     case 'range': return { n: formatDecimal(x.value, 0), unit: distanceUnitLabel() }
     case 'wltp': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }

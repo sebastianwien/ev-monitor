@@ -374,8 +374,10 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
     })
   }
 
-  const cheapest = input.whatIf.find(w => !w.isUser)
-  const own = input.whatIf.find(w => w.isUser)
+  // Fremdmodelle erst ab MIN_PEERS Autos: darunter waere der Vergleich ein Einzelwert.
+  const models = input.whatIf.filter(w => w.isUser || w.cars >= MIN_PEERS)
+  const cheapest = models.find(w => !w.isUser)
+  const own = models.find(w => w.isUser)
   if (cheapest && cheapest.deltaPercent <= -WHAT_IF_MIN_SAVING_PERCENT) {
     // Eigener Wert: aus der Liste, sonst aus dem Delta zurueckgerechnet.
     const mine = own?.costPer100km ?? cheapest.costPer100km / (1 + cheapest.deltaPercent / 100)
@@ -386,13 +388,13 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
       sentiment: 'neutral',
       params: { deltaPercent: cheapest.deltaPercent, modelIndex: input.whatIf.indexOf(cheapest), cars: cheapest.cars, mine, theirs: cheapest.costPer100km },
     })
-  } else if (own && input.whatIf[0] === own && input.whatIf.length > 1) {
+  } else if (own && models[0] === own && models.length > 1) {
     items.push({
       id: 'what_if_model',
       question: 3,
       relevance: 50,
       sentiment: 'good',
-      params: { deltaPercent: 0, modelIndex: -1, cars: input.whatIf.length - 1, mine: own.costPer100km, theirs: input.whatIf[1].costPer100km },
+      params: { deltaPercent: 0, modelIndex: -1, cars: models.length - 1, mine: own.costPer100km, theirs: models[1].costPer100km },
     })
   }
 
@@ -456,6 +458,21 @@ export function monthWindow(year: number, month: number, offset = 0): { start: s
   const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0))
   const iso = (d: Date) => d.toISOString().slice(0, 10)
   return { start: iso(first), end: iso(last) }
+}
+
+const MIN_GAP_DAYS = 3
+const LONG_GAP_DAYS = 7
+
+/**
+ * Die Lücke, die die Qualitätszeile nennt: die längste ab 3 Tagen, im laufenden Monat erst über
+ * 7 Tage (vorher ist es nur eine Pause). Tage nach heute sind nie Lücke.
+ */
+export function visibleGap(days: DayCoverage[]): { from: number; to: number } | null {
+  const g = days.filter(d => d.inLongestGap && !d.future)
+  if (g.length < MIN_GAP_DAYS) return null
+  const monthOver = days.length > 0 && !days.some(d => d.future)
+  if (!monthOver && g.length <= LONG_GAP_DAYS) return null
+  return { from: g[0].day, to: g[g.length - 1].day }
 }
 
 export function buildDayCoverage(points: ChargeDataPoint[], year: number, month: number, now: number = Date.now()): DayCoverage[] {

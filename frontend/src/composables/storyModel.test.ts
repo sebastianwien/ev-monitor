@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  visibleGap,
   buildStoryTiles,
   buildStoryFeed,
   buildDayCoverage,
@@ -418,6 +419,21 @@ describe('buildStoryFeed v2: neue Quellen konkurrieren um fuenf Plaetze', () => 
     expect(best.sentiment).toBe('good')
   })
 
+  it('Was-waere-wenn erst ab 5 Autos je Modell: kleinere Modelle zaehlen nicht', () => {
+    const ids = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, whatIf: [
+      { name: 'Selten', costPer100km: 3.0, deltaPercent: -30, cars: 4, isUser: false },
+      { name: 'Meins', costPer100km: 4.4, deltaPercent: 0, cars: 300, isUser: true },
+    ] })).map(i => i.id)
+    expect(ids).not.toContain('what_if_model')
+    const best = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, whatIf: [
+      { name: 'Selten', costPer100km: 3.0, deltaPercent: -30, cars: 1, isUser: false },
+      { name: 'Meins', costPer100km: 4.4, deltaPercent: 0, cars: 300, isUser: true },
+      { name: 'Modell C', costPer100km: 4.5, deltaPercent: 2, cars: 20, isUser: false },
+    ] })).find(i => i.id === 'what_if_model')!
+    expect(best.sentiment).toBe('good')
+    expect(best.params.cars).toBe(1)
+  })
+
   it('Community-Rang: je besser der Platz, desto relevanter', () => {
     const first = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, rank: { category: 'MONTHLY_NIGHT_OWL', rank: 1, value: 9, unit: '' } })).find(i => i.id === 'community_rank')!
     const tenth = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, rank: { category: 'MONTHLY_KWH', rank: 10, value: 300, unit: 'kWh' } })).find(i => i.id === 'community_rank')!
@@ -473,5 +489,23 @@ describe('buildStoryFeed mit Momenten', () => {
     const feed = buildStoryFeed(input({ rank: { category: 'MONTHLY_KWH', rank: 2, value: 1, unit: 'kWh' } }), { extra: [extra], omit: ['community_rank'] })
     expect(feed[0].id).toBe('moment')
     expect(feed.some(f => f.id === 'community_rank')).toBe(false)
+  })
+})
+
+describe('visibleGap: welche Lücke der Satz nennt', () => {
+  const days = (withData: number[], gap: [number, number] | null, today = 31) => Array.from({ length: 31 }, (_, i) => {
+    const day = i + 1
+    return { day, hasData: withData.includes(day), inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today }
+  })
+
+  it('abgeschlossener Monat: jede Lücke ab 3 Tagen', () => {
+    expect(visibleGap(days([1, 5], [2, 4]))).toEqual({ from: 2, to: 4 })
+    expect(visibleGap(days([1, 4], [2, 3]))).toBeNull()
+  })
+
+  it('laufender Monat: erst über 7 Tage, Tage nach heute zählen nicht', () => {
+    expect(visibleGap(days([1, 9], [2, 8], 14))).toBeNull()
+    expect(visibleGap(days([1, 10], [2, 9], 14))).toEqual({ from: 2, to: 9 })
+    expect(visibleGap(days([1], [2, 31], 5))).toBeNull()
   })
 })

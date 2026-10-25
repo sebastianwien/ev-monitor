@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temperatureEffect, whatIfModels, dataQuality, countPricelessInMonth, bestRank, buildLatest,
+  temperatureEffect, whatIfModels, dataQuality, countPricelessInMonth, bestRank, buildLatest, sohIsEstimated,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
@@ -87,12 +87,12 @@ describe('whatIfModels', () => {
 
   it('laesst Modelle ohne vollstaendige Werte weg und gibt ohne Nutzerwert nichts zurueck', () => {
     expect(whatIfModels([item('A', null, 0.3), item('B', 16, null)], 4)).toEqual([])
+    expect(whatIfModels([item('A', 16, 0.3)], null)).toEqual([])
   })
 
   it('Modellname ohne Klammerwert der Akkugröße', () => {
     const list = whatIfModels([item('Model 3 Premium RWD Highland (82.00kWh)', 15, 0.2)], 4.5)
     expect(list[0].name).toBe('Model 3 Premium RWD Highland')
-    expect(whatIfModels([item('A', 16, 0.3)], null)).toEqual([])
   })
 })
 
@@ -173,5 +173,18 @@ describe('buildLatest', () => {
   it('ist null ohne beides', () => {
     expect(buildLatest(null, null)).toBeNull()
     expect(buildLatest(undefined, undefined)).toBeNull()
+  })
+})
+
+describe('sohIsEstimated: Tilde am Akkuwert', () => {
+  const e = (recordedAt: string, source: string) => ({ recordedAt, source })
+
+  it('entscheidet nach dem jüngsten Eintrag, egal in welcher Reihenfolge', () => {
+    expect(sohIsEstimated([e('2026-10-01', 'MANUAL'), e('2026-09-01', 'CHARGE_LOG')])).toBe(false)
+    expect(sohIsEstimated([e('2026-09-01', 'MANUAL'), e('2026-10-01', 'CHARGE_LOG')])).toBe(true)
+  })
+
+  it('ohne Verlauf keine Tilde: der Wert kommt aus der eigenen Angabe am Auto', () => {
+    expect(sohIsEstimated([])).toBe(false)
   })
 })

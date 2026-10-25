@@ -97,6 +97,17 @@ export interface WhatIfModel {
   isUser: boolean
 }
 
+/**
+ * Ob der Akkuwert eine Schätzung ist: der jüngste Eintrag im Verlauf (nach Datum, die API sagt
+ * keine Reihenfolge zu) stammt nicht aus eigener Messung. Ohne Verlauf kommt der Wert aus der
+ * eigenen Angabe am Auto.
+ */
+export function sohIsEstimated(history: { recordedAt: string; source: string }[]): boolean {
+  let latest: { recordedAt: string; source: string } | null = null
+  for (const e of history) if (!latest || Date.parse(e.recordedAt) > Date.parse(latest.recordedAt)) latest = e
+  return latest != null && latest.source !== 'MANUAL'
+}
+
 /** "Model 3 Premium RWD Highland (82.00kWh)" wird "Model 3 Premium RWD Highland". */
 export function modelNameWithoutCapacity(name: string): string {
   return name.replace(/\s*\([\d.,]+\s*kWh\)\s*$/i, '')

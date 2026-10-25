@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n'
 import ChoiceChip from '../shared/ChoiceChip.vue'
 import type { StoryMonth } from '../../composables/useDashboardStory'
 
-/** Drei Monats-Chips. Das Wischen auf dem Hero steuert dieselbe Auswahl (siehe View). */
+/** Drei Monats-Chips, sichtbar 36 px, Trefferfläche 44 px. Das Wischen auf dem Hero steuert dieselbe Auswahl (siehe View). */
 defineProps<{
   months: StoryMonth[]
   offset: number
@@ -19,6 +19,7 @@ const { t } = useI18n()
       v-for="m in months" :key="m.offset"
       :active="m.offset === offset"
       size="sm"
+      class="relative before:absolute before:inset-x-0 before:-inset-y-1 before:content-['']"
       :data-testid="`story-month-${m.offset}`"
       @click="emit('select', m.offset)">
       {{ labelOf(m) }}

@@ -23,10 +23,10 @@ const quiet = 'inline-flex min-h-[44px] items-center text-sm font-semibold text-
 <template>
   <section class="story-hero grid gap-2" :aria-label="t('story.moment_aria')" :data-testid="`story-moment-${moment.kind}`">
     <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ view.eyebrow }}</p>
-    <p class="text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50" data-testid="story-moment-sentence">
+    <h1 class="text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50" data-testid="story-moment-sentence">
       {{ keepUnits(view.sentence) }}
       <span v-if="view.badge" class="ml-1 inline-block rounded-full border border-gray-300 px-2 py-0.5 align-middle text-[12px] font-semibold tracking-normal text-gray-600 dark:border-gray-600 dark:text-gray-300">{{ view.badge }}</span>
-    </p>
+    </h1>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
       <p v-if="view.sub" class="text-pretty text-[14px] text-gray-500 tabular-nums dark:text-gray-400">{{ keepUnits(view.sub) }}</p>
       <template v-for="a in [view.action, view.secondary].filter((x): x is MomentAction => !!x)" :key="a.id">

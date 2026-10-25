@@ -14,7 +14,7 @@ import {
 import { buildEnergyFlow, buildRange, costLayers } from './storyEnergy'
 import {
   temperatureEffect, whatIfModels, dataQuality, countPricelessInMonth, bestRank,
-  type TripForTemperature, type RankEntry, buildLatest, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+  type TripForTemperature, type RankEntry, buildLatest, sohIsEstimated, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
   detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickMoment, momentFeedItems, DAY,
@@ -74,12 +74,6 @@ const MOMENT_TRIP_DAYS = 3
 
 /** Fenster der Reichweiten-Kachel: 4 Wochen bis heute. */
 export const RECENT_DAYS = 28
-/** Quelle des juengsten Akkuwerts; die Reihenfolge der API ist nicht zugesagt. */
-function latestSohSource(history: BatterySohEntry[]): string | null {
-  let best: BatterySohEntry | null = null
-  for (const e of history) if (!best || Date.parse(e.recordedAt) > Date.parse(best.recordedAt)) best = e
-  return best?.source ?? null
-}
 function daysAgo(n: number): Date { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d }
 function isoDate(d: Date): string { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 
@@ -327,8 +321,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     monthlyConsumption: monthlySeries(p => p.consumptionKwhPer100km),
     wltpConsumption: ctx().wltpConsumption,
     sohPercent: ctx().sohPercent,
-    // Letzter Verlaufswert aus eigener Messung: ohne Tilde. Ohne Verlauf stammt der Wert aus der Fahrzeugangabe.
-    sohEstimated: latestSohSource(sohHistory.value) != null && latestSohSource(sohHistory.value) !== 'MANUAL',
+    sohEstimated: sohIsEstimated(sohHistory.value),
     odometerKm: ctx().odometerKm,
     savingsEur: savingsEur.value,
     amortisationYearsRemaining: amortisationYearsRemaining.value,

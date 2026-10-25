@@ -27,7 +27,7 @@ const props = defineProps<{
 const emit = defineEmits<{ layers: [open: boolean]; share: [text: string] }>()
 
 const { t } = useI18n()
-const { formatCurrency, formatDistance } = useLocaleFormat()
+const { formatCurrency, formatDistance, convertDistance, distanceUnitLabel } = useLocaleFormat()
 
 const line = computed(() => heroLine(props))
 const sentence = computed(() => {
@@ -49,7 +49,10 @@ const sentenceParts = computed(() => {
 })
 const meta = computed(() => [
   // Je 100 km aus dem Satz selbst, damit Nachrechnen aufgeht; nur wenn er km und Euro nennt.
-  line.value.kind === 'km_cost' ? t('story.hero_per_100km', { eur: formatCurrency(line.value.eur! / line.value.km! * 100) }) : null,
+  // In der Strecken-Einheit des Satzes (km oder mi), damit beide zusammenpassen.
+  line.value.kind === 'km_cost'
+    ? t('story.hero_per_100', { eur: formatCurrency(line.value.eur! / convertDistance(line.value.km!) * 100), unit: distanceUnitLabel() })
+    : null,
   petrol.value ? t('story.hero_petrol_sub', { eur: petrol.value }) : null,
 ].filter(Boolean).map(x => keepUnits(x!)).join(' · '))
 
@@ -66,17 +69,19 @@ watch(() => props.monthLabel, () => { layersOpen.value = false })
 <template>
   <div class="story-hero flex items-start justify-between gap-3">
     <div class="grid min-w-0 gap-1.5">
-      <component
-        :is="layers ? 'button' : 'h1'"
-        :type="layers ? 'button' : undefined"
-        :aria-expanded="layers ? layersOpen : undefined"
-        data-testid="story-hero-value"
-        class="block text-left text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50"
-        :class="layers ? 'cursor-pointer rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent' : ''"
-        style="view-transition-name: story-hero-value"
-        @click="toggleLayers">
-        <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap">{{ sentenceParts.rest }}</span>
-      </component>
+      <h1 class="text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50">
+        <component
+          :is="layers ? 'button' : 'span'"
+          :type="layers ? 'button' : undefined"
+          :aria-expanded="layers ? layersOpen : undefined"
+          data-testid="story-hero-value"
+          class="block text-left"
+          :class="layers ? 'cursor-pointer rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent' : ''"
+          style="view-transition-name: story-hero-value"
+          @click="toggleLayers">
+          <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap">{{ sentenceParts.rest }}</span>
+        </component>
+      </h1>
       <p v-if="meta || layers" data-testid="story-hero-meta" class="text-pretty text-[14px] text-gray-500 tabular-nums dark:text-gray-400">
         {{ meta }}<template v-if="layers && !layersOpen">{{ meta ? ' · ' : '' }}{{ t('story.layers_hint') }}</template>
       </p>

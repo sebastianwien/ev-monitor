@@ -79,8 +79,10 @@ describe('StoryFeedItem Zahl rechts', () => {
   })
 
   it('Zeile mit Sheet dahinter ist ein Knopf und meldet die Kachel', () => {
-    const host = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'neutral', params: { eur: 27.39, avgEur: 12.3 } }, { sheets: ['cost'] })
-    expect(host.querySelector('button')).not.toBeNull()
+    const opened: string[] = []
+    const host = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'neutral', params: { eur: 27.39, avgEur: 12.3 } }, { sheets: ['cost'], onOpen: (id: string) => opened.push(id) })
+    host.querySelector('button')!.click()
+    expect(opened).toEqual(['cost'])
     app!.unmount(); app = null
     const plain = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'neutral', params: { eur: 27.39, avgEur: 12.3 } }, { sheets: ['wltp'] })
     expect(plain.querySelector('button')).toBeNull()

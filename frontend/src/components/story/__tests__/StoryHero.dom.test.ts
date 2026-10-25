@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest'
 import { createApp, type App } from 'vue'
-import { createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
+import { useCountryStore } from '../../../stores/country'
 import { i18n } from '../../../i18n'
 import StoryHero from '../StoryHero.vue'
 
 let app: App | null = null
-afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
+/** Land zurück auf den Standard, damit Folgetests nicht in Meilen rechnen. */
+function afterReset() { try { localStorage.removeItem('ev-country') } catch { /* egal */ } }
+afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; afterReset() })
 
 const base = {
   monthLabel: 'Oktober',
@@ -17,11 +20,14 @@ const base = {
   layers: null,
 }
 
-function mount(props: Partial<typeof base> = {}) {
+function mount(props: Partial<typeof base> & Record<string, unknown> = {}, country?: 'GB') {
   const host = document.createElement('div')
   document.body.appendChild(host)
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  if (country) useCountryStore().setCountry(country)
   app = createApp(StoryHero, { ...base, ...props })
-  app.use(createPinia()).use(i18n)
+  app.use(pinia).use(i18n)
   app.mount(host)
   return host
 }
@@ -75,10 +81,21 @@ describe('StoryHero', () => {
     expect(text(rest)).toBe('274 km für 33 €.')
   })
 
-  it('Teilen-Knopf rechts meldet den Satz', () => {
-    const host = mount()
+  it('Teilen-Knopf rechts meldet Satz und graue Zeile', () => {
+    const shared: string[] = []
+    const host = mount({ onShare: (x: string) => shared.push(x) })
     const share = host.querySelector('[data-testid="story-hero-share"]') as HTMLButtonElement
     expect(share.getAttribute('aria-label')).toBe('Teilen')
+    share.click()
+    expect(shared.map(x => x.replace(/\s/g, ' '))).toEqual(['Oktober: 274 km für 33 €. 12,19 € je 100 km · Ein Benziner hätte 51 € gekostet.'])
+  })
+
+  it('Meilen: Kosten je 100 mi, passend zum Satz', () => {
+    const host = mount({}, 'GB')
+    afterReset()
+    const meta = text(host.querySelector('[data-testid="story-hero-meta"]'))
+    expect(meta).toMatch(/per 100 mi|je 100 mi/)
+    expect(meta).not.toContain('100 km')
   })
 
   it('mit Fixkosten ist der Satz ein Knopf, der die Kostenschichten aufklappt', () => {

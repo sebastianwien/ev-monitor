@@ -232,9 +232,9 @@ onMounted(() => analytics.track('story_viewed'))
         <div class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7">
           <header class="flex items-center justify-between gap-2">
             <div class="flex min-w-0 items-center gap-2">
-              <h1 class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">
+              <p class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">
                 {{ selectedCar ? carDisplayName(selectedCar) : t('story.title') }}
-              </h1>
+              </p>
               <span v-if="selectedCar?.licensePlate" class="hidden sm:inline-flex"><LicensePlate :plate="selectedCar.licensePlate" size="sm" /></span>
             </div>
             <StoryMonthSwitch :months="months" :offset="offset" :label-of="monthLabelShort" @select="selectMonth" />

@@ -49,6 +49,8 @@ const trip = computed(() => {
   }
 })
 
+const chip = computed(() => !!charge.value?.missingPrice && !props.priceInHero)
+
 const row = 'flex h-12 items-center gap-2.5 rounded-xl bg-white px-3 edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-800'
 </script>
 
@@ -58,9 +60,11 @@ const row = 'flex h-12 items-center gap-2.5 rounded-xl bg-white px-3 edge-card t
       <BoltIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
       <span class="min-w-0 flex-1 leading-tight">
         <span class="block truncate text-[14px] font-semibold text-gray-900 tabular-nums dark:text-gray-50">{{ charge.title }}</span>
-        <span v-if="charge.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400">{{ charge.sub }}</span>
+        <span v-if="charge.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400" :class="chip ? 'md:hidden' : ''">{{ charge.sub }}</span>
+        <!-- Ab md (zwei Zeilen nebeneinander) nimmt der Chip den Platz der Unterzeile, damit der Titel lesbar bleibt. -->
+        <span v-if="chip" class="mt-0.5 hidden rounded-sm bg-amber-100 px-1.5 text-[12px] font-semibold text-amber-800 md:inline-block dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_add_price') }}</span>
       </span>
-      <span v-if="charge.missingPrice && !priceInHero" class="shrink-0 rounded-sm bg-amber-100 px-2 py-1 text-[12px] font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_add_price') }}</span>
+      <span v-if="chip" class="shrink-0 rounded-sm bg-amber-100 px-2 py-1 text-[12px] font-semibold text-amber-800 md:hidden dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_add_price') }}</span>
       <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
     </router-link>
     <router-link v-if="trip" to="/logs" :class="row" data-testid="story-latest-trip">

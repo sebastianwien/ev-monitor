@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildEnergyFlow, buildRange, costLayers, RANGE_SOC_WINDOWS } from './storyEnergy'
+import { buildEnergyFlow, buildRange, costLayers, flowShares, RANGE_SOC_WINDOWS } from './storyEnergy'
 import type { StatisticsData } from './useDashboardStats'
 
 function stats(over: Partial<StatisticsData> = {}): StatisticsData {
@@ -100,5 +100,18 @@ describe('costLayers', () => {
   it('laesst Schichten mit 0 weg', () => {
     const layers = costLayers(stats({ fixedCostEur: 80, totalCostEur: 200 }))!
     expect(layers.map(l => l.kind)).toEqual(['energy', 'fixed', 'net'])
+  })
+})
+
+describe('flowShares: Anteile des Netzstroms für den Balken', () => {
+  const f = { gridKwh: 500, vehicleKwh: 450, lossKwh: 50, lossPercent: 10, acKwh: 400, dcKwh: 100, privateKwh: 350, publicKwh: 100, distanceKm: 2500, coveredLogCount: 10, totalLogCount: 12, partial: true }
+
+  it('Rest nach Verlust nach Ladeort geteilt, Summe 100', () => {
+    expect(flowShares(f)).toEqual([{ key: 'home', pct: 70 }, { key: 'public', pct: 20 }, { key: 'loss', pct: 10 }])
+  })
+
+  it('Ort ohne Strom entfällt, ohne Aufteilung ein Stück im Akku', () => {
+    expect(flowShares({ ...f, privateKwh: 0, publicKwh: 50, lossPercent: 5 })).toEqual([{ key: 'public', pct: 95 }, { key: 'loss', pct: 5 }])
+    expect(flowShares({ ...f, privateKwh: 0, publicKwh: 0 })).toEqual([{ key: 'vehicle', pct: 90 }, { key: 'loss', pct: 10 }])
   })
 })

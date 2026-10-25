@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest'
 import { createApp, type App } from 'vue'
-import { createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
+import { useCountryStore } from '../../../stores/country'
 import { i18n } from '../../../i18n'
 import StoryTile from '../StoryTile.vue'
 import type { StoryTile as Tile } from '../../../composables/storyModel'
@@ -93,5 +94,21 @@ describe('StoryTile Akku und Reichweite', () => {
     const text = mount({ id: 'range', value: 201, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [201], sparkVariant: 'bars',
       range: { consumption: 21, km: 201, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }], summer: null, winter: null } })
     expect(text).toContain('Ø letzte 4 Wochen, 90 → 10 %')
+  })
+})
+
+describe('StoryTile Währung', () => {
+  it('Pfund steht wie überall vor der Zahl', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useCountryStore().setCountry('GB')
+    app = createApp(StoryTile, { tile: cost({ value: 151 }) })
+    app.use(pinia).use(i18n)
+    app.mount(host)
+    expect(host.textContent!.replace(/\s+/g, ' ')).toContain('£')
+    expect(host.querySelector('b')!.textContent).toMatch(/^£\d/)
+    try { localStorage.removeItem('ev-country') } catch { /* egal */ }
   })
 })

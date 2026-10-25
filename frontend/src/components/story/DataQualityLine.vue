@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { DayCoverage } from '../../composables/storyModel'
+import { visibleGap, type DayCoverage } from '../../composables/storyModel'
 import type { DataQuality } from '../../composables/storyInsights'
 
 /**
@@ -12,19 +12,10 @@ import type { DataQuality } from '../../composables/storyInsights'
 const props = defineProps<{ days: DayCoverage[]; quality: DataQuality | null }>()
 const { t } = useI18n()
 
-const MIN_GAP_DAYS = 3
-const LONG_GAP_DAYS = 7
-
 const withData = computed(() => props.days.filter(d => d.hasData).length)
 /** Im laufenden Monat nur die Tage bis heute. */
 const elapsed = computed(() => props.days.filter(d => !d.future).length)
-const monthOver = computed(() => props.days.length > 0 && !props.days.some(d => d.future))
-const gap = computed(() => {
-  const g = props.days.filter(d => d.inLongestGap && !d.future)
-  if (g.length < MIN_GAP_DAYS) return null
-  if (!monthOver.value && g.length <= LONG_GAP_DAYS) return null
-  return { from: g[0].day, to: g[g.length - 1].day }
-})
+const gap = computed(() => visibleGap(props.days))
 const measured = computed(() => props.quality ? Math.max(0, props.quality.total - props.quality.estimated) : 0)
 const qualityText = computed(() => {
   const q = props.quality
