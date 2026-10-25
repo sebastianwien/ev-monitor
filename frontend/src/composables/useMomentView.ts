@@ -22,7 +22,7 @@ export interface MomentView {
 
 export function useMomentView(props: { moment: Moment; carId: string | null; carName: string; now?: number }): ComputedRef<MomentView> {
   const { t, locale } = useI18n()
-  const { formatDecimal, formatDistance, formatCurrency } = useLocaleFormat()
+  const { formatDecimal, formatDistance, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 
   const now = computed(() => props.now ?? Date.now())
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -59,6 +59,16 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
           action: m.costEur == null && props.carId
             ? { id: 'add_price', label: t('story.moment_action_add_price'), to: `/logs?car=${encodeURIComponent(props.carId)}&nachtragen=preis` }
             : undefined,
+        }
+      }
+      case 'expensive': {
+        const ct = (v: number) => formatCostPerKwh(v, { subunitDecimals: 0 })
+        const p = { when: dayWord(m.at), price: ct(m.pricePerKwh), cpo: m.cpoName, median: ct(m.medianPricePerKwh), card: m.cardFromPricePerKwh != null ? ct(m.cardFromPricePerKwh) : '' }
+        return {
+          eyebrow: t('story.moment_expensive_eyebrow'),
+          // Kein Kartenname im Hero: die Karten stehen im Sheet, der Satz soll nicht wie Werbung klingen.
+          sentence: t(m.cardFromPricePerKwh != null ? 'story.moment_expensive_card' : 'story.moment_expensive', p),
+          action: { id: 'prices', label: t('story.moment_action_prices') },
         }
       }
       case 'long_trip': {

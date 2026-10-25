@@ -1,6 +1,7 @@
 import { tripTimestamp } from '../utils/recentActivity'
 import { co2Comparison, heroLine, petrolCostEur, type StoryFeedItem } from './storyModel'
 import { COLD_MAX_C, type RankResult } from './storyInsights'
+import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
 /**
  * Der Moment-Hero: was gerade passiert ist, als ein Satz mit einer Handlung. Kein Modell,
@@ -12,7 +13,7 @@ export const HOUR = 3_600_000
 export const DAY = 24 * HOUR
 
 export type MomentKind =
-  | 'live' | 'just_charged' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'rank' | 'silence' | 'gap' | 'milestone' | 'month'
+  | 'live' | 'just_charged' | 'expensive' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'rank' | 'silence' | 'gap' | 'milestone' | 'month'
 
 interface MomentBase {
   /** Zustand plus Ereignis-ID: Schluessel fuer "gesehen" und "weggeklickt". */
@@ -31,6 +32,7 @@ export type MomentData =
   | { kind: 'live' }
   | { kind: 'month' }
   | { kind: 'just_charged'; logId: string; kwh: number | null; socFrom: number | null; socTo: number | null; rangeKm: number | null; costEur: number | null }
+  | { kind: 'expensive'; logId: string; cpoName: string; pricePerKwh: number; medianPricePerKwh: number; cardFromPricePerKwh: number | null }
   | { kind: 'long_trip'; km: number; stops: number; costEur: number | null }
   | { kind: 'first_frost'; tempC: number; winterKm: number; summerKm: number }
   | { kind: 'month_change'; year: number; month: number; km: number | null; eur: number | null; charges: number; petrolEur: number | null }
@@ -61,6 +63,9 @@ export interface MomentLog {
   dataSource?: string | null
   /** "Weiß ich nicht mehr": nicht mehr nach dem Preis fragen. */
   priceUnknown?: boolean
+  isPublicCharging?: boolean | null
+  cpoName?: string | null
+  chargingType?: string | null
 }
 
 export type MilestoneMetric = 'charges' | 'km' | 'co2' | 'years'
@@ -82,6 +87,9 @@ export interface MomentTrip {
 }
 
 const JUST_CHARGED_MS = 2 * HOUR
+const EXPENSIVE_MS = 3 * DAY
+/** Ab so viel über dem Median anderer Fahrer gilt eine Ladung als zu teuer. */
+const EXPENSIVE_FACTOR = 1.2
 /** Manuell erfasst: zaehlt der Zeitpunkt des Eintragens, aber nur fuer Ladungen der letzten 24 h. */
 const MANUAL_RECENT_MS = DAY
 const LONG_TRIP_KM = 250
@@ -141,6 +149,41 @@ export function detectJustCharged(input: { log: MomentLog | null; now: number; c
     // Reichweite der geladenen Energie mit dem Verbrauch der letzten 4 Wochen (wie die Reichweiten-Kachel).
     rangeKm: kwh != null && c != null && c > 0 ? Math.round(kwh / c * 100) : null,
     costEur: log.costEur ?? null,
+  }
+}
+
+/**
+ * Die Ladung, für die sich ein Preisvergleich lohnt: die neueste öffentliche der letzten 3 Tage
+ * mit Betreiber, AC oder DC und Preis. Preis je kWh wie die App je Ladung (an der Säule, sonst
+ * am Fahrzeug) und wie das Backend den Vergleich rechnet.
+ */
+export function expensiveCandidate(logs: MomentLog[], now: number): { log: MomentLog; pricePerKwh: number } | null {
+  for (const log of logs) {
+    const at = ms(log.loggedAt)
+    if (at == null || now - at > EXPENSIVE_MS) continue
+    if (log.isPublicCharging !== true || !log.cpoName || (log.chargingType !== 'AC' && log.chargingType !== 'DC')) continue
+    const basis = log.kwhCharged != null && log.kwhCharged > 0 ? log.kwhCharged : log.kwhAtVehicle
+    if (log.costEur == null || log.costEur <= 0 || basis == null || basis <= 0) continue
+    return { log, pricePerKwh: log.costEur / basis }
+  }
+  return null
+}
+
+/** Mehr als 20 % über dem, was andere Fahrer beim selben Betreiber zahlen. Eine Karte nur, wenn sie günstiger ist als der gezahlte Preis. */
+export function detectExpensive(input: { logs: MomentLog[]; benchmark: ChargingBenchmark | null; now: number }): Moment | null {
+  const { benchmark } = input
+  const c = expensiveCandidate(input.logs, input.now)
+  if (!c || !benchmark || benchmark.chargingType !== c.log.chargingType) return null
+  if (c.pricePerKwh <= benchmark.medianPricePerKwh * EXPENSIVE_FACTOR) return null
+  const card = benchmark.cards.map(k => k.pricePerKwh).filter(p => p < c.pricePerKwh).sort((a, b) => a - b)[0] ?? null
+  return {
+    ...base(`expensive:${c.log.id}`, ms(c.log.loggedAt)!, EXPENSIVE_MS),
+    kind: 'expensive',
+    logId: c.log.id,
+    cpoName: benchmark.cpoName,
+    pricePerKwh: c.pricePerKwh,
+    medianPricePerKwh: benchmark.medianPricePerKwh,
+    cardFromPricePerKwh: card,
   }
 }
 
@@ -342,7 +385,7 @@ export function detectMilestone(input: { series: MomentPoint[]; now: number }): 
 }
 
 const BASE: Record<MomentKind, number> = {
-  live: 1000, just_charged: 90, long_trip: 80, first_frost: 75, month_change: 70, milestone: 65, battery: 60, rank: 55, silence: 50, gap: 40, month: 10,
+  live: 1000, just_charged: 90, expensive: 85, long_trip: 80, first_frost: 75, month_change: 70, milestone: 65, battery: 60, rank: 55, silence: 50, gap: 40, month: 10,
 }
 const ACTION_BONUS = 20
 /** Gross genug, dass ein gesehener Moment unter den Monat faellt. */
@@ -385,7 +428,7 @@ export function pickMoment(candidates: Moment[], now: number, seen: MomentSeen):
 
 /** Fahrerfrage je Moment im Feed (1 Kosten, 2 Realitaet, 3 Community, 4 Gesundheit). */
 const QUESTION: Partial<Record<MomentKind, StoryFeedItem['question']>> = {
-  just_charged: 1, long_trip: 2, first_frost: 2, month_change: 1, battery: 4, silence: 1, gap: 1, milestone: 2,
+  just_charged: 1, expensive: 1, long_trip: 2, first_frost: 2, month_change: 1, battery: 4, silence: 1, gap: 1, milestone: 2,
 }
 
 /** Rang fehlt bewusst: den nennt der Feed schon als community_rank. */

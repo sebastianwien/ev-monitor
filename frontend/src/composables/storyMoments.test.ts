@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
-  detectRank, detectSilence, detectLive, detectGap, detectMilestone, monthMoment, momentScore, pickMoment,
-  momentFeedItems, HOUR, DAY, type MomentSeen, type Moment,
+  detectRank, detectSilence, detectLive, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
+  monthMoment, momentScore, pickMoment, momentFeedItems, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
+import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
 // Samstag, 24.10.2026, 12:00 Ortszeit
 const NOW = new Date(2026, 9, 24, 12, 0).getTime()
@@ -161,6 +162,62 @@ describe('detectGap', () => {
 
   it('ignoriert Lücken älter als 31 Tage', () => {
     expect(detectGap({ logs: [gap('a', 32 * 24)], now: NOW })).toBeNull()
+  })
+})
+
+describe('expensiveCandidate und detectExpensive', () => {
+  const pub = (id: string, hoursAgo: number, extra: object = {}) => ({
+    id, loggedAt: iso(NOW - hoursAgo * HOUR), kwhCharged: 40, kwhAtVehicle: 38, costEur: 31.6,
+    isPublicCharging: true, cpoName: 'IONITY', chargingType: 'DC', ...extra,
+  })
+  const bench = (extra: Partial<ChargingBenchmark> = {}): ChargingBenchmark => ({
+    cpoName: 'IONITY', chargingType: 'DC', drivers: 18,
+    medianPricePerKwh: 0.52, lowerQuartilePricePerKwh: 0.39, upperQuartilePricePerKwh: 0.6,
+    cards: [
+      { name: 'IONITY', variant: 'Motion', pricePerKwh: 0.49, monthlyFeeEur: 5.99, source: 'CURATED', drivers: null, verifiedOn: '2026-03-25' },
+      { name: 'Maingau', variant: 'Standard', pricePerKwh: 0.62, monthlyFeeEur: 0, source: 'CURATED', drivers: null, verifiedOn: '2026-03-25' },
+    ],
+    ...extra,
+  })
+
+  it('nimmt die neueste öffentliche Ladung der letzten 3 Tage mit Betreiber, Ladeart und Preis', () => {
+    const logs = [pub('home', 1, { isPublicCharging: false }), pub('nocpo', 2, { cpoName: null }), pub('noprice', 3, { costEur: null }),
+      pub('unknown', 4, { chargingType: 'UNKNOWN' }), pub('hit', 20), pub('older', 30)]
+    expect(expensiveCandidate(logs, NOW)).toMatchObject({ log: { id: 'hit' }, pricePerKwh: expect.closeTo(0.79, 6) })
+  })
+
+  it('rechnet den Preis wie die App je Ladung: an der Säule, sonst am Fahrzeug', () => {
+    expect(expensiveCandidate([pub('a', 5, { kwhCharged: null, kwhAtVehicle: 40, costEur: 20 })], NOW)?.pricePerKwh).toBe(0.5)
+  })
+
+  it('übergeht Ladungen älter als 3 Tage', () => {
+    expect(expensiveCandidate([pub('a', 3 * 24 + 1)], NOW)).toBeNull()
+  })
+
+  it('meldet mehr als 20 % über dem, was andere Fahrer dort zahlen, mit der günstigsten Karte', () => {
+    const m = detectExpensive({ logs: [pub('a', 20)], benchmark: bench(), now: NOW })
+    expect(m).toMatchObject({
+      kind: 'expensive', key: 'expensive:a', logId: 'a', cpoName: 'IONITY', at: NOW - 20 * HOUR, lifetimeMs: 3 * DAY,
+      pricePerKwh: expect.closeTo(0.79, 6), medianPricePerKwh: 0.52, cardFromPricePerKwh: 0.49,
+    })
+  })
+
+  it('schweigt bis 20 % über dem Median', () => {
+    const at = (cost: number) => detectExpensive({ logs: [pub('a', 20, { costEur: cost })], benchmark: bench(), now: NOW })
+    expect(at(40 * 0.62)).toBeNull()
+    expect(at(40 * 0.63)).not.toBeNull()
+  })
+
+  it('nennt keine Karte, die nicht günstiger ist als der gezahlte Preis', () => {
+    const m = detectExpensive({ logs: [pub('a', 20, { costEur: 40 * 0.66 })], benchmark: bench({ cards: [bench().cards[1], { ...bench().cards[0], pricePerKwh: 0.7 }] }), now: NOW })
+    expect(m).toMatchObject({ cardFromPricePerKwh: 0.62 })
+    const none = detectExpensive({ logs: [pub('a', 20, { costEur: 40 * 0.66 })], benchmark: bench({ cards: [{ ...bench().cards[0], pricePerKwh: 0.7 }] }), now: NOW })
+    expect(none).toMatchObject({ cardFromPricePerKwh: null })
+  })
+
+  it('ohne Vergleich oder mit anderer Ladeart kein Moment', () => {
+    expect(detectExpensive({ logs: [pub('a', 20)], benchmark: null, now: NOW })).toBeNull()
+    expect(detectExpensive({ logs: [pub('a', 20)], benchmark: bench({ chargingType: 'AC' }), now: NOW })).toBeNull()
   })
 })
 

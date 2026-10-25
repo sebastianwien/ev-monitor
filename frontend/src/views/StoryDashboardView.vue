@@ -35,6 +35,7 @@ import StoryMonthSwitch from '../components/story/StoryMonthSwitch.vue'
 import LicensePlate from '../components/car/LicensePlate.vue'
 
 const StorySheet = defineAsyncComponent(() => import('../components/story/StorySheet.vue'))
+const StoryPriceSheet = defineAsyncComponent(() => import('../components/story/StoryPriceSheet.vue'))
 const ChargingHeatMap = defineAsyncComponent(() => import('../components/dashboard/ChargingHeatMap.vue'))
 const BottomSheet = defineAsyncComponent(() => import('../components/shared/BottomSheet.vue'))
 
@@ -131,6 +132,7 @@ function onMomentAct(id: string) {
   analytics.track('story_moment_tapped', { moment: moment.value.kind, action: id })
   if (id === 'share') shareMoment()
   else if (id === 'winter') openSheet('range')
+  else if (id === 'prices') openPrices.value = true
   else if (id === 'price_unknown' && moment.value.kind === 'gap') story.markPriceUnknown(moment.value.logId)
   else if (id === 'battery') {
     // Ohne Akku-Kachel (kein SoH am Auto) fuehrt der Verlauf zur Fahrzeugseite.
@@ -170,6 +172,9 @@ function onPointerUp(e: PointerEvent) {
 
 const openTile = ref<TileId | null>(null)
 const openMap = ref(false)
+const openPrices = ref(false)
+/** Was der Nutzer bei der Ladung gezahlt hat, die den Moment "zu teuer geladen" ausloest. */
+const expensivePrice = computed(() => moment.value.kind === 'expensive' ? moment.value.pricePerKwh : null)
 function openSheet(id: TileId) {
   haptic()
   analytics.track('story_tile_opened', { tile: id })
@@ -331,6 +336,8 @@ onMounted(() => analytics.track('story_viewed'))
     </main>
 
     <StorySheet v-if="sheetTile" :tile="sheetTile" :context="sheetContext" @close="openTile = null" />
+
+    <StoryPriceSheet v-if="openPrices && story.benchmark.value" :benchmark="story.benchmark.value" :price-per-kwh="expensivePrice" @close="openPrices = false" />
 
     <BottomSheet v-if="openMap" :label="t('story.map_title')" panel-class="sm:max-w-2xl" @close="openMap = false">
       <template #default="{ close }">

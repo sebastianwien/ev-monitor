@@ -4,6 +4,7 @@ import chargingSavingsService from '../api/chargingSavingsService'
 import { peerModelComparisonService, type PeerModelComparisonItem } from '../api/peerModelComparisonService'
 import { carService, type BatterySohEntry } from '../api/carService'
 import { fuelPriceService, type FuelPrices } from '../api/fuelPriceService'
+import { chargingBenchmarkService, type ChargingBenchmark } from '../api/chargingBenchmarkService'
 import type { StatisticsData } from './useDashboardStats'
 import { calcCostPer100km } from './useDashboardStats'
 import {
@@ -16,7 +17,8 @@ import {
   type TripForTemperature, type RankEntry, buildLatest, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
-  detectSilence, detectGap, detectMilestone, pickMoment, momentFeedItems, DAY, type Moment, type MomentLog, type MomentTrip, type MomentPoint,
+  detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickMoment, momentFeedItems, DAY,
+  type Moment, type MomentLog, type MomentTrip, type MomentPoint,
 } from './storyMoments'
 import { useMomentSeen } from './useMomentSeen'
 
@@ -163,6 +165,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const recentTrips = ref<MomentTrip[]>([])
   /** Tagesreihe ueber die ganze Lebenszeit, Basis der Meilensteine. */
   const lifetimeSeries = ref<MomentPoint[]>([])
+  /** Was andere Fahrer beim Betreiber der neuesten oeffentlichen Ladung zahlen, null ohne Vergleich. */
+  const benchmark = ref<ChargingBenchmark | null>(null)
   const { seen } = useMomentSeen()
   const loading = ref(true)
   const error = ref(false)
@@ -215,6 +219,22 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     loading.value = false
   }
 
+  /**
+   * Die letzten Ladungen und, wenn die neueste oeffentliche einen Vergleich lohnt, was andere
+   * Fahrer dort zahlen. In einem Schritt, damit der Moment-Hero nicht nach dem ersten Paint wechselt.
+   */
+  async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<LatestLogSource & MomentLog>; benchmark: ChargingBenchmark | null }> {
+    const res = await api.get<Array<LatestLogSource & MomentLog>>(`/logs?carId=${carId}&limit=${RECENT_LOGS}`)
+    const logs = Array.isArray(res.data) ? res.data : []
+    const c = expensiveCandidate(logs, Date.now())
+    const cpo = c?.log.cpoName
+    const type = c?.log.chargingType
+    const bench = cpo && (type === 'AC' || type === 'DC')
+      ? await chargingBenchmarkService.get(cpo, type).catch(() => null)
+      : null
+    return { logs, benchmark: bench }
+  }
+
   async function loadPerCar(carId: string) {
     const tripsFrom = new Date(Date.now() - MOMENT_TRIP_DAYS * DAY).toISOString()
     const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime] = await Promise.allSettled([
@@ -223,7 +243,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       api.get<MomentLog[]>(`/logs/priceless?carId=${carId}&includeUnknown=true`),
       carService.getSohHistory(carId),
       fetchFuelPrices(),
-      api.get<Array<LatestLogSource & MomentLog>>(`/logs?carId=${carId}&limit=${RECENT_LOGS}`),
+      recentLogsWithBenchmark(carId),
       api.get<LatestTripSource[]>(`/trips?carId=${carId}&limit=1`),
       fetchStats(carId, isoDate(daysAgo(RECENT_DAYS - 1)), isoDate(daysAgo(0)), 'MONTH'),
       api.get<MomentTrip[]>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
@@ -240,7 +260,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     pricelessLogs.value = priceless.status === 'fulfilled' && Array.isArray(priceless.value.data) ? priceless.value.data : []
     sohHistory.value = soh.status === 'fulfilled' ? soh.value : []
     recentStats.value = recent.status === 'fulfilled' ? recent.value : null
-    recentLogs.value = lastLogs.status === 'fulfilled' && Array.isArray(lastLogs.value.data) ? lastLogs.value.data : []
+    recentLogs.value = lastLogs.status === 'fulfilled' ? lastLogs.value.logs : []
+    benchmark.value = lastLogs.status === 'fulfilled' ? lastLogs.value.benchmark : null
     recentTrips.value = momentTrips.status === 'fulfilled' && Array.isArray(momentTrips.value.data) ? momentTrips.value.data : []
     lifetimeSeries.value = lifetime.status === 'fulfilled' ? lifetime.value.data?.chargesOverTime ?? [] : []
     // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
@@ -330,6 +351,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     const candidates = [
       live,
       justCharged,
+      detectExpensive({ logs: recentLogs.value, benchmark: benchmark.value, now }),
       detectLongTrip({ trips: recentTrips.value, logs: recentLogs.value, now }),
       detectFirstFrost({ trips: recentTrips.value, now, range: range.value }),
       detectMonthChange({
@@ -382,7 +404,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   return {
     offset, month, months, setOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
-    layers, quality, temperature, whatIf, sohHistory, petrol, latest, moment,
+    layers, quality, temperature, whatIf, sohHistory, petrol, latest, moment, benchmark,
     reload: load, markPriceUnknown,
   }
 }

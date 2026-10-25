@@ -32,6 +32,20 @@ describe('StoryMomentHero', () => {
     expect(host.querySelector('a')!.getAttribute('href')).toBe('/logs?car=c1&nachtragen=preis')
   })
 
+  it('zu teuer geladen: Preis, was andere Fahrer zahlen, Karte ohne Namen, Preise ansehen', () => {
+    const onAct = vi.fn()
+    const m = { ...b, kind: 'expensive', key: 'k', at: NOW - DAY, lifetimeMs: 3 * DAY, logId: 'l1', cpoName: 'IONITY', pricePerKwh: 0.789, medianPricePerKwh: 0.52, cardFromPricePerKwh: 0.49 } as const
+    const host = mount(m, { onAct })
+    expect(text(host)).toContain('Teurer als üblich')
+    expect(text(host)).toContain('Gestern 79 ct/kWh bei IONITY. Andere Fahrer zahlen dort im Schnitt 52 ct/kWh, mit einer Ladekarte ab 49 ct/kWh.')
+    host.querySelector('button')!.click()
+    expect(onAct).toHaveBeenCalledWith('prices')
+    app!.unmount(); app = null
+    const plain = mount({ ...m, cardFromPricePerKwh: null })
+    expect(text(plain)).toContain('Andere Fahrer zahlen dort im Schnitt 52 ct/kWh.')
+    expect(text(plain)).not.toContain('Ladekarte')
+  })
+
   it('Lücke: fragt nach der einen Ladung, mit "Weiß ich nicht mehr"', () => {
     const onAct = vi.fn()
     const host = mount({ ...b, kind: 'gap', key: 'k', at: NOW - 2 * DAY, actionable: true, logId: 'l1', count: 1, kwh: 28.5, since: NOW - 2 * DAY }, { onAct })

@@ -134,16 +134,18 @@ export function useLocaleFormat() {
     /**
      * Format cost per kWh (EUR/kWh from backend) in user's currency.
      * Uses subunit where available: '32 ct/kWh', '28p/kWh', '3,68 kr/kWh'
+     * subunitDecimals: Nachkommastellen von ct/p (Standard 1, im Fliesstext 0); kr bleibt bei 2.
      */
-    function formatCostPerKwh(eurPerKwh: number): string {
+    function formatCostPerKwh(eurPerKwh: number, opts: { subunitDecimals?: number } = {}): string {
         const converted = convertFromEur(eurPerKwh, currency.value)
         const sub = unitSystem.value.currencySubunit
         if (sub) {
             // Use subunit (ct, p) - multiply by 100
             const subValue = converted * unitSystem.value.currencySubunitDivisor
+            const decimals = opts.subunitDecimals ?? 1
             const formatted = subValue.toLocaleString(numberLocale.value, {
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1,
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals,
             })
             // p/kWh (GBP) vs ct/kWh (EUR)
             return currency.value === 'GBP' ? `${formatted}${sub}/kWh` : `${formatted} ${sub}/kWh`

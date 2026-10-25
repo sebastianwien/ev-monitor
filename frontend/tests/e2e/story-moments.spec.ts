@@ -77,6 +77,33 @@ test.describe('Story Moment-Hero', () => {
     expect(marked).toEqual([{ field: 'PRICE' }]);
   });
 
+  test('zu teuer geladen nennt, was andere Fahrer zahlen, die Karten stehen im Sheet', async ({ page }) => {
+    const threeHours = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    const expensive = log({ loggedAt: threeHours, createdAt: threeHours, kwhCharged: 40, costEur: 31.6, isPublicCharging: true, cpoName: 'IONITY', chargingType: 'DC' });
+    const asked: string[] = [];
+    await page.route(/\/api\/charging-benchmarks\?/, route => {
+      asked.push(new URL(route.request().url()).search);
+      return route.fulfill({ json: {
+        cpoName: 'IONITY', chargingType: 'DC', drivers: 18, medianPricePerKwh: 0.52, lowerQuartilePricePerKwh: 0.39, upperQuartilePricePerKwh: 0.6,
+        cards: [{ name: 'IONITY', variant: 'Motion', pricePerKwh: 0.49, monthlyFeeEur: 5.99, source: 'CURATED', drivers: null, verifiedOn: '2026-03-25' }],
+      } });
+    });
+    await page.route(/\/api\/logs\/priceless\?carId=[^&]+&includeUnknown=true$/, route => route.fulfill({ json: [] }));
+    await setup(page, { logs: [expensive] });
+
+    // Login landet schon auf /story, setup laedt die Seite danach noch einmal: je Seitenaufruf eine Abfrage.
+    expect(new Set(asked)).toEqual(new Set(['?cpo=IONITY&type=DC']));
+    const hero = page.getByTestId('story-moment-expensive');
+    await expect(hero.getByTestId('story-moment-sentence')).toContainText(/79\sct\/kWh bei IONITY\. Andere Fahrer zahlen dort im Schnitt 52\sct\/kWh, mit einer Ladekarte ab 49\sct\/kWh\./);
+    await expect(hero).not.toContainText('Motion');
+    await hero.getByRole('button', { name: 'Preise anderer Fahrer ansehen' }).click();
+    const sheet = page.getByTestId('story-price-sheet');
+    await expect(sheet).toContainText('Du hast 79,0');
+    await expect(sheet.getByTestId('price-card')).toContainText('IONITY Motion');
+    const box = await sheet.boundingBox();
+    expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  });
+
   test('"Immer den Monat zeigen" lässt den Moment weg', async ({ page }) => {
     await setup(page, { logs: [log({})], alwaysMonth: true });
     await expect(page.getByTestId('story-view')).toBeVisible();
