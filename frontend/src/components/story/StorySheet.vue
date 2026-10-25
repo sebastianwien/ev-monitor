@@ -62,7 +62,7 @@ const title = computed(() => props.tile.id === 'peer'
         <h3 class="text-xl font-extrabold text-gray-900 dark:text-gray-50" :style="{ viewTransitionName: `story-tile-${tile.id}` }">{{ title }}</h3>
 
         <SheetTrips v-if="tile.id === 'trips' && tile.tripMonth" :trips="tile.tripMonth" :charged-kwh-per100km="context.stats?.avgConsumptionKwhPer100km ?? null" />
-        <SheetFlow v-else-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
+        <SheetFlow v-else-if="tile.id === 'flow' && (tile.flow || tile.use)" :flow="tile.flow" :use="tile.use" />
         <SheetCo2 v-else-if="tile.id === 'co2' && tile.co2" :tile="tile" />
         <SheetCharging v-else-if="tile.id === 'charging' && tile.charging" :split="tile.charging" />
         <SheetStandby v-else-if="tile.id === 'standby' && tile.tripMonth" :gaps="tile.tripMonth.standbyGaps" :total-kwh="tile.value" :total-eur="tile.tripMonth.standbyEur" />

@@ -251,6 +251,7 @@ describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
     expect(m.routeShares).toEqual([{ key: 'CITY', pct: 70 }, { key: 'COMBINED', pct: 10 }, { key: 'HIGHWAY', pct: 20 }])
     expect(m.mainRoute).toBe('CITY')
     expect(m.driveKwhPer100km).toBeCloseTo(19, 0)
+    expect(m.driveKwh).toBeCloseTo(20, 1)
     expect([m.tempMin, m.tempMax]).toEqual([8, 12])
   })
 
@@ -258,6 +259,7 @@ describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
     expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, 'CITY'), tr('b', '2026-10-03T08:00:00Z', 60, 'HIGHWAY')], 57, true)!.mainRoute).toBe('HIGHWAY')
     expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, 'CITY'), tr('b', '2026-10-03T08:00:00Z', 35, 'HIGHWAY'), tr('c', '2026-10-03T09:00:00Z', 25, 'COMBINED')], 57, true)!.mainRoute).toBeNull()
     expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, null)], 57, true)!.routeShares).toEqual([])
+    expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, null)], 57, true)!.driveKwh).toBeNull()
   })
 
   it('Standverlust nur sichtbar, wenn freigeschaltet', () => {

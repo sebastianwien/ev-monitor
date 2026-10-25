@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildEnergyFlow, buildRange, costLayers, monthCosts, costStack, flowShares, RANGE_SOC_WINDOWS } from './storyEnergy'
+import { buildEnergyFlow, buildRange, costLayers, monthCosts, costStack, flowShares, energyUse, RANGE_SOC_WINDOWS, type UseTrips } from './storyEnergy'
 import type { StatisticsData } from './useDashboardStats'
 
 function stats(over: Partial<StatisticsData> = {}): StatisticsData {
@@ -129,5 +129,61 @@ describe('monthCosts und costStack', () => {
   it('Stapel: Strom unten, Fixkosten oben, Einnahmen nicht im Balken', () => {
     expect(costStack([{ energyEur: 15, fixedEur: 45, incomeEur: 20 }, { energyEur: 20, fixedEur: 0, incomeEur: 0 }]))
       .toEqual({ energy: [15, 20], fixed: [45, 0] })
+  })
+})
+
+describe('energyUse: wo der Strom des Monats bleibt', () => {
+  // Ihle Oktober: 46 Fahrten, Stand 34 kWh, eine von zwei Ladungen gemessen, alles öffentlich
+  const trips = (over: Partial<UseTrips> = {}): UseTrips => ({ trips: 46, driveKwh: 33.5, standbyKwh: 34, standbyLocked: false, standbyEur: 9.86, ...over })
+  const month = (over: Partial<StatisticsData> = {}) => stats({
+    avgCostPerKwh: 0.29,
+    locationSplit: { publicKwh: 41, privateKwh: 0, unknownKwh: 0 },
+    chargingEfficiencySplit: { gridKwh: 20, vehicleKwh: 17, coveredLogCount: 1, totalLogCount: 2, lossKwh: 3, estimatedLossLogCount: 1 },
+    ...over,
+  })
+
+  it('Posten, Anteile mit Summe 100, Euro für Stand und Laden, Ladeort', () => {
+    const u = energyUse(month(), trips())!
+    expect([u.driveKwh, u.standbyKwh, u.chargeLossKwh]).toEqual([33.5, 34, 3])
+    expect(u.shares).toEqual([{ key: 'drive', pct: 48 }, { key: 'standby', pct: 48 }, { key: 'charge', pct: 4 }])
+    expect(u.standbyEur).toBeCloseTo(9.86)
+    expect(u.chargeEur).toBeCloseTo(0.87)
+    expect(u.lossEur).toBeCloseTo(10.73)
+    expect([u.trips, u.charges, u.estimatedCharges]).toEqual([46, 2, 1])
+    expect(u.homePct).toBe(0)
+  })
+
+  it('ohne Fahrten mit Energiedaten kein Ergebnis (Kachel bleibt wie bisher)', () => {
+    expect(energyUse(month(), null)).toBeNull()
+    expect(energyUse(month(), trips({ driveKwh: null }))).toBeNull()
+  })
+
+  it('Stand gesperrt: Stück ohne Prozent, Anteile nur aus Fahren und Laden, Euro nur Laden', () => {
+    const u = energyUse(month(), trips({ standbyKwh: null, standbyLocked: true, standbyEur: null }))!
+    expect(u.standbyKwh).toBeNull()
+    expect(u.shares).toEqual([{ key: 'drive', pct: 92 }, { key: 'standby', pct: null }, { key: 'charge', pct: 8 }])
+    expect(u.lossEur).toBeCloseTo(0.87)
+  })
+
+  it('ohne Preis keine Euro', () => {
+    const u = energyUse(month({ avgCostPerKwh: 0 }), trips({ standbyEur: null }))!
+    expect([u.lossEur, u.standbyEur, u.chargeEur]).toEqual([null, null, null])
+  })
+
+  it('Stand ohne eigenen Euro-Wert rechnet mit dem Monatsschnitt', () => {
+    expect(energyUse(month(), trips({ standbyEur: null }))!.standbyEur).toBeCloseTo(9.86)
+  })
+
+  it('älteres Backend ohne Hochrechnung: gemessener Verlust aus den Ladungen mit beiden Werten', () => {
+    const u = energyUse(month({ chargingEfficiencySplit: { gridKwh: 20, vehicleKwh: 17, coveredLogCount: 1, totalLogCount: 2 } }), trips())!
+    expect(u.chargeLossKwh).toBe(3)
+    expect([u.charges, u.estimatedCharges]).toEqual([1, 0])
+  })
+
+  it('ohne Ladung im Monat Ladeverlust 0, ohne Ortsangabe kein Ladeort', () => {
+    const u = energyUse(month({ chargingEfficiencySplit: null, locationSplit: null }), trips())!
+    expect(u.chargeLossKwh).toBe(0)
+    expect(u.shares.map(s => s.key)).toEqual(['drive', 'standby'])
+    expect(u.homePct).toBeNull()
   })
 })

@@ -96,10 +96,10 @@ describe('buildStoryTiles', () => {
   })
 
   it('Stand-Kachel: Verlust im Stand, nur freigeschaltet und mit Standzeiten', () => {
-    const tripMonth: TripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, routeShares: [], mainRoute: null, longestKm: 42, tempMin: 6, tempMax: 14,
+    const tripMonth: TripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, driveKwh: 27.5, routeShares: [], mainRoute: null, longestKm: 42, tempMin: 6, tempMax: 14,
       standbyKwh: 3.3, standbyLocked: false, standbyGaps: [{ kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z', eur: 0.75 }, { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z', eur: 0.24 }], standbyEur: 0.99 }
     const ids = (tm: typeof tripMonth) => buildStoryTiles(input({ tripMonth: tm })).map(t => t.id)
-    expect(ids(tripMonth)).toEqual(['cost', 'wltp', 'trips', 'standby', 'peer', 'battery', 'co2'])
+    expect(ids(tripMonth)).toEqual(['cost', 'wltp', 'trips', 'standby', 'flow', 'peer', 'battery', 'co2'])
     expect(buildStoryTiles(input({ tripMonth })).find(t => t.id === 'standby')!.value).toBe(3.3)
     expect(ids({ ...tripMonth, standbyLocked: true, standbyKwh: null, standbyGaps: [], standbyEur: null })).not.toContain('standby')
     expect(ids({ ...tripMonth, standbyGaps: [], standbyEur: null })).not.toContain('standby')
@@ -572,7 +572,7 @@ describe('visibleGap: welche Lücke der Satz nennt', () => {
 })
 
 describe('Fahrten-Kachel und Abgleich mit den Ladungen', () => {
-  const tripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY' as const, pct: 70 }, { key: 'HIGHWAY' as const, pct: 30 }], mainRoute: 'CITY' as const, longestKm: 42, tempMin: 6, tempMax: 14, standbyKwh: null, standbyLocked: true, standbyGaps: [], standbyEur: null }
+  const tripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, driveKwh: 27.5, routeShares: [{ key: 'CITY' as const, pct: 70 }, { key: 'HIGHWAY' as const, pct: 30 }], mainRoute: 'CITY' as const, longestKm: 42, tempMin: 6, tempMax: 14, standbyKwh: null, standbyLocked: true, standbyGaps: [], standbyEur: null }
 
   it('steht nach "Stimmt, was der Hersteller verspricht?", Zahl ist der Antriebsverbrauch', () => {
     const tiles = buildStoryTiles(input({ flow, range, tripMonth }))
@@ -580,6 +580,38 @@ describe('Fahrten-Kachel und Abgleich mit den Ladungen', () => {
     const t = tiles.find(x => x.id === 'trips')!
     expect(t.value).toBe(18.2)
     expect(t.tripMonth).toBe(tripMonth)
+  })
+
+  describe('Strom-Kachel mit Fahrten: Fahren, Stand, Laden', () => {
+    const month = stats({ avgCostPerKwh: 0.29, chargingEfficiencySplit: { gridKwh: 20, vehicleKwh: 17, coveredLogCount: 1, totalLogCount: 2, lossKwh: 3, estimatedLossLogCount: 1 } })
+    const tm = { ...tripMonth, driveKwh: 33.5, standbyKwh: 34, standbyLocked: false, standbyGaps: [{ kwh: 34, from: '', to: '', eur: 9.86 }], standbyEur: 9.86 }
+    const tile = (over: Partial<StoryInput>) => buildStoryTiles(input({ month, flow, tripMonth: tm, ...over })).find(x => x.id === 'flow')
+
+    it('Zahl ist der Verlust in Euro, Stimmung neutral, Netz und Akku bleiben fürs Sheet', () => {
+      const t = tile({})!
+      expect(t.value).toBeCloseTo(10.73)
+      expect(t.sentiment).toBe('neutral')
+      expect(t.use!.shares.map(s => s.key)).toEqual(['drive', 'standby', 'charge'])
+      expect(t.flow).toBe(flow)
+    })
+
+    it('ohne Preis ist die Zahl der Verlust in kWh', () => {
+      const t = tile({ month: stats({ ...month, avgCostPerKwh: 0 }), tripMonth: { ...tm, standbyEur: null } })!
+      expect(t.value).toBeCloseTo(37)
+      expect(t.use!.lossEur).toBeNull()
+    })
+
+    it('auch ohne gemessene Ladung, dann ohne Netz und Akku', () => {
+      const t = tile({ flow: null })!
+      expect(t.use).toBeDefined()
+      expect(t.flow).toBeUndefined()
+    })
+
+    it('ohne Energiedaten der Fahrten bleibt die Kachel beim Ladeverlust in Prozent', () => {
+      const t = tile({ tripMonth: { ...tm, driveKwh: null } })!
+      expect(t.value).toBe(flow.lossPercent)
+      expect(t.use).toBeUndefined()
+    })
   })
 
   it('ohne Antriebsverbrauch keine Kachel', () => {

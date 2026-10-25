@@ -327,6 +327,8 @@ export interface TripMonth {
   lengthShares: { key: LengthKey; pct: number }[]
   /** Antriebsverbrauch laut Fahrzeug, kWh/100 km. Null ohne Energiedaten der Fahrten. */
   driveKwhPer100km: number | null
+  /** Antrieb laut Fahrzeug in kWh über alle Fahrten. Null ohne Energiedaten der Fahrten. */
+  driveKwh: number | null
   /** Anteile an den km je Streckentyp in ganzen Prozent; leer ohne Streckentypen. */
   routeShares: { key: RouteKey; pct: number }[]
   mainRoute: RouteKey | null
@@ -436,6 +438,7 @@ export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: numb
     avgKm: sum.totalDistanceKm / sum.tripCount,
     lengthShares,
     driveKwhPer100km: sum.consumptionKwhPer100km,
+    driveKwh: sum.drivetrainKwh,
     routeShares,
     mainRoute: main?.key ?? null,
     longestKm: Math.max(0, ...trips.map(t => t.distanceKm ?? 0)),

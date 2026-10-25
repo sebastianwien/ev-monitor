@@ -6,7 +6,7 @@
  */
 import type { StatisticsData, ChargeDataPoint, ChargingTypeSplit } from './useDashboardStats'
 import { VERBRENNER_G_PER_KM, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
-import type { EnergyFlow, RangeEstimate } from './storyEnergy'
+import { energyUse, type EnergyFlow, type EnergyUse, type RangeEstimate } from './storyEnergy'
 import type { ModelPeers, RankResult, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
 import type { Moment } from './storyMoments'
 
@@ -31,6 +31,8 @@ export interface StoryTile {
   odometerKm?: number | null
   /** Rohdaten fuer den Mini-Sankey (nur id 'flow'). */
   flow?: EnergyFlow
+  /** Fahren, Stand und Laden des Monats (nur id 'flow', nur mit Energiedaten der Fahrten). */
+  use?: EnergyUse
   /** Rohdaten fuer die Akku-Silhouette (nur id 'range'). */
   range?: RangeEstimate
   /** Gesetzt, wenn der Monatswert auf weniger als MIN_SOLID_CHARGES Ladungen beruht: die Kachel nennt die Zahl. */
@@ -273,7 +275,21 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
     })
   }
 
-  if (input.flow) {
+  // Mit Energiedaten der Fahrten: Verwendung Fahren/Stand/Laden, Zahl ist der Verlust (Euro, ohne Preis kWh)
+  const use = energyUse(m, tm ?? null)
+  if (use) {
+    tiles.push({
+      id: 'flow',
+      value: use.lossEur ?? (use.standbyKwh ?? 0) + use.chargeLossKwh,
+      delta: null,
+      deltaPercent: null,
+      sentiment: 'neutral',
+      spark: [],
+      sparkVariant: 'range',
+      flow: input.flow ?? undefined,
+      use,
+    })
+  } else if (input.flow) {
     const p = input.flow.lossPercent
     tiles.push({
       id: 'flow',

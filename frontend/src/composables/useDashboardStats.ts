@@ -54,6 +54,10 @@ export interface ChargingEfficiencySplit {
   vehicleKwh: number
   coveredLogCount: number
   totalLogCount: number
+  /** Ladeverlust aller Ladungen, gemessen oder hochgerechnet; fehlt bei älteren Backends. */
+  lossKwh?: number
+  /** Ladungen, deren Verlust hochgerechnet ist. */
+  estimatedLossLogCount?: number
 }
 
 export interface StatisticsData {

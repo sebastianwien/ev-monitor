@@ -1,4 +1,5 @@
 import type { StatisticsData } from './useDashboardStats'
+import type { TripMonth } from './storyInsights'
 
 /**
  * Energie-Ableitungen fuer das Story-Dashboard: Energiefluss (Netz, Akku, Strasse),
@@ -60,6 +61,89 @@ export function buildEnergyFlow(stats: StatisticsData): EnergyFlow | null {
 }
 
 /** Gleiche Fenster wie die RangeCard des alten Dashboards. */
+export type UseKey = 'drive' | 'standby' | 'charge'
+/** Ein Stück im Verwendungs-Balken; pct null heißt gesperrt (Stand ohne Analytics). */
+export interface UseShare { key: UseKey; pct: number | null }
+
+/** Was energyUse von den Fahrten des Monats braucht. */
+export type UseTrips = Pick<TripMonth, 'trips' | 'driveKwh' | 'standbyKwh' | 'standbyLocked' | 'standbyEur'>
+
+/** Wo der Strom des Monats bleibt: Fahren, Stand, Laden. */
+export interface EnergyUse {
+  driveKwh: number
+  /** Null, wenn der Stand gesperrt ist. */
+  standbyKwh: number | null
+  /** Ladeverlust aller Ladungen, gemessen oder hochgerechnet. */
+  chargeLossKwh: number
+  trips: number
+  charges: number
+  estimatedCharges: number
+  /** Stand und Laden zusammen in Euro; null ohne Preis. */
+  lossEur: number | null
+  standbyEur: number | null
+  chargeEur: number | null
+  /** Zuhause geladen in ganzen Prozent; null ohne Ortsangabe. */
+  homePct: number | null
+  shares: UseShare[]
+}
+
+/** Ganze Prozent mit Summe 100, der Rundungsrest geht an die größten Reste. */
+function percents(values: number[]): number[] {
+  const total = values.reduce((a, b) => a + b, 0)
+  if (total <= 0) return values.map(() => 0)
+  const raw = values.map(v => (v / total) * 100)
+  const out = raw.map(Math.floor)
+  const order = raw.map((r, i) => ({ i, rest: r - out[i] })).sort((a, b) => b.rest - a.rest)
+  for (let k = 0; k < 100 - out.reduce((a, b) => a + b, 0); k++) out[order[k].i]++
+  return out
+}
+
+/**
+ * Fahren (Antrieb laut Fahrzeug), Stand (Energieabfall zwischen Fahrten) und Laden (Verlust aller
+ * Ladungen) eines Monats. Null ohne Fahrten mit Energiedaten, dann bleibt der Strom-Balken wie bisher.
+ * Euro: Stand wie in der Stand-Kachel, Laden zum Monatsschnitt je Netz-kWh. Gesperrter Stand zählt
+ * weder in Anteile noch in Euro, damit er sich nicht zurückrechnen lässt.
+ */
+export function energyUse(stats: StatisticsData, tm: UseTrips | null): EnergyUse | null {
+  if (!tm || tm.driveKwh == null || tm.driveKwh <= 0) return null
+  const e = stats.chargingEfficiencySplit
+  // Älteres Backend ohne Hochrechnung (kurz im Blue/Green-Deploy): nur die gemessenen Ladungen
+  const projected = e?.lossKwh != null
+  const chargeLossKwh = !e ? 0 : projected ? e.lossKwh! : Math.max(0, e.gridKwh - e.vehicleKwh)
+  const price = stats.avgCostPerKwh != null && stats.avgCostPerKwh > 0 ? stats.avgCostPerKwh : null
+  const standbyKwh = tm.standbyLocked ? null : tm.standbyKwh ?? 0
+  const standbyEur = standbyKwh == null ? null : tm.standbyEur ?? (price == null ? null : standbyKwh * price)
+  const chargeEur = price == null ? null : chargeLossKwh * price
+  const lossEur = standbyEur == null && chargeEur == null ? null : (standbyEur ?? 0) + (chargeEur ?? 0)
+
+  let drive: number, standby: number | null, charge: number
+  if (standbyKwh == null) {
+    [drive, charge] = percents([tm.driveKwh, chargeLossKwh])
+    standby = null
+  } else {
+    [drive, standby, charge] = percents([tm.driveKwh, standbyKwh, chargeLossKwh])
+  }
+  const shares: UseShare[] = ([['drive', drive], ['standby', standby], ['charge', charge]] as [UseKey, number | null][])
+    .filter(([, pct]) => pct !== 0)
+    .map(([key, pct]) => ({ key, pct }))
+
+  const loc = stats.locationSplit
+  const located = loc ? loc.privateKwh + loc.publicKwh : 0
+  return {
+    driveKwh: tm.driveKwh,
+    standbyKwh,
+    chargeLossKwh,
+    trips: tm.trips,
+    charges: (projected ? e?.totalLogCount : e?.coveredLogCount) ?? 0,
+    estimatedCharges: e?.estimatedLossLogCount ?? 0,
+    lossEur,
+    standbyEur,
+    chargeEur,
+    homePct: located > 0 ? Math.round((loc!.privateKwh / located) * 100) : null,
+    shares,
+  }
+}
+
 export const RANGE_SOC_WINDOWS = [
   { socMax: 100, socMin: 0, recommended: false },
   { socMax: 90, socMin: 10, recommended: true },

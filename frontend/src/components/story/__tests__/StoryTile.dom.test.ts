@@ -120,7 +120,7 @@ describe('StoryTile Währung', () => {
 describe('StoryTile Fahrten', () => {
   const trips = (over: Partial<Tile> = {}): Tile => ({
     id: 'trips', value: 18.2, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [], sparkVariant: 'bars',
-    tripMonth: { trips: 14, km: 151, avgKm: 10.8, driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY', pct: 70 }, { key: 'HIGHWAY', pct: 30 }], mainRoute: 'CITY', lengthShares: [{ key: 'SHORT', pct: 64 }, { key: 'MEDIUM', pct: 36 }], longestKm: 42, tempMin: null, tempMax: null, standbyKwh: null, standbyLocked: true, standbyGaps: [], standbyEur: null },
+    tripMonth: { trips: 14, km: 151, avgKm: 10.8, driveKwhPer100km: 18.2, driveKwh: null, routeShares: [{ key: 'CITY', pct: 70 }, { key: 'HIGHWAY', pct: 30 }], mainRoute: 'CITY', lengthShares: [{ key: 'SHORT', pct: 64 }, { key: 'MEDIUM', pct: 36 }], longestKm: 42, tempMin: null, tempMax: null, standbyKwh: null, standbyLocked: true, standbyGaps: [], standbyEur: null },
     ...over,
   })
 
@@ -166,7 +166,7 @@ describe('StoryTile CO₂, Laden, Stand', () => {
     expect(text).toMatch(/Nur schnell geladen, 0,61\s€ je kWh/)
   })
   it('Stand: Verlust im Monat und der größte Stand', () => {
-    const tripMonth = { trips: 4, km: 40, avgKm: 10, lengthShares: [], driveKwhPer100km: 17, routeShares: [], mainRoute: null, longestKm: 10, tempMin: null, tempMax: null,
+    const tripMonth = { trips: 4, km: 40, avgKm: 10, lengthShares: [], driveKwhPer100km: 17, driveKwh: null, routeShares: [], mainRoute: null, longestKm: 10, tempMin: null, tempMax: null,
       standbyKwh: 3.3, standbyLocked: false, standbyGaps: [{ kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z', eur: 0.75 }, { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z', eur: 0.24 }], standbyEur: 0.99 }
     const text = mount({ ...base, id: 'standby', value: 3.3, tripMonth })
     expect(text).toMatch(/3,3\s?kWh/)
