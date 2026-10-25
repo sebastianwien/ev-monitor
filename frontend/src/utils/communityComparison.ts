@@ -43,19 +43,3 @@ export function comparisonDeltaPercent(
   if (value == null || !communityAvg) return null
   return Math.round((value / communityAvg - 1) * 100)
 }
-
-/** Chip-Farbwelt je Stufe; ohne Einordnung neutral, wie die uebrigen Kennzahl-Chips. */
-export function comparisonChipClass(level: ComparisonLevel | null): string {
-  switch (level) {
-    case 'better':
-      return 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700/60 text-emerald-700 dark:text-emerald-300'
-    case 'similar':
-      return 'bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-slate-700 dark:text-gray-200'
-    case 'worse':
-      return 'bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700/60 text-amber-700 dark:text-amber-300'
-    case 'much_worse':
-      return 'bg-rose-50 dark:bg-rose-900/20 border-rose-300 dark:border-rose-700/60 text-rose-700 dark:text-rose-300'
-    default:
-      return 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-slate-700 dark:text-gray-200'
-  }
-}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { comparisonLevel, comparisonDeltaPercent, comparisonChipClass } from '../communityComparison'
+import { comparisonLevel, comparisonDeltaPercent } from '../communityComparison'
 
 describe('comparisonLevel', () => {
   // Bei Verbrauch und Kosten ist niedriger immer besser.
@@ -45,20 +45,5 @@ describe('comparisonDeltaPercent', () => {
     expect(comparisonDeltaPercent(15, null)).toBeNull()
     expect(comparisonDeltaPercent(null, 20)).toBeNull()
     expect(comparisonDeltaPercent(15, 0)).toBeNull()
-  })
-})
-
-describe('comparisonChipClass', () => {
-  it('liefert fuer jede Stufe eine eigene Farbwelt und neutral als Fallback', () => {
-    const better = comparisonChipClass('better')
-    const similar = comparisonChipClass('similar')
-    const worse = comparisonChipClass('worse')
-    const muchWorse = comparisonChipClass('much_worse')
-    const neutral = comparisonChipClass(null)
-
-    expect(new Set([better, similar, worse, muchWorse, neutral]).size).toBe(5)
-    expect(better).toContain('emerald')
-    expect(worse).toContain('amber')
-    expect(muchWorse).toContain('rose')
   })
 })
