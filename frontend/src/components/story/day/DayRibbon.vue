@@ -43,7 +43,7 @@ const pick = (id: string) => {
         </template>
       </svg>
       <div class="relative mt-1 h-3.5 text-[10.5px] tabular-nums text-gray-400 dark:text-gray-500">
-        <span v-for="(h, i) in ['0', '6', '12', '18', t('storyday.axis_24')]" :key="i" class="absolute"
+        <span v-for="(h, i) in ['0', '6', '12', '18', t('storyday.axis_24')]" :key="i" class="absolute whitespace-nowrap"
           :class="i === 0 ? '' : i === 4 ? '-translate-x-full' : '-translate-x-1/2'" :style="{ left: `${i * 25}%` }">{{ h }}</span>
       </div>
       <div class="absolute right-3 top-1.5 text-[10.5px] font-semibold text-gray-400 dark:text-gray-500">100 %</div>

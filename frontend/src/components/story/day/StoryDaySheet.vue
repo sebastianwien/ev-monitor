@@ -145,7 +145,7 @@ const selectedId = computed(() => detail.value?.kind === 'charge' ? detail.value
     panel-class="h-[88dvh] sm:max-w-xl lg:h-[82vh] lg:max-w-5xl" @close="emit('close')">
     <div class="relative flex min-h-0 flex-1 bg-white dark:bg-gray-900 lg:grid lg:grid-cols-2">
       <!-- Ebene 1: der Tag -->
-      <section class="flex min-h-0 flex-1 flex-col" :inert="!wide && !!detail" data-testid="day-pane">
+      <section class="flex min-h-0 min-w-0 flex-1 flex-col" :inert="!wide && !!detail" data-testid="day-pane">
         <header class="shrink-0 px-4 pb-3 pt-2 lg:px-6 lg:pt-5">
           <div class="mx-auto mb-1 h-1.5 w-10 rounded-full bg-gray-200 sm:hidden dark:bg-gray-700" aria-hidden="true" />
           <div class="flex items-center gap-1">
@@ -196,11 +196,11 @@ const selectedId = computed(() => detail.value?.kind === 'charge' ? detail.value
         <footer class="shrink-0 border-t-2 border-gray-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:border-gray-800 lg:px-6">
           <div class="flex gap-2">
             <button type="button" data-testid="day-add-charge" @click="addCharge"
-              class="btn-3d inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border-2 border-gray-900 bg-green-600 px-3 text-[14px] font-semibold text-white dark:border-transparent">
+              class="btn-3d inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-gray-900 bg-green-600 px-2 text-[14px] font-semibold text-white dark:border-transparent">
               <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('storyday.add_charge') }}
             </button>
             <button type="button" data-testid="day-add-trip" @click="openDetail({ kind: 'trip', trip: null })"
-              class="btn-3d inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border-2 border-gray-900 bg-white px-3 text-[14px] font-semibold dark:border-transparent dark:bg-white/10">
+              class="btn-3d inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-gray-900 bg-white px-2 text-[14px] font-semibold dark:border-transparent dark:bg-white/10">
               <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('storyday.add_trip') }}
             </button>
           </div>

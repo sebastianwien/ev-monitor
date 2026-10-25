@@ -48,7 +48,7 @@ const confirming = ref<string | null>(null)
     <span class="pointer-events-none absolute bottom-6 left-[77px] top-6 w-0.5 bg-gray-200 dark:bg-gray-800" aria-hidden="true" />
     <template v-for="(e, i) in events" :key="e.id">
       <!-- Zwischen zwei Einträgen: Halt mit Zusammenführen oder längere Standzeit -->
-      <li v-if="i && canMerge(events[i - 1], e)" class="pl-[68px] text-[12.5px] text-gray-500 dark:text-gray-400" data-testid="day-merge-row">
+      <li v-if="i && canMerge(events[i - 1], e)" class="pl-[90px] text-[12.5px] text-gray-500 dark:text-gray-400" data-testid="day-merge-row">
         <div v-if="confirming !== events[i - 1].id" class="flex min-h-11 flex-wrap items-center gap-x-2">
           <span class="tabular-nums">{{ gapMinutes(events[i - 1], e) <= 0 ? t('storyday.direct') : t('storyday.halt', { d: dur(gapMinutes(events[i - 1], e)) }) }}</span>
           <button type="button" data-testid="day-merge" class="inline-flex min-h-11 items-center gap-1 rounded-full px-2 font-semibold text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 dark:text-gray-100 dark:decoration-gray-600"
@@ -66,7 +66,7 @@ const confirming = ref<string | null>(null)
           </div>
         </div>
       </li>
-      <li v-else-if="i && showStanding(events[i - 1], e)" class="py-1 pl-[68px] text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
+      <li v-else-if="i && showStanding(events[i - 1], e)" class="py-1 pl-[90px] text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
         {{ t('storyday.standing', { d: dur(gapMinutes(events[i - 1], e)) }) }}
       </li>
 
@@ -84,7 +84,7 @@ const confirming = ref<string | null>(null)
             </span>
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[15px] font-semibold">{{ t('storyday.trip') }} <span class="tabular-nums">{{ e.trip.distanceKm != null ? formatDistance(e.trip.distanceKm) : '' }}</span></span>
-              <span class="block truncate text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ tripSub(e) }}</span>
+              <span class="line-clamp-2 block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ tripSub(e) }}</span>
             </span>
             <svg v-if="thumb(e)" viewBox="0 0 60 44" class="h-11 w-[60px] shrink-0 rounded-lg bg-gray-100 dark:bg-white/5" aria-hidden="true">
               <path :d="thumb(e)!.d" class="fill-none stroke-gray-900 dark:stroke-gray-100" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" />
@@ -97,7 +97,7 @@ const confirming = ref<string | null>(null)
             </span>
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[15px] font-semibold">{{ placeName(e) }}</span>
-              <span class="block truncate text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ chargeSub(e) }}</span>
+              <span class="line-clamp-2 block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ chargeSub(e) }}</span>
               <span v-if="missingOf(e.log).length" class="mt-1 flex gap-1">
                 <span v-for="m in missingOf(e.log)" :key="m" data-testid="day-missing"
                   class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ t(`storyday.missing_${m}`) }}</span>
