@@ -48,7 +48,7 @@ const detail = computed(() => {
   <button
     type="button"
     data-testid="story-map-open"
-    class="mt-3 w-full overflow-hidden rounded-xl bg-white text-left edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:bg-gray-800"
+    class="mt-3 w-full overflow-hidden rounded-xl bg-white text-left edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:bg-gray-700/50"
     @click="emit('open')">
     <StaticPlacesMap v-if="preview && rows.length" :rows="rows" class="h-[180px] border-b-2 border-gray-900 dark:border-gray-700" />
     <span class="flex min-h-11 items-center gap-2.5 px-3 py-2">

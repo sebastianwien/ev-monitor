@@ -51,7 +51,7 @@ const trip = computed(() => {
 
 const chip = computed(() => !!charge.value?.missingPrice && !props.priceInHero)
 
-const row = 'flex h-12 items-center gap-2.5 rounded-xl bg-white px-3 edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-800'
+const row = 'flex h-12 items-center gap-2.5 rounded-xl bg-white px-3 edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-700/50'
 </script>
 
 <template>
