@@ -26,8 +26,11 @@ withDefaults(defineProps<{
   panelClass?: string
   /** data-testid am Panel, fuer E2E. */
   testid?: string
+  /** CI-Kante (Outline plus harter Schatten, edge-box) statt weichem Schatten. */
+  edge?: boolean
 }>(), {
   panelClass: 'sm:max-w-lg',
+  edge: false,
 })
 
 const emit = defineEmits<{ close: [] }>()
@@ -55,8 +58,8 @@ defineExpose({ requestClose })
         <div class="absolute inset-0 bg-black/50" @click="requestClose" />
         <div
           :data-testid="testid"
-          class="sheet-panel relative w-full max-h-[90vh] flex flex-col overflow-hidden bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-sm shadow-[0_-4px_20px_rgba(0,0,0,0.25)] sm:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:sm:shadow-[5px_5px_0_rgba(255,255,255,0.35)] pb-[env(safe-area-inset-bottom)] sm:pb-0"
-          :class="panelClass">
+          class="sheet-panel relative w-full max-h-[90vh] flex flex-col overflow-hidden bg-white dark:bg-gray-800 rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0"
+          :class="[edge ? 'edge-box sm:rounded-2xl' : 'sm:rounded-sm shadow-[0_-4px_20px_rgba(0,0,0,0.25)] sm:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:sm:shadow-[5px_5px_0_rgba(255,255,255,0.35)]', panelClass]">
           <slot :close="requestClose" />
         </div>
       </div>

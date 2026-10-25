@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BottomSheet from '../shared/BottomSheet.vue'
+import SheetCloseButton from './SheetCloseButton.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { BenchmarkCard, ChargingBenchmark } from '../../api/chargingBenchmarkService'
 
@@ -38,7 +39,7 @@ function cardDetail(c: BenchmarkCard): string {
 </script>
 
 <template>
-  <BottomSheet :label="title" testid="story-price-sheet" panel-class="sm:max-w-lg" @close="emit('close')">
+  <BottomSheet :label="title" testid="story-price-sheet" panel-class="sm:max-w-lg" edge @close="emit('close')">
     <template #default="{ close }">
       <div class="px-4 pt-3 pb-4 max-h-[85vh] overflow-y-auto">
         <div class="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mb-3" />
@@ -70,13 +71,7 @@ function cardDetail(c: BenchmarkCard): string {
             </li>
           </ul>
         </template>
-
-        <button
-          type="button"
-          class="mt-5 w-full rounded-full border border-gray-300 dark:border-gray-600 py-3 min-h-[44px] text-sm font-semibold text-gray-800 dark:text-gray-100"
-          @click="close">
-          {{ t('story.sheet_close') }}
-        </button>
+        <SheetCloseButton class="mt-5" @click="close" />
       </div>
     </template>
   </BottomSheet>

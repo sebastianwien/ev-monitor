@@ -89,8 +89,8 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
   <button
     type="button"
     :data-testid="`story-tile-${tile.id}`"
-    class="story-tile flex h-[150px] w-[85%] min-w-0 shrink-0 snap-start flex-col gap-1 rounded-2xl bg-white p-3.5 text-left max-md:edge-card md:h-[160px] md:w-auto md:bg-gray-100/80
-           dark:bg-gray-800/60 md:hover:bg-gray-200/70 md:dark:hover:bg-gray-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
+    class="story-tile flex h-[150px] w-[85%] min-w-0 shrink-0 snap-start flex-col gap-1 rounded-2xl bg-white p-3.5 text-left edge-card md:h-[160px] md:w-auto
+           dark:bg-gray-800/60 md:hover:bg-gray-50 md:dark:hover:bg-gray-800 transition-[transform,box-shadow,background-color] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
     :style="{ viewTransitionName: `story-tile-${tile.id}` }"
     @click="emit('open', tile.id)">
     <span class="line-clamp-2 text-[11.5px] font-semibold uppercase leading-tight tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ label }}</span>

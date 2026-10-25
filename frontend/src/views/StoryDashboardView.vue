@@ -29,6 +29,7 @@ import StoryHero from '../components/story/StoryHero.vue'
 import StoryMomentHero from '../components/story/StoryMomentHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
 import StoryLiveHero from '../components/story/StoryLiveHero.vue'
+import SheetCloseButton from '../components/story/SheetCloseButton.vue'
 import StoryTileRow from '../components/story/StoryTileRow.vue'
 import StoryFeed from '../components/story/StoryFeed.vue'
 import DataQualityLine from '../components/story/DataQualityLine.vue'
@@ -325,13 +326,13 @@ onMounted(() => analytics.track('story_viewed'))
 
     <StoryPriceSheet v-if="openPrices && story.benchmark.value" :benchmark="story.benchmark.value" :price-per-kwh="expensivePrice" @close="openPrices = false" />
 
-    <BottomSheet v-if="openMap" :label="t('story.map_title')" panel-class="sm:max-w-2xl" @close="openMap = false">
+    <BottomSheet v-if="openMap" :label="t('story.map_title')" panel-class="sm:max-w-2xl" edge @close="openMap = false">
       <template #default="{ close }">
-        <div class="p-3">
-          <div class="h-[60vh]">
+        <div class="overflow-y-auto p-3">
+          <div class="min-h-[60vh]">
             <ChargingHeatMap :car-id="selectedCarId" time-range="LAST_12_MONTHS" />
           </div>
-          <button type="button" class="mt-3 min-h-[44px] w-full rounded-full border border-gray-300 py-3 text-sm font-semibold dark:border-gray-600" @click="close">{{ t('story.sheet_close') }}</button>
+          <SheetCloseButton class="mt-3" @click="close" />
         </div>
       </template>
     </BottomSheet>
