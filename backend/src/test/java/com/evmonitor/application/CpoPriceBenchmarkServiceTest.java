@@ -5,7 +5,6 @@ import com.evmonitor.application.publicapi.CpoNameNormalizer;
 import com.evmonitor.domain.ChargingProviderTariff;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
-import com.evmonitor.infrastructure.persistence.ChargingBenchmarkQueryRepository;
 import com.evmonitor.infrastructure.persistence.ChargingBenchmarkQueryRepository.PublicChargePrice;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +38,7 @@ class CpoPriceBenchmarkServiceTest {
     private static final UUID ME = UUID.randomUUID();
     private static final LocalDateTime VERIFIED = LocalDateTime.of(2026, 3, 25, 10, 0);
 
-    @Mock ChargingBenchmarkQueryRepository queryRepository;
+    @Mock ChargingBenchmarkCache benchmarkCache;
     @Mock ChargingProviderTariffRepository tariffRepository;
 
     private CpoPriceBenchmarkService service;
@@ -51,9 +50,9 @@ class CpoPriceBenchmarkServiceTest {
         when(tariffRepository.findAllKnownCpoNames()).thenReturn(List.of("ALDI Süd", "EnBW", "IONITY", "Tesla Supercharger"));
         CpoNameNormalizer normalizer = new CpoNameNormalizer(tariffRepository);
         normalizer.init();
-        lenient().when(queryRepository.publicChargePrices(any())).thenReturn(rows);
+        lenient().when(benchmarkCache.publicChargePrices()).thenReturn(rows);
         lenient().when(tariffRepository.findValidOn(any())).thenReturn(tariffs);
-        service = new CpoPriceBenchmarkService(queryRepository, tariffRepository, normalizer);
+        service = new CpoPriceBenchmarkService(benchmarkCache, tariffRepository, normalizer);
     }
 
     @Test

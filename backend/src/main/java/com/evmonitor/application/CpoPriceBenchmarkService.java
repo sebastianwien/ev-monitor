@@ -5,7 +5,6 @@ import com.evmonitor.application.publicapi.CpoNameNormalizer;
 import com.evmonitor.domain.ChargingProviderTariff;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
-import com.evmonitor.infrastructure.persistence.ChargingBenchmarkQueryRepository;
 import com.evmonitor.infrastructure.persistence.ChargingBenchmarkQueryRepository.PublicChargePrice;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -51,9 +49,8 @@ public class CpoPriceBenchmarkService {
     static final BigDecimal MIN_PLAUSIBLE = new BigDecimal("0.15");
     static final BigDecimal MAX_PLAUSIBLE = new BigDecimal("1.20");
     static final int MAX_CARDS = 5;
-    static final int WINDOW_MONTHS = 12;
 
-    private final ChargingBenchmarkQueryRepository queryRepository;
+    private final ChargingBenchmarkCache benchmarkCache;
     private final ChargingProviderTariffRepository tariffRepository;
     private final CpoNameNormalizer cpoNameNormalizer;
 
@@ -61,7 +58,7 @@ public class CpoPriceBenchmarkService {
         String operator = cpoNameNormalizer.canonicalOperator(cpo);
         if (operator == null || type == null || type == ChargingType.UNKNOWN) return Optional.empty();
 
-        List<PublicChargePrice> others = queryRepository.publicChargePrices(LocalDateTime.now().minusMonths(WINDOW_MONTHS)).stream()
+        List<PublicChargePrice> others = benchmarkCache.publicChargePrices().stream()
                 .filter(r -> r.chargingType() == type)
                 .filter(r -> !r.driverId().equals(requesterId))
                 .filter(r -> plausible(r.pricePerKwh()))

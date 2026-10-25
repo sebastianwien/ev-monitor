@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.ChargingBenchmarkCache;
 import com.evmonitor.application.publicapi.CpoNameNormalizer;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
@@ -13,6 +14,7 @@ import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,7 @@ class ChargingBenchmarkControllerIntegrationTest extends AbstractIntegrationTest
 
     @Autowired JpaChargingNetworkRepository networkRepository;
     @Autowired CpoNameNormalizer cpoNameNormalizer;
+    @Autowired CacheManager cacheManager;
 
     private String operator;
     private User me;
@@ -43,8 +46,9 @@ class ChargingBenchmarkControllerIntegrationTest extends AbstractIntegrationTest
         ChargingNetworkEntity network = new ChargingNetworkEntity();
         network.setName(operator);
         networkRepository.save(network);
-        // the normalizer reads the catalog once at start-up
+        // the normalizer reads the catalog once at start-up, the charges are cached for an hour
         cpoNameNormalizer.init();
+        cacheManager.getCache(ChargingBenchmarkCache.CACHE).clear();
         me = createAndSaveUser("bench-me-" + System.nanoTime() + "@example.com");
     }
 
