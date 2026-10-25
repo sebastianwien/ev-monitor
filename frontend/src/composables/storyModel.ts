@@ -322,7 +322,8 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
  * extra: weitere Eintraege (Momente), die um die fuenf Plaetze mitkonkurrieren.
  * omit: Eintraege, die schon der Hero sagt.
  */
-export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[]; omit?: FeedId[] } = {}): StoryFeedItem[] {
+/** max: Plätze statt FEED_MAX, nur für die lokale Testansicht aller Sätze (?feed=alle). */
+export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[]; omit?: FeedId[]; max?: number } = {}): StoryFeedItem[] {
   const m = input.month
   const items: StoryFeedItem[] = []
 
@@ -479,7 +480,8 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
     : input.temperatureLocked && !temp
       ? { id: 'temperature_locked', question: 2, relevance: 0, sentiment: 'neutral', locked: true, params: {} }
       : null
-  const slots = locked ? FEED_MAX - 1 : FEED_MAX
+  const max = opts.max ?? FEED_MAX
+  const slots = locked ? max - 1 : max
   const shown = withOnePositive(ranked, slots)
   return locked ? [...shown, locked] : shown
 }

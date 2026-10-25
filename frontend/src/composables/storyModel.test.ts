@@ -397,6 +397,16 @@ describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
   })
 })
 
+describe('buildStoryFeed: Testansicht ohne Grenze', () => {
+  it('max hebt die fünf Plätze auf, der gesperrte Satz bleibt zuletzt', () => {
+    const neg = (id: string, relevance: number) => ({ id: 'moment', question: 1, relevance, sentiment: 'warn', params: {}, moment: { key: id } }) as never
+    const extra = [neg('a', 99), neg('b', 98), neg('c', 97), neg('d', 96), neg('e', 95), neg('f', 94)]
+    const feed = buildStoryFeed(input({ energySplitLocked: true, savingsEur: 120 }), { extra, max: Infinity })
+    expect(feed.length).toBeGreaterThan(7)
+    expect(feed[feed.length - 1].locked).toBe(true)
+  })
+})
+
 describe('buildStoryFeed: mindestens ein positiver Satz', () => {
   it('holt den besten positiven Satz in die fünf Plätze, wenn keiner darin ist', () => {
     const neg = (id: string, relevance: number) => ({ id: 'moment', question: 1, relevance, sentiment: 'warn', params: {}, moment: { key: id } }) as never

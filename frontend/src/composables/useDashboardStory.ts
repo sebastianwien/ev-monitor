@@ -396,11 +396,14 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const moment = computed<Moment>(() => moments.value.hero)
 
   const tiles = computed<StoryTile[]>(() => input.value ? buildStoryTiles(input.value) : [])
+  // Nur lokal: /story?feed=alle zeigt alle Sätze, die die Daten hergeben, statt der fünf relevantesten.
+  const allFeed = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('feed') === 'alle'
   const feed = computed<StoryFeedItem[]>(() => input.value
     ? buildStoryFeed(input.value, {
       extra: momentFeedItems(moments.value.rest),
       // Was der Hero sagt, steht nicht noch einmal im Feed.
       omit: moment.value.kind === 'rank' ? ['community_rank'] : [],
+      max: allFeed ? Infinity : undefined,
     })
     : [])
   const days = computed<DayCoverage[]>(() =>
