@@ -5,7 +5,7 @@ import { BoltIcon, MapIcon, ChevronRightIcon, LinkIcon } from '@heroicons/vue/24
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import { tripLine } from '../../../utils/tripMap'
 import {
-  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, routeThumb, type DayEvent,
+  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, routeThumb, socBar, type DayEvent,
 } from '../../../composables/storyDay'
 
 /**
@@ -32,13 +32,16 @@ function placeName(e: DayEvent & { kind: 'charge' }) {
 function chargeSub(e: DayEvent & { kind: 'charge' }) {
   const k = chargeKwh(e.log)
   const type = e.log.chargingType && e.log.chargingType !== 'UNKNOWN' ? e.log.chargingType : null
-  return [type, dur(e.to - e.from), k != null ? `${formatDecimal(k, 1)} kWh` : null, soc(e)].filter(Boolean).join(' · ')
+  return [type, dur(e.to - e.from), k != null ? `${formatDecimal(k, 1)} kWh` : null].filter(Boolean).join(' · ')
 }
-const tripSub = (e: DayEvent) => [dur(e.to - e.from), soc(e)].filter(Boolean).join(' · ')
+const tripSub = (e: DayEvent) => dur(e.to - e.from)
 function thumb(e: DayEvent & { kind: 'trip' }) {
   const line = tripLine(e.trip.tracePolyline, e.trip.routePolyline, e.trip.routeKind)
   return line ? routeThumb(line.points, 60, 44) : null
 }
+/** Änderung im Akku-Balken: Ladung grün, Verbrauch dunkel */
+const barClass = (e: DayEvent) => e.kind === 'charge' ? 'bg-green-600 dark:bg-green-400' : 'bg-gray-900 dark:bg-gray-100'
+
 /** Zusammenführen: erst fragen, dann tun. Schlüssel = id der früheren Fahrt. */
 const confirming = ref<string | null>(null)
 </script>
@@ -85,6 +88,17 @@ const confirming = ref<string | null>(null)
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[15px] font-semibold">{{ t('storyday.trip') }} <span class="tabular-nums">{{ e.trip.distanceKm != null ? formatDistance(e.trip.distanceKm) : '' }}</span></span>
               <span class="line-clamp-2 block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ tripSub(e) }}</span>
+              <span v-if="socBar(e.socFrom, e.socTo)" class="mt-1.5 flex items-center gap-2 text-[12px] font-semibold tabular-nums" data-testid="day-soc-bar">
+                <span class="sr-only">{{ soc(e) }}</span>
+                <span class="w-9 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true">{{ Math.round(e.socFrom!) }} %</span>
+                <span class="relative h-2 max-w-40 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700" aria-hidden="true">
+                  <i class="absolute inset-y-0 left-0 bg-gray-400 dark:bg-gray-500" :style="{ width: `${socBar(e.socFrom, e.socTo)!.base}%` }" />
+                  <i class="absolute inset-y-0" :class="barClass(e)"
+                    :style="{ left: `${socBar(e.socFrom, e.socTo)!.base}%`, width: `${Math.max(1, socBar(e.socFrom, e.socTo)!.delta)}%` }" />
+                </span>
+                <span class="shrink-0" aria-hidden="true">{{ Math.round(e.socTo!) }} %</span>
+              </span>
+              <span v-else-if="e.socTo != null" class="mt-0.5 block text-[12px] tabular-nums text-gray-500 dark:text-gray-400">{{ soc(e) }}</span>
             </span>
             <svg v-if="thumb(e)" viewBox="0 0 60 44" class="h-11 w-[60px] shrink-0 rounded-lg bg-gray-100 dark:bg-white/5" aria-hidden="true">
               <path :d="thumb(e)!.d" class="fill-none stroke-gray-900 dark:stroke-gray-100" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" />
@@ -98,6 +112,17 @@ const confirming = ref<string | null>(null)
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[15px] font-semibold">{{ placeName(e) }}</span>
               <span class="line-clamp-2 block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ chargeSub(e) }}</span>
+              <span v-if="socBar(e.socFrom, e.socTo)" class="mt-1.5 flex items-center gap-2 text-[12px] font-semibold tabular-nums" data-testid="day-soc-bar">
+                <span class="sr-only">{{ soc(e) }}</span>
+                <span class="w-9 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true">{{ Math.round(e.socFrom!) }} %</span>
+                <span class="relative h-2 max-w-40 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700" aria-hidden="true">
+                  <i class="absolute inset-y-0 left-0 bg-gray-400 dark:bg-gray-500" :style="{ width: `${socBar(e.socFrom, e.socTo)!.base}%` }" />
+                  <i class="absolute inset-y-0" :class="barClass(e)"
+                    :style="{ left: `${socBar(e.socFrom, e.socTo)!.base}%`, width: `${Math.max(1, socBar(e.socFrom, e.socTo)!.delta)}%` }" />
+                </span>
+                <span class="shrink-0" aria-hidden="true">{{ Math.round(e.socTo!) }} %</span>
+              </span>
+              <span v-else-if="e.socTo != null" class="mt-0.5 block text-[12px] tabular-nums text-gray-500 dark:text-gray-400">{{ soc(e) }}</span>
               <span v-if="missingOf(e.log).length" class="mt-1 flex gap-1">
                 <span v-for="m in missingOf(e.log)" :key="m" data-testid="day-missing"
                   class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ t(`storyday.missing_${m}`) }}</span>

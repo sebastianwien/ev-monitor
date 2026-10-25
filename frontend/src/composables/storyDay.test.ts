@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
-  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow,
+  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow, ribbonWindow, socBar,
   type DayLog, type DayTrip, type DayEvent,
 } from './storyDay'
 
@@ -148,5 +148,40 @@ describe('dayAtNow', () => {
   it('Datum des Tages, Uhrzeit von jetzt', () => {
     const d = dayAtNow('2026-08-16', new Date(2026, 9, 25, 19, 42, 31))
     expect(d.getTime()).toBe(new Date(2026, 7, 16, 19, 42).getTime())
+  })
+})
+
+describe('ribbonWindow', () => {
+  const ev = (from: number, to: number) => ({ kind: 'trip', id: String(from), from, to, socFrom: null, socTo: null } as DayEvent)
+  it('zoomt auf die aktive Zeit plus Rand, auf volle Stunden', () => {
+    // 07:53 bis 14:10 -> 07:00 bis 15:00
+    const w = ribbonWindow([ev(473, 600), ev(820, 850)])
+    expect(w).toMatchObject({ from: 420, to: 900 })
+    expect(w.ticks).toEqual([420, 540, 660, 780, 900])
+  })
+  it('mindestens drei Stunden, um die Mitte', () => {
+    const w = ribbonWindow([ev(600, 620)])
+    expect(w.to - w.from).toBe(180)
+    expect(w.from).toBeLessThanOrEqual(600)
+    expect(w.to).toBeGreaterThanOrEqual(620)
+  })
+  it('bleibt im Tag', () => {
+    expect(ribbonWindow([ev(5, 40)]).from).toBe(0)
+    expect(ribbonWindow([ev(1400, 1440)]).to).toBe(1440)
+  })
+  it('höchstens fünf Beschriftungen', () => {
+    expect(ribbonWindow([ev(0, 30), ev(1380, 1440)]).ticks.length).toBeLessThanOrEqual(5)
+  })
+})
+
+describe('socBar', () => {
+  it('Ladung: Sockel bis Start, Zuwachs bis Ende', () => {
+    expect(socBar(18, 90)).toEqual({ base: 18, delta: 72, up: true })
+  })
+  it('Fahrt: Sockel bis Ende, Verbrauch bis Start', () => {
+    expect(socBar(90, 88)).toEqual({ base: 88, delta: 2, up: false })
+  })
+  it('ohne Start oder Ende: nichts', () => {
+    expect(socBar(null, 80)).toBeNull()
   })
 })

@@ -1,52 +1,72 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ribbonSegments, type DayEvent } from '../../../composables/storyDay'
+import { ribbonSegments, ribbonWindow, type DayEvent } from '../../../composables/storyDay'
 
 /**
- * Tagesband: Akkustand über 24 h (Fahrt dunkel, Ladung grün, Standzeit gestrichelt), darunter ein
- * Band je Eintrag. aria-hidden, die Liste daneben sagt dasselbe vollständig. Antippbar nur, wenn
- * `interactive` (ab 1024 px); auf dem Handy wäre eine Stunde rund 15 px breit.
+ * Akku-Kurve des Tages, gezoomt auf die aktive Zeit: Fläche unter dem Akkustand, Fahrt dunkel,
+ * Ladung grün mit "+x %", Standzeit gestrichelt. aria-hidden, die Liste darunter sagt dasselbe
+ * vollständig. Antippbar nur, wenn `interactive` (ab 1024 px).
  */
 const props = defineProps<{ events: DayEvent[]; selectedId: string | null; interactive: boolean }>()
 const emit = defineEmits<{ select: [event: DayEvent] }>()
 const { t } = useI18n()
 
+const W = 1000, H = 100
 const r = computed(() => ribbonSegments(props.events))
-const Y = (soc: number) => 6 + (100 - soc) * 0.74
+const win = computed(() => ribbonWindow(props.events))
+const x = (min: number) => ((min - win.value.from) / (win.value.to - win.value.from)) * W
+const y = (soc: number) => H - soc
+const pctX = (min: number) => `${(x(min) / W) * 100}%`
+const pctY = (soc: number) => `${100 - soc}%`
+
 const lineClass = (kind: string) => kind === 'charge'
   ? 'stroke-green-600 dark:stroke-green-400'
-  : kind === 'trip' ? 'stroke-gray-900 dark:stroke-gray-100' : 'stroke-gray-300 dark:stroke-gray-600'
-const bandClass = (kind: string, on: boolean) => kind === 'charge'
-  ? (on ? 'fill-green-700 dark:fill-green-300' : 'fill-green-500/80 dark:fill-green-500/70')
-  : (on ? 'fill-gray-900 dark:fill-gray-100' : 'fill-gray-400 dark:fill-gray-500')
+  : kind === 'trip' ? 'stroke-gray-900 dark:stroke-gray-100' : 'stroke-gray-400 dark:stroke-gray-500'
+/** Fläche je Abschnitt bis zur Grundlinie; nebeneinander ergeben sie eine Fläche ohne Lücke */
+const area = (l: { x1: number; soc1: number; x2: number; soc2: number }) =>
+  `M${x(l.x1)},${H}L${x(l.x1)},${y(l.soc1)}L${x(l.x2)},${y(l.soc2)}L${x(l.x2)},${H}Z`
+/** "+x %" über dem Ende jeder Ladung, die nennenswert geladen hat */
+const gains = computed(() => props.events
+  .filter(e => e.kind === 'charge' && e.socFrom != null && e.socTo != null && e.socTo - e.socFrom >= 5)
+  .map(e => ({ id: e.id, at: e.to, soc: e.socTo!, gain: Math.round(e.socTo! - e.socFrom!) })))
+const hour = (min: number) => `${Math.floor(min / 60)}:00`
 const pct = (v: number) => `${Math.round(v)} %`
 const pick = (id: string) => {
-  const e = props.events.find(x => x.id === id)
+  const e = props.events.find(v => v.id === id)
   if (e) emit('select', e)
 }
 </script>
 
 <template>
   <div>
-    <div class="relative rounded-2xl bg-gray-50 px-3 pb-2 pt-3 dark:bg-white/5" aria-hidden="true" data-testid="day-ribbon">
-      <div class="pointer-events-none absolute inset-x-3 top-3 h-[74px] border-y border-dashed border-gray-200 dark:border-gray-700" />
-      <svg viewBox="0 0 1440 100" preserveAspectRatio="none" class="relative block h-[100px] w-full overflow-visible">
-        <line v-for="x in [360, 720, 1080]" :key="x" :x1="x" :x2="x" y1="0" y2="98" class="stroke-gray-200 dark:stroke-gray-700" stroke-width="1" vector-effect="non-scaling-stroke" />
-        <path v-for="(l, i) in r.lines" :key="`l${i}`" :d="`M${l.x1},${Y(l.soc1)}L${l.x2},${Y(l.soc2)}`" :class="['fill-none', lineClass(l.kind)]"
-          :stroke-width="l.kind === 'idle' ? 1.5 : 3" :stroke-dasharray="l.kind === 'idle' ? '3 4' : undefined" stroke-linecap="round" vector-effect="non-scaling-stroke" />
-        <circle v-for="(d, i) in r.dots" :key="`d${i}`" :cx="d.x" :cy="Y(d.soc)" r="3" :class="d.kind === 'charge' ? 'fill-green-600' : 'fill-gray-900 dark:fill-gray-100'" />
-        <rect v-for="b in r.bands" :key="`b${b.id}`" :x="b.x" y="88" :width="Math.max(6, b.w)" height="9" rx="2" :class="bandClass(b.kind, b.id === selectedId)" />
-        <template v-if="interactive">
-          <rect v-for="b in r.bands" :key="`h${b.id}`" :x="b.x + b.w / 2 - Math.max(36, b.w + 12) / 2" y="0" :width="Math.max(36, b.w + 12)" height="100"
-            class="cursor-pointer fill-transparent" @click="pick(b.id)" />
-        </template>
-      </svg>
-      <div class="relative mt-1 h-3.5 text-[10.5px] tabular-nums text-gray-400 dark:text-gray-500">
-        <span v-for="(h, i) in ['0', '6', '12', '18', t('storyday.axis_24')]" :key="i" class="absolute whitespace-nowrap"
-          :class="i === 0 ? '' : i === 4 ? '-translate-x-full' : '-translate-x-1/2'" :style="{ left: `${i * 25}%` }">{{ h }}</span>
+    <div class="rounded-2xl bg-gray-50 pb-3 pl-12 pr-4 pt-6 dark:bg-white/5" data-testid="day-ribbon" aria-hidden="true">
+      <div class="relative h-[110px]">
+        <!-- y: 0, 50, 100 % -->
+        <div v-for="v in [100, 50, 0]" :key="v" class="absolute inset-x-0 border-t border-dashed border-gray-200 dark:border-gray-700" :style="{ top: pctY(v) }">
+          <span class="absolute -left-11 w-9 -translate-y-1/2 whitespace-nowrap text-right text-[10.5px] tabular-nums text-gray-400 dark:text-gray-500">{{ v }} %</span>
+        </div>
+        <svg :viewBox="`0 0 ${W} ${H}`" preserveAspectRatio="none" class="absolute inset-0 h-full w-full overflow-visible">
+          <path v-for="(l, i) in r.lines" :key="`a${i}`" :d="area(l)" class="fill-gray-900/[0.06] dark:fill-white/[0.06]" />
+          <path v-for="(l, i) in r.lines" :key="`l${i}`" :d="`M${x(l.x1)},${y(l.soc1)}L${x(l.x2)},${y(l.soc2)}`" :class="['fill-none', lineClass(l.kind)]"
+            :stroke-width="l.kind === 'idle' ? 1.5 : 3" :stroke-dasharray="l.kind === 'idle' ? '3 4' : undefined"
+            stroke-linecap="round" vector-effect="non-scaling-stroke" />
+          <template v-if="interactive">
+            <rect v-for="e in events" :key="`h${e.id}`" :x="x(e.from) - 12" y="0" :width="Math.max(24, x(e.to) - x(e.from) + 24)" :height="H"
+              class="cursor-pointer fill-transparent" @click="pick(e.id)" />
+          </template>
+        </svg>
+        <!-- Punkte als HTML: im gestauchten SVG würden Kreise zu Ellipsen -->
+        <i v-for="(d, i) in r.dots" :key="`d${i}`" class="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          :class="d.kind === 'charge' ? 'bg-green-600 dark:bg-green-400' : 'bg-gray-900 dark:bg-gray-100'" :style="{ left: pctX(d.x), top: pctY(d.soc) }" />
+        <span v-for="g in gains" :key="`g${g.id}`" data-testid="day-ribbon-gain"
+          class="absolute -translate-x-1/2 -translate-y-full whitespace-nowrap pb-1 text-[12px] font-bold tabular-nums text-green-700 dark:text-green-400"
+          :style="{ left: pctX(g.at), top: pctY(g.soc) }">+{{ g.gain }} %</span>
       </div>
-      <div class="absolute right-3 top-1.5 text-[10.5px] font-semibold text-gray-400 dark:text-gray-500">100 %</div>
+      <div class="relative mt-1.5 h-3.5 text-[10.5px] tabular-nums text-gray-400 dark:text-gray-500">
+        <span v-for="(m, i) in win.ticks" :key="m" class="absolute whitespace-nowrap"
+          :class="i === 0 ? '' : i === win.ticks.length - 1 ? '-translate-x-full' : '-translate-x-1/2'" :style="{ left: pctX(m) }">{{ hour(m) }}</span>
+      </div>
     </div>
     <p v-if="r.caption" class="mt-2 text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">
       {{ t('storyday.caption', { first: pct(r.caption.first!), last: pct(r.caption.last!), min: pct(r.caption.min) }) }}

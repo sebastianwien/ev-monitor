@@ -171,3 +171,28 @@ export function dayAtNow(key: string, now: Date = new Date()): Date {
   d.setHours(now.getHours(), now.getMinutes(), 0, 0)
   return d
 }
+
+/**
+ * Sichtfenster der Akku-Kurve: aktive Zeit des Tages plus 30 min Rand, auf volle Stunden,
+ * mindestens drei Stunden. Beschriftung je 1, 2, 3, 4 oder 6 h, höchstens fünf.
+ */
+export function ribbonWindow(ev: DayEvent[]): { from: number; to: number; ticks: number[] } {
+  const first = Math.min(...ev.map(e => e.from)), last = Math.max(...ev.map(e => e.to))
+  let from = Math.max(0, Math.floor((first - 30) / 60) * 60)
+  let to = Math.min(DAY_MIN, Math.ceil((last + 30) / 60) * 60)
+  if (to - from < 180) {
+    const mid = Math.round((from + to) / 120) * 60
+    from = Math.max(0, Math.min(DAY_MIN - 180, mid - 90 - ((mid - 90) % 60)))
+    to = from + 180
+  }
+  const step = [60, 120, 180, 240, 360].find(s => Math.floor((to - from) / s) + 1 <= 5) ?? 360
+  const ticks: number[] = []
+  for (let t = from; t <= to; t += step) ticks.push(t)
+  return { from, to, ticks }
+}
+
+/** Akku-Balken einer Zeile (0 bis 100 %): Sockel bis zum kleineren Wert, darauf die Änderung. */
+export function socBar(from: number | null, to: number | null): { base: number; delta: number; up: boolean } | null {
+  if (from == null || to == null) return null
+  return { base: Math.min(from, to), delta: Math.abs(to - from), up: to >= from }
+}
