@@ -816,7 +816,7 @@ public class EvLogStatisticsService {
 
                     LocalDateTime periodTimestamp = periodLogs.get(0).getLoggedAt();
                     return new EvLogStatisticsResponse.ChargeDataPoint(
-                            periodTimestamp, totalCost, totalKwh, periodDistance, periodConsumption
+                            periodTimestamp, totalCost, totalKwh, periodDistance, periodConsumption, periodLogs.size()
                     );
                 })
                 .toList();
