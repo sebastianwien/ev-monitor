@@ -136,3 +136,21 @@ export function costLayers(stats: StatisticsData): CostLayer[] | null {
   layers.push({ kind: 'net', eur: stats.totalCostEur })
   return layers
 }
+
+/** Strom, Fixkosten und Einnahmen eines Monats für die gestapelten Balken im Kosten-Sheet. */
+export interface MonthCosts {
+  energyEur: number
+  fixedEur: number
+  /** Positiv ausgewiesen, steht nicht im Balken. */
+  incomeEur: number
+}
+
+/** Monatsstatistik auf ihre Kostenteile; ein fehlender Monat zählt als 0. */
+export function monthCosts(stats: StatisticsData | null): MonthCosts {
+  return { energyEur: stats?.energyCostEur ?? 0, fixedEur: stats?.fixedCostEur ?? 0, incomeEur: stats?.fixedIncomeEur ?? 0 }
+}
+
+/** Stapel je Monat: Strom unten, Fixkosten oben. Einnahmen bleiben draußen, sie stehen als Satz darunter. */
+export function costStack(months: MonthCosts[]): { energy: number[]; fixed: number[] } {
+  return { energy: months.map(m => m.energyEur), fixed: months.map(m => m.fixedEur) }
+}

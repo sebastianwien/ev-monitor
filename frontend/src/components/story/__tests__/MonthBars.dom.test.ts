@@ -42,4 +42,15 @@ describe('MonthBars', () => {
     expect(bars[2].getAttribute('title')).toBe('Okt bis heute')
     app.unmount()
   })
+
+  it('gestapelt: oberes Segment auf dem unteren, Summe als Wert, beide Teile in der Legende', () => {
+    const { el, app } = mount({ ...base, stack: [20, 0, 40], stackLabels: { base: 'Strom', stack: 'Fixkosten' } })
+    expect([...el.querySelectorAll('[data-role="value"]')].map(e => e.textContent)).toEqual(['40 €', '10 €', '80 €'])
+    expect([...el.querySelectorAll<HTMLElement>('[data-role="bar"]')].map(b => b.style.height)).toEqual(['25%', '12.5%', '50%'])
+    const stacks = [...el.querySelectorAll<HTMLElement>('[data-role="stack"]')]
+    expect(stacks.map(b => [b.style.bottom, b.style.height])).toEqual([['25%', '25%'], ['12.5%', '0%'], ['50%', '50%']])
+    expect(el.textContent).toContain('Strom')
+    expect(el.textContent).toContain('Fixkosten')
+    app.unmount()
+  })
 })

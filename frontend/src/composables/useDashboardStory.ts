@@ -11,7 +11,7 @@ import {
   buildStoryTiles, buildStoryFeed, buildDayCoverage, monthWindow, PETROL_EUR_PER_L_DE,
   type StoryTile, type StoryFeedItem, type DayCoverage,
 } from './storyModel'
-import { buildEnergyFlow, buildRange, costLayers } from './storyEnergy'
+import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
 import {
   temperatureEffect, whatIfModels, dataQuality, countPricelessInMonth, bestRank,
   type TripForTemperature, type RankEntry, buildLatest, sohIsEstimated, buildTripMonth, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
@@ -294,6 +294,22 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     ? buildRange(recentStats.value, ctx().effectiveBatteryCapacityKwh)
     : null)
   const layers = computed(() => monthStats.value ? costLayers(monthStats.value) : null)
+  /** Die Sechs-Monats-Statistik summiert Fixkosten und Einnahmen über alle sechs Balken. */
+  const hasFixedCosts = computed(() => (series.value?.fixedCostEur ?? 0) > 0 || (series.value?.fixedIncomeEur ?? 0) > 0)
+
+  /**
+   * Strom und Fixkosten je Monat der sechs Balken, aeltester zuerst. Die Monatsreihe kennt nur Ladungen,
+   * die Fixkosten stehen nur in der Statistik eines Zeitraums: deshalb eine Statistik je Monat, erst
+   * wenn das Kosten-Sheet sie zeigt. Null, wenn das Auto inzwischen gewechselt hat.
+   */
+  async function loadMonthlyCosts(): Promise<MonthCosts[] | null> {
+    const carId = selectedCarId.value
+    if (!carId) return null
+    const m = month.value
+    const windows = Array.from({ length: 6 }, (_, i) => monthWindow(m.year, m.month, i - 5))
+    const all = await Promise.all(windows.map(w => fetchStats(carId, w.start, w.end, 'MONTH')))
+    return carId === selectedCarId.value ? all.map(monthCosts) : null
+  }
   const temperature = computed(() => temperatureEffect(trips.value, ctx().effectiveBatteryCapacityKwh))
 
   /** Lifetime gegen Lifetime: eigener Wert aus dem Peer-Modell-Vergleich, sonst der Monat. */
@@ -407,7 +423,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   return {
     offset, month, months, setOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
-    layers, quality, temperature, whatIf, sohHistory, petrol, latest, moment, benchmark,
+    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, whatIf, sohHistory, petrol, latest, moment, benchmark,
     reload: load, markPriceUnknown,
   }
 }

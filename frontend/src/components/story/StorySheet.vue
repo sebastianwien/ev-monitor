@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import BottomSheet from '../shared/BottomSheet.vue'
 import SheetCloseButton from './SheetCloseButton.vue'
 import SheetGeneric from './sheets/SheetGeneric.vue'
+import SheetCost from './sheets/SheetCost.vue'
 import SheetFlow from './sheets/SheetFlow.vue'
 import SheetRange from './sheets/SheetRange.vue'
 import SheetPeer from './sheets/SheetPeer.vue'
@@ -14,6 +15,7 @@ import type { StoryTile } from '../../composables/storyModel'
 import type { StatisticsData } from '../../composables/useDashboardStats'
 import type { WhatIfModel, TemperatureEffect } from '../../composables/storyInsights'
 import type { BatterySohEntry } from '../../api/carService'
+import type { MonthCosts } from '../../composables/storyEnergy'
 
 /** Alles, was ein Kachel-Detail brauchen kann, in einem Record. */
 export interface StorySheetContext {
@@ -27,6 +29,10 @@ export interface StorySheetContext {
   temperature: TemperatureEffect | null
   sohHistory: BatterySohEntry[]
   effectiveCapacityKwh: number | null
+  /** Fixkosten oder Einnahmen in den sechs Monaten der Kosten-Balken. */
+  hasFixedCosts: boolean
+  /** Strom und Fixkosten je Monat der sechs Balken, erst auf Abruf. */
+  loadMonthlyCosts: () => Promise<MonthCosts[] | null>
 }
 
 /** Detail zu einer Kachel: Titel, Inhalt je Kachel-Id, Schliessen. */
@@ -56,7 +62,10 @@ const title = computed(() => props.tile.id === 'peer'
         <SheetPeer v-else-if="tile.id === 'peer'" :tile="tile" :stats="context.stats" :what-if="context.whatIf" />
         <SheetBattery v-else-if="tile.id === 'battery'" :tile="tile" :history="context.sohHistory" />
         <SheetWltp v-else-if="tile.id === 'wltp'" :tile="tile" :month-labels="context.monthLabels" :month-name="context.monthName" :running-month="context.runningMonth" :temperature="context.temperature" />
-        <SheetGeneric v-else :tile="tile" :stats="context.stats" :month-labels="context.monthLabels" :running-month="context.runningMonth" />
+        <SheetCost
+          v-else-if="tile.id === 'cost'" :tile="tile" :stats="context.stats" :month-labels="context.monthLabels" :month-name="context.monthName"
+          :running-month="context.runningMonth" :has-fixed-costs="context.hasFixedCosts" :load-monthly-costs="context.loadMonthlyCosts" />
+        <SheetGeneric v-else :tile="tile" :month-labels="context.monthLabels" :running-month="context.runningMonth" />
         <SheetCloseButton class="mt-5" @click="close" />
       </div>
     </template>

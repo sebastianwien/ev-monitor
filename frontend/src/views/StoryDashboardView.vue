@@ -228,6 +228,8 @@ const sheetContext = computed(() => ({
   temperature: story.temperature.value,
   sohHistory: story.sohHistory.value,
   effectiveCapacityKwh: effectiveCapacity.value,
+  hasFixedCosts: story.hasFixedCosts.value,
+  loadMonthlyCosts: story.loadMonthlyCosts,
 }))
 
 const noteSeen = ref(false)

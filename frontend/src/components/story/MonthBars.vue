@@ -4,7 +4,8 @@ import { computed } from 'vue'
 /**
  * Monatsbalken fuer die Kachel-Sheets: Werte und Monate als HTML-Text (lesbar gross, kein skaliertes SVG),
  * Balken ab 0. Optional eine gestrichelte Referenzlinie (Herstellerwert) und ein heller letzter Balken
- * fuer den laufenden Monat, beide in der Legende darunter benannt.
+ * fuer den laufenden Monat, beide in der Legende darunter benannt. Mit `stack` steht ein graues Segment
+ * auf jedem Balken (Fixkosten auf Strom), der Wert darueber ist dann die Summe.
  */
 const props = withDefaults(defineProps<{
   values: number[]
@@ -14,7 +15,11 @@ const props = withDefaults(defineProps<{
   /** Gesetzt = letzter Balken ist der laufende Monat, der Text steht in der Legende. */
   partialLabel?: string
   tone?: 'good' | 'warn' | 'bad' | 'neutral'
-}>(), { reference: null, partialLabel: '', tone: 'neutral' })
+  /** Oberes Segment je Balken, gleich lang wie `values`. */
+  stack?: number[] | null
+  /** Legende fuer unteres und oberes Segment, nur mit `stack`. */
+  stackLabels?: { base: string; stack: string } | null
+}>(), { reference: null, partialLabel: '', tone: 'neutral', stack: null, stackLabels: null })
 
 const TONE = {
   good: 'bg-green-600 dark:bg-green-400',
@@ -23,7 +28,9 @@ const TONE = {
   neutral: 'bg-gray-500 dark:bg-gray-400',
 }
 
-const max = computed(() => Math.max(...props.values, props.reference?.value ?? 0, 0))
+const top = (i: number) => props.stack?.[i] ?? 0
+const totals = computed(() => props.values.map((v, i) => v + top(i)))
+const max = computed(() => Math.max(...totals.value, props.reference?.value ?? 0, 0))
 const pct = (v: number) => `${max.value > 0 ? Math.round((Math.max(0, v) / max.value) * 1000) / 10 : 0}%`
 const cols = computed(() => ({ gridTemplateColumns: `repeat(${props.values.length}, minmax(0, 1fr))` }))
 const partial = (i: number) => !!props.partialLabel && i === props.values.length - 1
@@ -43,13 +50,19 @@ const partial = (i: number) => !!props.partialLabel && i === props.values.length
               data-role="bar"
               :data-partial="partial(i) ? 'true' : null"
               :title="partial(i) ? partialLabel : undefined"
-              class="absolute inset-x-0 bottom-0 min-h-0.5 rounded-t-md"
-              :class="[TONE[tone], partial(i) ? 'opacity-35' : '']"
+              class="absolute inset-x-0 bottom-0 min-h-0.5"
+              :class="[TONE[tone], partial(i) ? 'opacity-35' : '', top(i) > 0 ? '' : 'rounded-t-md']"
               :style="{ height: pct(v) }" />
+            <div
+              v-if="stack"
+              data-role="stack"
+              class="absolute inset-x-0 rounded-t-md bg-gray-300 dark:bg-gray-600"
+              :class="partial(i) ? 'opacity-35' : ''"
+              :style="{ bottom: pct(v), height: pct(top(i)) }" />
             <span
               data-role="value"
-              class="absolute inset-x-0 z-20 mb-1 text-center text-[15px] font-bold leading-none text-gray-900 tabular-nums dark:text-gray-50"
-              :style="{ bottom: pct(v) }">{{ format(v) }}</span>
+              class="absolute inset-x-0 z-20 mb-1 whitespace-nowrap text-center text-[15px] font-bold leading-none text-gray-900 tabular-nums dark:text-gray-50"
+              :style="{ bottom: pct(totals[i]) }">{{ format(totals[i]) }}</span>
           </div>
         </div>
       </div>
@@ -57,7 +70,11 @@ const partial = (i: number) => !!props.partialLabel && i === props.values.length
     <div class="mt-1.5 grid gap-2 border-t border-gray-300 pt-1.5 dark:border-gray-600" :style="cols">
       <span v-for="(l, i) in labels" :key="i" data-role="label" class="text-center text-[13px] text-gray-600 dark:text-gray-300">{{ l }}</span>
     </div>
-    <div v-if="reference" class="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-300">
+    <div v-if="reference || stackLabels" class="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-600 dark:text-gray-300">
+      <template v-if="stack && stackLabels">
+        <span class="inline-flex items-center gap-1.5"><i class="h-2.5 w-2.5 rounded-sm" :class="TONE[tone]" />{{ stackLabels.base }}</span>
+        <span class="inline-flex items-center gap-1.5"><i class="h-2.5 w-2.5 rounded-sm bg-gray-300 dark:bg-gray-600" />{{ stackLabels.stack }}</span>
+      </template>
       <span v-if="reference" class="inline-flex items-center gap-1.5"><i class="w-4 border-t-2 border-dashed border-gray-900/70 dark:border-gray-100/70" />{{ reference.label }}</span>
     </div>
   </div>

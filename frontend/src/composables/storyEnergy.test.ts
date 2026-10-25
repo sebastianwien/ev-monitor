@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildEnergyFlow, buildRange, costLayers, flowShares, RANGE_SOC_WINDOWS } from './storyEnergy'
+import { buildEnergyFlow, buildRange, costLayers, monthCosts, costStack, flowShares, RANGE_SOC_WINDOWS } from './storyEnergy'
 import type { StatisticsData } from './useDashboardStats'
 
 function stats(over: Partial<StatisticsData> = {}): StatisticsData {
@@ -113,5 +113,21 @@ describe('flowShares: Anteile des Netzstroms für den Balken', () => {
   it('Ort ohne Strom entfällt, ohne Aufteilung ein Stück im Akku', () => {
     expect(flowShares({ ...f, privateKwh: 0, publicKwh: 50, lossPercent: 5 })).toEqual([{ key: 'public', pct: 95 }, { key: 'loss', pct: 5 }])
     expect(flowShares({ ...f, privateKwh: 0, publicKwh: 0 })).toEqual([{ key: 'vehicle', pct: 90 }, { key: 'loss', pct: 10 }])
+  })
+})
+
+describe('monthCosts und costStack', () => {
+  it('Strom und Fixkosten je Monat, fehlende Statistik zählt als 0', () => {
+    const months = [stats({ energyCostEur: 15, fixedCostEur: 45, fixedIncomeEur: 20 }), null, stats({ energyCostEur: 20 })].map(monthCosts)
+    expect(months).toEqual([
+      { energyEur: 15, fixedEur: 45, incomeEur: 20 },
+      { energyEur: 0, fixedEur: 0, incomeEur: 0 },
+      { energyEur: 20, fixedEur: 0, incomeEur: 0 },
+    ])
+  })
+
+  it('Stapel: Strom unten, Fixkosten oben, Einnahmen nicht im Balken', () => {
+    expect(costStack([{ energyEur: 15, fixedEur: 45, incomeEur: 20 }, { energyEur: 20, fixedEur: 0, incomeEur: 0 }]))
+      .toEqual({ energy: [15, 20], fixed: [45, 0] })
   })
 })
