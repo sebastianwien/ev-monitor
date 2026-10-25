@@ -31,17 +31,19 @@ import StoryHero from '../components/story/StoryHero.vue'
 import StoryMomentHero from '../components/story/StoryMomentHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
 import StoryLiveHero from '../components/story/StoryLiveHero.vue'
-import SheetCloseButton from '../components/story/SheetCloseButton.vue'
 import StoryTileRow from '../components/story/StoryTileRow.vue'
 import StoryFeed from '../components/story/StoryFeed.vue'
 import DataQualityLine from '../components/story/DataQualityLine.vue'
 import StoryMonthSwitch from '../components/story/StoryMonthSwitch.vue'
 import LicensePlate from '../components/car/LicensePlate.vue'
+import api from '../api/axios'
+import type { PlacePeriod } from '../composables/storyPlaces'
+import type { EvLogResponse } from '../components/dashboard/EditLogModal.vue'
 
 const StorySheet = defineAsyncComponent(() => import('../components/story/StorySheet.vue'))
 const StoryPriceSheet = defineAsyncComponent(() => import('../components/story/StoryPriceSheet.vue'))
-const ChargingHeatMap = defineAsyncComponent(() => import('../components/dashboard/ChargingHeatMap.vue'))
-const BottomSheet = defineAsyncComponent(() => import('../components/shared/BottomSheet.vue'))
+const PlacesSheet = defineAsyncComponent(() => import('../components/story/places/PlacesSheet.vue'))
+const EditLogModal = defineAsyncComponent(() => import('../components/dashboard/EditLogModal.vue'))
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -189,6 +191,23 @@ function onPointerUp(e: PointerEvent) {
 const openTile = ref<TileId | null>(null)
 const openMap = ref(false)
 const openPrices = ref(false)
+/** Zeitraum der Ladekarte, bleibt beim Umweg über "Betreiber eintragen" erhalten. */
+const placesPeriod = ref<PlacePeriod>('12m')
+const operatorLog = ref<EvLogResponse | null>(null)
+/** "Betreiber eintragen": die Karte ist schon zu, die Ladung öffnet im Ort, danach kommt die Karte zurück. */
+async function openOperator(logId: string) {
+  openMap.value = false
+  try {
+    operatorLog.value = (await api.get<EvLogResponse>(`/logs/${logId}`)).data
+  } catch {
+    openMap.value = true
+  }
+}
+function closeOperator(changed: boolean) {
+  operatorLog.value = null
+  openMap.value = true
+  if (changed) story.reload()
+}
 /** Was der Nutzer bei der Ladung gezahlt hat, die den Moment "zu teuer geladen" ausloest. */
 const expensivePrice = computed(() => moment.value.kind === 'expensive' ? moment.value.pricePerKwh : null)
 function openSheet(id: TileId) {
@@ -335,16 +354,23 @@ onMounted(() => analytics.track('story_viewed'))
 
     <StoryPriceSheet v-if="openPrices && story.benchmark.value" :benchmark="story.benchmark.value" :price-per-kwh="expensivePrice" @close="openPrices = false" />
 
-    <BottomSheet v-if="openMap" :label="t('story.map_title')" panel-class="sm:max-w-2xl" edge @close="openMap = false">
-      <template #default="{ close }">
-        <div class="overflow-y-auto p-3">
-          <div class="min-h-[60vh]">
-            <ChargingHeatMap :car-id="selectedCarId" time-range="LAST_12_MONTHS" />
-          </div>
-          <SheetCloseButton class="mt-3" @click="close" />
-        </div>
-      </template>
-    </BottomSheet>
+    <PlacesSheet
+      v-if="openMap && selectedCarId"
+      v-model:period="placesPeriod"
+      :car-id="selectedCarId"
+      :month="month"
+      :month-name="monthLabel(month)"
+      :can-view-live-analytics="authStore.canViewLiveAnalytics"
+      :upsell-to="upsellTo"
+      @close="openMap = false"
+      @operator="openOperator" />
+    <EditLogModal
+      v-if="operatorLog"
+      :log="operatorLog"
+      start-section="place"
+      @close="closeOperator(false)"
+      @saved="closeOperator(true)"
+      @deleted="closeOperator(true)" />
   </div>
 </template>
 

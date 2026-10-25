@@ -143,9 +143,13 @@ export function drawableTripLines(trips: PlacesTrip[]): Array<{ id: string } & T
   })
 }
 
-/** Zoom beim Antippen: nah genug für die Straßen ringsum, nicht genauer als die gespeicherte Zelle. */
+/**
+ * Zoom beim Antippen: nah genug für die Straßen ringsum, nicht genauer als die gespeicherte Zelle
+ * (7 Zeichen rund 150 m, 6 rund 600 m, ältere Ladungen mit 5 Zeichen rund 5 km).
+ */
 export function focusZoom(geohash: string): number {
-  return geohash.length >= 7 ? 15 : 14
+  if (geohash.length >= 7) return 15
+  return geohash.length === 6 ? 14 : 12
 }
 
 export interface PlaceSelection<V> {

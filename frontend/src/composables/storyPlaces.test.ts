@@ -189,6 +189,9 @@ describe('focusZoom', () => {
   it('nicht genauer, als der Ort gespeichert ist', () => {
     expect(focusZoom('u1x3k7q')).toBe(15)
     expect(focusZoom('u1x0yz')).toBe(14)
+    // Ältere Ladungen tragen 5 Zeichen (rund 5 km): dann nur die Gegend
+    expect(focusZoom('u33df')).toBe(12)
+    expect(focusZoom('u33')).toBe(12)
   })
 })
 
