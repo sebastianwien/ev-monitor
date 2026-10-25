@@ -238,6 +238,22 @@ describe('buildDayCoverage', () => {
     expect(gap[0].day).toBe(10)
     expect(gap[gap.length - 1].day).toBe(17)
   })
+
+  it('zählt Tage nach heute weder als Lücke noch als fehlend', () => {
+    const points = [1, 3, 6, 9, 12].map(d => ({
+      timestamp: `2026-10-${String(d).padStart(2, '0')}T08:00:00`, costEur: 1, kwhCharged: 1, distanceKm: 1, consumptionKwhPer100km: 1,
+    }))
+    const days = buildDayCoverage(points, 2026, 10, new Date(2026, 9, 14, 12).getTime())
+    expect(days).toHaveLength(31)
+    expect(days.filter(d => d.future).map(d => d.day)).toEqual(Array.from({ length: 17 }, (_, i) => 15 + i))
+    expect(days.filter(d => d.inLongestGap).every(d => d.day <= 14)).toBe(true)
+  })
+
+  it('kennt in vergangenen Monaten keine Zukunft', () => {
+    const days = buildDayCoverage([], 2026, 9, new Date(2026, 9, 14, 12).getTime())
+    expect(days.some(d => d.future)).toBe(false)
+    expect(days.filter(d => d.inLongestGap)).toHaveLength(30)
+  })
 })
 
 describe('petrolCostEur', () => {

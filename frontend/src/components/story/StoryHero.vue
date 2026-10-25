@@ -66,6 +66,8 @@ function toggleLayers() {
 watch(() => props.monthLabel, () => { layersOpen.value = false })
 
 const withData = computed(() => props.days.filter(d => d.hasData).length)
+/** Im laufenden Monat nur die Tage bis heute. */
+const elapsed = computed(() => props.days.filter(d => !d.future).length)
 const gap = computed(() => {
   const g = props.days.filter(d => d.inLongestGap)
   return g.length >= 3 ? { from: g[0].day, to: g[g.length - 1].day } : null
@@ -102,10 +104,10 @@ const gap = computed(() => {
           v-for="d in days" :key="d.day"
           :x="(d.day - 1) * 10.6" :y="d.hasData ? 4 : 20" width="7" :height="d.hasData ? 24 : 8" rx="1.5"
           :class="d.hasData ? 'fill-story-accent dark:fill-story-accent-dark' : d.inLongestGap ? 'fill-amber-500' : 'fill-gray-300 dark:fill-gray-600'"
-          :opacity="d.hasData ? 0.85 : 0.7" />
+          :opacity="d.hasData ? 0.85 : d.future ? 0.3 : 0.7" />
       </svg>
       <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-        {{ t('story.days_caption', { total: days.length, withData }) }}
+        {{ t('story.days_caption', { total: elapsed, withData }) }}
         <span v-if="gap" class="text-amber-700 dark:text-amber-400">{{ t('story.days_gap', gap) }}</span>
       </p>
       <DataQualityLine v-if="quality" :quality="quality" />

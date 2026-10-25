@@ -16,7 +16,7 @@ const base = {
   petrolEur: 51.2,
   petrolPricePerLitre: 1.74,
   petrolPriceLive: true,
-  days: [],
+  days: [] as Array<{ day: number; hasData: boolean; inLongestGap: boolean; future: boolean }>,
   layers: null,
   quality: null,
 }
@@ -33,6 +33,17 @@ function mount(props: Partial<typeof base> = {}) {
 const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 
 describe('StoryHero', () => {
+  it('Tagesleiste zählt nur Tage bis heute, Tage danach sind keine Lücke', () => {
+    // 14.10.: Daten an 5 Tagen, 13. und 14. leer, ab 15. Zukunft
+    const days = Array.from({ length: 31 }, (_, i) => {
+      const day = i + 1
+      return { day, hasData: [1, 3, 6, 9, 12].includes(day), inLongestGap: false, future: day > 14 }
+    })
+    const host = mount({ days })
+    expect(text(host)).toContain('14 Tage, 5 mit Daten.')
+    expect(text(host)).not.toContain('nichts erfasst')
+  })
+
   it('Monat in km und Euro groß, Benzin-Satz grün, Euro je 100 km klein', () => {
     const host = mount()
     expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 274 km für 33 €.')
