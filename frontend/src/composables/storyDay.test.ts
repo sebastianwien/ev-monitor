@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
-  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow, ribbonWindow, socBar,
+  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow, ribbonWindow,
   type DayLog, type DayTrip, type DayEvent,
 } from './storyDay'
 
@@ -171,17 +171,5 @@ describe('ribbonWindow', () => {
   })
   it('höchstens fünf Beschriftungen', () => {
     expect(ribbonWindow([ev(0, 30), ev(1380, 1440)]).ticks.length).toBeLessThanOrEqual(5)
-  })
-})
-
-describe('socBar', () => {
-  it('Ladung: Sockel bis Start, Zuwachs bis Ende', () => {
-    expect(socBar(18, 90)).toEqual({ base: 18, delta: 72, up: true })
-  })
-  it('Fahrt: Sockel bis Ende, Verbrauch bis Start', () => {
-    expect(socBar(90, 88)).toEqual({ base: 88, delta: 2, up: false })
-  })
-  it('ohne Start oder Ende: nichts', () => {
-    expect(socBar(null, 80)).toBeNull()
   })
 })

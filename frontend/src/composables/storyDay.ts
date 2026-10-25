@@ -190,9 +190,3 @@ export function ribbonWindow(ev: DayEvent[]): { from: number; to: number; ticks:
   for (let t = from; t <= to; t += step) ticks.push(t)
   return { from, to, ticks }
 }
-
-/** Akku-Balken einer Zeile (0 bis 100 %): Sockel bis zum kleineren Wert, darauf die Änderung. */
-export function socBar(from: number | null, to: number | null): { base: number; delta: number; up: boolean } | null {
-  if (from == null || to == null) return null
-  return { base: Math.min(from, to), delta: Math.abs(to - from), up: to >= from }
-}
