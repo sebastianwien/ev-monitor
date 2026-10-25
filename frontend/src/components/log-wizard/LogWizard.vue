@@ -16,7 +16,7 @@ import { useHaptic } from '../../composables/useHaptic'
 import { useNearbyStations, type StationMatch } from '../../composables/useNearbyStations'
 import { useCostInput } from '../../composables/useCostInput'
 import { useDelayedCall } from '../../composables/useDelayedCall'
-import { queryLocationPermission, getCurrentPosition, LOCATION_ENABLED_KEY, type LocationPermission } from '../../composables/useLocationPermission'
+import { queryLocationPermission, getCurrentPosition, shouldAutoLocate, LOCATION_ENABLED_KEY, type LocationPermission } from '../../composables/useLocationPermission'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { analytics } from '../../services/analytics'
@@ -501,8 +501,8 @@ onMounted(async () => {
   } catch { hasCars.value = false }
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
   permission.value = await queryLocationPermission()
-  // Schon einmal erlaubt: kein Dialog mehr, direkt laden. Sonst wartet der Hinweis auf den Tap.
-  if (permission.value === 'granted' || (permission.value === 'unknown' && localStorage.getItem(LOCATION_ENABLED_KEY) === 'true')) {
+  // Schon einmal erlaubt: direkt laden. Sonst wartet der Hinweis auf den Tap.
+  if (shouldAutoLocate(permission.value, localStorage.getItem(LOCATION_ENABLED_KEY) === 'true')) {
     requestLocation()
   }
 })

@@ -24,6 +24,15 @@ export async function queryLocationPermission(): Promise<LocationPermission> {
   }
 }
 
+/**
+ * Ohne Tap orten: bei erteilter Freigabe oder wenn der Nutzer schon einmal über den Button
+ * geortet hat. Safari meldet bei "Fragen" weiter "prompt", obwohl es die Freigabe zwischenspeichert.
+ */
+export function shouldAutoLocate(permission: LocationPermission, optedIn: boolean): boolean {
+  if (permission === 'granted') return true
+  return optedIn && (permission === 'prompt' || permission === 'unknown')
+}
+
 /** accuracy: Radius in Metern, in dem die Position laut Gerät mit 95 % liegt */
 export interface Coordinates { latitude: number; longitude: number; accuracy?: number }
 

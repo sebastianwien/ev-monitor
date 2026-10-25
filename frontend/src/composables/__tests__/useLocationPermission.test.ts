@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { queryLocationPermission, getCurrentPosition } from '../useLocationPermission'
+import { queryLocationPermission, getCurrentPosition, shouldAutoLocate } from '../useLocationPermission'
 
 const setNavigator = (nav: Partial<Navigator>) =>
   Object.defineProperty(globalThis, 'navigator', { value: nav, configurable: true, writable: true })
@@ -53,5 +53,26 @@ describe('settingsPlatform', () => {
     expect(settingsPlatform(ipad, false, 5)).toBe('ios')
     expect(settingsPlatform(android, false)).toBe('android')
     expect(settingsPlatform(mac, false, 0)).toBe('desktop')
+  })
+})
+
+describe('shouldAutoLocate', () => {
+  it('lädt bei erteilter Freigabe immer direkt', () => {
+    expect(shouldAutoLocate('granted', false)).toBe(true)
+  })
+
+  it('lädt nach einem früheren Ja direkt, auch wenn Safari weiter "prompt" meldet', () => {
+    expect(shouldAutoLocate('prompt', true)).toBe(true)
+    expect(shouldAutoLocate('unknown', true)).toBe(true)
+  })
+
+  it('ohne früheres Ja wartet der Hinweis auf den Tap', () => {
+    expect(shouldAutoLocate('prompt', false)).toBe(false)
+    expect(shouldAutoLocate('unknown', false)).toBe(false)
+  })
+
+  it('blockiert oder ohne Geolocation nie', () => {
+    expect(shouldAutoLocate('denied', true)).toBe(false)
+    expect(shouldAutoLocate('unavailable', true)).toBe(false)
   })
 })

@@ -27,3 +27,33 @@ test('blockierter Standort zeigt Desktop-Anleitung und Wiederholen', async ({ pa
   await expect(blocked.getByRole('button', { name: 'Einstellungen öffnen' })).toHaveCount(0)
   await expect(page.locator('[data-testid="wizard-location"]')).toHaveCount(0)
 })
+
+/**
+ * Safari meldet bei "Fragen" weiter "prompt", obwohl es die Freigabe zwischenspeichert.
+ * Wer schon einmal über den Button geortet hat, bekommt den Standort ohne neuen Tap.
+ */
+test.describe('früher erlaubt', () => {
+  test.use({ geolocation: { latitude: 52.5342, longitude: 13.4516 }, permissions: ['geolocation'] })
+
+  test('lädt den Standort direkt, auch wenn der Browser "prompt" meldet', async ({ page }) => {
+    await page.addInitScript((k: string[]) => {
+      localStorage.setItem('seen-announcements', JSON.stringify(k))
+      localStorage.setItem('ev_location_enabled', 'true')
+      navigator.permissions.query = () => Promise.resolve({ state: 'prompt' } as PermissionStatus)
+    }, featureAnnouncements.map(a => a.key))
+    let nearbyAsked = false
+    await page.route(url => url.pathname === '/api/charging-provider-tariffs/cpos/nearby-stations', route => {
+      nearbyAsked = true
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    })
+    await page.goto('/login')
+    await page.fill('input[type="text"]', TEST_USER.email)
+    await page.fill('input[type="password"]', TEST_USER.password)
+    await page.click('button[type="submit"]')
+    await page.waitForURL(/dashboard|logs|cars/)
+    await page.goto('/erfassen')
+
+    await expect.poll(() => nearbyAsked).toBe(true)
+    await expect(page.locator('[data-testid="wizard-location-blocked"]')).toHaveCount(0)
+  })
+})
