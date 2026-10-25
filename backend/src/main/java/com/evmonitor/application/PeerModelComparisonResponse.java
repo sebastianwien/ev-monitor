@@ -4,8 +4,14 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * @param modelComparisons je Variante (Spec) des Modells
+ * @param allVariants      alle Autos aller Varianten des Modells zusammen, ohne die Autos des Nutzers;
+ *                         null, wenn das Auto keine Spec hat
+ */
 public record PeerModelComparisonResponse(
-        List<PeerModelComparisonItem> modelComparisons
+        List<PeerModelComparisonItem> modelComparisons,
+        PeerMetrics allVariants
 ) {}
 
 record PeerModelComparisonItem(

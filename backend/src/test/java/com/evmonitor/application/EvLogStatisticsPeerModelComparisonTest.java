@@ -132,4 +132,60 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
         assertEquals(1, item.peerMetrics().uniqueCars());
         assertEquals(new BigDecimal("22.00"), item.peerMetrics().avgConsumptionKwhPer100km().setScale(2, java.math.RoundingMode.HALF_UP));
     }
+
+    @Test
+    void getPeerModelComparison_allVariants_poolsCarsOfAllSpecsOfTheModel() {
+        VehicleSpecification userSpec = saveSpec("Tesla", "Model 3", "2024 LR", new BigDecimal("75.0"));
+        VehicleSpecification otherSpec = saveSpec("Tesla", "Model 3", "2025 RWD", new BigDecimal("60.0"));
+        User user = createUser("user@example.com", "DE");
+        Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, userSpec.getId());
+        addLog(userCar.getId(), 30.0, 100.0, 9.0);
+
+        // 22 kWh/100km zu 0,28 €/kWh in der eigenen Variante, 18 kWh/100km zu 0,20 €/kWh in der anderen
+        Car samePeer = createCar(createUser("p1@example.com", "DE").getId(), CarBrand.CarModel.MODEL_3, userSpec.getId());
+        addLog(samePeer.getId(), 22.0, 100.0, 6.16);
+        Car otherPeer = createCar(createUser("p2@example.com", "DE").getId(), CarBrand.CarModel.MODEL_3, otherSpec.getId());
+        addLog(otherPeer.getId(), 18.0, 100.0, 3.60);
+
+        PeerModelComparisonResponse response = evLogStatisticsService.getPeerModelComparison(userCar, user);
+
+        PeerMetrics all = response.allVariants();
+        assertNotNull(all);
+        assertEquals(2, all.uniqueCars());
+        assertEquals(new BigDecimal("20.00"), all.avgConsumptionKwhPer100km().setScale(2, java.math.RoundingMode.HALF_UP));
+        // 9,76 € für 40 kWh
+        assertEquals(new BigDecimal("0.24"), all.avgCostPerKwh().setScale(2, java.math.RoundingMode.HALF_UP));
+        // Vorhandene Felder bleiben je Variante
+        assertEquals(2, response.modelComparisons().size());
+    }
+
+    @Test
+    void getPeerModelComparison_allVariants_excludesUsersOwnCarsOfEveryVariant() {
+        VehicleSpecification userSpec = saveSpec("Tesla", "Model 3", "2024 LR", new BigDecimal("75.0"));
+        VehicleSpecification otherSpec = saveSpec("Tesla", "Model 3", "2025 RWD", new BigDecimal("60.0"));
+        User user = createUser("user@example.com", "DE");
+        Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, userSpec.getId());
+        Car userSecondCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, otherSpec.getId());
+        addLog(userCar.getId(), 30.0, 100.0, 9.0);
+        addLog(userSecondCar.getId(), 30.0, 100.0, 9.0);
+
+        Car peer = createCar(createUser("p1@example.com", "DE").getId(), CarBrand.CarModel.MODEL_3, otherSpec.getId());
+        addLog(peer.getId(), 18.0, 100.0, 3.60);
+
+        PeerMetrics all = evLogStatisticsService.getPeerModelComparison(userCar, user).allVariants();
+
+        assertEquals(1, all.uniqueCars());
+        assertEquals(new BigDecimal("18.00"), all.avgConsumptionKwhPer100km().setScale(2, java.math.RoundingMode.HALF_UP));
+    }
+
+    @Test
+    void getPeerModelComparison_withoutSpec_emptyAsBefore() {
+        User user = createUser("user@example.com", "DE");
+        Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, null);
+
+        PeerModelComparisonResponse response = evLogStatisticsService.getPeerModelComparison(userCar, user);
+
+        assertTrue(response.modelComparisons().isEmpty());
+        assertNull(response.allVariants());
+    }
 }

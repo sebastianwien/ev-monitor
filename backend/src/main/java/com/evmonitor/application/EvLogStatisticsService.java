@@ -927,7 +927,7 @@ public class EvLogStatisticsService {
 
     public PeerModelComparisonResponse getPeerModelComparison(Car userCar, User user) {
         if (userCar.getVehicleSpecificationId() == null) {
-            return new PeerModelComparisonResponse(List.of());
+            return new PeerModelComparisonResponse(List.of(), null);
         }
 
         VehicleSpecification userSpec = vehicleSpecificationRepository.findById(userCar.getVehicleSpecificationId())
@@ -938,6 +938,7 @@ public class EvLogStatisticsService {
                 .findByCarModelOrderByBatteryCapacityKwhAsc(userSpec.getCarModel());
 
         List<PeerModelComparisonItem> items = new ArrayList<>();
+        List<Car> allPeerCars = new ArrayList<>();
 
         // 2. Für jede spec: aggregiere logs
         for (VehicleSpecification spec : allSpecsOfModel) {
@@ -945,6 +946,7 @@ public class EvLogStatisticsService {
             List<Car> peerCars = carRepository.findAllByVehicleSpecificationId(spec.getId()).stream()
                     .filter(c -> !c.isOwnedBy(user.getId()))
                     .toList();
+            allPeerCars.addAll(peerCars);
 
             // Peer-Metriken
             BigDecimal peerConsumption = null;
@@ -1017,7 +1019,16 @@ public class EvLogStatisticsService {
             ));
         }
 
-        return new PeerModelComparisonResponse(items);
+        return new PeerModelComparisonResponse(items, allVariantsMetrics(allPeerCars));
+    }
+
+    /** Dieselben Formeln wie je Variante, nur über die Autos aller Varianten des Modells. */
+    private PeerMetrics allVariantsMetrics(List<Car> peerCars) {
+        if (peerCars.isEmpty()) return new PeerMetrics(null, null, 0);
+        return new PeerMetrics(
+                calculateCommunityAvgConsumption(peerCars, false).value(),
+                calculateAvgCostPerKwhForCars(peerCars),
+                peerCars.size());
     }
 
     private BigDecimal calculateAvgCostPerKwhForCars(List<Car> cars) {
