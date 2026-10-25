@@ -13,6 +13,7 @@ import ModelBox from '../components/models/ModelBox.vue'
 import ChoiceChip from '../components/shared/ChoiceChip.vue'
 import ToggleSwitch from '../components/shared/ToggleSwitch.vue'
 import BottomSheet from '../components/shared/BottomSheet.vue'
+import Collapse from '../components/shared/Collapse.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useStoryOptIn } from '../composables/useStoryOptIn'
 import { useAccountSettings } from '../composables/useAccountSettings'
@@ -176,7 +177,8 @@ onMounted(async () => {
             {{ t('settings.email_change') }}
           </button>
           <span v-else class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('settings.via_provider', { provider: authStore.user?.authProvider }) }}</span>
-          <div v-if="showEmailForm" class="grid w-full gap-3 pt-1">
+          <Collapse :open="showEmailForm" class="w-full">
+          <div class="grid gap-3 pt-1">
             <input v-model="newEmail" type="email" :placeholder="t('settings.email_new_placeholder')" :aria-label="t('settings.email_new_placeholder')" :class="INPUT">
             <input v-model="emailCurrentPassword" type="password" :placeholder="t('settings.email_password_placeholder')" :aria-label="t('settings.email_password_placeholder')" :class="INPUT">
             <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('settings.email_logout_hint') }}</p>
@@ -185,6 +187,7 @@ onMounted(async () => {
               <button type="button" :class="BTN_SECONDARY" @click="showEmailForm = false; newEmail = ''; emailCurrentPassword = ''">{{ t('settings.cancel') }}</button>
             </div>
           </div>
+          </Collapse>
         </div>
 
         <!-- Benutzername -->
@@ -196,13 +199,15 @@ onMounted(async () => {
           <button type="button" :class="BTN_SECONDARY" :aria-expanded="showUsernameForm" @click="showUsernameForm = !showUsernameForm">
             {{ t('settings.email_change') }}
           </button>
-          <div v-if="showUsernameForm" class="grid w-full gap-3 pt-1">
+          <Collapse :open="showUsernameForm" class="w-full">
+          <div class="grid gap-3 pt-1">
             <input v-model="newUsername" type="text" :placeholder="t('settings.username_new_placeholder')" :aria-label="t('settings.username_new_placeholder')" :class="INPUT">
             <div class="flex gap-2">
               <button type="button" :class="BTN_PRIMARY" :disabled="loading" @click="changeUsername">{{ t('settings.save') }}</button>
               <button type="button" :class="BTN_SECONDARY" @click="showUsernameForm = false; newUsername = ''">{{ t('settings.cancel') }}</button>
             </div>
           </div>
+          </Collapse>
         </div>
 
         <!-- Passwort: Konten aus dem Mail-Code-Gate haben noch keins -->
@@ -225,7 +230,8 @@ onMounted(async () => {
           <button type="button" :class="BTN_SECONDARY" :aria-expanded="showPasswordForm" @click="showPasswordForm = !showPasswordForm">
             {{ t('settings.email_change') }}
           </button>
-          <div v-if="showPasswordForm" class="grid w-full gap-3 pt-1">
+          <Collapse :open="showPasswordForm" class="w-full">
+          <div class="grid gap-3 pt-1">
             <input v-model="currentPassword" type="password" :placeholder="t('settings.password_current_placeholder')" :aria-label="t('settings.password_current_placeholder')" :class="INPUT">
             <input v-model="newPassword" type="password" :placeholder="t('settings.password_new_placeholder')" :aria-label="t('settings.password_new_placeholder')" :class="INPUT">
             <input v-model="confirmPassword" type="password" :placeholder="t('settings.password_confirm_placeholder')" :aria-label="t('settings.password_confirm_placeholder')" :class="INPUT">
@@ -234,6 +240,7 @@ onMounted(async () => {
               <button type="button" :class="BTN_SECONDARY" @click="showPasswordForm = false; currentPassword = ''; newPassword = ''; confirmPassword = ''">{{ t('settings.cancel') }}</button>
             </div>
           </div>
+          </Collapse>
         </div>
       </div>
     </section>
@@ -358,7 +365,7 @@ onMounted(async () => {
         <ClockIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
         <span class="truncate">{{ t('settings.watt_history') }}</span>
       </router-link>
-      <router-link to="/leaderboard" :class="BTN_SECONDARY">
+      <router-link to="/leaderboard" :class="BTN_PRIMARY">
         <TrophyIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
         <span class="truncate">{{ t('coins.to_leaderboard') }}</span>
       </router-link>

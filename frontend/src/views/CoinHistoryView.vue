@@ -5,6 +5,7 @@ import api from '../api/axios'
 import { useCoinStore } from '../stores/coins'
 import { TrophyIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon, SparklesIcon, ExclamationCircleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import ModelBox from '../components/models/ModelBox.vue'
+import Collapse from '../components/shared/Collapse.vue'
 
 const { t } = useI18n()
 const coinStore = useCoinStore()
@@ -35,6 +36,8 @@ async function fetchStandings() {
     standingsLoading.value = false
   }
 }
+
+const legendOpen = ref(false)
 
 function toggleStandings() {
   standingsOpen.value = !standingsOpen.value
@@ -110,7 +113,8 @@ const LEGEND = [
   { title: 'coins.legend_community', items: [['coins.legend_referral', '+100'], ['coins.legend_referral_bonus', '+25']] },
 ] as const
 
-const BTN_SECONDARY = 'btn-3d cta-shadow-sm inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-white px-4 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:shadow-none! dark:hover:bg-white/15'
+// Einzige gruene Flaeche der Seite: der Weg zur Bestenliste.
+const BTN_PRIMARY = 'btn-3d cta-shadow-sm inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-green-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:shadow-none!'
 const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'
 </script>
 
@@ -125,7 +129,7 @@ const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 d
           <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ t('coins.unit') }}</span>
         </p>
       </header>
-      <router-link to="/leaderboard" :class="BTN_SECONDARY">
+      <router-link to="/leaderboard" :class="BTN_PRIMARY">
         <TrophyIcon class="h-4 w-4" aria-hidden="true" />
         {{ t('coins.to_leaderboard') }}
       </router-link>
@@ -137,10 +141,10 @@ const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 d
         <h2 class="text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ t('coins.ranking_title') }}</h2>
         <span class="flex items-center gap-1 text-[13px] font-semibold text-gray-500 dark:text-gray-400">
           {{ standingsOpen ? t('coins.collapse') : t('coins.expand') }}
-          <ChevronDownIcon class="h-4 w-4 transition-transform" :class="standingsOpen ? 'rotate-180' : ''" aria-hidden="true" />
+          <ChevronDownIcon class="h-4 w-4 transition-transform duration-300 ease-out motion-reduce:transition-none" :class="standingsOpen ? 'rotate-180' : ''" aria-hidden="true" />
         </span>
       </button>
-      <template v-if="standingsOpen">
+      <Collapse :open="standingsOpen">
         <div v-if="standingsLoading" class="grid animate-pulse gap-2" aria-busy="true">
           <div v-for="i in 4" :key="i" class="h-6 rounded bg-gray-200 dark:bg-gray-700" />
         </div>
@@ -161,16 +165,16 @@ const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 d
             </span>
           </li>
         </ul>
-      </template>
+      </Collapse>
     </ModelBox>
 
     <!-- Legende: wofür es Watt gibt -->
     <ModelBox>
-      <details class="group">
-        <summary class="-my-2 flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 select-none [&::-webkit-details-marker]:hidden">
+      <button type="button" class="-my-2 flex min-h-11 w-full items-center justify-between gap-3 text-left" :aria-expanded="legendOpen" @click="legendOpen = !legendOpen">
           <h2 class="text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ t('coins.legend_title') }}</h2>
-          <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform group-open:rotate-180" aria-hidden="true" />
-        </summary>
+          <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform duration-300 ease-out motion-reduce:transition-none" :class="legendOpen ? 'rotate-180' : ''" aria-hidden="true" />
+      </button>
+      <Collapse :open="legendOpen">
         <div class="grid gap-5 pt-4">
           <div v-for="group in LEGEND" :key="group.title" class="grid gap-1.5">
             <p :class="LABEL">{{ t(group.title) }}</p>
@@ -182,7 +186,7 @@ const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 d
             </ul>
           </div>
         </div>
-      </details>
+      </Collapse>
     </ModelBox>
 
     <!-- Verlauf -->
