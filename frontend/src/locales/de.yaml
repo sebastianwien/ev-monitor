@@ -4623,3 +4623,5 @@ storyday:
   form_route: "Wo bist du gefahren?"
   form_soc_start: "Akku am Start"
   form_soc_end: "Akku am Ziel"
+  bar_max: "höchster"
+  bar_min: "tiefster"

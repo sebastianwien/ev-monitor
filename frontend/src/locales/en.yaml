@@ -4617,3 +4617,5 @@ storyday:
   form_route: "Where did you drive?"
   form_soc_start: "Battery at start"
   form_soc_end: "Battery at end"
+  bar_max: "highest"
+  bar_min: "lowest"

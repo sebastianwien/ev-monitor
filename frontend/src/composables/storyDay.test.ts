@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
-  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow, batteryBars, thumbLine,
+  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow, batteryBars, thumbLine, barExtremes,
   type DayLog, type DayTrip, type DayEvent,
 } from './storyDay'
 
@@ -188,5 +188,18 @@ describe('thumbLine', () => {
   it('gleicher Ort oder kein Ort: nichts', () => {
     expect(thumbLine(trip({ locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33df5ze' }))).toBeNull()
     expect(thumbLine(trip())).toBeNull()
+  })
+})
+
+describe('barExtremes', () => {
+  const b = (soc: number | null, i: number) => ({ from: i * 30, soc, kind: 'idle' as const })
+  it('höchster und tiefster Balken, jeweils der erste', () => {
+    expect(barExtremes([b(null, 0), b(60, 1), b(80, 2), b(80, 3), b(30, 4), b(30, 5)])).toEqual({ max: { index: 2, soc: 80 }, min: { index: 4, soc: 30 } })
+  })
+  it('flacher Tag (unter 1 % Unterschied): nur der höchste', () => {
+    expect(barExtremes([b(55, 0), b(55.4, 1)])).toEqual({ max: { index: 1, soc: 55.4 }, min: null })
+  })
+  it('keine Balken: nichts', () => {
+    expect(barExtremes([b(null, 0)])).toEqual({ max: null, min: null })
   })
 })

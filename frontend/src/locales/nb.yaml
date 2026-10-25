@@ -4459,3 +4459,5 @@ storyday:
   form_route: "Hvor kjørte du?"
   form_soc_start: "Batteri ved start"
   form_soc_end: "Batteri ved mål"
+  bar_max: "høyest"
+  bar_min: "lavest"
