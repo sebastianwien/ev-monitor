@@ -14,10 +14,11 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div role="group" :aria-label="t('story.month_aria')" class="flex gap-2">
+  <div role="group" :aria-label="t('story.month_aria')" class="flex shrink-0 gap-1.5">
     <ChoiceChip
       v-for="m in months" :key="m.offset"
       :active="m.offset === offset"
+      size="sm"
       :data-testid="`story-month-${m.offset}`"
       @click="emit('select', m.offset)">
       {{ labelOf(m) }}

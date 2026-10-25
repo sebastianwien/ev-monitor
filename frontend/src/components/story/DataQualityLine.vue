@@ -1,36 +1,56 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { DayCoverage } from '../../composables/storyModel'
 import type { DataQuality } from '../../composables/storyInsights'
 
 /**
- * Duenne Qualitaetszeile unter der Tagesleiste: wie viele Ladungen gemessen, wie viele
- * geschaetzt, wie viele ohne Preis. Meta-Information, keine Kachel.
+ * Die Qualitätszeile unter dem Hero: ein Feld je Tag des Monats (Daten grün, die genannte
+ * Lücke amber, sonst grau) und ein Satz dazu. Eine Lücke nennt der Satz nur, wenn der Monat vorbei
+ * ist oder sie 7 Tage überschreitet. Tage nach heute sind keine Lücke.
  */
-const props = defineProps<{ quality: DataQuality }>()
+const props = defineProps<{ days: DayCoverage[]; quality: DataQuality | null }>()
 const { t } = useI18n()
 
-const measured = computed(() => Math.max(0, props.quality.total - props.quality.estimated))
-const measuredPct = computed(() => props.quality.total > 0 ? (measured.value / props.quality.total) * 100 : 100)
-const tone = computed(() => ({
-  ok: 'text-gray-500 dark:text-gray-400',
-  warn: 'text-amber-700 dark:text-amber-400',
-  bad: 'text-rose-700 dark:text-rose-300',
-}[props.quality.severity]))
+const MIN_GAP_DAYS = 3
+const LONG_GAP_DAYS = 7
+
+const withData = computed(() => props.days.filter(d => d.hasData).length)
+/** Im laufenden Monat nur die Tage bis heute. */
+const elapsed = computed(() => props.days.filter(d => !d.future).length)
+const monthOver = computed(() => props.days.length > 0 && !props.days.some(d => d.future))
+const gap = computed(() => {
+  const g = props.days.filter(d => d.inLongestGap && !d.future)
+  if (g.length < MIN_GAP_DAYS) return null
+  if (!monthOver.value && g.length <= LONG_GAP_DAYS) return null
+  return { from: g[0].day, to: g[g.length - 1].day }
+})
+const measured = computed(() => props.quality ? Math.max(0, props.quality.total - props.quality.estimated) : 0)
+const qualityText = computed(() => {
+  const q = props.quality
+  if (!q) return ''
+  const parts = [t('story.quality_line', { measured: measured.value, total: q.total })]
+  if (q.estimated > 0) parts.push(t('story.quality_estimated', { n: q.estimated }))
+  return parts.join(', ')
+})
+const caption = computed(() => {
+  const base = t('story.days_caption', { total: elapsed.value, withData: withData.value })
+  return props.quality && props.quality.total > 0 ? `${base} ${qualityText.value}` : base
+})
+/** Amber nur für die Tage der Lücke, die der Satz nennt; andere leere Tage grau, Tage nach heute heller. */
+const cellClass = (d: DayCoverage) => {
+  if (d.hasData) return 'bg-green-700 dark:bg-green-400'
+  if (d.future) return 'bg-gray-100 dark:bg-gray-800'
+  if (gap.value && d.day >= gap.value.from && d.day <= gap.value.to) return 'bg-amber-400'
+  return 'bg-gray-200 dark:bg-gray-700'
+}
 </script>
 
 <template>
-  <div v-if="quality.total > 0" class="mt-2" data-testid="story-quality">
-    <div class="h-1 rounded-full bg-amber-400/70 overflow-hidden">
-      <div class="h-full bg-story-accent dark:bg-story-accent-dark rounded-full story-quality-fill" :style="{ width: `${measuredPct}%` }" />
+  <div v-if="days.length" class="grid gap-1.5" data-testid="story-quality">
+    <div class="flex gap-[3px]" role="img" :aria-label="t('story.days_aria')">
+      <i v-for="d in days" :key="d.day" data-role="day" class="h-2.5 flex-1 rounded-[2px]" :class="cellClass(d)" />
     </div>
-    <p class="mt-1 text-[11px] tabular-nums" :class="tone">
-      {{ t('story.quality_line', { measured, total: quality.total }) }}<template v-if="quality.estimated > 0">, {{ t('story.quality_estimated', { n: quality.estimated }) }}</template><template v-if="quality.priceless > 0">, {{ t('story.quality_priceless', { n: quality.priceless }) }}
-        <router-link v-if="quality.pricelessOpen > 0" to="/logs" class="underline underline-offset-2 font-semibold">{{ t('story.quality_fix') }}</router-link></template>
-    </p>
+    <p class="text-[12.5px] text-gray-500 tabular-nums dark:text-gray-400">{{ caption }}<template v-if="quality && quality.total > 0"><template v-if="quality.priceless > 0">, <span class="text-amber-700 dark:text-amber-400">{{ t('story.quality_priceless', { n: quality.priceless }) }}<template v-if="quality.pricelessOpen > 0">{{ ' ' }}<router-link to="/logs" class="font-semibold underline underline-offset-2">{{ t('story.quality_fix') }}</router-link></template></span></template>.</template><span v-if="gap" class="text-amber-700 dark:text-amber-400">{{ ' ' + t('story.days_gap', gap) }}</span></p>
   </div>
 </template>
-
-<style scoped>
-.story-quality-fill { transition: width 600ms cubic-bezier(0.2, 0.7, 0.2, 1); }
-</style>

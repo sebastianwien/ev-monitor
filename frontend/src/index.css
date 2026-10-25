@@ -381,8 +381,3 @@ body {
   from { opacity: 0.2; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
-/* Story-Dashboard: bei Datensparmodus keine Partikel auf den Sankey-Baendern. */
-@media (prefers-reduced-data: reduce) {
-  .story-particle { display: none; }
-}

@@ -87,6 +87,11 @@ describe('whatIfModels', () => {
 
   it('laesst Modelle ohne vollstaendige Werte weg und gibt ohne Nutzerwert nichts zurueck', () => {
     expect(whatIfModels([item('A', null, 0.3), item('B', 16, null)], 4)).toEqual([])
+  })
+
+  it('Modellname ohne Klammerwert der Akkugröße', () => {
+    const list = whatIfModels([item('Model 3 Premium RWD Highland (82.00kWh)', 15, 0.2)], 4.5)
+    expect(list[0].name).toBe('Model 3 Premium RWD Highland')
     expect(whatIfModels([item('A', 16, 0.3)], null)).toEqual([])
   })
 })
@@ -157,6 +162,12 @@ describe('buildLatest', () => {
     const l = buildLatest({ ...log, kwhAtVehicle: null, costEur: null }, null)!
     expect(l.charge).toEqual({ id: 'l1', at: '2026-10-01T18:00:00Z', kwh: 34.2, costEur: null })
     expect(l.trip).toBeNull()
+  })
+
+  it('nimmt Ladeort, Ladeart und Streckentyp mit, wenn bekannt', () => {
+    const l = buildLatest({ ...log, cpoName: 'Tesla', chargingType: 'AC' }, { ...trip, routeType: 'CITY' })!
+    expect(l.charge).toMatchObject({ cpoName: 'Tesla', chargingType: 'AC' })
+    expect(l.trip).toMatchObject({ routeType: 'CITY' })
   })
 
   it('ist null ohne beides', () => {

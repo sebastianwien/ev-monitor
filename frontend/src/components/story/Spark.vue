@@ -16,7 +16,9 @@ const props = withDefaults(defineProps<{
   /** Farbklasse des Akzents (Tailwind text-*), die SVG-Elemente nutzen currentColor. */
   tone?: 'good' | 'warn' | 'bad' | 'neutral'
   labels?: string[]
-}>(), { reference: null, tone: 'neutral', labels: () => [] })
+  /** Letzter Wert als Text rechts neben der Linie, auf Höhe des Endpunkts (nur line). */
+  endLabel?: string
+}>(), { reference: null, tone: 'neutral', labels: () => [], endLabel: '' })
 
 const W = 200
 const H = 44
@@ -49,6 +51,9 @@ const linePoints = computed(() => {
 const linePath = computed(() =>
   linePoints.value.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' '))
 
+/** Höhe des Endpunkts in Prozent der Grafik, damit der Endwert in HTML daneben steht. */
+const endTop = computed(() => `${(((linePoints.value[linePoints.value.length - 1]?.y ?? H / 2) / H) * 100).toFixed(1)}%`)
+
 const areaPath = computed(() => `${linePath.value} L${W} ${H} L0 ${H} Z`)
 
 const bars = computed(() => {
@@ -73,11 +78,11 @@ const range = computed(() => {
 </script>
 
 <template>
+  <div v-if="values.length > 0" class="relative" :class="toneClass">
   <svg
-    v-if="values.length > 0"
     :viewBox="`0 0 ${W} ${H}`"
     class="block w-full h-11"
-    :class="toneClass"
+    :class="endLabel ? 'pr-11' : ''"
     preserveAspectRatio="none"
     aria-hidden="true">
     <template v-if="variant === 'line'">
@@ -104,4 +109,10 @@ const range = computed(() => {
       <circle :cx="range.mineX" :cy="H / 2" r="6" fill="currentColor" />
     </template>
   </svg>
+  <span
+    v-if="endLabel && variant === 'line'"
+    data-role="end-label"
+    class="absolute right-0 -translate-y-1/2 text-[11px] font-bold text-gray-900 tabular-nums dark:text-gray-100"
+    :style="{ top: endTop }">{{ endLabel }}</span>
+  </div>
 </template>

@@ -1,20 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import EnergyFlow from '../EnergyFlow.vue'
+import FlowBar from '../FlowBar.vue'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import type { EnergyFlow as Flow } from '../../../composables/storyEnergy'
 
-/** Energiefluss gross, mit Zahlen zu Netz, Akku, Verlust, AC/DC und Abdeckung. */
+/** Der Balken gross, mit Zahlen zu Netz, Akku, Verlust, AC/DC und Abdeckung. */
 const props = defineProps<{ flow: Flow }>()
 
 const { t } = useI18n()
-const { formatDecimal, formatDistance } = useLocaleFormat()
-
-const labels = computed(() => ({
-  grid: t('story.flow_grid'), battery: t('story.flow_battery'), road: t('story.flow_road'),
-  loss: t('story.flow_loss_label'), home: t('story.flow_home'), public: t('story.flow_public'),
-}))
+const { formatDecimal } = useLocaleFormat()
 const kwh = (v: number) => `${formatDecimal(v, 0)} kWh`
 </script>
 
@@ -24,7 +18,7 @@ const kwh = (v: number) => `${formatDecimal(v, 0)} kWh`
       {{ t('story.sheet_flow_text', { grid: kwh(flow.gridKwh), vehicle: kwh(flow.vehicleKwh), loss: kwh(flow.lossKwh), pct: flow.lossPercent }) }}
     </p>
     <div class="mt-4">
-      <EnergyFlow :flow="flow" :labels="labels" :road-value="flow.distanceKm ? formatDistance(flow.distanceKm) : ''" large />
+      <FlowBar :flow="flow" large />
     </div>
     <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm tabular-nums">
       <dt class="text-gray-500 dark:text-gray-400">AC</dt><dd class="text-right text-gray-900 dark:text-gray-100">{{ kwh(flow.acKwh) }}</dd>

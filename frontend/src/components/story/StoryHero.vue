@@ -1,21 +1,18 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ShareIcon } from '@heroicons/vue/24/outline'
 import CostLayers from './CostLayers.vue'
-import DataQualityLine from './DataQualityLine.vue'
-
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { heroLine, type DayCoverage } from '../../composables/storyModel'
+import { heroLine } from '../../composables/storyModel'
 import { keepUnits } from '../../utils/modelStory'
 import type { CostLayer } from '../../composables/storyEnergy'
-import type { DataQuality } from '../../composables/storyInsights'
 
 /**
- * Die Antwort zuerst, als Satz in Kilometern und Euro: "Oktober: 274 km für 33 €." Darunter
- * grün, was ein Benziner gekostet hätte, klein Euro je 100 km und die Annahme. Die Tagesleiste
- * zeigt, wo im Monat nichts erfasst ist. Mit Fixkosten klappt ein Tipp auf den Satz die
- * Kostenschichten auf.
+ * Die Antwort zuerst, als ein Satz in Kilometern und Euro: "Oktober: 274 km für 33 €."
+ * Darunter eine graue Zeile mit Euro je 100 km und, nur wenn Benzin teurer gewesen wäre, was
+ * ein Benziner gekostet hätte. Rechts der Teilen-Knopf. Mit Fixkosten klappt ein Tipp auf den
+ * Satz die Kostenschichten auf.
  */
 const props = defineProps<{
   monthLabel: string
@@ -25,17 +22,12 @@ const props = defineProps<{
   charges: number
   /** Was ein Benziner für dieselbe Strecke gekostet hätte. */
   petrolEur: number | null
-  petrolPricePerLitre: number
-  /** true: Tankerkoenig-Bundesschnitt, false: Rueckfallwert. */
-  petrolPriceLive: boolean
-  days: DayCoverage[]
   layers: CostLayer[] | null
-  quality: DataQuality | null
 }>()
-const emit = defineEmits<{ layers: [open: boolean] }>()
+const emit = defineEmits<{ layers: [open: boolean]; share: [text: string] }>()
 
 const { t } = useI18n()
-const { formatCurrency, formatCostPerDistance, formatDistance } = useLocaleFormat()
+const { formatCurrency, formatDistance } = useLocaleFormat()
 
 const line = computed(() => heroLine(props))
 const sentence = computed(() => {
@@ -50,11 +42,16 @@ const sentence = computed(() => {
 const petrol = computed(() => line.value.kind === 'km_cost' && props.petrolEur != null && props.petrolEur > line.value.eur!
   ? formatCurrency(props.petrolEur, { decimals: 0 })
   : null)
+/** Monat und Rest getrennt: umbrechen darf der Satz nur nach "Oktober:". */
+const sentenceParts = computed(() => {
+  const i = sentence.value.indexOf(': ')
+  return i < 0 ? { month: '', rest: sentence.value } : { month: sentence.value.slice(0, i + 1), rest: sentence.value.slice(i + 2) }
+})
 const meta = computed(() => [
   // Je 100 km aus dem Satz selbst, damit Nachrechnen aufgeht; nur wenn er km und Euro nennt.
-  line.value.kind === 'km_cost' ? formatCostPerDistance(line.value.eur! / line.value.km! * 100) : null,
-  petrol.value ? t(props.petrolPriceLive ? 'story.hero_petrol_assumption_live' : 'story.hero_petrol_assumption', { price: formatCurrency(props.petrolPricePerLitre) }) : null,
-].filter(Boolean).join(' · '))
+  line.value.kind === 'km_cost' ? t('story.hero_per_100km', { eur: formatCurrency(line.value.eur! / line.value.km! * 100) }) : null,
+  petrol.value ? t('story.hero_petrol_sub', { eur: petrol.value }) : null,
+].filter(Boolean).map(x => keepUnits(x!)).join(' · '))
 
 const layersOpen = ref(false)
 function toggleLayers() {
@@ -64,53 +61,34 @@ function toggleLayers() {
 }
 // Monatswechsel: Schichten zu, damit der neue Satz für sich steht.
 watch(() => props.monthLabel, () => { layersOpen.value = false })
-
-const withData = computed(() => props.days.filter(d => d.hasData).length)
-/** Im laufenden Monat nur die Tage bis heute. */
-const elapsed = computed(() => props.days.filter(d => !d.future).length)
-const gap = computed(() => {
-  const g = props.days.filter(d => d.inLongestGap)
-  return g.length >= 3 ? { from: g[0].day, to: g[g.length - 1].day } : null
-})
 </script>
 
 <template>
-  <div class="story-hero grid gap-2">
-    <component
-      :is="layers ? 'button' : 'p'"
-      :type="layers ? 'button' : undefined"
-      :aria-expanded="layers ? layersOpen : undefined"
-      data-testid="story-hero-value"
-      class="block text-left text-pretty text-[30px] font-extrabold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[44px] dark:text-gray-50"
-      :class="layers ? 'cursor-pointer rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent' : ''"
-      style="view-transition-name: story-hero-value"
-      @click="toggleLayers">
-      {{ sentence }}<ChevronDownIcon
-        v-if="layers"
-        class="ml-1 inline-block h-6 w-6 align-middle text-gray-400 transition-transform duration-300"
-        :class="layersOpen ? 'rotate-180' : ''" />
-    </component>
-    <p v-if="petrol" data-testid="story-hero-petrol" class="text-pretty text-[30px] font-extrabold leading-[1.1] tracking-tight text-story-accent tabular-nums md:text-[44px] dark:text-story-accent-dark">
-      {{ t('story.hero_petrol_total', { eur: petrol }) }}
-    </p>
-    <p v-if="meta || layers" data-testid="story-hero-meta" class="text-[13px] text-pretty text-gray-500 dark:text-gray-400">
-      {{ meta }}<template v-if="layers && !layersOpen">{{ meta ? ' · ' : '' }}{{ t('story.layers_hint') }}</template>
-    </p>
-    <CostLayers v-if="layers && layersOpen" :layers="layers" :distance-km="distanceKm" />
-
-    <div v-if="days.length" class="mt-2">
-      <svg :viewBox="`0 0 ${days.length * 10.6} 32`" class="block h-8 w-full" preserveAspectRatio="none" role="img" :aria-label="t('story.days_aria')">
-        <rect
-          v-for="d in days" :key="d.day"
-          :x="(d.day - 1) * 10.6" :y="d.hasData ? 4 : 20" width="7" :height="d.hasData ? 24 : 8" rx="1.5"
-          :class="d.hasData ? 'fill-story-accent dark:fill-story-accent-dark' : d.inLongestGap ? 'fill-amber-500' : 'fill-gray-300 dark:fill-gray-600'"
-          :opacity="d.hasData ? 0.85 : d.future ? 0.3 : 0.7" />
-      </svg>
-      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-        {{ t('story.days_caption', { total: elapsed, withData }) }}
-        <span v-if="gap" class="text-amber-700 dark:text-amber-400">{{ t('story.days_gap', gap) }}</span>
+  <div class="story-hero flex items-start justify-between gap-3">
+    <div class="grid min-w-0 gap-1.5">
+      <component
+        :is="layers ? 'button' : 'h1'"
+        :type="layers ? 'button' : undefined"
+        :aria-expanded="layers ? layersOpen : undefined"
+        data-testid="story-hero-value"
+        class="block text-left text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50"
+        :class="layers ? 'cursor-pointer rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent' : ''"
+        style="view-transition-name: story-hero-value"
+        @click="toggleLayers">
+        <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap">{{ sentenceParts.rest }}</span>
+      </component>
+      <p v-if="meta || layers" data-testid="story-hero-meta" class="text-pretty text-[14px] text-gray-500 tabular-nums dark:text-gray-400">
+        {{ meta }}<template v-if="layers && !layersOpen">{{ meta ? ' · ' : '' }}{{ t('story.layers_hint') }}</template>
       </p>
-      <DataQualityLine v-if="quality" :quality="quality" />
+      <CostLayers v-if="layers && layersOpen" :layers="layers" :distance-km="distanceKm" />
     </div>
+    <button
+      type="button"
+      data-testid="story-hero-share"
+      class="-mr-2 -mt-1 grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+      :aria-label="t('story.share_aria')"
+      @click="emit('share', [sentence, meta].filter(Boolean).join(' '))">
+      <ShareIcon class="h-6 w-6" aria-hidden="true" />
+    </button>
   </div>
 </template>

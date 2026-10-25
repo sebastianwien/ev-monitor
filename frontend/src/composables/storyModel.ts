@@ -12,14 +12,12 @@ import type { Moment } from './storyMoments'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
 /** Feste Reihenfolge der Kacheln, siehe TILE_ORDER. */
-export type TileId = 'cost' | 'flow' | 'range' | 'wltp' | 'peer' | 'battery' | 'co2'
+export type TileId = 'cost' | 'flow' | 'range' | 'wltp' | 'peer' | 'battery'
 export type SparkVariant = 'line' | 'bars' | 'range'
 
 export interface StoryTile {
   id: TileId
   value: number
-  /** Zweiter Wert, z. B. CO2 mit Oekostrom. */
-  valueGreen?: number
   /** Absolutes Delta (Kosten in Euro) gegen den Vormonat. */
   delta: number | null
   /** Relatives Delta in Prozent (WLTP, Peer). */
@@ -43,6 +41,8 @@ export interface StoryTile {
   previousIncomplete?: boolean
   /** Nur 'cost', laufender Monat unter der Strommenge des Vormonats: was diese Menge jetzt kostet. */
   projection?: { eur: number; previousEur: number }
+  /** Nur 'battery': berechneter Wert, keine eigene Messung. */
+  estimated?: boolean
 }
 
 export type FeedId =
@@ -72,6 +72,8 @@ export interface StoryInput {
   monthlyConsumption: number[]
   wltpConsumption: number | null
   sohPercent: number | null
+  /** Akkuwert berechnet statt selbst gemessen: die Kachel zeigt ihn mit Tilde und "geschätzt". */
+  sohEstimated?: boolean
   odometerKm: number | null
   savingsEur: number | null
   amortisationYearsRemaining: number | null
@@ -120,6 +122,8 @@ const FLOW_LOSS_WARN_PERCENT = 20
 /** Ein Fremdmodell muss mindestens so viel guenstiger sein, damit es einen Satz wert ist. */
 const WHAT_IF_MIN_SAVING_PERCENT = 5
 const FEED_MAX = 5
+/** Vergleiche gegen andere Fahrer erst ab so vielen Fahrern, darunter entfallen Satz und Kachel. */
+export const MIN_PEERS = 5
 
 export function petrolCostEur(distanceKm: number | null, eurPerLitre: number): number | null {
   if (distanceKm == null || distanceKm <= 0) return null
@@ -203,6 +207,21 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
     ...(comparison && 'projection' in comparison ? { projection: comparison.projection } : {}),
   })
 
+  const hasDistance = m.totalDistanceKm != null && m.totalDistanceKm > 0 && m.avgConsumptionKwhPer100km != null
+  if (hasDistance && input.wltpConsumption != null && input.wltpConsumption > 0) {
+    const d = pct(m.avgConsumptionKwhPer100km!, input.wltpConsumption)
+    tiles.push({
+      id: 'wltp',
+      value: m.avgConsumptionKwhPer100km!,
+      delta: null,
+      deltaPercent: d,
+      sentiment: d > WLTP_WARN_PERCENT ? 'warn' : 'good',
+      spark: input.monthlyConsumption,
+      sparkVariant: 'line',
+      reference: input.wltpConsumption,
+    })
+  }
+
   if (input.flow) {
     const p = input.flow.lossPercent
     tiles.push({
@@ -230,23 +249,8 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
     })
   }
 
-  const hasDistance = m.totalDistanceKm != null && m.totalDistanceKm > 0 && m.avgConsumptionKwhPer100km != null
-  if (hasDistance && input.wltpConsumption != null && input.wltpConsumption > 0) {
-    const d = pct(m.avgConsumptionKwhPer100km!, input.wltpConsumption)
-    tiles.push({
-      id: 'wltp',
-      value: m.avgConsumptionKwhPer100km!,
-      delta: null,
-      deltaPercent: d,
-      sentiment: d > WLTP_WARN_PERCENT ? 'warn' : 'good',
-      spark: input.monthlyConsumption,
-      sparkVariant: 'line',
-      reference: input.wltpConsumption,
-    })
-  }
-
   const pb = m.peerBenchmark
-  if (pb && pb.userPeriodConsumptionKwhPer100km != null && pb.peerAvgConsumptionKwhPer100km != null && pb.uniquePeerUsers > 0) {
+  if (pb && pb.userPeriodConsumptionKwhPer100km != null && pb.peerAvgConsumptionKwhPer100km != null && pb.uniquePeerUsers >= MIN_PEERS) {
     const d = pct(pb.userPeriodConsumptionKwhPer100km, pb.peerAvgConsumptionKwhPer100km)
     tiles.push({
       id: 'peer',
@@ -270,20 +274,7 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
       spark: [100, input.sohPercent],
       sparkVariant: 'range',
       odometerKm: input.odometerKm,
-    })
-  }
-
-  if (hasDistance) {
-    const c = co2Comparison(m.totalDistanceKm!, m.avgConsumptionKwhPer100km!)
-    tiles.push({
-      id: 'co2',
-      value: c.petrolKg - c.gridKg,
-      valueGreen: c.petrolKg - c.greenKg,
-      delta: null,
-      deltaPercent: null,
-      sentiment: 'good',
-      spark: [c.gridKg, c.greenKg, c.petrolKg],
-      sparkVariant: 'bars',
+      estimated: input.sohEstimated ?? false,
     })
   }
 
@@ -372,7 +363,7 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
   }
 
   const pb = m.peerBenchmark
-  if (pb?.userPeriodCostPerKwh != null && pb.peerAvgCostPerKwh != null && pb.uniquePeerUsers > 0) {
+  if (pb?.userPeriodCostPerKwh != null && pb.peerAvgCostPerKwh != null && pb.uniquePeerUsers >= MIN_PEERS) {
     const diff = pb.userPeriodCostPerKwh - pb.peerAvgCostPerKwh
     items.push({
       id: 'peer_position',
@@ -447,8 +438,17 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
     : input.temperatureLocked && !temp
       ? { id: 'temperature_locked', question: 2, relevance: 0, sentiment: 'neutral', locked: true, params: {} }
       : null
-  if (!locked) return ranked.slice(0, FEED_MAX)
-  return [...ranked.slice(0, FEED_MAX - 1), locked]
+  const slots = locked ? FEED_MAX - 1 : FEED_MAX
+  const shown = withOnePositive(ranked, slots)
+  return locked ? [...shown, locked] : shown
+}
+
+/** Die ersten n nach Relevanz; fehlt darin ein positiver Satz, ersetzt der beste positive den letzten Platz. */
+function withOnePositive(ranked: StoryFeedItem[], n: number): StoryFeedItem[] {
+  const top = ranked.slice(0, n)
+  if (top.some(i => i.sentiment === 'good')) return top
+  const good = ranked.slice(n).find(i => i.sentiment === 'good')
+  return good && top.length === n ? [...top.slice(0, n - 1), good] : top
 }
 
 export function monthWindow(year: number, month: number, offset = 0): { start: string; end: string } {

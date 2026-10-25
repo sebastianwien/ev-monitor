@@ -43,4 +43,55 @@ describe('StoryTile Kosten', () => {
   it('ohne Vormonat bleibt "kein Vormonat"', () => {
     expect(mount(cost({ value: 21 }))).toContain('kein Vormonat')
   })
+
+  it('wenige Ladungen: kein Chip in der Kachel, die Zahl steht in der Qualitätszeile', () => {
+    expect(mount(cost({ value: 21, thinCharges: 2 }))).not.toContain('nur 2 Ladungen')
+  })
+})
+
+describe('StoryTile Vergleich mit anderen', () => {
+  const peer = (over: Partial<Tile> = {}): Tile => ({
+    id: 'peer', value: 26.9, delta: null, deltaPercent: 44, sentiment: 'warn', spark: [18.6, 26.9], sparkVariant: 'range', peerCount: 11, ...over,
+  })
+
+  it('nennt Prozent und Zahl der Fahrer', () => {
+    expect(mount(peer())).toContain('44 % mehr als 11 Fahrer')
+  })
+
+  it('bei wenigen Ladungen nur den Schnitt der anderen, kein Prozentsatz', () => {
+    const text = mount(peer({ thinCharges: 2 }))
+    expect(text).toContain('Schnitt 18,6, 11 Autos')
+    expect(text).not.toContain('%')
+  })
+
+  it('feste Höhe, Inhalt oben: Grafik sitzt am unteren Rand', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    app = createApp(StoryTile, { tile: peer() })
+    app.use(createPinia()).use(i18n)
+    app.mount(host)
+    const btn = host.querySelector('button')!
+    expect(btn.className).toContain('h-[150px]')
+    expect(btn.className).toContain('md:h-[160px]')
+    expect(host.querySelector('[data-role="graphic"]')?.className).toContain('mt-auto')
+  })
+})
+
+describe('StoryTile Akku und Reichweite', () => {
+  it('geschätzter Akkuwert mit Tilde und Hinweis, eigene Angabe ohne', () => {
+    const battery = (estimated: boolean): Tile => ({ id: 'battery', value: 92, delta: null, deltaPercent: null, sentiment: 'good', spark: [100, 92], sparkVariant: 'range', odometerKm: 66265, estimated })
+    const est = mount(battery(true))
+    expect(est).toContain('~92')
+    expect(est).toContain('geschätzt')
+    app!.unmount(); app = null
+    const manual = mount(battery(false))
+    expect(manual).not.toContain('~')
+    expect(manual).not.toContain('geschätzt')
+  })
+
+  it('Reichweite nennt Basis und Ladefenster', () => {
+    const text = mount({ id: 'range', value: 201, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [201], sparkVariant: 'bars',
+      range: { consumption: 21, km: 201, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }], summer: null, winter: null } })
+    expect(text).toContain('Ø letzte 4 Wochen, 90 → 10 %')
+  })
 })

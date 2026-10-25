@@ -2,7 +2,7 @@
 import { ref, computed, defineAsyncComponent, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { ArrowUturnLeftIcon, MapIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { ArrowUturnLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import { provideCarContext } from '../composables/useCarContext'
 import { useDashboardStory, type StoryMonth, type StoryCarContext } from '../composables/useDashboardStory'
 import { useStoryOptIn } from '../composables/useStoryOptIn'
@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/auth'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
+import { useIsMobile } from '../composables/useIsMobile'
 import { analytics } from '../services/analytics'
 import { petrolCostEur, type TileId } from '../composables/storyModel'
 import { DAY } from '../composables/storyMoments'
@@ -24,13 +25,13 @@ import { carDisplayName } from '../utils/enumLabel'
 import { WORKSPACE_TABS } from '../config/tabs'
 import PublicNav from '../components/shared/PublicNav.vue'
 import ChoiceChip from '../components/shared/ChoiceChip.vue'
-import ModelBox from '../components/models/ModelBox.vue'
 import StoryHero from '../components/story/StoryHero.vue'
 import StoryMomentHero from '../components/story/StoryMomentHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
 import StoryLiveHero from '../components/story/StoryLiveHero.vue'
 import StoryTileRow from '../components/story/StoryTileRow.vue'
-import StoryFeedItem from '../components/story/StoryFeedItem.vue'
+import StoryFeed from '../components/story/StoryFeed.vue'
+import DataQualityLine from '../components/story/DataQualityLine.vue'
 import StoryMonthSwitch from '../components/story/StoryMonthSwitch.vue'
 import LicensePlate from '../components/car/LicensePlate.vue'
 
@@ -117,14 +118,18 @@ watch(() => heroMode.value === 'moment' ? moment.value.key : null, (key) => {
 }, { immediate: true })
 
 const shareStatus = ref<ShareOutcome | null>(null)
-async function shareMoment() {
-  const v = heroView.value
-  shareStatus.value = await shareOrCopy({
-    title: v.eyebrow,
-    text: [v.sentence, v.sub].filter(Boolean).join(' '),
-    url: window.location.origin,
-  })
+async function share(title: string, text: string) {
+  shareStatus.value = await shareOrCopy({ title, text, url: window.location.origin })
   if (shareStatus.value !== 'shared') setTimeout(() => { shareStatus.value = null }, 3000)
+}
+function shareMoment() {
+  const v = heroView.value
+  share(v.eyebrow, [v.sentence, v.sub].filter(Boolean).join(' '))
+}
+function shareMonth(text: string) {
+  haptic()
+  analytics.track('story_hero_shared')
+  share(monthLabel(month.value), text)
 }
 
 function onMomentAct(id: string) {
@@ -146,6 +151,11 @@ function onMomentDismiss() {
 }
 
 const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm ?? null, story.petrol.value.eurPerLitre))
+
+// Unter lg steht der Feed zwischen "Zuletzt" und den Kacheln, ab lg rechts neben dem Hero. Einmal gerendert, nicht zweimal.
+const narrow = useIsMobile('(max-width: 1023px)')
+const sheetIds = computed(() => tiles.value.map(x => x.id))
+const showFeed = computed(() => !loading.value && !error.value && (hasCharges.value || liveActive.value))
 
 // Desktop: die Ziele des eingeloggten Bereichs als Chips (mobil traegt die Bottom-Nav). Die Story ist das Dashboard.
 const workspaceTabs = computed(() => WORKSPACE_TABS.map(tab => ({ to: tab.to, label: t(tab.labelKey), active: tab.to === '/dashboard' })))
@@ -211,124 +221,100 @@ onMounted(() => analytics.track('story_viewed'))
 <template>
   <div class="min-h-screen bg-gray-100 md:bg-gray-50 dark:bg-gray-950" data-testid="story-view">
     <PublicNav home />
-    <main class="mx-auto grid max-w-5xl gap-2 py-2 md:gap-5 md:px-6 md:py-8">
-      <nav class="hidden flex-wrap gap-2 md:flex" :aria-label="t('story.workspace_aria')">
-        <ChoiceChip v-for="tab in workspaceTabs" :key="tab.to" :href="tab.to" :active="tab.active" :aria-current="tab.active ? 'page' : undefined">
-          {{ tab.label }}
-        </ChoiceChip>
-      </nav>
+    <nav class="mx-auto hidden max-w-6xl flex-wrap gap-2 px-6 pt-4 md:flex" :aria-label="t('story.workspace_aria')">
+      <ChoiceChip v-for="tab in workspaceTabs" :key="tab.to" :href="tab.to" :active="tab.active" :aria-current="tab.active ? 'page' : undefined">
+        {{ tab.label }}
+      </ChoiceChip>
+    </nav>
+    <main class="mx-auto grid max-w-6xl grid-cols-1 gap-4 pb-6 md:px-6 md:pb-12 md:pt-4">
+      <!-- Eine Box: ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts der Feed. -->
+      <section class="grid grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box">
+        <div class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7">
+          <header class="flex items-center justify-between gap-2">
+            <div class="flex min-w-0 items-center gap-2">
+              <h1 class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">
+                {{ selectedCar ? carDisplayName(selectedCar) : t('story.title') }}
+              </h1>
+              <span v-if="selectedCar?.licensePlate" class="hidden sm:inline-flex"><LicensePlate :plate="selectedCar.licensePlate" size="sm" /></span>
+            </div>
+            <StoryMonthSwitch :months="months" :offset="offset" :label-of="monthLabelShort" @select="selectMonth" />
+          </header>
 
-      <ModelBox data-testid="story-hero-box">
-        <header class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex min-w-0 items-center gap-2">
-            <h1 class="truncate text-[15px] font-extrabold text-gray-900 dark:text-gray-50">
-              {{ selectedCar ? carDisplayName(selectedCar) : t('story.title') }}
-            </h1>
-            <LicensePlate v-if="selectedCar?.licensePlate" :plate="selectedCar.licensePlate" size="sm" class="hidden sm:inline-flex" />
+          <p v-if="charging && !liveActive" class="flex items-center gap-2 text-[13px] text-story-accent dark:text-story-accent-dark" data-testid="story-live">
+            <span class="h-1.5 w-1.5 rounded-full bg-current motion-safe:animate-pulse" />{{ t('story.live_charging') }}
+          </p>
+
+          <div v-if="!noteSeen" class="flex items-start gap-3 rounded-md border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600 dark:border-gray-600 dark:text-gray-300">
+            <span class="flex-1">{{ t('story.experiment_note') }}</span>
+            <button type="button" class="-my-2 min-h-[44px] font-semibold underline" @click="dismissNote">OK</button>
           </div>
-          <StoryMonthSwitch :months="months" :offset="offset" :label-of="monthLabelShort" @select="selectMonth" />
-        </header>
 
-        <p v-if="charging && !liveActive" class="flex items-center gap-2 text-[13px] text-story-accent dark:text-story-accent-dark" data-testid="story-live">
-          <span class="h-1.5 w-1.5 rounded-full bg-current motion-safe:animate-pulse" />{{ t('story.live_charging') }}
-        </p>
-
-        <div v-if="!noteSeen" class="flex items-start gap-3 rounded-md border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600 dark:border-gray-600 dark:text-gray-300">
-          <span class="flex-1">{{ t('story.experiment_note') }}</span>
-          <button type="button" class="-my-2 min-h-[44px] font-semibold underline" @click="dismissNote">OK</button>
-        </div>
-
-        <div v-if="loading && !monthStats" class="animate-pulse" aria-busy="true">
-          <div class="h-9 w-72 max-w-full rounded bg-gray-200 dark:bg-gray-700" />
-          <div class="mt-3 h-9 w-56 max-w-full rounded bg-gray-200 dark:bg-gray-700" />
-          <div class="mt-6 flex gap-3">
-            <div v-for="i in 3" :key="i" class="h-36 flex-1 rounded-2xl bg-gray-200 dark:bg-gray-700" />
+          <div v-if="loading && !monthStats" class="animate-pulse" aria-busy="true">
+            <div class="h-8 w-72 max-w-full rounded bg-gray-200 dark:bg-gray-700" />
+            <div class="mt-2 h-4 w-56 max-w-full rounded bg-gray-200 dark:bg-gray-700" />
+            <div class="mt-6 grid gap-2 md:grid-cols-2">
+              <div v-for="i in 2" :key="i" class="h-12 rounded-xl bg-gray-200 dark:bg-gray-700" />
+            </div>
           </div>
-        </div>
 
-        <div v-else-if="error" class="text-sm text-rose-700 dark:text-rose-300">
-          {{ t('story.error') }}
-          <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="story.reload()">{{ t('story.retry') }}</button>
-        </div>
-
-        <div v-else-if="!hasCharges && heroMode === 'month'" class="py-4 text-center">
-          <p class="text-lg font-bold text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
-          <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ t('story.empty_body') }}</p>
-        </div>
-
-        <template v-else>
-          <div @pointerdown="onPointerDown" @pointerup="onPointerUp">
-            <Transition name="story-hero" mode="out-in">
-              <StoryLiveHero v-if="heroMode === 'live' && live" key="live" :live="live" />
-              <div v-else-if="heroMode === 'moment'" :key="moment.key" class="grid gap-3">
-                <StoryMomentHero :moment="moment" :car-id="selectedCarId" :car-name="carName" @act="onMomentAct" @dismiss="onMomentDismiss" />
-                <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
-                  {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
-                </p>
-                <button
-                  v-if="hasCharges"
-                  type="button"
-                  data-testid="story-moment-show-month"
-                  class="inline-flex min-h-[44px] items-center gap-1 justify-self-start text-sm font-semibold text-gray-600 underline underline-offset-2 dark:text-gray-300"
-                  @click="showMonth = true">
-                  {{ t('story.moment_show_month', { month: monthLabel(month) }) }}<ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-              <StoryHero
-                v-else
-                key="month"
-                :month-label="monthLabel(month)"
-                :distance-km="monthStats?.totalDistanceKm ?? null"
-                :energy-cost-eur="monthStats?.energyCostEur ?? null"
-                :charges="monthStats?.totalCharges ?? 0"
-                :petrol-eur="petrolEur"
-                :petrol-price-per-litre="story.petrol.value.eurPerLitre"
-                :petrol-price-live="story.petrol.value.live"
-                :days="days"
-                :layers="layers"
-                :quality="quality"
-                @layers="(open) => open && analytics.track('story_layers_opened')" />
-            </Transition>
+          <div v-else-if="error" class="text-sm text-rose-700 dark:text-rose-300">
+            {{ t('story.error') }}
+            <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="story.reload()">{{ t('story.retry') }}</button>
           </div>
-          <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
-        </template>
-      </ModelBox>
 
-      <ModelBox v-if="story.latest.value" aria-labelledby="story-latest-title">
-        <h2 id="story-latest-title" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('story.latest_title') }}</h2>
-        <StoryLatestCards :latest="story.latest.value" :car-id="selectedCarId" :price-in-hero="priceInHero" />
-      </ModelBox>
+          <div v-else-if="!hasCharges && heroMode === 'month'" class="py-4 text-center">
+            <p class="text-lg font-bold text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ t('story.empty_body') }}</p>
+          </div>
 
-      <ModelBox v-if="!loading && !error && (hasCharges || liveActive)" aria-labelledby="story-feed-title">
-        <div class="grid gap-1">
-          <h2 id="story-feed-title" class="text-[21px] font-bold tracking-tight text-gray-900 md:text-[24px] dark:text-gray-100">{{ t('story.feed_title') }}</h2>
-          <p class="text-[13.5px] text-gray-500 dark:text-gray-400">{{ t('story.feed_sub') }}</p>
+          <template v-else>
+            <div @pointerdown="onPointerDown" @pointerup="onPointerUp">
+              <Transition name="story-hero" mode="out-in">
+                <StoryLiveHero v-if="heroMode === 'live' && live" key="live" :live="live" />
+                <div v-else-if="heroMode === 'moment'" :key="moment.key" class="grid gap-3">
+                  <StoryMomentHero :moment="moment" :car-id="selectedCarId" :car-name="carName" @act="onMomentAct" @dismiss="onMomentDismiss" />
+                  <button
+                    v-if="hasCharges"
+                    type="button"
+                    data-testid="story-moment-show-month"
+                    class="inline-flex min-h-[44px] items-center gap-1 justify-self-start text-sm font-semibold text-gray-600 underline underline-offset-2 dark:text-gray-300"
+                    @click="showMonth = true">
+                    {{ t('story.moment_show_month', { month: monthLabel(month) }) }}<ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+                <StoryHero
+                  v-else
+                  key="month"
+                  :month-label="monthLabel(month)"
+                  :distance-km="monthStats?.totalDistanceKm ?? null"
+                  :energy-cost-eur="monthStats?.energyCostEur ?? null"
+                  :charges="monthStats?.totalCharges ?? 0"
+                  :petrol-eur="petrolEur"
+                  :layers="layers"
+                  @share="shareMonth"
+                  @layers="(open) => open && analytics.track('story_layers_opened')" />
+              </Transition>
+            </div>
+            <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
+              {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
+            </p>
+            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :days="days" :quality="quality" />
+            <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" :car-id="selectedCarId" :price-in-hero="priceInHero" />
+            <StoryFeed
+              v-if="narrow && showFeed"
+              :feed="feed" :upsell-to="upsellTo" :what-if="story.whatIf.value" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
+              @open="openSheet" @map="openMap = true" />
+            <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
+          </template>
         </div>
-        <div>
-          <StoryFeedItem
-            v-for="item in feed"
-            :key="item.moment?.key ?? item.id"
-            :item="item"
-            :upsell-to="upsellTo"
-            :what-if="story.whatIf.value"
-            :car-id="selectedCarId"
-            :car-name="carName" />
+        <div v-if="!narrow && showFeed" class="min-w-0 lg:col-span-5 lg:pt-9">
+          <StoryFeed
+            :feed="feed" :upsell-to="upsellTo" :what-if="story.whatIf.value" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
+            @open="openSheet" @map="openMap = true" />
         </div>
-        <button
-          type="button"
-          data-testid="story-map-open"
-          class="flex min-h-[44px] w-full items-center gap-3 rounded-2xl bg-white px-4 py-3.5 text-left edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none dark:bg-gray-800"
-          @click="openMap = true">
-          <MapIcon class="h-6 w-6 shrink-0 text-story-accent dark:text-story-accent-dark" />
-          <span class="min-w-0 flex-1">
-            <span class="block font-semibold text-gray-900 dark:text-gray-50">{{ t('story.map_title') }}</span>
-            <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t('story.map_sub') }}</span>
-          </span>
-          <ChevronRightIcon class="h-5 w-5 text-gray-400" />
-        </button>
-      </ModelBox>
+      </section>
 
-      <div class="px-4 pb-4 md:px-0">
+      <div class="px-4 md:px-0">
         <button type="button" class="inline-flex min-h-[44px] items-center gap-2 text-sm text-gray-500 underline underline-offset-2 dark:text-gray-400" data-testid="story-back" @click="backToClassic">
           <ArrowUturnLeftIcon class="h-4 w-4" />{{ t('story.back_to_dashboard') }}
         </button>

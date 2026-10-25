@@ -59,7 +59,7 @@ test.describe('Story-Dashboard', () => {
     await page.waitForLoadState('networkidle');
 
     // Jede sichtbare Kachel muss ein Sheet oeffnen und wieder schliessen koennen.
-    for (const id of ['cost', 'flow', 'range', 'wltp', 'peer', 'battery', 'co2']) {
+    for (const id of ['cost', 'flow', 'range', 'wltp', 'peer', 'battery']) {
       const tile = page.getByTestId(`story-tile-${id}`);
       if (!(await tile.isVisible())) continue;
       await tile.click();

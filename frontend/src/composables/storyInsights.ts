@@ -97,6 +97,11 @@ export interface WhatIfModel {
   isUser: boolean
 }
 
+/** "Model 3 Premium RWD Highland (82.00kWh)" wird "Model 3 Premium RWD Highland". */
+export function modelNameWithoutCapacity(name: string): string {
+  return name.replace(/\s*\([\d.,]+\s*kWh\)\s*$/i, '')
+}
+
 /** Leer ohne Nutzerwert. Modelle ohne Verbrauch oder Preis fallen weg. Aufsteigend nach Kosten. */
 export function whatIfModels(items: PeerModelComparisonItem[], userCostPer100km: number | null): WhatIfModel[] {
   if (userCostPer100km == null || userCostPer100km <= 0) return []
@@ -105,7 +110,7 @@ export function whatIfModels(items: PeerModelComparisonItem[], userCostPer100km:
     const cost = calcCostPer100km(it.peerMetrics.avgCostPerKwh, it.peerMetrics.avgConsumptionKwhPer100km)
     if (cost == null) continue
     out.push({
-      name: it.displayName,
+      name: modelNameWithoutCapacity(it.displayName),
       costPer100km: cost,
       deltaPercent: ((cost - userCostPer100km) / userCostPer100km) * 100,
       cars: it.peerMetrics.uniqueCars,
@@ -177,12 +182,16 @@ export interface LatestCharge {
   at: string
   kwh: number | null
   costEur: number | null
+  cpoName?: string | null
+  chargingType?: string | null
 }
 
 export interface LatestTrip {
   id: string
   at: string
   km: number | null
+  /** CITY, COMBINED oder HIGHWAY. */
+  routeType?: string | null
 }
 
 /** "Zuletzt"-Zeile im Hero: letzte Ladung und letzte Fahrt des Autos, unabhaengig vom gewaehlten Monat. */
@@ -197,10 +206,13 @@ export interface LatestLogSource {
   kwhCharged?: number | null
   kwhAtVehicle?: number | null
   costEur?: number | null
+  cpoName?: string | null
+  chargingType?: string | null
 }
 
 export interface LatestTripSource {
   id: string
+  routeType?: string | null
   tripStartedAt?: string | null
   tripEndedAt?: string | null
   distanceKm?: number | null
@@ -209,10 +221,16 @@ export interface LatestTripSource {
 /** Fahrzeug-kWh vor Saeulen-kWh (wie die Ladeliste), Fahrt nach ihrem Ende datiert. Null ohne beides. */
 export function buildLatest(log: LatestLogSource | null | undefined, trip: LatestTripSource | null | undefined): StoryLatest | null {
   const charge: LatestCharge | null = log
-    ? { id: log.id, at: log.loggedAt, kwh: log.kwhAtVehicle ?? log.kwhCharged ?? null, costEur: log.costEur ?? null }
+    ? {
+      id: log.id, at: log.loggedAt, kwh: log.kwhAtVehicle ?? log.kwhCharged ?? null, costEur: log.costEur ?? null,
+      ...(log.cpoName ? { cpoName: log.cpoName } : {}),
+      ...(log.chargingType ? { chargingType: log.chargingType } : {}),
+    }
     : null
   const at = tripTimestamp(trip)
-  const latestTrip: LatestTrip | null = trip && at ? { id: trip.id, at, km: trip.distanceKm ?? null } : null
+  const latestTrip: LatestTrip | null = trip && at
+    ? { id: trip.id, at, km: trip.distanceKm ?? null, ...(trip.routeType ? { routeType: trip.routeType } : {}) }
+    : null
   if (!charge && !latestTrip) return null
   return { charge, trip: latestTrip }
 }

@@ -42,6 +42,15 @@ describe('StoryLatestCards', () => {
     expect(trip?.getAttribute('href')).toBe('/logs')
   })
 
+  it('Unterzeile mit Ladeort, Ladeart und Streckentyp, wenn bekannt', () => {
+    const host = mount({
+      charge: { id: 'l', at: '2026-10-01T18:00:00Z', kwh: 31.9, costEur: 12.4, cpoName: 'Tesla', chargingType: 'AC' },
+      trip: { id: 't', at: '2026-10-02T09:00:00Z', km: 2, routeType: 'CITY' },
+    }, now)
+    expect(text(host.querySelector('[data-testid="story-latest-charge"]'))).toContain('vor 18 Stunden · Tesla, AC · 12,40 €')
+    expect(text(host.querySelector('[data-testid="story-latest-trip"]'))).toContain('vor 3 Stunden · Stadt')
+  })
+
   it('ohne Preis führt die Ladung direkt zum Nachtragen', () => {
     const host = mount({ charge: { id: 'l', at: '2026-10-02T11:59:30Z', kwh: 10, costEur: null }, trip: null }, now)
     const charge = host.querySelector('[data-testid="story-latest-charge"]')

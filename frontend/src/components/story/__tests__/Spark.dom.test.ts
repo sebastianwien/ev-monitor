@@ -43,3 +43,20 @@ describe('Spark', () => {
     app.unmount()
   })
 })
+
+describe('Spark mit Endwert', () => {
+  it('schreibt den letzten Wert rechts neben die Linie, auf Höhe des Endpunkts', () => {
+    const { el, app } = mount({ values: [10, 20, 40], variant: 'line', endLabel: '40 €' })
+    const label = el.querySelector('[data-role="end-label"]') as HTMLElement
+    expect(label.textContent).toBe('40 €')
+    // Höchster Wert: Endpunkt oben (PAD von 44 = 9 %)
+    expect(label.style.top).toBe('9.1%')
+    app.unmount()
+  })
+
+  it('ohne Endwert kein Platz dafür', () => {
+    const { el, app } = mount({ values: [10, 20, 40], variant: 'line' })
+    expect(el.querySelector('[data-role="end-label"]')).toBeNull()
+    app.unmount()
+  })
+})

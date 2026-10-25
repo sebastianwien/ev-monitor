@@ -8,14 +8,14 @@ import type { StoryLatest } from '../../composables/storyInsights'
 import { keepUnits } from '../../utils/modelStory'
 
 /**
- * "Zuletzt": letzte Ladung und letzte Fahrt als zwei tippbare Karten. Beantwortet "ist meine
- * Ladung angekommen" und führt, wenn ihr der Preis fehlt, direkt zum Nachtragen.
+ * "Zuletzt": letzte Ladung und letzte Fahrt als je eine tippbare Zeile mit Chevron. Beantwortet
+ * "ist meine Ladung angekommen" und führt, wenn ihr der Preis fehlt, direkt zum Nachtragen.
  */
 const props = defineProps<{
   latest: StoryLatest
   carId: string | null
   now?: number
-  /** Der Moment-Hero bietet das Nachtragen dieser Ladung schon an: hier kein zweiter Knopf. */
+  /** Der Moment-Hero bietet das Nachtragen dieser Ladung schon an: hier kein zweiter Chip. */
   priceInHero?: boolean
 }>()
 const { t, locale } = useI18n()
@@ -34,7 +34,7 @@ const charge = computed(() => {
   const missingPrice = c.costEur == null
   return {
     title: c.kwh != null ? keepUnits(t('story.latest_charged', { kwh: `${formatDecimal(c.kwh, 1)} kWh` })) : t('story.latest_charged_plain'),
-    sub: [when(c.at), c.costEur != null ? formatCurrency(c.costEur) : null].filter(Boolean).join(' · '),
+    sub: [when(c.at), [c.cpoName, c.chargingType].filter(Boolean).join(', ') || null, c.costEur != null ? formatCurrency(c.costEur) : null].filter(Boolean).join(' · '),
     missingPrice,
     // Einstieg wie aus der Monatsrückblick-Mail: LogsView öffnet die Ladungen ohne Preis.
     to: missingPrice && props.carId ? `/logs?car=${encodeURIComponent(props.carId)}&nachtragen=preis` : '/logs',
@@ -45,31 +45,31 @@ const trip = computed(() => {
   if (!tr) return null
   return {
     title: tr.km != null ? keepUnits(t('story.latest_drove', { km: formatDistance(tr.km, { round: true }) })) : t('story.latest_drove_plain'),
-    sub: when(tr.at),
+    sub: [when(tr.at), tr.routeType ? t(`model.route_type_${tr.routeType.toLowerCase()}`) : null].filter(Boolean).join(' · '),
   }
 })
 
-const card = 'flex min-h-[64px] items-center gap-3 rounded-2xl bg-white px-4 py-3 edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-800'
+const row = 'flex h-12 items-center gap-2.5 rounded-xl bg-white px-3 edge-card transition-transform active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-800'
 </script>
 
 <template>
-  <div class="grid gap-2.5 md:grid-cols-2 md:gap-4" data-testid="story-latest">
-    <router-link v-if="charge" :to="charge.to" :class="card" data-testid="story-latest-charge">
-      <BoltIcon class="h-6 w-6 shrink-0 text-story-accent dark:text-story-accent-dark" aria-hidden="true" />
-      <span class="min-w-0 flex-1">
-        <span class="block font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ charge.title }}</span>
-        <span class="block text-[13px] text-gray-500 tabular-nums dark:text-gray-400">{{ charge.sub }}</span>
-        <span v-if="charge.missingPrice && !priceInHero" class="mt-2 inline-flex rounded-full bg-gray-900 px-3 py-1.5 text-[13px] font-semibold text-white dark:bg-gray-100 dark:text-gray-900">{{ t('story.latest_add_price') }}</span>
+  <div class="grid gap-2 md:grid-cols-2" data-testid="story-latest">
+    <router-link v-if="charge" :to="charge.to" :class="row" data-testid="story-latest-charge">
+      <BoltIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+      <span class="min-w-0 flex-1 leading-tight">
+        <span class="block truncate text-[14px] font-semibold text-gray-900 tabular-nums dark:text-gray-50">{{ charge.title }}</span>
+        <span v-if="charge.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400">{{ charge.sub }}</span>
       </span>
-      <ChevronRightIcon class="h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
+      <span v-if="charge.missingPrice && !priceInHero" class="shrink-0 rounded-sm bg-amber-100 px-2 py-1 text-[12px] font-semibold text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_add_price') }}</span>
+      <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
     </router-link>
-    <router-link v-if="trip" to="/logs" :class="card" data-testid="story-latest-trip">
-      <MapIcon class="h-6 w-6 shrink-0 text-story-accent dark:text-story-accent-dark" aria-hidden="true" />
-      <span class="min-w-0 flex-1">
-        <span class="block font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ trip.title }}</span>
-        <span class="block text-[13px] text-gray-500 tabular-nums dark:text-gray-400">{{ trip.sub }}</span>
+    <router-link v-if="trip" to="/logs" :class="row" data-testid="story-latest-trip">
+      <MapIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+      <span class="min-w-0 flex-1 leading-tight">
+        <span class="block truncate text-[14px] font-semibold text-gray-900 tabular-nums dark:text-gray-50">{{ trip.title }}</span>
+        <span v-if="trip.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400">{{ trip.sub }}</span>
       </span>
-      <ChevronRightIcon class="h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
+      <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
     </router-link>
   </div>
 </template>

@@ -70,9 +70,9 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
 }
 
 describe('buildStoryTiles', () => {
-  it('liefert fünf Kacheln, wenn alle Daten da sind', () => {
+  it('liefert vier Kacheln, wenn alle Daten da sind, keine CO₂-Kachel', () => {
     const tiles = buildStoryTiles(input())
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'peer', 'battery', 'co2'])
+    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'peer', 'battery'])
   })
 
   it('Kosten-Kachel: Wert, Delta zum Vormonat, Sparkline', () => {
@@ -112,13 +112,6 @@ describe('buildStoryTiles', () => {
     expect(peer.peerCount).toBe(312)
   })
 
-  it('CO2-Kachel: Ersparnis mit Strommix und mit Ökostrom', () => {
-    const co2 = buildStoryTiles(input()).find(t => t.id === 'co2')!
-    // Benziner 178 g/km * 2931 km = 521,7 kg; Strommix 17,9/100*380 = 68 g/km -> 199,4 kg
-    expect(co2.value).toBeCloseTo(322, 0)
-    expect(co2.valueGreen).toBeCloseTo(506, 0)
-  })
-
   it('markiert Monatskacheln mit weniger als drei Ladungen als duenne Basis', () => {
     const thin = buildStoryTiles(input({ month: stats({ totalCharges: 2 }) }))
     expect(thin.find(t => t.id === 'cost')!.thinCharges).toBe(2)
@@ -136,7 +129,7 @@ describe('buildStoryTiles', () => {
       sohPercent: null,
       month: stats({ peerBenchmark: null }),
     }))
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'co2'])
+    expect(tiles.map(t => t.id)).toEqual(['cost'])
   })
 
   it('ohne Strecke gibt es weder WLTP noch CO2', () => {
@@ -360,9 +353,34 @@ const flow = { gridKwh: 524, vehicleKwh: 472, lossKwh: 52, lossPercent: 10, acKw
 const range = { consumption: 21, km: 229, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 229 }], summer: null, winter: { consumption: 21, km: 229 } }
 
 describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
-  it('ordnet sieben Kacheln fest nach Fahrerfrage', () => {
+  it('ordnet sechs Kacheln fest wie der Dummy: Kosten, Hersteller, Strom, Reichweite, andere, Akku', () => {
     const tiles = buildStoryTiles(input({ flow, range }))
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'flow', 'range', 'wltp', 'peer', 'battery', 'co2'])
+    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'flow', 'range', 'peer', 'battery'])
+  })
+
+  it('Vergleich mit anderen erst ab 5 Fahrern: Kachel und Preis-Satz entfallen darunter', () => {
+    const few = stats({ peerBenchmark: { ...stats().peerBenchmark!, uniquePeerUsers: 4 } })
+    expect(buildStoryTiles(input({ month: few })).map(t => t.id)).not.toContain('peer')
+    expect(buildStoryFeed(input({ month: few })).map(f => f.id)).not.toContain('peer_position')
+    const five = stats({ peerBenchmark: { ...stats().peerBenchmark!, uniquePeerUsers: 5 } })
+    expect(buildStoryTiles(input({ month: five })).map(t => t.id)).toContain('peer')
+  })
+
+  it('Akku-Kachel trägt, ob der Wert geschätzt ist', () => {
+    expect(buildStoryTiles(input({ sohEstimated: true })).find(t => t.id === 'battery')!.estimated).toBe(true)
+    expect(buildStoryTiles(input({ sohEstimated: false })).find(t => t.id === 'battery')!.estimated).toBe(false)
+  })
+})
+
+describe('buildStoryFeed: mindestens ein positiver Satz', () => {
+  it('holt den besten positiven Satz in die fünf Plätze, wenn keiner darin ist', () => {
+    const neg = (id: string, relevance: number) => ({ id: 'moment', question: 1, relevance, sentiment: 'warn', params: {}, moment: { key: id } }) as never
+    const feed = buildStoryFeed(input({ energySplitLocked: false, savingsEur: 120 }), {
+      extra: [neg('a', 99), neg('b', 98), neg('c', 97), neg('d', 96), neg('e', 95)],
+    })
+    expect(feed).toHaveLength(5)
+    expect(feed.some(f => f.sentiment === 'good')).toBe(true)
+    expect(feed[feed.length - 1].sentiment).toBe('good')
   })
 
   it('Fluss-Kachel: Verlust in Prozent, Stimmung nach Schwelle, Rohdaten fuer die Grafik', () => {
