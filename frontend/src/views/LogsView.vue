@@ -2161,7 +2161,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                   <button v-else-if="item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null" type="button"
                     class="inline-flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-gray-100" @click="startLogEdit(item.entry, $event)">
                     <span>{{ formatDecimal(Number(item.entry.kwhCharged), 1) }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
-                    <span>&middot; {{ chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle) }} % {{ t('dashboard.ac_gross_efficiency') }}</span>
+                    <span>&middot; {{ formatDecimal(Number(chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle)), 0) }} % {{ t('dashboard.ac_gross_efficiency') }}</span>
                   </button>
                   <button v-else type="button" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-gray-100" @click="startLogEdit(item.entry, $event)">
                     <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
@@ -2316,7 +2316,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       <div class="whitespace-nowrap">
                         <div class="font-semibold text-gray-800 dark:text-gray-100">+{{ formatDecimal(Number(topUp.kwhAtVehicle ?? topUp.kwhCharged ?? 0), 1) }} kWh</div>
                         <div v-if="topUp.kwhCharged != null && topUp.kwhAtVehicle != null" class="text-[11.5px] text-gray-500 dark:text-gray-400">
-                          {{ formatDecimal(Number(topUp.kwhCharged), 1) }} kWh {{ t('dashboard.ac_gross_label_brutto') }} &middot; {{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }} %
+                          {{ formatDecimal(Number(topUp.kwhCharged), 1) }} kWh {{ t('dashboard.ac_gross_label_brutto') }} &middot; {{ formatDecimal(Number(chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle)), 0) }} %
                         </div>
                       </div>
                       <div class="flex min-w-0 items-center gap-2 whitespace-nowrap text-gray-600 dark:text-gray-300">
@@ -2430,7 +2430,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                       <button v-else-if="item.entry.kwhCharged != null && item.entry.kwhAtVehicle != null" type="button"
                         class="inline-flex min-h-8 flex-wrap items-center gap-x-1.5 hover:text-gray-900 dark:hover:text-gray-100" @click.stop="startLogEdit(item.entry, $event)">
                         <span class="whitespace-nowrap">{{ formatDecimal(Number(item.entry.kwhCharged), 1) }} kWh {{ t('dashboard.ac_gross_label_brutto') }}</span>
-                        <span class="whitespace-nowrap">&middot; {{ chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle) }} % {{ t('dashboard.ac_gross_efficiency') }}</span>
+                        <span class="whitespace-nowrap">&middot; {{ formatDecimal(Number(chargingEfficiency(item.entry.kwhCharged, item.entry.kwhAtVehicle)), 0) }} % {{ t('dashboard.ac_gross_efficiency') }}</span>
                       </button>
                       <button v-else type="button" class="inline-flex min-h-8 items-center gap-1 whitespace-nowrap hover:text-gray-900 dark:hover:text-gray-100" @click.stop="startLogEdit(item.entry, $event)">
                         <PlusIcon class="h-3.5 w-3.5" aria-hidden="true" />
@@ -2627,7 +2627,7 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
                           <span class="block text-[12px] text-gray-500 dark:text-gray-400">
                             <template v-if="formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent)">{{ formatSocRange(topUp.socBeforeChargePercent, topUp.socAfterChargePercent) }}</template>
                             <template v-if="topUp.chargeDurationMinutes"> &middot; {{ formatPauseDuration(topUp.chargeDurationMinutes) }}</template>
-                            <template v-if="topUp.kwhCharged != null && topUp.kwhAtVehicle != null"> &middot; {{ chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle) }} % {{ t('dashboard.ac_gross_efficiency') }}</template>
+                            <template v-if="topUp.kwhCharged != null && topUp.kwhAtVehicle != null"> &middot; {{ formatDecimal(Number(chargingEfficiency(topUp.kwhCharged, topUp.kwhAtVehicle)), 0) }} % {{ t('dashboard.ac_gross_efficiency') }}</template>
                           </span>
                         </span>
                         <button v-if="(topUp.hasPowerCurve && authStore.canViewLiveAnalytics) || (topUp.hasSocCurve && authStore.canViewSocCurve)" type="button"
