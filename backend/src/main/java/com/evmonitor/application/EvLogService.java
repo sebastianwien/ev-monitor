@@ -293,6 +293,12 @@ public class EvLogService {
                 .count();
     }
 
+    /** Logs priced by a location batch, and the Watt it earned (capped per call, see BATCH_REWARD_CAP). */
+    public record TariffApplied(int priced, int coinsAwarded) {}
+
+    /** More than this many priced logs per batch earn nothing extra - keeps bulk backfills from becoming a Watt farm. */
+    static final int BATCH_REWARD_CAP = 20;
+
     /**
      * Retroactively prices every cost-less log of this user at this location with the given
      * charging card. Existing costs are never touched - the user's own numbers always win.
@@ -302,12 +308,6 @@ public class EvLogService {
      * previous log that already carries a providerId, and an import produces none.
      */
     @Transactional
-    /** Logs priced by a location batch, and the Watt it earned (capped per call, see BATCH_REWARD_CAP). */
-    public record TariffApplied(int priced, int coinsAwarded) {}
-
-    /** More than this many priced logs per batch earn nothing extra - keeps bulk backfills from becoming a Watt farm. */
-    static final int BATCH_REWARD_CAP = 20;
-
     public TariffApplied applyTariffAtLocation(UUID userId, String geohash, UUID providerId) {
         if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(providerId, userId)) {
             throw new ValidationException("CHARGING_PROVIDER_INVALID", "Ladekarte gehört nicht zu deinem Konto.");
