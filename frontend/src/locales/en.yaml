@@ -4300,7 +4300,7 @@ ranking_card:
   entry_lean_sub: "Consumption, range and cost, measured by drivers"
 
 story:
-  q_co2: "What does the planet save?"
+  q_co2: "How much CO₂ do I save?"
   q_charging: "How do I charge?"
   q_standby: "What does my car lose while parked?"
   sheet_co2_title: "CO₂ versus a petrol car"

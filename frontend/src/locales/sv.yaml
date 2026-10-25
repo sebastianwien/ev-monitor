@@ -4142,7 +4142,7 @@ ranking_card:
   entry_lean_sub: "Förbrukning, räckvidd och kostnad, uppmätt av förare"
 
 story:
-  q_co2: "Vad sparar miljön?"
+  q_co2: "Hur mycket CO₂ sparar jag?"
   q_charging: "Hur laddar jag?"
   q_standby: "Vad förlorar min bil när den står?"
   sheet_co2_title: "CO₂ mot en bensinbil"

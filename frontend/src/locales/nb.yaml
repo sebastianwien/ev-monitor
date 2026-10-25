@@ -4142,7 +4142,7 @@ ranking_card:
   entry_lean_sub: "Forbruk, rekkevidde og kostnad, målt av sjåfører"
 
 story:
-  q_co2: "Hva sparer miljøet?"
+  q_co2: "Hvor mye CO₂ sparer jeg?"
   q_charging: "Hvordan lader jeg?"
   q_standby: "Hva taper bilen min når den står?"
   sheet_co2_title: "CO₂ mot en bensinbil"

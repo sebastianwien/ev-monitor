@@ -138,7 +138,7 @@ describe('StoryTile CO₂, Laden, Stand', () => {
   const base = { delta: null, deltaPercent: null, sentiment: 'neutral' as const, spark: [], sparkVariant: 'bars' as const }
   it('CO₂: gesparte kg und Benziner gegen dein Auto in g/km', () => {
     const text = mount({ ...base, id: 'co2', value: 322.4, co2: { petrolGPerKm: 178, gridGPerKm: 68, greenGPerKm: 5.4 } })
-    expect(text).toContain('Was spart die Umwelt?')
+    expect(text).toContain('Wie viel CO₂ spare ich?')
     expect(text).toMatch(/322\s?kg CO₂ weniger/)
     expect(text).toContain('178 g/km')
     expect(text).toContain('68 g/km')

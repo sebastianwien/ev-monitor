@@ -4306,7 +4306,7 @@ ranking_card:
   entry_lean_sub: "Verbrauch, Reichweite und Kosten, von Fahrern gemessen"
 
 story:
-  q_co2: "Was spart die Umwelt?"
+  q_co2: "Wie viel CO₂ spare ich?"
   q_charging: "Wie lade ich?"
   q_standby: "Was verliert mein Auto im Stand?"
   sheet_co2_title: "CO₂ gegen einen Benziner"
