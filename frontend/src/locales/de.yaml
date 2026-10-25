@@ -4458,7 +4458,7 @@ story:
   flow_partial: "gemessen bei {covered} von {total} Ladungen"
   flow_loss_label: "Verlust"
   flow_home: "Zuhause"
-  flow_public: "Unterwegs"
+  flow_public: "Öffentlich"
   range_basis_recent: "Ø letzte 4 Wochen"
   range_basis_summer: "Sommer, Mai bis August, alle Jahre"
   range_basis_winter: "Winter, November bis Februar, alle Jahre"

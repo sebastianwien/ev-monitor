@@ -4294,7 +4294,7 @@ story:
   flow_partial: "mätt på {covered} av {total} laddningar"
   flow_loss_label: "Förlust"
   flow_home: "Hemma"
-  flow_public: "Ute"
+  flow_public: "Offentlig"
   range_basis_recent: "Ø senaste 4 veckorna"
   range_basis_summer: "Sommar, maj till augusti, alla år"
   range_basis_winter: "Vinter, november till februari, alla år"

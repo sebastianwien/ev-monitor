@@ -4452,7 +4452,7 @@ story:
   flow_partial: "measured on {covered} of {total} charges"
   flow_loss_label: "Loss"
   flow_home: "Home"
-  flow_public: "Away"
+  flow_public: "Public"
   range_basis_recent: "Ø last 4 weeks"
   range_basis_summer: "Summer, May to August, all years"
   range_basis_winter: "Winter, November to February, all years"

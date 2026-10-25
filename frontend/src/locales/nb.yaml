@@ -4294,7 +4294,7 @@ story:
   flow_partial: "målt på {covered} av {total} ladinger"
   flow_loss_label: "Tap"
   flow_home: "Hjemme"
-  flow_public: "Ute"
+  flow_public: "Offentlig"
   range_basis_recent: "Ø siste 4 uker"
   range_basis_summer: "Sommer, mai til august, alle år"
   range_basis_winter: "Vinter, november til februar, alle år"

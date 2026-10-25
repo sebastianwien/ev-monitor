@@ -26,11 +26,11 @@ function mount(f: EnergyFlow) {
 const text = (el: Element | null) => [...el!.querySelectorAll('[data-role="label"]')].map(x => x.textContent!.replace(/\s+/g, ' ').trim()).join(' ')
 
 describe('FlowBar', () => {
-  it('ein Balken Zuhause, Unterwegs, Verlust als Anteile des Netzstroms, jede Fläche mit Zahl', () => {
+  it('ein Balken Zuhause, Öffentlich, Verlust als Anteile des Netzstroms, jede Fläche mit Zahl', () => {
     const host = mount(flow())
     const segs = host.querySelectorAll('[data-role="segment"]')
     expect([...segs].map(s => (s as HTMLElement).style.width)).toEqual(['70%', '20%', '10%'])
-    expect(text(host)).toBe('Zuhause 70 % Unterwegs 20 % Verlust 10 %')
+    expect(text(host)).toBe('Zuhause 70 % Öffentlich 20 % Verlust 10 %')
   })
 
   it('ohne Ortsaufteilung ein Segment "Im Akku" plus Verlust', () => {
@@ -42,6 +42,6 @@ describe('FlowBar', () => {
 
   it('nur unterwegs geladen: kein Stück "Zuhause 0 %"', () => {
     const host = mount(flow({ privateKwh: 0, publicKwh: 50, lossPercent: 5 }))
-    expect(text(host)).toBe('Unterwegs 95 % Verlust 5 %')
+    expect(text(host)).toBe('Öffentlich 95 % Verlust 5 %')
   })
 })
