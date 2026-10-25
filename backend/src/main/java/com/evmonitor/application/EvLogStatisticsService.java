@@ -317,7 +317,7 @@ public class EvLogStatisticsService {
     }
 
     private EvLogStatisticsResponse createEmptyStatisticsWithFixedCostAndDistance(FixedCostTotals fixedCosts, BigDecimal distanceKm) {
-        var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, null);
         var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
         return new EvLogStatisticsResponse(
@@ -875,17 +875,32 @@ public class EvLogStatisticsService {
         BigDecimal ac = BigDecimal.ZERO;
         BigDecimal dc = BigDecimal.ZERO;
         BigDecimal unknown = BigDecimal.ZERO;
+        // Preis je kWh nur aus Ladungen mit Preis: eine preislose Ladung wuerde den Schnitt sonst druecken
+        BigDecimal acCost = BigDecimal.ZERO, acPricedKwh = BigDecimal.ZERO;
+        BigDecimal dcCost = BigDecimal.ZERO, dcPricedKwh = BigDecimal.ZERO;
         for (EvLog log : logs) {
             BigDecimal kwh = log.getKwhCharged() != null ? log.getKwhCharged() : log.getKwhAtVehicle();
             if (kwh == null) continue;
             ChargingType type = log.getChargingType() != null ? log.getChargingType() : ChargingType.UNKNOWN;
+            boolean priced = log.getCostEur() != null && kwh.signum() > 0;
             switch (type) {
-                case AC -> ac = ac.add(kwh);
-                case DC -> dc = dc.add(kwh);
+                case AC -> {
+                    ac = ac.add(kwh);
+                    if (priced) { acCost = acCost.add(log.getCostEur()); acPricedKwh = acPricedKwh.add(kwh); }
+                }
+                case DC -> {
+                    dc = dc.add(kwh);
+                    if (priced) { dcCost = dcCost.add(log.getCostEur()); dcPricedKwh = dcPricedKwh.add(kwh); }
+                }
                 default -> unknown = unknown.add(kwh);
             }
         }
-        return new EvLogStatisticsResponse.ChargingTypeSplit(ac, dc, unknown);
+        return new EvLogStatisticsResponse.ChargingTypeSplit(ac, dc, unknown,
+                perKwh(acCost, acPricedKwh), perKwh(dcCost, dcPricedKwh));
+    }
+
+    private static BigDecimal perKwh(BigDecimal cost, BigDecimal kwh) {
+        return kwh.signum() > 0 ? cost.divide(kwh, 2, RoundingMode.HALF_UP) : null;
     }
 
     /**

@@ -65,7 +65,11 @@ public record EvLogStatisticsResponse(
     public record ChargingTypeSplit(
             BigDecimal acKwh,
             BigDecimal dcKwh,
-            BigDecimal unknownKwh
+            BigDecimal unknownKwh,
+            /** Euro je kWh aus den AC-Ladungen mit Preis; null ohne bepreiste AC-Ladung. */
+            BigDecimal acEurPerKwh,
+            /** Euro je kWh aus den DC-Ladungen mit Preis; null ohne bepreiste DC-Ladung. */
+            BigDecimal dcEurPerKwh
     ) {}
 
     public record LocationSplit(
